@@ -1,0 +1,31 @@
+/* eslint-disable react/jsx-props-no-spreading */
+import React from "react";
+import type { IconProps } from "@/components/featured/Icon/Icon.types";
+
+const IconMicrophoneMute: React.FC<IconProps> = ({
+  size = 46,
+  strokeWidth = 1.5,
+  color = "currentColor",
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={size}
+    fill={props.fill}
+    stroke={color}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth={strokeWidth}
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <path d="M15.25 8.5V8a3.25 3.25 0 0 0-6.5 0v3.18c0 .047 0 .092.004.139.024.378.2 2.212 1.277 2.478" />
+    <path d="M18.25 12.75s-.25 4.5-6.25 4.5c-.342 0-.666-.015-.972-.042" />
+    <path d="M5.75 12.75s.105 1.891 1.814 3.222" />
+    <path d="M12 17.75v1.5" />
+    <path d="m18.25 5.75-12.5 12.5" />
+  </svg>
+);
+
+export default IconMicrophoneMute;

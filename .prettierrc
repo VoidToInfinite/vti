@@ -1,0 +1,29 @@
+{
+    "bracketSpacing": true,
+    "bracketSameLine": false,
+    "proseWrap": "never",
+    "quoteProps": "consistent",
+    "endOfLine": "crlf",
+    "singleAttributePerLine": true,
+    "semi": true,
+    "overrides": [
+        {
+            "files": ["*.ts", "*.test.js"],
+            "options": {
+                "semi": true
+            }
+        },
+        {
+            "files": ["*.tsx", "*.jsx"],
+            "options": {
+                "tabWidth": 2
+            }
+        },
+        {
+            "files": ["*.html", "legacy/**/*.js"],
+            "options": {
+                "tabWidth": 4
+            }
+        }
+    ]
+}

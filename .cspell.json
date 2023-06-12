@@ -1,0 +1,63 @@
+{
+	"version": "0.2",
+	"ignorePaths": [
+		".cspell.json",
+		".vscode/*.json",
+		"**/*.{json,snap}",
+		"**/**/CHANGELOG.md",
+		"**/**/CONTRIBUTORS.md",
+		"**/**/TSLINT_RULE_ALTERNATIVES.md",
+		"**/coverage/**",
+		"**/dist/**",
+		"**/fixtures/**",
+		"**/node_modules/**",
+		"packages/website/.docusaurus/**",
+		"packages/website/build/**",
+		"packages/website/src/vendor/**",
+		"yarn.lock"
+	],
+	"languageSettings": [
+		{
+			"languageId": "c,cpp,javascript,typescript,jsx",
+			"locale": "en, en-US, es"
+		}
+	],
+	"dictionaryDefinitions": [
+		{
+			"name": "cspell-words",
+			"path": "./.cspell/cspell-words.txt",
+			"addWords": true
+		},
+		{
+			"name": "cspell-es-words",
+			"path": "./.cspell/cspell-es-words.txt",
+			"addWords": true
+		}
+	],
+	"dictionaries": ["cspell-words", "cspell-es-words"],
+	"ignoreRegExpList": [
+		"/```[\\w\\W]*?```/",
+		"/~~~[\\w\\W]*?~~~/",
+		"/``[\\w\\W]*?``/",
+		"/`[^`]*`/",
+		"/\\.\\/docs\\/rules\\/[^.]*.md/",
+		"/@typescript-eslint\\/[a-z-]+/",
+		"/\\.all-contributorsrc/",
+		"/TS[^\\s]+/",
+		"\\(#.+?\\)"
+	],
+	"overrides": [
+		{
+			"filename": "**/*.{ts,mts,cts,js,cjs,mjs,tsx,jsx}",
+			"ignoreRegExpList": ["/@[a-z]+/", "/#(end)?region/"],
+			"includeRegExpList": [
+				"/\\/\\*[\\s\\S]*?\\*\\/|([^\\\\:]|^)\\/\\/.*$/",
+				"/(\\/\\/[^\\n\\r]*[\\n\\r]+)/"
+			]
+		}
+	],
+	// flagWords - list of words to be always considered incorrect
+	// This is useful for offensive words and common spelling errors.
+	// For example "hte" should be "the"
+	"flagWords": ["hte"]
+}

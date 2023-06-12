@@ -1,0 +1,35 @@
+{
+    "Home": {
+        "Head": {
+            "title": "VoidToInfinite",
+            "description": "Proyecto VoidToInfinite",
+            "keywords": "VoidToInfinite, VoidToInfinite Portfolio, VoidToInfinite Project, VoidToInfinite Learning, VoidToInfinite Imagination, VoidToInfinite Gaming, Portfolio, Team Project, VTI Project, VTI Learning, VTI Imagination, VTI Gaming"
+        },
+        "description": "Actualmente tu presente es tu futuro, solo que tu futuro debes seguir definiendolo",
+        "additionalDescription": "Aunque el infinito esta presente en todos lados, el conocimiento lo trae a la realidad",
+        "swipeUp": "Comencemos",
+        "about": {
+            "title":"Acerca de",
+            "description":"Somos un equipo con miembros de diferentes ambitos con la idea de crecer juntos compartiendo nuestros conocimientos y creando proyectos.",
+            "additionalDescription":"Actualmente tenemos un servidor de Discord. Tambien puedes seguir nuestros proyectos en github."
+        },
+        "sections": {
+            "title": "Nuestro presente",
+            "learning": {
+                "title": "Estudio",
+                "subtitle": "Aumenta tus conocimientos",
+                "description": "Conocer nuevos metodos, maneras de realizar tus proyectos y hacerlos realidad, mejorar puntos debiles y fortalecerte con ayuda de personas experimentadas o que estan aprendiendo, es mas divertido."
+            },
+            "imagination": {
+                "title": "Imaginacion",
+                "subtitle": "Manifiesta tu creatividad",
+                "description": "Imaginar cualquier concepto creativo sacado de tu interior expresando tus emociones causando nuevas sensaciones y visualizar el mensaje, es algo unico."
+            },
+            "gaming": {
+                "title": "Gaming",
+                "subtitle": "¡Buena suerte! ¡Diviertete!",
+                "description": "¿Divirtiendote con amigos? ¡Por supuesto!\n Todos somos conscientes de que jugando se aprende y eso es un hecho."
+            }
+        }
+    }
+}
