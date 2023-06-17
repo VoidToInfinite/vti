@@ -1,15 +1,27 @@
-/* eslint-disable max-lines-per-function */
-/* eslint-disable react/jsx-one-expression-per-line */
-/* eslint-disable react/no-unknown-property */
-/* eslint-disable jsx-a11y/anchor-is-valid */
-import Head from "next/head";
+import Box from "@/components/containers/Box/Box";
+import Flex from "@/components/containers/Flex/Flex";
+import Typography from "@/components/featured/Typography/Typography";
+import LayoutPage from "@/layout/LayoutPage/LayoutPage";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+// Page header
+const HEADERS = {
+  title: "",
+  description: "",
+  keywords: "",
+};
 
 const Error404 = () => {
+  const { t } = useTranslation("home");
   const router = useRouter();
   const [counter, setCounter] = useState<number>(15);
+  // Set page headers
+  HEADERS.title = t("Home.Head.title");
+  HEADERS.description = t("Home.Head.description");
+  HEADERS.keywords = t("Home.Head.keywords");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -27,88 +39,49 @@ const Error404 = () => {
   }, [counter, router]);
 
   return (
-    <>
-      <Head>
-        <title>Página no encontrada</title>
-      </Head>
-      <div className="error-container">
-        <h1 className="error-heading">404 - Página no encontrada</h1>
-        <p className="error-text">
-          Lo sentimos, la página que estás buscando no existe.
-        </p>
-        <div className="error-links">
-          <Link
-            href="/"
-            className="error-link"
-          >
-            Volver a la página principal
-          </Link>
-          <span className="error-link-separator">o</span>
-          <button
-            type="button"
-            className="error-link"
-            onClick={() => router.back()}
-            aria-label="Volver a la página anterior"
-          >
-            Volver a la página anterior
-          </button>
-        </div>
-        <div className="error-counter">
-          Esta página se redirigirá en {counter} segundos...
-        </div>
-      </div>
-      <style jsx>
-        {`
-          .error-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #f0f0f0;
-          }
-          .error-heading {
-            font-size: 5rem;
-            margin-bottom: 2rem;
-            position: relative;
-            text-shadow: 0 0 0.5rem #fff, 0 0 1.5rem #fff, 0 0 3rem #fff,
-              0 0 5rem #ff6700, 0 0 7rem #ff6700, 0 0 8rem #ff6700,
-              0 0 10rem #ff6700, 0 0 15rem #ff6700;
-            color: transparent;
-            background-clip: text;
-          }
-          .error-text {
-            font-size: 2rem;
-            margin-bottom: 2rem;
-          }
-          .error-links {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-bottom: 2rem;
-          }
-          .error-link {
-            font-size: 1.5rem;
-            color: #0070f3;
-            text-decoration: none;
-            margin: 0 1rem;
-          }
-          .error-link:hover {
-            text-decoration: underline;
-          }
-          .error-link-separator {
-            font-size: 1.5rem;
-            margin: 0 1rem;
-            color: #000;
-          }
-          .error-counter {
-            font-size: 1.2rem;
-            font-style: italic;
-            color: #666;
-          }
-        `}
-      </style>
-    </>
+    <Flex
+      container
+      height="50vh"
+      width="100%"
+      padding="8vh 6vw 0 6vw"
+      backgroundColor="transparent"
+      alignItems="center"
+      justifyContent="flex-start"
+      flexDirection="column"
+      gap="8px"
+      overflow="visible"
+    >
+      <Box>
+        <Typography
+          type="pHeroTitle"
+          value="404 - Página no encontrada"
+        />
+        <Typography
+          type="pHeroText"
+          value="Lo sentimos, la página que estás buscando no existe."
+        />
+      </Box>
+      <Box>
+        <Typography
+          type="p2"
+          value={`Esta página se redirigirá automaticamente en ${counter} segundos...`}
+        />
+      </Box>
+    </Flex>
   );
 };
+
+Error404.getLayout = function getLayout(page: React.ReactElement) {
+  return (
+    <LayoutPage
+      id="app"
+      title={HEADERS.title}
+      description={HEADERS.description}
+      keywords={HEADERS.keywords}
+    >
+      {page}
+    </LayoutPage>
+  );
+};
+
 export default Error404;

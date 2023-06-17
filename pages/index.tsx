@@ -9,7 +9,6 @@ import Box from "@/components/containers/Box/Box";
 import Icon from "@/components/featured/Icon/Icon";
 import Typography from "@/components/featured/Typography/Typography";
 import SwipeUp from "@/components/featured/SwipeUp/SwipeUp";
-import CubeBackground from "@/components/featured/CubeBackground/CubeBackground";
 import BrandName from "@/components/shared/Brand/BrandName";
 import Socials from "@/components/shared/Socials/Socials";
 import Separator from "@/components/shared/Separator/Separator";
@@ -311,11 +310,15 @@ const Home = ({ errorCode }: NextPageWithLayout) => {
         container
         id="vtiMore"
         height="50vh"
-        padding="4vh 6vw"
+        padding="0"
         alignItems="center"
         justifyContent="center"
       >
-        <CubeBackground />
+        <Typography
+          type="h2"
+          value={t("Home.sections.title")}
+        />
+        <Separator />
       </Flex>
     </>
   );
