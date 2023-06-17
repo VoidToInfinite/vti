@@ -95,7 +95,7 @@ const Footer: React.FC = () => {
       </Grid>
       <Flex
         container
-        margin="4rem 0px 0px"
+        margin="2rem 0px 0px"
         alignItems="center"
         justifyContent="flex-start"
         flexDirection="row"

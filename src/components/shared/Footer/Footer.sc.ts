@@ -3,6 +3,7 @@
 import styled from "styled-components";
 
 const ScFooter = styled.footer`
+  height: 50vh;
   background-color: ${({ theme }) => theme.data.background.primary[600]};
   border-top: 1px solid ${({ theme }) => theme.data.background.primary[100]};
   padding: 36px 24px;
@@ -37,7 +38,7 @@ export const ScFooterNav = styled.div`
 
   & > a {
     width: auto;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
   }
   & > h4 {
     font-weight: 600;
