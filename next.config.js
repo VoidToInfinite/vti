@@ -1,7 +1,6 @@
 // @ts-check
 
 /** @type {import('next').NextConfig} */
-const withTM = require("next-transpile-modules")(["gsap"]);
 
 const nextConfig = {
   compiler: {
@@ -16,8 +15,9 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: false,
   // Enabled: With this option set, urls like /about will redirect to /about/
-  trailingSlash: false
+  trailingSlash: false,
+  transpilePackages: ["gsap","three"],
 };
 
 // @ts-ignore
-module.exports = withTM(nextConfig);
+module.exports = nextConfig;
