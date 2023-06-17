@@ -2,7 +2,6 @@ import Box from "@/components/containers/Box/Box";
 import Flex from "@/components/containers/Flex/Flex";
 import Typography from "@/components/featured/Typography/Typography";
 import LayoutPage from "@/layout/LayoutPage/LayoutPage";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
