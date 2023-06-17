@@ -15,6 +15,7 @@ blockless
 blurple
 camelcase
 Cena
+clearcoat
 codebases
 Codecov
 contravariant
@@ -34,9 +35,11 @@ esrecurse
 estree
 globby
 GSAP
+HDRI
 IDE's
 IIFE
 IIFEs
+Lightformers
 linebreaks
 lzstring
 markdownlint
