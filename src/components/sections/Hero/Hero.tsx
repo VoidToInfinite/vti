@@ -58,7 +58,7 @@ export function Hero() {
       <BackOrbs />
       <ScHeroContent>
         <ScHeroBrand>
-          <BrandName />
+          <BrandName as="h1" />
         </ScHeroBrand>
         <Typography variant="lead">{t("Home.description")}</Typography>
         <Typography variant="body">

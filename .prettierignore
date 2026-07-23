@@ -1,6 +1,11 @@
 # Ignore artifacts:
 build
 coverage
+out
+.next
+
+# SDD scratch (gitignored, not part of the tracked tree):
+.superpowers/
 
 **/.git
 **/.svn
