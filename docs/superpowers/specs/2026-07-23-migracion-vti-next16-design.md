@@ -7,7 +7,7 @@
 
 ## 1. Objetivo
 
-Migrar el proyecto Next.js 13.1.6 (Pages Router, ~3 años sin tocar) a la **última versión estable (Next.js 16.2.x)**, con dependencias actualizadas y una **estructura profesional y limpia (lean)**, lista para construir *después* una landing de estética "Midjourney" y **desplegable en Netlify**.
+Migrar el proyecto Next.js 13.1.6 (Pages Router, ~3 años sin tocar) a la **última versión estable (Next.js 16.2.x)**, con dependencias actualizadas y una **estructura profesional y limpia (lean)**, lista para construir _después_ una landing de estética "Midjourney" y **desplegable en Netlify**.
 
 **Alcance de este encargo = cimientos.** NO se construye la landing nueva aquí. Se entrega la base migrada, limpia, reestructurada, verificada y documentada en el vault.
 
@@ -23,7 +23,7 @@ Migrar el proyecto Next.js 13.1.6 (Pages Router, ~3 años sin tocar) a la **últ
 ## 2. Decisiones (confirmadas con el usuario)
 
 | Eje | Decisión |
-|---|---|
+| --- | --- |
 | Alcance | Solo cimientos (no construir la landing nueva ahora) |
 | Contenido | Base limpia / lean: una landing de una página + 404 |
 | Router | **App Router** |
@@ -39,15 +39,15 @@ Migrar el proyecto Next.js 13.1.6 (Pages Router, ~3 años sin tocar) a la **últ
 - Next 13.1.6, React 18.2, TS 4.9, styled-components 5, Redux Toolkit, i18next + http-backend.
 - 4 páginas: `index`, `reflection`, `game/tictactoe`, `404`. Landing/portfolio de marca **VTI** (sin nada de "Midjourney" en el código).
 - Deuda técnica relevante:
-  - `lamina` nunca importada; `CubeBackground` (escena r3f) es código muerto; `BackOrbs` 3D comentado → hoy es CSS.
-  - `next-redux-wrapper` a medio cablear (`HYDRATE` no conectado al store real).
-  - Doble sistema de notificaciones (Redux slice + Context) y de tema.
-  - `"use client"` en 41 archivos siendo Pages Router (restos de intento previo de App Router).
-  - Ruta rota `/games`; `pages/api/hello` y `taskApi` son mocks del scaffold.
-  - i18n con host `https://voidtoinfinite.github.io` hardcodeado.
-  - `tsconfig` con paths a 6 carpetas inexistentes; favicon 240 KB; SVG duplicados `public/` vs `src/assets/`.
-  - Config ESLint airbnb muy estricta → 65+ `eslint-disable`.
-  - Gate `isMounted` en `_app` (espera `window load`) que retrasa el render.
+    - `lamina` nunca importada; `CubeBackground` (escena r3f) es código muerto; `BackOrbs` 3D comentado → hoy es CSS.
+    - `next-redux-wrapper` a medio cablear (`HYDRATE` no conectado al store real).
+    - Doble sistema de notificaciones (Redux slice + Context) y de tema.
+    - `"use client"` en 41 archivos siendo Pages Router (restos de intento previo de App Router).
+    - Ruta rota `/games`; `pages/api/hello` y `taskApi` son mocks del scaffold.
+    - i18n con host `https://voidtoinfinite.github.io` hardcodeado.
+    - `tsconfig` con paths a 6 carpetas inexistentes; favicon 240 KB; SVG duplicados `public/` vs `src/assets/`.
+    - Config ESLint airbnb muy estricta → 65+ `eslint-disable`.
+    - Gate `isMounted` en `_app` (espera `window load`) que retrasa el render.
 
 ## 4. Arquitectura objetivo
 
@@ -76,6 +76,7 @@ Principio de aislamiento: cada unidad (theme, i18n, registry, cada componente) c
 ## 5. Plan por áreas
 
 ### 5.1 Versiones y tooling
+
 - Next `16.2.x`, React `19.2`, react-dom `19.2`, TypeScript `5.x`, styled-components `6.x`, `@types/react(-dom)` al día.
 - Node **22 LTS** (`.nvmrc` + `engines`). pnpm + Corepack; regenerar lockfile; eliminar `package-lock.json`.
 - ESLint **flat config** (`eslint.config.mjs`): `next/core-web-vitals` + `typescript-eslint` + `jsx-a11y` + `import` + `prettier`. **Sin airbnb.**
@@ -83,43 +84,52 @@ Principio de aislamiento: cada unidad (theme, i18n, registry, cada componente) c
 - Scripts: `dev`, `build`, `start` (o `serve` estático), `lint`, `typecheck`, `format`, `check`, `test`.
 
 ### 5.2 App Router + styled-components v6
+
 - `src/lib/registry.tsx` con el patrón oficial (`useServerInsertedHTML`), envolviendo el árbol en `layout.tsx`.
 - `compiler.styledComponents: true` en `next.config.ts`.
 - Eliminar `_document`/`ServerStyleSheet` y el gate `isMounted`.
 - styled-components v6: props transitorias `$`, `shouldForwardProp`, revisar `.attrs`. Actualizar `styled.d.ts`.
 
 ### 5.3 Static export
+
 - `output: 'export'`, `images: { unoptimized: true }`.
 - Eliminar `pages/api/*`, `src/api/taskApi.ts`, `cards.json`, `axios`.
 - Sin SSR/ISR/middleware. Salida estática en `out/` (por defecto de `output: 'export'`); se retira el `distDir: 'build'` no estándar y se usa el default. `netlify.toml` publica `out`.
 
 ### 5.4 Estado
+
 - Eliminar Redux por completo: `store`, `RootReducer`, slices (theme/notifications/page/ticTacToe), `next-redux-wrapper`, hooks tipados.
 - `ThemeProvider` cliente: estado del tema activo + persistencia en `localStorage`, expuesto vía Context + hook `useTheme`.
 - Se retira el sistema de notificaciones en la base lean (solo se usaba para toasts de cambio de idioma con strings hardcodeados). Se re-añadirá si la landing lo requiere.
 
 ### 5.5 i18n
+
 - react-i18next + initReactI18next, **recursos empaquetados** (`import es from './locales/...'`).
 - Namespaces mínimos (common, home). Idiomas es/en, `fallbackLng: 'es'`.
 - Eliminar `i18next-http-backend` y el host hardcodeado. Selector de idioma sin strings hardcodeados.
 
 ### 5.6 3D / animación
+
 - Eliminar dependencias y código: `three`, `@react-three/fiber`, `@react-three/drei`, `lamina`, `gsap`. Borrar `CubeBackground`, `ScrollSnap`, la parte GSAP de `Layout`.
 - `BackOrbs` permanece como fondo CSS (glassmorphism).
 - Nota: se re-añadirán a última versión cuando se construya la landing inmersiva.
 
 ### 5.7 Limpieza
+
 - Rutas rotas (`/games`), `tsconfig` paths inexistentes, `"use client"` sobrantes, duplicación de SVG, favicon 240 KB, strings hardcodeados (404, notificaciones), typos del Footer.
 
 ### 5.8 Testing
+
 - Vitest + Testing Library + jsdom. Config compatible con Next/React 19.
 - Smoke tests: render de home (hero visible, cambio de idioma) y de `not-found`. Objetivo: DoD "tests en verde" real.
 
 ## 6. Despliegue Netlify
+
 - `netlify.toml`: `command = "pnpm build"`, `publish = "out"`, `NODE_VERSION = 22`.
 - Static export ⇒ sin `@netlify/plugin-nextjs`.
 
 ## 7. Verificación (Definition of Done)
+
 - [ ] Clon limpio: `pnpm install && pnpm build` OK, artefacto estático generado.
 - [ ] `pnpm check` sin errores (typecheck + lint flat + format).
 - [ ] Vitest en verde.
@@ -130,16 +140,19 @@ Principio de aislamiento: cada unidad (theme, i18n, registry, cada componente) c
 - [ ] Documentación en vault: contexto + spec + registro.
 
 ## 8. Git / entrega
+
 - Rama `feature/migracion-next16`, commits incrementales con prefijo `VTI:`.
 - **No push ni PR sin OK explícito del usuario** (acción de publicación).
 
 ## 9. Riesgos y mitigaciones
+
 - **styled-components v5→v6 + App Router registry** (riesgo medio): seguir patrón oficial; verificar hidratación sin FOUC; revisar props transitorias.
 - **i18n en estático** (bajo): recursos empaquetados eliminan el fetch y el host hardcodeado.
 - **static export + rutas dinámicas** (bajo): la base no tiene rutas dinámicas tras la limpieza.
 - **pnpm en Netlify** (bajo): fijar Node/pnpm en `netlify.toml`/Corepack.
 
 ## 10. Fuera de alcance (explícito)
+
 - Construir la landing "Midjourney" (diseño/estética nueva).
 - Re-introducir 3D/animaciones avanzadas.
 - Backend, API real, i18n por ruta, SSR/ISR.

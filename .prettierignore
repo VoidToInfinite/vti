@@ -6,3 +6,9 @@ coverage
 **/.svn
 **/.hg
 **/node_modules
+
+# Auto-generated lockfiles: never hand/tool-format these, pnpm owns their
+# exact formatting and rewriting them creates massive noise diffs.
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

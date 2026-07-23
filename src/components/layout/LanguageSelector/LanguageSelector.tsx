@@ -5,6 +5,8 @@ import styled from "styled-components";
 
 const LANGUAGES = ["es", "en"] as const;
 
+const STORAGE_KEY = "vti-lang";
+
 const ScLanguageSelector = styled.div`
   display: inline-flex;
   align-items: center;
@@ -42,6 +44,7 @@ export function LanguageSelector() {
           title={t(`Common.Lang.${lng}.title`)}
           onClick={() => {
             void i18n.changeLanguage(lng);
+            window.localStorage.setItem(STORAGE_KEY, lng);
           }}
         >
           {t(`language.${lng}`)}

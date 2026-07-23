@@ -34,8 +34,7 @@ export function About() {
     <ScAbout id="about">
       <ScAboutLogo
         src="/brand/logo.svg"
-        alt=""
-        aria-hidden="true"
+        alt="VoidToInfinite"
       />
       <Typography variant="h2">{t("Home.about.title")}</Typography>
       <Typography variant="body">{t("Home.about.description")}</Typography>
