@@ -59,6 +59,13 @@
                 "title": "Oops! Something went wrong",
                 "description": "Really happened, we can fix it."
             }
+        },
+        "Footer": {
+            "copyright": "VoidToInfinite © {{year}}"
+        },
+        "ThemeToggle": {
+            "switchToLight": "Switch to light theme",
+            "switchToDark": "Switch to dark theme"
         }
     },
     "notFound": {

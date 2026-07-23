@@ -59,6 +59,13 @@
                 "title": "¡Oops! Algo ha salido mal",
                 "description": "Aun asi se puede arreglar."
             }
+        },
+        "Footer": {
+            "copyright": "VoidToInfinite © {{year}}"
+        },
+        "ThemeToggle": {
+            "switchToLight": "Cambiar a tema claro",
+            "switchToDark": "Cambiar a tema oscuro"
         }
     },
     "notFound": {
