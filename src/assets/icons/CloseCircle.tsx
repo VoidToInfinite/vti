@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import React from "react";
-import { IconProps } from "@/components/featured/Icon/Icon.types";
+import { IconProps } from "./Icon.types";
 
 const IconCloseCircle: React.FC<IconProps> = ({
   size = 46,

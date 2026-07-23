@@ -1,5 +1,5 @@
 import React from "react";
-import type { IconProps } from "@/components/featured/Icon/Icon.types";
+import type { IconProps } from "./Icon.types";
 
 const IconVoidToInfinite: React.FC<IconProps> = ({
   color,

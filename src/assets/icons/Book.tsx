@@ -1,5 +1,5 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import type { IconProps } from "@/components/featured/Icon/Icon.types";
+import type { IconProps } from "./Icon.types";
 import React from "react";
 
 const IconBook: React.FC<IconProps> = ({

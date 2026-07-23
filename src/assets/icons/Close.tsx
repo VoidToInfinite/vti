@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import React from "react";
-import type { IconProps } from "@/components/featured/Icon/Icon.types";
+import type { IconProps } from "./Icon.types";
 
 const IconClose: React.FC<IconProps> = ({
   size = 46,
