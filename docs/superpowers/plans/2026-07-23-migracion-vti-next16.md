@@ -23,6 +23,34 @@
 
 ---
 
+## Execution Amendment (2026-07-23, durante la ejecución — PREVALECE sobre las tasks originales donde difiera)
+
+Tras la Task 2 se detectó un fallo de secuenciación: dejar el borrado del legacy para el final rompe los builds intermedios porque (a) `pages/index.tsx` colisiona con `app/page.tsx`, y (b) `next build` type-chequea TODO el `include` del tsconfig, así que cualquier fichero legacy roto (importa deps ya eliminadas) hace fallar el build aunque nadie lo importe. Correcciones:
+
+1. **Scorched-earth temprano.** El legacy (`pages/` + subárboles antiguos de `src/`) se elimina en una task dedicada **antes del primer build**, no al final. Antes de borrar, se extrae lo reutilizable puro (datos de tema, JSON i18n, iconos SVG).
+2. **Rutas nuevas sin colisión.** Todo el código nuevo va a ubicaciones que NO existen en el `src/` antiguo, para que el scorched-earth (`git rm -r <dir antiguo>`) no borre lo nuevo:
+   - registry → `src/theme/registry.tsx` (no `src/lib/`).
+   - providers → `app/providers.tsx` (no `src/providers/`).
+   - global styles → `src/theme/GlobalStyles.tsx` (no `src/styles/`; además evita colisión case-insensitive en Windows con el `GlobalStyles.tsx` antiguo).
+   - componentes nuevos → `src/components/{ui,layout,sections}/**` (el antiguo usa `containers/featured/shared`).
+   - iconos → se **reutiliza `src/assets/icons/**` en su sitio** (SVG-as-TSX puros); los demás dirs de `src/` se borran.
+3. **Se descarta portar el sistema Box/Flex/Grid + utilidades de estilo (`src/styles/*`) + `src/types/*`** (over-engineering para una landing lean). Las secciones se construyen con styled-components directos sobre tokens del tema. Se recrean mínimos: `Typography`, `Icon`, `Brand`, `Socials`.
+4. **Orden de tasks revisado (de la 3 en adelante):**
+   - T3 — ESLint flat config (+ `ignores` de dirs legacy para que el lint sea usable en el interín).
+   - T4 — Tema: `src/theme/{theme.types.ts, themes.ts, ThemeProvider.tsx, GlobalStyles.tsx, registry.tsx}` + `styled.d.ts`. Lee los datos HSL de `src/themes/` (aún presente).
+   - **T5 (NUEVA) — i18n empaquetado + scorched-earth.** Extrae `public/i18n/**` → `src/i18n/locales/**`; crea `src/i18n/{config.ts, I18nProvider.tsx}`; luego `git rm -r pages src/api src/context src/global src/helpers src/hooks src/layout src/lib src/providers src/styles src/themes src/types src/configs src/components/{containers,featured,shared} src/utils` y `public/i18n`. Conserva `src/assets/icons`. **Verificación: `pnpm typecheck` GREEN** (solo quedan ficheros nuevos + iconos puros).
+   - T6 — Shell App Router: `app/{layout.tsx, page.tsx (mínima), not-found.tsx, providers.tsx}`. **Primer `pnpm build` → GREEN, `out/` generado (milestone).**
+   - T7 — 404 i18n + wiring final de i18n en `app/providers.tsx` (si no quedó en T5/T6).
+   - T8 — Landing: Navbar, Hero, About, Footer, Socials, BackOrbs (CSS), LanguageSelector, Brand, Typography/Icon mínimos → `src/components/{ui,layout,sections}`. Ensamblar `app/page.tsx`. Build + verificación visual.
+   - T9 — Vitest + smoke tests.
+   - T10 — Netlify + limpieza final ligera (favicon, README, `src/assets/images` dup, DoD integral). El grueso del borrado ya se hizo en T5.
+   - T11 — Registro en vault.
+5. **Interín aceptado:** entre T2 y T5, `pnpm typecheck`/`pnpm lint` están en rojo por el legacy; es esperado y se resuelve en T5. El primer gate verde real es T5 (typecheck) y T6 (build).
+
+Los "## Task N" de abajo son la referencia original; donde la enmienda difiera (rutas, orden, scorched-earth), **manda la enmienda**. Los briefs de cada task se componen conforme a esta enmienda.
+
+---
+
 ## Estructura de ficheros objetivo
 
 **Crear:**
