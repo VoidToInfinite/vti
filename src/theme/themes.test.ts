@@ -16,22 +16,9 @@ describe("themes", () => {
     expect(themes.dark.isLight).toBe(false);
   });
 
-  it("conserva los campos legacy en ambos temas (migración aditiva)", () => {
-    expect(themes.light.color.primary[500]).toBe("hsl(249, 98%, 60%)");
-    expect(themes.light.isLightTheme).toBe(true);
-    expect(themes.light.background.primary[100]).toBeDefined();
-    expect(themes.light.typography.main.weight).toBe("");
+  it("conserva breakPoint en ambos temas (sigue en uso fuera de theme/)", () => {
     expect(themes.light.breakPoint.md).toBe("screen and (min-width: 768px)");
-    expect(themes.light.themeName).toBe("Basic Light Theme");
-    expect(themes.light.themeTitle).toBe("Default Light theme");
-
-    expect(themes.dark.color.primary[500]).toBe("hsl(249, 98%, 60%)");
-    expect(themes.dark.isLightTheme).toBe(false);
-    expect(themes.dark.background.primary[100]).toBeDefined();
-    expect(themes.dark.typography.main.weight).toBe("");
     expect(themes.dark.breakPoint.md).toBe("screen and (min-width: 768px)");
-    expect(themes.dark.themeName).toBe("Basic Dark Theme");
-    expect(themes.dark.themeTitle).toBe("Default Dark theme");
   });
 
   it("light y dark exponen exactamente el mismo conjunto de claves de nivel superior", () => {
