@@ -9,13 +9,14 @@ const ScFooter = styled.footer`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding: 2.5rem 1.5rem;
-  background-color: ${({ theme }) => theme.data.background.primary[600]};
-  border-top: 1px solid ${({ theme }) => theme.data.background.primary[300]};
+  gap: ${({ theme }) => theme.data.space[4]};
+  padding: 2.5rem ${({ theme }) => theme.data.space[5]};
+  background-color: ${({ theme }) => theme.data.semantic.surfaceSunken};
+  border-top: 1px solid ${({ theme }) => theme.data.semantic.border};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding: 3rem 2rem;
+    padding: ${({ theme }) => theme.data.space[7]}
+      ${({ theme }) => theme.data.space[6]};
   }
 `;
 

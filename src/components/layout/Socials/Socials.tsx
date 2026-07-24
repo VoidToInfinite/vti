@@ -31,7 +31,7 @@ const SOCIAL_LINKS: SocialLink[] = [
 const ScSocialsList = styled.ul`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: ${({ theme }) => theme.data.space[3]};
   list-style: none;
   margin: 0;
   padding: 0;
@@ -43,15 +43,15 @@ const ScSocialLink = styled.a`
   justify-content: center;
   height: 2.5rem;
   width: 2.5rem;
-  border-radius: 50%;
-  background-color: ${({ theme }) => theme.data.color.primary[100]};
+  border-radius: ${({ theme }) => theme.data.radius.full};
+  background-color: ${({ theme }) => theme.data.semantic.surfaceSunken};
   transition:
     transform 0.2s ease,
     background-color 0.2s ease;
 
   &:hover,
   &:focus-visible {
-    background-color: ${({ theme }) => theme.data.color.primary[200]};
+    background-color: ${({ theme }) => theme.data.semantic.border};
     transform: translateY(-2px);
   }
 

@@ -8,12 +8,12 @@ const ScThemeToggle = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2rem;
-  width: 2rem;
-  border-radius: 50%;
+  height: ${({ theme }) => theme.data.space[6]};
+  width: ${({ theme }) => theme.data.space[6]};
+  border-radius: ${({ theme }) => theme.data.radius.full};
   font-size: 1rem;
   line-height: 1;
-  background-color: ${({ theme }) => theme.data.color.primary[100]};
+  background-color: ${({ theme }) => theme.data.semantic.surfaceSunken};
   cursor: pointer;
   transition: transform 0.2s ease;
 

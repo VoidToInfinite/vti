@@ -62,9 +62,9 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body::-webkit-scrollbar-thumb {
-    background-color: ${({ theme }) => theme.data.background.secondary[500]};
-    border-radius: 6px;
-    border: 1px solid ${({ theme }) => theme.data.background.secondary[500]};
+    background-color: ${({ theme }) => theme.data.semantic.borderStrong};
+    border-radius: ${({ theme }) => theme.data.radius.md};
+    border: 1px solid ${({ theme }) => theme.data.semantic.borderStrong};
   }
 
   a {
