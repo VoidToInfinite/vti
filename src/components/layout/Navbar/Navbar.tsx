@@ -58,6 +58,12 @@ const ScNav = styled.nav`
   }
 `;
 
+const ScBrandLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.15rem;
+`;
+
 const ScActions = styled.div`
   display: flex;
   align-items: center;
@@ -70,9 +76,9 @@ export function Navbar(): ReactElement {
   return (
     <ScHeader data-scrolled={scrolled}>
       <ScNav>
-        <Link href="/">
+        <ScBrandLink href="/">
           <BrandName />
-        </Link>
+        </ScBrandLink>
         <ScActions>
           <LanguageSelector />
           <ThemeToggle />
