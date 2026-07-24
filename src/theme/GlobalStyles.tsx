@@ -39,10 +39,10 @@ export const GlobalStyles = createGlobalStyle`
 
   body {
     height: unset;
-    background-color: ${({ theme }) => theme.data.background.primary[500]};
-    color: ${({ theme }) => theme.data.typography.primaryColor[500]};
+    background-color: ${({ theme }) => theme.data.semantic.bg};
+    color: ${({ theme }) => theme.data.semantic.text};
     font-size: 100%;
-    font-family: ${({ theme }) => theme.data.typography.main.font};
+    font-family: ${({ theme }) => theme.data.type.fontBody};
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
     font-smoothing: always;
@@ -92,12 +92,27 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   ::-moz-selection {
-    background-color: ${({ theme }) => theme.data.color.primary[200]};
-    color: ${({ theme }) => theme.data.color.primary[800]};
+    background-color: ${({ theme }) => theme.data.semantic.brand};
+    color: ${({ theme }) => theme.data.semantic.onBrand};
   }
   ::selection {
-    background-color: ${({ theme }) => theme.data.color.primary[200]};
-    color: ${({ theme }) => theme.data.color.primary[800]};
+    background-color: ${({ theme }) => theme.data.semantic.brand};
+    color: ${({ theme }) => theme.data.semantic.onBrand};
+  }
+
+  :where(a, button, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid ${({ theme }) => theme.data.semantic.focus};
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
   }
 
   ol, ul, menu {
