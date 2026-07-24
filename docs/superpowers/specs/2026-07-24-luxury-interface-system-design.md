@@ -9,12 +9,12 @@
 ## 0 · Decisiones tomadas en el brainstorm (base de este spec)
 
 | Eje | Decisión |
-|---|---|
+| --- | --- |
 | Fundación visual | **Adoptar la DS vti-sdk** (OKLCH, 5 hues ancla + neutral, Hanken Grotesk + JetBrains Mono, spacing base-8, radii squircle) **y diseñar encima las capas de lujo** que aún no existen. |
 | Formato de entrega | **Ambos:** tokens como **código vivo** (theme styled-components extendido) **+ este documento** de specs de componentes y lenguaje de movimiento. |
 | Glassmorphism | Permitido **solo donde se lo gana** (capas flotantes). Gobernado por regla, no solo por token. §8. |
 | Movimiento | **Un único lenguaje** de movimiento que todos los componentes referencian. §9. |
-| Relación con el resto | Es la **fundación** (P0/P1 del roadmap del spec de producto) sobre la que cabalga el *viaje cinemático 3D* (spec aparte, pendiente). Lo que comparten (glass en nav, coreografía de revelado) se marca en su sitio. |
+| Relación con el resto | Es la **fundación** (P0/P1 del roadmap del spec de producto) sobre la que cabalga el _viaje cinemático 3D_ (spec aparte, pendiente). Lo que comparten (glass en nav, coreografía de revelado) se marca en su sitio. |
 
 **Fuera de esta pasada:** escribir código (el usuario lo pidió explícitamente). Este spec habilita el plan de implementación posterior; no lo ejecuta.
 
@@ -22,13 +22,13 @@
 
 ## 1 · Objetivo y principios
 
-**Objetivo:** un sistema de interfaz que se sienta *caro* — no por ornamento, sino por disciplina: contraste, ritmo, restraint y un movimiento coherente. La UI es plana, opaca y en calma; el espectáculo vive fuera de este sistema (el ojo cósmico del viaje).
+**Objetivo:** un sistema de interfaz que se sienta _caro_ — no por ornamento, sino por disciplina: contraste, ritmo, restraint y un movimiento coherente. La UI es plana, opaca y en calma; el espectáculo vive fuera de este sistema (el ojo cósmico del viaje).
 
 **Principios (el filtro anti-decoración):**
 
 1. **Cada efecto declara su trabajo.** Si un hover, una sombra o un glass no dirige la atención, confirma una acción o comunica jerarquía, no entra.
 2. **Tres capas de token, dependencia estricta.** Un componente nunca lee un primitivo. Primitivo → semántico → componente. §2.
-3. **Restraint por defecto.** Borde de 1px antes que sombra. Plano antes que glass. Opaco antes que translúcido. El lujo es lo que *no* se pone.
+3. **Restraint por defecto.** Borde de 1px antes que sombra. Plano antes que glass. Opaco antes que translúcido. El lujo es lo que _no_ se pone.
 4. **Un solo lenguaje de movimiento.** No hay dos hovers inventados a mano. §9.
 5. **Accesible de raíz.** AA en ambos temas, foco visible siempre, `prefers-reduced-motion` global, targets ≥44px, i18n-safe. §15.
 
@@ -61,30 +61,29 @@ Anclas heredadas de vti-sdk: primary `#00B7FF` (hue 235.851), secondary `#9B0DD3
 **Escalera de luminosidad L (idéntica para todos los hues):**
 
 | paso | 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 1000 | 1100 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **L** | .985 | .96 | .92 | .86 | .78 | .737 | .66 | .58 | .50 | .42 | .32 | .22 |
 
 **primary (blue, hue 235.851)** — croma pico en 400–600:
 
 | 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 1000 | 1100 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `.985 .012 236` | `.96 .03 236` | `.92 .06 236` | `.86 .10 236` | `.78 .14 236` | `.737 .158 236` | `.66 .142 236` | `.58 .12 236` | `.50 .107 236` | `.42 .09 236` | `.32 .07 236` | `.22 .05 236` |
 
 **neutral (cool gray, hue ~286, croma casi nulo)** — el caballo de batalla (bg/surface/text/border):
 
 | 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 1000 | 1100 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `.985 0 0` | `.975 .002 286` | `.92 .004 286` | `.86 .004 286` | `.71 .006 286` | `.55 .006 286` | `.47 0 0` | `.40 0 0` | `.32 0 0` | `.24 .004 286` | `.178 0 0` | `.11 .004 286` |
 
-**secondary (violet 311.928), success, warning, error** — misma escalera de L; anclas de croma en 500:
-`secondary[500] = .55 .259 311.928` · `success[500] ≈ .74 .17 140` · `warning[500] ≈ .80 .16 70` · `error[500] ≈ .64 .24 12`. Rampas completas se generan con la escalera de L y el croma decayendo hacia los extremos, y se ajustan a AA en código.
+**secondary (violet 311.928), success, warning, error** — misma escalera de L; anclas de croma en 500: `secondary[500] = .55 .259 311.928` · `success[500] ≈ .74 .17 140` · `warning[500] ≈ .80 .16 70` · `error[500] ≈ .64 .24 12`. Rampas completas se generan con la escalera de L y el croma decayendo hacia los extremos, y se ajustan a AA en código.
 
 > **No hay hue "info".** El `primary` azul dobla como info (regla vti-sdk).
 
 ### 3.2 Semánticos — light
 
 | Rol | Valor | Uso |
-|---|---|---|
+| --- | --- | --- |
 | `bg` | neutral-50 | fondo de página |
 | `surface` | white `oklch(1 0 0)` | cards, inputs, nav |
 | `surface-sunken` | neutral-100 | wells, code blocks |
@@ -103,16 +102,16 @@ Anclas heredadas de vti-sdk: primary `#00B7FF` (hue 235.851), secondary `#9B0DD3
 ### 3.3 Semánticos — dark (re-mapeo, no paleta nueva)
 
 | Rol | Valor | Nota |
-|---|---|---|
+| --- | --- | --- |
 | `bg` | neutral-1100 | ≈ `#111113` |
-| `surface` | neutral-1000 | |
-| `surface-sunken` | neutral-1100 | |
-| `border` | neutral-800 | |
-| `border-strong` | neutral-700 | |
-| `text` | neutral-50 | |
-| `text-muted` | neutral-300 | |
+| `surface` | neutral-1000 |  |
+| `surface-sunken` | neutral-1100 |  |
+| `border` | neutral-800 |  |
+| `border-strong` | neutral-700 |  |
+| `text` | neutral-50 |  |
+| `text-muted` | neutral-300 |  |
 | `brand-solid` | **primary-500** | step 500 en dark (no 700) porque es el que **libra AA sobre página oscura** |
-| `brand-text` | primary-300 | |
+| `brand-text` | primary-300 |  |
 | `on-brand` | neutral-1100 | texto oscuro sobre azul brillante |
 
 ---
@@ -123,7 +122,7 @@ Anclas heredadas de vti-sdk: primary `#00B7FF` (hue 235.851), secondary `#9B0DD3
 - **Escala modular** (~1.2 minor third), `clamp()` para fluidez:
 
 | Token | Tamaño (min→max) | Peso | Line-height | Tracking |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `display` | clamp(2.5, 4.4vw, 3.5rem) | 800 | 1.03 | -0.02em |
 | `h1` | 2.5rem (40) | 700 | 1.1 | -0.018em |
 | `h2` | 2rem (32) | 700 | 1.15 | -0.014em |
@@ -143,14 +142,14 @@ Anclas heredadas de vti-sdk: primary `#00B7FF` (hue 235.851), secondary `#9B0DD3
 
 ## 5 · Tokens — Spacing (base-8)
 
-| Token | px | Token | px |
-|---|---|---|---|
-| `space-0` | 0 | `space-5` | 24 |
-| `space-px` | 1 | `space-6` | 32 |
-| `space-1` | 4 | `space-7` | 48 |
-| `space-2` | 8 | `space-8` | 64 |
-| `space-3` | 12 | `space-9` | 96 |
-| `space-4` | 16 | `space-10` | 128 |
+| Token      | px  | Token      | px  |
+| ---------- | --- | ---------- | --- |
+| `space-0`  | 0   | `space-5`  | 24  |
+| `space-px` | 1   | `space-6`  | 32  |
+| `space-1`  | 4   | `space-7`  | 48  |
+| `space-2`  | 8   | `space-8`  | 64  |
+| `space-3`  | 12  | `space-9`  | 96  |
+| `space-4`  | 16  | `space-10` | 128 |
 
 **Regla dura:** ningún `rem`/`px` de espaciado hardcodeado en componentes. Todo padding/margin/gap sale de esta escala. Esto **elimina** los `2rem`, `1.5rem`, `0.75rem`, `3.5rem` sueltos que hoy viven en Hero/About/Navbar.
 
@@ -158,14 +157,14 @@ Anclas heredadas de vti-sdk: primary `#00B7FF` (hue 235.851), secondary `#9B0DD3
 
 ## 6 · Tokens — Radii (squircle)
 
-| Token | px | Asignación |
-|---|---|---|
-| `radius-xs` | 2 | tags pequeños |
-| `radius-sm` | 4 | **Input**, checkbox |
-| `radius-md` | 8 | badges, chips |
-| `radius-lg` | 12 | **Button** |
-| `radius-xl` | 16 | **Card** |
-| `radius-2xl` | 24 | **Modal**, sheet |
+| Token         | px   | Asignación                                          |
+| ------------- | ---- | --------------------------------------------------- |
+| `radius-xs`   | 2    | tags pequeños                                       |
+| `radius-sm`   | 4    | **Input**, checkbox                                 |
+| `radius-md`   | 8    | badges, chips                                       |
+| `radius-lg`   | 12   | **Button**                                          |
+| `radius-xl`   | 16   | **Card**                                            |
+| `radius-2xl`  | 24   | **Modal**, sheet                                    |
 | `radius-full` | 9999 | **Radio** (única excepción: círculo real), avatares |
 
 ---
@@ -175,7 +174,7 @@ Anclas heredadas de vti-sdk: primary `#00B7FF` (hue 235.851), secondary `#9B0DD3
 Rampa contenida. **Por defecto la UI es plana: borde de 1px, `elevation-0`.** La sombra se reserva para capas que **de verdad flotan**.
 
 | Token | Sombra | Uso |
-|---|---|---|
+| --- | --- | --- |
 | `elevation-0` | none (borde 1px) | cards, inputs, secciones — **el default** |
 | `elevation-1` | `0 1px 2px oklch(0 0 0 / .06)` | card interactiva en hover |
 | `elevation-2` | `0 4px 12px oklch(0 0 0 / .10)` | menús, dropdowns, popovers |
@@ -190,10 +189,10 @@ Sombras de baja opacidad, tinte frío, en capas. En dark mode la elevación se c
 
 **Tokens:**
 
-| Token | Valor |
-|---|---|
-| `glass-blur` | 14px (`backdrop-filter: blur()`) |
-| `glass-bg` | `surface` al 68% de alpha |
+| Token          | Valor                                |
+| -------------- | ------------------------------------ |
+| `glass-blur`   | 14px (`backdrop-filter: blur()`)     |
+| `glass-bg`     | `surface` al 68% de alpha            |
 | `glass-border` | highlight superior 1px `white / .12` |
 
 **Gobierno (regla dura — esto es lo que hace que el glass "se gane su sitio"):**
@@ -216,7 +215,7 @@ Una sola gramática. **Todos** los componentes referencian estas primitivas; nad
 **Primitivas nombradas:**
 
 | Primitiva | Qué hace | Timing | Dónde |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `enter-rise` | translateY(8–12px)+opacity 0→1 | base · decelerate · stagger 120ms | revelado de secciones, listas |
 | `fade-through` | opacity out→in | base · standard | swaps de contenido, transiciones de tema |
 | `press` | scale(0.98) | fast · standard | botones, targets al pulsar |
@@ -231,16 +230,16 @@ Una sola gramática. **Todos** los componentes referencian estas primitivas; nad
 
 ## 10 · Tokens — Z-index
 
-| Token | Valor |
-|---|---|
-| `z-base` | 0 |
-| `z-raised` | 10 |
-| `z-sticky-nav` | 100 |
-| `z-dropdown` | 200 |
-| `z-overlay` | 900 |
-| `z-modal` | 1000 |
-| `z-toast` | 1100 |
-| `z-max` | 9999 |
+| Token          | Valor |
+| -------------- | ----- |
+| `z-base`       | 0     |
+| `z-raised`     | 10    |
+| `z-sticky-nav` | 100   |
+| `z-dropdown`   | 200   |
+| `z-overlay`    | 900   |
+| `z-modal`      | 1000  |
+| `z-toast`      | 1100  |
+| `z-max`        | 9999  |
 
 ---
 
@@ -265,10 +264,10 @@ Una sola gramática. **Todos** los componentes referencian estas primitivas; nad
 
 ## 13 · Especificaciones de componentes
 
-**Esqueleto común** (cada componente se especifica con estas 7 casillas):
-`anatomía` · `variantes` · `tamaños` · `estados` (default / hover / **focus-visible** / active / disabled / **loading** donde aplique) · `tokens que consume` · `motion` (primitivas de §9) · `a11y` (roles, foco, target ≥44px) · `glass` (sí/no + por qué).
+**Esqueleto común** (cada componente se especifica con estas 7 casillas): `anatomía` · `variantes` · `tamaños` · `estados` (default / hover / **focus-visible** / active / disabled / **loading** donde aplique) · `tokens que consume` · `motion` (primitivas de §9) · `a11y` (roles, foco, target ≥44px) · `glass` (sí/no + por qué).
 
 ### 13.1 Button
+
 - **Variantes:** `solid` (marca), `soft` (tint), `outline`, `ghost`. **Intents:** primary, neutral, success, danger.
 - **Tamaños:** `sm` 36px, `md` **44px (default, target mínimo)**, `lg` 52px. Radio `radius-lg`. Padding inline `space-4`/`space-5`.
 - **Estados:** hover → `hover-lift` + tint (`brand-solid` un paso más oscuro). focus-visible → `focus-ring`. active → `press`. disabled → `opacity-disabled`, sin eventos. **loading** → label se sustituye por spinner inline, **el ancho se preserva** (sin salto), `aria-busy="true"`, botón inhabilitado.
@@ -276,18 +275,21 @@ Una sola gramática. **Todos** los componentes referencian estas primitivas; nad
 - **Motion:** `press` + `hover-lift`. **Glass:** no.
 
 ### 13.2 Card
+
 - **Anatomía:** contenedor `surface`, borde 1px `border`, radio `radius-xl`, padding `space-5`/`space-6`. Slots: media, header, body, footer/acciones.
 - **Variantes:** `static` (default) · `interactive` (toda la card es link/botón).
-- **Estados (interactive):** hover → `border-strong` + `elevation-0`→`elevation-1` + `hover-lift`. focus-visible → `focus-ring` en la card entera. 
-- **Motion:** `hover-lift`. **Glass:** **no** (es estática → plana, por §8). 
+- **Estados (interactive):** hover → `border-strong` + `elevation-0`→`elevation-1` + `hover-lift`. focus-visible → `focus-ring` en la card entera.
+- **Motion:** `hover-lift`. **Glass:** **no** (es estática → plana, por §8).
 
 ### 13.3 Navigation (top nav + menú móvil)
-- **Top nav:** sticky, `z-sticky-nav`. Sobre el hero arranca **transparente**; al hacer scroll pasa a **glass** (`glass-blur` + `glass-bg` + hairline inferior) — este es el **glass ganado** de §8. Izquierda: marca (el *corner mark* del ojo, continuidad con el viaje). Derecha: LanguageSelector, ThemeToggle, CTA primario.
+
+- **Top nav:** sticky, `z-sticky-nav`. Sobre el hero arranca **transparente**; al hacer scroll pasa a **glass** (`glass-blur` + `glass-bg` + hairline inferior) — este es el **glass ganado** de §8. Izquierda: marca (el _corner mark_ del ojo, continuidad con el viaje). Derecha: LanguageSelector, ThemeToggle, CTA primario.
 - **Móvil:** botón de menú → **sheet** (glass, `z-modal`) con **focus trap**, cierre por Esc/backdrop, `aria-expanded`.
 - **Estados:** link activo `aria-current="page"`, subrayado/tint de marca. focus-visible en cada item.
 - **Motion:** transición transparente→glass ligada a scroll (`fade-through` del fondo); sheet entra con `enter-rise`. **Glass:** **sí**, y es su caso canónico.
 
 ### 13.4 Forms
+
 - **Field (wrapper):** `label` (arriba, `caption`/`body-sm` 600) · control · `help` (`text-subtle`) · `error` (`error`, con icono). `label` siempre asociado (`htmlFor`/`id`).
 - **Input / Textarea:** alto 44px (input), radio `radius-sm`, borde 1px `border`; focus → `border-strong` + `focus-ring`; error → borde `error` + mensaje; disabled/readonly diferenciados. **Sin** animación de "shake" (respeta reduced-motion). Textarea: resize vertical, min 3 líneas.
 - **Select:** custom accesible (listbox, teclado) con fallback a `<select>` nativo; misma métrica que Input.
@@ -296,6 +298,7 @@ Una sola gramática. **Todos** los componentes referencian estas primitivas; nad
 - **Glass:** no (controles estáticos).
 
 ### 13.5 Soporte
+
 - **Link:** `brand-text`, subrayado en hover; focus-ring; inline vs standalone.
 - **Badge / Tag:** `soft` tint, `radius-md`, `caption`.
 - **Spinner:** SVG rotatorio (transform only), tamaños sm/md; `role="status"` + label i18n oculto.
@@ -331,6 +334,7 @@ Todo `transform`/`opacity`. Sin bloqueo de scroll, sin spinners de página compl
 ## 16 · Forma del entregable (archivos)
 
 **Código vivo (tokens):**
+
 ```
 src/theme/tokens/
 ├─ color.ts        primitivos OKLCH (6 escalas × 12) + generador de rampa
@@ -389,4 +393,4 @@ src/theme/GlobalStyles.tsx cableado a los nuevos tokens
 
 ---
 
-*VoidToInfinite · sistema de interfaz de lujo · v1.0 · fundación para el viaje cinemático.*
+_VoidToInfinite · sistema de interfaz de lujo · v1.0 · fundación para el viaje cinemático._
