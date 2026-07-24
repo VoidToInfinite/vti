@@ -1,0 +1,35 @@
+{
+    "Home": {
+        "Head": {
+            "title": "VoidToInfinite",
+            "description": "VoidToInfinite Project",
+            "keywords": "VoidToInfinite, VoidToInfinite Portfolio, VoidToInfinite Project, VoidToInfinite Learning, VoidToInfinite Imagination, VoidToInfinite Gaming, Portfolio, Team Project, VTI Project, VTI Learning, VTI Imagination, VTI Gaming"
+        },
+        "description": "Currently your present is your future, only your future must continue to define it",
+        "additionalDescription": "Although infinity is present everywhere, knowledge brings it to reality",
+        "swipeUp": "Get Started",
+        "about": {
+            "title": "About",
+            "description": "We're a team with members in different types of fields with the idea of growing together by sharing knowledge and creating projects.",
+            "additionalDescription": "At the moment, we only have our Discord server. You can also follow our github projects."
+        },
+        "sections": {
+            "title": "Our present",
+            "learning": {
+                "title": "Learning",
+                "subtitle": "Increase your knowledge",
+                "description": "Get to know new methods and ways to carry your projects to make them come true, improve your weakness points and strengthen it with the help of experienced people or people that are learning, is more fun."
+            },
+            "imagination": {
+                "title": "Imagination",
+                "subtitle": "Light up your creativity",
+                "description": "Imagine whichever creative concept taken from within you expresing emotions, spawning new sensations and visualising the message, it's something unique."
+            },
+            "gaming": {
+                "title": "Gaming",
+                "subtitle": "Good luck! Have fun!",
+                "description": "Having fun with friends? Absolutely! We are all aware that we can learn by playing and that's a fact."
+            }
+        }
+    }
+}
