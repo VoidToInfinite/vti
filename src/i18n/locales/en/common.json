@@ -1,0 +1,79 @@
+{
+    "Common": {
+        "Page": {
+            "title": "VoidToInfinite"
+        },
+        "Navbar": {
+            "openMenu": "Open menu"
+        },
+        "Navigation": {
+            "home": "Home",
+            "history": "History",
+            "framework": "Framework",
+            "games": "Games",
+            "projects": "Projects",
+            "learning": "Learning",
+            "imagination": "Imagination",
+            "reflection": "Reflection"
+        },
+        "Status": {
+            "success": "Success",
+            "successfully": "Successfully",
+            "warning": "Warning",
+            "information": "Information",
+            "error": "Error",
+            "accepted": "Accepted",
+            "pending": "Pending",
+            "process": "In progress",
+            "confirmed": "Confirmed"
+        },
+        "Button": {
+            "accept": "Accept",
+            "cancel": "Cancel",
+            "edit": "Edit",
+            "delete": "Delete",
+            "yes": "Yes",
+            "no": "No",
+            "showMore": "Show More",
+            "ariaLabel": {
+                "pressButton": "Press the button to"
+            }
+        },
+        "switchLocale": "Switch to {locale, select, es {Spanish} en {English} other {}}",
+        "Lang": {
+            "title": "Lenguage",
+            "en": {
+                "label": "en",
+                "name": "English",
+                "title": "Select English"
+            },
+            "es": {
+                "label": "es",
+                "name": "Spanish",
+                "title": "Select Spanish"
+            }
+        },
+        "Notification": {
+            "title": "Notification",
+            "default": {
+                "title": "Oops! Something went wrong",
+                "description": "Really happened, we can fix it."
+            }
+        },
+        "Footer": {
+            "copyright": "VoidToInfinite © {{year}}"
+        },
+        "ThemeToggle": {
+            "switchToLight": "Switch to light theme",
+            "switchToDark": "Switch to dark theme"
+        }
+    },
+    "notFound": {
+        "title": "Page not found",
+        "message": "The page you are looking for doesn't exist."
+    },
+    "language": {
+        "es": "Español",
+        "en": "English"
+    }
+}
