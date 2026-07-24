@@ -23,6 +23,11 @@ describe("Button", () => {
     expect(screen.getByText("Enviar")).toBeInTheDocument();
   });
 
+  it("en loading conserva el nombre accesible del botón (el label se oculta con opacity, no visibility)", () => {
+    renderWithProviders(<Button loading>Enviar</Button>);
+    expect(screen.getByRole("button", { name: "Enviar" })).toBeInTheDocument();
+  });
+
   it("no dispara onClick si está disabled", () => {
     const onClick = vi.fn();
     renderWithProviders(

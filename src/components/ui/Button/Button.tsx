@@ -111,13 +111,19 @@ const ScButton = styled.button<{
   }
 `;
 
-// El label permanece en el flujo (invisible) durante loading para que el
-// ancho del botón NO salte; el spinner se superpone centrado encima.
+// El label permanece en el flujo durante loading para que el ancho del
+// botón NO salte; el spinner se superpone centrado encima. Se oculta con
+// opacity (no visibility): "name from content" del cómputo de nombre
+// accesible de ARIA descarta los descendientes con display:none o
+// visibility:hidden, y el spinner ya es aria-hidden — con visibility el
+// <button> se quedaría sin nombre accesible durante loading. opacity:0
+// mantiene el nodo en el árbol de accesibilidad y en el flujo.
 const ScLabel = styled.span<{ $hidden: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
-  visibility: ${({ $hidden }) => ($hidden ? "hidden" : "visible")};
+  opacity: ${({ $hidden }) => ($hidden ? 0 : 1)};
+  pointer-events: ${({ $hidden }) => ($hidden ? "none" : "auto")};
 `;
 
 const ScSpinner = styled.span`
@@ -127,13 +133,14 @@ const ScSpinner = styled.span`
   border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: ${({ theme }) => theme.data.radius.full};
-  animation: ${spin} 700ms linear infinite;
+  animation: ${spin} ${({ theme }) => theme.data.motion.duration.spin} linear
+    infinite;
 
   /* Excepción documentada a "reduced-motion congela todo": un spinner
      inmóvil deja de comunicar que hay una carga en curso, así que se
-     ralentiza (2100ms) en vez de detenerse por completo. */
+     ralentiza (spinReduced) en vez de detenerse por completo. */
   @media (prefers-reduced-motion: reduce) {
-    animation-duration: 2100ms;
+    animation-duration: ${({ theme }) => theme.data.motion.duration.spinReduced};
   }
 `;
 
