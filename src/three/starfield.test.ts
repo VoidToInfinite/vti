@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import type { Material } from "three";
 import { createStarfield } from "./starfield";
 
 describe("starfield", () => {
@@ -36,8 +37,34 @@ describe("starfield", () => {
 
   it("dispose libera geometria y material", () => {
     const s = createStarfield(10);
-    const geo = s.points.geometry;
+    // El contrato de Starfield siempre crea un unico PointsMaterial (nunca un
+    // array); el cast solo estrecha el tipo union de THREE.Points.material.
+    const material = s.points.material as Material;
+    const geoDisposeSpy = vi.spyOn(s.points.geometry, "dispose");
+    const materialDisposeSpy = vi.spyOn(material, "dispose");
+
     s.dispose();
-    expect(geo.getAttribute("position")).toBeUndefined();
+
+    expect(geoDisposeSpy).toHaveBeenCalledTimes(1);
+    expect(materialDisposeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("no borra el atributo position antes de que el renderer pueda liberarlo (regresion de orden)", () => {
+    // El renderer real escucha "dispose" en la geometria para ejecutar
+    // gl.deleteBuffer sobre cada atributo (WebGLGeometries.onGeometryDispose).
+    // Si el atributo ya no esta cuando ese listener corre, el buffer de GPU
+    // queda huerfano. Este test reproduce ese listener y falla si alguien
+    // vuelve a llamar deleteAttribute("position") antes de dispose().
+    const s = createStarfield(10);
+    const geo = s.points.geometry;
+    let positionPresenteAlDisparar: boolean | undefined;
+
+    geo.addEventListener("dispose", () => {
+      positionPresenteAlDisparar = geo.getAttribute("position") !== undefined;
+    });
+
+    s.dispose();
+
+    expect(positionPresenteAlDisparar).toBe(true);
   });
 });

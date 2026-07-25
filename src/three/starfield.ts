@@ -61,11 +61,12 @@ export function createStarfield(count = DEFAULT_STAR_COUNT): Starfield {
   }
 
   function dispose(): void {
-    // `BufferGeometry.dispose()` solo libera el recurso de GPU (dispatchea el
-    // evento que el renderer escucha); NO vacía el mapa de atributos en CPU.
-    // Se borra explícitamente para soltar la referencia al `Float32Array` y
-    // dejar la geometría realmente inerte tras `dispose()`.
-    geometry.deleteAttribute("position");
+    // `dispose()` no libera nada por sí mismo: dispatchea el evento "dispose"
+    // que `WebGLGeometries`/`WebGLRenderer` escuchan de forma síncrona para
+    // ejecutar `gl.deleteBuffer(...)` sobre cada atributo. NO tocar
+    // `.attributes` a mano (p.ej. `deleteAttribute`) antes de esta llamada:
+    // el listener recorre `geometry.attributes` para decidir qué liberar, y
+    // si ya no está el atributo lo salta, dejando el buffer de GPU huérfano.
     geometry.dispose();
     material.dispose();
   }
