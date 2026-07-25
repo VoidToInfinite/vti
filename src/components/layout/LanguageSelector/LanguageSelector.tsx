@@ -14,6 +14,15 @@ const ScLanguageSelector = styled.div`
 `;
 
 const ScLanguageButton = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Área táctil mínima AA (44px), literal como en Button md/Input: no hay
+     casilla de la escala de space para este tamaño mínimo, mismo precedente
+     ya usado en el sistema. min- en vez de fijo: preserva el ancho natural
+     del texto ("ES"/"EN") si llegara a necesitar más de 44px. */
+  min-height: 44px;
+  min-width: 44px;
   padding: ${({ theme }) => theme.data.space[1]}
     ${({ theme }) => theme.data.space[2]};
   border-radius: ${({ theme }) => theme.data.radius.md};

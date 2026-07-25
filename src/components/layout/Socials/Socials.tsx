@@ -41,8 +41,11 @@ const ScSocialLink = styled.a`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2.5rem;
-  width: 2.5rem;
+  /* Área táctil mínima AA (44px), literal como en Button md/Input: no hay
+     casilla de la escala de space para este tamaño mínimo, mismo precedente
+     ya usado en el sistema. Sube de 2.5rem (40px). */
+  height: 44px;
+  width: 44px;
   border-radius: ${({ theme }) => theme.data.radius.full};
   /* AA/afordancia (I3): antes usaba surfaceSunken en reposo, idéntico al
      fondo del Footer (y, en dark, semanticDark.surfaceSunken === bg

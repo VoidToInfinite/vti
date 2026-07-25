@@ -8,8 +8,11 @@ const ScThemeToggle = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: ${({ theme }) => theme.data.space[6]};
-  width: ${({ theme }) => theme.data.space[6]};
+  /* Área táctil mínima AA (44px), literal como en Button md/Input: no hay
+     casilla de la escala de space para este tamaño mínimo, mismo precedente
+     ya usado en el sistema. Cabe en Navbar (3.5rem=56px de alto). */
+  height: 44px;
+  width: 44px;
   border-radius: ${({ theme }) => theme.data.radius.full};
   font-size: 1rem;
   line-height: 1;
