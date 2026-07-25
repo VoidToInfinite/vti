@@ -71,6 +71,7 @@ Nada de esto lo ha podido comprobar ningún agente de este entorno — es la pri
 - [ ] **Pulso al click:** un click/tap sobre el fondo del hero dispara el anillo que se expande desde la pupila, y se puede repetir inmediatamente.
 - [ ] **Transición póster → escena viva:** confirma que el fundido de opacidad entre el gradiente CSS y el canvas de Three.js (cuando WebGL y reduced-motion lo permiten) no produce un salto de color perceptible.
 - [ ] **Marca-esquina persistente (`EyeCornerMark`):** al pasar el hero, confirma que la marca aparece de forma legible y no se superpone de forma confusa con el contenido siguiente.
+- [ ] **Navbar sobre el hero:** arriba del todo la barra debe ser invisible (solo su contenido flotando sobre la composición) y al empezar a scrollear debe aparecer el cristal esmerilado. Comprueba los dos temas. En **tema claro** el cambio de color del texto de la barra ocurre en el mismo umbral que el cristal (8px): confirma que la transición no se lee como un parpadeo — el fondo se funde en 200ms y el color salta de golpe, y ese desfase solo se puede juzgar mirándolo.
 
 ---
 

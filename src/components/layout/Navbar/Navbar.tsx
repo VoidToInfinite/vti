@@ -1,13 +1,15 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useMemo, type ReactElement } from "react";
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { ThemeProvider } from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { EyeCornerMark } from "@/components/eye/EyeCornerMark";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { useScrolled } from "@/hooks/useScrolled";
+import { useTheme } from "@/theme/ThemeProvider";
+import { basicDarkTheme, themes } from "@/theme/themes";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -15,9 +17,20 @@ import { useScrolled } from "@/hooks/useScrolled";
 // arranca transparente sobre el hero y solo pasa a cristal esmerilado cuando
 // `data-scrolled` es true — el contraste con el estado transparente es lo
 // que justifica el efecto.
+//
+// `fixed`, no `sticky`: en flujo, la barra ocupaba su propia franja de 3,5rem
+// por encima del hero, así que «transparente» significaba transparente sobre
+// el fondo del tema (un gris en oscuro, casi blanco en claro) y no sobre la
+// composición del ojo. Fuera de flujo, la barra flota de verdad sobre el hero
+// desde el primer píxel, que es lo que el estado transparente existe para
+// conseguir. Las secciones siguientes pasan por debajo al scrollear — para
+// eso está el cristal, y `scroll-margin-top` en GlobalStyles compensa los
+// saltos a anclas.
 const ScHeader = styled.header`
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: ${({ theme }) => theme.data.zIndex.stickyNav};
   background: transparent;
   border-bottom: 1px solid transparent;
@@ -76,19 +89,39 @@ const ScActions = styled.div`
 
 export function Navbar(): ReactElement {
   const scrolled = useScrolled(8);
+  const { themeName } = useTheme();
+
+  /*
+   * Mientras la barra es transparente está flotando sobre el hero, que es
+   * negro en los dos temas: ahí sus tokens tienen que ser los del tema oscuro
+   * o en tema claro la marca y los controles resuelven a casi negro sobre la
+   * ilustración y desaparecen (mismo tratamiento que el propio Hero). En
+   * cuanto aparece el cristal, la barra vuelve al tema ambiente: el panel
+   * esmerilado ya es del color del tema y el contenido de debajo también.
+   *
+   * El umbral es el MISMO que el del cristal a propósito — un solo estado,
+   * `scrolled`, gobierna fondo y colores, así que no hay ventana en la que la
+   * barra sea de un tema y su fondo del otro.
+   */
+  const barTheme = useMemo(
+    () => ({ data: scrolled ? themes[themeName] : basicDarkTheme }),
+    [scrolled, themeName],
+  );
 
   return (
-    <ScHeader data-scrolled={scrolled}>
-      <ScNav>
-        <ScBrandLink href="/">
-          <EyeCornerMark visible={scrolled} />
-          <BrandName />
-        </ScBrandLink>
-        <ScActions>
-          <LanguageSelector />
-          <ThemeToggle />
-        </ScActions>
-      </ScNav>
-    </ScHeader>
+    <ThemeProvider theme={barTheme}>
+      <ScHeader data-scrolled={scrolled}>
+        <ScNav>
+          <ScBrandLink href="/">
+            <EyeCornerMark visible={scrolled} />
+            <BrandName />
+          </ScBrandLink>
+          <ScActions>
+            <LanguageSelector />
+            <ThemeToggle />
+          </ScActions>
+        </ScNav>
+      </ScHeader>
+    </ThemeProvider>
   );
 }

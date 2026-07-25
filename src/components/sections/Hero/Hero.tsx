@@ -29,12 +29,11 @@ const heroTheme = { data: basicDarkTheme };
 
 const ScHero = styled.section`
   position: relative;
-  /* Exactamente una pantalla MENOS la banda del navbar (que es sticky y ocupa
-     flujo): con 100dvh a secas el hero medía una pantalla entera empezando 56px
-     mas abajo, asi que la composicion del ojo quedaba descentrada y cortada por
-     el pliegue. */
-  min-height: calc(100vh - var(--nav-height));
-  min-height: calc(100dvh - var(--nav-height));
+  /* Una pantalla exacta: el navbar es fixed, esta fuera de flujo, asi que el
+     hero empieza en el borde superior y la composicion queda centrada en el
+     viewport en vez de descolgada por debajo del pliegue. */
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
