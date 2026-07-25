@@ -19,7 +19,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   loading?: boolean;
   children: ReactNode;
-  ref?: Ref<HTMLButtonElement>;
+  ref?: Ref<HTMLButtonElement | HTMLAnchorElement>;
   /** Override del elemento. `as="a"` + `href` para CTAs que navegan. */
   as?: ElementType;
   href?: string;
@@ -121,16 +121,25 @@ const ScButton = styled.button<{
   }}
 
   /* Únicas dos primitivas de movimiento del sistema: press y hover-lift.
-     Ningún componente inventa su propia duración/curva: salen de motion. */
-  &:hover:not(:disabled) {
+     Ningún componente inventa su propia duración/curva: salen de motion.
+     :not(:disabled) no casa nunca con un <a> (la pseudo-clase :disabled
+     solo aplica a form controls), así que el ancla deshabilitada necesita
+     su propia exclusión vía [aria-disabled="true"]. */
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
     transform: translateY(-2px);
   }
-  &:active:not(:disabled) {
+  &:active:not(:disabled):not([aria-disabled="true"]) {
     transform: scale(0.98);
   }
-  &:disabled {
+  /* disabled nativo (button) + aria-disabled (ancla, que no admite el
+     atributo disabled — ver Button.tsx). pointer-events: none bloquea la
+     activación por puntero en ambos casos; en el <a> es lo único que
+     realmente impide el click, ya que aria-disabled es solo semántica. */
+  &:disabled,
+  &[aria-disabled="true"] {
     opacity: 0.5;
     cursor: not-allowed;
+    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -192,17 +201,52 @@ export function Button({
   children,
   ref,
   as: asProp,
+  href,
   ...rest
 }: ButtonProps): ReactElement {
+  const isDisabled = disabled || loading;
+  // Sin `as` (o `as="button"`) se renderiza un <button> nativo: el atributo
+  // `disabled` funciona de verdad ahí. Cualquier otro elemento (típicamente
+  // `as="a"`) NO admite `disabled` — React emitiría `disabled=""`, HTML
+  // inválido que no bloquea foco, Enter, click ni la pseudo-clase
+  // `:disabled`. Para esos casos se simula el estado con aria-disabled +
+  // tabIndex=-1 + retirar el href, y el bloqueo real de click lo da
+  // `pointer-events: none` (ver ScButton).
+  const isButtonElement = asProp === undefined || asProp === "button";
+
+  // ScButton es `styled.button`: styled-components solo resuelve el overload
+  // de <a> para `as` cuando el valor es un literal en el propio JSX, no una
+  // variable — así que su ref queda tipado a HTMLButtonElement pase lo que
+  // pase por `asProp`. En runtime el nodo es un HTMLAnchorElement cuando
+  // as="a"; este wrapper reenvía ese nodo (subtipo) al ref público, que
+  // acepta la unión — un ensanchamiento de tipo válido, sin ningún cast.
+  const setRef = (node: HTMLButtonElement | null): void => {
+    if (typeof ref === "function") {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  };
+
+  // `href` no existe en ButtonHTMLAttributes<HTMLButtonElement> (ScButton es
+  // `styled.button`), así que no puede pasarse como atributo JSX nombrado
+  // sin que tsc lo rechace. Se reintroduce vía spread — igual que ya viaja
+  // el resto de props propias de <a> a través de `rest` — para retirarlo de
+  // verdad cuando el ancla está deshabilitada.
+  const hrefProps = isDisabled && !isButtonElement ? {} : { href };
+
   return (
     <ScButton
       as={asProp}
-      ref={ref}
+      ref={setRef}
       $variant={variant}
       $intent={intent}
       $size={size}
       aria-busy={loading || undefined}
-      disabled={disabled || loading}
+      disabled={isButtonElement ? isDisabled : undefined}
+      aria-disabled={!isButtonElement && isDisabled ? true : undefined}
+      tabIndex={!isButtonElement && isDisabled ? -1 : undefined}
+      {...hrefProps}
       {...rest}
     >
       {loading && <ScSpinner aria-hidden="true" />}

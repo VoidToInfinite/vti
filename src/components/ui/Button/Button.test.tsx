@@ -146,4 +146,58 @@ describe("Button", () => {
     b.click();
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  it("con as='a' y disabled no emite el atributo disabled, marca aria-disabled y retira el href", () => {
+    renderWithProviders(
+      <Button
+        as="a"
+        href="/x"
+        disabled
+      >
+        Ir
+      </Button>,
+    );
+    // Sin href, el <a> deja de tener rol "link" (HTML-AAM), así que se
+    // localiza por el texto y se sube al elemento <a> real con closest.
+    const anchor = screen.getByText("Ir").closest("a");
+    expect(anchor).not.toBeNull();
+    expect(anchor).not.toHaveAttribute("disabled");
+    expect(anchor).toHaveAttribute("aria-disabled", "true");
+    expect(anchor).not.toHaveAttribute("href");
+  });
+
+  it("con as='a' y disabled queda fuera del orden de tabulación", () => {
+    renderWithProviders(
+      <Button
+        as="a"
+        href="/x"
+        disabled
+      >
+        Ir
+      </Button>,
+    );
+    const anchor = screen.getByText("Ir").closest("a");
+    expect(anchor).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("el <button> deshabilitado sigue usando el atributo nativo disabled (no-regresion)", () => {
+    renderWithProviders(<Button disabled>Enviar</Button>);
+    const b = screen.getByRole("button", { name: "Enviar" });
+    expect(b).toHaveAttribute("disabled");
+    expect(b).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("con as='a' sin disabled conserva el href y no lleva aria-disabled", () => {
+    renderWithProviders(
+      <Button
+        as="a"
+        href="/x"
+      >
+        Ir
+      </Button>,
+    );
+    const link = screen.getByRole("link", { name: "Ir" });
+    expect(link).toHaveAttribute("href", "/x");
+    expect(link).not.toHaveAttribute("aria-disabled");
+  });
 });
