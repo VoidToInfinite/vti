@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import type { Material } from "three";
-import { createStarfield } from "./starfield";
+import { PerspectiveCamera, type Material } from "three";
+import { createStarfield, DEFAULT_STAR_COUNT } from "./starfield";
+import { applyCameraProgress } from "./camera";
 
 describe("starfield", () => {
   it("crea un unico objeto dibujable (un draw call)", () => {
@@ -26,12 +27,48 @@ describe("starfield", () => {
     s.dispose();
   });
 
-  it("el progreso mueve la camara-objeto hacia dentro (eje z)", () => {
+  it("el campo NO se traslada en z (evita duplicar el recorrido con la camara)", () => {
+    // Antes, el campo tambien avanzaba `p * DEPTH` en z ademas de la propia
+    // camara (camera.ts): el desplazamiento relativo se duplicaba y el
+    // tunel (24 unidades) se agotaba antes de progress=1 (bug real). Ahora
+    // solo la camara recorre el tunel; el campo permanece fijo.
     const s = createStarfield(100);
     s.update(0);
     const z0 = s.points.position.z;
     s.update(1);
-    expect(s.points.position.z).toBeGreaterThan(z0);
+    expect(s.points.position.z).toBe(z0);
+    expect(s.points.position.z).toBe(0);
+    s.dispose();
+  });
+
+  it("el progreso si sigue rotando el campo (deriva ambiental)", () => {
+    const s = createStarfield(100);
+    s.update(0);
+    const rot0 = s.points.rotation.z;
+    s.update(1);
+    expect(s.points.rotation.z).toBeGreaterThan(rot0);
+    s.dispose();
+  });
+
+  it("en progress=1 todavia quedan estrellas por delante de la camara (no se agota el tunel)", () => {
+    // Regresion del hallazgo: campo (DEPTH=24) + camara (START_Z..END_Z)
+    // movian juntos mas de 24 unidades relativas y el campo desaparecia
+    // antes de llegar al final del scroll. Esta invariante falla si alguien
+    // vuelve a mover el campo en z, o si END_Z se ajusta mas alla del
+    // rango del campo.
+    const s = createStarfield(DEFAULT_STAR_COUNT);
+    s.update(1);
+    const cam = new PerspectiveCamera(60, 1, 0.1, 100);
+    applyCameraProgress(cam, 1);
+
+    const pos = s.points.geometry.getAttribute("position");
+    let delante = 0;
+    for (let i = 0; i < pos.count; i += 1) {
+      const worldZ = pos.getZ(i) + s.points.position.z;
+      if (worldZ < cam.position.z) delante += 1;
+    }
+
+    expect(delante).toBeGreaterThan(0);
     s.dispose();
   });
 

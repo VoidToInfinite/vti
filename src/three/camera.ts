@@ -1,7 +1,15 @@
 import type * as THREE from "three";
 
 export const START_Z = 6;
-export const END_Z = -10;
+/**
+ * El campo de estrellas (`starfield.ts`) es estático: ocupa z ∈ [0, −24]
+ * (su `DEPTH`) en coordenadas locales y ya no se traslada. Toda la
+ * sensación de "volar hacia dentro" la produce solo esta cámara. `END_Z`
+ * se elige para recorrer el túnel de verdad sin llegar a agotarlo: en
+ * `progress = 1` (el punto de mayor desplazamiento) deben seguir quedando
+ * estrellas por delante — verificado en starfield.test.ts.
+ */
+export const END_Z = -18;
 
 /** Ease-out sobre el progreso: la entrada al vacío acelera y luego se asienta,
  *  en vez de avanzar de forma lineal y mecánica (spec §8, `camera settle`). */

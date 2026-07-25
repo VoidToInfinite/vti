@@ -7,7 +7,13 @@ import * as THREE from "three";
  */
 export const DEFAULT_STAR_COUNT = 1200;
 
-/** Profundidad del campo. El descenso (T12) recorre este rango en z. */
+/**
+ * Profundidad del campo, en coordenadas locales [0, −DEPTH]. El campo es
+ * estático (no se traslada, ver `update()`); es la cámara del descenso
+ * (T12, `camera.ts`) la que recorre este rango con su propio `START_Z`/
+ * `END_Z`. Si se cambia este valor, `camera.ts` debe revisar `END_Z` para
+ * seguir dejando estrellas por delante en `progress = 1`.
+ */
 const DEPTH = 24;
 
 export interface Starfield {
@@ -54,8 +60,14 @@ export function createStarfield(count = DEFAULT_STAR_COUNT): Starfield {
     // Pública: se recorta de nuevo aunque `useScrollProgress` ya llegue
     // recortado — no debe extrapolar si recibe basura.
     const p = Math.max(0, Math.min(1, progress));
-    // Avanzar el campo hacia el espectador = volar hacia dentro del vacío.
-    points.position.z = p * DEPTH;
+    // El campo NO se traslada en z. Quien recorre el túnel es la cámara
+    // (camera.ts: START_Z → END_Z). Si el campo también avanzara aquí, el
+    // desplazamiento relativo se duplicaría (cámara + campo) y superaría
+    // las `DEPTH` (24) unidades de profundidad reales del túnel — las
+    // estrellas se agotarían antes de `progress = 1` y el efecto
+    // desaparecería justo en el tramo climático del beat (bug real,
+    // corregido: ver el test de invariante "quedan estrellas... en p=1"
+    // más abajo). El campo permanece fijo en el origen; solo rota.
     // Deriva ambiente lenta: el vacío nunca se lee como muerto (spec §6).
     points.rotation.z = p * 0.35;
   }

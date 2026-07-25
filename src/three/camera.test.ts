@@ -33,4 +33,17 @@ describe("camera", () => {
     applyCameraProgress(c, -3);
     expect(c.position.z).toBeCloseTo(START_Z, 5);
   });
+
+  it("a mitad de progreso ya recorrio mas de la mitad del trayecto (curva ease-out, no lineal)", () => {
+    // Si alguien sustituyera el ease por una interpolacion lineal (t => t),
+    // en p=0.5 la fraccion recorrida seria exactamente 0.5 y este test
+    // fallaria. Con ease-out 1-(1-t)^2, ease(0.5) = 0.75.
+    const c = cam();
+    applyCameraProgress(c, 0.5);
+    const total = END_Z - START_Z;
+    const recorrido = c.position.z - START_Z;
+    const fraccion = recorrido / total;
+    expect(fraccion).toBeGreaterThan(0.5);
+    expect(fraccion).toBeCloseTo(0.75, 5);
+  });
 });
