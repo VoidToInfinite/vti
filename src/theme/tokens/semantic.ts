@@ -43,8 +43,12 @@ export const semanticLight: SemanticColors = {
   // buscó un valor alternativo para separarlos artificialmente.
   brandSolid: color.primary[800],
   brandText: color.primary[800],
-  // AA (C1): primary[500] daba 2.18:1 focus/bg (falla 3:1). primary[700]
-  // (tras bajar L[7] a 0.53) da 3.99:1/4.17:1 sobre bg/surface.
+  // AA (C1): primary[500] daba 2.18:1 focus/bg — fallaba el 3:1 que WCAG
+  // 1.4.11/2.4.11 exige al indicador de foco, y afectaba a TODOS los
+  // elementos interactivos del sitio. Con primary[700] y L[7] bajado a 0.53
+  // da 4.86:1 sobre bg y 5.07:1 sobre surface (medido con ./contrast, no
+  // estimado). Las cifras 3.99/4.17 que figuraban aquí eran las de ANTES de
+  // bajar L[7]: quedaron obsoletas en el mismo commit que las mejoró.
   focus: color.primary[700],
   onBrand: white,
   // AA (C1): success[700]/warning[700] daban 3.89/4.22:1 sobre bg (fallan
