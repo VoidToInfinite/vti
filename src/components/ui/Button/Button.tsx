@@ -62,30 +62,52 @@ const ScButton = styled.button<{
   font-size: ${({ theme }) => theme.data.type.scale.body.size};
   font-weight: 600;
   cursor: pointer;
-  transition: transform ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  /* transform (compositor) + background-color (paint) — ambas permitidas por
+     §9 revisada: la regla dura prohíbe propiedades de LAYOUT, no de paint. El
+     tinte forma parte de la definición de hover-lift. */
+  transition:
+    transform ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    background-color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard};
   ${({ $size }) => sizeStyles[$size]}
   ${({ theme, $variant, $intent }) => {
     const a = accent(theme, $intent);
+    /* Tinte de hover (§13.1: "hover-lift + tint, un paso más oscuro"). Se
+       deriva con color-mix del propio acento en vez de añadir un rol
+       semántico por intent: así los 4 intents lo obtienen sin multiplicar
+       tokens, y sigue sin haber valores de color hardcodeados. */
     if ($variant === "solid")
       return css`
         background: ${a};
         color: ${theme.data.semantic.onBrand};
+        &:hover:not(:disabled) {
+          background: color-mix(in oklch, ${a} 88%, black);
+        }
       `;
     if ($variant === "soft")
       return css`
         background: color-mix(in oklch, ${a} 12%, transparent);
         color: ${a};
+        &:hover:not(:disabled) {
+          background: color-mix(in oklch, ${a} 20%, transparent);
+        }
       `;
     if ($variant === "outline")
       return css`
         background: transparent;
         color: ${a};
         box-shadow: inset 0 0 0 1px ${theme.data.semantic.borderStrong};
+        &:hover:not(:disabled) {
+          background: color-mix(in oklch, ${a} 10%, transparent);
+        }
       `;
     return css`
       background: transparent;
       color: ${a};
+      &:hover:not(:disabled) {
+        background: color-mix(in oklch, ${a} 10%, transparent);
+      }
     `;
   }}
 

@@ -224,7 +224,15 @@ Una sola gramática. **Todos** los componentes referencian estas primitivas; nad
 | `expand/collapse` | altura (grid-rows) + opacity | base · standard | acordeones, help/error de forms |
 | `focus-ring` | aparición del anillo | **instant, sin animar** | todo interactivo |
 
-**Reglas duras:** solo `transform`/`opacity` (nunca width/height/margin/top/left). `prefers-reduced-motion: reduce` → todo colapsa a opacidad o a instantáneo; el foco **nunca** se anima; los loops ambiente se congelan.
+**Reglas duras (revisadas 2026-07-25 — ver nota):**
+
+- **Prohibido animar propiedades de _layout_:** `width`, `height`, `margin`, `padding`, `top`/`right`/`bottom`/`left`, `font-size`. Disparan recálculo de layout en cada frame; ninguna transición del sistema las toca.
+- **Preferentes (compositor):** `transform` y `opacity`. Son la primera opción siempre que expresen el efecto.
+- **Permitidas para tintes de estado (_paint_):** `color`, `background-color`, `border-color`, `box-shadow`. Son baratas sobre elementos pequeños y son lo que hace legible un cambio de estado. La primitiva `hover-lift` las usa por definición.
+- **Excepción cara y acotada:** `backdrop-filter` solo puede transicionar en cambios disparados por **cruce de umbral**, nunca por frame. Único uso permitido hoy: la Navbar al pasar a glass (§13.3).
+- `prefers-reduced-motion: reduce` → todo colapsa a opacidad o a instantáneo; el foco **nunca** se anima; los loops ambiente se congelan. Un indicador de carga en curso se **ralentiza**, no se congela (si se congelara dejaría de comunicar que algo está pasando): esa excepción debe declararse con `!important`, porque el reset global lo lleva.
+
+> **Nota de enmienda (2026-07-25).** La redacción original decía "solo `transform`/`opacity`", pero su propia lista de exclusión era enteramente de propiedades de layout, y la primitiva `hover-lift` que este mismo documento define incluye "tint de borde/bg" — contradicción detectada en la revisión final de la implementación, cuando 3 de los 5 componentes animados incumplían la regla leída al pie de la letra mientras cumplían §13.2. El propósito de la regla es **rendimiento**, no purismo: layout es lo caro, paint no. Enmendado con aprobación del usuario.
 
 ---
 
