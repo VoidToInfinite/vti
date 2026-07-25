@@ -2,6 +2,14 @@
 import type { ReactElement } from "react";
 import styled from "styled-components";
 
+/**
+ * Excepción sancionada del sistema de tokens, la misma que rige `eye.parts.tsx`
+ * y `BackOrbs.tsx`: los `oklch()` literales de aquí NO son roles de UI, son el
+ * espectáculo de marca del ojo reducido a su mínima expresión. Un rol semántico
+ * (`brand`, `surface`…) cambiaría con el tema y rompería la identidad continua
+ * que esta marca existe para sostener. El elemento es `aria-hidden`, decoración
+ * pura, así que no hay contraste de texto que preservar.
+ */
 const ScMark = styled.span`
   display: inline-block;
   width: 1.5rem;
