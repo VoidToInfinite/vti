@@ -7,6 +7,11 @@ out
 # SDD scratch (gitignored, not part of the tracked tree):
 .superpowers/
 
+# Notas de trabajo del flujo de tareas (task/todo.md, task/lessons.md). Son
+# scratch de sesión, no fuente: formatearlas metería ruido en el trabajo de
+# quien las esté escribiendo, y su deriva de formato no debe tumbar el gate.
+task/
+
 **/.git
 **/.svn
 **/.hg
