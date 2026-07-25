@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { renderWithProviders, screen, fireEvent } from "@/test/test-utils";
 import { Eye } from "./Eye";
 
 /**
@@ -76,5 +76,42 @@ describe("Eye", () => {
     expect(raf).toHaveBeenCalled();
     unmount();
     expect(caf).toHaveBeenCalledWith(7);
+  });
+
+  it("no cancela ni reprograma el rAF de seguimiento al re-renderizar con las mismas props (usePointer() devuelve un objeto nuevo por render)", () => {
+    stubMatchMedia(true); // puntero fino habilitado
+    const raf = vi.fn().mockReturnValue(9);
+    const caf = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", raf);
+    vi.stubGlobal("cancelAnimationFrame", caf);
+
+    const { rerender } = renderWithProviders(<Eye />);
+    // Al montar, tanto `usePointer` (rAF del lerp) como `Eye` (rAF que
+    // aplica los transforms) piden un frame cada uno: hay que medir el
+    // DELTA tras el re-render, no un total absoluto.
+    const callsAfterMount = raf.mock.calls.length;
+    expect(callsAfterMount).toBeGreaterThan(0);
+
+    rerender(<Eye />);
+    expect(caf).not.toHaveBeenCalled();
+    expect(raf).toHaveBeenCalledTimes(callsAfterMount);
+  });
+
+  it("un pointerdown sobre el ojo marca el pulso, y el fin de su animacion lo limpia para que pueda repetirse", () => {
+    const { container } = renderWithProviders(<Eye />);
+    const socket = container.firstElementChild as HTMLElement;
+    const shock = container.querySelector('[data-part="shock"]') as HTMLElement;
+
+    expect(socket).not.toHaveAttribute("data-pulsing");
+
+    fireEvent.pointerDown(socket);
+    expect(socket).toHaveAttribute("data-pulsing", "true");
+
+    fireEvent.animationEnd(shock);
+    expect(socket).not.toHaveAttribute("data-pulsing");
+
+    // Se puede repetir: un segundo click vuelve a marcar el pulso.
+    fireEvent.pointerDown(socket);
+    expect(socket).toHaveAttribute("data-pulsing", "true");
   });
 });

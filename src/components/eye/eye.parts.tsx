@@ -1,6 +1,18 @@
 "use client";
 import styled, { keyframes } from "styled-components";
 
+/*
+ * Excepcion sancionada del sistema (la misma que `BackOrbs`, ver
+ * `src/components/layout/BackOrbs/BackOrbs.tsx`, "Excepcion sancionada"): el
+ * ojo es `aria-hidden`, puramente decorativo -- sus colores son espectaculo
+ * de marca (nebulosa, iris, remolino, glint, contorno, onda de pulso), no
+ * roles de UI. Por eso TODOS los `oklch()` literales de este archivo leen
+ * valores fijos en vez de `theme.data.semantic.*`. Este comentario cubre
+ * todas las piezas del archivo con color literal (`ScUniverse`, `ScSwirl`,
+ * `ScRing`, `ScPupil`, `ScGlint`, `ScLidShadow`, `ScOutline`, `ScShock`) -- no
+ * se repite por styled-component.
+ */
+
 /* Silueta de almendra (vesica), en coordenadas objectBoundingBox (0..1): al
    escalarse con el tamano real del socket, el ojo se RE-AJUSTA a cualquier
    viewport en vez de recortarse (spec §14). */
@@ -181,5 +193,52 @@ export const ScOutline = styled.svg`
     stroke: oklch(0.9 0.05 250 / 0.75);
     stroke-width: 2.5;
     vector-effect: non-scaling-stroke;
+  }
+`;
+
+const shock = keyframes`
+  0% {
+    opacity: 0.6;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+`;
+
+/*
+ * Onda de "pulse" (spec §12, "Click pulse (ojo)"): anillo centrado en el
+ * iris que se expande y decae al hacer click/tap sobre el ojo. El estado
+ * (`data-pulsing`) se marca en `ScSocket` -- el elemento que recibe el
+ * `pointerdown`, spec: hit target grande -- mientras que este anillo vive
+ * dentro de `ScIris`, varios niveles mas abajo. Por eso el disparador usa el
+ * selector DESCENDIENTE `[data-pulsing="true"] &` y no `&[data-pulsing="true"]`:
+ * este ultimo solo matchearia si el atributo estuviera en el propio
+ * elemento, y aqui vive en un ancestro (mismo gotcha que CLAUDE.md §5.1
+ * documenta: animacion que nunca dispara porque el estado esta en el
+ * padre). El mismo selector calificado se repite dentro de
+ * `prefers-reduced-motion` (en vez de un `animation: none` suelto, de menor
+ * especificidad) para que la desactivacion gane por especificidad igual +
+ * orden de cascada, sin depender solo del `!important` global de
+ * `GlobalStyles`.
+ */
+export const ScShock = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: ${({ theme }) => theme.data.radius.full};
+  border: 2px solid oklch(0.92 0.04 250 / 0.7);
+  opacity: 0;
+  pointer-events: none;
+
+  [data-pulsing="true"] & {
+    animation: ${shock} ${({ theme }) => theme.data.motion.duration.slower}
+      ${({ theme }) => theme.data.motion.easing.accelerate};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-pulsing="true"] & {
+      animation: none;
+    }
   }
 `;

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useRef, type ReactElement } from "react";
+import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { usePointer } from "@/hooks/usePointer";
 import {
   ALMOND,
@@ -12,6 +12,7 @@ import {
   ScOutline,
   ScPupil,
   ScRing,
+  ScShock,
   ScSocket,
   ScSwirl,
   ScUniverse,
@@ -38,9 +39,22 @@ export interface EyeProps {
  */
 export function Eye({ className }: EyeProps): ReactElement {
   const pointer = usePointer();
+  // `usePointer()` devuelve un objeto literal nuevo en cada invocacion (no
+  // memoizado): depender de `pointer` entero en el efecto de abajo lo haria
+  // re-ejecutarse en CADA render de `Eye` (cancela + reprograma el rAF),
+  // aunque `enabled` no cambiara. `x`/`y` si son refs estables (el mismo
+  // objeto en cada invocacion de `usePointer`), asi que extraerlas aqui y
+  // depender de los primitivos/refs -- no del objeto envolvente -- deja el
+  // efecto quieto entre renders del padre (Hero, T5) y solo lo reinicia
+  // cuando `enabled` cambia de verdad.
+  const { x, y, enabled } = pointer;
   const eyeball = useRef<HTMLDivElement>(null);
   const iris = useRef<HTMLDivElement>(null);
   const glint = useRef<HTMLSpanElement>(null);
+  // Onda de "pulse" al click/tap (spec §12). Estado de React, no rAF: se
+  // dispara una vez por interaccion, no en cada frame, asi que no interfiere
+  // con la regla de "cero re-render por frame" del gaze (spec §13).
+  const [pulsing, setPulsing] = useState(false);
 
   // useId() incluye ":" (p.ej. ":r0:"), valido en un atributo id HTML pero
   // fragil como referencia `url(#...)` en algunos motores. Se despoja para
@@ -48,29 +62,41 @@ export function Eye({ className }: EyeProps): ReactElement {
   const clipId = `eye-almond-${useId().replace(/:/g, "")}`;
 
   useEffect(() => {
-    if (!pointer.enabled) return;
+    if (!enabled) return;
     let raf = 0;
     // Un solo rAF escribe transforms directamente en el DOM. React NUNCA
     // re-renderiza por frame (spec §13).
     const tick = (): void => {
-      const x = pointer.x.current;
-      const y = pointer.y.current;
+      const px = x.current;
+      const py = y.current;
       if (eyeball.current)
-        eyeball.current.style.transform = `translate(${x * AMP.eyeball}px, ${y * (AMP.eyeball * 0.64)}px)`;
+        eyeball.current.style.transform = `translate(${px * AMP.eyeball}px, ${py * (AMP.eyeball * 0.64)}px)`;
       if (iris.current)
-        iris.current.style.transform = `translate(${x * AMP.iris}px, ${y * (AMP.iris * 0.7)}px)`;
+        iris.current.style.transform = `translate(${px * AMP.iris}px, ${py * (AMP.iris * 0.7)}px)`;
       if (glint.current)
-        glint.current.style.transform = `translate(${x * AMP.glint}px, ${y * (AMP.glint * 0.7)}px)`;
+        glint.current.style.transform = `translate(${px * AMP.glint}px, ${py * (AMP.glint * 0.7)}px)`;
       raf = window.requestAnimationFrame(tick);
     };
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [pointer]);
+  }, [enabled, x, y]);
+
+  // `pointerdown` cubre raton y tactil en un solo handler (spec §12: "click
+  // pulse", trigger "click / tap"). El ojo entero (`ScSocket`) es el hit
+  // target -- no solo el iris -- para que la superficie completa responda.
+  const handlePulseStart = (): void => setPulsing(true);
+  // Se limpia al terminar la animacion CSS (no con un timeout) para que un
+  // segundo click dispare la onda otra vez incluso si el usuario clickea muy
+  // rapido: `onAnimationEnd` solo se dispara cuando el navegador termina de
+  // verdad el keyframe `shock`.
+  const handlePulseEnd = (): void => setPulsing(false);
 
   return (
     <ScSocket
       className={className}
       aria-hidden="true"
+      data-pulsing={pulsing ? "true" : undefined}
+      onPointerDown={handlePulseStart}
     >
       <ScClipDefs>
         <defs>
@@ -103,6 +129,10 @@ export function Eye({ className }: EyeProps): ReactElement {
               $tint="oklch(0.8 0.117 235.851 / 0.4)"
             />
             <ScPupil data-part="pupil" />
+            <ScShock
+              data-part="shock"
+              onAnimationEnd={handlePulseEnd}
+            />
           </ScIris>
           <ScGlint
             ref={glint}
