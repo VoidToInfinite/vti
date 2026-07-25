@@ -23,4 +23,13 @@ describe("links de CTA", () => {
     expect(links.docs).toContain("por-completar");
     expect(links.email).toContain("por-completar");
   });
+
+  it("los destinos sin confirmar usan el TLD reservado example.invalid para fallar visible", () => {
+    // RFC 2606: example.invalid nunca resuelve a un sitio real, así que un
+    // placeholder olvidado falla de forma ruidosa en lugar de llevar al usuario
+    // a un destino equivocado o real.
+    expect(links.playground).toContain("example.invalid");
+    expect(links.docs).toContain("example.invalid");
+    expect(links.email).toContain("example.invalid");
+  });
 });
