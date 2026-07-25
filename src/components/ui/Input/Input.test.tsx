@@ -22,6 +22,38 @@ describe("Input / Field", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 
+  // `ScLabel` usa `htmlFor={htmlFor}` para asociar la etiqueta con el
+  // control; sin que `Field` inyecte también ese `id` al hijo, la
+  // asociación se rompe en cuanto el consumidor olvida pasar un `id` que
+  // coincida a mano con `htmlFor`.
+  it("inyecta el id del control a partir de htmlFor cuando el hijo no trae id explícito", () => {
+    renderWithProviders(
+      <Field
+        label="Usuario"
+        htmlFor="auto-id"
+      >
+        <Input />
+      </Field>,
+    );
+    const control = screen.getByLabelText("Usuario");
+    expect(control).toHaveAttribute("id", "auto-id");
+  });
+
+  // Igual que con aria-describedby/aria-invalid: si el hijo ya trae un id
+  // explícito (aunque no coincida con htmlFor), Field no lo pisa.
+  it("respeta el id que el hijo ya trae explícito en vez de sobrescribirlo con htmlFor", () => {
+    renderWithProviders(
+      <Field
+        label="Usuario"
+        htmlFor="field-for"
+      >
+        <Input id="input-own-id" />
+      </Field>,
+    );
+    expect(document.getElementById("input-own-id")).toBeInTheDocument();
+    expect(document.getElementById("field-for")).not.toBeInTheDocument();
+  });
+
   // El borde de error de `ScInput` se deriva del selector de atributo
   // `&[aria-invalid="true"]`, no de un prop `$error` aparte — así el estado
   // visual nunca puede desincronizarse del estado accesible. Con

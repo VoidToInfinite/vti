@@ -72,6 +72,7 @@ export function Input({
 }
 
 interface FieldControlProps {
+  "id"?: string;
   "aria-describedby"?: string;
   "aria-invalid"?: InputHTMLAttributes<HTMLInputElement>["aria-invalid"];
 }
@@ -158,6 +159,12 @@ export function Field({
   // determinista a partir de `htmlFor` (nunca aleatorio): un id aleatorio
   // rompería el HTML prerenderizado del export estático.
   const control = cloneElement(singleChild, {
+    // `ScLabel` usa `htmlFor={htmlFor}` para asociar la etiqueta con el
+    // control — así que el control necesita ese mismo id en el DOM. Si el
+    // hijo ya trae un `id` explícito se respeta (mismo criterio que
+    // `aria-describedby`/`aria-invalid`: nunca se pisa lo que el consumidor
+    // ya puso a mano), y solo se usa `htmlFor` como valor por defecto.
+    "id": singleChild.props.id ?? htmlFor,
     "aria-describedby": mergeDescribedBy(
       singleChild.props["aria-describedby"],
       messageId,
