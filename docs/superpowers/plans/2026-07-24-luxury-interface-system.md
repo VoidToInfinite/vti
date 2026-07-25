@@ -1116,28 +1116,28 @@ const ScButton = styled.button<{
         ${({ theme }) => theme.data.motion.easing.standard};
     ${({ $size }) => sizes[$size]}
     ${({ theme, $variant, $intent }) => {
-      const a = accent(theme, $intent);
-      if ($variant === "solid")
-          return css`
-              background: ${a};
-              color: ${theme.data.semantic.onBrand};
-          `;
-      if ($variant === "soft")
-          return css`
-              background: color-mix(in oklch, ${a} 12%, transparent);
-              color: ${a};
-          `;
-      if ($variant === "outline")
-          return css`
-              background: transparent;
-              color: ${a};
-              box-shadow: inset 0 0 0 1px ${theme.data.semantic.borderStrong};
-          `;
-      return css`
-          background: transparent;
-          color: ${a};
-      `;
-  }}
+        const a = accent(theme, $intent);
+        if ($variant === "solid")
+            return css`
+                background: ${a};
+                color: ${theme.data.semantic.onBrand};
+            `;
+        if ($variant === "soft")
+            return css`
+                background: color-mix(in oklch, ${a} 12%, transparent);
+                color: ${a};
+            `;
+        if ($variant === "outline")
+            return css`
+                background: transparent;
+                color: ${a};
+                box-shadow: inset 0 0 0 1px ${theme.data.semantic.borderStrong};
+            `;
+        return css`
+            background: transparent;
+            color: ${a};
+        `;
+    }}
   &:hover:not(:disabled) {
         transform: translateY(-2px);
     }
@@ -1275,27 +1275,27 @@ const ScCard = styled.div<{ $interactive: boolean }>`
     border-radius: ${({ theme }) => theme.data.radius.xl};
     padding: ${({ theme }) => theme.data.space[6]};
     ${({ theme, $interactive }) =>
-      $interactive &&
-      css`
-          display: block;
-          cursor: pointer;
-          transition:
-              transform ${theme.data.motion.duration.fast}
-                  ${theme.data.motion.easing.standard},
-              border-color ${theme.data.motion.duration.fast}
-                  ${theme.data.motion.easing.standard};
-          &:hover {
-              transform: translateY(-2px);
-              border-color: ${theme.data.semantic.borderStrong};
-              box-shadow: ${theme.data.elevation[1]};
-          }
-          @media (prefers-reduced-motion: reduce) {
-              transition: none;
-              &:hover {
-                  transform: none;
-              }
-          }
-      `}
+        $interactive &&
+        css`
+            display: block;
+            cursor: pointer;
+            transition:
+                transform ${theme.data.motion.duration.fast}
+                    ${theme.data.motion.easing.standard},
+                border-color ${theme.data.motion.duration.fast}
+                    ${theme.data.motion.easing.standard};
+            &:hover {
+                transform: translateY(-2px);
+                border-color: ${theme.data.semantic.borderStrong};
+                box-shadow: ${theme.data.elevation[1]};
+            }
+            @media (prefers-reduced-motion: reduce) {
+                transition: none;
+                &:hover {
+                    transform: none;
+                }
+            }
+        `}
 `;
 
 export function Card({
@@ -1384,7 +1384,7 @@ const ScInput = styled.input<{ $error?: boolean }>`
     border-radius: ${({ theme }) => theme.data.radius.sm};
     border: 1px solid
         ${({ theme, $error }) =>
-      $error ? theme.data.semantic.error : theme.data.semantic.border};
+            $error ? theme.data.semantic.error : theme.data.semantic.border};
     background: ${({ theme }) => theme.data.semantic.surface};
     color: ${({ theme }) => theme.data.semantic.text};
     font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -1422,7 +1422,7 @@ const ScMsg = styled.p<{ $error?: boolean }>`
     margin: ${({ theme }) => theme.data.space[2]} 0 0;
     font-size: ${({ theme }) => theme.data.type.scale.caption.size};
     color: ${({ theme, $error }) =>
-      $error ? theme.data.semantic.error : theme.data.semantic.textSubtle};
+        $error ? theme.data.semantic.error : theme.data.semantic.textSubtle};
 `;
 export function Field({
     label,
