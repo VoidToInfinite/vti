@@ -33,12 +33,20 @@ export function About() {
   const { t } = useTranslation("home");
 
   return (
-    <ScAbout id="about">
+    <ScAbout
+      id="about"
+      aria-labelledby="about-title"
+    >
       <ScAboutLogo
         src="/brand/logo.svg"
         alt="VoidToInfinite"
       />
-      <Typography variant="h2">{t("Home.about.title")}</Typography>
+      <Typography
+        variant="h2"
+        id="about-title"
+      >
+        {t("Home.about.title")}
+      </Typography>
       <Typography variant="body">{t("Home.about.description")}</Typography>
       <Typography variant="body">
         {t("Home.about.additionalDescription")}

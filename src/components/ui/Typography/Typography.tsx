@@ -29,6 +29,7 @@ interface TypographyProps {
   as?: ElementType;
   children: ReactNode;
   className?: string;
+  id?: string;
 }
 
 const ScTypography = styled.p<{ $variant: TypeVariant }>`
@@ -52,6 +53,7 @@ export function Typography({
   as,
   children,
   className,
+  id,
 }: TypographyProps): ReactElement {
   const resolvedVariant: TypeVariant = variant === "lead" ? "bodyLg" : variant;
   const element: ElementType = as ?? defaultElement[resolvedVariant] ?? "p";
@@ -60,6 +62,7 @@ export function Typography({
       as={element}
       $variant={resolvedVariant}
       className={className}
+      id={id}
     >
       {children}
     </ScTypography>

@@ -104,4 +104,37 @@ describe("Navbar", () => {
     const themeToggle = screen.getByRole("button", { name: /Cambiar a tema/i });
     expect(themeToggle).toBeInTheDocument();
   });
+
+  it("la marca-esquina sigue al estado de scroll, no un valor fijo", () => {
+    // Test de integración: sin esto, un `visible={true}` hardcodeado por error
+    // en el cableado pasaría desapercibido — los tests de EyeCornerMark lo
+    // cubren aislado y los de Navbar no lo miraban.
+    const { container } = renderWithProviders(<Navbar />);
+    const mark = (): Element | null =>
+      container.querySelector("[data-visible]");
+
+    expect(mark()).toHaveAttribute("data-visible", "false");
+
+    act(() => {
+      Object.defineProperty(window, "scrollY", {
+        value: 200,
+        writable: true,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    expect(mark()).toHaveAttribute("data-visible", "true");
+
+    act(() => {
+      Object.defineProperty(window, "scrollY", {
+        value: 0,
+        writable: true,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    expect(mark()).toHaveAttribute("data-visible", "false");
+  });
 });

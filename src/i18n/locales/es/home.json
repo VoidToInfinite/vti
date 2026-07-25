@@ -8,10 +8,24 @@
         "description": "Actualmente tu presente es tu futuro, solo que tu futuro debes seguir definiendolo",
         "additionalDescription": "Aunque el infinito esta presente en todos lados, el conocimiento lo trae a la realidad",
         "swipeUp": "Comencemos",
+        "cta": {
+            "explore": "Explorar los componentes",
+            "story": "Leer la historia"
+        },
+        "story": {
+            "title": "Desde una página vacía",
+            "body": "[por completar] Texto de la sección Story en español.",
+            "additional": "[por completar] Segundo párrafo de la sección Story."
+        },
         "about": {
             "title": "Acerca de",
             "description": "Somos un equipo con miembros de diferentes ambitos con la idea de crecer juntos compartiendo nuestros conocimientos y creando proyectos.",
             "additionalDescription": "Actualmente tenemos un servidor de Discord. Tambien puedes seguir nuestros proyectos en github."
+        },
+        "contact": {
+            "title": "Hablemos",
+            "body": "[por completar] Una línea de invitación al contacto.",
+            "email": "Escribir un email"
         },
         "sections": {
             "title": "Nuestro presente",
