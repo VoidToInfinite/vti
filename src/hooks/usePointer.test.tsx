@@ -1,21 +1,74 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { usePointer } from "./usePointer";
 
-function setPointerFine(matches: boolean): void {
+/** Listener de `change` tal y como lo usa el hook: sin argumentos (ver usePointer.ts). */
+type ChangeListener = () => void;
+
+interface MockMediaQueryList {
+  matches: boolean;
+  media: string;
+  addEventListener: (type: string, cb: ChangeListener) => void;
+  removeEventListener: (type: string, cb: ChangeListener) => void;
+  listeners: Set<ChangeListener>;
+}
+
+function createMockMediaQueryList(
+  matches: boolean,
+  media: string,
+): MockMediaQueryList {
+  const listeners = new Set<ChangeListener>();
+  return {
+    matches,
+    media,
+    listeners,
+    addEventListener: vi.fn((_type: string, cb: ChangeListener) => {
+      listeners.add(cb);
+    }),
+    removeEventListener: vi.fn((_type: string, cb: ChangeListener) => {
+      listeners.delete(cb);
+    }),
+  };
+}
+
+let mediaQueries: {
+  fine: MockMediaQueryList;
+  reduced: MockMediaQueryList;
+};
+
+/**
+ * Mock query-aware de `matchMedia`: cada query recibe su propio objeto
+ * `MediaQueryList` simulado, con `addEventListener`/`removeEventListener`
+ * funcionales (registran de verdad al listener) para poder disparar `change`
+ * desde el test vía `fireChange`. Si se aplicara el mismo `matches` a TODAS
+ * las queries, un hook que además comprueba reduced-motion quedaría siempre
+ * deshabilitado bajo `setPointerFine(true)`.
+ */
+function setPointerFine(fineMatches: boolean, reducedMatches = false): void {
+  const fine = createMockMediaQueryList(
+    fineMatches,
+    "(hover: hover) and (pointer: fine)",
+  );
+  const reduced = createMockMediaQueryList(
+    reducedMatches,
+    "(prefers-reduced-motion: reduce)",
+  );
+  mediaQueries = { fine, reduced };
   vi.stubGlobal(
     "matchMedia",
-    vi.fn().mockImplementation((query: string) => ({
-      // Consulta específica: `reduced-motion` se mantiene "no preferido" salvo
-      // que un test lo pise explícitamente. Si se aplicara el mismo `matches`
-      // a TODAS las queries, un hook que además comprueba reduced-motion
-      // quedaría siempre deshabilitado bajo `setPointerFine(true)`.
-      matches: query.includes("prefers-reduced-motion") ? false : matches,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })),
+    vi
+      .fn()
+      .mockImplementation((query: string) =>
+        query.includes("prefers-reduced-motion") ? reduced : fine,
+      ),
   );
+}
+
+/** Dispara `change` en la media query indicada, notificando a sus listeners registrados. */
+function fireChange(which: "fine" | "reduced", matches: boolean): void {
+  const mql = mediaQueries[which];
+  mql.matches = matches;
+  mql.listeners.forEach((cb) => cb());
 }
 
 beforeEach(() => {
@@ -44,17 +97,7 @@ describe("usePointer", () => {
   });
 
   it("queda deshabilitado con prefers-reduced-motion: reduce aunque haya puntero fino", () => {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn().mockImplementation((query: string) => ({
-        matches:
-          query.includes("prefers-reduced-motion") ||
-          query.includes("pointer: fine"),
-        media: query,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      })),
-    );
+    setPointerFine(true, true);
     const { result } = renderHook(() => usePointer());
     expect(result.current.enabled).toBe(false);
   });
@@ -137,5 +180,77 @@ describe("usePointer", () => {
     expect(result.current.y.current).toBeLessThanOrEqual(1);
     expect(result.current.x.current).toBeGreaterThan(0.9);
     expect(result.current.y.current).toBeGreaterThan(0.9);
+  });
+
+  it("activar prefers-reduced-motion en caliente apaga el hook: quita el listener de pointermove y cancela el rAF", () => {
+    // Monta con puntero fino y SIN reduced-motion → habilitado desde el inicio.
+    const addSpy = vi.spyOn(window, "addEventListener");
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+
+    const { result } = renderHook(() => usePointer());
+    expect(result.current.enabled).toBe(true);
+    expect(
+      addSpy.mock.calls.filter(([evt]) => evt === "pointermove"),
+    ).toHaveLength(1);
+
+    act(() => {
+      fireChange("reduced", true);
+    });
+
+    expect(result.current.enabled).toBe(false);
+    expect(
+      removeSpy.mock.calls.filter(([evt]) => evt === "pointermove"),
+    ).toHaveLength(1);
+    expect(window.cancelAnimationFrame).toHaveBeenCalledWith(1);
+    // No se queda con el último desplazamiento congelado: se resetea a 0.
+    expect(result.current.x.current).toBe(0);
+    expect(result.current.y.current).toBe(0);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
+  it("desactivar prefers-reduced-motion en caliente vuelve a encender el hook", () => {
+    // Monta ya con reduced-motion activo → deshabilitado desde el inicio.
+    setPointerFine(true, true);
+    const addSpy = vi.spyOn(window, "addEventListener");
+
+    const { result } = renderHook(() => usePointer());
+    expect(result.current.enabled).toBe(false);
+    expect(window.requestAnimationFrame).not.toHaveBeenCalled();
+
+    act(() => {
+      fireChange("reduced", false);
+    });
+
+    expect(result.current.enabled).toBe(true);
+    expect(window.requestAnimationFrame).toHaveBeenCalled();
+    expect(
+      addSpy.mock.calls.filter(([evt]) => evt === "pointermove"),
+    ).toHaveLength(1);
+
+    addSpy.mockRestore();
+  });
+
+  it("dos `change` seguidos con el mismo valor no duplican el listener de pointermove (idempotencia)", () => {
+    const addSpy = vi.spyOn(window, "addEventListener");
+    renderHook(() => usePointer());
+    expect(
+      addSpy.mock.calls.filter(([evt]) => evt === "pointermove"),
+    ).toHaveLength(1);
+
+    // Dos `change` consecutivos que no alteran el resultado (sigue habilitado).
+    act(() => {
+      fireChange("fine", true);
+    });
+    act(() => {
+      fireChange("fine", true);
+    });
+
+    expect(
+      addSpy.mock.calls.filter(([evt]) => evt === "pointermove"),
+    ).toHaveLength(1);
+
+    addSpy.mockRestore();
   });
 });
