@@ -3,6 +3,7 @@ import { useEffect, useRef, type ReactElement, type RefObject } from "react";
 import * as THREE from "three";
 import styled from "styled-components";
 import { createStarfield } from "./starfield";
+import { applyCameraProgress } from "./camera";
 
 const ScCanvas = styled.canvas`
   position: absolute;
@@ -40,7 +41,7 @@ export function Scene({
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
-    camera.position.z = 6;
+    applyCameraProgress(camera, 0);
 
     const stars = createStarfield();
     scene.add(stars.points);
@@ -63,7 +64,9 @@ export function Scene({
     const running = (): boolean => visible && onscreen;
 
     const tick = (): void => {
-      stars.update(progress.current ?? 0);
+      const p = progress.current ?? 0;
+      applyCameraProgress(camera, p);
+      stars.update(p);
       renderer.render(scene, camera);
       raf = window.requestAnimationFrame(tick);
     };
