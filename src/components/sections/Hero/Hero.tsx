@@ -73,6 +73,14 @@ const ScActions = styled.div`
   justify-content: center;
 `;
 
+/* El titular de portada usa la unica variante de la escala pensada para el
+   hero (theme.data.type.scale.display): BrandName renderiza a font-size: 1em,
+   asi que sin este contenedor el <h1> hereda el 1em del body (GlobalStyles
+   resetea h1..h6 a font-size: 1em) y queda mas pequeno que el lead de abajo. */
+const ScHeroBrand = styled.div`
+  font-size: ${({ theme }) => theme.data.type.scale.display.size};
+`;
+
 export function Hero(): ReactElement {
   const { t } = useTranslation("home");
 
@@ -80,7 +88,9 @@ export function Hero(): ReactElement {
     <ScHero>
       <ScEye />
       <ScCopy>
-        <BrandName as="h1" />
+        <ScHeroBrand>
+          <BrandName as="h1" />
+        </ScHeroBrand>
         <Typography variant="lead">{t("Home.description")}</Typography>
         <Typography variant="body">
           {t("Home.additionalDescription")}
