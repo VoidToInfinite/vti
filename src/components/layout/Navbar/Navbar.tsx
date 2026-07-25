@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import Link from "next/link";
 import styled from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
+import { EyeCornerMark } from "@/components/eye/EyeCornerMark";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { useScrolled } from "@/hooks/useScrolled";
@@ -61,6 +62,7 @@ const ScNav = styled.nav`
 const ScBrandLink = styled(Link)`
   display: inline-flex;
   align-items: center;
+  gap: ${({ theme }) => theme.data.space[2]};
   font-size: 1.15rem;
 `;
 
@@ -77,6 +79,7 @@ export function Navbar(): ReactElement {
     <ScHeader data-scrolled={scrolled}>
       <ScNav>
         <ScBrandLink href="/">
+          <EyeCornerMark visible={scrolled} />
           <BrandName />
         </ScBrandLink>
         <ScActions>
