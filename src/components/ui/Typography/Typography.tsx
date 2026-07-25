@@ -1,62 +1,64 @@
-import type { ElementType, ReactNode } from "react";
-import styled, { css } from "styled-components";
+"use client";
 
-export type TypographyVariant = "h1" | "h2" | "h3" | "lead" | "body";
+import type { ElementType, ReactElement, ReactNode } from "react";
+import styled from "styled-components";
+import type { TypeVariant } from "@/theme/tokens/type";
+
+/**
+ * `lead` no existe en la escala nueva (`theme.data.type.scale`); se conserva
+ * como alias de `bodyLg` para no romper a los consumidores actuales (Hero).
+ * Su migración a `bodyLg` explícito es responsabilidad de la Task 15.
+ */
+export type TypographyVariant = TypeVariant | "lead";
+
+const defaultElement: Partial<Record<TypeVariant, ElementType>> = {
+  display: "h1",
+  h1: "h1",
+  h2: "h2",
+  h3: "h3",
+  h4: "h4",
+  h5: "h5",
+  overline: "span",
+  caption: "span",
+  code: "code",
+};
 
 interface TypographyProps {
   variant: TypographyVariant;
+  /** Override del elemento por defecto de la variante. */
+  as?: ElementType;
   children: ReactNode;
   className?: string;
 }
 
-const variantElement: Record<TypographyVariant, ElementType> = {
-  h1: "h1",
-  h2: "h2",
-  h3: "h3",
-  lead: "p",
-  body: "p",
-};
-
-const variantStyles = {
-  h1: css`
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    font-weight: 700;
-    line-height: 1.1;
-  `,
-  h2: css`
-    font-size: clamp(1.5rem, 3.5vw, 2.25rem);
-    font-weight: 600;
-    line-height: 1.2;
-  `,
-  h3: css`
-    font-size: clamp(1.15rem, 2.5vw, 1.5rem);
-    font-weight: 600;
-    line-height: 1.3;
-  `,
-  lead: css`
-    font-size: clamp(1.05rem, 1.5vw, 1.25rem);
-    font-weight: 400;
-    line-height: 1.6;
-  `,
-  body: css`
-    font-size: 1rem;
-    font-weight: 400;
-    line-height: 1.6;
-  `,
-};
-
-const ScTypography = styled.p<{ $variant: TypographyVariant }>`
+const ScTypography = styled.p<{ $variant: TypeVariant }>`
   margin: 0;
-  font-family: ${({ theme }) => theme.data.typography.main.font};
-  color: ${({ theme }) => theme.data.typography.primaryColor[500]};
-  ${({ $variant }) => variantStyles[$variant]}
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-size: ${({ theme, $variant }) => theme.data.type.scale[$variant].size};
+  font-weight: ${({ theme, $variant }) =>
+    theme.data.type.scale[$variant].weight};
+  line-height: ${({ theme, $variant }) =>
+    theme.data.type.scale[$variant].lineHeight};
+  letter-spacing: ${({ theme, $variant }) =>
+    theme.data.type.scale[$variant].tracking};
+  ${({ $variant }) =>
+    ($variant.startsWith("h") || $variant === "display") &&
+    "text-wrap: balance;"}
 `;
 
-export function Typography({ variant, children, className }: TypographyProps) {
+export function Typography({
+  variant,
+  as,
+  children,
+  className,
+}: TypographyProps): ReactElement {
+  const resolvedVariant: TypeVariant = variant === "lead" ? "bodyLg" : variant;
+  const element: ElementType = as ?? defaultElement[resolvedVariant] ?? "p";
   return (
     <ScTypography
-      as={variantElement[variant]}
-      $variant={variant}
+      as={element}
+      $variant={resolvedVariant}
       className={className}
     >
       {children}

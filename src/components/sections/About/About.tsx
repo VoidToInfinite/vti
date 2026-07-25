@@ -8,23 +8,25 @@ const ScAbout = styled.section`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: ${({ theme }) => theme.data.space[5]};
   max-width: 48rem;
   margin: 0 auto;
-  padding: 4rem 1.5rem;
+  padding: ${({ theme }) => theme.data.space[8]}
+    ${({ theme }) => theme.data.space[5]};
   text-align: center;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding: 6rem 2rem;
+    padding: ${({ theme }) => theme.data.space[9]}
+      ${({ theme }) => theme.data.space[6]};
   }
 `;
 
 const ScAboutLogo = styled.img`
-  height: 3rem;
+  height: ${({ theme }) => theme.data.space[7]};
   width: auto;
   /* logo.svg is drawn in solid white for dark backgrounds; invert it in the
      light theme so the mark stays visible against a light page background. */
-  filter: ${({ theme }) => (theme.data.isLightTheme ? "invert(1)" : "none")};
+  filter: ${({ theme }) => (theme.data.isLight ? "invert(1)" : "none")};
 `;
 
 export function About() {

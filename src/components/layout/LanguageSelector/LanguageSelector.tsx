@@ -10,23 +10,31 @@ const STORAGE_KEY = "vti-lang";
 const ScLanguageSelector = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: ${({ theme }) => theme.data.space[1]};
 `;
 
 const ScLanguageButton = styled.button<{ $active: boolean }>`
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Área táctil mínima AA (44px), literal como en Button md/Input: no hay
+     casilla de la escala de space para este tamaño mínimo, mismo precedente
+     ya usado en el sistema. min- en vez de fijo: preserva el ancho natural
+     del texto ("ES"/"EN") si llegara a necesitar más de 44px. */
+  min-height: 44px;
+  min-width: 44px;
+  padding: ${({ theme }) => theme.data.space[1]}
+    ${({ theme }) => theme.data.space[2]};
+  border-radius: ${({ theme }) => theme.data.radius.md};
   font-size: 0.875rem;
   font-weight: ${({ $active }) => ($active ? 700 : 400)};
   color: ${({ theme, $active }) =>
-    $active
-      ? theme.data.color.primary[500]
-      : theme.data.typography.secondaryColor[500]};
+    $active ? theme.data.semantic.brand : theme.data.semantic.textSubtle};
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    color: ${({ theme }) => theme.data.color.primary[500]};
+    color: ${({ theme }) => theme.data.semantic.brand};
   }
 `;
 

@@ -8,18 +8,25 @@ const ScThemeToggle = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2rem;
-  width: 2rem;
-  border-radius: 50%;
+  /* Área táctil mínima AA (44px), literal como en Button md/Input: no hay
+     casilla de la escala de space para este tamaño mínimo, mismo precedente
+     ya usado en el sistema. Cabe en Navbar (3.5rem=56px de alto). */
+  height: 44px;
+  width: 44px;
+  border-radius: ${({ theme }) => theme.data.radius.full};
   font-size: 1rem;
   line-height: 1;
-  background-color: ${({ theme }) => theme.data.color.primary[100]};
+  background-color: ${({ theme }) => theme.data.semantic.surfaceSunken};
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform ${({ theme }) => theme.data.motion.duration.base}
+    ${({ theme }) => theme.data.motion.easing.standard};
 
+  /* Hover-lift: misma primitiva que Button/Socials (translateY(-2px)), no
+     el scale(1.05) inventado que traía antes — un solo lenguaje de
+     movimiento para todo hover del sistema. */
   &:hover,
   &:focus-visible {
-    transform: scale(1.05);
+    transform: translateY(-2px);
   }
 
   @media (prefers-reduced-motion: reduce) {

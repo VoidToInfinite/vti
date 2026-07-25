@@ -16,11 +16,13 @@ const ScHero = styled.section`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1.5rem;
+  padding: ${({ theme }) => theme.data.space[6]}
+    ${({ theme }) => theme.data.space[5]};
   text-align: center;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding: 2rem 4rem;
+    padding: ${({ theme }) => theme.data.space[6]}
+      ${({ theme }) => theme.data.space[8]};
   }
 `;
 
@@ -30,7 +32,7 @@ const ScHeroContent = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: ${({ theme }) => theme.data.space[5]};
   max-width: 42rem;
 `;
 
@@ -43,11 +45,11 @@ const ScHeroBrand = styled.div`
 `;
 
 const ScScrollCue = styled.p`
-  margin: 0.5rem 0 0;
+  margin: ${({ theme }) => theme.data.space[2]} 0 0;
   font-size: 0.875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: ${({ theme }) => theme.data.typography.secondaryColor[500]};
+  color: ${({ theme }) => theme.data.semantic.textSubtle};
 `;
 
 export function Hero() {

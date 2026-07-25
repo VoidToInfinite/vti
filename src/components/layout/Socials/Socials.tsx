@@ -31,7 +31,7 @@ const SOCIAL_LINKS: SocialLink[] = [
 const ScSocialsList = styled.ul`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: ${({ theme }) => theme.data.space[3]};
   list-style: none;
   margin: 0;
   padding: 0;
@@ -41,17 +41,28 @@ const ScSocialLink = styled.a`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2.5rem;
-  width: 2.5rem;
-  border-radius: 50%;
-  background-color: ${({ theme }) => theme.data.color.primary[100]};
+  /* Área táctil mínima AA (44px), literal como en Button md/Input: no hay
+     casilla de la escala de space para este tamaño mínimo, mismo precedente
+     ya usado en el sistema. Sube de 2.5rem (40px). */
+  height: 44px;
+  width: 44px;
+  border-radius: ${({ theme }) => theme.data.radius.full};
+  /* AA/afordancia (I3): antes usaba surfaceSunken en reposo, idéntico al
+     fondo del Footer (y, en dark, semanticDark.surfaceSunken === bg
+     literalmente — el chip era invisible contra CUALQUIER fondo del
+     sistema, no solo en Footer). surface en reposo / surfaceSunken en hover
+     da un chip que ya no coincide en valor exacto con ninguno de los dos
+     fondos de uso (Footer=surfaceSunken, Hero=bg heredado de body). */
+  background-color: ${({ theme }) => theme.data.semantic.surface};
   transition:
-    transform 0.2s ease,
-    background-color 0.2s ease;
+    transform ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    background-color ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard};
 
   &:hover,
   &:focus-visible {
-    background-color: ${({ theme }) => theme.data.color.primary[200]};
+    background-color: ${({ theme }) => theme.data.semantic.surfaceSunken};
     transform: translateY(-2px);
   }
 
@@ -65,9 +76,15 @@ const ScSocialLink = styled.a`
   }
 `;
 
+// Los SVG de /public/socials tienen paths sin fill explícito → heredan el
+// default del SVG (negro fijo) y se cargan vía <img>, así que no son
+// recoloreables por CSS currentColor/herencia (solo funciona con SVG inline
+// o <use>). Negro sobre surface en dark da ~1.66:1 (casi invisible) — se
+// invierte a blanco con filter en dark, donde sí es legible.
 const ScSocialIcon = styled.img`
   height: 1.15rem;
   width: 1.15rem;
+  filter: ${({ theme }) => (theme.data.isLight ? "none" : "invert(1)")};
 `;
 
 export function Socials() {
