@@ -4,9 +4,13 @@ export const STEPS = [
 export type Step = (typeof STEPS)[number];
 export type Ramp = Record<Step, string>;
 
-// Escalera de luminosidad compartida por todos los hues (spec §3.1)
+// Escalera de luminosidad compartida por todos los hues (spec §3.1).
+// L[7] (paso 700) baja de 0.58 a 0.53 tras la auditoría AA de C1: a 0.58,
+// neutral[700] (textSubtle) y primary[700] (brandSolid/focus) no llegaban a
+// los ratios WCAG requeridos sobre los fondos claros del sistema. Ver
+// semantic.ts para el detalle de cada rol afectado y sus ratios resultantes.
 const L = [
-  0.985, 0.96, 0.92, 0.86, 0.78, 0.737, 0.66, 0.58, 0.5, 0.42, 0.32, 0.22,
+  0.985, 0.96, 0.92, 0.86, 0.78, 0.737, 0.66, 0.53, 0.5, 0.42, 0.32, 0.22,
 ];
 // Multiplicador de croma: pico en 500, decae hacia los extremos claro/oscuro
 const CMUL = [0.1, 0.2, 0.42, 0.66, 0.9, 1, 0.94, 0.82, 0.72, 0.62, 0.5, 0.36];

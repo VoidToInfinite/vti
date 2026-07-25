@@ -26,8 +26,11 @@ describe("color primitives", () => {
   });
 
   it("escalera de luminosidad es exacta en todos los pasos", () => {
+    // L[7] (paso 700) es 0.53, no 0.58: bajado en la auditoría AA de C1
+    // (ver color.ts y semantic.ts) porque neutral[700]/primary[700] no
+    // llegaban a los ratios WCAG requeridos con 0.58.
     const expectedL = [
-      0.985, 0.96, 0.92, 0.86, 0.78, 0.737, 0.66, 0.58, 0.5, 0.42, 0.32, 0.22,
+      0.985, 0.96, 0.92, 0.86, 0.78, 0.737, 0.66, 0.53, 0.5, 0.42, 0.32, 0.22,
     ];
 
     // Verifica en primary

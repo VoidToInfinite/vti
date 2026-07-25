@@ -29,14 +29,29 @@ export const semanticLight: SemanticColors = {
   borderStrong: color.neutral[400],
   text: color.neutral[1000],
   textMuted: color.neutral[800],
-  textSubtle: color.neutral[600],
+  // AA (C1): neutral[600] daba 2.98/3.11/2.77 sobre bg/surface/surfaceSunken
+  // (falla 4.5:1). neutral[700] (tras bajar L[7] a 0.53 en color.ts) da
+  // 5.06/5.28/4.70 — pasa con margen en los tres fondos.
+  textSubtle: color.neutral[700],
   brand: color.primary[500],
-  brandSolid: color.primary[700],
+  // AA (C1): primary[700] daba 4.17:1 onBrand/brandSolid (falla 4.5:1).
+  // primary[800] da 5.84:1. Nota: brandText YA era primary[800], así que
+  // brandSolid === brandText en valor OKLCH tras este cambio — no es el
+  // mismo colapso que textMuted/textSubtle (roles textuales duplicados);
+  // aquí son dos roles de USO distinto (fondo de botón sólido vs. color de
+  // texto de marca) que simplemente comparten el mismo primitivo. No se
+  // buscó un valor alternativo para separarlos artificialmente.
+  brandSolid: color.primary[800],
   brandText: color.primary[800],
-  focus: color.primary[500],
+  // AA (C1): primary[500] daba 2.18:1 focus/bg (falla 3:1). primary[700]
+  // (tras bajar L[7] a 0.53) da 3.99:1/4.17:1 sobre bg/surface.
+  focus: color.primary[700],
   onBrand: white,
-  success: color.success[700],
-  warning: color.warning[700],
+  // AA (C1): success[700]/warning[700] daban 3.89/4.22:1 sobre bg (fallan
+  // 4.5:1); no hay paso intermedio 750. success[800]/warning[800] dan
+  // 5.47/5.89:1.
+  success: color.success[800],
+  warning: color.warning[800],
   error: color.error[700],
 };
 
