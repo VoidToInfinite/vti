@@ -14,8 +14,15 @@ beforeEach(() => {
 
 describe("Story", () => {
   it("es una region con nombre accesible", () => {
+    // Buscar la region POR SU NOMBRE, no solo comprobar que existe: un
+    // `aria-labelledby` apuntando a un id equivocado dejaria la seccion sin
+    // nombre (un lector de pantalla anunciaria "region" a secas) y aun asi
+    // pasaria un `getByRole("region")` a secas.
     renderWithProviders(<Story />);
-    expect(screen.getByRole("region")).toBeInTheDocument();
+    const region = screen.getByRole("region", {
+      name: (accessibleName) => accessibleName.length > 0,
+    });
+    expect(region).toHaveAccessibleName();
   });
 
   it("tiene un h2 (jerarquia correcta bajo la h1 del hero)", () => {
