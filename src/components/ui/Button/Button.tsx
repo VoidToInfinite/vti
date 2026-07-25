@@ -138,9 +138,17 @@ const ScSpinner = styled.span`
 
   /* Excepción documentada a "reduced-motion congela todo": un spinner
      inmóvil deja de comunicar que hay una carga en curso, así que se
-     ralentiza (spinReduced) en vez de detenerse por completo. */
+     ralentiza (spinReduced) en vez de detenerse por completo. El
+     !important es obligatorio aquí: el reset global de GlobalStyles fuerza
+     animation-duration: 0.001ms !important sobre el selector universal bajo
+     el mismo media query, y una declaración !important gana SIEMPRE a una
+     que no lo es, sin importar la especificidad del selector — así que sin
+     !important aquí esta regla perdería contra el reset y la excepción
+     documentada no existiría en la práctica: el spinner se congelaría
+     igual. */
   @media (prefers-reduced-motion: reduce) {
-    animation-duration: ${({ theme }) => theme.data.motion.duration.spinReduced};
+    animation-duration: ${({ theme }) =>
+      theme.data.motion.duration.spinReduced} !important;
   }
 `;
 
