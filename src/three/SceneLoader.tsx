@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from "react";
 import styled from "styled-components";
+import { SceneErrorBoundary } from "./SceneErrorBoundary";
 
 const Scene = lazy(() => import("./Scene").then((m) => ({ default: m.Scene })));
 
@@ -72,16 +73,25 @@ export function SceneLoader({
 
   useEffect(() => {
     // Tres motivos para quedarse en el póster (spec §10, §15): reduced-motion,
-    // ausencia de WebGL, o que el navegador no llegue a cargar el módulo. En
-    // los tres, el sitio está completo igualmente.
-    const evaluate = (): void => {
-      const reduced = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-      if (reduced || !supportsWebGL()) return;
-      setLive(true);
-    };
+    // ausencia de WebGL, o que el módulo no llegue a cargar. Este tercer caso
+    // no se resuelve aquí -- el `import()` ya se dispara y si rechaza (red,
+    // 404, bloqueador de contenido) lo absorbe `SceneErrorBoundary` más abajo.
+    //
+    // WebGL se comprueba una sola vez: el hardware no aparece ni desaparece a
+    // media sesión. Reduced-motion, en cambio, se reevalúa en caliente --
+    // mismo patrón que `usePointer.ts` (busca `addEventListener("change"`)--:
+    // suscripción al evento `change` de la media query, no una lectura única
+    // de `.matches`. Si el usuario activa la preferencia con la escena ya
+    // viva, `live` pasa a `false`, lo que desmonta `<Scene>` y dispara su
+    // limpieza (rAF, observers, renderer), que ya es correcta.
+    if (!supportsWebGL()) return;
+
+    const reducedQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const evaluate = (): void => setLive(!reducedQuery.matches);
+
     evaluate();
+    reducedQuery.addEventListener("change", evaluate);
+    return () => reducedQuery.removeEventListener("change", evaluate);
   }, []);
 
   return (
@@ -91,9 +101,11 @@ export function SceneLoader({
         aria-hidden="true"
       />
       {live && (
-        <Suspense fallback={null}>
-          <Scene progress={progress} />
-        </Suspense>
+        <SceneErrorBoundary>
+          <Suspense fallback={null}>
+            <Scene progress={progress} />
+          </Suspense>
+        </SceneErrorBoundary>
       )}
     </ScWrap>
   );
