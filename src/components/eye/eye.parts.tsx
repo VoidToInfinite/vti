@@ -1,231 +1,161 @@
 "use client";
-import styled, { keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
+import { EYE_ASPECT, EYE_CENTER, EYE_PUPIL_SIZE } from "./eye.layers";
 
 /*
  * Excepcion sancionada del sistema (la misma que `BackOrbs`, ver
  * `src/components/layout/BackOrbs/BackOrbs.tsx`, "Excepcion sancionada"): el
  * ojo es `aria-hidden`, puramente decorativo -- sus colores son espectaculo
- * de marca (nebulosa, iris, remolino, glint, contorno, onda de pulso), no
- * roles de UI. Por eso TODOS los `oklch()` literales de este archivo leen
- * valores fijos en vez de `theme.data.semantic.*`. Este comentario cubre
- * todas las piezas del archivo con color literal (`ScUniverse`, `ScSwirl`,
- * `ScRing`, `ScPupil`, `ScGlint`, `ScLidShadow`, `ScOutline`, `ScShock`) -- no
- * se repite por styled-component.
+ * de marca, no roles de UI. Por eso los `oklch()` literales de este archivo
+ * (el negro del lienzo y el blanco del anillo de pulso) leen valores fijos en
+ * vez de `theme.data.semantic.*`. Un rol semantico cambiaria con el tema y
+ * romperia la continuidad de la identidad: la composicion es negra en claro y
+ * en oscuro, siempre.
  */
 
-/* Silueta de almendra (vesica), en coordenadas objectBoundingBox (0..1): al
-   escalarse con el tamano real del socket, el ojo se RE-AJUSTA a cualquier
-   viewport en vez de recortarse (spec §14). */
-export const ALMOND =
-  "M0,0.5 C0.17,0.08 0.4,0.02 0.5,0.02 C0.6,0.02 0.83,0.08 1,0.5 C0.83,0.92 0.6,0.98 0.5,0.98 C0.4,0.98 0.17,0.92 0,0.5 Z";
-
-const spin = keyframes`to { transform: rotate(360deg); }`;
-const breathe = keyframes`
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.045); }
-`;
-
+/*
+ * El lienzo del ojo. Ocupa el hero entero y pinta el negro de fondo: es lo
+ * primero que se ve, antes de que llegue ningun WebP, asi que el hero nunca
+ * pasa por un rectangulo del color de `semantic.bg` (que en oscuro es un gris
+ * -- oklch(0.22 ...) --, no negro, y se leia exactamente asi: como un
+ * rectangulo gris).
+ */
 export const ScSocket = styled.div`
-  position: relative;
-  width: min(94vw, 1440px);
-  height: min(56vh, 520px);
-  margin-inline: auto;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: oklch(0 0 0);
 `;
 
 /*
- * Defs de clipPath, ocultos (0x0). El brief original propone
- * `clip-path: path("${ALMOND}")` directamente en CSS, pero el `path()` de
- * `clip-path` interpreta la cadena SVG en px del reference-box (no admite
- * `objectBoundingBox`): con ALMOND en coordenadas 0..1 recortaria el ojo a
- * un cuadrado de ~1px, dejandolo invisible. Reportado en el brief de la
- * tarea; la alternativa que SI soporta objectBoundingBox es un `<clipPath>`
- * SVG referenciado por `url(#id)` -- exactamente lo que hace la referencia
- * original (Cosmic Eye Hero.dc.html), y lo que se usa aqui.
+ * Marco de la composicion: mantiene la relacion de aspecto EXACTA del lienzo
+ * original, asi que las cinco capas quedan registradas entre si sin calcular
+ * nada -- todas se estiran igual. `isolation: isolate` lo convierte en el
+ * grupo de blending: sin el, el `plus-lighter` de las capas se sumaria contra
+ * el fondo de la pagina y desbordaria luz fuera del hero.
+ *
+ * En viewports verticales el lienzo 16:9 dejaria el ojo como una franja
+ * estrecha rodeada de negro; ampliarlo recupera presencia a cambio de recortar
+ * las puntas del parpado, que es el intercambio correcto en movil. El 185%
+ * sale de igualar la altura del marco (185% * 375px / 1.777 = 390px) con la
+ * altura de la copia del hero en ese ancho (~340px): asi el texto queda
+ * DENTRO del ojo en vez de desbordarlo por arriba y por abajo.
  */
-export const ScClipDefs = styled.svg`
+export const ScFrame = styled.div`
   position: absolute;
-  width: 0;
-  height: 0;
-`;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  aspect-ratio: ${EYE_ASPECT};
+  transform: translate(-50%, -50%);
+  isolation: isolate;
 
-export const ScClip = styled.div<{ $clipId: string }>`
-  position: absolute;
-  inset: 0;
-  clip-path: ${({ $clipId }) => `url(#${$clipId})`};
-`;
-
-export const ScUniverse = styled.div`
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      ellipse 70% 100% at 50% 42%,
-      oklch(0.2 0.06 280 / 0.9),
-      transparent 62%
-    ),
-    radial-gradient(
-      ellipse 55% 75% at 82% 74%,
-      oklch(0.24 0.15 311.928 / 0.5),
-      transparent 60%
-    ),
-    radial-gradient(
-      circle at 50% 46%,
-      oklch(0.1 0.02 285),
-      oklch(0.05 0.012 288) 78%
-    );
-`;
-
-export const ScEyeball = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  will-change: transform;
-`;
-
-export const ScIris = styled.div`
-  position: relative;
-  width: min(42vh, 52vw, 460px);
-  aspect-ratio: 1;
-  will-change: transform;
-  animation: ${breathe} 5s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+  @media (max-aspect-ratio: 1 / 1) {
+    width: 185%;
   }
 `;
 
-export const ScSwirl = styled.div`
-  position: absolute;
-  inset: 6%;
-  border-radius: ${({ theme }) => theme.data.radius.full};
-  background: conic-gradient(
-    from 0deg,
-    oklch(0.66 0.142 235.851 / 0),
-    oklch(0.66 0.142 235.851 / 0.4),
-    oklch(0.66 0.233 311.928 / 0.4),
-    oklch(0.66 0.142 235.851 / 0)
-  );
-  filter: blur(10px);
-  animation: ${spin} 34s linear infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+const glowStrong = keyframes`
+  0%, 100% { opacity: 0.84; }
+  50% { opacity: 1; }
 `;
 
-export const ScRing = styled.div<{ $inset: string; $tint: string }>`
-  position: absolute;
-  inset: ${({ $inset }) => $inset};
-  border-radius: ${({ theme }) => theme.data.radius.full};
-  border: 1px solid ${({ $tint }) => $tint};
-  animation: ${spin} 22s linear infinite;
-
-  &:nth-of-type(even) {
-    animation-direction: reverse;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+const glowSoft = keyframes`
+  0%, 100% { opacity: 0.92; }
+  50% { opacity: 1; }
 `;
 
-/* La pupila: pozo oscuro que sostiene la marca. Es el "vacio" al que el
-   descenso entra (spec §8). */
-export const ScPupil = styled.div`
-  position: absolute;
-  inset: 40%;
-  border-radius: ${({ theme }) => theme.data.radius.full};
-  background: radial-gradient(
-    circle,
-    oklch(0.66 0.142 235.851 / 0.9),
-    oklch(0.528 0.259 311.928 / 0.5) 62%,
-    transparent 82%
-  );
-  filter: blur(3px);
-`;
-
-export const ScGlint = styled.span<{
-  $size: string;
-  $top: string;
-  $left: string;
+/*
+ * Una capa. El `transform` del parallax y el `mix-blend-mode` viven en el
+ * MISMO elemento a proposito: cualquier elemento que cree un contexto de
+ * apilamiento (y `transform` crea uno) aisla el blending de sus hijos, asi que
+ * envolver la imagen en un div transformado dejaria a la imagen sumandose
+ * contra un grupo vacio -- el aditivo desapareceria sin error visible, solo
+ * halos sucios en los bordes con feathering.
+ *
+ * Por el mismo motivo el "respirar" de la corona anima `opacity` y no `scale`:
+ * la propiedad `transform` de estos elementos la escribe el rAF del
+ * seguimiento del cursor (`Eye.tsx`) frame a frame, y una animacion CSS sobre
+ * la misma propiedad se pisaria con ella. `opacity` es la otra propiedad
+ * barata (compositor puro) y no colisiona.
+ */
+export const ScLayer = styled.img<{
+  $additive: boolean;
+  $moves: boolean;
+  $glow?: "strong" | "soft";
 }>`
   position: absolute;
-  top: ${({ $top }) => $top};
-  left: ${({ $left }) => $left};
-  width: ${({ $size }) => $size};
-  aspect-ratio: 1;
-  border-radius: ${({ theme }) => theme.data.radius.full};
-  background: radial-gradient(
-    circle,
-    oklch(1 0 0) 0%,
-    oklch(1 0 0 / 0.6) 40%,
-    transparent 72%
-  );
-  mix-blend-mode: screen;
-  pointer-events: none;
-  will-change: transform;
-`;
-
-/* Sombra del parpado superior: da volumen y evita que el ovalo se lea plano. */
-export const ScLidShadow = styled.div`
-  position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, oklch(0.02 0.01 288 / 0.6) 0%, transparent 22%),
-    radial-gradient(
-      ellipse 120% 55% at 50% -16%,
-      oklch(0.02 0.01 288 / 0.6),
-      transparent 55%
-    );
-`;
+  user-select: none;
 
-export const ScOutline = styled.svg`
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  pointer-events: none;
-  filter: drop-shadow(0 0 8px oklch(0.72 0.12 250 / 0.45));
+  ${({ $additive }) =>
+    $additive &&
+    css`
+      /* screen es el fallback correcto y practicamente indistinguible sobre
+         negro; plus-lighter es la suma exacta con la que se extrajeron las
+         mascaras. */
+      mix-blend-mode: screen;
+      @supports (mix-blend-mode: plus-lighter) {
+        mix-blend-mode: plus-lighter;
+      }
+    `}
 
-  path {
-    fill: none;
-    stroke: oklch(0.9 0.05 250 / 0.75);
-    stroke-width: 2.5;
-    vector-effect: non-scaling-stroke;
-  }
+  ${({ $moves }) =>
+    $moves &&
+    css`
+      will-change: transform;
+    `}
+
+  ${({ $glow }) =>
+    $glow &&
+    css`
+      animation: ${$glow === "strong" ? glowStrong : glowSoft}
+        ${$glow === "strong" ? "7s" : "9s"} ease-in-out infinite;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        opacity: 1;
+      }
+    `}
 `;
 
 const shock = keyframes`
   0% {
-    opacity: 0.6;
-    transform: scale(0.5);
+    opacity: 0.55;
+    transform: scale(0.55);
   }
   100% {
     opacity: 0;
-    transform: scale(1.7);
+    transform: scale(1.9);
   }
 `;
 
 /*
- * Onda de "pulse" (spec §12, "Click pulse (ojo)"): anillo centrado en el
- * iris que se expande y decae al hacer click/tap sobre el ojo. El estado
- * (`data-pulsing`) se marca en `ScSocket` -- el elemento que recibe el
- * `pointerdown`, spec: hit target grande -- mientras que este anillo vive
- * dentro de `ScIris`, varios niveles mas abajo. Por eso el disparador usa el
- * selector DESCENDIENTE `[data-pulsing="true"] &` y no `&[data-pulsing="true"]`:
- * este ultimo solo matchearia si el atributo estuviera en el propio
- * elemento, y aqui vive en un ancestro (mismo gotcha que CLAUDE.md §5.1
- * documenta: animacion que nunca dispara porque el estado esta en el
- * padre). El mismo selector calificado se repite dentro de
- * `prefers-reduced-motion` (en vez de un `animation: none` suelto, de menor
- * especificidad) para que la desactivacion gane por especificidad igual +
- * orden de cascada, sin depender solo del `!important` global de
- * `GlobalStyles`.
+ * Onda de "pulse" (spec §12): anillo centrado en la pupila que se expande y
+ * decae al hacer click/tap sobre el hero. El estado (`data-pulsing`) se marca
+ * en `ScSocket` -- el elemento que recibe el `pointerdown` -- mientras que el
+ * anillo vive dentro de `ScFrame`. Por eso el disparador usa el selector
+ * DESCENDIENTE `[data-pulsing="true"] &` y no `&[data-pulsing="true"]`: este
+ * ultimo solo matchearia si el atributo estuviera en el propio elemento
+ * (mismo gotcha que CLAUDE.md §5.1 documenta). El mismo selector calificado se
+ * repite dentro de `prefers-reduced-motion` para que la desactivacion gane por
+ * especificidad igual + orden de cascada.
+ *
+ * El centrado usa la propiedad independiente `translate`, no `transform`:
+ * asi la animacion puede escribir `transform: scale()` sin tener que repetir
+ * el `translate(-50%, -50%)` en cada keyframe.
  */
 export const ScShock = styled.div`
   position: absolute;
-  inset: 0;
+  top: ${EYE_CENTER.y};
+  left: ${EYE_CENTER.x};
+  width: ${EYE_PUPIL_SIZE};
+  aspect-ratio: 1;
+  translate: -50% -50%;
   border-radius: ${({ theme }) => theme.data.radius.full};
   border: 2px solid oklch(0.92 0.04 250 / 0.7);
   opacity: 0;

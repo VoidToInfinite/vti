@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen, fireEvent } from "@/test/test-utils";
 import { Eye } from "./Eye";
+import { EYE_LAYERS } from "./eye.layers";
 
 /**
  * Mock minimo de `matchMedia`. `usePointer` (consumido por `Eye`) llama a
  * `window.matchMedia` de verdad al montar; jsdom no lo implementa, así que
  * sin este stub cualquier render de `<Eye />` lanza "matchMedia is not a
- * function" (encontrado al poner en verde el test del brief: no traía este
- * stub). `fineMatches` controla si el puntero queda habilitado (arranca su
+ * function". `fineMatches` controla si el puntero queda habilitado (arranca su
  * propio rAF interno); `reducedMatches` siempre es `false` salvo que se pida.
  */
 function stubMatchMedia(fineMatches: boolean, reducedMatches = false): void {
@@ -38,21 +38,34 @@ describe("Eye", () => {
     expect(root).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("no expone el logo como imagen accesible (el nombre lo da el DOM real)", () => {
-    renderWithProviders(<Eye />);
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
-  });
-
-  it("renderiza las capas del ojo", () => {
+  it("no expone ninguna capa como imagen accesible (el nombre lo da el DOM real)", () => {
     const { container } = renderWithProviders(<Eye />);
-    expect(
-      container.querySelector('[data-part="universe"]'),
-    ).toBeInTheDocument();
-    expect(container.querySelector('[data-part="iris"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-part="pupil"]')).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    // El corolario estructural: toda capa es decorativa, `alt` vacio.
+    for (const img of container.querySelectorAll("img")) {
+      expect(img).toHaveAttribute("alt", "");
+    }
   });
 
-  it("aplica className en el elemento raiz (styled(Eye) lo necesita en tasks posteriores)", () => {
+  it("monta las cinco capas de la composicion, en orden de atras a delante", () => {
+    const { container } = renderWithProviders(<Eye />);
+    const parts = [...container.querySelectorAll("img[data-part]")].map((img) =>
+      img.getAttribute("data-part"),
+    );
+    expect(parts).toEqual(EYE_LAYERS.map((layer) => layer.part));
+  });
+
+  it("ofrece la variante estrecha de cada capa para no servir 1672px a un movil", () => {
+    const { container } = renderWithProviders(<Eye />);
+    for (const layer of EYE_LAYERS) {
+      const img = container.querySelector(`img[data-part="${layer.part}"]`);
+      expect(img).toHaveAttribute("src", layer.src);
+      expect(img?.getAttribute("srcset")).toContain(layer.srcSmall);
+      expect(img).toHaveAttribute("sizes");
+    }
+  });
+
+  it("aplica className en el elemento raiz (styled(Eye) lo necesita para el hero)", () => {
     const { container } = renderWithProviders(<Eye className="custom" />);
     expect(container.firstElementChild).toHaveClass("custom");
   });
@@ -95,6 +108,50 @@ describe("Eye", () => {
     rerender(<Eye />);
     expect(caf).not.toHaveBeenCalled();
     expect(raf).toHaveBeenCalledTimes(callsAfterMount);
+  });
+
+  it("el parallax desplaza cada capa segun su profundidad, y deja el fondo quieto", () => {
+    stubMatchMedia(true); // puntero fino habilitado
+    // rAF controlado a mano: se guardan los callbacks pendientes y se ejecutan
+    // en tandas, que es la unica forma de avanzar el lerp de `usePointer` (y
+    // con el, el rAF del ojo) de manera determinista dentro de jsdom.
+    let pending: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      pending.push(cb);
+      return pending.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const { container } = renderWithProviders(<Eye />);
+
+    // Cursor en la esquina inferior derecha del viewport => x, y -> +1.
+    window.dispatchEvent(
+      new MouseEvent("pointermove", {
+        clientX: window.innerWidth,
+        clientY: window.innerHeight,
+      }),
+    );
+    // Varias tandas: el lerp (0.085/frame) necesita tiempo para acercarse al
+    // objetivo, y el ojo lee el valor ya suavizado.
+    for (let frame = 0; frame < 40; frame += 1) {
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb(frame * 16);
+    }
+
+    const transformOf = (part: string): string =>
+      container.querySelector<HTMLElement>(`img[data-part="${part}"]`)?.style
+        .transform ?? "";
+    const xOf = (part: string): number =>
+      Number(/translate3d\((-?[\d.]+)px/.exec(transformOf(part))?.[1] ?? "0");
+
+    // El fondo (depth 0) no recibe transform nunca: es el plano de referencia.
+    expect(transformOf("background")).toBe("");
+    // El resto se ordena por profundidad: pupila > iris > nebulosa > parpado.
+    expect(xOf("pupil")).toBeGreaterThan(xOf("iris"));
+    expect(xOf("iris")).toBeGreaterThan(xOf("nebula"));
+    expect(xOf("nebula")).toBeGreaterThan(xOf("eyelid"));
+    expect(xOf("eyelid")).toBeGreaterThan(0);
   });
 
   it("un pointerdown sobre el ojo marca el pulso, y el fin de su animacion lo limpia para que pueda repetirse", () => {

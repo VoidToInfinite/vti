@@ -51,7 +51,9 @@ const ScNav = styled.nav`
   align-items: center;
   justify-content: space-between;
   gap: ${({ theme }) => theme.data.space[4]};
-  height: 3.5rem;
+  /* La misma variable que descuenta el Hero (ver GlobalStyles): si la banda
+     cambia de alto, las dos medidas cambian juntas. */
+  height: var(--nav-height);
   padding: 0 ${({ theme }) => theme.data.space[4]};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {

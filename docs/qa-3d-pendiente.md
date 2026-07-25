@@ -63,10 +63,36 @@ Activa la preferencia (macOS: Ajustes → Accesibilidad → Pantalla → Reducir
 
 Nada de esto lo ha podido comprobar ningún agente de este entorno — es la primera vez que un ojo humano ve el resultado real:
 
-- [ ] **Silueta y color del ojo:** confirma que el ojo (iris, glints, párpado) se ve como se pretendía — proporciones, nitidez de bordes, que no haya artefactos de recorte (`clip-path`) en ningún tamaño de viewport.
-- [ ] **Parallax al cursor:** mueve el ratón sobre el hero (con reduced-motion **desactivado**) y confirma que el iris/gaze sigue al puntero de forma suave (lerp, sin saltos ni jitter) y con un rango de movimiento que se sienta contenido, no exagerado.
+- [ ] **Composición del ojo (hero):** el hero monta las cinco capas de `public/hero/eye/*.webp` con blending aditivo. Confirma que el resultado se ve como la imagen de referencia (`assets/hero-eye/`, composición completa): párpado, campo de nebulosa, corona e interior de la pupila, sin costuras ni halos entre capas y sin banda visible por la compresión WebP en los degradados oscuros.
+- [ ] **Encuadre en vertical:** en móvil el marco se amplía al 185% del ancho (recorta las puntas del párpado a propósito). Confirma que el encuadre resultante se sostiene y que la copia queda dentro del ojo, no desbordándolo.
+- [ ] **Contraste de la copia sobre la corona:** los párrafos del hero son más anchos que la pupila y sus extremos caen sobre la corona iluminada. Hay velo radial + sombra de texto, pero **el contraste real no se ha medido en píxeles**: comprueba con un medidor de contraste sobre captura real que el texto pasa AA (4.5:1) también en los extremos de línea.
+- [ ] **`plus-lighter` vs `screen`:** el aditivo usa `plus-lighter` con fallback a `screen` (`@supports`). Comprueba el hero en un navegador sin `plus-lighter` (Firefox < 122) y confirma que la diferencia no es perceptible.
+- [ ] **Parallax al cursor:** mueve el ratón sobre el hero (con reduced-motion **desactivado**) y confirma que las capas siguen al puntero de forma suave (lerp, sin saltos ni jitter), que la pupila se mueve más que el párpado, y que ninguna capa deja ver un borde transparente al desplazarse.
+- [ ] **Pulso al click:** un click/tap sobre el fondo del hero dispara el anillo que se expande desde la pupila, y se puede repetir inmediatamente.
 - [ ] **Transición póster → escena viva:** confirma que el fundido de opacidad entre el gradiente CSS y el canvas de Three.js (cuando WebGL y reduced-motion lo permiten) no produce un salto de color perceptible.
 - [ ] **Marca-esquina persistente (`EyeCornerMark`):** al pasar el hero, confirma que la marca aparece de forma legible y no se superpone de forma confusa con el contenido siguiente.
+
+---
+
+## 6. Peso y LCP del hero
+
+Las capas pesan **400 KiB** en la pista de 1672px y **224 KiB** en la de 1024px (medido con `du` sobre `public/hero/eye/`). La selección la hace el navegador con `srcset`/`sizes`, y `sizes` declara 60vw por debajo de 700px a propósito para que ningún móvil se lleve la pista grande.
+
+- [ ] **LCP medido:** Lighthouse o DevTools → Performance sobre el build de producción. Anota el LCP y qué elemento lo produce.
+- [ ] **Pista servida en móvil:** DevTools → Network, emulando un móvil, confirma que se descargan los `-1024.webp` y **no** los de 1672px.
+
+**Si el LCP no cumple:** el primer recorte razonable es bajar la calidad de las capas 01/03/04 (las tres pesadas) o añadir una pista intermedia; el script de conversión y su verificación de recomposición están descritos en el registro del vault de esta sesión.
+
+---
+
+## 7. Deuda 3D todavía abierta
+
+No se ha tocado en esta pasada, a la espera de tener la escena completa y correcta:
+
+- [ ] Tests de `src/three/Scene.tsx`.
+- [ ] Render loop en idle (la escena sigue pintando aunque no haya cambios ni esté en viewport).
+- [ ] Carga diferida por tiempo del módulo de Three.js.
+- [ ] **Contraste de Story en tema claro:** `Story` monta el póster oscuro de `SceneLoader` pero su copia usa `semantic.text`, que en tema claro es casi negro (verificado en navegador: `oklch(0.32 0 286)` sobre el póster oscuro). El hero resuelve el mismo problema anidando el tema oscuro; Story necesita el mismo tratamiento cuando se escriba su copia real.
 
 ---
 

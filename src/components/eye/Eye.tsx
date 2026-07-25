@@ -1,41 +1,34 @@
 "use client";
-import { useEffect, useId, useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { usePointer } from "@/hooks/usePointer";
-import {
-  ALMOND,
-  ScClip,
-  ScClipDefs,
-  ScEyeball,
-  ScGlint,
-  ScIris,
-  ScLidShadow,
-  ScOutline,
-  ScPupil,
-  ScRing,
-  ScShock,
-  ScSocket,
-  ScSwirl,
-  ScUniverse,
-} from "./eye.parts";
+import { EYE_LAYERS, EYE_SIZES } from "./eye.layers";
+import { ScFrame, ScLayer, ScShock, ScSocket } from "./eye.parts";
 
-/** Amplitudes de parallax en px. El iris se mueve mas que el globo: eso es lo
- *  que produce la sensacion de profundidad dentro del ojo (spec §7). */
-const AMP = { eyeball: 14, iris: 40, glint: -16 } as const;
+/** Amplitud del parallax en px a profundidad 1. Cada capa la escala por su
+ *  `depth`: el parpado (0.25) se mueve 6px y la pupila (0.85) 22px, y esa
+ *  diferencia es lo que produce la sensacion de profundidad (spec §7). La
+ *  amplitud vertical es menor porque el lienzo es apaisado: el mismo
+ *  desplazamiento se lee mas fuerte en el eje corto. */
+const AMP = { x: 26, y: 15 } as const;
 
 export interface EyeProps {
   className?: string;
 }
 
 /**
- * El ojo cosmico: silueta de almendra, nebulosa interior, iris que respira y
- * remolino que gira, pupila que sostiene la marca (la marca real la monta el
- * Hero, T5). Puro CSS/DOM -- sin WebGL (spec §1): `clip-path` para la
- * silueta, gradientes para la nebulosa, `conic-gradient` para el remolino,
- * keyframes CSS para respirar/girar, y un unico rAF para el seguimiento del
- * cursor.
+ * El ojo cosmico del hero: la composicion real, montada como pila de capas
+ * WebP con blending aditivo (la partición documentada en
+ * `assets/hero-eye/manifest.json`), no como aproximacion en CSS.
+ *
+ * Sobre la pila, dos movimientos: parallax 2.5D siguiendo al cursor -- un
+ * unico rAF que escribe `transform` directamente en el DOM, cero re-render por
+ * frame (spec §13) -- y una onda de pulso al click/tap. La corona respira por
+ * animacion CSS (`ScLayer`), no por rAF, para que tambien tenga vida en tactil
+ * donde el seguimiento del cursor no aplica.
  *
  * Todo el subarbol es decorativo (`aria-hidden="true"`): nada de lo que
- * comunica el ojo vive solo aqui, el contenido real esta en el DOM del Hero.
+ * comunica el ojo vive solo aqui -- la marca que ocupa la pupila es el `<h1>`
+ * real del Hero, y las imagenes van con `alt=""`.
  */
 export function Eye({ className }: EyeProps): ReactElement {
   const pointer = usePointer();
@@ -45,36 +38,28 @@ export function Eye({ className }: EyeProps): ReactElement {
   // aunque `enabled` no cambiara. `x`/`y` si son refs estables (el mismo
   // objeto en cada invocacion de `usePointer`), asi que extraerlas aqui y
   // depender de los primitivos/refs -- no del objeto envolvente -- deja el
-  // efecto quieto entre renders del padre (Hero, T5) y solo lo reinicia
-  // cuando `enabled` cambia de verdad.
+  // efecto quieto entre renders del padre (Hero) y solo lo reinicia cuando
+  // `enabled` cambia de verdad.
   const { x, y, enabled } = pointer;
-  const eyeball = useRef<HTMLDivElement>(null);
-  const iris = useRef<HTMLDivElement>(null);
-  const glint = useRef<HTMLSpanElement>(null);
+  const layers = useRef<(HTMLImageElement | null)[]>([]);
   // Onda de "pulse" al click/tap (spec §12). Estado de React, no rAF: se
   // dispara una vez por interaccion, no en cada frame, asi que no interfiere
   // con la regla de "cero re-render por frame" del gaze (spec §13).
   const [pulsing, setPulsing] = useState(false);
 
-  // useId() incluye ":" (p.ej. ":r0:"), valido en un atributo id HTML pero
-  // fragil como referencia `url(#...)` en algunos motores. Se despoja para
-  // usarlo con seguridad como fragment identifier.
-  const clipId = `eye-almond-${useId().replace(/:/g, "")}`;
-
   useEffect(() => {
     if (!enabled) return;
     let raf = 0;
-    // Un solo rAF escribe transforms directamente en el DOM. React NUNCA
-    // re-renderiza por frame (spec §13).
+    // Un solo rAF para las cinco capas. React NUNCA re-renderiza por frame.
     const tick = (): void => {
       const px = x.current;
       const py = y.current;
-      if (eyeball.current)
-        eyeball.current.style.transform = `translate(${px * AMP.eyeball}px, ${py * (AMP.eyeball * 0.64)}px)`;
-      if (iris.current)
-        iris.current.style.transform = `translate(${px * AMP.iris}px, ${py * (AMP.iris * 0.7)}px)`;
-      if (glint.current)
-        glint.current.style.transform = `translate(${px * AMP.glint}px, ${py * (AMP.glint * 0.7)}px)`;
+      for (const [index, layer] of EYE_LAYERS.entries()) {
+        if (layer.depth === 0) continue; // el fondo no se mueve nunca
+        const el = layers.current[index];
+        if (!el) continue;
+        el.style.transform = `translate3d(${px * AMP.x * layer.depth}px, ${py * AMP.y * layer.depth}px, 0)`;
+      }
       raf = window.requestAnimationFrame(tick);
     };
     raf = window.requestAnimationFrame(tick);
@@ -82,8 +67,9 @@ export function Eye({ className }: EyeProps): ReactElement {
   }, [enabled, x, y]);
 
   // `pointerdown` cubre raton y tactil en un solo handler (spec §12: "click
-  // pulse", trigger "click / tap"). El ojo entero (`ScSocket`) es el hit
-  // target -- no solo el iris -- para que la superficie completa responda.
+  // pulse", trigger "click / tap"). El lienzo entero (`ScSocket`) es el hit
+  // target: la composicion ocupa el hero de fondo a fondo, asi que cualquier
+  // punto que no sea copia ni CTA responde.
   const handlePulseStart = (): void => setPulsing(true);
   // Se limpia al terminar la animacion CSS (no con un timeout) para que un
   // segundo click dispare la onda otra vez incluso si el usuario clickea muy
@@ -98,57 +84,34 @@ export function Eye({ className }: EyeProps): ReactElement {
       data-pulsing={pulsing ? "true" : undefined}
       onPointerDown={handlePulseStart}
     >
-      <ScClipDefs>
-        <defs>
-          <clipPath
-            id={clipId}
-            clipPathUnits="objectBoundingBox"
-          >
-            <path d={ALMOND} />
-          </clipPath>
-        </defs>
-      </ScClipDefs>
-      <ScClip $clipId={clipId}>
-        <ScUniverse data-part="universe" />
-        <ScEyeball ref={eyeball}>
-          <ScIris
-            ref={iris}
-            data-part="iris"
-          >
-            <ScSwirl />
-            <ScRing
-              $inset="0"
-              $tint="oklch(0.66 0.142 235.851 / 0.5)"
-            />
-            <ScRing
-              $inset="10%"
-              $tint="oklch(0.66 0.233 311.928 / 0.45)"
-            />
-            <ScRing
-              $inset="21%"
-              $tint="oklch(0.8 0.117 235.851 / 0.4)"
-            />
-            <ScPupil data-part="pupil" />
-            <ScShock
-              data-part="shock"
-              onAnimationEnd={handlePulseEnd}
-            />
-          </ScIris>
-          <ScGlint
-            ref={glint}
-            $size="7%"
-            $top="24%"
-            $left="34%"
+      <ScFrame>
+        {EYE_LAYERS.map((layer, index) => (
+          <ScLayer
+            key={layer.part}
+            ref={(el: HTMLImageElement | null) => {
+              layers.current[index] = el;
+            }}
+            data-part={layer.part}
+            src={layer.src}
+            srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1672w`}
+            sizes={EYE_SIZES}
+            alt=""
+            // Las capas son el fondo del hero: cargarlas en diferido las
+            // pondria por detras de la copia en la cola de red justo donde
+            // mas se notan. `decoding="async"` evita que la decodificacion
+            // bloquee el primer pintado del texto.
+            loading="eager"
+            decoding="async"
+            $additive={layer.additive}
+            $moves={layer.depth > 0}
+            $glow={layer.glow}
           />
-        </ScEyeball>
-        <ScLidShadow />
-      </ScClip>
-      <ScOutline
-        viewBox="0 0 1 1"
-        preserveAspectRatio="none"
-      >
-        <path d={ALMOND} />
-      </ScOutline>
+        ))}
+        <ScShock
+          data-part="shock"
+          onAnimationEnd={handlePulseEnd}
+        />
+      </ScFrame>
     </ScSocket>
   );
 }

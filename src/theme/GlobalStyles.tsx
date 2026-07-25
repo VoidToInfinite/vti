@@ -1,6 +1,16 @@
 import { createGlobalStyle } from "styled-components";
 
 export const GlobalStyles = createGlobalStyle`
+  :root {
+    /* Alto de la banda del navbar. Vive aquí, y no en los tokens de tema,
+       porque es una medida de LAYOUT que dos componentes tienen que compartir
+       sin poder derivarla: el propio Navbar (que la fija) y el Hero (que la
+       descuenta para ocupar exactamente una pantalla y no dejar la
+       composición del ojo cortada por debajo del pliegue). Un token de tema
+       obligaría a leerla desde JS en un sitio y desde CSS en otro. */
+    --nav-height: 3.5rem;
+  }
+
   *,
   html,
   body {
@@ -98,6 +108,13 @@ export const GlobalStyles = createGlobalStyle`
   ::selection {
     background-color: ${({ theme }) => theme.data.semantic.brand};
     color: ${({ theme }) => theme.data.semantic.onBrand};
+  }
+
+  /* El navbar es sticky: al saltar a un ancla (#story desde el CTA del hero),
+     el destino quedaría por debajo de la banda. El margen de scroll lo
+     compensa sin tocar el layout. */
+  :where(section[id]) {
+    scroll-margin-top: var(--nav-height);
   }
 
   :where(a, button, input, textarea, select, [tabindex]):focus-visible {
