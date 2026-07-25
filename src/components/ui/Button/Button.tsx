@@ -1,6 +1,12 @@
 "use client";
 
-import type { ButtonHTMLAttributes, ReactElement, ReactNode, Ref } from "react";
+import type {
+  ButtonHTMLAttributes,
+  ElementType,
+  ReactElement,
+  ReactNode,
+  Ref,
+} from "react";
 import styled, { css, keyframes, type DefaultTheme } from "styled-components";
 
 export type ButtonVariant = "solid" | "soft" | "outline" | "ghost";
@@ -14,6 +20,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   children: ReactNode;
   ref?: Ref<HTMLButtonElement>;
+  /** Override del elemento. `as="a"` + `href` para CTAs que navegan. */
+  as?: ElementType;
+  href?: string;
 }
 
 // Color de acento por intent — SIEMPRE un rol semántico, nunca un primitivo
@@ -182,10 +191,12 @@ export function Button({
   disabled,
   children,
   ref,
+  as: asProp,
   ...rest
 }: ButtonProps): ReactElement {
   return (
     <ScButton
+      as={asProp}
       ref={ref}
       $variant={variant}
       $intent={intent}

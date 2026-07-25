@@ -8,6 +8,10 @@
         "description": "Currently your present is your future, only your future must continue to define it",
         "additionalDescription": "Although infinity is present everywhere, knowledge brings it to reality",
         "swipeUp": "Get Started",
+        "cta": {
+            "explore": "Explore the components",
+            "story": "Read the story"
+        },
         "about": {
             "title": "About",
             "description": "We're a team with members in different types of fields with the idea of growing together by sharing knowledge and creating projects.",

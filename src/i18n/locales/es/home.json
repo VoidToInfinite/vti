@@ -8,6 +8,10 @@
         "description": "Actualmente tu presente es tu futuro, solo que tu futuro debes seguir definiendolo",
         "additionalDescription": "Aunque el infinito esta presente en todos lados, el conocimiento lo trae a la realidad",
         "swipeUp": "Comencemos",
+        "cta": {
+            "explore": "Explorar los componentes",
+            "story": "Leer la historia"
+        },
         "about": {
             "title": "Acerca de",
             "description": "Somos un equipo con miembros de diferentes ambitos con la idea de crecer juntos compartiendo nuestros conocimientos y creando proyectos.",

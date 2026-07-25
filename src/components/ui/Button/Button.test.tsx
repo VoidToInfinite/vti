@@ -114,6 +114,22 @@ describe("Button", () => {
     expect(ref.current).toBe(screen.getByRole("button"));
   });
 
+  it("con as='a' y href se anuncia como enlace, no como boton", () => {
+    renderWithProviders(
+      <Button
+        as="a"
+        href="https://example.invalid/x"
+      >
+        Ir
+      </Button>,
+    );
+    expect(screen.getByRole("link", { name: "Ir" })).toHaveAttribute(
+      "href",
+      "https://example.invalid/x",
+    );
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("propaga props nativas del <button> (type, aria-label, onClick)", () => {
     const onClick = vi.fn();
     renderWithProviders(
