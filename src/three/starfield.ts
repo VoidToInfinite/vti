@@ -1,43 +1,74 @@
 import * as THREE from "three";
 
+/**
+ * Default conservador y provisional. La task 3D·T13 lo calibra midiendo en
+ * un móvil de gama media; no se ajusta a ojo ni con lógica por dispositivo
+ * aquí — esa es responsabilidad de esa task, no de esta.
+ */
+export const DEFAULT_STAR_COUNT = 1200;
+
+/** Profundidad del campo. El descenso (T12) recorre este rango en z. */
+const DEPTH = 24;
+
 export interface Starfield {
   /** El único objeto que `Scene` añade a su grafo (spec §13: un draw call). */
   points: THREE.Points;
-  /** Se llama una vez por frame con el progreso de scroll 0→1. */
+  /** `progress` 0→1 ligado al scroll (scrubbed). Solo mueve; no reconstruye. */
   update(progress: number): void;
   /** Libera geometría y material. `Scene` la invoca al desmontar. */
   dispose(): void;
 }
 
 /**
- * Stub mínimo y funcional: la task 3D·T8 ("Starfield en un draw call")
- * sustituye el contenido de esta función por el campo de partículas real
- * (miles de estrellas en un único `BufferGeometry`/`PointsMaterial`,
- * posicionadas y animadas según `progress`), manteniendo el mismo contrato
- * (`{ points, update, dispose }`) que `Scene.tsx` ya consume. Sin esto,
- * `Scene.tsx` no compila (TS strict, sin módulo que importar) ni tiene nada
- * que añadir a la escena — sí es autosuficiente para ejercitar el ciclo de
- * vida completo (montaje, resize, pausa por intersección/visibilidad,
- * limpieza) que es el objeto real de la task 7.
+ * Campo de estrellas real: miles de partículas en un único `BufferGeometry`
+ * / `PointsMaterial` — un solo `THREE.Points`, un solo draw call (spec §13).
+ * `update()` nunca reconstruye el buffer de posiciones; solo desplaza y rota
+ * el objeto completo, que es lo único que cambia frame a frame.
  */
-export function createStarfield(): Starfield {
+export function createStarfield(count = DEFAULT_STAR_COUNT): Starfield {
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i += 1) {
+    // Distribución en un cilindro alrededor del eje de vuelo: da sensación de
+    // atravesar el campo, no de mirarlo desde fuera.
+    const angle = (i / count) * Math.PI * 2 * 7.3;
+    const radius = 1.5 + (((i * 37) % 100) / 100) * 6;
+    positions[i * 3] = Math.cos(angle) * radius;
+    positions[i * 3 + 1] = Math.sin(angle) * radius;
+    positions[i * 3 + 2] = -((i / count) * DEPTH);
+  }
+
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute(
-    "position",
-    new THREE.BufferAttribute(new Float32Array(0), 3),
-  );
-  const material = new THREE.PointsMaterial({ size: 0.02 });
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+  const material = new THREE.PointsMaterial({
+    size: 0.035,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+  });
+
   const points = new THREE.Points(geometry, material);
 
-  return {
-    points,
-    update(): void {
-      // Sin contenido todavía: T8 anima aquí el campo de partículas leyendo
-      // `progress` para desplazar la cámara/puntos a través de él.
-    },
-    dispose(): void {
-      geometry.dispose();
-      material.dispose();
-    },
-  };
+  function update(progress: number): void {
+    // Pública: se recorta de nuevo aunque `useScrollProgress` ya llegue
+    // recortado — no debe extrapolar si recibe basura.
+    const p = Math.max(0, Math.min(1, progress));
+    // Avanzar el campo hacia el espectador = volar hacia dentro del vacío.
+    points.position.z = p * DEPTH;
+    // Deriva ambiente lenta: el vacío nunca se lee como muerto (spec §6).
+    points.rotation.z = p * 0.35;
+  }
+
+  function dispose(): void {
+    // `BufferGeometry.dispose()` solo libera el recurso de GPU (dispatchea el
+    // evento que el renderer escucha); NO vacía el mapa de atributos en CPU.
+    // Se borra explícitamente para soltar la referencia al `Float32Array` y
+    // dejar la geometría realmente inerte tras `dispose()`.
+    geometry.deleteAttribute("position");
+    geometry.dispose();
+    material.dispose();
+  }
+
+  return { points, update, dispose };
 }
