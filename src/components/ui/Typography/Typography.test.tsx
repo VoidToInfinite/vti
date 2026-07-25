@@ -84,6 +84,39 @@ describe("Typography", () => {
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
   });
 
+  it("reenvia data-testid al nodo renderizado", () => {
+    // Sin esta propagacion el Hero no puede exponer los ganchos
+    // hero-kicker/hero-subtitle/hero-support y no hay nada que medir en
+    // navegador con getComputedStyle.
+    renderWithProviders(
+      <Typography
+        variant="body"
+        data-testid="x"
+      >
+        Con gancho
+      </Typography>,
+    );
+    expect(screen.getByText("Con gancho")).toHaveAttribute("data-testid", "x");
+    expect(screen.getByTestId("x").tagName).toBe("P");
+  });
+
+  it("variant h3 con as p renderiza <p> y no crea un encabezado", () => {
+    // Patron exacto del subtitulo del Hero: escala de titular sin anadir un
+    // segundo encabezado a la pagina.
+    renderWithProviders(
+      <Typography
+        variant="h3"
+        as="p"
+        data-testid="hero-subtitle"
+      >
+        Subtitulo
+      </Typography>,
+    );
+    const el = screen.getByTestId("hero-subtitle");
+    expect(el.tagName).toBe("P");
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+  });
+
   it("reenvia id para poder asociarlo con aria-labelledby", () => {
     renderWithProviders(
       <Typography

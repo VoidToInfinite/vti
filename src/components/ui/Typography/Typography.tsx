@@ -24,12 +24,14 @@ const defaultElement: Partial<Record<TypeVariant, ElementType>> = {
 };
 
 interface TypographyProps {
-  variant: TypographyVariant;
+  "variant": TypographyVariant;
   /** Override del elemento por defecto de la variante. */
-  as?: ElementType;
-  children: ReactNode;
-  className?: string;
-  id?: string;
+  "as"?: ElementType;
+  "children": ReactNode;
+  "className"?: string;
+  "id"?: string;
+  /** Gancho de test. No participa en el estilado. */
+  "data-testid"?: string;
 }
 
 const ScTypography = styled.p<{ $variant: TypeVariant }>`
@@ -54,6 +56,7 @@ export function Typography({
   children,
   className,
   id,
+  "data-testid": testId,
 }: TypographyProps): ReactElement {
   const resolvedVariant: TypeVariant = variant === "lead" ? "bodyLg" : variant;
   const element: ElementType = as ?? defaultElement[resolvedVariant] ?? "p";
@@ -63,6 +66,7 @@ export function Typography({
       $variant={resolvedVariant}
       className={className}
       id={id}
+      data-testid={testId}
     >
       {children}
     </ScTypography>

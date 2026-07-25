@@ -104,6 +104,7 @@ describe("system tokens", () => {
       const expectedGrid = {
         containerMax: "1200px",
         prose: "65ch",
+        proseTight: "34ch",
         columns: 12,
         gutter: "1.5rem",
       };
@@ -118,6 +119,14 @@ describe("system tokens", () => {
       expect(grid.prose).toBe("65ch");
     });
 
+    it("proseTight es una medida mas corta que prose", () => {
+      // El subtitulo del hero se apoya en esta medida: si algun dia igualara o
+      // superara a prose dejaria de ser un subtitulo de dos lineas.
+      expect(grid.proseTight).toBe("34ch");
+      const ch = (v: string): number => Number(v.replace("ch", ""));
+      expect(ch(grid.proseTight)).toBeLessThan(ch(grid.prose));
+    });
+
     it("columns es 12", () => {
       expect(grid.columns).toBe(12);
     });
@@ -127,7 +136,7 @@ describe("system tokens", () => {
     });
 
     it("grid es un objeto congelado (as const)", () => {
-      expect(Object.keys(grid)).toHaveLength(4);
+      expect(Object.keys(grid)).toHaveLength(5);
     });
   });
 });

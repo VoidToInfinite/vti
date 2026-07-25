@@ -95,6 +95,22 @@ export const EYE_SIZES = "(max-width: 700px) 60vw, 100vw";
 export const EYE_ASPECT = "1672 / 941";
 
 /**
+ * Negro del lienzo del ojo. Se exporta —en vez de repetir el literal— porque la
+ * continuidad Hero → Story exige que el extremo superior de la costura sea
+ * EXACTAMENTE el valor que pinta `ScSocket`: dos literales iguales en dos
+ * archivos distintos se separan al primer retoque y la costura reaparece.
+ *
+ * Es la MISMA excepción de color sancionada que documenta `eye.parts.tsx`
+ * (líneas 5-14): el ojo es `aria-hidden` y decorativo, su negro es identidad de
+ * marca y no un rol semántico, así que no cambia con el tema.
+ *
+ * Vive en esta capa de datos, y no en `eye.parts.tsx`, porque ese módulo es
+ * `"use client"` con styled-components: importar la constante desde aquí evita
+ * arrastrar el árbol de estilos del ojo a quien solo necesita el color.
+ */
+export const EYE_SURFACE = "oklch(0 0 0)";
+
+/**
  * Centro sobre el que se anclan las piezas que van «dentro» del ojo: la
  * mascota, el anillo de pulso y el velo de contraste del hero.
  *

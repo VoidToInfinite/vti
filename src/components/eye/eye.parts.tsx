@@ -1,6 +1,11 @@
 "use client";
 import styled, { css, keyframes } from "styled-components";
-import { EYE_ASPECT, EYE_CENTER, EYE_PUPIL_SIZE } from "./eye.layers";
+import {
+  EYE_ASPECT,
+  EYE_CENTER,
+  EYE_PUPIL_SIZE,
+  EYE_SURFACE,
+} from "./eye.layers";
 
 /*
  * Excepcion sancionada del sistema (la misma que `BackOrbs`, ver
@@ -24,7 +29,7 @@ export const ScSocket = styled.div`
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background-color: oklch(0 0 0);
+  background-color: ${EYE_SURFACE};
 `;
 
 /*
