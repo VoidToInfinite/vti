@@ -46,8 +46,10 @@ const ScSocialLink = styled.a`
   border-radius: ${({ theme }) => theme.data.radius.full};
   background-color: ${({ theme }) => theme.data.semantic.surfaceSunken};
   transition:
-    transform 0.2s ease,
-    background-color 0.2s ease;
+    transform ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    background-color ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard};
 
   &:hover,
   &:focus-visible {

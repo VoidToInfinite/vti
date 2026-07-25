@@ -15,11 +15,15 @@ const ScThemeToggle = styled.button`
   line-height: 1;
   background-color: ${({ theme }) => theme.data.semantic.surfaceSunken};
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform ${({ theme }) => theme.data.motion.duration.base}
+    ${({ theme }) => theme.data.motion.easing.standard};
 
+  /* Hover-lift: misma primitiva que Button/Socials (translateY(-2px)), no
+     el scale(1.05) inventado que traía antes — un solo lenguaje de
+     movimiento para todo hover del sistema. */
   &:hover,
   &:focus-visible {
-    transform: scale(1.05);
+    transform: translateY(-2px);
   }
 
   @media (prefers-reduced-motion: reduce) {
