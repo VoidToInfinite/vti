@@ -12,6 +12,11 @@
             "explore": "Explore the components",
             "story": "Read the story"
         },
+        "story": {
+            "title": "From an empty page",
+            "body": "[por completar] Story section copy in English.",
+            "additional": "[por completar] Second paragraph of the Story section."
+        },
         "about": {
             "title": "About",
             "description": "We're a team with members in different types of fields with the idea of growing together by sharing knowledge and creating projects.",

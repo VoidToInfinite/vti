@@ -83,4 +83,19 @@ describe("Typography", () => {
     expect(el.tagName).toBe("P");
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
   });
+
+  it("reenvia id para poder asociarlo con aria-labelledby", () => {
+    renderWithProviders(
+      <Typography
+        variant="h2"
+        id="titulo-x"
+      >
+        Título
+      </Typography>,
+    );
+    expect(screen.getByRole("heading", { level: 2 })).toHaveAttribute(
+      "id",
+      "titulo-x",
+    );
+  });
 });

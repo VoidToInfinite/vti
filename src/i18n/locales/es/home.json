@@ -12,6 +12,11 @@
             "explore": "Explorar los componentes",
             "story": "Leer la historia"
         },
+        "story": {
+            "title": "Desde una página vacía",
+            "body": "[por completar] Texto de la sección Story en español.",
+            "additional": "[por completar] Segundo párrafo de la sección Story."
+        },
         "about": {
             "title": "Acerca de",
             "description": "Somos un equipo con miembros de diferentes ambitos con la idea de crecer juntos compartiendo nuestros conocimientos y creando proyectos.",
