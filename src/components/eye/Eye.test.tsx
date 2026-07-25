@@ -144,7 +144,7 @@ describe("Eye", () => {
     }
 
     const transformOf = (part: string): string =>
-      container.querySelector<HTMLElement>(`img[data-part="${part}"]`)?.style
+      container.querySelector<HTMLElement>(`[data-part="${part}"]`)?.style
         .transform ?? "";
     const xOf = (part: string): number =>
       Number(/translate3d\((-?[\d.]+)px/.exec(transformOf(part))?.[1] ?? "0");
@@ -156,6 +156,8 @@ describe("Eye", () => {
     expect(xOf("iris")).toBeGreaterThan(xOf("nebula"));
     expect(xOf("nebula")).toBeGreaterThan(xOf("eyelid"));
     expect(xOf("eyelid")).toBeGreaterThan(0);
+    // La mascota del centro viaja pegada a la pupila, no a su propio ritmo.
+    expect(transformOf("mascot")).toBe(transformOf("pupil"));
   });
 
   it("en tema claro el centro del ojo lo ocupa Sol", () => {

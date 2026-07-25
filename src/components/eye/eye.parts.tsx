@@ -1,11 +1,6 @@
 "use client";
 import styled, { css, keyframes } from "styled-components";
-import {
-  EYE_ASPECT,
-  EYE_CENTER,
-  EYE_MASCOT_SIZE,
-  EYE_PUPIL_SIZE,
-} from "./eye.layers";
+import { EYE_ASPECT, EYE_CENTER, EYE_PUPIL_SIZE } from "./eye.layers";
 
 /*
  * Excepcion sancionada del sistema (la misma que `BackOrbs`, ver
@@ -129,9 +124,16 @@ export const ScLayer = styled.img<{
 `;
 
 /*
- * Hueco del mascota (Wormhole en oscuro, Sol en claro): cuadrado centrado en
- * el MISMO centro medido del ojo que usa el anillo de pulso, asi que las tres
- * cosas -- pupila pintada, mascota y onda -- comparten eje.
+ * Hueco del mascota (Wormhole en oscuro, Sol en claro): cuadrado del DIAMETRO
+ * de la pupila, centrado en el mismo centro medido del ojo que usa el anillo
+ * de pulso, asi que las tres cosas -- pupila pintada, mascota y onda --
+ * comparten eje y tamano.
+ *
+ * El centrado usa la propiedad independiente `translate` y no `transform`
+ * porque `transform` la escribe el rAF del seguimiento del cursor (`Eye.tsx`)
+ * frame a frame: la mascota viaja con la capa de la pupila, a su misma
+ * profundidad. Si el centrado viviera en `transform`, cada frame lo
+ * sobrescribiria y la mascota saltaria al vertice superior izquierdo.
  *
  * Blending normal, no aditivo como las capas: la mascota no forma parte de la
  * particion de la imagen (no es una de las mascaras que suman 1), es una pieza
@@ -143,9 +145,10 @@ export const ScMascotSlot = styled.div`
   position: absolute;
   top: ${EYE_CENTER.y};
   left: ${EYE_CENTER.x};
-  width: ${EYE_MASCOT_SIZE};
+  width: ${EYE_PUPIL_SIZE};
   aspect-ratio: 1;
   translate: -50% -50%;
+  will-change: transform;
 `;
 
 const shock = keyframes`

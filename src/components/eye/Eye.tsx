@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { usePointer } from "@/hooks/usePointer";
 import { useTheme } from "@/theme/ThemeProvider";
-import { EYE_LAYERS, EYE_SIZES } from "./eye.layers";
+import { EYE_LAYERS, EYE_MASCOT_DEPTH, EYE_SIZES } from "./eye.layers";
 import { ScFrame, ScLayer, ScMascotSlot, ScShock, ScSocket } from "./eye.parts";
 import { Sol } from "./mascots/Sol";
 import { Wormhole } from "./mascots/Wormhole";
@@ -49,6 +49,7 @@ export function Eye({ className }: EyeProps): ReactElement {
   // eleccion de mascota es del usuario, no de la superficie.
   const { themeName } = useTheme();
   const layers = useRef<(HTMLImageElement | null)[]>([]);
+  const mascot = useRef<HTMLDivElement>(null);
   // Onda de "pulse" al click/tap (spec §12). Estado de React, no rAF: se
   // dispara una vez por interaccion, no en cada frame, asi que no interfiere
   // con la regla de "cero re-render por frame" del gaze (spec §13).
@@ -57,15 +58,23 @@ export function Eye({ className }: EyeProps): ReactElement {
   useEffect(() => {
     if (!enabled) return;
     let raf = 0;
-    // Un solo rAF para las cinco capas. React NUNCA re-renderiza por frame.
+    // Un solo rAF para las cinco capas y la mascota. React NUNCA re-renderiza
+    // por frame.
     const tick = (): void => {
       const px = x.current;
       const py = y.current;
+      const shift = (depth: number): string =>
+        `translate3d(${px * AMP.x * depth}px, ${py * AMP.y * depth}px, 0)`;
       for (const [index, layer] of EYE_LAYERS.entries()) {
         if (layer.depth === 0) continue; // el fondo no se mueve nunca
         const el = layers.current[index];
         if (!el) continue;
-        el.style.transform = `translate3d(${px * AMP.x * layer.depth}px, ${py * AMP.y * layer.depth}px, 0)`;
+        el.style.transform = shift(layer.depth);
+      }
+      // La mascota viaja con la pupila, a su misma profundidad: es lo que la
+      // pupila contiene, no una capa aparte.
+      if (mascot.current) {
+        mascot.current.style.transform = shift(EYE_MASCOT_DEPTH);
       }
       raf = window.requestAnimationFrame(tick);
     };
@@ -130,7 +139,10 @@ export function Eye({ className }: EyeProps): ReactElement {
             reacciona al pulso del ojo (su interaccion es propia: inclinacion,
             giro y cambio de cara), el anillo se queda como la respuesta del
             ojo al click. */}
-        <ScMascotSlot data-part="mascot">
+        <ScMascotSlot
+          ref={mascot}
+          data-part="mascot"
+        >
           {themeName === "light" ? (
             <Sol />
           ) : (
