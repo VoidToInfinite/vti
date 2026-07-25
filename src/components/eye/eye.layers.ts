@@ -95,18 +95,25 @@ export const EYE_SIZES = "(max-width: 700px) 60vw, 100vw";
 export const EYE_ASPECT = "1672 / 941";
 
 /**
- * Centro del ojo medido sobre el lienzo (833.8, 450.9): ligeramente por encima
- * del centro geométrico. Ancla la pupila, y con ella el anillo de pulso y el
- * velo de contraste del hero.
+ * Centro sobre el que se anclan las piezas que van «dentro» del ojo: la
+ * mascota, el anillo de pulso y el velo de contraste del hero.
+ *
+ * El centro geométrico de la pupila pintada, medido sobre el lienzo, es
+ * (833.8, 450.9) → 49.87% / 47.92%. El valor en uso corre 2 puntos más abajo:
+ * es un ajuste de encuadre hecho a ojo sobre el render, no la medida cruda.
  */
-export const EYE_CENTER = { x: "49.87%", y: "47.92%" } as const;
+export const EYE_CENTER = { x: "49.87%", y: "49.92%" } as const;
 
 /**
- * Diámetro visual de la pupila como porcentaje del ANCHO del marco: el borde
- * exterior del degradado pupila→corona está en r ≈ 310px sobre 1672px de
- * ancho, o sea 2·310/1672 ≈ 37%.
+ * Lado de lo que se monta dentro de la pupila (mascota y anillo de pulso),
+ * como porcentaje del ANCHO del marco.
+ *
+ * No es el diámetro completo de la pupila pintada: ese, medido, es ≈37% (el
+ * borde exterior del degradado pupila→corona está en r ≈ 310px sobre 1672px
+ * de ancho). El valor en uso es el del pozo interior, ajustado sobre el
+ * render, para que lo que se posa dentro no toque el borde de la corona.
  */
-export const EYE_PUPIL_SIZE = "37%";
+export const EYE_PUPIL_SIZE = "20%";
 
 /**
  * Profundidad de parallax del mascota que ocupa el centro del ojo
