@@ -22,6 +22,11 @@
             "description": "We're a team with members in different types of fields with the idea of growing together by sharing knowledge and creating projects.",
             "additionalDescription": "At the moment, we only have our Discord server. You can also follow our github projects."
         },
+        "contact": {
+            "title": "Let's talk",
+            "body": "[por completar] One line inviting contact.",
+            "email": "Send an email"
+        },
         "sections": {
             "title": "Our present",
             "learning": {

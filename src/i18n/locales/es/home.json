@@ -22,6 +22,11 @@
             "description": "Somos un equipo con miembros de diferentes ambitos con la idea de crecer juntos compartiendo nuestros conocimientos y creando proyectos.",
             "additionalDescription": "Actualmente tenemos un servidor de Discord. Tambien puedes seguir nuestros proyectos en github."
         },
+        "contact": {
+            "title": "Hablemos",
+            "body": "[por completar] Una línea de invitación al contacto.",
+            "email": "Escribir un email"
+        },
         "sections": {
             "title": "Nuestro presente",
             "learning": {
