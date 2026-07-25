@@ -14,8 +14,13 @@ export default function HomePage() {
         <Hero />
         <Story />
         <Features />
-        <Contact />
+        {/* `About` es contenido preexistente, ajeno a las 4 escenas del viaje.
+            Va ANTES de `Contact` porque el arco del spec (vacío → foco →
+            sistema → invitación) exige que la invitación cierre: dejar un
+            bloque "Acerca de" después diluye justo el efecto de cierre que
+            esa escena existe para producir. */}
         <About />
+        <Contact />
       </main>
       <Footer />
     </>
