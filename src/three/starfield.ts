@@ -1,9 +1,13 @@
 import * as THREE from "three";
 
 /**
- * Default conservador y provisional. La task 3D·T13 lo calibra midiendo en
- * un móvil de gama media; no se ajusta a ojo ni con lógica por dispositivo
- * aquí — esa es responsabilidad de esa task, no de esta.
+ * Default conservador, pensado para escritorio/gama alta. **Sin medir**: el
+ * spec (§19) pedía calibrar este valor perfilando FPS reales en escritorio y
+ * en un móvil de gama media, pero el entorno en el que se implementó esta
+ * task no puede componer frames de navegador (sin render real, sin captura
+ * de rendimiento posible). Es un punto de partida razonable, no una cifra
+ * calibrada — ver `docs/qa-3d-pendiente.md` para el protocolo de medición
+ * pendiente y qué hacer si el móvil real baja de 50 FPS.
  */
 export const DEFAULT_STAR_COUNT = 1200;
 
@@ -15,6 +19,22 @@ export const DEFAULT_STAR_COUNT = 1200;
  * seguir dejando estrellas por delante en `progress = 1`.
  */
 const DEPTH = 24;
+
+/**
+ * Densidad de partículas según el ancho de viewport. **Cortes SIN MEDIR**
+ * (spec §14/§19): son defaults conservadores por rango de ancho de pantalla
+ * — un proxy barato de "dispositivo modesto", no una calibración basada en
+ * FPS reales de un dispositivo físico. El entorno de desarrollo de esta
+ * task no puede perfilar rendimiento de navegador; queda documentado en
+ * `docs/qa-3d-pendiente.md` el protocolo que debe correr una persona con
+ * acceso a hardware real, y qué hacer si el móvil baja de 50 FPS (reducir
+ * estos valores).
+ */
+export function starCountForViewport(width: number): number {
+  if (width <= 640) return 500;
+  if (width <= 1024) return 900;
+  return DEFAULT_STAR_COUNT;
+}
 
 export interface Starfield {
   /** El único objeto que `Scene` añade a su grafo (spec §13: un draw call). */

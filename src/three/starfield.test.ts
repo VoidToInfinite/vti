@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { PerspectiveCamera, type Material } from "three";
-import { createStarfield, DEFAULT_STAR_COUNT } from "./starfield";
+import {
+  createStarfield,
+  DEFAULT_STAR_COUNT,
+  starCountForViewport,
+} from "./starfield";
 import { applyCameraProgress } from "./camera";
 
 describe("starfield", () => {
@@ -103,5 +107,35 @@ describe("starfield", () => {
     s.dispose();
 
     expect(positionPresenteAlDisparar).toBe(true);
+  });
+});
+
+describe("starCountForViewport", () => {
+  // Cortes tomados literalmente del brief (spec §14/§19). Son defaults
+  // conservadores SIN MEDIR (ver docs/qa-3d-pendiente.md): el entorno de
+  // desarrollo no pudo perfilar FPS en un dispositivo real, así que esto
+  // fija el punto de partida, no una calibración validada.
+  it("movil (<=640px) usa la densidad reducida de 500", () => {
+    expect(starCountForViewport(640)).toBe(500);
+  });
+
+  it("justo por encima del corte movil (641px) ya no aplica la reduccion movil", () => {
+    expect(starCountForViewport(641)).toBe(900);
+  });
+
+  it("tablet (<=1024px) usa la densidad intermedia de 900", () => {
+    expect(starCountForViewport(1024)).toBe(900);
+  });
+
+  it("justo por encima del corte tablet (1025px) usa el default de escritorio", () => {
+    expect(starCountForViewport(1025)).toBe(DEFAULT_STAR_COUNT);
+  });
+
+  it("escritorio ancho usa el default sin recortar", () => {
+    expect(starCountForViewport(1920)).toBe(DEFAULT_STAR_COUNT);
+  });
+
+  it("viewport muy pequeño (por debajo del corte movil) tambien usa 500", () => {
+    expect(starCountForViewport(320)).toBe(500);
   });
 });

@@ -2,7 +2,7 @@
 import { useEffect, useRef, type ReactElement, type RefObject } from "react";
 import * as THREE from "three";
 import styled from "styled-components";
-import { createStarfield } from "./starfield";
+import { createStarfield, starCountForViewport } from "./starfield";
 import { applyCameraProgress } from "./camera";
 
 const ScCanvas = styled.canvas`
@@ -43,7 +43,7 @@ export function Scene({
     const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
     applyCameraProgress(camera, 0);
 
-    const stars = createStarfield();
+    const stars = createStarfield(starCountForViewport(window.innerWidth));
     scene.add(stars.points);
 
     const resize = (): void => {
