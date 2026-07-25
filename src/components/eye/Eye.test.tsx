@@ -28,6 +28,10 @@ beforeEach(() => {
   // Por defecto sin puntero fino: la mayoría de estos tests solo verifican
   // estructura/accesibilidad, no el seguimiento del cursor.
   stubMatchMedia(false);
+  // El tema decide qué mascota ocupa el centro del ojo, y `ThemeProvider` lo
+  // lee de localStorage al montar: sin limpiarlo, el test que lo fija a
+  // oscuro contaminaría a los siguientes.
+  window.localStorage.clear();
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -152,6 +156,38 @@ describe("Eye", () => {
     expect(xOf("iris")).toBeGreaterThan(xOf("nebula"));
     expect(xOf("nebula")).toBeGreaterThan(xOf("eyelid"));
     expect(xOf("eyelid")).toBeGreaterThan(0);
+  });
+
+  it("en tema claro el centro del ojo lo ocupa Sol", () => {
+    // ThemeProvider arranca en claro y no hay nada guardado en localStorage.
+    const { container } = renderWithProviders(<Eye />);
+    const slot = container.querySelector('[data-part="mascot"]');
+    expect(slot?.querySelector('[data-face="sol"]')).toBeInTheDocument();
+    expect(slot?.querySelector('[data-part="ring1"]')).not.toBeInTheDocument();
+  });
+
+  it("en tema oscuro el centro del ojo lo ocupa el Wormhole, que ademas se queda con el pulso", () => {
+    window.localStorage.setItem("vti-theme", "dark");
+    const { container } = renderWithProviders(<Eye />);
+    const slot = container.querySelector('[data-part="mascot"]');
+
+    expect(slot?.querySelector('[data-part="ring1"]')).toBeInTheDocument();
+    expect(slot?.querySelector('[data-face="sol"]')).not.toBeInTheDocument();
+    // El Wormhole trae sus dos ondas de choque: montar ademas el anillo simple
+    // del ojo daria tres ondas para el mismo click.
+    expect(
+      container.querySelector('[data-part="shock"]'),
+    ).not.toBeInTheDocument();
+    expect(slot?.querySelector('[data-part="shock2"]')).toBeInTheDocument();
+  });
+
+  it("con reduced-motion el pointerdown no marca el pulso (no habria animacion que lo apagara)", () => {
+    stubMatchMedia(false, true);
+    const { container } = renderWithProviders(<Eye />);
+    const socket = container.firstElementChild as HTMLElement;
+
+    fireEvent.pointerDown(socket);
+    expect(socket).not.toHaveAttribute("data-pulsing");
   });
 
   it("un pointerdown sobre el ojo marca el pulso, y el fin de su animacion lo limpia para que pueda repetirse", () => {

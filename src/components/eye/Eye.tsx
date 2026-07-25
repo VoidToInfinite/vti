@@ -1,8 +1,11 @@
 "use client";
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { usePointer } from "@/hooks/usePointer";
+import { useTheme } from "@/theme/ThemeProvider";
 import { EYE_LAYERS, EYE_SIZES } from "./eye.layers";
-import { ScFrame, ScLayer, ScShock, ScSocket } from "./eye.parts";
+import { ScFrame, ScLayer, ScMascotSlot, ScShock, ScSocket } from "./eye.parts";
+import { Sol } from "./mascots/Sol";
+import { Wormhole } from "./mascots/Wormhole";
 
 /** Amplitud del parallax en px a profundidad 1. Cada capa la escala por su
  *  `depth`: el parpado (0.25) se mueve 6px y la pupila (0.85) 22px, y esa
@@ -41,6 +44,10 @@ export function Eye({ className }: EyeProps): ReactElement {
   // efecto quieto entre renders del padre (Hero) y solo lo reinicia cuando
   // `enabled` cambia de verdad.
   const { x, y, enabled } = pointer;
+  // Tema REAL de la pagina, no el que el Hero fuerza para sus tokens: el Hero
+  // anida el tema oscuro porque su superficie es negra siempre, pero la
+  // eleccion de mascota es del usuario, no de la superficie.
+  const { themeName } = useTheme();
   const layers = useRef<(HTMLImageElement | null)[]>([]);
   // Onda de "pulse" al click/tap (spec §12). Estado de React, no rAF: se
   // dispara una vez por interaccion, no en cada frame, asi que no interfiere
@@ -70,11 +77,19 @@ export function Eye({ className }: EyeProps): ReactElement {
   // pulse", trigger "click / tap"). El lienzo entero (`ScSocket`) es el hit
   // target: la composicion ocupa el hero de fondo a fondo, asi que cualquier
   // punto que no sea copia ni CTA responde.
-  const handlePulseStart = (): void => setPulsing(true);
+  //
+  // Bajo reduced-motion NI SE MARCA el estado. El pulso se apaga solo cuando
+  // termina su animacion, y con reduced-motion no hay animacion que termine:
+  // marcarlo dejaria `data-pulsing="true"` pegado para siempre y el segundo
+  // click ya no dispararia nada el dia que se reactive el movimiento.
+  const handlePulseStart = (): void => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setPulsing(true);
+  };
   // Se limpia al terminar la animacion CSS (no con un timeout) para que un
   // segundo click dispare la onda otra vez incluso si el usuario clickea muy
   // rapido: `onAnimationEnd` solo se dispara cuando el navegador termina de
-  // verdad el keyframe `shock`.
+  // verdad el keyframe.
   const handlePulseEnd = (): void => setPulsing(false);
 
   return (
@@ -107,10 +122,30 @@ export function Eye({ className }: EyeProps): ReactElement {
             $glow={layer.glow}
           />
         ))}
-        <ScShock
-          data-part="shock"
-          onAnimationEnd={handlePulseEnd}
-        />
+        {/* El centro del ojo: Wormhole en oscuro, Sol en claro (portados de
+            `vti-sdk`). El Wormhole trae su propia coreografia de pulso -- dos
+            ondas de choque, destello del remolino, anillos que fulguran --
+            asi que en oscuro NO se monta ademas el anillo simple `ScShock`:
+            serian tres ondas para el mismo click. En claro, donde Sol no
+            reacciona al pulso del ojo (su interaccion es propia: inclinacion,
+            giro y cambio de cara), el anillo se queda como la respuesta del
+            ojo al click. */}
+        <ScMascotSlot data-part="mascot">
+          {themeName === "light" ? (
+            <Sol />
+          ) : (
+            <Wormhole
+              pulsing={pulsing}
+              onPulseEnd={handlePulseEnd}
+            />
+          )}
+        </ScMascotSlot>
+        {themeName === "light" && (
+          <ScShock
+            data-part="shock"
+            onAnimationEnd={handlePulseEnd}
+          />
+        )}
       </ScFrame>
     </ScSocket>
   );

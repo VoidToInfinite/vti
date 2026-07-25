@@ -1,6 +1,11 @@
 "use client";
 import styled, { css, keyframes } from "styled-components";
-import { EYE_ASPECT, EYE_CENTER, EYE_PUPIL_SIZE } from "./eye.layers";
+import {
+  EYE_ASPECT,
+  EYE_CENTER,
+  EYE_MASCOT_SIZE,
+  EYE_PUPIL_SIZE,
+} from "./eye.layers";
 
 /*
  * Excepcion sancionada del sistema (la misma que `BackOrbs`, ver
@@ -121,6 +126,26 @@ export const ScLayer = styled.img<{
         opacity: 1;
       }
     `}
+`;
+
+/*
+ * Hueco del mascota (Wormhole en oscuro, Sol en claro): cuadrado centrado en
+ * el MISMO centro medido del ojo que usa el anillo de pulso, asi que las tres
+ * cosas -- pupila pintada, mascota y onda -- comparten eje.
+ *
+ * Blending normal, no aditivo como las capas: la mascota no forma parte de la
+ * particion de la imagen (no es una de las mascaras que suman 1), es una pieza
+ * que se posa encima. Sobre el pozo negro de la pupila el resultado es el
+ * mismo, y evita que el `backdrop-filter` del iris de Sol tenga que resolverse
+ * dentro de un grupo con blending.
+ */
+export const ScMascotSlot = styled.div`
+  position: absolute;
+  top: ${EYE_CENTER.y};
+  left: ${EYE_CENTER.x};
+  width: ${EYE_MASCOT_SIZE};
+  aspect-ratio: 1;
+  translate: -50% -50%;
 `;
 
 const shock = keyframes`

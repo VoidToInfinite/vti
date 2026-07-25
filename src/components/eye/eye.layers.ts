@@ -107,3 +107,19 @@ export const EYE_CENTER = { x: "49.87%", y: "47.92%" } as const;
  * ancho, o sea 2·310/1672 ≈ 37%.
  */
 export const EYE_PUPIL_SIZE = "37%";
+
+/**
+ * Lado de la caja del mascota (Wormhole/Sol) que vive en el centro del ojo,
+ * como porcentaje del ANCHO del marco.
+ *
+ * No es el diámetro de la pupila (37%) sino algo mayor a propósito. Dos
+ * motivos, los dos medidos sobre la composición: el anillo exterior del
+ * Wormhole se dibuja en el borde de su caja, y a 37% quedaría pegado al borde
+ * de la pupila, leyéndose como un recorte y no como una construcción propia;
+ * y el velo de contraste del hero (elipse de radios 32%×30% anclada al mismo
+ * centro) apaga justo la zona de la pupila, así que un mascota que cupiera
+ * dentro de ella quedaría enteramente bajo el velo. A 52% los anillos
+ * exteriores y el halo de Sol respiran por fuera del velo, alrededor de la
+ * copia, y solo el núcleo queda atenuado — que es donde va el texto.
+ */
+export const EYE_MASCOT_SIZE = "52%";
