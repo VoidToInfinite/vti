@@ -45,7 +45,21 @@ export function Logo({
   const decorative = !title && rest["aria-label"] === undefined;
   return (
     <ScLogo
-      viewBox="0 0 500 550"
+      /*
+       * "0 7.5 500 550", no "0 0 500 550". El dibujo (circulo + dos
+       * polilineas) mide, medido con las coordenadas reales de los tres
+       * elementos de abajo: x en [10, 490] e y en [25, 540]. Contra un
+       * viewBox "0 0 500 550" eso deja 10px de margen a cada lado en X
+       * (simetrico) pero 25px arriba y solo 10px abajo en Y -- 15 unidades
+       * de mas por arriba, un 2.7% de la altura total. A cualquier tamano el
+       * icono se leia "colgando" hacia abajo dentro de su propia caja, mas
+       * perceptible cuanto mas pequeno el render (navbar) o mas grande la
+       * caja (Wormhole/Sol). Desplazar minY a 7.5 = 25 - (25-10)/2 centra el
+       * dibujo sin tocar el ancho ni el alto del viewBox: misma relacion de
+       * aspecto, mismo tamano renderizado en los tres consumidores, cero
+       * distorsion.
+       */
+      viewBox="0 7.5 500 550"
       $size={size}
       role={decorative ? undefined : "img"}
       aria-hidden={decorative ? true : undefined}

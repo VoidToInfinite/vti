@@ -169,7 +169,7 @@ describe("Sol", () => {
     const mark = compassFace?.querySelector("svg");
 
     expect(mark).toBeInTheDocument();
-    expect(mark).toHaveAttribute("viewBox", "0 0 500 550");
+    expect(mark).toHaveAttribute("viewBox", "0 7.5 500 550");
     // Sin title: el atomo Logo se resuelve a puramente decorativo aqui, igual
     // que en Navbar/Wormhole (el nombre de marca ya lo lleva BrandName).
     expect(mark).toHaveAttribute("aria-hidden", "true");

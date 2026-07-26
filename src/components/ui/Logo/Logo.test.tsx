@@ -3,10 +3,14 @@ import { renderWithProviders, screen } from "@/test/test-utils";
 import { Logo } from "./Logo";
 
 describe("Logo", () => {
-  it("usa el viewBox de la marca (500x550)", () => {
+  it("usa el viewBox de la marca (500x550, origen Y desplazado para centrar el dibujo)", () => {
+    // "0 7.5 500 550", no "0 0 500 550": el dibujo mide y en [25, 540] dentro
+    // de un lienzo de 550 -- 25px de margen arriba y solo 10 abajo. El
+    // origen Y a 7.5 reparte ese margen por igual (17.5 a cada lado). Ver el
+    // comentario de Logo.tsx para el calculo completo.
     const { container } = renderWithProviders(<Logo />);
     const svg = container.querySelector("svg");
-    expect(svg).toHaveAttribute("viewBox", "0 0 500 550");
+    expect(svg).toHaveAttribute("viewBox", "0 7.5 500 550");
   });
 
   it("sin title: es decorativo, aria-hidden y sin role", () => {

@@ -74,20 +74,28 @@ export const heroGradient = css`
   background-size: 260% 100%;
 `;
 
-const ScGradientTail = styled.span`
+/*
+ * Bloque de "texto con el degradado animado", compartido con el CTA
+ * secundario del Hero (ver ScCtaSecondaryLabel en Hero.tsx) por el mismo
+ * motivo que heroGradient ya se comparte: una sola definicion de la mecanica
+ * de recorte, para que el titulo y el CTA secundario recorran exactamente el
+ * mismo color en el mismo instante y con las mismas tres redes de seguridad,
+ * en vez de dos declaraciones que podrian divergir con el tiempo.
+ *
+ * OBLIGATORIO, no cosmetico, el `text-shadow: none`: cualquier consumidor que
+ * herede una sombra de texto (ScCopy del Hero hereda una negra de 0 0 18px
+ * para proteger la copia sobre la corona del ojo) la pinta POR ENCIMA del
+ * fondo del elemento, y con background-clip: text el degradado ES el fondo:
+ * con el texto relleno en transparente, lo que se ve a traves de los glifos
+ * es la sombra tapando el degradado. Medido en el render real: sin esto el
+ * tramo ToInfinite salia NEGRO.
+ */
+export const gradientTextClip = css`
   ${heroGradient}
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  /* OBLIGATORIO, no cosmetico. ScCopy del Hero hereda una sombra de texto
-     negra (0 1px 2px y 0 0 18px) que protege la copia sobre la corona del
-     ojo. La sombra de un texto se pinta POR ENCIMA del fondo del elemento, y
-     con background-clip: text el degradado ES el fondo: con el texto relleno
-     en transparente, lo que se veia a traves de los glifos era la sombra
-     negra tapando el degradado. Medido en el render real: el tramo
-     ToInfinite salia NEGRO. Aqui la sombra sobra -- el titular ocupa la
-     pupila, que ya es el pozo mas oscuro de la composicion. */
   text-shadow: none;
 
   @media (prefers-reduced-motion: no-preference) {
@@ -108,6 +116,10 @@ const ScGradientTail = styled.span`
     color: ${({ theme }) => theme.data.semantic.brandText};
     -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
   }
+`;
+
+const ScGradientTail = styled.span`
+  ${gradientTextClip}
 `;
 
 interface BrandNameProps {

@@ -7,6 +7,7 @@ import { EYE_CENTER, EYE_SURFACE } from "@/components/eye/eye.layers";
 import {
   BrandName,
   gradientShift,
+  gradientTextClip,
   heroGradient,
 } from "@/components/layout/Brand/BrandName";
 import { Button } from "@/components/ui/Button/Button";
@@ -352,6 +353,29 @@ const ScCtaPrimary = styled(Button)`
   @media (prefers-reduced-motion: no-preference) {
     ${heroGradient}
     animation: ${gradientShift} 9000ms linear infinite alternate;
+
+    /*
+     * FIX (medido en render real): sin esto, al pasar el cursor el
+     * degradado desaparecia y el boton volvia a su relleno solid. Causa: la
+     * variante solid de Button.tsx (ScButton.tsx, bloque
+     * $variant==="solid") declara en su propio :hover
+     * background: color-mix(...) -- la propiedad ABREVIADA background, no
+     * el longhand background-color. Una abreviatura resetea TODAS sus
+     * sub-propiedades a su valor inicial salvo la que se especifica
+     * explicitamente, asi que ese hover ponia background-image EN NONE,
+     * matando el degradado sin que ninguna otra regla lo tocara.
+     *
+     * Se reafirma aqui con el MISMO selector que usa Button.tsx para ese
+     * hover (:hover:not(:disabled)): misma especificidad exacta, asi que
+     * gana por orden de insercion -- styled(Button) inyecta su clase
+     * DESPUES de ScButton (mismo patron ya medido y documentado para
+     * styled(Typography) en Hero.tsx/BrandName.tsx). Verificado en el
+     * navegador real: el bloque de Button aparece antes en la hoja de
+     * estilos que el de este componente.
+     */
+    &:hover:not(:disabled) {
+      ${heroGradient}
+    }
   }
   /* Bajo reduced-motion no se aplica ninguna capa nueva: el boton conserva
      su fondo solid por defecto (semantic.brandSolid), ya auditado AA por
@@ -398,6 +422,29 @@ const ScCtaSecondary = styled(Button)`
       background-color: ${({ theme }) => theme.data.semantic.brandText};
     }
   }
+`;
+
+/*
+ * Texto del CTA secundario, con el MISMO degradado animado que su borde
+ * (gradientTextClip, extraido de BrandName.tsx -- misma mecanica de recorte
+ * que ToInfinite en el titulo). Antes el texto era un color solid propio
+ * (semantic.brandSolid, heredado del `color` que fija la variante ghost de
+ * Button.tsx) mientras el borde recorria un degradado de tres colores: dos
+ * tratamientos distintos en el mismo boton.
+ *
+ * Al ser un <span> propio con su PROPIA declaracion de `color`/
+ * `-webkit-text-fill-color`, no compite por especificidad contra el `color`
+ * que Button.tsx fija en ScButton: una declaracion directa sobre el propio
+ * elemento gana siempre a un valor heredado del padre, sin importar
+ * especificidad. Por el mismo motivo "mantiene color y animacion" en hover
+ * sin ningun guard adicional: el :hover de la variante ghost de Button.tsx
+ * (ScButton.tsx) solo toca el `background` del boton, nunca un descendiente,
+ * asi que no hay nada que reafirmar aqui -- a diferencia del fondo del CTA
+ * primario (ver el comentario en ScCtaPrimary), este caso no tiene conflicto
+ * de cascada que resolver.
+ */
+const ScCtaSecondaryLabel = styled.span`
+  ${gradientTextClip}
 `;
 
 export function Hero(): ReactElement {
@@ -462,7 +509,7 @@ export function Hero(): ReactElement {
               variant="ghost"
               size="lg"
             >
-              {t("Home.cta.story")}
+              <ScCtaSecondaryLabel>{t("Home.cta.story")}</ScCtaSecondaryLabel>
             </ScCtaSecondary>
           </ScActions>
         </ScCopy>

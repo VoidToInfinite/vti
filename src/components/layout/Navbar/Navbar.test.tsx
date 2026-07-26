@@ -96,7 +96,7 @@ describe("Navbar", () => {
     // Sol.test.tsx ("dibuja el atomo Logo compartido...") y en Wormhole.test.tsx.
     const { container } = renderWithProviders(<Navbar />);
     const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
-    const logo = brandLink.querySelector('svg[viewBox="0 0 500 550"]');
+    const logo = brandLink.querySelector('svg[viewBox="0 7.5 500 550"]');
 
     expect(logo).toBeInTheDocument();
     expect(logo).toHaveAttribute("aria-hidden", "true");
