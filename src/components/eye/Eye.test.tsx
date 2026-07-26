@@ -160,27 +160,25 @@ describe("Eye", () => {
     expect(transformOf("mascot")).toBe(transformOf("pupil"));
   });
 
-  it("en tema claro el centro del ojo lo ocupa Sol", () => {
-    // ThemeProvider arranca en claro y no hay nada guardado en localStorage.
-    const { container } = renderWithProviders(<Eye />);
-    const slot = container.querySelector('[data-part="mascot"]');
-    expect(slot?.querySelector('[data-face="sol"]')).toBeInTheDocument();
-    expect(slot?.querySelector('[data-part="ring1"]')).not.toBeInTheDocument();
-  });
-
-  it("en tema oscuro el centro del ojo lo ocupa el Wormhole, que ademas se queda con el pulso", () => {
-    window.localStorage.setItem("vti-theme", "dark");
+  it("el centro del ojo lo ocupa siempre el Wormhole, sin importar el tema", () => {
+    // localStorage en "light" es la prueba de que la eleccion YA NO depende
+    // del tema: si `Eye` volviera a ramificar por `themeName`, este test lo
+    // detectaria de inmediato.
+    window.localStorage.setItem("vti-theme", "light");
     const { container } = renderWithProviders(<Eye />);
     const slot = container.querySelector('[data-part="mascot"]');
 
     expect(slot?.querySelector('[data-part="ring1"]')).toBeInTheDocument();
     expect(slot?.querySelector('[data-face="sol"]')).not.toBeInTheDocument();
-    // El Wormhole trae sus dos ondas de choque: montar ademas el anillo simple
-    // del ojo daria tres ondas para el mismo click.
+  });
+
+  it("no monta el anillo de choque simple: la coreografia del pulso es del Wormhole", () => {
+    // El Wormhole trae sus dos ondas de choque propias: montar ademas el
+    // anillo simple del ojo daria tres ondas para el mismo click.
+    const { container } = renderWithProviders(<Eye />);
     expect(
       container.querySelector('[data-part="shock"]'),
     ).not.toBeInTheDocument();
-    expect(slot?.querySelector('[data-part="shock2"]')).toBeInTheDocument();
   });
 
   it("con reduced-motion el pointerdown no marca el pulso (no habria animacion que lo apagara)", () => {
@@ -195,14 +193,19 @@ describe("Eye", () => {
   it("un pointerdown sobre el ojo marca el pulso, y el fin de su animacion lo limpia para que pueda repetirse", () => {
     const { container } = renderWithProviders(<Eye />);
     const socket = container.firstElementChild as HTMLElement;
-    const shock = container.querySelector('[data-part="shock"]') as HTMLElement;
+    // La ultima onda del Wormhole (`shock2`) es la que lleva el handler de
+    // fin de pulso (ver comentario en `Wormhole.tsx`): con `ScShock` fuera
+    // de `Eye`, es el unico elemento que cierra el ciclo.
+    const shock2 = container.querySelector(
+      '[data-part="shock2"]',
+    ) as HTMLElement;
 
     expect(socket).not.toHaveAttribute("data-pulsing");
 
     fireEvent.pointerDown(socket);
     expect(socket).toHaveAttribute("data-pulsing", "true");
 
-    fireEvent.animationEnd(shock);
+    fireEvent.animationEnd(shock2);
     expect(socket).not.toHaveAttribute("data-pulsing");
 
     // Se puede repetir: un segundo click vuelve a marcar el pulso.
