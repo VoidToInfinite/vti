@@ -89,6 +89,22 @@ describe("Navbar", () => {
     expect(brandLink).toHaveAttribute("href", "/");
   });
 
+  it("el enlace de marca incluye el atomo Logo compartido (A1)", () => {
+    // Regresion: sin esta aserción, quitar <Logo size="1.5rem" /> de
+    // ScBrandLink en Navbar.tsx no lo detecta ningun test (el de arriba solo
+    // mira nombre accesible y href). Mismo patron ya usado en
+    // Sol.test.tsx ("dibuja el atomo Logo compartido...") y en Wormhole.test.tsx.
+    const { container } = renderWithProviders(<Navbar />);
+    const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
+    const logo = brandLink.querySelector('svg[viewBox="0 0 500 550"]');
+
+    expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute("aria-hidden", "true");
+    // El h1 del hero es el unico titular de la pagina; Navbar no debe aportar
+    // ninguno.
+    expect(container.querySelectorAll("h1")).toHaveLength(0);
+  });
+
   it("renderiza el selector de idioma", () => {
     renderWithProviders(<Navbar />);
     // El selector de idioma se expone como botones de idioma individual

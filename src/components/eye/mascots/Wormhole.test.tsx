@@ -9,7 +9,7 @@ describe("Wormhole", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
-  it("monta las ocho piezas de la construccion", () => {
+  it("monta las nueve piezas de la construccion", () => {
     const { container } = renderWithProviders(<Wormhole pulsing={false} />);
     const parts = [...container.querySelectorAll("[data-part]")].map((el) =>
       el.getAttribute("data-part"),
@@ -21,9 +21,30 @@ describe("Wormhole", () => {
       "ring3",
       "ring4",
       "core",
+      "mark",
       "shock1",
       "shock2",
     ]);
+  });
+
+  it("la marca del logo vive dentro, entre el nucleo y la primera onda de choque", () => {
+    // La reaccion al pulso del logo depende del MISMO data-pulse que ya
+    // gobierna swirl/ring1-4/core (selector descendiente [data-pulse="true"]
+    // &): con pulsing=true el nodo existe y la raiz lleva el atributo; con
+    // pulsing=false el nodo existe igual, sin el atributo de pulso activo.
+    // jsdom no computa keyframes, asi que se testea el contrato de
+    // atributos, no la animacion en si (mismo patron que el resto del
+    // archivo).
+    const { container, rerender } = renderWithProviders(
+      <Wormhole pulsing={false} />,
+    );
+    const root = container.firstElementChild;
+    expect(container.querySelector('[data-part="mark"]')).toBeInTheDocument();
+    expect(root).toHaveAttribute("data-pulse", "false");
+
+    rerender(<Wormhole pulsing={true} />);
+    expect(container.querySelector('[data-part="mark"]')).toBeInTheDocument();
+    expect(root).toHaveAttribute("data-pulse", "true");
   });
 
   it("expone el estado del pulso en la raiz, que es donde lo lee el CSS", () => {

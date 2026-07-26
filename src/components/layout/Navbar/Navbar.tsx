@@ -7,6 +7,7 @@ import { BrandName } from "@/components/layout/Brand/BrandName";
 import { EyeCornerMark } from "@/components/eye/EyeCornerMark";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
+import { Logo } from "@/components/ui/Logo/Logo";
 import { useScrolled } from "@/hooks/useScrolled";
 import { useTheme } from "@/theme/ThemeProvider";
 import { basicDarkTheme, themes } from "@/theme/themes";
@@ -114,6 +115,7 @@ export function Navbar(): ReactElement {
         <ScNav>
           <ScBrandLink href="/">
             <EyeCornerMark visible={scrolled} />
+            <Logo size="1.5rem" />
             <BrandName />
           </ScBrandLink>
           <ScActions>

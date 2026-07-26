@@ -1,6 +1,7 @@
 "use client";
 import type { ReactElement, ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
+import { Logo } from "@/components/ui/Logo/Logo";
 import {
   SOL_AURA_SPARKS,
   SOL_BASIC_SPARKS,
@@ -25,10 +26,11 @@ import { useSolTiltSpin } from "./useSolTiltSpin";
  *
  * - Se descarta el `root` de origen (posicion fija + docking por scroll): aqui
  *   la mascota se coloca en la pupila y el contenedor lo pone `Eye`.
- * - El logo del iris ya no viene del atomo `Logo` del sdk: se dibuja aqui con
- *   la marca de ESTE repo (`public/brand/logo.svg`), en linea para poder
- *   pintarla con `currentColor` sin una peticion de red por una figura de
- *   ~25px.
+ * - El logo del iris ya no viene del atomo `Logo` del sdk: viene del atomo
+ *   `Logo` de ESTE repo (`src/components/ui/Logo/Logo.tsx`), fuente unica
+ *   compartida con Navbar y Wormhole para la misma figura que tambien vive
+ *   como asset en `public/brand/logo.svg`. En linea, `currentColor`, sin
+ *   peticion de red por una figura de ~25px.
  * - Las dos caras siguen montadas siempre y se cruzan por opacidad, como en el
  *   origen: remontarlas produciria un parpadeo en vez de un morph.
  */
@@ -509,45 +511,18 @@ const ScPupil = styled.div`
   }
 `;
 
-/* La marca reflejada dentro del iris. Es la misma figura de
-   `public/brand/logo.svg`, en linea y con `currentColor`. */
-const ScPupilMark = styled.svg`
+/* La marca reflejada dentro del iris. Mismo atomo `Logo` compartido con
+   Navbar y Wormhole (ver comentario de cabecera): solo se posiciona y se
+   colorea, la figura no se redibuja aqui. Sin `title`, sigue siendo
+   puramente `aria-hidden` (lo comprueba el test "es decoracion"). */
+const ScPupilMark = styled(Logo)`
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 50%;
-  height: auto;
   transform: translate(-50%, -50%);
   pointer-events: none;
   color: ${WHITE};
-  fill: currentColor;
-  stroke: currentColor;
 `;
-
-function PupilMark(): ReactElement {
-  return (
-    <ScPupilMark
-      viewBox="0 0 500 550"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <circle
-        cx="250"
-        cy="75"
-        r="50"
-        strokeWidth="2"
-      />
-      <polyline
-        strokeWidth="2"
-        points="10,75 250,540 490,75 440,75 250,460 60,75 10,75 250,540"
-      />
-      <polyline
-        strokeWidth="2"
-        points="110,140 145,210 210,210 250,400 290,210 355,210 390,140 110,140 130,180"
-      />
-    </ScPupilMark>
-  );
-}
 
 const CLINE_BY_GROUP: Record<SolClineGroup, typeof ScClinePrimary> = {
   primary: ScClinePrimary,
@@ -633,7 +608,7 @@ function SolCompassFace(): ReactElement {
               })}
             </ScCompass>
             <ScPupil>
-              <PupilMark />
+              <ScPupilMark size="50%" />
             </ScPupil>
           </>
         }
