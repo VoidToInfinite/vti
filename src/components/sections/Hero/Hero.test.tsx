@@ -44,8 +44,17 @@ function precede(a: Element, b: Element): boolean {
 
 describe("Hero", () => {
   it("muestra la marca VoidToInfinite", () => {
+    // getByText(/VoidToInfinite/i) dejo de encontrar el nodo cuando BrandName
+    // se partio en dos <span> ("Void"/"ToInfinite", ver BrandName.tsx): el
+    // matcher por defecto de Testing Library solo concatena los nodos de
+    // texto DIRECTOS de un elemento (no recorre descendientes), asi que ni
+    // el <h1> (sin texto directo, solo dos <span> hijos) ni ningun <span>
+    // individual (cada uno con solo media palabra) igualaban el regex
+    // completo. toHaveTextContent SI usa el textContent recursivo -- mismo
+    // patron que ya usa el test de mas abajo ("mantiene UN solo
+    // encabezado...") para el mismo <h1>.
     renderWithProviders(<Hero />);
-    expect(screen.getByText(/VoidToInfinite/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading")).toHaveTextContent(/VoidToInfinite/i);
   });
 
   it("expone el CTA primario hacia el playground (north-star)", () => {
@@ -139,8 +148,12 @@ describe("Hero", () => {
     const sub = getComputedStyle(testId(container, "hero-subtitle"));
     const apoyo = getComputedStyle(testId(container, "hero-support"));
 
-    // Cada uno computa SU tier de la escala, no el del otro.
-    expect(sub.fontSize).toBe(typeTokens.scale.h3.size);
+    // Cada uno computa SU tier de la escala, no el del otro. El subtitulo ya
+    // no consume typeTokens.scale.h3.size: ScSubtitle sobrescribe font-size
+    // con el clamp(15px, 2vw, 22px) literal del usuario (ver excepcion
+    // documentada en Hero.tsx), pero SIGUE computando el peso de h3 --
+    // font-weight no se toco.
+    expect(sub.fontSize).toBe("clamp(15px, 2vw, 22px)");
     expect(sub.fontWeight).toBe(String(typeTokens.scale.h3.weight));
     expect(apoyo.fontSize).toBe(typeTokens.scale.body.size);
     expect(apoyo.fontWeight).toBe(String(typeTokens.scale.body.weight));

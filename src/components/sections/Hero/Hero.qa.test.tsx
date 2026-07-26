@@ -4,7 +4,9 @@ import { renderWithProviders, screen } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import enHome from "@/i18n/locales/en/home.json";
 import { EYE_SURFACE } from "@/components/eye/eye.layers";
+import { Button } from "@/components/ui/Button/Button";
 import { contrastRatio } from "@/theme/tokens/contrast";
+import { color } from "@/theme/tokens/color";
 import { semanticDark } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
 import { type as typeTokens } from "@/theme/tokens/type";
@@ -89,18 +91,41 @@ describe("Hero (lente funcional)", () => {
     );
   });
 
-  it("el contenedor del titulo consume el token display, no un literal", () => {
+  it("el contenedor del titulo usa el clamp literal del usuario, no el token display", () => {
+    // REESCRITO (Flujo 3): ScHeroBrand paso de
+    // min(theme.data.type.scale.display.size, 10vw) a un clamp(34px, 8vw,
+    // 258px) literal explicito del usuario -- se documenta como excepcion en
+    // el propio Hero.tsx, no se corrige a la escala. La asercion de
+    // line-height SIGUE leyendo el token (B2 no la toca).
     const { container } = renderWithProviders(<Hero />);
     const titulo = container.querySelector(
       '[data-testid="hero-title"]',
     ) as HTMLElement;
 
-    expect(sinEspacios(getComputedStyle(titulo).fontSize)).toContain(
-      sinEspacios(typeTokens.scale.display.size),
+    expect(sinEspacios(getComputedStyle(titulo).fontSize)).toBe(
+      sinEspacios("clamp(34px, 8vw, 258px)"),
     );
     expect(getComputedStyle(titulo).lineHeight).toBe(
       String(typeTokens.scale.display.lineHeight),
     );
+  });
+
+  it("el subtitulo usa el clamp literal del usuario, no el token h3", () => {
+    const { container } = renderWithProviders(<Hero />);
+    const subtitulo = container.querySelector(
+      '[data-testid="hero-subtitle"]',
+    ) as HTMLElement;
+
+    expect(sinEspacios(getComputedStyle(subtitulo).fontSize)).toBe(
+      sinEspacios("clamp(15px, 2vw, 22px)"),
+    );
+  });
+
+  it("el titulo del hero sigue siendo un unico <h1> con el texto exacto 'VoidToInfinite'", () => {
+    const { container } = renderWithProviders(<Hero />);
+    const encabezados = container.querySelectorAll("h1");
+    expect(encabezados).toHaveLength(1);
+    expect(encabezados[0].textContent).toBe("VoidToInfinite");
   });
 
   it("el kicker computa el color de marca del tema oscuro", () => {
@@ -190,5 +215,79 @@ describe("Hero (lente funcional)", () => {
 
     expect(css).not.toContain("transition");
     expect(css).not.toContain("animation");
+  });
+
+  describe("CTAs animados del hero (Flujo 3)", () => {
+    /*
+     * heroGradient (BrandName.tsx, reutilizado por ScCtaPrimary/
+     * ScCtaSecondary) tiene 4 paradas: semantic.text (L .985), brandText
+     * (primary[300], L .86), palette.secondary[300] (L .86) y semantic.text
+     * de nuevo. Las dos paradas NO blancas (brandText y secondary[300]) son
+     * el "punto mas oscuro" del recorrido -- se mide el contraste contra
+     * esas dos, no solo contra el extremo claro.
+     */
+    it("el label del CTA primario (onBrand) pasa AA contra las dos paradas mas oscuras del degradado", () => {
+      expect(
+        contrastRatio(semanticDark.onBrand, semanticDark.brandText),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(semanticDark.onBrand, color.secondary[300]),
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it("el borde animado del CTA secundario pasa el umbral no textual (3:1, WCAG 1.4.11) contra el lienzo", () => {
+      expect(
+        contrastRatio(semanticDark.brandText, EYE_SURFACE),
+      ).toBeGreaterThanOrEqual(3);
+      expect(
+        contrastRatio(color.secondary[300], EYE_SURFACE),
+      ).toBeGreaterThanOrEqual(3);
+    });
+
+    it("el label del CTA secundario ghost (brandSolid sobre el lienzo) pasa AA", () => {
+      // El texto del CTA secundario NO esta sobre el degradado (solo el
+      // borde lo esta): en variant="ghost" el color del label es el accent
+      // (brandSolid para intent="primary", el default de Button), y el
+      // fondo real detras es el lienzo del ojo.
+      expect(
+        contrastRatio(semanticDark.brandSolid, EYE_SURFACE),
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it("renderiza los dos CTA como enlaces (forwardedAs preserva la logica de Button, a diferencia de as)", () => {
+      renderWithProviders(<Hero />);
+      const acciones = screen.getByTestId("hero-actions");
+      const enlaces = acciones.querySelectorAll("a");
+      expect(enlaces).toHaveLength(2);
+      enlaces.forEach((enlace) => {
+        // Si `as` hubiera sustituido a `forwardedAs`, Button entero se
+        // descartaria y el <a> no llevaria ninguna clase de ScButton (ver
+        // Button.tsx): solo tendria la clase del wrapper del hero. Con
+        // forwardedAs, Button sigue envolviendo el label en su propio
+        // ScLabel.
+        expect(enlace.querySelector("span")).not.toBeNull();
+      });
+    });
+
+    it.each(["solid", "soft", "outline", "ghost"] as const)(
+      "un Button base fuera del hero en variant='%s' no hereda el degradado ni la mascara de los CTA del hero",
+      (variant) => {
+        const { container } = renderWithProviders(
+          <Button
+            variant={variant}
+            intent="primary"
+          >
+            Boton de control
+          </Button>,
+        );
+        const boton = container.querySelector("button") as HTMLElement;
+        const css = reglasDe(boton).join("\n");
+
+        expect(css).not.toContain("mask-composite");
+        expect(getComputedStyle(boton).backgroundImage).not.toContain(
+          "linear-gradient(100deg",
+        );
+      },
+    );
   });
 });

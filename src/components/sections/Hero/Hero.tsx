@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next";
 import styled, { ThemeProvider } from "styled-components";
 import { Eye } from "@/components/eye/Eye";
 import { EYE_CENTER, EYE_SURFACE } from "@/components/eye/eye.layers";
-import { BrandName } from "@/components/layout/Brand/BrandName";
+import {
+  BrandName,
+  gradientShift,
+  heroGradient,
+} from "@/components/layout/Brand/BrandName";
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { links } from "@/config/links";
@@ -197,15 +201,18 @@ const ScActions = styled.div`
 /* El titular de portada usa la unica variante de la escala pensada para el
    hero (theme.data.type.scale.display): BrandName renderiza a font-size: 1em,
    asi que sin este contenedor el <h1> hereda el 1em del body (GlobalStyles
-   resetea h1..h6 a font-size: 1em) y queda mas pequeno que el subtitulo. */
+   resetea h1..h6 a font-size: 1em) y queda mas pequeno que el subtitulo.
+
+   EXCEPCION: font-size es un valor LITERAL pedido por el usuario --
+   clamp(34px, 8vw, 258px) -- que sustituye a
+   min(theme.data.type.scale.display.size, 10vw). Es una decision explicita
+   que se salta la escala tipografica (theme.data.type.scale.display) a
+   proposito: NO se corrige a un token, se documenta como excepcion. El suelo
+   de 34px (mayor que 8vw por debajo de ~425px CSS) sigue evitando que
+   "VoidToInfinite" -- 14 caracteres inseparables, hyphens: manual mas abajo
+   -- se corte contra el overflow hidden del hero a anchos pequenos. */
 const ScHeroBrand = styled.div`
-  /* min() es un tope de reflow, no un tamano de diseno: VoidToInfinite son 14
-     caracteres inseparables. A 320px CSS quedan 272px utiles (padding space[5]
-     a cada lado) y con el minimo del clamp -- 40px, avance medio estimado
-     0.55em por glifo -- la palabra ocuparia unos 308px: se cortaria contra el
-     overflow hidden del hero, que es un fallo de WCAG 1.4.10. El tope solo
-     actua por debajo de 400px de ancho; por encima manda el token. */
-  font-size: min(${({ theme }) => theme.data.type.scale.display.size}, 10vw);
+  font-size: clamp(34px, 8vw, 258px);
   /* line-height tambien hay que fijarlo: GlobalStyles pone 1.4em en el body,
      que se hereda como LONGITUD ya resuelta (22.4px), no como factor. Sin
      esto la caja del h1 mide 22px con glifos de 56px, el titular se desborda
@@ -238,8 +245,16 @@ const ScKicker = styled(Typography)`
    escala tipografica de Typography (medido: clase base ausente, font-size
    vacio, color canvastext). `forwardedAs` se pasa hacia abajo como `as` del
    componente envuelto, que es lo que anula el h3 por defecto sin perder el
-   estilado. */
+   estilado.
+
+   EXCEPCION: font-size es un valor LITERAL pedido por el usuario --
+   clamp(15px, 2vw, 22px) -- que sustituye al 1.5rem/24px de
+   theme.data.type.scale.h3 que aporta variant="h3". Se documenta como
+   excepcion, no se corrige a la escala. Gana la cascada por el mismo motivo
+   que el color de ScKicker: la clase de ScSubtitle se inyecta despues de la
+   de ScTypography. */
 const ScSubtitle = styled(Typography)`
+  font-size: clamp(15px, 2vw, 22px);
   margin-block-start: ${({ theme }) => theme.data.space[5]};
   max-width: ${({ theme }) => theme.data.grid.proseTight};
 `;
@@ -252,6 +267,74 @@ const ScSupport = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   max-width: ${({ theme }) => theme.data.grid.prose};
   text-wrap: pretty;
+`;
+
+/*
+ * CTA primario: MISMO degradado y animacion que ScGradientTail
+ * (BrandName.tsx) -- ver alli la excepcion completa al lenguaje de
+ * movimiento del sistema (background-position no es una propiedad de
+ * compositor, guard no-preference, y por que el colapso de GlobalStyles
+ * bajo reduced-motion es un flash de un punto no determinista del
+ * degradado, no "gira para siempre"). heroGradient/gradientShift se
+ * IMPORTAN de BrandName.tsx en vez de redeclararse aqui: titulo y CTA
+ * recorren exactamente el mismo color en el mismo instante, no tres
+ * declaraciones que podrian divergir con el tiempo.
+ *
+ * Aditivo sobre Button: ScButton.tsx no se toca, esto es un envoltorio
+ * styled(Button) que anade una capa de fondo por encima -- las 4 variantes x
+ * 3 tamanos de Button en cualquier otro punto del sitio siguen exactamente
+ * igual porque la clase solo se aplica aqui, via composicion explicita,
+ * nunca por defecto.
+ */
+const ScCtaPrimary = styled(Button)`
+  @media (prefers-reduced-motion: no-preference) {
+    ${heroGradient}
+    animation: ${gradientShift} 9000ms linear infinite alternate;
+  }
+  /* Bajo reduced-motion no se aplica ninguna capa nueva: el boton conserva
+     su fondo solid por defecto (semantic.brandSolid), ya auditado AA por
+     contrast.test.ts ("onBrand sobre brandSolid >= 4.5:1"). Cero token
+     nuevo para este caso. */
+`;
+
+/*
+ * CTA secundario: mismo heroGradient/gradientShift, aplicados como borde
+ * animado en vez de fondo. El truco de mascara (dos capas + composite) deja
+ * visible solo el anillo de `padding` px: `content-box` en la primera capa
+ * excluye el interior, y `mask-composite`/`-webkit-mask-composite` restan
+ * esa capa de la segunda (que cubre toda la caja), dejando solo el borde.
+ * Se declaran las dos formas (con y sin prefijo) porque el soporte de
+ * `mask-composite` sin prefijo y de `-webkit-mask-composite` (con el valor
+ * legado "xor") difiere entre motores -- ver docs/qa-3d-pendiente.md, no
+ * verificable en este entorno sin navegador real.
+ */
+const ScCtaSecondary = styled(Button)`
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+
+    @media (prefers-reduced-motion: no-preference) {
+      ${heroGradient}
+      animation: ${gradientShift} 9000ms linear infinite alternate;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      background-color: ${({ theme }) => theme.data.semantic.brandText};
+    }
+  }
 `;
 
 export function Hero(): ReactElement {
@@ -274,7 +357,10 @@ export function Hero(): ReactElement {
             {t("Home.hero.kicker")}
           </ScKicker>
           <ScHeroBrand data-testid="hero-title">
-            <BrandName as="h1" />
+            <BrandName
+              as="h1"
+              gradientTail
+            />
           </ScHeroBrand>
           <ScSubtitle
             variant="h3"
@@ -290,21 +376,31 @@ export function Hero(): ReactElement {
             {t("Home.hero.support")}
           </ScSupport>
           <ScActions data-testid="hero-actions">
-            <Button
-              as="a"
+            {/* forwardedAs="a", NO as="a": ScCtaPrimary/ScCtaSecondary
+                envuelven Button con styled(), y Button ya intercepta su
+                propio prop `as` internamente (ver Button.tsx) -- el mismo
+                gotcha ya documentado arriba para ScSubtitle/Typography.
+                Medido en este repo: con `as="a"` styled-components renderiza
+                un <a> PELADO con solo la clase del wrapper y descarta Button
+                entero (sizeStyles, variantes, ScLabel, spinner); con
+                `forwardedAs="a"` Button recibe el as por su propio prop y
+                sigue resolviendo su <ScButton as="a">, conservando toda su
+                logica -- el wrapper solo anade su clase por encima. */}
+            <ScCtaPrimary
+              forwardedAs="a"
               href={links.playground}
               size="lg"
             >
               {t("Home.cta.explore")}
-            </Button>
-            <Button
-              as="a"
+            </ScCtaPrimary>
+            <ScCtaSecondary
+              forwardedAs="a"
               href="#story"
               variant="ghost"
               size="lg"
             >
               {t("Home.cta.story")}
-            </Button>
+            </ScCtaSecondary>
           </ScActions>
         </ScCopy>
       </ScHero>
