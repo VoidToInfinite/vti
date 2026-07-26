@@ -1,45 +1,22 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
+import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { useTheme } from "@/theme/ThemeProvider";
+import { IconMoon, IconSun } from "./ThemeIcons";
 
-const ScThemeToggle = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* Área táctil mínima AA (44px), literal como en Button md/Input: no hay
-     casilla de la escala de space para este tamaño mínimo, mismo precedente
-     ya usado en el sistema. Cabe en Navbar (3.5rem=56px de alto). */
-  height: 44px;
-  width: 44px;
-  border-radius: ${({ theme }) => theme.data.radius.full};
-  font-size: 1rem;
-  line-height: 1;
-  background-color: ${({ theme }) => theme.data.semantic.surfaceSunken};
-  cursor: pointer;
-  transition: transform ${({ theme }) => theme.data.motion.duration.base}
-    ${({ theme }) => theme.data.motion.easing.standard};
-
-  /* Hover-lift: misma primitiva que Button/Socials (translateY(-2px)), no
-     el scale(1.05) inventado que traía antes — un solo lenguaje de
-     movimiento para todo hover del sistema. */
-  &:hover,
-  &:focus-visible {
-    transform: translateY(-2px);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-
-    &:hover,
-    &:focus-visible {
-      transform: none;
-    }
-  }
-`;
-
-export function ThemeToggle() {
+// Migrado a IconButton (área táctil 44px, hover-lift, prefers-reduced-motion
+// y disabled/aria-disabled se heredan de Button vía IconButton, no se
+// reescriben aquí — ver IconButton.tsx).
+//
+// CAMBIO DE CONVENCIÓN (2026-07-26): hasta hoy el icono mostraba el tema
+// DESTINO (luna estando en claro). A partir de ahora muestra el tema ACTIVO
+// (sol en claro, luna en oscuro) — lectura directa sin traducción mental,
+// icono = lo que ves ahora, no lo que vas a activar. El aria-label/title
+// siguen describiendo la ACCIÓN (mismas claves i18n
+// Common.ThemeToggle.switchToDark/switchToLight, sin cambio de texto).
+export function ThemeToggle(): ReactElement {
   const { t } = useTranslation("common");
   const { themeName, toggleTheme } = useTheme();
   const isLight = themeName === "light";
@@ -48,13 +25,11 @@ export function ThemeToggle() {
     : t("Common.ThemeToggle.switchToLight");
 
   return (
-    <ScThemeToggle
-      type="button"
+    <IconButton
+      icon={isLight ? <IconSun /> : <IconMoon />}
       onClick={toggleTheme}
       aria-label={label}
       title={label}
-    >
-      <span aria-hidden="true">{isLight ? "🌙" : "☀️"}</span>
-    </ScThemeToggle>
+    />
   );
 }
