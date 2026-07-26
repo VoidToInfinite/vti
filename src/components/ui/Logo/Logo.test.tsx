@@ -24,15 +24,25 @@ describe("Logo", () => {
     expect(img).not.toHaveAttribute("aria-hidden");
   });
 
-  it("la prop size se refleja en el atributo width del svg", () => {
+  /*
+   * Estos dos casos aseveran sobre el ancho COMPUTADO, no sobre el atributo
+   * `width` del svg. El atributo no sirve como contrato: GlobalStyles declara
+   * `svg { width: 100% }` para todo el sitio, y una declaracion CSS gana
+   * siempre a un atributo de presentacion. Con el tamano solo en el atributo,
+   * los tests pasaban en verde mientras el logo se renderizaba al 100% de su
+   * contenedor -- medido en navegador: 167px de ancho dentro de un navbar de
+   * 56px de alto. La aseveracion sobre CSS es la que reproduce el fallo.
+   */
+  it("la prop size fija el ancho CSS del svg", () => {
     const { container } = renderWithProviders(<Logo size="1.5rem" />);
-    const svg = container.querySelector("svg");
-    expect(svg).toHaveAttribute("width", "1.5rem");
+    const svg = container.querySelector("svg") as SVGSVGElement;
+    expect(getComputedStyle(svg).width).toBe("1.5rem");
   });
 
-  it("por defecto size es 1em", () => {
+  it("por defecto size es 1em, y el alto siempre se deriva del viewBox", () => {
     const { container } = renderWithProviders(<Logo />);
-    const svg = container.querySelector("svg");
-    expect(svg).toHaveAttribute("width", "1em");
+    const svg = container.querySelector("svg") as SVGSVGElement;
+    expect(getComputedStyle(svg).width).toBe("1em");
+    expect(getComputedStyle(svg).height).toBe("auto");
   });
 });

@@ -282,6 +282,13 @@ const ScLogoMark = styled(Logo)`
   position: absolute;
   top: 50%;
   left: 50%;
+  /* Diametro del TERCER anillo, que se dibuja con inset 21%: 100 - 2x21 = 58.
+     Se escribe derivado de ese 21 y no como un 58 suelto para que, si el
+     anillo se mueve, salte a la vista que las dos medidas van juntas. Sin
+     esta declaracion el logo heredaba el 100% del contenedor que impone
+     GlobalStyles a todo svg, y se comia la composicion entera. */
+  width: calc(100% - 2 * 21%);
+  height: auto;
   transform: translate(-50%, -50%);
   color: ${oklch("0.985 0 0", 1)};
   filter: drop-shadow(0 0 6px ${oklch(CORE_START, 0.6)});

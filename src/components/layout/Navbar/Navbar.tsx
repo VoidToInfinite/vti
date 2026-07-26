@@ -115,7 +115,7 @@ export function Navbar(): ReactElement {
         <ScNav>
           <ScBrandLink href="/">
             <EyeCornerMark visible={scrolled} />
-            <Logo size="1.5rem" />
+            <Logo size="1rem" />
             <BrandName />
           </ScBrandLink>
           <ScActions>

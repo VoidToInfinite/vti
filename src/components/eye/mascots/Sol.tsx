@@ -519,6 +519,11 @@ const ScPupilMark = styled(Logo)`
   position: absolute;
   top: 50%;
   left: 50%;
+  /* La mitad del iris, que es la medida que tenia esta marca antes de
+     extraerse al atomo Logo. Sin declararla, heredaba el 100% que
+     GlobalStyles impone a todo svg y desbordaba la pupila. */
+  width: 50%;
+  height: auto;
   transform: translate(-50%, -50%);
   pointer-events: none;
   color: ${WHITE};

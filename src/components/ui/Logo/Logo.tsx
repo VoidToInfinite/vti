@@ -16,9 +16,23 @@ export interface LogoProps extends Omit<
   title?: string;
 }
 
-const ScLogo = styled.svg`
+/*
+ * El tamano se declara en CSS, no solo como atributo `width` del SVG. Es
+ * obligatorio, no una preferencia de estilo: GlobalStyles declara
+ * `svg { width: 100%; display: block; }` para todo el sitio, y una
+ * declaracion CSS gana SIEMPRE a un atributo de presentacion. Con el tamano
+ * solo en el atributo, los tres consumidores renderizaban el logo al 100% de
+ * su contenedor -- medido: 167px de ancho en un navbar de 56px de alto, que
+ * ademas aplastaba el nombre de marca hasta partirlo en tres lineas.
+ *
+ * Los consumidores que necesiten otra medida la declaran en su propio CSS
+ * (`styled(Logo)`), que se inyecta despues y gana por orden de cascada.
+ */
+const ScLogo = styled.svg<{ $size: string }>`
   display: block;
   flex: none;
+  width: ${({ $size }) => $size};
+  height: auto;
   fill: currentColor;
   stroke: currentColor;
 `;
@@ -32,8 +46,7 @@ export function Logo({
   return (
     <ScLogo
       viewBox="0 0 500 550"
-      width={size}
-      height="auto"
+      $size={size}
       role={decorative ? undefined : "img"}
       aria-hidden={decorative ? true : undefined}
       focusable={false}

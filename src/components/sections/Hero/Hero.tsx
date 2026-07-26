@@ -1,7 +1,7 @@
 "use client";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled, { ThemeProvider } from "styled-components";
+import styled, { css, keyframes, ThemeProvider } from "styled-components";
 import { Eye } from "@/components/eye/Eye";
 import { EYE_CENTER, EYE_SURFACE } from "@/components/eye/eye.layers";
 import {
@@ -41,10 +41,10 @@ const ScHero = styled.section`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: ${({ theme }) => theme.data.space[5]};
   padding: ${({ theme }) => theme.data.space[6]}
-    ${({ theme }) => theme.data.space[5]};
+    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[8]};
   overflow: hidden;
 `;
 
@@ -286,7 +286,69 @@ const ScSupport = styled(Typography)`
  * igual porque la clase solo se aplica aqui, via composicion explicita,
  * nunca por defecto.
  */
+/*
+ * Glow de hover de los dos CTA, con los MISMOS colores que recorre el
+ * degradado del titular. Vive en un ::after propio y no en el box-shadow del
+ * boton por dos motivos: el pseudo-elemento se puede animar por OPACIDAD
+ * (propiedad de compositor, la regla de movimiento de la casa) en vez de
+ * animar el box-shadow, que obliga a repintar; y al quedar fuera del flujo no
+ * empuja nada ni altera el area de click -- por eso lleva pointer-events:
+ * none.
+ *
+ * La respiracion solo corre MIENTRAS hay hover o foco: no es una animacion
+ * ambiental permanente, asi que no arrastra la deuda de "animacion infinita
+ * que nadie pausa al salir del viewport" que ya tienen el titular y el fondo
+ * de los CTA (anotada en docs/qa-3d-pendiente.md).
+ */
+const ctaGlowPulse = keyframes`
+  from { opacity: 0.65; }
+  to { opacity: 1; }
+`;
+
+const ctaGlow = css`
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    /* color-mix para dar alfa a un token sin duplicar su valor literal;
+       mismo recurso que ya usa Button en su variante soft. */
+    box-shadow:
+      0 0 18px
+        ${({ theme }) =>
+          `color-mix(in oklch, ${theme.data.semantic.brandText} 55%, transparent)`},
+      0 0 38px
+        ${({ theme }) =>
+          `color-mix(in oklch, ${theme.data.palette.secondary[300]} 40%, transparent)`};
+    transition: opacity ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard};
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    &:hover::after,
+    &:focus-visible::after {
+      animation: ${ctaGlowPulse} 1600ms
+        ${({ theme }) => theme.data.motion.easing.standard} infinite alternate;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+  }
+`;
+
 const ScCtaPrimary = styled(Button)`
+  ${ctaGlow}
+
   @media (prefers-reduced-motion: no-preference) {
     ${heroGradient}
     animation: ${gradientShift} 9000ms linear infinite alternate;
@@ -310,6 +372,7 @@ const ScCtaPrimary = styled(Button)`
  */
 const ScCtaSecondary = styled(Button)`
   position: relative;
+  ${ctaGlow}
 
   &::before {
     content: "";

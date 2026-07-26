@@ -80,6 +80,15 @@ const ScGradientTail = styled.span`
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
+  /* OBLIGATORIO, no cosmetico. ScCopy del Hero hereda una sombra de texto
+     negra (0 1px 2px y 0 0 18px) que protege la copia sobre la corona del
+     ojo. La sombra de un texto se pinta POR ENCIMA del fondo del elemento, y
+     con background-clip: text el degradado ES el fondo: con el texto relleno
+     en transparente, lo que se veia a traves de los glifos era la sombra
+     negra tapando el degradado. Medido en el render real: el tramo
+     ToInfinite salia NEGRO. Aqui la sombra sobra -- el titular ocupa la
+     pupila, que ya es el pozo mas oscuro de la composicion. */
+  text-shadow: none;
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${gradientShift} 9000ms linear infinite alternate;

@@ -12,8 +12,8 @@ import styled from "styled-components";
  */
 const ScMark = styled.span`
   display: inline-block;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1rem;
+  height: 1rem;
   flex: none;
   border-radius: ${({ theme }) => theme.data.radius.full};
   background: radial-gradient(
