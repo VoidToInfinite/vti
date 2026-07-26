@@ -210,3 +210,38 @@ A diferencia de la sección 11, **esto sí se verificó completo**: las cuatro c
 
 - [ ] **Tamaño del icono, ahora 1.5rem (antes 1rem).** _Correcto_ = el icono se lee como una marca reconocible junto al nombre, ni diminuto ni desproporcionado frente al texto de 1.15rem que lo acompaña. Si sigue leyéndose pequeño o ahora domina demasiado el conjunto, es un ajuste de un solo número en `Navbar.tsx` (`<Logo size="..." />`).
 - [ ] **`app/icon.svg` (el favicon real).** Apareció modificado en el árbol de trabajo con el mismo dibujo de la V — reemplazando un diseño anterior (cuadrado morado con dos círculos) — pero conserva el `viewBox` sin centrar (`"0 0 500 550"`) y un `fill="#fff"` fijo sin fondo opaco detrás. A esa escala (favicon de pestaña, 16-32px) el descentrado es poco perceptible, pero el blanco sin fondo **sí es un riesgo real**: en un navegador con la barra de pestañas en modo claro, el icono podría verse invisible. No se tocó porque está fuera del alcance de este arreglo (era del Navbar, no del favicon) y el archivo lo modificó el usuario, no este trabajo. _Si se confirma el problema_, la corrección es la misma familia que ya se aplicó al átomo `Logo`: centrar el `viewBox` y decidir un fondo opaco (o aceptar el blanco solo si el favicon va a servirse siempre sobre un `<link rel="icon">` con `media` que fuerce claridad/oscuridad, lo cual habría que revisar en `app/layout.tsx`).
+
+---
+
+## 13. Composición «Aura» del tema claro y transición entre temas (añadido el 2026-07-26)
+
+El hero pasa a tener **dos** composiciones de fondo: el ojo cósmico en oscuro y el arte pastel de manos y orbe en claro, con `Sol` en el sitio del orbe, y una transición escalonada entre las dos.
+
+### Lo que SÍ está verificado por medición en el navegador real
+
+No hace falta re-verificarlo; se lista para que quien haga la QA visual sepa qué queda fuera de su alcance.
+
+- **Geometría del encuadre:** a 1280×720 el marco del sujeto cae en x 19.17 %–119.11 %, top 0 %, bottom 100 %, y el orbe en **exactamente (69.28 %, 41.63 %)** del hero, que es el ancla de diseño. El campo cubre el hero, y el marco sangra por derecha, arriba y abajo.
+- **Escalonado:** retardos reales `0 / 0 / 0.11 / 0.22 / 0.33 / 0.44 s` en el orden campo → mano izquierda → mano derecha → energía → orbe, con `transition-property: opacity` y nada más. Al salir, en reverso (orbe 0 s, campo 0.44 s).
+- **Máquina del cruce:** `eye:active` → `+aura:pending` → `eye:leaving`+`aura:active` → solo `aura:active`. El velo de contraste desaparece **con** el stack del ojo, no en `t = 0`.
+- **Contraste de la copia** sobre el pastel, medido por el propio motor: cuerpo **11.25:1**, kicker **5.17:1**. Los dos pasan AA.
+- **Navbar en las cuatro combinaciones** tema × scroll. La crítica (claro + sin scroll, la que se habría roto sin el cambio de `barTheme`) da **11.25:1** sobre el pastel.
+- **Estructura por tema:** en claro solo el stack de Aura, copia a la izquierda sin sombra y sin velo; en oscuro solo el ojo, copia centrada con sombra, velo presente, pie de 64 px con su degradado original.
+
+### Lo que NO se puede verificar aquí, y por qué
+
+Este entorno corre con `document.hidden === true` de forma permanente: **no compone frames y `requestAnimationFrame` no dispara** (medido: 0 disparos en 500 ms). Nadie ha visto un solo píxel de esta composición ni un solo frame de la transición.
+
+- [ ] **La transición se lee como una secuencia, no como un fundido.** _Correcto_ = se distingue que el fondo llega primero, las manos después y el orbe al final. _Incorrecto_ = todo aparece a la vez, o el escalonado se percibe como tirones. _Si se lee plano_, subir `HERO_STEP_MS` (110 ms) antes que alargar `HERO_FADE_MS`; _si se percibe lento_, bajar el paso, no la duración.
+- [ ] **La espera de la copia (240 ms) es la correcta.** _Correcto_ = el texto nunca llega a leerse mal: mantiene su paleta vieja mientras el fondo cambia y reaparece ya sobre el fondo nuevo. _Incorrecto_ = se ve un instante de texto oscuro sobre fondo oscuro (espera corta) o el bloque de texto desaparece tanto que se nota el hueco (espera larga). Es el ajuste con más probabilidad de necesitar retoque: se calculó, no se vio.
+- [ ] **La rampa violeta del pie.** _Correcto_ = el pastel se apaga hacia el negro como un anochecer, y la junta con «El Descenso» no se lee. _Incorrecto_ = una banda visible, un tramo grisáceo, o banding en el degradado. El `32 %` del alto es un valor calibrado sobre mocks renderizados, **no sobre el hero real**. _Si se lee la banda_, alargar antes que oscurecer más rápido.
+- [ ] **Tamaño de `Sol` respecto al orbe pintado.** El slot es el 28.5 % del ancho del marco, calculado para que el disco visible de `Sol` lea a los 21.5 % que mide el orbe del arte. Su halo, en cambio, es ~1.5× más ancho que el resplandor pintado. _Correcto_ = `Sol` se lee como el orbe que sustituye, sostenido por las dos manos. _Incorrecto_ = flota demasiado grande y las manos dejan de contenerlo. Ajuste de un número (`AURA_ORB_SIZE`).
+- [ ] **La copia no invade la mano izquierda.** La columna es `min(65ch, 40%)` porque la mano entra hasta el 41.5 % del hero a 16:10. _Correcto_ = la línea más larga termina antes del arranque de la mano. _Incorrecto_ = el texto se solapa con los dedos. Comprobar sobre todo en 16:10 y en inglés, que es el idioma con las líneas más largas.
+- [ ] **Banding del pastel.** El campo es un degradado muy suave codificado en WebP con pérdida a calidad baja (45 nativo / 38 responsive). _Correcto_ = liso. _Incorrecto_ = escalones visibles en las zonas de transición. _Si aparece_, subir la calidad de esa capa: pesa 4 KB, hay margen de sobra.
+- [ ] **La pista de 1024 px en un móvil real.** Se verificó que cada variante pesa menos que su nativa y que el `srcset` está bien declarado, pero no que el navegador elija la pista esperada en un dispositivo con DPR 3.
+- [ ] **`prefers-reduced-motion`.** El colapso a instantáneo está escrito y cubierto por tests en jsdom, pero **no observado**: jsdom no evalúa `@media`, y aquí no hay frames.
+- [ ] **`forced-colors: active`.** Las dos composiciones y las dos rampas se ocultan. Sin emular el modo de alto contraste, no se ha visto el resultado.
+
+### Anotación de proceso
+
+El cuelgue del `requestAnimationFrame` en pestaña oculta (§14.6 de la spec) se encontró **precisamente porque** este entorno corre oculto. Es un recordatorio útil: la limitación que impide la QA visual también expone fallos que un entorno «normal» habría tapado.

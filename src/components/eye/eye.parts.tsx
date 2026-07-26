@@ -170,10 +170,12 @@ export const ScScrim = styled.div`
 `;
 
 /*
- * Hueco del mascota (Wormhole en oscuro, Sol en claro): cuadrado del DIAMETRO
- * de la pupila, centrado en el mismo centro medido del ojo que usa el anillo
- * de pulso, asi que las tres cosas -- pupila pintada, mascota y onda --
- * comparten eje y tamano.
+ * Hueco del mascota (el Wormhole: esta composicion es solo la oscura, ver
+ * Eye.tsx): cuadrado del DIAMETRO de la pupila, centrado en el mismo centro
+ * medido del ojo que usa el velo de contraste, asi que pupila pintada,
+ * mascota y velo comparten eje. El anillo de pulso simple ya no vive aqui --
+ * se mudo a la composicion clara, que es la unica que lo monta; en oscuro la
+ * coreografia del pulso la trae el propio Wormhole.
  *
  * El centrado usa la propiedad independiente `translate` y no `transform`
  * porque `transform` la escribe el rAF del seguimiento del cursor (`Eye.tsx`)
