@@ -189,3 +189,13 @@ Lo que **no** se puede verificar aquí: el estado de hover real no se puede prov
 - [ ] **La respiración de 1600 ms no marea.** _Correcto_ = el latido se percibe como vida, no como parpadeo. _Incorrecto_ = oscilación evidente que llama más la atención que la etiqueta del botón. _Si molesta_, subir el suelo de `ctaGlowPulse` de `0.65` hacia `0.8` antes que alargar la duración.
 - [ ] **El glow no se recorta.** `Button` no declara `overflow: hidden` (verificado), así que el halo debe salir del borde del botón. Confirmar que ningún ancestro lo recorta, sobre todo en móvil, donde `ScActions` envuelve en dos líneas.
 - [ ] **Foco por teclado.** Tabulando hasta los CTA, el glow debe encenderse igual que con el ratón (la regla cubre `:focus-visible`) **sin** tapar el anillo de foco del sistema.
+
+---
+
+## 11. Hover de los CTA con el degradado (añadido el 2026-07-26)
+
+El primer render real reveló que el CTA primario perdía su fondo animado al pasar el cursor (`Button.tsx` resetea `background-image` vía el shorthand `background` en su propio `:hover`) y que el texto del CTA secundario usaba un color plano en vez del degradado de su borde. Los dos arreglos (ver commit `47121c4` y la lección `[[2026-07-26-shorthand-background-resetea-en-hover]]` del vault) se verificaron leyendo `document.styleSheets` — el CSSOM que el Chromium del panel ya había parseado —, no disparando un `:hover` real: **nadie ha visto el resultado en movimiento con un cursor de verdad.**
+
+- [ ] **CTA primario: el degradado no se corta al entrar/salir del hover.** _Correcto_ = al pasar el cursor, el fondo sigue siendo el mismo degradado en movimiento, sin flash a color sólido ni salto de posición del degradado. _Incorrecto_ = un parpadeo o salto en el instante del hover.
+- [ ] **CTA secundario: texto y borde se leen como una sola pieza.** _Correcto_ = el texto recorre el mismo degradado que el borde, a simple vista sincronizados (misma duración, mismo punto de partida). _Incorrecto_ = un desfase perceptible entre los dos, o el texto ilegible en algún punto del recorrido (comprobar en tema claro y oscuro, ya que el hero fuerza superficie oscura pero conviene confirmarlo con ojos reales).
+- [ ] **El icono del navbar, ya centrado.** El `viewBox` pasó de `"0 0 500 550"` a `"0 7.5 500 550"` para repartir el margen vertical (antes 25px arriba / 10px abajo, medido sobre las coordenadas del dibujo). _Correcto_ = el icono se lee centrado junto al nombre de marca, sin espacio muerto visible arriba o abajo. Confirmar también en el Wormhole y en la cara brújula de Sol, que comparten el mismo átomo.
