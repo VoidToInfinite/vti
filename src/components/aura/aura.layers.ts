@@ -188,3 +188,33 @@ export const AURA_ORB_SIZE = "28.5%";
  * divergir, igual que `eye.layers.test.ts` ata `EYE_MASCOT_DEPTH`.
  */
 export const AURA_ORB_DEPTH = 0.8;
+
+/**
+ * Orden EXACTO del escalonado de entrada/salida que pide el encargo (tarea
+ * C1, spec §6.2/§6.2.1): campo → mano izquierda → mano derecha → energía →
+ * orbe (`Sol`). El ÍNDICE de cada parte en este array ES el escalón del
+ * stagger — `aura.parts.tsx` lo multiplica por `HERO_STEP_MS`
+ * (`hero.transition.ts`) para calcular el `transition-delay` de cada capa,
+ * y `HERO_TRANSITION_MS` se deriva de su longitud.
+ *
+ * Vive aquí, junto a `AURA_LAYERS`, y no en `hero.transition.ts` (donde el
+ * primer borrador de la spec lo dibujaba como `HERO_STAGGER`): el orden es
+ * un dato de LA COMPOSICIÓN —la tabla de sus capas más el orbe—, no de la
+ * coreografía temporal, así que su fuente natural es este archivo;
+ * `hero.transition.ts` lo IMPORTA para calcular `HERO_TRANSITION_MS`, en vez
+ * de duplicar la lista y arriesgarse a que las dos copias diverjan.
+ *
+ * `"base"` (el rectángulo de `AURA_SURFACE` que se ve antes de que el WebP
+ * de `field` termine de decodificar) NO aparece en este array: comparte
+ * escalón con `"field"` por definición (spec §6.2.1, "el escalón 0 son DOS
+ * elementos con el mismo retardo") porque son el mismo instante visual, así
+ * que quien busca el índice de `"base"` lo resuelve tratándolo como
+ * sinónimo de `"field"` en vez de duplicar la entrada.
+ */
+export const AURA_STAGGER = [
+  "field",
+  "handLeft",
+  "handRight",
+  "energy",
+  "orb",
+] as const;

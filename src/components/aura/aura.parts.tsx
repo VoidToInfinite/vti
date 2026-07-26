@@ -1,10 +1,15 @@
 "use client";
-import styled, { css, keyframes } from "styled-components";
+import styled, { css, keyframes, type DataAttributes } from "styled-components";
+import {
+  HERO_FADE_MS,
+  HERO_STEP_MS,
+} from "@/components/sections/Hero/hero.transition";
 import {
   AURA_ANCHOR_X,
   AURA_ASPECT,
   AURA_ORB,
   AURA_ORB_SIZE,
+  AURA_STAGGER,
   AURA_SURFACE,
 } from "./aura.layers";
 
@@ -17,6 +22,89 @@ import {
  * tema, y esta composicion SOLO se monta en tema claro por diseno, asi que
  * un token que resolviera distinto en oscuro no aportaria nada.
  */
+
+/*
+ * Escalon de cada pieza en el stagger del cruce de temas (HeroBackdrop,
+ * tarea C1). Se deriva del propio atributo data-part que Aura.tsx YA pasa a
+ * cada elemento -- "field", "handLeft", "handRight", "energy", "orb" son
+ * exactamente las mismas cadenas que AURA_STAGGER -- en vez de un prop
+ * nuevo que Aura.tsx tendria que reenviar explicitamente capa por capa:
+ * Aura.tsx es intocable en esta tarea (ya paso su propia bateria de tests en
+ * la fase B1), asi que leer el atributo que ya existe es el unico cable que
+ * no exige tocarlo ni duplicar la logica de ScAuraLayer para sus tres usos
+ * (mano izquierda, mano derecha, energia) con profundidades de escalon
+ * distintas.
+ *
+ * "base" no aparece en AURA_STAGGER: comparte escalon con "field" a
+ * proposito (spec S6.2.1, "el escalon 0 son DOS elementos con el mismo
+ * retardo"), son el mismo instante visual -- el color plano que el WebP
+ * sustituye en cuanto decodifica -- asi que se resuelve como su sinonimo
+ * antes de buscar el indice.
+ */
+function auraStep(part: string | undefined): number {
+  const key = part === "base" ? "field" : part;
+  const index = (AURA_STAGGER as readonly string[]).indexOf(key ?? "");
+  return index === -1 ? 0 : index;
+}
+
+/*
+ * El escalonado del cruce de temas, compartido por ScAuraBase, ScAuraField,
+ * ScAuraLayer y ScOrbSlot -- las cuatro piezas que "aparecen"/"desaparecen"
+ * en el stagger (spec S6.2.1). ScAuraSubject NO lo lleva (ver su propio
+ * comentario, mas abajo): si el contenedor tambien animara su opacidad, el
+ * efecto compuesto seria el PRODUCTO de las dos y la coreografia se
+ * aplanaria en un unico fundido blando.
+ *
+ * opacity: 1 es el valor por DEFECTO, no 0: sin un ancestro con
+ * [data-state="..."], <Aura/> se ve normal -- que es exactamente como la
+ * monta su propio test (Aura.test.tsx), fuera de cualquier backdrop. Si el
+ * defecto fuera 0, ese render se veria invisible sin que nada lo
+ * distinguiera de un bug real.
+ *
+ * El selector es DESCENDIENTE ([data-state="..."] &), NO calificado
+ * (&[data-state="..."]): el atributo data-state vive en el envoltorio del
+ * stack que monta HeroBackdrop (ScAuraStack), no en el propio elemento --
+ * mismo gotcha que documenta CLAUDE.md S5.1 y que ScShock, mas abajo, ya
+ * resuelve igual.
+ *
+ * Al salir, el retardo se cuenta EN REVERSO: (longitud - 1 - paso) en vez de
+ * paso. El campo (paso 0) es OPACO, asi que mientras siga visible tapa al
+ * ojo que hay debajo; apagandolo el ultimo, la secuencia se lee como "el
+ * mundo claro se desmonta pieza a pieza y solo entonces se disuelve el
+ * propio lienzo, dejando ver el ojo" (spec S6.2).
+ */
+function auraStagger(part: string | undefined) {
+  const step = auraStep(part);
+  return css`
+    opacity: 1;
+
+    [data-state="pending"] & {
+      opacity: 0;
+      transition: none;
+    }
+
+    [data-state="active"] & {
+      opacity: 1;
+      transition: opacity ${HERO_FADE_MS}ms
+        ${({ theme }) => theme.data.motion.easing.decelerate};
+      transition-delay: ${step * HERO_STEP_MS}ms;
+    }
+
+    [data-state="leaving"] & {
+      opacity: 0;
+      transition: opacity ${HERO_FADE_MS}ms
+        ${({ theme }) => theme.data.motion.easing.decelerate};
+      transition-delay: ${(AURA_STAGGER.length - 1 - step) * HERO_STEP_MS}ms;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      [data-state="active"] &,
+      [data-state="leaving"] & {
+        transition: none;
+      }
+    }
+  `;
+}
 
 /*
  * Socket de Aura. El aislamiento (isolation: isolate) va AQUI, no en el
@@ -48,10 +136,12 @@ export const ScAuraSocket = styled.div`
  * color medio del campo, asi que el paso de este rectangulo a la imagen es
  * invisible en vez de un salto de color.
  */
-export const ScAuraBase = styled.div`
+export const ScAuraBase = styled.div<DataAttributes>`
   position: absolute;
   inset: 0;
   background-color: ${AURA_SURFACE};
+
+  ${({ "data-part": part }) => auraStagger(part as string | undefined)}
 
   @media (forced-colors: active) {
     display: none;
@@ -64,7 +154,7 @@ export const ScAuraBase = styled.div`
  * es invisible y garantiza que no quede un solo pixel del hero sin cubrir,
  * sea cual sea la relacion de aspecto del viewport (spec S5.2).
  */
-export const ScAuraField = styled.img`
+export const ScAuraField = styled.img<DataAttributes>`
   position: absolute;
   inset: 0;
   width: 100%;
@@ -72,6 +162,8 @@ export const ScAuraField = styled.img`
   object-fit: cover;
   pointer-events: none;
   user-select: none;
+
+  ${({ "data-part": part }) => auraStagger(part as string | undefined)}
 
   @media (forced-colors: active) {
     display: none;
@@ -145,7 +237,7 @@ export const AURA_LAYER_BLEND_MODE = "normal";
  * un blending aditivo las sobreexpondria y ensuciaria los bordes con
  * feathering.
  */
-export const ScAuraLayer = styled.img<{ $moves: boolean }>`
+export const ScAuraLayer = styled.img<{ $moves: boolean } & DataAttributes>`
   position: absolute;
   inset: 0;
   width: 100%;
@@ -159,6 +251,8 @@ export const ScAuraLayer = styled.img<{ $moves: boolean }>`
     css`
       will-change: transform;
     `}
+
+  ${({ "data-part": part }) => auraStagger(part as string | undefined)}
 
   @media (forced-colors: active) {
     display: none;
@@ -176,7 +270,7 @@ export const ScAuraLayer = styled.img<{ $moves: boolean }>`
  * cada frame lo sobrescribiria y el slot saltaria al vertice superior
  * izquierdo.
  */
-export const ScOrbSlot = styled.div`
+export const ScOrbSlot = styled.div<DataAttributes>`
   position: absolute;
   top: ${AURA_ORB.y};
   left: ${AURA_ORB.x};
@@ -184,6 +278,8 @@ export const ScOrbSlot = styled.div`
   aspect-ratio: 1;
   translate: -50% -50%;
   will-change: transform;
+
+  ${({ "data-part": part }) => auraStagger(part as string | undefined)}
 
   @media (forced-colors: active) {
     display: none;
