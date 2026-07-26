@@ -1,0 +1,308 @@
+{
+    "name": "pastel-cosmic-aura-layers",
+    "description": "Fondo pastel cosmico del hero (variante clara) separado en 5 capas apilables para parallax 2.5D. A diferencia de cosmic-eye-layers, aqui la composicion NO es aditiva: cada capa lleva su propio alfa y se apila con blending normal (source-over) sobre la anterior, en el orden fondo, mano izquierda, mano derecha, orbe, energia.",
+    "source": {
+        "originalImage": "C:/Users/Daniel/Downloads/ChatGPT Image Jul 26, 2026, 06_41_34 PM Pastel Cosmic landing Page 2.png",
+        "originalSize": {
+            "width": 1672,
+            "height": 941
+        },
+        "extractedOn": "2026-07-26",
+        "originalLayerFiles": [
+            "01_fondo.png",
+            "02_mano_izquierda.png",
+            "03_mano_derecha.png",
+            "04_orbe.png",
+            "05_energia_particulas.png"
+        ],
+        "verificationOfPngLayerExtraction": {
+            "note": "Verificacion realizada antes de esta conversion a WebP, sobre los 5 PNG originales recompuestos en orden fondo/mano-izq/mano-der/orbe/energia con blending source-over (alfa normal, NO aditivo).",
+            "vsRecomposedReferenceImage": {
+                "referenceFile": "verificacion_recompuesta.png",
+                "meanAbsDiff255": 0.49,
+                "maxAbsDiff255": 1
+            },
+            "vsOriginalSourceImage": {
+                "referenceFile": "ChatGPT Image Jul 26, 2026, 06_41_34 PM Pastel Cosmic landing Page 2.png",
+                "meanAbsDiff255": 5.09,
+                "p99AbsDiff255": 18
+            }
+        },
+        "verificationOfWebpConversion": {
+            "note": "Medido tras el barrido de optimizacion de bytes de esta tarea (2026-07-26): recomposicion source-over de las 4 capas WebP publicadas con sus parametros ganadores finales (00-field, 01-hand-left, 02-hand-right, 03-energy) mas 04-orb.png (PNG sin publicar, usado solo para completar la comparacion), en el orden real de composicion (00-field, 01-hand-left, 02-hand-right, 04-orb, 03-energy), comparada contra verificacion_recompuesta.png con verify-aura.cjs.",
+            "resolutionTested": {
+                "width": 1672,
+                "height": 941
+            },
+            "meanAbsDiff255": {
+                "all": 0.865,
+                "R": 0.9524,
+                "G": 0.8308,
+                "B": 0.8116
+            },
+            "p99AbsDiff255": {
+                "all": 4,
+                "R": 4,
+                "G": 4,
+                "B": 3
+            },
+            "maxAbsDiff255": {
+                "all": 20,
+                "R": 14,
+                "G": 15,
+                "B": 20
+            },
+            "worstBlock32x32MeanAbsDiff255": {
+                "note": "Metrica adicional de esta tarea para detectar banding que el error medio no captura: se divide la imagen recompuesta en bloques de 32x32 px y se toma el bloque con mayor error medio (promedio de |diff| sobre R,G,B y todos los pixeles del bloque).",
+                "baselineQuality82AllLayers": 2.374,
+                "finalWinningCombo": 2.5436,
+                "relativeIncrease": "+7.2% (2.374 -> 2.544); crecimiento gradual explicado por los bordes de 02-hand-right y 03-energy, no un salto aislado (se descartaron candidatas con saltos de +20% o mas en esta metrica, ver optimizationSweep2026_07_26).",
+                "worstBlockLocationPx": {
+                    "x": 1600,
+                    "y": 736
+                }
+            },
+            "acceptanceCriteria": {
+                "originalMeanThreshold255": 2,
+                "originalP99Threshold255": 8,
+                "taskMeanThreshold255": 1.5,
+                "taskP99Threshold255": 6
+            },
+            "result": "PASS con margen bajo el criterio MAS ESTRICTO pedido en esta tarea (mean 0.865 vs umbral 1.5; p99 4 vs umbral 6), y tambien bajo el criterio original (2.0/8.0). max identico (20) frente a la version anterior; p99 sube de 3 a 4.",
+            "notaAlcance": "Esta verificacion es SOLO de la pista nativa 1672x941. La pista responsive 1024x576 tiene su propia verificacion independiente en pipeline.responsiveTrackFix2026_07_26.finalVerificationTable (medida contra la referencia reducida a 1024, no contra esta de 1672)."
+        }
+    },
+    "canvas": {
+        "width": 1672,
+        "height": 941
+    },
+    "orb": {
+        "note": "Medidas del orbe en el PNG original 04_orbe.png (04-orb.png), proporcionadas ya calculadas; no se recalcularon en esta tarea.",
+        "centroid": {
+            "xPx": 838.4,
+            "yPx": 391.7,
+            "xPct": 50.14,
+            "yPct": 41.63
+        },
+        "alphaByRadius": {
+            "description": "Perfil de alfa medio del orbe en funcion del radio, medido desde el centroide.",
+            "risesFromRadiusPx": 60,
+            "peak": {
+                "radiusRangePx": [144, 156],
+                "approxAlpha255": 203
+            },
+            "samples": [
+                {
+                    "radiusPx": 180,
+                    "approxAlpha255": 86
+                },
+                {
+                    "radiusPx": 192,
+                    "approxAlpha255": 28
+                }
+            ],
+            "vanishesAtRadiusPx": 228
+        }
+    },
+    "compositing": {
+        "mode": "source-over (alfa normal / normal blending)",
+        "aditivo": false,
+        "css": "las 4 capas publicadas (00-field, 01-hand-left, 02-hand-right, 03-energy) mas el componente Sol se apilan con el comportamiento por defecto de la pila (normal / source-over); NO se usa mix-blend-mode en ninguna capa porque la composicion original NO es aditiva (a diferencia de cosmic-eye-layers, que si usa plus-lighter/screen)",
+        "threejsOrEquivalente": "NormalBlending (o composicion DOM normal) en todas las capas; depthWrite/transparent segun corresponda a cada capa con alfa"
+    },
+    "pipeline": {
+        "tool": "sharp 0.34.5 (node_modules/.pnpm/sharp@0.34.5/node_modules/sharp)",
+        "outputFormat": "WebP lossy",
+        "note": "IMPORTANTE (2026-07-26, segunda pasada): nativeOutput y responsiveOutput son DOS encodes distintos y YA NO comparten parametros (el 'byLayer' unico de la primera pasada quedo obsoleto). Cada pista tiene su propio quality/alphaQuality por capa, calibrado contra su propia referencia (ver optimizationSweep2026_07_26 para 1672 y responsiveTrackFix2026_07_26 para 1024, donde ademas se diagnostico y corrigio un defecto real: la pista 1024 pesaba MAS que la 1672 en 03-energy).",
+        "nativeOutput": {
+            "widthPx": 1672,
+            "heightPx": 941,
+            "resize": "ninguno, solo recodificacion PNG -> WebP",
+            "suffix": "sin sufijo, ej. 00-field.webp",
+            "byLayer": {
+                "00-field": {
+                    "quality": 45,
+                    "alphaQuality": null,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": true
+                },
+                "01-hand-left": {
+                    "quality": 82,
+                    "alphaQuality": 35,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "02-hand-right": {
+                    "quality": 82,
+                    "alphaQuality": 40,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "03-energy": {
+                    "quality": 52,
+                    "alphaQuality": 15,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                }
+            }
+        },
+        "responsiveOutput": {
+            "widthPx": 1024,
+            "heightPx": 576,
+            "resizeKernel": "mitchell",
+            "suffix": "-1024, ej. 00-field-1024.webp",
+            "notaKernel": "Cambiado de lanczos3 a mitchell en la segunda pasada (2026-07-26): con el mismo quality/alphaQuality, mitchell produce un chunk VP8 mas pequeno que lanczos3 y cubic en las 3 capas con alfa (verificado, ver responsiveTrackFix2026_07_26), sin coste de fidelidad medido contra la referencia reducida a 1024 con el mismo kernel.",
+            "notaAlfa": "sharp resize() sobre RGBA introduce ruido de division-por-casi-cero al des-premultiplicar alfa en zonas casi transparentes (diagnosticado en responsiveTrackFix2026_07_26). 03-energy usa una limpieza quirurgica post-resize (alphaCleanupThreshold) para eliminarlo; 00-field/01-hand-left/02-hand-right no lo necesitaron (verificado con barrido de varianza por cubo de alfa, no se les aplica).",
+            "byLayer": {
+                "00-field": {
+                    "quality": 38,
+                    "alphaQuality": null,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": true
+                },
+                "01-hand-left": {
+                    "quality": 38,
+                    "alphaQuality": 15,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "02-hand-right": {
+                    "quality": 38,
+                    "alphaQuality": 15,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "03-energy": {
+                    "quality": 15,
+                    "alphaQuality": 10,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false,
+                    "alphaCleanupThreshold": 16,
+                    "alphaCleanupNote": "Tras el resize a 1024 con kernel mitchell, se fuerza RGB=0 en todo pixel cuyo alfa resultante sea <16/255 (antes de codificar a WebP). Elimina el ruido de rango completo (std~93/255) que sharp introduce ahi al des-premultiplicar, sin tocar pixeles con alfa visualmente significativo. Implementado con sharp raw buffers, no es una opcion nativa de webp()."
+                }
+            }
+        },
+        "opaqueLayerEncoding": {
+            "layer": "00-field",
+            "hasAlphaChannel": false,
+            "riffChunk": "VP8 ",
+            "nota": "00-field.png no tiene canal alfa (24bpp); se codifica sin alfa, igual que 00-background.webp del set hero-eye. Aplica a nativeOutput y responsiveOutput."
+        },
+        "alphaLayerEncoding": {
+            "layers": ["01-hand-left", "02-hand-right", "03-energy"],
+            "hasAlphaChannel": true,
+            "riffChunk": "VP8X",
+            "nota": "verificado leyendo los bytes 12-15 del contenedor RIFF de cada archivo generado, en las 8 salidas (4 nativas + 4 responsive)."
+        }
+    },
+    "optimizationSweep2026_07_26": {
+        "goal": "Minimizar bytes totales del stack manteniendo mean<=1.5/255 y p99<=6/255 (mas estricto que el criterio original 2.0/8.0) frente a verificacion_recompuesta.png, con el canal alfa intacto (VP8X en las 3 capas con alfa, VP8 en 00-field).",
+        "method": "Barrido real por capa e independiente (>=100 combinaciones de quality x alphaQuality x effort x smartSubsample encodeadas y recompuestas contra la referencia), midiendo bytes + mean/p99/max + peor bloque 32x32 en cada punto; despues verificacion combinada de las 4 capas ganadoras a la vez.",
+        "keyFinding": "alphaQuality no es lineal: alphaQuality=100 usa compresion de alfa SIN PERDIDA (muy eficiente en degradados suaves de baja entropia como 03-energy y 00-field), mientras que alphaQuality<100 cambia a un codec de alfa CON PERDIDA que, en el rango 90-80, produce archivos IGUALES O MAS GRANDES que 100 sin ganancia de fidelidad (verificado, no asumido). Solo por debajo de un umbral por capa (distinto en cada una) el codec con perdida empieza a cuantizar de verdad y el tamano cae de golpe (ej. 03-energy: 619632 B en alphaQuality=100 -> 247274 B en alphaQuality=70, -60%, con mean y peor bloque practicamente sin cambio). La sospecha del enunciado (alphaQuality de 03-energy como causante principal del sobrepeso) se confirmo con datos, no se asumio.",
+        "perLayerDecision": {
+            "00-field": "Capa opaca (VP8 ), sin canal alfa; solo se barrio quality RGB. El peor bloque se mantuvo practicamente plano (2.37-2.40) en todo el rango 82-25; se eligio quality=45 + smartSubsample=true porque domina estrictamente (mas pequeno Y mejor mean/peor-bloque que quality=82) en vez de un punto arbitrario. Ahorro marginal en bytes absolutos (capa de <6 KB) pero sin coste.",
+            "01-hand-left": "El peor bloque quedo IDENTICO al baseline (2.374, sin degradacion medible) para toda alphaQuality>=35 con quality RGB=82. Se descarto bajar el quality RGB a la vez que el alfa: combinado con alphaQuality bajo, bajar quality RGB de 82 a 75 ya subia el peor bloque de 2.374 a 2.536 (+6.8%) sin ahorro suficiente para justificarlo. Ganador: quality=82, alphaQuality=35 (-55% bytes, cero riesgo detectado de banding).",
+            "02-hand-right": "Unica capa donde bajar el quality RGB por si solo ya disparaba el peor bloque (quality=75/alphaQuality=100 -> peor bloque 2.697, +13.6%, con apenas 3.7% de ahorro): se descarto tocar el quality RGB. En alphaQuality se identifico una 'rodilla' clara entre 40 (+6.2%) y 35 (+10.9%): se eligio alphaQuality=40 justo antes del salto. Ganador: quality=82 (sin tocar), alphaQuality=40 (-57% bytes).",
+            "03-energy": "La capa que mas peso aportaba (79% del total). El peor bloque se mantuvo IDENTICO al baseline (2.374) hasta alphaQuality=20 inclusive, y quality RGB resulto irrelevante para el peor bloque en todo el rango 82-52 con alphaQuality fijo (2.374 en los 5 niveles de quality probados). Se empujo un escalon mas, a alphaQuality=15 (identico a 16-19 por cuantizacion interna de libwebp), aceptando un +6.5% en el peor bloque (2.374->2.530) a cambio de un 11% extra de ahorro sobre el escalon de alphaQuality=20; se combino con quality=52 (gratis en peor bloque, con ahorro adicional real en bytes). Ganador: quality=52, alphaQuality=15 (-86% bytes sobre esta capa)."
+        },
+        "combinedVerification": "Con las 4 capas ganadoras codificadas SIMULTANEAMENTE (no solo aisladas contra baseline) se recompuso el stack completo y se midio directamente: mean=0.865, p99=4, max=20, peor bloque=2.5436 (+7.2% vs baseline 2.374, sin salto aislado, dominado por 02-hand-right y 03-energy en la misma zona). Los errores de las 4 capas no se combinaron de forma inesperada (el peor bloque combinado quedo en el mismo orden que los peores bloques aislados de 02-hand-right y 03-energy, ~2.5), confirmando que no hay interaccion sorpresa entre capas.",
+        "effortAndSmartSubsample": "effort 6 vs 4: en 01-hand-left y 03-energy, effort=6 produjo archivos mas pequenos que effort=4 (diferencia de 100-300 B); en 02-hand-right, effort=4 producia un archivo MAYOR pero con mejor max/peor-bloque, se descarto por no reducir bytes. Se conservo effort=6 en las 4 capas. smartSubsample=true solo gano (mas pequeno Y mejor fidelidad) en 00-field; en las 3 capas con alfa aumentaba bytes sin mejora relevante y se descarto."
+    },
+    "responsiveTrackFix2026_07_26": {
+        "symptom": "03-energy-1024.webp (85720 B nativo -> reutilizando el mismo quality/alphaQuality de 1672 en la pista de 1024) pesaba 103160 B: la pista '1024 para movil' era MAS PESADA que la nativa en la capa mas grande del set, y el total de 1024 (141214 B) quedaba solo 11% por debajo del de 1672 (159188 B) en vez de acercarse a la proporcion de pixeles (~37.5%).",
+        "diagnosisMethod": "1) Desglose de los chunks RIFF (ALPH vs VP8 ) de cada fichero, recorriendo el contenedor manualmente. 2) Con eso ya visible que el chunk VP8 (RGB) era el que se disparaba (14348 B a 1672 -> 71580 B a 1024 con lanczos3, pese a tener MENOS pixeles), no el ALPH (que SI bajaba como se esperaba, 71326->31533 B): se descarto la hipotesis inicial (alphaQuality de 03-energy mal calibrado para 1024) porque el chunk de alfa se comportaba bien. 3) Prueba de kernels (lanczos3/cubic/mitchell) con los mismos quality/alphaQuality: los tres mostraban el mismo problema en distinto grado (VP8 71580/66700/61708 B), descartando que fuera solo 'ringing' de un kernel concreto. 4) Analisis de varianza de RGB por cubo de alfa (0-5, 5-20, 20-50...) en el buffer crudo: en el PNG nativo 1672 sin resize, los pixeles con alfa<5 tenian RGB PLANO (std~2-20, un pastel claro uniforme); tras el resize a 1024 con sharp, esos MISMOS pixeles (alfa<5) pasaban a std~93 con rango COMPLETO 0-255 en los 3 canales: ruido de rango completo donde antes habia una zona lisa.",
+        "rootCause": "El ruido lo genera resize() de sharp/libvips sobre RGBA: al reescalar, el color se maneja premultiplicado internamente y se des-premultiplica al final (straight_RGB = premult_RGB / alfa_resultante). Cuando el alfa interpolado de salida es casi cero, esa division amplifica brutalmente cualquier resto minimo de contribucion de vecinos opacos dentro del soporte del kernel, produciendo ruido de rango completo en una zona que en la imagen nativa era lisa e invisible (alfa~0). Esto solo golpea fuerte a 03-energy porque su alfa es un degradado difuso que cubre casi TODO el lienzo (84% de pixeles con alfa parcial, sin una region 'lejos de todo lo opaco' grande); 01-hand-left y 02-hand-right son siluetas compactas rodeadas de una zona transparente enorme y uniforme, y se verifico (barrido de varianza) que NO sufren este defecto (std~10-13 en su banda de alfa<5, nada que ver con el 93 de 03-energy). La sospecha original del enunciado (alphaQuality mal calibrado) se descarto con datos: el chunk ALPH se comportaba correctamente; el problema estaba en VP8 (RGB), no en ALPH (alfa).",
+        "fixTried_premultiplyWithFloor_DESCARTADO": "Se probo premultiplicar manualmente en 8 bits, reescalar, y des-premultiplicar con un suelo minimo en el divisor (denom=max(alfa,EPS)). Con EPS bajo (8) el ruido solo se desplazaba a la siguiente banda de alfa (5-20) sin arreglarse. Con EPS alto (48-192) el tamano bajaba mucho pero la fidelidad SE ROMPIA (mean subia de 1.02 a 3.9-16+ segun EPS): el suelo alto oscurece sistematicamente el color real en zonas de alfa bajo pero VISIBLE (alfa 20-100 sigue aportando 8-40% de peso visual), no solo el ruido invisible. Se descarto por completo: empeoraba la fidelidad para ahorrar bytes, exactamente lo que la tarea pide evitar.",
+        "fixFinal_alphaCleanup": "Solucion quirurgica: tras el resize normal (sin premultiplicar nada a mano), se pone RGB=0 SOLO en los pixeles cuyo alfa de SALIDA es menor que un umbral pequeno (16/255, ~6% de opacidad). Se barrio el umbral (12/14/15/16/17/18/20/22): la fidelidad se mantiene identica al baseline hasta umbral=16 inclusive (mean~1.02-1.05, p99=4, sin cambio); en umbral=18 aparece un salto brusco (p99 de 4 a 28) porque el borde artificial que crea el propio recorte empieza a caer en zonas con alfa real por encima del umbral. Se eligio 16 (justo antes del salto) por margen de seguridad real, no por estar en el limite.",
+        "kernelChange": "Se aprovecho el mismo barrido para comparar lanczos3/cubic/mitchell en la pista 1024 completa (no solo 03-energy): mitchell dio el archivo mas pequeno en las 4 capas sin penalizar fidelidad (verificado recomponiendo contra la referencia reducida a 1024 con el mismo kernel), asi que se adopto como kernel unico de responsiveOutput en lugar de lanczos3.",
+        "perLayerRecalibration1024": "Ademas del fix de 03-energy, se recalibraron las 4 capas de forma INDEPENDIENTE para 1024 (no se reutilizo el quality/alphaQuality de 1672): 00-field bajo de quality=45(1672) a 38(1024); 01-hand-left y 02-hand-right bajaron su alphaQuality de 35/40 (1672) a 15/15 (1024) y su quality de 82 a 38, porque a menor resolucion absoluta el margen de fidelidad disponible es mayor y el barrido lo confirmo con datos (mean/p99/peor-bloque medidos contra la referencia de 1024, no asumidos por extrapolacion de 1672).",
+        "finalVerificationTable": {
+            "note": "Bytes y fidelidad de las 4 salidas -1024 finales, recompuestas con 04-orb.png reducido a 1024 (mismo kernel mitchell) y comparadas contra verificacion_recompuesta.png tambien reducida a 1024 con mitchell.",
+            "bytes": {
+                "00-field-1024": 1740,
+                "01-hand-left-1024": 7490,
+                "02-hand-right-1024": 10952,
+                "03-energy-1024": 57424,
+                "total": 77606
+            },
+            "meanAbsDiff255": {
+                "all": 1.2016,
+                "R": 1.3018,
+                "G": 1.1797,
+                "B": 1.1234
+            },
+            "p99AbsDiff255": 5,
+            "maxAbsDiff255": {
+                "all": 19,
+                "R": 19,
+                "G": 17,
+                "B": 18
+            },
+            "worstBlock32x32MeanAbsDiff255": 3.6224,
+            "worstBlockLocationPx": {
+                "x": 704,
+                "y": 448
+            },
+            "acceptanceCriteria": {
+                "taskMeanThreshold255": 1.5,
+                "taskP99Threshold255": 6
+            },
+            "result": "PASS con margen (mean 1.20 vs umbral 1.5; p99 5 vs umbral 6). Las 4 capas -1024 pesan MENOS que su homologa de 1672px (requisito duro cumplido con margen: 1740<4196, 7490<27648, 10952<41624, 57424<85720)."
+        }
+    },
+    "layers": [
+        {
+            "file": "00-field.webp",
+            "sourceAsset": "assets/hero-aura/00-field.png",
+            "published": true,
+            "role": "fondo pastel opaco con degradado, capa base sin canal alfa",
+            "blending": "normal",
+            "parallaxDepth": 0
+        },
+        {
+            "file": "01-hand-left.webp",
+            "sourceAsset": "assets/hero-aura/01-hand-left.png",
+            "published": true,
+            "role": "mano izquierda extendida, con alfa recortado a su silueta",
+            "blending": "normal",
+            "parallaxDepth": 0.3
+        },
+        {
+            "file": "02-hand-right.webp",
+            "sourceAsset": "assets/hero-aura/02-hand-right.png",
+            "published": true,
+            "role": "mano derecha extendida, composicion simetrica con la mano izquierda",
+            "blending": "normal",
+            "parallaxDepth": 0.3
+        },
+        {
+            "file": null,
+            "sourceAsset": "assets/hero-aura/04-orb.png",
+            "published": false,
+            "role": "orbe/esfera de energia central entre las manos; NO se publica como imagen porque el componente Sol del DOM ocupa su lugar",
+            "blending": "normal",
+            "parallaxDepth": 0.8
+        },
+        {
+            "file": "03-energy.webp",
+            "sourceAsset": "assets/hero-aura/03-energy.png",
+            "published": true,
+            "role": "particulas y estelas de energia que envuelven manos y orbe, capa superior de la pila",
+            "blending": "normal",
+            "parallaxDepth": 0.55
+        }
+    ],
+    "notes": [
+        "04-orb.png se archiva en assets/hero-aura/ solo como referencia documental (misma convencion que assets/hero-eye/05-logo.png, que tampoco se monta como imagen publicada); el orbe visible en pantalla lo renderiza el componente Sol del DOM, no un WebP.",
+        "Orden de composicion en el ARTE original: 00-field, 01-hand-left, 02-hand-right, 04-orb, 03-energy (la energia va encima del orbe).",
+        "Orden de apilado en el DOM: 00-field, 01-hand-left, 02-hand-right, 03-energy y Sol ENCIMA de todo. Difiere a proposito del orden del arte, y no cuesta fidelidad: se midio que la alfa media de 03-energy dentro del disco del orbe es 0.0/255 hasta r=120px y 1.6/255 hasta r=180px, es decir, la energia no llega a cubrir el orbe. Montar Sol arriba evita que una capa con alfa se interponga entre el mascota y el usuario, y es ademas el orden de revelado que pide el encargo (campo, mano izquierda, mano derecha, energia y por ultimo el orbe)."
+    ]
+}
