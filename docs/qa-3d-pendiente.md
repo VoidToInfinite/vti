@@ -174,4 +174,18 @@ Rellena esta tabla al completar cada sección (una fila por sesión de QA):
 
 | Fecha | Sección(es) verificada(s) | Dispositivo/navegador | Resultado | Ajuste aplicado (si hubo) |
 | --- | --- | --- | --- | --- |
+| 2026-07-26 | Portada completa (captura del usuario, 1920×908) | navegador del usuario | **4 defectos reales**, ninguno detectado por la suite | Ver commit `da9d67f`: tamaño del logo (atributo SVG vencido por el reset global), `ToInfinite` en negro (la sombra heredada tapaba el degradado), marca del Wormhole al diámetro del tercer anillo, glow de hover en los CTA |
 | _por completar_ |  |  |  |  |
+
+---
+
+## 10. Glow de hover de los CTA (añadido el 2026-07-26)
+
+Lo que **sí** está verificado por medición: el `::after` de los dos CTA existe con el `box-shadow` de los colores del degradado (`brandText` al 55 % y `secondary[300]` al 40 %), arranca en `opacity: 0`, y las reglas `:hover::after` / `:focus-visible::after` que lo suben a 1 están inyectadas en la hoja, con el pulso de 1600 ms acotado a `prefers-reduced-motion: no-preference`.
+
+Lo que **no** se puede verificar aquí: el estado de hover real no se puede provocar en este entorno (no compone frames, no hay puntero real), así que nadie ha visto el glow encendido ni en movimiento.
+
+- [ ] **Intensidad del glow en reposo-hover.** _Correcto_ = se lee como un halo suave que sugiere profundidad. _Incorrecto_ = halo duro con borde visible, o tan tenue que no se distingue del estado normal. _Si queda duro_, bajar los porcentajes de `color-mix` en `ctaGlow` (`Hero.tsx`); _si queda invisible_, subir el radio de los dos `box-shadow` antes que la opacidad.
+- [ ] **La respiración de 1600 ms no marea.** _Correcto_ = el latido se percibe como vida, no como parpadeo. _Incorrecto_ = oscilación evidente que llama más la atención que la etiqueta del botón. _Si molesta_, subir el suelo de `ctaGlowPulse` de `0.65` hacia `0.8` antes que alargar la duración.
+- [ ] **El glow no se recorta.** `Button` no declara `overflow: hidden` (verificado), así que el halo debe salir del borde del botón. Confirmar que ningún ancestro lo recorta, sobre todo en móvil, donde `ScActions` envuelve en dos líneas.
+- [ ] **Foco por teclado.** Tabulando hasta los CTA, el glow debe encenderse igual que con el ratón (la regla cubre `:focus-visible`) **sin** tapar el anillo de foco del sistema.
