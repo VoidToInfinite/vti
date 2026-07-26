@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { act } from "@testing-library/react";
+import { basicDarkTheme } from "@/theme/themes";
 import { Navbar } from "./Navbar";
 
 describe("Navbar", () => {
@@ -103,6 +104,36 @@ describe("Navbar", () => {
     // El h1 del hero es el unico titular de la pagina; Navbar no debe aportar
     // ninguno.
     expect(container.querySelectorAll("h1")).toHaveLength(0);
+  });
+
+  it("el Logo (currentColor) hereda el blanco forzado, no el del tema ambiental, con la pagina en claro y sin scroll", () => {
+    // Regresion real, no hipotetica: encontrada al verificar en navegador el
+    // arreglo de tamano del Logo. ScBrandLink no fijaba su propio `color`, asi
+    // que el Logo (que pinta con `fill: currentColor`) heredaba por CSS puro
+    // desde `body`, y `body` resuelve su color contra el ThemeProvider
+    // AMBIENTAL de la pagina (GlobalStyles), no contra `barTheme` (el tema
+    // oscuro que Navbar fuerza mientras es transparente). Con la pagina en
+    // claro y la barra sin scroll, ese ancestro daba el texto oscuro del tema
+    // claro: el icono se leia casi invisible sobre el ojo negro del hero.
+    // BrandName no tenia este problema porque su propio componente redeclara
+    // `color: theme.semantic.text`; el Logo no.
+    window.localStorage.setItem("vti-theme", "light");
+    const { container } = renderWithProviders(<Navbar />);
+    const logo = container.querySelector('a svg[viewBox="0 7.5 500 550"]');
+
+    expect(screen.getByRole("banner")).toHaveAttribute(
+      "data-scrolled",
+      "false",
+    );
+    expect(logo).not.toBeNull();
+    // getComputedStyle, no un matcher de jest-styled-components (no esta en
+    // el repo): jsdom + styled-components v6 ya resuelven las reglas
+    // inyectadas via CSSOM real, mismo patron usado en el resto de la suite.
+    // Contra el token importado (basicDarkTheme.semantic.text), no un literal
+    // escrito a mano que pueda desincronizarse si la rampa de color cambia.
+    expect(getComputedStyle(logo as Element).color).toBe(
+      basicDarkTheme.semantic.text,
+    );
   });
 
   it("renderiza el selector de idioma", () => {

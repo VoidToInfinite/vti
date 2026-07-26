@@ -75,11 +75,38 @@ const ScNav = styled.nav`
   }
 `;
 
+/*
+ * BUG REAL encontrado al verificar el arreglo de tamano del Logo, no
+ * hipotetico: color: theme.semantic.text es OBLIGATORIO aqui, no cosmetico.
+ *
+ * Logo.tsx pinta con `fill: currentColor` y no fija su propio `color` --
+ * depende de heredarlo por CSS puro del ancestro mas cercano que lo declare.
+ * Sin esta linea, ese ancestro era `body` (via GlobalStyles, `a { color:
+ * inherit }` en cascada), y `body` resuelve su color contra el ThemeProvider
+ * AMBIENTAL (raiz de la pagina), no contra `barTheme` (el tema oscuro que
+ * este componente fuerza mientras la barra es transparente, ver el comentario
+ * de barTheme mas abajo).
+ *
+ * Los dos temas coinciden salvo en UNA combinacion: tema ambiental CLARO +
+ * barra sin scroll. Ahi `body` resuelve a oklch(0.32 0 286) (texto oscuro del
+ * tema claro) mientras barTheme fuerza oscuro (blanco): el icono heredaba el
+ * color equivocado y se leia casi invisible sobre el ojo negro del hero.
+ * Verificado en navegador real, reproducido y confirmado con las cuatro
+ * combinaciones tema x scroll.
+ *
+ * BrandName (el span de al lado) NO tenia este problema porque su propio
+ * componente redeclara `color: theme.semantic.text` leyendo el contexto de
+ * ESTE ThemeProvider -- un arreglo local a BrandName, no sistemico: cualquier
+ * otro hijo que dependiera de currentColor (Logo, y cualquiera que se anada
+ * despues) seguia expuesto. Fijar el color aqui, en el contenedor, cierra el
+ * problema para todos los descendientes a la vez.
+ */
 const ScBrandLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
   font-size: 1.15rem;
+  color: ${({ theme }) => theme.data.semantic.text};
 `;
 
 const ScActions = styled.div`
@@ -115,7 +142,16 @@ export function Navbar(): ReactElement {
         <ScNav>
           <ScBrandLink href="/">
             <EyeCornerMark visible={scrolled} />
-            <Logo size="1rem" />
+            {/* 1.5rem, no 1rem: a 1rem (16x18px) los trazos finos del
+                dibujo (cabeza + brazos en V) no se distinguen. El valor
+                anterior era una reduccion defensiva de una sesion previa
+                a la correccion del viewBox, cuando el icono se renderizaba
+                roto y gigante (167x184px) y encogerlo era lo unico que
+                evitaba que rompiera el layout -- no una calibracion sobre
+                el resultado ya arreglado. Con el viewBox centrado y el
+                tamano resuelto de verdad por CSS, 1.5rem (24x26px) es el
+                valor con el que se diseno originalmente este atomo. */}
+            <Logo size="1.5rem" />
             <BrandName />
           </ScBrandLink>
           <ScActions>
