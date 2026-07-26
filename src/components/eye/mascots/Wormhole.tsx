@@ -1,6 +1,7 @@
 "use client";
 import type { ReactElement } from "react";
 import styled, { css, keyframes } from "styled-components";
+import { Logo } from "@/components/ui/Logo/Logo";
 
 /*
  * Wormhole — portado desde `vti-sdk` (`src/widgets/landing-fx/Wormhole.tsx` +
@@ -220,6 +221,80 @@ const ScCore = styled.div`
   }
 `;
 
+/*
+ * Marca dentro del Wormhole -- portado en espiritu desde `vti-sdk`
+ * (`src/widgets/landing-fx/LogoMark.tsx`, `LogoMark.css.ts` y
+ * `useLogoPointer.ts`), NO en forma. Los tres archivos SI fueron leidos
+ * integros en esta sesion: `vti-sdk` es un repo hermano de este workspace
+ * (`../vti-sdk`), no esta ausente.
+ *
+ * Lo que dice el origen, leido de verdad:
+ * - `LogoMark.tsx` monta el atomo `Logo` del sdk dentro de DOS divs
+ *   anidados: un `root` posicionado `fixed`, con `data-dock` (hero/cta/
+ *   ambient/intro) y `data-pulse`, y dentro un `mark` que es la superficie
+ *   interactiva de `useLogoPointer`.
+ * - `LogoMark.css.ts` resuelve `data-dock` a variables `--dx/--dy/--scale`
+ *   (con una variante de breakpoint movil aparte) que `root` transiciona con
+ *   `tokens.motion.durationDock`: el LogoMark viaja de forma INDEPENDIENTE
+ *   del Wormhole, como pieza hermana que se ancla a su lado. `mark` anade un
+ *   halo `::before` que cambia de color entre temas y una animacion
+ *   `logoPulse` (scale 1 -> 1.2 -> 1, 2200ms) bajo el selector descendiente
+ *   `[data-pulse="true"] &`, con el mismo patron de apagado explicito bajo
+ *   `prefers-reduced-motion: reduce` que ya usa este archivo.
+ * - `useLogoPointer.ts` escribe hover-tilt (rotateX/rotateY hacia el cursor)
+ *   y press-drag con dos listeners de `window` (mousemove/touchmove) que
+ *   escriben el transform inline directamente en cada frame de puntero,
+ *   fuera de React salvo el `dragging` que si es estado (mueve un
+ *   `data-dragging` de CSS).
+ *
+ * Que cambia al portarlo aqui, y por que:
+ * - SE DESCARTA el docking por posicion/scroll (`data-dock`,
+ *   `--dx/--dy/--scale`, las cuatro variantes hero/cta/ambient/intro y su
+ *   rama de breakpoint movil): en el sdk el LogoMark es HERMANO del
+ *   Wormhole, con posicion `fixed` propia que viaja con el scroll. Aqui vive
+ *   DENTRO, centrado y fijo -- no hay viaje que anclar. El parallax que SI
+ *   tiene lo hereda gratis del contenedor de la mascota (Eye.tsx: el mascot
+ *   completo se mueve a EYE_MASCOT_DEPTH dentro del mismo rAF unico que ya
+ *   gobierna las capas).
+ * - SE DESCARTA la interaccion de puntero propia del logo (hover-tilt 3D +
+ *   drag de `useLogoPointer`): aqui es `aria-hidden` y decorativo, fuera del
+ *   orden de tabulacion -- anadir los listeners de `window` de
+ *   `useLogoPointer` duplicaria el seguimiento del cursor con dos fuentes de
+ *   verdad compitiendo por el mismo transform, contra la regla dura de "un
+ *   unico rAF" del repo.
+ * - SE PORTA el patron de reaccion al pulso (`[data-pulse="true"] &` con
+ *   apagado explicito bajo reduced-motion), pero no la implementacion ajena:
+ *   sin useState ni data-attribute nuevos, se reutiliza el data-pulse que
+ *   ScRoot YA escribe (gobernado por Eye.tsx), leido aqui con el MISMO
+ *   selector descendiente que ya usan swirl/ring1-4/core en este archivo. La
+ *   cadencia (850ms, easing.standard, retardo 1150ms) es la de
+ *   corePulseStep de este mismo archivo, NO los 2200ms de `logoPulse` del
+ *   sdk: el logo respira en el mismo instante que el nucleo de ESTE
+ *   Wormhole, no en el tiempo importado del origen.
+ */
+const markPulse = keyframes`
+  0% { transform: translate(-50%, -50%) scale(1); filter: brightness(1); }
+  15% { transform: translate(-50%, -50%) scale(1.18); filter: brightness(1.85); }
+  100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1); }
+`;
+
+const ScLogoMark = styled(Logo)`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: ${oklch("0.985 0 0", 1)};
+  filter: drop-shadow(0 0 6px ${oklch(CORE_START, 0.6)});
+  pointer-events: none;
+
+  @media ${MOTION_OK} {
+    [data-pulse="true"] & {
+      animation: ${markPulse} 850ms
+        ${({ theme }) => theme.data.motion.easing.standard} 1150ms;
+    }
+  }
+`;
+
 const shockBase = css`
   position: absolute;
   inset: 0;
@@ -285,6 +360,10 @@ export function Wormhole({
       <ScRing3 data-part="ring3" />
       <ScRing4 data-part="ring4" />
       <ScCore data-part="core" />
+      <ScLogoMark
+        data-part="mark"
+        size="16%"
+      />
       <ScShock1 data-part="shock1" />
       <ScShock2
         data-part="shock2"

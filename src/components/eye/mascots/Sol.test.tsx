@@ -157,4 +157,21 @@ describe("Sol", () => {
     // parecerse al de vti-sdk.
     expect(SOL_TILT_MAX_DEG).toBe(11);
   });
+
+  it("dibuja el atomo Logo compartido dentro del iris de la cara brujula", () => {
+    // Regresion para el atomo compartido (ver comentario de cabecera de
+    // Sol.tsx, ScPupilMark): si alguien quita <ScPupilMark size="50%" /> de
+    // SolCompassFace, la pupila se queda vacia y ningun otro test de este
+    // archivo lo detecta (los que ya existen solo miran data-variant/data-face
+    // y el transform de la inclinacion).
+    const { container } = renderWithProviders(<Sol />);
+    const compassFace = container.querySelector('[data-face="compass"]');
+    const mark = compassFace?.querySelector("svg");
+
+    expect(mark).toBeInTheDocument();
+    expect(mark).toHaveAttribute("viewBox", "0 0 500 550");
+    // Sin title: el atomo Logo se resuelve a puramente decorativo aqui, igual
+    // que en Navbar/Wormhole (el nombre de marca ya lo lleva BrandName).
+    expect(mark).toHaveAttribute("aria-hidden", "true");
+  });
 });
