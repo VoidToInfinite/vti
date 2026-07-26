@@ -1,0 +1,211 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderWithProviders, screen, fireEvent } from "@/test/test-utils";
+import { Aura } from "./Aura";
+import { AURA_LAYERS } from "./aura.layers";
+import { AURA_LAYER_BLEND_MODE } from "./aura.parts";
+
+/**
+ * Mock minimo de `matchMedia`. `usePointer` (consumido por `Aura`) y los
+ * hooks de `Sol` (`useSolTiltSpin`) llaman a `window.matchMedia` de verdad;
+ * jsdom no lo implementa, asi que sin este stub cualquier render lanza
+ * "matchMedia is not a function". `fineMatches` controla si el puntero
+ * queda habilitado (arranca su propio rAF interno); `reducedMatches` siempre
+ * es `false` salvo que se pida.
+ */
+function stubMatchMedia(fineMatches: boolean, reducedMatches = false): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("prefers-reduced-motion")
+        ? reducedMatches
+        : fineMatches,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+beforeEach(() => {
+  // Por defecto sin puntero fino: la mayoria de estos tests solo verifican
+  // estructura/accesibilidad, no el seguimiento del cursor.
+  stubMatchMedia(false);
+});
+afterEach(() => vi.unstubAllGlobals());
+
+describe("Aura", () => {
+  it("es decoracion: todo el fondo queda fuera del arbol de accesibilidad", () => {
+    const { container } = renderWithProviders(<Aura />);
+    const root = container.firstElementChild;
+    expect(root).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("no expone ninguna capa como imagen accesible (el nombre lo da el DOM real)", () => {
+    const { container } = renderWithProviders(<Aura />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    // El corolario estructural: toda capa es decorativa, `alt` vacio.
+    for (const img of container.querySelectorAll("img")) {
+      expect(img).toHaveAttribute("alt", "");
+    }
+  });
+
+  it("monta las cuatro capas publicadas, en el orden del stagger campo -> manos -> energia", () => {
+    const { container } = renderWithProviders(<Aura />);
+    const parts = [...container.querySelectorAll("img[data-part]")].map((img) =>
+      img.getAttribute("data-part"),
+    );
+    expect(parts).toEqual(AURA_LAYERS.map((layer) => layer.part));
+  });
+
+  it("ofrece la variante estrecha de cada capa para no servir 1672px a un movil", () => {
+    const { container } = renderWithProviders(<Aura />);
+    for (const layer of AURA_LAYERS) {
+      const img = container.querySelector(`img[data-part="${layer.part}"]`);
+      expect(img).toHaveAttribute("src", layer.src);
+      expect(img?.getAttribute("srcset")).toContain(layer.srcSmall);
+      expect(img).toHaveAttribute("sizes");
+    }
+  });
+
+  it("el campo va a sangre directamente en el socket; las manos y la energia dentro del marco del sujeto", () => {
+    const { container } = renderWithProviders(<Aura />);
+    const socket = container.firstElementChild as HTMLElement;
+    const field = socket.querySelector('img[data-part="field"]');
+    const subject = field?.nextElementSibling;
+    // `field` es hijo DIRECTO del socket (junto a `base`), no del marco del
+    // sujeto -- es lo que le permite cubrir sin recorte cualquier relacion
+    // de aspecto (spec §5.2).
+    expect(field?.parentElement).toBe(socket);
+    for (const layer of AURA_LAYERS.filter((l) => !l.fullBleed)) {
+      const img = socket.querySelector(`img[data-part="${layer.part}"]`);
+      expect(img?.parentElement).toBe(subject);
+    }
+  });
+
+  it("monta Sol en el orbe y no el Wormhole: Aura es la composicion clara", () => {
+    const { container } = renderWithProviders(<Aura />);
+    const orbSlot = container.querySelector('[data-part="orb"]');
+    expect(orbSlot?.querySelector('[data-face="sol"]')).toBeInTheDocument();
+    // El Wormhole es exclusivo de la composicion oscura (Eye): si alguien lo
+    // montara aqui por error, este selector lo detecta de inmediato.
+    expect(
+      container.querySelector('[data-part="ring1"]'),
+    ).not.toBeInTheDocument();
+  });
+
+  it("ninguna capa computa mix-blend-mode distinto de normal (el aditivo del ojo aqui seria un bug)", () => {
+    const { container } = renderWithProviders(<Aura />);
+    const images = container.querySelectorAll("img[data-part]");
+    expect(images.length).toBe(AURA_LAYERS.length);
+    for (const img of images) {
+      // jsdom no sintetiza el valor inicial de una propiedad nunca
+      // declarada y devuelve cadena vacia en vez de "normal" (medido en
+      // este repo, ver AURA_LAYER_BLEND_MODE); el `||` compensa esa
+      // diferencia de entorno sin escribir el string a mano. No es
+      // tautologico: si una capa declarara mix-blend-mode: screen,
+      // getComputedStyle devolveria "screen" (no vacio, el `||` no lo
+      // pisa) y la comparacion de abajo fallaria.
+      const computed =
+        getComputedStyle(img).mixBlendMode || AURA_LAYER_BLEND_MODE;
+      expect(computed).toBe(AURA_LAYER_BLEND_MODE);
+    }
+  });
+
+  it("aplica className en el elemento raiz (styled(Aura) lo necesita para el hero)", () => {
+    const { container } = renderWithProviders(<Aura className="custom" />);
+    expect(container.firstElementChild).toHaveClass("custom");
+  });
+
+  it("no arranca el rAF de seguimiento cuando el puntero esta deshabilitado (tactil o reduced-motion)", () => {
+    const raf = vi.fn().mockReturnValue(1);
+    vi.stubGlobal("requestAnimationFrame", raf);
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    renderWithProviders(<Aura />); // matchMedia deshabilitado por el beforeEach
+    expect(raf).not.toHaveBeenCalled();
+  });
+
+  it("cancela el rAF de seguimiento en curso al desmontar", () => {
+    stubMatchMedia(true); // puntero fino habilitado
+    const raf = vi.fn().mockReturnValue(7);
+    const caf = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", raf);
+    vi.stubGlobal("cancelAnimationFrame", caf);
+
+    const { unmount } = renderWithProviders(<Aura />);
+    expect(raf).toHaveBeenCalled();
+    unmount();
+    expect(caf).toHaveBeenCalledWith(7);
+  });
+
+  it("el parallax desplaza cada capa segun su profundidad, y deja el campo quieto", () => {
+    stubMatchMedia(true); // puntero fino habilitado
+    // rAF controlado a mano: se guardan los callbacks pendientes y se
+    // ejecutan en tandas, la unica forma de avanzar el lerp de `usePointer`
+    // (y con el, el rAF de Aura) de manera determinista dentro de jsdom.
+    let pending: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      pending.push(cb);
+      return pending.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const { container } = renderWithProviders(<Aura />);
+
+    // Cursor en la esquina inferior derecha del viewport => x, y -> +1.
+    window.dispatchEvent(
+      new MouseEvent("pointermove", {
+        clientX: window.innerWidth,
+        clientY: window.innerHeight,
+      }),
+    );
+    // Varias tandas: el lerp (0.085/frame) necesita tiempo para acercarse al
+    // objetivo, y Aura lee el valor ya suavizado.
+    for (let frame = 0; frame < 40; frame += 1) {
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb(frame * 16);
+    }
+
+    const transformOf = (part: string): string =>
+      container.querySelector<HTMLElement>(`[data-part="${part}"]`)?.style
+        .transform ?? "";
+    const xOf = (part: string): number =>
+      Number(/translate3d\((-?[\d.]+)px/.exec(transformOf(part))?.[1] ?? "0");
+
+    // El campo (depth 0) no recibe transform nunca: es el plano de referencia.
+    expect(transformOf("field")).toBe("");
+    // El resto se ordena por profundidad: orbe > energia > manos.
+    expect(xOf("orb")).toBeGreaterThan(xOf("energy"));
+    expect(xOf("energy")).toBeGreaterThan(xOf("handLeft"));
+    expect(xOf("handLeft")).toBeGreaterThan(0);
+    // Las dos manos comparten profundidad: se mueven exactamente igual.
+    expect(xOf("handRight")).toBe(xOf("handLeft"));
+  });
+
+  it("con reduced-motion el pointerdown no marca el pulso (no habria animacion que lo apagara)", () => {
+    stubMatchMedia(false, true);
+    const { container } = renderWithProviders(<Aura />);
+    const socket = container.firstElementChild as HTMLElement;
+
+    fireEvent.pointerDown(socket);
+    expect(socket).not.toHaveAttribute("data-pulsing");
+  });
+
+  it("un pointerdown sobre Aura marca el pulso, y el fin de su animacion lo limpia para que pueda repetirse", () => {
+    const { container } = renderWithProviders(<Aura />);
+    const socket = container.firstElementChild as HTMLElement;
+    const shock = container.querySelector('[data-part="shock"]') as HTMLElement;
+
+    expect(socket).not.toHaveAttribute("data-pulsing");
+
+    fireEvent.pointerDown(socket);
+    expect(socket).toHaveAttribute("data-pulsing", "true");
+
+    fireEvent.animationEnd(shock);
+    expect(socket).not.toHaveAttribute("data-pulsing");
+
+    // Se puede repetir: un segundo click vuelve a marcar el pulso.
+    fireEvent.pointerDown(socket);
+    expect(socket).toHaveAttribute("data-pulsing", "true");
+  });
+});
