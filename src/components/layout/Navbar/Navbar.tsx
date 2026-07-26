@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, type ReactElement } from "react";
+import type { ReactElement } from "react";
 import Link from "next/link";
-import styled, { ThemeProvider } from "styled-components";
+import styled from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { EyeCornerMark } from "@/components/eye/EyeCornerMark";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { useScrolled } from "@/hooks/useScrolled";
-import { useTheme } from "@/theme/ThemeProvider";
-import { basicDarkTheme, themes } from "@/theme/themes";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -117,49 +115,63 @@ const ScActions = styled.div`
 
 export function Navbar(): ReactElement {
   const scrolled = useScrolled(8);
-  const { themeName } = useTheme();
 
   /*
-   * Mientras la barra es transparente está flotando sobre el hero, que es
-   * negro en los dos temas: ahí sus tokens tienen que ser los del tema oscuro
-   * o en tema claro la marca y los controles resuelven a casi negro sobre la
-   * ilustración y desaparecen (mismo tratamiento que el propio Hero). En
-   * cuanto aparece el cristal, la barra vuelve al tema ambiente: el panel
-   * esmerilado ya es del color del tema y el contenido de debajo también.
+   * (antes) barTheme forzaba basicDarkTheme mientras la barra era
+   * transparente, razonando que estaba flotando sobre el hero y el hero era
+   * negro en los dos temas -- si no, en tema claro la marca y los controles
+   * resolvian a casi negro sobre la ilustracion y desaparecian. Esa premisa
+   * dejo de ser cierta: el hero en tema claro monta la composicion "Aura"
+   * (pastel, ver Hero.tsx / HeroBackdrop.tsx), no el ojo negro. Si barTheme
+   * siguiera forzando oscuro, la barra transparente pintaria la marca y los
+   * controles en BLANCO sobre ese pastel -- exactamente el fallo que
+   * task/lessons.md documenta para currentColor, en espejo (alli sobrevivia
+   * el tema oscuro forzado; aqui seria el tema oscuro forzado el que
+   * rompe).
    *
-   * El umbral es el MISMO que el del cristal a propósito — un solo estado,
-   * `scrolled`, gobierna fondo y colores, así que no hay ventana en la que la
-   * barra sea de un tema y su fondo del otro.
+   * La superficie que hay detras de la barra ahora COINCIDE SIEMPRE con el
+   * tema de la pagina -- negra en oscuro, pastel en claro -- en los DOS
+   * estados de scroll (con cristal o sin el): no hay ninguna combinacion en
+   * la que barra y fondo diverjan. Por eso ya no hace falta un ThemeProvider
+   * local que fuerce ni recalcule nada: los estilos de este componente
+   * (`theme.data...` en ScHeader, ScNav, ScBrandLink) resuelven directamente
+   * contra el ThemeProvider AMBIENTAL de la pagina, que ya expone el mismo
+   * `{ data: themes[themeName] }` que este bloque construia a mano.
+   *
+   * Quitar el proveedor anidado no es solo simplificar: cierra la clase de
+   * bug completa de la leccion del 2026-07-26 (dos ThemeProvider que pueden
+   * divergir y currentColor heredando del que no toca), en vez de solo
+   * corregir el sintoma de este componente -- con un unico ThemeProvider en
+   * el arbol no queda ningun segundo arbol de tema contra el que algo pueda
+   * divergir. `ScBrandLink` (mas abajo) sigue fijando su propio `color`
+   * explicito: ya no es la unica defensa contra ese bug, pero sigue siendo
+   * la que ancla a cualquier descendiente que dependa de `currentColor`
+   * (hoy `Logo`), y quitarla reabriria el problema si en el futuro volviera
+   * a haber divergencia.
    */
-  const barTheme = useMemo(
-    () => ({ data: scrolled ? themes[themeName] : basicDarkTheme }),
-    [scrolled, themeName],
-  );
 
   return (
-    <ThemeProvider theme={barTheme}>
-      <ScHeader data-scrolled={scrolled}>
-        <ScNav>
-          <ScBrandLink href="/">
-            <EyeCornerMark visible={scrolled} />
-            {/* 1.5rem, no 1rem: a 1rem (16x18px) los trazos finos del
-                dibujo (cabeza + brazos en V) no se distinguen. El valor
-                anterior era una reduccion defensiva de una sesion previa
-                a la correccion del viewBox, cuando el icono se renderizaba
-                roto y gigante (167x184px) y encogerlo era lo unico que
-                evitaba que rompiera el layout -- no una calibracion sobre
-                el resultado ya arreglado. Con el viewBox centrado y el
-                tamano resuelto de verdad por CSS, 1.5rem (24x26px) es el
-                valor con el que se diseno originalmente este atomo. */}
-            <Logo size="1.5rem" />
-            <BrandName />
-          </ScBrandLink>
-          <ScActions>
-            <LanguageSelector />
-            <ThemeToggle />
-          </ScActions>
-        </ScNav>
-      </ScHeader>
-    </ThemeProvider>
+    <ScHeader data-scrolled={scrolled}>
+      <ScNav>
+        <ScBrandLink href="/">
+          <EyeCornerMark visible={scrolled} />
+          {/* 1.5rem, no 1rem: a 1rem (16x18px) los trazos finos del
+              dibujo (cabeza + brazos en V) no se distinguen. El valor
+              anterior era una reduccion defensiva de una sesion previa
+              a la correccion del viewBox, cuando el icono se renderizaba
+              roto y gigante (167x184px) y encogerlo era lo unico que
+              evitaba que rompiera el layout -- no una calibracion sobre
+              el resultado ya arreglado. Con el viewBox centrado y el
+              tamano resuelto de verdad por CSS, 1.5rem (24x26px) es el
+              valor con el que se diseno originalmente este atomo. */}
+          <Logo size="1.5rem" />
+          <BrandName />
+        </ScBrandLink>
+        <ScActions>
+          <LanguageSelector />
+          <ThemeToggle />
+        </ScActions>
+      </ScNav>
+    </ScHeader>
   );
 }

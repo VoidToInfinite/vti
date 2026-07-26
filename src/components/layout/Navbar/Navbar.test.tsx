@@ -1,8 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { act } from "@testing-library/react";
-import { basicDarkTheme } from "@/theme/themes";
+import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { Navbar } from "./Navbar";
+
+// Dispara el estado `scrolled` del hook `useScrolled(8)` igual que el resto
+// de la suite (ver los `it` de arriba): mismo patron, extraido para no
+// repetirlo en las cuatro combinaciones tema x scroll de mas abajo.
+function scrollPast(): void {
+  act(() => {
+    Object.defineProperty(window, "scrollY", {
+      value: 20,
+      writable: true,
+      configurable: true,
+    });
+    window.dispatchEvent(new Event("scroll"));
+  });
+}
 
 describe("Navbar", () => {
   beforeEach(() => {
@@ -12,6 +26,11 @@ describe("Navbar", () => {
       writable: true,
       configurable: true,
     });
+    // ThemeProvider lee "vti-theme" de localStorage al montar: sin limpiarlo,
+    // el test que lo fija a un tema contaminaria a los siguientes dentro del
+    // mismo fichero (mismo razonamiento que Eye.test.tsx, necesario ahora que
+    // hay tests que alternan light/dark en la misma suite).
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -21,6 +40,7 @@ describe("Navbar", () => {
       writable: true,
       configurable: true,
     });
+    window.localStorage.clear();
   });
 
   it("expone el landmark de navegación", () => {
@@ -106,34 +126,80 @@ describe("Navbar", () => {
     expect(container.querySelectorAll("h1")).toHaveLength(0);
   });
 
-  it("el Logo (currentColor) hereda el blanco forzado, no el del tema ambiental, con la pagina en claro y sin scroll", () => {
-    // Regresion real, no hipotetica: encontrada al verificar en navegador el
-    // arreglo de tamano del Logo. ScBrandLink no fijaba su propio `color`, asi
-    // que el Logo (que pinta con `fill: currentColor`) heredaba por CSS puro
-    // desde `body`, y `body` resuelve su color contra el ThemeProvider
-    // AMBIENTAL de la pagina (GlobalStyles), no contra `barTheme` (el tema
-    // oscuro que Navbar fuerza mientras es transparente). Con la pagina en
-    // claro y la barra sin scroll, ese ancestro daba el texto oscuro del tema
-    // claro: el icono se leia casi invisible sobre el ojo negro del hero.
-    // BrandName no tenia este problema porque su propio componente redeclara
-    // `color: theme.semantic.text`; el Logo no.
-    window.localStorage.setItem("vti-theme", "light");
-    const { container } = renderWithProviders(<Navbar />);
-    const logo = container.querySelector('a svg[viewBox="0 7.5 500 550"]');
-
-    expect(screen.getByRole("banner")).toHaveAttribute(
-      "data-scrolled",
-      "false",
-    );
-    expect(logo).not.toBeNull();
+  describe("el Logo (currentColor) hereda el tema de la pagina en las cuatro combinaciones tema x scroll", () => {
+    // Regresion real (documentada en task/lessons.md), corregida ahora en
+    // espejo: `Navbar` forzaba `basicDarkTheme` mientras la barra era
+    // transparente, razonando que el hero era negro en los dos temas. Con la
+    // pagina en claro y la barra sin scroll ese forzado pintaba el Logo
+    // (`fill: currentColor`, sin `color` propio) en BLANCO, casi invisible
+    // sobre el hero, que en esa combinacion ya no es negro (hero "Aura",
+    // pastel). El arreglo quita el ThemeProvider anidado: `ScBrandLink` (que
+    // si fija `color: theme.semantic.text`) resuelve siempre contra el
+    // ThemeProvider AMBIENTAL, asi que el Logo hereda el token de texto del
+    // TEMA DE LA PAGINA, sea cual sea, y el estado de scroll deja de influir
+    // en el color. La leccion es explicita: "verificar TODAS las
+    // combinaciones de estado que los separan (aqui: 2 temas x 2 estados de
+    // scroll), no solo el estado por defecto" -- de ahi los cuatro `it`.
+    //
     // getComputedStyle, no un matcher de jest-styled-components (no esta en
     // el repo): jsdom + styled-components v6 ya resuelven las reglas
     // inyectadas via CSSOM real, mismo patron usado en el resto de la suite.
-    // Contra el token importado (basicDarkTheme.semantic.text), no un literal
-    // escrito a mano que pueda desincronizarse si la rampa de color cambia.
-    expect(getComputedStyle(logo as Element).color).toBe(
-      basicDarkTheme.semantic.text,
-    );
+    // Contra el token importado (basicLightTheme/basicDarkTheme.semantic.text),
+    // no un literal escrito a mano que pueda desincronizarse si la rampa de
+    // color cambia.
+    function logoColor(container: HTMLElement): string {
+      const logo = container.querySelector('a svg[viewBox="0 7.5 500 550"]');
+      expect(logo).not.toBeNull();
+      return getComputedStyle(logo as Element).color;
+    }
+
+    it("tema claro + sin scroll: hereda el texto claro, no el blanco forzado", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const { container } = renderWithProviders(<Navbar />);
+
+      expect(screen.getByRole("banner")).toHaveAttribute(
+        "data-scrolled",
+        "false",
+      );
+      expect(logoColor(container)).toBe(basicLightTheme.semantic.text);
+    });
+
+    it("tema claro + con scroll: sigue heredando el texto claro", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const { container } = renderWithProviders(<Navbar />);
+
+      scrollPast();
+
+      expect(screen.getByRole("banner")).toHaveAttribute(
+        "data-scrolled",
+        "true",
+      );
+      expect(logoColor(container)).toBe(basicLightTheme.semantic.text);
+    });
+
+    it("tema oscuro + sin scroll: hereda el texto oscuro", () => {
+      window.localStorage.setItem("vti-theme", "dark");
+      const { container } = renderWithProviders(<Navbar />);
+
+      expect(screen.getByRole("banner")).toHaveAttribute(
+        "data-scrolled",
+        "false",
+      );
+      expect(logoColor(container)).toBe(basicDarkTheme.semantic.text);
+    });
+
+    it("tema oscuro + con scroll: sigue heredando el texto oscuro", () => {
+      window.localStorage.setItem("vti-theme", "dark");
+      const { container } = renderWithProviders(<Navbar />);
+
+      scrollPast();
+
+      expect(screen.getByRole("banner")).toHaveAttribute(
+        "data-scrolled",
+        "true",
+      );
+      expect(logoColor(container)).toBe(basicDarkTheme.semantic.text);
+    });
   });
 
   it("renderiza el selector de idioma", () => {
