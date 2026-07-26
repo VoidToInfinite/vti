@@ -3,11 +3,12 @@ import { act } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import enHome from "@/i18n/locales/en/home.json";
+import { AURA_SURFACE } from "@/components/aura/aura.layers";
 import { EYE_SURFACE } from "@/components/eye/eye.layers";
 import { Button } from "@/components/ui/Button/Button";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { color } from "@/theme/tokens/color";
-import { semanticDark } from "@/theme/tokens/semantic";
+import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
 import { type as typeTokens } from "@/theme/tokens/type";
 import { Hero } from "./Hero";
@@ -29,8 +30,14 @@ function stubMatchMedia(): void {
   );
 }
 
-beforeEach(() => stubMatchMedia());
-afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => {
+  window.localStorage.clear();
+  stubMatchMedia();
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  window.localStorage.clear();
+});
 
 /** Todas las reglas inyectadas, incluidas las anidadas dentro de `@media`. */
 function todasLasReglas(): string[] {
@@ -128,16 +135,28 @@ describe("Hero (lente funcional)", () => {
     expect(encabezados[0].textContent).toBe("VoidToInfinite");
   });
 
-  it("el kicker computa el color de marca del tema oscuro", () => {
-    // Ningun test cubria el COLOR del kicker: es el unico rol de color
-    // distinto del resto de la copia del hero.
+  /*
+   * R2 (plan 2026-07-26): el hero ya no fuerza el tema oscuro -- la
+   * superficie sigue al tema de la pagina (Hero.tsx, ThemeProvider anidado
+   * eliminado). El color del kicker se desdobla por tema en vez de darse
+   * por hecho siempre oscuro.
+   */
+  it("el kicker computa el color de marca del tema oscuro (pagina en oscuro)", () => {
+    window.localStorage.setItem("vti-theme", "dark");
     renderWithProviders(<Hero />);
     expect(getComputedStyle(screen.getByTestId("hero-kicker")).color).toBe(
       semanticDark.brandText,
     );
   });
 
-  it("los colores del hero pasan AA sobre el negro del lienzo", () => {
+  it("el kicker computa el color de marca del tema claro (pagina en claro, por defecto)", () => {
+    renderWithProviders(<Hero />);
+    expect(getComputedStyle(screen.getByTestId("hero-kicker")).color).toBe(
+      semanticLight.brandText,
+    );
+  });
+
+  it("los colores del hero pasan AA sobre el negro del lienzo (tema oscuro)", () => {
     // El contraste del HERO no estaba cubierto por ningun test: el kicker usa
     // brandText, un rol distinto al del resto de la copia.
     expect(
@@ -150,6 +169,21 @@ describe("Hero (lente funcional)", () => {
     expect(
       contrastRatio(semanticDark.focus, EYE_SURFACE),
     ).toBeGreaterThanOrEqual(3);
+  });
+
+  /*
+   * Amplia la pareja huerfana de arriba con el equivalente del tema claro
+   * contra AURA_SURFACE, el pastel medido del fondo de Aura (spec S6.6).
+   * Valores ya calculados en la spec: semanticLight.text 11.30:1 y
+   * semanticLight.brandText 5.20:1 -- los dos pasan AA (4.5:1).
+   */
+  it("los colores del hero pasan AA sobre el pastel del lienzo (tema claro)", () => {
+    expect(
+      contrastRatio(semanticLight.text, AURA_SURFACE),
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(
+      contrastRatio(semanticLight.brandText, AURA_SURFACE),
+    ).toBeGreaterThanOrEqual(4.5);
   });
 
   it("con el idioma en ingles, los tres textos salen del locale ingles", async () => {
@@ -207,14 +241,48 @@ describe("Hero (lente funcional)", () => {
     expect(paradas[0]).toContain("/ 0");
   });
 
-  it("el pie del hero es CSS estatico: ni transicion ni animacion", () => {
+  it("el pie del hero es CSS estatico en tema oscuro: ni transicion ni animacion", () => {
     // Una transicion de background-image seria un fallo de rendimiento
-    // invisible en revision de codigo.
+    // invisible en revision de codigo. En OSCURO el pie no cambia de
+    // opacidad -- eso solo aplica en claro (ver el siguiente test) -- asi
+    // que sigue siendo 100% estatico.
+    window.localStorage.setItem("vti-theme", "dark");
     renderWithProviders(<Hero />);
     const css = reglasDe(screen.getByTestId("hero-foot")).join("\n");
 
     expect(css).not.toContain("transition");
     expect(css).not.toContain("animation");
+  });
+
+  it("el pie del hero en tema claro declara la transicion de opacidad, pero ninguna animacion", () => {
+    // En CLARO el pie se apaga por opacidad (spec S6.4): la altura y el
+    // degradado siguen siendo CSS estatico (ver el test de arriba, que
+    // comparten literal), pero ahora hay una transicion de `opacity`
+    // deliberada -- lo que no debe aparecer nunca es una animacion.
+    renderWithProviders(<Hero />); // por defecto: claro (sin localStorage)
+    const css = reglasDe(screen.getByTestId("hero-foot")).join("\n");
+
+    expect(css).toContain("transition");
+    expect(css).toContain("opacity: 0");
+    expect(css).not.toContain("animation");
+  });
+
+  it("el pie oscuro del hero se apaga por opacidad en tema claro", () => {
+    renderWithProviders(<Hero />); // por defecto: claro (sin localStorage)
+    expect(getComputedStyle(screen.getByTestId("hero-foot")).opacity).toBe("0");
+  });
+
+  it("el pie oscuro del hero permanece opaco en tema oscuro", () => {
+    // En oscuro `opacity` no se declara (ver el test "CSS estatico" de
+    // arriba): jsdom no sintetiza el valor inicial de una propiedad nunca
+    // declarada y devuelve cadena vacia en vez de "1" (mismo gotcha medido
+    // para mix-blend-mode en Aura.test.tsx); el `||` compensa esa
+    // diferencia de entorno sin escribir un string a mano.
+    window.localStorage.setItem("vti-theme", "dark");
+    renderWithProviders(<Hero />);
+    const opacity =
+      getComputedStyle(screen.getByTestId("hero-foot")).opacity || "1";
+    expect(opacity).toBe("1");
   });
 
   describe("CTAs animados del hero (Flujo 3)", () => {

@@ -186,7 +186,12 @@ describe("Hero + Story (integracion)", () => {
     ).toBeGreaterThanOrEqual(3);
   });
 
-  it("el kicker computa el color de marca del tema oscuro, no el texto por defecto", () => {
+  /*
+   * R4 (plan 2026-07-26, duplica R2): el hero ya no fuerza el tema oscuro.
+   * Se desdobla por tema en vez de asumir siempre oscuro.
+   */
+  it("el kicker computa el color de marca del tema oscuro (pagina en oscuro)", () => {
+    window.localStorage.setItem("vti-theme", "dark");
     const container = renderPage();
     const kicker = container.querySelector(
       '[data-testid="hero-kicker"]',
@@ -195,7 +200,20 @@ describe("Hero + Story (integracion)", () => {
     expect(window.getComputedStyle(kicker).color).toBe(semanticDark.brandText);
   });
 
+  it("el kicker computa el color de marca del tema claro (pagina en claro, por defecto)", () => {
+    const container = renderPage();
+    const kicker = container.querySelector(
+      '[data-testid="hero-kicker"]',
+    ) as HTMLElement;
+
+    expect(window.getComputedStyle(kicker).color).toBe(semanticLight.brandText);
+  });
+
   it("el pie del hero mide space[8] y cierra en el negro del lienzo", () => {
+    // R3 (plan 2026-07-26): la altura y el degradado NO cambian con el
+    // tema -- la rampa violeta del tema claro vive aparte, en ScAuraFoot
+    // (dentro del stack de Aura) -- asi que este test sigue valiendo tal
+    // cual, sin desdoblar, con la pagina en su tema por defecto (claro).
     const container = renderPage();
     const pie = container.querySelector(
       '[data-testid="hero-foot"]',
@@ -210,22 +228,49 @@ describe("Hero + Story (integracion)", () => {
     expect(paradas[paradas.length - 1]).toBe(EYE_SURFACE);
   });
 
-  it("ni la costura ni el pie declaran transicion o animacion", () => {
+  it("la costura de Story no declara transicion ni animacion, en ninguno de los dos temas", () => {
     // Una transicion sobre background-image seria un coste de pintado
-    // invisible en revision: las dos piezas son CSS estatico a proposito.
-    const container = renderPage();
-    const costura = container.querySelector(
-      '[data-testid="story-continuity"]',
-    ) as HTMLElement;
-    const pie = container.querySelector(
-      '[data-testid="hero-foot"]',
-    ) as HTMLElement;
-
-    for (const el of [costura, pie]) {
-      const css = cssRuleTextFor(el);
+    // invisible en revision: la costura es CSS estatico a proposito, y
+    // Story no cambia con el tema (es superficie siempre oscura).
+    for (const setup of [
+      () => window.localStorage.setItem("vti-theme", "dark"),
+      () => {},
+    ]) {
+      setup();
+      const container = renderPage();
+      const costura = container.querySelector(
+        '[data-testid="story-continuity"]',
+      ) as HTMLElement;
+      const css = cssRuleTextFor(costura);
       expect(css).not.toContain("transition");
       expect(css).not.toContain("animation");
     }
+  });
+
+  it("el pie del hero no declara transicion ni animacion en tema oscuro", () => {
+    // R3 (plan 2026-07-26): en oscuro el pie sigue siendo 100% CSS
+    // estatico -- la transicion de opacidad solo se declara en claro (ver
+    // el siguiente test).
+    window.localStorage.setItem("vti-theme", "dark");
+    const container = renderPage();
+    const pie = container.querySelector(
+      '[data-testid="hero-foot"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(pie);
+
+    expect(css).not.toContain("transition");
+    expect(css).not.toContain("animation");
+  });
+
+  it("el pie del hero declara la transicion de opacidad en tema claro, pero ninguna animacion", () => {
+    const container = renderPage(); // por defecto: claro (sin localStorage)
+    const pie = container.querySelector(
+      '[data-testid="hero-foot"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(pie);
+
+    expect(css).toContain("transition");
+    expect(css).not.toContain("animation");
   });
 
   it("declara el bloque de reduced-motion en el bloque de copia y en el contenido de Story", () => {

@@ -129,6 +129,47 @@ export const ScLayer = styled.img<{
 `;
 
 /*
+ * Velo de contraste de la composicion oscura. La copia se lee sobre la pupila
+ * -- negra, contraste de sobra -- pero los parrafos son mas anchos que ella y
+ * sus extremos caen sobre la corona, que es la zona mas brillante. Este
+ * degradado radial, anclado al MISMO centro que el ojo, la apaga justo debajo
+ * del texto y se desvanece antes de tocar el anillo exterior, que es lo que
+ * hay que preservar.
+ *
+ * Vive AQUI, dentro de la composicion, y no en Hero.tsx, aunque su motivo sea
+ * la legibilidad de la copia: al cambiar de tema tiene que aparecer y
+ * desaparecer EXACTAMENTE con el ojo. Montado en el hero y condicionado al
+ * tema, se montaba y desmontaba de golpe en t=0, cuando el stack contrario
+ * todavia esta cruzando -- al pasar a oscuro habria pintado un velo negro
+ * sobre el pastel todavia visible, medio segundo antes de que hubiera ninguna
+ * corona que apagar. Como hijo del socket, lo arrastra el fundido uniforme del
+ * propio stack y el problema no puede darse. Mismo razonamiento por el que la
+ * rampa violeta del pie vive dentro de Aura.
+ *
+ * Va DESPUES de ScFrame y FUERA de el: dentro heredaria su grupo de blending
+ * (isolation: isolate) y el aditivo de las capas lo consumiria en vez de
+ * oscurecerlas. Entre hermanos del mismo z-index gana el ultimo del DOM.
+ *
+ * Misma excepcion de color sancionada que el resto de este archivo.
+ */
+export const ScScrim = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: ${({ theme }) => theme.data.zIndex.base};
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 32% 30% at ${EYE_CENTER.x} ${EYE_CENTER.y},
+    oklch(0 0 0 / 0.82) 0%,
+    oklch(0 0 0 / 0.6) 58%,
+    transparent 88%
+  );
+
+  @media (forced-colors: active) {
+    display: none;
+  }
+`;
+
+/*
  * Hueco del mascota (Wormhole en oscuro, Sol en claro): cuadrado del DIAMETRO
  * de la pupila, centrado en el mismo centro medido del ojo que usa el anillo
  * de pulso, asi que las tres cosas -- pupila pintada, mascota y onda --

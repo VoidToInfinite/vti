@@ -4,7 +4,7 @@ import { renderWithProviders, screen } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
-import { semanticDark } from "@/theme/tokens/semantic";
+import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import HomePage from "./page";
 
 /*
@@ -29,6 +29,7 @@ function stubMatchMedia(): void {
 }
 
 beforeEach(() => {
+  window.localStorage.clear();
   stubMatchMedia();
   vi.stubGlobal(
     "IntersectionObserver",
@@ -42,6 +43,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   vi.unstubAllGlobals();
+  window.localStorage.clear();
   // i18n es un singleton del proceso de test: sin esto el idioma se filtra
   // a los demas archivos de la suite.
   if (i18n.language !== "es") {
@@ -113,7 +115,17 @@ describe("Home (pagina completa)", () => {
     );
   });
 
-  it("cambiar el tema de pagina no devuelve la copia del hero ni la de Story al texto claro", async () => {
+  /*
+   * R7 (plan 2026-07-26): el test original asumia que el hero es SIEMPRE
+   * oscuro (ThemeProvider anidado forzado) y fallaba en su primera
+   * aserccion en cuanto esa premisa dejo de ser cierta. Se parte en dos
+   * caminos reales: OSCURO (localStorage) conserva su paleta oscura en las
+   * dos secciones; CLARO (el arranque por defecto, sin nada guardado) usa
+   * la paleta clara en el hero, pero Story SIGUE en oscuro -- Story es una
+   * superficie siempre oscura, no cambia con el tema de la pagina.
+   */
+  it("con el tema de pagina en OSCURO (real), la copia del hero y la de Story conservan la paleta oscura", () => {
+    window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderWithProviders(<HomePage />);
 
     const subtitulo = testId(container, "hero-subtitle");
@@ -124,15 +136,16 @@ describe("Home (pagina completa)", () => {
     expect(getComputedStyle(tituloStory as HTMLElement).color).toBe(
       semanticDark.text,
     );
+  });
 
-    const toggle = screen.getByRole("button", {
-      name: /oscuro|claro|dark|light/i,
-    });
-    await act(async () => {
-      fireEvent.click(toggle);
-    });
+  it("con el tema de pagina en CLARO (por defecto), el hero usa el texto claro y Story sigue en oscuro", () => {
+    const { container } = renderWithProviders(<HomePage />);
 
-    expect(getComputedStyle(subtitulo).color).toBe(semanticDark.text);
+    const subtitulo = testId(container, "hero-subtitle");
+    const tituloStory = container.querySelector<HTMLElement>("#story-title");
+    expect(tituloStory).not.toBeNull();
+
+    expect(getComputedStyle(subtitulo).color).toBe(semanticLight.text);
     expect(getComputedStyle(tituloStory as HTMLElement).color).toBe(
       semanticDark.text,
     );

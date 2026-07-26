@@ -15,6 +15,7 @@ import { AURA_LAYERS, AURA_ORB_DEPTH, AURA_SIZES } from "./aura.layers";
 import {
   ScAuraBase,
   ScAuraField,
+  ScAuraFoot,
   ScAuraLayer,
   ScAuraSocket,
   ScAuraSubject,
@@ -50,6 +51,11 @@ export interface AuraProps {
  * Todo el subarbol es decorativo (`aria-hidden="true"`): nada de lo que
  * comunica Aura vive solo aqui -- la marca real sigue siendo el `<h1>` del
  * Hero, y las imagenes van con `alt=""`.
+ *
+ * El socket tambien monta `ScAuraFoot`, la rampa violeta de la costura con
+ * Story (spec S6.4): vive aqui y no en Hero.tsx para que entre y salga con
+ * el escalonado y el desmontaje de este mismo stack, sin un temporizador
+ * propio que mantener sincronizado.
  */
 export function Aura({ className }: AuraProps): ReactElement {
   // Mismo patron que Eye.tsx: refs individuales por capa via useMemo (deps
@@ -152,6 +158,10 @@ export function Aura({ className }: AuraProps): ReactElement {
           onAnimationEnd={handlePulseEnd}
         />
       </ScAuraSubject>
+      {/* Rampa violeta de la costura con Story (spec S6.4). Va a sangre del
+          SOCKET, no del marco del sujeto, y despues de ScAuraSubject en el
+          DOM para pintarse por encima de sus capas. */}
+      <ScAuraFoot data-part="foot" />
     </ScAuraSocket>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import styled, { css, keyframes, type DataAttributes } from "styled-components";
+import { EYE_SURFACE } from "@/components/eye/eye.layers";
 import {
   HERO_FADE_MS,
   HERO_STEP_MS,
@@ -35,14 +36,16 @@ import {
  * (mano izquierda, mano derecha, energia) con profundidades de escalon
  * distintas.
  *
- * "base" no aparece en AURA_STAGGER: comparte escalon con "field" a
- * proposito (spec S6.2.1, "el escalon 0 son DOS elementos con el mismo
- * retardo"), son el mismo instante visual -- el color plano que el WebP
- * sustituye en cuanto decodifica -- asi que se resuelve como su sinonimo
- * antes de buscar el indice.
+ * "base" y "foot" no aparecen en AURA_STAGGER: comparten escalon con "field"
+ * a proposito (spec S6.2.1, "el escalon 0 son DOS elementos con el mismo
+ * retardo"; spec S6.4 para el pie: "le corresponde el escalon 0, el mismo
+ * que base/field"). Los tres son el mismo instante visual -- el color plano
+ * y la rampa violeta tienen que estar en cuanto aparece el lienzo pastel, o
+ * habria un instante con pastel tocando la costura negra de Story -- asi que
+ * se resuelven como sinonimos de "field" antes de buscar el indice.
  */
 function auraStep(part: string | undefined): number {
-  const key = part === "base" ? "field" : part;
+  const key = part === "base" || part === "foot" ? "field" : part;
   const index = (AURA_STAGGER as readonly string[]).indexOf(key ?? "");
   return index === -1 ? 0 : index;
 }
@@ -335,6 +338,54 @@ export const ScShock = styled.div`
       animation: none;
     }
   }
+
+  @media (forced-colors: active) {
+    display: none;
+  }
+`;
+
+/*
+ * Rampa violeta de la costura Hero -> Story en tema claro (spec S6.4). Vive
+ * DENTRO del stack de Aura, no en Hero.tsx: asi entra y sale con el
+ * escalonado y el desmontaje de su propio stack, sin un segundo
+ * temporizador que mantener en sincronia con el del cruce de fondos.
+ * Comparte el escalon 0 con base/field (ver auraStep, mas arriba): la rampa
+ * tiene que estar en cuanto aparece el lienzo pastel, o habria un instante
+ * con pastel tocando la costura negra de Story.
+ *
+ * EYE_SURFACE se IMPORTA de la capa de datos del ojo, no se reescribe: es el
+ * mismo negro de marca en el que arranca la costura de Story (ScSeam,
+ * Story.tsx), y dos literales iguales en dos ficheros se separan al primer
+ * retoque.
+ *
+ * La PRIMERA parada NO es `transparent`: aqui la palabra clave daria negro
+ * transparente y el tramo inicial viraria a gris. Es la excepcion exacta que
+ * contempla la leccion del velo de continuidad (task/lessons.md,
+ * 2026-07-25): alli el color de la rampa SI era negro, asi que
+ * `transparent` era su mismo color con alfa 0; aqui la rampa es violeta, no
+ * negra, asi que `transparent` produciria un color distinto (negro) en vez
+ * de "este mismo violeta con alfa 0".
+ *
+ * El 32% es una PROPORCION del alto del hero, no un token de `space` (que
+ * llega a 8rem como maximo): aqui hay que salvar toda la distancia de un
+ * pastel a negro sobre un lienzo de altura de viewport. Se documenta como
+ * excepcion, igual que los clamp() literales del titular (Hero.tsx).
+ */
+export const ScAuraFoot = styled.div<DataAttributes>`
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 32%;
+  pointer-events: none;
+  background-image: linear-gradient(
+    to bottom,
+    oklch(0.33 0.075 285 / 0) 0%,
+    oklch(0.33 0.075 285 / 0.42) 50%,
+    oklch(0.17 0.05 285 / 0.86) 82%,
+    ${EYE_SURFACE} 100%
+  );
+
+  ${({ "data-part": part }) => auraStagger(part as string | undefined)}
 
   @media (forced-colors: active) {
     display: none;

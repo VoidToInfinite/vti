@@ -35,12 +35,31 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-// Un frame de margen tras decodificar, para que el navegador ya haya pintado
-// el frame 0 del stack entrante antes de arrancar el stagger (spec S6.1).
+/*
+ * Un frame de margen tras decodificar, para que el navegador ya haya pintado
+ * el frame 0 del stack entrante antes de arrancar el stagger (spec S6.1).
+ *
+ * En CARRERA contra un temporizador, por el mismo motivo que decode(): en una
+ * pestana oculta (document.hidden) el navegador NO dispara
+ * requestAnimationFrame, asi que esta promesa no se resuelve nunca y el cruce
+ * se queda colgado en "pending" -- el stack entrante invisible y el saliente
+ * todavia a la vista. Medido en este entorno, que corre con la pestana oculta
+ * de forma permanente: con rAF a secas, el fondo se quedaba en "pending"
+ * indefinidamente mientras la copia si completaba su cruce.
+ *
+ * El margen de un frame es una MEJORA de alineacion, no una condicion de
+ * correccion: si no llega a tiempo, arrancar sin el produce exactamente el
+ * mismo estado final. Perderlo es aceptable; colgarse no.
+ */
+const NEXT_FRAME_TIMEOUT_MS = 50;
+
 function nextFrame(): Promise<void> {
-  return new Promise((resolve) => {
-    window.requestAnimationFrame(() => resolve());
-  });
+  return Promise.race([
+    new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    }),
+    wait(NEXT_FRAME_TIMEOUT_MS),
+  ]);
 }
 
 /*

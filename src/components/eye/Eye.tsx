@@ -11,7 +11,7 @@ import {
   type ParallaxTarget,
 } from "@/hooks/useParallaxLayers";
 import { EYE_LAYERS, EYE_MASCOT_DEPTH, EYE_SIZES } from "./eye.layers";
-import { ScFrame, ScLayer, ScMascotSlot, ScSocket } from "./eye.parts";
+import { ScFrame, ScLayer, ScMascotSlot, ScScrim, ScSocket } from "./eye.parts";
 import { Wormhole } from "./mascots/Wormhole";
 
 /** Amplitud del parallax en px a profundidad 1. Cada capa la escala por su
@@ -138,6 +138,11 @@ export function Eye({ className }: EyeProps): ReactElement {
           />
         </ScMascotSlot>
       </ScFrame>
+      {/* Fuera de ScFrame, no dentro: ahi heredaria su grupo de blending y el
+          aditivo de las capas se lo comeria en vez de oscurecerlas. Ver el
+          comentario de ScScrim en eye.parts.tsx para por que vive en la
+          composicion y no en el hero. */}
+      <ScScrim data-part="scrim" />
     </ScSocket>
   );
 }

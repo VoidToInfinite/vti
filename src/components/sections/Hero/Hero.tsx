@@ -1,9 +1,8 @@
 "use client";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled, { css, keyframes, ThemeProvider } from "styled-components";
-import { Eye } from "@/components/eye/Eye";
-import { EYE_CENTER, EYE_SURFACE } from "@/components/eye/eye.layers";
+import styled, { css, keyframes } from "styled-components";
+import { EYE_SURFACE } from "@/components/eye/eye.layers";
 import {
   BrandName,
   gradientShift,
@@ -13,26 +12,33 @@ import {
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { links } from "@/config/links";
-import { basicDarkTheme } from "@/theme/themes";
+import { useTheme } from "@/theme/ThemeProvider";
+import { HeroBackdrop } from "./HeroBackdrop";
+import {
+  HERO_COPY_IN_MS,
+  HERO_COPY_OUT_MS,
+  HERO_FADE_MS,
+  useHeroCopySwap,
+} from "./hero.transition";
 
 /*
- * El hero es una superficie SIEMPRE oscura: la composicion del ojo es negra en
- * tema claro y en tema oscuro (es identidad de marca, no un modo de color).
- * Sin esto, en tema claro `semantic.text` resuelve a casi-negro y la copia
- * desaparece sobre el ojo. En vez de forzar colores literales elemento a
- * elemento -- que ademas dejaria fuera el foco, los botones y cualquier pieza
- * que se anada despues -- se anida un `ThemeProvider` con el tema oscuro: cada
- * token dentro del hero (texto, marca, anillo de foco) resuelve al valor
- * disenado para fondo oscuro, y el contraste queda garantizado por el mismo
- * sistema que lo garantiza en el resto del sitio.
+ * La superficie del hero YA sigue el tema de la pagina: en oscuro monta el
+ * ojo cosmico (composicion negra, sin cambios); en claro monta Aura, el
+ * fondo pastel (spec S6). Hasta esta entrega el hero anidaba un
+ * `ThemeProvider` con el tema oscuro forzado -- tenia sentido cuando el
+ * lienzo era negro en los DOS temas, pero era la fuente exacta del bug de
+ * `task/lessons.md` sobre `currentColor` heredando del `ThemeProvider`
+ * AMBIENTAL en vez del contextual: dos arboles de tema que solo coincidian
+ * en tres de cuatro combinaciones. Sin ese proveedor anidado hay un arbol de
+ * tema menos que pueda divergir, y `theme.data.semantic.*` resuelve aqui al
+ * mismo tema que el resto de la pagina, tal como pintan Aura/HeroBackdrop.
  *
- * La identidad del objeto es estable a proposito (constante de modulo, no un
- * literal en el render): un objeto nuevo por render invalidaria el contexto de
- * styled-components y re-renderizaria todo el subarbol en cada render del Hero.
+ * La distribucion (`$light`, mas abajo) usa `layoutTheme` de
+ * `useHeroCopySwap`, NO el tema activo directamente: la copia no puede
+ * saltar de sitio en el mismo instante en que el fondo todavia es el del
+ * tema anterior (ver el hook para el porque completo).
  */
-const heroTheme = { data: basicDarkTheme };
-
-const ScHero = styled.section`
+const ScHero = styled.section<{ $light: boolean }>`
   position: relative;
   /* Una pantalla exacta: el navbar es fixed, esta fuera de flujo, asi que el
      hero empieza en el borde superior y la composicion queda centrada en el
@@ -47,65 +53,57 @@ const ScHero = styled.section`
   padding: ${({ theme }) => theme.data.space[6]}
     ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[8]};
   overflow: hidden;
-`;
 
-/*
- * En forced-colors el sistema fuerza color y fondos, pero NO ajusta las
- * imagenes: el texto del sistema quedaria sobre la ilustracion con un
- * contraste impredecible. El subarbol del ojo ya es aria-hidden y puramente
- * decorativo, asi que ocultarlo no pierde informacion y devuelve el contraste
- * que garantiza el SO. Eye reenvia className a su elemento raiz (Eye.tsx:106),
- * asi que la regla aplica al lienzo real y no a un envoltorio vacio.
- */
-const ScEye = styled(Eye)`
-  z-index: ${({ theme }) => theme.data.zIndex.base};
-
-  @media (forced-colors: active) {
-    display: none;
+  /* La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
+     de este punto de corte el tema claro vuelve a la distribucion centrada,
+     igual que el oscuro. */
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    ${({ $light }) =>
+      $light &&
+      css`
+        justify-content: center;
+        align-items: flex-start;
+      `}
   }
 `;
 
 /*
- * Velo de contraste. La copia se lee sobre la pupila -- negra, contraste de
- * sobra -- pero los parrafos son mas anchos que ella y se derraman sobre la
- * corona, que es la zona mas brillante de la composicion. Este degradado
- * radial, anclado al MISMO centro que el ojo, apaga la corona justo debajo del
- * texto y se desvanece antes de tocar el anillo exterior, que es lo que hay
- * que preservar. Misma excepcion de color sancionada que `eye.parts.tsx`.
+ * El velo de contraste YA NO VIVE AQUI. Existe para que la copia se lea sobre
+ * la corona del ojo, asi que su motivo es del hero -- pero su ciclo de vida es
+ * el de la composicion oscura, y eso es lo que decide donde va. Montado aqui y
+ * condicionado al tema, aparecia y desaparecia de golpe en t=0, cuando el
+ * stack contrario todavia esta cruzando: al pasar a oscuro pintaba un velo
+ * negro sobre el pastel aun visible, medio segundo antes de que hubiera
+ * ninguna corona que apagar. Ahora es hijo de `ScSocket` (ver `ScScrim` en
+ * `eye.parts.tsx`) y lo arrastra el fundido del propio stack. Mismo
+ * razonamiento por el que la rampa violeta del pie claro vive dentro de Aura.
  */
-const ScScrim = styled.div`
-  position: absolute;
-  inset: 0;
-  z-index: ${({ theme }) => theme.data.zIndex.base};
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 32% 30% at ${EYE_CENTER.x} ${EYE_CENTER.y},
-    oklch(0 0 0 / 0.82) 0%,
-    oklch(0 0 0 / 0.6) 58%,
-    transparent 88%
-  );
-
-  @media (forced-colors: active) {
-    display: none;
-  }
-`;
 
 /*
  * Pie del hero. Garantiza que la ULTIMA fila de pixeles del hero sea el negro
- * del lienzo en cualquier relacion de aspecto. ScFrame mantiene la relacion
- * 1672/941 centrada: en viewports mas apaisados que 16:9 (un portatil de
- * 1440x720, una ultrapanoramica) el marco desborda en vertical y la fila
- * inferior es campo de nebulosa. Sin este pie, el extremo superior de la
- * costura de Story no coincidiria con lo que hay encima justo ahi, y el tajo
- * entre secciones reaparece. Con 4rem el coste decorativo es minimo y en la
- * mayoria de viewports el degradado cae sobre negro, donde es invisible.
+ * del lienzo en cualquier relacion de aspecto, EN TEMA OSCURO. ScFrame
+ * mantiene la relacion 1672/941 centrada: en viewports mas apaisados que
+ * 16:9 (un portatil de 1440x720, una ultrapanoramica) el marco desborda en
+ * vertical y la fila inferior es campo de nebulosa. Sin este pie, el extremo
+ * superior de la costura de Story no coincidiria con lo que hay encima justo
+ * ahi, y el tajo entre secciones reaparece. Con 4rem el coste decorativo es
+ * minimo y en la mayoria de viewports el degradado cae sobre negro, donde es
+ * invisible.
+ *
+ * Ni la altura ni el degradado cambian con el tema (spec S6.4): la rampa
+ * violeta del tema claro es una pieza DISTINTA (ScAuraFoot, dentro del stack
+ * de Aura), porque height/background-image no se pueden interpolar y saltar
+ * de golpe en t=0 (con el fondo todavia en el tema anterior) dejaria un velo
+ * ajeno sobre el lienzo equivocado. Este pie SOLO se apaga por opacidad en
+ * claro, con la MISMA duracion que el cruce de fondos (HERO_FADE_MS): asi
+ * desaparece a la vez que el ojo se funde por debajo.
  *
  * EYE_SURFACE es el negro de identidad importado de la capa de datos del ojo,
  * no un literal reescrito: dos literales iguales en dos archivos distintos se
  * separan al primer retoque y la costura reaparece. Misma excepcion de color
  * sancionada que documenta eye.parts.tsx.
  */
-const ScHeroFoot = styled.div`
+const ScHeroFoot = styled.div<{ $light: boolean }>`
   position: absolute;
   inset-inline: 0;
   inset-block-end: 0;
@@ -118,17 +116,40 @@ const ScHeroFoot = styled.div`
     ${EYE_SURFACE} 100%
   );
 
+  ${({ $light }) =>
+    $light &&
+    css`
+      opacity: 0;
+      transition: opacity ${HERO_FADE_MS}ms
+        ${({ theme }) => theme.data.motion.easing.decelerate};
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
+    `}
+
   @media (forced-colors: active) {
     display: none;
   }
 `;
 
-/* Copy stagger-rise (spec §5): fija el orden de lectura en la carga. Los CINCO
-   hijos (kicker, titulo, subtitulo, apoyo, acciones) entran con un paso de
-   80ms, no de 120ms: con 120ms el CTA aparecia a 680ms desde el primer
-   pintado; con 80ms entra a 520ms y la secuencia se sigue percibiendo como
-   secuencia. Solo transform/opacity. */
-const ScCopy = styled.div`
+/*
+ * Copy stagger-rise (spec §5): fija el orden de lectura en la carga. Los
+ * CINCO hijos (kicker, titulo, subtitulo, apoyo, acciones) entran con un
+ * paso de 80ms, no de 120ms: con 120ms el CTA aparecia a 680ms desde el
+ * primer pintado; con 80ms entra a 520ms y la secuencia se sigue
+ * percibiendo como secuencia. Solo transform/opacity.
+ *
+ * Distribucion por tema (spec S6.5), con `$light` (NO el tema activo
+ * directamente: viene de `layoutTheme`, ver Hero()). El cruce entre las dos
+ * distribuciones es por OPACIDAD (`$hidden`), nunca interpolando
+ * `text-align`/`align-items`: esas dos provocan un re-wrap que no se puede
+ * animar. `$hidden` llega ya resuelto por `useHeroCopySwap`, que solo lo
+ * activa en cambios de USUARIO y aplica `$light` mientras la copia sigue
+ * invisible -- por eso este componente no necesita saber nada de esa
+ * mecanica, solo pintar lo que le llega.
+ */
+const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   position: relative;
   z-index: ${({ theme }) => theme.data.zIndex.raised};
   display: flex;
@@ -141,14 +162,40 @@ const ScCopy = styled.div`
   gap: ${({ theme }) => theme.data.space[0]};
   max-width: ${({ theme }) => theme.data.grid.prose};
   text-align: center;
-  /* Segunda linea de defensa del contraste, ademas del velo: los parrafos son
-     mas anchos que la pupila y sus extremos caen sobre la corona, que es la
-     zona mas brillante y la mas irregular (filamentos finos, no un tono
-     plano). Una sombra pegada al glifo garantiza el borde oscuro justo donde
-     hace falta sin apagar la ilustracion entera. */
-  text-shadow:
-    0 1px 2px oklch(0 0 0 / 0.9),
-    0 0 18px oklch(0 0 0 / 0.75);
+  /* Segunda linea de defensa del contraste, ADEMAS del velo, SOLO en
+     oscuro: los parrafos son mas anchos que la pupila y sus extremos caen
+     sobre la corona, que es la zona mas brillante y la mas irregular
+     (filamentos finos, no un tono plano). Una sombra pegada al glifo
+     garantiza el borde oscuro justo donde hace falta sin apagar la
+     ilustracion entera. En claro NO hace falta (spec S6.5): el texto oscuro
+     sobre el pastel ya pasa AA medido (Hero.qa.test.tsx), y una sombra
+     oscura sobre un fondo claro solo ensuciaria la lectura. */
+  text-shadow: ${({ $light }) =>
+    $light
+      ? "none"
+      : "0 1px 2px oklch(0 0 0 / 0.9), 0 0 18px oklch(0 0 0 / 0.75)"};
+  opacity: ${({ $hidden }) => ($hidden ? 0 : 1)};
+  transition: opacity
+    ${({ $hidden }) => ($hidden ? HERO_COPY_OUT_MS : HERO_COPY_IN_MS)}ms
+    ${({ theme }) => theme.data.motion.easing.decelerate};
+
+  /* La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
+     de este punto de corte el tema claro vuelve a la distribucion
+     centrada, igual que el oscuro -- ver tambien ScHero/ScActions. */
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    ${({ $light }) =>
+      $light &&
+      css`
+        align-items: flex-start;
+        text-align: left;
+        /* Medido (spec S3.6): la mano izquierda del arte entra hasta el
+           41.5% del hero a 16:10, el caso mas estrecho. El criterio no es
+           "40%": es que la linea mas larga de la copia termine antes de
+           ese punto. min() con el prose normal cubre el caso comun sin
+           magnificar el ancho en viewports muy anchos. */
+        max-width: min(${({ theme }) => theme.data.grid.prose}, 40%);
+      `}
+  }
 
   > * {
     animation: rise ${({ theme }) => theme.data.motion.duration.base}
@@ -178,6 +225,7 @@ const ScCopy = styled.div`
     > * {
       animation: none;
     }
+    transition: none;
   }
 
   /* Con el ojo oculto en forced-colors, la sombra que protegia la copia sobre
@@ -187,7 +235,7 @@ const ScCopy = styled.div`
   }
 `;
 
-const ScActions = styled.div`
+const ScActions = styled.div<{ $light: boolean }>`
   /* Los CTAs tienen su propio fondo solido: la sombra que protege a la copia
      sobre la ilustracion aqui solo ensuciaria la etiqueta. */
   text-shadow: none;
@@ -197,6 +245,16 @@ const ScActions = styled.div`
   justify-content: center;
   /* La mayor separacion del bloque: es la frontera entre leer y actuar. */
   margin-block-start: ${({ theme }) => theme.data.space[6]};
+
+  /* Misma mejora de escritorio que ScHero/ScCopy: por debajo del punto de
+     corte, el tema claro vuelve a los CTA centrados. */
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    ${({ $light }) =>
+      $light &&
+      css`
+        justify-content: flex-start;
+      `}
+  }
 `;
 
 /* El titular de portada usa la unica variante de la escala pensada para el
@@ -449,71 +507,85 @@ const ScCtaSecondaryLabel = styled.span`
 
 export function Hero(): ReactElement {
   const { t } = useTranslation("home");
+  const { themeName } = useTheme();
+  // layoutTheme (NO themeName) decide la distribucion: la copia no puede
+  // saltar de sitio en t=0, mientras el fondo todavia es el del tema
+  // anterior (ver useHeroCopySwap para el porque completo, spec S6.5).
+  const { layoutTheme, hidden } = useHeroCopySwap();
+  const light = layoutTheme === "light";
 
   return (
-    <ThemeProvider theme={heroTheme}>
-      <ScHero>
-        <ScEye />
-        <ScScrim aria-hidden="true" />
-        <ScHeroFoot
-          aria-hidden="true"
-          data-testid="hero-foot"
-        />
-        <ScCopy>
-          <ScKicker
-            variant="overline"
-            data-testid="hero-kicker"
+    <ScHero $light={light}>
+      <HeroBackdrop />
+      {/* El pie oscuro se ata al tema REAL (no a layoutTheme) para apagarse a
+          la vez que el propio fondo, no con el retardo del cruce de la copia.
+          Y a diferencia del velo, no se desmonta: se apaga por opacidad, para
+          que el cambio sea un fundido y no un corte. */}
+      <ScHeroFoot
+        $light={themeName === "light"}
+        aria-hidden="true"
+        data-testid="hero-foot"
+      />
+      <ScCopy
+        $light={light}
+        $hidden={hidden}
+      >
+        <ScKicker
+          variant="overline"
+          data-testid="hero-kicker"
+        >
+          {t("Home.hero.kicker")}
+        </ScKicker>
+        <ScHeroBrand data-testid="hero-title">
+          <BrandName
+            as="h1"
+            gradientTail
+          />
+        </ScHeroBrand>
+        <ScSubtitle
+          variant="h3"
+          forwardedAs="p"
+          data-testid="hero-subtitle"
+        >
+          {t("Home.hero.subtitle")}
+        </ScSubtitle>
+        <ScSupport
+          variant="body"
+          data-testid="hero-support"
+        >
+          {t("Home.hero.support")}
+        </ScSupport>
+        <ScActions
+          $light={light}
+          data-testid="hero-actions"
+        >
+          {/* forwardedAs="a", NO as="a": ScCtaPrimary/ScCtaSecondary
+              envuelven Button con styled(), y Button ya intercepta su
+              propio prop `as` internamente (ver Button.tsx) -- el mismo
+              gotcha ya documentado arriba para ScSubtitle/Typography.
+              Medido en este repo: con `as="a"` styled-components renderiza
+              un <a> PELADO con solo la clase del wrapper y descarta Button
+              entero (sizeStyles, variantes, ScLabel, spinner); con
+              `forwardedAs="a"` Button recibe el as por su propio prop y
+              sigue resolviendo su <ScButton as="a">, conservando toda su
+              logica -- el wrapper solo anade su clase por encima. */}
+          <ScCtaPrimary
+            forwardedAs="a"
+            href={links.playground}
+            size="lg"
           >
-            {t("Home.hero.kicker")}
-          </ScKicker>
-          <ScHeroBrand data-testid="hero-title">
-            <BrandName
-              as="h1"
-              gradientTail
-            />
-          </ScHeroBrand>
-          <ScSubtitle
-            variant="h3"
-            forwardedAs="p"
-            data-testid="hero-subtitle"
+            {t("Home.cta.explore")}
+          </ScCtaPrimary>
+          <ScCtaSecondary
+            forwardedAs="a"
+            href="#story"
+            variant="ghost"
+            size="lg"
           >
-            {t("Home.hero.subtitle")}
-          </ScSubtitle>
-          <ScSupport
-            variant="body"
-            data-testid="hero-support"
-          >
-            {t("Home.hero.support")}
-          </ScSupport>
-          <ScActions data-testid="hero-actions">
-            {/* forwardedAs="a", NO as="a": ScCtaPrimary/ScCtaSecondary
-                envuelven Button con styled(), y Button ya intercepta su
-                propio prop `as` internamente (ver Button.tsx) -- el mismo
-                gotcha ya documentado arriba para ScSubtitle/Typography.
-                Medido en este repo: con `as="a"` styled-components renderiza
-                un <a> PELADO con solo la clase del wrapper y descarta Button
-                entero (sizeStyles, variantes, ScLabel, spinner); con
-                `forwardedAs="a"` Button recibe el as por su propio prop y
-                sigue resolviendo su <ScButton as="a">, conservando toda su
-                logica -- el wrapper solo anade su clase por encima. */}
-            <ScCtaPrimary
-              forwardedAs="a"
-              href={links.playground}
-              size="lg"
-            >
-              {t("Home.cta.explore")}
-            </ScCtaPrimary>
-            <ScCtaSecondary
-              forwardedAs="a"
-              href="#story"
-              variant="ghost"
-              size="lg"
-            >
-              <ScCtaSecondaryLabel>{t("Home.cta.story")}</ScCtaSecondaryLabel>
-            </ScCtaSecondary>
-          </ScActions>
-        </ScCopy>
-      </ScHero>
-    </ThemeProvider>
+            <ScCtaSecondaryLabel>{t("Home.cta.story")}</ScCtaSecondaryLabel>
+          </ScCtaSecondary>
+        </ScActions>
+      </ScCopy>
+    </ScHero>
   );
 }
