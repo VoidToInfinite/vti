@@ -74,6 +74,22 @@ function auraStep(part: string | undefined): number {
  * ojo que hay debajo; apagandolo el ultimo, la secuencia se lee como "el
  * mundo claro se desmonta pieza a pieza y solo entonces se disuelve el
  * propio lienzo, dejando ver el ojo" (spec S6.2).
+ *
+ * El guard de prefers-reduced-motion CUBRE LOS TRES ESTADOS, tambien
+ * pending -- no solo active/leaving. Hasta la coreografia de carga nueva
+ * (spec S7.2) esto era inofensivo: la carga montaba el stack directamente en
+ * "active" y "pending" solo existia durante un cruce de temas ya en curso,
+ * nunca en el primer render. Ahora la carga ARRANCA en "pending" y se queda
+ * ahi hasta que resuelve la carrera de decode() de la imagen (hasta
+ * HERO_DECODE_TIMEOUT_MS mas el margen de un frame, ver HeroBackdrop.tsx):
+ * sin este guard, "opacity: 0" del bloque de pending de arriba deja el fondo
+ * pastel invisible ese tramo bajo reduce, y como StageProvider bajo reduce
+ * salta directo a "settled" el navbar y la copia ya son visibles -- el
+ * usuario ve texto sobre el hueco desnudo del tema y luego un salto al
+ * pastel, justo el destello que reduced-motion existe para evitar. Mismo
+ * criterio que eyeStagger (eye.parts.tsx) ya aplica en su bloque final: las
+ * dos composiciones tienen que tratar reduce igual, opacity: 1 en los tres
+ * estados y sin transicion.
  */
 function auraStagger(part: string | undefined) {
   const step = auraStep(part);
@@ -101,7 +117,9 @@ function auraStagger(part: string | undefined) {
 
     @media (prefers-reduced-motion: reduce) {
       [data-state="active"] &,
-      [data-state="leaving"] & {
+      [data-state="leaving"] &,
+      [data-state="pending"] & {
+        opacity: 1;
         transition: none;
       }
     }

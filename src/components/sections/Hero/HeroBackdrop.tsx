@@ -1,14 +1,21 @@
-﻿"use client";
-import { useEffect, useRef, useState, type ReactElement } from "react";
+"use client";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+} from "react";
 import styled from "styled-components";
 import { Aura } from "@/components/aura/Aura";
 import { Eye } from "@/components/eye/Eye";
+import { useStage } from "@/motion/StageProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeName } from "@/theme/themes";
 import {
+  HERO_BACKDROP_HOLD_MS,
   HERO_DECODE_TIMEOUT_MS,
-  HERO_FADE_MS,
-  HERO_TRANSITION_MS,
+  HERO_HANDOFF_MS,
 } from "./hero.transition";
 
 type StackName = "eye" | "aura";
@@ -19,6 +26,17 @@ interface PendingEntry {
   readonly entering: StackName;
   readonly leaving: StackName;
   readonly token: number;
+  /*
+   * `true` cuando este montaje "pending" pertenece a un cambio de tema de
+   * USUARIO (spec S7.3): al resolver decode(), el efecto de la carrera de
+   * mas abajo NO puede pasar el stack a "active" por su cuenta -- tiene que
+   * esperar TAMBIEN al reloj del relevo (HERO_HANDOFF_MS, temporizador
+   * propio del efecto de deteccion de cambio de tema). `false` para la
+   * carga (montaje inicial o ajuste de hidratacion, spec S7.2): ahi decode()
+   * es la UNICA condicion, no hay ningun stack saliente VISIBLE del que
+   * despedirse ni ningun relevo que coordinar.
+   */
+  readonly needsHandoff: boolean;
 }
 
 // Luz -> Aura (fondo pastel), oscuro -> el ojo cosmico: la unica correspondencia
@@ -75,69 +93,46 @@ const ScBackdrop = styled.div`
 `;
 
 /*
- * Envoltorio del ojo: SOLO el, entre las piezas de este archivo, anima su
- * propia opacidad, y lo hace de forma UNIFORME, sin retardo por capa. No es
- * una simplificacion: es la unica opcion que funciona. ScLayer (eye.parts.tsx)
- * ya anima opacity con @keyframes (glowStrong/glowSoft, la respiracion de la
- * corona), y una animacion CSS y una transicion CSS sobre la MISMA propiedad
- * del MISMO elemento no conviven -- la animacion gana y la transicion NO
- * LLEGA A CREARSE (medido en navegador real: getAnimations() devuelve solo
- * la CSSAnimation, spec S6.2). Un transition-delay por capa en el ojo seria
- * codigo muerto sin ningun error que lo delatara. Por eso el fundido del ojo
- * vive aqui, en el UNICO elemento de ese stack que no compite con ninguna
- * animacion propia.
+ * Envoltorio del ojo: SOLO posicionamiento, igual que ScAuraStack (spec
+ * S6.4) -- ya NO anima su propia opacidad. ANTES de esta revision (2026-07-27)
+ * si lo hacia, y de forma UNIFORME, sin retardo por capa -- el motivo se deja
+ * documentado aqui porque explica una restriccion real del CSS, no una
+ * eleccion de estilo:
  *
- * El atributo data-state vive en ESTE MISMO elemento (lo escribe
- * HeroBackdrop mas abajo), asi que el selector es CALIFICADO
- * (&[data-state="..."]), no descendiente -- lo contrario que en
- * aura.parts.tsx, donde data-state vive en un ancestro de las piezas que lo
- * leen.
+ * ScLayer (eye.parts.tsx) YA animaba `opacity` con @keyframes
+ * (glowStrong/glowSoft, la respiracion de la corona), y una `transition` CSS
+ * sobre la MISMA propiedad del MISMO elemento que otra `@keyframes` NO llega
+ * a existir -- no es que pierda la carrera contra la animacion, el navegador
+ * ni siquiera la crea (medido: `getAnimations()` devolvia solo la
+ * CSSAnimation, ver task/lessons.md 2026-07-26). Un `transition-delay` por
+ * capa en el ojo habria sido codigo muerto sin ningun error que lo delatara,
+ * asi que el fundido de TODO el stack vivia aqui, en el UNICO elemento del
+ * ojo que no competia con ninguna animacion propia -- de ahi el fundido
+ * uniforme: este envoltorio no sabia nada de capas individuales, solo podia
+ * atenuar el conjunto entero a la vez.
  *
- * will-change: opacity SOLO durante "pending"/"leaving" (los dos extremos en
- * los que el fundido esta genuinamente en marcha o a punto de arrancar),
- * nunca en "active": ese estado puede durar indefinidamente -- todo el
- * tiempo que el usuario se quede en un tema -- y una capa de compositor
- * permanente sobre un elemento a pantalla completa es coste que nadie
- * libera (spec S6.2.1). La contrapartida, documentada con honestidad: la
- * transicion de fundido-ENTRADA se ejecuta mientras data-state ya vale
- * "active" (es el cambio a "active" lo que la dispara), asi que esta regla
- * no cubre el instante exacto de ESE fundido de entrada -- solo el de
- * salida y el instante de montaje. Cubrir tambien el tramo activo exigiria
- * un estado intermedio que este componente no modela.
+ * Esa restriccion se RESOLVIO, no se rodeo: `eyeStagger()` (eye.parts.tsx)
+ * declara el escalonado de cada capa como ANIMACION -- no como transicion --
+ * con la animacion del escalonado SIEMPRE la ULTIMA de la lista
+ * `animation-name`. Medido en Chromium (reloj conducido a mano via
+ * `Animation.currentTime`, spec S6.1 de la revision 2026-07-27, docblock de
+ * `eyeStagger`): dos animaciones CSS sobre la misma propiedad del mismo
+ * elemento SI conviven, y gana la ULTIMA de la lista -- asi que el glow
+ * sigue respirando encima del escalonado sin que ninguna de las dos se pise.
+ * Por eso el fundido bajo de este envoltorio a las capas: cada una escalona
+ * su propia opacidad, con su propio retardo, exactamente como ya hacia
+ * ScAuraStack con las capas de Aura (por `transition`, no por `animation`,
+ * porque Aura no tiene ningun glow con el que competir).
+ *
+ * El atributo data-state sigue viviendo en ESTE MISMO elemento (lo escribe
+ * HeroBackdrop mas abajo); las piezas del ojo lo leen con el selector
+ * DESCENDIENTE [data-state="..."] &, no calificado -- lo mismo que ya hacia
+ * aura.parts.tsx con ScAuraStack.
  */
 const ScEyeStack = styled.div`
   position: absolute;
   inset: 0;
-  opacity: 1;
 
-  &[data-state="pending"] {
-    opacity: 0;
-    transition: none;
-    will-change: opacity;
-  }
-
-  &[data-state="active"] {
-    opacity: 1;
-    transition: opacity ${HERO_FADE_MS}ms
-      ${({ theme }) => theme.data.motion.easing.decelerate};
-  }
-
-  &[data-state="leaving"] {
-    opacity: 0;
-    transition: opacity ${HERO_FADE_MS}ms
-      ${({ theme }) => theme.data.motion.easing.decelerate};
-    will-change: opacity;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &[data-state="active"],
-    &[data-state="leaving"] {
-      transition: none;
-    }
-  }
-
-  /* Mismo tratamiento que Hero.tsx (ScEye) le da hoy al ojo: este
-     envoltorio asume ese rol, asi que hereda tambien esta regla. */
   @media (forced-colors: active) {
     display: none;
   }
@@ -150,7 +145,8 @@ const ScEyeStack = styled.div`
  * [data-state="..."] & -- si este envoltorio TAMBIEN animara su opacidad, el
  * efecto compuesto seria el producto de las dos transiciones y la
  * coreografia se aplanaria en un unico fundido blando (spec S6.2.1, mismo
- * razonamiento que ScAuraSubject en aura.parts.tsx).
+ * razonamiento que ScAuraSubject en aura.parts.tsx, y el mismo que ahora
+ * aplica tambien a ScEyeStack, ver su comentario arriba).
  */
 const ScAuraStack = styled.div`
   position: absolute;
@@ -162,30 +158,70 @@ const ScAuraStack = styled.div`
 `;
 
 /**
- * Orquesta el cruce entre las dos composiciones de fondo del hero (spec
- * S6.1): Aura (tema claro) y el ojo cosmico (tema oscuro). Monta el stack
- * que corresponde al tema activo y, cuando el tema cambia, monta el
- * entrante en "pending", espera a que sus imagenes decodifiquen (o al tope
- * HERO_DECODE_TIMEOUT_MS, lo que llegue antes) mas un frame de margen,
- * lo pasa a "active" -- momento en el que el saliente pasa a "leaving" -- y
- * programa por TEMPORIZADOR (nunca por transitionend, que bajo
- * reduced-motion no llega a dispararse) el desmontaje del saliente a los
- * HERO_TRANSITION_MS.
+ * Orquesta el fondo del hero: las dos composiciones, Aura (tema claro) y el
+ * ojo cosmico (tema oscuro), montadas sobre la misma maquina de tres fases
+ * por stack (`pending -> active -> leaving`) que ahora sirve a DOS
+ * coreografias distintas (revision 2026-07-27, spec S7.2-S7.3):
+ *
+ * - **CARGA** (montaje inicial, y su ajuste de hidratacion): el stack que
+ *   corresponde al tema arranca en "pending", corre la carrera de
+ *   `img.decode()` contra `HERO_DECODE_TIMEOUT_MS` (mas el frame de margen
+ *   de `nextFrame()`), y al resolver pasa a "active" -- lo que dispara su
+ *   propio escalonado de entrada, por capa (eye.parts.tsx/aura.parts.tsx) --
+ *   y avisa UNA sola vez a `markBackdropRevealed()` (`useStage()`) para que
+ *   el navbar y la copia del hero arranquen la suya. No es una maquina
+ *   nueva: reutiliza `pendingEntry` y el mismo efecto de carrera que el
+ *   cambio de tema (spec S7.2) -- la diferencia es que el stack saliente,
+ *   sencillamente, no existe.
+ * - **CAMBIO DE TEMA** (de usuario): un RELEVO SECUENCIAL, no un cruce
+ *   solapado (spec S3 explica el porque: el `field` opaco de Aura entrando
+ *   por encima del ojo saliente taparia sus ultimos escalones antes de que
+ *   llegaran a apagarse, y la salida que pide el brief dejaria de verse). El
+ *   entrante se monta en "pending" en el instante del click; el saliente
+ *   sigue "active" hasta `HERO_BACKDROP_HOLD_MS` (cuando la copia, que se
+ *   apaga en t=0, ya no esta en pantalla) y entonces pasa a "leaving",
+ *   colapsando durante `HERO_STACK_MS` -- exactamente el intervalo hasta
+ *   `HERO_HANDOFF_MS`. El decode() del entrante corre EN PARALELO con ese
+ *   colapso. El entrante solo pasa a "active" -- momento en el que el
+ *   saliente se DESMONTA -- cuando se cumplen las DOS condiciones: el reloj
+ *   (`HERO_HANDOFF_MS`) Y el decode(); el MAXIMO de los dos, nunca solo uno
+ *   (`clockReadyRef`/`decodeReadyRef`, mas abajo).
+ *
+ * El token de ejecucion (`tokenRef`), la limpieza de TODOS los
+ * temporizadores en cada cambio de tema real y al desmontar, y el
+ * desmontaje/reactivacion nunca atados a `transitionend`/`animationend`
+ * (bajo `reduce` esos eventos no llegan a dispararse, task/lessons.md
+ * 2026-07-26) se conservan integros de la revision anterior y cubren
+ * tambien los dos temporizadores nuevos del relevo.
  *
  * Aura se monta SIEMPRE despues del ojo en el arbol: su capa `field` es
  * opaca, asi que es ella la que tiene que quedar encima para resolver el
- * cambio de lienzo sin animar background-color (spec S6.3), y eso vale en
- * los dos sentidos del cruce -- por eso el orden de montaje en el JSX no
- * depende de cual es el entrante.
+ * cambio de lienzo sin animar background-color, y eso vale en los dos
+ * sentidos del relevo -- por eso el orden de montaje en el JSX no depende de
+ * cual es el entrante.
  */
 export function HeroBackdrop(): ReactElement {
   const { themeName, changeSource } = useTheme();
+  const { markBackdropRevealed } = useStage();
   const rootRef = useRef<HTMLDivElement>(null);
 
+  // Carga (spec S7.2): el stack del tema con el que arranca `ThemeProvider`
+  // (siempre "light" en el primer render, nunca puede leer localStorage
+  // durante el render) se monta YA en "pending", no en "active" -- el
+  // pendingEntry inicial (mismo estado, mas abajo) dispara la MISMA carrera
+  // de decode() que usa un cambio de tema, sin ninguna maquina nueva.
   const [stacks, setStacks] = useState<Stacks>(() => ({
-    [stackFor(themeName)]: "active",
+    [stackFor(themeName)]: "pending",
   }));
-  const [pendingEntry, setPendingEntry] = useState<PendingEntry | null>(null);
+  const [pendingEntry, setPendingEntry] = useState<PendingEntry | null>(() => {
+    const entering = stackFor(themeName);
+    return {
+      entering,
+      leaving: otherStack(entering),
+      token: 0,
+      needsHandoff: false,
+    };
+  });
 
   const stacksRef = useRef(stacks);
   // Sincroniza DESPUES de cada render (sin dependencias), mismo patron que
@@ -197,46 +233,105 @@ export function HeroBackdrop(): ReactElement {
   });
 
   const prevThemeRef = useRef(themeName);
-
   const tokenRef = useRef(0);
-  const settleTimeoutRef = useRef<number | null>(null);
 
-  // Comparte el cierre del cruce entre las dos rutas que lo alcanzan: la
-  // reactivacion directa (el stack entrante ya estaba montado, viniendo de
-  // un cruce en marcha) y el asentamiento tras decodificar (efecto de mas
-  // abajo). Pasa "active" al entrante y, si el saliente sigue montado,
-  // "leaving"; programa su desmontaje a los HERO_TRANSITION_MS.
-  const finishCrossfade = (
+  // Idempotencia de markBackdropRevealed DESDE ESTE COMPONENTE (spec S7.1/
+  // S7.2): el proveedor ya es idempotente por su cuenta (StageProvider.tsx),
+  // pero esta ref evita llamarlo mas de una vez "por las buenas" -- solo la
+  // carga (montaje inicial o su ajuste de hidratacion) debe avisar, nunca un
+  // cambio de tema de usuario posterior (`finalizeHandoff`, mas abajo, no lo
+  // llama en absoluto).
+  const revealedRef = useRef(false);
+
+  // Las dos condiciones del relevo secuencial de un cambio de tema (spec
+  // S7.3): el reloj (HERO_HANDOFF_MS, temporizador propio) y el decode() del
+  // stack entrante (efecto de la carrera, mas abajo). El entrante solo pasa
+  // a "active" cuando las DOS son ciertas -- el MAXIMO de los dos, nunca
+  // antes. Se reinician a `false` al arrancar cada cruce nuevo (nunca en la
+  // reversion ni en la carga, que no los usan).
+  const clockReadyRef = useRef(false);
+  const decodeReadyRef = useRef(false);
+
+  // Los dos temporizadores propios del relevo secuencial. El antiguo
+  // "settleTimeoutRef" (que desmontaba el saliente despues de la duracion
+  // completa del escalonado de un stack, HERO_STACK_MS, tras activar el
+  // entrante) ya no existe: en el diseño secuencial el saliente se desmonta
+  // en el MISMO tick en que el entrante pasa a "active" (`finalizeHandoff`),
+  // sin ningun temporizador de gracia adicional -- ver su docblock para el
+  // porque.
+  const holdTimeoutRef = useRef<number | null>(null);
+  const handoffTimeoutRef = useRef<number | null>(null);
+
+  /*
+   * Cierra el tramo de la CARGA (montaje inicial o ajuste de hidratacion,
+   * spec S7.2): pasa el stack ENTRANTE a "active" -- lo que dispara su
+   * propio escalonado de entrada, por capa -- y, si es la PRIMERA vez que la
+   * carga revela el fondo, avisa a `markBackdropRevealed()` para que el
+   * navbar y la copia arranquen su propia entrada (spec S7.1/S7.4).
+   *
+   * Tolera que `leaving` no exista en `stacks` (`prev[leaving] !==
+   * undefined`): en la carga nunca hay un segundo stack VISIBLE que apagar,
+   * ni en el montaje inicial (el unico stack montado es el propio
+   * `entering`) ni en el ajuste de hidratacion (el pending viejo ya se
+   * sustituyo por completo antes de que este cierre llegue a ejecutarse, ver
+   * la rama `changeSource !== "user"` del efecto de deteccion, mas abajo).
+   * Se conserva la misma tolerancia que ya tenia el antiguo
+   * `finishCrossfade` de esta funcion, por si un llamador futuro SI pasa un
+   * `leaving` realmente montado.
+   *
+   * `useCallback` con `[markBackdropRevealed]`: es la UNICA dependencia
+   * reactiva real de esta funcion (`tokenRef`/`revealedRef` son refs,
+   * estables por garantia de React), y le da a `finishLoad` una identidad
+   * estable entre renders -- necesaria para poder declararla como
+   * dependencia del efecto de la carrera (mas abajo) sin que ese efecto se
+   * reprograme en cada render.
+   */
+  const finishLoad = useCallback(
+    (entering: StackName, leaving: StackName, myToken: number): void => {
+      if (tokenRef.current !== myToken) return;
+      setStacks((prev) => {
+        const next: Stacks = { ...prev, [entering]: "active" };
+        if (prev[leaving] !== undefined) next[leaving] = "leaving";
+        return next;
+      });
+      if (!revealedRef.current) {
+        revealedRef.current = true;
+        markBackdropRevealed();
+      }
+    },
+    [markBackdropRevealed],
+  );
+
+  /*
+   * Cierra el relevo secuencial de un cambio de tema de usuario (spec S3,
+   * S7.3): en el MISMO tick pasa el entrante a "active" -- dispara su
+   * floracion -- y DESMONTA el saliente. Sin temporizador de gracia (a
+   * diferencia del antiguo `finishCrossfade`): para cuando esto se llama, el
+   * saliente ya lleva colapsando desde `HERO_BACKDROP_HOLD_MS` y su propio
+   * escalonado de salida (por capa, con `fill: forwards`) ya termino de
+   * asentarse -- el reloj que programa la llamada a esta funcion
+   * (`HERO_HANDOFF_MS = HERO_BACKDROP_HOLD_MS + HERO_STACK_MS`) ES
+   * exactamente la duracion de ese colapso, asi que no hay nada mas que
+   * esperar. Nunca avisa a `markBackdropRevealed()`: un cambio de tema
+   * posterior a la carga no debe reiniciar el intro del navbar/copia (spec
+   * S7.1).
+   */
+  const finalizeHandoff = (
     entering: StackName,
     leaving: StackName,
     myToken: number,
   ): void => {
+    if (tokenRef.current !== myToken) return;
     setStacks((prev) => {
       const next: Stacks = { ...prev, [entering]: "active" };
-      if (prev[leaving] !== undefined) next[leaving] = "leaving";
+      delete next[leaving];
       return next;
     });
-
-    if (settleTimeoutRef.current !== null) {
-      window.clearTimeout(settleTimeoutRef.current);
-    }
-    settleTimeoutRef.current = window.setTimeout(() => {
-      settleTimeoutRef.current = null;
-      // Token de ejecucion: si un cruce mas nuevo arranco mientras este
-      // temporizador esperaba, este desmontaje ya no le corresponde --
-      // dos toggles rapidos no pueden dejar un stack huerfano, pero
-      // tampoco pueden pisarse el desmontaje el uno al otro.
-      if (tokenRef.current !== myToken) return;
-      setStacks((prev) => {
-        if (prev[leaving] === undefined) return prev;
-        const next = { ...prev };
-        delete next[leaving];
-        return next;
-      });
-    }, HERO_TRANSITION_MS);
   };
 
-  // Detecta un cambio de tema real (nunca el mount) y decide como cruzar.
+  // Detecta un cambio de tema real (nunca el mount) y decide como
+  // reaccionar: ajuste de hidratacion, reversion a mitad de un relevo, o
+  // relevo secuencial nuevo.
   useEffect(() => {
     if (prevThemeRef.current === themeName) return;
     prevThemeRef.current = themeName;
@@ -244,51 +339,143 @@ export function HeroBackdrop(): ReactElement {
     const entering = stackFor(themeName);
     const leaving = otherStack(entering);
 
-    // Cualquier cruce en marcha queda invalidado por este cambio de tema.
+    // Cualquier tramo en marcha (carga, hidratacion o relevo) queda
+    // invalidado por este cambio: se descarta cualquier decode() que
+    // resuelva tarde (via el token) y se cancelan los DOS temporizadores del
+    // relevo secuencial que pudieran estar en vuelo.
     tokenRef.current += 1;
     const myToken = tokenRef.current;
-    if (settleTimeoutRef.current !== null) {
-      window.clearTimeout(settleTimeoutRef.current);
-      settleTimeoutRef.current = null;
+    if (holdTimeoutRef.current !== null) {
+      window.clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
+    }
+    if (handoffTimeoutRef.current !== null) {
+      window.clearTimeout(handoffTimeoutRef.current);
+      handoffTimeoutRef.current = null;
     }
 
-    // El ajuste de hidratacion NO es un cruce. `ThemeProvider` arranca en
+    // El ajuste de hidratacion NO es un relevo. `ThemeProvider` arranca en
     // "light" (no puede leer localStorage durante el render sin romper el
     // export estatico) y se corrige en su propio efecto justo despues de
     // montar: eso se observa desde aqui como un cambio de tema, pero es la
-    // carga terminando de asentarse. Se aplica de golpe, sin pending/leaving
-    // (spec S6.1: en la primera carga no hay nada que cruzar y un fundido
-    // inicial seria un flash injustificado).
+    // CARGA terminando de asentarse con el tema correcto.
     //
     // El discriminante lo da el PROVEEDOR (`changeSource`), no un contador
-    // local de "primer cambio". Un contador falla justo en el caso mas comun:
-    // quien no tiene tema guardado no genera ningun ajuste de hidratacion, asi
-    // que su PRIMER toggle real se comeria el comodin y no animaria -- y ese
-    // toggle es exactamente el momento que esta coreografia existe para lucir.
+    // local de "primer cambio" (task/lessons.md 2026-07-26: quien no tiene
+    // tema guardado no genera ningun ajuste de hidratacion, asi que su
+    // PRIMER toggle real se comeria el comodin).
     if (changeSource !== "user") {
-      // El linter avisa de un setState sincrono dentro de un efecto, y en el
-      // caso general tiene razon: encadena renders. Aqui es justo lo que se
-      // quiere -- el ajuste de hidratacion tiene que aplicarse ANTES de que el
-      // navegador pinte, para que no se vea un frame con la composicion del
-      // tema equivocado. Mismo motivo por el que ThemeProvider.tsx lleva la
-      // misma excepcion, unas lineas mas arriba en el mismo flujo.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (stacksRef.current[leaving] === "active") {
+        // El pending original YA broto (el stack que este ajuste sustituye
+        // llego a "active"): la carga ya revelo el fondo y el navbar/copia
+        // ya arrancaron su entrada. No hay nada que la coreografia de carga
+        // deba proteger aqui -- se aplica de golpe, sin volver a pasar por
+        // "pending", igual que hacia esta rama antes de esta revision.
+        setStacks({ [entering]: "active" });
+        return;
+      }
+
+      // Caso general (medido en este repo: SIEMPRE, porque el ajuste de
+      // `ThemeProvider` llega en el MISMO flush de efectos sincronos que el
+      // montaje de HeroBackdrop, antes de que el decode() asincrono del
+      // pending original tenga ocasion de resolver -- ver el informe de la
+      // tarea D). Sustituye el stack pendiente ENTERO -- el viejo nunca
+      // llego a pintarse, asi que no hay nada que hacer fade-out -- y vuelve
+      // a correr la MISMA carrera de decode() (efecto de mas abajo),
+      // reutilizando `pendingEntry` en vez de anadir una maquina nueva
+      // (spec S7.2). `needsHandoff: false`: sigue siendo la carga
+      // asentandose, no un relevo.
+      setStacks({ [entering]: "pending" });
+      setPendingEntry({
+        entering,
+        leaving,
+        token: myToken,
+        needsHandoff: false,
+      });
+      return;
+    }
+
+    // A partir de aqui, SIEMPRE un cambio de tema de USUARIO.
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduced) {
+      // Spec S6.5/S7.3: bajo reduced-motion el cambio de tema es
+      // INSTANTANEO -- sin relevo, sin pending, sin ningun temporizador. Un
+      // relevo de HERO_HANDOFF_MS (1070ms) por temporizador no lo colapsa
+      // ningun media query: hay que leer la preferencia aqui, en JS,
+      // exactamente igual que `useHeroCopySwap` (hero.transition.ts).
       setStacks({ [entering]: "active" });
       return;
     }
 
     if (stacksRef.current[entering] !== undefined) {
-      // Reversion de un cruce en marcha: el stack que entra ya estaba
-      // montado (estaba "leaving") y ya paso su decodificacion la vez
-      // anterior. Forzar "pending" aqui lo apagaria a negro un instante de
-      // mas, un stack que seguia siendo visible -- se reactiva
-      // DIRECTAMENTE a "active".
-      finishCrossfade(entering, leaving, myToken);
+      // Reversion a mitad de camino (spec S7.3): el usuario vuelve al tema
+      // anterior antes de que el relevo (HERO_HANDOFF_MS) haya llegado. El
+      // stack que entra ahora ya estaba montado -- "active" si la reversion
+      // llega ANTES de HERO_BACKDROP_HOLD_MS (nunca llego a empezar a
+      // colapsar) o "leaving" si llega DESPUES (a medio colapsar) -- en los
+      // dos casos se reactiva DIRECTAMENTE a "active", sin pasar por
+      // "pending": ya era visible (o lo seguia siendo un instante antes),
+      // asi que forzarlo a invisible primero solo anadiria un parpadeo que
+      // el usuario no pidio.
+      //
+      // El OTRO stack (el que iba a entrar y esta reversion cancela) nunca
+      // llego a pasar de "pending" -- su decode() puede haber resuelto o no,
+      // da igual, el token ya lo invalido arriba -- asi que se ELIMINA
+      // directamente en vez de marcarlo "leaving": nunca estuvo a la vista,
+      // y aplicarle la animacion de salida (que arranca desde su propio
+      // `from: opacity 1`, spec S6.2) lo haria aparecer de golpe antes de
+      // desvanecerse -- un defecto que no tiene delante de si.
+      setStacks((prev) => {
+        const next: Stacks = { ...prev, [entering]: "active" };
+        delete next[leaving];
+        return next;
+      });
       return;
     }
 
+    // Relevo secuencial nuevo (spec S3, S7.3): el entrante se monta en
+    // "pending" YA -- su decode() arranca en paralelo con el colapso del
+    // saliente (spec S7.3, paso 2) -- pero el saliente sigue "active" hasta
+    // HERO_BACKDROP_HOLD_MS (cuando la copia, apagada desde t=0, ya no esta
+    // en pantalla) y el entrante no puede pasar a "active" antes de
+    // HERO_HANDOFF_MS, sea cual sea el resultado de decode().
     setStacks((prev) => ({ ...prev, [entering]: "pending" }));
-    setPendingEntry({ entering, leaving, token: myToken });
+    setPendingEntry({ entering, leaving, token: myToken, needsHandoff: true });
+
+    // Reinicia las dos condiciones del relevo para ESTE cruce -- si
+    // quedaran a `true` de un cruce anterior, el primero de los dos
+    // temporizadores/promesas de este cruce nuevo daria por cumplida una
+    // condicion que en realidad no se ha vuelto a comprobar.
+    clockReadyRef.current = false;
+    decodeReadyRef.current = false;
+
+    holdTimeoutRef.current = window.setTimeout(() => {
+      holdTimeoutRef.current = null;
+      if (tokenRef.current !== myToken) return;
+      setStacks((prev) => {
+        if (prev[leaving] === undefined) return prev;
+        return { ...prev, [leaving]: "leaving" };
+      });
+    }, HERO_BACKDROP_HOLD_MS);
+
+    handoffTimeoutRef.current = window.setTimeout(() => {
+      handoffTimeoutRef.current = null;
+      if (tokenRef.current !== myToken) return;
+      clockReadyRef.current = true;
+      // El relevo lo manda el RELOJ, no el decode() -- pero tampoco puede
+      // cerrarse si decode() TODAVIA no ha terminado (poco probable:
+      // HERO_DECODE_TIMEOUT_MS mas el margen de un frame, ~650ms, siempre
+      // cabe dentro de HERO_HANDOFF_MS, 1070ms -- pero la condicion se
+      // comprueba explicitamente en vez de asumirlo). Si decode() ya
+      // establecio su marca, este temporizador es el ULTIMO de los dos en
+      // llegar: cierra el relevo. Si no, el efecto de la carrera de mas
+      // abajo lo cerrara en cuanto decode() resuelva.
+      if (decodeReadyRef.current) {
+        finalizeHandoff(entering, leaving, myToken);
+      }
+    }, HERO_HANDOFF_MS);
     // `changeSource` va en las dependencias por exigencia del linter, no
     // porque pueda disparar el efecto por su cuenta: el proveedor lo cambia
     // SIEMPRE en el mismo lote que `themeName`, y si aun asi llegara solo, la
@@ -296,14 +483,14 @@ export function HeroBackdrop(): ReactElement {
     // ejecucion antes de tocar nada.
   }, [themeName, changeSource]);
 
-  // Arranca SOLO cuando hay un montaje "pending" genuinamente nuevo (fija
-  // la mecanica del paso 2 de la spec S6.1). Se dispara tras el commit que
-  // monta ese stack -- por eso puede consultar el DOM real de sus <img>: el
-  // efecto anterior ya dejo esas imagenes en el arbol antes de que este
-  // efecto llegue a ejecutarse.
+  // Arranca SOLO cuando hay un montaje "pending" genuinamente nuevo (carga o
+  // relevo, spec S7.2/S7.3). Se dispara tras el commit que monta ese stack
+  // -- por eso puede consultar el DOM real de sus <img>: el efecto anterior
+  // ya dejo esas imagenes en el arbol antes de que este efecto llegue a
+  // ejecutarse.
   useEffect(() => {
     if (!pendingEntry) return;
-    const { entering, leaving, token: myToken } = pendingEntry;
+    const { entering, leaving, token: myToken, needsHandoff } = pendingEntry;
     let cancelled = false;
 
     const run = async (): Promise<void> => {
@@ -318,9 +505,9 @@ export function HeroBackdrop(): ReactElement {
 
       // .catch() por si decode() rechaza a medias, Y una carrera contra
       // HERO_DECODE_TIMEOUT_MS por si no existe (jsdom) o no resuelve
-      // NUNCA: sin la carrera, una sola promesa colgada dejaria el tema
-      // anterior pegado en pantalla para siempre, sin lanzar ningun error
-      // que lo delatara (spec S6.1).
+      // NUNCA: sin la carrera, una sola promesa colgada dejaria el fondo
+      // pegado en "pending" para siempre, sin lanzar ningun error que lo
+      // delatara (spec S6.1).
       await Promise.race([
         Promise.all(
           imgs.map(
@@ -334,7 +521,26 @@ export function HeroBackdrop(): ReactElement {
       await nextFrame();
 
       if (cancelled || tokenRef.current !== myToken) return;
-      finishCrossfade(entering, leaving, myToken);
+
+      if (!needsHandoff) {
+        // Carga (montaje inicial o ajuste de hidratacion, spec S7.2):
+        // decode() es la UNICA condicion, no hay ningun reloj de relevo que
+        // esperar -- no hay ningun stack saliente VISIBLE del que
+        // despedirse.
+        finishLoad(entering, leaving, myToken);
+        return;
+      }
+
+      // Relevo de un cambio de tema de usuario (spec S7.3): decode() es
+      // SOLO una de las dos condiciones. Si el reloj (temporizador de
+      // HERO_HANDOFF_MS, en el efecto de deteccion de mas arriba) ya marco
+      // su llegada, este es el ULTIMO de los dos: cierra el relevo. Si no,
+      // deja constancia y espera -- el temporizador del reloj lo cerrara el
+      // cuando llegue.
+      decodeReadyRef.current = true;
+      if (clockReadyRef.current) {
+        finalizeHandoff(entering, leaving, myToken);
+      }
     };
 
     void run();
@@ -342,16 +548,27 @@ export function HeroBackdrop(): ReactElement {
     return () => {
       cancelled = true;
     };
-  }, [pendingEntry]);
+    // `finishLoad` entra en las dependencias por exigencia del linter (es la
+    // unica de las dos funciones de cierre con un valor reactivo real en su
+    // clausura, `markBackdropRevealed` -- ver su propio docblock): como su
+    // identidad es estable (`useCallback`), incluirla aqui no reprograma
+    // este efecto en cada render, solo cuando `markBackdropRevealed` cambia
+    // de verdad (nunca, en la practica: `useStage()` tambien la memoiza).
+    // `finalizeHandoff` NO necesita la misma declaracion: su clausura solo
+    // contiene refs y el setter de estado, ninguno de los dos reactivo.
+  }, [pendingEntry, finishLoad]);
 
-  // Limpieza al desmontar: el temporizador de desmontaje no debe sobrevivir
-  // a HeroBackdrop, y cualquier decode() en curso queda invalidado por el
+  // Limpieza al desmontar: ningun temporizador del relevo debe sobrevivir a
+  // HeroBackdrop, y cualquier decode() en curso queda invalidado por el
   // token para que su continuacion (si el navegador la resuelve tarde) no
   // toque un componente ya fuera del arbol.
   useEffect(() => {
     return () => {
-      if (settleTimeoutRef.current !== null) {
-        window.clearTimeout(settleTimeoutRef.current);
+      if (holdTimeoutRef.current !== null) {
+        window.clearTimeout(holdTimeoutRef.current);
+      }
+      if (handoffTimeoutRef.current !== null) {
+        window.clearTimeout(handoffTimeoutRef.current);
       }
       tokenRef.current += 1;
     };

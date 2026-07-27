@@ -9,6 +9,7 @@ import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageS
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { useScrolled } from "@/hooks/useScrolled";
+import { useStage } from "@/motion/StageProvider";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -25,6 +26,38 @@ import { useScrolled } from "@/hooks/useScrolled";
 // conseguir. Las secciones siguientes pasan por debajo al scrollear — para
 // eso está el cristal, y `scroll-margin-top` en GlobalStyles compensa los
 // saltos a anclas.
+/*
+ * Entrada del navbar en la carga (tarea C4, spec §7.4): `opacity` +
+ * `translateY(-8px) -> 0`, con `motion.duration.slow`/`easing.decelerate` --
+ * la escala de movimiento de la casa, no una constante propia de la
+ * coreografía del hero, porque esto ES una transición de interfaz normal
+ * (aparición de la barra), no parte de la coreografía en sí (mismo criterio
+ * que documenta HERO_CHROME_OFFSET_MS en hero.transition.ts).
+ *
+ * CONVIVENCIA con la `transition` que ScHeader YA declaraba (background-
+ * color/border-color/backdrop-filter, para el cristal de `data-scrolled`):
+ * se añaden `opacity`/`transform` como dos entradas MÁS de la misma
+ * propiedad `transition` (longhand con lista separada por comas), no se
+ * sustituye. `transition` acepta una lista de <duración, timing-function>
+ * por propiedad; no es el caso de la lección de `task/lessons.md` sobre
+ * `background: valor` en :hover (esa es una propiedad ABREVIADA que resetea
+ * sub-propiedades no mencionadas) -- aquí no hay abreviatura ni reseteo,
+ * cada propiedad listada anima con SU PROPIA duración/easing sin pisar a
+ * las demás.
+ *
+ * CONTEXTO DE APILAMIENTO: `position: fixed` + `z-index` distinto de `auto`
+ * YA crea un contexto de apilamiento en ScHeader por sí solo (spec CSS,
+ * independiente de `transform`); `z-index: stickyNav` sigue decidiendo el
+ * orden de ScHeader FRENTE A SUS HERMANOS (Hero y el resto de secciones) tal
+ * cual lo hacía antes de esta tarea. Añadir `transform` aquí NO cambia esa
+ * relación con el resto de la página: solo añade un contexto de apilamiento
+ * ANIDADO para los HIJOS de ScHeader (el logo, los CTA de la barra), que no
+ * tienen ningún z-index propio que necesite escapar de él. Verificado
+ * leyendo la especificación de contextos de apilamiento del CSS Positioned
+ * Layout Module: un elemento ya aislado por `position: fixed` + `z-index`
+ * no cambia su posición en el árbol de apilamiento del documento por ganar
+ * además una propiedad de `transform`.
+ */
 const ScHeader = styled.header`
   position: fixed;
   top: 0;
@@ -33,13 +66,19 @@ const ScHeader = styled.header`
   z-index: ${({ theme }) => theme.data.zIndex.stickyNav};
   background: transparent;
   border-bottom: 1px solid transparent;
+  opacity: 1;
+  transform: translateY(0);
   transition:
     background-color ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard},
     border-color ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard},
     backdrop-filter ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard};
+      ${({ theme }) => theme.data.motion.easing.standard},
+    opacity ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.decelerate},
+    transform ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.decelerate};
 
   &[data-scrolled="true"] {
     background: ${({ theme }) => theme.data.glass.bg};
@@ -53,8 +92,41 @@ const ScHeader = styled.header`
     border-bottom: ${({ theme }) => theme.data.glass.border};
   }
 
+  /*
+   * Estado ANTES de que la fase de página llegue a "chrome" (spec §7.4).
+   * SOLO opacity/transform (regla de movimiento de la casa): nunca
+   * display:none, visibility:hidden ni aria-hidden -- el navbar tiene que
+   * seguir en el orden de tabulación y visible para lectores de pantalla
+   * durante este tramo (ver el comentario de accesibilidad en Navbar(), más
+   * abajo). Un elemento con opacity 0 sigue siendo focalizable y anunciado;
+   * solo dejaría de leerse su contraste visual, y el tramo dura como mucho
+   * STAGE_FALLBACK_MS (~1.5s) antes de que la red de seguridad de
+   * StageProvider lo resuelva de todos modos.
+   */
+  &[data-intro="pending"] {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    /* Visible de inmediato, sin animación (spec §7.4): GlobalStyles colapsa
+       animation-duration pero esto es una transition, no una @keyframes --
+       con transition: none de la línea de arriba ya no hay ninguna
+       interpolación en marcha, pero el estado ESTÁTICO seguiría siendo
+       opacity 0 mientras la fase no llegara a "chrome" (que bajo
+       StageProvider en reduce sí llega directo a "settled", pero solo
+       DESPUÉS de un efecto -- hay un primer render, antes de ese efecto, en
+       el que la fase todavía es "backdrop"). Forzar aquí el estado final
+       por CSS, sin depender de en qué fase esté React todavía, cierra esa
+       ventana de raza sin necesitar ningún ajuste de timing en JS. */
+    opacity: 1;
+    transform: translateY(0);
+
+    &[data-intro="pending"] {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 `;
 
@@ -115,6 +187,25 @@ const ScActions = styled.div`
 
 export function Navbar(): ReactElement {
   const scrolled = useScrolled(8);
+  const { phase } = useStage();
+  // "pending" mientras la fase de página siga en "backdrop" (spec §7.4): el
+  // navbar entra en "chrome", a la vez que la copia del hero, no antes.
+  const introState = phase === "backdrop" ? "pending" : "in";
+
+  /*
+   * ACCESIBILIDAD durante el intro: `data-intro="pending"` SOLO anima
+   * `opacity`/`transform`. Nunca `display:none`, `visibility:hidden` ni
+   * `aria-hidden` -- con opacity 0 el elemento sigue en el árbol de
+   * accesibilidad, sigue en el orden de tabulación y un `Tab` durante el
+   * tramo de carga sigue moviendo el foco a sus controles con normalidad
+   * (verificado leyendo la especificación de accesibilidad de CSS opacity:
+   * a diferencia de `visibility`/`display`, `opacity` no altera ni el árbol
+   * de accesibilidad ni la secuencia de tabulación). El tramo es breve
+   * (como mucho STAGE_FALLBACK_MS, ~1.5s, y normalmente HERO_CHROME_OFFSET_MS,
+   * ~0.76s) y bajo `prefers-reduced-motion: reduce` no llega a producirse
+   * -- el CSS de ScHeader fuerza visible de inmediato en ese caso -- así que
+   * no hace falta ningún tratamiento adicional de foco.
+   */
 
   /*
    * (antes) barTheme forzaba basicDarkTheme mientras la barra era
@@ -151,7 +242,10 @@ export function Navbar(): ReactElement {
    */
 
   return (
-    <ScHeader data-scrolled={scrolled}>
+    <ScHeader
+      data-scrolled={scrolled}
+      data-intro={introState}
+    >
       <ScNav>
         <ScBrandLink href="/">
           <EyeCornerMark visible={scrolled} />

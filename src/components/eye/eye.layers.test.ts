@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { EYE_LAYERS, EYE_MASCOT_DEPTH, EYE_SURFACE } from "./eye.layers";
+import {
+  EYE_LAYERS,
+  EYE_MASCOT_DEPTH,
+  EYE_STAGGER,
+  EYE_SURFACE,
+} from "./eye.layers";
 import { parseOklch } from "@/theme/tokens/contrast";
 
 describe("eye.layers", () => {
@@ -37,5 +42,30 @@ describe("eye.layers", () => {
     // feathering.
     expect(EYE_LAYERS[0].additive).toBe(false);
     expect(EYE_LAYERS.slice(1).every((layer) => layer.additive)).toBe(true);
+  });
+
+  it("EYE_STAGGER escalona mascota -> fondo -> parpado -> nebulosa -> iris -> pupila, el orden exacto del encargo", () => {
+    // Cierra el contrato del escalonado de carga/cruce (tema oscuro): la
+    // mascota (sinonimo de "socket") va primero para que el lienzo negro y el
+    // Wormhole aparezcan y se apaguen juntos, y "pupil" (sinonimo de "scrim")
+    // va el ultimo porque el velo de contraste solo tiene sentido cuando ya
+    // hay copia encima que contrastar.
+    expect(EYE_STAGGER).toEqual([
+      "mascot",
+      "background",
+      "eyelid",
+      "nebula",
+      "iris",
+      "pupil",
+    ]);
+  });
+
+  it("los 5 ultimos escalones de EYE_STAGGER son exactamente el orden de EYE_LAYERS: el escalonado no puede divergir de la tabla de capas", () => {
+    // EYE_STAGGER = [mascota, ...EYE_LAYERS.part]: la mascota es la unica
+    // pieza que no es una entrada de EYE_LAYERS (la renderiza Sol/Wormhole,
+    // no un WebP), asi que el resto tiene que coincidir 1:1 con el orden de
+    // profundidad ya declarado ahi. Si alguien reordenara EYE_LAYERS sin
+    // tocar este array (o viceversa), este test lo detecta.
+    expect(EYE_STAGGER.slice(1)).toEqual(EYE_LAYERS.map((layer) => layer.part));
   });
 });

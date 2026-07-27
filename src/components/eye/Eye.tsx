@@ -97,6 +97,7 @@ export function Eye({ className }: EyeProps): ReactElement {
     <ScSocket
       className={className}
       aria-hidden="true"
+      data-part="socket"
       data-pulsing={pulsing ? "true" : undefined}
       onPointerDown={handlePulseStart}
     >

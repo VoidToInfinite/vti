@@ -1,22 +1,27 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { AURA_STAGGER } from "@/components/aura/aura.layers";
+import { EYE_STAGGER } from "@/components/eye/eye.layers";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeName } from "@/theme/themes";
 
 /**
- * Tiempos del cruce de fondos del hero (tarea C1, spec §5.3): cuánto tarda
- * el fundido de una capa, cuánto se retrasa cada escalón del stagger, y
- * cuánto se espera como máximo a que las imágenes entrantes decodifiquen
- * antes de arrancar la transición de todas formas.
+ * Tiempos del cruce de fondos del hero y de la coreografía de carga
+ * (revisión 2026-07-27, spec §5): cuánto tarda el fundido de una capa,
+ * cuánto se retrasa cada escalón del stagger, cuánto se espera como máximo a
+ * que las imágenes entrantes decodifiquen, y cómo se reparte el presupuesto
+ * entre el fondo, el navbar y la copia del hero.
  *
- * `AURA_STAGGER` (el ORDEN del escalonado: campo → mano izquierda → mano
- * derecha → energía → orbe) se importa de `aura.layers.ts` en vez de
- * declararse aquí: es la tabla de capas de Aura más el orbe, así que su
- * fuente natural es el módulo que ya describe esas capas (`aura.layers.ts`).
- * Este archivo solo añade los TIEMPOS —duración, paso, tope de espera—, que
- * `aura.parts.tsx` importa para calcular cada `transition-delay` (spec
- * §6.2.1) y que este mismo archivo usa para derivar `HERO_TRANSITION_MS`.
+ * Ahora hay DOS tablas de escalonado, una por composición —`EYE_STAGGER`
+ * (oscuro, `eye.layers.ts`) y `AURA_STAGGER` (claro, `aura.layers.ts`)— y
+ * ninguna de las dos se declara aquí: cada una es un dato de SU composición
+ * (qué capa va antes que cuál), así que su fuente natural es el módulo que
+ * ya describe esas capas, no este. Este archivo solo añade los TIEMPOS
+ * —duración, paso, tope de espera— que se aplican por igual a cualquier
+ * orden, y los deriva `HERO_STACK_MS` de la tabla más LARGA de las dos (6
+ * escalones en oscuro contra 5 en claro): el presupuesto de la coreografía
+ * tiene que caber la composición que más escalones necesita, o el tema
+ * oscuro se quedaría sin tiempo para su último paso.
  *
  * ## Por qué estos números NO salen de `theme.data.motion.duration`
  *
@@ -57,36 +62,6 @@ export const HERO_STEP_MS = 110;
 export const HERO_DECODE_TIMEOUT_MS = 600;
 
 /**
- * Duración total del cruce: el último escalón (índice
- * `AURA_STAGGER.length - 1`) arranca a `(length - 1) * HERO_STEP_MS` y tarda
- * `HERO_FADE_MS` en completarse. `HeroBackdrop` programa por este valor el
- * temporizador que desmonta el stack saliente (420 + 4×110 = 860 ms).
- */
-export const HERO_TRANSITION_MS =
-  HERO_FADE_MS + (AURA_STAGGER.length - 1) * HERO_STEP_MS;
-
-/**
- * Cuánto sigue la copia con su aspecto VIEJO antes de empezar a apagarse.
- *
- * No es una pausa estética: sin ella la copia queda ilegible durante ~300 ms.
- * El fondo tarda `HERO_FADE_MS` en cambiar de lienzo (el campo de Aura es el
- * escalón 0, sin retardo), así que a los 100 ms va por menos de la cuarta
- * parte. Si la copia cambiara de paleta ahí, pintaría texto oscuro sobre un
- * fondo que sigue siendo casi negro —o texto claro sobre pastel al volver—
- * hasta que el fondo la alcanzara.
- *
- * Con 240 ms de espera, la copia se apaga (100 ms) y aplica la distribución
- * nueva a los **340 ms**, cuando el campo ya está por encima del 80 % de
- * opacidad: entra sobre el fondo al que pertenece. Queda asentada a los
- * 660 ms, holgadamente dentro de los `HERO_TRANSITION_MS` del fondo.
- *
- * La alternativa —ocultar la copia desde `t = 0` hasta que el fondo terminara—
- * dejaba el bloque de texto en blanco medio segundo, que es peor: el usuario
- * ve desaparecer el contenido, no cambiar el tema.
- */
-export const HERO_COPY_HOLD_MS = 240;
-
-/**
  * Duración del fundido de SALIDA de la copia del hero (tarea C2, spec §6.5):
  * el tramo en el que el bloque de texto se apaga a opacidad 0 con la
  * distribución VIEJA todavía aplicada. Igual a `motion.duration.fast`
@@ -106,6 +81,96 @@ export const HERO_COPY_OUT_MS = 100;
  */
 export const HERO_COPY_IN_MS = 320;
 
+/**
+ * Nº de escalones del stagger más largo de las dos composiciones: 6 en
+ * oscuro (`EYE_STAGGER`) contra 5 en claro (`AURA_STAGGER`). Se calcula con
+ * `Math.max` sobre las dos longitudes, en vez de escribir `6` a mano, porque
+ * el número no es un dato propio de este archivo — es un derivado de dos
+ * tablas que viven en otros dos módulos, y un literal se desincroniza en
+ * silencio el día que cualquiera de las dos gane o pierda un escalón.
+ *
+ * Resuelve a 6 (`EYE_STAGGER.length`).
+ */
+export const HERO_STAGGER_STEPS = Math.max(
+  EYE_STAGGER.length,
+  AURA_STAGGER.length,
+);
+
+/**
+ * Duración total de UN stack escalonándose (entrando o saliendo): el último
+ * escalón (índice `HERO_STAGGER_STEPS - 1`) arranca a `(HERO_STAGGER_STEPS -
+ * 1) * HERO_STEP_MS` y tarda `HERO_FADE_MS` en completarse. Se deriva del
+ * stagger MÁS LARGO (`HERO_STAGGER_STEPS`), no del de la composición activa
+ * en cada caso, porque este valor programa temporizadores compartidos por
+ * las dos composiciones (`HeroBackdrop` desmonta el stack saliente con él,
+ * sea cual sea el tema): si se derivara del stagger corto, el escalonado de
+ * 6 pasos del ojo se quedaría sin los últimos 110 ms de margen.
+ *
+ * Resuelve a 970 (420 + 5×110), antes 860 (420 + 4×110) cuando solo existía
+ * `AURA_STAGGER` de 5 pasos.
+ */
+export const HERO_STACK_MS =
+  HERO_FADE_MS + (HERO_STAGGER_STEPS - 1) * HERO_STEP_MS;
+
+/**
+ * Cuánto sigue el fondo saliente con su estado `"active"` después de que la
+ * copia ya se ha apagado, antes de empezar a colapsar hacia `"leaving"`
+ * (spec §7.3). Es EXACTAMENTE `HERO_COPY_OUT_MS`: el relevo secuencial no
+ * arranca hasta que la copia —la primera pieza en desaparecer, spec §1— ya
+ * es invisible, ni un instante antes (se vería el fondo moverse con texto
+ * todavía encima) ni uno después (retrasaría el resto de la coreografía sin
+ * ganar nada). Resuelve a 100.
+ */
+export const HERO_BACKDROP_HOLD_MS = HERO_COPY_OUT_MS;
+
+/**
+ * Instante, medido desde el click que cambia el tema, en el que el fondo
+ * saliente ha terminado de colapsar y el entrante puede pasar a `"active"`
+ * (spec §3, §7.3): la espera de `HERO_BACKDROP_HOLD_MS` más el tiempo que
+ * tarda el stack saliente en escalonarse por completo. El cruce es
+ * SECUENCIAL —el entrante no arranca hasta que el saliente ha terminado— por
+ * la razón que documenta la spec §3: con los dos stacks solapados, el
+ * `field` opaco de Aura entrando taparía los últimos escalones del ojo
+ * saliente antes de que llegaran a apagarse. Resuelve a 1070 (100 + 970).
+ */
+export const HERO_HANDOFF_MS = HERO_BACKDROP_HOLD_MS + HERO_STACK_MS;
+
+/**
+ * Instante, medido desde el ARRANQUE de un stack (carga o entrada de un
+ * cruce), en el que su ÚLTIMO escalón va por la mitad de su propio fundido:
+ * `(HERO_STAGGER_STEPS - 1) * HERO_STEP_MS` para llegar al arranque de ese
+ * escalón, más `HERO_FADE_MS / 2` para llegar a su punto medio. El navbar y
+ * la copia usan este offset —no el final del stack— para empezar a entrar:
+ * así terminan de asentarse DESPUÉS de la última capa (spec §1: «al final el
+ * navbar y los textos»), sin dejar medio segundo de interfaz en blanco
+ * esperando a que el fondo termine del todo. Resuelve a 760 (550 + 210).
+ */
+export const HERO_CHROME_OFFSET_MS =
+  (HERO_STAGGER_STEPS - 1) * HERO_STEP_MS + HERO_FADE_MS / 2;
+
+/**
+ * Instante, medido desde el click que cambia el tema, en el que la copia
+ * empieza a volver a mostrarse: el navbar ya se ha asentado
+ * (`HERO_HANDOFF_MS`, cuando el stack entrante pasa a `"active"`, más
+ * `HERO_CHROME_OFFSET_MS`, el mismo offset que usan el navbar y la copia de
+ * la carga para no esperar al final exacto del stack). Resuelve a 1830
+ * (1070 + 760).
+ *
+ * Este valor sustituye por completo al papel que hacía `HERO_COPY_HOLD_MS`
+ * (eliminada en esta revisión): aquella constante existía para que la copia
+ * no repintara con la paleta nueva mientras el fondo seguía siendo el viejo,
+ * dejando pasar 240 ms antes de apagarse. En el diseño secuencial de esta
+ * revisión, la copia se apaga en `t = 0` — no espera nada, es la PRIMERA
+ * pieza en desaparecer (spec §1) — y ese mismo papel de «no repintar sobre
+ * el fondo equivocado» lo cumple ahora `HERO_COPY_RETURN_MS`: la copia solo
+ * vuelve a mostrarse (y solo entonces aplica la distribución nueva) cuando
+ * el fondo nuevo ya lleva un buen tramo asentado, nunca antes. Mantener
+ * `HERO_COPY_HOLD_MS` a `0` en vez de borrarla habría sido deuda muerta: una
+ * constante que ningún cálculo necesita y que solo invita a que alguien
+ * vuelva a darle un valor sin entender por qué se puso a cero.
+ */
+export const HERO_COPY_RETURN_MS = HERO_HANDOFF_MS + HERO_CHROME_OFFSET_MS;
+
 export interface HeroCopySwap {
   /**
    * Distribución que debe pintar la copia AHORA mismo. NO es necesariamente
@@ -123,18 +188,22 @@ export interface HeroCopySwap {
 /**
  * Cruza la distribución de la copia del hero por OPACIDAD, nunca
  * interpolando `text-align`/`align-items` (spec §6.5): esas dos propiedades
- * provocan un re-wrap que no se puede animar, y cambiarlas en `t = 0` —
- * cuando el fondo todavía es el del tema anterior— produciría un destello de
- * texto en la paleta contraria sobre el fondo viejo (oscuro sobre negro, o
- * claro sobre pastel a medio decodificar).
+ * provocan un re-wrap que no se puede animar, y cambiarlas mientras la copia
+ * sigue visible produciría un destello de texto en la paleta contraria sobre
+ * el fondo que le corresponde (oscuro sobre negro, o claro sobre pastel a
+ * medio decodificar).
  *
- * Comportamiento (spec §6.5):
- * - Cambio de USUARIO (`changeSource === "user"`): la copia mantiene su
- *   aspecto viejo durante `HERO_COPY_HOLD_MS` mientras el fondo arranca;
- *   entonces se oculta (`hidden = true`) y, a los `HERO_COPY_OUT_MS`, aplica
- *   la distribución nueva (todavía invisible) y vuelve a mostrarse. La espera
- *   inicial es lo que evita que el texto entre con la paleta nueva sobre un
- *   fondo que todavía es el viejo — ver el docblock de `HERO_COPY_HOLD_MS`.
+ * Comportamiento (revisión 2026-07-27, spec §1/§7.4 — la copia es la
+ * PRIMERA pieza en desaparecer y la ÚLTIMA en volver, no la intermedia):
+ * - Cambio de USUARIO (`changeSource === "user"`): DOS estados, UN
+ *   temporizador. En `t = 0` la copia se oculta INMEDIATAMENTE
+ *   (`hidden = true`), sin ninguna espera previa — ya no hay un tramo en el
+ *   que siga visible con su aspecto viejo, porque el brief exige que los
+ *   textos sean lo primero en irse. En `HERO_COPY_RETURN_MS` aplica la
+ *   distribución nueva (todavía invisible) y vuelve a mostrarse
+ *   (`hidden = false`) en el mismo tick: para entonces el fondo nuevo ya
+ *   lleva un buen tramo asentado (ver el docblock de `HERO_COPY_RETURN_MS`),
+ *   así que no hay destello de paleta equivocada.
  * - Cambio de hidratación o carga inicial: la distribución sigue al tema al
  *   instante, sin ocultar nunca la copia — mismo criterio que usa
  *   `HeroBackdrop.tsx` para no animar el ajuste de hidratación.
@@ -180,18 +249,19 @@ export function useHeroCopySwap(): HeroCopySwap {
       return;
     }
 
-    // Tres tramos encadenados: espera con el aspecto viejo -> apagado ->
-    // aplicar la distribucion nueva y volver. El segundo temporizador se
-    // guarda en la MISMA ref que el primero, asi que un segundo cambio de tema
-    // cancela el que este pendiente sea cual sea el tramo en curso.
+    // Cambio de USUARIO: la copia se oculta YA, sin esperar nada — es la
+    // primera pieza en desaparecer (spec §1).
+    setHidden(true);
+
+    // UN solo temporizador (antes eran dos encadenados: espera -> apagado):
+    // ya no hay tramo de espera previa, así que solo queda el de vuelta.
+    // Se guarda en la MISMA ref de siempre para que un segundo cambio de
+    // tema lo cancele, sea cual sea el punto del recorrido en el que esté.
     timeoutRef.current = window.setTimeout(() => {
-      setHidden(true);
-      timeoutRef.current = window.setTimeout(() => {
-        timeoutRef.current = null;
-        setLayoutTheme(themeName);
-        setHidden(false);
-      }, HERO_COPY_OUT_MS);
-    }, HERO_COPY_HOLD_MS);
+      timeoutRef.current = null;
+      setLayoutTheme(themeName);
+      setHidden(false);
+    }, HERO_COPY_RETURN_MS);
   }, [themeName, changeSource]);
 
   // Limpieza al desmontar: el temporizador pendiente no debe sobrevivir al

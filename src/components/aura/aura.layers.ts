@@ -244,39 +244,60 @@ export const AURA_ORB_SIZE = "28.3%";
 export const AURA_ORB_DEPTH = 0.8;
 
 /**
- * Orden EXACTO del escalonado de entrada/salida que pide el encargo (tarea
- * C1, spec §6.2/§6.2.1): campo → mano izquierda → mano derecha → energía →
- * orbe (`Sol`). El ÍNDICE de cada parte en este array ES el escalón del
+ * Orden EXACTO del escalonado de entrada/salida que pide el encargo (tema
+ * claro; revisión 2026-07-27, spec §1/§4.2): Sol primero, después las capas
+ * de Aura en el orden en que el brief las enumera («las capas de Aura y las
+ * manos»), las manos al final — `orb → field → energy → handLeft →
+ * handRight`. El ÍNDICE de cada parte en este array ES el escalón del
  * stagger — `aura.parts.tsx` lo multiplica por `HERO_STEP_MS`
  * (`hero.transition.ts`) para calcular el `transition-delay` de cada capa,
- * y `HERO_TRANSITION_MS` se deriva de su longitud.
+ * y `HERO_STAGGER_STEPS`/`HERO_STACK_MS` se derivan de su longitud junto con
+ * la de `EYE_STAGGER`.
  *
- * NO se toca en la revisión 2026-07-27 pese a que `AURA_LAYERS` reordenó sus
- * entradas (spec §15.3): este array vive desacoplado de aquel a propósito
- * (`auraStep()` en `aura.parts.tsx` busca por nombre de `data-part`, no por
- * posición), así que el orden de REVELADO del cruce de temas no tiene por
- * qué coincidir con el orden de PINTADO estático — y en este caso no
- * coincide, cada uno responde a un requisito distinto (la coreografía del
- * encargo original, la fidelidad de la recomposición medida).
+ * El orden ANTERIOR a esta revisión (`field → handLeft → handRight →
+ * energy → orb`) obedecía a otro encargo, previo al brief citado arriba, que
+ * no fijaba una lectura de "primero Sol". El de ahora lo fija el brief
+ * literal, no una preferencia estética: Sol es la mascota central de la
+ * composición clara —el equivalente del Wormhole en oscuro—, así que tiene
+ * que ser el escalón 0 exactamente por el mismo motivo que `mascot` lo es en
+ * `EYE_STAGGER` (ver su docblock en `eye.layers.ts`): con la fórmula de
+ * retardo de salida en reverso (`(length - 1 - i) * HERO_STEP_MS`, que
+ * `auraStagger()` ya implementa y no cambia), el escalón 0 recibe el
+ * retardo MAYOR y es el último en apagarse — exactamente lo que exige el
+ * brief («por último Sol»).
+ *
+ * Este array sigue vivo DESACOPLADO de `AURA_LAYERS` (orden de PINTADO,
+ * reordenado también en esta misma revisión por un motivo distinto — spec
+ * §15.3, ver el docblock de esa tabla): `auraStep()` en `aura.parts.tsx`
+ * busca por nombre de `data-part`, no por posición en este array, así que
+ * los dos órdenes pueden divergir sin que ninguno rompa al otro. De hecho
+ * divergen: el orden de revelado antepone `field` a `energy`, mientras que
+ * el orden de pintado tiene a `energy` justo detrás de `field` también —
+ * coincidencia parcial, no un acoplamiento real; `aura.layers.test.ts` lo
+ * verifica por conjunto (mismos `part` que `AURA_LAYERS` más `"orb"`, sin
+ * importar el orden) precisamente para dejar constancia de que el ORDEN de
+ * revelado es un dato distinto del de pintado.
  *
  * Vive aquí, junto a `AURA_LAYERS`, y no en `hero.transition.ts` (donde el
  * primer borrador de la spec lo dibujaba como `HERO_STAGGER`): el orden es
  * un dato de LA COMPOSICIÓN —la tabla de sus capas más el orbe—, no de la
  * coreografía temporal, así que su fuente natural es este archivo;
- * `hero.transition.ts` lo IMPORTA para calcular `HERO_TRANSITION_MS`, en vez
- * de duplicar la lista y arriesgarse a que las dos copias diverjan.
+ * `hero.transition.ts` lo IMPORTA para derivar sus constantes de tiempo, en
+ * vez de duplicar la lista y arriesgarse a que las dos copias diverjan.
  *
  * `"base"` (el rectángulo de `AURA_SURFACE` que se ve antes de que el WebP
  * de `field` termine de decodificar) NO aparece en este array: comparte
- * escalón con `"field"` por definición (spec §6.2.1, "el escalón 0 son DOS
+ * escalón con `"field"` por definición (spec §6.2.1, "el escalón son DOS
  * elementos con el mismo retardo") porque son el mismo instante visual, así
  * que quien busca el índice de `"base"` lo resuelve tratándolo como
- * sinónimo de `"field"` en vez de duplicar la entrada.
+ * sinónimo de `"field"` en vez de duplicar la entrada. Igual ocurre con
+ * `"foot"` (el degradado violeta del pie), sinónimo de `"field"` sin cambios
+ * respecto a la revisión anterior.
  */
 export const AURA_STAGGER = [
+  "orb",
   "field",
+  "energy",
   "handLeft",
   "handRight",
-  "energy",
-  "orb",
 ] as const;

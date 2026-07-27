@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import {
+  renderWithProviders,
+  screen,
+  type RenderResult,
+} from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import enHome from "@/i18n/locales/en/home.json";
 import { AURA_SURFACE } from "@/components/aura/aura.layers";
@@ -11,6 +15,7 @@ import { color } from "@/theme/tokens/color";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
 import { type as typeTokens } from "@/theme/tokens/type";
+import { StageProvider } from "@/motion/StageProvider";
 import { Hero } from "./Hero";
 
 /**
@@ -27,6 +32,27 @@ function stubMatchMedia(): void {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     })),
+  );
+}
+
+/*
+ * `Hero` consume `useStage()` (tarea C5): sin un `StageProvider` en el
+ * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
+ * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
+ * localmente, mismo patron que Navbar.test.tsx/Hero.test.tsx.
+ *
+ * Ninguno de los casos de este archivo mide la opacidad de la copia ni del
+ * navbar (miden color, fontSize, contraste, existencia de reglas CSS, altura
+ * del pie...): la fase de pagina se queda en "backdrop" a secas, sin forzar
+ * "chrome" con la sonda de markBackdropRevealed() -- no hace falta, porque
+ * nada de lo que se asevera aqui depende de que el intro de la copia haya
+ * arrancado.
+ */
+function renderHero(): RenderResult {
+  return renderWithProviders(
+    <StageProvider>
+      <Hero />
+    </StageProvider>,
   );
 }
 
@@ -105,7 +131,7 @@ describe("Hero (lente funcional)", () => {
     // el propio Hero.tsx, no se corrige a la escala. La asercion de
     // line-height SIGUE leyendo el token (B2 no la toca).
     window.localStorage.setItem("vti-theme", "dark");
-    const { container } = renderWithProviders(<Hero />);
+    const { container } = renderHero();
     const titulo = container.querySelector(
       '[data-testid="hero-title"]',
     ) as HTMLElement;
@@ -122,7 +148,7 @@ describe("Hero (lente funcional)", () => {
     // El factor mas bajo es un pedido explicito del usuario, no una medida:
     // en claro la copia comparte ancho con el marco del arte (spec S3.6) y
     // queda limitada a min(prose, 40%), mas estrecha que en oscuro.
-    const { container } = renderWithProviders(<Hero />);
+    const { container } = renderHero();
     const titulo = container.querySelector(
       '[data-testid="hero-title"]',
     ) as HTMLElement;
@@ -136,7 +162,7 @@ describe("Hero (lente funcional)", () => {
   });
 
   it("el subtitulo usa el clamp literal del usuario, no el token h3", () => {
-    const { container } = renderWithProviders(<Hero />);
+    const { container } = renderHero();
     const subtitulo = container.querySelector(
       '[data-testid="hero-subtitle"]',
     ) as HTMLElement;
@@ -147,7 +173,7 @@ describe("Hero (lente funcional)", () => {
   });
 
   it("el titulo del hero sigue siendo un unico <h1> con el texto exacto 'VoidToInfinite'", () => {
-    const { container } = renderWithProviders(<Hero />);
+    const { container } = renderHero();
     const encabezados = container.querySelectorAll("h1");
     expect(encabezados).toHaveLength(1);
     expect(encabezados[0].textContent).toBe("VoidToInfinite");
@@ -161,14 +187,14 @@ describe("Hero (lente funcional)", () => {
    */
   it("el kicker computa el color de marca del tema oscuro (pagina en oscuro)", () => {
     window.localStorage.setItem("vti-theme", "dark");
-    renderWithProviders(<Hero />);
+    renderHero();
     expect(getComputedStyle(screen.getByTestId("hero-kicker")).color).toBe(
       semanticDark.brandText,
     );
   });
 
   it("el kicker computa el color de marca del tema claro (pagina en claro, por defecto)", () => {
-    renderWithProviders(<Hero />);
+    renderHero();
     expect(getComputedStyle(screen.getByTestId("hero-kicker")).color).toBe(
       semanticLight.brandText,
     );
@@ -215,7 +241,7 @@ describe("Hero (lente funcional)", () => {
       await i18n.changeLanguage("en");
     });
     try {
-      renderWithProviders(<Hero />);
+      renderHero();
       expect(screen.getByTestId("hero-kicker")).toHaveTextContent(
         enHome.Home.hero.kicker,
       );
@@ -235,7 +261,7 @@ describe("Hero (lente funcional)", () => {
   it("bajo prefers-reduced-motion el bloque de copia no anima", () => {
     // `getComputedStyle` de jsdom no evalua `@media`, pero el CSS inyectado si
     // es inspeccionable: se asevera que la regla EXISTE.
-    const { container } = renderWithProviders(<Hero />);
+    const { container } = renderHero();
     const copia = (
       container.querySelector('[data-testid="hero-kicker"]') as HTMLElement
     ).parentElement as HTMLElement;
@@ -250,7 +276,7 @@ describe("Hero (lente funcional)", () => {
   it("el pie del hero mide space[8] y cierra exactamente en el negro del lienzo", () => {
     // El test existente solo asevera aria-hidden, textContent y pointer-events:
     // la mitad superior de la rampa (4rem) no estaba atornillada.
-    renderWithProviders(<Hero />);
+    renderHero();
     const pie = screen.getByTestId("hero-foot");
     const estilo = getComputedStyle(pie);
 
@@ -269,7 +295,7 @@ describe("Hero (lente funcional)", () => {
     // opacidad -- eso solo aplica en claro (ver el siguiente test) -- asi
     // que sigue siendo 100% estatico.
     window.localStorage.setItem("vti-theme", "dark");
-    renderWithProviders(<Hero />);
+    renderHero();
     const css = reglasDe(screen.getByTestId("hero-foot")).join("\n");
 
     expect(css).not.toContain("transition");
@@ -281,7 +307,7 @@ describe("Hero (lente funcional)", () => {
     // degradado siguen siendo CSS estatico (ver el test de arriba, que
     // comparten literal), pero ahora hay una transicion de `opacity`
     // deliberada -- lo que no debe aparecer nunca es una animacion.
-    renderWithProviders(<Hero />); // por defecto: claro (sin localStorage)
+    renderHero(); // por defecto: claro (sin localStorage)
     const css = reglasDe(screen.getByTestId("hero-foot")).join("\n");
 
     expect(css).toContain("transition");
@@ -290,7 +316,7 @@ describe("Hero (lente funcional)", () => {
   });
 
   it("el pie oscuro del hero se apaga por opacidad en tema claro", () => {
-    renderWithProviders(<Hero />); // por defecto: claro (sin localStorage)
+    renderHero(); // por defecto: claro (sin localStorage)
     expect(getComputedStyle(screen.getByTestId("hero-foot")).opacity).toBe("0");
   });
 
@@ -301,7 +327,7 @@ describe("Hero (lente funcional)", () => {
     // para mix-blend-mode en Aura.test.tsx); el `||` compensa esa
     // diferencia de entorno sin escribir un string a mano.
     window.localStorage.setItem("vti-theme", "dark");
-    renderWithProviders(<Hero />);
+    renderHero();
     const opacity =
       getComputedStyle(screen.getByTestId("hero-foot")).opacity || "1";
     expect(opacity).toBe("1");
@@ -345,7 +371,7 @@ describe("Hero (lente funcional)", () => {
     });
 
     it("renderiza los dos CTA como enlaces (forwardedAs preserva la logica de Button, a diferencia de as)", () => {
-      renderWithProviders(<Hero />);
+      renderHero();
       const acciones = screen.getByTestId("hero-actions");
       const enlaces = acciones.querySelectorAll("a");
       expect(enlaces).toHaveLength(2);

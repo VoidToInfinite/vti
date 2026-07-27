@@ -140,3 +140,57 @@ export const EYE_PUPIL_SIZE = "20%";
  * ata a la tabla de capas para que no puedan divergir.
  */
 export const EYE_MASCOT_DEPTH = 0.85;
+
+/**
+ * Orden EXACTO del escalonado de aparición/desaparición del ojo (tema
+ * oscuro) que pide el encargo (spec §1, §4.1): mascota → fondo → párpado →
+ * nebulosa → iris → pupila. El ÍNDICE de cada pieza en este array ES su
+ * escalón — tanto en la carga («como si se mostrase desde el fondo, como una
+ * aparición») como en el cruce de temas, donde el retardo de salida se cuenta
+ * en reverso contra esta misma longitud (`retardoSalida(i) = (length - 1 -
+ * i) * HERO_STEP_MS`, la misma fórmula que ya usa `auraStagger()`). Con esa
+ * fórmula, `mascot` (escalón 0) recibe el retardo MAYOR y es la última en
+ * apagarse — exactamente lo que exige el brief («por último el Wormhole»).
+ *
+ * Dos sinónimos comparten escalón y NO ocupan entrada propia — cada uno es,
+ * en su extremo del array, el MISMO instante visual que la pieza junto a la
+ * que se lista, no una pieza adicional:
+ * - `"socket"` ≡ `"mascot"` (escalón 0). El lienzo negro (`ScSocket`) es el
+ *   vacío en el que aparece el Wormhole/Sol: tiene que estar presente
+ *   EXACTAMENTE cuando la mascota lo está, y cerrarse con ella al salir —
+ *   una mascota flotando sobre un pozo que llegara antes o se fuera después
+ *   rompería la ilusión de que emerge DE ahí.
+ * - `"scrim"` ≡ `"pupil"` (escalón 5, el último). El velo de contraste
+ *   (`ScScrim`) existe únicamente para sostener la legibilidad de la copia
+ *   del hero, que por diseño llega DESPUÉS de que todas las capas hayan
+ *   terminado de asentarse (spec §5.2, `HERO_CHROME_OFFSET_MS`): revelarlo
+ *   antes solo oscurecería un lienzo que ya es negro, sin ningún texto al
+ *   que dar contraste todavía.
+ *
+ * Por qué vive AQUÍ y no en `hero.transition.ts`: mismo razonamiento que ya
+ * documenta `AURA_STAGGER` en `aura.layers.ts` — el orden es un dato de ESTA
+ * composición (qué capa va antes que cuál), mientras que `hero.transition.ts`
+ * solo aporta los tiempos (duración de un fundido, paso entre escalones) que
+ * se aplican por igual a cualquier orden. Duplicar el array en el módulo de
+ * tiempos arriesgaría que las dos copias divergieran en el primer retoque;
+ * importarlo desde allí (como ya hace con `AURA_STAGGER`) lo evita.
+ *
+ * Por qué el orden coincide con el de `EYE_LAYERS` (salvo por la mascota, que
+ * no es una entrada de esa tabla): el brief pide que el ojo se muestre «desde
+ * el fondo, como una aparición», y `EYE_LAYERS` YA está ordenado por
+ * profundidad de atrás a delante (`background` en 0 hasta `pupil` en 0.85,
+ * spec §7, ver el test "las capas van de atras a delante" en
+ * `eye.layers.test.ts`). Reutilizar ese mismo orden para el escalonado es la
+ * lectura literal del brief, no una elección adicional: el fondo revelándose
+ * antes que el iris ES la aparición «desde el fondo». `eye.layers.test.ts`
+ * ata los cinco últimos escalones de este array a `EYE_LAYERS.map(l =>
+ * l.part)` para que no puedan divergir sin que el test lo note.
+ */
+export const EYE_STAGGER = [
+  "mascot",
+  "background",
+  "eyelid",
+  "nebula",
+  "iris",
+  "pupil",
+] as const;

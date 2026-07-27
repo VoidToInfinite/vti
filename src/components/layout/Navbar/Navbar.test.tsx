@@ -1,8 +1,110 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { useEffect, type ReactElement } from "react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  renderWithProviders,
+  screen,
+  type RenderResult,
+} from "@/test/test-utils";
 import { act } from "@testing-library/react";
 import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
+import { StageProvider, useStage } from "@/motion/StageProvider";
+import { HERO_CHROME_OFFSET_MS } from "@/components/sections/Hero/hero.transition";
 import { Navbar } from "./Navbar";
+
+/**
+ * `StageProvider` llama a `window.matchMedia` de verdad en un efecto de
+ * montaje (lee `prefers-reduced-motion`); jsdom no lo implementa. Mismo stub
+ * minimo que ya usan Hero.test.tsx/hero.transition.test.tsx/
+ * HeroBackdrop.test.tsx para el mismo motivo -- necesario en ESTE archivo
+ * desde que `Navbar` pasa a depender de `useStage()` (tarea C4), aunque
+ * ningun otro componente de este arbol lo llamara antes.
+ */
+function stubMatchMedia(reducedMatches = false): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("prefers-reduced-motion")
+        ? reducedMatches
+        : false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+/*
+ * `Navbar` consume `useStage()` (tarea C4): sin un `StageProvider` en el
+ * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
+ * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
+ * localmente, en vez de modificar su firma. `StageProvider` no necesita
+ * ThemeProvider en el arbol para funcionar en los tests (deriva
+ * STAGE_CHROME_DURATION_MS del token de movimiento crudo, no de
+ * `useTheme()`, ver stage.ts), pero SI lo necesita para no lanzar `useStage`
+ * fuera de contexto -- montarlo aqui, dentro de `renderWithProviders`,
+ * reproduce el mismo orden que `app/providers.tsx` (StageProvider DENTRO de
+ * ThemeProvider).
+ */
+function renderNavbar(): RenderResult {
+  return renderWithProviders(
+    <StageProvider>
+      <Navbar />
+    </StageProvider>,
+  );
+}
+
+/**
+ * Fuerza la fase de pagina a "chrome" (spec §7.4, tarea C6): monta un
+ * componente sonda que llama a `markBackdropRevealed()` en su primer efecto
+ * -- el mismo gancho que en produccion usa `HeroBackdrop` cuando su stack
+ * pasa a "active" -- y avanza el reloj falso exactamente
+ * `HERO_CHROME_OFFSET_MS`, la CONSTANTE importada que StageProvider usa para
+ * programar la transicion (nunca un literal escrito a mano). Requiere
+ * `vi.useFakeTimers()` activo en el test que la llama.
+ */
+function RevealBackdrop(): ReactElement | null {
+  const { markBackdropRevealed } = useStage();
+  useEffect(() => {
+    markBackdropRevealed();
+  }, [markBackdropRevealed]);
+  return null;
+}
+
+function renderNavbarInChrome(): RenderResult {
+  const result = renderWithProviders(
+    <StageProvider>
+      <RevealBackdrop />
+      <Navbar />
+    </StageProvider>,
+  );
+  act(() => {
+    vi.advanceTimersByTime(HERO_CHROME_OFFSET_MS);
+  });
+  return result;
+}
+
+/** Texto CSS de todas las reglas inyectadas por styled-components, planas
+ *  (incluidas las anidadas dentro de @media): mismo patron que Eye.test.tsx
+ *  para leer el bloque de prefers-reduced-motion, que getComputedStyle no
+ *  puede reproducir sin conducir el reloj de animaciones a mano. */
+function allCssRules(): string[] {
+  const reglas: string[] = [];
+  const walk = (rules: CSSRuleList): void => {
+    Array.from(rules).forEach((rule) => {
+      reglas.push(rule.cssText);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) walk(anidadas);
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return reglas;
+}
 
 // Dispara el estado `scrolled` del hook `useScrolled(8)` igual que el resto
 // de la suite (ver los `it` de arriba): mismo patron, extraido para no
@@ -31,6 +133,7 @@ describe("Navbar", () => {
     // mismo fichero (mismo razonamiento que Eye.test.tsx, necesario ahora que
     // hay tests que alternan light/dark en la misma suite).
     window.localStorage.clear();
+    stubMatchMedia();
   });
 
   afterEach(() => {
@@ -41,15 +144,16 @@ describe("Navbar", () => {
       configurable: true,
     });
     window.localStorage.clear();
+    vi.unstubAllGlobals();
   });
 
   it("expone el landmark de navegación", () => {
-    renderWithProviders(<Navbar />);
+    renderNavbar();
     expect(screen.getByRole("navigation")).toBeInTheDocument();
   });
 
   it("arranca sin estado scrolled", () => {
-    renderWithProviders(<Navbar />);
+    renderNavbar();
     expect(screen.getByRole("banner")).toHaveAttribute(
       "data-scrolled",
       "false",
@@ -57,7 +161,7 @@ describe("Navbar", () => {
   });
 
   it("pasa a data-scrolled='true' cuando scrollY supera el offset de 8px", () => {
-    renderWithProviders(<Navbar />);
+    renderNavbar();
     const header = screen.getByRole("banner");
 
     // Verificar estado inicial
@@ -77,7 +181,7 @@ describe("Navbar", () => {
   });
 
   it("vuelve a data-scrolled='false' cuando scrollY retorna a 0", () => {
-    renderWithProviders(<Navbar />);
+    renderNavbar();
     const header = screen.getByRole("banner");
 
     // Subir scroll
@@ -104,7 +208,7 @@ describe("Navbar", () => {
   });
 
   it("renderiza el enlace de marca", () => {
-    renderWithProviders(<Navbar />);
+    renderNavbar();
     const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
     expect(brandLink).toBeInTheDocument();
     expect(brandLink).toHaveAttribute("href", "/");
@@ -115,7 +219,7 @@ describe("Navbar", () => {
     // ScBrandLink en Navbar.tsx no lo detecta ningun test (el de arriba solo
     // mira nombre accesible y href). Mismo patron ya usado en
     // Sol.test.tsx ("dibuja el atomo Logo compartido...") y en Wormhole.test.tsx.
-    const { container } = renderWithProviders(<Navbar />);
+    const { container } = renderNavbar();
     const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
     const logo = brandLink.querySelector('svg[viewBox="0 7.5 500 550"]');
 
@@ -155,7 +259,7 @@ describe("Navbar", () => {
 
     it("tema claro + sin scroll: hereda el texto claro, no el blanco forzado", () => {
       window.localStorage.setItem("vti-theme", "light");
-      const { container } = renderWithProviders(<Navbar />);
+      const { container } = renderNavbar();
 
       expect(screen.getByRole("banner")).toHaveAttribute(
         "data-scrolled",
@@ -166,7 +270,7 @@ describe("Navbar", () => {
 
     it("tema claro + con scroll: sigue heredando el texto claro", () => {
       window.localStorage.setItem("vti-theme", "light");
-      const { container } = renderWithProviders(<Navbar />);
+      const { container } = renderNavbar();
 
       scrollPast();
 
@@ -179,7 +283,7 @@ describe("Navbar", () => {
 
     it("tema oscuro + sin scroll: hereda el texto oscuro", () => {
       window.localStorage.setItem("vti-theme", "dark");
-      const { container } = renderWithProviders(<Navbar />);
+      const { container } = renderNavbar();
 
       expect(screen.getByRole("banner")).toHaveAttribute(
         "data-scrolled",
@@ -190,7 +294,7 @@ describe("Navbar", () => {
 
     it("tema oscuro + con scroll: sigue heredando el texto oscuro", () => {
       window.localStorage.setItem("vti-theme", "dark");
-      const { container } = renderWithProviders(<Navbar />);
+      const { container } = renderNavbar();
 
       scrollPast();
 
@@ -203,7 +307,7 @@ describe("Navbar", () => {
   });
 
   it("renderiza el selector de idioma", () => {
-    renderWithProviders(<Navbar />);
+    renderNavbar();
     // El selector de idioma se expone como botones de idioma individual
     const spanishButton = screen.getByRole("button", { name: /Español/i });
     const englishButton = screen.getByRole("button", { name: /English/i });
@@ -212,7 +316,7 @@ describe("Navbar", () => {
   });
 
   it("renderiza el toggle de tema", () => {
-    renderWithProviders(<Navbar />);
+    renderNavbar();
     // El toggle de tema se expone como un botón con aria-label
     const themeToggle = screen.getByRole("button", { name: /Cambiar a tema/i });
     expect(themeToggle).toBeInTheDocument();
@@ -222,7 +326,7 @@ describe("Navbar", () => {
     // Test de integración: sin esto, un `visible={true}` hardcodeado por error
     // en el cableado pasaría desapercibido — los tests de EyeCornerMark lo
     // cubren aislado y los de Navbar no lo miraban.
-    const { container } = renderWithProviders(<Navbar />);
+    const { container } = renderNavbar();
     const mark = (): Element | null =>
       container.querySelector("[data-visible]");
 
@@ -249,5 +353,63 @@ describe("Navbar", () => {
     });
 
     expect(mark()).toHaveAttribute("data-visible", "false");
+  });
+
+  describe("entrada del navbar en la carga (data-intro, tarea C4/C6)", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      act(() => {
+        vi.runOnlyPendingTimers();
+      });
+      vi.useRealTimers();
+    });
+
+    it("arranca con data-intro='pending' mientras la fase de pagina sigue en 'backdrop'", () => {
+      renderNavbar();
+      expect(screen.getByRole("banner")).toHaveAttribute(
+        "data-intro",
+        "pending",
+      );
+    });
+
+    it("pasa a data-intro='in' cuando el fondo del hero avisa (fase 'chrome')", () => {
+      renderNavbarInChrome();
+      expect(screen.getByRole("banner")).toHaveAttribute("data-intro", "in");
+    });
+
+    it("sigue siendo focalizable durante el intro: opacity 0 no saca el navbar del orden de tabulacion", () => {
+      // Regresion que este test previene: si el intro se hiciera con
+      // `display: none`/`visibility: hidden`/`aria-hidden`, el boton
+      // dejaria de ser focalizable mientras "pending" -- opacity, la unica
+      // propiedad que usa el intro, no tiene ese efecto (spec: accesibilidad
+      // durante opacity 0, ver el comentario de Navbar()).
+      renderNavbar();
+      expect(screen.getByRole("banner")).toHaveAttribute(
+        "data-intro",
+        "pending",
+      );
+
+      const themeToggle = screen.getByRole("button", {
+        name: /Cambiar a tema/i,
+      });
+      themeToggle.focus();
+      expect(document.activeElement).toBe(themeToggle);
+    });
+
+    it("existe el bloque prefers-reduced-motion: reduce que fuerza visible de inmediato en los dos estados de data-intro", () => {
+      renderNavbar();
+      const reglas = allCssRules();
+
+      const bloqueReduce = reglas.filter(
+        (regla) =>
+          regla.includes("@media (prefers-reduced-motion: reduce)") &&
+          regla.includes('[data-intro="pending"]') &&
+          regla.includes("opacity: 1"),
+      );
+      expect(bloqueReduce.length).toBeGreaterThan(0);
+    });
   });
 });

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   AURA_LAYERS,
   AURA_ORB_DEPTH,
+  AURA_STAGGER,
   AURA_SURFACE,
   AURA_ASPECT,
 } from "./aura.layers";
@@ -99,5 +100,29 @@ describe("aura.layers", () => {
 
   it("AURA_ASPECT es la misma relacion de aspecto del lienzo que EYE_ASPECT: mismo tamano de origen", () => {
     expect(AURA_ASPECT).toBe("1672 / 941");
+  });
+
+  it("AURA_STAGGER escalona orbe -> campo -> energia -> mano izquierda -> mano derecha, el orden exacto del encargo (revision 2026-07-27)", () => {
+    // Cierra el contrato del escalonado de revelado (tema claro): Sol
+    // (el orbe) va primero, tal y como pide el brief, y las manos van al
+    // final -- el mismo orden en que el brief las enumera.
+    expect(AURA_STAGGER).toEqual([
+      "orb",
+      "field",
+      "energy",
+      "handLeft",
+      "handRight",
+    ]);
+  });
+
+  it("AURA_STAGGER contiene exactamente los part de AURA_LAYERS mas 'orb': el orden de REVELADO es distinto del de PINTADO", () => {
+    // No basta con comparar longitudes: este test ata el CONJUNTO (sin
+    // importar el orden) para que el escalonado no pueda perder ni ganar una
+    // pieza respecto a la tabla de pintado + el orbe, aunque los DOS ordenes
+    // (revelado aqui, pintado en AURA_LAYERS) sigan siendo legitimamente
+    // distintos -- auraStep() busca por nombre de data-part, no por
+    // posicion, asi que no tienen por que coincidir.
+    const paintedParts = AURA_LAYERS.map((layer) => layer.part);
+    expect(new Set(AURA_STAGGER)).toEqual(new Set([...paintedParts, "orb"]));
   });
 });

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen, fireEvent } from "@/test/test-utils";
+import { HERO_STEP_MS } from "@/components/sections/Hero/hero.transition";
 import { Eye } from "./Eye";
-import { EYE_LAYERS } from "./eye.layers";
+import { EYE_LAYERS, EYE_STAGGER } from "./eye.layers";
 
 /**
  * Mock minimo de `matchMedia`. `usePointer` (consumido por `Eye`) llama a
@@ -211,5 +212,259 @@ describe("Eye", () => {
     // Se puede repetir: un segundo click vuelve a marcar el pulso.
     fireEvent.pointerDown(socket);
     expect(socket).toHaveAttribute("data-pulsing", "true");
+  });
+});
+
+/**
+ * Escalonado de carga/cruce de temas del ojo (tarea B4, spec S4.1/S6.1-S6.2).
+ * Bateria separada de la de arriba: monta <Eye/> con y sin un ancestro
+ * [data-state], que es lo que las piezas del ojo leen via el selector
+ * DESCENDIENTE [data-state="..."] & (eye.parts.tsx, funcion eyeStagger).
+ *
+ * Todas las piezas escalonadas ("socket", cada `layer.part` de EYE_LAYERS,
+ * "mascot" y "scrim") se localizan por su atributo data-part, que Eye.tsx ya
+ * escribe en las cinco capas, la mascota y el velo -- y ahora tambien en el
+ * lienzo (tarea B3).
+ */
+describe("Eye (escalonado de carga/cruce de temas)", () => {
+  const ALL_PARTS = [
+    "socket",
+    ...EYE_LAYERS.map((layer) => layer.part),
+    "mascot",
+    "scrim",
+  ];
+
+  beforeEach(() => {
+    stubMatchMedia(false);
+    window.localStorage.clear();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  function partEl(container: HTMLElement, part: string): HTMLElement {
+    return container.querySelector(`[data-part="${part}"]`) as HTMLElement;
+  }
+
+  /**
+   * `animationDelay` computado puede ser una lista separada por comas cuando
+   * la pieza tiene glow (p.ej. "0s,440ms": el glow no lleva retardo, el
+   * escalonado si) -- medido en este entorno (jsdom + styled-components v6):
+   * al declarar las propiedades como LONGHAND (no como la abreviatura
+   * `animation`), `getComputedStyle` SI las resuelve, listas incluidas
+   * (comprobado tambien para `animationName` y `animationFillMode`, ver los
+   * tests de mas abajo) -- a diferencia de la abreviatura, que la leccion de
+   * 2026-07-25 documenta que jsdom no expande. La entrada del escalonado va
+   * SIEMPRE la ULTIMA de la lista (spec S6.1), asi que basta leer el ULTIMO
+   * valor para comparar el retardo del escalonado en piezas con y sin glow
+   * por igual.
+   */
+  function staggerDelay(el: HTMLElement): string {
+    const delay = getComputedStyle(el).animationDelay;
+    return delay.split(",").pop()?.trim() ?? delay;
+  }
+
+  it("sin ancestro [data-state], todas las piezas (incluidos socket y scrim) se ven a opacidad 1", () => {
+    // Candado central del defecto: Eye.test.tsx (arriba) monta <Eye/> fuera
+    // de cualquier backdrop, exactamente asi, y tiene que verse normal -- si
+    // el defecto de eyeStagger fuera opacity: 0, TODO el ojo desaparaceria
+    // sin que ningun test existente lo notase.
+    const { container } = renderWithProviders(<Eye />);
+    for (const part of ALL_PARTS) {
+      expect(getComputedStyle(partEl(container, part)).opacity).toBe("1");
+    }
+  });
+
+  it('con un ancestro [data-state="active"], el animationDelay de cada pieza sigue EYE_STAGGER (incluidos los sinonimos)', () => {
+    const { container } = renderWithProviders(
+      <div data-state="active">
+        <Eye />
+      </div>,
+    );
+
+    for (const part of EYE_STAGGER) {
+      const step = EYE_STAGGER.indexOf(part);
+      expect(staggerDelay(partEl(container, part))).toBe(
+        `${step * HERO_STEP_MS}ms`,
+      );
+    }
+
+    // Sinonimos (spec S4.1): "socket" comparte escalon con "mascot" (el
+    // primero, 0), "scrim" con "pupil" (el ultimo).
+    expect(staggerDelay(partEl(container, "socket"))).toBe(
+      staggerDelay(partEl(container, "mascot")),
+    );
+    expect(staggerDelay(partEl(container, "scrim"))).toBe(
+      staggerDelay(partEl(container, "pupil")),
+    );
+  });
+
+  it('con un ancestro [data-state="leaving"], el retardo se invierte y mascot/socket reciben el MAYOR (los ultimos en apagarse)', () => {
+    const { container } = renderWithProviders(
+      <div data-state="leaving">
+        <Eye />
+      </div>,
+    );
+    const total = EYE_STAGGER.length;
+
+    for (const part of EYE_STAGGER) {
+      const step = EYE_STAGGER.indexOf(part);
+      expect(staggerDelay(partEl(container, part))).toBe(
+        `${(total - 1 - step) * HERO_STEP_MS}ms`,
+      );
+    }
+
+    // El requisito central del brief: mascot/socket (escalon 0) reciben el
+    // retardo MAYOR de toda la tabla -- son los ULTIMOS en apagarse.
+    const mayorRetardo = `${(total - 1) * HERO_STEP_MS}ms`;
+    expect(staggerDelay(partEl(container, "mascot"))).toBe(mayorRetardo);
+    expect(staggerDelay(partEl(container, "socket"))).toBe(mayorRetardo);
+  });
+
+  it("las capas con glow (iris, pupil) declaran DOS animaciones, con la del escalonado SIEMPRE la ultima de la lista", () => {
+    // Medido empiricamente en este entorno (jsdom + styled-components v6):
+    // al declarar `animation-name`/`animation-fill-mode` como longhand (no
+    // como la abreviatura `animation`), `getComputedStyle` SI devuelve la
+    // lista completa separada por comas -- no hizo falta caer a
+    // `document.styleSheets` (patron de Hero.qa.test.tsx/aura.parts.test.tsx)
+    // para esta asercion en concreto.
+    const { container } = renderWithProviders(
+      <div data-state="active">
+        <Eye />
+      </div>,
+    );
+
+    // "eyelid" no tiene glow: su animationName activo es UN solo nombre, el
+    // del escalonado (heroEyeIn). Las capas CON glow lo referencian como su
+    // segunda entrada -- mismo hash, porque es el MISMO keyframe -- asi que
+    // comparar contra el nombre de una capa sin glow evita depender de un
+    // hash interno de styled-components escrito a mano.
+    const nombreEscalonadoSolo = getComputedStyle(
+      partEl(container, "eyelid"),
+    ).animationName;
+
+    for (const part of ["iris", "pupil"]) {
+      const el = partEl(container, part);
+      const nombres = getComputedStyle(el).animationName.split(",");
+      expect(nombres).toHaveLength(2);
+      expect(nombres[1]).toBe(nombreEscalonadoSolo);
+
+      // fill-mode: el glow (primera entrada) no necesita sostener nada
+      // ("none", su valor inicial); el escalonado (ultima) sostiene el
+      // fotograma `from` durante su retardo ("backwards").
+      const fillModes = getComputedStyle(el).animationFillMode.split(",");
+      expect(fillModes).toHaveLength(2);
+      expect(fillModes[1]).toBe("backwards");
+    }
+  });
+
+  it('con [data-state="leaving"], las capas con glow sostienen el fill forwards en la entrada del escalonado', () => {
+    const { container } = renderWithProviders(
+      <div data-state="leaving">
+        <Eye />
+      </div>,
+    );
+
+    for (const part of ["iris", "pupil"]) {
+      const fillModes = getComputedStyle(
+        partEl(container, part),
+      ).animationFillMode.split(",");
+      expect(fillModes).toHaveLength(2);
+      // La salida sostiene el opacity: 0 final CONTRA la animacion infinita
+      // del glow (spec S6.1: medido, "forwards" gana la pugna).
+      expect(fillModes[1]).toBe("forwards");
+    }
+  });
+
+  it("existe el bloque prefers-reduced-motion: reduce con animation: none para los tres estados", () => {
+    // GlobalStyles.tsx colapsa animation-duration a 0.001ms bajo reduce pero
+    // NO toca animation-delay (spec S6.5): sin este guard, una pieza con
+    // 550ms de retardo y fill: backwards quedaria invisible medio segundo y
+    // luego aparaceria de golpe. createGlobalStyle no inyecta nada bajo
+    // jsdom+vitest (leccion 2026-07-25), pero ESTE guard vive en un
+    // styled.* normal (ScLayer/ScSocket/etc via eyeStagger), que si inyecta
+    // sus reglas -- se puede leer directamente del CSSOM.
+    renderWithProviders(<Eye />);
+
+    const reglas: string[] = [];
+    const walk = (rules: CSSRuleList): void => {
+      Array.from(rules).forEach((rule) => {
+        reglas.push(rule.cssText);
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) walk(anidadas);
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+
+    const bloqueReduce = reglas.filter(
+      (regla) =>
+        regla.includes("@media (prefers-reduced-motion: reduce)") &&
+        regla.includes('[data-state="active"]') &&
+        regla.includes('[data-state="leaving"]') &&
+        regla.includes('[data-state="pending"]') &&
+        regla.includes("animation: none") &&
+        regla.includes("opacity: 1"),
+    );
+    expect(bloqueReduce.length).toBeGreaterThan(0);
+  });
+
+  /** Todas las reglas inyectadas, incluidas las anidadas dentro de @media. */
+  function todasLasReglas(): string[] {
+    const out: string[] = [];
+    const walk = (rules: CSSRuleList): void => {
+      Array.from(rules).forEach((rule) => {
+        out.push(rule.cssText);
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) walk(anidadas);
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return out;
+  }
+
+  /** Reglas cuyo selector menciona alguna de las clases del elemento. */
+  function reglasDe(el: HTMLElement): string[] {
+    const clases = Array.from(el.classList);
+    return todasLasReglas().filter((texto) =>
+      clases.some((cls) => texto.includes(`.${cls}`)),
+    );
+  }
+
+  it("el guard AMBIENTAL de reduce (sin ancestro [data-state]) apaga la respiracion de la corona en un <Eye/> montado suelto", () => {
+    // eyeStagger declara DOS guards de reduce distintos (ver su docblock en
+    // eye.parts.tsx): uno AMBIENTAL, incondicional, que apaga glowStrong/
+    // glowSoft cuando NO hay ningun ancestro [data-state] (el caso de este
+    // test, exactamente como lo monta Eye.test.tsx sin backdrop); y tres
+    // calificados por [data-state="..."] que solo entran en juego dentro de
+    // HeroBackdrop. Sin el ambiental, la respiracion de la corona seguiria
+    // encendida bajo reduced-motion en cualquier <Eye/> montado suelto -- ese
+    // es el bug que este candado cierra. Se distingue del bloque calificado
+    // buscando un bloque de reduce cuyo selector NO contenga "[data-state":
+    // una asercion que solo comprobara "existe algun bloque de reduce"
+    // pasaria igual aunque el guard ambiental desapareciera, porque el
+    // bloque calificado (ya cubierto por el test de arriba) seguiria ahi.
+    const { container } = renderWithProviders(<Eye />);
+    const iris = partEl(container, "iris");
+
+    const bloquesReduce = reglasDe(iris).filter((regla) =>
+      regla.includes("@media (prefers-reduced-motion: reduce)"),
+    );
+    expect(bloquesReduce.length).toBeGreaterThan(0);
+
+    const bloqueAmbiental = bloquesReduce.find(
+      (regla) => !regla.includes("[data-state"),
+    );
+    expect(bloqueAmbiental).toBeDefined();
+    expect(bloqueAmbiental).toContain("animation: none");
   });
 });

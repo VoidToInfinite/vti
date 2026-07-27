@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent } from "@testing-library/react";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import {
+  renderWithProviders,
+  screen,
+  type RenderResult,
+} from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
+import { StageProvider } from "@/motion/StageProvider";
 import HomePage from "./page";
 
 /*
@@ -59,9 +64,28 @@ function testId(container: HTMLElement, id: string): HTMLElement {
   return el as HTMLElement;
 }
 
+/*
+ * `HomePage` monta `Navbar` y `Hero`, los dos consumidores de `useStage()`
+ * (tareas C4/C5): sin un `StageProvider` en el arbol, el hook lanza.
+ * `renderWithProviders` (test-utils.tsx) es un helper COMPARTIDO con otros
+ * flujos y no se toca (CLAUDE.md §9): se envuelve aqui, localmente, mismo
+ * patron que Navbar.test.tsx/Hero.test.tsx. Ninguno de los casos de este
+ * archivo mide opacidad del navbar/copia -- el boton de idioma sigue siendo
+ * clickeable en fase "backdrop" (opacity 0 no lo saca del arbol ni lo
+ * deshabilita, ver el comentario de accesibilidad en Navbar.tsx) -- asi que
+ * basta con el proveedor a secas, sin forzar "chrome".
+ */
+function renderHomePage(): RenderResult {
+  return renderWithProviders(
+    <StageProvider>
+      <HomePage />
+    </StageProvider>,
+  );
+}
+
 describe("Home (pagina completa)", () => {
   it("tiene UN solo h1 en toda la pagina y precede al primer h2", () => {
-    const { container } = renderWithProviders(<HomePage />);
+    const { container } = renderHomePage();
 
     const h1s = container.querySelectorAll("h1");
     expect(h1s).toHaveLength(1);
@@ -78,7 +102,7 @@ describe("Home (pagina completa)", () => {
   });
 
   it("el ancla del CTA secundario del hero tiene destino real en la pagina", () => {
-    const { container } = renderWithProviders(<HomePage />);
+    const { container } = renderHomePage();
 
     const cta = testId(container, "hero-actions").querySelectorAll("a")[1];
     const href = cta.getAttribute("href") ?? "";
@@ -93,7 +117,7 @@ describe("Home (pagina completa)", () => {
   });
 
   it("cambiar el idioma desde la barra reescribe los tres escalones del hero", async () => {
-    const { container } = renderWithProviders(<HomePage />);
+    const { container } = renderHomePage();
 
     expect(testId(container, "hero-kicker")).toHaveTextContent(
       esHome.Home.hero.kicker,
@@ -126,7 +150,7 @@ describe("Home (pagina completa)", () => {
    */
   it("con el tema de pagina en OSCURO (real), la copia del hero y la de Story conservan la paleta oscura", () => {
     window.localStorage.setItem("vti-theme", "dark");
-    const { container } = renderWithProviders(<HomePage />);
+    const { container } = renderHomePage();
 
     const subtitulo = testId(container, "hero-subtitle");
     const tituloStory = container.querySelector<HTMLElement>("#story-title");
@@ -139,7 +163,7 @@ describe("Home (pagina completa)", () => {
   });
 
   it("con el tema de pagina en CLARO (por defecto), el hero usa el texto claro y Story sigue en oscuro", () => {
-    const { container } = renderWithProviders(<HomePage />);
+    const { container } = renderHomePage();
 
     const subtitulo = testId(container, "hero-subtitle");
     const tituloStory = container.querySelector<HTMLElement>("#story-title");
@@ -165,7 +189,7 @@ describe("Home (pagina completa)", () => {
   it.fails(
     "BUG: cambiar de idioma NO actualiza el atributo lang del documento",
     async () => {
-      renderWithProviders(<HomePage />);
+      renderHomePage();
       const botonEn = screen.getByRole("button", { name: /english/i });
       await act(async () => {
         fireEvent.click(botonEn);
@@ -175,7 +199,7 @@ describe("Home (pagina completa)", () => {
   );
 
   it("ninguna pieza decorativa de la junta entra en el orden de tabulacion", () => {
-    const { container } = renderWithProviders(<HomePage />);
+    const { container } = renderHomePage();
 
     for (const id of ["hero-foot", "story-continuity"]) {
       const pieza = testId(container, id);

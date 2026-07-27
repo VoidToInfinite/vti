@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { links } from "@/config/links";
+import { useStage } from "@/motion/StageProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import { HeroBackdrop } from "./HeroBackdrop";
 import {
@@ -148,6 +149,36 @@ const ScHeroFoot = styled.div<{ $light: boolean }>`
  * activa en cambios de USUARIO y aplica `$light` mientras la copia sigue
  * invisible -- por eso este componente no necesita saber nada de esa
  * mecanica, solo pintar lo que le llega.
+ *
+ * ARRANQUE DEL INTRO (tarea C5, spec §7.4): el escalonado de 80ms de los
+ * CINCO hijos NO cambia, pero deja de arrancar en cuanto el bloque se monta
+ * -- ahora espera a la fase de PAGINA "chrome" (`useStage()`, ver `Hero()`),
+ * leida en el atributo `data-intro` de ESTE MISMO elemento (selector
+ * CALIFICADO `&[data-intro="in"]`, no descendiente: el atributo vive aqui,
+ * no en un ancestro). La forma mas limpia de retrasar CINCO retardos ya
+ * calibrados sin recalcular ninguno es no montar la animacion hasta
+ * entonces: en "pending" los hijos quedan a opacity 0 por regla ESTATICA
+ * (sin animation alguna en marcha); en "in", la regla de animacion se
+ * aplica por primera vez y su cuenta de animation-delay arranca EN ESE
+ * INSTANTE -- igual que el escalonado del ojo/Aura conmuta su [data-state]
+ * (spec §6.2): una animacion CSS reinicia su reloj cuando animation-name
+ * pasa de ausente a declarado, no cuando el elemento se monta.
+ *
+ * CONVIVENCIA con la transition de opacity que ScCopy YA declara para
+ * $hidden (mas abajo): son dos canales de opacidad en elementos DISTINTOS
+ * -- $hidden anima la opacidad de ESTE contenedor (el cruce de tema
+ * completo), mientras que data-intro controla la opacidad de sus HIJOS
+ * DIRECTOS (> *). No hay ninguna propiedad compartida en el MISMO elemento
+ * que pueda pisarse: la opacidad efectiva de un hijo es el PRODUCTO visual
+ * de las dos (un hijo a opacity 1 sigue invisible si su padre esta en
+ * opacity 0), nunca una sobreescritura de la misma regla. Y en la practica
+ * no llegan a solaparse en el tiempo: data-intro solo pasa de "pending" a
+ * "in" UNA VEZ en toda la vida de la pagina (la fase de StageProvider no
+ * vuelve atras, spec §7.1), en la carga inicial -- momento en el que
+ * $hidden todavia es false (la copia no se oculta hasta el PRIMER cambio de
+ * tema de usuario, muy posterior). Los cambios de tema que vengan despues
+ * solo mueven $hidden; los hijos ya estan en "in" para siempre y no vuelven
+ * a tocar su animation.
  */
 const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   position: relative;
@@ -197,20 +228,29 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
       `}
   }
 
-  > * {
+  /* Antes de "chrome": los hijos quedan invisibles por regla ESTATICA, sin
+     ninguna animacion en marcha todavia (ver el docblock de cabecera). */
+  &[data-intro="pending"] > * {
+    opacity: 0;
+  }
+
+  /* En "chrome": la animacion se aplica por PRIMERA VEZ aqui, asi que su
+     cuenta de animation-delay arranca en este instante, no en el montaje
+     del componente. El escalonado interno de 80ms NO cambia. */
+  &[data-intro="in"] > * {
     animation: rise ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.decelerate} backwards;
   }
-  > *:nth-child(2) {
+  &[data-intro="in"] > *:nth-child(2) {
     animation-delay: 80ms;
   }
-  > *:nth-child(3) {
+  &[data-intro="in"] > *:nth-child(3) {
     animation-delay: 160ms;
   }
-  > *:nth-child(4) {
+  &[data-intro="in"] > *:nth-child(4) {
     animation-delay: 240ms;
   }
-  > *:nth-child(5) {
+  &[data-intro="in"] > *:nth-child(5) {
     animation-delay: 320ms;
   }
 
@@ -222,8 +262,20 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   }
 
   @media (prefers-reduced-motion: reduce) {
+    /* Visible de inmediato, sin intro (spec §6.5): GlobalStyles colapsa
+       animation-duration pero NO animation-delay, asi que hace falta este
+       guard explicito -- sin el, un hijo con 320ms de retardo se quedaria
+       invisible ese tramo y apareceria de golpe, peor que no animar. Se
+       fuerza opacity 1 en los DOS estados de data-intro por la misma razon
+       que ScHeader (Navbar.tsx): hay un primer render, antes de que el
+       efecto de StageProvider corrija la fase bajo reduce, en el que
+       data-intro todavia vale "pending". */
     > * {
       animation: none;
+      opacity: 1;
+    }
+    &[data-intro="pending"] > * {
+      opacity: 1;
     }
     transition: none;
   }
@@ -529,6 +581,10 @@ export function Hero(): ReactElement {
   // anterior (ver useHeroCopySwap para el porque completo, spec S6.5).
   const { layoutTheme, hidden } = useHeroCopySwap();
   const light = layoutTheme === "light";
+  const { phase } = useStage();
+  // "pending" mientras la fase de pagina siga en "backdrop" (spec §7.4): la
+  // copia entra en "chrome", a la vez que el navbar, no antes.
+  const introState = phase === "backdrop" ? "pending" : "in";
 
   return (
     <ScHero $light={light}>
@@ -545,6 +601,7 @@ export function Hero(): ReactElement {
       <ScCopy
         $light={light}
         $hidden={hidden}
+        data-intro={introState}
       >
         <ScKicker
           variant="overline"

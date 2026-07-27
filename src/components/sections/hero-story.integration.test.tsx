@@ -9,6 +9,7 @@ import { EYE_SURFACE } from "@/components/eye/eye.layers";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
+import { StageProvider } from "@/motion/StageProvider";
 import HomePage from "../../../app/page";
 import { Hero } from "./Hero/Hero";
 import { Story } from "./Story/Story";
@@ -89,13 +90,22 @@ const ScProbe = styled.div`
   color: ${({ theme }) => theme.data.semantic.text};
 `;
 
+/*
+ * `Hero` consume `useStage()` (tarea C5): sin un `StageProvider` en el
+ * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
+ * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
+ * localmente, mismo patron que Navbar.test.tsx/Hero.test.tsx. Ninguno de los
+ * casos de este archivo mide la opacidad de la copia (miden color, reglas
+ * CSS, altura del pie, jerarquia de encabezados...), asi que basta con la
+ * fase de pagina en "backdrop", sin forzar "chrome".
+ */
 function renderPage(): HTMLElement {
   const { container } = renderWithProviders(
-    <>
+    <StageProvider>
       <ScProbe data-testid="page-theme-probe" />
       <Hero />
       <Story />
-    </>,
+    </StageProvider>,
   );
   return container;
 }
@@ -296,7 +306,14 @@ describe("Hero + Story (integracion)", () => {
     // y los 6rem de la costura solo son continuos si no hay nada en medio. Un
     // separador, un divisor decorativo o un envoltorio insertado entre las dos
     // secciones romperia la continuidad sin que falle ningun test de seccion.
-    const { container } = renderWithProviders(<HomePage />);
+    // `HomePage` monta Navbar y Hero, los dos consumidores de `useStage()`:
+    // mismo envoltorio local que `renderPage()`, de nuevo sin forzar
+    // "chrome" (este caso solo mira posicion en el DOM, no opacidad).
+    const { container } = renderWithProviders(
+      <StageProvider>
+        <HomePage />
+      </StageProvider>,
+    );
     const secciones = container.querySelectorAll("main > section");
     const hero = secciones[0];
     const story = container.querySelector("#story");
