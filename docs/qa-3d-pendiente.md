@@ -245,3 +245,36 @@ Este entorno corre con `document.hidden === true` de forma permanente: **no comp
 ### Anotación de proceso
 
 El cuelgue del `requestAnimationFrame` en pestaña oculta (§14.6 de la spec) se encontró **precisamente porque** este entorno corre oculto. Es un recordatorio útil: la limitación que impide la QA visual también expone fallos que un entorno «normal» habría tapado.
+
+---
+
+## 14. Coreografía de carga y de cambio de tema del hero (añadido el 2026-07-27)
+
+Spec: `docs/superpowers/specs/2026-07-27-hero-coreografia-carga-tema-design.md`.
+
+El hero pasa a tener una **coreografía de carga** (mascota → capas → navbar y textos) y el cambio de tema pasa a ser un **relevo secuencial**: la composición saliente colapsa entera —en el orden inverso al de su aparición, con la mascota apagándose la última— y solo entonces florece la entrante.
+
+### 14.1 Qué queda SUPERSEDIDO de la sección 13
+
+Tres puntos de la lista del 2026-07-26 ya no aplican; no hay que verificarlos:
+
+- **«La espera de la copia (240 ms) es la correcta.»** `HERO_COPY_HOLD_MS` **se eliminó**. La copia ya no espera: se apaga en `t = 0` (es la primera pieza en irse, por encargo) y vuelve en `HERO_COPY_RETURN_MS` (1830 ms), cuando el fondo nuevo ya está asentado. Lo que hay que juzgar ahora es el punto 14.2 de más abajo.
+- **El orden del escalonado claro.** Ya no es `campo → manos → energía → orbe`, sino `orbe → campo → energía → mano izquierda → mano derecha`: Sol primero.
+- **«La máquina del cruce: `eye:leaving` + `aura:active` a la vez.»** Los dos stacks ya no coexisten activos: el relevo es secuencial.
+
+### 14.2 Lo que SÍ está verificado por medición en el navegador real
+
+Ver §8.0 de la spec para la tabla completa. En resumen: los retardos reales de las dos composiciones (orden nuevo, exacto), que `iris`/`pupil` llevan **dos** animaciones con el escalonado la última (`"0s, 0.44s"` / `"0s, 0.55s"`, fill `"none, backwards"`), que ninguna pieza queda invisible al final del recorrido, el orden de estados del relevo, y que el guard de `prefers-reduced-motion` gana la cascada en `pending` (con control negativo). No hace falta re-verificarlo a ojo.
+
+### 14.3 Lo que NO se puede verificar aquí
+
+Mismo límite que la §13: este entorno corre con `document.hidden === true`, **no compone frames**, y las animaciones CSS nunca reciben un `startTime` (medido: muestrear opacidades con `setTimeout` devuelve valores congelados; la verificación se hizo conduciendo `Animation.currentTime` a mano). El intento de captura de pantalla falla con «the Browser pane is not displayed, so the page is not compositing frames». **Nadie ha visto un solo frame de esta coreografía.**
+
+- [ ] **La carga se lee como una aparición, no como un salto.** _Correcto_ = en oscuro el Wormhole aparece sobre el vacío negro y el ojo se materializa a su alrededor de atrás hacia adelante; en claro Sol aparece y el mundo pastel se forma bajo él, las manos al final. _Incorrecto_ = todo llega a la vez, o se percibe como tirones. _Si se lee plano_, subir `HERO_STEP_MS` (110 ms) antes que alargar `HERO_FADE_MS`.
+- [ ] **⚠ El presupuesto del cambio de tema (~2,5 s) es aceptable.** Es el punto con MÁS probabilidad de necesitar retoque, y una consecuencia inevitable del encargo: para que la salida completa se vea, la entrante no puede solaparse (spec §3). _Correcto_ = se lee como una transición deliberada y cinematográfica. _Incorrecto_ = se siente lento o el usuario duda de si el click funcionó. _Si es lento_, bajar `HERO_STEP_MS` y/o `HERO_FADE_MS`: todo el presupuesto cuelga de esos dos números.
+- [ ] **⚠ Impacto en LCP.** La copia del hero —incluido el `<h1>`— está a `opacity: 0` durante ~760 ms desde el arranque del stack; el texto está en el DOM desde el primer pintado (solo cambia la opacidad), así que no afecta a SEO ni a accesibilidad, pero **puede desplazar el Largest Contentful Paint hasta ~1,1 s**. _Medirlo con Lighthouse en un navegador real es obligatorio antes de dar la entrega por buena en producción._ Si el LCP se degrada, `HERO_CHROME_OFFSET_MS` es el número a bajar.
+- [ ] **La mascota se lee como la última en irse.** Es el requisito central del encargo. _Correcto_ = al cambiar de tema, el Wormhole/Sol se queda solo un instante sobre el lienzo antes de apagarse con él. _Incorrecto_ = desaparece a la vez que las capas, o el lienzo opaco de la composición entrante lo tapa antes de que llegue a apagarse (sería un fallo del relevo, no de los retardos).
+- [ ] **La entrada del navbar.** `opacity` + `translateY(-8px)`. _Correcto_ = la barra se descuelga discretamente al final. _Incorrecto_ = se percibe como un salto, o compite con la entrada de la copia.
+- [ ] **`prefers-reduced-motion: reduce`.** El colapso a instantáneo está escrito, cubierto por tests y con la cascada verificada por réplica, pero **no observado con la preferencia real activada**. Comprobar en particular que en tema claro NO hay destello: el fondo tiene que estar visible desde el primer pintado, no aparecer al resolver el `decode()`.
+- [ ] **Coste de compositor.** Las capas declaran `will-change: transform` de forma permanente y ahora además animan `opacity` en el escalonado. _Comprobar en el panel de rendimiento_ que no hay saltos de frame en un portátil modesto durante la secuencia.
+- [ ] **Un `decode()` lento.** Con red lenta el arranque se retrasa hasta `HERO_DECODE_TIMEOUT_MS` (600 ms) y el navbar/copia esperan con él. Comprobar con throttling que la espera no se lee como una página rota.
