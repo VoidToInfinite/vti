@@ -67,33 +67,33 @@ export function Logo({
       {...rest}
     >
       {title ? <title>{title}</title> : null}
-      {/* vector-effect="non-scaling-stroke": el trazo se dibuja SIEMPRE a un
-          ancho constante en pantalla, sin importar la escala viewBox->render.
-          Verificado necesario: stroke-width="2" (heredado literal del asset
-          public/brand/logo.svg) esta pensado para un render de ~400px; a los
-          24px del navbar ese mismo valor se dibuja en ~0.1px fisicos y
-          desaparece. En vez de exponer un strokeWidth distinto por consumidor
-          (que obligaria a calibrar un numero magico en cada sitio: navbar
-          24px, ~16% del marco en Wormhole, 50% de la pupila en Sol), esta
-          propiedad SVG hace que el MISMO valor "2" sea valido en los tres
-          sitios a la vez. El relleno (currentColor) sigue dando la silueta
-          principal; el trazo es refuerzo de borde, no la unica fuente de
-          forma. */}
+      {/* SIN vector-effect="non-scaling-stroke" (retirado a proposito): esa
+          propiedad fija el trazo a un ancho CONSTANTE en pantalla sin
+          importar la escala viewBox->render, y este atomo se monta a tres
+          escalas muy distintas (24px en el Navbar, ~150px en la marca del
+          Wormhole, ~18px en la del iris de Sol). Un ancho fijo entre esas
+          escalas no ESCALA junto con el dibujo: crece o se queda corto de
+          forma desproporcionada segun el consumidor, en vez de mantener la
+          misma relacion trazo/silueta en los tres. Sin la propiedad, el
+          trazo escala con el resto de la figura (stroke-width="2" en
+          unidades del viewBox, como cualquier otro trazo SVG).
+          Contrapartida conocida: a la escala mas pequena (Navbar, ~0.048x)
+          el trazo fisico queda sub-pixel y practicamente invisible. No rompe
+          el icono porque el relleno (currentColor) sigue dando la silueta
+          completa por si solo -- el trazo siempre fue refuerzo de borde, no
+          la unica fuente de forma. */}
       <circle
         cx="250"
         cy="75"
         r="50"
         strokeWidth={2}
-        vectorEffect="non-scaling-stroke"
       />
       <polyline
         strokeWidth={2}
-        vectorEffect="non-scaling-stroke"
         points="10,75 250,540 490,75 440,75 250,460 60,75 10,75 250,540"
       />
       <polyline
         strokeWidth={2}
-        vectorEffect="non-scaling-stroke"
         points="110,140 145,210 210,210 250,400 290,210 355,210 390,140 110,140 130,180"
       />
     </ScLogo>

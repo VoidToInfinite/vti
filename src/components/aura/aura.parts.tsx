@@ -1,6 +1,5 @@
 "use client";
 import styled, { css, keyframes, type DataAttributes } from "styled-components";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
 import {
   HERO_FADE_MS,
   HERO_STEP_MS,
@@ -345,31 +344,48 @@ export const ScShock = styled.div`
 `;
 
 /*
- * Rampa violeta de la costura Hero -> Story en tema claro (spec S6.4). Vive
- * DENTRO del stack de Aura, no en Hero.tsx: asi entra y sale con el
- * escalonado y el desmontaje de su propio stack, sin un segundo
- * temporizador que mantener en sincronia con el del cruce de fondos.
- * Comparte el escalon 0 con base/field (ver auraStep, mas arriba): la rampa
- * tiene que estar en cuanto aparece el lienzo pastel, o habria un instante
- * con pastel tocando la costura negra de Story.
+ * Rampa de la costura Hero -> Story en tema claro (spec S6.4, REVISADA: la
+ * seccion Story pasa a ser clara mas adelante, no siempre oscura como
+ * asumia la version original de esta pieza). Vive DENTRO del stack de Aura,
+ * no en Hero.tsx: asi entra y sale con el escalonado y el desmontaje de su
+ * propio stack, sin un segundo temporizador que mantener en sincronia con
+ * el del cruce de fondos. Comparte el escalon 0 con base/field (ver
+ * auraStep, mas arriba): la rampa tiene que estar en cuanto aparece el
+ * lienzo pastel.
  *
- * EYE_SURFACE se IMPORTA de la capa de datos del ojo, no se reescribe: es el
- * mismo negro de marca en el que arranca la costura de Story (ScSeam,
- * Story.tsx), y dos literales iguales en dos ficheros se separan al primer
- * retoque.
+ * YA NO desciende hacia EYE_SURFACE (negro): asciende hacia
+ * `theme.data.semantic.bg`, el fondo claro general del sistema -- el rol de
+ * UI real que una seccion Story clara heredaria si adopta el tema estandar
+ * en vez de un color propio. A diferencia de AURA_SURFACE (literal
+ * decorativo, "espectaculo de marca"), este destino SI es un token: la
+ * funcion de esta pieza es continuidad con la SIGUIENTE seccion real, no
+ * decoracion de Aura. NOTA DE INCERTIDUMBRE: Story todavia no se ha tocado
+ * en esta sesion, asi que este valor es la mejor suposicion documentada
+ * (el fondo claro generico del sistema), no una medida del Story real. Si
+ * Story termina adoptando un tono claro distinto, esta rampa se recalibra
+ * contra ese tono.
  *
- * La PRIMERA parada NO es `transparent`: aqui la palabra clave daria negro
- * transparente y el tramo inicial viraria a gris. Es la excepcion exacta que
- * contempla la leccion del velo de continuidad (task/lessons.md,
- * 2026-07-25): alli el color de la rampa SI era negro, asi que
- * `transparent` era su mismo color con alfa 0; aqui la rampa es violeta, no
- * negra, asi que `transparent` produciria un color distinto (negro) en vez
- * de "este mismo violeta con alfa 0".
+ * La PRIMERA parada usa AURA_SURFACE (el mismo tono medido del campo) con
+ * alfa 0, NO `transparent`: la palabra clave interpola desde negro y el
+ * tramo inicial oscureceria antes de aclarar -- misma excepcion que ya
+ * documentaba la version oscura de esta pieza (y la leccion del velo de
+ * continuidad, task/lessons.md 2026-07-25), aplicada en el sentido
+ * contrario. Se deriva de la propia constante (`AURA_SURFACE.slice(0, -1)`)
+ * en vez de repetir el literal, para que un cambio en AURA_SURFACE no deje
+ * dos valores desincronizados en el mismo archivo.
+ *
+ * Contrato de monotonia INVERTIDO respecto a la version anterior: la
+ * luminancia compuesta sobre el peor caso ahora tiene que ser
+ * ESTRICTAMENTE CRECIENTE (peor caso = fondo NEGRO, no blanco: es el que
+ * minimiza la luminancia compuesta en cada parada, asi que si crece incluso
+ * ahi, crece bajo cualquier fondo real). Verificado con la misma aritmetica
+ * que `contrast.ts`: 0 -> 0.3999 -> 0.7605 -> 0.9557.
  *
  * El 32% es una PROPORCION del alto del hero, no un token de `space` (que
  * llega a 8rem como maximo): aqui hay que salvar toda la distancia de un
- * pastel a negro sobre un lienzo de altura de viewport. Se documenta como
- * excepcion, igual que los clamp() literales del titular (Hero.tsx).
+ * pastel a un fondo claro sobre un lienzo de altura de viewport. Se
+ * documenta como excepcion, igual que los clamp() literales del titular
+ * (Hero.tsx).
  */
 export const ScAuraFoot = styled.div<DataAttributes>`
   position: absolute;
@@ -379,10 +395,10 @@ export const ScAuraFoot = styled.div<DataAttributes>`
   pointer-events: none;
   background-image: linear-gradient(
     to bottom,
-    oklch(0.33 0.075 285 / 0) 0%,
-    oklch(0.33 0.075 285 / 0.42) 50%,
-    oklch(0.17 0.05 285 / 0.86) 82%,
-    ${EYE_SURFACE} 100%
+    ${AURA_SURFACE.slice(0, -1)} / 0) 0%,
+    oklch(0.93 0.035 285 / 0.5) 50%,
+    oklch(0.965 0.02 285 / 0.85) 82%,
+    ${({ theme }) => theme.data.semantic.bg} 100%
   );
 
   ${({ "data-part": part }) => auraStagger(part as string | undefined)}

@@ -98,12 +98,13 @@ describe("Hero (lente funcional)", () => {
     );
   });
 
-  it("el contenedor del titulo usa el clamp literal del usuario, no el token display", () => {
+  it("el contenedor del titulo usa el clamp literal del usuario, no el token display (oscuro: 8vw)", () => {
     // REESCRITO (Flujo 3): ScHeroBrand paso de
     // min(theme.data.type.scale.display.size, 10vw) a un clamp(34px, 8vw,
     // 258px) literal explicito del usuario -- se documenta como excepcion en
     // el propio Hero.tsx, no se corrige a la escala. La asercion de
     // line-height SIGUE leyendo el token (B2 no la toca).
+    window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderWithProviders(<Hero />);
     const titulo = container.querySelector(
       '[data-testid="hero-title"]',
@@ -111,6 +112,23 @@ describe("Hero (lente funcional)", () => {
 
     expect(sinEspacios(getComputedStyle(titulo).fontSize)).toBe(
       sinEspacios("clamp(34px, 8vw, 258px)"),
+    );
+    expect(getComputedStyle(titulo).lineHeight).toBe(
+      String(typeTokens.scale.display.lineHeight),
+    );
+  });
+
+  it("el contenedor del titulo baja a 7vw en claro: la columna estrecha (min(prose, 40%)) no sostiene 8vw", () => {
+    // El factor mas bajo es un pedido explicito del usuario, no una medida:
+    // en claro la copia comparte ancho con el marco del arte (spec S3.6) y
+    // queda limitada a min(prose, 40%), mas estrecha que en oscuro.
+    const { container } = renderWithProviders(<Hero />);
+    const titulo = container.querySelector(
+      '[data-testid="hero-title"]',
+    ) as HTMLElement;
+
+    expect(sinEspacios(getComputedStyle(titulo).fontSize)).toBe(
+      sinEspacios("clamp(34px, 7vw, 258px)"),
     );
     expect(getComputedStyle(titulo).lineHeight).toBe(
       String(typeTokens.scale.display.lineHeight),

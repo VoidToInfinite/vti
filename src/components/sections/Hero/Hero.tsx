@@ -263,15 +263,31 @@ const ScActions = styled.div<{ $light: boolean }>`
    resetea h1..h6 a font-size: 1em) y queda mas pequeno que el subtitulo.
 
    EXCEPCION: font-size es un valor LITERAL pedido por el usuario --
-   clamp(34px, 8vw, 258px) -- que sustituye a
+   clamp(34px, 8vw, 258px) en oscuro -- que sustituye a
    min(theme.data.type.scale.display.size, 10vw). Es una decision explicita
    que se salta la escala tipografica (theme.data.type.scale.display) a
    proposito: NO se corrige a un token, se documenta como excepcion. El suelo
    de 34px (mayor que 8vw por debajo de ~425px CSS) sigue evitando que
    "VoidToInfinite" -- 14 caracteres inseparables, hyphens: manual mas abajo
-   -- se corte contra el overflow hidden del hero a anchos pequenos. */
-const ScHeroBrand = styled.div`
+   -- se corte contra el overflow hidden del hero a anchos pequenos.
+
+   En CLARO el factor baja a 7vw (mismo suelo y tope): con la copia pegada a
+   la izquierda y compitiendo por ancho con el marco del arte (spec S3.6, la
+   columna se limita a min(prose, 40%) para no invadir la mano izquierda),
+   8vw hacia el titular mas ancho de lo que esa columna estrecha puede
+   sostener sin forzar el ajuste de linea. $light usa `light`
+   (`layoutTheme === "light"`, no el tema activo directamente: la copia no
+   puede cambiar de tamano en t=0 mientras el fondo del cruce sigue siendo
+   el del tema anterior -- mismo criterio que ScCopy, ver useHeroCopySwap). */
+const ScHeroBrand = styled.div<{ $light: boolean }>`
   font-size: clamp(34px, 8vw, 258px);
+
+  ${({ $light }) =>
+    $light &&
+    css`
+      font-size: clamp(34px, 7vw, 258px);
+    `}
+
   /* line-height tambien hay que fijarlo: GlobalStyles pone 1.4em en el body,
      que se hereda como LONGITUD ya resuelta (22.4px), no como factor. Sin
      esto la caja del h1 mide 22px con glifos de 56px, el titular se desborda
@@ -536,7 +552,10 @@ export function Hero(): ReactElement {
         >
           {t("Home.hero.kicker")}
         </ScKicker>
-        <ScHeroBrand data-testid="hero-title">
+        <ScHeroBrand
+          $light={light}
+          data-testid="hero-title"
+        >
           <BrandName
             as="h1"
             gradientTail

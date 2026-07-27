@@ -1,12 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { renderWithProviders } from "@/test/test-utils";
 import { contrastRatio } from "@/theme/tokens/contrast";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
+import { semanticLight } from "@/theme/tokens/semantic";
+import { AURA_SURFACE } from "./aura.layers";
 import { ScAuraFoot } from "./aura.parts";
 
 /**
- * ScAuraFoot es la rampa violeta de la costura Hero -> Story en tema claro
- * (spec S6.4). Este archivo prueba la pieza directamente (sin montar Aura
+ * ScAuraFoot es la rampa de la costura Hero -> Story en tema claro (spec
+ * S6.4, revisada: Story pasa a ser clara mas adelante, ya no siempre
+ * oscura). Este archivo prueba la pieza directamente (sin montar Aura
  * entera), igual que aura.layers.test.ts prueba aura.layers.ts sin montar
  * Aura.
  */
@@ -46,41 +48,49 @@ function footElement(): HTMLElement {
   return container.firstElementChild as HTMLElement;
 }
 
-describe("ScAuraFoot (rampa violeta del pie claro)", () => {
-  it("es estrictamente monotona en luminancia, compuesta sobre el peor caso (fondo blanco)", () => {
-    // Mismo patron que exige la leccion del velo de continuidad
-    // (task/lessons.md, 2026-07-25): se calcula, no se afirma, y se compone
-    // L(p) = alpha * L(color) + (1 - alpha) * L(fondo) sobre el peor caso
-    // (blanco puro), no sobre las paradas literales sin componer.
+describe("ScAuraFoot (rampa de continuidad del pie claro)", () => {
+  it("es estrictamente monotona en luminancia CRECIENTE, compuesta sobre el peor caso (fondo negro)", () => {
+    // Contrato INVERTIDO respecto a la version que descendia hacia
+    // EYE_SURFACE: esta rampa ASCIENDE hacia un fondo claro, asi que el peor
+    // caso para probar que nunca da un paso atras es el fondo que MINIMIZA
+    // la luminancia compuesta en cada parada -- negro, no blanco. Si crece
+    // incluso ahi, crece bajo cualquier fondo real (mismo patron que exige
+    // la leccion del velo de continuidad, task/lessons.md 2026-07-25: se
+    // calcula, no se afirma).
     const paradas = stops(getComputedStyle(footElement()).backgroundImage);
     expect(paradas.length).toBe(4);
 
     const compuestas = paradas.map((stop) => {
       const { colorOnly, alpha } = parseStop(stop);
-      return alpha * luminanceOf(colorOnly) + (1 - alpha) * 1;
+      return alpha * luminanceOf(colorOnly) + (1 - alpha) * 0;
     });
 
     for (let i = 1; i < compuestas.length; i += 1) {
       expect(
         compuestas[i],
-        `la parada ${i} (${paradas[i]}, L=${compuestas[i].toFixed(4)}) no puede ser mas clara que la ${i - 1} (${paradas[i - 1]}, L=${compuestas[i - 1].toFixed(4)})`,
-      ).toBeLessThan(compuestas[i - 1]);
+        `la parada ${i} (${paradas[i]}, L=${compuestas[i].toFixed(4)}) no puede ser mas oscura que la ${i - 1} (${paradas[i - 1]}, L=${compuestas[i - 1].toFixed(4)})`,
+      ).toBeGreaterThan(compuestas[i - 1]);
     }
   });
 
-  it("la ultima parada es exactamente EYE_SURFACE: sostiene la costura con Story", () => {
+  it("la ultima parada es exactamente semantic.bg: el fondo claro generico, no EYE_SURFACE", () => {
+    // Story todavia no es clara en este repo (nota de incertidumbre en el
+    // docblock de ScAuraFoot): semantic.bg es la mejor suposicion
+    // documentada del tono que heredaria si adopta el tema estandar, no una
+    // medida del Story real.
     const paradas = stops(getComputedStyle(footElement()).backgroundImage);
-    expect(paradas.at(-1)).toBe(EYE_SURFACE);
+    expect(paradas.at(-1)).toBe(semanticLight.bg);
   });
 
-  it("la primera parada NO es negro transparente: es el violeta con alfa 0", () => {
-    // Si la primera parada fuera `transparent` (o un oklch(0 0 0 / 0)), el
-    // tramo inicial de la rampa viraria a gris en vez de partir del violeta
-    // (spec S6.4, la excepcion contraria a la de Story.tsx/ScSeam).
+  it("la primera parada usa AURA_SURFACE con alfa 0, no negro transparente", () => {
+    // Si la primera parada fuera `transparent` (negro transparente), el
+    // tramo inicial de la rampa oscureceria antes de aclarar. Anclarla al
+    // mismo tono que ya pinta el campo (AURA_SURFACE) hace que el arranque
+    // de la rampa sea invisible sobre el propio fondo de Aura, no un salto.
     const paradas = stops(getComputedStyle(footElement()).backgroundImage);
     const { colorOnly, alpha } = parseStop(paradas[0]);
     expect(alpha).toBe(0);
-    expect(colorOnly).toBe("oklch(0.33 0.075 285)");
+    expect(colorOnly).toBe(AURA_SURFACE);
   });
 
   it("es puramente decorativa: no captura el puntero", () => {
