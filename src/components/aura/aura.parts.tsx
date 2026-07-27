@@ -175,12 +175,23 @@ export const ScAuraField = styled.img<DataAttributes>`
 /*
  * Marco del sujeto (manos, energia y orbe). Mide EXACTAMENTE el alto del
  * hero (height: 100%, el ancho lo fija aspect-ratio) y se ancla SOLO en X:
- * la geometria medida (spec S3.6, bordes de 05_energia_particulas.png)
- * demuestra que es el encuadre de menor magnificacion que sangra por
- * derecha/arriba/abajo sin recortar las manos -- el eje Y no se desplaza,
- * top: 0 siempre.
+ * el eje Y no se desplaza, top: 0 siempre.
  *
- * `left` coloca el punto AURA_ORB.x (50.14% del PROPIO marco) en
+ * La geometria del encuadre (marco anclado solo en X, sangra por
+ * derecha/arriba/abajo sin recortar las manos) se reverifico por render con
+ * la geometria del segundo lote de capas, en 5 relaciones de aspecto --
+ * 16:9, 16:10, un 4:3 extremo -- con el centroide del orbe nuevo (spec
+ * S15.6). La conclusion geometrica NO cambio, pero la RAZON por la que un
+ * corte por la izquierda no se nota SI: la version anterior de este
+ * comentario citaba que ese borde de la capa de energia era transparente
+ * (spec S3.6, bordes de 05_energia_particulas.png). Medido de nuevo sobre
+ * la capa nueva (01_nebulosa_particulas.png), esa propiedad YA NO EXISTE --
+ * los cuatro bordes tienen alfa media similar y no trivial (~9-14%), sin
+ * decaer hacia el interior, con particulas puntuales de hasta 90+/255 (spec
+ * S15.6). Lo que resuelve ahora que el corte no se note es la mascara de
+ * desvanecido declarada mas abajo, no una transparencia propia del arte.
+ *
+ * `left` coloca el punto AURA_ORB.x (50.92% del PROPIO marco) en
  * AURA_ANCHOR_X (69.28% del HERO): `translate` en porcentaje resuelve
  * contra el propio elemento, no contra el padre, asi que estas dos lineas
  * juntas fijan ese anclaje sea cual sea el tamano del viewport, sin una
@@ -197,6 +208,27 @@ export const ScAuraField = styled.img<DataAttributes>`
  * En vertical (max-aspect-ratio: 1/1) el encuadre por altura dejaria el
  * marco 1.78 veces mas ancho que el hero y las manos fuera de pantalla: se
  * vuelve al encuadre por ancho, mismo recurso que usa ScFrame del ojo.
+ *
+ * Mascara de desvanecido en los 4 bordes (spec S15.6, problema nuevo del
+ * segundo lote: la nebulosa ya no tiene un borde libre de alfa, ver arriba).
+ * Dos linear-gradient (uno horizontal, uno vertical) combinados con
+ * mask-composite: intersect / -webkit-mask-composite: source-in -- mismo
+ * patron de declarar la forma con prefijo y sin prefijo que ya usa
+ * ScCtaSecondary en Hero.tsx (el anillo animado del CTA secundario,
+ * mask-composite: exclude / -webkit-mask-composite: xor), mismo motivo: el
+ * soporte de mask-composite sin prefijo y el de -webkit-mask-composite (con
+ * su valor legado) difiere entre motores. El 8% es un valor calibrado sobre
+ * la evidencia (suficiente para que una particula de alfa~90/255 se
+ * desvanezca en una distancia perceptible en vez de cortarse en seco), no
+ * medido pixel a pixel -- igual que AURA_ORB_SIZE o el 32% de ScAuraFoot, se
+ * documenta como aproximacion y se revisa contra el render real.
+ *
+ * Efecto colateral ACEPTADO, no un defecto: la mano derecha trae filamentos
+ * de energia adheridos (spec S15.3) cuyo bbox llega al 99.9% del ancho del
+ * arte (spec S15.6). El 8% de desvanecido del borde derecho difumina el
+ * ultimo tramo de esos filamentos -- una hebra delgada, no la silueta de la
+ * mano, que esta mas centrada -- asi que se apagan con gracia en vez de
+ * cortarse en seco.
  */
 export const ScAuraSubject = styled.div`
   position: absolute;
@@ -205,6 +237,39 @@ export const ScAuraSubject = styled.div`
   aspect-ratio: ${AURA_ASPECT};
   left: ${AURA_ANCHOR_X};
   translate: -${AURA_ORB.x} 0;
+
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      #fff 8%,
+      #fff 92%,
+      transparent 100%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #fff 8%,
+      #fff 92%,
+      transparent 100%
+    );
+  mask-composite: intersect;
+  -webkit-mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      #fff 8%,
+      #fff 92%,
+      transparent 100%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      #fff 8%,
+      #fff 92%,
+      transparent 100%
+    );
+  -webkit-mask-composite: source-in;
 
   @media (max-aspect-ratio: 1 / 1) {
     height: auto;

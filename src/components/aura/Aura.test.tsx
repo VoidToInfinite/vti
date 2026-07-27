@@ -174,10 +174,14 @@ describe("Aura", () => {
 
     // El campo (depth 0) no recibe transform nunca: es el plano de referencia.
     expect(transformOf("field")).toBe("");
-    // El resto se ordena por profundidad: orbe > energia > manos.
-    expect(xOf("orb")).toBeGreaterThan(xOf("energy"));
-    expect(xOf("energy")).toBeGreaterThan(xOf("handLeft"));
-    expect(xOf("handLeft")).toBeGreaterThan(0);
+    // El resto se ordena por profundidad: orbe > manos > energia (revision
+    // 2026-07-27, spec S15.4: con la energia pintando ahora detras de las
+    // manos, su profundidad de parallax (0.15) es MENOR que la de las manos
+    // (0.30), no mayor como asumia el primer lote -- lo que esta detras se
+    // mueve MENOS con el cursor).
+    expect(xOf("orb")).toBeGreaterThan(xOf("handLeft"));
+    expect(xOf("handLeft")).toBeGreaterThan(xOf("energy"));
+    expect(xOf("energy")).toBeGreaterThan(0);
     // Las dos manos comparten profundidad: se mueven exactamente igual.
     expect(xOf("handRight")).toBe(xOf("handLeft"));
   });

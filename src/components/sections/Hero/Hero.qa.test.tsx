@@ -192,8 +192,12 @@ describe("Hero (lente funcional)", () => {
   /*
    * Amplia la pareja huerfana de arriba con el equivalente del tema claro
    * contra AURA_SURFACE, el pastel medido del fondo de Aura (spec S6.6).
-   * Valores ya calculados en la spec: semanticLight.text 11.30:1 y
-   * semanticLight.brandText 5.20:1 -- los dos pasan AA (4.5:1).
+   * Se asevera contra la constante importada, no un literal escrito a mano,
+   * asi que sigue en verde aunque AURA_SURFACE cambie de valor (paso ya real:
+   * revision 2026-07-27, spec S15.5, bajo de oklch(0.961 0.016 283) a
+   * oklch(0.942 0.023 285)). Valores medidos con el fondo actual:
+   * semanticLight.text 10.63:1 y semanticLight.brandText 4.88:1 -- los dos
+   * pasan AA (4.5:1), con menos margen que antes por ser un fondo mas oscuro.
    */
   it("los colores del hero pasan AA sobre el pastel del lienzo (tema claro)", () => {
     expect(

@@ -8,15 +8,17 @@ import {
 import { parseOklch } from "@/theme/tokens/contrast";
 
 describe("aura.layers", () => {
-  it("expone exactamente las cuatro capas publicadas, en el orden del stagger", () => {
-    // Contrato cerrado: nº de capas Y orden. El quinto escalón (el orbe) no
-    // es una capa de esta tabla — vive en AURA_ORB_DEPTH porque lo renderiza
-    // `Sol`, no un WebP (spec §5.2).
+  it("expone exactamente las cuatro capas publicadas, en el orden de pintado (energia detras de las manos)", () => {
+    // Contrato cerrado: nº de capas Y orden. El orden de pintado (spec §15.3)
+    // NO es el mismo que el orden de revelado del stagger (AURA_STAGGER): la
+    // energía va detrás de las manos, no delante como en el primer lote. El
+    // quinto escalón (el orbe) no es una capa de esta tabla — vive en
+    // AURA_ORB_DEPTH porque lo renderiza `Sol`, no un WebP (spec §5.2).
     expect(AURA_LAYERS.map((layer) => layer.part)).toEqual([
       "field",
+      "energy",
       "handLeft",
       "handRight",
-      "energy",
     ]);
   });
 
@@ -30,24 +32,24 @@ describe("aura.layers", () => {
         fullBleed: true,
       },
       {
+        part: "energy",
+        src: "/hero/aura/01-energy.webp",
+        srcSmall: "/hero/aura/01-energy-1024.webp",
+        depth: 0.15,
+        fullBleed: false,
+      },
+      {
         part: "handLeft",
-        src: "/hero/aura/01-hand-left.webp",
-        srcSmall: "/hero/aura/01-hand-left-1024.webp",
+        src: "/hero/aura/02-hand-left.webp",
+        srcSmall: "/hero/aura/02-hand-left-1024.webp",
         depth: 0.3,
         fullBleed: false,
       },
       {
         part: "handRight",
-        src: "/hero/aura/02-hand-right.webp",
-        srcSmall: "/hero/aura/02-hand-right-1024.webp",
+        src: "/hero/aura/03-hand-right.webp",
+        srcSmall: "/hero/aura/03-hand-right-1024.webp",
         depth: 0.3,
-        fullBleed: false,
-      },
-      {
-        part: "energy",
-        src: "/hero/aura/03-energy.webp",
-        srcSmall: "/hero/aura/03-energy-1024.webp",
-        depth: 0.55,
         fullBleed: false,
       },
     ]);
@@ -68,9 +70,21 @@ describe("aura.layers", () => {
     expect(handLeft?.depth).toBe(handRight?.depth);
   });
 
+  it("la energia es menos profunda que las manos: pinta detras de ellas, no delante", () => {
+    // Revisión 2026-07-27 (spec §15.3/§15.4): el segundo lote compone la
+    // energía DETRÁS de las manos, así que su profundidad de parallax tiene
+    // que ser MENOR que la de las manos (0.30), no mayor como en el primer
+    // lote (0.55) — lo que está detrás se mueve menos con el cursor.
+    const energy = AURA_LAYERS.find((layer) => layer.part === "energy");
+    const handLeft = AURA_LAYERS.find((layer) => layer.part === "handLeft");
+    expect(energy?.depth).toBeLessThan(handLeft?.depth as number);
+    expect(energy?.depth).toBeGreaterThan(0);
+  });
+
   it("el orbe (Sol) es la capa mas profunda de la composicion, por encima incluso de la energia", () => {
-    // La energía no cubre el orbe en el arte original (spec §3.3), así que
-    // Sol puede montarse como la capa más cercana al espectador.
+    // La energía SÍ tiene presencia real bajo el orbe en el arte nuevo (spec
+    // §15.4), pero `Sol`, opaco, sigue tapando esa zona igual que antes, así
+    // que sigue siendo la capa más cercana al espectador.
     const deepestPublished = Math.max(
       ...AURA_LAYERS.map((layer) => layer.depth),
     );
@@ -78,9 +92,9 @@ describe("aura.layers", () => {
   });
 
   it("AURA_SURFACE es el pastel medido del campo y lo entiende el helper de contraste", () => {
-    expect(AURA_SURFACE).toBe("oklch(0.961 0.016 283)");
+    expect(AURA_SURFACE).toBe("oklch(0.942 0.023 285)");
     expect(() => parseOklch(AURA_SURFACE)).not.toThrow();
-    expect(parseOklch(AURA_SURFACE)).toEqual({ l: 0.961, c: 0.016, h: 283 });
+    expect(parseOklch(AURA_SURFACE)).toEqual({ l: 0.942, c: 0.023, h: 285 });
   });
 
   it("AURA_ASPECT es la misma relacion de aspecto del lienzo que EYE_ASPECT: mismo tamano de origen", () => {
