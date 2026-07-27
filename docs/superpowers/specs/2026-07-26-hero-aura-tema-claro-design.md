@@ -1,6 +1,6 @@
 # Hero — composición «Aura» para tema claro
 
-**Fecha:** 2026-07-26 **Rama:** `feature/mejoras-hero-navbar` **Estado:** especificación aprobada, pendiente de implementación
+**Fecha:** 2026-07-26 (revisada 2026-07-27) **Rama:** `feature/mejoras-hero-navbar` **Estado:** implementado; §15 documenta la revisión de assets del 2026-07-27
 
 ---
 
@@ -656,3 +656,133 @@ Los ratios reales del navegador difieren en centésimas de los de §6.6 (kicker 
 
 - No se amplió el bloque `describe("CTAs animados…")` con el par del tema claro. El plan lo listaba como huérfano; el encargo de C2 acotaba la ampliación a un rango concreto y se respetó la acotación más estricta. **Queda como deuda anotada**, no como olvido.
 - ~~`eye.parts.tsx`: el docblock de `ScMascotSlot` menciona un anillo de pulso que ya no vive ahí.~~ Corregido en la misma sesión.
+
+---
+
+## 15. Revisión 2026-07-27 — capas refinadas (6 archivos, no 5)
+
+El usuario adjuntó un segundo lote de capas (`capas_pastel_cosmic.zip`) del **mismo arte**, extraídas con un método más riguroso: alfa por distancia euclídea al color de fondo, reconstrucción del fondo por inpainting gaussiano, y descomposición de color real `C = (pix − fondo·(1−α)) / α` para que la recomposición sea exacta. El paquete incluye `capas.json` (geometría) y `LEEME.md` (metodología), y reclama un error medio de recomposición de **≈0.96/255 (~0.4 %)**, frente al 5.09/255 del primer lote.
+
+Todo lo de esta sección está **medido de forma independiente**, no tomado del `LEEME.md` sin verificar — el protocolo de veracidad del proyecto lo exige, y en el punto 15.1 el número medido difiere ligeramente del reclamado.
+
+### 15.1 Verificación independiente de la fidelidad
+
+Recomponiendo las 6 capas nuevas en orden (`00_fondo → 01_nebulosa_particulas → 02_mano_izquierda → 03_mano_derecha → 04_orbe → 05_destello_central`) con alfa normal:
+
+| Comparación | Error medio | p99 | Máximo |
+| --- | --- | --- | --- |
+| vs `verificacion_recompuesta.png` (control del paquete) | **0.42**/255 | 1/255 | 1/255 |
+| vs el arte original (`…Pastel Cosmic landing Page 2.png`) | **1.23**/255 | 11/255 | 15/255 |
+| control del paquete vs el arte original (verificación cruzada) | 1.42/255 | — | 15/255 |
+
+Los tres números están en el mismo rango (~0.4–0.55 %), no en el 0.4 % exacto reclamado — la fila 3 confirma que la discrepancia (0.96 reclamado vs 1.2–1.4 medido) viene del propio archivo de control del usuario contra `Page 2.png` en disco, no de un error en mi recomposición. Dentro de esa tolerancia, el resultado es **~4× más fiel** que el primer lote (5.09/255) y sigue siendo el mismo modelo `source-over`/alfa normal, verificado de nuevo por el propio experimento, no asumido.
+
+### 15.2 Qué se publica y qué no: dos capas archivadas, no una
+
+| # | Fichero del paquete | Contenido | ¿Se publica? |
+| --- | --- | --- | --- |
+| 0 | `00_fondo.png` | Campo lavanda, fondo reconstruido por inpainting | Sí → `00-field.webp` |
+| 1 | `01_nebulosa_particulas.png` | Espirales de energía + partículas dispersas | Sí → `01-energy.webp` |
+| 2 | `02_mano_izquierda.png` | Mano izquierda | Sí → `02-hand-left.webp` |
+| 3 | `03_mano_derecha.png` | Mano derecha **+ filamentos de energía adheridos** | Sí → `03-hand-right.webp` |
+| 4 | `04_orbe.png` | Anillo/halo de la esfera (sin su núcleo) | **No** — archivado, `Sol` lo reemplaza |
+| 5 | `05_destello_central.png` | Núcleo de luz blanca del orbe (capa NUEVA) | **No** — archivado, `Sol` lo reemplaza también |
+
+El paquete anterior no separaba el núcleo del anillo; este sí, precisamente para poder «animarlo por separado» (`LEEME.md`). Se decidió **no publicarlo tampoco**, extendiendo el mismo principio ya establecido en la spec original («el disco que ocupa su lugar en el arte lo renderiza `Sol`, no un WebP») al núcleo recién separado. La evidencia que sostiene esto es el propio perfil radial de alfa, medido desde el centroide del orbe (851.4, 392.7):
+
+```
+                         DESTELLO (nucleo)          ORBE (anillo)
+r=   0px   alfa= 95.1  ############
+r=  32px   alfa= 90.5  ###########
+r=  64px   alfa= 10.0  #
+r=  80px   alfa=  0.1
+r=  96px   alfa=  0.0                    r=  96px  alfa= ~85   (rampa ascendente)
+                                          r= 150px  alfa=195.3  <- pico
+                                          r= 178px  alfa= 97.6  (mitad del pico)
+                                          r= 260px  alfa=  0.0
+```
+
+El destello ocupa exactamente el hueco (r < 80 px) que el anillo del orbe deja vacío en su centro (el orbe pasa de ~0 en r=0-20 a su rampa ascendente a partir de r≈40-80): son dos regiones **complementarias de una sola figura**, no dos elementos independientes. Montar `Sol` (que ya trae su propia corona Y su propio núcleo animado, ver `Sol.tsx`) encima de un `05-destello.webp` publicado produciría un doble núcleo — uno pintado, fijo, y otro animado por `Sol`, compitiendo por el mismo píxel. No publicarlo es la continuación correcta del principio ya aprobado, no una decisión nueva sin precedente.
+
+Los dos ficheros (`04_orbe.png`, `05_destello_central.png`) se archivan en `assets/hero-aura/` como `04-orb.png` y `05-core-glow.png` — documentales, igual que `05-logo.png` en `assets/hero-eye/`.
+
+### 15.3 El orden de apilado cambia: la energía pasa de última a segunda
+
+El paquete anterior componía `field → hand-left → hand-right → orb → energy` (energía la más alta, encima de las manos). Verificado por recomposición (§15.1), el orden correcto de **este** paquete es `field → nebulosa → hand-left → hand-right → orb`: la energía ahora se compone **detrás** de las manos, no delante. Esto no es arbitrario — explica por qué la mano derecha ahora incluye «filamentos de energía adheridos»: los filamentos que antes habría pintado la propia capa de energía por encima de la mano, aquí quedan atribuidos a la capa de la mano porque la energía, al ir detrás, quedaría tapada por la parte opaca de la mano de todos modos.
+
+**Consecuencia práctica:** `AURA_LAYERS` (`aura.layers.ts`) reordena sus entradas a `[field, energy, handLeft, handRight]` — el orden del array fija el orden de montaje en el DOM y, por tanto, el orden de pintado (position:absolute, sin z-index explícito, gana el último hermano). **`AURA_STAGGER` NO se toca**: ya vive desacoplado de `AURA_LAYERS` (busca por nombre de `data-part`, no por posición en el array — verificado leyendo `auraStep()` en `aura.parts.tsx`), así que el orden de revelado del cruce de temas sigue siendo exactamente el pedido en el encargo original (campo → mano izquierda → mano derecha → energía → orbe), sin relación con el nuevo orden de pintado estático.
+
+### 15.4 Profundidad de parallax de `energy`: 0.55 → 0.15
+
+Con la energía ahora detrás de las manos (no delante de todo), mantener su profundidad en 0.55 (mayor que las manos, 0.30) sería físicamente incoherente: lo que está detrás se mueve MENOS con el cursor, no más. Se baja a **0.15** — entre el campo (0, inmóvil) y las manos (0.30) — para que el parallax lea el mismo orden de profundidad que ahora pinta el DOM.
+
+La justificación de `AURA_ORB_DEPTH = 0.8` en el docblock de cabecera cambia de premisa: antes decía «la energía no cubre el orbe (alfa 0/255 hasta r≈120px)» — medido de nuevo sobre la capa nueva, **no es 0 %**: la nebulosa tiene una presencia real aunque modesta incluso en el centro del disco (alfa media 11.7/255 ≈ 4.6 % en r≤60px, subiendo a 18-20/255 ≈ 7-8 % hacia r≤180-245px). `Sol`, opaco y del tamaño del slot, sigue tapando esa zona igual que antes — la conclusión (`Sol` como capa más alta) no cambia — pero la cifra que la sostiene sí, y el comentario se actualiza para no repetir un «0 %» que ya no es cierto.
+
+### 15.5 Geometría actualizada
+
+| Constante | Valor anterior | Valor nuevo | Origen |
+| --- | --- | --- | --- |
+| `AURA_ORB` | `{ x: "50.14%", y: "41.63%" }` | `{ x: "50.92%", y: "41.73%" }` | Centroide del orbe ponderado por alfa, `04_orbe.png`: (851.36, 392.70) px sobre 1672×941 |
+| `AURA_ORB_SIZE` | `28.5%` | `28.3%` | Radio de mitad de pico del anillo, interpolado con paso de 2px: r=178.10px → Ø=21.30 % del ancho → /0.754 (mismo factor de calibración de `Sol`, sin cambios) = 28.254 %, redondeado a 28.3 % |
+| `AURA_ANCHOR_X` | `69.28%` | **sin cambios** | Es una decisión de layout (dónde vive el orbe respecto a la copia), no una medida del arte; el centroide del orbe apenas se movió (0.78 pp en X), no justifica repetir la correlación cruzada contra el mockup |
+| `AURA_SURFACE` | `oklch(0.961 0.016 283)` | `oklch(0.942 0.023 285)` | Media RGB de `00_fondo.png` sobre el lienzo completo: (233.5, 234.0, 250.9) → convertido por la matriz OKLab estándar (la misma familia que usa `contrast.ts`) y verificado por ida y vuelta en el motor del navegador: `oklch(0.942 0.023 285)` resuelve a `rgb(234, 234, 251)`, a menos de una unidad del objetivo |
+
+Contraste de la copia, recalculado contra el nuevo `AURA_SURFACE` (fondo más oscuro que antes, así que el margen se reduce, pero sigue pasando con holgura): `semanticLight.text` **10.63:1** (antes 11.25), `semanticLight.brandText` **4.88:1** (antes 5.17). Los dos por encima de 4.5:1.
+
+### 15.6 Problema nuevo: la nebulosa ya no tiene un borde libre — hace falta un fade
+
+Todo el diseño del encuadre (marco anclado solo en X, «se puede cortar por la izquierda porque ese borde es transparente») dependía de una propiedad medida de la capa de energía **anterior**: su borde izquierdo tenía alfa media 3.9/255, prácticamente cero. Medido de nuevo sobre `01_nebulosa_particulas.png`, **esa propiedad ya no existe**: los cuatro bordes tienen alfa media similar y no-trivial (columna izq 27.5/255, columna der 34.9/255, fila sup 26.6/255, fila inf 22.4/255 — todos ≈ 9-14 %), y no decae hacia el interior: un muestreo en bandas del 2 % desde el borde hasta el 24 % del ancho da valores igual de altos (22-29/255) en todo el tramo. Es una neblina ambiental prácticamente uniforme, consecuencia directa del nuevo método («el resto cae en la capa de nebulosa» — cualquier residuo de la partición, por tenue que sea, incluidas motas de polvo cósmico dispersas por todo el lienzo).
+
+Peor aún para un corte limpio: dentro de esa neblina hay partículas brillantes puntuales con alfa de hasta 72-96/255 (~30-38 %) — si una de esas partículas cae justo sobre el borde del marco, un corte sin transición la partiría en seco, un defecto mucho más visible que la neblina de fondo.
+
+**La geometría del encuadre NO cambia** (marco = 100 % del alto del hero, anclado solo en X, sigue sangrando por derecha/arriba/abajo en las 5 relaciones de aspecto probadas — 16:9, 16:10, y un 4:3 extremo — con el nuevo centroide del orbe, verificado por render). Lo que se añade es una **máscara de desvanecido en los 4 bordes** del marco (`ScAuraSubject`), construida con dos `linear-gradient` (uno horizontal, uno vertical) combinados con `mask-composite: intersect` / `-webkit-mask-composite: source-in` — mismo patrón ya usado en este archivo para el anillo del CTA secundario (`ScCtaSecondary`, `mask-composite: exclude` / `-webkit-mask-composite: xor`), mismo motivo de declarar las dos formas (soporte de motor).
+
+```css
+mask-image:
+    linear-gradient(
+        to right,
+        transparent 0%,
+        #fff 8%,
+        #fff 92%,
+        transparent 100%
+    ),
+    linear-gradient(
+        to bottom,
+        transparent 0%,
+        #fff 8%,
+        #fff 92%,
+        transparent 100%
+    );
+mask-composite: intersect;
+-webkit-mask-image:
+    linear-gradient(
+        to right,
+        transparent 0%,
+        #fff 8%,
+        #fff 92%,
+        transparent 100%
+    ),
+    linear-gradient(
+        to bottom,
+        transparent 0%,
+        #fff 8%,
+        #fff 92%,
+        transparent 100%
+    );
+-webkit-mask-composite: source-in;
+```
+
+El **8 %** es un valor calibrado sobre la evidencia (suficiente para que una partícula de alfa~90/255 se desvanezca en una distancia perceptible en vez de cortarse en seco), no medido pixel a pixel — igual que `AURA_ORB_SIZE` o el 32 % de `ScAuraFoot`, se documenta como aproximación y se revisa contra el render real. Efecto colateral aceptado y correcto: la mano derecha, cuyo bbox llega al 99.9 % del ancho del arte (`filamentos adheridos`, §15.3), pierde su último tramo de filamento fino dentro del 8 % del borde derecho — es exactamente el tipo de contenido (una hebra delgada, no la silueta de la mano) que conviene que se apague con gracia en vez de cortarse.
+
+### 15.7 Tabla resumen de rutas
+
+| Rol | Fichero fuente (paquete 2026-07-27) | Publicado como |
+| --- | --- | --- |
+| Campo | `00_fondo.png` | `00-field.webp` / `-1024` |
+| Energía/nebulosa | `01_nebulosa_particulas.png` | `01-energy.webp` / `-1024` |
+| Mano izquierda | `02_mano_izquierda.png` | `02-hand-left.webp` / `-1024` |
+| Mano derecha | `03_mano_derecha.png` | `03-hand-right.webp` / `-1024` |
+| Orbe (anillo) | `04_orbe.png` | archivado, `04-orb.png`, no publicado |
+| Núcleo del orbe | `05_destello_central.png` | archivado, `05-core-glow.png`, no publicado |
+
+Las rutas de `public/hero/aura/` del paquete anterior (`00-field`, `01-hand-left`, `02-hand-right`, `03-energy`) se **sustituyen por completo** por las cuatro de esta tabla — no coexisten dos generaciones de assets en `public/`.
