@@ -115,31 +115,33 @@ export const JOURNEY_FIGURE_SHADOW =
   "drop-shadow(0 16px 34px oklch(0.55 0.15 285 / 0.22))";
 
 /**
- * Geometría de la figura (mockup L154), absoluta y SOLO ≥ `xl` (spec §7.2).
- * `width`/`height`/`top` son literales directos del mockup (`width: 305px`,
- * `height: 441px`, `top: 183px`, relativos a la caja de padding de la
- * tarjeta, que es el ancestro `position: relative` más cercano).
+ * Ancho reservado para la figura (mockup L154: `width: 305px`), tanto para
+ * el `padding-inline-end` que reserva su hueco (`ScBody` en `Journey.tsx`)
+ * como para el ancho de su caja de `object-fit: contain`.
  *
- * `right` NO es literal directo: el mockup posiciona con `left: 880px` sobre
- * un lienzo de `max-width: 1280px` con padding `0 32px` (contenido =
- * 1216px) y una tarjeta con padding `var(--space-7)` (48px) por lado. El
- * botón derecho de la figura queda en 880 + 305 = 1185px, a 1216 − 1185 =
- * 31px del borde derecho de la tarjeta. Nuestro contenedor usa el token
- * `grid.containerMax` (1200px, no 1280px del mockup — D11: el contenedor usa
- * el token existente, no el literal del mockup), así que se ancla por
- * `right` (31px, derivado de la aritmética de arriba) en vez de por `left`:
- * a cualquier ancho de tarjeta cercano al mockup, el resultado visual es el
- * mismo disco de figura pegado a la esquina inferior derecha, recortado por
- * el `overflow: hidden` de la tarjeta (mockup L104) — motivo por el que el
- * valor exacto de `top`/`right` no es crítico: `top: 183px` + `height: 441px`
- * excede la altura natural de la tarjeta y el propio mockup cuenta con que
- * el overflow lo recorte.
+ * REVISADO 2026-07-28 (fix de solape con el camino punteado): el mockup
+ * posiciona la figura con coordenadas absolutas (`top`/`left`) medidas
+ * contra SU propio lienzo estático; portadas literalmente a un layout con
+ * contenido real (traducciones de distinto largo, alto de tarjeta
+ * variable) la figura acababa montada sobre el camino/rejilla de pasos en
+ * cuanto el contenido no coincidía exactamente con el mockup. Se sustituyen
+ * `top`/`right`/`height` por un layout que reserva el hueco por
+ * construcción (`ScBody`/`ScFigure` en `Journey.tsx`, `inset-block: 0` +
+ * `height: 100%` + `object-fit: contain`): la figura entra siempre completa
+ * y nunca se superpone al camino, sea cual sea la altura real de la
+ * columna. Solo el ANCHO sigue siendo un literal del mockup.
  */
-export const JOURNEY_FIGURE_WIDTH = "305px";
-export const JOURNEY_FIGURE_HEIGHT = "441px";
-export const JOURNEY_FIGURE_TOP = "183px";
-export const JOURNEY_FIGURE_RIGHT = "31px";
+export const JOURNEY_FIGURE_WIDTH = "250px";
 export const JOURNEY_FIGURE_SIZES = "305px";
 
-export const JOURNEY_FIGURE_SRC = "/figures/journey-presenting-1024.webp";
-export const JOURNEY_FIGURE_SRC_SMALL = "/figures/journey-presenting-640.webp";
+/*
+ * Intercambio deliberado 2026-07-28 (edicion manual del usuario, en los dos
+ * lados a la vez: Story.tsx pasa a usar journey-presenting-*): Journey usa
+ * la figura que originalmente se genero para Story. El alt de i18n
+ * (`Home.journey.figureAlt`, "presentando el viaje con la palma abierta")
+ * queda desalineado con el contenido real de esta imagen (una figura
+ * senalando hacia arriba) -- señalado al usuario, no corregido aqui sin
+ * consultar: el texto alternativo es contenido, no geometria de layout.
+ */
+export const JOURNEY_FIGURE_SRC = "/figures/story-pointing-1024.webp";
+export const JOURNEY_FIGURE_SRC_SMALL = "/figures/story-pointing-640.webp";

@@ -16,9 +16,6 @@ import {
   JOURNEY_QUOTE_GRADIENT,
   JOURNEY_FIGURE_SHADOW,
   JOURNEY_FIGURE_WIDTH,
-  JOURNEY_FIGURE_HEIGHT,
-  JOURNEY_FIGURE_TOP,
-  JOURNEY_FIGURE_RIGHT,
   JOURNEY_FIGURE_SIZES,
   JOURNEY_FIGURE_SRC,
   JOURNEY_FIGURE_SRC_SMALL,
@@ -69,6 +66,34 @@ const ScKicker = styled(Typography)`
 const ScBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+/*
+ * Fix 2026-07-28: la figura se posicionaba en absoluto sobre TODO el ancho
+ * de la tarjeta con un `top`/`right` medidos a mano contra el mockup, sin
+ * reservar hueco propio -- en cuanto el contenido real (traducciones de
+ * distinto largo, viewport real) no coincidia exactamente con esas cifras,
+ * la figura se montaba encima del camino punteado y de los discos.
+ *
+ * Arreglo de raiz, no un reajuste de pixeles: este contenedor envuelve el
+ * camino+rejilla de pasos Y la cita, y reserva el ancho de la figura (+ un
+ * hueco) como `padding-inline-end` SOLO >= xl (donde la figura se muestra).
+ * El camino (`width: 100%` de ESTE contenedor) y la rejilla de pasos NUNCA
+ * se extienden bajo la figura -- por construccion del layout, no por
+ * coincidencia de coordenadas. Es tambien el ancestro `position: relative`
+ * de la figura (ver ScFigure): con `height: 100%` + `object-fit: contain`
+ * dentro de esa columna reservada, la figura entra siempre completa, se
+ * reduzca lo que se reduzca su alto disponible.
+ */
+const ScStepsAndQuote = styled.div`
+  position: relative;
+
+  @media ${({ theme }) => theme.data.breakPoint.xl} {
+    padding-inline-end: calc(
+      ${JOURNEY_FIGURE_WIDTH} + ${({ theme }) => theme.data.space[5]} - 150px
+    );
+    height: 200px;
+  }
 `;
 
 const ScStepsRow = styled.div`
@@ -226,22 +251,28 @@ const ScQuoteText = styled.span`
   }
 `;
 
+/*
+ * Ocupa EXACTAMENTE el hueco reservado por `ScStepsAndQuote` (mismo ancho en el
+ * `padding-inline-end` de arriba, mismo alto que el contenido real de esa
+ * columna vía `inset-block: 0` + `height: 100%`): no puede solaparse con el
+ * camino/rejilla porque ese hueco es espacio que ellos ya no ocupan, y no
+ * puede recortarse porque `object-fit: contain` reduce imagen entera para
+ * caber en la caja en vez de desbordarla (a diferencia del `cover` global
+ * de GlobalStyles).
+ */
 const ScFigure = styled.img`
   display: none;
 
   @media ${({ theme }) => theme.data.breakPoint.xl} {
     display: block;
     position: absolute;
-    top: ${JOURNEY_FIGURE_TOP};
-    right: ${JOURNEY_FIGURE_RIGHT};
+    inset-block: 0;
+    inset-inline-end: 0;
     width: ${JOURNEY_FIGURE_WIDTH};
-    height: ${JOURNEY_FIGURE_HEIGHT};
-    /* GlobalStyles declara img { object-fit: cover } para todo el sitio; la
-       caja del mockup (305x441) sobre el arte 2:3 recortaria ~3.5% del alto
-       (medido en navegador, revision 2026-07-28). contain no recorta y el
-       sobrante lateral es alfa puro, invisible. */
+    height: 100%;
     object-fit: contain;
     filter: ${JOURNEY_FIGURE_SHADOW};
+    right: -60px;
   }
 `;
 
@@ -348,64 +379,66 @@ export function Journey(): ReactElement {
           <ScBody variant="bodySm">{t("Home.journey.body")}</ScBody>
         </ScHeader>
 
-        <ScStepsRow ref={revealRef}>
-          <ScPath
-            aria-hidden="true"
-            viewBox={JOURNEY_PATH_VIEWBOX}
-            preserveAspectRatio="none"
-          >
-            <path
-              d={JOURNEY_PATH_D}
-              fill="none"
-              stroke={JOURNEY_PATH_STROKE}
-              strokeWidth="2"
-              strokeDasharray="1 8"
-              strokeLinecap="round"
-            />
-          </ScPath>
-          <ScStepsGrid>
-            {JOURNEY_STEPS.map((step, index) => (
-              <ScStepReveal
-                key={step.id}
-                $index={index}
-                data-revealed={revealed}
-              >
-                <ScStepOffset $offsetY={step.offsetY}>
-                  <ScDisc
-                    $colorRamp={step.colorRamp}
-                    $colorStep={step.colorStep}
-                    $shadow={step.discShadow}
-                  >
-                    <StepIcon id={step.id} />
-                  </ScDisc>
-                  <ScStepLabel
-                    $colorRamp={step.colorRamp}
-                    $colorStep={step.colorStep}
-                  >
-                    {String(index + 1).padStart(2, "0")} ·{" "}
-                    {t(`Home.journey.steps.${step.id}.label`)}
-                  </ScStepLabel>
-                  <ScStepBody variant="caption">
-                    {t(`Home.journey.steps.${step.id}.body`)}
-                  </ScStepBody>
-                </ScStepOffset>
-              </ScStepReveal>
-            ))}
-          </ScStepsGrid>
-        </ScStepsRow>
+        <ScStepsAndQuote>
+          <ScStepsRow ref={revealRef}>
+            <ScPath
+              aria-hidden="true"
+              viewBox={JOURNEY_PATH_VIEWBOX}
+              preserveAspectRatio="none"
+            >
+              <path
+                d={JOURNEY_PATH_D}
+                fill="none"
+                stroke={JOURNEY_PATH_STROKE}
+                strokeWidth="2"
+                strokeDasharray="1 8"
+                strokeLinecap="round"
+              />
+            </ScPath>
+            <ScStepsGrid>
+              {JOURNEY_STEPS.map((step, index) => (
+                <ScStepReveal
+                  key={step.id}
+                  $index={index}
+                  data-revealed={revealed}
+                >
+                  <ScStepOffset $offsetY={step.offsetY}>
+                    <ScDisc
+                      $colorRamp={step.colorRamp}
+                      $colorStep={step.colorStep}
+                      $shadow={step.discShadow}
+                    >
+                      <StepIcon id={step.id} />
+                    </ScDisc>
+                    <ScStepLabel
+                      $colorRamp={step.colorRamp}
+                      $colorStep={step.colorStep}
+                    >
+                      {String(index + 1).padStart(2, "0")} ·{" "}
+                      {t(`Home.journey.steps.${step.id}.label`)}
+                    </ScStepLabel>
+                    <ScStepBody variant="caption">
+                      {t(`Home.journey.steps.${step.id}.body`)}
+                    </ScStepBody>
+                  </ScStepOffset>
+                </ScStepReveal>
+              ))}
+            </ScStepsGrid>
+          </ScStepsRow>
+
+          <ScFigure
+            src={JOURNEY_FIGURE_SRC}
+            srcSet={`${JOURNEY_FIGURE_SRC_SMALL} 640w, ${JOURNEY_FIGURE_SRC} 1024w`}
+            sizes={JOURNEY_FIGURE_SIZES}
+            alt={t("Home.journey.figureAlt")}
+            loading="lazy"
+            decoding="async"
+          />
+        </ScStepsAndQuote>
 
         <ScQuote>
           <ScQuoteText>“{t("Home.journey.quote")}”</ScQuoteText>
         </ScQuote>
-
-        <ScFigure
-          src={JOURNEY_FIGURE_SRC}
-          srcSet={`${JOURNEY_FIGURE_SRC_SMALL} 640w, ${JOURNEY_FIGURE_SRC} 1024w`}
-          sizes={JOURNEY_FIGURE_SIZES}
-          alt={t("Home.journey.figureAlt")}
-          loading="lazy"
-          decoding="async"
-        />
       </ScCard>
     </ScJourney>
   );
