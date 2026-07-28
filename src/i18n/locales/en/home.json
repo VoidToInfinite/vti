@@ -16,37 +16,109 @@
             "story": "Read the story"
         },
         "story": {
-            "title": "From an empty page",
-            "body": "[por completar] Story section copy in English.",
-            "additional": "[por completar] Second paragraph of the Story section."
+            "kicker": "Why VoidToInfinite?",
+            "titleLead": "From curiosity",
+            "titleAccent": "to creation.",
+            "body": "VoidToInfinite is a space where learning meets imagination and play drives progress. We explore ideas, build meaningful skills and transform curiosity into experiences that can be shared with others.",
+            "note": "Every idea can become a new beginning.",
+            "figureAlt": "Celestial figure pointing upward",
+            "pillars": {
+                "learn": {
+                    "title": "Learn with purpose",
+                    "body": "Knowledge that inspires understanding and opens new possibilities."
+                },
+                "create": {
+                    "title": "Create with clarity",
+                    "body": "Ideas become meaningful when they can be explored, built and shared."
+                },
+                "grow": {
+                    "title": "Grow together",
+                    "body": "Learning becomes infinite when knowledge moves between people."
+                }
+            }
         },
-        "about": {
-            "title": "About",
-            "description": "We're a team with members in different types of fields with the idea of growing together by sharing knowledge and creating projects.",
-            "additionalDescription": "At the moment, we only have our Discord server. You can also follow our github projects."
+        "journey": {
+            "kicker": "Inspiration",
+            "title": "Your journey has no final step.",
+            "body": "Every discovery creates a new question. Every skill opens another path. The journey continues as long as curiosity remains.",
+            "quote": "The destination is not infinity. The journey is.",
+            "figureAlt": "Celestial figure presenting the journey with an open palm",
+            "steps": {
+                "discover": {
+                    "label": "Discover",
+                    "body": "Explore ideas, ask questions and observe the world differently."
+                },
+                "learn": {
+                    "label": "Learn",
+                    "body": "Build knowledge, develop understanding and shape your perspective."
+                },
+                "imagine": {
+                    "label": "Imagine",
+                    "body": "Connect ideas and discover possibilities that do not exist yet."
+                },
+                "create": {
+                    "label": "Create",
+                    "body": "Transform your thinking into something visible, useful or meaningful."
+                },
+                "share": {
+                    "label": "Share",
+                    "body": "Open your work to feedback, collaboration and new interpretations."
+                },
+                "evolve": {
+                    "label": "Evolve",
+                    "body": "Keep learning, redefining and expanding what is possible."
+                }
+            }
         },
-        "contact": {
-            "title": "Let's talk",
-            "body": "[por completar] One line inviting contact.",
-            "email": "Send an email"
-        },
-        "sections": {
-            "title": "Our present",
+        "features": {
+            "kicker": "Features",
             "learning": {
                 "title": "Learning",
-                "subtitle": "Increase your knowledge",
-                "description": "Get to know new methods and ways to carry your projects to make them come true, improve your weakness points and strengthen it with the help of experienced people or people that are learning, is more fun."
+                "body": "Every expert was once a beginner. Learn at your own pace, follow the questions that matter to you, and watch small steps become real understanding.",
+                "bullets": {
+                    "one": "Curated paths that grow with you",
+                    "two": "Real projects, not just theory",
+                    "three": "Progress you can see and feel",
+                    "four": "A rhythm that respects your time"
+                },
+                "cta": "Explore Learning",
+                "figureAlt": "Celestial figure studying a holographic tablet"
             },
             "imagination": {
                 "title": "Imagination",
-                "subtitle": "Light up your creativity",
-                "description": "Imagine whichever creative concept taken from within you expresing emotions, spawning new sensations and visualising the message, it's something unique."
+                "body": "Your ideas deserve a place to live. Turn “what if” into something real you can share.",
+                "bullets": {
+                    "one": "A safe space to experiment freely",
+                    "two": "Tools that spark new connections",
+                    "three": "From rough sketch to real concept",
+                    "four": "Every idea counts, even small ones"
+                },
+                "cta": "Explore Imagination",
+                "figureAlt": "Celestial figure thinking with a radiant heart"
             },
             "gaming": {
                 "title": "Gaming",
-                "subtitle": "Good luck! Have fun!",
-                "description": "Having fun with friends? Absolutely! We are all aware that we can learn by playing and that's a fact."
+                "body": "Play is how we learn best. Compete, collaborate and celebrate every win — big or small.",
+                "bullets": {
+                    "one": "Challenges that sharpen your skills",
+                    "two": "Friendly competition, real connection",
+                    "three": "Teamwork that turns into friendship",
+                    "four": "Every achievement worth celebrating"
+                },
+                "cta": "Explore Gaming",
+                "figureAlt": "Celestial figure raising a golden star trophy"
             }
+        },
+        "contact": {
+            "kicker": "Contact",
+            "titleLead": "Let’s build something",
+            "titleAccent": "infinite.",
+            "body": "Have a question, idea, or collaboration in mind?",
+            "bodySecond": "Reach out via email — we’d love to hear from you.",
+            "email": "hello@voidtoinfinite.com",
+            "cta": "Contact via email",
+            "ctaAria": "Contact via email — opens your email application",
+            "figureAlt": "Celestial figure waving hello"
         }
     }
 }

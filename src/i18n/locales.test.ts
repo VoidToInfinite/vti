@@ -5,7 +5,7 @@ import esHome from "./locales/es/home.json";
 import enHome from "./locales/en/home.json";
 
 /**
- * Candado permanente de los locales. Existe por tres motivos concretos, todos
+ * Candado permanente de los locales. Existe por dos motivos concretos, todos
  * verificados en el repo y no hipotéticos:
  *
  * 1. Paridad es/en. Al escribir este test, `Common.Navigation` tenía
@@ -13,13 +13,15 @@ import enHome from "./locales/en/home.json";
  *    idioma que ningún componente consumía y que ninguna revisión había visto.
  *    La comparación es de RUTAS completas y recursiva; una comparación
  *    superficial de primer nivel no habría detectado nada.
- * 2. La copia de Story y Contact sigue PENDIENTE por decisión del usuario. El
- *    marcador `[por completar]` es el contrato: si desaparece sin que se haya
- *    escrito la copia real, alguien ha rellenado el hueco inventando voz de
- *    marca. Este test lo convierte en un fallo de build.
- * 3. `Home.description` y `Home.additionalDescription` se eliminaron al
+ * 2. `Home.description` y `Home.additionalDescription` se eliminaron al
  *    reestructurar el hero en kicker/título/subtítulo/apoyo. Reintroducirlas
  *    dejaría dos fuentes de verdad para la misma copia.
+ *
+ * Nota: la copia de Story y Contact estuvo marcada `[por completar]` mientras
+ * el contrato i18n de la landing v2 (spec 2026-07-28) seguía sin cerrar. Esa
+ * spec ya define la copia real de Story/Journey/Features/Contact (§4), así
+ * que el candado de "copia pendiente" se retiró de este archivo: ya no hay
+ * ninguna clave de Home que deba seguir empezando por `[por completar]`.
  */
 
 type JsonTree = { [key: string]: string | JsonTree };
@@ -76,24 +78,6 @@ describe("locales", () => {
         expect(keyPaths(es)).toHaveLength(keyPaths(en).length);
       },
     );
-  });
-
-  describe("copia pendiente declarada", () => {
-    const pendientes = [
-      "Home.story.body",
-      "Home.story.additional",
-      "Home.contact.body",
-    ];
-
-    it.each(
-      locales.flatMap(({ lang, home }) =>
-        pendientes.map((path) => ({ lang, home, path })),
-      ),
-    )("$lang: $path sigue empezando por [por completar]", ({ home, path }) => {
-      const value = valueAt(home, path);
-      expect(value).toBeDefined();
-      expect(value?.startsWith("[por completar]")).toBe(true);
-    });
   });
 
   describe("copia del hero", () => {
