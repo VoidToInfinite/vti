@@ -1,0 +1,412 @@
+"use client";
+
+import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
+import styled from "styled-components";
+import { Typography } from "@/components/ui/Typography/Typography";
+import { useReveal } from "@/hooks/useReveal";
+import type { ThemeDefinition } from "@/theme/theme.types";
+import {
+  JOURNEY_STEPS,
+  JOURNEY_CARD_BACKGROUND,
+  JOURNEY_DISC_BORDER,
+  JOURNEY_PATH_VIEWBOX,
+  JOURNEY_PATH_D,
+  JOURNEY_PATH_STROKE,
+  JOURNEY_QUOTE_GRADIENT,
+  JOURNEY_FIGURE_SHADOW,
+  JOURNEY_FIGURE_WIDTH,
+  JOURNEY_FIGURE_HEIGHT,
+  JOURNEY_FIGURE_TOP,
+  JOURNEY_FIGURE_RIGHT,
+  JOURNEY_FIGURE_SIZES,
+  JOURNEY_FIGURE_SRC,
+  JOURNEY_FIGURE_SRC_SMALL,
+  type JourneyStep,
+  type JourneyStepId,
+} from "./journey.layers";
+
+/** Paso entre pasos del reveal escalonado (mismo mecanismo que `ScItem` en
+ *  `Features.tsx`, spec §7.2: "~90ms por paso"). */
+const STEP_STAGGER_MS = 90;
+
+const ScJourney = styled.section`
+  max-width: ${({ theme }) => theme.data.grid.containerMax};
+  margin-inline: auto;
+  padding: ${({ theme }) => theme.data.space[8]}
+    ${({ theme }) => theme.data.space[6]};
+`;
+
+const ScCard = styled.div`
+  position: relative;
+  overflow: hidden;
+  border-radius: ${({ theme }) => theme.data.radius["2xl"]};
+  background: ${JOURNEY_CARD_BACKGROUND};
+  padding: ${({ theme }) => theme.data.space[7]}
+    ${({ theme }) => theme.data.space[7]} ${({ theme }) => theme.data.space[8]};
+`;
+
+const ScHeader = styled.div`
+  text-align: center;
+  /* Medida propia de la cabecera (mockup: max-width 640px), no un valor
+     de la escala 'grid' (que no tiene un tramo cercano a este ancho). */
+  max-width: 640px;
+  margin-inline: auto;
+`;
+
+/* Mismo patrón que `ScKicker` en `Hero.tsx`: mayúsculas por CSS (no en el
+   JSON, así un lector de pantalla no lo deletrea como sigla) y color de la
+   rampa que pide el mockup (`--secondary-600`), no el `brandText` semántico
+   del kicker del hero. `letter-spacing` se sobrescribe al valor literal del
+   mockup (0.22em vs. los 0.18em de `overline`), misma excepción documentada
+   que `ScSubtitle` en `Hero.tsx`. */
+const ScKicker = styled(Typography)`
+  text-transform: uppercase;
+  color: ${({ theme }) => theme.data.palette.secondary[600]};
+  letter-spacing: 0.22em;
+`;
+
+const ScBody = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[3]};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+const ScStepsRow = styled.div`
+  position: relative;
+  margin-top: ${({ theme }) => theme.data.space[6]};
+  padding-bottom: ${({ theme }) => theme.data.space[4]};
+`;
+
+const ScPath = styled.svg`
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 96px;
+
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    display: block;
+  }
+`;
+
+const ScStepsGrid = styled.div`
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: ${({ theme }) => theme.data.space[5]};
+
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    grid-template-columns: repeat(6, 1fr);
+    gap: ${({ theme }) => theme.data.space[2]};
+  }
+`;
+
+/* Escalonado de reveal (opacity/transform), separado del offset de layout
+   (`ScStepOffset`, más abajo) para que los dos `transform` de este paso
+   vivan en elementos DISTINTOS y no se pisen entre sí — el mismo motivo por
+   el que `ScItem`/tarjeta están separados en `Features.tsx`. */
+const ScStepReveal = styled.div<{ $index: number }>`
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.emphasized},
+    transform ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.emphasized};
+  transition-delay: ${({ $index }) => $index * STEP_STAGGER_MS}ms;
+
+  &[data-revealed="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transition-delay: 0ms;
+    opacity: 1;
+    transform: none;
+  }
+`;
+
+/* Offset vertical alterno del mockup (L114-143): layout puro, sin
+   transition, y solo ≥ `lg` (spec §7.2: "< lg... sin offsets"). */
+const ScStepOffset = styled.div<{ $offsetY: number }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    transform: translateY(${({ $offsetY }) => $offsetY}px);
+  }
+`;
+
+/** Resuelve el color de un paso contra la rampa del tema (mockup:
+ *  `var(--<ramp>-<paso>)`, ver docblock de `journey.layers.ts`). */
+function stepColor(
+  theme: ThemeDefinition,
+  step: Pick<JourneyStep, "colorRamp" | "colorStep">,
+): string {
+  return theme.palette[step.colorRamp][step.colorStep];
+}
+
+const ScDisc = styled.div<{
+  $colorRamp: JourneyStep["colorRamp"];
+  $colorStep: JourneyStep["colorStep"];
+  $shadow: string;
+}>`
+  width: 56px;
+  height: 56px;
+  border-radius: ${({ theme }) => theme.data.radius.full};
+  background: ${({ theme }) => theme.data.semantic.surface};
+  border: 1px solid ${JOURNEY_DISC_BORDER};
+  box-shadow: ${({ $shadow }) => $shadow};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ theme, $colorRamp, $colorStep }) =>
+    stepColor(theme.data, { colorRamp: $colorRamp, colorStep: $colorStep })};
+  flex: none;
+
+  /* GlobalStyles fuerza svg { width: 100% }: sin esta regla el atributo
+     width="22" del icono pierde la cascada y el dibujo se estira al ancho
+     del disco (medido 54px en navegador, revision 2026-07-28 -- misma
+     leccion que el Logo en task/lessons.md). */
+  & > svg {
+    width: 22px;
+    height: 22px;
+  }
+`;
+
+const ScStepLabel = styled.p<{
+  $colorRamp: JourneyStep["colorRamp"];
+  $colorStep: JourneyStep["colorStep"];
+}>`
+  margin: ${({ theme }) => theme.data.space[3]} 0 0;
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: ${({ theme, $colorRamp, $colorStep }) =>
+    stepColor(theme.data, { colorRamp: $colorRamp, colorStep: $colorStep })};
+`;
+
+const ScStepBody = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[2]};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+const ScQuote = styled.div`
+  margin-top: ${({ theme }) => theme.data.space[7]};
+  text-align: center;
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: 1rem;
+  font-weight: 600;
+`;
+
+/* Degradado de texto estático (la spec §7.2 no pide animarlo, a diferencia
+   del tramo `ToInfinite` de `BrandName.tsx`), con la misma red de seguridad
+   de `@supports not (background-clip: text)` para no dejar el texto
+   invisible en un motor que no soporte el recorte. */
+const ScQuoteText = styled.span`
+  background-image: ${JOURNEY_QUOTE_GRADIENT};
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  @supports not (background-clip: text) {
+    background-image: none;
+    color: ${({ theme }) => theme.data.semantic.brandText};
+    -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
+  }
+`;
+
+const ScFigure = styled.img`
+  display: none;
+
+  @media ${({ theme }) => theme.data.breakPoint.xl} {
+    display: block;
+    position: absolute;
+    top: ${JOURNEY_FIGURE_TOP};
+    right: ${JOURNEY_FIGURE_RIGHT};
+    width: ${JOURNEY_FIGURE_WIDTH};
+    height: ${JOURNEY_FIGURE_HEIGHT};
+    /* GlobalStyles declara img { object-fit: cover } para todo el sitio; la
+       caja del mockup (305x441) sobre el arte 2:3 recortaria ~3.5% del alto
+       (medido en navegador, revision 2026-07-28). contain no recorta y el
+       sobrante lateral es alfa puro, invisible. */
+    object-fit: contain;
+    filter: ${JOURNEY_FIGURE_SHADOW};
+  }
+`;
+
+/** Icono SVG inline por paso (copiado verbatim del mockup L115-141: mismo
+ *  `viewBox`, mismos `path`/`circle`, `currentColor` para heredar el color
+ *  del disco). Decorativo — `aria-hidden`, la etiqueta de texto ya nombra el
+ *  paso. */
+function StepIcon({ id }: { id: JourneyStepId }): ReactElement {
+  const common = {
+    "width": 22,
+    "height": 22,
+    "viewBox": "0 0 24 24",
+    "fill": "none",
+    "stroke": "currentColor",
+    "strokeWidth": 2,
+    "strokeLinecap": "round" as const,
+    "strokeLinejoin": "round" as const,
+    "aria-hidden": true,
+    "focusable": false,
+  };
+
+  switch (id) {
+    case "discover":
+      return (
+        <svg {...common}>
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+          <path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z" />
+        </svg>
+      );
+    case "learn":
+      return (
+        <svg {...common}>
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+      );
+    case "imagine":
+      return (
+        <svg {...common}>
+          <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+          <path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
+        </svg>
+      );
+    case "create":
+      return (
+        <svg {...common}>
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      );
+    case "share":
+      return (
+        <svg {...common}>
+          <circle
+            cx="18"
+            cy="5"
+            r="3"
+          />
+          <circle
+            cx="6"
+            cy="12"
+            r="3"
+          />
+          <circle
+            cx="18"
+            cy="19"
+            r="3"
+          />
+          <path d="M8.59 13.51l6.83 3.98" />
+          <path d="M15.41 6.51l-6.82 3.98" />
+        </svg>
+      );
+    case "evolve":
+      return (
+        <svg {...common}>
+          <path d="M18.18 8c-2.4 0-4.11 1.64-6.18 4-2.07 2.36-3.78 4-6.18 4C3.61 16 2 14.21 2 12s1.61-4 3.82-4c2.4 0 4.11 1.64 6.18 4 2.07 2.36 3.78 4 6.18 4C20.39 16 22 14.21 22 12s-1.61-4-3.82-4z" />
+        </svg>
+      );
+  }
+}
+
+export function Journey(): ReactElement {
+  const { t } = useTranslation("home");
+  const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+
+  return (
+    <ScJourney
+      id="journey"
+      aria-labelledby="journey-title"
+    >
+      <ScCard>
+        <ScHeader>
+          <ScKicker variant="overline">{t("Home.journey.kicker")}</ScKicker>
+          <Typography
+            variant="h2"
+            id="journey-title"
+          >
+            {t("Home.journey.title")}
+          </Typography>
+          <ScBody variant="bodySm">{t("Home.journey.body")}</ScBody>
+        </ScHeader>
+
+        <ScStepsRow ref={revealRef}>
+          <ScPath
+            aria-hidden="true"
+            viewBox={JOURNEY_PATH_VIEWBOX}
+            preserveAspectRatio="none"
+          >
+            <path
+              d={JOURNEY_PATH_D}
+              fill="none"
+              stroke={JOURNEY_PATH_STROKE}
+              strokeWidth="2"
+              strokeDasharray="1 8"
+              strokeLinecap="round"
+            />
+          </ScPath>
+          <ScStepsGrid>
+            {JOURNEY_STEPS.map((step, index) => (
+              <ScStepReveal
+                key={step.id}
+                $index={index}
+                data-revealed={revealed}
+              >
+                <ScStepOffset $offsetY={step.offsetY}>
+                  <ScDisc
+                    $colorRamp={step.colorRamp}
+                    $colorStep={step.colorStep}
+                    $shadow={step.discShadow}
+                  >
+                    <StepIcon id={step.id} />
+                  </ScDisc>
+                  <ScStepLabel
+                    $colorRamp={step.colorRamp}
+                    $colorStep={step.colorStep}
+                  >
+                    {String(index + 1).padStart(2, "0")} ·{" "}
+                    {t(`Home.journey.steps.${step.id}.label`)}
+                  </ScStepLabel>
+                  <ScStepBody variant="caption">
+                    {t(`Home.journey.steps.${step.id}.body`)}
+                  </ScStepBody>
+                </ScStepOffset>
+              </ScStepReveal>
+            ))}
+          </ScStepsGrid>
+        </ScStepsRow>
+
+        <ScQuote>
+          <ScQuoteText>“{t("Home.journey.quote")}”</ScQuoteText>
+        </ScQuote>
+
+        <ScFigure
+          src={JOURNEY_FIGURE_SRC}
+          srcSet={`${JOURNEY_FIGURE_SRC_SMALL} 640w, ${JOURNEY_FIGURE_SRC} 1024w`}
+          sizes={JOURNEY_FIGURE_SIZES}
+          alt={t("Home.journey.figureAlt")}
+          loading="lazy"
+          decoding="async"
+        />
+      </ScCard>
+    </ScJourney>
+  );
+}
