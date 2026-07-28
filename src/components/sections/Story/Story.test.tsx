@@ -82,7 +82,7 @@ describe("Story", () => {
     expect(container.querySelector("h2")).toBeInTheDocument();
   });
 
-  it("el kicker y los tres pilares muestran el texto REAL de i18n, no uno inventado", () => {
+  it("el kicker y los cuatro pilares muestran el texto REAL de i18n, no uno inventado", () => {
     renderWithProviders(<Story />);
     expect(screen.getByText(esHome.Home.story.kicker)).toBeInTheDocument();
     expect(
@@ -97,11 +97,20 @@ describe("Story", () => {
     expect(
       screen.getByText(esHome.Home.story.pillars.grow.title),
     ).toBeInTheDocument();
-    // La numeracion "01 -- / 02 -- / 03 --" es del componente, no de i18n
-    // (spec §7.1): se comprueba aparte, sin acoplarla a una clave de json.
+    // Cuarto pilar (2026-07-28): "ponerlo en practica", humanizado -- no
+    // esta en el mockup original, se anadio a peticion del usuario.
+    expect(
+      screen.getByText(esHome.Home.story.pillars.practice.title),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(esHome.Home.story.pillars.practice.body),
+    ).toBeInTheDocument();
+    // La numeracion "01 -- / 02 -- / 03 -- / 04 --" es del componente, no de
+    // i18n (spec §7.1): se comprueba aparte, sin acoplarla a una clave de json.
     expect(screen.getByText(/^01 —/)).toBeInTheDocument();
     expect(screen.getByText(/^02 —/)).toBeInTheDocument();
     expect(screen.getByText(/^03 —/)).toBeInTheDocument();
+    expect(screen.getByText(/^04 —/)).toBeInTheDocument();
   });
 
   it("en ingles renderiza la copia inglesa, no la espanola (mitad del contrato de paridad)", async () => {
@@ -131,8 +140,11 @@ describe("Story", () => {
     expect(figure).toHaveAttribute("loading", "lazy");
     expect(figure).toHaveAttribute("decoding", "async");
     const srcSet = figure.getAttribute("srcset") ?? "";
-    expect(srcSet).toContain("/figures/story-pointing-640.webp 640w");
-    expect(srcSet).toContain("/figures/story-pointing-1024.webp 1024w");
+    // Intercambio manual 2026-07-28: Story pasa a usar journey-presenting-*
+    // (la figura originalmente generada para Journey); el alt de i18n queda
+    // desalineado con el contenido real de la imagen -- señalado al usuario.
+    expect(srcSet).toContain("/figures/journey-presenting-640.webp 640w");
+    expect(srcSet).toContain("/figures/journey-presenting-1024.webp 1024w");
   });
 
   it("revela el contenido al intersectar (false -> true)", () => {

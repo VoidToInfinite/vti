@@ -34,6 +34,10 @@
                 "grow": {
                     "title": "Grow together",
                     "body": "Learning becomes infinite when knowledge moves between people."
+                },
+                "practice": {
+                    "title": "Practice makes it real",
+                    "body": "Knowledge only becomes yours once you try it — stumbles, redos and all."
                 }
             }
         },

@@ -56,19 +56,24 @@ const PILLARS = [
   { key: "learn", number: "01" },
   { key: "create", number: "02" },
   { key: "grow", number: "03" },
+  { key: "practice", number: "04" },
 ] as const;
 
-/** Color de cada número de pilar: pasos reales de `palette.primary`/
- *  `palette.secondary` (mockup L82/87/92: `--primary-500`, `--secondary-500`,
- *  `--secondary-600`) -- referencia directa al tema, no un literal nuevo
- *  (mismo criterio que `ctaGlow` en Hero.tsx). */
+/** Color de cada número de pilar: los tres primeros son pasos reales de
+ *  `palette.primary`/`palette.secondary` (mockup L82/87/92: `--primary-500`,
+ *  `--secondary-500`, `--secondary-600`) -- referencia directa al tema, no
+ *  un literal nuevo (mismo criterio que `ctaGlow` en Hero.tsx). El cuarto
+ *  pilar ("practice", 2026-07-28) no existe en el mockup original: se
+ *  continúa la MISMA rampa un paso más (`secondary[700]`) en vez de
+ *  inventar un color ajeno al sistema. */
 function pillarColor(
   index: number,
 ): (props: { theme: DefaultTheme }) => string {
   return ({ theme }) => {
     if (index === 0) return theme.data.palette.primary[500];
     if (index === 1) return theme.data.palette.secondary[500];
-    return theme.data.palette.secondary[600];
+    if (index === 2) return theme.data.palette.secondary[600];
+    return theme.data.palette.secondary[700];
   };
 }
 
@@ -149,8 +154,8 @@ const ScFigureImg = styled.img`
 
 const ScNoteCard = styled.div`
   position: absolute;
-  inset-block-end: 10%;
-  inset-inline-end: 4%;
+  inset-block-end: 90%;
+  inset-inline-start: -25%;
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[3]};
@@ -266,12 +271,12 @@ export function Story(): ReactElement {
         <ScFigureWrap>
           <ScHalo aria-hidden="true" />
           <ScFigureImg
-            src="/figures/story-pointing-1024.webp"
-            srcSet="/figures/story-pointing-640.webp 640w, /figures/story-pointing-1024.webp 1024w"
+            src="/figures/journey-presenting-1024.webp"
+            srcSet={`/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w`}
             sizes={STORY_FIGURE_SIZES}
+            alt={t("Home.story.figureAlt")}
             loading="lazy"
             decoding="async"
-            alt={t("Home.story.figureAlt")}
           />
           <ScNoteCard>
             <ScSparkle

@@ -34,6 +34,10 @@
                 "grow": {
                     "title": "Crece en comunidad",
                     "body": "El aprendizaje se vuelve infinito cuando el conocimiento circula entre personas."
+                },
+                "practice": {
+                    "title": "La práctica lo hace real",
+                    "body": "El conocimiento se vuelve tuyo cuando lo pones a prueba: tropiezos incluidos."
                 }
             }
         },
