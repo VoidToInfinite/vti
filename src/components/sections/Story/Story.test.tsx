@@ -1,19 +1,35 @@
-import { Profiler } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
-import { contrastRatio } from "@/theme/tokens/contrast";
-import { semanticDark } from "@/theme/tokens/semantic";
-import { space } from "@/theme/tokens/space";
+import esHome from "@/i18n/locales/es/home.json";
+import enHome from "@/i18n/locales/en/home.json";
+import i18n from "@/i18n/config";
 import { Story } from "./Story";
+
+/*
+ * Reescritura completa (spec 2026-07-28, D3/D4): Story ya no es una
+ * superficie siempre oscura con ThemeProvider/SceneLoader/costura propios --
+ * es una sección de tema ambiental corriente que solo se monta en claro
+ * (gate `HomeSections`, fuera de esta propiedad). Los tests viejos (contraste
+ * forzado contra el póster de Three.js, costura negra, no-rerender bajo
+ * scroll de `useScrollProgress`) describían un componente que ya no existe;
+ * se sustituyen por los que sí describen el nuevo: título accesible,
+ * copia real de i18n, figura con srcset de dos pistas, reveal por
+ * intersección y el guard de reduced-motion (atado por CSS inyectado, no por
+ * `getComputedStyle` -- jsdom no evalúa `@media`, lección 2026-07-27).
+ */
+
+let trigger: (isIntersecting: boolean) => void;
 
 beforeEach(() => {
   vi.stubGlobal(
     "IntersectionObserver",
     class {
-      observe() {}
-      disconnect() {}
+      constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+        trigger = (v) => cb([{ isIntersecting: v }]);
+      }
+      observe(): void {}
+      disconnect(): void {}
     },
   );
 });
@@ -23,9 +39,10 @@ afterEach(() => {
 });
 
 /**
- * Texto CSS de las reglas que styled-components inyecto para un elemento. Se
- * usa solo para lo que `getComputedStyle` de jsdom no expone (propiedades con
- * prefijo de fabricante); todo lo demas se asevera sobre el estilo computado.
+ * Texto CSS de las reglas que styled-components inyectó para un elemento
+ * (lección 2026-07-27: jsdom no evalúa NINGÚN `@media`, así que un guard de
+ * `prefers-reduced-motion` solo se puede atar inspeccionando el TEXTO de la
+ * regla, nunca con `getComputedStyle`).
  */
 function cssRuleTextFor(el: HTMLElement): string {
   const classes = Array.from(el.classList);
@@ -37,229 +54,150 @@ function cssRuleTextFor(el: HTMLElement): string {
         return [];
       }
     })
-    .filter((text) => classes.some((cls) => text.startsWith(`.${cls}`)))
+    .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
     .join("\n");
 }
 
-/**
- * Colores de las paradas de un `linear-gradient`, en orden y sin sus
- * posiciones. Se ignora la direccion (`to bottom`), que no es una parada.
- */
-function gradientStops(backgroundImage: string): string[] {
-  const inside = backgroundImage.slice(
-    backgroundImage.indexOf("(") + 1,
-    backgroundImage.lastIndexOf(")"),
-  );
-  return (
-    inside.match(
-      /oklch\([^)]*\)|rgba?\([^)]*\)|transparent|#[0-9a-f]{3,8}/gi,
-    ) ?? []
-  );
-}
-
 describe("Story", () => {
-  it("es una region con nombre accesible", () => {
-    // Buscar la region POR SU NOMBRE, no solo comprobar que existe: un
-    // `aria-labelledby` apuntando a un id equivocado dejaria la seccion sin
-    // nombre (un lector de pantalla anunciaria "region" a secas) y aun asi
-    // pasaria un `getByRole("region")` a secas.
+  it("es una region con su nombre accesible real (no un aria-labelledby colgando)", () => {
+    // Misma lección que ya documentaba este archivo: buscar por el NOMBRE
+    // real (i18n), no solo comprobar que existe una region cualquiera.
     renderWithProviders(<Story />);
+    // El titulo real trae un <br/> entre "titleLead" y "titleAccent"
+    // (mockup L78): la forma robusta de verificar el nombre REAL, sin
+    // acoplarse a como el navegador concatena texto alrededor de un salto de
+    // linea, es comprobar que el nombre accesible contiene las DOS mitades.
     const region = screen.getByRole("region", {
-      name: (accessibleName) => accessibleName.length > 0,
+      name: (accessibleName) =>
+        accessibleName.includes(esHome.Home.story.titleLead) &&
+        accessibleName.includes(esHome.Home.story.titleAccent),
     });
     expect(region).toHaveAccessibleName();
+    expect(region).toHaveAttribute("id", "story");
   });
 
-  it("tiene un h2 (jerarquia correcta bajo la h1 del hero)", () => {
+  it("tiene un h2 (jerarquia correcta bajo el h1 del hero) y ningun h1 propio", () => {
     const { container } = renderWithProviders(<Story />);
     expect(container.querySelectorAll("h1")).toHaveLength(0);
     expect(container.querySelector("h2")).toBeInTheDocument();
   });
 
-  it("tiene el ancla de navegacion del CTA del hero", () => {
-    const { container } = renderWithProviders(<Story />);
-    expect(container.querySelector("#story")).toBeInTheDocument();
-  });
-
-  it("la costura Hero->Story es decorativa e inerte", () => {
-    // La capa de continuidad no aporta informacion: si llegara al arbol
-    // accesible seria un nodo vacio anunciado por un lector de pantalla, y si
-    // fuera focalizable seria una parada de tabulacion sin destino.
+  it("el kicker y los tres pilares muestran el texto REAL de i18n, no uno inventado", () => {
     renderWithProviders(<Story />);
-    const seam = screen.getByTestId("story-continuity");
-
-    expect(seam).toHaveAttribute("aria-hidden", "true");
-    expect(seam.textContent).toBe("");
-    expect(seam).not.toHaveAttribute("tabindex");
-    // `getAllByRole` ignora por defecto el subarbol `aria-hidden`: si la
-    // costura apareciera aqui, es que no esta oculta de verdad.
-    expect(screen.queryAllByRole("generic")).not.toContain(seam);
-  });
-
-  it("la costura arranca en el negro del hero y termina en alfa 0", () => {
-    // El extremo superior se compara contra el token IMPORTADO, no contra un
-    // string escrito a mano: si manana cambia el negro del ojo, el test sigue
-    // describiendo el contrato ("el primer pixel de Story es el ultimo pixel
-    // del hero") en vez de quedarse anclado a un literal.
-    //
-    // El extremo inferior es alfa 0 A PROPOSITO, no un color: lo que se ve ahi
-    // es lo que Story pinte debajo (poster, canvas o su propio fondo). Lo que
-    // el test ata es que ese fondo de seccion sea la superficie oscura que la
-    // rampa da por supuesta, aunque la pagina este en tema claro.
-    const { container } = renderWithProviders(<Story />);
-    const seam = screen.getByTestId("story-continuity");
-    const computed = window.getComputedStyle(seam);
-
-    expect(computed.pointerEvents).toBe("none");
-    expect(computed.height).toBe(space[9]);
-    expect(computed.backgroundImage).toContain(EYE_SURFACE);
-    expect(computed.backgroundImage).toContain("transparent");
-
-    const section = container.querySelector("#story") as HTMLElement;
-    expect(window.getComputedStyle(section).backgroundColor).toBe(
-      semanticDark.bg,
-    );
-  });
-
-  it("la costura solo puede oscurecer: ninguna parada aporta luz sobre el poster", () => {
-    // ESTE es el test que habria cazado el bug de la primera version.
-    //
-    // Aquella costura interpolaba de `EYE_SURFACE` a `semantic.bg`
-    // (oklch(0.22 0.004 286)) y ocultaba el tramo claro con una `mask-image`
-    // que mantenia alfa 1 hasta el 45%. Resultado real: los primeros 2,7rem se
-    // pintaban OPACOS con un gris de hasta ~L 0.10, MAS CLARO que el borde
-    // superior del poster (~L 0.05) -> un realce justo debajo de la junta, el
-    // mismo artefacto que la mascara decia eliminar.
-    //
-    // El contrato que se atornilla aqui es el del degradado DESNUDO, sin
-    // considerar mascaras, y eso es deliberado: tapar con una mascara una
-    // parada mas clara que lo que hay debajo es exactamente la construccion
-    // que produjo la banda gris. Si alguien la reintroduce, este test falla.
-    //
-    // La comparacion se hace con el helper real del sistema de color: el ratio
-    // de contraste contra negro puro es monotono en la luminancia, asi que
-    // sirve de comparador de claridad sin exportar nada nuevo.
-    const posterTopEdge = "oklch(0.05 0.012 288)"; // SceneLoader.tsx:54
-    const ceiling = contrastRatio(posterTopEdge, EYE_SURFACE);
-
-    renderWithProviders(<Story />);
-    const seam = screen.getByTestId("story-continuity");
-    const stops = gradientStops(
-      window.getComputedStyle(seam).backgroundImage,
-    ).filter((stop) => stop !== "transparent");
-
-    expect(stops.length).toBeGreaterThan(0);
-    for (const stop of stops) {
-      expect(contrastRatio(stop, EYE_SURFACE)).toBeLessThanOrEqual(ceiling);
-    }
-  });
-
-  it("la costura es una sola rampa monotona: dos paradas, sin mascara", () => {
-    // La mitigacion documentada para el banding (docs/qa-3d-pendiente.md §8)
-    // es alargar la costura, NO anadir paradas intermedias: una parada
-    // intermedia mete una discontinuidad de pendiente, que es justo lo que
-    // produce una banda de Mach. Y una `mask-image` reintroduce ademas el
-    // riesgo de soporte en Safari/Firefox y una propiedad con prefijo de
-    // fabricante que `getComputedStyle` ni siquiera expone.
-    renderWithProviders(<Story />);
-    const seam = screen.getByTestId("story-continuity");
-
+    expect(screen.getByText(esHome.Home.story.kicker)).toBeInTheDocument();
     expect(
-      gradientStops(window.getComputedStyle(seam).backgroundImage),
-    ).toEqual([EYE_SURFACE, "transparent"]);
-    expect(cssRuleTextFor(seam)).not.toContain("mask-image");
+      screen.getByText(esHome.Home.story.pillars.learn.title),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(esHome.Home.story.pillars.learn.body),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(esHome.Home.story.pillars.create.title),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(esHome.Home.story.pillars.grow.title),
+    ).toBeInTheDocument();
+    // La numeracion "01 -- / 02 -- / 03 --" es del componente, no de i18n
+    // (spec §7.1): se comprueba aparte, sin acoplarla a una clave de json.
+    expect(screen.getByText(/^01 —/)).toBeInTheDocument();
+    expect(screen.getByText(/^02 —/)).toBeInTheDocument();
+    expect(screen.getByText(/^03 —/)).toBeInTheDocument();
   });
 
-  it("la costura se pinta sobre el poster y por debajo del contenido", () => {
-    // Entre hermanos posicionados con el mismo z-index (`base`) gana el ultimo
-    // del DOM. Por eso el orden es contrato, no casualidad: DESPUES del poster
-    // (para taparlo, junto al canvas) y ANTES de `ScContent` (que ademas vive
-    // en `raised`, asi que la costura nunca puede taparlo).
-    const { container } = renderWithProviders(<Story />);
-    const seam = screen.getByTestId("story-continuity");
-    const poster = screen.getByTestId("scene-poster");
-    const content = container.querySelector("#story-title")?.parentElement;
-
-    expect(content).toBeTruthy();
-    expect(
-      seam.compareDocumentPosition(poster) & Node.DOCUMENT_POSITION_PRECEDING,
-    ).toBeTruthy();
-    expect(
-      seam.compareDocumentPosition(content as HTMLElement) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it("la copia usa el texto del tema oscuro aunque la pagina este en claro", () => {
-    // `renderWithProviders` monta el `ThemeProvider` de la app, que arranca en
-    // tema CLARO. Si el anidado de `storyTheme` no ganara, el color computado
-    // seria el casi-negro `semanticLight.text` sobre el poster oscuro: el bug
-    // registrado en la seccion 7 de docs/qa-3d-pendiente.md.
-    const { container } = renderWithProviders(<Story />);
-    const title = container.querySelector("#story-title") as HTMLElement;
-    const body = title.nextElementSibling as HTMLElement;
-
-    expect(window.getComputedStyle(title).color).toBe(semanticDark.text);
-    expect(window.getComputedStyle(body).color).toBe(semanticDark.text);
-  });
-
-  it("el texto de Story pasa AA sobre las tres superficies que puede tener debajo", () => {
-    // Medido con el helper real del sistema de color, no estimado.
-    //
-    // La tercera constante es la parada MAS CLARA del poster
-    // (`SceneLoader.tsx:51-55`) tomada COMO OPACA: en el poster va al 35% de
-    // alfa sobre oklch(0.05 0.012 288), asi que la composicion real es mas
-    // oscura y mas favorable que esta medicion. Es un peor caso deliberado.
-    // Ojo: `parseOklch` no admite alfa, asi que nunca se le pasa una parada
-    // con `/ alpha`.
-    const posterLightestStop = "oklch(0.35 0.142 235.851)";
-
-    expect(
-      contrastRatio(semanticDark.text, semanticDark.bg),
-    ).toBeGreaterThanOrEqual(4.5);
-    expect(
-      contrastRatio(semanticDark.text, EYE_SURFACE),
-    ).toBeGreaterThanOrEqual(4.5);
-    expect(
-      contrastRatio(semanticDark.text, posterLightestStop),
-    ).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it("no re-renderiza aunque se conduzcan frames de rAF y eventos de scroll", () => {
-    // Regresion real, no ceremonia: Story monta `useScrollProgress`, que
-    // escucha scroll y mide en rAF. Si esa medicion pasara alguna vez por
-    // `useState`, cada frame de scroll re-renderizaria Story entera --
-    // `SceneLoader` y el canvas de Three.js incluidos. El `Profiler` cuenta
-    // COMMITS del subarbol: si Story no vuelve a renderizar, no hay commit.
-    const frames: FrameRequestCallback[] = [];
-    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
-      frames.push(cb);
-      return frames.length;
+  it("en ingles renderiza la copia inglesa, no la espanola (mitad del contrato de paridad)", async () => {
+    await act(async () => {
+      await i18n.changeLanguage("en");
     });
-    vi.stubGlobal("cancelAnimationFrame", vi.fn());
-
-    let commits = 0;
-    renderWithProviders(
-      <Profiler
-        id="story"
-        onRender={() => {
-          commits += 1;
-        }}
-      >
-        <Story />
-      </Profiler>,
-    );
-
-    const afterMount = commits;
-    expect(afterMount).toBeGreaterThan(0);
-
-    for (let i = 0; i < 5; i += 1) {
-      act(() => {
-        window.dispatchEvent(new Event("scroll"));
-        frames.splice(0, frames.length).forEach((cb) => cb(i));
+    try {
+      renderWithProviders(<Story />);
+      expect(screen.getByText(enHome.Home.story.kicker)).toBeInTheDocument();
+      expect(
+        screen.getByText(enHome.Home.story.pillars.create.body),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(esHome.Home.story.kicker),
+      ).not.toBeInTheDocument();
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("es");
       });
     }
+  });
 
-    expect(commits).toBe(afterMount);
+  it("la figura lleva alt de i18n y srcset con las dos pistas publicadas", () => {
+    renderWithProviders(<Story />);
+    const figure = screen.getByAltText(esHome.Home.story.figureAlt);
+
+    expect(figure).toHaveAttribute("loading", "lazy");
+    expect(figure).toHaveAttribute("decoding", "async");
+    const srcSet = figure.getAttribute("srcset") ?? "";
+    expect(srcSet).toContain("/figures/story-pointing-640.webp 640w");
+    expect(srcSet).toContain("/figures/story-pointing-1024.webp 1024w");
+  });
+
+  it("revela el contenido al intersectar (false -> true)", () => {
+    const { container } = renderWithProviders(<Story />);
+    const grid = container.querySelector("[data-revealed]") as HTMLElement;
+
+    expect(grid).toHaveAttribute("data-revealed", "false");
+    act(() => trigger(true));
+    expect(grid).toHaveAttribute("data-revealed", "true");
+  });
+
+  it("bajo prefers-reduced-motion el reveal queda forzado a su estado final, sin transicion", () => {
+    // Ata el guard por TEXTO del CSS inyectado (jsdom no evalua @media). Este
+    // caso se validó con el bug inyectado a proposito: quitando este bloque
+    // de `Story.tsx` el assert de abajo falla (ver Registro/lecciones); se
+    // restauro para dejar la suite en verde.
+    const { container } = renderWithProviders(<Story />);
+    const grid = container.querySelector("[data-revealed]") as HTMLElement;
+    const css = cssRuleTextFor(grid);
+
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain("transition: none");
+    expect(reduceBlock).toContain("opacity: 1");
+    expect(reduceBlock).toContain("transform: none");
+  });
+
+  it("la flotacion de la figura y de la tarjeta de nota solo corren bajo no-preference (apagadas bajo reduce por construccion)", () => {
+    // Patron ya usado por `ctaGlowPulse` en Hero.tsx: la animacion se declara
+    // UNICAMENTE dentro de `@media (prefers-reduced-motion: no-preference)`,
+    // asi que bajo `reduce` queda apagada sin necesitar un bloque `reduce`
+    // explicito (no hay animacion incondicional que anular).
+    renderWithProviders(<Story />);
+    const figure = screen.getByAltText(esHome.Home.story.figureAlt);
+    const card = screen.getByText(esHome.Home.story.note)
+      .parentElement as HTMLElement;
+
+    for (const el of [figure, card]) {
+      const css = cssRuleTextFor(el);
+      expect(css).toContain("prefers-reduced-motion: no-preference");
+      expect(css).toContain("animation:");
+      // La declaracion de nivel superior (fuera de cualquier @media) NO debe
+      // traer ya una animacion incondicional -- si la trajera, "apagada bajo
+      // reduce" seria falso: la unica forma de que quede apagada bajo
+      // reduce es que la animacion viva EXCLUSIVAMENTE dentro del bloque
+      // no-preference.
+      const topLevelRule = css.split("@media")[0];
+      expect(topLevelRule).not.toContain("animation:");
+    }
+  });
+});
+
+// Regresion 2026-07-28: GlobalStyles declara svg width 100% y el sparkle de
+// la tarjeta de nota confiaba en su atributo width="20" (se estiraba al
+// ancho de la tarjeta, medido 186px en navegador). Mismo candado computado
+// que en Features/Journey.
+describe("tamano del sparkle de la nota (reset global de svg)", () => {
+  it("computa 20px por CSS, no por atributo", () => {
+    renderWithProviders(<Story />);
+    const card = screen.getByText(esHome.Home.story.note)
+      .parentElement as HTMLElement;
+    const sparkle = card.querySelector("svg") as SVGSVGElement;
+    expect(getComputedStyle(sparkle).width).toBe("20px");
+    expect(getComputedStyle(sparkle).height).toBe("20px");
   });
 });

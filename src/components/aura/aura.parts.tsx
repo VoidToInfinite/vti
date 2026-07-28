@@ -442,11 +442,11 @@ export const ScShock = styled.div`
  * en vez de un color propio. A diferencia de AURA_SURFACE (literal
  * decorativo, "espectaculo de marca"), este destino SI es un token: la
  * funcion de esta pieza es continuidad con la SIGUIENTE seccion real, no
- * decoracion de Aura. NOTA DE INCERTIDUMBRE: Story todavia no se ha tocado
- * en esta sesion, asi que este valor es la mejor suposicion documentada
- * (el fondo claro generico del sistema), no una medida del Story real. Si
- * Story termina adoptando un tono claro distinto, esta rampa se recalibra
- * contra ese tono.
+ * decoracion de Aura. CONFIRMADO 2026-07-28 (spec landing-v2-secciones,
+ * S3): la Story clara del rediseno no declara fondo propio -- se asienta
+ * sobre el semantic.bg del sistema, exactamente el destino de esta rampa.
+ * Lo que era la mejor suposicion documentada paso a ser el contrato: si
+ * algun dia Story adopta un tono propio, esta rampa se recalibra.
  *
  * La PRIMERA parada usa AURA_SURFACE (el mismo tono medido del campo) con
  * alfa 0, NO `transparent`: la palabra clave interpola desde negro y el

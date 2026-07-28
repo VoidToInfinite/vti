@@ -1,126 +1,95 @@
 "use client";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled, { ThemeProvider } from "styled-components";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
-import { useReveal } from "@/hooks/useReveal";
-import { useScrollProgress } from "@/hooks/useScrollProgress";
-import { SceneLoader } from "@/three/SceneLoader";
+import styled, { keyframes, type DefaultTheme } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
-import { basicDarkTheme } from "@/theme/themes";
+import { useReveal } from "@/hooks/useReveal";
+import {
+  STORY_ACCENT_GRADIENT,
+  STORY_CARD_BG,
+  STORY_CARD_BORDER,
+  STORY_CARD_FLOAT_MS,
+  STORY_CARD_SHADOW,
+  STORY_FIGURE_ASPECT,
+  STORY_FIGURE_FLOAT_MS,
+  STORY_FIGURE_HEIGHT,
+  STORY_FIGURE_SIZES,
+  STORY_FIGURE_WIDTH,
+  STORY_FLOAT_AMPLITUDE,
+  STORY_HALO_GRADIENT,
+  STORY_HALO_INSET,
+} from "./story.layers";
 
 /*
- * Story es una superficie SIEMPRE oscura, por el mismo motivo que el hero.
+ * Story ("Why VoidToInfinite?", mockup `Landing v2.dc.html` L70-101).
  *
- * Correccion factual de partida: NO es cierto que Story "arranque sin fondo
- * propio y se vea el semantic.bg del tema". SceneLoader monta un poster opaco
- * con position absolute e inset 0 (SceneLoader.tsx:37-56, cuyo ultimo radial
- * cierra en oklch(0.05 0.012 288) al 78%) y, cuando hay WebGL, la escena del
- * Descenso encima. Lo que se ve detras de la copia es ese poster oscuro, en
- * los dos temas de pagina.
+ * CONTEXTO DE LA REESCRITURA (spec 2026-07-28, D3/D4): la versión anterior de
+ * este componente era una superficie SIEMPRE oscura -- ThemeProvider anidado
+ * con `basicDarkTheme`, `ScSeam` (velo negro de continuidad con el hero) y
+ * `SceneLoader`/`useScrollProgress` (Three.js) montados aquí. Los tres
+ * desaparecen en esta entrega:
  *
- * El problema real es el contrario: en tema claro semantic.text resuelve a
- * casi negro (medido en navegador: oklch(0.32 0 286)) y la copia desaparece
- * sobre ese poster. Es el ultimo item abierto de la seccion 7 de
- * docs/qa-3d-pendiente.md. Se resuelve con el mismo patron que el hero:
- * ThemeProvider anidado con el tema oscuro, para que TODO token dentro de la
- * seccion (texto, anillo de foco, futuros enlaces) resuelva al valor disenado
- * para fondo oscuro, en vez de fijar colores literales elemento a elemento.
+ *  - Three.js se retira por completo del repo (D4); `useScrollProgress` no
+ *    tenía más consumidor que este componente.
+ *  - El gate por tema (`HomeSections`, D3) hace que Story SOLO se monte
+ *    cuando la página está en tema CLARO -- ya no hace falta forzar un tema
+ *    propio ni protegerse del tema ambiental.
+ *  - La costura con el hero YA NO HACE FALTA (medido, no supuesto): el pie
+ *    del hero claro (`ScAuraFoot`, `aura.parts.tsx:473-485`) es una rampa que
+ *    ASCIENDE hasta terminar exactamente en `theme.data.semantic.bg` -- el
+ *    mismo fondo contra el que resuelve esta sección, que no declara
+ *    `background` propio y expone directamente la superficie del sistema
+ *    (heredada del `body`). No hay filo duro que disimular.
  *
- * La identidad del objeto es estable a proposito (constante de modulo, no un
- * literal en el render): un objeto nuevo por render invalidaria el contexto de
- * styled-components y re-renderizaria el subarbol entero -- SceneLoader y el
- * canvas de Three.js incluidos -- en cada render de Story.
- *
- * El ThemeProvider envuelve a ScStory DESDE FUERA (verificado que Scene.tsx no
- * lee theme.name ni theme.isLight, solo motion.duration/easing), asi que el
- * propio background-color de la seccion resuelve al semantic.bg oscuro en los
- * dos temas de pagina. La costura NO interpola hacia ese color (termina en alfa
- * 0), pero es la superficie que asoma bajo ella alli donde no hay poster ni
- * canvas: si en tema claro fuera casi blanca, la rampa acabaria en un salto.
+ * Story es ahora una sección de tema ambiental corriente: usa
+ * `theme.data.semantic.*` tal cual, sin ThemeProvider propio.
  */
-const storyTheme = { data: basicDarkTheme };
+
+/* Flotación compartida por la figura y la tarjeta de nota (mismo keyframe que
+   el mockup reutiliza con dos duraciones distintas, ver story.layers.ts). */
+const float = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(${STORY_FLOAT_AMPLITUDE}); }
+`;
+
+const PILLARS = [
+  { key: "learn", number: "01" },
+  { key: "create", number: "02" },
+  { key: "grow", number: "03" },
+] as const;
+
+/** Color de cada número de pilar: pasos reales de `palette.primary`/
+ *  `palette.secondary` (mockup L82/87/92: `--primary-500`, `--secondary-500`,
+ *  `--secondary-600`) -- referencia directa al tema, no un literal nuevo
+ *  (mismo criterio que `ctaGlow` en Hero.tsx). */
+function pillarColor(
+  index: number,
+): (props: { theme: DefaultTheme }) => string {
+  return ({ theme }) => {
+    if (index === 0) return theme.data.palette.primary[500];
+    if (index === 1) return theme.data.palette.secondary[500];
+    return theme.data.palette.secondary[600];
+  };
+}
 
 const ScStory = styled.section`
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: ${({ theme }) => theme.data.space[9]}
     ${({ theme }) => theme.data.space[5]};
-  overflow: hidden;
-  background-color: ${({ theme }) => theme.data.semantic.bg};
+  max-width: ${({ theme }) => theme.data.grid.containerMax};
+  margin-inline: auto;
 `;
 
-/*
- * Costura Hero -> Story. Un velo NEGRO que se retira hacia abajo: arranca en el
- * MISMO negro que pinta la superficie del hero (EYE_SURFACE, importado de la
- * capa de datos del ojo, no un literal reescrito) y termina en alfa 0.
- *
- * Lo que se ve compuesto es L(p) = p x lo-que-Story-pinte-debajo: en el borde
- * superior el pixel es exactamente el negro del hero, y a partir de ahi el
- * poster (o la escena viva, o el semantic.bg de la seccion) aparece de forma
- * ESTRICTAMENTE MONOTONA. La costura solo puede oscurecer; no aporta luz en
- * ningun punto de la rampa.
- *
- * Historia, porque la version anterior fallaba justo aqui y la correccion es el
- * motivo de este comentario: el degradado iba de EYE_SURFACE a semantic.bg
- * (oklch(0.22 0.004 286)) con una mascara que mantenia alfa 1 hasta el 45%. Ese
- * primer 45% se pintaba OPACO con un gris que subia hasta ~L 0.10, MAS CLARO
- * que el borde superior del poster (~L 0.05): un realce justo debajo de la
- * junta, es decir el mismo artefacto que la mascara decia eliminar, y ademas
- * una discontinuidad de pendiente de la alfa en el 45% (candidata a banda de
- * Mach). Se sustituye por una sola declaracion monotona.
- *
- * La parada final es la palabra clave transparent y no un literal oklch con
- * alfa 0: EYE_SURFACE es negro, asi que transparent (rgb(0 0 0 / 0)) es su
- * MISMO color con alfa 0 y la rampa se mantiene negra interpole el motor con
- * alfa premultiplicada o sin ella. Escribir el literal aqui volveria a
- * duplicar el negro de marca en un segundo archivo, que es justo lo que
- * EYE_SURFACE existe para evitar.
- *
- * Va DESPUES de SceneLoader y ANTES de ScContent, con el mismo z-index base:
- * entre hermanos de igual z-index gana el ultimo del DOM, asi que tapa el
- * poster y el canvas y nunca puede tapar el contenido, que vive en raised.
- *
- * Sin JS y sin mask-image: ni listener de scroll, ni rAF, ni assets, ni
- * propiedades con prefijo de fabricante. Es CSS estatico de una sola
- * declaracion, presente en el primer pintado e identico con poster, con escena
- * viva o sin WebGL.
- *
- * Rampa total atravesando la junta: 4rem del pie del hero + 6rem de esta
- * costura = 10rem.
- */
-const ScSeam = styled.div`
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline: 0;
-  height: ${({ theme }) => theme.data.space[9]};
-  z-index: ${({ theme }) => theme.data.zIndex.base};
-  pointer-events: none;
-  background-image: linear-gradient(
-    to bottom,
-    ${EYE_SURFACE} 0%,
-    transparent 100%
-  );
-
-  @media (forced-colors: active) {
-    display: none;
-  }
-`;
-
-/* Section reveal (spec §9): una idea a la vez. Solo transform/opacity. */
-const ScContent = styled.div`
-  position: relative;
-  z-index: ${({ theme }) => theme.data.zIndex.raised};
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.data.space[4]};
-  max-width: ${({ theme }) => theme.data.grid.prose};
-  text-align: center;
+/* Reveal de sección (mismo patrón que `ScItem` en Features.tsx): una idea a
+   la vez, solo transform/opacity, guard reduced-motion que fuerza el estado
+   final. Sin escalonado por elemento -- a diferencia de Journey (spec §7.2),
+   Story no lo pide. */
+const ScGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: ${({ theme }) => theme.data.space[7]};
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(16px);
   transition:
     opacity ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate},
@@ -132,6 +101,11 @@ const ScContent = styled.div`
     transform: none;
   }
 
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    grid-template-columns: minmax(280px, ${STORY_FIGURE_WIDTH}) 1fr;
+    gap: ${({ theme }) => theme.data.space[8]};
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     opacity: 1;
@@ -139,37 +113,219 @@ const ScContent = styled.div`
   }
 `;
 
+const ScFigureWrap = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(${STORY_FIGURE_HEIGHT}, 70vh);
+`;
+
+const ScHalo = styled.div`
+  position: absolute;
+  inset: ${STORY_HALO_INSET};
+  border-radius: ${({ theme }) => theme.data.radius.full};
+  background-image: ${STORY_HALO_GRADIENT};
+  pointer-events: none;
+`;
+
+const ScFigureImg = styled.img`
+  position: relative;
+  display: block;
+  width: min(${STORY_FIGURE_WIDTH}, 100%);
+  height: auto;
+  aspect-ratio: ${STORY_FIGURE_ASPECT};
+  /* GlobalStyles declara img { object-fit: cover } para todo el sitio; con
+     la caja del mockup (375/548) sobre un arte 2:3, cover recortaria ~2.5%
+     del alto (medido en navegador, revision 2026-07-28). contain no recorta
+     nada y el margen sobrante es alfa puro, invisible. */
+  object-fit: contain;
+  border-radius: ${({ theme }) => theme.data.radius["2xl"]};
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${float} ${STORY_FIGURE_FLOAT_MS}ms ease-in-out infinite;
+  }
+`;
+
+const ScNoteCard = styled.div`
+  position: absolute;
+  inset-block-end: 10%;
+  inset-inline-end: 4%;
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.data.space[3]};
+  max-width: 220px;
+  background-color: ${STORY_CARD_BG};
+  border: 1px solid ${STORY_CARD_BORDER};
+  border-radius: ${({ theme }) => theme.data.radius.lg};
+  padding: ${({ theme }) => theme.data.space[3]}
+    ${({ theme }) => theme.data.space[4]};
+  box-shadow: 0 12px 30px ${STORY_CARD_SHADOW};
+
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    inset-inline-end: -6%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${float} ${STORY_CARD_FLOAT_MS}ms ease-in-out infinite;
+  }
+`;
+
+const ScSparkle = styled.svg`
+  flex: none;
+  /* GlobalStyles fuerza svg { width: 100% }: sin esta declaracion el
+     atributo width="20" pierde la cascada y el sparkle se estira al ancho
+     de la tarjeta (medido 186px en navegador, revision 2026-07-28 -- misma
+     leccion que el Logo en task/lessons.md). */
+  width: 20px;
+  height: 20px;
+  color: ${({ theme }) => theme.data.palette.primary[600]};
+`;
+
+const ScContent = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+/* Kicker: mockup usa `var(--primary-600)` (L77). Se resuelve contra
+   `semantic.brandText`, no contra un paso de palette -- mismo mapeo que ya
+   aplica `ScKicker` en Hero.tsx para el mismo rol visual ("etiqueta de
+   marca"). */
+const ScKicker = styled(Typography)`
+  text-transform: uppercase;
+  color: ${({ theme }) => theme.data.semantic.brandText};
+`;
+
+const ScTitle = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[3]};
+`;
+
+const ScAccent = styled.span`
+  background-image: ${STORY_ACCENT_GRADIENT};
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  /* Red de seguridad: sin soporte de background-clip: text el degradado no
+     puede quedar como único portador del color -- se degrada al rol de
+     marca del tema (mismo recurso que gradientTextClip en BrandName.tsx). */
+  @supports not (background-clip: text) {
+    background-image: none;
+    color: ${({ theme }) => theme.data.semantic.brandText};
+    -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
+  }
+`;
+
+const ScBody = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[5]};
+  max-width: ${({ theme }) => theme.data.grid.prose};
+`;
+
+const ScPillars = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-block-start: ${({ theme }) => theme.data.space[6]};
+`;
+
+const ScPillarRow = styled.div`
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: ${({ theme }) => theme.data.space[4]};
+  align-items: baseline;
+  padding-block: ${({ theme }) => theme.data.space[4]};
+  border-block-start: 1px solid ${({ theme }) => theme.data.semantic.border};
+`;
+
+const ScPillarNumber = styled.span<{ $index: number }>`
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  font-weight: 700;
+  color: ${({ $index }) => pillarColor($index)};
+`;
+
+const ScPillarCopy = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.data.space[1]};
+`;
+
 export function Story(): ReactElement {
   const { t } = useTranslation("home");
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
-  const { ref: sectionRef, progress } = useScrollProgress();
 
   return (
-    <ThemeProvider theme={storyTheme}>
-      <ScStory
-        id="story"
-        ref={sectionRef}
-        aria-labelledby="story-title"
+    <ScStory
+      id="story"
+      aria-labelledby="story-title"
+    >
+      <ScGrid
+        ref={revealRef}
+        data-revealed={revealed}
       >
-        <SceneLoader progress={progress} />
-        <ScSeam
-          aria-hidden="true"
-          data-testid="story-continuity"
-        />
-        <ScContent
-          ref={revealRef}
-          data-revealed={revealed}
-        >
-          <Typography
+        <ScFigureWrap>
+          <ScHalo aria-hidden="true" />
+          <ScFigureImg
+            src="/figures/story-pointing-1024.webp"
+            srcSet="/figures/story-pointing-640.webp 640w, /figures/story-pointing-1024.webp 1024w"
+            sizes={STORY_FIGURE_SIZES}
+            loading="lazy"
+            decoding="async"
+            alt={t("Home.story.figureAlt")}
+          />
+          <ScNoteCard>
+            <ScSparkle
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+              <path d="M19 15l.7 1.8L21.5 17.5l-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
+            </ScSparkle>
+            <Typography variant="bodySm">{t("Home.story.note")}</Typography>
+          </ScNoteCard>
+        </ScFigureWrap>
+
+        <ScContent>
+          <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
+          <ScTitle
             variant="h2"
             id="story-title"
           >
-            {t("Home.story.title")}
-          </Typography>
-          <Typography variant="lead">{t("Home.story.body")}</Typography>
-          <Typography variant="body">{t("Home.story.additional")}</Typography>
+            {t("Home.story.titleLead")}
+            <br />
+            <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
+          </ScTitle>
+          <ScBody variant="body">{t("Home.story.body")}</ScBody>
+          <ScPillars>
+            {PILLARS.map((pillar, index) => (
+              <ScPillarRow key={pillar.key}>
+                <ScPillarNumber $index={index}>
+                  {pillar.number} —
+                </ScPillarNumber>
+                <ScPillarCopy>
+                  <Typography
+                    variant="h5"
+                    as="p"
+                  >
+                    {t(`Home.story.pillars.${pillar.key}.title`)}
+                  </Typography>
+                  <Typography variant="bodySm">
+                    {t(`Home.story.pillars.${pillar.key}.body`)}
+                  </Typography>
+                </ScPillarCopy>
+              </ScPillarRow>
+            ))}
+          </ScPillars>
         </ScContent>
-      </ScStory>
-    </ThemeProvider>
+      </ScGrid>
+    </ScStory>
   );
 }

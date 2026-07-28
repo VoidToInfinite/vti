@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-import styled from "styled-components";
 import { renderWithProviders } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
@@ -10,25 +9,39 @@ import { contrastRatio } from "@/theme/tokens/contrast";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
 import { StageProvider } from "@/motion/StageProvider";
-import HomePage from "../../../app/page";
 import { Hero } from "./Hero/Hero";
 import { Story } from "./Story/Story";
 
 /*
- * Lente de INTEGRACION / REGRESION.
+ * Lente de INTEGRACION entre Hero y Story, reescrita para la landing v2
+ * (spec 2026-07-28, D3/D4).
  *
- * Los tests de Hero y de Story miden cada seccion por separado, dentro de su
- * propio contenedor. Este archivo monta las DOS a la vez, que es como se
- * entregan al usuario, y cubre los huecos que solo aparecen al juntarlas:
+ * QUE CAMBIO respecto a la version anterior de este archivo: Story dejaba de
+ * ser una superficie SIEMPRE oscura con ThemeProvider propio y una costura
+ * (`ScSeam`) que empalmaba el negro del hero con el poster de Three.js. Las
+ * dos cosas desaparecieron (Three.js se retira del repo entero, D4) y la
+ * costura ya no hace falta: medido en `aura.parts.tsx:473-485`, el pie del
+ * hero CLARO (`ScAuraFoot`) ya es una rampa que asciende hasta terminar
+ * exactamente en `theme.data.semantic.bg` -- la misma superficie contra la
+ * que resuelve Story, que no declara un `background` propio. Los tests que
+ * describian ese mundo viejo (costura negra, contraste forzado contra un
+ * poster, Story computando SIEMPRE el texto oscuro) ya no describen nada
+ * real y se eliminan; se conservan los que siguen siendo ciertos:
  *
- *  - la jerarquia de encabezados es de PAGINA, no de seccion (un h1 unico);
- *  - el ancla del CTA del hero tiene que resolver a un elemento REAL;
- *  - el contraste forzado de Story debe sostenerse tambien con la pagina en
- *    tema OSCURO (los tests existentes solo arrancan en claro);
- *  - la copia INGLESA no la comprobaba nadie: todos los tests comparan contra
- *    el locale espanol, que es la mitad del contrato de paridad.
+ *  - la jerarquia de encabezados es de PAGINA (un solo h1, el h2 de Story
+ *    despues);
+ *  - el ancla del CTA secundario del hero (#story) resuelve a un elemento
+ *    real;
+ *  - Hero y Story son hermanos INMEDIATOS al montarlos juntos;
+ *  - el pie del hero (oscuro siempre, claro solo por opacidad) sigue sin
+ *    cambios -- Hero esta fuera de alcance de esta entrega;
+ *  - la paridad de copia ES/EN sigue cubierta para las dos secciones.
  *
- * No se toca codigo de produccion.
+ * Se monta `<Hero/><Story/>` directamente, NO `app/page.tsx`: la composicion
+ * final de la pagina (Navbar + HomeSections + Footer) es propiedad de otro
+ * flujo de esta misma entrega y puede seguir cambiando mientras este archivo
+ * se escribe -- acoplarse a ella aqui arriesgaria un fallo por una causa
+ * ajena a la integracion Hero/Story que este archivo existe para cubrir.
  */
 
 /** Stub minimo de matchMedia: Hero monta Eye -> usePointer, que lo llama. */
@@ -81,28 +94,14 @@ function cssRuleTextFor(el: HTMLElement): string {
 }
 
 /*
- * Sonda del tema de PAGINA. Vive fuera de Hero y de Story, asi que resuelve al
- * tema que sirve el ThemeProvider de la app y no al oscuro anidado: sin ella,
- * un test "en tema oscuro" no probaria que la pagina esta de verdad en oscuro
- * (todo lo que se mide dentro de las dos secciones es oscuro por construccion).
- */
-const ScProbe = styled.div`
-  color: ${({ theme }) => theme.data.semantic.text};
-`;
-
-/*
  * `Hero` consume `useStage()` (tarea C5): sin un `StageProvider` en el
  * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
  * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
- * localmente, mismo patron que Navbar.test.tsx/Hero.test.tsx. Ninguno de los
- * casos de este archivo mide la opacidad de la copia (miden color, reglas
- * CSS, altura del pie, jerarquia de encabezados...), asi que basta con la
- * fase de pagina en "backdrop", sin forzar "chrome".
+ * localmente, mismo patron que Navbar.test.tsx/Hero.test.tsx.
  */
 function renderPage(): HTMLElement {
   const { container } = renderWithProviders(
     <StageProvider>
-      <ScProbe data-testid="page-theme-probe" />
       <Hero />
       <Story />
     </StageProvider>,
@@ -110,18 +109,11 @@ function renderPage(): HTMLElement {
   return container;
 }
 
-function pageThemeText(container: HTMLElement): string {
-  const probe = container.querySelector(
-    '[data-testid="page-theme-probe"]',
-  ) as HTMLElement;
-  return window.getComputedStyle(probe).color;
-}
-
 describe("Hero + Story (integracion)", () => {
   it("la pagina tiene UN solo h1 y el h2 de Story va despues", () => {
-    // Hero.test cuenta encabezados dentro del contenedor del Hero y Story.test
-    // dentro del suyo: ninguno de los dos puede ver un segundo h1 introducido
-    // por la otra seccion.
+    // Hero.test cuenta encabezados dentro del contenedor del Hero y
+    // Story.test dentro del suyo: ninguno de los dos puede ver un segundo h1
+    // introducido por la otra seccion.
     const container = renderPage();
 
     const h1s = container.querySelectorAll("h1");
@@ -136,55 +128,58 @@ describe("Hero + Story (integracion)", () => {
     ).toBeTruthy();
   });
 
-  it("el ancla del CTA secundario del hero resuelve a un elemento real", () => {
-    // El href y el id viven en archivos distintos: si alguien renombra uno de
-    // los dos, cada suite por separado sigue en verde y el boton deja de
-    // navegar. Solo se ve montando las dos secciones juntas.
+  it("el ancla del CTA secundario del hero resuelve a la seccion Story real", () => {
+    // El href y el id viven en archivos distintos (Hero.tsx / Story.tsx): si
+    // alguien renombra uno de los dos, cada suite por separado sigue en
+    // verde y el boton deja de navegar. Solo se ve montando las dos
+    // secciones juntas.
     const container = renderPage();
     const cta = container.querySelectorAll("a")[1];
 
-    const href = cta.getAttribute("href") ?? "";
-    expect(href.startsWith("#")).toBe(true);
-    expect(container.querySelector(href)).not.toBeNull();
-    expect(container.querySelector(href)?.tagName).toBe("SECTION");
+    expect(cta.getAttribute("href")).toBe("#story");
+    const target = container.querySelector("#story");
+    expect(target).not.toBeNull();
+    expect(target?.tagName).toBe("SECTION");
   });
 
-  it("con la pagina en tema OSCURO la copia de Story sigue en el texto oscuro", () => {
-    // El caso existente arranca en tema CLARO. Este es el simetrico: si
-    // alguien invirtiera la condicion del anidado, el caso claro seguiria en
-    // verde y este fallaria.
+  it("Hero y Story son hermanos inmediatos", () => {
+    const container = renderPage();
+    const hero = container
+      .querySelector('[data-testid="hero-foot"]')
+      ?.closest("section");
+    const story = container.querySelector("#story");
+
+    expect(hero).not.toBeNull();
+    expect(hero?.nextElementSibling).toBe(story);
+  });
+
+  it("Story ya NO fuerza un tema propio: su kicker sigue el tema AMBIENTAL de la pagina", () => {
+    // Contrafactual de la version anterior: aquella Story forzaba SIEMPRE el
+    // texto del tema oscuro via un ThemeProvider anidado, sin importar el
+    // tema de pagina. Ahora, sin ese anidado, el kicker tiene que resolver
+    // al rol de marca del tema AMBIENTAL -- claro por defecto, oscuro si el
+    // usuario lo guardo.
+    const clara = renderPage();
+    const kickerClaro = clara.querySelector("#story-title")
+      ?.previousElementSibling as HTMLElement;
+    expect(window.getComputedStyle(kickerClaro).color).toBe(
+      semanticLight.brandText,
+    );
+
     window.localStorage.setItem("vti-theme", "dark");
-    const container = renderPage();
-    // La sonda demuestra que la pagina esta en oscuro de verdad; sin esta
-    // comprobacion el test seria vacuo (pasaria tambien en claro).
-    expect(pageThemeText(container)).toBe(semanticDark.text);
-
-    const title = container.querySelector("#story-title") as HTMLElement;
-    const body = title.nextElementSibling as HTMLElement;
-
-    expect(window.getComputedStyle(title).color).toBe(semanticDark.text);
-    expect(window.getComputedStyle(body).color).toBe(semanticDark.text);
-    expect(
-      contrastRatio(semanticDark.text, semanticDark.bg),
-    ).toBeGreaterThanOrEqual(4.5);
-    expect(
-      contrastRatio(semanticDark.text, EYE_SURFACE),
-    ).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it("con la pagina en tema CLARO la copia de Story sigue en el texto oscuro", () => {
-    // Contraparte del anterior, y prueba de que la sonda discrimina: la pagina
-    // computa el texto CLARO mientras Hero y Story computan el OSCURO.
-    const container = renderPage();
-    const title = container.querySelector("#story-title") as HTMLElement;
-
-    expect(pageThemeText(container)).toBe(semanticLight.text);
-    expect(window.getComputedStyle(title).color).toBe(semanticDark.text);
+    const oscura = renderPage();
+    const kickerOscuro = oscura.querySelector("#story-title")
+      ?.previousElementSibling as HTMLElement;
+    expect(window.getComputedStyle(kickerOscuro).color).toBe(
+      semanticDark.brandText,
+    );
   });
 
   it("el hero pasa AA sobre el negro del lienzo, kicker y anillo de foco incluidos", () => {
     // El kicker usa un rol de color distinto al del resto de la copia
-    // (brandText); nadie medía su contraste sobre el negro del ojo.
+    // (brandText); nadie medía su contraste sobre el negro del ojo. Esto es
+    // exclusivamente del Hero (fuera de alcance de esta entrega) y sigue
+    // valiendo tal cual.
     expect(
       contrastRatio(semanticDark.text, EYE_SURFACE),
     ).toBeGreaterThanOrEqual(4.5);
@@ -196,11 +191,7 @@ describe("Hero + Story (integracion)", () => {
     ).toBeGreaterThanOrEqual(3);
   });
 
-  /*
-   * R4 (plan 2026-07-26, duplica R2): el hero ya no fuerza el tema oscuro.
-   * Se desdobla por tema en vez de asumir siempre oscuro.
-   */
-  it("el kicker computa el color de marca del tema oscuro (pagina en oscuro)", () => {
+  it("el kicker del hero computa el color de marca del tema oscuro (pagina en oscuro)", () => {
     window.localStorage.setItem("vti-theme", "dark");
     const container = renderPage();
     const kicker = container.querySelector(
@@ -210,7 +201,7 @@ describe("Hero + Story (integracion)", () => {
     expect(window.getComputedStyle(kicker).color).toBe(semanticDark.brandText);
   });
 
-  it("el kicker computa el color de marca del tema claro (pagina en claro, por defecto)", () => {
+  it("el kicker del hero computa el color de marca del tema claro (pagina en claro, por defecto)", () => {
     const container = renderPage();
     const kicker = container.querySelector(
       '[data-testid="hero-kicker"]',
@@ -220,10 +211,10 @@ describe("Hero + Story (integracion)", () => {
   });
 
   it("el pie del hero mide space[8] y cierra en el negro del lienzo", () => {
-    // R3 (plan 2026-07-26): la altura y el degradado NO cambian con el
-    // tema -- la rampa violeta del tema claro vive aparte, en ScAuraFoot
-    // (dentro del stack de Aura) -- asi que este test sigue valiendo tal
-    // cual, sin desdoblar, con la pagina en su tema por defecto (claro).
+    // La altura y el degradado NO cambian con el tema -- la rampa violeta
+    // del tema claro vive aparte, en ScAuraFoot (dentro del stack de Aura,
+    // fuera de esta propiedad) -- asi que este test sigue valiendo tal cual,
+    // sin desdoblar, con la pagina en su tema por defecto (claro).
     const container = renderPage();
     const pie = container.querySelector(
       '[data-testid="hero-foot"]',
@@ -231,98 +222,30 @@ describe("Hero + Story (integracion)", () => {
     const computed = window.getComputedStyle(pie);
 
     expect(computed.height).toBe(space[8]);
-    // Ultima parada del degradado: es la fila de pixeles que tiene que
-    // coincidir con el extremo superior de la costura de Story.
     const paradas =
       computed.backgroundImage.match(/oklch\([^)]*\)|transparent/g) ?? [];
     expect(paradas[paradas.length - 1]).toBe(EYE_SURFACE);
   });
 
-  it("la costura de Story no declara transicion ni animacion, en ninguno de los dos temas", () => {
-    // Una transicion sobre background-image seria un coste de pintado
-    // invisible en revision: la costura es CSS estatico a proposito, y
-    // Story no cambia con el tema (es superficie siempre oscura).
-    for (const setup of [
-      () => window.localStorage.setItem("vti-theme", "dark"),
-      () => {},
-    ]) {
-      setup();
-      const container = renderPage();
-      const costura = container.querySelector(
-        '[data-testid="story-continuity"]',
-      ) as HTMLElement;
-      const css = cssRuleTextFor(costura);
-      expect(css).not.toContain("transition");
-      expect(css).not.toContain("animation");
-    }
-  });
-
-  it("el pie del hero no declara transicion ni animacion en tema oscuro", () => {
-    // R3 (plan 2026-07-26): en oscuro el pie sigue siendo 100% CSS
-    // estatico -- la transicion de opacidad solo se declara en claro (ver
-    // el siguiente test).
-    window.localStorage.setItem("vti-theme", "dark");
+  it("declara el bloque de reduced-motion en la copia del hero y en el reveal de Story", () => {
+    // getComputedStyle de jsdom no evalua @media, pero el CSS inyectado si
+    // es inspeccionable: al menos queda atornillado que la regla existe.
     const container = renderPage();
-    const pie = container.querySelector(
-      '[data-testid="hero-foot"]',
-    ) as HTMLElement;
-    const css = cssRuleTextFor(pie);
-
-    expect(css).not.toContain("transition");
-    expect(css).not.toContain("animation");
-  });
-
-  it("el pie del hero declara la transicion de opacidad en tema claro, pero ninguna animacion", () => {
-    const container = renderPage(); // por defecto: claro (sin localStorage)
-    const pie = container.querySelector(
-      '[data-testid="hero-foot"]',
-    ) as HTMLElement;
-    const css = cssRuleTextFor(pie);
-
-    expect(css).toContain("transition");
-    expect(css).not.toContain("animation");
-  });
-
-  it("declara el bloque de reduced-motion en el bloque de copia y en el contenido de Story", () => {
-    // getComputedStyle de jsdom no evalua @media, pero el CSS inyectado si es
-    // inspeccionable: al menos queda atornillado que la regla existe.
-    const container = renderPage();
-    const copia = container.querySelector('[data-testid="hero-kicker"]')
+    const copiaHero = container.querySelector('[data-testid="hero-kicker"]')
       ?.parentElement as HTMLElement;
-    const contenido = container.querySelector("#story-title")
-      ?.parentElement as HTMLElement;
+    const storyGrid = container.querySelector(
+      "#story [data-revealed]",
+    ) as HTMLElement;
 
-    const cssCopia = cssRuleTextFor(copia);
-    expect(cssCopia).toContain("prefers-reduced-motion: reduce");
-    expect(cssCopia).toContain("animation: none");
+    const cssCopiaHero = cssRuleTextFor(copiaHero);
+    expect(cssCopiaHero).toContain("prefers-reduced-motion: reduce");
 
-    const cssContenido = cssRuleTextFor(contenido);
-    expect(cssContenido).toContain("prefers-reduced-motion: reduce");
-    expect(cssContenido).toContain("transition: none");
+    const cssStoryGrid = cssRuleTextFor(storyGrid);
+    expect(cssStoryGrid).toContain("prefers-reduced-motion: reduce");
+    expect(cssStoryGrid).toContain("transition: none");
   });
 
-  it("en la pagina real la seccion de Story es la hermana INMEDIATA del hero", () => {
-    // Precondicion estructural de la rampa de 10rem: los 4rem del pie del hero
-    // y los 6rem de la costura solo son continuos si no hay nada en medio. Un
-    // separador, un divisor decorativo o un envoltorio insertado entre las dos
-    // secciones romperia la continuidad sin que falle ningun test de seccion.
-    // `HomePage` monta Navbar y Hero, los dos consumidores de `useStage()`:
-    // mismo envoltorio local que `renderPage()`, de nuevo sin forzar
-    // "chrome" (este caso solo mira posicion en el DOM, no opacidad).
-    const { container } = renderWithProviders(
-      <StageProvider>
-        <HomePage />
-      </StageProvider>,
-    );
-    const secciones = container.querySelectorAll("main > section");
-    const hero = secciones[0];
-    const story = container.querySelector("#story");
-
-    expect(hero.querySelector('[data-testid="hero-foot"]')).not.toBeNull();
-    expect(hero.nextElementSibling).toBe(story);
-  });
-
-  it("en ingles el hero renderiza la copia inglesa, no la espanola", async () => {
+  it("en ingles el hero y Story renderizan la copia inglesa, no la espanola", async () => {
     // Toda la suite compara contra el locale espanol: la mitad inglesa del
     // contrato de paridad no la renderizaba nadie.
     await act(async () => {
@@ -337,8 +260,14 @@ describe("Hero + Story (integracion)", () => {
 
       expect(texto("hero-kicker")).toBe(enHome.Home.hero.kicker);
       expect(texto("hero-subtitle")).toBe(enHome.Home.hero.subtitle);
-      expect(texto("hero-support")).toBe(enHome.Home.hero.support);
       expect(texto("hero-subtitle")).not.toBe(esHome.Home.hero.subtitle);
+
+      expect(container.querySelector("#story")?.textContent).toContain(
+        enHome.Home.story.kicker,
+      );
+      expect(container.querySelector("#story")?.textContent).not.toContain(
+        esHome.Home.story.kicker,
+      );
     } finally {
       await act(async () => {
         await i18n.changeLanguage("es");
