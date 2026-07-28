@@ -59,9 +59,13 @@ A (datos y tiempos)  ──┬──►  B (escalonado del ojo)  ──►  D (H
 
 ## Definition of Done
 
-- [ ] `pnpm test` — 100 % verde, sin tests borrados para «arreglar» el rojo.
-- [ ] `pnpm check` (typecheck + lint + formato) sin errores nuevos.
-- [ ] Verificación en navegador con el reloj conducido a mano (spec §8.1).
-- [ ] `git status --short` vacío.
-- [ ] Spec, plan, `task/todo.md`, `task/lessons.md` y `docs/qa-3d-pendiente.md` al día.
-- [ ] Registro en el vault (`CLAUDE.md §8`).
+Cerrado el 2026-07-27. Todos los flujos (A–F) ejecutados; F son los arreglos de la revisión.
+
+- [x] `pnpm test` — **481/481 en 48 archivos** (línea base 445/47). Ningún test borrado para «arreglar» el rojo: los tres archivos de integración se envolvieron en `StageProvider` sin relajar una sola aserción, y el único test retirado aseveraba la existencia de `HERO_TRANSITION_MS`, eliminada a propósito.
+- [x] `pnpm check` (typecheck + ESLint + Prettier) limpio. `pnpm build` correcto (export estático). `check-spelling` sigue rojo en todo el repo por falta de diccionario español — preexistente y fuera del gate (`check` = typecheck + lint + check-format), confirmado midiéndolo sobre un archivo no tocado.
+- [x] Verificación en navegador real con el reloj conducido a mano (spec §8.0): retardos de las dos composiciones en el orden nuevo, `iris`/`pupil` con dos animaciones y el escalonado la última, ninguna pieza invisible al final del recorrido, orden de estados del relevo, y la cascada del guard de `reduce` con control negativo.
+- [x] `git status --short` vacío. Dos commits (`a106284`, `4d1b075`) pusheados a `origin/feature/mejoras-hero-navbar`; PR contra `develop` sin crear.
+- [x] Spec, plan, `task/todo.md`, `task/lessons.md` (4 lecciones nuevas) y `docs/qa-3d-pendiente.md` (§14, con la §13 marcada como parcialmente supersedida) al día.
+- [x] Registro en el vault (`CLAUDE.md §8`): entrada fechada en `01-Projects/vti.md`, una nota de investigación, tres de error y `05-System/dashboards/mapa-proyectos.md` actualizado.
+
+**Pendiente y fuera de esta entrega:** la QA visual (§14 de `qa-3d-pendiente.md`) — este entorno no compone frames, nadie ha visto la coreografía en movimiento. Los dos puntos de más riesgo son el presupuesto de ~2,5 s del cambio de tema y el impacto en LCP.
