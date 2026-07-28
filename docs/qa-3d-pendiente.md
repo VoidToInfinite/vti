@@ -278,3 +278,33 @@ Mismo límite que la §13: este entorno corre con `document.hidden === true`, **
 - [ ] **`prefers-reduced-motion: reduce`.** El colapso a instantáneo está escrito, cubierto por tests y con la cascada verificada por réplica, pero **no observado con la preferencia real activada**. Comprobar en particular que en tema claro NO hay destello: el fondo tiene que estar visible desde el primer pintado, no aparecer al resolver el `decode()`.
 - [ ] **Coste de compositor.** Las capas declaran `will-change: transform` de forma permanente y ahora además animan `opacity` en el escalonado. _Comprobar en el panel de rendimiento_ que no hay saltos de frame en un portátil modesto durante la secuencia.
 - [ ] **Un `decode()` lento.** Con red lenta el arranque se retrasa hasta `HERO_DECODE_TIMEOUT_MS` (600 ms) y el navbar/copia esperan con él. Comprobar con throttling que la espera no se lee como una página rota.
+
+---
+
+## 2026-07-28 — Retirada de Three.js
+
+Spec: `docs/superpowers/specs/2026-07-28-landing-v2-secciones-design.md` §D4.
+
+Con la entrega Landing v2 la escena WebGL «El Descenso» y todo `src/three/` (`Scene.tsx`, `SceneLoader.tsx`, `SceneErrorBoundary.tsx`, `camera.ts`, `starfield.ts` y sus tests) se eliminan del repo, junto con `src/hooks/useScrollProgress.ts` y su test: la landing pasa a secciones estáticas y deja de depender de Three.js. Las dependencias `three` y `@types/three` se retiraron de `package.json` y el lockfile se regeneró con `pnpm install`.
+
+Consecuencia para este documento:
+
+- **Los ítems que se referían a la escena 3D** (secciones 1, 2, 4, 7, y las menciones a "la escena viva"/"frames más claros" dentro de las secciones 5, 8 y 13-14) quedan como **historia**: describen un trabajo real que se hizo y se documentó en su momento, pero ya no son verificables porque el código que describen no existe. No se tachan ni se reescriben — son evidencia de lo que se intentó y de por qué no se pudo comprobar en su día — pero nadie debe intentar marcarlos ya.
+- **Los ítems referidos al hero** (capas WebP del ojo/Aura, parallax, pulso, mascota Wormhole/Sol, coreografía de carga y de cambio de tema, navbar, contraste, LCP) **siguen vigentes**: no dependen de Three.js y la QA pendiente sobre ellos sigue siendo el mismo trabajo real por hacer.
+
+---
+
+## 2026-07-28 — QA visual pendiente de las secciones Landing v2 (tema claro)
+
+Spec: `docs/superpowers/specs/2026-07-28-landing-v2-secciones-design.md`. Entrega: Story («Why VoidToInfinite»), Journey, Features, Contact, footer nuevo, gate por tema (`HomeSections`) y enlaces de sección del navbar.
+
+**Lo que SÍ se verificó en navegador real** (dev server, DOM/estilos computados/red; el panel no compone frames, así que sin capturas): las 4 secciones montan en claro y NINGUNA en oscuro, en carga y en toggle en vivo (ida y vuelta) con cero errores de consola; los 12 WebP sirven 200 con los bytes exactos del manifest; geometría medida tras forzar la carga de imágenes — tarjetas de Features en ~290/309 px (mockup ~300), figuras 288/276 px, iconos 15/22/20 px tras corregir el reset global `svg { width: 100% }`; sin atributos `variant` filtrados al DOM tras corregir los `as` sobre `styled(Typography)`.
+
+**Lo que NADIE ha visto — pendiente de un humano con pantalla:**
+
+- [ ] **El reveal al hacer scroll no se ha visto nunca.** En este entorno `IntersectionObserver` no dispara jamás (medido con una sonda sobre un elemento fijo visible: 0 callbacks) y `loading="lazy"` no carga. El mecanismo está atado por tests (jsdom con IO mockeado) y es el mismo `useReveal` que ya usaba la página, pero el efecto compuesto (timing, escalonados de 90/120 ms, sensación) requiere ojos.
+- [ ] **Juicio estético general contra el mockup** `Landing v2.dc.html`: composición, solapes de la figura de Journey (recortada a propósito por el overflow de su tarjeta), tarjeta de nota flotante de Story, anillos de Contact, patrones de fondo de Features.
+- [ ] **Halos en los bordes de las figuras**: la pista 640 tiene ruido de des-premultiplicación medido (media 1.9–2.8/255, p99 48–66 en el borde alfa-parcial; `assets/figures/manifest.json`). Sin arreglo aplicado porque no se pudo juzgar percepción; mirar los contornos sobre los fondos pastel reales.
+- [ ] **Contraste AA del texto nuevo** sobre los degradados pastel (kickers, textMuted sobre las tarjetas de Journey/Contact) — los tokens vienen del sistema, pero los fondos son literales del mockup.
+- [ ] **Peso**: 4 de 6 pistas nativas superan el presupuesto orientativo de 150 KB (162–210 KB a q70). Decidir si duele en móvil real (todas cargan lazy, bajo el pliegue).
+- [ ] **`check-spelling` está roto a nivel de repo desde antes de esta entrega** (25.631 avisos en 113 archivos, incluidos archivos no tocados aquí: cspell sin diccionario español). Fuera del alcance; decidir si se configura o se retira del gate.
