@@ -8,17 +8,25 @@ import {
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
-import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { StageProvider } from "@/motion/StageProvider";
 import HomePage from "./page";
 
 /*
  * Lente end-to-end: la pagina COMPLETA, no cada seccion por separado. Los
- * tests de Hero y de Story cuentan encabezados dentro de SU contenedor, asi
- * que ninguno puede ver un segundo h1 en la pagina ni comprobar que el ancla
- * del CTA tenga destino real. Estos casos cubren ese hueco y los dos flujos
- * de usuario que atraviesan las dos secciones a la vez: cambio de idioma y
- * cambio de tema desde la barra.
+ * tests de Hero/Story/Journey/Features/Contact/HomeSections cuentan
+ * encabezados o regiones dentro de SU contenedor, asi que ninguno puede ver
+ * un segundo h1 en la pagina ni comprobar el flujo completo hero -> gate por
+ * tema -> footer. Estos casos cubren ese hueco.
+ *
+ * REESCRITURA (spec 2026-07-28-landing-v2-secciones-design.md, D1/D2/D3,
+ * tarea Flow F): la version anterior de este archivo asumia que `Story` era
+ * una superficie SIEMPRE oscura (ThemeProvider anidado forzado) y que
+ * `About` existia entre `Features` y `Contact`. Las dos premisas dejaron de
+ * ser ciertas -- `About` se elimina (D1) y las 4 secciones de tema claro
+ * (`Story`/`Journey`/`Features`/`Contact`, D2) ahora se montan o no segun el
+ * tema de la PAGINA completa (`HomeSections`, D3): claro monta las 4, en
+ * orden, entre el hero y el footer; oscuro no monta ninguna (el encargo del
+ * usuario, spec §1, es "tema oscuro: solo hero y footer").
  */
 
 function stubMatchMedia(): void {
@@ -140,39 +148,62 @@ describe("Home (pagina completa)", () => {
   });
 
   /*
-   * R7 (plan 2026-07-26): el test original asumia que el hero es SIEMPRE
-   * oscuro (ThemeProvider anidado forzado) y fallaba en su primera
-   * aserccion en cuanto esa premisa dejo de ser cierta. Se parte en dos
-   * caminos reales: OSCURO (localStorage) conserva su paleta oscura en las
-   * dos secciones; CLARO (el arranque por defecto, sin nada guardado) usa
-   * la paleta clara en el hero, pero Story SIGUE en oscuro -- Story es una
-   * superficie siempre oscura, no cambia con el tema de la pagina.
+   * Gate por tema (D3, tarea Flow F): CLARO es el arranque por defecto (sin
+   * nada guardado en localStorage) -- `HomeSections` monta las 4 secciones
+   * de tema claro, en el orden D2, entre el hero y el footer.
    */
-  it("con el tema de pagina en OSCURO (real), la copia del hero y la de Story conservan la paleta oscura", () => {
+  it("con el tema de pagina en CLARO (por defecto), se montan las 4 secciones en orden entre el hero y el footer", () => {
+    const { container } = renderHomePage();
+
+    const h1 = container.querySelector("h1");
+    expect(h1).not.toBeNull();
+
+    const seccionIds = ["story", "journey", "features", "contact"];
+    const secciones = seccionIds.map((id) => {
+      const el = container.querySelector(`section#${id}`);
+      expect(el, `falta la seccion #${id}`).not.toBeNull();
+      return el as HTMLElement;
+    });
+
+    // Orden real en el documento: cada seccion sigue a la anterior, y la
+    // primera sigue al h1 del hero.
+    let anterior: Element = h1 as Element;
+    for (const seccion of secciones) {
+      expect(
+        anterior.compareDocumentPosition(seccion) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      anterior = seccion;
+    }
+
+    const footer = container.querySelector("footer");
+    expect(footer, "falta el footer").not.toBeNull();
+    expect(
+      anterior.compareDocumentPosition(footer as Element) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  /*
+   * Encargo literal del usuario (spec §1): "tema oscuro: solo hero y
+   * footer". El hero y el footer siguen presentes -- el footer vive en los
+   * dos temas (D6) -- pero ninguna de las 4 secciones de tema claro se
+   * monta: sus destinos (anclas del CTA del hero, del navbar y del footer)
+   * dejan de existir en el documento.
+   */
+  it("con el tema de pagina en OSCURO (real), solo quedan el hero y el footer: ninguna de las 4 secciones se monta", () => {
     window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderHomePage();
 
-    const subtitulo = testId(container, "hero-subtitle");
-    const tituloStory = container.querySelector<HTMLElement>("#story-title");
-    expect(tituloStory).not.toBeNull();
+    expect(container.querySelector("h1")).not.toBeNull();
+    expect(container.querySelector("footer")).not.toBeNull();
 
-    expect(getComputedStyle(subtitulo).color).toBe(semanticDark.text);
-    expect(getComputedStyle(tituloStory as HTMLElement).color).toBe(
-      semanticDark.text,
-    );
-  });
-
-  it("con el tema de pagina en CLARO (por defecto), el hero usa el texto claro y Story sigue en oscuro", () => {
-    const { container } = renderHomePage();
-
-    const subtitulo = testId(container, "hero-subtitle");
-    const tituloStory = container.querySelector<HTMLElement>("#story-title");
-    expect(tituloStory).not.toBeNull();
-
-    expect(getComputedStyle(subtitulo).color).toBe(semanticLight.text);
-    expect(getComputedStyle(tituloStory as HTMLElement).color).toBe(
-      semanticDark.text,
-    );
+    for (const id of ["story", "journey", "features", "contact"]) {
+      expect(
+        container.querySelector(`#${id}`),
+        `la seccion #${id} no deberia existir en tema oscuro`,
+      ).toBeNull();
+    }
   });
 
   /*
@@ -198,16 +229,12 @@ describe("Home (pagina completa)", () => {
     },
   );
 
-  it("ninguna pieza decorativa de la junta entra en el orden de tabulacion", () => {
+  it("la pieza decorativa del pie del hero no entra en el orden de tabulacion", () => {
     const { container } = renderHomePage();
 
-    for (const id of ["hero-foot", "story-continuity"]) {
-      const pieza = testId(container, id);
-      expect(pieza).toHaveAttribute("aria-hidden", "true");
-      expect(pieza.hasAttribute("tabindex")).toBe(false);
-      expect(pieza.querySelectorAll("a,button,input,[tabindex]")).toHaveLength(
-        0,
-      );
-    }
+    const pieza = testId(container, "hero-foot");
+    expect(pieza).toHaveAttribute("aria-hidden", "true");
+    expect(pieza.hasAttribute("tabindex")).toBe(false);
+    expect(pieza.querySelectorAll("a,button,input,[tabindex]")).toHaveLength(0);
   });
 });

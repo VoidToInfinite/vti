@@ -412,4 +412,36 @@ describe("Navbar", () => {
       expect(bloqueReduce.length).toBeGreaterThan(0);
     });
   });
+
+  describe("enlaces de sección (Common.Navigation, tarea Flow F/spec §7.6)", () => {
+    // Los cuatro destinos SOLO existen cuando `HomeSections` los monta (gate
+    // por tema, D3): en oscuro serian anclas muertas (spec D5), asi que el
+    // bloque entero se desmonta con `themeName`. Se busca por `href`, no por
+    // nombre accesible: en es-ES `Common.Navigation.story` y
+    // `Common.Navigation.history` traducen los dos a "Historia" (mismo
+    // string), asi que el nombre accesible no identifica de forma unica cual
+    // de los cuatro enlaces es.
+    const SECTION_HREFS = ["#story", "#journey", "#features", "#contact"];
+
+    it("en tema claro (por defecto) los 4 enlaces de sección están presentes en el DOM", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const { container } = renderNavbar();
+
+      for (const href of SECTION_HREFS) {
+        expect(
+          container.querySelector(`a[href="${href}"]`),
+          `falta el enlace ${href}`,
+        ).not.toBeNull();
+      }
+    });
+
+    it("en tema oscuro ninguno de los 4 enlaces de sección se renderiza (destinos inexistentes)", () => {
+      window.localStorage.setItem("vti-theme", "dark");
+      const { container } = renderNavbar();
+
+      for (const href of SECTION_HREFS) {
+        expect(container.querySelector(`a[href="${href}"]`)).toBeNull();
+      }
+    });
+  });
 });

@@ -2,6 +2,7 @@
 
 import type { ReactElement } from "react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { EyeCornerMark } from "@/components/eye/EyeCornerMark";
@@ -10,6 +11,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { useScrolled } from "@/hooks/useScrolled";
 import { useStage } from "@/motion/StageProvider";
+import { useTheme } from "@/theme/ThemeProvider";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -185,9 +187,65 @@ const ScActions = styled.div`
   gap: ${({ theme }) => theme.data.space[3]};
 `;
 
+/*
+ * Enlaces de sección (spec 2026-07-28-landing-v2-secciones-design.md §7.6,
+ * mockup `Landing v2.dc.html` L41-45): SOLO en tema claro (sus destinos
+ * -Story/Journey/Features/Contact- solo existen ahí, gate `HomeSections`
+ * D3) y SOLO ≥ md (mockup: barra angosta en breakpoints menores). `<div>`,
+ * no un segundo `<nav>`: `ScNav` ya es el elemento `nav` de la barra: anidar
+ * un landmark de navegación dentro de otro sería un `nav` redundante para
+ * lectores de pantalla, y la spec pide los enlaces "dentro del actual
+ * ScNav", no un landmark propio.
+ *
+ * Oculto por `display: none` bajo `md` (no desmontado): igual que el resto
+ * del navbar, no cambia el orden de tabulación de forma condicional al
+ * viewport -- la propia condicion de tema si desmonta el bloque entero
+ * (sin ThemeProvider anidado, useTheme() ya resuelve contra el tema
+ * ambiental de la pagina).
+ */
+const ScNavLinks = styled.div`
+  display: none;
+
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.data.space[5]};
+  }
+`;
+
+/* Texto pequeño, `textMuted` en reposo (mismo rol que el resto de enlaces
+   secundarios del sitio, ver Footer.tsx) y `brandText` al hover -- transición
+   corta, solo `color` (spec: "sin efectos colaterales"). Sin subrayado:
+   GlobalStyles ya pone `text-decoration: none` en todos los `a`. */
+const ScNavLink = styled.a`
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  font-weight: 500;
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  transition: color ${({ theme }) => theme.data.motion.duration.fast}
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  &:hover,
+  &:focus-visible {
+    color: ${({ theme }) => theme.data.semantic.brandText};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const NAV_SECTION_LINKS = [
+  { key: "story", href: "#story" },
+  { key: "journey", href: "#journey" },
+  { key: "features", href: "#features" },
+  { key: "contact", href: "#contact" },
+] as const;
+
 export function Navbar(): ReactElement {
   const scrolled = useScrolled(8);
   const { phase } = useStage();
+  const { themeName } = useTheme();
+  const { t } = useTranslation("common");
   // "pending" mientras la fase de página siga en "backdrop" (spec §7.4): el
   // navbar entra en "chrome", a la vez que la copia del hero, no antes.
   const introState = phase === "backdrop" ? "pending" : "in";
@@ -261,6 +319,18 @@ export function Navbar(): ReactElement {
           <Logo size="1.5rem" />
           <BrandName />
         </ScBrandLink>
+        {themeName === "light" && (
+          <ScNavLinks>
+            {NAV_SECTION_LINKS.map(({ key, href }) => (
+              <ScNavLink
+                key={key}
+                href={href}
+              >
+                {t(`Common.Navigation.${key}`)}
+              </ScNavLink>
+            ))}
+          </ScNavLinks>
+        )}
         <ScActions>
           <LanguageSelector />
           <ThemeToggle />
