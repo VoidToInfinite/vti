@@ -4,24 +4,32 @@ import { links } from "./links";
 describe("links de CTA", () => {
   it("expone todos los destinos que el viaje necesita", () => {
     expect(Object.keys(links).sort()).toEqual([
+      "accessibility",
       "discord",
       "docs",
       "email",
       "github",
+      "guides",
       "playground",
+      "privacy",
+      "terms",
     ]);
   });
 
-  it("github y discord apuntan a destinos reales ya conocidos", () => {
+  it("github, discord y email apuntan a destinos reales ya conocidos", () => {
     expect(links.github).toBe("https://github.com/voidtoinfinite");
     expect(links.discord).toBe("https://discord.gg/CuGhqdG3g3");
+    expect(links.email).toBe("mailto:hello@voidtoinfinite.com");
   });
 
   it("marca explícitamente los destinos aún sin confirmar", () => {
     // Protocolo de veracidad: lo desconocido se marca, no se inventa.
     expect(links.playground).toContain("por-completar");
     expect(links.docs).toContain("por-completar");
-    expect(links.email).toContain("por-completar");
+    expect(links.guides).toContain("por-completar");
+    expect(links.accessibility).toContain("por-completar");
+    expect(links.privacy).toContain("por-completar");
+    expect(links.terms).toContain("por-completar");
   });
 
   it("los destinos sin confirmar usan el TLD reservado example.invalid para fallar visible", () => {
@@ -30,6 +38,9 @@ describe("links de CTA", () => {
     // a un destino equivocado o real.
     expect(links.playground).toContain("example.invalid");
     expect(links.docs).toContain("example.invalid");
-    expect(links.email).toContain("example.invalid");
+    expect(links.guides).toContain("example.invalid");
+    expect(links.accessibility).toContain("example.invalid");
+    expect(links.privacy).toContain("example.invalid");
+    expect(links.terms).toContain("example.invalid");
   });
 });

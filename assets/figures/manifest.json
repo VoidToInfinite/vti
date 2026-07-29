@@ -1,0 +1,189 @@
+{
+    "generatedAt": "2026-07-28",
+    "description": "Figuras (personajes celestiales) de las secciones Story/Journey/Features/Contact de la landing v2. Copiadas verbatim desde Downloads (ChatGPT Image, PNG 1024x1536 RGBA con fondo transparente, sin recorte) y exportadas a WebP en dos pistas responsive. Precedente de pipeline: assets/hero-aura.",
+    "method": {
+        "tool": "Pillow (PIL) 12.3.0, Python 3.13, venv del scratchpad de la sesion",
+        "resample": "Image.LANCZOS",
+        "webpParams": "Image.save(format=WEBP, method=6, lossless=false); quality intentado en orden [82, 78, 74, 70], deteniendose en el primer valor que cumple el presupuesto orientativo de <=150 KB para la pista nativa (1024); si ni siquiera q=70 cumple, se acepta el peso resultante en q=70 (instruccion explicita de la tarea: no bajar de q=70)",
+        "tracks": {
+            "1024": "ancho nativo de origen (1024px), alto proporcional sin recorte de lienzo",
+            "640": "reescalado con Image.resize a 640px de ancho, alto proporcional (no premultiplicado; ver notes.haloCheck)"
+        },
+        "verification": "script standalone (verify_figures.py) via Pillow+numpy: dimensiones, modo RGBA, alfa de las 4 esquinas (pixel exacto y bloque de 16px), peso en bytes, y comparacion pixel a pixel del reescalado 640 nativo (straight-alpha, el que realmente se publico) contra un reescalado premultiplicado de referencia, restringida a los pixeles de borde con alfa parcial (0 < alfa < 255)."
+    },
+    "figures": {
+        "story-pointing": {
+            "sourceFile": "C:\\Users\\Daniel\\Downloads\\ChatGPT Image Jul 28, 2026, 11_07_11 AM Cosmic Figure with Radiant Heart.png",
+            "assetFile": "assets/figures/story-pointing.png",
+            "sourcePng": {
+                "mode": "RGBA",
+                "width": 1024,
+                "height": 1536,
+                "bytes": 2657632
+            },
+            "tracks": {
+                "1024": {
+                    "file": "public/figures/story-pointing-1024.webp",
+                    "width": 1024,
+                    "height": 1536,
+                    "bytes": 209842,
+                    "quality": 70,
+                    "underBudget150KB": false
+                },
+                "640": {
+                    "file": "public/figures/story-pointing-640.webp",
+                    "width": 640,
+                    "height": 960,
+                    "bytes": 106770,
+                    "quality": 82,
+                    "underBudget150KB": true
+                }
+            }
+        },
+        "journey-presenting": {
+            "sourceFile": "C:\\Users\\Daniel\\Downloads\\ChatGPT Image Jul 28, 2026, 11_58_45 AM Celestial Galaxy Humanoid with Radiant Chest Core.png",
+            "assetFile": "assets/figures/journey-presenting.png",
+            "sourcePng": {
+                "mode": "RGBA",
+                "width": 1024,
+                "height": 1536,
+                "bytes": 2440443
+            },
+            "tracks": {
+                "1024": {
+                    "file": "public/figures/journey-presenting-1024.webp",
+                    "width": 1024,
+                    "height": 1536,
+                    "bytes": 163368,
+                    "quality": 70,
+                    "underBudget150KB": false
+                },
+                "640": {
+                    "file": "public/figures/journey-presenting-640.webp",
+                    "width": 640,
+                    "height": 960,
+                    "bytes": 87260,
+                    "quality": 82,
+                    "underBudget150KB": true
+                }
+            }
+        },
+        "feature-learning": {
+            "sourceFile": "C:\\Users\\Daniel\\Downloads\\ChatGPT Image Jul 28, 2026, 05_25_02 PM Celestial Analyst with Holographic Tablet.png",
+            "assetFile": "assets/figures/feature-learning.png",
+            "sourcePng": {
+                "mode": "RGBA",
+                "width": 1024,
+                "height": 1536,
+                "bytes": 2461934
+            },
+            "tracks": {
+                "1024": {
+                    "file": "public/figures/feature-learning-1024.webp",
+                    "width": 1024,
+                    "height": 1536,
+                    "bytes": 152608,
+                    "quality": 70,
+                    "underBudget150KB": true
+                },
+                "640": {
+                    "file": "public/figures/feature-learning-640.webp",
+                    "width": 640,
+                    "height": 960,
+                    "bytes": 82100,
+                    "quality": 82,
+                    "underBudget150KB": true
+                }
+            }
+        },
+        "feature-imagination": {
+            "sourceFile": "C:\\Users\\Daniel\\Downloads\\ChatGPT Image Jul 28, 2026, 05_34_01 PM Celestial Thinker with Radiant Heart.png",
+            "assetFile": "assets/figures/feature-imagination.png",
+            "sourcePng": {
+                "mode": "RGBA",
+                "width": 1024,
+                "height": 1536,
+                "bytes": 2512458
+            },
+            "tracks": {
+                "1024": {
+                    "file": "public/figures/feature-imagination-1024.webp",
+                    "width": 1024,
+                    "height": 1536,
+                    "bytes": 165480,
+                    "quality": 70,
+                    "underBudget150KB": false
+                },
+                "640": {
+                    "file": "public/figures/feature-imagination-640.webp",
+                    "width": 640,
+                    "height": 960,
+                    "bytes": 89632,
+                    "quality": 82,
+                    "underBudget150KB": true
+                }
+            }
+        },
+        "feature-gaming": {
+            "sourceFile": "C:\\Users\\Daniel\\Downloads\\ChatGPT Image Jul 28, 2026, 05_41_58 PM Celestial Starbound Trophy Figure.png",
+            "assetFile": "assets/figures/feature-gaming.png",
+            "sourcePng": {
+                "mode": "RGBA",
+                "width": 1024,
+                "height": 1536,
+                "bytes": 2381623
+            },
+            "tracks": {
+                "1024": {
+                    "file": "public/figures/feature-gaming-1024.webp",
+                    "width": 1024,
+                    "height": 1536,
+                    "bytes": 150210,
+                    "quality": 78,
+                    "underBudget150KB": true
+                },
+                "640": {
+                    "file": "public/figures/feature-gaming-640.webp",
+                    "width": 640,
+                    "height": 960,
+                    "bytes": 74502,
+                    "quality": 82,
+                    "underBudget150KB": true
+                }
+            }
+        },
+        "contact-waving": {
+            "sourceFile": "C:\\Users\\Daniel\\Downloads\\ChatGPT Image Jul 28, 2026, 11_45_24 AM Celestial Galaxy Figure Waving.png",
+            "assetFile": "assets/figures/contact-waving.png",
+            "sourcePng": {
+                "mode": "RGBA",
+                "width": 1024,
+                "height": 1536,
+                "bytes": 2541604
+            },
+            "tracks": {
+                "1024": {
+                    "file": "public/figures/contact-waving-1024.webp",
+                    "width": 1024,
+                    "height": 1536,
+                    "bytes": 185716,
+                    "quality": 70,
+                    "underBudget150KB": false
+                },
+                "640": {
+                    "file": "public/figures/contact-waving-640.webp",
+                    "width": 640,
+                    "height": 960,
+                    "bytes": 94864,
+                    "quality": 82,
+                    "underBudget150KB": true
+                }
+            }
+        }
+    },
+    "notes": [
+        "Presupuesto de 150 KB para la pista 1024 es orientativo (spec 6): 4 de 6 figuras (story-pointing, journey-presenting, feature-imagination, contact-waving) lo superan incluso en quality=70, el minimo permitido por la tarea; se acepto el peso resultante en vez de bajar mas la calidad. feature-learning queda justo debajo (152608 B) y feature-gaming lo cumple en quality=78 (150210 B).",
+        "cornerAlphaCheck: el pixel EXACTO de las 4 esquinas es alfa==0 en las 12 salidas WebP (6 figuras x 2 pistas) y tambien en los 6 PNG de origen. Un muestreo de bloque 16x16px (misma convencion que la medicion de la spec 2026-07-28) encuentra, en la esquina inferior-derecha de 4 de las 6 figuras (story-pointing, journey-presenting, feature-gaming, contact-waving), exactamente 1 pixel de 256 con alfa=1 (no 0); este pixel aislado ya esta presente en el PNG de origen (no lo introduce la conversion a WebP) y no afecta el pixel de esquina literal.",
+        "haloCheck (pista 640, precedente de ruido de des-premultiplicacion documentado en hero-aura): se comparo el reescalado LANCZOS straight-alpha realmente publicado contra un reescalado de referencia con alfa premultiplicado, restringido a pixeles de borde con alfa parcial (0<alfa<255). Diferencia media de RGB por figura: 1.90-2.79 (sobre 255); p99: 48-66; maximo puntual: 255 en las 6 figuras (pixels aislados donde el alfa reescalado es casi 0 y la division por alfa casi-cero del path premultiplicado amplifica el ruido de muestreo, no necesariamente un halo visible). No se aplico ningun arreglo de premultiplicacion: la tarea pide documentar la medicion, no corregirla sin verificacion adicional en contexto real de composicion (fondo claro/oscuro de cada seccion)."
+    ]
+}

@@ -1,154 +1,149 @@
 "use client";
-import { useEffect, useId, useRef, useState, type ReactElement } from "react";
-import { usePointer } from "@/hooks/usePointer";
 import {
-  ALMOND,
-  ScClip,
-  ScClipDefs,
-  ScEyeball,
-  ScGlint,
-  ScIris,
-  ScLidShadow,
-  ScOutline,
-  ScPupil,
-  ScRing,
-  ScShock,
-  ScSocket,
-  ScSwirl,
-  ScUniverse,
-} from "./eye.parts";
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type RefObject,
+} from "react";
+import {
+  useParallaxLayers,
+  type ParallaxTarget,
+} from "@/hooks/useParallaxLayers";
+import { EYE_LAYERS, EYE_MASCOT_DEPTH, EYE_SIZES } from "./eye.layers";
+import { ScFrame, ScLayer, ScMascotSlot, ScScrim, ScSocket } from "./eye.parts";
+import { Wormhole } from "./mascots/Wormhole";
 
-/** Amplitudes de parallax en px. El iris se mueve mas que el globo: eso es lo
- *  que produce la sensacion de profundidad dentro del ojo (spec §7). */
-const AMP = { eyeball: 14, iris: 40, glint: -16 } as const;
+/** Amplitud del parallax en px a profundidad 1. Cada capa la escala por su
+ *  `depth`: el parpado (0.25) se mueve 6px y la pupila (0.85) 22px, y esa
+ *  diferencia es lo que produce la sensacion de profundidad (spec §7). La
+ *  amplitud vertical es menor porque el lienzo es apaisado: el mismo
+ *  desplazamiento se lee mas fuerte en el eje corto. */
+const AMP = { x: 26, y: 15 } as const;
 
 export interface EyeProps {
   className?: string;
 }
 
 /**
- * El ojo cosmico: silueta de almendra, nebulosa interior, iris que respira y
- * remolino que gira, pupila que sostiene la marca (la marca real la monta el
- * Hero, T5). Puro CSS/DOM -- sin WebGL (spec §1): `clip-path` para la
- * silueta, gradientes para la nebulosa, `conic-gradient` para el remolino,
- * keyframes CSS para respirar/girar, y un unico rAF para el seguimiento del
- * cursor.
+ * El ojo cosmico del hero: la composicion OSCURA, montada como pila de capas
+ * WebP con blending aditivo (la particion documentada en
+ * `assets/hero-eye/manifest.json`), no como aproximacion en CSS. Es solo una
+ * de las dos composiciones del hero -- la clara ("Aura", manos y orbe
+ * pastel) vive en su propio componente, no en una rama de este.
+ *
+ * Sobre la pila, dos movimientos: parallax 2.5D siguiendo al cursor -- via
+ * `useParallaxLayers`, compartido con Aura, cero re-render por frame (spec
+ * §13) -- y una onda de pulso al click/tap. La corona respira por animacion
+ * CSS (`ScLayer`), no por rAF, para que tambien tenga vida en tactil donde el
+ * seguimiento del cursor no aplica.
  *
  * Todo el subarbol es decorativo (`aria-hidden="true"`): nada de lo que
- * comunica el ojo vive solo aqui, el contenido real esta en el DOM del Hero.
+ * comunica el ojo vive solo aqui -- la marca que ocupa la pupila es el `<h1>`
+ * real del Hero, y las imagenes van con `alt=""`.
  */
 export function Eye({ className }: EyeProps): ReactElement {
-  const pointer = usePointer();
-  // `usePointer()` devuelve un objeto literal nuevo en cada invocacion (no
-  // memoizado): depender de `pointer` entero en el efecto de abajo lo haria
-  // re-ejecutarse en CADA render de `Eye` (cancela + reprograma el rAF),
-  // aunque `enabled` no cambiara. `x`/`y` si son refs estables (el mismo
-  // objeto en cada invocacion de `usePointer`), asi que extraerlas aqui y
-  // depender de los primitivos/refs -- no del objeto envolvente -- deja el
-  // efecto quieto entre renders del padre (Hero, T5) y solo lo reinicia
-  // cuando `enabled` cambia de verdad.
-  const { x, y, enabled } = pointer;
-  const eyeball = useRef<HTMLDivElement>(null);
-  const iris = useRef<HTMLDivElement>(null);
-  const glint = useRef<HTMLSpanElement>(null);
+  // Refs individuales por capa, no un callback-ref con un array compartido:
+  // `useParallaxLayers` pide un `RefObject` por objetivo, y crear uno con
+  // `useRef` dentro de un `.map()` violaria las reglas de hooks. `useMemo`
+  // (memoizado UNA sola vez, deps `[]`) da un array de identidad estable sin
+  // pasar por `.current` de un ref contenedor: leer `.current` fuera de un
+  // efecto o de la inicializacion perezosa oficial rompe `react-hooks/refs`
+  // (el lint del React Compiler), y aqui hace falta usar el array durante el
+  // propio render (JSX + la lista de `targets`).
+  const layerRefs = useMemo<Array<RefObject<HTMLImageElement | null>>>(
+    () => EYE_LAYERS.map(() => ({ current: null })),
+    [],
+  );
+  const mascot = useRef<HTMLDivElement>(null);
   // Onda de "pulse" al click/tap (spec §12). Estado de React, no rAF: se
   // dispara una vez por interaccion, no en cada frame, asi que no interfiere
   // con la regla de "cero re-render por frame" del gaze (spec §13).
   const [pulsing, setPulsing] = useState(false);
 
-  // useId() incluye ":" (p.ej. ":r0:"), valido en un atributo id HTML pero
-  // fragil como referencia `url(#...)` en algunos motores. Se despoja para
-  // usarlo con seguridad como fragment identifier.
-  const clipId = `eye-almond-${useId().replace(/:/g, "")}`;
-
-  useEffect(() => {
-    if (!enabled) return;
-    let raf = 0;
-    // Un solo rAF escribe transforms directamente en el DOM. React NUNCA
-    // re-renderiza por frame (spec §13).
-    const tick = (): void => {
-      const px = x.current;
-      const py = y.current;
-      if (eyeball.current)
-        eyeball.current.style.transform = `translate(${px * AMP.eyeball}px, ${py * (AMP.eyeball * 0.64)}px)`;
-      if (iris.current)
-        iris.current.style.transform = `translate(${px * AMP.iris}px, ${py * (AMP.iris * 0.7)}px)`;
-      if (glint.current)
-        glint.current.style.transform = `translate(${px * AMP.glint}px, ${py * (AMP.glint * 0.7)}px)`;
-      raf = window.requestAnimationFrame(tick);
-    };
-    raf = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(raf);
-  }, [enabled, x, y]);
+  // La mascota viaja con la pupila, a su misma profundidad: es lo que la
+  // pupila contiene, no una capa aparte. El array se reconstruye en cada
+  // render (no hace falta memoizarlo): `useParallaxLayers` guarda su propia
+  // copia estable internamente.
+  const targets: ParallaxTarget[] = [
+    ...EYE_LAYERS.map((layer, index) => ({
+      ref: layerRefs[index],
+      depth: layer.depth,
+    })),
+    { ref: mascot, depth: EYE_MASCOT_DEPTH },
+  ];
+  useParallaxLayers(targets, AMP);
 
   // `pointerdown` cubre raton y tactil en un solo handler (spec §12: "click
-  // pulse", trigger "click / tap"). El ojo entero (`ScSocket`) es el hit
-  // target -- no solo el iris -- para que la superficie completa responda.
-  const handlePulseStart = (): void => setPulsing(true);
+  // pulse", trigger "click / tap"). El lienzo entero (`ScSocket`) es el hit
+  // target: la composicion ocupa el hero de fondo a fondo, asi que cualquier
+  // punto que no sea copia ni CTA responde.
+  //
+  // Bajo reduced-motion NI SE MARCA el estado. El pulso se apaga solo cuando
+  // termina su animacion, y con reduced-motion no hay animacion que termine:
+  // marcarlo dejaria `data-pulsing="true"` pegado para siempre y el segundo
+  // click ya no dispararia nada el dia que se reactive el movimiento.
+  const handlePulseStart = (): void => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setPulsing(true);
+  };
   // Se limpia al terminar la animacion CSS (no con un timeout) para que un
   // segundo click dispare la onda otra vez incluso si el usuario clickea muy
   // rapido: `onAnimationEnd` solo se dispara cuando el navegador termina de
-  // verdad el keyframe `shock`.
+  // verdad el keyframe.
   const handlePulseEnd = (): void => setPulsing(false);
 
   return (
     <ScSocket
       className={className}
       aria-hidden="true"
+      data-part="socket"
       data-pulsing={pulsing ? "true" : undefined}
       onPointerDown={handlePulseStart}
     >
-      <ScClipDefs>
-        <defs>
-          <clipPath
-            id={clipId}
-            clipPathUnits="objectBoundingBox"
-          >
-            <path d={ALMOND} />
-          </clipPath>
-        </defs>
-      </ScClipDefs>
-      <ScClip $clipId={clipId}>
-        <ScUniverse data-part="universe" />
-        <ScEyeball ref={eyeball}>
-          <ScIris
-            ref={iris}
-            data-part="iris"
-          >
-            <ScSwirl />
-            <ScRing
-              $inset="0"
-              $tint="oklch(0.66 0.142 235.851 / 0.5)"
-            />
-            <ScRing
-              $inset="10%"
-              $tint="oklch(0.66 0.233 311.928 / 0.45)"
-            />
-            <ScRing
-              $inset="21%"
-              $tint="oklch(0.8 0.117 235.851 / 0.4)"
-            />
-            <ScPupil data-part="pupil" />
-            <ScShock
-              data-part="shock"
-              onAnimationEnd={handlePulseEnd}
-            />
-          </ScIris>
-          <ScGlint
-            ref={glint}
-            $size="7%"
-            $top="24%"
-            $left="34%"
+      <ScFrame>
+        {EYE_LAYERS.map((layer, index) => (
+          <ScLayer
+            key={layer.part}
+            ref={layerRefs[index]}
+            data-part={layer.part}
+            src={layer.src}
+            srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1672w`}
+            sizes={EYE_SIZES}
+            alt=""
+            // Las capas son el fondo del hero: cargarlas en diferido las
+            // pondria por detras de la copia en la cola de red justo donde
+            // mas se notan. `decoding="async"` evita que la decodificacion
+            // bloquee el primer pintado del texto.
+            loading="eager"
+            decoding="async"
+            $additive={layer.additive}
+            $moves={layer.depth > 0}
+            $glow={layer.glow}
           />
-        </ScEyeball>
-        <ScLidShadow />
-      </ScClip>
-      <ScOutline
-        viewBox="0 0 1 1"
-        preserveAspectRatio="none"
-      >
-        <path d={ALMOND} />
-      </ScOutline>
+        ))}
+        {/* El centro del ojo: siempre el Wormhole (portado de `vti-sdk`).
+            Trae su propia coreografia de pulso -- dos ondas de choque,
+            destello del remolino, anillos que fulguran -- asi que aqui NO se
+            monta ademas el anillo simple `ScShock`: serian tres ondas para
+            el mismo click. La composicion clara equivalente (Sol en el
+            centro, con el anillo simple como su respuesta al click) vive en
+            su propio componente, no en una rama de este. */}
+        <ScMascotSlot
+          ref={mascot}
+          data-part="mascot"
+        >
+          <Wormhole
+            pulsing={pulsing}
+            onPulseEnd={handlePulseEnd}
+          />
+        </ScMascotSlot>
+      </ScFrame>
+      {/* Fuera de ScFrame, no dentro: ahi heredaria su grupo de blending y el
+          aditivo de las capas se lo comeria en vez de oscurecerlas. Ver el
+          comentario de ScScrim en eye.parts.tsx para por que vive en la
+          composicion y no en el hero. */}
+      <ScScrim data-part="scrim" />
     </ScSocket>
   );
 }

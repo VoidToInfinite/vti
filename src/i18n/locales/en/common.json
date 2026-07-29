@@ -14,7 +14,11 @@
             "projects": "Projects",
             "learning": "Learning",
             "imagination": "Imagination",
-            "reflection": "Reflection"
+            "reflection": "Reflection",
+            "story": "Story",
+            "journey": "Journey",
+            "features": "Features",
+            "contact": "Contact"
         },
         "Status": {
             "success": "Success",
@@ -61,7 +65,16 @@
             }
         },
         "Footer": {
-            "copyright": "VoidToInfinite © {{year}}"
+            "copyright": "© {{year}} VoidToInfinite. All rights reserved.",
+            "tagline": "Together, we go beyond.",
+            "explore": "Explore",
+            "discover": "Discover",
+            "resources": "Resources",
+            "documentation": "Documentation",
+            "guides": "Guides",
+            "accessibility": "Accessibility",
+            "privacy": "Privacy Policy",
+            "terms": "Terms of Use"
         },
         "ThemeToggle": {
             "switchToLight": "Switch to light theme",

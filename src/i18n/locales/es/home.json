@@ -5,45 +5,124 @@
             "description": "Proyecto VoidToInfinite",
             "keywords": "VoidToInfinite, VoidToInfinite Portfolio, VoidToInfinite Project, VoidToInfinite Learning, VoidToInfinite Imagination, VoidToInfinite Gaming, Portfolio, Team Project, VTI Project, VTI Learning, VTI Imagination, VTI Gaming"
         },
-        "description": "Actualmente tu presente es tu futuro, solo que tu futuro debes seguir definiendolo",
-        "additionalDescription": "Aunque el infinito esta presente en todos lados, el conocimiento lo trae a la realidad",
+        "hero": {
+            "kicker": "Estudio · Imaginación · Gaming",
+            "subtitle": "Tu presente ya es tu futuro: solo falta que sigas definiéndolo.",
+            "support": "Aunque el infinito está en todas partes, es el conocimiento lo que lo trae a la realidad."
+        },
         "swipeUp": "Comencemos",
         "cta": {
             "explore": "Explorar los componentes",
             "story": "Leer la historia"
         },
         "story": {
-            "title": "Desde una página vacía",
-            "body": "[por completar] Texto de la sección Story en español.",
-            "additional": "[por completar] Segundo párrafo de la sección Story."
+            "kicker": "¿Por qué VoidToInfinite?",
+            "titleLead": "De la curiosidad",
+            "titleAccent": "a la creación.",
+            "body": "VoidToInfinite es un espacio donde el aprendizaje se encuentra con la imaginación y el juego impulsa el progreso. Exploramos ideas, construimos habilidades con sentido y transformamos la curiosidad en experiencias que se pueden compartir.",
+            "note": "Cada idea puede ser un nuevo comienzo.",
+            "figureAlt": "Figura celestial señalando hacia arriba",
+            "pillars": {
+                "learn": {
+                    "title": "Aprende con propósito",
+                    "body": "Conocimiento que inspira comprensión y abre nuevas posibilidades."
+                },
+                "create": {
+                    "title": "Crea con claridad",
+                    "body": "Las ideas cobran sentido cuando se pueden explorar, construir y compartir."
+                },
+                "grow": {
+                    "title": "Crece en comunidad",
+                    "body": "El aprendizaje se vuelve infinito cuando el conocimiento circula entre personas."
+                },
+                "practice": {
+                    "title": "La práctica lo hace real",
+                    "body": "El conocimiento se vuelve tuyo cuando lo pones a prueba: tropiezos incluidos."
+                }
+            }
         },
-        "about": {
-            "title": "Acerca de",
-            "description": "Somos un equipo con miembros de diferentes ambitos con la idea de crecer juntos compartiendo nuestros conocimientos y creando proyectos.",
-            "additionalDescription": "Actualmente tenemos un servidor de Discord. Tambien puedes seguir nuestros proyectos en github."
+        "journey": {
+            "kicker": "Inspiración",
+            "title": "Tu viaje no tiene un último paso.",
+            "body": "Cada descubrimiento crea una pregunta nueva. Cada habilidad abre otro camino. El viaje continúa mientras quede curiosidad.",
+            "quote": "El destino no es el infinito. El viaje lo es.",
+            "figureAlt": "Figura celestial presentando el viaje con la palma abierta",
+            "steps": {
+                "discover": {
+                    "label": "Descubre",
+                    "body": "Explora ideas, hazte preguntas y observa el mundo de otra manera."
+                },
+                "learn": {
+                    "label": "Aprende",
+                    "body": "Construye conocimiento, desarrolla comprensión y da forma a tu perspectiva."
+                },
+                "imagine": {
+                    "label": "Imagina",
+                    "body": "Conecta ideas y descubre posibilidades que todavía no existen."
+                },
+                "create": {
+                    "label": "Crea",
+                    "body": "Transforma tu pensamiento en algo visible, útil o con significado."
+                },
+                "share": {
+                    "label": "Comparte",
+                    "body": "Abre tu trabajo a comentarios, colaboración y nuevas interpretaciones."
+                },
+                "evolve": {
+                    "label": "Evoluciona",
+                    "body": "Sigue aprendiendo, redefiniendo y ampliando lo posible."
+                }
+            }
         },
-        "contact": {
-            "title": "Hablemos",
-            "body": "[por completar] Una línea de invitación al contacto.",
-            "email": "Escribir un email"
-        },
-        "sections": {
-            "title": "Nuestro presente",
+        "features": {
+            "kicker": "Características",
             "learning": {
-                "title": "Estudio",
-                "subtitle": "Aumenta tus conocimientos",
-                "description": "Conocer nuevos metodos, maneras de realizar tus proyectos y hacerlos realidad, mejorar puntos debiles y fortalecerte con ayuda de personas experimentadas o que estan aprendiendo, es mas divertido."
+                "title": "Learning",
+                "body": "Todo experto fue antes principiante. Aprende a tu ritmo, sigue las preguntas que te importan y observa cómo los pasos pequeños se convierten en comprensión real.",
+                "bullets": {
+                    "one": "Rutas cuidadas que crecen contigo",
+                    "two": "Proyectos reales, no solo teoría",
+                    "three": "Progreso que se ve y se siente",
+                    "four": "Un ritmo que respeta tu tiempo"
+                },
+                "cta": "Explora Learning",
+                "figureAlt": "Figura celestial estudiando una tableta holográfica"
             },
             "imagination": {
-                "title": "Imaginacion",
-                "subtitle": "Manifiesta tu creatividad",
-                "description": "Imaginar cualquier concepto creativo sacado de tu interior expresando tus emociones causando nuevas sensaciones y visualizar el mensaje, es algo unico."
+                "title": "Imagination",
+                "body": "Tus ideas merecen un lugar donde vivir. Convierte el «¿y si…?» en algo real que puedas compartir.",
+                "bullets": {
+                    "one": "Un espacio seguro para experimentar",
+                    "two": "Herramientas que despiertan conexiones",
+                    "three": "Del boceto a un concepto real",
+                    "four": "Cada idea cuenta, incluso las pequeñas"
+                },
+                "cta": "Explora Imagination",
+                "figureAlt": "Figura celestial pensando con un corazón radiante"
             },
             "gaming": {
                 "title": "Gaming",
-                "subtitle": "¡Buena suerte! ¡Diviertete!",
-                "description": "¿Divirtiendote con amigos? ¡Por supuesto!\n Todos somos conscientes de que jugando se aprende y eso es un hecho."
+                "body": "Jugando es como mejor aprendemos. Compite, colabora y celebra cada victoria, grande o pequeña.",
+                "bullets": {
+                    "one": "Retos que afilan tus habilidades",
+                    "two": "Competición sana, conexión real",
+                    "three": "Trabajo en equipo que se vuelve amistad",
+                    "four": "Cada logro merece celebrarse"
+                },
+                "cta": "Explora Gaming",
+                "figureAlt": "Figura celestial alzando un trofeo de estrella dorada"
             }
+        },
+        "contact": {
+            "kicker": "Contacto",
+            "titleLead": "Construyamos algo",
+            "titleAccent": "infinito.",
+            "body": "¿Tienes una pregunta, una idea o una colaboración en mente?",
+            "bodySecond": "Escríbenos por correo: nos encantará leerte.",
+            "email": "hello@voidtoinfinite.com",
+            "cta": "Contactar por correo",
+            "ctaAria": "Contactar por correo: abre tu aplicación de correo",
+            "figureAlt": "Figura celestial saludando"
         }
     }
 }

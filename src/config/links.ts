@@ -12,7 +12,11 @@ export const links = {
   docs: "https://example.invalid/por-completar-docs",
   github: "https://github.com/voidtoinfinite",
   discord: "https://discord.gg/CuGhqdG3g3",
-  email: "mailto:por-completar@example.invalid",
+  email: "mailto:hello@voidtoinfinite.com",
+  guides: "https://example.invalid/por-completar-guides",
+  accessibility: "https://example.invalid/por-completar-accessibility",
+  privacy: "https://example.invalid/por-completar-privacy",
+  terms: "https://example.invalid/por-completar-terms",
 } as const;
 
 export type LinkKey = keyof typeof links;

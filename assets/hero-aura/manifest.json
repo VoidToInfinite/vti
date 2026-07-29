@@ -1,0 +1,504 @@
+{
+    "name": "pastel-cosmic-aura-layers",
+    "description": "Fondo pastel cosmico del hero (variante clara) separado en 6 capas apilables para parallax 2.5D. Segunda generacion (2026-07-27): mismo arte pastel original que la generacion del 2026-07-26, re-extraido con un metodo de segmentacion mas preciso. La composicion sigue sin ser aditiva: cada capa lleva su propio alfa y se apila con blending normal (source-over) sobre la anterior.",
+    "source": {
+        "package": "capas_pastel_cosmic.zip",
+        "receivedOn": "2026-07-27",
+        "originalImage": "C:/Users/Daniel/Downloads/ChatGPT Image Jul 26, 2026, 06_41_34 PM Pastel Cosmic landing Page 2.png",
+        "originalSize": { "width": 1672, "height": 941 },
+        "extractedOn": "2026-07-27",
+        "extractionMethod": {
+            "summary": "Alfa por distancia euclidea al color de fondo + inpainting del fondo + descomposicion de color por des-premultiplicado. Citado de LEEME.md incluido en el paquete de origen.",
+            "steps": [
+                "1) Alfa global: distancia euclidea de cada pixel al color de fondo medido rgb(233,235,249) (mediana de las 4 esquinas), normalizada a /70 con gamma 0.9.",
+                "2) Fondo: los pixeles con alfa < 0.12 se difuminan con convolucion normalizada (inpainting gaussiano sigma=45) para rellenar los huecos que dejan los elementos en primer plano.",
+                "3) Color real de cada elemento: descomposicion C = (pix - fondo*(1-alfa)) / alfa, de modo que al recomponer capa sobre capa se recupera la imagen original.",
+                "4) Segmentacion: orbe por disco detectado (centro 858,392 · radio nucleo 190 · radio halo 245); manos por componentes conexos densos (alfa > 0.30, area > 4000 px) a izquierda/derecha del orbe; el resto (espirales de energia rosa/cian y particulas estelares) cae en la capa de nebulosa. Las mascaras se normalizan para que sumen 1 (particion sin doble conteo)."
+            ],
+            "knownLimitation": "Donde las espirales de energia cruzan por detras de las manos, esos filamentos quedan en la capa de la mano correspondiente (separacion por region, no por profundidad real); no se nota en parallax/animacion de landing."
+        },
+        "originalLayerFiles": [
+            "00_fondo.png",
+            "01_nebulosa_particulas.png",
+            "02_mano_izquierda.png",
+            "03_mano_derecha.png",
+            "04_orbe.png",
+            "05_destello_central.png"
+        ],
+        "excludedStrayFiles": {
+            "note": "El paquete recibido incluia ademas 01_fondo.png y 05_energia_particulas.png, sobrantes del lote de extraccion ANTERIOR (2026-07-26, mismo timestamp que ese zip) que quedaron ahi por error de empaquetado. Se ignoraron por completo: no se usaron para nada de este manifest ni de los assets publicados.",
+            "files": ["01_fondo.png", "05_energia_particulas.png"]
+        },
+        "verificationOfPngLayerExtraction": {
+            "note": "Verificacion de partida (sesion Opus), recomponiendo las 6 capas PNG buenas en orden fondo/nebulosa/mano-izq/mano-der/orbe/destello con blending source-over (alfa normal, NO aditivo), antes de cualquier conversion a WebP.",
+            "vsRecomposedReferenceImage": {
+                "referenceFile": "verificacion_recompuesta.png",
+                "meanAbsDiff255": 0.42
+            },
+            "vsOriginalSourceImage": {
+                "referenceFile": "ChatGPT Image Jul 26, 2026, 06_41_34 PM Pastel Cosmic landing Page 2.png",
+                "meanAbsDiff255": 1.23
+            },
+            "selfReportedInCapasJson": {
+                "note": "capas.json (incluido en el paquete de origen) reporta su propia cifra de error de recomposicion, ligeramente distinta por redondeo/metodo de muestreo pero del mismo orden de magnitud.",
+                "meanAbsDiff255": 0.957
+            }
+        },
+        "verificationOfWebpConversion": {
+            "note": "Medido en esta tarea (2026-07-27), recomponiendo con sharp composite() (source-over) el stack completo de 6 capas -las 4 WebP publicadas con sus parametros finales mas 04_orbe.png y 05_destello_central.png sin publicar, ambos PNG- en el orden real de composicion (field, energy, hand-left, hand-right, orbe, destello), comparado contra verificacion_recompuesta.png con verify vía sharp raw buffers.",
+            "nativeTrack": {
+                "resolutionTested": { "width": 1672, "height": 941 },
+                "meanAbsDiff255": {
+                    "all": 0.9025,
+                    "R": 1.0057,
+                    "G": 0.8805,
+                    "B": 0.8213
+                },
+                "p99AbsDiff255": { "all": 4, "R": 4, "G": 4, "B": 3 },
+                "maxAbsDiff255": { "all": 19, "R": 14, "G": 19, "B": 16 },
+                "worstBlock32x32MeanAbsDiff255": {
+                    "value": 2.054,
+                    "locationPx": { "x": 1120, "y": 704 }
+                }
+            },
+            "responsiveTrack": {
+                "resolutionTested": { "width": 1024, "height": 576 },
+                "note": "Referencia = verificacion_recompuesta.png reducida a 1024 con kernel mitchell (mismo kernel que la pista responsive), para no penalizar la pista por el propio resize de la referencia.",
+                "meanAbsDiff255": {
+                    "all": 1.0472,
+                    "R": 1.1079,
+                    "G": 0.9711,
+                    "B": 1.0625
+                },
+                "p99AbsDiff255": { "all": 4, "R": 4, "G": 4, "B": 4 },
+                "maxAbsDiff255": { "all": 14, "R": 14, "G": 13, "B": 14 },
+                "worstBlock32x32MeanAbsDiff255": {
+                    "value": 2.078,
+                    "locationPx": { "x": 288, "y": 448 }
+                }
+            },
+            "acceptanceCriteria": {
+                "meanThreshold255": 1.5,
+                "p99Threshold255": 6
+            },
+            "result": "PASS con margen en ambas pistas (nativa: mean 0.90 vs 1.5, p99 4 vs 6; responsive: mean 1.05 vs 1.5, p99 4 vs 6)."
+        }
+    },
+    "canvas": { "width": 1672, "height": 941 },
+    "orb": {
+        "note": "Centroide y perfil radial medidos en esta sesion sobre 04_orbe.png (04-orb.png), a partir del canal alfa del PNG nativo 1672x941.",
+        "centroid": {
+            "xPx": 851.36,
+            "yPx": 392.7,
+            "xPct": 50.92,
+            "yPct": 41.73
+        },
+        "alphaByRadius": {
+            "description": "Perfil de alfa medio del orbe (anillo + halo) en funcion del radio, medido desde el centroide.",
+            "peak": { "radiusPx": 150, "approxAlpha255": 195 },
+            "halfPeakRadiusInterpolatedPx": 178.1,
+            "halfPeakRadiusPctOfWidth": 10.65,
+            "coreRadiusPx": 80,
+            "ringRadiusPx": 260
+        }
+    },
+    "compositing": {
+        "mode": "source-over (alfa normal / normal blending)",
+        "aditivo": false,
+        "css": "las 4 capas publicadas (00-field, 01-energy, 02-hand-left, 03-hand-right) mas el componente Sol se apilan con el comportamiento por defecto de la pila (normal / source-over); NO se usa mix-blend-mode en ninguna capa.",
+        "threejsOrEquivalente": "NormalBlending (o composicion DOM normal) en todas las capas; depthWrite/transparent segun corresponda a cada capa con alfa",
+        "stackingOrder": [
+            "field",
+            "energy",
+            "hand-left",
+            "hand-right",
+            "orbe (no publicado)",
+            "destello (no publicado)"
+        ],
+        "orderChangedNote": "El orden de apilado CAMBIO respecto a la generacion anterior (2026-07-26): alli la energia iba ULTIMA (encima de las manos); en esta generacion la nebulosa/energia va SEGUNDA (detras de las manos, justo despues del campo). Verificado por recomposicion contra verificacion_recompuesta.png con este nuevo orden (ver verificationOfWebpConversion arriba); no es un cambio arbitrario, es el orden que exige el nuevo lote de capas."
+    },
+    "pipeline": {
+        "tool": "sharp 0.34.5 (node_modules/.pnpm/sharp@0.34.5/node_modules/sharp)",
+        "outputFormat": "WebP lossy",
+        "rgbNoiseDiagnosis": {
+            "context": "La generacion anterior (2026-07-26) diagnostico que sharp resize() sobre RGBA amplifica el ruido residual en pixeles de alfa casi cero (des-premultiplicado), pero SOLO en la capa de energia de aquella generacion (silueta difusa que cubre casi todo el lienzo); las manos de aquella generacion (siluetas compactas) no lo sufrian. En esta tarea se repitio el diagnostico completo sobre las 3 capas nuevas con canal alfa, sin asumir que el resultado anterior se repetiria.",
+            "step1_sourcePngBeforeAnyResize": {
+                "method": "Se midio la desviacion estandar de R/G/B en el PNG nativo 1672x941 (sin resize), separando pixeles con alfa 1-4 vs pixeles con alfa 5-19.",
+                "findings": {
+                    "01-energy (01_nebulosa_particulas.png)": {
+                        "alfa1_4": {
+                            "n": 52860,
+                            "stdR": 21.27,
+                            "stdG": 21.97,
+                            "stdB": 8.4
+                        },
+                        "alfa5_19": {
+                            "n": 682594,
+                            "stdR": 29.0,
+                            "stdG": 25.86,
+                            "stdB": 7.99
+                        }
+                    },
+                    "02-hand-left (02_mano_izquierda.png)": {
+                        "alfa1_4": {
+                            "n": 14550,
+                            "stdR": 18.55,
+                            "stdG": 16.73,
+                            "stdB": 6.06
+                        },
+                        "alfa5_19": {
+                            "n": 33587,
+                            "stdR": 18.88,
+                            "stdG": 18.2,
+                            "stdB": 7.39
+                        }
+                    },
+                    "03-hand-right (03_mano_derecha.png)": {
+                        "alfa1_4": {
+                            "n": 20146,
+                            "stdR": 26.67,
+                            "stdG": 19.8,
+                            "stdB": 6.46
+                        },
+                        "alfa5_19": {
+                            "n": 45085,
+                            "stdR": 24.59,
+                            "stdG": 19.38,
+                            "stdB": 7.89
+                        }
+                    }
+                },
+                "conclusion": "En las 3 capas, el grupo alfa 1-4 NO muestra std anomalamente mas alto que el grupo alfa 5-19 (de hecho es igual o ligeramente menor en los 3 casos). El PNG fuente esta limpio: no hay ruido ya horneado en la extraccion, antes de cualquier resize."
+            },
+            "step2_afterMitchellResizeTo1024": {
+                "method": "Se aplico el resize REAL que usa la pista responsive (ancho 1024, kernel mitchell) y se remidio la misma comparacion sobre el buffer crudo redimensionado, para contrastar con el paso 1.",
+                "findings": {
+                    "01-energy": {
+                        "alfa1_4": {
+                            "n": 17685,
+                            "stdR": 45.91,
+                            "stdG": 45.11,
+                            "stdB": 44.91,
+                            "min": 0,
+                            "max": 255
+                        }
+                    },
+                    "02-hand-left": {
+                        "alfa1_4": {
+                            "n": 5366,
+                            "stdR": 97.61,
+                            "stdG": 97.79,
+                            "stdB": 95.89,
+                            "min": 0,
+                            "max": 255
+                        }
+                    },
+                    "03-hand-right": {
+                        "alfa1_4": {
+                            "n": 7487,
+                            "stdR": 98.28,
+                            "stdG": 92.96,
+                            "stdB": 99.49,
+                            "min": 0,
+                            "max": 255
+                        }
+                    }
+                },
+                "conclusion": "A diferencia del paso 1 (fuente limpia), el resize SI introduce el mismo artefacto de des-premultiplicado que en la generacion anterior, y esta vez en LAS 3 capas con alfa (no solo en la nebulosa): el std en la banda alfa 1-4 se dispara a ruido de rango completo (0-255) tras el resize. Esto confirma que el fenomeno es real y generalizado en este lote, no exclusivo de la capa difusa como antes."
+            },
+            "step3_endToEndPipelineVerification": {
+                "method": "Dado que el paso 2 mostro ruido real, se probo el MISMO arreglo que funciono en la generacion anterior (RGB=0 donde el alfa de salida es menor que un umbral, tras el resize y antes de codificar a WebP), barriendo el umbral de 1 a 22, y verificando el efecto REAL sobre el stack completo recompuesto (WebP codificado -> decodificado -> compuesto con sharp composite -> comparado contra verificacion_recompuesta.png reducida a 1024 con mitchell). No se asumio que el arreglo ayudaria solo porque ayudo antes.",
+                "thresholdSweepResults": [
+                    {
+                        "threshold": null,
+                        "meanAbsDiff255": 0.9938,
+                        "p99AbsDiff255": 4,
+                        "maxAbsDiff255": 13,
+                        "worstBlock32x32": 1.9626
+                    },
+                    {
+                        "threshold": 1,
+                        "meanAbsDiff255": 0.9938,
+                        "p99AbsDiff255": 4,
+                        "maxAbsDiff255": 13,
+                        "worstBlock32x32": 1.9626
+                    },
+                    {
+                        "threshold": 2,
+                        "meanAbsDiff255": 0.9959,
+                        "p99AbsDiff255": 4,
+                        "maxAbsDiff255": 14,
+                        "worstBlock32x32": 1.9919
+                    },
+                    {
+                        "threshold": 3,
+                        "meanAbsDiff255": 1.0055,
+                        "p99AbsDiff255": 4,
+                        "maxAbsDiff255": 13,
+                        "worstBlock32x32": 1.9388
+                    },
+                    {
+                        "threshold": 4,
+                        "meanAbsDiff255": 1.036,
+                        "p99AbsDiff255": 4,
+                        "maxAbsDiff255": 15,
+                        "worstBlock32x32": 1.9701
+                    },
+                    {
+                        "threshold": 5,
+                        "meanAbsDiff255": 1.0935,
+                        "p99AbsDiff255": 5,
+                        "maxAbsDiff255": 13,
+                        "worstBlock32x32": 2.3581
+                    },
+                    {
+                        "threshold": 8,
+                        "meanAbsDiff255": 1.4588,
+                        "p99AbsDiff255": 7,
+                        "maxAbsDiff255": 15,
+                        "worstBlock32x32": 4.5225
+                    },
+                    {
+                        "threshold": 10,
+                        "meanAbsDiff255": 1.9617,
+                        "p99AbsDiff255": 9,
+                        "maxAbsDiff255": 19,
+                        "worstBlock32x32": 6.1602
+                    },
+                    {
+                        "threshold": 12,
+                        "meanAbsDiff255": 2.7558,
+                        "p99AbsDiff255": 11,
+                        "maxAbsDiff255": 23,
+                        "worstBlock32x32": 8.1963
+                    },
+                    {
+                        "threshold": 14,
+                        "meanAbsDiff255": 3.2924,
+                        "p99AbsDiff255": 14,
+                        "maxAbsDiff255": 27,
+                        "worstBlock32x32": 9.5804
+                    },
+                    {
+                        "threshold": 16,
+                        "meanAbsDiff255": 3.8408,
+                        "p99AbsDiff255": 17,
+                        "maxAbsDiff255": 31,
+                        "worstBlock32x32": 10.7191,
+                        "note": "Este es el umbral que la generacion anterior calibro como 'seguro' para su capa de energia. Aqui, aplicado a las 3 capas de este lote, FALLA de forma catastrofica (mean y p99 muy por encima del criterio de aceptacion 1.5/6)."
+                    },
+                    {
+                        "threshold": 18,
+                        "meanAbsDiff255": 4.4271,
+                        "p99AbsDiff255": 20,
+                        "maxAbsDiff255": 35,
+                        "worstBlock32x32": 13.2145
+                    },
+                    {
+                        "threshold": 20,
+                        "meanAbsDiff255": 5.0717,
+                        "p99AbsDiff255": 22,
+                        "maxAbsDiff255": 37,
+                        "worstBlock32x32": 14.9697
+                    },
+                    {
+                        "threshold": 22,
+                        "meanAbsDiff255": 5.7505,
+                        "p99AbsDiff255": 25,
+                        "maxAbsDiff255": 41,
+                        "worstBlock32x32": 17.708
+                    }
+                ],
+                "conclusion": "El barrido es MONOTONO CRECIENTE en error desde threshold=1: no existe ningun umbral positivo donde el arreglo mejore la fidelidad; todos la empeoran, y a partir de threshold=8 el stack ya no cumple el criterio de aceptacion (mean<=1.5, p99<=6). Por tanto el arreglo de limpieza de alfa NO se aplica en esta generacion, ni en la pista nativa ni en la responsive.",
+                "whyDifferentFromLastTime": "El ruido de rango completo detectado en el paso 2 es real, pero su peso en el resultado compuesto final es proporcional al alfa (<=~7.8% para alfa<20), y la codificacion WebP con lossy quantiza/suaviza gran parte de ese ruido antes de llegar al pixel final decodificado. Forzar RGB=0 no elimina ruido aleatorio de bajo peso: introduce un SESGO SISTEMATICO (no aleatorio) hacia el negro que, integrado sobre un area grande -el halo de baja alfa de la nebulosa cubre casi todo el lienzo, y el borde de baja alfa de cada mano traza todo su contorno-, desplaza el color compuesto muy por debajo del tono pastel real (RGB~200-250) en una zona mucho mas extensa que el ruido que pretendia corregir. En la generacion anterior solo UNA capa (la energia, aislada) necesitaba el arreglo y su zona afectada, al ponerse a negro, seguia promediando cerca de un nivel poco visible en el contexto de esa imagen; aqui, con las 3 capas afectadas simultaneamente y medido con una comparacion global mas estricta, el sesgo domina en vez de corregir.",
+                "appliesTo": "Ninguna capa. Se comprobo en las 3 capas con canal alfa publicadas (01-energy, 02-hand-left, 03-hand-right); 00-field es opaca y no aplica."
+            }
+        },
+        "nativeOutput": {
+            "widthPx": 1672,
+            "heightPx": 941,
+            "resize": "ninguno, solo recodificacion PNG -> WebP",
+            "suffix": "sin sufijo, ej. 00-field.webp",
+            "byLayer": {
+                "00-field": {
+                    "quality": 82,
+                    "alphaQuality": null,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false,
+                    "note": "Capa opaca (sin canal alfa); el barrido de quality/smartSubsample no mostro una combinacion que dominara claramente sobre quality=82 en esta capa (a diferencia de la generacion anterior); dado su peso insignificante (<5 KB), se mantuvo la calidad alta de partida."
+                },
+                "01-energy": {
+                    "quality": 45,
+                    "alphaQuality": 15,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "02-hand-left": {
+                    "quality": 82,
+                    "alphaQuality": 30,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "03-hand-right": {
+                    "quality": 82,
+                    "alphaQuality": 35,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                }
+            }
+        },
+        "responsiveOutput": {
+            "widthPx": 1024,
+            "heightPx": 576,
+            "resizeKernel": "mitchell",
+            "suffix": "-1024, ej. 00-field-1024.webp",
+            "notaKernel": "Se mantiene mitchell (heredado de la generacion anterior, donde se verifico que produce un chunk VP8 mas pequeno que lanczos3/cubic sin coste de fidelidad); no se repitio el barrido de kernels en esta tarea porque no forma parte del diagnostico pedido, pero la verificacion final confirma que sigue cumpliendo el criterio de aceptacion con este kernel.",
+            "notaAlfa": "Ver pipeline.rgbNoiseDiagnosis: se diagnostico el mismo fenomeno de ruido por des-premultiplicado que en la generacion anterior, pero el barrido end-to-end demostro que el arreglo de limpieza de alfa NO mejora la fidelidad en este lote (la empeora de forma monotona) y por tanto NO se aplica a ninguna de las 3 capas con alfa.",
+            "byLayer": {
+                "00-field": {
+                    "quality": 82,
+                    "alphaQuality": null,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "01-energy": {
+                    "quality": 30,
+                    "alphaQuality": 15,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "02-hand-left": {
+                    "quality": 60,
+                    "alphaQuality": 30,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                },
+                "03-hand-right": {
+                    "quality": 82,
+                    "alphaQuality": 60,
+                    "lossless": false,
+                    "effort": 6,
+                    "smartSubsample": false
+                }
+            }
+        },
+        "opaqueLayerEncoding": {
+            "layer": "00-field",
+            "hasAlphaChannel": false,
+            "riffChunk": "VP8 ",
+            "nota": "00-field.png no tiene canal alfa (24bpp); se codifica sin alfa. Aplica a nativeOutput y responsiveOutput. Verificado leyendo los bytes 12-15 del contenedor RIFF de ambos ficheros generados."
+        },
+        "alphaLayerEncoding": {
+            "layers": ["01-energy", "02-hand-left", "03-hand-right"],
+            "hasAlphaChannel": true,
+            "riffChunk": "VP8X",
+            "nota": "Verificado leyendo los bytes 12-15 del contenedor RIFF de cada archivo generado, en las 8 salidas (4 nativas + 4 responsive): 00-field(-1024) = 'VP8 ', 01-energy/02-hand-left/03-hand-right (-1024) = 'VP8X'."
+        },
+        "byteSizeTable": {
+            "note": "Bytes de origen (PNG fuente), WebP nativo (1672) y WebP responsive (1024), con reduccion porcentual en cada salto. Todas las 1024 pesan MENOS que su homologa nativa (requisito duro verificado).",
+            "00-field": {
+                "sourcePngBytes": 64313,
+                "nativeWebpBytes": 4472,
+                "responsiveWebpBytes": 1982,
+                "pngToNativeReduction": "-93.05%",
+                "nativeToResponsiveReduction": "-55.68%",
+                "responsiveSmallerThanNative": true
+            },
+            "01-energy": {
+                "sourcePngBytes": 3003545,
+                "nativeWebpBytes": 157568,
+                "responsiveWebpBytes": 63084,
+                "pngToNativeReduction": "-94.75%",
+                "nativeToResponsiveReduction": "-59.96%",
+                "responsiveSmallerThanNative": true
+            },
+            "02-hand-left": {
+                "sourcePngBytes": 2637699,
+                "nativeWebpBytes": 57426,
+                "responsiveWebpBytes": 20782,
+                "pngToNativeReduction": "-97.82%",
+                "nativeToResponsiveReduction": "-63.81%",
+                "responsiveSmallerThanNative": true
+            },
+            "03-hand-right": {
+                "sourcePngBytes": 2692942,
+                "nativeWebpBytes": 89810,
+                "responsiveWebpBytes": 49764,
+                "pngToNativeReduction": "-96.66%",
+                "nativeToResponsiveReduction": "-44.59%",
+                "responsiveSmallerThanNative": true
+            },
+            "totals": {
+                "sourcePngBytes": 8398499,
+                "nativeWebpBytes": 309276,
+                "responsiveWebpBytes": 135612,
+                "pngToNativeReduction": "-96.32%",
+                "nativeToResponsiveReduction": "-56.15%"
+            }
+        }
+    },
+    "layers": [
+        {
+            "file": "00-field.webp",
+            "sourceAsset": "assets/hero-aura/00-field.png",
+            "published": true,
+            "role": "fondo pastel opaco con degradado, capa base sin canal alfa",
+            "blending": "normal",
+            "parallaxDepth": 0.0
+        },
+        {
+            "file": "01-energy.webp",
+            "sourceAsset": "assets/hero-aura/01-energy.png",
+            "published": true,
+            "role": "nebulosa: espirales de energia rosa/cian y particulas estelares dispersas, capa difusa que cubre casi todo el lienzo",
+            "blending": "normal",
+            "parallaxDepth": 0.15
+        },
+        {
+            "file": "02-hand-left.webp",
+            "sourceAsset": "assets/hero-aura/02-hand-left.png",
+            "published": true,
+            "role": "mano izquierda (red de constelaciones)",
+            "blending": "normal",
+            "parallaxDepth": 0.3
+        },
+        {
+            "file": "03-hand-right.webp",
+            "sourceAsset": "assets/hero-aura/03-hand-right.png",
+            "published": true,
+            "role": "mano derecha, con filamentos de energia adheridos",
+            "blending": "normal",
+            "parallaxDepth": 0.3
+        },
+        {
+            "file": null,
+            "sourceAsset": "assets/hero-aura/04-orb.png",
+            "published": false,
+            "role": "esfera holografica cian/rosa con su halo (anillo); NO se publica como imagen porque el componente Sol del DOM ocupa su lugar",
+            "blending": "normal",
+            "parallaxDepth": null
+        },
+        {
+            "file": null,
+            "sourceAsset": "assets/hero-aura/05-core-glow.png",
+            "published": false,
+            "role": "nucleo de luz blanca del centro del orbe (destello); NO se publica como imagen porque el componente Sol del DOM ocupa su lugar. Capa NUEVA en esta generacion (no existia en el lote anterior).",
+            "blending": "normal",
+            "parallaxDepth": null
+        }
+    ],
+    "notes": [
+        "04-orb.png y 05-core-glow.png se archivan en assets/hero-aura/ solo como referencia documental (misma convencion que assets/hero-eye/05-logo.png); ninguno de los dos se convierte a WebP ni se sube a public/.",
+        "El componente Sol del DOM sustituye visualmente TANTO al anillo (04-orb) COMO a su nucleo (05-core-glow): el perfil radial de alfa del orbe muestra que son regiones complementarias de una sola figura (el destello ocupa exactamente el hueco r<80px que el anillo deja vacio en su centro; ver orb.alphaByRadius.coreRadiusPx=80 vs ringRadiusPx=260), no dos elementos independientes. Decision ya tomada y documentada en la spec del hero; no se reabre aqui.",
+        "La profundidad de parallax del orbe/destello (AURA_ORB_DEPTH = 0.80) se documenta aparte, junto al componente Sol, y NO figura en la tabla layers[].parallaxDepth de este manifest porque esas dos capas no se publican como imagen.",
+        "Orden de composicion (arte y DOM, esta generacion): field, energy, hand-left, hand-right, orbe, destello -en el DOM, Sol sustituye a orbe+destello y se monta por encima de las 4 capas WebP-. Este orden CAMBIO respecto a la generacion 2026-07-26 (alli: field, hand-left, hand-right, orbe, energy -la energia iba ULTIMA-); ver compositing.orderChangedNote.",
+        "Restricciones de esta tarea: no se toco ningun fichero .ts/.tsx del repo (aura.layers.ts/aura.parts.tsx/tests los gestiona otra tarea en paralelo); no se ejecuto pnpm install ni se modifico package.json; no se hizo git commit."
+    ]
+}
