@@ -30,14 +30,30 @@ export const STORY_HALO_GRADIENT =
   "radial-gradient(circle at 55% 55%, oklch(0.9 0.05 275 / 0.55) 0%, oklch(0.93 0.03 260 / 0.3) 45%, transparent 72%)";
 
 /**
- * Degradado de texto de "to creation." (mockup L78): tres paradas propias
- * (`235`, `255`, `290`), distintas de los hue de `palette.primary`/
- * `palette.secondary`. A diferencia del titular del hero (`heroGradient`,
- * `BrandName.tsx`), este NO anima — el mockup no le aplica `vtiGradientShift`
- * a este span, solo al `ToInfinite` del hero — así que se declara estático.
+ * Degradado de texto de "to creation." (mockup L78, tema claro): tres
+ * paradas propias (`235`, `255`, `290`), distintas de los hue de
+ * `palette.primary`/`palette.secondary`. A diferencia del titular del hero
+ * (`heroGradient`, `BrandName.tsx`), este NO anima — el mockup no le aplica
+ * `vtiGradientShift` a este span, solo al `ToInfinite` del hero — así que se
+ * declara estático. Renombrado con sufijo `_LIGHT` (2026-07-29) al añadir la
+ * variante oscura de abajo — incluida en la rama clara de `Story.tsx`.
  */
-export const STORY_ACCENT_GRADIENT =
+export const STORY_ACCENT_GRADIENT_LIGHT =
   "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
+
+/**
+ * Variante oscura del degradado de texto (spec 2026-07-29 D10): MISMA familia
+ * de hue (235/255/290) que la versión clara, con luminosidad mucho mayor
+ * (0.78–0.86 en vez de 0.56–0.72) para que el `background-clip: text` siga
+ * siendo legible sobre el negro-violeta de `StoryCosmicHeart`
+ * (`STORY_COSMIC_HEART_VOID`, `#05030f`). No hay mockup oscuro de esta
+ * sección — el spec señala explícitamente que estas paradas se verifican a
+ * ojo en el paso de verificación en navegador, no con un contraste medido
+ * (el helper `contrast.ts` del repo solo resuelve colores planos, no
+ * degradados de texto).
+ */
+export const STORY_ACCENT_GRADIENT_DARK =
+  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
 
 /** Fondo/borde/sombra de la tarjeta flotante de nota (mockup L98). */
 export const STORY_CARD_BG = "oklch(0.97 0.018 260)";
