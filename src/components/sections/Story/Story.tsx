@@ -1,7 +1,7 @@
 "use client";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled, { keyframes, type DefaultTheme } from "styled-components";
+import styled, { css, keyframes, type DefaultTheme } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -75,11 +75,37 @@ function pillarColor(
   };
 }
 
-const ScStory = styled.section`
-  padding: ${({ theme }) => theme.data.space[9]}
-    ${({ theme }) => theme.data.space[5]};
-  max-width: ${({ theme }) => theme.data.grid.containerMax};
-  margin-inline: auto;
+/*
+ * Rama clara: contenedor de contenido normal (padding + tope de ancho,
+ * centrado -- sin cambios respecto a la version anterior).
+ *
+ * Rama oscura ($fullBleed, mejora 2026-07-29 pedida por el usuario tras ver
+ * la primera entrega): el fondo debe ocupar TODO el ancho y alto del
+ * dispositivo, no el ancho de contenido acotado por `grid.containerMax`.
+ * Mismo patron que `ScHero` (Hero.tsx): sin `max-width` propio -- `<main>`
+ * no impone ningun ancho maximo ambiental, asi que basta con no declarar uno
+ * aqui para que la seccion ocupe el 100% del viewport -- y
+ * `min-height: 100vh`/`100dvh` (el `dvh` corrige el alto en movil, donde la
+ * barra de direcciones cambia `100vh` en tiempo real). `overflow: hidden`
+ * contiene el overscan del parallax (`StoryCosmicHeart`) dentro de la propia
+ * seccion.
+ */
+const ScStory = styled.section<{ $fullBleed: boolean }>`
+  ${({ $fullBleed, theme }) =>
+    $fullBleed
+      ? css`
+          position: relative;
+          overflow: hidden;
+          min-height: 100vh;
+          min-height: 100dvh;
+          display: flex;
+          align-items: center;
+        `
+      : css`
+          padding: ${theme.data.space[9]} ${theme.data.space[5]};
+          max-width: ${theme.data.grid.containerMax};
+          margin-inline: auto;
+        `}
 `;
 
 /* Reveal de sección en CLARO (mismo patrón que `ScItem` en Features.tsx). */
@@ -256,29 +282,18 @@ const ScPillarCopy = styled.div`
   gap: ${({ theme }) => theme.data.space[1]};
 `;
 
-/* Envoltorio de la rama OSCURA: caja con altura propia (la escena de fondo
-   es `position:absolute; inset:0`, necesita un ancestro con tamaño real) y
-   `overflow:hidden` para que el overscan del parallax no desborde el layout
-   de la pagina. */
-const ScDarkSection = styled.div`
-  position: relative;
-  overflow: hidden;
-  border-radius: ${({ theme }) => theme.data.radius["2xl"]};
-  min-height: 520px;
-
-  @media ${({ theme }) => theme.data.breakPoint.lg} {
-    min-height: 620px;
-  }
-`;
-
 /* Reveal de la rama oscura: mismo mecanismo que ScGrid, pero SOLO sobre el
    contenido -- la escena de fondo (StoryCosmicHeart) no usa useReveal, esta
-   siempre presente y en movimiento propio. */
+   siempre presente y en movimiento propio. Lleva su PROPIO padding/tope de
+   ancho (ScStory, en `$fullBleed`, ya no aporta ninguno): el fondo ocupa el
+   viewport entero, pero el texto sigue acotado a una medida de lectura
+   comoda, igual que ScCopy dentro de ScHero (Hero.tsx). */
 const ScDarkContent = styled.div`
   position: relative;
   z-index: 1;
   max-width: ${({ theme }) => theme.data.grid.prose};
-  padding: ${({ theme }) => theme.data.space[7]}
+  width: 100%;
+  padding: ${({ theme }) => theme.data.space[8]}
     ${({ theme }) => theme.data.space[6]};
   opacity: 0;
   transform: translateY(16px);
@@ -351,6 +366,7 @@ export function Story(): ReactElement {
       <ScStory
         id="story"
         aria-labelledby="story-title"
+        $fullBleed={false}
       >
         <ScGrid
           ref={revealRef}
@@ -399,18 +415,17 @@ export function Story(): ReactElement {
     <ScStory
       id="story"
       aria-labelledby="story-title"
+      $fullBleed
     >
-      <ScDarkSection>
-        <StoryCosmicHeart />
-        <ScDarkContent
-          ref={revealRef}
-          data-revealed={revealed}
-        >
-          {heading}
-          {pillars}
-          <ScNote variant="bodySm">{t("Home.story.note")}</ScNote>
-        </ScDarkContent>
-      </ScDarkSection>
+      <StoryCosmicHeart />
+      <ScDarkContent
+        ref={revealRef}
+        data-revealed={revealed}
+      >
+        {heading}
+        {pillars}
+        <ScNote variant="bodySm">{t("Home.story.note")}</ScNote>
+      </ScDarkContent>
     </ScStory>
   );
 }
