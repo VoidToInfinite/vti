@@ -1,7 +1,6 @@
 # Spec — Story en tema oscuro: escena parallax "Cosmic Heart"
 
-**Fecha:** 2026-07-29 · **Rama:** `feature/dark-mode-landing` · **HEAD de partida:** `b8ad206`
-**Fuente de arte:** `C:\Users\Daniel\Downloads\Story Dark Theme 1.zip` (README, `layers.json`, `split_layers.py`, `ParallaxScene.jsx`, `parallax-demo.html` con las 8 capas WebP embebidas en base64 — extraídas y verificadas en esta sesión).
+**Fecha:** 2026-07-29 · **Rama:** `feature/dark-mode-landing` · **HEAD de partida:** `b8ad206` **Fuente de arte:** `C:\Users\Daniel\Downloads\Story Dark Theme 1.zip` (README, `layers.json`, `split_layers.py`, `ParallaxScene.jsx`, `parallax-demo.html` con las 8 capas WebP embebidas en base64 — extraídas y verificadas en esta sesión).
 
 ## 1. Encargo
 
@@ -11,16 +10,16 @@ El usuario pide construir, sección por sección, las secciones de la landing pa
 
 8 capas WebP (1672×941, RGB, sin alfa, color premultiplicado, compositado aditivo — la suma reconstruye el original con error ≤ 0.006 fuera de la figura, según el README adjunto):
 
-| Capa | Profundidad | Contenido | % energía |
-| --- | --- | --- | --- |
-| `01-deep-space` | 0.03 | Vacío/degradado de fondo | 5.3% |
-| `02-nebula-back` | 0.09 | Bruma difusa violeta/azul | 47.1% |
-| `03-sparkles-far` | 0.13 | Campo de estrellas tenue | 2.9% |
-| `04-geometry` | 0.19 | Círculos/mandalas/ondas finas | 0.13% |
-| `05-nebula-front` | 0.26 | Cintas de energía brillantes | 33.9% |
-| `06-sparkles-near` | 0.34 | Destellos cercanos | 3.4% |
-| `07-figure` | 0.46 | Figura celestial + halo | 5.9% |
-| `08-heart-core` | 0.50 | Núcleo luminoso del pecho | 1.4% |
+| Capa               | Profundidad | Contenido                     | % energía |
+| ------------------ | ----------- | ----------------------------- | --------- |
+| `01-deep-space`    | 0.03        | Vacío/degradado de fondo      | 5.3%      |
+| `02-nebula-back`   | 0.09        | Bruma difusa violeta/azul     | 47.1%     |
+| `03-sparkles-far`  | 0.13        | Campo de estrellas tenue      | 2.9%      |
+| `04-geometry`      | 0.19        | Círculos/mandalas/ondas finas | 0.13%     |
+| `05-nebula-front`  | 0.26        | Cintas de energía brillantes  | 33.9%     |
+| `06-sparkles-near` | 0.34        | Destellos cercanos            | 3.4%      |
+| `07-figure`        | 0.46        | Figura celestial + halo       | 5.9%      |
+| `08-heart-core`    | 0.50        | Núcleo luminoso del pecho     | 1.4%      |
 
 Lienzo a sangre (16:9): el vacío queda a la izquierda (hueco natural para el texto), la figura con el corazón encendido a la derecha — a diferencia del Story claro (figura recortada 375×548 en columna propia), esto es una escena completa, no una figura aislada.
 

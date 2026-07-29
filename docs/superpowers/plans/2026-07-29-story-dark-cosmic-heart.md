@@ -24,12 +24,14 @@
 ## Task 0: Publicar los assets de la escena
 
 **Files:**
+
 - Create: `assets/story-cosmic-heart/manifest.json`
 - Create: `assets/story-cosmic-heart/01-deep-space.webp` … `08-heart-core.webp` (8 archivos, copiados del zip)
 - Create: `public/story/cosmic-heart/01-deep-space.webp` … `08-heart-core.webp` (nativos, 1672×941)
 - Create: `public/story/cosmic-heart/01-deep-space-1024.webp` … `08-heart-core-1024.webp` (pista reducida, 1024×576)
 
 **Interfaces:**
+
 - Produces: las 16 rutas públicas bajo `/story/cosmic-heart/*.webp` que consumirá `storyCosmicHeart.layers.ts` (Task 2).
 
 Los 8 WebP nativos y sus versiones a 1024px ya están generados en el directorio de trabajo de esta sesión (extraídos del zip `Story Dark Theme 1.zip` y redimensionados con Pillow). Este task solo los copia a su destino final en el repo.
@@ -47,23 +49,23 @@ cp "$SCRATCH_DIR/story-dark-zip/layers/"*.webp "assets/story-cosmic-heart/"
 
 ```json
 {
-  "name": "story-cosmic-heart-layers",
-  "description": "Figura celestial con el pecho encendido, separada en 8 planos de profundidad para parallax 2.5D en el fondo de Story (tema oscuro). Particion de energia (las mascaras suman 1.0 por pixel); compuestas con blending aditivo sobre --void:#05030f reconstruyen el original.",
-  "source": "Story Dark Theme 1.zip (Downloads), entregado por el usuario 2026-07-29. Fuente original citada en layers.json del zip: ChatGPT_Image_Jul_29__2026__02_54_33_PM_Cosmic_Heart_Guardian_in_Violet_Nebula.png.",
-  "canvas": { "width": 1672, "height": 941 },
-  "compositing": {
-    "css": "cada capa mix-blend-mode: plus-lighter (fallback screen) sobre --void:#05030f"
-  },
-  "layers": [
-    { "file": "01-deep-space.webp", "depth": 0.03, "share": 0.0533 },
-    { "file": "02-nebula-back.webp", "depth": 0.09, "share": 0.4714 },
-    { "file": "03-sparkles-far.webp", "depth": 0.13, "share": 0.029 },
-    { "file": "04-geometry.webp", "depth": 0.19, "share": 0.0013 },
-    { "file": "05-nebula-front.webp", "depth": 0.26, "share": 0.3386 },
-    { "file": "06-sparkles-near.webp", "depth": 0.34, "share": 0.0335 },
-    { "file": "07-figure.webp", "depth": 0.46, "share": 0.0593 },
-    { "file": "08-heart-core.webp", "depth": 0.5, "share": 0.0137 }
-  ]
+    "name": "story-cosmic-heart-layers",
+    "description": "Figura celestial con el pecho encendido, separada en 8 planos de profundidad para parallax 2.5D en el fondo de Story (tema oscuro). Particion de energia (las mascaras suman 1.0 por pixel); compuestas con blending aditivo sobre --void:#05030f reconstruyen el original.",
+    "source": "Story Dark Theme 1.zip (Downloads), entregado por el usuario 2026-07-29. Fuente original citada en layers.json del zip: ChatGPT_Image_Jul_29__2026__02_54_33_PM_Cosmic_Heart_Guardian_in_Violet_Nebula.png.",
+    "canvas": { "width": 1672, "height": 941 },
+    "compositing": {
+        "css": "cada capa mix-blend-mode: plus-lighter (fallback screen) sobre --void:#05030f"
+    },
+    "layers": [
+        { "file": "01-deep-space.webp", "depth": 0.03, "share": 0.0533 },
+        { "file": "02-nebula-back.webp", "depth": 0.09, "share": 0.4714 },
+        { "file": "03-sparkles-far.webp", "depth": 0.13, "share": 0.029 },
+        { "file": "04-geometry.webp", "depth": 0.19, "share": 0.0013 },
+        { "file": "05-nebula-front.webp", "depth": 0.26, "share": 0.3386 },
+        { "file": "06-sparkles-near.webp", "depth": 0.34, "share": 0.0335 },
+        { "file": "07-figure.webp", "depth": 0.46, "share": 0.0593 },
+        { "file": "08-heart-core.webp", "depth": 0.5, "share": 0.0137 }
+    ]
 }
 ```
 
@@ -101,10 +103,12 @@ git commit -m "assets(story): publica las 8 capas de la escena Cosmic Heart (tem
 ## Task 1: Hook de parallax de escena (`useSceneParallax`)
 
 **Files:**
+
 - Create: `src/hooks/useSceneParallax.ts`
 - Test: `src/hooks/useSceneParallax.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `usePointer` de `@/hooks/usePointer` (ya existe — `{ x: RefObject<number>, y: RefObject<number>, enabled: boolean }`).
 - Produces: `useSceneParallax(sceneRef: RefObject<HTMLElement | null>, targets: readonly SceneParallaxTarget[], options: SceneParallaxOptions): void`, con `SceneParallaxTarget = { ref: RefObject<HTMLElement | null>; depth: number }` y `SceneParallaxOptions = { pointerAmp: {x:number;y:number}; scrollAmp: number; overscan: number; driftAmp?: {x:number;y:number}; idleMs?: number }`. `StoryCosmicHeart.tsx` (Task 3) importa estos tres tipos/función.
 
@@ -118,25 +122,25 @@ import { useSceneParallax } from "./useSceneParallax";
 import type { SceneParallaxTarget } from "./useSceneParallax";
 
 function stubMatchMedia(reducedMatches: boolean): void {
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes("prefers-reduced-motion")
-        ? reducedMatches
-        : false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })),
-  );
+    vi.stubGlobal(
+        "matchMedia",
+        vi.fn().mockImplementation((query: string) => ({
+            matches: query.includes("prefers-reduced-motion")
+                ? reducedMatches
+                : false,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        })),
+    );
 }
 
 function sceneOf(el: HTMLElement) {
-  return { current: el };
+    return { current: el };
 }
 
 function targetOf(el: HTMLElement, depth: number): SceneParallaxTarget {
-  return { ref: { current: el }, depth };
+    return { ref: { current: el }, depth };
 }
 
 const OPTS = { pointerAmp: { x: 20, y: 12 }, scrollAmp: 60, overscan: 1.06 };
@@ -145,18 +149,18 @@ beforeEach(() => stubMatchMedia(false));
 afterEach(() => vi.unstubAllGlobals());
 
 describe("useSceneParallax", () => {
-  it("bajo reduced-motion no arranca ningun rAF", () => {
-    stubMatchMedia(true);
-    const raf = vi.fn().mockReturnValue(1);
-    vi.stubGlobal("requestAnimationFrame", raf);
-    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    it("bajo reduced-motion no arranca ningun rAF", () => {
+        stubMatchMedia(true);
+        const raf = vi.fn().mockReturnValue(1);
+        vi.stubGlobal("requestAnimationFrame", raf);
+        vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
-    const scene = document.createElement("div");
-    const targets = [targetOf(document.createElement("div"), 0.5)];
-    renderHook(() => useSceneParallax(sceneOf(scene), targets, OPTS));
+        const scene = document.createElement("div");
+        const targets = [targetOf(document.createElement("div"), 0.5)];
+        renderHook(() => useSceneParallax(sceneOf(scene), targets, OPTS));
 
-    expect(raf).not.toHaveBeenCalled();
-  });
+        expect(raf).not.toHaveBeenCalled();
+    });
 });
 ```
 
@@ -177,28 +181,28 @@ import { useEffect, useRef, type RefObject } from "react";
 import { usePointer } from "@/hooks/usePointer";
 
 export interface SceneParallaxTarget {
-  /** Ref al elemento que recibe el transform. */
-  readonly ref: RefObject<HTMLElement | null>;
-  /** 0 = plano de fondo inmovil, 1 = plano mas cercano. */
-  readonly depth: number;
+    /** Ref al elemento que recibe el transform. */
+    readonly ref: RefObject<HTMLElement | null>;
+    /** 0 = plano de fondo inmovil, 1 = plano mas cercano. */
+    readonly depth: number;
 }
 
 export interface SceneParallaxAmplitude {
-  readonly x: number;
-  readonly y: number;
+    readonly x: number;
+    readonly y: number;
 }
 
 export interface SceneParallaxOptions {
-  /** Amplitud del parallax de puntero en px, a profundidad 1. */
-  readonly pointerAmp: SceneParallaxAmplitude;
-  /** Amplitud del parallax de scroll en px, a profundidad 1. */
-  readonly scrollAmp: number;
-  /** Escala base comun a todas las capas (evita bordes vacios al desplazar). */
-  readonly overscan: number;
-  /** Amplitud de la deriva automatica cuando el puntero lleva quieto `idleMs`. */
-  readonly driftAmp?: SceneParallaxAmplitude;
-  /** Milisegundos sin movimiento de puntero antes de que la deriva tome el control. */
-  readonly idleMs?: number;
+    /** Amplitud del parallax de puntero en px, a profundidad 1. */
+    readonly pointerAmp: SceneParallaxAmplitude;
+    /** Amplitud del parallax de scroll en px, a profundidad 1. */
+    readonly scrollAmp: number;
+    /** Escala base comun a todas las capas (evita bordes vacios al desplazar). */
+    readonly overscan: number;
+    /** Amplitud de la deriva automatica cuando el puntero lleva quieto `idleMs`. */
+    readonly driftAmp?: SceneParallaxAmplitude;
+    /** Milisegundos sin movimiento de puntero antes de que la deriva tome el control. */
+    readonly idleMs?: number;
 }
 
 const DEFAULT_DRIFT_AMP: SceneParallaxAmplitude = { x: 0.55, y: 0.35 };
@@ -224,103 +228,104 @@ const DEFAULT_IDLE_MS = 2200;
  * en efecto -- el estado de reposo que pide D6 del spec.
  */
 export function useSceneParallax(
-  sceneRef: RefObject<HTMLElement | null>,
-  targets: readonly SceneParallaxTarget[],
-  options: SceneParallaxOptions,
+    sceneRef: RefObject<HTMLElement | null>,
+    targets: readonly SceneParallaxTarget[],
+    options: SceneParallaxOptions,
 ): void {
-  const pointer = usePointer();
-  const { x: pointerX, y: pointerY } = pointer;
+    const pointer = usePointer();
+    const { x: pointerX, y: pointerY } = pointer;
 
-  const targetsRef = useRef(targets);
-  const optionsRef = useRef(options);
-  useEffect(() => {
-    targetsRef.current = targets;
-    optionsRef.current = options;
-  });
+    const targetsRef = useRef(targets);
+    const optionsRef = useRef(options);
+    useEffect(() => {
+        targetsRef.current = targets;
+        optionsRef.current = options;
+    });
 
-  const lastMoveRef = useRef(0);
+    const lastMoveRef = useRef(0);
 
-  useEffect(() => {
-    const reducedQuery = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    );
-    let raf = 0;
-    let running = false;
-    let scrollProgress = 0;
+    useEffect(() => {
+        const reducedQuery = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+        );
+        let raf = 0;
+        let running = false;
+        let scrollProgress = 0;
 
-    const onPointerMove = (): void => {
-      lastMoveRef.current = performance.now();
-    };
+        const onPointerMove = (): void => {
+            lastMoveRef.current = performance.now();
+        };
 
-    const onScroll = (): void => {
-      const el = sceneRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      scrollProgress = Math.max(
-        -1,
-        Math.min(1, -rect.top / window.innerHeight),
-      );
-    };
+        const onScroll = (): void => {
+            const el = sceneRef.current;
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            scrollProgress = Math.max(
+                -1,
+                Math.min(1, -rect.top / window.innerHeight),
+            );
+        };
 
-    const tick = (now: number): void => {
-      const opts = optionsRef.current;
-      const drift = opts.driftAmp ?? DEFAULT_DRIFT_AMP;
-      const idleMs = opts.idleMs ?? DEFAULT_IDLE_MS;
-      const idle = now - lastMoveRef.current > idleMs;
+        const tick = (now: number): void => {
+            const opts = optionsRef.current;
+            const drift = opts.driftAmp ?? DEFAULT_DRIFT_AMP;
+            const idleMs = opts.idleMs ?? DEFAULT_IDLE_MS;
+            const idle = now - lastMoveRef.current > idleMs;
 
-      const px = idle ? Math.sin(now / 7000) * drift.x : pointerX.current;
-      const py = idle ? Math.cos(now / 9500) * drift.y : pointerY.current;
+            const px = idle ? Math.sin(now / 7000) * drift.x : pointerX.current;
+            const py = idle ? Math.cos(now / 9500) * drift.y : pointerY.current;
 
-      for (const target of targetsRef.current) {
-        const el = target.ref.current;
-        if (!el) continue;
-        const x = px * opts.pointerAmp.x * target.depth;
-        const y =
-          py * opts.pointerAmp.y * target.depth +
-          scrollProgress * opts.scrollAmp * target.depth;
-        const scale = opts.overscan + scrollProgress * target.depth * 0.05;
-        el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
-      }
-      raf = window.requestAnimationFrame(tick);
-    };
+            for (const target of targetsRef.current) {
+                const el = target.ref.current;
+                if (!el) continue;
+                const x = px * opts.pointerAmp.x * target.depth;
+                const y =
+                    py * opts.pointerAmp.y * target.depth +
+                    scrollProgress * opts.scrollAmp * target.depth;
+                const scale =
+                    opts.overscan + scrollProgress * target.depth * 0.05;
+                el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
+            }
+            raf = window.requestAnimationFrame(tick);
+        };
 
-    const start = (): void => {
-      if (running) return;
-      running = true;
-      lastMoveRef.current = performance.now();
-      window.addEventListener("pointermove", onPointerMove, {
-        passive: true,
-      });
-      window.addEventListener("scroll", onScroll, { passive: true });
-      onScroll();
-      raf = window.requestAnimationFrame(tick);
-    };
+        const start = (): void => {
+            if (running) return;
+            running = true;
+            lastMoveRef.current = performance.now();
+            window.addEventListener("pointermove", onPointerMove, {
+                passive: true,
+            });
+            window.addEventListener("scroll", onScroll, { passive: true });
+            onScroll();
+            raf = window.requestAnimationFrame(tick);
+        };
 
-    const stop = (): void => {
-      if (!running) return;
-      running = false;
-      window.cancelAnimationFrame(raf);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("scroll", onScroll);
-      for (const target of targetsRef.current) {
-        const el = target.ref.current;
-        if (el) el.style.transform = "";
-      }
-    };
+        const stop = (): void => {
+            if (!running) return;
+            running = false;
+            window.cancelAnimationFrame(raf);
+            window.removeEventListener("pointermove", onPointerMove);
+            window.removeEventListener("scroll", onScroll);
+            for (const target of targetsRef.current) {
+                const el = target.ref.current;
+                if (el) el.style.transform = "";
+            }
+        };
 
-    const evaluate = (): void => {
-      if (reducedQuery.matches) stop();
-      else start();
-    };
+        const evaluate = (): void => {
+            if (reducedQuery.matches) stop();
+            else start();
+        };
 
-    evaluate();
-    reducedQuery.addEventListener("change", evaluate);
+        evaluate();
+        reducedQuery.addEventListener("change", evaluate);
 
-    return () => {
-      reducedQuery.removeEventListener("change", evaluate);
-      stop();
-    };
-  }, [pointerX, pointerY, sceneRef]);
+        return () => {
+            reducedQuery.removeEventListener("change", evaluate);
+            stop();
+        };
+    }, [pointerX, pointerY, sceneRef]);
 }
 ```
 
@@ -337,7 +342,7 @@ Expected: PASS.
 Añadir estos `it(...)` dentro del mismo `describe("useSceneParallax", ...)`, después del ya escrito:
 
 ```typescript
-  it("arranca un rAF al montar y lo cancela al desmontar", () => {
+it("arranca un rAF al montar y lo cancela al desmontar", () => {
     const raf = vi.fn().mockReturnValue(7);
     const caf = vi.fn();
     vi.stubGlobal("requestAnimationFrame", raf);
@@ -346,25 +351,24 @@ Añadir estos `it(...)` dentro del mismo `describe("useSceneParallax", ...)`, de
     const scene = document.createElement("div");
     const targets = [targetOf(document.createElement("div"), 0.5)];
     const { unmount } = renderHook(() =>
-      useSceneParallax(sceneOf(scene), targets, OPTS),
+        useSceneParallax(sceneOf(scene), targets, OPTS),
     );
     expect(raf).toHaveBeenCalled();
 
     unmount();
     expect(caf).toHaveBeenCalled();
-  });
+});
 
-  it("escribe transform con la escala de overscan incluso sin movimiento", () => {
+it("escribe transform con la escala de overscan incluso sin movimiento", () => {
     let pending: FrameRequestCallback[] = [];
     vi.stubGlobal(
-      "requestAnimationFrame",
-      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+        "requestAnimationFrame",
+        (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
     );
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
     const scene = document.createElement("div");
-    scene.getBoundingClientRect = () =>
-      ({ top: 0 }) as DOMRect;
+    scene.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
     const layer = document.createElement("div");
     const targets = [targetOf(layer, 0.5)];
     renderHook(() => useSceneParallax(sceneOf(scene), targets, OPTS));
@@ -374,13 +378,13 @@ Añadir estos `it(...)` dentro del mismo `describe("useSceneParallax", ...)`, de
     for (const cb of batch) cb(0);
 
     expect(layer.style.transform).toContain("scale(1.06");
-  });
+});
 
-  it("tras superar idleMs sin movimiento de puntero, usa la deriva en vez del ultimo target de puntero", () => {
+it("tras superar idleMs sin movimiento de puntero, usa la deriva en vez del ultimo target de puntero", () => {
     let pending: FrameRequestCallback[] = [];
     vi.stubGlobal(
-      "requestAnimationFrame",
-      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+        "requestAnimationFrame",
+        (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
     );
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
@@ -404,26 +408,27 @@ Añadir estos `it(...)` dentro del mismo `describe("useSceneParallax", ...)`, de
     for (const cb of batch) cb(100 + 2300);
 
     expect(layer.style.transform).not.toBe(earlyTransform);
-  });
+});
 
-  it("al pasar a reduced-motion en caliente, congela las capas (transform vacio)", () => {
+it("al pasar a reduced-motion en caliente, congela las capas (transform vacio)", () => {
     let changeHandler: (() => void) | undefined;
     let reduced = false;
     vi.stubGlobal(
-      "matchMedia",
-      vi.fn().mockImplementation((query: string) => ({
-        matches: query.includes("prefers-reduced-motion") ? reduced : false,
-        media: query,
-        addEventListener: (_: string, handler: () => void) => {
-          if (query.includes("prefers-reduced-motion")) changeHandler = handler;
-        },
-        removeEventListener: vi.fn(),
-      })),
+        "matchMedia",
+        vi.fn().mockImplementation((query: string) => ({
+            matches: query.includes("prefers-reduced-motion") ? reduced : false,
+            media: query,
+            addEventListener: (_: string, handler: () => void) => {
+                if (query.includes("prefers-reduced-motion"))
+                    changeHandler = handler;
+            },
+            removeEventListener: vi.fn(),
+        })),
     );
     let pending: FrameRequestCallback[] = [];
     vi.stubGlobal(
-      "requestAnimationFrame",
-      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+        "requestAnimationFrame",
+        (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
     );
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
@@ -441,7 +446,7 @@ Añadir estos `it(...)` dentro del mismo `describe("useSceneParallax", ...)`, de
     reduced = true;
     act(() => changeHandler?.());
     expect(layer.style.transform).toBe("");
-  });
+});
 ```
 
 - [ ] **Step 6: Ejecutar la suite completa y confirmar que pasa**
@@ -464,10 +469,12 @@ git commit -m "feat(hooks): useSceneParallax (puntero + scroll + deriva, freeze 
 ## Task 2: Tabla de datos de la escena (`storyCosmicHeart.layers.ts`)
 
 **Files:**
+
 - Create: `src/components/storyCosmicHeart/storyCosmicHeart.layers.ts`
 - Test: `src/components/storyCosmicHeart/storyCosmicHeart.layers.test.ts`
 
 **Interfaces:**
+
 - Produces: `STORY_COSMIC_HEART_LAYERS: readonly StoryCosmicHeartLayer[]` (con `StoryCosmicHeartLayer = { part: string; src: string; srcSmall: string; depth: number; glow?: "core" }`), `STORY_COSMIC_HEART_SIZES: string`, `STORY_COSMIC_HEART_OVERSCAN: number`, `STORY_COSMIC_HEART_VOID: string`, `STORY_COSMIC_HEART_POINTER_AMP: {x:number;y:number}`, `STORY_COSMIC_HEART_SCROLL_AMP: number`. Consumidos por `StoryCosmicHeart.tsx` (Task 4) y `storyCosmicHeart.parts.tsx` (Task 3).
 
 - [ ] **Step 1: Escribir el test que falla**
@@ -476,31 +483,33 @@ git commit -m "feat(hooks): useSceneParallax (puntero + scroll + deriva, freeze 
 // src/components/storyCosmicHeart/storyCosmicHeart.layers.test.ts
 import { describe, it, expect } from "vitest";
 import {
-  STORY_COSMIC_HEART_LAYERS,
-  STORY_COSMIC_HEART_VOID,
+    STORY_COSMIC_HEART_LAYERS,
+    STORY_COSMIC_HEART_VOID,
 } from "./storyCosmicHeart.layers";
 
 describe("storyCosmicHeart.layers", () => {
-  it("tiene las 8 capas, de fondo a frente, con el nucleo del corazon al final", () => {
-    expect(STORY_COSMIC_HEART_LAYERS).toHaveLength(8);
-    const depths = STORY_COSMIC_HEART_LAYERS.map((l) => l.depth);
-    for (let i = 1; i < depths.length; i += 1) {
-      expect(depths[i]).toBeGreaterThan(depths[i - 1]);
-    }
-    expect(STORY_COSMIC_HEART_LAYERS.at(-1)?.part).toBe("heart-core");
-    expect(STORY_COSMIC_HEART_LAYERS.at(-1)?.glow).toBe("core");
-  });
+    it("tiene las 8 capas, de fondo a frente, con el nucleo del corazon al final", () => {
+        expect(STORY_COSMIC_HEART_LAYERS).toHaveLength(8);
+        const depths = STORY_COSMIC_HEART_LAYERS.map((l) => l.depth);
+        for (let i = 1; i < depths.length; i += 1) {
+            expect(depths[i]).toBeGreaterThan(depths[i - 1]);
+        }
+        expect(STORY_COSMIC_HEART_LAYERS.at(-1)?.part).toBe("heart-core");
+        expect(STORY_COSMIC_HEART_LAYERS.at(-1)?.glow).toBe("core");
+    });
 
-  it("cada capa publica su pista nativa y su pista reducida bajo /story/cosmic-heart/", () => {
-    for (const layer of STORY_COSMIC_HEART_LAYERS) {
-      expect(layer.src).toMatch(/^\/story\/cosmic-heart\/.+\.webp$/);
-      expect(layer.srcSmall).toMatch(/^\/story\/cosmic-heart\/.+-1024\.webp$/);
-    }
-  });
+    it("cada capa publica su pista nativa y su pista reducida bajo /story/cosmic-heart/", () => {
+        for (const layer of STORY_COSMIC_HEART_LAYERS) {
+            expect(layer.src).toMatch(/^\/story\/cosmic-heart\/.+\.webp$/);
+            expect(layer.srcSmall).toMatch(
+                /^\/story\/cosmic-heart\/.+-1024\.webp$/,
+            );
+        }
+    });
 
-  it("STORY_COSMIC_HEART_VOID es el negro-violeta verbatim del paquete original", () => {
-    expect(STORY_COSMIC_HEART_VOID).toBe("#05030f");
-  });
+    it("STORY_COSMIC_HEART_VOID es el negro-violeta verbatim del paquete original", () => {
+        expect(STORY_COSMIC_HEART_VOID).toBe("#05030f");
+    });
 });
 ```
 
@@ -529,68 +538,68 @@ Expected: FAIL — módulo no existe.
  */
 
 export interface StoryCosmicHeartLayer {
-  /** Identifica la capa en el DOM (`data-part`) y como `key` de React. */
-  readonly part: string;
-  /** Ruta publica del WebP a ancho nativo (1672px). */
-  readonly src: string;
-  /** Variante de 1024px para viewports estrechos. */
-  readonly srcSmall: string;
-  /** Profundidad de parallax, 0 = plano de fondo, 1 = plano mas cercano. */
-  readonly depth: number;
-  /** Pulso lento de opacidad. `undefined` = capa quieta salvo el parallax. */
-  readonly glow?: "core";
+    /** Identifica la capa en el DOM (`data-part`) y como `key` de React. */
+    readonly part: string;
+    /** Ruta publica del WebP a ancho nativo (1672px). */
+    readonly src: string;
+    /** Variante de 1024px para viewports estrechos. */
+    readonly srcSmall: string;
+    /** Profundidad de parallax, 0 = plano de fondo, 1 = plano mas cercano. */
+    readonly depth: number;
+    /** Pulso lento de opacidad. `undefined` = capa quieta salvo el parallax. */
+    readonly glow?: "core";
 }
 
 export const STORY_COSMIC_HEART_LAYERS: readonly StoryCosmicHeartLayer[] = [
-  {
-    part: "deep-space",
-    src: "/story/cosmic-heart/01-deep-space.webp",
-    srcSmall: "/story/cosmic-heart/01-deep-space-1024.webp",
-    depth: 0.03,
-  },
-  {
-    part: "nebula-back",
-    src: "/story/cosmic-heart/02-nebula-back.webp",
-    srcSmall: "/story/cosmic-heart/02-nebula-back-1024.webp",
-    depth: 0.09,
-  },
-  {
-    part: "sparkles-far",
-    src: "/story/cosmic-heart/03-sparkles-far.webp",
-    srcSmall: "/story/cosmic-heart/03-sparkles-far-1024.webp",
-    depth: 0.13,
-  },
-  {
-    part: "geometry",
-    src: "/story/cosmic-heart/04-geometry.webp",
-    srcSmall: "/story/cosmic-heart/04-geometry-1024.webp",
-    depth: 0.19,
-  },
-  {
-    part: "nebula-front",
-    src: "/story/cosmic-heart/05-nebula-front.webp",
-    srcSmall: "/story/cosmic-heart/05-nebula-front-1024.webp",
-    depth: 0.26,
-  },
-  {
-    part: "sparkles-near",
-    src: "/story/cosmic-heart/06-sparkles-near.webp",
-    srcSmall: "/story/cosmic-heart/06-sparkles-near-1024.webp",
-    depth: 0.34,
-  },
-  {
-    part: "figure",
-    src: "/story/cosmic-heart/07-figure.webp",
-    srcSmall: "/story/cosmic-heart/07-figure-1024.webp",
-    depth: 0.46,
-  },
-  {
-    part: "heart-core",
-    src: "/story/cosmic-heart/08-heart-core.webp",
-    srcSmall: "/story/cosmic-heart/08-heart-core-1024.webp",
-    depth: 0.5,
-    glow: "core",
-  },
+    {
+        part: "deep-space",
+        src: "/story/cosmic-heart/01-deep-space.webp",
+        srcSmall: "/story/cosmic-heart/01-deep-space-1024.webp",
+        depth: 0.03,
+    },
+    {
+        part: "nebula-back",
+        src: "/story/cosmic-heart/02-nebula-back.webp",
+        srcSmall: "/story/cosmic-heart/02-nebula-back-1024.webp",
+        depth: 0.09,
+    },
+    {
+        part: "sparkles-far",
+        src: "/story/cosmic-heart/03-sparkles-far.webp",
+        srcSmall: "/story/cosmic-heart/03-sparkles-far-1024.webp",
+        depth: 0.13,
+    },
+    {
+        part: "geometry",
+        src: "/story/cosmic-heart/04-geometry.webp",
+        srcSmall: "/story/cosmic-heart/04-geometry-1024.webp",
+        depth: 0.19,
+    },
+    {
+        part: "nebula-front",
+        src: "/story/cosmic-heart/05-nebula-front.webp",
+        srcSmall: "/story/cosmic-heart/05-nebula-front-1024.webp",
+        depth: 0.26,
+    },
+    {
+        part: "sparkles-near",
+        src: "/story/cosmic-heart/06-sparkles-near.webp",
+        srcSmall: "/story/cosmic-heart/06-sparkles-near-1024.webp",
+        depth: 0.34,
+    },
+    {
+        part: "figure",
+        src: "/story/cosmic-heart/07-figure.webp",
+        srcSmall: "/story/cosmic-heart/07-figure-1024.webp",
+        depth: 0.46,
+    },
+    {
+        part: "heart-core",
+        src: "/story/cosmic-heart/08-heart-core.webp",
+        srcSmall: "/story/cosmic-heart/08-heart-core-1024.webp",
+        depth: 0.5,
+        glow: "core",
+    },
 ] as const;
 
 /**
@@ -643,9 +652,11 @@ git commit -m "feat(story): tabla de capas de la escena Cosmic Heart"
 ## Task 3: Piezas styled de la escena (`storyCosmicHeart.parts.tsx`)
 
 **Files:**
+
 - Create: `src/components/storyCosmicHeart/storyCosmicHeart.parts.tsx`
 
 **Interfaces:**
+
 - Consumes: `STORY_COSMIC_HEART_OVERSCAN`, `STORY_COSMIC_HEART_VOID` de `./storyCosmicHeart.layers` (Task 2).
 - Produces: `ScScene`, `ScVoid`, `ScLayer` (`styled.img<{ $glow?: "core" }>`), `ScVignette`. Consumidos por `StoryCosmicHeart.tsx` (Task 4).
 
@@ -658,8 +669,8 @@ Sin test dedicado — se verifica a través de `StoryCosmicHeart.test.tsx` (Task
 "use client";
 import styled, { css, keyframes } from "styled-components";
 import {
-  STORY_COSMIC_HEART_OVERSCAN,
-  STORY_COSMIC_HEART_VOID,
+    STORY_COSMIC_HEART_OVERSCAN,
+    STORY_COSMIC_HEART_VOID,
 } from "./storyCosmicHeart.layers";
 
 /*
@@ -669,10 +680,10 @@ import {
  * `ScFrame` en eye.parts.tsx).
  */
 export const ScScene = styled.div`
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  isolation: isolate;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    isolation: isolate;
 `;
 
 /*
@@ -682,9 +693,9 @@ export const ScScene = styled.div`
  * storyCosmicHeart.layers.ts).
  */
 export const ScVoid = styled.div`
-  position: absolute;
-  inset: 0;
-  background-color: ${STORY_COSMIC_HEART_VOID};
+    position: absolute;
+    inset: 0;
+    background-color: ${STORY_COSMIC_HEART_VOID};
 `;
 
 const heartBeat = keyframes`
@@ -702,31 +713,31 @@ const heartBeat = keyframes`
  * CSS sobre la misma propiedad se pisaria con el.
  */
 export const ScLayer = styled.img<{ $glow?: "core" }>`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-  user-select: none;
-  transform: scale(${STORY_COSMIC_HEART_OVERSCAN});
-  will-change: transform;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+    transform: scale(${STORY_COSMIC_HEART_OVERSCAN});
+    will-change: transform;
 
-  /* screen es el fallback practicamente indistinguible sobre negro;
+    /* screen es el fallback practicamente indistinguible sobre negro;
      plus-lighter es la suma exacta con la que se extrajeron las mascaras
      (mismo criterio que ScLayer en eye.parts.tsx). */
-  mix-blend-mode: screen;
-  @supports (mix-blend-mode: plus-lighter) {
-    mix-blend-mode: plus-lighter;
-  }
+    mix-blend-mode: screen;
+    @supports (mix-blend-mode: plus-lighter) {
+        mix-blend-mode: plus-lighter;
+    }
 
-  ${({ $glow }) =>
-    $glow === "core" &&
-    css`
-      @media (prefers-reduced-motion: no-preference) {
-        animation: ${heartBeat} 6.5s ease-in-out infinite;
-      }
-    `}
+    ${({ $glow }) =>
+        $glow === "core" &&
+        css`
+            @media (prefers-reduced-motion: no-preference) {
+                animation: ${heartBeat} 6.5s ease-in-out infinite;
+            }
+        `}
 `;
 
 /*
@@ -738,20 +749,20 @@ export const ScLayer = styled.img<{ $glow?: "core" }>`
  * color, mismo criterio que el sellado Hero->Story de EYE_SURFACE).
  */
 export const ScVignette = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(
-      to right,
-      ${STORY_COSMIC_HEART_VOID}f2 0%,
-      ${STORY_COSMIC_HEART_VOID}00 60%
-    ),
-    linear-gradient(
-      to top,
-      ${STORY_COSMIC_HEART_VOID}f2 0%,
-      ${STORY_COSMIC_HEART_VOID}00 45%
-    );
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(
+            to right,
+            ${STORY_COSMIC_HEART_VOID}f2 0%,
+            ${STORY_COSMIC_HEART_VOID}00 60%
+        ),
+        linear-gradient(
+            to top,
+            ${STORY_COSMIC_HEART_VOID}f2 0%,
+            ${STORY_COSMIC_HEART_VOID}00 45%
+        );
 `;
 ```
 
@@ -775,10 +786,12 @@ git commit -m "feat(story): piezas styled de la escena Cosmic Heart"
 ## Task 4: Componente `StoryCosmicHeart`
 
 **Files:**
+
 - Create: `src/components/storyCosmicHeart/StoryCosmicHeart.tsx`
 - Test: `src/components/storyCosmicHeart/StoryCosmicHeart.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `useSceneParallax` (Task 1), `STORY_COSMIC_HEART_LAYERS`/`STORY_COSMIC_HEART_POINTER_AMP`/`STORY_COSMIC_HEART_SCROLL_AMP`/`STORY_COSMIC_HEART_OVERSCAN`/`STORY_COSMIC_HEART_SIZES` (Task 2), `ScScene`/`ScVoid`/`ScLayer`/`ScVignette` (Task 3).
 - Produces: `export function StoryCosmicHeart(): ReactElement`. Consumido por `Story.tsx` (Task 6).
 
@@ -792,47 +805,47 @@ import { StoryCosmicHeart } from "./StoryCosmicHeart";
 import { STORY_COSMIC_HEART_LAYERS } from "./storyCosmicHeart.layers";
 
 function stubMatchMedia(): void {
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })),
-  );
+    vi.stubGlobal(
+        "matchMedia",
+        vi.fn().mockImplementation((query: string) => ({
+            matches: false,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        })),
+    );
 }
 
 beforeEach(stubMatchMedia);
 afterEach(() => vi.unstubAllGlobals());
 
 describe("StoryCosmicHeart", () => {
-  it("renderiza las 8 capas como imagenes decorativas dentro de un contenedor aria-hidden", () => {
-    const { container } = render(<StoryCosmicHeart />);
-    const root = container.firstElementChild as HTMLElement;
-    expect(root).toHaveAttribute("aria-hidden", "true");
+    it("renderiza las 8 capas como imagenes decorativas dentro de un contenedor aria-hidden", () => {
+        const { container } = render(<StoryCosmicHeart />);
+        const root = container.firstElementChild as HTMLElement;
+        expect(root).toHaveAttribute("aria-hidden", "true");
 
-    const imgs = container.querySelectorAll("img");
-    expect(imgs).toHaveLength(STORY_COSMIC_HEART_LAYERS.length);
-    imgs.forEach((img, i) => {
-      const layer = STORY_COSMIC_HEART_LAYERS[i];
-      expect(img).toHaveAttribute("alt", "");
-      expect(img).toHaveAttribute("loading", "lazy");
-      expect(img).toHaveAttribute("decoding", "async");
-      expect(img).toHaveAttribute("src", layer.src);
-      expect(img.getAttribute("srcset")).toBe(
-        `${layer.srcSmall} 1024w, ${layer.src} 1672w`,
-      );
-      expect(img).toHaveAttribute("data-part", layer.part);
+        const imgs = container.querySelectorAll("img");
+        expect(imgs).toHaveLength(STORY_COSMIC_HEART_LAYERS.length);
+        imgs.forEach((img, i) => {
+            const layer = STORY_COSMIC_HEART_LAYERS[i];
+            expect(img).toHaveAttribute("alt", "");
+            expect(img).toHaveAttribute("loading", "lazy");
+            expect(img).toHaveAttribute("decoding", "async");
+            expect(img).toHaveAttribute("src", layer.src);
+            expect(img.getAttribute("srcset")).toBe(
+                `${layer.srcSmall} 1024w, ${layer.src} 1672w`,
+            );
+            expect(img).toHaveAttribute("data-part", layer.part);
+        });
     });
-  });
 
-  it("ninguna imagen tiene nombre accesible (son decorativas, alt vacio)", () => {
-    const { container } = render(<StoryCosmicHeart />);
-    container
-      .querySelectorAll("img")
-      .forEach((img) => expect(img).not.toHaveAccessibleName());
-  });
+    it("ninguna imagen tiene nombre accesible (son decorativas, alt vacio)", () => {
+        const { container } = render(<StoryCosmicHeart />);
+        container
+            .querySelectorAll("img")
+            .forEach((img) => expect(img).not.toHaveAccessibleName());
+    });
 });
 ```
 
@@ -851,15 +864,15 @@ Expected: FAIL — módulo no existe.
 "use client";
 import { useMemo, useRef, type ReactElement, type RefObject } from "react";
 import {
-  useSceneParallax,
-  type SceneParallaxTarget,
+    useSceneParallax,
+    type SceneParallaxTarget,
 } from "@/hooks/useSceneParallax";
 import {
-  STORY_COSMIC_HEART_LAYERS,
-  STORY_COSMIC_HEART_OVERSCAN,
-  STORY_COSMIC_HEART_POINTER_AMP,
-  STORY_COSMIC_HEART_SCROLL_AMP,
-  STORY_COSMIC_HEART_SIZES,
+    STORY_COSMIC_HEART_LAYERS,
+    STORY_COSMIC_HEART_OVERSCAN,
+    STORY_COSMIC_HEART_POINTER_AMP,
+    STORY_COSMIC_HEART_SCROLL_AMP,
+    STORY_COSMIC_HEART_SIZES,
 } from "./storyCosmicHeart.layers";
 import { ScLayer, ScScene, ScVignette, ScVoid } from "./storyCosmicHeart.parts";
 
@@ -872,49 +885,49 @@ import { ScLayer, ScScene, ScVignette, ScVoid } from "./storyCosmicHeart.parts";
  * encima de esta escena -- mismo criterio que `Eye` en el hero.
  */
 export function StoryCosmicHeart(): ReactElement {
-  const sceneRef = useRef<HTMLDivElement>(null);
+    const sceneRef = useRef<HTMLDivElement>(null);
 
-  // Un ref por capa, no un callback-ref con array compartido: mismo patron
-  // que `Eye.tsx` (useMemo con deps `[]` da identidad estable sin leer
-  // `.current` durante el render, lo que violaria `react-hooks/refs`).
-  const layerRefs = useMemo<Array<RefObject<HTMLImageElement | null>>>(
-    () => STORY_COSMIC_HEART_LAYERS.map(() => ({ current: null })),
-    [],
-  );
+    // Un ref por capa, no un callback-ref con array compartido: mismo patron
+    // que `Eye.tsx` (useMemo con deps `[]` da identidad estable sin leer
+    // `.current` durante el render, lo que violaria `react-hooks/refs`).
+    const layerRefs = useMemo<Array<RefObject<HTMLImageElement | null>>>(
+        () => STORY_COSMIC_HEART_LAYERS.map(() => ({ current: null })),
+        [],
+    );
 
-  const targets: SceneParallaxTarget[] = STORY_COSMIC_HEART_LAYERS.map(
-    (layer, index) => ({ ref: layerRefs[index], depth: layer.depth }),
-  );
+    const targets: SceneParallaxTarget[] = STORY_COSMIC_HEART_LAYERS.map(
+        (layer, index) => ({ ref: layerRefs[index], depth: layer.depth }),
+    );
 
-  useSceneParallax(sceneRef, targets, {
-    pointerAmp: STORY_COSMIC_HEART_POINTER_AMP,
-    scrollAmp: STORY_COSMIC_HEART_SCROLL_AMP,
-    overscan: STORY_COSMIC_HEART_OVERSCAN,
-  });
+    useSceneParallax(sceneRef, targets, {
+        pointerAmp: STORY_COSMIC_HEART_POINTER_AMP,
+        scrollAmp: STORY_COSMIC_HEART_SCROLL_AMP,
+        overscan: STORY_COSMIC_HEART_OVERSCAN,
+    });
 
-  return (
-    <ScScene
-      ref={sceneRef}
-      aria-hidden="true"
-    >
-      <ScVoid />
-      {STORY_COSMIC_HEART_LAYERS.map((layer, index) => (
-        <ScLayer
-          key={layer.part}
-          ref={layerRefs[index]}
-          data-part={layer.part}
-          src={layer.src}
-          srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1672w`}
-          sizes={STORY_COSMIC_HEART_SIZES}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          $glow={layer.glow}
-        />
-      ))}
-      <ScVignette />
-    </ScScene>
-  );
+    return (
+        <ScScene
+            ref={sceneRef}
+            aria-hidden="true"
+        >
+            <ScVoid />
+            {STORY_COSMIC_HEART_LAYERS.map((layer, index) => (
+                <ScLayer
+                    key={layer.part}
+                    ref={layerRefs[index]}
+                    data-part={layer.part}
+                    src={layer.src}
+                    srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1672w`}
+                    sizes={STORY_COSMIC_HEART_SIZES}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    $glow={layer.glow}
+                />
+            ))}
+            <ScVignette />
+        </ScScene>
+    );
 }
 ```
 
@@ -938,9 +951,11 @@ git commit -m "feat(story): componente StoryCosmicHeart (escena de fondo, tema o
 ## Task 5: Degradado del titular por tema en `story.layers.ts`
 
 **Files:**
+
 - Modify: `src/components/sections/Story/story.layers.ts`
 
 **Interfaces:**
+
 - Produces: `STORY_ACCENT_GRADIENT_LIGHT` (antes `STORY_ACCENT_GRADIENT`, mismo valor) y `STORY_ACCENT_GRADIENT_DARK` (nuevo). Consumidos por `Story.tsx` (Task 6).
 
 No hay test dedicado para este archivo hoy (`story.layers.ts` no tiene `.test.ts` propio); el cambio se verifica indirectamente por los tests de `Story.tsx` (Task 6), que sí referencian el degradado a través del DOM.
@@ -958,7 +973,7 @@ En `src/components/sections/Story/story.layers.ts`, sustituir el bloque:
  * a este span, solo al `ToInfinite` del hero — así que se declara estático.
  */
 export const STORY_ACCENT_GRADIENT =
-  "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
+    "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
 ```
 
 por:
@@ -974,7 +989,7 @@ por:
  * variante oscura de abajo — incluida en la rama clara de `Story.tsx`.
  */
 export const STORY_ACCENT_GRADIENT_LIGHT =
-  "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
+    "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
 
 /**
  * Variante oscura del degradado de texto (spec 2026-07-29 D10): MISMA familia
@@ -988,7 +1003,7 @@ export const STORY_ACCENT_GRADIENT_LIGHT =
  * degradados de texto).
  */
 export const STORY_ACCENT_GRADIENT_DARK =
-  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
+    "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
 ```
 
 - [ ] **Step 2: Verificar que no queda ninguna referencia al nombre viejo**
@@ -1011,10 +1026,12 @@ git commit -m "refactor(story): separa el degradado del titular en variante clar
 ## Task 6: `Story.tsx` consciente del tema
 
 **Files:**
+
 - Modify: `src/components/sections/Story/Story.tsx`
 - Modify: `src/components/sections/Story/Story.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `useTheme` de `@/theme/ThemeProvider` (`{ themeName: "light" | "dark" }`), `StoryCosmicHeart` (Task 4), `STORY_ACCENT_GRADIENT_LIGHT`/`STORY_ACCENT_GRADIENT_DARK` (Task 5).
 - Produces: `Story.tsx` sigue exportando `export function Story(): ReactElement` sin cambiar su firma — el cambio es interno.
 
@@ -1109,20 +1126,20 @@ import { useReveal } from "@/hooks/useReveal";
 import { useTheme } from "@/theme/ThemeProvider";
 import { StoryCosmicHeart } from "@/components/storyCosmicHeart/StoryCosmicHeart";
 import {
-  STORY_ACCENT_GRADIENT_DARK,
-  STORY_ACCENT_GRADIENT_LIGHT,
-  STORY_CARD_BG,
-  STORY_CARD_BORDER,
-  STORY_CARD_FLOAT_MS,
-  STORY_CARD_SHADOW,
-  STORY_FIGURE_ASPECT,
-  STORY_FIGURE_FLOAT_MS,
-  STORY_FIGURE_HEIGHT,
-  STORY_FIGURE_SIZES,
-  STORY_FIGURE_WIDTH,
-  STORY_FLOAT_AMPLITUDE,
-  STORY_HALO_GRADIENT,
-  STORY_HALO_INSET,
+    STORY_ACCENT_GRADIENT_DARK,
+    STORY_ACCENT_GRADIENT_LIGHT,
+    STORY_CARD_BG,
+    STORY_CARD_BORDER,
+    STORY_CARD_FLOAT_MS,
+    STORY_CARD_SHADOW,
+    STORY_FIGURE_ASPECT,
+    STORY_FIGURE_FLOAT_MS,
+    STORY_FIGURE_HEIGHT,
+    STORY_FIGURE_SIZES,
+    STORY_FIGURE_WIDTH,
+    STORY_FLOAT_AMPLITUDE,
+    STORY_HALO_GRADIENT,
+    STORY_HALO_INSET,
 } from "./story.layers";
 
 /*
@@ -1153,10 +1170,10 @@ const float = keyframes`
 `;
 
 const PILLARS = [
-  { key: "learn", number: "01" },
-  { key: "create", number: "02" },
-  { key: "grow", number: "03" },
-  { key: "practice", number: "04" },
+    { key: "learn", number: "01" },
+    { key: "create", number: "02" },
+    { key: "grow", number: "03" },
+    { key: "practice", number: "04" },
 ] as const;
 
 /** Color de cada numero de pilar: los tres primeros son pasos reales de
@@ -1167,180 +1184,180 @@ const PILLARS = [
  *  temas (vive en `shared` de `themes.ts`), asi que estos colores sirven
  *  tal cual en las dos ramas. */
 function pillarColor(
-  index: number,
+    index: number,
 ): (props: { theme: DefaultTheme }) => string {
-  return ({ theme }) => {
-    if (index === 0) return theme.data.palette.primary[500];
-    if (index === 1) return theme.data.palette.secondary[500];
-    if (index === 2) return theme.data.palette.secondary[600];
-    return theme.data.palette.secondary[700];
-  };
+    return ({ theme }) => {
+        if (index === 0) return theme.data.palette.primary[500];
+        if (index === 1) return theme.data.palette.secondary[500];
+        if (index === 2) return theme.data.palette.secondary[600];
+        return theme.data.palette.secondary[700];
+    };
 }
 
 const ScStory = styled.section`
-  padding: ${({ theme }) => theme.data.space[9]}
-    ${({ theme }) => theme.data.space[5]};
-  max-width: ${({ theme }) => theme.data.grid.containerMax};
-  margin-inline: auto;
+    padding: ${({ theme }) => theme.data.space[9]}
+        ${({ theme }) => theme.data.space[5]};
+    max-width: ${({ theme }) => theme.data.grid.containerMax};
+    margin-inline: auto;
 `;
 
 /* Reveal de sección en CLARO (mismo patrón que `ScItem` en Features.tsx). */
 const ScGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: center;
-  gap: ${({ theme }) => theme.data.space[7]};
-  opacity: 0;
-  transform: translateY(16px);
-  transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: center;
+    gap: ${({ theme }) => theme.data.space[7]};
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+        opacity ${({ theme }) => theme.data.motion.duration.slow}
+            ${({ theme }) => theme.data.motion.easing.decelerate},
+        transform ${({ theme }) => theme.data.motion.duration.slow}
+            ${({ theme }) => theme.data.motion.easing.decelerate};
 
-  &[data-revealed="true"] {
-    opacity: 1;
-    transform: none;
-  }
+    &[data-revealed="true"] {
+        opacity: 1;
+        transform: none;
+    }
 
-  @media ${({ theme }) => theme.data.breakPoint.lg} {
-    grid-template-columns: minmax(280px, ${STORY_FIGURE_WIDTH}) 1fr;
-    gap: ${({ theme }) => theme.data.space[8]};
-  }
+    @media ${({ theme }) => theme.data.breakPoint.lg} {
+        grid-template-columns: minmax(280px, ${STORY_FIGURE_WIDTH}) 1fr;
+        gap: ${({ theme }) => theme.data.space[8]};
+    }
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    opacity: 1;
-    transform: none;
-  }
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+        opacity: 1;
+        transform: none;
+    }
 `;
 
 const ScFigureWrap = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: min(${STORY_FIGURE_HEIGHT}, 70vh);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: min(${STORY_FIGURE_HEIGHT}, 70vh);
 `;
 
 const ScHalo = styled.div`
-  position: absolute;
-  inset: ${STORY_HALO_INSET};
-  border-radius: ${({ theme }) => theme.data.radius.full};
-  background-image: ${STORY_HALO_GRADIENT};
-  pointer-events: none;
+    position: absolute;
+    inset: ${STORY_HALO_INSET};
+    border-radius: ${({ theme }) => theme.data.radius.full};
+    background-image: ${STORY_HALO_GRADIENT};
+    pointer-events: none;
 `;
 
 const ScFigureImg = styled.img`
-  position: relative;
-  display: block;
-  width: min(${STORY_FIGURE_WIDTH}, 100%);
-  height: auto;
-  aspect-ratio: ${STORY_FIGURE_ASPECT};
-  object-fit: contain;
-  border-radius: ${({ theme }) => theme.data.radius["2xl"]};
+    position: relative;
+    display: block;
+    width: min(${STORY_FIGURE_WIDTH}, 100%);
+    height: auto;
+    aspect-ratio: ${STORY_FIGURE_ASPECT};
+    object-fit: contain;
+    border-radius: ${({ theme }) => theme.data.radius["2xl"]};
 
-  @media (prefers-reduced-motion: no-preference) {
-    animation: ${float} ${STORY_FIGURE_FLOAT_MS}ms ease-in-out infinite;
-  }
+    @media (prefers-reduced-motion: no-preference) {
+        animation: ${float} ${STORY_FIGURE_FLOAT_MS}ms ease-in-out infinite;
+    }
 `;
 
 const ScNoteCard = styled.div`
-  position: absolute;
-  inset-block-end: 90%;
-  inset-inline-start: -25%;
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.data.space[3]};
-  max-width: 220px;
-  background-color: ${STORY_CARD_BG};
-  border: 1px solid ${STORY_CARD_BORDER};
-  border-radius: ${({ theme }) => theme.data.radius.lg};
-  padding: ${({ theme }) => theme.data.space[3]}
-    ${({ theme }) => theme.data.space[4]};
-  box-shadow: 0 12px 30px ${STORY_CARD_SHADOW};
+    position: absolute;
+    inset-block-end: 90%;
+    inset-inline-start: -25%;
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.data.space[3]};
+    max-width: 220px;
+    background-color: ${STORY_CARD_BG};
+    border: 1px solid ${STORY_CARD_BORDER};
+    border-radius: ${({ theme }) => theme.data.radius.lg};
+    padding: ${({ theme }) => theme.data.space[3]}
+        ${({ theme }) => theme.data.space[4]};
+    box-shadow: 0 12px 30px ${STORY_CARD_SHADOW};
 
-  @media ${({ theme }) => theme.data.breakPoint.lg} {
-    inset-inline-end: -6%;
-  }
+    @media ${({ theme }) => theme.data.breakPoint.lg} {
+        inset-inline-end: -6%;
+    }
 
-  @media (prefers-reduced-motion: no-preference) {
-    animation: ${float} ${STORY_CARD_FLOAT_MS}ms ease-in-out infinite;
-  }
+    @media (prefers-reduced-motion: no-preference) {
+        animation: ${float} ${STORY_CARD_FLOAT_MS}ms ease-in-out infinite;
+    }
 `;
 
 const ScSparkle = styled.svg`
-  flex: none;
-  width: 20px;
-  height: 20px;
-  color: ${({ theme }) => theme.data.palette.primary[600]};
+    flex: none;
+    width: 20px;
+    height: 20px;
+    color: ${({ theme }) => theme.data.palette.primary[600]};
 `;
 
 const ScContent = styled.div`
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 `;
 
 const ScKicker = styled(Typography)`
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.data.semantic.brandText};
+    text-transform: uppercase;
+    color: ${({ theme }) => theme.data.semantic.brandText};
 `;
 
 const ScTitle = styled(Typography)`
-  margin-block-start: ${({ theme }) => theme.data.space[3]};
+    margin-block-start: ${({ theme }) => theme.data.space[3]};
 `;
 
 /* Degradado seleccionado por tema (spec 2026-07-29 D10): mismas paradas de
    hue, luminosidad mucho mayor en oscuro para que el background-clip:text
    siga siendo legible sobre el negro-violeta de StoryCosmicHeart. */
 const ScAccent = styled.span`
-  background-image: ${({ theme }) =>
-    theme.data.isLight
-      ? STORY_ACCENT_GRADIENT_LIGHT
-      : STORY_ACCENT_GRADIENT_DARK};
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+    background-image: ${({ theme }) =>
+        theme.data.isLight
+            ? STORY_ACCENT_GRADIENT_LIGHT
+            : STORY_ACCENT_GRADIENT_DARK};
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
 
-  @supports not (background-clip: text) {
-    background-image: none;
-    color: ${({ theme }) => theme.data.semantic.brandText};
-    -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
-  }
+    @supports not (background-clip: text) {
+        background-image: none;
+        color: ${({ theme }) => theme.data.semantic.brandText};
+        -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
+    }
 `;
 
 const ScBody = styled(Typography)`
-  margin-block-start: ${({ theme }) => theme.data.space[5]};
-  max-width: ${({ theme }) => theme.data.grid.prose};
+    margin-block-start: ${({ theme }) => theme.data.space[5]};
+    max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
 const ScPillars = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-block-start: ${({ theme }) => theme.data.space[6]};
+    display: flex;
+    flex-direction: column;
+    margin-block-start: ${({ theme }) => theme.data.space[6]};
 `;
 
 const ScPillarRow = styled.div`
-  display: grid;
-  grid-template-columns: 2.5rem 1fr;
-  gap: ${({ theme }) => theme.data.space[4]};
-  align-items: baseline;
-  padding-block: ${({ theme }) => theme.data.space[4]};
-  border-block-start: 1px solid ${({ theme }) => theme.data.semantic.border};
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: ${({ theme }) => theme.data.space[4]};
+    align-items: baseline;
+    padding-block: ${({ theme }) => theme.data.space[4]};
+    border-block-start: 1px solid ${({ theme }) => theme.data.semantic.border};
 `;
 
 const ScPillarNumber = styled.span<{ $index: number }>`
-  font-family: ${({ theme }) => theme.data.type.fontBody};
-  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
-  font-weight: 700;
-  color: ${({ $index }) => pillarColor($index)};
+    font-family: ${({ theme }) => theme.data.type.fontBody};
+    font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+    font-weight: 700;
+    color: ${({ $index }) => pillarColor($index)};
 `;
 
 const ScPillarCopy = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.data.space[1]};
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.data.space[1]};
 `;
 
 /* Envoltorio de la rama OSCURA: caja con altura propia (la escena de fondo
@@ -1348,160 +1365,162 @@ const ScPillarCopy = styled.div`
    `overflow:hidden` para que el overscan del parallax no desborde el layout
    de la pagina. */
 const ScDarkSection = styled.div`
-  position: relative;
-  overflow: hidden;
-  border-radius: ${({ theme }) => theme.data.radius["2xl"]};
-  min-height: 520px;
+    position: relative;
+    overflow: hidden;
+    border-radius: ${({ theme }) => theme.data.radius["2xl"]};
+    min-height: 520px;
 
-  @media ${({ theme }) => theme.data.breakPoint.lg} {
-    min-height: 620px;
-  }
+    @media ${({ theme }) => theme.data.breakPoint.lg} {
+        min-height: 620px;
+    }
 `;
 
 /* Reveal de la rama oscura: mismo mecanismo que ScGrid, pero SOLO sobre el
    contenido -- la escena de fondo (StoryCosmicHeart) no usa useReveal, esta
    siempre presente y en movimiento propio. */
 const ScDarkContent = styled.div`
-  position: relative;
-  z-index: 1;
-  max-width: ${({ theme }) => theme.data.grid.prose};
-  padding: ${({ theme }) => theme.data.space[7]}
-    ${({ theme }) => theme.data.space[6]};
-  opacity: 0;
-  transform: translateY(16px);
-  transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+    position: relative;
+    z-index: 1;
+    max-width: ${({ theme }) => theme.data.grid.prose};
+    padding: ${({ theme }) => theme.data.space[7]}
+        ${({ theme }) => theme.data.space[6]};
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+        opacity ${({ theme }) => theme.data.motion.duration.slow}
+            ${({ theme }) => theme.data.motion.easing.decelerate},
+        transform ${({ theme }) => theme.data.motion.duration.slow}
+            ${({ theme }) => theme.data.motion.easing.decelerate};
 
-  &[data-revealed="true"] {
-    opacity: 1;
-    transform: none;
-  }
+    &[data-revealed="true"] {
+        opacity: 1;
+        transform: none;
+    }
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    opacity: 1;
-    transform: none;
-  }
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+        opacity: 1;
+        transform: none;
+    }
 `;
 
 const ScNote = styled(Typography)`
-  margin-block-start: ${({ theme }) => theme.data.space[6]};
-  color: ${({ theme }) => theme.data.semantic.textMuted};
+    margin-block-start: ${({ theme }) => theme.data.space[6]};
+    color: ${({ theme }) => theme.data.semantic.textMuted};
 `;
 
 export function Story(): ReactElement {
-  const { t } = useTranslation("home");
-  const { themeName } = useTheme();
-  const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+    const { t } = useTranslation("home");
+    const { themeName } = useTheme();
+    const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
 
-  const pillars = (
-    <ScPillars>
-      {PILLARS.map((pillar, index) => (
-        <ScPillarRow key={pillar.key}>
-          <ScPillarNumber $index={index}>{pillar.number} —</ScPillarNumber>
-          <ScPillarCopy>
-            <Typography
-              variant="h5"
-              as="p"
-            >
-              {t(`Home.story.pillars.${pillar.key}.title`)}
-            </Typography>
-            <Typography variant="bodySm">
-              {t(`Home.story.pillars.${pillar.key}.body`)}
-            </Typography>
-          </ScPillarCopy>
-        </ScPillarRow>
-      ))}
-    </ScPillars>
-  );
-
-  const heading = (
-    <>
-      <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
-      <ScTitle
-        variant="h2"
-        id="story-title"
-      >
-        {t("Home.story.titleLead")}
-        <br />
-        <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
-      </ScTitle>
-      <ScBody variant="body">{t("Home.story.body")}</ScBody>
-    </>
-  );
-
-  if (themeName === "light") {
-    return (
-      <ScStory
-        id="story"
-        aria-labelledby="story-title"
-      >
-        <ScGrid
-          ref={revealRef}
-          data-revealed={revealed}
-        >
-          <ScFigureWrap>
-            <ScHalo aria-hidden="true" />
-            <ScFigureImg
-              src="/figures/journey-presenting-1024.webp"
-              srcSet="/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w"
-              sizes={STORY_FIGURE_SIZES}
-              alt={t("Home.story.figureAlt")}
-              loading="lazy"
-              decoding="async"
-            />
-            <ScNoteCard>
-              <ScSparkle
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
-                <path d="M19 15l.7 1.8L21.5 17.5l-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
-              </ScSparkle>
-              <Typography variant="bodySm">
-                {t("Home.story.note")}
-              </Typography>
-            </ScNoteCard>
-          </ScFigureWrap>
-
-          <ScContent>
-            {heading}
-            {pillars}
-          </ScContent>
-        </ScGrid>
-      </ScStory>
+    const pillars = (
+        <ScPillars>
+            {PILLARS.map((pillar, index) => (
+                <ScPillarRow key={pillar.key}>
+                    <ScPillarNumber $index={index}>
+                        {pillar.number} —
+                    </ScPillarNumber>
+                    <ScPillarCopy>
+                        <Typography
+                            variant="h5"
+                            as="p"
+                        >
+                            {t(`Home.story.pillars.${pillar.key}.title`)}
+                        </Typography>
+                        <Typography variant="bodySm">
+                            {t(`Home.story.pillars.${pillar.key}.body`)}
+                        </Typography>
+                    </ScPillarCopy>
+                </ScPillarRow>
+            ))}
+        </ScPillars>
     );
-  }
 
-  return (
-    <ScStory
-      id="story"
-      aria-labelledby="story-title"
-    >
-      <ScDarkSection>
-        <StoryCosmicHeart />
-        <ScDarkContent
-          ref={revealRef}
-          data-revealed={revealed}
+    const heading = (
+        <>
+            <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
+            <ScTitle
+                variant="h2"
+                id="story-title"
+            >
+                {t("Home.story.titleLead")}
+                <br />
+                <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
+            </ScTitle>
+            <ScBody variant="body">{t("Home.story.body")}</ScBody>
+        </>
+    );
+
+    if (themeName === "light") {
+        return (
+            <ScStory
+                id="story"
+                aria-labelledby="story-title"
+            >
+                <ScGrid
+                    ref={revealRef}
+                    data-revealed={revealed}
+                >
+                    <ScFigureWrap>
+                        <ScHalo aria-hidden="true" />
+                        <ScFigureImg
+                            src="/figures/journey-presenting-1024.webp"
+                            srcSet="/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w"
+                            sizes={STORY_FIGURE_SIZES}
+                            alt={t("Home.story.figureAlt")}
+                            loading="lazy"
+                            decoding="async"
+                        />
+                        <ScNoteCard>
+                            <ScSparkle
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                                focusable="false"
+                            >
+                                <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+                                <path d="M19 15l.7 1.8L21.5 17.5l-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
+                            </ScSparkle>
+                            <Typography variant="bodySm">
+                                {t("Home.story.note")}
+                            </Typography>
+                        </ScNoteCard>
+                    </ScFigureWrap>
+
+                    <ScContent>
+                        {heading}
+                        {pillars}
+                    </ScContent>
+                </ScGrid>
+            </ScStory>
+        );
+    }
+
+    return (
+        <ScStory
+            id="story"
+            aria-labelledby="story-title"
         >
-          {heading}
-          {pillars}
-          <ScNote variant="bodySm">{t("Home.story.note")}</ScNote>
-        </ScDarkContent>
-      </ScDarkSection>
-    </ScStory>
-  );
+            <ScDarkSection>
+                <StoryCosmicHeart />
+                <ScDarkContent
+                    ref={revealRef}
+                    data-revealed={revealed}
+                >
+                    {heading}
+                    {pillars}
+                    <ScNote variant="bodySm">{t("Home.story.note")}</ScNote>
+                </ScDarkContent>
+            </ScDarkSection>
+        </ScStory>
+    );
 }
 ```
 
@@ -1533,10 +1552,12 @@ git commit -m "feat(story): rama oscura de Story con la escena Cosmic Heart"
 ## Task 7: Gate por sección en `HomeSections`
 
 **Files:**
+
 - Modify: `src/components/sections/HomeSections.tsx`
 - Modify: `src/components/sections/HomeSections.test.tsx`
 
 **Interfaces:**
+
 - Produces: `HomeSections()` sigue con la misma firma pública; el comportamiento en oscuro pasa de "ninguna sección" a "solo `Story`".
 
 - [ ] **Step 1: Actualizar el test que ahora debe fallar**
@@ -1617,20 +1638,20 @@ import { Contact } from "./Contact/Contact";
  * ahora deja `Story` montada.
  */
 export function HomeSections(): ReactElement | null {
-  const { themeName } = useTheme();
+    const { themeName } = useTheme();
 
-  if (themeName === "light") {
-    return (
-      <>
-        <Story />
-        <Journey />
-        <Features />
-        <Contact />
-      </>
-    );
-  }
+    if (themeName === "light") {
+        return (
+            <>
+                <Story />
+                <Journey />
+                <Features />
+                <Contact />
+            </>
+        );
+    }
 
-  return <Story />;
+    return <Story />;
 }
 ```
 
@@ -1683,6 +1704,7 @@ Expected: build OK, sin errores de Next.js sobre los nuevos `<img>`/imports.
 - [ ] **Step 4: Verificación en navegador real**
 
 Arrancar el dev server y comprobar en el Browser pane:
+
 - Tema oscuro: Story muestra la escena con las 8 capas, parallax de puntero (mover el ratón sobre la sección) y de scroll (desplazar la página) funcionando, el núcleo del corazón pulsando, contenido (kicker/título/pilares/nota) legible sobre la viñeta.
 - Tema claro: Story sin cambios visuales respecto a antes de esta entrega.
 - Alternar el `ThemeToggle` con Story en pantalla: sin errores de consola.

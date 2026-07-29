@@ -67,9 +67,7 @@ export function useSceneParallax(
   const lastMoveRef = useRef(0);
 
   useEffect(() => {
-    const reducedQuery = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    );
+    const reducedQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let raf = 0;
     let running = false;
     let scrollProgress = 0;
