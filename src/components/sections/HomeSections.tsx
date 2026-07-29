@@ -8,51 +8,36 @@ import { Features } from "./Features/Features";
 import { Contact } from "./Contact/Contact";
 
 /*
- * Gate por tema (spec 2026-07-28-landing-v2-secciones-design.md, D3): el
- * encargo del usuario (§1) es "tema claro: secciones completas; tema
- * oscuro: solo hero y footer" -- este componente es el UNICO punto de la
- * pagina que decide eso, para no repartir el condicional entre las 4
- * secciones (Story/Journey/Features/Contact, orden D2) ni duplicarlo en
- * `app/page.tsx`.
+ * Gate por seccion (spec 2026-07-29-story-dark-cosmic-heart-design.md, D2):
+ * antes de esta revision, este componente era todo-o-nada (D3 del spec
+ * anterior, 2026-07-28) -- claro montaba las 4 secciones, oscuro ninguna.
+ * Story ya tiene tratamiento oscuro propio (StoryCosmicHeart); Journey,
+ * Features y Contact NO lo tienen todavia -- se construyen uno a uno, en
+ * ciclos spec->plan->implementacion separados (encargo del usuario:
+ * "vamos a ir seccion por seccion").
  *
- * "use client" + `useTheme()`, sin ThemeProvider anidado nuevo: las
- * secciones resuelven contra el tema AMBIENTAL de la pagina (que ES claro
- * cuando se montan de verdad).
+ * "use client" + `useTheme()`, sin ThemeProvider anidado: las secciones
+ * resuelven contra el tema AMBIENTAL de la pagina, igual que antes.
  *
- * Por que esto es seguro para SEO (D3): `ThemeProvider.tsx` arranca SIEMPRE
- * en `"light"` -- no puede leer `localStorage` durante el render sin romper
- * el export estatico (no hay `window` en ese momento) -- y solo se corrige a
- * si mismo en un efecto justo despues de montar (`changeSource:
- * "hydration"`). Eso significa que el HTML prerenderizado del export
- * estatico SIEMPRE contiene las 4 secciones: el rastreador que lee el HTML
- * estatico (sin ejecutar JS) ve exactamente el contenido del mockup, que es
- * la unica version de esta pagina que existe en claro.
- *
- * Que ve el visitante con tema oscuro GUARDADO: el mismo efecto de
- * hidratacion que corrige `themeName` a `"dark"` hace que este componente
- * devuelva `null` en el siguiente render -- las 4 secciones se DESMONTAN
- * (no se ocultan por CSS) justo despues del primer pintado. Es el mismo
- * patron que ya asume el fondo del hero (Aura/Eye, ver
- * `HeroBackdrop.tsx`/`ThemeProvider.tsx`): un ajuste de hidratacion no se
- * anima porque no es un toggle humano, y aqui el "ajuste" es mas radical
- * (desmontar en vez de recolorear) porque estas secciones no tienen
- * contraparte en tema oscuro -- el mockup no las dibuja ahi. A
- * `HomeSections` no le importa POR QUE cambio `themeName`
- * (`changeSource`), solo su valor final: no necesita distinguir "carga con
- * oscuro guardado" de "toggle humano a oscuro" porque el resultado deseado
- * es el mismo en los dos casos (sin secciones).
+ * SEO/hidratacion: sin cambios respecto al razonamiento del spec anterior --
+ * el export estatico sigue prerenderizando SIEMPRE en claro (`ThemeProvider`
+ * arranca en `"light"`), asi que el HTML estatico contiene las 4 secciones;
+ * el ajuste de hidratacion a oscuro desmonta Journey/Features/Contact pero
+ * ahora deja `Story` montada.
  */
 export function HomeSections(): ReactElement | null {
   const { themeName } = useTheme();
 
-  if (themeName !== "light") return null;
+  if (themeName === "light") {
+    return (
+      <>
+        <Story />
+        <Journey />
+        <Features />
+        <Contact />
+      </>
+    );
+  }
 
-  return (
-    <>
-      <Story />
-      <Journey />
-      <Features />
-      <Contact />
-    </>
-  );
+  return <Story />;
 }
