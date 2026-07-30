@@ -11,7 +11,12 @@ import {
   JOURNEY_ASTRAL_SCROLL_AMP,
   JOURNEY_ASTRAL_SIZES,
 } from "./journeyAstralPathway.layers";
-import { ScLayer, ScScene, ScVignette, ScVoid } from "./journeyAstralPathway.parts";
+import {
+  ScLayer,
+  ScScene,
+  ScVignette,
+  ScVoid,
+} from "./journeyAstralPathway.parts";
 
 /**
  * Fondo a sangre de Journey en tema oscuro: 5 capas WebP con blending
