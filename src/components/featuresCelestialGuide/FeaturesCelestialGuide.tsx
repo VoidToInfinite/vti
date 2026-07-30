@@ -42,16 +42,8 @@ const ScVignette = styled.div`
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(
-      to left,
-      oklch(0 0 0 / 0.82) 0%,
-      oklch(0 0 0 / 0) 60%
-    ),
-    linear-gradient(
-      to top,
-      oklch(0 0 0 / 0.82) 0%,
-      oklch(0 0 0 / 0) 45%
-    );
+    linear-gradient(to left, oklch(0 0 0 / 0.82) 0%, oklch(0 0 0 / 0) 60%),
+    linear-gradient(to top, oklch(0 0 0 / 0.82) 0%, oklch(0 0 0 / 0) 45%);
 `;
 
 export function FeaturesCelestialGuide(): ReactElement {

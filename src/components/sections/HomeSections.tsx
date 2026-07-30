@@ -12,8 +12,9 @@ import { Contact } from "./Contact/Contact";
  * este componente es todo-o-nada solo en CLARO (monta las 4 secciones);
  * en oscuro monta unicamente las secciones que ya tienen tratamiento
  * propio, en el orden en que se van construyendo (encargo del usuario:
- * "vamos a ir seccion por seccion"). Story y Journey ya lo tienen
- * (StoryCosmicHeart, JourneyAstralPathway); Features y Contact todavia no.
+ * "vamos a ir seccion por seccion"). Story, Journey y Features ya lo tienen
+ * (StoryCosmicHeart, JourneyAstralPathway, FeaturesCelestialGuide); Contact
+ * todavia no.
  *
  * "use client" + `useTheme()`, sin ThemeProvider anidado: las secciones
  * resuelven contra el tema AMBIENTAL de la pagina, igual que antes.
@@ -21,8 +22,8 @@ import { Contact } from "./Contact/Contact";
  * SEO/hidratacion: sin cambios respecto al razonamiento del spec anterior --
  * el export estatico sigue prerenderizando SIEMPRE en claro (`ThemeProvider`
  * arranca en `"light"`), asi que el HTML estatico contiene las 4 secciones;
- * el ajuste de hidratacion a oscuro desmonta Features/Contact pero deja
- * Story/Journey montadas.
+ * el ajuste de hidratacion a oscuro desmonta Contact pero deja
+ * Story/Journey/Features montadas.
  */
 export function HomeSections(): ReactElement | null {
   const { themeName } = useTheme();
@@ -42,6 +43,7 @@ export function HomeSections(): ReactElement | null {
     <>
       <Story />
       <Journey />
+      <Features />
     </>
   );
 }
