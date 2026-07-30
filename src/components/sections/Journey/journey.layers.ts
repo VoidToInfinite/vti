@@ -105,10 +105,22 @@ export const JOURNEY_PATH_D =
   "M63,28 C105,28 148,54 190,54 S275,34 317,34 S402,58 444,58 S529,30 571,30 S656,52 698,52";
 export const JOURNEY_PATH_STROKE = "oklch(0.72 0.1 290 / 0.45)";
 
-/** Degradado de texto de la cita final (mockup L145), estático (la spec no
- *  pide animarlo, a diferencia del degradado del hero en `BrandName.tsx`). */
-export const JOURNEY_QUOTE_GRADIENT =
+/** Degradado de texto de la cita final (mockup L145, tema claro), estático
+ *  (la spec no pide animarlo, a diferencia del degradado del hero en
+ *  `BrandName.tsx`). Renombrado con sufijo `_LIGHT` (2026-07-30) al añadir
+ *  la variante oscura de abajo. */
+export const JOURNEY_QUOTE_GRADIENT_LIGHT =
   "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
+
+/**
+ * Variante oscura del degradado de la cita (mismo criterio que
+ * `STORY_ACCENT_GRADIENT_DARK`, `story.layers.ts`): misma familia de hue
+ * (235/255/290), luminosidad mucho mayor para legibilidad sobre el
+ * negro-azulado de `JourneyAstralPathway` (`JOURNEY_ASTRAL_VOID`,
+ * `#02040e`).
+ */
+export const JOURNEY_QUOTE_GRADIENT_DARK =
+  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
 
 /** `filter: drop-shadow(...)` de la figura (mockup L154). */
 export const JOURNEY_FIGURE_SHADOW =

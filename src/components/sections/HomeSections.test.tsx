@@ -64,7 +64,7 @@ describe("HomeSections", () => {
     expect(region).toHaveAttribute("id", "story");
   });
 
-  it("en tema oscuro (guardado en localStorage), tras la correccion de hidratacion monta SOLO Story (Journey/Features/Contact aun no tienen tratamiento oscuro)", async () => {
+  it("en tema oscuro (guardado en localStorage), tras la correccion de hidratacion monta Story y Journey (Features/Contact aun no tienen tratamiento oscuro)", async () => {
     window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderWithProviders(<HomeSections />);
 
@@ -72,10 +72,10 @@ describe("HomeSections", () => {
       const ids = Array.from(container.querySelectorAll("section")).map(
         (el) => el.id,
       );
-      expect(ids).toEqual(["story"]);
+      expect(ids).toEqual(["story", "journey"]);
     });
 
-    for (const id of ["journey", "features", "contact"]) {
+    for (const id of ["features", "contact"]) {
       expect(container.querySelector(`#${id}`)).toBeNull();
     }
   });
