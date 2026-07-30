@@ -1,0 +1,16 @@
+{
+  "name": "journey-astral-pathway-layers",
+  "description": "Figura celestial presentando el viaje junto a una senda luminosa que fluye hacia ella, separada en 5 planos de profundidad para parallax 2.5D en el fondo de Journey (tema oscuro). Particion de energia (v7, corrige el desgarro de la senda de una entrega anterior: la senda retiene toda su luz y gana profundidad propia en dos tramos); compuestas con blending aditivo sobre --void:#02040e reconstruyen el original (error de recomposicion: maximo 0/255).",
+  "source": "Journey Dark Theme 1.zip (Downloads), entregado por el usuario 2026-07-30. README adjunto documenta la correccion v7 sobre un intento anterior donde el 30.4% de la luz de la senda se filtraba a la capa de destellos.",
+  "canvas": { "width": 3344, "height": 1882 },
+  "compositing": {
+    "css": "cada capa mix-blend-mode: plus-lighter (fallback screen) sobre --void:#02040e"
+  },
+  "layers": [
+    { "file": "01-deep-space.webp", "depth": 0.04 },
+    { "file": "02-path-far.webp", "depth": 0.1 },
+    { "file": "03-stars.webp", "depth": 0.2 },
+    { "file": "04-path-near.webp", "depth": 0.3 },
+    { "file": "05-figure.webp", "depth": 0.46 }
+  ]
+}
