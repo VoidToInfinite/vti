@@ -55,6 +55,17 @@ export const STORY_ACCENT_GRADIENT_LIGHT =
 export const STORY_ACCENT_GRADIENT_DARK =
   "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
 
+/**
+ * Caja de la rama oscura (pedido explícito del usuario, 2026-07-29, segunda
+ * iteración: la primera entrega ocupaba el viewport completo a sangre; se
+ * corrige a una caja acotada y centrada). `1280px` es un valor propio de
+ * esta composición, no `grid.containerMax` (1200px): son dos medidas
+ * distintas por coincidencia de rango, no la misma decisión de diseño — de
+ * ahí que se declare aquí, no se reutilice el token de grid.
+ */
+export const STORY_DARK_MAX_WIDTH = "1280px";
+export const STORY_DARK_HEIGHT = "90dvh";
+
 /** Fondo/borde/sombra de la tarjeta flotante de nota (mockup L98). */
 export const STORY_CARD_BG = "oklch(0.97 0.018 260)";
 export const STORY_CARD_BORDER = "oklch(0.88 0.04 255)";

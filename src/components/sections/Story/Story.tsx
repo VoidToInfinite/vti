@@ -13,6 +13,8 @@ import {
   STORY_CARD_BORDER,
   STORY_CARD_FLOAT_MS,
   STORY_CARD_SHADOW,
+  STORY_DARK_HEIGHT,
+  STORY_DARK_MAX_WIDTH,
   STORY_FIGURE_ASPECT,
   STORY_FIGURE_FLOAT_MS,
   STORY_FIGURE_HEIGHT,
@@ -79,16 +81,18 @@ function pillarColor(
  * Rama clara: contenedor de contenido normal (padding + tope de ancho,
  * centrado -- sin cambios respecto a la version anterior).
  *
- * Rama oscura ($fullBleed, mejora 2026-07-29 pedida por el usuario tras ver
- * la primera entrega): el fondo debe ocupar TODO el ancho y alto del
- * dispositivo, no el ancho de contenido acotado por `grid.containerMax`.
- * Mismo patron que `ScHero` (Hero.tsx): sin `max-width` propio -- `<main>`
- * no impone ningun ancho maximo ambiental, asi que basta con no declarar uno
- * aqui para que la seccion ocupe el 100% del viewport -- y
- * `min-height: 100vh`/`100dvh` (el `dvh` corrige el alto en movil, donde la
- * barra de direcciones cambia `100vh` en tiempo real). `overflow: hidden`
- * contiene el overscan del parallax (`StoryCosmicHeart`) dentro de la propia
- * seccion.
+ * Rama oscura ($fullBleed, 2026-07-29, segunda iteracion): la primera
+ * entrega ocupaba el viewport completo a sangre; el usuario pidio acotarla a
+ * una caja de `STORY_DARK_MAX_WIDTH` (1280px) de ancho maximo por
+ * `STORY_DARK_HEIGHT` (90dvh) de alto, centrada en la pagina
+ * (`margin-inline: auto`). `height` fijo (no `min-height`): el pedido es que
+ * la seccion OCUPE esa medida, no que crezca mas alla si el contenido es mas
+ * alto -- `overflow: hidden` (ya presente) contiene tanto el overscan del
+ * parallax como cualquier desbordamiento de contenido dentro de esa caja.
+ * `dvh` corrige el alto en movil, donde la barra de direcciones cambia
+ * `vh` en tiempo real; se declara DESPUES de `vh` a proposito (mismo orden
+ * que `ScHero`, Hero.tsx) para que sea la unidad ganadora en navegadores que
+ * la soportan, con `vh` como fallback en los que no.
  */
 const ScStory = styled.section<{ $fullBleed: boolean }>`
   ${({ $fullBleed, theme }) =>
@@ -96,8 +100,11 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
       ? css`
           position: relative;
           overflow: hidden;
-          min-height: 100vh;
-          min-height: 100dvh;
+          width: 100%;
+          max-width: ${STORY_DARK_MAX_WIDTH};
+          height: 90vh;
+          height: ${STORY_DARK_HEIGHT};
+          margin-inline: auto;
           display: flex;
           align-items: center;
         `
