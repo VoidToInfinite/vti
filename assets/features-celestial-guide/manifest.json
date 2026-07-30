@@ -1,0 +1,7 @@
+{
+  "name": "features-celestial-guide",
+  "description": "Figura celestial rodeada de 6 iconos (libro, birrete, mando de juego, bombilla, cerebro, grafico de crecimiento) que simbolizan Learning/Imagination/Gaming para el fondo de Features (tema oscuro). Imagen PLANA unica, sin capas de profundidad separadas (a diferencia de Story/Journey): se usa como fondo estatico, sin parallax.",
+  "source": "ChatGPT Image Jul 30, 2026, 10_26_10 AM Celestial Holographic Learning Guide upscalemedia-transformed.png (Downloads), entregada por el usuario 2026-07-30 pegada inline en el chat y luego guardada en disco a peticion.",
+  "canvas": { "width": 3344, "height": 1882 },
+  "layout": "figura + iconos a la izquierda del encuadre, vacio a la derecha (al contrario que Story/Journey, donde el vacio esta a la izquierda) -- el contenido de texto se posiciona en consecuencia, a la derecha."
+}
