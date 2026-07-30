@@ -1,30 +1,48 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { FeaturesCelestialGuide } from "./FeaturesCelestialGuide";
+import { FEATURES_CELESTIAL_LAYERS } from "./featuresCelestialGuide.layers";
+
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+beforeEach(stubMatchMedia);
+afterEach(() => vi.unstubAllGlobals());
 
 describe("FeaturesCelestialGuide", () => {
-  it("renderiza una unica imagen decorativa dentro de un contenedor aria-hidden", () => {
+  it("renderiza las 10 capas como imagenes decorativas dentro de un contenedor aria-hidden", () => {
     const { container } = render(<FeaturesCelestialGuide />);
     const root = container.firstElementChild as HTMLElement;
     expect(root).toHaveAttribute("aria-hidden", "true");
 
     const imgs = container.querySelectorAll("img");
-    expect(imgs).toHaveLength(1);
-    const img = imgs[0];
-    expect(img).toHaveAttribute("alt", "");
-    expect(img).toHaveAttribute("loading", "lazy");
-    expect(img).toHaveAttribute("decoding", "async");
-    expect(img).toHaveAttribute(
-      "src",
-      "/features/celestial-guide/celestial-guide.webp",
-    );
-    expect(img.getAttribute("srcset")).toBe(
-      "/features/celestial-guide/celestial-guide-1024.webp 1024w, /features/celestial-guide/celestial-guide.webp 2560w",
-    );
+    expect(imgs).toHaveLength(FEATURES_CELESTIAL_LAYERS.length);
+    imgs.forEach((img, i) => {
+      const layer = FEATURES_CELESTIAL_LAYERS[i];
+      expect(img).toHaveAttribute("alt", "");
+      expect(img).toHaveAttribute("loading", "lazy");
+      expect(img).toHaveAttribute("decoding", "async");
+      expect(img).toHaveAttribute("src", layer.src);
+      expect(img.getAttribute("srcset")).toBe(
+        `${layer.srcSmall} 1024w, ${layer.src} 2560w`,
+      );
+      expect(img).toHaveAttribute("data-part", layer.part);
+    });
   });
 
-  it("la imagen no tiene nombre accesible (decorativa, alt vacio)", () => {
+  it("ninguna imagen tiene nombre accesible (son decorativas, alt vacio)", () => {
     const { container } = render(<FeaturesCelestialGuide />);
-    expect(container.querySelector("img")).not.toHaveAccessibleName();
+    container
+      .querySelectorAll("img")
+      .forEach((img) => expect(img).not.toHaveAccessibleName());
   });
 });

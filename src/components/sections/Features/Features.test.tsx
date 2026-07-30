@@ -218,12 +218,14 @@ describe("Features en tema oscuro", () => {
     window.localStorage.clear();
   });
 
-  it("monta el fondo FeaturesCelestialGuide (1 imagen decorativa) en vez de las 3 tarjetas con figura propia", async () => {
+  it("monta el fondo FeaturesCelestialGuide (10 capas decorativas) en vez de las 3 tarjetas con figura propia", async () => {
     const { container } = renderWithProviders(<Features />);
     await waitFor(() => {
-      expect(container.querySelectorAll("img")).toHaveLength(1);
+      expect(container.querySelectorAll("img")).toHaveLength(10);
     });
-    expect(container.querySelector("img")).toHaveAttribute("alt", "");
+    container
+      .querySelectorAll("img")
+      .forEach((img) => expect(img).toHaveAttribute("alt", ""));
   });
 
   it("sigue mostrando el kicker, los 3 titulos, los 12 bullets y los 3 CTA con el mismo i18n que en claro", async () => {

@@ -1,62 +1,72 @@
 "use client";
-import type { ReactElement } from "react";
-import styled from "styled-components";
+import { useMemo, useRef, type ReactElement, type RefObject } from "react";
+import {
+  useSceneParallax,
+  type SceneParallaxTarget,
+} from "@/hooks/useSceneParallax";
+import {
+  FEATURES_CELESTIAL_LAYERS,
+  FEATURES_CELESTIAL_OVERSCAN,
+  FEATURES_CELESTIAL_POINTER_AMP,
+  FEATURES_CELESTIAL_SCROLL_AMP,
+  FEATURES_CELESTIAL_SIZES,
+} from "./featuresCelestialGuide.layers";
+import {
+  ScLayer,
+  ScScene,
+  ScVignette,
+  ScVoid,
+} from "./featuresCelestialGuide.parts";
 
 /**
- * Fondo de Features en tema oscuro: una única imagen plana (a diferencia de
- * `StoryCosmicHeart`/`JourneyAstralPathway`, que componen varias capas WebP
- * con blending aditivo) — el paquete entregado para esta sección no traía
- * capas separadas por profundidad, así que no hay parallax que fingir aquí
- * (protocolo de veracidad: sin datos de profundidad reales, no se simula una
- * "profundidad" de una sola capa moviéndose sola). Es un fondo estático,
- * `object-fit: cover`, con la misma viñeta de legibilidad que las otras dos
- * escenas oscuras.
- *
- * La figura y los 6 iconos quedan a la IZQUIERDA del encuadre (al revés que
- * Story/Journey, donde el vacío está a la izquierda y la figura a la
- * derecha): la viñeta y el contenido de `Features.tsx` se posicionan en
- * consecuencia, a la derecha.
+ * Fondo a sangre de Features en tema oscuro: 10 capas WebP con blending
+ * aditivo (partición documentada en
+ * `assets/features-celestial-guide/manifest.json`: 1 fondo + 2 de
+ * ambientación + 6 orbes + figura/holograma), animadas con el mismo hook de
+ * parallax de puntero + scroll + deriva en reposo que `StoryCosmicHeart`/
+ * `JourneyAstralPathway` (`useSceneParallax`). Sustituye la primera entrega
+ * de esta sección (imagen plana única, sin capas — el paquete original no
+ * traía parallax). Puramente decorativo (`aria-hidden`): el contenido real
+ * vive en `Features.tsx`, superpuesto a la DERECHA (la figura y los orbes
+ * quedan a la izquierda del encuadre).
  */
-const ScScene = styled.div`
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-`;
-
-const ScImage = styled.img`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-  user-select: none;
-`;
-
-/* Viñeta de legibilidad: oscurece la mitad DERECHA (donde se superpone el
-   contenido) y el borde inferior. Gradiente hacia la izquierda (`to left`),
-   al revés que Story/Journey (`to right`), porque aquí el vacío está a la
-   derecha. */
-const ScVignette = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(to left, oklch(0 0 0 / 0.82) 0%, oklch(0 0 0 / 0) 60%),
-    linear-gradient(to top, oklch(0 0 0 / 0.82) 0%, oklch(0 0 0 / 0) 45%);
-`;
-
 export function FeaturesCelestialGuide(): ReactElement {
+  const sceneRef = useRef<HTMLDivElement>(null);
+
+  const layerRefs = useMemo<Array<RefObject<HTMLImageElement | null>>>(
+    () => FEATURES_CELESTIAL_LAYERS.map(() => ({ current: null })),
+    [],
+  );
+
+  const targets: SceneParallaxTarget[] = FEATURES_CELESTIAL_LAYERS.map(
+    (layer, index) => ({ ref: layerRefs[index], depth: layer.depth }),
+  );
+
+  useSceneParallax(sceneRef, targets, {
+    pointerAmp: FEATURES_CELESTIAL_POINTER_AMP,
+    scrollAmp: FEATURES_CELESTIAL_SCROLL_AMP,
+    overscan: FEATURES_CELESTIAL_OVERSCAN,
+  });
+
   return (
-    <ScScene aria-hidden="true">
-      <ScImage
-        src="/features/celestial-guide/celestial-guide.webp"
-        srcSet="/features/celestial-guide/celestial-guide-1024.webp 1024w, /features/celestial-guide/celestial-guide.webp 2560w"
-        sizes="(min-width: 1280px) 1280px, 100vw"
-        alt=""
-        loading="lazy"
-        decoding="async"
-      />
+    <ScScene
+      ref={sceneRef}
+      aria-hidden="true"
+    >
+      <ScVoid />
+      {FEATURES_CELESTIAL_LAYERS.map((layer, index) => (
+        <ScLayer
+          key={layer.part}
+          ref={layerRefs[index]}
+          data-part={layer.part}
+          src={layer.src}
+          srcSet={`${layer.srcSmall} 1024w, ${layer.src} 2560w`}
+          sizes={FEATURES_CELESTIAL_SIZES}
+          alt=""
+          loading="lazy"
+          decoding="async"
+        />
+      ))}
       <ScVignette />
     </ScScene>
   );
