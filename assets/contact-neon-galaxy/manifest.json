@@ -1,19 +1,19 @@
 {
-  "name": "contact-neon-galaxy-layers",
-  "description": "Figura celestial saludando junto a 3 orbes (sobre, chat, arroba) que simbolizan los canales de contacto, con holograma de suelo y reflejo, separada en 7 planos de profundidad para parallax 2.5D en el fondo de Contact (tema oscuro). Compuestas con blending aditivo (plus-lighter) reconstruyen el original (error de recomposicion: maximo 0/255).",
-  "source": "Contact Dark Theme 1 parallax-neon-galaxy.zip (Downloads), entregado por el usuario 2026-07-30. Fuente citada en layers.json: ChatGPT_Image_Jul_30__2026__03_06_48_PM_Celestial_Avatar_in_a_Neon_Galaxy_upscalemedia-transformed.png.",
-  "canvas": { "width": 3344, "height": 1882 },
-  "compositing": {
-    "css": "cada capa mix-blend-mode: plus-lighter (fallback screen) sobre --void:#02040e"
-  },
-  "layout": "figura + orbes a la izquierda del encuadre (transform-origin/perspective-origin 30% 50%), vacio a la derecha -- mismo criterio que Features (el contenido de texto se posiciona a la derecha).",
-  "layers": [
-    { "file": "01-fondo.webp", "depth": 0.04 },
-    { "file": "02-ambiente.webp", "depth": 0.1 },
-    { "file": "03-estrellas.webp", "depth": 0.18 },
-    { "file": "04-orb-mail.webp", "depth": 0.3 },
-    { "file": "05-orb-chat.webp", "depth": 0.34 },
-    { "file": "06-orb-at.webp", "depth": 0.38 },
-    { "file": "07-figura-holograma.webp", "depth": 0.46 }
-  ]
+    "name": "contact-neon-galaxy-layers",
+    "description": "Figura celestial saludando junto a 3 orbes (sobre, chat, arroba) que simbolizan los canales de contacto, con holograma de suelo y reflejo, separada en 7 planos de profundidad para parallax 2.5D en el fondo de Contact (tema oscuro). Compuestas con blending aditivo (plus-lighter) reconstruyen el original (error de recomposicion: maximo 0/255).",
+    "source": "Contact Dark Theme 1 parallax-neon-galaxy.zip (Downloads), entregado por el usuario 2026-07-30. Fuente citada en layers.json: ChatGPT_Image_Jul_30__2026__03_06_48_PM_Celestial_Avatar_in_a_Neon_Galaxy_upscalemedia-transformed.png.",
+    "canvas": { "width": 3344, "height": 1882 },
+    "compositing": {
+        "css": "cada capa mix-blend-mode: plus-lighter (fallback screen) sobre --void:#02040e"
+    },
+    "layout": "figura + orbes a la izquierda del encuadre (transform-origin/perspective-origin 30% 50%), vacio a la derecha -- mismo criterio que Features (el contenido de texto se posiciona a la derecha).",
+    "layers": [
+        { "file": "01-fondo.webp", "depth": 0.04 },
+        { "file": "02-ambiente.webp", "depth": 0.1 },
+        { "file": "03-estrellas.webp", "depth": 0.18 },
+        { "file": "04-orb-mail.webp", "depth": 0.3 },
+        { "file": "05-orb-chat.webp", "depth": 0.34 },
+        { "file": "06-orb-at.webp", "depth": 0.38 },
+        { "file": "07-figura-holograma.webp", "depth": 0.46 }
+    ]
 }

@@ -2,16 +2,21 @@
 
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled, { keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
+import { useTheme } from "@/theme/ThemeProvider";
 import { links } from "@/config/links";
+import { ContactNeonGalaxy } from "@/components/contactNeonGalaxy/ContactNeonGalaxy";
 import {
   CONTACT_CARD_BORDER,
   CONTACT_CARD_GRADIENT,
   CONTACT_CARD_SHADOW,
-  CONTACT_CHIP_BG,
+  CONTACT_CHIP_BG_DARK,
+  CONTACT_CHIP_BG_LIGHT,
   CONTACT_CTA_HOVER_SHADOW,
+  CONTACT_DARK_HEIGHT,
+  CONTACT_DARK_MAX_WIDTH,
   CONTACT_FIGURE_FLOAT_MS,
   CONTACT_FIGURE_HEIGHT,
   CONTACT_FIGURE_LEFT,
@@ -28,21 +33,44 @@ import {
   CONTACT_RING_HALO_GRADIENT,
   CONTACT_RING_HALO_RIGHT,
   CONTACT_RING_HALO_SIZE,
-  CONTACT_TITLE_ACCENT_GRADIENT,
+  CONTACT_TITLE_ACCENT_GRADIENT_DARK,
+  CONTACT_TITLE_ACCENT_GRADIENT_LIGHT,
 } from "./contact.layers";
 
 /*
- * Última sección de tema claro (spec §7.4, mockup `#contact` L212-238):
- * tarjeta con degradado pastel, chip de email + CTA a la izquierda, figura
- * que saluda con anillos concéntricos decorativos a la derecha en ≥ md.
+ * Última sección. Rama CLARA (spec §7.4, mockup `#contact` L212-238): tarjeta
+ * con degradado pastel, chip de email + CTA a la izquierda, figura que
+ * saluda con anillos concéntricos decorativos a la derecha en ≥ md.
  * `Socials` NO vive aquí (spec §7.5: se muda al footer, que la reutiliza tal
- * cual con los enlaces reales del repo).
+ * cual con los enlaces reales del repo). Sin cambios de comportamiento.
+ *
+ * Rama OSCURA (2026-07-30, mismo criterio que Story/Journey/Features): no
+ * hay mockup oscuro. El fondo es `ContactNeonGalaxy` (7 capas parallax) y el
+ * contenido (mismo i18n `Home.contact.*`) se superpone a la DERECHA (la
+ * figura y los 3 orbes del fondo quedan a la izquierda del encuadre, mismo
+ * layout que Features). Sin anillos concéntricos ni figura `<img>` propia
+ * (D9 del spec de Story: ahora son decorativas dentro de la escena).
  */
-const ScContact = styled.section`
-  padding: ${({ theme }) => theme.data.space[9]}
-    ${({ theme }) => theme.data.space[5]};
-  max-width: ${({ theme }) => theme.data.grid.containerMax};
-  margin-inline: auto;
+const ScContact = styled.section<{ $fullBleed: boolean }>`
+  ${({ $fullBleed, theme }) =>
+    $fullBleed
+      ? css`
+          position: relative;
+          overflow: hidden;
+          width: 100%;
+          max-width: ${CONTACT_DARK_MAX_WIDTH};
+          height: 90vh;
+          height: ${CONTACT_DARK_HEIGHT};
+          margin-inline: auto;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+        `
+      : css`
+          padding: ${theme.data.space[9]} ${theme.data.space[5]};
+          max-width: ${theme.data.grid.containerMax};
+          margin-inline: auto;
+        `}
 `;
 
 /*
@@ -114,7 +142,10 @@ const ScKicker = styled(Typography)`
 /* Degradado de texto estático (mockup no anima este span, a diferencia del
    "ToInfinite" del hero) — ver `CONTACT_TITLE_ACCENT_GRADIENT`. */
 const ScAccent = styled.span`
-  background-image: ${CONTACT_TITLE_ACCENT_GRADIENT};
+  background-image: ${({ theme }) =>
+    theme.data.isLight
+      ? CONTACT_TITLE_ACCENT_GRADIENT_LIGHT
+      : CONTACT_TITLE_ACCENT_GRADIENT_DARK};
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -155,7 +186,8 @@ const ScChip = styled.div`
   padding-inline: ${({ theme }) => theme.data.space[4]};
   border-radius: ${({ theme }) => theme.data.radius.lg};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
-  background: ${CONTACT_CHIP_BG};
+  background: ${({ theme }) =>
+    theme.data.isLight ? CONTACT_CHIP_BG_LIGHT : CONTACT_CHIP_BG_DARK};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
 `;
@@ -320,14 +352,109 @@ const ScFigure = styled.img`
   }
 `;
 
+/* Reveal de la rama oscura: mismo mecanismo que `ScDarkContent` en
+   Story.tsx/Journey.tsx/Features.tsx -- lleva su propio padding/tope de
+   ancho (`ScContact`, en `$fullBleed`, ya no aporta ninguno). */
+const ScDarkContent = styled.div`
+  position: relative;
+  z-index: 1;
+  max-width: ${({ theme }) => theme.data.grid.prose};
+  width: 100%;
+  padding: ${({ theme }) => theme.data.space[8]}
+    ${({ theme }) => theme.data.space[6]};
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.decelerate},
+    transform ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.decelerate};
+
+  &[data-revealed="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+`;
+
 export function Contact(): ReactElement {
   const { t } = useTranslation("home");
+  const { themeName } = useTheme();
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+
+  const chipAndCta = (
+    <ScRow>
+      <ScChip>
+        <ScChipIcon
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect
+            x="2"
+            y="4"
+            width="20"
+            height="16"
+            rx="2"
+          />
+          <path d="M22 6l-10 7L2 6" />
+        </ScChipIcon>
+        <span>{t("Home.contact.email")}</span>
+      </ScChip>
+      <ScCta
+        href={links.email}
+        aria-label={t("Home.contact.ctaAria")}
+      >
+        {t("Home.contact.cta")}
+      </ScCta>
+    </ScRow>
+  );
+
+  if (themeName !== "light") {
+    return (
+      <ScContact
+        id="contact"
+        aria-labelledby="contact-title"
+        $fullBleed
+      >
+        <ContactNeonGalaxy />
+        <ScDarkContent
+          ref={revealRef}
+          data-revealed={revealed}
+        >
+          <ScKicker variant="overline">{t("Home.contact.kicker")}</ScKicker>
+          <Typography
+            variant="h2"
+            id="contact-title"
+          >
+            {t("Home.contact.titleLead")}{" "}
+            <ScAccent>{t("Home.contact.titleAccent")}</ScAccent>
+          </Typography>
+          <ScBody variant="body">
+            {t("Home.contact.body")}
+            <br />
+            {t("Home.contact.bodySecond")}
+          </ScBody>
+          {chipAndCta}
+        </ScDarkContent>
+      </ScContact>
+    );
+  }
 
   return (
     <ScContact
       id="contact"
       aria-labelledby="contact-title"
+      $fullBleed={false}
     >
       <ScCard
         ref={revealRef}
@@ -347,35 +474,7 @@ export function Contact(): ReactElement {
             <br />
             {t("Home.contact.bodySecond")}
           </ScBody>
-          <ScRow>
-            <ScChip>
-              <ScChipIcon
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect
-                  x="2"
-                  y="4"
-                  width="20"
-                  height="16"
-                  rx="2"
-                />
-                <path d="M22 6l-10 7L2 6" />
-              </ScChipIcon>
-              <span>{t("Home.contact.email")}</span>
-            </ScChip>
-            <ScCta
-              href={links.email}
-              aria-label={t("Home.contact.ctaAria")}
-            >
-              {t("Home.contact.cta")}
-            </ScCta>
-          </ScRow>
+          {chipAndCta}
         </ScLeft>
         <ScRings aria-hidden="true">
           <ScRingHalo />

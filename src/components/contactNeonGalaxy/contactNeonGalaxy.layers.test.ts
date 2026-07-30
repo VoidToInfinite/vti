@@ -17,9 +17,7 @@ describe("contactNeonGalaxy.layers", () => {
   it("cada capa publica su pista nativa y su pista reducida bajo /contact/neon-galaxy/", () => {
     for (const layer of CONTACT_NEON_LAYERS) {
       expect(layer.src).toMatch(/^\/contact\/neon-galaxy\/.+\.webp$/);
-      expect(layer.srcSmall).toMatch(
-        /^\/contact\/neon-galaxy\/.+-1024\.webp$/,
-      );
+      expect(layer.srcSmall).toMatch(/^\/contact\/neon-galaxy\/.+-1024\.webp$/);
     }
   });
 

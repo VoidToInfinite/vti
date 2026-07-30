@@ -11,7 +11,12 @@ import {
   CONTACT_NEON_SCROLL_AMP,
   CONTACT_NEON_SIZES,
 } from "./contactNeonGalaxy.layers";
-import { ScLayer, ScScene, ScVignette, ScVoid } from "./contactNeonGalaxy.parts";
+import {
+  ScLayer,
+  ScScene,
+  ScVignette,
+  ScVoid,
+} from "./contactNeonGalaxy.parts";
 
 /**
  * Fondo a sangre de Contact en tema oscuro: 7 capas WebP con blending

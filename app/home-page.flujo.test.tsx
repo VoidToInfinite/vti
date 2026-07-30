@@ -185,27 +185,22 @@ describe("Home (pagina completa)", () => {
   });
 
   /*
-   * Gate por seccion (spec 2026-07-29-story-dark-cosmic-heart-design.md,
-   * D2): Story, Journey y Features ya tienen tratamiento oscuro propio
-   * (escenas Cosmic Heart / Astral Pathway / fondo Celestial Guide) y se
-   * montan tambien en oscuro -- Contact TODAVIA no lo tiene (construccion
-   * seccion por seccion, encargo del usuario) y sigue sin montarse. El hero
-   * y el footer siguen presentes en los dos temas (D6 del spec anterior).
+   * Las 4 secciones (spec 2026-07-30) ya tienen tratamiento oscuro propio
+   * (escenas Cosmic Heart / Astral Pathway / Celestial Guide / Neon Galaxy):
+   * el gate por seccion que existia mientras se construian una a una
+   * (spec 2026-07-29-story-dark-cosmic-heart-design.md, D2) ya no aplica --
+   * las 4 se montan SIEMPRE, en los dos temas. El hero y el footer siguen
+   * presentes en los dos temas (D6 del spec anterior).
    */
-  it("con el tema de pagina en OSCURO (real), se montan Story, Journey y Features ademas del hero y el footer: Contact aun no", () => {
+  it("con el tema de pagina en OSCURO (real), se montan las 4 secciones ademas del hero y el footer", () => {
     window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderHomePage();
 
     expect(container.querySelector("h1")).not.toBeNull();
     expect(container.querySelector("footer")).not.toBeNull();
-    expect(container.querySelector("section#story")).not.toBeNull();
-    expect(container.querySelector("section#journey")).not.toBeNull();
-    expect(container.querySelector("section#features")).not.toBeNull();
-
-    expect(
-      container.querySelector("#contact"),
-      "la seccion #contact no deberia existir en tema oscuro todavia",
-    ).toBeNull();
+    for (const id of ["story", "journey", "features", "contact"]) {
+      expect(container.querySelector(`section#${id}`)).not.toBeNull();
+    }
   });
 
   /*

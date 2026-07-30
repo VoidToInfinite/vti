@@ -1,49 +1,26 @@
-"use client";
-
 import type { ReactElement } from "react";
-import { useTheme } from "@/theme/ThemeProvider";
 import { Story } from "./Story/Story";
 import { Journey } from "./Journey/Journey";
 import { Features } from "./Features/Features";
 import { Contact } from "./Contact/Contact";
 
 /*
- * Gate por seccion (spec 2026-07-29-story-dark-cosmic-heart-design.md, D2):
- * este componente es todo-o-nada solo en CLARO (monta las 4 secciones);
- * en oscuro monta unicamente las secciones que ya tienen tratamiento
- * propio, en el orden en que se van construyendo (encargo del usuario:
- * "vamos a ir seccion por seccion"). Story, Journey y Features ya lo tienen
- * (StoryCosmicHeart, JourneyAstralPathway, FeaturesCelestialGuide); Contact
- * todavia no.
- *
- * "use client" + `useTheme()`, sin ThemeProvider anidado: las secciones
- * resuelven contra el tema AMBIENTAL de la pagina, igual que antes.
- *
- * SEO/hidratacion: sin cambios respecto al razonamiento del spec anterior --
- * el export estatico sigue prerenderizando SIEMPRE en claro (`ThemeProvider`
- * arranca en `"light"`), asi que el HTML estatico contiene las 4 secciones;
- * el ajuste de hidratacion a oscuro desmonta Contact pero deja
- * Story/Journey/Features montadas.
+ * Las 4 secciones ya tienen tratamiento propio para los dos temas
+ * (StoryCosmicHeart, JourneyAstralPathway, FeaturesCelestialGuide,
+ * ContactNeonGalaxy — construidas seccion por seccion, encargo del
+ * usuario). El gate por tema que este componente tenia (spec
+ * 2026-07-29-story-dark-cosmic-heart-design.md, D2) ya no aporta nada: las
+ * 4 se montan siempre, y cada una decide su propia rama claro/oscuro
+ * internamente contra `useTheme()` (mismo patron que ya usaban Story.tsx/
+ * Journey.tsx/Features.tsx/Contact.tsx antes de esta simplificacion).
  */
-export function HomeSections(): ReactElement | null {
-  const { themeName } = useTheme();
-
-  if (themeName === "light") {
-    return (
-      <>
-        <Story />
-        <Journey />
-        <Features />
-        <Contact />
-      </>
-    );
-  }
-
+export function HomeSections(): ReactElement {
   return (
     <>
       <Story />
       <Journey />
       <Features />
+      <Contact />
     </>
   );
 }
