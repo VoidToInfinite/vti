@@ -9,6 +9,7 @@ import { act } from "@testing-library/react";
 import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { StageProvider, useStage } from "@/motion/StageProvider";
 import { HERO_CHROME_OFFSET_MS } from "@/components/sections/Hero/hero.transition";
+import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { Navbar } from "./Navbar";
 
 /**
@@ -442,6 +443,146 @@ describe("Navbar", () => {
       for (const href of SECTION_HREFS) {
         expect(container.querySelector(`a[href="${href}"]`)).toBeNull();
       }
+    });
+  });
+
+  describe("despegue al hacer scroll (data-detach, plan navbar-scroll-detach Task 3)", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      act(() => {
+        vi.runOnlyPendingTimers();
+      });
+      vi.useRealTimers();
+    });
+
+    it("al montar, el banner tiene data-detach='idle'", () => {
+      renderNavbar();
+      expect(screen.getByRole("banner")).toHaveAttribute("data-detach", "idle");
+    });
+
+    it("tras scrollPast() el banner pasa a 'detaching' y vuelve a 'idle' tras NAV_DETACH_ANIM_MS", () => {
+      renderNavbar();
+      const header = screen.getByRole("banner");
+
+      scrollPast();
+      expect(header).toHaveAttribute("data-detach", "detaching");
+
+      act(() => {
+        vi.advanceTimersByTime(NAV_DETACH_ANIM_MS);
+      });
+      expect(header).toHaveAttribute("data-detach", "idle");
+    });
+
+    it("al volver a scrollY=0 tras un despegue ya asentado, el banner pasa a 'attaching'", () => {
+      renderNavbar();
+      const header = screen.getByRole("banner");
+
+      scrollPast();
+      act(() => {
+        vi.advanceTimersByTime(NAV_DETACH_ANIM_MS);
+      });
+      expect(header).toHaveAttribute("data-detach", "idle");
+
+      act(() => {
+        Object.defineProperty(window, "scrollY", {
+          value: 0,
+          writable: true,
+          configurable: true,
+        });
+        window.dispatchEvent(new Event("scroll"));
+      });
+      expect(header).toHaveAttribute("data-detach", "attaching");
+    });
+
+    it("existe exactamente una superficie [data-nav-surface], oculta a lectores de pantalla", () => {
+      const { container } = renderNavbar();
+      const surfaces = container.querySelectorAll("[data-nav-surface]");
+
+      expect(surfaces).toHaveLength(1);
+      expect(surfaces[0]).toHaveAttribute("aria-hidden", "true");
+    });
+
+    it("con scroll, el contenedor de geometría computa max-width=grid.navMax y la superficie computa border-radius=radius.xl (contra el token importado)", () => {
+      // `ScNav` (el `<nav>`) es hijo directo de `ScBar`, el contenedor de
+      // geometría: no hay ningún atributo propio que lo distinga, así que se
+      // llega a él por relación de parentesco, no por un selector nuevo.
+      const { container } = renderNavbar();
+      const nav = screen.getByRole("navigation");
+      const geometryContainer = nav.parentElement as HTMLElement;
+      const surface = container.querySelector(
+        "[data-nav-surface]",
+      ) as HTMLElement;
+
+      scrollPast();
+
+      expect(getComputedStyle(geometryContainer).maxWidth).toBe(
+        basicLightTheme.grid.navMax,
+      );
+      expect(getComputedStyle(surface).borderRadius).toBe(
+        basicLightTheme.radius.xl,
+      );
+    });
+
+    it("el CSS inyectado declara las dos animaciones solo bajo no-preference, y anula las transiciones bajo reduce", () => {
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+      // Las clases REALES de las dos capas nuevas, leidas del DOM: sin esto,
+      // buscar "cualquier regla con reduce + transition: none" pasaria en
+      // verde aunque ScBar y ScSurface se quedaran sin guard, porque ScHeader
+      // y ScNavLink ya tenian el suyo desde antes de esta tarea.
+      const surface = container.querySelector(
+        "[data-nav-surface]",
+      ) as HTMLElement;
+      const bar = screen.getByRole("navigation").parentElement as HTMLElement;
+      const claseDe = (el: HTMLElement): string =>
+        Array.from(el.classList).find((c) =>
+          reglas.some((r) => r.includes(c)),
+        ) ?? "";
+
+      for (const [nombre, clase] of [
+        ["ScSurface", claseDe(surface)],
+        ["ScBar", claseDe(bar)],
+      ] as const) {
+        expect(
+          clase,
+          `no se encontro la clase inyectada de ${nombre}`,
+        ).not.toBe("");
+        const guard = reglas.filter(
+          (regla) =>
+            regla.includes("@media (prefers-reduced-motion: reduce)") &&
+            regla.includes(clase) &&
+            regla.includes("transition: none"),
+        );
+        expect(
+          guard.length,
+          `${nombre} no anula sus transiciones bajo prefers-reduced-motion: reduce`,
+        ).toBeGreaterThan(0);
+      }
+
+      const bloqueNoPreference = reglas.find(
+        (regla) =>
+          regla.includes("@media (prefers-reduced-motion: no-preference)") &&
+          regla.includes('[data-detach="detaching"]') &&
+          regla.includes('[data-detach="attaching"]'),
+      );
+      expect(bloqueNoPreference).toBeDefined();
+      // Dos disparadores ([data-detach="detaching"] y [data-detach="attaching"])
+      // cada uno con su propia declaracion `animation:` (peelOff y stickOn,
+      // nombres hasheados por styled-components, así que se cuentan las
+      // declaraciones en vez de buscar el nombre literal).
+      expect(
+        (bloqueNoPreference?.match(/animation:/g) ?? []).length,
+      ).toBeGreaterThanOrEqual(2);
+
+      const bloqueReduce = reglas.filter(
+        (regla) =>
+          regla.includes("@media (prefers-reduced-motion: reduce)") &&
+          regla.includes("transition: none"),
+      );
+      expect(bloqueReduce.length).toBeGreaterThan(0);
     });
   });
 });
