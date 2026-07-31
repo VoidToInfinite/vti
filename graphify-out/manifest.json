@@ -135,13 +135,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.test.tsx": {
-    "mtime": 1785484953.634467,
-    "ast_hash": "9409fd5f2dfb68264df0293564dfa761",
+    "mtime": 1785502631.4773002,
+    "ast_hash": "00393567ec3dc399783579347d703fa7",
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.tsx": {
-    "mtime": 1785484953.635467,
-    "ast_hash": "93e0f89a01f79af627e06b1152e365d8",
+    "mtime": 1785502484.5603752,
+    "ast_hash": "7d79f87a2f8312697f104b4b3cfc977a",
     "semantic_hash": ""
   },
   "src/components/ui/Button/Button.test.tsx": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "src/theme/GlobalStyles.tsx": {
-    "mtime": 1785488107.7419987,
-    "ast_hash": "b8f465d789c54eea2e152934e8381d5e",
+    "mtime": 1785499730.4599905,
+    "ast_hash": "c2a92646550792abc281ab19bcb83fc4",
     "semantic_hash": ""
   },
   "src/theme/ThemeProvider.tsx": {
@@ -1010,8 +1010,8 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.layers.ts": {
-    "mtime": 1785484953.635467,
-    "ast_hash": "ca556b4b7ab9e706caade87d0882ea07",
+    "mtime": 1785499696.5564075,
+    "ast_hash": "0011ba01a3c9b1c310c8a3fe8c5367bb",
     "semantic_hash": ""
   },
   "src/components/sections/hero-story.integration.test.tsx": {
@@ -1500,12 +1500,12 @@
     "semantic_hash": ""
   },
   "src/components/storyCosmicHeart/storyCosmicHeart.layers.ts": {
-    "mtime": 1785484953.6384678,
-    "ast_hash": "e4cad8ac7ee62dc004889be04fd6b927",
+    "mtime": 1785499705.6987424,
+    "ast_hash": "c1690bafda5a3f72dfe55780f374886e",
     "semantic_hash": ""
   },
   "src/components/storyCosmicHeart/storyCosmicHeart.parts.tsx": {
-    "mtime": 1785484953.6394682,
+    "mtime": 1785498530.8269885,
     "ast_hash": "b7836d238bcf3320a299d8fee87ec449",
     "semantic_hash": ""
   },
@@ -1957,6 +1957,36 @@
   "docs/superpowers/specs/2026-07-31-navbar-scroll-detach-design.md": {
     "mtime": 1785491664.9953341,
     "ast_hash": "7d2cb6ed53d4fe22e43ccb2cd1d62808",
+    "semantic_hash": ""
+  },
+  "src/components/sections/Story/story.deck.tsx": {
+    "mtime": 1785502631.2839856,
+    "ast_hash": "7c16ce3ded0caeceb52d5d04911236d7",
+    "semantic_hash": ""
+  },
+  "src/components/sections/Story/story.layers.test.ts": {
+    "mtime": 1785502631.3271778,
+    "ast_hash": "84e6969826a67d75564e84855f2a05d1",
+    "semantic_hash": ""
+  },
+  "src/hooks/useStoryDeck.test.tsx": {
+    "mtime": 1785502631.595745,
+    "ast_hash": "daffab3a044e3f0413730f53f3dba548",
+    "semantic_hash": ""
+  },
+  "src/hooks/useStoryDeck.ts": {
+    "mtime": 1785502631.6545506,
+    "ast_hash": "c515108959000ec18e5705883ab6b8d9",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-31-story-deck-hero-transition.md": {
+    "mtime": 1785502632.0815039,
+    "ast_hash": "e67a02b71b5fca5a8e10dca9642a8e7c",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-31-story-deck-hero-transition-design.md": {
+    "mtime": 1785502631.985227,
+    "ast_hash": "c0dee3a43ff51e7e44568e0755d7e0a7",
     "semantic_hash": ""
   }
 }

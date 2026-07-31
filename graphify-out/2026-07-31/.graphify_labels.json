@@ -166,5 +166,7 @@
   "164": "useSceneParallax.ts",
   "165": "Story.test.tsx",
   "166": "Logo.tsx",
-  "167": "ThemeProvider.tsx"
+  "167": "ThemeProvider.tsx",
+  "168": "Story como presentación de 6 diapositivas + transición Hero→Story — Implementation Plan",
+  "169": "BrandName.test.tsx"
 }
