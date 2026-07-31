@@ -1,8 +1,14 @@
 "use client";
 import styled, { css } from "styled-components";
+import { gradientTextClip } from "@/components/layout/Brand/BrandName";
 import {
   STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
+  STORY_DECK_NOTE_SIZE,
+  STORY_DECK_PILLAR_BODY_SIZE,
+  STORY_DECK_PILLAR_SUBTITLE_SIZE,
+  STORY_DECK_PILLAR_TITLE_SIZE,
+  STORY_DECK_TITLE_SIZE,
   STORY_DECK_TRACK_HEIGHT,
   STORY_SCENE_DEPTH_SHIFT,
   STORY_SCRUB_MS,
@@ -290,6 +296,166 @@ export const ScRailMark = styled.span<{ $index: number }>`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
+
+/*
+ * Escala tipografica de cartel de la diapositiva (spec
+ * 2026-07-31-story-deck-tipografia-design.md, Task 2). Elementos PLANOS
+ * (styled.h2/styled.p/styled.span), NO styled(Typography), por dos motivos:
+ *
+ * 1) Desacople de la rama clara. La constante `heading` de Story.tsx (kicker
+ *    + h2 + body) se construia UNA vez y la consumian las dos ramas: la
+ *    clara directamente, la oscura por prop. Si el h2/body de esta
+ *    diapositiva reutilizaran `ScTitle`/`ScBody` (los `styled(Typography)`
+ *    de la rama clara), cualquier ajuste de tamano aqui se filtraria
+ *    tambien al tema claro. Por eso `StoryDeckDark` (Story.tsx) compone su
+ *    PROPIO heading con los styled de este archivo, y `ScTitle`/`ScBody` de
+ *    Story.tsx quedan intactos, exclusivos de la rama clara.
+ * 2) `styled(Typography)` con un `as` que cambie el elemento de salida tiene
+ *    una trampa medida en este repo (Registro 2026-07-28, `task/lessons.md`):
+ *    en styled-components v6 el prop `as` lo CONSUME el propio wrapper --
+ *    renderiza el elemento pelado y descarta el componente envuelto -- asi
+ *    que el nodo pierde TODA la escala tipografica de Typography y
+ *    `variant` se cuela como atributo HTML invalido en el DOM (la salida
+ *    correcta es `forwardedAs`, ver ScSubtitle en Hero.tsx). Estas piezas no
+ *    necesitan Typography en absoluto: son de UNA composicion (un cartel a
+ *    pantalla completa), no filas de una lista que reutilicen la escala del
+ *    sitio -- son planas desde el principio, sin esa trampa que evitar.
+ *
+ * Familia y color salen de los MISMOS tokens que Typography aplica a
+ * CUALQUIER variante, titular o de cuerpo (`ScTypography` en Typography.tsx
+ * fija `font-family: type.fontBody` y `color: semantic.text` igual para las
+ * doce variantes de la escala -- no hay "familia de titular" distinta de
+ * "familia de cuerpo" que inventar). Peso/interlineado/tracking si seguian
+ * la variante concreta que cada pieza sustituye (h2/h5/body/bodySm), para
+ * conservar el mismo ritmo visual que ya tenian: en esta entrega solo el
+ * TAMANO es nuevo (las cinco constantes de story.layers.ts).
+ */
+export const ScDeckTitle = styled.h2`
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-size: ${STORY_DECK_TITLE_SIZE};
+  font-weight: ${({ theme }) => theme.data.type.scale.h2.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.h2.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.h2.tracking};
+  /* Mismo comportamiento que Typography ya aplicaba automaticamente a sus
+     variantes de encabezado (ScTypography: variant.startsWith("h")) -- se
+     conserva al pasar a elemento plano, no es una adicion nueva. */
+  text-wrap: balance;
+  margin-block-start: ${({ theme }) => theme.data.space[3]};
+`;
+
+/*
+ * Cuerpo de la diapositiva de intro (`Home.story.body`): mismo tamano/peso
+ * que la variante "body" que ya aportaba `ScBody` -- esta pieza no forma
+ * parte del encargo de los cinco tamanos de cartel, asi que no se le
+ * asigna ninguna constante nueva de story.layers.ts; el token del sistema
+ * (`type.scale.body`) ya es el correcto para ella.
+ */
+export const ScDeckIntroBody = styled.p`
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-size: ${({ theme }) => theme.data.type.scale.body.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
+  margin-block-start: ${({ theme }) => theme.data.space[5]};
+  max-width: ${({ theme }) => theme.data.grid.prose};
+`;
+
+/*
+ * Titulo de la diapositiva de pilar (`01 --`..`04 --` + nombre): antes
+ * `Typography variant="h5" as="p"` en Story.tsx. Se mantiene como `<p>`, no
+ * `<h3>`/`<h5>`: el `h2#story-title` de la diapositiva de intro es el UNICO
+ * encabezado accesible de la seccion entera (regla dura de la Task 2).
+ * Peso/interlineado/tracking de h5 se conservan tal cual; solo el tamano
+ * crece a STORY_DECK_PILLAR_TITLE_SIZE (encargo: 3rem en pantallas grandes).
+ */
+export const ScDeckPillarTitle = styled.p`
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-size: ${STORY_DECK_PILLAR_TITLE_SIZE};
+  font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.h5.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.h5.tracking};
+`;
+
+/*
+ * Subtitulo de la diapositiva de pilar: el texto que hoy vive en
+ * `pillars.<key>.body` (la clave NO se renombra, T2 de la spec), pintado en
+ * el rol de SUBTITULO. STORY_DECK_PILLAR_SUBTITLE_SIZE (1rem, sin clamp)
+ * coincide exactamente con el tamano base de lectura del sitio
+ * (`type.scale.body.size`), asi que este elemento toma tambien su
+ * peso/interlineado/tracking -- no los de `bodySm` (0.875rem), que era la
+ * variante que usaba ANTES de promoverse a subtitulo.
+ */
+export const ScDeckPillarSubtitle = styled.p`
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-size: ${STORY_DECK_PILLAR_SUBTITLE_SIZE};
+  font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
+`;
+
+/*
+ * Cuerpo de la diapositiva de pilar: el texto de inspiracion NUEVO
+ * (`pillars.<key>.inspiration`, cuatro frases por pilar). `text-wrap:
+ * balance`, no `text-wrap-style: balance` (T6 de la spec): el encargo
+ * nombra la longhand de CSS Text 4, pero su soporte es mas estrecho que el
+ * de la shorthand `text-wrap` para el MISMO efecto -- repartir las lineas
+ * de forma equilibrada en vez de dejar una ultima linea corta suelta.
+ */
+export const ScDeckPillarBody = styled.p`
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-size: ${STORY_DECK_PILLAR_BODY_SIZE};
+  font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
+  text-wrap: balance;
+  margin-block-start: ${({ theme }) => theme.data.space[2]};
+`;
+
+/*
+ * Nota de cierre (diapositiva 5), partida en noteLead (este elemento) +
+ * ScDeckNoteAccent (span hijo, ver mas abajo -- T3 de la spec: envolver
+ * "new beginning"/"nuevo comienzo" exige dos nodos de texto).
+ * `color: textMuted` se conserva de la version anterior (`ScNote` en
+ * Story.tsx tenia el mismo override): no es un cambio de este encargo.
+ *
+ * `line-height` CUSTOM, y esto si es nuevo: a 8rem, el interlineado de
+ * `bodySm` (1.55, un FACTOR unitless) resuelve a ~12.4rem entre lineas --
+ * un hueco enorme que se lee como parrafos sueltos, no como el cierre
+ * climatico de la presentacion. Se sustituye por
+ * `type.scale.display.lineHeight` (1.03): el MISMO token que `ScHeroBrand`
+ * (Hero.tsx) ya usa para el identico problema (un factor unitless que abre
+ * demasiado a tamano de cartel) -- se reutiliza el valor ya calibrado del
+ * sistema para texto grande en vez de inventar un numero nuevo para esta
+ * composicion.
+ */
+export const ScDeckNote = styled.p`
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  font-size: ${STORY_DECK_NOTE_SIZE};
+  font-weight: ${({ theme }) => theme.data.type.scale.bodyLg.weight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.bodySm.tracking};
+  line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
+  text-wrap: balance;
+  margin-block-start: ${({ theme }) => theme.data.space[6]};
+`;
+
+/*
+ * "new beginning"/"nuevo comienzo" (noteAccent): MISMO tratamiento que
+ * "ToInfinite" en el h1 del Hero (T7 de la spec) -- `gradientTextClip`
+ * IMPORTADO de BrandName.tsx, sin duplicar el degradado, para que la nota y
+ * el Hero recorran exactamente el mismo color en el mismo instante. Trae
+ * sus tres redes de seguridad incluidas (reduced-motion, @supports sin
+ * background-clip: text, `text-shadow: none` obligatorio). El tamano lo
+ * hereda de `ScDeckNote`, su padre -- no hace falta redeclararlo aqui.
+ */
+export const ScDeckNoteAccent = styled.span`
+  ${gradientTextClip}
 `;
 
 /*

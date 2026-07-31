@@ -10,7 +10,13 @@ import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
 import { Story } from "./Story";
-import { STORY_DARK_MAX_WIDTH, STORY_SLIDES } from "./story.layers";
+import {
+  STORY_DARK_MAX_WIDTH,
+  STORY_DECK_NOTE_SIZE,
+  STORY_DECK_PILLAR_TITLE_SIZE,
+  STORY_DECK_TITLE_SIZE,
+  STORY_SLIDES,
+} from "./story.layers";
 
 /*
  * Reescritura completa (spec 2026-07-28, D3/D4): Story ya no es una
@@ -264,11 +270,19 @@ describe("Story en tema oscuro", () => {
     ).toBeInTheDocument();
   });
 
-  it("la nota se muestra como texto simple, sin la tarjeta ni el sparkle de claro", async () => {
+  it("la nota se muestra como noteLead + noteAccent en su propio elemento, sin la tarjeta ni el sparkle de claro", async () => {
+    // Sustituye al test que aseveraba `getByText(note)` (spec
+    // 2026-07-31-story-deck-tipografia-design.md T3): la nota ya no es un
+    // unico nodo de texto, se parte en noteLead + un span con noteAccent.
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
-      expect(screen.getByText(esHome.Home.story.note)).toBeInTheDocument();
+      expect(screen.getByText(esHome.Home.story.noteLead)).toBeInTheDocument();
     });
+    const accent = screen.getByText(esHome.Home.story.noteAccent);
+    // noteAccent vive en un ELEMENTO PROPIO, no en el mismo nodo de texto
+    // que noteLead.
+    expect(accent.tagName).toBe("SPAN");
+    expect(accent).not.toBe(screen.getByText(esHome.Home.story.noteLead));
     expect(container.querySelector("svg")).not.toBeInTheDocument();
   });
 
@@ -338,10 +352,15 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
       ).toBeInTheDocument();
     });
 
-    // Diapositiva 5: la nota de cierre.
+    // Diapositiva 5: la nota de cierre, partida en noteLead + noteAccent
+    // (T3 de la spec 2026-07-31-story-deck-tipografia-design.md): la nota
+    // ya no es un unico nodo de texto (sustituye a la aserción anterior
+    // sobre `esHome.Home.story.note`).
     expect(
-      within(slides[5]).getByText(esHome.Home.story.note),
+      within(slides[5]).getByText(esHome.Home.story.noteLead),
     ).toBeInTheDocument();
+    const accent = within(slides[5]).getByText(esHome.Home.story.noteAccent);
+    expect(accent.tagName).toBe("SPAN");
   });
 
   it("el stage arranca con data-slide=0 y data-dir=forward (estado de reposo del hook, sin scroll)", async () => {
@@ -414,5 +433,116 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     await waitFor(() => {
       expect(container.querySelectorAll("img")).toHaveLength(8);
     });
+  });
+});
+
+/*
+ * Tarea 2 (spec 2026-07-31-story-deck-tipografia-design.md): escala
+ * tipografica de cartel de la diapositiva oscura + texto de inspiracion por
+ * pilar + nota partida en noteLead/noteAccent con el mismo tratamiento que
+ * "ToInfinite" en el Hero. Mismas advertencias de jsdom que el resto del
+ * archivo: tamaños por `getComputedStyle` contra la CONSTANTE importada
+ * (nunca un literal), `text-wrap: balance` por TEXTO del CSS inyectado.
+ */
+describe("Story: escala tipografica y texto de inspiracion de la diapositiva (tema oscuro)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("cada diapositiva de pilar muestra su title, su body (subtitulo) y su inspiration", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const slides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ) as HTMLElement[];
+    const pillarKeys = ["learn", "create", "grow", "practice"] as const;
+
+    pillarKeys.forEach((key, i) => {
+      const slide = slides[i + 1];
+      expect(
+        within(slide).getByText(esHome.Home.story.pillars[key].title),
+      ).toBeInTheDocument();
+      expect(
+        within(slide).getByText(esHome.Home.story.pillars[key].body),
+      ).toBeInTheDocument();
+      expect(
+        within(slide).getByText(esHome.Home.story.pillars[key].inspiration),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("el h2 de la diapositiva de intro computa STORY_DECK_TITLE_SIZE (constante importada)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelector("h2#story-title")).toBeInTheDocument();
+    });
+    const title = container.querySelector("h2#story-title") as HTMLElement;
+    expect(getComputedStyle(title).fontSize).toBe(STORY_DECK_TITLE_SIZE);
+  });
+
+  it("el titulo de la diapositiva de pilar computa STORY_DECK_PILLAR_TITLE_SIZE", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const pillarTitle = screen.getByText(esHome.Home.story.pillars.learn.title);
+    expect(getComputedStyle(pillarTitle).fontSize).toBe(
+      STORY_DECK_PILLAR_TITLE_SIZE,
+    );
+  });
+
+  it("la nota de cierre computa STORY_DECK_NOTE_SIZE", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const noteLead = screen.getByText(esHome.Home.story.noteLead);
+    expect(getComputedStyle(noteLead).fontSize).toBe(STORY_DECK_NOTE_SIZE);
+  });
+
+  it("noteAccent esta en un elemento PROPIO, no en el mismo nodo de texto que noteLead", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const noteLead = screen.getByText(esHome.Home.story.noteLead);
+    const noteAccent = screen.getByText(esHome.Home.story.noteAccent);
+    expect(noteAccent).not.toBe(noteLead);
+    expect(noteAccent.tagName).toBe("SPAN");
+  });
+
+  it("el cuerpo de pilar (inspiration) y la nota declaran text-wrap: balance en el CSS inyectado", async () => {
+    // jsdom no evalua NINGUN efecto de layout de text-wrap (leccion
+    // 2026-07-27 repetida en todo este archivo): se ata por TEXTO de la
+    // regla inyectada, con el mismo helper que ya usa el resto de la suite.
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const inspiration = screen.getByText(
+      esHome.Home.story.pillars.learn.inspiration,
+    );
+    const note = screen.getByText(esHome.Home.story.noteLead);
+
+    for (const el of [inspiration, note]) {
+      const css = cssRuleTextFor(el);
+      expect(css).toMatch(/text-wrap:\s*balance/);
+    }
   });
 });

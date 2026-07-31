@@ -1,5 +1,5 @@
 "use client";
-import { useRef, type ReactElement, type ReactNode } from "react";
+import { useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes, type DefaultTheme } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
@@ -9,6 +9,13 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { StoryCosmicHeart } from "@/components/storyCosmicHeart/StoryCosmicHeart";
 import {
   ScDeck,
+  ScDeckIntroBody,
+  ScDeckNote,
+  ScDeckNoteAccent,
+  ScDeckPillarBody,
+  ScDeckPillarSubtitle,
+  ScDeckPillarTitle,
+  ScDeckTitle,
   ScRail,
   ScRailMark,
   ScSceneWrap,
@@ -308,16 +315,6 @@ const ScDeckPillarRow = styled(ScPillarRow)`
   padding-block: 0;
 `;
 
-/* Nota de cierre de la rama oscura (diapositiva 5): texto simple, sin la
-   tarjeta ni el sparkle de la rama clara (spec 2026-07-29 D8) -- esta
-   composicion no tiene sitio para una tarjeta sin tapar el nucleo del
-   corazon. Reutilizada tal cual dentro de su propia ScSlide (story.deck.tsx)
-   desde la presentacion de 6 diapositivas. */
-const ScNote = styled(Typography)`
-  margin-block-start: ${({ theme }) => theme.data.space[6]};
-  color: ${({ theme }) => theme.data.semantic.textMuted};
-`;
-
 export function Story(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
@@ -422,19 +419,30 @@ export function Story(): ReactElement {
   // cuando `themeName !== "light"` resuelve esto sin tocar useStoryDeck.ts
   // ni los tests claros: React nunca ejecuta los hooks de un componente que
   // no se renderiza.
-  return <StoryDeckDark heading={heading} />;
+  return <StoryDeckDark />;
 }
 
 /*
  * Rama oscura de Story, extraida a su propio componente (ver el comentario
  * de mas arriba, en Story()): aqui SI es seguro llamar useStoryDeck sin
  * condicion, porque este componente en si mismo solo se monta cuando la
- * rama oscura esta activa. `heading` llega ya construido desde Story() (con
- * el `t` de esa funcion) para no duplicar la logica del kicker/h2/body; el
- * resto (pilares, nota, rail, anclas de snap) se construye aqui con su
- * PROPIO `t`, mismo namespace/instancia de i18n, mismo resultado.
+ * rama oscura esta activa.
+ *
+ * YA NO recibe `heading` por prop (spec 2026-07-31-story-deck-tipografia-design.md,
+ * Task 2): antes se construia UNA vez en Story() y lo consumian las dos
+ * ramas -- la clara directamente, la oscura por prop, el MISMO nodo en las
+ * dos. Con la escala tipografica de cartel de esta entrega (h2 hasta 4rem)
+ * eso deja de ser seguro: cualquier cambio de tamano sobre ese nodo
+ * compartido se habria filtrado tambien al tema claro. Por eso este
+ * componente compone su PROPIO kicker/h2/body con los styled de
+ * story.deck.tsx (`ScDeckTitle`/`ScDeckIntroBody`), mientras Story()
+ * conserva `heading` (con `ScKicker`/`ScTitle`/`ScAccent`/`ScBody`) intacto,
+ * exclusivo de la rama clara. `ScKicker`/`ScAccent` SI se reutilizan tal
+ * cual (no cambian de tamano en este encargo, no hay riesgo de fuga). El
+ * resto (pilares, nota, rail, anclas de snap) ya se construia aqui con su
+ * PROPIO `t`, mismo namespace/instancia de i18n que Story().
  */
-function StoryDeckDark({ heading }: { heading: ReactNode }): ReactElement {
+function StoryDeckDark(): ReactElement {
   const { t } = useTranslation("home");
 
   // Refs ESTABLES (useRef, no callback-ref): useStoryDeck lee
@@ -481,7 +489,13 @@ function StoryDeckDark({ heading }: { heading: ReactNode }): ReactElement {
               data-slide-index={0}
               data-state={slideState(0)}
             >
-              {heading}
+              <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
+              <ScDeckTitle id="story-title">
+                {t("Home.story.titleLead")}
+                <br />
+                <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
+              </ScDeckTitle>
+              <ScDeckIntroBody>{t("Home.story.body")}</ScDeckIntroBody>
             </ScSlide>
             {PILLARS.map((pillar, pillarIndex) => (
               <ScSlide
@@ -494,15 +508,18 @@ function StoryDeckDark({ heading }: { heading: ReactNode }): ReactElement {
                     {pillar.number} —
                   </ScPillarNumber>
                   <ScPillarCopy>
-                    <Typography
-                      variant="h5"
-                      as="p"
-                    >
+                    <ScDeckPillarTitle>
                       {t(`Home.story.pillars.${pillar.key}.title`)}
-                    </Typography>
-                    <Typography variant="bodySm">
+                    </ScDeckPillarTitle>
+                    {/* Rol de SUBTITULO (T2 de la spec): el texto que hoy
+                        vive en `pillars.<key>.body`, sin renombrar la
+                        clave -- solo cambia el rol en el que se pinta. */}
+                    <ScDeckPillarSubtitle>
                       {t(`Home.story.pillars.${pillar.key}.body`)}
-                    </Typography>
+                    </ScDeckPillarSubtitle>
+                    <ScDeckPillarBody>
+                      {t(`Home.story.pillars.${pillar.key}.inspiration`)}
+                    </ScDeckPillarBody>
                   </ScPillarCopy>
                 </ScDeckPillarRow>
               </ScSlide>
@@ -511,7 +528,15 @@ function StoryDeckDark({ heading }: { heading: ReactNode }): ReactElement {
               data-slide-index={STORY_SLIDES - 1}
               data-state={slideState(STORY_SLIDES - 1)}
             >
-              <ScNote variant="bodySm">{t("Home.story.note")}</ScNote>
+              {/* Nota partida en noteLead + noteAccent (T3 de la spec): la
+                  clave `note` se conserva intacta para la rama clara, que
+                  sigue consumiendola tal cual mas arriba en este archivo. */}
+              <ScDeckNote>
+                {t("Home.story.noteLead")}{" "}
+                <ScDeckNoteAccent>
+                  {t("Home.story.noteAccent")}
+                </ScDeckNoteAccent>
+              </ScDeckNote>
             </ScSlide>
           </ScDeck>
           {/* Rail decorativo (D13): 6 marcas, aria-hidden, que reflejan
