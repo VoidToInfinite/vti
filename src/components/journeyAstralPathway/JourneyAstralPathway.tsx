@@ -23,7 +23,7 @@ import {
  * aditivo (partición documentada en
  * `assets/journey-astral-pathway/manifest.json`), animadas con el mismo
  * hook de parallax de puntero + scroll + deriva en reposo que usa
- * `StoryCosmicHeart` (`useSceneParallax`, `@/hooks/useSceneParallax` —
+ * `StoryCosmicBeing` (`useSceneParallax`, `@/hooks/useSceneParallax` —
  * genérico, no específico de Story). Puramente decorativo (`aria-hidden`):
  * el contenido real de la sección vive en `Journey.tsx`, superpuesto encima.
  */

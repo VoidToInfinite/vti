@@ -23,7 +23,7 @@ import {
  * aditivo (partición documentada en
  * `assets/contact-neon-galaxy/manifest.json`: 1 fondo + 2 de ambientación +
  * 3 orbes por canal de contacto + figura/holograma), animadas con el mismo
- * hook de parallax que `StoryCosmicHeart`/`JourneyAstralPathway`/
+ * hook de parallax que `StoryCosmicBeing`/`JourneyAstralPathway`/
  * `FeaturesCelestialGuide` (`useSceneParallax`). Puramente decorativo
  * (`aria-hidden`): el contenido real vive en `Contact.tsx`, superpuesto a la
  * DERECHA (la figura y los orbes quedan a la izquierda del encuadre, mismo

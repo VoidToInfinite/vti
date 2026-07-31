@@ -45,8 +45,8 @@ export const STORY_ACCENT_GRADIENT_LIGHT =
  * Variante oscura del degradado de texto (spec 2026-07-29 D10): MISMA familia
  * de hue (235/255/290) que la versión clara, con luminosidad mucho mayor
  * (0.78–0.86 en vez de 0.56–0.72) para que el `background-clip: text` siga
- * siendo legible sobre el negro-violeta de `StoryCosmicHeart`
- * (`STORY_COSMIC_HEART_VOID`, `#05030f`). No hay mockup oscuro de esta
+ * siendo legible sobre el negro-violeta de `StoryCosmicBeing`
+ * (`STORY_COSMIC_BEING_VOID`, `#05010e`). No hay mockup oscuro de esta
  * sección — el spec señala explícitamente que estas paradas se verifican a
  * ojo en el paso de verificación en navegador, no con un contraste medido
  * (el helper `contrast.ts` del repo solo resuelve colores planos, no
@@ -60,7 +60,7 @@ export const STORY_ACCENT_GRADIENT_DARK =
  * spec `2026-07-31-story-deck-hero-transition-design.md`). Mismo valor
  * `1280px` que ya declaraba esta constante, pero cambia lo que acota: hasta
  * esta entrega ceñía la SECCIÓN entera (`ScStory`) a una caja centrada;
- * ahora la escena `StoryCosmicHeart` va a sangre (llena el stage a
+ * ahora la escena `StoryCosmicBeing` va a sangre (llena el stage a
  * `100vw`/`100vh`, D7) y es el deck de cada diapositiva quien queda acotado
  * a este ancho mientras la escena de fondo lo ignora. No se crea un token
  * nuevo en `grid.*`: el valor ya existía con este nombre en el propio
@@ -272,7 +272,7 @@ export const STORY_DECK_NOTE_WEIGHT = 900;
  * Hueco extra a la DERECHA del contenido de la diapositiva, solo en
  * dispositivos grandes (encargo 2026-07-31). Rompe a propósito la simetría
  * del `padding-inline` del deck: desplaza la columna de texto hacia la
- * izquierda y deja respirar el lado por el que la escena "Cosmic Heart"
+ * izquierda y deja respirar el lado por el que la escena "Cosmic Being"
  * tiene su figura y su núcleo luminoso, en vez de que el texto compita con
  * ellos por el mismo eje.
  *

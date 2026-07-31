@@ -2,7 +2,7 @@
  * Tabla de capas de la escena "Neon Galaxy" (fondo de Contact, tema oscuro).
  * Datos (orden, profundidad de parallax) medidos y documentados en
  * `assets/contact-neon-galaxy/manifest.json`, junto a los WebP fuente. Mismo
- * criterio que `storyCosmicHeart.layers.ts`/`journeyAstralPathway.layers.ts`/
+ * criterio que `storyCosmicBeing.layers.ts`/`journeyAstralPathway.layers.ts`/
  * `featuresCelestialGuide.layers.ts`.
  *
  * 7 capas: 1 fondo + 2 de ambientación + 3 orbes (uno por canal de contacto:

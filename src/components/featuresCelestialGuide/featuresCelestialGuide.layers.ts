@@ -2,7 +2,7 @@
  * Tabla de capas de la escena "Learning Guide" (fondo de Features, tema
  * oscuro). Datos (orden, profundidad de parallax) medidos y documentados en
  * `assets/features-celestial-guide/manifest.json`, junto a los WebP fuente.
- * Mismo criterio que `storyCosmicHeart.layers.ts`/
+ * Mismo criterio que `storyCosmicBeing.layers.ts`/
  * `journeyAstralPathway.layers.ts`: se declara aquí en TypeScript en vez de
  * leer el manifest en tiempo de ejecución.
  *

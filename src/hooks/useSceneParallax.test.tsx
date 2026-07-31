@@ -112,8 +112,9 @@ describe("useSceneParallax", () => {
   it("sin interseccion no se registra ningun rAF ni ningun listener de pointermove", () => {
     // Regresion que motiva toda esta entrega: sin la guarda de visibilidad,
     // el bucle arrancaba en el montaje sin importar si la escena estaba en
-    // pantalla. 4 secciones x 8 capas = 32 escrituras de `transform` por
-    // frame de forma permanente era el sintoma medido.
+    // pantalla. 4 secciones (Story 11 capas, Journey 5, Features 10, Contact
+    // 7 = 33 en total) escribiendo `transform` por frame de forma permanente
+    // era el sintoma medido.
     const raf = vi.fn().mockReturnValue(1);
     vi.stubGlobal("requestAnimationFrame", raf);
     vi.stubGlobal("cancelAnimationFrame", vi.fn());

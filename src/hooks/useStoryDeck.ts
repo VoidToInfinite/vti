@@ -56,7 +56,7 @@ function clamp(value: number, min: number, max: number): number {
  * reprograma solo al final de cada frame: eso hacía un
  * `getBoundingClientRect()` (layout forzado) a 60fps incluso con el usuario
  * inmóvil, compitiendo por el mismo hilo con el rAF de `useSceneParallax`,
- * que anima 8 capas a pantalla completa con `mix-blend-mode` en la misma
+ * que anima 11 capas a pantalla completa con `mix-blend-mode` en la misma
  * sección. En su lugar es dirigido por eventos: `scroll`/`resize` programan
  * una única medición coalescida por rAF -- mismo resultado visual, trabajo
  * cero mientras el usuario no se mueve.

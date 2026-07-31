@@ -1,0 +1,153 @@
+{
+    "name": "story-cosmic-being-layers",
+    "description": "Figura celestial con nucleo luminoso y geometria orbital, separada en 11 capas para parallax 2.5D en el fondo de Story (tema oscuro). La capa 00 es una base OPACA en blend normal; las diez restantes son aditivas (plus-lighter) y su suma reconstruye el original.",
+    "source": "Story Dark Theme 2 parallax-cosmic-being.zip (Downloads), entregado por el usuario 2026-07-31. Maestros PNG sin perdida archivados en esta misma carpeta.",
+    "canvas": {
+        "width": 3344,
+        "height": 1882,
+        "aspect": 1.77683
+    },
+    "compositing": {
+        "required": "mix-blend-mode: plus-lighter",
+        "fallback": "mix-blend-mode: screen (aprox: error medio 1.87/255)",
+        "container": "isolation: isolate; background: #05010e;"
+    },
+    "anchors": {
+        "ringCenterPct": [76.6, 36.7],
+        "heartPct": [76.2, 28.9]
+    },
+    "motionHints": {
+        "swingXpx": 46,
+        "swingYpx": 30,
+        "scrollTravelPx": 190,
+        "ease": 0.075
+    },
+    "deployed": {
+        "quality": 70,
+        "widths": [1024, 1280],
+        "rationale": "Medido sobre la escena compuesta: a q70, 1600px da 42.70 dB por 2.03 MB y 1280px da 42.15 dB por 1.37 MB. +48% de peso por +0.55 dB no compensa en una capa decorativa de fondo."
+    },
+    "layers": [
+        {
+            "file": "00-space-base",
+            "z": 0,
+            "depth": 0.0,
+            "blend": "normal",
+            "desc": "Degradado profundo del espacio. Capa opaca, base del stack.",
+            "bytes": {
+                "1280": 2616,
+                "1024": 1746
+            }
+        },
+        {
+            "file": "01-nebula",
+            "z": 1,
+            "depth": 0.1,
+            "blend": "plus-lighter",
+            "desc": "Nubes de nebulosa purpura y magenta.",
+            "bytes": {
+                "1280": 399436,
+                "1024": 259520
+            }
+        },
+        {
+            "file": "02-galaxy",
+            "z": 2,
+            "depth": 0.12,
+            "blend": "plus-lighter",
+            "desc": "Galaxia espiral inferior y su halo.",
+            "bytes": {
+                "1280": 39332,
+                "1024": 25674
+            }
+        },
+        {
+            "file": "03-stars-far",
+            "z": 3,
+            "depth": 0.16,
+            "blend": "plus-lighter",
+            "desc": "Estrellas debiles.",
+            "bytes": {
+                "1280": 73722,
+                "1024": 57500
+            }
+        },
+        {
+            "file": "04-stars-mid",
+            "z": 4,
+            "depth": 0.24,
+            "blend": "plus-lighter",
+            "desc": "Estrellas de brillo medio.",
+            "bytes": {
+                "1280": 64490,
+                "1024": 48116
+            }
+        },
+        {
+            "file": "05-stars-near",
+            "z": 5,
+            "depth": 0.36,
+            "blend": "plus-lighter",
+            "desc": "Estrellas brillantes.",
+            "bytes": {
+                "1280": 35768,
+                "1024": 26350
+            }
+        },
+        {
+            "file": "06-orbs",
+            "z": 6,
+            "depth": 0.44,
+            "blend": "plus-lighter",
+            "desc": "Las dos esferas translucidas.",
+            "bytes": {
+                "1280": 8840,
+                "1024": 5944
+            }
+        },
+        {
+            "file": "07-geometry",
+            "z": 7,
+            "depth": 0.56,
+            "blend": "plus-lighter",
+            "desc": "Anillos orbitales, hexagonos, lineas punteadas y circulos HUD.",
+            "bytes": {
+                "1280": 652134,
+                "1024": 426698
+            }
+        },
+        {
+            "file": "08-figure-aura",
+            "z": 8,
+            "depth": 0.63,
+            "blend": "plus-lighter",
+            "desc": "Halo exterior de la figura.",
+            "bytes": {
+                "1280": 90336,
+                "1024": 61266
+            }
+        },
+        {
+            "file": "09-figure",
+            "z": 9,
+            "depth": 0.68,
+            "blend": "plus-lighter",
+            "desc": "Cuerpo de la figura con su textura de particulas.",
+            "bytes": {
+                "1280": 45710,
+                "1024": 31282
+            }
+        },
+        {
+            "file": "10-heart-core",
+            "z": 10,
+            "depth": 0.72,
+            "blend": "plus-lighter",
+            "desc": "Destello del pecho.",
+            "bytes": {
+                "1280": 19898,
+                "1024": 13546
+            }
+        }
+    ]
+}

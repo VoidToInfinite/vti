@@ -7,7 +7,7 @@ import {
 
 /*
  * Marco de la escena: `isolation: isolate` la convierte en el grupo de
- * blending -- mismo motivo que `ScScene` en `storyCosmicHeart.parts.tsx`.
+ * blending -- mismo motivo que `ScScene` en `storyCosmicBeing.parts.tsx`.
  */
 export const ScScene = styled.div`
   position: absolute;
@@ -26,7 +26,7 @@ export const ScVoid = styled.div`
 /*
  * Una capa. El parallax (rAF de `useSceneParallax`) y el `mix-blend-mode`
  * viven en el MISMO elemento -- mismo motivo que `ScLayer` en
- * `storyCosmicHeart.parts.tsx` (un envoltorio con `transform` aislaria el
+ * `storyCosmicBeing.parts.tsx` (un envoltorio con `transform` aislaria el
  * blending de su contenido). Esta escena no tiene una capa con pulso propio
  * (a diferencia del nucleo del corazon de Story): las 5 capas solo llevan el
  * parallax.
@@ -50,7 +50,7 @@ export const ScLayer = styled.img`
 
 /*
  * Viñeta de legibilidad, mismo criterio que `ScVignette` en
- * `storyCosmicHeart.parts.tsx`: vive FUERA de `ScScene` en el JSX para no
+ * `storyCosmicBeing.parts.tsx`: vive FUERA de `ScScene` en el JSX para no
  * heredar su grupo de blending. Tope opaco = MISMO literal que `ScVoid`
  * (continuidad de color).
  */

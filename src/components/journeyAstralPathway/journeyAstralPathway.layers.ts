@@ -2,7 +2,7 @@
  * Tabla de capas de la escena "Astral Pathway" (fondo de Journey, tema
  * oscuro). Datos (orden, profundidad de parallax) medidos y documentados en
  * `assets/journey-astral-pathway/manifest.json`, junto a los WebP fuente.
- * Mismo criterio que `storyCosmicHeart.layers.ts`: se declara aquí en
+ * Mismo criterio que `storyCosmicBeing.layers.ts`: se declara aquí en
  * TypeScript en vez de leer el manifest en tiempo de ejecución.
  */
 

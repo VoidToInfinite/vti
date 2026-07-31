@@ -52,7 +52,7 @@ export const ScTrack = styled.div`
  * unico que le queda a esta composicion (D15b/D15c): ScStory, mas arriba en
  * el arbol, PIERDE el suyo, porque cualquier ancestro con overflow distinto
  * de visible/clip rompe position: sticky. El recorte del overscan de la
- * escena (StoryCosmicHeart se escala 1.06x) lo hace este elemento, que no es
+ * escena (StoryCosmicBeing se escala 1.06x) lo hace este elemento, que no es
  * ancestro de si mismo.
  *
  * La interpolacion de escala/radio usa --story-enter con su valor por
@@ -90,11 +90,11 @@ export const ScStage = styled.div`
 
 /*
  * Envoltura de la escena (D10): con el stage pegado, rect.top de
- * StoryCosmicHeart se queda en ~0 por definicion, asi que el termino de
+ * StoryCosmicBeing se queda en ~0 por definicion, asi que el termino de
  * scroll de useSceneParallax no aporta profundidad durante el pase de
  * diapositivas -- comportamiento CORRECTO, no un bug a compensar tocando ese
  * hook (lo comparten Journey/Features/Contact). Este envoltorio, por ENCIMA
- * de ScScene (que ya lleva isolation: isolate en storyCosmicHeart.parts.tsx),
+ * de ScScene (que ya lleva isolation: isolate en storyCosmicBeing.parts.tsx),
  * devuelve esa sensacion de profundidad con un transform propio gobernado
  * por --story-progress, sin arriesgar ninguna otra seccion.
  */
@@ -129,7 +129,7 @@ export const ScSceneWrap = styled.div`
   transform: translateY(
     calc(${STORY_SCENE_DEPTH_SHIFT} * var(--story-progress, 0))
   );
-  /* Esta capa se traslada en cada frame de scroll y contiene las 8 capas
+  /* Esta capa se traslada en cada frame de scroll y contiene las 11 capas
      de la escena con mix-blend-mode: sin promoverla, cada desplazamiento
      obliga a recomponer ese grupo entero en el hilo principal. Declararlo
      aqui, y no en un estado transitorio, es correcto en este caso concreto

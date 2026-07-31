@@ -247,10 +247,10 @@ describe("Story en tema oscuro", () => {
     window.localStorage.clear();
   });
 
-  it("monta la escena Cosmic Heart (8 capas decorativas) en vez de la figura/tarjeta de claro", async () => {
+  it("monta la escena Cosmic Being (11 capas decorativas) en vez de la figura/tarjeta de claro", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
-      expect(container.querySelectorAll("img")).toHaveLength(8);
+      expect(container.querySelectorAll("img")).toHaveLength(11);
     });
     container
       .querySelectorAll("img")
@@ -428,10 +428,10 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     expect(topLevelDeckCss).not.toContain("@keyframes");
   });
 
-  it("las 8 capas de la escena siguen presentes dentro de la presentacion", async () => {
+  it("las 11 capas de la escena siguen presentes dentro de la presentacion", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
-      expect(container.querySelectorAll("img")).toHaveLength(8);
+      expect(container.querySelectorAll("img")).toHaveLength(11);
     });
   });
 });

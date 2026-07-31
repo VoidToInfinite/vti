@@ -23,7 +23,7 @@ import {
  * aditivo (partición documentada en
  * `assets/features-celestial-guide/manifest.json`: 1 fondo + 2 de
  * ambientación + 6 orbes + figura/holograma), animadas con el mismo hook de
- * parallax de puntero + scroll + deriva en reposo que `StoryCosmicHeart`/
+ * parallax de puntero + scroll + deriva en reposo que `StoryCosmicBeing`/
  * `JourneyAstralPathway` (`useSceneParallax`). Sustituye la primera entrega
  * de esta sección (imagen plana única, sin capas — el paquete original no
  * traía parallax). Puramente decorativo (`aria-hidden`): el contenido real

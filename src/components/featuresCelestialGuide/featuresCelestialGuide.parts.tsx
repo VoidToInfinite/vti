@@ -7,7 +7,7 @@ import {
 
 /*
  * Marco de la escena: `isolation: isolate` la convierte en el grupo de
- * blending -- mismo motivo que `ScScene` en `storyCosmicHeart.parts.tsx`/
+ * blending -- mismo motivo que `ScScene` en `storyCosmicBeing.parts.tsx`/
  * `journeyAstralPathway.parts.tsx`.
  */
 export const ScScene = styled.div`

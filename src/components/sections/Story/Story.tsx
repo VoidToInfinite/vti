@@ -6,7 +6,7 @@ import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useStoryDeck } from "@/hooks/useStoryDeck";
 import { useTheme } from "@/theme/ThemeProvider";
-import { StoryCosmicHeart } from "@/components/storyCosmicHeart/StoryCosmicHeart";
+import { StoryCosmicBeing } from "@/components/storyCosmicBeing/StoryCosmicBeing";
 import {
   ScDeck,
   ScDeckIntroBody,
@@ -48,7 +48,7 @@ import {
  *
  * Rama OSCURA (spec 2026-07-29): no hay mockup oscuro de esta seccion. En
  * vez de la figura recortada + halo + tarjeta flotante, el fondo es la
- * escena parallax `StoryCosmicHeart` (8 capas, D1-D12 del spec) y el
+ * escena parallax `StoryCosmicBeing` (11 capas, D1-D12 del spec) y el
  * contenido (mismo i18n `Home.story.*`) se superpone encima. La nota
  * (`Home.story.note`) se conserva como linea de cierre bajo los pilares,
  * SIN la tarjeta flotante ni el icono sparkle (D8): esta composicion no
@@ -62,7 +62,7 @@ import {
 /* Flotacion compartida por la figura y la tarjeta de nota EN CLARO (mismo
    keyframe que el mockup reutiliza con dos duraciones distintas, ver
    story.layers.ts). La rama oscura no la usa: su unica animacion es el
-   pulso del nucleo, declarado en storyCosmicHeart.parts.tsx. */
+   pulso del nucleo, declarado en storyCosmicBeing.parts.tsx. */
 const float = keyframes`
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(${STORY_FLOAT_AMPLITUDE}); }
@@ -246,7 +246,7 @@ const ScTitle = styled(Typography)`
 
 /* Degradado seleccionado por tema (spec 2026-07-29 D10): mismas paradas de
    hue, luminosidad mucho mayor en oscuro para que el background-clip:text
-   siga siendo legible sobre el negro-violeta de StoryCosmicHeart. */
+   siga siendo legible sobre el negro-violeta de StoryCosmicBeing. */
 const ScAccent = styled.span`
   background-image: ${({ theme }) =>
     theme.data.isLight
@@ -449,7 +449,7 @@ function StoryDeckDark(): ReactElement {
   // getBoundingClientRect() de la pista en cada frame de rAF y escribe las
   // variables CSS de la coreografia directamente sobre el stage -- mismo
   // motivo por el que useSceneParallax exige refs de identidad estable en
-  // vez de callbacks (storyCosmicHeart.tsx).
+  // vez de callbacks (StoryCosmicBeing.tsx).
   const trackRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const { index, direction } = useStoryDeck(trackRef, stageRef, STORY_SLIDES);
@@ -482,7 +482,7 @@ function StoryDeckDark(): ReactElement {
           data-dir={direction}
         >
           <ScSceneWrap>
-            <StoryCosmicHeart />
+            <StoryCosmicBeing />
           </ScSceneWrap>
           <ScDeck>
             <ScSlide

@@ -32,7 +32,7 @@ const DEFAULT_IDLE_MS = 2200;
 
 /**
  * Parallax de puntero + scroll + deriva en reposo para UNA escena a sangre
- * (`StoryCosmicHeart`, spec 2026-07-29 §5). Distinto de `useParallaxLayers`
+ * (`StoryCosmicBeing`, spec 2026-07-29 §5). Distinto de `useParallaxLayers`
  * (Eye/Aura, que solo sigue al puntero): aqui hace falta ademas un termino de
  * scroll y una deriva lenta cuando nadie toca el puntero, asi que se declara
  * un hook nuevo en vez de anadir features a uno compartido que ya sirve al
@@ -54,9 +54,9 @@ const DEFAULT_IDLE_MS = 2200;
  * patron que `useStoryDeck`): sin ella, el bucle de rAF de abajo se
  * reprogramaba a si mismo desde el montaje y para siempre, sin importar si
  * `sceneRef` seguia en pantalla. Este hook lo consumen CUATRO secciones del
- * tema oscuro (Story, Journey, Features y Contact), cada una con 8 capas:
- * eso son 4 bucles permanentes escribiendo `transform` en 32 elementos por
- * frame durante toda la sesion, esten o no esas secciones en el viewport.
+ * tema oscuro (Story 11 capas, Journey 5, Features 10 y Contact 7): eso son
+ * 4 bucles permanentes escribiendo `transform` en 33 elementos por frame
+ * durante toda la sesion, esten o no esas secciones en el viewport.
  * El bucle solo corre cuando las DOS condiciones se cumplen -- interseccion
  * Y no-reduce --, nunca con una sola.
  *
