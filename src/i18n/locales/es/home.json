@@ -21,23 +21,29 @@
             "titleAccent": "a la creación.",
             "body": "VoidToInfinite es un espacio donde el aprendizaje se encuentra con la imaginación y el juego impulsa el progreso. Exploramos ideas, construimos habilidades con sentido y transformamos la curiosidad en experiencias que se pueden compartir.",
             "note": "Cada idea puede ser un nuevo comienzo.",
+            "noteLead": "Cada idea puede ser un",
+            "noteAccent": "nuevo comienzo.",
             "figureAlt": "Figura celestial señalando hacia arriba",
             "pillars": {
                 "learn": {
                     "title": "Aprende con propósito",
-                    "body": "Conocimiento que inspira comprensión y abre nuevas posibilidades."
+                    "body": "Conocimiento que inspira comprensión y abre nuevas posibilidades.",
+                    "inspiration": "Empieza por una pregunta que te incomode. Sigue el hilo aunque no lleve donde esperabas. Lo que aprendes así no se olvida. Se queda contigo y cambia cómo miras lo siguiente."
                 },
                 "create": {
                     "title": "Crea con claridad",
-                    "body": "Las ideas cobran sentido cuando se pueden explorar, construir y compartir."
+                    "body": "Las ideas cobran sentido cuando se pueden explorar, construir y compartir.",
+                    "inspiration": "Una idea vaga no se defiende sola. Ponla en pie, dale forma, enséñasela a alguien. En cuanto existe fuera de tu cabeza, empieza a mejorar. Y tú con ella."
                 },
                 "grow": {
                     "title": "Crece en comunidad",
-                    "body": "El aprendizaje se vuelve infinito cuando el conocimiento circula entre personas."
+                    "body": "El aprendizaje se vuelve infinito cuando el conocimiento circula entre personas.",
+                    "inspiration": "Nadie llega lejos explicándose solo a sí mismo. Cuenta lo que sabes, aunque te parezca poco. Alguien lo necesitaba hoy. Mañana serás tú quien lo necesite."
                 },
                 "practice": {
                     "title": "La práctica lo hace real",
-                    "body": "El conocimiento se vuelve tuyo cuando lo pones a prueba: tropiezos incluidos."
+                    "body": "El conocimiento se vuelve tuyo cuando lo pones a prueba: tropiezos incluidos.",
+                    "inspiration": "Lee menos, prueba más. Rompe algo a propósito y arréglalo. El error que entiendes vale más que el acierto que copiaste. Ahí es donde el conocimiento se vuelve tuyo."
                 }
             }
         },

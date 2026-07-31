@@ -188,3 +188,68 @@ export const STORY_CARD_FLOAT_MS = 7000;
  */
 export const STORY_FIGURE_SIZES =
   "(min-width: 992px) 375px, (min-width: 600px) 60vw, 90vw";
+
+/**
+ * Escala tipográfica de la presentación oscura (spec
+ * `2026-07-31-story-deck-tipografia-design.md` §3, T4/T5). Cinco roles, cinco
+ * constantes: `h2` de la intro, título de pilar, subtítulo de pilar, cuerpo de
+ * pilar y nota de cierre. Viven aquí y no como literales en `story.deck.tsx`
+ * ni como tokens nuevos de `type.scale` porque son medidas de ESTA
+ * composición (un cartel a pantalla completa), no de la escala de texto del
+ * sitio: 4rem/3rem/8rem no tienen equivalente en `type.scale` y forzarlos ahí
+ * contaminaría un contrato que otras secciones también consumen.
+ *
+ * Todas salvo el subtítulo se declaran como `clamp(mínimo, preferido-en-vw,
+ * máximo)` en vez de con `@media`: un término en `vw` escala de forma
+ * continua en todo el ancho de viewport, sin el salto brusco que un `@media`
+ * produce justo en el breakpoint — que es precisamente lo que un tamaño de
+ * 8rem necesita para no partirse en un ancho intermedio cualquiera. Además
+ * evita declarar un bloque `@media` distinto por cada uno de los cinco
+ * tamaños. El máximo de cada `clamp()` es, en los cinco casos, el valor
+ * literal que pide el encargo del usuario (4rem/3rem/1rem/1.115rem/8rem):
+ * no se ha redondeado ni ajustado ninguno.
+ */
+
+/**
+ * `h2#story-title` de la diapositiva de intro. Tope 4rem (encargo). Mínimo
+ * 2rem: por debajo de eso el titular de una diapositiva a pantalla completa
+ * se queda del tamaño de un párrafo y pierde el peso de "cartel" que pide la
+ * composición.
+ */
+export const STORY_DECK_TITLE_SIZE = "clamp(2rem, 6vw, 4rem)";
+
+/**
+ * Título de cada diapositiva de pilar (`01 —`…`04 —` + nombre del pilar).
+ * Tope 3rem (encargo). Mínimo 1.75rem: un escalón por debajo del título de
+ * intro, para que la jerarquía visual intro > pilar se conserve también en
+ * el extremo estrecho del `clamp`.
+ */
+export const STORY_DECK_PILLAR_TITLE_SIZE = "clamp(1.75rem, 5vw, 3rem)";
+
+/**
+ * Subtítulo de la diapositiva de pilar (el texto que hoy vive en
+ * `pillars.<key>.body`, pintado en rol de subtítulo — T2 de la spec). Es la
+ * ÚNICA de las cinco constantes sin `clamp`: 1rem ya es el tamaño base de
+ * lectura del sitio, así que no hay margen para encogerlo sin caer por
+ * debajo del mínimo cómodo de lectura; un `clamp` aquí solo introduciría una
+ * variación que el encargo no pide y que perjudicaría la legibilidad en
+ * viewports estrechos.
+ */
+export const STORY_DECK_PILLAR_SUBTITLE_SIZE = "1rem";
+
+/**
+ * Cuerpo de la diapositiva de pilar: el texto de inspiración nuevo
+ * (`pillars.<key>.inspiration`). Tope 1.115rem (encargo). Mínimo 1rem: el
+ * mismo suelo de lectura que el subtítulo, para que el párrafo de cuatro
+ * frases nunca quede por debajo del tamaño base del sitio en un móvil
+ * estrecho.
+ */
+export const STORY_DECK_PILLAR_BODY_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
+
+/**
+ * Nota de cierre (diapositiva 6). Tope 8rem (encargo): el tamaño de cartel
+ * más grande de la presentación. Mínimo 2.5rem: por debajo de eso la nota
+ * deja de leerse como el cierre climático de la presentación y se confunde
+ * con el resto del texto de la diapositiva.
+ */
+export const STORY_DECK_NOTE_SIZE = "clamp(2.5rem, 11vw, 8rem)";
