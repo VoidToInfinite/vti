@@ -56,15 +56,88 @@ export const STORY_ACCENT_GRADIENT_DARK =
   "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
 
 /**
- * Caja de la rama oscura (pedido explícito del usuario, 2026-07-29, segunda
- * iteración: la primera entrega ocupaba el viewport completo a sangre; se
- * corrige a una caja acotada y centrada). `1280px` es un valor propio de
- * esta composición, no `grid.containerMax` (1200px): son dos medidas
- * distintas por coincidencia de rango, no la misma decisión de diseño — de
- * ahí que se declare aquí, no se reutilice el token de grid.
+ * Ancho máximo del CONTENIDO de cada diapositiva de la presentación (D11,
+ * spec `2026-07-31-story-deck-hero-transition-design.md`). Mismo valor
+ * `1280px` que ya declaraba esta constante, pero cambia lo que acota: hasta
+ * esta entrega ceñía la SECCIÓN entera (`ScStory`) a una caja centrada;
+ * ahora la escena `StoryCosmicHeart` va a sangre (llena el stage a
+ * `100vw`/`100vh`, D7) y es el deck de cada diapositiva quien queda acotado
+ * a este ancho mientras la escena de fondo lo ignora. No se crea un token
+ * nuevo en `grid.*`: el valor ya existía con este nombre en el propio
+ * archivo de la sección, solo cambia a qué se aplica.
  */
 export const STORY_DARK_MAX_WIDTH = "1280px";
-export const STORY_DARK_HEIGHT = "90dvh";
+
+/**
+ * Alto de UNA diapositiva de la presentación, a pantalla completa (D12): el
+ * encargo pide que la presentación ocupe "el ancho y alto de la vista del
+ * dispositivo", así que pasa de `90dvh` a `100dvh`. El resto de secciones
+ * oscuras (Aura, Eye…) se quedan deliberadamente en `90dvh`: la divergencia
+ * es exclusiva de Story porque es la única sección que se convierte en
+ * presentación a pantalla completa, no un ajuste que deba propagarse al
+ * resto de la página.
+ */
+export const STORY_DARK_HEIGHT = "100dvh";
+
+/**
+ * Número de diapositivas de la presentación: 1 intro (kicker + h2 + body) +
+ * 4 pilares (`learn`/`create`/`grow`/`practice`) + 1 nota de cierre = 6, tal
+ * cual pide el encargo. Se declara como constante — y no como un `.length`
+ * derivado en el componente — porque el hook `useStoryDeck` la necesita
+ * como parámetro de entrada sin importar nada de esta sección (así puede
+ * gobernar otra presentación el día de mañana).
+ */
+export const STORY_SLIDES = 6;
+
+/**
+ * Alto total de la pista que da recorrido de scroll a la presentación
+ * entera (D2): con el `stage` pegado por `position: sticky`, cada
+ * `100dvh` adicional de pista es exactamente un tramo de scroll dedicado a
+ * una diapositiva. Sin esta altura la pista mediría lo mismo que el stage
+ * y el pin se despegaría en el mismo frame en que se pega, sin dar tiempo
+ * a recorrer nada.
+ */
+export const STORY_DECK_TRACK_HEIGHT = `calc(${STORY_SLIDES} * ${STORY_DARK_HEIGHT})`;
+
+/**
+ * Desplazamiento vertical de entrada/salida de cada diapositiva
+ * (`data-state="past"`/`"next"`). Pequeño a propósito: suficiente para que
+ * el cambio de diapositiva se lea como un paso, no como un salto de layout;
+ * solo se anima junto a `opacity`, nunca una propiedad que dispare reflow
+ * (regla de la casa: solo `transform`/`opacity`).
+ */
+export const STORY_SLIDE_SHIFT = "40px";
+
+/**
+ * Escala del `stage` cuando `--story-enter` vale 0, es decir, antes de que
+ * la presentación empiece a abrirse. Un valor cercano a 1 (no 0, no un
+ * encogimiento drástico) para que la apertura se lea como "la escena se
+ * expande hasta llenar la pantalla" y no como una animación de entrada
+ * genérica; el mismo valor, invertido, es la forma en que la presentación
+ * "se cierra" con carácter de rewind al subir de vuelta al Hero.
+ */
+export const STORY_STAGE_ENTER_SCALE = 0.92;
+
+/**
+ * Recorrido (en `transform`) del envoltorio de la escena a lo largo de
+ * `--story-progress` (D10). Con el stage pegado, `rect.top` de la escena se
+ * queda en ~0 por definición, así que el término de scroll de
+ * `useSceneParallax` no aporta profundidad durante el pase de
+ * diapositivas — comportamiento correcto, no un bug a compensar tocando
+ * ese hook (arriesgaría Journey/Features/Contact, que lo comparten). Este
+ * desplazamiento, pequeño y solo en el envoltorio, devuelve esa sensación
+ * de profundidad sin tocar el parallax compartido.
+ */
+export const STORY_SCENE_DEPTH_SHIFT = "6%";
+
+/**
+ * Duración del "scrub" de rewind (`data-dir="rewind"`): el micro-desplazamiento
+ * en X + caída breve de opacidad que hace que invertir el sentido se lea
+ * como cinta rebobinando y no como "ir hacia atrás despacio". Atada al
+ * valor de `motion.duration.slow` (verificado por test) para no introducir
+ * una duración fuera de la escala de movimiento del tema.
+ */
+export const STORY_SCRUB_MS = 320;
 
 /** Fondo/borde/sombra de la tarjeta flotante de nota (mockup L98). */
 export const STORY_CARD_BG = "oklch(0.97 0.018 260)";

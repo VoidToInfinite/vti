@@ -76,13 +76,16 @@ export const STORY_COSMIC_HEART_LAYERS: readonly StoryCosmicHeartLayer[] = [
 ] as const;
 
 /**
- * `sizes` de las capas: la escena llena el ancho del contenido de Story,
- * tope `grid.containerMax` (1200px) — no el viewport completo — asi que se
- * declara ese tope en vez de `100vw` a secas (mismo razonamiento que
- * `EYE_SIZES`/`STORY_FIGURE_SIZES`: pedir de mas en desktop ancho no
- * aporta nitidez, la caja nunca crece mas alla de 1200px).
+ * `sizes` de las capas: desde la entrega de la presentacion (D7,
+ * 2026-07-31) la escena ya NO se acota a `grid.containerMax` (1200px) —
+ * ese tope acotaba el fondo de la caja centrada que tenia Story antes;
+ * ahora `StoryCosmicHeart` llena el `stage` a sangre (ancho y alto
+ * completos del viewport, pedido literal del encargo). Declarar 1200px
+ * seguiria siendo tecnicamente valido pero mentiria al navegador: en
+ * pantallas anchas elegiria la pista de 1024px para una caja que en
+ * realidad mide 100vw, perdiendo nitidez. Se declara `100vw` a secas.
  */
-export const STORY_COSMIC_HEART_SIZES = "(min-width: 1200px) 1200px, 100vw";
+export const STORY_COSMIC_HEART_SIZES = "100vw";
 
 /** Escala base comun a las 8 capas: evita bordes vacios al desplazar. */
 export const STORY_COSMIC_HEART_OVERSCAN = 1.06;

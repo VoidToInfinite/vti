@@ -48,11 +48,29 @@ export const GlobalStyles = createGlobalStyle`
 
     -webkit-overflow-scrolling: touch;
     overflow-scrolling: touch;
+
+    /* La presentacion de Story (D3) fija su escena con position: sticky y
+       recorre 6 diapositivas atadas al scroll. El scroller sigue siendo la
+       pagina entera: proximity, no mandatory, deja intactos los elementos
+       SIN scroll-snap-align (todo lo que no sea una diapositiva de Story) y
+       permite atravesar la presentacion sin pararse en cada diapositiva.
+       mandatory en el scroller raiz secuestraria la pagina completa. Si en
+       verificacion de navegador interfiere con el scroll-behavior smooth de
+       arriba o con los saltos a ancla del navbar, se retira esta linea y el
+       pin de Story se queda solo, que por si mismo ya ata la vista. */
+    scroll-snap-type: y proximity;
   }
 
   html,
   body {
-    overflow-x: hidden;
+    /* hidden obliga al eje contrario (vertical) a computar auto, lo que
+       convierte a html/body en CONTENEDOR DE SCROLL. Un position: sticky
+       dentro se pega respecto a ESE contenedor, no respecto al viewport:
+       es la causa clasica de "sticky no pega" y rompe el pin de la
+       presentacion de Story. clip recorta el desbordamiento horizontal
+       igual que hidden, pero no crea contenedor de scroll, asi que el pin
+       queda libre de pegarse al viewport. */
+    overflow-x: clip;
   }
 
   body {
