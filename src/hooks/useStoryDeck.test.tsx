@@ -91,11 +91,10 @@ describe("useStoryDeck", () => {
   });
 
   it("con interseccion y rect.top = 0, escribe --story-progress a 0.0000 y el indice queda en 0", () => {
-    let pending: FrameRequestCallback[] = [];
-    vi.stubGlobal(
-      "requestAnimationFrame",
-      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
-    );
+    // Ya no hace falta drenar ningun rAF pendiente: al activarse la pista,
+    // `start()` mide de forma INMEDIATA (sincrona), asi que el estado queda
+    // correcto en el mismo `ioTrigger(true)`.
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
     const track = trackWith(0, SLIDES * VH);
@@ -108,9 +107,6 @@ describe("useStoryDeck", () => {
 
     act(() => {
       ioTrigger(true);
-      const batch = pending;
-      pending = [];
-      for (const cb of batch) cb(0);
     });
 
     expect(stage.style.getPropertyValue("--story-progress")).toBe("0.0000");
@@ -118,11 +114,8 @@ describe("useStoryDeck", () => {
   });
 
   it("con rect.top al final de la pista, indice y progreso llegan al maximo", () => {
-    let pending: FrameRequestCallback[] = [];
-    vi.stubGlobal(
-      "requestAnimationFrame",
-      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
-    );
+    // Medicion inmediata al activarse: no hay rAF que drenar.
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
     const height = SLIDES * VH;
@@ -136,9 +129,6 @@ describe("useStoryDeck", () => {
 
     act(() => {
       ioTrigger(true);
-      const batch = pending;
-      pending = [];
-      for (const cb of batch) cb(0);
     });
 
     expect(stage.style.getPropertyValue("--story-progress")).toBe("1.0000");
@@ -146,11 +136,8 @@ describe("useStoryDeck", () => {
   });
 
   it("un rect.top intermedio, claramente dentro de un tramo, cae en el indice correcto", () => {
-    let pending: FrameRequestCallback[] = [];
-    vi.stubGlobal(
-      "requestAnimationFrame",
-      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
-    );
+    // Medicion inmediata al activarse: no hay rAF que drenar.
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
     // progress = 0.6 -> round(0.6 * 5) = 3, comodamente dentro del tramo
@@ -167,9 +154,6 @@ describe("useStoryDeck", () => {
 
     act(() => {
       ioTrigger(true);
-      const batch = pending;
-      pending = [];
-      for (const cb of batch) cb(0);
     });
 
     expect(result.current.index).toBe(3);
@@ -190,20 +174,23 @@ describe("useStoryDeck", () => {
     const { result } = renderHook(() =>
       useStoryDeck(trackRef, stageRef, SLIDES),
     );
+    // La medicion inmediata de `start()` ya fija la linea base en -400: no
+    // hace falta un `flush(-400)` aparte para ese primer punto.
     act(() => ioTrigger(true));
+    expect(result.current.direction).toBe("forward");
 
+    // Las mediciones siguientes las dispara un evento real de `scroll`, que
+    // programa el rAF coalescido; se drena ese rAF a continuacion.
     const flush = (top: number): void => {
       track.getBoundingClientRect = () =>
         ({ top, height: SLIDES * VH }) as DOMRect;
       act(() => {
+        window.dispatchEvent(new Event("scroll"));
         const batch = pending;
         pending = [];
         for (const cb of batch) cb(0);
       });
     };
-
-    flush(-400); // linea base, sin frame anterior aun
-    expect(result.current.direction).toBe("forward");
 
     flush(-300); // sube 100px: primer frame creciente
     flush(-200); // sube 100px mas: segundo frame creciente -> rewind
@@ -228,19 +215,20 @@ describe("useStoryDeck", () => {
     const { result } = renderHook(() =>
       useStoryDeck(trackRef, stageRef, SLIDES),
     );
+    // La medicion inmediata de `start()` fija la linea base en -400.
     act(() => ioTrigger(true));
 
     const flush = (top: number): void => {
       track.getBoundingClientRect = () =>
         ({ top, height: SLIDES * VH }) as DOMRect;
       act(() => {
+        window.dispatchEvent(new Event("scroll"));
         const batch = pending;
         pending = [];
         for (const cb of batch) cb(0);
       });
     };
 
-    flush(-400); // linea base
     flush(-300); // sube 100px -> rewind
     expect(result.current.direction).toBe("rewind");
 
@@ -267,14 +255,13 @@ describe("useStoryDeck", () => {
   });
 
   it("dos avisos seguidos de interseccion no arrancan dos bucles", () => {
-    // Regresion: sin guarda de reentrada, el segundo aviso arrancaba una
-    // SEGUNDA cadena de rAF. Las dos se pisaban la misma variable con su id,
-    // asi que al cancelar solo moria una y la otra seguia corriendo para
-    // siempre -- una fuga que en produccion no da error, solo consume bateria
+    // Regresion: sin guarda de reentrada, cada aviso repetiria la medicion
+    // inmediata y volveria a registrar los listeners de `scroll`/`resize`
+    // -- una fuga que en produccion no da error, solo consume trabajo de mas
     // el resto de la sesion.
-    const raf = vi.fn().mockReturnValue(1);
-    vi.stubGlobal("requestAnimationFrame", raf);
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    const addSpy = vi.spyOn(window, "addEventListener");
 
     const track = trackWith(0, SLIDES * VH);
     const stage = document.createElement("div");
@@ -286,7 +273,10 @@ describe("useStoryDeck", () => {
     ioTrigger(true);
     ioTrigger(true);
 
-    expect(raf).toHaveBeenCalledTimes(1);
+    const scrollRegistrations = addSpy.mock.calls.filter(
+      ([type]) => type === "scroll",
+    );
+    expect(scrollRegistrations).toHaveLength(1);
   });
 
   it("al reentrar en la pista no se hereda el sentido del frame anterior", () => {
@@ -313,22 +303,25 @@ describe("useStoryDeck", () => {
       track.getBoundingClientRect = () =>
         ({ top, height: SLIDES * VH }) as DOMRect;
       act(() => {
+        window.dispatchEvent(new Event("scroll"));
         const batch = pending;
         pending = [];
         for (const cb of batch) cb(0);
       });
     };
 
+    // La medicion inmediata de `start()` fija la linea base en -400.
     act(() => ioTrigger(true));
-    flush(-400); // linea base
     flush(-300); // sube -> rewind
     expect(result.current.direction).toBe("rewind");
 
     // Sale de la pista y vuelve muy por debajo: sin olvidar la linea base,
-    // el primer frame de la reentrada leeria un delta enorme.
+    // la medicion inmediata de la reentrada leeria un delta enorme contra
+    // el -300 anterior en vez de solo fijar una linea base nueva.
     act(() => ioTrigger(false));
+    track.getBoundingClientRect = () =>
+      ({ top: -3000, height: SLIDES * VH }) as DOMRect;
     act(() => ioTrigger(true));
-    flush(-3000);
     expect(result.current.direction).toBe("rewind"); // sin cambio: solo fija linea base
   });
 
@@ -346,7 +339,12 @@ describe("useStoryDeck", () => {
       useStoryDeck(trackRef, stageRef, SLIDES),
     );
 
-    ioTrigger(true);
+    // La medicion inmediata de `start()` no usa rAF; hace falta un evento de
+    // `scroll` para programar el rAF coalescido que luego se cancela.
+    act(() => ioTrigger(true));
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
     expect(raf).toHaveBeenCalled();
 
     const instance = mockInstances[0];
@@ -354,5 +352,57 @@ describe("useStoryDeck", () => {
 
     expect(caf).toHaveBeenCalledWith(7);
     expect(instance.disconnect).toHaveBeenCalled();
+  });
+
+  it("varios eventos de scroll seguidos coalescen en un unico rAF pendiente", () => {
+    let calls = 0;
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      vi.fn().mockImplementation(() => {
+        calls += 1;
+        return calls;
+      }),
+    );
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const track = trackWith(0, SLIDES * VH);
+    const stage = document.createElement("div");
+    const trackRef = refOf(track);
+    const stageRef = refOf(stage);
+    renderHook(() => useStoryDeck(trackRef, stageRef, SLIDES));
+
+    // La medicion inmediata de `start()` no consume rAF.
+    act(() => ioTrigger(true));
+    expect(calls).toBe(0);
+
+    // El mock nunca ejecuta el callback (no hay `pending`), asi que el `raf`
+    // programado por el primer evento sigue "pendiente" para los siguientes:
+    // N eventos de scroll deben coalescer en UN solo rAF.
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+      window.dispatchEvent(new Event("scroll"));
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    expect(calls).toBe(1);
+  });
+
+  it("al desactivarse la interseccion se quitan los listeners de scroll y resize", () => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+
+    const track = trackWith(0, SLIDES * VH);
+    const stage = document.createElement("div");
+    const trackRef = refOf(track);
+    const stageRef = refOf(stage);
+    renderHook(() => useStoryDeck(trackRef, stageRef, SLIDES));
+
+    act(() => ioTrigger(true));
+    act(() => ioTrigger(false));
+
+    const removedTypes = removeSpy.mock.calls.map(([type]) => type);
+    expect(removedTypes).toContain("scroll");
+    expect(removedTypes).toContain("resize");
   });
 });

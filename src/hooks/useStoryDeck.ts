@@ -44,12 +44,22 @@ function clamp(value: number, min: number, max: number): number {
  * cambian ~`slides` veces por pasada completa de la presentación, no por
  * frame, así que el coste de re-render es insignificante.
  *
- * El bucle de rAF va guardado por un `IntersectionObserver` sobre `trackRef`
- * (D5): la presentación son varias pantallas dentro de una página mucho más
- * larga (Hero, Journey, Features...), y sin esta guarda el rAF correría
- * durante toda la sesión aunque el usuario llevara scroll muy lejos de
- * Story. Mismo criterio de "no animar lo que no se ve" que ya aplica
+ * El motor de medición (listeners de `scroll`/`resize` + su rAF coalescido)
+ * va guardado por un `IntersectionObserver` sobre `trackRef` (D5): la
+ * presentación son varias pantallas dentro de una página mucho más larga
+ * (Hero, Journey, Features...), y sin esta guarda los listeners seguirían
+ * midiendo durante toda la sesión aunque el usuario llevara scroll muy lejos
+ * de Story. Mismo criterio de "no animar lo que no se ve" que ya aplica
  * `useReveal` con su propio `IntersectionObserver`.
+ *
+ * Dentro de esa guarda, el motor NO es un bucle de rAF libre que se
+ * reprograma solo al final de cada frame: eso hacía un
+ * `getBoundingClientRect()` (layout forzado) a 60fps incluso con el usuario
+ * inmóvil, compitiendo por el mismo hilo con el rAF de `useSceneParallax`,
+ * que anima 8 capas a pantalla completa con `mix-blend-mode` en la misma
+ * sección. En su lugar es dirigido por eventos: `scroll`/`resize` programan
+ * una única medición coalescida por rAF -- mismo resultado visual, trabajo
+ * cero mientras el usuario no se mueve.
  *
  * `slides` entra por parámetro y NO se importa de `story.layers.ts`: este
  * hook no sabe que gobierna Story, así que puede gobernar cualquier otra
@@ -64,10 +74,11 @@ export function useStoryDeck(
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<StoryDeckDirection>("forward");
 
-  // Espejo por ref de los dos valores de estado: el bucle de rAF necesita
-  // conocer el ÚLTIMO valor confirmado en cada frame para decidir si hace
-  // falta un `setState`, y un cierre sobre `index`/`direction` capturaría el
-  // valor del render en que se creó el efecto, no el actual.
+  // Espejo por ref de los dos valores de estado: el motor de medición
+  // necesita conocer el ÚLTIMO valor confirmado en cada medición para
+  // decidir si hace falta un `setState`, y un cierre sobre
+  // `index`/`direction` capturaría el valor del render en que se creó el
+  // efecto, no el actual.
   const indexRef = useRef(0);
   const directionRef = useRef<StoryDeckDirection>("forward");
 
@@ -82,12 +93,16 @@ export function useStoryDeck(
 
   useEffect(() => {
     const reducedQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Id del rAF coalescido pendiente, o 0 si no hay ninguno programado. Es
+    // la bandera de coalescencia (spec del motor): mientras valga distinto
+    // de 0, un nuevo `scroll`/`resize` no programa un segundo frame; se pone
+    // a 0 cuando el frame ya programado corre.
     let raf = 0;
-    // Guarda de reentrada del bucle. Sin ella, dos avisos seguidos de
+    // Guarda de reentrada. Sin ella, dos avisos seguidos de
     // `isIntersecting: true` (el observer puede reemitir, y `evaluate`
-    // vuelve a observar cuando se desactiva `reduce`) arrancarían un SEGUNDO
-    // bucle: las dos cadenas se pisarían la variable `raf`, así que al
-    // cancelar solo moriría una y la otra seguiría corriendo para siempre.
+    // vuelve a observar cuando se desactiva `reduce`) repetirían la
+    // medición inmediata y registrarían los listeners de `scroll`/`resize`
+    // una segunda vez.
     let running = false;
     // `null` marca "todavía no hay frame anterior con el que comparar": el
     // primer frame tras (re)activarse la pista fija la línea base de
@@ -121,7 +136,11 @@ export function useStoryDeck(
       lastTop = top;
     };
 
-    const tick = (): void => {
+    // Una sola medición (un `getBoundingClientRect` = un layout forzado).
+    // Ya NO se reprograma a sí misma: la reprogramación la decide el evento
+    // de `scroll`/`resize` de turno vía `scheduleMeasure`, así que en reposo
+    // (sin scroll) no corre nada.
+    const measure = (): void => {
       const track = trackRef.current;
       if (track) {
         const rect = track.getBoundingClientRect();
@@ -142,18 +161,36 @@ export function useStoryDeck(
         updateIndex(progress);
         updateDirection(rect.top);
       }
-      raf = window.requestAnimationFrame(tick);
+    };
+
+    // Handler de `scroll`/`resize`: coalesce N eventos del mismo frame en UNA
+    // sola medición, programada para el próximo repintado en vez de correr
+    // en el propio handler del evento (que puede dispararse varias veces
+    // antes de que el navegador pinte).
+    const scheduleMeasure = (): void => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        measure();
+      });
     };
 
     const start = (): void => {
       if (running) return;
       running = true;
-      raf = window.requestAnimationFrame(tick);
+      // Medición inmediata: el estado (`--story-enter`/`--story-progress`,
+      // `index`, `direction`) queda correcto en cuanto la pista aparece en
+      // viewport, sin esperar a que el usuario dispare un `scroll`.
+      measure();
+      window.addEventListener("scroll", scheduleMeasure, { passive: true });
+      window.addEventListener("resize", scheduleMeasure);
     };
 
     const stop = (): void => {
       if (!running) return;
       running = false;
+      window.removeEventListener("scroll", scheduleMeasure);
+      window.removeEventListener("resize", scheduleMeasure);
       window.cancelAnimationFrame(raf);
       raf = 0;
       // Se olvida la línea base al parar: si el usuario sale de la pista,
