@@ -135,13 +135,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.test.tsx": {
-    "mtime": 1785502631.4773002,
-    "ast_hash": "00393567ec3dc399783579347d703fa7",
+    "mtime": 1785523801.4223814,
+    "ast_hash": "66f0cccfd4115b1cd7da2787e2555cdd",
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.tsx": {
-    "mtime": 1785520797.379078,
-    "ast_hash": "34105f4d2ff2d9eb1cbfd57eba96ef5a",
+    "mtime": 1785523506.808985,
+    "ast_hash": "a78d47ce85cd9fc2f75f0d37ce2c1b69",
     "semantic_hash": ""
   },
   "src/components/ui/Button/Button.test.tsx": {
@@ -240,8 +240,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/home.json": {
-    "mtime": 1785337139.687293,
-    "ast_hash": "774239748e3997b98541ba745f275df0",
+    "mtime": 1785522662.7972605,
+    "ast_hash": "aade756a520c9d6a4e776477349c7c0e",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/common.json": {
@@ -250,8 +250,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/home.json": {
-    "mtime": 1785337139.6883,
-    "ast_hash": "fb3e00b244af68445305277daee059fc",
+    "mtime": 1785522656.180829,
+    "ast_hash": "02aee869f8420d9b132e3969ae88a5ef",
     "semantic_hash": ""
   },
   "src/test/test-utils.tsx": {
@@ -1010,8 +1010,8 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.layers.ts": {
-    "mtime": 1785505034.6363087,
-    "ast_hash": "a572d131d9f1eaa5fd6c94f210c3f810",
+    "mtime": 1785522683.4198222,
+    "ast_hash": "4205a19a5f55b6c8dfe2edc8bf3cbc9f",
     "semantic_hash": ""
   },
   "src/components/sections/hero-story.integration.test.tsx": {
@@ -1960,13 +1960,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.deck.tsx": {
-    "mtime": 1785520785.483018,
-    "ast_hash": "12f3a0cebee38e1ea71989be1cf4f913",
+    "mtime": 1785523857.9813,
+    "ast_hash": "9e8af16c638ec37980a000f80724ca97",
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.layers.test.ts": {
-    "mtime": 1785502631.3271778,
-    "ast_hash": "84e6969826a67d75564e84855f2a05d1",
+    "mtime": 1785522701.7327502,
+    "ast_hash": "39d48b32d0a2e0030de95cb87556367d",
     "semantic_hash": ""
   },
   "src/hooks/useStoryDeck.test.tsx": {
@@ -1987,6 +1987,16 @@
   "docs/superpowers/specs/2026-07-31-story-deck-hero-transition-design.md": {
     "mtime": 1785520941.6164308,
     "ast_hash": "47a9123c57a3e69e1a7fbb02dbf549fb",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-31-story-deck-tipografia.md": {
+    "mtime": 1785523801.2491636,
+    "ast_hash": "cab9364c8bef2ca07140db9565d1541d",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-31-story-deck-tipografia-design.md": {
+    "mtime": 1785523801.310769,
+    "ast_hash": "461dc5a6d33f126250de932d90739b6c",
     "semantic_hash": ""
   }
 }
