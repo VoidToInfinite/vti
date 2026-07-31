@@ -121,6 +121,14 @@ export const ScSceneWrap = styled.div`
   transform: translateY(
     calc(${STORY_SCENE_DEPTH_SHIFT} * var(--story-progress, 0))
   );
+  /* Esta capa se traslada en cada frame de scroll y contiene las 8 capas
+     de la escena con mix-blend-mode: sin promoverla, cada desplazamiento
+     obliga a recomponer ese grupo entero en el hilo principal. Declararlo
+     aqui, y no en un estado transitorio, es correcto en este caso concreto
+     porque el envoltorio se mueve durante TODO el recorrido de la
+     presentacion, no en un momento puntual -- que es justo el caso de uso
+     para el que existe will-change. */
+  will-change: transform;
 `;
 
 /*
@@ -285,26 +293,20 @@ export const ScRailMark = styled.span<{ $index: number }>`
 `;
 
 /*
- * Anclas de snap (D3): viven FUERA de ScStage, superpuestas a ScTrack entero
- * (position: absolute; inset: 0), para no alterar el calculo de "unico hijo
- * en flujo" del que depende el pin -- si vivieran dentro de ScStage o fueran
- * hijos en flujo de ScTrack, el stage dejaria de ser el unico elemento que
- * da altura a la pista. pointer-events: none porque son puramente
- * geometricas: no deben interceptar clicks pensados para el contenido de
- * encima.
+ * AQUI VIVIERON ScSnapPoints/ScSnapPoint, las 6 anclas de scroll-snap (D3).
+ * RETIRADAS el 2026-07-31 junto con el scroll-snap-type de GlobalStyles: se
+ * ejecuto el plan de retirada que la propia spec dejaba escrito, tras
+ * medirlo en navegador.
+ *
+ * El motivo: las anclas median exactamente una pantalla, asi que CUALQUIER
+ * posicion de scroll caia siempre a menos de media pantalla de una. Con esa
+ * geometria, proximity deja de comportarse como proximity y degenera en
+ * mandatory. Medido pidiendo posiciones concretas y viendo donde aterrizaba
+ * de verdad: 900 -> 720, 1200 -> 1440, 3100 -> 2880; tirones de hasta 240px,
+ * a veces EN CONTRA del sentido del gesto, y otras veces ninguno. De ahi el
+ * "el scroll a veces no funciona" que reporto el usuario.
+ *
+ * La vista sigue atada sin ellas: de eso se encarga el pin de ScStage. El
+ * snap solo anadia el acople a cada diapositiva y lo pagaba con el control
+ * del usuario sobre su propio scroll, que es un precio que no compensa.
  */
-export const ScSnapPoints = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-
-  /* D6: sin pista alta que recorrer, tampoco hay anclas que ofrecer. */
-  @media (prefers-reduced-motion: reduce) {
-    display: none;
-  }
-`;
-
-export const ScSnapPoint = styled.div`
-  height: ${STORY_DARK_HEIGHT};
-  scroll-snap-align: start;
-`;

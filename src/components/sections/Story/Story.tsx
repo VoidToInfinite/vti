@@ -13,8 +13,6 @@ import {
   ScRailMark,
   ScSceneWrap,
   ScSlide,
-  ScSnapPoint,
-  ScSnapPoints,
   ScStage,
   ScTrack,
 } from "./story.deck";
@@ -528,14 +526,6 @@ function StoryDeckDark({ heading }: { heading: ReactNode }): ReactElement {
             ))}
           </ScRail>
         </ScStage>
-        {/* Anclas de snap (D3), superpuestas a la pista entera SIN alterar
-            el flujo del que depende el pin (ScStage sigue siendo el unico
-            hijo en flujo de ScTrack). */}
-        <ScSnapPoints aria-hidden="true">
-          {Array.from({ length: STORY_SLIDES }, (_, snapIndex) => (
-            <ScSnapPoint key={snapIndex} />
-          ))}
-        </ScSnapPoints>
       </ScTrack>
     </ScStory>
   );

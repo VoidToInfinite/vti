@@ -49,16 +49,25 @@ export const GlobalStyles = createGlobalStyle`
     -webkit-overflow-scrolling: touch;
     overflow-scrolling: touch;
 
-    /* La presentacion de Story (D3) fija su escena con position: sticky y
-       recorre 6 diapositivas atadas al scroll. El scroller sigue siendo la
-       pagina entera: proximity, no mandatory, deja intactos los elementos
-       SIN scroll-snap-align (todo lo que no sea una diapositiva de Story) y
-       permite atravesar la presentacion sin pararse en cada diapositiva.
-       mandatory en el scroller raiz secuestraria la pagina completa. Si en
-       verificacion de navegador interfiere con el scroll-behavior smooth de
-       arriba o con los saltos a ancla del navbar, se retira esta linea y el
-       pin de Story se queda solo, que por si mismo ya ata la vista. */
-    scroll-snap-type: y proximity;
+    /* AQUI VIVIO scroll-snap-type: y proximity, para la presentacion de
+       Story. RETIRADO el 2026-07-31 tras medirlo en navegador: se ejecuto
+       el plan de retirada que la propia spec dejaba escrito (D3).
+
+       El motivo: las anclas de la presentacion miden exactamente una
+       pantalla, asi que CUALQUIER posicion de scroll cae siempre a menos de
+       media pantalla de un ancla. Con esa geometria, proximity deja de
+       comportarse como proximity y degenera en mandatory: el scroller
+       captura casi cualquier parada. Medido pidiendo posiciones concretas y
+       viendo donde aterrizaba de verdad -- 900 -> 720, 1200 -> 1440,
+       3100 -> 2880 --, es decir tirones de hasta 240px, a veces EN CONTRA
+       del sentido del gesto, y otras veces ninguno. De ahi el sintoma
+       reportado: "el scroll a veces no funciona".
+
+       La vista sigue atada sin snap: de eso se encarga el pin por
+       position: sticky del stage, que es quien mantiene la escena en
+       pantalla mientras la pista pasa por debajo. El snap solo anadia el
+       acople a cada diapositiva, y lo pagaba con el control del usuario
+       sobre su propio scroll. */
   }
 
   html,
