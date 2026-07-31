@@ -15,7 +15,29 @@ function stubMatchMedia(): void {
   );
 }
 
-beforeEach(stubMatchMedia);
+/**
+ * jsdom no implementa `IntersectionObserver`, y desde que `useSceneParallax`
+ * guarda su bucle por visibilidad (2026-07-31) montar esta escena lo
+ * construye: sin este stub, el render lanza `IntersectionObserver is not
+ * defined`. Mismo patron que ya usan `Story.test.tsx` y compania para el
+ * observer de `useReveal`. El stub no dispara interseccion por si solo, que
+ * es justo lo que estos tests quieren: comprueban el MARCADO de las capas,
+ * no su animacion.
+ */
+function stubIntersectionObserver(): void {
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe(): void {}
+      disconnect(): void {}
+    },
+  );
+}
+
+beforeEach(() => {
+  stubMatchMedia();
+  stubIntersectionObserver();
+});
 afterEach(() => vi.unstubAllGlobals());
 
 describe("JourneyAstralPathway", () => {
