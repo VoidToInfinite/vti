@@ -4,9 +4,12 @@ import esHome from "@/i18n/locales/es/home.json";
 import { HomeSections } from "./HomeSections";
 
 /*
- * Gate por tema (D3): claro monta las 4 secciones en orden; oscuro no monta
- * ninguna. Las 4 secciones usan `useReveal` (IntersectionObserver) --
- * mismo stub minimo que Story.test.tsx/Features.test.tsx/etc.
+ * Las 4 secciones (spec 2026-07-30) ya tienen tratamiento propio para los
+ * dos temas -- este componente ya no bifurca por tema (era un gate
+ * incremental mientras se construian una a una, ver el docblock de
+ * HomeSections.tsx): siempre monta las 4, en orden. Cada una resuelve su
+ * propia rama claro/oscuro internamente. Las 4 usan `useReveal`
+ * (IntersectionObserver) -- mismo stub minimo que Story.test.tsx/etc.
  */
 
 function stubMatchMedia(): void {
@@ -64,16 +67,15 @@ describe("HomeSections", () => {
     expect(region).toHaveAttribute("id", "story");
   });
 
-  it("en tema oscuro (guardado en localStorage), tras la correccion de hidratacion no queda ninguna de las 4 regiones montada", async () => {
+  it("en tema oscuro (guardado en localStorage), tras la correccion de hidratacion sigue montando las 4 secciones, en el mismo orden", async () => {
     window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderWithProviders(<HomeSections />);
 
     await waitFor(() => {
-      expect(container.querySelector("section")).toBeNull();
+      const ids = Array.from(container.querySelectorAll("section")).map(
+        (el) => el.id,
+      );
+      expect(ids).toEqual(["story", "journey", "features", "contact"]);
     });
-
-    for (const id of ["story", "journey", "features", "contact"]) {
-      expect(container.querySelector(`#${id}`)).toBeNull();
-    }
   });
 });

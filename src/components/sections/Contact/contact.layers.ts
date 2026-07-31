@@ -43,13 +43,29 @@ export const CONTACT_CARD_SHADOW = "oklch(0.6 0.1 265 / 0.1)";
  * (`story.layers.ts`), el mockup no le aplica `vtiGradientShift` a este span
  * (solo al "ToInfinite" del hero), así que se declara estático, sin animación.
  */
-export const CONTACT_TITLE_ACCENT_GRADIENT =
+export const CONTACT_TITLE_ACCENT_GRADIENT_LIGHT =
   "linear-gradient(110deg, oklch(0.52 0.13 235), oklch(0.66 0.15 255), oklch(0.72 0.15 292))";
 
-/** Fondo translúcido del chip de email (mockup L219): blanco con alfa sobre
- * el degradado pastel de la tarjeta — no es un rol semántico (`semantic.surface`
- * es opaco), es la superposición específica de esta pieza. */
-export const CONTACT_CHIP_BG = "rgba(255, 255, 255, 0.82)";
+/**
+ * Variante oscura del degradado (2026-07-30, mismo criterio que
+ * `STORY_ACCENT_GRADIENT_DARK`/`JOURNEY_QUOTE_GRADIENT_DARK`): misma familia
+ * de hue (235/255/292), luminosidad mucho mayor para legibilidad sobre el
+ * negro-azulado de `ContactNeonGalaxy` (`CONTACT_NEON_VOID`, `#02040e`).
+ */
+export const CONTACT_TITLE_ACCENT_GRADIENT_DARK =
+  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 292))";
+
+/** Fondo translúcido del chip de email (mockup L219, tema claro): blanco con
+ * alfa sobre el degradado pastel de la tarjeta — no es un rol semántico
+ * (`semantic.surface` es opaco), es la superposición específica de esta
+ * pieza. */
+export const CONTACT_CHIP_BG_LIGHT = "rgba(255, 255, 255, 0.82)";
+
+/** Variante oscura del chip (2026-07-30): mismo negro-azulado que
+ * `CONTACT_NEON_VOID` con alfa, en vez de blanco translúcido — sobre la
+ * escena oscura un chip blanco leería como un error, no como una superficie
+ * de contenido. */
+export const CONTACT_CHIP_BG_DARK = "rgba(2, 4, 14, 0.55)";
 
 /** Sombra de hover del CTA (mockup L223, `style-hover`): mismo hue que
  * `palette.secondary` (311.928) pero con croma 0.233, distinto del 0.243 que
@@ -113,3 +129,14 @@ export const CONTACT_FIGURE_FLOAT_MS = 8000;
  * así que el valor de fallback no necesita ser preciso.
  */
 export const CONTACT_FIGURE_SIZES = "(min-width: 768px) 373px, 100vw";
+
+/**
+ * Caja de la rama oscura (2026-07-30, mismo criterio que
+ * `STORY_DARK_MAX_WIDTH`/`JOURNEY_ASTRAL_MAX_WIDTH`): acotada y centrada, no
+ * a sangre. Altura FIJA en `dvh` (no `min-height` como Features): el
+ * contenido de Contact es breve (kicker/título/cuerpo/chip+CTA, una sola
+ * fila), igual de corto que Story/Journey, así que no hay riesgo de recorte
+ * con `overflow: hidden`.
+ */
+export const CONTACT_DARK_MAX_WIDTH = "1280px";
+export const CONTACT_DARK_HEIGHT = "90dvh";

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import { Features } from "./Features";
 import { FEATURE_KEYS } from "./features.layers";
 import enHome from "@/i18n/locales/en/home.json";
@@ -194,5 +194,70 @@ describe("tamano del icono de check (reset global de svg)", () => {
     const check = bullets.querySelector("svg") as SVGSVGElement;
     expect(getComputedStyle(check).width).toBe("15px");
     expect(getComputedStyle(check).height).toBe("15px");
+  });
+});
+
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+describe("Features en tema oscuro", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("monta el fondo FeaturesCelestialGuide (10 capas decorativas) en vez de las 3 tarjetas con figura propia", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(10);
+    });
+    container
+      .querySelectorAll("img")
+      .forEach((img) => expect(img).toHaveAttribute("alt", ""));
+  });
+
+  it("sigue mostrando el kicker, los 3 titulos, los 12 bullets y los 3 CTA con el mismo i18n que en claro", async () => {
+    renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(screen.getByText(esHome.Home.features.kicker)).toBeInTheDocument();
+    });
+    FEATURE_KEYS.forEach((key) => {
+      const copy = esHome.Home.features[key];
+      expect(
+        screen.getByRole("heading", { level: 3, name: copy.title }),
+      ).toBeInTheDocument();
+      BULLET_KEYS.forEach((bulletKey) => {
+        expect(screen.getByText(copy.bullets[bulletKey])).toBeInTheDocument();
+      });
+      const cta = screen.getByRole("link", {
+        name: new RegExp(copy.cta.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+      });
+      expect(cta).toHaveAttribute("href", "#contact");
+    });
+  });
+
+  it("no queda ninguna imagen con alt de i18n (las figuras por tarjeta son cosa de la rama clara)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    FEATURE_KEYS.forEach((key) => {
+      const alt = esHome.Home.features[key].figureAlt;
+      expect(
+        container.querySelector(`img[alt="${alt}"]`),
+      ).not.toBeInTheDocument();
+    });
   });
 });

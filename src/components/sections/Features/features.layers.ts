@@ -208,3 +208,17 @@ export const FEATURE_FIGURE_BASENAME: Record<FeatureKey, string> = {
  *  dentro de la tarjeta (~240px), nunca el ancho completo del viewport. */
 export const FEATURES_FIGURE_SIZES =
   "(max-width: 767px) 45vw, (max-width: 1023px) 200px, 240px";
+
+/**
+ * Caja de la rama oscura (2026-07-30, mismo criterio que
+ * `STORY_DARK_MAX_WIDTH`/`JOURNEY_ASTRAL_MAX_WIDTH`): acotada y centrada, no
+ * a sangre. A diferencia de Story/Journey, aquí es `MIN_HEIGHT`, no una
+ * altura fija en `dvh`: las tres tarjetas (título+cuerpo+4 bullets+CTA cada
+ * una) son bastante más contenido que los pilares de Story o los pasos de
+ * Journey, y una caja de altura FIJA con `overflow: hidden` recortaría ese
+ * contenido en viewports bajos. `min-height` deja que la sección crezca con
+ * el contenido real; el fondo (`object-fit: cover`) cubre cualquier alto que
+ * resulte.
+ */
+export const FEATURES_DARK_MAX_WIDTH = "1280px";
+export const FEATURES_DARK_MIN_HEIGHT = "80vh";

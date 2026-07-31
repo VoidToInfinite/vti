@@ -26,7 +26,9 @@ describe("semantic colors", () => {
     it("mapea todos los roles correctamente al tema claro", () => {
       const white = "oklch(1 0 0)";
       const expected: SemanticColors = {
-        bg: color.neutral[50],
+        // Fondo del body pedido explicitamente por el usuario (2026-07-30):
+        // primary[50] en vez de neutral[50].
+        bg: color.primary[50],
         surface: white,
         surfaceSunken: color.neutral[100],
         border: color.neutral[300],
@@ -55,7 +57,9 @@ describe("semantic colors", () => {
   describe("tema dark", () => {
     it("mapea todos los roles correctamente al tema oscuro", () => {
       const expected: SemanticColors = {
-        bg: color.neutral[1100],
+        // Fondo del body pedido explicitamente por el usuario (2026-07-30):
+        // secondary[1100] en vez de neutral[1100].
+        bg: color.secondary[1100],
         surface: color.neutral[1000],
         surfaceSunken: color.neutral[1100],
         border: color.neutral[800],

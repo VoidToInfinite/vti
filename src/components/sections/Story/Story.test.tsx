@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
@@ -211,5 +211,68 @@ describe("tamano del sparkle de la nota (reset global de svg)", () => {
     const sparkle = card.querySelector("svg") as SVGSVGElement;
     expect(getComputedStyle(sparkle).width).toBe("20px");
     expect(getComputedStyle(sparkle).height).toBe("20px");
+  });
+});
+
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+describe("Story en tema oscuro", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("monta la escena Cosmic Heart (8 capas decorativas) en vez de la figura/tarjeta de claro", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(8);
+    });
+    container
+      .querySelectorAll("img")
+      .forEach((img) => expect(img).toHaveAttribute("alt", ""));
+  });
+
+  it("sigue mostrando el kicker, el titulo y los 4 pilares con el mismo i18n que en claro", async () => {
+    renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(screen.getByText(esHome.Home.story.kicker)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(esHome.Home.story.pillars.learn.title),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(esHome.Home.story.pillars.practice.body),
+    ).toBeInTheDocument();
+  });
+
+  it("la nota se muestra como texto simple, sin la tarjeta ni el sparkle de claro", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(screen.getByText(esHome.Home.story.note)).toBeInTheDocument();
+    });
+    expect(container.querySelector("svg")).not.toBeInTheDocument();
+  });
+
+  it("no hay ninguna imagen con alt de i18n (figureAlt es cosa de la rama clara)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    expect(
+      container.querySelector(`img[alt="${esHome.Home.story.figureAlt}"]`),
+    ).not.toBeInTheDocument();
   });
 });

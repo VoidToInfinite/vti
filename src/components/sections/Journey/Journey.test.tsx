@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import { Journey } from "./Journey";
-import { JOURNEY_STEPS } from "./journey.layers";
+import { JOURNEY_STEPS, JOURNEY_PATH_VIEWBOX } from "./journey.layers";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
@@ -147,5 +147,65 @@ describe("tamano del icono de paso (reset global de svg)", () => {
     ) as SVGSVGElement;
     expect(getComputedStyle(icon).width).toBe("22px");
     expect(getComputedStyle(icon).height).toBe("22px");
+  });
+});
+
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+describe("Journey en tema oscuro", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("monta la escena Astral Pathway (5 capas decorativas) en vez de la tarjeta/camino/figura de claro", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(5);
+    });
+    container
+      .querySelectorAll("img")
+      .forEach((img) => expect(img).toHaveAttribute("alt", ""));
+  });
+
+  it("sigue mostrando el kicker, el titulo, los 6 pasos y la cita con el mismo i18n que en claro", async () => {
+    renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(screen.getByText(esHome.Home.journey.kicker)).toBeInTheDocument();
+    });
+    JOURNEY_STEPS.forEach((step, index) => {
+      const label = esHome.Home.journey.steps[step.id].label;
+      const number = String(index + 1).padStart(2, "0");
+      expect(screen.getByText(`${number} · ${label}`)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(`“${esHome.Home.journey.quote}”`),
+    ).toBeInTheDocument();
+  });
+
+  it("no hay ninguna imagen con alt de i18n ni el camino SVG punteado de claro", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    expect(
+      container.querySelector(`img[alt="${esHome.Home.journey.figureAlt}"]`),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelector(`svg[viewBox="${JOURNEY_PATH_VIEWBOX}"]`),
+    ).not.toBeInTheDocument();
   });
 });

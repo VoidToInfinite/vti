@@ -185,24 +185,21 @@ describe("Home (pagina completa)", () => {
   });
 
   /*
-   * Encargo literal del usuario (spec §1): "tema oscuro: solo hero y
-   * footer". El hero y el footer siguen presentes -- el footer vive en los
-   * dos temas (D6) -- pero ninguna de las 4 secciones de tema claro se
-   * monta: sus destinos (anclas del CTA del hero, del navbar y del footer)
-   * dejan de existir en el documento.
+   * Las 4 secciones (spec 2026-07-30) ya tienen tratamiento oscuro propio
+   * (escenas Cosmic Heart / Astral Pathway / Celestial Guide / Neon Galaxy):
+   * el gate por seccion que existia mientras se construian una a una
+   * (spec 2026-07-29-story-dark-cosmic-heart-design.md, D2) ya no aplica --
+   * las 4 se montan SIEMPRE, en los dos temas. El hero y el footer siguen
+   * presentes en los dos temas (D6 del spec anterior).
    */
-  it("con el tema de pagina en OSCURO (real), solo quedan el hero y el footer: ninguna de las 4 secciones se monta", () => {
+  it("con el tema de pagina en OSCURO (real), se montan las 4 secciones ademas del hero y el footer", () => {
     window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderHomePage();
 
     expect(container.querySelector("h1")).not.toBeNull();
     expect(container.querySelector("footer")).not.toBeNull();
-
     for (const id of ["story", "journey", "features", "contact"]) {
-      expect(
-        container.querySelector(`#${id}`),
-        `la seccion #${id} no deberia existir en tema oscuro`,
-      ).toBeNull();
+      expect(container.querySelector(`section#${id}`)).not.toBeNull();
     }
   });
 

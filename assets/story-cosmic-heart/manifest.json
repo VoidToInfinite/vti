@@ -1,0 +1,19 @@
+{
+    "name": "story-cosmic-heart-layers",
+    "description": "Figura celestial con el pecho encendido, separada en 8 planos de profundidad para parallax 2.5D en el fondo de Story (tema oscuro). Particion de energia (las mascaras suman 1.0 por pixel); compuestas con blending aditivo sobre --void:#05030f reconstruyen el original.",
+    "source": "Story Dark Theme 1.zip (Downloads), entregado por el usuario 2026-07-29. Fuente original citada en layers.json del zip: ChatGPT_Image_Jul_29__2026__02_54_33_PM_Cosmic_Heart_Guardian_in_Violet_Nebula.png.",
+    "canvas": { "width": 1672, "height": 941 },
+    "compositing": {
+        "css": "cada capa mix-blend-mode: plus-lighter (fallback screen) sobre --void:#05030f"
+    },
+    "layers": [
+        { "file": "01-deep-space.webp", "depth": 0.03, "share": 0.0533 },
+        { "file": "02-nebula-back.webp", "depth": 0.09, "share": 0.4714 },
+        { "file": "03-sparkles-far.webp", "depth": 0.13, "share": 0.029 },
+        { "file": "04-geometry.webp", "depth": 0.19, "share": 0.0013 },
+        { "file": "05-nebula-front.webp", "depth": 0.26, "share": 0.3386 },
+        { "file": "06-sparkles-near.webp", "depth": 0.34, "share": 0.0335 },
+        { "file": "07-figure.webp", "depth": 0.46, "share": 0.0593 },
+        { "file": "08-heart-core.webp", "depth": 0.5, "share": 0.0137 }
+    ]
+}

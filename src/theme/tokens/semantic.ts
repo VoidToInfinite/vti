@@ -22,7 +22,7 @@ export interface SemanticColors {
 const white = "oklch(1 0 0)";
 
 export const semanticLight: SemanticColors = {
-  bg: color.neutral[50],
+  bg: color.primary[50],
   surface: white,
   surfaceSunken: color.neutral[100],
   border: color.neutral[300],
@@ -60,7 +60,7 @@ export const semanticLight: SemanticColors = {
 };
 
 export const semanticDark: SemanticColors = {
-  bg: color.neutral[1100],
+  bg: color.secondary[1100],
   surface: color.neutral[1000],
   surfaceSunken: color.neutral[1100],
   border: color.neutral[800],

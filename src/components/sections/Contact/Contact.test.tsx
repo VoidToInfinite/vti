@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
@@ -190,5 +190,59 @@ describe("Contact", () => {
     expect(css).toContain("animation:");
     const topLevelRule = css.split("@media")[0];
     expect(topLevelRule).not.toContain("animation:");
+  });
+});
+
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+describe("Contact en tema oscuro", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("monta la escena Neon Galaxy (7 capas decorativas) en vez de la tarjeta/anillos/figura de claro", async () => {
+    const { container } = renderWithProviders(<Contact />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(7);
+    });
+    container
+      .querySelectorAll("img")
+      .forEach((img) => expect(img).toHaveAttribute("alt", ""));
+  });
+
+  it("sigue mostrando el kicker, el titulo, el cuerpo, el chip y el CTA con el mismo i18n que en claro", async () => {
+    renderWithProviders(<Contact />);
+    await waitFor(() => {
+      expect(screen.getByText(esHome.Home.contact.kicker)).toBeInTheDocument();
+    });
+    expect(screen.getByText(esHome.Home.contact.email)).toBeInTheDocument();
+    const cta = screen.getByRole("link", {
+      name: esHome.Home.contact.ctaAria,
+    });
+    expect(cta).toHaveAttribute("href", links.email);
+  });
+
+  it("no hay ninguna imagen con alt de i18n (la figura de claro es una capa decorativa mas aqui)", async () => {
+    const { container } = renderWithProviders(<Contact />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    expect(
+      container.querySelector(`img[alt="${esHome.Home.contact.figureAlt}"]`),
+    ).not.toBeInTheDocument();
   });
 });

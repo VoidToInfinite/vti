@@ -2,10 +2,12 @@
 
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
+import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
+import { FeaturesCelestialGuide } from "@/components/featuresCelestialGuide/FeaturesCelestialGuide";
 import {
   FEATURE_KEYS,
   FEATURE_CARD_VISUALS,
@@ -19,11 +21,30 @@ import {
   FEATURES_GAMING_TITLE_GRADIENT,
   FEATURES_GAMING_ACCENT,
   FEATURES_GAMING_ACCENT_HOVER,
+  FEATURES_DARK_MAX_WIDTH,
+  FEATURES_DARK_MIN_HEIGHT,
   type FeatureKey,
 } from "./features.layers";
 
 /*
- * Features (mockup `Landing v2.dc.html` L157-210, spec §7.3).
+ * Rama OSCURA (2026-07-30, mismo criterio que Story/Journey): no hay mockup
+ * oscuro. En vez de las 3 tarjetas con patrón SVG + figura propia + fondo
+ * pastel, el fondo es `FeaturesCelestialGuide` (imagen plana, sin capas -- a
+ * diferencia de Story/Journey no hay parallax que fingir aquí) y el
+ * contenido (mismo i18n `Home.features.*`) se superpone a la DERECHA (la
+ * figura y los 6 iconos del fondo quedan a la izquierda del encuadre, al
+ * revés que Story/Journey). Las 3 identidades se re-maquetan como bloques
+ * verticales separados por `border-top` (mismo patrón de lista que Story/
+ * Journey) en vez de tarjetas con patrón/fondo propio -- esos son literales
+ * de una tarjeta con fondo pastel (D10), sin sentido superpuestos a una
+ * imagen. Los bullets/CTA SÍ se reutilizan tal cual (`ScBullets`/
+ * `ScBulletItem`/`ScCheckIcon`/`ScCta`, más abajo): ya resuelven contra
+ * `accentColor`/tokens de tema, no contra el fondo de la tarjeta.
+ */
+
+/*
+ * Features (mockup `Landing v2.dc.html` L157-210, spec §7.3). Rama CLARA:
+ * sin cambios de comportamiento respecto a la reescritura anterior.
  *
  * Reescritura completa: la versión anterior mostraba tres áreas genéricas del
  * equipo (`Home.sections.*`, showcase de componentes) con un CTA final al
@@ -61,14 +82,39 @@ function accentColorHover(theme: ThemeDefinition, key: FeatureKey): string {
   return FEATURES_GAMING_ACCENT_HOVER;
 }
 
-const ScFeatures = styled.section`
-  padding: ${({ theme }) => theme.data.space[8]}
-    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[9]};
-  max-width: ${({ theme }) => theme.data.grid.containerMax};
-  margin-inline: auto;
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.data.space[6]};
+/*
+ * Rama clara: contenedor normal (padding + tope de ancho, centrado -- sin
+ * cambios). Rama oscura ($fullBleed): misma caja acotada y centrada que
+ * Story/Journey (`FEATURES_DARK_MAX_WIDTH`), pero con `min-height` en vez de
+ * una altura fija en `dvh` -- ver el docblock de `FEATURES_DARK_MIN_HEIGHT`
+ * en `features.layers.ts` (esta sección tiene bastante más contenido que
+ * las otras dos y una altura fija con overflow:hidden lo recortaria).
+ * `justify-content: flex-end`: el contenido va a la DERECHA (el vacío del
+ * fondo está a la derecha en esta composición, al revés que Story/Journey).
+ */
+const ScFeatures = styled.section<{ $fullBleed: boolean }>`
+  ${({ $fullBleed, theme }) =>
+    $fullBleed
+      ? css`
+          position: relative;
+          overflow: hidden;
+          width: 100%;
+          max-width: ${FEATURES_DARK_MAX_WIDTH};
+          min-height: ${FEATURES_DARK_MIN_HEIGHT};
+          margin-inline: auto;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+        `
+      : css`
+          padding: ${theme.data.space[8]} ${theme.data.space[5]}
+            ${theme.data.space[9]};
+          max-width: ${theme.data.grid.containerMax};
+          margin-inline: auto;
+          display: flex;
+          flex-direction: column;
+          gap: ${theme.data.space[6]};
+        `}
 `;
 
 const ScHeader = styled.div`
@@ -366,14 +412,160 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
   }
 `;
 
+/* Reveal de la rama oscura: mismo mecanismo que `ScDarkContent` en
+   Story.tsx/Journey.tsx -- lleva su propio padding/tope de ancho (`ScFeatures`,
+   en `$fullBleed`, ya no aporta ninguno). */
+const ScDarkContent = styled.div`
+  position: relative;
+  z-index: 1;
+  max-width: ${({ theme }) => theme.data.grid.prose};
+  width: 100%;
+  padding: ${({ theme }) => theme.data.space[8]}
+    ${({ theme }) => theme.data.space[6]};
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.decelerate},
+    transform ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.decelerate};
+
+  &[data-revealed="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+`;
+
+const ScDarkHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.data.space[2]};
+`;
+
+/* Las 3 identidades como bloques verticales (mismo patrón de lista que
+   Story/Journey), no como tarjetas con patrón/fondo propio: esos son
+   literales de una tarjeta con fondo pastel (D10), sin sentido superpuestos
+   a una imagen. */
+const ScDarkFeatures = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-block-start: ${({ theme }) => theme.data.space[6]};
+`;
+
+const ScDarkFeatureBlock = styled.div`
+  padding-block: ${({ theme }) => theme.data.space[5]};
+  border-block-start: 1px solid ${({ theme }) => theme.data.semantic.border};
+
+  &:first-child {
+    border-block-start: none;
+    padding-block-start: 0;
+  }
+`;
+
+const ScDarkBody = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[2]};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  max-width: ${({ theme }) => theme.data.grid.prose};
+`;
+
 export function Features(): ReactElement {
   const { t } = useTranslation("home");
+  const { themeName } = useTheme();
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+
+  if (themeName !== "light") {
+    return (
+      <ScFeatures
+        id="features"
+        aria-labelledby="features-title"
+        $fullBleed
+      >
+        <FeaturesCelestialGuide />
+        <ScDarkContent
+          ref={revealRef}
+          data-revealed={revealed}
+        >
+          <ScDarkHeader>
+            <ScKicker
+              variant="overline"
+              forwardedAs="p"
+            >
+              {t("Home.features.kicker")}
+            </ScKicker>
+            <Typography
+              variant="h2"
+              id="features-title"
+            >
+              <ScSpanLearning>
+                {t("Home.features.learning.title")}
+              </ScSpanLearning>{" "}
+              <ScSpanImagination>
+                {t("Home.features.imagination.title")}
+              </ScSpanImagination>{" "}
+              <ScSpanGaming>{t("Home.features.gaming.title")}</ScSpanGaming>
+            </Typography>
+          </ScDarkHeader>
+
+          <ScDarkFeatures>
+            {FEATURE_KEYS.map((key) => (
+              <ScDarkFeatureBlock key={key}>
+                <Typography
+                  variant="h3"
+                  id={`feature-${key}-title`}
+                >
+                  {t(`Home.features.${key}.title`)}
+                </Typography>
+                <ScDarkBody variant="bodySm">
+                  {t(`Home.features.${key}.body`)}
+                </ScDarkBody>
+                <ScBullets $twoColumns={key === "learning"}>
+                  {BULLET_KEYS.map((bulletKey) => (
+                    <ScBulletItem key={bulletKey}>
+                      <ScCheckIcon
+                        $key={key}
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path d={FEATURES_CHECK_ICON_PATH} />
+                      </ScCheckIcon>
+                      <span>
+                        {t(`Home.features.${key}.bullets.${bulletKey}`)}
+                      </span>
+                    </ScBulletItem>
+                  ))}
+                </ScBullets>
+                <ScCta
+                  href="#contact"
+                  $key={key}
+                >
+                  {t(`Home.features.${key}.cta`)} →
+                </ScCta>
+              </ScDarkFeatureBlock>
+            ))}
+          </ScDarkFeatures>
+        </ScDarkContent>
+      </ScFeatures>
+    );
+  }
 
   return (
     <ScFeatures
       id="features"
       aria-labelledby="features-title"
+      $fullBleed={false}
     >
       <ScHeader>
         {/* forwardedAs, NO as: sobre un styled(Typography), `as` lo consume

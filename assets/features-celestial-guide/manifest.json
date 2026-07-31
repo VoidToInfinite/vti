@@ -1,0 +1,22 @@
+{
+    "name": "features-celestial-guide-layers",
+    "description": "Figura celestial con holograma de suelo y 6 orbes (libro, bombilla, birrete, cerebro, mando de juego, grafico de crecimiento) que simbolizan Learning/Imagination/Gaming, separada en 10 planos de profundidad para parallax 2.5D en el fondo de Features (tema oscuro). Sustituye la version anterior (imagen plana unica, sin parallax): este paquete (v9) trae la particion completa por capas. Compuestas con blending aditivo (plus-lighter) reconstruyen el original (error de recomposicion: maximo 0/255).",
+    "source": "Features Dark Theme 1.zip (Downloads), entregado por el usuario 2026-07-30. Misma imagen fuente que la version plana anterior (ChatGPT Image Jul 30, 2026, 10_26_10 AM Celestial Holographic Learning Guide upscalemedia-transformed.png), ahora descompuesta en capas.",
+    "canvas": { "width": 3344, "height": 1882 },
+    "compositing": {
+        "css": "cada capa mix-blend-mode: plus-lighter (fallback screen) sobre negro"
+    },
+    "layout": "figura + orbes a la izquierda del encuadre, vacio a la derecha (al contrario que Story/Journey, donde el vacio esta a la izquierda) -- el contenido de texto se posiciona en consecuencia, a la derecha.",
+    "layers": [
+        { "file": "01-fondo.webp", "depth": 0.04 },
+        { "file": "02-ambiente.webp", "depth": 0.1 },
+        { "file": "03-estrellas.webp", "depth": 0.18 },
+        { "file": "04-orb-book.webp", "depth": 0.28 },
+        { "file": "05-orb-bulb.webp", "depth": 0.3 },
+        { "file": "06-orb-cap.webp", "depth": 0.32 },
+        { "file": "07-orb-brain.webp", "depth": 0.34 },
+        { "file": "08-orb-gamepad.webp", "depth": 0.36 },
+        { "file": "09-orb-chart.webp", "depth": 0.38 },
+        { "file": "10-figura-holograma.webp", "depth": 0.46 }
+    ]
+}
