@@ -9,6 +9,14 @@ export const GlobalStyles = createGlobalStyle`
        flotante. Un token de tema obligaría a leerla desde JS en un sitio y
        desde CSS en otro. */
     --nav-height: 3.5rem;
+    /* Separación de la píldora del navbar al despegarse en scroll. Vive
+       aquí, y no en los tokens de tema, por el mismo motivo que
+       --nav-height: es una medida de LAYOUT que consumen dos sitios sin
+       poder derivarla el uno del otro — el Navbar (que la aplica como
+       margen/hueco lateral) y el margen de scroll de las secciones
+       ancladas, que ahora tiene que descontar la barra MÁS esta
+       separación. */
+    --nav-gap: 0.5rem;
   }
 
   *,
@@ -114,7 +122,7 @@ export const GlobalStyles = createGlobalStyle`
      desde el CTA del hero), el destino quedaría tapado por la barra. El
      margen de scroll lo compensa sin tocar el layout. */
   :where(section[id]) {
-    scroll-margin-top: var(--nav-height);
+    scroll-margin-top: calc(var(--nav-height) + var(--nav-gap));
   }
 
   :where(a, button, input, textarea, select, [tabindex]):focus-visible {
