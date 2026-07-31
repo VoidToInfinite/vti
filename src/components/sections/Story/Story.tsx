@@ -1,11 +1,23 @@
 "use client";
-import type { ReactElement } from "react";
+import { useRef, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes, type DefaultTheme } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
+import { useStoryDeck } from "@/hooks/useStoryDeck";
 import { useTheme } from "@/theme/ThemeProvider";
 import { StoryCosmicHeart } from "@/components/storyCosmicHeart/StoryCosmicHeart";
+import {
+  ScDeck,
+  ScRail,
+  ScRailMark,
+  ScSceneWrap,
+  ScSlide,
+  ScSnapPoint,
+  ScSnapPoints,
+  ScStage,
+  ScTrack,
+} from "./story.deck";
 import {
   STORY_ACCENT_GRADIENT_DARK,
   STORY_ACCENT_GRADIENT_LIGHT,
@@ -13,8 +25,6 @@ import {
   STORY_CARD_BORDER,
   STORY_CARD_FLOAT_MS,
   STORY_CARD_SHADOW,
-  STORY_DARK_HEIGHT,
-  STORY_DARK_MAX_WIDTH,
   STORY_FIGURE_ASPECT,
   STORY_FIGURE_FLOAT_MS,
   STORY_FIGURE_HEIGHT,
@@ -23,6 +33,7 @@ import {
   STORY_FLOAT_AMPLITUDE,
   STORY_HALO_GRADIENT,
   STORY_HALO_INSET,
+  STORY_SLIDES,
 } from "./story.layers";
 
 /*
@@ -81,32 +92,27 @@ function pillarColor(
  * Rama clara: contenedor de contenido normal (padding + tope de ancho,
  * centrado -- sin cambios respecto a la version anterior).
  *
- * Rama oscura ($fullBleed, 2026-07-29, segunda iteracion): la primera
- * entrega ocupaba el viewport completo a sangre; el usuario pidio acotarla a
- * una caja de `STORY_DARK_MAX_WIDTH` (1280px) de ancho maximo por
- * `STORY_DARK_HEIGHT` (90dvh) de alto, centrada en la pagina
- * (`margin-inline: auto`). `height` fijo (no `min-height`): el pedido es que
- * la seccion OCUPE esa medida, no que crezca mas alla si el contenido es mas
- * alto -- `overflow: hidden` (ya presente) contiene tanto el overscan del
- * parallax como cualquier desbordamiento de contenido dentro de esa caja.
- * `dvh` corrige el alto en movil, donde la barra de direcciones cambia
- * `vh` en tiempo real; se declara DESPUES de `vh` a proposito (mismo orden
- * que `ScHero`, Hero.tsx) para que sea la unidad ganadora en navegadores que
- * la soportan, con `vh` como fallback en los que no.
+ * Rama oscura ($fullBleed, spec 2026-07-31-story-deck-hero-transition-design.md
+ * D15c, tercera iteracion): las dos entregas anteriores acotaban esta
+ * seccion a una caja fija (primero a sangre, luego a `STORY_DARK_MAX_WIDTH` x
+ * `STORY_DARK_HEIGHT`). Con la presentacion de 6 diapositivas esa caja fija
+ * desaparece: `ScTrack` (story.deck.tsx) es quien mide 6 pantallas de alto
+ * ahora, y `ScStory` vuelve a ser solo un contenedor relativo sin medida
+ * propia, que crece con su contenido. Pierde su `overflow: hidden`: CUALQUIER
+ * ancestro con overflow distinto de `visible`/`clip` rompe el
+ * `position: sticky` del stage de mas abajo (D15c) -- el recorte del
+ * overscan del parallax pasa a `ScStage`, que no es ancestro de si mismo.
+ * `background-color` explicito (no solo heredado de `body`) porque, con el
+ * stage escalandose durante la apertura/cierre de la presentacion, el borde
+ * que asoma detras tiene que ser el mismo `secondary[1100]` del encargo
+ * (D8), no lo que hubiera detras por casualidad.
  */
 const ScStory = styled.section<{ $fullBleed: boolean }>`
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`
           position: relative;
-          overflow: hidden;
-          width: 100%;
-          max-width: ${STORY_DARK_MAX_WIDTH};
-          height: 90vh;
-          height: ${STORY_DARK_HEIGHT};
-          margin-inline: auto;
-          display: flex;
-          align-items: center;
+          background-color: ${theme.data.semantic.bg};
         `
       : css`
           padding: ${theme.data.space[9]} ${theme.data.space[5]};
@@ -289,39 +295,26 @@ const ScPillarCopy = styled.div`
   gap: ${({ theme }) => theme.data.space[1]};
 `;
 
-/* Reveal de la rama oscura: mismo mecanismo que ScGrid, pero SOLO sobre el
-   contenido -- la escena de fondo (StoryCosmicHeart) no usa useReveal, esta
-   siempre presente y en movimiento propio. Lleva su PROPIO padding/tope de
-   ancho (ScStory, en `$fullBleed`, ya no aporta ninguno): el fondo ocupa el
-   viewport entero, pero el texto sigue acotado a una medida de lectura
-   comoda, igual que ScCopy dentro de ScHero (Hero.tsx). */
-const ScDarkContent = styled.div`
-  position: relative;
-  z-index: 1;
-  max-width: ${({ theme }) => theme.data.grid.prose};
-  width: 100%;
-  padding: ${({ theme }) => theme.data.space[8]}
-    ${({ theme }) => theme.data.space[6]};
-  opacity: 0;
-  transform: translateY(16px);
-  transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
-
-  &[data-revealed="true"] {
-    opacity: 1;
-    transform: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    opacity: 1;
-    transform: none;
-  }
+/*
+ * El MISMO pilar, pero como diapositiva suelta. `ScPillarRow` lleva un
+ * `border-block-start` porque en la rama clara los cuatro pilares son una
+ * LISTA y esa línea es su separador: es lo que convierte cuatro bloques
+ * sueltos en una tabla legible. Aislado en su propia diapositiva a pantalla
+ * completa no separa nada de nada — queda una raya suelta flotando encima
+ * del contenido, que se lee como un resto de maquetación, no como una
+ * decisión. Se anula aquí, en el contexto donde deja de tener sentido, en
+ * vez de quitarla de `ScPillarRow`, que seguiría necesitándola en claro.
+ */
+const ScDeckPillarRow = styled(ScPillarRow)`
+  border-block-start: none;
+  padding-block: 0;
 `;
 
+/* Nota de cierre de la rama oscura (diapositiva 5): texto simple, sin la
+   tarjeta ni el sparkle de la rama clara (spec 2026-07-29 D8) -- esta
+   composicion no tiene sitio para una tarjeta sin tapar el nucleo del
+   corazon. Reutilizada tal cual dentro de su propia ScSlide (story.deck.tsx)
+   desde la presentacion de 6 diapositivas. */
 const ScNote = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[6]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
@@ -418,21 +411,132 @@ export function Story(): ReactElement {
     );
   }
 
+  // La rama oscura vive en un componente HIJO aparte (StoryDeckDark, mas
+  // abajo) en vez de continuar aqui mismo: useStoryDeck usa
+  // window.matchMedia incondicionalmente en su efecto de montaje, y esta
+  // funcion Story() es UNA SOLA para las dos ramas (las reglas de los hooks
+  // de React prohiben llamarlo solo "cuando el tema es oscuro" dentro de
+  // ella). Si el hook se llamara aqui, se ejecutaria en CADA render de
+  // Story() -- tambien en tema claro -- y rompería cualquier test que
+  // renderice la rama clara sin stubear matchMedia (los 13 tests existentes
+  // de este archivo, ninguno de los cuales lo stubea porque nunca lo
+  // necesitaron). Delegar la rama oscura a un componente que solo se MONTA
+  // cuando `themeName !== "light"` resuelve esto sin tocar useStoryDeck.ts
+  // ni los tests claros: React nunca ejecuta los hooks de un componente que
+  // no se renderiza.
+  return <StoryDeckDark heading={heading} />;
+}
+
+/*
+ * Rama oscura de Story, extraida a su propio componente (ver el comentario
+ * de mas arriba, en Story()): aqui SI es seguro llamar useStoryDeck sin
+ * condicion, porque este componente en si mismo solo se monta cuando la
+ * rama oscura esta activa. `heading` llega ya construido desde Story() (con
+ * el `t` de esa funcion) para no duplicar la logica del kicker/h2/body; el
+ * resto (pilares, nota, rail, anclas de snap) se construye aqui con su
+ * PROPIO `t`, mismo namespace/instancia de i18n, mismo resultado.
+ */
+function StoryDeckDark({ heading }: { heading: ReactNode }): ReactElement {
+  const { t } = useTranslation("home");
+
+  // Refs ESTABLES (useRef, no callback-ref): useStoryDeck lee
+  // getBoundingClientRect() de la pista en cada frame de rAF y escribe las
+  // variables CSS de la coreografia directamente sobre el stage -- mismo
+  // motivo por el que useSceneParallax exige refs de identidad estable en
+  // vez de callbacks (storyCosmicHeart.tsx).
+  const trackRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const { index, direction } = useStoryDeck(trackRef, stageRef, STORY_SLIDES);
+
+  // Estado de cada diapositiva (spec seccion 5b): se decide AQUI, comparando
+  // su indice con el `index` que escribe el hook -- el CSS de ScSlide
+  // (story.deck.tsx) solo reacciona al atributo `data-state` resultante,
+  // nunca calcula nada por si mismo (jsdom, ademas, no puede evaluar ningun
+  // calculo que dependiera de scroll real).
+  const slideState = (slideIndex: number): "past" | "current" | "next" => {
+    if (slideIndex < index) return "past";
+    if (slideIndex === index) return "current";
+    return "next";
+  };
+
   return (
     <ScStory
       id="story"
       aria-labelledby="story-title"
       $fullBleed
     >
-      <StoryCosmicHeart />
-      <ScDarkContent
-        ref={revealRef}
-        data-revealed={revealed}
-      >
-        {heading}
-        {pillars}
-        <ScNote variant="bodySm">{t("Home.story.note")}</ScNote>
-      </ScDarkContent>
+      {/* ScTrack da a la pagina el recorrido de scroll de las 6
+          diapositivas (6 * STORY_DARK_HEIGHT); ScStage, su unico hijo en
+          flujo, es quien se pega y permanece en pantalla mientras ese
+          recorrido pasa por debajo (spec seccion 4). */}
+      <ScTrack ref={trackRef}>
+        <ScStage
+          ref={stageRef}
+          data-slide={index}
+          data-dir={direction}
+        >
+          <ScSceneWrap>
+            <StoryCosmicHeart />
+          </ScSceneWrap>
+          <ScDeck>
+            <ScSlide
+              data-slide-index={0}
+              data-state={slideState(0)}
+            >
+              {heading}
+            </ScSlide>
+            {PILLARS.map((pillar, pillarIndex) => (
+              <ScSlide
+                key={pillar.key}
+                data-slide-index={pillarIndex + 1}
+                data-state={slideState(pillarIndex + 1)}
+              >
+                <ScDeckPillarRow>
+                  <ScPillarNumber $index={pillarIndex}>
+                    {pillar.number} —
+                  </ScPillarNumber>
+                  <ScPillarCopy>
+                    <Typography
+                      variant="h5"
+                      as="p"
+                    >
+                      {t(`Home.story.pillars.${pillar.key}.title`)}
+                    </Typography>
+                    <Typography variant="bodySm">
+                      {t(`Home.story.pillars.${pillar.key}.body`)}
+                    </Typography>
+                  </ScPillarCopy>
+                </ScDeckPillarRow>
+              </ScSlide>
+            ))}
+            <ScSlide
+              data-slide-index={STORY_SLIDES - 1}
+              data-state={slideState(STORY_SLIDES - 1)}
+            >
+              <ScNote variant="bodySm">{t("Home.story.note")}</ScNote>
+            </ScSlide>
+          </ScDeck>
+          {/* Rail decorativo (D13): 6 marcas, aria-hidden, que reflejan
+              data-slide del stage por CSS puro (ScRailMark, story.deck.tsx) --
+              no llevan estado propio de React, solo su indice fijo. */}
+          <ScRail aria-hidden="true">
+            {Array.from({ length: STORY_SLIDES }, (_, railIndex) => (
+              <ScRailMark
+                key={railIndex}
+                $index={railIndex}
+              />
+            ))}
+          </ScRail>
+        </ScStage>
+        {/* Anclas de snap (D3), superpuestas a la pista entera SIN alterar
+            el flujo del que depende el pin (ScStage sigue siendo el unico
+            hijo en flujo de ScTrack). */}
+        <ScSnapPoints aria-hidden="true">
+          {Array.from({ length: STORY_SLIDES }, (_, snapIndex) => (
+            <ScSnapPoint key={snapIndex} />
+          ))}
+        </ScSnapPoints>
+      </ScTrack>
     </ScStory>
   );
 }

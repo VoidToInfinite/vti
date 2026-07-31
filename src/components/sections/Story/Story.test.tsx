@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
+import {
+  renderWithProviders,
+  screen,
+  waitFor,
+  within,
+} from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
 import { Story } from "./Story";
+import { STORY_DARK_MAX_WIDTH, STORY_SLIDES } from "./story.layers";
 
 /*
  * Reescritura completa (spec 2026-07-28, D3/D4): Story ya no es una
@@ -274,5 +280,139 @@ describe("Story en tema oscuro", () => {
     expect(
       container.querySelector(`img[alt="${esHome.Home.story.figureAlt}"]`),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Tarea 3 (spec 2026-07-31-story-deck-hero-transition-design.md §4/§9): la
+ * rama oscura deja de ser una pantalla y pasa a ser una presentacion de 6
+ * diapositivas ancladas por scroll. jsdom no evalua @media, no anima y no
+ * hace layout real (misma advertencia que el resto de este archivo): lo
+ * unico verificable aqui es (a) atributos (data-slide-index/data-slide/
+ * data-dir), (b) contenido i18n real por diapositiva, (c) un valor de
+ * getComputedStyle contra una constante IMPORTADA (nunca un literal), y (d)
+ * el TEXTO del CSS inyectado para los bloques de @media que jsdom nunca
+ * ejecuta. El pin, el snap y la geometria real se verifican en navegador en
+ * una fase posterior (Task 4), no aqui.
+ */
+describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("hay exactamente STORY_SLIDES elementos [data-slide-index]", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+  });
+
+  it("reparte el contenido de las 6 diapositivas en el orden del encargo: intro, 4 pilares, nota", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const slides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ) as HTMLElement[];
+
+    // Diapositiva 0: el UNICO h2 accesible de la seccion entera.
+    expect(slides[0].querySelector("h2#story-title")).toBeInTheDocument();
+
+    // Diapositivas 1-4: un pilar cada una, en orden, con su numeracion
+    // "01 --".."04 --" (del componente, no de i18n) y el titulo i18n real.
+    const pillarKeys = ["learn", "create", "grow", "practice"] as const;
+    pillarKeys.forEach((key, i) => {
+      const slide = slides[i + 1];
+      expect(slide.textContent).toContain(`0${i + 1} —`);
+      expect(
+        within(slide).getByText(esHome.Home.story.pillars[key].title),
+      ).toBeInTheDocument();
+    });
+
+    // Diapositiva 5: la nota de cierre.
+    expect(
+      within(slides[5]).getByText(esHome.Home.story.note),
+    ).toBeInTheDocument();
+  });
+
+  it("el stage arranca con data-slide=0 y data-dir=forward (estado de reposo del hook, sin scroll)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    expect(stage).toHaveAttribute("data-slide", "0");
+    expect(stage).toHaveAttribute("data-dir", "forward");
+  });
+
+  it("el deck acota su ancho a STORY_DARK_MAX_WIDTH (constante importada, no un literal)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const firstSlide = container.querySelector(
+      '[data-slide-index="0"]',
+    ) as HTMLElement;
+    const deck = firstSlide.parentElement as HTMLElement;
+    expect(getComputedStyle(deck).maxWidth).toBe(STORY_DARK_MAX_WIDTH);
+  });
+
+  it("bajo prefers-reduced-motion la pista vuelve a flujo, y el scrub de rewind vive SOLO bajo no-preference", async () => {
+    // jsdom no evalua @media (leccion 2026-07-27, repetida en todo este
+    // archivo): el guard de reduce y el aislamiento del scrub se atan por
+    // TEXTO de las reglas inyectadas, con el mismo helper que ya usa el
+    // resto de la suite.
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    const deck = (
+      container.querySelector('[data-slide-index="0"]') as HTMLElement
+    ).parentElement as HTMLElement;
+
+    const trackCss = cssRuleTextFor(track);
+    expect(trackCss).toContain("prefers-reduced-motion: reduce");
+    expect(
+      trackCss.slice(trackCss.indexOf("prefers-reduced-motion: reduce")),
+    ).toContain("height: auto");
+
+    const stageCss = cssRuleTextFor(stage);
+    expect(stageCss).toContain("prefers-reduced-motion: reduce");
+    expect(
+      stageCss.slice(stageCss.indexOf("prefers-reduced-motion: reduce")),
+    ).toContain("position: static");
+
+    const deckCss = cssRuleTextFor(deck);
+    expect(deckCss).toContain("prefers-reduced-motion: no-preference");
+    expect(deckCss).toContain("@keyframes");
+    // Misma comprobacion que ya usa "flotacion..." mas arriba en este
+    // archivo: el segmento ANTERIOR al primer @media no debe traer ya el
+    // @keyframes -- si lo trajera, "solo bajo no-preference" seria falso.
+    const topLevelDeckCss = deckCss.split("@media")[0];
+    expect(topLevelDeckCss).not.toContain("@keyframes");
+  });
+
+  it("las 8 capas de la escena siguen presentes dentro de la presentacion", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(8);
+    });
   });
 });
