@@ -323,37 +323,20 @@ describe("Navbar", () => {
     expect(themeToggle).toBeInTheDocument();
   });
 
-  it("la marca-esquina sigue al estado de scroll, no un valor fijo", () => {
-    // Test de integración: sin esto, un `visible={true}` hardcodeado por error
-    // en el cableado pasaría desapercibido — los tests de EyeCornerMark lo
-    // cubren aislado y los de Navbar no lo miraban.
+  it("no queda ninguna marca decorativa que aparezca al hacer scroll", () => {
+    // Regresion de la retirada de `EyeCornerMark` (2026-07-31): el punto
+    // decorativo que se encendia con `data-scrolled` se elimino a peticion
+    // del usuario. Este test evita que vuelva a colarse en el enlace de
+    // marca cualquier elemento que se revele con el scroll: el unico cambio
+    // visual al cruzar el umbral tiene que ser la propia pildora.
     const { container } = renderNavbar();
-    const mark = (): Element | null =>
-      container.querySelector("[data-visible]");
+    const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
 
-    expect(mark()).toHaveAttribute("data-visible", "false");
+    scrollPast();
 
-    act(() => {
-      Object.defineProperty(window, "scrollY", {
-        value: 200,
-        writable: true,
-        configurable: true,
-      });
-      window.dispatchEvent(new Event("scroll"));
-    });
-
-    expect(mark()).toHaveAttribute("data-visible", "true");
-
-    act(() => {
-      Object.defineProperty(window, "scrollY", {
-        value: 0,
-        writable: true,
-        configurable: true,
-      });
-      window.dispatchEvent(new Event("scroll"));
-    });
-
-    expect(mark()).toHaveAttribute("data-visible", "false");
+    expect(screen.getByRole("banner")).toHaveAttribute("data-scrolled", "true");
+    expect(brandLink.querySelector("[data-visible]")).toBeNull();
+    expect(container.querySelectorAll("[data-visible]")).toHaveLength(0);
   });
 
   describe("entrada del navbar en la carga (data-intro, tarea C4/C6)", () => {

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import styled, { keyframes } from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
-import { EyeCornerMark } from "@/components/eye/EyeCornerMark";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
@@ -472,7 +471,13 @@ export function Navbar(): ReactElement {
         />
         <ScNav>
           <ScBrandLink href="/">
-            <EyeCornerMark visible={scrolled} />
+            {/* Aqui vivia `EyeCornerMark`, un punto decorativo que se
+                encendia con `data-scrolled`. Retirado el 2026-07-31 a
+                peticion del usuario: al cruzar el umbral, el unico cambio
+                visual de la barra es su propio despegue: nada se enciende
+                al lado de la marca. El componente se elimino entero (este
+                era su unico consumidor en todo el repo), no se dejo
+                importado sin usar. */}
             {/* 1.5rem, no 1rem: a 1rem (16x18px) los trazos finos del
                 dibujo (cabeza + brazos en V) no se distinguen. El valor
                 anterior era una reduccion defensiva de una sesion previa

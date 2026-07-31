@@ -29,8 +29,9 @@ export interface NavDetachState {
 /**
  * Deriva la fase de despegue/pegado del navbar (spec D4) a partir de
  * `useScrolled`, sin modificarlo: `useScrolled` sigue siendo la única fuente
- * de verdad del propio booleano `scrolled` (alimenta el cristal y
- * `EyeCornerMark`); este hook solo AÑADE el estado transitorio `phase`, que
+ * de verdad del propio booleano `scrolled` (alimenta el cristal y la
+ * geometría de la píldora); este hook solo AÑADE el estado transitorio
+ * `phase`, que
  * dispara las `@keyframes` de squash & stretch solo en cruces reales de
  * umbral, nunca en el montaje.
  *

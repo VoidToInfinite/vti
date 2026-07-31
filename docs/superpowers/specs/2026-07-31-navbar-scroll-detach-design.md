@@ -15,7 +15,7 @@ Estados existentes que NO se tocan:
 
 | Estado | Origen | Efecto |
 | --- | --- | --- |
-| `data-scrolled` | `useScrolled(8)` | activa el cristal; alimenta `EyeCornerMark visible={scrolled}` |
+| `data-scrolled` | `useScrolled(8)` | activa el cristal; alimentaba también `EyeCornerMark visible={scrolled}`, retirado después (ver §14) |
 | `data-intro` | `useStage()` (`phase === "backdrop"`) | entrada en la carga: `opacity` + `translateY(-8px)` |
 
 Baseline de calidad de esta rama, medido antes de empezar: `typecheck` y `lint` limpios; `check-format` falla **solo** en `graphify-out/**` (artefactos generados); `pnpm test` = 495 verdes + **1 fallo preexistente** en `app/home-page.flujo.test.tsx` (tema oscuro, timeout de 5000 ms), ajeno a Navbar; `check-spelling` con 31122 incidencias preexistentes. Ninguno se corrige en esta entrega: se mantienen aislados y se verifica que no crecen.
@@ -50,7 +50,7 @@ Al cruzar el umbral de scroll, la barra deja de ser una banda a sangre y se conv
     <ScSurface aria-hidden="true" data-nav-surface />          {/* absolute inset 0; glass + border + radius + elevation;
                                                                    opacity 0 -> 1; @keyframes peelOff / stickOn */}
     <ScNav>                                                   {/* relative; height var(--nav-height); contenido intacto */}
-      marca (EyeCornerMark + Logo + BrandName) · enlaces de sección (claro, ≥ md) · acciones
+      marca (Logo + BrandName) · enlaces de sección (claro, ≥ md) · acciones
     </ScNav>
   </ScBar>
 </ScHeader>
@@ -160,3 +160,13 @@ Ocultar la barra al bajar; alto compacto al scrollear; menú móvil; cambio de c
 - [ ] `graphify update .`.
 - [ ] Registro en el vault (`01-Projects/vti.md` + esta spec referenciada) y lección nueva en `task/lessons.md` si aparece alguna.
 - [ ] Árbol de trabajo limpio, commits temáticos en español.
+
+## 14. Addendum (2026-07-31, tras la entrega) — retirada de `EyeCornerMark`
+
+Al ver la barra ya despegada, el usuario pidió eliminar "el elemento que se ve cuando se hace scroll": `EyeCornerMark`, un punto decorativo de 1rem (degradado radial azul→violeta, `oklch` literal como excepción sancionada de marca) que vivía dentro de `ScBrandLink` y pasaba de `opacity: 0` a `1` con `data-scrolled`.
+
+Se retira el uso **y el componente entero** (`src/components/eye/EyeCornerMark.tsx` + su test): el `Navbar` era su único consumidor en todo el repo, verificado por búsqueda global, así que dejarlo habría sido código muerto — mismo criterio que ya se aplicó al retirar `useScrollProgress` cuando `Story` dejó de usarlo (D4 de la spec del 2026-07-28).
+
+El test de integración que ataba la marca al estado de scroll se **sustituye**, no se borra: pasa a aseverar que **no queda ningún elemento que se revele con el scroll** dentro del enlace de marca (`[data-visible]` a cero en todo el árbol tras cruzar el umbral). Así, el contrato que antes protegía "la marca sigue al scroll" ahora protege "el único cambio visual al cruzar el umbral es la propia píldora".
+
+`useScrolled` no se toca: sigue alimentando `data-scrolled` y, a través de `useNavDetach`, toda la geometría de la píldora.
