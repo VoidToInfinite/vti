@@ -127,8 +127,18 @@ export const STORY_STAGE_ENTER_SCALE = 0.92;
  * ese hook (arriesgaría Journey/Features/Contact, que lo comparten). Este
  * desplazamiento, pequeño y solo en el envoltorio, devuelve esa sensación
  * de profundidad sin tocar el parallax compartido.
+ *
+ * En `dvh`, NO en `%`, y esto no es un detalle de estilo: un porcentaje en
+ * `translateY` se resuelve contra la altura del PROPIO elemento, mientras que
+ * el mismo porcentaje en `top`/`bottom` se resuelve contra la del CONTENEDOR.
+ * Con el envoltorio sobredimensionado (ver `ScSceneWrap`) esas dos alturas ya
+ * no coinciden, así que la sobredimensión y el traslado se calcularían contra
+ * referencias distintas y quedaría un borde descubierto — que es exactamente
+ * el bug que esta unidad cierra: la escena se iba 48px hacia abajo al
+ * scrollear y dejaba una banda de fondo plano asomando por arriba.
+ * `dvh` es la misma referencia para los dos.
  */
-export const STORY_SCENE_DEPTH_SHIFT = "6%";
+export const STORY_SCENE_DEPTH_SHIFT = "6dvh";
 
 /**
  * Duración del "scrub" de rewind (`data-dir="rewind"`): el micro-desplazamiento

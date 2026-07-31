@@ -93,6 +93,31 @@ export const ScStage = styled.div`
 export const ScSceneWrap = styled.div`
   position: absolute;
   inset: 0;
+  /*
+   * SOBREDIMENSION vertical, imprescindible: este envoltorio se traslada
+   * hasta STORY_SCENE_DEPTH_SHIFT hacia abajo, y una capa a sangre que se
+   * mueve SIN sobredimensionar descubre el borde por el que se va -- deja
+   * una banda de fondo plano asomando arriba que crece conforme se
+   * scrollea, y recorta otro tanto por abajo. Fue exactamente el defecto
+   * reportado tras la primera entrega ("las diapositivas se desplazan hacia
+   * abajo, no se mantienen en el alto de la vista"): el pin sujetaba bien,
+   * lo que se movia era esta capa.
+   *
+   * Se estira un desplazamiento por CADA lado (arriba y abajo) para que
+   * cualquier valor del recorrido quede cubierto. El +1px extra por lado es
+   * colchon de subpixel: sin el, en el extremo del recorrido el borde
+   * superior aterriza EXACTAMENTE en 0, y basta un redondeo de medio pixel
+   * (zoom del navegador, dvh fraccionario, pantalla HiDPI) para que asome
+   * una linea del fondo. Un pixel de mas no se ve y cierra esa clase de
+   * fallo entera. Y la unidad es dvh en los dos sitios a proposito (ver el
+   * docblock de STORY_SCENE_DEPTH_SHIFT): un % en translateY se resuelve
+   * contra la altura de ESTE elemento -- que aqui ya no es la del
+   * contenedor, precisamente por esta sobredimension -- mientras que en
+   * top/bottom se resolveria contra la del contenedor. Dos referencias
+   * distintas para la misma medida vuelven a dejar el borde descubierto.
+   */
+  top: calc(-1 * ${STORY_SCENE_DEPTH_SHIFT} - 1px);
+  bottom: calc(-1 * ${STORY_SCENE_DEPTH_SHIFT} - 1px);
   transform: translateY(
     calc(${STORY_SCENE_DEPTH_SHIFT} * var(--story-progress, 0))
   );
