@@ -140,6 +140,7 @@
   "138": "home-page.flujo.test.tsx",
   "139": "02-hand-left",
   "140": "03-hand-right",
+  "141": "FeaturesCelestialGuide.tsx",
   "142": "locales.test.ts",
   "143": "Button.tsx",
   "144": "5. API",
@@ -162,7 +163,12 @@
   "161": "Typography.tsx",
   "162": "Navbar: despegue al hacer scroll (\"slime detach\") — Implementation Plan",
   "163": "useSceneParallax.ts",
+  "164": "00-field",
   "165": "Journey.test.tsx",
+  "166": "01-energy",
+  "167": "02-hand-left",
   "168": "Story como presentación de 6 diapositivas + transición Hero→Story — Implementation Plan",
-  "170": "Logo.tsx"
+  "169": "03-hand-right",
+  "170": "Logo.tsx",
+  "171": "story.layers.ts"
 }
