@@ -26,6 +26,29 @@ function stubMatchMedia(reducedMatches: boolean): void {
 }
 
 /**
+ * Variante de `stubMatchMedia` con puntero fino ENCENDIDO (`hover: hover and
+ * pointer: fine` → `matches: true`). El resto de la suite lo deja apagado a
+ * proposito (no le hace falta la posicion real del cursor, solo distinguir
+ * "sigue al puntero" de "deriva"), pero las pruebas de la puerta de
+ * contencion por seccion si necesitan que `usePointer()` rastree de verdad
+ * un `pointermove` real para poder comprobar que la escena lo sigue -- o no
+ * lo sigue -- segun este dentro o fuera de su rectangulo.
+ */
+function stubMatchMediaFine(reducedMatches: boolean): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("prefers-reduced-motion")
+        ? reducedMatches
+        : query.includes("pointer: fine"),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
+/**
  * matchMedia dinamico para `prefers-reduced-motion`: a diferencia de
  * `stubMatchMedia` (valor congelado en la construccion), `.matches` es un
  * getter que refleja el ULTIMO valor pasado a `setReduced`, y captura el
@@ -311,5 +334,184 @@ describe("useSceneParallax", () => {
 
     act(() => setReduced(true));
     expect(layer.style.transform).toBe("");
+  });
+
+  it("con el puntero DENTRO del rectangulo de la escena, el transform de una capa evoluciona hacia la posicion del puntero", () => {
+    // Puerta de contencion por seccion (encargo 2026-07-31). A diferencia
+    // del resto de la suite, aqui hace falta puntero fino ENCENDIDO: solo
+    // asi `usePointer()` rastrea de verdad la posicion del cursor y se puede
+    // comprobar que la escena la sigue cuando el cursor esta dentro.
+    stubMatchMediaFine(false);
+    Object.defineProperty(window, "innerWidth", {
+      value: 1000,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1000,
+      writable: true,
+      configurable: true,
+    });
+
+    let pending: FrameRequestCallback[] = [];
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+    );
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    // Rectangulo de la escena: todo el viewport, asi el puntero queda
+    // DENTRO en cualquier punto de esta prueba.
+    scene.getBoundingClientRect = () =>
+      ({ left: 0, right: 1000, top: 0, bottom: 1000 }) as DOMRect;
+    const layer = document.createElement("div");
+    const targets = [targetOf(layer, 1)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioTrigger(true));
+
+    // El cursor entra en la escena y se mueve hacia la esquina inferior
+    // derecha del viewport (normaliza a 0.8, 0.8 en `usePointer`). Se
+    // redispara en cada iteracion para que `lastMoveRef` (reloj real) nunca
+    // quede a mas de `idleMs` del reloj simulado que le pasamos al rAF.
+    for (let i = 0; i < 60; i += 1) {
+      window.dispatchEvent(
+        new MouseEvent("pointermove", { clientX: 900, clientY: 900 }),
+      );
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb(i * 16);
+    }
+
+    const match = /translate3d\(([-\d.]+)px, ([-\d.]+)px/.exec(
+      layer.style.transform,
+    );
+    expect(match).not.toBeNull();
+    const [, xStr, yStr] = match!;
+    // Limite teorico si el lerp asentara del todo: 0.8 * pointerAmp (20/12).
+    // Simulado (ver sesion): tras 60 iteraciones llega a ~15.45/9.27, muy
+    // por encima de estos umbrales -- prueba que SI sigue al puntero.
+    expect(parseFloat(xStr)).toBeGreaterThan(10);
+    expect(parseFloat(yStr)).toBeGreaterThan(6);
+  });
+
+  it("con el puntero FUERA del rectangulo de la escena, esta NO sigue al cursor", () => {
+    // Mismo cursor, misma trayectoria real que la prueba anterior (0.8, 0.8
+    // normalizado) pero un rectangulo de escena que NO lo contiene: si la
+    // puerta de contencion fallara, la escena se acercaria a los mismos
+    // ~15/9px de la prueba anterior. En su lugar debe quedarse acotada por la
+    // amplitud de la DERIVA (`driftAmp` 0.55/0.35 * pointerAmp 20/12 = ~11/4.2
+    // px de pico), muy por debajo del limite de seguir al puntero.
+    stubMatchMediaFine(false);
+    Object.defineProperty(window, "innerWidth", {
+      value: 1000,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1000,
+      writable: true,
+      configurable: true,
+    });
+
+    let pending: FrameRequestCallback[] = [];
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+    );
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    // Rectangulo pequeno en la esquina superior izquierda: el cursor
+    // (900, 900) queda claramente FUERA durante toda la prueba.
+    scene.getBoundingClientRect = () =>
+      ({ left: 0, right: 100, top: 0, bottom: 100 }) as DOMRect;
+    const layer = document.createElement("div");
+    const targets = [targetOf(layer, 1)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioTrigger(true));
+
+    for (let i = 0; i < 60; i += 1) {
+      window.dispatchEvent(
+        new MouseEvent("pointermove", { clientX: 900, clientY: 900 }),
+      );
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb(i * 16);
+    }
+
+    const match = /translate3d\(([-\d.]+)px, ([-\d.]+)px/.exec(
+      layer.style.transform,
+    );
+    expect(match).not.toBeNull();
+    const [, xStr, yStr] = match!;
+    // Umbrales muy por debajo del limite de "sigue al puntero" (~15.45/9.27
+    // de la prueba anterior) y con margen sobre el pico teorico de la
+    // deriva (~11/4.2): la escena se queda en su propio reposo, no se acerca
+    // a la posicion real del cursor.
+    expect(Math.abs(parseFloat(xStr))).toBeLessThan(5);
+    expect(Math.abs(parseFloat(yStr))).toBeLessThan(7);
+  });
+
+  it("cruzar la frontera de la escena no produce un salto: el cambio entre dos frames esta acotado por el factor de lerp", () => {
+    // Regresion que el punto 3 del encargo advierte explicitamente: sin
+    // lerp, el `tick` saltaba de golpe de "deriva" a "sigue al puntero" en
+    // el mismo frame en que el cursor cruza el borde de la seccion.
+    let pending: FrameRequestCallback[] = [];
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+    );
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    scene.getBoundingClientRect = () =>
+      ({ left: 100, right: 300, top: 0, bottom: 200 }) as DOMRect;
+    const layer = document.createElement("div");
+    const targets = [targetOf(layer, 1)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioTrigger(true));
+
+    // 20 frames en deriva (el cursor nunca entra en el rectangulo de la
+    // escena): con `now` fijo, el valor aplicado converge hacia el objetivo
+    // de deriva de ESE instante, dejando una base conocida y no trivial.
+    let batch = pending;
+    pending = [];
+    for (const cb of batch) cb(1000);
+    for (let i = 0; i < 19; i += 1) {
+      batch = pending;
+      pending = [];
+      for (const cb of batch) cb(1000);
+    }
+    const before = /translate3d\(([-\d.]+)px/.exec(layer.style.transform);
+    expect(before).not.toBeNull();
+    const x1 = parseFloat(before![1]);
+    // Base no trivial: si fuera ~0 el cociente de mas abajo no probaria nada.
+    expect(Math.abs(x1)).toBeGreaterThan(0.5);
+
+    // El cursor cruza la frontera: entra al rectangulo de la escena justo
+    // antes del siguiente frame. Puntero fino sigue apagado (`stubMatchMedia`
+    // del `beforeEach`), asi que el objetivo de "sigue al puntero" es
+    // exactamente 0 -- el salto COMPLETO equivaldria a caer a 0 de golpe.
+    window.dispatchEvent(
+      new MouseEvent("pointermove", { clientX: 200, clientY: 100 }),
+    );
+    batch = pending;
+    pending = [];
+    for (const cb of batch) cb(1016);
+    const after = /translate3d\(([-\d.]+)px/.exec(layer.style.transform);
+    expect(after).not.toBeNull();
+    const x2 = parseFloat(after![1]);
+
+    const fullJump = Math.abs(x1); // distancia hasta el objetivo 0 sin lerp
+    const actualChange = Math.abs(x2 - x1);
+    expect(actualChange).toBeGreaterThan(0); // sigue habiendo movimiento
+    expect(actualChange).toBeLessThan(fullJump * 0.3); // muy lejos del salto completo
   });
 });

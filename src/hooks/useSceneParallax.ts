@@ -31,6 +31,36 @@ const DEFAULT_DRIFT_AMP: SceneParallaxAmplitude = { x: 0.55, y: 0.35 };
 const DEFAULT_IDLE_MS = 2200;
 
 /**
+ * Factor de suavizado por frame entre el valor de puntero/deriva APLICADO y
+ * el OBJETIVO de cada modo (spec 2026-07-31 §puerta de contencion). Antes de
+ * esta entrega el `tick` saltaba de golpe entre "sigue al puntero" y
+ * "deriva" (`const px = idle ? drift : pointer`); con la escena solo idle
+ * cada ~2.2s ese salto duro apenas se notaba. La puerta de contencion (mas
+ * abajo) hace que `idle` tambien se active/desactive cada vez que el cursor
+ * CRUZA el borde de la seccion -- con `pointerAmp` 46 y `depth` 0.72 (Story)
+ * ese salto llega a ~50px en la capa mas cercana, visible en cada cruce. El
+ * lerp interpola el valor aplicado hacia el objetivo un poco cada frame en
+ * vez de adoptarlo entero, igual que el `LERP` de `usePointer` pero mas
+ * lento (ahi suaviza una trayectoria continua; aqui, un salto discreto entre
+ * dos modos que ahora puede repetirse a cada cruce de frontera).
+ */
+const MODE_LERP = 0.08;
+
+/** Puntero (coordenadas de viewport) dentro del rectangulo de la escena. */
+function isInsideRect(
+  rect: DOMRect,
+  clientX: number,
+  clientY: number,
+): boolean {
+  return (
+    clientX >= rect.left &&
+    clientX <= rect.right &&
+    clientY >= rect.top &&
+    clientY <= rect.bottom
+  );
+}
+
+/**
  * Parallax de puntero + scroll + deriva en reposo para UNA escena a sangre
  * (`StoryCosmicBeing`, spec 2026-07-29 §5). Distinto de `useParallaxLayers`
  * (Eye/Aura, que solo sigue al puntero): aqui hace falta ademas un termino de
@@ -69,6 +99,27 @@ const DEFAULT_IDLE_MS = 2200;
  * reentrar. `pause()` cubre eso; `stop()` (= `pause()` + reset) queda
  * reservado a `reduce` y al desmontaje, los dos unicos casos donde no hay
  * "vuelta" que proteger.
+ *
+ * Puerta de contencion por seccion (encargo 2026-07-31): `usePointer()`
+ * normaliza la coordenada contra el VIEWPORT, no contra esta escena, asi que
+ * sin guarda adicional cualquier escena visible seguia al cursor aunque
+ * estuviera sobre OTRA seccion (p. ej. el cursor en HERO movia el parallax de
+ * Story si Story ya estaba en pantalla). La guarda de `IntersectionObserver`
+ * de arriba solo resuelve "¿la escena esta en pantalla?", que no es lo mismo
+ * que "¿el cursor esta DENTRO de ella?". `onPointerMove` calcula ese segundo
+ * booleano contra `sceneRef.current.getBoundingClientRect()` y lo guarda en
+ * `insideRef`; el `tick` reutiliza el modo `idle` que ya existia (seguir vs.
+ * derivar) en vez de anadir un tercer modo: fuera de la seccion, `idle` pasa
+ * a `true` sin esperar a `idleMs`, y la escena deriva exactamente igual que
+ * cuando el puntero lleva quieto. Se descarta congelar la escena (dejar el
+ * ultimo transform aplicado sin tocar) porque eso la dejaria torcida para
+ * siempre en la posicion que tenia el cursor al salir -- la deriva, en
+ * cambio, sigue viva y vuelve a centrarse con el tiempo, que es el estado de
+ * reposo que esta escena ya sabe dibujar. Ademas, `lastMoveRef` solo se
+ * sella cuando el movimiento ocurre DENTRO: si se sellara tambien fuera, un
+ * movimiento del cursor en otra seccion mantendria el modo "sigue al
+ * puntero" activo aqui hasta que expirase `idleMs`, en vez de pasar a reposo
+ * al instante de cruzar el borde.
  */
 export function useSceneParallax(
   sceneRef: RefObject<HTMLElement | null>,
@@ -86,15 +137,27 @@ export function useSceneParallax(
   });
 
   const lastMoveRef = useRef(0);
+  /** Puntero dentro del rectangulo de `sceneRef` ahora mismo (ver JSDoc). */
+  const insideRef = useRef(false);
 
   useEffect(() => {
     const reducedQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let raf = 0;
     let running = false;
     let scrollProgress = 0;
+    // Valor APLICADO del lerp entre modos (ver `MODE_LERP`): persiste entre
+    // frames dentro de este efecto, igual que `scrollProgress`.
+    let appliedX = 0;
+    let appliedY = 0;
 
-    const onPointerMove = (): void => {
-      lastMoveRef.current = performance.now();
+    const onPointerMove = (e: PointerEvent): void => {
+      const el = sceneRef.current;
+      const inside =
+        !!el && isInsideRect(el.getBoundingClientRect(), e.clientX, e.clientY);
+      insideRef.current = inside;
+      // Solo sella `lastMoveRef` si el movimiento ocurrio DENTRO (ver JSDoc):
+      // un movimiento fuera no debe posponer el paso a reposo de esta escena.
+      if (inside) lastMoveRef.current = performance.now();
     };
 
     const onScroll = (): void => {
@@ -111,10 +174,19 @@ export function useSceneParallax(
       const opts = optionsRef.current;
       const drift = opts.driftAmp ?? DEFAULT_DRIFT_AMP;
       const idleMs = opts.idleMs ?? DEFAULT_IDLE_MS;
-      const idle = now - lastMoveRef.current > idleMs;
+      // Fuera de la seccion, reposo inmediato (sin esperar `idleMs`): ver
+      // JSDoc del hook, puerta de contencion por seccion.
+      const idle = !insideRef.current || now - lastMoveRef.current > idleMs;
 
-      const px = idle ? Math.sin(now / 7000) * drift.x : pointerX.current;
-      const py = idle ? Math.cos(now / 9500) * drift.y : pointerY.current;
+      const targetX = idle ? Math.sin(now / 7000) * drift.x : pointerX.current;
+      const targetY = idle ? Math.cos(now / 9500) * drift.y : pointerY.current;
+      // Lerp del valor aplicado hacia el objetivo del modo vigente: sin esto,
+      // cada cruce de la frontera de la seccion saltaria de golpe entre
+      // "sigue al puntero" y "deriva" (ver `MODE_LERP`).
+      appliedX += (targetX - appliedX) * MODE_LERP;
+      appliedY += (targetY - appliedY) * MODE_LERP;
+      const px = appliedX;
+      const py = appliedY;
 
       for (const target of targetsRef.current) {
         const el = target.ref.current;
@@ -133,6 +205,11 @@ export function useSceneParallax(
       if (running) return;
       running = true;
       lastMoveRef.current = performance.now();
+      // Ver JSDoc: sin esto, un `insideRef` sellado a `true` antes de una
+      // pausa por salir de pantalla sobreviviria al reinicio del bucle, y la
+      // escena seguiria al puntero un frame de mas al reentrar aunque el
+      // cursor ya no estuviera sobre ella.
+      insideRef.current = false;
       window.addEventListener("pointermove", onPointerMove, {
         passive: true,
       });
