@@ -161,3 +161,15 @@ Tema claro (D1); navegación por teclado entre diapositivas (el scroll de págin
 - [ ] `graphify update .`.
 - [ ] Registro en el vault + spec referenciada; lecciones nuevas en `task/lessons.md` si aparecen.
 - [ ] Árbol limpio, commits temáticos en español.
+
+## 14. Addendum (2026-07-31, tras la entrega) — la escena descubría su borde al avanzar
+
+El usuario reportó que "las diapositivas se desplazan hacia abajo, no se mantienen en el alto de la vista". Medido en navegador: **el pin sujetaba perfectamente** —el stage se quedaba en `0..800` en todo el recorrido—; lo que se movía era la capa de la escena, que iba de `0..800` a `48..848` conforme crecía `--story-progress`, dejando una banda de fondo plano asomando por arriba y recortando otro tanto por abajo.
+
+Causa raíz: D10 introdujo el desplazamiento de profundidad trasladando una capa **a sangre sin sobredimensionarla**. Las 8 imágenes de dentro sí tenían su `overscan` (`scale(1.06)`), pero el envoltorio añadido encima para el desplazamiento no. Cualquier capa que se traslade y mida exactamente lo que su contenedor descubre el borde por el que se va.
+
+Arreglo: `ScSceneWrap` se estira un desplazamiento por cada lado (más 1px de colchón de subpíxel), de modo que cualquier valor del recorrido queda cubierto.
+
+Y un segundo fallo **latente** en la misma línea: `STORY_SCENE_DEPTH_SHIFT` estaba en `%`, y un porcentaje en `translateY` se resuelve contra la altura del PROPIO elemento mientras que en `top`/`bottom` lo haría contra la del contenedor. Mientras la capa medía igual que su contenedor las dos referencias coincidían y el error no era visible; en cuanto se la sobredimensiona dejan de coincidir. Pasa a `dvh`, que es la misma referencia en los dos sitios.
+
+Verificado en navegador en cuatro puntos del recorrido (progreso 0, 0.33, 0.66 y 1): la escena cubre el stage en los cuatro, con −1px de margen en el extremo en vez de los 0px justos.
