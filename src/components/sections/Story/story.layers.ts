@@ -253,3 +253,32 @@ export const STORY_DECK_PILLAR_BODY_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
  * con el resto del texto de la diapositiva.
  */
 export const STORY_DECK_NOTE_SIZE = "clamp(2.5rem, 11vw, 8rem)";
+
+/**
+ * Peso de la nota de cierre (encargo 2026-07-31). **Excepción deliberada a
+ * `type.scale`**, que se detiene en 800 (`display`): ninguna variante del
+ * sistema declara 900, y añadirlo allí tocaría un contrato cerrado que
+ * consumen todas las secciones para servir a UNA pieza.
+ *
+ * El 900 es real, no una negrita sintética: `app/layout.tsx` carga
+ * `Hanken_Grotesk` por `next/font/google` SIN lista de `weight`, lo que trae
+ * el eje variable completo (100–900) de la familia. Si algún día se fijara
+ * una lista de pesos concreta en esa carga, este valor caería a la negrita
+ * falsa que sintetiza el navegador — de ahí que quede escrito aquí.
+ */
+export const STORY_DECK_NOTE_WEIGHT = 900;
+
+/**
+ * Hueco extra a la DERECHA del contenido de la diapositiva, solo en
+ * dispositivos grandes (encargo 2026-07-31). Rompe a propósito la simetría
+ * del `padding-inline` del deck: desplaza la columna de texto hacia la
+ * izquierda y deja respirar el lado por el que la escena "Cosmic Heart"
+ * tiene su figura y su núcleo luminoso, en vez de que el texto compita con
+ * ellos por el mismo eje.
+ *
+ * Se aplica con `@media` y no con un `clamp`, al revés que los cinco tamaños
+ * de arriba: aquí no se busca una escala continua sino un cambio de
+ * COMPOSICIÓN que solo tiene sentido cuando hay ancho de sobra — por debajo
+ * del breakpoint, 8rem de hueco muerto estrangularían la medida de lectura.
+ */
+export const STORY_DECK_PADDING_INLINE_END = "8rem";

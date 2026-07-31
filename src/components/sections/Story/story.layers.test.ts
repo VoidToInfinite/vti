@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { motion } from "@/theme/tokens/motion";
+import { type } from "@/theme/tokens/type";
 import {
   STORY_DARK_HEIGHT,
   STORY_DECK_NOTE_SIZE,
+  STORY_DECK_NOTE_WEIGHT,
+  STORY_DECK_PADDING_INLINE_END,
   STORY_DECK_PILLAR_BODY_SIZE,
   STORY_DECK_PILLAR_SUBTITLE_SIZE,
   STORY_DECK_PILLAR_TITLE_SIZE,
@@ -86,5 +89,21 @@ describe("escala tipográfica de la presentación de Story (contrato con el enca
   it("la nota de cierre tiene tope 8rem", () => {
     expect(STORY_DECK_NOTE_SIZE).toBe("clamp(2.5rem, 11vw, 8rem)");
     expect(STORY_DECK_NOTE_SIZE).toMatch(/, 8rem\)$/);
+  });
+
+  it("la nota de cierre pesa 900, por encima de toda la escala del sistema", () => {
+    // El encargo pide 900 y `type.scale` se detiene en 800 (`display`), asi
+    // que esto es una excepcion deliberada, no un token olvidado. La segunda
+    // asercion es la que da valor: si algun dia alguien anadiera un 900 a la
+    // escala, esta constante deberia desaparecer en favor del token -- y este
+    // test es el que obliga a tomar esa decision en vez de dejar las dos
+    // fuentes conviviendo en silencio.
+    expect(STORY_DECK_NOTE_WEIGHT).toBe(900);
+    const pesosDelSistema = Object.values(type.scale).map((v) => v.weight);
+    expect(Math.max(...pesosDelSistema)).toBeLessThan(STORY_DECK_NOTE_WEIGHT);
+  });
+
+  it("el hueco derecho de la diapositiva en pantallas grandes es 8rem", () => {
+    expect(STORY_DECK_PADDING_INLINE_END).toBe("8rem");
   });
 });

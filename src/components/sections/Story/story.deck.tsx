@@ -5,6 +5,8 @@ import {
   STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
   STORY_DECK_NOTE_SIZE,
+  STORY_DECK_NOTE_WEIGHT,
+  STORY_DECK_PADDING_INLINE_END,
   STORY_DECK_PILLAR_BODY_SIZE,
   STORY_DECK_PILLAR_SUBTITLE_SIZE,
   STORY_DECK_PILLAR_TITLE_SIZE,
@@ -154,6 +156,19 @@ export const ScDeck = styled.div`
   display: grid;
   place-items: center;
   padding-inline: ${({ theme }) => theme.data.space[6]};
+
+  /*
+   * Hueco extra a la derecha SOLO en pantallas grandes (encargo
+   * 2026-07-31): rompe a proposito la simetria del padding de arriba para
+   * desplazar la columna de texto hacia la izquierda y dejar respirar el
+   * lado por el que la escena tiene su figura y su nucleo luminoso. Va
+   * DESPUES del padding-inline de arriba a proposito: la longhand tiene que
+   * ganarle a la shorthand, y con la misma especificidad eso lo decide el
+   * orden de declaracion.
+   */
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    padding-inline-end: ${STORY_DECK_PADDING_INLINE_END};
+  }
 
   /* D6: sin grid ya no hace falta apilar las 6 diapositivas en la MISMA
      celda -- se dejan caer una debajo de otra, todas visibles (ver ScSlide,
@@ -438,7 +453,10 @@ export const ScDeckNote = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   font-size: ${STORY_DECK_NOTE_SIZE};
-  font-weight: ${({ theme }) => theme.data.type.scale.bodyLg.weight};
+  /* 900, fuera de la escala type.scale (que se detiene en 800) -- ver el
+     docblock de la constante: es una excepcion deliberada para esta pieza,
+     no un olvido de tokenizar. */
+  font-weight: ${STORY_DECK_NOTE_WEIGHT};
   letter-spacing: ${({ theme }) => theme.data.type.scale.bodySm.tracking};
   line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
   text-wrap: balance;
