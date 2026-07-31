@@ -95,13 +95,13 @@
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.test.tsx": {
-    "mtime": 1785337139.6551049,
-    "ast_hash": "697bb3377274a5e1a734a8b4f698ecd5",
+    "mtime": 1785489192.3208146,
+    "ast_hash": "a11809014994249e77dc479c7b089057",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.tsx": {
-    "mtime": 1785337139.656103,
-    "ast_hash": "24bfaeadbc8a714a5e3fdde2b5bdd7ae",
+    "mtime": 1785489037.5832329,
+    "ast_hash": "296dfe7c1e658c03abeda762268aa044",
     "semantic_hash": ""
   },
   "src/components/layout/Socials/Socials.tsx": {
@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "src/theme/GlobalStyles.tsx": {
-    "mtime": 1785337139.691614,
-    "ast_hash": "0e5101d471ba7e176c8e3a32794c2fcf",
+    "mtime": 1785488107.7419987,
+    "ast_hash": "b8f465d789c54eea2e152934e8381d5e",
     "semantic_hash": ""
   },
   "src/theme/ThemeProvider.tsx": {
@@ -330,13 +330,13 @@
     "semantic_hash": ""
   },
   "src/theme/tokens/grid.ts": {
-    "mtime": 1785337139.6926155,
-    "ast_hash": "bcba8ac11d6088a333ef018ed1d69414",
+    "mtime": 1785488031.215585,
+    "ast_hash": "d9b63f3efee2adc0cf6352b8428e65e9",
     "semantic_hash": ""
   },
   "src/theme/tokens/motion.ts": {
-    "mtime": 1784988444.7291367,
-    "ast_hash": "e7d6a0304d884dbf73d397c37dcf9bfe",
+    "mtime": 1785488033.3730505,
+    "ast_hash": "1e06f5cc151e6996fb17ad1e6841521f",
     "semantic_hash": ""
   },
   "src/theme/tokens/radius.ts": {
@@ -365,8 +365,8 @@
     "semantic_hash": ""
   },
   "src/theme/tokens/system.test.ts": {
-    "mtime": 1785337139.693614,
-    "ast_hash": "35bb6a50f8dd3fa14e44c708090d32cc",
+    "mtime": 1785488049.230183,
+    "ast_hash": "49bdb6459e5c9922f2222a6c8dca4195",
     "semantic_hash": ""
   },
   "src/theme/tokens/type.test.ts": {
@@ -1360,593 +1360,613 @@
     "semantic_hash": ""
   },
   "docs/superpowers/specs/2026-07-29-story-dark-cosmic-heart-design.md": {
-    "mtime": 1785343038.980293,
+    "mtime": 1785484953.5719368,
     "ast_hash": "c0b47e1e90b6931677c07c53a029384e",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-29-story-dark-cosmic-heart.md": {
-    "mtime": 1785343038.980293,
+    "mtime": 1785484953.5709379,
     "ast_hash": "3da731aa095d42cac0b52229b31afcf9",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/manifest.json": {
-    "mtime": 1785343038.9782822,
+    "mtime": 1785484953.569939,
     "ast_hash": "4b8875efdd65224fab753788158b90d0",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/01-deep-space.webp": {
-    "mtime": 1785342064.7183242,
+    "mtime": 1785484953.5644004,
     "ast_hash": "08cabb430976b78481e98824b2585cf8",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/02-nebula-back.webp": {
-    "mtime": 1785342064.7273424,
+    "mtime": 1785484953.5649304,
     "ast_hash": "834c839eebc877f6701beb000ed69a32",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/03-sparkles-far.webp": {
-    "mtime": 1785342064.7409477,
+    "mtime": 1785484953.5659359,
     "ast_hash": "9a98932de4cd2f37a1af81781237b92e",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/04-geometry.webp": {
-    "mtime": 1785342064.7565627,
+    "mtime": 1785484953.5659359,
     "ast_hash": "90d9ad4551e5c132eb671b58936732fc",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/05-nebula-front.webp": {
-    "mtime": 1785342064.767582,
+    "mtime": 1785484953.5679388,
     "ast_hash": "f8fa1ef24b9bd330059c561f62b4aeb4",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/06-sparkles-near.webp": {
-    "mtime": 1785342064.7811303,
+    "mtime": 1785484953.5679388,
     "ast_hash": "74b8161beb25bdf1c344d4b862449195",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/07-figure.webp": {
-    "mtime": 1785342064.7916489,
+    "mtime": 1785484953.5689378,
     "ast_hash": "d79f51455ea87a7b943b724fd02e9c3f",
     "semantic_hash": ""
   },
   "assets/story-cosmic-heart/08-heart-core.webp": {
-    "mtime": 1785342064.8006732,
+    "mtime": 1785484953.569939,
     "ast_hash": "1b886d683b3e7c3194bb249cefb000de",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/01-deep-space-1024.webp": {
-    "mtime": 1785342088.809285,
+    "mtime": 1785484953.6054504,
     "ast_hash": "df366630261affb0678f42a2c771c62a",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/01-deep-space.webp": {
-    "mtime": 1785342088.6173081,
+    "mtime": 1785484953.6059804,
     "ast_hash": "08cabb430976b78481e98824b2585cf8",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/02-nebula-back-1024.webp": {
-    "mtime": 1785342088.9281926,
+    "mtime": 1785484953.6064997,
     "ast_hash": "3c59b1faa312072e255ab97258770033",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/02-nebula-back.webp": {
-    "mtime": 1785342088.6198542,
+    "mtime": 1785484953.6075523,
     "ast_hash": "834c839eebc877f6701beb000ed69a32",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/03-sparkles-far-1024.webp": {
-    "mtime": 1785342089.0538785,
+    "mtime": 1785484953.608642,
     "ast_hash": "e3dca01fd76937b18c166972e87e5693",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/03-sparkles-far.webp": {
-    "mtime": 1785342088.6299818,
+    "mtime": 1785484953.6091628,
     "ast_hash": "9a98932de4cd2f37a1af81781237b92e",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/04-geometry-1024.webp": {
-    "mtime": 1785342089.1828997,
+    "mtime": 1785484953.609683,
     "ast_hash": "eecc8704951503073e1b1ca6e51ac59d",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/04-geometry.webp": {
-    "mtime": 1785342088.6398637,
+    "mtime": 1785484953.6102042,
     "ast_hash": "90d9ad4551e5c132eb671b58936732fc",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/05-nebula-front-1024.webp": {
-    "mtime": 1785342089.3103533,
+    "mtime": 1785484953.6112483,
     "ast_hash": "44d42598f54a151713c52b7f64097aee",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/05-nebula-front.webp": {
-    "mtime": 1785342088.6497903,
+    "mtime": 1785484953.6123185,
     "ast_hash": "f8fa1ef24b9bd330059c561f62b4aeb4",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/06-sparkles-near-1024.webp": {
-    "mtime": 1785342089.49297,
+    "mtime": 1785484953.6128445,
     "ast_hash": "a275da3c96fc931e38cfc0e2ebfd73c5",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/06-sparkles-near.webp": {
-    "mtime": 1785342088.65887,
+    "mtime": 1785484953.6138864,
     "ast_hash": "74b8161beb25bdf1c344d4b862449195",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/07-figure-1024.webp": {
-    "mtime": 1785342089.6196792,
+    "mtime": 1785484953.6144023,
     "ast_hash": "82f7b024efffb5a6dee5047c733dd170",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/07-figure.webp": {
-    "mtime": 1785342088.6700902,
+    "mtime": 1785484953.615461,
     "ast_hash": "d79f51455ea87a7b943b724fd02e9c3f",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/08-heart-core-1024.webp": {
-    "mtime": 1785342089.749873,
+    "mtime": 1785484953.615461,
     "ast_hash": "5a8574cc839cf69c9e5dcb18b515928b",
     "semantic_hash": ""
   },
   "public/story/cosmic-heart/08-heart-core.webp": {
-    "mtime": 1785342088.6785715,
+    "mtime": 1785484953.6164658,
     "ast_hash": "1b886d683b3e7c3194bb249cefb000de",
     "semantic_hash": ""
   },
   "src/hooks/useSceneParallax.test.tsx": {
-    "mtime": 1785343032.1265411,
+    "mtime": 1785484953.6394682,
     "ast_hash": "f3817f1fd979e39496bafe8b20886205",
     "semantic_hash": ""
   },
   "src/hooks/useSceneParallax.ts": {
-    "mtime": 1785343038.9838064,
+    "mtime": 1785484953.6404667,
     "ast_hash": "f9a07ff8aa0fef1abe39ca0478376361",
     "semantic_hash": ""
   },
   "src/components/storyCosmicHeart/storyCosmicHeart.layers.test.ts": {
-    "mtime": 1785343032.1235397,
+    "mtime": 1785484953.637467,
     "ast_hash": "a59cb223baff70308a143f21206622f7",
     "semantic_hash": ""
   },
   "src/components/storyCosmicHeart/storyCosmicHeart.layers.ts": {
-    "mtime": 1785343032.1245384,
+    "mtime": 1785484953.6384678,
     "ast_hash": "e4cad8ac7ee62dc004889be04fd6b927",
     "semantic_hash": ""
   },
   "src/components/storyCosmicHeart/storyCosmicHeart.parts.tsx": {
-    "mtime": 1785343032.125542,
+    "mtime": 1785484953.6394682,
     "ast_hash": "b7836d238bcf3320a299d8fee87ec449",
     "semantic_hash": ""
   },
   "src/components/storyCosmicHeart/StoryCosmicHeart.test.tsx": {
-    "mtime": 1785343032.1215372,
+    "mtime": 1785484953.6364672,
     "ast_hash": "90347054c2925903f3a39b53dc65b93c",
     "semantic_hash": ""
   },
   "src/components/storyCosmicHeart/StoryCosmicHeart.tsx": {
-    "mtime": 1785343032.1225386,
+    "mtime": 1785484953.637467,
     "ast_hash": "f354ec0848f54195c53d147b2fb03d03",
     "semantic_hash": ""
   },
   "assets/journey-astral-pathway/manifest.json": {
-    "mtime": 1785395679.3182733,
+    "mtime": 1785484953.5632868,
     "ast_hash": "dd92883dcb8be729e2fe41b9ed1514d2",
     "semantic_hash": ""
   },
   "assets/journey-astral-pathway/01-deep-space.webp": {
-    "mtime": 1785395047.3497808,
+    "mtime": 1785484953.5426142,
     "ast_hash": "800502abb409c04e21cb9217d1b5d288",
     "semantic_hash": ""
   },
   "assets/journey-astral-pathway/02-path-far.webp": {
-    "mtime": 1785395047.359795,
+    "mtime": 1785484953.5546286,
     "ast_hash": "3b3baf77938e21ed291af8813a317621",
     "semantic_hash": ""
   },
   "assets/journey-astral-pathway/03-stars.webp": {
-    "mtime": 1785395047.3672643,
+    "mtime": 1785484953.555593,
     "ast_hash": "2a7d1b8f7048399ec3876a9e9902d632",
     "semantic_hash": ""
   },
   "assets/journey-astral-pathway/04-path-near.webp": {
-    "mtime": 1785395047.3747733,
+    "mtime": 1785484953.559667,
     "ast_hash": "c1a7dac3f81e6ba6b544333ce51d3eb1",
     "semantic_hash": ""
   },
   "assets/journey-astral-pathway/05-figure.webp": {
-    "mtime": 1785395047.383283,
+    "mtime": 1785484953.5622866,
     "ast_hash": "661a36fa9771ed5660a15345a43b3eb3",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/01-deep-space-1024.webp": {
-    "mtime": 1785395047.6256647,
+    "mtime": 1785484953.597801,
     "ast_hash": "80bc7ded152c1ee05fa757031541fab3",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/01-deep-space.webp": {
-    "mtime": 1785395047.4879198,
+    "mtime": 1785484953.597801,
     "ast_hash": "49d914f5071be58a5dbe2f8311663b12",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/02-path-far-1024.webp": {
-    "mtime": 1785395047.7156167,
+    "mtime": 1785484953.5988016,
     "ast_hash": "8df40df691d06505a777daa9a9b511d8",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/02-path-far.webp": {
-    "mtime": 1785395047.4964514,
+    "mtime": 1785484953.5998268,
     "ast_hash": "6299d574248c6621e8f04f759548750b",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/03-stars-1024.webp": {
-    "mtime": 1785395047.8078692,
+    "mtime": 1785484953.6008005,
     "ast_hash": "31147ce2246198d44b2a8b996c5fd6f2",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/03-stars.webp": {
-    "mtime": 1785395047.5041091,
+    "mtime": 1785484953.6008005,
     "ast_hash": "a93b37284e0a30c94c6dc9f20554b727",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/04-path-near-1024.webp": {
-    "mtime": 1785395047.900357,
+    "mtime": 1785484953.6018212,
     "ast_hash": "755777bd55d042fe7ad350afa91efd75",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/04-path-near.webp": {
-    "mtime": 1785395047.513693,
+    "mtime": 1785484953.6018212,
     "ast_hash": "35ed8cdd848438be1997ad567b72c766",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/05-figure-1024.webp": {
-    "mtime": 1785395047.9953911,
+    "mtime": 1785484953.602805,
     "ast_hash": "acfee6847d75ba8b9c6d16579e7f9bb7",
     "semantic_hash": ""
   },
   "public/journey/astral-pathway/05-figure.webp": {
-    "mtime": 1785395047.5207288,
+    "mtime": 1785484953.6038034,
     "ast_hash": "3363b24e44988c91ede6464f028020f6",
     "semantic_hash": ""
   },
   "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx": {
-    "mtime": 1785395684.9348667,
+    "mtime": 1785484953.6234663,
     "ast_hash": "e536433b6c546511b5391c822621fc86",
     "semantic_hash": ""
   },
   "src/components/journeyAstralPathway/JourneyAstralPathway.tsx": {
-    "mtime": 1785395684.9469023,
+    "mtime": 1785484953.6234663,
     "ast_hash": "f9db9131589e813604fe5dbdf17f62fd",
     "semantic_hash": ""
   },
   "src/components/journeyAstralPathway/journeyAstralPathway.layers.test.ts": {
-    "mtime": 1785395684.9022803,
+    "mtime": 1785484953.624467,
     "ast_hash": "545c483657fcae1c983c121df25612d5",
     "semantic_hash": ""
   },
   "src/components/journeyAstralPathway/journeyAstralPathway.layers.ts": {
-    "mtime": 1785395684.9102874,
+    "mtime": 1785484953.6254659,
     "ast_hash": "9a5b9f148293bd6f12515adb542fccf7",
     "semantic_hash": ""
   },
   "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx": {
-    "mtime": 1785395684.9218335,
+    "mtime": 1785484953.6254659,
     "ast_hash": "7619601a162b3865096f2ea79c3ee02e",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/manifest.json": {
-    "mtime": 1785410676.7121947,
+    "mtime": 1785484953.5405886,
     "ast_hash": "6640783f4b8f5d3c7dbada42f23b76ee",
     "semantic_hash": ""
   },
   "src/components/featuresCelestialGuide/FeaturesCelestialGuide.test.tsx": {
-    "mtime": 1785410683.1230133,
+    "mtime": 1785484953.6204672,
     "ast_hash": "0ed8666c5fdd0693ae1b83953910fcb9",
     "semantic_hash": ""
   },
   "src/components/featuresCelestialGuide/FeaturesCelestialGuide.tsx": {
-    "mtime": 1785410683.1330113,
+    "mtime": 1785484953.6204672,
     "ast_hash": "270c35623e2b4e97b3235430bdb4c5f2",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/01-fondo.webp": {
-    "mtime": 1785410436.3347037,
+    "mtime": 1785484953.514503,
     "ast_hash": "38347bcbef243b5d46404c7d9ea69cd6",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/02-ambiente.webp": {
-    "mtime": 1785410436.3447008,
+    "mtime": 1785484953.5219555,
     "ast_hash": "715123378ac51850264c52f0f2a1cb77",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/03-estrellas.webp": {
-    "mtime": 1785410436.3527067,
+    "mtime": 1785484953.52358,
     "ast_hash": "2d2e4bd350475a56eb4aca7889964389",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/04-orb-book.webp": {
-    "mtime": 1785410436.359701,
+    "mtime": 1785484953.5245852,
     "ast_hash": "9988f97a65bb4615ae051a502eb4ddf8",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/05-orb-bulb.webp": {
-    "mtime": 1785410436.3667018,
+    "mtime": 1785484953.525626,
     "ast_hash": "8b2da5a033fe5abaa649f188abbc57cd",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/06-orb-cap.webp": {
-    "mtime": 1785410436.3767016,
+    "mtime": 1785484953.527588,
     "ast_hash": "37f25a2e3dc04906f9d35e1235fecd38",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/07-orb-brain.webp": {
-    "mtime": 1785410436.3847027,
+    "mtime": 1785484953.529585,
     "ast_hash": "e4dab4c9936c1d758a3dbba432c651ad",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/08-orb-gamepad.webp": {
-    "mtime": 1785410436.3917372,
+    "mtime": 1785484953.5306106,
     "ast_hash": "d00d30cb8f610dbd1dc762f327f8a297",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/09-orb-chart.webp": {
-    "mtime": 1785410436.3987012,
+    "mtime": 1785484953.5315857,
     "ast_hash": "b1e89a5f12bf7bf73750acd8e78b2877",
     "semantic_hash": ""
   },
   "assets/features-celestial-guide/10-figura-holograma.webp": {
-    "mtime": 1785410436.4067016,
+    "mtime": 1785484953.5396178,
     "ast_hash": "29b7b8c516f3f68036a74f798f6fbef8",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/01-fondo-1024.webp": {
-    "mtime": 1785410449.3427722,
+    "mtime": 1785484953.5837958,
     "ast_hash": "feb50e770051d1d21491230416c51f40",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/01-fondo.webp": {
-    "mtime": 1785410449.1794186,
+    "mtime": 1785484953.5837958,
     "ast_hash": "920e02983f3883773cbbaf1711b205ff",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/02-ambiente-1024.webp": {
-    "mtime": 1785410449.4347746,
+    "mtime": 1785484953.5848045,
     "ast_hash": "d0af857167a779d45474bd7ab0c46b90",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/02-ambiente.webp": {
-    "mtime": 1785410449.1864197,
+    "mtime": 1785484953.5858011,
     "ast_hash": "76bee55ab0ad29eec587a5c0f58f65f9",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/03-estrellas-1024.webp": {
-    "mtime": 1785410449.527395,
+    "mtime": 1785484953.5868003,
     "ast_hash": "c19b66f993a562309bf0d36d42ea8a78",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/03-estrellas.webp": {
-    "mtime": 1785410449.1944385,
+    "mtime": 1785484953.5868003,
     "ast_hash": "ae7d709c1a0fc7a16edc5c7803f7c14a",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/04-orb-book-1024.webp": {
-    "mtime": 1785410449.6763961,
+    "mtime": 1785484953.5878012,
     "ast_hash": "03358b20eaee934c702f79024bd71ae1",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/04-orb-book.webp": {
-    "mtime": 1785410449.2024243,
+    "mtime": 1785484953.5888348,
     "ast_hash": "a226ce951a6b36fb516abae340410fcf",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/05-orb-bulb-1024.webp": {
-    "mtime": 1785410449.7674205,
+    "mtime": 1785484953.5888348,
     "ast_hash": "9a83859bcb1147b158b44420639347f6",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/05-orb-bulb.webp": {
-    "mtime": 1785410449.209424,
+    "mtime": 1785484953.5898001,
     "ast_hash": "b172218b852b8fd7236ea32139577610",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/06-orb-cap-1024.webp": {
-    "mtime": 1785410449.858394,
+    "mtime": 1785484953.590803,
     "ast_hash": "ff58a98bafc942d4426cda76720c2a34",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/06-orb-cap.webp": {
-    "mtime": 1785410449.2175236,
+    "mtime": 1785484953.590803,
     "ast_hash": "83fe6f6c6bc1a9f3d54a4c1b63c6ff49",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/07-orb-brain-1024.webp": {
-    "mtime": 1785410449.947394,
+    "mtime": 1785484953.5918045,
     "ast_hash": "de46d58c7ac36bb3c010516365030d46",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/07-orb-brain.webp": {
-    "mtime": 1785410449.225201,
+    "mtime": 1785484953.5918045,
     "ast_hash": "99a466c09c94e6b71a201962926a4e4a",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/08-orb-gamepad-1024.webp": {
-    "mtime": 1785410450.0461605,
+    "mtime": 1785484953.592801,
     "ast_hash": "a6e7358406c859fe99e49752a88d3c5a",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/08-orb-gamepad.webp": {
-    "mtime": 1785410449.2322202,
+    "mtime": 1785484953.593806,
     "ast_hash": "3dd466b98a6274babf0e224240d7b0e4",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/09-orb-chart-1024.webp": {
-    "mtime": 1785410450.1461854,
+    "mtime": 1785484953.593806,
     "ast_hash": "6df99f7c38418721897ec8f52853738d",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/09-orb-chart.webp": {
-    "mtime": 1785410449.2412102,
+    "mtime": 1785484953.5948012,
     "ast_hash": "72195790dee5900ed2a1662094ff9d9c",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/10-figura-holograma-1024.webp": {
-    "mtime": 1785410450.273582,
+    "mtime": 1785484953.595801,
     "ast_hash": "cd6eddd89bcc4a022305fa6def823e61",
     "semantic_hash": ""
   },
   "public/features/celestial-guide/10-figura-holograma.webp": {
-    "mtime": 1785410449.2492516,
+    "mtime": 1785484953.5968041,
     "ast_hash": "1302cbf45b20cdb8a4990d7518708d07",
     "semantic_hash": ""
   },
   "src/components/featuresCelestialGuide/featuresCelestialGuide.layers.test.ts": {
-    "mtime": 1785410683.0970109,
+    "mtime": 1785484953.6214707,
     "ast_hash": "3b66105430b09cd2d615bfd4190ab427",
     "semantic_hash": ""
   },
   "src/components/featuresCelestialGuide/featuresCelestialGuide.layers.ts": {
-    "mtime": 1785410683.1050117,
+    "mtime": 1785484953.6224668,
     "ast_hash": "89ad5bd5d0bb08dff49c9032fd00635c",
     "semantic_hash": ""
   },
   "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx": {
-    "mtime": 1785410683.113046,
+    "mtime": 1785484953.6224668,
     "ast_hash": "80e10dd42159e483065c6eabf2bdfb34",
     "semantic_hash": ""
   },
   "assets/contact-neon-galaxy/manifest.json": {
-    "mtime": 1785422293.14396,
+    "mtime": 1785484953.5115294,
     "ast_hash": "7a923d2156325f9324607c0562420e83",
     "semantic_hash": ""
   },
   "assets/contact-neon-galaxy/01-fondo.webp": {
-    "mtime": 1785421674.004561,
+    "mtime": 1785484953.4645283,
     "ast_hash": "484b6f1fcc70ac0e837bad025e31923b",
     "semantic_hash": ""
   },
   "assets/contact-neon-galaxy/02-ambiente.webp": {
-    "mtime": 1785421674.0156448,
+    "mtime": 1785484953.500526,
     "ast_hash": "b5d4c865ab508efd27bb950d85b77fe5",
     "semantic_hash": ""
   },
   "assets/contact-neon-galaxy/03-estrellas.webp": {
-    "mtime": 1785421674.0249908,
+    "mtime": 1785484953.501529,
     "ast_hash": "a0b4f53660b6f1f2ed3054ecd759062c",
     "semantic_hash": ""
   },
   "assets/contact-neon-galaxy/04-orb-mail.webp": {
-    "mtime": 1785421674.0335307,
+    "mtime": 1785484953.5035255,
     "ast_hash": "7446e7ba785d80ca62583fd66823701c",
     "semantic_hash": ""
   },
   "assets/contact-neon-galaxy/05-orb-chat.webp": {
-    "mtime": 1785421674.0405307,
+    "mtime": 1785484953.5045264,
     "ast_hash": "d076262e738435c927e6ecb7bb087146",
     "semantic_hash": ""
   },
   "assets/contact-neon-galaxy/06-orb-at.webp": {
-    "mtime": 1785421674.048714,
+    "mtime": 1785484953.5055268,
     "ast_hash": "ac448fe1bb8493a71cf5e921ea634e45",
     "semantic_hash": ""
   },
   "assets/contact-neon-galaxy/07-figura-holograma.webp": {
-    "mtime": 1785421674.0567796,
+    "mtime": 1785484953.5105245,
     "ast_hash": "a1132c86048b0e5ca83594875841ae09",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/01-fondo-1024.webp": {
-    "mtime": 1785421674.3477352,
+    "mtime": 1785484953.5729394,
     "ast_hash": "7d24012f77cae42ebd96df79f705b9bc",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/01-fondo.webp": {
-    "mtime": 1785421674.1630752,
+    "mtime": 1785484953.5729394,
     "ast_hash": "9bd220606fc2428a5fc644f69fd68392",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/02-ambiente-1024.webp": {
-    "mtime": 1785421674.4433,
+    "mtime": 1785484953.5739381,
     "ast_hash": "6e14cfd3904b59c179f948f3b93b1a43",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/02-ambiente.webp": {
-    "mtime": 1785421674.17259,
+    "mtime": 1785484953.5749378,
     "ast_hash": "dd90dccdf1f86abef39dd4688944a9d0",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/03-estrellas-1024.webp": {
-    "mtime": 1785421674.5320475,
+    "mtime": 1785484953.5759346,
     "ast_hash": "503a2704055b34594ac06edc9802b55a",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/03-estrellas.webp": {
-    "mtime": 1785421674.1795886,
+    "mtime": 1785484953.5759346,
     "ast_hash": "4651dd8baf376b45b91f097f6d17585f",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/04-orb-mail-1024.webp": {
-    "mtime": 1785421674.6321228,
+    "mtime": 1785484953.5769475,
     "ast_hash": "76fe73d333310a1e32d250c6ba78ff09",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/04-orb-mail.webp": {
-    "mtime": 1785421674.196228,
+    "mtime": 1785484953.5779352,
     "ast_hash": "389df5c5ab6e5275c0b6fb8e0e03afe7",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/05-orb-chat-1024.webp": {
-    "mtime": 1785421674.7364902,
+    "mtime": 1785484953.5779352,
     "ast_hash": "548bfc74303c4da0e3b4b49168dd53f6",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/05-orb-chat.webp": {
-    "mtime": 1785421674.2037365,
+    "mtime": 1785484953.5789378,
     "ast_hash": "84a421de24d6a7ffa26dcf563a32b2a0",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/06-orb-at-1024.webp": {
-    "mtime": 1785421674.8643687,
+    "mtime": 1785484953.579938,
     "ast_hash": "305ef1b1af0f9448ff1fc476d9df0285",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/06-orb-at.webp": {
-    "mtime": 1785421674.2257905,
+    "mtime": 1785484953.579938,
     "ast_hash": "6c32ef9e6527fc295fb1c59cf53145c8",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/07-figura-holograma-1024.webp": {
-    "mtime": 1785421674.9596765,
+    "mtime": 1785484953.5809374,
     "ast_hash": "fb0685b84c75546849411f437434f758",
     "semantic_hash": ""
   },
   "public/contact/neon-galaxy/07-figura-holograma.webp": {
-    "mtime": 1785421674.2322922,
+    "mtime": 1785484953.5819376,
     "ast_hash": "fa5d3f454dab196e8dc250fc34612266",
     "semantic_hash": ""
   },
   "src/components/contactNeonGalaxy/ContactNeonGalaxy.test.tsx": {
-    "mtime": 1785422299.5660148,
+    "mtime": 1785484953.6164658,
     "ast_hash": "cac821eb96118bd9faa1fc7fecb78a94",
     "semantic_hash": ""
   },
   "src/components/contactNeonGalaxy/ContactNeonGalaxy.tsx": {
-    "mtime": 1785422299.5745418,
+    "mtime": 1785484953.6174693,
     "ast_hash": "d05da1de65f529eef27756cd17c2e492",
     "semantic_hash": ""
   },
   "src/components/contactNeonGalaxy/contactNeonGalaxy.layers.test.ts": {
-    "mtime": 1785422299.5405693,
+    "mtime": 1785484953.618468,
     "ast_hash": "13d9239020a633acccf00ca8b15c1bf4",
     "semantic_hash": ""
   },
   "src/components/contactNeonGalaxy/contactNeonGalaxy.layers.ts": {
-    "mtime": 1785422299.5480921,
+    "mtime": 1785484953.618468,
     "ast_hash": "c22004ea19658c0ae0124c628daf6837",
     "semantic_hash": ""
   },
   "src/components/contactNeonGalaxy/contactNeonGalaxy.parts.tsx": {
-    "mtime": 1785422299.558497,
+    "mtime": 1785484953.6194663,
     "ast_hash": "1b2e98ac6510f68d3c42ff34acfca37d",
+    "semantic_hash": ""
+  },
+  "src/hooks/useNavDetach.test.tsx": {
+    "mtime": 1785489192.3960323,
+    "ast_hash": "dab45739ac1ee4925b4eb445e798ae96",
+    "semantic_hash": ""
+  },
+  "src/hooks/useNavDetach.ts": {
+    "mtime": 1785489192.34787,
+    "ast_hash": "2dbd06ca31c07b1f3980e2410d90ae5b",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-31-navbar-scroll-detach.md": {
+    "mtime": 1785489192.0257304,
+    "ast_hash": "d7b0eef2f28897664e341d36426ec735",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-31-navbar-scroll-detach-design.md": {
+    "mtime": 1785489192.1537986,
+    "ast_hash": "6c0cce5284269e092c63de40ad85ef44",
     "semantic_hash": ""
   }
 }

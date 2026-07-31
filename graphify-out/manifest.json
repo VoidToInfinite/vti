@@ -95,13 +95,13 @@
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.test.tsx": {
-    "mtime": 1785337139.6551049,
-    "ast_hash": "697bb3377274a5e1a734a8b4f698ecd5",
+    "mtime": 1785489192.3208146,
+    "ast_hash": "a11809014994249e77dc479c7b089057",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.tsx": {
-    "mtime": 1785337139.656103,
-    "ast_hash": "24bfaeadbc8a714a5e3fdde2b5bdd7ae",
+    "mtime": 1785489037.5832329,
+    "ast_hash": "296dfe7c1e658c03abeda762268aa044",
     "semantic_hash": ""
   },
   "src/components/layout/Socials/Socials.tsx": {
@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "src/theme/GlobalStyles.tsx": {
-    "mtime": 1785337139.691614,
-    "ast_hash": "0e5101d471ba7e176c8e3a32794c2fcf",
+    "mtime": 1785488107.7419987,
+    "ast_hash": "b8f465d789c54eea2e152934e8381d5e",
     "semantic_hash": ""
   },
   "src/theme/ThemeProvider.tsx": {
@@ -330,13 +330,13 @@
     "semantic_hash": ""
   },
   "src/theme/tokens/grid.ts": {
-    "mtime": 1785337139.6926155,
-    "ast_hash": "bcba8ac11d6088a333ef018ed1d69414",
+    "mtime": 1785488031.215585,
+    "ast_hash": "d9b63f3efee2adc0cf6352b8428e65e9",
     "semantic_hash": ""
   },
   "src/theme/tokens/motion.ts": {
-    "mtime": 1784988444.7291367,
-    "ast_hash": "e7d6a0304d884dbf73d397c37dcf9bfe",
+    "mtime": 1785488033.3730505,
+    "ast_hash": "1e06f5cc151e6996fb17ad1e6841521f",
     "semantic_hash": ""
   },
   "src/theme/tokens/radius.ts": {
@@ -365,8 +365,8 @@
     "semantic_hash": ""
   },
   "src/theme/tokens/system.test.ts": {
-    "mtime": 1785337139.693614,
-    "ast_hash": "35bb6a50f8dd3fa14e44c708090d32cc",
+    "mtime": 1785488049.230183,
+    "ast_hash": "49bdb6459e5c9922f2222a6c8dca4195",
     "semantic_hash": ""
   },
   "src/theme/tokens/type.test.ts": {
@@ -1947,6 +1947,26 @@
   "src/components/contactNeonGalaxy/contactNeonGalaxy.parts.tsx": {
     "mtime": 1785484953.6194663,
     "ast_hash": "1b2e98ac6510f68d3c42ff34acfca37d",
+    "semantic_hash": ""
+  },
+  "src/hooks/useNavDetach.test.tsx": {
+    "mtime": 1785489192.3960323,
+    "ast_hash": "dab45739ac1ee4925b4eb445e798ae96",
+    "semantic_hash": ""
+  },
+  "src/hooks/useNavDetach.ts": {
+    "mtime": 1785489192.34787,
+    "ast_hash": "2dbd06ca31c07b1f3980e2410d90ae5b",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-07-31-navbar-scroll-detach.md": {
+    "mtime": 1785489192.0257304,
+    "ast_hash": "d7b0eef2f28897664e341d36426ec735",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-07-31-navbar-scroll-detach-design.md": {
+    "mtime": 1785489192.1537986,
+    "ast_hash": "6c0cce5284269e092c63de40ad85ef44",
     "semantic_hash": ""
   }
 }

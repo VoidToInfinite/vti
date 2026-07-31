@@ -155,7 +155,10 @@
   "153": "Socials.tsx",
   "154": "Contact.test.tsx",
   "155": "Logo.tsx",
-  "158": "Story.test.tsx",
-  "160": "Typography.tsx",
-  "161": "opaqueLayerEncoding"
+  "156": "Hero.qa.test.tsx",
+  "157": "Card.tsx",
+  "159": "useNavDetach.ts",
+  "161": "opaqueLayerEncoding",
+  "162": "Navbar: despegue al hacer scroll (\"slime detach\") — Implementation Plan",
+  "163": "LanguageSelector.tsx"
 }
