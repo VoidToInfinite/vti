@@ -157,8 +157,14 @@
   "155": "Logo.tsx",
   "156": "Hero.qa.test.tsx",
   "157": "Card.tsx",
+  "158": "FeaturesCelestialGuide.tsx",
   "159": "useNavDetach.ts",
+  "160": "JourneyAstralPathway.tsx",
   "161": "opaqueLayerEncoding",
   "162": "Navbar: despegue al hacer scroll (\"slime detach\") — Implementation Plan",
-  "163": "LanguageSelector.tsx"
+  "163": "LanguageSelector.tsx",
+  "164": "useSceneParallax.ts",
+  "165": "Story.test.tsx",
+  "166": "Logo.tsx",
+  "167": "ThemeProvider.tsx"
 }

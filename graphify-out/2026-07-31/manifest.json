@@ -59,16 +59,6 @@
     "ast_hash": "d0f5da076c8a3cbf1433f6a59cc35131",
     "semantic_hash": ""
   },
-  "src/components/eye/EyeCornerMark.test.tsx": {
-    "mtime": 1784988444.692138,
-    "ast_hash": "d9b5f84f703cf524fc879ac742cb0871",
-    "semantic_hash": ""
-  },
-  "src/components/eye/EyeCornerMark.tsx": {
-    "mtime": 1785337139.6419852,
-    "ast_hash": "4ad0f8951f94bf19db5bb476fc1096bd",
-    "semantic_hash": ""
-  },
   "src/components/eye/eye.parts.tsx": {
     "mtime": 1785337139.6444228,
     "ast_hash": "1901f3cb3ef1b50ade9f894aab507a72",
@@ -80,8 +70,8 @@
     "semantic_hash": ""
   },
   "src/components/layout/Brand/BrandName.tsx": {
-    "mtime": 1785337139.6531045,
-    "ast_hash": "251dd5cccdaa4ade07e21380c19aaca6",
+    "mtime": 1785491631.4233642,
+    "ast_hash": "76454d13b95fdadf8f3ca383e22e33c7",
     "semantic_hash": ""
   },
   "src/components/layout/Footer/Footer.tsx": {
@@ -95,13 +85,13 @@
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.test.tsx": {
-    "mtime": 1785489192.3208146,
-    "ast_hash": "a11809014994249e77dc479c7b089057",
+    "mtime": 1785491608.1900535,
+    "ast_hash": "5eedb1fa30bc1a50b02fe061c4d58c2d",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.tsx": {
-    "mtime": 1785489037.5832329,
-    "ast_hash": "296dfe7c1e658c03abeda762268aa044",
+    "mtime": 1785491723.6008906,
+    "ast_hash": "b3fba68ceb736b4cf9e5d1cfa74dbbc9",
     "semantic_hash": ""
   },
   "src/components/layout/Socials/Socials.tsx": {
@@ -1955,8 +1945,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useNavDetach.ts": {
-    "mtime": 1785489192.34787,
-    "ast_hash": "2dbd06ca31c07b1f3980e2410d90ae5b",
+    "mtime": 1785491625.4718068,
+    "ast_hash": "87c400d1e5644dba692a24d61d559429",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-31-navbar-scroll-detach.md": {
@@ -1965,8 +1955,8 @@
     "semantic_hash": ""
   },
   "docs/superpowers/specs/2026-07-31-navbar-scroll-detach-design.md": {
-    "mtime": 1785489192.1537986,
-    "ast_hash": "6c0cce5284269e092c63de40ad85ef44",
+    "mtime": 1785491664.9953341,
+    "ast_hash": "7d2cb6ed53d4fe22e43ccb2cd1d62808",
     "semantic_hash": ""
   }
 }
