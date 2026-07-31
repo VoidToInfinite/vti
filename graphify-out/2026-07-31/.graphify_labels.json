@@ -156,12 +156,16 @@
   "154": "Contact.test.tsx",
   "155": "Logo.tsx",
   "156": "Hero.qa.test.tsx",
-  "157": "Typography.tsx",
-  "158": "useReveal",
+  "157": "ContactNeonGalaxy.tsx",
+  "158": "FeaturesCelestialGuide.tsx",
   "159": "useNavDetach.ts",
-  "160": "BrandName.test.tsx",
-  "161": "Card.tsx",
+  "160": "JourneyAstralPathway.tsx",
+  "161": "Typography.tsx",
   "162": "Navbar: despegue al hacer scroll (\"slime detach\") — Implementation Plan",
-  "163": "Logo.tsx",
-  "168": "Story como presentación de 6 diapositivas + transición Hero→Story — Implementation Plan"
+  "163": "useSceneParallax.ts",
+  "164": "step3_endToEndPipelineVerification",
+  "165": "Journey.test.tsx",
+  "166": "useParallaxLayers.test.tsx",
+  "168": "Story como presentación de 6 diapositivas + transición Hero→Story — Implementation Plan",
+  "169": "story.layers.ts"
 }

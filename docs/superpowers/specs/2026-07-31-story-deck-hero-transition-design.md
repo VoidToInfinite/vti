@@ -173,3 +173,18 @@ Arreglo: `ScSceneWrap` se estira un desplazamiento por cada lado (más 1px de co
 Y un segundo fallo **latente** en la misma línea: `STORY_SCENE_DEPTH_SHIFT` estaba en `%`, y un porcentaje en `translateY` se resuelve contra la altura del PROPIO elemento mientras que en `top`/`bottom` lo haría contra la del contenedor. Mientras la capa medía igual que su contenedor las dos referencias coincidían y el error no era visible; en cuanto se la sobredimensiona dejan de coincidir. Pasa a `dvh`, que es la misma referencia en los dos sitios.
 
 Verificado en navegador en cuatro puntos del recorrido (progreso 0, 0.33, 0.66 y 1): la escena cubre el stage en los cuatro, con −1px de margen en el extremo en vez de los 0px justos.
+
+## 15. Addendum (2026-07-31) — se retira el snap y se optimiza el bucle
+
+Segundo reporte del usuario: "el scroll a veces no funciona en Story y no se ve fluido".
+
+**El snap se retira: se ejecuta el plan de retirada que D3 dejaba escrito.** Medido en navegador pidiendo posiciones de scroll concretas y comprobando dónde aterrizaba de verdad: `900 → 720`, `1200 → 1440`, `1500 → 1440`, `2000 → 2160`, `3100 → 2880`, y otras veces exacto. Es decir, tirones de hasta 240px, a veces **en contra** del sentido del gesto, y de forma inconsistente — exactamente el síntoma reportado.
+
+La causa es geométrica y estaba implícita en el propio diseño: las anclas medían **exactamente una pantalla**, así que cualquier posición de scroll cae siempre a menos de media pantalla de un ancla. Con esa geometría, `proximity` deja de comportarse como `proximity` y degenera en `mandatory`: el scroller captura casi cualquier parada. El error de D3 no fue elegir `proximity` sobre `mandatory`, fue no darse cuenta de que con anclas del tamaño del viewport **los dos son lo mismo**.
+
+Se eliminan `scroll-snap-type` de `GlobalStyles` y los componentes `ScSnapPoints`/`ScSnapPoint`. La vista sigue atada: de eso se encarga el pin, que es lo que mantiene la escena en pantalla. El snap solo añadía el acople a cada diapositiva, y lo pagaba con el control del usuario sobre su propio scroll. Verificado tras la retirada: las seis posiciones pedidas aterrizan con desvío 0, y el pin sigue sujetando.
+
+**Fluidez.** Dos cambios:
+
+- `useStoryDeck` pasa de un bucle de `requestAnimationFrame` LIBRE (que se reprogramaba solo en cada frame mientras la pista estuviera en pantalla) a un motor **dirigido por eventos y coalescido por rAF**: `scroll` pasivo + `resize` programan como mucho una medición por frame, y en reposo el coste es cero. El bucle libre hacía un `getBoundingClientRect()` —un layout forzado— 60 veces por segundo aunque el usuario no tocara la rueda, compitiendo con el rAF de `useSceneParallax`, que en esta misma sección anima 8 capas a pantalla completa con `mix-blend-mode`.
+- `ScSceneWrap` declara `will-change: transform`. Es la capa que se traslada durante TODO el recorrido de la presentación y contiene el grupo de blending; sin promoverla, cada desplazamiento obliga a recomponer ese grupo en el hilo principal. Es el caso de uso para el que `will-change` existe, no un uso preventivo.
