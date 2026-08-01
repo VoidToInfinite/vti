@@ -1,7 +1,7 @@
 {
     "name": "story-cosmic-being-layers",
     "description": "Figura celestial con nucleo luminoso y geometria orbital, separada en 11 capas para parallax 2.5D en el fondo de Story (tema oscuro). La capa 00 es una base OPACA en blend normal; las diez restantes son aditivas (plus-lighter) y su suma reconstruye el original.",
-    "source": "Story Dark Theme 2 parallax-cosmic-being.zip (Downloads), entregado por el usuario 2026-07-31. Maestros PNG sin perdida archivados en esta misma carpeta.",
+    "source": "Story Dark Theme 3 parallax-cosmic-being.zip (Downloads), entregado por el usuario 2026-08-01. Sustituye al zip 2 del 2026-07-31: comparados sha256 de los once PNG maestros, SOLO cambian 08-figure-aura y 09-figure (nuevo recorte de la figura, ver sus desc); las otras nueve capas son byte a byte las mismas y sus WebP desplegados no se regeneraron. Los maestros PNG (28,54 MB) NO se versionan: quedan solo en el zip de origen.",
     "canvas": {
         "width": 3344,
         "height": 1882,
@@ -25,7 +25,9 @@
     "deployed": {
         "quality": 70,
         "widths": [1024, 1280],
-        "rationale": "Medido sobre la escena compuesta: a q70, 1600px da 42.70 dB por 2.03 MB y 1280px da 42.15 dB por 1.37 MB. +48% de peso por +0.55 dB no compensa en una capa decorativa de fondo."
+        "encoder": "Pillow: Image.resize(LANCZOS) -> save WEBP quality=70 method=6. Parametros no supuestos: reproducen byte a byte los 18 WebP de las nueve capas intactas (sha256 identico, 18/18) al recodificarlos desde sus PNG maestros.",
+        "rationale": "Medido sobre la escena compuesta: a q70, 1600px da 42.70 dB por 2.03 MB y 1280px da 42.15 dB por 1.37 MB. +48% de peso por +0.55 dB no compensa en una capa decorativa de fondo.",
+        "reencode20260801": "Solo 08 y 09, con el mismo q70. PSNR de la CONTRIBUCION real de la capa (rgb*alpha, que es lo que suma plus-lighter; el PSNR crudo sobre RGBA no vale aqui: en las zonas transparentes el RGB no se ve pero el codificador lo reescribe y falsea la cifra). 08-figure-aura 59.59 -> 55.27 dB a 1280 (ahora lleva el borde luminoso, mas contraste que comprimir); 09-figure 44.79 -> 46.01 dB (recorte mas cenido, menos que comprimir). Ambas siguen por encima de los 42.15 dB con que se eligio esta pista. Peso desplegado de las 22 imagenes: 2389924 -> 2397978 bytes (+8054 B, 2.28 -> 2.29 MiB)."
     },
     "layers": [
         {
@@ -121,10 +123,10 @@
             "z": 8,
             "depth": 0.63,
             "blend": "plus-lighter",
-            "desc": "Halo exterior de la figura.",
+            "desc": "Halo exterior de la figura, incluido el borde luminoso pegado al cuerpo. Contrapartida del recorte cenido de 09-figure: si las dos capas se separan mucho, ese resplandor viaja con el aura y no con el cuerpo.",
             "bytes": {
-                "1280": 90336,
-                "1024": 61266
+                "1280": 102874,
+                "1024": 70170
             }
         },
         {
@@ -132,10 +134,11 @@
             "z": 9,
             "depth": 0.68,
             "blend": "plus-lighter",
-            "desc": "Cuerpo de la figura con su textura de particulas.",
+            "desc": "Solo el cuerpo, sin contorno. La mascara sale del canal MINIMO de RGB (blancura), no de la luminancia: el cuerpo es casi blanco (canal minimo medio 0.688) y el halo es azul saturado (0.158), asi que por brillo se confunden y por blancura no. El halo pasa integro a 08-figure-aura y la suma de las once capas sigue reconstruyendo el original.",
+            "bboxPx": [2340, 177, 444, 1473],
             "bytes": {
-                "1280": 45710,
-                "1024": 31282
+                "1280": 37480,
+                "1024": 26124
             }
         },
         {

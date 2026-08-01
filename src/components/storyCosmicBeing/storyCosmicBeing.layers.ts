@@ -91,6 +91,16 @@ export const STORY_COSMIC_BEING_LAYERS: readonly StoryCosmicBeingLayer[] = [
     depth: 0.56,
     blend: "plus-lighter",
   },
+  // Las dos capas de la figura se reparten distinto desde la entrega del
+  // 2026-08-01 (zip 3): la mascara del cuerpo ya no sale de la luminancia sino
+  // del canal MINIMO de RGB, asi que 09-figure es SOLO el cuerpo (recorte
+  // cenido) y todo el borde luminoso que lo rodea vive ahora en
+  // 08-figure-aura. El reparto de energia sigue siendo exacto, pero la
+  // separacion de `depth` entre ambas ya no es cosmetica: cuanto mas se
+  // separen, mas se despega el resplandor del cuerpo (queda de estela con el
+  // aura). Los 0.05 de aqui son los del paquete y dan ~9.5px de desfase a
+  // scroll completo con STORY_COSMIC_BEING_SCROLL_AMP; subirlos exagera ese
+  // despegue.
   {
     part: "figure-aura",
     src: "/story/cosmic-being/08-figure-aura.webp",
@@ -139,11 +149,11 @@ export const STORY_COSMIC_BEING_OVERSCAN = 1.02;
 export const STORY_COSMIC_BEING_VOID = "#05010e";
 
 /**
- * Amplitud del parallax de puntero en px, a profundidad 1. Tomada de
- * motionHints.swingXpx/swingYpx en assets/story-cosmic-being/manifest.json
- * -- calibrada contra ESTE arte, no reutiliza los valores de
- * STORY_COSMIC_HEART_POINTER_AMP (22/13): un lienzo y una composicion
- * distintos piden su propia amplitud.
+ * Amplitud del parallax de puntero en px, a profundidad 1. NO son los valores
+ * de motionHints.swingXpx/swingYpx del manifest de esta escena (46/30): esos
+ * son la sugerencia del paquete y aqui se bajaron a mano tras verlos en
+ * pantalla. Tampoco reutiliza STORY_COSMIC_HEART_POINTER_AMP (22/13): un
+ * lienzo y una composicion distintos piden su propia amplitud.
  */
 export const STORY_COSMIC_BEING_POINTER_AMP = { x: 10, y: 20 } as const;
 
