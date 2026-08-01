@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
@@ -70,6 +70,21 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
           margin-inline: auto;
           display: flex;
           align-items: center;
+          background-color: ${theme.data.palette.secondary[1100]};
+          transform: translateY(
+            calc(100% * (1 - var(--journey-scroll-offset, 0)))
+          );
+          opacity: var(--journey-scroll-opacity, 1);
+          transition:
+            transform ${theme.data.motion.duration.slow}
+              ${theme.data.motion.easing.emphasized},
+            opacity ${theme.data.motion.duration.slow}
+              ${theme.data.motion.easing.emphasized};
+
+          @media (prefers-reduced-motion: reduce) {
+            transform: none;
+            transition: none;
+          }
         `
       : css`
           max-width: ${theme.data.grid.containerMax};
@@ -324,16 +339,17 @@ const ScFigure = styled.img`
 `;
 
 /* Reveal de la rama oscura: mismo mecanismo que `ScDarkContent` en
-   `Story.tsx` -- lleva su propio padding/tope de ancho (`ScJourney`, en
-   `$fullBleed`, ya no aporta ninguno): el fondo ocupa la caja entera, pero
-   el texto sigue acotado a una medida de lectura cómoda. */
+   `Story.tsx` -- lleva su propio padding/tope de ancho, centrado.
+   Max-width de 1280px (spec 2026-08-01, D3): acotacion explicita
+   para experiencia visual coherente con escena de fondo. */
 const ScDarkContent = styled.div`
   position: relative;
   z-index: 1;
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  max-width: 1280px;
   width: 100%;
   padding: ${({ theme }) => theme.data.space[8]}
     ${({ theme }) => theme.data.space[6]};
+  margin-inline: auto;
   opacity: 0;
   transform: translateY(16px);
   transition:
@@ -509,10 +525,37 @@ export function Journey(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+  const journeyRef = useRef<HTMLElement | null>(null);
+
+  /* Calcula scroll offset para transición: Journey se anima desde abajo
+     conforme entra en viewport. Usa CSS variables para control sin re-render. */
+  useEffect(() => {
+    const handleScroll = (): void => {
+      const el = journeyRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      /* scrollOffset: 0 cuando Journey está abajo (rect.top > windowHeight),
+         1 cuando Journey llena el viewport (rect.top ≤ 0). */
+      const scrollOffset = Math.max(
+        0,
+        Math.min(1, (windowHeight - rect.top) / windowHeight),
+      );
+
+      el.style.setProperty("--journey-scroll-offset", scrollOffset.toString());
+      el.style.setProperty("--journey-scroll-opacity", "1");
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); /* trigger inicial */
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   if (themeName !== "light") {
     return (
       <ScJourney
+        ref={journeyRef}
         id="journey"
         aria-labelledby="journey-title"
         $fullBleed
@@ -569,6 +612,7 @@ export function Journey(): ReactElement {
       id="journey"
       aria-labelledby="journey-title"
       $fullBleed={false}
+      ref={journeyRef}
     >
       <ScCard>
         <ScHeader>
