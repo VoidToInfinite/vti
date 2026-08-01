@@ -3,6 +3,7 @@ import { act } from "@testing-library/react";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import { Journey } from "./Journey";
 import { JOURNEY_STEPS, JOURNEY_PATH_VIEWBOX } from "./journey.layers";
+import { JOURNEY_PORTAL_LAYERS } from "@/components/journeyCosmicPortal/journeyCosmicPortal.layers";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
@@ -171,10 +172,17 @@ describe("Journey en tema oscuro", () => {
     window.localStorage.clear();
   });
 
-  it("monta la escena Astral Pathway (5 capas decorativas) en vez de la tarjeta/camino/figura de claro", async () => {
+  // El numero de capas se lee de la tabla, no se escribe a mano: este test se
+  // quedo obsoleto en silencio cuando la escena paso de "Astral Pathway" a
+  // "Cosmic Portal" (mismo recuento, 5) y solo salto al llegar la sexta capa.
+  // Lo que aqui importa es que en oscuro el DOM son EXACTAMENTE las imagenes
+  // de la escena y ninguna mas -- ni la figura ni el camino de la rama clara.
+  it("monta la escena Cosmic Portal completa en vez de la tarjeta/camino/figura de claro", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
-      expect(container.querySelectorAll("img")).toHaveLength(5);
+      expect(container.querySelectorAll("img")).toHaveLength(
+        JOURNEY_PORTAL_LAYERS.length,
+      );
     });
     container
       .querySelectorAll("img")

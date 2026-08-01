@@ -7,8 +7,9 @@ import {
 
 /*
  * Marco de la escena: `isolation: isolate` la convierte en el grupo de
- * blending -- mismo motivo que `ScScene` en `storyCosmicBeing.parts.tsx`/
- * `journeyAstralPathway.parts.tsx`.
+ * blending -- mismo motivo que `ScScene` en `storyCosmicBeing.parts.tsx`.
+ * (Journey ya no vale como referencia: desde el 2026-08-01 su escena compone
+ * con alpha normal y su `ScScene` no necesita aislar nada.)
  */
 export const ScScene = styled.div`
   position: absolute;

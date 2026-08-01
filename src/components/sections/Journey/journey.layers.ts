@@ -115,9 +115,13 @@ export const JOURNEY_QUOTE_GRADIENT_LIGHT =
 /**
  * Variante oscura del degradado de la cita (mismo criterio que
  * `STORY_ACCENT_GRADIENT_DARK`, `story.layers.ts`): misma familia de hue
- * (235/255/290), luminosidad mucho mayor para legibilidad sobre el
- * negro-azulado de `JourneyAstralPathway` (`JOURNEY_ASTRAL_VOID`,
- * `#02040e`).
+ * (235/255/290), luminosidad mucho mayor para legibilidad sobre el fondo
+ * oscuro de la escena. La referencia era el negro-azulado `#02040e` de
+ * `JourneyAstralPathway`; desde 2026-08-01 la escena es
+ * `JourneyCosmicPortal` y su lienzo es el negro-violeta `#0b0620`
+ * (`JOURNEY_PORTAL_VOID`). Los valores no se retocan: siguen entre 0.78 y
+ * 0.86 de luminosidad sobre un fondo que sigue siendo oscuro, y el nuevo
+ * lienzo apenas es mas claro que el anterior.
  */
 export const JOURNEY_QUOTE_GRADIENT_DARK =
   "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";

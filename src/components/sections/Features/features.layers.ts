@@ -211,7 +211,7 @@ export const FEATURES_FIGURE_SIZES =
 
 /**
  * Caja de la rama oscura (2026-07-30, mismo criterio que
- * `STORY_DARK_MAX_WIDTH`/`JOURNEY_ASTRAL_MAX_WIDTH`): acotada y centrada, no
+ * `STORY_DARK_MAX_WIDTH`/`JOURNEY_PORTAL_MAX_WIDTH`): acotada y centrada, no
  * a sangre. A diferencia de Story/Journey, aquí es `MIN_HEIGHT`, no una
  * altura fija en `dvh`: las tres tarjetas (título+cuerpo+4 bullets+CTA cada
  * una) son bastante más contenido que los pilares de Story o los pasos de

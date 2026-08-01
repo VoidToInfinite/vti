@@ -3,7 +3,7 @@
  * oscuro). Datos (orden, profundidad de parallax) medidos y documentados en
  * `assets/features-celestial-guide/manifest.json`, junto a los WebP fuente.
  * Mismo criterio que `storyCosmicBeing.layers.ts`/
- * `journeyAstralPathway.layers.ts`: se declara aquí en TypeScript en vez de
+ * `journeyCosmicPortal.layers.ts`: se declara aquí en TypeScript en vez de
  * leer el manifest en tiempo de ejecución.
  *
  * 10 capas (v9 del paquete, sustituye una entrega anterior sin capas): 1
@@ -93,7 +93,7 @@ export const FEATURES_CELESTIAL_LAYERS: readonly FeaturesCelestialGuideLayer[] =
   ] as const;
 
 /** `sizes`: mismo criterio que `STORY_COSMIC_HEART_SIZES`/
- *  `JOURNEY_ASTRAL_SIZES` — la escena llena el ancho de la caja de
+ *  `JOURNEY_PORTAL_SIZES` — la escena llena el ancho de la caja de
  *  Features, tope `FEATURES_DARK_MAX_WIDTH`. */
 export const FEATURES_CELESTIAL_SIZES = "(min-width: 1280px) 1280px, 100vw";
 
@@ -103,11 +103,13 @@ export const FEATURES_CELESTIAL_OVERSCAN = 1.06;
 /**
  * Negro-azulado del lienzo (`--void` del paquete original,
  * `parallax-learning-guide.html` §`:root`). Copiado VERBATIM, no convertido
- * a `oklch()` — mismo criterio que `STORY_COSMIC_HEART_VOID`/
- * `JOURNEY_ASTRAL_VOID`. Es el MISMO literal que `JOURNEY_ASTRAL_VOID`
- * (`#02040e`) — coincidencia real, no una referencia cruzada: los dos
- * paquetes vienen de la misma generación y comparten el void, pero cada
- * sección declara su propia constante (no se importa una de la otra).
+ * a `oklch()` — mismo criterio que `STORY_COSMIC_HEART_VOID`. Es el MISMO
+ * literal que `CONTACT_NEON_VOID` (`#02040e`) — coincidencia real, no una
+ * referencia cruzada: los dos paquetes vienen de la misma generación y
+ * comparten el void, pero cada sección declara su propia constante (no se
+ * importa una de la otra). Journey también lo compartía hasta el
+ * 2026-08-01; su escena nueva (`JourneyCosmicPortal`) llega de otra
+ * generación y trae su propio lienzo, `#0b0620`.
  */
 export const FEATURES_CELESTIAL_VOID = "#02040e";
 

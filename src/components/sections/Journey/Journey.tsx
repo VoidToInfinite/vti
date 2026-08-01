@@ -7,11 +7,11 @@ import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
-import { JourneyAstralPathway } from "@/components/journeyAstralPathway/JourneyAstralPathway";
+import { JourneyCosmicPortal } from "@/components/journeyCosmicPortal/JourneyCosmicPortal";
 import {
-  JOURNEY_ASTRAL_HEIGHT,
-  JOURNEY_ASTRAL_MAX_WIDTH,
-} from "@/components/journeyAstralPathway/journeyAstralPathway.layers";
+  JOURNEY_PORTAL_HEIGHT,
+  JOURNEY_PORTAL_MAX_WIDTH,
+} from "@/components/journeyCosmicPortal/journeyCosmicPortal.layers";
 import {
   JOURNEY_STEPS,
   JOURNEY_CARD_BACKGROUND,
@@ -35,7 +35,7 @@ import {
  * `docs/superpowers/specs/2026-07-29-story-dark-cosmic-heart-design.md`): no
  * hay mockup oscuro de esta sección. En vez de la tarjeta pastel + camino
  * punteado + rejilla de 6 columnas + figura en columna propia, el fondo es
- * la escena parallax `JourneyAstralPathway` (5 capas) y el contenido (mismo
+ * la escena parallax `JourneyCosmicPortal` (6 capas) y el contenido (mismo
  * i18n `Home.journey.*`) se superpone encima, en una columna estrecha —
  * igual que Story en oscuro. Se elimina el camino SVG punteado (sin
  * equivalente: la "senda" ya vive DENTRO de la escena de fondo) y la figura
@@ -53,8 +53,8 @@ const STEP_STAGGER_MS = 90;
 /*
  * Rama clara: contenedor normal (padding + tope de ancho, centrado -- sin
  * cambios). Rama oscura ($fullBleed): misma caja acotada y centrada que
- * `ScStory` en oscuro (`Story.tsx`) -- `JOURNEY_ASTRAL_MAX_WIDTH`/
- * `JOURNEY_ASTRAL_HEIGHT`, no `grid.containerMax`, por el mismo motivo
+ * `ScStory` en oscuro (`Story.tsx`) -- `JOURNEY_PORTAL_MAX_WIDTH`/
+ * `JOURNEY_PORTAL_HEIGHT`, no `grid.containerMax`, por el mismo motivo
  * documentado allí (medida propia de la composición oscura, no del grid).
  */
 const ScJourney = styled.section<{ $fullBleed: boolean }>`
@@ -64,9 +64,9 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
           position: relative;
           overflow: hidden;
           width: 100%;
-          max-width: ${JOURNEY_ASTRAL_MAX_WIDTH};
+          max-width: ${JOURNEY_PORTAL_MAX_WIDTH};
           height: 90vh;
-          height: ${JOURNEY_ASTRAL_HEIGHT};
+          height: ${JOURNEY_PORTAL_HEIGHT};
           margin-inline: auto;
           display: flex;
           align-items: center;
@@ -517,7 +517,7 @@ export function Journey(): ReactElement {
         aria-labelledby="journey-title"
         $fullBleed
       >
-        <JourneyAstralPathway />
+        <JourneyCosmicPortal />
         <ScDarkContent
           ref={revealRef}
           data-revealed={revealed}

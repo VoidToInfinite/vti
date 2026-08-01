@@ -2,7 +2,7 @@
  * Tabla de capas de la escena "Neon Galaxy" (fondo de Contact, tema oscuro).
  * Datos (orden, profundidad de parallax) medidos y documentados en
  * `assets/contact-neon-galaxy/manifest.json`, junto a los WebP fuente. Mismo
- * criterio que `storyCosmicBeing.layers.ts`/`journeyAstralPathway.layers.ts`/
+ * criterio que `storyCosmicBeing.layers.ts`/`journeyCosmicPortal.layers.ts`/
  * `featuresCelestialGuide.layers.ts`.
  *
  * 7 capas: 1 fondo + 2 de ambientación + 3 orbes (uno por canal de contacto:
@@ -77,9 +77,11 @@ export const CONTACT_NEON_OVERSCAN = 1.06;
 /**
  * Negro-azulado del lienzo (`--void` del paquete original,
  * `parallax-neon-galaxy.html` §`:root`). Copiado VERBATIM. Es el MISMO
- * literal que `JOURNEY_ASTRAL_VOID`/`FEATURES_CELESTIAL_VOID` (`#02040e`) —
- * los tres paquetes vienen de la misma generación y comparten el void, pero
- * cada sección declara su propia constante (no se importa una de otra).
+ * literal que `FEATURES_CELESTIAL_VOID` (`#02040e`) — los dos paquetes
+ * vienen de la misma generación y comparten el void, pero cada sección
+ * declara su propia constante (no se importa una de otra). Journey también
+ * lo compartía hasta el 2026-08-01; su escena nueva (`JourneyCosmicPortal`)
+ * llega de otra generación y trae su propio lienzo, `#0b0620`.
  */
 export const CONTACT_NEON_VOID = "#02040e";
 
