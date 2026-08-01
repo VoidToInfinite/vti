@@ -10,7 +10,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_home_page_flujo_test",
-      "community": 157,
+      "community": 31,
       "norm_label": "home-page.flujo.test.tsx"
     },
     {
@@ -20,7 +20,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_stubmatchmedia",
-      "community": 157,
+      "community": 31,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -30,7 +30,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_observe",
-      "community": 157,
+      "community": 31,
       "norm_label": "observe()"
     },
     {
@@ -40,7 +40,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_unobserve",
-      "community": 157,
+      "community": 31,
       "norm_label": "unobserve()"
     },
     {
@@ -50,7 +50,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_disconnect",
-      "community": 157,
+      "community": 31,
       "norm_label": "disconnect()"
     },
     {
@@ -60,7 +60,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_testid",
-      "community": 157,
+      "community": 31,
       "norm_label": "testid()"
     },
     {
@@ -70,7 +70,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_renderhomepage",
-      "community": 157,
+      "community": 31,
       "norm_label": "renderhomepage()"
     },
     {
@@ -140,7 +140,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_not_found_test",
-      "community": 158,
+      "community": 31,
       "norm_label": "not-found.test.tsx"
     },
     {
@@ -150,7 +150,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_not_found",
-      "community": 158,
+      "community": 31,
       "norm_label": "not-found.tsx"
     },
     {
@@ -160,7 +160,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "app_not_found_notfound",
-      "community": 158,
+      "community": 31,
       "norm_label": "notfound()"
     },
     {
@@ -180,7 +180,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "app_page_homepage",
-      "community": 157,
+      "community": 31,
       "norm_label": "homepage()"
     },
     {
@@ -1950,7 +1950,7 @@
       "source_location": "L120",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline",
-      "community": 150,
+      "community": 167,
       "norm_label": "pipeline"
     },
     {
@@ -1960,7 +1960,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline_tool",
-      "community": 150,
+      "community": 167,
       "norm_label": "tool"
     },
     {
@@ -1970,7 +1970,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline_outputformat",
-      "community": 150,
+      "community": 167,
       "norm_label": "outputformat"
     },
     {
@@ -2390,7 +2390,7 @@
       "source_location": "L317",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline_nativeoutput",
-      "community": 10,
+      "community": 166,
       "norm_label": "nativeoutput"
     },
     {
@@ -2400,7 +2400,7 @@
       "source_location": "L318",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_widthpx",
-      "community": 10,
+      "community": 166,
       "norm_label": "widthpx"
     },
     {
@@ -2410,7 +2410,7 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_heightpx",
-      "community": 10,
+      "community": 166,
       "norm_label": "heightpx"
     },
     {
@@ -2420,7 +2420,7 @@
       "source_location": "L320",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_resize",
-      "community": 10,
+      "community": 166,
       "norm_label": "resize"
     },
     {
@@ -2430,7 +2430,7 @@
       "source_location": "L321",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_suffix",
-      "community": 10,
+      "community": 166,
       "norm_label": "suffix"
     },
     {
@@ -2440,7 +2440,7 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_bylayer",
-      "community": 10,
+      "community": 166,
       "norm_label": "bylayer"
     },
     {
@@ -2580,7 +2580,7 @@
       "source_location": "L338",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bylayer_02_hand_left",
-      "community": 138,
+      "community": 10,
       "norm_label": "02-hand-left"
     },
     {
@@ -2590,7 +2590,7 @@
       "source_location": "L339",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_quality",
-      "community": 138,
+      "community": 10,
       "norm_label": "quality"
     },
     {
@@ -2600,7 +2600,7 @@
       "source_location": "L340",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_alphaquality",
-      "community": 138,
+      "community": 10,
       "norm_label": "alphaquality"
     },
     {
@@ -2610,7 +2610,7 @@
       "source_location": "L341",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_lossless",
-      "community": 138,
+      "community": 10,
       "norm_label": "lossless"
     },
     {
@@ -2620,7 +2620,7 @@
       "source_location": "L342",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_effort",
-      "community": 138,
+      "community": 10,
       "norm_label": "effort"
     },
     {
@@ -2630,7 +2630,7 @@
       "source_location": "L343",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_smartsubsample",
-      "community": 138,
+      "community": 10,
       "norm_label": "smartsubsample"
     },
     {
@@ -2780,7 +2780,7 @@
       "source_location": "L392",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline_opaquelayerencoding",
-      "community": 122,
+      "community": 167,
       "norm_label": "opaquelayerencoding"
     },
     {
@@ -2790,7 +2790,7 @@
       "source_location": "L393",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_layer",
-      "community": 122,
+      "community": 167,
       "norm_label": "layer"
     },
     {
@@ -2800,7 +2800,7 @@
       "source_location": "L394",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_hasalphachannel",
-      "community": 122,
+      "community": 167,
       "norm_label": "hasalphachannel"
     },
     {
@@ -2810,7 +2810,7 @@
       "source_location": "L395",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_riffchunk",
-      "community": 122,
+      "community": 167,
       "norm_label": "riffchunk"
     },
     {
@@ -2820,7 +2820,7 @@
       "source_location": "L396",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_nota",
-      "community": 122,
+      "community": 167,
       "norm_label": "nota"
     },
     {
@@ -3506,102 +3506,302 @@
     {
       "label": "manifest.json",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest",
+      "community": 27,
       "norm_label": "manifest.json"
     },
     {
       "label": "name",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L2",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_name",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_name",
+      "community": 27,
       "norm_label": "name"
     },
     {
       "label": "description",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L3",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_description",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_description",
+      "community": 27,
       "norm_label": "description"
     },
     {
       "label": "source",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L4",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_source",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_source",
+      "community": 27,
       "norm_label": "source"
     },
     {
       "label": "canvas",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L5",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_canvas",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_canvas",
+      "community": 27,
       "norm_label": "canvas"
     },
     {
       "label": "width",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L5",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L6",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_canvas_width",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_canvas_width",
+      "community": 27,
       "norm_label": "width"
     },
     {
       "label": "height",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L5",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L7",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_canvas_height",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_canvas_height",
+      "community": 27,
       "norm_label": "height"
     },
     {
       "label": "compositing",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L6",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L9",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_compositing",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_compositing",
+      "community": 27,
       "norm_label": "compositing"
     },
     {
       "label": "css",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L7",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L10",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_compositing_css",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_compositing_css",
+      "community": 27,
       "norm_label": "css"
+    },
+    {
+      "label": "void",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_compositing_void",
+      "community": 27,
+      "norm_label": "void"
+    },
+    {
+      "label": "fidelity",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_fidelity",
+      "community": 27,
+      "norm_label": "fidelity"
+    },
+    {
+      "label": "recomposicion",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L14",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_fidelity_recomposicion",
+      "community": 27,
+      "norm_label": "recomposicion"
+    },
+    {
+      "label": "v6Fixes",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_fidelity_v6fixes",
+      "community": 27,
+      "norm_label": "v6fixes"
+    },
+    {
+      "label": "deployed",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L17",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_deployed",
+      "community": 27,
+      "norm_label": "deployed"
+    },
+    {
+      "label": "quality",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L18",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_deployed_quality",
+      "community": 27,
+      "norm_label": "quality"
+    },
+    {
+      "label": "widths",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L19",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_deployed_widths",
+      "community": 27,
+      "norm_label": "widths"
+    },
+    {
+      "label": "encoder",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_deployed_encoder",
+      "community": 27,
+      "norm_label": "encoder"
+    },
+    {
+      "label": "rationale",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_deployed_rationale",
+      "community": 27,
+      "norm_label": "rationale"
+    },
+    {
+      "label": "weightBytes",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L22",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_deployed_weightbytes",
+      "community": 27,
+      "norm_label": "weightbytes"
+    },
+    {
+      "label": "weightNote",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L23",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_deployed_weightnote",
+      "community": 27,
+      "norm_label": "weightnote"
+    },
+    {
+      "label": "motion",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L25",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_motion",
+      "community": 27,
+      "norm_label": "motion"
+    },
+    {
+      "label": "packageHints",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L26",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_motion_packagehints",
+      "community": 27,
+      "norm_label": "packagehints"
+    },
+    {
+      "label": "pointerDepth",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_packagehints_pointerdepth",
+      "community": 27,
+      "norm_label": "pointerdepth"
+    },
+    {
+      "label": "scrollDepth",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L28",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_packagehints_scrolldepth",
+      "community": 27,
+      "norm_label": "scrolldepth"
+    },
+    {
+      "label": "pointerAmpPx",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L29",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_packagehints_pointeramppx",
+      "community": 27,
+      "norm_label": "pointeramppx"
+    },
+    {
+      "label": "overscan",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_packagehints_overscan",
+      "community": 27,
+      "norm_label": "overscan"
+    },
+    {
+      "label": "lerp",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L31",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_packagehints_lerp",
+      "community": 27,
+      "norm_label": "lerp"
+    },
+    {
+      "label": "adopted",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L33",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_motion_adopted",
+      "community": 27,
+      "norm_label": "adopted"
     },
     {
       "label": "layers",
       "file_type": "code",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L9",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L35",
       "_origin": "ast",
-      "id": "assets_journey_astral_pathway_manifest_layers",
-      "community": 113,
+      "id": "assets_journey_cosmic_portal_manifest_layers",
+      "community": 27,
       "norm_label": "layers"
+    },
+    {
+      "label": "notImplemented",
+      "file_type": "code",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L103",
+      "_origin": "ast",
+      "id": "assets_journey_cosmic_portal_manifest_notimplemented",
+      "community": 27,
+      "norm_label": "notimplemented"
     },
     {
       "label": "manifest.json",
@@ -3834,20 +4034,40 @@
       "norm_label": "widths"
     },
     {
-      "label": "rationale",
+      "label": "encoder",
       "file_type": "code",
       "source_file": "assets/story-cosmic-being/manifest.json",
       "source_location": "L28",
+      "_origin": "ast",
+      "id": "assets_story_cosmic_being_manifest_deployed_encoder",
+      "community": 132,
+      "norm_label": "encoder"
+    },
+    {
+      "label": "rationale",
+      "file_type": "code",
+      "source_file": "assets/story-cosmic-being/manifest.json",
+      "source_location": "L29",
       "_origin": "ast",
       "id": "assets_story_cosmic_being_manifest_deployed_rationale",
       "community": 132,
       "norm_label": "rationale"
     },
     {
-      "label": "layers",
+      "label": "reencode20260801",
       "file_type": "code",
       "source_file": "assets/story-cosmic-being/manifest.json",
       "source_location": "L30",
+      "_origin": "ast",
+      "id": "assets_story_cosmic_being_manifest_deployed_reencode20260801",
+      "community": 132,
+      "norm_label": "reencode20260801"
+    },
+    {
+      "label": "layers",
+      "file_type": "code",
+      "source_file": "assets/story-cosmic-being/manifest.json",
+      "source_location": "L32",
       "_origin": "ast",
       "id": "assets_story_cosmic_being_manifest_layers",
       "community": 132,
@@ -4450,7 +4670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aura_aura_layers_test",
-      "community": 159,
+      "community": 0,
       "norm_label": "aura.layers.test.ts"
     },
     {
@@ -4460,7 +4680,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aura_aura_layers",
-      "community": 159,
+      "community": 151,
       "norm_label": "aura.layers.ts"
     },
     {
@@ -4470,7 +4690,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_components_aura_aura_layers_auralayer",
-      "community": 159,
+      "community": 151,
       "norm_label": "auralayer"
     },
     {
@@ -4500,7 +4720,7 @@
       "source_location": "L297",
       "_origin": "ast",
       "id": "src_components_aura_aura_layers_aura_stagger",
-      "community": 159,
+      "community": 151,
       "norm_label": "aura_stagger"
     },
     {
@@ -4510,7 +4730,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test",
-      "community": 158,
+      "community": 0,
       "norm_label": "aura.parts.test.tsx"
     },
     {
@@ -4520,7 +4740,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_stops",
-      "community": 158,
+      "community": 0,
       "norm_label": "stops()"
     },
     {
@@ -4530,7 +4750,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_parsestop",
-      "community": 158,
+      "community": 0,
       "norm_label": "parsestop()"
     },
     {
@@ -4550,7 +4770,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_footelement",
-      "community": 158,
+      "community": 0,
       "norm_label": "footelement()"
     },
     {
@@ -4560,7 +4780,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_todaslasreglas",
-      "community": 158,
+      "community": 0,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -4570,7 +4790,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_reglasde",
-      "community": 158,
+      "community": 0,
       "norm_label": "reglasde()"
     },
     {
@@ -4747,7 +4967,7 @@
       "label": "CONTACT_NEON_POINTER_AMP",
       "file_type": "code",
       "source_file": "src/components/contactNeonGalaxy/contactNeonGalaxy.layers.ts",
-      "source_location": "L87",
+      "source_location": "L89",
       "_origin": "ast",
       "id": "src_components_contactneongalaxy_contactneongalaxy_layers_contact_neon_pointer_amp",
       "community": 141,
@@ -4810,7 +5030,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_test",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye.test.tsx"
     },
     {
@@ -4820,7 +5040,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_stubmatchmedia",
-      "community": 58,
+      "community": 151,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -4830,7 +5050,7 @@
       "source_location": "L243",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_partel",
-      "community": 58,
+      "community": 151,
       "norm_label": "partel()"
     },
     {
@@ -4840,7 +5060,7 @@
       "source_location": "L260",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_staggerdelay",
-      "community": 58,
+      "community": 151,
       "norm_label": "staggerdelay()"
     },
     {
@@ -4850,7 +5070,7 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_todaslasreglas",
-      "community": 58,
+      "community": 151,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -4860,7 +5080,7 @@
       "source_location": "L436",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_reglasde",
-      "community": 58,
+      "community": 151,
       "norm_label": "reglasde()"
     },
     {
@@ -4900,7 +5120,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_eye_eye_eye",
-      "community": 156,
+      "community": 138,
       "norm_label": "eye()"
     },
     {
@@ -4910,7 +5130,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_test",
-      "community": 58,
+      "community": 0,
       "norm_label": "eye.layers.test.ts"
     },
     {
@@ -4920,7 +5140,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye.layers.ts"
     },
     {
@@ -4930,7 +5150,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eyelayer",
-      "community": 58,
+      "community": 151,
       "norm_label": "eyelayer"
     },
     {
@@ -4940,7 +5160,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eye_layers",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye_layers"
     },
     {
@@ -4960,7 +5180,7 @@
       "source_location": "L189",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eye_stagger",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye_stagger"
     },
     {
@@ -5680,7 +5900,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_mascots_wormhole_test",
-      "community": 158,
+      "community": 31,
       "norm_label": "wormhole.test.tsx"
     },
     {
@@ -5920,7 +6140,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle",
-      "community": 146,
+      "community": 169,
       "norm_label": "usesolcycle.ts"
     },
     {
@@ -5930,7 +6150,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_solvariant",
-      "community": 146,
+      "community": 169,
       "norm_label": "solvariant"
     },
     {
@@ -5940,7 +6160,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_solcycle",
-      "community": 146,
+      "community": 169,
       "norm_label": "solcycle"
     },
     {
@@ -5950,7 +6170,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_othervariant",
-      "community": 146,
+      "community": 169,
       "norm_label": "othervariant()"
     },
     {
@@ -5960,7 +6180,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_usesolcycle",
-      "community": 146,
+      "community": 169,
       "norm_label": "usesolcycle()"
     },
     {
@@ -6097,7 +6317,7 @@
       "label": "FEATURES_CELESTIAL_POINTER_AMP",
       "file_type": "code",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.layers.ts",
-      "source_location": "L115",
+      "source_location": "L117",
       "_origin": "ast",
       "id": "src_components_featurescelestialguide_featurescelestialguide_layers_features_celestial_pointer_amp",
       "community": 139,
@@ -6117,7 +6337,7 @@
       "label": "ScScene",
       "file_type": "code",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx",
-      "source_location": "L13",
+      "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_featurescelestialguide_featurescelestialguide_parts_scscene",
       "community": 139,
@@ -6127,7 +6347,7 @@
       "label": "ScVoid",
       "file_type": "code",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx",
-      "source_location": "L21",
+      "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_featurescelestialguide_featurescelestialguide_parts_scvoid",
       "community": 139,
@@ -6137,7 +6357,7 @@
       "label": "ScLayer",
       "file_type": "code",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx",
-      "source_location": "L33",
+      "source_location": "L34",
       "_origin": "ast",
       "id": "src_components_featurescelestialguide_featurescelestialguide_parts_sclayer",
       "community": 139,
@@ -6147,160 +6367,160 @@
       "label": "ScVignette",
       "file_type": "code",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx",
-      "source_location": "L57",
+      "source_location": "L58",
       "_origin": "ast",
       "id": "src_components_featurescelestialguide_featurescelestialguide_parts_scvignette",
       "community": 139,
       "norm_label": "scvignette"
     },
     {
-      "label": "JourneyAstralPathway.test.tsx",
+      "label": "JourneyCosmicPortal.test.tsx",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_test",
-      "community": 151,
-      "norm_label": "journeyastralpathway.test.tsx"
+      "id": "src_components_journeycosmicportal_journeycosmicportal_test",
+      "community": 106,
+      "norm_label": "journeycosmicportal.test.tsx"
     },
     {
       "label": "stubMatchMedia()",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
       "source_location": "L6",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_test_stubmatchmedia",
-      "community": 151,
+      "id": "src_components_journeycosmicportal_journeycosmicportal_test_stubmatchmedia",
+      "community": 106,
       "norm_label": "stubmatchmedia()"
     },
     {
       "label": "stubIntersectionObserver()",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
-      "source_location": "L27",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
+      "source_location": "L25",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_test_stubintersectionobserver",
-      "community": 151,
+      "id": "src_components_journeycosmicportal_journeycosmicportal_test_stubintersectionobserver",
+      "community": 106,
       "norm_label": "stubintersectionobserver()"
     },
     {
-      "label": "JourneyAstralPathway.tsx",
+      "label": "JourneyCosmicPortal.tsx",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway",
-      "community": 151,
-      "norm_label": "journeyastralpathway.tsx"
+      "id": "src_components_journeycosmicportal_journeycosmicportal",
+      "community": 106,
+      "norm_label": "journeycosmicportal.tsx"
     },
     {
-      "label": "JourneyAstralPathway()",
+      "label": "JourneyCosmicPortal()",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
-      "source_location": "L30",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
+      "source_location": "L32",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_journeyastralpathway",
-      "community": 151,
-      "norm_label": "journeyastralpathway()"
+      "id": "src_components_journeycosmicportal_journeycosmicportal_journeycosmicportal",
+      "community": 106,
+      "norm_label": "journeycosmicportal()"
     },
     {
-      "label": "journeyAstralPathway.layers.test.ts",
+      "label": "journeyCosmicPortal.layers.test.ts",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.test.ts",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_layers_test",
-      "community": 151,
-      "norm_label": "journeyastralpathway.layers.test.ts"
+      "id": "src_components_journeycosmicportal_journeycosmicportal_layers_test",
+      "community": 106,
+      "norm_label": "journeycosmicportal.layers.test.ts"
     },
     {
-      "label": "journeyAstralPathway.layers.ts",
+      "label": "journeyCosmicPortal.layers.ts",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.ts",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_layers",
-      "community": 151,
-      "norm_label": "journeyastralpathway.layers.ts"
+      "id": "src_components_journeycosmicportal_journeycosmicportal_layers",
+      "community": 106,
+      "norm_label": "journeycosmicportal.layers.ts"
     },
     {
-      "label": "JourneyAstralPathwayLayer",
+      "label": "JourneyCosmicPortalLayer",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.ts",
-      "source_location": "L9",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.ts",
+      "source_location": "L19",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_layers_journeyastralpathwaylayer",
-      "community": 151,
-      "norm_label": "journeyastralpathwaylayer"
+      "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journeycosmicportallayer",
+      "community": 106,
+      "norm_label": "journeycosmicportallayer"
     },
     {
-      "label": "JOURNEY_ASTRAL_LAYERS",
+      "label": "JOURNEY_PORTAL_LAYERS",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.ts",
-      "source_location": "L24",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.ts",
+      "source_location": "L51",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_layers_journey_astral_layers",
-      "community": 151,
-      "norm_label": "journey_astral_layers"
+      "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_layers",
+      "community": 106,
+      "norm_label": "journey_portal_layers"
     },
     {
-      "label": "JOURNEY_ASTRAL_POINTER_AMP",
+      "label": "JOURNEY_PORTAL_POINTER_AMP",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.ts",
-      "source_location": "L76",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.ts",
+      "source_location": "L122",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_layers_journey_astral_pointer_amp",
-      "community": 151,
-      "norm_label": "journey_astral_pointer_amp"
+      "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_pointer_amp",
+      "community": 106,
+      "norm_label": "journey_portal_pointer_amp"
     },
     {
-      "label": "journeyAstralPathway.parts.tsx",
+      "label": "journeyCosmicPortal.parts.tsx",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_parts",
-      "community": 151,
-      "norm_label": "journeyastralpathway.parts.tsx"
+      "id": "src_components_journeycosmicportal_journeycosmicportal_parts",
+      "community": 106,
+      "norm_label": "journeycosmicportal.parts.tsx"
     },
     {
       "label": "ScScene",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
-      "source_location": "L12",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
+      "source_location": "L18",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_parts_scscene",
-      "community": 151,
+      "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scscene",
+      "community": 106,
       "norm_label": "scscene"
     },
     {
       "label": "ScVoid",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
-      "source_location": "L20",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
+      "source_location": "L30",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_parts_scvoid",
-      "community": 151,
+      "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scvoid",
+      "community": 106,
       "norm_label": "scvoid"
     },
     {
       "label": "ScLayer",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
-      "source_location": "L34",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
+      "source_location": "L43",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_parts_sclayer",
-      "community": 151,
+      "id": "src_components_journeycosmicportal_journeycosmicportal_parts_sclayer",
+      "community": 106,
       "norm_label": "sclayer"
     },
     {
       "label": "ScVignette",
       "file_type": "code",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
-      "source_location": "L57",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
+      "source_location": "L64",
       "_origin": "ast",
-      "id": "src_components_journeyastralpathway_journeyastralpathway_parts_scvignette",
-      "community": 151,
+      "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scvignette",
+      "community": 106,
       "norm_label": "scvignette"
     },
     {
@@ -6530,7 +6750,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test",
-      "community": 161,
+      "community": 31,
       "norm_label": "footer.test.tsx"
     },
     {
@@ -6680,7 +6900,7 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_footer",
-      "community": 161,
+      "community": 46,
       "norm_label": "footer()"
     },
     {
@@ -6740,7 +6960,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test",
-      "community": 46,
+      "community": 157,
       "norm_label": "navbar.test.tsx"
     },
     {
@@ -6750,7 +6970,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_stubmatchmedia",
-      "community": 46,
+      "community": 157,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -6760,7 +6980,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_rendernavbar",
-      "community": 46,
+      "community": 157,
       "norm_label": "rendernavbar()"
     },
     {
@@ -6770,7 +6990,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_revealbackdrop",
-      "community": 46,
+      "community": 157,
       "norm_label": "revealbackdrop()"
     },
     {
@@ -6780,7 +7000,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_rendernavbarinchrome",
-      "community": 46,
+      "community": 157,
       "norm_label": "rendernavbarinchrome()"
     },
     {
@@ -6790,7 +7010,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_allcssrules",
-      "community": 46,
+      "community": 157,
       "norm_label": "allcssrules()"
     },
     {
@@ -6800,7 +7020,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_scrollpast",
-      "community": 46,
+      "community": 157,
       "norm_label": "scrollpast()"
     },
     {
@@ -6810,7 +7030,7 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_logocolor",
-      "community": 46,
+      "community": 157,
       "norm_label": "logocolor()"
     },
     {
@@ -7020,7 +7240,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons",
-      "community": 31,
+      "community": 46,
       "norm_label": "themeicons.tsx"
     },
     {
@@ -7030,7 +7250,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconsun",
-      "community": 31,
+      "community": 46,
       "norm_label": "iconsun()"
     },
     {
@@ -7040,7 +7260,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconmoon",
-      "community": 31,
+      "community": 46,
       "norm_label": "iconmoon()"
     },
     {
@@ -7050,7 +7270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_test",
-      "community": 31,
+      "community": 46,
       "norm_label": "themetoggle.test.tsx"
     },
     {
@@ -7060,7 +7280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle",
-      "community": 31,
+      "community": 46,
       "norm_label": "themetoggle.tsx"
     },
     {
@@ -7070,7 +7290,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_themetoggle",
-      "community": 31,
+      "community": 46,
       "norm_label": "themetoggle()"
     },
     {
@@ -7080,7 +7300,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_test",
-      "community": 143,
+      "community": 31,
       "norm_label": "contact.test.tsx"
     },
     {
@@ -7090,7 +7310,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_test_constructor",
-      "community": 143,
+      "community": 31,
       "norm_label": "constructor()"
     },
     {
@@ -7100,7 +7320,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_test_observe",
-      "community": 143,
+      "community": 31,
       "norm_label": "observe()"
     },
     {
@@ -7110,7 +7330,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_test_disconnect",
-      "community": 143,
+      "community": 31,
       "norm_label": "disconnect()"
     },
     {
@@ -7120,7 +7340,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_test_cssruletextfor",
-      "community": 143,
+      "community": 31,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -7130,7 +7350,7 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_test_stubmatchmedia",
-      "community": 143,
+      "community": 31,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -7330,7 +7550,7 @@
       "source_location": "L385",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_contact",
-      "community": 27,
+      "community": 143,
       "norm_label": "contact()"
     },
     {
@@ -7350,7 +7570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test",
-      "community": 175,
+      "community": 113,
       "norm_label": "features.test.tsx"
     },
     {
@@ -7360,7 +7580,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_constructor",
-      "community": 175,
+      "community": 113,
       "norm_label": "constructor()"
     },
     {
@@ -7370,7 +7590,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_observe",
-      "community": 175,
+      "community": 113,
       "norm_label": "observe()"
     },
     {
@@ -7380,7 +7600,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_disconnect",
-      "community": 175,
+      "community": 113,
       "norm_label": "disconnect()"
     },
     {
@@ -7390,7 +7610,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_bullet_keys",
-      "community": 175,
+      "community": 113,
       "norm_label": "bullet_keys"
     },
     {
@@ -7400,7 +7620,7 @@
       "source_location": "L155",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_injectedcss",
-      "community": 175,
+      "community": 113,
       "norm_label": "injectedcss()"
     },
     {
@@ -7410,7 +7630,7 @@
       "source_location": "L200",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_stubmatchmedia",
-      "community": 175,
+      "community": 113,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -7690,7 +7910,7 @@
       "source_location": "L477",
       "_origin": "ast",
       "id": "src_components_sections_features_features_features",
-      "community": 27,
+      "community": 143,
       "norm_label": "features()"
     },
     {
@@ -7700,7 +7920,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers",
-      "community": 175,
+      "community": 113,
       "norm_label": "features.layers.ts"
     },
     {
@@ -7710,7 +7930,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_featurekey",
-      "community": 175,
+      "community": 113,
       "norm_label": "featurekey"
     },
     {
@@ -7720,7 +7940,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_feature_keys",
-      "community": 175,
+      "community": 113,
       "norm_label": "feature_keys"
     },
     {
@@ -7730,7 +7950,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_featurepatternshape",
-      "community": 175,
+      "community": 113,
       "norm_label": "featurepatternshape"
     },
     {
@@ -7740,7 +7960,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_featurecardvisual",
-      "community": 175,
+      "community": 113,
       "norm_label": "featurecardvisual"
     },
     {
@@ -7750,7 +7970,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_feature_card_visuals",
-      "community": 175,
+      "community": 113,
       "norm_label": "feature_card_visuals"
     },
     {
@@ -7760,7 +7980,7 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_feature_figure_basename",
-      "community": 175,
+      "community": 113,
       "norm_label": "feature_figure_basename"
     },
     {
@@ -7840,7 +8060,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test",
-      "community": 143,
+      "community": 31,
       "norm_label": "hero.test.tsx"
     },
     {
@@ -7850,7 +8070,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_stubmatchmedia",
-      "community": 143,
+      "community": 31,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -7860,7 +8080,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_renderhero",
-      "community": 143,
+      "community": 31,
       "norm_label": "renderhero()"
     },
     {
@@ -7870,7 +8090,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_revealbackdrop",
-      "community": 143,
+      "community": 157,
       "norm_label": "revealbackdrop()"
     },
     {
@@ -7880,7 +8100,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_renderheroinchrome",
-      "community": 143,
+      "community": 31,
       "norm_label": "renderheroinchrome()"
     },
     {
@@ -7890,7 +8110,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_testid",
-      "community": 143,
+      "community": 31,
       "norm_label": "testid()"
     },
     {
@@ -7900,7 +8120,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_precede",
-      "community": 143,
+      "community": 31,
       "norm_label": "precede()"
     },
     {
@@ -7910,7 +8130,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_allcssrules",
-      "community": 143,
+      "community": 31,
       "norm_label": "allcssrules()"
     },
     {
@@ -8070,7 +8290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test",
-      "community": 31,
+      "community": 151,
       "norm_label": "herobackdrop.test.tsx"
     },
     {
@@ -8080,7 +8300,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stubmatchmedia",
-      "community": 31,
+      "community": 151,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8090,7 +8310,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stubsyncraf",
-      "community": 31,
+      "community": 151,
       "norm_label": "stubsyncraf()"
     },
     {
@@ -8100,7 +8320,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stackof",
-      "community": 31,
+      "community": 151,
       "norm_label": "stackof()"
     },
     {
@@ -8110,7 +8330,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_partof",
-      "community": 31,
+      "community": 151,
       "norm_label": "partof()"
     },
     {
@@ -8120,7 +8340,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_eyedelayof",
-      "community": 31,
+      "community": 151,
       "norm_label": "eyedelayof()"
     },
     {
@@ -8130,7 +8350,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_flushmicrotasks",
-      "community": 31,
+      "community": 151,
       "norm_label": "flushmicrotasks()"
     },
     {
@@ -8140,7 +8360,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_clicktoggle",
-      "community": 31,
+      "community": 151,
       "norm_label": "clicktoggle()"
     },
     {
@@ -8150,7 +8370,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_renderherobackdrop",
-      "community": 31,
+      "community": 151,
       "norm_label": "renderherobackdrop()"
     },
     {
@@ -8160,7 +8380,7 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stagephaseprobe",
-      "community": 46,
+      "community": 157,
       "norm_label": "stagephaseprobe()"
     },
     {
@@ -8300,7 +8520,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_test",
-      "community": 107,
+      "community": 151,
       "norm_label": "hero.transition.test.tsx"
     },
     {
@@ -8310,7 +8530,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_test_stubmatchmedia",
-      "community": 107,
+      "community": 151,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8320,7 +8540,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_test_probe",
-      "community": 107,
+      "community": 151,
       "norm_label": "probe()"
     },
     {
@@ -8330,7 +8550,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_test_clicktoggle",
-      "community": 107,
+      "community": 151,
       "norm_label": "clicktoggle()"
     },
     {
@@ -8340,7 +8560,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition",
-      "community": 107,
+      "community": 151,
       "norm_label": "hero.transition.ts"
     },
     {
@@ -8350,7 +8570,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_hero_stagger_steps",
-      "community": 107,
+      "community": 151,
       "norm_label": "hero_stagger_steps"
     },
     {
@@ -8360,7 +8580,7 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_herocopyswap",
-      "community": 107,
+      "community": 116,
       "norm_label": "herocopyswap"
     },
     {
@@ -8370,7 +8590,7 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_useherocopyswap",
-      "community": 107,
+      "community": 151,
       "norm_label": "useherocopyswap()"
     },
     {
@@ -8380,7 +8600,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test",
-      "community": 158,
+      "community": 143,
       "norm_label": "homesections.test.tsx"
     },
     {
@@ -8390,7 +8610,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test_stubmatchmedia",
-      "community": 158,
+      "community": 143,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8400,7 +8620,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test_stubintersectionobserver",
-      "community": 158,
+      "community": 143,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -8410,7 +8630,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_homesections",
-      "community": 27,
+      "community": 143,
       "norm_label": "homesections.tsx"
     },
     {
@@ -8420,7 +8640,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_sections_homesections_homesections",
-      "community": 158,
+      "community": 143,
       "norm_label": "homesections()"
     },
     {
@@ -8430,57 +8650,57 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test",
-      "community": 163,
+      "community": 106,
       "norm_label": "journey.test.tsx"
     },
     {
       "label": "constructor()",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L15",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_constructor",
-      "community": 163,
+      "community": 106,
       "norm_label": "constructor()"
     },
     {
       "label": "observe()",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L18",
+      "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_observe",
-      "community": 163,
+      "community": 106,
       "norm_label": "observe()"
     },
     {
       "label": "disconnect()",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L19",
+      "source_location": "L20",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_disconnect",
-      "community": 163,
+      "community": 106,
       "norm_label": "disconnect()"
     },
     {
       "label": "injectedCss()",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L111",
+      "source_location": "L112",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_injectedcss",
-      "community": 163,
+      "community": 106,
       "norm_label": "injectedcss()"
     },
     {
       "label": "stubMatchMedia()",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L153",
+      "source_location": "L154",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_stubmatchmedia",
-      "community": 163,
+      "community": 106,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8780,7 +9000,7 @@
       "source_location": "L508",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_journey",
-      "community": 27,
+      "community": 143,
       "norm_label": "journey()"
     },
     {
@@ -8790,7 +9010,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers",
-      "community": 163,
+      "community": 106,
       "norm_label": "journey.layers.ts"
     },
     {
@@ -8800,7 +9020,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers_journeystepid",
-      "community": 163,
+      "community": 106,
       "norm_label": "journeystepid"
     },
     {
@@ -8810,7 +9030,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers_journeystep",
-      "community": 163,
+      "community": 106,
       "norm_label": "journeystep"
     },
     {
@@ -8820,7 +9040,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers_journey_steps",
-      "community": 163,
+      "community": 106,
       "norm_label": "journey_steps"
     },
     {
@@ -8830,7 +9050,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test",
-      "community": 176,
+      "community": 158,
       "norm_label": "story.test.tsx"
     },
     {
@@ -8840,7 +9060,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_constructor",
-      "community": 176,
+      "community": 158,
       "norm_label": "constructor()"
     },
     {
@@ -8850,7 +9070,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_observe",
-      "community": 176,
+      "community": 158,
       "norm_label": "observe()"
     },
     {
@@ -8860,7 +9080,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_disconnect",
-      "community": 176,
+      "community": 158,
       "norm_label": "disconnect()"
     },
     {
@@ -8870,7 +9090,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_cssruletextfor",
-      "community": 176,
+      "community": 158,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -8880,7 +9100,7 @@
       "source_location": "L229",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_stubmatchmedia",
-      "community": 176,
+      "community": 158,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -9100,7 +9320,7 @@
       "source_location": "L318",
       "_origin": "ast",
       "id": "src_components_sections_story_story_story",
-      "community": 27,
+      "community": 143,
       "norm_label": "story()"
     },
     {
@@ -9110,7 +9330,7 @@
       "source_location": "L445",
       "_origin": "ast",
       "id": "src_components_sections_story_story_storydeckdark",
-      "community": 169,
+      "community": 122,
       "norm_label": "storydeckdark()"
     },
     {
@@ -9120,7 +9340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck",
-      "community": 164,
+      "community": 107,
       "norm_label": "story.deck.tsx"
     },
     {
@@ -9130,7 +9350,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_sctrack",
-      "community": 164,
+      "community": 107,
       "norm_label": "sctrack"
     },
     {
@@ -9140,7 +9360,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scstage",
-      "community": 164,
+      "community": 107,
       "norm_label": "scstage"
     },
     {
@@ -9150,7 +9370,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scscenewrap",
-      "community": 164,
+      "community": 107,
       "norm_label": "scscenewrap"
     },
     {
@@ -9160,7 +9380,7 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeck",
-      "community": 164,
+      "community": 107,
       "norm_label": "scdeck"
     },
     {
@@ -9170,7 +9390,7 @@
       "source_location": "L232",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scslide",
-      "community": 164,
+      "community": 107,
       "norm_label": "scslide"
     },
     {
@@ -9180,7 +9400,7 @@
       "source_location": "L272",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scrail",
-      "community": 164,
+      "community": 107,
       "norm_label": "scrail"
     },
     {
@@ -9190,7 +9410,7 @@
       "source_location": "L288",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scrailmark",
-      "community": 164,
+      "community": 107,
       "norm_label": "scrailmark"
     },
     {
@@ -9200,7 +9420,7 @@
       "source_location": "L349",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdecktitle",
-      "community": 164,
+      "community": 107,
       "norm_label": "scdecktitle"
     },
     {
@@ -9210,7 +9430,7 @@
       "source_location": "L370",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeckintrobody",
-      "community": 164,
+      "community": 107,
       "norm_label": "scdeckintrobody"
     },
     {
@@ -9220,7 +9440,7 @@
       "source_location": "L389",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeckpillartitle",
-      "community": 164,
+      "community": 107,
       "norm_label": "scdeckpillartitle"
     },
     {
@@ -9230,7 +9450,7 @@
       "source_location": "L407",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeckpillarsubtitle",
-      "community": 164,
+      "community": 107,
       "norm_label": "scdeckpillarsubtitle"
     },
     {
@@ -9240,7 +9460,7 @@
       "source_location": "L424",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeckpillarbody",
-      "community": 164,
+      "community": 107,
       "norm_label": "scdeckpillarbody"
     },
     {
@@ -9250,7 +9470,7 @@
       "source_location": "L452",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdecknote",
-      "community": 164,
+      "community": 107,
       "norm_label": "scdecknote"
     },
     {
@@ -9260,7 +9480,7 @@
       "source_location": "L475",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdecknoteaccent",
-      "community": 164,
+      "community": 107,
       "norm_label": "scdecknoteaccent"
     },
     {
@@ -9280,7 +9500,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_layers",
-      "community": 176,
+      "community": 158,
       "norm_label": "story.layers.ts"
     },
     {
@@ -9290,7 +9510,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test",
-      "community": 0,
+      "community": 157,
       "norm_label": "hero-story.integration.test.tsx"
     },
     {
@@ -9300,7 +9520,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_stubmatchmedia",
-      "community": 0,
+      "community": 157,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -9310,7 +9530,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_stubintersectionobserver",
-      "community": 0,
+      "community": 157,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -9320,7 +9540,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_cssruletextfor",
-      "community": 0,
+      "community": 157,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -9330,7 +9550,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_renderpage",
-      "community": 0,
+      "community": 157,
       "norm_label": "renderpage()"
     },
     {
@@ -9437,7 +9657,7 @@
       "label": "STORY_COSMIC_BEING_POINTER_AMP",
       "file_type": "code",
       "source_file": "src/components/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L148",
+      "source_location": "L158",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp",
       "community": 112,
@@ -9510,7 +9730,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_button_button_test",
-      "community": 128,
+      "community": 31,
       "norm_label": "button.test.tsx"
     },
     {
@@ -9640,7 +9860,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_card_card_test",
-      "community": 158,
+      "community": 160,
       "norm_label": "card.test.tsx"
     },
     {
@@ -9650,7 +9870,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_card_card",
-      "community": 158,
+      "community": 160,
       "norm_label": "card.tsx"
     },
     {
@@ -9660,7 +9880,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_ui_card_card_cardprops",
-      "community": 158,
+      "community": 160,
       "norm_label": "cardprops"
     },
     {
@@ -9670,7 +9890,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_components_ui_card_card_sccard",
-      "community": 158,
+      "community": 160,
       "norm_label": "sccard"
     },
     {
@@ -9680,7 +9900,7 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_components_ui_card_card_card",
-      "community": 158,
+      "community": 160,
       "norm_label": "card()"
     },
     {
@@ -9890,7 +10110,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_test",
-      "community": 161,
+      "community": 164,
       "norm_label": "logo.test.tsx"
     },
     {
@@ -9900,7 +10120,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo",
-      "community": 161,
+      "community": 164,
       "norm_label": "logo.tsx"
     },
     {
@@ -9910,7 +10130,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_logoprops",
-      "community": 161,
+      "community": 164,
       "norm_label": "logoprops"
     },
     {
@@ -9920,7 +10140,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_sclogo",
-      "community": 161,
+      "community": 164,
       "norm_label": "sclogo"
     },
     {
@@ -9930,7 +10150,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_logo",
-      "community": 161,
+      "community": 164,
       "norm_label": "logo()"
     },
     {
@@ -9940,7 +10160,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_test",
-      "community": 160,
+      "community": 161,
       "norm_label": "typography.test.tsx"
     },
     {
@@ -9950,7 +10170,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography",
-      "community": 160,
+      "community": 161,
       "norm_label": "typography.tsx"
     },
     {
@@ -9960,7 +10180,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_typographyvariant",
-      "community": 160,
+      "community": 161,
       "norm_label": "typographyvariant"
     },
     {
@@ -9970,7 +10190,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_defaultelement",
-      "community": 160,
+      "community": 161,
       "norm_label": "defaultelement"
     },
     {
@@ -9980,7 +10200,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_typographyprops",
-      "community": 160,
+      "community": 161,
       "norm_label": "typographyprops"
     },
     {
@@ -9990,7 +10210,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_sctypography",
-      "community": 160,
+      "community": 161,
       "norm_label": "sctypography"
     },
     {
@@ -10000,7 +10220,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_typography",
-      "community": 160,
+      "community": 161,
       "norm_label": "typography()"
     },
     {
@@ -10010,7 +10230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_links_test",
-      "community": 143,
+      "community": 31,
       "norm_label": "links.test.ts"
     },
     {
@@ -10020,7 +10240,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_config_links_test_ts_docref_rfc_2606",
-      "community": 143,
+      "community": 31,
       "norm_label": "rfc-2606"
     },
     {
@@ -10030,7 +10250,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_links",
-      "community": 143,
+      "community": 31,
       "norm_label": "links.ts"
     },
     {
@@ -10040,7 +10260,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_config_links_links",
-      "community": 143,
+      "community": 31,
       "norm_label": "links"
     },
     {
@@ -10050,7 +10270,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_config_links_linkkey",
-      "community": 143,
+      "community": 31,
       "norm_label": "linkkey"
     },
     {
@@ -10060,7 +10280,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_config_links_ts_docref_rfc_2606",
-      "community": 143,
+      "community": 31,
       "norm_label": "rfc-2606"
     },
     {
@@ -10070,7 +10290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_test",
-      "community": 0,
+      "community": 146,
       "norm_label": "usenavdetach.test.tsx"
     },
     {
@@ -10080,7 +10300,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach",
-      "community": 46,
+      "community": 146,
       "norm_label": "usenavdetach.ts"
     },
     {
@@ -10090,7 +10310,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_navdetachphase",
-      "community": 46,
+      "community": 146,
       "norm_label": "navdetachphase"
     },
     {
@@ -10100,7 +10320,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_navdetachstate",
-      "community": 46,
+      "community": 146,
       "norm_label": "navdetachstate"
     },
     {
@@ -10110,7 +10330,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_usenavdetach",
-      "community": 46,
+      "community": 146,
       "norm_label": "usenavdetach()"
     },
     {
@@ -10120,7 +10340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test",
-      "community": 156,
+      "community": 138,
       "norm_label": "useparallaxlayers.test.tsx"
     },
     {
@@ -10130,7 +10350,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_amp",
-      "community": 156,
+      "community": 138,
       "norm_label": "amp"
     },
     {
@@ -10140,7 +10360,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_stubmatchmedia",
-      "community": 156,
+      "community": 138,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -10150,7 +10370,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_targetof",
-      "community": 156,
+      "community": 138,
       "norm_label": "targetof()"
     },
     {
@@ -10160,7 +10380,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_movetocorner",
-      "community": 156,
+      "community": 138,
       "norm_label": "movetocorner()"
     },
     {
@@ -10170,7 +10390,7 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_consumer",
-      "community": 156,
+      "community": 138,
       "norm_label": "consumer()"
     },
     {
@@ -10180,7 +10400,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers",
-      "community": 156,
+      "community": 138,
       "norm_label": "useparallaxlayers.ts"
     },
     {
@@ -10190,7 +10410,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_parallaxtarget",
-      "community": 156,
+      "community": 138,
       "norm_label": "parallaxtarget"
     },
     {
@@ -10200,7 +10420,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_parallaxamplitude",
-      "community": 156,
+      "community": 138,
       "norm_label": "parallaxamplitude"
     },
     {
@@ -10210,7 +10430,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_useparallaxlayers",
-      "community": 156,
+      "community": 138,
       "norm_label": "useparallaxlayers()"
     },
     {
@@ -10320,7 +10540,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usereveal_test",
-      "community": 27,
+      "community": 163,
       "norm_label": "usereveal.test.tsx"
     },
     {
@@ -10330,7 +10550,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_hooks_usereveal_test_mockintersectionobserver",
-      "community": 27,
+      "community": 163,
       "norm_label": "mockintersectionobserver"
     },
     {
@@ -10340,7 +10560,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_hooks_usereveal_test_mockinstances",
-      "community": 27,
+      "community": 163,
       "norm_label": "mockinstances"
     },
     {
@@ -10350,7 +10570,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_hooks_usereveal_test_constructor",
-      "community": 27,
+      "community": 163,
       "norm_label": "constructor()"
     },
     {
@@ -10360,7 +10580,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usereveal",
-      "community": 27,
+      "community": 163,
       "norm_label": "usereveal.ts"
     },
     {
@@ -10370,7 +10590,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_hooks_usereveal_usereveal",
-      "community": 27,
+      "community": 143,
       "norm_label": "usereveal()"
     },
     {
@@ -10550,7 +10770,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usescrolled_test",
-      "community": 46,
+      "community": 146,
       "norm_label": "usescrolled.test.tsx"
     },
     {
@@ -10560,7 +10780,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usescrolled",
-      "community": 46,
+      "community": 146,
       "norm_label": "usescrolled.ts"
     },
     {
@@ -10570,7 +10790,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_hooks_usescrolled_usescrolled",
-      "community": 46,
+      "community": 146,
       "norm_label": "usescrolled()"
     },
     {
@@ -10580,7 +10800,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_test",
-      "community": 169,
+      "community": 122,
       "norm_label": "usestorydeck.test.tsx"
     },
     {
@@ -10590,7 +10810,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_test_mockintersectionobserver",
-      "community": 169,
+      "community": 122,
       "norm_label": "mockintersectionobserver"
     },
     {
@@ -10600,7 +10820,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_test_mockinstances",
-      "community": 169,
+      "community": 122,
       "norm_label": "mockinstances"
     },
     {
@@ -10610,7 +10830,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_test_stubmatchmedia",
-      "community": 169,
+      "community": 122,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -10620,7 +10840,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_test_refof",
-      "community": 169,
+      "community": 122,
       "norm_label": "refof()"
     },
     {
@@ -10630,7 +10850,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_test_trackwith",
-      "community": 169,
+      "community": 122,
       "norm_label": "trackwith()"
     },
     {
@@ -10640,7 +10860,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_test_constructor",
-      "community": 169,
+      "community": 122,
       "norm_label": "constructor()"
     },
     {
@@ -10650,7 +10870,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck",
-      "community": 169,
+      "community": 122,
       "norm_label": "usestorydeck.ts"
     },
     {
@@ -10660,7 +10880,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_storydeckdirection",
-      "community": 169,
+      "community": 122,
       "norm_label": "storydeckdirection"
     },
     {
@@ -10670,7 +10890,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_storydeckstate",
-      "community": 169,
+      "community": 122,
       "norm_label": "storydeckstate"
     },
     {
@@ -10680,7 +10900,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_clamp",
-      "community": 169,
+      "community": 122,
       "norm_label": "clamp()"
     },
     {
@@ -10690,7 +10910,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_hooks_usestorydeck_usestorydeck",
-      "community": 169,
+      "community": 122,
       "norm_label": "usestorydeck()"
     },
     {
@@ -10900,7 +11120,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_motion_stageprovider_usestage",
-      "community": 46,
+      "community": 157,
       "norm_label": "usestage()"
     },
     {
@@ -10940,7 +11160,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_test_test_utils",
-      "community": 158,
+      "community": 31,
       "norm_label": "test-utils.tsx"
     },
     {
@@ -10950,7 +11170,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_test_test_utils_allproviders",
-      "community": 158,
+      "community": 31,
       "norm_label": "allproviders()"
     },
     {
@@ -10960,7 +11180,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_test_test_utils_renderwithproviders",
-      "community": 158,
+      "community": 31,
       "norm_label": "renderwithproviders()"
     },
     {
@@ -10990,7 +11210,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_themeprovider",
-      "community": 107,
+      "community": 116,
       "norm_label": "themeprovider.tsx"
     },
     {
@@ -11000,7 +11220,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themechangesource",
-      "community": 107,
+      "community": 116,
       "norm_label": "themechangesource"
     },
     {
@@ -11010,7 +11230,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themecontextvalue",
-      "community": 107,
+      "community": 116,
       "norm_label": "themecontextvalue"
     },
     {
@@ -11020,7 +11240,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themecontext",
-      "community": 107,
+      "community": 116,
       "norm_label": "themecontext"
     },
     {
@@ -11040,7 +11260,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_theme_themeprovider_usetheme",
-      "community": 27,
+      "community": 46,
       "norm_label": "usetheme()"
     },
     {
@@ -11150,7 +11370,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_theme_themes_themename",
-      "community": 107,
+      "community": 116,
       "norm_label": "themename"
     },
     {
@@ -11620,7 +11840,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_type_typevariant",
-      "community": 0,
+      "community": 161,
       "norm_label": "typevariant"
     },
     {
@@ -22900,7 +23120,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_hero_backdrop_hold_ms",
-      "community": 107,
+      "community": 116,
       "norm_label": "hero_backdrop_hold_ms"
     }
   ],
@@ -27479,91 +27699,291 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L5",
       "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest",
-      "target": "assets_journey_astral_pathway_manifest_canvas",
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_canvas",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L6",
-      "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest",
-      "target": "assets_journey_astral_pathway_manifest_compositing",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L3",
-      "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest",
-      "target": "assets_journey_astral_pathway_manifest_description",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L9",
       "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest",
-      "target": "assets_journey_astral_pathway_manifest_layers",
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_compositing",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_deployed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_description",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_fidelity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_layers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_motion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L2",
       "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest",
-      "target": "assets_journey_astral_pathway_manifest_name",
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_name",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L103",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_notimplemented",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L4",
       "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest",
-      "target": "assets_journey_astral_pathway_manifest_source",
+      "source": "assets_journey_cosmic_portal_manifest",
+      "target": "assets_journey_cosmic_portal_manifest_source",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L5",
-      "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest_canvas",
-      "target": "assets_journey_astral_pathway_manifest_canvas_height",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
-      "source_location": "L5",
-      "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest_canvas",
-      "target": "assets_journey_astral_pathway_manifest_canvas_width",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "assets/journey-astral-pathway/manifest.json",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
       "source_location": "L7",
       "weight": 1.0,
-      "source": "assets_journey_astral_pathway_manifest_compositing",
-      "target": "assets_journey_astral_pathway_manifest_compositing_css",
+      "source": "assets_journey_cosmic_portal_manifest_canvas",
+      "target": "assets_journey_cosmic_portal_manifest_canvas_height",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_canvas",
+      "target": "assets_journey_cosmic_portal_manifest_canvas_width",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_compositing",
+      "target": "assets_journey_cosmic_portal_manifest_compositing_css",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_compositing",
+      "target": "assets_journey_cosmic_portal_manifest_compositing_void",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_fidelity",
+      "target": "assets_journey_cosmic_portal_manifest_fidelity_recomposicion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_fidelity",
+      "target": "assets_journey_cosmic_portal_manifest_fidelity_v6fixes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_deployed",
+      "target": "assets_journey_cosmic_portal_manifest_deployed_encoder",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_deployed",
+      "target": "assets_journey_cosmic_portal_manifest_deployed_quality",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_deployed",
+      "target": "assets_journey_cosmic_portal_manifest_deployed_rationale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_deployed",
+      "target": "assets_journey_cosmic_portal_manifest_deployed_weightbytes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_deployed",
+      "target": "assets_journey_cosmic_portal_manifest_deployed_weightnote",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_deployed",
+      "target": "assets_journey_cosmic_portal_manifest_deployed_widths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_motion",
+      "target": "assets_journey_cosmic_portal_manifest_motion_adopted",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_motion",
+      "target": "assets_journey_cosmic_portal_manifest_motion_packagehints",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_motion_packagehints",
+      "target": "assets_journey_cosmic_portal_manifest_packagehints_lerp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_motion_packagehints",
+      "target": "assets_journey_cosmic_portal_manifest_packagehints_overscan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_motion_packagehints",
+      "target": "assets_journey_cosmic_portal_manifest_packagehints_pointeramppx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_motion_packagehints",
+      "target": "assets_journey_cosmic_portal_manifest_packagehints_pointerdepth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/journey-cosmic-portal/manifest.json",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "assets_journey_cosmic_portal_manifest_motion_packagehints",
+      "target": "assets_journey_cosmic_portal_manifest_packagehints_scrolldepth",
       "confidence_score": 1.0
     },
     {
@@ -27620,7 +28040,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L30",
+      "source_location": "L32",
       "weight": 1.0,
       "source": "assets_story_cosmic_being_manifest",
       "target": "assets_story_cosmic_being_manifest_layers",
@@ -27780,6 +28200,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "assets/story-cosmic-being/manifest.json",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "assets_story_cosmic_being_manifest_deployed",
+      "target": "assets_story_cosmic_being_manifest_deployed_encoder",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/story-cosmic-being/manifest.json",
       "source_location": "L26",
       "weight": 1.0,
       "source": "assets_story_cosmic_being_manifest_deployed",
@@ -27790,10 +28220,20 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0,
       "source": "assets_story_cosmic_being_manifest_deployed",
       "target": "assets_story_cosmic_being_manifest_deployed_rationale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "assets/story-cosmic-being/manifest.json",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "assets_story_cosmic_being_manifest_deployed",
+      "target": "assets_story_cosmic_being_manifest_deployed_reencode20260801",
       "confidence_score": 1.0
     },
     {
@@ -29330,7 +29770,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/contactNeonGalaxy/contactNeonGalaxy.layers.ts",
-      "source_location": "L87",
+      "source_location": "L89",
       "weight": 1.0,
       "source": "src_components_contactneongalaxy_contactneongalaxy_layers",
       "target": "src_components_contactneongalaxy_contactneongalaxy_layers_contact_neon_pointer_amp",
@@ -31555,7 +31995,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.layers.ts",
-      "source_location": "L115",
+      "source_location": "L117",
       "weight": 1.0,
       "source": "src_components_featurescelestialguide_featurescelestialguide_layers",
       "target": "src_components_featurescelestialguide_featurescelestialguide_layers_features_celestial_pointer_amp",
@@ -31586,7 +32026,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0,
       "source": "src_components_featurescelestialguide_featurescelestialguide_parts",
       "target": "src_components_featurescelestialguide_featurescelestialguide_parts_sclayer",
@@ -31596,7 +32036,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "source": "src_components_featurescelestialguide_featurescelestialguide_parts",
       "target": "src_components_featurescelestialguide_featurescelestialguide_parts_scscene",
@@ -31606,7 +32046,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx",
-      "source_location": "L57",
+      "source_location": "L58",
       "weight": 1.0,
       "source": "src_components_featurescelestialguide_featurescelestialguide_parts",
       "target": "src_components_featurescelestialguide_featurescelestialguide_parts_scvignette",
@@ -31616,7 +32056,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/featuresCelestialGuide/featuresCelestialGuide.parts.tsx",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "source": "src_components_featurescelestialguide_featurescelestialguide_parts",
       "target": "src_components_featurescelestialguide_featurescelestialguide_parts_scvoid",
@@ -31626,172 +32066,172 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
       "source_location": "L3",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_test",
-      "target": "src_components_journeyastralpathway_journeyastralpathway",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
       "source_location": "L3",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_test",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_journeyastralpathway",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_journeycosmicportal",
       "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
       "source_location": "L4",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_test",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
       "source_location": "L4",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_test",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers_journey_astral_layers",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_layers",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
-      "source_location": "L27",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
+      "source_location": "L25",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_test",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_test_stubintersectionobserver",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_test_stubintersectionobserver",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.test.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.test.tsx",
       "source_location": "L6",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_test",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_test_stubmatchmedia",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_test_stubmatchmedia",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
-      "source_location": "L30",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
+      "source_location": "L32",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_journeyastralpathway",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_journeycosmicportal",
       "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L7",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L7",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers_journey_astral_layers",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_layers",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L7",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers_journey_astral_pointer_amp",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_pointer_amp",
       "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L14",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L14",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts_sclayer",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts_sclayer",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L14",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts_scscene",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts_scscene",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L14",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts_scvignette",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts_scvignette",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L14",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts_scvoid",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts_scvoid",
       "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L3",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
       "target": "src_hooks_usesceneparallax",
       "confidence_score": 1.0
     },
@@ -31799,10 +32239,10 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L3",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
       "target": "src_hooks_usesceneparallax_sceneparallaxtarget",
       "confidence_score": 1.0
     },
@@ -31810,10 +32250,10 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
       "source_location": "L3",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway",
+      "source": "src_components_journeycosmicportal_journeycosmicportal",
       "target": "src_hooks_usesceneparallax_usesceneparallax",
       "confidence_score": 1.0
     },
@@ -31825,7 +32265,7 @@
       "source_location": "L10",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey",
-      "target": "src_components_journeyastralpathway_journeyastralpathway",
+      "target": "src_components_journeycosmicportal_journeycosmicportal",
       "confidence_score": 1.0
     },
     {
@@ -31833,10 +32273,10 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "src/components/journeyAstralPathway/JourneyAstralPathway.tsx",
-      "source_location": "L42",
+      "source_file": "src/components/journeyCosmicPortal/JourneyCosmicPortal.tsx",
+      "source_location": "L44",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_journeyastralpathway",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_journeycosmicportal",
       "target": "src_hooks_usesceneparallax_usesceneparallax"
     },
     {
@@ -31847,70 +32287,81 @@
       "source_location": "L10",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_journeyastralpathway",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_journeycosmicportal",
       "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.test.ts",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.test.ts",
       "source_location": "L2",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_layers_test",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_layers_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers",
       "confidence_score": 1.0
     },
     {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.test.ts",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.test.ts",
       "source_location": "L2",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_layers_test",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers_journey_astral_layers",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_layers_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_layers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_components_journeycosmicportal_journeycosmicportal_layers_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_pointer_amp",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.ts",
-      "source_location": "L24",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.ts",
+      "source_location": "L51",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_layers",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers_journey_astral_layers",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_layers",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_layers",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.ts",
-      "source_location": "L76",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.ts",
+      "source_location": "L122",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_layers",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers_journey_astral_pointer_amp",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_layers",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_pointer_amp",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.layers.ts",
-      "source_location": "L9",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.layers.ts",
+      "source_location": "L19",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_layers",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers_journeyastralpathwaylayer",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_layers",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journeycosmicportallayer",
       "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
       "source_location": "L3",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_parts",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_parts",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers",
       "confidence_score": 1.0
     },
     {
@@ -31921,47 +32372,69 @@
       "source_location": "L11",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_layers",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/sections/Journey/Journey.test.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "src_components_sections_journey_journey_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/sections/Journey/Journey.test.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "src_components_sections_journey_journey_test",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_layers",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
-      "source_location": "L34",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
+      "source_location": "L43",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_parts",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts_sclayer",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_parts",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts_sclayer",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
-      "source_location": "L12",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
+      "source_location": "L18",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_parts",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts_scscene",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_parts",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts_scscene",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
-      "source_location": "L57",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
+      "source_location": "L64",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_parts",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts_scvignette",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_parts",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts_scvignette",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "src/components/journeyAstralPathway/journeyAstralPathway.parts.tsx",
-      "source_location": "L20",
+      "source_file": "src/components/journeyCosmicPortal/journeyCosmicPortal.parts.tsx",
+      "source_location": "L30",
       "weight": 1.0,
-      "source": "src_components_journeyastralpathway_journeyastralpathway_parts",
-      "target": "src_components_journeyastralpathway_journeyastralpathway_parts_scvoid",
+      "source": "src_components_journeycosmicportal_journeycosmicportal_parts",
+      "target": "src_components_journeycosmicportal_journeycosmicportal_parts_scvoid",
       "confidence_score": 1.0
     },
     {
@@ -36437,7 +36910,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L15",
+      "source_location": "L16",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_test",
       "target": "src_components_sections_journey_journey_test_constructor",
@@ -36447,7 +36920,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_test",
       "target": "src_components_sections_journey_journey_test_disconnect",
@@ -36457,7 +36930,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L111",
+      "source_location": "L112",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_test",
       "target": "src_components_sections_journey_journey_test_injectedcss",
@@ -36467,7 +36940,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_test",
       "target": "src_components_sections_journey_journey_test_observe",
@@ -36477,7 +36950,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/Journey.test.tsx",
-      "source_location": "L153",
+      "source_location": "L154",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_test",
       "target": "src_components_sections_journey_journey_test_stubmatchmedia",
@@ -38287,7 +38760,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L148",
+      "source_location": "L158",
       "weight": 1.0,
       "source": "src_components_storycosmicbeing_storycosmicbeing_layers",
       "target": "src_components_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp",
@@ -52317,5 +52790,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "cb06f15da55daa426c376eb4a107824de68aef71"
+  "built_at_commit": "d9f52c79d8c177508e64c118cf1d9a81486c028b"
 }
