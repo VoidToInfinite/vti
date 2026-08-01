@@ -125,7 +125,7 @@ export const STORY_COSMIC_BEING_LAYERS: readonly StoryCosmicBeingLayer[] = [
 export const STORY_COSMIC_BEING_SIZES = "100vw";
 
 /** Escala base comun a las 11 capas: evita bordes vacios al desplazar. */
-export const STORY_COSMIC_BEING_OVERSCAN = 1.06;
+export const STORY_COSMIC_BEING_OVERSCAN = 1.02;
 
 /**
  * Negro-violeta del lienzo (compositing.container del manifest.json de esta
