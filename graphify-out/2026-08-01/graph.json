@@ -10,7 +10,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_home_page_flujo_test",
-      "community": 31,
+      "community": 157,
       "norm_label": "home-page.flujo.test.tsx"
     },
     {
@@ -20,7 +20,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_stubmatchmedia",
-      "community": 31,
+      "community": 157,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -30,7 +30,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_observe",
-      "community": 31,
+      "community": 157,
       "norm_label": "observe()"
     },
     {
@@ -40,7 +40,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_unobserve",
-      "community": 31,
+      "community": 157,
       "norm_label": "unobserve()"
     },
     {
@@ -50,7 +50,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_disconnect",
-      "community": 31,
+      "community": 157,
       "norm_label": "disconnect()"
     },
     {
@@ -60,7 +60,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_testid",
-      "community": 31,
+      "community": 157,
       "norm_label": "testid()"
     },
     {
@@ -70,7 +70,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_renderhomepage",
-      "community": 31,
+      "community": 157,
       "norm_label": "renderhomepage()"
     },
     {
@@ -170,7 +170,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_page",
-      "community": 31,
+      "community": 46,
       "norm_label": "page.tsx"
     },
     {
@@ -180,7 +180,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "app_page_homepage",
-      "community": 31,
+      "community": 157,
       "norm_label": "homepage()"
     },
     {
@@ -2580,7 +2580,7 @@
       "source_location": "L338",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bylayer_02_hand_left",
-      "community": 10,
+      "community": 138,
       "norm_label": "02-hand-left"
     },
     {
@@ -2590,7 +2590,7 @@
       "source_location": "L339",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_quality",
-      "community": 10,
+      "community": 138,
       "norm_label": "quality"
     },
     {
@@ -2600,7 +2600,7 @@
       "source_location": "L340",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_alphaquality",
-      "community": 10,
+      "community": 138,
       "norm_label": "alphaquality"
     },
     {
@@ -2610,7 +2610,7 @@
       "source_location": "L341",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_lossless",
-      "community": 10,
+      "community": 138,
       "norm_label": "lossless"
     },
     {
@@ -2620,7 +2620,7 @@
       "source_location": "L342",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_effort",
-      "community": 10,
+      "community": 138,
       "norm_label": "effort"
     },
     {
@@ -2630,7 +2630,7 @@
       "source_location": "L343",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_smartsubsample",
-      "community": 10,
+      "community": 138,
       "norm_label": "smartsubsample"
     },
     {
@@ -2780,7 +2780,7 @@
       "source_location": "L392",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline_opaquelayerencoding",
-      "community": 150,
+      "community": 122,
       "norm_label": "opaquelayerencoding"
     },
     {
@@ -2790,7 +2790,7 @@
       "source_location": "L393",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_layer",
-      "community": 150,
+      "community": 122,
       "norm_label": "layer"
     },
     {
@@ -2800,7 +2800,7 @@
       "source_location": "L394",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_hasalphachannel",
-      "community": 150,
+      "community": 122,
       "norm_label": "hasalphachannel"
     },
     {
@@ -2810,7 +2810,7 @@
       "source_location": "L395",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_riffchunk",
-      "community": 150,
+      "community": 122,
       "norm_label": "riffchunk"
     },
     {
@@ -2820,7 +2820,7 @@
       "source_location": "L396",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_nota",
-      "community": 150,
+      "community": 122,
       "norm_label": "nota"
     },
     {
@@ -2900,7 +2900,7 @@
       "source_location": "L406",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_00_field",
-      "community": 122,
+      "community": 104,
       "norm_label": "00-field"
     },
     {
@@ -2910,7 +2910,7 @@
       "source_location": "L407",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_sourcepngbytes",
-      "community": 122,
+      "community": 104,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -2920,7 +2920,7 @@
       "source_location": "L408",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_nativewebpbytes",
-      "community": 122,
+      "community": 104,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -2930,7 +2930,7 @@
       "source_location": "L409",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_responsivewebpbytes",
-      "community": 122,
+      "community": 104,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -2940,7 +2940,7 @@
       "source_location": "L410",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_pngtonativereduction",
-      "community": 122,
+      "community": 104,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -2950,7 +2950,7 @@
       "source_location": "L411",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_nativetoresponsivereduction",
-      "community": 122,
+      "community": 104,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -2960,7 +2960,7 @@
       "source_location": "L412",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_responsivesmallerthannative",
-      "community": 122,
+      "community": 104,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -2970,7 +2970,7 @@
       "source_location": "L414",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_01_energy",
-      "community": 138,
+      "community": 104,
       "norm_label": "01-energy"
     },
     {
@@ -2980,7 +2980,7 @@
       "source_location": "L415",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_sourcepngbytes",
-      "community": 138,
+      "community": 104,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -2990,7 +2990,7 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_nativewebpbytes",
-      "community": 138,
+      "community": 104,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3000,7 +3000,7 @@
       "source_location": "L417",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_responsivewebpbytes",
-      "community": 138,
+      "community": 104,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3010,7 +3010,7 @@
       "source_location": "L418",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_pngtonativereduction",
-      "community": 138,
+      "community": 104,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3020,7 +3020,7 @@
       "source_location": "L419",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_nativetoresponsivereduction",
-      "community": 138,
+      "community": 104,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3030,7 +3030,7 @@
       "source_location": "L420",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_responsivesmallerthannative",
-      "community": 138,
+      "community": 104,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3040,7 +3040,7 @@
       "source_location": "L422",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_02_hand_left",
-      "community": 146,
+      "community": 104,
       "norm_label": "02-hand-left"
     },
     {
@@ -3050,7 +3050,7 @@
       "source_location": "L423",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_sourcepngbytes",
-      "community": 146,
+      "community": 104,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3060,7 +3060,7 @@
       "source_location": "L424",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_nativewebpbytes",
-      "community": 146,
+      "community": 104,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3070,7 +3070,7 @@
       "source_location": "L425",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_responsivewebpbytes",
-      "community": 146,
+      "community": 104,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3080,7 +3080,7 @@
       "source_location": "L426",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_pngtonativereduction",
-      "community": 146,
+      "community": 104,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3090,7 +3090,7 @@
       "source_location": "L427",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_nativetoresponsivereduction",
-      "community": 146,
+      "community": 104,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3100,7 +3100,7 @@
       "source_location": "L428",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_responsivesmallerthannative",
-      "community": 146,
+      "community": 104,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3110,7 +3110,7 @@
       "source_location": "L430",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_03_hand_right",
-      "community": 166,
+      "community": 104,
       "norm_label": "03-hand-right"
     },
     {
@@ -3120,7 +3120,7 @@
       "source_location": "L431",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_sourcepngbytes",
-      "community": 166,
+      "community": 104,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3130,7 +3130,7 @@
       "source_location": "L432",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_nativewebpbytes",
-      "community": 166,
+      "community": 104,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3140,7 +3140,7 @@
       "source_location": "L433",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_responsivewebpbytes",
-      "community": 166,
+      "community": 104,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3150,7 +3150,7 @@
       "source_location": "L434",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_pngtonativereduction",
-      "community": 166,
+      "community": 104,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3160,7 +3160,7 @@
       "source_location": "L435",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_nativetoresponsivereduction",
-      "community": 166,
+      "community": 104,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3170,7 +3170,7 @@
       "source_location": "L436",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_responsivesmallerthannative",
-      "community": 166,
+      "community": 104,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3834,40 +3834,20 @@
       "norm_label": "widths"
     },
     {
-      "label": "encoder",
-      "file_type": "code",
-      "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L28",
-      "_origin": "ast",
-      "id": "assets_story_cosmic_being_manifest_deployed_encoder",
-      "community": 132,
-      "norm_label": "encoder"
-    },
-    {
       "label": "rationale",
       "file_type": "code",
       "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L29",
+      "source_location": "L28",
       "_origin": "ast",
       "id": "assets_story_cosmic_being_manifest_deployed_rationale",
       "community": 132,
       "norm_label": "rationale"
     },
     {
-      "label": "reencode20260801",
-      "file_type": "code",
-      "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L30",
-      "_origin": "ast",
-      "id": "assets_story_cosmic_being_manifest_deployed_reencode20260801",
-      "community": 132,
-      "norm_label": "reencode20260801"
-    },
-    {
       "label": "layers",
       "file_type": "code",
       "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L32",
+      "source_location": "L30",
       "_origin": "ast",
       "id": "assets_story_cosmic_being_manifest_layers",
       "community": 132,
@@ -4530,7 +4510,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test",
-      "community": 0,
+      "community": 158,
       "norm_label": "aura.parts.test.tsx"
     },
     {
@@ -4540,7 +4520,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_stops",
-      "community": 0,
+      "community": 158,
       "norm_label": "stops()"
     },
     {
@@ -4550,7 +4530,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_parsestop",
-      "community": 0,
+      "community": 158,
       "norm_label": "parsestop()"
     },
     {
@@ -4570,7 +4550,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_footelement",
-      "community": 0,
+      "community": 158,
       "norm_label": "footelement()"
     },
     {
@@ -4580,7 +4560,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_todaslasreglas",
-      "community": 0,
+      "community": 158,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -4590,7 +4570,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_reglasde",
-      "community": 0,
+      "community": 158,
       "norm_label": "reglasde()"
     },
     {
@@ -4920,7 +4900,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_eye_eye_eye",
-      "community": 58,
+      "community": 156,
       "norm_label": "eye()"
     },
     {
@@ -5930,7 +5910,7 @@
       "source_location": "L353",
       "_origin": "ast",
       "id": "src_components_eye_mascots_wormhole_wormhole",
-      "community": 158,
+      "community": 58,
       "norm_label": "wormhole()"
     },
     {
@@ -5940,7 +5920,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle",
-      "community": 145,
+      "community": 146,
       "norm_label": "usesolcycle.ts"
     },
     {
@@ -5950,7 +5930,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_solvariant",
-      "community": 145,
+      "community": 146,
       "norm_label": "solvariant"
     },
     {
@@ -5960,7 +5940,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_solcycle",
-      "community": 145,
+      "community": 146,
       "norm_label": "solcycle"
     },
     {
@@ -5970,7 +5950,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_othervariant",
-      "community": 145,
+      "community": 146,
       "norm_label": "othervariant()"
     },
     {
@@ -5980,7 +5960,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_usesolcycle",
-      "community": 145,
+      "community": 146,
       "norm_label": "usesolcycle()"
     },
     {
@@ -6550,7 +6530,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test",
-      "community": 31,
+      "community": 161,
       "norm_label": "footer.test.tsx"
     },
     {
@@ -6700,7 +6680,7 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_footer",
-      "community": 31,
+      "community": 161,
       "norm_label": "footer()"
     },
     {
@@ -6760,7 +6740,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test",
-      "community": 157,
+      "community": 46,
       "norm_label": "navbar.test.tsx"
     },
     {
@@ -6770,7 +6750,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_stubmatchmedia",
-      "community": 157,
+      "community": 46,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -6780,7 +6760,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_rendernavbar",
-      "community": 158,
+      "community": 46,
       "norm_label": "rendernavbar()"
     },
     {
@@ -6790,7 +6770,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_revealbackdrop",
-      "community": 157,
+      "community": 46,
       "norm_label": "revealbackdrop()"
     },
     {
@@ -6800,7 +6780,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_rendernavbarinchrome",
-      "community": 158,
+      "community": 46,
       "norm_label": "rendernavbarinchrome()"
     },
     {
@@ -6810,7 +6790,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_allcssrules",
-      "community": 157,
+      "community": 46,
       "norm_label": "allcssrules()"
     },
     {
@@ -6820,7 +6800,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_scrollpast",
-      "community": 157,
+      "community": 46,
       "norm_label": "scrollpast()"
     },
     {
@@ -6830,7 +6810,7 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_logocolor",
-      "community": 157,
+      "community": 46,
       "norm_label": "logocolor()"
     },
     {
@@ -6960,7 +6940,7 @@
       "source_location": "L403",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_navbar",
-      "community": 157,
+      "community": 46,
       "norm_label": "navbar()"
     },
     {
@@ -7040,7 +7020,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons",
-      "community": 107,
+      "community": 31,
       "norm_label": "themeicons.tsx"
     },
     {
@@ -7050,7 +7030,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconsun",
-      "community": 107,
+      "community": 31,
       "norm_label": "iconsun()"
     },
     {
@@ -7060,7 +7040,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconmoon",
-      "community": 107,
+      "community": 31,
       "norm_label": "iconmoon()"
     },
     {
@@ -7070,7 +7050,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_test",
-      "community": 107,
+      "community": 31,
       "norm_label": "themetoggle.test.tsx"
     },
     {
@@ -7080,7 +7060,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle",
-      "community": 107,
+      "community": 31,
       "norm_label": "themetoggle.tsx"
     },
     {
@@ -7090,7 +7070,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_themetoggle",
-      "community": 107,
+      "community": 31,
       "norm_label": "themetoggle()"
     },
     {
@@ -7350,7 +7330,7 @@
       "source_location": "L385",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_contact",
-      "community": 143,
+      "community": 27,
       "norm_label": "contact()"
     },
     {
@@ -7860,7 +7840,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test",
-      "community": 158,
+      "community": 143,
       "norm_label": "hero.test.tsx"
     },
     {
@@ -7870,7 +7850,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_stubmatchmedia",
-      "community": 158,
+      "community": 143,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -7880,7 +7860,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_renderhero",
-      "community": 158,
+      "community": 143,
       "norm_label": "renderhero()"
     },
     {
@@ -7890,7 +7870,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_revealbackdrop",
-      "community": 158,
+      "community": 143,
       "norm_label": "revealbackdrop()"
     },
     {
@@ -7900,7 +7880,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_renderheroinchrome",
-      "community": 158,
+      "community": 143,
       "norm_label": "renderheroinchrome()"
     },
     {
@@ -7910,7 +7890,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_testid",
-      "community": 158,
+      "community": 143,
       "norm_label": "testid()"
     },
     {
@@ -7920,7 +7900,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_precede",
-      "community": 158,
+      "community": 143,
       "norm_label": "precede()"
     },
     {
@@ -7930,7 +7910,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_allcssrules",
-      "community": 158,
+      "community": 143,
       "norm_label": "allcssrules()"
     },
     {
@@ -8080,7 +8060,7 @@
       "source_location": "L576",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_hero",
-      "community": 107,
+      "community": 46,
       "norm_label": "hero()"
     },
     {
@@ -8090,7 +8070,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test",
-      "community": 116,
+      "community": 31,
       "norm_label": "herobackdrop.test.tsx"
     },
     {
@@ -8100,7 +8080,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stubmatchmedia",
-      "community": 116,
+      "community": 31,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8110,7 +8090,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stubsyncraf",
-      "community": 116,
+      "community": 31,
       "norm_label": "stubsyncraf()"
     },
     {
@@ -8120,7 +8100,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stackof",
-      "community": 116,
+      "community": 31,
       "norm_label": "stackof()"
     },
     {
@@ -8130,7 +8110,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_partof",
-      "community": 116,
+      "community": 31,
       "norm_label": "partof()"
     },
     {
@@ -8140,7 +8120,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_eyedelayof",
-      "community": 116,
+      "community": 31,
       "norm_label": "eyedelayof()"
     },
     {
@@ -8150,7 +8130,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_flushmicrotasks",
-      "community": 116,
+      "community": 31,
       "norm_label": "flushmicrotasks()"
     },
     {
@@ -8160,7 +8140,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_clicktoggle",
-      "community": 116,
+      "community": 31,
       "norm_label": "clicktoggle()"
     },
     {
@@ -8170,7 +8150,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_renderherobackdrop",
-      "community": 158,
+      "community": 31,
       "norm_label": "renderherobackdrop()"
     },
     {
@@ -8180,7 +8160,7 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stagephaseprobe",
-      "community": 116,
+      "community": 46,
       "norm_label": "stagephaseprobe()"
     },
     {
@@ -8380,7 +8360,7 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_herocopyswap",
-      "community": 158,
+      "community": 107,
       "norm_label": "herocopyswap"
     },
     {
@@ -8400,7 +8380,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test",
-      "community": 31,
+      "community": 158,
       "norm_label": "homesections.test.tsx"
     },
     {
@@ -8410,7 +8390,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test_stubmatchmedia",
-      "community": 31,
+      "community": 158,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8420,7 +8400,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test_stubintersectionobserver",
-      "community": 31,
+      "community": 158,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -8430,7 +8410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_homesections",
-      "community": 31,
+      "community": 27,
       "norm_label": "homesections.tsx"
     },
     {
@@ -8440,7 +8420,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_sections_homesections_homesections",
-      "community": 31,
+      "community": 158,
       "norm_label": "homesections()"
     },
     {
@@ -8800,7 +8780,7 @@
       "source_location": "L508",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_journey",
-      "community": 163,
+      "community": 27,
       "norm_label": "journey()"
     },
     {
@@ -9120,7 +9100,7 @@
       "source_location": "L318",
       "_origin": "ast",
       "id": "src_components_sections_story_story_story",
-      "community": 176,
+      "community": 27,
       "norm_label": "story()"
     },
     {
@@ -9310,7 +9290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test",
-      "community": 158,
+      "community": 0,
       "norm_label": "hero-story.integration.test.tsx"
     },
     {
@@ -9320,7 +9300,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_stubmatchmedia",
-      "community": 158,
+      "community": 0,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -9330,7 +9310,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_stubintersectionobserver",
-      "community": 158,
+      "community": 0,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -9340,7 +9320,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_cssruletextfor",
-      "community": 158,
+      "community": 0,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -9350,7 +9330,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_renderpage",
-      "community": 158,
+      "community": 0,
       "norm_label": "renderpage()"
     },
     {
@@ -9457,7 +9437,7 @@
       "label": "STORY_COSMIC_BEING_POINTER_AMP",
       "file_type": "code",
       "source_file": "src/components/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L158",
+      "source_location": "L148",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp",
       "community": 112,
@@ -9910,7 +9890,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_test",
-      "community": 167,
+      "community": 161,
       "norm_label": "logo.test.tsx"
     },
     {
@@ -9920,7 +9900,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo",
-      "community": 167,
+      "community": 161,
       "norm_label": "logo.tsx"
     },
     {
@@ -9930,7 +9910,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_logoprops",
-      "community": 167,
+      "community": 161,
       "norm_label": "logoprops"
     },
     {
@@ -9940,7 +9920,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_sclogo",
-      "community": 167,
+      "community": 161,
       "norm_label": "sclogo"
     },
     {
@@ -9950,7 +9930,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_logo",
-      "community": 167,
+      "community": 161,
       "norm_label": "logo()"
     },
     {
@@ -10140,7 +10120,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test",
-      "community": 159,
+      "community": 156,
       "norm_label": "useparallaxlayers.test.tsx"
     },
     {
@@ -10150,7 +10130,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_amp",
-      "community": 159,
+      "community": 156,
       "norm_label": "amp"
     },
     {
@@ -10160,7 +10140,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_stubmatchmedia",
-      "community": 159,
+      "community": 156,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -10170,7 +10150,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_targetof",
-      "community": 159,
+      "community": 156,
       "norm_label": "targetof()"
     },
     {
@@ -10180,7 +10160,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_movetocorner",
-      "community": 159,
+      "community": 156,
       "norm_label": "movetocorner()"
     },
     {
@@ -10190,7 +10170,7 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_consumer",
-      "community": 159,
+      "community": 156,
       "norm_label": "consumer()"
     },
     {
@@ -10200,7 +10180,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers",
-      "community": 159,
+      "community": 156,
       "norm_label": "useparallaxlayers.ts"
     },
     {
@@ -10210,7 +10190,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_parallaxtarget",
-      "community": 159,
+      "community": 156,
       "norm_label": "parallaxtarget"
     },
     {
@@ -10220,7 +10200,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_parallaxamplitude",
-      "community": 159,
+      "community": 156,
       "norm_label": "parallaxamplitude"
     },
     {
@@ -10230,7 +10210,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_useparallaxlayers",
-      "community": 159,
+      "community": 156,
       "norm_label": "useparallaxlayers()"
     },
     {
@@ -10920,7 +10900,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_motion_stageprovider_usestage",
-      "community": 157,
+      "community": 46,
       "norm_label": "usestage()"
     },
     {
@@ -11010,7 +10990,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_themeprovider",
-      "community": 158,
+      "community": 107,
       "norm_label": "themeprovider.tsx"
     },
     {
@@ -11020,7 +11000,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themechangesource",
-      "community": 158,
+      "community": 107,
       "norm_label": "themechangesource"
     },
     {
@@ -11030,7 +11010,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themecontextvalue",
-      "community": 158,
+      "community": 107,
       "norm_label": "themecontextvalue"
     },
     {
@@ -11040,7 +11020,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themecontext",
-      "community": 158,
+      "community": 107,
       "norm_label": "themecontext"
     },
     {
@@ -11050,7 +11030,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themeprovider",
-      "community": 158,
+      "community": 51,
       "norm_label": "themeprovider()"
     },
     {
@@ -11060,7 +11040,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_theme_themeprovider_usetheme",
-      "community": 107,
+      "community": 27,
       "norm_label": "usetheme()"
     },
     {
@@ -11170,7 +11150,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_theme_themes_themename",
-      "community": 158,
+      "community": 107,
       "norm_label": "themename"
     },
     {
@@ -22920,7 +22900,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_hero_backdrop_hold_ms",
-      "community": 116,
+      "community": 107,
       "norm_label": "hero_backdrop_hold_ms"
     }
   ],
@@ -27640,7 +27620,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L32",
+      "source_location": "L30",
       "weight": 1.0,
       "source": "assets_story_cosmic_being_manifest",
       "target": "assets_story_cosmic_being_manifest_layers",
@@ -27800,16 +27780,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L28",
-      "weight": 1.0,
-      "source": "assets_story_cosmic_being_manifest_deployed",
-      "target": "assets_story_cosmic_being_manifest_deployed_encoder",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "assets/story-cosmic-being/manifest.json",
       "source_location": "L26",
       "weight": 1.0,
       "source": "assets_story_cosmic_being_manifest_deployed",
@@ -27820,20 +27790,10 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L29",
+      "source_location": "L28",
       "weight": 1.0,
       "source": "assets_story_cosmic_being_manifest_deployed",
       "target": "assets_story_cosmic_being_manifest_deployed_rationale",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "assets/story-cosmic-being/manifest.json",
-      "source_location": "L30",
-      "weight": 1.0,
-      "source": "assets_story_cosmic_being_manifest_deployed",
-      "target": "assets_story_cosmic_being_manifest_deployed_reencode20260801",
       "confidence_score": 1.0
     },
     {
@@ -38327,7 +38287,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L158",
+      "source_location": "L148",
       "weight": 1.0,
       "source": "src_components_storycosmicbeing_storycosmicbeing_layers",
       "target": "src_components_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp",
@@ -52357,5 +52317,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8543b8dd9df93dd28160a833333e71c3820c2939"
+  "built_at_commit": "cb06f15da55daa426c376eb4a107824de68aef71"
 }
