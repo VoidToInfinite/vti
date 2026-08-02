@@ -4670,7 +4670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aura_aura_layers_test",
-      "community": 159,
+      "community": 0,
       "norm_label": "aura.layers.test.ts"
     },
     {
@@ -4730,7 +4730,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test",
-      "community": 0,
+      "community": 31,
       "norm_label": "aura.parts.test.tsx"
     },
     {
@@ -4740,7 +4740,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_stops",
-      "community": 0,
+      "community": 31,
       "norm_label": "stops()"
     },
     {
@@ -4750,7 +4750,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_parsestop",
-      "community": 0,
+      "community": 31,
       "norm_label": "parsestop()"
     },
     {
@@ -4770,7 +4770,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_footelement",
-      "community": 0,
+      "community": 31,
       "norm_label": "footelement()"
     },
     {
@@ -4780,7 +4780,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_todaslasreglas",
-      "community": 0,
+      "community": 31,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -4790,7 +4790,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_reglasde",
-      "community": 0,
+      "community": 31,
       "norm_label": "reglasde()"
     },
     {
@@ -5030,7 +5030,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_test",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye.test.tsx"
     },
     {
@@ -5040,7 +5040,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_stubmatchmedia",
-      "community": 58,
+      "community": 151,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -5050,7 +5050,7 @@
       "source_location": "L243",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_partel",
-      "community": 58,
+      "community": 151,
       "norm_label": "partel()"
     },
     {
@@ -5060,7 +5060,7 @@
       "source_location": "L260",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_staggerdelay",
-      "community": 58,
+      "community": 151,
       "norm_label": "staggerdelay()"
     },
     {
@@ -5070,7 +5070,7 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_todaslasreglas",
-      "community": 58,
+      "community": 151,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -5080,7 +5080,7 @@
       "source_location": "L436",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_reglasde",
-      "community": 58,
+      "community": 151,
       "norm_label": "reglasde()"
     },
     {
@@ -5090,7 +5090,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye",
-      "community": 164,
+      "community": 151,
       "norm_label": "eye.tsx"
     },
     {
@@ -5100,7 +5100,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_eye_eye_amp",
-      "community": 164,
+      "community": 151,
       "norm_label": "amp"
     },
     {
@@ -5110,7 +5110,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_eye_eye_eyeprops",
-      "community": 164,
+      "community": 151,
       "norm_label": "eyeprops"
     },
     {
@@ -5120,7 +5120,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_eye_eye_eye",
-      "community": 164,
+      "community": 151,
       "norm_label": "eye()"
     },
     {
@@ -5130,7 +5130,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_test",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye.layers.test.ts"
     },
     {
@@ -5140,7 +5140,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye.layers.ts"
     },
     {
@@ -5150,7 +5150,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eyelayer",
-      "community": 58,
+      "community": 151,
       "norm_label": "eyelayer"
     },
     {
@@ -5160,7 +5160,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eye_layers",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye_layers"
     },
     {
@@ -5170,7 +5170,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eye_center",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye_center"
     },
     {
@@ -5180,7 +5180,7 @@
       "source_location": "L189",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eye_stagger",
-      "community": 58,
+      "community": 151,
       "norm_label": "eye_stagger"
     },
     {
@@ -6130,7 +6130,7 @@
       "source_location": "L353",
       "_origin": "ast",
       "id": "src_components_eye_mascots_wormhole_wormhole",
-      "community": 164,
+      "community": 151,
       "norm_label": "wormhole()"
     },
     {
@@ -6380,7 +6380,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_test",
-      "community": 106,
+      "community": 166,
       "norm_label": "journeycosmicportal.test.tsx"
     },
     {
@@ -6390,7 +6390,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_test_stubmatchmedia",
-      "community": 106,
+      "community": 166,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -6400,7 +6400,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_test_stubintersectionobserver",
-      "community": 106,
+      "community": 166,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -6410,7 +6410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal",
-      "community": 106,
+      "community": 166,
       "norm_label": "journeycosmicportal.tsx"
     },
     {
@@ -6420,7 +6420,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_journeycosmicportal",
-      "community": 106,
+      "community": 166,
       "norm_label": "journeycosmicportal()"
     },
     {
@@ -6430,7 +6430,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers_test",
-      "community": 106,
+      "community": 166,
       "norm_label": "journeycosmicportal.layers.test.ts"
     },
     {
@@ -6440,7 +6440,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers",
-      "community": 106,
+      "community": 166,
       "norm_label": "journeycosmicportal.layers.ts"
     },
     {
@@ -6450,7 +6450,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journeycosmicportallayer",
-      "community": 106,
+      "community": 166,
       "norm_label": "journeycosmicportallayer"
     },
     {
@@ -6460,7 +6460,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_layers",
-      "community": 106,
+      "community": 166,
       "norm_label": "journey_portal_layers"
     },
     {
@@ -6470,7 +6470,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_pointer_amp",
-      "community": 106,
+      "community": 166,
       "norm_label": "journey_portal_pointer_amp"
     },
     {
@@ -6480,7 +6480,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts",
-      "community": 106,
+      "community": 166,
       "norm_label": "journeycosmicportal.parts.tsx"
     },
     {
@@ -6490,7 +6490,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scscene",
-      "community": 106,
+      "community": 166,
       "norm_label": "scscene"
     },
     {
@@ -6500,7 +6500,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scvoid",
-      "community": 106,
+      "community": 166,
       "norm_label": "scvoid"
     },
     {
@@ -6510,7 +6510,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts_sclayer",
-      "community": 106,
+      "community": 166,
       "norm_label": "sclayer"
     },
     {
@@ -6520,7 +6520,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scvignette",
-      "community": 106,
+      "community": 166,
       "norm_label": "scvignette"
     },
     {
@@ -6910,7 +6910,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector",
-      "community": 46,
+      "community": 176,
       "norm_label": "languageselector.tsx"
     },
     {
@@ -6920,7 +6920,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_languages",
-      "community": 46,
+      "community": 176,
       "norm_label": "languages"
     },
     {
@@ -6930,7 +6930,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_sclanguageselector",
-      "community": 46,
+      "community": 176,
       "norm_label": "sclanguageselector"
     },
     {
@@ -6940,7 +6940,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_sclanguagebutton",
-      "community": 46,
+      "community": 176,
       "norm_label": "sclanguagebutton"
     },
     {
@@ -6950,7 +6950,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_languageselector",
-      "community": 46,
+      "community": 176,
       "norm_label": "languageselector()"
     },
     {
@@ -6960,7 +6960,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test",
-      "community": 31,
+      "community": 0,
       "norm_label": "navbar.test.tsx"
     },
     {
@@ -6970,7 +6970,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_stubmatchmedia",
-      "community": 31,
+      "community": 0,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -6980,7 +6980,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_rendernavbar",
-      "community": 31,
+      "community": 0,
       "norm_label": "rendernavbar()"
     },
     {
@@ -7000,7 +7000,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_rendernavbarinchrome",
-      "community": 31,
+      "community": 0,
       "norm_label": "rendernavbarinchrome()"
     },
     {
@@ -7010,7 +7010,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_allcssrules",
-      "community": 31,
+      "community": 0,
       "norm_label": "allcssrules()"
     },
     {
@@ -7020,7 +7020,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_scrollpast",
-      "community": 31,
+      "community": 0,
       "norm_label": "scrollpast()"
     },
     {
@@ -7030,7 +7030,7 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_logocolor",
-      "community": 31,
+      "community": 0,
       "norm_label": "logocolor()"
     },
     {
@@ -7160,7 +7160,7 @@
       "source_location": "L403",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_navbar",
-      "community": 46,
+      "community": 170,
       "norm_label": "navbar()"
     },
     {
@@ -7240,7 +7240,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons",
-      "community": 138,
+      "community": 174,
       "norm_label": "themeicons.tsx"
     },
     {
@@ -7250,7 +7250,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconsun",
-      "community": 138,
+      "community": 174,
       "norm_label": "iconsun()"
     },
     {
@@ -7260,7 +7260,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconmoon",
-      "community": 138,
+      "community": 174,
       "norm_label": "iconmoon()"
     },
     {
@@ -7270,7 +7270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_test",
-      "community": 138,
+      "community": 174,
       "norm_label": "themetoggle.test.tsx"
     },
     {
@@ -7280,7 +7280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle",
-      "community": 138,
+      "community": 174,
       "norm_label": "themetoggle.tsx"
     },
     {
@@ -7290,7 +7290,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_themetoggle",
-      "community": 138,
+      "community": 174,
       "norm_label": "themetoggle()"
     },
     {
@@ -7550,7 +7550,7 @@
       "source_location": "L385",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_contact",
-      "community": 114,
+      "community": 175,
       "norm_label": "contact()"
     },
     {
@@ -7910,7 +7910,7 @@
       "source_location": "L477",
       "_origin": "ast",
       "id": "src_components_sections_features_features_features",
-      "community": 114,
+      "community": 175,
       "norm_label": "features()"
     },
     {
@@ -8290,7 +8290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test",
-      "community": 116,
+      "community": 174,
       "norm_label": "herobackdrop.test.tsx"
     },
     {
@@ -8300,7 +8300,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stubmatchmedia",
-      "community": 116,
+      "community": 174,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8310,7 +8310,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stubsyncraf",
-      "community": 116,
+      "community": 174,
       "norm_label": "stubsyncraf()"
     },
     {
@@ -8320,7 +8320,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stackof",
-      "community": 116,
+      "community": 174,
       "norm_label": "stackof()"
     },
     {
@@ -8330,7 +8330,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_partof",
-      "community": 116,
+      "community": 174,
       "norm_label": "partof()"
     },
     {
@@ -8340,7 +8340,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_eyedelayof",
-      "community": 116,
+      "community": 174,
       "norm_label": "eyedelayof()"
     },
     {
@@ -8350,7 +8350,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_flushmicrotasks",
-      "community": 116,
+      "community": 174,
       "norm_label": "flushmicrotasks()"
     },
     {
@@ -8360,7 +8360,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_clicktoggle",
-      "community": 116,
+      "community": 174,
       "norm_label": "clicktoggle()"
     },
     {
@@ -8370,7 +8370,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_renderherobackdrop",
-      "community": 116,
+      "community": 174,
       "norm_label": "renderherobackdrop()"
     },
     {
@@ -8630,7 +8630,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_homesections",
-      "community": 114,
+      "community": 175,
       "norm_label": "homesections.tsx"
     },
     {
@@ -8650,7 +8650,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test",
-      "community": 106,
+      "community": 58,
       "norm_label": "journey.test.tsx"
     },
     {
@@ -8660,7 +8660,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_triggerfor",
-      "community": 106,
+      "community": 58,
       "norm_label": "triggerfor()"
     },
     {
@@ -8670,7 +8670,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_injectedcss",
-      "community": 106,
+      "community": 58,
       "norm_label": "injectedcss()"
     },
     {
@@ -8680,7 +8680,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_cssruletextfor",
-      "community": 106,
+      "community": 58,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -8690,7 +8690,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_constructor",
-      "community": 106,
+      "community": 58,
       "norm_label": "constructor()"
     },
     {
@@ -8700,7 +8700,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_observe",
-      "community": 106,
+      "community": 58,
       "norm_label": "observe()"
     },
     {
@@ -8710,7 +8710,7 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_disconnect",
-      "community": 106,
+      "community": 58,
       "norm_label": "disconnect()"
     },
     {
@@ -8720,7 +8720,7 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_test_stubmatchmedia",
-      "community": 106,
+      "community": 58,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8930,14 +8930,14 @@
       "source_location": "L453",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_journey",
-      "community": 114,
+      "community": 175,
       "norm_label": "journey()"
     },
     {
       "label": "JourneyDeckDark()",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/Journey.tsx",
-      "source_location": "L586",
+      "source_location": "L587",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_journeydeckdark",
       "community": 122,
@@ -8957,7 +8957,7 @@
       "label": "ScJourneyTrack",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L43",
+      "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneytrack",
       "community": 106,
@@ -8967,7 +8967,7 @@
       "label": "ScJourneyStage",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L66",
+      "source_location": "L68",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneystage",
       "community": 106,
@@ -8977,7 +8977,7 @@
       "label": "ScJourneySceneWrap",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L91",
+      "source_location": "L93",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneyscenewrap",
       "community": 106,
@@ -8987,7 +8987,7 @@
       "label": "ScJourneyDeck",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L179",
+      "source_location": "L181",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneydeck",
       "community": 106,
@@ -8997,7 +8997,7 @@
       "label": "ScJourneySlide",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L229",
+      "source_location": "L231",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneyslide",
       "community": 106,
@@ -9007,7 +9007,7 @@
       "label": "ScJourneyRail",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L267",
+      "source_location": "L269",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneyrail",
       "community": 106,
@@ -9017,7 +9017,7 @@
       "label": "ScJourneyRailMark",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L283",
+      "source_location": "L285",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneyrailmark",
       "community": 106,
@@ -9027,7 +9027,7 @@
       "label": "stepColor()",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L320",
+      "source_location": "L322",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_stepcolor",
       "community": 106,
@@ -9037,7 +9037,7 @@
       "label": "ScJourneyDeckTitle",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L358",
+      "source_location": "L364",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneydecktitle",
       "community": 106,
@@ -9047,7 +9047,7 @@
       "label": "ScJourneyIntroBody",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L379",
+      "source_location": "L385",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneyintrobody",
       "community": 106,
@@ -9057,7 +9057,7 @@
       "label": "ScJourneyStepIconBox",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L402",
+      "source_location": "L408",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneystepiconbox",
       "community": 106,
@@ -9067,27 +9067,27 @@
       "label": "ScJourneyStepLabel",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L437",
+      "source_location": "L461",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneysteplabel",
       "community": 106,
       "norm_label": "scjourneysteplabel"
     },
     {
-      "label": "ScJourneyStepBody",
+      "label": "ScJourneyStepSubtitle",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L457",
+      "source_location": "L487",
       "_origin": "ast",
-      "id": "src_components_sections_journey_journey_deck_scjourneystepbody",
+      "id": "src_components_sections_journey_journey_deck_scjourneystepsubtitle",
       "community": 106,
-      "norm_label": "scjourneystepbody"
+      "norm_label": "scjourneystepsubtitle"
     },
     {
       "label": "ScJourneyQuote",
       "file_type": "code",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L490",
+      "source_location": "L527",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_deck_scjourneyquote",
       "community": 106,
@@ -9100,7 +9100,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers_test",
-      "community": 106,
+      "community": 58,
       "norm_label": "journey.layers.test.ts"
     },
     {
@@ -9110,7 +9110,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers",
-      "community": 106,
+      "community": 58,
       "norm_label": "journey.layers.ts"
     },
     {
@@ -9120,7 +9120,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers_journeystepid",
-      "community": 106,
+      "community": 58,
       "norm_label": "journeystepid"
     },
     {
@@ -9130,7 +9130,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers_journeystep",
-      "community": 106,
+      "community": 58,
       "norm_label": "journeystep"
     },
     {
@@ -9140,7 +9140,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers_journey_steps",
-      "community": 106,
+      "community": 58,
       "norm_label": "journey_steps"
     },
     {
@@ -9420,7 +9420,7 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "src_components_sections_story_story_story",
-      "community": 114,
+      "community": 175,
       "norm_label": "story()"
     },
     {
@@ -9440,7 +9440,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck",
-      "community": 150,
+      "community": 108,
       "norm_label": "story.deck.tsx"
     },
     {
@@ -9450,7 +9450,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_sctrack",
-      "community": 150,
+      "community": 108,
       "norm_label": "sctrack"
     },
     {
@@ -9460,7 +9460,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scstage",
-      "community": 150,
+      "community": 108,
       "norm_label": "scstage"
     },
     {
@@ -9470,7 +9470,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scscenewrap",
-      "community": 150,
+      "community": 108,
       "norm_label": "scscenewrap"
     },
     {
@@ -9480,7 +9480,7 @@
       "source_location": "L189",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeck",
-      "community": 150,
+      "community": 108,
       "norm_label": "scdeck"
     },
     {
@@ -9490,7 +9490,7 @@
       "source_location": "L272",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scslide",
-      "community": 150,
+      "community": 108,
       "norm_label": "scslide"
     },
     {
@@ -9500,7 +9500,7 @@
       "source_location": "L312",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scrail",
-      "community": 150,
+      "community": 108,
       "norm_label": "scrail"
     },
     {
@@ -9510,7 +9510,7 @@
       "source_location": "L328",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scrailmark",
-      "community": 150,
+      "community": 108,
       "norm_label": "scrailmark"
     },
     {
@@ -9520,7 +9520,7 @@
       "source_location": "L389",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdecktitle",
-      "community": 150,
+      "community": 108,
       "norm_label": "scdecktitle"
     },
     {
@@ -9530,7 +9530,7 @@
       "source_location": "L410",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeckintrobody",
-      "community": 150,
+      "community": 108,
       "norm_label": "scdeckintrobody"
     },
     {
@@ -9540,7 +9540,7 @@
       "source_location": "L429",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeckpillartitle",
-      "community": 150,
+      "community": 108,
       "norm_label": "scdeckpillartitle"
     },
     {
@@ -9550,7 +9550,7 @@
       "source_location": "L447",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeckpillarsubtitle",
-      "community": 150,
+      "community": 108,
       "norm_label": "scdeckpillarsubtitle"
     },
     {
@@ -9560,7 +9560,7 @@
       "source_location": "L464",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdeckpillarbody",
-      "community": 150,
+      "community": 108,
       "norm_label": "scdeckpillarbody"
     },
     {
@@ -9570,7 +9570,7 @@
       "source_location": "L492",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdecknote",
-      "community": 150,
+      "community": 108,
       "norm_label": "scdecknote"
     },
     {
@@ -9580,7 +9580,7 @@
       "source_location": "L515",
       "_origin": "ast",
       "id": "src_components_sections_story_story_deck_scdecknoteaccent",
-      "community": 150,
+      "community": 108,
       "norm_label": "scdecknoteaccent"
     },
     {
@@ -9600,7 +9600,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_layers",
-      "community": 163,
+      "community": 58,
       "norm_label": "story.layers.ts"
     },
     {
@@ -10210,7 +10210,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_test",
-      "community": 46,
+      "community": 177,
       "norm_label": "logo.test.tsx"
     },
     {
@@ -10220,7 +10220,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo",
-      "community": 46,
+      "community": 177,
       "norm_label": "logo.tsx"
     },
     {
@@ -10230,7 +10230,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_logoprops",
-      "community": 46,
+      "community": 177,
       "norm_label": "logoprops"
     },
     {
@@ -10240,7 +10240,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_sclogo",
-      "community": 46,
+      "community": 177,
       "norm_label": "sclogo"
     },
     {
@@ -10250,7 +10250,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_ui_logo_logo_logo",
-      "community": 46,
+      "community": 177,
       "norm_label": "logo()"
     },
     {
@@ -10260,7 +10260,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_test",
-      "community": 161,
+      "community": 172,
       "norm_label": "typography.test.tsx"
     },
     {
@@ -10270,7 +10270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography",
-      "community": 161,
+      "community": 172,
       "norm_label": "typography.tsx"
     },
     {
@@ -10280,7 +10280,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_typographyvariant",
-      "community": 161,
+      "community": 172,
       "norm_label": "typographyvariant"
     },
     {
@@ -10290,7 +10290,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_defaultelement",
-      "community": 161,
+      "community": 172,
       "norm_label": "defaultelement"
     },
     {
@@ -10300,7 +10300,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_typographyprops",
-      "community": 161,
+      "community": 172,
       "norm_label": "typographyprops"
     },
     {
@@ -10310,7 +10310,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_sctypography",
-      "community": 161,
+      "community": 172,
       "norm_label": "sctypography"
     },
     {
@@ -10320,7 +10320,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_typography",
-      "community": 161,
+      "community": 172,
       "norm_label": "typography()"
     },
     {
@@ -10400,7 +10400,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach",
-      "community": 46,
+      "community": 170,
       "norm_label": "usenavdetach.ts"
     },
     {
@@ -10410,7 +10410,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_navdetachphase",
-      "community": 46,
+      "community": 170,
       "norm_label": "navdetachphase"
     },
     {
@@ -10420,7 +10420,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_navdetachstate",
-      "community": 46,
+      "community": 170,
       "norm_label": "navdetachstate"
     },
     {
@@ -10430,7 +10430,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_usenavdetach",
-      "community": 46,
+      "community": 170,
       "norm_label": "usenavdetach()"
     },
     {
@@ -10640,7 +10640,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usereveal_test",
-      "community": 114,
+      "community": 175,
       "norm_label": "usereveal.test.tsx"
     },
     {
@@ -10650,7 +10650,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_hooks_usereveal_test_mockintersectionobserver",
-      "community": 114,
+      "community": 175,
       "norm_label": "mockintersectionobserver"
     },
     {
@@ -10660,7 +10660,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_hooks_usereveal_test_mockinstances",
-      "community": 114,
+      "community": 175,
       "norm_label": "mockinstances"
     },
     {
@@ -10670,7 +10670,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_hooks_usereveal_test_constructor",
-      "community": 114,
+      "community": 175,
       "norm_label": "constructor()"
     },
     {
@@ -10680,7 +10680,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usereveal",
-      "community": 114,
+      "community": 175,
       "norm_label": "usereveal.ts"
     },
     {
@@ -10690,7 +10690,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_hooks_usereveal_usereveal",
-      "community": 114,
+      "community": 175,
       "norm_label": "usereveal()"
     },
     {
@@ -10800,7 +10800,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usesceneparallax",
-      "community": 171,
+      "community": 152,
       "norm_label": "usesceneparallax.ts"
     },
     {
@@ -10820,7 +10820,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_usesceneparallax_sceneparallaxamplitude",
-      "community": 171,
+      "community": 152,
       "norm_label": "sceneparallaxamplitude"
     },
     {
@@ -10830,7 +10830,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_hooks_usesceneparallax_sceneparallaxoptions",
-      "community": 171,
+      "community": 152,
       "norm_label": "sceneparallaxoptions"
     },
     {
@@ -10840,7 +10840,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_hooks_usesceneparallax_default_drift_amp",
-      "community": 171,
+      "community": 152,
       "norm_label": "default_drift_amp"
     },
     {
@@ -10850,7 +10850,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_hooks_usesceneparallax_isinsiderect",
-      "community": 171,
+      "community": 152,
       "norm_label": "isinsiderect()"
     },
     {
@@ -10860,7 +10860,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "src_hooks_usesceneparallax_usesceneparallax",
-      "community": 171,
+      "community": 152,
       "norm_label": "usesceneparallax()"
     },
     {
@@ -10870,7 +10870,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usescrolled_test",
-      "community": 46,
+      "community": 170,
       "norm_label": "usescrolled.test.tsx"
     },
     {
@@ -10880,7 +10880,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usescrolled",
-      "community": 46,
+      "community": 170,
       "norm_label": "usescrolled.ts"
     },
     {
@@ -10890,7 +10890,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_hooks_usescrolled_usescrolled",
-      "community": 46,
+      "community": 170,
       "norm_label": "usescrolled()"
     },
     {
@@ -11240,7 +11240,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_motion_stage",
-      "community": 0,
+      "community": 157,
       "norm_label": "stage.ts"
     },
     {
@@ -11370,7 +11370,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_theme_themeprovider_usetheme",
-      "community": 114,
+      "community": 175,
       "norm_label": "usetheme()"
     },
     {
@@ -23374,6 +23374,116 @@
       "norm_label": "13. desviaciones de implementacion"
     },
     {
+      "label": "2026-08-02-journey-deck-tipografia-design.md",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design",
+      "community": 150,
+      "norm_label": "2026-08-02-journey-deck-tipografia-design.md"
+    },
+    {
+      "label": "Spec \u2014 Journey (oscuro): escala tipogr\u00e1fica de cartel de la presentaci\u00f3n",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "community": 150,
+      "norm_label": "spec \u2014 journey (oscuro): escala tipografica de cartel de la presentacion"
+    },
+    {
+      "label": "1. Estado actual (medido en el \u00e1rbol, no de memoria)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_1_estado_actual_medido_en_el_\u00e1rbol_no_de_memoria",
+      "community": 150,
+      "norm_label": "1. estado actual (medido en el arbol, no de memoria)"
+    },
+    {
+      "label": "2. Objetivo",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L32",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_2_objetivo",
+      "community": 150,
+      "norm_label": "2. objetivo"
+    },
+    {
+      "label": "3. Decisiones",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L36",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_3_decisiones",
+      "community": 150,
+      "norm_label": "3. decisiones"
+    },
+    {
+      "label": "4. Riesgo declarado antes de implementar",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L49",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_4_riesgo_declarado_antes_de_implementar",
+      "community": 150,
+      "norm_label": "4. riesgo declarado antes de implementar"
+    },
+    {
+      "label": "5. Ficheros afectados",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L53",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_5_ficheros_afectados",
+      "community": 150,
+      "norm_label": "5. ficheros afectados"
+    },
+    {
+      "label": "6. Tests",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L63",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_6_tests",
+      "community": 150,
+      "norm_label": "6. tests"
+    },
+    {
+      "label": "7. Definici\u00f3n de \"hecho\"",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L73",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_7_definici\u00f3n_de_hecho",
+      "community": 150,
+      "norm_label": "7. definicion de \"hecho\""
+    },
+    {
+      "label": "8. No-objetivos",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L89",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_8_no_objetivos",
+      "community": 150,
+      "norm_label": "8. no-objetivos"
+    },
+    {
+      "label": "9. Desviaciones de implementaci\u00f3n",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L96",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_9_desviaciones_de_implementaci\u00f3n",
+      "community": 150,
+      "norm_label": "9. desviaciones de implementacion"
+    },
+    {
       "label": "2026-08-02-journey-overlay-transition-design.md",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-02-journey-overlay-transition-design.md",
@@ -23520,7 +23630,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_hero_backdrop_hold_ms",
-      "community": 116,
+      "community": 138,
       "norm_label": "hero_backdrop_hold_ms"
     }
   ],
@@ -37516,17 +37626,6 @@
       "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey",
-      "target": "src_components_sections_journey_journey_deck_scjourneystepbody",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/sections/Journey/Journey.tsx",
-      "source_location": "L12",
-      "weight": 1.0,
-      "source": "src_components_sections_journey_journey",
       "target": "src_components_sections_journey_journey_deck_scjourneystepiconbox",
       "confidence_score": 1.0
     },
@@ -37539,6 +37638,17 @@
       "weight": 1.0,
       "source": "src_components_sections_journey_journey",
       "target": "src_components_sections_journey_journey_deck_scjourneysteplabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/sections/Journey/Journey.tsx",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "src_components_sections_journey_journey",
+      "target": "src_components_sections_journey_journey_deck_scjourneystepsubtitle",
       "confidence_score": 1.0
     },
     {
@@ -37566,7 +37676,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/Journey.tsx",
-      "source_location": "L586",
+      "source_location": "L587",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey",
       "target": "src_components_sections_journey_journey_journeydeckdark",
@@ -37944,7 +38054,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/sections/Journey/Journey.tsx",
-      "source_location": "L605",
+      "source_location": "L606",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_journeydeckdark",
       "target": "src_hooks_useslidedeck_useslidedeck"
@@ -37953,7 +38063,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L179",
+      "source_location": "L181",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneydeck",
@@ -37963,7 +38073,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L358",
+      "source_location": "L364",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneydecktitle",
@@ -37973,7 +38083,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L379",
+      "source_location": "L385",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneyintrobody",
@@ -37983,7 +38093,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L490",
+      "source_location": "L527",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneyquote",
@@ -37993,7 +38103,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L267",
+      "source_location": "L269",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneyrail",
@@ -38003,7 +38113,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L283",
+      "source_location": "L285",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneyrailmark",
@@ -38013,7 +38123,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L91",
+      "source_location": "L93",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneyscenewrap",
@@ -38023,7 +38133,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L229",
+      "source_location": "L231",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneyslide",
@@ -38033,7 +38143,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L66",
+      "source_location": "L68",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneystage",
@@ -38043,17 +38153,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L457",
-      "weight": 1.0,
-      "source": "src_components_sections_journey_journey_deck",
-      "target": "src_components_sections_journey_journey_deck_scjourneystepbody",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L402",
+      "source_location": "L408",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneystepiconbox",
@@ -38063,7 +38163,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L437",
+      "source_location": "L461",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneysteplabel",
@@ -38073,7 +38173,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L43",
+      "source_location": "L487",
+      "weight": 1.0,
+      "source": "src_components_sections_journey_journey_deck",
+      "target": "src_components_sections_journey_journey_deck_scjourneystepsubtitle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/sections/Journey/journey.deck.tsx",
+      "source_location": "L45",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_scjourneytrack",
@@ -38083,7 +38193,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.deck.tsx",
-      "source_location": "L320",
+      "source_location": "L322",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_deck",
       "target": "src_components_sections_journey_journey_deck_stepcolor",
@@ -38138,7 +38248,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.layers.test.ts",
-      "source_location": "L2",
+      "source_location": "L7",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_layers_test",
       "target": "src_components_sections_journey_journey_layers",
@@ -38149,10 +38259,43 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Journey/journey.layers.test.ts",
-      "source_location": "L2",
+      "source_location": "L7",
       "weight": 1.0,
       "source": "src_components_sections_journey_journey_layers_test",
       "target": "src_components_sections_journey_journey_layers_journey_steps",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/sections/Journey/journey.layers.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "src_components_sections_journey_journey_layers_test",
+      "target": "src_components_sections_story_story_layers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/sections/Journey/journey.layers.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_components_sections_journey_journey_layers_test",
+      "target": "src_theme_tokens_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/sections/Journey/journey.layers.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_components_sections_journey_journey_layers_test",
+      "target": "src_theme_tokens_type_type",
       "confidence_score": 1.0
     },
     {
@@ -53674,6 +53817,106 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_1_estado_actual_medido_en_el_\u00e1rbol_no_de_memoria",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_2_objetivo",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_3_decisiones",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_4_riesgo_declarado_antes_de_implementar",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_5_ficheros_afectados",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_6_tests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_7_definici\u00f3n_de_hecho",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L89",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_8_no_objetivos",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_spec_journey_oscuro_escala_tipogr\u00e1fica_de_cartel_de_la_presentaci\u00f3n",
+      "target": "docs_superpowers_specs_2026_08_02_journey_deck_tipografia_design_9_desviaciones_de_implementaci\u00f3n",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-02-journey-overlay-transition-design.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -53803,5 +54046,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "3394bcb5152a21043ddb0b0046f5eb33c22c9189"
+  "built_at_commit": "6b706b5e190752e2a73ac7fece94256a660e057e"
 }

@@ -995,18 +995,18 @@
     "semantic_hash": ""
   },
   "src/components/sections/Journey/Journey.test.tsx": {
-    "mtime": 1785683091.9408174,
-    "ast_hash": "6db277b71f85943dafb310b0f5913481",
+    "mtime": 1785689645.0134664,
+    "ast_hash": "85845fd004d5a1daf15394f77daa9b80",
     "semantic_hash": ""
   },
   "src/components/sections/Journey/Journey.tsx": {
-    "mtime": 1785683178.3797348,
-    "ast_hash": "96ba19db0f05dda9fc5e98152606808b",
+    "mtime": 1785689874.2515316,
+    "ast_hash": "686e9d2be94b2d29099fb9027443628c",
     "semantic_hash": ""
   },
   "src/components/sections/Journey/journey.layers.ts": {
-    "mtime": 1785682998.7617722,
-    "ast_hash": "e7a2e6375ddc6093ae716920e9ebfbd3",
+    "mtime": 1785689912.7403123,
+    "ast_hash": "06aa2c580bc1bce153b95d1a9366a03f",
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.layers.ts": {
@@ -1975,13 +1975,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Journey/journey.deck.tsx": {
-    "mtime": 1785682991.8422167,
-    "ast_hash": "4c605e1c41105eb17f8b89382ba89b7e",
+    "mtime": 1785689553.7950473,
+    "ast_hash": "22c55b78dfa258af2c3b81244a37b29c",
     "semantic_hash": ""
   },
   "src/components/sections/Journey/journey.layers.test.ts": {
-    "mtime": 1785683014.137011,
-    "ast_hash": "58c897355a03b1c24621bb20e8030a41",
+    "mtime": 1785689777.6235871,
+    "ast_hash": "ea781626cbc30789c0e1a17eb832abe4",
     "semantic_hash": ""
   },
   "src/hooks/useSlideDeck.test.tsx": {
@@ -1997,6 +1997,11 @@
   "docs/superpowers/specs/2026-08-02-journey-deck-8-diapositivas-design.md": {
     "mtime": 1785684449.2652361,
     "ast_hash": "df91a9d847e5ce0bc85f6ee6cf94a008",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-02-journey-deck-tipografia-design.md": {
+    "mtime": 1785690493.1173868,
+    "ast_hash": "74b92719266521617358863ad3faebc7",
     "semantic_hash": ""
   }
 }
