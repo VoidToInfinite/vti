@@ -2,11 +2,58 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import { Features } from "./Features";
-import { FEATURE_KEYS } from "./features.layers";
+import {
+  FEATURE_KEYS,
+  FEATURES_OVERLAY_RISE,
+  FEATURES_DARK_HEIGHT,
+  FEATURES_CONTENT_MAX_WIDTH,
+} from "./features.layers";
+import {
+  JOURNEY_DARK_HEIGHT,
+  JOURNEY_DECK_TAIL_SCREENS,
+} from "@/components/sections/Journey/journey.layers";
+import { FEATURES_ORBITAL_LAYERS } from "@/components/featuresCelestialOrbital/featuresCelestialOrbital.layers";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
 let trigger: (isIntersecting: boolean) => void;
+
+/** Texto de TODAS las reglas CSS inyectadas por styled-components hasta el
+ *  momento (mismo helper que `Journey.test.tsx`/`Story.test.tsx`). */
+function injectedCss(): string {
+  return Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    })
+    .join("\n");
+}
+
+/**
+ * Texto CSS de las reglas que styled-components inyectó para un elemento
+ * CONCRETO (mismo helper que `Journey.test.tsx`): filtra por las clases del
+ * propio elemento, así que a diferencia de `injectedCss()` no arrastra el
+ * resto del stylesheet acumulado -- imprescindible para acotar un guard de
+ * `@media` a un solo componente sin caer en la trampa ya registrada
+ * (task/lessons.md, 2026-08-02: "un test que trocea el CSS inyectado por
+ * @media se contamina con el stylesheet entero").
+ */
+function cssRuleTextFor(el: HTMLElement): string {
+  const classes = Array.from(el.classList);
+  return Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    })
+    .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+    .join("\n");
+}
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -152,18 +199,6 @@ describe("Features", () => {
     // ningún otro bloque de reduced-motion del componente (`ScCard`, `ScCta`,
     // que solo anulan el hover) declara ninguna de las dos, así que solo el
     // guard de `ScItem` puede satisfacerlas.
-    function injectedCss(): string {
-      return Array.from(document.styleSheets)
-        .flatMap((sheet) => {
-          try {
-            return Array.from(sheet.cssRules).map((rule) => rule.cssText);
-          } catch {
-            return [];
-          }
-        })
-        .join("\n");
-    }
-
     it("declara un bloque @media (prefers-reduced-motion: reduce) que fuerza el estado final revelado", () => {
       renderWithProviders(<Features />);
       const css = injectedCss();
@@ -218,10 +253,12 @@ describe("Features en tema oscuro", () => {
     window.localStorage.clear();
   });
 
-  it("monta el fondo FeaturesCelestialGuide (10 capas decorativas) en vez de las 3 tarjetas con figura propia", async () => {
+  it("monta el fondo FeaturesCelestialOrbital (FEATURES_ORBITAL_LAYERS.length capas decorativas) en vez de las 3 tarjetas con figura propia", async () => {
     const { container } = renderWithProviders(<Features />);
     await waitFor(() => {
-      expect(container.querySelectorAll("img")).toHaveLength(10);
+      expect(container.querySelectorAll("img")).toHaveLength(
+        FEATURES_ORBITAL_LAYERS.length,
+      );
     });
     container
       .querySelectorAll("img")
@@ -259,5 +296,109 @@ describe("Features en tema oscuro", () => {
         container.querySelector(`img[alt="${alt}"]`),
       ).not.toBeInTheDocument();
     });
+  });
+
+  // Tests 1-6, 11 de §7, spec
+  // `2026-08-02-features-overlay-celestial-orbital-design.md`. Por texto del
+  // CSS inyectado / DOM, nunca `getComputedStyle`: jsdom no evalua `@media`
+  // (lección repo 2026-07-27) y un literal escrito a mano deja de proteger en
+  // silencio si la constante que describe cambia (lección repo 2026-08-01).
+
+  it("declara el solape con margin-block-start negativo leyendo FEATURES_OVERLAY_RISE, no un literal a mano (test 1)", () => {
+    renderWithProviders(<Features />);
+    const css = injectedCss();
+    expect(css).toContain(
+      `margin-block-start: calc(-1 * ${FEATURES_OVERLAY_RISE})`,
+    );
+  });
+
+  it("bajo prefers-reduced-motion: reduce anula el solape devolviendo margin-block-start a 0 (test 2, D6)", () => {
+    renderWithProviders(<Features />);
+    const css = injectedCss();
+    // Misma tecnica que el test 2 de Journey.test.tsx (D6): la MISMA linea
+    // tiene que ser a la vez un bloque reduce y mencionar
+    // margin-block-start, para no arrastrar el resto del stylesheet
+    // acumulado (lección repo 2026-08-02, contamina con
+    // margin-block-start de otros componentes como ScDarkFeatures).
+    const featuresReduceLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("margin-block-start"),
+      );
+    expect(featuresReduceLine).toBeDefined();
+    expect(featuresReduceLine).toMatch(/margin-block-start:\s*0[;}]/);
+  });
+
+  it("topa el contenido con max-width leyendo FEATURES_CONTENT_MAX_WIDTH, no un literal a mano (test 3, D8)", () => {
+    renderWithProviders(<Features />);
+    const css = injectedCss();
+    expect(css).toContain(`max-width: ${FEATURES_CONTENT_MAX_WIDTH}`);
+  });
+
+  it("declara el slot de la escena pegado (position: sticky; top: 0; height derivado de FEATURES_DARK_HEIGHT) y ScFeatures no declara ningun overflow (test 4, D7 -- el fallo que rompe el pin en silencio)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const slot = section.firstElementChild as HTMLElement;
+
+    const slotCss = cssRuleTextFor(slot);
+    expect(slotCss).toContain("position: sticky");
+    expect(slotCss).toContain("top: 0");
+    expect(slotCss).toContain(`height: ${FEATURES_DARK_HEIGHT}`);
+
+    const sectionCss = cssRuleTextFor(section);
+    expect(sectionCss).not.toMatch(/overflow/);
+  });
+
+  it("bajo prefers-reduced-motion el slot de la escena pasa a position: static (test 5, D15)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const slot = section.firstElementChild as HTMLElement;
+
+    const slotCss = cssRuleTextFor(slot);
+    const slotReduceLine = slotCss
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("position"),
+      );
+    expect(slotReduceLine).toBeDefined();
+    expect(slotReduceLine).toMatch(/position:\s*static/);
+  });
+
+  it("no queda ningun rastro del nombre celestial-guide, ni en el CSS inyectado ni en el DOM renderizado (test 11, D16)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const css = injectedCss();
+    expect(css).not.toContain("celestial-guide");
+    expect(container.innerHTML).not.toContain("celestial-guide");
+  });
+});
+
+/*
+ * Invariante D5 (spec `2026-08-02-features-overlay-celestial-orbital-design.md`,
+ * test §7.6). Es el ÚNICO punto del repo donde los datos de Features y
+ * Journey se miran a la cara: el solape de Features (`FEATURES_OVERLAY_RISE`)
+ * y la zona de hold al final de la pista de Journey (`JOURNEY_DECK_TAIL_SCREENS`
+ * pantallas de `JOURNEY_DARK_HEIGHT`) TIENEN que medir lo mismo. Los ficheros
+ * de datos de cada sección no se importan entre sí a propósito (acoplarlos
+ * mezclaría los datos de dos secciones que no se conocen), así que la
+ * igualdad no puede vivir en ninguno de los dos: vive aquí, en un test, que
+ * es lo único que impide de verdad la regresión.
+ */
+describe("invariante solape de Features ↔ cola de la pista de Journey (D5)", () => {
+  it("FEATURES_OVERLAY_RISE mide exactamente un stage de Journey, y ese stage se reserva con una pantalla de hold (test 6)", () => {
+    expect(FEATURES_OVERLAY_RISE).toBe(JOURNEY_DARK_HEIGHT);
+    expect(JOURNEY_DECK_TAIL_SCREENS).toBe(1);
   });
 });

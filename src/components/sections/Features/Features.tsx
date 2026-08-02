@@ -7,7 +7,7 @@ import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
-import { FeaturesCelestialGuide } from "@/components/featuresCelestialGuide/FeaturesCelestialGuide";
+import { FeaturesCelestialOrbital } from "@/components/featuresCelestialOrbital/FeaturesCelestialOrbital";
 import {
   FEATURE_KEYS,
   FEATURE_CARD_VISUALS,
@@ -21,25 +21,42 @@ import {
   FEATURES_GAMING_TITLE_GRADIENT,
   FEATURES_GAMING_ACCENT,
   FEATURES_GAMING_ACCENT_HOVER,
-  FEATURES_DARK_MAX_WIDTH,
-  FEATURES_DARK_MIN_HEIGHT,
+  FEATURES_OVERLAY_RISE,
+  FEATURES_DARK_HEIGHT,
+  FEATURES_CONTENT_MAX_WIDTH,
   type FeatureKey,
 } from "./features.layers";
 
 /*
- * Rama OSCURA (2026-07-30, mismo criterio que Story/Journey): no hay mockup
- * oscuro. En vez de las 3 tarjetas con patrón SVG + figura propia + fondo
- * pastel, el fondo es `FeaturesCelestialGuide` (imagen plana, sin capas -- a
- * diferencia de Story/Journey no hay parallax que fingir aquí) y el
- * contenido (mismo i18n `Home.features.*`) se superpone a la DERECHA (la
- * figura y los 6 iconos del fondo quedan a la izquierda del encuadre, al
- * revés que Story/Journey). Las 3 identidades se re-maquetan como bloques
- * verticales separados por `border-top` (mismo patrón de lista que Story/
- * Journey) en vez de tarjetas con patrón/fondo propio -- esos son literales
- * de una tarjeta con fondo pastel (D10), sin sentido superpuestos a una
- * imagen. Los bullets/CTA SÍ se reutilizan tal cual (`ScBullets`/
+ * Rama OSCURA (2026-07-30, mismo criterio que Story/Journey; reescrita
+ * 2026-08-02, spec
+ * `docs/superpowers/specs/2026-08-02-features-overlay-celestial-orbital-design.md`):
+ * no hay mockup oscuro. En vez de las 3 tarjetas con patrón SVG + figura
+ * propia + fondo pastel, el fondo es `FeaturesCelestialOrbital` -- escena de
+ * 7 capas WebP compuestas con alpha normal y animadas con `useSceneParallax`
+ * (mismo hook que Story/Journey). El docblock anterior de esta sección
+ * afirmaba lo contrario -- "imagen plana, sin capas -- a diferencia de
+ * Story/Journey no hay parallax que fingir aquí" -- y era falso desde el
+ * commit `49e8ef6` (2026-07-30), que ya había dado a la escena SALIENTE
+ * (`FeaturesCelestialGuide`, 10 capas) sus capas y su parallax: el
+ * comentario describía una entrega anterior del mismo día y nunca se
+ * actualizó. El contenido (mismo i18n `Home.features.*`) se superpone a la
+ * DERECHA (la figura y los iconos del fondo quedan a la izquierda del
+ * encuadre, al revés que Story/Journey). Las 3 identidades se re-maquetan
+ * como bloques verticales separados por `border-top` (mismo patrón de lista
+ * que Story/Journey) en vez de tarjetas con patrón/fondo propio -- esos son
+ * literales de una tarjeta con fondo pastel (D10), sin sentido superpuestos
+ * a una imagen. Los bullets/CTA SÍ se reutilizan tal cual (`ScBullets`/
  * `ScBulletItem`/`ScCheckIcon`/`ScCta`, más abajo): ya resuelven contra
  * `accentColor`/tokens de tema, no contra el fondo de la tarjeta.
+ *
+ * Desde esta entrega, además, Features SUBE sobre Journey al final de su
+ * presentación de diapositivas (D2/D5, superposición por
+ * `margin-block-start` negativo -- misma técnica que Story→Journey) y su
+ * escena vive en un slot PEGADO (D7) independiente del contenido, no en un
+ * `ScScene` que ocupe la sección entera: ver los docblocks de
+ * `ScFeatures`/`ScDarkSceneSlot`/`ScDarkFrame`, más abajo, para el
+ * razonamiento completo.
  */
 
 /*
@@ -84,27 +101,56 @@ function accentColorHover(theme: ThemeDefinition, key: FeatureKey): string {
 
 /*
  * Rama clara: contenedor normal (padding + tope de ancho, centrado -- sin
- * cambios). Rama oscura ($fullBleed): misma caja acotada y centrada que
- * Story/Journey (`FEATURES_DARK_MAX_WIDTH`), pero con `min-height` en vez de
- * una altura fija en `dvh` -- ver el docblock de `FEATURES_DARK_MIN_HEIGHT`
- * en `features.layers.ts` (esta sección tiene bastante más contenido que
- * las otras dos y una altura fija con overflow:hidden lo recortaria).
- * `justify-content: flex-end`: el contenido va a la DERECHA (el vacío del
- * fondo está a la derecha en esta composición, al revés que Story/Journey).
+ * cambios).
+ *
+ * Rama oscura ($fullBleed, D2/D7/D11, spec
+ * `2026-08-02-features-overlay-celestial-orbital-design.md`): la sección
+ * deja de tener caja propia -- pierde `max-width`, `margin-inline: auto`,
+ * `min-height` y el `display: flex` que centraba el contenido -- porque
+ * ahora son `ScDarkSceneSlot` y `ScDarkFrame` (más abajo) quienes miden el
+ * slot de la escena y el contenido por separado. D7: el contenido de
+ * Features -- tres identidades con título, cuerpo, cuatro bullets y CTA cada
+ * una -- es el más alto de la página y desborda una pantalla en viewports de
+ * portátil; una escena que midiera lo mismo que la sección se estiraría y el
+ * `object-fit: cover` recortaría el arte justo donde vive el vacío que ocupa
+ * el texto.
+ *
+ * PIERDE `overflow: hidden` (D7): la pérdida NO es cosmética -- es EL FALLO
+ * QUE ROMPERÍA EL PIN ENTERO EN SILENCIO, sin ningún error en consola que lo
+ * delate. Cualquier ancestro con `overflow` distinto de `visible`/`clip`
+ * desactiva el `position: sticky` de un descendiente: si `ScFeatures`
+ * conservara su `overflow: hidden`, sería el ancestro que desactivaría el
+ * `sticky` de `ScDarkSceneSlot` y la escena dejaría de quedarse pegada
+ * mientras el contenido pasa por delante -- mismo fallo que D7 de
+ * `2026-08-02-journey-overlay-transition-design.md` documentó para
+ * `ScJourney`. El recorte del overscan de la escena lo hace `ScScene`
+ * (`featuresCelestialOrbital.parts.tsx`), que ya declara su propio
+ * `overflow: hidden` y no es ancestro de sí mismo.
+ *
+ * CONSERVA `position: relative`, el solape `margin-block-start` negativo con
+ * su guard de `reduce` (mecánica idéntica a `ScJourney`, `Journey.tsx`, y a
+ * las dos entregas anteriores de esta serie) y `background-color` explícito
+ * -- `theme.data.semantic.bg`, NO `palette.secondary[1100]` en crudo (D10):
+ * `src/theme/tokens/semantic.ts:63` declara `bg: color.secondary[1100]` para
+ * el tema oscuro, así que es el mismo valor del encargo sin saltarse la capa
+ * de tokens (esta rama solo existe en oscuro, D1, así que el rol semántico
+ * lo da sin ambigüedad). `z-index: 2` (D11): escalera explícita de la
+ * página -- Story (auto) → Journey (1) → Features (2).
  */
 const ScFeatures = styled.section<{ $fullBleed: boolean }>`
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`
           position: relative;
-          overflow: hidden;
-          width: 100%;
-          max-width: ${FEATURES_DARK_MAX_WIDTH};
-          min-height: ${FEATURES_DARK_MIN_HEIGHT};
-          margin-inline: auto;
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
+          z-index: 2;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          background-color: ${theme.data.semantic.bg};
+          margin-block-start: calc(-1 * ${FEATURES_OVERLAY_RISE});
+
+          @media (prefers-reduced-motion: reduce) {
+            margin-block-start: 0;
+          }
         `
       : css`
           padding: ${theme.data.space[8]} ${theme.data.space[5]}
@@ -412,16 +458,86 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
   }
 `;
 
-/* Reveal de la rama oscura: mismo mecanismo que `ScDarkContent` en
-   Story.tsx/Journey.tsx -- lleva su propio padding/tope de ancho (`ScFeatures`,
-   en `$fullBleed`, ya no aporta ninguno). */
-const ScDarkContent = styled.div`
+/*
+ * Slot pegado de la escena (D7): por qué vive AQUÍ y no en un `ScScene` con
+ * `inset: 0` sobre la sección entera, como hizo Journey
+ * (`ScJourneySceneWrap`, `journey.deck.tsx`). Con `inset: 0` la escena
+ * mediría lo que mide la SECCIÓN, y el contenido de Features -- tres
+ * identidades con título, cuerpo, cuatro bullets y CTA cada una -- es el más
+ * alto de la página y desborda una pantalla en viewports de portátil: la
+ * escena se estiraría a esa altura real y el `object-fit: cover` recortaría
+ * el arte por los lados, justo donde vive el vacío que ocupa el texto. El
+ * slot desacopla las dos medidas: la escena mide SIEMPRE una pantalla
+ * (`FEATURES_DARK_HEIGHT`) y el contenido (`ScDarkFrame`, debajo) mide lo
+ * que mide. Es además lo que pide el encargo sin condiciones: "la imagen del
+ * parallax debe ocupar el ancho y alto de la pantalla del dispositivo".
+ *
+ * Comparte celda de grid con `ScDarkFrame` (los dos declaran
+ * `grid-area: 1 / 1`; `ScFeatures` es `display: grid`) en vez de resolverse
+ * con un `margin-block-end` negativo sobre este slot: ese margen negativo
+ * alteraría el rectángulo de restricción del propio `sticky` y lo dejaría
+ * viajar una pantalla más allá del final de la sección, pintando sobre
+ * Contact. La celda compartida superpone las dos piezas sin tocar ninguna
+ * caja -- mismo recurso que ya usa este repo en `ScJourneySlide`
+ * (`journey.deck.tsx`), no `position: absolute`.
+ *
+ * Guard de `reduce` (D15): el `sticky` en sí no es animación, pero un fondo
+ * clavado mientras el texto pasa por delante es movimiento relativo, que es
+ * justo lo que `reduce` pide evitar. En `static` la escena aparece una vez,
+ * con sus proporciones intactas (conserva su pantalla de alto), y el resto
+ * de la sección queda sobre el `background-color` de `ScFeatures`, que es
+ * exactamente el `secondary[1100]` del encargo. Mismo criterio y mismo
+ * desenlace que el guard de `ScJourneySceneWrap`.
+ */
+const ScDarkSceneSlot = styled.div`
+  grid-area: 1 / 1;
+  align-self: start;
+  position: sticky;
+  top: 0;
+  height: ${FEATURES_DARK_HEIGHT};
+
+  @media (prefers-reduced-motion: reduce) {
+    position: static;
+  }
+`;
+
+/*
+ * Marco del contenido (D7/D8): comparte celda de grid con `ScDarkSceneSlot`
+ * (ver su docblock, arriba) y es quien centra/topa el CONTENIDO
+ * (`FEATURES_CONTENT_MAX_WIDTH`, D8) mientras la escena, en la celda
+ * hermana, mide siempre una pantalla exacta. `min-height` en vez de una
+ * altura fija: si el contenido real desborda una pantalla (viewports de
+ * portátil, D7), el marco crece con él y arrastra a `ScFeatures` -- que ya
+ * no tiene alto propio -- en vez de recortarlo. `z-index: 1`: dentro de la
+ * sección tiene que ganar la pintura sobre `ScDarkSceneSlot`, que no declara
+ * ninguno (la escalera de página, D11, ya la fija `ScFeatures`).
+ * `justify-content: flex-end`: el contenido va a la DERECHA (el vacío del
+ * fondo está a la derecha en esta composición, al revés que Story/Journey)
+ * -- mismo criterio que la sección conservaba antes de esta entrega.
+ */
+const ScDarkFrame = styled.div`
+  grid-area: 1 / 1;
   position: relative;
   z-index: 1;
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  min-height: ${FEATURES_DARK_HEIGHT};
   width: 100%;
+  max-width: ${FEATURES_CONTENT_MAX_WIDTH};
+  margin-inline: auto;
   padding: ${({ theme }) => theme.data.space[8]}
     ${({ theme }) => theme.data.space[6]};
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+`;
+
+/* Reveal de la rama oscura: mismo mecanismo que `ScDarkContent` en
+   Story.tsx/Journey.tsx. PIERDE su `padding` (ahora lo lleva `ScDarkFrame`,
+   arriba) y su `position: relative; z-index: 1` (ahora los lleva el frame,
+   que es quien compite por celda de grid con `ScDarkSceneSlot`) -- este
+   elemento ya no necesita su propio contexto de apilamiento. */
+const ScDarkContent = styled.div`
+  max-width: ${({ theme }) => theme.data.grid.prose};
+  width: 100%;
   opacity: 0;
   transform: translateY(16px);
   transition:
@@ -486,77 +602,81 @@ export function Features(): ReactElement {
         aria-labelledby="features-title"
         $fullBleed
       >
-        <FeaturesCelestialGuide />
-        <ScDarkContent
-          ref={revealRef}
-          data-revealed={revealed}
-        >
-          <ScDarkHeader>
-            <ScKicker
-              variant="overline"
-              forwardedAs="p"
-            >
-              {t("Home.features.kicker")}
-            </ScKicker>
-            <Typography
-              variant="h2"
-              id="features-title"
-            >
-              <ScSpanLearning>
-                {t("Home.features.learning.title")}
-              </ScSpanLearning>{" "}
-              <ScSpanImagination>
-                {t("Home.features.imagination.title")}
-              </ScSpanImagination>{" "}
-              <ScSpanGaming>{t("Home.features.gaming.title")}</ScSpanGaming>
-            </Typography>
-          </ScDarkHeader>
+        <ScDarkSceneSlot>
+          <FeaturesCelestialOrbital />
+        </ScDarkSceneSlot>
+        <ScDarkFrame>
+          <ScDarkContent
+            ref={revealRef}
+            data-revealed={revealed}
+          >
+            <ScDarkHeader>
+              <ScKicker
+                variant="overline"
+                forwardedAs="p"
+              >
+                {t("Home.features.kicker")}
+              </ScKicker>
+              <Typography
+                variant="h2"
+                id="features-title"
+              >
+                <ScSpanLearning>
+                  {t("Home.features.learning.title")}
+                </ScSpanLearning>{" "}
+                <ScSpanImagination>
+                  {t("Home.features.imagination.title")}
+                </ScSpanImagination>{" "}
+                <ScSpanGaming>{t("Home.features.gaming.title")}</ScSpanGaming>
+              </Typography>
+            </ScDarkHeader>
 
-          <ScDarkFeatures>
-            {FEATURE_KEYS.map((key) => (
-              <ScDarkFeatureBlock key={key}>
-                <Typography
-                  variant="h3"
-                  id={`feature-${key}-title`}
-                >
-                  {t(`Home.features.${key}.title`)}
-                </Typography>
-                <ScDarkBody variant="bodySm">
-                  {t(`Home.features.${key}.body`)}
-                </ScDarkBody>
-                <ScBullets $twoColumns={key === "learning"}>
-                  {BULLET_KEYS.map((bulletKey) => (
-                    <ScBulletItem key={bulletKey}>
-                      <ScCheckIcon
-                        $key={key}
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        focusable="false"
-                      >
-                        <path d={FEATURES_CHECK_ICON_PATH} />
-                      </ScCheckIcon>
-                      <span>
-                        {t(`Home.features.${key}.bullets.${bulletKey}`)}
-                      </span>
-                    </ScBulletItem>
-                  ))}
-                </ScBullets>
-                <ScCta
-                  href="#contact"
-                  $key={key}
-                >
-                  {t(`Home.features.${key}.cta`)} →
-                </ScCta>
-              </ScDarkFeatureBlock>
-            ))}
-          </ScDarkFeatures>
-        </ScDarkContent>
+            <ScDarkFeatures>
+              {FEATURE_KEYS.map((key) => (
+                <ScDarkFeatureBlock key={key}>
+                  <Typography
+                    variant="h3"
+                    id={`feature-${key}-title`}
+                  >
+                    {t(`Home.features.${key}.title`)}
+                  </Typography>
+                  <ScDarkBody variant="bodySm">
+                    {t(`Home.features.${key}.body`)}
+                  </ScDarkBody>
+                  <ScBullets $twoColumns={key === "learning"}>
+                    {BULLET_KEYS.map((bulletKey) => (
+                      <ScBulletItem key={bulletKey}>
+                        <ScCheckIcon
+                          $key={key}
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path d={FEATURES_CHECK_ICON_PATH} />
+                        </ScCheckIcon>
+                        <span>
+                          {t(`Home.features.${key}.bullets.${bulletKey}`)}
+                        </span>
+                      </ScBulletItem>
+                    ))}
+                  </ScBullets>
+                  <ScCta
+                    href="#contact"
+                    $key={key}
+                  >
+                    {t(`Home.features.${key}.cta`)} →
+                  </ScCta>
+                </ScDarkFeatureBlock>
+              ))}
+            </ScDarkFeatures>
+          </ScDarkContent>
+        </ScDarkFrame>
       </ScFeatures>
     );
   }

@@ -76,12 +76,18 @@ export const CONTACT_NEON_OVERSCAN = 1.06;
 
 /**
  * Negro-azulado del lienzo (`--void` del paquete original,
- * `parallax-neon-galaxy.html` §`:root`). Copiado VERBATIM. Es el MISMO
- * literal que `FEATURES_CELESTIAL_VOID` (`#02040e`) — los dos paquetes
- * vienen de la misma generación y comparten el void, pero cada sección
- * declara su propia constante (no se importa una de otra). Journey también
- * lo compartía hasta el 2026-08-01; su escena nueva (`JourneyCosmicPortal`)
- * llega de otra generación y trae su propio lienzo, `#0b0620`.
+ * `parallax-neon-galaxy.html` §`:root`). Copiado VERBATIM.
+ *
+ * Hasta el 2026-08-02 este literal lo compartía con `FEATURES_CELESTIAL_VOID`
+ * (la escena «Celestial Guide» de Features, del mismo paquete generado), y
+ * antes del 2026-08-01 también con la escena de Journey. Hoy **no lo comparte
+ * con ninguna**: Journey trajo su propio lienzo con `JourneyCosmicPortal`
+ * (`#0b0620`) y Features hizo lo mismo con `FeaturesCelestialOrbital`
+ * (`#150b2e`, spec `2026-08-02-features-overlay-celestial-orbital-design.md`,
+ * D12). Que las tres coincidieran nunca fue una referencia cruzada — cada
+ * sección declara su propia constante y ninguna importa la de otra — así que
+ * quedarse sola no cambia nada de esta escena; solo deja de ser cierta la
+ * coincidencia que este comentario documentaba.
  */
 export const CONTACT_NEON_VOID = "#02040e";
 
