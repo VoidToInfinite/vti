@@ -6,9 +6,11 @@ import {
   JOURNEY_DARK_HEIGHT,
   JOURNEY_DECK_PADDING_INLINE_END,
   JOURNEY_DECK_QUOTE_SIZE,
-  JOURNEY_DECK_STEP_BODY_SIZE,
+  JOURNEY_DECK_QUOTE_WEIGHT,
   JOURNEY_DECK_STEP_ICON_SIZE,
   JOURNEY_DECK_STEP_LABEL_SIZE,
+  JOURNEY_DECK_STEP_LABEL_WEIGHT,
+  JOURNEY_DECK_STEP_SUBTITLE_SIZE,
   JOURNEY_DECK_TITLE_SIZE,
   JOURNEY_DECK_TRACK_HEIGHT,
   JOURNEY_SCENE_DEPTH_SHIFT,
@@ -343,17 +345,21 @@ function stepColor(
  * Familia y color salen de los MISMOS tokens que Typography aplica a
  * CUALQUIER variante (`ScTypography`: font-family type.fontBody, color
  * semantic.text). Peso/interlineado/tracking siguen el token de la variante
- * cuyo ROL sustituye cada pieza (documentado pieza a pieza mas abajo); solo
- * el TAMANO es nuevo (las constantes de journey.layers.ts). La UNICA
- * excepcion deliberada -- ScJourneyStepIconBox, que SI toma el color de la
- * rampa del paso en vez de semantic.text -- sigue el mismo precedente que
- * ScPillarNumber en Story.tsx (un marcador por item, no texto de cartel
- * generico) y esta documentada en su propio docblock, mas abajo. Hasta
- * 2026-08-02 habia una SEGUNDA excepcion, ScJourneyStepNumber (el numero de
- * paso "01".."06" de la diapositiva): se retiro por completo, junto con su
- * constante de tamano (JOURNEY_DECK_STEP_NUMBER_SIZE, journey.layers.ts), al
- * quitar la numeracion de esta rama por encargo explicito del usuario -- la
- * rama clara de Journey conserva la suya, sin cambios.
+ * cuyo ROL sustituye cada pieza (documentado pieza a pieza mas abajo), SALVO
+ * donde el propio docblock de la pieza declare una excepcion explicita:
+ * ScJourneyStepLabel y ScJourneyQuote toman su font-weight de una constante
+ * PROPIA (900), no del token h5/600 que sustituyen -- excepcion deliberada a
+ * type.scale (se detiene en 800), spec 2026-08-02-journey-deck-tipografia-
+ * design.md, T3/T6. La UNICA excepcion de COLOR -- ScJourneyStepIconBox, que
+ * SI toma el color de la rampa del paso en vez de semantic.text -- sigue el
+ * mismo precedente que ScPillarNumber en Story.tsx (un marcador por item, no
+ * texto de cartel generico) y esta documentada en su propio docblock, mas
+ * abajo. Hasta 2026-08-02 habia una SEGUNDA excepcion, ScJourneyStepNumber
+ * (el numero de paso "01".."06" de la diapositiva): se retiro por completo,
+ * junto con su constante de tamano (JOURNEY_DECK_STEP_NUMBER_SIZE,
+ * journey.layers.ts), al quitar la numeracion de esta rama por encargo
+ * explicito del usuario -- la rama clara de Journey conserva la suya, sin
+ * cambios.
  */
 export const ScJourneyDeckTitle = styled.h2`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -389,7 +395,7 @@ export const ScJourneyIntroBody = styled.p`
 
 /*
  * Envoltorio del icono de cada diapositiva de paso (D11): a diferencia de
- * ScJourneyDeckTitle/ScJourneyStepLabel/ScJourneyStepBody, este SI toma el
+ * ScJourneyDeckTitle/ScJourneyStepLabel/ScJourneyStepSubtitle, este SI toma el
  * color de la rampa del paso (stepColor), no semantic.text -- es el mismo
  * tratamiento que ya llevaba el icono en las dos ramas anteriores (ScDisc en
  * claro, ScDarkStepIcon en oscuro, este ultimo retirado con esta entrega):
@@ -419,10 +425,27 @@ export const ScJourneyStepIconBox = styled.span<{
  * (ScStepLabel/ScDarkStepLabel); ahora es la pieza de cartel que se lleva
  * TODO el tamano (JOURNEY_DECK_STEP_LABEL_SIZE). `<p>`, no `<h3>` (D14): el
  * h2#journey-title de la diapositiva de intro sigue siendo el UNICO
- * encabezado accesible de la seccion. Mismo rol tipografico que
- * ScDeckPillarTitle en story.deck.tsx (titulo corto de una pieza de cartel):
- * peso/interlineado/tracking de h5, color semantic.text -- el color de la
- * rampa se queda exclusivamente en el icono (ScJourneyStepIconBox).
+ * encabezado accesible de la seccion. El color se queda en semantic.text --
+ * el de la rampa sigue siendo exclusivo del icono (ScJourneyStepIconBox).
+ *
+ * Tamano y peso, T2/T3 (spec 2026-08-02-journey-deck-tipografia-design.md):
+ * JOURNEY_DECK_STEP_LABEL_SIZE crece de un tramo comparable al titulo de
+ * pilar de Story (tope 3rem) a ser el elemento DOMINANTE de la diapositiva
+ * (tope 11rem, literal del encargo -- ver el docblock de la constante en
+ * journey.layers.ts para lo medido sobre en que viewport se alcanza el
+ * tope). El peso deja de seguir el token h5 (600) y pasa a
+ * JOURNEY_DECK_STEP_LABEL_WEIGHT (900, constante propia y no un token --
+ * type.scale se detiene en 800, ver su docblock).
+ *
+ * line-height CAMBIADO, y esto NO lo pide el encargo -- hay que explicarlo:
+ * type.scale.h5.lineHeight vale 1.35, un factor UNITLESS, y a 11rem eso
+ * resuelve a ~14.9rem de caja de linea para una palabra de una sola linea --
+ * unos 4rem de aire muerto que empujarian el subtitulo fuera de la
+ * composicion. Es el MISMO problema y la MISMA solucion que ScDeckNote
+ * (story.deck.tsx) ya documento al subir a 8rem: se reutiliza
+ * type.scale.display.lineHeight (1.03), el valor ya calibrado del sistema
+ * para texto de cartel, en vez de inventar un numero nuevo para esta pieza.
+ * letter-spacing SIGUE el de h5 -- no hay motivo medido para cambiarlo.
  *
  * margin-block-start SUBIDO de space[2] a space[4] (2026-08-02, al retirar
  * ScJourneyStepNumber junto con la numeracion de esta rama): NO es un
@@ -432,32 +455,39 @@ export const ScJourneyStepIconBox = styled.span<{
  * margin-block-start: space[4] separandolo a EL del icono. Al desaparecer
  * el numero, esta etiqueta pasa a seguir directamente al icono, y el hueco
  * que le corresponde es el que el icono tenia reservado (space[4]), no el
- * space[2] pensado para separar dos textos entre si.
+ * space[2] pensado para separar dos textos entre si. Sin cambios en esta
+ * entrega.
  */
 export const ScJourneyStepLabel = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
   color: ${({ theme }) => theme.data.semantic.text};
   font-size: ${JOURNEY_DECK_STEP_LABEL_SIZE};
-  font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
-  line-height: ${({ theme }) => theme.data.type.scale.h5.lineHeight};
+  font-weight: ${JOURNEY_DECK_STEP_LABEL_WEIGHT};
+  line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.h5.tracking};
   margin-block-start: ${({ theme }) => theme.data.space[4]};
 `;
 
 /*
- * Cuerpo del paso (`steps.<id>.body`): antes se pintaba en rol `caption`
- * (letra pequena de pie de fila, ScStepBody/ScDarkStepBody -- ambos
- * `styled(Typography) variant="caption"`). A pantalla completa, siendo el
- * unico cuerpo de texto de la diapositiva, se promueve al mismo rol de
- * lectura que ScDeckPillarBody en story.deck.tsx: peso/interlineado/
- * tracking de `body` (no de `caption`), text-wrap: balance para evitar una
- * ultima linea corta suelta a este tamano. color: textMuted se conserva de
- * las dos ramas anteriores -- es texto de acompanamiento, no el titular.
+ * Subtitulo del paso (`steps.<id>.body` -- la clave i18n NO se renombra,
+ * mismo criterio que ScDeckPillarSubtitle en story.deck.tsx). RENOMBRADO de
+ * ScJourneyStepBody (T5, spec 2026-08-02-journey-deck-tipografia-design.md):
+ * antes se pintaba en rol `caption` (letra pequena de pie de fila,
+ * ScStepBody/ScDarkStepBody), luego se promovio al rol `body` al pasar a
+ * pantalla completa (entrega de la manana de este mismo dia). Con la
+ * etiqueta subiendo a escala de cartel en ESTA entrega
+ * (JOURNEY_DECK_STEP_LABEL_SIZE, 11rem), este texto deja de ser "el cuerpo"
+ * de la diapositiva -- la etiqueta ya se lleva todo el peso visual -- y pasa
+ * a jugar el rol de SUBTITULO que la acompana. Es un renombrado de ROL: el
+ * VALOR no cambia (JOURNEY_DECK_STEP_SUBTITLE_SIZE sigue siendo
+ * clamp(1rem, 1.4vw, 1.115rem)), y tampoco cambian peso/interlineado/
+ * tracking (siguen los de `body`, no los de `caption`) ni el color
+ * (textMuted, texto de acompanamiento, no el titular).
  */
-export const ScJourneyStepBody = styled.p`
+export const ScJourneyStepSubtitle = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
   color: ${({ theme }) => theme.data.semantic.textMuted};
-  font-size: ${JOURNEY_DECK_STEP_BODY_SIZE};
+  font-size: ${JOURNEY_DECK_STEP_SUBTITLE_SIZE};
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
@@ -473,25 +503,32 @@ export const ScJourneyStepBody = styled.p`
  * tampoco pintaban color visible propio (el span hijo lo reemplaza via
  * background-clip: text).
  *
- * line-height/letter-spacing NO salen de una variante de Typography que
- * esta pieza sustituya (ScQuote/ScDarkQuote, sus antecesoras, tampoco los
- * declaraban -- heredaban el `normal` del navegador a 1rem, donde no se
- * notaba). A JOURNEY_DECK_QUOTE_SIZE (hasta 3.5rem) si se nota: mismo
- * problema y misma solucion que ScDeckNote en story.deck.tsx, la pieza mas
- * parecida en rol estructural (la ultima diapositiva de cada deck, una
- * frase climatica sola en pantalla) -- se toma prestado su
- * type.scale.display.lineHeight (1.03) para evitar el hueco excesivo que
- * dejaria un interlineado normal a este tamano, y su
- * type.scale.bodySm.tracking (0) para no introducir un tracking que nadie
- * pidio. El peso, 600, se conserva LITERAL de ScQuote/ScDarkQuote (no es una
- * cifra nueva de esta entrega, y ninguna variante de la escala coincide con
- * el rol de esta pieza mejor que el valor que ya tenia).
+ * Tamano y peso, T6 (spec 2026-08-02-journey-deck-tipografia-design.md):
+ * JOURNEY_DECK_QUOTE_SIZE crece de un tope de 3.5rem a 8rem y el peso pasa
+ * del `600` literal que llevaba esta pieza (heredado de ScQuote/ScDarkQuote)
+ * a JOURNEY_DECK_QUOTE_WEIGHT (900) -- ver el docblock de las dos constantes
+ * en journey.layers.ts para el porque completo: revierte D10 de la entrega
+ * anterior por decision explicita del usuario, y coincide con
+ * STORY_DECK_NOTE_SIZE/STORY_DECK_NOTE_WEIGHT sin importarlas (T7).
+ *
+ * line-height SIN TOCAR, y esto es deliberado, no un olvido: ya era
+ * type.scale.display.lineHeight (1.03) desde la entrega anterior, cuando el
+ * tope de esta pieza era 3.5rem -- el MISMO problema que resuelve ScDeckNote
+ * en story.deck.tsx (un interlineado de factor unitless que a tamano de
+ * cartel abre un hueco excesivo entre lineas) y la MISMA solucion, ya
+ * aplicada aqui antes de esta entrega. Con el tope creciendo a 8rem el
+ * argumento se refuerza, no cambia: sigue siendo el token correcto para este
+ * tamano, asi que no hay nada que retocar.
+ *
+ * letter-spacing SIN TOCAR (type.scale.bodySm.tracking, 0): tampoco lo pide
+ * el encargo de esta entrega, mismo motivo que antes (no introducir un
+ * tracking que nadie pidio).
  */
 export const ScJourneyQuote = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
   color: ${({ theme }) => theme.data.semantic.text};
   font-size: ${JOURNEY_DECK_QUOTE_SIZE};
-  font-weight: 600;
+  font-weight: ${JOURNEY_DECK_QUOTE_WEIGHT};
   line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.bodySm.tracking};
   text-wrap: balance;

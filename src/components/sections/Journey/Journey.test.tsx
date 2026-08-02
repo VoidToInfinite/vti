@@ -257,17 +257,21 @@ describe("Journey en tema oscuro", () => {
       .forEach((img) => expect(img).toHaveAttribute("alt", ""));
   });
 
-  // Adaptado DOS veces: primero (spec
+  // Adaptado TRES veces: primero (spec
   // 2026-08-02-journey-deck-8-diapositivas-design.md, D11) para separar
-  // numero/etiqueta/cuerpo en TRES nodos de texto; ahora (encargo explicito
+  // numero/etiqueta/cuerpo en TRES nodos de texto; luego (encargo explicito
   // del usuario, 2026-08-02, "quita las numeraciones de la seccion Journey"
   // -- acotado a esta rama tras preguntar el alcance) para quitar el numero
-  // por completo. La diapositiva de paso compone hoy etiqueta+cuerpo: ya no
-  // "0N · Label" concatenado (exclusivo de la rama clara, test aparte mas
-  // arriba en este archivo) ni tampoco un numero suelto. El reparto preciso
-  // por diapositiva, INCLUIDA la ausencia del numero, se comprueba mas abajo
-  // (test 4, D11).
-  it("sigue mostrando el kicker, el titulo, los 6 pasos (etiqueta+cuerpo, sin numero) y la cita con el mismo i18n que en claro", async () => {
+  // por completo; ahora (spec 2026-08-02-journey-deck-tipografia-design.md,
+  // T5) para renombrar el rol de la pieza restante: la diapositiva de paso
+  // compone hoy etiqueta+SUBTITULO -- ya no "cuerpo" (con la etiqueta a
+  // escala de cartel, ese texto pasa a acompanarla, no a ser el cuerpo de la
+  // diapositiva) -- ni "0N · Label" concatenado (exclusivo de la rama clara,
+  // test aparte mas arriba en este archivo) ni un numero suelto. La clave de
+  // i18n sigue siendo `steps.<id>.body` (T5 no la renombra, solo el rol que
+  // pinta). El reparto preciso por diapositiva, INCLUIDA la ausencia del
+  // numero, se comprueba mas abajo (test 4, D11).
+  it("sigue mostrando el kicker, el titulo, los 6 pasos (etiqueta+subtitulo, sin numero) y la cita con el mismo i18n que en claro", async () => {
     renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(screen.getByText(esHome.Home.journey.kicker)).toBeInTheDocument();
@@ -275,15 +279,15 @@ describe("Journey en tema oscuro", () => {
     expect(screen.getByText(esHome.Home.journey.title)).toBeInTheDocument();
     JOURNEY_STEPS.forEach((step, index) => {
       const label = esHome.Home.journey.steps[step.id].label;
-      const body = esHome.Home.journey.steps[step.id].body;
+      const subtitle = esHome.Home.journey.steps[step.id].body;
       // El numero de paso ("01".."06") se retiro de esta rama: sin esta
       // asercion NEGATIVA el test seguiria en verde si alguien lo
       // reintrodujera -- es la mitad que de verdad protege el encargo, no
-      // solo un chequeo de que la etiqueta y el cuerpo siguen ahi.
+      // solo un chequeo de que la etiqueta y el subtitulo siguen ahi.
       const number = String(index + 1).padStart(2, "0");
       expect(screen.queryByText(number)).not.toBeInTheDocument();
       expect(screen.getByText(label)).toBeInTheDocument();
-      expect(screen.getByText(body)).toBeInTheDocument();
+      expect(screen.getByText(subtitle)).toBeInTheDocument();
     });
     expect(
       screen.getByText(`“${esHome.Home.journey.quote}”`),
@@ -443,7 +447,7 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     });
   });
 
-  it("cada diapositiva de paso compone icono, etiqueta y cuerpo -- sin numero -- con el mismo i18n que la rama clara (test 4, D11)", async () => {
+  it("cada diapositiva de paso compone icono, etiqueta y subtitulo -- sin numero -- con el mismo i18n que la rama clara (test 4, D11/T5)", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -454,7 +458,9 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
       container.querySelectorAll("[data-slide-index]"),
     ) as HTMLElement[];
 
-    // Diapositiva 0: kicker + h2#journey-title + cuerpo de intro.
+    // Diapositiva 0: kicker + h2#journey-title + cuerpo de intro (pieza
+    // distinta -- Home.journey.body -- del subtitulo de paso que se
+    // verifica mas abajo; no forma parte del renombrado T5).
     expect(
       within(slides[0]).getByText(esHome.Home.journey.kicker),
     ).toBeInTheDocument();
@@ -468,25 +474,28 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     // Diapositivas 1..JOURNEY_STEPS.length: un paso cada una. D11 componia
     // icono -> numero -> etiqueta -> cuerpo; el numero se retiro por
     // completo (encargo explicito del usuario, 2026-08-02, solo esta rama
-    // -- la clara conserva el suyo, test aparte mas arriba), asi que hoy
-    // compone icono -> etiqueta -> cuerpo. Dos aserciones NEGATIVAS
-    // protegen justo eso: que el texto exacto del numero de este paso
-    // ("01".."06") no aparece, y que NINGUN texto con forma "0N" (la red
-    // mas amplia que pide el encargo, por si un indice se colara en la
-    // diapositiva equivocada) aparece tampoco. Sin ellas el test seguiria
+    // -- la clara conserva el suyo, test aparte mas arriba); despues (T5,
+    // spec 2026-08-02-journey-deck-tipografia-design.md) esa tercera pieza
+    // se renombro de ROL, de "cuerpo" a "subtitulo" (misma clave de i18n,
+    // `steps.<id>.body`, sin renombrar -- T5 no toca datos), asi que hoy
+    // compone icono -> etiqueta -> subtitulo. Dos aserciones NEGATIVAS
+    // protegen la ausencia del numero: que el texto exacto del numero de
+    // este paso ("01".."06") no aparece, y que NINGUN texto con forma "0N"
+    // (la red mas amplia que pide el encargo, por si un indice se colara en
+    // la diapositiva equivocada) aparece tampoco. Sin ellas el test seguiria
     // en verde si alguien reintrodujera la numeracion -- son la mitad que
     // de verdad protege este encargo, no solo un chequeo de que la
-    // etiqueta y el cuerpo siguen ahi. Se comprueba ademas que el formato
-    // "0N · Label" concatenado de la rama clara sigue sin aparecer aqui
-    // (ya lo estaba antes de esta entrega).
+    // etiqueta y el subtitulo siguen ahi. Se comprueba ademas que el
+    // formato "0N · Label" concatenado de la rama clara sigue sin aparecer
+    // aqui (ya lo estaba antes de esta entrega).
     JOURNEY_STEPS.forEach((step, i) => {
       const slide = slides[i + 1];
       const number = String(i + 1).padStart(2, "0");
       const label = esHome.Home.journey.steps[step.id].label;
-      const body = esHome.Home.journey.steps[step.id].body;
+      const subtitle = esHome.Home.journey.steps[step.id].body;
       expect(slide.querySelector("svg")).toBeInTheDocument();
       expect(within(slide).getByText(label)).toBeInTheDocument();
-      expect(within(slide).getByText(body)).toBeInTheDocument();
+      expect(within(slide).getByText(subtitle)).toBeInTheDocument();
       expect(within(slide).queryByText(number)).not.toBeInTheDocument();
       expect(within(slide).queryByText(/^0[1-6]$/)).not.toBeInTheDocument();
       expect(

@@ -276,14 +276,19 @@ export const JOURNEY_SLIDE_SHIFT = "40px";
 export const JOURNEY_SCENE_DEPTH_SHIFT = "6dvh";
 
 /*
- * Escala tipográfica de cartel de la presentación oscura (D10/D11).
- * Constantes PROPIAS, no importadas de `story.layers.ts`: acoplar las dos
- * escalas haría que retocar el cartel de una sección moviera el de la otra,
- * y los contenidos que visten no son equivalentes en longitud -- la nota de
- * cierre de Story son 14 caracteres ("nuevo comienzo"), la cita de cierre de
- * Journey son 45 ("El destino no es el infinito. El viaje lo es."). Cada
- * tope de `clamp()` está calibrado contra el texto REAL de esta sección, no
- * copiado del tramo de Story que más se le parezca por casualidad.
+ * Escala tipográfica de cartel de la presentación oscura (D10/D11, spec
+ * `2026-08-02-journey-deck-8-diapositivas-design.md`; T2/T3/T5/T6/T7, spec
+ * `2026-08-02-journey-deck-tipografia-design.md`). Constantes PROPIAS, no
+ * importadas de `story.layers.ts`: acoplar las dos escalas haría que
+ * retocar el cartel de una sección moviera el de la otra. La mayoría de los
+ * topes de `clamp()` siguen calibrados contra el texto REAL de esta sección
+ * (la etiqueta de paso, una sola palabra; el subtítulo de paso, 60-80
+ * caracteres) -- salvo la cita de cierre (`JOURNEY_DECK_QUOTE_SIZE`/
+ * `JOURNEY_DECK_QUOTE_WEIGHT`), que la spec de tipografía REVIERTE a
+ * propósito para que coincida EXACTAMENTE con la nota de cierre de Story
+ * (`STORY_DECK_NOTE_SIZE`/`STORY_DECK_NOTE_WEIGHT`, 8rem/900). La excepción
+ * se documenta en el docblock de esas dos constantes, más abajo, no aquí,
+ * para no repetir el mismo razonamiento en dos sitios.
  */
 
 /**
@@ -295,25 +300,55 @@ export const JOURNEY_SCENE_DEPTH_SHIFT = "6dvh";
 export const JOURNEY_DECK_TITLE_SIZE = "clamp(2rem, 6vw, 4rem)";
 
 /**
- * Etiqueta de una sola palabra de cada paso ("Descubre".."Evoluciona").
- * Mismo tramo que `STORY_DECK_PILLAR_TITLE_SIZE`: la entrada más larga de la
- * tabla ("Evoluciona", 10 caracteres) es corta y aislada, el mismo perfil
- * que el título de un pilar de Story, así que el mismo tramo de cartel
- * funciona sin recalibrar.
+ * Etiqueta de una sola palabra de cada paso ("Descubre".."Evoluciona"),
+ * elevada a escala de CARTEL (T2, spec
+ * `2026-08-02-journey-deck-tipografia-design.md`): pasa de un tramo
+ * comparable al título de un pilar de Story (tope 3rem) a ser el elemento
+ * DOMINANTE de su diapositiva (tope 11rem, valor literal del encargo).
+ *
+ * Medido, no supuesto: el tope de 11rem solo se alcanza a partir de ~1760px
+ * de viewport, porque `10vw = 11rem` justo ahí (10% de 1760px = 176px =
+ * 11rem a 16px/rem); por debajo de ese ancho manda el término `10vw`, no el
+ * tope. Con el deck acotado a `JOURNEY_CONTENT_MAX_WIDTH` (1280px), el
+ * ancho de la palabra más larga ("Evoluciona", 10 caracteres) frente al
+ * ancho útil del deck se verifica en navegador real (definición de "hecho"
+ * de la spec), no se supone aquí.
  */
-export const JOURNEY_DECK_STEP_LABEL_SIZE = "clamp(1.75rem, 5vw, 3rem)";
+export const JOURNEY_DECK_STEP_LABEL_SIZE = "clamp(1.75rem, 10vw, 11rem)";
 
 /**
- * Cuerpo de cada paso (`steps.<id>.body`, 60-80 caracteres por entrada):
- * mismo tramo que `STORY_DECK_PILLAR_BODY_SIZE`, que viste un texto del
- * mismo rol de lectura (un párrafo corto de acompañamiento bajo un titular
- * de cartel). Antes de esta entrega este texto se pintaba en rol `caption`
- * -- letra pequeña de pie de fila --, un rol que tenía sentido dentro de una
- * lista de seis filas apretadas; a pantalla completa, siendo el único cuerpo
- * de texto de la diapositiva, se promueve al mismo rol de lectura que ya usa
- * Story para un texto equivalente.
+ * Peso de la etiqueta de paso (T3, misma spec). **Excepción deliberada a
+ * `type.scale`**, que se detiene en 800 (`display`): el encargo pide 900 y
+ * ninguna variante del sistema lo declara. Mismo tratamiento y mismo motivo
+ * que `STORY_DECK_NOTE_WEIGHT` (`story.layers.ts`) -- constante propia, no
+ * un token nuevo en `type.scale`, con un test que replica exactamente el
+ * suyo (`journey.layers.test.ts`): si algún día la escala del sistema
+ * incorporara un 900, ese test obliga a decidir si esta constante
+ * desaparece en favor del token, en vez de dejar dos fuentes conviviendo en
+ * silencio.
  */
-export const JOURNEY_DECK_STEP_BODY_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
+export const JOURNEY_DECK_STEP_LABEL_WEIGHT = 900;
+
+/**
+ * Subtítulo de cada paso (`steps.<id>.body`, 60-80 caracteres por entrada),
+ * RENOMBRADO de rol -- no de valor -- por T5 (spec
+ * `2026-08-02-journey-deck-tipografia-design.md`): antes de esta entrega
+ * esta constante se llamaba `JOURNEY_DECK_STEP_BODY_SIZE` y el texto que
+ * pinta jugaba el rol de "cuerpo" de la diapositiva. Con la etiqueta
+ * subiendo a escala de cartel (`JOURNEY_DECK_STEP_LABEL_SIZE`, 11rem), ese
+ * texto deja de ser "el cuerpo" -- la etiqueta ya se lleva todo el peso
+ * visual de la composición -- y pasa a jugar el rol de SUBTÍTULO que la
+ * acompaña, tal como pide el encargo ("new called subtitle"). El VALOR NO
+ * CAMBIA: sigue siendo `clamp(1rem, 1.4vw, 1.115rem)`, el mismo tramo que ya
+ * tenía `JOURNEY_DECK_STEP_BODY_SIZE` (y que `STORY_DECK_PILLAR_BODY_SIZE`
+ * viste para un texto del mismo rol de lectura en Story) -- es un
+ * renombrado de PAPEL, no una recalibración de tamaño. La clave de i18n
+ * (`steps.<id>.body`) tampoco se renombra: el nombre del dato no tiene por
+ * qué coincidir con el nombre del rol que lo pinta (mismo criterio que
+ * `pillars.<key>.body` en Story, que sigue llamándose `body` aunque hace
+ * tiempo se pinta como subtítulo).
+ */
+export const JOURNEY_DECK_STEP_SUBTITLE_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
 
 /**
  * Icono de cada paso (D11): crece de los 20px que medía dentro de una fila
@@ -330,15 +365,48 @@ export const JOURNEY_DECK_STEP_BODY_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
 export const JOURNEY_DECK_STEP_ICON_SIZE = "48px";
 
 /**
- * Cita de cierre (última diapositiva). NO es el mismo tramo que la nota de
- * cierre de Story (`STORY_DECK_NOTE_SIZE`, tope 8rem): ese tope se calibró
- * para "nuevo comienzo", 14 caracteres, que cabe entero incluso a tamaño de
- * cartel extremo. La cita de Journey, "El destino no es el infinito. El
- * viaje lo es.", tiene 45 -- a 8rem ocuparía varias líneas gigantes y se
- * comería media pantalla. El tope se calibra a la baja, contra el texto real
- * de esta sección, no se copia del de Story.
+ * Cita de cierre (última diapositiva). **REVIERTE, a propósito, D10 de la
+ * spec `2026-08-02-journey-deck-8-diapositivas-design.md`** (T6, spec
+ * `2026-08-02-journey-deck-tipografia-design.md`): aquella decisión había
+ * calibrado esta cita a un tope de 3.5rem PRECISAMENTE para no copiar el
+ * 8rem de la nota de cierre de Story, razonando que la cita (45 caracteres,
+ * "El destino no es el infinito. El viaje lo es.") es tres veces más larga
+ * que "nuevo comienzo" (14 caracteres) y que a 8rem ocuparía varias líneas
+ * gigantes y se comería media pantalla. El usuario, en esta entrega, pide
+ * explícitamente el mismo tope que Story y su decisión manda: queda escrito
+ * aquí que es una reversión CONSCIENTE de la decisión anterior, no un olvido
+ * de aquel razonamiento -- el riesgo de desbordamiento que motivó D10 sigue
+ * siendo real y se verifica en navegador (definición de "hecho" de la
+ * spec), no se disimula.
+ *
+ * El valor coincide EXACTAMENTE con `STORY_DECK_NOTE_SIZE` (T7): coincidir
+ * hoy no es depender -- se declara como constante PROPIA, sin importarla de
+ * `story.layers.ts` (ver el docblock de `JOURNEY_DECK_QUOTE_WEIGHT`, justo
+ * abajo, para el razonamiento completo de por qué no se acopla).
  */
-export const JOURNEY_DECK_QUOTE_SIZE = "clamp(1.75rem, 5.5vw, 3.5rem)";
+export const JOURNEY_DECK_QUOTE_SIZE = "clamp(2.5rem, 11vw, 8rem)";
+
+/**
+ * Peso de la cita de cierre (T6, misma spec): sustituye el `600` literal que
+ * llevaba `ScJourneyQuote` hasta hoy. **Excepción deliberada a
+ * `type.scale`**, que se detiene en 800: mismo motivo y mismo tratamiento
+ * que `STORY_DECK_NOTE_WEIGHT`/`JOURNEY_DECK_STEP_LABEL_WEIGHT` -- constante
+ * propia, con un test que obliga a revisar la decisión el día que la escala
+ * del sistema incorpore un 900.
+ *
+ * Coincide EXACTAMENTE con `STORY_DECK_NOTE_WEIGHT` (T7): el tamaño Y el
+ * peso de esta cita son, hoy, los mismos que los de la nota de cierre de
+ * Story. Aun así NO se importan esas constantes -- se declaran las dos
+ * propias, aquí -- porque coincidir hoy no es depender: importar las de
+ * Story ataría el cartel de ESTA sección a cualquier retoque futuro de la
+ * OTRA, exactamente lo que D10 (arriba) evitó la primera vez y lo que el
+ * propio repo ya practica entre secciones (`story.layers.ts` y
+ * `journey.layers.ts` no se importan entre sí en ningún otro punto). Si el
+ * día de mañana esta pareja diverge de la de Story a propósito, el sitio
+ * donde se decide es el test que las compara (`journey.layers.test.ts`), no
+ * un descubrimiento a posteriori en el navegador.
+ */
+export const JOURNEY_DECK_QUOTE_WEIGHT = 900;
 
 /**
  * Hueco extra a la derecha del contenido de cada diapositiva, solo en

@@ -19,9 +19,9 @@ import {
   ScJourneySceneWrap,
   ScJourneySlide,
   ScJourneyStage,
-  ScJourneyStepBody,
   ScJourneyStepIconBox,
   ScJourneyStepLabel,
+  ScJourneyStepSubtitle,
   ScJourneyTrack,
 } from "./journey.deck";
 import {
@@ -564,13 +564,14 @@ export function Journey(): ReactElement {
  *
  * Reparto de las JOURNEY_SLIDES diapositivas (spec seccion 4): 0 = intro
  * (kicker + h2#journey-title + cuerpo), 1..JOURNEY_STEPS.length = un paso
- * cada una (icono -> etiqueta -> cuerpo), la ultima = la cita. `ScKicker`/
- * `ScQuoteText` se REUTILIZAN tal cual (las comparten las dos ramas, arriba
- * en este archivo); el resto de piezas de cartel viven en journey.deck.tsx
- * (`ScJourneyDeckTitle`/`ScJourneyIntroBody`/`ScJourneyStepIconBox`/
- * `ScJourneyStepLabel`/`ScJourneyStepBody`/`ScJourneyQuote`), con su PROPIA
- * escala de tamanos (journey.layers.ts) para no filtrar ningun ajuste a la
- * rama clara.
+ * cada una (icono -> etiqueta -> subtitulo, T5 de la spec
+ * 2026-08-02-journey-deck-tipografia-design.md), la ultima = la cita.
+ * `ScKicker`/`ScQuoteText` se REUTILIZAN tal cual (las comparten las dos
+ * ramas, arriba en este archivo); el resto de piezas de cartel viven en
+ * journey.deck.tsx (`ScJourneyDeckTitle`/`ScJourneyIntroBody`/
+ * `ScJourneyStepIconBox`/`ScJourneyStepLabel`/`ScJourneyStepSubtitle`/
+ * `ScJourneyQuote`), con su PROPIA escala de tamanos (journey.layers.ts)
+ * para no filtrar ningun ajuste a la rama clara.
  *
  * SIN numero de paso (retirado 2026-08-02, encargo explicito del usuario:
  * "quita las numeraciones de la seccion Journey", acotado a esta rama tras
@@ -661,9 +662,9 @@ function JourneyDeckDark(): ReactElement {
                 <ScJourneyStepLabel>
                   {t(`Home.journey.steps.${step.id}.label`)}
                 </ScJourneyStepLabel>
-                <ScJourneyStepBody>
+                <ScJourneyStepSubtitle>
                   {t(`Home.journey.steps.${step.id}.body`)}
-                </ScJourneyStepBody>
+                </ScJourneyStepSubtitle>
               </ScJourneySlide>
             ))}
             <ScJourneySlide
