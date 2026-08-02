@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import styled, { css, keyframes, type DefaultTheme } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
-import { useStoryDeck } from "@/hooks/useStoryDeck";
+import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { useTheme } from "@/theme/ThemeProvider";
 import { StoryCosmicBeing } from "@/components/storyCosmicBeing/StoryCosmicBeing";
 import {
@@ -30,6 +30,7 @@ import {
   STORY_CARD_BORDER,
   STORY_CARD_FLOAT_MS,
   STORY_CARD_SHADOW,
+  STORY_DECK_TAIL_SCREENS,
   STORY_FIGURE_ASPECT,
   STORY_FIGURE_FLOAT_MS,
   STORY_FIGURE_HEIGHT,
@@ -407,7 +408,7 @@ export function Story(): ReactElement {
   }
 
   // La rama oscura vive en un componente HIJO aparte (StoryDeckDark, mas
-  // abajo) en vez de continuar aqui mismo: useStoryDeck usa
+  // abajo) en vez de continuar aqui mismo: useSlideDeck usa
   // window.matchMedia incondicionalmente en su efecto de montaje, y esta
   // funcion Story() es UNA SOLA para las dos ramas (las reglas de los hooks
   // de React prohiben llamarlo solo "cuando el tema es oscuro" dentro de
@@ -416,7 +417,7 @@ export function Story(): ReactElement {
   // renderice la rama clara sin stubear matchMedia (los 13 tests existentes
   // de este archivo, ninguno de los cuales lo stubea porque nunca lo
   // necesitaron). Delegar la rama oscura a un componente que solo se MONTA
-  // cuando `themeName !== "light"` resuelve esto sin tocar useStoryDeck.ts
+  // cuando `themeName !== "light"` resuelve esto sin tocar useSlideDeck.ts
   // ni los tests claros: React nunca ejecuta los hooks de un componente que
   // no se renderiza.
   return <StoryDeckDark />;
@@ -424,7 +425,7 @@ export function Story(): ReactElement {
 
 /*
  * Rama oscura de Story, extraida a su propio componente (ver el comentario
- * de mas arriba, en Story()): aqui SI es seguro llamar useStoryDeck sin
+ * de mas arriba, en Story()): aqui SI es seguro llamar useSlideDeck sin
  * condicion, porque este componente en si mismo solo se monta cuando la
  * rama oscura esta activa.
  *
@@ -445,14 +446,25 @@ export function Story(): ReactElement {
 function StoryDeckDark(): ReactElement {
   const { t } = useTranslation("home");
 
-  // Refs ESTABLES (useRef, no callback-ref): useStoryDeck lee
+  // Refs ESTABLES (useRef, no callback-ref): useSlideDeck lee
   // getBoundingClientRect() de la pista en cada frame de rAF y escribe las
   // variables CSS de la coreografia directamente sobre el stage -- mismo
   // motivo por el que useSceneParallax exige refs de identidad estable en
   // vez de callbacks (StoryCosmicBeing.tsx).
   const trackRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const { index, direction } = useStoryDeck(trackRef, stageRef, STORY_SLIDES);
+  // cssVarPrefix: "story" EXPLICITO (D4, spec
+  // 2026-08-02-journey-deck-8-diapositivas-design.md): el hook ya generaliza
+  // a cualquier presentacion de N diapositivas y su defecto es "deck", asi
+  // que sin este parametro escribiria `--deck-enter`/`--deck-progress` sobre
+  // el stage -- variables que `story.deck.tsx` no consume. Pasando "story"
+  // explicitamente el hook sigue escribiendo `--story-enter`/
+  // `--story-progress`, EXACTAMENTE lo que ese fichero ya lee: el
+  // renombrado del hook no mueve ni una linea de CSS en esta seccion.
+  const { index, direction } = useSlideDeck(trackRef, stageRef, STORY_SLIDES, {
+    tailScreens: STORY_DECK_TAIL_SCREENS,
+    cssVarPrefix: "story",
+  });
 
   // Estado de cada diapositiva (spec seccion 5b): se decide AQUI, comparando
   // su indice con el `index` que escribe el hook -- el CSS de ScSlide

@@ -132,8 +132,13 @@ export const CONTACT_FIGURE_SIZES = "(min-width: 768px) 373px, 100vw";
 
 /**
  * Caja de la rama oscura (2026-07-30, mismo criterio que
- * `STORY_DARK_MAX_WIDTH`/`JOURNEY_PORTAL_MAX_WIDTH`): acotada y centrada, no
- * a sangre. Altura FIJA en `dvh` (no `min-height` como Features): el
+ * `STORY_DARK_MAX_WIDTH`): acotada y centrada, no a sangre. Journey ya NO
+ * es precedente de esto: su caja acotada (`JOURNEY_PORTAL_MAX_WIDTH`) se
+ * eliminó el 2026-08-02 al pasar esa sección a sangre (spec
+ * `2026-08-02-journey-overlay-transition-design.md`, D7). Contact conserva
+ * la caja acotada porque no forma parte de aquella entrega, no por
+ * coherencia con una Journey que ya no está así.
+ * Altura FIJA en `dvh` (no `min-height` como Features): el
  * contenido de Contact es breve (kicker/título/cuerpo/chip+CTA, una sola
  * fila), igual de corto que Story/Journey, así que no hay riesgo de recorte
  * con `overflow: hidden`.

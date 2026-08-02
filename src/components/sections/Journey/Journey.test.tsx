@@ -1,22 +1,102 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
+import {
+  renderWithProviders,
+  screen,
+  waitFor,
+  within,
+} from "@/test/test-utils";
 import { Journey } from "./Journey";
-import { JOURNEY_STEPS, JOURNEY_PATH_VIEWBOX } from "./journey.layers";
+import {
+  JOURNEY_STEPS,
+  JOURNEY_PATH_VIEWBOX,
+  JOURNEY_CONTENT_MAX_WIDTH,
+  JOURNEY_DARK_HEIGHT,
+  JOURNEY_OVERLAY_RISE,
+  JOURNEY_SLIDES,
+} from "./journey.layers";
 import { JOURNEY_PORTAL_LAYERS } from "@/components/journeyCosmicPortal/journeyCosmicPortal.layers";
+import {
+  STORY_DARK_HEIGHT,
+  STORY_DECK_TAIL_SCREENS,
+} from "@/components/sections/Story/story.layers";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
 let trigger: (isIntersecting: boolean) => void;
 
+/*
+ * Journey en tema oscuro monta DOS IntersectionObserver a la vez:
+ * useSlideDeck (sobre la pista, journeyDeckDark) y useSceneParallax (sobre la
+ * escena, dentro de JourneyCosmicPortal). El `trigger` de arriba solo guarda
+ * el callback de la ULTIMA instancia creada -- suficiente para los tests que
+ * ya existian (una sola instancia, useReveal, en la rama clara), pero no
+ * para dirigir especificamente a useSlideDeck cuando conviven dos. `ioTargets`
+ * registra el elemento observado por CADA instancia, y `triggerFor` dispara
+ * la que observa el elemento pedido -- necesario para los tests que mueven el
+ * indice de la presentacion moviendo el rect.top de la PISTA en concreto.
+ */
+let ioTargets: { target: Element; emit: (isIntersecting: boolean) => void }[];
+
+function triggerFor(target: Element, isIntersecting: boolean): void {
+  const instance = ioTargets.find((entry) => entry.target === target);
+  if (!instance) {
+    throw new Error("Ningun IntersectionObserver observa ese elemento");
+  }
+  instance.emit(isIntersecting);
+}
+
+function injectedCss(): string {
+  return Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    })
+    .join("\n");
+}
+
+/**
+ * Texto CSS de las reglas que styled-components inyectó para un elemento
+ * CONCRETO (mismo helper que `Story.test.tsx`): filtra por las clases del
+ * propio elemento, así que a diferencia de `injectedCss()` no arrastra el
+ * resto del stylesheet acumulado -- imprescindible para acotar un guard de
+ * `@media` a un solo componente sin caer en la trampa ya registrada
+ * (task/lessons.md, 2026-08-02: "un test que trocea el CSS inyectado por
+ * @media se contamina con el stylesheet entero").
+ */
+function cssRuleTextFor(el: HTMLElement): string {
+  const classes = Array.from(el.classList);
+  return Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    })
+    .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+    .join("\n");
+}
+
 beforeEach(() => {
+  ioTargets = [];
   vi.stubGlobal(
     "IntersectionObserver",
     class {
+      private cb: (entries: { isIntersecting: boolean }[]) => void;
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+        this.cb = cb;
         trigger = (v) => cb([{ isIntersecting: v }]);
       }
-      observe() {}
+      observe(target: Element) {
+        ioTargets.push({
+          target,
+          emit: (v: boolean) => this.cb([{ isIntersecting: v }]),
+        });
+      }
       disconnect() {}
     },
   );
@@ -106,21 +186,9 @@ describe("Journey", () => {
     // Lección 2026-07-27 (task/lessons.md): jsdom no evalua NINGUN @media al
     // calcular estilos, asi que un guard de reduced-motion no se puede atar
     // con getComputedStyle -- solo inspeccionando el TEXTO del bloque
-    // inyectado por styled-components. Se valida el test con el bug
-    // inyectado a proposito (ver el test siguiente: sin el selector, este
-    // test se pone rojo).
-    function injectedCss(): string {
-      return Array.from(document.styleSheets)
-        .flatMap((sheet) => {
-          try {
-            return Array.from(sheet.cssRules).map((rule) => rule.cssText);
-          } catch {
-            return [];
-          }
-        })
-        .join("\n");
-    }
-
+    // inyectado por styled-components (helper `injectedCss`, ambito de
+    // modulo). Se valida el test con el bug inyectado a proposito (ver el
+    // test siguiente: sin el selector, este test se pone rojo).
     it("declara un bloque @media (prefers-reduced-motion: reduce) que fuerza el estado final del paso", () => {
       renderWithProviders(<Journey />);
       const css = injectedCss();
@@ -189,15 +257,33 @@ describe("Journey en tema oscuro", () => {
       .forEach((img) => expect(img).toHaveAttribute("alt", ""));
   });
 
-  it("sigue mostrando el kicker, el titulo, los 6 pasos y la cita con el mismo i18n que en claro", async () => {
+  // Adaptado DOS veces: primero (spec
+  // 2026-08-02-journey-deck-8-diapositivas-design.md, D11) para separar
+  // numero/etiqueta/cuerpo en TRES nodos de texto; ahora (encargo explicito
+  // del usuario, 2026-08-02, "quita las numeraciones de la seccion Journey"
+  // -- acotado a esta rama tras preguntar el alcance) para quitar el numero
+  // por completo. La diapositiva de paso compone hoy etiqueta+cuerpo: ya no
+  // "0N · Label" concatenado (exclusivo de la rama clara, test aparte mas
+  // arriba en este archivo) ni tampoco un numero suelto. El reparto preciso
+  // por diapositiva, INCLUIDA la ausencia del numero, se comprueba mas abajo
+  // (test 4, D11).
+  it("sigue mostrando el kicker, el titulo, los 6 pasos (etiqueta+cuerpo, sin numero) y la cita con el mismo i18n que en claro", async () => {
     renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(screen.getByText(esHome.Home.journey.kicker)).toBeInTheDocument();
     });
+    expect(screen.getByText(esHome.Home.journey.title)).toBeInTheDocument();
     JOURNEY_STEPS.forEach((step, index) => {
       const label = esHome.Home.journey.steps[step.id].label;
+      const body = esHome.Home.journey.steps[step.id].body;
+      // El numero de paso ("01".."06") se retiro de esta rama: sin esta
+      // asercion NEGATIVA el test seguiria en verde si alguien lo
+      // reintrodujera -- es la mitad que de verdad protege el encargo, no
+      // solo un chequeo de que la etiqueta y el cuerpo siguen ahi.
       const number = String(index + 1).padStart(2, "0");
-      expect(screen.getByText(`${number} · ${label}`)).toBeInTheDocument();
+      expect(screen.queryByText(number)).not.toBeInTheDocument();
+      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.getByText(body)).toBeInTheDocument();
     });
     expect(
       screen.getByText(`“${esHome.Home.journey.quote}”`),
@@ -215,5 +301,400 @@ describe("Journey en tema oscuro", () => {
     expect(
       container.querySelector(`svg[viewBox="${JOURNEY_PATH_VIEWBOX}"]`),
     ).not.toBeInTheDocument();
+  });
+
+  // Tests 1-4 de §7, spec `2026-08-02-journey-overlay-transition-design.md`
+  // (D2/D6/D8, y la regresión de raíz que motiva toda la entrega). Por texto
+  // del CSS inyectado / DOM, nunca `getComputedStyle`: jsdom no evalua
+  // `@media` (lección repo 2026-07-27) y un literal escrito a mano deja de
+  // proteger en silencio si la constante que describe cambia (lección repo
+  // 2026-08-01). Siguen intactos tras convertir Journey en presentacion: el
+  // solape sobre Story vive en `ScJourney` (Journey.tsx), que esta entrega no
+  // toca en esa parte.
+
+  it("declara el solape con margin-block-start negativo leyendo JOURNEY_OVERLAY_RISE, no un literal a mano (test 1)", () => {
+    renderWithProviders(<Journey />);
+    const css = injectedCss();
+    expect(css).toContain(
+      `margin-block-start: calc(-1 * ${JOURNEY_OVERLAY_RISE})`,
+    );
+  });
+
+  it("bajo prefers-reduced-motion: reduce anula el solape devolviendo margin-block-start a 0 (test 2, D6)", () => {
+    renderWithProviders(<Journey />);
+    const css = injectedCss();
+    // Cada bloque `@media (...) { ... }` se serializa (comprobado con un
+    // sondeo desechable) como UNA entrada autocontenida sin salto de linea
+    // interno, así que separar por línea y exigir que la MISMA línea sea a
+    // la vez un bloque reduce y mencione `margin-block-start` aísla el
+    // bloque de `ScJourney` sin arrastrar el resto del stylesheet acumulado
+    // -- a diferencia de un `split/slice/join` sobre el string completo, que
+    // se cuela hasta declaraciones de otros componentes (p. ej.
+    // `margin-block-start: 0.75rem` de `ScDarkBody`) y deja de ser falsable.
+    const journeyReduceLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("margin-block-start"),
+      );
+    expect(journeyReduceLine).toBeDefined();
+    expect(journeyReduceLine).toMatch(/margin-block-start:\s*0[;}]/);
+  });
+
+  it("topa el contenido con max-width leyendo JOURNEY_CONTENT_MAX_WIDTH, no un literal a mano (test 3, D8)", () => {
+    renderWithProviders(<Journey />);
+    const css = injectedCss();
+    expect(css).toContain(`max-width: ${JOURNEY_CONTENT_MAX_WIDTH}`);
+  });
+
+  it("no reintroduce el hack de scroll de 3394bcb: ni el CSS inyectado ni el DOM contienen --journey-scroll-offset/--journey-scroll-opacity (test 4)", () => {
+    const { container } = renderWithProviders(<Journey />);
+    const css = injectedCss();
+    expect(css).not.toContain("--journey-scroll-offset");
+    expect(css).not.toContain("--journey-scroll-opacity");
+    expect(container.innerHTML).not.toContain("--journey-scroll-offset");
+    expect(container.innerHTML).not.toContain("--journey-scroll-opacity");
+  });
+});
+
+/*
+ * Tarea de esta entrega (spec 2026-08-02-journey-deck-8-diapositivas-design.md
+ * §8): en tema oscuro, Journey deja de ser una pantalla y pasa a ser una
+ * presentacion de JOURNEY_SLIDES diapositivas ancladas por scroll. Mismas
+ * advertencias de jsdom que Story.test.tsx: solo se puede verificar
+ * atributos (data-slide-index/data-slide/data-state), contenido i18n real,
+ * getComputedStyle contra una CONSTANTE importada (nunca un literal), y el
+ * TEXTO del CSS inyectado para los bloques @media que jsdom nunca evalua. El
+ * pin, la geometria real y el recorrido de scroll se verifican en navegador
+ * (Definicion de "hecho" de la spec), no aqui.
+ */
+describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it("hay exactamente JOURNEY_SLIDES elementos [data-slide-index], con indices 0..JOURNEY_SLIDES-1 sin huecos (test 2)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const indices = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ).map((el) => Number(el.getAttribute("data-slide-index")));
+    expect(indices).toEqual(
+      Array.from({ length: JOURNEY_SLIDES }, (_, i) => i),
+    );
+  });
+
+  it("estado inicial: la diapositiva 0 es current y el resto son next (test 3)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const slides = Array.from(container.querySelectorAll("[data-slide-index]"));
+    expect(slides[0]).toHaveAttribute("data-state", "current");
+    slides
+      .slice(1)
+      .forEach((slide) => expect(slide).toHaveAttribute("data-state", "next"));
+  });
+
+  it("al mover el indice del hook, past/current/next cambian en consecuencia (test 3)", async () => {
+    vi.stubGlobal("innerHeight", 800);
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+
+    // Geometria de la pista SIN cola (D9): span = height - vh. Se fija
+    // rect.top para que progress caiga EXACTAMENTE en targetIndex/(N-1), sin
+    // depender de ningun redondeo -- measure() corre SINCRONO dentro de
+    // start() en cuanto la interseccion se activa, sin necesitar rAF (misma
+    // tecnica que useSlideDeck.test.tsx).
+    const vh = window.innerHeight;
+    const height = JOURNEY_SLIDES * vh;
+    const span = height - vh;
+    const targetIndex = 4;
+    const progress = targetIndex / (JOURNEY_SLIDES - 1);
+    track.getBoundingClientRect = () =>
+      ({ top: -progress * span, height }) as DOMRect;
+
+    act(() => triggerFor(track, true));
+
+    expect(stage).toHaveAttribute("data-slide", String(targetIndex));
+    const slides = Array.from(container.querySelectorAll("[data-slide-index]"));
+    slides.forEach((slide, i) => {
+      const expected =
+        i < targetIndex ? "past" : i === targetIndex ? "current" : "next";
+      expect(slide).toHaveAttribute("data-state", expected);
+    });
+  });
+
+  it("cada diapositiva de paso compone icono, etiqueta y cuerpo -- sin numero -- con el mismo i18n que la rama clara (test 4, D11)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const slides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ) as HTMLElement[];
+
+    // Diapositiva 0: kicker + h2#journey-title + cuerpo de intro.
+    expect(
+      within(slides[0]).getByText(esHome.Home.journey.kicker),
+    ).toBeInTheDocument();
+    expect(slides[0].querySelector("h2#journey-title")).toHaveTextContent(
+      esHome.Home.journey.title,
+    );
+    expect(
+      within(slides[0]).getByText(esHome.Home.journey.body),
+    ).toBeInTheDocument();
+
+    // Diapositivas 1..JOURNEY_STEPS.length: un paso cada una. D11 componia
+    // icono -> numero -> etiqueta -> cuerpo; el numero se retiro por
+    // completo (encargo explicito del usuario, 2026-08-02, solo esta rama
+    // -- la clara conserva el suyo, test aparte mas arriba), asi que hoy
+    // compone icono -> etiqueta -> cuerpo. Dos aserciones NEGATIVAS
+    // protegen justo eso: que el texto exacto del numero de este paso
+    // ("01".."06") no aparece, y que NINGUN texto con forma "0N" (la red
+    // mas amplia que pide el encargo, por si un indice se colara en la
+    // diapositiva equivocada) aparece tampoco. Sin ellas el test seguiria
+    // en verde si alguien reintrodujera la numeracion -- son la mitad que
+    // de verdad protege este encargo, no solo un chequeo de que la
+    // etiqueta y el cuerpo siguen ahi. Se comprueba ademas que el formato
+    // "0N · Label" concatenado de la rama clara sigue sin aparecer aqui
+    // (ya lo estaba antes de esta entrega).
+    JOURNEY_STEPS.forEach((step, i) => {
+      const slide = slides[i + 1];
+      const number = String(i + 1).padStart(2, "0");
+      const label = esHome.Home.journey.steps[step.id].label;
+      const body = esHome.Home.journey.steps[step.id].body;
+      expect(slide.querySelector("svg")).toBeInTheDocument();
+      expect(within(slide).getByText(label)).toBeInTheDocument();
+      expect(within(slide).getByText(body)).toBeInTheDocument();
+      expect(within(slide).queryByText(number)).not.toBeInTheDocument();
+      expect(within(slide).queryByText(/^0[1-6]$/)).not.toBeInTheDocument();
+      expect(
+        within(slide).queryByText(`${number} · ${label}`),
+      ).not.toBeInTheDocument();
+    });
+
+    // Diapositiva JOURNEY_SLIDES - 1: la cita.
+    expect(
+      within(slides[JOURNEY_SLIDES - 1]).getByText(
+        `“${esHome.Home.journey.quote}”`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("hay un unico encabezado en toda la seccion, y es h2#journey-title (test 5, D14)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const headings = container.querySelectorAll("h1, h2, h3, h4, h5, h6");
+    expect(headings).toHaveLength(1);
+    expect(headings[0].tagName).toBe("H2");
+    expect(headings[0]).toHaveAttribute("id", "journey-title");
+  });
+
+  it("declara position: sticky en el stage y NINGUN overflow en ScJourney (test 6, D7 -- el fallo que rompe el pin en silencio)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const section = container.querySelector("#journey") as HTMLElement;
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+
+    const stageCss = cssRuleTextFor(stage);
+    expect(stageCss).toContain("position: sticky");
+
+    const sectionCss = cssRuleTextFor(section);
+    expect(sectionCss).not.toMatch(/overflow/);
+  });
+
+  it("bajo prefers-reduced-motion la pista vuelve a flujo, el stage a static y las diapositivas quedan visibles (test 7, D12)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    const firstSlide = container.querySelector(
+      '[data-slide-index="0"]',
+    ) as HTMLElement;
+
+    const trackCss = cssRuleTextFor(track);
+    expect(trackCss).toContain("prefers-reduced-motion: reduce");
+    expect(
+      trackCss.slice(trackCss.indexOf("prefers-reduced-motion: reduce")),
+    ).toContain("height: auto");
+
+    const stageCss = cssRuleTextFor(stage);
+    expect(stageCss).toContain("prefers-reduced-motion: reduce");
+    expect(
+      stageCss.slice(stageCss.indexOf("prefers-reduced-motion: reduce")),
+    ).toContain("position: static");
+
+    const slideCss = cssRuleTextFor(firstSlide);
+    expect(slideCss).toContain("prefers-reduced-motion: reduce");
+    const slideReduceBlock = slideCss.slice(
+      slideCss.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(slideReduceBlock).toContain("opacity: 1");
+    expect(slideReduceBlock).toContain("transform: none");
+  });
+
+  /*
+   * Test 12 (§8 de la spec), añadido tras la auditoría adversarial: es el
+   * único guard de `reduce` que NO se deduce mirando el elemento que protege.
+   *
+   * Bajo `reduce`, el stage pasa a `position: static` (test 7, arriba) y con
+   * ello deja de ser el containing block del envoltorio de la escena, que
+   * sigue siendo absoluto. El containing block sube a la pista, cuya altura
+   * bajo `reduce` es `auto` — las 8 diapositivas apiladas, varias pantallas —
+   * y las seis capas de la escena (`object-fit: cover`) se estiran a esa
+   * altura, quedando recortadas a una franja vertical con un zoom brutal.
+   *
+   * Por qué necesita test propio: NO se pierde ni una palabra de texto, así
+   * que todos los tests de contenido y el propio test 7 seguirían verdes con
+   * el fondo roto. Lo que lo cierra es que el envoltorio declare bajo
+   * `reduce` una altura EXPLÍCITA de una pantalla y se ancle arriba, que es
+   * correcto sea cual sea el ancestro que acabe haciendo de containing block.
+   */
+  it("bajo prefers-reduced-motion el envoltorio de la escena se ancla arriba con un alto explicito de una pantalla, para no estirarse a la pista entera (test 12, D12)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const sceneWrap = stage.firstElementChild as HTMLElement;
+
+    const wrapCss = cssRuleTextFor(sceneWrap);
+    expect(wrapCss).toContain("prefers-reduced-motion: reduce");
+    const wrapReduceBlock = wrapCss.slice(
+      wrapCss.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(wrapReduceBlock).toContain("top: 0");
+    expect(wrapReduceBlock).toContain("bottom: auto");
+    // El alto se lee de la constante, no de un literal: si la pantalla de la
+    // sección cambiara de medida, este guard tiene que seguir describiendo
+    // "una pantalla" y no un número que dejó de significar eso.
+    expect(wrapReduceBlock).toContain(`height: ${JOURNEY_DARK_HEIGHT}`);
+    expect(wrapReduceBlock).toContain("transform: none");
+  });
+
+  it("el deck acota su ancho a JOURNEY_CONTENT_MAX_WIDTH (constante importada, no un literal) (test 8)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const firstSlide = container.querySelector(
+      '[data-slide-index="0"]',
+    ) as HTMLElement;
+    const deck = firstSlide.parentElement as HTMLElement;
+    expect(getComputedStyle(deck).maxWidth).toBe(JOURNEY_CONTENT_MAX_WIDTH);
+  });
+
+  it('cssVarPrefix "journey" escribe --journey-progress y NO --story-progress sobre el stage (test 9, D4)', async () => {
+    vi.stubGlobal("innerHeight", 800);
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    track.getBoundingClientRect = () =>
+      ({ top: 0, height: JOURNEY_SLIDES * window.innerHeight }) as DOMRect;
+
+    act(() => triggerFor(track, true));
+
+    expect(stage.style.getPropertyValue("--journey-progress")).toBe("0.0000");
+    expect(stage.style.getPropertyValue("--story-progress")).toBe("");
+  });
+});
+
+/*
+ * Invariante D5 (spec `2026-08-02-journey-overlay-transition-design.md`,
+ * test §7.5). Es el ÚNICO punto del repo donde los datos de las dos secciones
+ * se miran a la cara: el solape de Journey (`JOURNEY_OVERLAY_RISE`) y la zona
+ * de hold al final de la pista de Story (`STORY_DECK_TAIL_SCREENS` pantallas
+ * de `STORY_DARK_HEIGHT`) TIENEN que medir lo mismo. Los ficheros de datos de
+ * cada sección no se importan entre sí a propósito (acoplarlos mezclaría los
+ * datos de dos secciones que no se conocen), así que la igualdad no puede
+ * vivir en ninguno de los dos: vive aquí, en un test, que es lo único que
+ * impide de verdad la regresión. Un comentario en cada fichero no lo impide.
+ *
+ * Qué se rompe si se desincronizan, y por qué no lo vería ningún otro test:
+ * si el solape es MENOR que el hold, el `stage` de Story se despega antes de
+ * que Journey termine de cubrir el viewport y asoma una banda del fondo de
+ * Story entre las dos secciones; si es MAYOR, Journey empieza a subir cuando
+ * la diapositiva 6 todavía está activa y la tapa a media lectura. Las dos
+ * cosas son defectos visuales puros: la suite entera seguiría verde.
+ *
+ * La aserción compara MAGNITUD y UNIDAD por separado en vez de comparar las
+ * dos cadenas: así sigue siendo correcta el día que `STORY_DECK_TAIL_SCREENS`
+ * deje de valer 1 (dos pantallas de hold exigirían `200dvh` de solape, no la
+ * misma cadena). Comparar `JOURNEY_OVERLAY_RISE === STORY_DARK_HEIGHT` a
+ * secas solo funciona por la casualidad de que hoy la cola vale 1.
+ */
+describe("invariante solape de Journey ↔ cola de la pista de Story (D5)", () => {
+  const magnitud = (valor: string): number => Number.parseFloat(valor);
+  const unidad = (valor: string): string => valor.replace(/^[\d.]+/, "");
+
+  it("el solape de Journey mide exactamente las pantallas de hold que reserva la pista de Story", () => {
+    expect(unidad(JOURNEY_OVERLAY_RISE)).toBe(unidad(STORY_DARK_HEIGHT));
+    expect(magnitud(JOURNEY_OVERLAY_RISE)).toBe(
+      STORY_DECK_TAIL_SCREENS * magnitud(STORY_DARK_HEIGHT),
+    );
+  });
+
+  /*
+   * Segunda mitad de la MISMA invariante, que solo aparece con la
+   * presentación de 8 diapositivas (spec
+   * `2026-08-02-journey-deck-8-diapositivas-design.md`): el solape tiene que
+   * medir además exactamente UN `stage` de Journey.
+   *
+   * Por qué, y por qué ningún otro test lo cubre: "Journey cubre el viewport"
+   * ocurre cuando el borde superior de su pista llega al borde superior de la
+   * vista, y lo que llena esa vista en ese instante es el `stage`, que mide
+   * `JOURNEY_DARK_HEIGHT`. Si alguien bajara esa constante a, digamos,
+   * `90dvh` —el valor que tenía esta sección antes de la entrega de la
+   * tarde— el `stage` de Story se despegaría con el de Journey diez unidades
+   * de viewport más corto que la pantalla, y en el relevo asomaría una banda
+   * del `background-color` de la sección entre las dos escenas. La aserción
+   * anterior no lo vería: `JOURNEY_OVERLAY_RISE` y `STORY_DARK_HEIGHT`
+   * seguirían cuadrando entre sí.
+   */
+  it("el solape mide además exactamente un stage de Journey, que es lo que llena la vista en el relevo", () => {
+    expect(unidad(JOURNEY_OVERLAY_RISE)).toBe(unidad(JOURNEY_DARK_HEIGHT));
+    expect(magnitud(JOURNEY_OVERLAY_RISE)).toBe(magnitud(JOURNEY_DARK_HEIGHT));
   });
 });

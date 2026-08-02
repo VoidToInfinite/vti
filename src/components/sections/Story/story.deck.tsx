@@ -23,7 +23,7 @@ import {
  * 2026-07-31-story-deck-hero-transition-design.md, D2-D6/D10/D13/D15b/D15c,
  * seccion 4/5). Puramente estructurales: no conocen i18n ni el contenido de
  * las diapositivas -- eso lo compone Story.tsx, que es quien pasa data-slide/
- * data-dir/data-state segun el estado del hook useStoryDeck.
+ * data-dir/data-state segun el estado del hook useSlideDeck.
  *
  * PIN por posicion pegajosa en vez de contenedor de scroll anidado (D2): un
  * contenedor con su propio overflow-y: scroll atrapa la rueda del raton
@@ -137,6 +137,46 @@ export const ScSceneWrap = styled.div`
      presentacion, no en un momento puntual -- que es justo el caso de uso
      para el que existe will-change. */
   will-change: transform;
+
+  /*
+   * Guard IMPRESCINDIBLE y nada obvio, MISMO mecanismo que ScJourneySceneWrap
+   * en journey.deck.tsx (leer su docblock es releer este). Bajo reduce,
+   * ScStage pasa a position: static (mas arriba): deja de ser un elemento
+   * posicionado y, con el, deja de ser el CONTAINING BLOCK de este
+   * envoltorio, que sigue siendo absoluto. El containing block sube entonces
+   * a ScTrack (position: relative incondicional), cuya altura bajo reduce es
+   * auto -- es decir, las 6 diapositivas apiladas en flujo, varias pantallas.
+   * Sin este bloque, el inset: 0 de arriba resolveria contra esa caja y las
+   * 11 capas de StoryCosmicBeing (object-fit: cover,
+   * storyCosmicBeing.parts.tsx) se estirarian a esas varias pantallas de
+   * alto: el arte quedaria recortado a una franja vertical con un zoom
+   * brutal. No se pierde texto -- por eso ningun test de contenido lo veria
+   * -- pero el fondo se rompe.
+   *
+   * El arreglo NO puede ser devolverle al stage un position: relative bajo
+   * reduce: seguiria midiendo height: auto, o sea las mismas varias
+   * pantallas, y el estiramiento seria identico. Lo que cierra el fallo es
+   * dar aqui una altura EXPLICITA de una pantalla y anclarla arriba, que es
+   * correcto sea cual sea el ancestro que acabe haciendo de containing
+   * block. La escena aparece entonces una vez, con sus proporciones
+   * intactas, detras de la primera diapositiva; el resto del recorrido queda
+   * sobre el background-color de la seccion. Se prefiere eso a display:
+   * none: bajo reduce se degrada el MOVIMIENTO, no la identidad visual de la
+   * seccion.
+   *
+   * SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
+   * literal de styled-components, donde un backtick lo cierra y rompe el
+   * build (leccion del repo, task/lessons.md 2026-07-25, reincidida el 2026-08-02).
+   */
+  @media (prefers-reduced-motion: reduce) {
+    top: 0;
+    bottom: auto;
+    height: ${STORY_DARK_HEIGHT};
+    transform: none;
+    /* Sin recorrido que animar, promover la capa solo gasta memoria de
+       compositor. */
+    will-change: auto;
+  }
 `;
 
 /*

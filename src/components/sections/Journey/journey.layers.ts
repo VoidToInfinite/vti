@@ -161,3 +161,192 @@ export const JOURNEY_FIGURE_SIZES = "305px";
  */
 export const JOURNEY_FIGURE_SRC = "/figures/story-pointing-1024.webp";
 export const JOURNEY_FIGURE_SRC_SMALL = "/figures/story-pointing-640.webp";
+
+/**
+ * Tope de ancho del CONTENIDO de la rama oscura (D8, spec
+ * `2026-08-02-journey-overlay-transition-design.md`). El 1280px del
+ * encargo del usuario describe ahora el CONTENIDO (`ScDarkContent`,
+ * `Journey.tsx`), no la escena: la escena (`JourneyCosmicPortal`) pasa a
+ * sangre en esa misma entrega (D7) y pierde su propio tope de ancho
+ * (`JOURNEY_PORTAL_MAX_WIDTH`, eliminada de
+ * `journeyCosmicPortal.layers.ts`). Es una constante PROPIA y no una
+ * reutilización de la anterior porque, aunque el número coincide, el sujeto
+ * cambió: reutilizar `JOURNEY_PORTAL_MAX_WIDTH` para el contenido escondería
+ * ese cambio de sujeto detrás de un nombre que ya no describe lo que acota.
+ */
+export const JOURNEY_CONTENT_MAX_WIDTH = "1280px";
+
+/**
+ * Cuánto sube Journey por encima de Story al superponerse (D2/D5, spec
+ * `2026-08-02-journey-overlay-transition-design.md`): una pantalla completa,
+ * aplicada como `margin-block-start` NEGATIVO sobre la rama oscura de
+ * `ScJourney` (`Journey.tsx`). DEBE valer EXACTAMENTE lo mismo que
+ * `STORY_DARK_HEIGHT * STORY_DECK_TAIL_SCREENS` (`story.layers.ts`): si el
+ * solape es MENOR que la zona de hold de Story, asoma una banda de la
+ * escena de Story sin tapar entre las dos secciones; si es MAYOR, Journey
+ * empieza a subir con la diapositiva 6 todavía viva (tapándola antes de que
+ * termine su tramo de scroll). Las dos constantes viven en ficheros de
+ * datos de secciones distintas a propósito — importar una desde la otra
+ * acoplaría los datos de Story y Journey, que no se conocen entre sí — así
+ * que la igualdad no se declara aquí en prosa: la comprueba un test
+ * (`Journey.test.tsx`, invariante D5) que importa las dos.
+ */
+export const JOURNEY_OVERLAY_RISE = "100dvh";
+
+/*
+ * Constantes de la presentación de 8 diapositivas de Journey (D3/D8/D9/D10/
+ * D11, spec `2026-08-02-journey-deck-8-diapositivas-design.md`). Mismo
+ * criterio que las de `story.layers.ts`: viven aquí y no en el componente
+ * porque el hook `useSlideDeck` (`JOURNEY_SLIDES`) y el propio deck
+ * estructural (`journey.deck.tsx`) las necesitan sin conocerse entre sí.
+ */
+
+/**
+ * Alto de UNA diapositiva de la presentación oscura, a pantalla completa
+ * (D8): mismo nombre y mismo rol que `STORY_DARK_HEIGHT` (`story.layers.ts`),
+ * pero vive aquí y no en `journeyCosmicPortal.layers.ts` -- la medida no
+ * cambia (`100dvh`, ya era lo que pedía el encargo: "el alto de la vista del
+ * dispositivo"), lo que cambia es el SUJETO. `JOURNEY_PORTAL_HEIGHT` nunca
+ * describió la escena de fondo, describía la caja de la SECCIÓN, y solo
+ * vivía en el fichero de la escena por herencia de una entrega anterior. Con
+ * la presentación de diapositivas, además, pasa a ser literalmente el alto
+ * del `stage` pegado (`ScJourneyStage`, `journey.deck.tsx`) -- un papel que
+ * el fichero de la escena no tiene por qué conocer.
+ */
+export const JOURNEY_DARK_HEIGHT = "100dvh";
+
+/**
+ * Número de diapositivas de la presentación: se DERIVA de `JOURNEY_STEPS`
+ * (1 intro + un paso por cada entrada de la tabla + 1 cita de cierre), nunca
+ * un literal escrito a mano (D3). Es la misma cicatriz que ya dejó este
+ * mismo directorio (`task/lessons.md`, 2026-08-01): un recuento duplicado
+ * deja de proteger en silencio en cuanto la fuente que describe cambia -- y
+ * aquí la fuente (`JOURNEY_STEPS`) ya varió una vez en la vida de esta
+ * sección. Hoy vale 8 (1 + 6 + 1), pero el número concreto no es lo que
+ * importa: si mañana se añade o se quita un paso, esta constante -- y con
+ * ella la pista, el rail y el reparto de `Journey.tsx` -- se recalculan
+ * solos.
+ */
+export const JOURNEY_SLIDES = JOURNEY_STEPS.length + 2;
+
+/**
+ * Alto total de la pista que da recorrido de scroll a la presentación (D9):
+ * a diferencia de la de Story (`STORY_DECK_TRACK_HEIGHT`), esta NO suma
+ * ninguna cola. La cola de Story existe porque Journey tiene que
+ * superponérsele al final de su recorrido (`JOURNEY_OVERLAY_RISE`, arriba);
+ * nada tiene que superponerse a Journey -- Features, la sección siguiente,
+ * no lo pide -- así que sumar una cola aquí solo dejaría una pantalla de
+ * scroll muerto al final de la presentación. Se declara sin ningún término
+ * adicional, y un test la compara contra esta fórmula exacta (no contra un
+ * número), para que la ausencia de cola se lea como una decisión tomada y no
+ * como un olvido del patrón de Story.
+ */
+export const JOURNEY_DECK_TRACK_HEIGHT = `calc(${JOURNEY_SLIDES} * ${JOURNEY_DARK_HEIGHT})`;
+
+/**
+ * Desplazamiento vertical de entrada/salida de cada diapositiva
+ * (`data-state="past"`/`"next"`, `ScJourneySlide`). Mismo valor y mismo
+ * criterio que `STORY_SLIDE_SHIFT`: lo bastante pequeño para leerse como un
+ * paso dentro de la misma composición, no como un salto de layout. Se anima
+ * siempre junto a `opacity`, nunca sobre una propiedad que dispare reflow
+ * (regla de la casa: solo `transform`/`opacity`).
+ */
+export const JOURNEY_SLIDE_SHIFT = "40px";
+
+/**
+ * Recorrido, en `transform`, del envoltorio de la escena de fondo
+ * (`ScJourneySceneWrap`, `journey.deck.tsx`) a lo largo de
+ * `--journey-progress`. Mismo problema y misma solución que
+ * `STORY_SCENE_DEPTH_SHIFT`: con el `stage` pegado por `position: sticky`,
+ * el `rect.top` de `JourneyCosmicPortal` se queda en ~0 durante todo el pase
+ * de diapositivas, así que el término de scroll que calcula
+ * `useSceneParallax` deja de aportar profundidad -- comportamiento correcto
+ * del hook compartido, no un defecto a compensar tocándolo (lo usan también
+ * Story/Features/Contact). Este envoltorio devuelve esa sensación de
+ * profundidad con un `transform` propio. La unidad es `dvh`, igual que en
+ * Story y por el mismo motivo exacto: un `%` en `translateY` se resuelve
+ * contra el alto del PROPIO elemento, mientras que el mismo `%` en
+ * `top`/`bottom` se resuelve contra el del CONTENEDOR -- con el envoltorio
+ * sobredimensionado (`ScJourneySceneWrap`) esas dos alturas dejan de
+ * coincidir, y de ahí salía exactamente el defecto que Story ya pagó una vez
+ * (una banda de fondo asomando por arriba al scrollear). `dvh` es la misma
+ * referencia en los dos sitios y cierra esa clase de fallo antes de que
+ * vuelva a aparecer aquí.
+ */
+export const JOURNEY_SCENE_DEPTH_SHIFT = "6dvh";
+
+/*
+ * Escala tipográfica de cartel de la presentación oscura (D10/D11).
+ * Constantes PROPIAS, no importadas de `story.layers.ts`: acoplar las dos
+ * escalas haría que retocar el cartel de una sección moviera el de la otra,
+ * y los contenidos que visten no son equivalentes en longitud -- la nota de
+ * cierre de Story son 14 caracteres ("nuevo comienzo"), la cita de cierre de
+ * Journey son 45 ("El destino no es el infinito. El viaje lo es."). Cada
+ * tope de `clamp()` está calibrado contra el texto REAL de esta sección, no
+ * copiado del tramo de Story que más se le parezca por casualidad.
+ */
+
+/**
+ * `h2#journey-title` de la diapositiva de intro. Mismo rol que
+ * `STORY_DECK_TITLE_SIZE` y mismo tramo: el contenido que viste ("Tu viaje
+ * no tiene un último paso.", 33 caracteres) es de longitud comparable al h2
+ * de intro de Story, así que el mismo tramo de cartel sirve sin recalibrar.
+ */
+export const JOURNEY_DECK_TITLE_SIZE = "clamp(2rem, 6vw, 4rem)";
+
+/**
+ * Etiqueta de una sola palabra de cada paso ("Descubre".."Evoluciona").
+ * Mismo tramo que `STORY_DECK_PILLAR_TITLE_SIZE`: la entrada más larga de la
+ * tabla ("Evoluciona", 10 caracteres) es corta y aislada, el mismo perfil
+ * que el título de un pilar de Story, así que el mismo tramo de cartel
+ * funciona sin recalibrar.
+ */
+export const JOURNEY_DECK_STEP_LABEL_SIZE = "clamp(1.75rem, 5vw, 3rem)";
+
+/**
+ * Cuerpo de cada paso (`steps.<id>.body`, 60-80 caracteres por entrada):
+ * mismo tramo que `STORY_DECK_PILLAR_BODY_SIZE`, que viste un texto del
+ * mismo rol de lectura (un párrafo corto de acompañamiento bajo un titular
+ * de cartel). Antes de esta entrega este texto se pintaba en rol `caption`
+ * -- letra pequeña de pie de fila --, un rol que tenía sentido dentro de una
+ * lista de seis filas apretadas; a pantalla completa, siendo el único cuerpo
+ * de texto de la diapositiva, se promueve al mismo rol de lectura que ya usa
+ * Story para un texto equivalente.
+ */
+export const JOURNEY_DECK_STEP_BODY_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
+
+/**
+ * Icono de cada paso (D11): crece de los 20px que medía dentro de una fila
+ * de lista (`ScDarkStepIcon`, retirado con esta entrega) a 48px. En la fila
+ * era un adorno junto al texto; en una diapositiva a pantalla completa, sin
+ * nada más compitiendo por la atención, pasa a ser el ancla visual de toda
+ * la composición. Necesita su propia regla `& > svg` en el styled que lo
+ * envuelve (`ScJourneyStepIconBox`, `journey.deck.tsx`): `GlobalStyles`
+ * declara `svg { width: 100% }` para todo el sitio, así que el atributo
+ * `width` del propio `<svg>` pierde la cascada -- la misma lección ya pagada
+ * dos veces en este repo (el `Logo` del navbar y `ScDisc`, la fila de la
+ * rama clara de esta misma sección).
+ */
+export const JOURNEY_DECK_STEP_ICON_SIZE = "48px";
+
+/**
+ * Cita de cierre (última diapositiva). NO es el mismo tramo que la nota de
+ * cierre de Story (`STORY_DECK_NOTE_SIZE`, tope 8rem): ese tope se calibró
+ * para "nuevo comienzo", 14 caracteres, que cabe entero incluso a tamaño de
+ * cartel extremo. La cita de Journey, "El destino no es el infinito. El
+ * viaje lo es.", tiene 45 -- a 8rem ocuparía varias líneas gigantes y se
+ * comería media pantalla. El tope se calibra a la baja, contra el texto real
+ * de esta sección, no se copia del de Story.
+ */
+export const JOURNEY_DECK_QUOTE_SIZE = "clamp(1.75rem, 5.5vw, 3.5rem)";
+
+/**
+ * Hueco extra a la derecha del contenido de cada diapositiva, solo en
+ * pantallas grandes (`ScJourneyDeck`, `journey.deck.tsx`). Mismo recurso y
+ * mismo motivo que `STORY_DECK_PADDING_INLINE_END`: rompe a propósito la
+ * simetría del `padding-inline` para desplazar la columna de texto hacia la
+ * izquierda y dejar respirar el lado donde la escena "Cosmic Portal" tiene
+ * su figura y su camino de luz, en vez de que el texto compita con ellos por
+ * el mismo eje.
+ */
+export const JOURNEY_DECK_PADDING_INLINE_END = "8rem";

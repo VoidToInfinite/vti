@@ -82,7 +82,8 @@ function stubDynamicReducedMotion(): { setReduced: (v: boolean) => void } {
 /**
  * Ref ESTABLE, creada una vez por test y pasada tal cual a `renderHook`.
  * Crearla inline dentro del callback de render devolveria un objeto NUEVO en
- * cada render (leccion 2026-07-31: `useStoryDeck`) -- aqui el efecto del
+ * cada render (leccion 2026-07-31: `useSlideDeck`, entonces llamado
+ * `useStoryDeck`) -- aqui el efecto del
  * hook depende de `sceneRef`, asi que un ref inestable lo resuscribiria por
  * completo en cada render, un escenario que produccion no tiene.
  */

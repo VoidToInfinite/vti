@@ -83,11 +83,33 @@ export const STORY_DARK_HEIGHT = "100dvh";
  * Número de diapositivas de la presentación: 1 intro (kicker + h2 + body) +
  * 4 pilares (`learn`/`create`/`grow`/`practice`) + 1 nota de cierre = 6, tal
  * cual pide el encargo. Se declara como constante — y no como un `.length`
- * derivado en el componente — porque el hook `useStoryDeck` la necesita
+ * derivado en el componente — porque el hook `useSlideDeck` la necesita
  * como parámetro de entrada sin importar nada de esta sección (así puede
  * gobernar otra presentación el día de mañana).
  */
 export const STORY_SLIDES = 6;
+
+/**
+ * Zona de "hold" al final de la pista (D3/D5, spec
+ * `2026-08-02-journey-overlay-transition-design.md`), en pantallas: el tramo
+ * final durante el cual el `stage` sigue pegado (`position: sticky`), la
+ * presentación ya ha terminado de recorrer sus diapositivas y lo ÚNICO que
+ * ocurre en ese tramo es que la sección Journey sube por encima
+ * superponiéndose (D2 de ese mismo spec). Sin esta zona el solape de Journey
+ * se comería el recorrido de la última diapositiva: Journey empezaría a
+ * taparla mientras todavía está activa.
+ *
+ * Tiene que valer EXACTAMENTE lo mismo que el solape de Journey
+ * (`JOURNEY_OVERLAY_RISE`, `journey.layers.ts`): si el hold es más corto que
+ * el solape, queda una banda de fondo de Story sin tapar entre las dos
+ * secciones; si es más largo, el `stage` se despega antes de que Journey
+ * termine de cubrir el viewport y se ve el borde inferior de Story desnudo.
+ * Las dos constantes viven en ficheros de datos distintos (acoplarlas
+ * importando una desde la otra mezclaría los datos de dos secciones que no
+ * se conocen entre sí), así que la igualdad NO se declara aquí en prosa: la
+ * ata un test que importa las dos (`Journey.test.tsx`, invariante D5).
+ */
+export const STORY_DECK_TAIL_SCREENS = 1;
 
 /**
  * Alto total de la pista que da recorrido de scroll a la presentación
@@ -96,8 +118,14 @@ export const STORY_SLIDES = 6;
  * una diapositiva. Sin esta altura la pista mediría lo mismo que el stage
  * y el pin se despegaría en el mismo frame en que se pega, sin dar tiempo
  * a recorrer nada.
+ *
+ * Suma `STORY_DECK_TAIL_SCREENS` (D3): las diapositivas siguen repartiéndose
+ * `STORY_SLIDES` pantallas de recorrido (ver `tailScreens` en
+ * `useSlideDeck.ts`, que resta esa misma cola del `span` antes de derivar el
+ * progreso), y la pantalla añadida encima es, exclusivamente, la zona de
+ * hold en la que Journey se superpone.
  */
-export const STORY_DECK_TRACK_HEIGHT = `calc(${STORY_SLIDES} * ${STORY_DARK_HEIGHT})`;
+export const STORY_DECK_TRACK_HEIGHT = `calc((${STORY_SLIDES} + ${STORY_DECK_TAIL_SCREENS}) * ${STORY_DARK_HEIGHT})`;
 
 /**
  * Desplazamiento vertical de entrada/salida de cada diapositiva

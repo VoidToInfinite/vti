@@ -21,10 +21,17 @@ export interface JourneyCosmicPortalLayer {
   readonly part: string;
   /**
    * Ruta pública del WebP a ancho nativo (2560px, reescalado desde el 3344px
-   * del paquete). Se conserva el 2560 de la escena anterior: la caja nunca
-   * crece más allá de `JOURNEY_PORTAL_MAX_WIDTH` (1280px CSS), así que 2560
-   * es exactamente lo que pide una pantalla a DPR 2 y servir el 3344
-   * original no aportaría nitidez.
+   * del paquete). Se conserva el 2560 de la escena anterior, pero desde que
+   * la escena pasó a sangre (D7/D9, spec
+   * `2026-08-02-journey-overlay-transition-design.md`) ya NO es cierto que
+   * "2560 es exactamente lo que pide una pantalla a DPR 2": la caja ya no
+   * tiene tope de 1280px CSS, así que en viewports de más de 1280px CSS a
+   * DPR 2 el activo de 2560 queda submuestreado (se pide más resolución de
+   * la que la pista puede dar). Los másteres de 3344px del paquete **no
+   * están versionados** en este repo (solo queda constancia en
+   * `assets/journey-cosmic-portal/manifest.json`), así que en esta entrega
+   * no se puede producir una pista mayor. Es deuda declarada (spec §10), no
+   * un límite disimulado.
    */
   readonly src: string;
   /** Variante de 1024px para viewports estrechos. */
@@ -87,10 +94,17 @@ export const JOURNEY_PORTAL_LAYERS: readonly JourneyCosmicPortalLayer[] = [
   },
 ] as const;
 
-/** `sizes`: la escena llena el ancho de la caja de Journey, tope
- *  `JOURNEY_PORTAL_MAX_WIDTH`. Sin cambios respecto a la escena anterior:
- *  la caja es la misma. */
-export const JOURNEY_PORTAL_SIZES = "(min-width: 1280px) 1280px, 100vw";
+/**
+ * `sizes` de la escena (D9, spec
+ * `2026-08-02-journey-overlay-transition-design.md`): `100vw` a secas,
+ * porque desde D7 la escena va a sangre y ya no vive dentro de una caja con
+ * tope de 1280px. El `sizes` anterior (`"(min-width: 1280px) 1280px,
+ * 100vw"`) le mentiría al navegador y le haría elegir la pista de 1024px en
+ * pantallas anchas — mismo cambio y mismo motivo que D7 de la spec
+ * `2026-07-31-story-deck-hero-transition-design.md` para
+ * `STORY_COSMIC_HEART_SIZES`.
+ */
+export const JOURNEY_PORTAL_SIZES = "100vw";
 
 /** Escala base común a las 6 capas: evita bordes vacíos al desplazar. Es el
  *  6% que recomienda el paquete, y coincide con el que ya usaba la escena
@@ -130,11 +144,14 @@ export const JOURNEY_PORTAL_POINTER_AMP = { x: 10, y: 6 } as const;
  */
 export const JOURNEY_PORTAL_SCROLL_AMP = 32;
 
-/**
- * Caja de la sección (mismo patrón que `STORY_DARK_MAX_WIDTH`/
- * `STORY_DARK_HEIGHT`): acotada y centrada, no a sangre. Valores heredados
- * sin cambio de la escena anterior — la caja de Journey no es parte de esta
- * entrega.
+/*
+ * AQUÍ VIVIÓ `JOURNEY_PORTAL_HEIGHT` (D8, spec
+ * `2026-08-02-journey-deck-8-diapositivas-design.md`). Nunca describió la
+ * escena de fondo: describía el alto de la caja de la SECCIÓN, y solo vivía
+ * en este fichero por herencia de la entrega anterior (D7 de
+ * `2026-08-02-journey-overlay-transition-design.md`, que la subió de `90dvh`
+ * a `100dvh`). Con la presentación de 8 diapositivas esa medida pasa a
+ * describir el alto del `stage` pegado de la presentación -- otro sujeto, no
+ * la escena -- así que se muda a `journey.layers.ts` como
+ * `JOURNEY_DARK_HEIGHT`. Este fichero vuelve a hablar solo de la escena.
  */
-export const JOURNEY_PORTAL_MAX_WIDTH = "1280px";
-export const JOURNEY_PORTAL_HEIGHT = "90dvh";

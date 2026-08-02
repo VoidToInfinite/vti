@@ -9,6 +9,7 @@ import {
   STORY_DECK_PILLAR_BODY_SIZE,
   STORY_DECK_PILLAR_SUBTITLE_SIZE,
   STORY_DECK_PILLAR_TITLE_SIZE,
+  STORY_DECK_TAIL_SCREENS,
   STORY_DECK_TITLE_SIZE,
   STORY_DECK_TRACK_HEIGHT,
   STORY_SCRUB_MS,
@@ -33,14 +34,27 @@ describe("constantes de la presentacion de Story", () => {
     expect(STORY_SCRUB_MS).toBe(parseInt(motion.duration.slow, 10));
   });
 
-  it("la pista mide exactamente una diapositiva por cada slide", () => {
-    // Si la pista y el numero de diapositivas se desincronizaran, el pin
-    // duraria mas o menos scroll del que hay diapositivas que enseñar: o
-    // sobraria recorrido muerto al final, o la ultima diapositiva no
-    // llegaria a verse entera.
+  it("la pista mide una diapositiva por cada slide mas la cola de hold de Journey", () => {
+    // Desde D3 (spec 2026-08-02-journey-overlay-transition-design.md) la
+    // pista ya no mide solo `STORY_SLIDES` pantallas: suma
+    // `STORY_DECK_TAIL_SCREENS`, la zona de hold en la que el stage sigue
+    // pegado mientras Journey se superpone. La comparacion se hace contra
+    // las CONSTANTES, nunca contra el literal `7`: si alguna de las dos
+    // cambiara (numero de diapositivas, o el ancho del solape de Journey),
+    // este test tiene que seguir describiendo la derivacion real en vez de
+    // congelar un numero que dejaria de significar lo mismo.
     expect(STORY_DECK_TRACK_HEIGHT).toBe(
-      `calc(${STORY_SLIDES} * ${STORY_DARK_HEIGHT})`,
+      `calc((${STORY_SLIDES} + ${STORY_DECK_TAIL_SCREENS}) * ${STORY_DARK_HEIGHT})`,
     );
+  });
+
+  it("la cola de hold mide exactamente una pantalla, la misma medida que el solape de Journey", () => {
+    // STORY_DECK_TAIL_SCREENS se expresa en pantallas (adimensional) y debe
+    // valer 1: es la misma magnitud que JOURNEY_OVERLAY_RISE
+    // (journey.layers.ts), que la igualdad numerica entre los dos ficheros
+    // ata como test aparte (Journey.test.tsx, invariante D5) para no acoplar
+    // los datos de las dos secciones importando uno desde el otro.
+    expect(STORY_DECK_TAIL_SCREENS).toBe(1);
   });
 
   it("son 6 diapositivas: 1 intro + 4 pilares + 1 nota", () => {

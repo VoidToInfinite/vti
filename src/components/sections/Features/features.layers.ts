@@ -211,8 +211,12 @@ export const FEATURES_FIGURE_SIZES =
 
 /**
  * Caja de la rama oscura (2026-07-30, mismo criterio que
- * `STORY_DARK_MAX_WIDTH`/`JOURNEY_PORTAL_MAX_WIDTH`): acotada y centrada, no
- * a sangre. A diferencia de Story/Journey, aquí es `MIN_HEIGHT`, no una
+ * `STORY_DARK_MAX_WIDTH`): acotada y centrada, no a sangre. Journey ya NO
+ * es precedente de esto: su caja acotada (`JOURNEY_PORTAL_MAX_WIDTH`) se
+ * eliminó el 2026-08-02 al pasar esa sección a sangre (spec
+ * `2026-08-02-journey-overlay-transition-design.md`, D7). Features conserva
+ * la caja acotada porque no forma parte de aquella entrega.
+ * A diferencia de Story/Journey, aquí es `MIN_HEIGHT`, no una
  * altura fija en `dvh`: las tres tarjetas (título+cuerpo+4 bullets+CTA cada
  * una) son bastante más contenido que los pilares de Story o los pasos de
  * Journey, y una caja de altura FIJA con `overflow: hidden` recortaría ese

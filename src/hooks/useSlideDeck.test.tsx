@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useStoryDeck } from "./useStoryDeck";
+import { useSlideDeck } from "./useSlideDeck";
 
 const VH = 800;
 const SLIDES = 6;
@@ -29,7 +29,7 @@ function stubMatchMedia(reducedMatches: boolean): void {
 
 /**
  * Ref ESTABLE, creada una vez por test y pasada tal cual a `renderHook`.
- * Crearla inline dentro del callback de render (`useStoryDeck(refOf(track),
+ * Crearla inline dentro del callback de render (`useSlideDeck(refOf(track),
  * ...)`) devolveria un objeto NUEVO en cada render, y como el efecto del
  * hook depende de los refs, se resuscribiria entero cada vez que el propio
  * hook hace `setState` -- una inestabilidad que produccion no tiene, porque
@@ -73,7 +73,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("useStoryDeck", () => {
+describe("useSlideDeck", () => {
   it("sin interseccion no se registra ningun requestAnimationFrame", () => {
     const raf = vi.fn().mockReturnValue(1);
     vi.stubGlobal("requestAnimationFrame", raf);
@@ -83,14 +83,14 @@ describe("useStoryDeck", () => {
     const stage = document.createElement("div");
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
-    renderHook(() => useStoryDeck(trackRef, stageRef, SLIDES));
+    renderHook(() => useSlideDeck(trackRef, stageRef, SLIDES));
 
     ioTrigger(false);
 
     expect(raf).not.toHaveBeenCalled();
   });
 
-  it("con interseccion y rect.top = 0, escribe --story-progress a 0.0000 y el indice queda en 0", () => {
+  it("con interseccion y rect.top = 0, escribe --deck-progress a 0.0000 y el indice queda en 0", () => {
     // Ya no hace falta drenar ningun rAF pendiente: al activarse la pista,
     // `start()` mide de forma INMEDIATA (sincrona), asi que el estado queda
     // correcto en el mismo `ioTrigger(true)`.
@@ -102,14 +102,16 @@ describe("useStoryDeck", () => {
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
     const { result } = renderHook(() =>
-      useStoryDeck(trackRef, stageRef, SLIDES),
+      useSlideDeck(trackRef, stageRef, SLIDES),
     );
 
     act(() => {
       ioTrigger(true);
     });
 
-    expect(stage.style.getPropertyValue("--story-progress")).toBe("0.0000");
+    // Sin `cssVarPrefix`, el hook usa el defecto "deck" (D4, spec
+    // 2026-08-02-journey-deck-8-diapositivas-design.md).
+    expect(stage.style.getPropertyValue("--deck-progress")).toBe("0.0000");
     expect(result.current.index).toBe(0);
   });
 
@@ -124,15 +126,90 @@ describe("useStoryDeck", () => {
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
     const { result } = renderHook(() =>
-      useStoryDeck(trackRef, stageRef, SLIDES),
+      useSlideDeck(trackRef, stageRef, SLIDES),
     );
 
     act(() => {
       ioTrigger(true);
     });
 
-    expect(stage.style.getPropertyValue("--story-progress")).toBe("1.0000");
+    expect(stage.style.getPropertyValue("--deck-progress")).toBe("1.0000");
     expect(result.current.index).toBe(SLIDES - 1);
+  });
+
+  it("con tailScreens = 1 el progreso llega a 1 una pantalla antes que con tailScreens = 0 (D4, spec 2026-08-02-journey-overlay-transition-design.md)", () => {
+    // MISMA geometria de pista (7 pantallas: SLIDES + 1 de cola) y el MISMO
+    // rect.top en las dos ramas -- lo unico que cambia es `tailScreens`. Si
+    // `measure()` dejara de restar `optionsRef.current.tailScreens * vh` del
+    // span (la resta que este test protege), las dos ramas calcularian el
+    // mismo span y la primera aserccion ("1.0000") fallaria: es la
+    // comprobacion de que el test SI puede fallar, no solo de que pasa con
+    // el codigo actual.
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const height = (SLIDES + 1) * VH; // pista con una pantalla de cola
+    const rectTop = -5 * VH; // scrollY equivalente a 5 pantallas recorridas
+
+    // Con tailScreens = 1: span = 7VH - 1VH (viewport) - 1VH (cola) = 5VH,
+    // y -rect.top = 5VH = span -> progress llega a 1 en este mismo rect.top.
+    const trackWithTail = trackWith(rectTop, height);
+    const stageWithTail = document.createElement("div");
+    const { result: withTail } = renderHook(() =>
+      useSlideDeck(refOf(trackWithTail), refOf(stageWithTail), SLIDES, {
+        tailScreens: 1,
+      }),
+    );
+    act(() => ioTrigger(true));
+
+    expect(stageWithTail.style.getPropertyValue("--deck-progress")).toBe(
+      "1.0000",
+    );
+    expect(withTail.current.index).toBe(SLIDES - 1);
+
+    // Con tailScreens = 0 (defecto): span = 7VH - 1VH = 6VH, y el MISMO
+    // rect.top (-5VH) todavia no agota ese span -> progress se queda por
+    // debajo de 1 en el mismo punto de scroll donde la rama con cola ya
+    // valia 1. Esa diferencia ES la "pantalla antes" del titulo del test.
+    const trackNoTail = trackWith(rectTop, height);
+    const stageNoTail = document.createElement("div");
+    const { result: noTail } = renderHook(() =>
+      useSlideDeck(refOf(trackNoTail), refOf(stageNoTail), SLIDES, {
+        tailScreens: 0,
+      }),
+    );
+    act(() => ioTrigger(true));
+
+    const progressNoTail = Number(
+      stageNoTail.style.getPropertyValue("--deck-progress"),
+    );
+    expect(progressNoTail).toBeLessThan(1);
+    expect(noTail.current.index).toBeLessThan(SLIDES - 1);
+  });
+
+  it('con cssVarPrefix: "journey" escribe --journey-progress y NO --story-progress (D4, spec 2026-08-02-journey-deck-8-diapositivas-design.md)', () => {
+    // Este test SI puede fallar: con el literal "--story-progress" cableado
+    // en `measure()` en vez de `--${prefix}-progress`, la primera aserccion
+    // ("--journey-progress" vacio) fallaria porque el hook seguiria
+    // escribiendo solo la variable de Story. Comprobado en rojo a mano
+    // (ver informe) antes de restaurar el codigo correcto.
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const track = trackWith(0, SLIDES * VH);
+    const stage = document.createElement("div");
+    const trackRef = refOf(track);
+    const stageRef = refOf(stage);
+    renderHook(() =>
+      useSlideDeck(trackRef, stageRef, SLIDES, { cssVarPrefix: "journey" }),
+    );
+
+    act(() => {
+      ioTrigger(true);
+    });
+
+    expect(stage.style.getPropertyValue("--journey-progress")).toBe("0.0000");
+    expect(stage.style.getPropertyValue("--story-progress")).toBe("");
   });
 
   it("un rect.top intermedio, claramente dentro de un tramo, cae en el indice correcto", () => {
@@ -149,7 +226,7 @@ describe("useStoryDeck", () => {
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
     const { result } = renderHook(() =>
-      useStoryDeck(trackRef, stageRef, SLIDES),
+      useSlideDeck(trackRef, stageRef, SLIDES),
     );
 
     act(() => {
@@ -172,7 +249,7 @@ describe("useStoryDeck", () => {
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
     const { result } = renderHook(() =>
-      useStoryDeck(trackRef, stageRef, SLIDES),
+      useSlideDeck(trackRef, stageRef, SLIDES),
     );
     // La medicion inmediata de `start()` ya fija la linea base en -400: no
     // hace falta un `flush(-400)` aparte para ese primer punto.
@@ -213,7 +290,7 @@ describe("useStoryDeck", () => {
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
     const { result } = renderHook(() =>
-      useStoryDeck(trackRef, stageRef, SLIDES),
+      useSlideDeck(trackRef, stageRef, SLIDES),
     );
     // La medicion inmediata de `start()` fija la linea base en -400.
     act(() => ioTrigger(true));
@@ -247,7 +324,7 @@ describe("useStoryDeck", () => {
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
     const { result } = renderHook(() =>
-      useStoryDeck(trackRef, stageRef, SLIDES),
+      useSlideDeck(trackRef, stageRef, SLIDES),
     );
 
     expect(raf).not.toHaveBeenCalled();
@@ -267,7 +344,7 @@ describe("useStoryDeck", () => {
     const stage = document.createElement("div");
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
-    renderHook(() => useStoryDeck(trackRef, stageRef, SLIDES));
+    renderHook(() => useSlideDeck(trackRef, stageRef, SLIDES));
 
     ioTrigger(true);
     ioTrigger(true);
@@ -296,7 +373,7 @@ describe("useStoryDeck", () => {
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
     const { result } = renderHook(() =>
-      useStoryDeck(trackRef, stageRef, SLIDES),
+      useSlideDeck(trackRef, stageRef, SLIDES),
     );
 
     const flush = (top: number): void => {
@@ -336,7 +413,7 @@ describe("useStoryDeck", () => {
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
     const { unmount } = renderHook(() =>
-      useStoryDeck(trackRef, stageRef, SLIDES),
+      useSlideDeck(trackRef, stageRef, SLIDES),
     );
 
     // La medicion inmediata de `start()` no usa rAF; hace falta un evento de
@@ -369,7 +446,7 @@ describe("useStoryDeck", () => {
     const stage = document.createElement("div");
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
-    renderHook(() => useStoryDeck(trackRef, stageRef, SLIDES));
+    renderHook(() => useSlideDeck(trackRef, stageRef, SLIDES));
 
     // La medicion inmediata de `start()` no consume rAF.
     act(() => ioTrigger(true));
@@ -396,7 +473,7 @@ describe("useStoryDeck", () => {
     const stage = document.createElement("div");
     const trackRef = refOf(track);
     const stageRef = refOf(stage);
-    renderHook(() => useStoryDeck(trackRef, stageRef, SLIDES));
+    renderHook(() => useSlideDeck(trackRef, stageRef, SLIDES));
 
     act(() => ioTrigger(true));
     act(() => ioTrigger(false));

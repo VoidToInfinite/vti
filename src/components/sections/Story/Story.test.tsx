@@ -11,6 +11,7 @@ import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
 import { Story } from "./Story";
 import {
+  STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
   STORY_DECK_NOTE_SIZE,
   STORY_DECK_PILLAR_TITLE_SIZE,
@@ -426,6 +427,48 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     // @keyframes -- si lo trajera, "solo bajo no-preference" seria falso.
     const topLevelDeckCss = deckCss.split("@media")[0];
     expect(topLevelDeckCss).not.toContain("@keyframes");
+  });
+
+  /*
+   * Replica del test 12 de Journey.test.tsx (mismo mecanismo, mismo
+   * hallazgo de auditoria adversarial): es el unico guard de reduce que NO
+   * se deduce mirando el elemento que protege.
+   *
+   * Bajo reduce, el stage pasa a position: static (test de arriba) y con
+   * ello deja de ser el containing block del envoltorio de la escena, que
+   * sigue siendo absoluto. El containing block sube a la pista, cuya altura
+   * bajo reduce es auto -- las 6 diapositivas apiladas, varias pantallas --
+   * y las 11 capas de la escena (object-fit: cover) se estiran a esa altura,
+   * quedando recortadas a una franja vertical con un zoom brutal.
+   *
+   * Por que necesita test propio: no se pierde ni una palabra de texto, asi
+   * que todos los tests de contenido seguirian verdes con el fondo roto. Lo
+   * que lo cierra es que el envoltorio declare bajo reduce una altura
+   * EXPLICITA de una pantalla y se ancle arriba, que es correcto sea cual
+   * sea el ancestro que acabe haciendo de containing block.
+   */
+  it("bajo prefers-reduced-motion el envoltorio de la escena se ancla arriba con un alto explicito de una pantalla, para no estirarse a la pista entera", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const sceneWrap = stage.firstElementChild as HTMLElement;
+
+    const wrapCss = cssRuleTextFor(sceneWrap);
+    expect(wrapCss).toContain("prefers-reduced-motion: reduce");
+    const wrapReduceBlock = wrapCss.slice(
+      wrapCss.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(wrapReduceBlock).toContain("top: 0");
+    expect(wrapReduceBlock).toContain("bottom: auto");
+    // El alto se lee de la constante, no de un literal: si la pantalla de la
+    // seccion cambiara de medida, este guard tiene que seguir describiendo
+    // "una pantalla" y no un numero que dejo de significar eso.
+    expect(wrapReduceBlock).toContain(`height: ${STORY_DARK_HEIGHT}`);
+    expect(wrapReduceBlock).toContain("transform: none");
   });
 
   it("las 11 capas de la escena siguen presentes dentro de la presentacion", async () => {

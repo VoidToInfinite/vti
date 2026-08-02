@@ -81,7 +81,7 @@ function isInsideRect(
  * del spec.
  *
  * Guarda de visibilidad por `IntersectionObserver` sobre `sceneRef` (mismo
- * patron que `useStoryDeck`): sin ella, el bucle de rAF de abajo se
+ * patron que `useSlideDeck`): sin ella, el bucle de rAF de abajo se
  * reprogramaba a si mismo desde el montaje y para siempre, sin importar si
  * `sceneRef` seguia en pantalla. Este hook lo consumen CUATRO secciones del
  * tema oscuro (Story 11 capas, Journey 5, Features 10 y Contact 7): eso son

@@ -1,17 +1,29 @@
 "use client";
 
-import { useEffect, useRef, type ReactElement } from "react";
+import { useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
+import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { JourneyCosmicPortal } from "@/components/journeyCosmicPortal/JourneyCosmicPortal";
 import {
-  JOURNEY_PORTAL_HEIGHT,
-  JOURNEY_PORTAL_MAX_WIDTH,
-} from "@/components/journeyCosmicPortal/journeyCosmicPortal.layers";
+  ScJourneyDeck,
+  ScJourneyDeckTitle,
+  ScJourneyIntroBody,
+  ScJourneyQuote,
+  ScJourneyRail,
+  ScJourneyRailMark,
+  ScJourneySceneWrap,
+  ScJourneySlide,
+  ScJourneyStage,
+  ScJourneyStepBody,
+  ScJourneyStepIconBox,
+  ScJourneyStepLabel,
+  ScJourneyTrack,
+} from "./journey.deck";
 import {
   JOURNEY_STEPS,
   JOURNEY_CARD_BACKGROUND,
@@ -26,64 +38,79 @@ import {
   JOURNEY_FIGURE_SIZES,
   JOURNEY_FIGURE_SRC,
   JOURNEY_FIGURE_SRC_SMALL,
+  JOURNEY_OVERLAY_RISE,
+  JOURNEY_SLIDES,
   type JourneyStep,
   type JourneyStepId,
 } from "./journey.layers";
 
 /*
- * Rama OSCURA (2026-07-30, mismo criterio que la de Story,
- * `docs/superpowers/specs/2026-07-29-story-dark-cosmic-heart-design.md`): no
- * hay mockup oscuro de esta sección. En vez de la tarjeta pastel + camino
- * punteado + rejilla de 6 columnas + figura en columna propia, el fondo es
- * la escena parallax `JourneyCosmicPortal` (6 capas) y el contenido (mismo
- * i18n `Home.journey.*`) se superpone encima, en una columna estrecha —
- * igual que Story en oscuro. Se elimina el camino SVG punteado (sin
- * equivalente: la "senda" ya vive DENTRO de la escena de fondo) y la figura
- * en `<img>` propia (ídem, ahora decorativa dentro de la escena). Los 6
- * pasos se re-maquetan como filas verticales (mismo patrón que los pilares
- * de `Story.tsx`) en vez de la rejilla de 6 columnas con discos: esa rejilla
- * está pensada para una tarjeta ancha con fondo propio, no para superponerse
- * a una imagen.
+ * Rama OSCURA (2026-08-02, spec
+ * `docs/superpowers/specs/2026-08-02-journey-deck-8-diapositivas-design.md`,
+ * MISMA TECNICA que Story: `Story.tsx`/`story.deck.tsx`, su referencia
+ * obligatoria). Journey pasa de ser una unica pantalla (entrega anterior del
+ * mismo dia, `2026-08-02-journey-overlay-transition-design.md`) a una
+ * presentacion de `JOURNEY_SLIDES` diapositivas ancladas por scroll (1 intro
+ * + 6 pasos + 1 cita), pegada por `position: sticky` sobre una pista alta --
+ * ver `journey.deck.tsx` para la estructura estructural completa. La entrada
+ * a la presentacion sigue siendo el solape sobre Story de la entrega
+ * anterior (`margin-block-start` negativo, `ScJourney` mas abajo): esta spec
+ * no toca esa mecanica, solo lo que hay DENTRO de la seccion una vez que el
+ * solape la trae a pantalla.
+ *
+ * Rama CLARA: sin cambios de comportamiento (tarjeta pastel + camino
+ * punteado + rejilla de 6 columnas + figura en columna propia).
  */
 
 /** Paso entre pasos del reveal escalonado (mismo mecanismo que `ScItem` en
- *  `Features.tsx`, spec §7.2: "~90ms por paso"). */
+ *  `Features.tsx`, spec §7.2: "~90ms por paso"). Solo lo consume la rama
+ *  clara -- la oscura, al ser una presentacion de diapositivas, no tiene
+ *  reveal escalonado propio (cada diapositiva entra entera con el mismo
+ *  mecanismo de `ScJourneySlide`). */
 const STEP_STAGGER_MS = 90;
 
 /*
  * Rama clara: contenedor normal (padding + tope de ancho, centrado -- sin
- * cambios). Rama oscura ($fullBleed): misma caja acotada y centrada que
- * `ScStory` en oscuro (`Story.tsx`) -- `JOURNEY_PORTAL_MAX_WIDTH`/
- * `JOURNEY_PORTAL_HEIGHT`, no `grid.containerMax`, por el mismo motivo
- * documentado allí (medida propia de la composición oscura, no del grid).
+ * cambios).
+ *
+ * Rama oscura ($fullBleed, D2/D7, spec
+ * `2026-08-02-journey-deck-8-diapositivas-design.md`): la seccion deja de
+ * tener caja propia -- pierde `min-height`, `display: grid` y
+ * `place-items: center` -- porque ahora es `ScJourneyTrack`
+ * (`journey.deck.tsx`) quien mide `JOURNEY_SLIDES` pantallas de alto, MISMO
+ * reparto que `ScStory` en `Story.tsx` tras convertirse en presentacion
+ * (D15c de su propia spec): un contenedor relativo sin medida propia, que
+ * crece con su contenido.
+ *
+ * PIERDE `overflow: hidden` (D7): es EL FALLO QUE ROMPERIA EL PIN ENTERO EN
+ * SILENCIO, sin ningun error en consola que lo delate. Cualquier ancestro
+ * con `overflow` distinto de `visible`/`clip` desactiva el
+ * `position: sticky` de un descendiente -- el MISMO precedente D15b/D15c de
+ * `story.deck.tsx`, ya pagado una vez en Story, que aqui se evita de raiz en
+ * vez de repetirse: si `ScJourney` conservara su `overflow: hidden`, el
+ * `stage` de `ScJourneyStage` (`journey.deck.tsx`) no engancharia y la
+ * presentacion entera degradaria a scroll normal. El recorte del overscan de
+ * la escena pasa a `ScJourneyStage`, que no es ancestro de si mismo.
+ *
+ * CONSERVA `position: relative`, `z-index: 1` (para seguir pintando por
+ * encima de Story, D11 de la spec anterior), `background-color` explicito
+ * (el borde que asoma detras del stage tiene que ser `secondary[1100]`, no
+ * lo que hubiera por casualidad) y el solape `margin-block-start` negativo
+ * con su guard de `reduce` -- mecanica intacta de las dos entregas
+ * anteriores (D2/D5/D6, `2026-08-02-journey-overlay-transition-design.md`),
+ * que esta spec no toca.
  */
 const ScJourney = styled.section<{ $fullBleed: boolean }>`
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`
           position: relative;
-          overflow: hidden;
-          width: 100%;
-          max-width: ${JOURNEY_PORTAL_MAX_WIDTH};
-          height: 90vh;
-          height: ${JOURNEY_PORTAL_HEIGHT};
-          margin-inline: auto;
-          display: flex;
-          align-items: center;
-          background-color: ${theme.data.palette.secondary[1100]};
-          transform: translateY(
-            calc(100% * (1 - var(--journey-scroll-offset, 0)))
-          );
-          opacity: var(--journey-scroll-opacity, 1);
-          transition:
-            transform ${theme.data.motion.duration.slow}
-              ${theme.data.motion.easing.emphasized},
-            opacity ${theme.data.motion.duration.slow}
-              ${theme.data.motion.easing.emphasized};
+          z-index: 1;
+          background-color: ${theme.data.semantic.bg};
+          margin-block-start: calc(-1 * ${JOURNEY_OVERLAY_RISE});
 
           @media (prefers-reduced-motion: reduce) {
-            transform: none;
-            transition: none;
+            margin-block-start: 0;
           }
         `
       : css`
@@ -295,7 +322,9 @@ const ScQuote = styled.div`
 /* Degradado de texto estático (la spec §7.2 no pide animarlo, a diferencia
    del tramo `ToInfinite` de `BrandName.tsx`), con la misma red de seguridad
    de `@supports not (background-clip: text)` para no dejar el texto
-   invisible en un motor que no soporte el recorte. */
+   invisible en un motor que no soporte el recorte. Se reutiliza TAL CUAL en
+   la diapositiva de cita de la presentacion oscura (`JourneyDeckDark`, mas
+   abajo): las dos ramas comparten el mismo degradado en el mismo instante. */
 const ScQuoteText = styled.span`
   background-image: ${({ theme }) =>
     theme.data.isLight
@@ -338,111 +367,11 @@ const ScFigure = styled.img`
   }
 `;
 
-/* Reveal de la rama oscura: mismo mecanismo que `ScDarkContent` en
-   `Story.tsx` -- lleva su propio padding/tope de ancho, centrado.
-   Max-width de 1280px (spec 2026-08-01, D3): acotacion explicita
-   para experiencia visual coherente con escena de fondo. */
-const ScDarkContent = styled.div`
-  position: relative;
-  z-index: 1;
-  max-width: 1280px;
-  width: 100%;
-  padding: ${({ theme }) => theme.data.space[8]}
-    ${({ theme }) => theme.data.space[6]};
-  margin-inline: auto;
-  opacity: 0;
-  transform: translateY(16px);
-  transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
-
-  &[data-revealed="true"] {
-    opacity: 1;
-    transform: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    opacity: 1;
-    transform: none;
-  }
-`;
-
-const ScDarkBody = styled(Typography)`
-  margin-block-start: ${({ theme }) => theme.data.space[3]};
-  color: ${({ theme }) => theme.data.semantic.textMuted};
-`;
-
-/* Los 6 pasos como filas verticales (mismo patrón que `ScPillarRow` en
-   Story.tsx), no como la rejilla de 6 columnas con discos de la rama clara:
-   esa rejilla está pensada para una tarjeta ancha con fondo propio, no para
-   superponerse a una imagen en una columna estrecha. */
-const ScDarkSteps = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-block-start: ${({ theme }) => theme.data.space[6]};
-`;
-
-const ScDarkStepRow = styled.div`
-  display: grid;
-  grid-template-columns: 2.5rem 1fr;
-  gap: ${({ theme }) => theme.data.space[4]};
-  align-items: baseline;
-  padding-block: ${({ theme }) => theme.data.space[4]};
-  border-block-start: 1px solid ${({ theme }) => theme.data.semantic.border};
-`;
-
-const ScDarkStepIcon = styled.span<{
-  $colorRamp: JourneyStep["colorRamp"];
-  $colorStep: JourneyStep["colorStep"];
-}>`
-  display: flex;
-  color: ${({ theme, $colorRamp, $colorStep }) =>
-    stepColor(theme.data, { colorRamp: $colorRamp, colorStep: $colorStep })};
-
-  /* Mismo candado que ScDisc: GlobalStyles fuerza svg { width: 100% }. */
-  & > svg {
-    width: 20px;
-    height: 20px;
-  }
-`;
-
-const ScDarkStepCopy = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.data.space[1]};
-`;
-
-const ScDarkStepLabel = styled.p<{
-  $colorRamp: JourneyStep["colorRamp"];
-  $colorStep: JourneyStep["colorStep"];
-}>`
-  margin: 0;
-  font-family: ${({ theme }) => theme.data.type.fontBody};
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: ${({ theme, $colorRamp, $colorStep }) =>
-    stepColor(theme.data, { colorRamp: $colorRamp, colorStep: $colorStep })};
-`;
-
-const ScDarkStepBody = styled(Typography)`
-  margin-block-start: ${({ theme }) => theme.data.space[2]};
-  color: ${({ theme }) => theme.data.semantic.textMuted};
-`;
-
-const ScDarkQuote = styled.div`
-  margin-top: ${({ theme }) => theme.data.space[7]};
-  font-family: ${({ theme }) => theme.data.type.fontBody};
-  font-size: 1rem;
-  font-weight: 600;
-`;
-
 /** Icono SVG inline por paso (copiado verbatim del mockup L115-141: mismo
  *  `viewBox`, mismos `path`/`circle`, `currentColor` para heredar el color
- *  del disco). Decorativo — `aria-hidden`, la etiqueta de texto ya nombra el
- *  paso. */
+ *  del disco/rampa). Decorativo — `aria-hidden`, la etiqueta de texto ya
+ *  nombra el paso. Lo comparten las dos ramas: `ScDisc` (clara) y
+ *  `ScJourneyStepIconBox` (oscura, `JourneyDeckDark` mas abajo). */
 function StepIcon({ id }: { id: JourneyStepId }): ReactElement {
   const common = {
     "width": 22,
@@ -525,86 +454,23 @@ export function Journey(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
-  const journeyRef = useRef<HTMLElement | null>(null);
 
-  /* Calcula scroll offset para transición: Journey se anima desde abajo
-     conforme entra en viewport. Usa CSS variables para control sin re-render. */
-  useEffect(() => {
-    const handleScroll = (): void => {
-      const el = journeyRef.current;
-      if (!el) return;
-
-      const rect = el.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      /* scrollOffset: 0 cuando Journey está abajo (rect.top > windowHeight),
-         1 cuando Journey llena el viewport (rect.top ≤ 0). */
-      const scrollOffset = Math.max(
-        0,
-        Math.min(1, (windowHeight - rect.top) / windowHeight),
-      );
-
-      el.style.setProperty("--journey-scroll-offset", scrollOffset.toString());
-      el.style.setProperty("--journey-scroll-opacity", "1");
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll(); /* trigger inicial */
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
+  // La rama oscura vive en un componente HIJO aparte (JourneyDeckDark, mas
+  // abajo) en vez de continuar aqui mismo: mismo motivo que StoryDeckDark en
+  // Story.tsx (D15, spec 2026-08-02-journey-deck-8-diapositivas-design.md).
+  // useSlideDeck llama window.matchMedia incondicionalmente en su efecto de
+  // montaje, y esta funcion Journey() es UNA SOLA para las dos ramas -- las
+  // reglas de los hooks de React prohiben llamarlo solo "cuando el tema es
+  // oscuro" dentro de ella. Si el hook se llamara aqui, se ejecutaria en
+  // CADA render de Journey() -- tambien en tema claro -- y rompería
+  // cualquier test que renderice la rama clara sin stubear matchMedia (los
+  // tests existentes de este archivo, ninguno de los cuales lo stubea
+  // porque nunca lo necesitaron). Delegar la rama oscura a un componente que
+  // solo se MONTA cuando themeName !== "light" resuelve esto sin tocar
+  // useSlideDeck.ts ni los tests claros: React nunca ejecuta los hooks de un
+  // componente que no se renderiza.
   if (themeName !== "light") {
-    return (
-      <ScJourney
-        ref={journeyRef}
-        id="journey"
-        aria-labelledby="journey-title"
-        $fullBleed
-      >
-        <JourneyCosmicPortal />
-        <ScDarkContent
-          ref={revealRef}
-          data-revealed={revealed}
-        >
-          <ScKicker variant="overline">{t("Home.journey.kicker")}</ScKicker>
-          <Typography
-            variant="h2"
-            id="journey-title"
-          >
-            {t("Home.journey.title")}
-          </Typography>
-          <ScDarkBody variant="bodySm">{t("Home.journey.body")}</ScDarkBody>
-
-          <ScDarkSteps>
-            {JOURNEY_STEPS.map((step, index) => (
-              <ScDarkStepRow key={step.id}>
-                <ScDarkStepIcon
-                  $colorRamp={step.colorRamp}
-                  $colorStep={step.colorStep}
-                >
-                  <StepIcon id={step.id} />
-                </ScDarkStepIcon>
-                <ScDarkStepCopy>
-                  <ScDarkStepLabel
-                    $colorRamp={step.colorRamp}
-                    $colorStep={step.colorStep}
-                  >
-                    {String(index + 1).padStart(2, "0")} ·{" "}
-                    {t(`Home.journey.steps.${step.id}.label`)}
-                  </ScDarkStepLabel>
-                  <ScDarkStepBody variant="caption">
-                    {t(`Home.journey.steps.${step.id}.body`)}
-                  </ScDarkStepBody>
-                </ScDarkStepCopy>
-              </ScDarkStepRow>
-            ))}
-          </ScDarkSteps>
-
-          <ScDarkQuote>
-            <ScQuoteText>“{t("Home.journey.quote")}”</ScQuoteText>
-          </ScDarkQuote>
-        </ScDarkContent>
-      </ScJourney>
-    );
+    return <JourneyDeckDark />;
   }
 
   return (
@@ -612,7 +478,6 @@ export function Journey(): ReactElement {
       id="journey"
       aria-labelledby="journey-title"
       $fullBleed={false}
-      ref={journeyRef}
     >
       <ScCard>
         <ScHeader>
@@ -687,6 +552,143 @@ export function Journey(): ReactElement {
           <ScQuoteText>“{t("Home.journey.quote")}”</ScQuoteText>
         </ScQuote>
       </ScCard>
+    </ScJourney>
+  );
+}
+
+/*
+ * Rama oscura de Journey, extraida a su propio componente (ver el
+ * comentario de mas arriba, en Journey()): aqui SI es seguro llamar
+ * useSlideDeck sin condicion, porque este componente en si mismo solo se
+ * monta cuando la rama oscura esta activa.
+ *
+ * Reparto de las JOURNEY_SLIDES diapositivas (spec seccion 4): 0 = intro
+ * (kicker + h2#journey-title + cuerpo), 1..JOURNEY_STEPS.length = un paso
+ * cada una (icono -> etiqueta -> cuerpo), la ultima = la cita. `ScKicker`/
+ * `ScQuoteText` se REUTILIZAN tal cual (las comparten las dos ramas, arriba
+ * en este archivo); el resto de piezas de cartel viven en journey.deck.tsx
+ * (`ScJourneyDeckTitle`/`ScJourneyIntroBody`/`ScJourneyStepIconBox`/
+ * `ScJourneyStepLabel`/`ScJourneyStepBody`/`ScJourneyQuote`), con su PROPIA
+ * escala de tamanos (journey.layers.ts) para no filtrar ningun ajuste a la
+ * rama clara.
+ *
+ * SIN numero de paso (retirado 2026-08-02, encargo explicito del usuario:
+ * "quita las numeraciones de la seccion Journey", acotado a esta rama tras
+ * preguntar el alcance). La diapositiva de paso compuso icono -> numero ->
+ * etiqueta -> cuerpo (D11 de la spec de esta entrega) hasta hoy; la rama
+ * CLARA conserva su "0N · Label" tal cual, verbatim del mockup aprobado --
+ * este cambio es exclusivo de la presentacion oscura. `ScJourneyStepNumber`
+ * (el styled que pintaba "01".."06") se retiro por completo de
+ * journey.deck.tsx junto con la constante de tamano que consumia
+ * (`JOURNEY_DECK_STEP_NUMBER_SIZE`, journey.layers.ts): sin numero que
+ * mostrar, ninguna de las dos tenia ya consumidor.
+ */
+function JourneyDeckDark(): ReactElement {
+  const { t } = useTranslation("home");
+
+  // Refs ESTABLES (useRef, no callback-ref): useSlideDeck lee
+  // getBoundingClientRect() de la pista en cada frame de rAF y escribe las
+  // variables CSS de la coreografia directamente sobre el stage -- mismo
+  // motivo por el que useSceneParallax exige refs de identidad estable en
+  // vez de callbacks, y mismo patron que StoryDeckDark (Story.tsx).
+  const trackRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  // cssVarPrefix: "journey" EXPLICITO (D4, spec
+  // 2026-08-02-journey-deck-8-diapositivas-design.md): sin este parametro el
+  // hook escribiria `--deck-enter`/`--deck-progress` (su defecto generico)
+  // en vez de `--journey-enter`/`--journey-progress`, que es lo que
+  // ScJourneySceneWrap (journey.deck.tsx) lee. Sin `tailScreens` (D9,
+  // Journey no lleva cola): el defecto `0` no resta nada del recorrido. El
+  // hook sigue calculando `direction` -- es parte de su contrato -- pero
+  // aqui no se desestructura: D6 dice explicitamente que Journey no consume
+  // "rewind", asi que no hay ningun `data-dir` en esta seccion.
+  const { index } = useSlideDeck(trackRef, stageRef, JOURNEY_SLIDES, {
+    cssVarPrefix: "journey",
+  });
+
+  // Estado de cada diapositiva: se decide AQUI, comparando su indice con el
+  // `index` que escribe el hook -- el CSS de ScJourneySlide
+  // (journey.deck.tsx) solo reacciona al atributo data-state resultante,
+  // nunca calcula nada por si mismo (jsdom, ademas, no puede evaluar ningun
+  // calculo que dependiera de scroll real).
+  const slideState = (slideIndex: number): "past" | "current" | "next" => {
+    if (slideIndex < index) return "past";
+    if (slideIndex === index) return "current";
+    return "next";
+  };
+
+  return (
+    <ScJourney
+      id="journey"
+      aria-labelledby="journey-title"
+      $fullBleed
+    >
+      {/* ScJourneyTrack da a la pagina el recorrido de scroll de las
+          JOURNEY_SLIDES diapositivas; ScJourneyStage, su unico hijo en
+          flujo, es quien se pega y permanece en pantalla mientras ese
+          recorrido pasa por debajo (spec seccion 4). */}
+      <ScJourneyTrack ref={trackRef}>
+        <ScJourneyStage
+          ref={stageRef}
+          data-slide={index}
+        >
+          <ScJourneySceneWrap>
+            <JourneyCosmicPortal />
+          </ScJourneySceneWrap>
+          <ScJourneyDeck>
+            <ScJourneySlide
+              data-slide-index={0}
+              data-state={slideState(0)}
+            >
+              <ScKicker variant="overline">{t("Home.journey.kicker")}</ScKicker>
+              <ScJourneyDeckTitle id="journey-title">
+                {t("Home.journey.title")}
+              </ScJourneyDeckTitle>
+              <ScJourneyIntroBody>{t("Home.journey.body")}</ScJourneyIntroBody>
+            </ScJourneySlide>
+            {JOURNEY_STEPS.map((step, stepIndex) => (
+              <ScJourneySlide
+                key={step.id}
+                data-slide-index={stepIndex + 1}
+                data-state={slideState(stepIndex + 1)}
+              >
+                <ScJourneyStepIconBox
+                  $colorRamp={step.colorRamp}
+                  $colorStep={step.colorStep}
+                >
+                  <StepIcon id={step.id} />
+                </ScJourneyStepIconBox>
+                <ScJourneyStepLabel>
+                  {t(`Home.journey.steps.${step.id}.label`)}
+                </ScJourneyStepLabel>
+                <ScJourneyStepBody>
+                  {t(`Home.journey.steps.${step.id}.body`)}
+                </ScJourneyStepBody>
+              </ScJourneySlide>
+            ))}
+            <ScJourneySlide
+              data-slide-index={JOURNEY_SLIDES - 1}
+              data-state={slideState(JOURNEY_SLIDES - 1)}
+            >
+              <ScJourneyQuote>
+                <ScQuoteText>“{t("Home.journey.quote")}”</ScQuoteText>
+              </ScJourneyQuote>
+            </ScJourneySlide>
+          </ScJourneyDeck>
+          {/* Rail decorativo (D13): JOURNEY_SLIDES marcas, aria-hidden, que
+              reflejan data-slide del stage por CSS puro
+              (ScJourneyRailMark, journey.deck.tsx) -- no llevan estado
+              propio de React, solo su indice fijo. */}
+          <ScJourneyRail aria-hidden="true">
+            {Array.from({ length: JOURNEY_SLIDES }, (_, railIndex) => (
+              <ScJourneyRailMark
+                key={railIndex}
+                $index={railIndex}
+              />
+            ))}
+          </ScJourneyRail>
+        </ScJourneyStage>
+      </ScJourneyTrack>
     </ScJourney>
   );
 }
