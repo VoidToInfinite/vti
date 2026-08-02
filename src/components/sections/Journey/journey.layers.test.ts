@@ -14,6 +14,7 @@ import {
   JOURNEY_DECK_STEP_LABEL_SIZE,
   JOURNEY_DECK_STEP_LABEL_WEIGHT,
   JOURNEY_DECK_STEP_SUBTITLE_SIZE,
+  JOURNEY_DECK_TAIL_SCREENS,
   JOURNEY_DECK_TITLE_SIZE,
   JOURNEY_DECK_TRACK_HEIGHT,
   JOURNEY_SCENE_DEPTH_SHIFT,
@@ -38,13 +39,20 @@ describe("constantes de la presentacion de Journey (test 1 de la spec, D3)", () 
     expect(JOURNEY_SLIDES).toBe(8);
   });
 
-  it("la pista NO lleva cola (D9): mide exactamente JOURNEY_SLIDES pantallas, sin ningun termino de mas", () => {
-    // A diferencia de STORY_DECK_TRACK_HEIGHT (que suma STORY_DECK_TAIL_SCREENS),
-    // esta formula no tiene termino de adicion: comparar contra la cadena
-    // exacta demuestra la AUSENCIA de cola, no solo el numero de pantallas.
+  it("la pista SI lleva cola (D3, reversion de D9): mide JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS pantallas", () => {
+    // Contra las CONSTANTES, nunca contra el literal `9`: un numero escrito
+    // a mano deja de proteger la formula en cuanto JOURNEY_SLIDES o
+    // JOURNEY_DECK_TAIL_SCREENS cambien de valor (task/lessons.md,
+    // 2026-08-01). Igual que STORY_DECK_TRACK_HEIGHT, esta formula SI tiene
+    // termino de adicion: comparar contra la cadena exacta demuestra la
+    // PRESENCIA de la cola, no solo el numero de pantallas.
     expect(JOURNEY_DECK_TRACK_HEIGHT).toBe(
-      `calc(${JOURNEY_SLIDES} * ${JOURNEY_DARK_HEIGHT})`,
+      `calc((${JOURNEY_SLIDES} + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`,
     );
+  });
+
+  it("JOURNEY_DECK_TAIL_SCREENS vale exactamente 1 pantalla", () => {
+    expect(JOURNEY_DECK_TAIL_SCREENS).toBe(1);
   });
 
   it("cada diapositiva ocupa el alto completo de la vista", () => {

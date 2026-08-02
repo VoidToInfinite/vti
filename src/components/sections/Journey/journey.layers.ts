@@ -230,18 +230,48 @@ export const JOURNEY_DARK_HEIGHT = "100dvh";
 export const JOURNEY_SLIDES = JOURNEY_STEPS.length + 2;
 
 /**
- * Alto total de la pista que da recorrido de scroll a la presentación (D9):
- * a diferencia de la de Story (`STORY_DECK_TRACK_HEIGHT`), esta NO suma
- * ninguna cola. La cola de Story existe porque Journey tiene que
- * superponérsele al final de su recorrido (`JOURNEY_OVERLAY_RISE`, arriba);
- * nada tiene que superponerse a Journey -- Features, la sección siguiente,
- * no lo pide -- así que sumar una cola aquí solo dejaría una pantalla de
- * scroll muerto al final de la presentación. Se declara sin ningún término
- * adicional, y un test la compara contra esta fórmula exacta (no contra un
- * número), para que la ausencia de cola se lea como una decisión tomada y no
- * como un olvido del patrón de Story.
+ * Zona de "hold" al final de la pista (D3/D4/D5, spec
+ * `2026-08-02-features-overlay-celestial-orbital-design.md`), en pantallas:
+ * el tramo final durante el cual el `stage` sigue pegado
+ * (`position: sticky`), la presentación ya ha terminado de recorrer sus
+ * diapositivas y lo ÚNICO que ocurre en ese tramo es que la sección Features
+ * sube por encima superponiéndose (D2 de esa misma spec). Sin esta zona el
+ * solape de Features se comería el recorrido de la última diapositiva:
+ * Features empezaría a taparla mientras todavía está activa.
+ *
+ * Tiene que valer EXACTAMENTE lo mismo que `FEATURES_OVERLAY_RISE`
+ * (`src/components/sections/Features/features.layers.ts`), medido en
+ * pantallas: si el hold es más corto que el solape, queda una banda de la
+ * escena de Journey sin tapar entre las dos secciones; si es más largo,
+ * Features empieza a subir con la cita de cierre todavía viva. Las dos
+ * constantes viven en ficheros de datos distintos (acoplarlas importando una
+ * desde la otra mezclaría los datos de dos secciones que no se conocen entre
+ * sí), así que la igualdad NO se declara aquí en prosa: la ata un test que
+ * importa los dos ficheros (`Features.test.tsx`, invariante D5).
+ *
+ * Precedente exacto: `STORY_DECK_TAIL_SCREENS` (`story.layers.ts`), la misma
+ * zona de hold que hoy sostiene la superposición de Journey sobre Story.
  */
-export const JOURNEY_DECK_TRACK_HEIGHT = `calc(${JOURNEY_SLIDES} * ${JOURNEY_DARK_HEIGHT})`;
+export const JOURNEY_DECK_TAIL_SCREENS = 1;
+
+/**
+ * Alto total de la pista que da recorrido de scroll a la presentación: suma
+ * `JOURNEY_DECK_TAIL_SCREENS` (D3, spec
+ * `2026-08-02-features-overlay-celestial-orbital-design.md`), que
+ * REVIERTE A PROPÓSITO D9 de la spec
+ * `2026-08-02-journey-deck-8-diapositivas-design.md`. Aquella decisión
+ * escribió, literalmente, que la pista de Journey no lleva cola porque
+ * "nada tiene que superponerse a Journey -- Features, la sección siguiente,
+ * no lo pide". El encargo de esta entrega es exactamente que Features SÍ lo
+ * pida: sin la cola, Features empezaría a tapar con la diapositiva 8
+ * (la cita) todavía activa, y esta no llegaría nunca a verse sin tapar. No es
+ * un olvido de aquel razonamiento -- era correcto en su momento, para el
+ * encargo de aquel momento -- sino una decisión nueva que lo sustituye
+ * porque el encargo cambió. Un test la compara contra esta fórmula exacta
+ * (no contra un número), para que la presencia de la cola se lea como una
+ * decisión tomada y no como un accidente.
+ */
+export const JOURNEY_DECK_TRACK_HEIGHT = `calc((${JOURNEY_SLIDES} + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`;
 
 /**
  * Desplazamiento vertical de entrada/salida de cada diapositiva

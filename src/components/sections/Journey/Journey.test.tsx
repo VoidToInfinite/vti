@@ -12,6 +12,7 @@ import {
   JOURNEY_PATH_VIEWBOX,
   JOURNEY_CONTENT_MAX_WIDTH,
   JOURNEY_DARK_HEIGHT,
+  JOURNEY_DECK_TAIL_SCREENS,
   JOURNEY_OVERLAY_RISE,
   JOURNEY_SLIDES,
 } from "./journey.layers";
@@ -423,14 +424,18 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     const stage = container.querySelector("[data-slide]") as HTMLElement;
     const track = stage.parentElement as HTMLElement;
 
-    // Geometria de la pista SIN cola (D9): span = height - vh. Se fija
-    // rect.top para que progress caiga EXACTAMENTE en targetIndex/(N-1), sin
-    // depender de ningun redondeo -- measure() corre SINCRONO dentro de
-    // start() en cuanto la interseccion se activa, sin necesitar rAF (misma
-    // tecnica que useSlideDeck.test.tsx).
+    // Geometria de la pista CON cola (D3/D4, spec
+    // 2026-08-02-features-overlay-celestial-orbital-design.md, que revierte
+    // D9): la pista mide (SLIDES + TAIL) pantallas y useSlideDeck resta la
+    // cola del span (`measure()`, useSlideDeck.ts) -- mismo termino que ya
+    // protege "con tailScreens = 1 el progreso llega a 1 una pantalla antes"
+    // en useSlideDeck.test.tsx. Se fija rect.top para que progress caiga
+    // EXACTAMENTE en targetIndex/(N-1), sin depender de ningun redondeo --
+    // measure() corre SINCRONO dentro de start() en cuanto la interseccion
+    // se activa, sin necesitar rAF (misma tecnica que useSlideDeck.test.tsx).
     const vh = window.innerHeight;
-    const height = JOURNEY_SLIDES * vh;
-    const span = height - vh;
+    const height = (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * vh;
+    const span = height - vh - JOURNEY_DECK_TAIL_SCREENS * vh;
     const targetIndex = 4;
     const progress = targetIndex / (JOURNEY_SLIDES - 1);
     track.getBoundingClientRect = () =>

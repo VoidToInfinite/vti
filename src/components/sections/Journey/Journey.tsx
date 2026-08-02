@@ -40,6 +40,7 @@ import {
   JOURNEY_FIGURE_SRC_SMALL,
   JOURNEY_OVERLAY_RISE,
   JOURNEY_SLIDES,
+  JOURNEY_DECK_TAIL_SCREENS,
   type JourneyStep,
   type JourneyStepId,
 } from "./journey.layers";
@@ -598,12 +599,22 @@ function JourneyDeckDark(): ReactElement {
   // 2026-08-02-journey-deck-8-diapositivas-design.md): sin este parametro el
   // hook escribiria `--deck-enter`/`--deck-progress` (su defecto generico)
   // en vez de `--journey-enter`/`--journey-progress`, que es lo que
-  // ScJourneySceneWrap (journey.deck.tsx) lee. Sin `tailScreens` (D9,
-  // Journey no lleva cola): el defecto `0` no resta nada del recorrido. El
-  // hook sigue calculando `direction` -- es parte de su contrato -- pero
-  // aqui no se desestructura: D6 dice explicitamente que Journey no consume
-  // "rewind", asi que no hay ningun `data-dir` en esta seccion.
+  // ScJourneySceneWrap (journey.deck.tsx) lee. `tailScreens:
+  // JOURNEY_DECK_TAIL_SCREENS` (D4, spec
+  // 2026-08-02-features-overlay-celestial-orbital-design.md): Journey SI
+  // lleva cola ahora -- reversion consciente de D9 de la spec de las 8
+  // diapositivas (ver el docblock de JOURNEY_DECK_TRACK_HEIGHT,
+  // journey.layers.ts) -- porque Features, la seccion siguiente, se
+  // superpone a Journey al final de su recorrido y necesita ese tramo de
+  // pista quieto para subir sin comerse la cita de cierre. La opcion ya
+  // existia y ya estaba probada (D4 de la spec de las 8 diapositivas,
+  // escrita para Story): el hook no se toca, solo deja de quedarse en su
+  // defecto `0`. El hook sigue calculando `direction` -- es parte de su
+  // contrato -- pero aqui no se desestructura: D6 dice explicitamente que
+  // Journey no consume "rewind", asi que no hay ningun `data-dir` en esta
+  // seccion.
   const { index } = useSlideDeck(trackRef, stageRef, JOURNEY_SLIDES, {
+    tailScreens: JOURNEY_DECK_TAIL_SCREENS,
     cssVarPrefix: "journey",
   });
 
