@@ -115,13 +115,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Features/Features.test.tsx": {
-    "mtime": 1785705125.3377829,
-    "ast_hash": "b78342f0ead4bfc5db390f500df8c350",
+    "mtime": 1785771621.7355642,
+    "ast_hash": "a1acd9a331b34b462ac80dc288c72b45",
     "semantic_hash": ""
   },
   "src/components/sections/Features/Features.tsx": {
-    "mtime": 1785706973.640941,
-    "ast_hash": "fc93516f32f6256c94b25881d64852a9",
+    "mtime": 1785771564.7175136,
+    "ast_hash": "b69ac6dc00f1800b434eded9fc2482c7",
     "semantic_hash": ""
   },
   "src/components/sections/Hero/Hero.test.tsx": {
@@ -1555,8 +1555,8 @@
     "semantic_hash": ""
   },
   "assets/story-cosmic-being/manifest.json": {
-    "mtime": 1785566380.029226,
-    "ast_hash": "55fd578752582603cd0b837f89bb3a33",
+    "mtime": 1785768084.201869,
+    "ast_hash": "8c7a573af61d858eb02a17803fa0fde7",
     "semantic_hash": ""
   },
   "src/components/storyCosmicBeing/StoryCosmicBeing.test.tsx": {
@@ -1585,113 +1585,113 @@
     "semantic_hash": ""
   },
   "public/story/cosmic-being/00-space-base-1024.webp": {
-    "mtime": 1785531615.4218793,
-    "ast_hash": "93dcb2941ef6b2e7583a1535498be53a",
+    "mtime": 1785767507.5391166,
+    "ast_hash": "7054405b7e8f61ef19612b53ce673505",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/00-space-base.webp": {
-    "mtime": 1785531615.3190475,
-    "ast_hash": "2e447cfacd9c9c4b7b66f5ff2201d04c",
+    "mtime": 1785767507.4046826,
+    "ast_hash": "30d26398492cc0ba8c58292d3928f06d",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/01-nebula-1024.webp": {
-    "mtime": 1785531634.564348,
-    "ast_hash": "b97f8ad6ee518dc3cc5919717fd28677",
+    "mtime": 1785767533.234429,
+    "ast_hash": "de1ca59fb618909506a1f65d423a77dc",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/01-nebula.webp": {
-    "mtime": 1785531623.7205436,
-    "ast_hash": "69ce53de00273e82c8615971b8d7dd9b",
+    "mtime": 1785767518.3332386,
+    "ast_hash": "2ab4b718278caaf154270dee363a03ab",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/02-galaxy-1024.webp": {
-    "mtime": 1785531639.6594694,
-    "ast_hash": "c4ece4bb52cf510dd08cde6f4af34e73",
+    "mtime": 1785767539.1663356,
+    "ast_hash": "9cb896d43683080cb93dc3c642f49b07",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/02-galaxy.webp": {
-    "mtime": 1785531637.4571376,
-    "ast_hash": "e2b7f71fe7a39327bbb51c6e8ee0433d",
+    "mtime": 1785767536.6822915,
+    "ast_hash": "07d960e5ee6568ef51d21028fa9122ed",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/03-stars-far-1024.webp": {
-    "mtime": 1785531645.4223692,
-    "ast_hash": "7f7e937692b91c39d05b827e47b2af37",
+    "mtime": 1785767546.8315341,
+    "ast_hash": "fd54c1aba9900405ecf033792f79e670",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/03-stars-far.webp": {
-    "mtime": 1785531643.4778254,
-    "ast_hash": "6028222d449075041a7ce3b60a25706f",
+    "mtime": 1785767541.6765542,
+    "ast_hash": "d40d4b978f6a6288b69e876ac86e97a0",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/04-stars-mid-1024.webp": {
-    "mtime": 1785531649.0487552,
-    "ast_hash": "2b8ff20f99d6e04f4e7a9e5b8dc645a5",
+    "mtime": 1785767556.8302681,
+    "ast_hash": "f17acdf8c58bd9b714cb2dee11f020df",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/04-stars-mid.webp": {
-    "mtime": 1785531647.2773411,
-    "ast_hash": "4d5b97b99ef45e894f71d6e113832ec7",
+    "mtime": 1785767551.404819,
+    "ast_hash": "28f7e5768301679419fd199e5f50f786",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/05-stars-near-1024.webp": {
-    "mtime": 1785531654.5081222,
-    "ast_hash": "0e72359c4d3b7d2813c833911110bd5f",
+    "mtime": 1785767565.7202952,
+    "ast_hash": "b4174b0d50f93fd4414717a5339290b1",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/05-stars-near.webp": {
-    "mtime": 1785531652.9057562,
-    "ast_hash": "6dc0a4796b20ee19a1d9be1b6bccbd12",
+    "mtime": 1785767561.517548,
+    "ast_hash": "90fef3e061a90850fdf3e34ffedfe427",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/06-orbs-1024.webp": {
-    "mtime": 1785531656.598907,
-    "ast_hash": "70a6bcd68c4b190c2e26af7e09564f73",
+    "mtime": 1785767571.5703475,
+    "ast_hash": "2052e02e1627e72750ba36f6a8f4c6a1",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/06-orbs.webp": {
-    "mtime": 1785531655.7005804,
-    "ast_hash": "8957c13d1a38ad65b9db39f712560964",
+    "mtime": 1785767569.161195,
+    "ast_hash": "b603b384c279e4e8134e62668dbfe3a3",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/07-geometry-1024.webp": {
-    "mtime": 1785531677.9848964,
-    "ast_hash": "ecd6c949156283f8c6b39ac86a37baf1",
+    "mtime": 1785767597.9569747,
+    "ast_hash": "209a0ca2b12ee32432db80f55a10ec2e",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/07-geometry.webp": {
-    "mtime": 1785531666.1794484,
-    "ast_hash": "0efbd4666bdae4bf6afa925bb6cea168",
+    "mtime": 1785767583.242443,
+    "ast_hash": "9004277a8970a4f445d538a81cb337cd",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/08-figure-aura-1024.webp": {
-    "mtime": 1785565901.1014233,
-    "ast_hash": "7e5121791c2b546f3d4410e4d52c4f6e",
+    "mtime": 1785767606.8144245,
+    "ast_hash": "ad82b33d356d12547363fd6c9c477de4",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/08-figure-aura.webp": {
-    "mtime": 1785565897.5292377,
-    "ast_hash": "71e41e2148407772d2605b0b123190be",
+    "mtime": 1785767602.8259397,
+    "ast_hash": "f15143b7c9f9088a983b55b1f46e0a2c",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/09-figure-1024.webp": {
-    "mtime": 1785565907.2927382,
-    "ast_hash": "c9d7495f8dcad1f92f55d01f8848b158",
+    "mtime": 1785767614.3039172,
+    "ast_hash": "7b15db4f1cddb2557978cd398240fe87",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/09-figure.webp": {
-    "mtime": 1785565904.6979594,
-    "ast_hash": "15f8b1485465a5b7cd11599ea3573a6c",
+    "mtime": 1785767611.139602,
+    "ast_hash": "1213905ac419a13b776ee67e7706a39b",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/10-heart-core-1024.webp": {
-    "mtime": 1785531697.2952864,
-    "ast_hash": "a81c992dd891131380aa2af75cb0e837",
+    "mtime": 1785767620.6884778,
+    "ast_hash": "8a1baf543bafa0364a871d2d9bbcc178",
     "semantic_hash": ""
   },
   "public/story/cosmic-being/10-heart-core.webp": {
-    "mtime": 1785531695.0877993,
-    "ast_hash": "5a5eaba4e203f73b5826f0402b20c9d4",
+    "mtime": 1785767617.9681723,
+    "ast_hash": "6dcbb4ea6f95667d5bc717370553887f",
     "semantic_hash": ""
   },
   "assets/journey-cosmic-portal/manifest.json": {
