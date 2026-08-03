@@ -13,6 +13,7 @@ import {
   JOURNEY_DECK_TAIL_SCREENS,
 } from "@/components/sections/Journey/journey.layers";
 import { FEATURES_ORBITAL_LAYERS } from "@/components/featuresCelestialOrbital/featuresCelestialOrbital.layers";
+import { themes } from "@/theme/themes";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
@@ -212,6 +213,74 @@ describe("Features", () => {
       expect(reduceBlocks).toMatch(/opacity:\s*1/);
       expect(reduceBlocks).toMatch(/transform:\s*none/);
     });
+  });
+});
+
+/*
+ * Encargo 2026-08-03: los bullets van a DOS columnas solo en dispositivos
+ * grandes. Por texto del CSS inyectado y no con `getComputedStyle`: jsdom no
+ * evalua NINGUN @media al calcular estilos (lección repo 2026-07-27), asi que
+ * el estilo computado devuelve `1fr` tanto con la regla como sin ella. Se
+ * acota con `cssRuleTextFor` a las clases del PROPIO contenedor de bullets:
+ * `injectedCss()` arrastraria el resto del stylesheet y cualquier otro
+ * `repeat(2, minmax(0, 1fr))` del componente (`ScGrid` declara uno) daria un
+ * verde falso.
+ *
+ * El breakpoint se lee del tema (`themes.light.breakPoint.lg`), no se escribe
+ * "992px" a mano: un literal deja de proteger en silencio el dia que el token
+ * cambie (lección repo 2026-08-01).
+ *
+ * Validado con el bug inyectado: quitando el bloque `@media` de `ScBullets`
+ * en Features.tsx el test se pone rojo (no existe ninguna regla con el
+ * breakpoint y las dos columnas); restaurado, verde.
+ */
+describe("bullets a dos columnas solo en dispositivos grandes", () => {
+  function bulletsContainer(): HTMLElement {
+    const cta = document.querySelector('a[href="#contact"]');
+    return cta?.previousElementSibling as HTMLElement;
+  }
+
+  it("declara UNA columna por defecto y dos dentro del @media de lg", () => {
+    renderWithProviders(<Features />);
+    const css = cssRuleTextFor(bulletsContainer());
+
+    // Regla base (fuera de cualquier @media): una sola columna.
+    const baseRule = css
+      .split("\n")
+      .find(
+        (line) =>
+          !line.includes("@media") && line.includes("grid-template-columns"),
+      );
+    expect(baseRule).toBeDefined();
+    expect(baseRule).toMatch(/grid-template-columns:\s*1fr/);
+
+    // La MISMA linea tiene que ser a la vez el bloque del breakpoint y la
+    // declaracion de dos columnas: separarlo en dos aserciones dejaria pasar
+    // un CSS con las dos columnas fuera del @media.
+    const lgLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes(themes.light.breakPoint.lg) &&
+          line.includes("grid-template-columns"),
+      );
+    expect(lgLine).toBeDefined();
+    expect(lgLine).toMatch(
+      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
+  });
+
+  it("aplica la MISMA regla a las tres tarjetas (ya no depende de cual sea)", () => {
+    const { container } = renderWithProviders(<Features />);
+    const contenedores = Array.from(
+      container.querySelectorAll('a[href="#contact"]'),
+    ).map((cta) => cta.previousElementSibling as HTMLElement);
+    expect(contenedores).toHaveLength(FEATURE_KEYS.length);
+
+    const clases = contenedores.map((el) =>
+      Array.from(el.classList).sort().join(" "),
+    );
+    expect(new Set(clases).size).toBe(1);
   });
 });
 

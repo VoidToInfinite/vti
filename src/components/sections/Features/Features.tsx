@@ -401,14 +401,34 @@ const ScBody = styled(Typography)`
   max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
-const ScBullets = styled.div<{ $twoColumns: boolean }>`
+/*
+ * Bullets a DOS COLUMNAS en dispositivos grandes (encargo 2026-08-03).
+ *
+ * Antes lo decidía una prop (`$twoColumns`) que cada rama pasaba con su
+ * propio criterio: la tarjeta "learning" en oscuro (la única a ancho
+ * completo), un `true` fijo en claro. Ninguno de los dos describía la
+ * condición real, que no es "qué tarjeta es" sino "cuánto ancho hay" -- con
+ * la prop fija, en un móvil de 375px los cuatro bullets se partían igualmente
+ * en dos columnas de ~150px. Por eso la decisión baja al propio componente,
+ * como `@media`, y las dos ramas lo consumen sin parámetro.
+ *
+ * `lg` (992px) y no `md` (768px), que es donde el resto del componente
+ * cambia de layout: justo en `md` la rama clara reparte las tarjetas en DOS
+ * columnas de grid (`ScGrid`), así que al cruzar ese punto el ancho real de
+ * una tarjeta no crece -- se parte por la mitad. Poner aquí `md` haría que
+ * los bullets se dividieran en el mismo salto en el que su contenedor se
+ * estrecha, que es exactamente al revés de lo que se busca.
+ */
+const ScBullets = styled.div`
   display: grid;
-  grid-template-columns: ${({ $twoColumns }) =>
-    $twoColumns ? "repeat(2, minmax(0, 1fr))" : "1fr"};
-  gap: ${({ theme, $twoColumns }) =>
-    $twoColumns
-      ? `${theme.data.space[2]} ${theme.data.space[5]}`
-      : theme.data.space[2]};
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.data.space[2]};
+
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: ${({ theme }) => theme.data.space[2]}
+      ${({ theme }) => theme.data.space[5]};
+  }
 `;
 
 const ScBulletItem = styled.div`
@@ -643,7 +663,7 @@ export function Features(): ReactElement {
                   <ScDarkBody variant="bodySm">
                     {t(`Home.features.${key}.body`)}
                   </ScDarkBody>
-                  <ScBullets $twoColumns={key === "learning"}>
+                  <ScBullets>
                     {BULLET_KEYS.map((bulletKey) => (
                       <ScBulletItem key={bulletKey}>
                         <ScCheckIcon
@@ -746,7 +766,7 @@ export function Features(): ReactElement {
                   <ScBody variant="bodySm">
                     {t(`Home.features.${key}.body`)}
                   </ScBody>
-                  <ScBullets $twoColumns={isLearning}>
+                  <ScBullets>
                     {BULLET_KEYS.map((bulletKey) => (
                       <ScBulletItem key={bulletKey}>
                         <ScCheckIcon
