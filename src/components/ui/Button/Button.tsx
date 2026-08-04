@@ -82,6 +82,23 @@ const ScButton = styled.button<{
   ${({ $size }) => sizeStyles[$size]}
   ${({ theme, $variant, $intent }) => {
     const a = accent(theme, $intent);
+    /* Halo de :focus-visible (hallazgo 1, D7): las cuatro variantes lo
+       necesitan y las tres que no tocan box-shadow (solid/soft/ghost) lo
+       comparten tal cual. Resuelve contra semantic.focus -- el MISMO rol que
+       ya usa el anillo GLOBAL (GlobalStyles.tsx, outline 2px + offset 2px) --
+       para que halo y anillo compartan tono en los dos temas sin inventar un
+       rol nuevo. Es ADITIVO, nunca sustituye el anillo: el outline sigue
+       viviendo intacto en GlobalStyles, esto es una capa aparte (box-shadow,
+       propiedad distinta) que ocupa el área justo después de esos 4px
+       (2px de ancho + 2px de offset), como un segundo halo más suave. Sin
+       transition propia a propósito: aparece tan instantáneo como el propio
+       outline (que tampoco se transiciona por defecto), así que no hace
+       falta guard de prefers-reduced-motion -- esa regla dura solo aplica a
+       transiciones/animaciones que sí existen. */
+    const focusHalo = css`
+      box-shadow: 0 0 0 4px
+        color-mix(in oklch, ${theme.data.semantic.focus} 35%, transparent);
+    `;
     /* Tinte de hover (§13.1: "hover-lift + tint, un paso más oscuro"). Se
        deriva con color-mix del propio acento en vez de añadir un rol
        semántico por intent: así los 4 intents lo obtienen sin multiplicar
@@ -93,6 +110,9 @@ const ScButton = styled.button<{
         &:hover:not(:disabled) {
           background: color-mix(in oklch, ${a} 88%, black);
         }
+        &:focus-visible {
+          ${focusHalo}
+        }
       `;
     if ($variant === "soft")
       return css`
@@ -100,6 +120,9 @@ const ScButton = styled.button<{
         color: ${a};
         &:hover:not(:disabled) {
           background: color-mix(in oklch, ${a} 20%, transparent);
+        }
+        &:focus-visible {
+          ${focusHalo}
         }
       `;
     if ($variant === "outline")
@@ -110,12 +133,26 @@ const ScButton = styled.button<{
         &:hover:not(:disabled) {
           background: color-mix(in oklch, ${a} 10%, transparent);
         }
+        /* Aquí el halo no puede reusar focusHalo suelto: box-shadow no
+           fusiona entre declaraciones distintas (la última gana entera), así
+           que perdería el anillo inset propio de outline. Se combinan las
+           dos capas en la MISMA declaración, separadas por coma -- la
+           sintaxis estándar de box-shadow para apilar sombras. */
+        &:focus-visible {
+          box-shadow:
+            inset 0 0 0 1px ${theme.data.semantic.borderStrong},
+            0 0 0 4px
+              color-mix(in oklch, ${theme.data.semantic.focus} 35%, transparent);
+        }
       `;
     return css`
       background: transparent;
       color: ${a};
       &:hover:not(:disabled) {
         background: color-mix(in oklch, ${a} 10%, transparent);
+      }
+      &:focus-visible {
+        ${focusHalo}
       }
     `;
   }}

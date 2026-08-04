@@ -1,22 +1,30 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
+import { Field, Input } from "@/components/ui/Input/Input";
+import { Button } from "@/components/ui/Button/Button";
 import { useReveal } from "@/hooks/useReveal";
+import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useTheme } from "@/theme/ThemeProvider";
 import { links } from "@/config/links";
-import { ContactNeonGalaxy } from "@/components/contactNeonGalaxy/ContactNeonGalaxy";
+import { ContactCosmicGuardian } from "@/components/contactCosmicGuardian/ContactCosmicGuardian";
+import { CONTACT_GUARDIAN_VOID } from "@/components/contactCosmicGuardian/contactCosmicGuardian.layers";
+import { SectionBeam } from "@/components/sectionBeam/SectionBeam";
 import {
+  CONTACT_CARD_BG_DARK,
   CONTACT_CARD_BORDER,
+  CONTACT_CARD_BORDER_DARK,
   CONTACT_CARD_GRADIENT,
   CONTACT_CARD_SHADOW,
-  CONTACT_CHIP_BG_DARK,
   CONTACT_CHIP_BG_LIGHT,
+  CONTACT_CONTENT_MAX_WIDTH,
+  CONTACT_CONTENT_PAIR_MAX,
+  CONTACT_CONTENT_PAIR_MAX_VW,
   CONTACT_CTA_HOVER_SHADOW,
   CONTACT_DARK_HEIGHT,
-  CONTACT_DARK_MAX_WIDTH,
   CONTACT_FIGURE_FLOAT_MS,
   CONTACT_FIGURE_HEIGHT,
   CONTACT_FIGURE_LEFT,
@@ -24,6 +32,9 @@ import {
   CONTACT_FIGURE_SIZES,
   CONTACT_FIGURE_TOP,
   CONTACT_FLOAT_AMPLITUDE,
+  CONTACT_FORM_BG,
+  CONTACT_FORM_BORDER,
+  CONTACT_OVERLAY_RISE,
   CONTACT_RING_A_BORDER,
   CONTACT_RING_A_RIGHT,
   CONTACT_RING_A_SIZE,
@@ -35,41 +46,124 @@ import {
   CONTACT_RING_HALO_SIZE,
   CONTACT_TITLE_ACCENT_GRADIENT_DARK,
   CONTACT_TITLE_ACCENT_GRADIENT_LIGHT,
+  CONTACT_TOP_GLOW_BLUR,
+  CONTACT_TOP_GLOW_GRADIENT,
+  CONTACT_TOP_GLOW_HEIGHT,
+  CONTACT_TOP_GLOW_PULSE_MS,
+  CONTACT_TOP_GLOW_WIDTH,
 } from "./contact.layers";
+import {
+  gradientShift,
+  heroGradient,
+} from "@/components/layout/Brand/BrandName";
 
 /*
- * Última sección. Rama CLARA (spec §7.4, mockup `#contact` L212-238): tarjeta
- * con degradado pastel, chip de email + CTA a la izquierda, figura que
- * saluda con anillos concéntricos decorativos a la derecha en ≥ md.
+ * Última sección. Rama CLARA (spec §7.4, mockup `#contact` L212-238):
+ * tarjeta con degradado pastel, chip de email + CTA a la izquierda, figura
+ * que saluda con anillos concéntricos decorativos a la derecha en ≥ md.
  * `Socials` NO vive aquí (spec §7.5: se muda al footer, que la reutiliza tal
- * cual con los enlaces reales del repo). Sin cambios de comportamiento.
+ * cual con los enlaces reales del repo). Objetivo 1/2 (encargo 2026-08-04):
+ * gana `min-height: 100dvh` con centrado vertical (ver `ScContact`, más
+ * abajo -- `flex-direction: column`, NO `row` el defecto de `flex`: con un
+ * único hijo, `ScCard`, la dirección columna deja el eje cruzado horizontal
+ * con `align-items` en su valor por defecto `stretch`, que es lo que
+ * conserva el ancho completo que la tarjeta ya tenía como bloque normal; con
+ * `row` la tarjeta, sin `flex-grow`, dejaría de estirarse al ancho del
+ * contenedor -- una regresión de layout, no solo de movimiento) y un
+ * parallax sutil de la figura/anillos ligado a `--contact-progress`
+ * (`useSectionProgress`, ver `ScFigureWrap`/`ScRings` y `Contact()`) -- hasta
+ * esta entrega no tenía ni un movimiento ligado a scroll.
  *
- * Rama OSCURA (2026-07-30, mismo criterio que Story/Journey/Features): no
- * hay mockup oscuro. El fondo es `ContactNeonGalaxy` (7 capas parallax) y el
- * contenido (mismo i18n `Home.contact.*`) se superpone a la DERECHA (la
- * figura y los 3 orbes del fondo quedan a la izquierda del encuadre, mismo
- * layout que Features). Sin anillos concéntricos ni figura `<img>` propia
- * (D9 del spec de Story: ahora son decorativas dentro de la escena).
+ * Rama OSCURA (reescrita 2026-08-03, spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`,
+ * D2/D6): hermana pequeña de `ScFeatures` (`Features.tsx`) — MISMA anatomía
+ * de grid de una columna, slot de escena pegado (`ScDarkSceneSlot`, más
+ * abajo) y marco de contenido (`ScDarkFrame`) compartiendo celda. Hasta esta
+ * entrega era una caja acotada y centrada de `1280px × 90dvh` entre dos
+ * secciones a sangre (Features arriba, Footer abajo) — la única de las
+ * cuatro secciones oscuras que no participaba en la cadena de solapes
+ * Story→Journey→Features. Ahora SUBE sobre el hold de Features (D2/D4:
+ * `margin-block-start` negativo de `CONTACT_OVERLAY_RISE`, que DEBE valer
+ * exactamente lo mismo que `FEATURES_TAIL_HOLD` — la igualdad la ata un
+ * test, `Contact.test.tsx`) y su escena vive en un slot pegado independiente
+ * del contenido, igual que Features. `z-index: 3` completa la escalera de
+ * página: Story (auto) → Journey (1) → Features (2) → Contacto (3).
+ *
+ * PIERDE `overflow: hidden`, `height` fija, `max-width` de sección,
+ * `margin-inline: auto`, `display: flex`, `align-items` y `justify-content`
+ * — todo lo que hacía de esto una caja centrada. La pérdida de
+ * `overflow: hidden` NO es cosmética: sería el ancestro que desactiva EN
+ * SILENCIO el `position: sticky` de `ScDarkSceneSlot` — mismo fallo que este
+ * repo ya documentó tres veces (`task/lessons.md`; D7 de las specs de
+ * Journey y de Features). El recorte del overscan de la escena lo hace
+ * `ScScene` (`contactCosmicGuardian.parts.tsx`), que ya declara su propio
+ * `overflow: hidden` y no es ancestro de sí mismo.
+ *
+ * `background-color`: el void de SU PROPIA escena (`CONTACT_GUARDIAN_VOID`,
+ * `#0d0416`, literal del kit `cosmic-guardian-parallax-kit` declarado en
+ * `demo/index.html` y citado en
+ * `assets/contact-cosmic-guardian/manifest.json`), NO `theme.data.semantic.bg`
+ * como hace `ScFeatures` (D11 de la spec de Features). `semantic.bg` en
+ * oscuro es `color.secondary[1100]` = `oklch(0.22 0.093 311.928)`: un morado
+ * que, bajo la pantalla pegada, se vería como una banda CLARA (L 0.22 frente
+ * a L 0.137 de `#0d0416` — conversión sRGB→OKLab con la fórmula de Björn
+ * Ottosson, ejecutada y sanity-checked contra blanco=1.0 y negro=0.0; de
+ * paso corrige la cifra de este mismo docblock en la entrega anterior, que
+ * daba «≈0.02» para el void saliente `#02040e` cuando su L real es 0.111 —
+ * era relativa-luminancia confundida con L de OKLCH) y rompería la
+ * continuidad con el casi-negro del footer (`FOOTER_DARK_BG`,
+ * `oklch(0.055 0.01 288)`, spec D17) — el fondo de esta sección solo se ve
+ * durante el propio solape, nunca detrás de contenido real, así que tiene
+ * que casar con sus dos vecinos oscuros, no con el rol semántico genérico de
+ * "fondo de página".
  */
+
+/**
+ * Amplitudes del parallax de contenido ligado a scroll de la rama CLARA
+ * (D7, encargo 2026-08-04): valores PROPIOS de esta entrega, no transcritos
+ * de ningún mockup -- por eso viven aquí y no en `contact.layers.ts` (ese
+ * fichero documenta en su propia cabecera que solo contiene arte VERBATIM).
+ * "Decenas de píxeles, no cientos" es literal del encargo. Signos opuestos
+ * (figura sube, anillos bajan) y magnitud distinta a propósito: dos capas
+ * del mismo fondo que se mueven a velocidad diferente leen como profundidad,
+ * moverse juntas en bloque no.
+ */
+const CONTACT_FIGURE_PARALLAX_PX = 28;
+const CONTACT_RINGS_PARALLAX_PX = 14;
+
 const ScContact = styled.section<{ $fullBleed: boolean }>`
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`
           position: relative;
-          overflow: hidden;
-          width: 100%;
-          max-width: ${CONTACT_DARK_MAX_WIDTH};
-          height: 90vh;
-          height: ${CONTACT_DARK_HEIGHT};
-          margin-inline: auto;
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
+          z-index: 3;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          background-color: ${CONTACT_GUARDIAN_VOID};
+          margin-block-start: calc(-1 * ${CONTACT_OVERLAY_RISE});
+
+          @media (prefers-reduced-motion: reduce) {
+            margin-block-start: 0;
+          }
         `
       : css`
           padding: ${theme.data.space[9]} ${theme.data.space[5]};
           max-width: ${theme.data.grid.containerMax};
           margin-inline: auto;
+          /* min-height, no height exacto (ver el docblock del componente,
+             arriba, para el razonamiento completo). flex-direction: column,
+             no row (el defecto de flex): con un unico hijo y direccion
+             columna, el eje principal queda vertical -- justify-content
+             centra ahi -- y el eje cruzado (horizontal) mantiene su
+             align-items por defecto, stretch, que es lo que conserva el
+             ancho completo que la tarjeta ya tenia como bloque normal. Con
+             row (el defecto) la tarjeta, sin flex-grow, dejaria de
+             estirarse al ancho del contenedor -- una regresion de layout,
+             no solo de movimiento. */
+          min-height: 100dvh;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         `}
 `;
 
@@ -86,6 +180,12 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
  * `eye.parts.tsx`). El reveal (opacity/translateY) vive en ESTE elemento:
  * una sola unidad de entrada para toda la tarjeta, igual que `ScContent` en
  * `Story.tsx`.
+ *
+ * Duración/easing (D7, encargo 2026-08-04): `slower` + `decelerate`, no
+ * `slow` + `emphasized` -- mismo criterio de unificación que `ScItem`/
+ * `ScDarkContent` en `Features.tsx`: las entradas de las secciones claras
+ * pasan a la pareja más lenta de la escala, para que se lean "resueltas con
+ * calma" en vez de "puntuales".
  */
 const ScCard = styled.div`
   position: relative;
@@ -102,11 +202,12 @@ const ScCard = styled.div`
 
   opacity: 0;
   transform: translateY(16px);
+  /* Duracion/easing: ver el docblock de arriba. */
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.emphasized},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.emphasized};
+    opacity ${({ theme }) => theme.data.motion.duration.slower}
+      ${({ theme }) => theme.data.motion.easing.decelerate},
+    transform ${({ theme }) => theme.data.motion.duration.slower}
+      ${({ theme }) => theme.data.motion.easing.decelerate};
 
   &[data-revealed="true"] {
     opacity: 1;
@@ -162,10 +263,20 @@ const ScAccent = styled.span`
 `;
 
 /* `var(--text-secondary)` del mockup -> `semantic.textMuted` (ver el mapeo
-   de rol documentado en `contact.layers.ts`). */
+   de rol documentado en `contact.layers.ts`).
+
+   El equilibrado pasa de pretty a balance (encargo del usuario 2026-08-04:
+   todo el texto de cuerpo lleva text-wrap-style balance). Este override
+   NO es cosmetico ni redundante con el que ya trae Typography para sus
+   variantes de cuerpo: styled(Typography) inyecta su clase DESPUES de la del
+   propio Typography, asi que lo que se declare aqui GANA la cascada. Si este
+   bloque se hubiera quedado en pretty, este parrafo -- y solo este -- habria
+   seguido con el reparto antiguo mientras el resto de la pagina cambiaba, un
+   fallo silencioso sin ningun error que lo delate. */
 const ScBody = styled(Typography)`
   color: ${({ theme }) => theme.data.semantic.textMuted};
-  text-wrap: pretty;
+  text-wrap: balance;
+  text-wrap-style: balance;
 `;
 
 const ScRow = styled.div`
@@ -176,7 +287,12 @@ const ScRow = styled.div`
 `;
 
 /* Chip de email (mockup L219-222): fondo translúcido bespoke
-   (`CONTACT_CHIP_BG`, D10), borde `semantic.border` (rol existente). */
+   (`CONTACT_CHIP_BG_LIGHT`, D10), borde `semantic.border` (rol existente).
+   El fondo ya no se elige con un ternario contra `theme.data.isLight`: este
+   chip solo se monta dentro de `chipAndCta`, que solo vive en el return de
+   la rama CLARA desde que la oscura pasó a tarjetas + formulario
+   (2026-08-03, D12/D14), así que la rama oscura del ternario era
+   inalcanzable -- ver el docblock de la constante en `contact.layers.ts`. */
 const ScChip = styled.div`
   display: flex;
   align-items: center;
@@ -186,8 +302,7 @@ const ScChip = styled.div`
   padding-inline: ${({ theme }) => theme.data.space[4]};
   border-radius: ${({ theme }) => theme.data.radius.lg};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
-  background: ${({ theme }) =>
-    theme.data.isLight ? CONTACT_CHIP_BG_LIGHT : CONTACT_CHIP_BG_DARK};
+  background: ${CONTACT_CHIP_BG_LIGHT};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
 `;
@@ -218,6 +333,15 @@ const ScChipIcon = styled.svg`
  *
  * Transición limitada a transform/box-shadow/filter (spec §7.4): el hover
  * NUNCA toca `background`, así que el degradado no se repite aquí.
+ *
+ * `:focus-visible` propio (D7, encargo 2026-08-04): mismo hallazgo y mismo
+ * arreglo que `ScCta` en `Features.tsx` -- hasta esta entrega este CTA de
+ * sección solo tenía `:hover`/`:active`. Se compone con el `:hover` en vez
+ * de sustituirlo (`box-shadow` se ACUMULA con el de hover si el foco y el
+ * puntero coinciden, ninguno de los dos usa la propiedad abreviada), y
+ * resuelve contra `semantic.focus` -- mismo token que el anillo GLOBAL
+ * (`GlobalStyles.tsx`) y que el `focusHalo` de `Button.tsx`, para que los
+ * tres mecanismos lean del mismo rol en los dos temas.
  */
 const ScCta = styled.a`
   display: inline-flex;
@@ -250,6 +374,18 @@ const ScCta = styled.a`
     transform: scale(0.98);
   }
 
+  /* focus-visible: ver el docblock de arriba. */
+  &:focus-visible {
+    box-shadow:
+      0 8px 24px ${CONTACT_CTA_HOVER_SHADOW},
+      0 0 0 4px
+        color-mix(
+          in oklch,
+          ${({ theme }) => theme.data.semantic.focus} 35%,
+          transparent
+        );
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     &:hover,
@@ -262,15 +398,35 @@ const ScCta = styled.a`
 /* Anillos concéntricos + figura (mockup L226-236): solo ≥ md, como la
    propia columna derecha de la tarjeta (spec §7.4). Ocultos por completo
    debajo para no romper el flujo de una columna (mismo criterio que
-   Journey, spec §7.2). */
+   Journey, spec §7.2).
+
+   Parallax de contenido ligado a scroll (D7/D1, encargo 2026-08-04): se
+   traslada este ENVOLTORIO, no `ScRingHalo`/`ScRingA`/`ScRingB` por
+   separado -- los tres ya declaran su PROPIO `transform: translateY(-50%)`
+   para el centrado vertical, y `transform` no se acumula entre
+   declaraciones distintas del mismo elemento (la última gana entera):
+   sumar aquí un desplazamiento a cada anillo habría exigido reescribir los
+   tres `translateY(-50%)` en un único `calc()` cada uno. Aplicarlo en el
+   envoltorio evita tocar esa geometría y compone gratis (el desplazamiento
+   del padre mueve a los tres hijos igual, sin que ellos sepan nada de
+   scroll). Sentido OPUESTO al de la figura (`ScFigureWrap`, más abajo) y
+   amplitud menor, para una sensación de profundidad -- capas distintas del
+   mismo fondo que se mueven a velocidades distintas, no en bloque. */
 const ScRings = styled.div`
   display: none;
   position: absolute;
   inset: 0;
   pointer-events: none;
+  transform: translateY(
+    calc(var(--contact-progress, 0) * ${CONTACT_RINGS_PARALLAX_PX}px)
+  );
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
   }
 `;
 
@@ -307,15 +463,39 @@ const ScRingB = styled.div`
   border: 1px solid ${CONTACT_RING_B_BORDER};
 `;
 
+/*
+ * Envoltorio de la figura (D7/D1, encargo 2026-08-04): el parallax de
+ * scroll vive AQUÍ, nunca en `ScFigure` (más abajo). `ScFigure` ya declara
+ * `animation: contactFloat ...` bajo `no-preference` -- lección
+ * `task/lessons.md` 2026-07-26 ("una `@keyframes` sobre una propiedad le
+ * impide a una `transition` sobre esa misma propiedad llegar a existir"): un
+ * `@keyframes` no solo bloquea la `transition` de la misma propiedad, GANA
+ * la cascada sobre cualquier valor `transform` declarado en el propio
+ * elemento (medido en este repo, `task/lessons.md` 2026-07-27: "el conflicto
+ * es entre animación y transición... la animación controla el valor
+ * computado"). Poner el desplazamiento ligado a `--contact-progress` en
+ * `ScFigure` habría quedado silenciosamente anulado por `contactFloat` en
+ * cuanto `no-preference` esté activo. En el envoltorio, en cambio, compone
+ * sin conflicto: la flotación mueve a `ScFigure` dentro de su padre, y el
+ * padre se mueve por scroll -- dos transforms independientes que se suman
+ * visualmente sin pisarse.
+ */
 const ScFigureWrap = styled.div`
   display: none;
   position: relative;
   height: 100%;
   min-height: 300px;
   pointer-events: none;
+  transform: translateY(
+    calc(var(--contact-progress, 0) * -${CONTACT_FIGURE_PARALLAX_PX}px)
+  );
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
   }
 `;
 
@@ -352,22 +532,168 @@ const ScFigure = styled.img`
   }
 `;
 
-/* Reveal de la rama oscura: mismo mecanismo que `ScDarkContent` en
-   Story.tsx/Journey.tsx/Features.tsx -- lleva su propio padding/tope de
-   ancho (`ScContact`, en `$fullBleed`, ya no aporta ninguno). */
-const ScDarkContent = styled.div`
+/*
+ * Slot pegado de la escena (D6, mismo motivo que `ScDarkSceneSlot` en
+ * `Features.tsx`): comparte columna Y fila de grid con `ScDarkFrame`
+ * (`grid-column: 1; grid-row: 1`) en vez de `position: absolute; inset: 0`
+ * -- eso alteraría el rectángulo de restricción del propio `sticky`. NO
+ * necesita `grid-row: 1 / span 2` como Features: a Contacto no se le
+ * superpone ninguna sección por debajo en esta entrega (el Footer, su
+ * siguiente hermano, no forma parte de esta cadena de solapes), así que no
+ * hay una segunda fila de "hold" que abarcar.
+ */
+const ScDarkSceneSlot = styled.div`
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  position: sticky;
+  top: 0;
+  height: ${CONTACT_DARK_HEIGHT};
+
+  @media (prefers-reduced-motion: reduce) {
+    position: static;
+  }
+`;
+
+/* Las tres animaciones infinitas del haz (`SectionBeam`) YA reafirman su
+   guard de `reduce` en `sectionBeam.parts.tsx`; `glowPulse` es la cuarta
+   -- propia de Contacto (mockup L28/L52) -- y sigue el MISMO criterio D8:
+   solo se declara bajo `no-preference`, con `animation: none` explícito bajo
+   `reduce`. Reafirma `translateX(-50%)` en LOS TRES pasos del keyframe, no
+   solo en el `transform` base del selector: un `@keyframes` sustituye el
+   `transform` COMPLETO del elemento en cada fotograma, no lo compone con el
+   de la regla en reposo -- sin la reafirmación, el halo se descentraría
+   durante la animación. */
+const glowPulse = keyframes`
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.04);
+  }
+`;
+
+/*
+ * Halo radial superior (mockup L52): marca la costura con Features con una
+ * mancha de luz difusa detrás del haz de `SectionBeam`. Va DESPUÉS de
+ * `ScDarkSceneSlot` en el DOM y con `z-index: 1` explícito: el slot es
+ * `position: sticky` sin `z-index` propio (`auto`), así que dos elementos
+ * posicionados SIN `z-index` se pintarían en orden de DOM -- el `z-index: 1`
+ * explícito hace que el glow gane la pintura sobre el slot SIEMPRE, sin
+ * depender de dónde viva cada uno en el marcado.
+ */
+const ScTopGlow = styled.div`
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  width: ${CONTACT_TOP_GLOW_WIDTH};
+  height: ${CONTACT_TOP_GLOW_HEIGHT};
+  background: ${CONTACT_TOP_GLOW_GRADIENT};
+  filter: blur(${CONTACT_TOP_GLOW_BLUR});
+  pointer-events: none;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${glowPulse} ${CONTACT_TOP_GLOW_PULSE_MS}ms ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+/*
+ * Marco del contenido (D6, mismo motivo que `ScDarkFrame` en `Features.tsx`):
+ * comparte columna y fila de grid con `ScDarkSceneSlot` y es quien
+ * centra/topa el CONTENIDO (`CONTACT_CONTENT_MAX_WIDTH`) mientras la escena,
+ * en la celda hermana, mide siempre una pantalla exacta. `min-height` en vez
+ * de una altura fija: si el contenido (formulario + dos tarjetas) desborda
+ * una pantalla en móvil o en portátiles bajos, el marco crece con él en vez
+ * de recortarlo. `z-index: 1`: dentro de la sección tiene que ganar la
+ * pintura sobre `ScDarkSceneSlot` (que no declara ninguno) -- misma
+ * escalera LOCAL que usa `ScTopGlow`, arriba.
+ *
+ * `padding-block` FLUIDO (D4, encargo 2026-08-04, palanca 1): mismo criterio,
+ * mismas unidades y mismos motivos que `ScDarkFrame` en `Features.tsx` -- el
+ * `min-height` de arriba no recorta nada, esto solo deja de gastar más
+ * relleno vertical del necesario donde el presupuesto de una pantalla
+ * aprieta. El término fluido va en `dvh` y NO en `vw` por la razón que ese
+ * docblock explica en detalle: la restricción es el ALTO del viewport, y un
+ * término en `vw` no ahorra nada en un portátil bajo y ancho, que es
+ * precisamente el caso que hay que resolver. `padding-inline` queda fijo.
+ */
+const ScDarkFrame = styled.div`
+  grid-column: 1;
+  grid-row: 1;
   position: relative;
   z-index: 1;
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  min-height: ${CONTACT_DARK_HEIGHT};
   width: 100%;
-  padding: ${({ theme }) => theme.data.space[8]}
-    ${({ theme }) => theme.data.space[6]};
+  max-width: ${CONTACT_CONTENT_MAX_WIDTH};
+  margin-inline: auto;
+  padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});
+  padding-inline: ${({ theme }) => theme.data.space[6]};
+  display: flex;
+  align-items: center;
+`;
+
+/*
+ * Fila de dos columnas del contenido oscuro (mockup L55): copia a la
+ * izquierda (`ScDarkCopy`) y tarjeta de formulario a la derecha
+ * (`ScFormCard`), envolviendo a una columna por debajo del ancho mínimo de
+ * sus hijos (`flex-wrap`, sin punto de corte propio -- el `flex-basis` de
+ * cada hijo ya decide cuándo baja). PIERDE `max-width: prose` y su `padding`
+ * (ahora los lleva `ScDarkFrame`, arriba) y su `position: relative;
+ * z-index: 1` (ahora los lleva el frame, que es quien compite por celda de
+ * grid con `ScDarkSceneSlot`) -- mismo criterio que documenta `ScDarkContent`
+ * en `Features.tsx`: este elemento ya no necesita su propio contexto de
+ * apilamiento. CONSERVA su reveal (opacity/translateY con `data-revealed`,
+ * guard `reduce`) tal cual.
+ *
+ * Duración (D7, encargo 2026-08-04): `slower` (480ms), no `slow` (320ms) --
+ * mismo criterio de unificación que `ScDarkContent` en `Features.tsx`: el
+ * easing `decelerate` ya era el correcto, solo la duración divergía de la
+ * pareja elegida para las cuatro entradas de estas dos secciones.
+ */
+const ScDarkContent = styled.div`
+  width: 100%;
+  margin-inline-end: auto;
+
+  /* El tope que esquiva el arte (D20) solo aplica donde el esquive vale la
+     pena: desde lg. Por debajo, el contenido ocupa el ancho entero -- un
+     tope proporcional ahí dejaría la copia en unos 218px sobre un viewport
+     de 375, ilegible por estrecho en vez de por contraste. Quien resuelve la
+     legibilidad en ese régimen es la viñeta de la escena, que sube el velo
+     sobre todo el encuadre (ver ScVignette en
+     contactCosmicGuardian.parts.tsx).
+
+     El corte es lg y NO md, corregido el 2026-08-04 con la medida delante:
+     el corte en md daba por hecho que a partir de 768px el contenido ya
+     estaba recogido a un lado, y no lo está -- las dos columnas solo dejan
+     de apilarse cuando el contenido mide 748px o más. Esta media query y el
+     régimen de ScVignette tienen que cortar en el MISMO punto o queda una
+     franja de anchos (768-991) con el contenido a ancho completo y el velo
+     lateral ya retirado: medido a 768x900, el peor píxel bajo el kicker
+     daba 1.83:1. */
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    max-width: min(${CONTACT_CONTENT_PAIR_MAX}, ${CONTACT_CONTENT_PAIR_MAX_VW});
+  }
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.data.space[7]};
+  align-items: flex-start;
   opacity: 0;
   transform: translateY(16px);
+  /* Duracion: ver el docblock de arriba. */
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
+    opacity ${({ theme }) => theme.data.motion.duration.slower}
       ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
+    transform ${({ theme }) => theme.data.motion.duration.slower}
       ${({ theme }) => theme.data.motion.easing.decelerate};
 
   &[data-revealed="true"] {
@@ -382,10 +708,235 @@ const ScDarkContent = styled.div`
   }
 `;
 
+/* Columna izquierda del contenido oscuro (mockup L56): kicker + h2 + cuerpo
+   + ScCards (formulario + dos tarjetas), en columna.
+
+   `gap` FLUIDO (D4, encargo 2026-08-04, palanca 2): mismo criterio que
+   `ScDarkFeatures`/`ScDarkFeatureBlock` en `Features.tsx` -- clamp entre
+   0.75rem (12px, suelo) y `space[4]` (16px, techo de escritorio, sin
+   cambios). El margen de compactación aquí es menor que en Features a
+   propósito: Contacto solo tenía +105px de sobrante medido (frente a los
+   +407px de Features), así que no necesita el mismo grado de agresividad. */
+const ScDarkCopy = styled.div`
+  flex: 1 1 320px;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2vw, ${({ theme }) => theme.data.space[4]});
+`;
+
+/*
+ * Contenedor apilado del formulario y las tarjetas de contacto restantes
+ * (mockup L62, reordenado 2026-08-04). La tarjeta de correo del mockup
+ * (`cards.email`) se retira: el formulario ya arranca con `links.email`
+ * como valor por defecto (ver `useState` en `Contact()`), así que sería el
+ * mismo dato mostrado dos veces. Quedan Comunidad (Discord) y Código
+ * (GitHub).
+ *
+ * `gap` FLUIDO (D4, palanca 2, mismo criterio que `ScDarkCopy` arriba):
+ * clamp entre 0.5rem (8px, suelo) y `space[3]` (12px, techo de escritorio).
+ */
+const ScCards = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.5vw, ${({ theme }) => theme.data.space[3]});
+`;
+
+/*
+ * Tarjeta de contacto (mockup L63-74, D14): `<a>` real con texto propio (no
+ * un `<div>` con `onClick`) -- su nombre accesible sale del título + valor
+ * visibles, sin `aria-label`. Fondo/borde VERBATIM del mockup
+ * (`CONTACT_CARD_BG_DARK`/`CONTACT_CARD_BORDER_DARK`, D10/D18 -- no son
+ * roles semánticos, literales de esta composición). El hover SOLO toca
+ * `border-color`/`transform` (compositor + paint, nunca layout), con guard
+ * `reduce` explícito.
+ */
+const ScCardLink = styled.a`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.data.space[3]};
+  background: ${CONTACT_CARD_BG_DARK};
+  border: 1px solid ${CONTACT_CARD_BORDER_DARK};
+  border-radius: ${({ theme }) => theme.data.radius.xl};
+  padding: ${({ theme }) => theme.data.space[3]}
+    ${({ theme }) => theme.data.space[4]};
+  transition:
+    border-color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard};
+
+  &:hover,
+  &:focus-visible {
+    border-color: ${({ theme }) => theme.data.palette.secondary[400]};
+    transform: translateY(-1px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover,
+    &:focus-visible {
+      transform: none;
+    }
+  }
+`;
+
+/* Icono de trazo de cada tarjeta (mockup L64/72, 24px). Mismo patrón que
+   `ScChipIcon` (arriba): GlobalStyles fuerza `svg { width: 100% }` para todo
+   el sitio, así que el tamaño se fija por CSS y no por atributo -- un
+   atributo `width`/`height` perdería la cascada (lección del repo,
+   `task/lessons.md`, 2026-07-26). `stroke` resuelve contra el token de tema,
+   no `currentColor`, siguiendo la misma vía que `ScCheckIcon` en
+   `Features.tsx`. */
+const ScCardIcon = styled.svg`
+  flex: none;
+  width: 24px;
+  height: 24px;
+  stroke: ${({ theme }) => theme.data.palette.secondary[400]};
+`;
+
+/* Título/valor de cada tarjeta (mockup L65): tamaños propios de esta
+   composición, fuera de la escala tipográfica (`.9rem`/`.85rem` no
+   coinciden con ningún paso de `type.scale`). */
+const ScCardTitle = styled.span`
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.data.palette.secondary[300]};
+`;
+
+const ScCardValue = styled.span`
+  font-size: 0.85rem;
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+/* Envoltura de la columna del formulario (mockup L86): solo reparte el
+   ancho flexible -- la tarjeta visual (fondo/borde/radio) vive en `ScForm`,
+   el propio `<form>`, no aquí. */
+const ScFormCard = styled.div`
+  flex: 1.3 1 220px;
+`;
+
+/*
+ * Tarjeta del formulario (mockup L87): fondo/borde propios de esta
+ * composición (`CONTACT_FORM_BG`/`CONTACT_FORM_BORDER`, D10/D18), no roles
+ * semánticos. Contiene un ÚNICO campo (D12) -- los campos Nombre/Asunto/
+ * Mensaje del mockup se descartan a propósito (D12: "es literalmente lo que
+ * pide el encargo").
+ */
+const ScForm = styled.form`
+  background: ${CONTACT_FORM_BG};
+  border: 1px solid ${CONTACT_FORM_BORDER};
+  border-radius: ${({ theme }) => theme.data.radius["2xl"]};
+  padding: ${({ theme }) => theme.data.space[5]};
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.data.space[3]};
+`;
+
+/*
+ * Botón de envío (mockup L102): `styled(Button)`, no un anchor propio como
+ * `ScCta` (arriba) -- este SÍ es un `<button type="submit">` real que
+ * dispara `onSubmit`, no una navegación de ancla.
+ *
+ * `background-image` deja de ser un degradado propio de esta sección y pasa
+ * a `heroGradient` (2026-08-04, `BrandName.tsx`): el mismo degradado
+ * animado que ya recorren el título del Hero y sus dos CTA, para que el
+ * botón principal de la página lea como parte del mismo lenguaje visual en
+ * vez de un morado suelto. `gradientShift` (`background-position` 0%→100%)
+ * es la animación compartida; solo `transform`/`opacity`/`background-position`
+ * se animan, nunca layout.
+ *
+ * `heroGradient` se reafirma con el MISMO selector EXACTO que declara
+ * `Button.tsx` en su variante `solid`
+ * (`&:hover:not(:disabled) { background: color-mix(...) }`, lección
+ * `task/lessons.md` 2026-07-26 "`background: valor` en :hover resetea
+ * background-image"): esa regla usa la propiedad ABREVIADA `background`,
+ * que resetea `background-image` a `none` en cuanto se compone encima.
+ * Reafirmar la sub-propiedad aquí, en la MISMA capa aditiva (`styled(Button)`
+ * se inyecta DESPUÉS del propio `Button`, orden de inserción de
+ * styled-components), gana el empate sin `!important` y sin tocar
+ * `Button.tsx`. `heroGradient` ya declara `background-image` (nunca el
+ * shorthand), así que reafirmarlo dos veces no arrastra el mismo bug.
+ *
+ * `animation` SOLO se declara bajo `no-preference`, con `animation: none`
+ * explícito bajo `reduce` -- mismo guard que `ScTopGlow`/`glowPulse`, arriba
+ * en este mismo fichero: el colapso global de `GlobalStyles`
+ * (`animation-iteration-count: 1 !important`) no detiene una animación
+ * infinita, la deja correr un fotograma arbitrario. Bajo `reduce` el botón
+ * se queda con el degradado ESTÁTICO de `heroGradient` (primer fotograma de
+ * `background-position`), no con `background-image: none`: a diferencia de
+ * `gradientTextClip` en `BrandName.tsx` (que SÍ necesita ese fallback
+ * porque el texto está clippeado y quedaría invisible sin fondo), aquí el
+ * texto del botón no depende del degradado para ser legible -- perder el
+ * movimiento es aceptable, perder el fondo no.
+ */
+const ScSubmitButton = styled(Button)`
+  width: 100%;
+  ${heroGradient}
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${gradientShift} 9000ms linear infinite alternate;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  &:hover:not(:disabled) {
+    ${heroGradient}
+  }
+`;
+
+/* Icono de envío (mockup L102), 16px -- mismo motivo de CSS explícito que
+   `ScCardIcon`/`ScChipIcon`. */
+const ScSendIcon = styled.svg`
+  flex: none;
+  width: 16px;
+  height: 16px;
+`;
+
 export function Contact(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+  /*
+   * Progreso de scroll de la rama CLARA (D7/D1, encargo 2026-08-04): mismo
+   * patrón que `featuresRef` en `Features.tsx` -- ref ESTABLE (`useRef`,
+   * nunca inline en el render), hook llamado de forma INCONDICIONAL antes
+   * de los dos `return` de tema, y atado solo al `<ScContact>` de la rama
+   * clara, más abajo. La rama oscura ya tiene su propio movimiento ligado a
+   * scroll vía `useSceneParallax`, dentro de `ContactCosmicGuardian`, fuera
+   * del alcance de este flujo.
+   */
+  const contactRef = useRef<HTMLElement>(null);
+  useSectionProgress(contactRef, { cssVarPrefix: "contact" });
+  /* El campo arranca con `links.email` (sin el prefijo `mailto:`, que no es
+     un correo válido para `type="email"`), no vacío: el visitante ve de
+     entrada la dirección real de contacto y puede sustituirla por la suya
+     antes de enviar. Se deriva de `links.email` en vez de duplicar el
+     literal para que siga habiendo una única fuente de verdad. */
+  const [email, setEmail] = useState(() => links.email.replace(/^mailto:/, ""));
+
+  /*
+   * Envío del formulario (D13, rama oscura): abre el cliente de correo del
+   * visitante con `mailto:` -- el sitio es un export estático, sin backend
+   * al que postear, así que "enviar" de verdad significa delegar en la app
+   * de correo, la MISMA mecánica que el CTA de la rama clara (`links.email`,
+   * `chipAndCta` más abajo). Se usa `window.location.assign(...)` y NO
+   * `window.location.href = ...`: `assign` es un método real de `Location`
+   * que se puede doblar con `vi.spyOn` sin reemplazar el objeto `location`
+   * entero (`Contact.test.tsx`) -- un setter de propiedad como `href` no se
+   * puede espiar así. NO se implementa ningún estado "enviado" (D13): sin
+   * backend sería una afirmación falsa en la interfaz.
+   */
+  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    const subject = encodeURIComponent(t("Home.contact.form.subject"));
+    const body = encodeURIComponent(t("Home.contact.form.body", { email }));
+    window.location.assign(`${links.email}?subject=${subject}&body=${body}`);
+  }
 
   const chipAndCta = (
     <ScRow>
@@ -426,32 +977,140 @@ export function Contact(): ReactElement {
         aria-labelledby="contact-title"
         $fullBleed
       >
-        <ContactNeonGalaxy />
-        <ScDarkContent
-          ref={revealRef}
-          data-revealed={revealed}
-        >
-          <ScKicker variant="overline">{t("Home.contact.kicker")}</ScKicker>
-          <Typography
-            variant="h2"
-            id="contact-title"
+        <SectionBeam />
+        <ScDarkSceneSlot>
+          <ContactCosmicGuardian />
+        </ScDarkSceneSlot>
+        <ScTopGlow aria-hidden="true" />
+        <ScDarkFrame>
+          <ScDarkContent
+            ref={revealRef}
+            data-revealed={revealed}
           >
-            {t("Home.contact.titleLead")}{" "}
-            <ScAccent>{t("Home.contact.titleAccent")}</ScAccent>
-          </Typography>
-          <ScBody variant="body">
-            {t("Home.contact.body")}
-            <br />
-            {t("Home.contact.bodySecond")}
-          </ScBody>
-          {chipAndCta}
-        </ScDarkContent>
+            <ScDarkCopy>
+              <ScKicker variant="overline">{t("Home.contact.kicker")}</ScKicker>
+              <Typography
+                variant="h2"
+                id="contact-title"
+              >
+                {t("Home.contact.titleLead")}{" "}
+                <ScAccent>{t("Home.contact.titleAccent")}</ScAccent>
+              </Typography>
+              <ScBody variant="body">
+                {t("Home.contact.body")}
+                <br />
+                {t("Home.contact.bodySecond")}
+              </ScBody>
+              <ScCards>
+                <ScFormCard>
+                  <ScForm onSubmit={handleSubmit}>
+                    <Field
+                      label={t("Home.contact.form.label")}
+                      htmlFor="contact-email"
+                      help={t("Home.contact.form.help")}
+                    >
+                      <Input
+                        id="contact-email"
+                        type="email"
+                        required
+                        placeholder={t("Home.contact.form.placeholder")}
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        autoComplete="email"
+                      />
+                    </Field>
+                    <ScSubmitButton
+                      type="submit"
+                      size="lg"
+                      aria-label={t("Home.contact.form.submitAria")}
+                    >
+                      {t("Home.contact.form.submit")}
+                      <ScSendIcon
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 3L10 14" />
+                        <path d="M21 3l-7 18-4-7-7-4z" />
+                      </ScSendIcon>
+                    </ScSubmitButton>
+                  </ScForm>
+                </ScFormCard>
+                <ScCardLink
+                  href={links.discord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ScCardIcon
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle
+                      cx="9"
+                      cy="8"
+                      r="3"
+                    />
+                    <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+                    <circle
+                      cx="16.5"
+                      cy="9"
+                      r="2.5"
+                    />
+                    <path d="M17 14.5c2.3.5 4 2.4 4 4.9" />
+                  </ScCardIcon>
+                  <div>
+                    <ScCardTitle>
+                      {t("Home.contact.cards.community.title")}
+                    </ScCardTitle>
+                    <ScCardValue>
+                      {t("Home.contact.cards.community.value")}
+                    </ScCardValue>
+                  </div>
+                </ScCardLink>
+                <ScCardLink
+                  href={links.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ScCardIcon
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M8 6l-5 6 5 6" />
+                    <path d="M16 6l5 6-5 6" />
+                  </ScCardIcon>
+                  <div>
+                    <ScCardTitle>
+                      {t("Home.contact.cards.code.title")}
+                    </ScCardTitle>
+                    <ScCardValue>
+                      {t("Home.contact.cards.code.value")}
+                    </ScCardValue>
+                  </div>
+                </ScCardLink>
+              </ScCards>
+            </ScDarkCopy>
+          </ScDarkContent>
+        </ScDarkFrame>
       </ScContact>
     );
   }
 
   return (
     <ScContact
+      ref={contactRef}
       id="contact"
       aria-labelledby="contact-title"
       $fullBleed={false}

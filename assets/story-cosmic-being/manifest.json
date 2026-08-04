@@ -1,0 +1,156 @@
+{
+    "name": "story-cosmic-being-layers",
+    "description": "Figura celestial con nucleo luminoso y geometria orbital, separada en 11 capas para parallax 2.5D en el fondo de Story (tema oscuro). La capa 00 es una base OPACA en blend normal; las diez restantes son aditivas (plus-lighter) y su suma reconstruye el original.",
+    "source": "Story Dark Theme 2 parallax-cosmic-being-v2.zip (Downloads), entregado por el usuario 2026-08-03. Sustituye al zip 3 del 2026-08-01. A diferencia de aquella entrega (que solo recortaba de nuevo 08 y 09 sobre la MISMA imagen), esta descompone una IMAGEN NUEVA: su README declara que toda la geometria se ha vuelto a medir sin reutilizar ninguna coordenada, y las 22 imagenes desplegadas cambian (sha256 distinto en 22/22). Se mantienen identicos el lienzo (3344x1882), el reparto en 11 capas, los depth, los blend, el negro del lienzo y los motionHints, asi que el codigo de la escena no cambia: solo los binarios y este manifest. Los maestros PNG (26,49 MB) NO se versionan: quedan solo en el zip de origen.",
+    "canvas": {
+        "width": 3344,
+        "height": 1882,
+        "aspect": 1.77683
+    },
+    "compositing": {
+        "required": "mix-blend-mode: plus-lighter",
+        "fallback": "mix-blend-mode: screen (aprox: error medio 1.87/255)",
+        "container": "isolation: isolate; background: #05010e;"
+    },
+    "anchors": {
+        "ringCenterPct": [76.5, 30.2],
+        "heartPct": [77.2, 29.9]
+    },
+    "motionHints": {
+        "swingXpx": 46,
+        "swingYpx": 30,
+        "scrollTravelPx": 190,
+        "ease": 0.075
+    },
+    "deployed": {
+        "quality": 70,
+        "widths": [1024, 1280],
+        "encoder": "Pillow: Image.resize(LANCZOS) -> save WEBP quality=70 method=6. Parametros no supuestos: antes de tocar nada se recodificaron los once PNG maestros del zip 3 (el arte SALIENTE, que no cambia) y reprodujeron byte a byte las 22 imagenes que ya estaban desplegadas (sha256 identico, 22/22). Ese test fija el filtro, el method Y la calidad de ESTA escena; la calidad se reconfirmo ademas midiendo la curva sobre el arte nuevo (ver rationale), porque es un parametro por escena, no del repo.",
+        "rationale": "Medido sobre la escena compuesta (11 capas sumadas en plus-lighter contra el compuesto de los PNG maestros reescalados al mismo tamano). Arte del 2026-08-03: a q70, 1600px da 45.50 dB por 2.03 MiB y 1280px da 45.33 dB por 1.37 MiB -- +48% de peso por +0.17 dB. Subir la calidad en la pista de 1280 tampoco compensa: q85 da 45.77 dB por 1.68 MiB (+23% por +0.44 dB) y q90, 46.05 dB por 1.89 MiB. Se conserva 1280 q70, la misma eleccion (y el mismo peso) que con el arte anterior.",
+        "swap20260803": "Sustitucion COMPLETA de las 22 imagenes (las 11 capas x 2 anchos), no un reencode parcial como el del 2026-08-01: el zip v2 descompone una imagen nueva. Peso desplegado: 2397978 -> 2397454 bytes (-524 B, 2.29 -> 2.29 MiB). El arte nuevo reparte distinto la misma energia -- la figura queda mas blanca y con menos halo azul (08-figure-aura baja de 102874 a 85336 B a 1280) y hay mas estrellas resueltas (03/04/05 suben en conjunto ~40 KB) -- pero el total apenas se mueve."
+    },
+    "layers": [
+        {
+            "file": "00-space-base",
+            "z": 0,
+            "depth": 0.0,
+            "blend": "normal",
+            "desc": "Degradado profundo del espacio. Capa opaca, base del stack.",
+            "bytes": {
+                "1280": 2380,
+                "1024": 1612
+            }
+        },
+        {
+            "file": "01-nebula",
+            "z": 1,
+            "depth": 0.1,
+            "blend": "plus-lighter",
+            "desc": "Nubes de nebulosa purpura y magenta.",
+            "bytes": {
+                "1280": 388192,
+                "1024": 249418
+            }
+        },
+        {
+            "file": "02-galaxy",
+            "z": 2,
+            "depth": 0.12,
+            "blend": "plus-lighter",
+            "desc": "Galaxia espiral inferior y su halo.",
+            "bytes": {
+                "1280": 32148,
+                "1024": 21082
+            }
+        },
+        {
+            "file": "03-stars-far",
+            "z": 3,
+            "depth": 0.16,
+            "blend": "plus-lighter",
+            "desc": "Estrellas debiles.",
+            "bytes": {
+                "1280": 94088,
+                "1024": 72244
+            }
+        },
+        {
+            "file": "04-stars-mid",
+            "z": 4,
+            "depth": 0.24,
+            "blend": "plus-lighter",
+            "desc": "Estrellas de brillo medio.",
+            "bytes": {
+                "1280": 77872,
+                "1024": 58204
+            }
+        },
+        {
+            "file": "05-stars-near",
+            "z": 5,
+            "depth": 0.36,
+            "blend": "plus-lighter",
+            "desc": "Estrellas brillantes.",
+            "bytes": {
+                "1280": 42174,
+                "1024": 30942
+            }
+        },
+        {
+            "file": "06-orbs",
+            "z": 6,
+            "depth": 0.44,
+            "blend": "plus-lighter",
+            "desc": "Las dos esferas translucidas.",
+            "bytes": {
+                "1280": 6128,
+                "1024": 4172
+            }
+        },
+        {
+            "file": "07-geometry",
+            "z": 7,
+            "depth": 0.56,
+            "blend": "plus-lighter",
+            "desc": "Anillos orbitales, hexagonos, lineas punteadas y circulos HUD.",
+            "bytes": {
+                "1280": 661472,
+                "1024": 432382
+            }
+        },
+        {
+            "file": "08-figure-aura",
+            "z": 8,
+            "depth": 0.63,
+            "blend": "plus-lighter",
+            "desc": "Halo exterior de la figura, incluido el borde luminoso pegado al cuerpo. Contrapartida del recorte cenido de 09-figure: si las dos capas se separan mucho, ese resplandor viaja con el aura y no con el cuerpo. En el arte del 2026-08-03 el halo pegado a la piel es mas estrecho que en el anterior, de ahi que esta capa pese bastante menos.",
+            "bytes": {
+                "1280": 85336,
+                "1024": 58160
+            }
+        },
+        {
+            "file": "09-figure",
+            "z": 9,
+            "depth": 0.68,
+            "blend": "plus-lighter",
+            "desc": "Solo el cuerpo, sin contorno. La mascara sale del canal MINIMO de RGB (blancura), no de la luminancia: el cuerpo es casi blanco (canal minimo medio 0.780) y el halo es azul saturado (0.141), asi que por brillo se confunden y por blancura no. El halo pasa integro a 08-figure-aura y la suma de las once capas sigue reconstruyendo el original. En este arte la figura ya venia muy definida, asi que el criterio por blancura cae casi donde caeria uno por brillo -- se mantiene igualmente porque es el que garantiza que el borde no arrastre resplandor.",
+            "bboxPx": [2339, 170, 448, 1487],
+            "bytes": {
+                "1280": 30080,
+                "1024": 20924
+            }
+        },
+        {
+            "file": "10-heart-core",
+            "z": 10,
+            "depth": 0.72,
+            "blend": "plus-lighter",
+            "desc": "Destello del pecho.",
+            "bytes": {
+                "1280": 16832,
+                "1024": 11612
+            }
+        }
+    ]
+}

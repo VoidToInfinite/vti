@@ -1,7 +1,31 @@
 import { createRef } from "react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
+import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { Field, Input } from "./Input";
+
+/** Mismo patrón que Button.test.tsx/Navbar.test.tsx: lee el CSSOM real
+ *  inyectado por styled-components, porque jsdom no evalúa la pseudo-clase
+ *  dinámica :focus-visible al resolver getComputedStyle (no hay "modalidad
+ *  de foco" real sin un navegador). */
+function allCssRules(): string[] {
+  const reglas: string[] = [];
+  const walk = (rules: CSSRuleList): void => {
+    Array.from(rules).forEach((rule) => {
+      reglas.push(rule.cssText);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) walk(anidadas);
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return reglas;
+}
 
 // Tipo real de `children` de Field, derivado del propio componente (en vez
 // de repetir/adivinar el tipo interno no exportado `FieldControlProps`).
@@ -281,5 +305,75 @@ describe("Input / Field", () => {
       ),
     ).toThrow();
     consoleError.mockRestore();
+  });
+
+  describe(":focus-visible propio (hallazgo 1, D7)", () => {
+    afterEach(() => {
+      window.localStorage.clear();
+    });
+
+    // Acota las reglas a la clase real del elemento renderizado: las dos
+    // iteraciones de tema comparten `document` (styled-components no limpia
+    // su hoja entre tests), así que un `find()` sin acotar podría devolver
+    // la regla del PRIMER render, del tema equivocado.
+    function reglasDe(el: HTMLElement): string[] {
+      const reglas = allCssRules();
+      const clases = Array.from(el.classList).filter((c) =>
+        reglas.some((r) => r.includes(c)),
+      );
+      expect(
+        clases.length,
+        "no se encontró ninguna clase inyectada del elemento",
+      ).toBeGreaterThan(0);
+      return reglas.filter((r) => clases.some((c) => r.includes(c)));
+    }
+
+    it.each([
+      ["light", basicLightTheme],
+      ["dark", basicDarkTheme],
+    ] as const)(
+      "declara :focus-visible con box-shadow contra semantic.focus del tema %s (nunca un literal), SIN repetir el border-color que ya pone &:focus",
+      (nombreTema, theme) => {
+        window.localStorage.setItem("vti-theme", nombreTema);
+        renderWithProviders(<Input />);
+        const input = screen.getByRole("textbox");
+
+        const reglas = reglasDe(input);
+        const bloqueFocusVisible = reglas.find(
+          (regla) =>
+            regla.includes(":focus-visible") && regla.includes("box-shadow"),
+        );
+        expect(
+          bloqueFocusVisible,
+          "no se encontró ninguna regla :focus-visible con box-shadow",
+        ).toBeDefined();
+        expect(bloqueFocusVisible).toContain(theme.semantic.focus);
+        // No duplica el efecto de &:focus (regla dura del hallazgo): el
+        // bloque de :focus-visible no repite la declaración de
+        // border-color, esa la sigue aportando en solitario &:focus.
+        expect(bloqueFocusVisible).not.toContain("border-color");
+
+        // &:focus (no :focus-visible) sigue reforzando border-color: sigue
+        // siendo la decisión correcta para un input de texto (documentada en
+        // el propio componente), así que este test también es la regresión
+        // de que NO se reemplazó por :focus-visible.
+        const bloqueFocus = reglas.find(
+          (regla) =>
+            regla.includes(":focus") &&
+            !regla.includes(":focus-visible") &&
+            regla.includes("border-color"),
+        );
+        expect(
+          bloqueFocus,
+          "no se encontró la regla &:focus que refuerza border-color",
+        ).toBeDefined();
+        expect(bloqueFocus).toContain(theme.semantic.borderStrong);
+
+        // No sustituye el anillo global (regla dura: outline: none vetado).
+        expect(reglas.some((regla) => /outline\s*:\s*none/.test(regla))).toBe(
+          false,
+        );
+      },
+    );
   });
 });

@@ -1,0 +1,65 @@
+{
+    "name": "contact-cosmic-guardian-layers",
+    "description": "Guardiana luminosa a la DERECHA del encuadre, sobre un cielo cosmico con lunas, nebulosas y ondas, mas una capa frontal de polvo estelar. Separada en 3 planos de profundidad para parallax 2.5D en el fondo de Contact (tema oscuro). SUSTITUYE por completo a la escena anterior de esta seccion (contact-neon-galaxy, 7 capas): es otro arte, otro modelo de composicion y, sobre todo, otro LADO -- aquella dejaba la figura y los orbes a la izquierda y el vacio a la derecha; esta lo hace al reves, asi que el contenido de texto de la seccion se muda al lado contrario.",
+    "source": "cosmic-guardian-parallax-kit.zip (Downloads), entregado por el usuario 2026-08-04. Los maestros PNG (8,6 MB) NO se versionan: quedan solo en el zip de origen, mismo criterio que story-cosmic-being (2026-07-31), journey-cosmic-portal (2026-08-01) y features-celestial-orbital (2026-08-02). La escena saliente (contact-neon-galaxy) SI versionaba sus 7 WebP maestros de 3344px; era la ultima superviviente de aquella excepcion y se retira con ella.",
+    "canvas": {
+        "width": 3344,
+        "height": 1882
+    },
+    "orbs": {
+        "excluded": true,
+        "why": "El kit trae ademas orb_chat.png, orb_phone.png y orb_mail.png, que NO se despliegan. Dos razones independientes, y cualquiera de las dos basta: (1) el usuario pidio expresamente no anadirlos al cambiar el fondo; (2) el propio README del kit lo desaconseja -- 'Esta imagen no contiene orbes (solo figura, lunas y ondas). Los tres orbes incluidos proceden de la imagen anterior de la misma serie ... Sus posiciones en la demo son una propuesta editable: no estan ancladas a nada del fondo'. Es decir, serian tres sprites prestados de otro arte, flotando en posiciones arbitrarias sobre un cielo que no los contempla. Los tres canales de contacto que aquellos orbes representaban ya viven como TARJETAS reales, con texto y destino, en el contenido de la seccion (correo, comunidad, codigo)."
+    },
+    "compositing": {
+        "css": "alpha normal en 01-fondo y 02-figura; mix-blend-mode: screen SOLO en 03-polvo. 01-fondo es opaca (RGB) y hace de suelo del stack.",
+        "why": "Medido con Pillow sobre los tres PNG del kit: background es modo RGB (sin canal alfa), figure es RGBA de alfa recta (0-255) y stardust es RGBA (0-254). El kit pide explicitamente screen solo para el polvo ('capa sintetica opcional, direccion de movimiento opuesta, mix-blend-mode:screen'). Es la primera escena del repo con blending POR CAPA en vez de uniforme: las anteriores o eran todas aditivas (contact-neon-galaxy) o todas alpha normal (features-celestial-orbital).",
+        "void": "#0d0416, declarado por el kit en demo/index.html (html,body{background:#0d0416}). Se conserva el literal del paquete en vez de derivar uno propio, mismo criterio que JOURNEY_PORTAL_VOID y FEATURES_ORBITAL_VOID. Solo se ve como color de pintado antes de que cargue la capa opaca, y como fondo de la seccion durante el solape con Features."
+    },
+    "geometry": {
+        "figure": "El kit entrega la figura como SPRITE de 770x1803 en la posicion (2030, 55) del lienzo, no como capa a lienzo completo. Antes de codificar se rellena a 3344x1882 con transparencia y se pega en esa posicion exacta (bbox resultante verificado: 2030, 55, 2800, 1858). Asi las tres capas son a lienzo completo y las consume la MISMA maquinaria que las otras tres escenas (ScLayer con inset:0 y object-fit:cover), sin necesidad de capas posicionadas. Es lo que hacian ya los kits anteriores; este es el primero que entrega un sprite suelto.",
+        "figureSide": "La figura ocupa del 60.71% al 83.74% del ancho del lienzo -- mitad DERECHA. Es el cambio de mayor consecuencia de este arte: la escena saliente la tenia a la izquierda."
+    },
+    "deployed": {
+        "quality": 85,
+        "widths": [1024, 2560],
+        "encoder": "Pillow: Image.resize(LANCZOS) -> save WEBP quality=85 method=6. El filtro y el method NO son supuestos: se probaron contra un activo que no cambia (leccion del repo, task/lessons.md 2026-08-01) recodificando los 7 WebP maestros de assets/contact-neon-galaxy/ a las dos pistas y comparando sha256 contra los 14 ficheros desplegados en public/contact/neon-galaxy/. Resultado: 0/14 a q80, q85, q88 y q92, y 14/14 BYTE A BYTE a q90. Queda demostrado que el filtro y el method son los correctos en esta maquina, y de paso que la escena saliente se desplego a q90. La CALIDAD es la unica variable que se elige por escena.",
+        "rationale": "Medido sobre la escena COMPUESTA a 2560px (que es lo que ve el usuario, no una capa suelta), comparando el compuesto de las 3 capas recodificadas contra el compuesto de los 3 maestros, con el mismo orden y el mismo screen del polvo: q70 40.23 dB / 345.9 KiB, q80 41.49 / 386.4, q85 42.51 / 435.2, q88 43.19 / 478.6, q90 43.76 / 525.1, q93 44.71 / 654.7. La rodilla esta en q85: de q70 a q85 se pagan 89 KiB por +2.28 dB, y de q85 a q90 otros 90 KiB por solo +1.25 dB -- el coste por decibelio se dobla justo ahi. Se elige q85, misma metrica y misma conclusion que Journey y Features.",
+        "weightBytes": 545192,
+        "weightNote": "0,52 MiB en 6 imagenes, frente a 0,34 MiB en las 14 de la escena saliente. SUBE pese a tener menos de la mitad de capas, y el motivo es una sola: 02-figura pesa 284 KB en la pista de 2560, mas que las 14 imagenes salientes juntas. Es un cuerpo grande con textura estrellada fina y un glow de alfa suave y ancha, que es justo lo que peor comprime WebP; los orbes planos y las nebulosas difusas del arte anterior comprimian muy bien. Se declara como deuda conocida, no se disimula."
+    },
+    "motion": {
+        "packageHints": {
+            "depth": [0, 0.03, 0.085],
+            "note": "El kit sugiere ademas depth 0.046-0.058 para los tres orbes, que no se despliegan."
+        },
+        "adopted": "Se adoptan las PROPORCIONES del kit normalizadas a 1.0 en la capa mas cercana (el polvo): 0 / 0.353 / 1.0. Normalizar aisla del retuneo del proveedor (leccion del repo, 2026-08-01) y es lo que ya hacen JourneyCosmicPortal y FeaturesCelestialOrbital. Las amplitudes NO se toman del kit: se fijan para CONSERVAR el recorrido que esta seccion ya tenia. La escena saliente usaba pointerAmp {x:22,y:13} y scrollAmp 70 con profundidad maxima 0.46, o sea 10.1/6.0 px de puntero y 32.2 px de scroll; con el ancla en 1.0, pointerAmp {x:10,y:6} y scrollAmp 32 reproducen 10.0/6.0 y 32.0. Cambiar el fondo no debe retunear el movimiento de la seccion. El overscan se queda en el 1.06 que ya tenia.",
+        "opaqueEdgeCheck": "La unica capa OPACA es 01-fondo, y su profundidad es 0: NO se mueve en absoluto, asi que no puede descubrir ningun borde por mucho que se scrollee. Las otras dos son transparentes: desplazarlas solo mueve su contenido sobre lo que haya debajo. El overscan de 1.06 es, por tanto, holgura de sobra y no una restriccion.",
+        "notAdopted": "El kit propone que el polvo se mueva en DIRECCION OPUESTA a las demas capas. No se implementa: useSceneParallax colapsa puntero y scroll en UNA sola profundidad por capa y ademas la usa en el termino de escala (scale = overscan + scrollProgress * depth * 0.05), asi que invertir la direccion con una profundidad negativa acoplaria dos efectos que no deben ir juntos -- el polvo encogeria al scrollear. Se prefiere no tocar un hook que comparten cuatro escenas por un efecto secundario del arte."
+    },
+    "layers": [
+        {
+            "file": "01-fondo",
+            "z": 0,
+            "source": "layers/background.png",
+            "alpha": "opaca (RGB)",
+            "depth": 0,
+            "blend": "normal"
+        },
+        {
+            "file": "02-figura",
+            "z": 1,
+            "source": "layers/figure.png, rellenada a lienzo completo en (2030, 55)",
+            "alpha": "recta (RGBA 0-255)",
+            "depth": 0.353,
+            "blend": "normal"
+        },
+        {
+            "file": "03-polvo",
+            "z": 2,
+            "source": "layers/stardust.png",
+            "alpha": "recta (RGBA 0-254)",
+            "depth": 1,
+            "blend": "screen"
+        }
+    ]
+}

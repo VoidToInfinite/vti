@@ -210,15 +210,82 @@ export const FEATURES_FIGURE_SIZES =
   "(max-width: 767px) 45vw, (max-width: 1023px) 200px, 240px";
 
 /**
- * Caja de la rama oscura (2026-07-30, mismo criterio que
- * `STORY_DARK_MAX_WIDTH`/`JOURNEY_ASTRAL_MAX_WIDTH`): acotada y centrada, no
- * a sangre. A diferencia de Story/Journey, aquí es `MIN_HEIGHT`, no una
- * altura fija en `dvh`: las tres tarjetas (título+cuerpo+4 bullets+CTA cada
- * una) son bastante más contenido que los pilares de Story o los pasos de
- * Journey, y una caja de altura FIJA con `overflow: hidden` recortaría ese
- * contenido en viewports bajos. `min-height` deja que la sección crezca con
- * el contenido real; el fondo (`object-fit: cover`) cubre cualquier alto que
- * resulte.
+ * Cuánto sube Features por encima de Journey al superponerse (D2/D5, spec
+ * `2026-08-02-features-overlay-celestial-orbital-design.md`): una pantalla
+ * completa, aplicada como `margin-block-start` NEGATIVO sobre la rama oscura
+ * de `ScFeatures` (`Features.tsx`). DEBE valer EXACTAMENTE lo mismo que
+ * `JOURNEY_DARK_HEIGHT * JOURNEY_DECK_TAIL_SCREENS` (`journey.layers.ts`): si
+ * el solape es MENOR que la zona de hold de Journey, asoma una banda de la
+ * escena de Journey sin tapar entre las dos secciones; si es MAYOR, Features
+ * empieza a subir con la cita de cierre todavía viva (tapándola antes de que
+ * termine su tramo de scroll). Las dos constantes viven en ficheros de datos
+ * de secciones distintas a propósito — importar una desde la otra acoplaría
+ * los datos de Journey y Features, que no se conocen entre sí — así que la
+ * igualdad no se declara aquí en prosa: la comprueba un test
+ * (`Features.test.tsx`, invariante D5) que importa las dos. Mismo par y mismo
+ * razonamiento que `JOURNEY_OVERLAY_RISE` ↔ `STORY_DECK_TAIL_SCREENS`
+ * (`journey.layers.ts`).
  */
-export const FEATURES_DARK_MAX_WIDTH = "1280px";
-export const FEATURES_DARK_MIN_HEIGHT = "80vh";
+export const FEATURES_OVERLAY_RISE = "100dvh";
+
+/**
+ * Alto del slot pegado de la escena de Features en tema oscuro (D7, spec
+ * `2026-08-02-features-overlay-celestial-orbital-design.md`): una pantalla
+ * completa. SUSTITUYE a `FEATURES_DARK_MIN_HEIGHT` (80vh), que era el
+ * compromiso que evitaba recortar el contenido de la sección cuando la caja
+ * de la sección y la de la escena eran LA MISMA — con D7 dejan de serlo (la
+ * escena vive en su propio slot pegado, `ScDarkSceneSlot`, y el contenido en
+ * `ScDarkFrame`, que mide lo que mide su contenido real) y el compromiso
+ * desaparece: la escena ya no necesita ceder alto para no recortar texto.
+ * Mismo nombre y mismo rol que `JOURNEY_DARK_HEIGHT` (`journey.layers.ts`).
+ */
+export const FEATURES_DARK_HEIGHT = "100dvh";
+
+/**
+ * Tope de ancho del CONTENIDO de la rama oscura (D8, spec
+ * `2026-08-02-features-overlay-celestial-orbital-design.md`). El 1280px del
+ * encargo del usuario describe ahora el CONTENIDO (`ScDarkFrame`,
+ * `Features.tsx`), no la sección entera: la escena
+ * (`FeaturesCelestialOrbital`) pasa a sangre en esta misma entrega (D7) y
+ * pierde su propio tope de ancho (`FEATURES_DARK_MAX_WIDTH`, eliminada de
+ * este fichero). Es una constante PROPIA y no un renombrado de
+ * `FEATURES_DARK_MAX_WIDTH`, aunque el número coincida: aquella acotaba la
+ * SECCIÓN entera (escena incluida) y esta acota solo el contenido —
+ * reutilizarla escondería el cambio de sujeto. Mismo criterio y mismas
+ * palabras que `JOURNEY_CONTENT_MAX_WIDTH` (`journey.layers.ts`) cuando
+ * reemplazó a `JOURNEY_PORTAL_MAX_WIDTH`.
+ */
+export const FEATURES_CONTENT_MAX_WIDTH = "1280px";
+
+/**
+ * Zona de "hold" al final de la sección oscura de Features (D3/D4/D5, spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`): una
+ * pantalla completa durante la cual la escena (`FeaturesCelestialOrbital`,
+ * pegada en `ScDarkSceneSlot`, `Features.tsx`) se queda sola, sin contenido
+ * real pasando por delante, mientras Contacto sube desde el borde inferior
+ * del viewport y la cubre. Se materializa como un tercer hijo de grid,
+ * `ScDarkTail` (`Features.tsx`), no como padding de la sección ni del marco
+ * de contenido — ver el docblock de `ScDarkTail` para el porqué completo de
+ * cada descarte.
+ *
+ * DEBE valer EXACTAMENTE lo mismo que `CONTACT_OVERLAY_RISE`
+ * (`src/components/sections/Contact/contact.layers.ts`): si el hold es MENOR
+ * que el solape de Contacto, asoma una banda de contenido REAL de Features
+ * sin tapar entre las dos secciones; si es MAYOR, queda una pantalla de
+ * scroll muerto antes de que Contacto empiece a subir. Las dos constantes
+ * viven en ficheros de datos de secciones distintas a propósito — importar
+ * una desde la otra acoplaría los datos de Features y Contacto, que no se
+ * conocen entre sí — así que la igualdad NO se declara aquí en prosa: la ata
+ * un test que importa los dos ficheros (`Contact.test.tsx`, la sección que
+ * SUBE, mismo criterio que la invariante Journey↔Features vive en
+ * `Features.test.tsx` y no en `journey.layers.ts`).
+ *
+ * Precedente exacto: `JOURNEY_DECK_TAIL_SCREENS` (`journey.layers.ts`) hace
+ * lo mismo un peldaño más arriba de la página (Journey↔Features), pero allí
+ * es un NÚMERO DE PANTALLAS que consume `useSlideDeck` (`tailScreens`) porque
+ * Journey es una presentación de diapositivas con una pista que ese hook
+ * dimensiona. Features no tiene deck — no hay pista ni `useSlideDeck` que
+ * consuma un recuento de pantallas — así que aquí el hold se declara
+ * directamente como CAJA: una `height` de grid, no un factor de una fórmula.
+ */
+export const FEATURES_TAIL_HOLD = "100dvh";

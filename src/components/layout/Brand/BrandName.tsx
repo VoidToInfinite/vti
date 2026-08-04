@@ -13,8 +13,8 @@ const ScBrandName = styled.span`
 
 /*
  * Excepcion documentada al lenguaje de movimiento del sistema (solo
- * transform/opacity; ver BackOrbs.tsx, eye.parts.tsx, EyeCornerMark, poster
- * de SceneLoader, Wormhole, Sol). Un degradado de texto ANIMADO exige mover
+ * transform/opacity; ver BackOrbs.tsx, eye.parts.tsx, poster de SceneLoader,
+ * Wormhole, Sol). Un degradado de texto ANIMADO exige mover
  * background-position (o un angulo registrado con @property) porque
  * background-position/background-size no son propiedades de compositor -- no
  * hay forma de desplazar un fondo recortado a texto solo con transform u

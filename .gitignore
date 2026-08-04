@@ -36,3 +36,6 @@ next-env.d.ts
 
 # scratch del flujo de tareas (task/todo.md, task/lessons.md) — no es codigo del repo
 task/
+
+# cache local de graphify — se regenera, no se versiona
+graphify-out/cache/

@@ -131,4 +131,71 @@ describe("Typography", () => {
       "titulo-x",
     );
   });
+
+  /*
+   * Equilibrado de linea de las variantes de CUERPO (encargo del usuario
+   * 2026-08-04). Se lee el CSS inyectado y no `getComputedStyle`: jsdom no
+   * conoce `text-wrap-style` como propiedad, asi que el estilo computado la
+   * devuelve vacia y una asercion sobre el pasaria en verde con la regla
+   * ausente. El texto de la regla inyectada, en cambio, es exactamente lo que
+   * llega al navegador.
+   */
+  function reglasDe(el: HTMLElement): string {
+    const clases = el.className.split(" ").filter(Boolean);
+    let texto = "";
+    for (const hoja of Array.from(document.styleSheets)) {
+      let reglas;
+      try {
+        reglas = hoja.cssRules;
+      } catch {
+        continue;
+      }
+      for (const regla of Array.from(reglas)) {
+        if (clases.some((c) => regla.cssText.includes(`.${c}`))) {
+          texto += regla.cssText;
+        }
+      }
+    }
+    return texto;
+  }
+
+  it.each(["bodyLg", "body", "bodySm"] as const)(
+    "la variante de cuerpo %s declara las DOS formas del equilibrado",
+    (variant) => {
+      renderWithProviders(
+        <Typography
+          variant={variant}
+          data-testid={`cuerpo-${variant}`}
+        >
+          Texto de cuerpo
+        </Typography>,
+      );
+      const css = reglasDe(screen.getByTestId(`cuerpo-${variant}`));
+
+      // La shorthand es la base de compatibilidad y la longhand la propiedad
+      // que pide el encargo: se exigen las dos, no una cualquiera.
+      expect(css).toContain("text-wrap: balance");
+      expect(css).toContain("text-wrap-style: balance");
+    },
+  );
+
+  it.each(["overline", "code"] as const)(
+    "la variante %s NO recibe el equilibrado de cuerpo",
+    (variant) => {
+      renderWithProviders(
+        <Typography
+          variant={variant}
+          data-testid={`otra-${variant}`}
+        >
+          Etiqueta
+        </Typography>,
+      );
+      const css = reglasDe(screen.getByTestId(`otra-${variant}`));
+
+      // Control negativo: sin esto, "aplicalo a todo" pasaria el test de
+      // arriba igual de verde y nadie notaria que se equilibra tambien un
+      // bloque de codigo monoespaciado o una etiqueta de dos palabras.
+      expect(css).not.toContain("text-wrap-style: balance");
+    },
+  );
 });

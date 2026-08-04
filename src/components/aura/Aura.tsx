@@ -67,6 +67,19 @@ export function Aura({ className }: AuraProps): ReactElement {
     [],
   );
   const orb = useRef<HTMLDivElement>(null);
+  // Raiz de la composicion para la guarda de visibilidad de D3 (spec
+  // 2026-08-04): useRef, NUNCA un callback-ref ni un objeto creado inline en
+  // el render -- mismo motivo que layerRefs (useMemo con deps []): el hook
+  // usa esta ref como dependencia de su efecto, y un objeto nuevo en cada
+  // render lo re-suscribiria en cada setState (leccion task/lessons.md
+  // 2026-07-31). Se ata a ScAuraSocket -- el elemento raiz que ya envuelve
+  // toda la composicion y ya es, ademas, el grupo de blending
+  // (`isolation: isolate`, ver aura.parts.tsx) -- en vez de a ScAuraSubject o
+  // a cualquier hijo: anadir el ref a la raiz no toca esa isolation ni
+  // introduce un div nuevo (un envoltorio adicional crearia su propio
+  // contexto de apilamiento y aislaria el sujeto del campo a sangre, spec
+  // S4.3).
+  const sceneRef = useRef<HTMLDivElement>(null);
   // Onda de "pulse" al click/tap. Estado de React, no rAF: se dispara una
   // vez por interaccion, no en cada frame, asi que no interfiere con la
   // regla de "cero re-render por frame" del parallax.
@@ -83,7 +96,15 @@ export function Aura({ className }: AuraProps): ReactElement {
     })),
     { ref: orb, depth: AURA_ORB_DEPTH },
   ];
-  useParallaxLayers(targets, AMP);
+  // Tercer argumento `sceneRef` (D3, spec 2026-08-04): con el, el hook gana
+  // la guarda de `IntersectionObserver` que antes le faltaba -- el rAF del
+  // parallax deja de correr mientras el hero esta fuera de pantalla (antes
+  // corria durante toda la sesion, aunque el hero llevara doce pantallas
+  // fuera de vista) y, al abandonar la seccion, las capas se liberan con el
+  // mismo lerp que ya suaviza el seguimiento del cursor hasta
+  // `translate3d(0,0,0)` en vez de quedarse congeladas en la ultima postura
+  // del puntero.
+  useParallaxLayers(targets, AMP, sceneRef);
 
   // `pointerdown` cubre raton y tactil en un solo handler. El lienzo entero
   // (`ScAuraSocket`) es el hit target: la composicion ocupa el hero de fondo
@@ -105,6 +126,7 @@ export function Aura({ className }: AuraProps): ReactElement {
 
   return (
     <ScAuraSocket
+      ref={sceneRef}
       className={className}
       aria-hidden="true"
       data-pulsing={pulsing ? "true" : undefined}
