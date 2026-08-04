@@ -1,6 +1,7 @@
 "use client";
 import styled from "styled-components";
 import {
+  CONTACT_GUARDIAN_FOCUS_Y,
   CONTACT_GUARDIAN_OVERSCAN,
   CONTACT_GUARDIAN_VOID,
   type ContactCosmicGuardianLayer,
@@ -28,6 +29,22 @@ export const ScVoid = styled.div`
 `;
 
 /*
+ * Encuadre vertical anclado por ARRIBA (D5 de la spec de navegacion fluida;
+ * razonamiento completo, con el origen del numero y el coste aceptado, en
+ * el docblock de `CONTACT_GUARDIAN_FOCUS_Y`, `contactCosmicGuardian.layers.ts`).
+ * `object-position: 50% CONTACT_GUARDIAN_FOCUS_Y` (0%) hace que la franja
+ * visible del lienzo por `object-fit: cover` arranque siempre en el borde
+ * superior en vez de centrarse: sin esto, en cuanto la ventana es mas
+ * apaisada que ~1,83 el encuadre centrado le corta la cabeza a la figura.
+ *
+ * `transform-origin: 50% 0%` es IMPRESCINDIBLE, no cosmetico: sin el, el
+ * scale del overscan (CONTACT_GUARDIAN_OVERSCAN) se reparte por defecto
+ * alrededor del CENTRO del elemento, y eso vuelve a comerse un margen por
+ * ARRIBA -- deshaciendo justo lo que object-position acaba de ganar. Con el
+ * origen de la escala en el borde superior, el overscan crece unicamente
+ * hacia abajo: el punto y=0% que fija object-position se queda anclado tras
+ * aplicar el scale, en vez de desplazarse hacia el centro del elemento.
+ *
  * Una capa, con blending POR CAPA en vez de uniforme -- primera escena del
  * repo que lo necesita (manifest, `compositing.css`). Se resuelve con una
  * prop transitoria `$blend` en vez de un segundo styled (`ScLayerScreen`)
@@ -57,9 +74,11 @@ export const ScLayer = styled.img<{
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% ${CONTACT_GUARDIAN_FOCUS_Y};
   pointer-events: none;
   user-select: none;
   transform: scale(${CONTACT_GUARDIAN_OVERSCAN});
+  transform-origin: 50% 0%;
   will-change: transform;
   ${({ $blend }) => ($blend === "screen" ? "mix-blend-mode: screen;" : "")}
 `;

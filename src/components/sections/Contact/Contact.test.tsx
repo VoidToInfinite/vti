@@ -19,6 +19,7 @@ import {
 } from "./contact.layers";
 import { CONTACT_GUARDIAN_LAYERS } from "@/components/contactCosmicGuardian/contactCosmicGuardian.layers";
 import { FEATURES_TAIL_HOLD } from "@/components/sections/Features/features.layers";
+import { themes } from "@/theme/themes";
 
 /*
  * Reescritura completa (spec 2026-07-28 §7.4, mockup `#contact` L212-238):
@@ -29,14 +30,57 @@ import { FEATURES_TAIL_HOLD } from "@/components/sections/Features/features.laye
  * reescribe contra el chip/CTA reales del mockup.
  */
 
-let trigger: (isIntersecting: boolean) => void;
+/*
+ * `trigger` dispara TODAS las instancias de IntersectionObserver vivas, no
+ * solo la última creada (D7, encargo 2026-08-04): desde que la rama clara
+ * llama a `useSectionProgress` de forma incondicional (ver `Contact()`), un
+ * render monta DOS observers a la vez -- el de `useReveal` (sobre `ScCard`,
+ * revealRef) y el de `useSectionProgress` (sobre `ScContact`, contactRef).
+ * Antes de esta entrega solo existía uno, así que "guardar el callback de
+ * la última instancia" bastaba; con dos, el segundo pisaba al primero y
+ * `trigger(true)` dejaba de disparar el reveal -- exactamente el fallo que
+ * Journey.test.tsx ya documenta para su propio caso de dos observers
+ * (`useSlideDeck` + `useSceneParallax`). No hace falta distinguir CUÁL
+ * observer es cuál para estos tests (ninguno asevera nada sobre
+ * `--contact-progress`): notificar a todos con el mismo valor es suficiente
+ * y más simple que el `ioTargets`/`triggerFor` de Journey.
+ */
+let ioCallbacks: ((entries: { isIntersecting: boolean }[]) => void)[] = [];
+function trigger(isIntersecting: boolean): void {
+  ioCallbacks.forEach((cb) => cb([{ isIntersecting }]));
+}
+
+/**
+ * jsdom no implementa `window.matchMedia` -- lo necesitan tanto las guardas
+ * de `prefers-reduced-motion` de los componentes como, desde esta entrega,
+ * `useSectionProgress` (D7, se llama de forma INCONDICIONAL en `Contact()`,
+ * también en la rama clara que la mayoría de estos tests ejercita).
+ * `matches: false` en todas las queries: ningún test de este bloque quiere
+ * reduced-motion activo por defecto -- los tests que SÍ verifican ese guard
+ * lo hacen por TEXTO del CSS inyectado, no por el valor de retorno de
+ * `matchMedia` (jsdom no evalúa `@media`, lección repo 2026-07-27), así que
+ * este stub no interfiere con ellos.
+ */
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
 
 beforeEach(() => {
+  ioCallbacks = [];
+  stubMatchMedia();
   vi.stubGlobal(
     "IntersectionObserver",
     class {
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
-        trigger = (v) => cb([{ isIntersecting: v }]);
+        ioCallbacks.push(cb);
       }
       observe(): void {}
       disconnect(): void {}
@@ -205,18 +249,6 @@ describe("Contact", () => {
     expect(topLevelRule).not.toContain("animation:");
   });
 });
-
-function stubMatchMedia(): void {
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })),
-  );
-}
 
 /**
  * Raíz de `ContactCosmicGuardian` (`ScScene`, `aria-hidden="true"` con las
@@ -674,5 +706,201 @@ describe("Contact.tsx: el módulo de la sección ya no menciona la escena salien
 describe("invariante solape de Contacto ↔ hold de Features (D4)", () => {
   it("CONTACT_OVERLAY_RISE y FEATURES_TAIL_HOLD miden EXACTAMENTE lo mismo", () => {
     expect(CONTACT_OVERLAY_RISE).toBe(FEATURES_TAIL_HOLD);
+  });
+});
+
+/*
+ * Objetivo 1 (D4, encargo 2026-08-04): la rama CLARA pasa a `min-height:
+ * 100dvh` con el contenido centrado, mismo criterio que `ScFeatures` en
+ * `Features.tsx`. `flex-direction: column` (no el defecto `row`): ver el
+ * docblock de `ScContact` en `Contact.tsx` para el porqué (con `row` la
+ * tarjeta, sin `flex-grow`, dejaría de estirarse al ancho del contenedor).
+ */
+describe("Objetivo 1 (D4): tema claro con min-height 100dvh y centrado vertical", () => {
+  it("ScContact (rama clara) declara min-height: 100dvh y centra con flex-direction column + justify-content center", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const section = container.querySelector("#contact") as HTMLElement;
+    const css = cssRuleTextFor(section);
+
+    expect(css).toContain("min-height: 100dvh");
+    expect(css).toContain("flex-direction: column");
+    expect(css).toContain("justify-content: center");
+  });
+});
+
+/*
+ * Objetivo 2 / D7 (encargo 2026-08-04): `useSectionProgress` se llama de
+ * forma incondicional en `Contact()` y se ata SOLO al `<ScContact>` de la
+ * rama clara (`contactRef`). Test FUNCIONAL, no solo de CSS: dispara el
+ * IntersectionObserver mockeado y comprueba que el hook escribe de verdad
+ * `--contact-enter`/`--contact-progress` sobre el elemento.
+ */
+describe("D7/D1: progreso de scroll de la rama clara (useSectionProgress)", () => {
+  it("escribe --contact-enter/--contact-progress sobre ScContact al intersecar, y no --section-* (prefix propio)", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const section = container.querySelector("#contact") as HTMLElement;
+
+    expect(section.style.getPropertyValue("--contact-progress")).toBe("");
+    act(() => trigger(true));
+
+    expect(section.style.getPropertyValue("--contact-enter")).not.toBe("");
+    expect(section.style.getPropertyValue("--contact-progress")).not.toBe("");
+    expect(section.style.getPropertyValue("--section-enter")).toBe("");
+  });
+
+  it("ScFigureWrap y ScRings se desplazan ligados a --contact-progress (sentidos opuestos), con guard de reduced-motion", () => {
+    const { container } = renderWithProviders(<Contact />);
+    // ScFigureWrap se localiza por ser el padre de la figura de i18n.
+    // ScRings, mismo ancla que el test "los anillos concentricos..." de
+    // arriba: es el UNICO aria-hidden con exactamente 3 hijos <div> (el
+    // ChipIcon de la rama clara TAMBIEN es aria-hidden y precede a ScRings
+    // en el DOM, así que un simple primer-match se equivocaría de nodo).
+    const figureWrap = (
+      container.querySelector(
+        `img[alt="${esHome.Home.contact.figureAlt}"]`,
+      ) as HTMLElement
+    ).parentElement as HTMLElement;
+    const ringsWrap = Array.from(
+      container.querySelectorAll('[aria-hidden="true"]'),
+    ).find((el) => el.children.length === 3) as HTMLElement;
+    const ringsCss = cssRuleTextFor(ringsWrap);
+    const figureWrapCss = cssRuleTextFor(figureWrap);
+
+    expect(figureWrapCss).toContain("translateY(");
+    expect(figureWrapCss).toContain("var(--contact-progress");
+    expect(figureWrapCss).toContain("-28px");
+    const figureReduceLine = figureWrapCss
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("transform"),
+      );
+    expect(figureReduceLine).toBeDefined();
+    expect(figureReduceLine).toMatch(/transform:\s*none/);
+
+    expect(ringsCss).toContain("translateY(");
+    expect(ringsCss).toContain("var(--contact-progress");
+  });
+});
+
+/*
+ * D7 (encargo 2026-08-04): las entradas de Contacto (rama clara -- `ScCard`
+ * -- y rama oscura -- `ScDarkContent`) se unifican a `motion.duration.slower`
+ * + `motion.easing.decelerate`. Por texto del CSS inyectado, no
+ * `getComputedStyle`: medido en este repo (ver Features.test.tsx), jsdom no
+ * resuelve `transitionDuration`/`transitionTimingFunction` cuando
+ * `transition` es una lista de declaraciones separadas por coma.
+ */
+describe("D7: duración/easing de entrada unificados (slower + decelerate)", () => {
+  it("ScCard (rama clara) usa motion.duration.slower + motion.easing.decelerate", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const card = container.querySelector("[data-revealed]") as HTMLElement;
+    const css = cssRuleTextFor(card);
+
+    expect(css).toContain(themes.light.motion.duration.slower);
+    expect(css).toContain(themes.light.motion.easing.decelerate);
+    expect(css).not.toContain(themes.light.motion.duration.slow);
+    expect(css).not.toContain(themes.light.motion.easing.emphasized);
+  });
+
+  it("ScDarkContent (rama oscura) usa motion.duration.slower + motion.easing.decelerate", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+      const content = Array.from(
+        container.querySelectorAll("[data-revealed]"),
+      ).find((el) => el.getAttribute("aria-hidden") !== "true") as HTMLElement;
+      const css = cssRuleTextFor(content);
+
+      expect(css).toContain(themes.dark.motion.duration.slower);
+      expect(css).toContain(themes.dark.motion.easing.decelerate);
+      expect(css).not.toContain(themes.dark.motion.duration.slow);
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+});
+
+/*
+ * D7 (encargo 2026-08-04, decisión propia -- ver el informe de la tarea):
+ * `ScCta` (el CTA de `mailto:` de la rama clara) gana `:focus-visible`
+ * propio, resuelto contra `semantic.focus`, mismo criterio que `ScCta` en
+ * `Features.tsx`. No estaba nombrado explícitamente en el encargo (que citó
+ * solo el de Features), pero es el mismo componente de rol "CTA de sección"
+ * dentro del mismo fichero en alcance, así que se nivela igual.
+ */
+describe("D7: :focus-visible propio del CTA de sección", () => {
+  it("ScCta declara :focus-visible con box-shadow resuelto contra semantic.focus, compuesto con el de :hover", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const cta = container.querySelector(
+      `a[href="${links.email}"]`,
+    ) as HTMLElement;
+    const css = cssRuleTextFor(cta);
+
+    expect(css).toContain(":focus-visible");
+    const focusBlock = css.slice(css.indexOf(":focus-visible"));
+    expect(focusBlock).toContain("box-shadow");
+    expect(focusBlock).toContain(themes.light.semantic.focus);
+  });
+});
+
+/*
+ * D4 (encargo 2026-08-04): palancas de compactación vertical del contenido
+ * oscuro -- `padding-block` fluido de `ScDarkFrame`, `gap` fluido de
+ * `ScDarkCopy` y `ScCards`. Contacto medía +105px de sobrante (frente a los
+ * +407px de Features), así que no necesita las palancas de tipografía ni de
+ * bullets a dos columnas que sí lleva Features.
+ */
+describe("D4: palancas de compactación vertical del contenido oscuro (clamp fluido)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("ScDarkFrame usa padding-block: clamp(...) en vez de space[8] fijo", async () => {
+    const { container } = renderWithProviders(<Contact />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(
+        CONTACT_GUARDIAN_LAYERS.length,
+      );
+    });
+    const revealedEl = Array.from(
+      container.querySelectorAll("[data-revealed]"),
+    ).find((el) => el.getAttribute("aria-hidden") !== "true") as HTMLElement;
+    const frame = revealedEl.parentElement as HTMLElement;
+    const css = cssRuleTextFor(frame);
+
+    /* Unidad `dvh`, no `vw`, y el test la exige: la restriccion que hay que
+       satisfacer es el ALTO del viewport, y un termino en `vw` no ahorra nada
+       en un portatil bajo y ancho -- ver el mismo test en `Features.test.tsx`
+       para el defecto medido que motivo el cambio de eje. */
+    expect(css).toMatch(/padding-block:\s*clamp\(\s*1rem,\s*3\.5dvh,/);
+    expect(css).not.toContain("6vw");
+  });
+
+  it("ScDarkCopy usa gap: clamp(...) en vez de space[4] fijo", async () => {
+    const { container } = renderWithProviders(<Contact />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(
+        CONTACT_GUARDIAN_LAYERS.length,
+      );
+    });
+    const revealedEl = Array.from(
+      container.querySelectorAll("[data-revealed]"),
+    ).find((el) => el.getAttribute("aria-hidden") !== "true") as HTMLElement;
+    const copy = revealedEl.firstElementChild as HTMLElement;
+    const css = cssRuleTextFor(copy);
+
+    expect(css).toMatch(/gap:\s*clamp\(0\.75rem/);
   });
 });

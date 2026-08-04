@@ -31,10 +31,22 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
   color: ${({ theme, $active }) =>
     $active ? theme.data.semantic.brand : theme.data.semantic.textSubtle};
   cursor: pointer;
+  /* Mismo patrón (propiedad, duración y curva) que sus dos hermanos con el
+     mismo rol -- ScNavLink (Navbar.tsx) y ScFooterLink (Footer.tsx): los
+     tres son enlaces/controles de texto que cambian de color en hover/foco,
+     y hasta ahora este era el único de los tres sin transition, así que el
+     cambio de color aquí saltaba en seco mientras en los otros dos se
+     animaba (hallazgo 3, D7). */
+  transition: color ${({ theme }) => theme.data.motion.duration.fast}
+    ${({ theme }) => theme.data.motion.easing.standard};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brand};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 

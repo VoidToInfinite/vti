@@ -1,6 +1,29 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
+import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { Card } from "./Card";
+
+/** Mismo patrón que Button.test.tsx/Navbar.test.tsx: lee el CSSOM real
+ *  inyectado por styled-components, porque jsdom no evalúa la pseudo-clase
+ *  dinámica :focus-visible al resolver getComputedStyle. */
+function allCssRules(): string[] {
+  const reglas: string[] = [];
+  const walk = (rules: CSSRuleList): void => {
+    Array.from(rules).forEach((rule) => {
+      reglas.push(rule.cssText);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) walk(anidadas);
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return reglas;
+}
 
 describe("Card", () => {
   it("renderiza su contenido", () => {
@@ -61,5 +84,73 @@ describe("Card", () => {
     const el = screen.getByTestId("card-x");
     el.click();
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  describe(":focus-visible propio de la variante interactive (hallazgo 1, D7)", () => {
+    afterEach(() => {
+      window.localStorage.clear();
+    });
+
+    // Acota las reglas a la clase real del elemento renderizado: las dos
+    // iteraciones de tema comparten `document` (styled-components no limpia
+    // su hoja entre tests), así que un `find()` sin acotar podría devolver
+    // la regla del PRIMER render, del tema equivocado.
+    function reglasDe(el: HTMLElement): string[] {
+      const reglas = allCssRules();
+      const clases = Array.from(el.classList).filter((c) =>
+        reglas.some((r) => r.includes(c)),
+      );
+      expect(
+        clases.length,
+        "no se encontró ninguna clase inyectada del elemento",
+      ).toBeGreaterThan(0);
+      return reglas.filter((r) => clases.some((c) => r.includes(c)));
+    }
+
+    it.each([
+      ["light", basicLightTheme],
+      ["dark", basicDarkTheme],
+    ] as const)(
+      "interactive declara :focus-visible con box-shadow contra semantic.focus del tema %s (nunca un literal)",
+      (nombreTema, theme) => {
+        window.localStorage.setItem("vti-theme", nombreTema);
+        renderWithProviders(
+          <Card
+            interactive
+            as="a"
+            href="#x"
+          >
+            Link
+          </Card>,
+        );
+        const link = screen.getByRole("link", { name: "Link" });
+
+        const bloque = reglasDe(link).find(
+          (regla) =>
+            regla.includes(":focus-visible") && regla.includes("box-shadow"),
+        );
+        expect(
+          bloque,
+          "no se encontró ninguna regla :focus-visible con box-shadow en Card",
+        ).toBeDefined();
+        expect(bloque).toContain(theme.semantic.focus);
+        expect(bloque).toContain(theme.semantic.borderStrong);
+        // No sustituye el anillo global (regla dura: outline: none vetado).
+        expect(
+          reglasDe(link).some((regla) => /outline\s*:\s*none/.test(regla)),
+        ).toBe(false);
+      },
+    );
+
+    it("la card estática (sin interactive) no gana ningún :focus-visible propio (contrato: el tratamiento vive solo en la rama interactive)", () => {
+      renderWithProviders(<Card>Superficie plana</Card>);
+      const el = screen.getByText("Superficie plana");
+
+      const bloque = reglasDe(el).find(
+        (regla) =>
+          regla.includes(":focus-visible") && regla.includes("box-shadow"),
+      );
+      expect(bloque).toBeUndefined();
+    });
   });
 });

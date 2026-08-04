@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import styled, { css } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
+import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
@@ -28,8 +29,10 @@ import {
   JOURNEY_STEPS,
   JOURNEY_CARD_BACKGROUND,
   JOURNEY_DISC_BORDER,
+  JOURNEY_FIGURE_SCROLL_SHIFT,
   JOURNEY_PATH_VIEWBOX,
   JOURNEY_PATH_D,
+  JOURNEY_PATH_SCROLL_SHIFT,
   JOURNEY_PATH_STROKE,
   JOURNEY_QUOTE_GRADIENT_DARK,
   JOURNEY_QUOTE_GRADIENT_LIGHT,
@@ -189,6 +192,12 @@ const ScStepsRow = styled.div`
   padding-bottom: ${({ theme }) => theme.data.space[4]};
 `;
 
+/*
+ * Desplazamiento de scroll (D1, ver el docblock de JOURNEY_PATH_SCROLL_SHIFT
+ * en journey.layers.ts): directo en este elemento, sin envoltorio -- ScPath
+ * no anima transform con @keyframes en ningún otro punto, así que no hay
+ * ninguna propiedad que disputarle a una animación existente.
+ */
 const ScPath = styled.svg`
   display: none;
   position: absolute;
@@ -196,9 +205,16 @@ const ScPath = styled.svg`
   left: 0;
   width: 100%;
   height: 96px;
+  transform: translateY(
+    calc(${JOURNEY_PATH_SCROLL_SHIFT} * var(--journey-progress, 0))
+  );
 
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
   }
 `;
 
@@ -218,18 +234,30 @@ const ScStepsGrid = styled.div`
   }
 `;
 
-/* Escalonado de reveal (opacity/transform), separado del offset de layout
-   (`ScStepOffset`, más abajo) para que los dos `transform` de este paso
-   vivan en elementos DISTINTOS y no se pisen entre sí — el mismo motivo por
-   el que `ScItem`/tarjeta están separados en `Features.tsx`. */
+/*
+ * Escalonado de reveal (opacity/transform), separado del offset de layout
+ * (`ScStepOffset`, más abajo) para que los dos `transform` de este paso
+ * vivan en elementos DISTINTOS y no se pisen entre sí — el mismo motivo por
+ * el que `ScItem`/tarjeta están separados en `Features.tsx`.
+ *
+ * Duración/easing unificados (D7, spec
+ * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`):
+ * `motion.duration.slower` (480ms) + `motion.easing.decelerate` en vez de
+ * `easing.emphasized` que llevaba antes -- mismo lenguaje de entrada que
+ * `ScGrid` en Story.tsx, sin ninguna razón documentada para la divergencia
+ * previa entre las dos secciones. El escalonado por índice (`transition-
+ * delay`, siguiente línea) y su guard de `reduce` (más abajo, que también
+ * anula el delay) NO cambian: siguen siendo la parte de este bloque que sí
+ * distingue a Journey de Story.
+ */
 const ScStepReveal = styled.div<{ $index: number }>`
   opacity: 0;
   transform: translateY(12px);
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.emphasized},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.emphasized};
+    opacity ${({ theme }) => theme.data.motion.duration.slower}
+      ${({ theme }) => theme.data.motion.easing.decelerate},
+    transform ${({ theme }) => theme.data.motion.duration.slower}
+      ${({ theme }) => theme.data.motion.easing.decelerate};
   transition-delay: ${({ $index }) => $index * STEP_STAGGER_MS}ms;
 
   &[data-revealed="true"] {
@@ -351,6 +379,16 @@ const ScQuoteText = styled.span`
  * puede recortarse porque `object-fit: contain` reduce imagen entera para
  * caber en la caja en vez de desbordarla (a diferencia del `cover` global
  * de GlobalStyles).
+ *
+ * Desplazamiento de scroll (D1, ver el docblock de
+ * JOURNEY_FIGURE_SCROLL_SHIFT en journey.layers.ts): directo en este mismo
+ * elemento, sin envoltorio -- a diferencia de la figura de Story, ScFigure
+ * no anima transform con @keyframes en ningún otro punto (esta rama de
+ * Journey nunca tuvo flotación), así que no hay ninguna propiedad que
+ * disputarle a una animación existente. El `transform` va DENTRO del mismo
+ * bloque `@media xl` que ya declara `position: absolute`: por debajo de ese
+ * ancho la figura ni siquiera se pinta (`display: none` arriba), así que un
+ * `transform` fuera de ese bloque no tendría nada que desplazar.
  */
 const ScFigure = styled.img`
   display: none;
@@ -365,6 +403,13 @@ const ScFigure = styled.img`
     object-fit: contain;
     filter: ${JOURNEY_FIGURE_SHADOW};
     right: -60px;
+    transform: translateY(
+      calc(${JOURNEY_FIGURE_SCROLL_SHIFT} * var(--journey-progress, 0))
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
   }
 `;
 
@@ -452,30 +497,56 @@ function StepIcon({ id }: { id: JourneyStepId }): ReactElement {
 }
 
 export function Journey(): ReactElement {
-  const { t } = useTranslation("home");
   const { themeName } = useTheme();
-  const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
 
-  // La rama oscura vive en un componente HIJO aparte (JourneyDeckDark, mas
-  // abajo) en vez de continuar aqui mismo: mismo motivo que StoryDeckDark en
-  // Story.tsx (D15, spec 2026-08-02-journey-deck-8-diapositivas-design.md).
-  // useSlideDeck llama window.matchMedia incondicionalmente en su efecto de
-  // montaje, y esta funcion Journey() es UNA SOLA para las dos ramas -- las
-  // reglas de los hooks de React prohiben llamarlo solo "cuando el tema es
-  // oscuro" dentro de ella. Si el hook se llamara aqui, se ejecutaria en
-  // CADA render de Journey() -- tambien en tema claro -- y rompería
-  // cualquier test que renderice la rama clara sin stubear matchMedia (los
-  // tests existentes de este archivo, ninguno de los cuales lo stubea
-  // porque nunca lo necesitaron). Delegar la rama oscura a un componente que
-  // solo se MONTA cuando themeName !== "light" resuelve esto sin tocar
-  // useSlideDeck.ts ni los tests claros: React nunca ejecuta los hooks de un
-  // componente que no se renderiza.
+  // Las dos ramas viven en componentes HIJO aparte (JourneyLight/
+  // JourneyDeckDark, justo debajo) en vez de continuar aqui mismo: tanto
+  // useSectionProgress (D1, spec
+  // 2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md,
+  // rama clara) como useSlideDeck (D15, spec
+  // 2026-08-02-journey-deck-8-diapositivas-design.md, rama oscura) llaman a
+  // window.matchMedia sin condicion en su efecto de montaje. Journey() es
+  // UNA SOLA funcion para las dos ramas -- las reglas de los hooks de React
+  // prohiben llamar un hook solo "cuando el tema es claro/oscuro" dentro de
+  // ella, porque el tema puede cambiar en caliente sin desmontar Journey.
+  // Llamar cualquiera de los dos hooks aqui rompería los tests de la OTRA
+  // rama que no stubean matchMedia. Delegar cada rama a un componente que
+  // solo se MONTA cuando le toca resuelve esto en las dos direcciones a la
+  // vez: React nunca ejecuta los hooks de un componente que no se
+  // renderiza.
   if (themeName !== "light") {
     return <JourneyDeckDark />;
   }
 
+  return <JourneyLight />;
+}
+
+/*
+ * Rama clara de Journey, extraida a su propio componente (ver el comentario
+ * de mas arriba, en Journey()): aqui SI es seguro llamar
+ * useSectionProgress sin condicion, porque este componente en si mismo solo
+ * se monta cuando la rama clara esta activa.
+ */
+function JourneyLight(): ReactElement {
+  const { t } = useTranslation("home");
+  const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+  // Ref ESTABLE (useRef, no callback-ref): useSectionProgress escribe
+  // --journey-enter/--journey-progress directamente sobre el propio
+  // elemento en cada frame de rAF -- mismo motivo por el que
+  // useSlideDeck/useSceneParallax exigen refs de identidad estable (ver
+  // trackRef/stageRef en JourneyDeckDark, mas abajo).
+  const sectionRef = useRef<HTMLElement>(null);
+  // cssVarPrefix "journey" (D1): la rama OSCURA ya escribe
+  // --journey-progress con este mismo nombre, a traves de useSlideDeck
+  // (JourneyDeckDark, mas abajo) -- coincidencia deliberada, no un
+  // descuido: las dos ramas son mutuamente excluyentes (nunca se montan a
+  // la vez) y la variable significa lo mismo en las dos, "cuanto ha
+  // avanzado el scroll de esta seccion por el viewport".
+  useSectionProgress(sectionRef, { cssVarPrefix: "journey" });
+
   return (
     <ScJourney
+      ref={sectionRef}
       id="journey"
       aria-labelledby="journey-title"
       $fullBleed={false}

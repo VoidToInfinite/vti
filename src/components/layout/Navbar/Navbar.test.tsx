@@ -398,35 +398,39 @@ describe("Navbar", () => {
   });
 
   describe("enlaces de sección (Common.Navigation, tarea Flow F/spec §7.6)", () => {
-    // Los cuatro destinos SOLO existen cuando `HomeSections` los monta (gate
-    // por tema, D3): en oscuro serian anclas muertas (spec D5), asi que el
-    // bloque entero se desmonta con `themeName`. Se busca por `href`, no por
-    // nombre accesible: en es-ES `Common.Navigation.story` y
-    // `Common.Navigation.history` traducen los dos a "Historia" (mismo
-    // string), asi que el nombre accesible no identifica de forma unica cual
-    // de los cuatro enlaces es.
+    // Los cuatro enlaces se renderizan en LOS DOS TEMAS desde 2026-08-04.
+    //
+    // Hasta hoy el bloque estaba gateado con `themeName === "light"`, y el
+    // motivo escrito era que en oscuro serian anclas muertas porque
+    // `HomeSections` no montaba esas secciones (D3 de la spec de Story).
+    // Ese motivo dejo de ser cierto cuando `HomeSections` paso a montar las
+    // CUATRO secciones siempre, cada una con su propia rama de tema
+    // (`HomeSections.tsx`: "las 4 se montan siempre") -- el gate sobrevivio a
+    // su razon de ser y dejaba la navegacion coja en oscuro. Comprobado
+    // ademas en navegador sobre la pagina real en tema oscuro: los cuatro
+    // destinos existen (`section[id]` devuelve hero, story, journey,
+    // features y contact).
+    //
+    // Se busca por `href`, no por nombre accesible: en es-ES
+    // `Common.Navigation.story` y `Common.Navigation.history` traducen los
+    // dos a "Historia" (mismo string), asi que el nombre accesible no
+    // identifica de forma unica cual de los cuatro enlaces es.
     const SECTION_HREFS = ["#story", "#journey", "#features", "#contact"];
 
-    it("en tema claro (por defecto) los 4 enlaces de sección están presentes en el DOM", () => {
-      window.localStorage.setItem("vti-theme", "light");
-      const { container } = renderNavbar();
+    it.each(["light", "dark"] as const)(
+      "en tema %s los 4 enlaces de sección están presentes en el DOM",
+      (tema) => {
+        window.localStorage.setItem("vti-theme", tema);
+        const { container } = renderNavbar();
 
-      for (const href of SECTION_HREFS) {
-        expect(
-          container.querySelector(`a[href="${href}"]`),
-          `falta el enlace ${href}`,
-        ).not.toBeNull();
-      }
-    });
-
-    it("en tema oscuro ninguno de los 4 enlaces de sección se renderiza (destinos inexistentes)", () => {
-      window.localStorage.setItem("vti-theme", "dark");
-      const { container } = renderNavbar();
-
-      for (const href of SECTION_HREFS) {
-        expect(container.querySelector(`a[href="${href}"]`)).toBeNull();
-      }
-    });
+        for (const href of SECTION_HREFS) {
+          expect(
+            container.querySelector(`a[href="${href}"]`),
+            `falta el enlace ${href} en tema ${tema}`,
+          ).not.toBeNull();
+        }
+      },
+    );
   });
 
   describe("despegue al hacer scroll (data-detach, plan navbar-scroll-detach Task 3)", () => {
@@ -566,6 +570,42 @@ describe("Navbar", () => {
           regla.includes("transition: none"),
       );
       expect(bloqueReduce.length).toBeGreaterThan(0);
+    });
+
+    it('el guard de reduce de ScBar también redeclara el estado anidado [data-scrolled="true"] & (hallazgo 4)', () => {
+      // Regresión puntual: el bloque reduce de ScBar solo redeclaraba `&`
+      // (una clase, especificidad 0-1-0). El estado scrolled se declara como
+      // `[data-scrolled="true"] &` (atributo + clase, 0-2-0) FUERA del
+      // bloque reduce, con su propia transition (easings reales, no
+      // "none") -- mayor especificidad que el `&` suelto del reduce, así
+      // que bajo prefers-reduced-motion: reduce esa transition seguía
+      // ganando y el estado scrolled continuaba animando. El arreglo iguala
+      // el patrón ya usado por ScHeader, que SÍ redeclara su propio estado
+      // anidado (&[data-intro="pending"]) dentro de su bloque reduce (ver
+      // el test de arriba, "existe el bloque prefers-reduced-motion...").
+      renderNavbar();
+      const reglas = allCssRules();
+      const bar = screen.getByRole("navigation").parentElement as HTMLElement;
+      const claseDe = (el: HTMLElement): string =>
+        Array.from(el.classList).find((c) =>
+          reglas.some((r) => r.includes(c)),
+        ) ?? "";
+      const claseBar = claseDe(bar);
+      expect(claseBar, "no se encontro la clase inyectada de ScBar").not.toBe(
+        "",
+      );
+
+      const bloqueScrolledReduce = reglas.filter(
+        (regla) =>
+          regla.includes("@media (prefers-reduced-motion: reduce)") &&
+          regla.includes('[data-scrolled="true"]') &&
+          regla.includes(claseBar) &&
+          regla.includes("transition: none"),
+      );
+      expect(
+        bloqueScrolledReduce.length,
+        'el guard de reduce de ScBar no redeclara [data-scrolled="true"] &',
+      ).toBeGreaterThan(0);
     });
   });
 });

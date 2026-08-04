@@ -124,11 +124,11 @@ describe("Home (pagina completa)", () => {
     expect(destino?.tagName).toBe("SECTION");
   });
 
-  it("cambiar el idioma desde la barra reescribe los tres escalones del hero", async () => {
+  it("cambiar el idioma desde la barra reescribe los dos escalones del hero", async () => {
     const { container } = renderHomePage();
 
-    expect(testId(container, "hero-kicker")).toHaveTextContent(
-      esHome.Home.hero.kicker,
+    expect(testId(container, "hero-subtitle")).toHaveTextContent(
+      esHome.Home.hero.subtitle,
     );
 
     const botonEn = screen.getByRole("button", { name: /english/i });
@@ -136,9 +136,6 @@ describe("Home (pagina completa)", () => {
       fireEvent.click(botonEn);
     });
 
-    expect(testId(container, "hero-kicker")).toHaveTextContent(
-      enHome.Home.hero.kicker,
-    );
     expect(testId(container, "hero-subtitle")).toHaveTextContent(
       enHome.Home.hero.subtitle,
     );

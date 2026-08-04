@@ -8,12 +8,12 @@
  * Al sustituirlos, actualiza también `links.test.ts`.
  */
 export const links = {
-  playground: "https://example.invalid/por-completar-playground",
-  docs: "https://example.invalid/por-completar-docs",
+  playground: "https://dev.voidtoinfinite.com",
+  docs: "https://dev.voidtoinfinite.com",
   github: "https://github.com/voidtoinfinite",
   discord: "https://discord.gg/CuGhqdG3g3",
   email: "mailto:hello@voidtoinfinite.com",
-  guides: "https://example.invalid/por-completar-guides",
+  guides: "https://dev.voidtoinfinite.com",
   accessibility: "https://example.invalid/por-completar-accessibility",
   privacy: "https://example.invalid/por-completar-privacy",
   terms: "https://example.invalid/por-completar-terms",

@@ -60,6 +60,34 @@ const ScCard = styled.div<{ $interactive: boolean }>`
         box-shadow: ${theme.data.elevation[1]};
       }
 
+      /* :focus-visible propio (hallazgo 1, D7): la card interactiva depende
+         hoy por completo del anillo GLOBAL (GlobalStyles.tsx, outline).
+         Reutiliza el mismo lenguaje que el hover -- borde reforzado +
+         elevación -- porque para una card "interactive" foco y hover
+         comunican la MISMA cosa (esto es accionable), así que no hace falta
+         inventar un tercer tratamiento visual; y le suma el halo de foco
+         (box-shadow translúcido contra semantic.focus, el mismo rol que ya
+         resuelve el anillo global) para que el ESTADO de foco, a diferencia
+         del de hover, quede señalizado incluso para quien no puede ver el
+         color de un borde 1px pero sí distingue un halo con radio.
+         box-shadow reemplaza aquí AL COMPLETO el de hover/base (elevation[0]
+         en reposo, elevation[1] en hover): no hace falta apilarlos con coma
+         porque, a diferencia del outline de Button.tsx, esta capa no tiene
+         un anillo inset propio que preservar -- elevation[1] + halo son las
+         dos únicas sombras que tienen sentido en este estado. Sin transition
+         propia para el halo, igual que en Button.tsx/IconButton.tsx: aparece
+         tan instantáneo como el propio outline global. border-color SÍ
+         hereda la transition ya declarada arriba (fast/standard), cubierta
+         por el guard de reduced-motion existente más abajo -- no se declara
+         una transition nueva, así que no hace falta ampliar ese guard. */
+      &:focus-visible {
+        border-color: ${theme.data.semantic.borderStrong};
+        box-shadow:
+          ${theme.data.elevation[1]},
+          0 0 0 4px
+            color-mix(in oklch, ${theme.data.semantic.focus} 35%, transparent);
+      }
+
       @media (prefers-reduced-motion: reduce) {
         transition: none;
         &:hover {

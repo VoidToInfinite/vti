@@ -9,7 +9,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
  */
 import { renderWithProviders as render } from "@/test/test-utils";
 import { ContactCosmicGuardian } from "./ContactCosmicGuardian";
-import { CONTACT_GUARDIAN_LAYERS } from "./contactCosmicGuardian.layers";
+import {
+  CONTACT_GUARDIAN_FOCUS_Y,
+  CONTACT_GUARDIAN_LAYERS,
+} from "./contactCosmicGuardian.layers";
 
 /**
  * Texto CSS de las reglas que styled-components inyecto para un elemento
@@ -135,5 +138,35 @@ describe("ContactCosmicGuardian", () => {
     expect(fondoCss).not.toMatch(/mix-blend-mode/i);
     expect(figuraCss).not.toMatch(/mix-blend-mode/i);
     expect(polvoCss).toMatch(/mix-blend-mode:\s*screen/i);
+  });
+
+  /*
+   * D5 de la spec de navegacion fluida: el encuadre de las 3 capas se ancla
+   * por ARRIBA para no decapitar a la figura en viewports apaisados (medido:
+   * 1366x650, 1920x930, 2560x1080). Dos propiedades atan la decision, y las
+   * dos hacen falta a la vez -- si una vuelve a su valor por defecto (centro)
+   * el arreglo se deshace en silencio:
+   *
+   * - `object-position: 50% 0%` mueve la franja visible de `object-fit:
+   *   cover` al borde superior del lienzo en vez de centrarla.
+   * - `transform-origin: 50% 0%` hace que el `scale` del overscan crezca
+   *   hacia abajo; sin el, el overscan se reparte por defecto alrededor del
+   *   centro del elemento y vuelve a comerse un margen por arriba, deshaciendo
+   *   lo que `object-position` acaba de ganar.
+   *
+   * Se comprueba sobre las reglas CSS inyectadas para UNA capa concreta
+   * (`cssRuleTextFor`), no sobre el stylesheet completo: las tres capas
+   * comparten el mismo styled `ScLayer`, asi que basta con una.
+   */
+  it("ancla el encuadre vertical de las capas por arriba: object-position en 0% y transform-origin en el borde superior", () => {
+    const { container } = render(<ContactCosmicGuardian />);
+    const fondo = container.querySelector(
+      'img[data-part="fondo"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(fondo);
+
+    expect(CONTACT_GUARDIAN_FOCUS_Y).toBe("0%");
+    expect(css).toContain(`object-position: 50% ${CONTACT_GUARDIAN_FOCUS_Y}`);
+    expect(css).toContain("transform-origin: 50% 0%");
   });
 });

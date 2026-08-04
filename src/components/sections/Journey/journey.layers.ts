@@ -163,6 +163,30 @@ export const JOURNEY_FIGURE_SRC = "/figures/story-pointing-1024.webp";
 export const JOURNEY_FIGURE_SRC_SMALL = "/figures/story-pointing-640.webp";
 
 /**
+ * Amplitud del desplazamiento de scroll (D1, spec
+ * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`) de
+ * la figura y del camino punteado en tema CLARO, ligado a
+ * `--journey-progress` -- el termino de TRAVESIA que publica
+ * `useSectionProgress` sobre `ScJourney` (0 al asomar la seccion por el
+ * borde inferior del viewport, 1 al abandonarla por arriba).
+ *
+ * A diferencia de Story (`STORY_FIGURE_SCROLL_SHIFT`), aqui el `transform`
+ * va DIRECTO en `ScFigure`/`ScPath` (Journey.tsx), sin envoltorio: ninguno
+ * de los dos anima ya `transform` con `@keyframes` (la rama clara de Journey
+ * nunca tuvo flotacion, a diferencia de la figura/tarjeta de Story), asi que
+ * no hay ninguna propiedad que disputarle a una animacion existente -- ver
+ * el docblock de `STORY_FIGURE_SCROLL_SHIFT` (`story.layers.ts`) para el
+ * caso en el que SI hace falta el envoltorio.
+ *
+ * Sentidos OPUESTOS a proposito (figura hacia arriba, camino hacia abajo):
+ * dos "planos" decorativos de la misma composicion; moverse en direcciones
+ * distintas -- no solo a velocidades distintas -- es lo que se lee como
+ * profundidad (D1 del encargo). Magnitud en decenas de pixeles, no cientos.
+ */
+export const JOURNEY_FIGURE_SCROLL_SHIFT = "-30px";
+export const JOURNEY_PATH_SCROLL_SHIFT = "16px";
+
+/**
  * Tope de ancho del CONTENIDO de la rama oscura (D8, spec
  * `2026-08-02-journey-overlay-transition-design.md`). El 1280px del
  * encargo del usuario describe ahora el CONTENIDO (`ScDarkContent`,

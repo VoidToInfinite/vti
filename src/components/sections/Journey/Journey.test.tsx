@@ -7,8 +7,11 @@ import {
   within,
 } from "@/test/test-utils";
 import { Journey } from "./Journey";
+import { motion } from "@/theme/tokens/motion";
 import {
   JOURNEY_STEPS,
+  JOURNEY_FIGURE_SCROLL_SHIFT,
+  JOURNEY_PATH_SCROLL_SHIFT,
   JOURNEY_PATH_VIEWBOX,
   JOURNEY_CONTENT_MAX_WIDTH,
   JOURNEY_DARK_HEIGHT,
@@ -24,18 +27,18 @@ import {
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
-let trigger: (isIntersecting: boolean) => void;
-
 /*
- * Journey en tema oscuro monta DOS IntersectionObserver a la vez:
- * useSlideDeck (sobre la pista, journeyDeckDark) y useSceneParallax (sobre la
- * escena, dentro de JourneyCosmicPortal). El `trigger` de arriba solo guarda
- * el callback de la ULTIMA instancia creada -- suficiente para los tests que
- * ya existian (una sola instancia, useReveal, en la rama clara), pero no
- * para dirigir especificamente a useSlideDeck cuando conviven dos. `ioTargets`
- * registra el elemento observado por CADA instancia, y `triggerFor` dispara
- * la que observa el elemento pedido -- necesario para los tests que mueven el
- * indice de la presentacion moviendo el rect.top de la PISTA en concreto.
+ * Journey monta con frecuencia VARIOS IntersectionObserver a la vez: en
+ * claro, `useReveal` (sobre `ScStepsRow`) y `useSectionProgress` (sobre
+ * `ScJourney`, D1, spec
+ * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`); en
+ * oscuro, `useSlideDeck` (sobre la pista, `JourneyDeckDark`) y
+ * `useSceneParallax` (sobre la escena, dentro de `JourneyCosmicPortal`).
+ * `ioTargets` registra el elemento observado por CADA instancia, y
+ * `triggerFor` dispara la que observa el elemento pedido -- imprescindible
+ * en cuanto conviven dos observers en el mismo render: un `trigger` global
+ * sin ambito dispararia siempre el ULTIMO construido, no necesariamente el
+ * que el test quiere mover.
  */
 let ioTargets: { target: Element; emit: (isIntersecting: boolean) => void }[];
 
@@ -90,7 +93,6 @@ beforeEach(() => {
       private cb: (entries: { isIntersecting: boolean }[]) => void;
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
         this.cb = cb;
-        trigger = (v) => cb([{ isIntersecting: v }]);
       }
       observe(target: Element) {
         ioTargets.push({
@@ -101,6 +103,15 @@ beforeEach(() => {
       disconnect() {}
     },
   );
+  // useSectionProgress (D1, spec
+  // 2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md)
+  // llama a window.matchMedia sin condicion en su efecto de montaje -- sin
+  // este stub, CUALQUIER render de Journey (tambien en claro) lanzaria
+  // "matchMedia is not a function" (jsdom no lo implementa, vease
+  // Aura.test.tsx). `stubMatchMedia()` esta declarada mas abajo en este
+  // fichero (function hoisted): matches:false en los dos temas, "el usuario
+  // no pidio reduced motion".
+  stubMatchMedia();
 });
 
 describe("Journey", () => {
@@ -150,7 +161,19 @@ describe("Journey", () => {
       expect(item).toHaveAttribute("data-revealed", "false"),
     );
 
-    act(() => trigger(true));
+    // triggerFor(stepsRow, ...), no el `trigger` global sin ambito: desde D1
+    // (useSectionProgress sobre ScJourney) hay un SEGUNDO
+    // IntersectionObserver vivo a la vez que el de useReveal -- `trigger` a
+    // secas dispararia el ULTIMO construido, no necesariamente el de
+    // useReveal (mismo mecanismo que ya obliga a `triggerFor` para
+    // useSlideDeck en la rama oscura, mas abajo en este fichero). ScPath,
+    // localizable por su viewBox, es hijo DIRECTO de ScStepsRow (el
+    // elemento que useReveal observa de verdad).
+    const path = container.querySelector(
+      `svg[viewBox="${JOURNEY_PATH_VIEWBOX}"]`,
+    ) as SVGSVGElement;
+    const stepsRow = path.parentElement as HTMLElement;
+    act(() => triggerFor(stepsRow, true));
 
     const revealedItems = container.querySelectorAll("[data-revealed]");
     revealedItems.forEach((item) =>
@@ -201,6 +224,97 @@ describe("Journey", () => {
       expect(reduceBlock).toMatch(/opacity:\s*1/);
       expect(reduceBlock).toMatch(/transform:\s*none/);
     });
+  });
+});
+
+/*
+ * D1 (movimiento ligado al progreso de scroll) y D7 (lenguaje de entrada
+ * unificado), spec
+ * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`.
+ * Mismas advertencias de jsdom que el resto de este archivo: `calc(var())`
+ * en `transform` NO se resuelve a un valor numerico por `getComputedStyle`
+ * (comprobado con una sonda desechable antes de escribir este bloque --
+ * jsdom devuelve el texto de la declaracion tal cual, sin evaluar `calc`/
+ * `var`), asi que el desplazamiento de scroll se ata por TEXTO del CSS
+ * inyectado, mismo helper (`cssRuleTextFor`) que el resto de la suite. Lo
+ * que SI resuelve `getComputedStyle` son los longhands de la shorthand
+ * `transition` (duracion/easing), que es lo que ata el test de D7.
+ */
+describe("Journey: movimiento ligado a scroll y lenguaje de entrada unificado (D1/D7)", () => {
+  it("D7: ScStepReveal unifica su entrada a motion.duration.slower + easing.decelerate en las dos propiedades transicionadas (conserva el escalonado por indice)", () => {
+    const { container } = renderWithProviders(<Journey />);
+    const items = Array.from(container.querySelectorAll("[data-revealed]"));
+    expect(items).toHaveLength(JOURNEY_STEPS.length);
+
+    items.forEach((item, index) => {
+      const style = getComputedStyle(item);
+      // jsdom NO expande la shorthand `transition` en sus longhands
+      // individuales (`transitionDuration`/`transitionTimingFunction` dan
+      // "" aunque la shorthand SI resuelva -- comprobado con una sonda
+      // desechable antes de escribir este test): se lee la propia shorthand
+      // como texto completo. `transitionDelay`, en cambio, SI resuelve
+      // porque se declara como longhand SEPARADO (ver ScStepReveal,
+      // Journey.tsx) -- por eso el test "escalona el transition-delay..."
+      // de mas arriba ya funcionaba antes de esta entrega.
+      expect(style.transition).toBe(
+        `opacity ${motion.duration.slower} ${motion.easing.decelerate},transform ${motion.duration.slower} ${motion.easing.decelerate}`,
+      );
+      // El escalonado por indice (D7 no lo toca) sigue vivo: mismo assert
+      // que "escalona el transition-delay..." mas arriba en este archivo.
+      expect(style.transitionDelay).toBe(`${index * 90}ms`);
+    });
+  });
+
+  it("D1: la figura y el camino punteado ligan su transform a --journey-progress, en sentidos opuestos, con guard de reduce propio", () => {
+    // Verificado con el bug inyectado a proposito: quitando el bloque
+    // `@media (prefers-reduced-motion: reduce) { transform: none; }` de
+    // `ScFigure` (Journey.tsx) este assert se pone en rojo; se restauro
+    // para dejar la suite en verde (ver informe de la entrega).
+    const { container } = renderWithProviders(<Journey />);
+    const figure = container.querySelector(
+      `img[alt="${esHome.Home.journey.figureAlt}"]`,
+    ) as HTMLElement;
+    const path = container.querySelector(
+      `svg[viewBox="${JOURNEY_PATH_VIEWBOX}"]`,
+    ) as HTMLElement;
+
+    const figureCss = cssRuleTextFor(figure);
+    expect(figureCss).toContain(
+      `calc(${JOURNEY_FIGURE_SCROLL_SHIFT} * var(--journey-progress, 0))`,
+    );
+    expect(figureCss).toContain("prefers-reduced-motion: reduce");
+    expect(
+      figureCss.slice(figureCss.indexOf("prefers-reduced-motion: reduce")),
+    ).toContain("transform: none");
+
+    const pathCss = cssRuleTextFor(path);
+    expect(pathCss).toContain(
+      `calc(${JOURNEY_PATH_SCROLL_SHIFT} * var(--journey-progress, 0))`,
+    );
+    expect(pathCss).toContain("prefers-reduced-motion: reduce");
+    expect(
+      pathCss.slice(pathCss.indexOf("prefers-reduced-motion: reduce")),
+    ).toContain("transform: none");
+
+    // "sentidos distintos entre planos" (D1, encargo): un signo negativo y
+    // el otro positivo, no la misma amplitud reutilizada por accidente.
+    expect(Number.parseFloat(JOURNEY_FIGURE_SCROLL_SHIFT)).toBeLessThan(0);
+    expect(Number.parseFloat(JOURNEY_PATH_SCROLL_SHIFT)).toBeGreaterThan(0);
+  });
+
+  it("D1: useSectionProgress esta conectado a ScJourney -- al intersectar publica --journey-progress y data-inview", () => {
+    // Verificado con el bug inyectado a proposito: quitando la llamada a
+    // `useSectionProgress(sectionRef, ...)` de `JourneyLight` (Journey.tsx)
+    // este assert se pone en rojo (la variable nunca se escribe); se
+    // restauro para dejar la suite en verde (ver informe de la entrega).
+    const { container } = renderWithProviders(<Journey />);
+    const section = container.querySelector("#journey") as HTMLElement;
+
+    expect(section.style.getPropertyValue("--journey-progress")).toBe("");
+    act(() => triggerFor(section, true));
+
+    expect(section.dataset.inview).toBe("true");
+    expect(section.style.getPropertyValue("--journey-progress")).not.toBe("");
   });
 });
 

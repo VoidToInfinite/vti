@@ -10,12 +10,15 @@ import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
 import { Story } from "./Story";
+import { motion } from "@/theme/tokens/motion";
 import {
   STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
   STORY_DECK_NOTE_SIZE,
   STORY_DECK_PILLAR_TITLE_SIZE,
   STORY_DECK_TITLE_SIZE,
+  STORY_FIGURE_SCROLL_SHIFT,
+  STORY_NOTE_SCROLL_SHIFT,
   STORY_SLIDES,
 } from "./story.layers";
 
@@ -32,19 +35,55 @@ import {
  * `getComputedStyle` -- jsdom no evalúa `@media`, lección 2026-07-27).
  */
 
-let trigger: (isIntersecting: boolean) => void;
+/*
+ * Story en tema CLARO monta DOS IntersectionObserver a la vez desde esta
+ * entrega (D1, spec
+ * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`):
+ * `useReveal` (sobre `ScGrid`) y `useSectionProgress` (sobre `ScStory`, el
+ * nuevo desplazamiento de scroll de la figura/tarjeta). Un `trigger` global
+ * sin ambito (que solo guardara el callback de la ULTIMA instancia creada)
+ * dispararia el incorrecto en cuanto conviven dos observers en el mismo
+ * render (mismo hallazgo, mismo mecanismo, que ya documenta Journey.test.tsx
+ * para su propia pareja `useReveal`/`useSlideDeck`). `ioTargets` registra el
+ * elemento observado por CADA instancia, y `triggerFor` dispara la que
+ * observa el elemento pedido.
+ */
+let ioTargets: { target: Element; emit: (isIntersecting: boolean) => void }[];
+
+function triggerFor(target: Element, isIntersecting: boolean): void {
+  const instance = ioTargets.find((entry) => entry.target === target);
+  if (!instance) {
+    throw new Error("Ningun IntersectionObserver observa ese elemento");
+  }
+  instance.emit(isIntersecting);
+}
 
 beforeEach(() => {
+  ioTargets = [];
   vi.stubGlobal(
     "IntersectionObserver",
     class {
+      private cb: (entries: { isIntersecting: boolean }[]) => void;
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
-        trigger = (v) => cb([{ isIntersecting: v }]);
+        this.cb = cb;
       }
-      observe(): void {}
+      observe(target: Element) {
+        ioTargets.push({
+          target,
+          emit: (v: boolean) => this.cb([{ isIntersecting: v }]),
+        });
+      }
       disconnect(): void {}
     },
   );
+  // useSectionProgress (D1) llama a window.matchMedia sin condicion en su
+  // efecto de montaje -- sin este stub, CUALQUIER render de Story (tambien
+  // en claro) lanzaria "matchMedia is not a function" (jsdom no lo
+  // implementa, vease Aura.test.tsx). `stubMatchMedia()` esta declarada mas
+  // abajo en este fichero (function hoisted): matches:false en los dos
+  // temas, "el usuario no pidio reduced motion", que es el caso que la
+  // mayoria de tests quiere ejercitar.
+  stubMatchMedia();
 });
 
 afterEach(() => {
@@ -165,7 +204,12 @@ describe("Story", () => {
     const grid = container.querySelector("[data-revealed]") as HTMLElement;
 
     expect(grid).toHaveAttribute("data-revealed", "false");
-    act(() => trigger(true));
+    // triggerFor(grid, ...), no el `trigger` global sin ambito: desde D1
+    // (useSectionProgress sobre ScStory) hay UN SEGUNDO IntersectionObserver
+    // vivo a la vez que el de useReveal, y `trigger` a secas dispararia el
+    // ULTIMO construido -- no necesariamente el de useReveal (ver comentario
+    // de ioTargets, arriba).
+    act(() => triggerFor(grid, true));
     expect(grid).toHaveAttribute("data-revealed", "true");
   });
 
@@ -209,6 +253,94 @@ describe("Story", () => {
       const topLevelRule = css.split("@media")[0];
       expect(topLevelRule).not.toContain("animation:");
     }
+  });
+});
+
+/*
+ * D1 (movimiento ligado al progreso de scroll) y D7 (lenguaje de entrada
+ * unificado), spec
+ * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`.
+ * Mismas advertencias de jsdom que el resto de este archivo: `calc(var())`
+ * en `transform` NO se resuelve a un valor numerico por `getComputedStyle`
+ * (jsdom devuelve el texto de la declaracion tal cual, sin evaluar `calc`/
+ * `var` -- comprobado con una sonda desechable antes de escribir este
+ * bloque), asi que el desplazamiento de scroll se ata por TEXTO del CSS
+ * inyectado, mismo helper que el resto de la suite. Lo que SI resuelve
+ * `getComputedStyle` son los longhands de la shorthand `transition`
+ * (duracion/easing), que es lo que ata el test de D7.
+ */
+describe("Story: movimiento ligado a scroll y lenguaje de entrada unificado (D1/D7)", () => {
+  it("D7: ScGrid unifica su entrada a motion.duration.slower + easing.decelerate en las dos propiedades transicionadas", () => {
+    const { container } = renderWithProviders(<Story />);
+    const grid = container.querySelector("[data-revealed]") as HTMLElement;
+    // jsdom NO expande la shorthand `transition` en sus longhands
+    // individuales (`transitionDuration`/`transitionTimingFunction` dan ""
+    // aunque la shorthand SI resuelva -- comprobado con una sonda desechable
+    // antes de escribir este test): se lee la propia shorthand como texto
+    // completo, ya resuelto contra los tokens del tema (sin `calc`/`var` de
+    // por medio, a diferencia de los `transform` de D1, esta SI es una
+    // cadena literal que jsdom devuelve intacta).
+    const transition = getComputedStyle(grid).transition;
+
+    expect(transition).toBe(
+      `opacity ${motion.duration.slower} ${motion.easing.decelerate},transform ${motion.duration.slower} ${motion.easing.decelerate}`,
+    );
+  });
+
+  it("D1: el envoltorio de la figura liga su transform a --story-progress, con guard de reduce propio ademas del que ya trae el hook", () => {
+    // Verificado con el bug inyectado a proposito: quitando el bloque
+    // `@media (prefers-reduced-motion: reduce) { transform: none; }` de
+    // `ScFigureShift` (Story.tsx) este assert se pone en rojo; se restauro
+    // para dejar la suite en verde (ver informe de la entrega).
+    renderWithProviders(<Story />);
+    const figure = screen.getByAltText(esHome.Home.story.figureAlt);
+    const figureShift = figure.parentElement as HTMLElement;
+    const css = cssRuleTextFor(figureShift);
+
+    expect(css).toContain(
+      `calc(${STORY_FIGURE_SCROLL_SHIFT} * var(--story-progress, 0))`,
+    );
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain("transform: none");
+  });
+
+  it("D1: el envoltorio de la tarjeta de nota se desplaza en SENTIDO OPUESTO al de la figura (lectura de profundidad), con guard de reduce propio", () => {
+    renderWithProviders(<Story />);
+    const card = screen.getByText(esHome.Home.story.note)
+      .parentElement as HTMLElement; // ScNoteCard
+    const noteShift = card.parentElement as HTMLElement; // ScNoteShift
+    const css = cssRuleTextFor(noteShift);
+
+    expect(css).toContain(
+      `calc(${STORY_NOTE_SCROLL_SHIFT} * var(--story-progress, 0))`,
+    );
+    // "sentidos distintos entre planos" (D1, encargo): un signo negativo y
+    // el otro positivo, no la misma amplitud reutilizada por accidente.
+    expect(Number.parseFloat(STORY_FIGURE_SCROLL_SHIFT)).toBeLessThan(0);
+    expect(Number.parseFloat(STORY_NOTE_SCROLL_SHIFT)).toBeGreaterThan(0);
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain("transform: none");
+  });
+
+  it("D1: useSectionProgress esta conectado a ScStory -- al intersectar publica --story-progress y data-inview", () => {
+    // Verificado con el bug inyectado a proposito: quitando la llamada a
+    // `useSectionProgress(sectionRef, ...)` de `StoryLight` (Story.tsx) este
+    // assert se pone en rojo (la variable nunca se escribe); se restauro
+    // para dejar la suite en verde (ver informe de la entrega).
+    const { container } = renderWithProviders(<Story />);
+    const section = container.querySelector("#story") as HTMLElement;
+
+    expect(section.style.getPropertyValue("--story-progress")).toBe("");
+    act(() => triggerFor(section, true));
+
+    expect(section.dataset.inview).toBe("true");
+    expect(section.style.getPropertyValue("--story-progress")).not.toBe("");
   });
 });
 

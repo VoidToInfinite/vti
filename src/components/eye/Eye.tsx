@@ -56,6 +56,20 @@ export function Eye({ className }: EyeProps): ReactElement {
     [],
   );
   const mascot = useRef<HTMLDivElement>(null);
+  // Raiz de la composicion para la guarda de visibilidad de D3 (spec
+  // 2026-08-04): useRef, NUNCA un callback-ref ni un objeto creado inline en
+  // el render -- el hook lo usa como dependencia de su efecto (linea final
+  // del array de deps de useParallaxLayers), y un objeto nuevo en cada
+  // render lo re-suscribiria en cada setState (leccion task/lessons.md
+  // 2026-07-31, la misma razon por la que layerRefs usa useMemo con deps []
+  // en vez de recrearse). Se ata a ScSocket -- el elemento que ya envuelve
+  // toda la composicion, y el mismo que hoy recibe el pointerdown del pulso
+  // -- sin envolver nada en un div nuevo: un envoltorio adicional crearia un
+  // contexto de apilamiento propio y aislaria el `plus-lighter`/`screen` de
+  // las capas (ScFrame ya es el grupo de blending via `isolation: isolate`,
+  // y ScSocket vive un nivel por ENCIMA de ese grupo, asi que anadirle un
+  // ref no lo toca).
+  const sceneRef = useRef<HTMLDivElement>(null);
   // Onda de "pulse" al click/tap (spec §12). Estado de React, no rAF: se
   // dispara una vez por interaccion, no en cada frame, asi que no interfiere
   // con la regla de "cero re-render por frame" del gaze (spec §13).
@@ -72,7 +86,15 @@ export function Eye({ className }: EyeProps): ReactElement {
     })),
     { ref: mascot, depth: EYE_MASCOT_DEPTH },
   ];
-  useParallaxLayers(targets, AMP);
+  // Tercer argumento `sceneRef` (D3, spec 2026-08-04): con el, el hook gana
+  // la guarda de `IntersectionObserver` que antes le faltaba -- el rAF del
+  // parallax deja de correr mientras el hero esta fuera de pantalla (antes
+  // corria durante toda la sesion, aunque el hero llevara doce pantallas
+  // fuera de vista) y, al abandonar la seccion, las capas se liberan con el
+  // mismo lerp que ya suaviza el seguimiento del cursor hasta
+  // `translate3d(0,0,0)` en vez de quedarse congeladas en la ultima postura
+  // del puntero.
+  useParallaxLayers(targets, AMP, sceneRef);
 
   // `pointerdown` cubre raton y tactil en un solo handler (spec §12: "click
   // pulse", trigger "click / tap"). El lienzo entero (`ScSocket`) es el hit
@@ -95,6 +117,7 @@ export function Eye({ className }: EyeProps): ReactElement {
 
   return (
     <ScSocket
+      ref={sceneRef}
       className={className}
       aria-hidden="true"
       data-part="socket"

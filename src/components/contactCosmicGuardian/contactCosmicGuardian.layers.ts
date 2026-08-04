@@ -110,6 +110,43 @@ export const CONTACT_GUARDIAN_SIZES = "100vw";
 export const CONTACT_GUARDIAN_OVERSCAN = 1.06;
 
 /**
+ * Ancla vertical del encuadre de las 3 capas (`object-position`, eje Y),
+ * decision D5 de la spec de navegacion fluida
+ * (`docs/superpowers/specs/2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`).
+ *
+ * De donde sale el numero: la figura viene del sprite `figure.png`, de
+ * 770x1803, pegado en `(2030, 55)` sobre el lienzo de 3344x1882 (manifest,
+ * `geometry.figure`; bbox verificado `2030, 55, 2800, 1858`). Eso pone el
+ * borde superior de la figura en `55 / 1882 = 2,92%` del alto del lienzo y
+ * el inferior en `1858 / 1882 = 98,72%`.
+ *
+ * Que defecto corrige: con `object-fit: cover` y el defecto
+ * `object-position: 50% 50%` (encuadre centrado), la franja del lienzo que
+ * queda visible se centra en el 50% del alto, no en la figura. Medido
+ * (spec, tabla D5/1.3): en cuanto la ventana es mas apaisada que ~1,83 la
+ * franja visible arranca por debajo del 2,92% donde empieza la cabeza --
+ * a 1366x650 la franja visible es 10,1%-89,9%, a 1920x930 es 9,4%-90,6%, a
+ * 2560x1080 es 14,6%-85,4%; en los tres la cabeza queda fuera de cuadro.
+ * Con la ancla en `0%` la franja visible SIEMPRE arranca en el borde
+ * superior del lienzo, asi que la cabeza (que empieza en el 2,92%) esta
+ * garantizada dentro del cuadro en todo el rango de viewports medido.
+ *
+ * Coste aceptado: todo el recorte de `cover` se va entero al borde
+ * inferior (hasta perder el 29,3% del lienzo por abajo a 2560x1080). Es un
+ * coste casi gratis: los pies (ultima fila de la figura, 98,72% del alto)
+ * no se veian enteros en NINGUN viewport medido ni antes ni despues de este
+ * cambio -- la ultima fila del arte ya caia siempre bajo el borde inferior
+ * o bajo el tramo mas opaco de la vineta -- y esa misma banda inferior es
+ * justo donde `ScVignette` (`contactCosmicGuardian.parts.tsx`) ya tapa el
+ * arte por completo: su parada inferior en el regimen estrecho llega al
+ * 97% de opacidad (`f7` en hexadecimal, alfa 247/255).
+ *
+ * NO se toca el encuadre horizontal (sigue en `50%`, el centro): ver D5,
+ * seccion "Lo que NO se toca" de la spec -- excluido a proposito.
+ */
+export const CONTACT_GUARDIAN_FOCUS_Y = "0%";
+
+/**
  * Negro-violeta del lienzo, literal `--void` de `demo/index.html` del kit
  * (`html,body{background:#0d0416}`). Copiado VERBATIM, no convertido a
  * `oklch()` -- mismo criterio que `CONTACT_NEON_VOID`/

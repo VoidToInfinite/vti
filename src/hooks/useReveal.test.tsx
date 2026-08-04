@@ -7,7 +7,7 @@ let trigger: (isIntersecting: boolean) => void;
 interface MockIntersectionObserver {
   observe: ReturnType<typeof vi.fn>;
   disconnect: ReturnType<typeof vi.fn>;
-  options?: { threshold?: number };
+  options?: { threshold?: number; rootMargin?: string };
 }
 
 let mockInstances: MockIntersectionObserver[] = [];
@@ -19,11 +19,11 @@ beforeEach(() => {
     class {
       observe = vi.fn();
       disconnect = vi.fn();
-      options?: { threshold?: number };
+      options?: { threshold?: number; rootMargin?: string };
 
       constructor(
         cb: (e: { isIntersecting: boolean }[]) => void,
-        options?: { threshold?: number },
+        options?: { threshold?: number; rootMargin?: string },
       ) {
         trigger = (v) => cb([{ isIntersecting: v }]);
         this.options = options;
@@ -127,7 +127,7 @@ describe("useReveal", () => {
     expect(instance.disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it("reenvía threshold por defecto (0.2)", () => {
+  it("reenvía threshold por defecto (0.2) junto con el rootMargin por defecto", () => {
     const { result } = renderHook(() => useReveal());
     act(() => {
       (result.current.ref as (n: Element | null) => void)(
@@ -136,10 +136,20 @@ describe("useReveal", () => {
     });
 
     const instance = mockInstances[0];
-    expect(instance.options).toEqual({ threshold: 0.2 });
+    // El segundo argumento del IntersectionObserver es un único objeto: al
+    // no poder fijar solo `threshold` sin arrastrar el `rootMargin` por
+    // defecto, esta aserción también es la prueba de que el default de
+    // rootMargin ("0px 0px -12% 0px") se aplica incluso cuando el consumidor
+    // no toca ninguna opción -- el caso real de los 5 consumidores actuales
+    // (SectionBeam, Contact, Features, Story, Journey), que llaman
+    // useReveal<T>() sin argumentos.
+    expect(instance.options).toEqual({
+      threshold: 0.2,
+      rootMargin: "0px 0px -12% 0px",
+    });
   });
 
-  it("reenvía threshold personalizado", () => {
+  it("reenvía threshold personalizado sin perder el rootMargin por defecto", () => {
     const { result } = renderHook(() => useReveal({ threshold: 0.5 }));
     act(() => {
       (result.current.ref as (n: Element | null) => void)(
@@ -148,6 +158,35 @@ describe("useReveal", () => {
     });
 
     const instance = mockInstances[0];
-    expect(instance.options).toEqual({ threshold: 0.5 });
+    expect(instance.options).toEqual({
+      threshold: 0.5,
+      rootMargin: "0px 0px -12% 0px",
+    });
+  });
+
+  it("reenvía rootMargin por defecto ('0px 0px -12% 0px') cuando el consumidor no lo especifica", () => {
+    const { result } = renderHook(() => useReveal());
+    act(() => {
+      (result.current.ref as (n: Element | null) => void)(
+        document.createElement("div"),
+      );
+    });
+
+    const instance = mockInstances[0];
+    expect(instance.options?.rootMargin).toBe("0px 0px -12% 0px");
+  });
+
+  it("reenvía rootMargin personalizado cuando el consumidor lo especifica", () => {
+    const { result } = renderHook(() =>
+      useReveal({ rootMargin: "0px 0px -30% 0px" }),
+    );
+    act(() => {
+      (result.current.ref as (n: Element | null) => void)(
+        document.createElement("div"),
+      );
+    });
+
+    const instance = mockInstances[0];
+    expect(instance.options?.rootMargin).toBe("0px 0px -30% 0px");
   });
 });

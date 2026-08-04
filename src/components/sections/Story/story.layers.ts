@@ -206,6 +206,40 @@ export const STORY_FIGURE_FLOAT_MS = 9000;
 export const STORY_CARD_FLOAT_MS = 7000;
 
 /**
+ * Amplitud del desplazamiento de scroll (D1, spec
+ * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`) de
+ * la FIGURA y de la tarjeta de nota en tema CLARO, ligado a
+ * `--story-progress` -- el termino de TRAVESIA que publica
+ * `useSectionProgress` sobre `ScStory` (0 al asomar la seccion por el borde
+ * inferior del viewport, 1 al abandonarla por arriba).
+ *
+ * Van en un elemento ENVOLVENTE (`ScFigureShift`/`ScNoteShift`, Story.tsx),
+ * nunca en `ScFigureImg`/`ScNoteCard` mismos: los dos YA animan `transform`
+ * con `@keyframes` (la flotacion, `STORY_FLOAT_AMPLITUDE` arriba) y una
+ * `@keyframes` sobre una propiedad gana SIEMPRE frente a cualquier otro
+ * valor de esa misma propiedad en el MISMO elemento -- transicion o
+ * declaracion estatica -- mientras la animacion esta activa
+ * (task/lessons.md, 2026-07-26: "Una @keyframes sobre una propiedad impide
+ * que su transition llegue a existir"; el mismo bloqueo alcanza a un
+ * `transform` estatico, no solo a una `transition`, porque la animacion
+ * sustituye el valor computado de la propiedad durante todo su ciclo -- los
+ * dos son "otro valor de la misma propiedad"). El desplazamiento de scroll,
+ * en el envoltorio, compone visualmente con la flotacion del hijo -- dos
+ * `transform` en dos elementos anidados se suman sin pisarse -- sin tocar la
+ * propiedad que la animacion ya posee.
+ *
+ * Sentidos OPUESTOS a proposito (figura hacia arriba, tarjeta hacia abajo):
+ * son dos "planos" decorativos de la misma composicion, y moverse en
+ * direcciones distintas -- no solo a velocidades distintas -- es lo que se
+ * lee como profundidad (D1 del encargo: "que cada seccion tenga algo que
+ * mirar mientras pasa"). Magnitud en decenas de pixeles (encargo del
+ * usuario, no cientos): un desplazamiento sutil, perceptible sin competir
+ * con el propio contenido.
+ */
+export const STORY_FIGURE_SCROLL_SHIFT = "-28px";
+export const STORY_NOTE_SCROLL_SHIFT = "18px";
+
+/**
  * `sizes` de la figura: se muestra a un ancho fijo de 375px desde `lg` en
  * adelante (mismo punto de corte que el resto del sitio,
  * `theme.data.breakPoint.lg`) y a un ancho fluido por debajo, cuando la

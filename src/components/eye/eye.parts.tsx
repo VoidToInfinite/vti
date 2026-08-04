@@ -388,8 +388,8 @@ export const ScScrim = styled.div<DataAttributes>`
   pointer-events: none;
   background: radial-gradient(
     ellipse 32% 30% at ${EYE_CENTER.x} ${EYE_CENTER.y},
-    oklch(0 0 0 / 0.82) 0%,
-    oklch(0 0 0 / 0.6) 58%,
+    oklch(0 0 0 / 0.22) 0%,
+    oklch(0 0 0 / 0.2) 58%,
     transparent 88%
   );
 

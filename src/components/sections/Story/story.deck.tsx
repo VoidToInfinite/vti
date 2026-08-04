@@ -414,6 +414,8 @@ export const ScDeckIntroBody = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
+  text-wrap: balance;
+  text-wrap-style: balance;
   margin-block-start: ${({ theme }) => theme.data.space[5]};
   max-width: ${({ theme }) => theme.data.grid.prose};
 `;
@@ -451,15 +453,25 @@ export const ScDeckPillarSubtitle = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
+  text-wrap: balance;
+  text-wrap-style: balance;
 `;
 
 /*
  * Cuerpo de la diapositiva de pilar: el texto de inspiracion NUEVO
- * (`pillars.<key>.inspiration`, cuatro frases por pilar). `text-wrap:
- * balance`, no `text-wrap-style: balance` (T6 de la spec): el encargo
- * nombra la longhand de CSS Text 4, pero su soporte es mas estrecho que el
- * de la shorthand `text-wrap` para el MISMO efecto -- repartir las lineas
- * de forma equilibrada en vez de dejar una ultima linea corta suelta.
+ * (`pillars.<key>.inspiration`, cuatro frases por pilar).
+ *
+ * Lleva LAS DOS formas del equilibrado, `text-wrap: balance` y
+ * `text-wrap-style: balance` (encargo del usuario 2026-08-04). Hasta hoy solo
+ * llevaba la shorthand, por decision T6 de la spec de tipografia de Story
+ * (2026-08-02): el encargo de entonces tambien nombraba la longhand de CSS
+ * Text 4, y se prefirio la shorthand porque su soporte es mas amplio para el
+ * MISMO efecto. Esa disyuntiva era falsa y se corrige aqui: declarando la
+ * shorthand como base y la longhand encima, un motor que no conozca la
+ * segunda descarta esa declaracion y conserva el equilibrado de la primera, y
+ * uno que si la conozca la aplica con el mismo valor. No hay orden de soporte
+ * en el que se pierda nada. Ver `Typography.tsx`, que es donde vive el
+ * criterio completo para las variantes de cuerpo del sistema.
  */
 export const ScDeckPillarBody = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -469,6 +481,7 @@ export const ScDeckPillarBody = styled.p`
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
   text-wrap: balance;
+  text-wrap-style: balance;
   margin-block-start: ${({ theme }) => theme.data.space[2]};
 `;
 
@@ -500,6 +513,7 @@ export const ScDeckNote = styled.p`
   letter-spacing: ${({ theme }) => theme.data.type.scale.bodySm.tracking};
   line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
   text-wrap: balance;
+  text-wrap-style: balance;
   margin-block-start: ${({ theme }) => theme.data.space[6]};
 `;
 

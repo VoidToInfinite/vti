@@ -10,7 +10,6 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
 import { useStage } from "@/motion/StageProvider";
-import { useTheme } from "@/theme/ThemeProvider";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -187,6 +186,17 @@ const ScBar = styled.div`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    /* Hallazgo 4 (auditoría): el estado anidado [data-scrolled="true"] &
+       (arriba) tiene MAYOR especificidad (selector de atributo + clase) que
+       el & suelto de justo encima (solo clase) -- sin redeclararlo aquí
+       dentro, bajo reduce ganaría la transition CON easings reales de ese
+       bloque en vez de "none", exactamente el mismo patrón que ScHeader ya
+       resuelve redeclarando &[data-intro="pending"] dentro de su propio
+       bloque reduce (ver más arriba). */
+    [data-scrolled="true"] & {
+      transition: none;
+    }
   }
 `;
 
@@ -403,7 +413,6 @@ const NAV_SECTION_LINKS = [
 export function Navbar(): ReactElement {
   const { scrolled, phase: detachPhase } = useNavDetach(8);
   const { phase } = useStage();
-  const { themeName } = useTheme();
   const { t } = useTranslation("common");
   // "pending" mientras la fase de página siga en "backdrop" (spec §7.4): el
   // navbar entra en "chrome", a la vez que la copia del hero, no antes.
@@ -490,18 +499,16 @@ export function Navbar(): ReactElement {
             <Logo size="1.5rem" />
             <BrandName />
           </ScBrandLink>
-          {themeName === "light" && (
-            <ScNavLinks>
-              {NAV_SECTION_LINKS.map(({ key, href }) => (
-                <ScNavLink
-                  key={key}
-                  href={href}
-                >
-                  {t(`Common.Navigation.${key}`)}
-                </ScNavLink>
-              ))}
-            </ScNavLinks>
-          )}
+          <ScNavLinks>
+            {NAV_SECTION_LINKS.map(({ key, href }) => (
+              <ScNavLink
+                key={key}
+                href={href}
+              >
+                {t(`Common.Navigation.${key}`)}
+              </ScNavLink>
+            ))}
+          </ScNavLinks>
           <ScActions>
             <LanguageSelector />
             <ThemeToggle />

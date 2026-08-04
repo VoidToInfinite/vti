@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import styled, { css, keyframes, type DefaultTheme } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
+import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { useTheme } from "@/theme/ThemeProvider";
 import { StoryCosmicBeing } from "@/components/storyCosmicBeing/StoryCosmicBeing";
@@ -34,11 +35,13 @@ import {
   STORY_FIGURE_ASPECT,
   STORY_FIGURE_FLOAT_MS,
   STORY_FIGURE_HEIGHT,
+  STORY_FIGURE_SCROLL_SHIFT,
   STORY_FIGURE_SIZES,
   STORY_FIGURE_WIDTH,
   STORY_FLOAT_AMPLITUDE,
   STORY_HALO_GRADIENT,
   STORY_HALO_INSET,
+  STORY_NOTE_SCROLL_SHIFT,
   STORY_SLIDES,
 } from "./story.layers";
 
@@ -127,7 +130,16 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
         `}
 `;
 
-/* Reveal de sección en CLARO (mismo patrón que `ScItem` en Features.tsx). */
+/*
+ * Reveal de sección en CLARO (mismo patrón que `ScItem` en Features.tsx).
+ * Duración/easing unificados (D7, spec
+ * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`):
+ * `motion.duration.slower` (480ms) + `motion.easing.decelerate` en vez de
+ * `duration.slow` (320ms) que llevaba antes -- mismo lenguaje de entrada que
+ * `ScStepReveal` en Journey.tsx, que hasta esta entrega usaba la MISMA
+ * duración pero `easing.emphasized`, sin ninguna razón documentada para la
+ * divergencia entre las dos secciones.
+ */
 const ScGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
@@ -136,9 +148,9 @@ const ScGrid = styled.div`
   opacity: 0;
   transform: translateY(16px);
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
+    opacity ${({ theme }) => theme.data.motion.duration.slower}
       ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
+    transform ${({ theme }) => theme.data.motion.duration.slower}
       ${({ theme }) => theme.data.motion.easing.decelerate};
 
   &[data-revealed="true"] {
@@ -174,10 +186,48 @@ const ScHalo = styled.div`
   pointer-events: none;
 `;
 
+/*
+ * Envoltorio del desplazamiento de scroll de la figura (D1, ver el docblock
+ * de STORY_FIGURE_SCROLL_SHIFT en story.layers.ts para el porque no vive
+ * directamente en ScFigureImg): un elemento DISTINTO al que ya anima
+ * transform con @keyframes.
+ *
+ * El ancho se declara AQUI con la MISMA formula que antes llevaba
+ * ScFigureImg (min(STORY_FIGURE_WIDTH, 100%)) y no se deja en "auto" -- este
+ * div es el item de flex de ScFigureWrap ahora, y un item de flex con ancho
+ * "auto" se dimensiona por shrink-to-fit de SU CONTENIDO; con el hijo
+ * (ScFigureImg) declarando a su vez `width: 100%` contra ESTE envoltorio,
+ * las dos reglas dependerian una de la otra (el envoltorio de su hijo, el
+ * hijo de un envoltorio que todavia no tiene ancho resuelto). CSS resuelve
+ * esa circularidad tratando el porcentaje del hijo como si el ancho del
+ * padre fuera indefinido (CSS2.1 SS10.3.3: un porcentaje contra un
+ * contenedor sin ancho explicito se trata como "auto"), lo que aqui
+ * colapsaria la imagen -- la misma familia de fallo que ya documenta
+ * task/lessons.md (2026-07-28, "Una altura porcentual del mockup presupone
+ * el alto fijo de SU contenedor"), en el eje horizontal en vez del vertical.
+ * Declarando la formula real aqui, el envoltorio tiene un ancho DEFINITIVO
+ * (se resuelve contra ScFigureWrap, que a su vez lo tiene por el grid que lo
+ * contiene) y el `width: 100%` del hijo deja de ser circular. El resultado
+ * es la MISMA caja, pixel a pixel, que ocupaba ScFigureImg antes de este
+ * envoltorio.
+ */
+const ScFigureShift = styled.div`
+  width: min(${STORY_FIGURE_WIDTH}, 100%);
+  transform: translateY(
+    calc(${STORY_FIGURE_SCROLL_SHIFT} * var(--story-progress, 0))
+  );
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
+  }
+`;
+
 const ScFigureImg = styled.img`
   position: relative;
   display: block;
-  width: min(${STORY_FIGURE_WIDTH}, 100%);
+  /* El ancho ya lo fija ScFigureShift (ver su docblock): aqui solo se llena
+     ese envoltorio, ahora con un ancho definitivo, sin circularidad. */
+  width: 100%;
   height: auto;
   aspect-ratio: ${STORY_FIGURE_ASPECT};
   /* GlobalStyles declara img { object-fit: cover } para todo el sitio; con
@@ -189,6 +239,40 @@ const ScFigureImg = styled.img`
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${float} ${STORY_FIGURE_FLOAT_MS}ms ease-in-out infinite;
+  }
+`;
+
+/*
+ * Envoltorio del desplazamiento de scroll de la tarjeta de nota (D1, mismo
+ * motivo que ScFigureShift: ScNoteCard ya anima transform con @keyframes).
+ *
+ * `position: absolute; inset: 0` -- en vez de un div de flujo normal --
+ * porque ScNoteCard es EL MISMO `position: absolute` de siempre, con sus
+ * insets (inset-block-end/inset-inline-start) medidos contra el
+ * contenedor POSICIONADO mas cercano. Declarar aqui `transform` (cualquier
+ * valor salvo none) convierte a ESTE envoltorio en ese contenedor -- asi lo
+ * exige la especificacion de CSS para transform -- desplazando a
+ * ScNoteCard de su ancestro posicionado real (ScFigureWrap) a este nuevo
+ * envoltorio. Con `inset: 0` la caja de este envoltorio coincide EXACTAMENTE
+ * con la caja de ScFigureWrap (mismo origen, mismo tamano, sin padding ni
+ * borde de por medio), asi que los insets de ScNoteCard resuelven a los
+ * MISMOS valores que resolvian antes: cero cambio de geometria, solo un
+ * nivel mas de indireccion para poder desplazar la caja entera con scroll.
+ * `pointer-events: none`: este envoltorio cubre TODA la zona de la figura
+ * (inset: 0), y sin esto interceptaria el hover/click de lo que hay debajo
+ * en su hueco vacio (la propia figura) -- ScNoteCard no tiene contenido
+ * interactivo, asi que no hace falta reactivarlo en el hijo.
+ */
+const ScNoteShift = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translateY(
+    calc(${STORY_NOTE_SCROLL_SHIFT} * var(--story-progress, 0))
+  );
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
   }
 `;
 
@@ -317,9 +401,53 @@ const ScDeckPillarRow = styled(ScPillarRow)`
 `;
 
 export function Story(): ReactElement {
-  const { t } = useTranslation("home");
   const { themeName } = useTheme();
+
+  // La rama clara vive en un componente HIJO aparte (StoryLight, justo
+  // debajo) por el MISMO motivo que obliga a extraer StoryDeckDark unas
+  // lineas mas abajo: useSectionProgress (D1, spec
+  // 2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md)
+  // llama a window.matchMedia sin condicion en su efecto de montaje (la
+  // guarda reactiva de prefers-reduced-motion), exactamente igual que
+  // useSlideDeck. Story() es UNA SOLA funcion para las dos ramas y las
+  // reglas de los hooks de React prohiben llamar un hook solo "cuando el
+  // tema es claro" dentro de ella -- el tema puede cambiar en caliente sin
+  // desmontar Story, via el mismo ThemeProvider que ya fuerza la extraccion
+  // de la rama oscura. Llamar useSectionProgress aqui rompería tambien los
+  // tests claros existentes, ninguno de los cuales stubea matchMedia (nunca
+  // lo necesitaron hasta esta entrega). Delegar cada rama a un componente
+  // que solo se MONTA cuando le toca resuelve esto en las dos direcciones a
+  // la vez: React nunca ejecuta los hooks de un componente que no se
+  // renderiza.
+  if (themeName === "light") {
+    return <StoryLight />;
+  }
+
+  return <StoryDeckDark />;
+}
+
+/*
+ * Rama clara de Story, extraida a su propio componente (ver el comentario de
+ * mas arriba, en Story()): aqui SI es seguro llamar useSectionProgress sin
+ * condicion, porque este componente en si mismo solo se monta cuando la
+ * rama clara esta activa.
+ */
+function StoryLight(): ReactElement {
+  const { t } = useTranslation("home");
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+  // Ref ESTABLE (useRef, no callback-ref): useSectionProgress escribe
+  // --story-enter/--story-progress directamente sobre el propio elemento en
+  // cada frame de rAF -- mismo motivo por el que useSlideDeck/useSceneParallax
+  // exigen refs de identidad estable (ver trackRef/stageRef en
+  // StoryDeckDark, mas abajo).
+  const sectionRef = useRef<HTMLElement>(null);
+  // cssVarPrefix "story" (D1): la rama OSCURA ya escribe --story-progress
+  // con este mismo nombre, a traves de useSlideDeck (StoryDeckDark, mas
+  // abajo) -- coincidencia deliberada, no un descuido: las dos ramas son
+  // mutuamente excluyentes (nunca se montan a la vez) y la variable
+  // significa lo mismo en las dos, "cuanto ha avanzado el scroll de esta
+  // seccion por el viewport".
+  useSectionProgress(sectionRef, { cssVarPrefix: "story" });
 
   const pillars = (
     <ScPillars>
@@ -357,19 +485,24 @@ export function Story(): ReactElement {
     </>
   );
 
-  if (themeName === "light") {
-    return (
-      <ScStory
-        id="story"
-        aria-labelledby="story-title"
-        $fullBleed={false}
+  return (
+    <ScStory
+      ref={sectionRef}
+      id="story"
+      aria-labelledby="story-title"
+      $fullBleed={false}
+    >
+      <ScGrid
+        ref={revealRef}
+        data-revealed={revealed}
       >
-        <ScGrid
-          ref={revealRef}
-          data-revealed={revealed}
-        >
-          <ScFigureWrap>
-            <ScHalo aria-hidden="true" />
+        <ScFigureWrap>
+          <ScHalo aria-hidden="true" />
+          {/* ScFigureShift/ScNoteShift: envoltorios del desplazamiento de
+              scroll (D1) -- ver sus docblocks, mas arriba, para el porque de
+              cada uno (conflicto @keyframes/transform y preservacion de la
+              geometria de ScNoteCard, respectivamente). */}
+          <ScFigureShift>
             <ScFigureImg
               src="/figures/journey-presenting-1024.webp"
               srcSet="/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w"
@@ -378,6 +511,8 @@ export function Story(): ReactElement {
               loading="lazy"
               decoding="async"
             />
+          </ScFigureShift>
+          <ScNoteShift>
             <ScNoteCard>
               <ScSparkle
                 width="20"
@@ -396,31 +531,16 @@ export function Story(): ReactElement {
               </ScSparkle>
               <Typography variant="bodySm">{t("Home.story.note")}</Typography>
             </ScNoteCard>
-          </ScFigureWrap>
+          </ScNoteShift>
+        </ScFigureWrap>
 
-          <ScContent>
-            {heading}
-            {pillars}
-          </ScContent>
-        </ScGrid>
-      </ScStory>
-    );
-  }
-
-  // La rama oscura vive en un componente HIJO aparte (StoryDeckDark, mas
-  // abajo) en vez de continuar aqui mismo: useSlideDeck usa
-  // window.matchMedia incondicionalmente en su efecto de montaje, y esta
-  // funcion Story() es UNA SOLA para las dos ramas (las reglas de los hooks
-  // de React prohiben llamarlo solo "cuando el tema es oscuro" dentro de
-  // ella). Si el hook se llamara aqui, se ejecutaria en CADA render de
-  // Story() -- tambien en tema claro -- y rompería cualquier test que
-  // renderice la rama clara sin stubear matchMedia (los 13 tests existentes
-  // de este archivo, ninguno de los cuales lo stubea porque nunca lo
-  // necesitaron). Delegar la rama oscura a un componente que solo se MONTA
-  // cuando `themeName !== "light"` resuelve esto sin tocar useSlideDeck.ts
-  // ni los tests claros: React nunca ejecuta los hooks de un componente que
-  // no se renderiza.
-  return <StoryDeckDark />;
+        <ScContent>
+          {heading}
+          {pillars}
+        </ScContent>
+      </ScGrid>
+    </ScStory>
+  );
 }
 
 /*

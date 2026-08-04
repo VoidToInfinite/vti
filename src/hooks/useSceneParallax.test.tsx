@@ -267,11 +267,12 @@ describe("useSceneParallax", () => {
     expect(layer.style.transform).toBe("");
   });
 
-  it("al salir de pantalla cancela el rAF y quita los listeners, pero NO resetea el transform", () => {
-    // Punto 4 del encargo: si se limpiara el transform al salir del
-    // viewport, al reentrar las capas darian un salto visible desde su
-    // posicion CSS estatica hasta la que calcule el primer frame. `pause()`
-    // (a diferencia de `stop()`) no debe tocar `style.transform`.
+  it("al salir de pantalla entra en release: el bucle sigue vivo hasta asentar, y solo entonces escribe el reposo exacto, cancela el rAF y quita los listeners", () => {
+    // Puntos 1 y 2 del encargo (D3, spec 2026-08-04): fuera del viewport ya
+    // no se congela el transform (comportamiento previo, `pause()` directo
+    // desde el observer) -- se libera con el mismo lerp que suaviza el
+    // cruce de modos, y el bucle se para varios frames DESPUES de perder la
+    // interseccion, no en el mismo frame en que se pierde.
     let pending: FrameRequestCallback[] = [];
     const caf = vi.fn();
     vi.stubGlobal(
@@ -282,33 +283,175 @@ describe("useSceneParallax", () => {
     const removeSpy = vi.spyOn(window, "removeEventListener");
 
     const scene = document.createElement("div");
-    scene.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    // `top: -400` deja `scrollProgress` en ~0.52 (no trivial) desde el
+    // primer `onScroll()` que dispara `start()`, asi el release parte de
+    // los tres terminos con residuo real, no ya asentados de entrada.
+    scene.getBoundingClientRect = () => ({ top: -400 }) as DOMRect;
     const layer = document.createElement("div");
-    const targets = [targetOf(layer, 0.5)];
+    const targets = [targetOf(layer, 1)];
     const sceneRef = sceneOf(scene);
     renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
 
     act(() => ioTrigger(true));
-    const batch = pending;
-    pending = [];
-    for (const cb of batch) cb(0);
-    const writtenTransform = layer.style.transform;
-    expect(writtenTransform).not.toBe("");
+    for (let i = 0; i < 30; i += 1) {
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb(i * 16);
+    }
+    expect(layer.style.transform).not.toBe("");
 
     act(() => ioTrigger(false));
+    // Justo tras salir, el bucle sigue vivo: nada se cancela todavia.
+    expect(caf).not.toHaveBeenCalled();
+
+    // Frames suficientes para que el mayor residuo baje de REST_EPSILON
+    // (con MODE_LERP 0.08 y un residuo inicial de scroll ~0.52 hacen falta
+    // ~67 frames; se dan 150 de margen).
+    for (let i = 0; i < 150; i += 1) {
+      const batch = pending;
+      pending = [];
+      if (batch.length === 0) break;
+      for (const cb of batch) cb((30 + i) * 16);
+    }
 
     expect(caf).toHaveBeenCalled();
     const removedTypes = removeSpy.mock.calls.map(([type]) => type);
     expect(removedTypes).toContain("pointermove");
     expect(removedTypes).toContain("scroll");
-    expect(layer.style.transform).toBe(writtenTransform);
+    // El reposo exacto: el mismo transform que produciria la regla CSS
+    // estatica (`scale(overscan)`, sin traslacion), no el ultimo valor que
+    // dejo el lerp (que nunca llega a 0 del todo).
+    expect(layer.style.transform).toBe(
+      "translate3d(0.00px, 0.00px, 0) scale(1.0600)",
+    );
   });
 
-  it("bajo reduced-motion resetea el transform aunque la escena ya estuviera pausada por estar fuera de pantalla", () => {
+  it("volver a intersectar antes de asentar cancela el release sin reiniciar appliedX/Y: el siguiente frame sigue el trayecto, no salta", () => {
+    // Punto 3 del encargo: si `appliedX`/`appliedY` se reiniciaran a 0 al
+    // cancelar el release, el primer frame tras reentrar arrancaria un
+    // lerp COMPLETO hacia la posicion real del puntero en vez de dar el
+    // paso normal (~8% del hueco al objetivo) desde donde ya iba -- un
+    // salto grande y facil de distinguir de un paso de lerp corriente. Se
+    // usa el puntero DENTRO de la escena (no la deriva) para partir de un
+    // `appliedX` grande cuanto antes: con `now` pequeno (pocas decenas de
+    // frames) el termino de deriva (`sin(now / 7000)`) apenas se ha movido
+    // y no serviria de base no trivial.
+    stubMatchMediaFine(false);
+    Object.defineProperty(window, "innerWidth", {
+      value: 1000,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1000,
+      writable: true,
+      configurable: true,
+    });
+
+    let pending: FrameRequestCallback[] = [];
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+    );
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    scene.getBoundingClientRect = () =>
+      ({ left: 0, right: 1000, top: 0, bottom: 1000 }) as DOMRect;
+    const layer = document.createElement("div");
+    const targets = [targetOf(layer, 1)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioTrigger(true));
+    // 40 frames siguiendo al puntero (mismo patron que "con el puntero
+    // DENTRO...") para dejar `appliedX` en un valor grande y no trivial
+    // antes de salir de pantalla.
+    for (let i = 0; i < 40; i += 1) {
+      window.dispatchEvent(
+        new MouseEvent("pointermove", { clientX: 900, clientY: 900 }),
+      );
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb(i * 16);
+    }
+
+    act(() => ioTrigger(false));
+    // 10 frames de release: suficiente para que decaiga sin llegar a
+    // asentar (asentar tarda unas cuantas decenas de frames mas).
+    for (let i = 0; i < 10; i += 1) {
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb((40 + i) * 16);
+    }
+    const midMatch = /translate3d\(([-\d.]+)px/.exec(layer.style.transform);
+    expect(midMatch).not.toBeNull();
+    const xMid = parseFloat(midMatch![1]);
+    expect(Math.abs(xMid)).toBeGreaterThan(0.5); // base no trivial
+
+    act(() => ioTrigger(true));
+    const batch = pending;
+    pending = [];
+    for (const cb of batch) cb(51 * 16);
+    const afterMatch = /translate3d\(([-\d.]+)px/.exec(layer.style.transform);
+    expect(afterMatch).not.toBeNull();
+    const xAfter = parseFloat(afterMatch![1]);
+
+    // Paso normal de lerp (~8% del hueco): muy por debajo de la mitad del
+    // valor de partida. Un reinicio a 0 habria dejado `xAfter` cerca de un
+    // 8% del objetivo de deriva DESDE CERO, una caida mucho mayor.
+    expect(Math.abs(xAfter - xMid)).toBeLessThan(Math.abs(xMid) * 0.5);
+  });
+
+  it("bajo reduced-motion interrumpe un release en curso y resetea el transform de inmediato, sin esperar a que asiente por su cuenta", () => {
+    // Punto 4 del encargo: `reduce` no espera al asentamiento gradual del
+    // release -- corta directo al reset duro aunque el bucle siga vivo a
+    // mitad de la convergencia.
+    const { setReduced } = stubDynamicReducedMotion();
+    let pending: FrameRequestCallback[] = [];
+    const caf = vi.fn();
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+    );
+    vi.stubGlobal("cancelAnimationFrame", caf);
+
+    const scene = document.createElement("div");
+    scene.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    const layer = document.createElement("div");
+    const targets = [targetOf(layer, 1)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioTrigger(true));
+    for (let i = 0; i < 30; i += 1) {
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb(i * 16);
+    }
+    act(() => ioTrigger(false));
+    for (let i = 0; i < 10; i += 1) {
+      const batch = pending;
+      pending = [];
+      for (const cb of batch) cb((30 + i) * 16);
+    }
+    // Mitad de release: el bucle sigue vivo, nada se cancelo todavia y el
+    // transform no es ni "" ni el de reposo exacto.
+    expect(layer.style.transform).not.toBe("");
+    expect(caf).not.toHaveBeenCalled();
+
+    act(() => setReduced(true));
+
+    expect(layer.style.transform).toBe("");
+    expect(caf).toHaveBeenCalled();
+  });
+
+  it("bajo reduced-motion resetea el transform aunque la escena ya estuviera en release por estar fuera de pantalla", () => {
     // Caso limite que motiva separar el reset de la guarda `running` dentro
-    // de `stop()`: si la escena ya estaba fuera de pantalla (pausada, sin
-    // reset) y el usuario activa `reduce`, las capas deben volver a `""`
-    // igualmente -- no solo cuando `reduce` llega con el bucle corriendo.
+    // de `stop()`: si la escena ya estaba fuera de pantalla (en release,
+    // sin haber asentado todavia) y el usuario activa `reduce`, las capas
+    // deben volver a `""` igualmente -- no solo cuando `reduce` llega con
+    // el bucle en modo "sigue al puntero".
     const { setReduced } = stubDynamicReducedMotion();
     let pending: FrameRequestCallback[] = [];
     vi.stubGlobal(

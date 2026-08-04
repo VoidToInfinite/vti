@@ -180,29 +180,25 @@ describe("Hero (lente funcional)", () => {
   });
 
   /*
-   * R2 (plan 2026-07-26): el hero ya no fuerza el tema oscuro -- la
-   * superficie sigue al tema de la pagina (Hero.tsx, ThemeProvider anidado
-   * eliminado). El color del kicker se desdobla por tema en vez de darse
-   * por hecho siempre oscuro.
+   * COBERTURA PERDIDA (usuario retiro <ScKicker> de Hero.tsx, ver informe):
+   * las dos pruebas que vivian aqui aseveraban `getComputedStyle(...).color`
+   * del kicker contra `semanticDark.brandText`/`semanticLight.brandText` --
+   * el color de marca por tema. Sin el kicker no queda ningun elemento del
+   * hero que resuelva `brandText` como su propiedad `color` PLANA (fuera de
+   * un `@media`): el titulo y el label del CTA secundario si consumen
+   * brandText, pero como PARADA de un `background-image` degradado recortado
+   * a texto (`heroGradient`/`gradientTextClip`, BrandName.tsx), nunca como
+   * `color` propio -- su unica declaracion de `color: brandText` vive dentro
+   * de `@media (prefers-reduced-motion: reduce)` y `@supports not
+   * (background-clip: text)`, que jsdom no evalua para getComputedStyle (ver
+   * CLAUDE.md). No hay reapunte fiel: se elimina sin sustituto.
    */
-  it("el kicker computa el color de marca del tema oscuro (pagina en oscuro)", () => {
-    window.localStorage.setItem("vti-theme", "dark");
-    renderHero();
-    expect(getComputedStyle(screen.getByTestId("hero-kicker")).color).toBe(
-      semanticDark.brandText,
-    );
-  });
-
-  it("el kicker computa el color de marca del tema claro (pagina en claro, por defecto)", () => {
-    renderHero();
-    expect(getComputedStyle(screen.getByTestId("hero-kicker")).color).toBe(
-      semanticLight.brandText,
-    );
-  });
 
   it("los colores del hero pasan AA sobre el negro del lienzo (tema oscuro)", () => {
-    // El contraste del HERO no estaba cubierto por ningun test: el kicker usa
-    // brandText, un rol distinto al del resto de la copia.
+    // El contraste del HERO no estaba cubierto por ningun test: brandText es
+    // una parada del degradado detras del tramo "ToInfinite" del titulo y del
+    // label del CTA secundario (heroGradient/gradientTextClip, ver arriba),
+    // un rol de color distinto al del resto de la copia.
     expect(
       contrastRatio(semanticDark.brandText, EYE_SURFACE),
     ).toBeGreaterThanOrEqual(4.5);
@@ -234,7 +230,7 @@ describe("Hero (lente funcional)", () => {
     ).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("con el idioma en ingles, los tres textos salen del locale ingles", async () => {
+  it("con el idioma en ingles, los dos textos salen del locale ingles", async () => {
     // Los tests existentes solo comparan contra `esHome`: la mitad del
     // contrato de paridad no estaba verificada en el componente.
     await act(async () => {
@@ -242,9 +238,6 @@ describe("Hero (lente funcional)", () => {
     });
     try {
       renderHero();
-      expect(screen.getByTestId("hero-kicker")).toHaveTextContent(
-        enHome.Home.hero.kicker,
-      );
       expect(screen.getByTestId("hero-subtitle")).toHaveTextContent(
         enHome.Home.hero.subtitle,
       );
@@ -262,8 +255,10 @@ describe("Hero (lente funcional)", () => {
     // `getComputedStyle` de jsdom no evalua `@media`, pero el CSS inyectado si
     // es inspeccionable: se asevera que la regla EXISTE.
     const { container } = renderHero();
+    // Se llega al contenedor (ScCopy) por el parentElement del titulo, el
+    // primer hijo que sigue existiendo tras retirarse el kicker.
     const copia = (
-      container.querySelector('[data-testid="hero-kicker"]') as HTMLElement
+      container.querySelector('[data-testid="hero-title"]') as HTMLElement
     ).parentElement as HTMLElement;
 
     const reduce = reglasDe(copia).filter((texto) =>

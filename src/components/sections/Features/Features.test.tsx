@@ -8,6 +8,7 @@ import {
   FEATURES_DARK_HEIGHT,
   FEATURES_CONTENT_MAX_WIDTH,
   FEATURES_TAIL_HOLD,
+  FEATURES_GAMING_TITLE_GRADIENT,
 } from "./features.layers";
 import {
   JOURNEY_DARK_HEIGHT,
@@ -18,7 +19,25 @@ import { themes } from "@/theme/themes";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
-let trigger: (isIntersecting: boolean) => void;
+/*
+ * `trigger` dispara TODAS las instancias de IntersectionObserver vivas, no
+ * solo la última creada (D7, encargo 2026-08-04): desde que la rama clara
+ * llama a `useSectionProgress` de forma incondicional (ver `Features()`),
+ * un render monta DOS observers a la vez -- el de `useReveal` (sobre
+ * `ScGrid`, revealRef) y el de `useSectionProgress` (sobre `ScFeatures`,
+ * featuresRef). Antes de esta entrega solo existía uno, así que "guardar el
+ * callback de la última instancia" bastaba; con dos, el segundo pisaba al
+ * primero y `trigger(true)` dejaba de disparar el reveal -- exactamente el
+ * fallo que Journey.test.tsx ya documenta para su propio caso de dos
+ * observers (`useSlideDeck` + `useSceneParallax`). No hace falta distinguir
+ * CUÁL observer es cuál para estos tests (ninguno asevera nada sobre
+ * `--features-progress`): notificar a todos con el mismo valor es
+ * suficiente y más simple que el `ioTargets`/`triggerFor` de Journey.
+ */
+let ioCallbacks: ((entries: { isIntersecting: boolean }[]) => void)[] = [];
+function trigger(isIntersecting: boolean): void {
+  ioCallbacks.forEach((cb) => cb([{ isIntersecting }]));
+}
 
 /** Texto de TODAS las reglas CSS inyectadas por styled-components hasta el
  *  momento (mismo helper que `Journey.test.tsx`/`Story.test.tsx`). */
@@ -57,12 +76,37 @@ function cssRuleTextFor(el: HTMLElement): string {
     .join("\n");
 }
 
+/**
+ * jsdom no implementa `window.matchMedia` -- lo necesitan tanto
+ * `useReveal`/las guardas de `prefers-reduced-motion` de los componentes
+ * como, desde esta entrega, `useSectionProgress` (D7, se llama de forma
+ * INCONDICIONAL en `Features()`, también en la rama clara que la mayoría de
+ * estos tests ejercita). `matches: false` en todas las queries: ningún test
+ * de este bloque quiere reduced-motion activo por defecto -- los tests que
+ * SÍ verifican ese guard lo hacen por TEXTO del CSS inyectado, no por el
+ * valor de retorno de `matchMedia` (jsdom no evalúa `@media`, lección repo
+ * 2026-07-27), así que este stub no interfiere con ellos.
+ */
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
 beforeEach(() => {
+  ioCallbacks = [];
+  stubMatchMedia();
   vi.stubGlobal(
     "IntersectionObserver",
     class {
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
-        trigger = (v) => cb([{ isIntersecting: v }]);
+        ioCallbacks.push(cb);
       }
       observe() {}
       disconnect() {}
@@ -301,18 +345,6 @@ describe("tamano del icono de check (reset global de svg)", () => {
     expect(getComputedStyle(check).height).toBe("15px");
   });
 });
-
-function stubMatchMedia(): void {
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })),
-  );
-}
 
 describe("Features en tema oscuro", () => {
   beforeEach(() => {
@@ -596,5 +628,269 @@ describe("invariante solape de Features ↔ cola de la pista de Journey (D5)", (
 describe("invariante alto del slot de la escena ↔ zona de hold (D3/D4)", () => {
   it("FEATURES_DARK_HEIGHT y FEATURES_TAIL_HOLD miden lo mismo, o el relevo con Contacto deja costura", () => {
     expect(FEATURES_DARK_HEIGHT).toBe(FEATURES_TAIL_HOLD);
+  });
+});
+
+/*
+ * Objetivo 1 (D4, encargo 2026-08-04): la rama CLARA pasa a `min-height:
+ * 100dvh` con el contenido centrado, sin tocar la rama oscura (que ya lo
+ * tenía). Por texto del CSS inyectado: `min-height`/`display`/
+ * `justify-content` no dependen de ningún `@media`, así que aquí sí sería
+ * legítimo usar `getComputedStyle` -- pero se mantiene `cssRuleTextFor` por
+ * consistencia con el resto del fichero y porque compone con las mismas
+ * aserciones que ya prueban `ScFeatures` en oscuro.
+ */
+describe("Objetivo 1 (D4): tema claro con min-height 100dvh y centrado vertical", () => {
+  it("ScFeatures (rama clara) declara min-height: 100dvh y centra con flex-direction column + justify-content center", () => {
+    const { container } = renderWithProviders(<Features />);
+    const section = container.querySelector("#features") as HTMLElement;
+    const css = cssRuleTextFor(section);
+
+    expect(css).toContain("min-height: 100dvh");
+    expect(css).toContain("flex-direction: column");
+    expect(css).toContain("justify-content: center");
+  });
+});
+
+/*
+ * Objetivo 2 / D7 (encargo 2026-08-04): `useSectionProgress` se llama de
+ * forma incondicional en `Features()` y se ata SOLO al `<ScFeatures>` de la
+ * rama clara (`featuresRef`). Test FUNCIONAL, no solo de CSS: dispara el
+ * IntersectionObserver mockeado y comprueba que el hook escribe de verdad
+ * `--features-enter`/`--features-progress` sobre el elemento -- mismo
+ * mecanismo que ya valida `useSectionProgress.test.tsx`, aquí verificando
+ * que Features.tsx lo CONSUME correctamente (ref estable, prefix propio).
+ */
+describe("D7/D1: progreso de scroll de la rama clara (useSectionProgress)", () => {
+  it("escribe --features-enter/--features-progress sobre ScFeatures al intersecar, y no --section-* (prefix propio)", () => {
+    const { container } = renderWithProviders(<Features />);
+    const section = container.querySelector("#features") as HTMLElement;
+
+    expect(section.style.getPropertyValue("--features-progress")).toBe("");
+    act(() => trigger(true));
+
+    expect(section.style.getPropertyValue("--features-enter")).not.toBe("");
+    expect(section.style.getPropertyValue("--features-progress")).not.toBe("");
+    expect(section.style.getPropertyValue("--section-enter")).toBe("");
+  });
+
+  it("ScFigure traslada su figura ligada a --features-progress, solo transform, con guard de reduced-motion", () => {
+    const { container } = renderWithProviders(<Features />);
+    const figure = container.querySelector("img") as HTMLImageElement;
+    const css = cssRuleTextFor(figure);
+
+    expect(css).toContain("translateY(");
+    expect(css).toContain("var(--features-progress");
+
+    const reduceLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("transform"),
+      );
+    expect(reduceLine).toBeDefined();
+    expect(reduceLine).toMatch(/transform:\s*none/);
+  });
+});
+
+/*
+ * D7 (encargo 2026-08-04): las entradas de Features (rama clara -- `ScItem`
+ * -- y rama oscura -- `ScDarkContent`) se unifican a `motion.duration.slower`
+ * + `motion.easing.decelerate`. Antes: `ScItem` usaba `slow` + `emphasized`,
+ * `ScDarkContent` usaba `slow` + `decelerate` -- dos criterios de entrada
+ * distintos en el mismo fichero. Por texto del CSS inyectado, no
+ * `getComputedStyle`: medido en este repo, jsdom SÍ resuelve el longhand
+ * `transition-delay` cuando se declara SUELTO (test existente en este mismo
+ * fichero), pero NO resuelve `transitionDuration`/`transitionTimingFunction`
+ * cuando `transition` es una lista de dos declaraciones separadas por coma
+ * (`transitionDuration`/`transitionTimingFunction` devuelven cadena vacía) --
+ * un matiz nuevo del mismo mecanismo que documenta `task/lessons.md`
+ * 2026-07-25 para `animation:`. `cssRuleTextFor` no depende de esa
+ * resolución: lee el texto tal como lo escribió el componente.
+ */
+describe("D7: duración/easing de entrada unificados (slower + decelerate)", () => {
+  it("ScItem (rama clara) usa motion.duration.slower + motion.easing.decelerate", () => {
+    const { container } = renderWithProviders(<Features />);
+    const item = container.querySelector("[data-revealed]") as HTMLElement;
+    const css = cssRuleTextFor(item);
+
+    expect(css).toContain(themes.light.motion.duration.slower);
+    expect(css).toContain(themes.light.motion.easing.decelerate);
+    expect(css).not.toContain(themes.light.motion.duration.slow);
+    expect(css).not.toContain(themes.light.motion.easing.emphasized);
+  });
+
+  it("ScDarkContent (rama oscura) usa motion.duration.slower + motion.easing.decelerate", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Features />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+      });
+      const content = container.querySelector("[data-revealed]") as HTMLElement;
+      const css = cssRuleTextFor(content);
+
+      expect(css).toContain(themes.dark.motion.duration.slower);
+      expect(css).toContain(themes.dark.motion.easing.decelerate);
+      expect(css).not.toContain(themes.dark.motion.duration.slow);
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+});
+
+/*
+ * D7 (encargo 2026-08-04): `ScCta` -- el CTA de texto de cada identidad --
+ * ganó `:focus-visible` propio, resuelto contra `semantic.focus`. Hasta esta
+ * entrega solo tenía `:hover`. Validado con el bug inyectado a propósito
+ * (ver el informe de la tarea): comentando el bloque `&:focus-visible` de
+ * `ScCta` en `Features.tsx` este test se pone en rojo (no hay ningún bloque
+ * que mencione `focus-visible`); restaurado, vuelve a verde.
+ */
+describe("D7: :focus-visible propio del CTA de sección", () => {
+  it("ScCta declara :focus-visible con box-shadow resuelto contra semantic.focus", () => {
+    const { container } = renderWithProviders(<Features />);
+    const cta = container.querySelector('a[href="#contact"]') as HTMLElement;
+    const css = cssRuleTextFor(cta);
+
+    expect(css).toContain(":focus-visible");
+    const focusBlock = css.slice(css.indexOf(":focus-visible"));
+    expect(focusBlock).toContain("box-shadow");
+    expect(focusBlock).toContain(themes.light.semantic.focus);
+  });
+});
+
+/*
+ * Bug corregido en el trabajo manual del usuario (informe de la tarea): el
+ * título de "gaming" usaba `ScSpanImagination` en vez de `ScSpanGaming`
+ * (copia-pega). Se distingue por CSS: `ScSpanGaming` recorta el degradado
+ * propio (`FEATURES_GAMING_TITLE_GRADIENT`) con `background-clip: text`;
+ * `ScSpanImagination` solo fija un `color` sólido y JAMÁS declara
+ * `background-clip`. Validado con el bug inyectado a propósito (ver informe
+ * de la tarea): sustituyendo `ScSpanGaming` por `ScSpanImagination` en el
+ * término "gaming" del título oscuro, este test se pone en rojo (no hay
+ * `background-clip: text` en las reglas del span); restaurado, vuelve a
+ * verde.
+ */
+describe("bug corregido: el termino 'gaming' del titulo oscuro usa ScSpanGaming", () => {
+  it("el span de 'gaming' recorta el degradado propio (background-clip: text), no un color solido", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      renderWithProviders(<Features />);
+      await waitFor(() => {
+        expect(
+          screen.getByText(esHome.Home.features.gaming.title),
+        ).toBeInTheDocument();
+      });
+      const gamingSpan = screen.getByText(esHome.Home.features.gaming.title);
+      const css = cssRuleTextFor(gamingSpan);
+
+      expect(css).toContain("background-clip: text");
+      expect(css).toContain(FEATURES_GAMING_TITLE_GRADIENT);
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+});
+
+/*
+ * D4 (encargo 2026-08-04): palancas de compactación vertical del contenido
+ * oscuro -- `padding-block` fluido de `ScDarkFrame`, `margin-block-start`
+ * fluido de `ScDarkFeatures`, `padding-block` fluido de `ScDarkFeatureBlock`
+ * y `font-size` fluido de `ScDarkFeatureTitle` -- todas con `clamp()`, todas
+ * con el mismo suelo/techo documentado en `Features.tsx`. Por texto del CSS
+ * inyectado: `clamp()` no depende de ningún `@media`, pero se mantiene el
+ * mismo mecanismo `cssRuleTextFor` que el resto del fichero por consistencia
+ * y para no arrastrar el resto del stylesheet acumulado.
+ */
+describe("D4: palancas de compactación vertical del contenido oscuro (clamp fluido)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  /*
+   * El termino fluido va en `dvh`, y el test lo exige explicitamente en vez de
+   * conformarse con "hay un clamp". La primera version de esta palanca usaba
+   * `6vw` y medía el eje EQUIVOCADO: la restriccion es el ALTO del viewport,
+   * y en un 1280x720 -- el portatil mas comun del rango -- `6vw` son 76,8px,
+   * por encima del techo de 64px, asi que el clamp se quedaba en su maximo y
+   * no ahorraba ni un pixel justo donde el marco desbordaba 128px (medido en
+   * navegador). Aseverar la UNIDAD, y no solo la presencia del clamp, es lo
+   * que impide que ese defecto vuelva a entrar sin que nadie lo note.
+   */
+  it("ScDarkFrame acota su padding-block con un clamp fluido en dvh, no en vw", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const frame = section.children[1] as HTMLElement;
+    const css = cssRuleTextFor(frame);
+
+    expect(css).toMatch(/padding-block:\s*clamp\(\s*1rem,\s*3\.5dvh,/);
+    expect(css).not.toContain("6vw");
+  });
+
+  it("ScDarkFeatureTitle usa font-size: clamp(...) acotado por abajo a 1.125rem", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const title = container.querySelector(
+      "#feature-learning-title",
+    ) as HTMLElement;
+    const css = cssRuleTextFor(title);
+
+    expect(css).toMatch(/font-size:\s*clamp\(\s*1\.125rem/);
+  });
+});
+
+/*
+ * D4 (encargo 2026-08-04): en la rama OSCURA los bullets pasan a dos
+ * columnas desde `sm` (600px), no desde `lg` (992px) como en la rama clara
+ * -- ver el docblock de `ScBullets` en `Features.tsx` para el porqué
+ * completo. Validado con el bug inyectado a propósito (ver informe de la
+ * tarea): quitando `$compactFrom="sm"` del `<ScBullets>` de la rama oscura,
+ * este test se pone en rojo (el bloque de dos columnas queda en `lg`, no en
+ * `sm`); restaurado, vuelve a verde.
+ */
+describe("D4: en tema oscuro los bullets pasan a dos columnas desde sm, no desde lg", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("declara el bloque de dos columnas dentro del breakpoint sm", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const cta = container.querySelector('a[href="#contact"]') as HTMLElement;
+    const bullets = cta.previousElementSibling as HTMLElement;
+    const css = cssRuleTextFor(bullets);
+
+    const smLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes(themes.dark.breakPoint.sm) &&
+          line.includes("grid-template-columns"),
+      );
+    expect(smLine).toBeDefined();
+    expect(smLine).toMatch(
+      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
+
+    expect(css).not.toContain(themes.dark.breakPoint.lg);
   });
 });

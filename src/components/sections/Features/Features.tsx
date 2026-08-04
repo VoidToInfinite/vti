@@ -1,10 +1,11 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
+import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { FeaturesCelestialOrbital } from "@/components/featuresCelestialOrbital/FeaturesCelestialOrbital";
@@ -74,6 +75,16 @@ import {
 
 const BULLET_KEYS = ["one", "two", "three", "four"] as const;
 
+/**
+ * Amplitud del parallax de contenido ligado a scroll de las figuras de
+ * tarjeta (D7, encargo 2026-08-04): valor PROPIO de esta entrega, no
+ * transcrito de ningún mockup -- por eso vive aquí y no en
+ * `features.layers.ts` (ese fichero documenta en su propia cabecera que solo
+ * contiene arte VERBATIM). "Decenas de píxeles, no cientos" es literal del
+ * encargo: a `--features-progress` 0..1 el recorrido total es de 20px.
+ */
+const FEATURES_FIGURE_PARALLAX_PX = 20;
+
 /** Índice del escalón de reveal por tarjeta (mismo mecanismo que
  *  `ScStepReveal` en Journey.tsx: 120ms por tarjeta, como ya hacía este
  *  componente). */
@@ -101,8 +112,14 @@ function accentColorHover(theme: ThemeDefinition, key: FeatureKey): string {
 }
 
 /*
- * Rama clara: contenedor normal (padding + tope de ancho, centrado -- sin
- * cambios).
+ * Rama clara: contenedor normal (padding + tope de ancho, centrado) más
+ * `min-height: 100dvh` con el contenido centrado en el eje de bloque
+ * (Objetivo 1, encargo 2026-08-04). `min-height`, NUNCA `height` exacto: las
+ * tres tarjetas (figura + cuerpo + cuatro bullets + CTA cada una) son el
+ * contenido más alto de la página y no caben en una pantalla de 667px sin
+ * destruir la legibilidad (mismo argumento que D4 ya aplica a la rama
+ * oscura). Con `min-height` la sección mide una pantalla exacta donde el
+ * contenido cabe (escritorio) y crece donde no (móvil), sin recortar nada.
  *
  * Rama oscura ($fullBleed, D2/D7/D11, spec
  * `2026-08-02-features-overlay-celestial-orbital-design.md`): la sección
@@ -158,8 +175,13 @@ const ScFeatures = styled.section<{ $fullBleed: boolean }>`
             ${theme.data.space[9]};
           max-width: ${theme.data.grid.containerMax};
           margin-inline: auto;
+          /* min-height, no height exacto: si el contenido no cupiera en una
+             pantalla baja, la seccion crece en vez de recortar (ver el
+             docblock del componente, arriba, para el razonamiento completo). */
+          min-height: 100dvh;
           display: flex;
           flex-direction: column;
+          justify-content: center;
           gap: ${theme.data.space[6]};
         `}
 `;
@@ -233,15 +255,22 @@ const ScGrid = styled.div`
    escalonado seguiría "saltando" tarde bajo reduce en vez de aparecer ya
    resuelto). Learning ocupa las dos columnas solo ≥ md (mockup L163:
    `grid-column: span 2`); por debajo de `md` hay una sola columna y la regla
-   no tiene efecto visible. */
+   no tiene efecto visible.
+
+   Duración/easing (D7, encargo 2026-08-04): slower + decelerate, no
+   slow + emphasized -- este mismo fichero declaraba dos criterios de entrada
+   distintos para sus dos ramas (este bloque y ScDarkContent, más abajo);
+   unificados a la pareja que ya usaba la rama oscura, solo que con la
+   duración más lenta de la escala (480ms) para que la entrada se lea
+   "resuelta con calma", como pide el encargo. */
 const ScItem = styled.div<{ $index: number; $fullWidth: boolean }>`
   opacity: 0;
   transform: translateY(16px);
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.emphasized},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.emphasized};
+    opacity ${({ theme }) => theme.data.motion.duration.slower}
+      ${({ theme }) => theme.data.motion.easing.decelerate},
+    transform ${({ theme }) => theme.data.motion.duration.slower}
+      ${({ theme }) => theme.data.motion.easing.decelerate};
   transition-delay: ${({ $index }) => $index * STAGGER_STEP_MS}ms;
 
   ${({ $fullWidth, theme }) =>
@@ -361,7 +390,18 @@ function FeaturePattern({ cardKey }: { cardKey: FeatureKey }): ReactElement {
    `figura izquierda + contenido` de ≥ md, spec §7.3); "figuras proporcionadas"
    se resuelve con una altura fija razonable en vez de un porcentaje de la
    fila (que en apilado no existe) — 9.5rem (152px) mantiene las tres figuras
-   legibles sin desbordar una tarjeta apilada de ancho de viewport. */
+   legibles sin desbordar una tarjeta apilada de ancho de viewport.
+
+   Parallax de contenido ligado a scroll (D7/D1, encargo 2026-08-04): la rama
+   clara no tenía ni un movimiento atado al progreso de scroll. Se lee
+   --features-progress (0..1, escrito por useSectionProgress sobre
+   ScFeatures, ver Features()) y se traduce en un desplazamiento vertical de
+   decenas de píxeles, no cientos -- el propio encargo lo pide así. Ningún
+   @keyframes toca transform en este elemento, así que no hay conflicto con
+   el mecanismo que documenta task/lessons.md (2026-07-26, una @keyframes
+   sobre una propiedad le impide a una transition sobre esa misma propiedad
+   llegar a existir): aquí no hace falta transition -- la variable ya llega
+   suavizada por el lerp del propio hook, frame a frame. */
 const ScFigure = styled.img<{ $key: FeatureKey }>`
   position: relative;
   z-index: 1;
@@ -372,6 +412,10 @@ const ScFigure = styled.img<{ $key: FeatureKey }>`
   margin-inline: auto;
   object-fit: contain;
   filter: ${({ $key }) => FEATURE_CARD_VISUALS[$key].figureDropShadow};
+  /* Parallax de contenido ligado a scroll: ver el docblock de arriba. */
+  transform: translateY(
+    calc(var(--features-progress, 0) * -${FEATURES_FIGURE_PARALLAX_PX}px)
+  );
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     align-self: flex-end;
@@ -379,6 +423,10 @@ const ScFigure = styled.img<{ $key: FeatureKey }>`
     margin-inline: 0;
     margin-left: ${({ theme, $key }) =>
       $key === "learning" ? theme.data.space[4] : theme.data.space[3]};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
   }
 `;
 
@@ -411,7 +459,8 @@ const ScBody = styled(Typography)`
  * condición real, que no es "qué tarjeta es" sino "cuánto ancho hay" -- con
  * la prop fija, en un móvil de 375px los cuatro bullets se partían igualmente
  * en dos columnas de ~150px. Por eso la decisión baja al propio componente,
- * como `@media`, y las dos ramas lo consumen sin parámetro.
+ * como `@media`, y las dos ramas lo consumen sin parámetro salvo el nuevo
+ * `$compactFrom` (D4, más abajo).
  *
  * `lg` (992px) y no `md` (768px), que es donde el resto del componente
  * cambia de layout: justo en `md` la rama clara reparte las tarjetas en DOS
@@ -419,13 +468,31 @@ const ScBody = styled(Typography)`
  * una tarjeta no crece -- se parte por la mitad. Poner aquí `md` haría que
  * los bullets se dividieran en el mismo salto en el que su contenedor se
  * estrecha, que es exactamente al revés de lo que se busca.
+ *
+ * `$compactFrom` (D4, compactación vertical 2026-08-04): la rama OSCURA no
+ * tiene ese problema -- su contenido es una columna vertical de ancho
+ * completo (hasta `FEATURES_CONTENT_MAX_WIDTH`) en TODOS los anchos, nunca
+ * se reparte en dos columnas de grid, así que el argumento de arriba
+ * ("no partir en el mismo salto en que el contenedor se estrecha") no
+ * aplica ahí. Ancho de columna de bullets resultante en oscuro, calculado
+ * contra `FEATURES_DARK_HEIGHT`/el padding real de `ScDarkFrame` (sin medir
+ * en navegador -- ver el informe de la tarea): ≈256px a 600px de viewport
+ * (arranque de `sm`) y ≈452px a 992px (arranque de `lg`), muy por encima de
+ * los ~150px que el párrafo de arriba señala como el caso que había que
+ * evitar. Por eso la rama oscura pasa `$compactFrom="sm"` (600px) en vez de
+ * heredar `lg`: gana dos columnas de bullets ya en tablet, que es la mayor
+ * partida del presupuesto vertical de la sección (D4) en ese rango. La rama
+ * clara NO pasa la prop -- por defecto sigue en `lg`, sin cambios.
  */
-const ScBullets = styled.div`
+const ScBullets = styled.div<{ $compactFrom?: "sm" | "lg" }>`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${({ theme }) => theme.data.space[2]};
 
-  @media ${({ theme }) => theme.data.breakPoint.lg} {
+  @media ${({ theme, $compactFrom }) =>
+    $compactFrom === "sm"
+      ? theme.data.breakPoint.sm
+      : theme.data.breakPoint.lg} {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: ${({ theme }) => theme.data.space[2]}
       ${({ theme }) => theme.data.space[5]};
@@ -451,6 +518,18 @@ const ScCheckIcon = styled.svg<{ $key: FeatureKey }>`
   stroke: ${({ theme, $key }) => accentColor(theme.data, $key)};
 `;
 
+/*
+ * :focus-visible propio (D7, encargo 2026-08-04): hasta esta entrega este
+ * CTA de sección solo tenía :hover. El anillo GLOBAL (GlobalStyles.tsx,
+ * :where(a, ...)) ya cubre este enlace con un outline de semantic.focus,
+ * pero es un :where() de especificidad CERO -- cualquier regla futura con
+ * más peso lo desplazaría en silencio -- y no es verificable con un test
+ * propio de este componente. Se declara aquí, ADITIVO (no sustituye el
+ * anillo global, mismo criterio que focusHalo en Button.tsx), resuelto
+ * contra semantic.focus en los dos temas -- ese token ya cambia de paso de
+ * paleta entre claro y oscuro (theme/tokens/semantic.ts), así que un único
+ * color-mix sirve para ambos sin ternario.
+ */
 const ScCta = styled.a<{ $key: FeatureKey }>`
   display: inline-flex;
   align-items: center;
@@ -468,6 +547,18 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
   &:hover {
     color: ${({ theme, $key }) => accentColorHover(theme.data, $key)};
     transform: translateX(${FEATURES_CTA_HOVER_TRANSLATE_X});
+  }
+
+  /* focus-visible: ver el docblock de arriba. */
+  &:focus-visible {
+    color: ${({ theme, $key }) => accentColorHover(theme.data, $key)};
+    border-radius: ${({ theme }) => theme.data.radius.sm};
+    box-shadow: 0 0 0 4px
+      color-mix(
+        in oklch,
+        ${({ theme }) => theme.data.semantic.focus} 35%,
+        transparent
+      );
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -559,6 +650,35 @@ const ScDarkSceneSlot = styled.div`
  * PANTALLA hacia arriba en vez de solo añadir una zona muda al final -- ver
  * el docblock de `ScDarkTail`, más abajo, para el porqué completo de la zona
  * de hold.
+ *
+ * `padding-block` FLUIDO (D4, encargo 2026-08-04, palanca 1 de la
+ * compactación): el `min-height` de arriba no recorta nada -- si el
+ * contenido real no cabe en una pantalla, el marco crece. Lo que sí puede
+ * hacerse sin recortar es no GASTAR más relleno vertical del necesario allí
+ * donde el presupuesto de una pantalla aprieta.
+ *
+ * El término fluido va en `dvh`, NO en `vw`, y esa elección es el arreglo de
+ * un defecto MEDIDO. La primera versión de esta palanca usaba
+ * clamp(1.5rem, 6vw, space[8]): mide el eje EQUIVOCADO. La restricción que
+ * hay que satisfacer es "el contenido cabe en el ALTO del viewport", y el
+ * ancho no dice nada sobre eso -- en un 1280x720, que es el portátil más
+ * común del rango, 6vw son 76,8px, por encima del techo de 64px, así que el
+ * clamp se quedaba en su máximo y no ahorraba NI UN PÍXEL justo en el
+ * viewport donde el marco desbordaba 128px. Solo apretaba en móviles
+ * estrechos, que resulta ser donde el ancho es pequeño pero el alto es
+ * grande. Con el término en `dvh` el relleno se encoge cuando la pantalla es
+ * BAJA, que es exactamente cuando el presupuesto vertical escasea.
+ *
+ * Que el techo baje en pantallas altas no le quita aire a nada: este marco
+ * es align-items center con min-height de una pantalla, así que en cuanto el
+ * contenido cabe holgado el espacio sobrante lo reparte el centrado, no el
+ * relleno. El relleno solo llega a verse cuando el contenido roza el borde,
+ * que es el caso en el que interesa que sea pequeño.
+ *
+ * `padding-inline` queda FIJO en `space[6]`: el encargo pide compactar el eje
+ * vertical, no el horizontal, y estrechar el ancho del contenido reduciría el
+ * ancho disponible para los bullets/CTA sin ganar nada en el eje que sí hay
+ * que ganar.
  */
 const ScDarkFrame = styled.div`
   grid-column: 1;
@@ -569,8 +689,8 @@ const ScDarkFrame = styled.div`
   width: 100%;
   max-width: ${FEATURES_CONTENT_MAX_WIDTH};
   margin-inline: auto;
-  padding: ${({ theme }) => theme.data.space[8]}
-    ${({ theme }) => theme.data.space[6]};
+  padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});
+  padding-inline: ${({ theme }) => theme.data.space[6]};
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -635,16 +755,22 @@ const ScDarkTail = styled.div`
    Story.tsx/Journey.tsx. PIERDE su `padding` (ahora lo lleva `ScDarkFrame`,
    arriba) y su `position: relative; z-index: 1` (ahora los lleva el frame,
    que es quien compite por celda de grid con `ScDarkSceneSlot`) -- este
-   elemento ya no necesita su propio contexto de apilamiento. */
+   elemento ya no necesita su propio contexto de apilamiento.
+
+   Duración (D7, encargo 2026-08-04): `slower` (480ms), no `slow` (320ms) --
+   el easing `decelerate` ya era el correcto aquí; lo que no coincidía con
+   `ScItem` (arriba, rama clara) era la duración. Unificadas las dos a la
+   pareja más lenta de la escala, para que las entradas de Features se lean
+   igual de "resueltas con calma" en los dos temas. */
 const ScDarkContent = styled.div`
   max-width: ${({ theme }) => theme.data.grid.prose};
   width: 100%;
   opacity: 0;
   transform: translateY(16px);
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
+    opacity ${({ theme }) => theme.data.motion.duration.slower}
       ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
+    transform ${({ theme }) => theme.data.motion.duration.slower}
       ${({ theme }) => theme.data.motion.easing.decelerate};
 
   &[data-revealed="true"] {
@@ -668,21 +794,75 @@ const ScDarkHeader = styled.div`
 /* Las 3 identidades como bloques verticales (mismo patrón de lista que
    Story/Journey), no como tarjetas con patrón/fondo propio: esos son
    literales de una tarjeta con fondo pastel (D10), sin sentido superpuestos
-   a una imagen. */
+   a una imagen.
+
+   `margin-block-start` FLUIDO (D4, encargo 2026-08-04, palanca 2): separa el
+   bloque de identidades del kicker de la cabecera. Mismo criterio y mismo
+   arreglo de eje que el `padding-block` de `ScDarkFrame` (ver su docblock: el
+   término fluido va en `dvh` porque la restricción es el ALTO del viewport,
+   no su ancho) -- clamp entre 0.75rem (12px, suelo) y `space[6]` (32px,
+   techo, que se alcanza a partir de ~1450px de alto). */
 const ScDarkFeatures = styled.div`
   display: flex;
   flex-direction: column;
-  margin-block-start: ${({ theme }) => theme.data.space[6]};
+  margin-block-start: clamp(
+    0.75rem,
+    2.2dvh,
+    ${({ theme }) => theme.data.space[6]}
+  );
 `;
 
+/* `padding-block` FLUIDO (D4, palanca 2): separación entre las tres
+   identidades. Clamp entre 0.75rem (12px, suelo) y `space[5]` (24px, techo)
+   -- mismo criterio, mismas unidades y mismos motivos que `ScDarkFrame`/
+   `ScDarkFeatures`, arriba. Son CINCO bordes de relleno en total (el primer
+   bloque no lleva el superior), así que cada píxel que se ahorra aquí cuenta
+   cinco veces en el presupuesto vertical de la sección. */
 const ScDarkFeatureBlock = styled.div`
-  padding-block: ${({ theme }) => theme.data.space[5]};
+  padding-block: clamp(0.75rem, 2.2dvh, ${({ theme }) => theme.data.space[5]});
   border-block-start: 1px solid ${({ theme }) => theme.data.semantic.border};
 
   &:first-child {
     border-block-start: none;
     padding-block-start: 0;
   }
+`;
+
+/*
+ * Título de cada identidad SOLO en la rama oscura (D4, palanca 4: escala
+ * tipográfica del contenido oscuro con `clamp()`). NO se toca
+ * `type.scale.h3` -- ese token es GLOBAL y también lo consume el `h3` de las
+ * tres tarjetas de la rama CLARA de esta misma sección (`Typography
+ * variant="h3"`, más abajo en el `return` claro); tocarlo cambiaría algo que
+ * nadie pidió compactar. Se sobreescribe por composición
+ * (`styled(Typography)`, mismo mecanismo que `ScDarkBody`/`ScKicker`, más
+ * abajo: la clase envolvente se inyecta DESPUÉS de la del propio
+ * `Typography` y gana la cascada sin `&&`, medido en este repo,
+ * `task/lessons.md` 2026-07-25).
+ *
+ * El suelo del clamp (1.125rem = 18px) queda MUY por encima del mínimo de
+ * 12px que exige el encargo a propósito: es un título de nivel 3, no cuerpo
+ * de texto, y perder toda su jerarquía visual frente al cuerpo a cambio de
+ * compactar unos pocos píxeles más sería un defecto nuevo, no una
+ * compactación. El techo se lee del propio token (`type.scale.h3.size`,
+ * "1.5rem") en vez de repetir el literal, para que no pueda desincronizarse
+ * si el token cambia.
+ *
+ * El término fluido es `min(4vw, 2.6dvh)` y no solo `4vw`, por el mismo
+ * motivo que documenta `ScDarkFrame`: el presupuesto que hay que respetar es
+ * el ALTO del viewport. Con solo el término en `vw`, un portátil corto y
+ * ancho (1366x650, medido) se llevaba el título a su techo de 24px justo en
+ * el viewport donde menos alto sobra; el `min()` deja que gane el eje que
+ * esté más apretado en cada caso, que es la única lectura que sirve a los
+ * dos regímenes -- móvil estrecho y alto, portátil ancho y bajo -- con una
+ * sola declaración.
+ */
+const ScDarkFeatureTitle = styled(Typography)`
+  font-size: clamp(
+    1.125rem,
+    min(4vw, 2.6dvh),
+    ${({ theme }) => theme.data.type.scale.h3.size}
+  );
 `;
 
 const ScDarkBody = styled(Typography)`
@@ -695,6 +875,20 @@ export function Features(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+  /*
+   * Progreso de scroll de la rama CLARA (D7/D1, encargo 2026-08-04):
+   * `useSectionProgress` exige un ref ESTABLE (`useRef`, nunca creado inline
+   * en el render -- `task/lessons.md` 2026-07-31) y se llama de forma
+   * INCONDICIONAL, antes de los dos `return` de tema -- las reglas de hooks
+   * de React lo exigen. El ref solo se ATA al `<ScFeatures>` de la rama
+   * clara, más abajo; en oscuro `featuresRef.current` se queda en `null` (el
+   * hook ya contempla ese caso, ver su JSDoc) y no hay observer que sostener
+   * -- la rama oscura ya tiene su propio movimiento ligado a scroll vía
+   * `useSceneParallax`, dentro de `FeaturesCelestialOrbital`, fuera del
+   * alcance de este flujo.
+   */
+  const featuresRef = useRef<HTMLElement>(null);
+  useSectionProgress(featuresRef, { cssVarPrefix: "features" });
 
   if (themeName !== "light") {
     return (
@@ -714,37 +908,42 @@ export function Features(): ReactElement {
             <ScDarkHeader>
               <ScKicker
                 variant="overline"
-                forwardedAs="p"
+                forwardedAs="h2"
+                id="features-title"
               >
                 {t("Home.features.kicker")}
               </ScKicker>
-              <Typography
-                variant="h2"
-                id="features-title"
-              >
-                <ScSpanLearning>
-                  {t("Home.features.learning.title")}
-                </ScSpanLearning>{" "}
-                <ScSpanImagination>
-                  {t("Home.features.imagination.title")}
-                </ScSpanImagination>{" "}
-                <ScSpanGaming>{t("Home.features.gaming.title")}</ScSpanGaming>
-              </Typography>
             </ScDarkHeader>
 
             <ScDarkFeatures>
               {FEATURE_KEYS.map((key) => (
                 <ScDarkFeatureBlock key={key}>
-                  <Typography
+                  <ScDarkFeatureTitle
                     variant="h3"
                     id={`feature-${key}-title`}
                   >
-                    {t(`Home.features.${key}.title`)}
-                  </Typography>
+                    {key === "learning" && (
+                      <ScSpanLearning>
+                        {t("Home.features.learning.title")}
+                      </ScSpanLearning>
+                    )}
+
+                    {key === "imagination" && (
+                      <ScSpanImagination>
+                        {t("Home.features.imagination.title")}
+                      </ScSpanImagination>
+                    )}
+
+                    {key === "gaming" && (
+                      <ScSpanGaming>
+                        {t("Home.features.gaming.title")}
+                      </ScSpanGaming>
+                    )}
+                  </ScDarkFeatureTitle>
                   <ScDarkBody variant="bodySm">
                     {t(`Home.features.${key}.body`)}
                   </ScDarkBody>
-                  <ScBullets>
+                  <ScBullets $compactFrom="sm">
                     {BULLET_KEYS.map((bulletKey) => (
                       <ScBulletItem key={bulletKey}>
                         <ScCheckIcon
@@ -785,6 +984,7 @@ export function Features(): ReactElement {
 
   return (
     <ScFeatures
+      ref={featuresRef}
       id="features"
       aria-labelledby="features-title"
       $fullBleed={false}
