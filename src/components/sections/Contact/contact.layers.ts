@@ -50,22 +50,34 @@ export const CONTACT_TITLE_ACCENT_GRADIENT_LIGHT =
  * Variante oscura del degradado (2026-07-30, mismo criterio que
  * `STORY_ACCENT_GRADIENT_DARK`/`JOURNEY_QUOTE_GRADIENT_DARK`): misma familia
  * de hue (235/255/292), luminosidad mucho mayor para legibilidad sobre el
- * negro-azulado de `ContactNeonGalaxy` (`CONTACT_NEON_VOID`, `#02040e`).
+ * negro de la escena de fondo. Los valores no cambian con el arte: se
+ * calibraron contra el `#02040e` de `ContactNeonGalaxy` y siguen valiendo
+ * contra el `#0d0416` de `ContactCosmicGuardian` (2026-08-04), que es un
+ * pelo MÁS claro — OKLCH L 0.137 frente a 0.111, medido, no estimado — así
+ * que el margen de legibilidad solo puede haber bajado unas centésimas
+ * sobre un contraste que ya era holgado.
  */
 export const CONTACT_TITLE_ACCENT_GRADIENT_DARK =
   "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 292))";
 
-/** Fondo translúcido del chip de email (mockup L219, tema claro): blanco con
- * alfa sobre el degradado pastel de la tarjeta — no es un rol semántico
+/**
+ * Fondo translúcido del chip de email (mockup L219): blanco con alfa sobre
+ * el degradado pastel de la tarjeta — no es un rol semántico
  * (`semantic.surface` es opaco), es la superposición específica de esta
- * pieza. */
+ * pieza.
+ *
+ * Ya no tiene pareja oscura, y el sufijo `_LIGHT` describe el único caso que
+ * queda. Existía `CONTACT_CHIP_BG_DARK` (`rgba(2, 4, 14, 0.55)`, el void de
+ * la escena saliente con alfa) para cuando la rama oscura de la sección
+ * también montaba el chip. Dejó de montarlo el 2026-08-03, cuando esa rama
+ * pasó a tres tarjetas de contacto y un formulario (D12/D14): desde
+ * entonces `ScChip` solo se renderiza dentro de `chipAndCta`, que solo vive
+ * en el `return` de la rama CLARA, así que el ternario contra
+ * `theme.data.isLight` tenía una rama inalcanzable. Se retira en la entrega
+ * del arte nuevo (2026-08-04), que además la habría dejado describiendo un
+ * void que ya no existe.
+ */
 export const CONTACT_CHIP_BG_LIGHT = "rgba(255, 255, 255, 0.82)";
-
-/** Variante oscura del chip (2026-07-30): mismo negro-azulado que
- * `CONTACT_NEON_VOID` con alfa, en vez de blanco translúcido — sobre la
- * escena oscura un chip blanco leería como un error, no como una superficie
- * de contenido. */
-export const CONTACT_CHIP_BG_DARK = "rgba(2, 4, 14, 0.55)";
 
 /** Sombra de hover del CTA (mockup L223, `style-hover`): mismo hue que
  * `palette.secondary` (311.928) pero con croma 0.233, distinto del 0.243 que
@@ -131,17 +143,157 @@ export const CONTACT_FIGURE_FLOAT_MS = 8000;
 export const CONTACT_FIGURE_SIZES = "(min-width: 768px) 373px, 100vw";
 
 /**
- * Caja de la rama oscura (2026-07-30, mismo criterio que
- * `STORY_DARK_MAX_WIDTH`): acotada y centrada, no a sangre. Journey ya NO
- * es precedente de esto: su caja acotada (`JOURNEY_PORTAL_MAX_WIDTH`) se
- * eliminó el 2026-08-02 al pasar esa sección a sangre (spec
- * `2026-08-02-journey-overlay-transition-design.md`, D7). Contact conserva
- * la caja acotada porque no forma parte de aquella entrega, no por
- * coherencia con una Journey que ya no está así.
- * Altura FIJA en `dvh` (no `min-height` como Features): el
- * contenido de Contact es breve (kicker/título/cuerpo/chip+CTA, una sola
- * fila), igual de corto que Story/Journey, así que no hay riesgo de recorte
- * con `overflow: hidden`.
+ * Alto del slot pegado de la escena de Contacto en tema oscuro (D6, spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`): una
+ * pantalla completa. Hasta esta entrega valía `90dvh` (2026-07-30, misma
+ * época en que `ScContact` era una caja acotada y centrada, sin solape con
+ * ningún vecino): con la sección ahora A SANGRE y superpuesta sobre el hold
+ * de Features (D2/D6), una escena de `90dvh` dejaría `10dvh` de fondo plano
+ * (el `background-color` de `ScContact`) visibles bajo el pin, justo antes de
+ * que el slot se despegue — banda muerta que el mockup no tiene. `100dvh` es
+ * el mismo valor que `FEATURES_DARK_HEIGHT`/`CONTACT_OVERLAY_RISE`, por el
+ * mismo motivo: el slot debe medir SIEMPRE una pantalla exacta, sin margen.
  */
-export const CONTACT_DARK_MAX_WIDTH = "1280px";
-export const CONTACT_DARK_HEIGHT = "90dvh";
+export const CONTACT_DARK_HEIGHT = "100dvh";
+
+/**
+ * Cuánto sube Contacto por encima del hold de Features al superponerse
+ * (D2/D4, spec `2026-08-03-contacto-footer-oscuro-design.md`): una pantalla
+ * completa, aplicada como `margin-block-start` NEGATIVO sobre la rama oscura
+ * de `ScContact` (`Contact.tsx`). DEBE valer EXACTAMENTE lo mismo que
+ * `FEATURES_TAIL_HOLD` (`features.layers.ts`): si el solape es MAYOR que el
+ * hold de Features, Contacto empieza a subir tapando todavía contenido REAL
+ * de la tercera identidad; si es MENOR, asoma una banda de fondo plano de
+ * Features (su `background-color`, sin escena pegada detrás) entre el fin
+ * del hold y el principio de Contacto. Las dos constantes viven en ficheros
+ * de datos de secciones distintas a propósito — importar una desde la otra
+ * acoplaría los datos de Features y Contacto, que no se conocen entre sí —
+ * así que la igualdad NO se declara aquí en prosa: la ata un test que importa
+ * los dos ficheros (`Contact.test.tsx`, la sección que SUBE, mismo criterio
+ * que la invariante Journey↔Features vive en `Features.test.tsx` y no en
+ * `journey.layers.ts`). Mismo par y mismo razonamiento que
+ * `FEATURES_OVERLAY_RISE` ↔ `JOURNEY_DECK_TAIL_SCREENS`.
+ */
+export const CONTACT_OVERLAY_RISE = "100dvh";
+
+/**
+ * Tope de ancho del CONTENIDO de la rama oscura (D6, spec
+ * `2026-08-03-contacto-footer-oscuro-design.md`). El 1280px que antes medía
+ * la SECCIÓN entera (`CONTACT_DARK_MAX_WIDTH`, eliminada de este fichero)
+ * ahora acota solo el CONTENIDO (`ScDarkFrame`, `Contact.tsx`): la escena
+ * (`ContactNeonGalaxy`) pasa a sangre en esta misma entrega y pierde su
+ * propio tope de ancho. Es una constante PROPIA y NO un renombrado de
+ * `CONTACT_DARK_MAX_WIDTH`, aunque el número coincida: aquella acotaba la
+ * SECCIÓN entera (escena incluida) y esta acota solo el contenido —
+ * reutilizarla escondería el cambio de sujeto. Mismo criterio y mismas
+ * palabras que `FEATURES_CONTENT_MAX_WIDTH` (`features.layers.ts`) cuando
+ * reemplazó a `FEATURES_DARK_MAX_WIDTH`.
+ */
+export const CONTACT_CONTENT_MAX_WIDTH = "1280px";
+
+/**
+ * Tope de ancho de la PAREJA de columnas (copia + tarjeta de formulario)
+ * DENTRO del marco de 1280px, y alineada a la izquierda
+ * (`margin-inline-end: auto` en `ScDarkContent`, `Contact.tsx`). D20,
+ * añadida durante la verificación en navegador de la escena anterior — ver
+ * §12 de la spec `2026-08-03-contacto-footer-oscuro-design.md`.
+ *
+ * Espejado 2026-08-04: la escena de fondo pasó de `ContactNeonGalaxy`
+ * (figura y orbes a la izquierda, vacío a la derecha) a
+ * `ContactCosmicGuardian` (figura en la mitad DERECHA del lienzo, 60.71% a
+ * 83.74% del ancho — dato de
+ * `assets/contact-cosmic-guardian/manifest.json`, `geometry.figureSide`), así
+ * que el lado que le sobra al contenido para no pisar la masa luminosa
+ * cambió de la derecha a la izquierda: la pareja deja de pegarse a la
+ * derecha (`margin-inline-start: auto`) y pasa a pegarse a la izquierda
+ * (`margin-inline-end: auto`).
+ *
+ * Por qué sigue haciendo falta un tope y por qué es un `min()` con un
+ * segundo tope en `vw` (`CONTACT_CONTENT_PAIR_MAX_VW`, abajo) y no un número
+ * suelto: la escena se pinta con `object-fit: cover`, así que su encuadre se
+ * reescala con el viewport y el borde de la masa luminosa de la figura **no
+ * vive en un píxel fijo, vive en una fracción del ancho del viewport** — el
+ * mismo argumento geométrico que sostenía el tope de la escena anterior,
+ * solo que ahora el borde relevante es el IZQUIERDO de la figura (60.71%
+ * del lienzo) en vez del derecho. Un tope solo en `px` deja de proteger en
+ * cuanto el viewport es lo bastante estrecho como para que ese `%` del
+ * lienzo caiga por debajo del tope fijo — el mismo fallo que documentó D20
+ * para `ContactNeonGalaxy` a 1200×800.
+ *
+ * **Los dos valores heredados de la escena saliente (800px y 58vw) se han
+ * MEDIDO contra el arte nuevo y se conservan.** Método: recompuestas las 3
+ * capas más la viñeta en un canvas del tamaño del viewport, con el mismo
+ * `cover` + `scale(CONTACT_GUARDIAN_OVERSCAN)` y el mismo `screen` del
+ * polvo que producción, y contados los píxeles con luminancia relativa
+ * > 0.2 en franjas de 20px. El borde izquierdo de la masa luminosa de la
+ * guardiana cae en el 65% del ancho a 1440 (x=940), el 67% a 1200 (x=800)
+ * y el 69% a 992 (x=680); la pareja termina en 912, 728 y 607
+ * respectivamente, siempre por delante. No hace falta tocar los números:
+ * la fracción del ancho donde arranca la figura resultó ser muy parecida a
+ * la que tenía la escena anterior por el otro lado.
+ */
+export const CONTACT_CONTENT_PAIR_MAX = "800px";
+
+/**
+ * Segundo tope de la misma pareja, en unidades de VIEWPORT, que se combina
+ * con el anterior mediante `min()` en `ScDarkContent` (`Contact.tsx`) — ver
+ * el porqué del `min()` de dos topes en el docblock de
+ * `CONTACT_CONTENT_PAIR_MAX`, arriba.
+ *
+ * Espejado 2026-08-04 junto con `CONTACT_CONTENT_PAIR_MAX`, y **medido**: el
+ * 58vw heredado de `ContactNeonGalaxy` resulta seguir valiendo contra
+ * `ContactCosmicGuardian`. La pareja termina en el 63% del ancho (58vw más
+ * el padding del marco) y el borde izquierdo de la figura arranca en el
+ * 65-69% según el viewport, así que el margen se mantiene en todo el rango
+ * medido (992, 1200 y 1440). Que el número sobreviva al espejado no es
+ * suerte: los dos kits sitúan su figura a una distancia parecida del borde
+ * del lienzo, solo que por lados opuestos.
+ *
+ * Por debajo de `lg` no aplica ningún tope (ni este ni
+ * `CONTACT_CONTENT_PAIR_MAX`): las columnas se apilan a ancho completo y es
+ * la viñeta de la escena (`ScVignette` en
+ * `contactCosmicGuardian.parts.tsx`), no un tope de ancho, quien resuelve la
+ * legibilidad en ese régimen — mismo criterio documentado en `Contact.tsx`
+ * junto al `@media` que consume estas dos constantes. **El corte es `lg` y
+ * no `md`**: entre 768 y 991 las dos columnas siguen apiladas, así que un
+ * régimen lateral ahí dejaba texto a ancho completo sin velo — medido a
+ * 768×900, el peor píxel bajo el kicker daba 1.83:1. Con el corte en `lg`,
+ * 10.16:1.
+ */
+export const CONTACT_CONTENT_PAIR_MAX_VW = "58vw";
+
+/** Fondo/borde de las tres tarjetas de contacto (mockup L63/67/71, idéntico
+ *  en las tres): blanco translúcido sobre el negro de la escena de fondo
+ *  (`ContactCosmicGuardian` desde 2026-08-04), no un rol semántico — mismo criterio D10 que el resto
+ *  de este fichero (composición propia, no token de UI). */
+export const CONTACT_CARD_BG_DARK = "oklch(1 0 0 / 0.05)";
+export const CONTACT_CARD_BORDER_DARK = "oklch(1 0 0 / 0.12)";
+
+/** Fondo/borde de la tarjeta del formulario (mockup L87): mismo blanco
+ *  translúcido que las tarjetas de contacto pero con su propia alfa de fondo
+ *  (`.04` frente a `.05`) — constante independiente aunque el borde coincida
+ *  numéricamente con `CONTACT_CARD_BORDER_DARK`, para no acoplar dos piezas
+ *  que el mockup declara por separado. */
+export const CONTACT_FORM_BG = "oklch(1 0 0 / 0.04)";
+export const CONTACT_FORM_BORDER = "oklch(1 0 0 / 0.12)";
+
+/**
+ * Halo radial superior de Contacto (mockup L52, bloque `globeGlow`):
+ * degradado, geometría y desenfoque VERBATIM (D18 — hue `311.928` de
+ * `palette.secondary`, pero con croma/paradas que no coinciden con ningún
+ * paso de la rampa). Marca visualmente la costura con Features, igual que el
+ * haz de `SectionBeam` marca el borde exacto pero con una mancha de luz más
+ * amplia y difusa detrás.
+ */
+export const CONTACT_TOP_GLOW_GRADIENT =
+  "radial-gradient(ellipse 55% 100% at 50% 0%, oklch(0.5 0.18 311.928 / 0.34), transparent 72%)";
+export const CONTACT_TOP_GLOW_WIDTH = "70%";
+export const CONTACT_TOP_GLOW_HEIGHT = "140px";
+export const CONTACT_TOP_GLOW_BLUR = "24px";
+
+/** Duración de `glowPulse` (mockup L28/L52: `animation:glowPulse 7s
+ *  ease-in-out infinite`). Infinita — se declara solo bajo
+ *  `prefers-reduced-motion: no-preference` en `Contact.tsx`, con su propio
+ *  `animation: none` explícito en el bloque `reduce` (mismo criterio D8 que
+ *  `sectionBeam.layers.ts`). */
+export const CONTACT_TOP_GLOW_PULSE_MS = 7000;

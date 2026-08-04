@@ -191,6 +191,29 @@ describe("Home (pagina completa)", () => {
    * (spec 2026-07-29-story-dark-cosmic-heart-design.md, D2) ya no aplica --
    * las 4 se montan SIEMPRE, en los dos temas. El hero y el footer siguen
    * presentes en los dos temas (D6 del spec anterior).
+   *
+   * TIMEOUT EXPLICITO (2026-08-03, spec
+   * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`
+   * §12): este es el render SINCRONO mas pesado de toda la suite -- la
+   * pagina entera en oscuro monta las 4 escenas de parallax (31 imagenes
+   * entre Story, Journey, Features y Contact), el hero, las tres tarjetas y
+   * el formulario de Contacto, los dos haces de costura y el campo de
+   * estrellas del footer. MEDIDO en aislamiento con la maquina descargada:
+   * **3830 ms**, contra los 5000 ms que Vitest da por defecto. Ese margen del
+   * 23% no sobrevive a la contencion de CPU de los workers por defecto
+   * (`pnpm test` a secas), y el fallo resultante es un timeout, no una
+   * asercion: no dice nada sobre el producto.
+   *
+   * El presupuesto de 5000 ms no lo eligio nadie para este caso: es el
+   * defecto de la herramienta. Se sube a 15000 ms para que la señal del test
+   * sea "las 4 secciones se montan en oscuro" y no "cuantos nucleos tenia
+   * libres la maquina". Antes de subirlo se recorto lo que SI era coste
+   * evitable: el campo de estrellas del footer pasaba su variacion por props
+   * interpoladas, lo que generaba una clase de styled-components por
+   * estrella; con propiedades personalizadas en el atributo `style` el
+   * template es estatico y son 850 ms menos (ver el docblock de `ScStar` en
+   * `Footer.tsx`, con la medida). El timeout es lo que queda DESPUES de esa
+   * optimizacion, no en lugar de ella.
    */
   it("con el tema de pagina en OSCURO (real), se montan las 4 secciones ademas del hero y el footer", () => {
     window.localStorage.setItem("vti-theme", "dark");
@@ -201,7 +224,7 @@ describe("Home (pagina completa)", () => {
     for (const id of ["story", "journey", "features", "contact"]) {
       expect(container.querySelector(`section#${id}`)).not.toBeNull();
     }
-  });
+  }, 15000);
 
   /*
    * BUG CONOCIDO (preexistente, ajeno a los dos objetivos de la entrega):

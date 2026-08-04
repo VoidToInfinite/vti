@@ -7,6 +7,7 @@ import {
   FEATURES_OVERLAY_RISE,
   FEATURES_DARK_HEIGHT,
   FEATURES_CONTENT_MAX_WIDTH,
+  FEATURES_TAIL_HOLD,
 } from "./features.layers";
 import {
   JOURNEY_DARK_HEIGHT,
@@ -455,6 +456,102 @@ describe("Features en tema oscuro", () => {
 });
 
 /*
+ * Zona de "hold" al final de la sección oscura (D3/D4/D5, spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`, tests
+ * §7.1.1-3/5). Mismo criterio que el resto del fichero: aserciones sobre el
+ * TEXTO del CSS inyectado (`cssRuleTextFor`/`injectedCss`), nunca
+ * `getComputedStyle` de algo que jsdom no evalúa (ningún `@media`, lección
+ * repo 2026-07-27), y la línea concreta de un bloque `reduce` -- nunca un
+ * troceo del stylesheet acumulado (lección repo 2026-08-02). La invariante
+ * D4 (`FEATURES_TAIL_HOLD === CONTACT_OVERLAY_RISE`) NO vive aquí: vive en
+ * `Contact.test.tsx`, la sección que SUBE, mismo criterio que la invariante
+ * D5 Journey↔Features vive en este fichero y no en `journey.layers.ts`.
+ */
+describe("zona de hold al final de Features (D3/D4/D5, spec 2026-08-03)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("el CSS de ScDarkTail declara height leyendo FEATURES_TAIL_HOLD, no un literal a mano", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const tail = section.lastElementChild as HTMLElement;
+    const tailCss = cssRuleTextFor(tail);
+    expect(tailCss).toContain(`height: ${FEATURES_TAIL_HOLD}`);
+  });
+
+  it("bajo prefers-reduced-motion el hold colapsa a height: 0 (guard D5)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const tail = section.lastElementChild as HTMLElement;
+    const tailCss = cssRuleTextFor(tail);
+    const tailReduceLine = tailCss
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("height"),
+      );
+    expect(tailReduceLine).toBeDefined();
+    expect(tailReduceLine).toMatch(/height:\s*0[;}]/);
+  });
+
+  // Falsable (verificado a mano, ver informe): revertir el slot a
+  // `grid-area: 1 / 1` pone este test en rojo -- deja de haber `grid-row`
+  // con `span 2` y reaparece la cadena `grid-area: 1 / 1`.
+  it("el slot de la escena abarca las dos filas (grid-row: span 2) y ya no declara grid-area: 1 / 1", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const slot = section.firstElementChild as HTMLElement;
+    const slotCss = cssRuleTextFor(slot);
+
+    // Sonda positiva: el slot sigue declarando su columna, para que la
+    // ausencia de grid-area no pueda pasar por vacuidad (helper roto, clase
+    // equivocada, etc.)
+    expect(slotCss).toContain("grid-column: 1");
+    expect(slotCss).toMatch(/grid-row:\s*1\s*\/\s*span 2/);
+    expect(slotCss).not.toContain("grid-area: 1 / 1");
+  });
+
+  it("no-regresion: ScFeatures sigue sin ninguna declaracion overflow y conserva el solape con su guard", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const sectionCss = cssRuleTextFor(section);
+    expect(sectionCss).not.toMatch(/overflow/);
+
+    const css = injectedCss();
+    expect(css).toContain(
+      `margin-block-start: calc(-1 * ${FEATURES_OVERLAY_RISE})`,
+    );
+    const featuresReduceLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("margin-block-start"),
+      );
+    expect(featuresReduceLine).toBeDefined();
+    expect(featuresReduceLine).toMatch(/margin-block-start:\s*0[;}]/);
+  });
+});
+
+/*
  * Invariante D5 (spec `2026-08-02-features-overlay-celestial-orbital-design.md`,
  * test §7.6). Es el ÚNICO punto del repo donde los datos de Features y
  * Journey se miran a la cara: el solape de Features (`FEATURES_OVERLAY_RISE`)
@@ -469,5 +566,35 @@ describe("invariante solape de Features ↔ cola de la pista de Journey (D5)", (
   it("FEATURES_OVERLAY_RISE mide exactamente un stage de Journey, y ese stage se reserva con una pantalla de hold (test 6)", () => {
     expect(FEATURES_OVERLAY_RISE).toBe(JOURNEY_DARK_HEIGHT);
     expect(JOURNEY_DECK_TAIL_SCREENS).toBe(1);
+  });
+});
+
+/*
+ * Segunda invariante geométrica de esta sección, DENTRO de su propio fichero
+ * de datos (spec `2026-08-03-contacto-footer-oscuro-design.md`, D3/D4;
+ * añadida tras la auditoría adversarial, que la señaló como el único punto
+ * de la entrega sin candado propio).
+ *
+ * Derivación, con `F` = inicio de `ScFeatures` en documento y `c` = alto real
+ * de `ScDarkFrame`: el slot de la escena abarca las dos filas del grid, así
+ * que se despega en `F + c + FEATURES_TAIL_HOLD − FEATURES_DARK_HEIGHT`;
+ * Contacto, tras su margen negativo, cubre el viewport en
+ * `F + c + FEATURES_TAIL_HOLD − CONTACT_OVERLAY_RISE`. Los dos instantes
+ * coinciden —que es lo que hace que el relevo no tenga costura— solo si
+ * `FEATURES_DARK_HEIGHT === CONTACT_OVERLAY_RISE`; y como otro test ya ata
+ * `CONTACT_OVERLAY_RISE === FEATURES_TAIL_HOLD` (`Contact.test.tsx`), basta
+ * con cerrar aquí el eslabón que falta: la altura del slot contra el hold.
+ *
+ * Hoy las dos valen `"100dvh"`, así que el test no cambia nada de color —
+ * pero esa igualdad es una COINCIDENCIA DE VALOR mientras nadie la escriba.
+ * Es exactamente el patrón que este repo tiene documentado como insuficiente
+ * (`task/lessons.md`, 2026-08-02: una invariante entre dos datos no la
+ * sostiene un comentario), agravado porque las dos constantes viven en el
+ * MISMO fichero y sus docblocks no se citaban mutuamente: cualquiera podría
+ * retocar una de las dos creyendo que son independientes.
+ */
+describe("invariante alto del slot de la escena ↔ zona de hold (D3/D4)", () => {
+  it("FEATURES_DARK_HEIGHT y FEATURES_TAIL_HOLD miden lo mismo, o el relevo con Contacto deja costura", () => {
+    expect(FEATURES_DARK_HEIGHT).toBe(FEATURES_TAIL_HOLD);
   });
 });

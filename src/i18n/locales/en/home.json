@@ -128,7 +128,26 @@
             "email": "hello@voidtoinfinite.com",
             "cta": "Contact via email",
             "ctaAria": "Contact via email — opens your email application",
-            "figureAlt": "Celestial figure waving hello"
+            "figureAlt": "Celestial figure waving hello",
+            "cards": {
+                "community": {
+                    "title": "Join the community",
+                    "value": "discord.gg/CuGhqdG3g3"
+                },
+                "code": {
+                    "title": "Explore the code",
+                    "value": "github.com/voidtoinfinite"
+                }
+            },
+            "form": {
+                "label": "Your email",
+                "placeholder": "you@email.com",
+                "help": "We’ll open your email app with the message ready to send.",
+                "submit": "Write to us",
+                "submitAria": "Write to us — opens your email app with your address already included",
+                "subject": "Hello VoidToInfinite",
+                "body": "My contact email: {{email}}"
+            }
         }
     }
 }

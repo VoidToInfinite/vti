@@ -24,6 +24,7 @@ import {
   FEATURES_OVERLAY_RISE,
   FEATURES_DARK_HEIGHT,
   FEATURES_CONTENT_MAX_WIDTH,
+  FEATURES_TAIL_HOLD,
   type FeatureKey,
 } from "./features.layers";
 
@@ -492,14 +493,27 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
  * que mide. Es además lo que pide el encargo sin condiciones: "la imagen del
  * parallax debe ocupar el ancho y alto de la pantalla del dispositivo".
  *
- * Comparte celda de grid con `ScDarkFrame` (los dos declaran
- * `grid-area: 1 / 1`; `ScFeatures` es `display: grid`) en vez de resolverse
- * con un `margin-block-end` negativo sobre este slot: ese margen negativo
- * alteraría el rectángulo de restricción del propio `sticky` y lo dejaría
- * viajar una pantalla más allá del final de la sección, pintando sobre
- * Contact. La celda compartida superpone las dos piezas sin tocar ninguna
- * caja -- mismo recurso que ya usa este repo en `ScJourneySlide`
- * (`journey.deck.tsx`), no `position: absolute`.
+ * Comparte columna de grid con `ScDarkFrame` y `ScDarkTail` (`grid-column: 1`
+ * en los tres; `ScFeatures` es `display: grid`) en vez de resolverse con un
+ * `margin-block-end` negativo sobre este slot: ese margen negativo alteraría
+ * el rectángulo de restricción del propio `sticky` y lo dejaría viajar una
+ * pantalla más allá del final de la sección, pintando sobre Contact. La
+ * celda compartida superpone las piezas sin tocar ninguna caja -- mismo
+ * recurso que ya usa este repo en `ScJourneySlide` (`journey.deck.tsx`), no
+ * `position: absolute`.
+ *
+ * ABARCA LAS DOS FILAS del grid (`grid-row: 1 / span 2`, D3/D4 de la spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`), no
+ * solo la fila 1 que ocupa `ScDarkFrame`: la fila 2 es la zona de "hold"
+ * (`ScDarkTail`, más abajo) durante la cual la escena sigue pegada sin
+ * contenido real pasando por delante, mientras Contacto sube y la cubre --
+ * ver el docblock de `ScDarkTail` para el porqué completo de esa zona. Se
+ * usa `span 2` y NO `1 / -1`: con filas IMPLÍCITAS -- este grid no declara
+ * `grid-template-rows` --, la línea `-1` resuelve a la última línea
+ * EXPLÍCITA del grid, que aquí es la línea 2 (el final de la única fila
+ * declarada, la de `ScDarkFrame`); `1 / -1` dejaría al slot SIN abarcar la
+ * fila del hold -- un fallo silencioso clásico de CSS Grid, sin ningún error
+ * en consola ni en el linter que lo delate.
  *
  * Guard de `reduce` (D15): el `sticky` en sí no es animación, pero un fondo
  * clavado mientras el texto pasa por delante es movimiento relativo, que es
@@ -510,7 +524,8 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
  * desenlace que el guard de `ScJourneySceneWrap`.
  */
 const ScDarkSceneSlot = styled.div`
-  grid-area: 1 / 1;
+  grid-column: 1;
+  grid-row: 1 / span 2;
   align-self: start;
   position: sticky;
   top: 0;
@@ -522,21 +537,32 @@ const ScDarkSceneSlot = styled.div`
 `;
 
 /*
- * Marco del contenido (D7/D8): comparte celda de grid con `ScDarkSceneSlot`
- * (ver su docblock, arriba) y es quien centra/topa el CONTENIDO
- * (`FEATURES_CONTENT_MAX_WIDTH`, D8) mientras la escena, en la celda
- * hermana, mide siempre una pantalla exacta. `min-height` en vez de una
- * altura fija: si el contenido real desborda una pantalla (viewports de
- * portátil, D7), el marco crece con él y arrastra a `ScFeatures` -- que ya
- * no tiene alto propio -- en vez de recortarlo. `z-index: 1`: dentro de la
- * sección tiene que ganar la pintura sobre `ScDarkSceneSlot`, que no declara
- * ninguno (la escalera de página, D11, ya la fija `ScFeatures`).
- * `justify-content: flex-end`: el contenido va a la DERECHA (el vacío del
- * fondo está a la derecha en esta composición, al revés que Story/Journey)
- * -- mismo criterio que la sección conservaba antes de esta entrega.
+ * Marco del contenido (D7/D8): comparte columna y fila 1 de grid con
+ * `ScDarkSceneSlot` (`grid-column: 1; grid-row: 1` -- el slot, además, se
+ * extiende a la fila 2 del hold, ver su docblock arriba) y es quien
+ * centra/topa el CONTENIDO (`FEATURES_CONTENT_MAX_WIDTH`, D8) mientras la
+ * escena, en la celda hermana, mide siempre una pantalla exacta. `min-height`
+ * en vez de una altura fija: si el contenido real desborda una pantalla
+ * (viewports de portátil, D7), el marco crece con él y arrastra a
+ * `ScFeatures` -- que ya no tiene alto propio -- en vez de recortarlo.
+ * `z-index: 1`: dentro de la sección tiene que ganar la pintura sobre
+ * `ScDarkSceneSlot`, que no declara ninguno (la escalera de página, D11, ya
+ * la fija `ScFeatures`). `justify-content: flex-end`: el contenido va a la
+ * DERECHA (el vacío del fondo está a la derecha en esta composición, al
+ * revés que Story/Journey) -- mismo criterio que la sección conservaba antes
+ * de esta entrega.
+ *
+ * `align-items: center` es precisamente por lo que este marco NO puede
+ * ceder su fila al hold con un `padding-block-end` propio (D3/D4, spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`): un
+ * padding inferior aquí desplazaría el centro del contenido real MEDIA
+ * PANTALLA hacia arriba en vez de solo añadir una zona muda al final -- ver
+ * el docblock de `ScDarkTail`, más abajo, para el porqué completo de la zona
+ * de hold.
  */
 const ScDarkFrame = styled.div`
-  grid-area: 1 / 1;
+  grid-column: 1;
+  grid-row: 1;
   position: relative;
   z-index: 1;
   min-height: ${FEATURES_DARK_HEIGHT};
@@ -548,6 +574,61 @@ const ScDarkFrame = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
+`;
+
+/*
+ * Zona de "hold" al final de la sección oscura (D3/D4/D5, spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`):
+ * tercer hijo de grid, `grid-column: 1; grid-row: 2`, que reserva una
+ * pantalla de recorrido de scroll SIN contenido real -- durante ese tramo
+ * solo se ve la escena pegada (`ScDarkSceneSlot`, arriba, que por eso abarca
+ * también esta fila), mientras Contacto sube desde el borde inferior del
+ * viewport y la cubre. Altura leída de `FEATURES_TAIL_HOLD`
+ * (`features.layers.ts`, ver su docblock para la invariante con
+ * `CONTACT_OVERLAY_RISE` y el precedente de `JOURNEY_DECK_TAIL_SCREENS`).
+ * `pointer-events: none`: es una caja vacía y `aria-hidden` que no debe
+ * interceptar ningún puntero sobre lo que se ve detrás (la escena pegada).
+ *
+ * Por qué esta zona no se resuelve con padding en vez de un hijo propio:
+ * - `padding-block-end` en `ScFeatures` NO sirve porque `position: sticky`
+ *   está confinado a su ÁREA DE GRID, no a la caja de padding del elemento
+ *   que lo contiene -- con padding en la sección, el área de la fila 1
+ *   (donde vive `ScDarkSceneSlot` hoy) seguiría terminando donde termina el
+ *   contenido, y la escena se despegaría UNA PANTALLA ANTES de que Contacto
+ *   la cubra: se vería una pantalla de fondo plano (`background-color` de
+ *   `ScFeatures`) entre el fin de la escena y el principio de Contacto.
+ * - `padding-block-end` en `ScDarkFrame` TAMPOCO sirve: es
+ *   `align-items: center` (ver su docblock, arriba), así que un padding
+ *   inferior desplazaría el centro de su contenido real MEDIA PANTALLA hacia
+ *   arriba -- las tres identidades quedarían descentradas en vez de solo
+ *   ganar una zona muda al final.
+ *
+ * Por eso el hold es una CAJA propia que amplía el área del grid sin tocar
+ * ninguna de las dos cajas anteriores, y es lo que obliga al slot de la
+ * escena a abarcar DOS filas en vez de una (`grid-row: 1 / span 2`, ver el
+ * docblock de `ScDarkSceneSlot`).
+ *
+ * Guard de `reduce`: `height: 0`, NO `display: none`. Con `display: none` el
+ * elemento deja de generar caja y el grid pasaría a tener SOLO la fila 1 --
+ * el `span 2` del slot dejaría de tener una segunda fila que abarcar y la
+ * FORMA del grid cambiaría entre modos. Con `height: 0` la fila sigue
+ * existiendo (mide 0px) y el `span 2` del slot sigue siendo una declaración
+ * válida en los dos modos. Bajo `reduce` el hold en sí SOBRA: ninguna
+ * sección de la página queda pegada (`ScDarkSceneSlot` pasa a
+ * `position: static`, ver su guard) y el solape de Contacto se anula
+ * (`margin-block-start: 0`, guard de D5 en la spec de Contacto), así que una
+ * pantalla de hold sería scroll muerto sin nada que sostener: perder
+ * movimiento es aceptable, un tramo de scroll sin nada detrás no lo es.
+ */
+const ScDarkTail = styled.div`
+  grid-column: 1;
+  grid-row: 2;
+  height: ${FEATURES_TAIL_HOLD};
+  pointer-events: none;
+
+  @media (prefers-reduced-motion: reduce) {
+    height: 0;
+  }
 `;
 
 /* Reveal de la rama oscura: mismo mecanismo que `ScDarkContent` en
@@ -697,6 +778,7 @@ export function Features(): ReactElement {
             </ScDarkFeatures>
           </ScDarkContent>
         </ScDarkFrame>
+        <ScDarkTail aria-hidden="true" />
       </ScFeatures>
     );
   }

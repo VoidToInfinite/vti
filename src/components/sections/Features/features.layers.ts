@@ -256,3 +256,36 @@ export const FEATURES_DARK_HEIGHT = "100dvh";
  * reemplazó a `JOURNEY_PORTAL_MAX_WIDTH`.
  */
 export const FEATURES_CONTENT_MAX_WIDTH = "1280px";
+
+/**
+ * Zona de "hold" al final de la sección oscura de Features (D3/D4/D5, spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`): una
+ * pantalla completa durante la cual la escena (`FeaturesCelestialOrbital`,
+ * pegada en `ScDarkSceneSlot`, `Features.tsx`) se queda sola, sin contenido
+ * real pasando por delante, mientras Contacto sube desde el borde inferior
+ * del viewport y la cubre. Se materializa como un tercer hijo de grid,
+ * `ScDarkTail` (`Features.tsx`), no como padding de la sección ni del marco
+ * de contenido — ver el docblock de `ScDarkTail` para el porqué completo de
+ * cada descarte.
+ *
+ * DEBE valer EXACTAMENTE lo mismo que `CONTACT_OVERLAY_RISE`
+ * (`src/components/sections/Contact/contact.layers.ts`): si el hold es MENOR
+ * que el solape de Contacto, asoma una banda de contenido REAL de Features
+ * sin tapar entre las dos secciones; si es MAYOR, queda una pantalla de
+ * scroll muerto antes de que Contacto empiece a subir. Las dos constantes
+ * viven en ficheros de datos de secciones distintas a propósito — importar
+ * una desde la otra acoplaría los datos de Features y Contacto, que no se
+ * conocen entre sí — así que la igualdad NO se declara aquí en prosa: la ata
+ * un test que importa los dos ficheros (`Contact.test.tsx`, la sección que
+ * SUBE, mismo criterio que la invariante Journey↔Features vive en
+ * `Features.test.tsx` y no en `journey.layers.ts`).
+ *
+ * Precedente exacto: `JOURNEY_DECK_TAIL_SCREENS` (`journey.layers.ts`) hace
+ * lo mismo un peldaño más arriba de la página (Journey↔Features), pero allí
+ * es un NÚMERO DE PANTALLAS que consume `useSlideDeck` (`tailScreens`) porque
+ * Journey es una presentación de diapositivas con una pista que ese hook
+ * dimensiona. Features no tiene deck — no hay pista ni `useSlideDeck` que
+ * consuma un recuento de pantallas — así que aquí el hold se declara
+ * directamente como CAJA: una `height` de grid, no un factor de una fórmula.
+ */
+export const FEATURES_TAIL_HOLD = "100dvh";
