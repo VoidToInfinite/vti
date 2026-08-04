@@ -6,7 +6,7 @@ import { Contact } from "./Contact/Contact";
 
 /*
  * Las 4 secciones ya tienen tratamiento propio para los dos temas
- * (StoryCosmicHeart, JourneyAstralPathway, FeaturesCelestialGuide,
+ * (StoryCosmicBeing, JourneyCosmicPortal, FeaturesCelestialOrbital,
  * ContactNeonGalaxy — construidas seccion por seccion, encargo del
  * usuario). El gate por tema que este componente tenia (spec
  * 2026-07-29-story-dark-cosmic-heart-design.md, D2) ya no aporta nada: las

@@ -175,11 +175,12 @@ describe("Hero + Story (integracion)", () => {
     );
   });
 
-  it("el hero pasa AA sobre el negro del lienzo, kicker y anillo de foco incluidos", () => {
-    // El kicker usa un rol de color distinto al del resto de la copia
-    // (brandText); nadie medía su contraste sobre el negro del ojo. Esto es
-    // exclusivamente del Hero (fuera de alcance de esta entrega) y sigue
-    // valiendo tal cual.
+  it("el hero pasa AA sobre el negro del lienzo, degradado de marca y anillo de foco incluidos", () => {
+    // brandText es una parada del degradado detras del tramo "ToInfinite" del
+    // titulo y del label del CTA secundario (heroGradient/gradientTextClip,
+    // BrandName.tsx), un rol de color distinto al del resto de la copia;
+    // nadie medía su contraste sobre el negro del ojo. Esto es exclusivamente
+    // del Hero (fuera de alcance de esta entrega) y sigue valiendo tal cual.
     expect(
       contrastRatio(semanticDark.text, EYE_SURFACE),
     ).toBeGreaterThanOrEqual(4.5);
@@ -191,24 +192,20 @@ describe("Hero + Story (integracion)", () => {
     ).toBeGreaterThanOrEqual(3);
   });
 
-  it("el kicker del hero computa el color de marca del tema oscuro (pagina en oscuro)", () => {
-    window.localStorage.setItem("vti-theme", "dark");
-    const container = renderPage();
-    const kicker = container.querySelector(
-      '[data-testid="hero-kicker"]',
-    ) as HTMLElement;
-
-    expect(window.getComputedStyle(kicker).color).toBe(semanticDark.brandText);
-  });
-
-  it("el kicker del hero computa el color de marca del tema claro (pagina en claro, por defecto)", () => {
-    const container = renderPage();
-    const kicker = container.querySelector(
-      '[data-testid="hero-kicker"]',
-    ) as HTMLElement;
-
-    expect(window.getComputedStyle(kicker).color).toBe(semanticLight.brandText);
-  });
+  /*
+   * COBERTURA PERDIDA (usuario retiro <ScKicker> de Hero.tsx, ver informe):
+   * las dos pruebas que vivian aqui aseveraban `getComputedStyle(...).color`
+   * del kicker contra `semanticDark.brandText`/`semanticLight.brandText` --
+   * el color de marca por tema. Sin el kicker no queda ningun elemento del
+   * hero que resuelva `brandText` como su propiedad `color` PLANA (fuera de
+   * un `@media`): el titulo y el label del CTA secundario si consumen
+   * brandText, pero como PARADA de un `background-image` degradado recortado
+   * a texto (`heroGradient`/`gradientTextClip`, BrandName.tsx), nunca como
+   * `color` propio -- su unica declaracion de `color: brandText` vive dentro
+   * de `@media (prefers-reduced-motion: reduce)` y `@supports not
+   * (background-clip: text)`, que jsdom no evalua para getComputedStyle (ver
+   * CLAUDE.md). No hay reapunte fiel: se elimina sin sustituto.
+   */
 
   it("el pie del hero mide space[8] y cierra en el negro del lienzo", () => {
     // La altura y el degradado NO cambian con el tema -- la rampa violeta
@@ -231,7 +228,9 @@ describe("Hero + Story (integracion)", () => {
     // getComputedStyle de jsdom no evalua @media, pero el CSS inyectado si
     // es inspeccionable: al menos queda atornillado que la regla existe.
     const container = renderPage();
-    const copiaHero = container.querySelector('[data-testid="hero-kicker"]')
+    // Se llega al contenedor (ScCopy) por el parentElement del titulo, el
+    // primer hijo que sigue existiendo tras retirarse el kicker.
+    const copiaHero = container.querySelector('[data-testid="hero-title"]')
       ?.parentElement as HTMLElement;
     const storyGrid = container.querySelector(
       "#story [data-revealed]",
@@ -258,7 +257,6 @@ describe("Hero + Story (integracion)", () => {
           .querySelector(`[data-testid="${id}"]`)
           ?.textContent?.trim() as string;
 
-      expect(texto("hero-kicker")).toBe(enHome.Home.hero.kicker);
       expect(texto("hero-subtitle")).toBe(enHome.Home.hero.subtitle);
       expect(texto("hero-subtitle")).not.toBe(esHome.Home.hero.subtitle);
 

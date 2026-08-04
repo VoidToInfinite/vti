@@ -21,23 +21,29 @@
             "titleAccent": "to creation.",
             "body": "VoidToInfinite is a space where learning meets imagination and play drives progress. We explore ideas, build meaningful skills and transform curiosity into experiences that can be shared with others.",
             "note": "Every idea can become a new beginning.",
+            "noteLead": "Every idea can become a",
+            "noteAccent": "new beginning.",
             "figureAlt": "Celestial figure pointing upward",
             "pillars": {
                 "learn": {
                     "title": "Learn with purpose",
-                    "body": "Knowledge that inspires understanding and opens new possibilities."
+                    "body": "Knowledge that inspires understanding and opens new possibilities.",
+                    "inspiration": "Start with a question that unsettles you. Follow it even when it leads somewhere else. What you learn this way does not fade. It stays, and it changes how you see the next thing."
                 },
                 "create": {
                     "title": "Create with clarity",
-                    "body": "Ideas become meaningful when they can be explored, built and shared."
+                    "body": "Ideas become meaningful when they can be explored, built and shared.",
+                    "inspiration": "A vague idea cannot defend itself. Build it, shape it, show it to someone. The moment it exists outside your head, it starts getting better. So do you."
                 },
                 "grow": {
                     "title": "Grow together",
-                    "body": "Learning becomes infinite when knowledge moves between people."
+                    "body": "Learning becomes infinite when knowledge moves between people.",
+                    "inspiration": "Nobody gets far explaining things only to themselves. Say what you know, even if it feels small. Someone needed it today. Tomorrow you will be the one who needs it."
                 },
                 "practice": {
                     "title": "Practice makes it real",
-                    "body": "Knowledge only becomes yours once you try it — stumbles, redos and all."
+                    "body": "Knowledge only becomes yours once you try it — stumbles, redos and all.",
+                    "inspiration": "Read less, try more. Break something on purpose and fix it. A mistake you understand beats an answer you copied. That is where knowledge becomes yours."
                 }
             }
         },
@@ -122,7 +128,26 @@
             "email": "hello@voidtoinfinite.com",
             "cta": "Contact via email",
             "ctaAria": "Contact via email — opens your email application",
-            "figureAlt": "Celestial figure waving hello"
+            "figureAlt": "Celestial figure waving hello",
+            "cards": {
+                "community": {
+                    "title": "Join the community",
+                    "value": "discord.gg/CuGhqdG3g3"
+                },
+                "code": {
+                    "title": "Explore the code",
+                    "value": "github.com/voidtoinfinite"
+                }
+            },
+            "form": {
+                "label": "Your email",
+                "placeholder": "you@email.com",
+                "help": "We’ll open your email app with the message ready to send.",
+                "submit": "Write to us",
+                "submitAria": "Write to us — opens your email app with your address already included",
+                "subject": "Hello VoidToInfinite",
+                "body": "My contact email: {{email}}"
+            }
         }
     }
 }

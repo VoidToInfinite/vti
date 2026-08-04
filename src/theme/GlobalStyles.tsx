@@ -9,6 +9,14 @@ export const GlobalStyles = createGlobalStyle`
        flotante. Un token de tema obligaría a leerla desde JS en un sitio y
        desde CSS en otro. */
     --nav-height: 3.5rem;
+    /* Separación de la píldora del navbar al despegarse en scroll. Vive
+       aquí, y no en los tokens de tema, por el mismo motivo que
+       --nav-height: es una medida de LAYOUT que consumen dos sitios sin
+       poder derivarla el uno del otro — el Navbar (que la aplica como
+       margen/hueco lateral) y el margen de scroll de las secciones
+       ancladas, que ahora tiene que descontar la barra MÁS esta
+       separación. */
+    --nav-gap: 0.5rem;
   }
 
   *,
@@ -40,11 +48,38 @@ export const GlobalStyles = createGlobalStyle`
 
     -webkit-overflow-scrolling: touch;
     overflow-scrolling: touch;
+
+    /* AQUI VIVIO scroll-snap-type: y proximity, para la presentacion de
+       Story. RETIRADO el 2026-07-31 tras medirlo en navegador: se ejecuto
+       el plan de retirada que la propia spec dejaba escrito (D3).
+
+       El motivo: las anclas de la presentacion miden exactamente una
+       pantalla, asi que CUALQUIER posicion de scroll cae siempre a menos de
+       media pantalla de un ancla. Con esa geometria, proximity deja de
+       comportarse como proximity y degenera en mandatory: el scroller
+       captura casi cualquier parada. Medido pidiendo posiciones concretas y
+       viendo donde aterrizaba de verdad -- 900 -> 720, 1200 -> 1440,
+       3100 -> 2880 --, es decir tirones de hasta 240px, a veces EN CONTRA
+       del sentido del gesto, y otras veces ninguno. De ahi el sintoma
+       reportado: "el scroll a veces no funciona".
+
+       La vista sigue atada sin snap: de eso se encarga el pin por
+       position: sticky del stage, que es quien mantiene la escena en
+       pantalla mientras la pista pasa por debajo. El snap solo anadia el
+       acople a cada diapositiva, y lo pagaba con el control del usuario
+       sobre su propio scroll. */
   }
 
   html,
   body {
-    overflow-x: hidden;
+    /* hidden obliga al eje contrario (vertical) a computar auto, lo que
+       convierte a html/body en CONTENEDOR DE SCROLL. Un position: sticky
+       dentro se pega respecto a ESE contenedor, no respecto al viewport:
+       es la causa clasica de "sticky no pega" y rompe el pin de la
+       presentacion de Story. clip recorta el desbordamiento horizontal
+       igual que hidden, pero no crea contenedor de scroll, asi que el pin
+       queda libre de pegarse al viewport. */
+    overflow-x: clip;
   }
 
   body {
@@ -114,7 +149,7 @@ export const GlobalStyles = createGlobalStyle`
      desde el CTA del hero), el destino quedaría tapado por la barra. El
      margen de scroll lo compensa sin tocar el layout. */
   :where(section[id]) {
-    scroll-margin-top: var(--nav-height);
+    scroll-margin-top: calc(var(--nav-height) + var(--nav-gap));
   }
 
   :where(a, button, input, textarea, select, [tabindex]):focus-visible {

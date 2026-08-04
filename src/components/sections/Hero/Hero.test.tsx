@@ -130,6 +130,21 @@ describe("Hero", () => {
     expect(screen.getByRole("heading")).toHaveTextContent(/VoidToInfinite/i);
   });
 
+  /*
+   * D6 (spec 2026-08-04): `useThemeScrollReset` busca `document.getElementById
+   * ("hero")` para decidir si el usuario esta en la "zona del hero" antes de
+   * cambiar de tema. Sin este id la deteccion degrada silenciosamente a la
+   * regla de `scrollY` (ver el hook), que en una pagina con hero real seria
+   * incorrecta -- por eso este candado vive en el propio Hero, no solo en el
+   * test del hook que consume el id.
+   */
+  it("la seccion raiz tiene id='hero'", () => {
+    const { container } = renderHero();
+    const seccion = container.querySelector("section");
+    expect(seccion).not.toBeNull();
+    expect(seccion).toHaveAttribute("id", "hero");
+  });
+
   it("expone el CTA primario hacia el playground (north-star)", () => {
     renderHero();
     const cta = screen.getByRole("link", {
@@ -143,15 +158,17 @@ describe("Hero", () => {
    * comentario describia claves (Home.description, Home.additionalDescription)
    * que ya no existen, y su asercion -- "al menos un nodo contiene la palabra
    * presente" -- pasaba igual con la copia hardcodeada en el JSX. Este test es
-   * estrictamente mas fuerte: compara los tres textos contra los strings
+   * estrictamente mas fuerte: compara los dos textos contra los strings
    * IMPORTADOS del locale, asi que falla si alguien deja de pasar por i18n o
    * cambia el JSON sin querer.
+   *
+   * El kicker (Home.hero.kicker) salio de esta lista: el usuario retiro el
+   * <ScKicker> del JSX de Hero.tsx (ya no se monta), asi que ya no hay nodo
+   * que comparar. La clave sigue existiendo en el JSON -- locales.test.ts la
+   * usa para su paridad es/en -- por si se recupera el kicker mas adelante.
    */
-  it("los tres textos del bloque salen de i18n, no de literales en el JSX", () => {
+  it("los dos textos del bloque salen de i18n, no de literales en el JSX", () => {
     const { container } = renderHero();
-    expect(testId(container, "hero-kicker")).toHaveTextContent(
-      esHome.Home.hero.kicker,
-    );
     expect(testId(container, "hero-subtitle")).toHaveTextContent(
       esHome.Home.hero.subtitle,
     );
@@ -168,17 +185,15 @@ describe("Hero", () => {
     expect(headings[0]).toHaveTextContent(/VoidToInfinite/i);
   });
 
-  it("kicker es SPAN y subtitulo y apoyo son P: ninguno usurpa un encabezado", () => {
+  it("subtitulo y apoyo son P: ninguno usurpa un encabezado", () => {
     const { container } = renderHero();
-    expect(testId(container, "hero-kicker").tagName).toBe("SPAN");
     expect(testId(container, "hero-subtitle").tagName).toBe("P");
     expect(testId(container, "hero-support").tagName).toBe("P");
   });
 
-  it("el orden del DOM es kicker, titulo, subtitulo, apoyo, acciones", () => {
+  it("el orden del DOM es titulo, subtitulo, apoyo, acciones", () => {
     const { container } = renderHero();
     const orden = [
-      "hero-kicker",
       "hero-title",
       "hero-subtitle",
       "hero-support",
@@ -191,21 +206,6 @@ describe("Hero", () => {
         `${orden[i].dataset.testid} deberia preceder a ${orden[i + 1].dataset.testid}`,
       ).toBe(true);
     }
-  });
-
-  /*
-   * jsdom + styled-components v6 resuelven las reglas via window.getComputedStyle
-   * devolviendo los valores TAL COMO SE ESCRIBEN (medido en este repo:
-   * fontSize -> "0.6875rem", letterSpacing -> "0.18em"). Por eso se compara
-   * contra el token importado y no contra pixeles: jsdom no resuelve rem, clamp
-   * ni min.
-   */
-  it("el kicker computa la escala overline en caja alta", () => {
-    const { container } = renderHero();
-    const estilo = getComputedStyle(testId(container, "hero-kicker"));
-    expect(estilo.fontSize).toBe(typeTokens.scale.overline.size);
-    expect(estilo.letterSpacing).toBe(typeTokens.scale.overline.tracking);
-    expect(estilo.textTransform).toBe("uppercase");
   });
 
   /*
@@ -239,21 +239,25 @@ describe("Hero", () => {
 
   /*
    * Tarea C5/C6 (spec §7.4): mientras la fase de pagina siga en "backdrop",
-   * el intro de la copia NO ha arrancado -- los cinco hijos quedan a
+   * el intro de la copia NO ha arrancado -- los cuatro hijos quedan a
    * opacity 0 por regla ESTATICA (`&[data-intro="pending"] > *`), sin
    * ninguna animacion en marcha. Sin este test, un `data-intro="in"` por
    * defecto (en vez de derivarlo de `useStage().phase`) pasaria
    * desapercibido: el test de mas abajo, que fuerza la fase a "chrome",
    * seguiria en verde igual.
    */
-  it("la copia no anima en la fase 'backdrop': los cinco hijos quedan en opacity 0", () => {
+  it("la copia no anima en la fase 'backdrop': los cuatro hijos quedan en opacity 0", () => {
     const { container } = renderHero();
-    const copia = testId(container, "hero-kicker").parentElement;
+    // Se llega al contenedor (ScCopy) por el parentElement del titulo, el
+    // primer hijo que sigue existiendo tras retirarse el kicker: sigue
+    // siendo el mismo elemento que antes, solo cambia el gancho para
+    // alcanzarlo.
+    const copia = testId(container, "hero-title").parentElement;
     expect(copia).not.toBeNull();
     expect(copia).toHaveAttribute("data-intro", "pending");
 
     const hijos = Array.from((copia as HTMLElement).children);
-    expect(hijos).toHaveLength(5);
+    expect(hijos).toHaveLength(4);
     hijos.forEach((hijo, i) => {
       expect(
         getComputedStyle(hijo).opacity,
@@ -271,21 +275,23 @@ describe("Hero", () => {
    * Se monta en fase "chrome" (tarea C6: el intro ya no arranca en el
    * montaje, ver el test de arriba) forzando `markBackdropRevealed()` y
    * avanzando el reloj falso `HERO_CHROME_OFFSET_MS` -- la aserción exacta
-   * de los cuatro retardos, contra los mismos literales de siempre (que a su
+   * de los tres retardos, contra los mismos literales de siempre (que a su
    * vez son los que declara Hero.tsx), NO cambia: el escalonado interno de
-   * 80ms sigue siendo el mismo, solo cambia CUANDO arranca.
+   * 80ms sigue siendo el mismo, solo cambia CUANDO arranca. Con el kicker
+   * fuera, el retardo de 320ms (nth-child(5)) ya no tiene hijo que lo
+   * reciba -- la tabla se queda en tres pares en vez de cuatro.
    */
-  it("los cinco hijos del bloque entran escalonados con paso de 80ms", () => {
+  it("los cuatro hijos del bloque entran escalonados con paso de 80ms", () => {
     vi.useFakeTimers();
     try {
       const { container } = renderHeroInChrome();
-      const copia = testId(container, "hero-kicker").parentElement;
+      const copia = testId(container, "hero-title").parentElement;
       expect(copia).not.toBeNull();
       expect(copia).toHaveAttribute("data-intro", "in");
       const hijos = Array.from((copia as HTMLElement).children);
-      expect(hijos).toHaveLength(5);
+      expect(hijos).toHaveLength(4);
 
-      const esperado = ["80ms", "160ms", "240ms", "320ms"];
+      const esperado = ["80ms", "160ms", "240ms"];
       esperado.forEach((delay, i) => {
         expect(
           getComputedStyle(hijos[i + 1]).animationDelay,

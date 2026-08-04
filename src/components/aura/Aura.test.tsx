@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen, fireEvent } from "@/test/test-utils";
+import { renderWithProviders, screen, fireEvent, act } from "@/test/test-utils";
 import { Aura } from "./Aura";
 import { AURA_LAYERS } from "./aura.layers";
 import { AURA_LAYER_BLEND_MODE } from "./aura.parts";
@@ -26,10 +26,44 @@ function stubMatchMedia(fineMatches: boolean, reducedMatches = false): void {
   );
 }
 
+/**
+ * Mock de `IntersectionObserver` para la guarda de visibilidad que
+ * `useParallaxLayers` gana con el tercer argumento `sceneRef` (D3, spec
+ * 2026-08-04): jsdom no lo implementa, y `Aura` ahora SIEMPRE pasa su raiz
+ * (`ScAuraSocket`) como esa ref, asi que cualquier test de aqui que habilite
+ * el puntero fino (`stubMatchMedia(true)`) hace que el efecto llegue a
+ * `new IntersectionObserver(...)` -- sin este stub esos montajes lanzarian
+ * "IntersectionObserver is not defined". Mismo patron exacto que
+ * `useParallaxLayers.test.tsx`: `observe`/`disconnect` quedan espiados y el
+ * callback capturado en `ioTrigger` para que cada test decida cuando simular
+ * que el hero entra o sale del viewport; `ioObserveSpy` se reasigna dentro
+ * de la funcion (no una unica instancia module-level) para que "se llamo una
+ * vez" en un test no arrastre llamadas de montajes anteriores.
+ */
+let ioTrigger: (isIntersecting: boolean) => void;
+let ioObserveSpy: ReturnType<typeof vi.fn>;
+function stubIntersectionObserver(): void {
+  ioObserveSpy = vi.fn();
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe = ioObserveSpy;
+      disconnect = vi.fn();
+      constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+        ioTrigger = (v: boolean) => cb([{ isIntersecting: v }]);
+      }
+    },
+  );
+}
+
 beforeEach(() => {
   // Por defecto sin puntero fino: la mayoria de estos tests solo verifican
   // estructura/accesibilidad, no el seguimiento del cursor.
   stubMatchMedia(false);
+  // Inerte en los tests con el puntero deshabilitado (el efecto de
+  // useParallaxLayers corta en `if (!enabled) return` antes de tocar el
+  // observer), pero obligatorio para los que si lo habilitan mas abajo.
+  stubIntersectionObserver();
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -132,6 +166,11 @@ describe("Aura", () => {
     vi.stubGlobal("cancelAnimationFrame", caf);
 
     const { unmount } = renderWithProviders(<Aura />);
+    // El hero esta en pantalla al montar (escenario real): sin disparar la
+    // interseccion el bucle propio de useParallaxLayers se queda en
+    // `running = false` a la espera del primer cruce y este test dejaria de
+    // ejercitar su rAF, no el de usePointer.
+    act(() => ioTrigger(true));
     expect(raf).toHaveBeenCalled();
     unmount();
     expect(caf).toHaveBeenCalledWith(7);
@@ -150,6 +189,10 @@ describe("Aura", () => {
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
     const { container } = renderWithProviders(<Aura />);
+    // El hero esta en pantalla al montar: sin disparar la interseccion el
+    // bucle de useParallaxLayers nunca arranca (D3, guarda de visibilidad) y
+    // ninguna capa llegaria a recibir transform.
+    act(() => ioTrigger(true));
 
     // Cursor en la esquina inferior derecha del viewport => x, y -> +1.
     window.dispatchEvent(
@@ -211,5 +254,20 @@ describe("Aura", () => {
     // Se puede repetir: un segundo click vuelve a marcar el pulso.
     fireEvent.pointerDown(socket);
     expect(socket).toHaveAttribute("data-pulsing", "true");
+  });
+
+  it("D3 (spec 2026-08-04): al montar, useParallaxLayers observa la raiz de Aura (ScAuraSocket) -- antes no se instanciaba ningun IntersectionObserver", () => {
+    // Solo con el puntero habilitado el efecto de useParallaxLayers llega a
+    // leer sceneRef: con el puntero deshabilitado (el defecto del
+    // beforeEach) corta antes en `if (!enabled) return` y nunca toca el
+    // observer, asi que esta comprobacion necesita su propio
+    // stubMatchMedia(true).
+    stubMatchMedia(true);
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    renderWithProviders(<Aura />);
+
+    expect(ioObserveSpy).toHaveBeenCalledTimes(1);
   });
 });

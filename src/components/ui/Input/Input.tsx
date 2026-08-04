@@ -33,9 +33,40 @@ const ScInput = styled.input`
 
   /* El anillo de foco lo aporta GlobalStyles (:focus-visible) de forma
      global — no se redefine ni se anula (nada de outline: none) aquí. Este
-     cambio de borde es un refuerzo visual adicional, no un sustituto. */
+     cambio de borde es un refuerzo visual adicional, no un sustituto.
+
+     DECISIÓN (hallazgo 1, D7): se mantiene &:focus, NO &:focus-visible, para
+     este refuerzo de borde. Es la elección correcta para un campo de texto:
+     un input enfocado por teclado (tabulando) y uno enfocado por clic del
+     ratón quieren exactamente el mismo realce -- a diferencia de un botón,
+     donde solo el foco por teclado necesita un indicador visual porque el
+     clic ya deja claro dónde recayó la acción, un campo de texto que se va a
+     escribir necesita marcar su borde SIEMPRE que tiene el foco, sea cual
+     sea la modalidad: si solo reaccionara a :focus-visible, un clic de ratón
+     dejaría el campo activo sin ninguna señal de que ahí es donde va a
+     aparecer el texto que se escriba. */
   &:focus {
     border-color: ${({ theme }) => theme.data.semantic.borderStrong};
+  }
+
+  /* :focus-visible propio, ADEMÁS del &:focus de arriba (D7 pide un
+     tratamiento de :focus-visible en los cuatro átomos; aquí se añade sin
+     duplicar el efecto que &:focus ya cubre): un halo translúcido contra
+     semantic.focus -- el mismo rol que ya resuelve el anillo GLOBAL de
+     GlobalStyles -- que compone con él en vez de sustituirlo (propiedad
+     distinta, box-shadow, nunca outline). Como :focus-visible es siempre un
+     subconjunto de :focus (todo lo que casa con :focus-visible casa también
+     con :focus), este bloque NO repite border-color: solo añade la capa
+     nueva que &:focus todavía no cubre. Mismo patrón que Button.tsx/
+     Card.tsx/IconButton.tsx: sin transition propia, aparece tan instantáneo
+     como el propio outline global. */
+  &:focus-visible {
+    box-shadow: 0 0 0 4px
+      color-mix(
+        in oklch,
+        ${({ theme }) => theme.data.semantic.focus} 35%,
+        transparent
+      );
   }
 
   /* El borde de error se deriva del atributo aria-invalid, no de un prop

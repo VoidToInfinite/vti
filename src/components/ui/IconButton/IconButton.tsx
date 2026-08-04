@@ -63,6 +63,41 @@ const ScSquare = styled(Button)<{ $side: string; $iconSide: string }>`
     box-shadow: inset 0 0 0 1px
       color-mix(in oklch, currentColor 18%, transparent);
   }
+
+  /* :focus-visible propio (hallazgo 1, D7) — necesario AQUÍ, no solo en
+     Button.tsx: Button.tsx ya declara su propio halo por variante (rama
+     ghost incluida), pero esa regla vive en la clase de ScButton, que se
+     inyecta ANTES que la de esta capa (lección task/lessons.md 2026-07-26,
+     "styled(Base) se inyecta después del propio Base"), y el anillo de
+     descubribilidad de arriba tiene la MISMA especificidad que un selector
+     de focus-visible suelto (una clase + un selector simple, en los dos
+     casos: atributo vs. pseudo-clase pesan igual). En un empate de
+     especificidad gana el ÚLTIMO declarado en el documento, que aquí es
+     SIEMPRE esta capa — así que sin este bloque, al enfocar por teclado el
+     ghost (el variant por defecto de IconButton, y el único que usa hoy
+     ThemeToggle) el halo de Button.tsx quedaría tapado por el anillo de
+     descubribilidad, invisible en la práctica.
+     La combinación de selector atributo+focus-visible de abajo sube la
+     especificidad por encima de las dos reglas que compone (atributo +
+     pseudo-clase > solo atributo, o que solo pseudo-clase), así que gana
+     SIEMPRE, sin depender del orden de inserción — y las dos sombras
+     (anillo de descubribilidad + halo de foco) se escriben en la MISMA
+     declaración, separadas por coma, para no perder ninguna (box-shadow no
+     fusiona entre declaraciones distintas: la última gana entera).
+     Para el resto de variantes (solid/soft/outline), pasadas explícitamente
+     por el consumidor, no hace falta nada en esta capa: ninguna regla de
+     ScSquare las toca, así que el halo que Button.tsx ya declara por su
+     cuenta llega intacto. */
+  &[data-variant="ghost"]:focus-visible {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklch, currentColor 18%, transparent),
+      0 0 0 4px
+        color-mix(
+          in oklch,
+          ${({ theme }) => theme.data.semantic.focus} 35%,
+          transparent
+        );
+  }
 `;
 
 export function IconButton({

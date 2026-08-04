@@ -352,17 +352,6 @@ const ScHeroBrand = styled.div<{ $light: boolean }>`
   margin-block-start: ${({ theme }) => theme.data.space[2]};
 `;
 
-/* Las mayusculas se hacen por CSS y no en el JSON: varios lectores de pantalla
-   deletrean como siglas las cadenas escritas en caja alta, asi que el nombre
-   accesible conserva la caja natural de la traduccion. El color de marca no
-   necesita && ni !important: styled(Typography) inyecta su clase despues de la
-   de ScTypography y gana la cascada (medido en este repo). */
-const ScKicker = styled(Typography)`
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.data.semantic.brandText};
-  hyphens: manual;
-`;
-
 /* Cambio de tier: el subtitulo se despega del titular. La medida corta lo
    mantiene en dos lineas legibles de un vistazo; con los 65ch de prose a 24px
    seria una sola linea interminable.
@@ -390,10 +379,17 @@ const ScSubtitle = styled(Typography)`
    proposito -- es la linea mas ancha y sus extremos caen sobre la corona, la
    zona mas brillante e irregular de la ilustracion, donde el contraste ya esta
    en QA. La jerarquia la dan tamano, peso, tracking y espacio. */
+/* Equilibrado: de pretty a balance (encargo del usuario 2026-08-04, todo el
+   texto de cuerpo lleva text-wrap-style balance). Igual que ScBody en
+   Contact.tsx, este override tiene que actualizarse a mano aunque Typography
+   ya lo declare para sus variantes de cuerpo: styled(Typography) inyecta su
+   clase DESPUES y gana la cascada, asi que dejarlo en pretty habria dejado
+   justo esta linea del hero con el reparto antiguo. */
 const ScSupport = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   max-width: ${({ theme }) => theme.data.grid.prose};
-  text-wrap: pretty;
+  text-wrap: balance;
+  text-wrap-style: balance;
 `;
 
 /*
@@ -587,7 +583,10 @@ export function Hero(): ReactElement {
   const introState = phase === "backdrop" ? "pending" : "in";
 
   return (
-    <ScHero $light={light}>
+    <ScHero
+      $light={light}
+      id="hero"
+    >
       <HeroBackdrop />
       {/* El pie oscuro se ata al tema REAL (no a layoutTheme) para apagarse a
           la vez que el propio fondo, no con el retardo del cruce de la copia.
@@ -603,12 +602,6 @@ export function Hero(): ReactElement {
         $hidden={hidden}
         data-intro={introState}
       >
-        <ScKicker
-          variant="overline"
-          data-testid="hero-kicker"
-        >
-          {t("Home.hero.kicker")}
-        </ScKicker>
         <ScHeroBrand
           $light={light}
           data-testid="hero-title"

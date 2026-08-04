@@ -2,18 +2,111 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import { Features } from "./Features";
-import { FEATURE_KEYS } from "./features.layers";
+import {
+  FEATURE_KEYS,
+  FEATURES_OVERLAY_RISE,
+  FEATURES_DARK_HEIGHT,
+  FEATURES_CONTENT_MAX_WIDTH,
+  FEATURES_TAIL_HOLD,
+  FEATURES_GAMING_TITLE_GRADIENT,
+} from "./features.layers";
+import {
+  JOURNEY_DARK_HEIGHT,
+  JOURNEY_DECK_TAIL_SCREENS,
+} from "@/components/sections/Journey/journey.layers";
+import { FEATURES_ORBITAL_LAYERS } from "@/components/featuresCelestialOrbital/featuresCelestialOrbital.layers";
+import { themes } from "@/theme/themes";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
-let trigger: (isIntersecting: boolean) => void;
+/*
+ * `trigger` dispara TODAS las instancias de IntersectionObserver vivas, no
+ * solo la última creada (D7, encargo 2026-08-04): desde que la rama clara
+ * llama a `useSectionProgress` de forma incondicional (ver `Features()`),
+ * un render monta DOS observers a la vez -- el de `useReveal` (sobre
+ * `ScGrid`, revealRef) y el de `useSectionProgress` (sobre `ScFeatures`,
+ * featuresRef). Antes de esta entrega solo existía uno, así que "guardar el
+ * callback de la última instancia" bastaba; con dos, el segundo pisaba al
+ * primero y `trigger(true)` dejaba de disparar el reveal -- exactamente el
+ * fallo que Journey.test.tsx ya documenta para su propio caso de dos
+ * observers (`useSlideDeck` + `useSceneParallax`). No hace falta distinguir
+ * CUÁL observer es cuál para estos tests (ninguno asevera nada sobre
+ * `--features-progress`): notificar a todos con el mismo valor es
+ * suficiente y más simple que el `ioTargets`/`triggerFor` de Journey.
+ */
+let ioCallbacks: ((entries: { isIntersecting: boolean }[]) => void)[] = [];
+function trigger(isIntersecting: boolean): void {
+  ioCallbacks.forEach((cb) => cb([{ isIntersecting }]));
+}
+
+/** Texto de TODAS las reglas CSS inyectadas por styled-components hasta el
+ *  momento (mismo helper que `Journey.test.tsx`/`Story.test.tsx`). */
+function injectedCss(): string {
+  return Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    })
+    .join("\n");
+}
+
+/**
+ * Texto CSS de las reglas que styled-components inyectó para un elemento
+ * CONCRETO (mismo helper que `Journey.test.tsx`): filtra por las clases del
+ * propio elemento, así que a diferencia de `injectedCss()` no arrastra el
+ * resto del stylesheet acumulado -- imprescindible para acotar un guard de
+ * `@media` a un solo componente sin caer en la trampa ya registrada
+ * (task/lessons.md, 2026-08-02: "un test que trocea el CSS inyectado por
+ * @media se contamina con el stylesheet entero").
+ */
+function cssRuleTextFor(el: HTMLElement): string {
+  const classes = Array.from(el.classList);
+  return Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+      } catch {
+        return [];
+      }
+    })
+    .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+    .join("\n");
+}
+
+/**
+ * jsdom no implementa `window.matchMedia` -- lo necesitan tanto
+ * `useReveal`/las guardas de `prefers-reduced-motion` de los componentes
+ * como, desde esta entrega, `useSectionProgress` (D7, se llama de forma
+ * INCONDICIONAL en `Features()`, también en la rama clara que la mayoría de
+ * estos tests ejercita). `matches: false` en todas las queries: ningún test
+ * de este bloque quiere reduced-motion activo por defecto -- los tests que
+ * SÍ verifican ese guard lo hacen por TEXTO del CSS inyectado, no por el
+ * valor de retorno de `matchMedia` (jsdom no evalúa `@media`, lección repo
+ * 2026-07-27), así que este stub no interfiere con ellos.
+ */
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
 
 beforeEach(() => {
+  ioCallbacks = [];
+  stubMatchMedia();
   vi.stubGlobal(
     "IntersectionObserver",
     class {
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
-        trigger = (v) => cb([{ isIntersecting: v }]);
+        ioCallbacks.push(cb);
       }
       observe() {}
       disconnect() {}
@@ -152,18 +245,6 @@ describe("Features", () => {
     // ningún otro bloque de reduced-motion del componente (`ScCard`, `ScCta`,
     // que solo anulan el hover) declara ninguna de las dos, así que solo el
     // guard de `ScItem` puede satisfacerlas.
-    function injectedCss(): string {
-      return Array.from(document.styleSheets)
-        .flatMap((sheet) => {
-          try {
-            return Array.from(sheet.cssRules).map((rule) => rule.cssText);
-          } catch {
-            return [];
-          }
-        })
-        .join("\n");
-    }
-
     it("declara un bloque @media (prefers-reduced-motion: reduce) que fuerza el estado final revelado", () => {
       renderWithProviders(<Features />);
       const css = injectedCss();
@@ -177,6 +258,74 @@ describe("Features", () => {
       expect(reduceBlocks).toMatch(/opacity:\s*1/);
       expect(reduceBlocks).toMatch(/transform:\s*none/);
     });
+  });
+});
+
+/*
+ * Encargo 2026-08-03: los bullets van a DOS columnas solo en dispositivos
+ * grandes. Por texto del CSS inyectado y no con `getComputedStyle`: jsdom no
+ * evalua NINGUN @media al calcular estilos (lección repo 2026-07-27), asi que
+ * el estilo computado devuelve `1fr` tanto con la regla como sin ella. Se
+ * acota con `cssRuleTextFor` a las clases del PROPIO contenedor de bullets:
+ * `injectedCss()` arrastraria el resto del stylesheet y cualquier otro
+ * `repeat(2, minmax(0, 1fr))` del componente (`ScGrid` declara uno) daria un
+ * verde falso.
+ *
+ * El breakpoint se lee del tema (`themes.light.breakPoint.lg`), no se escribe
+ * "992px" a mano: un literal deja de proteger en silencio el dia que el token
+ * cambie (lección repo 2026-08-01).
+ *
+ * Validado con el bug inyectado: quitando el bloque `@media` de `ScBullets`
+ * en Features.tsx el test se pone rojo (no existe ninguna regla con el
+ * breakpoint y las dos columnas); restaurado, verde.
+ */
+describe("bullets a dos columnas solo en dispositivos grandes", () => {
+  function bulletsContainer(): HTMLElement {
+    const cta = document.querySelector('a[href="#contact"]');
+    return cta?.previousElementSibling as HTMLElement;
+  }
+
+  it("declara UNA columna por defecto y dos dentro del @media de lg", () => {
+    renderWithProviders(<Features />);
+    const css = cssRuleTextFor(bulletsContainer());
+
+    // Regla base (fuera de cualquier @media): una sola columna.
+    const baseRule = css
+      .split("\n")
+      .find(
+        (line) =>
+          !line.includes("@media") && line.includes("grid-template-columns"),
+      );
+    expect(baseRule).toBeDefined();
+    expect(baseRule).toMatch(/grid-template-columns:\s*1fr/);
+
+    // La MISMA linea tiene que ser a la vez el bloque del breakpoint y la
+    // declaracion de dos columnas: separarlo en dos aserciones dejaria pasar
+    // un CSS con las dos columnas fuera del @media.
+    const lgLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes(themes.light.breakPoint.lg) &&
+          line.includes("grid-template-columns"),
+      );
+    expect(lgLine).toBeDefined();
+    expect(lgLine).toMatch(
+      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
+  });
+
+  it("aplica la MISMA regla a las tres tarjetas (ya no depende de cual sea)", () => {
+    const { container } = renderWithProviders(<Features />);
+    const contenedores = Array.from(
+      container.querySelectorAll('a[href="#contact"]'),
+    ).map((cta) => cta.previousElementSibling as HTMLElement);
+    expect(contenedores).toHaveLength(FEATURE_KEYS.length);
+
+    const clases = contenedores.map((el) =>
+      Array.from(el.classList).sort().join(" "),
+    );
+    expect(new Set(clases).size).toBe(1);
   });
 });
 
@@ -197,18 +346,6 @@ describe("tamano del icono de check (reset global de svg)", () => {
   });
 });
 
-function stubMatchMedia(): void {
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn().mockImplementation((query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })),
-  );
-}
-
 describe("Features en tema oscuro", () => {
   beforeEach(() => {
     stubMatchMedia();
@@ -218,10 +355,12 @@ describe("Features en tema oscuro", () => {
     window.localStorage.clear();
   });
 
-  it("monta el fondo FeaturesCelestialGuide (10 capas decorativas) en vez de las 3 tarjetas con figura propia", async () => {
+  it("monta el fondo FeaturesCelestialOrbital (FEATURES_ORBITAL_LAYERS.length capas decorativas) en vez de las 3 tarjetas con figura propia", async () => {
     const { container } = renderWithProviders(<Features />);
     await waitFor(() => {
-      expect(container.querySelectorAll("img")).toHaveLength(10);
+      expect(container.querySelectorAll("img")).toHaveLength(
+        FEATURES_ORBITAL_LAYERS.length,
+      );
     });
     container
       .querySelectorAll("img")
@@ -259,5 +398,499 @@ describe("Features en tema oscuro", () => {
         container.querySelector(`img[alt="${alt}"]`),
       ).not.toBeInTheDocument();
     });
+  });
+
+  // Tests 1-6, 11 de §7, spec
+  // `2026-08-02-features-overlay-celestial-orbital-design.md`. Por texto del
+  // CSS inyectado / DOM, nunca `getComputedStyle`: jsdom no evalua `@media`
+  // (lección repo 2026-07-27) y un literal escrito a mano deja de proteger en
+  // silencio si la constante que describe cambia (lección repo 2026-08-01).
+
+  it("declara el solape con margin-block-start negativo leyendo FEATURES_OVERLAY_RISE, no un literal a mano (test 1)", () => {
+    renderWithProviders(<Features />);
+    const css = injectedCss();
+    expect(css).toContain(
+      `margin-block-start: calc(-1 * ${FEATURES_OVERLAY_RISE})`,
+    );
+  });
+
+  it("bajo prefers-reduced-motion: reduce anula el solape devolviendo margin-block-start a 0 (test 2, D6)", () => {
+    renderWithProviders(<Features />);
+    const css = injectedCss();
+    // Misma tecnica que el test 2 de Journey.test.tsx (D6): la MISMA linea
+    // tiene que ser a la vez un bloque reduce y mencionar
+    // margin-block-start, para no arrastrar el resto del stylesheet
+    // acumulado (lección repo 2026-08-02, contamina con
+    // margin-block-start de otros componentes como ScDarkFeatures).
+    const featuresReduceLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("margin-block-start"),
+      );
+    expect(featuresReduceLine).toBeDefined();
+    expect(featuresReduceLine).toMatch(/margin-block-start:\s*0[;}]/);
+  });
+
+  it("topa el contenido con max-width leyendo FEATURES_CONTENT_MAX_WIDTH, no un literal a mano (test 3, D8)", () => {
+    renderWithProviders(<Features />);
+    const css = injectedCss();
+    expect(css).toContain(`max-width: ${FEATURES_CONTENT_MAX_WIDTH}`);
+  });
+
+  it("declara el slot de la escena pegado (position: sticky; top: 0; height derivado de FEATURES_DARK_HEIGHT) y ScFeatures no declara ningun overflow (test 4, D7 -- el fallo que rompe el pin en silencio)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const slot = section.firstElementChild as HTMLElement;
+
+    const slotCss = cssRuleTextFor(slot);
+    expect(slotCss).toContain("position: sticky");
+    expect(slotCss).toContain("top: 0");
+    expect(slotCss).toContain(`height: ${FEATURES_DARK_HEIGHT}`);
+
+    const sectionCss = cssRuleTextFor(section);
+    expect(sectionCss).not.toMatch(/overflow/);
+  });
+
+  it("bajo prefers-reduced-motion el slot de la escena pasa a position: static (test 5, D15)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const slot = section.firstElementChild as HTMLElement;
+
+    const slotCss = cssRuleTextFor(slot);
+    const slotReduceLine = slotCss
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("position"),
+      );
+    expect(slotReduceLine).toBeDefined();
+    expect(slotReduceLine).toMatch(/position:\s*static/);
+  });
+
+  it("no queda ningun rastro del nombre celestial-guide, ni en el CSS inyectado ni en el DOM renderizado (test 11, D16)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const css = injectedCss();
+    expect(css).not.toContain("celestial-guide");
+    expect(container.innerHTML).not.toContain("celestial-guide");
+  });
+});
+
+/*
+ * Zona de "hold" al final de la sección oscura (D3/D4/D5, spec
+ * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`, tests
+ * §7.1.1-3/5). Mismo criterio que el resto del fichero: aserciones sobre el
+ * TEXTO del CSS inyectado (`cssRuleTextFor`/`injectedCss`), nunca
+ * `getComputedStyle` de algo que jsdom no evalúa (ningún `@media`, lección
+ * repo 2026-07-27), y la línea concreta de un bloque `reduce` -- nunca un
+ * troceo del stylesheet acumulado (lección repo 2026-08-02). La invariante
+ * D4 (`FEATURES_TAIL_HOLD === CONTACT_OVERLAY_RISE`) NO vive aquí: vive en
+ * `Contact.test.tsx`, la sección que SUBE, mismo criterio que la invariante
+ * D5 Journey↔Features vive en este fichero y no en `journey.layers.ts`.
+ */
+describe("zona de hold al final de Features (D3/D4/D5, spec 2026-08-03)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("el CSS de ScDarkTail declara height leyendo FEATURES_TAIL_HOLD, no un literal a mano", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const tail = section.lastElementChild as HTMLElement;
+    const tailCss = cssRuleTextFor(tail);
+    expect(tailCss).toContain(`height: ${FEATURES_TAIL_HOLD}`);
+  });
+
+  it("bajo prefers-reduced-motion el hold colapsa a height: 0 (guard D5)", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const tail = section.lastElementChild as HTMLElement;
+    const tailCss = cssRuleTextFor(tail);
+    const tailReduceLine = tailCss
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("height"),
+      );
+    expect(tailReduceLine).toBeDefined();
+    expect(tailReduceLine).toMatch(/height:\s*0[;}]/);
+  });
+
+  // Falsable (verificado a mano, ver informe): revertir el slot a
+  // `grid-area: 1 / 1` pone este test en rojo -- deja de haber `grid-row`
+  // con `span 2` y reaparece la cadena `grid-area: 1 / 1`.
+  it("el slot de la escena abarca las dos filas (grid-row: span 2) y ya no declara grid-area: 1 / 1", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const slot = section.firstElementChild as HTMLElement;
+    const slotCss = cssRuleTextFor(slot);
+
+    // Sonda positiva: el slot sigue declarando su columna, para que la
+    // ausencia de grid-area no pueda pasar por vacuidad (helper roto, clase
+    // equivocada, etc.)
+    expect(slotCss).toContain("grid-column: 1");
+    expect(slotCss).toMatch(/grid-row:\s*1\s*\/\s*span 2/);
+    expect(slotCss).not.toContain("grid-area: 1 / 1");
+  });
+
+  it("no-regresion: ScFeatures sigue sin ninguna declaracion overflow y conserva el solape con su guard", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const sectionCss = cssRuleTextFor(section);
+    expect(sectionCss).not.toMatch(/overflow/);
+
+    const css = injectedCss();
+    expect(css).toContain(
+      `margin-block-start: calc(-1 * ${FEATURES_OVERLAY_RISE})`,
+    );
+    const featuresReduceLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("margin-block-start"),
+      );
+    expect(featuresReduceLine).toBeDefined();
+    expect(featuresReduceLine).toMatch(/margin-block-start:\s*0[;}]/);
+  });
+});
+
+/*
+ * Invariante D5 (spec `2026-08-02-features-overlay-celestial-orbital-design.md`,
+ * test §7.6). Es el ÚNICO punto del repo donde los datos de Features y
+ * Journey se miran a la cara: el solape de Features (`FEATURES_OVERLAY_RISE`)
+ * y la zona de hold al final de la pista de Journey (`JOURNEY_DECK_TAIL_SCREENS`
+ * pantallas de `JOURNEY_DARK_HEIGHT`) TIENEN que medir lo mismo. Los ficheros
+ * de datos de cada sección no se importan entre sí a propósito (acoplarlos
+ * mezclaría los datos de dos secciones que no se conocen), así que la
+ * igualdad no puede vivir en ninguno de los dos: vive aquí, en un test, que
+ * es lo único que impide de verdad la regresión.
+ */
+describe("invariante solape de Features ↔ cola de la pista de Journey (D5)", () => {
+  it("FEATURES_OVERLAY_RISE mide exactamente un stage de Journey, y ese stage se reserva con una pantalla de hold (test 6)", () => {
+    expect(FEATURES_OVERLAY_RISE).toBe(JOURNEY_DARK_HEIGHT);
+    expect(JOURNEY_DECK_TAIL_SCREENS).toBe(1);
+  });
+});
+
+/*
+ * Segunda invariante geométrica de esta sección, DENTRO de su propio fichero
+ * de datos (spec `2026-08-03-contacto-footer-oscuro-design.md`, D3/D4;
+ * añadida tras la auditoría adversarial, que la señaló como el único punto
+ * de la entrega sin candado propio).
+ *
+ * Derivación, con `F` = inicio de `ScFeatures` en documento y `c` = alto real
+ * de `ScDarkFrame`: el slot de la escena abarca las dos filas del grid, así
+ * que se despega en `F + c + FEATURES_TAIL_HOLD − FEATURES_DARK_HEIGHT`;
+ * Contacto, tras su margen negativo, cubre el viewport en
+ * `F + c + FEATURES_TAIL_HOLD − CONTACT_OVERLAY_RISE`. Los dos instantes
+ * coinciden —que es lo que hace que el relevo no tenga costura— solo si
+ * `FEATURES_DARK_HEIGHT === CONTACT_OVERLAY_RISE`; y como otro test ya ata
+ * `CONTACT_OVERLAY_RISE === FEATURES_TAIL_HOLD` (`Contact.test.tsx`), basta
+ * con cerrar aquí el eslabón que falta: la altura del slot contra el hold.
+ *
+ * Hoy las dos valen `"100dvh"`, así que el test no cambia nada de color —
+ * pero esa igualdad es una COINCIDENCIA DE VALOR mientras nadie la escriba.
+ * Es exactamente el patrón que este repo tiene documentado como insuficiente
+ * (`task/lessons.md`, 2026-08-02: una invariante entre dos datos no la
+ * sostiene un comentario), agravado porque las dos constantes viven en el
+ * MISMO fichero y sus docblocks no se citaban mutuamente: cualquiera podría
+ * retocar una de las dos creyendo que son independientes.
+ */
+describe("invariante alto del slot de la escena ↔ zona de hold (D3/D4)", () => {
+  it("FEATURES_DARK_HEIGHT y FEATURES_TAIL_HOLD miden lo mismo, o el relevo con Contacto deja costura", () => {
+    expect(FEATURES_DARK_HEIGHT).toBe(FEATURES_TAIL_HOLD);
+  });
+});
+
+/*
+ * Objetivo 1 (D4, encargo 2026-08-04): la rama CLARA pasa a `min-height:
+ * 100dvh` con el contenido centrado, sin tocar la rama oscura (que ya lo
+ * tenía). Por texto del CSS inyectado: `min-height`/`display`/
+ * `justify-content` no dependen de ningún `@media`, así que aquí sí sería
+ * legítimo usar `getComputedStyle` -- pero se mantiene `cssRuleTextFor` por
+ * consistencia con el resto del fichero y porque compone con las mismas
+ * aserciones que ya prueban `ScFeatures` en oscuro.
+ */
+describe("Objetivo 1 (D4): tema claro con min-height 100dvh y centrado vertical", () => {
+  it("ScFeatures (rama clara) declara min-height: 100dvh y centra con flex-direction column + justify-content center", () => {
+    const { container } = renderWithProviders(<Features />);
+    const section = container.querySelector("#features") as HTMLElement;
+    const css = cssRuleTextFor(section);
+
+    expect(css).toContain("min-height: 100dvh");
+    expect(css).toContain("flex-direction: column");
+    expect(css).toContain("justify-content: center");
+  });
+});
+
+/*
+ * Objetivo 2 / D7 (encargo 2026-08-04): `useSectionProgress` se llama de
+ * forma incondicional en `Features()` y se ata SOLO al `<ScFeatures>` de la
+ * rama clara (`featuresRef`). Test FUNCIONAL, no solo de CSS: dispara el
+ * IntersectionObserver mockeado y comprueba que el hook escribe de verdad
+ * `--features-enter`/`--features-progress` sobre el elemento -- mismo
+ * mecanismo que ya valida `useSectionProgress.test.tsx`, aquí verificando
+ * que Features.tsx lo CONSUME correctamente (ref estable, prefix propio).
+ */
+describe("D7/D1: progreso de scroll de la rama clara (useSectionProgress)", () => {
+  it("escribe --features-enter/--features-progress sobre ScFeatures al intersecar, y no --section-* (prefix propio)", () => {
+    const { container } = renderWithProviders(<Features />);
+    const section = container.querySelector("#features") as HTMLElement;
+
+    expect(section.style.getPropertyValue("--features-progress")).toBe("");
+    act(() => trigger(true));
+
+    expect(section.style.getPropertyValue("--features-enter")).not.toBe("");
+    expect(section.style.getPropertyValue("--features-progress")).not.toBe("");
+    expect(section.style.getPropertyValue("--section-enter")).toBe("");
+  });
+
+  it("ScFigure traslada su figura ligada a --features-progress, solo transform, con guard de reduced-motion", () => {
+    const { container } = renderWithProviders(<Features />);
+    const figure = container.querySelector("img") as HTMLImageElement;
+    const css = cssRuleTextFor(figure);
+
+    expect(css).toContain("translateY(");
+    expect(css).toContain("var(--features-progress");
+
+    const reduceLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("@media (prefers-reduced-motion: reduce)") &&
+          line.includes("transform"),
+      );
+    expect(reduceLine).toBeDefined();
+    expect(reduceLine).toMatch(/transform:\s*none/);
+  });
+});
+
+/*
+ * D7 (encargo 2026-08-04): las entradas de Features (rama clara -- `ScItem`
+ * -- y rama oscura -- `ScDarkContent`) se unifican a `motion.duration.slower`
+ * + `motion.easing.decelerate`. Antes: `ScItem` usaba `slow` + `emphasized`,
+ * `ScDarkContent` usaba `slow` + `decelerate` -- dos criterios de entrada
+ * distintos en el mismo fichero. Por texto del CSS inyectado, no
+ * `getComputedStyle`: medido en este repo, jsdom SÍ resuelve el longhand
+ * `transition-delay` cuando se declara SUELTO (test existente en este mismo
+ * fichero), pero NO resuelve `transitionDuration`/`transitionTimingFunction`
+ * cuando `transition` es una lista de dos declaraciones separadas por coma
+ * (`transitionDuration`/`transitionTimingFunction` devuelven cadena vacía) --
+ * un matiz nuevo del mismo mecanismo que documenta `task/lessons.md`
+ * 2026-07-25 para `animation:`. `cssRuleTextFor` no depende de esa
+ * resolución: lee el texto tal como lo escribió el componente.
+ */
+describe("D7: duración/easing de entrada unificados (slower + decelerate)", () => {
+  it("ScItem (rama clara) usa motion.duration.slower + motion.easing.decelerate", () => {
+    const { container } = renderWithProviders(<Features />);
+    const item = container.querySelector("[data-revealed]") as HTMLElement;
+    const css = cssRuleTextFor(item);
+
+    expect(css).toContain(themes.light.motion.duration.slower);
+    expect(css).toContain(themes.light.motion.easing.decelerate);
+    expect(css).not.toContain(themes.light.motion.duration.slow);
+    expect(css).not.toContain(themes.light.motion.easing.emphasized);
+  });
+
+  it("ScDarkContent (rama oscura) usa motion.duration.slower + motion.easing.decelerate", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Features />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+      });
+      const content = container.querySelector("[data-revealed]") as HTMLElement;
+      const css = cssRuleTextFor(content);
+
+      expect(css).toContain(themes.dark.motion.duration.slower);
+      expect(css).toContain(themes.dark.motion.easing.decelerate);
+      expect(css).not.toContain(themes.dark.motion.duration.slow);
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+});
+
+/*
+ * D7 (encargo 2026-08-04): `ScCta` -- el CTA de texto de cada identidad --
+ * ganó `:focus-visible` propio, resuelto contra `semantic.focus`. Hasta esta
+ * entrega solo tenía `:hover`. Validado con el bug inyectado a propósito
+ * (ver el informe de la tarea): comentando el bloque `&:focus-visible` de
+ * `ScCta` en `Features.tsx` este test se pone en rojo (no hay ningún bloque
+ * que mencione `focus-visible`); restaurado, vuelve a verde.
+ */
+describe("D7: :focus-visible propio del CTA de sección", () => {
+  it("ScCta declara :focus-visible con box-shadow resuelto contra semantic.focus", () => {
+    const { container } = renderWithProviders(<Features />);
+    const cta = container.querySelector('a[href="#contact"]') as HTMLElement;
+    const css = cssRuleTextFor(cta);
+
+    expect(css).toContain(":focus-visible");
+    const focusBlock = css.slice(css.indexOf(":focus-visible"));
+    expect(focusBlock).toContain("box-shadow");
+    expect(focusBlock).toContain(themes.light.semantic.focus);
+  });
+});
+
+/*
+ * Bug corregido en el trabajo manual del usuario (informe de la tarea): el
+ * título de "gaming" usaba `ScSpanImagination` en vez de `ScSpanGaming`
+ * (copia-pega). Se distingue por CSS: `ScSpanGaming` recorta el degradado
+ * propio (`FEATURES_GAMING_TITLE_GRADIENT`) con `background-clip: text`;
+ * `ScSpanImagination` solo fija un `color` sólido y JAMÁS declara
+ * `background-clip`. Validado con el bug inyectado a propósito (ver informe
+ * de la tarea): sustituyendo `ScSpanGaming` por `ScSpanImagination` en el
+ * término "gaming" del título oscuro, este test se pone en rojo (no hay
+ * `background-clip: text` en las reglas del span); restaurado, vuelve a
+ * verde.
+ */
+describe("bug corregido: el termino 'gaming' del titulo oscuro usa ScSpanGaming", () => {
+  it("el span de 'gaming' recorta el degradado propio (background-clip: text), no un color solido", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      renderWithProviders(<Features />);
+      await waitFor(() => {
+        expect(
+          screen.getByText(esHome.Home.features.gaming.title),
+        ).toBeInTheDocument();
+      });
+      const gamingSpan = screen.getByText(esHome.Home.features.gaming.title);
+      const css = cssRuleTextFor(gamingSpan);
+
+      expect(css).toContain("background-clip: text");
+      expect(css).toContain(FEATURES_GAMING_TITLE_GRADIENT);
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+});
+
+/*
+ * D4 (encargo 2026-08-04): palancas de compactación vertical del contenido
+ * oscuro -- `padding-block` fluido de `ScDarkFrame`, `margin-block-start`
+ * fluido de `ScDarkFeatures`, `padding-block` fluido de `ScDarkFeatureBlock`
+ * y `font-size` fluido de `ScDarkFeatureTitle` -- todas con `clamp()`, todas
+ * con el mismo suelo/techo documentado en `Features.tsx`. Por texto del CSS
+ * inyectado: `clamp()` no depende de ningún `@media`, pero se mantiene el
+ * mismo mecanismo `cssRuleTextFor` que el resto del fichero por consistencia
+ * y para no arrastrar el resto del stylesheet acumulado.
+ */
+describe("D4: palancas de compactación vertical del contenido oscuro (clamp fluido)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  /*
+   * El termino fluido va en `dvh`, y el test lo exige explicitamente en vez de
+   * conformarse con "hay un clamp". La primera version de esta palanca usaba
+   * `6vw` y medía el eje EQUIVOCADO: la restriccion es el ALTO del viewport,
+   * y en un 1280x720 -- el portatil mas comun del rango -- `6vw` son 76,8px,
+   * por encima del techo de 64px, asi que el clamp se quedaba en su maximo y
+   * no ahorraba ni un pixel justo donde el marco desbordaba 128px (medido en
+   * navegador). Aseverar la UNIDAD, y no solo la presencia del clamp, es lo
+   * que impide que ese defecto vuelva a entrar sin que nadie lo note.
+   */
+  it("ScDarkFrame acota su padding-block con un clamp fluido en dvh, no en vw", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const section = container.querySelector("#features") as HTMLElement;
+    const frame = section.children[1] as HTMLElement;
+    const css = cssRuleTextFor(frame);
+
+    expect(css).toMatch(/padding-block:\s*clamp\(\s*1rem,\s*3\.5dvh,/);
+    expect(css).not.toContain("6vw");
+  });
+
+  it("ScDarkFeatureTitle usa font-size: clamp(...) acotado por abajo a 1.125rem", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const title = container.querySelector(
+      "#feature-learning-title",
+    ) as HTMLElement;
+    const css = cssRuleTextFor(title);
+
+    expect(css).toMatch(/font-size:\s*clamp\(\s*1\.125rem/);
+  });
+});
+
+/*
+ * D4 (encargo 2026-08-04): en la rama OSCURA los bullets pasan a dos
+ * columnas desde `sm` (600px), no desde `lg` (992px) como en la rama clara
+ * -- ver el docblock de `ScBullets` en `Features.tsx` para el porqué
+ * completo. Validado con el bug inyectado a propósito (ver informe de la
+ * tarea): quitando `$compactFrom="sm"` del `<ScBullets>` de la rama oscura,
+ * este test se pone en rojo (el bloque de dos columnas queda en `lg`, no en
+ * `sm`); restaurado, vuelve a verde.
+ */
+describe("D4: en tema oscuro los bullets pasan a dos columnas desde sm, no desde lg", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("declara el bloque de dos columnas dentro del breakpoint sm", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const cta = container.querySelector('a[href="#contact"]') as HTMLElement;
+    const bullets = cta.previousElementSibling as HTMLElement;
+    const css = cssRuleTextFor(bullets);
+
+    const smLine = css
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes(themes.dark.breakPoint.sm) &&
+          line.includes("grid-template-columns"),
+      );
+    expect(smLine).toBeDefined();
+    expect(smLine).toMatch(
+      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
+
+    expect(css).not.toContain(themes.dark.breakPoint.lg);
   });
 });

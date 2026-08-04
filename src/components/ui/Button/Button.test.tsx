@@ -1,7 +1,33 @@
 import { createRef } from "react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
+import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { Button } from "./Button";
+
+/** Texto CSS de todas las reglas inyectadas por styled-components, planas
+ *  (incluidas las anidadas dentro de selectores como &:focus-visible): mismo
+ *  patrón que Navbar.test.tsx/Eye.test.tsx. jsdom no evalúa pseudo-clases
+ *  dinámicas como :focus-visible al calcular getComputedStyle (no hay
+ *  "modalidad de foco" real sin un navegador), así que la única forma fiable
+ *  de atar la regla es leer el CSSOM que styled-components ya inyectó. */
+function allCssRules(): string[] {
+  const reglas: string[] = [];
+  const walk = (rules: CSSRuleList): void => {
+    Array.from(rules).forEach((rule) => {
+      reglas.push(rule.cssText);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) walk(anidadas);
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return reglas;
+}
 
 describe("Button", () => {
   it("renderiza como button con su label", () => {
@@ -199,5 +225,113 @@ describe("Button", () => {
     const link = screen.getByRole("link", { name: "Ir" });
     expect(link).toHaveAttribute("href", "/x");
     expect(link).not.toHaveAttribute("aria-disabled");
+  });
+
+  describe(":focus-visible propio (hallazgo 1, D7)", () => {
+    beforeEach(() => {
+      window.localStorage.clear();
+    });
+
+    afterEach(() => {
+      window.localStorage.clear();
+    });
+
+    // Localiza, para un render concreto, la clase que styled-components le
+    // asignó de verdad (identificada porque ALGUNA regla inyectada la
+    // menciona) y devuelve solo las reglas que la mencionan. Es obligatorio
+    // acotar así: este describe renderiza varias variantes/temas en el MISMO
+    // `document` a lo largo de la suite (styled-components no limpia su
+    // hoja de estilos entre tests), así que buscar ":focus-visible" sin
+    // acotar por clase puede devolver la regla de UN RENDER ANTERIOR -- el
+    // primer `.find()` de una versión previa de este test lo demostró: el
+    // filtro genérico encontraba la regla de la variante `solid` (renderizada
+    // muchas veces antes en la suite) en vez de la de `outline`, y la
+    // aserción sobre `inset` fallaba por el motivo equivocado.
+    function reglasDe(el: HTMLElement): string[] {
+      const reglas = allCssRules();
+      const clases = Array.from(el.classList).filter((c) =>
+        reglas.some((r) => r.includes(c)),
+      );
+      expect(
+        clases.length,
+        "no se encontró ninguna clase inyectada del elemento",
+      ).toBeGreaterThan(0);
+      return reglas.filter((r) => clases.some((c) => r.includes(c)));
+    }
+
+    it.each([
+      ["light", basicLightTheme],
+      ["dark", basicDarkTheme],
+    ] as const)(
+      "variante solid: declara :focus-visible con box-shadow contra semantic.focus del tema %s (nunca un literal)",
+      (nombreTema, theme) => {
+        window.localStorage.setItem("vti-theme", nombreTema);
+        renderWithProviders(<Button variant="solid">Guardar</Button>);
+        const boton = screen.getByRole("button", { name: "Guardar" });
+
+        const bloque = reglasDe(boton).find(
+          (regla) =>
+            regla.includes(":focus-visible") && regla.includes("box-shadow"),
+        );
+        expect(
+          bloque,
+          "no se encontró ninguna regla :focus-visible con box-shadow",
+        ).toBeDefined();
+        expect(bloque).toContain(theme.semantic.focus);
+        // No sustituye el anillo global: ninguna regla de ESTA clase
+        // declara `outline: none` (regla dura del repo, vetada desde el
+        // sistema de lujo) en ningún selector, no solo en :focus-visible.
+        expect(
+          reglasDe(boton).some((regla) => /outline\s*:\s*none/.test(regla)),
+        ).toBe(false);
+      },
+    );
+
+    it("variante outline: :focus-visible COMPONE el halo con el anillo inset propio, no lo sustituye", () => {
+      renderWithProviders(<Button variant="outline">Cancelar</Button>);
+      const boton = screen.getByRole("button", { name: "Cancelar" });
+
+      const bloque = reglasDe(boton).find(
+        (regla) =>
+          regla.includes(":focus-visible") && regla.includes("box-shadow"),
+      );
+      expect(bloque).toBeDefined();
+      // Las DOS capas tienen que convivir en la MISMA declaración
+      // (box-shadow no fusiona entre reglas distintas): el anillo inset de
+      // la variante outline (inset ...) y el halo nuevo (color-mix con
+      // semantic.focus), separados por coma.
+      expect(bloque).toContain("inset");
+      expect(bloque).toContain(basicLightTheme.semantic.borderStrong);
+      expect(bloque).toContain(basicLightTheme.semantic.focus);
+    });
+
+    it("las cuatro variantes declaran su propio :focus-visible (ninguna depende solo del anillo global)", () => {
+      const variantes = ["solid", "soft", "outline", "ghost"] as const;
+      const botones: HTMLElement[] = [];
+      for (const variant of variantes) {
+        window.localStorage.clear();
+        renderWithProviders(
+          <Button
+            key={variant}
+            variant={variant}
+          >
+            {`Variante ${variant}`}
+          </Button>,
+        );
+        botones.push(
+          screen.getByRole("button", { name: `Variante ${variant}` }),
+        );
+      }
+
+      for (const boton of botones) {
+        const tieneFocusVisible = reglasDe(boton).some((regla) =>
+          regla.includes(":focus-visible"),
+        );
+        expect(
+          tieneFocusVisible,
+          `la variante del botón "${boton.textContent}" no declara :focus-visible propio`,
+        ).toBe(true);
+      }
+    });
   });
 });

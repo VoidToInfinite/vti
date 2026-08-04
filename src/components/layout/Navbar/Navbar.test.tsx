@@ -9,6 +9,7 @@ import { act } from "@testing-library/react";
 import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { StageProvider, useStage } from "@/motion/StageProvider";
 import { HERO_CHROME_OFFSET_MS } from "@/components/sections/Hero/hero.transition";
+import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { Navbar } from "./Navbar";
 
 /**
@@ -322,37 +323,20 @@ describe("Navbar", () => {
     expect(themeToggle).toBeInTheDocument();
   });
 
-  it("la marca-esquina sigue al estado de scroll, no un valor fijo", () => {
-    // Test de integración: sin esto, un `visible={true}` hardcodeado por error
-    // en el cableado pasaría desapercibido — los tests de EyeCornerMark lo
-    // cubren aislado y los de Navbar no lo miraban.
+  it("no queda ninguna marca decorativa que aparezca al hacer scroll", () => {
+    // Regresion de la retirada de `EyeCornerMark` (2026-07-31): el punto
+    // decorativo que se encendia con `data-scrolled` se elimino a peticion
+    // del usuario. Este test evita que vuelva a colarse en el enlace de
+    // marca cualquier elemento que se revele con el scroll: el unico cambio
+    // visual al cruzar el umbral tiene que ser la propia pildora.
     const { container } = renderNavbar();
-    const mark = (): Element | null =>
-      container.querySelector("[data-visible]");
+    const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
 
-    expect(mark()).toHaveAttribute("data-visible", "false");
+    scrollPast();
 
-    act(() => {
-      Object.defineProperty(window, "scrollY", {
-        value: 200,
-        writable: true,
-        configurable: true,
-      });
-      window.dispatchEvent(new Event("scroll"));
-    });
-
-    expect(mark()).toHaveAttribute("data-visible", "true");
-
-    act(() => {
-      Object.defineProperty(window, "scrollY", {
-        value: 0,
-        writable: true,
-        configurable: true,
-      });
-      window.dispatchEvent(new Event("scroll"));
-    });
-
-    expect(mark()).toHaveAttribute("data-visible", "false");
+    expect(screen.getByRole("banner")).toHaveAttribute("data-scrolled", "true");
+    expect(brandLink.querySelector("[data-visible]")).toBeNull();
+    expect(container.querySelectorAll("[data-visible]")).toHaveLength(0);
   });
 
   describe("entrada del navbar en la carga (data-intro, tarea C4/C6)", () => {
@@ -414,34 +398,214 @@ describe("Navbar", () => {
   });
 
   describe("enlaces de sección (Common.Navigation, tarea Flow F/spec §7.6)", () => {
-    // Los cuatro destinos SOLO existen cuando `HomeSections` los monta (gate
-    // por tema, D3): en oscuro serian anclas muertas (spec D5), asi que el
-    // bloque entero se desmonta con `themeName`. Se busca por `href`, no por
-    // nombre accesible: en es-ES `Common.Navigation.story` y
-    // `Common.Navigation.history` traducen los dos a "Historia" (mismo
-    // string), asi que el nombre accesible no identifica de forma unica cual
-    // de los cuatro enlaces es.
+    // Los cuatro enlaces se renderizan en LOS DOS TEMAS desde 2026-08-04.
+    //
+    // Hasta hoy el bloque estaba gateado con `themeName === "light"`, y el
+    // motivo escrito era que en oscuro serian anclas muertas porque
+    // `HomeSections` no montaba esas secciones (D3 de la spec de Story).
+    // Ese motivo dejo de ser cierto cuando `HomeSections` paso a montar las
+    // CUATRO secciones siempre, cada una con su propia rama de tema
+    // (`HomeSections.tsx`: "las 4 se montan siempre") -- el gate sobrevivio a
+    // su razon de ser y dejaba la navegacion coja en oscuro. Comprobado
+    // ademas en navegador sobre la pagina real en tema oscuro: los cuatro
+    // destinos existen (`section[id]` devuelve hero, story, journey,
+    // features y contact).
+    //
+    // Se busca por `href`, no por nombre accesible: en es-ES
+    // `Common.Navigation.story` y `Common.Navigation.history` traducen los
+    // dos a "Historia" (mismo string), asi que el nombre accesible no
+    // identifica de forma unica cual de los cuatro enlaces es.
     const SECTION_HREFS = ["#story", "#journey", "#features", "#contact"];
 
-    it("en tema claro (por defecto) los 4 enlaces de sección están presentes en el DOM", () => {
-      window.localStorage.setItem("vti-theme", "light");
-      const { container } = renderNavbar();
+    it.each(["light", "dark"] as const)(
+      "en tema %s los 4 enlaces de sección están presentes en el DOM",
+      (tema) => {
+        window.localStorage.setItem("vti-theme", tema);
+        const { container } = renderNavbar();
 
-      for (const href of SECTION_HREFS) {
-        expect(
-          container.querySelector(`a[href="${href}"]`),
-          `falta el enlace ${href}`,
-        ).not.toBeNull();
-      }
+        for (const href of SECTION_HREFS) {
+          expect(
+            container.querySelector(`a[href="${href}"]`),
+            `falta el enlace ${href} en tema ${tema}`,
+          ).not.toBeNull();
+        }
+      },
+    );
+  });
+
+  describe("despegue al hacer scroll (data-detach, plan navbar-scroll-detach Task 3)", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
     });
 
-    it("en tema oscuro ninguno de los 4 enlaces de sección se renderiza (destinos inexistentes)", () => {
-      window.localStorage.setItem("vti-theme", "dark");
-      const { container } = renderNavbar();
+    afterEach(() => {
+      act(() => {
+        vi.runOnlyPendingTimers();
+      });
+      vi.useRealTimers();
+    });
 
-      for (const href of SECTION_HREFS) {
-        expect(container.querySelector(`a[href="${href}"]`)).toBeNull();
+    it("al montar, el banner tiene data-detach='idle'", () => {
+      renderNavbar();
+      expect(screen.getByRole("banner")).toHaveAttribute("data-detach", "idle");
+    });
+
+    it("tras scrollPast() el banner pasa a 'detaching' y vuelve a 'idle' tras NAV_DETACH_ANIM_MS", () => {
+      renderNavbar();
+      const header = screen.getByRole("banner");
+
+      scrollPast();
+      expect(header).toHaveAttribute("data-detach", "detaching");
+
+      act(() => {
+        vi.advanceTimersByTime(NAV_DETACH_ANIM_MS);
+      });
+      expect(header).toHaveAttribute("data-detach", "idle");
+    });
+
+    it("al volver a scrollY=0 tras un despegue ya asentado, el banner pasa a 'attaching'", () => {
+      renderNavbar();
+      const header = screen.getByRole("banner");
+
+      scrollPast();
+      act(() => {
+        vi.advanceTimersByTime(NAV_DETACH_ANIM_MS);
+      });
+      expect(header).toHaveAttribute("data-detach", "idle");
+
+      act(() => {
+        Object.defineProperty(window, "scrollY", {
+          value: 0,
+          writable: true,
+          configurable: true,
+        });
+        window.dispatchEvent(new Event("scroll"));
+      });
+      expect(header).toHaveAttribute("data-detach", "attaching");
+    });
+
+    it("existe exactamente una superficie [data-nav-surface], oculta a lectores de pantalla", () => {
+      const { container } = renderNavbar();
+      const surfaces = container.querySelectorAll("[data-nav-surface]");
+
+      expect(surfaces).toHaveLength(1);
+      expect(surfaces[0]).toHaveAttribute("aria-hidden", "true");
+    });
+
+    it("con scroll, el contenedor de geometría computa max-width=grid.navMax y la superficie computa border-radius=radius.xl (contra el token importado)", () => {
+      // `ScNav` (el `<nav>`) es hijo directo de `ScBar`, el contenedor de
+      // geometría: no hay ningún atributo propio que lo distinga, así que se
+      // llega a él por relación de parentesco, no por un selector nuevo.
+      const { container } = renderNavbar();
+      const nav = screen.getByRole("navigation");
+      const geometryContainer = nav.parentElement as HTMLElement;
+      const surface = container.querySelector(
+        "[data-nav-surface]",
+      ) as HTMLElement;
+
+      scrollPast();
+
+      expect(getComputedStyle(geometryContainer).maxWidth).toBe(
+        basicLightTheme.grid.navMax,
+      );
+      expect(getComputedStyle(surface).borderRadius).toBe(
+        basicLightTheme.radius.xl,
+      );
+    });
+
+    it("el CSS inyectado declara las dos animaciones solo bajo no-preference, y anula las transiciones bajo reduce", () => {
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+      // Las clases REALES de las dos capas nuevas, leidas del DOM: sin esto,
+      // buscar "cualquier regla con reduce + transition: none" pasaria en
+      // verde aunque ScBar y ScSurface se quedaran sin guard, porque ScHeader
+      // y ScNavLink ya tenian el suyo desde antes de esta tarea.
+      const surface = container.querySelector(
+        "[data-nav-surface]",
+      ) as HTMLElement;
+      const bar = screen.getByRole("navigation").parentElement as HTMLElement;
+      const claseDe = (el: HTMLElement): string =>
+        Array.from(el.classList).find((c) =>
+          reglas.some((r) => r.includes(c)),
+        ) ?? "";
+
+      for (const [nombre, clase] of [
+        ["ScSurface", claseDe(surface)],
+        ["ScBar", claseDe(bar)],
+      ] as const) {
+        expect(
+          clase,
+          `no se encontro la clase inyectada de ${nombre}`,
+        ).not.toBe("");
+        const guard = reglas.filter(
+          (regla) =>
+            regla.includes("@media (prefers-reduced-motion: reduce)") &&
+            regla.includes(clase) &&
+            regla.includes("transition: none"),
+        );
+        expect(
+          guard.length,
+          `${nombre} no anula sus transiciones bajo prefers-reduced-motion: reduce`,
+        ).toBeGreaterThan(0);
       }
+
+      const bloqueNoPreference = reglas.find(
+        (regla) =>
+          regla.includes("@media (prefers-reduced-motion: no-preference)") &&
+          regla.includes('[data-detach="detaching"]') &&
+          regla.includes('[data-detach="attaching"]'),
+      );
+      expect(bloqueNoPreference).toBeDefined();
+      // Dos disparadores ([data-detach="detaching"] y [data-detach="attaching"])
+      // cada uno con su propia declaracion `animation:` (peelOff y stickOn,
+      // nombres hasheados por styled-components, así que se cuentan las
+      // declaraciones en vez de buscar el nombre literal).
+      expect(
+        (bloqueNoPreference?.match(/animation:/g) ?? []).length,
+      ).toBeGreaterThanOrEqual(2);
+
+      const bloqueReduce = reglas.filter(
+        (regla) =>
+          regla.includes("@media (prefers-reduced-motion: reduce)") &&
+          regla.includes("transition: none"),
+      );
+      expect(bloqueReduce.length).toBeGreaterThan(0);
+    });
+
+    it('el guard de reduce de ScBar también redeclara el estado anidado [data-scrolled="true"] & (hallazgo 4)', () => {
+      // Regresión puntual: el bloque reduce de ScBar solo redeclaraba `&`
+      // (una clase, especificidad 0-1-0). El estado scrolled se declara como
+      // `[data-scrolled="true"] &` (atributo + clase, 0-2-0) FUERA del
+      // bloque reduce, con su propia transition (easings reales, no
+      // "none") -- mayor especificidad que el `&` suelto del reduce, así
+      // que bajo prefers-reduced-motion: reduce esa transition seguía
+      // ganando y el estado scrolled continuaba animando. El arreglo iguala
+      // el patrón ya usado por ScHeader, que SÍ redeclara su propio estado
+      // anidado (&[data-intro="pending"]) dentro de su bloque reduce (ver
+      // el test de arriba, "existe el bloque prefers-reduced-motion...").
+      renderNavbar();
+      const reglas = allCssRules();
+      const bar = screen.getByRole("navigation").parentElement as HTMLElement;
+      const claseDe = (el: HTMLElement): string =>
+        Array.from(el.classList).find((c) =>
+          reglas.some((r) => r.includes(c)),
+        ) ?? "";
+      const claseBar = claseDe(bar);
+      expect(claseBar, "no se encontro la clase inyectada de ScBar").not.toBe(
+        "",
+      );
+
+      const bloqueScrolledReduce = reglas.filter(
+        (regla) =>
+          regla.includes("@media (prefers-reduced-motion: reduce)") &&
+          regla.includes('[data-scrolled="true"]') &&
+          regla.includes(claseBar) &&
+          regla.includes("transition: none"),
+      );
+      expect(
+        bloqueScrolledReduce.length,
+        'el guard de reduce de ScBar no redeclara [data-scrolled="true"] &',
+      ).toBeGreaterThan(0);
     });
   });
 });

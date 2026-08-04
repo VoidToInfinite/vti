@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen, fireEvent } from "@/test/test-utils";
+import { renderWithProviders, screen, fireEvent, act } from "@/test/test-utils";
 import { HERO_STEP_MS } from "@/components/sections/Hero/hero.transition";
 import { Eye } from "./Eye";
 import { EYE_LAYERS, EYE_STAGGER } from "./eye.layers";
@@ -25,6 +25,36 @@ function stubMatchMedia(fineMatches: boolean, reducedMatches = false): void {
   );
 }
 
+/**
+ * Mock de `IntersectionObserver` para la guarda de visibilidad que
+ * `useParallaxLayers` gana con el tercer argumento `sceneRef` (D3, spec
+ * 2026-08-04): jsdom no lo implementa, y `Eye` ahora SIEMPRE pasa su raiz
+ * (`ScSocket`) como esa ref, asi que cualquier test de aqui que habilite el
+ * puntero fino (`stubMatchMedia(true)`) hace que el efecto llegue a
+ * `new IntersectionObserver(...)` -- sin este stub esos montajes lanzarian
+ * "IntersectionObserver is not defined". Mismo patron exacto que
+ * `useParallaxLayers.test.tsx`: `observe`/`disconnect` quedan espiados y el
+ * callback capturado en `ioTrigger` para que cada test decida cuando simular
+ * que el hero entra o sale del viewport; `ioObserveSpy` se reasigna dentro
+ * de la funcion (no una unica instancia module-level) para que "se llamo una
+ * vez" en un test no arrastre llamadas de montajes anteriores.
+ */
+let ioTrigger: (isIntersecting: boolean) => void;
+let ioObserveSpy: ReturnType<typeof vi.fn>;
+function stubIntersectionObserver(): void {
+  ioObserveSpy = vi.fn();
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe = ioObserveSpy;
+      disconnect = vi.fn();
+      constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+        ioTrigger = (v: boolean) => cb([{ isIntersecting: v }]);
+      }
+    },
+  );
+}
+
 beforeEach(() => {
   // Por defecto sin puntero fino: la mayoría de estos tests solo verifican
   // estructura/accesibilidad, no el seguimiento del cursor.
@@ -33,6 +63,10 @@ beforeEach(() => {
   // lee de localStorage al montar: sin limpiarlo, el test que lo fija a
   // oscuro contaminaría a los siguientes.
   window.localStorage.clear();
+  // Inerte en los tests con el puntero deshabilitado (el efecto de
+  // useParallaxLayers corta en `if (!enabled) return` antes de tocar el
+  // observer), pero obligatorio para los que si lo habilitan mas abajo.
+  stubIntersectionObserver();
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -91,6 +125,11 @@ describe("Eye", () => {
     vi.stubGlobal("cancelAnimationFrame", caf);
 
     const { unmount } = renderWithProviders(<Eye />);
+    // El hero esta en pantalla al montar (escenario real): sin disparar la
+    // interseccion el bucle propio de useParallaxLayers se queda en
+    // `running = false` a la espera del primer cruce y este test dejaria de
+    // ejercitar su rAF, no el de usePointer.
+    act(() => ioTrigger(true));
     expect(raf).toHaveBeenCalled();
     unmount();
     expect(caf).toHaveBeenCalledWith(7);
@@ -104,6 +143,7 @@ describe("Eye", () => {
     vi.stubGlobal("cancelAnimationFrame", caf);
 
     const { rerender } = renderWithProviders(<Eye />);
+    act(() => ioTrigger(true));
     // Al montar, tanto `usePointer` (rAF del lerp) como `Eye` (rAF que
     // aplica los transforms) piden un frame cada uno: hay que medir el
     // DELTA tras el re-render, no un total absoluto.
@@ -128,6 +168,10 @@ describe("Eye", () => {
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
     const { container } = renderWithProviders(<Eye />);
+    // El hero esta en pantalla al montar: sin disparar la interseccion el
+    // bucle de useParallaxLayers nunca arranca (D3, guarda de visibilidad) y
+    // ninguna capa llegaria a recibir transform.
+    act(() => ioTrigger(true));
 
     // Cursor en la esquina inferior derecha del viewport => x, y -> +1.
     window.dispatchEvent(
@@ -212,6 +256,21 @@ describe("Eye", () => {
     // Se puede repetir: un segundo click vuelve a marcar el pulso.
     fireEvent.pointerDown(socket);
     expect(socket).toHaveAttribute("data-pulsing", "true");
+  });
+
+  it("D3 (spec 2026-08-04): al montar, useParallaxLayers observa la raiz del ojo (ScSocket) -- antes no se instanciaba ningun IntersectionObserver", () => {
+    // Solo con el puntero habilitado el efecto de useParallaxLayers llega a
+    // leer sceneRef: con el puntero deshabilitado (el defecto del
+    // beforeEach) corta antes en `if (!enabled) return` y nunca toca el
+    // observer, asi que esta comprobacion necesita su propio
+    // stubMatchMedia(true).
+    stubMatchMedia(true);
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    renderWithProviders(<Eye />);
+
+    expect(ioObserveSpy).toHaveBeenCalledTimes(1);
   });
 });
 

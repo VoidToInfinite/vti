@@ -25,12 +25,17 @@ describe("system tokens", () => {
         decelerate: "cubic-bezier(0, 0, 0.2, 1)",
         accelerate: "cubic-bezier(0.4, 0, 1, 1)",
         emphasized: "cubic-bezier(0.2, 0, 0, 1)",
+        overshoot: "cubic-bezier(0.34, 1.56, 0.64, 1)",
       };
       expect(motion.easing).toEqual(expectedEasing);
     });
 
     it("la curva estándar es cubic-bezier(0.4, 0, 0.2, 1)", () => {
       expect(motion.easing.standard).toBe("cubic-bezier(0.4, 0, 0.2, 1)");
+    });
+
+    it("la curva overshoot es cubic-bezier(0.34, 1.56, 0.64, 1)", () => {
+      expect(motion.easing.overshoot).toBe("cubic-bezier(0.34, 1.56, 0.64, 1)");
     });
 
     it("la duración base es 200ms", () => {
@@ -40,7 +45,7 @@ describe("system tokens", () => {
     it("motion es un objeto congelado (as const)", () => {
       // Verificar que las duraciones tienen las propiedades esperadas
       expect(Object.keys(motion.duration)).toHaveLength(8);
-      expect(Object.keys(motion.easing)).toHaveLength(4);
+      expect(Object.keys(motion.easing)).toHaveLength(5);
     });
   });
 
@@ -103,6 +108,7 @@ describe("system tokens", () => {
     it("expone todas las propiedades del grid", () => {
       const expectedGrid = {
         containerMax: "1200px",
+        navMax: "1280px",
         prose: "65ch",
         proseTight: "34ch",
         columns: 12,
@@ -113,6 +119,12 @@ describe("system tokens", () => {
 
     it("containerMax limita a 1200px", () => {
       expect(grid.containerMax).toBe("1200px");
+    });
+
+    it("navMax es 1280px y es mayor que containerMax", () => {
+      expect(grid.navMax).toBe("1280px");
+      const px = (v: string): number => Number(v.replace("px", ""));
+      expect(px(grid.navMax)).toBeGreaterThan(px(grid.containerMax));
     });
 
     it("prose limita a 65ch", () => {
@@ -136,7 +148,7 @@ describe("system tokens", () => {
     });
 
     it("grid es un objeto congelado (as const)", () => {
-      expect(Object.keys(grid)).toHaveLength(5);
+      expect(Object.keys(grid)).toHaveLength(6);
     });
   });
 });
