@@ -169,18 +169,13 @@
   "167": "Logo.tsx",
   "168": "Story como presentación de 6 diapositivas + transición Hero→Story — Implementation Plan",
   "169": "03-hand-right",
-  "170": "Hero.test.tsx",
   "171": "Journey.test.tsx",
-  "172": "useSceneParallax.test.tsx",
   "173": "Fases",
   "174": "00-field",
   "175": "useReveal",
-  "176": "useSceneParallax.ts",
-  "177": "type.ts",
-  "178": "HomeSections.tsx",
-  "179": "config.ts",
   "180": "features.layers.ts",
   "181": "Typography.tsx",
   "182": "nativeOutput",
-  "183": "opaqueLayerEncoding"
+  "183": "opaqueLayerEncoding",
+  "184": "useSolCycle.ts"
 }

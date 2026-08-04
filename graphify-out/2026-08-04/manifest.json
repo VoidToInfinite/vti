@@ -100,13 +100,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Contact/Contact.test.tsx": {
-    "mtime": 1785838667.4521875,
-    "ast_hash": "d4b440ac248e84fcd7dd5189dab9c6f9",
+    "mtime": 1785834149.5603218,
+    "ast_hash": "b261d860d62e2637e531b6cb40d03b95",
     "semantic_hash": ""
   },
   "src/components/sections/Contact/Contact.tsx": {
-    "mtime": 1785838771.339706,
-    "ast_hash": "5e23c17957d91718dabab8b417f6d187",
+    "mtime": 1785834224.9859347,
+    "ast_hash": "88373e4ab9353a6bdb2ba81d9a86d6a3",
     "semantic_hash": ""
   },
   "src/components/sections/Features/Features.test.tsx": {
@@ -235,8 +235,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/home.json": {
-    "mtime": 1785838400.4831202,
-    "ast_hash": "fbc5de4d7f6afd8b95cd5abd935ede9e",
+    "mtime": 1785795335.6487467,
+    "ast_hash": "f2c9382ed92ff6304b550606fca8285b",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/common.json": {
@@ -245,8 +245,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/home.json": {
-    "mtime": 1785838389.952821,
-    "ast_hash": "4eccfa18e2b70bcae74fc4d470f4354a",
+    "mtime": 1785795328.467567,
+    "ast_hash": "31996ddb993e3139c53dad29c2b02fa4",
     "semantic_hash": ""
   },
   "src/test/test-utils.tsx": {
