@@ -70,7 +70,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_home_page_flujo_test",
-      "community": 151,
+      "community": 163,
       "norm_label": "home-page.flujo.test.tsx"
     },
     {
@@ -80,7 +80,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_stubmatchmedia",
-      "community": 151,
+      "community": 163,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -90,7 +90,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_observe",
-      "community": 151,
+      "community": 163,
       "norm_label": "observe()"
     },
     {
@@ -100,7 +100,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_unobserve",
-      "community": 151,
+      "community": 163,
       "norm_label": "unobserve()"
     },
     {
@@ -110,7 +110,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_disconnect",
-      "community": 151,
+      "community": 163,
       "norm_label": "disconnect()"
     },
     {
@@ -120,7 +120,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_testid",
-      "community": 151,
+      "community": 163,
       "norm_label": "testid()"
     },
     {
@@ -130,7 +130,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_renderhomepage",
-      "community": 151,
+      "community": 163,
       "norm_label": "renderhomepage()"
     },
     {
@@ -280,7 +280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_page",
-      "community": 151,
+      "community": 163,
       "norm_label": "page.tsx"
     },
     {
@@ -290,7 +290,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "app_page_homepage",
-      "community": 151,
+      "community": 163,
       "norm_label": "homepage()"
     },
     {
@@ -3570,7 +3570,7 @@
       "source_location": "L406",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_00_field",
-      "community": 166,
+      "community": 172,
       "norm_label": "00-field"
     },
     {
@@ -3580,7 +3580,7 @@
       "source_location": "L407",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_sourcepngbytes",
-      "community": 166,
+      "community": 172,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3590,7 +3590,7 @@
       "source_location": "L408",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_nativewebpbytes",
-      "community": 166,
+      "community": 172,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3600,7 +3600,7 @@
       "source_location": "L409",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_responsivewebpbytes",
-      "community": 166,
+      "community": 172,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3610,7 +3610,7 @@
       "source_location": "L410",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_pngtonativereduction",
-      "community": 166,
+      "community": 172,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3620,7 +3620,7 @@
       "source_location": "L411",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_nativetoresponsivereduction",
-      "community": 166,
+      "community": 172,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3630,7 +3630,7 @@
       "source_location": "L412",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_responsivesmallerthannative",
-      "community": 166,
+      "community": 172,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3640,7 +3640,7 @@
       "source_location": "L414",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_01_energy",
-      "community": 172,
+      "community": 180,
       "norm_label": "01-energy"
     },
     {
@@ -3650,7 +3650,7 @@
       "source_location": "L415",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_sourcepngbytes",
-      "community": 172,
+      "community": 180,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3660,7 +3660,7 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_nativewebpbytes",
-      "community": 172,
+      "community": 180,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3670,7 +3670,7 @@
       "source_location": "L417",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_responsivewebpbytes",
-      "community": 172,
+      "community": 180,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3680,7 +3680,7 @@
       "source_location": "L418",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_pngtonativereduction",
-      "community": 172,
+      "community": 180,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3690,7 +3690,7 @@
       "source_location": "L419",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_nativetoresponsivereduction",
-      "community": 172,
+      "community": 180,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3700,7 +3700,7 @@
       "source_location": "L420",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_responsivesmallerthannative",
-      "community": 172,
+      "community": 180,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3710,7 +3710,7 @@
       "source_location": "L422",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_02_hand_left",
-      "community": 180,
+      "community": 182,
       "norm_label": "02-hand-left"
     },
     {
@@ -3720,7 +3720,7 @@
       "source_location": "L423",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_sourcepngbytes",
-      "community": 180,
+      "community": 182,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3730,7 +3730,7 @@
       "source_location": "L424",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_nativewebpbytes",
-      "community": 180,
+      "community": 182,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3740,7 +3740,7 @@
       "source_location": "L425",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_responsivewebpbytes",
-      "community": 180,
+      "community": 182,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3750,7 +3750,7 @@
       "source_location": "L426",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_pngtonativereduction",
-      "community": 180,
+      "community": 182,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3760,7 +3760,7 @@
       "source_location": "L427",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_nativetoresponsivereduction",
-      "community": 180,
+      "community": 182,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3770,7 +3770,7 @@
       "source_location": "L428",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_responsivesmallerthannative",
-      "community": 180,
+      "community": 182,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3780,7 +3780,7 @@
       "source_location": "L430",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_03_hand_right",
-      "community": 182,
+      "community": 184,
       "norm_label": "03-hand-right"
     },
     {
@@ -3790,7 +3790,7 @@
       "source_location": "L431",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_sourcepngbytes",
-      "community": 182,
+      "community": 184,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3800,7 +3800,7 @@
       "source_location": "L432",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_nativewebpbytes",
-      "community": 182,
+      "community": 184,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3810,7 +3810,7 @@
       "source_location": "L433",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_responsivewebpbytes",
-      "community": 182,
+      "community": 184,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3820,7 +3820,7 @@
       "source_location": "L434",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_pngtonativereduction",
-      "community": 182,
+      "community": 184,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3830,7 +3830,7 @@
       "source_location": "L435",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_nativetoresponsivereduction",
-      "community": 182,
+      "community": 184,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3840,7 +3840,7 @@
       "source_location": "L436",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_responsivesmallerthannative",
-      "community": 182,
+      "community": 184,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -8030,7 +8030,7 @@
       "source_location": "L152",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_starvars",
-      "community": 189,
+      "community": 151,
       "norm_label": "starvars()"
     },
     {
@@ -8200,7 +8200,7 @@
       "source_location": "L360",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_footer",
-      "community": 189,
+      "community": 151,
       "norm_label": "footer()"
     },
     {
@@ -8510,7 +8510,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons",
-      "community": 185,
+      "community": 178,
       "norm_label": "themeicons.tsx"
     },
     {
@@ -8520,7 +8520,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconsun",
-      "community": 185,
+      "community": 178,
       "norm_label": "iconsun()"
     },
     {
@@ -8530,7 +8530,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconmoon",
-      "community": 185,
+      "community": 178,
       "norm_label": "iconmoon()"
     },
     {
@@ -8540,7 +8540,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_test",
-      "community": 185,
+      "community": 178,
       "norm_label": "themetoggle.test.tsx"
     },
     {
@@ -8550,7 +8550,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle",
-      "community": 185,
+      "community": 178,
       "norm_label": "themetoggle.tsx"
     },
     {
@@ -8560,7 +8560,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_themetoggle",
-      "community": 185,
+      "community": 178,
       "norm_label": "themetoggle()"
     },
     {
@@ -8570,7 +8570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_test",
-      "community": 184,
+      "community": 187,
       "norm_label": "legaldocument.test.tsx"
     },
     {
@@ -8580,7 +8580,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_test_doc_keys",
-      "community": 184,
+      "community": 187,
       "norm_label": "doc_keys"
     },
     {
@@ -8600,7 +8600,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldockey",
-      "community": 184,
+      "community": 187,
       "norm_label": "legaldockey"
     },
     {
@@ -8690,7 +8690,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_splitplaceholdermarkers",
-      "community": 184,
+      "community": 187,
       "norm_label": "splitplaceholdermarkers()"
     },
     {
@@ -8700,7 +8700,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_markedtext",
-      "community": 184,
+      "community": 187,
       "norm_label": "markedtext()"
     },
     {
@@ -8730,7 +8730,7 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_renderblock",
-      "community": 189,
+      "community": 151,
       "norm_label": "renderblock()"
     },
     {
@@ -8740,7 +8740,7 @@
       "source_location": "L345",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldocument",
-      "community": 189,
+      "community": 151,
       "norm_label": "legaldocument()"
     },
     {
@@ -8750,7 +8750,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_test",
-      "community": 189,
+      "community": 151,
       "norm_label": "legalheader.test.tsx"
     },
     {
@@ -8760,7 +8760,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legalheader",
-      "community": 189,
+      "community": 151,
       "norm_label": "legalheader.tsx"
     },
     {
@@ -8770,7 +8770,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_scheader",
-      "community": 189,
+      "community": 151,
       "norm_label": "scheader"
     },
     {
@@ -8780,7 +8780,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_scinner",
-      "community": 189,
+      "community": 151,
       "norm_label": "scinner"
     },
     {
@@ -8790,7 +8790,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_scbrandlink",
-      "community": 189,
+      "community": 151,
       "norm_label": "scbrandlink"
     },
     {
@@ -8800,7 +8800,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_scactions",
-      "community": 189,
+      "community": 151,
       "norm_label": "scactions"
     },
     {
@@ -8810,7 +8810,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_legalheader",
-      "community": 189,
+      "community": 151,
       "norm_label": "legalheader()"
     },
     {
@@ -8820,7 +8820,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_documents_accessibilitydocument",
-      "community": 189,
+      "community": 151,
       "norm_label": "accessibilitydocument.tsx"
     },
     {
@@ -8840,7 +8840,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_documents_legalnoticedocument",
-      "community": 189,
+      "community": 151,
       "norm_label": "legalnoticedocument.tsx"
     },
     {
@@ -8860,7 +8860,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_documents_privacydocument",
-      "community": 189,
+      "community": 151,
       "norm_label": "privacydocument.tsx"
     },
     {
@@ -8880,7 +8880,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_documents_termsdocument",
-      "community": 189,
+      "community": 151,
       "norm_label": "termsdocument.tsx"
     },
     {
@@ -9190,7 +9190,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test",
-      "community": 163,
+      "community": 166,
       "norm_label": "sectionbeam.test.tsx"
     },
     {
@@ -9200,7 +9200,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_constructor",
-      "community": 163,
+      "community": 166,
       "norm_label": "constructor()"
     },
     {
@@ -9210,7 +9210,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_observe",
-      "community": 163,
+      "community": 166,
       "norm_label": "observe()"
     },
     {
@@ -9220,7 +9220,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_disconnect",
-      "community": 163,
+      "community": 166,
       "norm_label": "disconnect()"
     },
     {
@@ -9230,7 +9230,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_cssruletextfor",
-      "community": 163,
+      "community": 166,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -9240,7 +9240,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_renderbeam",
-      "community": 163,
+      "community": 166,
       "norm_label": "renderbeam()"
     },
     {
@@ -9270,7 +9270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_layers_test",
-      "community": 163,
+      "community": 166,
       "norm_label": "sectionbeam.layers.test.ts"
     },
     {
@@ -9280,7 +9280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_layers",
-      "community": 163,
+      "community": 166,
       "norm_label": "sectionbeam.layers.ts"
     },
     {
@@ -14850,7 +14850,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themeprovider",
-      "community": 178,
+      "community": 191,
       "norm_label": "themeprovider()"
     },
     {
@@ -27837,7 +27837,7 @@
       "label": "1. Estado actual (medido en el \u00e1rbol, no de memoria)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L33",
+      "source_location": "L35",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_1_estado_actual_medido_en_el_\u00e1rbol_no_de_memoria",
       "community": 186,
@@ -27847,7 +27847,7 @@
       "label": "1.1 Hallazgos del reconocimiento que cambian el dise\u00f1o",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L60",
+      "source_location": "L62",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_1_1_hallazgos_del_reconocimiento_que_cambian_el_dise\u00f1o",
       "community": 186,
@@ -27857,7 +27857,7 @@
       "label": "2. Objetivo y alcance",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L87",
+      "source_location": "L89",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_2_objetivo_y_alcance",
       "community": 186,
@@ -27867,7 +27867,7 @@
       "label": "3. Decisiones de dise\u00f1o",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L100",
+      "source_location": "L102",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_3_decisiones_de_dise\u00f1o",
       "community": 186,
@@ -27877,7 +27877,7 @@
       "label": "Rutas y URLs",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L102",
+      "source_location": "L104",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_rutas_y_urls",
       "community": 186,
@@ -27887,7 +27887,7 @@
       "label": "SEO",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L108",
+      "source_location": "L110",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_seo",
       "community": 186,
@@ -27897,7 +27897,7 @@
       "label": "Consentimiento",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L135",
+      "source_location": "L137",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_consentimiento",
       "community": 186,
@@ -27907,7 +27907,7 @@
       "label": "Accesibilidad",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L153",
+      "source_location": "L155",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_accesibilidad",
       "community": 186,
@@ -27917,7 +27917,7 @@
       "label": "4. Contenido legal: qu\u00e9 exige la norma y de d\u00f3nde sale",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L169",
+      "source_location": "L171",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_contenido_legal_qu\u00e9_exige_la_norma_y_de_d\u00f3nde_sale",
       "community": 186,
@@ -27927,7 +27927,7 @@
       "label": "4.1 `/privacidad` \u2014 RGPD art. 13 + LOPDGDD art. 11",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L173",
+      "source_location": "L175",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_1_privacidad_rgpd_art_13_lopdgdd_art_11",
       "community": 186,
@@ -27937,7 +27937,7 @@
       "label": "4.2 `/aviso-legal` \u2014 LSSI-CE art. 10",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L182",
+      "source_location": "L184",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_2_aviso_legal_lssi_ce_art_10",
       "community": 186,
@@ -27947,7 +27947,7 @@
       "label": "4.3 `/terminos` \u2014 sin contenido tasado por norma",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L186",
+      "source_location": "L188",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_3_terminos_sin_contenido_tasado_por_norma",
       "community": 186,
@@ -27957,7 +27957,7 @@
       "label": "4.4 `/accesibilidad` \u2014 declaraci\u00f3n voluntaria",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L192",
+      "source_location": "L194",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_4_accesibilidad_declaraci\u00f3n_voluntaria",
       "community": 186,
@@ -27967,7 +27967,7 @@
       "label": "5. Arquitectura de ficheros y propiedad por flujo",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L204",
+      "source_location": "L206",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_5_arquitectura_de_ficheros_y_propiedad_por_flujo",
       "community": 186,
@@ -27977,7 +27977,7 @@
       "label": "Flujo S1 \u00b7 SEO e indexaci\u00f3n",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L208",
+      "source_location": "L210",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_flujo_s1_seo_e_indexaci\u00f3n",
       "community": 186,
@@ -27987,7 +27987,7 @@
       "label": "Flujo S2 \u00b7 P\u00e1ginas legales",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L225",
+      "source_location": "L227",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_flujo_s2_p\u00e1ginas_legales",
       "community": 186,
@@ -27997,7 +27997,7 @@
       "label": "Flujo S3 \u00b7 Consentimiento",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L245",
+      "source_location": "L247",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_flujo_s3_consentimiento",
       "community": 186,
@@ -28007,7 +28007,7 @@
       "label": "Integraci\u00f3n \u2014 hilo principal (Opus), despu\u00e9s de S1-S3",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L261",
+      "source_location": "L263",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_integraci\u00f3n_hilo_principal_opus_despu\u00e9s_de_s1_s3",
       "community": 186,
@@ -28017,7 +28017,7 @@
       "label": "6. Contratos comunes a todos los flujos",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L290",
+      "source_location": "L292",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_6_contratos_comunes_a_todos_los_flujos",
       "community": 186,
@@ -28027,7 +28027,7 @@
       "label": "7. Contratos de test",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L305",
+      "source_location": "L307",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_7_contratos_de_test",
       "community": 186,
@@ -28037,7 +28037,7 @@
       "label": "8. Verificaci\u00f3n (adem\u00e1s de la suite)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L323",
+      "source_location": "L325",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_8_verificaci\u00f3n_adem\u00e1s_de_la_suite",
       "community": 186,
@@ -28047,7 +28047,7 @@
       "label": "8-bis. Resultado medido",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L332",
+      "source_location": "L334",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_8_bis_resultado_medido",
       "community": 186,
@@ -28057,7 +28057,7 @@
       "label": "9. L\u00edmites declarados (lo que esta entrega NO garantiza)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L357",
+      "source_location": "L359",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_9_l\u00edmites_declarados_lo_que_esta_entrega_no_garantiza",
       "community": 186,
@@ -28067,7 +28067,7 @@
       "label": "10. Fuera de alcance (deliberadamente)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L371",
+      "source_location": "L373",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_10_fuera_de_alcance_deliberadamente",
       "community": 186,
@@ -28077,7 +28077,7 @@
       "label": "11. Gate de calidad (salida literal)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L381",
+      "source_location": "L383",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_gate_de_calidad_salida_literal",
       "community": 186,
@@ -28087,7 +28087,7 @@
       "label": "11.1 Auditor\u00eda adversarial independiente",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L408",
+      "source_location": "L410",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_1_auditor\u00eda_adversarial_independiente",
       "community": 186,
@@ -67544,7 +67544,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L371",
+      "source_location": "L373",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_10_fuera_de_alcance_deliberadamente",
@@ -67554,7 +67554,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L381",
+      "source_location": "L383",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_gate_de_calidad_salida_literal",
@@ -67564,7 +67564,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L33",
+      "source_location": "L35",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_1_estado_actual_medido_en_el_\u00e1rbol_no_de_memoria",
@@ -67574,7 +67574,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L87",
+      "source_location": "L89",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_2_objetivo_y_alcance",
@@ -67584,7 +67584,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L100",
+      "source_location": "L102",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_3_decisiones_de_dise\u00f1o",
@@ -67594,7 +67594,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L169",
+      "source_location": "L171",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_contenido_legal_qu\u00e9_exige_la_norma_y_de_d\u00f3nde_sale",
@@ -67604,7 +67604,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L204",
+      "source_location": "L206",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_5_arquitectura_de_ficheros_y_propiedad_por_flujo",
@@ -67614,7 +67614,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L290",
+      "source_location": "L292",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_6_contratos_comunes_a_todos_los_flujos",
@@ -67624,7 +67624,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L305",
+      "source_location": "L307",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_7_contratos_de_test",
@@ -67634,7 +67634,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L332",
+      "source_location": "L334",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_8_bis_resultado_medido",
@@ -67644,7 +67644,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L323",
+      "source_location": "L325",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_8_verificaci\u00f3n_adem\u00e1s_de_la_suite",
@@ -67654,7 +67654,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L357",
+      "source_location": "L359",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_9_l\u00edmites_declarados_lo_que_esta_entrega_no_garantiza",
@@ -67664,7 +67664,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L60",
+      "source_location": "L62",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_1_estado_actual_medido_en_el_\u00e1rbol_no_de_memoria",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_1_1_hallazgos_del_reconocimiento_que_cambian_el_dise\u00f1o",
@@ -67674,7 +67674,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L153",
+      "source_location": "L155",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_3_decisiones_de_dise\u00f1o",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_accesibilidad",
@@ -67684,7 +67684,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L135",
+      "source_location": "L137",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_3_decisiones_de_dise\u00f1o",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_consentimiento",
@@ -67694,7 +67694,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L102",
+      "source_location": "L104",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_3_decisiones_de_dise\u00f1o",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_rutas_y_urls",
@@ -67704,7 +67704,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L108",
+      "source_location": "L110",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_3_decisiones_de_dise\u00f1o",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_seo",
@@ -67714,7 +67714,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L173",
+      "source_location": "L175",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_contenido_legal_qu\u00e9_exige_la_norma_y_de_d\u00f3nde_sale",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_1_privacidad_rgpd_art_13_lopdgdd_art_11",
@@ -67724,7 +67724,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L182",
+      "source_location": "L184",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_contenido_legal_qu\u00e9_exige_la_norma_y_de_d\u00f3nde_sale",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_2_aviso_legal_lssi_ce_art_10",
@@ -67734,7 +67734,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L186",
+      "source_location": "L188",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_contenido_legal_qu\u00e9_exige_la_norma_y_de_d\u00f3nde_sale",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_3_terminos_sin_contenido_tasado_por_norma",
@@ -67744,7 +67744,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L192",
+      "source_location": "L194",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_contenido_legal_qu\u00e9_exige_la_norma_y_de_d\u00f3nde_sale",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_4_4_accesibilidad_declaraci\u00f3n_voluntaria",
@@ -67754,7 +67754,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L208",
+      "source_location": "L210",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_5_arquitectura_de_ficheros_y_propiedad_por_flujo",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_flujo_s1_seo_e_indexaci\u00f3n",
@@ -67764,7 +67764,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L225",
+      "source_location": "L227",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_5_arquitectura_de_ficheros_y_propiedad_por_flujo",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_flujo_s2_p\u00e1ginas_legales",
@@ -67774,7 +67774,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L245",
+      "source_location": "L247",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_5_arquitectura_de_ficheros_y_propiedad_por_flujo",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_flujo_s3_consentimiento",
@@ -67784,7 +67784,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L261",
+      "source_location": "L263",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_5_arquitectura_de_ficheros_y_propiedad_por_flujo",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_integraci\u00f3n_hilo_principal_opus_despu\u00e9s_de_s1_s3",
@@ -67794,7 +67794,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L408",
+      "source_location": "L410",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_gate_de_calidad_salida_literal",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_1_auditor\u00eda_adversarial_independiente",
@@ -68072,5 +68072,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "aec8c48e813a8dcbe21aeed58545de01fe35f89d"
+  "built_at_commit": "1b01758377e8044a9336fb2d2b6d3c69118a9b21"
 }

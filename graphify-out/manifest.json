@@ -75,8 +75,8 @@
     "semantic_hash": ""
   },
   "src/components/layout/Footer/Footer.tsx": {
-    "mtime": 1785877743.20329,
-    "ast_hash": "c05716c62d0e3e9da83993db9cbbd3e4",
+    "mtime": 1785924326.9898603,
+    "ast_hash": "9a5a2c946aee68b43605404f3f7366ad",
     "semantic_hash": ""
   },
   "src/components/layout/LanguageSelector/LanguageSelector.tsx": {
@@ -180,13 +180,13 @@
     "semantic_hash": ""
   },
   "src/config/links.test.ts": {
-    "mtime": 1785876798.663474,
-    "ast_hash": "45011bb1017e24d894cf2fedd337ed7d",
+    "mtime": 1785924328.1984885,
+    "ast_hash": "62399b82d20305158f2038ecb62cf227",
     "semantic_hash": ""
   },
   "src/config/links.ts": {
-    "mtime": 1785876798.6734774,
-    "ast_hash": "08f7bd14014d9a4f44215a2c4b3d5697",
+    "mtime": 1785924328.2044842,
+    "ast_hash": "3331fd9af6d77fbc2cc7748e34f3cdb3",
     "semantic_hash": ""
   },
   "src/hooks/usePointer.test.tsx": {
@@ -250,8 +250,8 @@
     "semantic_hash": ""
   },
   "src/test/test-utils.tsx": {
-    "mtime": 1785876799.3661978,
-    "ast_hash": "12af8f8c7394998861cc4ebd1285b9b4",
+    "mtime": 1785924328.7672768,
+    "ast_hash": "df17553a982eef99e8995ee9f2d72cc3",
     "semantic_hash": ""
   },
   "src/theme/GlobalStyles.tsx": {
@@ -1030,8 +1030,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales.test.ts": {
-    "mtime": 1785877458.1286023,
-    "ast_hash": "523d43596010a36d69c6056fc41a0fc5",
+    "mtime": 1785924328.6163018,
+    "ast_hash": "22127a61a3c3b31c0c23ff0825842291",
     "semantic_hash": ""
   },
   "src/motion/StageProvider.test.tsx": {
@@ -1955,8 +1955,8 @@
     "semantic_hash": ""
   },
   "app/sitemap.ts": {
-    "mtime": 1785877687.443141,
-    "ast_hash": "6fba9f7cb6d8536c672fbead60346539",
+    "mtime": 1785924329.054391,
+    "ast_hash": "34ff70ecd5cbcd7af18956ae5c05b93c",
     "semantic_hash": ""
   },
   "app/terminos/page.tsx": {
@@ -2050,8 +2050,8 @@
     "semantic_hash": ""
   },
   "src/config/legal.ts": {
-    "mtime": 1785877508.914149,
-    "ast_hash": "582d938adaf4997e499ea2b726286f9f",
+    "mtime": 1785924328.1914847,
+    "ast_hash": "428b023e7ca9bf9f5cca506d62762a5e",
     "semantic_hash": ""
   },
   "src/config/site.test.ts": {
@@ -2100,8 +2100,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/legal.json": {
-    "mtime": 1785878812.8437066,
-    "ast_hash": "431090db7200960ca1a9690e73fd6f77",
+    "mtime": 1785924094.031958,
+    "ast_hash": "a1912be1ad16450cdd411bc35b532e99",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/consent.json": {
@@ -2110,8 +2110,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/legal.json": {
-    "mtime": 1785878812.8192177,
-    "ast_hash": "00c0f2a8b4572a1cd23074d1c33d0ff0",
+    "mtime": 1785924094.0079532,
+    "ast_hash": "7f5db84bc3dd0b57002cf049dec9caed",
     "semantic_hash": ""
   },
   "src/seo/JsonLdScript.tsx": {
@@ -2140,13 +2140,13 @@
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-08-04-legal-seo-consentimiento.md": {
-    "mtime": 1785877987.6393924,
+    "mtime": 1785924329.9258616,
     "ast_hash": "4df0604c29d0cbb289178aae308b22dd",
     "semantic_hash": ""
   },
   "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md": {
-    "mtime": 1785879061.8279943,
-    "ast_hash": "109682d28416515aa6b0fa588af944b8",
+    "mtime": 1785924155.499279,
+    "ast_hash": "6f39d5d9ff4a5b8bb8ab2baa075c6ba1",
     "semantic_hash": ""
   },
   "src/components/legal/legalPage.contrast.test.ts": {

@@ -188,14 +188,13 @@
   "186": "features.layers.ts",
   "187": "nativeOutput",
   "188": "ConsentProvider.tsx",
-  "189": "LegalHeader.tsx",
+  "189": "useTheme",
   "190": "CookiePreferences.test.tsx",
   "191": "hero.transition.ts",
   "192": "Footer.test.tsx",
   "193": "Fases",
-  "194": "BrandName.test.tsx",
-  "195": "GlobalStyles.tsx",
+  "194": "nativeOutput",
+  "195": "alphaLayerEncoding",
   "196": "useSectionProgress.test.tsx",
-  "197": "Logo.tsx",
-  "198": "registry.tsx"
+  "197": "Logo.tsx"
 }
