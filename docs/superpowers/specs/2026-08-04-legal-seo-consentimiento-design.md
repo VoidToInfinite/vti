@@ -1,6 +1,8 @@
 # Spec — Páginas legales, capa de SEO/AEO/GEO, sitemap y consentimiento configurable
 
-**Fecha:** 2026-08-04 · **Rama:** `feature/gdpr-legal-terms-accessibility` · **HEAD de partida:** `aec8c48`
+**Fecha:** 2026-08-05 · **Rama:** `feature/gdpr-legal-terms-accessibility` · **HEAD de partida:** `aec8c48`
+
+> El nombre de fichero de esta spec y el de su plan conservan `2026-08-04`: se crearon con esa fecha por un error de datación que se detectó al cerrar la entrega, y para entonces el slug ya estaba citado en los docblocks de quince ficheros y en un commit empujado. Se corrigieron **las fechas que son afirmaciones factuales** (versión y última revisión de los cuatro documentos legales, fecha de la autoevaluación de accesibilidad, `lastmod` del sitemap y las referencias en prosa a esta entrega); el slug se conserva como identificador. La entrega es del **2026-08-05**.
 
 **Encargo del usuario (literal):**
 
@@ -19,7 +21,7 @@ un cambio del alcance fuera del brief. Pausa si necesitas un dato que solo yo pu
 dar. Si no, sigue hasta cuando termines.
 ```
 
-**Decisiones tomadas por el usuario en el arranque** (checkpoint «dato que solo yo puedo dar», 2026-08-04):
+**Decisiones tomadas por el usuario en el arranque** (checkpoint «dato que solo yo puedo dar», 2026-08-05):
 
 | Pregunta | Respuesta |
 | --- | --- |
@@ -333,7 +335,7 @@ Idénticos a los de entregas anteriores de este repo, más los específicos de e
 
 Todo lo de esta sección es salida observada, no expectativa.
 
-**Build (`pnpm build`, árbol `out/` limpio).** 11 rutas estáticas. `out/sitemap.xml` con las 5 URLs absolutas y `lastmod` `2026-08-04` en todas. `out/robots.txt` con `User-Agent: *` / `Allow: /` / `Sitemap:`, sin `Disallow`. `out/opengraph-image`: firma `89504e470d0a1a0a`, IHDR **1200×630**, 74 698 bytes.
+**Build (`pnpm build`, árbol `out/` limpio).** 11 rutas estáticas. `out/sitemap.xml` con las 5 URLs absolutas y `lastmod` `2026-08-05` en todas. `out/robots.txt` con `User-Agent: *` / `Allow: /` / `Sitemap:`, sin `Disallow`. `out/opengraph-image`: firma `89504e470d0a1a0a`, IHDR **1200×630**, 74 698 bytes.
 
 **HTML emitido, las 5 rutas.** `<link rel="canonical">` correcta y sin barra final en las 5. `og:title`, `og:description`, `og:url`, `og:site_name`, `og:locale`, `og:type` y `og:image` presentes en las 5 —incluidos `og:site_name` y `og:type`, que son justo los que H2 hace desaparecer si el diseño está mal—. `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image` en las 5. `<meta name="googlebot">` con `max-video-preview:-1, max-image-preview:large, max-snippet:-1` en las 5. JSON-LD: 1 bloque (`Organization` + `WebSite`) en la home y 2 (más `WebPage`) en cada legal, **todos parseables con `JSON.parse`**.
 

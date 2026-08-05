@@ -4,7 +4,7 @@
  *
  * Decisión del usuario, checkpoint "dato que solo yo puedo dar" (spec
  * `docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md`,
- * tabla de decisiones del arranque, 2026-08-04): "Responsable del tratamiento
+ * tabla de decisiones del arranque, 2026-08-05): "Responsable del tratamiento
  * / titular legal" y "NIF/CIF, domicilio, correo de contacto legal" quedan
  * explícitamente `PLACEHOLDER` — el usuario no los aportó y pidió no
  * inventarlos. Mismo criterio que `src/config/links.ts` ya aplica a las
@@ -71,10 +71,10 @@ export const LEGAL_VERSIONS: Record<
   "privacy" | "terms" | "accessibility" | "legalNotice",
   LegalVersion
 > = {
-  privacy: { version: "1.0.0", updated: "2026-08-04" },
-  terms: { version: "1.0.0", updated: "2026-08-04" },
-  accessibility: { version: "1.0.0", updated: "2026-08-04" },
-  legalNotice: { version: "1.0.0", updated: "2026-08-04" },
+  privacy: { version: "1.0.0", updated: "2026-08-05" },
+  terms: { version: "1.0.0", updated: "2026-08-05" },
+  accessibility: { version: "1.0.0", updated: "2026-08-05" },
+  legalNotice: { version: "1.0.0", updated: "2026-08-05" },
 };
 
 /** Campos de `LEGAL_ENTITY` que identifican al responsable y por tanto

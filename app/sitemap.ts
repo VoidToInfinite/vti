@@ -20,7 +20,7 @@ export const dynamic = "force-static";
 // decidir cuándo re-rastrear, y un valor que miente todos los días degrada
 // esa señal a ruido. Se actualiza a mano cuando el contenido cambie de
 // verdad.
-const SITEMAP_LAST_MODIFIED = "2026-08-04";
+const SITEMAP_LAST_MODIFIED = "2026-08-05";
 
 /** Las cinco rutas públicas: home + las cuatro páginas legales, en ese orden. */
 const SITEMAP_ROUTE_KEYS = ["home", ...LEGAL_ROUTE_KEYS] as const;

@@ -100,7 +100,7 @@ describe("locales", () => {
    * `namespaces` de ARRIBA. Añadir un namespace a `config.ts` y olvidarse de
    * añadirlo aquí lo dejaría sin ninguna cobertura, en silencio -- que es
    * exactamente lo que pasó al incorporar `legal` y `consent` en la entrega
-   * del 2026-08-04 y lo que este test impide que vuelva a pasar.
+   * del 2026-08-05 y lo que este test impide que vuelva a pasar.
    */
   it("todos los namespaces registrados en config.ts tienen candado de paridad", () => {
     expect([...registeredNamespaces].sort()).toEqual(

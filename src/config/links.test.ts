@@ -32,7 +32,7 @@ describe("links de CTA", () => {
 
   /*
    * Privacy, terms, accessibility y legalNotice DEJARON de ser marcadores el
-   * 2026-08-04: esta entrega creó las cuatro páginas reales. Los dos tests
+   * 2026-08-05: esta entrega creó las cuatro páginas reales. Los dos tests
    * que afirmaban que contenían `por-completar` y `example.invalid` ya no
    * describen el repo, así que se sustituyen -- y NO se relajan, siguiendo
    * exactamente la doctrina que este mismo fichero fijó al sustituir los de

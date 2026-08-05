@@ -7,7 +7,7 @@ import i18n from "@/i18n/config";
 
 /*
  * Réplica del árbol de proveedores REAL de `app/providers.tsx`, en el mismo
- * orden. `ConsentProvider` entra aquí (entrega 2026-08-04) porque desde esta
+ * orden. `ConsentProvider` entra aquí (entrega 2026-08-05) porque desde esta
  * entrega el `Footer` consume `useConsent()` para su enlace de preferencias
  * de cookies, y el `Footer` lo montan la home y las cuatro páginas legales:
  * sin el proveedor, cualquier test que renderice el pie fallaría por una

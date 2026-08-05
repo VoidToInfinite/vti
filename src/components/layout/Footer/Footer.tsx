@@ -339,7 +339,7 @@ const SECTION_LINKS = [
 const DISCOVER_LINKS = ["learning", "imagination", "gaming"] as const;
 
 /*
- * Los cuatro documentos legales de la barra inferior (entrega 2026-08-04).
+ * Los cuatro documentos legales de la barra inferior (entrega 2026-08-05).
  * Hasta hoy eran tres anclas con target blank hacia marcadores
  * example.invalid; ahora son rutas propias, y por eso se navegan con
  * next/link.

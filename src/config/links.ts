@@ -9,7 +9,7 @@ import { ROUTES } from "@/config/site";
  * barra y se navegan con `next/link`, sin `target`.
  *
  * Los cuatro legales dejaron de ser marcadores `example.invalid` el
- * 2026-08-04: esta entrega creó las páginas reales, así que apuntan a las
+ * 2026-08-05: esta entrega creó las páginas reales, así que apuntan a las
  * rutas de `ROUTES` (fuente de verdad única, `src/config/site.ts`) en vez de
  * repetir aquí las cadenas. Repetirlas habría dejado dos sitios que corregir
  * el día que una ruta cambie de slug, y el sitemap habría seguido apuntando
