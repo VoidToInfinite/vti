@@ -186,16 +186,12 @@
   "184": "useParallaxLayers.test.tsx",
   "185": "HeroBackdrop.test.tsx",
   "186": "features.layers.ts",
-  "187": "nativeOutput",
   "188": "ConsentProvider.tsx",
   "189": "LegalHeader.tsx",
   "190": "CookiePreferences.test.tsx",
   "191": "hero.transition.ts",
   "192": "Footer.test.tsx",
   "193": "Fases",
-  "194": "BrandName.test.tsx",
-  "195": "GlobalStyles.tsx",
   "196": "useSectionProgress.test.tsx",
-  "197": "Logo.tsx",
-  "198": "registry.tsx"
+  "197": "Logo.tsx"
 }

@@ -70,7 +70,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_home_page_flujo_test",
-      "community": 179,
+      "community": 151,
       "norm_label": "home-page.flujo.test.tsx"
     },
     {
@@ -80,7 +80,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_stubmatchmedia",
-      "community": 179,
+      "community": 151,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -90,7 +90,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_observe",
-      "community": 179,
+      "community": 151,
       "norm_label": "observe()"
     },
     {
@@ -100,7 +100,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_unobserve",
-      "community": 179,
+      "community": 151,
       "norm_label": "unobserve()"
     },
     {
@@ -110,7 +110,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_disconnect",
-      "community": 179,
+      "community": 151,
       "norm_label": "disconnect()"
     },
     {
@@ -120,7 +120,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_testid",
-      "community": 179,
+      "community": 151,
       "norm_label": "testid()"
     },
     {
@@ -130,7 +130,7 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "app_home_page_flujo_test_renderhomepage",
-      "community": 179,
+      "community": 151,
       "norm_label": "renderhomepage()"
     },
     {
@@ -280,7 +280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_page",
-      "community": 46,
+      "community": 151,
       "norm_label": "page.tsx"
     },
     {
@@ -290,7 +290,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "app_page_homepage",
-      "community": 46,
+      "community": 151,
       "norm_label": "homepage()"
     },
     {
@@ -3060,7 +3060,7 @@
       "source_location": "L317",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline_nativeoutput",
-      "community": 182,
+      "community": 10,
       "norm_label": "nativeoutput"
     },
     {
@@ -3070,7 +3070,7 @@
       "source_location": "L318",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_widthpx",
-      "community": 182,
+      "community": 10,
       "norm_label": "widthpx"
     },
     {
@@ -3080,7 +3080,7 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_heightpx",
-      "community": 182,
+      "community": 10,
       "norm_label": "heightpx"
     },
     {
@@ -3090,7 +3090,7 @@
       "source_location": "L320",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_resize",
-      "community": 182,
+      "community": 10,
       "norm_label": "resize"
     },
     {
@@ -3100,7 +3100,7 @@
       "source_location": "L321",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_suffix",
-      "community": 182,
+      "community": 10,
       "norm_label": "suffix"
     },
     {
@@ -3110,7 +3110,7 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_nativeoutput_bylayer",
-      "community": 182,
+      "community": 10,
       "norm_label": "bylayer"
     },
     {
@@ -3450,7 +3450,7 @@
       "source_location": "L392",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline_opaquelayerencoding",
-      "community": 183,
+      "community": 167,
       "norm_label": "opaquelayerencoding"
     },
     {
@@ -3460,7 +3460,7 @@
       "source_location": "L393",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_layer",
-      "community": 183,
+      "community": 167,
       "norm_label": "layer"
     },
     {
@@ -3470,7 +3470,7 @@
       "source_location": "L394",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_hasalphachannel",
-      "community": 183,
+      "community": 167,
       "norm_label": "hasalphachannel"
     },
     {
@@ -3480,7 +3480,7 @@
       "source_location": "L395",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_riffchunk",
-      "community": 183,
+      "community": 167,
       "norm_label": "riffchunk"
     },
     {
@@ -3490,7 +3490,7 @@
       "source_location": "L396",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_opaquelayerencoding_nota",
-      "community": 183,
+      "community": 167,
       "norm_label": "nota"
     },
     {
@@ -3570,7 +3570,7 @@
       "source_location": "L406",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_00_field",
-      "community": 104,
+      "community": 166,
       "norm_label": "00-field"
     },
     {
@@ -3580,7 +3580,7 @@
       "source_location": "L407",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_sourcepngbytes",
-      "community": 104,
+      "community": 166,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3590,7 +3590,7 @@
       "source_location": "L408",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_nativewebpbytes",
-      "community": 104,
+      "community": 166,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3600,7 +3600,7 @@
       "source_location": "L409",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_responsivewebpbytes",
-      "community": 104,
+      "community": 166,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3610,7 +3610,7 @@
       "source_location": "L410",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_pngtonativereduction",
-      "community": 104,
+      "community": 166,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3620,7 +3620,7 @@
       "source_location": "L411",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_nativetoresponsivereduction",
-      "community": 104,
+      "community": 166,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3630,7 +3630,7 @@
       "source_location": "L412",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_00_field_responsivesmallerthannative",
-      "community": 104,
+      "community": 166,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3640,7 +3640,7 @@
       "source_location": "L414",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_01_energy",
-      "community": 104,
+      "community": 172,
       "norm_label": "01-energy"
     },
     {
@@ -3650,7 +3650,7 @@
       "source_location": "L415",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_sourcepngbytes",
-      "community": 104,
+      "community": 172,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3660,7 +3660,7 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_nativewebpbytes",
-      "community": 104,
+      "community": 172,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3670,7 +3670,7 @@
       "source_location": "L417",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_responsivewebpbytes",
-      "community": 104,
+      "community": 172,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3680,7 +3680,7 @@
       "source_location": "L418",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_pngtonativereduction",
-      "community": 104,
+      "community": 172,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3690,7 +3690,7 @@
       "source_location": "L419",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_nativetoresponsivereduction",
-      "community": 104,
+      "community": 172,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3700,7 +3700,7 @@
       "source_location": "L420",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_responsivesmallerthannative",
-      "community": 104,
+      "community": 172,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3710,7 +3710,7 @@
       "source_location": "L422",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_02_hand_left",
-      "community": 104,
+      "community": 180,
       "norm_label": "02-hand-left"
     },
     {
@@ -3720,7 +3720,7 @@
       "source_location": "L423",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_sourcepngbytes",
-      "community": 104,
+      "community": 180,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3730,7 +3730,7 @@
       "source_location": "L424",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_nativewebpbytes",
-      "community": 104,
+      "community": 180,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3740,7 +3740,7 @@
       "source_location": "L425",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_responsivewebpbytes",
-      "community": 104,
+      "community": 180,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3750,7 +3750,7 @@
       "source_location": "L426",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_pngtonativereduction",
-      "community": 104,
+      "community": 180,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3760,7 +3760,7 @@
       "source_location": "L427",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_nativetoresponsivereduction",
-      "community": 104,
+      "community": 180,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3770,7 +3770,7 @@
       "source_location": "L428",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_responsivesmallerthannative",
-      "community": 104,
+      "community": 180,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -3780,7 +3780,7 @@
       "source_location": "L430",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bytesizetable_03_hand_right",
-      "community": 104,
+      "community": 182,
       "norm_label": "03-hand-right"
     },
     {
@@ -3790,7 +3790,7 @@
       "source_location": "L431",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_sourcepngbytes",
-      "community": 104,
+      "community": 182,
       "norm_label": "sourcepngbytes"
     },
     {
@@ -3800,7 +3800,7 @@
       "source_location": "L432",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_nativewebpbytes",
-      "community": 104,
+      "community": 182,
       "norm_label": "nativewebpbytes"
     },
     {
@@ -3810,7 +3810,7 @@
       "source_location": "L433",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_responsivewebpbytes",
-      "community": 104,
+      "community": 182,
       "norm_label": "responsivewebpbytes"
     },
     {
@@ -3820,7 +3820,7 @@
       "source_location": "L434",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_pngtonativereduction",
-      "community": 104,
+      "community": 182,
       "norm_label": "pngtonativereduction"
     },
     {
@@ -3830,7 +3830,7 @@
       "source_location": "L435",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_nativetoresponsivereduction",
-      "community": 104,
+      "community": 182,
       "norm_label": "nativetoresponsivereduction"
     },
     {
@@ -3840,7 +3840,7 @@
       "source_location": "L436",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_03_hand_right_responsivesmallerthannative",
-      "community": 104,
+      "community": 182,
       "norm_label": "responsivesmallerthannative"
     },
     {
@@ -5410,7 +5410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test",
-      "community": 177,
+      "community": 159,
       "norm_label": "aura.parts.test.tsx"
     },
     {
@@ -5420,7 +5420,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_stops",
-      "community": 177,
+      "community": 159,
       "norm_label": "stops()"
     },
     {
@@ -5430,7 +5430,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_parsestop",
-      "community": 177,
+      "community": 159,
       "norm_label": "parsestop()"
     },
     {
@@ -5440,7 +5440,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_luminanceof",
-      "community": 177,
+      "community": 159,
       "norm_label": "luminanceof()"
     },
     {
@@ -5450,7 +5450,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_footelement",
-      "community": 177,
+      "community": 159,
       "norm_label": "footelement()"
     },
     {
@@ -5460,7 +5460,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_todaslasreglas",
-      "community": 177,
+      "community": 159,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -5470,7 +5470,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "src_components_aura_aura_parts_test_reglasde",
-      "community": 177,
+      "community": 159,
       "norm_label": "reglasde()"
     },
     {
@@ -5610,7 +5610,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_components_consent_cookiebanner_cookiebanner",
-      "community": 179,
+      "community": 190,
       "norm_label": "cookiebanner()"
     },
     {
@@ -6170,7 +6170,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_test",
-      "community": 163,
+      "community": 138,
       "norm_label": "eye.test.tsx"
     },
     {
@@ -6180,7 +6180,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_stubmatchmedia",
-      "community": 163,
+      "community": 138,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -6190,7 +6190,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_stubintersectionobserver",
-      "community": 163,
+      "community": 138,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -6200,7 +6200,7 @@
       "source_location": "L302",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_partel",
-      "community": 163,
+      "community": 138,
       "norm_label": "partel()"
     },
     {
@@ -6210,7 +6210,7 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_staggerdelay",
-      "community": 163,
+      "community": 138,
       "norm_label": "staggerdelay()"
     },
     {
@@ -6220,7 +6220,7 @@
       "source_location": "L475",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_todaslasreglas",
-      "community": 163,
+      "community": 138,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -6230,7 +6230,7 @@
       "source_location": "L495",
       "_origin": "ast",
       "id": "src_components_eye_eye_test_reglasde",
-      "community": 163,
+      "community": 138,
       "norm_label": "reglasde()"
     },
     {
@@ -6240,7 +6240,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye",
-      "community": 180,
+      "community": 138,
       "norm_label": "eye.tsx"
     },
     {
@@ -6250,7 +6250,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_eye_eye_amp",
-      "community": 180,
+      "community": 138,
       "norm_label": "amp"
     },
     {
@@ -6260,7 +6260,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_eye_eye_eyeprops",
-      "community": 180,
+      "community": 138,
       "norm_label": "eyeprops"
     },
     {
@@ -6270,7 +6270,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_eye_eye_eye",
-      "community": 184,
+      "community": 138,
       "norm_label": "eye()"
     },
     {
@@ -6280,7 +6280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_test",
-      "community": 163,
+      "community": 138,
       "norm_label": "eye.layers.test.ts"
     },
     {
@@ -6290,7 +6290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers",
-      "community": 163,
+      "community": 138,
       "norm_label": "eye.layers.ts"
     },
     {
@@ -6300,7 +6300,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eyelayer",
-      "community": 163,
+      "community": 138,
       "norm_label": "eyelayer"
     },
     {
@@ -6310,7 +6310,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eye_layers",
-      "community": 163,
+      "community": 138,
       "norm_label": "eye_layers"
     },
     {
@@ -6320,7 +6320,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eye_center",
-      "community": 180,
+      "community": 138,
       "norm_label": "eye_center"
     },
     {
@@ -6330,7 +6330,7 @@
       "source_location": "L189",
       "_origin": "ast",
       "id": "src_components_eye_eye_layers_eye_stagger",
-      "community": 163,
+      "community": 138,
       "norm_label": "eye_stagger"
     },
     {
@@ -6340,7 +6340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts",
-      "community": 180,
+      "community": 138,
       "norm_label": "eye.parts.tsx"
     },
     {
@@ -6350,7 +6350,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts_scframe",
-      "community": 180,
+      "community": 138,
       "norm_label": "scframe"
     },
     {
@@ -6360,7 +6360,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts_glowstrong",
-      "community": 180,
+      "community": 138,
       "norm_label": "glowstrong"
     },
     {
@@ -6370,7 +6370,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts_glowsoft",
-      "community": 180,
+      "community": 138,
       "norm_label": "glowsoft"
     },
     {
@@ -6380,7 +6380,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts_eyestep",
-      "community": 180,
+      "community": 138,
       "norm_label": "eyestep()"
     },
     {
@@ -6390,7 +6390,7 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts_heroeyein",
-      "community": 180,
+      "community": 138,
       "norm_label": "heroeyein"
     },
     {
@@ -6400,7 +6400,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts_heroeyeout",
-      "community": 180,
+      "community": 138,
       "norm_label": "heroeyeout"
     },
     {
@@ -6410,7 +6410,7 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts_eyestagger",
-      "community": 180,
+      "community": 138,
       "norm_label": "eyestagger()"
     },
     {
@@ -6420,7 +6420,7 @@
       "source_location": "L323",
       "_origin": "ast",
       "id": "src_components_eye_eye_parts_sclayer",
-      "community": 180,
+      "community": 138,
       "norm_label": "sclayer"
     },
     {
@@ -7050,7 +7050,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_mascots_wormhole_test",
-      "community": 179,
+      "community": 115,
       "norm_label": "wormhole.test.tsx"
     },
     {
@@ -7280,7 +7280,7 @@
       "source_location": "L353",
       "_origin": "ast",
       "id": "src_components_eye_mascots_wormhole_wormhole",
-      "community": 180,
+      "community": 115,
       "norm_label": "wormhole()"
     },
     {
@@ -7290,7 +7290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle",
-      "community": 187,
+      "community": 145,
       "norm_label": "usesolcycle.ts"
     },
     {
@@ -7300,7 +7300,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_solvariant",
-      "community": 187,
+      "community": 145,
       "norm_label": "solvariant"
     },
     {
@@ -7310,7 +7310,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_solcycle",
-      "community": 187,
+      "community": 145,
       "norm_label": "solcycle"
     },
     {
@@ -7320,7 +7320,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_othervariant",
-      "community": 187,
+      "community": 145,
       "norm_label": "othervariant()"
     },
     {
@@ -7330,7 +7330,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_eye_mascots_usesolcycle_usesolcycle",
-      "community": 187,
+      "community": 145,
       "norm_label": "usesolcycle()"
     },
     {
@@ -7540,7 +7540,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_test",
-      "community": 166,
+      "community": 175,
       "norm_label": "journeycosmicportal.test.tsx"
     },
     {
@@ -7550,7 +7550,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_test_stubmatchmedia",
-      "community": 166,
+      "community": 175,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -7560,7 +7560,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_test_stubintersectionobserver",
-      "community": 166,
+      "community": 175,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -7570,7 +7570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal",
-      "community": 166,
+      "community": 175,
       "norm_label": "journeycosmicportal.tsx"
     },
     {
@@ -7580,7 +7580,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_journeycosmicportal",
-      "community": 166,
+      "community": 175,
       "norm_label": "journeycosmicportal()"
     },
     {
@@ -7590,7 +7590,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers_test",
-      "community": 166,
+      "community": 175,
       "norm_label": "journeycosmicportal.layers.test.ts"
     },
     {
@@ -7600,7 +7600,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers",
-      "community": 166,
+      "community": 175,
       "norm_label": "journeycosmicportal.layers.ts"
     },
     {
@@ -7610,7 +7610,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journeycosmicportallayer",
-      "community": 166,
+      "community": 175,
       "norm_label": "journeycosmicportallayer"
     },
     {
@@ -7620,7 +7620,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_layers",
-      "community": 166,
+      "community": 175,
       "norm_label": "journey_portal_layers"
     },
     {
@@ -7630,7 +7630,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_layers_journey_portal_pointer_amp",
-      "community": 166,
+      "community": 175,
       "norm_label": "journey_portal_pointer_amp"
     },
     {
@@ -7640,7 +7640,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts",
-      "community": 166,
+      "community": 175,
       "norm_label": "journeycosmicportal.parts.tsx"
     },
     {
@@ -7650,7 +7650,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scscene",
-      "community": 166,
+      "community": 175,
       "norm_label": "scscene"
     },
     {
@@ -7660,7 +7660,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scvoid",
-      "community": 166,
+      "community": 175,
       "norm_label": "scvoid"
     },
     {
@@ -7670,7 +7670,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts_sclayer",
-      "community": 166,
+      "community": 175,
       "norm_label": "sclayer"
     },
     {
@@ -7680,7 +7680,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_components_journeycosmicportal_journeycosmicportal_parts_scvignette",
-      "community": 166,
+      "community": 175,
       "norm_label": "scvignette"
     },
     {
@@ -7780,7 +7780,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_brand_brandname_contrast_test",
-      "community": 170,
+      "community": 177,
       "norm_label": "brandname.contrast.test.ts"
     },
     {
@@ -8300,7 +8300,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test",
-      "community": 31,
+      "community": 46,
       "norm_label": "navbar.test.tsx"
     },
     {
@@ -8310,7 +8310,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_stubmatchmedia",
-      "community": 31,
+      "community": 46,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -8320,7 +8320,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_rendernavbar",
-      "community": 31,
+      "community": 46,
       "norm_label": "rendernavbar()"
     },
     {
@@ -8340,7 +8340,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_rendernavbarinchrome",
-      "community": 31,
+      "community": 46,
       "norm_label": "rendernavbarinchrome()"
     },
     {
@@ -8350,7 +8350,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_allcssrules",
-      "community": 31,
+      "community": 46,
       "norm_label": "allcssrules()"
     },
     {
@@ -8360,7 +8360,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_scrollpast",
-      "community": 31,
+      "community": 46,
       "norm_label": "scrollpast()"
     },
     {
@@ -8370,7 +8370,7 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_test_logocolor",
-      "community": 31,
+      "community": 46,
       "norm_label": "logocolor()"
     },
     {
@@ -8500,7 +8500,7 @@
       "source_location": "L413",
       "_origin": "ast",
       "id": "src_components_layout_navbar_navbar_navbar",
-      "community": 31,
+      "community": 46,
       "norm_label": "navbar()"
     },
     {
@@ -8510,7 +8510,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons",
-      "community": 178,
+      "community": 185,
       "norm_label": "themeicons.tsx"
     },
     {
@@ -8520,7 +8520,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconsun",
-      "community": 178,
+      "community": 185,
       "norm_label": "iconsun()"
     },
     {
@@ -8530,7 +8530,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themeicons_iconmoon",
-      "community": 178,
+      "community": 185,
       "norm_label": "iconmoon()"
     },
     {
@@ -8540,7 +8540,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_test",
-      "community": 178,
+      "community": 185,
       "norm_label": "themetoggle.test.tsx"
     },
     {
@@ -8550,7 +8550,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle",
-      "community": 178,
+      "community": 185,
       "norm_label": "themetoggle.tsx"
     },
     {
@@ -8560,7 +8560,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_layout_themetoggle_themetoggle_themetoggle",
-      "community": 178,
+      "community": 185,
       "norm_label": "themetoggle()"
     },
     {
@@ -8570,7 +8570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_test",
-      "community": 179,
+      "community": 184,
       "norm_label": "legaldocument.test.tsx"
     },
     {
@@ -8580,7 +8580,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_test_doc_keys",
-      "community": 179,
+      "community": 184,
       "norm_label": "doc_keys"
     },
     {
@@ -8600,7 +8600,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldockey",
-      "community": 142,
+      "community": 184,
       "norm_label": "legaldockey"
     },
     {
@@ -8690,7 +8690,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_splitplaceholdermarkers",
-      "community": 142,
+      "community": 184,
       "norm_label": "splitplaceholdermarkers()"
     },
     {
@@ -8700,7 +8700,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_markedtext",
-      "community": 142,
+      "community": 184,
       "norm_label": "markedtext()"
     },
     {
@@ -8750,7 +8750,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_test",
-      "community": 179,
+      "community": 189,
       "norm_label": "legalheader.test.tsx"
     },
     {
@@ -8830,7 +8830,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_legal_documents_accessibilitydocument_accessibilitydocument",
-      "community": 189,
+      "community": 139,
       "norm_label": "accessibilitydocument()"
     },
     {
@@ -8850,7 +8850,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_legal_documents_legalnoticedocument_legalnoticedocument",
-      "community": 189,
+      "community": 139,
       "norm_label": "legalnoticedocument()"
     },
     {
@@ -8870,7 +8870,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_legal_documents_privacydocument_privacydocument",
-      "community": 189,
+      "community": 139,
       "norm_label": "privacydocument()"
     },
     {
@@ -8890,8 +8890,38 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_legal_documents_termsdocument_termsdocument",
-      "community": 189,
+      "community": 139,
       "norm_label": "termsdocument()"
+    },
+    {
+      "label": "legalPage.contrast.test.ts",
+      "file_type": "code",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_components_legal_legalpage_contrast_test",
+      "community": 177,
+      "norm_label": "legalpage.contrast.test.ts"
+    },
+    {
+      "label": "temas",
+      "file_type": "code",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "src_components_legal_legalpage_contrast_test_temas",
+      "community": 177,
+      "norm_label": "temas"
+    },
+    {
+      "label": "superficies",
+      "file_type": "code",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L44",
+      "_origin": "ast",
+      "id": "src_components_legal_legalpage_contrast_test_superficies",
+      "community": 177,
+      "norm_label": "superficies"
     },
     {
       "label": "legalPage.parts.tsx",
@@ -9160,7 +9190,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test",
-      "community": 143,
+      "community": 163,
       "norm_label": "sectionbeam.test.tsx"
     },
     {
@@ -9170,7 +9200,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_constructor",
-      "community": 143,
+      "community": 163,
       "norm_label": "constructor()"
     },
     {
@@ -9180,7 +9210,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_observe",
-      "community": 143,
+      "community": 163,
       "norm_label": "observe()"
     },
     {
@@ -9190,7 +9220,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_disconnect",
-      "community": 143,
+      "community": 163,
       "norm_label": "disconnect()"
     },
     {
@@ -9200,7 +9230,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_cssruletextfor",
-      "community": 143,
+      "community": 163,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -9210,7 +9240,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_test_renderbeam",
-      "community": 143,
+      "community": 163,
       "norm_label": "renderbeam()"
     },
     {
@@ -9230,7 +9260,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_sectionbeam",
-      "community": 143,
+      "community": 146,
       "norm_label": "sectionbeam()"
     },
     {
@@ -9240,7 +9270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_layers_test",
-      "community": 143,
+      "community": 163,
       "norm_label": "sectionbeam.layers.test.ts"
     },
     {
@@ -9250,7 +9280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sectionbeam_sectionbeam_layers",
-      "community": 143,
+      "community": 163,
       "norm_label": "sectionbeam.layers.ts"
     },
     {
@@ -9780,7 +9810,7 @@
       "source_location": "L900",
       "_origin": "ast",
       "id": "src_components_sections_contact_contact_contact",
-      "community": 146,
+      "community": 178,
       "norm_label": "contact()"
     },
     {
@@ -10220,7 +10250,7 @@
       "source_location": "L874",
       "_origin": "ast",
       "id": "src_components_sections_features_features_features",
-      "community": 146,
+      "community": 178,
       "norm_label": "features()"
     },
     {
@@ -10230,7 +10260,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers",
-      "community": 35,
+      "community": 183,
       "norm_label": "features.layers.ts"
     },
     {
@@ -10240,7 +10270,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_featurekey",
-      "community": 35,
+      "community": 183,
       "norm_label": "featurekey"
     },
     {
@@ -10250,7 +10280,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_feature_keys",
-      "community": 35,
+      "community": 183,
       "norm_label": "feature_keys"
     },
     {
@@ -10260,7 +10290,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_featurepatternshape",
-      "community": 35,
+      "community": 183,
       "norm_label": "featurepatternshape"
     },
     {
@@ -10270,7 +10300,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_featurecardvisual",
-      "community": 35,
+      "community": 183,
       "norm_label": "featurecardvisual"
     },
     {
@@ -10280,7 +10310,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_feature_card_visuals",
-      "community": 35,
+      "community": 183,
       "norm_label": "feature_card_visuals"
     },
     {
@@ -10290,7 +10320,7 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_feature_figure_basename",
-      "community": 35,
+      "community": 183,
       "norm_label": "feature_figure_basename"
     },
     {
@@ -10300,7 +10330,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test",
-      "community": 159,
+      "community": 176,
       "norm_label": "hero.qa.test.tsx"
     },
     {
@@ -10310,7 +10340,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_stubmatchmedia",
-      "community": 159,
+      "community": 176,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -10320,7 +10350,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_renderhero",
-      "community": 179,
+      "community": 176,
       "norm_label": "renderhero()"
     },
     {
@@ -10330,7 +10360,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_todaslasreglas",
-      "community": 159,
+      "community": 176,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -10340,7 +10370,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_reglasde",
-      "community": 159,
+      "community": 176,
       "norm_label": "reglasde()"
     },
     {
@@ -10350,7 +10380,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_remde",
-      "community": 159,
+      "community": 176,
       "norm_label": "remde()"
     },
     {
@@ -10360,7 +10390,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_sinespacios",
-      "community": 159,
+      "community": 176,
       "norm_label": "sinespacios()"
     },
     {
@@ -10580,7 +10610,7 @@
       "source_location": "L572",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_hero",
-      "community": 159,
+      "community": 191,
       "norm_label": "hero()"
     },
     {
@@ -10680,7 +10710,7 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stagephaseprobe",
-      "community": 185,
+      "community": 31,
       "norm_label": "stagephaseprobe()"
     },
     {
@@ -10900,7 +10930,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test",
-      "community": 195,
+      "community": 178,
       "norm_label": "homesections.test.tsx"
     },
     {
@@ -10910,7 +10940,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test_stubmatchmedia",
-      "community": 195,
+      "community": 178,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -10920,7 +10950,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_sections_homesections_test_stubintersectionobserver",
-      "community": 195,
+      "community": 178,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -10930,7 +10960,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_homesections",
-      "community": 195,
+      "community": 178,
       "norm_label": "homesections.tsx"
     },
     {
@@ -10940,7 +10970,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_sections_homesections_homesections",
-      "community": 195,
+      "community": 178,
       "norm_label": "homesections()"
     },
     {
@@ -11230,7 +11260,7 @@
       "source_location": "L499",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_journey",
-      "community": 195,
+      "community": 178,
       "norm_label": "journey()"
     },
     {
@@ -11460,7 +11490,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test",
-      "community": 194,
+      "community": 179,
       "norm_label": "story.test.tsx"
     },
     {
@@ -11470,7 +11500,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_triggerfor",
-      "community": 194,
+      "community": 179,
       "norm_label": "triggerfor()"
     },
     {
@@ -11480,7 +11510,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_constructor",
-      "community": 194,
+      "community": 179,
       "norm_label": "constructor()"
     },
     {
@@ -11490,7 +11520,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_observe",
-      "community": 194,
+      "community": 179,
       "norm_label": "observe()"
     },
     {
@@ -11500,7 +11530,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_disconnect",
-      "community": 194,
+      "community": 179,
       "norm_label": "disconnect()"
     },
     {
@@ -11510,7 +11540,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_cssruletextfor",
-      "community": 194,
+      "community": 179,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -11520,7 +11550,7 @@
       "source_location": "L362",
       "_origin": "ast",
       "id": "src_components_sections_story_story_test_stubmatchmedia",
-      "community": 194,
+      "community": 179,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -11760,7 +11790,7 @@
       "source_location": "L403",
       "_origin": "ast",
       "id": "src_components_sections_story_story_story",
-      "community": 195,
+      "community": 178,
       "norm_label": "story()"
     },
     {
@@ -11950,7 +11980,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_layers",
-      "community": 194,
+      "community": 171,
       "norm_label": "story.layers.ts"
     },
     {
@@ -12000,7 +12030,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_renderpage",
-      "community": 179,
+      "community": 159,
       "norm_label": "renderpage()"
     },
     {
@@ -12010,7 +12040,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_test",
-      "community": 172,
+      "community": 175,
       "norm_label": "storycosmicbeing.test.tsx"
     },
     {
@@ -12020,7 +12050,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_test_stubmatchmedia",
-      "community": 172,
+      "community": 175,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -12030,7 +12060,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_test_stubintersectionobserver",
-      "community": 172,
+      "community": 175,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -12040,7 +12070,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing",
-      "community": 172,
+      "community": 175,
       "norm_label": "storycosmicbeing.tsx"
     },
     {
@@ -12050,7 +12080,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_storycosmicbeing",
-      "community": 172,
+      "community": 175,
       "norm_label": "storycosmicbeing()"
     },
     {
@@ -12060,7 +12090,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_layers_test",
-      "community": 172,
+      "community": 175,
       "norm_label": "storycosmicbeing.layers.test.ts"
     },
     {
@@ -12070,7 +12100,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_layers",
-      "community": 172,
+      "community": 175,
       "norm_label": "storycosmicbeing.layers.ts"
     },
     {
@@ -12080,7 +12110,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingblend",
-      "community": 172,
+      "community": 175,
       "norm_label": "storycosmicbeingblend"
     },
     {
@@ -12090,7 +12120,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_layers_storycosmicbeinglayer",
-      "community": 172,
+      "community": 175,
       "norm_label": "storycosmicbeinglayer"
     },
     {
@@ -12100,7 +12130,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers",
-      "community": 172,
+      "community": 175,
       "norm_label": "story_cosmic_being_layers"
     },
     {
@@ -12110,7 +12140,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp",
-      "community": 172,
+      "community": 175,
       "norm_label": "story_cosmic_being_pointer_amp"
     },
     {
@@ -12120,7 +12150,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_parts",
-      "community": 172,
+      "community": 175,
       "norm_label": "storycosmicbeing.parts.tsx"
     },
     {
@@ -12130,7 +12160,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_parts_scscene",
-      "community": 172,
+      "community": 175,
       "norm_label": "scscene"
     },
     {
@@ -12140,7 +12170,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_parts_scvoid",
-      "community": 172,
+      "community": 175,
       "norm_label": "scvoid"
     },
     {
@@ -12150,7 +12180,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_parts_heartbeat",
-      "community": 172,
+      "community": 175,
       "norm_label": "heartbeat"
     },
     {
@@ -12160,7 +12190,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_parts_sclayer",
-      "community": 172,
+      "community": 175,
       "norm_label": "sclayer"
     },
     {
@@ -12170,7 +12200,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_components_storycosmicbeing_storycosmicbeing_parts_scvignette",
-      "community": 172,
+      "community": 175,
       "norm_label": "scvignette"
     },
     {
@@ -12400,7 +12430,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_test",
-      "community": 128,
+      "community": 179,
       "norm_label": "iconbutton.test.tsx"
     },
     {
@@ -12410,7 +12440,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_test_icon",
-      "community": 128,
+      "community": 179,
       "norm_label": "icon()"
     },
     {
@@ -12420,7 +12450,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_test_allcssrules",
-      "community": 128,
+      "community": 179,
       "norm_label": "allcssrules()"
     },
     {
@@ -12430,7 +12460,7 @@
       "source_location": "L144",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_test_reglasde",
-      "community": 128,
+      "community": 179,
       "norm_label": "reglasde()"
     },
     {
@@ -12490,7 +12520,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_iconbutton",
-      "community": 128,
+      "community": 179,
       "norm_label": "iconbutton()"
     },
     {
@@ -12500,7 +12530,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_input_input_test",
-      "community": 170,
+      "community": 110,
       "norm_label": "input.test.tsx"
     },
     {
@@ -12510,7 +12540,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_ui_input_input_test_allcssrules",
-      "community": 170,
+      "community": 110,
       "norm_label": "allcssrules()"
     },
     {
@@ -12520,7 +12550,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_components_ui_input_input_test_fieldchildren",
-      "community": 170,
+      "community": 110,
       "norm_label": "fieldchildren"
     },
     {
@@ -12530,7 +12560,7 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "src_components_ui_input_input_test_reglasde",
-      "community": 170,
+      "community": 110,
       "norm_label": "reglasde()"
     },
     {
@@ -12690,7 +12720,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_test",
-      "community": 179,
+      "community": 181,
       "norm_label": "typography.test.tsx"
     },
     {
@@ -12700,7 +12730,7 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "src_components_ui_typography_typography_test_reglasde",
-      "community": 179,
+      "community": 181,
       "norm_label": "reglasde()"
     },
     {
@@ -13310,7 +13340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_test",
-      "community": 46,
+      "community": 112,
       "norm_label": "usenavdetach.test.tsx"
     },
     {
@@ -13360,7 +13390,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test",
-      "community": 184,
+      "community": 138,
       "norm_label": "useparallaxlayers.test.tsx"
     },
     {
@@ -13370,7 +13400,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_amp",
-      "community": 184,
+      "community": 138,
       "norm_label": "amp"
     },
     {
@@ -13380,7 +13410,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_stubintersectionobserver",
-      "community": 184,
+      "community": 138,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -13390,7 +13420,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_sceneof",
-      "community": 184,
+      "community": 138,
       "norm_label": "sceneof()"
     },
     {
@@ -13400,7 +13430,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_stubmatchmedia",
-      "community": 184,
+      "community": 138,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -13410,7 +13440,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_targetof",
-      "community": 184,
+      "community": 138,
       "norm_label": "targetof()"
     },
     {
@@ -13420,7 +13450,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_movetocorner",
-      "community": 184,
+      "community": 138,
       "norm_label": "movetocorner()"
     },
     {
@@ -13430,7 +13460,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_consumer",
-      "community": 184,
+      "community": 138,
       "norm_label": "consumer()"
     },
     {
@@ -13440,7 +13470,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers",
-      "community": 184,
+      "community": 138,
       "norm_label": "useparallaxlayers.ts"
     },
     {
@@ -13450,7 +13480,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_parallaxtarget",
-      "community": 180,
+      "community": 138,
       "norm_label": "parallaxtarget"
     },
     {
@@ -13460,7 +13490,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_parallaxamplitude",
-      "community": 184,
+      "community": 138,
       "norm_label": "parallaxamplitude"
     },
     {
@@ -13470,7 +13500,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_useparallaxlayers",
-      "community": 184,
+      "community": 138,
       "norm_label": "useparallaxlayers()"
     },
     {
@@ -13480,7 +13510,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usepointer_test",
-      "community": 151,
+      "community": 175,
       "norm_label": "usepointer.test.tsx"
     },
     {
@@ -13490,7 +13520,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_hooks_usepointer_test_changelistener",
-      "community": 151,
+      "community": 175,
       "norm_label": "changelistener"
     },
     {
@@ -13500,7 +13530,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_hooks_usepointer_test_mockmediaquerylist",
-      "community": 151,
+      "community": 175,
       "norm_label": "mockmediaquerylist"
     },
     {
@@ -13510,7 +13540,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_hooks_usepointer_test_createmockmediaquerylist",
-      "community": 151,
+      "community": 175,
       "norm_label": "createmockmediaquerylist()"
     },
     {
@@ -13520,7 +13550,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_hooks_usepointer_test_setpointerfine",
-      "community": 151,
+      "community": 175,
       "norm_label": "setpointerfine()"
     },
     {
@@ -13530,7 +13560,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_hooks_usepointer_test_firechange",
-      "community": 151,
+      "community": 175,
       "norm_label": "firechange()"
     },
     {
@@ -13540,7 +13570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usepointer",
-      "community": 184,
+      "community": 175,
       "norm_label": "usepointer.ts"
     },
     {
@@ -13550,7 +13580,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_hooks_usepointer_pointer",
-      "community": 184,
+      "community": 175,
       "norm_label": "pointer"
     },
     {
@@ -13560,7 +13590,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_hooks_usepointer_clamp",
-      "community": 184,
+      "community": 175,
       "norm_label": "clamp()"
     },
     {
@@ -13570,7 +13600,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_hooks_usepointer_usepointer",
-      "community": 184,
+      "community": 175,
       "norm_label": "usepointer()"
     },
     {
@@ -13920,7 +13950,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usesectionprogress",
-      "community": 146,
+      "community": 196,
       "norm_label": "usesectionprogress.ts"
     },
     {
@@ -13930,7 +13960,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_hooks_usesectionprogress_sectionprogressoptions",
-      "community": 146,
+      "community": 196,
       "norm_label": "sectionprogressoptions"
     },
     {
@@ -13940,7 +13970,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_hooks_usesectionprogress_clamp01",
-      "community": 146,
+      "community": 196,
       "norm_label": "clamp01()"
     },
     {
@@ -13950,7 +13980,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_hooks_usesectionprogress_resolveoptions",
-      "community": 146,
+      "community": 196,
       "norm_label": "resolveoptions()"
     },
     {
@@ -13960,7 +13990,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "src_hooks_usesectionprogress_usesectionprogress",
-      "community": 146,
+      "community": 196,
       "norm_label": "usesectionprogress()"
     },
     {
@@ -14820,7 +14850,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themeprovider",
-      "community": 51,
+      "community": 178,
       "norm_label": "themeprovider()"
     },
     {
@@ -14920,7 +14950,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_theme_themes_basiclighttheme",
-      "community": 170,
+      "community": 177,
       "norm_label": "basiclighttheme"
     },
     {
@@ -14930,7 +14960,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_theme_themes_basicdarktheme",
-      "community": 170,
+      "community": 177,
       "norm_label": "basicdarktheme"
     },
     {
@@ -15050,7 +15080,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_theme_tokens_color_color",
-      "community": 159,
+      "community": 176,
       "norm_label": "color"
     },
     {
@@ -15060,7 +15090,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_theme_tokens_color_colorprimitives",
-      "community": 176,
+      "community": 0,
       "norm_label": "colorprimitives"
     },
     {
@@ -15140,8 +15170,18 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_theme_tokens_contrast_contrastratio",
-      "community": 177,
+      "community": 159,
       "norm_label": "contrastratio()"
+    },
+    {
+      "label": "contrastRatioOverAlpha()",
+      "file_type": "code",
+      "source_file": "src/theme/tokens/contrast.ts",
+      "source_location": "L84",
+      "_origin": "ast",
+      "id": "src_theme_tokens_contrast_contrastratiooveralpha",
+      "community": 177,
+      "norm_label": "contrastratiooveralpha()"
     },
     {
       "label": "elevation.ts",
@@ -27957,7 +27997,7 @@
       "label": "Flujo S3 \u00b7 Consentimiento",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L247",
+      "source_location": "L245",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_flujo_s3_consentimiento",
       "community": 186,
@@ -27967,7 +28007,7 @@
       "label": "Integraci\u00f3n \u2014 hilo principal (Opus), despu\u00e9s de S1-S3",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L263",
+      "source_location": "L261",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_integraci\u00f3n_hilo_principal_opus_despu\u00e9s_de_s1_s3",
       "community": 186,
@@ -27977,7 +28017,7 @@
       "label": "6. Contratos comunes a todos los flujos",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L292",
+      "source_location": "L290",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_6_contratos_comunes_a_todos_los_flujos",
       "community": 186,
@@ -27987,7 +28027,7 @@
       "label": "7. Contratos de test",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L307",
+      "source_location": "L305",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_7_contratos_de_test",
       "community": 186,
@@ -27997,7 +28037,7 @@
       "label": "8. Verificaci\u00f3n (adem\u00e1s de la suite)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L325",
+      "source_location": "L323",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_8_verificaci\u00f3n_adem\u00e1s_de_la_suite",
       "community": 186,
@@ -28007,7 +28047,7 @@
       "label": "8-bis. Resultado medido",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L334",
+      "source_location": "L332",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_8_bis_resultado_medido",
       "community": 186,
@@ -28017,7 +28057,7 @@
       "label": "9. L\u00edmites declarados (lo que esta entrega NO garantiza)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L359",
+      "source_location": "L357",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_9_l\u00edmites_declarados_lo_que_esta_entrega_no_garantiza",
       "community": 186,
@@ -28027,7 +28067,7 @@
       "label": "10. Fuera de alcance (deliberadamente)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L373",
+      "source_location": "L371",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_10_fuera_de_alcance_deliberadamente",
       "community": 186,
@@ -28037,11 +28077,21 @@
       "label": "11. Gate de calidad (salida literal)",
       "file_type": "document",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L383",
+      "source_location": "L381",
       "_origin": "ast",
       "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_gate_de_calidad_salida_literal",
       "community": 186,
       "norm_label": "11. gate de calidad (salida literal)"
+    },
+    {
+      "label": "11.1 Auditor\u00eda adversarial independiente",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
+      "source_location": "L408",
+      "_origin": "ast",
+      "id": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_1_auditor\u00eda_adversarial_independiente",
+      "community": 186,
+      "norm_label": "11.1 auditoria adversarial independiente"
     },
     {
       "label": "2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md",
@@ -37325,7 +37375,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/consent/CookiePreferences.tsx",
-      "source_location": "L243",
+      "source_location": "L256",
       "weight": 1.0,
       "source": "src_components_consent_cookiepreferences_cookiepreferences",
       "target": "src_config_cookies_storagebycategory"
@@ -37336,7 +37386,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/consent/CookiePreferences.tsx",
-      "source_location": "L207",
+      "source_location": "L220",
       "weight": 1.0,
       "source": "src_components_consent_cookiepreferences_cookiepreferences",
       "target": "src_consent_consentprovider_consentcontextvalue_acceptall"
@@ -37347,7 +37397,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/consent/CookiePreferences.tsx",
-      "source_location": "L203",
+      "source_location": "L216",
       "weight": 1.0,
       "source": "src_components_consent_cookiepreferences_cookiepreferences",
       "target": "src_consent_consentprovider_consentcontextvalue_closepreferences"
@@ -37358,7 +37408,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/consent/CookiePreferences.tsx",
-      "source_location": "L212",
+      "source_location": "L225",
       "weight": 1.0,
       "source": "src_components_consent_cookiepreferences_cookiepreferences",
       "target": "src_consent_consentprovider_consentcontextvalue_rejectall"
@@ -37369,7 +37419,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/consent/CookiePreferences.tsx",
-      "source_location": "L202",
+      "source_location": "L215",
       "weight": 1.0,
       "source": "src_components_consent_cookiepreferences_cookiepreferences",
       "target": "src_consent_consentprovider_consentcontextvalue_save"
@@ -43638,6 +43688,81 @@
       "weight": 1.0,
       "source": "src_components_legal_documents_termsdocument",
       "target": "src_components_legal_documents_termsdocument_termsdocument",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "src_components_legal_legalpage_contrast_test",
+      "target": "src_components_legal_legalpage_contrast_test_superficies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "src_components_legal_legalpage_contrast_test",
+      "target": "src_components_legal_legalpage_contrast_test_temas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "src_components_legal_legalpage_contrast_test",
+      "target": "src_theme_themes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "src_components_legal_legalpage_contrast_test",
+      "target": "src_theme_themes_basicdarktheme",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "src_components_legal_legalpage_contrast_test",
+      "target": "src_theme_themes_basiclighttheme",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_components_legal_legalpage_contrast_test",
+      "target": "src_theme_tokens_contrast",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/legalPage.contrast.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_components_legal_legalpage_contrast_test",
+      "target": "src_theme_tokens_contrast_contrastratiooveralpha",
       "confidence_score": 1.0
     },
     {
@@ -55589,6 +55714,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/theme/tokens/contrast.ts",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "src_theme_tokens_contrast",
+      "target": "src_theme_tokens_contrast_contrastratiooveralpha",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/theme/tokens/contrast.ts",
       "source_location": "L11",
       "weight": 1.0,
       "source": "src_theme_tokens_contrast",
@@ -55641,6 +55776,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/theme/tokens/contrast.ts",
+      "source_location": "L90",
+      "weight": 1.0,
+      "source": "src_theme_tokens_contrast_contrastratiooveralpha",
+      "target": "src_theme_tokens_contrast_parseoklch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/theme/tokens/contrast.ts",
       "source_location": "L51",
       "weight": 1.0,
       "source": "src_theme_tokens_contrast_relativeluminance",
@@ -55663,6 +55809,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/theme/tokens/contrast.ts",
+      "source_location": "L90",
+      "weight": 1.0,
+      "source": "src_theme_tokens_contrast_contrastratiooveralpha",
+      "target": "src_theme_tokens_contrast_oklchtolinearsrgb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/theme/tokens/contrast.ts",
       "source_location": "L51",
       "weight": 1.0,
       "source": "src_theme_tokens_contrast_relativeluminance",
@@ -55677,6 +55834,17 @@
       "source_location": "L57",
       "weight": 1.0,
       "source": "src_theme_tokens_contrast_contrastratio",
+      "target": "src_theme_tokens_contrast_relativeluminance",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/theme/tokens/contrast.ts",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "src_theme_tokens_contrast_contrastratiooveralpha",
       "target": "src_theme_tokens_contrast_relativeluminance",
       "confidence_score": 1.0
     },
@@ -67376,7 +67544,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L373",
+      "source_location": "L371",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_10_fuera_de_alcance_deliberadamente",
@@ -67386,7 +67554,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L383",
+      "source_location": "L381",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_gate_de_calidad_salida_literal",
@@ -67446,7 +67614,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L292",
+      "source_location": "L290",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_6_contratos_comunes_a_todos_los_flujos",
@@ -67456,7 +67624,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L307",
+      "source_location": "L305",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_7_contratos_de_test",
@@ -67466,7 +67634,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L334",
+      "source_location": "L332",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_8_bis_resultado_medido",
@@ -67476,7 +67644,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L325",
+      "source_location": "L323",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_8_verificaci\u00f3n_adem\u00e1s_de_la_suite",
@@ -67486,7 +67654,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L359",
+      "source_location": "L357",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_spec_p\u00e1ginas_legales_capa_de_seo_aeo_geo_sitemap_y_consentimiento_configurable",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_9_l\u00edmites_declarados_lo_que_esta_entrega_no_garantiza",
@@ -67606,7 +67774,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L247",
+      "source_location": "L245",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_5_arquitectura_de_ficheros_y_propiedad_por_flujo",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_flujo_s3_consentimiento",
@@ -67616,10 +67784,20 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
-      "source_location": "L263",
+      "source_location": "L261",
       "weight": 1.0,
       "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_5_arquitectura_de_ficheros_y_propiedad_por_flujo",
       "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_integraci\u00f3n_hilo_principal_opus_despu\u00e9s_de_s1_s3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md",
+      "source_location": "L408",
+      "weight": 1.0,
+      "source": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_gate_de_calidad_salida_literal",
+      "target": "docs_superpowers_specs_2026_08_04_legal_seo_consentimiento_design_11_1_auditor\u00eda_adversarial_independiente",
       "confidence_score": 1.0
     },
     {
