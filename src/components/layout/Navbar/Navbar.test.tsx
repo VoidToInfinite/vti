@@ -5,11 +5,12 @@ import {
   screen,
   type RenderResult,
 } from "@/test/test-utils";
-import { act } from "@testing-library/react";
+import { act, fireEvent } from "@testing-library/react";
 import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { StageProvider, useStage } from "@/motion/StageProvider";
 import { HERO_CHROME_OFFSET_MS } from "@/components/sections/Hero/hero.transition";
 import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
+import { links } from "@/config/links";
 import { Navbar } from "./Navbar";
 
 /**
@@ -397,8 +398,9 @@ describe("Navbar", () => {
     });
   });
 
-  describe("enlaces de sección (Common.Navigation, tarea Flow F/spec §7.6)", () => {
-    // Los cuatro enlaces se renderizan en LOS DOS TEMAS desde 2026-08-04.
+  describe("enlaces de sección, discover y recursos (Common.Navigation/Nav, tarea Flow F/spec §7.6 y W4)", () => {
+    // Los cuatro enlaces de sección se renderizan en LOS DOS TEMAS desde
+    // 2026-08-04.
     //
     // Hasta hoy el bloque estaba gateado con `themeName === "light"`, y el
     // motivo escrito era que en oscuro serian anclas muertas porque
@@ -417,8 +419,19 @@ describe("Navbar", () => {
     // identifica de forma unica cual de los cuatro enlaces es.
     const SECTION_HREFS = ["#story", "#journey", "#features", "#contact"];
 
+    // Ampliación tarea W4: los cuatro enlaces de sección, ahora dentro del
+    // panel del grupo "onSite", conviven con los TRES enlaces de discover
+    // (Learning/Imagination/Gaming, grupo "discover", los tres apuntan a
+    // "#features") y el enlace externo del SDK (grupo "resources") --
+    // TODOS siguen en el DOM sea cual sea el estado abierto/cerrado de su
+    // panel (regla dura de la tarea: el panel se renderiza siempre, sus
+    // enlaces nunca se desmontan). `container.querySelector`, no
+    // `getByRole`: un panel cerrado es inaccesible a propósito (`inert` +
+    // `visibility: hidden`), así que una consulta por rol lo excluiría
+    // aunque el enlace siga en el DOM -- que es justo lo que este test
+    // verifica.
     it.each(["light", "dark"] as const)(
-      "en tema %s los 4 enlaces de sección están presentes en el DOM",
+      "en tema %s los 4 enlaces de sección, los 3 de discover y el del SDK siguen en el DOM (paneles cerrados)",
       (tema) => {
         window.localStorage.setItem("vti-theme", tema);
         const { container } = renderNavbar();
@@ -429,8 +442,251 @@ describe("Navbar", () => {
             `falta el enlace ${href} en tema ${tema}`,
           ).not.toBeNull();
         }
+
+        // "#features" lo comparten el enlace de sección "features" (onSite)
+        // y los tres de discover: cuatro anclas en total hacia el mismo
+        // destino.
+        expect(
+          container.querySelectorAll('a[href="#features"]'),
+          `deberian ser 4 anclas hacia #features en tema ${tema}`,
+        ).toHaveLength(4);
+
+        expect(
+          container.querySelector(`a[href="${links.sdk}"]`),
+          `falta el enlace del SDK en tema ${tema}`,
+        ).not.toBeNull();
       },
     );
+  });
+
+  describe("grupos de navegación desplegables (tarea W4)", () => {
+    // Etiquetas reales de `Common.Nav.<groupKey>` en es-ES (idioma por
+    // defecto de `initI18n`, ver `i18n/config.ts`) -- mismo patrón que el
+    // resto de la suite para localizar controles por su nombre accesible
+    // (p. ej. `/Cambiar a tema/i`, `/Español/i`), aquí con los tres grupos
+    // nuevos.
+    const ON_SITE = /En el sitio/i;
+    const DISCOVER = /Descubre/i;
+    const RESOURCES = /Recursos/i;
+
+    /**
+     * `ScNavLinks` solo pasa de `display: none` a `flex` dentro de
+     * `@media ${breakPoint.md}` -- jsdom NO evalúa condiciones `@media`
+     * (mismo límite ya documentado en el propio encargo), así que
+     * `getComputedStyle` resuelve SIEMPRE la regla base (`display: none`)
+     * sea cual sea `window.innerWidth`. `dom-accessibility-api` (la
+     * librería que usa `getByRole` para decidir qué es "accesible") trata
+     * ese `display: none` calculado como oculto y excluye el elemento --
+     * por eso toda consulta por rol a un disparador o a un enlace de un
+     * panel necesita `{ hidden: true }` (la propia opción de
+     * testing-library para "incluye también lo que la librería cree
+     * oculto"). No es una concesión al componente: en un navegador real la
+     * media query aplicaría y no haría falta.
+     */
+    function getTrigger(name: RegExp): HTMLElement {
+      return screen.getByRole("button", { name, hidden: true });
+    }
+
+    it("el chevron declara su propio tamaño: sin él, GlobalStyles lo estira al 100% del disparador", () => {
+      /*
+       * REGRESIÓN REAL, medida en el navegador (no hipotética). `GlobalStyles`
+       * declara `svg { width: 100%; display: block; }` para todo el sitio, y
+       * esa declaración gana SIEMPRE a la geometría implícita del `viewBox`.
+       * Con el chevron sin `width`/`height` propios, medido sobre esta misma
+       * barra a 1280 px de ancho: el SVG salía a **215x143 px** y hinchaba el
+       * disparador a 143 px de alto dentro de una banda de 56 px
+       * (`--nav-height`), descolgando la fila entera de la navegación.
+       *
+       * Es la TERCERA aparición del mismo fallo en este repo: `ScLogo`
+       * (`src/components/ui/Logo/Logo.tsx`) ya lo documenta medido (167 px de
+       * ancho en un navbar de 56 px).
+       *
+       * El candado comprueba las DECLARACIONES, no la geometría: jsdom no
+       * hace layout -- `getBoundingClientRect()` devuelve ceros y el fallo es
+       * literalmente invisible para la suite -- pero sí resuelve el valor
+       * declarado de una propiedad por CSSOM, que es exactamente lo que hay
+       * que atar aquí.
+       */
+      const { container } = renderNavbar();
+      const chevron = container.querySelector(
+        "button[aria-expanded] svg",
+      ) as HTMLElement;
+      expect(chevron, "el disparador no monta ningún chevron").not.toBeNull();
+
+      const estilo = getComputedStyle(chevron);
+      expect(
+        estilo.width,
+        "el chevron no declara width propio: heredaría el 100% de GlobalStyles",
+      ).not.toBe("");
+      expect(estilo.width).not.toBe("100%");
+      expect(
+        estilo.flex || estilo.flexGrow,
+        "el chevron no se blinda contra el estirado del contenedor flexible",
+      ).not.toBe("");
+    });
+
+    it("los tres disparadores existen y arrancan con aria-expanded='false'", () => {
+      renderNavbar();
+
+      for (const name of [ON_SITE, DISCOVER, RESOURCES]) {
+        expect(getTrigger(name)).toHaveAttribute("aria-expanded", "false");
+      }
+    });
+
+    it("al pulsar un disparador, su aria-expanded pasa a 'true', su panel pierde inert y aria-controls apunta al id real del panel", () => {
+      renderNavbar();
+      const trigger = getTrigger(ON_SITE);
+
+      fireEvent.click(trigger);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+      const panelId = trigger.getAttribute("aria-controls");
+      expect(panelId).toBeTruthy();
+
+      // `useId()` genera ids con ":" (no son selectores CSS válidos) --
+      // `document.getElementById`, nunca `querySelector("#…")`.
+      const panel = document.getElementById(panelId as string);
+      expect(panel).not.toBeNull();
+      expect(panel).not.toHaveAttribute("inert");
+      expect(panel).toHaveAttribute("data-open", "true");
+    });
+
+    it("abrir un segundo grupo cierra el primero (solo uno con aria-expanded='true' a la vez)", () => {
+      renderNavbar();
+      const first = getTrigger(ON_SITE);
+      const second = getTrigger(DISCOVER);
+
+      fireEvent.click(first);
+      expect(first).toHaveAttribute("aria-expanded", "true");
+
+      fireEvent.click(second);
+      expect(second).toHaveAttribute("aria-expanded", "true");
+      expect(first).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("click en el mismo disparador alterna su grupo: una segunda pulsación lo cierra", () => {
+      renderNavbar();
+      const trigger = getTrigger(ON_SITE);
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("Escape cierra el grupo abierto y devuelve el foco a su disparador", () => {
+      const { container } = renderNavbar();
+      const trigger = getTrigger(ON_SITE);
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      // El foco puede estar en cualquier descendiente del grupo cuando se
+      // pulsa Escape -- aquí, un enlace de su panel ya abierto --, no solo
+      // en el propio disparador.
+      const firstLink = container.querySelector(
+        'a[href="#story"]',
+      ) as HTMLElement;
+      firstLink.focus();
+      expect(document.activeElement).toBe(firstLink);
+
+      fireEvent.keyDown(firstLink, { key: "Escape" });
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(document.activeElement).toBe(trigger);
+    });
+
+    it("un click/pointerdown fuera del bloque de navegación cierra el grupo abierto", () => {
+      renderNavbar();
+      const trigger = getTrigger(ON_SITE);
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      fireEvent.pointerDown(document.body);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("el foco saliendo del grupo hacia un elemento externo lo cierra", () => {
+      const { container } = renderNavbar();
+      const trigger = getTrigger(ON_SITE);
+
+      fireEvent.click(trigger);
+      const link = container.querySelector('a[href="#story"]') as HTMLElement;
+      const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
+
+      // React 17+ resuelve `onBlur` sobre el evento nativo `focusout` (que
+      // SÍ burbujea), no sobre `blur` (que no burbujea) -- se dispara el
+      // primero para que el manejador de `ScNavGroup` lo reciba.
+      fireEvent.focusOut(link, { relatedTarget: brandLink });
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("activar un enlace del panel lo cierra", () => {
+      const { container } = renderNavbar();
+      const trigger = getTrigger(ON_SITE);
+
+      fireEvent.click(trigger);
+      const link = container.querySelector('a[href="#story"]') as HTMLElement;
+
+      fireEvent.click(link);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("el enlace del SDK tiene target='_blank' y rel='noopener noreferrer', y su nombre accesible incluye el aviso de pestaña nueva", () => {
+      renderNavbar();
+      const resourcesTrigger = getTrigger(RESOURCES);
+      fireEvent.click(resourcesTrigger);
+
+      const sdkLink = screen.getByRole("link", {
+        name: /VTI - SDK/i,
+        hidden: true,
+      });
+
+      expect(sdkLink).toHaveAttribute("target", "_blank");
+      expect(sdkLink).toHaveAttribute("rel", "noopener noreferrer");
+      expect(sdkLink).toHaveAccessibleName(/se abre en una pestaña nueva/i);
+    });
+
+    it("existe el guard de prefers-reduced-motion: reduce para ScNavTrigger, ScChevron y ScNavPanel", () => {
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+      const claseDe = (el: Element): string =>
+        Array.from(el.classList).find((c) =>
+          reglas.some((r) => r.includes(c)),
+        ) ?? "";
+
+      const trigger = getTrigger(ON_SITE);
+      const chevron = trigger.querySelector("svg") as SVGElement;
+      const panelId = trigger.getAttribute("aria-controls") as string;
+      const panel = document.getElementById(panelId) as HTMLElement;
+      expect(container).toContainElement(panel);
+
+      for (const [nombre, clase] of [
+        ["ScNavTrigger", claseDe(trigger)],
+        ["ScChevron", claseDe(chevron)],
+        ["ScNavPanel", claseDe(panel)],
+      ] as const) {
+        expect(
+          clase,
+          `no se encontro la clase inyectada de ${nombre}`,
+        ).not.toBe("");
+        const guard = reglas.filter(
+          (regla) =>
+            regla.includes("@media (prefers-reduced-motion: reduce)") &&
+            regla.includes(clase) &&
+            regla.includes("transition: none"),
+        );
+        expect(
+          guard.length,
+          `${nombre} no anula sus transiciones bajo prefers-reduced-motion: reduce`,
+        ).toBeGreaterThan(0);
+      }
+    });
   });
 
   describe("despegue al hacer scroll (data-detach, plan navbar-scroll-detach Task 3)", () => {

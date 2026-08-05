@@ -32,14 +32,24 @@ const fontMono = JetBrains_Mono({
  *    el suyo completo por su cuenta. Aquí solo queda el de `/`, que no tiene
  *    `page.tsx` con metadata propia.
  *
- * `title` sale de `SITE.name`, así que `buildMetadata` no le añade sufijo de
- * marca: seria "VoidToInfinite · VoidToInfinite".
+ * `title` sale de `SITE.homeTitle`, NO de `SITE.name` (cambio del
+ * 2026-08-05). Pasar la marca como título activaba el caso especial de
+ * `buildMetadata()` -- título === marca, no se añade sufijo, para no producir
+ * "VoidToInfinite · VoidToInfinite" -- y el efecto colateral era que el
+ * `<title>` de la home quedaba en la marca desnuda, sin una sola palabra
+ * sobre qué es el sitio. Ese mismo valor alimenta el `<title>`, el
+ * `og:title` y el `twitter:title` (ver `buildMetadata`), así que la carencia
+ * se repetía en la pestaña, en el resultado de búsqueda y en cada vista
+ * previa compartida. Con `homeTitle` el resultado es
+ * "Aprendizaje, imaginación y juego · VoidToInfinite"; el caso especial de
+ * `buildMetadata` sigue existiendo y sigue cubierto por su propio test, solo
+ * que esta ruta ya no lo ejerce.
  */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   ...buildMetadata({
     path: "/",
-    title: SITE.name,
+    title: SITE.homeTitle,
     description: SITE.description,
   }),
 };
@@ -63,9 +73,31 @@ export default function RootLayout({
      * resolver. Sin esa sincronización, un lector de pantalla seguiría
      * pronunciando el contenido inglés con fonética española -- incumplimiento
      * de WCAG 3.1.1 (nivel A).
+     *
+     * `data-scroll-behavior="smooth"`: Next detecta `scroll-behavior: smooth`
+     * en `html` (declarado a propósito en `GlobalStyles.tsx` para los saltos
+     * a ancla del CTA del hero y para el `scrollTo({ top: 0, behavior:
+     * "smooth" })` de `useThemeScrollReset`) y, sin este atributo, avisa en
+     * consola en cada carga y cada transición de ruta con el mensaje "Detected
+     * `scroll-behavior: smooth` on the `<html>` element. To disable smooth
+     * scrolling during route transitions, add `data-scroll-behavior="smooth"`
+     * to your <html> element." La documentación oficial
+     * (https://nextjs.org/docs/messages/missing-data-scroll-behavior)
+     * explica el porqué: "Next.js automatically attempts to detect the smooth
+     * scrolling configuration to ensure that navigating back/forward through
+     * the router doesn't also trigger the smooth scrolling behavior, as this
+     * is often not desired." y da como arreglo "Add
+     * `data-scroll-behavior="smooth"` to your `<html>` element if you want to
+     * disable smooth scrolling when routing via Next.js." El CSS se mantiene
+     * intacto -- las anclas y el viaje de scroll del cambio de tema lo siguen
+     * necesitando --; el atributo solo le dice al router que use scroll
+     * instantáneo en SUS propias transiciones (back/forward, cambio de
+     * página), dejando el scroll suave para los saltos que dispara el propio
+     * usuario.
      */
     <html
       lang={SITE.lang}
+      data-scroll-behavior="smooth"
       className={`${fontBody.variable} ${fontMono.variable}`}
     >
       <body>

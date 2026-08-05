@@ -23,11 +23,24 @@ import { ROUTES } from "@/config/site";
  */
 export const links = {
   playground: "https://dev.voidtoinfinite.com",
-  docs: "https://dev.voidtoinfinite.com",
   github: "https://github.com/voidtoinfinite",
   discord: "https://discord.gg/CuGhqdG3g3",
   email: "mailto:hello@voidtoinfinite.com",
-  guides: "https://dev.voidtoinfinite.com",
+  /* Destino público del SDK (VTI - SDK), consumido por el grupo "resources"
+     del modelo de navegación compartido (`src/config/navigation.ts`).
+     Externo -- se abre con `target="_blank"` + `rel="noopener noreferrer"`,
+     igual que el resto de destinos que abandonan el sitio.
+
+     SUSTITUYE a `docs` y `guides` (entrega 2026-08-05), retiradas aquí: las
+     tres claves apuntaban a la MISMA URL y sus dos únicos consumidores eran
+     los enlaces «Documentación» y «Guías» de la columna de Recursos del pie,
+     que esta entrega reduce a un solo enlace por encargo del usuario. Tres
+     nombres para un mismo destino, dos de ellos ya sin consumidor, son
+     exactamente la clase de configuración muerta que se copia por costumbre
+     el día que alguien necesita "otro enlace externo". `playground` se
+     conserva porque SÍ tiene consumidor propio y distinto: el CTA primario
+     del hero (`Hero.tsx`). */
+  sdk: "https://dev.voidtoinfinite.com",
   accessibility: ROUTES.accessibility,
   privacy: ROUTES.privacy,
   terms: ROUTES.terms,

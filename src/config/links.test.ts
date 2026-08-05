@@ -7,13 +7,12 @@ describe("links de CTA", () => {
     expect(Object.keys(links).sort()).toEqual([
       "accessibility",
       "discord",
-      "docs",
       "email",
       "github",
-      "guides",
       "legalNotice",
       "playground",
       "privacy",
+      "sdk",
       "terms",
     ]);
   });
@@ -24,10 +23,17 @@ describe("links de CTA", () => {
     expect(links.email).toBe("mailto:hello@voidtoinfinite.com");
   });
 
-  it("playground, docs y guides apuntan al dominio de desarrollo ya confirmado", () => {
+  /*
+   * `docs` y `guides` desaparecieron de la lista el 2026-08-05 junto con sus
+   * dos únicos consumidores (los enlaces «Documentación» y «Guías» de la
+   * columna de Recursos del pie). Las dos apuntaban a la MISMA URL que
+   * `playground` y que la nueva `sdk`; el test de arriba, que compara el
+   * conjunto COMPLETO de claves, es el que impide que vuelvan a colarse sin
+   * que nadie lo decida.
+   */
+  it("playground y sdk apuntan al dominio de desarrollo ya confirmado", () => {
     expect(links.playground).toBe("https://dev.voidtoinfinite.com");
-    expect(links.docs).toBe("https://dev.voidtoinfinite.com");
-    expect(links.guides).toBe("https://dev.voidtoinfinite.com");
+    expect(links.sdk).toBe("https://dev.voidtoinfinite.com");
   });
 
   /*
@@ -36,7 +42,7 @@ describe("links de CTA", () => {
    * que afirmaban que contenían `por-completar` y `example.invalid` ya no
    * describen el repo, así que se sustituyen -- y NO se relajan, siguiendo
    * exactamente la doctrina que este mismo fichero fijó al sustituir los de
-   * `playground`/`docs`/`guides`: se asevera el valor EXACTO, no algo
+   * `playground` y compañía: se asevera el valor EXACTO, no algo
    * genérico tipo "es una ruta válida", que dejaría la puerta abierta a
    * cambiar un destino sin revisión.
    *

@@ -565,4 +565,59 @@ describe("HeroBackdrop", () => {
     // ultimo en apagarse.
     expect(eyeDelayOf("mascot")).toBe(`${(total - 1) * HERO_STEP_MS}ms`);
   });
+
+  it("REGRESION: un remontaje simulado (StrictMode) no deja el fondo pegado en pending para siempre", async () => {
+    /*
+     * Reproduce el contrato que rompia el bug real (navegar a "/" desde una
+     * pagina legal con next/link, medido en navegador): React StrictMode
+     * (activo en next.config.ts, reactStrictMode: true) simula, en cada
+     * montaje, un desmontaje + remontaje -- invoca la limpieza de TODOS los
+     * efectos de ese commit y vuelve a invocar su configuracion, para
+     * verificar que el componente sobrevive integro a ese ciclo. La limpieza
+     * de desmontaje de HeroBackdrop (mas abajo en HeroBackdrop.tsx) sube
+     * `tokenRef.current` en CADA desmontaje, real o simulado -- asi que la
+     * SEGUNDA invocacion del efecto de la carrera (la que de verdad importa,
+     * la primera queda cancelada por su propio `cancelled`) arranca con
+     * `tokenRef.current` ya en 1.
+     *
+     * ANTES de esta revision, `myToken` salia de `pendingEntry.token` --
+     * un campo escrito a mano en el inicializador de `useState`, congelado
+     * en 0 para siempre (nadie lo actualiza en un remontaje, solo un cambio
+     * de tema real llama a `setPendingEntry` de nuevo). Esa segunda carrera
+     * comparaba entonces 0 contra el 1 de `tokenRef.current` -- descarte
+     * PERMANENTE de `finishLoad()`, el stack pegado en "pending" para
+     * siempre, las cuatro capas en `opacity: 0`. Con el arreglo, `myToken`
+     * se lee de `tokenRef.current` en el instante en que el efecto arranca:
+     * la segunda invocacion lo captura ya en 1, coincide con el `tokenRef`
+     * que comprueba al resolver, y `finishLoad()` se aplica con normalidad.
+     *
+     * `renderWithProviders` con `reactStrictMode: true` (opcion nativa de
+     * Testing Library, RenderOptions) envuelve TODO el arbol -- proveedores
+     * incluidos -- en `<StrictMode>`, exactamente como lo hace `next.config.ts`
+     * en produccion: no hace falta desmontar/remontar a mano con `unmount()`
+     * (eso crearia una instancia nueva, con `tokenRef`/`pendingEntry`
+     * reinicializados desde cero, y NUNCA reproduciria esta carrera).
+     */
+    renderWithProviders(
+      <StageProvider>
+        <HeroBackdrop />
+      </StageProvider>,
+      { reactStrictMode: true },
+    );
+
+    // Recien montado (las dos invocaciones de StrictMode ya corrieron,
+    // sincronas dentro de act()): el stack de carga arranca en "pending",
+    // decode() todavia no resolvio.
+    expect(stackOf("aura")).toHaveAttribute("data-state", "pending");
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    // Con el bug, esta asercion fallaba: el stack se quedaba en "pending"
+    // para siempre (descarte permanente de finishLoad() por el token
+    // desincronizado). Con el arreglo, decode() resuelve y el token
+    // coincide: el stack llega a "active".
+    expect(stackOf("aura")).toHaveAttribute("data-state", "active");
+  });
 });

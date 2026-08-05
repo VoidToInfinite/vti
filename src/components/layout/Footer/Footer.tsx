@@ -9,7 +9,9 @@ import { BrandName } from "@/components/layout/Brand/BrandName";
 import { SectionBeam } from "@/components/sectionBeam/SectionBeam";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { Typography } from "@/components/ui/Typography/Typography";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { links } from "@/config/links";
+import { NAV_GROUPS } from "@/config/navigation";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   type FooterStar,
@@ -321,23 +323,6 @@ const ScBottomLinks = styled.div`
   gap: ${({ theme }) => theme.data.space[4]};
 `;
 
-/* Anclas de sección (Explore, D2/D16): mismos 4 destinos que el Navbar.
-   Fuera de ambos componentes porque cada uno necesita su propio par
-   clave/traducción (`Common.Navigation.*`) pero NO comparten estilo -- se
-   repite la lista literal en vez de extraer un módulo compartido para dos
-   usos, mismo criterio de "cambio mínimo" que el resto de la entrega. */
-const SECTION_LINKS = [
-  { key: "story", href: "#story" },
-  { key: "journey", href: "#journey" },
-  { key: "features", href: "#features" },
-  { key: "contact", href: "#contact" },
-] as const;
-
-/* Discover (D6/D16): Learning/Imagination/Gaming son los TÍTULOS de
-   `Home.features.*` (namespace "home"), no claves de navegación nuevas --
-   los tres apuntan a la misma sección `#features` (spec §7.5). */
-const DISCOVER_LINKS = ["learning", "imagination", "gaming"] as const;
-
 /*
  * Los cuatro documentos legales de la barra inferior (entrega 2026-08-05).
  * Hasta hoy eran tres anclas con target blank hacia marcadores
@@ -348,7 +333,7 @@ const DISCOVER_LINKS = ["learning", "imagination", "gaming"] as const;
  * antipatron -- rompe el boton atras, abre una pestana que el usuario no ha
  * pedido y cambia de contexto sin avisar, que es lo que WCAG 3.2.5 pide
  * evitar. El target blank se queda SOLO donde el destino de verdad sale del
- * sitio (documentacion y guias, en la columna de Recursos).
+ * sitio (el SDK, unico enlace de la columna de Recursos).
  */
 const LEGAL_LINKS = [
   { key: "privacy", href: links.privacy },
@@ -387,62 +372,37 @@ export function Footer(): ReactElement {
           <ScTagline variant="bodySm">{t("Common.Footer.tagline")}</ScTagline>
         </ScBrandCol>
 
-        <ScColumn>
-          <ScColumnTitle variant="bodySm">
-            {t("Common.Footer.explore")}
-          </ScColumnTitle>
-          <ScColumnLinks>
-            {SECTION_LINKS.map(({ key, href }) => (
-              <ScFooterLink
-                key={key}
-                href={href}
-              >
-                {t(`Common.Navigation.${key}`)}
-              </ScFooterLink>
-            ))}
-          </ScColumnLinks>
-        </ScColumn>
-
-        <ScColumn>
-          <ScColumnTitle variant="bodySm">
-            {t("Common.Footer.discover")}
-          </ScColumnTitle>
-          <ScColumnLinks>
-            {DISCOVER_LINKS.map((key) => (
-              <ScFooterLink
-                key={key}
-                href="#features"
-              >
-                {t(`home:Home.features.${key}.title`)}
-              </ScFooterLink>
-            ))}
-          </ScColumnLinks>
-        </ScColumn>
-
-        <ScColumn>
-          <ScColumnTitle variant="bodySm">
-            {t("Common.Footer.resources")}
-          </ScColumnTitle>
-          <ScColumnLinks>
-            <ScFooterLink
-              href={links.docs}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t("Common.Footer.documentation")}
-            </ScFooterLink>
-            <ScFooterLink
-              href={links.guides}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t("Common.Footer.guides")}
-            </ScFooterLink>
-            <ScFooterNavLink href={links.accessibility}>
-              {t("Common.Footer.accessibility")}
-            </ScFooterNavLink>
-          </ScColumnLinks>
-        </ScColumn>
+        {NAV_GROUPS.map((group) => (
+          <ScColumn key={group.key}>
+            <ScColumnTitle variant="bodySm">
+              {t(`Common.Nav.${group.key}`)}
+            </ScColumnTitle>
+            <ScColumnLinks>
+              {group.items.map((item) =>
+                item.kind === "external" ? (
+                  <ScFooterLink
+                    key={item.key}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t(`Common.Nav.${item.key}`)}
+                    <VisuallyHidden> {t("Common.Nav.newTab")}</VisuallyHidden>
+                  </ScFooterLink>
+                ) : (
+                  <ScFooterLink
+                    key={item.key}
+                    href={item.href}
+                  >
+                    {item.kind === "feature"
+                      ? t(`home:Home.features.${item.key}.title`)
+                      : t(`Common.Navigation.${item.key}`)}
+                  </ScFooterLink>
+                ),
+              )}
+            </ScColumnLinks>
+          </ScColumn>
+        ))}
       </ScInner>
 
       <ScBottomBar $dark={isDark}>

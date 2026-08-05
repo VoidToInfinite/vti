@@ -20,6 +20,13 @@
             "features": "Características",
             "contact": "Contacto"
         },
+        "Nav": {
+            "onSite": "En el sitio",
+            "discover": "Descubre",
+            "resources": "Recursos",
+            "sdk": "VTI - SDK",
+            "newTab": "se abre en una pestaña nueva"
+        },
         "Status": {
             "success": "Correcto",
             "successfully": "Correctamente",
@@ -67,11 +74,6 @@
         "Footer": {
             "copyright": "© {{year}} VoidToInfinite. Todos los derechos reservados.",
             "tagline": "Juntos, vamos más allá.",
-            "explore": "Explora",
-            "discover": "Descubre",
-            "resources": "Recursos",
-            "documentation": "Documentación",
-            "guides": "Guías",
             "accessibility": "Accesibilidad",
             "privacy": "Política de privacidad",
             "terms": "Términos de uso",

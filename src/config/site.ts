@@ -26,8 +26,29 @@ export const SITE = {
      región, no el código corto de i18next. */
   ogLocale: "es_ES",
   lang: "es",
+  /**
+   * Título de la HOME, sin la marca: `buildMetadata()` le añade el sufijo
+   * ` · VoidToInfinite` (entrega 2026-08-05).
+   *
+   * Antes, la home pasaba `SITE.name` como título, lo que activaba el caso
+   * especial de `buildMetadata()` (título === marca → sin sufijo) y dejaba el
+   * `<title>` de la página más importante del sitio en la marca desnuda,
+   * "VoidToInfinite": cero palabras sobre QUÉ es el sitio, ni en la pestaña
+   * del navegador ni en el enlace azul de un resultado de búsqueda, ni en el
+   * `og:title` de una vista previa compartida (los tres salen del mismo
+   * valor). El texto no se inventa: son las tres palabras que la propia
+   * `description` de aquí abajo ya usa para describir el proyecto, y que las
+   * secciones de la home desarrollan (Learning / Imagination / Gaming).
+   */
+  homeTitle: "Aprendizaje, imaginación y juego",
+  /* Acentos corregidos el 2026-08-05: decía "imaginacion", "travesia" y
+     "como". Esta cadena NO es solo interna -- es la `<meta name="description">`
+     y el `og:description` de la home, el subtítulo de la imagen Open Graph
+     (`app/opengraph-image.tsx`) y la `description` de su nodo `WebPage`, así
+     que las faltas se leían en el resultado de búsqueda y en cada vista
+     previa compartida. */
   description:
-    "VoidToInfinite es un equipo creativo que construye aprendizaje, imaginacion y juego en una misma travesia. Descubre su historia, su viaje y como participar.",
+    "VoidToInfinite es un equipo creativo que construye aprendizaje, imaginación y juego en una misma travesía. Descubre su historia, su viaje y cómo participar.",
 } as const;
 
 /**

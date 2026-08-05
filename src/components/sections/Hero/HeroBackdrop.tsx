@@ -25,7 +25,6 @@ type Stacks = Partial<Record<StackName, StackPhase>>;
 interface PendingEntry {
   readonly entering: StackName;
   readonly leaving: StackName;
-  readonly token: number;
   /*
    * `true` cuando este montaje "pending" pertenece a un cambio de tema de
    * USUARIO (spec S7.3): al resolver decode(), el efecto de la carrera de
@@ -218,7 +217,6 @@ export function HeroBackdrop(): ReactElement {
     return {
       entering,
       leaving: otherStack(entering),
-      token: 0,
       needsHandoff: false,
     };
   });
@@ -389,7 +387,6 @@ export function HeroBackdrop(): ReactElement {
       setPendingEntry({
         entering,
         leaving,
-        token: myToken,
         needsHandoff: false,
       });
       return;
@@ -405,6 +402,34 @@ export function HeroBackdrop(): ReactElement {
       // relevo de HERO_HANDOFF_MS (1070ms) por temporizador no lo colapsa
       // ningun media query: hay que leer la preferencia aqui, en JS,
       // exactamente igual que `useHeroCopySwap` (hero.transition.ts).
+      //
+      // POR QUE LLEVA SUPRESION (revision 2026-08-05). La llamada es la MISMA
+      // que ya estaba aqui antes de esta revision, y este fichero pasaba
+      // `pnpm lint` sin ninguna supresion. Lo MEDIDO, no deducido, es esto:
+      //   - el fichero tal cual esta en HEAD lintea limpio (comprobado
+      //     linteando una copia literal de `git show HEAD:` en el propio
+      //     repo);
+      //   - el fichero con esta revision aplicada y SIN esta linea falla con
+      //     "Avoid calling setState() directly within an effect" apuntando a
+      //     la linea de abajo.
+      // Es decir: el cambio de esta tarea (retirar el campo `token` de
+      // `pendingEntry`, ver el efecto de la carrera mas abajo) hace que el
+      // analisis de `react-hooks/set-state-in-effect` -- basado en el React
+      // Compiler -- empiece a emitir un diagnostico sobre codigo INTACTO.
+      // NO se afirma aqui por que: el criterio interno de esa regla para
+      // decidir cuando analiza y cuando abandona el analisis de un componente
+      // no se ha verificado, y sin verificarlo llamarlo "falso positivo del
+      // analizador" seria una suposicion presentada como hecho.
+      //
+      // Lo que SI sostiene la supresion es el mismo argumento, ya escrito y
+      // aceptado, que llevan las dos supresiones hermanas del repo
+      // (`ThemeProvider.tsx` y `StageProvider.tsx`): esto no es un setState
+      // que corra en cada render, es un guard por early-return sobre una
+      // lectura fresca de `matchMedia` dentro de un efecto que ya sale antes
+      // si el tema no cambio de verdad (`prevThemeRef.current === themeName`,
+      // primera linea). El test "bajo reduced-motion..." de
+      // `HeroBackdrop.test.tsx` sigue cubriendo esta rama en verde.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- ver el comentario de arriba
       setStacks({ [entering]: "active" });
       return;
     }
@@ -442,7 +467,7 @@ export function HeroBackdrop(): ReactElement {
     // en pantalla) y el entrante no puede pasar a "active" antes de
     // HERO_HANDOFF_MS, sea cual sea el resultado de decode().
     setStacks((prev) => ({ ...prev, [entering]: "pending" }));
-    setPendingEntry({ entering, leaving, token: myToken, needsHandoff: true });
+    setPendingEntry({ entering, leaving, needsHandoff: true });
 
     // Reinicia las dos condiciones del relevo para ESTE cruce -- si
     // quedaran a `true` de un cruce anterior, el primero de los dos
@@ -490,7 +515,31 @@ export function HeroBackdrop(): ReactElement {
   // ejecutarse.
   useEffect(() => {
     if (!pendingEntry) return;
-    const { entering, leaving, token: myToken, needsHandoff } = pendingEntry;
+    const { entering, leaving, needsHandoff } = pendingEntry;
+    // El token se adopta del REF en el instante en que este efecto arranca
+    // -- ya no viaja como campo escrito a mano dentro de `pendingEntry`
+    // (revision 2026-08-05). En el caso normal es EQUIVALENTE: este efecto
+    // corre en el mismo lote de commit en el que la entrada se sembro (el
+    // efecto de deteccion de arriba, o el inicializador de `useState`), con
+    // `tokenRef` ya puesto a su valor nuevo -- leerlo aqui o llevarlo
+    // congelado en el objeto da el mismo numero.
+    //
+    // Donde SI cambia: un remontaje (StrictMode, activo en next.config.ts,
+    // simula desmontaje+montaje en cada montaje de cliente; tambien una
+    // navegacion real que desmonta y vuelve a montar el arbol). La limpieza
+    // de desmontaje (mas abajo) sube `tokenRef.current` ANTES de que este
+    // efecto vuelva a ejecutarse en el montaje nuevo -- un campo `token`
+    // fijado a mano en el inicializador de `useState` (siempre 0) quedaria
+    // desincronizado con ese ref ya incrementado, y la guarda de abajo
+    // descartaria esta carrera PARA SIEMPRE: el fondo se quedaria pegado en
+    // "pending", las cuatro capas en opacity 0, sin ningun error que lo
+    // delatara (medido: unmount sube tokenRef a 1, la carrera que sigue
+    // sigue comparando contra el 0 de siempre y nunca vuelve a coincidir).
+    // Adoptarlo del ref en tiempo de efecto hace que la comparacion viaje
+    // SIEMPRE sincronizada con la ultima limpieza real -- es decir, hace al
+    // componente resistente a su propio remontaje, que es exactamente el
+    // contrato que StrictMode existe para verificar.
+    const myToken = tokenRef.current;
     let cancelled = false;
 
     const run = async (): Promise<void> => {

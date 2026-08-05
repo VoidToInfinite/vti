@@ -34,8 +34,7 @@ describe("organizationJsonLd", () => {
 
   it("sameAs NO incluye el subdominio propio de desarrollo (no es un perfil externo)", () => {
     expect(organizationJsonLd().sameAs).not.toContain(links.playground);
-    expect(organizationJsonLd().sameAs).not.toContain(links.docs);
-    expect(organizationJsonLd().sameAs).not.toContain(links.guides);
+    expect(organizationJsonLd().sameAs).not.toContain(links.sdk);
     for (const destino of organizationJsonLd().sameAs) {
       expect(destino).not.toContain("dev.voidtoinfinite.com");
     }
@@ -73,19 +72,36 @@ describe("webPageJsonLd", () => {
 
   it("compone breadcrumb de dos niveles: Inicio → la página", () => {
     const breadcrumb = webPageJsonLd(input).breadcrumb;
-    expect(breadcrumb.itemListElement).toHaveLength(2);
-    expect(breadcrumb.itemListElement[0]).toEqual({
+    expect(breadcrumb).toBeDefined();
+    expect(breadcrumb?.itemListElement).toHaveLength(2);
+    expect(breadcrumb?.itemListElement[0]).toEqual({
       "@type": "ListItem",
       "position": 1,
       "name": "Inicio",
       "item": absoluteUrl("/"),
     });
-    expect(breadcrumb.itemListElement[1]).toEqual({
+    expect(breadcrumb?.itemListElement[1]).toEqual({
       "@type": "ListItem",
       "position": 2,
       "name": input.name,
       "item": absoluteUrl(input.path),
     });
+  });
+
+  it("omite breadcrumb en la raíz: no hay jerarquía por encima de sí misma", () => {
+    const home = webPageJsonLd({
+      path: "/",
+      name: "VoidToInfinite",
+      description: "Descripción de prueba.",
+    });
+    expect(home).not.toHaveProperty("breadcrumb");
+    // El resto de campos se mantiene intacto: la omisión es quirúrgica.
+    expect(home["@id"]).toBe(`${absoluteUrl("/")}#webpage`);
+    expect(home.url).toBe(absoluteUrl("/"));
+    expect(home.name).toBe("VoidToInfinite");
+    expect(home.description).toBe("Descripción de prueba.");
+    expect(home.inLanguage).toBe(SITE.lang);
+    expect(home.isPartOf).toEqual({ "@id": webSiteJsonLd()["@id"] });
   });
 
   it("omite datePublished/dateModified cuando no se pasan, en vez de escribirlos vacíos", () => {

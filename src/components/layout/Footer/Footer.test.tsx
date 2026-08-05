@@ -10,10 +10,18 @@ import { Footer } from "./Footer";
 /*
  * Footer (spec 2026-07-28-landing-v2-secciones-design.md §7.5/§8 y
  * 2026-08-03-contacto-footer-oscuro-design.md D9/D10/D16/D17): vive en los
- * dos temas. Las columnas Explore/Discover (anclas a las 4 secciones)
+ * dos temas. Las columnas «On Site»/«Discover» (anclas a las 4 secciones)
  * vuelven a montarse SIEMPRE (D16) -- ver el test que sustituye al anterior
  * mas abajo. Resources y la barra inferior (copyright + legales) nunca
  * dependieron del tema.
+ *
+ * Entrega 2026-08-05: las tres columnas dejan de escribirse a mano y se
+ * generan recorriendo `NAV_GROUPS` (`src/config/navigation.ts`), el mismo
+ * modelo que consume el Navbar -- por eso los titulos pasan de
+ * `Common.Footer.explore/discover/resources` a `Common.Nav.onSite/discover/
+ * resources`, y la columna que se llamaba «Explore» pasa a llamarse «On Site»
+ * («En el sitio» en español). En la misma entrega, «Resources» se reduce a un
+ * unico enlace, VTI - SDK, por encargo del usuario.
  */
 
 beforeEach(() => {
@@ -78,16 +86,12 @@ function findBeam(container: HTMLElement): HTMLElement | null {
 }
 
 describe("Footer", () => {
-  it("en tema claro (por defecto) muestra las columnas Explore y Discover", () => {
+  it("en tema claro (por defecto) muestra las columnas On Site y Discover", () => {
     window.localStorage.setItem("vti-theme", "light");
     renderWithProviders(<Footer />);
 
-    expect(
-      screen.getByText(esCommon.Common.Footer.explore),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(esCommon.Common.Footer.discover),
-    ).toBeInTheDocument();
+    expect(screen.getByText(esCommon.Common.Nav.onSite)).toBeInTheDocument();
+    expect(screen.getByText(esCommon.Common.Nav.discover)).toBeInTheDocument();
 
     for (const href of ["#story", "#journey", "#features", "#contact"]) {
       expect(
@@ -117,7 +121,7 @@ describe("Footer", () => {
    * `Contact.tsx:425,455`). D16 revierte a propósito la decisión anterior de
    * este mismo fichero de test.
    */
-  it("en tema oscuro SI muestra las columnas Explore y Discover, con sus 4+3 enlaces y sus anclas reales (D16)", async () => {
+  it("en tema oscuro SI muestra las columnas On Site y Discover, con sus 4+3 enlaces y sus anclas reales (D16)", async () => {
     window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderWithProviders(<Footer />);
 
@@ -130,12 +134,8 @@ describe("Footer", () => {
       expect(findStarsContainer(container)).toBeDefined();
     });
 
-    expect(
-      screen.getByText(esCommon.Common.Footer.explore),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(esCommon.Common.Footer.discover),
-    ).toBeInTheDocument();
+    expect(screen.getByText(esCommon.Common.Nav.onSite)).toBeInTheDocument();
+    expect(screen.getByText(esCommon.Common.Nav.discover)).toBeInTheDocument();
 
     for (const href of ["#story", "#journey", "#features", "#contact"]) {
       expect(
@@ -161,12 +161,9 @@ describe("Footer", () => {
       renderWithProviders(<Footer />);
 
       expect(
-        screen.getByText(esCommon.Common.Footer.resources),
+        screen.getByText(esCommon.Common.Nav.resources),
       ).toBeInTheDocument();
-      expect(document.querySelector(`a[href="${links.docs}"]`)).not.toBeNull();
-      expect(
-        document.querySelector(`a[href="${links.guides}"]`),
-      ).not.toBeNull();
+      expect(document.querySelector(`a[href="${links.sdk}"]`)).not.toBeNull();
       expect(
         document.querySelector(`a[href="${links.privacy}"]`),
       ).not.toBeNull();
@@ -176,6 +173,42 @@ describe("Footer", () => {
       expect(screen.getByText(new RegExp(String(year)))).toBeInTheDocument();
     },
   );
+
+  /*
+   * Candado literal del encargo (2026-08-05): "la sección del footer
+   * 'Resources' actualmente solo debe aparecer 'VTI - SDK'". No basta con
+   * comprobar que el enlace del SDK está -- eso ya lo hace el bloque de
+   * arriba -- hace falta un candado que FALLE si alguien añade un segundo
+   * enlace a esa columna (p. ej. reintroduciendo Documentación o Guías).
+   */
+  it("la columna Resources contiene exactamente un enlace, y es el del SDK", () => {
+    window.localStorage.setItem("vti-theme", "light");
+    renderWithProviders(<Footer />);
+
+    const titulo = screen.getByText(esCommon.Common.Nav.resources);
+    const columna = titulo.parentElement as HTMLElement;
+    const anclas = columna.querySelectorAll("a");
+
+    expect(anclas).toHaveLength(1);
+    expect(anclas[0]).toHaveAttribute("href", links.sdk);
+  });
+
+  /*
+   * WCAG 3.2.5 (Cambio a petición, AAA): un enlace externo que abre pestaña
+   * nueva tiene que avisarlo a quien no ve la pantalla. El icono o el
+   * `target` por sí solos no lo comunican -- por eso el aviso vive en el
+   * NOMBRE ACCESIBLE del propio enlace (`VisuallyHidden`, ver su docblock),
+   * no solo en un atributo que un lector de pantalla podría no anunciar.
+   */
+  it("el enlace del SDK avisa del cambio de pestaña en su nombre accesible", () => {
+    window.localStorage.setItem("vti-theme", "light");
+    renderWithProviders(<Footer />);
+
+    const enlace = screen.getByRole("link", {
+      name: `${esCommon.Common.Nav.sdk} ${esCommon.Common.Nav.newTab}`,
+    });
+    expect(enlace).toHaveAttribute("href", links.sdk);
+  });
 
   /*
    * D19 de la spec 2026-08-04-legal-seo-consentimiento-design.md. Hasta esta
@@ -188,9 +221,9 @@ describe("Footer", () => {
    * El test no comprueba solo que los enlaces existan (eso ya lo hace el
    * bloque de arriba): comprueba la PROPIEDAD que se acaba de cambiar, que
    * es la unica que un descuido futuro podria revertir sin romper nada
-   * visible. Y comprueba a la vez el complementario -- que docs y guides,
-   * que SI salen del sitio, conservan su target -- para que el test no pase
-   * en verde con un "he quitado el target de todos".
+   * visible. Y comprueba a la vez el complementario -- que el SDK, que SI
+   * sale del sitio, conserva su target -- para que el test no pase en verde
+   * con un "he quitado el target de todos".
    */
   it.each([["light"], ["dark"]] as const)(
     "en tema %s los cuatro legales son enlaces internos sin target=_blank",
@@ -215,13 +248,11 @@ describe("Footer", () => {
         }
       }
 
-      // Control complementario: los destinos que SI son externos conservan
-      // su target y su rel.
-      for (const href of [links.docs, links.guides]) {
-        const ancla = document.querySelector(`a[href="${href}"]`);
-        expect(ancla?.getAttribute("target")).toBe("_blank");
-        expect(ancla?.getAttribute("rel")).toBe("noopener noreferrer");
-      }
+      // Control complementario: el destino que SI es externo (el SDK)
+      // conserva su target y su rel.
+      const ancla = document.querySelector(`a[href="${links.sdk}"]`);
+      expect(ancla?.getAttribute("target")).toBe("_blank");
+      expect(ancla?.getAttribute("rel")).toBe("noopener noreferrer");
     },
   );
 

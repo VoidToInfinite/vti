@@ -1,6 +1,15 @@
 "use client";
 
-import type { ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type ReactElement,
+} from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import styled, { keyframes } from "styled-components";
@@ -8,6 +17,13 @@ import { BrandName } from "@/components/layout/Brand/BrandName";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
+import {
+  NAV_GROUPS,
+  type NavGroup,
+  type NavGroupKey,
+  type NavItem,
+} from "@/config/navigation";
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
 import { useStage } from "@/motion/StageProvider";
 
@@ -357,20 +373,18 @@ const ScActions = styled.div`
 `;
 
 /*
- * Enlaces de sección (spec 2026-07-28-landing-v2-secciones-design.md §7.6,
- * mockup `Landing v2.dc.html` L41-45): SOLO en tema claro (sus destinos
- * -Story/Journey/Features/Contact- solo existen ahí, gate `HomeSections`
- * D3) y SOLO ≥ md (mockup: barra angosta en breakpoints menores). `<div>`,
- * no un segundo `<nav>`: `ScNav` ya es el elemento `nav` de la barra: anidar
- * un landmark de navegación dentro de otro sería un `nav` redundante para
- * lectores de pantalla, y la spec pide los enlaces "dentro del actual
- * ScNav", no un landmark propio.
+ * Tres grupos de navegación desplegables (tarea W4), reemplazo de los
+ * cuatro enlaces planos que este bloque pintaba hasta hoy
+ * (`NAV_SECTION_LINKS`). SOLO ≥ md (mockup: barra angosta en breakpoints
+ * menores, sin menú móvil en esta entrega -- decisión de alcance ya
+ * tomada, no hay gate adicional que añadir). `<div>`, no un segundo
+ * `<nav>`: `ScNav` ya es el elemento `nav` de la barra: anidar un landmark
+ * de navegación dentro de otro sería un `nav` redundante para lectores de
+ * pantalla.
  *
  * Oculto por `display: none` bajo `md` (no desmontado): igual que el resto
  * del navbar, no cambia el orden de tabulación de forma condicional al
- * viewport -- la propia condicion de tema si desmonta el bloque entero
- * (sin ThemeProvider anidado, useTheme() ya resuelve contra el tema
- * ambiental de la pagina).
+ * viewport.
  */
 const ScNavLinks = styled.div`
   display: none;
@@ -403,20 +417,370 @@ const ScNavLink = styled.a`
   }
 `;
 
-const NAV_SECTION_LINKS = [
-  { key: "story", href: "#story" },
-  { key: "journey", href: "#journey" },
-  { key: "features", href: "#features" },
-  { key: "contact", href: "#contact" },
-] as const;
+/*
+ * Un grupo del menú desplegable: envoltorio con `position: relative` que
+ * ancla su panel (`ScNavPanel`, `position: absolute; top: 100%`) al
+ * disparador que lo abre. Es además el nodo donde `NavGroupMenu` escucha
+ * `onKeyDown` (Escape, regla 3) y `onBlur` (foco que sale del grupo, regla
+ * 5): React hace burbujear los dos eventos desde cualquier descendiente
+ * -- el propio disparador o un enlace del panel --, así que se capturan
+ * una sola vez aquí, nunca por separado en cada uno de los dos.
+ */
+const ScNavGroup = styled.div`
+  position: relative;
+`;
+
+/*
+ * Disparador de un grupo: mismo lenguaje visual que `ScNavLink`
+ * (`textMuted` en reposo, `brandText` en hover/focus, transición corta
+ * solo de `color`) -- reutiliza ese bloque de reglas en vez de duplicarlo,
+ * sobre un `<button>` con su apariencia nativa reseteada. Área táctil
+ * mínima AA de 44px, mismo precedente literal que `ScLanguageButton`
+ * (`LanguageSelector.tsx`).
+ */
+const ScNavTrigger = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.data.space[1]};
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  font-weight: 500;
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  cursor: pointer;
+  transition: color ${({ theme }) => theme.data.motion.duration.fast}
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  &:hover,
+  &:focus-visible {
+    color: ${({ theme }) => theme.data.semantic.brandText};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+/*
+ * Indicador de apertura: SOLO `transform: rotate()` como animación, ninguna
+ * otra propiedad -- guard de `reduce` igual que el resto de transiciones
+ * nuevas de este fichero. `currentColor` hereda el color que ya resuelve
+ * `ScNavTrigger` (`textMuted`/`brandText`), así que no hace falta ningún
+ * token de color propio en el trazo.
+ *
+ * `width`/`height`/`flex` son OBLIGATORIOS, no cosméticos, y esta es la
+ * TERCERA vez que este repo tropieza con lo mismo (ver el docblock de
+ * `ScLogo` en `src/components/ui/Logo/Logo.tsx`, que documenta el mismo
+ * fallo medido): `GlobalStyles` declara `svg { width: 100%; display: block; }`
+ * para todo el sitio, y una declaración CSS gana SIEMPRE a la geometría
+ * implícita del `viewBox`. Sin estas tres líneas, el chevron se estira al
+ * 100% de su contenedor flexible y arrastra su altura por relación de
+ * aspecto: MEDIDO en el navegador real sobre esta misma barra, **215x143 px**,
+ * lo que hinchaba el disparador a 143 px de alto dentro de una banda de
+ * 56 px (`--nav-height`) y descolgaba la fila entera de la navegación.
+ * Ningún test de jsdom lo habría visto -- jsdom no hace layout, así que
+ * `getBoundingClientRect()` devuelve ceros y la regresión es invisible para
+ * la suite; el candado que sí la ata (`Navbar.test.tsx`) comprueba las
+ * DECLARACIONES de width/height, que es lo que jsdom sí resuelve.
+ */
+const ScChevron = styled.svg<{ $open: boolean }>`
+  width: 0.6rem;
+  height: auto;
+  flex: none;
+  transform: rotate(${({ $open }) => ($open ? "180deg" : "0deg")});
+  transition: transform ${({ theme }) => theme.data.motion.duration.fast}
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+/*
+ * Panel de un grupo: flota bajo su disparador (`position: absolute; top:
+ * 100%`) con el mismo cristal que `ScSurface` (bg/blur, `-webkit-`
+ * primero, igual orden de fallback), su borde, su radio y `elevation[2]`,
+ * por encima del resto de la barra (`zIndex.dropdown`).
+ *
+ * REGLA DURA de esta tarea: el panel se renderiza SIEMPRE -- sus enlaces
+ * nunca se desmontan -- y abre/cierra con `opacity`/`transform`/
+ * `visibility` + el atributo `inert`, nunca desmontaje condicional ni
+ * `display: none`/`hidden`. Alternativas descartadas y por qué:
+ *
+ * - Desmontarlo (`{isOpen && <ScNavPanel>...}`) o usar el atributo
+ *   `hidden` sacan sus enlaces del DOM por completo: (a) dejarían de ser
+ *   rastreables por cualquier código que los busque por `href`, y (b)
+ *   romperían el test de regresión YA EXISTENTE en Navbar.test.tsx ("en
+ *   tema %s los 4 enlaces de sección están presentes en el DOM", que hace
+ *   `container.querySelector('a[href="#story"]')` sin mirar si el panel
+ *   está abierto).
+ * - `display: none` no se puede interpolar -- no es una propiedad
+ *   animable --, así que el panel aparecería y desaparecería de golpe en
+ *   vez de con la transición que pide la presentación de esta tarea.
+ *
+ * `visibility` sí es la propiedad correcta para un desplegable CERRADO:
+ * saca el contenido del árbol de accesibilidad y del orden de tabulación
+ * (`opacity` sola NUNCA basta para ocultar un control interactivo: sus
+ * enlaces seguirían siendo alcanzables por Tab mientras el panel es
+ * invisible). `inert` lo refuerza de forma explícita.
+ *
+ * `visibility` SÍ entra en la lista de `transition` (no se deja fuera, ni
+ * se conmuta con `transition-behavior: allow-discrete`, pensado para
+ * OTRAS propiedades discretas como `display`): es la única propiedad de
+ * esta lista con animación DISCRETA ya definida por la propia
+ * especificación de CSS Transitions, implementada en los motores desde
+ * mucho antes de que existiera `allow-discrete`. Al pasar de `hidden` a
+ * `visible` el cambio se aplica al INICIO de la duración (t=0) -- el
+ * panel se vuelve interactivo y anunciable justo cuando arranca el
+ * fade-in --, y al pasar de `visible` a `hidden` se aplica al FINAL
+ * (t=1) -- el panel sigue pintando y permanece en el árbol de
+ * accesibilidad durante TODO el fade-out, y solo desaparece cuando la
+ * animación ya terminó. Es el "retardo" que pide la tarea, nativo del
+ * navegador, sin ninguna sintaxis extra.
+ */
+const ScNavPanel = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: ${({ theme }) => theme.data.space[2]};
+  min-width: 12rem;
+  padding: ${({ theme }) => theme.data.space[2]};
+  border-radius: ${({ theme }) => theme.data.radius.lg};
+  border: ${({ theme }) => theme.data.glass.border};
+  background: ${({ theme }) => theme.data.glass.bg};
+  -webkit-backdrop-filter: ${({ theme }) => theme.data.glass.blur};
+  backdrop-filter: ${({ theme }) => theme.data.glass.blur};
+  box-shadow: ${({ theme }) => theme.data.elevation[2]};
+  z-index: ${({ theme }) => theme.data.zIndex.dropdown};
+
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    opacity ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    visibility ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard};
+
+  &[data-open="true"] {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const ScNavPanelList = styled.ul`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.data.space[1]};
+  margin: 0;
+  padding: 0;
+  list-style: none;
+`;
+
+/* Enlaces del panel: mismo rol visual que `ScNavLink` -- reutilizado por
+   composición (`styled(ScNavLink)`), no duplicado -- más la presentación
+   propia de un item de menú (bloque, con su propio relleno para que toda
+   la fila sea zona de clic, no solo el texto). */
+const ScNavPanelLink = styled(ScNavLink)`
+  display: block;
+  padding: ${({ theme }) => theme.data.space[1]}
+    ${({ theme }) => theme.data.space[2]};
+`;
+
+/*
+ * Un grupo desplegable individual. Vive fuera de `Navbar()` porque cada
+ * instancia necesita SU PROPIO `useId()` (disparador + panel) y SU PROPIA
+ * referencia al disparador (para devolverle el foco al cerrar con Escape,
+ * regla 3): subir esos valores al componente padre obligaría a indexarlos
+ * a mano por `NavGroupKey` sin ganar nada frente a que cada grupo resuelva
+ * lo suyo.
+ */
+interface NavGroupMenuProps {
+  readonly group: NavGroup;
+  readonly isOpen: boolean;
+  readonly onToggle: () => void;
+  readonly onClose: () => void;
+}
+
+function NavGroupMenu({
+  group,
+  isOpen,
+  onToggle,
+  onClose,
+}: NavGroupMenuProps): ReactElement {
+  const { t } = useTranslation("common");
+  const triggerId = useId();
+  const panelId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Regla 3: Escape cierra el grupo (si estaba abierto) y devuelve el foco
+  // a su disparador.
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (event.key !== "Escape" || !isOpen) return;
+    onClose();
+    triggerRef.current?.focus();
+  }
+
+  // Regla 5: el foco saliendo del grupo (disparador + panel) hacia un
+  // elemento que no esté dentro lo cierra. `relatedTarget` es el elemento
+  // que GANA el foco; si no está contenido en este grupo, se cierra.
+  function handleBlur(event: FocusEvent<HTMLDivElement>): void {
+    const next = event.relatedTarget;
+    if (next instanceof Node && event.currentTarget.contains(next)) return;
+    onClose();
+  }
+
+  // Regla 6: activar un enlace del panel lo cierra -- si no, el salto al
+  // ancla deja un panel flotando sobre la página.
+  function handleLinkActivate(): void {
+    onClose();
+  }
+
+  function itemLabel(item: NavItem): string {
+    switch (item.kind) {
+      case "section":
+        return t(`Common.Navigation.${item.key}`);
+      case "feature":
+        return t(`home:Home.features.${item.key}.title`);
+      case "external":
+        return t(`Common.Nav.${item.key}`);
+    }
+  }
+
+  return (
+    <ScNavGroup
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+    >
+      <ScNavTrigger
+        type="button"
+        id={triggerId}
+        ref={triggerRef}
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        onClick={onToggle}
+      >
+        {t(`Common.Nav.${group.key}`)}
+        <ScChevron
+          viewBox="0 0 12 8"
+          aria-hidden="true"
+          focusable="false"
+          $open={isOpen}
+        >
+          <path
+            d="M1 1.5 6 6.5 11 1.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </ScChevron>
+      </ScNavTrigger>
+      <ScNavPanel
+        id={panelId}
+        aria-labelledby={triggerId}
+        data-open={isOpen}
+        inert={!isOpen}
+      >
+        <ScNavPanelList>
+          {group.items.map((item) =>
+            item.kind === "external" ? (
+              <li key={item.key}>
+                <ScNavPanelLink
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleLinkActivate}
+                >
+                  {itemLabel(item)}
+                  {/* Espacio literal DENTRO del texto oculto, no entre nodos
+                      JSX (que la compilación colapsaría): sin él, el
+                      `textContent` del ancla queda pegado ("VTI - SDKse abre
+                      en...") y un lector de pantalla que lo lea como una sola
+                      cadena pronuncia una palabra inexistente. Mismo criterio
+                      ya aplicado en `Footer.tsx` para este mismo aviso. */}
+                  <VisuallyHidden> {t("Common.Nav.newTab")}</VisuallyHidden>
+                </ScNavPanelLink>
+              </li>
+            ) : (
+              <li key={item.key}>
+                <ScNavPanelLink
+                  href={item.href}
+                  onClick={handleLinkActivate}
+                >
+                  {itemLabel(item)}
+                </ScNavPanelLink>
+              </li>
+            ),
+          )}
+        </ScNavPanelList>
+      </ScNavPanel>
+    </ScNavGroup>
+  );
+}
 
 export function Navbar(): ReactElement {
   const { scrolled, phase: detachPhase } = useNavDetach(8);
   const { phase } = useStage();
-  const { t } = useTranslation("common");
   // "pending" mientras la fase de página siga en "backdrop" (spec §7.4): el
   // navbar entra en "chrome", a la vez que la copia del hero, no antes.
   const introState = phase === "backdrop" ? "pending" : "in";
+
+  /*
+   * Regla 1: un solo grupo abierto a la vez -- un único estado
+   * `NavGroupKey | null`, nunca un booleano por grupo. Abrir un segundo
+   * grupo (regla 2) se resuelve por construcción: `toggleGroup` sobrescribe
+   * este único valor, así que el grupo que estuviera abierto deja de serlo
+   * sin tener que coordinar N estados booleanos entre sí.
+   */
+  const [openGroup, setOpenGroup] = useState<NavGroupKey | null>(null);
+  const navLinksRef = useRef<HTMLDivElement>(null);
+
+  const closeGroup = useCallback((): void => {
+    setOpenGroup(null);
+  }, []);
+
+  const toggleGroup = useCallback((key: NavGroupKey): void => {
+    setOpenGroup((current) => (current === key ? null : key));
+  }, []);
+
+  /*
+   * Regla 4: un click/pointerdown fuera del BLOQUE DE NAVEGACIÓN completo
+   * (los tres grupos, no solo el que está abierto) cierra el grupo
+   * abierto. Se escucha en `document` porque el click puede caer en
+   * cualquier parte de la página -- desde el resto de `ScHeader` hasta el
+   * fondo de una sección --, y SOLO mientras haya un grupo abierto: sin
+   * grupo abierto no hay nada que cerrar ni listener que mantener vivo, y
+   * el propio `return` de limpieza (regla 7) lo retira en cuanto
+   * `openGroup` cambia o el componente se desmonta.
+   */
+  useEffect(() => {
+    if (openGroup === null) return;
+
+    function handlePointerDown(event: PointerEvent): void {
+      if (!(event.target instanceof Node)) return;
+      if (navLinksRef.current?.contains(event.target)) return;
+      setOpenGroup(null);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [openGroup]);
 
   /*
    * ACCESIBILIDAD durante el intro: `data-intro="pending"` SOLO anima
@@ -499,14 +863,15 @@ export function Navbar(): ReactElement {
             <Logo size="1.5rem" />
             <BrandName />
           </ScBrandLink>
-          <ScNavLinks>
-            {NAV_SECTION_LINKS.map(({ key, href }) => (
-              <ScNavLink
-                key={key}
-                href={href}
-              >
-                {t(`Common.Navigation.${key}`)}
-              </ScNavLink>
+          <ScNavLinks ref={navLinksRef}>
+            {NAV_GROUPS.map((group) => (
+              <NavGroupMenu
+                key={group.key}
+                group={group}
+                isOpen={openGroup === group.key}
+                onToggle={() => toggleGroup(group.key)}
+                onClose={closeGroup}
+              />
             ))}
           </ScNavLinks>
           <ScActions>

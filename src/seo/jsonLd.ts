@@ -68,7 +68,7 @@ export interface WebPageJsonLd {
   readonly "description": string;
   readonly "inLanguage": string;
   readonly "isPartOf": { readonly "@id": string };
-  readonly "breadcrumb": BreadcrumbListJsonLd;
+  readonly "breadcrumb"?: BreadcrumbListJsonLd;
   readonly "datePublished"?: string;
   readonly "dateModified"?: string;
 }
@@ -77,7 +77,7 @@ export interface WebPageJsonLd {
  * Entidad de la organización. `sameAs` recoge únicamente destinos externos
  * REALES ya confirmados (GitHub, Discord, tomados de `src/config/links.ts`,
  * que este fichero consume y no duplica): perfiles de la entidad en OTRAS
- * plataformas. `dev.voidtoinfinite.com` (playground/docs/guides en
+ * plataformas. `dev.voidtoinfinite.com` (`playground`/`sdk` en
  * `links.ts`) queda fuera a propósito — es un subdominio propio, no un
  * perfil externo, y `sameAs` existe para que un buscador enlace la misma
  * entidad en distintas plataformas, no para enlazar el sitio consigo mismo.
@@ -121,10 +121,25 @@ export interface WebPageJsonLdInput {
  * página). El ancla estable de cada sección del documento legal (D22) es lo
  * que hace "citable" un documento largo para un motor generativo; este
  * `WebPage` es el nodo que ata esa página a la organización y al sitio.
+ *
+ * La raíz (`path === "/"`) es la única excepción: no lleva `breadcrumb`. La
+ * documentación oficial de Google sobre datos estructurados de breadcrumb
+ * (https://developers.google.com/search/docs/appearance/structured-data/breadcrumb,
+ * sección "Guidelines", consultada el 2026-08-05) dice textualmente: "It is
+ * not required to include a breadcrumb ListItem for the top level path (your
+ * site's domain or host name), nor for the page itself." Para la raíz, "el
+ * top level path" y "la página" son el MISMO nodo — ambos extremos que la
+ * propia guía exime son idénticos aquí — y la misma página especifica
+ * además que un `BreadcrumbList` debe tener "at least two ListItems". No hay
+ * forma de construir dos niveles reales sin duplicar el mismo nodo dos veces
+ * (justo el "Inicio → VoidToInfinite" que no describe ninguna jerarquía).
+ * Se omite la clave entera en vez de emitir un array vacío o de un elemento,
+ * que tampoco sería válido contra el propio mínimo que exige la guía.
  */
 export function webPageJsonLd(input: WebPageJsonLdInput): WebPageJsonLd {
   const url = absoluteUrl(input.path);
   const home = absoluteUrl("/");
+  const isRoot = input.path === "/";
 
   return {
     "@context": "https://schema.org",
@@ -135,13 +150,27 @@ export function webPageJsonLd(input: WebPageJsonLdInput): WebPageJsonLd {
     "description": input.description,
     "inLanguage": SITE.lang,
     "isPartOf": { "@id": WEBSITE_ID },
-    "breadcrumb": {
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Inicio", "item": home },
-        { "@type": "ListItem", "position": 2, "name": input.name, "item": url },
-      ],
-    },
+    ...(isRoot
+      ? {}
+      : {
+          breadcrumb: {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Inicio",
+                "item": home,
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": input.name,
+                "item": url,
+              },
+            ],
+          } satisfies BreadcrumbListJsonLd,
+        }),
     ...(input.datePublished ? { datePublished: input.datePublished } : {}),
     ...(input.dateModified ? { dateModified: input.dateModified } : {}),
   };
