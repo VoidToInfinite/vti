@@ -299,8 +299,8 @@ const ScBottomBar = styled.div<{ $dark: boolean }>`
   text-align: center;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     justify-content: space-between;
     padding-inline: ${({ theme }) => theme.data.space[6]};
     text-align: start;
