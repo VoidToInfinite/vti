@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { links } from "./links";
+import { INTERNAL_LINK_KEYS, links } from "./links";
+import { ROUTES } from "./site";
 
 describe("links de CTA", () => {
   it("expone todos los destinos que el viaje necesita", () => {
@@ -10,6 +11,7 @@ describe("links de CTA", () => {
       "email",
       "github",
       "guides",
+      "legalNotice",
       "playground",
       "privacy",
       "terms",
@@ -22,52 +24,72 @@ describe("links de CTA", () => {
     expect(links.email).toBe("mailto:hello@voidtoinfinite.com");
   });
 
-  /*
-   * Playground, docs y guides DEJARON de ser marcadores el 2026-08-04: el
-   * usuario los sustituyó a mano por destinos reales bajo su propio dominio
-   * (`dev.voidtoinfinite.com`). Este test se actualiza en consecuencia --
-   * `links.ts` lo pide literalmente en su cabecera ("Al sustituirlos,
-   * actualiza también links.test.ts") -- y NO se relaja: pasa de aseverar
-   * "contiene por-completar" a aseverar el valor EXACTO, que es un candado
-   * igual de fuerte. Relajar la aserción a algo genérico ("es una URL
-   * válida") habría dejado la puerta abierta a que un destino se cambiara
-   * sin revisión, que es justo lo que el test viene a impedir.
-   */
   it("playground, docs y guides apuntan al dominio de desarrollo ya confirmado", () => {
     expect(links.playground).toBe("https://dev.voidtoinfinite.com");
     expect(links.docs).toBe("https://dev.voidtoinfinite.com");
     expect(links.guides).toBe("https://dev.voidtoinfinite.com");
   });
 
-  it("marca explícitamente los destinos aún sin confirmar", () => {
-    // Protocolo de veracidad: lo desconocido se marca, no se inventa.
-    expect(links.accessibility).toContain("por-completar");
-    expect(links.privacy).toContain("por-completar");
-    expect(links.terms).toContain("por-completar");
-  });
-
-  it("los destinos sin confirmar usan el TLD reservado example.invalid para fallar visible", () => {
-    // RFC 2606: example.invalid nunca resuelve a un sitio real, así que un
-    // placeholder olvidado falla de forma ruidosa en lugar de llevar al usuario
-    // a un destino equivocado o real.
-    expect(links.accessibility).toContain("example.invalid");
-    expect(links.privacy).toContain("example.invalid");
-    expect(links.terms).toContain("example.invalid");
+  /*
+   * Privacy, terms, accessibility y legalNotice DEJARON de ser marcadores el
+   * 2026-08-04: esta entrega creó las cuatro páginas reales. Los dos tests
+   * que afirmaban que contenían `por-completar` y `example.invalid` ya no
+   * describen el repo, así que se sustituyen -- y NO se relajan, siguiendo
+   * exactamente la doctrina que este mismo fichero fijó al sustituir los de
+   * `playground`/`docs`/`guides`: se asevera el valor EXACTO, no algo
+   * genérico tipo "es una ruta válida", que dejaría la puerta abierta a
+   * cambiar un destino sin revisión.
+   *
+   * La aserción se hace contra `ROUTES`, no contra la cadena literal, porque
+   * lo que hay que atar es que los dos ficheros NO PUEDAN divergir: si
+   * alguien cambia el slug en `site.ts` y olvida el pie, el sitemap y los
+   * enlaces apuntarían a sitios distintos sin que nada fallara. El candado
+   * del valor literal de cada slug vive en `site.test.ts`, que es su dueño.
+   */
+  it("los cuatro legales apuntan a las rutas internas reales", () => {
+    expect(links.privacy).toBe(ROUTES.privacy);
+    expect(links.terms).toBe(ROUTES.terms);
+    expect(links.accessibility).toBe(ROUTES.accessibility);
+    expect(links.legalNotice).toBe(ROUTES.legalNotice);
   });
 
   /*
-   * Candado de no-regresión que sustituye a la cobertura que los dos tests de
-   * arriba perdieron al quedarse con tres claves en vez de seis: ningún
-   * destino real puede colarse con el TLD reservado, y ningún marcador puede
-   * quedarse sin marcar. Sin esto, añadir mañana una clave nueva con un
-   * `example.invalid` olvidado no rompería nada.
+   * Candado de no-regresión que sustituye a la cobertura que perdieron los
+   * dos tests de marcadores: ya no queda ningún destino sin confirmar, así
+   * que la invariante pasa a ser que NINGUNA clave puede llevar el TLD
+   * reservado. Si mañana entra un destino nuevo con un `example.invalid`
+   * olvidado, esto lo caza; y si entra un marcador legítimo, quien lo añada
+   * tiene que venir aquí a declararlo, que es justo el punto de revisión que
+   * el fichero busca.
    */
-  it("ninguna clave mezcla los dos regímenes", () => {
-    const pendientes = ["accessibility", "privacy", "terms"] as const;
+  it("no queda ningún marcador sin confirmar", () => {
     for (const [clave, valor] of Object.entries(links)) {
-      const esPendiente = (pendientes as readonly string[]).includes(clave);
-      expect(valor.includes("example.invalid")).toBe(esPendiente);
-      expect(valor.includes("por-completar")).toBe(esPendiente);
+      expect(valor, `${clave} lleva el TLD reservado`).not.toContain(
+        "example.invalid",
+      );
+      expect(valor, `${clave} sigue marcado como pendiente`).not.toContain(
+        "por-completar",
+      );
+    }
+  });
+
+  /*
+   * Los dos regímenes no se pueden mezclar: un destino interno que se cuele
+   * con esquema `https:` se abriría como enlace externo (pestaña nueva,
+   * `rel="noopener"`), y uno externo declarado como interno produciría un
+   * `next/link` a una ruta que no existe. Ninguno de los dos fallos rompe
+   * nada visible: los dos se ven solo al pulsar.
+   */
+  it("los internos empiezan por barra y los externos llevan esquema", () => {
+    const internos = new Set<string>(INTERNAL_LINK_KEYS);
+    for (const [clave, valor] of Object.entries(links)) {
+      if (internos.has(clave)) {
+        expect(valor, `${clave} deberia ser una ruta interna`).toMatch(/^\//);
+      } else {
+        expect(valor, `${clave} deberia ser un destino externo`).toMatch(
+          /^(https:|mailto:)/,
+        );
+      }
     }
   });
 });

@@ -60,3 +60,42 @@ export function contrastRatio(a: string, b: string): number {
   const darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
 }
+
+/**
+ * Ratio de contraste de un texto sobre una superficie SEMITRANSPARENTE
+ * compuesta encima de un fondo.
+ *
+ * Existe porque el sistema estrenó su primera superficie con alfa: el
+ * marcador de dato pendiente de las páginas legales (`ScMark`,
+ * `legalPage.parts.tsx`) pinta `color-mix(in oklch, semantic.warning 30%,
+ * transparent)` sobre el fondo de la página. `contrastRatio` no puede medir
+ * eso: recibe dos colores opacos, y el color efectivo bajo la letra no es ni
+ * el acento ni el fondo, sino la composición de los dos.
+ *
+ * La mezcla se hace en RGB LINEAL, que es donde una interpolación de color
+ * es físicamente correcta. Un navegador real compone alfa en el espacio de
+ * la superficie (con gamma), así que el número de aquí y el medido en
+ * navegador no tienen por qué coincidir al decimal — se comprobaron los dos
+ * caminos al escribir esto y los dos dan holgadamente por encima de AA en
+ * los dos temas, así que la diferencia no cambia ninguna decisión. Para una
+ * medición al píxel sobre el render real, la vía es pintar en un canvas 1×1
+ * y leerlo (lección del 2026-08-04 sobre `getComputedStyle` y `oklch()`).
+ */
+export function contrastRatioOverAlpha(
+  text: string,
+  overlay: string,
+  overlayAlpha: number,
+  backdrop: string,
+): number {
+  const o = oklchToLinearSrgb(parseOklch(overlay));
+  const b = oklchToLinearSrgb(parseOklch(backdrop));
+  const mix = (co: number, cb: number): number =>
+    co * overlayAlpha + cb * (1 - overlayAlpha);
+  const compuesto =
+    0.2126 * mix(o.r, b.r) + 0.7152 * mix(o.g, b.g) + 0.0722 * mix(o.b, b.b);
+
+  const lTexto = relativeLuminance(text);
+  const lighter = Math.max(lTexto, compuesto);
+  const darker = Math.min(lTexto, compuesto);
+  return (lighter + 0.05) / (darker + 0.05);
+}

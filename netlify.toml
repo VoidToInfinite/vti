@@ -4,3 +4,19 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# La imagen Open Graph que genera `app/opengraph-image.tsx` se emite en `out/`
+# SIN extensión (`out/opengraph-image`): ese es el nombre que Next da a la
+# ruta de metadata, y no hay forma de cambiarlo. Un servidor de ficheros
+# estáticos deduce el tipo de la extensión, así que sin esta cabecera lo
+# serviría como `application/octet-stream` y los rastreadores de Facebook,
+# LinkedIn o X descartarían la vista previa -- la mayoría exige un
+# `Content-Type` de imagen y no husmea el contenido del fichero.
+#
+# Que el fichero ES un PNG válido está verificado en el build, no supuesto:
+# firma `89 50 4E 47 0D 0A 1A 0A` y cabecera IHDR con 1200x630.
+[[headers]]
+  for = "/opengraph-image"
+
+  [headers.values]
+    Content-Type = "image/png"

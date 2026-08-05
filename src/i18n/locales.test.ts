@@ -3,6 +3,12 @@ import esCommon from "./locales/es/common.json";
 import enCommon from "./locales/en/common.json";
 import esHome from "./locales/es/home.json";
 import enHome from "./locales/en/home.json";
+import esLegal from "./locales/es/legal.json";
+import enLegal from "./locales/en/legal.json";
+import esConsent from "./locales/es/consent.json";
+import enConsent from "./locales/en/consent.json";
+import { namespaces as registeredNamespaces } from "./config";
+import { PLACEHOLDER } from "@/config/legal";
 
 /**
  * Candado permanente de los locales. Existe por dos motivos concretos, todos
@@ -24,10 +30,21 @@ import enHome from "./locales/en/home.json";
  * ninguna clave de Home que deba seguir empezando por `[por completar]`.
  */
 
-type JsonTree = { [key: string]: string | JsonTree };
+/*
+ * El árbol admite ARRAYS además de objetos y cadenas: el namespace `legal`
+ * modela cada documento como una lista de secciones y cada sección como una
+ * lista de bloques. Eso no debilita el candado, lo refuerza -- `Object.entries`
+ * recorre un array por sus índices, así que la ruta de una hoja queda como
+ * `Legal.privacy.sections.3.blocks.1.text` y la paridad es/en pasa a comparar
+ * la ESTRUCTURA del documento, no solo sus títulos: un párrafo añadido en
+ * español y olvidado en inglés (o dos bloques del mismo `kind` en distinto
+ * orden) sale en rojo.
+ */
+type JsonValue = string | JsonTree | JsonValue[];
+type JsonTree = { [key: string]: JsonValue };
 
 /** Rutas hoja del árbol, en notación de puntos (recorrido recursivo). */
-function keyPaths(tree: JsonTree, prefix = ""): string[] {
+function keyPaths(tree: JsonTree | JsonValue[], prefix = ""): string[] {
   return Object.entries(tree).flatMap(([key, value]) => {
     const path = prefix ? `${prefix}.${key}` : key;
     return typeof value === "string" ? [path] : keyPaths(value, path);
@@ -38,9 +55,11 @@ function keyPaths(tree: JsonTree, prefix = ""): string[] {
 function valueAt(tree: JsonTree, path: string): string | undefined {
   const found = path
     .split(".")
-    .reduce<string | JsonTree | undefined>(
+    .reduce<JsonValue | undefined>(
       (node, key) =>
-        typeof node === "object" && node !== null ? node[key] : undefined,
+        typeof node === "object" && node !== null
+          ? (node as JsonTree)[key]
+          : undefined,
       tree,
     );
   return typeof found === "string" ? found : undefined;
@@ -49,6 +68,25 @@ function valueAt(tree: JsonTree, path: string): string | undefined {
 const namespaces = [
   { name: "common", es: esCommon as JsonTree, en: enCommon as JsonTree },
   { name: "home", es: esHome as JsonTree, en: enHome as JsonTree },
+  /*
+   * `as unknown as` en estos dos, y no el `as JsonTree` directo de arriba,
+   * por un detalle del tipo que TypeScript infiere de un JSON con bloques
+   * heterogéneos: la unión de `{kind,text}` y `{kind,items}` produce miembros
+   * con propiedades opcionales de tipo `undefined` (`items?: undefined`), que
+   * no encajan en la firma de índice. El recorrido en tiempo de ejecución es
+   * el mismo; el doble cast solo le dice al compilador que aquí se trata el
+   * JSON como árbol genérico a propósito.
+   */
+  {
+    name: "legal",
+    es: esLegal as unknown as JsonTree,
+    en: enLegal as unknown as JsonTree,
+  },
+  {
+    name: "consent",
+    es: esConsent as unknown as JsonTree,
+    en: enConsent as unknown as JsonTree,
+  },
 ];
 
 const locales = [
@@ -57,6 +95,19 @@ const locales = [
 ];
 
 describe("locales", () => {
+  /*
+   * El candado de paridad solo protege los namespaces que estén en el array
+   * `namespaces` de ARRIBA. Añadir un namespace a `config.ts` y olvidarse de
+   * añadirlo aquí lo dejaría sin ninguna cobertura, en silencio -- que es
+   * exactamente lo que pasó al incorporar `legal` y `consent` en la entrega
+   * del 2026-08-04 y lo que este test impide que vuelva a pasar.
+   */
+  it("todos los namespaces registrados en config.ts tienen candado de paridad", () => {
+    expect([...registeredNamespaces].sort()).toEqual(
+      namespaces.map(({ name }) => name).sort(),
+    );
+  });
+
   describe("paridad es/en", () => {
     it.each(namespaces)(
       "el namespace '$name' tiene EXACTAMENTE las mismas rutas de clave en es y en",
@@ -76,6 +127,39 @@ describe("locales", () => {
       "el namespace '$name' tiene el mismo numero de claves en los dos idiomas",
       ({ es, en }) => {
         expect(keyPaths(es)).toHaveLength(keyPaths(en).length);
+      },
+    );
+  });
+
+  /*
+   * Candado de los marcadores de dato pendiente, escrito porque el defecto
+   * OCURRIÓ: la primera traducción inglesa de `legal.json` tradujo el
+   * centinela `POR_COMPLETAR` como "PENDING" en sus 8 apariciones. La
+   * paridad de rutas de arriba no lo vio -- las claves eran idénticas, lo que
+   * cambiaba era el contenido -- y el renderer, que busca el literal
+   * `POR_COMPLETAR` para envolverlo en `<mark>`, no marcaba NADA en inglés:
+   * medido en navegador real, `/accesibilidad` en español pintaba 2 marcas y
+   * en inglés cero. Un lector en inglés veía documentos legales que parecían
+   * completos sin estarlo, que es exactamente el fallo que la convención de
+   * marcadores existe para impedir.
+   *
+   * El marcador es un CENTINELA DE MÁQUINA, no prosa: tiene que ser idéntico
+   * en los dos idiomas para que un solo renderer lo encuentre y un solo test
+   * lo cuente. Por eso se compara el número de apariciones documento a
+   * documento, y no solo el total: cinco de más en uno y cinco de menos en
+   * otro darían el mismo total y pasarían desapercibidos.
+   */
+  describe("marcadores de dato pendiente", () => {
+    it.each(["privacy", "terms", "accessibility", "legalNotice"] as const)(
+      "el documento '%s' tiene los mismos marcadores en es y en",
+      (doc) => {
+        const cuenta = (arbol: JsonTree): number =>
+          JSON.stringify((arbol.Legal as JsonTree)[doc]).split(PLACEHOLDER)
+            .length - 1;
+
+        expect(cuenta(esLegal as unknown as JsonTree)).toBe(
+          cuenta(enLegal as unknown as JsonTree),
+        );
       },
     );
   });

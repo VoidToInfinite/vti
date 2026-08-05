@@ -1,0 +1,58 @@
+{
+    "Consent": {
+        "banner": {
+            "label": "Cookie and storage notice",
+            "title": "We only use what's strictly necessary",
+            "body": "This site stores the theme and language you choose on your device, plus your own decision about this notice — nothing else. Today we don't install any analytics or third-party cookies. Accepting or rejecting doesn't change anything that already works.",
+            "accept": "Accept",
+            "reject": "Reject",
+            "configure": "Configure"
+        },
+        "preferences": {
+            "title": "Cookie preferences",
+            "intro": "Here you can see, category by category, what this site stores on your device and why. The necessary category can't be turned off: without it the site can't remember your theme or your language.",
+            "close": "Close",
+            "save": "Save preferences",
+            "acceptAll": "Accept all",
+            "rejectAll": "Reject all",
+            "alwaysOn": "Always on — required for the site to work, can't be turned off.",
+            "emptyCategory": "No technology currently declared in this category."
+        },
+        "categories": {
+            "necessary": {
+                "name": "Necessary",
+                "description": "Storage required for the site to work: remembering your theme, your language, and your own consent decision."
+            },
+            "analytics": {
+                "name": "Analytics",
+                "description": "The analytics planned for this site is cookieless and isn't installed yet. Once it is, it will be declared here before it's turned on."
+            },
+            "marketing": {
+                "name": "Marketing",
+                "description": "This site doesn't use, and has no plans to use, any marketing or advertising storage or cookies."
+            }
+        },
+        "storage": {
+            "vti-theme": {
+                "name": "Theme (light / dark)",
+                "purpose": "Remembers whether you chose the light or dark theme, so you're not asked again on every visit."
+            },
+            "vti-lang": {
+                "name": "Language",
+                "purpose": "Remembers the language you chose (Spanish or English), so you're not asked again on every visit."
+            },
+            "vti-consent": {
+                "name": "Cookie decision",
+                "purpose": "Stores your own decision about this cookie notice, so it isn't shown again on every visit."
+            }
+        },
+        "table": {
+            "id": "Identifier",
+            "purpose": "Purpose",
+            "kind": "Type",
+            "duration": "Duration",
+            "persistent": "Until you clear it",
+            "days": "{{count}} days"
+        }
+    }
+}

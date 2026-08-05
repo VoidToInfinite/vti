@@ -1,8 +1,10 @@
 "use client";
 
 import type { CSSProperties, ReactElement } from "react";
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes } from "styled-components";
+import { useConsent } from "@/consent/ConsentProvider";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { SectionBeam } from "@/components/sectionBeam/SectionBeam";
 import { Logo } from "@/components/ui/Logo/Logo";
@@ -239,7 +241,7 @@ const ScColumnLinks = styled.div`
    el mismo lenguaje visual para los enlaces de sección de los dos
    componentes). Sin subrayado: GlobalStyles ya fija `text-decoration: none`
    en todos los `a`. */
-const ScFooterLink = styled.a`
+const footerLinkStyles = css`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   transition: color ${({ theme }) => theme.data.motion.duration.fast}
@@ -253,6 +255,34 @@ const ScFooterLink = styled.a`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+`;
+
+const ScFooterLink = styled.a`
+  ${footerLinkStyles}
+`;
+
+/* Enlace a una ruta INTERNA de este mismo sitio. Existe separado de
+   ScFooterLink porque la diferencia no es de estilo sino de mecanismo: los
+   destinos propios se navegan con next/link (sin recarga, con prefetch) y
+   NUNCA con target blank -- ver el comentario de LEGAL_LINKS. */
+const ScFooterNavLink = styled(Link)`
+  ${footerLinkStyles}
+`;
+
+/* El disparador de las preferencias de cookies es un boton, no un enlace: no
+   navega a ninguna parte, abre un dialogo en la misma pagina. Pintarlo como
+   enlace y dejarlo como boton es lo correcto -- al reves (un ancla con
+   href vacio) le mentiria al lector de pantalla sobre lo que va a pasar. El
+   reset de apariencia es explicito porque GlobalStyles normaliza los
+   controles de formulario pero no los desnuda del todo. */
+const ScFooterButton = styled.button`
+  ${footerLinkStyles}
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: start;
 `;
 
 /* `$dark`: mismo motivo que `ScInner` -- necesita salir por encima de las
@@ -308,9 +338,29 @@ const SECTION_LINKS = [
    los tres apuntan a la misma sección `#features` (spec §7.5). */
 const DISCOVER_LINKS = ["learning", "imagination", "gaming"] as const;
 
+/*
+ * Los cuatro documentos legales de la barra inferior (entrega 2026-08-04).
+ * Hasta hoy eran tres anclas con target blank hacia marcadores
+ * example.invalid; ahora son rutas propias, y por eso se navegan con
+ * next/link.
+ *
+ * D19 de la spec: mantener target blank sobre una ruta PROPIA es un
+ * antipatron -- rompe el boton atras, abre una pestana que el usuario no ha
+ * pedido y cambia de contexto sin avisar, que es lo que WCAG 3.2.5 pide
+ * evitar. El target blank se queda SOLO donde el destino de verdad sale del
+ * sitio (documentacion y guias, en la columna de Recursos).
+ */
+const LEGAL_LINKS = [
+  { key: "privacy", href: links.privacy },
+  { key: "terms", href: links.terms },
+  { key: "accessibility", href: links.accessibility },
+  { key: "legalNotice", href: links.legalNotice },
+] as const;
+
 export function Footer(): ReactElement {
   const { t } = useTranslation("common");
   const { themeName } = useTheme();
+  const { openPreferences } = useConsent();
   const year = new Date().getFullYear();
   const isDark = themeName === "dark";
 
@@ -388,13 +438,9 @@ export function Footer(): ReactElement {
             >
               {t("Common.Footer.guides")}
             </ScFooterLink>
-            <ScFooterLink
-              href={links.accessibility}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <ScFooterNavLink href={links.accessibility}>
               {t("Common.Footer.accessibility")}
-            </ScFooterLink>
+            </ScFooterNavLink>
           </ScColumnLinks>
         </ScColumn>
       </ScInner>
@@ -407,27 +453,26 @@ export function Footer(): ReactElement {
           {t("Common.Footer.copyright", { year })}
         </Typography>
         <ScBottomLinks>
-          <ScFooterLink
-            href={links.privacy}
-            target="_blank"
-            rel="noopener noreferrer"
+          {LEGAL_LINKS.map(({ key, href }) => (
+            <ScFooterNavLink
+              key={key}
+              href={href}
+            >
+              {t(`Common.Footer.${key}`)}
+            </ScFooterNavLink>
+          ))}
+          {/* Retirar el consentimiento tiene que ser tan facil como darlo
+              (art. 7.3 RGPD por remision, y criterio expreso de la guia de
+              cookies de la AEPD). Este disparador vive en el pie, que esta en
+              TODAS las paginas -- la home y las cuatro legales --, asi que la
+              persona puede reabrir el panel desde donde este sin tener que
+              buscar. */}
+          <ScFooterButton
+            type="button"
+            onClick={openPreferences}
           >
-            {t("Common.Footer.privacy")}
-          </ScFooterLink>
-          <ScFooterLink
-            href={links.terms}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t("Common.Footer.terms")}
-          </ScFooterLink>
-          <ScFooterLink
-            href={links.accessibility}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t("Common.Footer.accessibility")}
-          </ScFooterLink>
+            {t("Common.Footer.cookiePreferences")}
+          </ScFooterButton>
         </ScBottomLinks>
       </ScBottomBar>
     </ScFooter>

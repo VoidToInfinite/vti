@@ -1,0 +1,624 @@
+{
+    "Legal": {
+        "common": {
+            "tocLabel": "Índice",
+            "updatedLabel": "Última actualización",
+            "versionLabel": "Versión",
+            "backToHome": "Volver al inicio",
+            "placeholderTitle": "Dato pendiente de completar por el responsable del sitio",
+            "entity": {
+                "name": "Denominación",
+                "legalForm": "Forma jurídica",
+                "taxId": "NIF/CIF",
+                "address": "Domicilio",
+                "registry": "Datos registrales",
+                "contactEmail": "Correo de contacto",
+                "dpo": "Delegado de Protección de Datos"
+            },
+            "dpoNotAppointed": "No se ha designado un Delegado de Protección de Datos (DPO).",
+            "storageTable": {
+                "id": "Identificador",
+                "purpose": "Finalidad",
+                "kind": "Tipo",
+                "duration": "Duración",
+                "provider": "Titular",
+                "persistent": "Persistente hasta que la borres",
+                "days": "{{count}} días"
+            }
+        },
+        "privacy": {
+            "title": "Política de privacidad",
+            "description": "Política de privacidad de VoidToInfinite: qué datos tratamos, con qué base legal, cuánto tiempo los conservamos y cómo ejercer tus derechos RGPD.",
+            "intro": "Esta política sigue el modelo de dos capas que permite el artículo 11.1 LOPDGDD: primero un resumen breve y, después, el detalle completo del artículo 13 RGPD, sección por sección.",
+            "sections": [
+                {
+                    "id": "resumen",
+                    "heading": "Resumen (primera capa)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Si solo tienes un minuto, esto es lo esencial. Para el detalle completo, sigue leyendo o usa el índice."
+                        },
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Responsable",
+                                    "description": "POR_COMPLETAR (ver el apartado «Quién es el responsable»)."
+                                },
+                                {
+                                    "term": "Finalidad",
+                                    "description": "Personalizar tu experiencia (tema e idioma), recordar tu decisión sobre cookies y responder a tu correo si nos escribes."
+                                },
+                                {
+                                    "term": "Legitimación",
+                                    "description": "Tu propia acción al usar la interfaz, tu consentimiento al escribirnos, y nuestra obligación de poder acreditar tu decisión de consentimiento."
+                                },
+                                {
+                                    "term": "Destinatarios",
+                                    "description": "Netlify, como encargado del tratamiento para el alojamiento técnico. No hay cesiones a terceros con fines comerciales."
+                                },
+                                {
+                                    "term": "Derechos",
+                                    "description": "Acceso, rectificación, supresión, limitación, oposición y portabilidad. Ver el apartado «Tus derechos»."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "responsable",
+                    "heading": "Quién es el responsable del tratamiento (art. 13.1.a RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El responsable del tratamiento de tus datos es:"
+                        },
+                        {
+                            "kind": "entity"
+                        },
+                        {
+                            "kind": "note",
+                            "text": "Estos datos identificativos están pendientes de que el titular del sitio los aporte. Mientras falten, esta página no cumple el artículo 13.1.a RGPD y no debe considerarse una política de privacidad publicable."
+                        }
+                    ]
+                },
+                {
+                    "id": "delegado",
+                    "heading": "Delegado de Protección de Datos (art. 13.1.b RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No se ha designado un Delegado de Protección de Datos (DPO)."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "No es obligatorio designarlo: no concurre ninguno de los supuestos del artículo 37 RGPD (no somos una autoridad pública, nuestra actividad no implica una observación habitual y sistemática de personas a gran escala, ni tratamos categorías especiales de datos a gran escala) ni ninguno de los supuestos adicionales del artículo 34 LOPDGDD."
+                        }
+                    ]
+                },
+                {
+                    "id": "finalidades",
+                    "heading": "Con qué fines tratamos tus datos y con qué base legal (art. 13.1.c RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Personalizar la interfaz (tema e idioma)",
+                                    "description": "Base legal: es una funcionalidad que activas tú mismo al pulsar el conmutador de tema o el selector de idioma (art. 6.1.f RGPD, interés legítimo en ofrecerte la interfaz que elegiste; exenta de consentimiento por el art. 22.2 LSSI-CE, ver el apartado «Qué guardamos en tu equipo»)."
+                                },
+                                {
+                                    "term": "Recordar tu decisión sobre cookies",
+                                    "description": "Base legal: es necesario para poder acreditar que tomaste esa decisión (art. 7.1 RGPD)."
+                                },
+                                {
+                                    "term": "Responder a tu consulta de contacto",
+                                    "description": "Solo si nos escribes voluntariamente. Base legal: tu consentimiento, que prestas al enviar el correo (art. 6.1.a RGPD)."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "interes-legitimo",
+                    "heading": "Interés legítimo perseguido (art. 13.1.d RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El único tratamiento que se apoya en el interés legítimo (art. 6.1.f RGPD) es la personalización de interfaz descrita arriba, y ese interés es simplemente ofrecerte la preferencia que tú mismo elegiste. No se realiza ningún otro tratamiento basado en el interés legítimo del responsable."
+                        }
+                    ]
+                },
+                {
+                    "id": "destinatarios",
+                    "heading": "Quién recibe tus datos (art. 13.1.e RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Netlify, como encargado del tratamiento, para el alojamiento técnico del sitio (ver el apartado «Alojamiento»).",
+                                "POR_COMPLETAR: el proveedor de correo electrónico donde se reciben los mensajes que envías a través del formulario de contacto."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "No cedemos tus datos a terceros con fines comerciales ni los vendemos."
+                        }
+                    ]
+                },
+                {
+                    "id": "transferencias",
+                    "heading": "Transferencias internacionales de datos (art. 13.1.f RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El sitio se aloja en la infraestructura de Netlify, que puede implicar transferencias de datos técnicos fuera del Espacio Económico Europeo."
+                        },
+                        {
+                            "kind": "note",
+                            "text": "POR_COMPLETAR: la garantía concreta aplicable (por ejemplo, cláusulas contractuales tipo) no se ha verificado todavía de forma independiente para esta entrega. No se afirma aquí ninguna garantía específica sin haberla comprobado."
+                        }
+                    ]
+                },
+                {
+                    "id": "conservacion",
+                    "heading": "Cuánto tiempo conservamos tus datos (art. 13.2.a RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Tema e idioma elegidos",
+                                    "description": "Indefinidamente, hasta que borres los datos de este sitio en tu propio navegador. No caducan por sí solos."
+                                },
+                                {
+                                    "term": "Decisión de consentimiento",
+                                    "description": "365 días desde que la registras, o hasta que cambie la versión del propio registro de consentimiento (lo que ocurra antes). Pasado ese plazo, se te vuelve a preguntar."
+                                },
+                                {
+                                    "term": "Correo de contacto",
+                                    "description": "POR_COMPLETAR: el plazo de conservación de tu consulta depende de la política interna del responsable, todavía sin definir."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "derechos",
+                    "heading": "Tus derechos (art. 13.2.b RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "En cualquier momento puedes ejercer estos derechos sobre tus datos:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Acceso: saber qué datos tratamos sobre ti.",
+                                "Rectificación: corregir datos inexactos.",
+                                "Supresión: pedir que eliminemos tus datos.",
+                                "Limitación: pedir que restrinjamos su tratamiento.",
+                                "Oposición: oponerte a un tratamiento concreto.",
+                                "Portabilidad: recibir tus datos en un formato estructurado y de uso común."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Para ejercerlos, escribe a POR_COMPLETAR indicando el derecho que quieres ejercer."
+                        }
+                    ]
+                },
+                {
+                    "id": "retirada",
+                    "heading": "Retirar tu consentimiento (art. 13.2.c RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Puedes cambiar tu decisión sobre cookies en cualquier momento, tantas veces como quieras, reabriendo el panel de preferencias desde el enlace «Preferencias de cookies» del pie de página. Retirar el consentimiento no afecta a la licitud del tratamiento realizado antes de la retirada."
+                        }
+                    ]
+                },
+                {
+                    "id": "reclamacion",
+                    "heading": "Cómo reclamar ante la autoridad de control (art. 13.2.d RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Si consideras que el tratamiento de tus datos vulnera la normativa, puedes presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD), www.aepd.es, calle Jorge Juan 6, 28001 Madrid."
+                        }
+                    ]
+                },
+                {
+                    "id": "caracter-obligatorio",
+                    "heading": "Carácter obligatorio o voluntario de facilitar tus datos (art. 13.2.e RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Facilitar tu correo electrónico en el formulario de contacto es completamente voluntario. Si no lo facilitas, la única consecuencia es que no podremos responderte."
+                        }
+                    ]
+                },
+                {
+                    "id": "decisiones-automatizadas",
+                    "heading": "Decisiones automatizadas y elaboración de perfiles (art. 13.2.f RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No se toman decisiones automatizadas sobre ti, incluida la elaboración de perfiles, que produzcan efectos jurídicos o te afecten de forma significativa."
+                        }
+                    ]
+                },
+                {
+                    "id": "almacenamiento",
+                    "heading": "Qué guardamos en tu equipo",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Esta es la lista completa y única de todo lo que este sitio escribe en tu equipo. No hay cookies HTTP, analítica ni scripts de terceros en este momento."
+                        },
+                        {
+                            "kind": "storage"
+                        },
+                        {
+                            "kind": "p",
+                            "text": "La analítica que tenemos previsto incorporar en el futuro es sin cookies (herramientas como Plausible o Umami, que no escriben nada en tu equipo). Todavía no está instalada."
+                        }
+                    ]
+                },
+                {
+                    "id": "alojamiento",
+                    "heading": "Alojamiento",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El sitio es una exportación estática (sin servidor propio de aplicación) alojada en Netlify, que actúa como encargado del tratamiento para el alojamiento técnico y trata los datos técnicos de las peticiones (por ejemplo, direcciones IP en sus registros de acceso) según su propia política de privacidad."
+                        }
+                    ]
+                },
+                {
+                    "id": "contacto",
+                    "heading": "El formulario de contacto",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El formulario de contacto no envía ningún dato a nuestros servidores: no tenemos servidor al que enviarlo. Al pulsar «enviar», tu navegador abre tu propia aplicación de correo con el mensaje ya redactado, para que lo envíes tú mismo desde tu propia cuenta si así lo decides. El sitio no recibe ni almacena nada de ese formulario."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Una vez que decides enviar el correo, este llega a nuestra bandeja de entrada como cualquier otro correo electrónico, y lo tratamos únicamente para gestionar tu consulta."
+                        }
+                    ]
+                },
+                {
+                    "id": "cambios",
+                    "heading": "Cambios en esta política",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Podemos actualizar esta política cuando cambie la forma en que tratamos tus datos. La fecha y la versión de la última revisión sustantiva aparecen al principio de este documento."
+                        }
+                    ]
+                }
+            ]
+        },
+        "terms": {
+            "title": "Términos de uso",
+            "description": "Términos de uso de VoidToInfinite: qué puedes hacer en el sitio, propiedad intelectual, enlaces a terceros, disponibilidad y ley aplicable y fuero.",
+            "intro": "No existe una norma española que fije el contenido obligatorio de unos términos de uso para un sitio de mera presentación como este. Este documento recoge las cláusulas razonables que rigen tu uso del sitio, sin que el sitio comercialice ningún producto o servicio.",
+            "sections": [
+                {
+                    "id": "objeto",
+                    "heading": "Objeto",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Estos términos regulan el acceso y uso del sitio web voidtoinfinite.com, que presenta al equipo VoidToInfinite y su trabajo. El sitio no vende productos ni servicios ni permite realizar compras."
+                        }
+                    ]
+                },
+                {
+                    "id": "aceptacion",
+                    "heading": "Aceptación",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Al navegar por este sitio aceptas estos términos de uso. Si no estás de acuerdo con ellos, te pedimos que no continúes navegando."
+                        }
+                    ]
+                },
+                {
+                    "id": "uso-permitido",
+                    "heading": "Uso permitido",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Puedes navegar y consultar libremente el contenido del sitio para tu uso personal. No está permitido:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Usar el sitio con fines ilícitos o que perjudiquen a terceros.",
+                                "Intentar acceder a áreas o sistemas no destinados al público.",
+                                "Extraer o reutilizar de forma masiva el contenido del sitio sin autorización.",
+                                "Interferir con el funcionamiento normal del sitio."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "propiedad-intelectual",
+                    "heading": "Propiedad intelectual",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Los textos, gráficos, logotipos y demás contenidos del sitio están protegidos por el Real Decreto Legislativo 1/1996, de 12 de abril, por el que se aprueba el texto refundido de la Ley de Propiedad Intelectual, y pertenecen a VoidToInfinite o se usan con la autorización correspondiente. No se concede ninguna licencia sobre ellos salvo la necesaria para navegar por el sitio."
+                        }
+                    ]
+                },
+                {
+                    "id": "enlaces-terceros",
+                    "heading": "Enlaces a terceros",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El sitio enlaza a plataformas de terceros, como GitHub y Discord, sobre las que no tenemos control. No somos responsables del contenido ni de las prácticas de esos sitios; te recomendamos revisar sus propios términos y su política de privacidad."
+                        }
+                    ]
+                },
+                {
+                    "id": "disponibilidad",
+                    "heading": "Disponibilidad",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Hacemos lo razonable para mantener el sitio disponible, pero no garantizamos un acceso continuo, ininterrumpido o libre de errores. Podemos suspender el acceso temporalmente por mantenimiento o por causas fuera de nuestro control."
+                        }
+                    ]
+                },
+                {
+                    "id": "responsabilidad",
+                    "heading": "Responsabilidad",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Procuramos que la información del sitio sea correcta, pero no garantizamos su exactitud absoluta ni su actualización permanente. En la medida que permita la ley, no respondemos de los daños derivados del uso del sitio, salvo que se deriven de dolo o negligencia grave por nuestra parte."
+                        }
+                    ]
+                },
+                {
+                    "id": "modificaciones",
+                    "heading": "Modificaciones",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Podemos modificar estos términos en cualquier momento. La versión y la fecha de la última revisión sustantiva aparecen al principio de este documento; el uso continuado del sitio tras un cambio implica su aceptación."
+                        }
+                    ]
+                },
+                {
+                    "id": "ley-aplicable",
+                    "heading": "Ley aplicable y fuero",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Estos términos se rigen por la legislación española. Cuando la otra parte tenga la condición de consumidor, será competente el fuero que la ley le reserve para su protección; no imponemos ningún juzgado o tribunal concreto distinto de ese, porque el artículo 90 del Texto Refundido de la Ley General para la Defensa de los Consumidores y Usuarios declara abusiva y nula cualquier cláusula que someta al consumidor a un fuero distinto al de su propio domicilio."
+                        },
+                        {
+                            "kind": "note",
+                            "text": "El sitio no comercializa productos ni servicios, así que no se activa el régimen de contratación electrónica (arts. 23 a 29 LSSI-CE) ni el de información precontractual a consumidores (arts. 97 y 98 del Texto Refundido de la Ley General para la Defensa de los Consumidores y Usuarios)."
+                        }
+                    ]
+                }
+            ]
+        },
+        "accessibility": {
+            "title": "Declaración de accesibilidad",
+            "description": "Declaración voluntaria de accesibilidad de VoidToInfinite: alcance, norma técnica de referencia, situación de cumplimiento y contenido pendiente.",
+            "intro": "Esta declaración es voluntaria: el RD 1112/2018 obliga al sector público, no a una empresa privada como esta. La Directiva (UE) 2019/882 y la Ley 11/2023 son aplicables desde el 28 de junio de 2025, pero su artículo 2.2 enumera una lista cerrada de servicios en la que un sitio de presentación sin comercio electrónico no encaja, y su artículo 4.5 exime además a las microempresas. Esta última lectura es una interpretación fundamentada de la norma, no una certeza confirmada por ningún pronunciamiento oficial sobre este caso concreto.",
+            "sections": [
+                {
+                    "id": "alcance",
+                    "heading": "Alcance",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Esta declaración se refiere al sitio web voidtoinfinite.com en su totalidad, incluidas esta página y las otras tres páginas legales."
+                        }
+                    ]
+                },
+                {
+                    "id": "norma-tecnica",
+                    "heading": "Norma técnica de referencia",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Tomamos como referencia la norma EN 301 549 V3.2.1 (marzo de 2021), que incorpora las Pautas de Accesibilidad para el Contenido Web (WCAG) 2.1, nivel AA. La versión V4.1.1 de la norma, que incorporaría WCAG 2.2 AA, está en tramitación sin confirmación de publicación."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Nuestro objetivo declarado es WCAG 2.2 AA, que es retrocompatible con WCAG 2.1 AA."
+                        }
+                    ]
+                },
+                {
+                    "id": "situacion-cumplimiento",
+                    "heading": "Situación de cumplimiento",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Conformidad parcial: el sitio cumple la mayoría de los criterios aplicables, pero no ha pasado una auditoría de accesibilidad por un tercero independiente. Afirmar conformidad total sin esa auditoría sería una afirmación que no podemos respaldar."
+                        }
+                    ]
+                },
+                {
+                    "id": "contenido-no-accesible",
+                    "heading": "Contenido no accesible o no verificado todavía",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Lo que sí está verificado y respaldado por pruebas automatizadas del propio código: el contraste de color cumple el nivel AA en los pares de color medidos, el sitio respeta la preferencia de reducción de movimiento (prefers-reduced-motion) en todo el sistema de animación, hay un anillo de foco visible en todos los controles interactivos, y los controles de interfaz (enlaces, botones, campos) son elementos nativos navegables por teclado."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Lo que todavía no se ha podido verificar con un navegador real ni con una auditoría externa:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "El contraste de color en los puntos intermedios de degradados animados, más allá de los valores concretos medidos por cálculo.",
+                                "El comportamiento del sitio bajo el modo de contraste forzado del sistema operativo (forced-colors).",
+                                "La experiencia real de aparición de contenido al hacer scroll (reveals) con un lector de pantalla y con teclado, más allá de lo que cubren las pruebas automatizadas.",
+                                "El sitio no ofrece un enlace de salto al contenido principal («saltar la navegación»). La cabecera de estas páginas legales tiene solo tres elementos enfocables y cada documento abre con un índice que enlaza a todas sus secciones, así que el coste de tabulación es bajo, pero el enlace de salto sigue siendo una ayuda estándar que aquí no está.",
+                                "Una auditoría de accesibilidad completa realizada por una persona con lector de pantalla real o por un tercero independiente."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "preparacion",
+                    "heading": "Preparación de esta declaración",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Método",
+                                    "description": "Autoevaluación por el propio equipo, apoyada en pruebas automatizadas del código."
+                                },
+                                {
+                                    "term": "Fecha de la evaluación",
+                                    "description": "2026-08-04."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "observaciones",
+                    "heading": "Observaciones y contacto",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Si encuentras una barrera de accesibilidad en este sitio, puedes decírnoslo escribiendo a POR_COMPLETAR."
+                        }
+                    ]
+                },
+                {
+                    "id": "procedimiento",
+                    "heading": "Procedimiento de aplicación",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Al no ser un sujeto obligado por el RD 1112/2018, no existe un procedimiento de reclamación reglado por esa norma para este sitio. Como vía voluntaria, puedes escribirnos a POR_COMPLETAR y atenderemos tu observación lo antes posible."
+                        }
+                    ]
+                }
+            ]
+        },
+        "legalNotice": {
+            "title": "Aviso legal",
+            "description": "Aviso legal de VoidToInfinite conforme al artículo 10 de la LSSI-CE: identificación del titular, datos registrales y condiciones de uso del sitio.",
+            "intro": "Este aviso legal recoge la información exigida por el artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), en sus siete letras, de la a) a la g).",
+            "sections": [
+                {
+                    "id": "titular",
+                    "heading": "Titular del sitio (letras a y e)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "En cumplimiento del artículo 10.a) (denominación, domicilio y correo electrónico) y del artículo 10.e) (NIF) de la LSSI-CE:"
+                        },
+                        {
+                            "kind": "entity"
+                        },
+                        {
+                            "kind": "note",
+                            "text": "Estos datos identificativos están pendientes de que el titular del sitio los aporte. Mientras falten, este aviso legal no cumple el artículo 10.a) ni el 10.e) de la LSSI-CE."
+                        }
+                    ]
+                },
+                {
+                    "id": "registro",
+                    "heading": "Datos registrales (letra b)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Datos de inscripción en el registro público correspondiente, cuando aplique: POR_COMPLETAR."
+                        }
+                    ]
+                },
+                {
+                    "id": "autorizacion",
+                    "heading": "Autorización administrativa (letra c)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No aplica. La actividad de este sitio (presentación de un equipo y su trabajo) no está sujeta a ningún régimen de autorización administrativa previa."
+                        }
+                    ]
+                },
+                {
+                    "id": "profesion-regulada",
+                    "heading": "Colegio profesional (letra d)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No aplica. La actividad de este sitio no corresponde a una profesión regulada sujeta a colegiación."
+                        }
+                    ]
+                },
+                {
+                    "id": "precios",
+                    "heading": "Precios (letra f)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No aplica. Este sitio no comercializa productos ni servicios, así que no hay precios que informar."
+                        }
+                    ]
+                },
+                {
+                    "id": "codigos-conducta",
+                    "heading": "Códigos de conducta (letra g)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El sitio no está adherido a ningún código de conducta de los previstos en el artículo 10.g) de la LSSI-CE."
+                        }
+                    ]
+                },
+                {
+                    "id": "propiedad-intelectual",
+                    "heading": "Propiedad intelectual e industrial",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Los contenidos de este sitio están protegidos conforme al Real Decreto Legislativo 1/1996, de 12 de abril, por el que se aprueba el texto refundido de la Ley de Propiedad Intelectual. Queda prohibida su reproducción sin autorización, salvo en los términos permitidos por la ley."
+                        }
+                    ]
+                },
+                {
+                    "id": "responsabilidad",
+                    "heading": "Responsabilidad",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Procuramos que la información publicada sea correcta y esté actualizada, sin que ello suponga una garantía absoluta. No respondemos de los daños derivados del uso del sitio salvo en los casos que la ley no permita excluir."
+                        }
+                    ]
+                },
+                {
+                    "id": "legislacion",
+                    "heading": "Legislación aplicable",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Este aviso legal se rige por la legislación española, en particular por la LSSI-CE. Para cualquier controversia con un consumidor será competente el fuero que la ley le reserve para su protección, en los mismos términos que recoge el apartado «Ley aplicable y fuero» de los Términos de uso."
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

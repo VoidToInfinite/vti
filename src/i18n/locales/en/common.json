@@ -74,7 +74,9 @@
             "guides": "Guides",
             "accessibility": "Accessibility",
             "privacy": "Privacy Policy",
-            "terms": "Terms of Use"
+            "terms": "Terms of Use",
+            "legalNotice": "Legal Notice",
+            "cookiePreferences": "Cookie preferences"
         },
         "ThemeToggle": {
             "switchToLight": "Switch to light theme",

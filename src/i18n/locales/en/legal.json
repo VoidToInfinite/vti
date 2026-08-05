@@ -1,0 +1,624 @@
+{
+    "Legal": {
+        "common": {
+            "tocLabel": "Contents",
+            "updatedLabel": "Last updated",
+            "versionLabel": "Version",
+            "backToHome": "Back to home",
+            "placeholderTitle": "Data still pending from the site owner",
+            "entity": {
+                "name": "Name",
+                "legalForm": "Legal form",
+                "taxId": "Tax ID",
+                "address": "Address",
+                "registry": "Registry details",
+                "contactEmail": "Contact email",
+                "dpo": "Data Protection Officer"
+            },
+            "dpoNotAppointed": "No Data Protection Officer (DPO) has been appointed.",
+            "storageTable": {
+                "id": "Identifier",
+                "purpose": "Purpose",
+                "kind": "Type",
+                "duration": "Duration",
+                "provider": "Owner",
+                "persistent": "Persistent until you delete it",
+                "days": "{{count}} days"
+            }
+        },
+        "privacy": {
+            "title": "Privacy policy",
+            "description": "VoidToInfinite's privacy policy: what personal data we process, on what legal basis, how long we keep it, and how to exercise your GDPR rights.",
+            "intro": "This policy follows the two-layer model allowed by article 11.1 of the Spanish LOPDGDD: first a short summary, then the full detail of GDPR article 13, section by section.",
+            "sections": [
+                {
+                    "id": "resumen",
+                    "heading": "Summary (first layer)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "If you only have a minute, this is what matters most. For the full detail, keep reading or use the table of contents."
+                        },
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Controller",
+                                    "description": "POR_COMPLETAR (see the \"Who is the controller\" section)."
+                                },
+                                {
+                                    "term": "Purpose",
+                                    "description": "Personalizing your experience (theme and language), remembering your cookie decision, and answering your email if you write to us."
+                                },
+                                {
+                                    "term": "Legal basis",
+                                    "description": "Your own action while using the interface, your consent when you write to us, and our obligation to be able to demonstrate your consent decision."
+                                },
+                                {
+                                    "term": "Recipients",
+                                    "description": "Netlify, as processor for technical hosting. There are no disclosures to third parties for commercial purposes."
+                                },
+                                {
+                                    "term": "Rights",
+                                    "description": "Access, rectification, erasure, restriction, objection, and portability. See the \"Your rights\" section."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "responsable",
+                    "heading": "Who is the data controller (art. 13.1.a GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The controller responsible for processing your data is:"
+                        },
+                        {
+                            "kind": "entity"
+                        },
+                        {
+                            "kind": "note",
+                            "text": "This identifying data is still pending from the site owner. Until it is provided, this page does not comply with GDPR article 13.1.a and should not be treated as a publishable privacy policy."
+                        }
+                    ]
+                },
+                {
+                    "id": "delegado",
+                    "heading": "Data Protection Officer (art. 13.1.b GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No Data Protection Officer (DPO) has been appointed."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Appointing one is not mandatory: none of the cases in GDPR article 37 apply (we are not a public authority, our activity does not involve regular and systematic large-scale monitoring of individuals, and we do not process special categories of data at scale), nor do any of the additional cases in article 34 of the Spanish LOPDGDD."
+                        }
+                    ]
+                },
+                {
+                    "id": "finalidades",
+                    "heading": "Purposes of processing and their legal basis (art. 13.1.c GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Personalizing the interface (theme and language)",
+                                    "description": "Legal basis: it is a feature you activate yourself by using the theme switch or the language selector (art. 6.1.f GDPR, legitimate interest in giving you the interface you chose; exempt from consent under art. 22.2 of the Spanish LSSI-CE, see the \"What we store on your device\" section)."
+                                },
+                                {
+                                    "term": "Remembering your cookie decision",
+                                    "description": "Legal basis: necessary to be able to demonstrate that you made that decision (art. 7.1 GDPR)."
+                                },
+                                {
+                                    "term": "Answering your contact request",
+                                    "description": "Only if you write to us voluntarily. Legal basis: your consent, given when you send the email (art. 6.1.a GDPR)."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "interes-legitimo",
+                    "heading": "Legitimate interest pursued (art. 13.1.d GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The only processing that relies on legitimate interest (art. 6.1.f GDPR) is the interface personalization described above, and that interest is simply giving you back the preference you chose yourself. No other processing is based on the controller's legitimate interest."
+                        }
+                    ]
+                },
+                {
+                    "id": "destinatarios",
+                    "heading": "Who receives your data (art. 13.1.e GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Netlify, as processor, for the site's technical hosting (see the \"Hosting\" section).",
+                                "POR_COMPLETAR: the email provider where messages you send through the contact form are received."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "We do not disclose your data to third parties for commercial purposes, and we do not sell it."
+                        }
+                    ]
+                },
+                {
+                    "id": "transferencias",
+                    "heading": "International data transfers (art. 13.1.f GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site is hosted on Netlify's infrastructure, which may involve transfers of technical data outside the European Economic Area."
+                        },
+                        {
+                            "kind": "note",
+                            "text": "POR_COMPLETAR: the specific safeguard that applies (for example, standard contractual clauses) has not yet been independently verified for this release. No specific safeguard is asserted here without having checked it."
+                        }
+                    ]
+                },
+                {
+                    "id": "conservacion",
+                    "heading": "How long we keep your data (art. 13.2.a GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Chosen theme and language",
+                                    "description": "Indefinitely, until you clear this site's data in your own browser. It does not expire on its own."
+                                },
+                                {
+                                    "term": "Consent decision",
+                                    "description": "365 days from the moment you record it, or until the consent record's own version changes (whichever comes first). After that, you are asked again."
+                                },
+                                {
+                                    "term": "Contact email",
+                                    "description": "POR_COMPLETAR: how long your message is kept depends on the controller's internal policy, which is not yet defined."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "derechos",
+                    "heading": "Your rights (art. 13.2.b GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "You can exercise these rights over your data at any time:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Access: find out what data we process about you.",
+                                "Rectification: correct inaccurate data.",
+                                "Erasure: ask us to delete your data.",
+                                "Restriction: ask us to restrict its processing.",
+                                "Objection: object to a specific processing activity.",
+                                "Portability: receive your data in a structured, commonly used format."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "To exercise them, write to POR_COMPLETAR stating which right you want to exercise."
+                        }
+                    ]
+                },
+                {
+                    "id": "retirada",
+                    "heading": "Withdrawing your consent (art. 13.2.c GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "You can change your cookie decision at any time, as many times as you like, by reopening the preferences panel from the \"Cookie preferences\" link in the footer. Withdrawing consent does not affect the lawfulness of processing carried out before the withdrawal."
+                        }
+                    ]
+                },
+                {
+                    "id": "reclamacion",
+                    "heading": "How to complain to the supervisory authority (art. 13.2.d GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "If you believe the processing of your data breaches the law, you can file a complaint with the Spanish Data Protection Agency (AEPD), www.aepd.es, Calle Jorge Juan 6, 28001 Madrid, Spain."
+                        }
+                    ]
+                },
+                {
+                    "id": "caracter-obligatorio",
+                    "heading": "Whether providing your data is mandatory or voluntary (art. 13.2.e GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Providing your email address in the contact form is entirely voluntary. If you do not provide it, the only consequence is that we will not be able to reply to you."
+                        }
+                    ]
+                },
+                {
+                    "id": "decisiones-automatizadas",
+                    "heading": "Automated decision-making and profiling (art. 13.2.f GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No automated decisions about you, including profiling, that produce legal effects or significantly affect you are made."
+                        }
+                    ]
+                },
+                {
+                    "id": "almacenamiento",
+                    "heading": "What we store on your device",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "This is the complete and only list of everything this site writes on your device. There are no HTTP cookies, analytics, or third-party scripts at this time."
+                        },
+                        {
+                            "kind": "storage"
+                        },
+                        {
+                            "kind": "p",
+                            "text": "The analytics we plan to add in the future is cookie-free (tools like Plausible or Umami, which write nothing on your device). It is not installed yet."
+                        }
+                    ]
+                },
+                {
+                    "id": "alojamiento",
+                    "heading": "Hosting",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site is a static export (no application server of our own) hosted on Netlify, which acts as processor for the technical hosting and processes technical request data (for example, IP addresses in its access logs) under its own privacy policy."
+                        }
+                    ]
+                },
+                {
+                    "id": "contacto",
+                    "heading": "The contact form",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The contact form does not send any data to our servers: we have no server to send it to. When you press \"send\", your browser opens your own email application with the message already drafted, for you to send yourself from your own account if you choose to. The site receives and stores nothing from that form."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Once you decide to send the email, it reaches our inbox like any other email, and we process it solely to handle your request."
+                        }
+                    ]
+                },
+                {
+                    "id": "cambios",
+                    "heading": "Changes to this policy",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We may update this policy whenever the way we process your data changes. The date and version of the last substantive revision appear at the top of this document."
+                        }
+                    ]
+                }
+            ]
+        },
+        "terms": {
+            "title": "Terms of use",
+            "description": "VoidToInfinite's terms of use: what you can do on the site, intellectual property, third-party links, availability, and governing law and jurisdiction.",
+            "intro": "There is no Spanish law that sets the mandatory content of terms of use for a purely informational site like this one. This document lists the reasonable clauses that govern your use of the site, given that the site does not sell any product or service.",
+            "sections": [
+                {
+                    "id": "objeto",
+                    "heading": "Purpose",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "These terms govern access to and use of the website voidtoinfinite.com, which presents the VoidToInfinite team and its work. The site does not sell products or services and does not allow purchases."
+                        }
+                    ]
+                },
+                {
+                    "id": "aceptacion",
+                    "heading": "Acceptance",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "By browsing this site you accept these terms of use. If you do not agree with them, please do not continue browsing."
+                        }
+                    ]
+                },
+                {
+                    "id": "uso-permitido",
+                    "heading": "Permitted use",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "You may freely browse and view the site's content for your personal use. You may not:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Use the site for unlawful purposes or in ways that harm third parties.",
+                                "Attempt to access areas or systems not intended for the public.",
+                                "Extract or reuse the site's content in bulk without authorization.",
+                                "Interfere with the site's normal operation."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "propiedad-intelectual",
+                    "heading": "Intellectual property",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site's text, graphics, logos, and other content are protected under Royal Legislative Decree 1/1996, of 12 April, approving the consolidated text of the Spanish Intellectual Property Act, and belong to VoidToInfinite or are used under the corresponding authorization. No license over them is granted beyond what is necessary to browse the site."
+                        }
+                    ]
+                },
+                {
+                    "id": "enlaces-terceros",
+                    "heading": "Third-party links",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site links to third-party platforms, such as GitHub and Discord, over which we have no control. We are not responsible for the content or practices of those sites; we recommend reviewing their own terms and privacy policy."
+                        }
+                    ]
+                },
+                {
+                    "id": "disponibilidad",
+                    "heading": "Availability",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We make reasonable efforts to keep the site available, but we do not guarantee continuous, uninterrupted, or error-free access. We may temporarily suspend access for maintenance or for reasons beyond our control."
+                        }
+                    ]
+                },
+                {
+                    "id": "responsabilidad",
+                    "heading": "Liability",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We try to keep the site's information accurate, but we do not guarantee its absolute accuracy or that it is permanently up to date. To the extent the law allows, we are not liable for damages arising from use of the site, except where they result from our own willful misconduct or gross negligence."
+                        }
+                    ]
+                },
+                {
+                    "id": "modificaciones",
+                    "heading": "Changes",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We may modify these terms at any time. The version and date of the last substantive revision appear at the top of this document; continued use of the site after a change implies acceptance of it."
+                        }
+                    ]
+                },
+                {
+                    "id": "ley-aplicable",
+                    "heading": "Governing law and jurisdiction",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "These terms are governed by Spanish law. Where the other party is a consumer, the courts that the law reserves for their protection will have jurisdiction; we do not impose any specific court other than that, because article 90 of the consolidated text of the Spanish General Law for the Defense of Consumers and Users declares void and abusive any clause that submits a consumer to a jurisdiction other than that of their own domicile."
+                        },
+                        {
+                            "kind": "note",
+                            "text": "The site does not sell products or services, so the electronic contracting regime (arts. 23 to 29 of the Spanish LSSI-CE) and the pre-contractual information regime for consumers (arts. 97 and 98 of the consolidated text of the Spanish General Law for the Defense of Consumers and Users) do not apply."
+                        }
+                    ]
+                }
+            ]
+        },
+        "accessibility": {
+            "title": "Accessibility statement",
+            "description": "VoidToInfinite's voluntary accessibility statement: scope, reference technical standard, compliance status, and remaining non-accessible content.",
+            "intro": "This statement is voluntary: Spanish Royal Decree 1112/2018 applies to the public sector, not to a private company like this one. Directive (EU) 2019/882 and Spanish Law 11/2023 have applied since 28 June 2025, but their article 2.2 lists a closed set of services that a presentation site without e-commerce does not fit into, and their article 4.5 also exempts microenterprises. This last reading is a reasoned interpretation of the law, not a certainty confirmed by any official ruling on this specific case.",
+            "sections": [
+                {
+                    "id": "alcance",
+                    "heading": "Scope",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "This statement applies to the entire voidtoinfinite.com website, including this page and the other three legal pages."
+                        }
+                    ]
+                },
+                {
+                    "id": "norma-tecnica",
+                    "heading": "Reference technical standard",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We use standard EN 301 549 V3.2.1 (March 2021) as our reference, which incorporates the Web Content Accessibility Guidelines (WCAG) 2.1, level AA. Version V4.1.1 of the standard, which would incorporate WCAG 2.2 AA, is in progress with no confirmed publication date."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Our declared target is WCAG 2.2 AA, which is backward-compatible with WCAG 2.1 AA."
+                        }
+                    ]
+                },
+                {
+                    "id": "situacion-cumplimiento",
+                    "heading": "Compliance status",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Partial compliance: the site meets most of the applicable criteria, but it has not undergone an independent third-party accessibility audit. Claiming full compliance without that audit would be a claim we cannot support."
+                        }
+                    ]
+                },
+                {
+                    "id": "contenido-no-accesible",
+                    "heading": "Non-accessible or not-yet-verified content",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "What is verified and backed by the codebase's own automated tests: color contrast meets level AA on the measured color pairs, the site respects the reduced-motion preference (prefers-reduced-motion) throughout its whole animation system, there is a visible focus ring on every interactive control, and the interface controls (links, buttons, fields) are native, keyboard-navigable elements."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "What has not yet been verified with a real browser or an external audit:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Color contrast at the intermediate points of animated gradients, beyond the specific values measured by calculation.",
+                                "The site's behavior under the operating system's forced-colors mode.",
+                                "The real experience of scroll-triggered content reveals with a screen reader and with a keyboard, beyond what the automated tests cover.",
+                                "The site does not provide a skip-to-content link. The header on these legal pages has only three focusable elements and every document opens with a table of contents linking to all its sections, so the tabbing cost is low, but a skip link is still a standard aid that is missing here.",
+                                "A full accessibility audit carried out by a person using a real screen reader or by an independent third party."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "preparacion",
+                    "heading": "Preparation of this statement",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Method",
+                                    "description": "Self-assessment by our own team, supported by automated tests of the codebase."
+                                },
+                                {
+                                    "term": "Assessment date",
+                                    "description": "2026-08-04."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "observaciones",
+                    "heading": "Feedback and contact",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "If you find an accessibility barrier on this site, you can let us know by writing to POR_COMPLETAR."
+                        }
+                    ]
+                },
+                {
+                    "id": "procedimiento",
+                    "heading": "Enforcement procedure",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Since we are not a body bound by Royal Decree 1112/2018, there is no formal complaints procedure required by that law for this site. As a voluntary channel, you can write to us at POR_COMPLETAR and we will address your feedback as soon as possible."
+                        }
+                    ]
+                }
+            ]
+        },
+        "legalNotice": {
+            "title": "Legal notice",
+            "description": "VoidToInfinite's legal notice under article 10 of the Spanish LSSI-CE: owner identification, registry details, and conditions of use of the site.",
+            "intro": "This legal notice contains the information required by article 10 of Spanish Law 34/2002, on Information Society Services and Electronic Commerce (LSSI-CE), across its seven points, a) through g).",
+            "sections": [
+                {
+                    "id": "titular",
+                    "heading": "Site owner (points a and e)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "In compliance with article 10.a) (name, address, and email address) and article 10.e) (tax ID) of the LSSI-CE:"
+                        },
+                        {
+                            "kind": "entity"
+                        },
+                        {
+                            "kind": "note",
+                            "text": "This identifying data is still pending from the site owner. Until it is provided, this legal notice does not comply with article 10.a) or 10.e) of the LSSI-CE."
+                        }
+                    ]
+                },
+                {
+                    "id": "registro",
+                    "heading": "Registry details (point b)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Registration details in the relevant public registry, where applicable: POR_COMPLETAR."
+                        }
+                    ]
+                },
+                {
+                    "id": "autorizacion",
+                    "heading": "Administrative authorization (point c)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Not applicable. This site's activity (presenting a team and its work) is not subject to any prior administrative authorization regime."
+                        }
+                    ]
+                },
+                {
+                    "id": "profesion-regulada",
+                    "heading": "Professional body (point d)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Not applicable. This site's activity does not correspond to a regulated profession subject to membership of a professional body."
+                        }
+                    ]
+                },
+                {
+                    "id": "precios",
+                    "heading": "Prices (point f)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Not applicable. This site does not sell products or services, so there are no prices to disclose."
+                        }
+                    ]
+                },
+                {
+                    "id": "codigos-conducta",
+                    "heading": "Codes of conduct (point g)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site is not adhered to any code of conduct of the kind referred to in article 10.g) of the LSSI-CE."
+                        }
+                    ]
+                },
+                {
+                    "id": "propiedad-intelectual",
+                    "heading": "Intellectual and industrial property",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "This site's content is protected under Royal Legislative Decree 1/1996, of 12 April, approving the consolidated text of the Spanish Intellectual Property Act. Its reproduction without authorization is prohibited, except as permitted by law."
+                        }
+                    ]
+                },
+                {
+                    "id": "responsabilidad",
+                    "heading": "Liability",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We try to keep the published information accurate and up to date, without that being an absolute guarantee. We are not liable for damages arising from use of the site except in cases where the law does not allow us to exclude liability."
+                        }
+                    ]
+                },
+                {
+                    "id": "legislacion",
+                    "heading": "Applicable law",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "This legal notice is governed by Spanish law, in particular the LSSI-CE. For any dispute with a consumer, the courts that the law reserves for their protection will have jurisdiction, on the same terms as the \"Governing law and jurisdiction\" section of the Terms of use."
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
