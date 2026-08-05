@@ -1,0 +1,142 @@
+import type { Metadata } from "next";
+import { SITE, absoluteUrl } from "@/config/site";
+
+/**
+ * Separador entre el título de página y el nombre del sitio. Se exporta como
+ * constante (en vez de dejar " · " escrito a mano en cada sitio que compone
+ * un título) para que `metadata.test.ts` pueda componer el título esperado
+ * sin duplicar el carácter exacto — si el separador cambia algún día, cambia
+ * en un solo sitio y el test lo sigue automáticamente.
+ */
+export const TITLE_SEPARATOR = " · ";
+
+/**
+ * Ruta de la imagen Open Graph que genera `app/opengraph-image.tsx`.
+ *
+ * Se declara aquí, EXPLÍCITAMENTE, corrigiendo la decisión D4 original de la
+ * spec ("no declarar `openGraph.images`, ya la inyecta la convención de
+ * fichero"). D4 se apoyaba en una verificación incompleta: se comprobó que la
+ * imagen sobrevivía al reemplazo de H2 en una página del MISMO segmento que
+ * el fichero de imagen (`app/page.tsx` junto a `app/opengraph-image.tsx`), y
+ * se generalizó a las rutas anidadas sin volver a medir.
+ *
+ * Medido en el build real de esta entrega, que es lo que la corrige: el HTML
+ * de `/` sí llevaba `og:image` y `twitter:image`, y el de las CUATRO páginas
+ * legales NO llevaba ninguno de los dos. La explicación encaja exactamente
+ * con H2: para una ruta anidada, la imagen del convenio entra en el
+ * `openGraph` YA RESUELTO del segmento padre, y el `openGraph` que la página
+ * declara lo sustituye entero -- imagen incluida. En la raíz no pasa porque
+ * ahí la imagen pertenece al propio segmento.
+ *
+ * `metadataBase` (declarado en `app/layout.tsx`) es lo que convierte esta
+ * ruta relativa en absoluta; sin él, `og:image` saldría relativa y ningún
+ * rastreador la seguiría.
+ */
+export const OG_IMAGE_PATH = "/opengraph-image";
+
+/** Dimensiones reales del PNG que emite `app/opengraph-image.tsx`. */
+export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
+
+export interface BuildMetadataInput {
+  /** Ruta interna canónica, siempre con barra inicial y sin barra final: "/" o "/privacidad". */
+  readonly path: string;
+  /** Título de la página SIN sufijo de marca. */
+  readonly title: string;
+  readonly description: string;
+  readonly keywords?: readonly string[];
+}
+
+/**
+ * Constructor único de `Metadata` para TODAS las rutas del sitio (home y las
+ * cuatro páginas legales). Existe por un motivo medido, no por preferencia
+ * de estilo: en Next 16.2.11 con `output: "export"`, el objeto `openGraph`
+ * NO se fusiona entre `app/layout.tsx` y el `page.tsx` de cada ruta — el
+ * resolver de metadata SUSTITUYE la clave entera del padre por la del hijo.
+ *
+ * Evidencia en el propio paquete instalado,
+ * `node_modules/next/dist/lib/metadata/resolve-metadata.js`, dentro de
+ * `mergeMetadata` (declarada en la línea 166): el `case 'openGraph'` (líneas
+ * 182-186) hace
+ *
+ *   newResolvedMetadata.openGraph = convertUrlsToStrings(
+ *     await resolveOpenGraph(metadata.openGraph, ...)
+ *   );
+ *
+ * — es decir, RESUELVE `metadata.openGraph` (solo el objeto declarado por el
+ * segmento actual) y lo asigna entero, sin partir de ni mezclar con
+ * `newResolvedMetadata.openGraph` (el clon heredado del padre, línea 167).
+ * Si una página declara `openGraph: { title }`, todo lo demás que puso el
+ * layout (`og:site_name`, `og:type`…) desaparece del HTML. Verificado además
+ * con un build real: un layout con `openGraph:{title,description,type,
+ * siteName,images}` y una página con `openGraph:{title}` produce HTML sin
+ * `og:site_name` ni `og:type` — `og:description` sobrevive solo por un
+ * fallback puntual desde el `description` de nivel raíz
+ * (`postProcessMetadata`, línea 619), no por merge.
+ *
+ * Por eso NINGUNA página escribe su propio objeto `openGraph`/`twitter`:
+ * todas pasan por `buildMetadata()`, que siempre devuelve los dos objetos
+ * COMPLETOS. Escribirlo a mano en 5 sitios garantizaría divergencia el día
+ * que alguien edite uno y olvide los otros cuatro.
+ */
+export function buildMetadata(input: BuildMetadataInput): Metadata {
+  const { path, title, description, keywords } = input;
+
+  // `absoluteUrl` ya valida que `path` empiece por barra y lanza si no —
+  // reutilizamos esa validación en vez de duplicarla aquí.
+  const url = absoluteUrl(path);
+
+  const fullTitle =
+    title === SITE.name ? SITE.name : `${title}${TITLE_SEPARATOR}${SITE.name}`;
+
+  // Una sola descripción de la imagen para las dos redes: Open Graph y
+  // Twitter piden los mismos datos y divergir en el `alt` de una de las dos
+  // es el clásico despiste que nadie ve hasta que comparte el enlace.
+  const image = {
+    url: OG_IMAGE_PATH,
+    width: OG_IMAGE_SIZE.width,
+    height: OG_IMAGE_SIZE.height,
+    alt: fullTitle,
+    type: "image/png",
+  } as const;
+
+  return {
+    title: fullTitle,
+    description,
+    ...(keywords ? { keywords: [...keywords] } : {}),
+    alternates: {
+      canonical: url,
+    },
+    // Objeto COMPLETO a propósito (ver docblock): siteName, locale y type
+    // tienen que repetirse en cada ruta porque H2 impide heredarlos del
+    // layout.
+    openGraph: {
+      title: fullTitle,
+      description,
+      url,
+      siteName: SITE.name,
+      locale: SITE.ogLocale,
+      type: "website",
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: fullTitle,
+      description,
+      images: [image],
+    },
+    // Las tres claves de `googleBot` son las que habilitan rich results y
+    // fragmentos largos en la SERP — la palanca AEO/AIO concreta que pide el
+    // encargo, no un valor decorativo.
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        "index": true,
+        "follow": true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+  };
+}

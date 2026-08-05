@@ -177,6 +177,74 @@ describe("Footer", () => {
     },
   );
 
+  /*
+   * D19 de la spec 2026-08-04-legal-seo-consentimiento-design.md. Hasta esta
+   * entrega los tres enlaces legales del pie eran anclas con
+   * target="_blank" hacia marcadores `example.invalid`. Ahora son cuatro
+   * rutas PROPIAS, y mantener target="_blank" sobre una ruta propia rompe el
+   * boton atras y cambia de contexto sin avisar -- lo que WCAG 3.2.5 pide
+   * evitar.
+   *
+   * El test no comprueba solo que los enlaces existan (eso ya lo hace el
+   * bloque de arriba): comprueba la PROPIEDAD que se acaba de cambiar, que
+   * es la unica que un descuido futuro podria revertir sin romper nada
+   * visible. Y comprueba a la vez el complementario -- que docs y guides,
+   * que SI salen del sitio, conservan su target -- para que el test no pase
+   * en verde con un "he quitado el target de todos".
+   */
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s los cuatro legales son enlaces internos sin target=_blank",
+    (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      renderWithProviders(<Footer />);
+
+      const legales = [
+        links.privacy,
+        links.terms,
+        links.accessibility,
+        links.legalNotice,
+      ];
+      for (const href of legales) {
+        const anclas = document.querySelectorAll(`a[href="${href}"]`);
+        expect(anclas.length, `${href} no esta en el pie`).toBeGreaterThan(0);
+        for (const ancla of anclas) {
+          expect(
+            ancla.getAttribute("target"),
+            `${href} abre pestana`,
+          ).toBeNull();
+        }
+      }
+
+      // Control complementario: los destinos que SI son externos conservan
+      // su target y su rel.
+      for (const href of [links.docs, links.guides]) {
+        const ancla = document.querySelector(`a[href="${href}"]`);
+        expect(ancla?.getAttribute("target")).toBe("_blank");
+        expect(ancla?.getAttribute("rel")).toBe("noopener noreferrer");
+      }
+    },
+  );
+
+  /*
+   * Retirar el consentimiento tiene que costar lo mismo que darlo (art. 7.3
+   * RGPD por remision, y criterio expreso de la guia de cookies de la AEPD).
+   * El disparador vive en el pie porque el pie esta en TODAS las paginas.
+   * Es un <button> y no un ancla a proposito: no navega, abre un dialogo.
+   */
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s ofrece el disparador de preferencias de cookies como boton",
+    (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      renderWithProviders(<Footer />);
+
+      const boton = screen.getByRole("button", {
+        name: esCommon.Common.Footer.cookiePreferences,
+      });
+      expect(boton.tagName).toBe("BUTTON");
+      expect(boton).not.toHaveAttribute("href");
+    },
+  );
+
   it.each([["light"], ["dark"]] as const)(
     "en tema %s siempre muestra el tagline de marca",
     (theme) => {

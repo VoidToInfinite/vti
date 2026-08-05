@@ -74,7 +74,9 @@
             "guides": "Guías",
             "accessibility": "Accesibilidad",
             "privacy": "Política de privacidad",
-            "terms": "Términos de uso"
+            "terms": "Términos de uso",
+            "legalNotice": "Aviso legal",
+            "cookiePreferences": "Preferencias de cookies"
         },
         "ThemeToggle": {
             "switchToLight": "Cambiar a tema claro",
