@@ -201,13 +201,5 @@
   "199": "responsiveTrack",
   "200": "HomeSections.tsx",
   "201": "usePointer.test.tsx",
-  "202": "pillarBadgeAccent",
-  "203": "HeroBackdrop.test.tsx",
-  "204": "useNavDetach.ts",
-  "205": "useReveal",
-  "206": "hero-story.integration.test.tsx",
-  "207": "VisuallyHidden.tsx",
-  "208": "LanguageSelector.tsx",
-  "209": "LegalDocument.test.tsx",
-  "210": "features.layers.ts"
+  "202": "pillarBadgeAccent"
 }
