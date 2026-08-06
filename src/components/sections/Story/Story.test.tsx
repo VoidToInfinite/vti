@@ -9,8 +9,10 @@ import {
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
-import { Story } from "./Story";
+import { Story, pillarBadgeAccent } from "./Story";
 import { motion } from "@/theme/tokens/motion";
+import { contrastRatio } from "@/theme/tokens/contrast";
+import { basicLightTheme } from "@/theme/themes";
 import {
   STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
@@ -157,12 +159,16 @@ describe("Story", () => {
     expect(
       screen.getByText(esHome.Home.story.pillars.practice.body),
     ).toBeInTheDocument();
-    // La numeracion "01 -- / 02 -- / 03 -- / 04 --" es del componente, no de
-    // i18n (spec §7.1): se comprueba aparte, sin acoplarla a una clave de json.
-    expect(screen.getByText(/^01 —/)).toBeInTheDocument();
-    expect(screen.getByText(/^02 —/)).toBeInTheDocument();
-    expect(screen.getByText(/^03 —/)).toBeInTheDocument();
-    expect(screen.getByText(/^04 —/)).toBeInTheDocument();
+    // La numeracion "01".."04" es del componente, no de i18n (spec §7.1): se
+    // comprueba aparte, sin acoplarla a una clave de json. Deja de llevar el
+    // guion "-- " que tenia como fila de lista (spec 2026-08-06, D2/D10): el
+    // numero es ahora decorativo (aria-hidden) dentro del badge de cada
+    // tarjeta -- ver el describe "tarjetas de pilar" mas abajo para el
+    // detalle completo de la nueva estructura.
+    expect(screen.getByText("01")).toBeInTheDocument();
+    expect(screen.getByText("02")).toBeInTheDocument();
+    expect(screen.getByText("03")).toBeInTheDocument();
+    expect(screen.getByText("04")).toBeInTheDocument();
   });
 
   it("en ingles renderiza la copia inglesa, no la espanola (mitad del contrato de paridad)", async () => {
@@ -254,6 +260,167 @@ describe("Story", () => {
       expect(topLevelRule).not.toContain("animation:");
     }
   });
+});
+
+/*
+ * Tarjetas de pilar (spec 2026-08-06-story-features-tema-claro-design.md,
+ * D2/D3/D4/D9/D10): los cuatro pilares dejan de ser filas de lista
+ * (`ScPillarRow`, con el número suelto "01 --") y pasan a tarjeta, con el
+ * párrafo de inspiración (`Home.story.pillars.<key>.inspiration`) que hasta
+ * esta entrega SOLO consumía la rama oscura (Story.tsx, antes del cambio).
+ */
+describe("Story: tarjetas de pilar (tema claro, D2)", () => {
+  const pillarKeys = ["learn", "create", "grow", "practice"] as const;
+
+  it("renderiza 4 tarjetas con numero, etiqueta de paso, titulo, body e inspiration", () => {
+    // Contra el código ANTERIOR a esta entrega este test falla: la rama
+    // clara no consumía `inspiration` en absoluto (solo lo hacía
+    // `ScDeckPillarBody` en la rama oscura) -- comprobado revirtiendo
+    // temporalmente `ScCardInspiration`/`pillars` a la versión de fila
+    // antes de escribir este test (ver el informe de la entrega).
+    renderWithProviders(<Story />);
+
+    pillarKeys.forEach((key, i) => {
+      const number = String(i + 1).padStart(2, "0");
+      expect(screen.getByText(number)).toBeInTheDocument();
+      expect(
+        screen.getByText(esHome.Home.story.pillars[key].title),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(esHome.Home.story.pillars[key].body),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(esHome.Home.story.pillars[key].inspiration),
+      ).toBeInTheDocument();
+    });
+
+    // La etiqueta de paso ("Paso"/"Step") se repite una vez por tarjeta.
+    expect(screen.getAllByText(esHome.Home.story.stepLabel)).toHaveLength(4);
+  });
+
+  it("los numeros del badge son aria-hidden y no ensucian el texto del titulo", () => {
+    renderWithProviders(<Story />);
+
+    ["01", "02", "03", "04"].forEach((number) => {
+      expect(screen.getByText(number)).toHaveAttribute("aria-hidden", "true");
+    });
+
+    // El titulo vive en un elemento PROPIO, separado del badge: su propio
+    // textContent es EXACTAMENTE el texto de i18n, sin el numero mezclado --
+    // no hay forma de que un lector de pantalla lo anuncie junto al titulo.
+    const title = screen.getByText(esHome.Home.story.pillars.learn.title);
+    expect(title.textContent).toBe(esHome.Home.story.pillars.learn.title);
+  });
+
+  it("D3: la tarjeta declara el hover (transform/box-shadow), con guard de reduce que anula solo el transform", () => {
+    renderWithProviders(<Story />);
+    const title = screen.getByText(esHome.Home.story.pillars.learn.title);
+    const card = title.parentElement as HTMLElement; // ScPillarCard
+    const css = cssRuleTextFor(card);
+
+    expect(css).toContain(":hover");
+    const hoverBlock = css.slice(css.indexOf(":hover"));
+    expect(hoverBlock).toContain("transform: translateY(-3px)");
+
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain("transition: none");
+    expect(reduceBlock).toContain("transform: none");
+  });
+
+  it("D9: el escalonado de entrada de cada tarjeta anula transicion Y retardo bajo prefers-reduced-motion", () => {
+    // Verificado con el bug quitado a proposito: sin el bloque
+    // `@media (prefers-reduced-motion: reduce) { transition-delay: 0ms; }`
+    // de `ScPillarCardItem` (Story.tsx), este assert se pone en rojo (la
+    // cuarta tarjeta seguiria esperando 380ms invisible bajo reduce, ver el
+    // informe de la entrega).
+    renderWithProviders(<Story />);
+    const title = screen.getByText(esHome.Home.story.pillars.learn.title);
+    // title (p) -> ScPillarCard (padre directo) -> ScPillarCardItem (envoltorio
+    // de entrada, el que lleva la cascada -- ver su docblock en Story.tsx).
+    const cardItem = title.parentElement?.parentElement as HTMLElement;
+    const css = cssRuleTextFor(cardItem);
+
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain("transition: none");
+    expect(reduceBlock).toContain("transition-delay: 0ms");
+    expect(reduceBlock).toContain("opacity: 1");
+    expect(reduceBlock).toContain("transform: none");
+  });
+});
+
+/*
+ * Contraste AA (contrato §3 de la spec): mismo cálculo OKLCH -> sRGB ->
+ * luminancia que ya resuelven `contrast.test.ts`/`legalPage.contrast.test.ts`
+ * (reutilizado, no reimplementado). Los tres niveles de texto de la tarjeta
+ * son roles semánticos YA existentes (`text`/`textMuted`/`textSubtle`), así
+ * que la aserción es la misma de `contrast.test.ts` acotada a `surface`
+ * -- pero con test PROPIO, porque la afirmación de accesibilidad de esta
+ * entrega es sobre la TARJETA concreta, no sobre el sistema de tokens en
+ * abstracto.
+ */
+describe("Story: contraste AA de las tarjetas de pilar sobre semantic.surface (D2/§3)", () => {
+  it.each([
+    ["titulo (Typography h5, color por defecto)", "text"],
+    ["lead / body", "textMuted"],
+    ["inspiracion", "textSubtle"],
+  ] as const)("%s sobre surface >= 4.5:1", (_label, semanticKey) => {
+    const ratio = contrastRatio(
+      basicLightTheme.semantic[semanticKey],
+      basicLightTheme.semantic.surface,
+    );
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  /*
+   * El número del badge sobre SU PROPIO fondo, que no es `surface` a secas
+   * sino `color-mix(in oklab, <acento> 12%, surface)`. Este candado es el que
+   * obligó a separar `pillarBadgeColor` de `pillarColor` (ver su docblock en
+   * `Story.tsx`): con los acentos originales, TRES de los cuatro pilares se
+   * quedaban entre 2.06:1 y 3.05:1.
+   *
+   * jsdom no resuelve `color-mix()`, así que la mezcla se calcula aquí con
+   * la misma aritmética que declara la función CSS -- interpolación lineal
+   * componente a componente en el espacio indicado, con el peso del
+   * porcentaje. Se mide contra los TOKENS importados, nunca contra literales
+   * copiados: si la rampa de color se recalibra, este test lo acusa.
+   */
+  const BADGE_MIX_PERCENT = 12;
+
+  function mixWithSurface(accent: string, percent: number): string {
+    const parse = (value: string): [number, number, number] => {
+      const m = value.match(/oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)/);
+      if (!m) throw new Error(`no se pudo parsear el color: ${value}`);
+      return [Number(m[1]), Number(m[2]), Number(m[3])];
+    };
+    const a = parse(accent);
+    const b = parse(basicLightTheme.semantic.surface);
+    const w = percent / 100;
+    const mixed = a.map((component, i) => component * w + b[i] * (1 - w));
+    return `oklch(${mixed[0]} ${mixed[1]} ${mixed[2]})`;
+  }
+
+  it.each([
+    ["01 learn", 0],
+    ["02 create", 1],
+    ["03 grow", 2],
+    ["04 practice", 3],
+  ] as const)(
+    "el numero del badge %s libra AA sobre su fondo color-mix",
+    (_label, index) => {
+      const accent = pillarBadgeAccent(basicLightTheme.palette, index);
+      const ratio = contrastRatio(
+        accent,
+        mixWithSurface(accent, BADGE_MIX_PERCENT),
+      );
+      expect(ratio).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });
 
 /*

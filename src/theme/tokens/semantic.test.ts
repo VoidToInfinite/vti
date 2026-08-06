@@ -26,9 +26,21 @@ describe("semantic colors", () => {
     it("mapea todos los roles correctamente al tema claro", () => {
       const white = "oklch(1 0 0)";
       const expected: SemanticColors = {
-        // Fondo del body pedido explicitamente por el usuario (2026-07-30):
-        // primary[50] en vez de neutral[50].
-        bg: color.primary[50],
+        /*
+         * Fondo del body. El 2026-07-30 el usuario pidió explícitamente
+         * `primary[50]` (blanco azulado) en vez de `neutral[50]`; el
+         * 2026-08-06 pidió volver a `neutral[50]` — gris neutro, casi blanco
+         * — al rediseñar Story y Features en tema claro sobre el mockup
+         * `Landing v2.dc`, que pinta las dos secciones sobre un fondo neutro:
+         * el tinte azulado competía con el `color-mix` de acento de las
+         * tarjetas nuevas, que sí tiene que leerse como color.
+         *
+         * Se deja el histórico escrito en vez de sustituirlo porque el valor
+         * ha ido y venido: sin la fecha de cada decisión, el siguiente que
+         * lea esta línea no sabe si el valor actual es la petición vigente o
+         * el residuo de una revertida a medias.
+         */
+        bg: color.neutral[50],
         surface: white,
         surfaceSunken: color.neutral[100],
         border: color.neutral[300],

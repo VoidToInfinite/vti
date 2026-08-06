@@ -1,6 +1,31 @@
 import { createGlobalStyle } from "styled-components";
 
 export const GlobalStyles = createGlobalStyle`
+  /*
+   * Ángulo del borde cónico animado de las tarjetas de Features en hover
+   * (spec 2026-08-06-story-features-tema-claro-design.md, D7). Vive AQUÍ y no
+   * dentro del styled-component que lo usa por una restricción del lenguaje,
+   * no por preferencia: \`@property\` es una regla de NIVEL SUPERIOR de la
+   * hoja de estilos, y styled-components inyecta el CSS de un componente
+   * anidado bajo su propia clase -- ahí dentro la regla sería inválida y se
+   * descartaría en silencio.
+   *
+   * Registrar la propiedad es lo que la hace INTERPOLABLE: una propiedad
+   * personalizada sin registrar es, para el motor, una cadena de texto, y una
+   * animación entre dos cadenas salta de una a otra sin pasos intermedios. Con
+   * \`syntax: "<angle>"\` el motor sabe que es un ángulo y lo interpola.
+   *
+   * Degradación conocida y aceptada (D7): sin soporte de \`@property\` el
+   * ángulo no interpola y el borde queda como un degradado cónico ESTÁTICO en
+   * hover -- sigue siendo un borde de marca legible, no hay estado roto, así
+   * que no hace falta ningún \`@supports\`.
+   */
+  @property --vti-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+  }
+
   :root {
     /* Alto de la banda del navbar. Vive aquí, y no en los tokens de tema,
        porque es una medida de LAYOUT que se consume desde dos sitios sin

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act } from "@testing-library/react";
+import { act, within } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
@@ -159,17 +159,32 @@ describe("Hero + Story (integracion)", () => {
     // tema de pagina. Ahora, sin ese anidado, el kicker tiene que resolver
     // al rol de marca del tema AMBIENTAL -- claro por defecto, oscuro si el
     // usuario lo guardo.
+    /*
+     * El kicker se localiza por su TEXTO, no por `previousElementSibling` del
+     * h2. Hasta el 2026-08-06 eran equivalentes; con la barra de eyebrow que
+     * introdujo esa entrega (spec `2026-08-06-story-features-tema-claro-design.md`,
+     * D4) el kicker pasa a vivir dentro de un contenedor junto a la barra, así
+     * que el hermano anterior del h2 es ese contenedor -- que no fija `color`
+     * (lo fija su hijo), y `getComputedStyle` devolvía `canvastext`.
+     *
+     * Buscar por texto ata lo que este test QUIERE comprobar (que el kicker
+     * resuelve al rol de marca del tema ambiental) sin depender de la
+     * estructura DOM que lo rodea, que es exactamente la clase de acoplamiento
+     * que lo rompió.
+     */
     const clara = renderPage();
-    const kickerClaro = clara.querySelector("#story-title")
-      ?.previousElementSibling as HTMLElement;
+    const kickerClaro = within(clara).getByText(
+      esHome.Home.story.kicker,
+    ) as HTMLElement;
     expect(window.getComputedStyle(kickerClaro).color).toBe(
       semanticLight.brandText,
     );
 
     window.localStorage.setItem("vti-theme", "dark");
     const oscura = renderPage();
-    const kickerOscuro = oscura.querySelector("#story-title")
-      ?.previousElementSibling as HTMLElement;
+    const kickerOscuro = within(oscura).getByText(
+      esHome.Home.story.kicker,
+    ) as HTMLElement;
     expect(window.getComputedStyle(kickerOscuro).color).toBe(
       semanticDark.brandText,
     );

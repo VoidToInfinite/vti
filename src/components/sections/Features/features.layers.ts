@@ -6,6 +6,16 @@
  * tarjetas no son tokens semánticos (no cambian con el tema; la sección solo
  * vive en claro) y viven aquí, no en `theme/tokens/`.
  *
+ * Entrega 2026-08-06 (spec `2026-08-06-story-features-tema-claro-design.md`,
+ * D4-D9): rehace la cabecera y las tres tarjetas de la rama CLARA sobre una
+ * sección NUEVA del mismo `Landing v2.dc.html` (líneas 187-267, `<section
+ * id="features">`), que sustituye a la versión con patrón SVG citada arriba.
+ * Las constantes de ESA versión anterior que ya no describen ningún nodo del
+ * árbol (patrón decorativo, borde/fondo/sombra por tarjeta) se retiraron; las
+ * que siguen vigentes (radio del envoltorio, alto del CTA…) se actualizaron
+ * a los literales de la sección nueva, con su docblock explicando la
+ * sustitución.
+ *
  * ## Qué SÍ es verbatim y qué es una equivalencia deliberada
  *
  * El mockup resuelve sus colores de rol (`var(--primary-600)`,
@@ -32,10 +42,31 @@ export const FEATURE_KEYS: readonly FeatureKey[] = [
   "gaming",
 ] as const;
 
-/** Radio de esquina de las tres tarjetas (mockup L164/179/194: `border-radius: 22px`).
- *  No coincide con ningún paso de `theme.tokens.radius` (xl=16px, 2xl=24px):
- *  se conserva el valor exacto del arte en vez de redondear a un token. */
-export const FEATURES_CARD_RADIUS = "22px";
+/**
+ * Radio de esquina del ENVOLTORIO de las tres tarjetas (spec
+ * `2026-08-06-story-features-tema-claro-design.md`, D7/D8; mockup
+ * `Landing v2.dc.html` L197/220/243: `border-radius: 26px`). SUSTITUYE al
+ * valor anterior (22px, mockup viejo L164/179/194): la entrega 2026-08-06
+ * rehace la tarjeta entera como envoltorio-borde (D7), con una geometría de
+ * radio distinta a la de la versión con patrón SVG que sustituye. No
+ * coincide con ningún paso de `theme.tokens.radius` (xl=16px, 2xl=24px): se
+ * conserva el valor exacto del arte en vez de redondear a un token.
+ *
+ * El radio INTERIOR (la superficie blanca dentro del envoltorio, mockup
+ * L198: `border-radius: 24.5px`) NO es una segunda constante: se calcula en
+ * el componente como `calc(${FEATURES_CARD_RADIUS} - ${FEATURES_CARD_BORDER_WIDTH})`
+ * (26px − 1.5px = 24.5px, exacto), que es literalmente la regla que describe
+ * el encargo ("el radio interior es el radio exterior menos el padding") en
+ * vez de un segundo literal que podría desincronizarse si cualquiera de los
+ * dos cambia.
+ */
+export const FEATURES_CARD_RADIUS = "26px";
+
+/** Grosor del envoltorio-borde de la tarjeta (D7, mockup L197: `padding:
+ *  1.5px`): el envoltorio pinta su fondo (color-mix en reposo, cónico en
+ *  hover) y ese fondo asoma exactamente este grosor alrededor de la
+ *  superficie interior. */
+export const FEATURES_CARD_BORDER_WIDTH = "1.5px";
 
 /** Duración del hover del CTA de texto (mockup L176/191/206: `transition:
  *  transform 150ms …, color 150ms …`). No coincide con ningún paso de
@@ -48,12 +79,16 @@ export const FEATURES_CTA_TRANSITION_MS = "150ms";
  *  (mockup L176/191/206: `transform: translateX(3px)`). */
 export const FEATURES_CTA_HOVER_TRANSLATE_X = "3px";
 
-/** Altura mínima del CTA de texto. El mockup usa 40px en Learning (L176) y
- *  36px en Imagination/Gaming (L191/206); la diferencia de 4px es
- *  imperceptible y no está motivada por ningún contenido distinto, así que
- *  se unifica a un solo valor en vez de replicar una asimetría que lee como
- *  artefacto de exportación, no como intención de diseño. */
-export const FEATURES_CTA_MIN_HEIGHT = "40px";
+/**
+ * Altura mínima del CTA de texto (spec `2026-08-06-story-features-tema-claro-
+ * design.md` §3: "el área de clic del CTA de cada tarjeta conserva sus 44 px
+ * de alto mínimo"). SUSTITUYE al valor anterior (40px): la asimetría
+ * 40px/36px del mockup viejo (L176/191/206, unificada entonces a 40px) ya no
+ * existe en el mockup 2026-08-06 -- las tres tarjetas declaran
+ * `min-height: 44px` de forma literalmente idéntica (L217/240/263), así que
+ * aquí no hace falta ningún criterio de unificación: es el mismo valor tres
+ * veces. */
+export const FEATURES_CTA_MIN_HEIGHT = "44px";
 
 /** Trazo del check de los bullets: mismo `path` en las tres tarjetas
  *  (mockup L171-174/186-189/201-204). */
@@ -73,128 +108,87 @@ export const FEATURES_GAMING_ACCENT = "oklch(0.62 0.17 340)";
 /** Estado hover del acento de Gaming (mockup L206: `color: oklch(0.55 0.18 340)`). */
 export const FEATURES_GAMING_ACCENT_HOVER = "oklch(0.55 0.18 340)";
 
-export interface FeaturePatternShape {
-  readonly type: "path" | "circle";
-  readonly d?: string;
-  readonly cx?: number;
-  readonly cy?: number;
-  readonly r?: number;
-}
-
-export interface FeatureCardVisual {
-  /** `border` de la tarjeta en reposo. */
-  readonly border: string;
-  /** `border-color` en `:hover`. */
-  readonly borderHover: string;
-  /** `background` (degradado de fondo) de la tarjeta. */
-  readonly background: string;
-  /** `box-shadow` en reposo. */
-  readonly shadow: string;
-  /** `box-shadow` en `:hover`. */
-  readonly shadowHover: string;
-  /** `transform: translateY(...)` en `:hover`. Distinto en Imagination
-   *  (-11px) frente a Learning/Gaming (-5px) — verbatim del mockup pese a la
-   *  asimetría (ver docblock de `FEATURE_CARD_VISUALS`). */
-  readonly hoverTranslateY: string;
-  /** id único del `<pattern>` SVG decorativo (`aria-hidden`). */
-  readonly patternId: string;
-  /** `stroke` del patrón (con su propia alfa, literal `oklch()`). */
-  readonly patternStroke: string;
-  /** Valor de `patternTransform="rotate(N)"` del mockup. */
-  readonly patternRotate: number;
-  /** Figuras geométricas del patrón, en el orden en que el mockup las declara. */
-  readonly patternShapes: readonly FeaturePatternShape[];
-  /** `filter: drop-shadow(...)` de la figura de la tarjeta. */
-  readonly figureDropShadow: string;
-  /**
-   * Alto de la figura ≥ md, en px FIJOS, no en `%` como el mockup (96%/92%).
-   * Medido en navegador (revisión 2026-07-28): el `%` del mockup funciona
-   * porque SU tarjeta declara `height: 300px`; la nuestra dimensiona por
-   * contenido, y un alto porcentual contra un padre cuyo alto depende a su
-   * vez del hijo crea una dependencia circular que infló las tarjetas hasta
-   * ~620px. Se congela el resultado que el mockup calculaba: 96%/92% de sus
-   * 300px → 288px/276px.
-   */
-  readonly figureHeight: string;
-}
+/*
+ * `FeaturePatternShape`/`FeatureCardVisual`/`FEATURE_CARD_VISUALS` (patrón
+ * SVG decorativo + borde/fondo/sombra/hover propios por tarjeta) RETIRADOS
+ * en esta entrega (spec `2026-08-06-story-features-tema-claro-design.md`,
+ * D5/D7/D8): la tarjeta rehecha no tiene patrón de fondo ni borde/fondo/
+ * sombra distintos por identidad -- las tres son geométricamente IGUALES
+ * (D5), con un envoltorio-borde común (D7, `FEATURES_CARD_RADIUS`/
+ * `FEATURES_CARD_BORDER_WIDTH`) y un panel de imagen común (D8, constantes
+ * más abajo); lo único que varía por tarjeta es el color de acento, que ya
+ * resuelven `accentColor`/`accentColorHover` (`Features.tsx`) contra la
+ * rampa real del tema -- no hace falta un registro paralelo de literales de
+ * arte para eso. Verificado (grep del repo, informe de la tarea): ningún
+ * fichero fuera de `Features.tsx` importaba `FEATURE_CARD_VISUALS`.
+ */
 
 /**
- * Geometría y color propios de cada tarjeta (mockup L163-208). El orden de
- * pintado real lo decide `FEATURE_KEYS` (Learning → Imagination → Gaming),
- * este registro solo asocia datos por clave.
- *
- * La asimetría de `hoverTranslateY` (Imagination -11px frente a -5px de las
- * otras dos) se verificó releyendo el mockup dos veces: no es un error de
- * transcripción, el `style-hover` de L179 dice literalmente
- * `translateY(-11px)`. Se conserva tal cual — la instrucción es verbatim, no
- * "verbatim salvo que parezca raro".
+ * Geometría del badge numérico de cada tarjeta (spec 2026-08-06, D6; mockup
+ * `Landing v2.dc.html` L200: `width: 38px; height: 38px; border-radius: 13px`).
+ * 2.375rem = 38px exacto; el radio SÍ tiene equivalente de tema
+ * (`radius.lg`, `Features.tsx`) y no se repite aquí.
  */
-export const FEATURE_CARD_VISUALS: Record<FeatureKey, FeatureCardVisual> = {
-  learning: {
-    border: "oklch(0.88 0.045 250)",
-    borderHover: "oklch(0.8 0.08 250)",
-    background: "linear-gradient(160deg, #F0F5FC, #FBFCFE)",
-    shadow: "0 14px 30px oklch(0.6 0.12 250 / 0.10)",
-    shadowHover: "0 20px 42px oklch(0.6 0.12 250 / 0.18)",
-    hoverTranslateY: "-5px",
-    patternId: "vtiPatLearn",
-    patternStroke: "oklch(0.6 0.12 250 / 0.14)",
-    patternRotate: -8,
-    patternShapes: [
-      {
-        type: "path",
-        d: "M14 18c3.5-2.3 7-2.3 10.5 0v13c-3.5-2.3-7-2.3-10.5 0zM24.5 18c3.5-2.3 7-2.3 10.5 0v13c-3.5-2.3-7-2.3-10.5 0z",
-      },
-      { type: "path", d: "M60 52v10M55 57h10" },
-      { type: "circle", cx: 66, cy: 20, r: 3 },
-    ],
-    figureDropShadow: "drop-shadow(0 12px 24px oklch(0.55 0.12 250 / 0.2))",
-    figureHeight: "288px",
-  },
-  imagination: {
-    border: "oklch(0.88 0.05 292)",
-    borderHover: "oklch(0.8 0.09 292)",
-    background: "linear-gradient(160deg, #F5F1FC, #FCFBFE)",
-    shadow: "0 14px 30px oklch(0.6 0.14 292 / 0.10)",
-    shadowHover: "0 20px 42px oklch(0.6 0.14 292 / 0.18)",
-    hoverTranslateY: "-11px",
-    patternId: "vtiPatImagine",
-    patternStroke: "oklch(0.58 0.15 292 / 0.14)",
-    patternRotate: 6,
-    patternShapes: [
-      { type: "path", d: "M20 10l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" },
-      {
-        type: "path",
-        d: "M60 48l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z",
-      },
-      { type: "circle", cx: 64, cy: 18, r: 3.5 },
-      { type: "path", d: "M18 58c0-4 3-7 7-7" },
-    ],
-    figureDropShadow: "drop-shadow(0 12px 24px oklch(0.55 0.14 292 / 0.2))",
-    figureHeight: "276px",
-  },
-  gaming: {
-    border: "oklch(0.9 0.05 335)",
-    borderHover: "oklch(0.82 0.09 335)",
-    background: "linear-gradient(160deg, #FCF0F6, #FEFBFC)",
-    shadow: "0 14px 30px oklch(0.66 0.13 335 / 0.10)",
-    shadowHover: "0 20px 42px oklch(0.66 0.13 335 / 0.18)",
-    hoverTranslateY: "-5px",
-    patternId: "vtiPatGame",
-    patternStroke: "oklch(0.62 0.14 335 / 0.14)",
-    patternRotate: -6,
-    patternShapes: [
-      {
-        type: "path",
-        d: "M20 10l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z",
-      },
-      { type: "path", d: "M62 46v12M56 52h12" },
-      { type: "circle", cx: 64, cy: 16, r: 3 },
-    ],
-    figureDropShadow: "drop-shadow(0 12px 24px oklch(0.6 0.15 335 / 0.2))",
-    figureHeight: "276px",
-  },
-};
+export const FEATURES_BADGE_SIZE = "2.375rem";
+
+/**
+ * Alto del panel de imagen de cada tarjeta (D8; mockup L203:
+ * `height: 216px`). 13.5rem = 216px exacto -- coincidencia con el propio
+ * literal del mockup, no una aproximación.
+ */
+export const FEATURES_IMAGE_PANEL_HEIGHT = "13.5rem";
+
+/** Diámetro del círculo decorativo del panel de imagen (D8; mockup L204:
+ *  `width: 178px; height: 178px`). 11.125rem = 178px exacto. */
+export const FEATURES_IMAGE_CIRCLE_SIZE = "11.125rem";
+
+/** Desbordamiento inferior del círculo decorativo (D8; mockup L204:
+ *  `bottom: -46px`). Verbatim -- no hay token de espaciado que produzca
+ *  este valor negativo específico (no es un paso de `space` ni una fracción
+ *  simple de `FEATURES_IMAGE_CIRCLE_SIZE`). */
+export const FEATURES_IMAGE_CIRCLE_OFFSET = "-2.875rem";
+
+/** Ancho de la barra del eyebrow de la cabecera (D4/D6; mockup L189:
+ *  `width: 28px; height: 2px`). 1.75rem = 28px exacto. */
+export const FEATURES_EYEBROW_BAR_WIDTH = "1.75rem";
+/** Alto de la barra del eyebrow (ver `FEATURES_EYEBROW_BAR_WIDTH`). */
+export const FEATURES_EYEBROW_BAR_HEIGHT = "2px";
+
+/** Duración del giro del borde cónico en hover (D7; mockup L197:
+ *  `animation: vtiBorderSpin 3200ms linear infinite`). No coincide con
+ *  ningún paso de `theme.tokens.motion.duration`: es una animación
+ *  ambiental de marca, no una transición de interfaz, y su ritmo es
+ *  deliberadamente lento y constante -- se conserva el literal. */
+export const FEATURES_CONIC_BORDER_SPIN_MS = "3200ms";
+
+/**
+ * Duración del reveal escalonado de la cabecera clara y las tres tarjetas
+ * (D9; mockup L190/191/192/197/220/243: `transition: opacity 640ms
+ * cubic-bezier(0.4,0,0.2,1), transform 640ms cubic-bezier(0.4,0,0.2,1)…`).
+ * 640ms no coincide con ningún paso de `theme.tokens.motion.duration`
+ * (`slower` es 480ms, el más próximo): se conserva el literal del mockup.
+ * El easing SÍ es un token (`motion.easing.standard`, ver `Features.tsx`) --
+ * coincide literalmente con `cubic-bezier(0.4, 0, 0.2, 1)`.
+ */
+export const FEATURES_LIGHT_REVEAL_DURATION_MS = "640ms";
+
+/** Desplazamiento vertical de entrada del reveal escalonado (D9; mockup:
+ *  `transform: translateY(22px)` en los seis elementos del bloque). */
+export const FEATURES_LIGHT_REVEAL_TRANSLATE_Y = "22px";
+
+/**
+ * Retardo (`transition-delay`) de cada uno de los seis elementos del reveal
+ * escalonado de la rama clara, en el mismo orden en que el mockup los
+ * declara -- `data-reveal-delay` de cada nodo (D9; mockup L188/190/192,
+ * eyebrow/h2/párrafo de la cabecera, y L197/220/243, las tres tarjetas):
+ * eyebrow 0ms, `h2` 80ms, párrafo de entrada 140ms, tarjeta Learning 200ms,
+ * tarjeta Imagination 280ms, tarjeta Gaming 360ms. Un solo
+ * `IntersectionObserver` (`useReveal`, ya existente) cubre los seis; cada
+ * uno declara su propio escalón en CSS -- ver `ScReveal`, `Features.tsx`.
+ */
+export const FEATURES_LIGHT_REVEAL_DELAYS_MS = [
+  0, 80, 140, 200, 280, 360,
+] as const;
 
 /** Nombre base de los ficheros WebP publicados en `public/figures/`
  *  (pipeline documentado en `assets/figures/manifest.json`, spec §6). */

@@ -45,7 +45,8 @@
                     "body": "El conocimiento se vuelve tuyo cuando lo pones a prueba: tropiezos incluidos.",
                     "inspiration": "Lee menos, prueba más. Rompe algo a propósito y arréglalo. El error que entiendes vale más que el acierto que copiaste. Ahí es donde el conocimiento se vuelve tuyo."
                 }
-            }
+            },
+            "stepLabel": "Paso"
         },
         "journey": {
             "kicker": "Inspiración",
@@ -82,8 +83,11 @@
         },
         "features": {
             "kicker": "Características",
+            "title": "Tres formas de seguir avanzando.",
+            "intro": "Aprendizaje, imaginación y juego son la misma curiosidad vista desde tres ángulos. Cada uno te da una manera distinta de convertir lo que sabes en algo real.",
             "learning": {
                 "title": "Learning",
+                "badge": "Aprende",
                 "body": "Todo experto fue antes principiante. Aprende a tu ritmo, sigue las preguntas que te importan y observa cómo los pasos pequeños se convierten en comprensión real.",
                 "bullets": {
                     "one": "Rutas cuidadas que crecen contigo",
@@ -96,6 +100,7 @@
             },
             "imagination": {
                 "title": "Imagination",
+                "badge": "Crea",
                 "body": "Tus ideas merecen un lugar donde vivir. Convierte el «¿y si…?» en algo real que puedas compartir.",
                 "bullets": {
                     "one": "Un espacio seguro para experimentar",
@@ -108,6 +113,7 @@
             },
             "gaming": {
                 "title": "Gaming",
+                "badge": "Juega",
                 "body": "Jugando es como mejor aprendemos. Compite, colabora y celebra cada victoria, grande o pequeña.",
                 "bullets": {
                     "one": "Retos que afilan tus habilidades",

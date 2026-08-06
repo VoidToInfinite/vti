@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
-import { Features } from "./Features";
+import { Features, accentColor, accentColorHover } from "./Features";
 import {
   FEATURE_KEYS,
   FEATURES_OVERLAY_RISE,
@@ -9,6 +9,8 @@ import {
   FEATURES_CONTENT_MAX_WIDTH,
   FEATURES_TAIL_HOLD,
   FEATURES_GAMING_TITLE_GRADIENT,
+  FEATURES_LIGHT_REVEAL_DELAYS_MS,
+  FEATURES_LIGHT_REVEAL_DURATION_MS,
 } from "./features.layers";
 import {
   JOURNEY_DARK_HEIGHT,
@@ -16,6 +18,7 @@ import {
 } from "@/components/sections/Journey/journey.layers";
 import { FEATURES_ORBITAL_LAYERS } from "@/components/featuresCelestialOrbital/featuresCelestialOrbital.layers";
 import { themes } from "@/theme/themes";
+import { parseOklch, contrastRatio } from "@/theme/tokens/contrast";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
@@ -117,20 +120,28 @@ beforeEach(() => {
 const BULLET_KEYS = ["one", "two", "three", "four"] as const;
 
 describe("Features", () => {
-  it("es una region con su nombre accesible real (los tres terminos del h2, no un aria-labelledby colgando)", () => {
-    // Los tres spans de color del h2 concatenan sin espacio en el .html
-    // exportado del mockup (ver comentario en Features.tsx); el nombre
-    // accesible real de la region debe leer las tres palabras separadas.
+  it("D6: la cabecera clara monta el h2 nuevo (frase real, no las tres palabras de marca) como nombre accesible de la region, con id=features-title", () => {
+    // D6 (spec 2026-08-06-story-features-tema-claro-design.md): el h2 deja
+    // de ser las tres palabras de marca coloreadas (Learning Imagination
+    // Gaming) y pasa a ser una frase real; aria-labelledby de la region
+    // sigue apuntando al mismo id.
     renderWithProviders(<Features />);
-    const expectedName = [
-      esHome.Home.features.learning.title,
-      esHome.Home.features.imagination.title,
-      esHome.Home.features.gaming.title,
-    ].join(" ");
-
-    const region = screen.getByRole("region", { name: expectedName });
-    expect(region).toHaveAccessibleName(expectedName);
+    const region = screen.getByRole("region", {
+      name: esHome.Home.features.title,
+    });
+    expect(region).toHaveAccessibleName(esHome.Home.features.title);
     expect(region).toHaveAttribute("id", "features");
+
+    const heading = screen.getByRole("heading", {
+      level: 2,
+      name: esHome.Home.features.title,
+    });
+    expect(heading).toHaveAttribute("id", "features-title");
+  });
+
+  it("D6: la cabecera clara monta el parrafo de entrada nuevo de i18n", () => {
+    renderWithProviders(<Features />);
+    expect(screen.getByText(esHome.Home.features.intro)).toBeInTheDocument();
   });
 
   it("muestra el kicker de i18n", () => {
@@ -190,33 +201,35 @@ describe("Features", () => {
     });
   });
 
-  it("el grid empieza sin revelar y pasa a revelado al intersecar", () => {
+  it("D9: el envoltorio unico de reveal (cabecera + rejilla) empieza sin revelar y pasa a revelado al intersecar", () => {
+    // Un solo IntersectionObserver cubre cabecera + tarjetas (D9): un unico
+    // elemento porta `data-revealed`, no uno por tarjeta como hacia la
+    // entrega anterior (`ScItem`, retirado).
     const { container } = renderWithProviders(<Features />);
     const items = container.querySelectorAll("[data-revealed]");
-    expect(items).toHaveLength(FEATURE_KEYS.length);
-    items.forEach((item) =>
-      expect(item).toHaveAttribute("data-revealed", "false"),
-    );
+    expect(items).toHaveLength(1);
+    expect(items[0]).toHaveAttribute("data-revealed", "false");
 
     act(() => trigger(true));
 
-    const revealedItems = container.querySelectorAll("[data-revealed]");
-    expect(revealedItems).toHaveLength(FEATURE_KEYS.length);
-    revealedItems.forEach((item) =>
-      expect(item).toHaveAttribute("data-revealed", "true"),
-    );
+    expect(items[0]).toHaveAttribute("data-revealed", "true");
   });
 
-  it("escalona el transition-delay de cada tarjeta segun su indice (120ms)", () => {
+  it("D9: escalona el transition-delay de los seis elementos (eyebrow, h2, intro, 3 tarjetas) segun los retardos verbatim del mockup", () => {
     const { container } = renderWithProviders(<Features />);
-    const items = Array.from(container.querySelectorAll("[data-revealed]"));
-    expect(items).toHaveLength(FEATURE_KEYS.length);
-    items.forEach((item, index) => {
+    expect(FEATURES_LIGHT_REVEAL_DELAYS_MS).toHaveLength(6);
+    FEATURES_LIGHT_REVEAL_DELAYS_MS.forEach((delayMs) => {
+      const el = container.querySelector(
+        `[data-reveal-delay="${delayMs}"]`,
+      ) as HTMLElement | null;
+      expect(el).not.toBeNull();
       // jsdom SI resuelve el longhand `transition-delay` de una shorthand
       // `transition` declarada en styled-components (lección repo,
       // task/lessons.md 2026-07-25/27) -- lo que NO resuelve es ningun
       // @media, de ahi el test aparte de mas abajo.
-      expect(getComputedStyle(item).transitionDelay).toBe(`${index * 120}ms`);
+      expect(getComputedStyle(el as HTMLElement).transitionDelay).toBe(
+        `${delayMs}ms`,
+      );
     });
   });
 
@@ -238,13 +251,14 @@ describe("Features", () => {
     // solo inspeccionando el TEXTO del bloque inyectado por
     // styled-components. Este test se validó con el bug inyectado a
     // propósito: comentando temporalmente el bloque
-    // `@media (prefers-reduced-motion: reduce)` de `ScItem` en Features.tsx
-    // el test se pone en rojo (falta `opacity: 1`/`transition-delay: 0ms`);
-    // restaurado el bloque, vuelve a verde. Las aserciones de
-    // `transition-delay: 0ms` y `opacity: 1` son el candado de regresión:
-    // ningún otro bloque de reduced-motion del componente (`ScCard`, `ScCta`,
-    // que solo anulan el hover) declara ninguna de las dos, así que solo el
-    // guard de `ScItem` puede satisfacerlas.
+    // `@media (prefers-reduced-motion: reduce)` de `ScReveal` en Features.tsx
+    // (D9, sustituye a `ScItem`) el test se pone en rojo (falta
+    // `opacity: 1`/`transition-delay: 0ms`); restaurado el bloque, vuelve a
+    // verde. Las aserciones de `transition-delay: 0ms` y `opacity: 1` son el
+    // candado de regresión: ningún otro bloque de reduced-motion del
+    // componente (`ScCardBorder`, `ScCta`, que solo anulan el hover) declara
+    // ninguna de las dos, así que solo el guard de `ScReveal` puede
+    // satisfacerlas.
     it("declara un bloque @media (prefers-reduced-motion: reduce) que fuerza el estado final revelado", () => {
       renderWithProviders(<Features />);
       const css = injectedCss();
@@ -259,6 +273,212 @@ describe("Features", () => {
       expect(reduceBlocks).toMatch(/transform:\s*none/);
     });
   });
+});
+
+/*
+ * D6/D7/D8 (spec `2026-08-06-story-features-tema-claro-design.md`):
+ * estructura nueva de las tres tarjetas -- badge numérico + etiqueta, panel
+ * de imagen con círculo decorativo, título/cuerpo/bullets/CTA (estos tres
+ * últimos ya existían y se cubren en los tests generales de arriba).
+ */
+describe("D6/D7/D8: estructura nueva de las tres tarjetas de la rama clara", () => {
+  it("cada tarjeta monta su badge (numero decorativo 01/02/03 + etiqueta de i18n) y su panel de imagen (figura + circulo decorativo aria-hidden)", () => {
+    const { container } = renderWithProviders(<Features />);
+
+    FEATURE_KEYS.forEach((key, index) => {
+      const number = String(index + 1).padStart(2, "0");
+      const badgeLabel = esHome.Home.features[key].badge;
+      expect(screen.getByText(number)).toBeInTheDocument();
+      expect(screen.getByText(badgeLabel)).toBeInTheDocument();
+    });
+
+    // Panel de imagen: una figura por tarjeta (ya cubierto en detalle por
+    // "cada figura trae alt de i18n..." arriba) mas un circulo decorativo
+    // aria-hidden por tarjeta (D8) -- ninguno de los dos existia en la
+    // entrega anterior (patron SVG de fondo, retirado).
+    const images = container.querySelectorAll("img");
+    expect(images).toHaveLength(FEATURE_KEYS.length);
+  });
+
+  it("los numeros 01/02/03 del badge son aria-hidden (decorativos, D6/D10): el orden ya lo comunica el DOM", () => {
+    renderWithProviders(<Features />);
+    ["01", "02", "03"].forEach((number) => {
+      expect(screen.getByText(number)).toHaveAttribute("aria-hidden", "true");
+    });
+  });
+
+  it("D5: se retira el caso especial de ancho completo -- las tres tarjetas comparten exactamente las mismas clases de estructura", () => {
+    const { container } = renderWithProviders(<Features />);
+    const cards = Array.from(
+      container.querySelectorAll('article[aria-labelledby^="feature-"]'),
+    );
+    expect(cards).toHaveLength(FEATURE_KEYS.length);
+    const clases = cards.map((card) =>
+      Array.from(card.classList).sort().join(" "),
+    );
+    // Mismas clases en las tres -- ninguna lleva una regla propia de
+    // "grid-column: 1 / -1" ni equivalente (D5, ya no hay $fullWidth).
+    expect(new Set(clases).size).toBe(1);
+  });
+});
+
+/*
+ * D7 (borde cónico animado en hover, spec 2026-08-06). Por texto del CSS
+ * inyectado, no `getComputedStyle`: jsdom no evalúa `@media` (lección repo
+ * 2026-07-27). Validado con el bug inyectado a propósito (ver informe de la
+ * tarea): sacando el bloque `conic-gradient`/`animation` de dentro del
+ * `@media (prefers-reduced-motion: no-preference)` (declarándolo junto al
+ * resto de `:hover`, sin `@media`), el primer test de este bloque se pone en
+ * rojo (el `conic-gradient` aparece ANTES del marcador `no-preference`, así
+ * que la porción "antes" ya no está vacía de él); restaurado dentro del
+ * `@media`, vuelve a verde.
+ */
+describe("D7: borde conico animado en hover, solo bajo prefers-reduced-motion: no-preference", () => {
+  it("el conic-gradient y su animacion de giro viven SOLO dentro de @media (prefers-reduced-motion: no-preference)", () => {
+    const { container } = renderWithProviders(<Features />);
+    const card = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(card);
+
+    const noPreferenceIndex = css.indexOf(
+      "@media (prefers-reduced-motion: no-preference)",
+    );
+    expect(noPreferenceIndex).toBeGreaterThan(-1);
+
+    // Nada de conic-gradient/animation ANTES del marcador no-preference: la
+    // regla base de :hover (translateY/box-shadow) no lo lleva.
+    expect(css.slice(0, noPreferenceIndex)).not.toContain("conic-gradient");
+
+    const noPreferenceBlock = css.slice(noPreferenceIndex);
+    // Sin asumir que "conic-gradient(" y "var(--vti-angle)" queden
+    // pegados sin salto de linea: styled-components conserva el formato
+    // literal de la plantilla (indentacion incluida) al inyectar el CSS.
+    expect(noPreferenceBlock).toContain("conic-gradient(");
+    expect(noPreferenceBlock).toContain("var(--vti-angle)");
+    expect(noPreferenceBlock).toContain("animation:");
+  });
+
+  it("en reposo (fuera de :hover) el envoltorio pinta semantic.border como fondo, no el conic-gradient", () => {
+    const { container } = renderWithProviders(<Features />);
+    const card = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(card);
+
+    // La regla de reposo (fuera de :hover y de cualquier @media) declara el
+    // fondo semantic.border.
+    const restRule = css
+      .split("\n")
+      .find(
+        (line) =>
+          !line.includes(":hover") &&
+          !line.includes("@media") &&
+          line.includes("background:"),
+      );
+    expect(restRule).toBeDefined();
+    expect(restRule).toContain(themes.light.semantic.border);
+  });
+
+  it("translateY(-3px) y la subida de sombra (elevation[3]) se aplican en :hover sin depender de no-preference", () => {
+    const { container } = renderWithProviders(<Features />);
+    const card = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(card);
+
+    const noPreferenceIndex = css.indexOf(
+      "@media (prefers-reduced-motion: no-preference)",
+    );
+    const hoverBeforeMedia = css.slice(0, noPreferenceIndex);
+    expect(hoverBeforeMedia).toContain(":hover");
+    expect(hoverBeforeMedia).toContain("translateY(-3px)");
+    expect(hoverBeforeMedia).toContain(themes.light.elevation[3]);
+  });
+});
+
+/*
+ * Contraste AA (spec §3, "el contrato de accesibilidad"): texto de la
+ * tarjeta sobre `semantic.surface` (ya cubierto de forma genérica por
+ * `theme/tokens/contrast.test.ts`, se repite aquí acotado a los roles
+ * concretos que usa ESTE componente) y color del badge sobre su fondo
+ * `color-mix` (sin cobertura previa -- jsdom no resuelve `color-mix()`, así
+ * que la mezcla se calcula a mano, ver `mixOklab` más abajo, siguiendo el
+ * patrón de `contrast.test.ts`/`legalPage.contrast.test.ts`: reutiliza
+ * `parseOklch`/`contrastRatio` de `@/theme/tokens/contrast` para la
+ * conversión OKLCH→sRGB→luminancia -- no se reimplementa esa parte, solo la
+ * aritmética de mezcla que `contrast.ts` no expone).
+ */
+describe("contraste AA de las tarjetas de Features (rama clara)", () => {
+  const AA_TEXTO_NORMAL = 4.5;
+
+  /**
+   * Mezcla dos colores oklch() en espacio OKLab, replicando
+   * `color-mix(in oklab, fg P%, bg)`. En OKLab, L/a/b son coordenadas
+   * cartesianas -- `a = C·cos(H)`, `b = C·sin(H)` (H en radianes) --, así
+   * que la interpolación lineal en OKLab es una media ponderada directa de
+   * (L, a, b): `mix = t·fg + (1-t)·bg`, con `t = P/100`. El resultado se
+   * reconvierte a `oklch(L C H)` (`C = √(a²+b²)`, `H = atan2(b,a)`) para
+   * poder pasarlo a `contrastRatio`, que solo acepta strings `oklch()`.
+   */
+  function mixOklab(
+    fgOklch: string,
+    fgPercent: number,
+    bgOklch: string,
+  ): string {
+    const fg = parseOklch(fgOklch);
+    const bg = parseOklch(bgOklch);
+    const toAB = (c: { c: number; h: number }): [number, number] => {
+      const rad = (c.h * Math.PI) / 180;
+      return [c.c * Math.cos(rad), c.c * Math.sin(rad)];
+    };
+    const [aFg, bFg] = toAB(fg);
+    const [aBg, bBg] = toAB(bg);
+    const t = fgPercent / 100;
+    const l = t * fg.l + (1 - t) * bg.l;
+    const a = t * aFg + (1 - t) * aBg;
+    const b = t * bFg + (1 - t) * bBg;
+    const c = Math.sqrt(a * a + b * b);
+    let h = (Math.atan2(b, a) * 180) / Math.PI;
+    if (h < 0) h += 360;
+    return `oklch(${l} ${c} ${h})`;
+  }
+
+  it("titulo (semantic.text), cuerpo/bullets (semantic.textMuted) y etiqueta del badge (semantic.textSubtle) cumplen AA sobre semantic.surface", () => {
+    const { semantic } = themes.light;
+    expect(
+      contrastRatio(semantic.text, semantic.surface),
+    ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
+    expect(
+      contrastRatio(semantic.textMuted, semantic.surface),
+    ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
+    expect(
+      contrastRatio(semantic.textSubtle, semantic.surface),
+    ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
+  });
+
+  /*
+   * El número del badge usa `accentColorHover` (paso 700), no `accentColor`
+   * (paso 600) -- ver el docblock de `accentColorHover` en `Features.tsx`.
+   * Medido (informe de la tarea): `accentColor` sobre el `color-mix` de este
+   * mismo badge da 2.69:1/3.08:1/3.46:1 según la tarjeta -- muy por debajo
+   * de AA en las tres --, mientras que `accentColorHover` da
+   * 4.52:1/5.21:1/4.66:1, que sí cumple. El margen de "learning" (4.52:1) es
+   * el más ajustado de los tres: se declara aquí, no se oculta.
+   */
+  it.each(FEATURE_KEYS)(
+    "tarjeta %s: el numero del badge (accentColorHover) sobre su fondo color-mix(accentColor 12%%, surface) cumple AA",
+    (key) => {
+      const light = themes.light;
+      const text = accentColorHover(light, key);
+      const bg = mixOklab(accentColor(light, key), 12, light.semantic.surface);
+      const ratio = contrastRatio(text, bg);
+      expect(
+        ratio,
+        `contraste ${ratio.toFixed(2)}:1, por debajo de AA (${AA_TEXTO_NORMAL}:1)`,
+      ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
+    },
+  );
 });
 
 /*
@@ -696,29 +916,42 @@ describe("D7/D1: progreso de scroll de la rama clara (useSectionProgress)", () =
 
 /*
  * D7 (encargo 2026-08-04): las entradas de Features (rama clara -- `ScItem`
- * -- y rama oscura -- `ScDarkContent`) se unifican a `motion.duration.slower`
- * + `motion.easing.decelerate`. Antes: `ScItem` usaba `slow` + `emphasized`,
- * `ScDarkContent` usaba `slow` + `decelerate` -- dos criterios de entrada
- * distintos en el mismo fichero. Por texto del CSS inyectado, no
- * `getComputedStyle`: medido en este repo, jsdom SÍ resuelve el longhand
- * `transition-delay` cuando se declara SUELTO (test existente en este mismo
- * fichero), pero NO resuelve `transitionDuration`/`transitionTimingFunction`
- * cuando `transition` es una lista de dos declaraciones separadas por coma
+ * de entonces -- y rama oscura -- `ScDarkContent`) se unificaron a
+ * `motion.duration.slower` + `motion.easing.decelerate`. Antes: `ScItem`
+ * usaba `slow` + `emphasized`, `ScDarkContent` usaba `slow` + `decelerate`
+ * -- dos criterios de entrada distintos en el mismo fichero.
+ *
+ * D9 (spec `2026-08-06-story-features-tema-claro-design.md`) REVISA esa
+ * unificación solo en la rama CLARA: `ScItem` se sustituyó por `ScReveal`
+ * (cabecera + tarjetas bajo un único reveal), con la duración/easing
+ * VERBATIM del mockup nuevo -- `FEATURES_LIGHT_REVEAL_DURATION_MS` (640ms) +
+ * `motion.easing.standard` --, que ya NO coincide con `slower`/`decelerate`.
+ * La rama OSCURA (`ScDarkContent`) queda INTACTA (D1 de la spec nueva: no se
+ * toca) y su test sigue verificando la pareja `slower`/`decelerate` sin
+ * cambios.
+ *
+ * Por texto del CSS inyectado, no `getComputedStyle`: medido en este repo,
+ * jsdom SÍ resuelve el longhand `transition-delay` cuando se declara SUELTO
+ * (test existente en este mismo fichero), pero NO resuelve
+ * `transitionDuration`/`transitionTimingFunction` cuando `transition` es una
+ * lista de dos declaraciones separadas por coma
  * (`transitionDuration`/`transitionTimingFunction` devuelven cadena vacía) --
  * un matiz nuevo del mismo mecanismo que documenta `task/lessons.md`
  * 2026-07-25 para `animation:`. `cssRuleTextFor` no depende de esa
  * resolución: lee el texto tal como lo escribió el componente.
  */
-describe("D7: duración/easing de entrada unificados (slower + decelerate)", () => {
-  it("ScItem (rama clara) usa motion.duration.slower + motion.easing.decelerate", () => {
+describe("D9: duración/easing de entrada de la cabecera y las tarjetas de la rama clara (640ms + easing.standard, ya no slower/decelerate)", () => {
+  it("ScReveal (rama clara) usa FEATURES_LIGHT_REVEAL_DURATION_MS (640ms) + motion.easing.standard, verbatim del mockup", () => {
     const { container } = renderWithProviders(<Features />);
-    const item = container.querySelector("[data-revealed]") as HTMLElement;
+    const item = container.querySelector(
+      '[data-reveal-delay="0"]',
+    ) as HTMLElement;
     const css = cssRuleTextFor(item);
 
-    expect(css).toContain(themes.light.motion.duration.slower);
-    expect(css).toContain(themes.light.motion.easing.decelerate);
-    expect(css).not.toContain(themes.light.motion.duration.slow);
-    expect(css).not.toContain(themes.light.motion.easing.emphasized);
+    expect(css).toContain(FEATURES_LIGHT_REVEAL_DURATION_MS);
+    expect(css).toContain(themes.light.motion.easing.standard);
+    expect(css).not.toContain(themes.light.motion.duration.slower);
+    expect(css).not.toContain(themes.light.motion.easing.decelerate);
   });
 
   it("ScDarkContent (rama oscura) usa motion.duration.slower + motion.easing.decelerate", async () => {

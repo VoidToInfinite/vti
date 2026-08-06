@@ -2,7 +2,7 @@
 
 import { useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled, { css } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
@@ -11,10 +11,20 @@ import type { ThemeDefinition } from "@/theme/theme.types";
 import { FeaturesCelestialOrbital } from "@/components/featuresCelestialOrbital/FeaturesCelestialOrbital";
 import {
   FEATURE_KEYS,
-  FEATURE_CARD_VISUALS,
   FEATURE_FIGURE_BASENAME,
   FEATURES_FIGURE_SIZES,
   FEATURES_CARD_RADIUS,
+  FEATURES_CARD_BORDER_WIDTH,
+  FEATURES_BADGE_SIZE,
+  FEATURES_IMAGE_PANEL_HEIGHT,
+  FEATURES_IMAGE_CIRCLE_SIZE,
+  FEATURES_IMAGE_CIRCLE_OFFSET,
+  FEATURES_EYEBROW_BAR_WIDTH,
+  FEATURES_EYEBROW_BAR_HEIGHT,
+  FEATURES_CONIC_BORDER_SPIN_MS,
+  FEATURES_LIGHT_REVEAL_DURATION_MS,
+  FEATURES_LIGHT_REVEAL_TRANSLATE_Y,
+  FEATURES_LIGHT_REVEAL_DELAYS_MS,
   FEATURES_CTA_TRANSITION_MS,
   FEATURES_CTA_HOVER_TRANSLATE_X,
   FEATURES_CTA_MIN_HEIGHT,
@@ -85,10 +95,13 @@ const BULLET_KEYS = ["one", "two", "three", "four"] as const;
  */
 const FEATURES_FIGURE_PARALLAX_PX = 20;
 
-/** Índice del escalón de reveal por tarjeta (mismo mecanismo que
- *  `ScStepReveal` en Journey.tsx: 120ms por tarjeta, como ya hacía este
- *  componente). */
-const STAGGER_STEP_MS = 120;
+/*
+ * `STAGGER_STEP_MS` (120ms por tarjeta) RETIRADA (spec 2026-08-06, D9): el
+ * escalonado por índice se sustituye por los seis retardos verbatim del
+ * mockup (`FEATURES_LIGHT_REVEAL_DELAYS_MS`, `features.layers.ts`), que ya
+ * no son múltiplos regulares de un paso fijo -- cubren cabecera Y tarjetas
+ * bajo un único `useReveal` (ver `ScReveal`, más abajo).
+ */
 
 /**
  * Color de acento por tarjeta (check de los bullets y CTA de texto — el
@@ -97,15 +110,40 @@ const STAGGER_STEP_MS = 120;
  * del tema (`var(--primary-600)`/`var(--secondary-600)` del mockup son los
  * mismos nombres de paso que `theme.data.palette`); Gaming usa el literal
  * propio que no tiene equivalente de tema (`FEATURES_GAMING_ACCENT`).
+ *
+ * Exportada (2026-08-06, D5/D7/D8 spec `2026-08-06-story-features-tema-claro-
+ * design.md`): además de check/CTA, la tarjeta rehecha la reutiliza para el
+ * `color-mix` de fondo del badge/panel/círculo (`ScBadge`/`ScImagePanel`/
+ * `ScImageCircle`, más abajo) y `Features.test.tsx` la necesita para medir el
+ * contraste AA real del badge sin duplicar esta función en el test.
  */
-function accentColor(theme: ThemeDefinition, key: FeatureKey): string {
+export function accentColor(theme: ThemeDefinition, key: FeatureKey): string {
   if (key === "learning") return theme.palette.primary[600];
   if (key === "imagination") return theme.palette.secondary[600];
   return FEATURES_GAMING_ACCENT;
 }
 
-/** Estado hover del acento (mockup: un paso más oscuro de la misma rampa). */
-function accentColorHover(theme: ThemeDefinition, key: FeatureKey): string {
+/**
+ * Estado hover del acento (mockup: un paso más oscuro de la misma rampa).
+ *
+ * Exportada por el mismo motivo que `accentColor` (ver su docblock) y con un
+ * SEGUNDO uso nuevo en esta entrega: el número del badge (`ScBadge`, más
+ * abajo) lo consume tal cual, no `accentColor` -- medido (informe de la
+ * tarea): un texto en `accentColor` (paso 600) sobre el fondo
+ * `color-mix(in oklab, accentColor 12%, semantic.surface)` del propio badge
+ * da entre 2.69:1 y 3.46:1 según la tarjeta, muy por debajo del 4.5:1 AA que
+ * exige el contrato de accesibilidad de la spec (§3); el paso más oscuro
+ * (`accentColorHover`) sobre el MISMO fondo (que solo se tiñe con
+ * `accentColor`, no con el propio `accentColorHover` -- un fondo más oscuro
+ * perdería margen, no ganaría) da 4.52:1/5.21:1/4.66:1, que sí cumple en las
+ * tres tarjetas. No se inventa un tercer acento: se reutiliza el par
+ * `accentColor`/`accentColorHover` que ya existía, solo que ahora cada
+ * función cubre el rol para el que da más contraste.
+ */
+export function accentColorHover(
+  theme: ThemeDefinition,
+  key: FeatureKey,
+): string {
   if (key === "learning") return theme.palette.primary[700];
   if (key === "imagination") return theme.palette.secondary[700];
   return FEATURES_GAMING_ACCENT_HOVER;
@@ -186,29 +224,71 @@ const ScFeatures = styled.section<{ $fullBleed: boolean }>`
         `}
 `;
 
+/* Cabecera: mockup L188-194 -- YA NO centrada (D6, spec `2026-08-06-story-
+   features-tema-claro-design.md`): el bloque `eyebrow + h2 + intro` es block
+   simple, alineado a la izquierda, sin `text-align`/`align-items:center` --
+   a diferencia de la cabecera anterior (las tres palabras de marca), que sí
+   los llevaba. El espaciado entre los tres hijos usa `space[3]` como
+   aproximación razonable de los márgenes verbatim del mockup (18px/16px, que
+   no coinciden con ningún paso de la escala); no está fijado por el encargo,
+   así que no se persigue el píxel exacto. */
 const ScHeader = styled.div`
-  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: ${({ theme }) => theme.data.space[2]};
+  gap: ${({ theme }) => theme.data.space[3]};
 `;
 
 /* Kicker: mismo mapeo que `ScKicker` en Story.tsx/Hero.tsx para el mismo rol
    visual ("etiqueta de marca", mockup `var(--primary-600)`, L159) —
-   `semantic.brandText`, no un paso de palette suelto. */
+   `semantic.brandText`, no un paso de palette suelto. Sigue siendo el
+   destino de la rama OSCURA (`forwardedAs="h2"`, más abajo) además de la
+   clara (`forwardedAs="p"`, dentro de `ScEyebrow`): CSS sin cambios. */
 const ScKicker = styled(Typography)`
   text-transform: uppercase;
   color: ${({ theme }) => theme.data.semantic.brandText};
 `;
 
-/* Los tres términos del h2 son spans de color — no hay separador en el
-   `.html` exportado del mockup (`<span>Learning</span><span>Imagination…`,
-   L160, concatenados sin espacio): se restaura un espacio de texto plano
-   entre ellos porque la ausencia total de separación es un artefacto de la
-   herramienta de exportación, no una intención legible del diseño ni de
-   accesibilidad (un lector de pantalla anunciaría "LearningImaginationGaming"
-   como una sola palabra). */
+/* Eyebrow con barra (D4/D6, spec 2026-08-06; mockup L189): fila
+   `barra + kicker`, exclusiva de la rama clara -- la rama oscura sigue
+   usando el kicker suelto como `h2` (ver el docblock de `ScKicker` y el
+   return oscuro, más abajo). */
+const ScEyebrow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.data.space[2]};
+`;
+
+/* Barra decorativa del eyebrow: `aria-hidden` en el punto de uso (es
+   puntuación visual, no contenido, D4 de la spec). */
+const ScEyebrowBar = styled.span`
+  flex: none;
+  display: block;
+  width: ${FEATURES_EYEBROW_BAR_WIDTH};
+  height: ${FEATURES_EYEBROW_BAR_HEIGHT};
+  background: ${({ theme }) => theme.data.semantic.brandText};
+`;
+
+/* Párrafo de entrada nuevo (D6; mockup L192, `color: var(--text-secondary)`).
+   Mismo mapeo que `ScBulletItem`/`ScBody` (más abajo) para ese rol de texto
+   en este componente: `semantic.textMuted`, no un tercer rol nuevo. */
+const ScIntro = styled(Typography)`
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  max-width: ${({ theme }) => theme.data.grid.prose};
+`;
+
+/* Los tres términos del h2 de la rama OSCURA son spans de color — no hay
+   separador en el `.html` exportado del mockup viejo
+   (`<span>Learning</span><span>Imagination…`, concatenados sin espacio): se
+   restaura un espacio de texto plano entre ellos porque la ausencia total de
+   separación es un artefacto de la herramienta de exportación, no una
+   intención legible del diseño ni de accesibilidad (un lector de pantalla
+   anunciaría "LearningImaginationGaming" como una sola palabra).
+
+   Siguen existiendo tras esta entrega (D6, spec 2026-08-06): la rama CLARA
+   deja de usarlos -- su `h2` pasa a ser una frase real, ver el return más
+   abajo --, pero la rama OSCURA los sigue consumiendo tal cual, así que no
+   se tocan ni se eliminan (D1 de la spec: nunca mutar un styled compartido
+   de un modo que rompa la otra rama). */
 const ScSpanLearning = styled.span`
   /* mockup: var(--primary-800) (L160) === theme.data.semantic.brandText
      (primary[800], ver semantic.ts) -- coincidencia exacta, no aproximada. */
@@ -238,45 +318,40 @@ const ScSpanGaming = styled.span`
   }
 `;
 
-const ScGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${({ theme }) => theme.data.grid.gutter};
-  width: 100%;
-
-  @media ${({ theme }) => theme.data.breakPoint.md} {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-`;
-
-/* Reveal escalonado por tarjeta -- mismo mecanismo que el componente
-   anterior conservaba (guard reduced-motion que fuerza el estado final Y
-   anula el propio `transition-delay`, no solo la duración: si no, el
-   escalonado seguiría "saltando" tarde bajo reduce en vez de aparecer ya
-   resuelto). Learning ocupa las dos columnas solo ≥ md (mockup L163:
-   `grid-column: span 2`); por debajo de `md` hay una sola columna y la regla
-   no tiene efecto visible.
-
-   Duración/easing (D7, encargo 2026-08-04): slower + decelerate, no
-   slow + emphasized -- este mismo fichero declaraba dos criterios de entrada
-   distintos para sus dos ramas (este bloque y ScDarkContent, más abajo);
-   unificados a la pareja que ya usaba la rama oscura, solo que con la
-   duración más lenta de la escala (480ms) para que la entrada se lea
-   "resuelta con calma", como pide el encargo. */
-const ScItem = styled.div<{ $index: number; $fullWidth: boolean }>`
+/*
+ * Envoltorio genérico de reveal escalonado (D9, spec 2026-08-06): SUSTITUYE
+ * a `ScItem` (que solo envolvía tarjetas, con `$index`/`$fullWidth` propios
+ * de la rejilla). Ahora cubre los SEIS elementos de la rama clara --
+ * eyebrow, `h2`, párrafo de entrada y las tres tarjetas -- bajo un ÚNICO
+ * `useReveal` (ver `Features()`): el estado `data-revealed` vive en
+ * `ScRevealGroup` (el padre común, más abajo), NO en cada `ScReveal`, así que
+ * el selector es DESCENDIENTE (`[data-revealed="true"] &`) y no calificado
+ * (`&[data-revealed="true"]`) -- la variante calificada solo funcionaría si
+ * el atributo viviera en el propio elemento, que es justo el matiz que
+ * documenta el gotcha transversal de CSS con atributos de estado (mismo
+ * patrón que ya evitó Journey/Story: un padre con el estado, hijos animados
+ * como descendientes).
+ *
+ * Cada instancia declara su propio escalón por `$delayMs`
+ * (`FEATURES_LIGHT_REVEAL_DELAYS_MS`, `features.layers.ts`) como
+ * `transition-delay` SUELTO (no dentro del shorthand `transition`) --mismo
+ * patrón que `ScItem` ya usaba y que la suite valida que jsdom resuelve
+ * (`Features.test.tsx`, lección repo 2026-07-25/27). El guard de
+ * `prefers-reduced-motion: reduce` anula la transición Y el propio retardo
+ * (no solo la duración): sin eso, un elemento con 360ms de retardo se
+ * quedaría invisible ese tramo bajo `reduce`, peor que no animar.
+ */
+const ScReveal = styled.div<{ $delayMs: number }>`
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(${FEATURES_LIGHT_REVEAL_TRANSLATE_Y});
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
-  transition-delay: ${({ $index }) => $index * STAGGER_STEP_MS}ms;
+    opacity ${FEATURES_LIGHT_REVEAL_DURATION_MS}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${FEATURES_LIGHT_REVEAL_DURATION_MS}
+      ${({ theme }) => theme.data.motion.easing.standard};
+  transition-delay: ${({ $delayMs }) => $delayMs}ms;
 
-  ${({ $fullWidth, theme }) =>
-    $fullWidth && `@media ${theme.data.breakPoint.md} { grid-column: 1 / -1; }`}
-
-  &[data-revealed="true"] {
+  [data-revealed="true"] & {
     opacity: 1;
     transform: none;
   }
@@ -289,35 +364,116 @@ const ScItem = styled.div<{ $index: number; $fullWidth: boolean }>`
   }
 `;
 
-const ScCard = styled.article<{ $key: FeatureKey }>`
-  position: relative;
+/* Envoltorio único de reveal (D9): agrupa cabecera + rejilla bajo el MISMO
+   `IntersectionObserver` (`revealRef`, `Features()`) -- ver el docblock de
+   `ScReveal`, arriba, para el porqué del selector descendiente. `space[7]`
+   (48px) entre cabecera y rejilla: mockup L196, `margin-top: var(--space-7)`
+   sobre la rejilla respecto al bloque de cabecera. */
+const ScRevealGroup = styled.div`
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: ${({ theme }) => theme.data.space[7]};
+`;
+
+/* Rejilla de tres tarjetas IGUALES (D5, spec 2026-08-06; mockup L196):
+   SUSTITUYE al `grid-template-columns: 1fr` / `repeat(2, ...)` anterior --
+   se retira el caso especial `$fullWidth` de "learning" (ya no existe: las
+   tres tarjetas son geométricamente iguales, ninguna ocupa dos columnas). */
+const ScGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
+  gap: ${({ theme }) => theme.data.space[5]};
+  align-items: stretch;
+  width: 100%;
+`;
+
+/* Giro del ángulo del borde cónico (D7): anima la propiedad personalizada
+   `--vti-angle` en sí, no ninguna propiedad de compositor -- por eso todo el
+   bloque vive detrás de un guard `no-preference` explícito, ver
+   `ScCardBorder` más abajo. `--vti-angle` YA está registrada con `@property`
+   en `GlobalStyles.tsx` (no se declara ni se mueve aquí: `@property` es una
+   regla de nivel superior de la hoja, y styled-components inyecta el CSS de
+   un componente anidado bajo su propia clase). */
+const cardBorderSpin = keyframes`
+  to {
+    --vti-angle: 360deg;
+  }
+`;
+
+/*
+ * Envoltorio-borde de la tarjeta (D7, mockup L197-198): la tarjeta EXTERIOR
+ * es solo `padding: 1.5px` con el FONDO haciendo de borde -- en reposo
+ * `semantic.border` (gris neutro), en hover un `conic-gradient` de marca que
+ * gira. Dentro, `ScCardSurface` (más abajo) pinta la superficie blanca real
+ * con el radio interior (`calc(radio - padding)`, ver el docblock de
+ * `FEATURES_CARD_RADIUS`).
+ *
+ * Excepción declarada al lenguaje de movimiento de la casa (D7 de la spec
+ * `2026-08-06-story-features-tema-claro-design.md`): el `animation` de abajo
+ * NO anima `transform`/`opacity` -- anima `--vti-angle`, una propiedad
+ * personalizada que repinta el `background-image` cónico en cada frame. Se
+ * acepta por los mismos motivos que la excepción ya sancionada del degradado
+ * de `BrandName`: es un efecto de marca, está ACOTADO al hover (no es
+ * ambiental, no corre mientras nadie lo mira) y se declara SOLO bajo
+ * `@media (prefers-reduced-motion: no-preference)` -- bajo `reduce` el hover
+ * conserva el `translateY`/`box-shadow` (cambios instantáneos, no animados)
+ * pero nunca el borde cónico ni su giro.
+ *
+ * Degradación conocida y aceptada: sin soporte de `@property` (que registra
+ * `--vti-angle` como `<angle>` interpolable, `GlobalStyles.tsx`), el ángulo
+ * no interpola y el borde queda como un degradado cónico ESTÁTICO en hover
+ * -- sigue siendo un borde de marca legible, no hay estado roto, así que no
+ * hace falta `@supports`.
+ *
+ * Paradas de marca del sistema (D7): `semantic.brand` (=`palette.primary[500]`,
+ * coincide exacto con el `var(--primary-500)` del mockup) y
+ * `palette.secondary[500]` (sin rol semántico propio, mismo criterio que ya
+ * usa `accentColor` para `secondary` en este mismo fichero).
+ *
+ * Sombra (D5/D7): `elevation[1]` en reposo / `elevation[3]` en hover ("subida
+ * de sombra") -- mismo mapeo de "doble sombra suave → elevation[1] / doble
+ * sombra más profunda → elevation[3]" que la tabla D2 de la spec fija para
+ * las tarjetas-pilar de Story; se reutiliza aquí por ser la misma gramática
+ * visual del mismo sistema, no dos escalas de sombra paralelas.
+ */
+const ScCardBorder = styled.article<{ $key: FeatureKey }>`
+  position: relative;
+  display: flex;
   height: 100%;
-  min-height: 240px;
+  padding: ${FEATURES_CARD_BORDER_WIDTH};
   border-radius: ${FEATURES_CARD_RADIUS};
-  border: 1px solid ${({ $key }) => FEATURE_CARD_VISUALS[$key].border};
-  background: ${({ $key }) => FEATURE_CARD_VISUALS[$key].background};
-  box-shadow: ${({ $key }) => FEATURE_CARD_VISUALS[$key].shadow};
+  background: ${({ theme }) => theme.data.semantic.border};
+  box-shadow: ${({ theme }) => theme.data.elevation[1]};
   transition:
     transform ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard},
     box-shadow ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    border-color ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard};
 
-  @media ${({ theme }) => theme.data.breakPoint.md} {
-    flex-direction: row;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: ${({ theme }) => theme.data.elevation[3]};
   }
 
-  &:hover {
-    transform: translateY(
-      ${({ $key }) => FEATURE_CARD_VISUALS[$key].hoverTranslateY}
-    );
-    box-shadow: ${({ $key }) => FEATURE_CARD_VISUALS[$key].shadowHover};
-    border-color: ${({ $key }) => FEATURE_CARD_VISUALS[$key].borderHover};
+  /* Borde cónico: SOLO bajo no-preference, y anidado como
+     @media { hover {...} } -- no al revés (hover { @media {...} }) -- mismo
+     orden de anidación que el resto de guards de movimiento de este fichero
+     (el propio guard reduce de este componente, más abajo): es el patrón
+     que este repo ya usa en todas partes para condicionar reglas de
+     pseudo-clase a un @media. */
+  @media (prefers-reduced-motion: no-preference) {
+    &:hover {
+      background-image: conic-gradient(
+        from var(--vti-angle),
+        ${({ theme }) => theme.data.semantic.brand},
+        ${({ theme }) => theme.data.palette.secondary[500]},
+        ${({ theme }) => theme.data.semantic.brand},
+        ${({ theme }) => theme.data.palette.secondary[500]},
+        ${({ theme }) => theme.data.semantic.brand}
+      );
+      animation: ${cardBorderSpin} ${FEATURES_CONIC_BORDER_SPIN_MS} linear
+        infinite;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -329,120 +485,134 @@ const ScCard = styled.article<{ $key: FeatureKey }>`
   }
 `;
 
-const ScPattern = styled.svg`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+/* Superficie interior blanca (D7): radio calculado, no un segundo literal
+   (ver el docblock de `FEATURES_CARD_RADIUS`, `features.layers.ts`). */
+const ScCardSurface = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: ${({ theme }) => theme.data.semantic.surface};
+  border-radius: calc(${FEATURES_CARD_RADIUS} - ${FEATURES_CARD_BORDER_WIDTH});
+  overflow: hidden;
 `;
 
-/** Patrón SVG decorativo de fondo, copiado verbatim del mockup por tarjeta
- *  (`FEATURE_CARD_VISUALS[key].patternShapes`, L165/180/195). Puramente
- *  ornamental -- `aria-hidden`. */
-function FeaturePattern({ cardKey }: { cardKey: FeatureKey }): ReactElement {
-  const visual = FEATURE_CARD_VISUALS[cardKey];
-  return (
-    <ScPattern aria-hidden="true">
-      <defs>
-        <pattern
-          id={visual.patternId}
-          width="84"
-          height="84"
-          patternUnits="userSpaceOnUse"
-          patternTransform={`rotate(${visual.patternRotate})`}
-        >
-          <g
-            fill="none"
-            stroke={visual.patternStroke}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {visual.patternShapes.map((shape, index) =>
-              shape.type === "path" ? (
-                <path
-                  key={index}
-                  d={shape.d}
-                />
-              ) : (
-                <circle
-                  key={index}
-                  cx={shape.cx}
-                  cy={shape.cy}
-                  r={shape.r}
-                />
-              ),
-            )}
-          </g>
-        </pattern>
-      </defs>
-      <rect
-        width="100%"
-        height="100%"
-        fill={`url(#${visual.patternId})`}
-      />
-    </ScPattern>
-  );
-}
+/* Fila superior: badge numérico + etiqueta (D6/D10; mockup L199). */
+const ScCardHead = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.data.space[3]};
+  padding: ${({ theme }) => theme.data.space[5]}
+    ${({ theme }) => theme.data.space[5]} 0;
+`;
 
-/* < md: el mockup no describe una figura apilada (solo el layout de fila
-   `figura izquierda + contenido` de ≥ md, spec §7.3); "figuras proporcionadas"
-   se resuelve con una altura fija razonable en vez de un porcentaje de la
-   fila (que en apilado no existe) — 9.5rem (152px) mantiene las tres figuras
-   legibles sin desbordar una tarjeta apilada de ancho de viewport.
+/*
+ * Badge cuadrado (D6; mockup L200). El NÚMERO usa `accentColorHover`
+ * (paso 700), no `accentColor` (paso 600) -- ver el docblock de
+ * `accentColorHover`, arriba, para la medición de contraste que motiva la
+ * elección: sobre el fondo `color-mix` de este mismo badge, el paso 600 no
+ * llega a AA en ninguna de las tres tarjetas (2.69:1-3.46:1) y el 700 sí
+ * (4.52:1-5.21:1). `font-weight` reutiliza `type.scale.h5.weight` (600, el
+ * "bold" más próximo de la escala) -- mismo recurso que ya usa `ScCta`
+ * (más abajo) para el mismo propósito.
+ */
+const ScBadge = styled.span<{ $key: FeatureKey }>`
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: ${FEATURES_BADGE_SIZE};
+  height: ${FEATURES_BADGE_SIZE};
+  border-radius: ${({ theme }) => theme.data.radius.lg};
+  background: ${({ theme, $key }) =>
+    `color-mix(in oklab, ${accentColor(theme.data, $key)} 12%, ${theme.data.semantic.surface})`};
+  font-family: ${({ theme }) => theme.data.type.fontMono};
+  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
+  letter-spacing: 0.04em;
+  color: ${({ theme, $key }) => accentColorHover(theme.data, $key)};
+`;
 
-   Parallax de contenido ligado a scroll (D7/D1, encargo 2026-08-04): la rama
-   clara no tenía ni un movimiento atado al progreso de scroll. Se lee
-   --features-progress (0..1, escrito por useSectionProgress sobre
-   ScFeatures, ver Features()) y se traduce en un desplazamiento vertical de
-   decenas de píxeles, no cientos -- el propio encargo lo pide así. Ningún
+/* Etiqueta del badge ("Aprende"/"Crea"/"Juega"): overline en
+   `semantic.textSubtle` (D6/D10). */
+const ScBadgeLabel = styled(Typography)`
+  color: ${({ theme }) => theme.data.semantic.textSubtle};
+`;
+
+/* Panel de imagen (D8; mockup L202-206): bloque de altura fija con un
+   círculo decorativo desbordando por abajo (`aria-hidden`) y la figura
+   encima, alineada al borde inferior (ver `ScFigure`, debajo). El fondo y el
+   círculo son puramente decorativos -- no llevan texto, así que no están
+   sujetos al contraste de texto AA (solo `ScBadge`, que sí es texto, lo
+   necesita). */
+const ScImagePanel = styled.div<{ $key: FeatureKey }>`
+  position: relative;
+  margin-block-start: ${({ theme }) => theme.data.space[4]};
+  margin-inline: ${({ theme }) => theme.data.space[3]};
+  height: ${FEATURES_IMAGE_PANEL_HEIGHT};
+  border-radius: ${({ theme }) => theme.data.radius.xl};
+  background: ${({ theme, $key }) =>
+    `color-mix(in oklab, ${accentColor(theme.data, $key)} 7%, ${theme.data.semantic.surface})`};
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+`;
+
+const ScImageCircle = styled.span<{ $key: FeatureKey }>`
+  position: absolute;
+  width: ${FEATURES_IMAGE_CIRCLE_SIZE};
+  height: ${FEATURES_IMAGE_CIRCLE_SIZE};
+  bottom: ${FEATURES_IMAGE_CIRCLE_OFFSET};
+  border-radius: ${({ theme }) => theme.data.radius.full};
+  background: ${({ theme, $key }) =>
+    `color-mix(in oklab, ${accentColor(theme.data, $key)} 16%, ${theme.data.semantic.surface})`};
+`;
+
+/* Parallax de contenido ligado a scroll (D7/D1, encargo 2026-08-04,
+   conservado en esta entrega): se lee --features-progress (0..1, escrito por
+   useSectionProgress sobre ScFeatures, ver Features()) y se traduce en un
+   desplazamiento vertical de decenas de píxeles, no cientos. Ningún
    @keyframes toca transform en este elemento, así que no hay conflicto con
    el mecanismo que documenta task/lessons.md (2026-07-26, una @keyframes
    sobre una propiedad le impide a una transition sobre esa misma propiedad
    llegar a existir): aquí no hace falta transition -- la variable ya llega
-   suavizada por el lerp del propio hook, frame a frame. */
-const ScFigure = styled.img<{ $key: FeatureKey }>`
+   suavizada por el lerp del propio hook, frame a frame.
+
+   `width: auto` + `height: 100%` (D8, mockup L207): sin el override explícito
+   de `width`, GlobalStyles fuerza `img { width: 100% }` en todo el sitio (la
+   misma regla que ya obligó a fijar el ancho de `ScCheckIcon`, más abajo) y
+   la figura perdería su proporción, dejando de "alinearse al borde inferior"
+   -- pasaría a llenar el panel entero y `object-position` (centrado por
+   defecto en GlobalStyles) sustituiría a la alineación por flex del panel. */
+const ScFigure = styled.img`
   position: relative;
   z-index: 1;
   display: block;
   width: auto;
-  height: 9.5rem;
-  align-self: center;
-  margin-inline: auto;
+  height: 100%;
+  max-width: 100%;
   object-fit: contain;
-  filter: ${({ $key }) => FEATURE_CARD_VISUALS[$key].figureDropShadow};
-  /* Parallax de contenido ligado a scroll: ver el docblock de arriba. */
   transform: translateY(
     calc(var(--features-progress, 0) * -${FEATURES_FIGURE_PARALLAX_PX}px)
   );
-
-  @media ${({ theme }) => theme.data.breakPoint.md} {
-    align-self: flex-end;
-    height: ${({ $key }) => FEATURE_CARD_VISUALS[$key].figureHeight};
-    margin-inline: 0;
-    margin-left: ${({ theme, $key }) =>
-      $key === "learning" ? theme.data.space[4] : theme.data.space[3]};
-  }
 
   @media (prefers-reduced-motion: reduce) {
     transform: none;
   }
 `;
 
+/* Cuerpo de la tarjeta: título + body + bullets + CTA (sin cambios de
+   estructura respecto a la entrega anterior, solo pierde el
+   `position:relative;z-index:1` que necesitaba para competir con el patrón
+   SVG absoluto que esta entrega retira -- ver `features.layers.ts`). */
 const ScContent = styled.div`
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: ${({ theme }) => theme.data.space[2]};
-  padding: ${({ theme }) => theme.data.space[4]}
-    ${({ theme }) => theme.data.space[5]};
-
-  @media ${({ theme }) => theme.data.breakPoint.md} {
-    flex: 1;
-    justify-content: center;
-  }
+  padding: ${({ theme }) => theme.data.space[5]};
 `;
 
 const ScBody = styled(Typography)`
@@ -759,9 +929,18 @@ const ScDarkTail = styled.div`
 
    Duración (D7, encargo 2026-08-04): `slower` (480ms), no `slow` (320ms) --
    el easing `decelerate` ya era el correcto aquí; lo que no coincidía con
-   `ScItem` (arriba, rama clara) era la duración. Unificadas las dos a la
+   `ScItem` (rama clara de entonces) era la duración. Unificadas las dos a la
    pareja más lenta de la escala, para que las entradas de Features se lean
-   igual de "resueltas con calma" en los dos temas. */
+   igual de "resueltas con calma" en los dos temas.
+
+   Esta unificación queda INTACTA solo en la rama OSCURA: la reescritura de
+   la cabecera y las tarjetas de la rama CLARA (2026-08-06, D9, spec
+   `2026-08-06-story-features-tema-claro-design.md`) sustituyó a `ScItem` por
+   `ScReveal` (arriba) con la duración/easing VERBATIM del mockup nuevo
+   (640ms + `easing.standard`, `FEATURES_LIGHT_REVEAL_DURATION_MS`), que ya
+   no coincide con `slower`/`decelerate`. No es una regresión de la
+   unificación de esta entrega: D1 de la spec nueva prohíbe tocar la rama
+   oscura, así que `ScDarkContent` se queda exactamente como estaba. */
 const ScDarkContent = styled.div`
   max-width: ${({ theme }) => theme.data.grid.prose};
   width: 100%;
@@ -989,100 +1168,147 @@ export function Features(): ReactElement {
       aria-labelledby="features-title"
       $fullBleed={false}
     >
-      <ScHeader>
-        {/* forwardedAs, NO as: sobre un styled(Typography), `as` lo consume
-            styled-components y sustituye a Typography entero por un <p>
-            crudo (variant se cuela al DOM y la variante pierde sus estilos;
-            mismo pitfall documentado en Hero.tsx:369). */}
-        <ScKicker
-          variant="overline"
-          forwardedAs="p"
-        >
-          {t("Home.features.kicker")}
-        </ScKicker>
-        <Typography
-          variant="h2"
-          id="features-title"
-        >
-          <ScSpanLearning>{t("Home.features.learning.title")}</ScSpanLearning>{" "}
-          <ScSpanImagination>
-            {t("Home.features.imagination.title")}
-          </ScSpanImagination>{" "}
-          <ScSpanGaming>{t("Home.features.gaming.title")}</ScSpanGaming>
-        </Typography>
-      </ScHeader>
-
-      <ScGrid ref={revealRef}>
-        {FEATURE_KEYS.map((key, index) => {
-          const basename = FEATURE_FIGURE_BASENAME[key];
-          const isLearning = key === "learning";
-
-          return (
-            <ScItem
-              key={key}
-              $index={index}
-              $fullWidth={isLearning}
-              data-revealed={revealed}
-            >
-              <ScCard
-                $key={key}
-                aria-labelledby={`feature-${key}-title`}
+      {/* Envoltorio único de reveal (D9): un solo useReveal (revealRef/
+          revealed) cubre cabecera + rejilla -- ver el docblock de
+          `ScRevealGroup`/`ScReveal`, arriba. */}
+      <ScRevealGroup
+        ref={revealRef}
+        data-revealed={revealed}
+      >
+        <ScHeader>
+          <ScReveal
+            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}
+            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}
+          >
+            <ScEyebrow>
+              <ScEyebrowBar aria-hidden="true" />
+              {/* forwardedAs, NO as: sobre un styled(Typography), `as` lo
+                  consume styled-components y sustituye a Typography entero
+                  por un <p> crudo (variant se cuela al DOM y la variante
+                  pierde sus estilos; mismo pitfall documentado en
+                  Hero.tsx:369). */}
+              <ScKicker
+                variant="overline"
+                forwardedAs="p"
               >
-                <FeaturePattern cardKey={key} />
-                <ScFigure
+                {t("Home.features.kicker")}
+              </ScKicker>
+            </ScEyebrow>
+          </ScReveal>
+
+          <ScReveal
+            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
+            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
+          >
+            <Typography
+              variant="h2"
+              id="features-title"
+            >
+              {t("Home.features.title")}
+            </Typography>
+          </ScReveal>
+
+          <ScReveal
+            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[2]}
+            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[2]}
+          >
+            <ScIntro variant="body">{t("Home.features.intro")}</ScIntro>
+          </ScReveal>
+        </ScHeader>
+
+        <ScGrid>
+          {FEATURE_KEYS.map((key, index) => {
+            const basename = FEATURE_FIGURE_BASENAME[key];
+            const delayMs = FEATURES_LIGHT_REVEAL_DELAYS_MS[3 + index];
+            /* Números 01/02/03: decorativos (D6/D10) -- aria-hidden en
+               ScBadge, más abajo; el orden ya lo comunica el DOM. */
+            const number = String(index + 1).padStart(2, "0");
+
+            return (
+              <ScReveal
+                key={key}
+                $delayMs={delayMs}
+                data-reveal-delay={delayMs}
+              >
+                <ScCardBorder
                   $key={key}
-                  src={`/figures/${basename}-1024.webp`}
-                  srcSet={`/figures/${basename}-640.webp 640w, /figures/${basename}-1024.webp 1024w`}
-                  sizes={FEATURES_FIGURE_SIZES}
-                  loading="lazy"
-                  decoding="async"
-                  alt={t(`Home.features.${key}.figureAlt`)}
-                />
-                <ScContent>
-                  <Typography
-                    variant="h3"
-                    id={`feature-${key}-title`}
-                  >
-                    {t(`Home.features.${key}.title`)}
-                  </Typography>
-                  <ScBody variant="bodySm">
-                    {t(`Home.features.${key}.body`)}
-                  </ScBody>
-                  <ScBullets>
-                    {BULLET_KEYS.map((bulletKey) => (
-                      <ScBulletItem key={bulletKey}>
-                        <ScCheckIcon
-                          $key={key}
-                          width="15"
-                          height="15"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                          focusable="false"
-                        >
-                          <path d={FEATURES_CHECK_ICON_PATH} />
-                        </ScCheckIcon>
-                        <span>
-                          {t(`Home.features.${key}.bullets.${bulletKey}`)}
-                        </span>
-                      </ScBulletItem>
-                    ))}
-                  </ScBullets>
-                  <ScCta
-                    href="#contact"
-                    $key={key}
-                  >
-                    {t(`Home.features.${key}.cta`)} →
-                  </ScCta>
-                </ScContent>
-              </ScCard>
-            </ScItem>
-          );
-        })}
-      </ScGrid>
+                  aria-labelledby={`feature-${key}-title`}
+                >
+                  <ScCardSurface>
+                    <ScCardHead>
+                      <ScBadge
+                        $key={key}
+                        aria-hidden="true"
+                      >
+                        {number}
+                      </ScBadge>
+                      <ScBadgeLabel variant="overline">
+                        {t(`Home.features.${key}.badge`)}
+                      </ScBadgeLabel>
+                    </ScCardHead>
+
+                    <ScImagePanel $key={key}>
+                      <ScImageCircle
+                        $key={key}
+                        aria-hidden="true"
+                      />
+                      <ScFigure
+                        src={`/figures/${basename}-1024.webp`}
+                        srcSet={`/figures/${basename}-640.webp 640w, /figures/${basename}-1024.webp 1024w`}
+                        sizes={FEATURES_FIGURE_SIZES}
+                        loading="lazy"
+                        decoding="async"
+                        alt={t(`Home.features.${key}.figureAlt`)}
+                      />
+                    </ScImagePanel>
+
+                    <ScContent>
+                      <Typography
+                        variant="h3"
+                        id={`feature-${key}-title`}
+                      >
+                        {t(`Home.features.${key}.title`)}
+                      </Typography>
+                      <ScBody variant="bodySm">
+                        {t(`Home.features.${key}.body`)}
+                      </ScBody>
+                      <ScBullets>
+                        {BULLET_KEYS.map((bulletKey) => (
+                          <ScBulletItem key={bulletKey}>
+                            <ScCheckIcon
+                              $key={key}
+                              width="15"
+                              height="15"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                              focusable="false"
+                            >
+                              <path d={FEATURES_CHECK_ICON_PATH} />
+                            </ScCheckIcon>
+                            <span>
+                              {t(`Home.features.${key}.bullets.${bulletKey}`)}
+                            </span>
+                          </ScBulletItem>
+                        ))}
+                      </ScBullets>
+                      <ScCta
+                        href="#contact"
+                        $key={key}
+                      >
+                        {t(`Home.features.${key}.cta`)} →
+                      </ScCta>
+                    </ScContent>
+                  </ScCardSurface>
+                </ScCardBorder>
+              </ScReveal>
+            );
+          })}
+        </ScGrid>
+      </ScRevealGroup>
     </ScFeatures>
   );
 }

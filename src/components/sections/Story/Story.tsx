@@ -7,6 +7,7 @@ import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { useTheme } from "@/theme/ThemeProvider";
+import type { ThemeDefinition } from "@/theme/theme.types";
 import { StoryCosmicBeing } from "@/components/storyCosmicBeing/StoryCosmicBeing";
 import {
   ScDeck,
@@ -96,6 +97,42 @@ function pillarColor(
     return theme.data.palette.secondary[700];
   };
 }
+
+/*
+ * Constantes de esta entrega (tarjetas de pilar, mockup L86-123, spec
+ * 2026-08-06-story-features-tema-claro-design.md D2/D3/D4/D9): valores que
+ * el mockup fija en px/ms y para los que el sistema de tokens no tiene un
+ * paso equivalente. Viven aquí, junto al componente que los consume -- no en
+ * story.layers.ts, que documenta en su propia cabecera que solo contiene
+ * arte VERBATIM de la reescritura 2026-07-28/2026-07-31, ajena a esta
+ * entrega.
+ */
+/** Badge cuadrado del número de cada tarjeta (mockup L88/97/106/115: 38px):
+ *  ningún paso de `radius`/`space` mide exactamente esto. */
+const STORY_CARD_BADGE_SIZE = "2.375rem";
+/** Hover de tarjeta (D3, mockup `style-hover`): `translateY(-3px)`, un
+ *  desplazamiento demasiado pequeño para ningún paso de `space`. */
+const STORY_CARD_HOVER_LIFT = "-3px";
+/** Entrada escalonada (D9): 640ms/`translateY(22px)` son los valores DEL
+ *  MOCKUP para las 7 piezas que se revelan en cascada (barra+kicker, h2,
+ *  body, las 4 tarjetas) -- ninguno coincide con un paso de
+ *  `motion.duration`/`space`, igual que `STORY_FIGURE_FLOAT_MS`
+ *  (story.layers.ts). La curva SÍ es de tema: `motion.easing.standard` es la
+ *  misma `cubic-bezier(0.4,0,0.2,1)` que pide el mockup. */
+const STORY_REVEAL_DURATION_MS = 640;
+const STORY_REVEAL_TRANSLATE = "22px";
+/** Retardo de cada pieza en cascada, mismo orden que el mockup (L74-121):
+ *  barra+kicker, h2, body, tarjeta 1..4 (D9). */
+const STORY_REVEAL_DELAY_EYEBROW_MS = 0;
+const STORY_REVEAL_DELAY_TITLE_MS = 80;
+const STORY_REVEAL_DELAY_BODY_MS = 140;
+const STORY_CARD_REVEAL_DELAYS_MS = [200, 260, 320, 380] as const;
+/** Interlineado del párrafo de inspiración (D2, mockup L96:
+ *  `line-height: 1.7`): ninguna variante de `type.scale` mide un cuerpo de
+ *  texto a este interlineado (bodySm da 1.55) -- mismo recurso que
+ *  `ScDeckPillarBody`/`ScDeckNote` (story.deck.tsx) ya usan para el mismo
+ *  problema en la diapositiva oscura. */
+const STORY_CARD_INSPIRATION_LINE_HEIGHT = 1.7;
 
 /*
  * Rama clara: contenedor de contenido normal (padding + tope de ancho,
@@ -325,8 +362,31 @@ const ScKicker = styled(Typography)`
   color: ${({ theme }) => theme.data.semantic.brandText};
 `;
 
+/* Segunda pieza de la cascada de D9 (retardo 80ms): mismo mecanismo que
+   ScEyebrowRow -- ver su docblock, más arriba -- reutilizando el MISMO
+   `data-revealed` de ScGrid. */
 const ScTitle = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
+  opacity: 0;
+  transform: translateY(${STORY_REVEAL_TRANSLATE});
+  transition:
+    opacity ${STORY_REVEAL_DURATION_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${STORY_REVEAL_DURATION_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard};
+  transition-delay: ${STORY_REVEAL_DELAY_TITLE_MS}ms;
+
+  [data-revealed="true"] & {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transition-delay: 0ms;
+    opacity: 1;
+    transform: none;
+  }
 `;
 
 /* Degradado seleccionado por tema (spec 2026-07-29 D10): mismas paradas de
@@ -352,17 +412,40 @@ const ScAccent = styled.span`
   }
 `;
 
+/* Tercera pieza de la cascada de D9 (retardo 140ms): mismo mecanismo que
+   ScEyebrowRow/ScTitle -- ver el docblock de ScEyebrowRow, más arriba. */
 const ScBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[5]};
   max-width: ${({ theme }) => theme.data.grid.prose};
+  opacity: 0;
+  transform: translateY(${STORY_REVEAL_TRANSLATE});
+  transition:
+    opacity ${STORY_REVEAL_DURATION_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${STORY_REVEAL_DURATION_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard};
+  transition-delay: ${STORY_REVEAL_DELAY_BODY_MS}ms;
+
+  [data-revealed="true"] & {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transition-delay: 0ms;
+    opacity: 1;
+    transform: none;
+  }
 `;
 
-const ScPillars = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-block-start: ${({ theme }) => theme.data.space[6]};
-`;
-
+/*
+ * ScPillarRow/ScPillarNumber/ScPillarCopy: desde esta entrega (2026-08-06,
+ * D2) YA NO los consume la rama clara -- los cuatro pilares pasaron de fila
+ * de lista a tarjeta (`ScPillarCard`, más abajo). Se conservan intactos,
+ * exclusivos de la rama OSCURA vía `ScDeckPillarRow` (regla D1 de la spec:
+ * no tocar lo que consume el deck).
+ */
 const ScPillarRow = styled.div`
   display: grid;
   grid-template-columns: 2.5rem 1fr;
@@ -386,14 +469,273 @@ const ScPillarCopy = styled.div`
 `;
 
 /*
- * El MISMO pilar, pero como diapositiva suelta. `ScPillarRow` lleva un
- * `border-block-start` porque en la rama clara los cuatro pilares son una
- * LISTA y esa línea es su separador: es lo que convierte cuatro bloques
- * sueltos en una tabla legible. Aislado en su propia diapositiva a pantalla
- * completa no separa nada de nada — queda una raya suelta flotando encima
- * del contenido, que se lee como un resto de maquetación, no como una
- * decisión. Se anula aquí, en el contexto donde deja de tener sentido, en
- * vez de quitarla de `ScPillarRow`, que seguiría necesitándola en claro.
+ * Barra + kicker (D4, "eyebrow"): SOLO rama clara -- envoltorio NUEVO, no
+ * mutación de `ScKicker`, que la rama OSCURA reutiliza tal cual
+ * (StoryDeckDark, más abajo, la sigue consumiendo directamente). La barra es
+ * puramente decorativa (`aria-hidden`): puntuación visual, no contenido (D4).
+ * Primera pieza de la cascada de D9 (retardo 0, ver
+ * STORY_REVEAL_DELAY_EYEBROW_MS): arranca invisible y desplazada, y solo se
+ * resuelve bajo el `data-revealed` que ya escribe el `useReveal` de
+ * `ScGrid` -- ningún observer nuevo.
+ */
+const ScEyebrowRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.data.space[2]};
+  opacity: 0;
+  transform: translateY(${STORY_REVEAL_TRANSLATE});
+  transition:
+    opacity ${STORY_REVEAL_DURATION_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${STORY_REVEAL_DURATION_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard};
+  transition-delay: ${STORY_REVEAL_DELAY_EYEBROW_MS}ms;
+
+  [data-revealed="true"] & {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transition-delay: 0ms;
+    opacity: 1;
+    transform: none;
+  }
+`;
+
+/* Barra (D4): 1.75rem x 2px del mockup (L75), sin paso de `space` que mida
+   ninguna de las dos medidas -- literal documentado, como el resto de esta
+   entrega. */
+const ScEyebrowBar = styled.span`
+  display: block;
+  width: 1.75rem;
+  height: 2px;
+  background-color: ${({ theme }) => theme.data.semantic.brandText};
+`;
+
+/*
+ * Rejilla de tarjetas (D2): sustituye a la antigua `ScPillars` (columna con
+ * `border-block-start` por fila). `repeat(auto-fit, minmax(15rem, 1fr))`
+ * mapea el `minmax(240px, 1fr)` del mockup (L85) al paso de `space` más
+ * cercano por abajo que sigue dejando cuatro tarjetas legibles en una
+ * columna estrecha.
+ */
+const ScPillarGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: ${({ theme }) => theme.data.space[4]};
+  margin-block-start: ${({ theme }) => theme.data.space[6]};
+`;
+
+/*
+ * Envoltorio de ENTRADA de cada tarjeta (D9): capa SEPARADA de
+ * `ScPillarCard` (más abajo) por el mismo motivo que separa `ScItem`/
+ * `ScCard` en Features.tsx -- si el `transition-delay` de la cascada de
+ * entrada viviera en el MISMO elemento que anima `transform` en hover (D3),
+ * cualquier hover posterior a la entrada heredaría ese mismo retardo (hasta
+ * 380ms en la cuarta tarjeta) antes de reaccionar, porque `transition-delay`
+ * se aplica a TODOS los cambios de esa propiedad en ese elemento, no solo al
+ * primero. Con dos elementos, la entrada (aquí) y el hover (`ScPillarCard`)
+ * no comparten `transition-delay`.
+ *
+ * `:nth-child` (D9, patrón `data-intro`/`nth-child` de `ScCopy` en
+ * Hero.tsx), NO una prop `$index`: las CUATRO tarjetas son el MISMO
+ * componente en el MISMO contenedor (`ScPillarGrid`), así que su posición ya
+ * la da el DOM -- no hace falta que React se la pase por prop. El selector
+ * es DESCENDIENTE (`[data-revealed="true"] &`), no `&[data-revealed="true"]
+ * > &`, porque el atributo vive en `ScGrid` (un ANCESTRO, no el padre
+ * directo) -- REUTILIZADO del `useReveal` que ya corre sobre ella (D9: "uno
+ * solo, sobre el contenedor"), sin montar un segundo `IntersectionObserver`.
+ */
+const ScPillarCardItem = styled.div`
+  opacity: 0;
+  transform: translateY(${STORY_REVEAL_TRANSLATE});
+  transition:
+    opacity ${STORY_REVEAL_DURATION_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${STORY_REVEAL_DURATION_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard};
+
+  [data-revealed="true"] & {
+    opacity: 1;
+    transform: none;
+  }
+
+  [data-revealed="true"] &:nth-child(1) {
+    transition-delay: ${STORY_CARD_REVEAL_DELAYS_MS[0]}ms;
+  }
+  [data-revealed="true"] &:nth-child(2) {
+    transition-delay: ${STORY_CARD_REVEAL_DELAYS_MS[1]}ms;
+  }
+  [data-revealed="true"] &:nth-child(3) {
+    transition-delay: ${STORY_CARD_REVEAL_DELAYS_MS[2]}ms;
+  }
+  [data-revealed="true"] &:nth-child(4) {
+    transition-delay: ${STORY_CARD_REVEAL_DELAYS_MS[3]}ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transition-delay: 0ms;
+    opacity: 1;
+    transform: none;
+  }
+`;
+
+/*
+ * Superficie visible de la tarjeta (D2, tabla de mapeo mockup -> token) +
+ * hover (D3). Componente NUEVO, no `ScPillarRow` mutado: la regla D1 de la
+ * spec prohíbe tocar `ScPillarRow` (lo extiende `ScDeckPillarRow` en la rama
+ * oscura) o levantar la geometría de tarjeta encima de ella.
+ *
+ * `box-shadow` en la transición de hover: excepción ya sancionada (D3, "el
+ * mismo motivo que los tintes de estado", enmienda §9 del sistema de lujo),
+ * acotada a hover, nunca ambiental.
+ */
+const ScPillarCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: ${({ theme }) => theme.data.semantic.surface};
+  border: 1px solid ${({ theme }) => theme.data.semantic.border};
+  border-radius: ${({ theme }) => theme.data.radius["2xl"]};
+  box-shadow: ${({ theme }) => theme.data.elevation[1]};
+  padding: ${({ theme }) => theme.data.space[5]};
+  transition:
+    transform ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    box-shadow ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard};
+
+  &:hover {
+    transform: translateY(${STORY_CARD_HOVER_LIFT});
+    box-shadow: ${({ theme }) => theme.data.elevation[3]};
+  }
+
+  /* Mismo guard que ScCard (Card.tsx): bajo reduce se anula la transición Y
+     el transform de hover (movimiento); el realce de box-shadow al pasar el
+     puntero se conserva, ahora instantáneo -- no es motion, es la misma
+     excepción ya documentada arriba. */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+`;
+
+const ScCardTopRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.data.space[3]};
+`;
+
+/**
+ * Acento del BADGE, distinto del de `pillarColor` y por un motivo medido, no
+ * estético.
+ *
+ * D2 de la spec pedía reutilizar `pillarColor` tal cual («no se introduce una
+ * segunda escala de acentos»), y así se implementó primero. Al medir el
+ * contraste que la propia spec exige en su §3 (el número sobre el fondo
+ * `color-mix` del badge), **tres de los cuatro acentos no llegaban a AA**:
+ *
+ * | pilar | `pillarColor`      | sobre `surface` | sobre el `color-mix` 12% |
+ * |-------|--------------------|-----------------|--------------------------|
+ * | 01    | `primary[500]`     | 2.28:1          | 2.06:1                   |
+ * | 02    | `secondary[500]`   | 2.76:1          | 2.45:1                   |
+ * | 03    | `secondary[600]`   | 3.50:1          | 3.05:1                   |
+ * | 04    | `secondary[700]`   | 5.92:1          | 4.98:1                   |
+ *
+ * Es decir: la spec se contradecía a sí misma, y gana §3 -- un requisito de
+ * accesibilidad no cede ante una preferencia de reutilización. El propio
+ * mockup ya lo resolvía igual: sus cuatro badges usan los pasos OSCUROS
+ * (`--primary-700`, `--secondary-600`, `--secondary-700`, `--primary-600`),
+ * no los claros, precisamente porque el número tiene que leerse.
+ *
+ * Esta función continúa esa misma rampa un paso más abajo hasta que las
+ * CUATRO libran AA (los ratios reales los mide `Story.test.tsx`, contra los
+ * tokens importados, nunca contra literales copiados aquí).
+ *
+ * `pillarColor` NO se toca: sigue siendo el acento de `ScPillarNumber`, que
+ * es la pieza de la rama OSCURA (vía `ScDeckPillarRow`), donde el fondo es
+ * otro y los ratios son otros.
+ */
+export function pillarBadgeAccent(
+  palette: ThemeDefinition["palette"],
+  index: number,
+): string {
+  if (index === 0) return palette.primary[800];
+  if (index === 1) return palette.secondary[700];
+  if (index === 2) return palette.secondary[800];
+  return palette.secondary[900];
+}
+
+/* Se exporta `pillarBadgeAccent` (valor puro, sin `theme` de
+   styled-components) y no este envoltorio: es lo que permite que
+   `Story.test.tsx` MIDA el contraste real contra los mismos tokens que pinta
+   el componente, en vez de repetir la tabla de acentos en el test -- una
+   copia que se desincronizaría del código al primer retoque sin que nada
+   fallara. */
+function pillarBadgeColor(
+  index: number,
+): (props: { theme: DefaultTheme }) => string {
+  return ({ theme }) => pillarBadgeAccent(theme.data.palette, index);
+}
+
+/*
+ * Badge del número (D2 + §3): `color-mix` se resuelve a mano (no vía
+ * interpolación anidada de styled-components) para poder usar el MISMO
+ * acento resuelto tanto en `background-color` como en `color`, sin evaluarlo
+ * dos veces con dos mecanismos distintos.
+ */
+const ScCardBadge = styled.span<{ $index: number }>`
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: ${STORY_CARD_BADGE_SIZE};
+  height: ${STORY_CARD_BADGE_SIZE};
+  border-radius: ${({ theme }) => theme.data.radius.lg};
+  font-family: ${({ theme }) => theme.data.type.fontMono};
+  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background-color: ${({ theme, $index }) =>
+    `color-mix(in oklab, ${pillarBadgeColor($index)({ theme })} 12%, ${theme.data.semantic.surface})`};
+  color: ${({ theme, $index }) => pillarBadgeColor($index)({ theme })};
+`;
+
+const ScCardStepLabel = styled(Typography)`
+  color: ${({ theme }) => theme.data.semantic.textSubtle};
+`;
+
+const ScCardTitle = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[5]};
+`;
+
+const ScCardLead = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[2]};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+const ScCardInspiration = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[3]};
+  color: ${({ theme }) => theme.data.semantic.textSubtle};
+  line-height: ${STORY_CARD_INSPIRATION_LINE_HEIGHT};
+`;
+
+/*
+ * El MISMO pilar, pero como diapositiva suelta de la rama OSCURA.
+ * `ScPillarRow` ya no lo consume la rama clara desde esta entrega (2026-08-06,
+ * D2: los pilares pasaron a tarjeta, ver `ScPillarCard` arriba); sigue
+ * llevando `border-block-start` porque esa es su declaración de SIEMPRE, y
+ * `ScDeckPillarRow` la anula aquí, en el único contexto que la consume, en
+ * vez de retirarla de `ScPillarRow` -- no se toca esa declaración (D1: no
+ * tocar lo que consume el deck), aunque ahora su único efecto práctico sea
+ * quedar siempre anulada por esta extensión.
  */
 const ScDeckPillarRow = styled(ScPillarRow)`
   border-block-start: none;
@@ -450,29 +792,55 @@ function StoryLight(): ReactElement {
   useSectionProgress(sectionRef, { cssVarPrefix: "story" });
 
   const pillars = (
-    <ScPillars>
+    <ScPillarGrid>
       {PILLARS.map((pillar, index) => (
-        <ScPillarRow key={pillar.key}>
-          <ScPillarNumber $index={index}>{pillar.number} —</ScPillarNumber>
-          <ScPillarCopy>
-            <Typography
+        <ScPillarCardItem key={pillar.key}>
+          <ScPillarCard>
+            <ScCardTopRow>
+              {/* Decorativo (D10): el orden ya lo da el DOM: un lector de
+                  pantalla que anuncie "cero uno" antes del titulo anade
+                  ruido sin informacion. */}
+              <ScCardBadge
+                $index={index}
+                aria-hidden="true"
+              >
+                {pillar.number}
+              </ScCardBadge>
+              <ScCardStepLabel variant="overline">
+                {t("Home.story.stepLabel")}
+              </ScCardStepLabel>
+            </ScCardTopRow>
+            {/* forwardedAs="p", NO as="p" (gotcha documentado en
+                Typography.tsx/Hero.tsx:358 -- con `as` en un
+                `styled(Typography)` el wrapper consume el prop, renderiza un
+                <p> pelado y descarta Typography entero): el h2#story-title
+                sigue siendo el unico encabezado accesible de la seccion en
+                claro, mismo criterio que ya aplicaba el titulo de fila
+                anterior. */}
+            <ScCardTitle
               variant="h5"
-              as="p"
+              forwardedAs="p"
             >
               {t(`Home.story.pillars.${pillar.key}.title`)}
-            </Typography>
-            <Typography variant="bodySm">
+            </ScCardTitle>
+            <ScCardLead variant="bodySm">
               {t(`Home.story.pillars.${pillar.key}.body`)}
-            </Typography>
-          </ScPillarCopy>
-        </ScPillarRow>
+            </ScCardLead>
+            <ScCardInspiration variant="bodySm">
+              {t(`Home.story.pillars.${pillar.key}.inspiration`)}
+            </ScCardInspiration>
+          </ScPillarCard>
+        </ScPillarCardItem>
       ))}
-    </ScPillars>
+    </ScPillarGrid>
   );
 
   const heading = (
     <>
-      <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
+      <ScEyebrowRow>
+        <ScEyebrowBar aria-hidden="true" />
+        <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
+      </ScEyebrowRow>
       <ScTitle
         variant="h2"
         id="story-title"
