@@ -550,12 +550,21 @@ describe("Story: D11, la figura iguala la altura de la columna de contenido", ()
 
 /*
  * D12 (segunda ronda, 2026-08-06): el statement a pantalla completa que
- * sustituye a la tarjeta flotante de nota. Mismas advertencias de jsdom que
- * el resto de este archivo: no hay layout real, asi que el desbordamiento
- * horizontal en viewports estrechos (el "riesgo a resolver" de D12) NO se
- * puede confirmar aqui -- ver el informe de la entrega.
+ * sustituye a la tarjeta flotante de nota. D13 (tercera ronda, mismo dia):
+ * el bloque deja de revelarse con una cascada automatica (`useReveal`, un
+ * solo disparo, `once: true`) y pasa a recorrerse con el scroll, con
+ * `useSlideDeck` -- el mismo motor que ya gobierna la presentacion oscura
+ * (`StoryDeckDark`, mas abajo en este fichero). Misma tecnica de test que
+ * `useSlideDeck.test.tsx`/`Journey.test.tsx` (fijar `getBoundingClientRect`
+ * del elemento ANTES de disparar el `IntersectionObserver`: la medicion
+ * corre SINCRONA dentro de `start()`, sin necesitar ningun rAF). Mismas
+ * advertencias de jsdom que el resto de este archivo: no hay layout real,
+ * asi que el desbordamiento horizontal en viewports estrechos y el PIN
+ * visual (`position: sticky` realmente quieto en pantalla mientras el
+ * usuario scrollea) NO se pueden confirmar aqui -- ver el informe de la
+ * entrega.
  */
-describe("Story: statement a pantalla completa (D12)", () => {
+describe("Story: statement a pantalla completa (D12/D13)", () => {
   it("monta un solo <p> con las tres lineas, en orden, con el texto real de i18n", () => {
     const { container } = renderWithProviders(<Story />);
     const statement = container.querySelector("#statement") as HTMLElement;
@@ -585,7 +594,27 @@ describe("Story: statement a pantalla completa (D12)", () => {
     expect(lines[2].textContent).toBe(esHome.Home.story.statement.third);
   });
 
-  it("cada linea declara su transform de entrada y su retardo (0/220/440ms)", () => {
+  it("D13: la pista (#statement) y el stage existen, con el stage como UNICO hijo en flujo de la pista, pegado con position: sticky", () => {
+    const { container } = renderWithProviders(<Story />);
+    const track = container.querySelector("#statement") as HTMLElement;
+    const paragraph = screen
+      .getByText(esHome.Home.story.statement.first)
+      .closest("p") as HTMLElement;
+
+    // "Unico hijo en flujo": la pista tiene EXACTAMENTE un elemento hijo (el
+    // stage), y ese hijo contiene el parrafo con las tres lineas -- no hay
+    // ningun otro nodo intermedio entre la pista y el stage.
+    expect(track.children).toHaveLength(1);
+    const stage = track.firstElementChild as HTMLElement;
+    expect(stage.contains(paragraph)).toBe(true);
+
+    const stageCss = cssRuleTextFor(stage);
+    const topLevelStageCss = stageCss.split("@media")[0];
+    expect(topLevelStageCss).toContain("position: sticky");
+    expect(topLevelStageCss).toContain("top: 0");
+  });
+
+  it("cada linea conserva su transform de entrada (izquierda/escala/derecha); ya no declara ningun retardo (D13: sin cascada que escalonar)", () => {
     renderWithProviders(<Story />);
     const first = screen.getByText(esHome.Home.story.statement.first);
     const second = screen.getByText(esHome.Home.story.statement.second);
@@ -593,18 +622,113 @@ describe("Story: statement a pantalla completa (D12)", () => {
 
     const firstCss = cssRuleTextFor(first);
     expect(firstCss).toContain("transform: translateX(-16%)");
-    expect(firstCss).toContain("transition-delay: 0ms");
+    expect(firstCss).not.toContain("transition-delay");
 
     const secondCss = cssRuleTextFor(second);
     expect(secondCss).toContain("transform: scale(0.9)");
-    expect(secondCss).toContain("transition-delay: 220ms");
+    expect(secondCss).not.toContain("transition-delay");
 
     const thirdCss = cssRuleTextFor(third);
     expect(thirdCss).toContain("transform: translateX(16%)");
-    expect(thirdCss).toContain("transition-delay: 440ms");
+    expect(thirdCss).not.toContain("transition-delay");
   });
 
-  it("el guard de reduce anula transicion Y retardo en las tres lineas", () => {
+  it("estado inicial (sin scroll): solo la primera linea es visible", () => {
+    renderWithProviders(<Story />);
+    expect(screen.getByText(esHome.Home.story.statement.first)).toHaveAttribute(
+      "data-visible",
+      "true",
+    );
+    expect(
+      screen.getByText(esHome.Home.story.statement.second),
+    ).toHaveAttribute("data-visible", "false");
+    expect(screen.getByText(esHome.Home.story.statement.third)).toHaveAttribute(
+      "data-visible",
+      "false",
+    );
+  });
+
+  it("D13: avanzando el indice del hook, las lineas se descubren una a una y en orden", () => {
+    vi.stubGlobal("innerHeight", 800);
+    const { container } = renderWithProviders(<Story />);
+    const track = container.querySelector("#statement") as HTMLElement;
+    const first = screen.getByText(esHome.Home.story.statement.first);
+    const second = screen.getByText(esHome.Home.story.statement.second);
+    const third = screen.getByText(esHome.Home.story.statement.third);
+
+    // Geometria de la pista (D13: 3 lineas + 1 pantalla de cola, mismo
+    // calculo que ya usan useSlideDeck.test.tsx/Journey.test.tsx): con
+    // vh=800, la pista mide (3+1)*800=3200 y el span util (descontada la
+    // cola) es 3200-800-800=1600 -- exactamente 2 tramos de 800px, uno por
+    // paso entre las 3 lineas. `moveTo(i)` fija `rect.top` para que el
+    // progreso caiga en EXACTAMENTE i/(3-1), sin depender de ningun
+    // redondeo. Alternar false/true reactiva `start()` (useSlideDeck.ts) y
+    // fuerza una medicion SINCRONA nueva contra el rect recien fijado, sin
+    // necesitar rAF.
+    const vh = window.innerHeight;
+    const height = 4 * vh;
+    const span = height - vh - vh;
+    const moveTo = (targetIndex: number): void => {
+      const progress = targetIndex / 2;
+      track.getBoundingClientRect = () =>
+        ({ top: -progress * span, height }) as DOMRect;
+      act(() => {
+        triggerFor(track, false);
+        triggerFor(track, true);
+      });
+    };
+
+    moveTo(1);
+    expect(first).toHaveAttribute("data-visible", "true");
+    expect(second).toHaveAttribute("data-visible", "true");
+    expect(third).toHaveAttribute("data-visible", "false");
+
+    moveTo(2);
+    expect(first).toHaveAttribute("data-visible", "true");
+    expect(second).toHaveAttribute("data-visible", "true");
+    expect(third).toHaveAttribute("data-visible", "true");
+  });
+
+  it("D13: retrocediendo, las lineas se vuelven a ocultar -- el requisito explicito del encargo, imposible con el useReveal (once) anterior", () => {
+    vi.stubGlobal("innerHeight", 800);
+    const { container } = renderWithProviders(<Story />);
+    const track = container.querySelector("#statement") as HTMLElement;
+    const first = screen.getByText(esHome.Home.story.statement.first);
+    const second = screen.getByText(esHome.Home.story.statement.second);
+    const third = screen.getByText(esHome.Home.story.statement.third);
+
+    // Misma geometria que el test anterior (avanzar).
+    const vh = window.innerHeight;
+    const height = 4 * vh;
+    const span = height - vh - vh;
+    const moveTo = (targetIndex: number): void => {
+      const progress = targetIndex / 2;
+      track.getBoundingClientRect = () =>
+        ({ top: -progress * span, height }) as DOMRect;
+      act(() => {
+        triggerFor(track, false);
+        triggerFor(track, true);
+      });
+    };
+
+    // `index` NO es un contador que solo sube: measure() lo recalcula en
+    // CADA medicion contra la posicion REAL de la pista (useSlideDeck.ts),
+    // asi que retroceder el scroll retrocede tambien el indice -- y con el,
+    // las lineas se ocultan otra vez, en orden inverso.
+    moveTo(2);
+    expect(third).toHaveAttribute("data-visible", "true");
+
+    moveTo(1);
+    expect(third).toHaveAttribute("data-visible", "false");
+    expect(second).toHaveAttribute("data-visible", "true");
+    expect(first).toHaveAttribute("data-visible", "true");
+
+    moveTo(0);
+    expect(second).toHaveAttribute("data-visible", "false");
+    expect(first).toHaveAttribute("data-visible", "true");
+  });
+
+  it("el guard de reduce fuerza las tres lineas visibles, sin transicion", () => {
     renderWithProviders(<Story />);
     const lines = [
       screen.getByText(esHome.Home.story.statement.first),
@@ -619,22 +743,47 @@ describe("Story: statement a pantalla completa (D12)", () => {
         css.indexOf("prefers-reduced-motion: reduce"),
       );
       expect(reduceBlock).toContain("transition: none");
-      expect(reduceBlock).toContain("transition-delay: 0ms");
       expect(reduceBlock).toContain("opacity: 1");
       expect(reduceBlock).toContain("transform: none");
+      // Sin retardo que anular (D13: la cascada ya no existe en absoluto,
+      // ni siquiera fuera de este bloque -- ver el test de arriba).
+      expect(reduceBlock).not.toContain("transition-delay");
     }
   });
 
-  it("revela el statement al intersectar, con SU PROPIO IntersectionObserver (distinto del de ScGrid)", () => {
-    // Mismo patron que ioTargets/triggerFor documenta al inicio de este
-    // archivo: con varios observers vivos a la vez, hay que disparar el que
-    // observa el elemento pedido, no "el ultimo construido".
+  it("bajo reduce la pista pierde su recorrido propio de scroll (height: auto) y el stage pierde el pin (position: static)", () => {
     const { container } = renderWithProviders(<Story />);
-    const statement = container.querySelector("#statement") as HTMLElement;
+    const track = container.querySelector("#statement") as HTMLElement;
+    const stage = track.firstElementChild as HTMLElement;
 
-    expect(statement).toHaveAttribute("data-revealed", "false");
-    act(() => triggerFor(statement, true));
-    expect(statement).toHaveAttribute("data-revealed", "true");
+    const trackCss = cssRuleTextFor(track);
+    expect(trackCss).toContain("prefers-reduced-motion: reduce");
+    expect(
+      trackCss.slice(trackCss.indexOf("prefers-reduced-motion: reduce")),
+    ).toContain("height: auto");
+
+    const stageCss = cssRuleTextFor(stage);
+    expect(stageCss).toContain("prefers-reduced-motion: reduce");
+    expect(
+      stageCss.slice(stageCss.indexOf("prefers-reduced-motion: reduce")),
+    ).toContain("position: static");
+  });
+
+  it("D13.1: ninguna regla inyectada por este bloque declara scroll-snap-type ni scroll-snap-align -- se entrega el EFECTO con el pin de position: sticky, no con la propiedad CSS (regresion medida en GlobalStyles.tsx, retirada 2026-07-31)", () => {
+    const { container } = renderWithProviders(<Story />);
+    const track = container.querySelector("#statement") as HTMLElement;
+    const stage = track.firstElementChild as HTMLElement;
+    const lines = [
+      screen.getByText(esHome.Home.story.statement.first),
+      screen.getByText(esHome.Home.story.statement.second),
+      screen.getByText(esHome.Home.story.statement.third),
+    ];
+
+    for (const el of [track, stage, ...lines]) {
+      const css = cssRuleTextFor(el);
+      expect(css).not.toContain("scroll-snap-type");
+      expect(css).not.toContain("scroll-snap-align");
+    }
   });
 });
 

@@ -179,3 +179,49 @@ Mismas reglas de siempre: `useReveal` (uno, sobre el bloque), retardo por línea
 A 320 px el tope pisa el suelo de 24 px del mockup y baja a 21.3 px. Es la decisión correcta y se declara: «sin scroll horizontal» es invariante dura, «nunca por debajo de 24 px» no lo es.
 
 **Consecuencia estructural.** El statement es una `<section id="statement">` hermana, así que en tema claro la home pasa a montar **cinco** secciones (`story` · `statement` · `journey` · `features` · `contact`), en el mismo orden que el mockup. La rama oscura sigue montando cuatro. `HomeSections.test.tsx` lo afirma entero en las dos ramas.
+
+---
+
+## 6. Tercera ronda (2026-08-06): el statement se recorre con el scroll
+
+Encargo del usuario: «al estar dentro del viewport de aparición de la nota, debe hacerse scroll-snap y cada scroll vertical hacia abajo que realice el usuario se vaya mostrando una a una las opciones. Cuando el usuario scrollea hacia arriba llegando al contenido principal de la sección, ocultar nuevamente la nota.»
+
+### D13 — de cascada automática a presentación anclada
+
+El statement deja de revelarse solo (una cascada de 0/220/440 ms que corría entera en cuanto el bloque entraba en pantalla) y pasa a **recorrerse con el scroll**: el bloque se queda anclado mientras el usuario avanza, y cada paso descubre una línea.
+
+Se implementa con **`useSlideDeck`**, el mismo motor que ya gobierna la presentación oscura de Story — no con un mecanismo nuevo:
+
+- `ScStatementTrack` da el recorrido de scroll (una pantalla por línea más una de cola, para que la frase completa se lea antes de soltar el ancla). Bajo `reduce`, `height: auto`: sin pin no hace falta recorrido propio.
+- `ScStatementStage` es su **único hijo en flujo**, `position: sticky` a `100dvh`: es lo que mantiene la frase quieta en pantalla mientras la pista pasa por debajo.
+- `useSlideDeck(trackRef, stageRef, 3, { tailScreens: 1, cssVarPrefix: "statement" })` publica el índice activo.
+- La línea `i` es visible cuando `index >= i`.
+
+**La reversibilidad sale gratis y es la parte que el encargo pide explícitamente.** `index` no es un contador que solo suba: lo recalcula la posición real de la pista en cada medición, así que al scrollear hacia arriba baja, y las líneas se ocultan otra vez en orden inverso. Con el `useReveal` anterior (`once: true`) eso era imposible por construcción: una vez revelado, revelado para siempre.
+
+Cada línea conserva su transform de entrada (izquierda / escala / derecha) y su duración. **Lo que desaparece son los retardos escalonados**: ya no hay cascada que escalonar — el paso lo marca el usuario con su scroll, que es justo el cambio conceptual de esta ronda.
+
+### D13.1 — Sobre el `scroll-snap` literal: qué se hace y qué no
+
+El encargo dice «scroll-snap». Se entrega el **efecto** (la sección se queda quieta y se recorre paso a paso) con el pin de `position: sticky`, **no** con la propiedad CSS `scroll-snap-type`.
+
+El motivo no es preferencia, es una regresión medida en este mismo repo. `GlobalStyles.tsx` documenta que `scroll-snap-type: y proximity` vivió en `html` y **se retiró el 2026-07-31** tras medirlo: con anclas de una pantalla exacta, cualquier posición de scroll cae siempre a menos de media pantalla de un ancla, y `proximity` degenera en `mandatory`. Medido entonces pidiendo posiciones concretas y viendo dónde aterrizaba: `900 → 720`, `1200 → 1440`, `3100 → 2880` — tirones de hasta 240 px, a veces **en contra** del gesto. El síntoma que reportó el usuario fue «el scroll a veces no funciona».
+
+El pin da el mismo efecto percibido sin reintroducir esa clase de fallo. Si aun así se quiere la propiedad CSS, es una línea (`scroll-snap-align` en el stage + `scroll-snap-type` en `html`), pero es una decisión que hay que tomar **sabiendo** que reactiva el mecanismo que ya robó el control del scroll una vez.
+
+### D13.2 — Verificación medida
+
+Estructura, medida en navegador a 1280×900:
+
+| Pieza | Medido |
+| --- | --- |
+| Pista (`#statement`) | 3600 px = **4 pantallas** (3 líneas + 1 de cola) |
+| Stage | `position: sticky`, `top: 0`, 900 px = `100dvh` |
+| Hijos en flujo de la pista | **1** (el stage, como exige el pin) |
+| Estado inicial | línea 1 visible, líneas 2 y 3 ocultas |
+
+Candado de la regresión de 2026-07-31: la única aparición de `scroll-snap-type` en el bundle emitido es el **comentario histórico** de `GlobalStyles` que documenta su retirada, no una declaración activa.
+
+**Lo que NO se pudo medir aquí, y por qué.** El avance línea a línea con un gesto real de scroll no se pudo observar: el panel corre con `document.visibilityState === "hidden"`. Comprobado directamente, no supuesto — instrumentando la propia página con un listener de `scroll`, un bucle de `requestAnimationFrame` y un `IntersectionObserver` propios, y provocando cuatro saltos de scroll reales: **0 eventos de scroll, 0 frames de rAF, 0 callbacks de IntersectionObserver**. Todo mecanismo ligado a scroll de la página queda inerte en ese estado, incluidos los que ya existían antes de esta ronda (`--story-progress`, que escribe `useSectionProgress`, sale vacía por lo mismo).
+
+Es decir: el pin y el recorrido paso a paso quedan **verificados por estructura y por test, no por observación del gesto**. Esa parte necesita una mirada humana en un navegador visible.
