@@ -189,7 +189,6 @@
   "187": "nativeOutput",
   "188": "Story.test.tsx",
   "189": "Card.test.tsx",
-  "190": "usePointer.test.tsx",
   "191": "hero.transition.ts",
   "192": "Footer.test.tsx",
   "193": "Fases",
@@ -202,6 +201,5 @@
   "204": "useNavDetach.ts",
   "205": "useReveal",
   "207": "VisuallyHidden.tsx",
-  "208": "LanguageSelector.tsx",
   "209": "LegalDocument.test.tsx"
 }

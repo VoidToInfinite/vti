@@ -130,13 +130,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.test.tsx": {
-    "mtime": 1786044277.756083,
-    "ast_hash": "01679a79606428bc8f253bed4c42ce8b",
+    "mtime": 1786046979.4472399,
+    "ast_hash": "1673d9821e47ae4fe2dc8ee8d2140b67",
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.tsx": {
-    "mtime": 1786044345.893276,
-    "ast_hash": "afe1f4404a589c5b170863dbffe9b147",
+    "mtime": 1786046751.8725476,
+    "ast_hash": "21802fe71fab9ccb1a02ee4af29297ac",
     "semantic_hash": ""
   },
   "src/components/ui/Button/Button.test.tsx": {
@@ -990,8 +990,8 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.layers.ts": {
-    "mtime": 1786044853.3957772,
-    "ast_hash": "19ff626c78e3614db90c19e01dbb6e90",
+    "mtime": 1786046574.1478078,
+    "ast_hash": "f6054b2c931d67bfa1e9b502b25510cc",
     "semantic_hash": ""
   },
   "src/components/sections/hero-story.integration.test.tsx": {
@@ -2180,8 +2180,8 @@
     "semantic_hash": ""
   },
   "docs/superpowers/specs/2026-08-06-story-features-tema-claro-design.md": {
-    "mtime": 1786045513.8417513,
-    "ast_hash": "cf3d4a27f258c9ec981a019b214357a4",
+    "mtime": 1786047232.1013954,
+    "ast_hash": "dd4110eb5f6a9a7957332777b6ecbaf1",
     "semantic_hash": ""
   }
 }
