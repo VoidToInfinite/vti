@@ -47,13 +47,32 @@ afterEach(() => {
 });
 
 describe("HomeSections", () => {
-  it("en tema claro (por defecto, sin nada guardado) monta las 4 secciones, en orden story/journey/features/contact", () => {
+  /*
+   * En CLARO son CINCO secciones desde el 2026-08-06, no cuatro: `Story`
+   * emite ademas `#statement`, la nota de cierre promovida a pantalla
+   * completa (spec `2026-08-06-story-features-tema-claro-design.md`, D12).
+   * Va entre `#story` y `#journey`, exactamente donde la coloca el mockup
+   * `Landing v2.dc`.
+   *
+   * El orden se sigue aseverando ENTERO, no relajado a "contiene": es la
+   * unica propiedad que este test protege, y una lista parcial dejaria pasar
+   * que una seccion se colara en medio de otras dos. La rama OSCURA sigue
+   * montando cuatro -- el statement es exclusivo de la clara -- y su propio
+   * test, mas abajo, es el complementario que lo demuestra.
+   */
+  it("en tema claro (por defecto, sin nada guardado) monta las 5 secciones, en orden story/statement/journey/features/contact", () => {
     const { container } = renderWithProviders(<HomeSections />);
 
     const ids = Array.from(container.querySelectorAll("section")).map(
       (el) => el.id,
     );
-    expect(ids).toEqual(["story", "journey", "features", "contact"]);
+    expect(ids).toEqual([
+      "story",
+      "statement",
+      "journey",
+      "features",
+      "contact",
+    ]);
   });
 
   it("en tema claro, el titulo real de Story esta presente (region con nombre accesible)", () => {

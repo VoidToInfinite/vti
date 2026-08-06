@@ -20,7 +20,6 @@ import {
   STORY_DECK_PILLAR_TITLE_SIZE,
   STORY_DECK_TITLE_SIZE,
   STORY_FIGURE_SCROLL_SHIFT,
-  STORY_NOTE_SCROLL_SHIFT,
   STORY_SLIDES,
 } from "./story.layers";
 
@@ -237,28 +236,31 @@ describe("Story", () => {
     expect(reduceBlock).toContain("transform: none");
   });
 
-  it("la flotacion de la figura y de la tarjeta de nota solo corren bajo no-preference (apagadas bajo reduce por construccion)", () => {
+  it("la flotacion de la figura solo corre bajo no-preference (apagada bajo reduce por construccion)", () => {
     // Patron ya usado por `ctaGlowPulse` en Hero.tsx: la animacion se declara
     // UNICAMENTE dentro de `@media (prefers-reduced-motion: no-preference)`,
     // asi que bajo `reduce` queda apagada sin necesitar un bloque `reduce`
     // explicito (no hay animacion incondicional que anular).
+    //
+    // Hasta la segunda ronda de esta entrega (D12, spec 2026-08-06) este test
+    // tambien cubria la tarjeta flotante de nota, retirada junto con su
+    // propia flotacion (STORY_CARD_FLOAT_MS): el statement que la sustituye
+    // (ScStatement) no flota, solo revela con opacidad/transform (cubierto
+    // en el describe "Story: statement a pantalla completa (D12)", mas
+    // abajo) -- se acota este test a la unica pieza que sigue flotando.
     renderWithProviders(<Story />);
     const figure = screen.getByAltText(esHome.Home.story.figureAlt);
-    const card = screen.getByText(esHome.Home.story.note)
-      .parentElement as HTMLElement;
 
-    for (const el of [figure, card]) {
-      const css = cssRuleTextFor(el);
-      expect(css).toContain("prefers-reduced-motion: no-preference");
-      expect(css).toContain("animation:");
-      // La declaracion de nivel superior (fuera de cualquier @media) NO debe
-      // traer ya una animacion incondicional -- si la trajera, "apagada bajo
-      // reduce" seria falso: la unica forma de que quede apagada bajo
-      // reduce es que la animacion viva EXCLUSIVAMENTE dentro del bloque
-      // no-preference.
-      const topLevelRule = css.split("@media")[0];
-      expect(topLevelRule).not.toContain("animation:");
-    }
+    const css = cssRuleTextFor(figure);
+    expect(css).toContain("prefers-reduced-motion: no-preference");
+    expect(css).toContain("animation:");
+    // La declaracion de nivel superior (fuera de cualquier @media) NO debe
+    // traer ya una animacion incondicional -- si la trajera, "apagada bajo
+    // reduce" seria falso: la unica forma de que quede apagada bajo
+    // reduce es que la animacion viva EXCLUSIVAMENTE dentro del bloque
+    // no-preference.
+    const topLevelRule = css.split("@media")[0];
+    expect(topLevelRule).not.toContain("animation:");
   });
 });
 
@@ -474,26 +476,21 @@ describe("Story: movimiento ligado a scroll y lenguaje de entrada unificado (D1/
     expect(reduceBlock).toContain("transform: none");
   });
 
-  it("D1: el envoltorio de la tarjeta de nota se desplaza en SENTIDO OPUESTO al de la figura (lectura de profundidad), con guard de reduce propio", () => {
-    renderWithProviders(<Story />);
-    const card = screen.getByText(esHome.Home.story.note)
-      .parentElement as HTMLElement; // ScNoteCard
-    const noteShift = card.parentElement as HTMLElement; // ScNoteShift
-    const css = cssRuleTextFor(noteShift);
-
-    expect(css).toContain(
-      `calc(${STORY_NOTE_SCROLL_SHIFT} * var(--story-progress, 0))`,
-    );
-    // "sentidos distintos entre planos" (D1, encargo): un signo negativo y
-    // el otro positivo, no la misma amplitud reutilizada por accidente.
-    expect(Number.parseFloat(STORY_FIGURE_SCROLL_SHIFT)).toBeLessThan(0);
-    expect(Number.parseFloat(STORY_NOTE_SCROLL_SHIFT)).toBeGreaterThan(0);
-    expect(css).toContain("prefers-reduced-motion: reduce");
-    const reduceBlock = css.slice(
-      css.indexOf("prefers-reduced-motion: reduce"),
-    );
-    expect(reduceBlock).toContain("transform: none");
-  });
+  /*
+   * AQUI VIVIA "D1: el envoltorio de la tarjeta de nota se desplaza en
+   * SENTIDO OPUESTO al de la figura": comparaba el signo de
+   * STORY_FIGURE_SCROLL_SHIFT contra STORY_NOTE_SCROLL_SHIFT para blindar la
+   * lectura de profundidad entre DOS planos de scroll. Retirado en la
+   * segunda ronda de esta entrega (D12, spec 2026-08-06): ScNoteShift/
+   * ScNoteCard desaparecieron con la tarjeta de nota, y el statement que la
+   * sustituye (ScStatement, mas abajo) no tiene desplazamiento de scroll
+   * propio -- solo revela con opacidad/transform, igual que el resto de
+   * piezas de la seccion. Sin un segundo plano, la propiedad que este test
+   * protegia ("sentidos opuestos entre DOS planos") ya no tiene sujeto: no
+   * se sustituye por otro aserto, se retira. El desplazamiento de la FIGURA
+   * en si (el otro plano de la pareja) lo sigue cubriendo el test anterior,
+   * "D1: el envoltorio de la figura liga su transform a --story-progress...".
+   */
 
   it("D1: useSectionProgress esta conectado a ScStory -- al intersectar publica --story-progress y data-inview", () => {
     // Verificado con el bug inyectado a proposito: quitando la llamada a
@@ -511,20 +508,149 @@ describe("Story: movimiento ligado a scroll y lenguaje de entrada unificado (D1/
   });
 });
 
-// Regresion 2026-07-28: GlobalStyles declara svg width 100% y el sparkle de
-// la tarjeta de nota confiaba en su atributo width="20" (se estiraba al
-// ancho de la tarjeta, medido 186px en navegador). Mismo candado computado
-// que en Features/Journey.
-describe("tamano del sparkle de la nota (reset global de svg)", () => {
-  it("computa 20px por CSS, no por atributo", () => {
+/*
+ * D11 (segunda ronda, 2026-08-06): la rejilla pasa de align-items: center a
+ * stretch para que la tarjeta de la figura acompañe a la columna de
+ * contenido de arriba abajo, sin fijar un alto en pixeles. jsdom no hace
+ * layout real (no puede confirmar que las dos columnas queden a la MISMA
+ * altura en pantalla -- eso solo se ve en navegador, ver el informe de la
+ * entrega): lo que SI puede atarse aqui es (a) que la declaracion CSS sea
+ * `stretch`, vía `getComputedStyle` (un valor simple, sin `calc`/`var`, que
+ * jsdom SI resuelve -- mismo caso que el `transition` de D7, más arriba) y
+ * (b) que ningun elemento de la columna de la figura fije un `height` (a
+ * diferencia de `min-height`, que sigue siendo un SUELO, no un valor fijo).
+ */
+describe("Story: D11, la figura iguala la altura de la columna de contenido", () => {
+  it("ScGrid declara align-items: stretch (no center)", () => {
+    const { container } = renderWithProviders(<Story />);
+    const grid = container.querySelector("[data-revealed]") as HTMLElement;
+
+    expect(getComputedStyle(grid).alignItems).toBe("stretch");
+  });
+
+  it("la tarjeta de la figura (ScFigureWrap) no fija un alto en pixeles, solo min-height como suelo", () => {
     renderWithProviders(<Story />);
-    const card = screen.getByText(esHome.Home.story.note)
-      .parentElement as HTMLElement;
-    const sparkle = card.querySelector("svg") as SVGSVGElement;
-    expect(getComputedStyle(sparkle).width).toBe("20px");
-    expect(getComputedStyle(sparkle).height).toBe("20px");
+    const figure = screen.getByAltText(esHome.Home.story.figureAlt);
+    // figure -> ScFigureShift (parent) -> ScFigureWrap (grandparent).
+    const figureWrap = figure.parentElement?.parentElement as HTMLElement;
+    const css = cssRuleTextFor(figureWrap);
+
+    // Cualquier declaracion de "*height:" tiene que ser min-height (un
+    // suelo) o max-height, nunca "height:" a secas (un valor fijo que D11
+    // prohibe explicitamente).
+    const heightDeclarations = css.match(/[\w-]*height:\s*[^;]+;/g) ?? [];
+    expect(heightDeclarations.length).toBeGreaterThan(0);
+    heightDeclarations.forEach((decl) => {
+      expect(
+        decl.startsWith("min-height") || decl.startsWith("max-height"),
+      ).toBe(true);
+    });
   });
 });
+
+/*
+ * D12 (segunda ronda, 2026-08-06): el statement a pantalla completa que
+ * sustituye a la tarjeta flotante de nota. Mismas advertencias de jsdom que
+ * el resto de este archivo: no hay layout real, asi que el desbordamiento
+ * horizontal en viewports estrechos (el "riesgo a resolver" de D12) NO se
+ * puede confirmar aqui -- ver el informe de la entrega.
+ */
+describe("Story: statement a pantalla completa (D12)", () => {
+  it("monta un solo <p> con las tres lineas, en orden, con el texto real de i18n", () => {
+    const { container } = renderWithProviders(<Story />);
+    const statement = container.querySelector("#statement") as HTMLElement;
+    const first = screen.getByText(esHome.Home.story.statement.first);
+    const second = screen.getByText(esHome.Home.story.statement.second);
+    const third = screen.getByText(esHome.Home.story.statement.third);
+
+    // Marcado obligatorio (D12): un UNICO <p> en todo el bloque, no tres
+    // parrafos sueltos -- un lector de pantalla tiene que leer la frase
+    // entera y seguida.
+    const paragraphs = statement.querySelectorAll("p");
+    expect(paragraphs).toHaveLength(1);
+    const paragraph = paragraphs[0];
+
+    expect(first.parentElement).toBe(paragraph);
+    expect(second.parentElement).toBe(paragraph);
+    expect(third.parentElement).toBe(paragraph);
+
+    // Las tres lineas, en el mismo orden que el mockup (L128-130) y la tabla
+    // D12 de la spec, como <span> (no <div>): .children filtra los nodos de
+    // texto (el espacio explicito entre lineas) y solo cuenta elementos.
+    const lines = Array.from(paragraph.children) as HTMLElement[];
+    expect(lines).toHaveLength(3);
+    expect(lines.every((el) => el.tagName === "SPAN")).toBe(true);
+    expect(lines[0].textContent).toBe(esHome.Home.story.statement.first);
+    expect(lines[1].textContent).toBe(esHome.Home.story.statement.second);
+    expect(lines[2].textContent).toBe(esHome.Home.story.statement.third);
+  });
+
+  it("cada linea declara su transform de entrada y su retardo (0/220/440ms)", () => {
+    renderWithProviders(<Story />);
+    const first = screen.getByText(esHome.Home.story.statement.first);
+    const second = screen.getByText(esHome.Home.story.statement.second);
+    const third = screen.getByText(esHome.Home.story.statement.third);
+
+    const firstCss = cssRuleTextFor(first);
+    expect(firstCss).toContain("transform: translateX(-16%)");
+    expect(firstCss).toContain("transition-delay: 0ms");
+
+    const secondCss = cssRuleTextFor(second);
+    expect(secondCss).toContain("transform: scale(0.9)");
+    expect(secondCss).toContain("transition-delay: 220ms");
+
+    const thirdCss = cssRuleTextFor(third);
+    expect(thirdCss).toContain("transform: translateX(16%)");
+    expect(thirdCss).toContain("transition-delay: 440ms");
+  });
+
+  it("el guard de reduce anula transicion Y retardo en las tres lineas", () => {
+    renderWithProviders(<Story />);
+    const lines = [
+      screen.getByText(esHome.Home.story.statement.first),
+      screen.getByText(esHome.Home.story.statement.second),
+      screen.getByText(esHome.Home.story.statement.third),
+    ];
+
+    for (const line of lines) {
+      const css = cssRuleTextFor(line);
+      expect(css).toContain("prefers-reduced-motion: reduce");
+      const reduceBlock = css.slice(
+        css.indexOf("prefers-reduced-motion: reduce"),
+      );
+      expect(reduceBlock).toContain("transition: none");
+      expect(reduceBlock).toContain("transition-delay: 0ms");
+      expect(reduceBlock).toContain("opacity: 1");
+      expect(reduceBlock).toContain("transform: none");
+    }
+  });
+
+  it("revela el statement al intersectar, con SU PROPIO IntersectionObserver (distinto del de ScGrid)", () => {
+    // Mismo patron que ioTargets/triggerFor documenta al inicio de este
+    // archivo: con varios observers vivos a la vez, hay que disparar el que
+    // observa el elemento pedido, no "el ultimo construido".
+    const { container } = renderWithProviders(<Story />);
+    const statement = container.querySelector("#statement") as HTMLElement;
+
+    expect(statement).toHaveAttribute("data-revealed", "false");
+    act(() => triggerFor(statement, true));
+    expect(statement).toHaveAttribute("data-revealed", "true");
+  });
+});
+
+/*
+ * AQUI VIVIA "tamano del sparkle de la nota (reset global de svg)": protegia
+ * una regresion real (GlobalStyles declara `svg { width: 100% }`, que se
+ * come el atributo `width="20"` del sparkle sin un `width: 20px` explicito
+ * en CSS -- medido 186px en navegador, revision 2026-07-28). Retirado en la
+ * segunda ronda de esta entrega (D12, spec 2026-08-06) junto con ScSparkle:
+ * la tarjeta de nota desaparece y con ella su icono. Comprobado (grep) que
+ * no queda NINGUN <svg> en Story.tsx, ni en la rama clara ni en la oscura --
+ * esa clase de regresion ya no tiene sujeto en esta seccion, y no se
+ * sustituye por un test vacio. Sigue cubierta donde SI hay sujeto real
+ * (Features.test.tsx/Journey.test.tsx, mencionados en el comentario
+ * original), fuera del alcance de esta entrega.
+ */
 
 function stubMatchMedia(): void {
   vi.stubGlobal(

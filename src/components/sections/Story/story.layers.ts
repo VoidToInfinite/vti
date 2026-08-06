@@ -177,11 +177,17 @@ export const STORY_SCENE_DEPTH_SHIFT = "6dvh";
  */
 export const STORY_SCRUB_MS = 320;
 
-/** Fondo/borde/sombra de la tarjeta flotante de nota (mockup L98). */
-export const STORY_CARD_BG = "oklch(0.97 0.018 260)";
-export const STORY_CARD_BORDER = "oklch(0.88 0.04 255)";
-/** Color de sombra; la geometría (offset/blur) vive junto al selector que la usa. */
-export const STORY_CARD_SHADOW = "oklch(0.6 0.1 265 / 0.18)";
+/*
+ * AQUI VIVIERON `STORY_CARD_BG`/`STORY_CARD_BORDER`/`STORY_CARD_SHADOW`, el
+ * chrome de la tarjeta flotante de nota (mockup L98). Retiradas el 2026-08-06
+ * junto con la propia tarjeta: la nota de cierre de Story pasa a ser el
+ * statement a pantalla completa (spec
+ * `2026-08-06-story-features-tema-claro-design.md`, D12), que no usa
+ * superficie ni borde propios. Se borran en vez de dejarlas exportadas sin
+ * consumidor: tres literales de color huerfanos son justo lo que alguien
+ * copia por costumbre el dia que necesita "una tarjeta" y reintroduce colores
+ * fuera del tema.
+ */
 
 /**
  * Geometría de la figura (mockup L74): lienzo 375×548, fuera de la escala de
@@ -203,7 +209,9 @@ export const STORY_HALO_INSET = "-30px";
  */
 export const STORY_FLOAT_AMPLITUDE = "-6px";
 export const STORY_FIGURE_FLOAT_MS = 9000;
-export const STORY_CARD_FLOAT_MS = 7000;
+/* `STORY_CARD_FLOAT_MS` (7000) se retiro el 2026-08-06 con la tarjeta de nota
+   (D12): la figura se queda como unica pieza que flota, asi que el keyframe ya
+   no lo comparten dos duraciones. */
 
 /**
  * Amplitud del desplazamiento de scroll (D1, spec
@@ -237,7 +245,11 @@ export const STORY_CARD_FLOAT_MS = 7000;
  * con el propio contenido.
  */
 export const STORY_FIGURE_SCROLL_SHIFT = "-28px";
-export const STORY_NOTE_SCROLL_SHIFT = "18px";
+/* `STORY_NOTE_SCROLL_SHIFT` ("18px") se retiro el 2026-08-06 con la tarjeta de
+   nota (D12). Con ella desaparece el SEGUNDO plano del desplazamiento: ya no
+   hay dos piezas moviendose en sentidos opuestos, solo la figura. El docblock
+   de arriba conserva el razonamiento porque sigue explicando por que la figura
+   se mueve, aunque su pareja ya no exista. */
 
 /**
  * `sizes` de la figura: se muestra a un ancho fijo de 375px desde `lg` en

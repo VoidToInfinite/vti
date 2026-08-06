@@ -28,10 +28,6 @@ import {
 import {
   STORY_ACCENT_GRADIENT_DARK,
   STORY_ACCENT_GRADIENT_LIGHT,
-  STORY_CARD_BG,
-  STORY_CARD_BORDER,
-  STORY_CARD_FLOAT_MS,
-  STORY_CARD_SHADOW,
   STORY_DECK_TAIL_SCREENS,
   STORY_FIGURE_ASPECT,
   STORY_FIGURE_FLOAT_MS,
@@ -42,32 +38,36 @@ import {
   STORY_FLOAT_AMPLITUDE,
   STORY_HALO_GRADIENT,
   STORY_HALO_INSET,
-  STORY_NOTE_SCROLL_SHIFT,
   STORY_SLIDES,
 } from "./story.layers";
 
 /*
  * Story ("Why VoidToInfinite?"). Rama CLARA (mockup `Landing v2.dc.html`
- * L70-101): grid figura+contenido, sin cambios de comportamiento respecto a
- * la reescritura de 2026-07-28 (D3/D4 de ese spec).
+ * L70-131): grid figura+contenido (L70-101) seguido del statement a
+ * pantalla completa (L127-131, D11/D12 de la segunda ronda, spec
+ * 2026-08-06-story-features-tema-claro-design.md).
  *
  * Rama OSCURA (spec 2026-07-29): no hay mockup oscuro de esta seccion. En
- * vez de la figura recortada + halo + tarjeta flotante, el fondo es la
- * escena parallax `StoryCosmicBeing` (11 capas, D1-D12 del spec) y el
- * contenido (mismo i18n `Home.story.*`) se superpone encima. La nota
- * (`Home.story.note`) se conserva como linea de cierre bajo los pilares,
- * SIN la tarjeta flotante ni el icono sparkle (D8): esta composicion no
- * tiene sitio para una tarjeta sin tapar el nucleo del corazon.
+ * vez de la figura recortada + halo + statement, el fondo es la escena
+ * parallax `StoryCosmicBeing` (11 capas, D1-D12 del spec 2026-07-29) y el
+ * contenido (mismo i18n `Home.story.*`) se superpone encima. La nota se
+ * conserva como diapositiva de cierre, partida en `Home.story.noteLead` +
+ * `Home.story.noteAccent` (T3, spec 2026-07-31-story-deck-tipografia-design.md)
+ * -- claves DISTINTAS de `Home.story.statement.*`, que solo consume la rama
+ * clara (D12 de la segunda ronda: "noteLead/noteAccent no se tocan").
  *
  * `themeName` decide la rama (no `theme.data.isLight`): mismo criterio que
  * `HomeSections.tsx`, que ya usa `useTheme()` de `@/theme/ThemeProvider`
  * para esta misma decision.
  */
 
-/* Flotacion compartida por la figura y la tarjeta de nota EN CLARO (mismo
-   keyframe que el mockup reutiliza con dos duraciones distintas, ver
-   story.layers.ts). La rama oscura no la usa: su unica animacion es el
-   pulso del nucleo, declarado en storyCosmicBeing.parts.tsx. */
+/* Flotacion de la figura EN CLARO (mismo keyframe que el mockup tambien
+   aplicaba a la tarjeta de nota, con otra duracion -- ver STORY_CARD_FLOAT_MS
+   en story.layers.ts). La tarjeta de nota y su flotacion se retiraron en la
+   segunda ronda de esta entrega (D12, spec 2026-08-06): la nota pasa a
+   statement a pantalla completa, sin flotacion propia. La rama oscura no usa
+   este keyframe: su unica animacion es el pulso del nucleo, declarado en
+   storyCosmicBeing.parts.tsx. */
 const float = keyframes`
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(${STORY_FLOAT_AMPLITUDE}); }
@@ -135,6 +135,71 @@ const STORY_CARD_REVEAL_DELAYS_MS = [200, 260, 320, 380] as const;
 const STORY_CARD_INSPIRATION_LINE_HEIGHT = 1.7;
 
 /*
+ * Statement a pantalla completa (D12, segunda ronda 2026-08-06 de esta misma
+ * spec: la nota de cierre de Story, promovida a bloque de cartel tras la
+ * rejilla -- mockup L127-131). Los valores de aqui abajo son VERBATIM del
+ * mockup, salvo el divisor de ancho (nuevo, ver `storyStatementFontSize` mas
+ * abajo). Ninguno tiene equivalente en `motion.*`/`type.scale` -- mismo
+ * criterio que el resto de constantes de esta entrega (D2/D3/D4/D9, arriba).
+ */
+/** Duracion de la entrada de cada linea (mockup L128-130): no coincide con
+ *  ningun paso de `motion.duration` (el mas cercano, `ambient`, es 1500ms). */
+const STORY_STATEMENT_REVEAL_MS = 900;
+/** Curva de la entrada (mockup L128-130): ninguna de las cinco curvas de
+ *  `motion.easing` tiene estos cuatro puntos de control -- ni siquiera
+ *  `overshoot` (la unica no monotona de la escala). Constante local
+ *  documentada, mismo recurso que `STORY_REVEAL_DURATION_MS` mas arriba en
+ *  este fichero para el mismo problema. */
+const STORY_STATEMENT_EASING = "cubic-bezier(0.22, 0.61, 0.36, 1)";
+/** Retardo de cada linea, mismo orden que la tabla D12 de la spec. */
+const STORY_STATEMENT_DELAY_FIRST_MS = 0;
+const STORY_STATEMENT_DELAY_SECOND_MS = 220;
+const STORY_STATEMENT_DELAY_THIRD_MS = 440;
+/** `line-height`/`letter-spacing` del cartel (mockup L128-130: `1.04`/
+ *  `-0.03em`): la variante mas cercana de `type.scale`, `display`, da
+ *  1.03/-0.02em -- lo bastante distinto del pedido del mockup para no
+ *  reutilizarla sin alterar la composicion que el usuario aprobo. */
+const STORY_STATEMENT_LINE_HEIGHT = 1.04;
+const STORY_STATEMENT_LETTER_SPACING = "-0.03em";
+/** Suelo/techo de la tipografia fluida (mockup: `max(24px, min(10.5vw,
+ *  19.2vh, 340px))`). Ver `storyStatementFontSize`, debajo, para el termino
+ *  ANADIDO que acota tambien por ancho disponible -- el riesgo que la propia
+ *  spec señala: con `white-space: nowrap`, esta formula por si sola puede
+ *  desbordar horizontalmente en viewports estrechos. */
+const STORY_STATEMENT_MIN_SIZE = "24px";
+const STORY_STATEMENT_MAX_SIZE = "340px";
+
+/**
+ * Tamano de fuente de las tres lineas del statement (D12). Envuelve la
+ * formula VERBATIM del mockup (`max(24px, min(10.5vw, 19.2vh, 340px))`) en
+ * un `min()` EXTERIOR con un tope derivado del ancho disponible: el mockup
+ * es un lienzo fijo de 1280px y puede permitirse ignorar el ancho real de la
+ * ventana; este sitio no.
+ *
+ * Criterio del tope, documentado porque es una ESTIMACION (no hay navegador
+ * en este entorno para medirlo -- ver el informe de la entrega): la linea
+ * mas larga de las tres, en las dos copias publicadas, es "un nuevo
+ * comienzo" (es, 17 caracteres con espacios; "a new beginning", en, tiene
+ * 15). Para palo-seco en mayusculas y negrita, ~0.6em de avance medio por
+ * caracter es la cifra habitual citada; aqui se usa 0.65em A PROPOSITO por
+ * encima de esa cifra (un ancho asumido mayor da un tope MENOR, nunca al
+ * reves -- mas margen de seguridad), y el producto (17 * 0.65 = 11.05) se
+ * redondea AL ALZA a 12 por el mismo motivo. El resultado es
+ * `calc((100vw - 2 * padding) / 12)`, con el MISMO padding inline que
+ * declara `ScStatement` (`theme.data.space[6]`) para que las dos no puedan
+ * desincronizarse si algun dia cambia ese token.
+ *
+ * Este `min()` exterior puede pisar el suelo de legibilidad de 24px en
+ * viewports realmente estrechos (~320px): es la eleccion correcta segun el
+ * encargo -- "el bloque nunca puede producir scroll horizontal" es un
+ * invariante duro (D12); "nunca por debajo de 24px" no lo es.
+ */
+function storyStatementFontSize({ theme }: { theme: DefaultTheme }): string {
+  const pad = theme.data.space[6];
+  return `min(max(${STORY_STATEMENT_MIN_SIZE}, min(10.5vw, 19.2vh, ${STORY_STATEMENT_MAX_SIZE})), calc((100vw - ${pad} - ${pad}) / 12))`;
+}
+
+/*
  * Rama clara: contenedor de contenido normal (padding + tope de ancho,
  * centrado -- sin cambios respecto a la version anterior).
  *
@@ -180,7 +245,19 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
 const ScGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  align-items: center;
+  /* D11 (segunda ronda, 2026-08-06): stretch, NO center. SIN BACKTICKS en
+     este comentario a proposito (vive dentro del template literal de
+     styled-components, un backtick lo cierra y rompe el build -- leccion del
+     repo, task/lessons.md 2026-07-25, reincidida el 2026-08-02). Medido en
+     navegador antes de tocar nada: columna de la figura 548px, columna de
+     contenido 863px. Con center la tarjeta de la figura quedaba flotando
+     centrada y corta; con stretch (el valor por defecto de CSS Grid, que
+     center estaba anulando) el item de la figura ocupa el alto COMPLETO de
+     la fila del grid sin que nadie fije un numero. Solo tiene efecto visible
+     desde el breakpoint lg (abajo), donde las dos columnas comparten fila --
+     en columna unica cada item tiene su propia fila y no hay nada que
+     estirar. */
+  align-items: stretch;
   gap: ${({ theme }) => theme.data.space[7]};
   opacity: 0;
   transform: translateY(16px);
@@ -280,73 +357,18 @@ const ScFigureImg = styled.img`
 `;
 
 /*
- * Envoltorio del desplazamiento de scroll de la tarjeta de nota (D1, mismo
- * motivo que ScFigureShift: ScNoteCard ya anima transform con @keyframes).
- *
- * `position: absolute; inset: 0` -- en vez de un div de flujo normal --
- * porque ScNoteCard es EL MISMO `position: absolute` de siempre, con sus
- * insets (inset-block-end/inset-inline-start) medidos contra el
- * contenedor POSICIONADO mas cercano. Declarar aqui `transform` (cualquier
- * valor salvo none) convierte a ESTE envoltorio en ese contenedor -- asi lo
- * exige la especificacion de CSS para transform -- desplazando a
- * ScNoteCard de su ancestro posicionado real (ScFigureWrap) a este nuevo
- * envoltorio. Con `inset: 0` la caja de este envoltorio coincide EXACTAMENTE
- * con la caja de ScFigureWrap (mismo origen, mismo tamano, sin padding ni
- * borde de por medio), asi que los insets de ScNoteCard resuelven a los
- * MISMOS valores que resolvian antes: cero cambio de geometria, solo un
- * nivel mas de indireccion para poder desplazar la caja entera con scroll.
- * `pointer-events: none`: este envoltorio cubre TODA la zona de la figura
- * (inset: 0), y sin esto interceptaria el hover/click de lo que hay debajo
- * en su hueco vacio (la propia figura) -- ScNoteCard no tiene contenido
- * interactivo, asi que no hace falta reactivarlo en el hijo.
+ * AQUI VIVIERON ScNoteShift/ScNoteCard/ScSparkle (la tarjeta flotante de la
+ * nota, con su desplazamiento de scroll propio y su icono). RETIRADOS en la
+ * segunda ronda de esta entrega (D12, spec 2026-08-06): la nota
+ * (`Home.story.note`) deja de ser una tarjeta flotante y pasa a ser el
+ * statement a pantalla completa (`ScStatement`, mas abajo, tras
+ * `StoryLight`). Sin consumidor, se retiran tambien sus constantes
+ * exclusivas de story.layers.ts (`STORY_CARD_BG`/`STORY_CARD_BORDER`/
+ * `STORY_CARD_SHADOW`/`STORY_CARD_FLOAT_MS`/`STORY_NOTE_SCROLL_SHIFT`) de la
+ * lista de imports de este fichero -- siguen exportadas alli (fuera del
+ * alcance de esta entrega, que solo toca Story.tsx/Story.test.tsx), pero ya
+ * no las consume nadie.
  */
-const ScNoteShift = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  transform: translateY(
-    calc(${STORY_NOTE_SCROLL_SHIFT} * var(--story-progress, 0))
-  );
-
-  @media (prefers-reduced-motion: reduce) {
-    transform: none;
-  }
-`;
-
-const ScNoteCard = styled.div`
-  position: absolute;
-  inset-block-end: 90%;
-  inset-inline-start: -25%;
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.data.space[3]};
-  max-width: 220px;
-  background-color: ${STORY_CARD_BG};
-  border: 1px solid ${STORY_CARD_BORDER};
-  border-radius: ${({ theme }) => theme.data.radius.lg};
-  padding: ${({ theme }) => theme.data.space[3]}
-    ${({ theme }) => theme.data.space[4]};
-  box-shadow: 0 12px 30px ${STORY_CARD_SHADOW};
-
-  @media ${({ theme }) => theme.data.breakPoint.lg} {
-    inset-inline-end: -6%;
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    animation: ${float} ${STORY_CARD_FLOAT_MS}ms ease-in-out infinite;
-  }
-`;
-
-const ScSparkle = styled.svg`
-  flex: none;
-  /* GlobalStyles fuerza svg { width: 100% }: sin esta declaracion el
-     atributo width="20" pierde la cascada y el sparkle se estira al ancho
-     de la tarjeta (medido 186px en navegador, revision 2026-07-28 -- misma
-     leccion que el Logo en task/lessons.md). */
-  width: 20px;
-  height: 20px;
-  color: ${({ theme }) => theme.data.palette.primary[600]};
-`;
 
 const ScContent = styled.div`
   display: flex;
@@ -742,6 +764,144 @@ const ScDeckPillarRow = styled(ScPillarRow)`
   padding-block: 0;
 `;
 
+/*
+ * Statement a pantalla completa (D12): sustituye a la tarjeta flotante de
+ * nota. Bloque NUEVO, HERMANO de `ScStory` y no un hijo suyo: el mockup los
+ * declara como dos <section> hermanos (L72/L127), y `StoryLight` los
+ * devuelve igual, en un fragmento (ver su return, mas abajo).
+ *
+ * `min-height: 100dvh` + flex-column + `justify-content: center` es el
+ * MISMO patron que ya usan `ScContact` (Contact.tsx) y `ScFeatures`
+ * (Features.tsx) para "seccion ambiental a pantalla completa, contenido
+ * centrado" -- no se inventa un mecanismo nuevo para esta pieza.
+ */
+const ScStatement = styled.section`
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: ${({ theme }) => theme.data.space[8]}
+    ${({ theme }) => theme.data.space[6]};
+`;
+
+/*
+ * El PARRAFO real (marcado obligatorio, D12): un lector de pantalla tiene
+ * que leer la frase entera y seguida, no tres bloques sueltos -- de ahi que
+ * las tres lineas vivan DENTRO de un unico <p>, no como hermanas directas de
+ * `ScStatement`. El `gap` del mockup (L127: `clamp(4px, 1vh, 14px)`, entre
+ * las tres lineas) se declara AQUI, no en `ScStatement`, precisamente porque
+ * el envoltorio flex que agrupa las tres lineas es este <p>, no la sección.
+ */
+const ScStatementText = styled.p`
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 1vh, 14px);
+`;
+
+/*
+ * Las tres lineas comparten casi toda su declaracion (tipografia de cartel
+ * fluida, mayusculas, `nowrap` acotado por `storyStatementFontSize`) y solo
+ * difieren en color/transform-de-entrada/retardo (tabla D12 de la spec). Se
+ * escriben TRES styled-components completos, no un mixin compartido +
+ * variantes por prop: mismo criterio que `ScEyebrowRow`/`ScTitle`/`ScBody`,
+ * mas arriba en este fichero, que ya toleran la misma repeticion en vez de
+ * introducir una abstraccion nueva para tres usos.
+ */
+const ScStatementFirst = styled.span`
+  display: block;
+  font-size: ${storyStatementFontSize};
+  font-weight: ${({ theme }) => theme.data.type.scale.h2.weight};
+  line-height: ${STORY_STATEMENT_LINE_HEIGHT};
+  letter-spacing: ${STORY_STATEMENT_LETTER_SPACING};
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: ${({ theme }) => theme.data.semantic.text};
+  opacity: 0;
+  transform: translateX(-16%);
+  transition:
+    opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
+    transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
+  transition-delay: ${STORY_STATEMENT_DELAY_FIRST_MS}ms;
+
+  [data-revealed="true"] & {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transition-delay: 0ms;
+    opacity: 1;
+    transform: none;
+  }
+`;
+
+const ScStatementSecond = styled.span`
+  display: block;
+  font-size: ${storyStatementFontSize};
+  font-weight: ${({ theme }) => theme.data.type.scale.h2.weight};
+  line-height: ${STORY_STATEMENT_LINE_HEIGHT};
+  letter-spacing: ${STORY_STATEMENT_LETTER_SPACING};
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: ${({ theme }) => theme.data.semantic.brandText};
+  opacity: 0;
+  transform: scale(0.9);
+  transition:
+    opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
+    transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
+  transition-delay: ${STORY_STATEMENT_DELAY_SECOND_MS}ms;
+
+  [data-revealed="true"] & {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transition-delay: 0ms;
+    opacity: 1;
+    transform: none;
+  }
+`;
+
+/*
+ * Tercera linea: EXTIENDE `ScAccent` (no lo duplica) para heredar su
+ * degradado de marca y su red de seguridad `@supports not (background-clip:
+ * text)` tal cual (D12 de la spec: "el degradado de marca que ya usa
+ * ScAccent en este mismo fichero -- reutilizalo"). Mismo recurso que
+ * `ScDeckPillarRow`, arriba, para extender `ScPillarRow`.
+ */
+const ScStatementThird = styled(ScAccent)`
+  display: block;
+  font-size: ${storyStatementFontSize};
+  font-weight: ${({ theme }) => theme.data.type.scale.h2.weight};
+  line-height: ${STORY_STATEMENT_LINE_HEIGHT};
+  letter-spacing: ${STORY_STATEMENT_LETTER_SPACING};
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(16%);
+  transition:
+    opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
+    transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
+  transition-delay: ${STORY_STATEMENT_DELAY_THIRD_MS}ms;
+
+  [data-revealed="true"] & {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transition-delay: 0ms;
+    opacity: 1;
+    transform: none;
+  }
+`;
+
 export function Story(): ReactElement {
   const { themeName } = useTheme();
 
@@ -790,6 +950,14 @@ function StoryLight(): ReactElement {
   // significa lo mismo en las dos, "cuanto ha avanzado el scroll de esta
   // seccion por el viewport".
   useSectionProgress(sectionRef, { cssVarPrefix: "story" });
+  // Statement a pantalla completa (D12): useReveal PROPIO, un
+  // IntersectionObserver DISTINTO al de ScGrid (arriba) -- entra en el
+  // viewport en un punto de scroll distinto (esta DESPUES de la rejilla,
+  // ver el return mas abajo), asi que necesita su propio disparo. Mismo
+  // patron que separa useReveal de useSectionProgress (ver ioTargets en
+  // Story.test.tsx).
+  const { ref: statementRef, revealed: statementRevealed } =
+    useReveal<HTMLElement>();
 
   const pillars = (
     <ScPillarGrid>
@@ -854,60 +1022,61 @@ function StoryLight(): ReactElement {
   );
 
   return (
-    <ScStory
-      ref={sectionRef}
-      id="story"
-      aria-labelledby="story-title"
-      $fullBleed={false}
-    >
-      <ScGrid
-        ref={revealRef}
-        data-revealed={revealed}
+    <>
+      <ScStory
+        ref={sectionRef}
+        id="story"
+        aria-labelledby="story-title"
+        $fullBleed={false}
       >
-        <ScFigureWrap>
-          <ScHalo aria-hidden="true" />
-          {/* ScFigureShift/ScNoteShift: envoltorios del desplazamiento de
-              scroll (D1) -- ver sus docblocks, mas arriba, para el porque de
-              cada uno (conflicto @keyframes/transform y preservacion de la
-              geometria de ScNoteCard, respectivamente). */}
-          <ScFigureShift>
-            <ScFigureImg
-              src="/figures/journey-presenting-1024.webp"
-              srcSet="/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w"
-              sizes={STORY_FIGURE_SIZES}
-              alt={t("Home.story.figureAlt")}
-              loading="lazy"
-              decoding="async"
-            />
-          </ScFigureShift>
-          <ScNoteShift>
-            <ScNoteCard>
-              <ScSparkle
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
-                <path d="M19 15l.7 1.8L21.5 17.5l-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z" />
-              </ScSparkle>
-              <Typography variant="bodySm">{t("Home.story.note")}</Typography>
-            </ScNoteCard>
-          </ScNoteShift>
-        </ScFigureWrap>
+        <ScGrid
+          ref={revealRef}
+          data-revealed={revealed}
+        >
+          <ScFigureWrap>
+            <ScHalo aria-hidden="true" />
+            {/* ScFigureShift: envoltorio del desplazamiento de scroll de la
+                figura (D1) -- ver su docblock, mas arriba, para el porque
+                (conflicto @keyframes/transform). */}
+            <ScFigureShift>
+              <ScFigureImg
+                src="/figures/journey-presenting-1024.webp"
+                srcSet="/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w"
+                sizes={STORY_FIGURE_SIZES}
+                alt={t("Home.story.figureAlt")}
+                loading="lazy"
+                decoding="async"
+              />
+            </ScFigureShift>
+          </ScFigureWrap>
 
-        <ScContent>
-          {heading}
-          {pillars}
-        </ScContent>
-      </ScGrid>
-    </ScStory>
+          <ScContent>
+            {heading}
+            {pillars}
+          </ScContent>
+        </ScGrid>
+      </ScStory>
+
+      {/* Statement a pantalla completa (D12): HERMANO de ScStory, no un hijo
+          suyo -- ver el docblock de ScStatement, mas arriba, para el
+          porque. Un solo <p> con las tres lineas como <span> en bloque
+          (marcado obligatorio): un lector de pantalla lee la frase entera y
+          seguida, "Cada idea puede ser un nuevo comienzo", en vez de tres
+          fragmentos sueltos. */}
+      <ScStatement
+        id="statement"
+        ref={statementRef}
+        data-revealed={statementRevealed}
+      >
+        <ScStatementText>
+          <ScStatementFirst>{t("Home.story.statement.first")}</ScStatementFirst>{" "}
+          <ScStatementSecond>
+            {t("Home.story.statement.second")}
+          </ScStatementSecond>{" "}
+          <ScStatementThird>{t("Home.story.statement.third")}</ScStatementThird>
+        </ScStatementText>
+      </ScStatement>
+    </>
   );
 }
 
@@ -1028,9 +1197,12 @@ function StoryDeckDark(): ReactElement {
               data-slide-index={STORY_SLIDES - 1}
               data-state={slideState(STORY_SLIDES - 1)}
             >
-              {/* Nota partida en noteLead + noteAccent (T3 de la spec): la
-                  clave `note` se conserva intacta para la rama clara, que
-                  sigue consumiendola tal cual mas arriba en este archivo. */}
+              {/* Nota partida en noteLead + noteAccent (T3 de la spec
+                  2026-07-31-story-deck-tipografia-design.md): claves
+                  EXCLUSIVAS de esta rama oscura, no tocadas por D12 (segunda
+                  ronda, 2026-08-06) -- la rama clara ya no consume `note` en
+                  absoluto, consume `Home.story.statement.*` en su propio
+                  bloque a pantalla completa (ScStatement, mas arriba). */}
               <ScDeckNote>
                 {t("Home.story.noteLead")}{" "}
                 <ScDeckNoteAccent>

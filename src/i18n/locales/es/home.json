@@ -23,6 +23,11 @@
             "note": "Cada idea puede ser un nuevo comienzo.",
             "noteLead": "Cada idea puede ser un",
             "noteAccent": "nuevo comienzo.",
+            "statement": {
+                "first": "Cada idea",
+                "second": "puede ser",
+                "third": "un nuevo comienzo"
+            },
             "figureAlt": "Figura celestial señalando hacia arriba",
             "pillars": {
                 "learn": {

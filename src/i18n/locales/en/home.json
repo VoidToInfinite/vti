@@ -23,6 +23,11 @@
             "note": "Every idea can become a new beginning.",
             "noteLead": "Every idea can become a",
             "noteAccent": "new beginning.",
+            "statement": {
+                "first": "Every idea",
+                "second": "can become",
+                "third": "a new beginning"
+            },
             "figureAlt": "Celestial figure pointing upward",
             "pillars": {
                 "learn": {

@@ -132,5 +132,50 @@ Los números son **decorativos** (`aria-hidden`): el orden ya lo comunica el DOM
 ## 4. Qué NO entra en esta entrega
 
 - Las ramas oscuras de las dos secciones.
-- Las secciones `Journey`, `Statement`, `Hero`, `Contact` y el pie, que el mockup también contiene: el encargo nombra **Story y Features**.
-- La sección `#statement` del mockup (L127) es una sección NUEVA, no una actualización de Story ni de Features: queda fuera y se declara como recomendación.
+- Las secciones `Journey`, `Hero`, `Contact` y el pie, que el mockup también contiene: el encargo nombra **Story y Features**.
+
+---
+
+## 5. Segunda ronda (2026-08-06, capturas del usuario)
+
+El usuario aporta dos capturas de cómo debe verse Story y **corrige una premisa de la §4**: el bloque `#statement` del mockup (L127) **no** es una sección nueva ajena a Story — es **la nota de cierre de Story**, promovida a pantalla completa. Se ve al comparar la copia: `Home.story.note` dice literalmente «Cada idea puede ser un nuevo comienzo» / «Every idea can become a new beginning», que es exactamente el texto de las tres líneas del bloque.
+
+Queda por tanto DENTRO del alcance, y la §4 se corrige aquí en su sitio en vez de dejarla mintiendo.
+
+### D11 — La figura iguala la altura de la columna de contenido
+
+Medido en el navegador antes de tocar nada: la columna de la figura mide **548 px** y la de contenido **863 px**, con `align-items: center` — la tarjeta blanca queda flotando centrada y muy corta, en vez de acompañar al contenido de arriba abajo como en la captura.
+
+La rejilla pasa a `align-items: stretch` y la tarjeta de la figura a ocupar el alto completo de su columna, con la ilustración centrada dentro (`object-fit: contain`). **No se fija una altura en píxeles**: el mockup usa `height: 855px` porque es un lienzo estático; aquí el alto correcto es «el que tenga la otra columna», y eso solo lo sabe el layout en tiempo real. Una constante se desincronizaría en cuanto cambie una línea de copia.
+
+### D12 — La nota pasa a ser un statement a pantalla completa
+
+La tarjeta flotante de la nota (`ScNoteCard` + su sparkle, rama clara) **desaparece**. En su lugar, tras la rejilla de Story, un bloque a **viewport completo** con la frase partida en tres líneas, en mayúsculas, tipografía de cartel fluida y centrada.
+
+Copia: claves nuevas `Home.story.statement.first` / `.second` / `.third` (ya añadidas en es/en). `noteLead`/`noteAccent` **no se tocan**: los consume la diapositiva 5 de la rama oscura, con su propio corte en dos partes.
+
+Entrada de cada línea (mockup L128-130), con `opacity 0 → 1` y **900 ms** `cubic-bezier(0.22, 0.61, 0.36, 1)`:
+
+| Línea | Copia | Transform de entrada | Retardo | Color |
+| --- | --- | --- | --- | --- |
+| 1 | «Cada idea» | `translateX(-16%)` → 0 | 0 ms | `semantic.text` |
+| 2 | «puede ser» | `scale(0.9)` → 1 | 220 ms | `semantic.brandText` |
+| 3 | «un nuevo comienzo» | `translateX(16%)` → 0 | 440 ms | el degradado de marca de `ScAccent` |
+
+Marcado: **un solo párrafo** con tres `<span>` en bloque, no tres bloques sueltos. Un lector de pantalla tiene que leer la frase entera y seguida; tres elementos hermanos la parten en tres fragmentos sin sentido propio. Los `<span>` son de presentación, y el `display: block` es lo que permite transformarlos por separado.
+
+Mismas reglas de siempre: `useReveal` (uno, sobre el bloque), retardo por línea en CSS, y guard de `reduce` que anula transición **y retardo** en cada línea.
+
+`white-space: nowrap` con tipografía fluida como la del mockup (`max(24px, min(10.5vw, 19.2vh, 340px))`) puede desbordar horizontalmente en viewports estrechos: el tamaño tiene que estar acotado también por el ancho disponible, y el bloque nunca puede producir scroll horizontal — `overflow-x: clip` global no es excusa para emitirlo.
+
+**Resultado medido en navegador.** El tope se resolvió envolviendo la fórmula del mockup en un `min()` con un término derivado del ancho disponible:
+
+| Viewport | Tamaño resuelto | Línea más ancha | Desbordamiento |
+| -------- | --------------- | --------------- | -------------- |
+| 1280 px  | 101.3 px        | 997 px          | 0              |
+| 375 px   | 25.9 px         | 255 px          | 0              |
+| 320 px   | 21.3 px         | 210 px          | 0              |
+
+A 320 px el tope pisa el suelo de 24 px del mockup y baja a 21.3 px. Es la decisión correcta y se declara: «sin scroll horizontal» es invariante dura, «nunca por debajo de 24 px» no lo es.
+
+**Consecuencia estructural.** El statement es una `<section id="statement">` hermana, así que en tema claro la home pasa a montar **cinco** secciones (`story` · `statement` · `journey` · `features` · `contact`), en el mismo orden que el mockup. La rama oscura sigue montando cuatro. `HomeSections.test.tsx` lo afirma entero en las dos ramas.
