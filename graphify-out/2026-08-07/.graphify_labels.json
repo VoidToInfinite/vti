@@ -189,7 +189,6 @@
   "187": "nativeOutput",
   "188": "Story.test.tsx",
   "189": "Card.test.tsx",
-  "190": "SectionBeam.test.tsx",
   "191": "hero.transition.ts",
   "192": "Footer.test.tsx",
   "193": "Fases",
@@ -198,7 +197,9 @@
   "196": "useSectionProgress.test.tsx",
   "197": "meanAbsDiff255",
   "198": "p99AbsDiff255",
+  "201": "usePointer.test.tsx",
   "204": "useNavDetach.ts",
   "205": "useReveal",
-  "207": "VisuallyHidden.tsx"
+  "207": "VisuallyHidden.tsx",
+  "209": "LegalDocument.test.tsx"
 }
