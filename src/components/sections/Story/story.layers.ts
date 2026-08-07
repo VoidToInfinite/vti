@@ -196,10 +196,10 @@ export const STORY_SCRUB_MS = 320;
  */
 export const STORY_FIGURE_WIDTH = "450px";
 export const STORY_FIGURE_HEIGHT = "548px";
-export const STORY_FIGURE_ASPECT = "450 / 548";
+export const STORY_FIGURE_ASPECT = "375 / 548";
 
 /** Expansión del halo más allá del marco de la figura (mockup L73: `inset: -30px`). */
-export const STORY_HALO_INSET = "-30px";
+export const STORY_HALO_INSET = "0px";
 
 /**
  * Flotación (mockup: keyframe `vtiFloat6`, definido en el `<style>` de

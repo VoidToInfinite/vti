@@ -268,7 +268,7 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
         `
       : css`
           padding: ${theme.data.space[9]} ${theme.data.space[5]};
-          max-width: ${theme.data.grid.containerMax};
+          max-width: ${theme.data.grid.navMax};
           margin-inline: auto;
         `}
 `;
@@ -336,6 +336,7 @@ const ScFigureWrap = styled.div`
 const ScHalo = styled.div`
   position: absolute;
   inset: ${STORY_HALO_INSET};
+  width: 100%;
   border-radius: ${({ theme }) => theme.data.radius.full};
   background-image: ${STORY_HALO_GRADIENT};
   pointer-events: none;
@@ -663,7 +664,6 @@ const ScPillarCard = styled.div`
   background-color: ${({ theme }) => theme.data.semantic.surface};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
-  box-shadow: ${({ theme }) => theme.data.elevation[1]};
   padding: ${({ theme }) => theme.data.space[5]};
   transition:
     transform ${({ theme }) => theme.data.motion.duration.base}
@@ -673,7 +673,7 @@ const ScPillarCard = styled.div`
 
   &:hover {
     transform: translateY(${STORY_CARD_HOVER_LIFT});
-    box-shadow: ${({ theme }) => theme.data.elevation[3]};
+    box-shadow: ${({ theme }) => theme.data.elevation[1]};
   }
 
   /* Mismo guard que ScCard (Card.tsx): bajo reduce se anula la transición Y
@@ -777,16 +777,18 @@ const ScCardStepLabel = styled(Typography)`
 
 const ScCardTitle = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[5]};
+  font-weight: 700;
 `;
 
 const ScCardLead = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[2]};
-  color: ${({ theme }) => theme.data.semantic.textMuted};
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-weight: 600;
 `;
 
 const ScCardInspiration = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
-  color: ${({ theme }) => theme.data.semantic.textSubtle};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
   line-height: ${STORY_CARD_INSPIRATION_LINE_HEIGHT};
 `;
 

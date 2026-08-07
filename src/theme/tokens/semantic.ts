@@ -25,7 +25,7 @@ export const semanticLight: SemanticColors = {
   bg: color.neutral[50],
   surface: white,
   surfaceSunken: color.neutral[100],
-  border: color.neutral[300],
+  border: color.neutral[100],
   borderStrong: color.neutral[400],
   text: color.neutral[1000],
   textMuted: color.neutral[800],
