@@ -43,7 +43,36 @@ describe("semantic colors", () => {
         bg: color.neutral[50],
         surface: white,
         surfaceSunken: color.neutral[100],
-        border: color.neutral[300],
+        /*
+         * Borde ambiental. El 2026-08-07 el usuario lo bajó de `neutral[300]`
+         * a `neutral[100]` como parte de sus ajustes visuales del tema claro
+         * (commit `74458b2`, "ajustes visuales del usuario ... y en el borde
+         * del tema claro"), y ese mismo commit dejó por escrito que este
+         * candado quedaba pendiente de actualizar o revertir en la sesión
+         * siguiente. Se actualiza: el cambio es intencional y de rol, no un
+         * descuido local.
+         *
+         * Contraste MEDIDO con el `contrastRatio` de este mismo directorio,
+         * contra los tres fondos que el tema claro pinta bajo un borde:
+         *
+         * | fondo                      | `neutral[300]` (antes) | `neutral[100]` (ahora) |
+         * |----------------------------|------------------------|------------------------|
+         * | `surface` (blanco)         | 1.53:1                 | 1.12:1                 |
+         * | `bg` (`neutral[50]`)       | —                      | 1.08:1                 |
+         * | `surfaceSunken`            | —                      | 1.00:1                 |
+         *
+         * Sobre `surfaceSunken` el ratio es 1.00 porque ese rol ES
+         * `neutral[100]`: ahí el borde queda literalmente del mismo color que
+         * su fondo. El 3:1 de WCAG 1.4.11 aplica a los bordes que transmiten
+         * información o estado; los de esta interfaz son separación ambiental
+         * (las tarjetas ya se distinguen por su superficie blanca sobre el
+         * `bg` gris), así que no hay incumplimiento — y el valor ANTERIOR
+         * tampoco lo cumplía (1.53:1). Lo que sí hay es una pérdida real de
+         * definición, que se reporta en la entrega. `borderStrong`
+         * (`neutral[400]`, 2.00:1 sobre blanco) NO se tocó y sigue siendo el
+         * borde con presencia cuando hace falta que se lea.
+         */
+        border: color.neutral[100],
         borderStrong: color.neutral[400],
         text: color.neutral[1000],
         textMuted: color.neutral[800],
