@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen, within } from "@/test/test-utils";
 import { LEGAL_VERSIONS } from "@/config/legal";
 import { ROUTES } from "@/config/site";
@@ -63,10 +63,26 @@ const paginas = [
 describe("rutas legales", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    // Cada documento legal monta el `Footer` de la home (ver
+    // `PrivacyDocument.tsx` et al.), que desde 2026-08-07 (D6.3 de la spec
+    // `2026-08-07-footer-beam-estrellas-tema-claro-design.md`) monta
+    // `SectionBeam` SIEMPRE, no solo en oscuro -- y `SectionBeam` usa
+    // `useReveal`, que llama a `IntersectionObserver`, ausente en jsdom.
+    // Mismo stub que ya usan `Footer.test.tsx`/`Contact.test.tsx`/
+    // `SectionBeam.test.tsx` para el mismo motivo.
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor() {}
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
   });
 
   afterEach(() => {
     window.localStorage.clear();
+    vi.unstubAllGlobals();
   });
 
   it.each(paginas)(

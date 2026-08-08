@@ -1,8 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
 import { SectionBeam } from "./SectionBeam";
-import { SECTION_BEAM_Z } from "./sectionBeam.layers";
+import {
+  BEAM_CORE,
+  BEAM_MID,
+  BEAM_TAIL,
+  HOTSPOT_GLOW,
+  SECTION_BEAM_Z,
+  SWEEP_CORE,
+  SWEEP_GLOW,
+  SWEEP_MID,
+} from "./sectionBeam.layers";
 
 /*
  * Mockea IntersectionObserver a mano, igual que `Contact.test.tsx`: el
@@ -193,5 +202,76 @@ describe("SectionBeam: guards de prefers-reduced-motion (D8 -- no confia en el c
       const topLevelRule = css.split("@media")[0];
       expect(topLevelRule).not.toContain("animation:");
     }
+  });
+});
+
+/*
+ * Tonalidad por tema (D1/D2/D5, spec
+ * `2026-08-07-footer-beam-estrellas-tema-claro-design.md`). No se mide aqui
+ * el valor claro EXACTO (eso ya lo cubre `sectionBeam.layers.test.ts` contra
+ * los tokens reales importados) -- este archivo comprueba la BIFURCACION en
+ * si misma, a nivel del componente montado: que la rama clara NUNCA deja
+ * escapar uno de los 7 literales oscuros a la regla CSS inyectada, y que la
+ * rama oscura SI los sigue usando tal cual (D5, el invariante duro de esta
+ * entrega). `ThemeProvider` arranca siempre en `"light"` (no puede leer
+ * `localStorage` durante el render, ver su propio docblock) y solo se
+ * corrige a "dark" en un efecto tras montar -- de ahi el `waitFor` en el test
+ * oscuro, ausente del claro porque ahi no hace falta esperar ninguna
+ * correccion.
+ */
+describe("SectionBeam: color del haz por tema (D1/D2/D5)", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  const DARK_LITERALS = [
+    BEAM_CORE,
+    BEAM_MID,
+    BEAM_TAIL,
+    SWEEP_CORE,
+    SWEEP_MID,
+    SWEEP_GLOW,
+    HOTSPOT_GLOW,
+  ];
+
+  it("en claro (tema por defecto sin localStorage), ninguna de las 5 piezas contiene alguno de los 7 literales oscuros del haz", () => {
+    const { children } = renderBeam();
+    expect(children).toHaveLength(5);
+    for (const el of children) {
+      const css = cssRuleTextFor(el);
+      for (const literal of DARK_LITERALS) {
+        expect(css).not.toContain(literal);
+      }
+    }
+  });
+
+  it('en oscuro, las 5 piezas SI usan los 7 literales VERBATIM del mockup (D5: "no cambia ni un pixel")', async () => {
+    window.localStorage.setItem("vti-theme", "dark");
+    const { children } = renderBeam();
+    const [drawLeft, drawRight, sweepLeft, sweepRight, hotspot] = children;
+
+    // El primer literal que aparezca confirma que el efecto de hidratacion
+    // de ThemeProvider ya corrigio el tema a "dark" antes de leer el resto.
+    await waitFor(() => {
+      expect(cssRuleTextFor(drawLeft)).toContain(BEAM_CORE);
+    });
+
+    for (const el of [drawLeft, drawRight]) {
+      const css = cssRuleTextFor(el);
+      expect(css).toContain(BEAM_CORE);
+      expect(css).toContain(BEAM_MID);
+      expect(css).toContain(BEAM_TAIL);
+    }
+
+    for (const el of [sweepLeft, sweepRight]) {
+      const css = cssRuleTextFor(el);
+      expect(css).toContain(SWEEP_CORE);
+      expect(css).toContain(SWEEP_MID);
+      expect(css).toContain(SWEEP_GLOW);
+    }
+
+    const hotspotCss = cssRuleTextFor(hotspot);
+    expect(hotspotCss).toContain(SWEEP_CORE);
+    expect(hotspotCss).toContain(HOTSPOT_GLOW);
   });
 });

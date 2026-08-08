@@ -22,6 +22,13 @@ import { Footer } from "./Footer";
  * resources`, y la columna que se llamaba «Explore» pasa a llamarse «On Site»
  * («En el sitio» en español). En la misma entrega, «Resources» se reduce a un
  * unico enlace, VTI - SDK, por encargo del usuario.
+ *
+ * Entrega 2026-08-07 (spec `2026-08-07-footer-beam-estrellas-tema-claro-design.md`,
+ * D3/D4/D5/D6/D7): el haz (`SectionBeam`) y el campo de 24 estrellas dejan de
+ * ser exclusivos de oscuro -- se montan en LOS DOS TEMAS -- y el
+ * `border-top` de la rama clara se retira. Varios tests de más abajo
+ * SUSTITUYEN a los que hasta esta entrega afirmaban lo contrario; se marcan
+ * en el sitio.
  */
 
 beforeEach(() => {
@@ -124,14 +131,16 @@ describe("Footer", () => {
   it("en tema oscuro SI muestra las columnas On Site y Discover, con sus 4+3 enlaces y sus anclas reales (D16)", async () => {
     window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderWithProviders(<Footer />);
+    const footerEl = container.querySelector("footer") as HTMLElement;
 
     // Espera al efecto de hidratación (ThemeProvider arranca siempre en
-    // "light" y se corrige a "dark" en un efecto tras montar): se usa la
-    // aparición del campo de estrellas -- exclusivo de la rama oscura -- como
-    // señal de que el tema ya aplicó, en vez de una propiedad que ahora es
-    // igual en los dos temas.
+    // "light" y se corrige a "dark" en un efecto tras montar). Desde
+    // 2026-08-07 (D6.3) el campo de estrellas ya NO sirve como señal de "el
+    // tema ya aplicó" -- se monta en los DOS temas -- así que la señal pasa a
+    // ser `FOOTER_DARK_BG` en el CSS inyectado del propio `<footer>`, que
+    // sigue siendo exclusivo de la rama oscura (D5).
     await waitFor(() => {
-      expect(findStarsContainer(container)).toBeDefined();
+      expect(cssRuleTextFor(footerEl)).toContain(FOOTER_DARK_BG);
     });
 
     expect(screen.getByText(esCommon.Common.Nav.onSite)).toBeInTheDocument();
@@ -312,8 +321,8 @@ describe("Footer", () => {
     },
   );
 
-  describe("fondo y costura por tema (D17)", () => {
-    it("en oscuro declara background-color con FOOTER_DARK_BG y no declara border-top", async () => {
+  describe("fondo y costura por tema (D17, y D6 de la spec 2026-08-07-footer-beam-estrellas-tema-claro-design.md)", () => {
+    it("en oscuro declara background-color con FOOTER_DARK_BG, position: relative, y no declara border-top (D5: sin cambios)", async () => {
       window.localStorage.setItem("vti-theme", "dark");
       const { container } = renderWithProviders(<Footer />);
       const footerEl = container.querySelector("footer") as HTMLElement;
@@ -323,10 +332,19 @@ describe("Footer", () => {
       });
 
       const css = cssRuleTextFor(footerEl);
+      expect(css).toContain("position: relative");
       expect(css).not.toContain("border-top");
     });
 
-    it("en claro declara surfaceSunken y sí declara border-top", () => {
+    /*
+     * SUSTITUYE al test que hasta esta entrega afirmaba que la rama clara
+     * "sí declara border-top": D6.4 lo retira -- ese borde era
+     * `neutral[100]`, exactamente el mismo color que `surfaceSunken` (el
+     * propio fondo del footer), 1.00:1 de contraste, invisible. D6.1 añade
+     * `position: relative`, sin el cual el haz y las estrellas (ahora
+     * montados también en claro) se anclarían fuera del footer.
+     */
+    it("en claro declara surfaceSunken, position: relative, y NO declara border-top (D6.1/D6.4)", () => {
       window.localStorage.setItem("vti-theme", "light");
       const { container } = renderWithProviders(<Footer />);
       const footerEl = container.querySelector("footer") as HTMLElement;
@@ -335,52 +353,60 @@ describe("Footer", () => {
       // Sonda positiva: el selector SI ve reglas de este elemento.
       expect(css).toContain("background-color:");
       expect(css).toContain(themes.light.semantic.surfaceSunken);
-      expect(css).toContain("border-top:");
+      expect(css).toContain("position: relative");
+      expect(css).not.toContain("border-top");
       expect(css).not.toContain(FOOTER_DARK_BG);
     });
   });
 
-  describe("campo de estrellas (D9/D10)", () => {
-    it("renderiza exactamente una estrella por entrada de FOOTER_STARS, dentro de un contenedor aria-hidden", async () => {
-      window.localStorage.setItem("vti-theme", "dark");
-      const { container } = renderWithProviders(<Footer />);
+  describe("campo de estrellas (D9/D10, y D6.3 de la spec 2026-08-07-footer-beam-estrellas-tema-claro-design.md -- se monta en los DOS temas)", () => {
+    it.each([["light"], ["dark"]] as const)(
+      "en tema %s renderiza exactamente una estrella por entrada de FOOTER_STARS, dentro de un contenedor aria-hidden",
+      async (theme) => {
+        window.localStorage.setItem("vti-theme", theme);
+        const { container } = renderWithProviders(<Footer />);
 
-      await waitFor(() => {
-        expect(findStarsContainer(container)).toBeDefined();
-      });
+        await waitFor(() => {
+          expect(findStarsContainer(container)).toBeDefined();
+        });
 
-      const starsContainer = findStarsContainer(container) as HTMLElement;
-      expect(starsContainer).toHaveAttribute("aria-hidden", "true");
-      expect(starsContainer.children).toHaveLength(FOOTER_STARS.length);
-    });
+        const starsContainer = findStarsContainer(container) as HTMLElement;
+        expect(starsContainer).toHaveAttribute("aria-hidden", "true");
+        expect(starsContainer.children).toHaveLength(FOOTER_STARS.length);
+      },
+    );
 
-    it("la animación de titileo solo corre bajo no-preference y el bloque reduce fuerza animation: none (D8)", async () => {
-      window.localStorage.setItem("vti-theme", "dark");
-      const { container } = renderWithProviders(<Footer />);
+    it.each([["light"], ["dark"]] as const)(
+      "en tema %s la animación de titileo solo corre bajo no-preference y el bloque reduce fuerza animation: none (D8)",
+      async (theme) => {
+        window.localStorage.setItem("vti-theme", theme);
+        const { container } = renderWithProviders(<Footer />);
 
-      await waitFor(() => {
-        expect(findStarsContainer(container)).toBeDefined();
-      });
+        await waitFor(() => {
+          expect(findStarsContainer(container)).toBeDefined();
+        });
 
-      const starsContainer = findStarsContainer(container) as HTMLElement;
-      const firstStar = starsContainer.children[0] as HTMLElement;
-      const css = cssRuleTextFor(firstStar);
+        const starsContainer = findStarsContainer(container) as HTMLElement;
+        const firstStar = starsContainer.children[0] as HTMLElement;
+        const css = cssRuleTextFor(firstStar);
 
-      // Sonda positiva: el helper SI ve `animation:` bajo no-preference -- si
-      // no la viera, el assert de ausencia de mas abajo pasaria por vacuidad.
-      expect(css).toContain("prefers-reduced-motion: no-preference");
-      expect(css).toContain("animation:");
+        // Sonda positiva: el helper SI ve `animation:` bajo no-preference --
+        // si no la viera, el assert de ausencia de mas abajo pasaria por
+        // vacuidad.
+        expect(css).toContain("prefers-reduced-motion: no-preference");
+        expect(css).toContain("animation:");
 
-      const reduceLine = css
-        .split("\n")
-        .find(
-          (line) =>
-            line.includes("prefers-reduced-motion: reduce") &&
-            line.includes("animation:"),
-        );
-      expect(reduceLine).toBeDefined();
-      expect(reduceLine as string).toContain("animation: none");
-    });
+        const reduceLine = css
+          .split("\n")
+          .find(
+            (line) =>
+              line.includes("prefers-reduced-motion: reduce") &&
+              line.includes("animation:"),
+          );
+        expect(reduceLine).toBeDefined();
+        expect(reduceLine as string).toContain("animation: none");
+      },
+    );
 
     it("dos renders independientes producen el mismo marcado del campo de estrellas (D10: si viniera de Math.random(), diferirían)", async () => {
       window.localStorage.setItem("vti-theme", "dark");
@@ -403,6 +429,35 @@ describe("Footer", () => {
       expect(firstHtml.length).toBeGreaterThan(0);
       expect(firstHtml).toBe(secondHtml);
     });
+
+    /*
+     * Candado de D3/D4: el marcado de las 24 estrellas no puede ser
+     * IDENTICO entre temas (si lo fuera, `footerStarTint`/`footerStarGlow`
+     * no estarían resolviendo contra el tema activo). No comprueba colores
+     * concretos -- eso es responsabilidad de `footer.layers.test.ts`, contra
+     * los tokens reales -- solo que la salida DIFIERE.
+     */
+    it("el marcado del campo de estrellas difiere entre claro y oscuro (D3: dos tonalidades distintas)", async () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const light = renderWithProviders(<Footer />);
+      await waitFor(() => {
+        expect(findStarsContainer(light.container)).toBeDefined();
+      });
+      const lightHtml = (findStarsContainer(light.container) as HTMLElement)
+        .innerHTML;
+      light.unmount();
+
+      window.localStorage.setItem("vti-theme", "dark");
+      const dark = renderWithProviders(<Footer />);
+      await waitFor(() => {
+        expect(findStarsContainer(dark.container)).toBeDefined();
+      });
+      const darkHtml = (findStarsContainer(dark.container) as HTMLElement)
+        .innerHTML;
+
+      expect(lightHtml.length).toBeGreaterThan(0);
+      expect(lightHtml).not.toBe(darkHtml);
+    });
   });
 
   it("en oscuro monta el haz de costura (SectionBeam) -- sonda positiva de la ausencia de mas abajo", async () => {
@@ -414,16 +469,24 @@ describe("Footer", () => {
     });
   });
 
-  it("en claro no monta el haz de costura ni el campo de estrellas", () => {
+  /*
+   * SUSTITUYE al test que hasta esta entrega afirmaba que en claro NO se
+   * montaban el haz ni el campo de estrellas (D6.3 de la spec
+   * 2026-08-07-footer-beam-estrellas-tema-claro-design.md): las dos piezas
+   * pasan a montarse SIEMPRE. El test previo probaba la ausencia; este
+   * prueba la presencia, con el mismo par de finders.
+   */
+  it("en claro TAMBIÉN monta el haz de costura y el campo de 24 estrellas (D6.3)", () => {
+    // "light" es el tema por defecto del ThemeProvider (arranca ahí antes de
+    // cualquier efecto de hidratación), así que este render no necesita
+    // `waitFor`: si el haz/las estrellas dependieran todavía de `isDark`, ya
+    // estarían ausentes en este primer render sin esperar a nada.
     window.localStorage.setItem("vti-theme", "light");
     const { container } = renderWithProviders(<Footer />);
 
-    // El test anterior ya prueba que `findBeam`/`findStarsContainer` SI
-    // encuentran coincidencias cuando la rama oscura los monta -- aquí, en
-    // claro, ninguno de los dos debe aparecer. `Logo` sigue siendo
-    // `aria-hidden` en los dos temas (es decorativo siempre), así que no
-    // sirve como señal y no se usa.
-    expect(findBeam(container)).toBeNull();
-    expect(findStarsContainer(container)).toBeUndefined();
+    expect(findBeam(container)).not.toBeNull();
+    const starsContainer = findStarsContainer(container) as HTMLElement;
+    expect(starsContainer).toBeDefined();
+    expect(starsContainer.children).toHaveLength(FOOTER_STARS.length);
   });
 });

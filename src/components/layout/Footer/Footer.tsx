@@ -3,7 +3,11 @@
 import type { CSSProperties, ReactElement } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import styled, { css, keyframes } from "styled-components";
+import styled, {
+  css,
+  keyframes,
+  useTheme as useStyledTheme,
+} from "styled-components";
 import { useConsent } from "@/consent/ConsentProvider";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { SectionBeam } from "@/components/sectionBeam/SectionBeam";
@@ -12,6 +16,7 @@ import { Typography } from "@/components/ui/Typography/Typography";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { links } from "@/config/links";
 import { NAV_GROUPS } from "@/config/navigation";
+import type { ThemeDefinition } from "@/theme/theme.types";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   type FooterStar,
@@ -20,6 +25,8 @@ import {
   FOOTER_STAR_TWINKLE_MAX_SCALE,
   FOOTER_STAR_TWINKLE_MIN_OPACITY,
   FOOTER_STAR_TWINKLE_MIN_SCALE,
+  footerStarGlow,
+  footerStarTint,
 } from "./footer.layers";
 
 /*
@@ -45,10 +52,7 @@ import {
  * "muertas" en la página real.
  *
  * D17: el fondo oscuro pasa a `FOOTER_DARK_BG` (casi negro del mockup,
- * `footer.layers.ts`) y el `border-top` de la rama clara se sustituye, SOLO
- * en oscuro, por el mismo haz de luz (`SectionBeam`, D7) que ya usa Contacto
- * como costura -- la frontera entre dos secciones oscuras se marca con el
- * haz, no con un borde sólido.
+ * `footer.layers.ts`).
  *
  * D9/D10: el footer estrena `useReveal` SOLO para su costura -- lo trae el
  * propio `SectionBeam` -- y un campo de 24 estrellas titilantes precalculadas
@@ -61,25 +65,49 @@ import {
  * la spec: dibujarlo al montar lo dejaría ya dibujado mucho antes de que
  * nadie llegase a verlo.
  *
- * La rama clara NO cambia de aspecto (D1): sigue con `semantic.surfaceSunken`
- * y su `border-top`, sin haz ni estrellas.
+ * Desde 2026-08-07 (spec `2026-08-07-footer-beam-estrellas-tema-claro-design.md`,
+ * D3/D4/D5/D6/D7 -- este fichero es el flujo B de esa entrega; el haz lo
+ * adapta el flujo A en `sectionBeam.*`), la rama clara DEJA de ser "sin haz
+ * ni estrellas": las dos piezas se montan SIEMPRE (D6.3) y su tonalidad en
+ * claro se resuelve por estrella con `footerStarTint`/`footerStarGlow`
+ * (`footer.layers.ts`, D3/D4), sin tocar un solo píxel de la rama oscura
+ * (D5, candado byte a byte en `footer.layers.test.ts`). El `border-top` de
+ * la rama clara se retira (D6.4): en las DOS ramas la frontera con lo que
+ * viene detrás la marca el haz, no un borde sólido -- en oscuro porque ya lo
+ * decidía D17, en claro porque ese borde era `neutral[100]`, exactamente el
+ * mismo color que `semantic.surfaceSunken` (el propio fondo del footer, tras
+ * el ajuste del usuario del commit `74458b2`) -- 1.00:1 de contraste,
+ * invisible.
  */
 
+/*
+ * `position: relative` SIN CONDICIÓN (D6.1): sin él, el haz
+ * (`position: absolute; top: 0`) y el campo de estrellas
+ * (`position: absolute; inset: 0`), que ahora se montan en los DOS temas,
+ * se anclarían al primer ancestro posicionado que hubiera más arriba -- o al
+ * viewport -- y aparecerían fuera del footer. `$dark` sigue decidiendo el
+ * fondo -- y AHORA SOLO eso (D6.5): el `border-top` que llevaba la rama
+ * clara desapareció (D6.4, ver el docblock de cabecera de este fichero).
+ */
 const ScFooter = styled.footer<{ $dark: boolean }>`
+  position: relative;
+
   ${({ $dark, theme }) =>
     $dark
       ? css`
-          position: relative;
           background-color: ${FOOTER_DARK_BG};
         `
       : css`
           background-color: ${theme.data.semantic.surfaceSunken};
-          border-top: 1px solid ${theme.data.semantic.border};
         `}
 `;
 
-/* Campo de estrellas titilantes (D9/D10): contenedor decorativo, sin captura
-   de puntero, del mismo tamaño que el footer -- solo se monta en oscuro. */
+/* Campo de estrellas titilantes (D9/D10, D3/D6 de la spec
+   2026-08-07-footer-beam-estrellas-tema-claro-design.md): contenedor
+   decorativo, sin captura de puntero, del mismo tamaño que el footer -- se
+   monta en los DOS temas desde esta entrega. Su tinte por estrella se
+   resuelve contra el tema activo en `starVars`, más abajo (D4); este
+   contenedor en sí no cambia entre temas. */
 const ScStars = styled.div`
   position: absolute;
   inset: 0;
@@ -147,17 +175,29 @@ const ScStar = styled.div`
   }
 `;
 
-/* Las cinco variables de una estrella, en el formato que espera el CSS de
-   `ScStar`. Vive fuera del componente porque no depende de nada del render.
-   `box-shadow` necesita `none` explícito cuando la estrella no lleva halo:
-   una variable sin valor dejaría la declaración inválida. */
-function starVars(star: FooterStar): CSSProperties {
+/*
+ * Las cinco variables de una estrella, en el formato que espera el CSS de
+ * `ScStar`. Recibe `theme` (D3/D4/D5, spec
+ * `2026-08-07-footer-beam-estrellas-tema-claro-design.md`) porque el tinte y
+ * el halo ya NO son literales fijos en `FooterStar` -- son `tintKey`/
+ * `glowBlurPx`, y `footerStarTint`/`footerStarGlow` (`footer.layers.ts`) los
+ * componen contra el tema activo. Esta composición ocurre AQUÍ, en JS, y no
+ * como interpolación del template de `ScStar`, a propósito: ese template
+ * tiene que seguir siendo ESTÁTICO por rendimiento (ver su docblock, más
+ * arriba) -- la variación, de tema o de estrella, viaja siempre por el
+ * atributo `style`.
+ *
+ * `box-shadow` necesita `none` explícito cuando la estrella no lleva halo:
+ * una variable sin valor dejaría la declaración inválida.
+ */
+function starVars(star: FooterStar, theme: ThemeDefinition): CSSProperties {
   return {
     "--star-top": star.top,
     "--star-left": star.left,
     "--star-size": star.size,
-    "--star-tint": star.tint,
-    "--star-glow": star.glow ?? "none",
+    "--star-tint": footerStarTint(theme, star.tintKey),
+    "--star-glow":
+      footerStarGlow(theme, star.tintKey, star.glowBlurPx) ?? "none",
     "--star-duration": `${star.durationMs}ms`,
     "--star-delay": `${star.delayMs}ms`,
   } as CSSProperties;
@@ -168,12 +208,12 @@ function starVars(star: FooterStar): CSSProperties {
    1fr 1.3fr): las 4 columnas de enlaces se montan siempre (D16), pero
    `auto-fit` sigue siendo el criterio de "cambio mínimo" frente a fijar
    fracciones literales que nada en este fichero necesitaba ajustar.
-   `$dark`: apilamiento (D17/§1.c de la spec) -- con las estrellas
-   posicionadas encima del fondo, el contenido necesita su propio
-   `position: relative; z-index: 1` para no quedar debajo; en claro no hay
-   estrellas, así que no hace falta y no se declara (byte a byte igual que
-   antes, D1). */
-const ScInner = styled.div<{ $dark: boolean }>`
+   `position: relative; z-index: 1` SIN CONDICIÓN desde 2026-08-07 (D6.2 de la
+   spec 2026-08-07-footer-beam-estrellas-tema-claro-design.md): con las
+   estrellas ahora posicionadas encima del fondo en los DOS temas, el
+   contenido necesita salir por encima en los DOS temas -- ya no depende de
+   `$dark`, que esta pieza pierde. */
+const ScInner = styled.div`
   max-width: ${({ theme }) => theme.data.grid.containerMax};
   margin-inline: auto;
   padding: ${({ theme }) => theme.data.space[7]}
@@ -181,18 +221,13 @@ const ScInner = styled.div<{ $dark: boolean }>`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${({ theme }) => theme.data.space[6]};
+  position: relative;
+  z-index: 1;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
     padding-inline: ${({ theme }) => theme.data.space[6]};
   }
-
-  ${({ $dark }) =>
-    $dark &&
-    css`
-      position: relative;
-      z-index: 1;
-    `}
 `;
 
 const ScBrandCol = styled.div`
@@ -287,9 +322,22 @@ const ScFooterButton = styled.button`
   text-align: start;
 `;
 
-/* `$dark`: mismo motivo que `ScInner` -- necesita salir por encima de las
-   estrellas posicionadas. */
-const ScBottomBar = styled.div<{ $dark: boolean }>`
+/*
+ * `position: relative; z-index: 1` SIN CONDICIÓN (D6.2 de la spec
+ * 2026-08-07-footer-beam-estrellas-tema-claro-design.md, extendida a esta
+ * pieza en la integración): mismo motivo que `ScInner` -- necesita salir por
+ * encima de las estrellas posicionadas, y desde esta entrega las estrellas se
+ * montan en los DOS temas, no solo en oscuro.
+ *
+ * No es cosmético y no depende de que las estrellas tengan z-index: el orden
+ * de pintado dentro de un contexto de apilamiento coloca los descendientes de
+ * bloque EN FLUJO y sin posicionar (paso 3 de CSS 2.1 SS9.9.1) ANTES que los
+ * descendientes POSICIONADOS con z-index auto (paso 6) -- da igual el orden
+ * del DOM. Con esta barra sin posicionar en claro, las 24 estrellas (y sus
+ * halos) se habrían pintado ENCIMA del copyright y de los cuatro enlaces
+ * legales, aunque en el DOM vayan antes.
+ */
+const ScBottomBar = styled.div`
   max-width: ${({ theme }) => theme.data.grid.containerMax};
   margin-inline: auto;
   padding: 0 ${({ theme }) => theme.data.space[5]}
@@ -308,12 +356,8 @@ const ScBottomBar = styled.div<{ $dark: boolean }>`
     text-align: start;
   }
 
-  ${({ $dark }) =>
-    $dark &&
-    css`
-      position: relative;
-      z-index: 1;
-    `}
+  position: relative;
+  z-index: 1;
 `;
 
 const ScBottomLinks = styled.div`
@@ -348,22 +392,29 @@ export function Footer(): ReactElement {
   const { openPreferences } = useConsent();
   const year = new Date().getFullYear();
   const isDark = themeName === "dark";
+  // El tema AMBIENTAL de styled-components, no `themes[themeName]` construido
+  // a mano (integración 2026-08-07): `ThemeProvider.tsx:90` ya expone
+  // exactamente `{ data: themes[themeName] }`, así que resolverlo otra vez
+  // aquí duplicaría la fuente de verdad de "qué tema está activo" -- la misma
+  // clase de divergencia que Navbar.tsx documenta al retirar su ThemeProvider
+  // anidado (su docblock, "no hay ningun segundo arbol de tema contra el que
+  // algo pueda divergir"). `useStyledTheme` lee el que de verdad están usando
+  // los styled-components de este mismo fichero.
+  const { data: theme } = useStyledTheme();
 
   return (
     <ScFooter $dark={isDark}>
-      {isDark && <SectionBeam />}
-      {isDark && (
-        <ScStars aria-hidden="true">
-          {FOOTER_STARS.map((star) => (
-            <ScStar
-              key={star.id}
-              style={starVars(star)}
-            />
-          ))}
-        </ScStars>
-      )}
+      <SectionBeam />
+      <ScStars aria-hidden="true">
+        {FOOTER_STARS.map((star) => (
+          <ScStar
+            key={star.id}
+            style={starVars(star, theme)}
+          />
+        ))}
+      </ScStars>
 
-      <ScInner $dark={isDark}>
+      <ScInner>
         <ScBrandCol>
           <ScBrandRow>
             <Logo size="1.5rem" />
@@ -405,7 +456,7 @@ export function Footer(): ReactElement {
         ))}
       </ScInner>
 
-      <ScBottomBar $dark={isDark}>
+      <ScBottomBar>
         <Typography
           variant="caption"
           as="span"

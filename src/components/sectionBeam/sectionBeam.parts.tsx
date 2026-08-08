@@ -1,5 +1,5 @@
 "use client";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, type DefaultTheme } from "styled-components";
 import {
   BEAM_CORE,
   BEAM_MID,
@@ -17,7 +17,46 @@ import {
   SWEEP_CORE,
   SWEEP_GLOW,
   SWEEP_MID,
+  beamCoreLight,
+  beamMidLight,
+  beamTailLight,
+  hotspotGlowLight,
+  sweepCoreLight,
+  sweepGlowLight,
+  sweepMidLight,
 } from "./sectionBeam.layers";
+
+/*
+ * Selector de tonalidad por tema (D1/D2/D5, spec
+ * `2026-08-07-footer-beam-estrellas-tema-claro-design.md`): la bifurcación
+ * vive AQUI, con `theme.data.isLight` dentro de los styled-components -- NO
+ * como props nuevas en `SectionBeam` (D5: el componente sigue sin API, como
+ * declara su propio docblock, y sus dos consumidores -- Contacto y el Footer
+ * -- lo siguen montando igual). Mismo recurso que `ScAccent` en `Story.tsx`.
+ *
+ * La rama oscura devuelve el literal VERBATIM tal cual (D5: "no cambia ni un
+ * pixel"); la clara llama a la función pura de `sectionBeam.layers.ts` que
+ * construye el valor con pasos reales de `theme.data.palette` -- ver el
+ * docblock que precede a `beamCoreLight` en ese fichero para el detalle de
+ * cada valor y el porqué de las dos asimetrías (barrido más oscuro que el
+ * dibujado, alfa de los `drop-shadow` a la mitad). Un único selector
+ * parametrizado evita repetir el mismo ternario 7 veces dentro de los
+ * templates literales de más abajo.
+ */
+function themedBeamColor(
+  dark: string,
+  light: (palette: DefaultTheme["data"]["palette"]) => string,
+): (props: { theme: DefaultTheme }) => string {
+  return ({ theme }) => (theme.data.isLight ? light(theme.data.palette) : dark);
+}
+
+const beamCore = themedBeamColor(BEAM_CORE, beamCoreLight);
+const beamMid = themedBeamColor(BEAM_MID, beamMidLight);
+const beamTail = themedBeamColor(BEAM_TAIL, beamTailLight);
+const sweepCore = themedBeamColor(SWEEP_CORE, sweepCoreLight);
+const sweepMid = themedBeamColor(SWEEP_MID, sweepMidLight);
+const sweepGlow = themedBeamColor(SWEEP_GLOW, sweepGlowLight);
+const hotspotGlow = themedBeamColor(HOTSPOT_GLOW, hotspotGlowLight);
 
 /* Las tres animaciones, portadas VERBATIM del mockup (`Footer animado v2.dc.html`
    L25-27): solo `transform`/`opacity`, sin variantes. */
@@ -101,9 +140,9 @@ export const ScBeamDrawLeft = styled.div`
   transform-origin: 100% 50%;
   background: linear-gradient(
     270deg,
-    ${BEAM_CORE},
-    ${BEAM_MID} 25%,
-    ${BEAM_TAIL} 60%,
+    ${beamCore},
+    ${beamMid} 25%,
+    ${beamTail} 60%,
     transparent
   );
   transform: scaleX(0);
@@ -129,9 +168,9 @@ export const ScBeamDrawRight = styled.div`
   transform-origin: 0% 50%;
   background: linear-gradient(
     90deg,
-    ${BEAM_CORE},
-    ${BEAM_MID} 25%,
-    ${BEAM_TAIL} 60%,
+    ${beamCore},
+    ${beamMid} 25%,
+    ${beamTail} 60%,
     transparent
   );
   transform: scaleX(0);
@@ -171,11 +210,11 @@ export const ScBeamSweepLeft = styled.div`
   transform-origin: 100% 50%;
   background: linear-gradient(
     270deg,
-    ${SWEEP_CORE},
-    ${SWEEP_MID} 20%,
+    ${sweepCore},
+    ${sweepMid} 20%,
     transparent 55%
   );
-  filter: drop-shadow(0 0 7px ${SWEEP_GLOW});
+  filter: drop-shadow(0 0 7px ${sweepGlow});
   transform: scaleX(0);
   opacity: 0;
 
@@ -201,11 +240,11 @@ export const ScBeamSweepRight = styled.div`
   transform-origin: 0% 50%;
   background: linear-gradient(
     90deg,
-    ${SWEEP_CORE},
-    ${SWEEP_MID} 20%,
+    ${sweepCore},
+    ${sweepMid} 20%,
     transparent 55%
   );
-  filter: drop-shadow(0 0 7px ${SWEEP_GLOW});
+  filter: drop-shadow(0 0 7px ${sweepGlow});
   transform: scaleX(0);
   opacity: 0;
 
@@ -244,10 +283,10 @@ export const ScBeamHotspot = styled.div`
   transform: translateX(-50%);
   background: radial-gradient(
     ellipse 50% 300% at 50% 50%,
-    ${SWEEP_CORE},
+    ${sweepCore},
     transparent 70%
   );
-  filter: drop-shadow(0 0 9px ${HOTSPOT_GLOW});
+  filter: drop-shadow(0 0 9px ${hotspotGlow});
   opacity: 0.55;
 
   @media (prefers-reduced-motion: no-preference) {
