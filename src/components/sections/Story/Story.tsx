@@ -142,14 +142,12 @@ const STORY_CARD_INSPIRATION_LINE_HEIGHT = 1.7;
  * abajo). Ninguno tiene equivalente en `motion.*`/`type.scale` -- mismo
  * criterio que el resto de constantes de esta entrega (D2/D3/D4/D9, arriba).
  *
- * Tercera ronda (D13, mismo dia): el bloque deja de revelarse con una
- * cascada automatica y pasa a recorrerse con el scroll, con `useSlideDeck`
- * -- el mismo motor que ya gobierna la presentacion oscura de Story (ver
- * `StoryDeckDark`, mas abajo). Las constantes de pista/pantalla que anaden
- * esta ronda (STORY_STATEMENT_LINES en adelante) NO son literales del
- * mockup: son la geometria de scroll que este bloque necesita para que el
- * paso lo marque el usuario, un problema que el mockup -- una cascada
- * temporizada -- no tenia.
+ * Cuarta ronda (D1/D3, spec 2026-08-07-story-statement-scroll-observer-design.md):
+ * el bloque deja de recorrerse con el scroll (D13 de la tercera ronda,
+ * `useSlideDeck`) y pasa a revelarse con un `IntersectionObserver` de ida y
+ * vuelta (`useReveal({ once: false })`, ver StoryLight mas abajo) -- el
+ * encargo pide "cuando se llegue al elemento" y, al retroceder, la animacion
+ * "a la inversa", no un recorrido paso a paso anclado por scroll.
  */
 /** Duracion de la entrada de cada linea (mockup L128-130): no coincide con
  *  ningun paso de `motion.duration` (el mas cercano, `ambient`, es 1500ms). */
@@ -161,41 +159,28 @@ const STORY_STATEMENT_REVEAL_MS = 900;
  *  este fichero para el mismo problema. */
 const STORY_STATEMENT_EASING = "cubic-bezier(0.22, 0.61, 0.36, 1)";
 /*
- * AQUI VIVIERON STORY_STATEMENT_DELAY_FIRST_MS/_SECOND_MS/_THIRD_MS (0/220/
- * 440ms), el retardo de cada linea de la cascada automatica que D9/D12
- * escalonaba. Retiradas en D13 (tercera ronda, 2026-08-06): ya no hay
- * cascada que escalonar -- el paso lo marca el usuario con su scroll, no un
- * temporizador. Sin consumidor, se borran en vez de dejarlas exportadas
- * (mismo criterio que ya aplico esta entrega a STORY_CARD_BG/... en
- * story.layers.ts): una constante de retardo huerfana es justo lo que
- * alguien reintroduce por costumbre el dia que "necesita" escalonar algo.
+ * D5 (spec 2026-08-07): las tres constantes de retardo, retiradas en D13
+ * (tercera ronda, 2026-08-06) cuando el paso lo marcaba el usuario con su
+ * propio scroll, VUELVEN -- con el observer las tres lineas intersecan a la
+ * vez salvo que algo las escalone, y el encargo las pide en cascada ("el
+ * primero..., el segundo..., el tercero..."). Mismos valores del mockup que
+ * ya llevaban antes de D13.
  */
+const STORY_STATEMENT_DELAY_FIRST_MS = 0;
+const STORY_STATEMENT_DELAY_SECOND_MS = 220;
+const STORY_STATEMENT_DELAY_THIRD_MS = 440;
 
-/** Numero de "diapositivas" del recorrido del statement (D13): una por
- *  linea. Constante LOCAL a este fichero, no importada de story.layers.ts
- *  -- mismo criterio que el resto de constantes de esta pieza (statement):
- *  son medidas de ESTA composicion, ajenas al arte VERBATIM del mockup que
- *  story.layers.ts documenta en su propia cabecera. */
-const STORY_STATEMENT_LINES = 3;
-/** Pantallas de cola tras la ultima linea (D13): una, para que la frase
- *  completa se lea antes de que el ancla se suelte -- mismo rol que
- *  `STORY_DECK_TAIL_SCREENS` cumple para la presentacion oscura
- *  (story.layers.ts), pero LOCAL a esta pieza porque gobierna un
- *  `useSlideDeck` DISTINTO (`cssVarPrefix: "statement"`, no "story"): las
- *  dos presentaciones son independientes y cada una declara su propia
- *  cola. */
-const STORY_STATEMENT_TAIL_SCREENS = 1;
-/** Alto de una pantalla del recorrido: `dvh`, no `vh` -- misma unidad que
- *  `STORY_DARK_HEIGHT` (story.layers.ts) y por el mismo motivo (una `vh`
- *  fija no descuenta la barra de direccion movil, que aparece/desaparece
- *  con el propio scroll). */
-const STORY_STATEMENT_SCREEN_HEIGHT = "100dvh";
-/** Alto total de la pista (D13): (lineas + cola) pantallas -- mismo calculo
- *  que `STORY_DECK_TRACK_HEIGHT` (story.layers.ts) para la presentacion
- *  oscura, reproducido aqui porque esta es una presentacion DISTINTA con su
- *  propio numero de diapositivas y su propia cola (ver los dos comentarios
- *  de arriba). */
-const STORY_STATEMENT_TRACK_HEIGHT = `calc((${STORY_STATEMENT_LINES} + ${STORY_STATEMENT_TAIL_SCREENS}) * ${STORY_STATEMENT_SCREEN_HEIGHT})`;
+/*
+ * AQUI VIVIERON STORY_STATEMENT_LINES/_TAIL_SCREENS/_SCREEN_HEIGHT/
+ * _TRACK_HEIGHT, la geometria de la pista de 400dvh que D13 (tercera ronda,
+ * 2026-08-06) necesitaba para que `useSlideDeck` tuviera un recorrido de
+ * scroll que medir. Retiradas en D1/D2 de la spec
+ * 2026-08-07-story-statement-scroll-observer-design.md: el bloque vuelve a
+ * ser un `<section>` normal en flujo (`min-height: 100dvh`, sin pista ni
+ * pin), asi que no hay ninguna geometria de scroll que declarar -- el
+ * disparo lo da un `IntersectionObserver` sobre el propio texto (ver
+ * StoryLight, mas abajo), no una medida en pantallas.
+ */
 /** `line-height`/`letter-spacing` del cartel (mockup L128-130: `1.04`/
  *  `-0.03em`): la variante mas cercana de `type.scale`, `display`, da
  *  1.03/-0.02em -- lo bastante distinto del pedido del mockup para no
@@ -809,47 +794,32 @@ const ScDeckPillarRow = styled(ScPillarRow)`
 
 /*
  * Statement a pantalla completa (D12): sustituye a la tarjeta flotante de
- * nota. Bloque NUEVO, HERMANO de `ScStory` y no un hijo suyo: el mockup los
+ * nota. Bloque NUEVO, HERMANO de `ScStory` y no un hijo suyo: el mockup lo
  * declara como dos <section> hermanos (L72/L127), y `StoryLight` los
  * devuelve igual, en un fragmento (ver su return, mas abajo).
  *
- * D13 (tercera ronda, 2026-08-06): el bloque UNICO `ScStatement` se parte en
- * DOS piezas, calcado de como `ScTrack`/`ScStage` cablean la presentacion
- * oscura (story.deck.tsx) -- mismo mecanismo, `useSlideDeck`, aqui con
- * `cssVarPrefix: "statement"` para no pisar las variables `--story-*` que ya
- * escribe la rama oscura:
+ * D13 (tercera ronda, 2026-08-06) partio este bloque UNICO en DOS piezas
+ * (`ScStatementTrack`/`ScStatementStage`), calcado de como `ScTrack`/
+ * `ScStage` cablean la presentacion oscura, para poder anclarlo con
+ * `useSlideDeck`. D2 de la spec
+ * 2026-08-07-story-statement-scroll-observer-design.md REVIERTE esa
+ * particion: sin pista que recorrer ni pin que sostener, las dos piezas
+ * vuelven a fundirse en un unico `ScStatement` -- la misma forma que tenia
+ * en D12, antes de que D13 la partiera.
  *
- * - `ScStatementTrack` es la <section id="statement"> ella misma: da el
- *   recorrido de scroll (D13, `STORY_STATEMENT_TRACK_HEIGHT`) para que el
- *   bloque tenga pista que recorrer mientras permanece anclado. Sin pista
- *   que recorrer, el pin no tendria nada que hacer -- se despegaria en el
- *   mismo frame en que se pega, igual que documenta `ScTrack` en
- *   story.deck.tsx para la rama oscura.
- * - `ScStatementStage` es su UNICO hijo en flujo: `position: sticky; top: 0`
- *   es lo que lo mantiene quieto en pantalla mientras la pista pasa por
- *   debajo (mismo comentario que `ScStage`, story.deck.tsx). Hereda de aqui
- *   el `flex`/centrado/padding que antes llevaba el `ScStatement` unico.
- *
- * Bajo `reduce`: la pista pierde su recorrido propio (`height: auto`, D13) y
- * el stage pierde el pin (`position: static; height: auto`) -- mismo criterio
- * que `ScTrack`/`ScStage` bajo `reduce` (story.deck.tsx): "sin pin, la pista
- * deja de necesitar recorrido de scroll propio". Las tres lineas quedan
- * visibles por su PROPIO guard de reduce (ver ScStatementFirst/Second/Third,
- * mas abajo), no por nada que declare esta pareja.
+ * `min-height: 100dvh`, NO `height`: el cartel conserva la presencia a
+ * pantalla completa que el usuario aprobo en D12, pero deja de imponer una
+ * altura fija -- si la frase creciera (traduccion mas larga, tipografia
+ * mayor), el bloque crece con ella en vez de recortarla. Sin
+ * `position: sticky` ni `top`: el documento pierde las ~300dvh de pista que
+ * D13 anadia, y ninguna otra pieza media contra `#statement` (verificado por
+ * grep, D2 de la spec). Sin guard de `reduce` propio para esta pieza: sin
+ * pin ni pista no hay nada que degradar bajo reduce (D6) -- las tres lineas
+ * siguen quedando visibles por su PROPIO guard (ver
+ * ScStatementFirst/Second/Third, mas abajo).
  */
-const ScStatementTrack = styled.section`
-  position: relative;
-  height: ${STORY_STATEMENT_TRACK_HEIGHT};
-
-  @media (prefers-reduced-motion: reduce) {
-    height: auto;
-  }
-`;
-
-const ScStatementStage = styled.div`
-  position: sticky;
-  top: 0;
-  height: 100dvh;
+const ScStatement = styled.section`
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -857,21 +827,25 @@ const ScStatementStage = styled.div`
   text-align: center;
   padding: ${({ theme }) => theme.data.space[8]}
     ${({ theme }) => theme.data.space[6]};
-
-  @media (prefers-reduced-motion: reduce) {
-    position: static;
-    height: auto;
-  }
 `;
 
 /*
  * El PARRAFO real (marcado obligatorio, D12): un lector de pantalla tiene
  * que leer la frase entera y seguida, no tres bloques sueltos -- de ahi que
  * las tres lineas vivan DENTRO de un unico <p>, no como hermanas directas de
- * `ScStatementStage`. El `gap` del mockup (L127: `clamp(4px, 1vh, 14px)`,
- * entre las tres lineas) se declara AQUI, no en `ScStatementStage`,
- * precisamente porque el envoltorio flex que agrupa las tres lineas es este
- * <p>, no el stage.
+ * `ScStatement`. El `gap` del mockup (L127: `clamp(4px, 1vh, 14px)`, entre
+ * las tres lineas) se declara AQUI, no en `ScStatement`, precisamente porque
+ * el envoltorio flex que agrupa las tres lineas es este <p>, no la seccion.
+ *
+ * D3 (spec 2026-08-07): este PARRAFO es tambien el nodo que observa
+ * `useReveal` (ver StoryLight, mas abajo) -- no la seccion. `useReveal` usa
+ * `threshold: 0.2`: sobre `ScStatement` (`min-height: 100dvh`) eso dispararia
+ * con un 80% de bloque vacio todavia por delante, con el texto fuera de
+ * pantalla; el parrafo ES el texto, asi que su interseccion al 20% coincide
+ * con "se llego al elemento". El atributo `data-revealed` que escribe
+ * `useReveal` vive por tanto AQUI, en el propio parrafo -- las tres lineas lo
+ * leen con el selector descendiente `[data-revealed="true"] &` (ver
+ * ScStatementFirst/Second/Third, mas abajo).
  */
 const ScStatementText = styled.p`
   display: flex;
@@ -882,23 +856,35 @@ const ScStatementText = styled.p`
 /*
  * Las tres lineas comparten casi toda su declaracion (tipografia de cartel
  * fluida, mayusculas, `nowrap` acotado por `storyStatementFontSize`) y solo
- * difieren en color/transform-de-entrada (tabla D12 de la spec). Se
- * escriben TRES styled-components completos, no un mixin compartido +
- * variantes por prop: mismo criterio que `ScEyebrowRow`/`ScTitle`/`ScBody`,
- * mas arriba en este fichero, que ya toleran la misma repeticion en vez de
- * introducir una abstraccion nueva para tres usos.
+ * difieren en color/transform-de-entrada (tabla D4 de la spec
+ * 2026-08-07-story-statement-scroll-observer-design.md, VERBATIM de D12 --
+ * esta entrega no toca ni una de estas declaraciones, solo QUIEN las
+ * dispara). Se escriben TRES styled-components completos, no un mixin
+ * compartido + variantes por prop: mismo criterio que
+ * `ScEyebrowRow`/`ScTitle`/`ScBody`, mas arriba en este fichero, que ya
+ * toleran la misma repeticion en vez de introducir una abstraccion nueva
+ * para tres usos.
  *
- * D13 (tercera ronda, 2026-08-06): `[data-revealed="true"] &` (un selector
- * DESCENDIENTE, el atributo vivia en `ScStatement`, un ANCESTRO) se
- * sustituye por `&[data-visible="true"]` (un selector SOBRE EL PROPIO
- * elemento): `data-visible` ya no lo escribe un `useReveal` compartido sobre
- * un contenedor, lo calcula `StoryLight` LINEA A LINEA comparando su propio
- * indice contra el `index` que publica `useSlideDeck` (`index >= i`) -- cada
- * `<span>` lleva su propio atributo, no uno heredado de un padre comun.
- * Mismo patron que `&[data-state="current"]` en `ScSlide` (story.deck.tsx),
- * que tambien evalua su ESTADO sobre si mismo. El `transition-delay` de la
- * cascada (D9/D12) desaparece de las tres: ya no hay retardo que escalonar,
- * el paso lo marca el usuario con su scroll.
+ * D5 (spec 2026-08-07): `&[data-visible="true"]` (D13, tercera ronda
+ * 2026-08-06 -- un selector SOBRE EL PROPIO elemento, porque `data-visible`
+ * lo calculaba `StoryLight` LINEA A LINEA) se sustituye de vuelta por el
+ * selector DESCENDIENTE `[data-revealed="true"] &`: el atributo vive ahora
+ * en `ScStatementText`, el PARRAFO padre de las tres lineas (D3), no en cada
+ * elemento -- NUNCA `&[data-revealed="true"]`, que evaluaria el atributo
+ * sobre el propio elemento y no matchearia jamas (leccion §5.1 del manual
+ * global, git `63c7fa9`). Mismo patron que `ScTitle`/`ScBody`/
+ * `ScPillarCardItem`, mas arriba en este mismo fichero.
+ *
+ * La cascada (D9/D12) tambien vuelve, y su INVERSA es de verdad inversa
+ * (D5): la regla `[data-revealed="true"] &` (estado visible) lleva el
+ * retardo DIRECTO -- 1a linea 0ms, 2a 220ms, 3a 440ms. La regla BASE del
+ * elemento (el estado que gana cuando `data-revealed` vuelve a "false")
+ * lleva el retardo INVERSO -- 1a linea 440ms, 2a 220ms, 3a 0ms --
+ * aprovechando que `transition-delay` se toma siempre del estado AL QUE se
+ * transita: al retroceder, la frase se deshace empezando por la derecha (la
+ * 3a linea, con 0ms, es la primera en desaparecer). En el montaje la regla
+ * base ya lleva su retardo pero no hay transicion que correr (es el estilo
+ * inicial, no un cambio) -- no produce ningun efecto observable.
  */
 const ScStatementFirst = styled.span`
   display: block;
@@ -914,14 +900,20 @@ const ScStatementFirst = styled.span`
   transition:
     opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
     transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
+  /* Retardo INVERSO (D5): la 1a linea es la ULTIMA en deshacerse al
+     retroceder. */
+  transition-delay: ${STORY_STATEMENT_DELAY_THIRD_MS}ms;
 
-  &[data-visible="true"] {
+  [data-revealed="true"] & {
     opacity: 1;
     transform: none;
+    /* Retardo DIRECTO (D5): la 1a linea entra sin espera. */
+    transition-delay: ${STORY_STATEMENT_DELAY_FIRST_MS}ms;
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    transition-delay: 0ms;
     opacity: 1;
     transform: none;
   }
@@ -941,14 +933,20 @@ const ScStatementSecond = styled.span`
   transition:
     opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
     transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
+  /* Retardo INVERSO (D5): la linea del medio, a mitad de camino tanto
+     entrando como saliendo. */
+  transition-delay: ${STORY_STATEMENT_DELAY_SECOND_MS}ms;
 
-  &[data-visible="true"] {
+  [data-revealed="true"] & {
     opacity: 1;
     transform: none;
+    /* Retardo DIRECTO (D5). */
+    transition-delay: ${STORY_STATEMENT_DELAY_SECOND_MS}ms;
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    transition-delay: 0ms;
     opacity: 1;
     transform: none;
   }
@@ -974,14 +972,20 @@ const ScStatementThird = styled(ScAccent)`
   transition:
     opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
     transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
+  /* Retardo INVERSO (D5): la 3a linea es la PRIMERA en deshacerse al
+     retroceder. */
+  transition-delay: ${STORY_STATEMENT_DELAY_FIRST_MS}ms;
 
-  &[data-visible="true"] {
+  [data-revealed="true"] & {
     opacity: 1;
     transform: none;
+    /* Retardo DIRECTO (D5): la 3a linea es la ULTIMA en entrar. */
+    transition-delay: ${STORY_STATEMENT_DELAY_THIRD_MS}ms;
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    transition-delay: 0ms;
     opacity: 1;
     transform: none;
   }
@@ -1035,28 +1039,24 @@ function StoryLight(): ReactElement {
   // significa lo mismo en las dos, "cuanto ha avanzado el scroll de esta
   // seccion por el viewport".
   useSectionProgress(sectionRef, { cssVarPrefix: "story" });
-  // Statement a pantalla completa (D13, tercera ronda 2026-08-06): el
-  // useReveal PROPIO que llevaba esta pieza (cascada automatica, un solo
-  // disparo) se sustituye por useSlideDeck -- el MISMO motor que gobierna la
-  // presentacion oscura de Story (ver trackRef/stageRef en StoryDeckDark,
-  // mas abajo) -- para que el bloque se recorra con el scroll en vez de
-  // revelarse solo. Refs ESTABLES (useRef, no callback-ref): useSlideDeck
-  // las usa como dependencia de su efecto (mismo motivo, mismo comentario,
-  // que trackRef/stageRef en StoryDeckDark). `cssVarPrefix: "statement"`
-  // evita pisar las variables `--story-*` que ya escribe useSectionProgress
-  // (arriba) sobre ScStory: las dos presentaciones conviven en el mismo
-  // documento, cada una con su propio namespace de variables CSS.
-  const statementTrackRef = useRef<HTMLElement>(null);
-  const statementStageRef = useRef<HTMLDivElement>(null);
-  const { index: statementIndex } = useSlideDeck(
-    statementTrackRef,
-    statementStageRef,
-    STORY_STATEMENT_LINES,
-    {
-      tailScreens: STORY_STATEMENT_TAIL_SCREENS,
-      cssVarPrefix: "statement",
-    },
-  );
+  // Statement a pantalla completa (D3, spec
+  // 2026-08-07-story-statement-scroll-observer-design.md): el useSlideDeck
+  // que llevaba esta pieza (D13, tercera ronda 2026-08-06 -- recorrido paso
+  // a paso anclado por scroll) se sustituye por un useReveal PROPIO, un
+  // SEGUNDO IntersectionObserver independiente del de ScGrid (arriba).
+  // `once: false` es lo que entrega literalmente el requisito del encargo
+  // ("cuando se realice scroll hacia arriba, las animaciones se realiza a la
+  // inversa"): revealed vuelve a false cuando el nodo deja de intersecar, y
+  // el CSS vuelve solo a su estado base -- el once: true por defecto haria
+  // el efecto irreversible. Se observa el PARRAFO (ScStatementText,
+  // HTMLParagraphElement), no la seccion: threshold: 0.2 (el defecto de
+  // useReveal) sobre una seccion de min-height: 100dvh dispararia con el
+  // texto todavia fuera de pantalla; el parrafo ES el texto, asi que su
+  // interseccion al 20% coincide con "se llego al elemento". Nombres propios
+  // (statementRef/statementRevealed) para no chocar con revealRef/revealed,
+  // el useReveal de ScGrid, arriba.
+  const { ref: statementRef, revealed: statementRevealed } =
+    useReveal<HTMLParagraphElement>({ once: false });
 
   const pillars = (
     <ScPillarGrid>
@@ -1156,38 +1156,30 @@ function StoryLight(): ReactElement {
         </ScGrid>
       </ScStory>
 
-      {/* Statement a pantalla completa (D12/D13): HERMANO de ScStory, no un
-          hijo suyo -- ver el docblock de ScStatementTrack, mas arriba, para
-          el porque. ScStatementTrack ES la <section id="statement">: da el
-          recorrido de scroll; ScStatementStage, su unico hijo en flujo, es
-          quien se pega y mantiene la frase quieta mientras ese recorrido
-          pasa por debajo (D13). Un solo <p> con las tres lineas como <span>
+      {/* Statement a pantalla completa (D12; D2/D3 de la spec
+          2026-08-07-story-statement-scroll-observer-design.md): HERMANO de
+          ScStory, no un hijo suyo -- ver el docblock de ScStatement, mas
+          arriba, para el porque. Un solo <p> con las tres lineas como <span>
           en bloque (marcado obligatorio, D12): un lector de pantalla lee la
           frase entera y seguida, "Cada idea puede ser un nuevo comienzo", en
-          vez de tres fragmentos sueltos. Cada linea recibe su propio
-          `data-visible` (D13): la linea `i` es visible cuando
-          `statementIndex >= i`, calculado aqui -- el CSS de
-          ScStatementFirst/Second/Third (mas arriba) solo reacciona al
-          atributo resultante, nunca calcula nada por si mismo (mismo
-          criterio que `slideState` en StoryDeckDark, mas abajo). */}
-      <ScStatementTrack
-        id="statement"
-        ref={statementTrackRef}
-      >
-        <ScStatementStage ref={statementStageRef}>
-          <ScStatementText>
-            <ScStatementFirst data-visible={statementIndex >= 0}>
-              {t("Home.story.statement.first")}
-            </ScStatementFirst>{" "}
-            <ScStatementSecond data-visible={statementIndex >= 1}>
-              {t("Home.story.statement.second")}
-            </ScStatementSecond>{" "}
-            <ScStatementThird data-visible={statementIndex >= 2}>
-              {t("Home.story.statement.third")}
-            </ScStatementThird>
-          </ScStatementText>
-        </ScStatementStage>
-      </ScStatementTrack>
+          vez de tres fragmentos sueltos. El PARRAFO lleva el `ref`/
+          `data-revealed` de useReveal (D3): las tres lineas ya no calculan
+          nada linea a linea (el `data-visible` de D13 queda revertido),
+          solo reaccionan al atributo del PADRE por CSS puro, selector
+          descendiente (ver el docblock de
+          ScStatementFirst/Second/Third, mas arriba). */}
+      <ScStatement id="statement">
+        <ScStatementText
+          ref={statementRef}
+          data-revealed={statementRevealed}
+        >
+          <ScStatementFirst>{t("Home.story.statement.first")}</ScStatementFirst>{" "}
+          <ScStatementSecond>
+            {t("Home.story.statement.second")}
+          </ScStatementSecond>{" "}
+          <ScStatementThird>{t("Home.story.statement.third")}</ScStatementThird>
+        </ScStatementText>
+      </ScStatement>
     </>
   );
 }
