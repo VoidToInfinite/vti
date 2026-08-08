@@ -232,6 +232,42 @@ describe("usePointer", () => {
     addSpy.mockRestore();
   });
 
+  it("singleton (auditoria 2026-08-08): dos consumidores vivos a la vez comparten UN SOLO listener de pointermove en window, no uno por instancia", () => {
+    const addSpy = vi.spyOn(window, "addEventListener");
+
+    // Dos instancias del hook montadas a la vez, sin desmontar la primera --
+    // el mismo escenario que Eye + una escena oscura, o dos escenas oscuras
+    // visibles a la vez, cada una llamando a usePointer() por su cuenta.
+    const first = renderHook(() => usePointer());
+    const second = renderHook(() => usePointer());
+
+    expect(
+      addSpy.mock.calls.filter(([evt]) => evt === "pointermove"),
+    ).toHaveLength(1);
+
+    // Las dos instancias comparten la MISMA posicion (mismo objeto de modulo):
+    // no son dos relojes de lerp independientes.
+    expect(first.result.current.x).toBe(second.result.current.x);
+    expect(first.result.current.y).toBe(second.result.current.y);
+
+    // Desmontar solo UNA de las dos no debe quitar el listener compartido:
+    // el segundo consumidor todavia lo necesita.
+    const removeSpy = vi.spyOn(window, "removeEventListener");
+    first.unmount();
+    expect(
+      removeSpy.mock.calls.filter(([evt]) => evt === "pointermove"),
+    ).toHaveLength(0);
+
+    // Al desmontar tambien el ultimo, el listener compartido si se retira.
+    second.unmount();
+    expect(
+      removeSpy.mock.calls.filter(([evt]) => evt === "pointermove"),
+    ).toHaveLength(1);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
   it("dos `change` seguidos con el mismo valor no duplican el listener de pointermove (idempotencia)", () => {
     const addSpy = vi.spyOn(window, "addEventListener");
     renderHook(() => usePointer());

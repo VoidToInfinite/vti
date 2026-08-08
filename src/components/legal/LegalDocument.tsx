@@ -4,6 +4,9 @@ import { Fragment, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LEGAL_ENTITY, LEGAL_VERSIONS, PLACEHOLDER } from "@/config/legal";
 import { STORAGE_REGISTRY } from "@/config/storage";
+import i18n, { initI18n } from "@/i18n/config";
+import esLegal from "@/i18n/locales/es/legal.json";
+import enLegal from "@/i18n/locales/en/legal.json";
 import {
   ScBackLink,
   ScCaption,
@@ -42,6 +45,50 @@ import {
  * recursivas, incluidos índices de array) compara la ESTRUCTURA del
  * documento, no solo sus títulos.
  */
+
+/*
+ * Registro del namespace `legal` A NIVEL DE MÓDULO (auditoría de rendimiento
+ * 2026-08-08), NUNCA dentro de un `useEffect` ni del cuerpo del componente.
+ *
+ * `src/i18n/config.ts` ya no incluye `legal` en `resources`: su JSON pesa
+ * ~72 KB (16,8 KB gzip) y hasta esta revisión viajaba en el chunk COMÚN de
+ * la home, que lo descargaba aunque el visitante nunca abriera
+ * `/privacidad` ni `/aviso-legal`. Este componente es el ÚNICO consumidor de
+ * `useTranslation("legal")` en todo el repo, así que es también el único
+ * sitio que tiene que cargarlo -- y el peso viaja entonces en el chunk del
+ * segmento legal (`app/privacidad`, `app/aviso-legal`), que Next ya separa
+ * del de la home.
+ *
+ * Por qué a nivel de módulo y no en un `useEffect`: el contenido legal TIENE
+ * que estar en el HTML PRERENDERIZADO de esas rutas (para que Google lo
+ * indexe sin ejecutar JS) -- un `useEffect` corre DESPUÉS de la primera
+ * pintura y del prerenderizado estático, así que el HTML servido llegaría
+ * sin texto. Next.js evalúa el módulo de un Client Component TAMBIÉN durante
+ * el prerenderizado estático (así genera el HTML inicial que después
+ * hidrata): el código a nivel de módulo corre antes de que React invoque la
+ * función del componente, en las DOS fases (servidor y cliente). Para cuando
+ * `LegalDocument()` llama a `useTranslation("legal")`, el namespace ya está
+ * poblado, sea cual sea la fase.
+ *
+ * `initI18n()` ANTES de `addResourceBundle` -- no al revés, y no omitido --
+ * por una razón verificada leyendo la fuente de `i18next`
+ * (`node_modules/i18next/dist/cjs/i18next.js`, método `init()`):
+ * `this.store = new ResourceStore(this.options.resources, this.options)`
+ * CONSTRUYE UN ALMACÉN NUEVO a partir de la opción `resources`, descartando
+ * cualquier bundle añadido antes de que `init()` corriera. Si este módulo se
+ * evaluara ANTES que `I18nProvider.tsx` (el orden real entre el árbol de
+ * `layout.tsx` y el de una página concreta lo decide el bundler de Next, no
+ * algo que este archivo pueda asumir) y llamara a `addResourceBundle` sin
+ * pasar antes por `initI18n()`, el `init()` posterior de `I18nProvider`
+ * BORRARÍA el bundle de `legal` recién añadido. Llamar aquí a `initI18n()`
+ * -- idempotente, con guarda propia en `config.ts` -- garantiza que
+ * `init()` YA ha corrido (lo ejecuta esta misma llamada si nadie lo hizo
+ * antes, o es un no-op si `I18nProvider.tsx` ya lo hizo) antes de añadir
+ * `legal`, sin importar qué módulo se evalúe primero.
+ */
+initI18n();
+i18n.addResourceBundle("es", "legal", esLegal);
+i18n.addResourceBundle("en", "legal", enLegal);
 
 export type LegalDocKey = "privacy" | "legalNotice";
 

@@ -132,6 +132,17 @@ describe("useParallaxLayers", () => {
     // importar que haya 4 objetivos -- NUNCA uno por objetivo.
     expect(pending.length).toBe(2);
 
+    // Mueve el puntero ANTES del tick: desde el 2026-08-08 el bucle
+    // compartido de `usePointer` para por umbral en cuanto esta en reposo
+    // (spec rendimiento), y al montar el puntero arranca centrado con
+    // objetivo tambien centrado -- convergido desde el primer tick, sin
+    // pointermove no volveria a pedir frame. Con un objetivo real que
+    // alcanzar, su lerp (0.085/frame) no converge en un solo paso y SI
+    // reprograma, que es lo que esta prueba quiere observar: el numero de
+    // rAF por frame no crece con el numero de objetivos, no que el bucle
+    // nunca se detenga.
+    moveToCorner();
+
     const batch = pending;
     pending = [];
     for (const cb of batch) cb(16);

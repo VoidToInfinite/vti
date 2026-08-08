@@ -1,9 +1,35 @@
 [build]
-  command = "pnpm build"
+  # `pnpm run ci` antes de `pnpm build`: hasta el 2026-08-08 nada entre el
+  # commit y el despliegue ejecutaba un solo test -- una regresion podia
+  # llegar a produccion con el gate en rojo sin que nadie lo notara
+  # (auditoria 2026-08-08). El script `ci` (typecheck + lint + format +
+  # tests) lo define `package.json`. OJO: tiene que ser `pnpm run ci` -- un
+  # `pnpm ci` a secas ejecuta el clean-install interno de pnpm y sale 0 sin
+  # correr el gate, aunque el script exista (medido el 2026-08-08).
+  command = "pnpm run ci && pnpm build"
   publish = "out"
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Los chunks de `_next/static/` llevan el hash de contenido en el propio
+# nombre de fichero (Next los regenera con un nombre nuevo en cada build que
+# cambia su contenido), asi que "immutable" es correcto: el navegador nunca
+# necesita revalidar una URL que, si el contenido cambiara, ya seria otra URL.
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Los WebP de `public/` (Aura, el ojo, etc.) NO llevan hash en el nombre --
+# son rutas fijas que un redeploy puede sobrescribir con contenido distinto,
+# asi que "immutable" aqui mentiria. 30 dias + `stale-while-revalidate` de 7:
+# el navegador sirve la copia cacheada al instante y revalida en segundo
+# plano, sin bloquear la siguiente visita a la espera de la red.
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000, stale-while-revalidate=604800"
 
 # La imagen Open Graph que genera `app/opengraph-image.tsx` se emite en `out/`
 # SIN extensión (`out/opengraph-image`): ese es el nombre que Next da a la
