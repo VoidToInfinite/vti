@@ -3,7 +3,7 @@ import {
   HERO_CHROME_OFFSET_MS,
   HERO_DECODE_TIMEOUT_MS,
   HERO_STACK_MS,
-} from "@/components/sections/Hero/hero.transition";
+} from "@/motion/timings";
 
 /**
  * Máquina de fases de LA PÁGINA (spec §7.1), no del hero: el navbar es
@@ -43,8 +43,11 @@ export type StagePhase = "backdrop" | "chrome" | "settled";
  * antecede a que el fondo llegue a avisar) más `HERO_STACK_MS` (lo que tarda
  * el stack en escalonarse por completo una vez arranca): es el peor caso
  * honesto de cuánto puede tardar un hero real en avisar, no un número
- * redondo elegido a ojo. Ambas constantes viven en `hero.transition.ts`, la
- * fuente de verdad de los tiempos del hero — importarlas evita que este
+ * redondo elegido a ojo. Ambas constantes viven en `@/motion/timings`, la
+ * fuente de verdad de los tiempos NÚCLEO del hero (`hero.transition.ts` las
+ * reexporta para sus propios consumidores, pero este módulo importa
+ * directamente del origen: es infraestructura de la página, no depende de
+ * una sección hoja para sus datos base) — importarlas evita que este
  * archivo y aquel diverjan en el primer retoque.
  */
 export const STAGE_FALLBACK_MS = HERO_DECODE_TIMEOUT_MS + HERO_STACK_MS;

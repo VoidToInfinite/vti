@@ -7,11 +7,11 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  type ReactElement,
 } from "react";
 import { ThemeProvider as SCThemeProvider } from "styled-components";
+import { STORAGE_KEYS } from "@/config/storage";
 import { themes, type ThemeName } from "./themes";
-
-const STORAGE_KEY = "vti-theme";
 
 /**
  * Quién produjo el valor actual de `themeName`.
@@ -41,13 +41,19 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}): ReactElement {
   const [themeName, setTheme] = useState<ThemeName>("light");
   const [changeSource, setChangeSource] =
     useState<ThemeChangeSource>("initial");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeName | null;
+    const stored = window.localStorage.getItem(
+      STORAGE_KEYS.theme,
+    ) as ThemeName | null;
     // Reading localStorage during render would break the static export's
     // prerendered HTML (no `window`) and risk a hydration mismatch. Syncing
     // it once, client-side only, after mount is the correct SSR-safe pattern.
@@ -63,7 +69,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, themeName);
+    window.localStorage.setItem(STORAGE_KEYS.theme, themeName);
   }, [themeName]);
 
   const toggleTheme = useCallback(() => {

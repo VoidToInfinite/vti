@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, type ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
+import { STORAGE_KEYS } from "@/config/storage";
 import i18n, { initI18n } from "./config";
 
 initI18n();
-
-const STORAGE_KEY = "vti-lang";
 
 /**
  * Sincroniza `<html lang>` con el idioma activo de i18next.
@@ -29,9 +28,13 @@ function syncDocumentLang(lang: string): void {
   document.documentElement.lang = lang;
 }
 
-export function I18nProvider({ children }: { children: React.ReactNode }) {
+export function I18nProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}): ReactElement {
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    const stored = window.localStorage.getItem(STORAGE_KEYS.lang);
     // Reading localStorage during render would break the static export's
     // prerendered HTML (no `window`) and risk a hydration mismatch. Syncing
     // it once, client-side only, after mount is the correct SSR-safe pattern

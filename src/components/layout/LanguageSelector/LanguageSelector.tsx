@@ -1,11 +1,11 @@
 "use client";
 
+import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
+import { STORAGE_KEYS } from "@/config/storage";
 
 const LANGUAGES = ["es", "en"] as const;
-
-const STORAGE_KEY = "vti-lang";
 
 const ScLanguageSelector = styled.div`
   display: inline-flex;
@@ -19,8 +19,10 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
   justify-content: center;
   /* Área táctil mínima AA (44px), literal como en Button md/Input: no hay
      casilla de la escala de space para este tamaño mínimo, mismo precedente
-     ya usado en el sistema. min- en vez de fijo: preserva el ancho natural
-     del texto ("ES"/"EN") si llegara a necesitar más de 44px. */
+     ya usado en el sistema. min- en vez de fijo: el botón renderiza el
+     nombre completo del idioma ("Español"/"English", no un código de dos
+     letras), así que 44px es solo el suelo del área táctil, no el ancho que
+     va a ocupar en la práctica. */
   min-height: 44px;
   min-width: 44px;
   padding: ${({ theme }) => theme.data.space[1]}
@@ -50,7 +52,7 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
   }
 `;
 
-export function LanguageSelector() {
+export function LanguageSelector(): ReactElement {
   const { t, i18n } = useTranslation("common");
 
   return (
@@ -64,7 +66,7 @@ export function LanguageSelector() {
           title={t(`Common.Lang.${lng}.title`)}
           onClick={() => {
             void i18n.changeLanguage(lng);
-            window.localStorage.setItem(STORAGE_KEY, lng);
+            window.localStorage.setItem(STORAGE_KEYS.lang, lng);
           }}
         >
           {t(`language.${lng}`)}

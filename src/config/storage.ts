@@ -32,6 +32,24 @@
  * decisión no puede tomarse añadiendo una línea a un array.
  */
 
+/**
+ * Las dos claves literales de `localStorage`, declaradas UNA sola vez.
+ *
+ * Antes de esta entrega, `ThemeProvider.tsx`, `I18nProvider.tsx` y
+ * `LanguageSelector.tsx` mantenían cada uno su propio `const STORAGE_KEY =
+ * "vti-theme"` / `"vti-lang"` — tres copias del mismo literal que solo
+ * coincidían por disciplina, no por construcción. Un rename en cualquiera de
+ * los tres habría dejado la tabla legal de `/privacidad` mintiendo sobre lo
+ * que el sitio realmente escribe (art. 22.2 LSSI-CE exige que esa tabla sea
+ * exacta). Los tres consumidores ahora importan `STORAGE_KEYS` de aquí; el
+ * candado en `storage.test.ts` falla si alguien vuelve a declarar el literal
+ * fuera de este fichero.
+ */
+export const STORAGE_KEYS = {
+  theme: "vti-theme",
+  lang: "vti-lang",
+} as const;
+
 export interface StorageEntry {
   /** Identificador literal escrito en el equipo. Es también la clave i18n. */
   readonly id: string;
@@ -54,13 +72,13 @@ export interface StorageEntry {
  */
 export const STORAGE_REGISTRY: readonly StorageEntry[] = [
   {
-    id: "vti-theme",
+    id: STORAGE_KEYS.theme,
     kind: "localStorage",
     durationDays: null,
     provider: "first-party",
   },
   {
-    id: "vti-lang",
+    id: STORAGE_KEYS.lang,
     kind: "localStorage",
     durationDays: null,
     provider: "first-party",

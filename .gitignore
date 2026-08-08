@@ -34,8 +34,12 @@ next-env.d.ts
 
 /build/
 
-# scratch del flujo de tareas (task/todo.md, task/lessons.md) — no es codigo del repo
-task/
+# scratch del flujo de tareas: se versiona solo lessons.md (lecciones medidas
+# del repo), el resto es scratch de sesion. "task/*" y no "task/" -- ese patron
+# con barra bloquea el descenso al directorio y la excepcion de abajo no
+# llegaria a aplicarse.
+task/*
+!task/lessons.md
 
 # cache local de graphify — se regenera, no se versiona
 graphify-out/cache/

@@ -25,6 +25,7 @@
         "check-format": "prettier . --list-different",
         "check-spelling": "cspell --config=.cspell.json \"**/*.{md,mdx,ts,mts,cts,js,cjs,mjs,tsx,jsx}\"",
         "check": "pnpm typecheck && pnpm lint && pnpm check-format",
+        "ci": "pnpm typecheck && pnpm lint && pnpm check-format && pnpm test",
         "test": "vitest run",
         "test:watch": "vitest"
     },

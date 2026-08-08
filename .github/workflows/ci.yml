@@ -1,0 +1,36 @@
+name: CI
+
+# Gate de calidad del repo (typecheck + lint + format + tests) en cada push a
+# main y en cada pull request. NO incluye check-spelling: esta roto de
+# configuracion (76.035 issues por falta de diccionario espanol), documentado
+# por el orquestador -- por eso el script `ci` de package.json no lo
+# invoca, y este workflow tampoco lo anade por su cuenta.
+#
+# SIEMPRE `pnpm run ci`, NUNCA `pnpm ci` a secas: aunque el script `ci`
+# exista en package.json, `pnpm ci` ejecuta el clean-install interno de
+# pnpm (compatibilidad con `npm ci`) y sale 0 SIN correr el gate -- medido
+# el 2026-08-08 en este mismo repo.
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            # corepack ANTES de setup-node: el repo fija el gestor de paquetes via
+            # "packageManager" en package.json (pnpm@11.10.0), y corepack es lo que
+            # lee esa clave para instalar la version exacta -- si setup-node fuera
+            # primero, su cache de pnpm no encontraria el binario todavia.
+            - run: corepack enable
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: "pnpm"
+
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm run ci
