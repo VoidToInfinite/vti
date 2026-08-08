@@ -74,11 +74,8 @@
         "Footer": {
             "copyright": "© {{year}} VoidToInfinite. All rights reserved.",
             "tagline": "Together, we go beyond.",
-            "accessibility": "Accessibility",
             "privacy": "Privacy Policy",
-            "terms": "Terms of Use",
-            "legalNotice": "Legal Notice",
-            "cookiePreferences": "Cookie preferences"
+            "legalNotice": "Legal Notice"
         },
         "ThemeToggle": {
             "switchToLight": "Switch to light theme",

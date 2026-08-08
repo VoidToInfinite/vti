@@ -65,25 +65,34 @@ describe("SITE", () => {
 });
 
 describe("ROUTES", () => {
-  it("expone exactamente las cinco rutas públicas", () => {
+  it("expone exactamente las tres rutas públicas", () => {
     expect(Object.keys(ROUTES).sort()).toEqual([
-      "accessibility",
       "home",
       "legalNotice",
       "privacy",
-      "terms",
     ]);
   });
+
+  /*
+   * Candado de la retirada del 2026-08-08. Comparar el conjunto COMPLETO de
+   * claves (arriba) ya haría fallar una reintroducción, pero no diría POR QUÉ:
+   * este test nombra las dos rutas y su motivo, para que quien las devuelva
+   * tenga que borrar una aserción que explica lo que está deshaciendo en vez
+   * de ajustar un array. Reintroducir `/terminos` sin que el sitio contrate
+   * nada, o `/accesibilidad` sin ser sujeto obligado del RD 1112/2018, es
+   * exactamente lo que esta revisión retiró.
+   */
+  it.each(["terms", "accessibility"] as const)(
+    "la ruta retirada '%s' no reaparece",
+    (retirada) => {
+      expect(Object.keys(ROUTES)).not.toContain(retirada);
+    },
+  );
 });
 
 describe("LEGAL_ROUTE_KEYS", () => {
-  it("contiene las cuatro claves legales", () => {
-    expect([...LEGAL_ROUTE_KEYS].sort()).toEqual([
-      "accessibility",
-      "legalNotice",
-      "privacy",
-      "terms",
-    ]);
+  it("contiene las dos claves legales que quedan", () => {
+    expect([...LEGAL_ROUTE_KEYS].sort()).toEqual(["legalNotice", "privacy"]);
   });
 
   it("todas las claves legales existen en ROUTES", () => {

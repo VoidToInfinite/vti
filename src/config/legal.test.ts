@@ -56,9 +56,9 @@ describe("hasPendingLegalData", () => {
 });
 
 describe("LEGAL_VERSIONS", () => {
-  const docKeys = ["privacy", "terms", "accessibility", "legalNotice"] as const;
+  const docKeys = ["privacy", "legalNotice"] as const;
 
-  it("expone las 4 entradas de documentos legales", () => {
+  it("expone las 2 entradas de documentos legales", () => {
     expect(Object.keys(LEGAL_VERSIONS).sort()).toEqual([...docKeys].sort());
   });
 
@@ -74,6 +74,23 @@ describe("LEGAL_VERSIONS", () => {
   });
 
   it.each(docKeys)("%s tiene version declarada", (key) => {
-    expect(LEGAL_VERSIONS[key].version).toBe("1.0.0");
+    expect(LEGAL_VERSIONS[key].version).toMatch(/^\d+\.\d+\.\d+$/);
   });
+
+  /*
+   * La revisión legal del 2026-08-08 no corrigió erratas: cambió el contenido
+   * sustantivo de los dos documentos (la privacidad pierde todo lo relativo al
+   * consentimiento; el aviso legal absorbe las cláusulas de uso del retirado
+   * `/terminos`). Un lector que se hubiera quedado con la 1.x no puede dar por
+   * buena su lectura, y eso es lo que comunica el salto de MAYOR -- por eso el
+   * candado es sobre la mayor, no sobre la cadena completa: la menor y el
+   * parche pueden moverse con retoques posteriores sin tener que tocar aquí.
+   */
+  it.each(docKeys)(
+    "%s está al menos en la versión mayor 2 (revisión sustantiva del 2026-08-08)",
+    (key) => {
+      const major = Number(LEGAL_VERSIONS[key].version.split(".")[0]);
+      expect(major).toBeGreaterThanOrEqual(2);
+    },
+  );
 });

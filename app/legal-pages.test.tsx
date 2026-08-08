@@ -6,24 +6,23 @@ import { ROUTES } from "@/config/site";
 import esLegal from "@/i18n/locales/es/legal.json";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
 import { SITE } from "@/config/site";
-import AccessibilityPage, {
-  metadata as accessibilityMetadata,
-} from "./accesibilidad/page";
 import LegalNoticePage, {
   metadata as legalNoticeMetadata,
 } from "./aviso-legal/page";
 import PrivacyPage, { metadata as privacyMetadata } from "./privacidad/page";
-import TermsPage, { metadata as termsMetadata } from "./terminos/page";
 
 /*
- * Candado de las CUATRO rutas legales montadas de verdad, no de sus piezas
- * por separado (que ya cubren `LegalDocument.test.tsx` y `LegalHeader.test.tsx`).
+ * Candado de las DOS rutas legales montadas de verdad, no de sus piezas por
+ * separado (que ya cubren `LegalDocument.test.tsx` y `LegalHeader.test.tsx`).
+ * Fueron cuatro hasta el 2026-08-08: `/terminos` y `/accesibilidad` se
+ * retiraron en la revisión legal de esa fecha (ver `LEGAL_ROUTE_KEYS` en
+ * `src/config/site.ts`).
  *
  * Lo que solo se puede comprobar AQUÍ, en el punto de ensamblaje, es que cada
  * `page.tsx` conecta el documento correcto con la metadata correcta. Un
- * copiar-pegar entre las cuatro cáscaras -- que son casi idénticas -- podría
- * dejar `/terminos` sirviendo el documento de privacidad con el título de
- * términos, y ni el typecheck ni ningún test de componente lo verían.
+ * copiar-pegar entre las dos cáscaras -- que son casi idénticas -- podría
+ * dejar `/aviso-legal` sirviendo el documento de privacidad con el título del
+ * aviso, y ni el typecheck ni ningún test de componente lo verían.
  */
 const paginas = [
   {
@@ -33,22 +32,6 @@ const paginas = [
     ruta: ROUTES.privacy,
     doc: esLegal.Legal.privacy,
     version: LEGAL_VERSIONS.privacy,
-  },
-  {
-    nombre: "terminos",
-    Page: TermsPage,
-    metadata: termsMetadata,
-    ruta: ROUTES.terms,
-    doc: esLegal.Legal.terms,
-    version: LEGAL_VERSIONS.terms,
-  },
-  {
-    nombre: "accesibilidad",
-    Page: AccessibilityPage,
-    metadata: accessibilityMetadata,
-    ruta: ROUTES.accessibility,
-    doc: esLegal.Legal.accessibility,
-    version: LEGAL_VERSIONS.accessibility,
   },
   {
     nombre: "aviso-legal",
@@ -64,7 +47,7 @@ describe("rutas legales", () => {
   beforeEach(() => {
     window.localStorage.clear();
     // Cada documento legal monta el `Footer` de la home (ver
-    // `PrivacyDocument.tsx` et al.), que desde 2026-08-07 (D6.3 de la spec
+    // `PrivacyDocument.tsx` y `LegalNoticeDocument.tsx`), que desde 2026-08-07 (D6.3 de la spec
     // `2026-08-07-footer-beam-estrellas-tema-claro-design.md`) monta
     // `SectionBeam` SIEMPRE, no solo en oscuro -- y `SectionBeam` usa
     // `useReveal`, que llama a `IntersectionObserver`, ausente en jsdom.

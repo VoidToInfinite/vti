@@ -5,7 +5,6 @@ import { ROUTES } from "./site";
 describe("links de CTA", () => {
   it("expone todos los destinos que el viaje necesita", () => {
     expect(Object.keys(links).sort()).toEqual([
-      "accessibility",
       "discord",
       "email",
       "github",
@@ -13,7 +12,6 @@ describe("links de CTA", () => {
       "playground",
       "privacy",
       "sdk",
-      "terms",
     ]);
   });
 
@@ -37,25 +35,20 @@ describe("links de CTA", () => {
   });
 
   /*
-   * Privacy, terms, accessibility y legalNotice DEJARON de ser marcadores el
-   * 2026-08-05: esta entrega creó las cuatro páginas reales. Los dos tests
-   * que afirmaban que contenían `por-completar` y `example.invalid` ya no
-   * describen el repo, así que se sustituyen -- y NO se relajan, siguiendo
-   * exactamente la doctrina que este mismo fichero fijó al sustituir los de
-   * `playground` y compañía: se asevera el valor EXACTO, no algo
-   * genérico tipo "es una ruta válida", que dejaría la puerta abierta a
-   * cambiar un destino sin revisión.
+   * Los legales DEJARON de ser marcadores el 2026-08-05, cuando se crearon
+   * las páginas reales. La aserción se hace contra `ROUTES`, no contra la
+   * cadena literal, porque lo que hay que atar es que los dos ficheros NO
+   * PUEDAN divergir: si alguien cambia el slug en `site.ts` y olvida el pie,
+   * el sitemap y los enlaces apuntarían a sitios distintos sin que nada
+   * fallara. El candado del valor literal de cada slug vive en
+   * `site.test.ts`, que es su dueño.
    *
-   * La aserción se hace contra `ROUTES`, no contra la cadena literal, porque
-   * lo que hay que atar es que los dos ficheros NO PUEDAN divergir: si
-   * alguien cambia el slug en `site.ts` y olvida el pie, el sitemap y los
-   * enlaces apuntarían a sitios distintos sin que nada fallara. El candado
-   * del valor literal de cada slug vive en `site.test.ts`, que es su dueño.
+   * Son DOS desde el 2026-08-08: `terms` y `accessibility` se retiraron con
+   * sus páginas. El test del conjunto completo de claves, arriba, es el que
+   * impide que vuelvan a colarse sin que nadie lo decida.
    */
-  it("los cuatro legales apuntan a las rutas internas reales", () => {
+  it("los dos legales apuntan a las rutas internas reales", () => {
     expect(links.privacy).toBe(ROUTES.privacy);
-    expect(links.terms).toBe(ROUTES.terms);
-    expect(links.accessibility).toBe(ROUTES.accessibility);
     expect(links.legalNotice).toBe(ROUTES.legalNotice);
   });
 

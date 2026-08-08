@@ -176,7 +176,9 @@ describe("Footer", () => {
       expect(
         document.querySelector(`a[href="${links.privacy}"]`),
       ).not.toBeNull();
-      expect(document.querySelector(`a[href="${links.terms}"]`)).not.toBeNull();
+      expect(
+        document.querySelector(`a[href="${links.legalNotice}"]`),
+      ).not.toBeNull();
 
       const year = new Date().getFullYear();
       expect(screen.getByText(new RegExp(String(year)))).toBeInTheDocument();
@@ -235,17 +237,12 @@ describe("Footer", () => {
    * con un "he quitado el target de todos".
    */
   it.each([["light"], ["dark"]] as const)(
-    "en tema %s los cuatro legales son enlaces internos sin target=_blank",
+    "en tema %s los dos legales son enlaces internos sin target=_blank",
     (theme) => {
       window.localStorage.setItem("vti-theme", theme);
       renderWithProviders(<Footer />);
 
-      const legales = [
-        links.privacy,
-        links.terms,
-        links.accessibility,
-        links.legalNotice,
-      ];
+      const legales = [links.privacy, links.legalNotice];
       for (const href of legales) {
         const anclas = document.querySelectorAll(`a[href="${href}"]`);
         expect(anclas.length, `${href} no esta en el pie`).toBeGreaterThan(0);
@@ -266,22 +263,40 @@ describe("Footer", () => {
   );
 
   /*
-   * Retirar el consentimiento tiene que costar lo mismo que darlo (art. 7.3
-   * RGPD por remision, y criterio expreso de la guia de cookies de la AEPD).
-   * El disparador vive en el pie porque el pie esta en TODAS las paginas.
-   * Es un <button> y no un ancla a proposito: no navega, abre un dialogo.
+   * Candado de la revision legal del 2026-08-08. Aqui vivia el disparador de
+   * "Preferencias de cookies"; el sitio no escribe nada que requiera
+   * consentimiento (`src/config/storage.ts`), asi que no hay preferencia que
+   * configurar y el boton desaparecio con el banner.
+   *
+   * El test comprueba la barra inferior COMPLETA, no solo la ausencia del
+   * boton: lo que hay que atar es que en el pie no queden mas destinos legales
+   * que los dos que la revision dejo. Un `/terminos` reintroducido, o un
+   * segundo boton de preferencias, romperia esta cuenta.
    */
   it.each([["light"], ["dark"]] as const)(
-    "en tema %s ofrece el disparador de preferencias de cookies como boton",
+    "en tema %s la barra inferior lleva exactamente los dos legales y ningun boton",
     (theme) => {
       window.localStorage.setItem("vti-theme", theme);
       renderWithProviders(<Footer />);
 
-      const boton = screen.getByRole("button", {
-        name: esCommon.Common.Footer.cookiePreferences,
-      });
-      expect(boton.tagName).toBe("BUTTON");
-      expect(boton).not.toHaveAttribute("href");
+      const copyright = screen.getByText(
+        new RegExp(String(new Date().getFullYear())),
+      );
+      const barra = copyright.parentElement as HTMLElement;
+
+      const hrefs = Array.from(barra.querySelectorAll("a")).map((ancla) =>
+        ancla.getAttribute("href"),
+      );
+      expect(hrefs.sort()).toEqual([links.legalNotice, links.privacy].sort());
+      expect(barra.querySelectorAll("button")).toHaveLength(0);
+      expect(
+        Array.from(barra.querySelectorAll("a")).map(
+          (ancla) => ancla.textContent,
+        ),
+      ).toEqual([
+        esCommon.Common.Footer.privacy,
+        esCommon.Common.Footer.legalNotice,
+      ]);
     },
   );
 

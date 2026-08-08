@@ -3,6 +3,7 @@ import { renderWithProviders, screen } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esLegal from "@/i18n/locales/es/legal.json";
 import enLegal from "@/i18n/locales/en/legal.json";
+import { STORAGE_REGISTRY } from "@/config/storage";
 import {
   LegalDocument,
   splitPlaceholderMarkers,
@@ -10,26 +11,16 @@ import {
 } from "./LegalDocument";
 
 /*
- * El namespace `legal` todavía no está registrado en `src/i18n/config.ts`
- * (lo hace el hilo principal en integración, spec §5): se registra SOLO
- * dentro de este fichero de test, vía `addResourceBundle`, sin tocar
- * `config.ts`. El namespace `consent` (nombre/finalidad de la tabla de
- * almacenamiento) NO se registra a propósito: lo escribe otro flujo en
- * paralelo, y este componente tiene que tolerar la clave ausente (contrato
- * explícito del encargo) -- por eso ninguno de los tests de abajo depende de
- * lo que `tConsent` devuelva cuando la clave todavía no existe.
+ * Se recargan los dos bundles de `legal` a propósito, aunque `config.ts` ya
+ * los registre: así este fichero no depende del orden en que otro test haya
+ * podido tocar el singleton de i18next.
  */
 beforeAll(() => {
   i18n.addResourceBundle("es", "legal", esLegal, true, true);
   i18n.addResourceBundle("en", "legal", enLegal, true, true);
 });
 
-const DOC_KEYS: readonly LegalDocKey[] = [
-  "privacy",
-  "terms",
-  "accessibility",
-  "legalNotice",
-];
+const DOC_KEYS: readonly LegalDocKey[] = ["privacy", "legalNotice"];
 
 describe("LegalDocument", () => {
   it.each(DOC_KEYS)(
@@ -103,13 +94,44 @@ describe("LegalDocument", () => {
     expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
   });
 
-  it("la tabla de almacenamiento tiene exactamente 3 filas (una por STORAGE_REGISTRY)", () => {
+  it("la tabla de almacenamiento tiene una fila por entrada de STORAGE_REGISTRY", () => {
     const { container } = renderWithProviders(
       <LegalDocument docKey="privacy" />,
     );
     const table = container.querySelector("table");
     expect(table).not.toBeNull();
-    expect(table?.querySelectorAll("tbody tr")).toHaveLength(3);
+    expect(table?.querySelectorAll("tbody tr")).toHaveLength(
+      STORAGE_REGISTRY.length,
+    );
+  });
+
+  /*
+   * El nombre y la finalidad de cada entrada se mudaron del namespace
+   * `consent` (retirado el 2026-08-08) a `Legal.common.storage.<id>`. Si esa
+   * mudanza se hubiera hecho a medias, i18next NO lanza: devuelve la propia
+   * ruta de clave como texto, así que la tabla se pintaría con
+   * "Legal.common.storage.vti-theme.name" en la celda y ningún test de
+   * estructura lo vería. Esto es lo que lo caza.
+   */
+  it("cada fila de la tabla pinta el nombre y la finalidad traducidos, no la ruta de clave", () => {
+    const { container } = renderWithProviders(
+      <LegalDocument docKey="privacy" />,
+    );
+    const filas = Array.from(
+      container.querySelectorAll("table tbody tr"),
+    ) as HTMLTableRowElement[];
+
+    expect(filas).toHaveLength(STORAGE_REGISTRY.length);
+    filas.forEach((fila, indice) => {
+      const entrada = STORAGE_REGISTRY[indice];
+      const copia = esLegal.Legal.common.storage[
+        entrada.id as keyof typeof esLegal.Legal.common.storage
+      ] as { name: string; purpose: string };
+
+      expect(fila.cells[0]).toHaveTextContent(copia.name);
+      expect(fila.cells[1]).toHaveTextContent(copia.purpose);
+      expect(fila.textContent).not.toContain("Legal.common.storage");
+    });
   });
 
   it("la tabla de almacenamiento declara th[scope='col'] y <caption>", () => {

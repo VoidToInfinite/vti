@@ -1,8 +1,6 @@
 "use client";
 
 import React from "react";
-import { CookieBanner } from "@/components/consent/CookieBanner";
-import { ConsentProvider } from "@/consent/ConsentProvider";
 import StyledComponentsRegistry from "@/theme/registry";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { GlobalStyles } from "@/theme/GlobalStyles";
@@ -19,27 +17,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
             la ubicación natural de cualquier proveedor "de interfaz
             global" de la página -- ver el docblock de StageProvider para
             por qué no necesita leer el tema en sí. */}
+        {/* Aquí vivía `ConsentProvider` + `CookieBanner`, retirados el
+            2026-08-08. No se "simplificó" el árbol: la revisión legal de esa
+            fecha comprobó que el sitio no escribe NADA que requiera
+            consentimiento previo (`src/config/storage.ts`), y un banner que
+            pide permiso para almacenamiento exento del art. 22.2 LSSI-CE no
+            es una cautela, es fricción sin cobertura legal y una petición de
+            consentimiento inválida por innecesaria. Si algún día entra una
+            tecnología no exenta, el proveedor vuelve AQUÍ, dentro de
+            `I18nProvider` (su copia se traduce) y con el banner montado
+            DESPUÉS de `children`, que es el orden de tabulación correcto para
+            una capa no bloqueante. */}
         <StageProvider>
-          <I18nProvider>
-            {/* ConsentProvider va DENTRO de I18nProvider por dos razones, no
-                por costumbre: el banner y el panel traducen su copia con
-                `useTranslation`, y el enlace "Preferencias de cookies" del
-                Footer -- que es parte de `children` -- llama a
-                `useConsent().openPreferences()`, así que el Footer tiene que
-                quedar por debajo de este proveedor.
-
-                `CookieBanner` se monta DESPUÉS de `children` a propósito:
-                así queda al final del documento, que es el orden de
-                tabulación correcto para una capa no bloqueante (D15) -- un
-                banner al principio del DOM se comería el primer Tab de todo
-                visitante sin que nada lo justifique. El banner monta también
-                el panel de preferencias cuando se abre, así que este único
-                punto de montaje deja operativas las dos piezas. */}
-            <ConsentProvider>
-              {children}
-              <CookieBanner />
-            </ConsentProvider>
-          </I18nProvider>
+          <I18nProvider>{children}</I18nProvider>
         </StageProvider>
       </ThemeProvider>
     </StyledComponentsRegistry>

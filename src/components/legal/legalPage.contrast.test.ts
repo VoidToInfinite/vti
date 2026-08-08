@@ -7,21 +7,23 @@ import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
  * `src/components/legal/legalPage.parts.tsx`, D23 de la spec
  * 2026-08-04-legal-seo-consentimiento-design.md).
  *
- * Este test existe por un hallazgo de la auditoría adversarial de la
- * entrega, y el hallazgo NO era un fallo visual: era una afirmación de prosa
- * sin candado. `/accesibilidad` declara que el contraste de color cumple AA
- * y que eso está "respaldado por pruebas automatizadas", pero
- * `contrast.test.ts` solo cubría los roles de texto sobre las superficies
- * OPACAS del sistema (`text`/`textMuted`/`textSubtle` sobre
- * `bg`/`surface`/`surfaceSunken`). `ScMark` es la primera superficie del
- * sistema con ALFA: pinta `color-mix(in oklch, semantic.warning 30%,
- * transparent)` bajo un texto que hereda `semantic.text`. Ninguna aserción
- * existente tocaba esa combinación, así que la declaración afirmaba estar
- * atada por algo que no la miraba.
+ * Este test existe por un hallazgo de la auditoría adversarial de la entrega
+ * del 2026-08-05, y el hallazgo NO era un fallo visual: era una afirmación de
+ * prosa sin candado. La declaración de accesibilidad de entonces (retirada el
+ * 2026-08-08) decía que el contraste de color cumple AA y que eso estaba
+ * "respaldado por pruebas automatizadas", pero `contrast.test.ts` solo cubría
+ * los roles de texto sobre las superficies OPACAS del sistema
+ * (`text`/`textMuted`/`textSubtle` sobre `bg`/`surface`/`surfaceSunken`).
+ * `ScMark` es la primera superficie del sistema con ALFA: pinta
+ * `color-mix(in oklch, semantic.warning 30%, transparent)` bajo un texto que
+ * hereda `semantic.text`. Ninguna aserción existente tocaba esa combinación,
+ * así que la declaración afirmaba estar atada por algo que no la miraba.
  *
- * El marcador aparece en 20 sitios del HTML emitido (11 en `/privacidad`,
- * 7 en `/aviso-legal`, 2 en `/accesibilidad`) y es, por definición, el texto
- * que MÁS importa que se lea: señala justo lo que falta por completar.
+ * El test sigue en pie después de retirar aquella página: el marcador no
+ * dependía de ella. Aparece hoy en 18 sitios del HTML emitido (11 en
+ * `/privacidad` y 7 en `/aviso-legal`, contados en navegador el 2026-08-08) y
+ * es, por definición, el texto que MÁS importa que se lea: señala justo lo
+ * que falta por completar.
  */
 
 /** Alfa efectiva del `color-mix(... warning 30%, transparent)` de `ScMark`. */

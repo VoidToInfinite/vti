@@ -8,7 +8,6 @@ import styled, {
   keyframes,
   useTheme as useStyledTheme,
 } from "styled-components";
-import { useConsent } from "@/consent/ConsentProvider";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { SectionBeam } from "@/components/sectionBeam/SectionBeam";
 import { Logo } from "@/components/ui/Logo/Logo";
@@ -306,22 +305,6 @@ const ScFooterNavLink = styled(Link)`
   ${footerLinkStyles}
 `;
 
-/* El disparador de las preferencias de cookies es un boton, no un enlace: no
-   navega a ninguna parte, abre un dialogo en la misma pagina. Pintarlo como
-   enlace y dejarlo como boton es lo correcto -- al reves (un ancla con
-   href vacio) le mentiria al lector de pantalla sobre lo que va a pasar. El
-   reset de apariencia es explicito porque GlobalStyles normaliza los
-   controles de formulario pero no los desnuda del todo. */
-const ScFooterButton = styled.button`
-  ${footerLinkStyles}
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: inherit;
-  cursor: pointer;
-  text-align: start;
-`;
-
 /*
  * `position: relative; z-index: 1` SIN CONDICIÓN (D6.2 de la spec
  * 2026-08-07-footer-beam-estrellas-tema-claro-design.md, extendida a esta
@@ -368,12 +351,15 @@ const ScBottomLinks = styled.div`
 `;
 
 /*
- * Los cuatro documentos legales de la barra inferior (entrega 2026-08-05).
- * Hasta hoy eran tres anclas con target blank hacia marcadores
- * example.invalid; ahora son rutas propias, y por eso se navegan con
- * next/link.
+ * Los DOS documentos legales de la barra inferior. Eran cuatro hasta el
+ * 2026-08-08: la revision legal de esa fecha retiro `/terminos` (el sitio no
+ * contrata nada; sus clausulas de uso pasan al Aviso legal) y `/accesibilidad`
+ * (declaracion voluntaria, no exigible a un titular privado), y con ellos el
+ * boton de "Preferencias de cookies" que vivia justo debajo -- sin tecnologia
+ * que requiera consentimiento no hay preferencia que configurar. El porque
+ * completo esta en `LEGAL_ROUTE_KEYS` (`src/config/site.ts`).
  *
- * D19 de la spec: mantener target blank sobre una ruta PROPIA es un
+ * D19 de la spec 2026-08-04: mantener target blank sobre una ruta PROPIA es un
  * antipatron -- rompe el boton atras, abre una pestana que el usuario no ha
  * pedido y cambia de contexto sin avisar, que es lo que WCAG 3.2.5 pide
  * evitar. El target blank se queda SOLO donde el destino de verdad sale del
@@ -381,15 +367,12 @@ const ScBottomLinks = styled.div`
  */
 const LEGAL_LINKS = [
   { key: "privacy", href: links.privacy },
-  { key: "terms", href: links.terms },
-  { key: "accessibility", href: links.accessibility },
   { key: "legalNotice", href: links.legalNotice },
 ] as const;
 
 export function Footer(): ReactElement {
   const { t } = useTranslation("common");
   const { themeName } = useTheme();
-  const { openPreferences } = useConsent();
   const year = new Date().getFullYear();
   const isDark = themeName === "dark";
   // El tema AMBIENTAL de styled-components, no `themes[themeName]` construido
@@ -472,18 +455,6 @@ export function Footer(): ReactElement {
               {t(`Common.Footer.${key}`)}
             </ScFooterNavLink>
           ))}
-          {/* Retirar el consentimiento tiene que ser tan facil como darlo
-              (art. 7.3 RGPD por remision, y criterio expreso de la guia de
-              cookies de la AEPD). Este disparador vive en el pie, que esta en
-              TODAS las paginas -- la home y las cuatro legales --, asi que la
-              persona puede reabrir el panel desde donde este sin tener que
-              buscar. */}
-          <ScFooterButton
-            type="button"
-            onClick={openPreferences}
-          >
-            {t("Common.Footer.cookiePreferences")}
-          </ScFooterButton>
         </ScBottomLinks>
       </ScBottomBar>
     </ScFooter>

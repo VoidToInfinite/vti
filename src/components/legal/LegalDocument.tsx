@@ -3,7 +3,7 @@
 import { Fragment, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LEGAL_ENTITY, LEGAL_VERSIONS, PLACEHOLDER } from "@/config/legal";
-import { STORAGE_REGISTRY } from "@/config/cookies";
+import { STORAGE_REGISTRY } from "@/config/storage";
 import {
   ScBackLink,
   ScCaption,
@@ -33,17 +33,17 @@ import {
 } from "./legalPage.parts";
 
 /**
- * Renderer único de las 4 páginas legales (D21 de la spec
+ * Renderer único de las páginas legales (D21 de la spec
  * 2026-08-04-legal-seo-consentimiento-design.md): cada documento es un árbol
  * de datos en `src/i18n/locales/{es,en}/legal.json` (`Legal.<docKey>`), y
- * este componente es el ÚNICO lugar que sabe pintarlo. Cuatro documentos ×
- * dos idiomas como JSX serían ocho ficheros que divergen a la primera
- * corrección; con un solo renderer, el candado de paridad de
- * `locales.test.ts` (rutas recursivas, incluidos índices de array) compara
- * la ESTRUCTURA del documento, no solo sus títulos.
+ * este componente es el ÚNICO lugar que sabe pintarlo. Cada documento ×
+ * dos idiomas como JSX serían ficheros que divergen a la primera corrección;
+ * con un solo renderer, el candado de paridad de `locales.test.ts` (rutas
+ * recursivas, incluidos índices de array) compara la ESTRUCTURA del
+ * documento, no solo sus títulos.
  */
 
-export type LegalDocKey = "privacy" | "terms" | "accessibility" | "legalNotice";
+export type LegalDocKey = "privacy" | "legalNotice";
 
 interface LegalDocumentProps {
   docKey: LegalDocKey;
@@ -204,24 +204,23 @@ function EntityBlock({
 
 /**
  * Bloque `storage` (D21): tabla pintada desde `STORAGE_REGISTRY`
- * (`src/config/cookies.ts`), fuente única también para el panel de
- * consentimiento (flujo S3). El nombre y la finalidad de cada entrada viven
- * en el namespace `consent` (`Consent.storage.<id>.name`/`.purpose`), que
- * escribe otro flujo en paralelo: si esa clave no existe todavía, i18next
- * devuelve la propia ruta de clave como texto (comportamiento por defecto,
- * no un `throw`), así que este bloque nunca rompe por su ausencia -- solo se
- * ve una etiqueta técnica de más hasta que el otro flujo añada el fichero.
+ * (`src/config/storage.ts`), fuente única de lo que este sitio escribe en el
+ * equipo del visitante. El nombre y la finalidad de cada entrada viven en
+ * `Legal.common.storage.<id>.name`/`.purpose` — desde el 2026-08-08, cuando
+ * el namespace `consent` desapareció con el sistema de consentimiento y esas
+ * dos cadenas se mudaron aquí, al único namespace que sigue teniéndolas como
+ * consumidor.
  */
 function StorageBlock({
   labels,
   captionText,
   durationLabelFor,
-  tConsent,
+  storageCopy,
 }: {
   labels: StorageTableLabels;
   captionText: string;
   durationLabelFor: (durationDays: number | null) => string;
-  tConsent: (key: string) => string;
+  storageCopy: (key: string) => string;
 }): ReactElement {
   return (
     <ScTableWrap>
@@ -239,8 +238,12 @@ function StorageBlock({
         <tbody>
           {STORAGE_REGISTRY.map((entry) => (
             <tr key={entry.id}>
-              <ScTd>{tConsent(`Consent.storage.${entry.id}.name`)}</ScTd>
-              <ScTd>{tConsent(`Consent.storage.${entry.id}.purpose`)}</ScTd>
+              <ScTd>
+                {storageCopy(`Legal.common.storage.${entry.id}.name`)}
+              </ScTd>
+              <ScTd>
+                {storageCopy(`Legal.common.storage.${entry.id}.purpose`)}
+              </ScTd>
               <ScTd>{entry.kind}</ScTd>
               <ScTd>{durationLabelFor(entry.durationDays)}</ScTd>
               <ScTd>{entry.provider}</ScTd>
@@ -262,7 +265,7 @@ function renderBlock(
     storageLabels: StorageTableLabels;
     storageCaption: string;
     durationLabelFor: (durationDays: number | null) => string;
-    tConsent: (key: string) => string;
+    storageCopy: (key: string) => string;
   },
 ): ReactNode {
   switch (block.kind) {
@@ -334,7 +337,7 @@ function renderBlock(
           labels={ctx.storageLabels}
           captionText={ctx.storageCaption}
           durationLabelFor={ctx.durationLabelFor}
-          tConsent={ctx.tConsent}
+          storageCopy={ctx.storageCopy}
         />
       );
     default:
@@ -344,7 +347,6 @@ function renderBlock(
 
 export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
   const { t } = useTranslation("legal");
-  const { t: tConsent } = useTranslation("consent");
 
   // `returnObjects: true` es la única forma de leer un árbol JSON completo
   // (no una hoja de texto) con i18next; el tipado de `t` de este repo no
@@ -406,7 +408,7 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
               storageLabels,
               storageCaption: section.heading,
               durationLabelFor,
-              tConsent,
+              storageCopy: t,
             }),
           )}
         </ScSection>

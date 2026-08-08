@@ -5,8 +5,6 @@ import esHome from "./locales/es/home.json";
 import enHome from "./locales/en/home.json";
 import esLegal from "./locales/es/legal.json";
 import enLegal from "./locales/en/legal.json";
-import esConsent from "./locales/es/consent.json";
-import enConsent from "./locales/en/consent.json";
 import { namespaces as registeredNamespaces } from "./config";
 import { PLACEHOLDER } from "@/config/legal";
 
@@ -69,8 +67,8 @@ const namespaces = [
   { name: "common", es: esCommon as JsonTree, en: enCommon as JsonTree },
   { name: "home", es: esHome as JsonTree, en: enHome as JsonTree },
   /*
-   * `as unknown as` en estos dos, y no el `as JsonTree` directo de arriba,
-   * por un detalle del tipo que TypeScript infiere de un JSON con bloques
+   * `as unknown as` en este, y no el `as JsonTree` directo de arriba, por un
+   * detalle del tipo que TypeScript infiere de un JSON con bloques
    * heterogéneos: la unión de `{kind,text}` y `{kind,items}` produce miembros
    * con propiedades opcionales de tipo `undefined` (`items?: undefined`), que
    * no encajan en la firma de índice. El recorrido en tiempo de ejecución es
@@ -81,11 +79,6 @@ const namespaces = [
     name: "legal",
     es: esLegal as unknown as JsonTree,
     en: enLegal as unknown as JsonTree,
-  },
-  {
-    name: "consent",
-    es: esConsent as unknown as JsonTree,
-    en: enConsent as unknown as JsonTree,
   },
 ];
 
@@ -150,16 +143,40 @@ describe("locales", () => {
    * otro darían el mismo total y pasarían desapercibidos.
    */
   describe("marcadores de dato pendiente", () => {
-    it.each(["privacy", "terms", "accessibility", "legalNotice"] as const)(
+    it.each(["privacy", "legalNotice"] as const)(
       "el documento '%s' tiene los mismos marcadores en es y en",
       (doc) => {
         const cuenta = (arbol: JsonTree): number =>
           JSON.stringify((arbol.Legal as JsonTree)[doc]).split(PLACEHOLDER)
             .length - 1;
 
+        // Sonda positiva: el documento SÍ lleva marcadores. Sin ella, borrar
+        // los de los DOS idiomas dejaría este test en verde mientras la página
+        // afirma en silencio unos datos identificativos que nadie ha aportado.
+        expect(cuenta(esLegal as unknown as JsonTree)).toBeGreaterThan(0);
         expect(cuenta(esLegal as unknown as JsonTree)).toBe(
           cuenta(enLegal as unknown as JsonTree),
         );
+      },
+    );
+  });
+
+  /*
+   * Candado de la revisión legal del 2026-08-08: los dos documentos retirados
+   * no pueden volver por la puerta de atrás. Un `Legal.terms` reintroducido en
+   * el JSON no rompería ningún typecheck (nadie lo importa) y quedaría ahí,
+   * traducido y muerto, hasta que alguien lo enlazara "porque ya estaba".
+   */
+  describe("documentos retirados", () => {
+    it.each(["terms", "accessibility"] as const)(
+      "'%s' no reaparece en el namespace legal de ninguno de los dos idiomas",
+      (doc) => {
+        expect(
+          Object.keys((esLegal as unknown as JsonTree).Legal as JsonTree),
+        ).not.toContain(doc);
+        expect(
+          Object.keys((enLegal as unknown as JsonTree).Legal as JsonTree),
+        ).not.toContain(doc);
       },
     );
   });

@@ -18,8 +18,8 @@ import { Logo } from "@/components/ui/Logo/Logo";
  * entrada encadenada con la coreografía del hero, y `useNavDetach` para el
  * despegue al hacer scroll sobre las secciones de la home) y monta 4 anclas
  * de sección -- `#story`/`#journey`/`#features`/`#contact`
- * (`Navbar.tsx:406-411`) -- que en `/privacidad`, `/terminos`,
- * `/accesibilidad` o `/aviso-legal` no existen: esas páginas no montan
+ * (`Navbar.tsx:406-411`) -- que en `/privacidad` ni en `/aviso-legal`
+ * existen: esas páginas no montan
  * `Story`/`Journey`/`Features`/`Contact`. Reusar el `Navbar` aquí produciría
  * 4 anclas muertas, exactamente el defecto que el propio `Footer` arrastró
  * durante dos entregas y que su código sigue documentando
@@ -29,8 +29,8 @@ import { Logo } from "@/components/ui/Logo/Logo";
  * `LegalHeader` es deliberadamente sobrio: marca enlazada a `/`, selector de
  * idioma y conmutador de tema -- ni anclas de sección, ni despegue al hacer
  * scroll, ni cristal esmerilado. El `Footer` de la home SÍ se reutiliza tal
- * cual en las 4 páginas legales (es autónomo, spec D20): esta cabecera es la
- * única pieza de navegación que necesitaba un sustituto.
+ * cual en las dos páginas legales (es autónomo, spec D20): esta cabecera es
+ * la única pieza de navegación que necesitaba un sustituto.
  */
 
 const ScHeader = styled.header`

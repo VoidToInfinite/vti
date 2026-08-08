@@ -15,7 +15,7 @@
  * no cumple el art. 13.1.a RGPD ("la identidad y los datos de contacto del
  * responsable") ni `/aviso-legal` cumple el art. 10.a LSSI-CE ("nombre o
  * denominación social... domicilio... dirección de correo electrónico").
- * Las cuatro páginas legales quedan por tanto ESTRUCTURALMENTE completas pero
+ * Las dos páginas legales quedan por tanto ESTRUCTURALMENTE completas pero
  * NO PUBLICABLES hasta que estos campos se rellenen con datos reales — es el
  * único bloqueante real de esta entrega (spec §9.1). `hasPendingLegalData()`
  * es el candado programático de ese hecho: mientras exista un solo campo sin
@@ -67,14 +67,16 @@ export interface LegalVersion {
  * usa esta fecha en vez de `new Date()` precisamente para no declarar un
  * cambio en cada build cuando el documento no ha cambiado de verdad.
  */
-export const LEGAL_VERSIONS: Record<
-  "privacy" | "terms" | "accessibility" | "legalNotice",
-  LegalVersion
-> = {
-  privacy: { version: "1.0.0", updated: "2026-08-05" },
-  terms: { version: "1.0.0", updated: "2026-08-05" },
-  accessibility: { version: "1.0.0", updated: "2026-08-05" },
-  legalNotice: { version: "1.0.0", updated: "2026-08-05" },
+export const LEGAL_VERSIONS: Record<"privacy" | "legalNotice", LegalVersion> = {
+  /* 2.0.0, no 1.0.1: la revisión del 2026-08-08 no corrigió una errata, cambió
+     el contenido sustantivo de los dos documentos. La privacidad pierde todo
+     lo relativo al consentimiento (retirado del sitio) y describe el correo de
+     contacto como lo que es; el aviso legal absorbe las cláusulas de uso del
+     retirado `/terminos`. Un visitante que leyera la versión 1.0.0 no puede
+     dar por buena su lectura, y eso es exactamente lo que un salto de mayor
+     comunica. */
+  privacy: { version: "2.0.0", updated: "2026-08-08" },
+  legalNotice: { version: "2.0.0", updated: "2026-08-08" },
 };
 
 /** Campos de `LEGAL_ENTITY` que identifican al responsable y por tanto

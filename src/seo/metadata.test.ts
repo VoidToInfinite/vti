@@ -8,15 +8,13 @@ import {
   TITLE_SEPARATOR,
 } from "./metadata";
 
-/** Las cinco rutas reales del sitio: home + las cuatro legales. */
+/** Las tres rutas reales del sitio: home + las dos legales. */
 const ALL_ROUTE_KEYS = ["home", ...LEGAL_ROUTE_KEYS] as const;
 
 /** Títulos de prueba por ruta — fixtures del test, no copy de producción. */
 const FIXTURE_TITLES: Record<(typeof ALL_ROUTE_KEYS)[number], string> = {
   home: SITE.name,
   privacy: "Política de privacidad",
-  terms: "Términos de uso",
-  accessibility: "Accesibilidad",
   legalNotice: "Aviso legal",
 };
 

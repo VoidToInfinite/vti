@@ -20,3 +20,33 @@
 
   [headers.values]
     Content-Type = "image/png"
+
+# Rutas retiradas en la revisión legal del 2026-08-08. Las dos estuvieron
+# publicadas desde el 2026-08-05, así que un 404 seco dejaría enlaces rotos y
+# le pediría a un rastreador que descubriera por su cuenta qué ha pasado.
+#
+# `force = false` (el valor por defecto, explícito aquí para que se lea): con
+# `output: "export"` los ficheros `terminos.html` y `accesibilidad.html` ya no
+# se generan, así que no hay nada que la redirección tenga que sobrescribir;
+# dejarlo en falso significa que si algún día vuelve a existir un fichero real
+# en esa ruta, gana el fichero y no esta regla.
+#
+# Cada destino se elige por EQUIVALENCIA, no por comodidad:
+# - `/terminos` -> `/aviso-legal`: sus cláusulas con sentido aquí (uso
+#   permitido, propiedad intelectual, enlaces a terceros, disponibilidad,
+#   responsabilidad, ley aplicable) están ahora dentro del aviso legal. Quien
+#   llegue buscando lo que había, lo encuentra.
+# - `/accesibilidad` -> `/`: NO tiene equivalente. Redirigirla al aviso legal
+#   o a la privacidad llevaría a un documento que no habla de lo que la
+#   persona buscaba, que es peor que devolverla a la portada.
+[[redirects]]
+  from = "/terminos"
+  to = "/aviso-legal"
+  status = 301
+  force = false
+
+[[redirects]]
+  from = "/accesibilidad"
+  to = "/"
+  status = 301
+  force = false

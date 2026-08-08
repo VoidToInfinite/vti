@@ -58,18 +58,33 @@ export const SITE = {
 export const ROUTES = {
   home: "/",
   privacy: "/privacidad",
-  terms: "/terminos",
-  accessibility: "/accesibilidad",
   legalNotice: "/aviso-legal",
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;
 
-/** Las cuatro rutas de documentos legales, en el orden en que se enlazan. */
+/**
+ * Las dos rutas de documentos legales, en el orden en que se enlazan.
+ *
+ * Fueron CUATRO hasta el 2026-08-08. `/terminos` y `/accesibilidad` se
+ * retiraron en la revisión legal de esa fecha, y su ausencia no es un descuido
+ * ni una simplificación estética:
+ *
+ * - unos términos de uso regulan una relación contractual, y este sitio no
+ *   contrata nada (ni venta, ni registro, ni cuentas, ni suscripciones, ni
+ *   contenido de usuario). Sus únicas cláusulas con sentido aquí —uso
+ *   permitido, propiedad intelectual, responsabilidad, enlaces a terceros y
+ *   ley aplicable— viven ahora dentro del Aviso legal, que es su sitio natural;
+ * - la declaración de accesibilidad la exige el RD 1112/2018 al SECTOR
+ *   PÚBLICO, y este sitio no lo es. Publicarla era voluntario. Retirar la
+ *   PÁGINA no retira ni un solo requisito de accesibilidad del propio sitio,
+ *   que sigue desarrollándose contra WCAG 2.2 AA.
+ *
+ * `netlify.toml` redirige las dos rutas retiradas; ver allí el porqué de cada
+ * destino.
+ */
 export const LEGAL_ROUTE_KEYS = [
   "privacy",
-  "terms",
-  "accessibility",
   "legalNotice",
 ] as const satisfies readonly RouteKey[];
 
