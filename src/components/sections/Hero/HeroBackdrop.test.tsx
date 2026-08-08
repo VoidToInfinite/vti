@@ -9,8 +9,8 @@ import {
 import { HeroBackdrop } from "./HeroBackdrop";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { StageProvider, useStage } from "@/motion/StageProvider";
-import { AURA_STAGGER } from "@/components/aura/aura.layers";
-import { EYE_STAGGER } from "@/components/eye/eye.layers";
+import { AURA_STAGGER } from "@/components/scenes/aura/aura.layers";
+import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
 import {
   HERO_BACKDROP_HOLD_MS,
   HERO_CHROME_OFFSET_MS,

@@ -10,7 +10,7 @@ import {
   useParallaxLayers,
   type ParallaxTarget,
 } from "@/hooks/useParallaxLayers";
-import { Sol } from "@/components/eye/mascots/Sol";
+import { Sol } from "@/components/scenes/eye/mascots/Sol";
 import { AURA_LAYERS, AURA_ORB_DEPTH, AURA_SIZES } from "./aura.layers";
 import {
   ScAuraBase,
@@ -147,7 +147,18 @@ export function Aura({ className }: AuraProps): ReactElement {
             // pondria por detras de la copia en la cola de red justo donde
             // mas se notan. `decoding="async"` evita que la decodificacion
             // bloquee el primer pintado del texto.
+            //
+            // `fetchPriority="high"` (auditoria de rendimiento 2026-08-08):
+            // esta es la UNICA capa a sangre sobre el socket entero, asi que
+            // es la candidata real a LCP del hero -- las otras tres (energia,
+            // manos) viven dentro del marco del sujeto, mas pequenas y nunca
+            // el elemento mas grande pintado. Antes de este cambio las cuatro
+            // llevaban `loading="eager"` sin diferenciar prioridad: el
+            // scanner de precarga las trataba a las cuatro como igual de
+            // urgentes y esta, la que de verdad importa para LCP, competia
+            // por ancho de banda con las otras tres.
             loading="eager"
+            fetchPriority="high"
             decoding="async"
           />
         ) : null,
@@ -163,7 +174,17 @@ export function Aura({ className }: AuraProps): ReactElement {
               srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1672w`}
               sizes={AURA_SIZES}
               alt=""
-              loading="eager"
+              // SIN `loading="eager"` (auditoria 2026-08-08): estas tres
+              // capas (energia + dos manos) pesan hasta ~300 KB combinadas a
+              // resolucion nativa (~140 KB en la pista de 1024px que sirve
+              // `srcSet` en movil) y no son la candidata a LCP -- `field`, la
+              // capa hermana de arriba, ya cubre el socket entero y es lo
+              // primero que el usuario percibe como "pintado". Forzar las
+              // tres a maxima prioridad competia por ancho de banda contra
+              // `field` justo en la ventana critica. Sin el atributo siguen
+              // siendo un `<img>` normal -- el navegador las sigue cargando
+              // enseguida porque estan en el viewport inicial, solo que sin
+              // la prioridad forzada que antes competia con el LCP real.
               decoding="async"
               $moves={layer.depth > 0}
             />

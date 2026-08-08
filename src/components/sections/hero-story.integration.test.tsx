@@ -4,7 +4,7 @@ import { renderWithProviders } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
+import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";

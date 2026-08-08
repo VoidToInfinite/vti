@@ -10,9 +10,9 @@ import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useTheme } from "@/theme/ThemeProvider";
 import { links } from "@/config/links";
-import { ContactCosmicGuardian } from "@/components/contactCosmicGuardian/ContactCosmicGuardian";
-import { CONTACT_GUARDIAN_VOID } from "@/components/contactCosmicGuardian/contactCosmicGuardian.layers";
-import { SectionBeam } from "@/components/sectionBeam/SectionBeam";
+import { ContactCosmicGuardian } from "@/components/scenes/contactCosmicGuardian/ContactCosmicGuardian";
+import { CONTACT_GUARDIAN_VOID } from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
+import { SectionBeam } from "@/components/scenes/sectionBeam/SectionBeam";
 import {
   CONTACT_CARD_BG_DARK,
   CONTACT_CARD_BORDER,

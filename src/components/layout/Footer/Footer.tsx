@@ -9,7 +9,7 @@ import styled, {
   useTheme as useStyledTheme,
 } from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
-import { SectionBeam } from "@/components/sectionBeam/SectionBeam";
+import { SectionBeam } from "@/components/scenes/sectionBeam/SectionBeam";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";

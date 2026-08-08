@@ -19,7 +19,7 @@ import {
   JOURNEY_OVERLAY_RISE,
   JOURNEY_SLIDES,
 } from "./journey.layers";
-import { JOURNEY_PORTAL_LAYERS } from "@/components/journeyCosmicPortal/journeyCosmicPortal.layers";
+import { JOURNEY_PORTAL_LAYERS } from "@/components/scenes/journeyCosmicPortal/journeyCosmicPortal.layers";
 import {
   STORY_DARK_HEIGHT,
   STORY_DECK_TAIL_SCREENS,

@@ -48,7 +48,7 @@
  * existen archivados en `assets/hero-aura/` como referencia documental
  * (misma convención que `05-logo.png` en `assets/hero-eye/`), pero NINGUNO
  * de los dos sube a `public/`: el disco que ocupa su lugar en el arte lo
- * renderiza el componente `Sol` del DOM (`src/components/eye/mascots/Sol`),
+ * renderiza el componente `Sol` del DOM (`src/components/scenes/eye/mascots/Sol`),
  * no un WebP. `Sol` ya trae su propia corona Y su propio núcleo animado, así
  * que montar `05-core-glow.png` debajo produciría un doble núcleo — uno
  * pintado y fijo, otro animado, compitiendo por el mismo píxel (spec §15.2,

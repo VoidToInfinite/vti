@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
+import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { basicLightTheme, basicDarkTheme } from "@/theme/themes";
 

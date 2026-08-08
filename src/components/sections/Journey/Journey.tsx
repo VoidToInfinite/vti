@@ -9,7 +9,7 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
-import { JourneyCosmicPortal } from "@/components/journeyCosmicPortal/JourneyCosmicPortal";
+import { JourneyCosmicPortal } from "@/components/scenes/journeyCosmicPortal/JourneyCosmicPortal";
 import {
   ScJourneyDeck,
   ScJourneyDeckTitle,

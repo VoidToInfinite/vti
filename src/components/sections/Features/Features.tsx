@@ -8,7 +8,7 @@ import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
-import { FeaturesCelestialOrbital } from "@/components/featuresCelestialOrbital/FeaturesCelestialOrbital";
+import { FeaturesCelestialOrbital } from "@/components/scenes/featuresCelestialOrbital/FeaturesCelestialOrbital";
 import {
   FEATURE_KEYS,
   FEATURE_FIGURE_BASENAME,
@@ -91,7 +91,7 @@ const BULLET_KEYS = ["one", "two", "three", "four"] as const;
  * transcrito de ningún mockup -- por eso vive aquí y no en
  * `features.layers.ts` (ese fichero documenta en su propia cabecera que solo
  * contiene arte VERBATIM). "Decenas de píxeles, no cientos" es literal del
- * encargo: a `--features-progress` 0..1 el recorrido total es de 20px.
+ * encargo: a `--features-progress` 0..1 el recorrido total es de 5px.
  */
 const FEATURES_FIGURE_PARALLAX_PX = 5;
 

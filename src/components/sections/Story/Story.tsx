@@ -8,7 +8,7 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
-import { StoryCosmicBeing } from "@/components/storyCosmicBeing/StoryCosmicBeing";
+import { StoryCosmicBeing } from "@/components/scenes/storyCosmicBeing/StoryCosmicBeing";
 import {
   ScDeck,
   ScDeckIntroBody,

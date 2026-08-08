@@ -101,6 +101,19 @@ describe("Aura", () => {
     }
   });
 
+  it("solo el campo (candidata a LCP, a sangre sobre el socket) pide prioridad alta; las otras tres capas no compiten por ancho de banda (auditoria 2026-08-08)", () => {
+    const { container } = renderWithProviders(<Aura />);
+    const field = container.querySelector('img[data-part="field"]');
+    expect(field).toHaveAttribute("loading", "eager");
+    expect(field).toHaveAttribute("fetchpriority", "high");
+
+    for (const layer of AURA_LAYERS.filter((l) => !l.fullBleed)) {
+      const img = container.querySelector(`img[data-part="${layer.part}"]`);
+      expect(img).not.toHaveAttribute("loading");
+      expect(img).not.toHaveAttribute("fetchpriority");
+    }
+  });
+
   it("el campo va a sangre directamente en el socket; las manos y la energia dentro del marco del sujeto", () => {
     const { container } = renderWithProviders(<Aura />);
     const socket = container.firstElementChild as HTMLElement;

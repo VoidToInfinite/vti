@@ -27,10 +27,10 @@ import { Logo } from "@/components/ui/Logo/Logo";
  *   (`motion.easing.emphasized`), no la curva del sdk: el repo manda sobre el
  *   origen en lo que es un rol del sistema de movimiento.
  *
- * Excepcion de color sancionada, la misma que rige `eye.parts.tsx` y
- * `BackOrbs.tsx`: los `oklch()` literales son espectaculo de marca en un
- * elemento `aria-hidden`, no roles de UI. Aqui ademas son la traduccion
- * exacta de los pasos de escala que el handoff de diseno del sdk fijo.
+ * Excepcion de color sancionada, la misma que rige `eye.parts.tsx`: los
+ * `oklch()` literales son espectaculo de marca en un elemento `aria-hidden`,
+ * no roles de UI. Aqui ademas son la traduccion exacta de los pasos de
+ * escala que el handoff de diseno del sdk fijo.
  */
 
 function oklch(triplet: string, alpha: number): string {

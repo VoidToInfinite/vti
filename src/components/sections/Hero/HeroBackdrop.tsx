@@ -7,8 +7,8 @@ import {
   type ReactElement,
 } from "react";
 import styled from "styled-components";
-import { Aura } from "@/components/aura/Aura";
-import { Eye } from "@/components/eye/Eye";
+import { Aura } from "@/components/scenes/aura/Aura";
+import { Eye } from "@/components/scenes/eye/Eye";
 import { useStage } from "@/motion/StageProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeName } from "@/theme/themes";
