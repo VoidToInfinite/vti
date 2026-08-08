@@ -16,7 +16,7 @@ import {
   JOURNEY_DARK_HEIGHT,
   JOURNEY_DECK_TAIL_SCREENS,
 } from "@/components/sections/Journey/journey.layers";
-import { FEATURES_ORBITAL_LAYERS } from "@/components/featuresCelestialOrbital/featuresCelestialOrbital.layers";
+import { FEATURES_ORBITAL_LAYERS } from "@/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers";
 import { themes } from "@/theme/themes";
 import { parseOklch, contrastRatio } from "@/theme/tokens/contrast";
 import enHome from "@/i18n/locales/en/home.json";
@@ -359,28 +359,38 @@ describe("D7: borde conico animado en hover, solo bajo prefers-reduced-motion: n
     expect(noPreferenceBlock).toContain("animation:");
   });
 
-  it("en reposo (fuera de :hover) el envoltorio pinta semantic.border como fondo, no el conic-gradient", () => {
+  it("en reposo (fuera de :hover y de todo @media) el envoltorio NO declara background/background-image: el unico tratamiento de borde es el conic-gradient de marca en hover", () => {
     const { container } = renderWithProviders(<Features />);
     const card = container.querySelector(
       'article[aria-labelledby^="feature-"]',
     ) as HTMLElement;
     const css = cssRuleTextFor(card);
 
-    // La regla de reposo (fuera de :hover y de cualquier @media) declara el
-    // fondo semantic.border.
-    const restRule = css
-      .split("\n")
-      .find(
-        (line) =>
-          !line.includes(":hover") &&
-          !line.includes("@media") &&
-          line.includes("background:"),
-      );
-    expect(restRule).toBeDefined();
-    expect(restRule).toContain(themes.light.semantic.border);
+    const noPreferenceIndex = css.indexOf(
+      "@media (prefers-reduced-motion: no-preference)",
+    );
+    expect(noPreferenceIndex).toBeGreaterThan(-1);
+
+    // Nada de background/background-image antes del marcador no-preference:
+    // el conic-gradient de marca (dentro de ese @media, dentro de :hover) es
+    // el UNICO tratamiento de borde que declara este envoltorio -- ya no hay
+    // fondo/borde propio en reposo.
+    const restBlock = css.slice(0, noPreferenceIndex);
+    expect(restBlock).not.toContain("background:");
+    expect(restBlock).not.toContain("background-image:");
+
+    // Candado complementario: ScCardSurface (la superficie interior, primer
+    // hijo del envoltorio) sigue pintando semantic.surface -- para que la
+    // tarjeta no pueda volverse invisible en silencio si algun dia se retira
+    // tambien ese fondo.
+    const surface = card.firstElementChild as HTMLElement;
+    const surfaceCss = cssRuleTextFor(surface);
+    expect(surfaceCss).toContain(
+      `background: ${themes.light.semantic.surface}`,
+    );
   });
 
-  it("translateY(-3px) y la subida de sombra (elevation[3]) se aplican en :hover sin depender de no-preference", () => {
+  it("D5/D7: en :hover sube -- translateY(-3px) + box-shadow: elevation[1] -- naciendo de un reposo SIN sombra propia, sin depender de no-preference", () => {
     const { container } = renderWithProviders(<Features />);
     const card = container.querySelector(
       'article[aria-labelledby^="feature-"]',
@@ -393,7 +403,16 @@ describe("D7: borde conico animado en hover, solo bajo prefers-reduced-motion: n
     const hoverBeforeMedia = css.slice(0, noPreferenceIndex);
     expect(hoverBeforeMedia).toContain(":hover");
     expect(hoverBeforeMedia).toContain("translateY(-3px)");
-    expect(hoverBeforeMedia).toContain(themes.light.elevation[3]);
+    expect(hoverBeforeMedia).toContain(themes.light.elevation[1]);
+
+    // La regla de reposo (antes de :hover) no declara box-shadow propio: la
+    // sombra NACE en :hover -- unificado con el criterio de las tarjetas de
+    // Story -- en vez de "subir" desde una sombra que ya estuviera ahi.
+    const restRule = hoverBeforeMedia.slice(
+      0,
+      hoverBeforeMedia.indexOf(":hover"),
+    );
+    expect(restRule).not.toContain("box-shadow:");
   });
 });
 
@@ -482,30 +501,33 @@ describe("contraste AA de las tarjetas de Features (rama clara)", () => {
 });
 
 /*
- * Encargo 2026-08-03: los bullets van a DOS columnas solo en dispositivos
- * grandes. Por texto del CSS inyectado y no con `getComputedStyle`: jsdom no
- * evalua NINGUN @media al calcular estilos (lección repo 2026-07-27), asi que
- * el estilo computado devuelve `1fr` tanto con la regla como sin ella. Se
- * acota con `cssRuleTextFor` a las clases del PROPIO contenedor de bullets:
- * `injectedCss()` arrastraria el resto del stylesheet y cualquier otro
- * `repeat(2, minmax(0, 1fr))` del componente (`ScGrid` declara uno) daria un
- * verde falso.
+ * Ajuste visual 2026-08-08: los bullets vuelven a UNA columna en TODOS los
+ * anchos -- el `@media` de `lg` sobrevive (mecanismo `$compactFrom`
+ * pendiente, ver `ScBullets` en `Features.tsx`), pero ya no reparte en dos
+ * columnas: solo ensancha el `gap`. Por texto del CSS inyectado y no con
+ * `getComputedStyle`: jsdom no evalua NINGUN @media al calcular estilos
+ * (lección repo 2026-07-27), asi que el estilo computado devuelve `1fr` tanto
+ * con la regla como sin ella. Se acota con `cssRuleTextFor` a las clases del
+ * PROPIO contenedor de bullets: `injectedCss()` arrastraria el resto del
+ * stylesheet y cualquier otro `repeat(1, minmax(0, 1fr))` del componente daria
+ * un verde falso.
  *
  * El breakpoint se lee del tema (`themes.light.breakPoint.lg`), no se escribe
  * "992px" a mano: un literal deja de proteger en silencio el dia que el token
  * cambie (lección repo 2026-08-01).
  *
- * Validado con el bug inyectado: quitando el bloque `@media` de `ScBullets`
- * en Features.tsx el test se pone rojo (no existe ninguna regla con el
- * breakpoint y las dos columnas); restaurado, verde.
+ * Validado con el bug inyectado: cambiando `repeat(1, minmax(0, 1fr))` por
+ * `repeat(2, minmax(0, 1fr))` dentro del `@media` de `ScBullets` en
+ * Features.tsx, este test se pone rojo (la linea del breakpoint deja de
+ * matchear `repeat(1, ...)`); restaurado, verde.
  */
-describe("bullets a dos columnas solo en dispositivos grandes", () => {
+describe("bullets a una columna en todos los anchos (el @media de lg solo ajusta el gap)", () => {
   function bulletsContainer(): HTMLElement {
     const cta = document.querySelector('a[href="#contact"]');
     return cta?.previousElementSibling as HTMLElement;
   }
 
-  it("declara UNA columna por defecto y dos dentro del @media de lg", () => {
+  it("declara UNA columna por defecto y sigue en una columna (solo cambia el gap) dentro del @media de lg", () => {
     renderWithProviders(<Features />);
     const css = cssRuleTextFor(bulletsContainer());
 
@@ -520,8 +542,8 @@ describe("bullets a dos columnas solo en dispositivos grandes", () => {
     expect(baseRule).toMatch(/grid-template-columns:\s*1fr/);
 
     // La MISMA linea tiene que ser a la vez el bloque del breakpoint y la
-    // declaracion de dos columnas: separarlo en dos aserciones dejaria pasar
-    // un CSS con las dos columnas fuera del @media.
+    // declaracion de una columna: separarlo en dos aserciones dejaria pasar
+    // un CSS con dos columnas fuera del @media.
     const lgLine = css
       .split("\n")
       .find(
@@ -531,7 +553,7 @@ describe("bullets a dos columnas solo en dispositivos grandes", () => {
       );
     expect(lgLine).toBeDefined();
     expect(lgLine).toMatch(
-      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+      /grid-template-columns:\s*repeat\(1,\s*minmax\(0,\s*1fr\)\)/,
     );
   });
 
@@ -1086,15 +1108,19 @@ describe("D4: palancas de compactación vertical del contenido oscuro (clamp flu
 });
 
 /*
- * D4 (encargo 2026-08-04): en la rama OSCURA los bullets pasan a dos
- * columnas desde `sm` (600px), no desde `lg` (992px) como en la rama clara
- * -- ver el docblock de `ScBullets` en `Features.tsx` para el porqué
- * completo. Validado con el bug inyectado a propósito (ver informe de la
- * tarea): quitando `$compactFrom="sm"` del `<ScBullets>` de la rama oscura,
- * este test se pone en rojo (el bloque de dos columnas queda en `lg`, no en
- * `sm`); restaurado, vuelve a verde.
+ * D4/ajuste visual 2026-08-08: en la rama OSCURA el `@media` del bloque de
+ * bullets sigue en el breakpoint `sm` (600px), no `lg` (992px) como en la
+ * rama clara -- ver el docblock de `ScBullets` en `Features.tsx` para el
+ * porqué completo (el mecanismo `$compactFrom` sigue vivo, decisión
+ * pendiente). Lo que SÍ cambia es la columna: el ajuste visual del
+ * 2026-08-08 vuelve a UNA columna en ese breakpoint, igual que en la rama
+ * clara -- el `@media` solo ensancha el `gap`. Validado con el bug inyectado
+ * a propósito (ver informe de la tarea): cambiando `repeat(1, minmax(0, 1fr))`
+ * por `repeat(2, minmax(0, 1fr))` dentro del bloque `sm` de `ScBullets` en
+ * Features.tsx, este test se pone en rojo (la linea del breakpoint `sm` deja
+ * de matchear `repeat(1, ...)`); restaurado, vuelve a verde.
  */
-describe("D4: en tema oscuro los bullets pasan a dos columnas desde sm, no desde lg", () => {
+describe("D4: en tema oscuro el bloque de bullets sigue en el breakpoint sm (no lg), ahora en una columna", () => {
   beforeEach(() => {
     stubMatchMedia();
     window.localStorage.setItem("vti-theme", "dark");
@@ -1103,7 +1129,7 @@ describe("D4: en tema oscuro los bullets pasan a dos columnas desde sm, no desde
     window.localStorage.clear();
   });
 
-  it("declara el bloque de dos columnas dentro del breakpoint sm", async () => {
+  it("declara el bloque de una columna (con el gap ensanchado) dentro del breakpoint sm", async () => {
     const { container } = renderWithProviders(<Features />);
     await waitFor(() => {
       expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
@@ -1121,7 +1147,7 @@ describe("D4: en tema oscuro los bullets pasan a dos columnas desde sm, no desde
       );
     expect(smLine).toBeDefined();
     expect(smLine).toMatch(
-      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+      /grid-template-columns:\s*repeat\(1,\s*minmax\(0,\s*1fr\)\)/,
     );
 
     expect(css).not.toContain(themes.dark.breakPoint.lg);

@@ -17,7 +17,7 @@ import {
   CONTACT_DARK_HEIGHT,
   CONTACT_OVERLAY_RISE,
 } from "./contact.layers";
-import { CONTACT_GUARDIAN_LAYERS } from "@/components/contactCosmicGuardian/contactCosmicGuardian.layers";
+import { CONTACT_GUARDIAN_LAYERS } from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
 import { FEATURES_TAIL_HOLD } from "@/components/sections/Features/features.layers";
 import { themes } from "@/theme/themes";
 
@@ -710,19 +710,20 @@ describe("invariante solape de Contacto ↔ hold de Features (D4)", () => {
 });
 
 /*
- * Objetivo 1 (D4, encargo 2026-08-04): la rama CLARA pasa a `min-height:
- * 100dvh` con el contenido centrado, mismo criterio que `ScFeatures` en
- * `Features.tsx`. `flex-direction: column` (no el defecto `row`): ver el
- * docblock de `ScContact` en `Contact.tsx` para el porqué (con `row` la
- * tarjeta, sin `flex-grow`, dejaría de estirarse al ancho del contenedor).
+ * Objetivo 1 (D4, ajuste visual 2026-08-08): la rama CLARA baja a
+ * `min-height: 50dvh` -- media pantalla mínima, no una pantalla completa --
+ * conservando el centrado vertical de la entrega anterior. `flex-direction:
+ * column` (no el defecto `row`): ver el docblock de `ScContact` en
+ * `Contact.tsx` para el porqué (con `row` la tarjeta, sin `flex-grow`,
+ * dejaría de estirarse al ancho del contenedor).
  */
-describe("Objetivo 1 (D4): tema claro con min-height 100dvh y centrado vertical", () => {
-  it("ScContact (rama clara) declara min-height: 100dvh y centra con flex-direction column + justify-content center", () => {
+describe("Objetivo 1 (D4): tema claro con min-height 50dvh y tarjeta centrada", () => {
+  it("ScContact (rama clara) declara min-height: 50dvh y centra con flex-direction column + justify-content center", () => {
     const { container } = renderWithProviders(<Contact />);
     const section = container.querySelector("#contact") as HTMLElement;
     const css = cssRuleTextFor(section);
 
-    expect(css).toContain("min-height: 100dvh");
+    expect(css).toContain("min-height: 50dvh");
     expect(css).toContain("flex-direction: column");
     expect(css).toContain("justify-content: center");
   });
