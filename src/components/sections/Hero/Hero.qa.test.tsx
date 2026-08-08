@@ -346,30 +346,24 @@ describe("Hero (lente funcional)", () => {
       ).toBeGreaterThanOrEqual(4.5);
     });
 
-    it("el borde animado del CTA secundario pasa el umbral no textual (3:1, WCAG 1.4.11) contra el lienzo", () => {
-      expect(
-        contrastRatio(semanticDark.brandText, EYE_SURFACE),
-      ).toBeGreaterThanOrEqual(3);
-      expect(
-        contrastRatio(color.secondary[300], EYE_SURFACE),
-      ).toBeGreaterThanOrEqual(3);
-    });
+    /*
+     * COBERTURA RETIRADA con el CTA secundario (encargo 2026-08-08): dos
+     * pruebas median su borde animado (brandText/secondary[300] >= 3:1
+     * contra EYE_SURFACE, WCAG 1.4.11) y su label ghost (brandSolid >= 4.5:1
+     * contra EYE_SURFACE). Ese boton ya no existe -- el hero tiene un solo
+     * CTA, el primario -- asi que las dos aserciones no describen ningun
+     * pixel real. Los pares que seguian importando NO se pierden: brandText
+     * contra EYE_SURFACE lo sigue midiendo "los colores del hero pasan AA
+     * sobre el negro del lienzo", mas arriba en este mismo archivo (el
+     * degradado del titular sigue recorriendo esa parada), y el par
+     * onBrand/degradado lo mide el test del CTA primario, justo encima.
+     */
 
-    it("el label del CTA secundario ghost (brandSolid sobre el lienzo) pasa AA", () => {
-      // El texto del CTA secundario NO esta sobre el degradado (solo el
-      // borde lo esta): en variant="ghost" el color del label es el accent
-      // (brandSolid para intent="primary", el default de Button), y el
-      // fondo real detras es el lienzo del ojo.
-      expect(
-        contrastRatio(semanticDark.brandSolid, EYE_SURFACE),
-      ).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it("renderiza los dos CTA como enlaces (forwardedAs preserva la logica de Button, a diferencia de as)", () => {
+    it("renderiza el CTA como enlace (forwardedAs preserva la logica de Button, a diferencia de as)", () => {
       renderHero();
       const acciones = screen.getByTestId("hero-actions");
       const enlaces = acciones.querySelectorAll("a");
-      expect(enlaces).toHaveLength(2);
+      expect(enlaces).toHaveLength(1);
       enlaces.forEach((enlace) => {
         // Si `as` hubiera sustituido a `forwardedAs`, Button entero se
         // descartaria y el <a> no llevaria ninguna clase de ScButton (ver

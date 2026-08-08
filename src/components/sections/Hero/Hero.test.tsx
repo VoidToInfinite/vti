@@ -7,7 +7,6 @@ import {
   type RenderResult,
 } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
-import { links } from "@/config/links";
 import { type as typeTokens } from "@/theme/tokens/type";
 import { StageProvider, useStage } from "@/motion/StageProvider";
 import { HERO_CHROME_OFFSET_MS } from "./hero.transition";
@@ -145,12 +144,17 @@ describe("Hero", () => {
     expect(seccion).toHaveAttribute("id", "hero");
   });
 
-  it("expone el CTA primario hacia el playground (north-star)", () => {
+  /*
+   * El CTA primario YA NO apunta al playground (encargo 2026-08-08): el
+   * enlace "Explorar los componentes" desaparece del hero y "Leer la
+   * historia" pasa a ser la accion principal, con destino interno #story.
+   */
+  it("expone el CTA primario hacia la seccion Story", () => {
     renderHero();
     const cta = screen.getByRole("link", {
-      name: /componentes|components/i,
+      name: /historia|story/i,
     });
-    expect(cta).toHaveAttribute("href");
+    expect(cta).toHaveAttribute("href", "#story");
   });
 
   /*
@@ -328,15 +332,16 @@ describe("Hero", () => {
     expect(getComputedStyle(pie).pointerEvents).toBe("none");
   });
 
-  it("los dos CTA conservan destino, etiqueta y orden", () => {
+  it("el unico CTA conserva destino y etiqueta", () => {
     const { container } = renderHero();
     const acciones = testId(container, "hero-actions");
     const enlaces = acciones.querySelectorAll("a");
 
-    expect(enlaces).toHaveLength(2);
-    expect(enlaces[0]).toHaveAttribute("href", links.playground);
-    expect(enlaces[0]).toHaveTextContent(esHome.Home.cta.explore);
-    expect(enlaces[1]).toHaveAttribute("href", "#story");
-    expect(enlaces[1]).toHaveTextContent(esHome.Home.cta.story);
+    // UNO, no dos: el CTA al playground se retiro con el encargo del
+    // 2026-08-08 -- si alguien lo reintroduce sin decidirlo, este numero lo
+    // delata.
+    expect(enlaces).toHaveLength(1);
+    expect(enlaces[0]).toHaveAttribute("href", "#story");
+    expect(enlaces[0]).toHaveTextContent(esHome.Home.cta.story);
   });
 });

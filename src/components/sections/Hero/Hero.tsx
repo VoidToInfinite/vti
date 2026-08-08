@@ -6,12 +6,10 @@ import { EYE_SURFACE } from "@/components/eye/eye.layers";
 import {
   BrandName,
   gradientShift,
-  gradientTextClip,
   heroGradient,
 } from "@/components/layout/Brand/BrandName";
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
-import { links } from "@/config/links";
 import { useStage } from "@/motion/StageProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import { HeroBackdrop } from "./HeroBackdrop";
@@ -191,7 +189,7 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
      distancia). El ritmo lo da ahora cada pieza con su margin-block-start
      logico, proporcional a la distancia semantica del par que separa. */
   gap: ${({ theme }) => theme.data.space[0]};
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  max-width: 70ch;
   text-align: center;
   /* Segunda linea de defensa del contraste, ADEMAS del velo, SOLO en
      oscuro: los parrafos son mas anchos que la pupila y sus extremos caen
@@ -224,7 +222,7 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
            "40%": es que la linea mas larga de la copia termine antes de
            ese punto. min() con el prose normal cubre el caso comun sin
            magnificar el ancho en viewports muy anchos. */
-        max-width: min(${({ theme }) => theme.data.grid.prose}, 40%);
+        max-width: min(70ch, 70%);
       `}
   }
 
@@ -372,7 +370,7 @@ const ScHeroBrand = styled.div<{ $light: boolean }>`
 const ScSubtitle = styled(Typography)`
   font-size: clamp(15px, 2vw, 22px);
   margin-block-start: ${({ theme }) => theme.data.space[5]};
-  max-width: ${({ theme }) => theme.data.grid.proseTight};
+  max-width: 70ch;
 `;
 
 /* Misma prosa que el subtitulo: separacion corta. NO baja a textMuted a
@@ -387,7 +385,7 @@ const ScSubtitle = styled(Typography)`
    justo esta linea del hero con el reparto antiguo. */
 const ScSupport = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  max-width: 70ch;
   text-wrap: balance;
   text-wrap-style: balance;
 `;
@@ -410,7 +408,7 @@ const ScSupport = styled(Typography)`
  * nunca por defecto.
  */
 /*
- * Glow de hover de los dos CTA, con los MISMOS colores que recorre el
+ * Glow de hover del CTA, con los MISMOS colores que recorre el
  * degradado del titular. Vive en un ::after propio y no en el box-shadow del
  * boton por dos motivos: el pseudo-elemento se puede animar por OPACIDAD
  * (propiedad de compositor, la regla de movimiento de la casa) en vez de
@@ -506,68 +504,17 @@ const ScCtaPrimary = styled(Button)`
 `;
 
 /*
- * CTA secundario: mismo heroGradient/gradientShift, aplicados como borde
- * animado en vez de fondo. El truco de mascara (dos capas + composite) deja
- * visible solo el anillo de `padding` px: `content-box` en la primera capa
- * excluye el interior, y `mask-composite`/`-webkit-mask-composite` restan
- * esa capa de la segunda (que cubre toda la caja), dejando solo el borde.
- * Se declaran las dos formas (con y sin prefijo) porque el soporte de
- * `mask-composite` sin prefijo y de `-webkit-mask-composite` (con el valor
- * legado "xor") difiere entre motores -- ver docs/qa-3d-pendiente.md, no
- * verificable en este entorno sin navegador real.
+ * CTA SECUNDARIO RETIRADO (encargo 2026-08-08): el hero tenia dos acciones --
+ * la primaria al playground ("Explorar los componentes") y la secundaria a
+ * `#story` ("Leer la historia"), esta ultima con el degradado aplicado como
+ * borde enmascarado (`ScCtaSecondary`) y su label recortado
+ * (`ScCtaSecondaryLabel`, `gradientTextClip`). El encargo elimina la
+ * referencia al playground y asciende "Leer la historia" a accion principal,
+ * asi que el hero queda con UN solo CTA: no hay accion secundaria a la que
+ * dar el tratamiento de borde, y mantener el styled sin punto de uso seria
+ * codigo muerto. `gradientTextClip` sigue existiendo en BrandName.tsx (lo
+ * consume el tramo "ToInfinite" del titular), no se toca.
  */
-const ScCtaSecondary = styled(Button)`
-  position: relative;
-  ${ctaGlow}
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 2px;
-    mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    pointer-events: none;
-
-    @media (prefers-reduced-motion: no-preference) {
-      ${heroGradient}
-      animation: ${gradientShift} 9000ms linear infinite alternate;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      background-color: ${({ theme }) => theme.data.semantic.brandText};
-    }
-  }
-`;
-
-/*
- * Texto del CTA secundario, con el MISMO degradado animado que su borde
- * (gradientTextClip, extraido de BrandName.tsx -- misma mecanica de recorte
- * que ToInfinite en el titulo). Antes el texto era un color solid propio
- * (semantic.brandSolid, heredado del `color` que fija la variante ghost de
- * Button.tsx) mientras el borde recorria un degradado de tres colores: dos
- * tratamientos distintos en el mismo boton.
- *
- * Al ser un <span> propio con su PROPIA declaracion de `color`/
- * `-webkit-text-fill-color`, no compite por especificidad contra el `color`
- * que Button.tsx fija en ScButton: una declaracion directa sobre el propio
- * elemento gana siempre a un valor heredado del padre, sin importar
- * especificidad. Por el mismo motivo "mantiene color y animacion" en hover
- * sin ningun guard adicional: el :hover de la variante ghost de Button.tsx
- * (ScButton.tsx) solo toca el `background` del boton, nunca un descendiente,
- * asi que no hay nada que reafirmar aqui -- a diferencia del fondo del CTA
- * primario (ver el comentario en ScCtaPrimary), este caso no tiene conflicto
- * de cascada que resolver.
- */
-const ScCtaSecondaryLabel = styled.span`
-  ${gradientTextClip}
-`;
 
 export function Hero(): ReactElement {
   const { t } = useTranslation("home");
@@ -628,10 +575,10 @@ export function Hero(): ReactElement {
           $light={light}
           data-testid="hero-actions"
         >
-          {/* forwardedAs="a", NO as="a": ScCtaPrimary/ScCtaSecondary
-              envuelven Button con styled(), y Button ya intercepta su
-              propio prop `as` internamente (ver Button.tsx) -- el mismo
-              gotcha ya documentado arriba para ScSubtitle/Typography.
+          {/* forwardedAs="a", NO as="a": ScCtaPrimary envuelve Button con
+              styled(), y Button ya intercepta su propio prop `as`
+              internamente (ver Button.tsx) -- el mismo gotcha ya
+              documentado arriba para ScSubtitle/Typography.
               Medido en este repo: con `as="a"` styled-components renderiza
               un <a> PELADO con solo la clase del wrapper y descarta Button
               entero (sizeStyles, variantes, ScLabel, spinner); con
@@ -640,19 +587,11 @@ export function Hero(): ReactElement {
               logica -- el wrapper solo anade su clase por encima. */}
           <ScCtaPrimary
             forwardedAs="a"
-            href={links.playground}
-            size="lg"
-          >
-            {t("Home.cta.explore")}
-          </ScCtaPrimary>
-          <ScCtaSecondary
-            forwardedAs="a"
             href="#story"
-            variant="ghost"
             size="lg"
           >
-            <ScCtaSecondaryLabel>{t("Home.cta.story")}</ScCtaSecondaryLabel>
-          </ScCtaSecondary>
+            {t("Home.cta.story")}
+          </ScCtaPrimary>
         </ScActions>
       </ScCopy>
     </ScHero>

@@ -30,7 +30,7 @@ import { Story } from "./Story/Story";
  *
  *  - la jerarquia de encabezados es de PAGINA (un solo h1, el h2 de Story
  *    despues);
- *  - el ancla del CTA secundario del hero (#story) resuelve a un elemento
+ *  - el ancla del CTA principal del hero (#story) resuelve a un elemento
  *    real;
  *  - Hero y Story son hermanos INMEDIATOS al montarlos juntos;
  *  - el pie del hero (oscuro siempre, claro solo por opacidad) sigue sin
@@ -128,13 +128,17 @@ describe("Hero + Story (integracion)", () => {
     ).toBeTruthy();
   });
 
-  it("el ancla del CTA secundario del hero resuelve a la seccion Story real", () => {
+  it("el ancla del CTA principal del hero resuelve a la seccion Story real", () => {
     // El href y el id viven en archivos distintos (Hero.tsx / Story.tsx): si
     // alguien renombra uno de los dos, cada suite por separado sigue en
     // verde y el boton deja de navegar. Solo se ve montando las dos
     // secciones juntas.
+    //
+    // Indice 0, no 1 (encargo 2026-08-08): el hero perdio el CTA al
+    // playground que ocupaba la primera posicion; "Leer la historia" paso de
+    // secundario a UNICO y principal.
     const container = renderPage();
-    const cta = container.querySelectorAll("a")[1];
+    const cta = container.querySelectorAll("a")[0];
 
     expect(cta.getAttribute("href")).toBe("#story");
     const target = container.querySelector("#story");

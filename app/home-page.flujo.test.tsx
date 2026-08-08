@@ -109,10 +109,13 @@ describe("Home (pagina completa)", () => {
     ).toBeTruthy();
   });
 
-  it("el ancla del CTA secundario del hero tiene destino real en la pagina", () => {
+  it("el ancla del CTA principal del hero tiene destino real en la pagina", () => {
     const { container } = renderHomePage();
 
-    const cta = testId(container, "hero-actions").querySelectorAll("a")[1];
+    // Indice 0 (encargo 2026-08-08): el hero se queda con un solo CTA, el de
+    // "Leer la historia"; el enlace al playground que ocupaba el indice 0 se
+    // retiro.
+    const cta = testId(container, "hero-actions").querySelectorAll("a")[0];
     const href = cta.getAttribute("href") ?? "";
     expect(href.startsWith("#")).toBe(true);
 

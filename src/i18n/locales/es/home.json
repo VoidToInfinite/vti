@@ -7,12 +7,11 @@
         },
         "hero": {
             "kicker": "Estudio · Imaginación · Gaming",
-            "subtitle": "Tu presente ya es tu futuro: solo falta que sigas definiéndolo.",
+            "subtitle": "Tu presente ya es tu futuro, solo falta que sigas definiéndolo.",
             "support": "Aunque el infinito está en todas partes, es el conocimiento lo que lo trae a la realidad."
         },
         "swipeUp": "Comencemos",
         "cta": {
-            "explore": "Explorar los componentes",
             "story": "Leer la historia"
         },
         "story": {
@@ -91,8 +90,8 @@
             "title": "Tres formas de seguir avanzando.",
             "intro": "Aprendizaje, imaginación y juego son la misma curiosidad vista desde tres ángulos. Cada uno te da una manera distinta de convertir lo que sabes en algo real.",
             "learning": {
-                "title": "Learning",
-                "badge": "Aprende",
+                "title": "Aprende",
+                "badge": "Aprendizaje",
                 "body": "Todo experto fue antes principiante. Aprende a tu ritmo, sigue las preguntas que te importan y observa cómo los pasos pequeños se convierten en comprensión real.",
                 "bullets": {
                     "one": "Rutas cuidadas que crecen contigo",
@@ -100,12 +99,12 @@
                     "three": "Progreso que se ve y se siente",
                     "four": "Un ritmo que respeta tu tiempo"
                 },
-                "cta": "Explora Learning",
+                "cta": "Empieza a aprender",
                 "figureAlt": "Figura celestial estudiando una tableta holográfica"
             },
             "imagination": {
-                "title": "Imagination",
-                "badge": "Crea",
+                "title": "Imagina",
+                "badge": "Imaginación",
                 "body": "Tus ideas merecen un lugar donde vivir. Convierte el «¿y si…?» en algo real que puedas compartir.",
                 "bullets": {
                     "one": "Un espacio seguro para experimentar",
@@ -113,12 +112,12 @@
                     "three": "Del boceto a un concepto real",
                     "four": "Cada idea cuenta, incluso las pequeñas"
                 },
-                "cta": "Explora Imagination",
+                "cta": "Empieza a imaginar",
                 "figureAlt": "Figura celestial pensando con un corazón radiante"
             },
             "gaming": {
-                "title": "Gaming",
-                "badge": "Juega",
+                "title": "Juega",
+                "badge": "Juego",
                 "body": "Jugando es como mejor aprendemos. Compite, colabora y celebra cada victoria, grande o pequeña.",
                 "bullets": {
                     "one": "Retos que afilan tus habilidades",
@@ -126,7 +125,7 @@
                     "three": "Trabajo en equipo que se vuelve amistad",
                     "four": "Cada logro merece celebrarse"
                 },
-                "cta": "Explora Gaming",
+                "cta": "Empieza a jugar",
                 "figureAlt": "Figura celestial alzando un trofeo de estrella dorada"
             }
         },
