@@ -1,16 +1,10 @@
 {
     "Home": {
-        "Head": {
-            "title": "VoidToInfinite",
-            "description": "Proyecto VoidToInfinite",
-            "keywords": "VoidToInfinite, VoidToInfinite Portfolio, VoidToInfinite Project, VoidToInfinite Learning, VoidToInfinite Imagination, VoidToInfinite Gaming, Portfolio, Team Project, VTI Project, VTI Learning, VTI Imagination, VTI Gaming"
-        },
         "hero": {
-            "kicker": "Estudio · Imaginación · Gaming",
+            "kicker": "Aprendizaje · Imaginación · Juego",
             "subtitle": "Tu presente ya es tu futuro, solo falta que sigas definiéndolo.",
             "support": "Aunque el infinito está en todas partes, es el conocimiento lo que lo trae a la realidad."
         },
-        "swipeUp": "Comencemos",
         "cta": {
             "story": "Leer la historia"
         },

@@ -28,6 +28,18 @@ describe("organizationJsonLd", () => {
     expect(organizationJsonLd().logo).toBe(absoluteUrl("/brand/logo.svg"));
   });
 
+  it("description reutiliza la descripcion canonica del sitio", () => {
+    expect(organizationJsonLd().description).toBe(SITE.description);
+  });
+
+  it("email expone la direccion desnuda, sin el esquema mailto:", () => {
+    expect(organizationJsonLd().email).toBe(
+      links.email.replace(/^mailto:/, ""),
+    );
+    expect(organizationJsonLd().email).not.toContain("mailto:");
+    expect(organizationJsonLd().email).toContain("@");
+  });
+
   it("sameAs contiene EXACTAMENTE los destinos externos reales confirmados", () => {
     expect(organizationJsonLd().sameAs).toEqual([links.github, links.discord]);
   });

@@ -2,7 +2,7 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes } from "styled-components";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
+import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import {
   BrandName,
   gradientShift,
@@ -134,7 +134,8 @@ const ScHeroFoot = styled.div<{ $light: boolean }>`
 
 /*
  * Copy stagger-rise (spec §5): fija el orden de lectura en la carga. Los
- * CINCO hijos (kicker, titulo, subtitulo, apoyo, acciones) entran con un
+ * CUATRO hijos (titulo -- la marca dentro de ScHeroBrand --, subtitulo,
+ * apoyo, acciones) entran con un
  * paso de 80ms, no de 120ms: con 120ms el CTA aparecia a 680ms desde el
  * primer pintado; con 80ms entra a 520ms y la secuencia se sigue
  * percibiendo como secuencia. Solo transform/opacity.
@@ -149,11 +150,11 @@ const ScHeroFoot = styled.div<{ $light: boolean }>`
  * mecanica, solo pintar lo que le llega.
  *
  * ARRANQUE DEL INTRO (tarea C5, spec §7.4): el escalonado de 80ms de los
- * CINCO hijos NO cambia, pero deja de arrancar en cuanto el bloque se monta
+ * CUATRO hijos NO cambia, pero deja de arrancar en cuanto el bloque se monta
  * -- ahora espera a la fase de PAGINA "chrome" (`useStage()`, ver `Hero()`),
  * leida en el atributo `data-intro` de ESTE MISMO elemento (selector
  * CALIFICADO `&[data-intro="in"]`, no descendiente: el atributo vive aqui,
- * no en un ancestro). La forma mas limpia de retrasar CINCO retardos ya
+ * no en un ancestro). La forma mas limpia de retrasar los retardos ya
  * calibrados sin recalcular ninguno es no montar la animacion hasta
  * entonces: en "pending" los hijos quedan a opacity 0 por regla ESTATICA
  * (sin animation alguna en marcha); en "in", la regla de animacion se
@@ -309,8 +310,12 @@ const ScActions = styled.div<{ $light: boolean }>`
 
 /* El titular de portada usa la unica variante de la escala pensada para el
    hero (theme.data.type.scale.display): BrandName renderiza a font-size: 1em,
-   asi que sin este contenedor el <h1> hereda el 1em del body (GlobalStyles
-   resetea h1..h6 a font-size: 1em) y queda mas pequeno que el subtitulo.
+   asi que sin que ESTE elemento (el propio <h1>, ver `as="h1"` en `Hero()` --
+   auditoria SEO 2026-08-08, el h1 subio de BrandName a este contenedor
+   porque BrandName no acepta children y el h1 necesita alojar tambien el
+   tagline de abajo) declare su font-size, heredaria el 1em de GlobalStyles
+   (que resetea h1..h6 a font-size: 1em) y BrandName quedaria mas pequeno que
+   el subtitulo.
 
    EXCEPCION: font-size es un valor LITERAL pedido por el usuario --
    clamp(34px, 8vw, 258px) en oscuro -- que sustituye a
@@ -550,13 +555,11 @@ export function Hero(): ReactElement {
         data-intro={introState}
       >
         <ScHeroBrand
+          as="h1"
           $light={light}
           data-testid="hero-title"
         >
-          <BrandName
-            as="h1"
-            gradientTail
-          />
+          <BrandName gradientTail />
         </ScHeroBrand>
         <ScSubtitle
           variant="h3"

@@ -1,11 +1,5 @@
 {
     "Common": {
-        "Page": {
-            "title": "VoidToInfinite"
-        },
-        "Navbar": {
-            "openMenu": "Open menu"
-        },
         "Navigation": {
             "home": "Home",
             "history": "History",
@@ -27,30 +21,6 @@
             "sdk": "VTI - SDK",
             "newTab": "opens in a new tab"
         },
-        "Status": {
-            "success": "Success",
-            "successfully": "Successfully",
-            "warning": "Warning",
-            "information": "Information",
-            "error": "Error",
-            "accepted": "Accepted",
-            "pending": "Pending",
-            "process": "In progress",
-            "confirmed": "Confirmed"
-        },
-        "Button": {
-            "accept": "Accept",
-            "cancel": "Cancel",
-            "edit": "Edit",
-            "delete": "Delete",
-            "yes": "Yes",
-            "no": "No",
-            "showMore": "Show More",
-            "ariaLabel": {
-                "pressButton": "Press the button to"
-            }
-        },
-        "switchLocale": "Switch to {locale, select, es {Spanish} en {English} other {}}",
         "Lang": {
             "title": "Lenguage",
             "en": {
@@ -62,13 +32,6 @@
                 "label": "es",
                 "name": "Spanish",
                 "title": "Select Spanish"
-            }
-        },
-        "Notification": {
-            "title": "Notification",
-            "default": {
-                "title": "Oops! Something went wrong",
-                "description": "Really happened, we can fix it."
             }
         },
         "Footer": {

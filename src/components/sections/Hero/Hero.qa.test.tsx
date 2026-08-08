@@ -6,9 +6,10 @@ import {
   type RenderResult,
 } from "@/test/test-utils";
 import i18n from "@/i18n/config";
+import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
-import { AURA_SURFACE } from "@/components/aura/aura.layers";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
+import { AURA_SURFACE } from "@/components/scenes/aura/aura.layers";
+import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import { Button } from "@/components/ui/Button/Button";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { color } from "@/theme/tokens/color";
@@ -172,7 +173,14 @@ describe("Hero (lente funcional)", () => {
     );
   });
 
-  it("el titulo del hero sigue siendo un unico <h1> con el texto exacto 'VoidToInfinite'", () => {
+  /*
+   * El h1 vuelve a ser EXACTAMENTE la marca: la tagline que lo acompaño
+   * durante la auditoria SEO del 2026-08-08 se retiro por decision del
+   * usuario ese mismo dia. Afirmar el texto exacto (y no un `toContain`)
+   * es lo que convierte esto en un candado: cualquier nodo de texto que se
+   * cuele dentro del encabezado principal lo pone en rojo.
+   */
+  it("el titulo del hero es un unico <h1> con la marca y nada mas", () => {
     const { container } = renderHero();
     const encabezados = container.querySelectorAll("h1");
     expect(encabezados).toHaveLength(1);

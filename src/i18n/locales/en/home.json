@@ -1,16 +1,10 @@
 {
     "Home": {
-        "Head": {
-            "title": "VoidToInfinite",
-            "description": "VoidToInfinite Project",
-            "keywords": "VoidToInfinite, VoidToInfinite Portfolio, VoidToInfinite Project, VoidToInfinite Learning, VoidToInfinite Imagination, VoidToInfinite Gaming, Portfolio, Team Project, VTI Project, VTI Learning, VTI Imagination, VTI Gaming"
-        },
         "hero": {
             "kicker": "Learning · Imagination · Gaming",
             "subtitle": "Your present is already your future: you just have to keep defining it.",
             "support": "Infinity is everywhere, but it is knowledge that brings it into reality."
         },
-        "swipeUp": "Get Started",
         "cta": {
             "story": "Read the story"
         },

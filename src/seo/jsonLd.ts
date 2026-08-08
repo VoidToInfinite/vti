@@ -34,6 +34,8 @@ export interface OrganizationJsonLd {
   readonly "name": string;
   readonly "url": string;
   readonly "logo": string;
+  readonly "description": string;
+  readonly "email": string;
   readonly "sameAs": readonly string[];
 }
 
@@ -90,6 +92,12 @@ export function organizationJsonLd(): OrganizationJsonLd {
     "name": SITE.name,
     "url": SITE.url,
     "logo": absoluteUrl("/brand/logo.svg"),
+    "description": SITE.description,
+    // `links.email` lleva el esquema "mailto:" (así lo consume el `href` de
+    // los CTA de contacto, `src/config/links.ts`); schema.org modela
+    // `email` como la dirección desnuda, sin esquema, así que se retira
+    // aquí en vez de duplicar la cadena sin el prefijo en otro sitio.
+    "email": links.email.replace(/^mailto:/, ""),
     "sameAs": [links.github, links.discord],
   };
 }

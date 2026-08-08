@@ -162,14 +162,15 @@ describe("Hero", () => {
    * comentario describia claves (Home.description, Home.additionalDescription)
    * que ya no existen, y su asercion -- "al menos un nodo contiene la palabra
    * presente" -- pasaba igual con la copia hardcodeada en el JSX. Este test es
-   * estrictamente mas fuerte: compara los dos textos contra los strings
+   * estrictamente mas fuerte: compara los tres textos contra los strings
    * IMPORTADOS del locale, asi que falla si alguien deja de pasar por i18n o
    * cambia el JSON sin querer.
    *
-   * El kicker (Home.hero.kicker) salio de esta lista: el usuario retiro el
-   * <ScKicker> del JSX de Hero.tsx (ya no se monta), asi que ya no hay nodo
-   * que comparar. La clave sigue existiendo en el JSON -- locales.test.ts la
-   * usa para su paridad es/en -- por si se recupera el kicker mas adelante.
+   * El kicker (Home.hero.kicker) NO esta en esta lista: el usuario retiro el
+   * <ScKicker> suelto de ScCopy, y la tagline del h1 que lo recupero
+   * brevemente (auditoria SEO 2026-08-08) se retiro por decision suya el
+   * mismo dia. La clave sigue en los locales -- `locales.test.ts` la protege
+   * como texto real -- pero hoy no la renderiza nadie.
    */
   it("los dos textos del bloque salen de i18n, no de literales en el JSX", () => {
     const { container } = renderHero();

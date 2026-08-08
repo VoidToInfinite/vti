@@ -1,11 +1,5 @@
 {
     "Common": {
-        "Page": {
-            "title": "VoidToInfinite"
-        },
-        "Navbar": {
-            "openMenu": "Abrir menu"
-        },
         "Navigation": {
             "home": "Inicio",
             "history": "Historia",
@@ -27,30 +21,6 @@
             "sdk": "VTI - SDK",
             "newTab": "se abre en una pestaña nueva"
         },
-        "Status": {
-            "success": "Correcto",
-            "successfully": "Correctamente",
-            "warning": "Advertencia",
-            "information": "Informacion",
-            "error": "Error",
-            "accepted": "Aceptado",
-            "pending": "Pendiente",
-            "process": "En proceso",
-            "confirmed": "Confirmado"
-        },
-        "Button": {
-            "accept": "Aceptar",
-            "cancel": "Cancelar",
-            "edit": "Editar",
-            "delete": "Borrar",
-            "yes": "Si",
-            "no": "No",
-            "showMore": "Mostrar mas",
-            "ariaLabel": {
-                "pressButton": "Presiona el boton para"
-            }
-        },
-        "switchLocale": "Cambiar idioma a {locale, select, es {Español} en {Ingles} other {}}",
         "Lang": {
             "title": "Idioma",
             "en": {
@@ -62,13 +32,6 @@
                 "label": "es",
                 "name": "Español",
                 "title": "Seleccionar idioma Español"
-            }
-        },
-        "Notification": {
-            "title": "Notificacion",
-            "default": {
-                "title": "¡Oops! Algo ha salido mal",
-                "description": "Aun asi se puede arreglar."
             }
         },
         "Footer": {

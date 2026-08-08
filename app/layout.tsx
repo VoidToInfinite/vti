@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import type { ReactElement, ReactNode } from "react";
 import { SITE } from "@/config/site";
 import { JsonLdScript } from "@/seo/JsonLdScript";
 import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
@@ -15,6 +16,11 @@ const fontMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-mono",
+  // Solo se usa bajo el pliegue (badges de Story/Features): medido en 40 KB
+  // dentro de la ventana critica de carga. `preload: false` saca su <link
+  // rel="preload"> del <head>, que competia por ancho de banda con recursos
+  // que SI hacen falta para el primer pintado (auditoria SEO 2026-08-08).
+  preload: false,
 });
 
 /*
@@ -28,9 +34,10 @@ const fontMono = JetBrains_Mono({
  *    No es un "valor por defecto" que las legales completen: en esta versión
  *    de Next el objeto `openGraph` del hijo SUSTITUYE entero al del padre
  *    (ver el docblock de `src/seo/metadata.ts`, con la evidencia en
- *    `node_modules`), así que cada una de las cuatro páginas legales declara
- *    el suyo completo por su cuenta. Aquí solo queda el de `/`, que no tiene
- *    `page.tsx` con metadata propia.
+ *    `node_modules`), así que cada una de las DOS páginas legales (ver
+ *    `LEGAL_ROUTE_KEYS`, `src/config/site.ts`; eran cuatro hasta el
+ *    2026-08-08) declara el suyo completo por su cuenta. Aquí solo queda el
+ *    de `/`, que no tiene `page.tsx` con metadata propia.
  *
  * `title` sale de `SITE.homeTitle`, NO de `SITE.name` (cambio del
  * 2026-08-05). Pasar la marca como título activaba el caso especial de
@@ -54,15 +61,32 @@ export const metadata: Metadata = {
   }),
 };
 
+/*
+ * `themeColor` por esquema, no un unico literal (el `#000000` anterior no
+ * coincidia con NINGUN token real del tema oscuro). Los dos hex son
+ * EXACTAMENTE los que `app/opengraph-image.tsx` ya documenta y usa para
+ * estos MISMOS primitivos (conversion oklch → OKLab → sRGB lineal → sRGB
+ * con gamma, matrices de Björn Ottosson de `src/theme/tokens/contrast.ts`),
+ * no un hex inventado a ojo:
+ *   - claro:  semanticLight.bg  (= color.neutral[50])    → "#FAFAFA"
+ *     (el mismo primitivo que ese archivo etiqueta TEXT, para
+ *     semanticDark.text -- es el mismo token neutral[50], solo cambia el
+ *     rol semantico que lo consume)
+ *   - oscuro: semanticDark.bg   (= color.secondary[1100]) → "#280739"
+ *     (BG_FROM del degradado de esa misma imagen)
+ */
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FAFAFA" },
+    { media: "(prefers-color-scheme: dark)", color: "#280739" },
+  ],
 };
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
-}) {
+  children: ReactNode;
+}): ReactElement {
   return (
     /*
      * `lang="es"` es el valor del HTML PRERENDERIZADO, que es el que ve un
