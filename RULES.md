@@ -1,0 +1,93 @@
+# RULES.md — vti (VoidToInfinite)
+
+Reglas vinculantes del repo: cómo se nombran las cosas, cómo se organiza el código, qué patrones de React/CSS/testing son obligatorios y qué se considera "hecho". Se consulta **antes** de escribir o mover código, no solo cuando algo ya falló.
+
+**Precedencia.** Ante conflicto entre estas reglas y una instrucción explícita del usuario en el chat, gana el usuario. Ante conflicto entre estas reglas y `CLAUDE.md`, ambos deben ser consistentes; si no lo son, para y pregunta en vez de elegir uno de los dos en silencio.
+
+**Leyenda `[L]`.** Las reglas marcadas `[L]` están pagadas con un error real ya cometido en este repo: alguien (persona o agente) las incumplió, el fallo llegó a manifestarse, y se corrigió. El detalle completo — qué pasó, cómo se diagnosticó, la solución exacta — vive en `task/lessons.md`. Estas reglas no son preferencias de estilo: son la forma de no volver a pagar el mismo error.
+
+---
+
+## Nombres y estructura
+
+1. **Convención de mayúsculas por lo que exporta el módulo.** PascalCase si exporta un componente React; camelCase si exporta datos, partes styled o hooks. Sufijos ya establecidos en el repo: `.layers.ts` (constantes y datos), `.parts.tsx` (piezas styled), `.deck.tsx` (styled de una presentación tipo carrusel/diapositivas), `.transition.ts` (tiempos de una transición concreta), `.constants.ts`.
+2. **Un componente, una carpeta, dentro de una categoría.** Las categorías de `src/components/` son exactamente `layout`, `legal`, `scenes`, `sections` y `ui`. No se crean carpetas de componente sueltas en la raíz de `src/components/`.
+3. **El test vive junto a su módulo**, con el mismo nombre base (`Componente.tsx` + `Componente.test.tsx`, `modulo.layers.ts` + `modulo.layers.test.ts`).
+4. **Las cuatro secciones de la home comparten la misma forma:** un `Xxx.tsx` que actúa como dispatcher de tema y delega en dos hijos, más `xxx.layers.ts` (datos) y `xxx.parts.tsx` o `xxx.deck.tsx` (styled). Una sección nueva sigue esta forma salvo justificación explícita.
+
+## Clean code y SOLID en React
+
+5. **Un fichero de más de 600 líneas es una señal, no un veredicto.** Revisa si está mezclando datos, estilos y composición en el mismo sitio. La salida ya existe en el repo: extraer a `.layers.ts` (datos) y `.parts.tsx`/`.deck.tsx` (estilos).
+6. **`[L]` La rama de tema es siempre un componente hijo, nunca un `return` condicional inline.** Las reglas de los hooks de React lo exigen en cuanto cada rama necesita hooks distintos: un `if`/`return` inline con hooks condicionales dentro rompe esa regla de forma silenciosa hasta que un caso concreto la dispara.
+7. **Nada que cambie al ritmo del scroll pasa por `useState`.** Se escribe directamente en `ref.current.style` o en `ref.current.dataset`. El estado de React se reserva para lo que realmente se materializa como atributo del DOM y cambia pocas veces por interacción, no para valores que se recalculan en cada frame.
+8. **`[L]` Todo bucle de `requestAnimationFrame` nace con su guarda de `IntersectionObserver`.** Un rAF sin guarda sigue corriendo fuera de pantalla; la guarda es parte del bucle desde el primer commit que lo introduce, no un añadido posterior.
+9. **`[L]` "Está en pantalla" y "el cursor está dentro" son dos guardas distintas.** La primera es compartida (`IntersectionObserver`); la segunda vive en el componente consumidor que conoce su propia caja (`getBoundingClientRect` de ESE elemento), nunca en el hook de puntero compartido — un hook de puntero singleton no puede conocer la caja de cada consumidor.
+10. **`[L]` En `renderHook`, todo lo que el hook usa como dependencia de un efecto se crea fuera del callback de render.** Crearlo dentro cambia de identidad en cada render de test y rompe la detección de cambios que el propio test intenta verificar.
+11. **`[L]` Un contador de invalidación se lee del `ref` al arrancar el efecto; nunca se copia dentro del estado de React.** Copiarlo a estado crea una segunda fuente de verdad que se desincroniza del ref en cuanto ambos se actualizan en momentos distintos.
+12. **`[L]` Si necesitas el objeto de tema completo, se lee del proveedor (`useTheme` de styled-components), nunca indexando `themes[themeName]` directamente.** Indexar el mapa de temas a mano se salta cualquier resolución que el proveedor haga (por ejemplo, sistema/auto) y diverge del tema que la app realmente está pintando.
+13. **`[L]` Una constante de valor idéntico repetida en dos secciones es un token de tema, no dos constantes.** Si además es una invariante que debe mantenerse igual entre secciones, esa invariante vive en un test que importa los dos ficheros y compara los valores — no en la memoria de quien la escribió.
+14. **Tipo de retorno explícito en todo componente y función exportada** (por ejemplo, `: ReactElement`). No se depende de la inferencia de TypeScript para las firmas públicas.
+15. **Sin `any` y sin `@ts-ignore`.** Un `eslint-disable` siempre lleva la regla nombrada explícitamente y el porqué en el mismo comentario — nunca un disable en blanco.
+16. **`[L]` Un comentario que ya no describe el código es peor que ningún comentario.** Al retirar una pieza (componente, hook, constante), se hace grep de su nombre incluyendo comentarios y títulos de tests, no solo de sus usos en código ejecutable.
+
+## Estilos y movimiento
+
+17. **Tokens de tema obligatorios.** Cero colores, espaciados o radios literales fuera de `src/theme/tokens/`. Excepción única y documentada: arte de marca con constantes con nombre en su propio módulo (`*.layers.ts`), que se importan tal cual y nunca se reescriben con un valor suelto.
+18. **Anima solo `transform` y `opacity`**, y respeta `prefers-reduced-motion` en cada pieza animada.
+19. **`[L]` `scroll-snap` está prohibido.** Se midió y se retiró el 2026-07-31: con anclas del tamaño del viewport, `scroll-snap-type: y proximity` degenera en `mandatory` y roba el control del scroll al usuario (medido: 900→720 px, 1200→1440 px, 3100→2880 px; tirones de hasta 240 px). El efecto equivalente se entrega con `position: sticky`. Si alguien pide "snap", se entrega el efecto por la vía ya probada y se explica la decisión con la medición delante, no en silencio.
+20. **`[L]` Todo `<svg>` inline nuevo declara `width`, `height` y `flex: none` en su propio CSS.** `GlobalStyles` declara `svg { width: 100% }` de forma global; sin esas tres propiedades propias, el SVG hereda ese 100% global. Ya se han medido tres regresiones por este motivo.
+21. **`[L]` Nada de `overflow: hidden` en `html`/`body` ni en ningún ancestro de un elemento fijado con `sticky`.** Para recortar contenido sin romper un `sticky`, se usa `overflow-x: clip`.
+22. **`[L]` Toda capa a sangre (full-bleed) que se traslade en la animación se sobredimensiona al menos su recorrido máximo por lado, más 1 px.** Las unidades del recorrido y las del tamaño de la capa se resuelven contra la MISMA referencia (`dvh`, no `%`) — mezclar referencias produce un desajuste que solo aparece en ciertos tamaños de viewport.
+23. **`[L]` Dentro de un template de styled-components, los comentarios no llevan comillas de ningún tipo alrededor de identificadores.** Un backtick dentro de un comentario cierra el template literal y rompe el build; ya ha reincidido tres veces.
+24. **`[L]` Antes de escribir un `clamp()`, se declara explícitamente qué desigualdad satisface.** Si la desigualdad es "contenido + relleno ≤ alto disponible", el término fluido se expresa en `dvh`, no en `vw` — usar `vw` ahí resuelve una desigualdad distinta de la que se necesita.
+25. **`[L]` Un `transform` sobre un elemento que sigue en el flujo normal del documento no superpone nada sobre sus hermanos.** Para superponer, se usa margen negativo o se saca el elemento del flujo; para superponer dos hijos entre sí, `display: grid` con `grid-area: 1 / 1` en ambos.
+26. **`[L]` No se añade estado de React para describir el sentido de una animación.** Dos `transition-delay` distintos — uno en el sentido directo aplicado al estado activo, otro en el sentido inverso aplicado a la base — son una coreografía bidireccional completa sin necesidad de estado adicional.
+27. **`[L]` Un control nunca se deshabilita como consecuencia directa de su propia activación.** Deshabilitarlo en ese instante le arranca el foco a quien lo estaba operando por teclado. Para comunicar "en curso", se usa `aria-busy`, no `disabled`.
+
+## i18n
+
+28. **Cero strings de UI hardcodeados en el código.** Toda clave existe en `es` **y** en `en` en el mismo commit — nunca se añade una y se posterga la otra.
+29. **Un solo árbol de claves por namespace**, en PascalCase bajo `Common.*` o `Home.*` (o el namespace correspondiente). No se crean raíces planas nuevas al margen de esa jerarquía.
+30. **`[L]` Distingue centinela de prosa.** Un literal que el propio código busca en tiempo de ejecución (por ejemplo, `POR_COMPLETAR`) se declara como constante importada, se documenta "no traducir" justo ahí, y la explicación dirigida al usuario va en una clave i18n aparte. La comprobación de paridad de claves entre `es`/`en` no detecta este caso: hace falta un candado específico que compare el VALOR, documento a documento, no solo la existencia de la clave.
+31. **`[L]` Antes de cambiar el valor de una clave existente, se hace grep del texto nuevo sobre el JSON del namespace.** Dos claves con el mismo texto dentro del mismo componente tumban cualquier `getByText` que dependa de un texto único.
+32. **Toda clave del JSON tiene al menos un consumidor.** Las excepciones dinámicas (claves compuestas en tiempo de ejecución) se declaran explícitamente en el test de locales, no se dejan como huérfanas sin explicación.
+
+## Testing (política del proyecto)
+
+33. **Solo se escriben o actualizan tests de los componentes que se están modificando o creando en la tarea en curso.** La suite completa corre siempre como gate de regresión — no como obligación de ampliar cobertura por fichero fuera del alcance de la tarea.
+34. **`[L]` Todo test sobre CSS o sobre jsdom se valida con un bug inyectado a propósito antes de darlo por bueno.** Ciclo obligatorio: sabotaje reversible de la implementación real → el test se pone en rojo → se restaura → el test vuelve a verde. No es opcional: un test que nunca se ha visto fallar no está verificado.
+35. **`[L]` La FORMA de un selector se afirma sobre `selectorText`, nunca por substring del CSS inyectado.** `[x] &` y `&[x]` contienen exactamente el mismo substring pero describen selectores distintos (descendiente frente a mismo elemento); solo `selectorText` los distingue.
+36. **`[L]` jsdom no evalúa ningún `@media`.** Toda regla dentro de un media query se comprueba inspeccionando `document.styleSheets` directamente, acotando la búsqueda al bloque de regla concreto — nunca asumiendo que el estilo "ya se aplicó" porque el test pasó.
+37. **`[L]` `createGlobalStyle` no inyecta nada bajo jsdom + Vitest.** Si un comportamiento necesita cobertura de test, se declara y se prueba en el componente que lo consume, no en el `createGlobalStyle` que lo define.
+38. **`[L]` `getComputedStyle` se compara contra el token importado, nunca contra un string escrito a mano.** La shorthand `animation:` no se expande en jsdom: se asevera sobre `animationDelay` explícitamente, nunca sobre `animationName` en solitario esperando que represente toda la shorthand.
+39. **`[L]` Un test sobre "todos los X del componente" lee el recuento desde la misma fuente que consume el componente**, no desde un número literal escrito en el test. Un literal se desincroniza en cuanto el componente cambia y nadie actualiza el test a mano.
+40. **`[L]` Los tests de contrato cerrado (`toEqual` + `toHaveLength`) no se relajan.** Quien añade una clave o un elemento nuevo actualiza la fuente de verdad del test en el mismo commit, no cambia la aserción para que el test vuelva a pasar sin más.
+41. **`[L]` Una invariante que cruza dos ficheros vive en un test que importa los dos ficheros**, no en la memoria de quien escribió ambos a la vez.
+42. **`[L]` Un timeout en un test síncrono nunca se explica como "la máquina iba cargada".** Si el test no tiene nada que esperar de verdad, hay que medir qué lo está bloqueando. Y un fallo nuevo no es automáticamente tuyo por ser nuevo: antes de asumirlo, `git stash push -- src/` y ejecuta la misma suite sin tu cambio para confirmar si ya fallaba.
+
+## Definition of Done
+
+43. **Gate en verde EJECUTADO de verdad:** `pnpm run ci` (equivalente a `pnpm check && pnpm test`), con la cifra literal de salida como evidencia — no una suposición de que pasaría.
+44. **`[L]` Todo cambio visual se mira en un navegador real.** jsdom no hace layout, no pinta y no evalúa media queries: un test en verde no es evidencia de que algo se vea bien.
+45. **`[L]` Antes de medir cualquier animación en el panel de navegador, la primera comprobación es `document.visibilityState`.** Con la pestaña oculta no hay frames: ni rAF, ni `IntersectionObserver`, ni relojes de animación avanzan por sí solos. Con la pestaña oculta, se conduce `Animation.currentTime` a mano en vez de esperar a que algo se mueva.
+46. **`[L]` La tarea no está cerrada hasta que `git status --short` está vacío, o el estado intermedio se anuncia explícitamente como tal.** No se declara "hecho" sobre un árbol con cambios sin explicar.
+47. **Lo medido se afirma; lo no visto se declara pendiente de un humano.** Ninguna verificación visual o de comportamiento en tiempo real se reporta como confirmada si en realidad no se observó — se marca como pendiente y se dice explícitamente qué falta por ver.
+
+---
+
+## Deuda conocida
+
+Hallazgos de la auditoría de arquitectura (A1, 2026-08-08) que se documentan a propósito sin resolver, para que nadie los "redescubra" desde cero ni asuma que son omisiones accidentales:
+
+- **Decks Story/Journey gemelos.** 13 piezas styled prácticamente 1 a 1 entre `story.deck.tsx` y el deck de Journey. Candidato a extraer a `src/components/deck/deck.parts.tsx`, parametrizado por el mismo eje que ya usa `useSlideDeck.cssVarPrefix`.
+- **Features y Contact devuelven la rama oscura inline**, a diferencia de Story y Journey, que sí la extraen a un componente hijo (regla 6). Pendiente de alinear.
+- **Tokens compartidos pendientes de extraer:** `sectionScreen` (100dvh, repetido en las cuatro secciones), `deckContentMax` (1280px, repetido en cuatro sitios; ya existe `grid.navMax` con ese mismo valor y podría ser la fuente única), y un par de valores de reveal (640ms/22px) que se repiten sin nombre compartido.
+- **`Card` en `src/components/ui/` no tiene consumidor actual.** Pendiente de decidir si se documenta como primitivo reservado para uso futuro o se retira.
+- **Claves i18n duplicadas de idioma:** `language.*` y `Common.Lang.*` conviven, y `LanguageSelector` consume ambas convenciones a la vez.
+- **Claves `Common.Navigation.*` fósiles** (`framework`, `games`, `projects`, `reflection`) sin consumidor claro: pendiente decidir si son secciones planificadas o restos que se pueden borrar.
+- **`Sol.constants.ts`** rompe la convención camelCase para módulos de datos (regla 1): pendiente de rename o de justificación documentada de la excepción.
+- **Sin stylelint sobre ~300 componentes styled-components.** Las tres familias de bugs de CSS ya pagadas en `task/lessons.md` (comentarios con backtick, selectores `[x] &` vs `&[x]`, `overflow: hidden` sobre ancestros de `sticky`) son, cada una, exactamente el tipo de error que un linter de CSS detecta antes de que llegue a ejecutarse.
+- **`graphify-out/` versiona snapshots fechados** (múltiples carpetas por fecha, ~31 MB) y `assets/` versiona ~32 MB de másteres directamente en git. Candidatos a `.gitignore`/Git LFS.
+- **Densidad de comentarios en hooks:** el docblock de `useSectionProgress` es largo (spec completa dentro del código). Criterio propuesto para lo que se escriba de aquí en adelante: el qué y la invariante van en el código: el porqué extenso va en la spec de `docs/superpowers/specs/`, enlazada desde el docblock en vez de reproducida en él.
+- **`GlobalStyles` declara propiedades CSS que no existen** (por ejemplo prefijos o nombres tipo `-webkit-scroll-behavior`, `overflow-scrolling`, `font-smoothing: always`). Pendiente de verificar con stylelint antes de borrarlas, para no perder de golpe algo que sí tuviera efecto en algún motor concreto.
+- **`links.playground`** quedó con un docblock que describe un consumidor que ya no existe (se retiró en el commit `4ec6c80`). Pendiente de limpiar el comentario o el propio enlace.
