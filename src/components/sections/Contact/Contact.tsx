@@ -160,7 +160,7 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
              row (el defecto) la tarjeta, sin flex-grow, dejaria de
              estirarse al ancho del contenedor -- una regresion de layout,
              no solo de movimiento. */
-          min-height: 100dvh;
+          min-height: 50dvh;
           display: flex;
           flex-direction: column;
           justify-content: center;

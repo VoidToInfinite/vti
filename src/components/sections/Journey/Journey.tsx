@@ -118,7 +118,7 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
           }
         `
       : css`
-          max-width: ${theme.data.grid.containerMax};
+          max-width: ${theme.data.grid.navMax};
           margin-inline: auto;
           padding: ${theme.data.space[8]} ${theme.data.space[6]};
         `}
@@ -180,7 +180,7 @@ const ScStepsAndQuote = styled.div`
 
   @media ${({ theme }) => theme.data.breakPoint.xl} {
     padding-inline-end: calc(
-      ${JOURNEY_FIGURE_WIDTH} + ${({ theme }) => theme.data.space[5]} - 150px
+      ${JOURNEY_FIGURE_WIDTH} + ${({ theme }) => theme.data.space[5]} - 115px
     );
     height: 200px;
   }
@@ -399,10 +399,11 @@ const ScFigure = styled.img`
     inset-block: 0;
     inset-inline-end: 0;
     width: ${JOURNEY_FIGURE_WIDTH};
-    height: 100%;
+    height: 150%;
     object-fit: contain;
     filter: ${JOURNEY_FIGURE_SHADOW};
-    right: -60px;
+    right: -50px;
+    top: -50px;
     transform: translateY(
       calc(${JOURNEY_FIGURE_SCROLL_SHIFT} * var(--journey-progress, 0))
     );

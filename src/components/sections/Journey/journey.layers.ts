@@ -147,7 +147,7 @@ export const JOURNEY_FIGURE_SHADOW =
  * y nunca se superpone al camino, sea cual sea la altura real de la
  * columna. Solo el ANCHO sigue siendo un literal del mockup.
  */
-export const JOURNEY_FIGURE_WIDTH = "250px";
+export const JOURNEY_FIGURE_WIDTH = "240px";
 export const JOURNEY_FIGURE_SIZES = "305px";
 
 /*

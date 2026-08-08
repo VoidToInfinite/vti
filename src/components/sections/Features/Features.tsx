@@ -93,7 +93,7 @@ const BULLET_KEYS = ["one", "two", "three", "four"] as const;
  * contiene arte VERBATIM). "Decenas de píxeles, no cientos" es literal del
  * encargo: a `--features-progress` 0..1 el recorrido total es de 20px.
  */
-const FEATURES_FIGURE_PARALLAX_PX = 20;
+const FEATURES_FIGURE_PARALLAX_PX = 5;
 
 /*
  * `STAGGER_STEP_MS` (120ms por tarjeta) RETIRADA (spec 2026-08-06, D9): el
@@ -442,8 +442,6 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   height: 100%;
   padding: ${FEATURES_CARD_BORDER_WIDTH};
   border-radius: ${FEATURES_CARD_RADIUS};
-  background: ${({ theme }) => theme.data.semantic.border};
-  box-shadow: ${({ theme }) => theme.data.elevation[1]};
   transition:
     transform ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard},
@@ -452,7 +450,7 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: ${({ theme }) => theme.data.elevation[3]};
+    box-shadow: ${({ theme }) => theme.data.elevation[1]};
   }
 
   /* Borde cónico: SOLO bajo no-preference, y anidado como
@@ -663,7 +661,7 @@ const ScBullets = styled.div<{ $compactFrom?: "sm" | "lg" }>`
     $compactFrom === "sm"
       ? theme.data.breakPoint.sm
       : theme.data.breakPoint.lg} {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(1, minmax(0, 1fr));
     gap: ${({ theme }) => theme.data.space[2]}
       ${({ theme }) => theme.data.space[5]};
   }

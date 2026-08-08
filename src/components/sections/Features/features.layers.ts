@@ -66,7 +66,7 @@ export const FEATURES_CARD_RADIUS = "26px";
  *  1.5px`): el envoltorio pinta su fondo (color-mix en reposo, cónico en
  *  hover) y ese fondo asoma exactamente este grosor alrededor de la
  *  superficie interior. */
-export const FEATURES_CARD_BORDER_WIDTH = "1.5px";
+export const FEATURES_CARD_BORDER_WIDTH = "1.8px";
 
 /** Duración del hover del CTA de texto (mockup L176/191/206: `transition:
  *  transform 150ms …, color 150ms …`). No coincide con ningún paso de
