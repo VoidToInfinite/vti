@@ -14,13 +14,18 @@ import { links } from "@/config/links";
 import { PRESS } from "@/motion/vocabulary";
 import { Contact } from "./Contact";
 import {
+  CONTACT_CARD_BORDER,
   CONTACT_CONTENT_MAX_WIDTH,
   CONTACT_DARK_HEIGHT,
   CONTACT_OVERLAY_RISE,
 } from "./contact.layers";
-import { CONTACT_GUARDIAN_LAYERS } from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
+import {
+  CONTACT_GUARDIAN_LAYERS,
+  CONTACT_GUARDIAN_VOID,
+} from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
 import { FEATURES_TAIL_HOLD } from "@/components/sections/Features/features.layers";
 import { themes } from "@/theme/themes";
+import { contrastRatioHex } from "@/theme/tokens/contrast";
 
 /*
  * Reescritura completa (spec 2026-07-28 §7.4, mockup `#contact` L212-238):
@@ -1240,4 +1245,114 @@ describe("D4: palancas de compactación vertical del contenido oscuro (clamp flu
       expect(reduceBlock).toContain("transform: none");
     });
   });
+});
+
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, 2026-08-09):
+ * `ScAccent` pasa de degradado de texto (`background-clip: text`) a color
+ * solido (`semantic.brandText`) -- ver el docblock de `ScAccent`, Contact.tsx,
+ * para el porque completo. `ScAccent` se renderiza en las DOS ramas
+ * (verificado leyendo el JSX: la oscura dentro de `ScDarkCopy`, la clara
+ * dentro de `ScLeft`): las dos se miden.
+ */
+describe("Contact: Task 12, ScAccent pasa a color solido", () => {
+  it("rama clara: el termino de titulo (ScAccent) resuelve semantic.brandText, sin background-clip", () => {
+    renderWithProviders(<Contact />);
+    const accent = screen.getByText(esHome.Home.contact.titleAccent);
+
+    expect(getComputedStyle(accent).color).toBe(
+      themes.light.semantic.brandText,
+    );
+    const css = cssRuleTextFor(accent);
+    expect(css).not.toContain("background-clip");
+    expect(css).not.toContain("color: transparent");
+  });
+
+  it("rama oscura: el termino de titulo (ScAccent) resuelve semantic.brandText, sin background-clip", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+      const accent = screen.getByText(esHome.Home.contact.titleAccent);
+
+      expect(getComputedStyle(accent).color).toBe(
+        themes.dark.semantic.brandText,
+      );
+      const css = cssRuleTextFor(accent);
+      expect(css).not.toContain("background-clip");
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+
+  /*
+   * Medicion de contraste AA (cierra el hueco que senalo la auditoria: "6
+   * piezas color:transparent fuera del alcance de contrast.ts"). Rama clara
+   * contra las tres paradas de `CONTACT_CARD_GRADIENT` (el fondo REAL de
+   * `ScCard`, no la pagina -- a diferencia de Story, esta pieza vive dentro
+   * de una tarjeta con fondo propio); rama oscura contra `CONTACT_GUARDIAN_VOID`
+   * (el void de la escena, hex -- jsdom no compone las capas WebP reales, asi
+   * que es el suelo medible por codigo, no el pixel final compuesto).
+   */
+  it("brandText sobre las tres paradas de CONTACT_CARD_GRADIENT (rama clara) y sobre CONTACT_GUARDIAN_VOID (rama oscura) libran AA", () => {
+    // Las tres paradas del degradado pastel (contact.layers.ts), compuestas
+    // sobre `semantic.bg` con su alfa real -- ver Contact.tsx, docblock de
+    // ScAccent, para las cifras medidas (5.24:1-5.29:1). Los literales hex
+    // son los MISMOS de `CONTACT_CARD_GRADIENT`: si ese degradado cambia de
+    // paradas, este test se desincroniza de forma visible (no silenciosa) la
+    // proxima vez que alguien lo lea junto al literal real.
+    const paradas = ["#EFF4FC", "#F5F2FB", "#F9F0F7"];
+    paradas.forEach((parada) => {
+      const ratio = contrastRatioHex(themes.light.semantic.brandText, parada);
+      expect(
+        ratio,
+        `parada ${parada}: contraste ${ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    const ratioDark = contrastRatioHex(
+      themes.dark.semantic.brandText,
+      CONTACT_GUARDIAN_VOID,
+    );
+    expect(
+      ratioDark,
+      `contraste ${ratioDark.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), documentado en el informe de la
+   * tarea: revertir `ScAccent` (Contact.tsx) a
+   * `color: theme.data.semantic.text` (en vez de `brandText`) pone en rojo
+   * los dos primeros tests de este describe; restaurado, vuelve a verde.
+   */
+});
+
+/*
+ * Task 12 (ghost-card): `ScCard` (rama clara) conserva su borde 1px
+ * (`CONTACT_CARD_BORDER`) y retira la sombra de 44px -- ver el docblock de
+ * `ScCard`, Contact.tsx, para la regla completa (borde O sombra, nunca los
+ * dos) y por que esta tarjeta concreta se queda con el borde.
+ */
+describe("Contact: Task 12, ghost-card ScCard (rama clara)", () => {
+  it("conserva el borde 1px y NO declara ningun box-shadow", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const card = container.querySelector("[data-revealed]") as HTMLElement;
+    const css = cssRuleTextFor(card);
+
+    expect(css).toContain(`border: 1px solid ${CONTACT_CARD_BORDER}`);
+    expect(css).not.toContain("box-shadow");
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), documentado en el informe de la
+   * tarea: reintroducir `box-shadow: 0 18px 44px oklch(0.6 0.1 265 / 0.1);`
+   * en `ScCard` (Contact.tsx) pone en rojo la aserción
+   * `expect(css).not.toContain("box-shadow")`; restaurado, vuelve a verde.
+   */
 });

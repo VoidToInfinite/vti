@@ -29,39 +29,28 @@
  * repo (p. ej. `accent()` en `Button.tsx`).
  */
 
-/** Borde y sombra de la tarjeta (mockup L213). El fondo del propio degradado
- * pastel de la tarjeta va en `CONTACT_CARD_GRADIENT`. */
+/** Borde de la tarjeta (mockup L213). El fondo del propio degradado
+ * pastel de la tarjeta va en `CONTACT_CARD_GRADIENT`.
+ *
+ * Task 12 (dieta de ornamento B, 2026-08-09, ghost-card): `CONTACT_CARD_SHADOW`
+ * (la sombra de 44px que acompañaba a este borde) se retira -- ver el
+ * docblock de `ScCard` en `Contact.tsx` para la regla completa (borde O
+ * sombra, nunca los dos) y por qué esta tarjeta concreta se queda con el
+ * borde. */
 export const CONTACT_CARD_BORDER = "oklch(0.88 0.04 270)";
 export const CONTACT_CARD_GRADIENT =
   "linear-gradient(110deg, #EFF4FC 0%, #F5F2FB 55%, #F9F0F7 100%)";
-/** Color de sombra; la geometría (offset/blur) vive junto al selector que la usa. */
-export const CONTACT_CARD_SHADOW = "oklch(0.6 0.1 265 / 0.1)";
 
-/**
- * Degradado de texto de "infinito." (mockup L216): tres paradas propias
- * (`235`, `255`, `292`), distintas de los hue de `palette.primary`
- * (`235.851`) / `palette.secondary` (`311.928`) del sistema — el hue 235 es
- * casi idéntico al primario, pero 255/292 no lo son, así que no es
- * sustituible por un paso de `palette.*`. Al igual que `STORY_ACCENT_GRADIENT`
- * (`story.layers.ts`), el mockup no le aplica `vtiGradientShift` a este span
- * (solo al "ToInfinite" del hero), así que se declara estático, sin animación.
+/*
+ * AQUI VIVIERON CONTACT_TITLE_ACCENT_GRADIENT_LIGHT/_DARK, el degradado de
+ * texto de "infinito." (mockup L216). Retirados en Task 12 (dieta de
+ * ornamento B, auditoria premium 2026-08-08, 2026-08-09): `ScAccent`
+ * (Contact.tsx) pasa a color solido (`semantic.brandText`, el mismo rol que
+ * ya usaba como fallback de `@supports not (background-clip: text)`) para
+ * poder medir su contraste con `contrast.ts` -- un degradado de texto no es
+ * medible. Medicion completa en el docblock de `ScAccent`, Contact.tsx, y en
+ * Contact.test.tsx, describe "Task 12".
  */
-export const CONTACT_TITLE_ACCENT_GRADIENT_LIGHT =
-  "linear-gradient(110deg, oklch(0.52 0.13 235), oklch(0.66 0.15 255), oklch(0.72 0.15 292))";
-
-/**
- * Variante oscura del degradado (2026-07-30, mismo criterio que
- * `STORY_ACCENT_GRADIENT_DARK`/`JOURNEY_QUOTE_GRADIENT_DARK`): misma familia
- * de hue (235/255/292), luminosidad mucho mayor para legibilidad sobre el
- * negro de la escena de fondo. Los valores no cambian con el arte: se
- * calibraron contra el `#02040e` de `ContactNeonGalaxy` y siguen valiendo
- * contra el `#0d0416` de `ContactCosmicGuardian` (2026-08-04), que es un
- * pelo MÁS claro — OKLCH L 0.137 frente a 0.111, medido, no estimado — así
- * que el margen de legibilidad solo puede haber bajado unas centésimas
- * sobre un contraste que ya era holgado.
- */
-export const CONTACT_TITLE_ACCENT_GRADIENT_DARK =
-  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 292))";
 
 /**
  * Fondo translúcido del chip de email (mockup L219): blanco con alfa sobre

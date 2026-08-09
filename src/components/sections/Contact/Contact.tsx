@@ -19,7 +19,6 @@ import {
   CONTACT_CARD_BORDER,
   CONTACT_CARD_BORDER_DARK,
   CONTACT_CARD_GRADIENT,
-  CONTACT_CARD_SHADOW,
   CONTACT_CHIP_BG_LIGHT,
   CONTACT_CONTENT_MAX_WIDTH,
   CONTACT_CONTENT_PAIR_MAX,
@@ -45,8 +44,6 @@ import {
   CONTACT_RING_HALO_GRADIENT,
   CONTACT_RING_HALO_RIGHT,
   CONTACT_RING_HALO_SIZE,
-  CONTACT_TITLE_ACCENT_GRADIENT_DARK,
-  CONTACT_TITLE_ACCENT_GRADIENT_LIGHT,
   CONTACT_TOP_GLOW_BLUR,
   CONTACT_TOP_GLOW_GRADIENT,
   CONTACT_TOP_GLOW_HEIGHT,
@@ -169,9 +166,10 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
 `;
 
 /*
- * Tarjeta (mockup L213): borde/degradado/sombra VERBATIM en
- * `contact.layers.ts` (D10 — no son roles semánticos, son literales de esta
- * composición). `border-radius`/`padding`/`gap` SÍ coinciden con los tokens
+ * Tarjeta (mockup L213): borde/degradado VERBATIM en `contact.layers.ts`
+ * (D10 — no son roles semánticos, son literales de esta composición; la
+ * sombra de 44px que también venía de ahí se retiró en Task 12, ver el
+ * docblock justo debajo). `border-radius`/`padding`/`gap` SÍ coinciden con los tokens
  * del sistema (`radius["2xl"]`, `space[6]`) porque el propio mockup los
  * declara con `var(--radius-2xl)`/`var(--space-6)` — no hay conversión que
  * hacer, coinciden con los nuestros por definición.
@@ -188,6 +186,20 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
  * pasan a la pareja más lenta de la escala, para que se lean "resueltas con
  * calma" en vez de "puntuales".
  */
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, ghost-card):
+ * regla borde-O-sombra, nunca los dos (impeccable) -- esta tarjeta CONSERVA
+ * su borde 1px (`CONTACT_CARD_BORDER`) y RETIRA la sombra de 44px
+ * (`CONTACT_CARD_SHADOW`, tambien retirada de contact.layers.ts por quedarse
+ * sin consumidor). Por que este lado y no el otro: esta tarjeta es una
+ * SUPERFICIE sobre la pagina -- un degradado pastel plano, sin escena detras
+ * -- asi que un borde nitido es lo que separa esa superficie del fondo; una
+ * sombra ambiental encima no añade lectura de profundidad real (no hay
+ * ninguna fuente de luz de escena que la justifique) y solo suma peso visual.
+ * Comparese con `ScDisc` en Journey.tsx (Task 12 tambien): ese es un
+ * marcador DENTRO de una escena con su propio glow de color, y ahi la regla
+ * elige el lado contrario (sombra, sin borde).
+ */
 const ScCard = styled.div`
   position: relative;
   overflow: hidden;
@@ -198,7 +210,6 @@ const ScCard = styled.div`
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   border: 1px solid ${CONTACT_CARD_BORDER};
   background: ${CONTACT_CARD_GRADIENT};
-  box-shadow: 0 18px 44px ${CONTACT_CARD_SHADOW};
   padding: ${({ theme }) => theme.data.space[6]};
 
   opacity: 0;
@@ -231,26 +242,31 @@ const ScLeft = styled.div`
   z-index: ${({ theme }) => theme.data.zIndex.raised};
 `;
 
-/* Degradado de texto estático (mockup no anima este span, a diferencia del
-   "ToInfinite" del hero) — ver `CONTACT_TITLE_ACCENT_GRADIENT`. */
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, 2026-08-09):
+ * el degradado de texto (`background-clip: text` + `CONTACT_TITLE_ACCENT_GRADIENT_LIGHT`/
+ * `_DARK`, retirados de `contact.layers.ts`) pasa a color solido. Mismo
+ * motivo que `ScAccent` en Story.tsx: un degradado de texto queda fuera del
+ * alcance de `contrast.ts`, asi que nadie lo habia medido nunca.
+ *
+ * El color elegido es el MISMO `semantic.brandText` que este bloque ya usaba
+ * como fallback de `@supports not (background-clip: text)`. `ScAccent` se
+ * renderiza en las DOS ramas (verificado leyendo el JSX: la rama oscura lo
+ * usa dentro de `<Typography variant="h2">` en `ScDarkCopy`, la rama clara
+ * dentro del mismo `<Typography variant="h2">` en `ScLeft`), asi que hacen
+ * falta las dos medidas:
+ *
+ * - Rama CLARA: se pinta sobre `CONTACT_CARD_GRADIENT` (las tres paradas
+ *   pastel de `ScCard`) -- brandText da entre 5.24:1 y 5.29:1 segun la
+ *   parada, la peor por encima de AA (4.5:1).
+ * - Rama OSCURA: se pinta sobre la escena `ContactCosmicGuardian`, cuyo void
+ *   (`CONTACT_GUARDIAN_VOID`, "#0d0416") es lo unico medible por codigo
+ *   (jsdom no compone las capas WebP reales) -- brandText da 13.17:1.
+ *
+ * Medicion completa en Contact.test.tsx, describe "Task 12".
+ */
 const ScAccent = styled.span`
-  background-image: ${({ theme }) =>
-    theme.data.isLight
-      ? CONTACT_TITLE_ACCENT_GRADIENT_LIGHT
-      : CONTACT_TITLE_ACCENT_GRADIENT_DARK};
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-
-  /* Red de seguridad: sin soporte de background-clip: text el texto no
-     puede quedar transparente e invisible (mismo criterio que
-     gradientTextClip en BrandName.tsx). */
-  @supports not (background-clip: text) {
-    background-image: none;
-    color: ${({ theme }) => theme.data.semantic.brandText};
-    -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
-  }
+  color: ${({ theme }) => theme.data.semantic.brandText};
 `;
 
 /* `var(--text-secondary)` del mockup -> `semantic.textMuted` (ver el mapeo
