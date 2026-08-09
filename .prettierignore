@@ -31,3 +31,6 @@ graphify-out/
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+# Snapshots del skill impeccable (critique-storage los escribe con su propio
+# formato; artefactos de auditoria, nadie los edita a mano):
+.impeccable/
