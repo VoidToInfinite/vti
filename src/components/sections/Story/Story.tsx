@@ -27,8 +27,6 @@ import {
   ScTrack,
 } from "./story.deck";
 import {
-  STORY_ACCENT_GRADIENT_DARK,
-  STORY_ACCENT_GRADIENT_LIGHT,
   STORY_DECK_TAIL_SCREENS,
   STORY_FIGURE_ASPECT,
   STORY_FIGURE_FLOAT_MS,
@@ -459,27 +457,36 @@ const ScTitle = styled(Typography)`
   }
 `;
 
-/* Degradado seleccionado por tema (spec 2026-07-29 D10): mismas paradas de
-   hue, luminosidad mucho mayor en oscuro para que el background-clip:text
-   siga siendo legible sobre el negro-violeta de StoryCosmicBeing. */
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08): el
+ * degradado de texto (`background-clip: text` + `STORY_ACCENT_GRADIENT_LIGHT`/
+ * `_DARK`, ambos retirados de `story.layers.ts`) pasa a color solido. Motivo:
+ * la auditoria senalo que `color: transparent` deja esta pieza FUERA del
+ * alcance de `contrast.ts` -- nadie puede medir el contraste de un degradado
+ * de texto, asi que nadie lo habia medido nunca (el propio spec de origen,
+ * 2026-07-29 D10, lo admitia: "estas paradas se verifican a ojo... el helper
+ * contrast.ts del repo solo resuelve colores planos"). Un color solido SI se
+ * puede medir.
+ *
+ * El color elegido no es nuevo: es el MISMO `semantic.brandText` que este
+ * bloque ya usaba como fallback de `@supports not (background-clip: text)` --
+ * y el MISMO rol que `ScKicker` (mas arriba en este fichero) ya resuelve en
+ * esta seccion, en las DOS ramas (D10 del brief de la tarea: "usar el token
+ * de acento que la seccion ya usa para otros elementos"). `ScAccent` en si
+ * se renderiza en las DOS ramas (verificado leyendo el JSX: StoryLight lo usa
+ * dentro de `ScTitle`, StoryDeckDark dentro de `ScDeckTitle`), asi que hacen
+ * falta las dos medidas:
+ *
+ * - Rama CLARA: `ScAccent` se pinta sobre la pagina (`ScStory` no fija fondo
+ *   propio en esta rama) -- brandText sobre `semantic.bg` da 5.59:1.
+ * - Rama OSCURA: se pinta sobre la escena `StoryCosmicBeing`, cuyo void
+ *   (`STORY_COSMIC_BEING_VOID`, "#05010e") es lo unico medible por codigo
+ *   (jsdom no compone las capas WebP reales) -- brandText sobre ese void da
+ *   13.55:1. Las dos por encima de AA (4.5:1); medicion completa y formula en
+ *   `Story.test.tsx`, describe "Task 12".
+ */
 const ScAccent = styled.span`
-  background-image: ${({ theme }) =>
-    theme.data.isLight
-      ? STORY_ACCENT_GRADIENT_LIGHT
-      : STORY_ACCENT_GRADIENT_DARK};
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-
-  /* Red de seguridad: sin soporte de background-clip: text el degradado no
-     puede quedar como único portador del color -- se degrada al rol de
-     marca del tema (mismo recurso que gradientTextClip en BrandName.tsx). */
-  @supports not (background-clip: text) {
-    background-image: none;
-    color: ${({ theme }) => theme.data.semantic.brandText};
-    -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
-  }
+  color: ${({ theme }) => theme.data.semantic.brandText};
 `;
 
 /* Tercera pieza de la cascada de D9 (retardo 140ms): mismo mecanismo que
@@ -1008,11 +1015,14 @@ const ScStatementSecond = styled.span`
 `;
 
 /*
- * Tercera linea: EXTIENDE `ScAccent` (no lo duplica) para heredar su
- * degradado de marca y su red de seguridad `@supports not (background-clip:
- * text)` tal cual (D12 de la spec: "el degradado de marca que ya usa
- * ScAccent en este mismo fichero -- reutilizalo"). Mismo recurso que
- * `ScDeckPillarRow`, arriba, para extender `ScPillarRow`.
+ * Tercera linea: EXTIENDE `ScAccent` (no lo duplica) para heredar su color de
+ * marca (D12 de la spec: "el degradado de marca que ya usa ScAccent en este
+ * mismo fichero -- reutilizalo"; Task 12, 2026-08-09, convierte ese
+ * degradado en el color solido `semantic.brandText` -- ver el docblock de
+ * `ScAccent`, mas arriba, para la medicion completa. Esta linea solo se
+ * renderiza en la rama CLARA (`StoryLight`, mas abajo): el cierre de la rama
+ * OSCURA usa `ScDeckNoteAccent`, una pieza distinta de `story.deck.tsx`).
+ * Mismo recurso que `ScDeckPillarRow`, arriba, para extender `ScPillarRow`.
  */
 const ScStatementThird = styled(ScAccent)`
   display: block;

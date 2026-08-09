@@ -12,8 +12,8 @@ import i18n from "@/i18n/config";
 import { Story, pillarBadgeAccent } from "./Story";
 import { PRESS } from "@/motion/vocabulary";
 import { motion } from "@/theme/tokens/motion";
-import { contrastRatio } from "@/theme/tokens/contrast";
-import { basicLightTheme } from "@/theme/themes";
+import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
+import { basicLightTheme, basicDarkTheme } from "@/theme/themes";
 import {
   STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
@@ -23,6 +23,7 @@ import {
   STORY_FIGURE_SCROLL_SHIFT,
   STORY_SLIDES,
 } from "./story.layers";
+import { STORY_COSMIC_BEING_VOID } from "@/components/scenes/storyCosmicBeing/storyCosmicBeing.layers";
 
 /*
  * Reescritura completa (spec 2026-07-28, D3/D4): Story ya no es una
@@ -498,6 +499,99 @@ describe("Story: contraste AA de las tarjetas de pilar sobre semantic.surface (D
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     },
   );
+});
+
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, 2026-08-09):
+ * `ScAccent`/`ScStatementThird` pasan de degradado de texto
+ * (`background-clip: text`) a color solido (`semantic.brandText`) -- ver el
+ * docblock de `ScAccent`, Story.tsx, para el porque completo. `ScAccent` se
+ * renderiza en las DOS ramas (StoryLight, dentro de `ScTitle`; StoryDeckDark,
+ * dentro de `ScDeckTitle`): las dos se miden. `ScStatementThird` (que
+ * EXTIENDE `ScAccent`) solo vive en la rama clara.
+ */
+describe("Story: Task 12, ScAccent/ScStatementThird pasan a color solido", () => {
+  it("rama clara: el termino de titulo (ScAccent) resuelve semantic.brandText, sin background-clip", () => {
+    renderWithProviders(<Story />);
+    const accent = screen.getByText(esHome.Home.story.titleAccent);
+
+    expect(getComputedStyle(accent).color).toBe(
+      basicLightTheme.semantic.brandText,
+    );
+    const css = cssRuleTextFor(accent);
+    expect(css).not.toContain("background-clip");
+    expect(css).not.toContain("color: transparent");
+  });
+
+  it("rama clara: la tercera linea del statement (ScStatementThird) resuelve el MISMO semantic.brandText que ScAccent", () => {
+    renderWithProviders(<Story />);
+    const third = screen.getByText(esHome.Home.story.statement.third);
+
+    expect(getComputedStyle(third).color).toBe(
+      basicLightTheme.semantic.brandText,
+    );
+  });
+
+  it("rama oscura: el termino de titulo (ScAccent, dentro de ScDeckTitle) resuelve semantic.brandText, sin background-clip", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      renderWithProviders(<Story />);
+      await waitFor(() => {
+        expect(
+          screen.getByText(esHome.Home.story.titleAccent),
+        ).toBeInTheDocument();
+      });
+      const accent = screen.getByText(esHome.Home.story.titleAccent);
+
+      expect(getComputedStyle(accent).color).toBe(
+        basicDarkTheme.semantic.brandText,
+      );
+      const css = cssRuleTextFor(accent);
+      expect(css).not.toContain("background-clip");
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+
+  /*
+   * Medicion de contraste AA (cierra el hueco que senalo la auditoria: "6
+   * piezas color:transparent fuera del alcance de contrast.ts"). Rama clara
+   * contra `semantic.bg` (la pagina, unico fondo real de `ScStory` cuando
+   * `$fullBleed` es false); rama oscura contra `STORY_COSMIC_BEING_VOID` (el
+   * void de la escena, hex -- jsdom no compone las capas WebP reales, asi que
+   * es el suelo medible por codigo, no el pixel final compuesto).
+   * `contrastRatioHex` es la extension de `contrast.ts` que esta MISMA tarea
+   * le hizo (ver `contrast.test.ts`) para poder medir contra un literal hex.
+   */
+  it("brandText sobre semantic.bg (rama clara) y sobre STORY_COSMIC_BEING_VOID (rama oscura) libran AA (medido: 5.59:1 y 13.55:1)", () => {
+    const ratioLight = contrastRatio(
+      basicLightTheme.semantic.brandText,
+      basicLightTheme.semantic.bg,
+    );
+    expect(
+      ratioLight,
+      `contraste ${ratioLight.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(4.5);
+
+    const ratioDark = contrastRatioHex(
+      basicDarkTheme.semantic.brandText,
+      STORY_COSMIC_BEING_VOID,
+    );
+    expect(
+      ratioDark,
+      `contraste ${ratioDark.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), documentado en el informe de la
+   * tarea: revertir `ScAccent` (Story.tsx) a
+   * `color: theme.data.semantic.text` (en vez de `brandText`) pone en rojo
+   * el primer test de este describe (`getComputedStyle(...).color` deja de
+   * coincidir con `basicLightTheme.semantic.brandText`); restaurado, vuelve
+   * a verde.
+   */
 });
 
 /*

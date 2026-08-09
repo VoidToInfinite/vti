@@ -29,31 +29,18 @@
 export const STORY_HALO_GRADIENT =
   "radial-gradient(circle at 55% 55%, oklch(0.9 0.05 275 / 0.55) 0%, oklch(0.93 0.03 260 / 0.3) 45%, transparent 72%)";
 
-/**
- * Degradado de texto de "to creation." (mockup L78, tema claro): tres
- * paradas propias (`235`, `255`, `290`), distintas de los hue de
- * `palette.primary`/`palette.secondary`. A diferencia del titular del hero
- * (`heroGradient`, `BrandName.tsx`), este NO anima — el mockup no le aplica
- * `vtiGradientShift` a este span, solo al `ToInfinite` del hero — así que se
- * declara estático. Renombrado con sufijo `_LIGHT` (2026-07-29) al añadir la
- * variante oscura de abajo — incluida en la rama clara de `Story.tsx`.
+/*
+ * AQUI VIVIERON STORY_ACCENT_GRADIENT_LIGHT/_DARK, el degradado de texto de
+ * "to creation." (mockup L78). Retirados en Task 12 (dieta de ornamento B,
+ * auditoria premium 2026-08-08, 2026-08-09): `ScAccent` (Story.tsx) pasa a
+ * color solido (`semantic.brandText`, el mismo rol que `ScKicker` ya usa en
+ * esta seccion) para poder medir su contraste con `contrast.ts` -- un
+ * degradado de texto no es medible, y por eso nunca se habia medido (ver el
+ * docblock que traian estas dos constantes, verbatim antes de este borrado:
+ * "estas paradas se verifican a ojo... el helper contrast.ts del repo solo
+ * resuelve colores planos"). Medicion completa en el docblock de `ScAccent`,
+ * Story.tsx, y en Story.test.tsx, describe "Task 12".
  */
-export const STORY_ACCENT_GRADIENT_LIGHT =
-  "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
-
-/**
- * Variante oscura del degradado de texto (spec 2026-07-29 D10): MISMA familia
- * de hue (235/255/290) que la versión clara, con luminosidad mucho mayor
- * (0.78–0.86 en vez de 0.56–0.72) para que el `background-clip: text` siga
- * siendo legible sobre el negro-violeta de `StoryCosmicBeing`
- * (`STORY_COSMIC_BEING_VOID`, `#05010e`). No hay mockup oscuro de esta
- * sección — el spec señala explícitamente que estas paradas se verifican a
- * ojo en el paso de verificación en navegador, no con un contraste medido
- * (el helper `contrast.ts` del repo solo resuelve colores planos, no
- * degradados de texto).
- */
-export const STORY_ACCENT_GRADIENT_DARK =
-  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
 
 /**
  * Ancho máximo del CONTENIDO de cada diapositiva de la presentación (D11,
