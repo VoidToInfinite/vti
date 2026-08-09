@@ -11,6 +11,7 @@ import { StageProvider, useStage } from "@/motion/StageProvider";
 import { HERO_CHROME_OFFSET_MS } from "@/components/sections/Hero/hero.transition";
 import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { links } from "@/config/links";
+import { PRESS } from "@/motion/vocabulary";
 import { Navbar } from "./Navbar";
 
 /**
@@ -733,7 +734,109 @@ describe("Navbar", () => {
         ).toBeGreaterThan(0);
       }
     });
+
+    /*
+     * Task 9 (craft de interacción): ScNavTrigger y ScNavLink (y por
+     * composición, ScNavPanelLink = styled(ScNavLink)) ganan
+     * :active { transform: scale(...) } (vocabulary.PRESS.activeScale), sin
+     * hover que guardar (el hover de los tres es solo color). Validado con
+     * el bug inyectado a propósito (ver informe de la tarea, tabla
+     * ScNavTrigger/ScNavLink/ScNavPanelLink): comentando temporalmente cada
+     * bloque &:active en Navbar.tsx el test correspondiente se pone en
+     * rojo; restaurado, vuelve a verde.
+     */
+    it("ScNavTrigger y ScNavPanelLink (que hereda de ScNavLink) declaran :active con transform: scale(PRESS.activeScale)", () => {
+      renderNavbar();
+      const reglas = allCssRules();
+      const claseDe = (el: Element): string =>
+        Array.from(el.classList).find((c) =>
+          reglas.some((r) => r.includes(c)),
+        ) ?? "";
+
+      const trigger = getTrigger(ON_SITE);
+      fireEvent.click(trigger);
+      const panelId = trigger.getAttribute("aria-controls") as string;
+      const panel = document.getElementById(panelId) as HTMLElement;
+      const panelLink = panel.querySelector("a") as HTMLElement;
+
+      for (const [nombre, clase] of [
+        ["ScNavTrigger", claseDe(trigger)],
+        ["ScNavPanelLink", claseDe(panelLink)],
+      ] as const) {
+        expect(
+          clase,
+          `no se encontro la clase inyectada de ${nombre}`,
+        ).not.toBe("");
+        const activeRule = reglas.find(
+          (r) =>
+            r.includes(clase) &&
+            r.includes(":active") &&
+            r.includes("transform"),
+        );
+        expect(
+          activeRule,
+          `${nombre} no declara ninguna regla :active con transform`,
+        ).toBeDefined();
+        expect(activeRule).toContain(`scale(${PRESS.activeScale})`);
+      }
+    });
+
+    /*
+     * Task 9, punto 5 del brief: ScNavPanel gana transform-origin: top left,
+     * el estado cerrado suma scale(NAV_PANEL_CLOSED_SCALE) al translateY
+     * existente, y la asimetría 120/180 (regla 26 de RULES.md) se resuelve
+     * con dos declaraciones de transition -- base (cierre) y
+     * [data-open="true"] (abierto) -- sin estado de React nuevo. Validado
+     * con el bug inyectado a propósito (ver informe de la tarea, tabla
+     * ScNavPanel): comentando temporalmente el scale/transform-origin, o
+     * igualando las dos duraciones, el test correspondiente se pone en
+     * rojo; restaurado, vuelve a verde.
+     */
+    it("ScNavPanel: transform-origin: top left, scale(0.97) en cerrado, y asimetria 120/180 con la curva de PRESS.easing", () => {
+      renderNavbar();
+      const trigger = getTrigger(ON_SITE);
+      const panelId = trigger.getAttribute("aria-controls") as string;
+      const panel = document.getElementById(panelId) as HTMLElement;
+      const css = cssRuleTextFor(panel);
+
+      expect(css).toContain("transform-origin: top left");
+
+      // Estado cerrado (base, ANTES de [data-open="true"]): scale(0.97)
+      // sumado al translateY(-4px) que ya existía.
+      const openIndex = css.indexOf('[data-open="true"]');
+      expect(openIndex).toBeGreaterThan(-1);
+      const closedRule = css.slice(0, openIndex);
+      expect(closedRule).toContain("translateY(-4px) scale(0.97)");
+      expect(closedRule).toContain("120ms");
+      expect(closedRule).toContain(PRESS.easing);
+
+      // Estado abierto: transition PROPIA (regla 26), 180ms, misma curva.
+      const openRule = css.slice(openIndex);
+      expect(openRule).toContain("180ms");
+      expect(openRule).toContain(PRESS.easing);
+      expect(openRule).not.toContain("120ms");
+    });
   });
+
+  /**
+   * Texto CSS de las reglas que styled-components inyectó para un elemento
+   * concreto (jsdom no evalúa ningún @media, regla 36): mismo patrón que
+   * Story.test.tsx/Footer.test.tsx, necesario aquí para acotar el guard de
+   * ScNavPanel a SU PROPIA clase en vez de al stylesheet completo.
+   */
+  function cssRuleTextFor(el: HTMLElement): string {
+    const classes = Array.from(el.classList);
+    return Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+      .join("\n");
+  }
 
   describe("despegue al hacer scroll (data-detach, plan navbar-scroll-detach Task 3)", () => {
     beforeEach(() => {

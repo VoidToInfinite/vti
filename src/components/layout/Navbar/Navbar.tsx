@@ -26,6 +26,7 @@ import {
 } from "@/config/navigation";
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
 import { useStage } from "@/motion/StageProvider";
+import { PRESS } from "@/motion/vocabulary";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -412,21 +413,38 @@ const ScNavLinks = styled.div`
 /* Texto pequeño, `textMuted` en reposo (mismo rol que el resto de enlaces
    secundarios del sitio, ver Footer.tsx) y `brandText` al hover -- transición
    corta, solo `color` (spec: "sin efectos colaterales"). Sin subrayado:
-   GlobalStyles ya pone `text-decoration: none` en todos los `a`. */
+   GlobalStyles ya pone `text-decoration: none` en todos los `a`.
+
+   transform se añade a esta lista (Task 9, vocabulary.PRESS): el hover de
+   arriba solo cambia color -- sin movimiento que guardar tras
+   PRESS.hoverGuard (punto 2 del brief) --, así que la entrada nace ya con
+   los valores de PRESS, gobernando exclusivamente el press de abajo.
+   ScNavPanelLink (más abajo, styled(ScNavLink)) hereda este :active por
+   composición, sin declarar nada propio. */
 const ScNavLink = styled.a`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 500;
   color: ${({ theme }) => theme.data.semantic.textMuted};
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brandText};
   }
 
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 
@@ -451,6 +469,9 @@ const ScNavGroup = styled.div`
  * mínima AA de 44px, mismo precedente literal que `ScLanguageButton`
  * (`LanguageSelector.tsx`).
  */
+/* transform se añade a esta lista (Task 9, vocabulary.PRESS), mismo
+   criterio que ScNavLink arriba: el hover solo cambia color, sin nada que
+   guardar tras PRESS.hoverGuard. */
 const ScNavTrigger = styled.button`
   display: inline-flex;
   align-items: center;
@@ -464,16 +485,26 @@ const ScNavTrigger = styled.button`
   font-weight: 500;
   color: ${({ theme }) => theme.data.semantic.textMuted};
   cursor: pointer;
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brandText};
   }
 
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 
@@ -553,7 +584,29 @@ const ScChevron = styled.svg<{ $open: boolean }>`
  * accesibilidad durante TODO el fade-out, y solo desaparece cuando la
  * animación ya terminó. Es el "retardo" que pide la tarea, nativo del
  * navegador, sin ninguna sintaxis extra.
+ *
+ * Task 9 (craft de interacción, punto 5 del brief): transform-origin: top
+ * left (el panel cuelga desde su disparador, arriba-izquierda, ver
+ * `position: absolute; top: 100%; left: 0` de más abajo -- el encogimiento
+ * de scale tiene que anclarse ahí, no al centro por defecto, o el panel
+ * "flotaría" hacia el centro de su propia caja al cerrarse). El estado
+ * cerrado suma `scale(NAV_PANEL_CLOSED_SCALE)` al `translateY` que ya
+ * tenía. Asimetría 120/180 (regla 26 de RULES.md, mismo patrón que ScBar
+ * más arriba: DOS declaraciones de `transition` -- base y
+ * `[data-open="true"]` -- sin estado de React nuevo): abrir tarda más
+ * (`NAV_PANEL_OPEN_MS`) que cerrar (`NAV_PANEL_CLOSE_MS`) porque abrir pide
+ * tiempo de lectura y cerrar no. `visibility` se queda en la lista, mismo
+ * patrón que ya tenía.
  */
+const NAV_PANEL_CLOSE_MS = 120;
+const NAV_PANEL_OPEN_MS = 180;
+/** Encogimiento del panel cerrado (D5 del brief Task 9): 0.97, DISTINTO de
+ *  PRESS.activeScale (0.98, la escala de :active de un control pulsable
+ *  cuando se presiona) -- este panel nunca se presiona, es un popover que
+ *  entra/sale, así que no hay primitiva de vocabulary.PRESS que lo cubra;
+ *  literal propio de esta coreografía, verbatim del brief. */
+const NAV_PANEL_CLOSED_SCALE = 0.97;
+
 const ScNavPanel = styled.div`
   position: absolute;
   top: 100%;
@@ -569,27 +622,39 @@ const ScNavPanel = styled.div`
   box-shadow: ${({ theme }) => theme.data.elevation[2]};
   z-index: ${({ theme }) => theme.data.zIndex.dropdown};
 
+  transform-origin: top left;
   visibility: hidden;
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(${NAV_PANEL_CLOSED_SCALE});
   pointer-events: none;
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    visibility ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard};
+    opacity ${NAV_PANEL_CLOSE_MS}ms ${PRESS.easing},
+    transform ${NAV_PANEL_CLOSE_MS}ms ${PRESS.easing},
+    visibility ${NAV_PANEL_CLOSE_MS}ms ${PRESS.easing};
 
   &[data-open="true"] {
     visibility: visible;
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     pointer-events: auto;
+    transition:
+      opacity ${NAV_PANEL_OPEN_MS}ms ${PRESS.easing},
+      transform ${NAV_PANEL_OPEN_MS}ms ${PRESS.easing},
+      visibility ${NAV_PANEL_OPEN_MS}ms ${PRESS.easing};
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    /* Mismo hallazgo 4 que ScBar (ver su comentario, más arriba): el
+       estado anidado [data-open="true"] (arriba) redeclara SU PROPIA
+       transition con mayor especificidad (atributo + clase) que el & suelto
+       de este bloque reduce (solo clase) -- sin redeclararlo aquí dentro,
+       bajo reduce el panel abierto seguiría animando con PRESS.easing en
+       vez de "none". */
+    &[data-open="true"] {
+      transition: none;
+    }
   }
 `;
 
