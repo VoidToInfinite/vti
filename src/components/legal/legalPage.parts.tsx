@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import styled from "styled-components";
+import { PRESS } from "@/motion/vocabulary";
 
 /*
  * Piezas con estilo de las 4 páginas legales (D21/D22/D23 de la spec
@@ -26,6 +27,10 @@ export const ScMain = styled.main`
   }
 `;
 
+/* transform se añade a la lista de transition (Task 9, vocabulary.PRESS): el
+   hover de abajo solo cambia color -- sin movimiento que guardar tras
+   PRESS.hoverGuard (punto 2 del brief) --, así que la entrada nace ya con
+   los valores de PRESS, gobernando exclusivamente el press. */
 export const ScBackLink = styled(Link)`
   display: inline-flex;
   align-items: center;
@@ -33,16 +38,26 @@ export const ScBackLink = styled(Link)`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   margin-bottom: ${({ theme }) => theme.data.space[5]};
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brandText};
   }
 
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 
@@ -93,19 +108,32 @@ export const ScTocItem = styled.li`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
 `;
 
+/* Mismo criterio que ScBackLink, arriba: transform nace ya con los valores
+   de vocabulary.PRESS (Task 9), sin guard de hover -- el hover de abajo es
+   solo color. */
 export const ScTocLink = styled.a`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.brandText};
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brand};
   }
 
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 

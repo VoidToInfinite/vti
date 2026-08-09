@@ -3,6 +3,7 @@ import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import esCommon from "@/i18n/locales/es/common.json";
 import esHome from "@/i18n/locales/es/home.json";
 import { links } from "@/config/links";
+import { PRESS } from "@/motion/vocabulary";
 import { themes } from "@/theme/themes";
 import { FOOTER_DARK_BG, FOOTER_STARS } from "./footer.layers";
 import { Footer } from "./Footer";
@@ -554,5 +555,48 @@ describe("Footer", () => {
     const starsContainer = findStarsContainer(container) as HTMLElement;
     expect(starsContainer).toBeDefined();
     expect(starsContainer.children).toHaveLength(FOOTER_STARS.length);
+  });
+
+  /*
+   * Task 9 (craft de interacción): footerLinkStyles (compartido por
+   * ScFooterLink/ScFooterNavLink) gana :active { transform: scale(...) },
+   * tomado de vocabulary.PRESS, con su propia entrada en transition y su
+   * guard de prefers-reduced-motion. Validado con el bug inyectado a
+   * propósito (ver informe de la tarea, tabla footerLinkStyles): comentando
+   * temporalmente el bloque &:active de footerLinkStyles (Footer.tsx) el
+   * primer test de este bloque se pone en rojo (no hay ninguna regla :active
+   * con scale); restaurado, vuelve a verde.
+   */
+  describe(":active de los enlaces del footer (Task 9, vocabulary.PRESS)", () => {
+    it("declara :active con transform: scale(PRESS.activeScale) y transition de transform con PRESS.durationMs/PRESS.easing", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      renderWithProviders(<Footer />);
+      const enlace = screen.getByText(
+        esCommon.Common.Footer.privacy,
+      ) as HTMLElement;
+      const css = cssRuleTextFor(enlace);
+
+      expect(css).toContain(":active");
+      const activeBlock = css.slice(css.indexOf(":active"));
+      expect(activeBlock).toContain(`scale(${PRESS.activeScale})`);
+      expect(css).toContain(`${PRESS.durationMs}ms`);
+      expect(css).toContain(PRESS.easing);
+    });
+
+    it("el guard de prefers-reduced-motion anula la transición y el transform de :active", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      renderWithProviders(<Footer />);
+      const enlace = screen.getByText(
+        esCommon.Common.Footer.privacy,
+      ) as HTMLElement;
+      const css = cssRuleTextFor(enlace);
+
+      expect(css).toContain("prefers-reduced-motion: reduce");
+      const reduceBlock = css.slice(
+        css.indexOf("prefers-reduced-motion: reduce"),
+      );
+      expect(reduceBlock).toContain("transition: none");
+      expect(reduceBlock).toContain("transform: none");
+    });
   });
 });

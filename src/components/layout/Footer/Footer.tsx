@@ -15,6 +15,7 @@ import { Typography } from "@/components/ui/Typography/Typography";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { links } from "@/config/links";
 import { NAV_GROUPS } from "@/config/navigation";
+import { PRESS } from "@/motion/vocabulary";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
@@ -280,16 +281,30 @@ const ScColumnLinks = styled.div`
 const footerLinkStyles = css`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  /* transform se añade a esta lista (Task 9, vocabulary.PRESS): el hover de
+     arriba solo cambia color -- sin movimiento que guardar tras
+     PRESS.hoverGuard (punto 2 del brief) --, así que la entrada nace ya con
+     los valores de PRESS, gobernando exclusivamente el press de abajo. */
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brandText};
   }
 
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 
