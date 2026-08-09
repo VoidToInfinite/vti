@@ -28,14 +28,11 @@ import {
 import {
   JOURNEY_STEPS,
   JOURNEY_CARD_BACKGROUND,
-  JOURNEY_DISC_BORDER,
   JOURNEY_FIGURE_SCROLL_SHIFT,
   JOURNEY_PATH_VIEWBOX,
   JOURNEY_PATH_D,
   JOURNEY_PATH_SCROLL_SHIFT,
   JOURNEY_PATH_STROKE,
-  JOURNEY_QUOTE_GRADIENT_DARK,
-  JOURNEY_QUOTE_GRADIENT_LIGHT,
   JOURNEY_FIGURE_SHADOW,
   JOURNEY_FIGURE_WIDTH,
   JOURNEY_FIGURE_SIZES,
@@ -283,6 +280,21 @@ function stepColor(
   return theme.palette[step.colorRamp][step.colorStep];
 }
 
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, ghost-card):
+ * regla borde-O-sombra, nunca los dos (impeccable) -- este disco CONSERVA su
+ * sombra-glow (`$shadow`, coloreada por paso via `discShadow` en
+ * `JOURNEY_STEPS`, journey.layers.ts) y RETIRA el borde 1px
+ * (`JOURNEY_DISC_BORDER`, tambien retirado de journey.layers.ts por quedarse
+ * sin consumidor). Por que este lado y no el otro: el disco es el marcador de
+ * un paso dentro de una ESCENA -- la sombra ya es un halo de color que sugiere
+ * luz propia (14% de alfa, tenida con el mismo hue que el icono/etiqueta del
+ * paso, ver `discShadow` en journey.layers.ts), asi que un borde encima
+ * competiria con ese glow por el mismo borde visual en vez de reforzarlo.
+ * Comparese con `ScCard` en Contact.tsx (Task 12 tambien): esa es una
+ * SUPERFICIE de tarjeta sobre la pagina, no un marcador de escena, y ahi la
+ * regla elige el lado contrario (borde, sin sombra).
+ */
 const ScDisc = styled.div<{
   $colorRamp: JourneyStep["colorRamp"];
   $colorStep: JourneyStep["colorStep"];
@@ -292,7 +304,6 @@ const ScDisc = styled.div<{
   height: 56px;
   border-radius: ${({ theme }) => theme.data.radius.full};
   background: ${({ theme }) => theme.data.semantic.surface};
-  border: 1px solid ${JOURNEY_DISC_BORDER};
   box-shadow: ${({ $shadow }) => $shadow};
   display: flex;
   align-items: center;
@@ -336,27 +347,35 @@ const ScQuote = styled.div`
   font-weight: 600;
 `;
 
-/* Degradado de texto estático (la spec §7.2 no pide animarlo, a diferencia
-   del tramo `ToInfinite` de `BrandName.tsx`), con la misma red de seguridad
-   de `@supports not (background-clip: text)` para no dejar el texto
-   invisible en un motor que no soporte el recorte. Se reutiliza TAL CUAL en
-   la diapositiva de cita de la presentacion oscura (`JourneyDeckDark`, mas
-   abajo): las dos ramas comparten el mismo degradado en el mismo instante. */
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, 2026-08-09):
+ * el degradado de texto (`background-clip: text` + `JOURNEY_QUOTE_GRADIENT_LIGHT`/
+ * `_DARK`, retirados de `journey.layers.ts`) pasa a color solido. Mismo
+ * motivo que `ScAccent` en Story.tsx/Contact.tsx: un degradado de texto queda
+ * fuera del alcance de `contrast.ts`, asi que nadie lo habia medido nunca.
+ *
+ * El color elegido es el MISMO `semantic.brandText` que este bloque ya usaba
+ * como fallback de `@supports not (background-clip: text)`. Se reutiliza TAL
+ * CUAL en la diapositiva de cita de la presentacion oscura (`JourneyDeckDark`,
+ * mas abajo): las dos ramas comparten el mismo componente en el mismo
+ * instante, asi que hacen falta las dos medidas:
+ *
+ * - Rama CLARA: se pinta sobre `JOURNEY_CARD_BACKGROUND` (el degradado pastel
+ *   translucido de `ScCard`, alfa ~0.92 sobre `semantic.bg`) -- brandText da
+ *   entre 5.19:1 y 5.27:1 segun la parada, la peor de las dos por encima de
+ *   AA (4.5:1).
+ * - Rama OSCURA: se pinta sobre la escena `JourneyCosmicPortal`, cuyo void
+ *   (`JOURNEY_PORTAL_VOID`, "#0b0620") es lo unico medible por codigo (jsdom
+ *   no compone las capas WebP reales) -- brandText da 12.98:1. El propio
+ *   `journeyCosmicPortal.layers.ts` documenta una esquina MEDIDA de la capa
+ *   opaca real (`01-background`, "#12012a", "algo mas claro" que el void) --
+ *   se mide tambien contra esa cifra (12.96:1, practicamente igual) porque es
+ *   el dato mas cercano al pixel real que existe en el repo.
+ *
+ * Medicion completa en Journey.test.tsx, describe "Task 12".
+ */
 const ScQuoteText = styled.span`
-  background-image: ${({ theme }) =>
-    theme.data.isLight
-      ? JOURNEY_QUOTE_GRADIENT_LIGHT
-      : JOURNEY_QUOTE_GRADIENT_DARK};
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-
-  @supports not (background-clip: text) {
-    background-image: none;
-    color: ${({ theme }) => theme.data.semantic.brandText};
-    -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
-  }
+  color: ${({ theme }) => theme.data.semantic.brandText};
 `;
 
 /*

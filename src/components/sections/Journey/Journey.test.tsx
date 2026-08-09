@@ -19,13 +19,18 @@ import {
   JOURNEY_OVERLAY_RISE,
   JOURNEY_SLIDES,
 } from "./journey.layers";
-import { JOURNEY_PORTAL_LAYERS } from "@/components/scenes/journeyCosmicPortal/journeyCosmicPortal.layers";
+import {
+  JOURNEY_PORTAL_LAYERS,
+  JOURNEY_PORTAL_VOID,
+} from "@/components/scenes/journeyCosmicPortal/journeyCosmicPortal.layers";
 import {
   STORY_DARK_HEIGHT,
   STORY_DECK_TAIL_SCREENS,
 } from "@/components/sections/Story/story.layers";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
+import { themes } from "@/theme/themes";
+import { contrastRatioHex } from "@/theme/tokens/contrast";
 
 /*
  * Journey monta con frecuencia VARIOS IntersectionObserver a la vez: en
@@ -834,4 +839,132 @@ describe("invariante solape de Journey ↔ cola de la pista de Story (D5)", () =
     expect(unidad(JOURNEY_OVERLAY_RISE)).toBe(unidad(JOURNEY_DARK_HEIGHT));
     expect(magnitud(JOURNEY_OVERLAY_RISE)).toBe(magnitud(JOURNEY_DARK_HEIGHT));
   });
+});
+
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, 2026-08-09):
+ * `ScQuoteText` pasa de degradado de texto (`background-clip: text`) a color
+ * solido (`semantic.brandText`) -- ver su docblock en Journey.tsx para el
+ * porque completo. Se reutiliza TAL CUAL en las DOS ramas (JourneyLight,
+ * dentro de `ScQuote`; JourneyDeckDark, dentro de `ScJourneyQuote`): las dos
+ * se miden.
+ */
+describe("Journey: Task 12, ScQuoteText pasa a color solido", () => {
+  function quoteNode(): HTMLElement {
+    return screen.getByText(`“${esHome.Home.journey.quote}”`);
+  }
+
+  it("rama clara: la cita (ScQuoteText) resuelve semantic.brandText, sin background-clip", () => {
+    renderWithProviders(<Journey />);
+    const quote = quoteNode();
+
+    expect(getComputedStyle(quote).color).toBe(themes.light.semantic.brandText);
+    const css = cssRuleTextFor(quote);
+    expect(css).not.toContain("background-clip");
+    expect(css).not.toContain("color: transparent");
+  });
+
+  it("rama oscura: la cita (ScQuoteText, dentro de ScJourneyQuote) resuelve semantic.brandText, sin background-clip", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      renderWithProviders(<Journey />);
+      await waitFor(() => {
+        expect(quoteNode()).toBeInTheDocument();
+      });
+      const quote = quoteNode();
+
+      expect(getComputedStyle(quote).color).toBe(
+        themes.dark.semantic.brandText,
+      );
+      const css = cssRuleTextFor(quote);
+      expect(css).not.toContain("background-clip");
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+
+  /*
+   * Medicion de contraste AA (cierra el hueco que senalo la auditoria: "6
+   * piezas color:transparent fuera del alcance de contrast.ts"). Rama clara
+   * contra las dos paradas de `JOURNEY_CARD_BACKGROUND` (compuestas con su
+   * alfa real sobre `semantic.bg`, el unico fondo detras de `ScCard`); rama
+   * oscura contra `JOURNEY_PORTAL_VOID` (el void de la escena, hex -- jsdom
+   * no compone las capas WebP reales, asi que es el suelo medible por
+   * codigo). `journeyCosmicPortal.layers.ts` documenta ademas una esquina
+   * MEDIDA de la capa opaca real (`01-background`, "#12012a") -- se mide
+   * tambien contra esa cifra por ser el dato mas cercano al pixel real que
+   * existe en el repo.
+   */
+  it("brandText sobre JOURNEY_CARD_BACKGROUND compuesto (rama clara) y sobre JOURNEY_PORTAL_VOID / la esquina medida (rama oscura) libran AA", () => {
+    // Paradas ya compuestas con su alfa (~0.92) sobre semantic.bg (light) --
+    // ver el docblock de ScQuoteText, Journey.tsx, para el calculo completo
+    // (5.19:1 / 5.27:1). Se miden como literal hex final, no recomponiendo
+    // el alfa aqui: contrastRatioHex no compone, solo mide.
+    const paradasCompuestas = ["#ffecfd", "#e5f6ff"];
+    paradasCompuestas.forEach((parada) => {
+      const ratio = contrastRatioHex(themes.light.semantic.brandText, parada);
+      expect(
+        ratio,
+        `parada ${parada}: contraste ${ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    const ratioVoid = contrastRatioHex(
+      themes.dark.semantic.brandText,
+      JOURNEY_PORTAL_VOID,
+    );
+    expect(
+      ratioVoid,
+      `void: contraste ${ratioVoid.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(4.5);
+
+    const ratioEsquinaMedida = contrastRatioHex(
+      themes.dark.semantic.brandText,
+      "#12012a",
+    );
+    expect(
+      ratioEsquinaMedida,
+      `esquina medida: contraste ${ratioEsquinaMedida.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), documentado en el informe de la
+   * tarea: revertir `ScQuoteText` (Journey.tsx) a
+   * `color: theme.data.semantic.text` (en vez de `brandText`) pone en rojo
+   * los dos primeros tests de este describe; restaurado, vuelve a verde.
+   */
+});
+
+/*
+ * Task 12 (ghost-card): `ScDisc` (rama clara) conserva su sombra-glow
+ * (`discShadow`, coloreada por paso) y retira el borde 1px
+ * (`JOURNEY_DISC_BORDER`) -- ver el docblock de `ScDisc`, Journey.tsx, para
+ * la regla completa (borde O sombra, nunca los dos) y por que este disco
+ * concreto se queda con la sombra.
+ */
+describe("Journey: Task 12, ghost-card ScDisc (rama clara)", () => {
+  function firstDisc(): HTMLElement {
+    const icon = [...document.querySelectorAll("svg")].find(
+      (svg) => svg.getAttribute("viewBox") === "0 0 24 24",
+    ) as SVGSVGElement;
+    return icon.parentElement as HTMLElement;
+  }
+
+  it("conserva la sombra-glow (box-shadow del paso) y NO declara ningun borde", () => {
+    renderWithProviders(<Journey />);
+    const disc = firstDisc();
+    const css = cssRuleTextFor(disc);
+
+    expect(css).toContain(`box-shadow: ${JOURNEY_STEPS[0].discShadow}`);
+    expect(css).not.toContain("border:");
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), documentado en el informe de la
+   * tarea: reintroducir `border: 1px solid oklch(0.9 0.03 275);` en `ScDisc`
+   * (Journey.tsx) pone en rojo la aserción `expect(css).not.toContain("border:")`;
+   * restaurado, vuelve a verde.
+   */
 });

@@ -91,8 +91,14 @@ export const JOURNEY_STEPS: readonly JourneyStep[] = [
 export const JOURNEY_CARD_BACKGROUND =
   "linear-gradient(135deg, #FFEBFDEB, #E3F6FFEB)";
 
-/** Borde de los 6 discos, idéntico para todos los pasos (mockup L115 etc.). */
-export const JOURNEY_DISC_BORDER = "oklch(0.9 0.03 275)";
+/*
+ * AQUI VIVIO JOURNEY_DISC_BORDER, el borde de los 6 discos (mockup L115
+ * etc.). Retirado en Task 12 (dieta de ornamento B, 2026-08-09, ghost-card):
+ * `ScDisc` (Journey.tsx) se queda solo con su sombra-glow (`discShadow`,
+ * arriba en este fichero) -- la regla de la casa es borde O sombra, nunca
+ * los dos (impeccable); ver el docblock de `ScDisc`, Journey.tsx, para el
+ * porque de este lado.
+ */
 
 /**
  * Path punteado detrás de los pasos (mockup L112), solo ≥ `lg` (spec §7.2).
@@ -105,26 +111,15 @@ export const JOURNEY_PATH_D =
   "M63,28 C105,28 148,54 190,54 S275,34 317,34 S402,58 444,58 S529,30 571,30 S656,52 698,52";
 export const JOURNEY_PATH_STROKE = "oklch(0.72 0.1 290 / 0.45)";
 
-/** Degradado de texto de la cita final (mockup L145, tema claro), estático
- *  (la spec no pide animarlo, a diferencia del degradado del hero en
- *  `BrandName.tsx`). Renombrado con sufijo `_LIGHT` (2026-07-30) al añadir
- *  la variante oscura de abajo. */
-export const JOURNEY_QUOTE_GRADIENT_LIGHT =
-  "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
-
-/**
- * Variante oscura del degradado de la cita (mismo criterio que
- * `STORY_ACCENT_GRADIENT_DARK`, `story.layers.ts`): misma familia de hue
- * (235/255/290), luminosidad mucho mayor para legibilidad sobre el fondo
- * oscuro de la escena. La referencia era el negro-azulado `#02040e` de
- * `JourneyAstralPathway`; desde 2026-08-01 la escena es
- * `JourneyCosmicPortal` y su lienzo es el negro-violeta `#0b0620`
- * (`JOURNEY_PORTAL_VOID`). Los valores no se retocan: siguen entre 0.78 y
- * 0.86 de luminosidad sobre un fondo que sigue siendo oscuro, y el nuevo
- * lienzo apenas es mas claro que el anterior.
+/*
+ * AQUI VIVIERON JOURNEY_QUOTE_GRADIENT_LIGHT/_DARK, el degradado de texto de
+ * la cita final (mockup L145). Retirados en Task 12 (dieta de ornamento B,
+ * auditoria premium 2026-08-08, 2026-08-09): `ScQuoteText` (Journey.tsx) pasa
+ * a color solido (`semantic.brandText`, el mismo rol que ya usaba como
+ * fallback de `@supports not (background-clip: text)`) para poder medir su
+ * contraste con `contrast.ts`. Medicion completa en el docblock de
+ * `ScQuoteText`, Journey.tsx, y en Journey.test.tsx, describe "Task 12".
  */
-export const JOURNEY_QUOTE_GRADIENT_DARK =
-  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
 
 /** `filter: drop-shadow(...)` de la figura (mockup L154). */
 export const JOURNEY_FIGURE_SHADOW =
