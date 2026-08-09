@@ -735,8 +735,8 @@
     "semantic_hash": ""
   },
   "docs/qa-3d-pendiente.md": {
-    "mtime": 1785337139.5916262,
-    "ast_hash": "7e339b09a8bf80dd2f41020c15cbf42e",
+    "mtime": 1786288080.2539184,
+    "ast_hash": "4c79808dfba612b863b85bde3076a87f",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-23-migracion-vti-next16.md": {
@@ -2135,28 +2135,28 @@
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1786282067.99747,
-    "ast_hash": "2654f602a427b07c32d5dfa4efa825c1",
+    "mtime": 1786287993.1359603,
+    "ast_hash": "34574e172feb399016e00f3370004c6d",
     "semantic_hash": ""
   },
   "PRE-LAUNCH-QA.md": {
-    "mtime": 1786204778.110768,
-    "ast_hash": "69c749704fdb4e951af8112bf94e57cb",
+    "mtime": 1786288062.63082,
+    "ast_hash": "256c12ebf41b80e618f5b141dde05e77",
     "semantic_hash": ""
   },
   "PRODUCT.md": {
-    "mtime": 1786271397.0195236,
-    "ast_hash": "54f97f38d0a89bc56429acee430a0373",
+    "mtime": 1786287942.8074818,
+    "ast_hash": "39480276cb72b9a4684dbd247c56a014",
     "semantic_hash": ""
   },
   "PROYECT.md": {
-    "mtime": 1786204774.1895509,
-    "ast_hash": "fd5bc07f994a659ec7f0313d6fa50194",
+    "mtime": 1786288198.9981582,
+    "ast_hash": "5f8d7db0bb607c1e0e29dfb3f27ca203",
     "semantic_hash": ""
   },
   "RULES.md": {
-    "mtime": 1786202817.3473754,
-    "ast_hash": "b617b2e7b24b9418464d7b0c0ed76974",
+    "mtime": 1786288099.686967,
+    "ast_hash": "d90b4ef96be174adf8461e493810ddec",
     "semantic_hash": ""
   },
   ".impeccable/live/server.json": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/progress.md": {
-    "mtime": 1786285559.5891054,
-    "ast_hash": "beef78ed779d84e5a902a393461074f8",
+    "mtime": 1786287106.6633067,
+    "ast_hash": "4e4b595ee626145e3abe5461ffe9520e",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-1-brief.md": {
@@ -2337,6 +2337,11 @@
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-12-report.md": {
     "mtime": 1786285194.3495576,
     "ast_hash": "c123c60743449cfe58ae0aca39487b7b",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md": {
+    "mtime": 1786286741.0936844,
+    "ast_hash": "e8ad777d052e0adcd21e39a36f2fb547",
     "semantic_hash": ""
   }
 }

@@ -261,5 +261,8 @@
   "259": "04-stars-mid",
   "260": "05-stars-near",
   "261": "08-figure-aura",
-  "262": "09-figure"
+  "262": "09-figure",
+  "263": "step3_endToEndPipelineVerification",
+  "264": "VisuallyHidden.tsx",
+  "265": "useNavDetach.ts"
 }

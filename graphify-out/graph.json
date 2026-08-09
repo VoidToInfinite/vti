@@ -120,7 +120,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_layout",
-      "community": 188,
+      "community": 225,
       "norm_label": "layout.tsx"
     },
     {
@@ -130,7 +130,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "app_layout_fontbody",
-      "community": 188,
+      "community": 225,
       "norm_label": "fontbody"
     },
     {
@@ -140,7 +140,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "app_layout_fontmono",
-      "community": 188,
+      "community": 225,
       "norm_label": "fontmono"
     },
     {
@@ -150,7 +150,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "app_layout_metadata",
-      "community": 188,
+      "community": 225,
       "norm_label": "metadata"
     },
     {
@@ -160,7 +160,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "app_layout_viewport",
-      "community": 188,
+      "community": 225,
       "norm_label": "viewport"
     },
     {
@@ -170,7 +170,7 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "app_layout_rootlayout",
-      "community": 188,
+      "community": 225,
       "norm_label": "rootlayout()"
     },
     {
@@ -230,7 +230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_not_found_test",
-      "community": 188,
+      "community": 159,
       "norm_label": "not-found.test.tsx"
     },
     {
@@ -240,7 +240,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_not_found",
-      "community": 188,
+      "community": 159,
       "norm_label": "not-found.tsx"
     },
     {
@@ -250,7 +250,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "app_not_found_metadata",
-      "community": 188,
+      "community": 159,
       "norm_label": "metadata"
     },
     {
@@ -260,7 +260,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "app_not_found_notfound",
-      "community": 188,
+      "community": 159,
       "norm_label": "notfound()"
     },
     {
@@ -270,7 +270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_opengraph_image",
-      "community": 188,
+      "community": 159,
       "norm_label": "opengraph-image.tsx"
     },
     {
@@ -280,7 +280,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "app_opengraph_image_size",
-      "community": 188,
+      "community": 159,
       "norm_label": "size"
     },
     {
@@ -290,7 +290,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "app_opengraph_image_image",
-      "community": 188,
+      "community": 159,
       "norm_label": "image()"
     },
     {
@@ -370,7 +370,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_robots_test",
-      "community": 188,
+      "community": 248,
       "norm_label": "robots.test.ts"
     },
     {
@@ -380,7 +380,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_robots",
-      "community": 188,
+      "community": 248,
       "norm_label": "robots.ts"
     },
     {
@@ -390,7 +390,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "app_robots_robots",
-      "community": 188,
+      "community": 248,
       "norm_label": "robots()"
     },
     {
@@ -400,7 +400,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_sitemap_test",
-      "community": 188,
+      "community": 248,
       "norm_label": "sitemap.test.ts"
     },
     {
@@ -410,7 +410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_sitemap",
-      "community": 188,
+      "community": 248,
       "norm_label": "sitemap.ts"
     },
     {
@@ -420,7 +420,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "app_sitemap_sitemap_route_keys",
-      "community": 188,
+      "community": 248,
       "norm_label": "sitemap_route_keys"
     },
     {
@@ -430,7 +430,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "app_sitemap_sitemap",
-      "community": 188,
+      "community": 248,
       "norm_label": "sitemap()"
     },
     {
@@ -2990,7 +2990,7 @@
       "source_location": "L123",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_pipeline_rgbnoisediagnosis",
-      "community": 102,
+      "community": 263,
       "norm_label": "rgbnoisediagnosis"
     },
     {
@@ -3000,7 +3000,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_rgbnoisediagnosis_context",
-      "community": 102,
+      "community": 263,
       "norm_label": "context"
     },
     {
@@ -3220,7 +3220,7 @@
       "source_location": "L173",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_rgbnoisediagnosis_step2_aftermitchellresizeto1024",
-      "community": 102,
+      "community": 263,
       "norm_label": "step2_aftermitchellresizeto1024"
     },
     {
@@ -3230,7 +3230,7 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_step2_aftermitchellresizeto1024_method",
-      "community": 102,
+      "community": 263,
       "norm_label": "method"
     },
     {
@@ -3330,7 +3330,7 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_step2_aftermitchellresizeto1024_conclusion",
-      "community": 102,
+      "community": 263,
       "norm_label": "conclusion"
     },
     {
@@ -3340,7 +3340,7 @@
       "source_location": "L209",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_rgbnoisediagnosis_step3_endtoendpipelineverification",
-      "community": 102,
+      "community": 263,
       "norm_label": "step3_endtoendpipelineverification"
     },
     {
@@ -3350,7 +3350,7 @@
       "source_location": "L210",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_method",
-      "community": 102,
+      "community": 263,
       "norm_label": "method"
     },
     {
@@ -3360,7 +3360,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_thresholdsweepresults",
-      "community": 102,
+      "community": 263,
       "norm_label": "thresholdsweepresults"
     },
     {
@@ -3370,7 +3370,7 @@
       "source_location": "L312",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_conclusion",
-      "community": 102,
+      "community": 263,
       "norm_label": "conclusion"
     },
     {
@@ -3380,7 +3380,7 @@
       "source_location": "L313",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_whydifferentfromlasttime",
-      "community": 102,
+      "community": 263,
       "norm_label": "whydifferentfromlasttime"
     },
     {
@@ -3390,7 +3390,7 @@
       "source_location": "L314",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_appliesto",
-      "community": 102,
+      "community": 263,
       "norm_label": "appliesto"
     },
     {
@@ -3530,7 +3530,7 @@
       "source_location": "L331",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bylayer_01_energy",
-      "community": 52,
+      "community": 10,
       "norm_label": "01-energy"
     },
     {
@@ -3540,7 +3540,7 @@
       "source_location": "L332",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_quality",
-      "community": 52,
+      "community": 10,
       "norm_label": "quality"
     },
     {
@@ -3550,7 +3550,7 @@
       "source_location": "L333",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_alphaquality",
-      "community": 52,
+      "community": 10,
       "norm_label": "alphaquality"
     },
     {
@@ -3560,7 +3560,7 @@
       "source_location": "L334",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_lossless",
-      "community": 52,
+      "community": 10,
       "norm_label": "lossless"
     },
     {
@@ -3570,7 +3570,7 @@
       "source_location": "L335",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_effort",
-      "community": 52,
+      "community": 10,
       "norm_label": "effort"
     },
     {
@@ -3580,7 +3580,7 @@
       "source_location": "L336",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_01_energy_smartsubsample",
-      "community": 52,
+      "community": 10,
       "norm_label": "smartsubsample"
     },
     {
@@ -3590,7 +3590,7 @@
       "source_location": "L338",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_bylayer_02_hand_left",
-      "community": 10,
+      "community": 52,
       "norm_label": "02-hand-left"
     },
     {
@@ -3600,7 +3600,7 @@
       "source_location": "L339",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_quality",
-      "community": 10,
+      "community": 52,
       "norm_label": "quality"
     },
     {
@@ -3610,7 +3610,7 @@
       "source_location": "L340",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_alphaquality",
-      "community": 10,
+      "community": 52,
       "norm_label": "alphaquality"
     },
     {
@@ -3620,7 +3620,7 @@
       "source_location": "L341",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_lossless",
-      "community": 10,
+      "community": 52,
       "norm_label": "lossless"
     },
     {
@@ -3630,7 +3630,7 @@
       "source_location": "L342",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_effort",
-      "community": 10,
+      "community": 52,
       "norm_label": "effort"
     },
     {
@@ -3640,7 +3640,7 @@
       "source_location": "L343",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_02_hand_left_smartsubsample",
-      "community": 10,
+      "community": 52,
       "norm_label": "smartsubsample"
     },
     {
@@ -6280,7 +6280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test",
-      "community": 228,
+      "community": 252,
       "norm_label": "footer.test.tsx"
     },
     {
@@ -6290,7 +6290,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_constructor",
-      "community": 228,
+      "community": 252,
       "norm_label": "constructor()"
     },
     {
@@ -6300,7 +6300,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_observe",
-      "community": 228,
+      "community": 252,
       "norm_label": "observe()"
     },
     {
@@ -6310,7 +6310,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_disconnect",
-      "community": 228,
+      "community": 252,
       "norm_label": "disconnect()"
     },
     {
@@ -6320,7 +6320,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_cssruletextfor",
-      "community": 228,
+      "community": 252,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -6330,7 +6330,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_findstarscontainer",
-      "community": 228,
+      "community": 252,
       "norm_label": "findstarscontainer()"
     },
     {
@@ -6340,7 +6340,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_findbeam",
-      "community": 228,
+      "community": 252,
       "norm_label": "findbeam()"
     },
     {
@@ -6540,7 +6540,7 @@
       "source_location": "L388",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_footer",
-      "community": 188,
+      "community": 161,
       "norm_label": "footer()"
     },
     {
@@ -6580,7 +6580,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_footerstar",
-      "community": 163,
+      "community": 161,
       "norm_label": "footerstar"
     },
     {
@@ -7410,7 +7410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_test",
-      "community": 225,
+      "community": 143,
       "norm_label": "legaldocument.test.tsx"
     },
     {
@@ -7420,7 +7420,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_test_doc_keys",
-      "community": 225,
+      "community": 143,
       "norm_label": "doc_keys"
     },
     {
@@ -7440,7 +7440,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldockey",
-      "community": 225,
+      "community": 143,
       "norm_label": "legaldockey"
     },
     {
@@ -7530,7 +7530,7 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_splitplaceholdermarkers",
-      "community": 225,
+      "community": 143,
       "norm_label": "splitplaceholdermarkers()"
     },
     {
@@ -7540,7 +7540,7 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_markedtext",
-      "community": 225,
+      "community": 143,
       "norm_label": "markedtext()"
     },
     {
@@ -7570,7 +7570,7 @@
       "source_location": "L305",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_renderblock",
-      "community": 225,
+      "community": 143,
       "norm_label": "renderblock()"
     },
     {
@@ -7580,7 +7580,7 @@
       "source_location": "L395",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldocument",
-      "community": 225,
+      "community": 143,
       "norm_label": "legaldocument()"
     },
     {
@@ -7590,7 +7590,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_test",
-      "community": 188,
+      "community": 176,
       "norm_label": "legalheader.test.tsx"
     },
     {
@@ -7600,7 +7600,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legalheader",
-      "community": 188,
+      "community": 217,
       "norm_label": "legalheader.tsx"
     },
     {
@@ -7610,7 +7610,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_scheader",
-      "community": 188,
+      "community": 217,
       "norm_label": "scheader"
     },
     {
@@ -7620,7 +7620,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_scinner",
-      "community": 188,
+      "community": 217,
       "norm_label": "scinner"
     },
     {
@@ -7630,7 +7630,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_scbrandlink",
-      "community": 188,
+      "community": 217,
       "norm_label": "scbrandlink"
     },
     {
@@ -7640,7 +7640,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_scactions",
-      "community": 188,
+      "community": 217,
       "norm_label": "scactions"
     },
     {
@@ -7650,7 +7650,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_components_legal_legalheader_legalheader",
-      "community": 188,
+      "community": 161,
       "norm_label": "legalheader()"
     },
     {
@@ -7660,7 +7660,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_documents_legalnoticedocument",
-      "community": 188,
+      "community": 161,
       "norm_label": "legalnoticedocument.tsx"
     },
     {
@@ -7680,7 +7680,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_documents_privacydocument",
-      "community": 188,
+      "community": 161,
       "norm_label": "privacydocument.tsx"
     },
     {
@@ -7690,7 +7690,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_components_legal_documents_privacydocument_privacydocument",
-      "community": 188,
+      "community": 161,
       "norm_label": "privacydocument()"
     },
     {
@@ -7700,7 +7700,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legalpage_contrast_test",
-      "community": 128,
+      "community": 166,
       "norm_label": "legalpage.contrast.test.ts"
     },
     {
@@ -7710,7 +7710,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_legal_legalpage_contrast_test_temas",
-      "community": 128,
+      "community": 166,
       "norm_label": "temas"
     },
     {
@@ -7720,7 +7720,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_components_legal_legalpage_contrast_test_superficies",
-      "community": 128,
+      "community": 166,
       "norm_label": "superficies"
     },
     {
@@ -7730,7 +7730,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legalpage_parts_test",
-      "community": 252,
+      "community": 143,
       "norm_label": "legalpage.parts.test.tsx"
     },
     {
@@ -7740,7 +7740,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_legal_legalpage_parts_test_cssruletextfor",
-      "community": 252,
+      "community": 143,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -7770,7 +7770,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_components_legal_legalpage_parts_scbacklink",
-      "community": 252,
+      "community": 143,
       "norm_label": "scbacklink"
     },
     {
@@ -7840,7 +7840,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "src_components_legal_legalpage_parts_sctoclink",
-      "community": 252,
+      "community": 143,
       "norm_label": "sctoclink"
     },
     {
@@ -8080,7 +8080,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_scenes_aura_aura_layers_test",
-      "community": 189,
+      "community": 160,
       "norm_label": "aura.layers.test.ts"
     },
     {
@@ -8130,7 +8130,7 @@
       "source_location": "L297",
       "_origin": "ast",
       "id": "src_components_scenes_aura_aura_layers_aura_stagger",
-      "community": 189,
+      "community": 209,
       "norm_label": "aura_stagger"
     },
     {
@@ -9570,7 +9570,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_scenes_eye_mascots_usesolcycle",
-      "community": 248,
+      "community": 139,
       "norm_label": "usesolcycle.ts"
     },
     {
@@ -9580,7 +9580,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_scenes_eye_mascots_usesolcycle_solvariant",
-      "community": 248,
+      "community": 139,
       "norm_label": "solvariant"
     },
     {
@@ -9590,7 +9590,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_scenes_eye_mascots_usesolcycle_solcycle",
-      "community": 248,
+      "community": 139,
       "norm_label": "solcycle"
     },
     {
@@ -9600,7 +9600,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_scenes_eye_mascots_usesolcycle_othervariant",
-      "community": 248,
+      "community": 139,
       "norm_label": "othervariant()"
     },
     {
@@ -9610,7 +9610,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_scenes_eye_mascots_usesolcycle_usesolcycle",
-      "community": 248,
+      "community": 139,
       "norm_label": "usesolcycle()"
     },
     {
@@ -11000,7 +11000,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test",
-      "community": 142,
+      "community": 35,
       "norm_label": "features.test.tsx"
     },
     {
@@ -11010,7 +11010,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_iocallbacks",
-      "community": 142,
+      "community": 35,
       "norm_label": "iocallbacks"
     },
     {
@@ -11020,7 +11020,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_trigger",
-      "community": 142,
+      "community": 35,
       "norm_label": "trigger()"
     },
     {
@@ -11030,7 +11030,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_injectedcss",
-      "community": 142,
+      "community": 35,
       "norm_label": "injectedcss()"
     },
     {
@@ -11040,7 +11040,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_cssruletextfor",
-      "community": 142,
+      "community": 35,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -11050,7 +11050,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_stubmatchmedia",
-      "community": 142,
+      "community": 35,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -11060,7 +11060,7 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_constructor",
-      "community": 142,
+      "community": 35,
       "norm_label": "constructor()"
     },
     {
@@ -11070,7 +11070,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_observe",
-      "community": 142,
+      "community": 35,
       "norm_label": "observe()"
     },
     {
@@ -11080,7 +11080,7 @@
       "source_location": "L123",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_disconnect",
-      "community": 142,
+      "community": 35,
       "norm_label": "disconnect()"
     },
     {
@@ -11090,7 +11090,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_bullet_keys",
-      "community": 142,
+      "community": 35,
       "norm_label": "bullet_keys"
     },
     {
@@ -11100,7 +11100,7 @@
       "source_location": "L501",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_mixoklab",
-      "community": 160,
+      "community": 35,
       "norm_label": "mixoklab()"
     },
     {
@@ -11110,7 +11110,7 @@
       "source_location": "L583",
       "_origin": "ast",
       "id": "src_components_sections_features_features_test_bulletscontainer",
-      "community": 142,
+      "community": 35,
       "norm_label": "bulletscontainer()"
     },
     {
@@ -11140,7 +11140,7 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "src_components_sections_features_features_accentcolor",
-      "community": 142,
+      "community": 35,
       "norm_label": "accentcolor()"
     },
     {
@@ -11150,7 +11150,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "src_components_sections_features_features_accentcolorhover",
-      "community": 142,
+      "community": 35,
       "norm_label": "accentcolorhover()"
     },
     {
@@ -11510,7 +11510,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers",
-      "community": 142,
+      "community": 35,
       "norm_label": "features.layers.ts"
     },
     {
@@ -11520,7 +11520,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_featurekey",
-      "community": 142,
+      "community": 35,
       "norm_label": "featurekey"
     },
     {
@@ -11530,7 +11530,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_feature_keys",
-      "community": 142,
+      "community": 35,
       "norm_label": "feature_keys"
     },
     {
@@ -11540,7 +11540,7 @@
       "source_location": "L206",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_features_light_reveal_delays_ms",
-      "community": 142,
+      "community": 35,
       "norm_label": "features_light_reveal_delays_ms"
     },
     {
@@ -11550,7 +11550,7 @@
       "source_location": "L212",
       "_origin": "ast",
       "id": "src_components_sections_features_features_layers_feature_figure_basename",
-      "community": 142,
+      "community": 35,
       "norm_label": "feature_figure_basename"
     },
     {
@@ -11560,7 +11560,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test",
-      "community": 159,
+      "community": 183,
       "norm_label": "hero.qa.test.tsx"
     },
     {
@@ -11570,7 +11570,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_stubmatchmedia",
-      "community": 159,
+      "community": 183,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -11580,7 +11580,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_renderhero",
-      "community": 159,
+      "community": 183,
       "norm_label": "renderhero()"
     },
     {
@@ -11590,7 +11590,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_todaslasreglas",
-      "community": 159,
+      "community": 183,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -11600,7 +11600,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_reglasde",
-      "community": 159,
+      "community": 183,
       "norm_label": "reglasde()"
     },
     {
@@ -11610,7 +11610,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_remde",
-      "community": 159,
+      "community": 183,
       "norm_label": "remde()"
     },
     {
@@ -11620,7 +11620,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_sinespacios",
-      "community": 159,
+      "community": 183,
       "norm_label": "sinespacios()"
     },
     {
@@ -12650,7 +12650,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_journey_journey_layers_test",
-      "community": 159,
+      "community": 245,
       "norm_label": "journey.layers.test.ts"
     },
     {
@@ -12700,7 +12700,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_notfound_notfoundcontent_test",
-      "community": 188,
+      "community": 159,
       "norm_label": "notfoundcontent.test.tsx"
     },
     {
@@ -12710,7 +12710,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_notfound_notfoundcontent",
-      "community": 188,
+      "community": 159,
       "norm_label": "notfoundcontent.tsx"
     },
     {
@@ -12720,7 +12720,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_sections_notfound_notfoundcontent_scbacklink",
-      "community": 188,
+      "community": 159,
       "norm_label": "scbacklink"
     },
     {
@@ -12730,7 +12730,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_components_sections_notfound_notfoundcontent_notfoundcontent",
-      "community": 188,
+      "community": 159,
       "norm_label": "notfoundcontent()"
     },
     {
@@ -13430,7 +13430,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_layers_test",
-      "community": 159,
+      "community": 245,
       "norm_label": "story.layers.test.ts"
     },
     {
@@ -13440,7 +13440,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_story_story_layers",
-      "community": 159,
+      "community": 245,
       "norm_label": "story.layers.ts"
     },
     {
@@ -13450,7 +13450,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test",
-      "community": 183,
+      "community": 176,
       "norm_label": "hero-story.integration.test.tsx"
     },
     {
@@ -13460,7 +13460,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_stubmatchmedia",
-      "community": 183,
+      "community": 176,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -13470,7 +13470,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_stubintersectionobserver",
-      "community": 183,
+      "community": 176,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -13480,7 +13480,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_cssruletextfor",
-      "community": 183,
+      "community": 176,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -13490,7 +13490,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_components_sections_hero_story_integration_test_renderpage",
-      "community": 183,
+      "community": 176,
       "norm_label": "renderpage()"
     },
     {
@@ -13720,7 +13720,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_test",
-      "community": 128,
+      "community": 166,
       "norm_label": "iconbutton.test.tsx"
     },
     {
@@ -13730,7 +13730,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_test_icon",
-      "community": 128,
+      "community": 166,
       "norm_label": "icon()"
     },
     {
@@ -13740,7 +13740,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_test_allcssrules",
-      "community": 128,
+      "community": 166,
       "norm_label": "allcssrules()"
     },
     {
@@ -13750,7 +13750,7 @@
       "source_location": "L144",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_test_reglasde",
-      "community": 128,
+      "community": 166,
       "norm_label": "reglasde()"
     },
     {
@@ -13810,7 +13810,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "src_components_ui_iconbutton_iconbutton_iconbutton",
-      "community": 128,
+      "community": 166,
       "norm_label": "iconbutton()"
     },
     {
@@ -14100,7 +14100,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_visuallyhidden_visuallyhidden_test",
-      "community": 46,
+      "community": 264,
       "norm_label": "visuallyhidden.test.tsx"
     },
     {
@@ -14110,7 +14110,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_ui_visuallyhidden_visuallyhidden_test_cssruletextfor",
-      "community": 46,
+      "community": 264,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -14120,7 +14120,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_visuallyhidden_visuallyhidden",
-      "community": 46,
+      "community": 264,
       "norm_label": "visuallyhidden.tsx"
     },
     {
@@ -14130,7 +14130,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_components_ui_visuallyhidden_visuallyhidden_scvisuallyhidden",
-      "community": 46,
+      "community": 264,
       "norm_label": "scvisuallyhidden"
     },
     {
@@ -14140,7 +14140,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_ui_visuallyhidden_visuallyhidden_visuallyhiddenprops",
-      "community": 46,
+      "community": 264,
       "norm_label": "visuallyhiddenprops"
     },
     {
@@ -14150,7 +14150,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_components_ui_visuallyhidden_visuallyhidden_visuallyhidden",
-      "community": 46,
+      "community": 264,
       "norm_label": "visuallyhidden()"
     },
     {
@@ -14230,7 +14230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_links_test",
-      "community": 228,
+      "community": 252,
       "norm_label": "links.test.ts"
     },
     {
@@ -14240,7 +14240,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_links",
-      "community": 228,
+      "community": 252,
       "norm_label": "links.ts"
     },
     {
@@ -14250,7 +14250,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_config_links_links",
-      "community": 228,
+      "community": 252,
       "norm_label": "links"
     },
     {
@@ -14260,7 +14260,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_config_links_linkkey",
-      "community": 228,
+      "community": 252,
       "norm_label": "linkkey"
     },
     {
@@ -14270,7 +14270,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_config_links_internallinkkey",
-      "community": 228,
+      "community": 252,
       "norm_label": "internallinkkey"
     },
     {
@@ -14280,7 +14280,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "docref_rfc_2606",
-      "community": 228,
+      "community": 252,
       "norm_label": "rfc-2606"
     },
     {
@@ -14420,7 +14420,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_site_test",
-      "community": 188,
+      "community": 248,
       "norm_label": "site.test.ts"
     },
     {
@@ -14430,7 +14430,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_site",
-      "community": 188,
+      "community": 248,
       "norm_label": "site.ts"
     },
     {
@@ -14440,7 +14440,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_config_site_site",
-      "community": 188,
+      "community": 159,
       "norm_label": "site"
     },
     {
@@ -14450,7 +14450,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_config_site_routes",
-      "community": 188,
+      "community": 248,
       "norm_label": "routes"
     },
     {
@@ -14460,7 +14460,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_config_site_routekey",
-      "community": 188,
+      "community": 248,
       "norm_label": "routekey"
     },
     {
@@ -14470,7 +14470,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_config_site_legalroutekey",
-      "community": 188,
+      "community": 248,
       "norm_label": "legalroutekey"
     },
     {
@@ -14480,7 +14480,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_config_site_absoluteurl",
-      "community": 188,
+      "community": 248,
       "norm_label": "absoluteurl()"
     },
     {
@@ -14490,7 +14490,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_storage_test",
-      "community": 225,
+      "community": 143,
       "norm_label": "storage.test.ts"
     },
     {
@@ -14500,7 +14500,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_config_storage_test_listsourcefiles",
-      "community": 225,
+      "community": 143,
       "norm_label": "listsourcefiles()"
     },
     {
@@ -14510,7 +14510,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_storage",
-      "community": 225,
+      "community": 143,
       "norm_label": "storage.ts"
     },
     {
@@ -14520,7 +14520,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_config_storage_storage_keys",
-      "community": 225,
+      "community": 143,
       "norm_label": "storage_keys"
     },
     {
@@ -14530,7 +14530,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_config_storage_storageentry",
-      "community": 225,
+      "community": 143,
       "norm_label": "storageentry"
     },
     {
@@ -14540,7 +14540,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "src_config_storage_storage_registry",
-      "community": 225,
+      "community": 143,
       "norm_label": "storage_registry"
     },
     {
@@ -14560,7 +14560,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach",
-      "community": 152,
+      "community": 265,
       "norm_label": "usenavdetach.ts"
     },
     {
@@ -14570,7 +14570,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_navdetachphase",
-      "community": 152,
+      "community": 265,
       "norm_label": "navdetachphase"
     },
     {
@@ -14580,7 +14580,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_navdetachstate",
-      "community": 152,
+      "community": 265,
       "norm_label": "navdetachstate"
     },
     {
@@ -14860,7 +14860,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_hooks_usepointer_tick",
-      "community": 194,
+      "community": 51,
       "norm_label": "tick()"
     },
     {
@@ -15210,7 +15210,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usescrolled_test",
-      "community": 152,
+      "community": 265,
       "norm_label": "usescrolled.test.tsx"
     },
     {
@@ -15220,7 +15220,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usescrolled",
-      "community": 152,
+      "community": 265,
       "norm_label": "usescrolled.ts"
     },
     {
@@ -15230,7 +15230,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_hooks_usescrolled_usescrolled",
-      "community": 152,
+      "community": 265,
       "norm_label": "usescrolled()"
     },
     {
@@ -15680,7 +15680,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_i18n_config_namespaces",
-      "community": 223,
+      "community": 230,
       "norm_label": "namespaces"
     },
     {
@@ -16030,7 +16030,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_seo_jsonld_test",
-      "community": 188,
+      "community": 225,
       "norm_label": "jsonld.test.ts"
     },
     {
@@ -16040,7 +16040,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_seo_jsonld_test_collectstrings",
-      "community": 188,
+      "community": 225,
       "norm_label": "collectstrings()"
     },
     {
@@ -16050,7 +16050,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_seo_jsonld",
-      "community": 188,
+      "community": 225,
       "norm_label": "jsonld.ts"
     },
     {
@@ -16060,7 +16060,7 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "src_seo_jsonld_organizationjsonld",
-      "community": 188,
+      "community": 225,
       "norm_label": "organizationjsonld"
     },
     {
@@ -16070,7 +16070,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_seo_jsonld_websitejsonld",
-      "community": 188,
+      "community": 225,
       "norm_label": "websitejsonld"
     },
     {
@@ -16080,7 +16080,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_seo_jsonld_breadcrumblistitem",
-      "community": 188,
+      "community": 225,
       "norm_label": "breadcrumblistitem"
     },
     {
@@ -16090,7 +16090,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_seo_jsonld_breadcrumblistjsonld",
-      "community": 188,
+      "community": 225,
       "norm_label": "breadcrumblistjsonld"
     },
     {
@@ -16110,7 +16110,7 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "src_seo_jsonld_webpagejsonldinput",
-      "community": 188,
+      "community": 225,
       "norm_label": "webpagejsonldinput"
     },
     {
@@ -16120,7 +16120,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_seo_metadata_test",
-      "community": 188,
+      "community": 159,
       "norm_label": "metadata.test.ts"
     },
     {
@@ -16130,7 +16130,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_seo_metadata_test_all_route_keys",
-      "community": 188,
+      "community": 159,
       "norm_label": "all_route_keys"
     },
     {
@@ -16140,7 +16140,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_seo_metadata_test_fixture_titles",
-      "community": 188,
+      "community": 159,
       "norm_label": "fixture_titles"
     },
     {
@@ -16150,7 +16150,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_seo_metadata_test_expectopengraphwebsite",
-      "community": 188,
+      "community": 159,
       "norm_label": "expectopengraphwebsite()"
     },
     {
@@ -16160,7 +16160,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_seo_metadata_test_expecttwittercard",
-      "community": 188,
+      "community": 159,
       "norm_label": "expecttwittercard()"
     },
     {
@@ -16170,7 +16170,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_seo_metadata_test_expectmaximagepreviewlarge",
-      "community": 188,
+      "community": 159,
       "norm_label": "expectmaximagepreviewlarge()"
     },
     {
@@ -16180,7 +16180,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_seo_metadata",
-      "community": 188,
+      "community": 159,
       "norm_label": "metadata.ts"
     },
     {
@@ -16190,7 +16190,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_seo_metadata_og_image_size",
-      "community": 188,
+      "community": 159,
       "norm_label": "og_image_size"
     },
     {
@@ -16200,7 +16200,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_seo_metadata_buildmetadatainput",
-      "community": 188,
+      "community": 159,
       "norm_label": "buildmetadatainput"
     },
     {
@@ -16210,7 +16210,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_seo_metadata_buildmetadata",
-      "community": 188,
+      "community": 225,
       "norm_label": "buildmetadata()"
     },
     {
@@ -16270,7 +16270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_themeprovider",
-      "community": 217,
+      "community": 208,
       "norm_label": "themeprovider.tsx"
     },
     {
@@ -16280,7 +16280,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themechangesource",
-      "community": 217,
+      "community": 208,
       "norm_label": "themechangesource"
     },
     {
@@ -16290,7 +16290,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themecontextvalue",
-      "community": 217,
+      "community": 208,
       "norm_label": "themecontextvalue"
     },
     {
@@ -16300,7 +16300,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themecontext",
-      "community": 217,
+      "community": 208,
       "norm_label": "themecontext"
     },
     {
@@ -16310,7 +16310,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_theme_themeprovider_themeprovider",
-      "community": 217,
+      "community": 208,
       "norm_label": "themeprovider()"
     },
     {
@@ -16410,7 +16410,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_theme_themes_basiclighttheme",
-      "community": 128,
+      "community": 166,
       "norm_label": "basiclighttheme"
     },
     {
@@ -16420,7 +16420,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_theme_themes_basicdarktheme",
-      "community": 128,
+      "community": 166,
       "norm_label": "basicdarktheme"
     },
     {
@@ -16430,7 +16430,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_theme_themes_themename",
-      "community": 217,
+      "community": 209,
       "norm_label": "themename"
     },
     {
@@ -16920,7 +16920,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_type_test",
-      "community": 159,
+      "community": 245,
       "norm_label": "type.test.ts"
     },
     {
@@ -16930,7 +16930,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_type",
-      "community": 159,
+      "community": 245,
       "norm_label": "type.ts"
     },
     {
@@ -16950,7 +16950,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_theme_tokens_type_typestyle",
-      "community": 159,
+      "community": 245,
       "norm_label": "typestyle"
     },
     {
@@ -16960,7 +16960,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_theme_tokens_type_type",
-      "community": 159,
+      "community": 245,
       "norm_label": "type"
     },
     {
@@ -17982,6 +17982,236 @@
       "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_brief_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
       "community": 238,
       "norm_label": "task 13 \u2014 recompresion del canal alfa de los webp oscuros (p1 bytes)"
+    },
+    {
+      "label": "task-13-report.md",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report",
+      "community": 142,
+      "norm_label": "task-13-report.md"
+    },
+    {
+      "label": "Task 13 \u2014 Recompresi\u00f3n del canal alfa de los WebP oscuros (P1 bytes)",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "community": 142,
+      "norm_label": "task 13 \u2014 recompresion del canal alfa de los webp oscuros (p1 bytes)"
+    },
+    {
+      "label": "1. Herramienta y precondici\u00f3n",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_1_herramienta_y_precondici\u00f3n",
+      "community": 142,
+      "norm_label": "1. herramienta y precondicion"
+    },
+    {
+      "label": "2. Inventario y umbral",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_2_inventario_y_umbral",
+      "community": 142,
+      "norm_label": "2. inventario y umbral"
+    },
+    {
+      "label": "3. Calibraci\u00f3n de Pillow (obligatoria antes de tocar nada real)",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L17",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_3_calibraci\u00f3n_de_pillow_obligatoria_antes_de_tocar_nada_real",
+      "community": 142,
+      "norm_label": "3. calibracion de pillow (obligatoria antes de tocar nada real)"
+    },
+    {
+      "label": "4. M\u00e9todo de recompresi\u00f3n aplicado",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L38",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_4_m\u00e9todo_de_recompresi\u00f3n_aplicado",
+      "community": 142,
+      "norm_label": "4. metodo de recompresion aplicado"
+    },
+    {
+      "label": "Hallazgo no anticipado: 2 ficheros que PASAN el PSNR pero ENGORDAN",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L51",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_hallazgo_no_anticipado_2_ficheros_que_pasan_el_psnr_pero_engordan",
+      "community": 142,
+      "norm_label": "hallazgo no anticipado: 2 ficheros que pasan el psnr pero engordan"
+    },
+    {
+      "label": "5. Tabla completa por fichero",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L60",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_5_tabla_completa_por_fichero",
+      "community": 142,
+      "norm_label": "5. tabla completa por fichero"
+    },
+    {
+      "label": "story-cosmic-being (quality=70)",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L64",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_story_cosmic_being_quality_70",
+      "community": 142,
+      "norm_label": "story-cosmic-being (quality=70)"
+    },
+    {
+      "label": "features-celestial-orbital (quality=85)",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L93",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_features_celestial_orbital_quality_85",
+      "community": 142,
+      "norm_label": "features-celestial-orbital (quality=85)"
+    },
+    {
+      "label": "journey-cosmic-portal (quality=85)",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L114",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_journey_cosmic_portal_quality_85",
+      "community": 142,
+      "norm_label": "journey-cosmic-portal (quality=85)"
+    },
+    {
+      "label": "contact-cosmic-guardian (quality=85)",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L135",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_contact_cosmic_guardian_quality_85",
+      "community": 142,
+      "norm_label": "contact-cosmic-guardian (quality=85)"
+    },
+    {
+      "label": "6. Totales globales",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L150",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_6_totales_globales",
+      "community": 142,
+      "norm_label": "6. totales globales"
+    },
+    {
+      "label": "7. Manifests actualizados",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L167",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_7_manifests_actualizados",
+      "community": 142,
+      "norm_label": "7. manifests actualizados"
+    },
+    {
+      "label": "8. Verificaci\u00f3n ejecutada",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L171",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_8_verificaci\u00f3n_ejecutada",
+      "community": 142,
+      "norm_label": "8. verificacion ejecutada"
+    },
+    {
+      "label": "9. Restricciones globales \u2014 cumplimiento",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L178",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_9_restricciones_globales_cumplimiento",
+      "community": 142,
+      "norm_label": "9. restricciones globales \u2014 cumplimiento"
+    },
+    {
+      "label": "10. Ap\u00e9ndice \u2014 scripts (scratchpad de la sesi\u00f3n, no viven en el repo)",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L189",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_10_ap\u00e9ndice_scripts_scratchpad_de_la_sesi\u00f3n_no_viven_en_el_repo",
+      "community": 142,
+      "norm_label": "10. apendice \u2014 scripts (scratchpad de la sesion, no viven en el repo)"
+    },
+    {
+      "label": "`webp_chunks.py`",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L191",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_webp_chunks_py",
+      "community": 142,
+      "norm_label": "`webp_chunks.py`"
+    },
+    {
+      "label": "`psnr.py`",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L259",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_psnr_py",
+      "community": 142,
+      "norm_label": "`psnr.py`"
+    },
+    {
+      "label": "`calibrate.py`",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L317",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_calibrate_py",
+      "community": 142,
+      "norm_label": "`calibrate.py`"
+    },
+    {
+      "label": "`calibrate_diagnose.py`",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L411",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_calibrate_diagnose_py",
+      "community": 142,
+      "norm_label": "`calibrate_diagnose.py`"
+    },
+    {
+      "label": "`batch_recompress.py`",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L474",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_batch_recompress_py",
+      "community": 142,
+      "norm_label": "`batch_recompress.py`"
+    },
+    {
+      "label": "`apply.py`",
+      "file_type": "document",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L629",
+      "_origin": "ast",
+      "id": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_apply_py",
+      "community": 142,
+      "norm_label": "`apply.py`"
     },
     {
       "label": "task-14-brief.md",
@@ -26414,6 +26644,16 @@
       "norm_label": "discrepancias encontradas entre el material de origen y el codigo real"
     },
     {
+      "label": "Segunda pasada (2026-08-09, documentaci\u00f3n tras las Tareas 1-13 de la auditor\u00eda premium)",
+      "file_type": "document",
+      "source_file": "DESIGN.md",
+      "source_location": "L299",
+      "_origin": "ast",
+      "id": "design_segunda_pasada_2026_08_09_documentaci\u00f3n_tras_las_tareas_1_13_de_la_auditor\u00eda_premium",
+      "community": 112,
+      "norm_label": "segunda pasada (2026-08-09, documentacion tras las tareas 1-13 de la auditoria premium)"
+    },
+    {
       "label": "PRE-LAUNCH-QA.md",
       "file_type": "document",
       "source_file": "PRE-LAUNCH-QA.md",
@@ -26554,10 +26794,20 @@
       "norm_label": "modos especiales y peso (35-41)"
     },
     {
+      "label": "Tareas 1-13 de la implementaci\u00f3n de la auditor\u00eda premium (42-49, a\u00f1adidas 2026-08-09)",
+      "file_type": "document",
+      "source_file": "PRE-LAUNCH-QA.md",
+      "source_location": "L187",
+      "_origin": "ast",
+      "id": "pre_launch_qa_tareas_1_13_de_la_implementaci\u00f3n_de_la_auditor\u00eda_premium_42_49_a\u00f1adidas_2026_08_09",
+      "community": 175,
+      "norm_label": "tareas 1-13 de la implementacion de la auditoria premium (42-49, anadidas 2026-08-09)"
+    },
+    {
       "label": "7. Anti-regresi\u00f3n",
       "file_type": "document",
       "source_file": "PRE-LAUNCH-QA.md",
-      "source_location": "L188",
+      "source_location": "L202",
       "_origin": "ast",
       "id": "pre_launch_qa_7_anti_regresi\u00f3n",
       "community": 175,
@@ -26657,7 +26907,7 @@
       "label": "Claro vs. oscuro: el tema como modo de contenido",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L68",
+      "source_location": "L69",
       "_origin": "ast",
       "id": "product_claro_vs_oscuro_el_tema_como_modo_de_contenido",
       "community": 145,
@@ -26667,7 +26917,7 @@
       "label": "5. Mapa de mensajes por secci\u00f3n",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L82",
+      "source_location": "L83",
       "_origin": "ast",
       "id": "product_5_mapa_de_mensajes_por_secci\u00f3n",
       "community": 145,
@@ -26677,7 +26927,7 @@
       "label": "6. CTAs y destinos",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L93",
+      "source_location": "L94",
       "_origin": "ast",
       "id": "product_6_ctas_y_destinos",
       "community": 145,
@@ -26687,7 +26937,7 @@
       "label": "7. El activo infrautilizado",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L108",
+      "source_location": "L110",
       "_origin": "ast",
       "id": "product_7_el_activo_infrautilizado",
       "community": 145,
@@ -26697,7 +26947,7 @@
       "label": "8. Hallazgos de coherencia vigentes",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L116",
+      "source_location": "L118",
       "_origin": "ast",
       "id": "product_8_hallazgos_de_coherencia_vigentes",
       "community": 145,
@@ -26707,7 +26957,7 @@
       "label": "9. Recorrido del visitante y preguntas sin responder",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L142",
+      "source_location": "L144",
       "_origin": "ast",
       "id": "product_9_recorrido_del_visitante_y_preguntas_sin_responder",
       "community": 145,
@@ -26717,7 +26967,7 @@
       "label": "10. Datos que necesita dar el due\u00f1o",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L154",
+      "source_location": "L156",
       "_origin": "ast",
       "id": "product_10_datos_que_necesita_dar_el_due\u00f1o",
       "community": 145,
@@ -26727,7 +26977,7 @@
       "label": "Bloqueantes legales",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L158",
+      "source_location": "L160",
       "_origin": "ast",
       "id": "product_bloqueantes_legales",
       "community": 145,
@@ -26737,7 +26987,7 @@
       "label": "Decisiones de producto",
       "file_type": "document",
       "source_file": "PRODUCT.md",
-      "source_location": "L171",
+      "source_location": "L173",
       "_origin": "ast",
       "id": "product_decisiones_de_producto",
       "community": 145,
@@ -26807,7 +27057,7 @@
       "label": "5. Roadmap priorizado de entregas pendientes",
       "file_type": "document",
       "source_file": "PROYECT.md",
-      "source_location": "L76",
+      "source_location": "L78",
       "_origin": "ast",
       "id": "proyect_5_roadmap_priorizado_de_entregas_pendientes",
       "community": 184,
@@ -26817,7 +27067,7 @@
       "label": "6. Decisiones pendientes del usuario",
       "file_type": "document",
       "source_file": "PROYECT.md",
-      "source_location": "L89",
+      "source_location": "L92",
       "_origin": "ast",
       "id": "proyect_6_decisiones_pendientes_del_usuario",
       "community": 184,
@@ -26827,7 +27077,7 @@
       "label": "7. Documentaci\u00f3n del proyecto",
       "file_type": "document",
       "source_file": "PROYECT.md",
-      "source_location": "L95",
+      "source_location": "L98",
       "_origin": "ast",
       "id": "proyect_7_documentaci\u00f3n_del_proyecto",
       "community": 184,
@@ -27007,7 +27257,7 @@
       "label": "1. FPS del descenso (escritorio)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L9",
+      "source_location": "L13",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_1_fps_del_descenso_escritorio",
       "community": 63,
@@ -27017,7 +27267,7 @@
       "label": "2. FPS del descenso (m\u00f3vil de gama media)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L26",
+      "source_location": "L30",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_2_fps_del_descenso_m\u00f3vil_de_gama_media",
       "community": 63,
@@ -27027,7 +27277,7 @@
       "label": "3. `prefers-reduced-motion` \u2014 verificar una por una",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L41",
+      "source_location": "L45",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_3_prefers_reduced_motion_verificar_una_por_una",
       "community": 63,
@@ -27037,7 +27287,7 @@
       "label": "4. QA sin WebGL",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L52",
+      "source_location": "L56",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_4_qa_sin_webgl",
       "community": 63,
@@ -27047,7 +27297,7 @@
       "label": "5. Aspecto visual real (nadie lo ha visto todav\u00eda)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L62",
+      "source_location": "L66",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_5_aspecto_visual_real_nadie_lo_ha_visto_todav\u00eda",
       "community": 63,
@@ -27057,7 +27307,7 @@
       "label": "6. Peso y LCP del hero",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L82",
+      "source_location": "L86",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_6_peso_y_lcp_del_hero",
       "community": 63,
@@ -27067,7 +27317,7 @@
       "label": "7. Deuda 3D todav\u00eda abierta",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L93",
+      "source_location": "L97",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_7_deuda_3d_todav\u00eda_abierta",
       "community": 63,
@@ -27077,7 +27327,7 @@
       "label": "8. Entrega 2026-07-25 \u2014 jerarqu\u00eda del Hero y costura Hero\u2192Story",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L104",
+      "source_location": "L108",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_8_entrega_2026_07_25_jerarqu\u00eda_del_hero_y_costura_hero_story",
       "community": 63,
@@ -27087,7 +27337,7 @@
       "label": "8.a Mediciones bloqueantes (no son apariencia: son n\u00fameros)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L112",
+      "source_location": "L116",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_8_a_mediciones_bloqueantes_no_son_apariencia_son_n\u00fameros",
       "community": 63,
@@ -27097,7 +27347,7 @@
       "label": "9. Entrega 2026-07-26 \u2014 Logo en Navbar/Sol/Wormhole, IconButton, degradado animado del t\u00edtulo y CTAs",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L149",
+      "source_location": "L153",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_9_entrega_2026_07_26_logo_en_navbar_sol_wormhole_iconbutton_degradado_animado_del_t\u00edtulo_y_ctas",
       "community": 63,
@@ -27107,7 +27357,7 @@
       "label": "Registro de resultados",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L171",
+      "source_location": "L175",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_registro_de_resultados",
       "community": 63,
@@ -27117,7 +27367,7 @@
       "label": "10. Glow de hover de los CTA (a\u00f1adido el 2026-07-26)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L182",
+      "source_location": "L186",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_10_glow_de_hover_de_los_cta_a\u00f1adido_el_2026_07_26",
       "community": 63,
@@ -27127,7 +27377,7 @@
       "label": "11. Hover de los CTA con el degradado (a\u00f1adido el 2026-07-26)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L195",
+      "source_location": "L199",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_11_hover_de_los_cta_con_el_degradado_a\u00f1adido_el_2026_07_26",
       "community": 63,
@@ -27137,7 +27387,7 @@
       "label": "12. Color del icono del navbar y su tama\u00f1o (a\u00f1adido el 2026-07-26)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L205",
+      "source_location": "L209",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_12_color_del_icono_del_navbar_y_su_tama\u00f1o_a\u00f1adido_el_2026_07_26",
       "community": 63,
@@ -27147,7 +27397,7 @@
       "label": "13. Composici\u00f3n \u00abAura\u00bb del tema claro y transici\u00f3n entre temas (a\u00f1adido el 2026-07-26)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L216",
+      "source_location": "L220",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_13_composici\u00f3n_aura_del_tema_claro_y_transici\u00f3n_entre_temas_a\u00f1adido_el_2026_07_26",
       "community": 63,
@@ -27157,7 +27407,7 @@
       "label": "Lo que S\u00cd est\u00e1 verificado por medici\u00f3n en el navegador real",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L220",
+      "source_location": "L224",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_lo_que_s\u00ed_est\u00e1_verificado_por_medici\u00f3n_en_el_navegador_real",
       "community": 63,
@@ -27167,7 +27417,7 @@
       "label": "Lo que NO se puede verificar aqu\u00ed, y por qu\u00e9",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L231",
+      "source_location": "L235",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_lo_que_no_se_puede_verificar_aqu\u00ed_y_por_qu\u00e9",
       "community": 63,
@@ -27177,7 +27427,7 @@
       "label": "Anotaci\u00f3n de proceso",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L245",
+      "source_location": "L249",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_anotaci\u00f3n_de_proceso",
       "community": 63,
@@ -27187,7 +27437,7 @@
       "label": "14. Coreograf\u00eda de carga y de cambio de tema del hero (a\u00f1adido el 2026-07-27)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L251",
+      "source_location": "L255",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_14_coreograf\u00eda_de_carga_y_de_cambio_de_tema_del_hero_a\u00f1adido_el_2026_07_27",
       "community": 63,
@@ -27197,7 +27447,7 @@
       "label": "14.1 Qu\u00e9 queda SUPERSEDIDO de la secci\u00f3n 13",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L257",
+      "source_location": "L261",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_14_1_qu\u00e9_queda_supersedido_de_la_secci\u00f3n_13",
       "community": 63,
@@ -27207,7 +27457,7 @@
       "label": "14.2 Lo que S\u00cd est\u00e1 verificado por medici\u00f3n en el navegador real",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L265",
+      "source_location": "L269",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_14_2_lo_que_s\u00ed_est\u00e1_verificado_por_medici\u00f3n_en_el_navegador_real",
       "community": 63,
@@ -27217,7 +27467,7 @@
       "label": "14.3 Lo que NO se puede verificar aqu\u00ed",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L269",
+      "source_location": "L273",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_14_3_lo_que_no_se_puede_verificar_aqu\u00ed",
       "community": 63,
@@ -27227,7 +27477,7 @@
       "label": "2026-07-28 \u2014 Retirada de Three.js",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L284",
+      "source_location": "L288",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_2026_07_28_retirada_de_three_js",
       "community": 63,
@@ -27237,7 +27487,7 @@
       "label": "2026-07-28 \u2014 QA visual pendiente de las secciones Landing v2 (tema claro)",
       "file_type": "document",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L297",
+      "source_location": "L301",
       "_origin": "ast",
       "id": "docs_qa_3d_pendiente_2026_07_28_qa_visual_pendiente_de_las_secciones_landing_v2_tema_claro",
       "community": 63,
@@ -65003,6 +65253,226 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L189",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_10_ap\u00e9ndice_scripts_scratchpad_de_la_sesi\u00f3n_no_viven_en_el_repo",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_1_herramienta_y_precondici\u00f3n",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_2_inventario_y_umbral",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_3_calibraci\u00f3n_de_pillow_obligatoria_antes_de_tocar_nada_real",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_4_m\u00e9todo_de_recompresi\u00f3n_aplicado",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_5_tabla_completa_por_fichero",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L150",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_6_totales_globales",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L167",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_7_manifests_actualizados",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L171",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_8_verificaci\u00f3n_ejecutada",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L178",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_task_13_recompresi\u00f3n_del_canal_alfa_de_los_webp_oscuros_p1_bytes",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_9_restricciones_globales_cumplimiento",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_4_m\u00e9todo_de_recompresi\u00f3n_aplicado",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_hallazgo_no_anticipado_2_ficheros_que_pasan_el_psnr_pero_engordan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_5_tabla_completa_por_fichero",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_contact_cosmic_guardian_quality_85",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_5_tabla_completa_por_fichero",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_features_celestial_orbital_quality_85",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_5_tabla_completa_por_fichero",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_journey_cosmic_portal_quality_85",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_5_tabla_completa_por_fichero",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_story_cosmic_being_quality_70",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L629",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_10_ap\u00e9ndice_scripts_scratchpad_de_la_sesi\u00f3n_no_viven_en_el_repo",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_apply_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L474",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_10_ap\u00e9ndice_scripts_scratchpad_de_la_sesi\u00f3n_no_viven_en_el_repo",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_batch_recompress_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L411",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_10_ap\u00e9ndice_scripts_scratchpad_de_la_sesi\u00f3n_no_viven_en_el_repo",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_calibrate_diagnose_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L317",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_10_ap\u00e9ndice_scripts_scratchpad_de_la_sesi\u00f3n_no_viven_en_el_repo",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_calibrate_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L259",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_10_ap\u00e9ndice_scripts_scratchpad_de_la_sesi\u00f3n_no_viven_en_el_repo",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_psnr_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md",
+      "source_location": "L191",
+      "weight": 1.0,
+      "source": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_10_ap\u00e9ndice_scripts_scratchpad_de_la_sesi\u00f3n_no_viven_en_el_repo",
+      "target": "superpowers_sdd_2026_08_08_implementacion_auditoria_premium_task_13_report_webp_chunks_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-14-brief.md",
       "source_location": "L14",
       "weight": 1.0,
@@ -72543,6 +73013,16 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "DESIGN.md",
+      "source_location": "L299",
+      "weight": 1.0,
+      "source": "design_discrepancias_encontradas_entre_el_material_de_origen_y_el_c\u00f3digo_real",
+      "target": "design_segunda_pasada_2026_08_09_documentaci\u00f3n_tras_las_tareas_1_13_de_la_auditor\u00eda_premium",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "PRE-LAUNCH-QA.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -72624,7 +73104,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRE-LAUNCH-QA.md",
-      "source_location": "L188",
+      "source_location": "L202",
       "weight": 1.0,
       "source": "pre_launch_qa_pre_launch_qa_voidtoinfinite",
       "target": "pre_launch_qa_7_anti_regresi\u00f3n",
@@ -72683,6 +73163,16 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "PRE-LAUNCH-QA.md",
+      "source_location": "L187",
+      "weight": 1.0,
+      "source": "pre_launch_qa_6_qa_visual_pendiente_de_ojo_humano",
+      "target": "pre_launch_qa_tareas_1_13_de_la_implementaci\u00f3n_de_la_auditor\u00eda_premium_42_49_a\u00f1adidas_2026_08_09",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -72694,7 +73184,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L154",
+      "source_location": "L156",
       "weight": 1.0,
       "source": "product_product_md_voidtoinfinite",
       "target": "product_10_datos_que_necesita_dar_el_due\u00f1o",
@@ -72744,7 +73234,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L82",
+      "source_location": "L83",
       "weight": 1.0,
       "source": "product_product_md_voidtoinfinite",
       "target": "product_5_mapa_de_mensajes_por_secci\u00f3n",
@@ -72754,7 +73244,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L93",
+      "source_location": "L94",
       "weight": 1.0,
       "source": "product_product_md_voidtoinfinite",
       "target": "product_6_ctas_y_destinos",
@@ -72764,7 +73254,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L108",
+      "source_location": "L110",
       "weight": 1.0,
       "source": "product_product_md_voidtoinfinite",
       "target": "product_7_el_activo_infrautilizado",
@@ -72774,7 +73264,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L116",
+      "source_location": "L118",
       "weight": 1.0,
       "source": "product_product_md_voidtoinfinite",
       "target": "product_8_hallazgos_de_coherencia_vigentes",
@@ -72784,7 +73274,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L142",
+      "source_location": "L144",
       "weight": 1.0,
       "source": "product_product_md_voidtoinfinite",
       "target": "product_9_recorrido_del_visitante_y_preguntas_sin_responder",
@@ -72804,7 +73294,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L68",
+      "source_location": "L69",
       "weight": 1.0,
       "source": "product_4_tono_de_voz",
       "target": "product_claro_vs_oscuro_el_tema_como_modo_de_contenido",
@@ -72834,7 +73324,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L158",
+      "source_location": "L160",
       "weight": 1.0,
       "source": "product_10_datos_que_necesita_dar_el_due\u00f1o",
       "target": "product_bloqueantes_legales",
@@ -72844,7 +73334,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PRODUCT.md",
-      "source_location": "L171",
+      "source_location": "L173",
       "weight": 1.0,
       "source": "product_10_datos_que_necesita_dar_el_due\u00f1o",
       "target": "product_decisiones_de_producto",
@@ -72904,7 +73394,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PROYECT.md",
-      "source_location": "L76",
+      "source_location": "L78",
       "weight": 1.0,
       "source": "proyect_proyect_md_vti",
       "target": "proyect_5_roadmap_priorizado_de_entregas_pendientes",
@@ -72914,7 +73404,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PROYECT.md",
-      "source_location": "L89",
+      "source_location": "L92",
       "weight": 1.0,
       "source": "proyect_proyect_md_vti",
       "target": "proyect_6_decisiones_pendientes_del_usuario",
@@ -72924,7 +73414,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "PROYECT.md",
-      "source_location": "L95",
+      "source_location": "L98",
       "weight": 1.0,
       "source": "proyect_proyect_md_vti",
       "target": "proyect_7_documentaci\u00f3n_del_proyecto",
@@ -73074,7 +73564,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L182",
+      "source_location": "L186",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_10_glow_de_hover_de_los_cta_a\u00f1adido_el_2026_07_26",
@@ -73084,7 +73574,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L195",
+      "source_location": "L199",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_11_hover_de_los_cta_con_el_degradado_a\u00f1adido_el_2026_07_26",
@@ -73094,7 +73584,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L205",
+      "source_location": "L209",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_12_color_del_icono_del_navbar_y_su_tama\u00f1o_a\u00f1adido_el_2026_07_26",
@@ -73104,7 +73594,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L216",
+      "source_location": "L220",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_13_composici\u00f3n_aura_del_tema_claro_y_transici\u00f3n_entre_temas_a\u00f1adido_el_2026_07_26",
@@ -73114,7 +73604,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L251",
+      "source_location": "L255",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_14_coreograf\u00eda_de_carga_y_de_cambio_de_tema_del_hero_a\u00f1adido_el_2026_07_27",
@@ -73124,7 +73614,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L9",
+      "source_location": "L13",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_1_fps_del_descenso_escritorio",
@@ -73134,7 +73624,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L297",
+      "source_location": "L301",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_2026_07_28_qa_visual_pendiente_de_las_secciones_landing_v2_tema_claro",
@@ -73144,7 +73634,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L284",
+      "source_location": "L288",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_2026_07_28_retirada_de_three_js",
@@ -73154,7 +73644,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L26",
+      "source_location": "L30",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_2_fps_del_descenso_m\u00f3vil_de_gama_media",
@@ -73164,7 +73654,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L41",
+      "source_location": "L45",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_3_prefers_reduced_motion_verificar_una_por_una",
@@ -73174,7 +73664,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L52",
+      "source_location": "L56",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_4_qa_sin_webgl",
@@ -73184,7 +73674,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L62",
+      "source_location": "L66",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_5_aspecto_visual_real_nadie_lo_ha_visto_todav\u00eda",
@@ -73194,7 +73684,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L82",
+      "source_location": "L86",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_6_peso_y_lcp_del_hero",
@@ -73204,7 +73694,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L93",
+      "source_location": "L97",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_7_deuda_3d_todav\u00eda_abierta",
@@ -73214,7 +73704,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L104",
+      "source_location": "L108",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_8_entrega_2026_07_25_jerarqu\u00eda_del_hero_y_costura_hero_story",
@@ -73224,7 +73714,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L149",
+      "source_location": "L153",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_9_entrega_2026_07_26_logo_en_navbar_sol_wormhole_iconbutton_degradado_animado_del_t\u00edtulo_y_ctas",
@@ -73234,7 +73724,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L171",
+      "source_location": "L175",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_qa_pendiente_viaje_3d_checklist_para_un_humano_con_navegador_real",
       "target": "docs_qa_3d_pendiente_registro_de_resultados",
@@ -73244,7 +73734,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L112",
+      "source_location": "L116",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_8_entrega_2026_07_25_jerarqu\u00eda_del_hero_y_costura_hero_story",
       "target": "docs_qa_3d_pendiente_8_a_mediciones_bloqueantes_no_son_apariencia_son_n\u00fameros",
@@ -73254,7 +73744,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L245",
+      "source_location": "L249",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_13_composici\u00f3n_aura_del_tema_claro_y_transici\u00f3n_entre_temas_a\u00f1adido_el_2026_07_26",
       "target": "docs_qa_3d_pendiente_anotaci\u00f3n_de_proceso",
@@ -73264,7 +73754,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L231",
+      "source_location": "L235",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_13_composici\u00f3n_aura_del_tema_claro_y_transici\u00f3n_entre_temas_a\u00f1adido_el_2026_07_26",
       "target": "docs_qa_3d_pendiente_lo_que_no_se_puede_verificar_aqu\u00ed_y_por_qu\u00e9",
@@ -73274,7 +73764,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L220",
+      "source_location": "L224",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_13_composici\u00f3n_aura_del_tema_claro_y_transici\u00f3n_entre_temas_a\u00f1adido_el_2026_07_26",
       "target": "docs_qa_3d_pendiente_lo_que_s\u00ed_est\u00e1_verificado_por_medici\u00f3n_en_el_navegador_real",
@@ -73284,7 +73774,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L257",
+      "source_location": "L261",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_14_coreograf\u00eda_de_carga_y_de_cambio_de_tema_del_hero_a\u00f1adido_el_2026_07_27",
       "target": "docs_qa_3d_pendiente_14_1_qu\u00e9_queda_supersedido_de_la_secci\u00f3n_13",
@@ -73294,7 +73784,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L265",
+      "source_location": "L269",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_14_coreograf\u00eda_de_carga_y_de_cambio_de_tema_del_hero_a\u00f1adido_el_2026_07_27",
       "target": "docs_qa_3d_pendiente_14_2_lo_que_s\u00ed_est\u00e1_verificado_por_medici\u00f3n_en_el_navegador_real",
@@ -73304,7 +73794,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/qa-3d-pendiente.md",
-      "source_location": "L269",
+      "source_location": "L273",
       "weight": 1.0,
       "source": "docs_qa_3d_pendiente_14_coreograf\u00eda_de_carga_y_de_cambio_de_tema_del_hero_a\u00f1adido_el_2026_07_27",
       "target": "docs_qa_3d_pendiente_14_3_lo_que_no_se_puede_verificar_aqu\u00ed",
@@ -79802,5 +80292,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "7387e7e47e17d11e1eeb51b270e2f96f0a625154"
+  "built_at_commit": "eaabde812b0760fc4df975e2bc6f6ea188b65b5d"
 }
