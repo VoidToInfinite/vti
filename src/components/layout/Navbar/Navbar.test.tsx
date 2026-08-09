@@ -11,7 +11,13 @@ import { StageProvider, useStage } from "@/motion/StageProvider";
 import { HERO_CHROME_OFFSET_MS } from "@/components/sections/Hero/hero.transition";
 import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { links } from "@/config/links";
-import { PRESS } from "@/motion/vocabulary";
+import { NAV_GROUPS } from "@/config/navigation";
+import { DECK, PRESS } from "@/motion/vocabulary";
+import {
+  NAV_OVERLAY_CLOSE_MS,
+  NAV_OVERLAY_OPEN_MS,
+} from "./navOverlay.transition";
+import { NAV_SHEET_SCROLL_TOLERANCE_PX } from "./NavSheet";
 import { Navbar } from "./Navbar";
 
 /**
@@ -320,13 +326,40 @@ describe("Navbar", () => {
     });
   });
 
-  it("renderiza el selector de idioma", () => {
-    renderNavbar();
-    // El selector de idioma se expone como botones de idioma individual
-    const spanishButton = screen.getByRole("button", { name: /Español/i });
-    const englishButton = screen.getByRole("button", { name: /English/i });
-    expect(spanishButton).toBeInTheDocument();
-    expect(englishButton).toBeInTheDocument();
+  it("renderiza el selector de idioma DOS veces: en la barra (≥md) y dentro de la hoja (<md)", () => {
+    /*
+     * VERDAD NUEVA desde la hoja de navegación móvil (Task 10, regla 40: la
+     * fuente de verdad del test se actualiza, no se relaja la aserción).
+     * Hasta hoy había UNA sola copia, siempre visible en la barra. Ahora hay
+     * dos copias con visibilidad EXCLUYENTE por CSS -- la de la barra oculta
+     * bajo `md`, la de la hoja oculta desde `md` -- porque a 375 px no cabe
+     * el disparador de 44x44 sin mudar el idioma dentro de la hoja (medición
+     * de la spec del vault: 337 px de contenido en 343 px disponibles). El
+     * porqué completo, y por qué NO se mueve con JavaScript, está en el
+     * docblock de `NavSheet.tsx`.
+     *
+     * En un navegador real solo UNA de las dos copias existe a cualquier
+     * ancho. jsdom no evalúa ningún `@media` (regla 36), así que aquí las dos
+     * están en el DOM: se cuentan por `container`, no por rol, y se comprueba
+     * que cada una está donde le toca.
+     */
+    const { container } = renderNavbar();
+
+    const botonesEs = container.querySelectorAll("button[title*='Español']");
+    const botonesEn = container.querySelectorAll("button[title*='Inglés']");
+    expect(botonesEs).toHaveLength(2);
+    expect(botonesEn).toHaveLength(2);
+
+    const hoja = container.querySelector("[data-nav-sheet]") as HTMLElement;
+    const enHoja = hoja.querySelectorAll("button[title*='Español']");
+    expect(enHoja, "el idioma no se ha mudado dentro de la hoja").toHaveLength(
+      1,
+    );
+
+    // La otra copia vive en la barra, FUERA de la hoja: la del banner menos
+    // la de la hoja tiene que ser exactamente una.
+    const banner = screen.getByRole("banner");
+    expect(banner.querySelectorAll("button[title*='Español']")).toHaveLength(1);
   });
 
   it("renderiza el toggle de tema", () => {
@@ -457,12 +490,21 @@ describe("Navbar", () => {
         }
 
         // "#features" lo comparten el enlace de sección "features" (onSite)
-        // y los tres de discover: cuatro anclas en total hacia el mismo
-        // destino.
+        // y los tres de discover. Desde la hoja de navegación móvil (Task 10)
+        // el Navbar pinta esos mismos destinos DOS veces: una en el panel de
+        // escritorio y otra en la hoja (regla 40: se actualiza la fuente de
+        // verdad, no se relaja la aserción). El recuento se DERIVA de
+        // `NAV_GROUPS` y del número de superficies, nunca de un literal
+        // escrito a mano (regla 39): si mañana se añade una cuarta feature,
+        // este test sigue diciendo la verdad sin tocarlo.
+        const anclasFeatures = NAV_GROUPS.flatMap(
+          (group) => group.items,
+        ).filter((item) => item.href === "#features").length;
+        const SUPERFICIES_DE_NAV = 2; // panel de escritorio + hoja móvil
         expect(
           container.querySelectorAll('a[href="#features"]'),
-          `deberian ser 4 anclas hacia #features en tema ${tema}`,
-        ).toHaveLength(4);
+          `deberian ser ${anclasFeatures * SUPERFICIES_DE_NAV} anclas hacia #features en tema ${tema}`,
+        ).toHaveLength(anclasFeatures * SUPERFICIES_DE_NAV);
 
         expect(
           container.querySelector(`a[href="${links.sdk}"]`),
@@ -1011,6 +1053,498 @@ describe("Navbar", () => {
         bloqueScrolledReduce.length,
         'el guard de reduce de ScBar no redeclara [data-scrolled="true"] &',
       ).toBeGreaterThan(0);
+    });
+  });
+
+  /*
+   * HOJA DE NAVEGACIÓN MÓVIL (Task 10 de la auditoría premium).
+   *
+   * Los tests viven aquí, y no en un `NavSheet.test.tsx` propio, porque la
+   * hoja no es renderizable por sí sola: sus dos piezas (el disparador,
+   * dentro de la barra; la hoja, fuera de `ScHeader`) comparten un estado que
+   * vive en `Navbar()`, así que el único montaje que reproduce el componente
+   * real es el del Navbar completo -- que es también lo que este fichero ya
+   * hace para el panel de escritorio.
+   *
+   * LÍMITE DE JSDOM QUE CONDICIONA TODAS LAS CONSULTAS: `@testing-library/dom`
+   * v10 excluye del árbol accesible el contenido de un subárbol con `inert`, y
+   * la opción `hidden: true` NO lo revierte (verificado empíricamente con una
+   * sonda antes de escribir estos tests, no supuesto). Con la hoja cerrada,
+   * por tanto, sus filas son invisibles para `getByRole` incluso con
+   * `hidden: true`: o se abre la hoja primero, o se consulta el DOM por
+   * `container`. Es el mismo comportamiento que el panel de escritorio ya
+   * tenía, solo que allí los tests siempre abren el panel antes de consultar.
+   */
+  describe("hoja de navegación móvil (Task 10)", () => {
+    /** Etiqueta real de `Common.Nav.openMenu`/`closeMenu` en es-ES: la misma
+     *  expresión sirve para los dos estados (solo cambia el verbo), y solo
+     *  hay un disparador de hoja en la barra. */
+    const DISPARADOR = /menú de navegación/i;
+
+    function getSheetTrigger(): HTMLElement {
+      return screen.getByRole("button", { name: DISPARADOR, hidden: true });
+    }
+
+    function getSheet(container: HTMLElement): HTMLElement {
+      const hoja = container.querySelector("[data-nav-sheet]");
+      expect(hoja, "no se monta ninguna hoja de navegación").not.toBeNull();
+      return hoja as HTMLElement;
+    }
+
+    /** Primera clase del elemento que aparece en alguna regla inyectada. */
+    function claseInyectadaDe(el: Element, reglas: string[]): string {
+      return (
+        Array.from(el.classList).find((c) =>
+          reglas.some((r) => r.includes(c)),
+        ) ?? ""
+      );
+    }
+
+    /** Reglas `@media` cuyo texto casa con `patron` y menciona `clase`.
+     *  jsdom no evalúa ningún `@media` (regla 36): la única forma honesta de
+     *  afirmar algo sobre una regla condicionada es leerla del CSSOM. */
+    function reglasEnMedia(
+      reglas: string[],
+      patron: RegExp,
+      clase: string,
+    ): string[] {
+      return reglas.filter(
+        (regla) =>
+          regla.startsWith("@media") &&
+          patron.test(regla) &&
+          regla.includes(clase),
+      );
+    }
+
+    const MEDIA_MD = /min-width:\s*768px/;
+    const MEDIA_REDUCE = /prefers-reduced-motion:\s*reduce/;
+
+    it("el disparador existe, arranca cerrado y su aria-controls apunta al id real de la hoja", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+      const sheetId = trigger.getAttribute("aria-controls");
+      expect(sheetId).toBeTruthy();
+      // `useId()` genera ids con ":" (no son selectores CSS válidos):
+      // getElementById, nunca querySelector("#…").
+      const hoja = document.getElementById(sheetId as string);
+      expect(hoja).toBe(getSheet(container));
+      // Contrato inverso: la hoja se nombra con el id del disparador.
+      expect(hoja).toHaveAttribute("aria-labelledby", trigger.id);
+    });
+
+    it("la hoja arranca cerrada con inert y data-open='false', pero SIN desmontarse", () => {
+      const { container } = renderNavbar();
+      const hoja = getSheet(container);
+
+      expect(hoja).toHaveAttribute("inert");
+      expect(hoja).toHaveAttribute("data-open", "false");
+      // Sus filas siguen en el DOM aunque no sean alcanzables: mismo contrato
+      // que ScNavPanel (el panel nunca se desmonta).
+      expect(hoja.querySelectorAll("a[href]").length).toBeGreaterThan(0);
+    });
+
+    it("al pulsar el disparador la hoja se abre, pierde inert y el foco entra en su primera fila", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+      const hoja = getSheet(container);
+
+      fireEvent.click(trigger);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+      expect(hoja).toHaveAttribute("data-open", "true");
+      expect(hoja).not.toHaveAttribute("inert");
+      // Diferencia DELIBERADA con el panel de escritorio (ver el docblock de
+      // `useNavSheet`): la hoja vive al final del documento, así que un Tab
+      // desde el disparador llevaría al contenido de la página en vez de a
+      // la hoja -- y el cierre por foco fuera la haría inalcanzable por
+      // teclado. El foco entra a mano en la primera fila.
+      expect(document.activeElement).toBe(hoja.querySelector("a"));
+    });
+
+    it("una segunda pulsación del disparador la cierra (alterna)", () => {
+      renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("Escape cierra la hoja y devuelve el foco al disparador", () => {
+      renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      // El foco puede estar en cualquier fila cuando se pulsa Escape; el
+      // manejador vive en `document`, no en un envoltorio común (la hoja no
+      // puede tener uno, ver el docblock de `ScNavSheet`).
+      fireEvent.keyDown(document.activeElement ?? document.body, {
+        key: "Escape",
+      });
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(document.activeElement).toBe(trigger);
+    });
+
+    it("un pointerdown fuera del disparador y de la hoja la cierra", () => {
+      renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      fireEvent.pointerDown(document.body);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("el foco saliendo de la hoja hacia un elemento externo la cierra", () => {
+      renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
+
+      // `focusin` SÍ burbujea (a diferencia de `focus`), que es justo por lo
+      // que el contrato se implementa con él en `document`.
+      fireEvent.focusIn(brandLink);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("activar una fila cierra la hoja", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      const fila = getSheet(container).querySelector(
+        'a[href="#story"]',
+      ) as HTMLElement;
+
+      fireEvent.click(fila);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("scrollear la página cierra la hoja, pero un movimiento dentro de la tolerancia no", () => {
+      // Contrapartida de NO bloquear el scroll (regla 21): la hoja se retira
+      // sola si la página se mueve. La tolerancia existe porque en móvil el
+      // navegador mueve el scroll por su cuenta (barra de direcciones, rebote
+      // elástico) y sin ella la hoja se cerraría nada más abrirse.
+      renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      act(() => {
+        Object.defineProperty(window, "scrollY", {
+          value: NAV_SHEET_SCROLL_TOLERANCE_PX,
+          writable: true,
+          configurable: true,
+        });
+        window.dispatchEvent(new Event("scroll"));
+      });
+      expect(
+        trigger,
+        "un movimiento dentro de la tolerancia no debería cerrar la hoja",
+      ).toHaveAttribute("aria-expanded", "true");
+
+      act(() => {
+        Object.defineProperty(window, "scrollY", {
+          value: NAV_SHEET_SCROLL_TOLERANCE_PX + 40,
+          writable: true,
+          configurable: true,
+        });
+        window.dispatchEvent(new Event("scroll"));
+      });
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("abrir la hoja NO escribe overflow en html ni en body (regla 21: el bloqueo de scroll clásico está vetado)", () => {
+      /*
+       * Candado de la regla 21, la razón por la que esta hoja existe con la
+       * forma que tiene. `overflow: hidden` en `html`/`body` obliga al eje
+       * contrario a computar `auto` y convierte a los dos en contenedor de
+       * scroll: los cuatro `position: sticky` de las presentaciones dejarían
+       * de pegarse al viewport mientras la hoja estuviera abierta.
+       *
+       * Se afirma sobre el estilo EN LÍNEA porque es ahí donde un bloqueo por
+       * JavaScript escribiría (`document.body.style.overflow = "hidden"`);
+       * `getComputedStyle` no aportaría nada aquí, porque `createGlobalStyle`
+       * no inyecta nada bajo jsdom (regla 37) y devolvería el valor por
+       * defecto pasara lo que pasara.
+       */
+      renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      expect(document.documentElement.style.overflow).toBe("");
+      expect(document.documentElement.style.overflowY).toBe("");
+      expect(document.body.style.overflow).toBe("");
+      expect(document.body.style.overflowY).toBe("");
+      expect(document.body.style.position).toBe("");
+    });
+
+    it("la hoja entrega TODOS los destinos de NAV_GROUPS, y los externos avisan de la pestaña nueva", () => {
+      // Recuento DERIVADO del modelo compartido (regla 39), nunca un literal:
+      // el día que `NAV_GROUPS` gane un grupo, este test sigue diciendo la
+      // verdad sin que nadie lo actualice a mano.
+      const { container } = renderNavbar();
+      const items = NAV_GROUPS.flatMap((group) => group.items);
+      const hoja = getSheet(container);
+
+      const filas = Array.from(hoja.querySelectorAll("a[href]"));
+      expect(filas).toHaveLength(items.length);
+      expect(filas.map((fila) => fila.getAttribute("href"))).toEqual(
+        items.map((item) => item.href),
+      );
+
+      for (const item of items.filter((i) => i.kind === "external")) {
+        const externo = hoja.querySelector(
+          `a[href="${item.href}"]`,
+        ) as HTMLElement;
+        expect(externo).toHaveAttribute("target", "_blank");
+        expect(externo).toHaveAttribute("rel", "noopener noreferrer");
+        expect(externo.textContent).toMatch(/se abre en una pestaña nueva/i);
+      }
+
+      // Cada grupo aporta su título, y la lista lo consume como nombre
+      // accesible (aria-labelledby), sin meter encabezados nuevos en el
+      // esquema del documento.
+      const listas = hoja.querySelectorAll("ul[aria-labelledby]");
+      expect(listas).toHaveLength(NAV_GROUPS.length);
+      expect(hoja.querySelectorAll("h1, h2, h3, h4, h5, h6")).toHaveLength(0);
+    });
+
+    it("el velo existe, es aria-hidden y sigue el estado de la hoja", () => {
+      const { container } = renderNavbar();
+      const velo = container.querySelector(
+        "[data-nav-sheet-veil]",
+      ) as HTMLElement;
+
+      expect(velo).not.toBeNull();
+      expect(velo).toHaveAttribute("aria-hidden", "true");
+      expect(velo).toHaveAttribute("data-open", "false");
+
+      fireEvent.click(getSheetTrigger());
+      expect(velo).toHaveAttribute("data-open", "true");
+    });
+
+    it("el icono hamburguesa declara width/height/flex propios (regla 20)", () => {
+      /*
+       * MISMA regresión ya medida tres veces en este repo (`ScLogo`: 167 px
+       * de ancho en una barra de 56; `ScChevron`: 215x143). `GlobalStyles`
+       * declara `svg { width: 100% }` para todo el sitio y esa declaración
+       * gana a la geometría implícita del `viewBox`. jsdom no hace layout, así
+       * que el candado comprueba las DECLARACIONES (que el CSSOM sí resuelve),
+       * no la geometría.
+       */
+      const { container } = renderNavbar();
+      const icono = container.querySelector(
+        "[data-nav-sheet-trigger] svg",
+      ) as HTMLElement;
+      expect(icono, "el disparador no monta ningún icono").not.toBeNull();
+
+      const estilo = getComputedStyle(icono);
+      expect(estilo.width).not.toBe("");
+      expect(estilo.width).not.toBe("100%");
+      expect(estilo.height).not.toBe("");
+      expect(estilo.flex || estilo.flexGrow).not.toBe("");
+    });
+
+    it("el disparador es mobile-first: visible en la regla base y display:none dentro de @media md", () => {
+      // Regla transversal de la spec: la regla base es la MÓVIL y se corrige
+      // hacia arriba con min-width, nunca con un max-width de layout. jsdom no
+      // evalúa @media (regla 36), así que la condición se lee del CSSOM.
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+      const slot = container.querySelector(
+        "[data-nav-sheet-trigger]",
+      ) as HTMLElement;
+      const clase = claseInyectadaDe(slot, reglas);
+      expect(
+        clase,
+        "no se encontró la clase inyectada del disparador",
+      ).not.toBe("");
+
+      expect(getComputedStyle(slot).display).toBe("inline-flex");
+      const enMd = reglasEnMedia(reglas, MEDIA_MD, clase);
+      expect(
+        enMd.some((regla) => /display:\s*none/.test(regla)),
+        "el disparador no se retira desde md",
+      ).toBe(true);
+    });
+
+    it("la hoja y el velo se retiran desde md con display:none, sin desmontarse", () => {
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+
+      for (const [nombre, selector] of [
+        ["la hoja", "[data-nav-sheet]"],
+        ["el velo", "[data-nav-sheet-veil]"],
+      ] as const) {
+        const el = container.querySelector(selector) as HTMLElement;
+        const clase = claseInyectadaDe(el, reglas);
+        expect(
+          clase,
+          `no se encontró la clase inyectada de ${nombre}`,
+        ).not.toBe("");
+        expect(
+          reglasEnMedia(reglas, MEDIA_MD, clase).some((regla) =>
+            /display:\s*none/.test(regla),
+          ),
+          `${nombre} no se retira desde md`,
+        ).toBe(true);
+        // Y sigue en el DOM: el `display: none` de md no desmonta nada.
+        expect(el).toBeInTheDocument();
+      }
+    });
+
+    it("la hoja declara max-height 70dvh y overscroll-behavior: contain, y NINGÚN overflow: hidden", () => {
+      const { container } = renderNavbar();
+      const css = cssRuleTextFor(getSheet(container));
+
+      expect(css).toContain("max-height: 70dvh");
+      expect(css).toContain("overscroll-behavior: contain");
+      // Regla 21 en su forma CSS: la hoja no puede recortar con hidden.
+      expect(css).not.toMatch(/overflow[^:]*:\s*hidden/);
+    });
+
+    it("la hoja usa la gramática de Task 9: transform-origin bottom center, translateY(100%) en cerrado y asimetría 120/180 con PRESS.easing", () => {
+      const { container } = renderNavbar();
+      const css = cssRuleTextFor(getSheet(container));
+
+      expect(css).toContain("transform-origin: bottom center");
+
+      const openIndex = css.indexOf('[data-open="true"]');
+      expect(openIndex).toBeGreaterThan(-1);
+
+      // Estado cerrado (base, ANTES de [data-open="true"]).
+      const cerrado = css.slice(0, openIndex);
+      expect(cerrado).toContain("translateY(100%)");
+      expect(cerrado).toContain(`${NAV_OVERLAY_CLOSE_MS}ms`);
+      expect(cerrado).toContain(PRESS.easing);
+
+      // Estado abierto: transition PROPIA (regla 26), más lenta, misma curva.
+      const abierto = css.slice(openIndex);
+      expect(abierto).toContain(`${NAV_OVERLAY_OPEN_MS}ms`);
+      expect(abierto).toContain(PRESS.easing);
+      expect(abierto).not.toContain(`${NAV_OVERLAY_CLOSE_MS}ms`);
+      // La asimetría solo existe si los dos números son distintos.
+      expect(NAV_OVERLAY_OPEN_MS).toBeGreaterThan(NAV_OVERLAY_CLOSE_MS);
+    });
+
+    it("la hoja transiciona visibility SOLO al cerrar: en la lista de apertura no aparece (bug medido en navegador real)", () => {
+      /*
+       * CANDADO DE UN BUG REAL, no hipotético, encontrado en Chrome a 375x812
+       * sobre el dev server y CORREGIDO en esta misma tarea. `visibility` se
+       * anima de forma DISCRETA: en t=0 exacto todavía vale el valor de
+       * PARTIDA, así que con `visibility` en la lista de apertura la hoja
+       * seguía computando `visibility: hidden` en el instante en que el
+       * efecto llamaba a `focus()` sobre su primera fila -- y un elemento con
+       * `visibility: hidden` NO es focalizable. Medido con
+       * `HTMLElement.prototype.focus` instrumentado: la llamada ocurría, con
+       * `visibility === "hidden"`, y el navegador la descartaba en silencio.
+       * Resultado: la hoja se abría SIN foco dentro y, con el cierre por foco
+       * fuera, quedaba inalcanzable por teclado.
+       *
+       * Este test NO puede reproducir el fallo (jsdom no implementa
+       * transiciones ni la focalización condicionada por `visibility`: su
+       * test de foco pasaba en verde con el bug delante). Lo que sí puede, y
+       * es para lo que existe, es atar la FORMA del CSS que lo corrige, para
+       * que nadie "arregle" la asimetría volviendo a añadir la entrada.
+       */
+      const { container } = renderNavbar();
+
+      for (const [nombre, selector] of [
+        ["la hoja", "[data-nav-sheet]"],
+        ["el velo", "[data-nav-sheet-veil]"],
+      ] as const) {
+        const css = cssRuleTextFor(
+          container.querySelector(selector) as HTMLElement,
+        );
+        const openIndex = css.indexOf('[data-open="true"]');
+        expect(openIndex).toBeGreaterThan(-1);
+
+        expect(
+          css.slice(0, openIndex),
+          `${nombre} debe conservar visibility en la lista de CIERRE`,
+        ).toMatch(/transition:[^;]*visibility/);
+        expect(
+          css.slice(openIndex).match(/transition:[^;]*/)?.[0] ?? "",
+          `${nombre} no puede transicionar visibility al ABRIR`,
+        ).not.toContain("visibility");
+      }
+    });
+
+    it("el velo se funde con DECK.railDurationMs, el valor que el vocabulario reserva para ese rol", () => {
+      const { container } = renderNavbar();
+      const velo = container.querySelector(
+        "[data-nav-sheet-veil]",
+      ) as HTMLElement;
+      const css = cssRuleTextFor(velo);
+
+      expect(css).toContain(`${DECK.railDurationMs}ms`);
+      expect(css).toContain(PRESS.easing);
+    });
+
+    it("hoja, velo e icono anulan sus transiciones bajo prefers-reduced-motion: reduce, estado abierto incluido", () => {
+      /*
+       * El estado abierto se redeclara DENTRO del bloque reduce a propósito
+       * (hallazgo 4, ya pagado en ScBar y ScNavPanel): `[data-open="true"]`
+       * tiene mayor especificidad (atributo + clase) que el `&` suelto del
+       * bloque reduce (solo clase), así que sin redeclararlo la superficie
+       * abierta seguiría animando bajo `reduce`.
+       */
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+
+      for (const [nombre, selector] of [
+        ["la hoja", "[data-nav-sheet]"],
+        ["el velo", "[data-nav-sheet-veil]"],
+        ["el icono", "[data-nav-sheet-trigger] svg"],
+      ] as const) {
+        const el = container.querySelector(selector) as Element;
+        const clase = claseInyectadaDe(el, reglas);
+        expect(
+          clase,
+          `no se encontró la clase inyectada de ${nombre}`,
+        ).not.toBe("");
+
+        const guards = reglasEnMedia(reglas, MEDIA_REDUCE, clase).filter(
+          (regla) => regla.includes("transition: none"),
+        );
+        expect(
+          guards.length,
+          `${nombre} no anula sus transiciones bajo reduce`,
+        ).toBeGreaterThan(0);
+        expect(
+          guards.some((regla) => regla.includes('[data-open="true"]')),
+          `${nombre} no redeclara su estado abierto dentro del bloque reduce`,
+        ).toBe(true);
+      }
+    });
+
+    it("las filas declaran el suelo táctil de 44px y el press de vocabulary.PRESS", () => {
+      const { container } = renderNavbar();
+      const fila = getSheet(container).querySelector("a") as HTMLElement;
+
+      // Declaración, no geometría: jsdom no hace layout.
+      expect(getComputedStyle(fila).minHeight).toBe("44px");
+
+      const css = cssRuleTextFor(fila);
+      expect(css).toContain(":active");
+      expect(css).toContain(`scale(${PRESS.activeScale})`);
     });
   });
 });

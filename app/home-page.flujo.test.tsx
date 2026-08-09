@@ -134,7 +134,22 @@ describe("Home (pagina completa)", () => {
       esHome.Home.hero.subtitle,
     );
 
-    const botonEn = screen.getByRole("button", { name: /english/i });
+    /*
+     * `hidden: true` desde la hoja de navegación móvil (Task 10, regla 40).
+     * El selector de idioma de la BARRA es ahora mobile-first: su regla base
+     * es `display: none` y solo vuelve dentro de `@media md` (bajo 768 px el
+     * idioma vive dentro de la hoja, ver `NavSheet.tsx`). jsdom no evalúa
+     * ningún `@media` (regla 36), así que computa siempre la regla base y
+     * `getByRole` sin `hidden` no encuentra ese botón -- exactamente el mismo
+     * peaje que `ScNavLinks` ya cobraba en `Navbar.test.tsx`. La copia que
+     * vive dentro de la hoja NO añade ambigüedad: la hoja está cerrada, y un
+     * subárbol con `inert` queda fuera del árbol accesible aunque se pida
+     * `hidden: true`.
+     */
+    const botonEn = screen.getByRole("button", {
+      name: /english/i,
+      hidden: true,
+    });
     await act(async () => {
       fireEvent.click(botonEn);
     });
@@ -241,7 +256,11 @@ describe("Home (pagina completa)", () => {
     "BUG: cambiar de idioma NO actualiza el atributo lang del documento",
     async () => {
       renderHomePage();
-      const botonEn = screen.getByRole("button", { name: /english/i });
+      // `hidden: true` por el mismo motivo que en el test de arriba (Task 10).
+      const botonEn = screen.getByRole("button", {
+        name: /english/i,
+        hidden: true,
+      });
       await act(async () => {
         fireEvent.click(botonEn);
       });

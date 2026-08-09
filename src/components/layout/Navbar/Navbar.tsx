@@ -27,6 +27,11 @@ import {
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
 import { useStage } from "@/motion/StageProvider";
 import { PRESS } from "@/motion/vocabulary";
+import {
+  NAV_OVERLAY_CLOSE_MS,
+  NAV_OVERLAY_OPEN_MS,
+} from "./navOverlay.transition";
+import { NavSheet, NavSheetTrigger, useNavSheet } from "./NavSheet";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -384,15 +389,42 @@ const ScActions = styled.div`
 `;
 
 /*
+ * Hueco del selector de idioma EN LA BARRA. Existe desde la hoja de
+ * navegación móvil (Task 10): bajo `md` el idioma no cabe en la barra --
+ * medido en la spec del vault, 337 px de contenido intrínseco en 343 px
+ * disponibles a 375 px, sin espacio para el disparador de 44x44 -- y se muda
+ * dentro de la hoja, que renderiza su propia copia de `LanguageSelector`
+ * (ver el docblock de `NavSheet.tsx`, que explica por qué son dos copias con
+ * visibilidad excluyente por CSS y no un movimiento por JavaScript).
+ *
+ * Mobile-first, como el resto de la spec: la regla base es la MÓVIL
+ * (`display: none`, el idioma vive en la hoja) y se corrige hacia arriba con
+ * `min-width`. Desde `md` vuelve a la barra y el conjunto queda EXACTAMENTE
+ * como estaba antes de esta tarea: un contenedor flexible cuyo tamaño
+ * intrínseco es el de su contenido, así que ni el hueco de `ScActions` ni la
+ * posición de nada cambian un píxel en escritorio.
+ */
+const ScBarLanguage = styled.div`
+  display: none;
+
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    display: inline-flex;
+    align-items: center;
+  }
+`;
+
+/*
  * Grupos de navegación desplegables (tarea W4), reemplazo de los cuatro
  * enlaces planos que este bloque pintaba hasta entonces
  * (`NAV_SECTION_LINKS`). Tres al nacer (onSite/discover/resources); cuatro
  * desde la tarea 6 (auditoría premium), que añade "community" a
  * `NAV_GROUPS` -- este bloque no necesitó ningún cambio propio para ganarlo,
  * ya recorre el array entero (`NAV_GROUPS.map`, más abajo). SOLO ≥ md
- * (mockup: barra angosta en breakpoints menores, sin menú móvil en esta
- * entrega -- decisión de alcance ya tomada, no hay gate adicional que
- * añadir). `<div>`, no un segundo `<nav>`: `ScNav` ya es el elemento `nav`
+ * (mockup: barra angosta en breakpoints menores). Bajo `md` la navegación NO
+ * desaparece desde Task 10: los MISMOS `NAV_GROUPS` se entregan en la hoja
+ * de navegación móvil (`NavSheet.tsx`), que es la otra cara de este bloque
+ * -- una sola fuente de verdad de destinos, dos presentaciones excluyentes
+ * por CSS. `<div>`, no un segundo `<nav>`: `ScNav` ya es el elemento `nav`
  * de la barra: anidar un landmark de navegación dentro de otro sería un
  * `nav` redundante para lectores de pantalla.
  *
@@ -594,12 +626,16 @@ const ScChevron = styled.svg<{ $open: boolean }>`
  * tenía. Asimetría 120/180 (regla 26 de RULES.md, mismo patrón que ScBar
  * más arriba: DOS declaraciones de `transition` -- base y
  * `[data-open="true"]` -- sin estado de React nuevo): abrir tarda más
- * (`NAV_PANEL_OPEN_MS`) que cerrar (`NAV_PANEL_CLOSE_MS`) porque abrir pide
- * tiempo de lectura y cerrar no. `visibility` se queda en la lista, mismo
- * patrón que ya tenía.
+ * (`NAV_OVERLAY_OPEN_MS`) que cerrar (`NAV_OVERLAY_CLOSE_MS`) porque abrir
+ * pide tiempo de lectura y cerrar no. `visibility` se queda en la lista,
+ * mismo patrón que ya tenía.
+ *
+ * Las dos duraciones ya NO viven aquí: desde Task 10 son las de
+ * `navOverlay.transition.ts`, compartidas con la hoja de navegación móvil,
+ * que usa la misma gramática a propósito (regla 13: una constante idéntica
+ * en dos sitios con obligación de no divergir es una sola fuente de verdad,
+ * no dos literales que hoy coinciden).
  */
-const NAV_PANEL_CLOSE_MS = 120;
-const NAV_PANEL_OPEN_MS = 180;
 /** Encogimiento del panel cerrado (D5 del brief Task 9): 0.97, DISTINTO de
  *  PRESS.activeScale (0.98, la escala de :active de un control pulsable
  *  cuando se presiona) -- este panel nunca se presiona, es un popover que
@@ -628,9 +664,9 @@ const ScNavPanel = styled.div`
   transform: translateY(-4px) scale(${NAV_PANEL_CLOSED_SCALE});
   pointer-events: none;
   transition:
-    opacity ${NAV_PANEL_CLOSE_MS}ms ${PRESS.easing},
-    transform ${NAV_PANEL_CLOSE_MS}ms ${PRESS.easing},
-    visibility ${NAV_PANEL_CLOSE_MS}ms ${PRESS.easing};
+    opacity ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
+    transform ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
+    visibility ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing};
 
   &[data-open="true"] {
     visibility: visible;
@@ -638,9 +674,9 @@ const ScNavPanel = styled.div`
     transform: translateY(0) scale(1);
     pointer-events: auto;
     transition:
-      opacity ${NAV_PANEL_OPEN_MS}ms ${PRESS.easing},
-      transform ${NAV_PANEL_OPEN_MS}ms ${PRESS.easing},
-      visibility ${NAV_PANEL_OPEN_MS}ms ${PRESS.easing};
+      opacity ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing},
+      transform ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing},
+      visibility ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing};
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -827,6 +863,18 @@ export function Navbar(): ReactElement {
   const [openGroup, setOpenGroup] = useState<NavGroupKey | null>(null);
   const navLinksRef = useRef<HTMLDivElement>(null);
 
+  /*
+   * Hoja de navegación móvil (Task 10). El estado vive AQUÍ, y no dentro de
+   * la propia hoja, porque sus dos piezas no tienen ancestro común: el
+   * disparador va dentro de la barra y la hoja tiene que salir de
+   * `ScHeader` para que su `position: fixed` se resuelva contra el viewport
+   * y no contra la barra (`ScHeader` declara `transform`, y un ancestro con
+   * `transform` se convierte en el bloque contenedor de los `fixed` de su
+   * interior). Mismo reparto que `NavGroupMenu`, que también recibe su
+   * estado desde aquí.
+   */
+  const sheet = useNavSheet();
+
   const closeGroup = useCallback((): void => {
     setOpenGroup(null);
   }, []);
@@ -910,26 +958,27 @@ export function Navbar(): ReactElement {
    */
 
   return (
-    <ScHeader
-      data-scrolled={scrolled}
-      data-detach={detachPhase}
-      data-intro={introState}
-    >
-      <ScBar>
-        <ScSurface
-          aria-hidden="true"
-          data-nav-surface
-        />
-        <ScNav>
-          <ScBrandLink href="/">
-            {/* Aqui vivia `EyeCornerMark`, un punto decorativo que se
+    <>
+      <ScHeader
+        data-scrolled={scrolled}
+        data-detach={detachPhase}
+        data-intro={introState}
+      >
+        <ScBar>
+          <ScSurface
+            aria-hidden="true"
+            data-nav-surface
+          />
+          <ScNav>
+            <ScBrandLink href="/">
+              {/* Aqui vivia `EyeCornerMark`, un punto decorativo que se
                 encendia con `data-scrolled`. Retirado el 2026-07-31 a
                 peticion del usuario: al cruzar el umbral, el unico cambio
                 visual de la barra es su propio despegue: nada se enciende
                 al lado de la marca. El componente se elimino entero (este
                 era su unico consumidor en todo el repo), no se dejo
                 importado sin usar. */}
-            {/* 1.5rem, no 1rem: a 1rem (16x18px) los trazos finos del
+              {/* 1.5rem, no 1rem: a 1rem (16x18px) los trazos finos del
                 dibujo (cabeza + brazos en V) no se distinguen. El valor
                 anterior era una reduccion defensiva de una sesion previa
                 a la correccion del viewBox, cuando el icono se renderizaba
@@ -938,26 +987,53 @@ export function Navbar(): ReactElement {
                 el resultado ya arreglado. Con el viewBox centrado y el
                 tamano resuelto de verdad por CSS, 1.5rem (24x26px) es el
                 valor con el que se diseno originalmente este atomo. */}
-            <Logo size="1.5rem" />
-            <BrandName />
-          </ScBrandLink>
-          <ScNavLinks ref={navLinksRef}>
-            {NAV_GROUPS.map((group) => (
-              <NavGroupMenu
-                key={group.key}
-                group={group}
-                isOpen={openGroup === group.key}
-                onToggle={() => toggleGroup(group.key)}
-                onClose={closeGroup}
+              <Logo size="1.5rem" />
+              <BrandName />
+            </ScBrandLink>
+            <ScNavLinks ref={navLinksRef}>
+              {NAV_GROUPS.map((group) => (
+                <NavGroupMenu
+                  key={group.key}
+                  group={group}
+                  isOpen={openGroup === group.key}
+                  onToggle={() => toggleGroup(group.key)}
+                  onClose={closeGroup}
+                />
+              ))}
+            </ScNavLinks>
+            <ScActions>
+              <ScBarLanguage>
+                <LanguageSelector />
+              </ScBarLanguage>
+              <ThemeToggle />
+              {/* Último de la fila: la posición convencional del disparador
+                de un menú móvil. Con `display: none` desde `md` no genera
+                caja, así que no aporta hueco de `gap` ni desplaza nada en
+                escritorio -- la barra queda idéntica a como estaba. */}
+              <NavSheetTrigger
+                isOpen={sheet.isOpen}
+                onToggle={sheet.toggle}
+                triggerId={sheet.triggerId}
+                sheetId={sheet.sheetId}
+                triggerRef={sheet.triggerRef}
               />
-            ))}
-          </ScNavLinks>
-          <ScActions>
-            <LanguageSelector />
-            <ThemeToggle />
-          </ScActions>
-        </ScNav>
-      </ScBar>
-    </ScHeader>
+            </ScActions>
+          </ScNav>
+        </ScBar>
+      </ScHeader>
+      {/* FUERA de ScHeader a propósito: `ScHeader` declara `transform`, y un
+          ancestro con `transform` pasa a ser el bloque contenedor de
+          cualquier `position: fixed` de su interior -- dentro de la barra,
+          el `bottom: 0` de la hoja se resolvería contra los 56 px de la
+          banda en vez de contra el borde inferior de la pantalla. Ver el
+          docblock de `ScNavSheet` (`NavSheet.tsx`). */}
+      <NavSheet
+        isOpen={sheet.isOpen}
+        onNavigate={sheet.close}
+        triggerId={sheet.triggerId}
+        sheetId={sheet.sheetId}
+        sheetRef={sheet.sheetRef}
+      />
+    </>
   );
 }

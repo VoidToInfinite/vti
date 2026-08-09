@@ -1,0 +1,878 @@
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactElement,
+  type RefObject,
+} from "react";
+import { useTranslation } from "react-i18next";
+import styled from "styled-components";
+import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
+import { IconButton } from "@/components/ui/IconButton/IconButton";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
+import { NAV_GROUPS, type NavGroup, type NavItem } from "@/config/navigation";
+import { DECK, PRESS } from "@/motion/vocabulary";
+import {
+  NAV_OVERLAY_CLOSE_MS,
+  NAV_OVERLAY_OPEN_MS,
+} from "./navOverlay.transition";
+
+/*
+ * HOJA DE NAVEGACIÓN MÓVIL (Task 10 de la auditoría premium; spec del vault
+ * `2026-08-08-mobile-first-spec.md`, orden #5).
+ *
+ * ## Qué problema resuelve
+ *
+ * Bajo 768 px la navegación entera del sitio era `display: none` sin ninguna
+ * alternativa: `ScNavLinks` (`Navbar.tsx`) solo pasa a `flex` dentro de
+ * `@media md`, así que en móvil el único enlace de navegación visible era la
+ * marca. El recorrido móvil medido en vivo (375x812) es de 10,9 pantallas en
+ * tema claro y 17,9 en oscuro, y era SOLO-SCROLL: no había forma de saltar a
+ * una sección, ni de llegar al SDK, a Discord o a GitHub, sin recorrer la
+ * página entera.
+ *
+ * ## Por qué el selector de idioma se muda aquí dentro
+ *
+ * Restricción física medida en la spec, no preferencia: a 375 px el navbar
+ * tiene 337 px de contenido intrínseco en 343 px disponibles. Un disparador
+ * de 44x44 (el mínimo táctil AA que el resto del sitio ya respeta) NO CABE
+ * sin liberar espacio, y el selector de idioma es lo único de la barra que
+ * puede mudarse sin perder función: el toggle de tema cambia toda la página
+ * de un toque y la marca es el enlace a la home.
+ *
+ * El mecanismo elegido es renderizarlo DOS VECES con visibilidad excluyente
+ * por CSS -- una copia en la barra (oculta bajo `md`, ver `ScBarLanguage` en
+ * `Navbar.tsx`) y otra aquí dentro (oculta desde `md`, junto con toda la
+ * hoja) -- en vez de moverlo con JavaScript. El porqué:
+ *
+ * - Con `output: "export"` (ver `CLAUDE.md` §1) el HTML se prerenderiza sin
+ *   saber el ancho del cliente. Decidir la posición con `matchMedia`
+ *   produciría un primer pintado en el sitio equivocado y un salto al
+ *   hidratar, además de dejar el selector donde cayera si el visitante no
+ *   ejecuta JavaScript.
+ * - `display: none` retira el subárbol del árbol de accesibilidad por
+ *   completo, así que en CUALQUIER ancho real hay exactamente UNA copia
+ *   anunciable: no hay controles duplicados para un lector de pantalla.
+ * - Los dos botones ya son idénticos (`LanguageSelector` no recibe ninguna
+ *   prop), así que no hay estado que sincronizar entre las dos copias: las
+ *   dos leen `i18n.language` del mismo proveedor.
+ *
+ * COSTE REAL, declarado y no escondido: en el DOM hay dos copias. En jsdom,
+ * que no evalúa ningún `@media` (regla 36), las DOS existen a la vez, así que
+ * cualquier consulta por rol de un botón de idioma pasa a devolver dos
+ * resultados y necesita `hidden: true` -- exactamente el mismo peaje que
+ * `ScNavLinks` ya cobra hoy (ver el comentario de `getTrigger` en
+ * `Navbar.test.tsx`). Los tests afectados se actualizan a esa verdad nueva
+ * (regla 40), no se relajan.
+ *
+ * ## Por qué NO hay bloqueo de scroll (regla 21 de `RULES.md`)
+ *
+ * El patrón clásico de una hoja o un modal es `overflow: hidden` en
+ * `html`/`body` mientras está abierta. Aquí está VETADO: `html`/`body` con
+ * `overflow: hidden` obliga al eje contrario a computar `auto`, lo que
+ * convierte a `html`/`body` en contenedor de scroll y hace que los cuatro
+ * `position: sticky` de las presentaciones (Story, Journey, Features,
+ * Contact) se peguen respecto a ESE contenedor en vez de respecto al
+ * viewport: el pin de las cuatro secciones se rompería en silencio mientras
+ * la hoja estuviera abierta. Es la lección ya pagada que documenta
+ * `GlobalStyles.tsx` (`overflow-x: clip`, nunca `hidden`).
+ *
+ * La sustitución, punto por punto:
+ * - `overscroll-behavior: contain` en la hoja: llegar al final de su propia
+ *   lista NO encadena el scroll a la página de debajo.
+ * - Cierre al scrollear la página, con listener PASIVO (ver `useNavSheet`):
+ *   si la página se mueve, la hoja deja de tener sentido y se retira sola.
+ * - El velo captura el puntero mientras está abierta, así que un toque fuera
+ *   cierra en vez de activar lo que hubiera debajo.
+ */
+
+/**
+ * Tolerancia del cierre por scroll, en píxeles. Sin ella, CUALQUIER
+ * movimiento de un solo píxel cerraría la hoja: en móvil el propio navegador
+ * mueve el scroll sin que el usuario lo pida (colapso de la barra de
+ * direcciones al aparecer una capa, rebote elástico al final del documento),
+ * y la hoja se cerraría sola nada más abrirse. 8 px es el mismo orden de
+ * magnitud que el umbral con el que `useNavDetach(8)` ya decide "la página
+ * está scrolleada" en esta misma barra; no se comparte constante con él
+ * porque son dos decisiones distintas (aquí, "el usuario ha movido la
+ * página de verdad"; allí, "la barra ya no está pegada arriba") que pueden
+ * divergir sin arrastrarse.
+ */
+export const NAV_SHEET_SCROLL_TOLERANCE_PX = 8;
+
+/**
+ * Alto máximo de la hoja. `dvh` y no `vh`: en móvil la barra de direcciones
+ * entra y sale, y `vh` se resuelve contra el viewport GRANDE (sin barra), así
+ * que una hoja de "70vh" puede quedar parcialmente fuera de la pantalla
+ * mientras la barra está visible. `dvh` sigue el viewport real en cada
+ * momento, que es lo que esta medida necesita. Verbatim de la spec del vault.
+ */
+const NAV_SHEET_MAX_HEIGHT = "70dvh";
+
+/**
+ * Disparador de la hoja: el hueco responsivo que lo contiene.
+ *
+ * Es un envoltorio propio, y no un `styled(IconButton)`, a propósito: el
+ * botón real es un `IconButton` (mismo átomo que `ThemeToggle`, su vecino en
+ * la barra, del que hereda el área de 44x44, el anillo de descubribilidad de
+ * la variante ghost, el halo de foco y el press de `vocabulary.PRESS`), y
+ * conmutar SU `display` desde una capa `styled(IconButton)` dependería del
+ * orden de inyección de tres clases encadenadas (ScButton -> ScSquare -> la
+ * capa nueva). Un envoltorio con su propio `display: none` no depende de
+ * ninguna cascada: si el envoltorio no genera caja, el botón tampoco existe,
+ * sea cual sea el CSS del botón.
+ *
+ * Mobile-first (regla transversal de la spec): la regla base es la MÓVIL
+ * (visible) y se corrige hacia arriba con `min-width`, nunca con un
+ * `max-width` de layout.
+ */
+const ScSheetTriggerSlot = styled.span`
+  display: inline-flex;
+
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    display: none;
+  }
+`;
+
+/*
+ * Icono hamburguesa. Tres barras que se transforman en aspa al abrir.
+ *
+ * `width`/`height`/`flex` son OBLIGATORIOS y no cosméticos (regla 20 de
+ * `RULES.md`): `GlobalStyles` declara `svg { width: 100%; display: block; }`
+ * para todo el sitio y una declaración CSS gana SIEMPRE a la geometría
+ * implícita del `viewBox`. Es el mismo fallo que ya se midió tres veces en
+ * este repo (`ScLogo` en `Logo.tsx`: 167 px de ancho dentro de una barra de
+ * 56 px; `ScChevron` en `Navbar.tsx`: 215x143 px). `1em`, no un valor
+ * absoluto: `IconButton` fija `font-size` por tamaño (`ICON_SIDE`, 20 px en
+ * `md`), así que el icono escala con esa tabla en vez de fijar un número
+ * propio que se desincronizaría de ella.
+ *
+ * Las barras son `<rect>` y no `<line>` por el morfado: `transform-box:
+ * fill-box` resuelve `transform-origin: center` contra la caja del propio
+ * elemento (sin él, el origen sería la esquina del sistema de coordenadas
+ * del SVG y las barras rotarían alrededor de un punto ajeno), y una `<line>`
+ * horizontal tiene caja de altura CERO, un caso degenerado que no todos los
+ * motores resuelven igual. Un `<rect>` siempre tiene caja real.
+ *
+ * Solo se animan `transform` y `opacity` (regla 18). Las barras superior e
+ * inferior viajan 4 unidades hasta el centro (y=4 y y=12 -> y=8) y rotan en
+ * contrafase; la central se desvanece encogiendo en X. Misma asimetría
+ * 120/180 que la propia hoja, para que icono y hoja se muevan como una sola
+ * pieza en vez de con dos relojes distintos.
+ */
+const ScBurger = styled.svg`
+  width: 1em;
+  height: 1em;
+  flex: none;
+
+  rect {
+    fill: currentColor;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition:
+      transform ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
+      opacity ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing};
+  }
+
+  &[data-open="true"] {
+    rect {
+      transition:
+        transform ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing},
+        opacity ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing};
+    }
+
+    [data-burger-line="top"] {
+      transform: translateY(4px) rotate(45deg);
+    }
+
+    [data-burger-line="middle"] {
+      opacity: 0;
+      transform: scaleX(0.2);
+    }
+
+    [data-burger-line="bottom"] {
+      transform: translateY(-4px) rotate(-45deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    rect {
+      transition: none;
+    }
+
+    /* Mismo hallazgo 4 que ScBar/ScNavPanel en Navbar.tsx: el bloque
+       anidado de arriba redeclara la transition de rect con MAYOR
+       especificidad (atributo + clase + tipo) que el rect suelto de este
+       bloque reduce (clase + tipo). Sin redeclararlo aquí dentro, bajo
+       reduce el icono abierto seguiría animando. */
+    &[data-open="true"] rect {
+      transition: none;
+    }
+  }
+`;
+
+/*
+ * Velo. Existe por una razón funcional, no decorativa: sin él, un toque
+ * fuera de la hoja cerraría la hoja Y activaría el enlace o el botón que
+ * hubiera debajo, porque no hay bloqueo de scroll ni captura de puntero de
+ * ningún otro tipo (ver la nota sobre la regla 21, arriba). Con el velo
+ * abierto el toque cae SIEMPRE sobre él, y el manejador de `pointerdown` de
+ * `useNavSheet` lo interpreta como "fuera" y cierra, sin activar nada.
+ *
+ * `glass.bg` + `glass.blur`: el sistema reserva el glassmorphism justo para
+ * este rol -- capas que flotan sobre contenido en scroll, y el docblock de
+ * `ScHeader` (`Navbar.tsx`) nombra literalmente "sheet" entre ellas. El velo
+ * es la capa esmerilada; la hoja, encima, es superficie OPACA (ver
+ * `ScNavSheet`), así que no se apilan dos `backdrop-filter` -- caro en GPU y
+ * de resultado impredecible entre motores.
+ *
+ * Duración: `DECK.railDurationMs` (200 ms), el valor que el vocabulario ya
+ * reserva para el fade de una capa de presentación. El velo es más lento que
+ * la hoja a propósito: la hoja es el objeto que el usuario está mirando y
+ * llega antes; el fondo cede después.
+ *
+ * `visibility` entra en la lista de `transition` SOLO en el sentido de
+ * CIERRE (la lista base), nunca en el bloque de apertura. Ver la nota
+ * "VISIBILITY, MEDIDO EN NAVEGADOR REAL" en `ScNavSheet`, más abajo: es el
+ * mismo mecanismo y el mismo motivo, y aquí evita además que el velo tarde un
+ * frame en capturar el puntero.
+ */
+const ScSheetVeil = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: ${({ theme }) => theme.data.zIndex.overlay};
+  background: ${({ theme }) => theme.data.glass.bg};
+  /* -webkit- primero, mismo orden de fallback que ScSurface/ScNavPanel:
+     Safari solo reconoce el prefijo y el estándar lo sobrescribe donde los
+     dos existen. Sin ninguno de los dos el velo sigue siendo legible: la
+     capa ya es semitransparente por sí sola. */
+  -webkit-backdrop-filter: ${({ theme }) => theme.data.glass.blur};
+  backdrop-filter: ${({ theme }) => theme.data.glass.blur};
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity ${DECK.railDurationMs}ms ${PRESS.easing},
+    visibility ${DECK.railDurationMs}ms ${PRESS.easing};
+
+  &[data-open="true"] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    /* Sin entrada de visibility, igual que la hoja: aquí no hay foco que
+       meter, pero sí un frame de captura de puntero que se perdería.
+       (Regla 23: nada de comillas invertidas dentro de un comentario de
+       template, cierran el literal y rompen el build.) */
+    transition: opacity ${DECK.railDurationMs}ms ${PRESS.easing};
+  }
+
+  /* Desde md la hoja entera deja de existir visualmente, SIN desmontarse:
+     mismo patrón que ScNavLinks (que hace el camino inverso) -- el orden de
+     tabulación no cambia de forma condicional al viewport por obra de
+     JavaScript, lo decide el CSS. */
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &[data-open="true"] {
+      transition: none;
+    }
+  }
+`;
+
+/*
+ * La hoja. Panel inferior anclado al borde de la pantalla.
+ *
+ * `position: fixed` obliga a que este nodo viva FUERA de `ScHeader`: esa
+ * cabecera declara `transform: translateY(...)` para su entrada en la carga,
+ * y un ancestro con `transform` se convierte en el bloque contenedor de
+ * cualquier `position: fixed` de su interior. Dentro de `ScHeader`,
+ * `bottom: 0` no significaría "el borde inferior de la pantalla" sino "el
+ * borde inferior de la barra". Por eso `Navbar()` devuelve un fragmento con
+ * la hoja como HERMANA de `ScHeader` y no como hija, y por eso el contrato
+ * de teclado se resuelve con listeners de documento en vez de con
+ * `onKeyDown`/`onBlur` sobre un envoltorio común (ver `useNavSheet`).
+ *
+ * Superficie OPACA (`semantic.surface`), no cristal: el cristal ya lo pone
+ * el velo de debajo, y una hoja con texto encima necesita un fondo con
+ * contraste garantizado sea cual sea la sección de la página que quede
+ * detrás. `elevation[4]` es la sombra más alta de la escala, coherente con
+ * una capa que flota por encima de todo lo demás.
+ *
+ * `border-top`, declarado explícitamente: `GlobalStyles` aplica `border: 0`
+ * al selector universal, así que sin esta línea no habría filo.
+ *
+ * MOVIMIENTO (gramática de Task 9): `transform-origin: bottom center` -- la
+ * hoja nace del borde inferior, que es de donde entra --, `translateY(100%)`
+ * en cerrado y asimetría 180/120 con `PRESS.easing`, declarada como DOS
+ * bloques de `transition` (base = cerrar, `[data-open="true"]` = abrir) sin
+ * ningún estado de React adicional (regla 26). No lleva `scale`, a
+ * diferencia de `ScNavPanel`: un panel que cuelga de su disparador se lee
+ * como algo que se despliega y encoger la escala refuerza ese origen, pero
+ * una hoja DESLIZA desde el borde -- añadirle escala la haría leerse como un
+ * modal que salta, que es otro gesto.
+ *
+ * `overscroll-behavior: contain` (regla 21, sustituto del bloqueo de scroll
+ * clásico): al llegar al final de esta lista, el gesto NO encadena a la
+ * página de debajo.
+ *
+ * ## VISIBILITY, MEDIDO EN NAVEGADOR REAL: en la lista de CIERRE, nunca en la
+ * de apertura
+ *
+ * `visibility` sigue siendo la propiedad correcta para ocultar una superficie
+ * cerrada (saca su contenido del árbol de accesibilidad y del orden de
+ * tabulación; `opacity` sola nunca basta), y sigue en la lista base de
+ * `transition` -- la del CIERRE -- por el motivo que documenta `ScNavPanel`
+ * (`Navbar.tsx`): su animación es DISCRETA por especificación, así que al
+ * pasar de `visible` a `hidden` el cambio se aplica al FINAL y la hoja sigue
+ * pintando durante todo el fundido de salida.
+ *
+ * En el bloque de APERTURA está retirada a propósito, y esto NO es una
+ * simetría rota por descuido: la misma especificación dice que, en una
+ * transición discreta, los valores del temporizador ENTRE 0 y 1 mapean al
+ * valor final -- t=0 exacto todavía vale el valor de PARTIDA. Al abrir eso
+ * significa que, en el instante 0, `visibility` sigue computando `hidden`, y
+ * un elemento con `visibility: hidden` NO ES FOCALIZABLE. Medido en Chrome
+ * real (375x812, dev server): con `visibility` en la lista de apertura, el
+ * `focus()` que mete el foco en la primera fila (ver el punto 6 del docblock
+ * de `useNavSheet`) se ejecutaba con `getComputedStyle(fila).visibility ===
+ * "hidden"` y el navegador lo descartaba en silencio -- la hoja se abría sin
+ * foco dentro y quedaba inalcanzable por teclado. jsdom no puede ver este
+ * fallo: no implementa transiciones ni la focalización condicionada por
+ * `visibility`, así que su test pasaba en verde con el bug delante.
+ *
+ * Sin `visibility` en la lista de apertura, el valor salta a `visible` de
+ * inmediato y la fila es focalizable en el mismo tick. El fundido de entrada
+ * lo siguen haciendo `opacity` y `transform`, así que no se pierde nada del
+ * movimiento; y el sentido de cierre conserva su retardo intacto. El candado
+ * que impide que alguien "arregle" la asimetría volviendo a añadirla vive en
+ * `Navbar.test.tsx`.
+ */
+const ScNavSheet = styled.div`
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: ${({ theme }) => theme.data.zIndex.modal};
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.data.space[4]};
+  max-height: ${NAV_SHEET_MAX_HEIGHT};
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: ${({ theme }) => theme.data.space[3]}
+    ${({ theme }) => theme.data.space[4]} ${({ theme }) => theme.data.space[6]};
+  border-top: ${({ theme }) => theme.data.glass.border};
+  border-radius: ${({ theme }) => theme.data.radius.xl}
+    ${({ theme }) => theme.data.radius.xl} 0 0;
+  background: ${({ theme }) => theme.data.semantic.surface};
+  box-shadow: ${({ theme }) => theme.data.elevation[4]};
+
+  transform-origin: bottom center;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
+  transition:
+    opacity ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
+    transform ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
+    visibility ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing};
+
+  &[data-open="true"] {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    /* Sin entrada de visibility a propósito: ver la nota "VISIBILITY,
+       MEDIDO EN NAVEGADOR REAL" del docblock de arriba. */
+    transition:
+      opacity ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing},
+      transform ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing};
+  }
+
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &[data-open="true"] {
+      transition: none;
+    }
+  }
+`;
+
+/* Asa decorativa: la señal universal de "esto es una hoja que se puede
+   retirar". `aria-hidden` y sin texto: no aporta nada a quien no ve la
+   pantalla, que ya tiene el disparador con su `aria-expanded`. */
+const ScSheetHandle = styled.div`
+  align-self: center;
+  width: ${({ theme }) => theme.data.space[7]};
+  height: ${({ theme }) => theme.data.space[1]};
+  flex: none;
+  border-radius: ${({ theme }) => theme.data.radius.full};
+  background: ${({ theme }) => theme.data.semantic.borderStrong};
+`;
+
+const ScSheetGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.data.space[1]};
+`;
+
+/* Mismo rol y mismo tratamiento que `ScColumnTitle` en `Footer.tsx`: no es
+   un encabezado del documento (`h2`/`h3`) sino la etiqueta de una lista.
+   Convertirlo en `h*` metería cuatro títulos en el esquema de encabezados de
+   la página que solo existirían bajo 768 px; el nombre accesible de la lista
+   se resuelve con `aria-labelledby`, que es la herramienta correcta para
+   esto. */
+const ScSheetGroupTitle = styled.p`
+  margin: 0;
+  padding: 0 ${({ theme }) => theme.data.space[2]};
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  font-weight: 600;
+  color: ${({ theme }) => theme.data.semantic.textSubtle};
+`;
+
+const ScSheetList = styled.ul`
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+`;
+
+/*
+ * Fila. `min-height: 44px` es el suelo táctil AA que ya usan
+ * `ScLanguageButton`, `ScNavTrigger` y `ScBrandLink`; `display: flex` gana al
+ * `a { display: block }` global por especificidad de clase.
+ *
+ * El hover cambia SOLO color y fondo (dos propiedades de pintado), así que no
+ * necesita guardarse tras `PRESS.hoverGuard`: ese guard existe para los
+ * hovers que MUEVEN, que en un dispositivo táctil se quedan enganchados tras
+ * el toque. El press (`:active`, `PRESS.activeScale`) sí se declara sin
+ * guard, igual que en el resto de controles del sitio: es la primitiva que
+ * funciona igual de bien con dedo que con ratón.
+ */
+const ScSheetRow = styled.a`
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 ${({ theme }) => theme.data.space[2]};
+  border-radius: ${({ theme }) => theme.data.radius.md};
+  font-size: ${({ theme }) => theme.data.type.scale.body.size};
+  color: ${({ theme }) => theme.data.semantic.text};
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    background-color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
+
+  &:hover,
+  &:focus-visible {
+    color: ${({ theme }) => theme.data.semantic.brandText};
+    background-color: color-mix(
+      in oklch,
+      ${({ theme }) => theme.data.semantic.text} 6%,
+      transparent
+    );
+  }
+
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+/* El selector de idioma dentro de la hoja se alinea con las filas: mismo
+   sangrado lateral que `ScSheetRow`, menos el relleno propio que los botones
+   de idioma ya traen. */
+const ScSheetLanguage = styled.div`
+  display: flex;
+  align-items: center;
+  padding-inline: ${({ theme }) => theme.data.space[1]};
+`;
+
+/**
+ * Estado y contrato de comportamiento de la hoja, compartido por el
+ * disparador (que vive DENTRO de la barra) y por la hoja en sí (que vive
+ * FUERA de ella, ver el docblock de `ScNavSheet`). Los dos nodos no tienen
+ * ancestro común propio, así que el estado sube a `Navbar()` y baja a las
+ * dos piezas, igual que `NavGroupMenu` recibe `isOpen`/`onToggle`/`onClose`.
+ *
+ * `Navbar()` DESESTRUCTURA este objeto y pasa cada campo como su propia prop
+ * en vez de reenviarlo entero. No es preferencia de estilo: la regla
+ * `react-hooks/refs` (parte del preset de React que el repo tiene activado)
+ * marca como acceso a ref en render CUALQUIER lectura de propiedad sobre un
+ * objeto del que ya ha visto salir un `ref=` -- pasar `sheet` completo y
+ * leer `sheet.isOpen` en el JSX deja el lint en rojo con 11 errores
+ * (verificado ejecutando `pnpm lint`, no supuesto). Con props sueltas, el
+ * `ref` viaja como un identificador propio y el resto de campos son valores
+ * normales.
+ */
+export interface NavSheetController {
+  readonly isOpen: boolean;
+  readonly toggle: () => void;
+  readonly close: () => void;
+  readonly triggerId: string;
+  readonly sheetId: string;
+  /** Envoltorio del disparador, no el `<button>`: ver `useNavSheet`. */
+  readonly triggerRef: RefObject<HTMLSpanElement | null>;
+  readonly sheetRef: RefObject<HTMLDivElement | null>;
+}
+
+/**
+ * Contrato de accesibilidad de la hoja, replicado del desplegable de
+ * escritorio (`NavGroupMenu`, `Navbar.tsx`), que es la referencia de la casa.
+ * Punto por punto:
+ *
+ * 1. `aria-expanded` en el disparador + `aria-controls` al id real de la
+ *    hoja, y la hoja con `aria-labelledby` al id del disparador. IDÉNTICO.
+ * 2. La hoja se renderiza SIEMPRE: nunca se desmonta ni usa `display: none`
+ *    para abrir/cerrar, sino `visibility` + `inert` + `opacity`/`transform`.
+ *    IDÉNTICO (`display: none` solo aparece en el `@media md`, que es otra
+ *    cosa: ahí la hoja no existe como pieza, no está "cerrada").
+ * 3. Escape cierra y devuelve el foco al disparador. MISMO CONTRATO, DISTINTO
+ *    MECANISMO: el panel de escritorio escucha `onKeyDown` en el `<div>` que
+ *    envuelve disparador y panel, y React le hace burbujear el evento desde
+ *    cualquier descendiente. Aquí ese envoltorio común NO PUEDE EXISTIR: la
+ *    hoja tiene que salir de `ScHeader` para que su `position: fixed` se
+ *    resuelva contra el viewport (ver `ScNavSheet`). Se escucha en
+ *    `document`, y solo mientras la hoja está abierta.
+ * 4. Un puntero fuera cierra. IDÉNTICO en mecanismo (`pointerdown` en
+ *    `document`, ya usado por los grupos de escritorio) y más estricto en
+ *    efecto, porque el velo garantiza que ese toque no active nada.
+ * 5. El foco que sale del conjunto cierra. MISMO CONTRATO, DISTINTO
+ *    MECANISMO: el panel usa `onBlur` + `relatedTarget`; aquí se escucha
+ *    `focusin` en `document` y se comprueba contención contra las dos raíces
+ *    (disparador y hoja), que es la misma pregunta hecha desde el otro lado.
+ * 6. Activar un enlace cierra. IDÉNTICO (`onClick` en cada fila).
+ *
+ * ÚNICA DIFERENCIA DELIBERADA con el panel de escritorio: al abrir, el foco
+ * ENTRA en la primera fila. En escritorio el panel es el hermano inmediato
+ * del disparador en el DOM, así que un `Tab` desde el disparador ya lleva
+ * dentro; aquí la hoja está al final del documento y ese mismo `Tab` llevaría
+ * al contenido de la página -- que además dispararía la regla 5 y cerraría la
+ * hoja, dejándola literalmente inalcanzable por teclado. `preventScroll` es
+ * obligatorio en ese `focus()`: sin él el navegador desplazaría el documento
+ * para "traer a la vista" la fila, y ese desplazamiento dispararía el cierre
+ * por scroll del efecto de arriba.
+ *
+ * 7. Cierre al scrollear la página, con listener PASIVO y tolerancia (ver
+ *    `NAV_SHEET_SCROLL_TOLERANCE_PX`). No tiene equivalente en escritorio:
+ *    es la contrapartida de no bloquear el scroll (regla 21).
+ */
+export function useNavSheet(): NavSheetController {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerId = useId();
+  const sheetId = useId();
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  const close = useCallback((): void => {
+    setIsOpen(false);
+  }, []);
+
+  const toggle = useCallback((): void => {
+    setIsOpen((current) => !current);
+  }, []);
+
+  // Punto 7. Se declara ANTES del efecto de foco de más abajo para que la
+  // línea base `startY` quede leída antes de que nada pueda mover el
+  // documento (los efectos corren en orden de declaración dentro del mismo
+  // commit). `passive: true`: este manejador nunca llama a
+  // `preventDefault()`, y declararlo permite al navegador seguir
+  // desplazando sin esperar a que el JavaScript termine.
+  useEffect(() => {
+    if (!isOpen) return;
+    const startY = window.scrollY;
+
+    function handleScroll(): void {
+      if (Math.abs(window.scrollY - startY) <= NAV_SHEET_SCROLL_TOLERANCE_PX) {
+        return;
+      }
+      setIsOpen(false);
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [isOpen]);
+
+  // Puntos 3, 4 y 5. Un solo efecto para los tres: comparten la misma
+  // pregunta ("¿el nodo implicado está dentro del disparador o de la
+  // hoja?") y el mismo ciclo de vida (viven solo mientras la hoja está
+  // abierta; sin hoja abierta no hay nada que cerrar ni listener que
+  // mantener vivo, mismo criterio que el `pointerdown` de los grupos de
+  // escritorio en `Navbar.tsx`).
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function isInside(node: Node): boolean {
+      return (
+        triggerRef.current?.contains(node) === true ||
+        sheetRef.current?.contains(node) === true
+      );
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key !== "Escape") return;
+      setIsOpen(false);
+      triggerRef.current?.querySelector("button")?.focus();
+    }
+
+    function handlePointerDown(event: PointerEvent): void {
+      if (!(event.target instanceof Node)) return;
+      if (isInside(event.target)) return;
+      setIsOpen(false);
+    }
+
+    function handleFocusIn(event: FocusEvent): void {
+      if (!(event.target instanceof Node)) return;
+      if (isInside(event.target)) return;
+      setIsOpen(false);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("focusin", handleFocusIn);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("focusin", handleFocusIn);
+    };
+  }, [isOpen]);
+
+  // Diferencia deliberada con el panel de escritorio: el foco entra en la
+  // hoja al abrirla. Ver el punto 6 del docblock.
+  useEffect(() => {
+    if (!isOpen) return;
+    const primeraFila =
+      sheetRef.current?.querySelector<HTMLElement>("a, button");
+    primeraFila?.focus({ preventScroll: true });
+  }, [isOpen]);
+
+  return { isOpen, toggle, close, triggerId, sheetId, triggerRef, sheetRef };
+}
+
+export interface NavSheetTriggerProps {
+  readonly isOpen: boolean;
+  readonly onToggle: () => void;
+  readonly triggerId: string;
+  readonly sheetId: string;
+  readonly triggerRef: RefObject<HTMLSpanElement | null>;
+}
+
+export function NavSheetTrigger({
+  isOpen,
+  onToggle,
+  triggerId,
+  sheetId,
+  triggerRef,
+}: NavSheetTriggerProps): ReactElement {
+  const { t } = useTranslation("common");
+  const label = isOpen ? t("Common.Nav.closeMenu") : t("Common.Nav.openMenu");
+
+  return (
+    /* El gancho de test (`data-nav-sheet-trigger`) va en el envoltorio, no
+       en el `IconButton`: un atributo `data-*` sobre un COMPONENTE (no un
+       elemento intrínseco) tendría que estar declarado en su interfaz de
+       props para que TypeScript lo acepte, y ampliar la interfaz de un
+       primitivo compartido de `ui/` solo para un gancho de test sería
+       cambiar más de lo necesario. El envoltorio es un elemento del DOM y
+       lo admite sin ninguna ampliación. */
+    <ScSheetTriggerSlot
+      ref={triggerRef}
+      data-nav-sheet-trigger
+    >
+      <IconButton
+        id={triggerId}
+        aria-expanded={isOpen}
+        aria-controls={sheetId}
+        aria-label={label}
+        title={label}
+        onClick={onToggle}
+        icon={
+          <ScBurger
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            focusable="false"
+            data-open={isOpen}
+          >
+            <rect
+              data-burger-line="top"
+              x="2"
+              y="3.2"
+              width="12"
+              height="1.6"
+              rx="0.8"
+            />
+            <rect
+              data-burger-line="middle"
+              x="2"
+              y="7.2"
+              width="12"
+              height="1.6"
+              rx="0.8"
+            />
+            <rect
+              data-burger-line="bottom"
+              x="2"
+              y="11.2"
+              width="12"
+              height="1.6"
+              rx="0.8"
+            />
+          </ScBurger>
+        }
+      />
+    </ScSheetTriggerSlot>
+  );
+}
+
+/*
+ * Un grupo de la hoja. Vive fuera de `NavSheet()` por el mismo motivo que
+ * `NavGroupMenu` vive fuera de `Navbar()`: cada instancia necesita SU PROPIO
+ * `useId()` para atar el título a su lista, y `useId` no se puede llamar
+ * dentro de un `map`.
+ */
+interface NavSheetGroupProps {
+  readonly group: NavGroup;
+  readonly onNavigate: () => void;
+}
+
+function NavSheetGroup({
+  group,
+  onNavigate,
+}: NavSheetGroupProps): ReactElement {
+  const { t } = useTranslation("common");
+  const titleId = useId();
+
+  /*
+   * Tabla de resolución de etiquetas del modelo compartido, documentada en
+   * `src/config/navigation.ts`. Se repite aquí -- igual que ya la repiten
+   * `NavGroupMenu` (`Navbar.tsx`) y `Footer.tsx` -- porque extraerla a un
+   * módulo común exigiría tipar la `t` de i18next como parámetro, y esa
+   * firma es genérica por namespace: el contrato que impide la divergencia
+   * no es este `switch` sino `navigation.test.ts`, que resuelve DE VERDAD
+   * las cuatro rutas contra los JSON de es/en.
+   */
+  function itemLabel(item: NavItem): string {
+    switch (item.kind) {
+      case "section":
+        return t(`Common.Navigation.${item.key}`);
+      case "feature":
+        return t(`home:Home.features.${item.key}.title`);
+      case "external":
+        return t(`Common.Nav.${item.key}`);
+    }
+  }
+
+  return (
+    <ScSheetGroup>
+      <ScSheetGroupTitle id={titleId}>
+        {t(`Common.Nav.${group.key}`)}
+      </ScSheetGroupTitle>
+      <ScSheetList aria-labelledby={titleId}>
+        {group.items.map((item) =>
+          item.kind === "external" ? (
+            <li key={item.key}>
+              <ScSheetRow
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onNavigate}
+              >
+                {itemLabel(item)}
+                {/* Espacio literal DENTRO del texto oculto, no entre nodos
+                    JSX: mismo criterio ya aplicado en `Navbar.tsx` y
+                    `Footer.tsx` para este mismo aviso (WCAG 3.2.5). */}
+                <VisuallyHidden> {t("Common.Nav.newTab")}</VisuallyHidden>
+              </ScSheetRow>
+            </li>
+          ) : (
+            <li key={item.key}>
+              <ScSheetRow
+                href={item.href}
+                onClick={onNavigate}
+              >
+                {itemLabel(item)}
+              </ScSheetRow>
+            </li>
+          ),
+        )}
+      </ScSheetList>
+    </ScSheetGroup>
+  );
+}
+
+export interface NavSheetProps {
+  readonly isOpen: boolean;
+  readonly onNavigate: () => void;
+  readonly triggerId: string;
+  readonly sheetId: string;
+  readonly sheetRef: RefObject<HTMLDivElement | null>;
+}
+
+export function NavSheet({
+  isOpen,
+  onNavigate,
+  triggerId,
+  sheetId,
+  sheetRef,
+}: NavSheetProps): ReactElement {
+  const { t } = useTranslation("common");
+
+  return (
+    <>
+      <ScSheetVeil
+        aria-hidden="true"
+        data-nav-sheet-veil
+        data-open={isOpen}
+      />
+      <ScNavSheet
+        id={sheetId}
+        ref={sheetRef}
+        aria-labelledby={triggerId}
+        data-nav-sheet
+        data-open={isOpen}
+        inert={!isOpen}
+      >
+        <ScSheetHandle aria-hidden="true" />
+        {NAV_GROUPS.map((group) => (
+          <NavSheetGroup
+            key={group.key}
+            group={group}
+            onNavigate={onNavigate}
+          />
+        ))}
+        {/* El idioma es la pieza que se muda desde la barra (ver el docblock
+            de este fichero). Reutiliza `Common.Lang.title`, la clave que ya
+            existía para nombrar este control: no se inventa copia nueva. */}
+        <ScSheetGroup>
+          <ScSheetGroupTitle>{t("Common.Lang.title")}</ScSheetGroupTitle>
+          <ScSheetLanguage>
+            <LanguageSelector />
+          </ScSheetLanguage>
+        </ScSheetGroup>
+      </ScNavSheet>
+    </>
+  );
+}
