@@ -70,8 +70,8 @@
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.tsx": {
-    "mtime": 1786278783.2608833,
-    "ast_hash": "88454624c6684af6ce6e7d200e8901ed",
+    "mtime": 1786290873.2520843,
+    "ast_hash": "d7ae49bde9e2a7bc57f39631ac7a449b",
     "semantic_hash": ""
   },
   "src/components/layout/ThemeToggle/ThemeToggle.tsx": {
@@ -735,8 +735,8 @@
     "semantic_hash": ""
   },
   "docs/qa-3d-pendiente.md": {
-    "mtime": 1785337139.5916262,
-    "ast_hash": "7e339b09a8bf80dd2f41020c15cbf42e",
+    "mtime": 1786288080.2539184,
+    "ast_hash": "4c79808dfba612b863b85bde3076a87f",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-23-migracion-vti-next16.md": {
@@ -1895,13 +1895,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/NotFound/NotFoundContent.test.tsx": {
-    "mtime": 1786268284.739584,
-    "ast_hash": "48a00305a1bd4e5a6731b685050e1231",
+    "mtime": 1786290895.5023894,
+    "ast_hash": "6c20834d1587ce0f557ec1f00148ec50",
     "semantic_hash": ""
   },
   "src/components/sections/NotFound/NotFoundContent.tsx": {
-    "mtime": 1786268375.7104087,
-    "ast_hash": "cd7e692241b5b0571f8cc9a2a07244d3",
+    "mtime": 1786290945.7539532,
+    "ast_hash": "63c192cb0a4328d24c09fa9610b119f3",
     "semantic_hash": ""
   },
   "src/motion/timings.ts": {
@@ -2135,28 +2135,28 @@
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1786282067.99747,
-    "ast_hash": "2654f602a427b07c32d5dfa4efa825c1",
+    "mtime": 1786288844.1890616,
+    "ast_hash": "8e179af528776c763e61eb4272646a7a",
     "semantic_hash": ""
   },
   "PRE-LAUNCH-QA.md": {
-    "mtime": 1786204778.110768,
-    "ast_hash": "69c749704fdb4e951af8112bf94e57cb",
+    "mtime": 1786288062.63082,
+    "ast_hash": "256c12ebf41b80e618f5b141dde05e77",
     "semantic_hash": ""
   },
   "PRODUCT.md": {
-    "mtime": 1786271397.0195236,
-    "ast_hash": "54f97f38d0a89bc56429acee430a0373",
+    "mtime": 1786287942.8074818,
+    "ast_hash": "39480276cb72b9a4684dbd247c56a014",
     "semantic_hash": ""
   },
   "PROYECT.md": {
-    "mtime": 1786204774.1895509,
-    "ast_hash": "fd5bc07f994a659ec7f0313d6fa50194",
+    "mtime": 1786288829.8407805,
+    "ast_hash": "d8b883b6b70e5784439f097850f8e31e",
     "semantic_hash": ""
   },
   "RULES.md": {
-    "mtime": 1786202817.3473754,
-    "ast_hash": "b617b2e7b24b9418464d7b0c0ed76974",
+    "mtime": 1786288818.6792362,
+    "ast_hash": "82f8b1f9229f999b3860416877dbb453",
     "semantic_hash": ""
   },
   ".impeccable/live/server.json": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/progress.md": {
-    "mtime": 1786285559.5891054,
-    "ast_hash": "beef78ed779d84e5a902a393461074f8",
+    "mtime": 1786290825.439464,
+    "ast_hash": "8c2dfd1aff0bd74f0275ca7bdc1d6a5e",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-1-brief.md": {
@@ -2337,6 +2337,66 @@
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-12-report.md": {
     "mtime": 1786285194.3495576,
     "ast_hash": "c123c60743449cfe58ae0aca39487b7b",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-13-report.md": {
+    "mtime": 1786286741.0936844,
+    "ast_hash": "e8ad777d052e0adcd21e39a36f2fb547",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-14-report.md": {
+    "mtime": 1786288969.843097,
+    "ast_hash": "e0631a6f35e25a8b5926efb53258c1ea",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-27-54-840Z.yml": {
+    "mtime": 1786289274.8442328,
+    "ast_hash": "dc827d70d8b4a90e846c81bcea35475d",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-28-48-511Z.yml": {
+    "mtime": 1786289328.5210855,
+    "ast_hash": "05bfb6513a3b345372af487fd172ff36",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-29-24-821Z.yml": {
+    "mtime": 1786289364.8241377,
+    "ast_hash": "e085019760730121a32e67bd6216dc69",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-29-40-003Z.yml": {
+    "mtime": 1786289380.0069835,
+    "ast_hash": "1b00b14133e222c861ea3ce3b6142950",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-30-02-271Z.yml": {
+    "mtime": 1786289402.2786965,
+    "ast_hash": "43376d9eace99b1cc5c36e05ff641337",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-30-17-691Z.yml": {
+    "mtime": 1786289417.700257,
+    "ast_hash": "58d08b260b327fdf2b865dfdbf9dd239",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-30-46-360Z.yml": {
+    "mtime": 1786289446.3618426,
+    "ast_hash": "af4c96ee9f1bf6788a1f85f50c262dbc",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-30-49-657Z.yml": {
+    "mtime": 1786289449.659644,
+    "ast_hash": "63aa500d5fd641b4e3eb33b402ea6109",
+    "semantic_hash": ""
+  },
+  ".playwright-cli/page-2026-08-09T15-32-29-621Z.yml": {
+    "mtime": 1786289549.6227283,
+    "ast_hash": "32462a0afaae496fc3f39442e75db8f0",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/final-fix-report.md": {
+    "mtime": 1786291214.3444881,
+    "ast_hash": "b2adcc1a8d8dd5d0e75d01ad0de1a043",
     "semantic_hash": ""
   }
 }
