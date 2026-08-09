@@ -47,7 +47,7 @@ function oklchToLinearSrgb(oklch: Oklch): { r: number; g: number; b: number } {
 }
 
 /** Luminancia relativa WCAG sobre canales YA lineales (sin gamma-decode adicional). */
-function relativeLuminance(oklchStr: string): number {
+export function relativeLuminance(oklchStr: string): number {
   const { r, g, b } = oklchToLinearSrgb(parseOklch(oklchStr));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
@@ -56,6 +56,51 @@ function relativeLuminance(oklchStr: string): number {
 export function contrastRatio(a: string, b: string): number {
   const l1 = relativeLuminance(a);
   const l2 = relativeLuminance(b);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** Canal sRGB (0-255) -> lineal, formula estandar WCAG (gamma-decode). */
+function srgbChannelToLinear(channel: number): number {
+  const cs = channel / 255;
+  return cs <= 0.04045 ? cs / 12.92 : ((cs + 0.055) / 1.055) ** 2.4;
+}
+
+/**
+ * Luminancia relativa WCAG de un literal hex sRGB (`#rrggbb`).
+ *
+ * Existe porque el void de las escenas decorativas oscuras (Story, Contact,
+ * Journey, Features -- `*_VOID` en cada `*.layers.ts` de
+ * `src/components/scenes/`) se declara VERBATIM en hex, nunca convertido a
+ * `oklch()` (cada `*_VOID` documenta por que: "un redondeo de conversion
+ * desviaria el resultado del aditivo"). `contrastRatio` por si sola no puede
+ * medir contra eso -- `parseOklch` solo acepta el formato `oklch(L C H)`.
+ * No hace falta pasar por OKLab para esto: el sRGB ya es el espacio nativo
+ * de un literal hex, así que la formula WCAG de luminancia relativa se
+ * aplica directamente sobre sus canales linealizados.
+ */
+export function relativeLuminanceHex(hex: string): number {
+  const h = hex.replace("#", "");
+  const r = Number.parseInt(h.slice(0, 2), 16);
+  const g = Number.parseInt(h.slice(2, 4), 16);
+  const b = Number.parseInt(h.slice(4, 6), 16);
+  return (
+    0.2126 * srgbChannelToLinear(r) +
+    0.7152 * srgbChannelToLinear(g) +
+    0.0722 * srgbChannelToLinear(b)
+  );
+}
+
+/**
+ * Ratio de contraste WCAG entre un color `oklch()` (un token de tema) y un
+ * literal hex sRGB (el void de una escena decorativa). Mismo criterio
+ * lighter/darker que `contrastRatio` -- la única diferencia es de dónde sale
+ * cada luminancia.
+ */
+export function contrastRatioHex(oklchStr: string, hex: string): number {
+  const l1 = relativeLuminance(oklchStr);
+  const l2 = relativeLuminanceHex(hex);
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
