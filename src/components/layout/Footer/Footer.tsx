@@ -225,7 +225,7 @@ const ScInner = styled.div`
   z-index: 1;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
     padding-inline: ${({ theme }) => theme.data.space[6]};
   }
 `;
