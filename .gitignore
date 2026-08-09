@@ -43,3 +43,7 @@ task/*
 
 # cache local de graphify — se regenera, no se versiona
 graphify-out/cache/
+
+# Artefactos de herramientas de auditoria/verificacion (sesiones del agente):
+.impeccable/
+.playwright-cli/

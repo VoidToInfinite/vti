@@ -34,3 +34,6 @@ yarn.lock
 # Snapshots del skill impeccable (critique-storage los escribe con su propio
 # formato; artefactos de auditoria, nadie los edita a mano):
 .impeccable/
+
+# Trazas de playwright-cli (verificacion del agente):
+.playwright-cli/
