@@ -668,6 +668,20 @@ const ScNavPanel = styled.div`
     transform ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
     visibility ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing};
 
+  /* Divergencia deliberada con ScNavSheet/ScSheetVeil (NavSheet.tsx): alli
+     la lista de apertura RETIRO visibility (medido en Chrome real, 375x812:
+     con visibility en esa lista, el focus() que mete el foco en la primera
+     fila de la hoja se ejecutaba en el instante en que visibility todavia
+     computaba hidden, y un elemento hidden no es focalizable -- ver el
+     docblock de ScNavSheet y el candado de Navbar.test.tsx:1447). Este
+     panel de escritorio SI mantiene visibility en la lista de apertura,
+     abajo, porque el hallazgo no aplica hoy: abrir este panel no mueve el
+     foco a ningun elemento suyo (no hay ningun focus() equivalente en su
+     apertura), asi que no hay ningun tick en el que algo intente
+     focalizarse contra un panel que todavia computa hidden. Es una
+     divergencia LATENTE, no un descuido: si este panel gana algun dia un
+     focus() propio al abrirse, retirar visibility de ESTA lista de
+     apertura, mismo criterio que NavSheet.tsx. */
   &[data-open="true"] {
     visibility: visible;
     opacity: 1;

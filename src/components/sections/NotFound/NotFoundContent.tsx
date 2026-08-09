@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
+import { PRESS } from "@/motion/vocabulary";
 
 /*
  * Cuerpo de cliente de la 404 (auditoria SEO 2026-08-08, mismo patron que
@@ -30,9 +31,17 @@ import styled from "styled-components";
  * `NotFoundContent` vive en la categoria `sections` (regla 2 de RULES.md,
  * categorias separadas). Se replica el MISMO lenguaje visual (mismos
  * tokens: `semantic.textMuted` en reposo, `semantic.brandText` en
- * hover/foco, `motion.duration.fast`) para que la experiencia sea
+ * hover/foco, `motion.duration.fast` para la transicion de color, y las
+ * primitivas de press de `vocabulary.PRESS` -- transform a
+ * `PRESS.durationMs`/`PRESS.easing` en `:active`, escala
+ * `PRESS.activeScale`, mismo candado de `prefers-reduced-motion` -- que
+ * `legalPage.parts.tsx` ya adopto en Task 9) para que la experiencia sea
  * consistente en todo el sitio, sin acoplar dos categorias de componentes
- * que hoy se mantienen deliberadamente separadas.
+ * que hoy se mantienen deliberadamente separadas. `PRESS` SI se importa
+ * directo de `src/motion/vocabulary.ts`, sin duplicar su valor: es
+ * vocabulario transversal del sistema de movimiento, no una pieza propiedad
+ * de la categoria `legal` -- misma frontera que separa `theme.data.motion.*`
+ * (compartido) de los componentes que lo consumen.
  */
 const ScBackLink = styled(Link)`
   display: inline-flex;
@@ -40,16 +49,26 @@ const ScBackLink = styled(Link)`
   margin-top: ${({ theme }) => theme.data.space[5]};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brandText};
   }
 
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 
