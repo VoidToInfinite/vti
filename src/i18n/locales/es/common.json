@@ -22,7 +22,9 @@
             "sdk": "VTI - SDK",
             "discord": "Discord",
             "github": "GitHub",
-            "newTab": "se abre en una pestaña nueva"
+            "newTab": "se abre en una pestaña nueva",
+            "openMenu": "Abrir el menú de navegación",
+            "closeMenu": "Cerrar el menú de navegación"
         },
         "Lang": {
             "title": "Idioma",
