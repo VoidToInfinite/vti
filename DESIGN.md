@@ -257,7 +257,7 @@ Prioridad tal y como la dejó la auditoría A2 (Opus, 2026-08-08), sin editorial
 - 760-1570 ms de pantalla vacía al cargar: todo el hero arranca en `opacity: 0`. Arreglo candidato: sacar la capa base del escalonado, o dar un estado inicial visible al HTML prerenderizado.
 - Tres anchos de contenido conviviendo sin token único: `grid.navMax` (1280px, Story/Journey) vs `grid.containerMax` (1200px, Features/Contact/Footer), con canaletas divergentes.
 - Sin navegación a secciones por debajo de 768px (decisión de alcance ya documentada, no un olvido).
-- Features en oscuro: el único encabezado es un overline de 11px con `aria-labelledby`; la rama clara tiene `h2` + intro que la oscura no consume.
+- ~~Features en oscuro: el único encabezado es un overline de 11px con `aria-labelledby`; la rama clara tiene `h2` + intro que la oscura no consume.~~ **Resuelto (Task 11, dieta de ornamento A, 2026-08-09):** el kicker sigue siendo el `h2` real (`forwardedAs="h2"`, mismo `aria-labelledby`), pero sube de la variante `overline` (11px) a `h5` (18px) -- ya no es más pequeño que su propio cuerpo (`bodySm`, 14px). La rama clara sigue sin `intro` en la oscura (eso no era el hallazgo que esta tarea cerraba, sigue sin resolver).
 
 **MEDIA**
 

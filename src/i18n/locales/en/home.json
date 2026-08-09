@@ -47,7 +47,6 @@
             "stepLabel": "Step"
         },
         "journey": {
-            "kicker": "Inspiration",
             "title": "Your journey has no final step.",
             "body": "Every discovery creates a new question. Every skill opens another path. The journey continues as long as curiosity remains.",
             "quote": "The destination is not infinity. The journey is.",
@@ -124,7 +123,6 @@
             }
         },
         "contact": {
-            "kicker": "Contact",
             "titleLead": "Let’s build something",
             "titleAccent": "infinite.",
             "body": "Have a question, idea, or collaboration in mind?",

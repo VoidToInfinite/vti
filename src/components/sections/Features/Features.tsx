@@ -20,8 +20,6 @@ import {
   FEATURES_IMAGE_PANEL_HEIGHT,
   FEATURES_IMAGE_CIRCLE_SIZE,
   FEATURES_IMAGE_CIRCLE_OFFSET,
-  FEATURES_EYEBROW_BAR_WIDTH,
-  FEATURES_EYEBROW_BAR_HEIGHT,
   FEATURES_CONIC_BORDER_SPIN_MS,
   FEATURES_LIGHT_REVEAL_DURATION_MS,
   FEATURES_LIGHT_REVEAL_TRANSLATE_Y,
@@ -97,10 +95,11 @@ const FEATURES_FIGURE_PARALLAX_PX = 5;
 
 /*
  * `STAGGER_STEP_MS` (120ms por tarjeta) RETIRADA (spec 2026-08-06, D9): el
- * escalonado por índice se sustituye por los seis retardos verbatim del
- * mockup (`FEATURES_LIGHT_REVEAL_DELAYS_MS`, `features.layers.ts`), que ya
- * no son múltiplos regulares de un paso fijo -- cubren cabecera Y tarjetas
- * bajo un único `useReveal` (ver `ScReveal`, más abajo).
+ * escalonado por índice se sustituye por los retardos verbatim del mockup
+ * (`FEATURES_LIGHT_REVEAL_DELAYS_MS`, `features.layers.ts` -- cinco desde
+ * Task 11, 2026-08-09, que retira el eyebrow y con él su propio retardo),
+ * que ya no son múltiplos regulares de un paso fijo -- cubren cabecera Y
+ * tarjetas bajo un único `useReveal` (ver `ScReveal`, más abajo).
  */
 
 /**
@@ -225,13 +224,19 @@ const ScFeatures = styled.section<{ $fullBleed: boolean }>`
 `;
 
 /* Cabecera: mockup L188-194 -- YA NO centrada (D6, spec `2026-08-06-story-
-   features-tema-claro-design.md`): el bloque `eyebrow + h2 + intro` es block
-   simple, alineado a la izquierda, sin `text-align`/`align-items:center` --
-   a diferencia de la cabecera anterior (las tres palabras de marca), que sí
-   los llevaba. El espaciado entre los tres hijos usa `space[3]` como
-   aproximación razonable de los márgenes verbatim del mockup (18px/16px, que
-   no coinciden con ningún paso de la escala); no está fijado por el encargo,
-   así que no se persigue el píxel exacto. */
+   features-tema-claro-design.md`): block simple, alineado a la izquierda,
+   sin `text-align`/`align-items:center` -- a diferencia de la cabecera
+   anterior (las tres palabras de marca), que sí los llevaba. El espaciado
+   entre los hijos usa `space[3]` como aproximación razonable de los
+   márgenes verbatim del mockup (18px/16px, que no coinciden con ningún paso
+   de la escala); no está fijado por el encargo, así que no se persigue el
+   píxel exacto.
+
+   Task 11 (dieta de ornamento A, 2026-08-09): el eyebrow (`barra + kicker`,
+   antes primer hijo de este bloque) se retira -- la cabecera clara abre
+   directamente con el `h2`. El eyebrow/11px en versalitas por encima de
+   CADA sección era el andamiaje de IA más repetido del sitio; Features
+   claro se une a Journey/Contacto en abrir con su encabezado real. */
 const ScHeader = styled.div`
   display: flex;
   flex-direction: column;
@@ -240,32 +245,18 @@ const ScHeader = styled.div`
 
 /* Kicker: mismo mapeo que `ScKicker` en Story.tsx/Hero.tsx para el mismo rol
    visual ("etiqueta de marca", mockup `var(--primary-600)`, L159) —
-   `semantic.brandText`, no un paso de palette suelto. Sigue siendo el
-   destino de la rama OSCURA (`forwardedAs="h2"`, más abajo) además de la
-   clara (`forwardedAs="p"`, dentro de `ScEyebrow`): CSS sin cambios. */
+   `semantic.brandText`, no un paso de palette suelto.
+
+   Task 11 (2026-08-09): la rama CLARA dejó de usarlo (el eyebrow que lo
+   envolvía, `ScEyebrow`/`ScEyebrowBar`, se retiró por completo). Sigue
+   siendo el ÚNICO destino: la rama OSCURA, donde ES el propio `<h2>`
+   (`forwardedAs="h2"`, más abajo) -- ahí no se retira (es el único
+   encabezado accesible de la sección), pero sube de la variante `overline`
+   (11px) a `h5` (18px) para dejar de ser más pequeño que su propio cuerpo
+   (deuda ALTA de DESIGN.md §9, cerrada por esta tarea). */
 const ScKicker = styled(Typography)`
   text-transform: uppercase;
   color: ${({ theme }) => theme.data.semantic.brandText};
-`;
-
-/* Eyebrow con barra (D4/D6, spec 2026-08-06; mockup L189): fila
-   `barra + kicker`, exclusiva de la rama clara -- la rama oscura sigue
-   usando el kicker suelto como `h2` (ver el docblock de `ScKicker` y el
-   return oscuro, más abajo). */
-const ScEyebrow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.data.space[2]};
-`;
-
-/* Barra decorativa del eyebrow: `aria-hidden` en el punto de uso (es
-   puntuación visual, no contenido, D4 de la spec). */
-const ScEyebrowBar = styled.span`
-  flex: none;
-  display: block;
-  width: ${FEATURES_EYEBROW_BAR_WIDTH};
-  height: ${FEATURES_EYEBROW_BAR_HEIGHT};
-  background: ${({ theme }) => theme.data.semantic.brandText};
 `;
 
 /* Párrafo de entrada nuevo (D6; mockup L192, `color: var(--text-secondary)`).
@@ -321,9 +312,11 @@ const ScSpanGaming = styled.span`
 /*
  * Envoltorio genérico de reveal escalonado (D9, spec 2026-08-06): SUSTITUYE
  * a `ScItem` (que solo envolvía tarjetas, con `$index`/`$fullWidth` propios
- * de la rejilla). Ahora cubre los SEIS elementos de la rama clara --
- * eyebrow, `h2`, párrafo de entrada y las tres tarjetas -- bajo un ÚNICO
- * `useReveal` (ver `Features()`): el estado `data-revealed` vive en
+ * de la rejilla). Cubre CINCO elementos de la rama clara -- `h2`, párrafo de
+ * entrada y las tres tarjetas -- bajo un ÚNICO `useReveal` (ver
+ * `Features()`); hasta Task 11 (dieta de ornamento A, 2026-08-09) eran seis,
+ * con el eyebrow abriendo el grupo, retirado por esa tarea. El estado
+ * `data-revealed` vive en
  * `ScRevealGroup` (el padre común, más abajo), NO en cada `ScReveal`, así que
  * el selector es DESCENDIENTE (`[data-revealed="true"] &`) y no calificado
  * (`&[data-revealed="true"]`) -- la variante calificada solo funcionaría si
@@ -1129,8 +1122,14 @@ export function Features(): ReactElement {
             data-revealed={revealed}
           >
             <ScDarkHeader>
+              {/* Task 11 (dieta de ornamento A, 2026-08-09): CASO ESPECIAL --
+                  este kicker ES el h2 real de la sección (forwardedAs="h2",
+                  aria-labelledby de ScFeatures apunta a su id). No se
+                  retira: sube de `overline` (11px) a `h5` (18px) para dejar
+                  de ser más pequeño que su propio cuerpo (`ScDarkBody`,
+                  `bodySm`/14px) -- cierra la deuda ALTA de DESIGN.md §9. */}
               <ScKicker
-                variant="overline"
+                variant="h5"
                 forwardedAs="h2"
                 id="features-title"
               >
@@ -1214,7 +1213,9 @@ export function Features(): ReactElement {
     >
       {/* Envoltorio único de reveal (D9): un solo useReveal (revealRef/
           revealed) cubre cabecera + rejilla -- ver el docblock de
-          `ScRevealGroup`/`ScReveal`, arriba. */}
+          `ScRevealGroup`/`ScReveal`, arriba. Task 11 (2026-08-09): la
+          cabecera abre directamente con el h2 -- el eyebrow (kicker + barra)
+          que antes iba primero se retiró. */}
       <ScRevealGroup
         ref={revealRef}
         data-revealed={revealed}
@@ -1223,26 +1224,6 @@ export function Features(): ReactElement {
           <ScReveal
             $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}
             data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}
-          >
-            <ScEyebrow>
-              <ScEyebrowBar aria-hidden="true" />
-              {/* forwardedAs, NO as: sobre un styled(Typography), `as` lo
-                  consume styled-components y sustituye a Typography entero
-                  por un <p> crudo (variant se cuela al DOM y la variante
-                  pierde sus estilos; mismo pitfall documentado en
-                  Hero.tsx:369). */}
-              <ScKicker
-                variant="overline"
-                forwardedAs="p"
-              >
-                {t("Home.features.kicker")}
-              </ScKicker>
-            </ScEyebrow>
-          </ScReveal>
-
-          <ScReveal
-            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
-            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
           >
             <Typography
               variant="h2"
@@ -1253,8 +1234,8 @@ export function Features(): ReactElement {
           </ScReveal>
 
           <ScReveal
-            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[2]}
-            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[2]}
+            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
+            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
           >
             <ScIntro variant="body">{t("Home.features.intro")}</ScIntro>
           </ScReveal>
@@ -1263,7 +1244,7 @@ export function Features(): ReactElement {
         <ScGrid>
           {FEATURE_KEYS.map((key, index) => {
             const basename = FEATURE_FIGURE_BASENAME[key];
-            const delayMs = FEATURES_LIGHT_REVEAL_DELAYS_MS[3 + index];
+            const delayMs = FEATURES_LIGHT_REVEAL_DELAYS_MS[2 + index];
             /* Números 01/02/03: decorativos (D6/D10) -- aria-hidden en
                ScBadge, más abajo; el orden ya lo comunica el DOM. */
             const number = String(index + 1).padStart(2, "0");

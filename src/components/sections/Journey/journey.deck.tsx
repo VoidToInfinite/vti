@@ -333,9 +333,10 @@ function stepColor(
  * equivalente (registro 2026-07-28, task/lessons.md):
  *
  * 1) Desacople de la rama clara: si estas piezas reutilizaran los
- *    styled(Typography) de la rama clara de Journey.tsx (ScKicker aparte,
- *    que SI se reutiliza tal cual porque no cambia de tamano), cualquier
- *    ajuste de tamano aqui se filtraria tambien al tema claro.
+ *    styled(Typography) de la rama clara de Journey.tsx, cualquier ajuste de
+ *    tamano aqui se filtraria tambien al tema claro. (Hasta Task 11,
+ *    2026-08-09, el kicker `ScKicker` era la unica excepcion reutilizada tal
+ *    cual entre las dos ramas -- se retiro de las dos, asi que ya no aplica.)
  * 2) styled(Typography) con un `as` que cambie el elemento de salida pierde
  *    TODA la escala tipografica de Typography en styled-components v6 (el
  *    prop `as` lo CONSUME el propio wrapper): estas piezas no necesitan

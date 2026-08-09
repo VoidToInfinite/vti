@@ -156,12 +156,6 @@ export const FEATURES_IMAGE_CIRCLE_SIZE = "11.125rem";
  *  simple de `FEATURES_IMAGE_CIRCLE_SIZE`). */
 export const FEATURES_IMAGE_CIRCLE_OFFSET = "-2.875rem";
 
-/** Ancho de la barra del eyebrow de la cabecera (D4/D6; mockup L189:
- *  `width: 28px; height: 2px`). 1.75rem = 28px exacto. */
-export const FEATURES_EYEBROW_BAR_WIDTH = "1.75rem";
-/** Alto de la barra del eyebrow (ver `FEATURES_EYEBROW_BAR_WIDTH`). */
-export const FEATURES_EYEBROW_BAR_HEIGHT = "2px";
-
 /** Duración del giro del borde cónico en hover (D7; mockup L197:
  *  `animation: vtiBorderSpin 3200ms linear infinite`). No coincide con
  *  ningún paso de `theme.tokens.motion.duration`: es una animación
@@ -181,21 +175,29 @@ export const FEATURES_CONIC_BORDER_SPIN_MS = "3200ms";
 export const FEATURES_LIGHT_REVEAL_DURATION_MS = "640ms";
 
 /** Desplazamiento vertical de entrada del reveal escalonado (D9; mockup:
- *  `transform: translateY(22px)` en los seis elementos del bloque). */
+ *  `transform: translateY(22px)` en los elementos del bloque -- seis hasta
+ *  Task 11 (2026-08-09), cinco desde que esa tarea retira el eyebrow de la
+ *  rama clara). */
 export const FEATURES_LIGHT_REVEAL_TRANSLATE_Y = "22px";
 
 /**
- * Retardo (`transition-delay`) de cada uno de los seis elementos del reveal
+ * Retardo (`transition-delay`) de cada uno de los elementos del reveal
  * escalonado de la rama clara, en el mismo orden en que el mockup los
- * declara -- `data-reveal-delay` de cada nodo (D9; mockup L188/190/192,
- * eyebrow/h2/párrafo de la cabecera, y L197/220/243, las tres tarjetas):
- * eyebrow 0ms, `h2` 80ms, párrafo de entrada 140ms, tarjeta Learning 200ms,
- * tarjeta Imagination 280ms, tarjeta Gaming 360ms. Un solo
- * `IntersectionObserver` (`useReveal`, ya existente) cubre los seis; cada
- * uno declara su propio escalón en CSS -- ver `ScReveal`, `Features.tsx`.
+ * declara -- `data-reveal-delay` de cada nodo (D9; mockup L190/192,
+ * h2/párrafo de la cabecera, y L197/220/243, las tres tarjetas): `h2` 80ms,
+ * párrafo de entrada 140ms, tarjeta Learning 200ms, tarjeta Imagination
+ * 280ms, tarjeta Gaming 360ms. Un solo `IntersectionObserver` (`useReveal`,
+ * ya existente) cubre los cinco; cada uno declara su propio escalón en CSS
+ * -- ver `ScReveal`, `Features.tsx`.
+ *
+ * Task 11 (dieta de ornamento A, 2026-08-09): el eyebrow (mockup L188,
+ * antes 0ms) se retira de la rama clara -- se quita ese primer valor del
+ * array en vez de renumerar el resto, así los cinco retardos que SÍ siguen
+ * en pantalla conservan el mismo timing verbatim del mockup que ya tenían
+ * (h2 seguía entrando a 80ms, no a 0ms).
  */
 export const FEATURES_LIGHT_REVEAL_DELAYS_MS = [
-  0, 80, 140, 200, 280, 360,
+  80, 140, 200, 280, 360,
 ] as const;
 
 /** Nombre base de los ficheros WebP publicados en `public/figures/`

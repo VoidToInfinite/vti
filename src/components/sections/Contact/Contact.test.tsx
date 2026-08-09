@@ -136,9 +136,15 @@ describe("Contact", () => {
     );
   });
 
-  it("muestra el kicker real de i18n", () => {
+  // Task 11 (dieta de ornamento A, 2026-08-09): el kicker «Contacto» se
+  // retira en las dos ramas -- la clave i18n `Home.contact.kicker` se borró
+  // junto con su render (regla 28), así que el literal se hardcodea aquí a
+  // propósito, solo como regresión. Verificado con el bug inyectado (ver
+  // informe de la tarea): reintroduciendo `<ScKicker>Contacto</ScKicker>`
+  // antes del h2 este assert se pone en rojo.
+  it("ya NO muestra ningun kicker: la cabecera abre directamente con el h2", () => {
     renderWithProviders(<Contact />);
-    expect(screen.getByText(esHome.Home.contact.kicker)).toBeInTheDocument();
+    expect(screen.queryByText("Contacto")).not.toBeInTheDocument();
   });
 
   it("el chip muestra el email real, y el CTA enlaza a links.email con su aria-label de i18n", () => {
@@ -162,10 +168,12 @@ describe("Contact", () => {
     });
     try {
       renderWithProviders(<Contact />);
-      expect(screen.getByText(enHome.Home.contact.kicker)).toBeInTheDocument();
       expect(screen.getByText(enHome.Home.contact.email)).toBeInTheDocument();
       expect(
-        screen.queryByText(esHome.Home.contact.kicker),
+        screen.getByText(enHome.Home.contact.titleAccent),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(esHome.Home.contact.titleAccent),
       ).not.toBeInTheDocument();
     } finally {
       await act(async () => {
@@ -298,10 +306,12 @@ describe("Contact en tema oscuro", () => {
       .forEach((img) => expect(img).toHaveAttribute("alt", ""));
   });
 
-  it("sigue mostrando el kicker, el titulo y el cuerpo con el mismo i18n que en claro (el chip+CTA de claro NO se porta a oscuro, D12/D14)", async () => {
+  it("sigue mostrando el titulo y el cuerpo con el mismo i18n que en claro, sin kicker (el chip+CTA de claro NO se porta a oscuro, D12/D14; Task 11 retira el kicker de las dos ramas)", async () => {
     const { container } = renderWithProviders(<Contact />);
     await waitFor(() => {
-      expect(screen.getByText(esHome.Home.contact.kicker)).toBeInTheDocument();
+      expect(container.querySelectorAll("img")).toHaveLength(
+        CONTACT_GUARDIAN_LAYERS.length,
+      );
     });
     const heading = screen.getByRole("heading", { level: 2 });
     expect(heading).toHaveTextContent(
@@ -312,6 +322,9 @@ describe("Contact en tema oscuro", () => {
     // se busca por contención en el texto acumulado del contenedor.
     expect(container.textContent).toContain(esHome.Home.contact.body);
     expect(container.textContent).toContain(esHome.Home.contact.bodySecond);
+    // Sonda negativa (Task 11): el literal se hardcodea a propósito -- la
+    // clave i18n del kicker se borró junto con su render.
+    expect(screen.queryByText("Contacto")).not.toBeInTheDocument();
   });
 
   it("no hay ninguna imagen con alt de i18n (la figura de claro es una capa decorativa mas aqui)", async () => {

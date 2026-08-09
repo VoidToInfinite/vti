@@ -11,11 +11,14 @@
  * con su línea de origen para que un futuro retoque compare contra la
  * fuente, no contra un número sin contexto.
  *
- * Los colores que SÍ resuelven a un rol de token existente (kicker ->
- * `semantic.brandText`, el degradado del CTA -> `palette.primary[600]`/
- * `palette.secondary[600]`, borde del chip -> `semantic.border`) se
- * referencian directamente desde `Contact.tsx` contra el tema, sin
- * duplicarlos aquí — mismo criterio que ya aplica `Story.tsx`/`Hero.tsx`.
+ * Los colores que SÍ resuelven a un rol de token existente (fallback del
+ * degradado de acento sin `background-clip: text` -> `semantic.brandText`,
+ * el degradado del CTA -> `palette.primary[600]`/`palette.secondary[600]`,
+ * borde del chip -> `semantic.border`) se referencian directamente desde
+ * `Contact.tsx` contra el tema, sin duplicarlos aquí — mismo criterio que ya
+ * aplica `Story.tsx`/`Hero.tsx`. (Hasta Task 11, 2026-08-09, el kicker
+ * también resolvía contra `semantic.brandText`; se retiró de las dos ramas
+ * de Contacto, ver `Contact.tsx`.)
  *
  * Mapeo de rol de texto (el mockup usa un design system externo no incluido
  * en el HTML, `_ds/.../tokens/colors.css`, cuyas variables no están
@@ -257,8 +260,10 @@ export const CONTACT_CONTENT_PAIR_MAX = "800px";
  * junto al `@media` que consume estas dos constantes. **El corte es `lg` y
  * no `md`**: entre 768 y 991 las dos columnas siguen apiladas, así que un
  * régimen lateral ahí dejaba texto a ancho completo sin velo — medido a
- * 768×900, el peor píxel bajo el kicker daba 1.83:1. Con el corte en `lg`,
- * 10.16:1.
+ * 768×900, el peor píxel de la cabecera daba 1.83:1 (medición previa a Task
+ * 11, 2026-08-09, con el kicker todavía presente encima del h2 -- pendiente
+ * reverificar en navegador que el peor píxel sigue en el mismo punto tras su
+ * retirada). Con el corte en `lg`, 10.16:1.
  */
 export const CONTACT_CONTENT_PAIR_MAX_VW = "58vw";
 

@@ -141,18 +141,6 @@ const ScHeader = styled.div`
   margin-inline: auto;
 `;
 
-/* Mismo patrón que `ScKicker` en `Hero.tsx`: mayúsculas por CSS (no en el
-   JSON, así un lector de pantalla no lo deletrea como sigla) y color de la
-   rampa que pide el mockup (`--secondary-600`), no el `brandText` semántico
-   del kicker del hero. `letter-spacing` se sobrescribe al valor literal del
-   mockup (0.22em vs. los 0.18em de `overline`), misma excepción documentada
-   que `ScSubtitle` en `Hero.tsx`. */
-const ScKicker = styled(Typography)`
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.data.palette.secondary[600]};
-  letter-spacing: 0.22em;
-`;
-
 const ScBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
@@ -553,8 +541,11 @@ function JourneyLight(): ReactElement {
       $fullBleed={false}
     >
       <ScCard>
+        {/* Task 11 (dieta de ornamento A, 2026-08-09): el kicker
+            «Inspiración» se retira -- Journey abre con su encabezado real,
+            no con una etiqueta de marca por encima. Solo Story conserva
+            kicker (es una pregunta con voz, no una etiqueta). */}
         <ScHeader>
-          <ScKicker variant="overline">{t("Home.journey.kicker")}</ScKicker>
           <Typography
             variant="h2"
             id="journey-title"
@@ -636,11 +627,15 @@ function JourneyLight(): ReactElement {
  * monta cuando la rama oscura esta activa.
  *
  * Reparto de las JOURNEY_SLIDES diapositivas (spec seccion 4): 0 = intro
- * (kicker + h2#journey-title + cuerpo), 1..JOURNEY_STEPS.length = un paso
- * cada una (icono -> etiqueta -> subtitulo, T5 de la spec
- * 2026-08-02-journey-deck-tipografia-design.md), la ultima = la cita.
- * `ScKicker`/`ScQuoteText` se REUTILIZAN tal cual (las comparten las dos
- * ramas, arriba en este archivo); el resto de piezas de cartel viven en
+ * (h2#journey-title + cuerpo), 1..JOURNEY_STEPS.length = un paso cada una
+ * (icono -> etiqueta -> subtitulo, T5 de la spec
+ * 2026-08-02-journey-deck-tipografia-design.md), la ultima = la cita. Hasta
+ * Task 11 (dieta de ornamento A, 2026-08-09) la diapositiva 0 abria con un
+ * kicker («Inspiración», `ScKicker`, reutilizado tal cual entre las dos
+ * ramas) antes del h2 -- se retira en las DOS ramas de Journey: solo Story
+ * conserva su kicker (voz propia, no etiqueta de marca repetida en cada
+ * seccion). `ScQuoteText` SI se sigue reutilizando tal cual (la comparten las
+ * dos ramas, arriba en este archivo); el resto de piezas de cartel viven en
  * journey.deck.tsx (`ScJourneyDeckTitle`/`ScJourneyIntroBody`/
  * `ScJourneyStepIconBox`/`ScJourneyStepLabel`/`ScJourneyStepSubtitle`/
  * `ScJourneyQuote`), con su PROPIA escala de tamanos (journey.layers.ts)
@@ -724,7 +719,6 @@ function JourneyDeckDark(): ReactElement {
               data-slide-index={0}
               data-state={slideState(0)}
             >
-              <ScKicker variant="overline">{t("Home.journey.kicker")}</ScKicker>
               <ScJourneyDeckTitle id="journey-title">
                 {t("Home.journey.title")}
               </ScJourneyDeckTitle>

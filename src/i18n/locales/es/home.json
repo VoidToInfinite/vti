@@ -47,7 +47,6 @@
             "stepLabel": "Paso"
         },
         "journey": {
-            "kicker": "Inspiración",
             "title": "Tu viaje no tiene un último paso.",
             "body": "Cada descubrimiento crea una pregunta nueva. Cada habilidad abre otro camino. El viaje continúa mientras quede curiosidad.",
             "quote": "El destino no es el infinito. El viaje lo es.",
@@ -124,7 +123,6 @@
             }
         },
         "contact": {
-            "kicker": "Contacto",
             "titleLead": "Construyamos algo",
             "titleAccent": "infinito.",
             "body": "¿Tienes una pregunta, una idea o una colaboración en mente?",

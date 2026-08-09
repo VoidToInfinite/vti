@@ -145,9 +145,19 @@ describe("Features", () => {
     expect(screen.getByText(esHome.Home.features.intro)).toBeInTheDocument();
   });
 
-  it("muestra el kicker de i18n", () => {
+  // Task 11 (dieta de ornamento A, 2026-08-09): la rama CLARA retira el
+  // eyebrow (barra + kicker) -- la cabecera abre directamente con el h2. El
+  // texto del kicker (`Home.features.kicker`) sigue existiendo en i18n
+  // porque la rama OSCURA lo sigue consumiendo como SU h2 (ver el bloque
+  // "Features en tema oscuro" más abajo); aquí solo se comprueba que en
+  // claro NO aparece. Verificado con el bug inyectado (ver informe de la
+  // tarea): reintroduciendo el `<ScEyebrow>` en la rama clara este assert
+  // se pone en rojo.
+  it("ya NO muestra el eyebrow/kicker en la rama clara: la cabecera abre con el h2", () => {
     renderWithProviders(<Features />);
-    expect(screen.getByText(esHome.Home.features.kicker)).toBeInTheDocument();
+    expect(
+      screen.queryByText(esHome.Home.features.kicker),
+    ).not.toBeInTheDocument();
   });
 
   it("las tres tarjetas muestran su titulo y su cuerpo de i18n", () => {
@@ -216,9 +226,13 @@ describe("Features", () => {
     expect(items[0]).toHaveAttribute("data-revealed", "true");
   });
 
-  it("D9: escalona el transition-delay de los seis elementos (eyebrow, h2, intro, 3 tarjetas) segun los retardos verbatim del mockup", () => {
+  // Task 11 (2026-08-09): cinco elementos, no seis -- el eyebrow (y su
+  // propio retardo, antes 0ms) se retiró; los cinco restantes conservan el
+  // mismo timing verbatim que ya tenían (ver el docblock de
+  // FEATURES_LIGHT_REVEAL_DELAYS_MS, features.layers.ts).
+  it("D9: escalona el transition-delay de los cinco elementos (h2, intro, 3 tarjetas) segun los retardos verbatim del mockup", () => {
     const { container } = renderWithProviders(<Features />);
-    expect(FEATURES_LIGHT_REVEAL_DELAYS_MS).toHaveLength(6);
+    expect(FEATURES_LIGHT_REVEAL_DELAYS_MS).toHaveLength(5);
     FEATURES_LIGHT_REVEAL_DELAYS_MS.forEach((delayMs) => {
       const el = container.querySelector(
         `[data-reveal-delay="${delayMs}"]`,
@@ -646,7 +660,7 @@ describe("Features en tema oscuro", () => {
       .forEach((img) => expect(img).toHaveAttribute("alt", ""));
   });
 
-  it("sigue mostrando el kicker, los 3 titulos, los 12 bullets y los 3 CTA con el mismo i18n que en claro", async () => {
+  it("sigue mostrando el kicker (ahora el propio h2), los 3 titulos, los 12 bullets y los 3 CTA con el mismo i18n que en claro", async () => {
     renderWithProviders(<Features />);
     await waitFor(() => {
       expect(screen.getByText(esHome.Home.features.kicker)).toBeInTheDocument();
@@ -664,6 +678,41 @@ describe("Features en tema oscuro", () => {
       });
       expect(cta).toHaveAttribute("href", "#contact");
     });
+  });
+
+  /*
+   * Task 11 (dieta de ornamento A, 2026-08-09): caso especial de Features
+   * oscuro -- su kicker ES el h2 real (`forwardedAs="h2"`, `aria-labelledby`
+   * de la sección apunta a su id). No se retira, pero sube de la variante
+   * `overline` (11px) a `h5` (18px) para dejar de ser más pequeño que su
+   * propio cuerpo (`ScDarkBody`, variante `bodySm`, 14px) -- cierra la deuda
+   * ALTA de DESIGN.md §9 ("el único encabezado es un overline de 11px").
+   * Verificado con el bug inyectado (ver informe de la tarea): devolviendo
+   * `variant="overline"` en `Features.tsx` este test se pone en rojo (el
+   * font-size vuelve a `type.scale.overline.size`).
+   */
+  it("D9/DESIGN.md §9: el h2 de Features oscuro es un heading de verdad y su font-size es el de h5 (18px), no el de overline (11px)", async () => {
+    renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(screen.getByText(esHome.Home.features.kicker)).toBeInTheDocument();
+    });
+
+    const heading = screen.getByRole("heading", {
+      level: 2,
+      name: esHome.Home.features.kicker,
+    });
+    expect(heading).toHaveAttribute("id", "features-title");
+    expect(getComputedStyle(heading).fontSize).toBe(
+      themes.dark.type.scale.h5.size,
+    );
+    expect(getComputedStyle(heading).fontSize).not.toBe(
+      themes.dark.type.scale.overline.size,
+    );
+
+    const region = screen.getByRole("region", {
+      name: esHome.Home.features.kicker,
+    });
+    expect(region).toHaveAttribute("id", "features");
   });
 
   it("no queda ninguna imagen con alt de i18n (las figuras por tarjeta son cosa de la rama clara)", async () => {
@@ -1002,8 +1051,11 @@ describe("D7/D1: progreso de scroll de la rama clara (useSectionProgress)", () =
 describe("D9: duración/easing de entrada de la cabecera y las tarjetas de la rama clara (640ms + easing.standard, ya no slower/decelerate)", () => {
   it("ScReveal (rama clara) usa FEATURES_LIGHT_REVEAL_DURATION_MS (640ms) + motion.easing.standard, verbatim del mockup", () => {
     const { container } = renderWithProviders(<Features />);
+    // Ancla al PRIMER retardo real del array (80ms, el h2 -- Task 11,
+    // 2026-08-09, retiró el eyebrow que antes ocupaba el retardo 0ms), no a
+    // un literal "0" a mano que dejaría de existir en el DOM.
     const item = container.querySelector(
-      '[data-reveal-delay="0"]',
+      `[data-reveal-delay="${FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}"]`,
     ) as HTMLElement;
     const css = cssRuleTextFor(item);
 

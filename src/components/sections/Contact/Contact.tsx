@@ -231,16 +231,6 @@ const ScLeft = styled.div`
   z-index: ${({ theme }) => theme.data.zIndex.raised};
 `;
 
-/* Mismo patrón que `ScKicker` en `Hero.tsx`: las mayúsculas se hacen por CSS
-   (no en el JSON) para que el nombre accesible conserve la caja natural de
-   la traducción, y el color de marca gana la cascada sin `&&` porque
-   `styled(Typography)` inyecta su clase después de `ScTypography` (medido
-   en este repo). */
-const ScKicker = styled(Typography)`
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.data.semantic.brandText};
-`;
-
 /* Degradado de texto estático (mockup no anima este span, a diferencia del
    "ToInfinite" del hero) — ver `CONTACT_TITLE_ACCENT_GRADIENT`. */
 const ScAccent = styled.span`
@@ -678,8 +668,10 @@ const ScDarkContent = styled.div`
      de apilarse cuando el contenido mide 748px o más. Esta media query y el
      régimen de ScVignette tienen que cortar en el MISMO punto o queda una
      franja de anchos (768-991) con el contenido a ancho completo y el velo
-     lateral ya retirado: medido a 768x900, el peor píxel bajo el kicker
-     daba 1.83:1. */
+     lateral ya retirado: medido a 768x900, el peor píxel de la cabecera daba
+     1.83:1 (medición previa a Task 11, 2026-08-09, con el kicker todavía
+     presente encima del h2 -- pendiente reverificar en navegador que el
+     peor píxel sigue en el mismo punto tras su retirada). */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     max-width: min(${CONTACT_CONTENT_PAIR_MAX}, ${CONTACT_CONTENT_PAIR_MAX_VW});
   }
@@ -709,8 +701,9 @@ const ScDarkContent = styled.div`
   }
 `;
 
-/* Columna izquierda del contenido oscuro (mockup L56): kicker + h2 + cuerpo
-   + ScCards (formulario + dos tarjetas), en columna.
+/* Columna izquierda del contenido oscuro (mockup L56): h2 + cuerpo + ScCards
+   (formulario + dos tarjetas), en columna -- hasta Task 11 (2026-08-09) el
+   kicker abría el bloque, retirado por esa tarea.
 
    `gap` FLUIDO (D4, encargo 2026-08-04, palanca 2): mismo criterio que
    `ScDarkFeatures`/`ScDarkFeatureBlock` en `Features.tsx` -- clamp entre
@@ -1135,7 +1128,9 @@ export function Contact(): ReactElement {
             data-revealed={revealed}
           >
             <ScDarkCopy>
-              <ScKicker variant="overline">{t("Home.contact.kicker")}</ScKicker>
+              {/* Task 11 (dieta de ornamento A, 2026-08-09): el kicker
+                  «Contacto» se retira en las DOS ramas -- Contacto abre con
+                  su encabezado real, como Journey y Features (claro). */}
               <Typography
                 variant="h2"
                 id="contact-title"
@@ -1300,7 +1295,9 @@ export function Contact(): ReactElement {
         data-revealed={revealed}
       >
         <ScLeft>
-          <ScKicker variant="overline">{t("Home.contact.kicker")}</ScKicker>
+          {/* Task 11 (dieta de ornamento A, 2026-08-09): el kicker
+              «Contacto» se retira en las DOS ramas -- ver el docblock
+              equivalente en la rama oscura, más arriba. */}
           <Typography
             variant="h2"
             id="contact-title"

@@ -386,10 +386,12 @@ describe("Journey en tema oscuro", () => {
   // i18n sigue siendo `steps.<id>.body` (T5 no la renombra, solo el rol que
   // pinta). El reparto preciso por diapositiva, INCLUIDA la ausencia del
   // numero, se comprueba mas abajo (test 4, D11).
-  it("sigue mostrando el kicker, el titulo, los 6 pasos (etiqueta+subtitulo, sin numero) y la cita con el mismo i18n que en claro", async () => {
-    renderWithProviders(<Journey />);
+  it("sigue mostrando el titulo, los 6 pasos (etiqueta+subtitulo, sin numero) y la cita con el mismo i18n que en claro (sin kicker, Task 11)", async () => {
+    const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
-      expect(screen.getByText(esHome.Home.journey.kicker)).toBeInTheDocument();
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
     });
     expect(screen.getByText(esHome.Home.journey.title)).toBeInTheDocument();
     JOURNEY_STEPS.forEach((step, index) => {
@@ -407,6 +409,14 @@ describe("Journey en tema oscuro", () => {
     expect(
       screen.getByText(`“${esHome.Home.journey.quote}”`),
     ).toBeInTheDocument();
+    // Sonda NEGATIVA (Task 11, dieta de ornamento A, 2026-08-09): el kicker
+    // "Inspiración" se retiró de las dos ramas -- la clave i18n
+    // `Home.journey.kicker` se borró junto con su render, así que el literal
+    // se hardcodea aquí a propósito, solo como regresión. Verificado con el
+    // bug inyectado (ver informe de la tarea): reintroduciendo la línea
+    // `<ScKicker>{t("Home.journey.kicker")}</ScKicker>` en la diapositiva 0
+    // este assert se pone en rojo.
+    expect(screen.queryByText("Inspiración")).not.toBeInTheDocument();
   });
 
   it("no hay ninguna imagen con alt de i18n ni el camino SVG punteado de claro", async () => {
@@ -577,12 +587,11 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
       container.querySelectorAll("[data-slide-index]"),
     ) as HTMLElement[];
 
-    // Diapositiva 0: kicker + h2#journey-title + cuerpo de intro (pieza
-    // distinta -- Home.journey.body -- del subtitulo de paso que se
-    // verifica mas abajo; no forma parte del renombrado T5).
-    expect(
-      within(slides[0]).getByText(esHome.Home.journey.kicker),
-    ).toBeInTheDocument();
+    // Diapositiva 0: h2#journey-title + cuerpo de intro (pieza distinta --
+    // Home.journey.body -- del subtitulo de paso que se verifica mas abajo;
+    // no forma parte del renombrado T5). Hasta Task 11 (2026-08-09) abria
+    // con un kicker antes del h2, retirado por esa tarea -- ver la sonda
+    // negativa en el test de mas arriba.
     expect(slides[0].querySelector("h2#journey-title")).toHaveTextContent(
       esHome.Home.journey.title,
     );
