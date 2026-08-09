@@ -65,13 +65,13 @@
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.test.tsx": {
-    "mtime": 1785957675.8472302,
-    "ast_hash": "d042aedad1e5666d6557c771c5e2a8f6",
+    "mtime": 1786269823.4687064,
+    "ast_hash": "671bbbdd2750d2fd89529c4fbe4ad671",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.tsx": {
-    "mtime": 1785958757.4181597,
-    "ast_hash": "bb7bb05e3c0ccee3ef2cacc59f1a5cf4",
+    "mtime": 1786269865.323547,
+    "ast_hash": "256d255e99050aac5eacbcb535a836ac",
     "semantic_hash": ""
   },
   "src/components/layout/ThemeToggle/ThemeToggle.tsx": {
@@ -235,8 +235,8 @@
     "semantic_hash": ""
   },
   "src/theme/GlobalStyles.tsx": {
-    "mtime": 1786023182.8548422,
-    "ast_hash": "9b1adb92d3d84c871c9600faf9d64d67",
+    "mtime": 1786269778.6920006,
+    "ast_hash": "0032957610dc5f86ab2671fa3f86fbc9",
     "semantic_hash": ""
   },
   "src/theme/ThemeProvider.tsx": {
@@ -1975,13 +1975,13 @@
     "semantic_hash": ""
   },
   "src/components/scenes/eye/Eye.test.tsx": {
-    "mtime": 1785870402.7454026,
-    "ast_hash": "8b4cacea0149b97571dcbc9fd7e466ae",
+    "mtime": 1786269810.4027452,
+    "ast_hash": "a642ebe38675f201e207b79df9bbdc36",
     "semantic_hash": ""
   },
   "src/components/scenes/eye/Eye.tsx": {
-    "mtime": 1785870402.7469082,
-    "ast_hash": "3c65b2f9c0891cab3c970305f35eaf66",
+    "mtime": 1786269888.9885552,
+    "ast_hash": "e021951dceb5bd2f7ef3991f08d997a2",
     "semantic_hash": ""
   },
   "src/components/scenes/eye/eye.layers.test.ts": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/progress.md": {
-    "mtime": 1786267987.0255668,
-    "ast_hash": "3f3c39acc8483e0c860d8318151fe4aa",
+    "mtime": 1786269587.5315914,
+    "ast_hash": "221be4c9ac2bf1824775b5d0a011677a",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-1-brief.md": {
@@ -2217,6 +2217,16 @@
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-7-brief.md": {
     "mtime": 1786267857.0788743,
     "ast_hash": "bc0353435debd92b81182026494409fb",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-2-report.md": {
+    "mtime": 1786268855.4755037,
+    "ast_hash": "5c00b3c617b2354dc2ba3a69d2444757",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-3-report.md": {
+    "mtime": 1786269352.5713985,
+    "ast_hash": "e91d3a351a6f43bc7e353c5aff827013",
     "semantic_hash": ""
   }
 }
