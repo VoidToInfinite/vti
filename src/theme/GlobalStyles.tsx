@@ -177,6 +177,35 @@ export const GlobalStyles = createGlobalStyle`
     scroll-margin-top: calc(var(--nav-height) + var(--nav-gap));
   }
 
+  /* WCAG 2.4.11 (Focus Not Obscured, Minimum). scroll-margin-top (arriba)
+     compensa el salto a una ANCLA COMPLETA -- section[id], click/tap en el
+     CTA del hero o en un enlace de sección --, pero un Tab de teclado puede
+     posar el foco en CUALQUIER elemento focalizable de la página, no solo
+     en el contenedor con id, y el navegador dispara su propio
+     scroll-into-view automático cuando ese elemento queda fuera de la
+     ventana visible. scroll-margin-top no cubre ese caso -- solo aplica al
+     elemento que la declara --; scroll-padding-top en html sí: es la
+     propiedad que el navegador consulta para CUALQUIER scroll-into-view
+     inducido por foco, sea cual sea el destino. Sin ella, un control que
+     recibe foco por Tab puede aterrizar con el anillo de foco visible pero
+     oculto bajo la barra fija -- exactamente el fallo que 2.4.11 exige
+     evitar.
+
+     Mismo calc() que scroll-margin-top, no solo var(--nav-height): reserva
+     el hueco del PEOR caso -- la barra ya desprendida, con el hueco lateral
+     var(--nav-gap) sumado a su huella vertical efectiva (ver ScBar en
+     Navbar.tsx) --, así que un mismo umbral vale sin importar si el navbar
+     sigue en su estado inicial o ya se desprendió al hacer scroll.
+
+     No hay test unitario de esta regla y no lo va a haber: createGlobalStyle
+     no inyecta nada bajo jsdom + Vitest (lección del repo, 2026-07-25), así
+     que cualquier aserción contra document.styleSheets aquí pasaría en
+     verde sin comprobar nada real. La verificación real es en navegador
+     (Playwright), fuera de esta tarea. */
+  html {
+    scroll-padding-top: calc(var(--nav-height) + var(--nav-gap));
+  }
+
   :where(a, button, input, textarea, select, [tabindex]):focus-visible {
     outline: 2px solid ${({ theme }) => theme.data.semantic.focus};
     outline-offset: 2px;
