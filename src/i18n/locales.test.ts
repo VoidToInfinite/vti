@@ -220,4 +220,101 @@ describe("locales", () => {
       expect(keyPaths(home)).not.toContain(path);
     });
   });
+
+  /*
+   * Candado de rayas (Tarea 5, auditoría de copy, 2026-08-09). Nació porque
+   * `en/home.json` tenía 5 em-dashes que eran artefacto de la traducción (2
+   * de ellos en etiquetas ARIA) sin equivalente en `es/home.json`, y porque
+   * `en/legal.json:145` tenía un inciso con raya abierto que nunca se
+   * cerraba. Alcance deliberado, NO los cuatro namespaces:
+   *
+   * - `common` y `home`, es Y en: cero `—`/`–` en CUALQUIER valor. Este es el
+   *   copy de cara al usuario que la auditoría clasificó como "sin raya".
+   * - `legal.json` ES queda EXENTO a propósito: sus rayas (líneas 65/145/224)
+   *   son incisos RAE legítimos -- «—solo si nos escribes—», «—por ejemplo,
+   *   direcciones IP...—» -- y forman parte de la identidad de lengua del
+   *   documento legal en español. Retirarlas sería una regresión de estilo,
+   *   no una corrección.
+   * - `legal.json` EN se reescribió SIN rayas en la misma Tarea 5 (los 3
+   *   incisos con raya, incluido el abierto sin cerrar de la línea 145, pasan
+   *   a coma/paréntesis, que es la puntuación natural del inciso en inglés),
+   *   así que el candado lo exige a cero igual que `common`/`home` -- no
+   *   necesita una excepción propia.
+   */
+  const DASH_PATTERN = /[—–]/;
+
+  function dashOffenders(tree: JsonTree): string[] {
+    return keyPaths(tree).filter((path) => {
+      const value = valueAt(tree, path);
+      return value !== undefined && DASH_PATTERN.test(value);
+    });
+  }
+
+  describe("candado de rayas (Tarea 5)", () => {
+    it.each([
+      { name: "common/es", tree: esCommon as JsonTree },
+      { name: "common/en", tree: enCommon as JsonTree },
+      { name: "home/es", tree: esHome as JsonTree },
+      { name: "home/en", tree: enHome as JsonTree },
+      {
+        name: "legal/en",
+        tree: enLegal as unknown as JsonTree,
+      },
+    ])("$name: ningun valor contiene raya (— ni –)", ({ tree }) => {
+      const offenders = dashOffenders(tree);
+      expect(
+        offenders,
+        `Claves con raya sin exención: ${offenders.join(", ")}`,
+      ).toEqual([]);
+    });
+
+    // Sonda positiva + documentación del exento: legal/es SÍ conserva rayas
+    // a propósito (incisos RAE). Sin esta prueba, borrar por error las tres
+    // rayas de legal/es dejaría la exención sin sentido y nadie lo notaría.
+    it("legal/es SÍ tiene rayas: incisos RAE legítimos, exento a propósito", () => {
+      const offenders = dashOffenders(esLegal as unknown as JsonTree);
+      expect(offenders.length).toBeGreaterThan(0);
+    });
+  });
+
+  /*
+   * Candado de middot (Tarea 5). Guarda contra el mismo defecto que las
+   * rayas -- puntuación decorativa metida a mano en el copy -- pero para el
+   * "·": el punto 4 del encargo descartó explícitamente un separador de
+   * "middot doble" para el deck de Story, así que este candado impide que
+   * ese patrón (o cualquier otro con más de un "·" por valor) entre por otro
+   * sitio.
+   *
+   * Excepción ÚNICA y documentada: `Home.hero.kicker` ("Aprendizaje ·
+   * Imaginación · Juego" / "Learning · Imagination · Gaming") es un
+   * separador de ENUMERACIÓN de tres palabras, simétrico es/en, preexistente
+   * a esta tarea (no se tocó). No es el patrón que este candado quiere
+   * impedir -- un "·" (o "··") puesto como sustituto de una raya -- así que
+   * la regla se declara "por valor, con una excepción nombrada" en vez de
+   * "cero middots en todo el árbol", que habría roto contenido legítimo.
+   */
+  const MIDDOT_EXEMPT_PATHS = ["Home.hero.kicker"];
+
+  describe("candado de middot (Tarea 5)", () => {
+    it.each([
+      { name: "home/es", tree: esHome as JsonTree },
+      { name: "home/en", tree: enHome as JsonTree },
+      { name: "common/es", tree: esCommon as JsonTree },
+      { name: "common/en", tree: enCommon as JsonTree },
+    ])(
+      "$name: ningun valor (salvo la excepcion documentada) tiene mas de 1 middot",
+      ({ tree }) => {
+        const offenders = keyPaths(tree).filter((path) => {
+          if (MIDDOT_EXEMPT_PATHS.includes(path)) return false;
+          const value = valueAt(tree, path) ?? "";
+          const count = (value.match(/·/g) ?? []).length;
+          return count > 1;
+        });
+        expect(
+          offenders,
+          `Claves con mas de 1 middot: ${offenders.join(", ")}`,
+        ).toEqual([]);
+      },
+    );
+  });
 });

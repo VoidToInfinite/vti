@@ -308,7 +308,7 @@ describe("Story", () => {
 /*
  * Tarjetas de pilar (spec 2026-08-06-story-features-tema-claro-design.md,
  * D2/D3/D4/D9/D10): los cuatro pilares dejan de ser filas de lista
- * (`ScPillarRow`, con el número suelto "01 --") y pasan a tarjeta, con el
+ * (`ScPillarRow`, con el número suelto y sin tarjeta) y pasan a tarjeta, con el
  * párrafo de inspiración (`Home.story.pillars.<key>.inspiration`) que hasta
  * esta entrega SOLO consumía la rama oscura (Story.tsx, antes del cambio).
  */
@@ -977,11 +977,12 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     expect(slides[0].querySelector("h2#story-title")).toBeInTheDocument();
 
     // Diapositivas 1-4: un pilar cada una, en orden, con su numeracion
-    // "01 --".."04 --" (del componente, no de i18n) y el titulo i18n real.
+    // "01".."04" (del componente, no de i18n; Tarea 5 de copy, 2026-08-09:
+    // se retiro la raya decorativa que llevaba detras) y el titulo i18n real.
     const pillarKeys = ["learn", "create", "grow", "practice"] as const;
     pillarKeys.forEach((key, i) => {
       const slide = slides[i + 1];
-      expect(slide.textContent).toContain(`0${i + 1} —`);
+      expect(slide.textContent).toContain(`0${i + 1}`);
       expect(
         within(slide).getByText(esHome.Home.story.pillars[key].title),
       ).toBeInTheDocument();
