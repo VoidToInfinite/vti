@@ -40,7 +40,7 @@
                 },
                 "practice": {
                     "title": "Practice makes it real",
-                    "body": "Knowledge only becomes yours once you try it — stumbles, redos and all.",
+                    "body": "Knowledge only becomes yours once you try it: stumbles, redos and all.",
                     "inspiration": "Read less, try more. Break something on purpose and fix it. A mistake you understand beats an answer you copied. That is where knowledge becomes yours."
                 }
             },
@@ -112,7 +112,7 @@
             "gaming": {
                 "title": "Gaming",
                 "badge": "Play",
-                "body": "Play is how we learn best. Compete, collaborate and celebrate every win — big or small.",
+                "body": "Play is how we learn best. Compete, collaborate and celebrate every win, big or small.",
                 "bullets": {
                     "one": "Challenges that sharpen your skills",
                     "two": "Friendly competition, real connection",
@@ -128,10 +128,10 @@
             "titleLead": "Let’s build something",
             "titleAccent": "infinite.",
             "body": "Have a question, idea, or collaboration in mind?",
-            "bodySecond": "Reach out via email — we’d love to hear from you.",
+            "bodySecond": "Reach out via email: we’d love to hear from you.",
             "email": "hello@voidtoinfinite.com",
             "cta": "Contact via email",
-            "ctaAria": "Contact via email — opens your email application",
+            "ctaAria": "Contact via email: opens your email application",
             "figureAlt": "Celestial figure waving hello",
             "cards": {
                 "community": {
@@ -148,7 +148,7 @@
                 "placeholder": "you@email.com",
                 "help": "We’ll open your email app with the message ready to send.",
                 "submit": "Write to us",
-                "submitAria": "Write to us — opens your email app with your address already included",
+                "submitAria": "Write to us: opens your email app with your address already included",
                 "subject": "Hello VoidToInfinite",
                 "body": "My contact email: {{email}}",
                 "emailError": "Enter a valid email.",

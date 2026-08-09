@@ -293,7 +293,11 @@ export const STORY_FIGURE_SIZES =
 export const STORY_DECK_TITLE_SIZE = "clamp(2rem, 6vw, 4rem)";
 
 /**
- * Título de cada diapositiva de pilar (`01 —`…`04 —` + nombre del pilar).
+ * Título de cada diapositiva de pilar (`01`…`04` + nombre del pilar; hasta
+ * la Tarea 5 de copy, 2026-08-09, el número llevaba una raya decorativa
+ * detrás -- se retiró del JSX porque era un carácter de UI hardcodeado y la
+ * separación real ya la da el `gap` del grid de `ScPillarRow`/
+ * `ScDeckPillarRow`, no el propio carácter).
  * Tope 3rem (encargo). Mínimo 1.75rem: un escalón por debajo del título de
  * intro, para que la jerarquía visual intro > pilar se conserve también en
  * el extremo estrecho del `clamp`.

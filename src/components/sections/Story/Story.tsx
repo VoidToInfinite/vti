@@ -1278,7 +1278,7 @@ function StoryDeckDark(): ReactElement {
               >
                 <ScDeckPillarRow>
                   <ScPillarNumber $index={pillarIndex}>
-                    {pillar.number} —
+                    {pillar.number}
                   </ScPillarNumber>
                   <ScPillarCopy>
                     <ScDeckPillarTitle>

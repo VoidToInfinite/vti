@@ -62,7 +62,7 @@
                                 },
                                 {
                                     "term": "Legal basis",
-                                    "description": "Your own choice when using the interface and — only if you write to us — handling your message."
+                                    "description": "Your own choice when using the interface and, only if you write to us, handling your message."
                                 },
                                 {
                                     "term": "Recipients",
@@ -142,7 +142,7 @@
                                 },
                                 {
                                     "term": "Replying to your message if you write to us",
-                                    "description": "Only if you decide to send us an email. Legal basis: it depends on why you write — your consent for a general enquiry (art. 6.1.a GDPR), or steps taken at your request prior to entering into a contract when you write about a collaboration or a commission (art. 6.1.b GDPR). We do not claim a single basis for every case, because not every message is the same."
+                                    "description": "Only if you decide to send us an email. Legal basis: either your consent for a general enquiry (art. 6.1.a GDPR), or steps taken at your request prior to entering into a contract when you write about a collaboration or a commission (art. 6.1.b GDPR), depending on why you write. We do not claim a single basis for every case, because not every message is the same."
                                 }
                             ]
                         }
@@ -221,7 +221,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "The site is a static export (with no application server of our own) hosted on Netlify, which acts as processor for technical hosting and processes the technical data of requests — IP addresses in its access logs, for example — under its own privacy policy."
+                            "text": "The site is a static export (with no application server of our own) hosted on Netlify, which acts as processor for technical hosting and processes the technical data of requests (IP addresses in its access logs, for example) under its own privacy policy."
                         },
                         {
                             "kind": "ul",
