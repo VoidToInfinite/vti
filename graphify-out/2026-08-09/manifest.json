@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "app/not-found.tsx": {
-    "mtime": 1786202433.636618,
-    "ast_hash": "4eddac40d67fc12235d6e4dfb277700b",
+    "mtime": 1786268260.0655532,
+    "ast_hash": "e139b9db1b91e350bb8e02da4f0da557",
     "semantic_hash": ""
   },
   "app/page.tsx": {
@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/common.json": {
-    "mtime": 1786200316.8849125,
-    "ast_hash": "1b0d7cfecaab505c6e3230ba0df03cdd",
+    "mtime": 1786268233.213541,
+    "ast_hash": "667b3ab2531cdfb83ae5c276394cf0b5",
     "semantic_hash": ""
   },
   "src/i18n/locales/en/home.json": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/common.json": {
-    "mtime": 1786200302.1893804,
-    "ast_hash": "147c630e366b5deebaee602501fb8709",
+    "mtime": 1786268228.2913465,
+    "ast_hash": "9371d63487418e4496f73ac93f960295",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/home.json": {
@@ -1895,13 +1895,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/NotFound/NotFoundContent.test.tsx": {
-    "mtime": 1786200701.4892693,
-    "ast_hash": "f62d3ca43225a052f747024904f1f906",
+    "mtime": 1786268284.739584,
+    "ast_hash": "48a00305a1bd4e5a6731b685050e1231",
     "semantic_hash": ""
   },
   "src/components/sections/NotFound/NotFoundContent.tsx": {
-    "mtime": 1786200866.428717,
-    "ast_hash": "4634c3f4b1a9b35c8962e194978d01de",
+    "mtime": 1786268375.7104087,
+    "ast_hash": "cd7e692241b5b0571f8cc9a2a07244d3",
     "semantic_hash": ""
   },
   "src/motion/timings.ts": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/progress.md": {
-    "mtime": 1786266437.8442547,
-    "ast_hash": "c0f60ad4fe000ece2de7a16271399beb",
+    "mtime": 1786267987.0255668,
+    "ast_hash": "3f3c39acc8483e0c860d8318151fe4aa",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-1-brief.md": {
@@ -2180,8 +2180,43 @@
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-08-08-implementacion-auditoria-premium.md": {
-    "mtime": 1786266405.2275827,
-    "ast_hash": "6f91b55345ed44ea393bd3de81acf98e",
+    "mtime": 1786267787.9060557,
+    "ast_hash": "2198bef1814000a7e7007ffbb81483b3",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-1-report.md": {
+    "mtime": 1786267698.524435,
+    "ast_hash": "660a1154d217df7028b7ee6b0b4c20b5",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-2-brief.md": {
+    "mtime": 1786267854.3009565,
+    "ast_hash": "b1c860985e13ac2811e76211e9f27509",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-3-brief.md": {
+    "mtime": 1786267854.8611293,
+    "ast_hash": "6ce91633b71b09553b0d13a733602679",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-4-brief.md": {
+    "mtime": 1786267855.4220014,
+    "ast_hash": "b900fb407629f899f3dcbcfd2fdca230",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-5-brief.md": {
+    "mtime": 1786267856.0696065,
+    "ast_hash": "13bf46fb35ded89ba0d4e23e22a094b8",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-6-brief.md": {
+    "mtime": 1786267856.5658245,
+    "ast_hash": "1bfdf3bc2d87901f7e1cf4fcd3d54a4f",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-7-brief.md": {
+    "mtime": 1786267857.0788743,
+    "ast_hash": "bc0353435debd92b81182026494409fb",
     "semantic_hash": ""
   }
 }
