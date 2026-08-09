@@ -258,4 +258,60 @@ export const GlobalStyles = createGlobalStyle`
   :where([draggable="true"]) {
     -webkit-user-drag: element;
   }
+
+  /*
+   * Fallback sin-JS para los reveals por IntersectionObserver (useReveal,
+   * src/hooks/useReveal.ts). Este sitio es un export estatico -- ver
+   * next.config.ts, output: export -- no hay servidor Next detras: si el
+   * navegador nunca ejecuta JS, el observer que enciende cada reveal tampoco
+   * se crea nunca. Los cinco consumidores actuales de useReveal renderizan
+   * data-revealed con su estado inicial en falso (SectionBeam.tsx linea 33,
+   * Story.tsx lineas 1133 y 1174, Features.tsx lineas 1083 y 1174,
+   * Contact.tsx lineas 1113 y 1278, Journey.tsx linea 588), y sus estilos de
+   * base arrancan en opacity 0 (Story.tsx linea 296 y otras, Features.tsx
+   * linea 953, Contact.tsx lineas 212 y 699, Journey.tsx linea 263,
+   * sectionBeam.parts.tsx varias reglas): sin JS ese atributo se queda
+   * congelado en falso para siempre y el contenido no llega a verse jamas.
+   *
+   * scripting es el media feature que distingue justo ese caso: none
+   * cuando el navegador no ejecuta scripts (JS desactivado, o un rastreador
+   * que no lo soporta), initial-only durante un primer pintado sin
+   * hidratar (no aplica aqui) e initial-only o enabled cuando si hay JS
+   * corriendo. Soporte: Chrome 120+, Firefox 113+, Safari 17+, Edge 120+
+   * (verificado en MDN/caniuse antes de escribir este comentario). En un
+   * navegador sin soporte el bloque completo se ignora y el comportamiento
+   * actual -- reveal por observer -- se mantiene sin cambios.
+   *
+   * El selector cubre las dos formas en que los componentes leen el
+   * atributo: presencia simple ([data-revealed]) para cuando el propio
+   * nodo animado lo lleva y su regla es calificada (por ejemplo
+   * Contact.tsx linea 212, &[data-revealed=true]), y descendiente
+   * ([data-revealed] *) para cuando el atributo vive en un padre comun y
+   * cada hijo lo lee con el selector [data-revealed=true] & (por ejemplo
+   * Story.tsx linea 428, Features.tsx linea 354, sectionBeam.parts.tsx
+   * linea 150). No se filtra por valor (=true) a proposito: bajo scripting
+   * none el atributo nunca deja de ser falso, asi que la condicion util
+   * aqui es que exista, no lo que valga.
+   *
+   * important es intencional y no una duplicacion de especificidad por
+   * costumbre (la regla 25 del RULES.md prohibe justo eso): cada regla de
+   * componente que aplica opacity 1 esta calificada con su propia clase
+   * generada (por ejemplo .sc-xxxx[data-revealed=true], especificidad de
+   * clase mas atributo) y le gana en especificidad a un simple
+   * [data-revealed] de aqui pase lo que pase con el orden de insercion en
+   * el documento; sin important esta regla nunca llegaria a aplicarse.
+   *
+   * No hay test unitario de esta regla y no lo va a haber: createGlobalStyle
+   * no inyecta nada bajo jsdom + Vitest (leccion del repo, 2026-07-25), asi
+   * que cualquier asercion contra document.styleSheets aqui pasaria en
+   * verde sin comprobar nada real. La verificacion real es en navegador con
+   * JS deshabilitado (Playwright), fuera de esta tarea.
+   */
+  @media (scripting: none) {
+    [data-revealed],
+    [data-revealed] * {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
 `;
