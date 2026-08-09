@@ -110,13 +110,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.test.tsx": {
-    "mtime": 1786094589.8549838,
-    "ast_hash": "6679055c41d14ac51e97bcdd7569f874",
+    "mtime": 1786270782.0035634,
+    "ast_hash": "c26f8ae7be4332b79e1a6b7b917ee1b9",
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.tsx": {
-    "mtime": 1786201764.0331419,
-    "ast_hash": "fcf87f0357272ad19fb3c543cb627d68",
+    "mtime": 1786270753.110095,
+    "ast_hash": "30cd2370c43505847ef78553c9ae4844",
     "semantic_hash": ""
   },
   "src/components/ui/Button/Button.test.tsx": {
@@ -210,13 +210,13 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/common.json": {
-    "mtime": 1786268233.213541,
-    "ast_hash": "667b3ab2531cdfb83ae5c276394cf0b5",
+    "mtime": 1786270736.4521925,
+    "ast_hash": "3bf4275aa805e1790e75392c0047b26d",
     "semantic_hash": ""
   },
   "src/i18n/locales/en/home.json": {
-    "mtime": 1786267466.9002366,
-    "ast_hash": "153966b82dd4cb13cf4cc53c338a1f12",
+    "mtime": 1786270733.1831462,
+    "ast_hash": "36fd0c82186e2d09c89c59af65f1f44c",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/common.json": {
@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/home.json": {
-    "mtime": 1786267466.901295,
-    "ast_hash": "ada2f060ce9786847743a20d1b7e768c",
+    "mtime": 1786270889.6596484,
+    "ast_hash": "86abba1ba3a3e5fa0f44b39d62a472c8",
     "semantic_hash": ""
   },
   "src/test/test-utils.tsx": {
@@ -895,8 +895,8 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.layers.ts": {
-    "mtime": 1786083667.3070781,
-    "ast_hash": "6d5f311e4904f570d7ee4119792b46a2",
+    "mtime": 1786270772.0318072,
+    "ast_hash": "5bcba36037c45439882c6a3387f2c81c",
     "semantic_hash": ""
   },
   "src/components/sections/hero-story.integration.test.tsx": {
@@ -935,8 +935,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales.test.ts": {
-    "mtime": 1786190258.283613,
-    "ast_hash": "0f5a518e10584ee189121e8fe00f75a9",
+    "mtime": 1786270805.7446,
+    "ast_hash": "58743917cbfa0d21c9d9657def923ba8",
     "semantic_hash": ""
   },
   "src/motion/StageProvider.test.tsx": {
@@ -1795,8 +1795,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/legal.json": {
-    "mtime": 1786190546.929411,
-    "ast_hash": "a2ce0f60dd349ee0e330718275aa49de",
+    "mtime": 1786270746.5049343,
+    "ast_hash": "8502d7ec62bdf988a7c4be7e79c5117e",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/legal.json": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/progress.md": {
-    "mtime": 1786269587.5315914,
-    "ast_hash": "221be4c9ac2bf1824775b5d0a011677a",
+    "mtime": 1786270298.2994752,
+    "ast_hash": "70bee7399ab06a47341274ec95bd53b3",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-1-brief.md": {
@@ -2227,6 +2227,11 @@
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-3-report.md": {
     "mtime": 1786269352.5713985,
     "ast_hash": "e91d3a351a6f43bc7e353c5aff827013",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-4-report.md": {
+    "mtime": 1786270173.1867423,
+    "ast_hash": "5490c1165285b4b6dce61d3ce0fca590",
     "semantic_hash": ""
   }
 }

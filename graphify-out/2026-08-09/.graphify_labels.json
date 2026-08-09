@@ -215,12 +215,10 @@
   "213": "task-5-brief.md",
   "214": "task-6-brief.md",
   "215": "task-7-brief.md",
-  "216": "Footer.test.tsx",
+  "216": "JourneyCosmicPortal.tsx",
   "217": "VisuallyHidden.tsx",
-  "218": "Logo.tsx",
-  "219": "site.ts",
-  "220": "config.ts",
-  "221": "locales.test.ts",
-  "222": "legal.ts",
-  "223": "opengraph-image.tsx"
+  "218": "journey.deck.tsx",
+  "219": "story.deck.tsx",
+  "220": "Hero.qa.test.tsx",
+  "221": "HomeSections.tsx"
 }
