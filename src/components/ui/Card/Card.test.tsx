@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
+import { PRESS } from "@/motion/vocabulary";
 import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { Card } from "./Card";
 
@@ -23,6 +24,23 @@ function allCssRules(): string[] {
     }
   });
   return reglas;
+}
+
+/** Acota las reglas a la clase real del elemento renderizado: las dos
+ *  iteraciones de tema comparten document (styled-components no limpia su
+ *  hoja entre tests), así que un find() sin acotar podría devolver la regla
+ *  del PRIMER render, del tema equivocado. Compartido por los describe de
+ *  más abajo (:focus-visible y craft de interacción, Task 9). */
+function reglasDe(el: HTMLElement): string[] {
+  const reglas = allCssRules();
+  const clases = Array.from(el.classList).filter((c) =>
+    reglas.some((r) => r.includes(c)),
+  );
+  expect(
+    clases.length,
+    "no se encontró ninguna clase inyectada del elemento",
+  ).toBeGreaterThan(0);
+  return reglas.filter((r) => clases.some((c) => r.includes(c)));
 }
 
 describe("Card", () => {
@@ -91,22 +109,6 @@ describe("Card", () => {
       window.localStorage.clear();
     });
 
-    // Acota las reglas a la clase real del elemento renderizado: las dos
-    // iteraciones de tema comparten `document` (styled-components no limpia
-    // su hoja entre tests), así que un `find()` sin acotar podría devolver
-    // la regla del PRIMER render, del tema equivocado.
-    function reglasDe(el: HTMLElement): string[] {
-      const reglas = allCssRules();
-      const clases = Array.from(el.classList).filter((c) =>
-        reglas.some((r) => r.includes(c)),
-      );
-      expect(
-        clases.length,
-        "no se encontró ninguna clase inyectada del elemento",
-      ).toBeGreaterThan(0);
-      return reglas.filter((r) => clases.some((c) => r.includes(c)));
-    }
-
     it.each([
       ["light", basicLightTheme],
       ["dark", basicDarkTheme],
@@ -151,6 +153,104 @@ describe("Card", () => {
           regla.includes(":focus-visible") && regla.includes("box-shadow"),
       );
       expect(bloque).toBeUndefined();
+    });
+  });
+
+  /*
+   * Task 9 (craft de interacción): la card interactiva gana
+   * :active { transform: scale(...) } (vocabulary.PRESS), su hover-lift
+   * pasa a guardarse tras PRESS.hoverGuard (mueve, translateY) y box-shadow
+   * se añade a la lista de transition (hoy saltaba de elevation[0] a
+   * elevation[1] sin transición). Validado con el bug inyectado a
+   * propósito (ver informe de la tarea, tabla Card): comentando
+   * temporalmente cada bloque en Card.tsx el test correspondiente se pone
+   * en rojo; restaurado, vuelve a verde.
+   */
+  describe("craft de interacción (Task 9, vocabulary.PRESS)", () => {
+    afterEach(() => {
+      window.localStorage.clear();
+    });
+
+    it("declara :active con transform: scale(PRESS.activeScale) y transition de transform con PRESS.durationMs/PRESS.easing", () => {
+      renderWithProviders(
+        <Card
+          interactive
+          as="a"
+          href="#x"
+        >
+          Link
+        </Card>,
+      );
+      const link = screen.getByRole("link", { name: "Link" });
+      const reglas = reglasDe(link);
+
+      const activeRule = reglas.find(
+        (r) => r.includes(":active") && r.includes("transform"),
+      );
+      expect(
+        activeRule,
+        "no se encontró ninguna regla :active con transform",
+      ).toBeDefined();
+      expect(activeRule).toContain(`scale(${PRESS.activeScale})`);
+
+      const transitionRule = reglas.find(
+        (r) => r.includes("transition") && r.includes("box-shadow"),
+      );
+      expect(
+        transitionRule,
+        "box-shadow no está en la lista de transition",
+      ).toBeDefined();
+      expect(transitionRule).toContain(`${PRESS.durationMs}ms`);
+      expect(transitionRule).toContain(PRESS.easing);
+    });
+
+    it("el hover-lift (translateY) vive dentro de PRESS.hoverGuard -- (hover: hover) and (pointer: fine)", () => {
+      renderWithProviders(
+        <Card
+          interactive
+          as="a"
+          href="#x"
+        >
+          Link
+        </Card>,
+      );
+      const link = screen.getByRole("link", { name: "Link" });
+      const reglas = reglasDe(link);
+
+      const guardado = reglas.some(
+        (r) =>
+          r.includes(`@media ${PRESS.hoverGuard}`) &&
+          r.includes(":hover") &&
+          r.includes("translateY(-2px)"),
+      );
+      expect(
+        guardado,
+        "el hover-lift de la card no está guardado tras PRESS.hoverGuard",
+      ).toBe(true);
+    });
+
+    it("el guard de prefers-reduced-motion anula el transform de :hover Y de :active", () => {
+      renderWithProviders(
+        <Card
+          interactive
+          as="a"
+          href="#x"
+        >
+          Link
+        </Card>,
+      );
+      const link = screen.getByRole("link", { name: "Link" });
+      const reglas = reglasDe(link);
+
+      const guard = reglas.filter((r) =>
+        r.includes("@media (prefers-reduced-motion: reduce)"),
+      );
+      expect(guard.length).toBeGreaterThan(0);
+      const texto = guard.join("\n");
+      expect(texto).toContain("transition: none");
+      expect(texto).toContain(":hover");
+      expect(texto).toContain(":active");
+      expect(texto).toContain("transform: none");
     });
   });
 });

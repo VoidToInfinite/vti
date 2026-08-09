@@ -1,6 +1,7 @@
 import { createRef } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
+import { PRESS } from "@/motion/vocabulary";
 import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { Button } from "./Button";
 
@@ -132,6 +133,34 @@ describe("Button", () => {
       ).toBeInTheDocument();
     },
   );
+
+  /*
+   * Task 9 (craft de interacción, punto 4 del brief): la curva del press
+   * (transform, compartida con el hover-lift) migra de motion.easing.standard
+   * a vocabulary.PRESS.easing -- primera adopción real de PRESS.
+   * background-color se queda con motion.easing.standard, sin tocar.
+   * Validado con el bug inyectado a propósito (ver informe de la tarea,
+   * tabla Button): revirtiendo temporalmente la entrada de transform de
+   * PRESS.durationMs/PRESS.easing a motion.duration.fast/easing.standard en
+   * Button.tsx, este test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 9: la transition de transform usa PRESS.durationMs/PRESS.easing, background-color se queda en motion.easing.standard", () => {
+    renderWithProviders(<Button>Explorar</Button>);
+    const boton = screen.getByRole("button", { name: "Explorar" });
+    const reglas = allCssRules();
+    const clases = Array.from(boton.classList).filter((c) =>
+      reglas.some((r) => r.includes(c)),
+    );
+    const propias = reglas.filter((r) => clases.some((c) => r.includes(c)));
+
+    const transitionRule = propias.find(
+      (r) => r.includes("transition") && r.includes("transform"),
+    );
+    expect(transitionRule).toBeDefined();
+    expect(transitionRule).toContain(`${PRESS.durationMs}ms`);
+    expect(transitionRule).toContain(PRESS.easing);
+    expect(transitionRule).toContain(basicLightTheme.motion.easing.standard);
+  });
 
   it("acepta el ref como prop (React 19, sin forwardRef) y apunta al <button>", () => {
     const ref = createRef<HTMLButtonElement>();

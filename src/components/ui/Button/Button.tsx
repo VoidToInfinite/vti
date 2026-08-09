@@ -8,6 +8,7 @@ import type {
   Ref,
 } from "react";
 import styled, { css, keyframes, type DefaultTheme } from "styled-components";
+import { PRESS } from "@/motion/vocabulary";
 
 export type ButtonVariant = "solid" | "soft" | "outline" | "ghost";
 export type ButtonIntent = "primary" | "neutral" | "success" | "danger";
@@ -73,10 +74,19 @@ const ScButton = styled.button<{
   cursor: pointer;
   /* transform (compositor) + background-color (paint) — ambas permitidas por
      §9 revisada: la regla dura prohíbe propiedades de LAYOUT, no de paint. El
-     tinte forma parte de la definición de hover-lift. */
+     tinte forma parte de la definición de hover-lift.
+
+     Task 9 (primera adopción real de vocabulary.PRESS): transform pasa de
+     motion.easing.standard a PRESS.easing -- la MISMA entrada gobierna
+     hover-lift (:hover, más abajo) Y press (:active, más abajo), porque CSS
+     no admite dos duraciones distintas para una sola propiedad en una
+     misma lista de transition; PRESS.durationMs coincide numéricamente con
+     motion.duration.fast (100ms los dos), así que solo cambia la curva.
+     background-color se queda con motion.easing.standard (punto 4 del
+     brief): no es una primitiva de press/hover-lift, es el tinte de
+     variante, un rol distinto. */
   transition:
-    transform ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing},
     background-color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard};
   ${({ $size }) => sizeStyles[$size]}

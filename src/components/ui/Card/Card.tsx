@@ -7,6 +7,7 @@ import type {
   ReactNode,
 } from "react";
 import styled, { css } from "styled-components";
+import { PRESS } from "@/motion/vocabulary";
 
 interface CardProps extends HTMLAttributes<HTMLElement> {
   /**
@@ -46,18 +47,40 @@ const ScCard = styled.div<{ $interactive: boolean }>`
     css`
       display: block;
       cursor: pointer;
+      /* transform migra a vocabulary.PRESS (Task 9, primera adopción real):
+         es la MISMA entrada que gobierna el press de abajo -- CSS no admite
+         dos duraciones distintas para la misma propiedad en una sola lista
+         de transition, así que hover-lift y press comparten timing, igual
+         que ya hace Button.tsx (ver su docblock del press). box-shadow se
+         AÑADE a la lista (hoy la sombra salta de elevation[0] a
+         elevation[1] sin transición, tanto en hover como en focus-visible):
+         no es una animación nueva -- regla 18 --, es poner en transición un
+         cambio que el propio hover YA hacía. border-color se queda en
+         fast/standard, sin tocar. */
       transition:
-        transform ${theme.data.motion.duration.fast}
-          ${theme.data.motion.easing.standard},
+        transform ${PRESS.durationMs}ms ${PRESS.easing},
         border-color ${theme.data.motion.duration.fast}
+          ${theme.data.motion.easing.standard},
+        box-shadow ${theme.data.motion.duration.fast}
           ${theme.data.motion.easing.standard};
 
       /* hover-lift (§9 de la spec): translateY + tint de borde es la ÚNICA
-         primitiva de hover para cards; no se inventa una animación propia. */
-      &:hover {
-        transform: translateY(-2px);
-        border-color: ${theme.data.semantic.borderStrong};
-        box-shadow: ${theme.data.elevation[1]};
+         primitiva de hover para cards; no se inventa una animación propia.
+         Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve
+         (translateY), así que un tap en táctil no puede dejarlo "pegado". */
+      @media ${PRESS.hoverGuard} {
+        &:hover {
+          transform: translateY(-2px);
+          border-color: ${theme.data.semantic.borderStrong};
+          box-shadow: ${theme.data.elevation[1]};
+        }
+      }
+
+      /* Press (Task 9): feedback táctil que faltaba -- comparte la entrada
+         de transform de la lista de arriba, así que entra y sale con
+         PRESS.durationMs/PRESS.easing igual que el hover-lift. */
+      &:active {
+        transform: scale(${PRESS.activeScale});
       }
 
       /* :focus-visible propio (hallazgo 1, D7): la card interactiva depende
@@ -90,7 +113,8 @@ const ScCard = styled.div<{ $interactive: boolean }>`
 
       @media (prefers-reduced-motion: reduce) {
         transition: none;
-        &:hover {
+        &:hover,
+        &:active {
           transform: none;
         }
       }

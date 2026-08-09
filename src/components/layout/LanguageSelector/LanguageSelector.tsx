@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { STORAGE_KEYS } from "@/config/storage";
+import { PRESS } from "@/motion/vocabulary";
 
 const LANGUAGES = ["es", "en"] as const;
 
@@ -38,17 +39,37 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
      tres son enlaces/controles de texto que cambian de color en hover/foco,
      y hasta ahora este era el único de los tres sin transition, así que el
      cambio de color aquí saltaba en seco mientras en los otros dos se
-     animaba (hallazgo 3, D7). */
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+     animaba (hallazgo 3, D7).
+
+     transform se AÑADE a esta lista (Task 9, primera adopción real de
+     vocabulary.PRESS): el único cambio de transform de este control es
+     el :active de abajo, así que la entrada nace ya con los valores de
+     PRESS -- no hay ningún hover-lift previo con el que colisionar. */
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brand};
   }
 
+  /* Press (Task 9): único feedback táctil de este control -- el hover de
+     arriba es solo color, así que no hay nada que guardar tras
+     PRESS.hoverGuard (punto 2 del brief: "los de color pueden quedarse").
+     :active SÍ se declara sin guard: es la única primitiva de las dos que
+     funciona igual de bien con dedo que con ratón. */
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 
