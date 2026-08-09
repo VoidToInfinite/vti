@@ -47,7 +47,8 @@
     },
     "notFound": {
         "title": "Página no encontrada",
-        "message": "La página que buscas no existe."
+        "message": "La página que buscas no existe.",
+        "backToHome": "Volver al inicio"
     },
     "language": {
         "es": "Español",

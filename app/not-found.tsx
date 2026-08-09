@@ -17,10 +17,12 @@ import { TITLE_SEPARATOR } from "@/seo/metadata";
  * visitante pidio de verdad.
  *
  * `robots.index: false` es la pieza central: una 404 SI debe permitir que
- * el rastreador siga los enlaces del sitio (`follow: true`, por si la
- * plantilla llegase a incluir navegacion), pero NUNCA debe indexarse como
- * resultado de busqueda -- indexar paginas de error diluye la relevancia
- * del dominio.
+ * el rastreador siga los enlaces del sitio (`follow: true` -- desde la
+ * auditoria premium 2026-08-08 la plantilla SI incluye navegacion: el
+ * enlace "Volver al inicio" que `NotFoundContent` monta dentro de su
+ * `<main>`, el unico enlace que esta pagina lleva), pero NUNCA debe
+ * indexarse como resultado de busqueda -- indexar paginas de error diluye
+ * la relevancia del dominio.
  *
  * `alternates.canonical: null` es una anulacion DELIBERADA, no una omision:
  * en la metadata de Next un campo de primer nivel que el hijo NO declara se

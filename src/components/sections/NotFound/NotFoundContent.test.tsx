@@ -21,4 +21,30 @@ describe("NotFoundContent", () => {
     renderWithProviders(<NotFoundContent />);
     expect(screen.getByText(/no existe/i)).toBeInTheDocument();
   });
+
+  /*
+   * P0 de la auditoria premium 2026-08-08: la 404 no tenia NINGUN enlace de
+   * salida. Estas tres aserciones verifican, en este orden, las tres partes
+   * del criterio del brief: el enlace existe, apunta a "/", y es un <a> REAL
+   * (no un boton ni un <span> con onClick) -- lo tercero importa porque solo
+   * un <a> real es alcanzable por teclado y anunciado como enlace por un
+   * lector de pantalla sin JS adicional.
+   */
+  it("renderiza un enlace de vuelta al inicio", () => {
+    renderWithProviders(<NotFoundContent />);
+    const enlace = screen.getByRole("link", { name: /volver al inicio/i });
+    expect(enlace).toBeInTheDocument();
+  });
+
+  it("el enlace de vuelta apunta a la home ('/')", () => {
+    renderWithProviders(<NotFoundContent />);
+    const enlace = screen.getByRole("link", { name: /volver al inicio/i });
+    expect(enlace).toHaveAttribute("href", "/");
+  });
+
+  it("el enlace de vuelta es un <a> real, no un elemento simulado", () => {
+    renderWithProviders(<NotFoundContent />);
+    const enlace = screen.getByRole("link", { name: /volver al inicio/i });
+    expect(enlace.tagName).toBe("A");
+  });
 });
