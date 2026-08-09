@@ -216,6 +216,17 @@ describe("Navbar", () => {
     expect(brandLink).toHaveAttribute("href", "/");
   });
 
+  it("ScBrandLink declara min-height: 44px (área táctil AA -- único enlace de nav visible en móvil, auditoría premium 2026-08-08)", () => {
+    // jsdom no hace layout: esta aserción comprueba la DECLARACIÓN de CSS
+    // (getComputedStyle resuelve el CSSOM real que styled-components
+    // inyecta), no la geometría resultante -- mismo límite que documenta el
+    // test del chevron, más abajo ("el candado comprueba las DECLARACIONES,
+    // no la geometría: jsdom no hace layout").
+    renderNavbar();
+    const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
+    expect(getComputedStyle(brandLink).minHeight).toBe("44px");
+  });
+
   it("el enlace de marca incluye el atomo Logo compartido (A1)", () => {
     // Regresion: sin esta aserción, quitar <Logo size="1.5rem" /> de
     // ScBrandLink en Navbar.tsx no lo detecta ningun test (el de arriba solo

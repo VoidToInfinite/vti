@@ -357,11 +357,21 @@ const ScNav = styled.nav`
  * otro hijo que dependiera de currentColor (Logo, y cualquiera que se anada
  * despues) seguia expuesto. Fijar el color aqui, en el contenedor, cierra el
  * problema para todos los descendientes a la vez.
+ *
+ * `min-height: 44px` (auditoria premium 2026-08-08): en movil la marca es el
+ * UNICO enlace de navegacion visible -- `ScNavLinks` solo pasa a flex desde
+ * `md` (ver mas abajo) --, y medía 26px de alto (line-height del logo/nombre
+ * sin ningun suelo propio), por debajo del área táctil mínima AA de 44px.
+ * Mismo precedente literal que `ScNavTrigger` (más abajo) y
+ * `ScLanguageButton` (`LanguageSelector.tsx`). `inline-flex` +
+ * `align-items: center` ya centran el contenido: min-height solo agranda la
+ * caja de clic, no cambia el aspecto visual del logo ni del nombre.
  */
 const ScBrandLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
+  min-height: 44px;
   font-size: 1.15rem;
   color: ${({ theme }) => theme.data.semantic.text};
 `;
