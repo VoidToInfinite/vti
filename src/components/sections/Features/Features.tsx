@@ -27,7 +27,6 @@ import {
   FEATURES_CTA_HOVER_TRANSLATE_X,
   FEATURES_CTA_MIN_HEIGHT,
   FEATURES_CHECK_ICON_PATH,
-  FEATURES_GAMING_TITLE_GRADIENT,
   FEATURES_GAMING_ACCENT,
   FEATURES_GAMING_ACCENT_HOVER,
   FEATURES_OVERLAY_RISE,
@@ -292,21 +291,35 @@ const ScSpanImagination = styled.span`
   color: ${({ theme }) => theme.data.semantic.brand};
 `;
 
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, 2026-08-09):
+ * el degradado de texto (`background-clip: text` + `FEATURES_GAMING_TITLE_GRADIENT`,
+ * retirado de `features.layers.ts`) pasa a color solido. Mismo motivo que
+ * `ScAccent` en Story.tsx/Contact.tsx y `ScQuoteText` en Journey.tsx: un
+ * degradado de texto queda fuera del alcance de `contrast.ts` (nadie puede
+ * medir el contraste de algo que no es un color), asi que nadie lo habia
+ * medido nunca.
+ *
+ * El color elegido no es nuevo: es el MISMO `FEATURES_GAMING_ACCENT` que este
+ * bloque ya usaba como fallback de `@supports not (background-clip: text)` --
+ * y el MISMO literal que `accentColor()` (mas arriba en este fichero) ya
+ * resuelve para el check de los bullets y el CTA de ESTA MISMA tarjeta
+ * (regla 17 del manual: excepcion sancionada para arte de marca con
+ * constantes con nombre en su propio módulo). No es un token de `palette.*`
+ * a proposito (ver el docblock de `FEATURES_GAMING_ACCENT`,
+ * `features.layers.ts`: "matiz deliberadamente distinto del secondary de
+ * tema").
+ *
+ * A diferencia de `ScAccent`/`ScQuoteText`, `ScSpanGaming` SOLO se renderiza
+ * en la rama OSCURA (el h2 de la rama clara es una frase sin spans de color,
+ * D6 mas arriba en este fichero) -- una sola medida hace falta: sobre
+ * `FEATURES_ORBITAL_VOID` (el void de la escena, "#150b2e") da 4.71:1, por
+ * encima de AA (4.5:1) pero con margen mas ajustado que el resto de acentos
+ * de esta tarea (13+:1 en Story/Contact/Journey oscuro) -- declarado, no
+ * escondido; medicion completa en Features.test.tsx, describe "Task 12".
+ */
 const ScSpanGaming = styled.span`
-  background-image: ${FEATURES_GAMING_TITLE_GRADIENT};
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-
-  /* Red de seguridad: sin soporte de background-clip: text el degradado no
-     puede quedar como único portador del color (mismo recurso que ScAccent
-     en Story.tsx / ScQuoteText en Journey.tsx). */
-  @supports not (background-clip: text) {
-    background-image: none;
-    color: ${FEATURES_GAMING_ACCENT};
-    -webkit-text-fill-color: ${FEATURES_GAMING_ACCENT};
-  }
+  color: ${FEATURES_GAMING_ACCENT};
 `;
 
 /*

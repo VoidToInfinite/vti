@@ -9,7 +9,7 @@ import {
   FEATURES_DARK_HEIGHT,
   FEATURES_CONTENT_MAX_WIDTH,
   FEATURES_TAIL_HOLD,
-  FEATURES_GAMING_TITLE_GRADIENT,
+  FEATURES_GAMING_ACCENT,
   FEATURES_LIGHT_REVEAL_DELAYS_MS,
   FEATURES_LIGHT_REVEAL_DURATION_MS,
 } from "./features.layers";
@@ -17,9 +17,16 @@ import {
   JOURNEY_DARK_HEIGHT,
   JOURNEY_DECK_TAIL_SCREENS,
 } from "@/components/sections/Journey/journey.layers";
-import { FEATURES_ORBITAL_LAYERS } from "@/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers";
+import {
+  FEATURES_ORBITAL_LAYERS,
+  FEATURES_ORBITAL_VOID,
+} from "@/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers";
 import { themes } from "@/theme/themes";
-import { parseOklch, contrastRatio } from "@/theme/tokens/contrast";
+import {
+  parseOklch,
+  contrastRatio,
+  contrastRatioHex,
+} from "@/theme/tokens/contrast";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
@@ -1138,17 +1145,21 @@ describe("D7: :focus-visible propio del CTA de sección", () => {
 /*
  * Bug corregido en el trabajo manual del usuario (informe de la tarea): el
  * título de "gaming" usaba `ScSpanImagination` en vez de `ScSpanGaming`
- * (copia-pega). Se distingue por CSS: `ScSpanGaming` recorta el degradado
- * propio (`FEATURES_GAMING_TITLE_GRADIENT`) con `background-clip: text`;
- * `ScSpanImagination` solo fija un `color` sólido y JAMÁS declara
- * `background-clip`. Validado con el bug inyectado a propósito (ver informe
- * de la tarea): sustituyendo `ScSpanGaming` por `ScSpanImagination` en el
- * término "gaming" del título oscuro, este test se pone en rojo (no hay
- * `background-clip: text` en las reglas del span); restaurado, vuelve a
- * verde.
+ * (copia-pega). Hasta Task 12 (dieta de ornamento B, 2026-08-09) se distinguía
+ * por `background-clip: text` -- `ScSpanGaming` recortaba un degradado propio,
+ * `ScSpanImagination` solo fijaba un `color` sólido. Esa tarea convirtió el
+ * degradado de `ScSpanGaming` en color sólido (`FEATURES_GAMING_ACCENT`, ver
+ * su docblock en `Features.tsx`), así que el candado pasa a ser el COLOR
+ * computado: `FEATURES_GAMING_ACCENT` (hue 340) es un literal propio,
+ * distinto de `semantic.brand`/`primary[500]` (hue 235.851) que resuelve
+ * `ScSpanImagination` -- los dos JAMÁS coinciden en ningún tema. Validado con
+ * el bug inyectado a propósito (ver informe de la tarea): sustituyendo
+ * `ScSpanGaming` por `ScSpanImagination` en el término "gaming" del título
+ * oscuro, este test se pone en rojo (el color computado pasa a ser el de
+ * `semantic.brand`); restaurado, vuelve a verde.
  */
 describe("bug corregido: el termino 'gaming' del titulo oscuro usa ScSpanGaming", () => {
-  it("el span de 'gaming' recorta el degradado propio (background-clip: text), no un color solido", async () => {
+  it("el span de 'gaming' resuelve FEATURES_GAMING_ACCENT, no semantic.brand (el color de ScSpanImagination)", async () => {
     stubMatchMedia();
     window.localStorage.setItem("vti-theme", "dark");
     try {
@@ -1159,13 +1170,42 @@ describe("bug corregido: el termino 'gaming' del titulo oscuro usa ScSpanGaming"
         ).toBeInTheDocument();
       });
       const gamingSpan = screen.getByText(esHome.Home.features.gaming.title);
-      const css = cssRuleTextFor(gamingSpan);
 
-      expect(css).toContain("background-clip: text");
-      expect(css).toContain(FEATURES_GAMING_TITLE_GRADIENT);
+      expect(getComputedStyle(gamingSpan).color).toBe(FEATURES_GAMING_ACCENT);
+      expect(getComputedStyle(gamingSpan).color).not.toBe(
+        themes.dark.semantic.brand,
+      );
     } finally {
       window.localStorage.clear();
     }
+  });
+});
+
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08): el termino
+ * "Gaming" pasa de degradado de texto a color solido -- ver el docblock de
+ * `ScSpanGaming`, Features.tsx, para el porque. `color:transparent` dejaba
+ * esta pieza FUERA del alcance de `contrast.ts`; ahora que es un color plano
+ * se puede medir de verdad, cerrando parte del hueco que senalo la auditoria
+ * ("6 piezas color:transparent fuera del alcance de contrast.ts"). Fondo
+ * real: `FEATURES_ORBITAL_VOID` (hex, el void de la escena oscura de
+ * Features -- jsdom no compone las capas WebP reales, asi que esto es el
+ * suelo medible por codigo, no el pixel final compuesto; ver el docblock de
+ * `FEATURES_ORBITAL_VOID` en featuresCelestialOrbital.layers.ts). `contrast.ts`
+ * solo acepta dos oklch(): `contrastRatioHex` (misma formula, con un canal
+ * hex->linear-sRGB anadido para el lado del void) es la extension que esta
+ * tarea le hace, reutilizada tambien por Story.test.tsx/Contact.test.tsx/
+ * Journey.test.tsx para su propio void oscuro.
+ */
+describe("Task 12: contraste AA del acento solido de Gaming (rama oscura)", () => {
+  it("FEATURES_GAMING_ACCENT sobre FEATURES_ORBITAL_VOID >= 4.5:1 (medido: 4.71:1, margen mas ajustado que el resto de acentos de esta tarea)", () => {
+    const ratio = contrastRatioHex(
+      FEATURES_GAMING_ACCENT,
+      FEATURES_ORBITAL_VOID,
+    );
+    expect(ratio, `contraste ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(
+      4.5,
+    );
   });
 });
 

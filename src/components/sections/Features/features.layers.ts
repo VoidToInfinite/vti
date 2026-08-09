@@ -102,14 +102,21 @@ export const FEATURES_CTA_MIN_HEIGHT = "44px";
  *  (mockup L171-174/186-189/201-204). */
 export const FEATURES_CHECK_ICON_PATH = "M20 6L9 17l-4-4";
 
-/** Degradado de texto del término "Gaming" en el `h2` (mockup L160): los dos
- *  stops son literales `oklch()` en el propio mockup, no una `var()` — se
- *  transcriben tal cual, sin pasar por la escalera de tema. */
-export const FEATURES_GAMING_TITLE_GRADIENT =
-  "linear-gradient(100deg, oklch(0.72 0.15 292), oklch(0.77 0.13 335))";
+/*
+ * AQUI VIVIO FEATURES_GAMING_TITLE_GRADIENT, el degradado de texto del
+ * término "Gaming" en el `h2` (mockup L160). Retirado en Task 12 (dieta de
+ * ornamento B, auditoria premium 2026-08-08, 2026-08-09): `ScSpanGaming`
+ * (Features.tsx) pasa a color solido (`FEATURES_GAMING_ACCENT`, ver debajo --
+ * el mismo literal que ya usaba como fallback de
+ * `@supports not (background-clip: text)` y que `accentColor()` ya resolvía
+ * para el check/CTA de esta misma tarjeta) para poder medir su contraste con
+ * `contrast.ts`. Medido: 4.71:1 sobre `FEATURES_ORBITAL_VOID` -- por encima
+ * de AA (4.5:1); ver el docblock de `ScSpanGaming`, Features.tsx.
+ */
 
-/** Acento propio de Gaming para el check de los bullets y el CTA (mockup
- *  L201-204 y L206): literal `oklch()`, no `var(--secondary-*)` — es un
+/** Acento propio de Gaming para el check de los bullets, el CTA y (desde
+ *  Task 12) el propio término "Gaming" del `h2` oscuro (mockup L201-204 y
+ *  L206): literal `oklch()`, no `var(--secondary-*)` — es un
  *  matiz deliberadamente distinto del `secondary` de tema, así que no se
  *  sustituye por un token. */
 export const FEATURES_GAMING_ACCENT = "oklch(0.62 0.17 340)";
