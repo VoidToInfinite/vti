@@ -60,18 +60,18 @@
     "semantic_hash": ""
   },
   "src/components/layout/LanguageSelector/LanguageSelector.tsx": {
-    "mtime": 1786275536.9240792,
+    "mtime": 1786277466.471605,
     "ast_hash": "5381bbb61927e1ec00ea16e0e9a430de",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.test.tsx": {
-    "mtime": 1786276524.1960926,
-    "ast_hash": "29ff4d9cc163d7ca562663e3214a0965",
+    "mtime": 1786279989.6948502,
+    "ast_hash": "c03220f41374170325ff4d290a54e4f3",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.tsx": {
-    "mtime": 1786276633.3891346,
-    "ast_hash": "8d5352fc8ebf00a40fe6d9dbe6f0653c",
+    "mtime": 1786278783.2608833,
+    "ast_hash": "88454624c6684af6ce6e7d200e8901ed",
     "semantic_hash": ""
   },
   "src/components/layout/ThemeToggle/ThemeToggle.tsx": {
@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/common.json": {
-    "mtime": 1786271598.4918265,
-    "ast_hash": "7d173c7cd25986b3ddb7c839f84aeb76",
+    "mtime": 1786278616.8147185,
+    "ast_hash": "c8cb0e58be898b6568e53a5815ae492a",
     "semantic_hash": ""
   },
   "src/i18n/locales/en/home.json": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/common.json": {
-    "mtime": 1786271594.473679,
-    "ast_hash": "10f8d01c68c38e379dbbc41af29df3c8",
+    "mtime": 1786278612.3671522,
+    "ast_hash": "cbe375a6999c8df871a941be831f5573",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/home.json": {
@@ -790,8 +790,8 @@
     "semantic_hash": ""
   },
   "app/home-page.flujo.test.tsx": {
-    "mtime": 1786193781.0265381,
-    "ast_hash": "68d153a16b7d20582aa34356f5a4ec86",
+    "mtime": 1786279109.738968,
+    "ast_hash": "b8c335b809ab1aa1bf69799c45aac1e0",
     "semantic_hash": ""
   },
   "assets/figures/manifest.json": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/progress.md": {
-    "mtime": 1786274787.7919705,
-    "ast_hash": "e12bd1dda76c319543b4beac0d37ec95",
+    "mtime": 1786277521.4457235,
+    "ast_hash": "2ed857a6e9c68376a631e59b779de072",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-1-brief.md": {
@@ -2312,6 +2312,16 @@
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-9-report.md": {
     "mtime": 1786277059.833892,
     "ast_hash": "56268e46f3c185958d78ad3d561036fd",
+    "semantic_hash": ""
+  },
+  "src/components/layout/Navbar/NavSheet.tsx": {
+    "mtime": 1786280093.5362964,
+    "ast_hash": "f683656c8a3c96852537eab88afb5142",
+    "semantic_hash": ""
+  },
+  "src/components/layout/Navbar/navOverlay.transition.ts": {
+    "mtime": 1786278630.7662785,
+    "ast_hash": "e244c3df4ed83ed8d0906d30e4c0686a",
     "semantic_hash": ""
   }
 }
