@@ -825,6 +825,202 @@ describe("Story: statement a pantalla completa, reveal por IntersectionObserver 
 });
 
 /*
+ * Task 7 (auditoria premium 2026-08-08): a 320x568 el statement computaba
+ * 21,33px de tipografia -- por debajo del suelo de 24px que su propio
+ * comentario, antes de esta tarea, admitia poder perforar. Causa: el
+ * `padding-inline` de `ScStatement` era fijo (`theme.data.space[6]`, 32px)
+ * en TODO ancho, y `storyStatementFontSize` leia ese mismo valor fijo para
+ * su termino de seguridad `calc((100vw - 2*pad)/12)` -- a 320px,
+ * `(320-64)/12 = 21,33px`. El arreglo: `padding-inline` mobile-first
+ * (`space[4]`/16px hasta `sm`, `space[6]`/32px desde ahi) a traves de una
+ * UNICA custom property (`--story-statement-pad`) que tanto `ScStatement`
+ * como `storyStatementFontSize` leen -- a 320px con pad 16,
+ * `(320-32)/12 = 24,00px` exactos (ver el docblock de `storyStatementFontSize`
+ * en Story.tsx para la desigualdad completa, Regla 24).
+ *
+ * Los tests de aqui abajo NO dependen de `cssRuleTextFor` + `split("@media")`
+ * (el resto de este fichero, para el guard de `prefers-reduced-motion`): esa
+ * tecnica corta por TEXTO, y no distingue "la regla de dentro del @media
+ * pertenece al MISMO elemento" de "pertenece a otro que comparte una
+ * subcadena". Aqui hace falta precisamente esa distincion (Regla 35: la
+ * FORMA de una regla se afirma por `selectorText`/CSSOM real, nunca por
+ * substring) porque la propiedad personalizada tiene DOS declaraciones (base
+ * + `@media`) sobre el MISMO selector, no sobre selectores distintos --
+ * `baseStyleRuleFor`/`nestedStyleValueFor` (mas abajo) navegan el arbol
+ * CSSOM real (`CSSMediaRule.cssRules`, Regla 36: acotado al bloque de regla
+ * concreto, nunca `getComputedStyle`, que jsdom no recalcula bajo ningun
+ * `@media`) y comparan `selectorText` strings, no texto libre. Tampoco se
+ * asume CUAL de las dos clases que styled-components pinta en el elemento
+ * (`sc-xxxx` estable o el hash con los estilos) es la que aparece en el
+ * selector: se lee el `selectorText` REAL de la regla de nivel superior
+ * primero, y ESE string (no una clase por posicion) es el que se persigue
+ * dentro del `@media`.
+ */
+describe("Task 7: pad inline mobile-first del statement (24px exactos a 320)", () => {
+  /**
+   * styled-components pinta CADA elemento con DOS clases: la estable
+   * `sc-xxxx` (identifica el COMPONENTE, sin estilos propios) y una
+   * hash `yyyy` que SI lleva las declaraciones reales de esta combinacion de
+   * props -- `el.classList[0]` no es de fiar para saber cual de las dos es
+   * (verificado: en este render concreto la de nivel superior era la
+   * SEGUNDA). Este helper no asume orden: recorre TODAS las reglas de nivel
+   * superior (no las anidadas en `@media`) y devuelve la PRIMERA
+   * `CSSStyleRule` cuyo selector matchea alguna clase del elemento Y cuyo
+   * estilo declara `propertyName` -- ese es el `selectorText` real que hay
+   * que perseguir dentro del `@media` (Regla 35: selector por `selectorText`
+   * real, nunca una clase asumida por posicion).
+   */
+  function baseStyleRuleFor(
+    el: HTMLElement,
+    propertyName: string,
+  ): CSSStyleRule | undefined {
+    const classes = Array.from(el.classList).map((cls) => `.${cls}`);
+    for (const sheet of Array.from(document.styleSheets)) {
+      let topRules: CSSRule[];
+      try {
+        topRules = Array.from(sheet.cssRules);
+      } catch {
+        continue;
+      }
+      for (const rule of topRules) {
+        if (!(rule instanceof CSSStyleRule)) continue;
+        if (!classes.includes(rule.selectorText)) continue;
+        if (rule.style.getPropertyValue(propertyName).trim() === "") continue;
+        return rule;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Busca, DENTRO de la `CSSMediaRule` cuya condicion coincide con
+   * `mediaText` (nunca en las reglas de nivel superior de la hoja -- Regla
+   * 36: acotado al bloque de regla concreto), la `CSSStyleRule` ANIDADA cuyo
+   * `selectorText` es EXACTAMENTE `selectorText` -- la MISMA regla que
+   * `baseStyleRuleFor` encontro fuera del `@media`, no una clase o un
+   * selector distinto (Regla 35). Devuelve el valor de `propertyName` que
+   * esa regla anidada declara, o `undefined` si no hay ninguna que matchee
+   * (el bug inyectado de la tarea, ver el test de mas abajo, se apoya en
+   * este `undefined`).
+   */
+  function nestedStyleValueFor(
+    selectorText: string,
+    mediaText: string,
+    propertyName: string,
+  ): string | undefined {
+    for (const sheet of Array.from(document.styleSheets)) {
+      let topRules: CSSRule[];
+      try {
+        topRules = Array.from(sheet.cssRules);
+      } catch {
+        continue;
+      }
+      for (const rule of topRules) {
+        if (!(rule instanceof CSSMediaRule)) continue;
+        if (rule.media.mediaText !== mediaText) continue;
+        for (const nested of Array.from(rule.cssRules)) {
+          if (!(nested instanceof CSSStyleRule)) continue;
+          if (nested.selectorText !== selectorText) continue;
+          const value = nested.style.getPropertyValue(propertyName).trim();
+          if (value !== "") return value;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  it("regla base (fuera de cualquier @media): --story-statement-pad = space[4] (1rem/16px), padding-inline la consume por var(), padding-block no se toca (space[8])", () => {
+    const { container } = renderWithProviders(<Story />);
+    const statement = container.querySelector("#statement") as HTMLElement;
+
+    const css = cssRuleTextFor(statement);
+    const topLevelCss = css.split("@media")[0];
+
+    expect(topLevelCss).toContain(
+      `--story-statement-pad: ${basicLightTheme.space[4]}`,
+    );
+    expect(topLevelCss).toContain("padding-inline: var(--story-statement-pad)");
+    expect(topLevelCss).toContain(`padding-block: ${basicLightTheme.space[8]}`);
+    // Regresion: la version anterior a esta tarea declaraba `padding:` en
+    // shorthand con el MISMO valor a los dos lados -- si volviera, esta
+    // asercion negativa la detecta (el shorthand fijaria tambien el pad
+    // inline a un valor no mobile-first).
+    expect(topLevelCss).not.toMatch(/(?<!-)padding:\s/);
+
+    // Regla base por CSSOM real (Regla 36): la MISMA cifra, leida de la
+    // propiedad declarada, no del texto libre.
+    const baseRule = baseStyleRuleFor(statement, "--story-statement-pad");
+    expect(baseRule).toBeDefined();
+    expect(
+      baseRule?.style.getPropertyValue("--story-statement-pad").trim(),
+    ).toBe(basicLightTheme.space[4]);
+  });
+
+  it("dentro de @media (el breakpoint sm del tema, no un literal a mano): --story-statement-pad sube a space[6] (2rem/32px), sobre la MISMA regla que declara el valor base (Regla 35: mismo selectorText, no una regla distinta)", () => {
+    const { container } = renderWithProviders(<Story />);
+    const statement = container.querySelector("#statement") as HTMLElement;
+
+    // Confirma primero, con el mismo helper de texto que usa el resto del
+    // archivo (Regla 36: acotado a lo que hay DESPUES del primer @media),
+    // que la condicion es la del tema -- no "600px" escrito a mano.
+    const css = cssRuleTextFor(statement);
+    const mediaCss = css.slice(css.indexOf("@media"));
+    expect(mediaCss).toContain(basicLightTheme.breakPoint.sm);
+
+    // Y ahora, por CSSOM real (Regla 35/36): la regla ANIDADA dentro de ese
+    // CSSMediaRule concreto, sobre el MISMO selectorText que la regla base
+    // (no una clase asumida por posicion), declara el pad de sm.
+    const baseRule = baseStyleRuleFor(statement, "--story-statement-pad");
+    expect(baseRule).toBeDefined();
+    const padInMedia = nestedStyleValueFor(
+      baseRule!.selectorText,
+      basicLightTheme.breakPoint.sm,
+      "--story-statement-pad",
+    );
+    expect(padInMedia).toBe(basicLightTheme.space[6]);
+  });
+
+  it("storyStatementFontSize (las tres lineas) lee la MISMA custom property, no un valor de tema aparte: calc((100vw - var(--story-statement-pad) - var(--story-statement-pad)) / 12)", () => {
+    renderWithProviders(<Story />);
+    const lines = [
+      screen.getByText(esHome.Home.story.statement.first),
+      screen.getByText(esHome.Home.story.statement.second),
+      screen.getByText(esHome.Home.story.statement.third),
+    ];
+
+    for (const line of lines) {
+      const css = cssRuleTextFor(line);
+      expect(css).toContain(
+        "calc((100vw - var(--story-statement-pad) - var(--story-statement-pad)) / 12)",
+      );
+      // Negativo: ningun literal de space[6]/space[4] escrito aparte dentro
+      // del propio calc -- la unica fuente es la custom property.
+      expect(css).not.toMatch(
+        /calc\(\(100vw - (1rem|2rem) - (1rem|2rem)\) \/ 12\)/,
+      );
+    }
+  });
+
+  /*
+   * Bug inyectado a proposito (Regla 34), documentado tambien en el informe
+   * de la tarea: revertir `--story-statement-pad` a un valor FIJO (sin
+   * @media, sin custom property) es exactamente el bug que esta tarea
+   * arregla -- `nestedStyleValueFor` deja de encontrar ninguna regla anidada
+   * (devuelve `undefined`, nunca `space[6]`) porque ya no hay ningun
+   * `CSSMediaRule` que declare la propiedad. Sabotaje aplicado a mano sobre
+   * `ScStatement` (Story.tsx) y restaurado tras confirmar el rojo -- salida
+   * literal en el informe de la tarea (seccion "Ciclo de bug inyectado").
+   */
+  it("aritmetica del suelo a 320px: (320 - 2*16) / 12 = 24,00px exactos (documentado tambien en el docblock de storyStatementFontSize, Story.tsx)", () => {
+    const padBase = Number.parseFloat(basicLightTheme.space[4]) * 16; // rem -> px (raiz 16px)
+    const width = 320;
+    const term = (width - 2 * padBase) / 12;
+    expect(padBase).toBe(16);
+    expect(term).toBeCloseTo(24, 5);
+  });
+});
+
+/*
  * AQUI VIVIAN cuatro tests de la tercera ronda (D13, spec
  * 2026-08-06-story-features-tema-claro-design.md), todos sobre piezas que ya
  * no existen tras revertir D13 (D1/D2 de la spec

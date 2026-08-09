@@ -211,18 +211,35 @@ const STORY_STATEMENT_MAX_SIZE = "340px";
  * encima de esa cifra (un ancho asumido mayor da un tope MENOR, nunca al
  * reves -- mas margen de seguridad), y el producto (17 * 0.65 = 11.05) se
  * redondea AL ALZA a 12 por el mismo motivo. El resultado es
- * `calc((100vw - 2 * padding) / 12)`, con el MISMO padding inline que
- * declara `ScStatement` (`theme.data.space[6]`) para que las dos no puedan
- * desincronizarse si algun dia cambia ese token.
+ * `calc((100vw - 2 * pad) / 12)`, donde `pad` es `var(--story-statement-pad)`
+ * (Regla 13 del manual: no un literal nuevo) -- la MISMA custom property que
+ * `ScStatement` declara para su `padding-inline` (ver su docblock, mas
+ * abajo), asi que las dos no pueden desincronizarse ni cuando el pad cambia
+ * de valor por breakpoint: un `var()` se resuelve de nuevo en cada
+ * recalculo del navegador con el valor que la cascada tenga vigente en ESE
+ * viewport -- a diferencia de un valor de tema leido en JS (fijo desde el
+ * primer render), esto seria mobile-first sin que esta funcion necesite
+ * saber en que breakpoint esta.
  *
- * Este `min()` exterior puede pisar el suelo de legibilidad de 24px en
- * viewports realmente estrechos (~320px): es la eleccion correcta segun el
- * encargo -- "el bloque nunca puede producir scroll horizontal" es un
- * invariante duro (D12); "nunca por debajo de 24px" no lo es.
+ * Desigualdad que fija el pad base (Regla 24 del manual): en el viewport MAS
+ * estrecho soportado (320px), el termino de ancho tiene que seguir en el
+ * suelo de legibilidad o por encima --
+ * `(320px - 2 * pad) / 12 >= 24px`. Despejando,
+ * `pad <= (320px - 24px * 12) / 2 = 16px`. `theme.data.space[4]` (16px) es
+ * EXACTAMENTE ese limite (igualdad, no margen de sobra):
+ * `(320 - 2 * 16) / 12 = 24,00px` en el viewport minimo -- el suelo deja de
+ * poder perforarse (el parrafo anterior de este mismo docblock, antes de
+ * esta tarea, documentaba lo contrario: quedaba una eleccion consciente
+ * "puede pisar el suelo, es aceptable"; con el pad mobile-first ya no hace
+ * falta esa concesion). Desde `sm` (600px) el pad sube a
+ * `theme.data.space[6]` (32px, el valor VERBATIM que este fichero ya usaba
+ * para TODO ancho antes de esta tarea) porque a partir de ahi sobra ancho
+ * para pagarlo sin volver a rozar el suelo -- ver la tabla 320/375/599/600px
+ * del informe de esta tarea para el valor exacto y el termino ganador del
+ * `min()` exterior en cada punto.
  */
-function storyStatementFontSize({ theme }: { theme: DefaultTheme }): string {
-  const pad = theme.data.space[6];
-  return `min(max(${STORY_STATEMENT_MIN_SIZE}, min(10.5vw, 19.2vh, ${STORY_STATEMENT_MAX_SIZE})), calc((100vw - ${pad} - ${pad}) / 12))`;
+function storyStatementFontSize(): string {
+  return `min(max(${STORY_STATEMENT_MIN_SIZE}, min(10.5vw, 19.2vh, ${STORY_STATEMENT_MAX_SIZE})), calc((100vw - var(--story-statement-pad) - var(--story-statement-pad)) / 12))`;
 }
 
 /*
@@ -825,8 +842,23 @@ const ScStatement = styled.section`
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: ${({ theme }) => theme.data.space[8]}
-    ${({ theme }) => theme.data.space[6]};
+  padding-block: ${({ theme }) => theme.data.space[8]};
+  /* Mobile-first (Task 7, auditoria premium 2026-08-08): unica fuente del
+     pad inline, leida tambien por storyStatementFontSize (su docblock, mas
+     arriba, trae la desigualdad completa que fija el valor base) -- una
+     custom property, no un valor de tema resuelto una vez en JS, porque
+     necesita cambiar de valor segun el breakpoint SIN que la formula de
+     tamano de fuente tenga que saber en cual esta: el navegador resuelve
+     var() de nuevo en cada recalculo, con el valor que la cascada tenga
+     vigente en ESE viewport. theme.data.space[4] (16px) hasta sm (600px);
+     theme.data.space[6] (32px, el valor VERBATIM que esta seccion ya usaba
+     para TODO ancho antes de esta tarea) desde ahi. */
+  --story-statement-pad: ${({ theme }) => theme.data.space[4]};
+  padding-inline: var(--story-statement-pad);
+
+  @media ${({ theme }) => theme.data.breakPoint.sm} {
+    --story-statement-pad: ${({ theme }) => theme.data.space[6]};
+  }
 `;
 
 /*
