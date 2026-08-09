@@ -211,6 +211,14 @@ export function Field({
         <ScMsg
           id={messageId}
           $error={hasError}
+          // `role="status"` SOLO cuando hay error (task 1, auditoría premium
+          // 2026-08-08, WCAG 3.3.1 + 4.1.3): anuncia el mensaje a un lector
+          // de pantalla sin robarle el foco ni interrumpir como haría
+          // `role="alert"` -- se lee en la primera pausa natural, mientras
+          // el usuario sigue en el campo. El `help` (sin error) no lleva
+          // ningún role: no es una notificación dinámica, es texto de apoyo
+          // estático que ya queda asociado por `aria-describedby`.
+          role={hasError ? "status" : undefined}
         >
           {message}
         </ScMsg>

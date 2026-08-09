@@ -496,7 +496,14 @@ describe("Contact en tema oscuro", () => {
     expect(submitButtons).toHaveLength(1);
   });
 
-  it("el campo de correo arranca con el valor de links.email, sin el prefijo mailto: (no es un email valido)", async () => {
+  /*
+   * SUSTITUYE al test que afirmaba que el campo arrancaba prerrellenado con
+   * `links.email` (retirado task 1, auditoría premium 2026-08-08, P0
+   * confianza): un formulario de contacto que arranca con la dirección DE
+   * LA PROPIA EMPRESA ya escrita leía como VTI escribiéndose a sí misma. El
+   * placeholder (`form.placeholder`) sigue existiendo y ahora por fin se ve.
+   */
+  it("el campo de correo arranca vacio (el placeholder pasa a verse, no prerrellenado con links.email)", async () => {
     const { container } = renderWithProviders(<Contact />);
     await waitFor(() => {
       expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
@@ -505,12 +512,22 @@ describe("Contact en tema oscuro", () => {
     const input = screen.getByLabelText(
       esHome.Home.contact.form.label,
     ) as HTMLInputElement;
-    expect(links.email.startsWith("mailto:")).toBe(true);
-    expect(input.value).toBe(links.email.replace(/^mailto:/, ""));
-    expect(input.value).not.toContain("mailto:");
+    expect(input.value).toBe("");
+    expect(input).toHaveAttribute(
+      "placeholder",
+      esHome.Home.contact.form.placeholder,
+    );
   });
 
-  it("al enviar SIN editar el campo, el correo por defecto (links.email) llega en el cuerpo del mailto", async () => {
+  /*
+   * SUSTITUYE al test "al enviar SIN editar el campo, el correo por defecto
+   * llega en el cuerpo del mailto": con el campo ahora vacío por defecto,
+   * enviar SIN editar es precisamente el caso "vacío" que la validación
+   * propia (task 1) tiene que atrapar -- ya no navega, y pinta el error
+   * accesible en vez de partir hacia `links.email` sin que el visitante haya
+   * escrito nada.
+   */
+  it("al enviar con el campo vacio, NO navega y pinta el error de validacion con role=status (task 1, item 2/5)", async () => {
     const originalLocation = window.location;
     const assignSpy = vi.fn();
     Object.defineProperty(window, "location", {
@@ -528,16 +545,68 @@ describe("Contact en tema oscuro", () => {
       const form = container.querySelector("form") as HTMLFormElement;
       fireEvent.submit(form);
 
-      expect(assignSpy).toHaveBeenCalledTimes(1);
-      const url = assignSpy.mock.calls[0][0] as string;
-      const defaultEmail = links.email.replace(/^mailto:/, "");
-      expect(url).toContain(encodeURIComponent(defaultEmail));
+      expect(assignSpy).not.toHaveBeenCalled();
+      const status = screen.getByRole("status");
+      expect(status).toHaveTextContent(esHome.Home.contact.form.emailError);
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      expect(input).toHaveAttribute("aria-invalid", "true");
     } finally {
       Object.defineProperty(window, "location", {
         configurable: true,
         value: originalLocation,
       });
     }
+  });
+
+  it("al enviar con un valor sin forma de correo (sin arroba), NO navega y pinta el mismo error de validacion", async () => {
+    const originalLocation = window.location;
+    const assignSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: assignSpy },
+    });
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      fireEvent.change(input, { target: { value: "no-es-un-correo" } });
+      const form = container.querySelector("form") as HTMLFormElement;
+      fireEvent.submit(form);
+
+      expect(assignSpy).not.toHaveBeenCalled();
+      expect(screen.getByRole("status")).toHaveTextContent(
+        esHome.Home.contact.form.emailError,
+      );
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  it("corregir el valor tras un error lo retira de inmediato, sin esperar a un nuevo submit", async () => {
+    const { container } = renderWithProviders(<Contact />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(
+        CONTACT_GUARDIAN_LAYERS.length,
+      );
+    });
+
+    const input = screen.getByLabelText(esHome.Home.contact.form.label);
+    const form = container.querySelector("form") as HTMLFormElement;
+    fireEvent.submit(form);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      esHome.Home.contact.form.emailError,
+    );
+
+    fireEvent.change(input, { target: { value: "v" } });
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("al enviar navega a una URL que empieza por links.email con el correo escrito en el cuerpo, y no aparece ningun texto de exito (test 12, D13)", async () => {
@@ -580,6 +649,193 @@ describe("Contact en tema oscuro", () => {
         value: originalLocation,
       });
     }
+  });
+
+  /*
+   * Task 1 (auditoría premium 2026-08-08), item 3: resuelve "mailto sin
+   * cliente de correo instalado = botón que no hace nada visible". El panel
+   * NO existe antes del envío (sonda positiva de ausencia) y aparece
+   * DESPUÉS de un submit válido, con la dirección real en texto plano y un
+   * botón «Copiar» -- nunca antes.
+   */
+  it("un submit valido revela el panel de fallback con la direccion real en texto plano y el boton Copiar (task 1, item 3/5)", async () => {
+    const originalLocation = window.location;
+    const assignSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: assignSpy },
+    });
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+
+      const plainEmail = links.email.replace(/^mailto:/, "");
+      expect(screen.queryByText(plainEmail)).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", {
+          name: esHome.Home.contact.form.copyAddress,
+        }),
+      ).not.toBeInTheDocument();
+
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      const form = container.querySelector("form") as HTMLFormElement;
+      fireEvent.submit(form);
+
+      expect(assignSpy).toHaveBeenCalledTimes(1);
+      const panel = screen.getByText(plainEmail).closest('[role="status"]');
+      expect(panel).toBeInTheDocument();
+      expect(panel).toHaveTextContent(esHome.Home.contact.form.fallbackLead);
+      expect(
+        screen.getByRole("button", {
+          name: esHome.Home.contact.form.copyAddress,
+        }),
+      ).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  // Regla 27: un control nunca se deshabilita como consecuencia de su
+  // propia activación -- deshabilitarlo en ese instante le arranca el foco
+  // a quien lo estaba operando por teclado. El botón de envío no tiene
+  // ningún estado "en curso" que representar (la navegación es síncrona),
+  // así que no lleva `disabled` ni antes ni después de un envío.
+  it("el boton de envio nunca lleva el atributo disabled, ni antes ni despues de un envio valido (regla 27, task 1 item 4/5)", async () => {
+    const originalLocation = window.location;
+    const assignSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: assignSpy },
+    });
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+
+      const button = container.querySelector(
+        'button[type="submit"]',
+      ) as HTMLButtonElement;
+      expect(button).not.toBeDisabled();
+
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      expect(button).not.toBeDisabled();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  describe("boton Copiar (navigator.clipboard)", () => {
+    afterEach(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: undefined,
+      });
+    });
+
+    async function submitValidEmail(container: HTMLElement): Promise<void> {
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+    }
+
+    it("escribe la direccion real (sin mailto:) en el portapapeles y cambia el texto del boton a la clave copied", async () => {
+      const originalLocation = window.location;
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { ...originalLocation, assign: vi.fn() },
+      });
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText },
+      });
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        await submitValidEmail(container);
+
+        const copyButton = screen.getByRole("button", {
+          name: esHome.Home.contact.form.copyAddress,
+        });
+        await act(async () => {
+          fireEvent.click(copyButton);
+        });
+
+        expect(writeText).toHaveBeenCalledWith(
+          links.email.replace(/^mailto:/, ""),
+        );
+        expect(
+          screen.getByRole("button", {
+            name: esHome.Home.contact.form.copied,
+          }),
+        ).toBeInTheDocument();
+      } finally {
+        Object.defineProperty(window, "location", {
+          configurable: true,
+          value: originalLocation,
+        });
+      }
+    });
+
+    it("sin navigator.clipboard disponible, el fallback es silencioso: no lanza y el texto del boton no cambia", async () => {
+      const originalLocation = window.location;
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { ...originalLocation, assign: vi.fn() },
+      });
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: undefined,
+      });
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        await submitValidEmail(container);
+
+        const copyButton = screen.getByRole("button", {
+          name: esHome.Home.contact.form.copyAddress,
+        });
+        await act(async () => {
+          fireEvent.click(copyButton);
+        });
+
+        expect(
+          screen.getByRole("button", {
+            name: esHome.Home.contact.form.copyAddress,
+          }),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole("button", {
+            name: esHome.Home.contact.form.copied,
+          }),
+        ).not.toBeInTheDocument();
+      } finally {
+        Object.defineProperty(window, "location", {
+          configurable: true,
+          value: originalLocation,
+        });
+      }
+    });
   });
 
   it("no existe ninguna clave i18n ni ningun nodo con la afirmacion de mensaje enviado (test 13, D13)", async () => {

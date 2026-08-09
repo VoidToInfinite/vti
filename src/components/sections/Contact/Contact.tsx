@@ -897,6 +897,69 @@ const ScSendIcon = styled.svg`
   height: 16px;
 `;
 
+/*
+ * Panel de fallback tras el envío (D13, task 1 auditoría premium
+ * 2026-08-08): se revela DESPUÉS de `window.location.assign(mailto)` en un
+ * submit válido -- no es un toast (no se cierra solo) ni afirma que el
+ * correo se haya enviado de verdad (este sitio no tiene backend al que
+ * postear; D13 sigue vigente). Resuelve "mailto sin cliente de correo
+ * instalado = botón que no hace nada visible": la dirección real queda en
+ * texto plano, seleccionable/copiable, dentro del propio formulario.
+ * `role="status"` (en el JSX) anuncia su aparición a un lector de pantalla
+ * sin robarle el foco -- mismo criterio que el error de campo (`Input.tsx`).
+ * Tokens de tema (regla 17), cero literales.
+ */
+const ScFallbackPanel = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${({ theme }) => theme.data.space[3]};
+  padding: ${({ theme }) => theme.data.space[3]}
+    ${({ theme }) => theme.data.space[4]};
+  border-radius: ${({ theme }) => theme.data.radius.lg};
+  border: 1px solid ${({ theme }) => theme.data.semantic.border};
+  background: ${({ theme }) => theme.data.semantic.surfaceSunken};
+`;
+
+const ScFallbackText = styled.p`
+  flex: 1 1 200px;
+  margin: 0;
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+/* Dirección en negrita dentro del párrafo -- el dato accionable del panel,
+   diferenciado del texto de apoyo que lo rodea. `overflow-wrap` evita que
+   la dirección desborde el panel angosto de la tarjeta del formulario en
+   vez de partirse en la palabra larga. */
+const ScFallbackEmail = styled.strong`
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-weight: 600;
+  overflow-wrap: anywhere;
+`;
+
+/* `flex: none` para que el botón no se comprima junto al texto en el
+   `flex-wrap` de `ScFallbackPanel`. */
+const ScCopyButton = styled(Button)`
+  flex: none;
+`;
+
+/**
+ * Patrón mínimo de correo (task 1, auditoría premium 2026-08-08): capa de
+ * validación PROPIA, además de `type="email"` + `required` nativos del
+ * `<input>` (que se mantienen sin tocar). No es redundante con lo nativo:
+ * `fireEvent.submit` de jsdom NO dispara la validación de restricciones del
+ * navegador, así que sin esta capa el submit inválido llegaría igual a
+ * `handleSubmit` en cualquier test -- y, en un navegador real, cualquier
+ * camino que rodee la validación nativa (autofill agresivo, JS de una
+ * extensión) también la necesita. No pretende ser RFC 5322 completo: ese
+ * nivel de rigor no lo pide el encargo y el propio `type="email"` ya cubre
+ * casos más finos que solo el navegador entiende.
+ */
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export function Contact(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
@@ -912,12 +975,40 @@ export function Contact(): ReactElement {
    */
   const contactRef = useRef<HTMLElement>(null);
   useSectionProgress(contactRef, { cssVarPrefix: "contact" });
-  /* El campo arranca con `links.email` (sin el prefijo `mailto:`, que no es
-     un correo válido para `type="email"`), no vacío: el visitante ve de
-     entrada la dirección real de contacto y puede sustituirla por la suya
-     antes de enviar. Se deriva de `links.email` en vez de duplicar el
-     literal para que siga habiendo una única fuente de verdad. */
-  const [email, setEmail] = useState(() => links.email.replace(/^mailto:/, ""));
+  /* El campo arranca VACÍO (task 1, auditoría premium 2026-08-08, P0
+     confianza -- reemplaza la entrega anterior, que lo prerrellenaba con
+     `links.email`): un formulario de contacto que arranca con la dirección
+     DE LA PROPIA EMPRESA ya escrita lee como que VTI se está escribiendo a
+     sí misma, no como una invitación a que el visitante escriba la suya. El
+     placeholder («tu@correo.com») ya comunicaba el formato esperado y ahora
+     por fin se ve. */
+  const [email, setEmail] = useState("");
+  /*
+   * Estado de error de la validación PROPIA (task 1): `Field`/`Input` ya
+   * soportaban un `error` (`Input.tsx`, prop `error` de `Field`) -- esta
+   * tarea solo los conecta. Guarda un booleano, no el string del mensaje:
+   * el TEXTO sale de i18n en el propio render (`Home.contact.form.
+   * emailError`), así el estado no duplica un contenido que ya vive en una
+   * única fuente de verdad.
+   */
+  const [emailError, setEmailError] = useState(false);
+  /*
+   * Panel de fallback, revelado tras un envío VÁLIDO (D13 sigue vigente: NO
+   * es un "enviado" -- este sitio no tiene backend al que postear, así que
+   * nunca puede confirmar una entrega real). Resuelve el caso "mailto sin
+   * cliente de correo instalado = botón que visiblemente no hizo nada":
+   * una vez revelado se queda así -- no es un toast que desaparece solo.
+   */
+  const [sent, setSent] = useState(false);
+  /*
+   * Feedback textual opcional del botón «Copiar» (resolución del
+   * orquestador, task 1): SIN estado "copiado" animado -- no hay backend
+   * que confirmar de verdad, así que una animación/check afirmaría más
+   * certeza de la que hay. Cambiar el propio texto del botón es la señal
+   * mínima honesta, y solo se activa cuando `handleCopy` confirma que la
+   * escritura al portapapeles se completó.
+   */
+  const [copied, setCopied] = useState(false);
 
   /*
    * Envío del formulario (D13, rama oscura): abre el cliente de correo del
@@ -930,12 +1021,46 @@ export function Contact(): ReactElement {
    * entero (`Contact.test.tsx`) -- un setter de propiedad como `href` no se
    * puede espiar así. NO se implementa ningún estado "enviado" (D13): sin
    * backend sería una afirmación falsa en la interfaz.
+   *
+   * Validación propia (task 1) ANTES de navegar: si el valor está vacío o
+   * no tiene forma de correo, `preventDefault` (ya se llama siempre, arriba)
+   * detiene aquí -- no se toca `window.location` -- y se enciende el error
+   * accesible de `Field`. La validación NATIVA (`required`, `type="email"`)
+   * sigue en el `<input>` sin tocar: esta capa es un refuerzo, no un
+   * sustituto (ver docblock de `isValidEmail`).
    */
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    if (!isValidEmail(email)) {
+      setEmailError(true);
+      return;
+    }
+    setEmailError(false);
     const subject = encodeURIComponent(t("Home.contact.form.subject"));
     const body = encodeURIComponent(t("Home.contact.form.body", { email }));
     window.location.assign(`${links.email}?subject=${subject}&body=${body}`);
+    setSent(true);
+  }
+
+  /*
+   * Copia la dirección real al portapapeles (resolución del orquestador,
+   * task 1): comodidad sobre el panel de fallback, que YA deja la
+   * dirección en texto plano seleccionable -- copiar nunca es el ÚNICO
+   * camino. `navigator.clipboard` no existe en todo contexto (permiso
+   * denegado, origen no seguro, algún navegador antiguo); sin él, o si
+   * `writeText` rechaza, el fallback es silencioso a propósito: no hay nada
+   * que afirmarle al usuario sobre un intento que no puede completarse, y
+   * el texto del botón solo cambia a "Copiada" cuando la escritura se
+   * confirmó de verdad (nunca de forma optimista).
+   */
+  async function handleCopy(): Promise<void> {
+    if (!navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(links.email.replace(/^mailto:/, ""));
+      setCopied(true);
+    } catch {
+      /* Silencioso a propósito -- ver docblock. */
+    }
   }
 
   const chipAndCta = (
@@ -1008,6 +1133,11 @@ export function Contact(): ReactElement {
                       label={t("Home.contact.form.label")}
                       htmlFor="contact-email"
                       help={t("Home.contact.form.help")}
+                      error={
+                        emailError
+                          ? t("Home.contact.form.emailError")
+                          : undefined
+                      }
                     >
                       <Input
                         id="contact-email"
@@ -1015,7 +1145,13 @@ export function Contact(): ReactElement {
                         required
                         placeholder={t("Home.contact.form.placeholder")}
                         value={email}
-                        onChange={(event) => setEmail(event.target.value)}
+                        onChange={(event) => {
+                          setEmail(event.target.value);
+                          // Corregir el valor retira el error de inmediato:
+                          // dejarlo pintado hasta el siguiente submit
+                          // afirmaría un estado que el usuario ya resolvió.
+                          if (emailError) setEmailError(false);
+                        }}
                         autoComplete="email"
                       />
                     </Field>
@@ -1038,6 +1174,28 @@ export function Contact(): ReactElement {
                         <path d="M21 3l-7 18-4-7-7-4z" />
                       </ScSendIcon>
                     </ScSubmitButton>
+                    {sent && (
+                      <ScFallbackPanel role="status">
+                        <ScFallbackText>
+                          {t("Home.contact.form.fallbackLead")}{" "}
+                          <ScFallbackEmail>
+                            {links.email.replace(/^mailto:/, "")}
+                          </ScFallbackEmail>
+                        </ScFallbackText>
+                        <ScCopyButton
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCopy}
+                        >
+                          {t(
+                            copied
+                              ? "Home.contact.form.copied"
+                              : "Home.contact.form.copyAddress",
+                          )}
+                        </ScCopyButton>
+                      </ScFallbackPanel>
+                    )}
                   </ScForm>
                 </ScFormCard>
                 <ScCardLink

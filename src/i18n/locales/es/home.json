@@ -150,7 +150,11 @@
                 "submit": "Escríbenos",
                 "submitAria": "Escríbenos: abre tu aplicación de correo con tu dirección ya incluida",
                 "subject": "Hola VoidToInfinite",
-                "body": "Mi correo de contacto: {{email}}"
+                "body": "Mi correo de contacto: {{email}}",
+                "emailError": "Escribe un correo válido.",
+                "fallbackLead": "Si no se ha abierto tu aplicación de correo, escríbenos a",
+                "copyAddress": "Copiar dirección",
+                "copied": "Copiada"
             }
         }
     }

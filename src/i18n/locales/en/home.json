@@ -150,7 +150,11 @@
                 "submit": "Write to us",
                 "submitAria": "Write to us — opens your email app with your address already included",
                 "subject": "Hello VoidToInfinite",
-                "body": "My contact email: {{email}}"
+                "body": "My contact email: {{email}}",
+                "emailError": "Enter a valid email.",
+                "fallbackLead": "If your email app didn’t open, write to us at",
+                "copyAddress": "Copy address",
+                "copied": "Copied"
             }
         }
     }
