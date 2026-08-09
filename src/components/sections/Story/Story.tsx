@@ -150,7 +150,10 @@ const STORY_CARD_INSPIRATION_LINE_HEIGHT = 1.7;
  * "a la inversa", no un recorrido paso a paso anclado por scroll.
  */
 /** Duracion de la entrada de cada linea (mockup L128-130): no coincide con
- *  ningun paso de `motion.duration` (el mas cercano, `ambient`, es 1500ms). */
+ *  ningun paso de `motion.duration` (el mas cercano de la familia general de
+ *  interfaz, `slower`, es 480ms; `ambient` -- que hubiera sido el paso mas
+ *  cercano hasta esta entrega -- se retiro por 0 consumidores, ver
+ *  `src/theme/tokens/motion.ts`). */
 const STORY_STATEMENT_REVEAL_MS = 900;
 /** Curva de la entrada (mockup L128-130): ninguna de las cinco curvas de
  *  `motion.easing` tiene estos cuatro puntos de control -- ni siquiera

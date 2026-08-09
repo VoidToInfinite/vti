@@ -12,7 +12,6 @@ describe("system tokens", () => {
         base: "200ms",
         slow: "320ms",
         slower: "480ms",
-        ambient: "1500ms",
         spin: "700ms",
         spinReduced: "2100ms",
       };
@@ -44,7 +43,7 @@ describe("system tokens", () => {
 
     it("motion es un objeto congelado (as const)", () => {
       // Verificar que las duraciones tienen las propiedades esperadas
-      expect(Object.keys(motion.duration)).toHaveLength(8);
+      expect(Object.keys(motion.duration)).toHaveLength(7);
       expect(Object.keys(motion.easing)).toHaveLength(5);
     });
   });

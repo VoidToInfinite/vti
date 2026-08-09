@@ -5,7 +5,6 @@ export const motion = {
     base: "200ms",
     slow: "320ms",
     slower: "480ms",
-    ambient: "1500ms",
     spin: "700ms",
     spinReduced: "2100ms",
   },

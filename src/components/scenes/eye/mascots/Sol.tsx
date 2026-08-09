@@ -141,9 +141,12 @@ const ScFaces = styled.div`
 `;
 
 /* 1100ms: la duracion del morph que fija el origen. No hay casilla equivalente
-   en la escala de motion de este repo (la mas larga, `ambient`, es 1500ms y
-   describe otra cosa), y el numero es parte de la coreografia portada: es el
-   cambio de identidad entero del mascota, no una transicion de UI. */
+   en la escala de motion de este repo (la mas larga de la familia general de
+   interfaz, `slower`, es 480ms; `ambient` -- que hubiera sido la mas larga
+   con 1500ms -- se retiro por 0 consumidores, ver
+   `src/theme/tokens/motion.ts`), y el numero es parte de la coreografia
+   portada: es el cambio de identidad entero del mascota, no una transicion
+   de UI. */
 const MORPH_MS = "1100ms";
 /* Curva de entrada del origen, sin equivalente en `motion.easing` de este
    repo. Las cuatro curvas de la casa son de UI; esta es un aterrizaje

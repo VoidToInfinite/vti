@@ -43,7 +43,7 @@ import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
  * ## Por qué estos números NO salen de `theme.data.motion.duration`
  *
  * La escala de movimiento de la casa (`src/theme/tokens/motion.ts`:
- * `instant/fast/base/slow/slower/ambient/spin/spinReduced`) está pensada
+ * `instant/fast/base/slow/slower/spin/spinReduced`) está pensada
  * para TRANSICIONES DE INTERFAZ —hover, foco, aparición de un panel—, no
  * para una COREOGRAFÍA de cinco escalones con un orden y un retardo
  * relativo entre piezas. Forzar esta coreografía dentro de `motion.duration`
