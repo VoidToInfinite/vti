@@ -1,6 +1,6 @@
 # PRODUCT.md — VoidToInfinite
 
-> Este documento describe lo que la web **dice hoy**, no lo que el proyecto aspira a ser. Se actualiza cuando cambia el copy (`src/i18n/locales/`) o los destinos declarados en `src/config/`. Toda cita proviene del código y el copy real del repo, verificada contra `src/i18n/locales/es/` y `src/i18n/locales/en/` el 2026-08-08. Lo que el repo no dice se marca `_por completar_`; nada se rellena por inferencia.
+> Este documento describe lo que la web **dice hoy**, no lo que el proyecto aspira a ser. Se actualiza cuando cambia el copy (`src/i18n/locales/`) o los destinos declarados en `src/config/`. Toda cita proviene del código y el copy real del repo, verificada contra `src/i18n/locales/es/` y `src/i18n/locales/en/` el 2026-08-08, con una pasada de actualización el 2026-08-09 tras la implementación de la auditoría premium (Tareas 1-13: formulario de Contacto, copy de CTA, grupo de navegación «Comunidad», kicker del hero). Lo que el repo no dice se marca `_por completar_`; nada se rellena por inferencia.
 
 ## 1. Qué es
 
@@ -47,8 +47,8 @@ Naturaleza jurídica y organizativa de VoidToInfinite (persona física, sociedad
     - quien quiere **aprender** (bloque Learning de Features);
     - quien quiere **crear/imaginar** (bloque Imagination de Features);
     - quien quiere **jugar o competir** (bloque Gaming de Features);
-    - desarrolladores, únicamente alcanzables vía el enlace «Explora el código» a GitHub, que solo existe en el **tema oscuro** de Contacto;
-    - comunidad, únicamente alcanzable vía «Únete a la comunidad» (Discord), también solo en tema oscuro.
+    - desarrolladores, alcanzables vía el enlace «Explora el código» a GitHub — dentro de Contacto solo existe en el **tema oscuro**, pero desde el 2026-08-09 (Tarea 6) también hay un enlace a GitHub en el grupo «Comunidad» del navbar y del pie, presente en **los dos temas**;
+    - comunidad, alcanzable vía «Únete a la comunidad» (Discord) dentro de Contacto oscuro, y desde el 2026-08-09 también vía el mismo grupo «Comunidad» de navbar/pie en los dos temas.
 - **B2B / colaboración:** mencionada de refilón en el cuerpo de Contacto («¿Tienes una pregunta, una idea o una colaboración en mente?») y reconocida formalmente en la Política de privacidad, que contempla «la aplicación de medidas precontractuales a petición tuya cuando escribes para plantear una colaboración o un encargo» como base legal alternativa del tratamiento del correo. No existe ninguna sección de la landing que le hable directamente a esta audiencia. Segmentación real (tamaño, tipo de colaboración buscada): `_por completar_`.
 
 ## 4. Tono de voz
@@ -59,11 +59,12 @@ Cálido, íntimo, en segunda persona, de frases cortas y con gusto por la parado
 
 ### Español vs. inglés
 
-El español es la versión canónica: idioma por defecto del sitio, el que se prerrenderiza en el HTML, el de la metadata y el de los documentos legales. El inglés es una traducción fiel salvo **dos divergencias verificadas vigentes** (una tercera se cerró, ver abajo):
+El español es la versión canónica: idioma por defecto del sitio, el que se prerrenderiza en el HTML, el de la metadata y el de los documentos legales. El inglés es una traducción fiel salvo **dos divergencias verificadas vigentes** (dos más se cerraron durante la implementación de la auditoría premium, ver abajo):
 
 1. **Tagline del pie.** ES: «Sigue siempre adelante.» (`Common.Footer.tagline`) — EN: «Together, we go beyond.» Son dos declaraciones de marca distintas, no una traducción la una de la otra.
 2. **Rol título/badge invertido en las identidades de Features.** En inglés, `title` lleva el sustantivo («Learning», «Imagination», «Gaming») y `badge` el verbo («Learn», «Create», «Play»); en español es al revés: `title` lleva el verbo («Aprende», «Imagina», «Juega») y `badge` el sustantivo («Aprendizaje», «Imaginación», «Juego»). Esto además se filtra al menú «Descubre» del navbar en español, que termina listando imperativos como si fueran nombres de destino.
 3. **Verbo de los CTA de Features — CERRADA el 2026-08-09.** EN usaba «Explore» y ES «Empieza a» («Empieza a aprender / imaginar / jugar»): un verbo de exploración frente a uno de inicio no prometen lo mismo, y la versión canónica era la que prometía de más. La Tarea 5 de la implementación de la auditoría alineó el ES con el EN: hoy ambos exploran — «Explora el aprendizaje / la imaginación / el juego» frente a «Explore Learning / Imagination / Gaming» (verificado contra `src/i18n/locales/{es,en}/home.json`). El destino de los tres CTA sigue siendo `#contact` (decisión 13, §10 — abierta).
+4. **Rayas EN sin equivalente en ES — CERRADA el 2026-08-09.** `home.json` en inglés usaba el em-dash (`—`) en 5 valores (`story.pillars.practice.body`, `features.gaming.body`, `contact.bodySecond`, `contact.ctaAria`, `contact.form.submitAria`) donde el ES equivalente, clave a clave, usaba dos puntos o coma — no eran traducciones de la misma puntuación, sino dos registros distintos para el mismo inciso. La Tarea 5 reescribió los 5 valores EN con la puntuación nativa del inciso en inglés (coma o dos puntos, fiel al ES de cada clave), dejando `home.json` en los dos idiomas a cero rayas. `legal.json` queda fuera de este cierre: el inglés legal se reescribió sin rayas por decisión del orquestador (3 incisos, sin pérdida de fidelidad normativa) y el español legal conserva sus 6 rayas como incisos RAE legítimos, exención nombrada en el candado de `locales.test.ts`.
 
 ### Claro vs. oscuro: el tema como modo de contenido
 
@@ -83,7 +84,7 @@ Lectura de producto: el tema oscuro es la versión con más recorrido narrativo 
 
 | Sección | Kicker (ES) | Mensaje central ES | Mensaje central EN |
 | --- | --- | --- | --- |
-| Hero | «Aprendizaje · Imaginación · Juego» (tagline del `<h1>` desde 2026-08-08) | «Tu presente ya es tu futuro, solo falta que sigas definiéndolo.» | «Your present is already your future: you just have to keep defining it.» |
+| Hero | — (`Home.hero.kicker` existe en los dos locales pero no tiene consumidor: la tagline que la mostró brevemente dentro del `<h1>` el 2026-08-08 se retiró el mismo día por decisión del usuario, confirmado en `src/components/sections/Hero/Hero.tsx:557-563`, donde `ScHeroBrand` solo envuelve `<BrandName />`) | «Tu presente ya es tu futuro, solo falta que sigas definiéndolo.» | «Your present is already your future: you just have to keep defining it.» |
 | Story | «¿Por qué VoidToInfinite?» | «De la curiosidad a la creación.» | «From curiosity to creation.» |
 | Journey | «Inspiración» | «Tu viaje no tiene un último paso.» + «El destino no es el infinito. El viaje lo es.» | «Your journey has no final step.» + «The destination is not infinity. The journey is.» |
 | Features | «Características» | «Tres formas de seguir avanzando.» (solo tema claro) | «Three ways to keep moving.» (solo tema claro) |
@@ -97,10 +98,11 @@ Lectura de producto: el tema oscuro es la versión con más recorrido narrativo 
 | Hero | «Leer la historia» | «Read the story» | `#story` | OK |
 | Features ×3 | «Explora el aprendizaje / la imaginación / el juego» (desde 2026-08-09; antes «Empieza a…») | «Explore Learning / Imagination / Gaming» | `#contact` | Verbo alineado con EN; la promesa ya no es de inicio, pero el destino sigue siendo un mailto genérico — el destino real es la decisión 13 (§10) |
 | Contacto (claro) | «Contactar por correo» | «Contact via email» | `mailto:hello@voidtoinfinite.com` | OK |
-| Contacto (oscuro) | «Escríbenos» | «Write to us» | `mailto:` prerrellenado | El campo etiquetado «Tu correo» viene precargado con la dirección de VTI, no con un campo vacío para el visitante — contradicción entre la etiqueta y el valor |
-| Contacto (oscuro) | «Únete a la comunidad» | «Join the community» | `discord.gg/CuGhqdG3g3` | Solo existe en tema oscuro |
-| Contacto (oscuro) | «Explora el código» | «Explore the code» | `github.com/voidtoinfinite` | Solo existe en tema oscuro |
+| Contacto (oscuro) | «Escríbenos» | «Write to us» | `mailto:` con el correo del visitante | Campo vacío desde la Tarea 1 (2026-08-09): arranca en `""` con placeholder «tu@correo.com», valida el formato antes de navegar (`role="status"` sobre el error) y, tras un envío válido, revela un panel persistente con la dirección real de VTI y un botón «Copiar dirección» — la contradicción etiqueta/valor que tenía esta fila está cerrada |
+| Contacto (oscuro) | «Únete a la comunidad» | «Join the community» | `discord.gg/CuGhqdG3g3` | Existe en la tarjeta de Contacto oscuro; desde la Tarea 6 hay además un enlace a Discord en el grupo «Comunidad» de navbar/pie, en los dos temas |
+| Contacto (oscuro) | «Explora el código» | «Explore the code» | `github.com/voidtoinfinite` | Existe en la tarjeta de Contacto oscuro; desde la Tarea 6 hay además un enlace a GitHub en el grupo «Comunidad» de navbar/pie, en los dos temas |
 | Navbar / Pie | «VTI - SDK» | «VTI - SDK» | `dev.voidtoinfinite.com` | Sin ninguna explicación de qué es en ningún texto del sitio |
+| Navbar / Pie | «Comunidad» (nuevo, Tarea 6, 2026-08-09) | «Community» | Discord + GitHub, mismos destinos que arriba | `src/config/navigation.ts`, grupo `community`; visible en los dos temas, escritorio y — desde la Tarea 10, vía la hoja de navegación móvil — también por debajo de 768px |
 | Pie | Privacidad · Aviso legal | Privacy · Legal | `/privacidad` · `/aviso-legal` | Publicados, pero con `LEGAL_ENTITY` en `POR_COMPLETAR` |
 
 El correo `hello@voidtoinfinite.com` procede del mockup original de la entrega de contacto (decisión de diseño D8); no hay ninguna confirmación registrada en el repo de que ese buzón esté operativo hoy (ver decisión 10, §10).
@@ -119,8 +121,8 @@ Esto no es una declaración de intenciones: es descriptivamente cierto del propi
 
 - Features vende una plataforma («Rutas cuidadas que crecen contigo», «Herramientas que despiertan conexiones», «Retos que afilan tus habilidades»…) que el Aviso legal niega explícitamente («no ofrece registro ni cuentas de usuario… no presta ningún servicio contratable en línea»). Cuál de las dos versiones es la verdad es una decisión que solo puede tomar el usuario antes de tocar más copy (decisión 12, §10).
 - Los tres CTA de Features entregan un `mailto:` vía `#contact`. El verbo se alineó a «Explora…» el 2026-08-09 (rebaja la promesa incumplida: explorar ya no promete un producto que empezar), pero el destino real de los tres sigue siendo la decisión 13 (§10).
-- GitHub y Discord solo existen en el tema oscuro; el pie no tiene enlaces sociales en ningún tema. El tema por defecto del sitio es el claro, así que la mayoría de visitantes nunca ve estos dos destinos.
-- El campo «Tu correo» del formulario de Contacto (tema oscuro) viene precargado con la dirección de VoidToInfinite, no con un campo vacío: la etiqueta dice «tuyo», el valor es el ajeno.
+- ~~GitHub y Discord solo existen en el tema oscuro; el pie no tiene enlaces sociales en ningún tema. El tema por defecto del sitio es el claro, así que la mayoría de visitantes nunca ve estos dos destinos.~~ **Resuelto parcialmente (Tarea 6, 2026-08-09):** el grupo «Comunidad» del navbar y del pie (Discord + GitHub) es visible en **los dos temas**, así que el tema por defecto ya no oculta estos dos destinos. Lo que sigue vigente: dentro de la sección Contacto en sí, las tarjetas de Discord/GitHub solo existen en la rama oscura (Tarea 6 no tocó `Contact.tsx`).
+- ~~El campo «Tu correo» del formulario de Contacto (tema oscuro) viene precargado con la dirección de VoidToInfinite, no con un campo vacío: la etiqueta dice «tuyo», el valor es el ajeno.~~ **Resuelto (Tarea 1, 2026-08-09):** el campo arranca vacío (`useState("")`), valida el formato antes de navegar y revela un panel de confirmación con la dirección real de VTI tras un envío válido — ver `PRODUCT.md` §6.
 - `LEGAL_ENTITY` (`src/config/legal.ts`) está entera en `POR_COMPLETAR`: las páginas legales están estructuralmente completas pero **no son publicables**, y los propios documentos lo declaran en su propio texto (ver notas de `/privacidad` y `/aviso-legal`).
 
 **MEDIA**
@@ -143,11 +145,11 @@ Esto no es una declaración de intenciones: es descriptivamente cierto del propi
 
 Orden real del DOM (`HomeSections.tsx`): **Story → Journey → Features → Contact**, precedido por Hero.
 
-- **Hero:** nombre de marca + promesa emocional + un único CTA («Leer la historia»). Desde la entrega del 2026-08-08 también muestra la categoría del proyecto como tagline visible del `<h1>` («Aprendizaje · Imaginación · Juego»).
+- **Hero:** nombre de marca + promesa emocional + un único CTA («Leer la historia»). La tagline de categoría que se probó dentro del `<h1>` el 2026-08-08 («Aprendizaje · Imaginación · Juego») se retiró el mismo día por decisión del usuario: la clave i18n (`Home.hero.kicker`) sigue viva en `es`/`en` — protegida por `locales.test.ts`, con exención propia en el candado de middot — pero hoy no la renderiza nadie. El hallazgo SEO de fondo que la motivó (un `<h1>` que no describe de qué trata el sitio) sigue abierto, pendiente de la forma que el usuario quiera darle (ver `PROYECT.md` §5).
 - **Story:** la mejor pieza de escritura del sitio; responde el «por qué» existe VoidToInfinite.
 - **Journey:** filosofía dirigida al visitante sobre su propio recorrido. Tras dos secciones seguidas de inspiración, empieza a pesar la pregunta implícita «¿y qué hacéis vosotros, concretamente?».
 - **Features:** la primera vez que el sitio suena a producto con funcionalidad — y es también su punto de fuga, porque su promesa más alta (hoy «Explora el aprendizaje / la imaginación / el juego», suavizada desde el «Empieza a…» original el 2026-08-09) sigue resolviendo en un simple `mailto:`.
-- **Contact:** tono cálido de cierre; en el tema claro, el visitante llega hasta el final sin haber visto una sola prueba de que el proyecto existe fuera de esta misma landing.
+- **Contact:** tono cálido de cierre; en el tema claro, la sección en sí no muestra ninguna prueba de que el proyecto existe fuera de esta misma landing — pero desde la Tarea 6 (2026-08-09) el visitante ha podido cruzarse antes con el grupo «Comunidad» del navbar o del pie (Discord + GitHub, visibles en los dos temas), así que el dato ya no depende por completo de llegar a la rama oscura de esta sección.
 
 Preguntas que el sitio deja sin responder al final del recorrido: ¿quiénes sois? ¿desde cuándo existe VoidToInfinite? ¿qué habéis hecho ya, concretamente? ¿el aprendizaje que se promete es un producto, es contenido, o es una intención? ¿qué es el SDK? ¿participar es gratis? ¿puedo unirme, y a qué exactamente?
 

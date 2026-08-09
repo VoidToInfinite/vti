@@ -92,7 +92,7 @@ Los números de esta sección son los medidos hoy por el auditor de rendimiento.
 | CSS bloqueante | ≤100 KB gzip | 29.474 B | Cumple |
 | Fuentes en ventana crítica | ≤100 KB | 75.144 B | Cumple hoy; `JetBrains_Mono` salió de la precarga hoy (`preload: false`) — medir de nuevo |
 | Ninguna imagen individual | >400 KB = fallo | 4 imágenes lo superan | **No cumple** |
-| Imágenes | >2,5 bpp = fallo | 3 la superan: `story/cosmic-being/07-geometry.webp` 5,74 bpp · `07-geometry-1024.webp` 5,87 bpp · `01-nebula.webp` 3,37 bpp | **No cumple** |
+| Imágenes | >2,5 bpp = fallo | 3 la superan: `story/cosmic-being/07-geometry.webp` 5,74 bpp · `07-geometry-1024.webp` 5,87 bpp · `01-nebula.webp` 3,37 bpp | **No cumple** — actualización 2026-08-09 (Tarea 13, recompresión de alfa): `01-nebula.webp` bajó de 388.192 a 354.992 B (mismas dimensiones, −8,5%), lo que baja su bpp a ≈3,08 — sigue por encima del umbral. `07-geometry.webp`/`07-geometry-1024.webp` quedaron **fuera** del criterio de esa tarea (ALPH 29,4%/29,1%, bajo el umbral del 30% que usó) y siguen intactos a 5,74/5,87 bpp. Ninguno de los tres queda por debajo de 2,5 bpp todavía; el mecanismo que los bajaría de verdad es recompresión de color, no de alfa. |
 | Peticiones a terceros | 0 | 0 | Cumple |
 
 Checklist de verificación de esta tabla:
@@ -125,7 +125,7 @@ Servir con `pnpm start` (`npx serve out`) tras `pnpm build`, y medir sobre esa i
 
 ## 6. QA visual pendiente de ojo humano
 
-Consolidado del auditor visual/UX. Nadie ha visto todavía un frame renderizado de este repo en navegador — toda esta sección parte de cero. Numeración continua 1-41 para poder referenciar cada ítem en comentarios de PR o de código.
+Consolidado del auditor visual/UX. Nadie ha visto todavía un frame renderizado de este repo en navegador — toda esta sección parte de cero. Numeración continua 1-41 (auditoría del 2026-08-08) + 42-49 (Tareas 1-13 de la implementación de la auditoría premium, añadidas el 2026-08-09) para poder referenciar cada ítem en comentarios de PR o de código.
 
 ### Bloqueantes antes de publicar (1-6)
 
@@ -180,8 +180,22 @@ Consolidado del auditor visual/UX. Nadie ha visto todavía un frame renderizado 
 - [ ] 37. Peso de las pistas nativas de imagen: 4 de 6 superan el umbral orientativo de 150 KB — decidir si se recomprimen o se acepta el peso.
 - [ ] 38. `check-spelling` está roto (76.035 incidencias en 228 ficheros, sin diccionario español configurado) — configurar el diccionario `es` en `.cspell.json` o retirar el script hasta tenerlo, para que deje de ser ruido.
 - [ ] 39. Contraste AA del texto sobre degradados pastel: kickers y `textMuted` en las tarjetas de Journey y Contact.
-- [ ] 40. El anillo de foco sobre elementos de arte cumple WCAG 2.4.11 (contraste 3:1 mínimo).
+- [ ] 40. El anillo de foco sobre elementos de arte cumple WCAG 1.4.11 (contraste no textual, 3:1 mínimo) — corregido el 2026-08-09: el número de criterio original de este ítem era 2.4.11, que no es el criterio de contraste. El 3:1 sobre componentes de interfaz es **1.4.11 "Non-text Contrast"**; **2.4.11 "Focus Not Obscured"** es un criterio distinto, ver la nueva casilla justo abajo.
+- [x] 40.b `scroll-padding-top` para que el navbar fijo no tape el elemento con foco al saltar a un ancla (WCAG 2.4.11 "Focus Not Obscured") — hecho en código el 2026-08-09 (Tarea 4): `html { scroll-padding-top: calc(var(--nav-height) + var(--nav-gap)) }` en `GlobalStyles.tsx`, mismo `calc()` que ya usaba `scroll-margin-top` para no dejar un umbral menor en el salto por foco (Tab) que en el salto por clic. Sin test unitario posible (`createGlobalStyle` no inyecta nada bajo jsdom + Vitest, lección conocida del repo). Pendiente: confirmar en navegador real que, al tabular hasta un enlace de ancla y activarlo, el elemento de destino queda visible bajo la barra, no oculto tras ella.
 - [ ] 41. El indicador de idioma inactivo (`textSubtle`) es legible sobre la barra transparente del hero.
+
+### Tareas 1-13 de la implementación de la auditoría premium (42-49, añadidas 2026-08-09)
+
+Ningún agente ha podido ver un frame renderizado de estos cambios (panel de navegador sin `visibilityState` visible en esta sesión) — igual que el resto de esta sección, parte de cero.
+
+- [ ] 42. **Alfa recomprimido de las 4 escenas oscuras de sección (Tarea 13).** 38 de 40 WebP con canal alfa recomprimidos (`alpha_quality=80`, PSNR alfa mínimo 56,54 dB, PSNR compuesto premultiplicado mínimo 48,70 dB en `features-celestial-orbital/06-figura-1024.webp` — el margen más ajustado de la tarea). Comparar a ojo `storyCosmicBeing`, `featuresCelestialOrbital`, `journeyCosmicPortal` y `contactCosmicGuardian` antes/después buscando banding o pérdida de detalle en el canal alfa, sobre todo en las capas con menor margen de PSNR.
+- [ ] 43. **Kickers retirados (Tarea 11) y gradientes de texto a color sólido (Tarea 12).** Journey, Features (claro) y Contact pierden el kicker/eyebrow que abría la sección; Features oscuro sube su overline de 11px a `h5` (18px) como encabezado real; los 4 acentos con `background-clip: text` (Story `ScAccent`/`ScStatementThird`, Contact `ScAccent`, Features `ScSpanGaming`, Journey `ScQuoteText`) pasan a color sólido. Juicio estético: confirmar que la cabecera sin kicker no se lee como "algo falta" y que el acento sólido no se echa en falta frente al degradado retirado.
+- [ ] 44. **Acentos sólidos sobre arte compuesto en tema oscuro (Tarea 12).** Los 7 acentos oscuros se midieron en AA (≥4,5:1) contra el `*_VOID` hexadecimal de cada escena, no contra el píxel final con las capas WebP reales encima. El margen más ajustado es Features `ScSpanGaming` (`FEATURES_GAMING_ACCENT`, 4,71:1 contra `FEATURES_ORBITAL_VOID`) — confirmar en navegador que ninguna capa de arte real reduce ese margen por debajo de AA.
+- [ ] 45. **Hoja de navegación móvil, flujo completo (Tarea 10).** Bajo 768px: abrir con el disparador de 44×44, foco entra en la primera fila, Escape cierra y devuelve el foco, toque fuera cierra sin activar el enlace de debajo, scroll de página cierra la hoja (con tolerancia de 8px), el selector de idioma dentro de la hoja funciona igual que el de escritorio, y los 4 `stage` `sticky` de las secciones siguen pegados con la hoja abierta.
+- [ ] 46. **Velo de la hoja móvil sobre el header (Tarea 10, hallazgo diferido).** El velo (`zIndex.overlay`, 900) cubre visualmente `ScHeader` (`zIndex.stickyNav`, 100) mientras la hoja está abierta — funcional (el toque en el velo cierra), pero el morfado del icono hamburguesa/aspa queda detrás del cristal esmerilado y se apilan dos `backdrop-filter`. Confirmar a ojo si es aceptable o si conviene decidir un z-index intermedio.
+- [ ] 47. **Asimetría de paneles y hoja (120ms cerrar / 180ms abrir, Tareas 9-10).** El panel de escritorio del navbar y la hoja móvil comparten la misma gramática de apertura más lenta que el cierre, con `scale(0.97)` en el panel de escritorio (ausente en la hoja, que solo desliza). Confirmar que la asimetría se percibe sin sensación de "flote" ni de salto.
+- [ ] 48. **Statement de Story a 768/1280/1920px y en inglés (Tarea 7, verificación parcial).** Verificado ya en navegador real a 320/375/599/600px en ES sin desbordamiento (ver `DESIGN.md` §9); pendiente el resto del rango de viewports y una medición directa en EN (hoy solo inferida por conteo de caracteres, no medida).
+- [ ] 49. **Formulario de Contacto, panel de confirmación (Tarea 1).** Alineación, espaciado y contraste del panel «Si no se ha abierto tu aplicación de correo…» que aparece tras un envío válido, y del mensaje de error `role="status"` tras un envío vacío o inválido — el comportamiento funcional y de accesibilidad ya se verificó en DOM real, falta el juicio puramente visual.
 
 ---
 
