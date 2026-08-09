@@ -65,13 +65,13 @@
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.test.tsx": {
-    "mtime": 1786269823.4687064,
-    "ast_hash": "671bbbdd2750d2fd89529c4fbe4ad671",
+    "mtime": 1786271761.7477822,
+    "ast_hash": "394a6a11a3ac493c9f0dd676fc4724eb",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.tsx": {
-    "mtime": 1786269865.323547,
-    "ast_hash": "256d255e99050aac5eacbcb535a836ac",
+    "mtime": 1786271742.0144541,
+    "ast_hash": "0e38f49d4a714750696c99b28644673f",
     "semantic_hash": ""
   },
   "src/components/layout/ThemeToggle/ThemeToggle.tsx": {
@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/common.json": {
-    "mtime": 1786270736.4521925,
-    "ast_hash": "3bf4275aa805e1790e75392c0047b26d",
+    "mtime": 1786271598.4918265,
+    "ast_hash": "7d173c7cd25986b3ddb7c839f84aeb76",
     "semantic_hash": ""
   },
   "src/i18n/locales/en/home.json": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/common.json": {
-    "mtime": 1786268228.2913465,
-    "ast_hash": "9371d63487418e4496f73ac93f960295",
+    "mtime": 1786271594.473679,
+    "ast_hash": "10f8d01c68c38e379dbbc41af29df3c8",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/home.json": {
@@ -820,8 +820,8 @@
     "semantic_hash": ""
   },
   "src/components/layout/Footer/Footer.test.tsx": {
-    "mtime": 1786190546.790423,
-    "ast_hash": "753dac186106fd97e7c115e4be3ac1b0",
+    "mtime": 1786271683.3853981,
+    "ast_hash": "ad38a5d05689e623594680d18eebec99",
     "semantic_hash": ""
   },
   "src/components/layout/ThemeToggle/ThemeIcons.tsx": {
@@ -1860,13 +1860,13 @@
     "semantic_hash": ""
   },
   "src/config/navigation.test.ts": {
-    "mtime": 1785955287.2531989,
-    "ast_hash": "f1dbba818763d46db77c067839effd88",
+    "mtime": 1786271616.1879425,
+    "ast_hash": "078fe294bcc349f14c4c26cffb24287f",
     "semantic_hash": ""
   },
   "src/config/navigation.ts": {
-    "mtime": 1785955287.0199316,
-    "ast_hash": "69c22a09a8cdc37f5333fd3339bbdcc5",
+    "mtime": 1786271859.2998693,
+    "ast_hash": "33c1515b9756a9ce7b3568de5764f002",
     "semantic_hash": ""
   },
   "docs/superpowers/specs/2026-08-06-story-features-tema-claro-design.md": {
@@ -2145,8 +2145,8 @@
     "semantic_hash": ""
   },
   "PRODUCT.md": {
-    "mtime": 1786202534.8058417,
-    "ast_hash": "765a1953bdb7fdbc8e3aa7e1840e40bd",
+    "mtime": 1786271397.0195236,
+    "ast_hash": "54f97f38d0a89bc56429acee430a0373",
     "semantic_hash": ""
   },
   "PROYECT.md": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/progress.md": {
-    "mtime": 1786270298.2994752,
-    "ast_hash": "70bee7399ab06a47341274ec95bd53b3",
+    "mtime": 1786271429.0856285,
+    "ast_hash": "12615441beabf076a756d8259ab64045",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-1-brief.md": {
@@ -2232,6 +2232,11 @@
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-4-report.md": {
     "mtime": 1786270173.1867423,
     "ast_hash": "5490c1165285b4b6dce61d3ce0fca590",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-5-report.md": {
+    "mtime": 1786271182.3851285,
+    "ast_hash": "f2b2997dd4883e449db09dc31b018cdc",
     "semantic_hash": ""
   }
 }

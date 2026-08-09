@@ -187,7 +187,6 @@
   "185": "HeroBackdrop.test.tsx",
   "186": "features.layers.ts",
   "187": "nativeOutput",
-  "188": "Story.test.tsx",
   "189": "VisuallyHidden.tsx",
   "190": "SectionBeam.test.tsx",
   "191": "hero.transition.ts",
@@ -217,6 +216,13 @@
   "215": "task-7-brief.md",
   "216": "JourneyCosmicPortal.tsx",
   "217": "VisuallyHidden.tsx",
-  "219": "story.deck.tsx",
-  "220": "Hero.qa.test.tsx"
+  "221": "JourneyCosmicPortal.tsx",
+  "222": "Task 5 — Informe: Copy: CTA honestos ES, rayas EN, typo, candado de raya/middot",
+  "224": "useParallaxLayers.test.tsx",
+  "225": "navigation.test.ts",
+  "226": "useSceneParallax.test.tsx",
+  "228": "Eye.test.tsx",
+  "229": "usePointer.test.tsx",
+  "230": "ThemeToggle.tsx",
+  "231": "HomeSections.tsx"
 }

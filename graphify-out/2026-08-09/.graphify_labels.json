@@ -217,8 +217,19 @@
   "215": "task-7-brief.md",
   "216": "JourneyCosmicPortal.tsx",
   "217": "VisuallyHidden.tsx",
-  "218": "journey.deck.tsx",
+  "218": "layout.tsx",
   "219": "story.deck.tsx",
   "220": "Hero.qa.test.tsx",
-  "221": "HomeSections.tsx"
+  "221": "JourneyCosmicPortal.tsx",
+  "222": "Task 5 — Informe: Copy: CTA honestos ES, rayas EN, typo, candado de raya/middot",
+  "223": "site.ts",
+  "224": "useParallaxLayers.test.tsx",
+  "225": "navigation.test.ts",
+  "226": "useSceneParallax.test.tsx",
+  "227": "useSceneParallax.ts",
+  "228": "Eye.test.tsx",
+  "229": "usePointer.test.tsx",
+  "230": "ThemeToggle.tsx",
+  "231": "HomeSections.tsx",
+  "232": "pillarBadgeAccent"
 }
