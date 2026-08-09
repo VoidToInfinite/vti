@@ -138,7 +138,30 @@ export function Eye({ className }: EyeProps): ReactElement {
             // pondria por detras de la copia en la cola de red justo donde
             // mas se notan. `decoding="async"` evita que la decodificacion
             // bloquee el primer pintado del texto.
-            loading="eager"
+            //
+            // `loading="eager"` + `fetchPriority="high"` SOLO en
+            // "background" (paridad con Aura.tsx/ScAuraField, auditoria de
+            // rendimiento 2026-08-08): es la UNICA capa no aditiva
+            // (`additive: false`, "la base opaca" -- ver el docblock de
+            // `EyeLayer` en eye.layers.ts) y cubre el marco entero sin dejar
+            // huecos, asi que es la candidata real a LCP -- las otras
+            // cuatro son luz que se SUMA encima (`mix-blend-mode`), nunca el
+            // elemento mas grande pintado. A diferencia de Aura, que separa
+            // "field" del resto en DOS bloques de JSX (una capa a sangre
+            // sobre el socket, las demas dentro del marco del sujeto), aqui
+            // las cinco capas comparten el mismo `ScFrame`, asi que la
+            // condicion vive en este unico `.map()`.
+            //
+            // El resto SIN `loading="eager"` (mismo criterio que Aura tras
+            // su arreglo): antes las cinco lo llevaban sin diferenciar
+            // prioridad, y el scanner de precarga las trataba como igual de
+            // urgentes, compitiendo por ancho de banda contra la unica capa
+            // que de verdad importa para LCP. Sin el atributo siguen siendo
+            // un `<img>` normal -- el navegador las sigue cargando enseguida
+            // porque estan en el viewport inicial, solo que sin la
+            // prioridad forzada que antes competia con el LCP real.
+            loading={layer.additive ? undefined : "eager"}
+            fetchPriority={layer.additive ? undefined : "high"}
             decoding="async"
             $additive={layer.additive}
             $moves={layer.depth > 0}

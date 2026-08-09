@@ -104,6 +104,19 @@ describe("Eye", () => {
     }
   });
 
+  it("solo el fondo (candidata a LCP, la unica capa no aditiva) pide prioridad alta; las otras cuatro no compiten por ancho de banda (auditoria 2026-08-08, paridad con Aura)", () => {
+    const { container } = renderWithProviders(<Eye />);
+    const background = container.querySelector('img[data-part="background"]');
+    expect(background).toHaveAttribute("loading", "eager");
+    expect(background).toHaveAttribute("fetchpriority", "high");
+
+    for (const layer of EYE_LAYERS.filter((l) => l.additive)) {
+      const img = container.querySelector(`img[data-part="${layer.part}"]`);
+      expect(img).not.toHaveAttribute("loading");
+      expect(img).not.toHaveAttribute("fetchpriority");
+    }
+  });
+
   it("aplica className en el elemento raiz (styled(Eye) lo necesita para el hero)", () => {
     const { container } = renderWithProviders(<Eye className="custom" />);
     expect(container.firstElementChild).toHaveClass("custom");
