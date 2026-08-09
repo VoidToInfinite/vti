@@ -59,11 +59,11 @@ Cálido, íntimo, en segunda persona, de frases cortas y con gusto por la parado
 
 ### Español vs. inglés
 
-El español es la versión canónica: idioma por defecto del sitio, el que se prerrenderiza en el HTML, el de la metadata y el de los documentos legales. El inglés es una traducción fiel salvo **tres divergencias verificadas**:
+El español es la versión canónica: idioma por defecto del sitio, el que se prerrenderiza en el HTML, el de la metadata y el de los documentos legales. El inglés es una traducción fiel salvo **dos divergencias verificadas vigentes** (una tercera se cerró, ver abajo):
 
 1. **Tagline del pie.** ES: «Sigue siempre adelante.» (`Common.Footer.tagline`) — EN: «Together, we go beyond.» Son dos declaraciones de marca distintas, no una traducción la una de la otra.
 2. **Rol título/badge invertido en las identidades de Features.** En inglés, `title` lleva el sustantivo («Learning», «Imagination», «Gaming») y `badge` el verbo («Learn», «Create», «Play»); en español es al revés: `title` lleva el verbo («Aprende», «Imagina», «Juega») y `badge` el sustantivo («Aprendizaje», «Imaginación», «Juego»). Esto además se filtra al menú «Descubre» del navbar en español, que termina listando imperativos como si fueran nombres de destino.
-3. **Verbo de los CTA de Features.** EN usa «Explore» («Explore Learning», «Explore Imagination», «Explore Gaming»); ES usa «Empieza a» («Empieza a aprender», «Empieza a imaginar», «Empieza a jugar»). Un verbo de exploración frente a un verbo de inicio no prometen lo mismo.
+3. **Verbo de los CTA de Features — CERRADA el 2026-08-09.** EN usaba «Explore» y ES «Empieza a» («Empieza a aprender / imaginar / jugar»): un verbo de exploración frente a uno de inicio no prometen lo mismo, y la versión canónica era la que prometía de más. La Tarea 5 de la implementación de la auditoría alineó el ES con el EN: hoy ambos exploran — «Explora el aprendizaje / la imaginación / el juego» frente a «Explore Learning / Imagination / Gaming» (verificado contra `src/i18n/locales/{es,en}/home.json`). El destino de los tres CTA sigue siendo `#contact` (decisión 13, §10 — abierta).
 
 ### Claro vs. oscuro: el tema como modo de contenido
 
@@ -95,7 +95,7 @@ Lectura de producto: el tema oscuro es la versión con más recorrido narrativo 
 | CTA | ES | EN | Destino | Estado |
 | --- | --- | --- | --- | --- |
 | Hero | «Leer la historia» | «Read the story» | `#story` | OK |
-| Features ×3 | «Empieza a aprender / imaginar / jugar» | «Explore Learning / Imagination / Gaming» | `#contact` | Promesa no cumplida: el CTA promete «empieza» y entrega un mailto genérico |
+| Features ×3 | «Explora el aprendizaje / la imaginación / el juego» (desde 2026-08-09; antes «Empieza a…») | «Explore Learning / Imagination / Gaming» | `#contact` | Verbo alineado con EN; la promesa ya no es de inicio, pero el destino sigue siendo un mailto genérico — el destino real es la decisión 13 (§10) |
 | Contacto (claro) | «Contactar por correo» | «Contact via email» | `mailto:hello@voidtoinfinite.com` | OK |
 | Contacto (oscuro) | «Escríbenos» | «Write to us» | `mailto:` prerrellenado | El campo etiquetado «Tu correo» viene precargado con la dirección de VTI, no con un campo vacío para el visitante — contradicción entre la etiqueta y el valor |
 | Contacto (oscuro) | «Únete a la comunidad» | «Join the community» | `discord.gg/CuGhqdG3g3` | Solo existe en tema oscuro |
@@ -118,7 +118,7 @@ Esto no es una declaración de intenciones: es descriptivamente cierto del propi
 **ALTA**
 
 - Features vende una plataforma («Rutas cuidadas que crecen contigo», «Herramientas que despiertan conexiones», «Retos que afilan tus habilidades»…) que el Aviso legal niega explícitamente («no ofrece registro ni cuentas de usuario… no presta ningún servicio contratable en línea»). Cuál de las dos versiones es la verdad es una decisión que solo puede tomar el usuario antes de tocar más copy (decisión 12, §10).
-- Los tres CTA de Features prometen «empieza a aprender / imaginar / jugar» y entregan un `mailto:` a `#contact` (decisión 13, §10).
+- Los tres CTA de Features entregan un `mailto:` vía `#contact`. El verbo se alineó a «Explora…» el 2026-08-09 (rebaja la promesa incumplida: explorar ya no promete un producto que empezar), pero el destino real de los tres sigue siendo la decisión 13 (§10).
 - GitHub y Discord solo existen en el tema oscuro; el pie no tiene enlaces sociales en ningún tema. El tema por defecto del sitio es el claro, así que la mayoría de visitantes nunca ve estos dos destinos.
 - El campo «Tu correo» del formulario de Contacto (tema oscuro) viene precargado con la dirección de VoidToInfinite, no con un campo vacío: la etiqueta dice «tuyo», el valor es el ajeno.
 - `LEGAL_ENTITY` (`src/config/legal.ts`) está entera en `POR_COMPLETAR`: las páginas legales están estructuralmente completas pero **no son publicables**, y los propios documentos lo declaran en su propio texto (ver notas de `/privacidad` y `/aviso-legal`).
@@ -146,7 +146,7 @@ Orden real del DOM (`HomeSections.tsx`): **Story → Journey → Features → Co
 - **Hero:** nombre de marca + promesa emocional + un único CTA («Leer la historia»). Desde la entrega del 2026-08-08 también muestra la categoría del proyecto como tagline visible del `<h1>` («Aprendizaje · Imaginación · Juego»).
 - **Story:** la mejor pieza de escritura del sitio; responde el «por qué» existe VoidToInfinite.
 - **Journey:** filosofía dirigida al visitante sobre su propio recorrido. Tras dos secciones seguidas de inspiración, empieza a pesar la pregunta implícita «¿y qué hacéis vosotros, concretamente?».
-- **Features:** la primera vez que el sitio suena a producto con funcionalidad — y es también su punto de fuga, porque la promesa más alta del sitio (empezar a aprender/crear/jugar) resuelve en un simple `mailto:`.
+- **Features:** la primera vez que el sitio suena a producto con funcionalidad — y es también su punto de fuga, porque su promesa más alta (hoy «Explora el aprendizaje / la imaginación / el juego», suavizada desde el «Empieza a…» original el 2026-08-09) sigue resolviendo en un simple `mailto:`.
 - **Contact:** tono cálido de cierre; en el tema claro, el visitante llega hasta el final sin haber visto una sola prueba de que el proyecto existe fuera de esta misma landing.
 
 Preguntas que el sitio deja sin responder al final del recorrido: ¿quiénes sois? ¿desde cuándo existe VoidToInfinite? ¿qué habéis hecho ya, concretamente? ¿el aprendizaje que se promete es un producto, es contenido, o es una intención? ¿qué es el SDK? ¿participar es gratis? ¿puedo unirme, y a qué exactamente?
