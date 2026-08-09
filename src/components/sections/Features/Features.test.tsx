@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import { Features, accentColor, accentColorHover } from "./Features";
+import { PRESS } from "@/motion/vocabulary";
 import {
   FEATURE_KEYS,
   FEATURES_OVERLAY_RISE,
@@ -413,6 +414,42 @@ describe("D7: borde conico animado en hover, solo bajo prefers-reduced-motion: n
       hoverBeforeMedia.indexOf(":hover"),
     );
     expect(restRule).not.toContain("box-shadow:");
+  });
+
+  /*
+   * Task 9 (craft de interacción): ScCardBorder gana
+   * :active { transform: scale(...) } (vocabulary.PRESS), y el hover-lift
+   * (translateY) pasa a guardarse tras PRESS.hoverGuard y a compartir su
+   * duración/curva con el press. El borde cónico (background-image/
+   * animation, dentro de no-preference) se queda SIN guardar -- no mueve.
+   * Validado con el bug inyectado a propósito (ver informe de la tarea,
+   * tabla ScCardBorder): comentando temporalmente cada bloque en
+   * Features.tsx el test correspondiente se pone en rojo; restaurado,
+   * vuelve a verde.
+   */
+  it("Task 9: ScCardBorder declara :active con transform: scale(PRESS.activeScale), y el hover-lift vive dentro de PRESS.hoverGuard", () => {
+    const { container } = renderWithProviders(<Features />);
+    const card = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(card);
+
+    const guardIndex = css.indexOf(`@media ${PRESS.hoverGuard}`);
+    expect(guardIndex).toBeGreaterThan(-1);
+    const guardBlock = css.slice(guardIndex);
+    expect(guardBlock).toContain(":hover");
+    expect(guardBlock).toContain("translateY(-3px)");
+
+    expect(css).toContain(":active");
+    const activeBlock = css.slice(css.indexOf(":active"));
+    expect(activeBlock).toContain(`scale(${PRESS.activeScale})`);
+    expect(css).toContain(`${PRESS.durationMs}ms`);
+    expect(css).toContain(PRESS.easing);
+
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain(":active");
   });
 });
 
@@ -1014,6 +1051,35 @@ describe("D7: :focus-visible propio del CTA de sección", () => {
     const focusBlock = css.slice(css.indexOf(":focus-visible"));
     expect(focusBlock).toContain("box-shadow");
     expect(focusBlock).toContain(themes.light.semantic.focus);
+  });
+
+  /*
+   * Task 9 (craft de interacción): ScCta gana
+   * :active { transform: scale(...) } (vocabulary.PRESS), retira
+   * FEATURES_CTA_TRANSITION_MS (150ms) en favor de PRESS.durationMs/
+   * PRESS.easing para transform, y su :hover (translateX + color, mueve)
+   * pasa a guardarse tras PRESS.hoverGuard. Validado con el bug inyectado a
+   * propósito (ver informe de la tarea, tabla ScCta): comentando
+   * temporalmente cada bloque en Features.tsx el test correspondiente se
+   * pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 9: ScCta declara :active con transform: scale(PRESS.activeScale), y el hover (translateX) vive dentro de PRESS.hoverGuard", () => {
+    const { container } = renderWithProviders(<Features />);
+    const cta = container.querySelector('a[href="#contact"]') as HTMLElement;
+    const css = cssRuleTextFor(cta);
+
+    const guardIndex = css.indexOf(`@media ${PRESS.hoverGuard}`);
+    expect(guardIndex).toBeGreaterThan(-1);
+    const guardBlock = css.slice(guardIndex);
+    expect(guardBlock).toContain(":hover");
+    expect(guardBlock).toContain("translateX(");
+
+    expect(css).toContain(":active");
+    const activeBlock = css.slice(css.indexOf(":active"));
+    expect(activeBlock).toContain(`scale(${PRESS.activeScale})`);
+    expect(css).toContain(`${PRESS.durationMs}ms`);
+    expect(css).toContain(PRESS.easing);
+    expect(css).not.toContain("150ms");
   });
 });
 

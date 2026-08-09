@@ -8,6 +8,7 @@ import { Field, Input } from "@/components/ui/Input/Input";
 import { Button } from "@/components/ui/Button/Button";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
+import { PRESS } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import { links } from "@/config/links";
 import { ContactCosmicGuardian } from "@/components/scenes/contactCosmicGuardian/ContactCosmicGuardian";
@@ -751,6 +752,17 @@ const ScCards = styled.div`
  * `border-color`/`transform` (compositor + paint, nunca layout), con guard
  * `reduce` explícito.
  */
+/*
+ * Task 9 (craft de interacción): transform migra a vocabulary.PRESS (misma
+ * entrada que gobierna hover-lift Y press, ver el docblock de Button.tsx
+ * sobre por qué comparten timing). El hover-lift MUEVE (translateY), así
+ * que se separa de :focus-visible -- que hasta ahora vivían juntos en un
+ * único selector -- y solo :hover queda tras PRESS.hoverGuard: :focus-visible
+ * es un estado de teclado, no de puntero, y tiene que seguir funcionando
+ * igual con o sin capacidad de hover fino (regla dura de esta tarea, no
+ * documentada antes: guardar un :hover,:focus-visible combinado dejaría sin
+ * feedback de foco a quien navega por teclado en un dispositivo táctil).
+ */
 const ScCardLink = styled.a`
   display: flex;
   align-items: center;
@@ -763,20 +775,30 @@ const ScCardLink = styled.a`
   transition:
     border-color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard};
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
-  &:hover,
   &:focus-visible {
     border-color: ${({ theme }) => theme.data.palette.secondary[400]};
     transform: translateY(-1px);
+  }
+
+  @media ${PRESS.hoverGuard} {
+    &:hover {
+      border-color: ${({ theme }) => theme.data.palette.secondary[400]};
+      transform: translateY(-1px);
+    }
+  }
+
+  &:active {
+    transform: scale(${PRESS.activeScale});
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
     &:hover,
-    &:focus-visible {
+    &:focus-visible,
+    &:active {
       transform: none;
     }
   }

@@ -10,6 +10,7 @@ import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
 import { Story, pillarBadgeAccent } from "./Story";
+import { PRESS } from "@/motion/vocabulary";
 import { motion } from "@/theme/tokens/motion";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { basicLightTheme } from "@/theme/themes";
@@ -371,6 +372,39 @@ describe("Story: tarjetas de pilar (tema claro, D2)", () => {
     );
     expect(reduceBlock).toContain("transition: none");
     expect(reduceBlock).toContain("transform: none");
+  });
+
+  /*
+   * Task 9 (craft de interacción): ScPillarCard gana
+   * :active { transform: scale(...) } (vocabulary.PRESS), y el hover-lift
+   * pasa a guardarse tras PRESS.hoverGuard (mueve, translateY) y a compartir
+   * su duración/curva con el press. Validado con el bug inyectado a
+   * propósito (ver informe de la tarea, tabla ScPillarCard): comentando
+   * temporalmente cada bloque en Story.tsx el test correspondiente se pone
+   * en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 9: ScPillarCard declara :active con transform: scale(PRESS.activeScale), y el hover-lift vive dentro de PRESS.hoverGuard", () => {
+    renderWithProviders(<Story />);
+    const title = screen.getByText(esHome.Home.story.pillars.learn.title);
+    const card = title.parentElement as HTMLElement; // ScPillarCard
+    const css = cssRuleTextFor(card);
+
+    const guardIndex = css.indexOf(`@media ${PRESS.hoverGuard}`);
+    expect(guardIndex).toBeGreaterThan(-1);
+    const guardBlock = css.slice(guardIndex);
+    expect(guardBlock).toContain(":hover");
+    expect(guardBlock).toContain("translateY(-3px)");
+
+    expect(css).toContain(":active");
+    const activeBlock = css.slice(css.indexOf(":active"));
+    expect(activeBlock).toContain(`scale(${PRESS.activeScale})`);
+    expect(css).toContain(`${PRESS.durationMs}ms`);
+    expect(css).toContain(PRESS.easing);
+
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain(":active");
   });
 
   it("D9: el escalonado de entrada de cada tarjeta anula transicion Y retardo bajo prefers-reduced-motion", () => {

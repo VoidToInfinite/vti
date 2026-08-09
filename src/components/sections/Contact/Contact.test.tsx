@@ -11,6 +11,7 @@ import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
 import { links } from "@/config/links";
+import { PRESS } from "@/motion/vocabulary";
 import { Contact } from "./Contact";
 import {
   CONTACT_CONTENT_MAX_WIDTH,
@@ -1159,5 +1160,71 @@ describe("D4: palancas de compactación vertical del contenido oscuro (clamp flu
     const css = cssRuleTextFor(copy);
 
     expect(css).toMatch(/gap:\s*clamp\(0\.75rem/);
+  });
+
+  /*
+   * Task 9 (craft de interacción): ScCardLink (las dos tarjetas de
+   * Comunidad/Código) gana :active { transform: scale(...) } (vocabulary.
+   * PRESS), su hover-lift pasa a guardarse tras PRESS.hoverGuard (mueve,
+   * translateY) y se separa de :focus-visible -- que hasta ahora vivían
+   * combinados en un único selector -- porque el guard de hover no puede
+   * tapar el feedback de foco de quien navega por teclado. Validado con el
+   * bug inyectado a propósito (ver informe de la tarea, tabla ScCardLink):
+   * comentando temporalmente cada bloque en Contact.tsx el test
+   * correspondiente se pone en rojo; restaurado, vuelve a verde.
+   */
+  describe("ScCardLink: craft de interacción (Task 9, vocabulary.PRESS)", () => {
+    async function renderCardLink(): Promise<HTMLElement> {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+      return screen.getAllByRole("link")[0] as HTMLElement;
+    }
+
+    it("declara :active con transform: scale(PRESS.activeScale) y transition de transform con PRESS.durationMs/PRESS.easing", async () => {
+      const cardLink = await renderCardLink();
+      const css = cssRuleTextFor(cardLink);
+
+      expect(css).toContain(":active");
+      const activeBlock = css.slice(css.indexOf(":active"));
+      expect(activeBlock).toContain(`scale(${PRESS.activeScale})`);
+      expect(css).toContain(`${PRESS.durationMs}ms`);
+      expect(css).toContain(PRESS.easing);
+    });
+
+    it("el hover-lift (translateY) vive dentro de PRESS.hoverGuard, y :focus-visible queda FUERA del guard con su propio translateY", async () => {
+      const cardLink = await renderCardLink();
+      const css = cssRuleTextFor(cardLink);
+
+      const guardIndex = css.indexOf(`@media ${PRESS.hoverGuard}`);
+      expect(guardIndex).toBeGreaterThan(-1);
+      const guardBlock = css.slice(guardIndex);
+      expect(guardBlock).toContain(":hover");
+      expect(guardBlock).toContain("translateY(-1px)");
+
+      // :focus-visible, ANTES del guard de hover: no depende de la
+      // capacidad de puntero fino del dispositivo.
+      const restoDelGuard = css.slice(0, guardIndex);
+      expect(restoDelGuard).toContain(":focus-visible");
+      expect(restoDelGuard).toContain("translateY(-1px)");
+    });
+
+    it("el guard de prefers-reduced-motion anula el transform de :hover, :focus-visible Y :active", async () => {
+      const cardLink = await renderCardLink();
+      const css = cssRuleTextFor(cardLink);
+
+      expect(css).toContain("prefers-reduced-motion: reduce");
+      const reduceBlock = css.slice(
+        css.indexOf("prefers-reduced-motion: reduce"),
+      );
+      expect(reduceBlock).toContain("transition: none");
+      expect(reduceBlock).toContain(":hover");
+      expect(reduceBlock).toContain(":focus-visible");
+      expect(reduceBlock).toContain(":active");
+      expect(reduceBlock).toContain("transform: none");
+    });
   });
 });

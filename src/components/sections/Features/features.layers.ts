@@ -68,12 +68,20 @@ export const FEATURES_CARD_RADIUS = "26px";
  *  superficie interior. */
 export const FEATURES_CARD_BORDER_WIDTH = "1.8px";
 
-/** Duración del hover del CTA de texto (mockup L176/191/206: `transition:
- *  transform 150ms …, color 150ms …`). No coincide con ningún paso de
- *  `theme.tokens.motion.duration` (fast=100ms, base=200ms): se conserva el
- *  valor exacto. El easing SÍ es un token (`motion.easing.standard`, ver
- *  `Features.tsx`) — coincide literalmente con `cubic-bezier(0.4, 0, 0.2, 1)`. */
-export const FEATURES_CTA_TRANSITION_MS = "150ms";
+/*
+ * FEATURES_CTA_TRANSITION_MS (mockup L176/191/206: transition: transform
+ * 150ms ..., color 150ms ...) RETIRADA en Task 9 (craft de interacción,
+ * punto 3 del brief): el transform del CTA (translateX en hover, scale en
+ * el :active nuevo) pasa a vocabulary.PRESS.durationMs (100ms) +
+ * PRESS.easing -- la misma entrada gobierna hover-lift Y press, y CSS no
+ * admite dos duraciones para una sola propiedad en la misma lista. El 150ms
+ * verbatim del mockup ya no tiene ningún consumidor: color, que compartía
+ * el literal, pasa a motion.duration.fast (100ms) + motion.easing.standard
+ * -- mismo criterio que Button.tsx aplica a su background-color (no es una
+ * primitiva de press, se queda con el token de paint estándar). Verificado
+ * (grep del repo, informe de la tarea): ningún fichero fuera de
+ * Features.tsx importaba esta constante.
+ */
 
 /** Desplazamiento horizontal del CTA en hover, igual en las tres tarjetas
  *  (mockup L176/191/206: `transform: translateX(3px)`). */

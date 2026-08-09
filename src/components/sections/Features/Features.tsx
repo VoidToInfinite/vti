@@ -6,6 +6,7 @@ import styled, { css, keyframes } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
+import { PRESS } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { FeaturesCelestialOrbital } from "@/components/scenes/featuresCelestialOrbital/FeaturesCelestialOrbital";
@@ -25,7 +26,6 @@ import {
   FEATURES_LIGHT_REVEAL_DURATION_MS,
   FEATURES_LIGHT_REVEAL_TRANSLATE_Y,
   FEATURES_LIGHT_REVEAL_DELAYS_MS,
-  FEATURES_CTA_TRANSITION_MS,
   FEATURES_CTA_HOVER_TRANSLATE_X,
   FEATURES_CTA_MIN_HEIGHT,
   FEATURES_CHECK_ICON_PATH,
@@ -436,6 +436,13 @@ const cardBorderSpin = keyframes`
  * las tarjetas-pilar de Story; se reutiliza aquí por ser la misma gramática
  * visual del mismo sistema, no dos escalas de sombra paralelas.
  */
+/*
+ * Task 9 (craft de interacción, punto 3 del brief): la duración del
+ * hover-lift se UNIFICA de motion.duration.base (200ms) a
+ * vocabulary.PRESS.durationMs (100ms) + PRESS.easing -- la misma entrada de
+ * transform pasa a gobernar también el press de abajo (:active). box-shadow
+ * se queda en duration.base/easing.standard, sin tocar.
+ */
 const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   position: relative;
   display: flex;
@@ -443,14 +450,27 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   padding: ${FEATURES_CARD_BORDER_WIDTH};
   border-radius: ${FEATURES_CARD_RADIUS};
   transition:
-    transform ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing},
     box-shadow ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard};
 
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: ${({ theme }) => theme.data.elevation[1]};
+  /* Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve
+     (translateY), así que un tap en táctil no puede dejarlo "pegado". El
+     borde cónico de abajo se queda FUERA de este guard: es un cambio de
+     background-image/animation, no de movimiento (punto 2, "los de color
+     pueden quedarse"). */
+  @media ${PRESS.hoverGuard} {
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: ${({ theme }) => theme.data.elevation[1]};
+    }
+  }
+
+  /* Press (Task 9): comparte la entrada de transform de la lista de arriba,
+     así que entra y sale con PRESS.durationMs/PRESS.easing igual que el
+     hover-lift. */
+  &:active {
+    transform: scale(${PRESS.activeScale});
   }
 
   /* Borde cónico: SOLO bajo no-preference, y anidado como
@@ -477,7 +497,8 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
-    &:hover {
+    &:hover,
+    &:active {
       transform: none;
     }
   }
@@ -698,6 +719,15 @@ const ScCheckIcon = styled.svg<{ $key: FeatureKey }>`
  * paleta entre claro y oscuro (theme/tokens/semantic.ts), así que un único
  * color-mix sirve para ambos sin ternario.
  */
+/*
+ * Task 9 (craft de interacción, punto 3 del brief): FEATURES_CTA_TRANSITION_MS
+ * (150ms verbatim del mockup) se retira -- transform pasa a vocabulary.
+ * PRESS.durationMs (100ms) + PRESS.easing, la misma entrada que gobierna
+ * también el press de abajo (:active). color, que compartía el literal
+ * retirado, pasa a motion.duration.fast (100ms) + motion.easing.standard --
+ * mismo criterio que Button.tsx aplica a su background-color: no es una
+ * primitiva de press, se queda con el token de paint estándar.
+ */
 const ScCta = styled.a<{ $key: FeatureKey }>`
   display: inline-flex;
   align-items: center;
@@ -707,17 +737,32 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
   font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
   color: ${({ theme, $key }) => accentColor(theme.data, $key)};
   transition:
-    transform ${FEATURES_CTA_TRANSITION_MS}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    color ${FEATURES_CTA_TRANSITION_MS}
+    transform ${PRESS.durationMs}ms ${PRESS.easing},
+    color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard};
 
-  &:hover {
-    color: ${({ theme, $key }) => accentColorHover(theme.data, $key)};
-    transform: translateX(${FEATURES_CTA_HOVER_TRANSLATE_X});
+  /* Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve
+     (translateX), así que un tap en táctil no puede dejarlo "pegado". El
+     cambio de color se queda dentro del mismo bloque -- es el MISMO :hover,
+     no dos reglas separadas -- porque este hover, en conjunto, es de los
+     que mueven (punto 2: se guarda la regla completa, no se trocea por
+     propiedad). */
+  @media ${PRESS.hoverGuard} {
+    &:hover {
+      color: ${({ theme, $key }) => accentColorHover(theme.data, $key)};
+      transform: translateX(${FEATURES_CTA_HOVER_TRANSLATE_X});
+    }
   }
 
-  /* focus-visible: ver el docblock de arriba. */
+  /* Press (Task 9): comparte la entrada de transform de la lista de arriba,
+     así que entra y sale con PRESS.durationMs/PRESS.easing igual que el
+     hover. */
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
+  /* focus-visible: ver el docblock de arriba. Sin transform: no necesita
+     guard de hover -- es un estado de teclado, no de puntero. */
   &:focus-visible {
     color: ${({ theme, $key }) => accentColorHover(theme.data, $key)};
     border-radius: ${({ theme }) => theme.data.radius.sm};
@@ -732,7 +777,8 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
-    &:hover {
+    &:hover,
+    &:active {
       transform: none;
     }
   }

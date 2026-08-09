@@ -6,6 +6,7 @@ import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
+import { PRESS } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { StoryCosmicBeing } from "@/components/scenes/storyCosmicBeing/StoryCosmicBeing";
@@ -661,6 +662,14 @@ const ScPillarCardItem = styled.div`
  * `box-shadow` en la transición de hover: excepción ya sancionada (D3, "el
  * mismo motivo que los tintes de estado", enmienda §9 del sistema de lujo),
  * acotada a hover, nunca ambiental.
+ *
+ * Task 9 (craft de interacción, punto 3 del brief): la duración del
+ * hover-lift se UNIFICA de motion.duration.base (200ms) a PRESS.durationMs
+ * (100ms) + PRESS.easing -- la misma entrada de transform pasa a gobernar
+ * también el press de abajo (:active), y CSS no admite dos duraciones
+ * distintas para una sola propiedad en la misma lista. box-shadow se queda
+ * en duration.base/easing.standard, sin tocar -- solo se unifica el
+ * hover-lift, no la sombra.
  */
 const ScPillarCard = styled.div`
   display: flex;
@@ -671,24 +680,35 @@ const ScPillarCard = styled.div`
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   padding: ${({ theme }) => theme.data.space[5]};
   transition:
-    transform ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing},
     box-shadow ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard};
 
-  &:hover {
-    transform: translateY(${STORY_CARD_HOVER_LIFT});
-    box-shadow: ${({ theme }) => theme.data.elevation[1]};
+  /* Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve
+     (translateY), así que un tap en táctil no puede dejarlo "pegado". */
+  @media ${PRESS.hoverGuard} {
+    &:hover {
+      transform: translateY(${STORY_CARD_HOVER_LIFT});
+      box-shadow: ${({ theme }) => theme.data.elevation[1]};
+    }
+  }
+
+  /* Press (Task 9): comparte la entrada de transform de la lista de arriba,
+     así que entra y sale con PRESS.durationMs/PRESS.easing igual que el
+     hover-lift. */
+  &:active {
+    transform: scale(${PRESS.activeScale});
   }
 
   /* Mismo guard que ScCard (Card.tsx): bajo reduce se anula la transición Y
-     el transform de hover (movimiento); el realce de box-shadow al pasar el
-     puntero se conserva, ahora instantáneo -- no es motion, es la misma
-     excepción ya documentada arriba. */
+     el transform de hover/active (movimiento); el realce de box-shadow al
+     pasar el puntero se conserva, ahora instantáneo -- no es motion, es la
+     misma excepción ya documentada arriba. */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
-    &:hover {
+    &:hover,
+    &:active {
       transform: none;
     }
   }
