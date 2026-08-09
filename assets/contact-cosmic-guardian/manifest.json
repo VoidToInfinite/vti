@@ -27,6 +27,23 @@
         "weightBytes": 545192,
         "weightNote": "0,52 MiB en 6 imagenes, frente a 0,34 MiB en las 14 de la escena saliente. SUBE pese a tener menos de la mitad de capas, y el motivo es una sola: 02-figura pesa 284 KB en la pista de 2560, mas que las 14 imagenes salientes juntas. Es un cuerpo grande con textura estrellada fina y un glow de alfa suave y ancha, que es justo lo que peor comprime WebP; los orbes planos y las nebulosas difusas del arte anterior comprimian muy bien. Se declara como deuda conocida, no se disimula."
     },
+    "alphaRecompression20260809": {
+        "why": "Auditoria premium (Task 13). Herramienta: Python 3.13.14 + Pillow 12.3.0 (no hay cwebp en la maquina). Color NO recomprimido a proposito: se decodifica el WebP ya desplegado y se reguarda con Pillow save(quality=85, method=6, alpha_quality=80) -- mismos quality/method que ya publicaba este manifest. Calibracion de que alpha_quality no toca el color verificada sobre features-celestial-orbital/02-ondas.webp (ver su manifest): chunk VP8 byte a byte identico entre alpha_quality=100 y 80.",
+        "scope": "Solo las 2 capas con ALPH > 30% (01-fondo es opaca, RGB sin canal alfa segun el propio manifest de origen).",
+        "results": "3 de 4 candidatos recomprimidos (02-figura x 2 anchos + 03-polvo-1024, MENOS 03-polvo.webp de 2560, ver exclusion). Peso: 545192 -> 492334 B (-52858 B, -9.7%). PSNR minimo entre los aplicados: alfa 59.98 dB (02-figura-1024.webp), compuesto premultiplicado 53.65 dB (02-figura-1024.webp).",
+        "excluded": "03-polvo.webp (pista 2560, NO la de 1024): pasa el umbral de PSNR con margen amplio (alfa 70.04dB, premultiplicado 72.27dB) pero el fichero recomprimido pesa MAS que el original (47144 -> 49216 B, +2072 B, +4.4%) -- el alfa de esta capa de polvo estelar (mix-blend-mode: screen, alfa 0-254 disperso) ya comprimia mejor en modo lossless que en el esquema lossy-cuantizado de alpha_quality=80. Revertido con git checkout, fichero intacto. 03-polvo-1024.webp (la pista de 1024 de la MISMA capa) SI se recomprime con exito (17474->15594 B, -1880 B).",
+        "perFile": {
+            "02-figura": {
+                "2560": "284182->239218 B, alfa 60.51dB, premult 54.79dB",
+                "1024": "56024->50010 B, alfa 59.98dB, premult 53.65dB"
+            },
+            "03-polvo": {
+                "2560": "SIN CAMBIOS (excluido por aumento de peso, ver arriba)",
+                "1024": "17474->15594 B, alfa 70.02dB, premult 70.47dB"
+            }
+        },
+        "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
+    },
     "motion": {
         "packageHints": {
             "depth": [0, 0.03, 0.085],

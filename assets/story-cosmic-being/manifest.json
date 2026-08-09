@@ -29,6 +29,46 @@
         "rationale": "Medido sobre la escena compuesta (11 capas sumadas en plus-lighter contra el compuesto de los PNG maestros reescalados al mismo tamano). Arte del 2026-08-03: a q70, 1600px da 45.50 dB por 2.03 MiB y 1280px da 45.33 dB por 1.37 MiB -- +48% de peso por +0.17 dB. Subir la calidad en la pista de 1280 tampoco compensa: q85 da 45.77 dB por 1.68 MiB (+23% por +0.44 dB) y q90, 46.05 dB por 1.89 MiB. Se conserva 1280 q70, la misma eleccion (y el mismo peso) que con el arte anterior.",
         "swap20260803": "Sustitucion COMPLETA de las 22 imagenes (las 11 capas x 2 anchos), no un reencode parcial como el del 2026-08-01: el zip v2 descompone una imagen nueva. Peso desplegado: 2397978 -> 2397454 bytes (-524 B, 2.29 -> 2.29 MiB). El arte nuevo reparte distinto la misma energia -- la figura queda mas blanca y con menos halo azul (08-figure-aura baja de 102874 a 85336 B a 1280) y hay mas estrellas resueltas (03/04/05 suben en conjunto ~40 KB) -- pero el total apenas se mueve."
     },
+    "alphaRecompression20260809": {
+        "why": "Auditoria premium (Task 13): el chunk ALPH (canal alfa, lossless por defecto en Pillow/cwebp) pesaba 45-84% del fichero en 9 de las 11 capas. Herramienta: Python 3.13.14 + Pillow 12.3.0 (no hay cwebp en la maquina). No se toca color: se decodifica el WebP ya desplegado y se reguarda con Pillow save(quality=70, method=6, alpha_quality=80) -- mismos quality/method que ya publicaba este manifest, solo cambia alpha_quality (100 implicito -> 80). Calibracion previa (assets/features-celestial-orbital, ver su manifest): a igualdad de quality/method, el chunk VP8 sale BYTE A BYTE identico entre alpha_quality=100 y 80, asi que el color no lo toca esta operacion; el chunk ALPH si encoge.",
+        "scope": "Solo las 9 capas con ALPH > 30% del fichero (00-space-base es opaca sin ALPH; 03-stars-far y 07-geometry quedan bajo el 30% -- 24.1-29.4% -- y no se tocan).",
+        "results": "16 ficheros recomprimidos (las 9 capas x 2 anchos, salvo 03-stars-far y 07-geometry). Peso: 2397454 -> 2294216 B (-103238 B, -4.3%). PSNR minimo medido: alfa 56.54 dB (01-nebula.webp), compuesto RGB premultiplicado 54.82 dB (01-nebula.webp) -- ambos con margen sobre el umbral de aceptacion de 45 dB. Ninguna capa de esta escena se excluyo por PSNR insuficiente ni aumento de peso.",
+        "perFile": {
+            "01-nebula": {
+                "1280": "388192->354992 B, alfa 56.54dB, premult 54.82dB",
+                "1024": "249418->229344 B, alfa 56.56dB, premult 54.95dB"
+            },
+            "02-galaxy": {
+                "1280": "32148->27656 B, alfa 64.91dB, premult 65.50dB",
+                "1024": "21082->18384 B, alfa 64.95dB, premult 65.93dB"
+            },
+            "04-stars-mid": {
+                "1280": "77872->71500 B, alfa infdB, premult 72.16dB",
+                "1024": "58204->52722 B, alfa infdB, premult 71.93dB"
+            },
+            "05-stars-near": {
+                "1280": "42174->35210 B, alfa 68.08dB, premult 66.52dB",
+                "1024": "30942->25394 B, alfa 67.79dB, premult 67.01dB"
+            },
+            "06-orbs": {
+                "1280": "6128->5866 B, alfa 74.86dB, premult 74.09dB",
+                "1024": "4172->3924 B, alfa 74.90dB, premult 73.48dB"
+            },
+            "08-figure-aura": {
+                "1280": "85336->78118 B, alfa 61.81dB, premult 60.65dB",
+                "1024": "58160->55342 B, alfa infdB, premult 64.85dB"
+            },
+            "09-figure": {
+                "1280": "30080->27086 B, alfa 63.11dB, premult 58.39dB",
+                "1024": "20924->18996 B, alfa 63.12dB, premult 57.87dB"
+            },
+            "10-heart-core": {
+                "1280": "16832->15126 B, alfa 65.25dB, premult 63.24dB",
+                "1024": "11612->10378 B, alfa 65.33dB, premult 63.23dB"
+            }
+        },
+        "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
+    },
     "layers": [
         {
             "file": "00-space-base",

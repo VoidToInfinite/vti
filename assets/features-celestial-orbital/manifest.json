@@ -22,6 +22,35 @@
         "weightBytes": 2286682,
         "weightNote": "2,18 MiB en las 14 imagenes, frente a 1,30 MiB de las 20 de la escena saliente. El aumento no es del encoder sino del arte: 02-ondas (771 KB en la pista de 2560) y 06-figura (463 KB) son mallas de particulas y un cuerpo con textura estrellada, mucho mas dificiles de comprimir que los orbes planos de la escena anterior. Deuda conocida declarada en la spec."
     },
+    "alphaRecompression20260809": {
+        "why": "Auditoria premium (Task 13): esta es la escena que disparo el hallazgo -- 02-ondas.webp median 415125 B de ALPH sobre 771418 B totales (53.8%), el chunk ALPH lossless por defecto. Herramienta: Python 3.13.14 + Pillow 12.3.0 (no hay cwebp en la maquina). El color NO se recomprime a proposito: se decodifica el WebP ya desplegado y se reguarda con Pillow save(quality=85, method=6, alpha_quality=80), mismos quality/method que ya usaba este manifest.",
+        "pillowCalibration": "Verificado sobre 02-ondas.webp ANTES de tocar ningun fichero real: se reguardo dos veces con quality=85/method=6, una con alpha_quality=100 (control) y otra con alpha_quality=80 (candidato). El chunk VP8 (color) salio BYTE A BYTE IDENTICO entre las dos (324524 B ambas), confirmando que alpha_quality no toca el color. El chunk ALPH si bajo: 415125 (control, igual al original) -> 344668 B (candidato, -17.0%). Aparte, se detecto y declara un efecto ORTOGONAL: decodificar+reguardar con Pillow (el roundtrip en si, no alpha_quality) SI introduce perdida de color medible frente al original -- RGB PSNR 35.37 dB crudo -- pero es indistinguible entre control y candidato (mismo chunk VP8), y en el compuesto premultiplicado por alfa (lo que realmente se ve en pantalla) sube a 55.63 dB porque la perdida de color se concentra en zonas de alfa bajo/cero. Se acepta: el umbral de aceptacion de esta tarea (compuesto premultiplicado >=45 dB) es precisamente la metrica disenada para esto.",
+        "scope": "Solo las 6 capas con ALPH > 30% (01-fondo es opaca -- 0% ALPH -- y 07-particulas queda en 27.6-28.7%, bajo el umbral; ninguna se toca).",
+        "results": "10 ficheros recomprimidos (las 5 capas 02-06 x 2 anchos). Peso: 2286682 -> 2022094 B (-264588 B, -11.6%, la mayor reduccion porcentual de las 4 escenas oscuras). PSNR minimo: alfa 56.61 dB (02-ondas-1024.webp), compuesto premultiplicado 48.70 dB (06-figura-1024.webp, el mas ajustado de las 4 escenas pero con 3.7 dB de margen sobre el umbral de 45 dB). Ningun fichero excluido por PSNR ni por aumento de peso.",
+        "perFile": {
+            "02-ondas": {
+                "2560": "771418->669238 B, alfa 56.71dB, premult 55.63dB",
+                "1024": "144076->128056 B, alfa 56.61dB, premult 54.84dB"
+            },
+            "03-orbita": {
+                "2560": "74704->70786 B, alfa 68.77dB, premult 70.79dB",
+                "1024": "16504->15100 B, alfa 68.47dB, premult 70.08dB"
+            },
+            "04-plataforma": {
+                "2560": "294954->251638 B, alfa 59.56dB, premult 58.06dB",
+                "1024": "53286->46880 B, alfa 59.55dB, premult 57.10dB"
+            },
+            "05-iconos": {
+                "2560": "274476->247880 B, alfa 61.50dB, premult 56.62dB",
+                "1024": "53486->49412 B, alfa 61.36dB, premult 54.83dB"
+            },
+            "06-figura": {
+                "2560": "462986->411024 B, alfa 58.26dB, premult 53.31dB",
+                "1024": "96198->87486 B, alfa 58.10dB, premult 48.70dB"
+            }
+        },
+        "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
+    },
     "motion": {
         "packageHints": {
             "pointerDepth": [0.05, 0.14, 0.22, 0.18, 0.3, 0.38, 0.55],
