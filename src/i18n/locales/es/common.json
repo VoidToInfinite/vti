@@ -18,7 +18,10 @@
             "onSite": "En el sitio",
             "discover": "Descubre",
             "resources": "Recursos",
+            "community": "Comunidad",
             "sdk": "VTI - SDK",
+            "discord": "Discord",
+            "github": "GitHub",
             "newTab": "se abre en una pestaña nueva"
         },
         "Lang": {

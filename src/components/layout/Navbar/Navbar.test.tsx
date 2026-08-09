@@ -430,19 +430,20 @@ describe("Navbar", () => {
     // identifica de forma unica cual de los cuatro enlaces es.
     const SECTION_HREFS = ["#story", "#journey", "#features", "#contact"];
 
-    // Ampliación tarea W4: los cuatro enlaces de sección, ahora dentro del
-    // panel del grupo "onSite", conviven con los TRES enlaces de discover
-    // (Learning/Imagination/Gaming, grupo "discover", los tres apuntan a
-    // "#features") y el enlace externo del SDK (grupo "resources") --
-    // TODOS siguen en el DOM sea cual sea el estado abierto/cerrado de su
-    // panel (regla dura de la tarea: el panel se renderiza siempre, sus
-    // enlaces nunca se desmontan). `container.querySelector`, no
-    // `getByRole`: un panel cerrado es inaccesible a propósito (`inert` +
+    // Ampliación tarea W4, extendida en la tarea 6 (auditoría premium): los
+    // cuatro enlaces de sección, ahora dentro del panel del grupo "onSite",
+    // conviven con los TRES enlaces de discover (Learning/Imagination/Gaming,
+    // grupo "discover", los tres apuntan a "#features"), el enlace externo
+    // del SDK (grupo "resources") y los DOS enlaces externos del grupo nuevo
+    // "community" (Discord, GitHub) -- TODOS siguen en el DOM sea cual sea el
+    // estado abierto/cerrado de su panel (regla dura de la tarea: el panel se
+    // renderiza siempre, sus enlaces nunca se desmontan). `container.querySelector`,
+    // no `getByRole`: un panel cerrado es inaccesible a propósito (`inert` +
     // `visibility: hidden`), así que una consulta por rol lo excluiría
     // aunque el enlace siga en el DOM -- que es justo lo que este test
     // verifica.
     it.each(["light", "dark"] as const)(
-      "en tema %s los 4 enlaces de sección, los 3 de discover y el del SDK siguen en el DOM (paneles cerrados)",
+      "en tema %s los 4 enlaces de sección, los 3 de discover, el del SDK y los de Discord/GitHub siguen en el DOM (paneles cerrados)",
       (tema) => {
         window.localStorage.setItem("vti-theme", tema);
         const { container } = renderNavbar();
@@ -466,6 +467,15 @@ describe("Navbar", () => {
           container.querySelector(`a[href="${links.sdk}"]`),
           `falta el enlace del SDK en tema ${tema}`,
         ).not.toBeNull();
+
+        expect(
+          container.querySelector(`a[href="${links.discord}"]`),
+          `falta el enlace de Discord en tema ${tema}`,
+        ).not.toBeNull();
+        expect(
+          container.querySelector(`a[href="${links.github}"]`),
+          `falta el enlace de GitHub en tema ${tema}`,
+        ).not.toBeNull();
       },
     );
   });
@@ -474,11 +484,13 @@ describe("Navbar", () => {
     // Etiquetas reales de `Common.Nav.<groupKey>` en es-ES (idioma por
     // defecto de `initI18n`, ver `i18n/config.ts`) -- mismo patrón que el
     // resto de la suite para localizar controles por su nombre accesible
-    // (p. ej. `/Cambiar a tema/i`, `/Español/i`), aquí con los tres grupos
-    // nuevos.
+    // (p. ej. `/Cambiar a tema/i`, `/Español/i`), aquí con los cuatro grupos
+    // (los tres de la tarea W4 más "community", tarea 6 de la auditoría
+    // premium).
     const ON_SITE = /En el sitio/i;
     const DISCOVER = /Descubre/i;
     const RESOURCES = /Recursos/i;
+    const COMMUNITY = /Comunidad/i;
 
     /**
      * `ScNavLinks` solo pasa de `display: none` a `flex` dentro de
@@ -536,10 +548,10 @@ describe("Navbar", () => {
       ).not.toBe("");
     });
 
-    it("los tres disparadores existen y arrancan con aria-expanded='false'", () => {
+    it("los cuatro disparadores existen y arrancan con aria-expanded='false'", () => {
       renderNavbar();
 
-      for (const name of [ON_SITE, DISCOVER, RESOURCES]) {
+      for (const name of [ON_SITE, DISCOVER, RESOURCES, COMMUNITY]) {
         expect(getTrigger(name)).toHaveAttribute("aria-expanded", "false");
       }
     });
@@ -662,6 +674,29 @@ describe("Navbar", () => {
       expect(sdkLink).toHaveAttribute("rel", "noopener noreferrer");
       expect(sdkLink).toHaveAccessibleName(/se abre en una pestaña nueva/i);
     });
+
+    // Tarea 6 (auditoría premium): grupo "community" nuevo, mismo mecanismo
+    // "external" que ya usaba resources.sdk -- replicado sin variación, no
+    // reinventado. Un `it.each` sobre los dos enlaces evita duplicar el
+    // cuerpo del test de arriba dos veces.
+    it.each([
+      { network: "Discord", href: links.discord, name: /Discord/i },
+      { network: "GitHub", href: links.github, name: /GitHub/i },
+    ])(
+      "el enlace de $network (grupo community) tiene target='_blank' y rel='noopener noreferrer', y su nombre accesible incluye el aviso de pestaña nueva",
+      ({ href, name }) => {
+        renderNavbar();
+        const communityTrigger = getTrigger(COMMUNITY);
+        fireEvent.click(communityTrigger);
+
+        const link = screen.getByRole("link", { name, hidden: true });
+
+        expect(link).toHaveAttribute("href", href);
+        expect(link).toHaveAttribute("target", "_blank");
+        expect(link).toHaveAttribute("rel", "noopener noreferrer");
+        expect(link).toHaveAccessibleName(/se abre en una pestaña nueva/i);
+      },
+    );
 
     it("existe el guard de prefers-reduced-motion: reduce para ScNavTrigger, ScChevron y ScNavPanel", () => {
       const { container } = renderNavbar();

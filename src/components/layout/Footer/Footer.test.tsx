@@ -222,6 +222,50 @@ describe("Footer", () => {
   });
 
   /*
+   * Tarea 6 (auditoría premium): el Footer construye sus columnas recorriendo
+   * `NAV_GROUPS` (ver el docblock de cabecera, entrega 2026-08-05) -- el
+   * grupo "community" nuevo (Discord, GitHub) llega a las DOS ramas de tema
+   * sin que este componente necesite ningún camino propio, mismo mecanismo
+   * "external" que ya usaba la columna Resources. Candado análogo al de esa
+   * columna: exactamente los dos enlaces esperados, ninguno más.
+   */
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s la columna Comunidad contiene exactamente los enlaces de Discord y GitHub",
+    (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      renderWithProviders(<Footer />);
+
+      const titulo = screen.getByText(esCommon.Common.Nav.community);
+      const columna = titulo.parentElement as HTMLElement;
+      const anclas = Array.from(columna.querySelectorAll("a"));
+
+      expect(anclas.map((ancla) => ancla.getAttribute("href")).sort()).toEqual(
+        [links.discord, links.github].sort(),
+      );
+    },
+  );
+
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s los enlaces de Discord y GitHub llevan target='_blank', rel='noopener noreferrer' y avisan del cambio de pestaña en su nombre accesible",
+    (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      renderWithProviders(<Footer />);
+
+      for (const [href, label] of [
+        [links.discord, esCommon.Common.Nav.discord],
+        [links.github, esCommon.Common.Nav.github],
+      ] as const) {
+        const enlace = screen.getByRole("link", {
+          name: `${label} ${esCommon.Common.Nav.newTab}`,
+        });
+        expect(enlace).toHaveAttribute("href", href);
+        expect(enlace).toHaveAttribute("target", "_blank");
+        expect(enlace).toHaveAttribute("rel", "noopener noreferrer");
+      }
+    },
+  );
+
+  /*
    * D19 de la spec 2026-08-04-legal-seo-consentimiento-design.md. Hasta esta
    * entrega los tres enlaces legales del pie eran anclas con
    * target="_blank" hacia marcadores `example.invalid`. Ahora son cuatro
@@ -315,12 +359,21 @@ describe("Footer", () => {
   /*
    * El bloque de marca ya no monta `Socials` (retirado 2026-08-04): sonda
    * positiva contra el propio tagline (que SÍ está en el DOM) para que la
-   * ausencia de los tres enlaces sociales no pase por vacuidad -- si
-   * `getByText`/`queryByRole` no encontraran NADA en esta página, el test
-   * pasaría igual de verde con el componente entero roto.
+   * ausencia de Instagram no pase por vacuidad -- si `getByText`/`queryByRole`
+   * no encontraran NADA en esta página, el test pasaría igual de verde con el
+   * componente entero roto.
+   *
+   * ACTUALIZADO en la tarea 6 (auditoría premium, regla 40: se actualiza el
+   * candado, no se relaja): Discord y GitHub DEJAN de estar ausentes -- la
+   * propia tarea los promueve a columna "Comunidad" vía `NAV_GROUPS`, con su
+   * propia cobertura arriba (target/rel/aviso de pestaña). Este test ya NO
+   * puede afirmar su ausencia sin mentir; lo que sigue vigente de la
+   * regresión original es que Instagram -- que nunca tuvo un destino en
+   * `links.ts` y que esta tarea tampoco añade -- no reaparece por ningún
+   * camino.
    */
   it.each([["light"], ["dark"]] as const)(
-    "en tema %s ya no monta Socials (sin enlaces a Discord/GitHub/Instagram)",
+    "en tema %s no aparece ningún enlace a Instagram (Socials retirado, y esta tarea no lo reintroduce)",
     (theme) => {
       window.localStorage.setItem("vti-theme", theme);
       renderWithProviders(<Footer />);
@@ -328,11 +381,9 @@ describe("Footer", () => {
       expect(
         screen.getByText(esCommon.Common.Footer.tagline),
       ).toBeInTheDocument();
-      for (const network of ["Discord", "GitHub", "Instagram"]) {
-        expect(
-          screen.queryByRole("link", { name: network }),
-        ).not.toBeInTheDocument();
-      }
+      expect(
+        screen.queryByRole("link", { name: /Instagram/i }),
+      ).not.toBeInTheDocument();
     },
   );
 

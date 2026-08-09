@@ -52,7 +52,7 @@ export interface NavItem {
   readonly kind: NavItemKind;
 }
 
-export type NavGroupKey = "onSite" | "discover" | "resources";
+export type NavGroupKey = "onSite" | "discover" | "resources" | "community";
 
 export interface NavGroup {
   readonly key: NavGroupKey;
@@ -83,11 +83,36 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { key: "gaming", href: "#features", kind: "feature" },
     ],
   },
-  /* Único destino externo del modelo: el SDK público de VTI. Su URL vive en
-     `links.sdk` (fuente de verdad única de destinos, `src/config/links.ts`),
-     nunca repetida aquí como cadena literal. */
+  /* Único destino externo del modelo hasta esta entrega: el SDK público de
+     VTI. Su URL vive en `links.sdk` (fuente de verdad única de destinos,
+     `src/config/links.ts`), nunca repetida aquí como cadena literal. */
   {
     key: "resources",
     items: [{ key: "sdk", href: links.sdk, kind: "external" }],
+  },
+  /* Grupo nuevo (auditoría premium, tarea 6): hasta esta entrega Discord y
+     GitHub solo existían como tarjetas del Contact oscuro
+     (`Home.contact.cards.community`/`code`, `Contact.tsx`) -- el tema claro
+     no tenía ninguna salida a la comunidad, y el pie no tenía enlaces
+     sociales en NINGÚN tema (retirados el 2026-08-04 junto con `Socials`).
+     Tres lentes de auditoría convergieron en promoverlos a ambas ramas vía
+     este modelo compartido, que Navbar y Footer ya consumían -- ningún
+     componente necesita un camino nuevo, solo un grupo más que recorrer.
+     Las tarjetas del Contact oscuro NO se tocan: siguen siendo su propia
+     superficie, con su propio copy (valor visible, no solo el título) --
+     este grupo es la salida de navegación, no un reemplazo.
+
+     Mismo mecanismo `kind: "external"` que ya usaba `resources.sdk`,
+     replicado sin variación: `target="_blank"` + `rel="noopener noreferrer"`
+     + aviso de pestaña nueva para lectores de pantalla, resueltos por cada
+     consumidor (Navbar, Footer) exactamente igual que el SDK. Últimos en el
+     array a propósito: los tres grupos anteriores ya existían y este es
+     puramente aditivo, así que no reordena nada que un usuario ya conociera. */
+  {
+    key: "community",
+    items: [
+      { key: "discord", href: links.discord, kind: "external" },
+      { key: "github", href: links.github, kind: "external" },
+    ],
   },
 ] as const;

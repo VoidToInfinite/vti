@@ -383,14 +383,17 @@ const ScActions = styled.div`
 `;
 
 /*
- * Tres grupos de navegación desplegables (tarea W4), reemplazo de los
- * cuatro enlaces planos que este bloque pintaba hasta hoy
- * (`NAV_SECTION_LINKS`). SOLO ≥ md (mockup: barra angosta en breakpoints
- * menores, sin menú móvil en esta entrega -- decisión de alcance ya
- * tomada, no hay gate adicional que añadir). `<div>`, no un segundo
- * `<nav>`: `ScNav` ya es el elemento `nav` de la barra: anidar un landmark
- * de navegación dentro de otro sería un `nav` redundante para lectores de
- * pantalla.
+ * Grupos de navegación desplegables (tarea W4), reemplazo de los cuatro
+ * enlaces planos que este bloque pintaba hasta entonces
+ * (`NAV_SECTION_LINKS`). Tres al nacer (onSite/discover/resources); cuatro
+ * desde la tarea 6 (auditoría premium), que añade "community" a
+ * `NAV_GROUPS` -- este bloque no necesitó ningún cambio propio para ganarlo,
+ * ya recorre el array entero (`NAV_GROUPS.map`, más abajo). SOLO ≥ md
+ * (mockup: barra angosta en breakpoints menores, sin menú móvil en esta
+ * entrega -- decisión de alcance ya tomada, no hay gate adicional que
+ * añadir). `<div>`, no un segundo `<nav>`: `ScNav` ya es el elemento `nav`
+ * de la barra: anidar un landmark de navegación dentro de otro sería un
+ * `nav` redundante para lectores de pantalla.
  *
  * Oculto por `display: none` bajo `md` (no desmontado): igual que el resto
  * del navbar, no cambia el orden de tabulación de forma condicional al
@@ -769,7 +772,7 @@ export function Navbar(): ReactElement {
 
   /*
    * Regla 4: un click/pointerdown fuera del BLOQUE DE NAVEGACIÓN completo
-   * (los tres grupos, no solo el que está abierto) cierra el grupo
+   * (todos los grupos, no solo el que está abierto) cierra el grupo
    * abierto. Se escucha en `document` porque el click puede caer en
    * cualquier parte de la página -- desde el resto de `ScHeader` hasta el
    * fondo de una sección --, y SOLO mientras haya un grupo abierto: sin

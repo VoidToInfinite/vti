@@ -47,7 +47,12 @@ function itemLabelPath(item: NavItem): string {
   }
 }
 
-const GROUP_ORDER: readonly NavGroupKey[] = ["onSite", "discover", "resources"];
+const GROUP_ORDER: readonly NavGroupKey[] = [
+  "onSite",
+  "discover",
+  "resources",
+  "community",
+];
 
 const EXPECTED_ITEMS: Record<
   NavGroupKey,
@@ -65,10 +70,16 @@ const EXPECTED_ITEMS: Record<
     { key: "gaming", href: "#features", kind: "feature" },
   ],
   resources: [{ key: "sdk", href: links.sdk, kind: "external" }],
+  // Grupo nuevo (auditoría premium, tarea 6): Discord y GitHub, ambos
+  // externos, mismo mecanismo que resources.sdk (ver navigation.ts).
+  community: [
+    { key: "discord", href: links.discord, kind: "external" },
+    { key: "github", href: links.github, kind: "external" },
+  ],
 };
 
 describe("NAV_GROUPS", () => {
-  it("expone los tres grupos, en orden onSite, discover, resources", () => {
+  it("expone los cuatro grupos, en orden onSite, discover, resources, community", () => {
     expect(NAV_GROUPS.map((group) => group.key)).toEqual(GROUP_ORDER);
   });
 
