@@ -25,11 +25,17 @@
  * crear este módulo es nulo por construcción. Los consumidores llegan en
  * tareas posteriores (Task 9 adopta `PRESS` en las ~10 familias pulsables
  * del sitio; Task 10 adopta `DECK.railDurationMs`/`PRESS.easing` en el
- * desplegable del navbar). `REVEAL.stepMs` y `DECK.exitDurationMs` no tienen
- * consumidor planeado todavía en este lote de tareas (8-14): se documentan
- * igual, verbatim de la spec, para que el vocabulario completo quede
- * disponible de una vez y no haya que reabrir este contrato cerrado cada vez
- * que una tarea futura necesite un valor más de la misma familia.
+ * desplegable del navbar). `REVEAL.stepMs` no tiene consumidor planeado
+ * todavía en este lote de tareas (8-14): se documenta igual, verbatim de la
+ * spec, para que el vocabulario completo quede disponible de una vez y no
+ * haya que reabrir este contrato cerrado cada vez que una tarea futura
+ * necesite un valor más de la misma familia. `DECK.exitDurationMs` sí gana
+ * consumidor, pero en un lote posterior y distinto (Task 4 del plan
+ * `2026-08-10-implementacion-plan-premium-f1-f5.md`): la pista de scroll del
+ * deck (`ScScrollHint`/`ScJourneyScrollHint`, `story.deck.tsx`/
+ * `journey.deck.tsx`) es exactamente el rol que su bullet ya describía
+ * ("salida de un velo o capa de la presentación") -- ver el docblock de
+ * `DECK`, más abajo, para el detalle actualizado.
  *
  * ## Por qué `vocabulary.test.ts` es un contrato cerrado (regla 40 del
  * manual) y no un test de "algunas propiedades"
@@ -123,14 +129,16 @@ export const REVEAL = {
  *   `journey.layers.test.ts:70`): el recorrido en `transform` del
  *   envoltorio de la escena 3D mientras el stage está pegado, idéntico en
  *   las dos presentaciones.
- * - `exitDurationMs: 200` — sin consumidor con este rol específico
- *   verificado hoy (grep de "exit"/"salida" en `story.deck.tsx`/
- *   `journey.deck.tsx` no encuentra una transición de salida propia,
- *   distinta del rail). El valor numérico SÍ coincide con
- *   `motion.duration.base` (misma familia que `railDurationMs`, arriba) y es
- *   el verbatim de la spec del vault + adenda Emil para la salida de un velo
- *   o capa de la presentación — un rol que ninguna tarea de este lote (8-14)
- *   llega a implementar todavía.
+ * - `exitDurationMs: 200` — consumidor real desde Task 4 del plan
+ *   `2026-08-10-implementacion-plan-premium-f1-f5.md` (posterior a este
+ *   lote 8-14, que lo dejó sin implementar): `ScScrollHint`
+ *   (`story.deck.tsx`) y `ScJourneyScrollHint` (`journey.deck.tsx`), la
+ *   pista de scroll del deck que se desvanece (`opacity`, única propiedad
+ *   animada) en cuanto el usuario avanza de la diapositiva 0. El valor
+ *   numérico coincide con `motion.duration.base` (misma familia que
+ *   `railDurationMs`, arriba) y es el verbatim de la spec del vault + adenda
+ *   Emil para la salida de un velo o capa de la presentación — el rol que
+ *   describe exactamente ese desvanecimiento.
  */
 export const DECK = {
   slideDurationMs: 320,

@@ -21,6 +21,7 @@ import {
   ScDeckTitle,
   ScRail,
   ScRailMark,
+  ScScrollHint,
   ScSceneWrap,
   ScSlide,
   ScStage,
@@ -1271,6 +1272,15 @@ function StoryLight(): ReactElement {
  */
 function StoryDeckDark(): ReactElement {
   const { t } = useTranslation("home");
+  // Namespace SEPARADO (Task 4, plan
+  // 2026-08-10-implementacion-plan-premium-f1-f5): `deck.scrollHint` vive en
+  // `common`, no en `home` -- la pista de scroll es un patron de INTERFAZ
+  // compartido entre presentaciones (mismo rol que un `aria-label` de
+  // navegacion), no copia propia de la seccion. `common` carga sincrono
+  // igual que `home` (`i18n/config.ts`), asi que las dos llamadas a
+  // `useTranslation` resuelven en el mismo render, sin estado de carga que
+  // manejar.
+  const { t: tCommon } = useTranslation("common");
 
   // Refs ESTABLES (useRef, no callback-ref): useSlideDeck lee
   // getBoundingClientRect() de la pista en cada frame de rAF y escribe las
@@ -1391,6 +1401,12 @@ function StoryDeckDark(): ReactElement {
               />
             ))}
           </ScRail>
+          {/* Pista de scroll (Task 4): visual, aria-hidden, se desvanece con
+              el PRIMER avance del deck reutilizando data-slide (ver el
+              docblock de ScScrollHint, story.deck.tsx). */}
+          <ScScrollHint aria-hidden="true">
+            {tCommon("deck.scrollHint")}
+          </ScScrollHint>
         </ScStage>
       </ScTrack>
     </ScStory>

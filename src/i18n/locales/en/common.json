@@ -56,6 +56,9 @@
             "label": "Back to top"
         }
     },
+    "deck": {
+        "scrollHint": "Scroll to continue"
+    },
     "notFound": {
         "title": "Page not found",
         "message": "The page you are looking for doesn't exist.",

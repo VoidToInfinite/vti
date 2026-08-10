@@ -29,8 +29,10 @@ import {
 } from "@/components/sections/Story/story.layers";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
+import esCommon from "@/i18n/locales/es/common.json";
 import { themes } from "@/theme/themes";
 import { contrastRatioHex } from "@/theme/tokens/contrast";
+import { DECK } from "@/motion/vocabulary";
 
 /*
  * Journey monta con frecuencia VARIOS IntersectionObserver a la vez: en
@@ -780,6 +782,111 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
 
     expect(stage.style.getPropertyValue("--journey-progress")).toBe("0.0000");
     expect(stage.style.getPropertyValue("--story-progress")).toBe("");
+  });
+});
+
+/*
+ * Task 4 (plan `2026-08-10-implementacion-plan-premium-f1-f5`): pista de
+ * scroll del deck, aria-hidden, que se desvanece con el PRIMER avance
+ * reutilizando `data-slide` (`ScJourneyStage`) -- SIN listener nuevo (ver el
+ * docblock de `ScJourneyScrollHint`, `journey.deck.tsx`). Misma tecnica de
+ * mock de `useSlideDeck` que el describe de arriba: `track.getBoundingClientRect`
+ * fijado para que `measure()` (sincrono dentro del `IntersectionObserver`
+ * stub) calcule un `progress` exacto, sin depender de ningun redondeo.
+ */
+describe("Journey: Task 4, pista de scroll del deck (tema oscuro)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it("aparece aria-hidden, con el texto real de i18n del namespace common (no home)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const hint = screen.getByText(esCommon.deck.scrollHint);
+    expect(hint).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("presencia inicial: opacity 1 mientras data-slide sigue en la diapositiva 0", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    expect(stage).toHaveAttribute("data-slide", "0");
+    const hint = screen.getByText(esCommon.deck.scrollHint);
+    expect(getComputedStyle(hint).opacity).toBe("1");
+  });
+
+  it("se desvanece (opacity 0) en cuanto el usuario avanza por primera vez -- mock del estado de useSlideDeck, sin listener nuevo", async () => {
+    vi.stubGlobal("innerHeight", 800);
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+
+    // Geometria de la pista CON cola (JOURNEY_DECK_TAIL_SCREENS), MISMA
+    // tecnica que "al mover el indice del hook" un poco mas arriba:
+    // rect.top fijado para que progress caiga EXACTAMENTE en 1/(N-1) -- la
+    // primera diapositiva de paso, justo tras la intro.
+    const vh = window.innerHeight;
+    const height = (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * vh;
+    const span = height - vh - JOURNEY_DECK_TAIL_SCREENS * vh;
+    const targetIndex = 1;
+    const progress = targetIndex / (JOURNEY_SLIDES - 1);
+    track.getBoundingClientRect = () =>
+      ({ top: -progress * span, height }) as DOMRect;
+
+    act(() => triggerFor(track, true));
+
+    expect(stage).toHaveAttribute("data-slide", String(targetIndex));
+    const hint = screen.getByText(esCommon.deck.scrollHint);
+    expect(getComputedStyle(hint).opacity).toBe("0");
+  });
+
+  it("opacity es la UNICA propiedad animada (DECK.exitDurationMs + easing.standard), y no se declara bajo prefers-reduced-motion: reduce -- bajo reduce el elemento se retira por completo (display: none)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const hint = screen.getByText(esCommon.deck.scrollHint);
+    const css = cssRuleTextFor(hint);
+    const topLevelCss = css.split("@media")[0];
+
+    // Shorthand `transition` sin var()/calc(): jsdom SI la resuelve como
+    // cadena literal.
+    expect(getComputedStyle(hint).transition).toBe(
+      `opacity ${DECK.exitDurationMs}ms ${motion.easing.standard}`,
+    );
+    expect(topLevelCss).toContain("transition: opacity");
+
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain("display: none");
+    // Verificado con el bug inyectado a proposito: quitando `display: none`
+    // del bloque de reduce (journey.deck.tsx, ScJourneyScrollHint) este
+    // assert se pone en rojo; se restauro para dejar la suite en verde. La
+    // animacion, ademas, NO se declara bajo reduce: ninguna `transition`
+    // dentro de este bloque.
+    expect(reduceBlock).not.toContain("transition");
   });
 });
 

@@ -1,6 +1,7 @@
 "use client";
 import styled, { css } from "styled-components";
 import { gradientTextClip } from "@/components/layout/Brand/BrandName";
+import { DECK } from "@/motion/vocabulary";
 import {
   STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
@@ -350,6 +351,68 @@ export const ScRailMark = styled.span<{ $index: number }>`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+/*
+ * Pista de scroll del deck (Task 4, plan
+ * `2026-08-10-implementacion-plan-premium-f1-f5`): indicio visual de que la
+ * presentacion avanza con scroll. `aria-hidden` como ScRail (arriba): el
+ * rail decorativo ya comunica "por donde voy" por otra via, y esta pista
+ * solo dice "puedes seguir bajando" -- ninguna de las dos aporta contenido
+ * que un lector de pantalla necesite (las diapositivas siguen accesibles en
+ * el DOM sin importar cual de las dos vea).
+ *
+ * Reutiliza `data-slide`, que `ScStage` (Story.tsx) YA escribe con el
+ * `index` de `useSlideDeck` -- SIN listener nuevo, mismo mecanismo que
+ * `ScRailMark` un poco mas arriba (selector descendiente sobre el MISMO
+ * ancestro). Visible mientras el indice sigue en la diapositiva 0; en
+ * cuanto el usuario avanza por primera vez (`data-slide` deja de ser "0"),
+ * el selector dejar de matchear apaga la pista -- y, por construccion,
+ * tambien se apaga si el usuario retrocede hasta la diapositiva 0 (D4 del
+ * encargo no distingue "primer avance" de "cualquier vez que no se este en
+ * la 0"; las dos lecturas coinciden con `[data-slide]:not([data-slide="0"])`,
+ * y esta es la que no requiere estado propio).
+ *
+ * `opacity` es la UNICA propiedad animada (encargo explicito de la spec).
+ * `DECK.exitDurationMs` (200ms, `vocabulary.ts`) consigue aqui su primer
+ * consumidor real: su propio docblock describe el rol "salida de un velo o
+ * capa de la presentacion", que es exactamente este desvanecimiento.
+ *
+ * Bajo `reduce` se retira POR COMPLETO (`display: none`), mismo tratamiento
+ * y mismo motivo que `ScRail`: sin pin ni avance atado al scroll, las
+ * diapositivas ya estan todas en flujo a la vez -- "puedes seguir bajando
+ * DENTRO del deck" deja de tener sentido, no solo de movimiento. Decision
+ * de la spec ("se muestra estatico o no se muestra"): aqui se elige NO
+ * MOSTRAR, no un estado estatico, por coherencia con el rail que ya
+ * desaparece en la misma condicion. La `transition` de arriba, declarada
+ * sin condicion, nunca llega a activarse bajo `reduce`: el elemento deja de
+ * renderizarse antes de que pueda dispararse -- verificado por texto de CSS
+ * (jsdom no evalua `@media`), no observando la animacion en si.
+ */
+export const ScScrollHint = styled.p`
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: ${({ theme }) => theme.data.space[6]};
+  z-index: 1;
+  margin: 0;
+  text-align: center;
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.overline.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.overline.weight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.overline.tracking};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity ${DECK.exitDurationMs}ms
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  [data-slide]:not([data-slide="0"]) & {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
   }
 `;
 

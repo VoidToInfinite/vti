@@ -1,6 +1,7 @@
 "use client";
 import styled, { css } from "styled-components";
 import type { ThemeDefinition } from "@/theme/theme.types";
+import { DECK } from "@/motion/vocabulary";
 import {
   JOURNEY_CONTENT_MAX_WIDTH,
   JOURNEY_DARK_HEIGHT,
@@ -307,6 +308,58 @@ export const ScJourneyRailMark = styled.span<{ $index: number }>`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+/*
+ * Pista de scroll del deck (Task 4, plan
+ * `2026-08-10-implementacion-plan-premium-f1-f5`), MISMA TECNICA que
+ * `ScScrollHint` en `story.deck.tsx` -- leer su docblock es releer este --
+ * duplicada aqui a proposito y no importada de alli, mismo criterio que
+ * `stepColor` mas abajo: este fichero es una hoja estructural sin ninguna
+ * dependencia de la seccion hermana.
+ *
+ * `aria-hidden` como `ScJourneyRail` (arriba): el rail decorativo ya
+ * comunica "por donde voy" por otra via, esta pista solo dice "puedes
+ * seguir bajando". Reutiliza `data-slide`, que `ScJourneyStage`
+ * (Journey.tsx) YA escribe con el `index` de `useSlideDeck` -- SIN listener
+ * nuevo. Visible en la diapositiva 0, desvanecida en cuanto `data-slide`
+ * deja de ser "0" (selector descendiente sobre el mismo ancestro que ya lee
+ * `ScJourneyRailMark`).
+ *
+ * `opacity` es la UNICA propiedad animada. `DECK.exitDurationMs` (200ms,
+ * `vocabulary.ts`, rol "salida de un velo o capa de la presentacion")
+ * consigue aqui su primer consumidor real, igual que en Story.
+ *
+ * Bajo `reduce` se retira POR COMPLETO (`display: none`), mismo tratamiento
+ * y mismo motivo que `ScJourneyRail`: sin pin, las 8 diapositivas ya estan
+ * todas en flujo a la vez, y "puedes seguir bajando DENTRO del deck" deja
+ * de tener sentido. Decision de la spec ("se muestra estatico o no se
+ * muestra"): aqui se elige NO MOSTRAR, coherente con el rail.
+ */
+export const ScJourneyScrollHint = styled.p`
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: ${({ theme }) => theme.data.space[6]};
+  z-index: 1;
+  margin: 0;
+  text-align: center;
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.overline.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.overline.weight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.overline.tracking};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity ${DECK.exitDurationMs}ms
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  [data-slide]:not([data-slide="0"]) & {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
   }
 `;
 

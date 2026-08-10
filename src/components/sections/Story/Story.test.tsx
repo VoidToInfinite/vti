@@ -8,9 +8,10 @@ import {
 } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
+import esCommon from "@/i18n/locales/es/common.json";
 import i18n from "@/i18n/config";
 import { Story, pillarBadgeAccent } from "./Story";
-import { PRESS } from "@/motion/vocabulary";
+import { DECK, PRESS } from "@/motion/vocabulary";
 import { motion } from "@/theme/tokens/motion";
 import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
 import { basicLightTheme, basicDarkTheme } from "@/theme/themes";
@@ -19,6 +20,7 @@ import {
   STORY_DARK_MAX_WIDTH,
   STORY_DECK_NOTE_SIZE,
   STORY_DECK_PILLAR_TITLE_SIZE,
+  STORY_DECK_TAIL_SCREENS,
   STORY_DECK_TITLE_SIZE,
   STORY_FIGURE_SCROLL_SHIFT,
   STORY_SLIDES,
@@ -1435,6 +1437,114 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     await waitFor(() => {
       expect(container.querySelectorAll("img")).toHaveLength(11);
     });
+  });
+});
+
+/*
+ * Task 4 (plan `2026-08-10-implementacion-plan-premium-f1-f5`): pista de
+ * scroll del deck, aria-hidden, que se desvanece con el PRIMER avance
+ * reutilizando `data-slide` (`ScStage`) -- SIN listener nuevo (ver el
+ * docblock de `ScScrollHint`, `story.deck.tsx`). Misma tecnica de mock de
+ * `useSlideDeck` que el describe de arriba ("presentacion de 6
+ * diapositivas"): `track.getBoundingClientRect` fijado para que `measure()`
+ * (sincrono dentro del `IntersectionObserver` stub) calcule un `progress`
+ * exacto, sin depender de ningun redondeo.
+ */
+describe("Story: Task 4, pista de scroll del deck (tema oscuro)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("aparece aria-hidden, con el texto real de i18n del namespace common (no home)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const hint = screen.getByText(esCommon.deck.scrollHint);
+    expect(hint).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("presencia inicial: opacity 1 mientras data-slide sigue en la diapositiva 0", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    expect(stage).toHaveAttribute("data-slide", "0");
+    const hint = screen.getByText(esCommon.deck.scrollHint);
+    expect(getComputedStyle(hint).opacity).toBe("1");
+  });
+
+  it("se desvanece (opacity 0) en cuanto el usuario avanza por primera vez -- mock del estado de useSlideDeck, sin listener nuevo", async () => {
+    vi.stubGlobal("innerHeight", 800);
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+
+    // Geometria de la pista CON cola (STORY_DECK_TAIL_SCREENS), MISMA
+    // tecnica que "al mover el indice del hook" en Journey.test.tsx:
+    // rect.top fijado para que progress caiga EXACTAMENTE en 1/(N-1) -- la
+    // primera diapositiva de pilar, justo tras la intro. measure() corre
+    // SINCRONO dentro de start() en cuanto la interseccion se activa.
+    const vh = window.innerHeight;
+    const height = (STORY_SLIDES + STORY_DECK_TAIL_SCREENS) * vh;
+    const span = height - vh - STORY_DECK_TAIL_SCREENS * vh;
+    const targetIndex = 1;
+    const progress = targetIndex / (STORY_SLIDES - 1);
+    track.getBoundingClientRect = () =>
+      ({ top: -progress * span, height }) as DOMRect;
+
+    act(() => triggerFor(track, true));
+
+    expect(stage).toHaveAttribute("data-slide", String(targetIndex));
+    const hint = screen.getByText(esCommon.deck.scrollHint);
+    expect(getComputedStyle(hint).opacity).toBe("0");
+  });
+
+  it("opacity es la UNICA propiedad animada (DECK.exitDurationMs + easing.standard), y no se declara bajo prefers-reduced-motion: reduce -- bajo reduce el elemento se retira por completo (display: none)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const hint = screen.getByText(esCommon.deck.scrollHint);
+    const css = cssRuleTextFor(hint);
+    const topLevelCss = css.split("@media")[0];
+
+    // Shorthand `transition` sin var()/calc(): jsdom SI la resuelve como
+    // cadena literal (mismo caso que el test D7 de este archivo).
+    expect(getComputedStyle(hint).transition).toBe(
+      `opacity ${DECK.exitDurationMs}ms ${motion.easing.standard}`,
+    );
+    expect(topLevelCss).toContain("transition: opacity");
+
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain("display: none");
+    // Verificado con el bug inyectado a proposito: quitando `display: none`
+    // del bloque de reduce (story.deck.tsx, ScScrollHint) este assert se
+    // pone en rojo -- la pista se quedaria visible bajo reduce, pese a que
+    // "por donde voy dentro del deck" ya no tiene sentido sin pin (ver el
+    // informe de la tarea); se restauro para dejar la suite en verde. La
+    // animacion, ademas, NO se declara bajo reduce: ninguna `transition`
+    // dentro de este bloque.
+    expect(reduceBlock).not.toContain("transition");
   });
 });
 

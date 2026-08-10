@@ -17,6 +17,7 @@ import {
   ScJourneyQuote,
   ScJourneyRail,
   ScJourneyRailMark,
+  ScJourneyScrollHint,
   ScJourneySceneWrap,
   ScJourneySlide,
   ScJourneyStage,
@@ -673,6 +674,12 @@ function JourneyLight(): ReactElement {
  */
 function JourneyDeckDark(): ReactElement {
   const { t } = useTranslation("home");
+  // Namespace SEPARADO (Task 4, plan
+  // 2026-08-10-implementacion-plan-premium-f1-f5), MISMO motivo que
+  // StoryDeckDark (Story.tsx): `deck.scrollHint` vive en `common`, no en
+  // `home` -- patron de interfaz compartido entre presentaciones, no copia
+  // propia de esta seccion.
+  const { t: tCommon } = useTranslation("common");
 
   // Refs ESTABLES (useRef, no callback-ref): useSlideDeck lee
   // getBoundingClientRect() de la pista en cada frame de rAF y escribe las
@@ -784,6 +791,12 @@ function JourneyDeckDark(): ReactElement {
               />
             ))}
           </ScJourneyRail>
+          {/* Pista de scroll (Task 4): visual, aria-hidden, se desvanece con
+              el PRIMER avance del deck reutilizando data-slide (ver el
+              docblock de ScJourneyScrollHint, journey.deck.tsx). */}
+          <ScJourneyScrollHint aria-hidden="true">
+            {tCommon("deck.scrollHint")}
+          </ScJourneyScrollHint>
         </ScJourneyStage>
       </ScJourneyTrack>
     </ScJourney>
