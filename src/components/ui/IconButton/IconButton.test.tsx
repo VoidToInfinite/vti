@@ -33,6 +33,32 @@ function allCssRules(): string[] {
   return reglas;
 }
 
+/* Acota las reglas a las clases reales del elemento renderizado. Tiene que
+   recoger TODAS las clases que tienen alguna regla asociada, no solo la
+   primera que matchee: IconButton es `styled(Button)`, así que el <button>
+   final lleva DOS pares de clases -- las de ScButton (con el halo por
+   variante que Button.tsx ya declara, y el aria-busy={loading} interno que
+   este componente NO usa) y las de ScSquare (con el anillo de
+   descubribilidad, la regla [aria-busy="true"] de Task 5, y la combinación
+   [data-variant="ghost"]:focus-visible). Quedarse con la primera clase que
+   matchee pierde aquí la mitad de las reglas -- exactamente el motivo por el
+   que la primera versión del test de :focus-visible fallaba: encontraba las
+   clases de ScButton y nunca llegaba a ver la regla combinada, que vive en
+   las clases de ScSquare. Compartida entre los dos describe de este archivo
+   que inspeccionan CSSOM (Task 5 y :focus-visible) — misma función, no
+   duplicada. */
+function reglasDe(el: HTMLElement): string[] {
+  const reglas = allCssRules();
+  const clases = Array.from(el.classList).filter((c) =>
+    reglas.some((r) => r.includes(c)),
+  );
+  expect(
+    clases.length,
+    "no se encontró ninguna clase inyectada del elemento",
+  ).toBeGreaterThan(0);
+  return reglas.filter((r) => clases.some((c) => r.includes(c)));
+}
+
 describe("IconButton", () => {
   it("size='md' renderiza un cuadrado de 44x44px", () => {
     renderWithProviders(
@@ -124,34 +150,89 @@ describe("IconButton", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * Task 5 (plan premium F1-F5): indicador visual minimo de "en curso" —
+   * opacity, sin prop nueva: la regla lee directamente el atributo
+   * aria-busy que el consumidor (ThemeToggle.tsx) ya pasa como prop nativa.
+   * Verificado con un bug inyectado a proposito (regla 34, RULES.md):
+   * comentando la declaracion `opacity: 0.65;` de ScSquare en
+   * IconButton.tsx, el primer test de este bloque se puso en rojo
+   * (`getComputedStyle(...).opacity` volvia a leer cadena vacia con
+   * aria-busy="true"); restaurada la declaracion, vuelve a verde.
+   */
+  describe("indicador visual de aria-busy (Task 5)", () => {
+    it("con aria-busy='true' el boton reduce su opacity; sin el atributo, no", () => {
+      renderWithProviders(
+        <IconButton
+          icon={<Icon />}
+          aria-label="Etiqueta"
+        />,
+      );
+      const boton = screen.getByRole("button", { name: "Etiqueta" });
+      // jsdom no calcula un valor inicial para una propiedad que ninguna
+      // regla fija (a diferencia de un navegador real): cadena vacia, no
+      // "1". Lo que se afirma es la AUSENCIA del valor que solo declara la
+      // regla [aria-busy="true"].
+      expect(getComputedStyle(boton).opacity).not.toBe("0.65");
+
+      boton.setAttribute("aria-busy", "true");
+      expect(getComputedStyle(boton).opacity).toBe("0.65");
+
+      boton.removeAttribute("aria-busy");
+      expect(getComputedStyle(boton).opacity).not.toBe("0.65");
+    });
+
+    it('la regla [aria-busy="true"] declara opacity, NUNCA una propiedad de layout (regla dura §18)', () => {
+      renderWithProviders(
+        <IconButton
+          icon={<Icon />}
+          aria-label="Etiqueta"
+        />,
+      );
+      const boton = screen.getByRole("button", { name: "Etiqueta" });
+      const bloque = reglasDe(boton).find((regla) =>
+        regla.includes('[aria-busy="true"]'),
+      );
+      expect(
+        bloque,
+        'no se encontro la regla [aria-busy="true"]',
+      ).toBeDefined();
+      expect(bloque).toContain("opacity");
+    });
+
+    it("bajo prefers-reduced-motion: reduce, la transicion de opacity se declara 'none' (candado local, independiente del reset global)", () => {
+      renderWithProviders(
+        <IconButton
+          icon={<Icon />}
+          aria-label="Etiqueta"
+        />,
+      );
+      const boton = screen.getByRole("button", { name: "Etiqueta" });
+      const reglas = reglasDe(boton);
+
+      // jsdom no evalua NINGUN @media (task/lessons.md 2026-07-27): se
+      // inspecciona el texto de la regla inyectada, no getComputedStyle. Tres
+      // reglas distintas mencionan [aria-busy="true"] (la de reposo y sus dos
+      // formas dentro/fuera del bloque @media, ver allCssRules/reglasDe): se
+      // filtra por las DOS condiciones a la vez para quedarse con el bloque
+      // @media -- no con su primera aparicion, que es la regla de reposo.
+      const bloqueBusy = reglas.find(
+        (regla) =>
+          regla.includes('[aria-busy="true"]') &&
+          regla.includes("prefers-reduced-motion: reduce"),
+      );
+      expect(
+        bloqueBusy,
+        'no se encontro el bloque @media de [aria-busy="true"]',
+      ).toBeDefined();
+      expect(bloqueBusy).toContain("transition: none");
+    });
+  });
+
   describe(":focus-visible propio (hallazgo 1, D7)", () => {
     afterEach(() => {
       window.localStorage.clear();
     });
-
-    // Acota las reglas a las clases reales del elemento renderizado. Tiene
-    // que recoger TODAS las clases que tienen alguna regla asociada, no solo
-    // la primera que matchee: IconButton es `styled(Button)`, así que el
-    // <button> final lleva DOS pares de clases -- las de ScButton (con el
-    // halo por variante que Button.tsx ya declara) y las de ScSquare (con el
-    // anillo de descubribilidad + la combinación
-    // [data-variant="ghost"]:focus-visible). Quedarse con la primera clase
-    // que matchee (como hace Button.test.tsx/Card.test.tsx, donde el
-    // elemento SOLO tiene un componente propio) pierde aquí la mitad de las
-    // reglas -- exactamente el motivo por el que la primera versión de este
-    // test fallaba: encontraba las clases de ScButton y nunca llegaba a ver
-    // la regla combinada, que vive en las clases de ScSquare.
-    function reglasDe(el: HTMLElement): string[] {
-      const reglas = allCssRules();
-      const clases = Array.from(el.classList).filter((c) =>
-        reglas.some((r) => r.includes(c)),
-      );
-      expect(
-        clases.length,
-        "no se encontró ninguna clase inyectada del elemento",
-      ).toBeGreaterThan(0);
-      return reglas.filter((r) => clases.some((c) => r.includes(c)));
-    }
 
     it.each([
       ["light", basicLightTheme],

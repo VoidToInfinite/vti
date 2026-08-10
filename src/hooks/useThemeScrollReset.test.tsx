@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import {
   THEME_SCROLL_IDLE_MS,
@@ -446,5 +447,191 @@ describe("useThemeScrollReset", () => {
       consoleErrorSpy.mockRestore();
       vi.useRealTimers();
     }
+  });
+
+  /*
+   * Task 5 (plan premium F1-F5): `busy` cubre el viaje COMPLETO (scroll +
+   * cruce de composiciones del hero), a diferencia de `pending` (solo
+   * scroll). Ver el docblock de `requestThemeChange`/`ThemeScrollReset` en
+   * useThemeScrollReset.ts para el criterio completo.
+   */
+  describe("busy (Task 5, plan premium F1-F5)", () => {
+    /*
+     * Arranque limpio (lección task/lessons.md 2026-07-26): un guard sobre
+     * "el primer evento" falla si ese evento puede no ocurrir. Aquí NO hay
+     * guard de primer evento -- `busy` solo lo dispara una llamada real a
+     * `requestThemeChange`, nunca un cambio de tema observado por su cuenta
+     * -- pero este test lo comprueba de todas formas: fuerza el AJUSTE DE
+     * HIDRATACION de ThemeProvider (localStorage con tema guardado, el
+     * mismo camino que cambia `themeName` SIN pasar por este hook) y
+     * confirma que `busy` no se entera.
+     */
+    it("arranque limpio: el ajuste de hidratacion de ThemeProvider cambia themeName pero NO activa busy", () => {
+      window.localStorage.setItem("vti-theme", "dark");
+      const { result } = renderHarness();
+
+      expect(result.current.themeName).toBe("dark");
+      expect(result.current.busy).toBe(false);
+    });
+
+    it("en la zona del hero, con #hero montado y sin reduce: busy se activa con el toggle inmediato y se apaga a los HERO_COPY_RETURN_MS del cruce", () => {
+      vi.useFakeTimers();
+      try {
+        mountHero(700); // en zona: 700 >= 800/2
+        const { result } = renderHarness();
+        expect(result.current.busy).toBe(false);
+
+        act(() => {
+          result.current.requestThemeChange();
+        });
+        // Toggle inmediato (sin scroll): pending nunca llega a activarse,
+        // pero el cruce de composiciones del hero SI va a correr.
+        expect(result.current.themeName).toBe("dark");
+        expect(result.current.pending).toBe(false);
+        expect(result.current.busy).toBe(true);
+
+        act(() => {
+          vi.advanceTimersByTime(HERO_COPY_RETURN_MS - 1);
+        });
+        expect(result.current.busy).toBe(true);
+
+        act(() => {
+          vi.advanceTimersByTime(1);
+        });
+        expect(result.current.busy).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("fuera de la zona del hero, con #hero montado: busy sigue true durante el scroll Y durante la ventana de asentamiento posterior al toggle", () => {
+      vi.useFakeTimers();
+      try {
+        mountHero(100); // fuera de zona
+        const { result } = renderHarness();
+
+        act(() => {
+          result.current.requestThemeChange();
+        });
+        expect(result.current.pending).toBe(true);
+        expect(result.current.busy).toBe(true);
+
+        act(() => {
+          window.dispatchEvent(new Event("scrollend"));
+        });
+        expect(result.current.themeName).toBe("dark");
+        expect(result.current.pending).toBe(false);
+        // El scroll ya termino, pero el cruce de composiciones sigue en
+        // marcha: busy NO se apaga a la vez que pending.
+        expect(result.current.busy).toBe(true);
+
+        act(() => {
+          vi.advanceTimersByTime(HERO_COPY_RETURN_MS - 1);
+        });
+        expect(result.current.busy).toBe(true);
+
+        act(() => {
+          vi.advanceTimersByTime(1);
+        });
+        expect(result.current.busy).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("sin #hero en el documento: busy se apaga en el mismo tick que el tema cambia, sin esperar a ningun cruce", () => {
+      setScrollY(100); // en zona por degradacion (sin #hero, ver isInHeroZone)
+      const { result } = renderHarness();
+
+      act(() => {
+        result.current.requestThemeChange();
+      });
+
+      expect(result.current.themeName).toBe("dark");
+      expect(result.current.busy).toBe(false);
+    });
+
+    it("bajo prefers-reduced-motion: busy nunca se observa true (todo ocurre en el mismo tick, sin cruce que esperar)", () => {
+      mountHero(100); // fuera de zona sin reduce -- aqui hay reduce
+      stubMatchMedia(true);
+      const { result } = renderHarness();
+
+      act(() => {
+        result.current.requestThemeChange();
+      });
+
+      expect(scrollToMock).toHaveBeenCalledWith({
+        top: 0,
+        behavior: "instant",
+      });
+      expect(result.current.themeName).toBe("dark");
+      expect(result.current.busy).toBe(false);
+    });
+
+    it("un segundo clic legitimo durante la ventana de asentamiento la reinicia, en vez de dejar que la vieja apague busy a mitad del cruce nuevo", () => {
+      vi.useFakeTimers();
+      try {
+        mountHero(700); // en zona: toggles instantaneos, sin guard de reentrada de pending
+        const { result } = renderHarness();
+
+        act(() => {
+          result.current.requestThemeChange(); // -> dark
+        });
+        expect(result.current.busy).toBe(true);
+
+        act(() => {
+          vi.advanceTimersByTime(HERO_COPY_RETURN_MS - 50);
+        });
+        expect(result.current.busy).toBe(true);
+
+        act(() => {
+          result.current.requestThemeChange(); // -> light, reinicia la ventana
+        });
+        expect(result.current.themeName).toBe("light");
+        expect(result.current.busy).toBe(true);
+
+        // Si la ventana vieja no se hubiera cancelado, apagaria busy justo
+        // aqui (50ms mas de reloj desde el primer clic) aunque el cruce
+        // nuevo apenas lleve arrancando.
+        act(() => {
+          vi.advanceTimersByTime(50);
+        });
+        expect(result.current.busy).toBe(true);
+
+        act(() => {
+          vi.advanceTimersByTime(HERO_COPY_RETURN_MS - 50);
+        });
+        expect(result.current.busy).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("al desmontar durante la ventana de asentamiento, limpia el temporizador sin dejar avisos de act() colgando", () => {
+      vi.useFakeTimers();
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      try {
+        mountHero(700);
+        const { result, unmount } = renderHarness();
+
+        act(() => {
+          result.current.requestThemeChange();
+        });
+        expect(result.current.busy).toBe(true);
+
+        unmount();
+
+        act(() => {
+          vi.advanceTimersByTime(HERO_COPY_RETURN_MS + 100);
+        });
+
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      } finally {
+        consoleErrorSpy.mockRestore();
+        vi.useRealTimers();
+      }
+    });
   });
 });

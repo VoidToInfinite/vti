@@ -36,13 +36,31 @@ import { IconMoon, IconSun } from "./ThemeIcons";
 // reentrada NO depende de este atributo: `useThemeScrollReset` ya la
 // bloquea con un guard sincrono por ref (`pendingRef`, ver el hook), que
 // actua incluso en el mismo tick, antes de que React repinte -- mas fuerte
-// que cualquier `disabled`. La unica senal de "accion en marcha" que le
-// queda al usuario es la propia pagina desplazandose ante sus ojos, y eso
-// ya es suficiente.
+// que cualquier `disabled`.
+//
+// Task 5 (plan premium F1-F5): en su lugar se pasa `aria-busy={busy}` --
+// `busy` (`useThemeScrollReset`) cubre el viaje COMPLETO (scroll + cruce de
+// composiciones del hero, ver el docblock del hook), no solo el tramo de
+// scroll que ya cubria `pending`. Es la senal para quien NO ve la pagina
+// desplazarse ante sus ojos (un lector de pantalla): "esta accion sigue en
+// marcha", sin tocar la focusabilidad. Se pasa como atributo nativo, NO como
+// la prop `loading` de Button (que Button.tsx acopla a `disabled` a
+// proposito para su propio caso de uso -- formularios que quieren bloquear
+// el reenvio, ver Button.test.tsx "en loading marca aria-busy y
+// deshabilita") -- reutilizar `loading` aqui reintroduciria exactamente el
+// bug de foco de la lección de arriba. `aria-busy` es un atributo ARIA
+// estandar que `IconButton`/`Button` reenvian sin mas via `{...rest}`
+// (Button.tsx spread `{...rest}` DESPUES de su propio `aria-busy={loading ||
+// undefined}`, asi que el valor de aqui gana); el indicador visual minimo lo
+// declara IconButton.tsx a partir de ese mismo atributo, no de una prop
+// nueva, para que CSS y ARIA no puedan divergir. `aria-busy={busy ||
+// undefined}` (no `busy` a secas) omite el atributo por completo cuando NO
+// esta ocupado, en vez de dejar `aria-busy="false"` -- mismo patron que
+// Button.tsx usa para `loading`.
 export function ThemeToggle(): ReactElement {
   const { t } = useTranslation("common");
   const { themeName } = useTheme();
-  const { requestThemeChange } = useThemeScrollReset();
+  const { requestThemeChange, busy } = useThemeScrollReset();
   const isLight = themeName === "light";
   const label = isLight
     ? t("Common.ThemeToggle.switchToDark")
@@ -53,6 +71,7 @@ export function ThemeToggle(): ReactElement {
       icon={isLight ? <IconSun /> : <IconMoon />}
       onClick={requestThemeChange}
       aria-label={label}
+      aria-busy={busy || undefined}
       title={label}
     />
   );

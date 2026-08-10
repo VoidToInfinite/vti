@@ -64,6 +64,32 @@ const ScSquare = styled(Button)<{ $side: string; $iconSide: string }>`
       color-mix(in oklch, currentColor 18%, transparent);
   }
 
+  /* Indicador visual mínimo de "en curso" (Task 5, plan premium F1-F5),
+     opacity únicamente (regla dura §18). Lee el atributo aria-busy que YA
+     está en el DOM (ThemeToggle.tsx lo pasa como prop nativa, no como la
+     prop loading de Button.tsx — ver su docblock) en vez de añadir una prop
+     $busy nueva: así CSS y ARIA nunca pueden divergir, la misma fuente de
+     verdad decide las dos cosas. Valor distinto del 0.5 de
+     :disabled/[aria-disabled="true"] (Button.tsx) a propósito — "en curso,
+     sigue interactivo" es un estado distinto de "deshabilitado", y nunca
+     coinciden aquí (aria-busy no implica disabled), pero conviene que
+     tampoco se confundan a la vista si algún consumidor futuro los
+     combinara. El transition: none bajo reduce es redundante con el reset
+     global de GlobalStyles.tsx (transition-duration: 0.001ms !important)
+     pero se declara aquí también, explícita y comprobable: createGlobalStyle
+     no inyecta nada bajo jsdom + Vitest (task/lessons.md 2026-07-27), así que
+     sin esta declaración local el comportamiento bajo reduce no tendría
+     ningún candado propio de este componente. */
+  &[aria-busy="true"] {
+    opacity: 0.65;
+    transition: opacity ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard};
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
   /* :focus-visible propio (hallazgo 1, D7) — necesario AQUÍ, no solo en
      Button.tsx: Button.tsx ya declara su propio halo por variante (rama
      ghost incluida), pero esa regla vive en la clase de ScButton, que se

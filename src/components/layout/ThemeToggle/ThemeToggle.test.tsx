@@ -1,7 +1,22 @@
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { ThemeToggle } from "./ThemeToggle";
+
+/**
+ * Hero de prueba minimo (mismo `id="hero"` que busca `isInHeroZone`/
+ * `willCrossfade` en useThemeScrollReset.ts), para las pruebas de Task 5 que
+ * necesitan que el hook decida que SI va a haber un cruce de composiciones
+ * que esperar. jsdom no hace layout real (task/lessons.md 2026-07-28): el
+ * `getBoundingClientRect` se sustituye a mano.
+ */
+function mountHero(bottom: number): void {
+  const hero = document.createElement("section");
+  hero.id = "hero";
+  hero.getBoundingClientRect = () => ({ bottom }) as DOMRect;
+  document.body.appendChild(hero);
+}
 
 // ThemeProvider lee "vti-theme" de localStorage al montar (ver
 // ThemeProvider.tsx) — mismo patrón ya usado por Eye.test.tsx/Story.qa.test.tsx
@@ -11,6 +26,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   window.localStorage.clear();
+  document.getElementById("hero")?.remove();
 });
 
 describe("ThemeToggle", () => {
@@ -48,24 +64,41 @@ describe("ThemeToggle", () => {
     // sus valores por defecto de jsdom, useThemeScrollReset degrada a
     // "en zona del hero" (ver el hook) y llama a toggleTheme de inmediato,
     // en el mismo click -- por eso este test no necesita tocar timers ni
-    // simular scroll.
-    const { container } = renderWithProviders(<ThemeToggle />);
+    // simular scroll. Task 5: `requestThemeChange` SI lee `matchMedia` en
+    // esta rama tambien ahora (para decidir `willCrossfade`/`busy`, ver el
+    // hook), asi que jsdom necesita el stub aunque el viaje sea instantaneo
+    // -- mismo stub minimo que Hero.test.tsx.
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
 
-    // Arranca en claro: sol + "Cambiar a tema oscuro".
-    expect(
-      screen.getByRole("button", { name: "Cambiar a tema oscuro" }),
-    ).toBeInTheDocument();
+    try {
+      const { container } = renderWithProviders(<ThemeToggle />);
 
-    act(() => {
-      screen.getByRole("button").click();
-    });
+      // Arranca en claro: sol + "Cambiar a tema oscuro".
+      expect(
+        screen.getByRole("button", { name: "Cambiar a tema oscuro" }),
+      ).toBeInTheDocument();
 
-    // Tras el click pasa a oscuro: luna + "Cambiar a tema claro".
-    expect(
-      screen.getByRole("button", { name: "Cambiar a tema claro" }),
-    ).toBeInTheDocument();
-    expect(container.querySelector("path")).toBeInTheDocument();
-    expect(container.querySelector("circle")).not.toBeInTheDocument();
+      act(() => {
+        screen.getByRole("button").click();
+      });
+
+      // Tras el click pasa a oscuro: luna + "Cambiar a tema claro".
+      expect(
+        screen.getByRole("button", { name: "Cambiar a tema claro" }),
+      ).toBeInTheDocument();
+      expect(container.querySelector("path")).toBeInTheDocument();
+      expect(container.querySelector("circle")).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   /*
@@ -188,5 +221,144 @@ describe("ThemeToggle", () => {
     const estilo = getComputedStyle(boton);
     expect(estilo.width).toBe("44px");
     expect(estilo.height).toBe("44px");
+  });
+
+  /*
+   * Task 5 (plan premium F1-F5): `aria-busy` cubre el viaje COMPLETO --
+   * scroll (D6) MAS el cruce de composiciones del hero (HeroBackdrop.tsx),
+   * que sigue en marcha un buen tramo despues de que el scroll ya termino y
+   * el tema ya cambio. Se ata la AUSENCIA de `disabled` (la causa del bug de
+   * foco de la leccion 2026-08-04), no la permanencia del foco como unico
+   * criterio -- mismo razonamiento que el test de arriba -- pero aqui SI se
+   * comprueba tambien el foco, porque el encargo lo pide explicitamente y no
+   * cuesta nada adicional atarlo a la vez que `aria-busy`.
+   */
+  it("Task 5: aria-busy queda presente durante el viaje completo (scroll + cruce de composiciones) y se retira al asentarse; el foco permanece y disabled sigue AUSENTE", () => {
+    mountHero(100); // fuera de zona: dispara el viaje de scroll Y el cruce
+    Object.defineProperty(window, "scrollY", {
+      value: 5000,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 800,
+      writable: true,
+      configurable: true,
+    });
+    vi.stubGlobal("scrollTo", vi.fn());
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    vi.useFakeTimers();
+
+    try {
+      renderWithProviders(<ThemeToggle />);
+      const boton = screen.getByRole("button", {
+        name: "Cambiar a tema oscuro",
+      });
+      boton.focus();
+      expect(boton).not.toHaveAttribute("aria-busy");
+      // jsdom no calcula un valor inicial de `opacity` para una propiedad
+      // que ninguna regla fija (a diferencia de un navegador real, que
+      // resolveria el `1` inicial de la spec): el valor en reposo es cadena
+      // vacia, no "1" -- comprobado con una sonda antes de escribir este
+      // test. Lo que SI se afirma, en los dos extremos, es la AUSENCIA del
+      // 0.65 que solo declara la regla `[aria-busy="true"]`.
+      expect(getComputedStyle(boton).opacity).not.toBe("0.65");
+
+      act(() => {
+        boton.click();
+      });
+
+      // Durante el tramo de scroll: aria-busy YA presente, sin disabled, con
+      // el foco intacto. El indicador visual (opacity minima, IconButton.tsx)
+      // acompaña al mismo atributo que lee la CSS -- ninguna prop nueva.
+      const botonEnViaje = screen.getByRole("button", {
+        name: "Cambiar a tema oscuro",
+      });
+      expect(botonEnViaje).toHaveAttribute("aria-busy", "true");
+      expect(botonEnViaje).not.toBeDisabled();
+      expect(botonEnViaje).toHaveFocus();
+      expect(getComputedStyle(botonEnViaje).opacity).toBe("0.65");
+
+      Object.defineProperty(window, "scrollY", {
+        value: 0,
+        writable: true,
+        configurable: true,
+      });
+      act(() => {
+        window.dispatchEvent(new Event("scrollend"));
+      });
+
+      // El scroll ya termino y el tema YA cambio (icono/etiqueta invertidos),
+      // pero el cruce de composiciones del hero sigue en marcha: aria-busy NO
+      // se retira todavia.
+      const botonTrasElScroll = screen.getByRole("button", {
+        name: "Cambiar a tema claro",
+      });
+      expect(botonTrasElScroll).toHaveAttribute("aria-busy", "true");
+      expect(botonTrasElScroll).not.toBeDisabled();
+      expect(botonTrasElScroll).toHaveFocus();
+
+      act(() => {
+        vi.advanceTimersByTime(HERO_COPY_RETURN_MS);
+      });
+
+      const botonAsentado = screen.getByRole("button", {
+        name: "Cambiar a tema claro",
+      });
+      expect(botonAsentado).not.toHaveAttribute("aria-busy");
+      expect(botonAsentado).not.toBeDisabled();
+      expect(botonAsentado).toHaveFocus();
+      expect(getComputedStyle(botonAsentado).opacity).not.toBe("0.65");
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+      Object.defineProperty(window, "scrollY", {
+        value: 0,
+        writable: true,
+        configurable: true,
+      });
+    }
+  });
+
+  it("en una pagina sin hero (legales, via LegalHeader): aria-busy se retira en el mismo tick que el tema cambia, sin esperar a un cruce inexistente", () => {
+    // Sin #hero en el documento: useThemeScrollReset degrada a "en zona"
+    // (scrollY/innerHeight por defecto de jsdom) y no hay ningun cruce de
+    // composiciones que esperar (ver "willCrossfade" en el hook). Necesita el
+    // stub de matchMedia por el mismo motivo que el primer test del archivo
+    // (Task 5: `requestThemeChange` lo lee tambien en la rama instantanea).
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+    try {
+      renderWithProviders(<ThemeToggle />);
+      const boton = screen.getByRole("button", {
+        name: "Cambiar a tema oscuro",
+      });
+
+      act(() => {
+        boton.click();
+      });
+
+      expect(
+        screen.getByRole("button", { name: "Cambiar a tema claro" }),
+      ).not.toHaveAttribute("aria-busy");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

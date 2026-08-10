@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition";
 import { useTheme } from "@/theme/ThemeProvider";
 
 /**
@@ -61,11 +62,25 @@ export interface ThemeScrollReset {
   /** Punto de entrada unico del boton de tema: sustituye a `toggleTheme` a
    *  secas (ver `ThemeToggle.tsx`). */
   readonly requestThemeChange: () => void;
-  /** `true` mientras dura el viaje de scroll que precede al cambio de tema.
-   *  El consumidor lo usa para deshabilitar el boton -- no hay nada que
-   *  encolar mientras esto sea `true` (ver el guard de reentrada, mas
-   *  abajo). */
+  /** `true` mientras dura EXCLUSIVAMENTE el viaje de scroll que precede al
+   *  cambio de tema -- de click a que `toggleTheme()` se llama de verdad.
+   *  Vuelve a `false` en el MISMO tick en que el tema cambia, antes incluso
+   *  de que el cruce de composiciones del hero (HeroBackdrop.tsx) arranque.
+   *  Sigue existiendo tal cual porque el guard de reentrada de
+   *  `requestThemeChange` (mas abajo) lo usa via `pendingRef`, y varios
+   *  tests atan su transicion exacta. NINGUN consumidor lo usa para
+   *  `disabled` (revision 2026-08-04: un boton nativo deshabilitado deja de
+   *  ser enfocable y le arrebata el foco a quien lo activo por teclado) --
+   *  para reflejar el viaje COMPLETO (scroll + cruce de composiciones) en la
+   *  interfaz, usa `busy`. */
   readonly pending: boolean;
+  /** `true` desde el click hasta que el viaje COMPLETO se asienta: el scroll
+   *  (si lo hubo) MAS el cruce de composiciones del hero (Task 5, plan
+   *  premium F1-F5), cuando va a ocurrir uno. Pensado para `aria-busy`,
+   *  NUNCA para `disabled` (misma razon que `pending`). Ver el docblock de
+   *  `requestThemeChange` para el criterio exacto de cuando se extiende mas
+   *  alla de `pending` y cuando no. */
+  readonly busy: boolean;
 }
 
 /**
@@ -182,12 +197,43 @@ function isInHeroZone(): boolean {
  * cambio ni cancela el viaje en curso. Se comprueba contra una `ref`
  * (`pendingRef`), no contra el `pending` de estado: la ref es sincrona y
  * bloquea incluso una segunda llamada que llegue en el MISMO tick, antes de
- * que React haya repintado el boton deshabilitado.
+ * que React haya repintado el boton (que sigue enfocable durante todo el
+ * viaje -- revision 2026-08-04, JSDoc de `pending`).
+ *
+ * `busy` (Task 5, plan premium F1-F5): el boton dispara un viaje con hasta
+ * ~3s de silencio (el scroll) seguido, si hay un hero montado y no hay
+ * reduced-motion, de un cruce de composiciones de hasta
+ * `HERO_COPY_RETURN_MS` mas (hero.transition.ts) -- ninguno de los dos
+ * tramos anuncia nada por si solo a un lector de pantalla. `busy` cubre los
+ * DOS, de click a asentado, y se calcula con el MISMO criterio que ya usan
+ * HeroBackdrop.tsx/useHeroCopySwap para decidir si van a animar algo
+ * (`willCrossfade`, mas abajo): sin `#hero` en el documento (paginas legales,
+ * `not-found`) o bajo `reduce`, no hay cruce que esperar y `busy` se apaga en
+ * el mismo tick que el tema cambia, exactamente como `pending`. Con cruce, se
+ * arma un temporizador propio (`busySettleTimeoutRef`) con
+ * `HERO_COPY_RETURN_MS` -- REUTILIZADO de `hero.transition.ts`, no un numero
+ * nuevo inventado para esta revision: es el mismo instante que la propia
+ * maquina ya calcula para "la copia del hero vuelve a ser visible con la
+ * distribucion nueva", el ULTIMO cambio visible de todo el cruce. Vive en su
+ * PROPIA ref, independiente de los temporizadores del scroll (que ya se
+ * limpiaron en `finish()` para cuando esta ventana arranca), y un segundo
+ * clic legitimo durante esa ventana (posible: el guard de reentrada de
+ * arriba solo cubre el tramo de `pending`) la reinicia en vez de dejar que
+ * la vieja apague `busy` a mitad del cruce nuevo.
  */
 export function useThemeScrollReset(): ThemeScrollReset {
   const { toggleTheme } = useTheme();
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
+
+  // `busy` (Task 5): vive en su PROPIO temporizador (`busySettleTimeoutRef`),
+  // independiente de los del scroll -- ver el docblock de `requestThemeChange`
+  // para el criterio completo. Arranca cuando el tema YA cambio (el mismo
+  // instante en que `pending` vuelve a `false`, o antes si el viaje era
+  // instantaneo) y puede sobrevivir mas alla de ese punto, asi que no puede
+  // compartir ciclo de vida con `pendingRef`/`abortWaitRef`.
+  const [busy, setBusy] = useState(false);
+  const busySettleTimeoutRef = useRef<number | null>(null);
 
   // Deja limpios los dos temporizadores (inactividad + techo absoluto), el
   // listener de `scroll`, el de `scrollend` y el rAF en vuelo de la carrera
@@ -201,25 +247,65 @@ export function useThemeScrollReset(): ThemeScrollReset {
     // Limpieza al desmontar (paso 8 del encargo): SOLO libera los mecanismos
     // en vuelo, nunca completa el cambio de tema por su cuenta -- un
     // consumidor que se desmonta a mitad del viaje no deberia disparar un
-    // `toggleTheme()` sobre un arbol que ya no esta.
-    return () => abortWaitRef.current();
+    // `toggleTheme()` sobre un arbol que ya no esta. Incluye la ventana de
+    // asentamiento de `busy`: sobrevive a `abortWaitRef` (arriba), asi que
+    // necesita su propia limpieza aqui, no la hereda de la del scroll.
+    return () => {
+      abortWaitRef.current();
+      if (busySettleTimeoutRef.current !== null) {
+        window.clearTimeout(busySettleTimeoutRef.current);
+        busySettleTimeoutRef.current = null;
+      }
+    };
   }, []);
 
   const requestThemeChange = useCallback((): void => {
     if (pendingRef.current) return; // reentrada: ver JSDoc del hook
 
-    if (isInHeroZone()) {
-      toggleTheme();
-      return;
+    // Cancela la ventana de asentamiento de `busy` de un cruce ANTERIOR que
+    // todavia siguiera en marcha (ver JSDoc de `busy`): un segundo clic
+    // legitimo es posible en cuanto `pending` ya volvio a `false`, y sin
+    // esto la ventana vieja apagaria `busy` a mitad del cruce nuevo.
+    if (busySettleTimeoutRef.current !== null) {
+      window.clearTimeout(busySettleTimeoutRef.current);
+      busySettleTimeoutRef.current = null;
     }
+    setBusy(true);
 
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
+    // Mismo criterio que HeroBackdrop.tsx/useHeroCopySwap comprueban por su
+    // cuenta al reaccionar a este mismo cambio de tema (ver el docblock de
+    // `requestThemeChange`): sin esto, `busy` se quedaria en `true` de mas en
+    // una pagina sin hero o bajo `reduce`, donde ningun cruce va a ocurrir.
+    const willCrossfade = !reduced && document.getElementById("hero") !== null;
+
+    // Cierre de `busy`, comun a las TRES salidas de esta funcion (zona del
+    // hero, reduced-motion, y `finish()` del viaje de scroll, mas abajo):
+    // ver el docblock de `requestThemeChange` para el porque de
+    // `HERO_COPY_RETURN_MS`.
+    const settleBusy = (): void => {
+      if (!willCrossfade) {
+        setBusy(false);
+        return;
+      }
+      busySettleTimeoutRef.current = window.setTimeout(() => {
+        busySettleTimeoutRef.current = null;
+        setBusy(false);
+      }, HERO_COPY_RETURN_MS);
+    };
+
+    if (isInHeroZone()) {
+      toggleTheme();
+      settleBusy();
+      return;
+    }
 
     if (reduced) {
       window.scrollTo({ top: 0, behavior: "instant" });
       toggleTheme();
+      settleBusy(); // willCrossfade siempre false aqui: se apaga en el acto
       return;
     }
 
@@ -252,6 +338,7 @@ export function useThemeScrollReset(): ThemeScrollReset {
       pendingRef.current = false;
       setPending(false);
       toggleTheme();
+      settleBusy();
     };
 
     // Envoltorio de `scrollend` que descarta un disparo espurio de un gesto
@@ -329,5 +416,5 @@ export function useThemeScrollReset(): ThemeScrollReset {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [toggleTheme]);
 
-  return { requestThemeChange, pending };
+  return { requestThemeChange, pending, busy };
 }
