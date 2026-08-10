@@ -166,7 +166,7 @@ export const FEATURES_GAMING_ACCENT = "oklch(0.62 0.17 340)";
  *   hover  oscuro (vs `semantic.bg`):                6.13:1
  *
  * Las cuatro pasan AA (4.5:1) con margen comparable al resto de acentos de
- * esta tarea (5.07-7.82:1 en `primary`/`secondary`). L elegida cerca de la de
+ * esta tarea (5.07-7.81:1 en `primary`/`secondary`). L elegida cerca de la de
  * `primary`/`secondary` en cada rama (claro ~0.50-0.55, oscuro ~0.65-0.70)
  * para que las tres tarjetas mantengan un peso visual similar; el hue 340
  * (vs 235.851 `primary`/311.928 `secondary`) sigue distinguiendo a Gaming de

@@ -535,13 +535,26 @@ describe("contraste AA de las tarjetas de Features (rama clara)", () => {
   });
 
   /*
-   * El número del badge usa `accentColorHover` (paso 700), no `accentColor`
-   * (paso 600) -- ver el docblock de `accentColorHover` en `Features.tsx`.
-   * Medido (informe de la tarea): `accentColor` sobre el `color-mix` de este
-   * mismo badge da 2.69:1/3.08:1/3.46:1 según la tarjeta -- muy por debajo
-   * de AA en las tres --, mientras que `accentColorHover` da
-   * 4.52:1/5.21:1/4.66:1, que sí cumple. El margen de "learning" (4.52:1) es
-   * el más ajustado de los tres: se declara aquí, no se oculta.
+   * El número del badge usa `accentColorHover`, no `accentColor` -- ver el
+   * docblock de `accentColorHover` en `Features.tsx`. `ScBadge` SOLO se
+   * renderiza en la rama clara, así que ambas funciones resuelven aquí su
+   * rama clara.
+   *
+   * Medido tras la Task 26 (2026-08-10, "CTA de Features con AA en las seis
+   * combinaciones" -- resolución por rama de `accentColor`/`accentColorHover`,
+   * ver `Features.tsx`): `accentColor` sobre el `color-mix` de este mismo
+   * badge da 4.31:1/4.98:1/4.52:1 según la tarjeta -- "learning" sigue por
+   * debajo de AA y "gaming" raspa el umbral --, mientras que
+   * `accentColorHover` da 4.96:1/5.58:1/5.60:1, que sí cumple con margen en
+   * las tres. MEJORARON con la Task 26: antes de esa tarea (`accentColor`
+   * compartía el paso 600 entre ramas, `accentColorHover` el 700)
+   * `accentColorHover` daba 4.52:1/5.21:1/4.66:1 -- el margen de "learning"
+   * (antes 4.52:1, ahora 4.96:1) era el más ajustado de los tres y sigue
+   * siéndolo, pero con más aire. `accentColor` solo (sin la Task 26) daba
+   * 2.69:1/3.08:1/3.46:1, muy por debajo de AA en las tres -- la mejora del
+   * paso de reposo en claro (un paso más oscuro, ver `accentColor`) acerca
+   * también el fondo del badge a AA por sí solo, aunque sigue siendo
+   * `accentColorHover` quien de verdad lo garantiza.
    */
   it.each(FEATURE_KEYS)(
     "tarjeta %s: el numero del badge (accentColorHover) sobre su fondo color-mix(accentColor 12%%, surface) cumple AA",

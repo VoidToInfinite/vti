@@ -173,7 +173,7 @@ export function accentColor(theme: ThemeDefinition, key: FeatureKey): string {
  * que aclara en oscuro igual que learning/imagination). Ratios medidos
  * (`contrastRatio`, `Features.test.tsx`, describe "Task 26"):
  *
- *   learning:    5.84:1 sobre surface (claro) | 7.82:1 sobre bg (oscuro)
+ *   learning:    5.84:1 sobre surface (claro) | 7.81:1 sobre bg (oscuro)
  *   imagination: 6.63:1 sobre surface (claro) | 6.45:1 sobre bg (oscuro)
  *   gaming:      6.61:1 sobre surface (claro) | 6.13:1 sobre bg (oscuro)
  *
