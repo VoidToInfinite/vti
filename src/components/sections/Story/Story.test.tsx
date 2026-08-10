@@ -1356,6 +1356,35 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     expect(getComputedStyle(deck).maxWidth).toBe(STORY_DARK_MAX_WIDTH);
   });
 
+  /*
+   * Task 7 (plan premium F1-F5, "micro-perf sin riesgo"): antes de esta
+   * tarea el `border-radius` del stage interpolaba con `--story-enter`
+   * (`calc(radius["2xl"] * (1 - var(--story-enter, 1)))`), la MISMA variable
+   * que `useSlideDeck.ts` reescribe en cada frame de scroll mientras la
+   * pista intersecta -- no solo durante la apertura, sino durante TODO el
+   * recorrido de las 6 diapositivas. A diferencia de `transform` (compositor
+   * puro), `border-radius` obliga a repintar en cada escritura: el UNICO
+   * repintado por scroll de todo el repo. Se congela en 0 -- el mismo valor
+   * que el estado sin-JS ya usaba por defecto. Candado con bug inyectado:
+   * restaurando el `calc(...)` con `var(--story-enter, 1)` a mano en
+   * `story.deck.tsx`, este test se pone en rojo (`getComputedStyle` deja de
+   * devolver "0px"); restaurado el fix, vuelve a verde.
+   */
+  it("el border-radius del stage esta FIJO en 0: ya no interpola con --story-enter en cada frame de scroll (Task 7, plan premium F1-F5)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    expect(getComputedStyle(stage).borderRadius).toBe("0");
+    // Ninguna regla inyectada para este elemento referencia --story-enter en
+    // un border-radius: si volviera a colarse el calc(), el repintado por
+    // scroll que esta tarea retira reaparecería con él.
+    expect(cssRuleTextFor(stage)).not.toMatch(/border-radius:[^;]*story-enter/);
+  });
+
   it("bajo prefers-reduced-motion la pista vuelve a flujo, y el scrub de rewind vive SOLO bajo no-preference", async () => {
     // jsdom no evalua @media (leccion 2026-07-27, repetida en todo este
     // archivo): el guard de reduce y el aislamiento del scrub se atan por

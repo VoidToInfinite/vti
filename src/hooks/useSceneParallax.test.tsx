@@ -202,6 +202,39 @@ describe("useSceneParallax", () => {
     expect(layer.style.transform).toContain("scale(1.06");
   });
 
+  it("el scale se queda fijo en overscan aunque scrollProgress no sea cero (Task 7, plan premium F1-F5: congelar el scale)", () => {
+    // Hasta esta tarea el scale variaba `overscan + scrollProgress * depth *
+    // 0.05` -- un cambio de escala en CADA frame de scroll que fuerza al
+    // compositor a re-rasterizar la capa (a diferencia de una traslacion
+    // pura). Congelado, el scale es SIEMPRE `overscan`, sin importar cuanto
+    // haya avanzado el scroll. `rect.top: -400` (con `innerHeight` 768 de
+    // jsdom) deja `scrollProgress` en ~0.52 -- no trivial -- y `depth: 1` es
+    // el maximo que la formula antigua multiplicaba, para que un candado que
+    // se relajara por error lo detecte con el mayor margen posible.
+    let pending: FrameRequestCallback[] = [];
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+    );
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    scene.getBoundingClientRect = () => ({ top: -400 }) as DOMRect;
+    const layer = document.createElement("div");
+    const targets = [targetOf(layer, 1)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioTrigger(true));
+    const batch = pending;
+    pending = [];
+    for (const cb of batch) cb(0);
+
+    expect(layer.style.transform).toContain(
+      `scale(${OPTS.overscan.toFixed(4)})`,
+    );
+  });
+
   it("tras superar idleMs sin movimiento de puntero, usa la deriva en vez del ultimo target de puntero", () => {
     // `lastMoveRef` se marca con `performance.now()` real al arrancar; para
     // que la comparacion con el `now` que le pasamos a mano al callback de

@@ -56,12 +56,27 @@ export const ScTrack = styled.div`
  * escena (StoryCosmicBeing se escala 1.06x) lo hace este elemento, que no es
  * ancestro de si mismo.
  *
- * La interpolacion de escala/radio usa --story-enter con su valor por
- * defecto en el estado FINAL (var(--story-enter, 1)): si el rAF del hook
- * nunca corre -- sin JS, primer frame antes de que escriba, o
- * prefers-reduced-motion -- el stage se ve a escala 1 y sin radio, es decir
- * YA ABIERTO. Encogerlo por defecto dejaria la presentacion ilegible en
- * cualquiera de esos casos.
+ * La interpolacion de ESCALA usa --story-enter con su valor por defecto en
+ * el estado FINAL (var(--story-enter, 1)): si el rAF del hook nunca corre --
+ * sin JS, primer frame antes de que escriba, o prefers-reduced-motion -- el
+ * stage se ve a escala 1, es decir YA ABIERTO. Encogerlo por defecto dejaria
+ * la presentacion ilegible en cualquiera de esos casos.
+ *
+ * `border-radius` FIJO en 0 (Task 7, plan premium F1-F5, "micro-perf sin
+ * riesgo"): hasta esta tarea interpolaba con el MISMO --story-enter que la
+ * escala (`calc(radius["2xl"] * (1 - var(--story-enter, 1)))`). El problema
+ * no era esa unica transicion de apertura (~1 pantalla de scroll): measure()
+ * (useSlideDeck.ts) reescribe --story-enter en CADA frame de scroll mientras
+ * la pista entera (6 diapositivas + cola) intersecta -- muchas pantallas mas
+ * alla de la apertura, aunque el valor ya este clavado en 1 y no cambie. A
+ * diferencia de `transform` (compositor puro), `border-radius` participa del
+ * pintado: cada escritura de la custom property obligaba a repintar este
+ * elemento -- pantalla completa, con su `background-color` y las 11 capas de
+ * la escena detras -- el UNICO repintado por scroll de todo el repo. El
+ * radio se congela en 0, el mismo valor que el degradado sin-JS ya usaba por
+ * defecto (parrafo de arriba): la presentacion sigue abriendose de 0.92 a 1
+ * (`transform`, sin coste de pintado), solo deja de "desredondear" sus
+ * esquinas durante ese primer tramo.
  */
 export const ScStage = styled.div`
   position: sticky;
@@ -76,9 +91,7 @@ export const ScStage = styled.div`
         var(--story-enter, 1)
     )
   );
-  border-radius: calc(
-    ${({ theme }) => theme.data.radius["2xl"]} * (1 - var(--story-enter, 1))
-  );
+  border-radius: 0;
 
   /* D6: el pin en si es la primera baja -- sin position: sticky no hay nada
      que despegar ni escalar. */
