@@ -217,6 +217,22 @@ El hallazgo sistémico (sistema vertical sin mecanismo horizontal):
 
 ---
 
+## Task 26 — CTA de Features con AA en las seis combinaciones (encargo directo del dueño, 2026-08-10)
+
+Seguimiento de la deuda que la Task 3 midió y documentó sin resolver (entrada de «Deuda conocida» en `RULES.md` y describe «Task 3: CTA de tarjeta de Features a >=14px» en `Features.test.tsx`, con los seis ratios exactos). El problema de fondo: `ScCta` (`src/components/sections/Features/Features.tsx`) resuelve su color de reposo con `accentColor(theme.data, $key)` — paso 600 de `palette.primary`/`palette.secondary`, o `FEATURES_GAMING_ACCENT` para «gaming» — y `palette` es COMPARTIDA entre `themes.light`/`themes.dark` (`src/theme/themes.ts`), así que un único color de la rampa no puede pasar AA (4.5:1, texto de 14px) a la vez sobre `semantic.surface` claro (blanco de `ScCardSurface`) y sobre `semantic.bg` oscuro. Medido: learning 3.02/5.90 · imagination 3.50/5.08 · gaming 3.98/4.47 (claro/oscuro).
+
+**Requisito:** las SEIS combinaciones (3 tarjetas × 2 ramas) pasan AA ≥4.5:1 medido con `contrastRatio` (`src/theme/tokens/contrast.ts`) contra el fondo real de cada rama — y también en el estado HOVER (hoy `accentColorHover`, paso 700: medir sus seis combinaciones y cubrirlas igual; un hover ilegible es el mismo defecto).
+
+**Vía recomendada (a):** resolución del acento POR RAMA — en claro un paso más oscuro de la misma rampa (700/800, el que pase midiendo), en oscuro conservar o aclarar (gaming necesita subir de 4.47). Es el precedente del propio componente: el número del badge ya resolvió este mismo problema con el paso 700 sobre su fondo mezclado (lección 2026-08-06). Mantener la distinción por tarjeta (learning/imagination/gaming siguen siendo tres acentos distintos) y no introducir una segunda escala de color. Las vías (b) píldora con fondo tintado o (c) refuerzo con subrayado solo se toman si (a) resulta imposible sobre la rampa existente (ningún paso pasa AA sin perder la identidad del acento) — en ese caso, reportar la medición que lo demuestra y aplicar la alternativa con el mismo rigor de medición.
+
+**Entrega:**
+
+1. Resolución por tema en `ScCta` (reposo y hover), documentada en el propio componente con los ratios medidos.
+2. El describe documental de `Features.test.tsx` se ACTIVA: aserciones `contrastRatio(...) >= 4.5` para las seis combinaciones de reposo y las seis de hover, reproduciendo la mezcla si algún fondo real es `color-mix` (lección 2026-08-06), validadas con bug inyectado (volver al paso 600 compartido → rojo).
+3. La entrada de «Deuda conocida» de `RULES.md` se cierra (se reescribe como resuelta con fecha y ratios finales, sin borrar la historia).
+4. Verificación visual en navegador real de las tres tarjetas en ambas ramas (los colores nuevos se miran, no se suponen): capturas al workspace.
+5. El contraste del badge y de cualquier otro consumidor de `accentColor`/`accentColorHover` NO se regresa: inventario por grep de consumidores antes de tocar las funciones; si la vía elegida cambia la firma, listar los afectados en el report.
+
 ## Fuera de alcance (NO implementar)
 
 - **Push/PR** (decisión del usuario).
