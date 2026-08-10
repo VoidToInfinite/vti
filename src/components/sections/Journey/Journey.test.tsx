@@ -796,9 +796,33 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
  * display:none/visibility:hidden), asi que ninguna diapositiva sale del
  * arbol de accesibilidad aunque este "next"/"past" visualmente.
  *
- * Verificado con el bug inyectado a proposito (informe de la tarea): anadir
- * `aria-hidden="true"` a una `ScJourneySlide` de `Journey.tsx` pone este
- * test en rojo; quitarlo lo devuelve a verde.
+ * Fix round (revision del coordinador, mismo hallazgo que su gemelo de
+ * `Story.test.tsx`): la version original solo cubria la diapositiva misma
+ * y sus ANCESTROS (`closest()`, que solo sube) -- un `aria-hidden="true"`
+ * en un nodo INTERNO con texto pasaba en verde mientras un lector de
+ * pantalla dejaba de anunciar ese texto.
+ *
+ * El primer arreglo (exigir CERO `aria-hidden` interno) era DEMASIADO
+ * estricto: `StepIcon` (Journey.tsx:440) es un SVG decorativo con
+ * `aria-hidden="true"` DENTRO de cada diapositiva de paso -- redundante a
+ * proposito con `ScJourneyStepLabel`, que ya nombra el paso en texto -- y
+ * ese `aria-hidden` es la practica CORRECTA, no un bug (confirmado al
+ * ejecutar la version estricta: rompio en rojo sobre codigo sin ningun
+ * defecto de accesibilidad). El arreglo final distingue las dos
+ * situaciones por su EFECTO, no por su presencia: un `aria-hidden` interno
+ * esta permitido si el subarbol que oculta no tiene texto (`textContent`
+ * vacio, un icono puramente grafico); esta prohibido si oculta texto real.
+ * Cada diapositiva recorre TODOS sus descendientes `aria-hidden="true"` y
+ * exige `textContent` vacio en cada uno.
+ *
+ * Verificado con DOS bugs inyectados a proposito, cada uno acotado a la
+ * asercion que cierra (informe de la tarea): (a) anadir
+ * `aria-hidden="true"` al CONTENEDOR de una `ScJourneySlide` pone este test
+ * en rojo por `not.toHaveAttribute`; quitarlo lo devuelve a verde. (b)
+ * anadir `aria-hidden="true"` a un nodo INTERNO con texto de una
+ * diapositiva (sin tocar el contenedor) pone este test en rojo porque ese
+ * descendiente oculto deja de tener `textContent` vacio; quitarlo lo
+ * devuelve a verde.
  */
 describe("Journey: candado SR del deck -- orden de DOM y ausencia de aria-hidden sobre el texto (Task 6)", () => {
   beforeEach(() => {
@@ -839,6 +863,20 @@ describe("Journey: candado SR del deck -- orden de DOM y ausencia de aria-hidden
     slides.forEach((slide) => {
       expect(slide).not.toHaveAttribute("aria-hidden");
       expect(slide.closest('[aria-hidden="true"]')).toBeNull();
+      // querySelectorAll() BAJA por los descendientes -- closest() no
+      // cubre este caso (solo sube). NO se exige "cero aria-hidden
+      // interno" a secas: StepIcon (Journey.tsx:440) es un icono
+      // decorativo legitimo con aria-hidden DENTRO de cada diapositiva de
+      // paso, redundante a proposito con ScJourneyStepLabel. Lo que el
+      // candado prohibe es que un aria-hidden interno oculte TEXTO, asi
+      // que cada descendiente oculto tiene que tener textContent vacio
+      // (fix round, revision del coordinador).
+      const hiddenDescendants = Array.from(
+        slide.querySelectorAll('[aria-hidden="true"]'),
+      );
+      hiddenDescendants.forEach((hidden) => {
+        expect(hidden.textContent?.trim()).toBe("");
+      });
       expect(slide.textContent?.trim().length ?? 0).toBeGreaterThan(0);
     });
   });

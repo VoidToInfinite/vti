@@ -1462,14 +1462,39 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
  *    orden visual que decide `grid-area` (las 6 comparten la MISMA celda de
  *    `ScDeck`, story.deck.tsx).
  * 2) Ausencia de `aria-hidden` sobre el contenido textual: ni la propia
- *    diapositiva ni ningun ancestro entre ella y la raiz del documento
- *    oculta su texto -- lo decorativo (ScSceneWrap/ScRail/ScScrollHint) vive
- *    FUERA de `ScDeck`, como hermano de las diapositivas, nunca envolviendolas.
+ *    diapositiva, ni ningun ancestro entre ella y la raiz del documento, ni
+ *    ningun DESCENDIENTE suyo oculta su texto -- lo decorativo
+ *    (ScSceneWrap/ScRail/ScScrollHint) vive FUERA de `ScDeck`, como hermano
+ *    de las diapositivas, nunca envolviendolas ni envuelto por ellas.
  *
- * Verificado con el bug inyectado a proposito (informe de la tarea): anadir
- * `aria-hidden="true"` a una `ScSlide` de `Story.tsx` pone este test en
- * rojo (la comprobacion `not.toHaveAttribute("aria-hidden")` falla sobre
- * esa diapositiva); quitarlo lo devuelve a verde.
+ * Fix round (revision del coordinador): la version original de este test
+ * solo cubria la diapositiva misma (`toHaveAttribute`) y sus ANCESTROS
+ * (`closest()`, que solo sube). Un `aria-hidden="true"` puesto en un nodo
+ * INTERNO de la diapositiva (p.ej. envolver `ScDeckTitle` o
+ * `ScDeckPillarBody`, sin tocar el contenedor `ScSlide`) pasaba las tres
+ * aserciones en verde mientras un lector de pantalla dejaba de anunciar ESE
+ * texto -- exactamente el caso que el nombre del test promete cubrir.
+ *
+ * El primer arreglo (`querySelector(...) === null`, sin mas) era DEMASIADO
+ * estricto y rompio un caso legitimo: `StepIcon` (Journey.tsx:440) es un
+ * SVG decorativo con `aria-hidden="true"` DENTRO de cada diapositiva de
+ * paso, redundante a proposito con la etiqueta de texto visible que ya
+ * nombra el paso -- ocultarlo es la practica correcta, no un bug. El
+ * arreglo final distingue las dos situaciones por su EFECTO: un
+ * `aria-hidden` interno esta permitido si el subarbol que oculta no
+ * contiene texto (`textContent` vacio, el caso de un icono puramente
+ * grafico); esta prohibido si oculta texto real (el caso que rompia el
+ * candado). Cada diapositiva recorre TODOS sus descendientes
+ * `aria-hidden="true"` y exige `textContent` vacio en cada uno.
+ *
+ * Verificado con DOS bugs inyectados a proposito, cada uno acotado a la
+ * asercion que cierra (informe de la tarea): (a) anadir
+ * `aria-hidden="true"` al CONTENEDOR de una `ScSlide` de `Story.tsx` pone
+ * este test en rojo por `not.toHaveAttribute`; quitarlo lo devuelve a
+ * verde. (b) anadir `aria-hidden="true"` a un nodo INTERNO con texto de
+ * una diapositiva (sin tocar el contenedor) pone este test en rojo porque
+ * ese descendiente oculto deja de tener `textContent` vacio; quitarlo lo
+ * devuelve a verde.
  */
 describe("Story: candado SR del deck -- orden de DOM y ausencia de aria-hidden sobre el texto (Task 6)", () => {
   beforeEach(() => {
@@ -1515,6 +1540,23 @@ describe("Story: candado SR del deck -- orden de DOM y ausencia de aria-hidden s
       // ocultar el subarbol entero sin que ninguna diapositiva individual
       // lo delate.
       expect(slide.closest('[aria-hidden="true"]')).toBeNull();
+      // querySelector()/querySelectorAll() BAJAN por los descendientes --
+      // closest() no cubre este caso (solo sube). Sin esta asercion,
+      // envolver SOLO el contenido interno de una diapositiva (p.ej.
+      // ScDeckTitle o ScDeckPillarBody) en aria-hidden pasaria las dos
+      // aserciones de arriba en verde mientras un lector de pantalla deja
+      // de anunciar ese texto (fix round, revision del coordinador). NO se
+      // exige "cero aria-hidden interno" a secas: un icono puramente
+      // decorativo (sin texto propio, p.ej. StepIcon en la rama oscura de
+      // Journey) SI puede llevarlo -- lo que el candado prohibe es que ese
+      // aria-hidden envuelva TEXTO, asi que se exige que cada descendiente
+      // oculto tenga el arbol de texto VACIO.
+      const hiddenDescendants = Array.from(
+        slide.querySelectorAll('[aria-hidden="true"]'),
+      );
+      hiddenDescendants.forEach((hidden) => {
+        expect(hidden.textContent?.trim()).toBe("");
+      });
       expect(slide.textContent?.trim().length ?? 0).toBeGreaterThan(0);
     });
   });
