@@ -48,6 +48,12 @@
         "ThemeToggle": {
             "switchToLight": "Switch to light theme",
             "switchToDark": "Switch to dark theme"
+        },
+        "SkipLink": {
+            "label": "Skip to content"
+        },
+        "BackToTop": {
+            "label": "Back to top"
         }
     },
     "notFound": {

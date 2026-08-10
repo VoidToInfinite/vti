@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/theme/ThemeProvider";
 import { GlobalStyles } from "@/theme/GlobalStyles";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { StageProvider } from "@/motion/StageProvider";
+import { SkipLink } from "@/components/layout/SkipLink/SkipLink";
+import { BackToTop } from "@/components/layout/BackToTop/BackToTop";
 
 export function Providers({
   children,
@@ -33,7 +35,24 @@ export function Providers({
             DESPUÉS de `children`, que es el orden de tabulación correcto para
             una capa no bloqueante. */}
         <StageProvider>
-          <I18nProvider>{children}</I18nProvider>
+          {/* SkipLink (Task 2): primer hijo focalizable de <body> en la
+              practica -- ni StyledComponentsRegistry, ni ThemeProvider, ni
+              StageProvider ni I18nProvider renderizan un nodo DOM propio, asi
+              que en el arbol real precede a {children} sin intermediarios.
+              Necesita traducirse y leer tokens de tema, de ahi que viva aqui
+              (dentro de I18nProvider/ThemeProvider) y no en app/layout.tsx,
+              que es Server Component y no puede consumir ninguno de los dos. */}
+          <I18nProvider>
+            <SkipLink />
+            {children}
+            {/* BackToTop (Task 2): global, no solo Home -- las paginas
+                legales tambien pueden crecer mas de 2 pantallas. Se posiciona
+                fijo (position: fixed), asi que su lugar en el DOM no afecta
+                al layout visual; va despues de {children} para que su orden
+                de tabulacion sea el ultimo de la pagina, coherente con ser
+                un atajo de "vuelta al principio". */}
+            <BackToTop />
+          </I18nProvider>
         </StageProvider>
       </ThemeProvider>
     </StyledComponentsRegistry>

@@ -424,7 +424,13 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
       : t("Legal.common.storageTable.days", { count: durationDays });
 
   return (
-    <ScMain>
+    // id="main" + tabIndex={-1}: destino del SkipLink (Task 2), mismo
+    // contrato que app/page.tsx/NotFoundContent.tsx -- ver el docblock de
+    // SkipLink.tsx para el porque del -1.
+    <ScMain
+      id="main"
+      tabIndex={-1}
+    >
       <ScBackLink href="/">{backToHome}</ScBackLink>
       <ScTitle>{doc.title}</ScTitle>
       <ScVersionMeta>

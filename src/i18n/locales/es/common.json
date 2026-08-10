@@ -48,6 +48,12 @@
         "ThemeToggle": {
             "switchToLight": "Cambiar a tema claro",
             "switchToDark": "Cambiar a tema oscuro"
+        },
+        "SkipLink": {
+            "label": "Saltar al contenido"
+        },
+        "BackToTop": {
+            "label": "Volver arriba"
         }
     },
     "notFound": {

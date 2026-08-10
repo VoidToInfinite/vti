@@ -75,7 +75,13 @@ const ScBackLink = styled(Link)`
 export function NotFoundContent(): ReactElement {
   const { t } = useTranslation("common");
   return (
-    <main>
+    // id="main" + tabIndex={-1}: destino del SkipLink (Task 2), mismo
+    // contrato que app/page.tsx/LegalDocument.tsx -- ver el docblock de
+    // SkipLink.tsx para el porque del -1.
+    <main
+      id="main"
+      tabIndex={-1}
+    >
       <h1>{t("notFound.title")}</h1>
       <p>{t("notFound.message")}</p>
       <ScBackLink href="/">{t("notFound.backToHome")}</ScBackLink>

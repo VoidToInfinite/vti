@@ -31,7 +31,15 @@ export default function HomePage(): ReactElement {
         })}
       />
       <Navbar />
-      <main>
+      {/* id="main" + tabIndex={-1}: destino del SkipLink (Task 2). El -1 lo
+          hace focalizable de forma programatica sin sumarlo al orden normal
+          de tabulacion -- patron estandar para el objetivo de un skip link,
+          necesario porque un navegador puede desplazar el scroll hasta un
+          elemento sin foco real sin el, dejando el foco en <body>. */}
+      <main
+        id="main"
+        tabIndex={-1}
+      >
         <Hero />
         <HomeSections />
       </main>
