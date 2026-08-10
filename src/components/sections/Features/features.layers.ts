@@ -108,20 +108,74 @@ export const FEATURES_CHECK_ICON_PATH = "M20 6L9 17l-4-4";
  * ornamento B, auditoria premium 2026-08-08, 2026-08-09): `ScSpanGaming`
  * (Features.tsx) pasa a color solido (`FEATURES_GAMING_ACCENT`, ver debajo --
  * el mismo literal que ya usaba como fallback de
- * `@supports not (background-clip: text)` y que `accentColor()` ya resolvía
- * para el check/CTA de esta misma tarjeta) para poder medir su contraste con
+ * `@supports not (background-clip: text)`) para poder medir su contraste con
  * `contrast.ts`. Medido: 4.71:1 sobre `FEATURES_ORBITAL_VOID` -- por encima
- * de AA (4.5:1); ver el docblock de `ScSpanGaming`, Features.tsx.
+ * de AA (4.5:1); ver el docblock de `ScSpanGaming`, Features.tsx. Hasta la
+ * Task 26 (2026-08-10) este literal también alimentaba el CTA/check/badge de
+ * la tarjeta vía `accentColor()` -- ya NO, ver el bloque de abajo.
  */
 
-/** Acento propio de Gaming para el check de los bullets, el CTA y (desde
- *  Task 12) el propio término "Gaming" del `h2` oscuro (mockup L201-204 y
- *  L206): literal `oklch()`, no `var(--secondary-*)` — es un
+/** Acento propio de Gaming para el término "Gaming" del `h2` oscuro (mockup
+ *  L206, desde Task 12): literal `oklch()`, no `var(--secondary-*)` — es un
  *  matiz deliberadamente distinto del `secondary` de tema, así que no se
- *  sustituye por un token. */
+ *  sustituye por un token.
+ *
+ *  Task 26 (2026-08-10, CTA con AA en las seis combinaciones): hasta esta
+ *  tarea, `accentColor()`/`accentColorHover()` (Features.tsx) también
+ *  resolvían el check de los bullets, el badge y el CTA de la tarjeta contra
+ *  ESTE MISMO literal (reposo) y `FEATURES_GAMING_ACCENT_HOVER` (hover,
+ *  retirada, ver más abajo) en las DOS ramas de tema -- exactamente el mismo
+ *  problema que ya tenían `primary`/`secondary`: un único L no puede pasar
+ *  AA (4.5:1) a la vez sobre `semantic.surface` claro (blanco) y
+ *  `semantic.bg` oscuro (casi negro). Medido: 3.98:1/4.47:1 (claro/oscuro,
+ *  reposo). Ahora `accentColor()`/`accentColorHover()` resuelven Gaming por
+ *  RAMA con las cuatro constantes de abajo (mismo hue 340, L vecino del de
+ *  este literal); ESTE literal queda RESERVADO en exclusiva para
+ *  `ScSpanGaming` (el término del `h2`, que mide contra el void de la
+ *  escena, no contra `semantic.bg` -- un fondo distinto con su propio
+ *  presupuesto de contraste, sin relación con el CTA). */
 export const FEATURES_GAMING_ACCENT = "oklch(0.62 0.17 340)";
-/** Estado hover del acento de Gaming (mockup L206: `color: oklch(0.55 0.18 340)`). */
-export const FEATURES_GAMING_ACCENT_HOVER = "oklch(0.55 0.18 340)";
+
+/*
+ * `FEATURES_GAMING_ACCENT_HOVER` ("oklch(0.55 0.18 340)", mockup L206)
+ * RETIRADA en Task 26 (2026-08-10): era el hover COMPARTIDO de
+ * `accentColor()`/`ScSpanGaming` en las dos ramas -- sin consumidor propio
+ * fuera de `accentColorHover()` (verificado por grep, informe de la tarea) --
+ * y `accentColorHover()` deja de usarla al resolver Gaming por rama (ver las
+ * cuatro constantes de abajo). No hay resto que limpiar: ningún test
+ * importaba este literal (`FEATURES_GAMING_ACCENT`, sin `_HOVER`, es el único
+ * que cierra `Features.test.tsx`).
+ */
+
+/**
+ * Acento de Gaming resuelto POR RAMA para `accentColor()`/`accentColorHover()`
+ * (Features.tsx): check de los bullets, badge, panel/círculo decorativos
+ * (`color-mix`, sin requisito AA) y CTA de texto (con requisito AA). Mismo
+ * hue 340 y misma croma (0.17) que `FEATURES_GAMING_ACCENT` -- solo cambia L,
+ * como "vecinos" del literal original -- para no introducir un segundo matiz
+ * de marca; la elección de L es la que pasa AA midiendo con `contrastRatio`
+ * contra el fondo real de cada rama (`contrast.ts`), siguiendo el mismo
+ * criterio "un paso más oscuro en claro, aclarar en oscuro" que ya resuelve
+ * `primary`/`secondary` con pasos 700/800 (claro) y 600/500 (oscuro) — aquí
+ * sin rampa compartida, así que los "pasos" son L propios en vez de índices
+ * de `palette`. Ratios medidos (`contrastRatio`, `Features.test.tsx`, Task 26):
+ *
+ *   reposo claro  (vs `semantic.surface`, blanco):  5.33:1
+ *   hover  claro  (vs `semantic.surface`, blanco):  6.61:1
+ *   reposo oscuro (vs `semantic.bg`):                5.04:1
+ *   hover  oscuro (vs `semantic.bg`):                6.13:1
+ *
+ * Las cuatro pasan AA (4.5:1) con margen comparable al resto de acentos de
+ * esta tarea (5.07-7.82:1 en `primary`/`secondary`). L elegida cerca de la de
+ * `primary`/`secondary` en cada rama (claro ~0.50-0.55, oscuro ~0.65-0.70)
+ * para que las tres tarjetas mantengan un peso visual similar; el hue 340
+ * (vs 235.851 `primary`/311.928 `secondary`) sigue distinguiendo a Gaming de
+ * las otras dos identidades en las cuatro combinaciones.
+ */
+export const FEATURES_GAMING_ACCENT_LIGHT = "oklch(0.55 0.17 340)";
+export const FEATURES_GAMING_ACCENT_LIGHT_HOVER = "oklch(0.5 0.17 340)";
+export const FEATURES_GAMING_ACCENT_DARK = "oklch(0.65 0.17 340)";
+export const FEATURES_GAMING_ACCENT_DARK_HOVER = "oklch(0.7 0.17 340)";
 
 /*
  * `FeaturePatternShape`/`FeatureCardVisual`/`FEATURE_CARD_VISUALS` (patrón

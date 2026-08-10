@@ -28,7 +28,10 @@ import {
   FEATURES_CTA_MIN_HEIGHT,
   FEATURES_CHECK_ICON_PATH,
   FEATURES_GAMING_ACCENT,
-  FEATURES_GAMING_ACCENT_HOVER,
+  FEATURES_GAMING_ACCENT_LIGHT,
+  FEATURES_GAMING_ACCENT_LIGHT_HOVER,
+  FEATURES_GAMING_ACCENT_DARK,
+  FEATURES_GAMING_ACCENT_DARK_HOVER,
   FEATURES_OVERLAY_RISE,
   FEATURES_DARK_HEIGHT,
   FEATURES_CONTENT_MAX_WIDTH,
@@ -102,49 +105,105 @@ const FEATURES_FIGURE_PARALLAX_PX = 5;
  */
 
 /**
- * Color de acento por tarjeta (check de los bullets y CTA de texto — el
- * mockup usa el MISMO color para los dos roles en las tres tarjetas, ver
- * `features.layers.ts`). Learning/Imagination resuelven contra la rampa real
- * del tema (`var(--primary-600)`/`var(--secondary-600)` del mockup son los
- * mismos nombres de paso que `theme.data.palette`); Gaming usa el literal
- * propio que no tiene equivalente de tema (`FEATURES_GAMING_ACCENT`).
+ * Color de acento por tarjeta (check de los bullets, badge, panel/círculo
+ * decorativos y CTA de texto). Resuelve POR RAMA de tema desde la Task 26
+ * (2026-08-10, "CTA de Features con AA en las seis combinaciones"): hasta
+ * entonces devolvía el MISMO paso de `palette` (600, o `FEATURES_GAMING_ACCENT`
+ * para Gaming) en claro y en oscuro -- y `palette` es compartida entre
+ * `themes.light`/`themes.dark` (`themes.ts`), así que un único L no puede
+ * pasar AA (4.5:1) a la vez sobre `semantic.surface` claro (blanco) y
+ * `semantic.bg` oscuro (casi negro): medido, el CTA incumplía en 4 de 6
+ * combinaciones tarjeta/rama (deuda documentada en `RULES.md`, cerrada por
+ * esta tarea).
  *
- * Exportada (2026-08-06, D5/D7/D8 spec `2026-08-06-story-features-tema-claro-
- * design.md`): además de check/CTA, la tarjeta rehecha la reutiliza para el
- * `color-mix` de fondo del badge/panel/círculo (`ScBadge`/`ScImagePanel`/
- * `ScImageCircle`, más abajo) y `Features.test.tsx` la necesita para medir el
- * contraste AA real del badge sin duplicar esta función en el test.
+ * `theme: ThemeDefinition` ya trae la rama resuelta en `theme.isLight`
+ * (`theme.types.ts`) -- es el mismo mecanismo que ya usa el propio componente
+ * para bifurcar su JSX (`Features()`, más abajo, con `themeName` del
+ * `ThemeProvider` de React) y que `ThemeProvider.tsx` garantiza sincronizado
+ * con el `theme.data` que styled-components inyecta (un único
+ * `SCThemeProvider` para toda la página, sin anidar temas). No hace falta
+ * ningún parámetro nuevo ni un mecanismo propio: `theme.isLight` ya distingue
+ * la rama en la que se está pintando este mismo elemento.
+ *
+ * Learning/Imagination resuelven contra la rampa real del tema, un paso más
+ * oscuro en claro (700, antes 600) y el mismo paso 600 en oscuro (ya pasaba
+ * AA, se conserva); Gaming usa las constantes propias por rama
+ * (`FEATURES_GAMING_ACCENT_LIGHT`/`_DARK`, `features.layers.ts` -- mismo hue
+ * 340 que `FEATURES_GAMING_ACCENT`, L vecino elegido para pasar AA en cada
+ * fondo). Ratios medidos (`contrastRatio`, `Features.test.tsx`, describe
+ * "Task 26"):
+ *
+ *   learning:    5.07:1 sobre surface (claro) | 5.90:1 sobre bg (oscuro)
+ *   imagination: 5.92:1 sobre surface (claro) | 5.08:1 sobre bg (oscuro)
+ *   gaming:      5.33:1 sobre surface (claro) | 5.04:1 sobre bg (oscuro)
+ *
+ * Exportada desde 2026-08-06 (D5/D7/D8 spec `2026-08-06-story-features-tema-
+ * claro-design.md`): además de check/CTA, la tarjeta rehecha la reutiliza
+ * para el `color-mix` de fondo del badge/panel/círculo (`ScBadge`/
+ * `ScImagePanel`/`ScImageCircle`, más abajo) y `Features.test.tsx` la
+ * necesita para medir el contraste AA real del badge sin duplicar esta
+ * función en el test.
  */
 export function accentColor(theme: ThemeDefinition, key: FeatureKey): string {
-  if (key === "learning") return theme.palette.primary[600];
-  if (key === "imagination") return theme.palette.secondary[600];
-  return FEATURES_GAMING_ACCENT;
+  if (key === "learning") {
+    return theme.isLight
+      ? theme.palette.primary[700]
+      : theme.palette.primary[600];
+  }
+  if (key === "imagination") {
+    return theme.isLight
+      ? theme.palette.secondary[700]
+      : theme.palette.secondary[600];
+  }
+  return theme.isLight
+    ? FEATURES_GAMING_ACCENT_LIGHT
+    : FEATURES_GAMING_ACCENT_DARK;
 }
 
 /**
- * Estado hover del acento (mockup: un paso más oscuro de la misma rampa).
+ * Estado hover del acento, resuelto POR RAMA desde la Task 26 (mismo motivo
+ * que `accentColor`, ver su docblock -- hasta entonces devolvía el mismo paso
+ * 700 en las dos ramas, y en oscuro incumplía AA: 3.51:1/3.01:1/3.32:1 medido
+ * contra `semantic.bg` para learning/imagination/gaming respectivamente,
+ * peor que el propio reposo). Learning/Imagination ACLARAN en oscuro (500,
+ * antes 700) en vez de oscurecer -- oscurecer empeora el contraste contra un
+ * fondo ya casi negro -- y siguen un paso más oscuro en claro (800, antes
+ * 700, mismo criterio "hover = un paso más oscuro" del mockup). Gaming usa
+ * `FEATURES_GAMING_ACCENT_LIGHT_HOVER`/`_DARK_HOVER` (mismo hue 340, L vecino
+ * que aclara en oscuro igual que learning/imagination). Ratios medidos
+ * (`contrastRatio`, `Features.test.tsx`, describe "Task 26"):
  *
- * Exportada por el mismo motivo que `accentColor` (ver su docblock) y con un
- * SEGUNDO uso nuevo en esta entrega: el número del badge (`ScBadge`, más
- * abajo) lo consume tal cual, no `accentColor` -- medido (informe de la
- * tarea): un texto en `accentColor` (paso 600) sobre el fondo
- * `color-mix(in oklab, accentColor 12%, semantic.surface)` del propio badge
- * da entre 2.69:1 y 3.46:1 según la tarjeta, muy por debajo del 4.5:1 AA que
- * exige el contrato de accesibilidad de la spec (§3); el paso más oscuro
- * (`accentColorHover`) sobre el MISMO fondo (que solo se tiñe con
- * `accentColor`, no con el propio `accentColorHover` -- un fondo más oscuro
- * perdería margen, no ganaría) da 4.52:1/5.21:1/4.66:1, que sí cumple en las
- * tres tarjetas. No se inventa un tercer acento: se reutiliza el par
- * `accentColor`/`accentColorHover` que ya existía, solo que ahora cada
- * función cubre el rol para el que da más contraste.
+ *   learning:    5.84:1 sobre surface (claro) | 7.82:1 sobre bg (oscuro)
+ *   imagination: 6.63:1 sobre surface (claro) | 6.45:1 sobre bg (oscuro)
+ *   gaming:      6.61:1 sobre surface (claro) | 6.13:1 sobre bg (oscuro)
+ *
+ * SEGUNDO uso, desde 2026-08-06: el número del badge (`ScBadge`, más abajo,
+ * SOLO existe en la rama clara) lo consume tal cual, no `accentColor` --
+ * medido de nuevo tras la Task 26 con los valores nuevos (informe de la
+ * tarea): `accentColorHover` (texto) sobre
+ * `color-mix(in oklab, accentColor 12%, semantic.surface)` (fondo, con los
+ * nuevos pasos de reposo) da 4.96:1/5.58:1/5.60:1 según la tarjeta -- sigue
+ * cumpliendo AA con MÁS margen que antes de esta tarea (4.52:1/5.21:1/4.66:1
+ * con los pasos viejos), consecuencia de que reposo/hover suben un paso cada
+ * uno en claro, no una regresión.
  */
 export function accentColorHover(
   theme: ThemeDefinition,
   key: FeatureKey,
 ): string {
-  if (key === "learning") return theme.palette.primary[700];
-  if (key === "imagination") return theme.palette.secondary[700];
-  return FEATURES_GAMING_ACCENT_HOVER;
+  if (key === "learning") {
+    return theme.isLight
+      ? theme.palette.primary[800]
+      : theme.palette.primary[500];
+  }
+  if (key === "imagination") {
+    return theme.isLight
+      ? theme.palette.secondary[800]
+      : theme.palette.secondary[500];
+  }
+  return theme.isLight
+    ? FEATURES_GAMING_ACCENT_LIGHT_HOVER
+    : FEATURES_GAMING_ACCENT_DARK_HOVER;
 }
 
 /*
@@ -301,14 +360,24 @@ const ScSpanImagination = styled.span`
  * medido nunca.
  *
  * El color elegido no es nuevo: es el MISMO `FEATURES_GAMING_ACCENT` que este
- * bloque ya usaba como fallback de `@supports not (background-clip: text)` --
- * y el MISMO literal que `accentColor()` (mas arriba en este fichero) ya
- * resuelve para el check de los bullets y el CTA de ESTA MISMA tarjeta
+ * bloque ya usaba como fallback de `@supports not (background-clip: text)`
  * (regla 17 del manual: excepcion sancionada para arte de marca con
  * constantes con nombre en su propio módulo). No es un token de `palette.*`
  * a proposito (ver el docblock de `FEATURES_GAMING_ACCENT`,
  * `features.layers.ts`: "matiz deliberadamente distinto del secondary de
  * tema").
+ *
+ * Hasta la Task 26 (2026-08-10) esta frase seguía además: "...y el MISMO
+ * literal que `accentColor()` ya resuelve para el check/CTA de esta misma
+ * tarjeta". ESO YA NO ES CIERTO -- Task 26 resuelve `accentColor()`/
+ * `accentColorHover()` por RAMA de tema (ver su docblock, más arriba) y el
+ * literal que Gaming usa ahí en oscuro pasó a `FEATURES_GAMING_ACCENT_DARK`
+ * (L distinto, mismo hue 340), porque `FEATURES_GAMING_ACCENT` (L=0.62) no
+ * pasaba AA contra `semantic.bg` (4.47:1, por debajo de 4.5:1) y SÍ pasa
+ * contra `FEATURES_ORBITAL_VOID` (4.71:1, medido más abajo) -- son dos fondos
+ * DISTINTOS con presupuestos de contraste distintos, así que ya no hay
+ * ninguna razón para que compartan el mismo L. `ScSpanGaming` se queda
+ * exactamente con el literal que ya tenía (su medida no cambia).
  *
  * A diferencia de `ScAccent`/`ScQuoteText`, `ScSpanGaming` SOLO se renderiza
  * en la rama OSCURA (el h2 de la rama clara es una frase sin spans de color,
@@ -533,14 +602,18 @@ const ScCardHead = styled.div`
 `;
 
 /*
- * Badge cuadrado (D6; mockup L200). El NÚMERO usa `accentColorHover`
- * (paso 700), no `accentColor` (paso 600) -- ver el docblock de
- * `accentColorHover`, arriba, para la medición de contraste que motiva la
- * elección: sobre el fondo `color-mix` de este mismo badge, el paso 600 no
- * llega a AA en ninguna de las tres tarjetas (2.69:1-3.46:1) y el 700 sí
- * (4.52:1-5.21:1). `font-weight` reutiliza `type.scale.h5.weight` (600, el
- * "bold" más próximo de la escala) -- mismo recurso que ya usa `ScCta`
- * (más abajo) para el mismo propósito.
+ * Badge cuadrado (D6; mockup L200). El NÚMERO usa `accentColorHover`, no
+ * `accentColor` -- ver el docblock de `accentColorHover`, arriba, para la
+ * medición de contraste que motiva la elección: sobre el fondo `color-mix`
+ * de este mismo badge, `accentColor` no llega a AA en ninguna de las tres
+ * tarjetas y `accentColorHover` sí. `ScBadge` SOLO se renderiza en la rama
+ * CLARA (ver `Features()`, más abajo), así que aquí `accentColorHover`
+ * siempre resuelve su rama clara -- paso 800 para learning/imagination
+ * (antes de la Task 26, 700), `FEATURES_GAMING_ACCENT_LIGHT_HOVER` para
+ * gaming -- dando 4.96:1/5.58:1/5.60:1 (medido tras la Task 26, ver el
+ * docblock de `accentColorHover`). `font-weight` reutiliza
+ * `type.scale.h5.weight` (600, el "bold" más próximo de la escala) -- mismo
+ * recurso que ya usa `ScCta` (más abajo) para el mismo propósito.
  */
 const ScBadge = styled.span<{ $key: FeatureKey }>`
   flex: none;
@@ -748,12 +821,19 @@ const ScCheckIcon = styled.svg<{ $key: FeatureKey }>`
  * 14px -- 14px normal (no bold-large, que exigiría ≥18.66px) sigue
  * necesitando el umbral de texto normal (4.5:1), no el rebajado de 3:1 de
  * texto grande. Esa misma verificación destapó un hallazgo PREEXISTENTE, no
- * causado por este cambio: `color` (más abajo, `accentColor`) incumple AA en
- * 4 de 6 combinaciones tarjeta/rama -- documentado con los ratios exactos en
- * RULES.md, "Deuda conocida", y en el propio test; no se corrige aquí porque
- * exige una decisión de diseño (el mismo color no puede acercarse a AA en
- * `surface` blanco Y en `bg` casi negro a la vez subiendo o bajando un solo
- * paso de la rampa), fuera del alcance mecánico de esta tarea.
+ * causado por este cambio: `color` (más abajo, `accentColor`) incumplía AA en
+ * 4 de 6 combinaciones tarjeta/rama -- documentado entonces con los ratios
+ * exactos en RULES.md, "Deuda conocida", y en el propio test; no se corrigió
+ * en ESTA tarea porque exigía una decisión de diseño (el mismo color no
+ * puede acercarse a AA en `surface` blanco Y en `bg` casi negro a la vez
+ * subiendo o bajando un solo paso de la rampa), fuera del alcance mecánico de
+ * "tres cierres pequeños". CERRADO por la Task 26 (2026-08-10, "CTA de
+ * Features con AA en las seis combinaciones"): `accentColor`/
+ * `accentColorHover` resuelven por RAMA de tema desde entonces -- ver sus
+ * docblocks, más arriba -- y las seis combinaciones de reposo Y las seis de
+ * hover pasan AA, con test que lo asevera (`Features.test.tsx`, describe
+ * "Task 26"). La entrada de RULES.md, "Deuda conocida", queda reescrita como
+ * resuelta, no borrada.
  */
 const ScCta = styled.a<{ $key: FeatureKey }>`
   display: inline-flex;

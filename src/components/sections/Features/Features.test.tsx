@@ -571,6 +571,8 @@ describe("contraste AA de las tarjetas de Features (rama clara)", () => {
  * cubre las dos.
  */
 describe("Task 3: CTA de tarjeta de Features a >=14px (antes 12px)", () => {
+  const AA_TEXTO_NORMAL_CTA = 4.5;
+
   it("el CTA de cada tarjeta mide bodySm (14px), no caption (12px) (rama clara)", () => {
     const { container } = renderWithProviders(<Features />);
     const ctas = Array.from(container.querySelectorAll('a[href="#contact"]'));
@@ -586,38 +588,71 @@ describe("Task 3: CTA de tarjeta de Features a >=14px (antes 12px)", () => {
   });
 
   /*
-   * Contraste AA "del estado resultante" (brief de la tarea) -- VERIFICADO,
-   * no asumido, y el resultado es un hallazgo, no un candado verde: el
-   * tamaño de fuente NO altera el color del CTA (`accentColor`, sin
-   * cambios), así que el ratio medido es el MISMO antes y después del
-   * cambio de tamaño -- 12px y 14px son los dos texto normal (ninguno llega
-   * al suelo de texto grande, ≥18.66px bold/≥24px regular), así que el
-   * umbral aplicable (4.5:1) tampoco cambia. Medido con `contrastRatio`
-   * contra el fondo REAL de cada rama (`semantic.surface`/`semantic.bg`,
-   * ninguno `color-mix()`, sin mezcla que reproducir a mano):
+   * Contraste AA "del estado resultante" (brief de la tarea): el tamaño de
+   * fuente NO altera el color del CTA (`accentColor`/`accentColorHover`), así
+   * que el umbral aplicable es el de texto normal (4.5:1) tanto a 12px como a
+   * 14px -- ninguno de los dos llega al suelo de texto grande
+   * (≥18.66px bold/≥24px regular).
    *
-   *   learning:    3.02:1 sobre surface (claro) | 5.90:1 sobre bg (oscuro)
-   *   imagination: 3.50:1 sobre surface (claro) | 5.08:1 sobre bg (oscuro)
-   *   gaming:      3.98:1 sobre surface (claro) | 4.47:1 sobre bg (oscuro)
+   * Hasta la Task 26 (2026-08-10) esta zona era SOLO prosa, sin assert a
+   * propósito: medido entonces, el CTA de las TRES tarjetas de la rama clara
+   * y el de "gaming" en oscuro incumplían AA (defecto preexistente,
+   * documentado en RULES.md, "Deuda conocida", con los seis ratios) --
+   * `accentColor`/`accentColorHover` compartían el mismo par de pasos de
+   * `palette` en las dos ramas, y un paso más oscuro que arregla el
+   * contraste sobre `surface` (blanco) lo EMPEORABA sobre `bg` (casi negro).
    *
-   * Los seis fallan AA salvo learning/imagination en oscuro: el CTA de las
-   * TRES tarjetas de la rama clara y el de "gaming" en oscuro incumplen
-   * 4.5:1 -- un defecto de accesibilidad PREEXISTENTE (no introducido por
-   * esta tarea: la relación tamaño↔contraste no depende del font-size, así
-   * que fallaba igual a 12px, solo que nadie lo había medido nunca -- no
-   * había ningún test de contraste del CTA antes de Task 3). No se corrige
-   * aquí: `accentColor`/`accentColorHover` comparten el mismo par de pasos
-   * de paleta en las DOS ramas (el `palette` del tema es compartido entre
-   * claro/oscuro, ver `themes.ts`), así que un paso más oscuro que arregla
-   * el contraste sobre `surface` (blanco) lo EMPEORA sobre `bg` (casi
-   * negro) -- exactamente el conflicto que ya documenta la nota de
-   * `accentColorHover` para el badge, aquí sin una solución de un solo
-   * color. Corregirlo exige una decisión de diseño (¿tono nuevo por rama?,
-   * ¿fondo en vez de texto?, ¿subrayado además de color?) fuera del
-   * alcance de "tres cierres pequeños" (un cambio mecánico de tamaño). Sin
-   * assert de paso/no-paso a propósito -- ver RULES.md, "Deuda conocida",
-   * para el hallazgo completo declarado como tal, no escondido.
+   * La Task 26 CIERRA ese hallazgo resolviendo `accentColor`/
+   * `accentColorHover` POR RAMA (`theme.isLight`, ver sus docblocks en
+   * `Features.tsx`): la prosa con los ratios se sustituye aquí por el
+   * assert -- el candado que faltaba, no una repetición del hallazgo. Ni
+   * `semantic.surface` (claro) ni `semantic.bg` (oscuro) son `color-mix()`
+   * (ver `themes.ts`/`semantic.ts`), así que no hace falta reproducir
+   * ninguna mezcla (lección repo 2026-08-06) -- `contrastRatio` mide
+   * directamente contra el fondo real de cada rama.
    */
+  it.each(FEATURE_KEYS)(
+    "tarjeta %s: accentColor (reposo) cumple AA (>=4.5:1) sobre semantic.surface (claro) y semantic.bg (oscuro)",
+    (key) => {
+      const { light, dark } = themes;
+      const ratioLight = contrastRatio(
+        accentColor(light, key),
+        light.semantic.surface,
+      );
+      const ratioDark = contrastRatio(accentColor(dark, key), dark.semantic.bg);
+      expect(
+        ratioLight,
+        `reposo claro ${key}: ${ratioLight.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL_CTA);
+      expect(
+        ratioDark,
+        `reposo oscuro ${key}: ${ratioDark.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL_CTA);
+    },
+  );
+
+  it.each(FEATURE_KEYS)(
+    "tarjeta %s: accentColorHover (hover/focus-visible) cumple AA (>=4.5:1) sobre semantic.surface (claro) y semantic.bg (oscuro)",
+    (key) => {
+      const { light, dark } = themes;
+      const ratioLight = contrastRatio(
+        accentColorHover(light, key),
+        light.semantic.surface,
+      );
+      const ratioDark = contrastRatio(
+        accentColorHover(dark, key),
+        dark.semantic.bg,
+      );
+      expect(
+        ratioLight,
+        `hover claro ${key}: ${ratioLight.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL_CTA);
+      expect(
+        ratioDark,
+        `hover oscuro ${key}: ${ratioDark.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL_CTA);
+    },
+  );
 });
 
 /*
