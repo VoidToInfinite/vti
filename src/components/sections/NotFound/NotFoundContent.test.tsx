@@ -41,6 +41,21 @@ describe("NotFoundContent", () => {
   });
 
   /*
+   * Task 2 (skip link), review fix round 1 — hueco de evidencia señalado:
+   * el <main> gana id="main" tabIndex={-1} como destino real del skip link
+   * en esta ruta. Sin este test, la única prueba de que la 404 tiene el
+   * landmark era una pasada de navegador que no cubría cada ruta por
+   * separado.
+   */
+  it("el <main> tiene id='main' y tabIndex=-1 (destino del skip link)", () => {
+    const { container } = renderWithProviders(<NotFoundContent />);
+    const main = container.querySelector("main");
+    expect(main).not.toBeNull();
+    expect(main).toHaveAttribute("id", "main");
+    expect(main).toHaveAttribute("tabindex", "-1");
+  });
+
+  /*
    * P0 de la auditoria premium 2026-08-08: la 404 no tenia NINGUN enlace de
    * salida. Estas tres aserciones verifican, en este orden, las tres partes
    * del criterio del brief: el enlace existe, apunta a "/", y es un <a> REAL

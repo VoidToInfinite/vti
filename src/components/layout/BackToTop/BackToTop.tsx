@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { IconButton } from "@/components/ui/IconButton/IconButton";
@@ -113,7 +113,13 @@ export function BackToTop(): ReactElement | null {
   const threshold = useBackToTopThreshold();
   const visible = useScrolled(threshold);
 
-  const handleClick = (): void => {
+  // Identidad estable (deps `[]`): no depende de props/estado, solo mueve
+  // el foco al landmark principal. Compartida por las DOS vías de abajo.
+  const moveFocusToMain = useCallback((): void => {
+    document.getElementById("main")?.focus();
+  }, []);
+
+  const handleClick = useCallback((): void => {
     // Leído DENTRO del manejador, nunca durante el render (rompería el
     // export estático) -- mismo patrón que useThemeScrollReset.ts.
     const reduced = window.matchMedia(
@@ -125,22 +131,67 @@ export function BackToTop(): ReactElement | null {
      * Mueve el foco al landmark principal (`#main`, el MISMO destino que
      * consume SkipLink) en el mismo tick que el click, antes de que
      * cualquier evento `scroll` asíncrono actualice `visible` a `false` y
-     * desmonte este botón. Sin esto, un usuario de teclado que activa este
-     * control pierde el foco hacia `<body>` en TODO uso legítimo -- no es
-     * un caso borde: cualquier "volver arriba" que funcione termina con
-     * `scrollY` por debajo del umbral, así que el botón siempre desaparece
-     * después de activarse. Mismo principio que RULES.md regla 27 (un
+     * desmonte este botón. Mismo principio que RULES.md regla 27 (un
      * control nunca pierde el foco como consecuencia directa de su propia
-     * activación), aplicado aquí vía un desmontaje diferido por estado de
-     * scroll en vez de un atributo `disabled`.
+     * activación). Esta vía cubre el caso más común (activar el botón),
+     * pero NO cubre que el botón desaparezca por un scroll INDEPENDIENTE
+     * del click -- ver el efecto de abajo, que sí lo cubre.
      */
-    document.getElementById("main")?.focus();
-  };
+    moveFocusToMain();
+  }, [moveFocusToMain]);
+
+  /*
+   * Vía INDEPENDIENTE del click (hallazgo Important, review fix round 1):
+   * `visible` la gobierna `useScrolled`, que reacciona a CUALQUIER scroll
+   * -- no solo al que dispara `handleClick`. Si un usuario de teclado
+   * llega al botón con Tab (SIN activarlo) y el scroll cruza el umbral por
+   * otra vía (tecla Home/PageUp, rueda, `scrollTo` de otro control), el
+   * componente se desmonta (`if (!visible) return null`, abajo) sin pasar
+   * por `handleClick`, y el foco quedaría huérfano en `<body>` -- el mismo
+   * síntoma que RULES.md regla 27 prohíbe, por una vía distinta.
+   *
+   * Por qué un LISTENER PROPIO de `scroll` y no un `useEffect(() => {...},
+   * [visible])` reaccionando DESPUÉS del cambio: al eliminar del DOM un
+   * nodo que tiene el foco, el estándar HTML ejecuta la "focus fixup rule"
+   * de forma SÍNCRONA como parte de esa misma eliminación -- dispara
+   * `blur` en el nodo y mueve el foco a `<body>` ANTES de que cualquier
+   * efecto de React (que corre después del commit, y más tarde aún si es
+   * `useEffect` en vez de `useLayoutEffect`) llegue a ejecutarse. Un efecto
+   * atado a `[visible]` comprobaría `document.activeElement` cuando el
+   * foco YA se perdió: cerraría la puerta del establo con el caballo
+   * fuera. Este listener, en cambio, corre DENTRO del mismo evento nativo
+   * `scroll` que `useScrolled` también escucha -- todavía con el botón
+   * montado, porque la actualización de estado de React que lo
+   * desmontaría es asíncrona y no se aplica de forma síncrona dentro del
+   * propio despacho del evento --, así que la comprobación llega a tiempo.
+   *
+   * `data-back-to-top` identifica el botón sin depender de si `ref`
+   * atraviesa limpio las tres capas de composición
+   * (IconButton -> styled(Button) -> Button): mismo patrón ya usado en
+   * IconButton.tsx (`data-variant`), un atributo plano que SÍ viaja entero
+   * por el `...rest` de cada capa.
+   */
+  useEffect(() => {
+    const handleIndependentScroll = (): void => {
+      const activo = document.activeElement;
+      if (
+        activo?.hasAttribute("data-back-to-top") &&
+        window.scrollY <= threshold
+      ) {
+        moveFocusToMain();
+      }
+    };
+    window.addEventListener("scroll", handleIndependentScroll, {
+      passive: true,
+    });
+    return () => window.removeEventListener("scroll", handleIndependentScroll);
+  }, [threshold, moveFocusToMain]);
 
   if (!visible) return null;
 
   return (
     <ScBackToTop
+      data-back-to-top="true"
       icon={<IconArrowUp />}
       aria-label={t("Common.BackToTop.label")}
       onClick={handleClick}

@@ -169,4 +169,42 @@ describe("BackToTop", () => {
 
     expect(document.activeElement).toBe(document.getElementById("main"));
   });
+
+  /*
+   * Hallazgo Important (review, fix round 1): `visible` lo gobierna
+   * `useScrolled`, que reacciona a CUALQUIER scroll -- no solo al que
+   * dispara `handleClick`. Este test ejercita la vía que NO pasa por el
+   * click: el usuario llega al botón con Tab (foco real, sin activarlo) y
+   * el scroll cruza el umbral por OTRA vía (aquí, un evento `scroll`
+   * suelto -- el mismo que dispararían Home/PageUp/rueda/`scrollTo` de
+   * otro control). Sin el listener independiente de BackToTop.tsx, el
+   * foco se perdería hacia <body> cuando el botón se desmonta -- el mismo
+   * síntoma que el test anterior (vía click) cubre por SU vía, pero este
+   * es el que faltaba (ver la review). Validado con bug inyectado (ver
+   * informe de la tarea): comentando temporalmente el `useEffect` del
+   * listener independiente en BackToTop.tsx, este test se pone en rojo
+   * (foco huérfano en <body>) mientras el test anterior ("el click mueve
+   * el foco...") sigue en verde -- confirma que son dos vías distintas.
+   */
+  it("con el foco en el botón (SIN click) y un scroll independiente que cruza el umbral, el foco se transfiere a #main sin quedar huérfano en body", () => {
+    setViewport(800, 5000);
+    renderWithMain();
+
+    const boton = screen.getByRole("button", { name: "Volver arriba" });
+    act(() => {
+      boton.focus();
+    });
+    expect(boton).toHaveFocus();
+
+    act(() => {
+      setViewport(800, 0);
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Volver arriba" }),
+    ).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(document.getElementById("main"));
+    expect(document.activeElement).not.toBe(document.body);
+  });
 });

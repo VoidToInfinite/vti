@@ -35,6 +35,26 @@ describe("LegalDocument", () => {
     },
   );
 
+  /*
+   * Task 2 (skip link), review fix round 1 — hueco de evidencia señalado:
+   * `ScMain` gana `id="main" tabIndex={-1}` como destino real del skip
+   * link en esta ruta (ver LegalDocument.tsx). Sin este test, la única
+   * prueba de que las rutas legales tienen el landmark era una pasada de
+   * navegador que no cubría cada ruta por separado.
+   */
+  it.each(DOC_KEYS)(
+    "%s: el <main> tiene id='main' y tabIndex=-1 (destino del skip link)",
+    (docKey) => {
+      const { container } = renderWithProviders(
+        <LegalDocument docKey={docKey} />,
+      );
+      const main = container.querySelector("main");
+      expect(main).not.toBeNull();
+      expect(main).toHaveAttribute("id", "main");
+      expect(main).toHaveAttribute("tabindex", "-1");
+    },
+  );
+
   it.each(DOC_KEYS)(
     "%s: los id de sección no se repiten dentro del documento",
     (docKey) => {
