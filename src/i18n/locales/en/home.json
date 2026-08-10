@@ -44,7 +44,8 @@
                     "inspiration": "Read less, try more. Break something on purpose and fix it. A mistake you understand beats an answer you copied. That is where knowledge becomes yours."
                 }
             },
-            "stepLabel": "Step"
+            "stepLabel": "Step",
+            "communityLink": "Join the community on Discord"
         },
         "journey": {
             "title": "Your journey has no final step.",

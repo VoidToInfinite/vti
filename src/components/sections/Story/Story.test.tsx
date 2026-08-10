@@ -10,6 +10,7 @@ import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import esCommon from "@/i18n/locales/es/common.json";
 import i18n from "@/i18n/config";
+import { links } from "@/config/links";
 import { Story, pillarBadgeAccent } from "./Story";
 import { DECK, PRESS } from "@/motion/vocabulary";
 import { motion } from "@/theme/tokens/motion";
@@ -767,10 +768,14 @@ describe("Story: statement a pantalla completa, reveal por IntersectionObserver 
     const statement = container.querySelector("#statement") as HTMLElement;
     const paragraph = statement.querySelector("p") as HTMLElement;
 
-    // "Contiene directamente": un solo hijo en flujo, el parrafo -- sin
-    // ScStatementStage intermedio (D13 partia el bloque en pista+stage; D2
-    // los funde de vuelta en un unico <section>).
-    expect(statement.children).toHaveLength(1);
+    // "Contiene directamente": dos hijos en flujo, el parrafo y el enlace de
+    // comunidad (Task 6, plan 2026-08-10-implementacion-plan-premium-f1-f5)
+    // -- sin ScStatementStage intermedio (D13 partia el bloque en
+    // pista+stage; D2 los funde de vuelta en un unico <section>). Contrato
+    // actualizado a proposito (lesson 2026-08-06: anadir un elemento cambia
+    // contratos que afirman "un solo hijo"); el enlace se verifica aparte,
+    // mas abajo en este fichero.
+    expect(statement.children).toHaveLength(2);
     expect(statement.firstElementChild).toBe(paragraph);
 
     const css = cssRuleTextFor(statement);
@@ -1437,6 +1442,137 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     await waitFor(() => {
       expect(container.querySelectorAll("img")).toHaveLength(11);
     });
+  });
+});
+
+/*
+ * Task 6 (plan `2026-08-10-implementacion-plan-premium-f1-f5`), punto 1:
+ * candado del deck accesible con lector de pantalla. La auditoria previa
+ * midio un veredicto FAVORABLE por accidente -- el deck lee sus 6
+ * diapositivas completas, en orden, porque nada las oculta -- y este test
+ * FIJA ese contrato por escrito, para que un cambio futuro no pueda
+ * romperlo en silencio (ScSlide es solo opacity/transform, nunca
+ * display:none/visibility:hidden, asi que ninguna diapositiva sale del
+ * arbol de accesibilidad ni aunque este "next"/"past" visualmente).
+ *
+ * Dos propiedades, las dos citadas explicitamente por el encargo:
+ * 1) Orden del DOM: `data-slide-index` crece de forma estrictamente
+ *    ascendente en el MISMO orden en que el documento las devuelve -- un
+ *    lector de pantalla recorre el arbol en orden de documento, nunca en el
+ *    orden visual que decide `grid-area` (las 6 comparten la MISMA celda de
+ *    `ScDeck`, story.deck.tsx).
+ * 2) Ausencia de `aria-hidden` sobre el contenido textual: ni la propia
+ *    diapositiva ni ningun ancestro entre ella y la raiz del documento
+ *    oculta su texto -- lo decorativo (ScSceneWrap/ScRail/ScScrollHint) vive
+ *    FUERA de `ScDeck`, como hermano de las diapositivas, nunca envolviendolas.
+ *
+ * Verificado con el bug inyectado a proposito (informe de la tarea): anadir
+ * `aria-hidden="true"` a una `ScSlide` de `Story.tsx` pone este test en
+ * rojo (la comprobacion `not.toHaveAttribute("aria-hidden")` falla sobre
+ * esa diapositiva); quitarlo lo devuelve a verde.
+ */
+describe("Story: candado SR del deck -- orden de DOM y ausencia de aria-hidden sobre el texto (Task 6)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("las STORY_SLIDES diapositivas aparecen en el DOM en orden ascendente de data-slide-index", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const slides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ) as HTMLElement[];
+
+    slides.forEach((slide, i) => {
+      expect(slide.getAttribute("data-slide-index")).toBe(String(i));
+    });
+  });
+
+  it("ninguna diapositiva (ni ningun ancestro suyo) lleva aria-hidden, y todas conservan texto real", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const slides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ) as HTMLElement[];
+
+    slides.forEach((slide) => {
+      expect(slide).not.toHaveAttribute("aria-hidden");
+      // closest() incluye el propio elemento -- redundante con la asercion
+      // de arriba sobre la diapositiva misma, e imprescindible para
+      // cualquier ANCESTRO intermedio (ScDeck/ScStage/ScTrack) que pudiera
+      // ocultar el subarbol entero sin que ninguna diapositiva individual
+      // lo delate.
+      expect(slide.closest('[aria-hidden="true"]')).toBeNull();
+      expect(slide.textContent?.trim().length ?? 0).toBeGreaterThan(0);
+    });
+  });
+});
+
+/*
+ * Task 6 (plan `2026-08-10-implementacion-plan-premium-f1-f5`), punto 2:
+ * salida de pertenencia. El cierre de Story ofrece un enlace REAL a Discord
+ * en las DOS ramas -- `links.discord` (src/config/links.ts), el MISMO
+ * destino que ya usan Navbar/Footer (grupo "community" de `NAV_GROUPS`) y
+ * las tarjetas del Contact oscuro: cero URLs nuevas. Presencia + destino,
+ * como pide el encargo -- el press visual (PRESS.activeScale en :active) se
+ * verifica en navegador real (informe de la tarea), no aqui: jsdom no
+ * dispara :active.
+ */
+describe("Story: Task 6, salida de pertenencia -- enlace real a Discord en el cierre (las dos ramas)", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("rama clara: #statement ofrece el enlace, con destino/target/rel correctos y el aviso de pestaña nueva en su nombre accesible", () => {
+    const { container } = renderWithProviders(<Story />);
+    const statement = container.querySelector("#statement") as HTMLElement;
+    const link = within(statement).getByRole("link", {
+      name: `${esHome.Home.story.communityLink} ${esCommon.Common.Nav.newTab}`,
+    });
+
+    expect(link).toHaveAttribute("href", links.discord);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("rama oscura: la ultima diapositiva (la nota de cierre) ofrece el MISMO enlace, hermano de ScDeckNote", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const lastSlide = container.querySelector(
+      `[data-slide-index="${STORY_SLIDES - 1}"]`,
+    ) as HTMLElement;
+    const link = within(lastSlide).getByRole("link", {
+      name: `${esHome.Home.story.communityLink} ${esCommon.Common.Nav.newTab}`,
+    });
+
+    expect(link).toHaveAttribute("href", links.discord);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    // Hermano de ScDeckNote, no dentro de el -- el marcado obligatorio de la
+    // nota (noteLead + noteAccent) no cambia con esta tarea.
+    expect(
+      within(lastSlide).getByText(esHome.Home.story.noteLead, {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
   });
 });
 

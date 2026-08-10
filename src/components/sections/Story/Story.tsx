@@ -3,6 +3,8 @@ import { useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes, type DefaultTheme } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
+import { links } from "@/config/links";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
@@ -1057,6 +1059,71 @@ const ScStatementThird = styled(ScAccent)`
   }
 `;
 
+/*
+ * Salida de pertenencia (Task 6, plan
+ * `2026-08-10-implementacion-plan-premium-f1-f5`): el cierre de Story invita
+ * a seguir en Discord como enlace REAL, no decorativo. Mismo destino que ya
+ * enlazan Navbar/Footer (grupo "community" de `NAV_GROUPS`,
+ * `src/config/navigation.ts`, añadido en una entrega anterior) y que las
+ * tarjetas del Contact oscuro ya ofrecen (`Home.contact.cards.community`) --
+ * `links.discord` (`src/config/links.ts`), CERO urls nuevas.
+ *
+ * Estilo calcado de `footerLinkStyles` (Footer.tsx, la misma decisión citada
+ * en su propio docblock): color `textMuted` en reposo, `brandText` al
+ * hover/foco -- ese hover solo cambia COLOR, sin movimiento que guardar tras
+ * `PRESS.hoverGuard` (la excepción que el propio vocabulario documenta para
+ * hovers que no mueven nada), así que la lista de `transition` nace ya con
+ * `PRESS.durationMs`/`PRESS.easing` gobernando solo el `:active` de abajo.
+ * `communityLinkStyles` es un bloque `css` compartido (no un componente
+ * único) porque las DOS ramas lo consumen sobre elementos `styled.a`
+ * distintos (`ScStatementLink` en claro, `ScDeckNoteLink` en oscuro), cada
+ * uno con su propio margen de separación del bloque que lo precede.
+ */
+const communityLinkStyles = css`
+  display: inline-flex;
+  align-items: center;
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  font-weight: 600;
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
+
+  &:hover,
+  &:focus-visible {
+    color: ${({ theme }) => theme.data.semantic.brandText};
+  }
+
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+/* Rama clara: sigue al parrafo del statement, dentro de `ScStatement`
+   (`align-items: center`, hereda el centrado sin declarar nada nuevo). */
+const ScStatementLink = styled.a`
+  ${communityLinkStyles}
+  margin-block-start: ${({ theme }) => theme.data.space[6]};
+`;
+
+/* Rama oscura: sigue a `ScDeckNote` dentro de la ultima diapositiva -- mismo
+   contenedor, mismo `text-align` por defecto (izquierda, heredado de
+   `ScDeck`, sin `text-align: center` propio). */
+const ScDeckNoteLink = styled.a`
+  ${communityLinkStyles}
+  margin-block-start: ${({ theme }) => theme.data.space[5]};
+`;
+
 export function Story(): ReactElement {
   const { themeName } = useTheme();
 
@@ -1091,6 +1158,13 @@ export function Story(): ReactElement {
  */
 function StoryLight(): ReactElement {
   const { t } = useTranslation("home");
+  // Namespace SEPARADO (Task 6, plan
+  // 2026-08-10-implementacion-plan-premium-f1-f5), mismo motivo que
+  // StoryDeckDark mas abajo: el aviso de "se abre en pestaña nueva"
+  // (`Common.Nav.newTab`) del enlace de comunidad es un patron de
+  // INTERFAZ compartido (Footer/Navbar ya lo usan para el mismo grupo
+  // "community" de NAV_GROUPS), no copia propia de esta seccion.
+  const { t: tCommon } = useTranslation("common");
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
   // Ref ESTABLE (useRef, no callback-ref): useSectionProgress escribe
   // --story-enter/--story-progress directamente sobre el propio elemento en
@@ -1245,6 +1319,18 @@ function StoryLight(): ReactElement {
           </ScStatementSecond>{" "}
           <ScStatementThird>{t("Home.story.statement.third")}</ScStatementThird>
         </ScStatementText>
+        {/* Salida de pertenencia (Task 6): enlace REAL, hermano del parrafo
+            -- NUNCA dentro de el, para no romper el contrato de "una sola
+            frase" que D12 fija (un lector de pantalla tiene que leer las
+            tres lineas seguidas, sin un enlace intercalado). */}
+        <ScStatementLink
+          href={links.discord}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t("Home.story.communityLink")}
+          <VisuallyHidden> {tCommon("Common.Nav.newTab")}</VisuallyHidden>
+        </ScStatementLink>
       </ScStatement>
     </>
   );
@@ -1390,6 +1476,17 @@ function StoryDeckDark(): ReactElement {
                   {t("Home.story.noteAccent")}
                 </ScDeckNoteAccent>
               </ScDeckNote>
+              {/* Salida de pertenencia (Task 6): enlace REAL, hermano de
+                  ScDeckNote -- mismo criterio que ScStatementLink en la
+                  rama clara, ver su docblock mas arriba. */}
+              <ScDeckNoteLink
+                href={links.discord}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("Home.story.communityLink")}
+                <VisuallyHidden> {tCommon("Common.Nav.newTab")}</VisuallyHidden>
+              </ScDeckNoteLink>
             </ScSlide>
           </ScDeck>
           {/* Rail decorativo (D13): 6 marcas, aria-hidden, que reflejan

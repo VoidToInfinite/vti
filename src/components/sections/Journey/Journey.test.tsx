@@ -786,6 +786,65 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
 });
 
 /*
+ * Task 6 (plan `2026-08-10-implementacion-plan-premium-f1-f5`), punto 1:
+ * candado del deck accesible con lector de pantalla. MISMO contrato que el
+ * candado gemelo de `Story.test.tsx` (su docblock, verbatim salvo el nombre
+ * del deck): el veredicto favorable medido por la auditoria -- las
+ * JOURNEY_SLIDES diapositivas se leen completas, en orden, porque nada las
+ * oculta -- se fija aqui por escrito para que un cambio futuro no pueda
+ * romperlo en silencio. `ScJourneySlide` es solo opacity/transform (nunca
+ * display:none/visibility:hidden), asi que ninguna diapositiva sale del
+ * arbol de accesibilidad aunque este "next"/"past" visualmente.
+ *
+ * Verificado con el bug inyectado a proposito (informe de la tarea): anadir
+ * `aria-hidden="true"` a una `ScJourneySlide` de `Journey.tsx` pone este
+ * test en rojo; quitarlo lo devuelve a verde.
+ */
+describe("Journey: candado SR del deck -- orden de DOM y ausencia de aria-hidden sobre el texto (Task 6)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("las JOURNEY_SLIDES diapositivas aparecen en el DOM en orden ascendente de data-slide-index", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const slides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ) as HTMLElement[];
+
+    slides.forEach((slide, i) => {
+      expect(slide.getAttribute("data-slide-index")).toBe(String(i));
+    });
+  });
+
+  it("ninguna diapositiva (ni ningun ancestro suyo) lleva aria-hidden, y todas conservan texto real", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const slides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ) as HTMLElement[];
+
+    slides.forEach((slide) => {
+      expect(slide).not.toHaveAttribute("aria-hidden");
+      expect(slide.closest('[aria-hidden="true"]')).toBeNull();
+      expect(slide.textContent?.trim().length ?? 0).toBeGreaterThan(0);
+    });
+  });
+});
+
+/*
  * Task 4 (plan `2026-08-10-implementacion-plan-premium-f1-f5`): pista de
  * scroll del deck, aria-hidden, que se desvanece con el PRIMER avance
  * reutilizando `data-slide` (`ScJourneyStage`) -- SIN listener nuevo (ver el
