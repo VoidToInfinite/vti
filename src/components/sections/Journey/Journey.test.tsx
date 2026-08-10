@@ -811,7 +811,7 @@ describe("Journey: Task 4, pista de scroll del deck (tema oscuro)", () => {
         JOURNEY_SLIDES,
       );
     });
-    const hint = screen.getByText(esCommon.deck.scrollHint);
+    const hint = screen.getByText(esCommon.Common.Deck.scrollHint);
     expect(hint).toHaveAttribute("aria-hidden", "true");
   });
 
@@ -824,7 +824,7 @@ describe("Journey: Task 4, pista de scroll del deck (tema oscuro)", () => {
     });
     const stage = container.querySelector("[data-slide]") as HTMLElement;
     expect(stage).toHaveAttribute("data-slide", "0");
-    const hint = screen.getByText(esCommon.deck.scrollHint);
+    const hint = screen.getByText(esCommon.Common.Deck.scrollHint);
     expect(getComputedStyle(hint).opacity).toBe("1");
   });
 
@@ -854,7 +854,7 @@ describe("Journey: Task 4, pista de scroll del deck (tema oscuro)", () => {
     act(() => triggerFor(track, true));
 
     expect(stage).toHaveAttribute("data-slide", String(targetIndex));
-    const hint = screen.getByText(esCommon.deck.scrollHint);
+    const hint = screen.getByText(esCommon.Common.Deck.scrollHint);
     expect(getComputedStyle(hint).opacity).toBe("0");
   });
 
@@ -865,7 +865,7 @@ describe("Journey: Task 4, pista de scroll del deck (tema oscuro)", () => {
         JOURNEY_SLIDES,
       );
     });
-    const hint = screen.getByText(esCommon.deck.scrollHint);
+    const hint = screen.getByText(esCommon.Common.Deck.scrollHint);
     const css = cssRuleTextFor(hint);
     const topLevelCss = css.split("@media")[0];
 

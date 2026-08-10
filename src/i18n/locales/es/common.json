@@ -54,10 +54,10 @@
         },
         "BackToTop": {
             "label": "Volver arriba"
+        },
+        "Deck": {
+            "scrollHint": "Desplázate para continuar"
         }
-    },
-    "deck": {
-        "scrollHint": "Desplázate para continuar"
     },
     "notFound": {
         "title": "Página no encontrada",

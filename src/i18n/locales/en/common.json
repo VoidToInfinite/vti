@@ -54,10 +54,10 @@
         },
         "BackToTop": {
             "label": "Back to top"
+        },
+        "Deck": {
+            "scrollHint": "Scroll to continue"
         }
-    },
-    "deck": {
-        "scrollHint": "Scroll to continue"
     },
     "notFound": {
         "title": "Page not found",

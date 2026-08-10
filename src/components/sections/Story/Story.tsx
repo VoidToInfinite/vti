@@ -1273,13 +1273,15 @@ function StoryLight(): ReactElement {
 function StoryDeckDark(): ReactElement {
   const { t } = useTranslation("home");
   // Namespace SEPARADO (Task 4, plan
-  // 2026-08-10-implementacion-plan-premium-f1-f5): `deck.scrollHint` vive en
-  // `common`, no en `home` -- la pista de scroll es un patron de INTERFAZ
-  // compartido entre presentaciones (mismo rol que un `aria-label` de
-  // navegacion), no copia propia de la seccion. `common` carga sincrono
-  // igual que `home` (`i18n/config.ts`), asi que las dos llamadas a
-  // `useTranslation` resuelven en el mismo render, sin estado de carga que
-  // manejar.
+  // 2026-08-10-implementacion-plan-premium-f1-f5): `Common.Deck.scrollHint`
+  // vive en `common`, no en `home` -- la pista de scroll es un patron de
+  // INTERFAZ compartido entre presentaciones (mismo rol que un `aria-label`
+  // de navegacion), no copia propia de la seccion. Bajo `Common.Deck.*`, no
+  // como raiz plana propia (regla 29 de RULES.md: un solo arbol de claves
+  // por namespace, sin raices nuevas al margen de `Common.*`/`Home.*`).
+  // `common` carga sincrono igual que `home` (`i18n/config.ts`), asi que las
+  // dos llamadas a `useTranslation` resuelven en el mismo render, sin estado
+  // de carga que manejar.
   const { t: tCommon } = useTranslation("common");
 
   // Refs ESTABLES (useRef, no callback-ref): useSlideDeck lee
@@ -1405,7 +1407,7 @@ function StoryDeckDark(): ReactElement {
               el PRIMER avance del deck reutilizando data-slide (ver el
               docblock de ScScrollHint, story.deck.tsx). */}
           <ScScrollHint aria-hidden="true">
-            {tCommon("deck.scrollHint")}
+            {tCommon("Common.Deck.scrollHint")}
           </ScScrollHint>
         </ScStage>
       </ScTrack>

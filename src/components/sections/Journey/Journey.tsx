@@ -676,9 +676,10 @@ function JourneyDeckDark(): ReactElement {
   const { t } = useTranslation("home");
   // Namespace SEPARADO (Task 4, plan
   // 2026-08-10-implementacion-plan-premium-f1-f5), MISMO motivo que
-  // StoryDeckDark (Story.tsx): `deck.scrollHint` vive en `common`, no en
-  // `home` -- patron de interfaz compartido entre presentaciones, no copia
-  // propia de esta seccion.
+  // StoryDeckDark (Story.tsx): `Common.Deck.scrollHint` vive en `common`, no
+  // en `home` -- patron de interfaz compartido entre presentaciones, no
+  // copia propia de esta seccion. Bajo `Common.Deck.*`, no como raiz plana
+  // (regla 29 de RULES.md).
   const { t: tCommon } = useTranslation("common");
 
   // Refs ESTABLES (useRef, no callback-ref): useSlideDeck lee
@@ -795,7 +796,7 @@ function JourneyDeckDark(): ReactElement {
               el PRIMER avance del deck reutilizando data-slide (ver el
               docblock de ScJourneyScrollHint, journey.deck.tsx). */}
           <ScJourneyScrollHint aria-hidden="true">
-            {tCommon("deck.scrollHint")}
+            {tCommon("Common.Deck.scrollHint")}
           </ScJourneyScrollHint>
         </ScJourneyStage>
       </ScJourneyTrack>
