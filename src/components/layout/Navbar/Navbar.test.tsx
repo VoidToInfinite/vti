@@ -599,6 +599,22 @@ describe("Navbar", () => {
       }
     });
 
+    /*
+     * Tarea 1 (navegación accesible), punto 3 del brief: "aria-haspopup
+     * correcto en los disparadores si falta" -- hoy faltaba en los cuatro.
+     * "true" (genérico), no "menu": el panel que cada disparador revela son
+     * enlaces normales navegables por Tab, no un role="menu" de ARIA con
+     * navegación por flechas y role="menuitem" (ver el comentario del
+     * propio ScNavTrigger en Navbar.tsx).
+     */
+    it("los cuatro disparadores declaran aria-haspopup='true'", () => {
+      renderNavbar();
+
+      for (const name of [ON_SITE, DISCOVER, RESOURCES, COMMUNITY]) {
+        expect(getTrigger(name)).toHaveAttribute("aria-haspopup", "true");
+      }
+    });
+
     it("al pulsar un disparador, su aria-expanded pasa a 'true', su panel pierde inert y aria-controls apunta al id real del panel", () => {
       renderNavbar();
       const trigger = getTrigger(ON_SITE);
@@ -857,6 +873,156 @@ describe("Navbar", () => {
       expect(openRule).toContain("180ms");
       expect(openRule).toContain(PRESS.easing);
       expect(openRule).not.toContain("120ms");
+    });
+  });
+
+  /*
+   * Tarea 1 (navegación accesible), punto 1 del brief: los enlaces de
+   * sección del navbar (panel de escritorio) y de la hoja (Task 10)
+   * reflejan la sección visible con aria-current="location", detectado por
+   * el motor existente (useSectionProgress/data-inview, ver
+   * useActiveSection.ts -- reutilizado, sin IntersectionObserver nuevo).
+   *
+   * Las secciones reales (Story/Journey/Features/Contact) no se montan en
+   * estos tests (solo se renderiza <Navbar/>), así que se simulan con
+   * cuatro <div id="story|journey|features|contact"> sueltos en
+   * document.body y se pilota su dataset.inview a mano -- exactamente la
+   * señal que useSectionProgress escribiría en producción sobre esos mismos
+   * ids reales (ver Story.tsx/Journey.tsx/Features.tsx/Contact.tsx,
+   * id="story" etc.).
+   */
+  describe("sección activa del scroll (Tarea 1, useActiveSectionKey)", () => {
+    const SCROLLSPY_IDS = ["story", "journey", "features", "contact"];
+
+    function mockScrollSections(): void {
+      for (const id of SCROLLSPY_IDS) {
+        const el = document.createElement("div");
+        el.id = id;
+        document.body.appendChild(el);
+      }
+    }
+
+    function setInView(id: string, inView: boolean): void {
+      const el = document.getElementById(id);
+      if (!el) throw new Error(`no existe la sección de prueba #${id}`);
+      el.dataset.inview = inView ? "true" : "false";
+    }
+
+    function fireScroll(): void {
+      act(() => {
+        window.dispatchEvent(new Event("scroll"));
+      });
+    }
+
+    beforeEach(() => {
+      vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+      mockScrollSections();
+    });
+
+    afterEach(() => {
+      for (const id of SCROLLSPY_IDS) {
+        document.getElementById(id)?.remove();
+      }
+    });
+
+    it("sin ninguna sección en pantalla, ningún enlace de sección tiene aria-current", () => {
+      const { container } = renderNavbar();
+
+      for (const href of ["#story", "#journey", "#features", "#contact"]) {
+        expect(
+          container.querySelector(`a[href="${href}"]`),
+        ).not.toHaveAttribute("aria-current");
+      }
+    });
+
+    it("al entrar 'journey' en pantalla, su enlace del panel de escritorio gana aria-current='location' y los demás no", () => {
+      const { container } = renderNavbar();
+
+      setInView("journey", true);
+      fireScroll();
+
+      expect(container.querySelector('a[href="#journey"]')).toHaveAttribute(
+        "aria-current",
+        "location",
+      );
+
+      for (const href of ["#story", "#features", "#contact"]) {
+        expect(
+          container.querySelector(`a[href="${href}"]`),
+        ).not.toHaveAttribute("aria-current");
+      }
+    });
+
+    it("el mismo estado llega también a la hoja de navegación móvil (la otra superficie, Task 10)", () => {
+      const { container } = renderNavbar();
+
+      setInView("features", true);
+      fireScroll();
+
+      const hoja = container.querySelector("[data-nav-sheet]") as HTMLElement;
+      expect(hoja.querySelector('a[href="#features"]')).toHaveAttribute(
+        "aria-current",
+        "location",
+      );
+    });
+
+    it("los enlaces de discover (mismo href #features, kind distinto) NO ganan aria-current", () => {
+      // "features" (onSite) y los tres de discover comparten href, pero
+      // solo el item kind: "section" representa una sección real de
+      // scrollspy (ver navigation.ts). Dos superficies (panel de
+      // escritorio + hoja móvil) x 1 enlace de sección real cada una.
+      const { container } = renderNavbar();
+
+      setInView("features", true);
+      fireScroll();
+
+      const conAriaCurrent = Array.from(
+        container.querySelectorAll('a[href="#features"]'),
+      ).filter((a) => a.hasAttribute("aria-current"));
+      expect(conAriaCurrent).toHaveLength(2);
+    });
+
+    /*
+     * Indicador visual (punto 1 del brief: "token de tema, no color nuevo",
+     * "animando solo opacity/transform"). Validado con el bug inyectado a
+     * propósito (ver informe de la tarea): comentando temporalmente el
+     * bloque `&[aria-current="location"]::before` de ScNavPanelLink
+     * (Navbar.tsx) este test se pone en rojo; restaurado, vuelve a verde.
+     */
+    it("el punto indicador (::before) pasa de opacity:0/scale(0.5) a opacity:1/scale(1) bajo [aria-current='location'], con el token semantic.brand", () => {
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+
+      const link = container.querySelector('a[href="#story"]') as HTMLElement;
+      // La clase que interesa aquí es la que lleva la regla `::before`
+      // -- no la primera clase inyectada cualquiera del `classList`, que
+      // encontraría antes la clase base de ScNavLink (hover/:active, sin
+      // ::before propio) por composición `styled(ScNavLink)`.
+      const clase = Array.from(link.classList).find((c) =>
+        reglas.some((r) => r.includes(c) && r.includes("::before")),
+      );
+      expect(
+        clase,
+        "no se encontró la clase con la regla ::before inyectada",
+      ).toBeTruthy();
+
+      const before = reglas.find(
+        (r) => r.includes(`.${clase}::before`) && !r.includes("aria-current"),
+      );
+      expect(before, "no se encontró la regla ::before base").toBeDefined();
+      expect(before).toContain("opacity: 0");
+      expect(before).toContain("scale(0.5)");
+      expect(before).toContain(basicLightTheme.semantic.brand);
+
+      const activo = reglas.find((r) =>
+        r.includes(`.${clase}[aria-current="location"]::before`),
+      );
+      expect(
+        activo,
+        "no se encontró la regla ::before del estado activo",
+      ).toBeDefined();
+      expect(activo).toContain("opacity: 1");
+      expect(activo).toContain("scale(1)");
     });
   });
 

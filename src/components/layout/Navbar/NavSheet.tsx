@@ -15,6 +15,7 @@ import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageS
 import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { NAV_GROUPS, type NavGroup, type NavItem } from "@/config/navigation";
+import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { DECK, PRESS } from "@/motion/vocabulary";
 import {
   NAV_OVERLAY_CLOSE_MS,
@@ -465,6 +466,7 @@ const ScSheetList = styled.ul`
 const ScSheetRow = styled.a`
   display: flex;
   align-items: center;
+  gap: ${({ theme }) => theme.data.space[2]};
   min-height: 44px;
   padding: 0 ${({ theme }) => theme.data.space[2]};
   border-radius: ${({ theme }) => theme.data.radius.md};
@@ -491,11 +493,47 @@ const ScSheetRow = styled.a`
     transform: scale(${PRESS.activeScale});
   }
 
+  /*
+   * Indicador de sección activa (Tarea 1), mismo lenguaje visual y mismo
+   * criterio que ScNavPanelLink en Navbar.tsx (ver su docblock): un punto
+   * en el token semantic.brand, ligado al MISMO estado que decide
+   * aria-current (NavSheetGroup, más abajo), que solo anima
+   * opacity/transform (regla 18). Se repite aquí, no se comparte un
+   * componente, porque ScSheetRow y ScNavPanelLink ya son dos árboles de
+   * estilos independientes (deuda conocida documentada en RULES.md:
+   * "tercera copia" del switch de etiquetas de navegación, misma familia
+   * de duplicación deliberada).
+   */
+  &::before {
+    content: "";
+    width: ${({ theme }) => theme.data.space[1]};
+    height: ${({ theme }) => theme.data.space[1]};
+    flex: none;
+    border-radius: ${({ theme }) => theme.data.radius.full};
+    background: ${({ theme }) => theme.data.semantic.brand};
+    opacity: 0;
+    transform: scale(0.5);
+    transition:
+      opacity ${({ theme }) => theme.data.motion.duration.fast}
+        ${({ theme }) => theme.data.motion.easing.standard},
+      transform ${({ theme }) => theme.data.motion.duration.fast}
+        ${({ theme }) => theme.data.motion.easing.standard};
+  }
+
+  &[aria-current="location"]::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
     &:active {
       transform: none;
+    }
+
+    &::before {
+      transition: none;
     }
   }
 `;
@@ -756,11 +794,15 @@ export function NavSheetTrigger({
 interface NavSheetGroupProps {
   readonly group: NavGroup;
   readonly onNavigate: () => void;
+  /** Mismo contrato que `NavGroupMenuProps.activeSectionKey` en
+   *  `Navbar.tsx`: `key` de la sección visible, o `null`. */
+  readonly activeSectionKey: string | null;
 }
 
 function NavSheetGroup({
   group,
   onNavigate,
+  activeSectionKey,
 }: NavSheetGroupProps): ReactElement {
   const { t } = useTranslation("common");
   const titleId = useId();
@@ -812,6 +854,14 @@ function NavSheetGroup({
               <ScSheetRow
                 href={item.href}
                 onClick={onNavigate}
+                /* Mismo criterio que ScNavPanelLink en Navbar.tsx (ver su
+                   docblock): solo los items kind: "section", y "location"
+                   (no "true") como valor de aria-current. */
+                aria-current={
+                  item.kind === "section" && item.key === activeSectionKey
+                    ? "location"
+                    : undefined
+                }
               >
                 {itemLabel(item)}
               </ScSheetRow>
@@ -839,6 +889,10 @@ export function NavSheet({
   sheetRef,
 }: NavSheetProps): ReactElement {
   const { t } = useTranslation("common");
+  // Tarea 1 (navegación accesible): mismo singleton que consume `Navbar()`
+  // para su propio panel de escritorio (ver `useActiveSection.ts`) -- las
+  // dos superficies leen el mismo valor sin duplicar ningún listener.
+  const activeSectionKey = useActiveSectionKey();
 
   return (
     <>
@@ -861,6 +915,7 @@ export function NavSheet({
             key={group.key}
             group={group}
             onNavigate={onNavigate}
+            activeSectionKey={activeSectionKey}
           />
         ))}
         {/* El idioma es la pieza que se muda desde la barra (ver el docblock

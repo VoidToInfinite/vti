@@ -73,11 +73,33 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
   }
 `;
 
+/*
+ * Tarea 1 (navegación accesible), punto 2 del brief: `role="group"` +
+ * `aria-label` en el envoltorio, no un patrón `radiogroup` completo.
+ *
+ * Los dos botones ya usan `aria-pressed` -- semántica de "activar/desactivar"
+ * (WAI-ARIA "button", no "radio")-- y ESO es lo que había sin nombre de
+ * grupo: dos botones pulsables sueltos que un lector de pantalla anuncia sin
+ * decir a qué pertenecen. Migrar a `role="radiogroup"` + `role="radio"` +
+ * `aria-checked` habría sido un cambio de widget completo (exige, además,
+ * navegación por flechas y sacar los radios no seleccionados del orden de
+ * Tab -- "roving tabindex" -- que hoy NO tienen: los dos botones son
+ * alcanzables por Tab de forma independiente, y así se quedan). La
+ * corrección mínima que resuelve el hallazgo sin reescribir el widget es
+ * nombrar el GRUPO que ya envuelve a los dos botones: `role="group"` +
+ * `aria-label` (reutiliza `Common.Lang.title`, la misma clave que ya nombra
+ * este control en la hoja de navegación móvil, `NavSheet.tsx` -- ningún
+ * string nuevo). Con esto, un lector de pantalla anuncia "Idioma, grupo" al
+ * entrar y cada botón sigue anunciando su propio estado pulsado/no pulsado.
+ */
 export function LanguageSelector(): ReactElement {
   const { t, i18n } = useTranslation("common");
 
   return (
-    <ScLanguageSelector>
+    <ScLanguageSelector
+      role="group"
+      aria-label={t("Common.Lang.title")}
+    >
       {LANGUAGES.map((lng) => (
         <ScLanguageButton
           key={lng}

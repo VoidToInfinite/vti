@@ -24,6 +24,7 @@ import {
   type NavGroupKey,
   type NavItem,
 } from "@/config/navigation";
+import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
 import { useStage } from "@/motion/StageProvider";
 import { PRESS } from "@/motion/vocabulary";
@@ -720,11 +721,58 @@ const ScNavPanelList = styled.ul`
 /* Enlaces del panel: mismo rol visual que `ScNavLink` -- reutilizado por
    composición (`styled(ScNavLink)`), no duplicado -- más la presentación
    propia de un item de menú (bloque, con su propio relleno para que toda
-   la fila sea zona de clic, no solo el texto). */
+   la fila sea zona de clic, no solo el texto). `display: flex` (en vez del
+   `block` anterior) + `gap` acomodan el punto de sección activa de más
+   abajo sin desplazar el texto cuando el punto está invisible. */
+/*
+ * Indicador de sección activa (Tarea 1, navegación accesible). Ligado al
+ * MISMO estado que decide `aria-current` más abajo -- nunca una segunda
+ * fuente de verdad -- y expresado con un token de tema (`semantic.brand`),
+ * no un color nuevo, tal y como pide el brief. Solo `opacity`/`transform`
+ * animan (regla 18 de RULES.md): el punto nace en `opacity: 0` /
+ * `scale(0.5)` y crece a `1`/`1` cuando el enlace es el activo -- no se
+ * toca `color` ni `font-weight` del texto, para no competir con el cambio
+ * de `color` que ya anima `:hover`/`:focus-visible` en `ScNavLink`.
+ *
+ * Solo los items `kind: "section"` reciben `aria-current` (ver
+ * `NavGroupMenu`, más abajo), así que el `::before` de los demás items
+ * (discover/resources/community) se queda siempre en `opacity: 0` -- un
+ * espacio reservado invisible que además alinea el texto de todos los
+ * items del panel al mismo margen izquierdo.
+ */
 const ScNavPanelLink = styled(ScNavLink)`
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.data.space[2]};
   padding: ${({ theme }) => theme.data.space[1]}
     ${({ theme }) => theme.data.space[2]};
+
+  &::before {
+    content: "";
+    width: ${({ theme }) => theme.data.space[1]};
+    height: ${({ theme }) => theme.data.space[1]};
+    flex: none;
+    border-radius: ${({ theme }) => theme.data.radius.full};
+    background: ${({ theme }) => theme.data.semantic.brand};
+    opacity: 0;
+    transform: scale(0.5);
+    transition:
+      opacity ${({ theme }) => theme.data.motion.duration.fast}
+        ${({ theme }) => theme.data.motion.easing.standard},
+      transform ${({ theme }) => theme.data.motion.duration.fast}
+        ${({ theme }) => theme.data.motion.easing.standard};
+  }
+
+  &[aria-current="location"]::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+  }
 `;
 
 /*
@@ -740,6 +788,10 @@ interface NavGroupMenuProps {
   readonly isOpen: boolean;
   readonly onToggle: () => void;
   readonly onClose: () => void;
+  /** `key` de la sección actualmente visible (`useActiveSectionKey`), o
+   *  `null` si ninguna lo está. Solo los items `kind: "section"` lo
+   *  consumen (ver `itemLabel`/`aria-current` más abajo). */
+  readonly activeSectionKey: string | null;
 }
 
 function NavGroupMenu({
@@ -747,6 +799,7 @@ function NavGroupMenu({
   isOpen,
   onToggle,
   onClose,
+  activeSectionKey,
 }: NavGroupMenuProps): ReactElement {
   const { t } = useTranslation("common");
   const triggerId = useId();
@@ -798,6 +851,13 @@ function NavGroupMenu({
         ref={triggerRef}
         aria-expanded={isOpen}
         aria-controls={panelId}
+        /* Punto 3 del brief (Tarea 1): el panel que este botón revela no es
+           un `role="menu"` de ARIA -- sus items son enlaces normales, con
+           navegación por Tab estándar, sin flechas ni `role="menuitem"` --
+           así que el valor correcto es el genérico `"true"`, nunca
+           `"menu"` (que prometería una semántica de menú que este
+           componente no implementa). */
+        aria-haspopup="true"
         onClick={onToggle}
       >
         {t(`Common.Nav.${group.key}`)}
@@ -848,6 +908,26 @@ function NavGroupMenu({
                 <ScNavPanelLink
                   href={item.href}
                   onClick={handleLinkActivate}
+                  /*
+                   * Punto 1 del brief (Tarea 1): solo los items
+                   * `kind: "section"` representan una sección real de la
+                   * home -- "discover" apunta también a "#features" pero
+                   * son títulos de contenido (Learning/Imagination/Gaming),
+                   * no destinos de scrollspy propios. `"location"`, no
+                   * `"true"`: WAI-ARIA reserva ese valor para "la posición
+                   * actual dentro de un documento o contexto que el
+                   * usuario está recorriendo" -- exactamente este caso
+                   * (un enlace de sección que refleja dónde está el
+                   * scroll), y es más preciso que el genérico `"true"`.
+                   * `undefined`, no `"false"`, cuando no es la activa: así
+                   * el atributo desaparece del DOM en vez de quedar
+                   * anunciado como "no es la actual" en cada enlace.
+                   */
+                  aria-current={
+                    item.kind === "section" && item.key === activeSectionKey
+                      ? "location"
+                      : undefined
+                  }
                 >
                   {itemLabel(item)}
                 </ScNavPanelLink>
@@ -866,6 +946,12 @@ export function Navbar(): ReactElement {
   // "pending" mientras la fase de página siga en "backdrop" (spec §7.4): el
   // navbar entra en "chrome", a la vez que la copia del hero, no antes.
   const introState = phase === "backdrop" ? "pending" : "in";
+  // Tarea 1 (navegación accesible): sección de la home actualmente visible,
+  // reutilizando el motor ya montado por `useSectionProgress` en cada
+  // sección (ver el docblock de `useActiveSection.ts`). Se lee aquí, una
+  // sola vez, y se reparte a cada `NavGroupMenu` -- ninguno vuelve a
+  // suscribirse por su cuenta.
+  const activeSectionKey = useActiveSectionKey();
 
   /*
    * Regla 1: un solo grupo abierto a la vez -- un único estado
@@ -1012,6 +1098,7 @@ export function Navbar(): ReactElement {
                   isOpen={openGroup === group.key}
                   onToggle={() => toggleGroup(group.key)}
                   onClose={closeGroup}
+                  activeSectionKey={activeSectionKey}
                 />
               ))}
             </ScNavLinks>

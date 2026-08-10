@@ -44,6 +44,32 @@ describe("LanguageSelector", () => {
   });
 
   /*
+   * Tarea 1 (navegación accesible), punto 2 del brief: el grupo de botones
+   * gana un nombre accesible (role="group" + aria-label), en vez de dos
+   * botones "pulsados/no pulsados" sueltos sin contexto. Validado con el
+   * bug inyectado a propósito: quitando temporalmente `role="group"` de
+   * `ScLanguageSelector` (LanguageSelector.tsx) el primer test de este
+   * bloque se pone en rojo (getByRole("group") no encuentra nada);
+   * restaurado, vuelve a verde.
+   */
+  describe("nombre accesible del grupo (Tarea 1, punto 2 del brief)", () => {
+    it("el envoltorio es un role=group con aria-label = Common.Lang.title", () => {
+      renderWithProviders(<LanguageSelector />);
+      const grupo = screen.getByRole("group");
+      expect(grupo).toHaveAccessibleName("Idioma");
+    });
+
+    it("los dos botones siguen siendo alcanzables por Tab de forma independiente (no se migró a radiogroup)", () => {
+      renderWithProviders(<LanguageSelector />);
+      const botones = screen.getAllByRole("button");
+      for (const boton of botones) {
+        expect(boton).not.toHaveAttribute("tabindex", "-1");
+        expect(boton.tagName).toBe("BUTTON");
+      }
+    });
+  });
+
+  /*
    * Task 9 (craft de interacción): `:active { transform: scale(...) }`
    * tomado de `vocabulary.PRESS`, con su `transition` y su guard de
    * `prefers-reduced-motion`. Validado con el bug inyectado a propósito

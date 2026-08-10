@@ -60,18 +60,18 @@
     "semantic_hash": ""
   },
   "src/components/layout/LanguageSelector/LanguageSelector.tsx": {
-    "mtime": 1786379782.4593556,
-    "ast_hash": "8f7a50d3d2adb8a954c5ebe088c6b169",
+    "mtime": 1786277466.471605,
+    "ast_hash": "5381bbb61927e1ec00ea16e0e9a430de",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.test.tsx": {
-    "mtime": 1786380246.3749638,
-    "ast_hash": "cee1eecfe370a0d6b1abe8d69cdbe7b4",
+    "mtime": 1786279989.6948502,
+    "ast_hash": "c03220f41374170325ff4d290a54e4f3",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/Navbar.tsx": {
-    "mtime": 1786380173.3198502,
-    "ast_hash": "a92072cc5881b22ba1e6bd12685d6125",
+    "mtime": 1786290873.2520843,
+    "ast_hash": "d7ae49bde9e2a7bc57f39631ac7a449b",
     "semantic_hash": ""
   },
   "src/components/layout/ThemeToggle/ThemeToggle.tsx": {
@@ -2295,8 +2295,8 @@
     "semantic_hash": ""
   },
   "src/components/layout/LanguageSelector/LanguageSelector.test.tsx": {
-    "mtime": 1786379751.759284,
-    "ast_hash": "56a5305fe0effc374f88e34328e287e6",
+    "mtime": 1786276744.7927248,
+    "ast_hash": "0a9b813ea25e642828b2be9b425f91a9",
     "semantic_hash": ""
   },
   "src/components/legal/legalPage.parts.test.tsx": {
@@ -2315,8 +2315,8 @@
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/NavSheet.tsx": {
-    "mtime": 1786380151.2260828,
-    "ast_hash": "48a49d5cbed969050437179070d026fe",
+    "mtime": 1786280972.3070464,
+    "ast_hash": "f683656c8a3c96852537eab88afb5142",
     "semantic_hash": ""
   },
   "src/components/layout/Navbar/navOverlay.transition.ts": {
@@ -2397,31 +2397,6 @@
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/final-fix-report.md": {
     "mtime": 1786291214.3444881,
     "ast_hash": "b2adcc1a8d8dd5d0e75d01ad0de1a043",
-    "semantic_hash": ""
-  },
-  "src/hooks/useActiveSection.test.tsx": {
-    "mtime": 1786380246.4075212,
-    "ast_hash": "5b3b2967d4643c47fcfd6b6cb16da34b",
-    "semantic_hash": ""
-  },
-  "src/hooks/useActiveSection.ts": {
-    "mtime": 1786380246.4272537,
-    "ast_hash": "cd923dd7db367339c6a521f3a51097f5",
-    "semantic_hash": ""
-  },
-  ".superpowers/sdd/2026-08-10-implementacion-plan-premium-f1-f5/progress.md": {
-    "mtime": 1786378684.9005034,
-    "ast_hash": "81dd4ff0fac66ed1a2707a5bb0460405",
-    "semantic_hash": ""
-  },
-  ".superpowers/sdd/2026-08-10-implementacion-plan-premium-f1-f5/task-1-brief.md": {
-    "mtime": 1786378690.3709145,
-    "ast_hash": "be01ee336f59a8c5e17db6d2fadaaf34",
-    "semantic_hash": ""
-  },
-  "docs/superpowers/plans/2026-08-10-implementacion-plan-premium-f1-f5.md": {
-    "mtime": 1786378650.8449078,
-    "ast_hash": "75c7709f20cb781f4d4d1852e9732220",
     "semantic_hash": ""
   }
 }
