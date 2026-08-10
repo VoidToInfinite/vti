@@ -152,7 +152,8 @@
                 "emailError": "Enter a valid email.",
                 "fallbackLead": "If your email app didn’t open, write to us at",
                 "copyAddress": "Copy address",
-                "copied": "Copied"
+                "copied": "Copied",
+                "copyError": "Couldn't copy automatically. Select the address above."
             }
         }
     }

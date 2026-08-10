@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { PRESS } from "@/motion/vocabulary";
+import { themes } from "@/theme/themes";
 import { NotFoundContent } from "./NotFoundContent";
 
 /** Texto CSS de las reglas que styled-components inyecto para un elemento
@@ -33,6 +34,29 @@ describe("NotFoundContent", () => {
     renderWithProviders(<NotFoundContent />);
     expect(screen.getByRole("heading")).toBeInTheDocument();
     expect(screen.getByText(/no encontrada/i)).toBeInTheDocument();
+  });
+
+  /*
+   * Task 3 (tres cierres pequeños, 2026-08-10): antes de esta tarea el h1
+   * era un elemento nativo pelado, y `GlobalStyles.tsx` fuerza
+   * `h1..h6 { font-size: 1em }` para TODO el sitio (regla que este test NO
+   * toca) -- el titular real de la pagina heredaba el tamaño de fuente de
+   * su contenedor en vez de leer como un titulo de nivel 1. Se mide
+   * `getComputedStyle`, no el CSS inyectado: `font-size` no vive dentro de
+   * ningun `@media`, asi que jsdom SI lo resuelve (regla 36/38 -- el
+   * candado compara contra el TOKEN importado, nunca un literal a mano).
+   * Bug inyectado a proposito (verificado en esta tarea): devolviendo el
+   * heading a `variant="display"` (o a un `<h1>` nativo sin `Typography`)
+   * este test se pone en rojo; restaurado a `variant="h1"`, vuelve a verde.
+   */
+  it("Task 3: el h1 mide el tamaño real de titulo (type.scale.h1), no el 1em heredado del reset global", () => {
+    renderWithProviders(<NotFoundContent />);
+    const heading = screen.getByRole("heading");
+    expect(heading.tagName).toBe("H1");
+    expect(getComputedStyle(heading).fontSize).toBe(
+      themes.light.type.scale.h1.size,
+    );
+    expect(getComputedStyle(heading).fontSize).not.toBe("1em");
   });
 
   it("renderiza tambien el mensaje descriptivo", () => {

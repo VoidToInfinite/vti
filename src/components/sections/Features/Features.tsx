@@ -734,12 +734,33 @@ const ScCheckIcon = styled.svg<{ $key: FeatureKey }>`
  * mismo criterio que Button.tsx aplica a su background-color: no es una
  * primitiva de press, se queda con el token de paint estándar.
  */
+/*
+ * Task 3 (tres cierres pequeños, 2026-08-10): font-size pasa de
+ * `type.scale.caption` (0.75rem, 12px) a `type.scale.bodySm` (0.875rem,
+ * 14px) -- el escalón de la escala tipográfica del sistema más próximo que
+ * cumple el suelo de 14px del encargo (el siguiente paso, `body`, es 16px:
+ * más lejos de los 12px de partida que `bodySm`). `font-weight` se queda en
+ * `h5.weight` (600, sin cambios): el encargo pide un tamaño mínimo, no un
+ * peso distinto, y el semibold ya venía dando la jerarquía de "acción" frente
+ * al cuerpo de la tarjeta. Contraste AA verificado en Features.test.tsx,
+ * describe "Task 3": el cambio de tamaño no altera el color del CTA
+ * (`accentColor`), así que el ratio medido es el MISMO en 12px que en
+ * 14px -- 14px normal (no bold-large, que exigiría ≥18.66px) sigue
+ * necesitando el umbral de texto normal (4.5:1), no el rebajado de 3:1 de
+ * texto grande. Esa misma verificación destapó un hallazgo PREEXISTENTE, no
+ * causado por este cambio: `color` (más abajo, `accentColor`) incumple AA en
+ * 4 de 6 combinaciones tarjeta/rama -- documentado con los ratios exactos en
+ * RULES.md, "Deuda conocida", y en el propio test; no se corrige aquí porque
+ * exige una decisión de diseño (el mismo color no puede acercarse a AA en
+ * `surface` blanco Y en `bg` casi negro a la vez subiendo o bajando un solo
+ * paso de la rampa), fuera del alcance mecánico de esta tarea.
+ */
 const ScCta = styled.a<{ $key: FeatureKey }>`
   display: inline-flex;
   align-items: center;
   min-height: ${FEATURES_CTA_MIN_HEIGHT};
   margin-block-start: ${({ theme }) => theme.data.space[1]};
-  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
   color: ${({ theme, $key }) => accentColor(theme.data, $key)};
   transition:

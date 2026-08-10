@@ -152,7 +152,8 @@
                 "emailError": "Escribe un correo válido.",
                 "fallbackLead": "Si no se ha abierto tu aplicación de correo, escríbenos a",
                 "copyAddress": "Copiar dirección",
-                "copied": "Copiada"
+                "copied": "Copiada",
+                "copyError": "No se pudo copiar automáticamente. Selecciona la dirección de arriba."
             }
         }
     }

@@ -25,7 +25,7 @@ import {
 } from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
 import { FEATURES_TAIL_HOLD } from "@/components/sections/Features/features.layers";
 import { themes } from "@/theme/themes";
-import { contrastRatioHex } from "@/theme/tokens/contrast";
+import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
 
 /*
  * Reescritura completa (spec 2026-07-28 §7.4, mockup `#contact` L212-238):
@@ -779,7 +779,7 @@ describe("Contact en tema oscuro", () => {
       fireEvent.submit(container.querySelector("form") as HTMLFormElement);
     }
 
-    it("escribe la direccion real (sin mailto:) en el portapapeles y cambia el texto del boton a la clave copied", async () => {
+    it("escribe la direccion real (sin mailto:) en el portapapeles, cambia el texto del boton a la clave copied y NO muestra el mensaje de error (task 3)", async () => {
       const originalLocation = window.location;
       Object.defineProperty(window, "location", {
         configurable: true,
@@ -809,6 +809,9 @@ describe("Contact en tema oscuro", () => {
             name: esHome.Home.contact.form.copied,
           }),
         ).toBeInTheDocument();
+        expect(
+          screen.queryByText(esHome.Home.contact.form.copyError),
+        ).not.toBeInTheDocument();
       } finally {
         Object.defineProperty(window, "location", {
           configurable: true,
@@ -817,7 +820,16 @@ describe("Contact en tema oscuro", () => {
       }
     });
 
-    it("sin navigator.clipboard disponible, el fallback es silencioso: no lanza y el texto del boton no cambia", async () => {
+    /*
+     * Task 3 (tres cierres pequeños, 2026-08-10): hasta esta tarea, sin
+     * `navigator.clipboard` disponible, el fallo era silencioso -- el texto
+     * del boton no cambiaba a nada, sin ninguna senal para el usuario. Ahora
+     * revela `Home.contact.form.copyError`, un mensaje que senala la
+     * direccion YA seleccionable del parrafo de arriba (`ScFallbackEmail`),
+     * sin inventar un camino de copia nuevo. Sonda negativa incluida: el
+     * mensaje NO existe antes del click.
+     */
+    it("sin navigator.clipboard disponible, revela el mensaje de error (copyError) senalando la direccion ya seleccionable; el texto del boton no cambia a copied", async () => {
       const originalLocation = window.location;
       Object.defineProperty(window, "location", {
         configurable: true,
@@ -831,6 +843,10 @@ describe("Contact en tema oscuro", () => {
         const { container } = renderWithProviders(<Contact />);
         await submitValidEmail(container);
 
+        expect(
+          screen.queryByText(esHome.Home.contact.form.copyError),
+        ).not.toBeInTheDocument();
+
         const copyButton = screen.getByRole("button", {
           name: esHome.Home.contact.form.copyAddress,
         });
@@ -842,6 +858,62 @@ describe("Contact en tema oscuro", () => {
           screen.getByRole("button", {
             name: esHome.Home.contact.form.copyAddress,
           }),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole("button", {
+            name: esHome.Home.contact.form.copied,
+          }),
+        ).not.toBeInTheDocument();
+
+        const errorMessage = screen.getByText(
+          esHome.Home.contact.form.copyError,
+        );
+        expect(errorMessage).toBeInTheDocument();
+        // Vive dentro del MISMO role="status" que ya declara el panel
+        // (patron existente desde task 1): no hace falta un role propio.
+        expect(errorMessage.closest('[role="status"]')).toBeInTheDocument();
+      } finally {
+        Object.defineProperty(window, "location", {
+          configurable: true,
+          value: originalLocation,
+        });
+      }
+    });
+
+    /*
+     * Segundo modo de fallo (task 3): la API existe pero `writeText`
+     * RECHAZA (permiso denegado, origen no seguro tratado por el propio
+     * navegador, etc.) -- distinto del caso "API ausente" de arriba, y el
+     * unico que ejercita la rama `catch` de `handleCopy`. Converge en el
+     * MISMO mensaje `copyError`.
+     */
+    it("si navigator.clipboard.writeText rechaza, revela el mismo mensaje de error (copyError)", async () => {
+      const originalLocation = window.location;
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { ...originalLocation, assign: vi.fn() },
+      });
+      const writeText = vi.fn().mockRejectedValue(new Error("denied"));
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText },
+      });
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        await submitValidEmail(container);
+
+        const copyButton = screen.getByRole("button", {
+          name: esHome.Home.contact.form.copyAddress,
+        });
+        await act(async () => {
+          fireEvent.click(copyButton);
+        });
+
+        expect(writeText).toHaveBeenCalledWith(
+          links.email.replace(/^mailto:/, ""),
+        );
+        expect(
+          screen.getByText(esHome.Home.contact.form.copyError),
         ).toBeInTheDocument();
         expect(
           screen.queryByRole("button", {
@@ -937,6 +1009,28 @@ describe("Contact en tema oscuro", () => {
       );
     expect(reduceLine).toBeDefined();
     expect(reduceLine as string).toContain("animation: none");
+  });
+});
+
+/*
+ * Contraste AA del mensaje de error del boton Copiar (Task 3, "tres cierres
+ * pequeños", 2026-08-10). `ScCopyErrorText` solo pinta contra el fondo REAL
+ * de `ScFallbackPanel` (`semantic.surfaceSunken`, opaco -- no un
+ * `color-mix()`, asi que no hace falta reproducir ninguna mezcla a mano,
+ * lección repo 2026-08-06), y ese panel solo existe en la rama OSCURA (el
+ * formulario no se monta en la rama clara -- ver el `return` de
+ * `Contact.tsx`): por eso se mide solo `themes.dark`, no los dos temas como
+ * hace el candado generico de `contrast.test.ts` (ese mide `error` contra
+ * `bg`, no contra `surfaceSunken`, que es el fondo que aplica aqui).
+ */
+describe("Contact: Task 3, mensaje de error del boton Copiar (contraste AA)", () => {
+  it("semantic.error sobre semantic.surfaceSunken (fondo real de ScFallbackPanel, tema oscuro) cumple AA texto normal (4.5:1)", () => {
+    const { semantic } = themes.dark;
+    const ratio = contrastRatio(semantic.error, semantic.surfaceSunken);
+    expect(
+      ratio,
+      `contraste ${ratio.toFixed(2)}:1, por debajo de AA (4.5:1)`,
+    ).toBeGreaterThanOrEqual(4.5);
   });
 });
 

@@ -975,6 +975,32 @@ const ScCopyButton = styled(Button)`
   flex: none;
 `;
 
+/*
+ * Mensaje alternativo de fallo del portapapeles (Task 3, "tres cierres
+ * pequeños", 2026-08-10): hasta esta tarea, un `navigator.clipboard`
+ * ausente o un `writeText` rechazado fallaban en SILENCIO -- ver el
+ * docblock de `handleCopy`, más abajo, para el porqué completo. Este texto
+ * NO inventa una vía de copia nueva: señala la dirección que YA está en
+ * texto plano seleccionable un poco más arriba (`ScFallbackEmail`) dentro
+ * del mismo `ScFallbackPanel` -- copiar siempre fue una comodidad sobre
+ * ese texto, nunca el único camino. `flex-basis: 100%` la fuerza a su
+ * propia línea dentro del `flex-wrap` de `ScFallbackPanel`, para no
+ * competir por ancho con el texto principal ni con el botón «Copiar».
+ * `semantic.error`: mismo rol que ya usa el mensaje de validación del
+ * campo de correo (`Input.tsx`, `ScMsg`) -- no se inventa un cuarto rol de
+ * color para "algo no funcionó". Vive DENTRO del `role="status"` que
+ * `ScFallbackPanel` ya declara (patrón existente desde Task 1): no hace
+ * falta un `role` propio -- una mutación dentro de una región que ya
+ * estaba montada se anuncia igual, y un `status` anidado dentro de otro
+ * `status` no añadiría nada.
+ */
+const ScCopyErrorText = styled.p`
+  flex-basis: 100%;
+  margin: 0;
+  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  color: ${({ theme }) => theme.data.semantic.error};
+`;
+
 /**
  * Patrón mínimo de correo (task 1, auditoría premium 2026-08-08): capa de
  * validación PROPIA, además de `type="email"` + `required` nativos del
@@ -1032,14 +1058,23 @@ export function Contact(): ReactElement {
    */
   const [sent, setSent] = useState(false);
   /*
-   * Feedback textual opcional del botón «Copiar» (resolución del
-   * orquestador, task 1): SIN estado "copiado" animado -- no hay backend
-   * que confirmar de verdad, así que una animación/check afirmaría más
-   * certeza de la que hay. Cambiar el propio texto del botón es la señal
-   * mínima honesta, y solo se activa cuando `handleCopy` confirma que la
-   * escritura al portapapeles se completó.
+   * Estado del botón «Copiar» (task 1 introdujo solo el éxito; Task 3,
+   * "tres cierres pequeños", 2026-08-10, añade el fallo que antes faltaba
+   * -- ver el docblock de `handleCopy`, más abajo). Union cerrada de tres
+   * valores, no dos booleanos independientes (`copied`/`copyFailed`): con
+   * booleanos sueltos el TIPO permitiría un cuarto estado sin sentido (los
+   * dos a la vez), que ningún flujo real alcanza pero que tampoco impide
+   * nada por construcción -- la union solo deja representar los tres
+   * estados que existen. SIN animación/check en el éxito: no hay backend
+   * que confirmar de verdad (D13 sigue vigente), así que una animación
+   * afirmaría más certeza de la que hay. Cambiar el propio texto del botón
+   * (éxito) y sumar una línea de texto (fallo) son las señales mínimas
+   * honestas, y las dos solo se activan cuando `handleCopy` resuelve de
+   * verdad -- nunca de forma optimista.
    */
-  const [copied, setCopied] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
+    "idle",
+  );
 
   /*
    * Envío del formulario (D13, rama oscura): abre el cliente de correo del
@@ -1075,22 +1110,30 @@ export function Contact(): ReactElement {
 
   /*
    * Copia la dirección real al portapapeles (resolución del orquestador,
-   * task 1): comodidad sobre el panel de fallback, que YA deja la
-   * dirección en texto plano seleccionable -- copiar nunca es el ÚNICO
-   * camino. `navigator.clipboard` no existe en todo contexto (permiso
-   * denegado, origen no seguro, algún navegador antiguo); sin él, o si
-   * `writeText` rechaza, el fallback es silencioso a propósito: no hay nada
-   * que afirmarle al usuario sobre un intento que no puede completarse, y
-   * el texto del botón solo cambia a "Copiada" cuando la escritura se
-   * confirmó de verdad (nunca de forma optimista).
+   * task 1; el fallo deja de ser silencioso en Task 3, "tres cierres
+   * pequeños", 2026-08-10): comodidad sobre el panel de fallback, que YA
+   * deja la dirección en texto plano seleccionable (`ScFallbackEmail`) --
+   * copiar nunca es el ÚNICO camino, ni antes ni ahora. `navigator.clipboard`
+   * no existe en todo contexto (permiso denegado, origen no seguro, algún
+   * navegador antiguo); hasta esta tarea su ausencia y el rechazo de
+   * `writeText` dejaban al usuario SIN ninguna señal de que el intento no
+   * funcionó -- el botón se quedaba en su texto de reposo, indistinguible
+   * de "todavía no lo he pulsado". Los dos casos (API ausente / promesa
+   * rechazada) convergen ahora en el MISMO estado `"error"`, que revela
+   * `ScCopyErrorText` (más abajo en el render) señalando la dirección ya
+   * seleccionable de arriba. El texto del botón solo cambia a "Copiada"
+   * cuando la escritura se confirmó de verdad (nunca de forma optimista).
    */
   async function handleCopy(): Promise<void> {
-    if (!navigator.clipboard) return;
+    if (!navigator.clipboard) {
+      setCopyStatus("error");
+      return;
+    }
     try {
       await navigator.clipboard.writeText(links.email.replace(/^mailto:/, ""));
-      setCopied(true);
+      setCopyStatus("copied");
     } catch {
-      /* Silencioso a propósito -- ver docblock. */
+      setCopyStatus("error");
     }
   }
 
@@ -1222,11 +1265,16 @@ export function Contact(): ReactElement {
                           onClick={handleCopy}
                         >
                           {t(
-                            copied
+                            copyStatus === "copied"
                               ? "Home.contact.form.copied"
                               : "Home.contact.form.copyAddress",
                           )}
                         </ScCopyButton>
+                        {copyStatus === "error" && (
+                          <ScCopyErrorText>
+                            {t("Home.contact.form.copyError")}
+                          </ScCopyErrorText>
+                        )}
                       </ScFallbackPanel>
                     )}
                   </ScForm>
