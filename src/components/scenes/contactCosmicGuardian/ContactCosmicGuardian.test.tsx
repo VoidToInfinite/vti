@@ -88,7 +88,7 @@ describe("ContactCosmicGuardian", () => {
       expect(img).toHaveAttribute("decoding", "async");
       expect(img).toHaveAttribute("src", layer.src);
       expect(img.getAttribute("srcset")).toBe(
-        `${layer.srcSmall} 1024w, ${layer.src} 2560w`,
+        `${layer.srcSmall} 1024w, ${layer.srcMedium} 1600w, ${layer.src} 2560w`,
       );
       expect(img).toHaveAttribute("data-part", layer.part);
     });

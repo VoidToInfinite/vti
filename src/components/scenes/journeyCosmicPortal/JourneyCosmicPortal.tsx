@@ -59,7 +59,7 @@ export function JourneyCosmicPortal(): ReactElement {
           ref={layerRefs[index]}
           data-part={layer.part}
           src={layer.src}
-          srcSet={`${layer.srcSmall} 1024w, ${layer.src} 2560w`}
+          srcSet={`${layer.srcSmall} 1024w, ${layer.srcMedium} 1600w, ${layer.src} 2560w`}
           sizes={JOURNEY_PORTAL_SIZES}
           alt=""
           loading="lazy"

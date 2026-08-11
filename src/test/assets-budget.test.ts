@@ -173,15 +173,36 @@ const BUDGET_MARGIN = 1.05;
  * seis retratos compartidos entre secciones. Estas 7 son TODAS las carpetas
  * con `.webp` que tiene hoy el repo (`public/brand/logo.svg` es el único
  * asset fuera de esta lista, y no es WebP).
+ *
+ * **Actualizado 2026-08-11 (Task 11, plan premium F1-F5).** Esta tarea es el
+ * cambio legítimo que el docblock de cabecera anuncia: cuatro carpetas se
+ * recalcularon tras (a) añadir la pista intermedia de 1600px a las 16 capas
+ * de Features/Journey/Contact y (b) recomprimir en color `07-geometry`/
+ * `01-nebula` de Story. Antes → después (bytes reales en `public/`,
+ * `MEASURED_FOLDER_BYTES` previo entre paréntesis):
+ * - `features/celestial-orbital`: 2022094 → 2774032 (+751938, exactamente el
+ *   peso de las 7 pistas `-1600.webp` nuevas; ninguna pista existente
+ *   cambió).
+ * - `journey/cosmic-portal`: 1266500 → 1758720 (+492220, las 6 pistas
+ *   `-1600.webp` nuevas).
+ * - `contact/cosmic-guardian`: 492334 → 680776 (+188442, las 3 pistas
+ *   `-1600.webp` nuevas).
+ * - `story/cosmic-being`: 2294216 → 2002824 (-291392): esta carpeta NO gana
+ *   pista nueva (sus anchos siguen siendo 1024/1280) -- baja de peso porque
+ *   `07-geometry`/`01-nebula` se recomprimieron en color (ver
+ *   `assets/story-cosmic-being/manifest.json`, sección
+ *   `colorRecompression20260811`).
+ * Sin cambios: `figures`, `hero/aura`, `hero/eye` (fuera del alcance de esta
+ * tarea).
  */
 const MEASURED_FOLDER_BYTES: Readonly<Record<string, number>> = {
-  "contact/cosmic-guardian": 492334,
-  "features/celestial-orbital": 2022094,
+  "contact/cosmic-guardian": 680776,
+  "features/celestial-orbital": 2774032,
   "figures": 1562352,
   "hero/aura": 444888,
   "hero/eye": 619638,
-  "journey/cosmic-portal": 1266500,
-  "story/cosmic-being": 2294216,
+  "journey/cosmic-portal": 1758720,
+  "story/cosmic-being": 2002824,
 };
 
 /** Techo = bytes medidos × 1.05, redondeado hacia arriba. */
@@ -202,6 +223,15 @@ const FOLDER_BUDGET_BYTES: Readonly<Record<string, number>> =
  * `features/celestial-orbital/02-ondas.webp`, 669238 bytes (~654 KiB) -- la
  * capa nativa (2560×1441) de las ondas de la escena de Features. Techo =
  * ese valor × 1.05, redondeado hacia arriba: 702700 bytes.
+ *
+ * Reverificado 2026-08-11 (Task 11): sigue siendo el fichero más pesado del
+ * repo. `story/cosmic-being/07-geometry.webp`, el que ocupaba el segundo
+ * puesto (661472 bytes), bajó a 554792 bytes tras su recompresión de color
+ * (`colorRecompression20260811` en su manifest) y ya no es competencia; las
+ * 16 pistas `-1600.webp` nuevas de Features/Journey/Contact son todas más
+ * ligeras que sus propias pistas nativas de 2560px, así que ninguna se
+ * acerca al techo tampoco (la más pesada de las nuevas es
+ * `features/celestial-orbital/02-ondas-1600.webp`, 300394 bytes).
  */
 const MEASURED_MAX_FILE_BYTES = 669238;
 const MAX_FILE_BUDGET_BYTES = Math.ceil(

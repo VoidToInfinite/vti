@@ -9,14 +9,18 @@ describe("contactCosmicGuardian.layers", () => {
     expect(CONTACT_GUARDIAN_LAYERS).toHaveLength(3);
   });
 
-  it("cada capa publica su pista nativa y su pista reducida bajo /contact/cosmic-guardian/, sin rastro de la escena saliente ni de los orbes excluidos", () => {
+  it("cada capa publica su pista nativa, su pista reducida y su pista intermedia bajo /contact/cosmic-guardian/, sin rastro de la escena saliente ni de los orbes excluidos", () => {
     for (const layer of CONTACT_GUARDIAN_LAYERS) {
       expect(layer.src).toMatch(/^\/contact\/cosmic-guardian\/.+\.webp$/);
       expect(layer.srcSmall).toMatch(
         /^\/contact\/cosmic-guardian\/.+-1024\.webp$/,
       );
+      expect(layer.srcMedium).toMatch(
+        /^\/contact\/cosmic-guardian\/.+-1600\.webp$/,
+      );
       expect(layer.src).not.toContain("neon-galaxy");
       expect(layer.srcSmall).not.toContain("neon-galaxy");
+      expect(layer.srcMedium).not.toContain("neon-galaxy");
     }
   });
 

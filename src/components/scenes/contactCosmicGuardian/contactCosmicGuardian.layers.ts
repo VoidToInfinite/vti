@@ -42,6 +42,15 @@ export interface ContactCosmicGuardianLayer {
   readonly src: string;
   /** Variante de 1024px para viewports estrechos. */
   readonly srcSmall: string;
+  /**
+   * Variante de 1600px (Task 11, plan premium F1-F5): pista intermedia para
+   * que un movil a DPR3 (slot de ~1125px efectivos con `sizes=100vw`) deje
+   * de pedir la de 2560px. Generada desde la pista de 2560 ya desplegada
+   * (LANCZOS + method=6, calidad de esta escena) porque el master de 3344px
+   * no esta versionado -- ver `assets/contact-cosmic-guardian/manifest.json`,
+   * seccion `midTrack20260811`, para la medicion completa.
+   */
+  readonly srcMedium: string;
   /** Profundidad de parallax, 0 = plano de fondo, 1 = plano mas cercano. */
   readonly depth: number;
   /**
@@ -66,6 +75,7 @@ export const CONTACT_GUARDIAN_LAYERS: readonly ContactCosmicGuardianLayer[] = [
     part: "fondo",
     src: "/contact/cosmic-guardian/01-fondo.webp",
     srcSmall: "/contact/cosmic-guardian/01-fondo-1024.webp",
+    srcMedium: "/contact/cosmic-guardian/01-fondo-1600.webp",
     depth: 0,
     blend: "normal",
   },
@@ -73,6 +83,7 @@ export const CONTACT_GUARDIAN_LAYERS: readonly ContactCosmicGuardianLayer[] = [
     part: "figura",
     src: "/contact/cosmic-guardian/02-figura.webp",
     srcSmall: "/contact/cosmic-guardian/02-figura-1024.webp",
+    srcMedium: "/contact/cosmic-guardian/02-figura-1600.webp",
     depth: 0.353,
     blend: "normal",
   },
@@ -80,6 +91,7 @@ export const CONTACT_GUARDIAN_LAYERS: readonly ContactCosmicGuardianLayer[] = [
     part: "polvo",
     src: "/contact/cosmic-guardian/03-polvo.webp",
     srcSmall: "/contact/cosmic-guardian/03-polvo-1024.webp",
+    srcMedium: "/contact/cosmic-guardian/03-polvo-1600.webp",
     depth: 1,
     blend: "screen",
   },

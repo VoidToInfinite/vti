@@ -17,11 +17,14 @@ describe("journeyCosmicPortal.layers", () => {
     expect(JOURNEY_PORTAL_LAYERS.at(-1)?.part).toBe("figure");
   });
 
-  it("cada capa publica su pista nativa y su pista reducida bajo /journey/cosmic-portal/", () => {
+  it("cada capa publica su pista nativa, su pista reducida y su pista intermedia bajo /journey/cosmic-portal/", () => {
     for (const layer of JOURNEY_PORTAL_LAYERS) {
       expect(layer.src).toMatch(/^\/journey\/cosmic-portal\/.+\.webp$/);
       expect(layer.srcSmall).toMatch(
         /^\/journey\/cosmic-portal\/.+-1024\.webp$/,
+      );
+      expect(layer.srcMedium).toMatch(
+        /^\/journey\/cosmic-portal\/.+-1600\.webp$/,
       );
     }
   });

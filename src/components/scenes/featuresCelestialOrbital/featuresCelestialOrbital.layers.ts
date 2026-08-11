@@ -35,6 +35,15 @@ export interface FeaturesCelestialOrbitalLayer {
   readonly src: string;
   /** Variante de 1024px para viewports estrechos. */
   readonly srcSmall: string;
+  /**
+   * Variante de 1600px (Task 11, plan premium F1-F5): pista intermedia para
+   * que un movil a DPR3 (slot de ~1125px efectivos con `sizes=100vw`) deje
+   * de pedir la de 2560px. Generada desde la pista de 2560 ya desplegada
+   * (LANCZOS + method=6, calidad de esta escena) porque el master de 3344px
+   * no esta versionado -- ver `assets/features-celestial-orbital/manifest.json`,
+   * seccion `midTrack20260811`, para la medicion completa.
+   */
+  readonly srcMedium: string;
   /** Profundidad de parallax, 0 = plano de fondo, 1 = plano mas cercano. */
   readonly depth: number;
 }
@@ -56,42 +65,49 @@ export const FEATURES_ORBITAL_LAYERS: readonly FeaturesCelestialOrbitalLayer[] =
       part: "fondo",
       src: "/features/celestial-orbital/01-fondo.webp",
       srcSmall: "/features/celestial-orbital/01-fondo-1024.webp",
+      srcMedium: "/features/celestial-orbital/01-fondo-1600.webp",
       depth: 0.091,
     },
     {
       part: "ondas",
       src: "/features/celestial-orbital/02-ondas.webp",
       srcSmall: "/features/celestial-orbital/02-ondas-1024.webp",
+      srcMedium: "/features/celestial-orbital/02-ondas-1600.webp",
       depth: 0.255,
     },
     {
       part: "orbita",
       src: "/features/celestial-orbital/03-orbita.webp",
       srcSmall: "/features/celestial-orbital/03-orbita-1024.webp",
+      srcMedium: "/features/celestial-orbital/03-orbita-1600.webp",
       depth: 0.4,
     },
     {
       part: "plataforma",
       src: "/features/celestial-orbital/04-plataforma.webp",
       srcSmall: "/features/celestial-orbital/04-plataforma-1024.webp",
+      srcMedium: "/features/celestial-orbital/04-plataforma-1600.webp",
       depth: 0.327,
     },
     {
       part: "iconos",
       src: "/features/celestial-orbital/05-iconos.webp",
       srcSmall: "/features/celestial-orbital/05-iconos-1024.webp",
+      srcMedium: "/features/celestial-orbital/05-iconos-1600.webp",
       depth: 0.545,
     },
     {
       part: "figura",
       src: "/features/celestial-orbital/06-figura.webp",
       srcSmall: "/features/celestial-orbital/06-figura-1024.webp",
+      srcMedium: "/features/celestial-orbital/06-figura-1600.webp",
       depth: 0.691,
     },
     {
       part: "particulas",
       src: "/features/celestial-orbital/07-particulas.webp",
       srcSmall: "/features/celestial-orbital/07-particulas-1024.webp",
+      srcMedium: "/features/celestial-orbital/07-particulas-1600.webp",
       depth: 1,
     },
   ] as const;

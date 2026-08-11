@@ -36,6 +36,15 @@ export interface JourneyCosmicPortalLayer {
   readonly src: string;
   /** Variante de 1024px para viewports estrechos. */
   readonly srcSmall: string;
+  /**
+   * Variante de 1600px (Task 11, plan premium F1-F5): pista intermedia para
+   * que un movil a DPR3 (slot de ~1125px efectivos con `sizes=100vw`) deje
+   * de pedir la de 2560px. Generada desde la pista de 2560 ya desplegada
+   * (LANCZOS + method=6, calidad de esta escena) porque el master de 3344px
+   * no esta versionado -- ver `assets/journey-cosmic-portal/manifest.json`,
+   * seccion `midTrack20260811`, para la medicion completa.
+   */
+  readonly srcMedium: string;
   /** Profundidad de parallax, 0 = plano de fondo, 1 = plano más cercano. */
   readonly depth: number;
 }
@@ -60,36 +69,42 @@ export const JOURNEY_PORTAL_LAYERS: readonly JourneyCosmicPortalLayer[] = [
     part: "background",
     src: "/journey/cosmic-portal/01-background.webp",
     srcSmall: "/journey/cosmic-portal/01-background-1024.webp",
+    srcMedium: "/journey/cosmic-portal/01-background-1600.webp",
     depth: 0.063,
   },
   {
     part: "stars",
     src: "/journey/cosmic-portal/02-stars.webp",
     srcSmall: "/journey/cosmic-portal/02-stars-1024.webp",
+    srcMedium: "/journey/cosmic-portal/02-stars-1600.webp",
     depth: 0.188,
   },
   {
     part: "light-path",
     src: "/journey/cosmic-portal/03-light-path.webp",
     srcSmall: "/journey/cosmic-portal/03-light-path-1024.webp",
+    srcMedium: "/journey/cosmic-portal/03-light-path-1600.webp",
     depth: 0.375,
   },
   {
     part: "portals",
     src: "/journey/cosmic-portal/04-portals.webp",
     srcSmall: "/journey/cosmic-portal/04-portals-1024.webp",
+    srcMedium: "/journey/cosmic-portal/04-portals-1600.webp",
     depth: 0.583,
   },
   {
     part: "hologram-disc",
     src: "/journey/cosmic-portal/05-hologram-disc.webp",
     srcSmall: "/journey/cosmic-portal/05-hologram-disc-1024.webp",
+    srcMedium: "/journey/cosmic-portal/05-hologram-disc-1600.webp",
     depth: 0.792,
   },
   {
     part: "figure",
     src: "/journey/cosmic-portal/06-figure.webp",
     srcSmall: "/journey/cosmic-portal/06-figure-1024.webp",
+    srcMedium: "/journey/cosmic-portal/06-figure-1600.webp",
     depth: 1.0,
   },
 ] as const;

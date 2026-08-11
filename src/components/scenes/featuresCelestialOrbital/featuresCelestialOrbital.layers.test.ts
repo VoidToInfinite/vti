@@ -9,14 +9,18 @@ describe("featuresCelestialOrbital.layers", () => {
     expect(FEATURES_ORBITAL_LAYERS).toHaveLength(7);
   });
 
-  it("cada capa publica su pista nativa y su pista reducida bajo /features/celestial-orbital/, sin rastro de la escena saliente", () => {
+  it("cada capa publica su pista nativa, su pista reducida y su pista intermedia bajo /features/celestial-orbital/, sin rastro de la escena saliente", () => {
     for (const layer of FEATURES_ORBITAL_LAYERS) {
       expect(layer.src).toMatch(/^\/features\/celestial-orbital\/.+\.webp$/);
       expect(layer.srcSmall).toMatch(
         /^\/features\/celestial-orbital\/.+-1024\.webp$/,
       );
+      expect(layer.srcMedium).toMatch(
+        /^\/features\/celestial-orbital\/.+-1600\.webp$/,
+      );
       expect(layer.src).not.toContain("celestial-guide");
       expect(layer.srcSmall).not.toContain("celestial-guide");
+      expect(layer.srcMedium).not.toContain("celestial-guide");
     }
   });
 
