@@ -188,11 +188,13 @@ No se mide en esta entrega (este entorno no compone frames, §8): queda anotado 
 80     copia: subtítulo arranca
 160    copia: apoyo arranca
 240    copia: acciones (CTA) arrancan
-520    copia asentada           (240 + 200 de duración)
+440    copia asentada           (240 + 200 de duración)
 760    navbar arranca           (HERO_CHROME_OFFSET_MS, verbatim)
 1080   navbar asentado          (760 + 320)
 —      capas del fondo: cuando su decode() resuelve (sigue en JS, spec §7.2)
 ```
+
+> **Cuidado con el 520.** §5.3 y varios docblocks anteriores daban «520 ms» como asentamiento de la copia. Era correcto con **cinco** hijos —había un kicker, retirado el 2026-08-08— porque el último arrancaba a `4 × 80 = 320` y sumaba los 200 de duración. Con los **cuatro** de hoy el último arranca a `3 × 80 = 240` y el asentamiento es **440 ms**. La entrega del 2026-08-11 retiró además la regla `> *:nth-child(5)` que seguía declarando aquel retardo de 320 ms sin ningún elemento que lo recibiera: era la fuente del número equivocado.
 
 **Resultado medido** (mismo entorno, mismo método, tras el cambio):
 

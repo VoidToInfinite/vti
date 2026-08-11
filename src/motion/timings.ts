@@ -112,11 +112,19 @@ export const HERO_STACK_MS =
 /**
  * Paso del escalonado INTERNO de la copia del hero en la CARGA (spec §5.3,
  * §7.4): la distancia entre el arranque de un hijo del bloque de texto y el
- * del siguiente. 80 ms, no 120: con 120 ms el CTA aparecía a 680 ms desde el
- * primer pintado del bloque; con 80 ms entra a 320 ms y la secuencia se sigue
- * percibiendo como secuencia (calibración original de la spec §5, conservada
- * verbatim por la revisión 2026-08-11 que cambió el MOTOR de esta coreografía
- * de JS a CSS estático — ver el docblock del bloque de intro en `Hero.tsx`).
+ * del siguiente. 80 ms, no 120.
+ *
+ * La calibración original (spec §5) se hizo con CINCO hijos —había un
+ * kicker, retirado el 2026-08-08— y comparaba ASENTAMIENTOS: con 120 ms el
+ * CTA terminaba de entrar a 680 ms desde el arranque del bloque y con 80 ms a
+ * 520 ms, y a 80 ms la secuencia se sigue percibiendo como secuencia. Con los
+ * CUATRO hijos de hoy las mismas cuentas dan 560 ms y 440 ms: el CTA es el
+ * hijo 4, arranca a 3 × 80 = 240 ms y suma los 200 ms de
+ * `motion.duration.base`. **440 ms es la cifra vigente de asentamiento de la
+ * copia**; cualquier 520 que aparezca en un texto anterior al 2026-08-11 es
+ * la del layout de cinco hijos. El PASO no cambia con la revisión de esa
+ * fecha, que cambió el MOTOR de esta coreografía de JS a CSS estático — ver
+ * el docblock del bloque de intro en `Hero.tsx`.
  *
  * Vive aquí, y no como literal repetido cuatro veces en `Hero.tsx`, para que
  * el candado de test pueda aseverar contra la CONSTANTE importada y no contra
@@ -129,11 +137,26 @@ export const HERO_COPY_STEP_MS = 80;
  * Instante, medido desde el ARRANQUE de un stack (carga o entrada de un
  * cruce), en el que su ÚLTIMO escalón va por la mitad de su propio fundido:
  * `(HERO_STAGGER_STEPS - 1) * HERO_STEP_MS` para llegar al arranque de ese
- * escalón, más `HERO_FADE_MS / 2` para llegar a su punto medio. El navbar y
- * la copia usan este offset —no el final del stack— para empezar a entrar:
- * así terminan de asentarse DESPUÉS de la última capa (spec §1: «al final el
- * navbar y los textos»), sin dejar medio segundo de interfaz en blanco
- * esperando a que el fondo termine del todo. Resuelve a 760 (550 + 210).
+ * escalón, más `HERO_FADE_MS / 2` para llegar a su punto medio. Nació para
+ * que el navbar y la copia del hero empezaran a entrar ahí —no al final del
+ * stack— y terminaran de asentarse DESPUÉS de la última capa (spec §1: «al
+ * final el navbar y los textos»), sin dejar medio segundo de interfaz en
+ * blanco esperando a que el fondo termine del todo. Resuelve a 760 (550 +
+ * 210).
+ *
+ * QUIÉN LO USA HOY (revisión 2026-08-11, Task 10 — enmienda §5.5 de la spec
+ * de coreografía):
+ *
+ * - **El navbar, en la CARGA:** lo consume verbatim como `animation-delay`
+ *   de su `@keyframes` estática (`ScHeader`, `Navbar.tsx`).
+ * - **La copia del hero, en el CRUCE DE TEMA:** vía `HERO_COPY_RETURN_MS`
+ *   (`hero.transition.ts`), que sigue intacto.
+ * - **La copia del hero, en la CARGA: YA NO.** Su entrada pasó a CSS
+ *   estático anclado al primer pintado, y este offset mide un instante
+ *   relativo a un evento —el arranque del stack— que un reloj CSS no puede
+ *   observar; conservarlo habría costado 760 ms de hero sin texto en cada
+ *   carga, con el LCP medido colgando de ellos. El navbar sí lo conserva
+ *   porque no es candidato LCP en ninguna medición.
  */
 export const HERO_CHROME_OFFSET_MS =
   (HERO_STAGGER_STEPS - 1) * HERO_STEP_MS + HERO_FADE_MS / 2;

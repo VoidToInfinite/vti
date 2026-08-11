@@ -169,10 +169,17 @@ const heroCopyRise = keyframes`
 /*
  * Copy stagger-rise (spec §5): fija el orden de lectura en la carga. Los
  * CUATRO hijos (titulo -- la marca dentro de ScHeroBrand --, subtitulo,
- * apoyo, acciones) entran con un
- * paso de 80ms, no de 120ms: con 120ms el CTA aparecia a 680ms desde el
- * primer pintado; con 80ms entra a 520ms y la secuencia se sigue
- * percibiendo como secuencia. Solo transform/opacity.
+ * apoyo, acciones) entran con un paso de 80ms (HERO_COPY_STEP_MS), no de
+ * 120ms.
+ *
+ * La calibracion original (spec §5) se hizo con CINCO hijos -- habia un
+ * kicker, retirado el 2026-08-08 -- y comparaba ASENTAMIENTOS: con 120ms el
+ * CTA terminaba de entrar a 680ms desde el arranque del bloque y con 80ms a
+ * 520ms, y a 80ms la secuencia se sigue percibiendo como secuencia. Con los
+ * CUATRO hijos de hoy las mismas cuentas dan 560ms y 440ms: el CTA es el
+ * hijo 4, arranca a 3 x 80 = 240ms y suma los 200ms de
+ * motion.duration.base. 440ms es la cifra vigente; el 520 de antes era la
+ * del layout de cinco. Solo transform/opacity.
  *
  * Distribucion por tema (spec S6.5): `align-items`/`text-align`/`max-width`
  * en el breakpoint `lg` (mas abajo) leen las variables CSS de Task 9
@@ -234,13 +241,13 @@ const heroCopyRise = keyframes`
  * MISMO elemento que pueda pisarse: la opacidad efectiva de un hijo es el
  * PRODUCTO visual de las dos (un hijo a opacity 1 sigue invisible si su
  * padre esta en opacity 0), nunca una sobreescritura de la misma regla. Y
- * tampoco se solapan en el tiempo: la animacion de intro termina 520ms
- * despues del montaje (320ms del ultimo retardo + 200ms de duracion) y no
+ * tampoco se solapan en el tiempo: la animacion de intro termina 440ms
+ * despues del montaje (240ms del ultimo retardo + 200ms de duracion) y no
  * vuelve a arrancar nunca -- su animation-name computado es el MISMO en los
  * dos temas, y una animacion CSS solo reinicia su reloj cuando ese nombre
  * cambia (spec §6.1), no porque styled-components regenere la clase del
  * contenedor al cambiar de tema. El primer cambio de tema de usuario es muy
- * posterior a esos 520ms.
+ * posterior a esos 440ms.
  */
 const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   position: relative;
@@ -303,9 +310,15 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   }
   /* El primer hijo NO declara retardo: entra a 0ms, con el primer pintado.
      El resto escalona con HERO_COPY_STEP_MS, la constante importada -- nunca
-     un literal reescrito (regla 13 de RULES.md). La tabla llega al quinto
-     hijo aunque hoy solo haya cuatro: es la que la spec §5 calibro, y el
-     kicker retirado en 2026-08-08 ocupaba esa posicion. */
+     un literal reescrito (regla 13 de RULES.md).
+
+     La tabla llega al hijo 4 y ahi termina. Hasta el 2026-08-11 declaraba
+     ademas un nth-child(5) con 320ms, resto del kicker que se retiro el
+     2026-08-08: no matcheaba ningun elemento (el propio Hero.test.tsx
+     asevera que los hijos son CUATRO), y su 320ms era el origen de la cifra
+     de asentamiento equivocada -- 520ms -- que arrastraban tres docblocks.
+     Con cuatro hijos el ultimo arranca a 3 x 80 = 240ms y se asienta a
+     240 + 200 = 440ms. */
   > *:nth-child(2) {
     animation-delay: ${HERO_COPY_STEP_MS}ms;
   }
@@ -315,15 +328,13 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   > *:nth-child(4) {
     animation-delay: ${3 * HERO_COPY_STEP_MS}ms;
   }
-  > *:nth-child(5) {
-    animation-delay: ${4 * HERO_COPY_STEP_MS}ms;
-  }
 
   @media (prefers-reduced-motion: reduce) {
     /* Visible de inmediato, sin intro (spec §6.5): GlobalStyles colapsa
        animation-duration pero NO animation-delay, asi que hace falta este
-       guard explicito -- sin el, un hijo con 320ms de retardo se quedaria
-       invisible ese tramo (fill backwards) y apareceria de golpe, peor que
+       guard explicito -- sin el, el ultimo hijo, con sus 240ms de retardo,
+       se quedaria invisible ese tramo (fill backwards) y apareceria de
+       golpe, peor que
        no animar. Ya no hace falta repetirlo para ningun estado de
        data-intro: ese atributo desaparecio de este componente, asi que este
        unico bloque cubre el caso entero. */
