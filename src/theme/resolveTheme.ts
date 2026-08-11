@@ -41,10 +41,11 @@ export function resolveInitialTheme(
  * Construye el texto del script de arranque anti-flash (Task 9, brief punto
  * 1): lee `localStorage`/`prefers-color-scheme` reales del navegador y fija
  * `data-theme` en `<html>` ANTES de que el navegador pinte el primer frame.
- * `app/layout.tsx` lo inyecta con `next/script` `strategy="beforeInteractive"`
- * — la vía documentada de Next.js para scripts que tienen que correr antes de
- * hidratar (export estático: sin servidor, esto es plain HTML/JS, no depende
- * de ninguna ruta de servidor).
+ * `app/layout.tsx` lo inyecta como un `<script>` LITERAL dentro de un
+ * `<head>` explícito (Task 31; `next/script strategy="beforeInteractive"`
+ * se retiró por correr como chunk asíncrono bajo `output: "export"`, tarde
+ * para el `<h1>` visible desde Task 10) — el porqué completo vive en el
+ * docblock del propio elemento en `layout.tsx`, no se duplica aquí.
  *
  * Reutiliza `resolveInitialTheme.toString()` en vez de retranscribir la
  * lógica a mano dentro del template: así el CUERPO ejecutado por el
