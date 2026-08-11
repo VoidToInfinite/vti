@@ -4,6 +4,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeName } from "@/theme/themes";
 import {
   HERO_CHROME_OFFSET_MS,
+  HERO_COPY_STEP_MS,
   HERO_DECODE_TIMEOUT_MS,
   HERO_FADE_MS,
   HERO_STACK_MS,
@@ -35,6 +36,7 @@ import {
 
 export {
   HERO_CHROME_OFFSET_MS,
+  HERO_COPY_STEP_MS,
   HERO_DECODE_TIMEOUT_MS,
   HERO_FADE_MS,
   HERO_STACK_MS,

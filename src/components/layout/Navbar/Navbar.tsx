@@ -26,7 +26,7 @@ import {
 } from "@/config/navigation";
 import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
-import { useStage } from "@/motion/StageProvider";
+import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
 import { PRESS } from "@/motion/vocabulary";
 import {
   NAV_OVERLAY_CLOSE_MS,
@@ -55,31 +55,40 @@ import { NavSheet, NavSheetTrigger, useNavSheet } from "./NavSheet";
 // eso está el cristal, y `scroll-margin-top` en GlobalStyles compensa los
 // saltos a anclas.
 /*
- * Entrada del navbar en la carga (tarea C4, spec §7.4): `opacity` +
+ * Entrada del navbar en la carga (tarea C4, spec §7.4; motor re-expresado en
+ * CSS estático el 2026-08-11, Task 10 del plan premium): `opacity` +
  * `translateY(-8px) -> 0`, con `motion.duration.slow`/`easing.decelerate` --
  * la escala de movimiento de la casa, no una constante propia de la
  * coreografía del hero, porque esto ES una transición de interfaz normal
  * (aparición de la barra), no parte de la coreografía en sí (mismo criterio
  * que documenta HERO_CHROME_OFFSET_MS en hero.transition.ts).
  *
+ * QUÉ CAMBIÓ EN 2026-08-11 y qué no. Hasta esa fecha esto era una
+ * `transition` disparada por el atributo `data-intro`, que escribía la
+ * máquina de fases de la página (`useStage()`) cuando el fondo del hero
+ * avisaba de que ya se estaba revelando: sin JavaScript —o antes de que el
+ * bundle hidratara— la barra se quedaba en `opacity: 0`. Ahora es una
+ * `@keyframes` declarada sin ninguna condición, presente en el CSS del HTML
+ * exportado, con `animation-delay: HERO_CHROME_OFFSET_MS`: el retardo de
+ * 760 ms se conserva **verbatim** (a diferencia de la copia del hero, que lo
+ * pierde por su papel en el LCP —ver el docblock de `ScCopy` en `Hero.tsx`—),
+ * porque el navbar no es candidato LCP en ninguna de las mediciones y aquí el
+ * número se paga sin coste: «al final el navbar» (spec §1) sigue cumpliéndose
+ * al pie de la letra, y ahora también con JavaScript deshabilitado.
+ *
  * CONVIVENCIA con la `transition` que ScHeader declara: desde la tarea de
  * despegue al hacer scroll (spec 2026-07-31, D1) el cristal ya no vive aquí
  * -- se mudó a `ScSurface`, ver más abajo --, así que la lista ya NO lleva
  * las entradas de background-color/border-color/backdrop-filter que tenía
- * antes; en su lugar se le AÑADE una entrada de `padding-inline` (el hueco
- * lateral de la píldora al despegarse, ver el comentario de `ScBar`).
- * `opacity`/`transform` (el intro) y `padding-inline` (el despegue) conviven
- * como TRES entradas de la misma propiedad `transition` (longhand con lista
- * separada por comas): el bloque `&[data-scrolled="true"]` de más abajo
- * SOLO cambia el VALOR de `padding-inline`, nunca redeclara la lista
- * completa -- redeclararla ahí borraría las entradas del intro (regla dura
- * de esta tarea, y lección §5.1 de CLAUDE.md global en espejo, aplicada
- * aquí a `transition` en vez de a un selector CSS). `transition` acepta una
- * lista de <duración, timing-function> por propiedad; no es el caso de la
- * lección de `task/lessons.md` sobre `background: valor` en :hover (esa es
- * una propiedad ABREVIADA que resetea sub-propiedades no mencionadas) --
- * aquí no hay abreviatura ni reseteo, cada propiedad listada anima con SU
- * PROPIA duración/easing sin pisar a las demás.
+ * antes; en su lugar lleva `padding-inline` (el hueco lateral de la píldora
+ * al despegarse, ver el comentario de `ScBar`). Desde 2026-08-11
+ * `opacity`/`transform` SALEN de esa lista y no pueden volver: una
+ * `@keyframes` sobre una propiedad IMPIDE que la `transition` de esa misma
+ * propiedad llegue siquiera a crearse (medido, `task/lessons.md` 2026-07-26)
+ * -- dejarlas ahí habría sido código muerto sin ningún error que lo delatara.
+ * El bloque `&[data-scrolled="true"]` de más abajo SOLO cambia el VALOR de
+ * `padding-inline` y nunca redeclara la lista completa, que es lo que hoy
+ * mantiene esa única entrada a salvo.
  *
  * CONTEXTO DE APILAMIENTO: `position: fixed` + `z-index` distinto de `auto`
  * YA crea un contexto de apilamiento en ScHeader por sí solo (spec CSS,
@@ -94,6 +103,17 @@ import { NavSheet, NavSheetTrigger, useNavSheet } from "./NavSheet";
  * no cambia su posición en el árbol de apilamiento del documento por ganar
  * además una propiedad de `transform`.
  */
+const navbarDrop = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
 const ScHeader = styled.header`
   position: fixed;
   top: 0;
@@ -101,59 +121,72 @@ const ScHeader = styled.header`
   right: 0;
   z-index: ${({ theme }) => theme.data.zIndex.stickyNav};
   opacity: 1;
+  /* translateY(0) NO es decorativo y no se puede retirar aunque la animación
+     ya escriba transform: position fixed + z-index distinto de auto ya
+     aislaban esta barra, pero además hay código que depende explícitamente
+     de que ScHeader declare transform -- NavSheet vive FUERA de este
+     elemento justo porque un ancestro con transform pasa a ser el bloque
+     contenedor de los position fixed de su interior (ver el comentario del
+     JSX, más abajo). Con fill backwards, durante el retardo el valor
+     efectivo es el del keyframe from, que también es un transform: la
+     propiedad nunca computa none. */
   transform: translateY(0);
+  /* Intro de carga, SIN condición de JS: la regla viaja en el CSS del HTML
+     exportado, así que su reloj arranca con el primer pintado y la barra
+     entra igual con JavaScript deshabilitado. backwards, no both: el estado
+     final coincide con los valores de reposo declarados justo arriba, así
+     que solo hace falta rellenar hacia atrás el tramo del retardo -- y sin
+     forwards la animación deja de gobernar la propiedad al terminar, que es
+     lo que permite que el resto de la barra siga siendo CSS normal.
+
+     LONGHANDS, no la abreviatura animation: es la misma decisión que ya
+     tomó eyeStagger (eye.parts.tsx) y por el mismo motivo medido -- jsdom no
+     expande la abreviatura, así que un candado sobre animationDelay leería
+     cadena vacía y el retardo de esta coreografía quedaría sin ninguna
+     prueba (regla 38 de RULES.md). Verificado en esta misma tarea: con la
+     abreviatura, el test daba '' en vez de 760ms. */
+  animation-name: ${navbarDrop};
+  animation-duration: ${({ theme }) => theme.data.motion.duration.slow};
+  animation-timing-function: ${({ theme }) =>
+    theme.data.motion.easing.decelerate};
+  animation-delay: ${HERO_CHROME_OFFSET_MS}ms;
+  animation-fill-mode: backwards;
   /* Hueco lateral de la píldora al despegarse (spec §4): longitud pura,
      0 <-> var(--nav-gap). Nunca width: 100% -> calc(100% - 2*gap) -- ver el
      comentario de ScBar sobre por qué el ancho anima con max-width en vez
      de con width. */
   padding-inline: 0;
-  transition:
-    padding-inline ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    opacity ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+  transition: padding-inline ${({ theme }) => theme.data.motion.duration.base}
+    ${({ theme }) => theme.data.motion.easing.standard};
 
   &[data-scrolled="true"] {
     padding-inline: var(--nav-gap);
   }
 
   /*
-   * Estado ANTES de que la fase de página llegue a "chrome" (spec §7.4).
-   * SOLO opacity/transform (regla de movimiento de la casa): nunca
-   * display:none, visibility:hidden ni aria-hidden -- el navbar tiene que
-   * seguir en el orden de tabulación y visible para lectores de pantalla
-   * durante este tramo (ver el comentario de accesibilidad en Navbar(), más
-   * abajo). Un elemento con opacity 0 sigue siendo focalizable y anunciado;
-   * solo dejaría de leerse su contraste visual, y el tramo dura como mucho
-   * STAGE_FALLBACK_MS (~1.5s) antes de que la red de seguridad de
-   * StageProvider lo resuelva de todos modos.
+   * ACCESIBILIDAD durante el retardo del intro: SOLO opacity/transform
+   * (regla de movimiento de la casa). Nunca display:none, visibility:hidden
+   * ni aria-hidden -- el navbar tiene que seguir en el orden de tabulación y
+   * anunciado durante ese tramo (ver el comentario de accesibilidad en
+   * Navbar(), más abajo). Un elemento con opacity 0 sigue siendo focalizable
+   * y anunciado; solo deja de leerse su contraste visual, y ahora el tramo
+   * es un retardo FIJO de HERO_CHROME_OFFSET_MS (~0,76 s) en vez de una
+   * espera abierta a que el bundle hidratara.
    */
-  &[data-intro="pending"] {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
 
   @media (prefers-reduced-motion: reduce) {
+    /* Visible de inmediato, sin animación (spec §7.4). El guard sigue siendo
+       obligatorio: GlobalStyles colapsa animation-duration a 0.001ms pero NO
+       toca animation-delay, así que sin este bloque la barra seguiría
+       invisible los 760 ms del retardo (fill backwards) y luego aparecería
+       de golpe -- peor que no animar. Ya no hace falta repetir el estado
+       para ningún valor de data-intro: ese atributo desapareció de este
+       componente, así que este único bloque cierra el caso entero, sin
+       ninguna ventana de carrera contra un efecto de React. */
+    animation: none;
     transition: none;
-    /* Visible de inmediato, sin animación (spec §7.4): GlobalStyles colapsa
-       animation-duration pero esto es una transition, no una @keyframes --
-       con transition: none de la línea de arriba ya no hay ninguna
-       interpolación en marcha, pero el estado ESTÁTICO seguiría siendo
-       opacity 0 mientras la fase no llegara a "chrome" (que bajo
-       StageProvider en reduce sí llega directo a "settled", pero solo
-       DESPUÉS de un efecto -- hay un primer render, antes de ese efecto, en
-       el que la fase todavía es "backdrop"). Forzar aquí el estado final
-       por CSS, sin depender de en qué fase esté React todavía, cierra esa
-       ventana de raza sin necesitar ningún ajuste de timing en JS. */
     opacity: 1;
     transform: translateY(0);
-
-    &[data-intro="pending"] {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 `;
 
@@ -942,10 +975,12 @@ function NavGroupMenu({
 
 export function Navbar(): ReactElement {
   const { scrolled, phase: detachPhase } = useNavDetach(8);
-  const { phase } = useStage();
-  // "pending" mientras la fase de página siga en "backdrop" (spec §7.4): el
-  // navbar entra en "chrome", a la vez que la copia del hero, no antes.
-  const introState = phase === "backdrop" ? "pending" : "in";
+  // Este componente ya no consume useStage(): desde la revisión 2026-08-11 su
+  // entrada de carga es una @keyframes estática con animation-delay =
+  // HERO_CHROME_OFFSET_MS (ver el docblock de ScHeader), así que no necesita
+  // que nadie le avise de nada -- ni existiendo un hero (esta misma barra se
+  // monta en app/not-found.tsx, donde antes dependía de la red de seguridad
+  // de StageProvider para llegar a ser visible).
   // Tarea 1 (navegación accesible): sección de la home actualmente visible,
   // reutilizando el motor ya montado por `useSectionProgress` en cada
   // sección (ver el docblock de `useActiveSection.ts`). Se lee aquí, una
@@ -1009,18 +1044,18 @@ export function Navbar(): ReactElement {
   }, [openGroup]);
 
   /*
-   * ACCESIBILIDAD durante el intro: `data-intro="pending"` SOLO anima
+   * ACCESIBILIDAD durante el intro: la entrada SOLO anima
    * `opacity`/`transform`. Nunca `display:none`, `visibility:hidden` ni
    * `aria-hidden` -- con opacity 0 el elemento sigue en el árbol de
    * accesibilidad, sigue en el orden de tabulación y un `Tab` durante el
    * tramo de carga sigue moviendo el foco a sus controles con normalidad
    * (verificado leyendo la especificación de accesibilidad de CSS opacity:
    * a diferencia de `visibility`/`display`, `opacity` no altera ni el árbol
-   * de accesibilidad ni la secuencia de tabulación). El tramo es breve
-   * (como mucho STAGE_FALLBACK_MS, ~1.5s, y normalmente HERO_CHROME_OFFSET_MS,
-   * ~0.76s) y bajo `prefers-reduced-motion: reduce` no llega a producirse
-   * -- el CSS de ScHeader fuerza visible de inmediato en ese caso -- así que
-   * no hace falta ningún tratamiento adicional de foco.
+   * de accesibilidad ni la secuencia de tabulación). El tramo es un retardo
+   * fijo de HERO_CHROME_OFFSET_MS (~0.76s) y bajo `prefers-reduced-motion:
+   * reduce` no llega a producirse -- el CSS de ScHeader fuerza visible de
+   * inmediato en ese caso -- así que no hace falta ningún tratamiento
+   * adicional de foco.
    */
 
   /*
@@ -1062,7 +1097,6 @@ export function Navbar(): ReactElement {
       <ScHeader
         data-scrolled={scrolled}
         data-detach={detachPhase}
-        data-intro={introState}
       >
         <ScBar>
           <ScSurface

@@ -110,6 +110,22 @@ export const HERO_STACK_MS =
   HERO_FADE_MS + (HERO_STAGGER_STEPS - 1) * HERO_STEP_MS;
 
 /**
+ * Paso del escalonado INTERNO de la copia del hero en la CARGA (spec §5.3,
+ * §7.4): la distancia entre el arranque de un hijo del bloque de texto y el
+ * del siguiente. 80 ms, no 120: con 120 ms el CTA aparecía a 680 ms desde el
+ * primer pintado del bloque; con 80 ms entra a 320 ms y la secuencia se sigue
+ * percibiendo como secuencia (calibración original de la spec §5, conservada
+ * verbatim por la revisión 2026-08-11 que cambió el MOTOR de esta coreografía
+ * de JS a CSS estático — ver el docblock del bloque de intro en `Hero.tsx`).
+ *
+ * Vive aquí, y no como literal repetido cuatro veces en `Hero.tsx`, para que
+ * el candado de test pueda aseverar contra la CONSTANTE importada y no contra
+ * una tabla de strings escrita a mano (regla 38 de `RULES.md`). Se reexporta
+ * desde `hero.transition.ts` junto al resto, igual que las demás.
+ */
+export const HERO_COPY_STEP_MS = 80;
+
+/**
  * Instante, medido desde el ARRANQUE de un stack (carga o entrada de un
  * cruce), en el que su ÚLTIMO escalón va por la mitad de su propio fundido:
  * `(HERO_STAGGER_STEPS - 1) * HERO_STEP_MS` para llegar al arranque de ese

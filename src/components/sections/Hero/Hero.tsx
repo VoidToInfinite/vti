@@ -10,12 +10,12 @@ import {
 } from "@/components/layout/Brand/BrandName";
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
-import { useStage } from "@/motion/StageProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import { HeroBackdrop } from "./HeroBackdrop";
 import {
   HERO_COPY_IN_MS,
   HERO_COPY_OUT_MS,
+  HERO_COPY_STEP_MS,
   HERO_FADE_MS,
   useHeroCopySwap,
 } from "./hero.transition";
@@ -142,6 +142,31 @@ const ScHeroFoot = styled.div<{ $light: boolean }>`
 `;
 
 /*
+ * Escalonado de entrada de la copia (spec §5). Los DOS extremos, from Y to,
+ * se declaran explicitamente: task/lessons.md (2026-07-27) documenta que un
+ * keyframe implicito -- confiar en que el navegador complete el extremo que
+ * falta con el valor computado del elemento -- deja el recorrido a merced de
+ * lo que la cascada resuelva en ese instante, y ya costo una sesion en el
+ * escalonado del ojo.
+ *
+ * Se declara con el helper keyframes de styled-components, no como bloque
+ * @keyframes rise dentro del template: el nombre queda hasheado y unico. La
+ * forma anterior emitia @keyframes rise LITERAL al nivel superior de la hoja
+ * (verificado leyendo out/index.html del build), un nombre global de tres
+ * letras que cualquier otro componente podia pisar sin que nada avisara.
+ */
+const heroCopyRise = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+/*
  * Copy stagger-rise (spec §5): fija el orden de lectura en la carga. Los
  * CUATRO hijos (titulo -- la marca dentro de ScHeroBrand --, subtitulo,
  * apoyo, acciones) entran con un
@@ -162,35 +187,60 @@ const ScHeroFoot = styled.div<{ $light: boolean }>`
  * activa en cambios de USUARIO -- por eso este componente no necesita saber
  * nada de esa mecanica, solo pintar lo que le llega.
  *
- * ARRANQUE DEL INTRO (tarea C5, spec §7.4): el escalonado de 80ms de los
- * CUATRO hijos NO cambia, pero deja de arrancar en cuanto el bloque se monta
- * -- ahora espera a la fase de PAGINA "chrome" (`useStage()`, ver `Hero()`),
- * leida en el atributo `data-intro` de ESTE MISMO elemento (selector
- * CALIFICADO `&[data-intro="in"]`, no descendiente: el atributo vive aqui,
- * no en un ancestro). La forma mas limpia de retrasar los retardos ya
- * calibrados sin recalcular ninguno es no montar la animacion hasta
- * entonces: en "pending" los hijos quedan a opacity 0 por regla ESTATICA
- * (sin animation alguna en marcha); en "in", la regla de animacion se
- * aplica por primera vez y su cuenta de animation-delay arranca EN ESE
- * INSTANTE -- igual que el escalonado del ojo/Aura conmuta su [data-state]
- * (spec §6.2): una animacion CSS reinicia su reloj cuando animation-name
- * pasa de ausente a declarado, no cuando el elemento se monta.
+ * ARRANQUE DEL INTRO -- CSS ESTATICO (revision 2026-08-11, Task 10 del plan
+ * premium; enmienda fechada de la spec §5.3/§5.4/§7.4). El escalonado de
+ * 80ms de los CUATRO hijos (HERO_COPY_STEP_MS), su duracion
+ * (motion.duration.base), su curva (easing.decelerate) y su recorrido de
+ * 10px NO cambian: cambia el MOTOR, no la partitura.
+ *
+ * Lo que cambia: hasta esta revision la animacion no existia hasta que la
+ * maquina de fases de la pagina (useStage) escribia data-intro=in en ESTE
+ * elemento, y hasta entonces los hijos quedaban a opacity 0 por una regla
+ * estatica. Eso encadenaba el texto del hero -- incluido el h1, y con el el
+ * candidato LCP -- a que el bundle descargara, React hidratara, HeroBackdrop
+ * ganara su carrera de decode() y ADEMAS pasaran los HERO_CHROME_OFFSET_MS.
+ * Medido en Chrome real sobre el build estatico (serve out, cache fria,
+ * PerformanceObserver con buffered: true): LCP 1268ms en claro escritorio,
+ * 1292ms en claro movil y 4520ms con CPU 4x + Slow 4G, con FCP a
+ * 156/68/812ms -- entre 1,1s y 3,7s de hero sin texto DESPUES de que el
+ * navegador ya estuviera pintando.
+ *
+ * Ahora la animacion se declara SIN NINGUNA CONDICION de JS, asi que viaja
+ * en el CSS del HTML exportado y su reloj arranca con el primer pintado del
+ * bloque: el texto es visible -- y candidato LCP elegible -- sin esperar a
+ * nada, tambien con JavaScript deshabilitado. data-intro desaparece de este
+ * componente: una propiedad, un dueño.
+ *
+ * EL UNICO NUMERO QUE CAMBIA, y por que: HERO_CHROME_OFFSET_MS (760ms) ya no
+ * retrasa esta entrada. Ese offset no es RITMO, es SINCRONIA: mide el
+ * instante en que el ultimo escalon del fondo va por la mitad de su fundido
+ * (spec §5.2), contado desde un evento -- el arranque del stack -- que solo
+ * JS conoce y que un reloj CSS estatico no puede observar. Conservarlo como
+ * retardo fijo habria mantenido 760ms de hero sin texto en CADA carga sin
+ * comprar nada: en la carga lenta, que es justo donde el LCP importa, el
+ * fondo (que conserva su decode-gating en JS a proposito -- es arte, no LCP
+ * de texto) llega mucho DESPUES de esos 760ms de todas formas, asi que el
+ * orden del brief (primero el arte, al final los textos) tampoco se
+ * preservaba. El navbar SI conserva el offset verbatim (ver ScHeader en
+ * Navbar.tsx): no es candidato LCP en ninguna de las mediciones, asi que
+ * ahi el numero se paga sin coste y al-final-el-navbar sigue cumpliendose al
+ * pie de la letra.
  *
  * CONVIVENCIA con la transition de opacity que ScCopy YA declara para
  * $hidden (mas abajo): son dos canales de opacidad en elementos DISTINTOS
  * -- $hidden anima la opacidad de ESTE contenedor (el cruce de tema
- * completo), mientras que data-intro controla la opacidad de sus HIJOS
- * DIRECTOS (> *). No hay ninguna propiedad compartida en el MISMO elemento
- * que pueda pisarse: la opacidad efectiva de un hijo es el PRODUCTO visual
- * de las dos (un hijo a opacity 1 sigue invisible si su padre esta en
- * opacity 0), nunca una sobreescritura de la misma regla. Y en la practica
- * no llegan a solaparse en el tiempo: data-intro solo pasa de "pending" a
- * "in" UNA VEZ en toda la vida de la pagina (la fase de StageProvider no
- * vuelve atras, spec §7.1), en la carga inicial -- momento en el que
- * $hidden todavia es false (la copia no se oculta hasta el PRIMER cambio de
- * tema de usuario, muy posterior). Los cambios de tema que vengan despues
- * solo mueven $hidden; los hijos ya estan en "in" para siempre y no vuelven
- * a tocar su animation.
+ * completo, que sigue siendo JS), mientras que la animacion de intro anima
+ * la de sus HIJOS DIRECTOS (> *). No hay ninguna propiedad compartida en el
+ * MISMO elemento que pueda pisarse: la opacidad efectiva de un hijo es el
+ * PRODUCTO visual de las dos (un hijo a opacity 1 sigue invisible si su
+ * padre esta en opacity 0), nunca una sobreescritura de la misma regla. Y
+ * tampoco se solapan en el tiempo: la animacion de intro termina 520ms
+ * despues del montaje (320ms del ultimo retardo + 200ms de duracion) y no
+ * vuelve a arrancar nunca -- su animation-name computado es el MISMO en los
+ * dos temas, y una animacion CSS solo reinicia su reloj cuando ese nombre
+ * cambia (spec §6.1), no porque styled-components regenere la clase del
+ * contenedor al cambiar de tema. El primer cambio de tema de usuario es muy
+ * posterior a esos 520ms.
  */
 const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   position: relative;
@@ -240,54 +290,47 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
     max-width: var(--hero-copy-maxwidth-lg, min(70ch, 70%));
   }
 
-  /* Antes de "chrome": los hijos quedan invisibles por regla ESTATICA, sin
-     ninguna animacion en marcha todavia (ver el docblock de cabecera). */
-  &[data-intro="pending"] > * {
-    opacity: 0;
-  }
-
-  /* En "chrome": la animacion se aplica por PRIMERA VEZ aqui, asi que su
-     cuenta de animation-delay arranca en este instante, no en el montaje
-     del componente. El escalonado interno de 80ms NO cambia. */
-  &[data-intro="in"] > * {
-    animation: rise ${({ theme }) => theme.data.motion.duration.base}
+  /* Intro de carga, SIN condicion de JS (ver el docblock de cabecera): la
+     regla existe en el CSS del HTML exportado, asi que su reloj arranca con
+     el primer pintado del bloque y el texto entra igual con JavaScript
+     deshabilitado. backwards, no both: el estado final de la animacion (los
+     hijos ya no declaran opacity ni transform propios) coincide con el valor
+     de reposo, asi que solo hace falta rellenar hacia atras el tramo del
+     retardo. */
+  > * {
+    animation: ${heroCopyRise} ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.decelerate} backwards;
   }
-  &[data-intro="in"] > *:nth-child(2) {
-    animation-delay: 80ms;
+  /* El primer hijo NO declara retardo: entra a 0ms, con el primer pintado.
+     El resto escalona con HERO_COPY_STEP_MS, la constante importada -- nunca
+     un literal reescrito (regla 13 de RULES.md). La tabla llega al quinto
+     hijo aunque hoy solo haya cuatro: es la que la spec §5 calibro, y el
+     kicker retirado en 2026-08-08 ocupaba esa posicion. */
+  > *:nth-child(2) {
+    animation-delay: ${HERO_COPY_STEP_MS}ms;
   }
-  &[data-intro="in"] > *:nth-child(3) {
-    animation-delay: 160ms;
+  > *:nth-child(3) {
+    animation-delay: ${2 * HERO_COPY_STEP_MS}ms;
   }
-  &[data-intro="in"] > *:nth-child(4) {
-    animation-delay: 240ms;
+  > *:nth-child(4) {
+    animation-delay: ${3 * HERO_COPY_STEP_MS}ms;
   }
-  &[data-intro="in"] > *:nth-child(5) {
-    animation-delay: 320ms;
-  }
-
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
+  > *:nth-child(5) {
+    animation-delay: ${4 * HERO_COPY_STEP_MS}ms;
   }
 
   @media (prefers-reduced-motion: reduce) {
     /* Visible de inmediato, sin intro (spec §6.5): GlobalStyles colapsa
        animation-duration pero NO animation-delay, asi que hace falta este
        guard explicito -- sin el, un hijo con 320ms de retardo se quedaria
-       invisible ese tramo y apareceria de golpe, peor que no animar. Se
-       fuerza opacity 1 en los DOS estados de data-intro por la misma razon
-       que ScHeader (Navbar.tsx): hay un primer render, antes de que el
-       efecto de StageProvider corrija la fase bajo reduce, en el que
-       data-intro todavia vale "pending". */
+       invisible ese tramo (fill backwards) y apareceria de golpe, peor que
+       no animar. Ya no hace falta repetirlo para ningun estado de
+       data-intro: ese atributo desaparecio de este componente, asi que este
+       unico bloque cubre el caso entero. */
     > * {
       animation: none;
       opacity: 1;
-    }
-    &[data-intro="pending"] > * {
-      opacity: 1;
+      transform: none;
     }
     transition: none;
   }
@@ -544,10 +587,10 @@ export function Hero(): ReactElement {
   // anterior (ver useHeroCopySwap para el porque completo, spec S6.5).
   const { layoutTheme, hidden } = useHeroCopySwap();
   const light = layoutTheme === "light";
-  const { phase } = useStage();
-  // "pending" mientras la fase de pagina siga en "backdrop" (spec §7.4): la
-  // copia entra en "chrome", a la vez que el navbar, no antes.
-  const introState = phase === "backdrop" ? "pending" : "in";
+  // Este componente ya no consume useStage(): desde la revision 2026-08-11 el
+  // intro de la copia es CSS estatico y no depende de ninguna fase de JS (ver
+  // el docblock de ScCopy). HeroBackdrop, mas abajo, si lo sigue usando: su
+  // decode-gating es lo que de verdad necesita JavaScript.
 
   return (
     <ScHero id="hero">
@@ -564,7 +607,6 @@ export function Hero(): ReactElement {
       <ScCopy
         $light={light}
         $hidden={hidden}
-        data-intro={introState}
       >
         <ScHeroBrand
           as="h1"

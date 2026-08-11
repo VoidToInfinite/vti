@@ -1,6 +1,4 @@
-import { useEffect, type ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act } from "@testing-library/react";
 import {
   renderWithProviders,
   screen,
@@ -8,8 +6,8 @@ import {
 } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
 import { type as typeTokens } from "@/theme/tokens/type";
-import { StageProvider, useStage } from "@/motion/StageProvider";
-import { HERO_CHROME_OFFSET_MS } from "./hero.transition";
+import { StageProvider } from "@/motion/StageProvider";
+import { HERO_COPY_STEP_MS } from "./hero.transition";
 import { Hero } from "./Hero";
 
 /**
@@ -36,10 +34,12 @@ beforeEach(() => stubMatchMedia());
 afterEach(() => vi.unstubAllGlobals());
 
 /**
- * `Hero` consume `useStage()` (tarea C5): sin un `StageProvider` en el
- * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
- * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
- * localmente, igual que en Navbar.test.tsx.
+ * `Hero` YA NO consume `useStage()` (revision 2026-08-11: su intro de carga
+ * es CSS estatico), pero `HeroBackdrop` -- que `Hero` monta -- SI lo sigue
+ * consumiendo para su decode-gating, asi que sin un `StageProvider` en el
+ * arbol el hook sigue lanzando. `renderWithProviders` (test-utils.tsx) es un
+ * helper COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve
+ * aqui, localmente.
  */
 function renderHero(): RenderResult {
   return renderWithProviders(
@@ -47,35 +47,6 @@ function renderHero(): RenderResult {
       <Hero />
     </StageProvider>,
   );
-}
-
-/**
- * Fuerza la fase de pagina a "chrome" (spec §7.4, tarea C6): monta una sonda
- * que llama a `markBackdropRevealed()` en su primer efecto -- el mismo
- * gancho que en produccion usa `HeroBackdrop` -- y avanza el reloj falso
- * exactamente `HERO_CHROME_OFFSET_MS` (la CONSTANTE importada que
- * StageProvider usa para programar la transicion). Requiere
- * `vi.useFakeTimers()` activo en el test que la llama.
- */
-function RevealBackdrop(): ReactElement | null {
-  const { markBackdropRevealed } = useStage();
-  useEffect(() => {
-    markBackdropRevealed();
-  }, [markBackdropRevealed]);
-  return null;
-}
-
-function renderHeroInChrome(): RenderResult {
-  const result = renderWithProviders(
-    <StageProvider>
-      <RevealBackdrop />
-      <Hero />
-    </StageProvider>,
-  );
-  act(() => {
-    vi.advanceTimersByTime(HERO_CHROME_OFFSET_MS);
-  });
-  return result;
 }
 
 /** Devuelve el elemento marcado con ese gancho de test o falla el test. */
@@ -100,6 +71,32 @@ function allCssRules(): string[] {
   const walk = (rules: CSSRuleList): void => {
     Array.from(rules).forEach((rule) => {
       reglas.push(rule.cssText);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) walk(anidadas);
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return reglas;
+}
+
+/** Reglas de estilo (no @media/@keyframes) inyectadas por
+ *  styled-components, aplanadas. Se devuelve el OBJETO, no su texto, porque
+ *  la FORMA de un selector solo se puede aseverar sobre `selectorText`
+ *  (regla 35 de RULES.md): `[x] &` y `&[x]` comparten substring y describen
+ *  selectores distintos. */
+function allStyleRules(): CSSStyleRule[] {
+  const reglas: CSSStyleRule[] = [];
+  const walk = (rules: CSSRuleList): void => {
+    Array.from(rules).forEach((rule) => {
+      if ((rule as CSSStyleRule).selectorText !== undefined) {
+        reglas.push(rule as CSSStyleRule);
+      }
       const anidadas = (rule as CSSGroupingRule).cssRules;
       if (anidadas) walk(anidadas);
     });
@@ -243,82 +240,96 @@ describe("Hero", () => {
   });
 
   /*
-   * Tarea C5/C6 (spec §7.4): mientras la fase de pagina siga en "backdrop",
-   * el intro de la copia NO ha arrancado -- los cuatro hijos quedan a
-   * opacity 0 por regla ESTATICA (`&[data-intro="pending"] > *`), sin
-   * ninguna animacion en marcha. Sin este test, un `data-intro="in"` por
-   * defecto (en vez de derivarlo de `useStage().phase`) pasaria
-   * desapercibido: el test de mas abajo, que fuerza la fase a "chrome",
-   * seguiria en verde igual.
+   * CANDADO DE ESTRUCTURA (Task 10, plan premium 2026-08-11). El intro de la
+   * copia dejo de depender de la maquina de fases de JS: ni el atributo
+   * `data-intro` existe ya en este componente, ni ningun hijo arranca en
+   * `opacity: 0` esperando a que algo lo encienda. Es la propiedad que hace
+   * al `<h1>` candidato LCP elegible en el primer pintado y la que sostiene
+   * el "visible sin JavaScript" del brief.
+   *
+   * Este test es el inverso EXACTO del que habia hasta esta revision ("los
+   * cuatro hijos quedan en opacity 0 en fase backdrop"): se conserva el
+   * mismo gancho y la misma forma para que la regresion sea evidente si
+   * alguien vuelve a atar la copia a un estado de React.
    */
-  it("la copia no anima en la fase 'backdrop': los cuatro hijos quedan en opacity 0", () => {
+  it("la copia no depende de ningun estado de JS para ser visible: sin data-intro y sin hijos en opacity 0", () => {
     const { container } = renderHero();
     // Se llega al contenedor (ScCopy) por el parentElement del titulo, el
-    // primer hijo que sigue existiendo tras retirarse el kicker: sigue
-    // siendo el mismo elemento que antes, solo cambia el gancho para
-    // alcanzarlo.
+    // primer hijo que sigue existiendo tras retirarse el kicker.
     const copia = testId(container, "hero-title").parentElement;
     expect(copia).not.toBeNull();
-    expect(copia).toHaveAttribute("data-intro", "pending");
+    expect(copia).not.toHaveAttribute("data-intro");
 
     const hijos = Array.from((copia as HTMLElement).children);
     expect(hijos).toHaveLength(4);
     hijos.forEach((hijo, i) => {
       expect(
         getComputedStyle(hijo).opacity,
-        `hijo ${i + 1} deberia estar en opacity 0 en fase backdrop`,
-      ).toBe("0");
+        `hijo ${i + 1} no puede arrancar invisible: seria un candidato LCP no elegible`,
+      ).not.toBe("0");
     });
   });
 
   /*
    * CANDADO RF-6. Se asevera sobre animationDelay y NUNCA sobre animationName:
    * jsdom no expande la shorthand animation:, asi que animationName sale vacio
-   * (medido). El primer hijo no declara delay -- entra a 0ms -- por eso la
-   * tabla empieza en el segundo.
+   * (medido). El primer hijo no declara delay -- entra a 0ms, con el primer
+   * pintado -- por eso la tabla empieza en el segundo.
    *
-   * Se monta en fase "chrome" (tarea C6: el intro ya no arranca en el
-   * montaje, ver el test de arriba) forzando `markBackdropRevealed()` y
-   * avanzando el reloj falso `HERO_CHROME_OFFSET_MS` -- la aserción exacta
-   * de los tres retardos, contra los mismos literales de siempre (que a su
-   * vez son los que declara Hero.tsx), NO cambia: el escalonado interno de
-   * 80ms sigue siendo el mismo, solo cambia CUANDO arranca. Con el kicker
-   * fuera, el retardo de 320ms (nth-child(5)) ya no tiene hijo que lo
-   * reciba -- la tabla se queda en tres pares en vez de cuatro.
+   * Ya NO se fuerza ninguna fase: se monta y se mide. Que estos retardos
+   * esten computados en un render pelado ES la prueba de que la regla de
+   * animacion no esta calificada por ningun atributo que solo JS escribe --
+   * si volviera a estarlo (`&[data-intro="in"] > *`), el atributo no
+   * existiria y los tres saldrian a "0s".
+   *
+   * Los valores se derivan de HERO_COPY_STEP_MS, la constante IMPORTADA que
+   * consume el propio Hero.tsx, nunca de una tabla de strings escrita a mano
+   * (regla 38 de RULES.md).
    */
-  it("los cuatro hijos del bloque entran escalonados con paso de 80ms", () => {
-    vi.useFakeTimers();
-    try {
-      const { container } = renderHeroInChrome();
-      const copia = testId(container, "hero-title").parentElement;
-      expect(copia).not.toBeNull();
-      expect(copia).toHaveAttribute("data-intro", "in");
-      const hijos = Array.from((copia as HTMLElement).children);
-      expect(hijos).toHaveLength(4);
+  it("los cuatro hijos del bloque entran escalonados con paso de HERO_COPY_STEP_MS, sin fase de JS", () => {
+    const { container } = renderHero();
+    const copia = testId(container, "hero-title").parentElement;
+    expect(copia).not.toBeNull();
+    const hijos = Array.from((copia as HTMLElement).children);
+    expect(hijos).toHaveLength(4);
 
-      const esperado = ["80ms", "160ms", "240ms"];
-      esperado.forEach((delay, i) => {
-        expect(
-          getComputedStyle(hijos[i + 1]).animationDelay,
-          `hijo ${i + 2} deberia entrar a ${delay}`,
-        ).toBe(delay);
-      });
-    } finally {
-      act(() => {
-        vi.runOnlyPendingTimers();
-      });
-      vi.useRealTimers();
-    }
+    const esperado = [1, 2, 3].map((n) => `${n * HERO_COPY_STEP_MS}ms`);
+    esperado.forEach((delay, i) => {
+      expect(
+        getComputedStyle(hijos[i + 1]).animationDelay,
+        `hijo ${i + 2} deberia entrar a ${delay}`,
+      ).toBe(delay);
+    });
   });
 
-  it("existe el bloque prefers-reduced-motion: reduce que fuerza la copia visible de inmediato en los dos estados de data-intro", () => {
+  /*
+   * La FORMA del selector, sobre `selectorText` y nunca por substring del
+   * CSS (regla 35): la regla que reparte los retardos tiene que colgar
+   * directamente de la clase del bloque, sin ningun selector de atributo por
+   * medio. Un `[data-intro="in"]` (o cualquier otro estado escrito por
+   * React) reintroduciria la dependencia de hidratacion que esta tarea
+   * elimina, y el test de arriba no lo distinguiria de un cambio de nombre
+   * del atributo.
+   */
+  it("la regla del escalonado no esta calificada por ningun atributo de estado", () => {
+    renderHero();
+    const conRetardo = allStyleRules().filter((regla) =>
+      regla.cssText.includes(`animation-delay: ${HERO_COPY_STEP_MS}ms`),
+    );
+    expect(conRetardo.length).toBeGreaterThan(0);
+    conRetardo.forEach((regla) => {
+      expect(regla.selectorText).not.toContain("[");
+      expect(regla.selectorText).toContain("nth-child(2)");
+    });
+  });
+
+  it("existe el bloque prefers-reduced-motion: reduce que fuerza la copia visible de inmediato", () => {
     renderHero();
     const reglas = allCssRules();
 
     const bloqueReduce = reglas.filter(
       (regla) =>
         regla.includes("@media (prefers-reduced-motion: reduce)") &&
-        regla.includes('[data-intro="pending"]') &&
         regla.includes("opacity: 1") &&
         regla.includes("animation: none"),
     );

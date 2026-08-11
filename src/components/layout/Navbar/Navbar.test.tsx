@@ -1,4 +1,3 @@
-import { useEffect, type ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   renderWithProviders,
@@ -7,8 +6,7 @@ import {
 } from "@/test/test-utils";
 import { act, fireEvent } from "@testing-library/react";
 import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
-import { StageProvider, useStage } from "@/motion/StageProvider";
-import { HERO_CHROME_OFFSET_MS } from "@/components/sections/Hero/hero.transition";
+import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
 import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { links } from "@/config/links";
 import { NAV_GROUPS } from "@/config/navigation";
@@ -21,12 +19,13 @@ import { NAV_SHEET_SCROLL_TOLERANCE_PX } from "./NavSheet";
 import { Navbar } from "./Navbar";
 
 /**
- * `StageProvider` llama a `window.matchMedia` de verdad en un efecto de
- * montaje (lee `prefers-reduced-motion`); jsdom no lo implementa. Mismo stub
- * minimo que ya usan Hero.test.tsx/hero.transition.test.tsx/
- * HeroBackdrop.test.tsx para el mismo motivo -- necesario en ESTE archivo
- * desde que `Navbar` pasa a depender de `useStage()` (tarea C4), aunque
- * ningun otro componente de este arbol lo llamara antes.
+ * Stub minimo de `window.matchMedia`, que jsdom no implementa. Entro en este
+ * archivo cuando `Navbar` dependia de `useStage()` (tarea C4) y se queda
+ * aunque esa dependencia haya desaparecido (revision 2026-08-11: la entrada
+ * de carga del navbar es CSS estatico): `useNavSheet` lo sigue consultando
+ * al montar, y varios tests de mas abajo necesitan poder forzar
+ * `prefers-reduced-motion`. Mismo stub que usan Hero.test.tsx/
+ * hero.transition.test.tsx/HeroBackdrop.test.tsx.
  */
 function stubMatchMedia(reducedMatches = false): void {
   vi.stubGlobal(
@@ -43,53 +42,17 @@ function stubMatchMedia(reducedMatches = false): void {
 }
 
 /*
- * `Navbar` consume `useStage()` (tarea C4): sin un `StageProvider` en el
- * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
- * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
- * localmente, en vez de modificar su firma. `StageProvider` no necesita
- * ThemeProvider en el arbol para funcionar en los tests (deriva
- * STAGE_CHROME_DURATION_MS del token de movimiento crudo, no de
- * `useTheme()`, ver stage.ts), pero SI lo necesita para no lanzar `useStage`
- * fuera de contexto -- montarlo aqui, dentro de `renderWithProviders`,
- * reproduce el mismo orden que `app/providers.tsx` (StageProvider DENTRO de
- * ThemeProvider).
+ * Hasta la revision 2026-08-11, `Navbar` consumia `useStage()` (tarea C4) y
+ * este helper tenia que envolverlo en un `StageProvider` para que el hook no
+ * lanzara. Ya no: su entrada de carga es una @keyframes estatica con
+ * animation-delay = HERO_CHROME_OFFSET_MS, sin ninguna dependencia de la
+ * maquina de fases -- asi que el envoltorio se retira en vez de dejarse
+ * "por si acaso" (regla 16 de RULES.md: un comentario o un andamio que ya no
+ * describe el codigo es peor que ninguno). `renderWithProviders`
+ * (test-utils.tsx) es un helper COMPARTIDO y sigue sin tocarse.
  */
 function renderNavbar(): RenderResult {
-  return renderWithProviders(
-    <StageProvider>
-      <Navbar />
-    </StageProvider>,
-  );
-}
-
-/**
- * Fuerza la fase de pagina a "chrome" (spec §7.4, tarea C6): monta un
- * componente sonda que llama a `markBackdropRevealed()` en su primer efecto
- * -- el mismo gancho que en produccion usa `HeroBackdrop` cuando su stack
- * pasa a "active" -- y avanza el reloj falso exactamente
- * `HERO_CHROME_OFFSET_MS`, la CONSTANTE importada que StageProvider usa para
- * programar la transicion (nunca un literal escrito a mano). Requiere
- * `vi.useFakeTimers()` activo en el test que la llama.
- */
-function RevealBackdrop(): ReactElement | null {
-  const { markBackdropRevealed } = useStage();
-  useEffect(() => {
-    markBackdropRevealed();
-  }, [markBackdropRevealed]);
-  return null;
-}
-
-function renderNavbarInChrome(): RenderResult {
-  const result = renderWithProviders(
-    <StageProvider>
-      <RevealBackdrop />
-      <Navbar />
-    </StageProvider>,
-  );
-  act(() => {
-    vi.advanceTimersByTime(HERO_CHROME_OFFSET_MS);
-  });
-  return result;
+  return renderWithProviders(<Navbar />);
 }
 
 /** Texto CSS de todas las reglas inyectadas por styled-components, planas
@@ -385,42 +348,44 @@ describe("Navbar", () => {
     expect(container.querySelectorAll("[data-visible]")).toHaveLength(0);
   });
 
-  describe("entrada del navbar en la carga (data-intro, tarea C4/C6)", () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      act(() => {
-        vi.runOnlyPendingTimers();
-      });
-      vi.useRealTimers();
-    });
-
-    it("arranca con data-intro='pending' mientras la fase de pagina sigue en 'backdrop'", () => {
+  describe("entrada del navbar en la carga (CSS estatico, revision 2026-08-11)", () => {
+    /*
+     * CANDADO DE ESTRUCTURA. La entrada dejo de depender de la maquina de
+     * fases: `data-intro` ya no existe en este componente. Es lo que hace
+     * que la barra sea visible sin JavaScript (export estatico, sin servidor
+     * Next detras) y en `app/not-found.tsx`, donde no hay ningun hero que
+     * avise y hasta ahora dependia de la red de seguridad de StageProvider.
+     */
+    it("no depende de ningun estado de JS: el banner ya no lleva data-intro", () => {
       renderNavbar();
-      expect(screen.getByRole("banner")).toHaveAttribute(
-        "data-intro",
-        "pending",
-      );
+      expect(screen.getByRole("banner")).not.toHaveAttribute("data-intro");
     });
 
-    it("pasa a data-intro='in' cuando el fondo del hero avisa (fase 'chrome')", () => {
-      renderNavbarInChrome();
-      expect(screen.getByRole("banner")).toHaveAttribute("data-intro", "in");
+    /*
+     * El offset de 760ms se conserva VERBATIM (a diferencia de la copia del
+     * hero, que lo pierde por su papel en el LCP -- ver Hero.tsx): se
+     * asevera sobre `animationDelay`, longhand, contra la CONSTANTE
+     * importada, nunca sobre la shorthand `animation` (que jsdom no expande)
+     * ni contra un literal escrito a mano (regla 38 de RULES.md).
+     *
+     * Que este retardo este computado en un render pelado, sin forzar
+     * ninguna fase ni avanzar ningun reloj falso, ES la prueba de que la
+     * regla no esta calificada por un atributo que solo JS escribe.
+     */
+    it("entra con animation-delay = HERO_CHROME_OFFSET_MS, sin fase de JS", () => {
+      renderNavbar();
+      expect(getComputedStyle(screen.getByRole("banner")).animationDelay).toBe(
+        `${HERO_CHROME_OFFSET_MS}ms`,
+      );
     });
 
     it("sigue siendo focalizable durante el intro: opacity 0 no saca el navbar del orden de tabulacion", () => {
       // Regresion que este test previene: si el intro se hiciera con
       // `display: none`/`visibility: hidden`/`aria-hidden`, el boton
-      // dejaria de ser focalizable mientras "pending" -- opacity, la unica
-      // propiedad que usa el intro, no tiene ese efecto (spec: accesibilidad
-      // durante opacity 0, ver el comentario de Navbar()).
+      // dejaria de ser focalizable durante el retardo -- opacity/transform,
+      // las unicas propiedades que usa el intro, no tienen ese efecto (ver
+      // el comentario de accesibilidad en Navbar()).
       renderNavbar();
-      expect(screen.getByRole("banner")).toHaveAttribute(
-        "data-intro",
-        "pending",
-      );
 
       const themeToggle = screen.getByRole("button", {
         name: /Cambiar a tema/i,
@@ -429,14 +394,22 @@ describe("Navbar", () => {
       expect(document.activeElement).toBe(themeToggle);
     });
 
-    it("existe el bloque prefers-reduced-motion: reduce que fuerza visible de inmediato en los dos estados de data-intro", () => {
+    /*
+     * El guard sigue siendo obligatorio y ahora por un motivo distinto:
+     * GlobalStyles colapsa `animation-duration` bajo reduce pero NO
+     * `animation-delay`, asi que sin `animation: none` la barra quedaria
+     * invisible los 760ms del retardo (fill backwards) y apareceria de
+     * golpe. jsdom no evalua `@media` (regla 36), asi que se inspecciona
+     * `document.styleSheets` en vez de confiar en el estilo computado.
+     */
+    it("existe el bloque prefers-reduced-motion: reduce que apaga la animacion y fuerza visible de inmediato", () => {
       renderNavbar();
       const reglas = allCssRules();
 
       const bloqueReduce = reglas.filter(
         (regla) =>
           regla.includes("@media (prefers-reduced-motion: reduce)") &&
-          regla.includes('[data-intro="pending"]') &&
+          regla.includes("animation: none") &&
           regla.includes("opacity: 1"),
       );
       expect(bloqueReduce.length).toBeGreaterThan(0);
