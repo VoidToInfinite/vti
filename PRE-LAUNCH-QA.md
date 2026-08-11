@@ -87,23 +87,24 @@ Los números de esta sección son los medidos hoy por el auditor de rendimiento.
 | Presupuesto | Umbral | Medido hoy | Estado |
 | --- | --- | --- | --- |
 | Primera visita, tema claro, escritorio 1440 DPR1 | ≤1,5 MB | 1.194.809 B | Cumple |
-| Página entera, tema oscuro, móvil 390 DPR3 | ≤3 MB | 6.645.195 B | **No cumple** — bloqueado por la pista `srcset` intermedia pendiente (ver sección 5 de decisiones no aplicadas más abajo) |
+| Página entera, tema oscuro, móvil 390 DPR3 | ≤3 MB | 6.645.195 B (baseline 2026-08-08) → **3.542.056 B** (re-medido 2026-08-11, Task 11) | **No cumple** — mejora del −46,7 % (la pista `srcset` intermedia de 1600px en Features/Journey/Contact, más la recompresión de color de Story, ya están aplicadas), pero sigue por encima del umbral (objetivo ≤3.000.000 B / 3.145.728 B). Metodología de la re-medición: contexto Playwright nuevo (sin caché de una navegación previa), `colorScheme: "dark"` para que el script anti-flash resuelva oscuro por `prefers-color-scheme` sin depender de `localStorage`, viewport 390×844 con `deviceScaleFactor: 3`, scroll completo de la página para disparar todo el `loading="lazy"`, suma de `transferSize` de `performance.getEntriesByType("resource")` más la entrada de navegación. Causa raíz declarada (`RULES.md`, Deuda conocida): `HeroBackdrop.tsx` monta SIEMPRE `<Eye/>` y `<Aura/>` a la vez (crossfade del toggle de tema) — ~354 KB independientes del tema, en toda visita —, más `07-geometry.webp` de Story (554.792 B), que no baja de 2,5 bpp por recompresión de color sin coste visual (sondeado hasta calidad 10; ver la fila de "Imágenes" más abajo). Detalle completo: `.superpowers/sdd/2026-08-10-implementacion-plan-premium-f1-f5/task-11-report.md`. |
 | JS de la home | ≤250 KB gzip | 245.787 B | Cumple sin margen — el split del namespace `legal` fuera del bundle de la home se aplicó hoy; medir de nuevo tras el build |
 | CSS bloqueante | ≤100 KB gzip | 29.474 B | Cumple |
 | Fuentes en ventana crítica | ≤100 KB | 75.144 B | Cumple hoy; `JetBrains_Mono` salió de la precarga hoy (`preload: false`) — medir de nuevo |
 | Ninguna imagen individual | >400 KB = fallo | 4 imágenes lo superan | **No cumple** |
-| Imágenes | >2,5 bpp = fallo | 3 la superan: `story/cosmic-being/07-geometry.webp` 5,74 bpp · `07-geometry-1024.webp` 5,87 bpp · `01-nebula.webp` 3,37 bpp | **No cumple** — actualización 2026-08-09 (Tarea 13, recompresión de alfa): `01-nebula.webp` bajó de 388.192 a 354.992 B (mismas dimensiones, −8,5%), lo que baja su bpp a ≈3,08 — sigue por encima del umbral. `07-geometry.webp`/`07-geometry-1024.webp` quedaron **fuera** del criterio de esa tarea (ALPH 29,4%/29,1%, bajo el umbral del 30% que usó) y siguen intactos a 5,74/5,87 bpp. Ninguno de los tres queda por debajo de 2,5 bpp todavía; el mecanismo que los bajaría de verdad es recompresión de color, no de alfa. |
+| Imágenes | >2,5 bpp = fallo | 2 la superan: `story/cosmic-being/07-geometry.webp` 4,82 bpp · `07-geometry-1024.webp` 5,04 bpp — `01-nebula.webp`/`01-nebula-1024.webp` ya NO figuran aquí (ver Estado) | **No cumple (parcial)** — actualización 2026-08-11 (Task 11, recompresión de COLOR — el parámetro `quality` de Pillow, no `alpha_quality`): `01-nebula.webp` bajó de 354.992 a 278.964 B (−21,4 %) y `01-nebula-1024.webp` de 229.344 a 181.192 B (−21,0 %), lo que baja su bpp a 2,422/2,458 — **ya cruza el umbral de 2,5 bpp, cumple.** `07-geometry.webp` bajó de 661.472 a 554.792 B (−16,1 %) y `07-geometry-1024.webp` de 432.382 a 371.850 B (−14,0 %), bpp 4,816/5,044 — sigue por encima del umbral. Sondeado hasta calidad 10 (fuera del barrido de aceptación de la Task 11, que se detuvo en calidad 30 por su propia regla de ahorro >10 %): el bpp solo baja a ≈3,01/3,13, sin cruzar 2,5 — el contenido de esta capa (anillos orbitales, hexágonos, líneas HUD finas sobre fondo casi transparente) resiste la compresión de color sin artefactos visibles en las líneas finas, así que no se empujó más bajo. Cifras y barrido completo de las 9 calidades probadas: `assets/story-cosmic-being/manifest.json`, sección `colorRecompression20260811`. |
 | Peticiones a terceros | 0 | 0 | Cumple |
 
 Checklist de verificación de esta tabla:
 
-- [ ] Reproducir la medición de "primera visita, claro, escritorio 1440 DPR1" y confirmar ≤1,5 MB.
-- [ ] Reproducir "página entera, oscuro, móvil 390 DPR3" tras aplicar la pista `srcset` intermedia (pendiente, no aplicada hoy) y confirmar que baja a los ~3,1 MB estimados.
-- [ ] Re-medir el JS de la home gzip tras el split del namespace `legal` aplicado hoy.
-- [ ] Re-medir fuentes en ventana crítica tras retirar la precarga de la mono.
-- [ ] Identificar y recomprimir las 4 imágenes >400 KB.
-- [ ] Recomprimir `07-geometry.webp`, `07-geometry-1024.webp` y `01-nebula.webp` por debajo de 2,5 bpp.
-- [ ] Confirmar que siguen sin existir peticiones a terceros tras los cambios de hoy.
+- [ ] Reproducir la medición de "primera visita, claro, escritorio 1440 DPR1" y confirmar ≤1,5 MB. (Pendiente — fuera del alcance de la Task 11.)
+- [x] Reproducir "página entera, oscuro, móvil 390 DPR3" tras aplicar la pista `srcset` intermedia. **Reproducido 2026-08-11 (Task 11): 3.542.056 B** (−46,7 % sobre el baseline) — sigue sin bajar de 3 MB, no de los ~3,1 MB que se estimaban aquí. Ver la fila de la tabla de arriba para la metodología y la causa raíz del resto.
+- [ ] Re-medir el JS de la home gzip tras el split del namespace `legal` aplicado hoy. (Pendiente — fuera del alcance de la Task 11.)
+- [ ] Re-medir fuentes en ventana crítica tras retirar la precarga de la mono. (Pendiente — fuera del alcance de la Task 11.)
+- [ ] Identificar y recomprimir las 4 imágenes >400 KB. (Pendiente — fuera del alcance de la Task 11, que solo tocó las 2 capas de Story nombradas abajo.)
+- [x] Recomprimir `01-nebula.webp`/`01-nebula-1024.webp` por debajo de 2,5 bpp. **Hecho 2026-08-11 (Task 11): 2,422/2,458 bpp.**
+- [ ] Recomprimir `07-geometry.webp`/`07-geometry-1024.webp` por debajo de 2,5 bpp. **Intentado 2026-08-11 (Task 11): recomprimido −16,1 %/−14,0 % (bpp 4,816/5,044), pero NO alcanza 2,5 bpp** — sondeado hasta calidad 10 sin cruzarlo (bpp ≈3,01/3,13); el contenido de la capa resiste la compresión de color sin artefactos visibles. Sigue pendiente; requeriría un mecanismo distinto de recompresión de color por `quality`, fuera del alcance de la Task 11.
+- [ ] Confirmar que siguen sin existir peticiones a terceros tras los cambios de hoy. (Pendiente — fuera del alcance de la Task 11.)
 
 ---
 
