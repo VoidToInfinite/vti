@@ -1,5 +1,76 @@
 # Lecciones
 
+## 2026-08-11 — `next/script strategy="beforeInteractive"` NO se sirve como `<script>` literal en `<head>`, ni en export estático
+
+- **Qué se asumió:** para el anti-flash de tema (Task 9), la lectura de la documentación de Next
+  ("scripts are injected into the initial HTML from the server... downloaded before any Next.js
+  module") sugiere un `<script>` bloqueante y literal dentro de `<head>`, servido tal cual desde el
+  HTML — el patrón clásico de "anti-FOUC" de toda la vida.
+- **Qué hay de verdad, medido leyendo `out/index.html` byte a byte tras `pnpm build`:** `<head>`
+  contiene ÚNICAMENTE los `<script async>` de los chunks de la app; el contenido real del script
+  (`resolveInitialTheme` serializado) vive dentro de un `<script>` síncrono normal, pero colocado
+  como PRIMER hijo de `<body>` — `(self.__next_s=self.__next_s||[]).push([0,{"children":"...",
+  "id":"theme-bootstrap"}])`. Ese array lo consume `app-bootstrap.ts` (parte del runtime de Next,
+  confirmado vía context7 leyendo su fuente): crea un `<script>` real con `document.createElement` +
+  `el.innerHTML = props.children`, lo añade a `document.head`, y SOLO ENTONCES llama a `hydrate()` —
+  es decir, la garantía real es "antes de que React hidrate", no "antes de que el navegador pinte
+  nada del HTML estático". El export estático no cambia este mecanismo: es el mismo runtime cliente
+  de Next, solo que sin servidor detrás.
+- **Por qué no rompió el objetivo de todos modos:** medido con `PerformanceObserver` (`layout-shift`,
+  `buffered: true`, mismo método que el baseline) en Chrome real vía `playwright-cli`, con
+  `prefers-color-scheme: dark` emulado y sin storage: el atributo `data-theme` tarda hasta ~70ms en
+  fijarse (bastante después de `DOMContentLoaded`), pero el CLS medido dio **0** (baseline 0,0799).
+  La explicación que sostienen los datos: la propiedad que el script protege (`--hero-title-vw` y
+  compañía, variables CSS puras — ver la entrada de abajo) se resuelve en el momento en que el
+  navegador COMPONE el primer frame, no en el momento en que se declaró; si ese primer frame real
+  llega después de los ~70ms, nunca hay un frame intermedio "equivocado" que componer.
+- **Cómo evitarlo la próxima vez:** no dar por sentado el comportamiento de `next/script` en
+  `output: "export"` a partir de la prosa de la documentación (escrita pensando en SSR clásico).
+  Verificar SIEMPRE leyendo el `out/*.html` literal tras el build — mismo criterio que ya exige el
+  brief de esta tarea — y, si el objetivo es evitar un flash de layout medible (no solo "que el
+  script exista"), la prueba que de verdad responde a la pregunta es el `PerformanceObserver` en un
+  navegador real, no la posición del script en el documento.
+
+## 2026-08-11 — Cambiar el estado INICIAL de un `ThemeProvider` para que arranque ya corregido rompe la hidratación de las secciones que ramifican por tema; las variables CSS por atributo no
+
+- **Qué se planteó:** la Task 9 pedía que `ThemeProvider` "pase a inicializar desde" el tema resuelto
+  por el script pre-pintado, para que ningún componente tuviera que re-corregirse tras montar.
+  Tentación directa: leer el atributo `data-theme` (ya fijado por el script) en el inicializador de
+  `useState` del proveedor.
+- **Por qué es una trampa:** `Story`/`Features`/`Journey`/`Contact` NO solo cambian de color por tema
+  — montan un COMPONENTE HIJO distinto por rama (regla 6 de `RULES.md`: "la rama de tema es siempre
+  un componente hijo"). Si el estado inicial de React difiere entre el HTML horneado en build (SIEMPRE
+  "light", el proveedor no puede leer `localStorage` durante ese render) y el primer render del
+  cliente, React tiene que descartar y re-montar esos subárboles enteros al hidratar — un mismatch
+  ESTRUCTURAL (tipos de componente distintos), no un simple atributo, que `suppressHydrationWarning`
+  NO cubre (solo funciona "un nivel", para diferencias de texto/atributo en el MISMO nodo).
+- **La causa raíz real del CLS 0,0799 medido (spec 3.1), aislada con evidencia:** no era el cambio de
+  rama de las secciones (fuera del viewport en el momento del shift, t=400ms) sino el propio Hero —
+  concretamente `ScHeroBrand` (el elemento LCP de esa medición), cuyo `font-size: clamp(34px, 8vw,
+  258px)` bajaba a `7vw` vía un prop `$light` que solo se corregía en el efecto post-montaje. Contraste
+  que lo confirmó: `HeroBackdrop` (Aura/Eye) usa `position: absolute; inset: 0` — nunca contribuye a
+  CLS pese a cambiar de tema, porque no participa del flujo de layout.
+- **La solución que SÍ es segura:** dejar el estado de React de `ThemeProvider` intacto (arranca en
+  "light", igual en build y en el primer render de cliente — cero riesgo de mismatch) y sacar las
+  propiedades puramente de TAMAÑO/POSICIÓN que sí importaban (`font-size`, `align-items`,
+  `justify-content`, `text-align`, `max-width` de Hero) a variables CSS (`var(--hero-title-vw, 7vw)`)
+  redefinidas por un selector de atributo estático (`:root[data-theme="dark"] { --hero-title-vw: 8vw;
+  }`, en `GlobalStyles.tsx`, con FALLBACK = el valor que el build ya hornea por defecto). Esa regla no
+  depende del prop `theme` de React en ningún momento, así que está presente en el HTML horneado desde
+  el primer build, sin importar qué tema tuviera el proveedor al generarlo.
+- **Candado de test que hizo falta inventar:** `getComputedStyle` en jsdom NO resuelve `var()` —
+  devuelve el texto crudo de la declaración sin sustituir la variable (ninguna lección previa del repo
+  lo documentaba; es de la misma familia que "jsdom no evalúa `@media`" pero no es lo mismo). Eso
+  permitió un candado directo y barato: afirmar que el `fontSize` computado es IDÉNTICO con y sin
+  storage oscuro (antes de esta tarea, ese mismo assert habría fallado — el valor SÍ cambiaba). Y como
+  `createGlobalStyle` tampoco inyecta nada bajo jsdom (lección ya existente, 2026-07-25), el valor
+  numérico del override (`8vw`) solo se pudo candar leyendo el FICHERO fuente con `node:fs` (mismo
+  patrón que `app/layout.test.ts`), nunca por render.
+- **Regla:** antes de mover una rama de tema de React a un mecanismo pre-pintado, separar qué de esa
+  rama es GEOMETRÍA (tamaño/posición, candidato real a CLS) de qué es COLOR/OPACIDAD (nunca cuenta
+  para CLS) y de qué es un COMPONENTE DISTINTO por rama (nunca migrable a CSS puro sin un rediseño
+  mucho más grande). Solo el primer grupo justifica el coste de una variable CSS nueva.
+
 ## 2026-08-08 — `pnpm ci` a secas ejecuta el clean-install interno AUNQUE exista un script llamado `ci`
 
 - **Qué pasó:** tras añadir el script `"ci"` a `package.json`, el orquestador ejecutó `pnpm ci`
