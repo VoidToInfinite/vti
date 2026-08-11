@@ -6,7 +6,6 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactElement,
 } from "react";
@@ -106,41 +105,44 @@ export function ThemeProvider({
   // atributo -- y con él las variables CSS de `GlobalStyles.tsx` que
   // `Hero.tsx` consume (`--hero-title-vw` y compañía) -- congelado en el
   // valor de la carga: el titulo del hero se quedaria con el tamaño del tema
-  // VIEJO tras alternar. `useLayoutEffect` no hace falta aquí: a diferencia
-  // del efecto de resolución de arriba, este NO dispara ningún `setState`
-  // propio, así que no hay una segunda pasada de render que adelantar.
-  const attributeSyncedRef = useRef(false);
+  // VIEJO tras alternar.
+  //
+  // NO usa un ref de "primera vez" (fix round, 2º hallazgo del re-revisor):
+  // bajo React StrictMode (`next.config.ts`, activo en CADA `pnpm dev`),
+  // React invoca los efectos de montaje DOS VECES con el MISMO snapshot
+  // renderizado (`themeName`/`changeSource` todavía "light"/"initial" en
+  // las DOS invocaciones) antes de que el `setState` del efecto de
+  // resolución (arriba) llegue a aplicarse de verdad. Un ref SOBREVIVE a
+  // esa doble invocación pero el CIERRE de la función no: la primera
+  // invocación podía saltar la escritura correctamente (ref false→true),
+  // pero la SEGUNDA encontraba el ref ya en `true` y cala en la rama
+  // "escribe siempre" -- con `themeName` TODAVÍA "light", el mismo cierre
+  // stale -- pisando lo que el script ya había fijado. Medido con
+  // `renderWithProviders(ui, { reactStrictMode: true })` (mismo patrón que
+  // `HeroBackdrop.test.tsx`): secuencia `["light","dark"]`. Exactamente la
+  // familia de bug que documenta `task/lessons.md` (2026-08-05, "un token
+  // de invalidación escrito a mano no sobrevive a un remontaje"): un ref
+  // desincronizado del ciclo de vida real del RENDER.
+  //
+  // La guarda correcta usa ESTADO DE REACT (`changeSource`), no un ref:
+  // mientras `changeSource === "initial"`, el `themeName` de ESTE render es
+  // el default SIN CONFIRMAR -- ni corregido por hidratación, ni tocado por
+  // el usuario -- así que no hay nada fiable que escribir todavía. Tanto si
+  // StrictMode invoca este efecto una vez como dos, AMBAS invocaciones ven
+  // el MISMO `changeSource === "initial"` del MISMO commit (es estado
+  // reconciliado por React, no un contador mutado a mano), así que las dos
+  // saltan la escritura por igual -- nunca hay una invocación que "vea" un
+  // estado a medio corregir. Solo cuando el efecto de resolución marca
+  // `changeSource` como `"hydration"` o `"user"` -- lo que SOLO ocurre en
+  // un render REAL, nunca en la simulación de StrictMode -- este efecto
+  // escribe, y para entonces `themeName` YA es el valor correcto en el
+  // MISMO commit (los dos `setState` del efecto de resolución se agrupan
+  // en un único render). `useLayoutEffect` sigue sin hacer falta: este
+  // efecto no dispara ningún `setState` propio.
   useEffect(() => {
-    // Guarda contra el HALLAZGO DE REVISIÓN (fix round): en el PRIMER
-    // montaje, este efecto corre con el `themeName` "light" con el que el
-    // proveedor SIEMPRE arranca (arriba) -- ANTES de que el efecto de
-    // resolución (declarado primero, mismo array de efectos) tenga ocasión
-    // de corregirlo. Si el atributo YA dice algo distinto de "light" en ese
-    // instante, es el script pre-pintado de `app/layout.tsx`, no un toggle:
-    // escribir "light" encima lo PISARÍA con el valor viejo, y solo se
-    // corregiría una vuelta de render después, cuando el efecto de
-    // resolución complete su `setState` -- la MISMA familia de
-    // temporización que causaba el CLS original de esta tarea. Hoy ese
-    // hueco no llega a pintarse (los efectos de este componente resuelven
-    // en el mismo flush síncrono de React tras el commit, medido con un
-    // spy de `setAttribute`: nunca se observa "light" de por medio), pero
-    // no se confía en que siga siendo así sin una guarda explícita.
-    //
-    // La guarda solo actúa en la primera ejecución (`attributeSyncedRef`):
-    // un toggle real, mucho después de montar, siempre escribe -- no
-    // reintroduce el bug que este mismo efecto arregló.
-    const current = document.documentElement.getAttribute(THEME_ATTRIBUTE);
-    if (
-      !attributeSyncedRef.current &&
-      current !== null &&
-      current !== themeName
-    ) {
-      attributeSyncedRef.current = true;
-      return;
-    }
-    attributeSyncedRef.current = true;
+    if (changeSource === "initial") return;
     document.documentElement.setAttribute(THEME_ATTRIBUTE, themeName);
-  }, [themeName]);
+  }, [themeName, changeSource]);
 
   const toggleTheme = useCallback(() => {
     setChangeSource("user");

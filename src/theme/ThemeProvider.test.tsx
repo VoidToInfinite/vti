@@ -138,8 +138,17 @@ describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión 
     // styled-components) pero dejaría el atributo -- y con él las variables
     // CSS de GlobalStyles.tsx que Hero.tsx consume -- congelado en el valor
     // de la carga.
+    //
+    // El atributo se fija en "light" ANTES de montar, simulando lo que el
+    // script pre-pintado ya habría hecho en un navegador real (aquí no hay
+    // script: jsdom no lo ejecuta). Con el diseño del fix round (guarda por
+    // `changeSource`, no por ref -- ver ThemeProvider.tsx), el efecto de
+    // sincronización NO reescribe nada mientras `changeSource === "initial"`
+    // (no hay divergencia que corregir: el script ya acertó) — por eso NO
+    // se afirma que el efecto "haya escrito" light, solo que el atributo
+    // SIGUE siendo light tras el montaje, y que el toggle sí lo cambia.
     stubMatchMedia(false);
-    document.documentElement.removeAttribute("data-theme");
+    document.documentElement.setAttribute("data-theme", "light");
 
     function ProbeConToggle(): ReactElement {
       const { toggleTheme } = useTheme();
@@ -151,8 +160,6 @@ describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión 
       </ThemeProvider>,
     );
 
-    // Tras la carga en claro (sin storage, sin preferencia de sistema), el
-    // atributo debe reflejar "light" -- el mismo efecto que Task 9 añadió.
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
 
     act(() => {
@@ -162,18 +169,19 @@ describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión 
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 
-  it("con el atributo ya fijado en dark por el script (simulado) antes de montar, la secuencia de setAttribute NUNCA pasa por light", () => {
+  it("con el atributo ya fijado en dark por el script (simulado) antes de montar, la secuencia de setAttribute NUNCA pasa por light (modo normal)", () => {
     // Candado del hallazgo de revisión (fix round, Important 2): el efecto
     // de sincronización corre con el themeName "light" con el que el
     // proveedor SIEMPRE arranca, ANTES de que el efecto de resolución
-    // (declarado primero) corrija el estado. Sin la guarda de
-    // `attributeSyncedRef`, esa PRIMERA pasada escribiría "light" encima de
-    // lo que el script pre-pintado ya había fijado correctamente en "dark"
-    // -- la misma familia de temporización que el CLS original de esta
-    // tarea. Se espía `setAttribute` (no solo el valor final) porque lo que
-    // importa aquí es la SECUENCIA completa, no el resultado: un estado
-    // final correcto no demuestra que nunca pasó por un valor intermedio
-    // equivocado.
+    // (declarado primero) corrija el estado. La guarda por `changeSource`
+    // (no un ref -- ver el docblock de ThemeProvider.tsx tras el segundo
+    // hallazgo de revisión, tests de más abajo) evita que esa PRIMERA
+    // pasada escriba "light" encima de lo que el script pre-pintado ya
+    // había fijado correctamente en "dark" -- la misma familia de
+    // temporización que el CLS original de esta tarea. Se espía
+    // `setAttribute` (no solo el valor final) porque lo que importa aquí es
+    // la SECUENCIA completa, no el resultado: un estado final correcto no
+    // demuestra que nunca pasó por un valor intermedio equivocado.
     document.documentElement.setAttribute("data-theme", "dark"); // simula el script
     window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
     stubMatchMedia(false);
@@ -188,5 +196,51 @@ describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión 
 
     expect(dataThemeCalls).not.toContain("light");
     expect(dataThemeCalls).toEqual(["dark"]);
+  });
+
+  it("bajo React StrictMode (next.config.ts, activo en pnpm dev), con dark ya fijado por el script, la secuencia TAMPOCO pasa por light", () => {
+    // Candado del SEGUNDO hallazgo de revisión (fix round 2): React
+    // StrictMode invoca los efectos de montaje DOS VECES con el MISMO
+    // snapshot renderizado (themeName/changeSource todavía "light"/
+    // "initial" en las dos invocaciones), simulando desmontaje+remontaje --
+    // exactamente la mecánica que `task/lessons.md` (2026-08-05) ya
+    // documentó para un `ref` de invalidación que no sobrevivía a un
+    // remontaje. El diseño ANTERIOR de esta guarda (un `useRef` de
+    // "primera vez") fallaba aquí: la 1ª invocación hacía early-return
+    // (ref false→true) correctamente, pero la 2ª encontraba el ref ya en
+    // `true` y cala en la rama "escribe siempre" con el CIERRE todavía
+    // "light" -- secuencia observada entonces: ["light","dark"]. El diseño
+    // actual (guarda por `changeSource`, estado de React reconciliado, no
+    // un ref mutado a mano) no tiene ese problema: las DOS invocaciones de
+    // StrictMode ven el MISMO `changeSource === "initial"` del MISMO
+    // commit y las DOS saltan la escritura por igual.
+    //
+    // `renderWithProviders`/`render` con `{ reactStrictMode: true }` es la
+    // opción nativa de Testing Library (mismo patrón que
+    // `HeroBackdrop.test.tsx:601-606`): envuelve el árbol en
+    // `<React.StrictMode>`, igual que `next.config.ts` en desarrollo -- no
+    // hace falta desmontar/remontar a mano (eso crearía una instancia
+    // nueva con el estado reinicializado desde cero y NO reproduciría esta
+    // carrera).
+    document.documentElement.setAttribute("data-theme", "dark"); // simula el script
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    stubMatchMedia(false);
+
+    const setAttributeSpy = vi.spyOn(document.documentElement, "setAttribute");
+
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+      { reactStrictMode: true },
+    );
+
+    const dataThemeCalls = setAttributeSpy.mock.calls
+      .filter(([name]) => name === "data-theme")
+      .map(([, value]) => value);
+
+    expect(dataThemeCalls).not.toContain("light");
+    expect(dataThemeCalls).toEqual(["dark"]);
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
   });
 });
