@@ -1,5 +1,31 @@
 # Lecciones
 
+## 2026-08-11 — Un CLS de `0` puede significar «no hay shift» o «no había nada visible que desplazar»
+
+- **Qué pasó:** la Task 10 sacó el intro del hero de la máquina de fases JS y lo pasó a `@keyframes`
+  estáticas, de modo que el texto es visible desde el primer pintado. El LCP throttled cayó de
+  4520 ms a 932 ms — y el CLS del mismo escenario subió de `0` a `0,000118`. Leído sin más, eso dice
+  «has regresado el CLS que la Task 9 acababa de arreglar».
+- **Qué era de verdad, aislado con evidencia:** el desplazamiento se registra a `~1167 ms`, su única
+  fuente es el `<h1>` y el muestreo de su caja lo explica entero: al llegar la webfont (`~1054 ms`)
+  el ancho pasa de `213,63` a `219,64 px` y el `left` de `80,69` a `77,67` — reflujo HORIZONTAL,
+  alto y `top` intactos. El `<h1>` es hijo de un flex con `align-items: center`, así que su caja
+  mide lo que mide su texto. Ese reflujo existía exactamente igual antes; lo que no existía era un
+  texto VISIBLE al que se le pudiera contabilizar: la API de inestabilidad de layout solo cuenta
+  contenido visible, y hasta la entrega anterior el hero seguía en `opacity: 0` a esa altura.
+- **Regla:** un `0` de CLS medido sobre una pantalla que todavía está en blanco no es un `0`
+  ganado, es un `0` que no ha tenido ocasión de contar. Al hacer visible antes cualquier contenido,
+  hay que **re-medir CLS esperando que suba** y, si sube, aislar la fuente (`entry.sources[].node`)
+  y muestrear la caja del elemento en el eje correcto — el horizontal también cuenta — antes de
+  atribuirse la regresión. Aquí el residuo (`0,000118`, el `0,12 %` del umbral «bueno») es lo que
+  el fallback con métricas ajustadas de `next/font` no llega a absorber, y se declara en la spec
+  en vez de esconderse.
+- **Corolario ya conocido que volvió a morder:** la abreviatura `animation:` no se expande en jsdom
+  (regla 38 de `RULES.md`). El candado del retardo del navbar leía `''` en vez de `760ms` hasta que
+  la declaración se reescribió con longhands (`animation-name`/`-duration`/`-delay`/`-fill-mode`),
+  igual que ya hacía `eyeStagger`. Si una coreografía necesita un candado sobre su retardo, nace
+  con longhands, no se convierte después.
+
 ## 2026-08-11 — `next/script strategy="beforeInteractive"` NO se sirve como `<script>` literal en `<head>`, ni en export estático
 
 - **Qué se asumió:** para el anti-flash de tema (Task 9), la lectura de la documentación de Next

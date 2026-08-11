@@ -125,6 +125,8 @@ Dos constantes **se eliminan**:
 
 ### 5.3 Presupuesto total
 
+> **Enmienda 2026-08-11 (§5.5):** el bloque «Carga» de aquí abajo describe el mecanismo original (máquina de fases JS, reloj contado desde que resuelve `decode()`). Desde el 2026-08-11 la carga de la copia y del navbar es CSS estático y su reloj arranca con el **primer pintado**; el presupuesto vigente está en §5.5. El bloque «Cambio de tema» sigue vigente sin cambios.
+
 **Carga** (desde que el `decode()` resuelve):
 
 ```
@@ -158,6 +160,57 @@ La copia del hero —que incluye el `<h1>`— queda a `opacity: 0` durante ~760 
 - El presupuesto se mantiene por debajo de 1,5 s.
 
 No se mide en esta entrega (este entorno no compone frames, §8): queda anotado en `docs/qa-3d-pendiente.md` como pendiente de verificación en navegador real.
+
+---
+
+## 5.5 Enmienda 2026-08-11 — el motor de la carga pasa a CSS estático (Task 10, plan premium F1-F5)
+
+> Esta sección **no reescribe** §5.3, §5.4, §7.2 ni §7.4: las deja como el registro de lo que se decidió el 2026-07-27 y anota qué cambió, por qué y con qué medición. Todo lo que no se menciona aquí sigue vigente tal cual.
+
+**El riesgo declarado en §5.4 se midió, y era peor de lo estimado.** Chrome real sobre el build estático (`pnpm build` + `serve out`, caché fría, `PerformanceObserver` con `buffered: true`):
+
+| Escenario | FCP | LCP (antes) | Elemento LCP |
+| --- | --- | --- | --- |
+| Claro escritorio 1280×720 | 156 ms | 1268 ms | `span` de `BrandName`, dentro del `<h1>` |
+| Claro móvil 375×812 | 68 ms | 1292 ms | `<p>` de apoyo (`hero-support`) |
+| Móvil, CPU 4× + Slow 4G | 812 ms | **4520 ms** | `<p>` de apoyo (`hero-support`) |
+
+§5.4 estimaba «hasta ~1,1 s» contando **desde el arranque del stack**. El coste real se mide desde el primer pintado y encadena tres esperas más que la spec no contabilizó: descarga del bundle, hidratación de React y la carrera de `decode()` del fondo — sólo **después** empiezan a contar los `HERO_CHROME_OFFSET_MS`. El elemento LCP es siempre TEXTO del hero, nunca el arte, así que el coste caía entero sobre la métrica.
+
+**Qué cambia (el motor, no la partitura).** La coreografía de carga de la copia y del navbar deja de ser una máquina JS que escribe `data-intro` y pasa a ser `@keyframes` + `animation-delay` declaradas sin condición, presentes en el CSS del HTML exportado. El escalonado interno de 80 ms (`HERO_COPY_STEP_MS`), la duración (`motion.duration.base`), la curva (`easing.decelerate`), el recorrido de 10 px y los 320 ms del navbar (`motion.duration.slow`) son **idénticos**.
+
+**El único número que se mueve, y por qué.** `HERO_CHROME_OFFSET_MS` (760 ms) deja de retrasar la entrada de **la copia**; el **navbar lo conserva verbatim**. El offset no es ritmo, es **sincronía**: mide (§5.2) el instante en que el último escalón del fondo va por la mitad de su fundido, contado desde el arranque del stack — un evento que sólo JS conoce y que un reloj CSS estático no puede observar. Conservarlo como retardo fijo habría mantenido 760 ms de hero sin texto en cada carga **sin comprar el orden que lo justificaba**: medido en este mismo navegador con caché fría, a 1600 ms desde el `commit` el stack seguía en `pending` — es decir, en la carga lenta (justo donde el LCP importa) el arte llega mucho después de esos 760 ms de todas formas, así que «primero el arte, al final los textos» (§1) no se preservaba. En el navbar el número se paga sin coste: no es candidato LCP en ninguna medición, así que «al final el navbar» sí sigue cumpliéndose al pie de la letra, y ahora también sin JavaScript.
+
+**Presupuesto de carga resultante** (sustituye al bloque «Carga» de §5.3, que contaba desde que resolvía `decode()`; éste cuenta desde el **primer pintado**, que es el único origen que un reloj CSS conoce):
+
+```
+0      copia: título arranca
+80     copia: subtítulo arranca
+160    copia: apoyo arranca
+240    copia: acciones (CTA) arrancan
+520    copia asentada           (240 + 200 de duración)
+760    navbar arranca           (HERO_CHROME_OFFSET_MS, verbatim)
+1080   navbar asentado          (760 + 320)
+—      capas del fondo: cuando su decode() resuelve (sigue en JS, spec §7.2)
+```
+
+**Resultado medido** (mismo entorno, mismo método, tras el cambio):
+
+| Escenario                 | LCP antes | LCP después | Δ       |
+| ------------------------- | --------- | ----------- | ------- |
+| Claro escritorio 1280×720 | 1268 ms   | **184 ms**  | −85,5 % |
+| Claro móvil 375×812       | 1292 ms   | **432 ms**  | −66,6 % |
+| Móvil, CPU 4× + Slow 4G   | 4520 ms   | **932 ms**  | −79,4 % |
+
+Objetivo del plan (`< 2500 ms` en el escenario throttled) cumplido con 2,7× de margen.
+
+**Lo que NO cambia:** el fondo conserva su decode-gating en JS (§7.2) — es arte, no LCP de texto; el relevo secuencial del cambio de tema (§7.3) y los tiempos de la copia en ese cruce (`HERO_COPY_RETURN_MS` y compañía, §5.2) siguen intactos y siguen siendo JS; `StageProvider` sigue montado y `HeroBackdrop` sigue avisándole. Lo que sí queda **sin ningún consumidor** es su `phase`: era lo que leían la copia y el navbar. Retirar la máquina entera es una decisión de arquitectura que excede esta tarea y se deja anotada aquí, no ejecutada en silencio.
+
+**`prefers-reduced-motion`** (§6.5) sigue colapsando a visible-inmediato, ahora por un guard explícito `animation: none` en cada pieza: `GlobalStyles` colapsa `animation-duration` pero **no** `animation-delay`, así que sin ese guard el navbar quedaría invisible los 760 ms del retardo y aparecería de golpe.
+
+**Fallback sin JavaScript.** Con la copia y el navbar en CSS estático, la única pieza del hero que seguía dependiendo de JS era el fondo: sin scripts, `HeroBackdrop` nunca corre su carrera de `decode()` y su envoltorio se queda en `data-state="pending"` para siempre. `auraStagger`/`eyeStagger` ganan un guard `@media (scripting: none)` que devuelve sus capas a `opacity: 1`, con la misma especificidad que la regla que neutralizan (gana por orden de cascada, sin `!important`) y sin tocar `ScShock`, que arranca invisible a propósito. Verificado con JavaScript deshabilitado en Chrome real, 1280×720 y 375×812: hero completo visible — arte, `<h1>`, subtítulo, apoyo, CTA y navbar, todos a `opacity: 1` — y el anillo del pulso correctamente en `0`.
+
+**Efecto colateral medido y declarado.** El CLS del escenario throttled pasa de `0` a `0,000118` (reproducible en 3 pasadas; escritorio y móvil sin throttling siguen en `0` exacto). La causa, aislada: al intercambiarse la webfont (`~1054 ms`), la caja del `<h1>` reflúe en horizontal — ancho `213,63 → 219,64 px`, `left 80,69 → 77,67 px`, alto y `top` sin cambio — y el desplazamiento se registra a `~1167 ms`. Ese reflujo **no lo introduce esta entrega** (nada del cambio toca layout): lo que cambia es que el texto ya es visible cuando ocurre, y la API de inestabilidad de layout sólo contabiliza contenido visible — antes el hero seguía invisible a esa altura. El fallback con métricas ajustadas que genera `next/font` («Hanken Grotesk Fallback») absorbe casi todo; el residuo es `0,12 %` del umbral «bueno» (`0,1`).
 
 ---
 
@@ -252,6 +305,8 @@ interface StageValue {
 
 ### 7.2 Carga: reutilizar la máquina que ya existe
 
+> **Enmienda 2026-08-11 (§5.5):** todo lo de esta sección sigue vigente **para el fondo** — sigue montándose en `"pending"`, sigue corriendo la carrera de `decode()` y sigue avisando a `markBackdropRevealed()`. Lo que ya no cuelga de ese aviso es la entrada de la copia y del navbar (§7.4), que pasaron a CSS estático por LCP. Añadido en la misma entrega: un guard `@media (scripting: none)` en `auraStagger`/`eyeStagger` para que el fondo no se quede invisible para siempre cuando el navegador no ejecuta scripts y `data-state` nunca sale de `"pending"`.
+
 `HeroBackdrop` monta hoy el stack inicial directamente en `"active"`. Pasa a montarlo en `"pending"` y a correr **la misma** carrera de `decode()` que ya usa el cruce; al terminar, lo pasa a `"active"` (lo que dispara el escalonado de entrada) y avisa al proveedor. No se añade ninguna máquina nueva: la coreografía de carga **es** la de entrada del cruce, con el stack saliente ausente.
 
 El ajuste de hidratación (`changeSource === "hydration"`) sustituye el stack pendiente y vuelve a correr la carrera, sin cruzar y sin reiniciar el intro: sigue siendo la carga asentándose.
@@ -269,6 +324,8 @@ El token de ejecución y la limpieza de temporizadores existentes se conservan t
 **Reversión a mitad de camino** (el usuario vuelve al tema anterior antes del relevo): el stack que entra ya estaba montado y saliendo; se reactiva directamente a `"active"` sin pasar por `"pending"`, que es la rama que ya existe hoy.
 
 ### 7.4 Copia y navbar
+
+> **Enmienda 2026-08-11 (§5.5):** el primer punto (el cruce de tema de la copia, `useHeroCopySwap`) sigue vigente tal cual. Los dos siguientes ya no: en la carga, ni la copia ni el navbar leen `useStage().phase` — su entrada es `@keyframes` + `animation-delay` estáticos, presentes en el CSS del HTML exportado. El escalonado de 80 ms y los 320 ms del navbar no cambian; el navbar conserva además su `HERO_CHROME_OFFSET_MS` verbatim, la copia no (razón medida en §5.5).
 
 - `useHeroCopySwap` deja de esperar: oculta la copia en `t=0` y la devuelve en `HERO_COPY_RETURN_MS`, aplicando la distribución nueva mientras sigue invisible. Los dos temporizadores encadenados y la cancelación por cambio de tema se conservan.
 - En la carga, la copia y el navbar leen `useStage().phase` y arrancan su animación al entrar en `"chrome"`. El escalonado interno de 80 ms de los cinco hijos de la copia **no cambia**.
