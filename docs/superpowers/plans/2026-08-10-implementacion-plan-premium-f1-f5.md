@@ -233,6 +233,18 @@ Seguimiento de la deuda que la Task 3 midió y documentó sin resolver (entrada 
 4. Verificación visual en navegador real de las tres tarjetas en ambas ramas (los colores nuevos se miran, no se suponen): capturas al workspace.
 5. El contraste del badge y de cualquier otro consumidor de `accentColor`/`accentColorHover` NO se regresa: inventario por grep de consumidores antes de tocar las funciones; si la vía elegida cambia la firma, listar los afectados en el report.
 
+## Task 27 — Retirada de la máquina de fases del stage (encargo directo del dueño, 2026-08-11)
+
+Consecuencia de la Task 10 (commits `865961f..311a167`): `StageProvider.phase` quedó SIN consumidores — la coreografía de copia/navbar es CSS estático, nadie lee la fase, y la red `STAGE_FALLBACK_MS` ya no protege nada (la entrada del navbar es CSS; ninguna página puede quedarse sin él por falta de aviso). Documentado en el docblock de `src/motion/StageProvider.tsx` («ESTADO ABIERTO») y en la §5.5 de la spec de coreografía.
+
+**Objetivo:** retirar la máquina completa, o justificar por escrito por qué se conserva. La retirada es la vía por defecto (código muerto con red de seguridad que no asegura nada); conservarla exige una razón concreta escrita, no inercia.
+
+**Ficheros implicados** (lista del propio docblock): `src/motion/stage.ts`, `src/motion/StageProvider.tsx`, `src/motion/StageProvider.test.tsx`, `app/providers.tsx`, y en `src/components/sections/Hero/HeroBackdrop.tsx` las tres piezas atadas al aviso (`useStage`, `revealedRef`, la dependencia `markBackdropRevealed` de `finishLoad` → pasaría a `useCallback([])`). Más los envoltorios `<StageProvider>` de los tests que montan hero o navbar: `Hero.test.tsx`, `Hero.qa.test.tsx`, `HeroBackdrop.test.tsx`, `hero-story.integration.test.tsx`, `app/home-page.flujo.test.tsx`, `app/providers.test.tsx`.
+
+**Cuidado máximo:** `HeroBackdrop.tsx` es el fichero más delicado del repo (decode-gating + relevo secuencial del cambio de tema). Su comportamiento NO cambia; solo desaparece la notificación. `HERO_CHROME_OFFSET_MS` lo siguen consumiendo `hero.transition.ts` y `Navbar.tsx` desde `@/motion/timings`, no desde `stage.ts` — no debe verse afectado. Al retirar: grep del nombre de cada símbolo retirado incluyendo comentarios y títulos de tests (regla 16 — un comentario que ya no describe el código es peor que ninguno; la Task 10 dejó 4 ficheros de test con comentarios `useStage` obsoletos, ciérralos aquí). La spec de coreografía y `DESIGN.md` reciben su línea fechada si nombran la máquina como viva.
+
+**DoD:** `pnpm run ci` en verde con cifra literal; verificación en navegador real de que la carga del hero y del navbar y el cambio de tema siguen IDÉNTICOS (comparación antes/después con capturas o telemetría); `graphify-out/` fuera del commit.
+
 ## Fuera de alcance (NO implementar)
 
 - **Push/PR** (decisión del usuario).
