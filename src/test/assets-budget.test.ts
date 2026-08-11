@@ -194,12 +194,16 @@ const FOLDER_BUDGET_BYTES: Readonly<Record<string, number>> =
   );
 
 /**
- * Fichero WebP más pesado medido en `public/` el 2026-08-10:
- * `story/cosmic-being/07-geometry.webp`, 661472 bytes (~646 KiB) -- la capa
- * nativa (1280×720) de la geometría de fondo de Story. Techo = ese valor ×
- * 1.05, redondeado hacia arriba: 694546 bytes.
+ * Fichero WebP más pesado medido en `public/` el 2026-08-11 (corregido tras
+ * revisión: la primera medición de esta tarea había citado por error
+ * `story/cosmic-being/07-geometry.webp`, 661472 bytes -- el SEGUNDO más
+ * pesado, no el primero -- reverificado con `stat` directo sobre los 84
+ * WebP de `public/`):
+ * `features/celestial-orbital/02-ondas.webp`, 669238 bytes (~654 KiB) -- la
+ * capa nativa (2560×1441) de las ondas de la escena de Features. Techo =
+ * ese valor × 1.05, redondeado hacia arriba: 702700 bytes.
  */
-const MEASURED_MAX_FILE_BYTES = 661472;
+const MEASURED_MAX_FILE_BYTES = 669238;
 const MAX_FILE_BUDGET_BYTES = Math.ceil(
   MEASURED_MAX_FILE_BYTES * BUDGET_MARGIN,
 );
@@ -243,7 +247,7 @@ describe("candado 2: tope de bytes por fichero WebP individual", () => {
         bytes,
         `${publicRelative(file)}: ${bytes} bytes supera el tope por fichero ` +
           `de ${MAX_FILE_BUDGET_BYTES} (el más pesado medido hoy es ` +
-          `${MEASURED_MAX_FILE_BYTES} bytes, story/cosmic-being/07-geometry.webp, + 5%)`,
+          `${MEASURED_MAX_FILE_BYTES} bytes, features/celestial-orbital/02-ondas.webp, + 5%)`,
       ).toBeLessThanOrEqual(MAX_FILE_BUDGET_BYTES);
     }
   });
