@@ -126,13 +126,23 @@ export const STORY_COSMIC_BEING_LAYERS: readonly StoryCosmicBeingLayer[] = [
 ] as const;
 
 /**
- * sizes de las capas: mismo criterio que STORY_COSMIC_HEART_SIZES
- * (storyCosmicHeart.layers.ts) -- la escena llena el stage a sangre (ancho y
- * alto completos del viewport), no la caja centrada de grid.containerMax.
- * Declarar un tope mentiria al navegador y le haria elegir la pista de
- * 1024px en pantallas anchas donde la caja real mide 100vw.
+ * sizes de las capas -- DECISION D-E (dueno, 2026-08-09, plan premium F1-F5,
+ * Task 12): `(max-width: 700px) 340px, 100vw`. El dueno revisó pares
+ * actual/simulación (capturas a 375px con y sin este `sizes` móvil) y
+ * aceptó la degradación resultante como suave: bajo 700px de viewport a
+ * DPR3, `340 * 3 = 1020px` cae por debajo de los 1280px de la pista nativa,
+ * así que el navegador elige la pista de 1024px en vez de la de 1280px
+ * (mismo mecanismo que ya limitaba a Aura/Eye a su pista reducida en móvil,
+ * `AURA_SIZES`/`EYE_SIZES`). La escena SIGUE yendo a sangre (ancho y alto
+ * completos del viewport, `100vw` intacto en desktop) -- lo que cambia es
+ * que, en móvil, se le miente A PROPÓSITO al navegador sobre el ancho real
+ * de la caja para que baje una pista más ligera, a cambio de la nitidez que
+ * el dueño ya juzgó y aceptó. Alcance ESTRICTO de esta decisión: solo esta
+ * escena (`storyCosmicBeing`). `FEATURES_ORBITAL_SIZES`, `JOURNEY_PORTAL_SIZES`
+ * y `CONTACT_GUARDIAN_SIZES` NO se tocan aquí -- se re-juzgan aparte en el
+ * gate F2 del plan con la pista `1600w` que la Task 11 acaba de añadir.
  */
-export const STORY_COSMIC_BEING_SIZES = "100vw";
+export const STORY_COSMIC_BEING_SIZES = "(max-width: 700px) 340px, 100vw";
 
 /** Escala base comun a las 11 capas: evita bordes vacios al desplazar. */
 export const STORY_COSMIC_BEING_OVERSCAN = 1.02;

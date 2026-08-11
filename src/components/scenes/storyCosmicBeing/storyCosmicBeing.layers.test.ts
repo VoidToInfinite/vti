@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   STORY_COSMIC_BEING_LAYERS,
+  STORY_COSMIC_BEING_SIZES,
   STORY_COSMIC_BEING_VOID,
 } from "./storyCosmicBeing.layers";
 
@@ -32,5 +33,9 @@ describe("storyCosmicBeing.layers", () => {
     expect(base?.blend).toBe("normal");
     expect(rest).toHaveLength(10);
     rest.forEach((layer) => expect(layer.blend).toBe("plus-lighter"));
+  });
+
+  it("STORY_COSMIC_BEING_SIZES declara el breakpoint movil de la Decision D-E (2026-08-09): 340px bajo 700px, 100vw en el resto", () => {
+    expect(STORY_COSMIC_BEING_SIZES).toBe("(max-width: 700px) 340px, 100vw");
   });
 });
