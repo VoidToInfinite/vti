@@ -1952,8 +1952,12 @@ describe("Story: Task 4, pista de scroll del deck (tema oscuro)", () => {
 /*
  * Tarea 2 (spec 2026-07-31-story-deck-tipografia-design.md): escala
  * tipografica de cartel de la diapositiva oscura + texto de inspiracion por
- * pilar + nota partida en noteLead/noteAccent con el mismo tratamiento que
- * "ToInfinite" en el Hero. Mismas advertencias de jsdom que el resto del
+ * pilar + frase de cierre con el tramo final acentuado con el mismo
+ * tratamiento que "ToInfinite" en el Hero. Desde la Task 15 (2026-08-11) esa
+ * frase sale de `Home.story.statement.first/second/third` -- las mismas claves
+ * que la rama clara -- y ya no de las `noteLead`/`noteAccent` que esta rama
+ * tenia en exclusiva; lo que no cambia es la particion en dos nodos de texto,
+ * que es lo que el acento exige. Mismas advertencias de jsdom que el resto del
  * archivo: tamaños por `getComputedStyle` contra la CONSTANTE importada
  * (nunca un literal), `text-wrap: balance` por TEXTO del CSS inyectado.
  */

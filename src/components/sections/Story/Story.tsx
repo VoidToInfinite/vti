@@ -50,13 +50,21 @@ import {
  * 2026-08-06-story-features-tema-claro-design.md).
  *
  * Rama OSCURA (spec 2026-07-29): no hay mockup oscuro de esta seccion. En
- * vez de la figura recortada + halo + statement, el fondo es la escena
- * parallax `StoryCosmicBeing` (11 capas, D1-D12 del spec 2026-07-29) y el
- * contenido (mismo i18n `Home.story.*`) se superpone encima. La nota se
- * conserva como diapositiva de cierre, partida en `Home.story.noteLead` +
- * `Home.story.noteAccent` (T3, spec 2026-07-31-story-deck-tipografia-design.md)
- * -- claves DISTINTAS de `Home.story.statement.*`, que solo consume la rama
- * clara (D12 de la segunda ronda: "noteLead/noteAccent no se tocan").
+ * vez de la figura recortada + halo, el fondo es la escena parallax
+ * `StoryCosmicBeing` (11 capas, D1-D12 del spec 2026-07-29) y el contenido
+ * (mismo i18n `Home.story.*`) se superpone encima.
+ *
+ * Task 15 (unificacion de contenido, D-C, 2026-08-11): el CONTENIDO de las dos
+ * ramas es el mismo y sale de las mismas claves; lo que ramifica por tema es el
+ * ARTE y el VEHICULO. En concreto, el cierre de Story ya no diverge: la
+ * diapositiva final del deck consume `Home.story.statement.first/second/third`
+ * -- las MISMAS claves que el bloque a pantalla completa de la rama clara -- y
+ * es ella misma una `<section id="statement">`, de modo que la lista de
+ * secciones de la pagina sale identica en los dos temas. Hasta esa tarea esta
+ * rama tenia dos claves propias (`noteLead`/`noteAccent`, T3 de la spec
+ * 2026-07-31-story-deck-tipografia-design.md) que decian la misma frase con
+ * otra particion; se retiraron del JSON. Ver el JSX de `StoryDeckDark`, al
+ * final de este fichero, para el porque de no sacar el cierre del deck.
  *
  * `themeName` decide la rama (no `theme.data.isLight`): mismo criterio que
  * `HomeSections.tsx`, que ya usa `useTheme()` de `@/theme/ThemeProvider`

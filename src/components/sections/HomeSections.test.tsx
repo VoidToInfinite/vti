@@ -99,6 +99,17 @@ describe("HomeSections", () => {
    * dos aserciones sean identicas ES el candado -- mientras lo sean, ninguna
    * rama tiene una seccion que la otra no tenga. Si una entrega futura las
    * separa otra vez, este par de tests lo dice en el acto.
+   *
+   * PRECIO de ese espejo, y por que hace falta la ultima asercion: mientras
+   * las dos listas fueron DISTINTAS (5 en claro, 4 en oscuro), este test
+   * cazaba de rebote una regresion de hidratacion -- si el arbol oscuro no
+   * llegaba a montarse, la lista se quedaba en la clara y el `toEqual`
+   * fallaba. Siendo identicas eso deja de ser cierto: el test pasaria aunque
+   * el tema nunca hidratara a oscuro. Se recupera la propiedad con un
+   * marcador EXCLUSIVO del arbol oscuro (`[data-slide-index]`: el deck de
+   * diapositivas de Story, que la rama clara no monta jamas). Sin el, el
+   * fichero pierde la unica pieza capaz de distinguir "monta las secciones de
+   * la rama oscura" de "monta las de la clara".
    */
   it("en tema oscuro (guardado en localStorage) monta las MISMAS 5 secciones que en claro, en el mismo orden", async () => {
     window.localStorage.setItem("vti-theme", "dark");
@@ -115,6 +126,10 @@ describe("HomeSections", () => {
         "features",
         "contact",
       ]);
+      expect(
+        container.querySelectorAll("[data-slide-index]").length,
+        "el arbol oscuro no llego a montarse: sin deck de diapositivas, la lista de secciones de arriba es la de la rama CLARA",
+      ).toBeGreaterThan(0);
     });
   });
 
@@ -148,6 +163,13 @@ describe("HomeSections", () => {
     window.localStorage.setItem("vti-theme", "dark");
     const oscuro = renderWithProviders(<HomeSections />);
     await waitFor(() => {
+      // Mismo marcador exclusivo que el test de arriba, y por el mismo
+      // motivo: sin el, este candado pasaria comparando la rama clara
+      // consigo misma.
+      expect(
+        oscuro.container.querySelectorAll("[data-slide-index]").length,
+        "el arbol oscuro no llego a montarse",
+      ).toBeGreaterThan(0);
       for (const texto of textos) {
         expect(
           oscuro.container.textContent,

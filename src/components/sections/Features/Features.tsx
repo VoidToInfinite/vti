@@ -137,11 +137,14 @@ const FEATURES_FIGURE_PARALLAX_PX = 5;
  *   gaming:      5.33:1 sobre surface (claro) | 5.04:1 sobre bg (oscuro)
  *
  * Exportada desde 2026-08-06 (D5/D7/D8 spec `2026-08-06-story-features-tema-
- * claro-design.md`): además de check/CTA, la tarjeta rehecha la reutiliza
- * para el `color-mix` de fondo del badge/panel/círculo (`ScBadge`/
- * `ScImagePanel`/`ScImageCircle`, más abajo) y `Features.test.tsx` la
- * necesita para medir el contraste AA real del badge sin duplicar esta
- * función en el test.
+ * claro-design.md`): además de check/CTA, la tarjeta la reutiliza para el
+ * `color-mix` de fondo de sus dos piezas DECORATIVAS -- `ScImagePanel` (7%) y
+ * `ScImageCircle` (16%), más abajo. La tercera, el `color-mix` al 12% del
+ * badge numérico, se fue con `ScBadge` en la Task 15 (2026-08-11), y con ella
+ * el motivo por el que el test importaba esta función: medir el contraste AA
+ * del número sobre esa mezcla. Sigue exportada porque `Features.test.tsx` la
+ * usa para los ratios del CTA (describe "Task 26") sin duplicar la tabla de
+ * acentos.
  */
 export function accentColor(theme: ThemeDefinition, key: FeatureKey): string {
   if (key === "learning") {
@@ -176,15 +179,15 @@ export function accentColor(theme: ThemeDefinition, key: FeatureKey): string {
  *   imagination: 6.63:1 sobre surface (claro) | 6.45:1 sobre bg (oscuro)
  *   gaming:      6.61:1 sobre surface (claro) | 6.13:1 sobre bg (oscuro)
  *
- * SEGUNDO uso, desde 2026-08-06: el número del badge (`ScBadge`, más abajo,
- * SOLO existe en la rama clara) lo consume tal cual, no `accentColor` --
- * medido de nuevo tras la Task 26 con los valores nuevos (informe de la
- * tarea): `accentColorHover` (texto) sobre
- * `color-mix(in oklab, accentColor 12%, semantic.surface)` (fondo, con los
- * nuevos pasos de reposo) da 4.96:1/5.58:1/5.60:1 según la tarjeta -- sigue
- * cumpliendo AA con MÁS margen que antes de esta tarea (4.52:1/5.21:1/4.66:1
- * con los pasos viejos), consecuencia de que reposo/hover suben un paso cada
- * uno en claro, no una regresión.
+ * Hasta la Task 15 (2026-08-11) tenía un SEGUNDO uso, hoy inexistente: el
+ * número del badge de la tarjeta clara (`ScBadge`) lo consumía tal cual, no
+ * `accentColor`, porque sobre el `color-mix(in oklab, accentColor 12%,
+ * semantic.surface)` de ese badge solo la versión hover llegaba a AA
+ * (4.96:1/5.58:1/5.60:1 frente a 4.31:1/4.98:1/4.52:1). Esa pieza se retiró
+ * con la numeración decorativa, así que hoy esta función tiene UN solo
+ * consumidor: el estado hover/focus-visible del CTA de texto (`ScCta`, más
+ * abajo). Las cifras del badge se conservan aquí como historia de por qué
+ * `accentColorHover` existe separada, no como descripción del código vivo.
  */
 export function accentColorHover(
   theme: ThemeDefinition,
@@ -629,10 +632,13 @@ const ScCardSurface = styled.div`
 
 /* Panel de imagen (D8; mockup L202-206): bloque de altura fija con un
    círculo decorativo desbordando por abajo (`aria-hidden`) y la figura
-   encima, alineada al borde inferior (ver `ScFigure`, debajo). El fondo y el
-   círculo son puramente decorativos -- no llevan texto, así que no están
-   sujetos al contraste de texto AA (solo `ScBadge`, que sí es texto, lo
-   necesita). */
+   encima, alineada al borde inferior (ver `ScFigure`, debajo). Desde la
+   Task 15 es además el PRIMER hijo de la tarjeta: la fila superior (badge
+   numérico + etiqueta) se retiró, ver la lápida más arriba en este fichero.
+   El fondo y el círculo son puramente decorativos -- no llevan texto, así que
+   no están sujetos al contraste de texto AA. El único `color-mix` de esta
+   sección que SÍ portaba texto era el fondo del badge, y se fue con él, así
+   que hoy ninguna mezcla de este fichero necesita medirse contra AA. */
 const ScImagePanel = styled.div<{ $key: FeatureKey }>`
   position: relative;
   margin-block-start: ${({ theme }) => theme.data.space[4]};
