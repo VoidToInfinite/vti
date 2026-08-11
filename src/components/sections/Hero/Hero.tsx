@@ -168,9 +168,9 @@ const heroCopyRise = keyframes`
 
 /*
  * Copy stagger-rise (spec §5): fija el orden de lectura en la carga. Los
- * CUATRO hijos (titulo -- la marca dentro de ScHeroBrand --, subtitulo,
- * linea, acciones) entran con un paso de 80ms (HERO_COPY_STEP_MS), no de
- * 120ms.
+ * CUATRO hijos entran con un paso de 80ms (HERO_COPY_STEP_MS), no de 120ms.
+ * Orden vigente desde Task 14 (fix de revision, ver mas abajo): titulo --
+ * la marca dentro de ScHeroBrand --, LINEA, subtitulo, acciones.
  *
  * La calibracion original (spec §5) se hizo con CINCO hijos -- habia un
  * kicker, retirado el 2026-08-08 -- y comparaba ASENTAMIENTOS: con 120ms el
@@ -181,17 +181,23 @@ const heroCopyRise = keyframes`
  * motion.duration.base. 440ms es la cifra vigente; el 520 de antes era la
  * del layout de cinco. Solo transform/opacity.
  *
- * TASK 14 (plan premium F3, 2026-08-11): el CUARTO hijo cambia de CONTENIDO
- * (no de posicion ni de cuenta -- sigue siendo el hijo 3 del DOM, justo antes
- * de ScActions, el mismo hueco que ocupaba `Home.hero.support`). La linea
- * descriptiva ("Del vacio al infinito...", `Home.hero.tagline`) sustituye a
- * la clave huerfana `Home.hero.kicker` (retirada 2026-08-08, sin consumidor
- * desde entonces): cierra el hallazgo SEO "el hero no dice que es esto". El
- * parrafo `Home.hero.support` ("Aunque el infinito...") SALE del hero y pasa
- * a la apertura de Story (ver Story.tsx) -- misma clave, sin duplicar el
- * string. Como el recuento de hijos de ScCopy no cambia (4 antes, 4 ahora),
- * los retardos de mas abajo (incluida la tabla del hijo 4) NO necesitan
- * tocarse.
+ * TASK 14 (plan premium F3, 2026-08-11): el hijo 2 cambia de CONTENIDO Y DE
+ * ROL -- antes era `Home.hero.support` ("Aunque el infinito..."), ahora es
+ * la linea descriptiva ("Del vacio al infinito...", `Home.hero.tagline`,
+ * que sustituye a la clave huerfana `Home.hero.kicker`, retirada 2026-08-08
+ * sin consumidor desde entonces): cierra el hallazgo SEO "el hero no dice
+ * que es esto". `Home.hero.support` SALE del hero y pasa a la apertura de
+ * Story (ver Story.tsx) -- misma clave, sin duplicar el string.
+ *
+ * FIX DE REVISION (mismo dia): la entrega inicial dejaba la linea en el
+ * hijo 3 (tras el subtitulo, el mismo hueco que ocupaba `hero.support`). El
+ * dueno vio las capturas y pidio el orden contrario -- la linea INMEDIATA a
+ * la marca, el subtitulo despues: "la explicacion llega primero, la frase
+ * poetica la sostiene despues". Eso INVIERTE los hijos 2 y 3 (el subtitulo
+ * pasa de hijo 2 a hijo 3), pero el RECUENTO sigue en cuatro, asi que los
+ * retardos de mas abajo (incluida la tabla del hijo 4, y el hijo 4 = CTA en
+ * si) NO necesitan tocarse -- lo unico que cambia es QUE elemento ocupa cada
+ * posicion, nunca cuantas posiciones hay ni sus retardos.
  *
  * Distribucion por tema (spec S6.5): `align-items`/`text-align`/`max-width`
  * en el breakpoint `lg` (mas abajo) leen las variables CSS de Task 9
@@ -438,9 +444,52 @@ const ScHeroBrand = styled.div`
   margin-block-start: ${({ theme }) => theme.data.space[2]};
 `;
 
-/* Cambio de tier: el subtitulo se despega del titular. La medida corta lo
-   mantiene en dos lineas legibles de un vistazo; con los 65ch de prose a 24px
-   seria una sola linea interminable.
+/*
+ * TASK 14, fix de revision (plan premium F3, 2026-08-11 -- decision del
+ * dueno, ya vista con capturas reales): la linea C pasa a ir INMEDIATAMENTE
+ * bajo la marca, antes del subtitulo -- orden final
+ * ScHeroBrand(h1) -> ScTagline -> ScSubtitle -> ScActions. La primera entrega
+ * la dejaba DESPUES del subtitulo; el dueno explico la explicacion (la linea)
+ * llega primero, la frase poetica (el subtitulo) la sostiene despues.
+ *
+ * Es la linea que cierra el hallazgo SEO "el hero no dice que es esto" --
+ * escalon tipografico del sistema (variant=body, un token, no un literal
+ * nuevo) entre la marca y el CTA. Sustituye a la clave huerfana
+ * `Home.hero.kicker`.
+ *
+ * `margin-block-start: space[5]`: hereda el valor que antes tenia
+ * ScSubtitle ("se despega del titular", ver mas abajo) porque ahora es ESTE
+ * elemento el que sigue directamente al `<h1>` -- el margen viaja con la
+ * POSICION, no con el componente. Mismo tratamiento de contraste que antes:
+ * NO baja a textMuted a proposito. ScCopy ya protege TODO su texto en
+ * oscuro con un text-shadow propio (ver su docblock, mas arriba: "segunda
+ * linea de defensa del contraste... los parrafos son mas anchos que la
+ * pupila y sus extremos caen sobre la corona"), asi que esta linea hereda
+ * esa proteccion sin necesitar una propia, sea cual sea su ancho -- medido
+ * en navegador real (1280x720 oscuro): 458.73px, mas estrecha que el
+ * subtitulo (585.94px). La jerarquia la dan tamano, peso, tracking y
+ * espacio: variant=body (peso 400) se distingue del h3 (peso 600, con
+ * override de tamano) que sigue usando ScSubtitle, aunque los dos aparezcan
+ * en tamanos parecidos -- el dueno pidio cambiar el ORDEN, no los pesos.
+ */
+/* Equilibrado: de pretty a balance (encargo del usuario 2026-08-04, todo el
+   texto de cuerpo lleva text-wrap-style balance). Igual que ScBody en
+   Contact.tsx, este override tiene que actualizarse a mano aunque Typography
+   ya lo declare para sus variantes de cuerpo: styled(Typography) inyecta su
+   clase DESPUES y gana la cascada, asi que dejarlo en pretty habria dejado
+   justo esta linea del hero con el reparto antiguo. */
+const ScTagline = styled(Typography)`
+  margin-block-start: ${({ theme }) => theme.data.space[5]};
+  max-width: 70ch;
+  text-wrap: balance;
+  text-wrap-style: balance;
+`;
+
+/* Cambio de tier: el subtitulo se despega de la linea C que ahora lo
+   precede (hasta la Task 14 se despegaba del titular directamente -- el
+   dueno cambio el orden, ver el docblock de ScTagline, arriba). La medida
+   corta lo mantiene en dos lineas legibles de un vistazo; con los 65ch de
+   prose a 24px seria una sola linea interminable.
    Se consume con forwardedAs="p", NO con as="p": en styled-components v6 el
    prop `as` lo consume el propio wrapper -- renderiza un <p> pelado y descarta
    el componente envuelto --, asi que con `as` el subtitulo perdia TODA la
@@ -454,45 +503,16 @@ const ScHeroBrand = styled.div`
    theme.data.type.scale.h3 que aporta variant="h3". Se documenta como
    excepcion, no se corrige a la escala. Gana la cascada por el mismo motivo
    que el color de ScKicker: la clase de ScSubtitle se inyecta despues de la
-   de ScTypography. */
+   de ScTypography.
+
+   `margin-block-start: space[3]` (Task 14, fix de revision): hereda el valor
+   que antes tenia la linea C ("separacion corta"), porque ahora es EL
+   SUBTITULO el que sigue a un elemento de cuerpo, no al titular -- mismo
+   razonamiento de "el margen viaja con la posicion" que ScTagline. */
 const ScSubtitle = styled(Typography)`
   font-size: clamp(15px, 2vw, 22px);
-  margin-block-start: ${({ theme }) => theme.data.space[5]};
-  max-width: 70ch;
-`;
-
-/*
- * TASK 14 (plan premium F3, 2026-08-11): este componente se llamaba
- * `ScSupport` y pintaba `Home.hero.support` ("Aunque el infinito..."), que
- * SALE del hero hacia la apertura de Story (ver Story.tsx) -- misma clave,
- * sin duplicar el string. Ocupa la MISMA posicion visual (hijo 3 de ScCopy,
- * justo antes de ScActions) y la MISMA hoja de estilos: solo cambia el
- * CONTENIDO, la clave (`Home.hero.tagline`, que sustituye a la huerfana
- * `Home.hero.kicker`) y el nombre. Es la linea que cierra el hallazgo SEO "el
- * hero no dice que es esto" -- escalon tipografico del sistema (variant=body,
- * un token, no un literal nuevo) entre la marca y el CTA.
- *
- * Mismo tratamiento que el subtitulo: separacion corta, sin bajar a
- * textMuted a proposito. ScCopy ya protege TODO su texto en oscuro con un
- * text-shadow propio (ver su docblock, mas arriba: "segunda linea de defensa
- * del contraste... los parrafos son mas anchos que la pupila y sus extremos
- * caen sobre la corona"), asi que esta linea hereda esa proteccion sin
- * necesitar una propia, sea cual sea su ancho -- medido en navegador real
- * (1280x720 oscuro): 458.73px, MAS ESTRECHA que el subtitulo (585.94px), a
- * diferencia del `Home.hero.support` que sustituye. La jerarquia la dan
- * tamano, peso, tracking y espacio.
- */
-/* Equilibrado: de pretty a balance (encargo del usuario 2026-08-04, todo el
-   texto de cuerpo lleva text-wrap-style balance). Igual que ScBody en
-   Contact.tsx, este override tiene que actualizarse a mano aunque Typography
-   ya lo declare para sus variantes de cuerpo: styled(Typography) inyecta su
-   clase DESPUES y gana la cascada, asi que dejarlo en pretty habria dejado
-   justo esta linea del hero con el reparto antiguo. */
-const ScTagline = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   max-width: 70ch;
-  text-wrap: balance;
-  text-wrap-style: balance;
 `;
 
 /*
@@ -658,6 +678,15 @@ export function Hero(): ReactElement {
         >
           <BrandName gradientTail />
         </ScHeroBrand>
+        {/* Task 14, fix de revision: la linea C va INMEDIATAMENTE bajo la
+            marca, antes del subtitulo (decision del dueno) -- ver el
+            docblock de ScTagline, arriba, para el porque completo. */}
+        <ScTagline
+          variant="body"
+          data-testid="hero-tagline"
+        >
+          {t("Home.hero.tagline")}
+        </ScTagline>
         <ScSubtitle
           variant="h3"
           forwardedAs="p"
@@ -665,12 +694,6 @@ export function Hero(): ReactElement {
         >
           {t("Home.hero.subtitle")}
         </ScSubtitle>
-        <ScTagline
-          variant="body"
-          data-testid="hero-tagline"
-        >
-          {t("Home.hero.tagline")}
-        </ScTagline>
         <ScActions data-testid="hero-actions">
           {/* forwardedAs="a", NO as="a": ScCtaPrimary envuelve Button con
               styled(), y Button ya intercepta su propio prop `as`

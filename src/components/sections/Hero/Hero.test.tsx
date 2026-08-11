@@ -162,9 +162,10 @@ describe("Hero", () => {
    * desde que el usuario retiro el <ScKicker> suelto de ScCopy y, el mismo
    * dia (auditoria SEO 2026-08-08), la tagline del h1 que lo recupero
    * brevemente -- se RETIRA como clave y se sustituye por `Home.hero.tagline`,
-   * que si se renderiza (hijo 3 de ScCopy, en la posicion que ocupaba
-   * `Home.hero.support`). `Home.hero.support` ("Aunque el infinito...") sale
-   * del hero hacia la apertura de Story -- ver Story.test.tsx.
+   * que si se renderiza (hijo 2 de ScCopy, INMEDIATO bajo la marca -- fix de
+   * revision, decision del dueno: la linea llega antes que el subtitulo).
+   * `Home.hero.support` ("Aunque el infinito...") sale del hero hacia la
+   * apertura de Story -- ver Story.test.tsx.
    */
   it("los dos textos del bloque salen de i18n, no de literales en el JSX", () => {
     const { container } = renderHero();
@@ -190,12 +191,18 @@ describe("Hero", () => {
     expect(testId(container, "hero-tagline").tagName).toBe("P");
   });
 
-  it("el orden del DOM es titulo, subtitulo, linea, acciones", () => {
+  /*
+   * FIX DE REVISION (Task 14): la primera entrega afirmaba
+   * titulo/subtitulo/linea/acciones. El dueno invirtio linea y subtitulo
+   * (ver el docblock de ScTagline en Hero.tsx): la linea ahora precede al
+   * subtitulo, no al reves.
+   */
+  it("el orden del DOM es titulo, linea, subtitulo, acciones", () => {
     const { container } = renderHero();
     const orden = [
       "hero-title",
-      "hero-subtitle",
       "hero-tagline",
+      "hero-subtitle",
       "hero-actions",
     ].map((id) => testId(container, id));
 

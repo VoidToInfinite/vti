@@ -221,21 +221,29 @@ describe("Story", () => {
    * infinito...") SALE del hero y aterriza aqui, renombrada a
    * `Home.story.support` -- misma clave para las dos ramas de tema, sin
    * duplicar el string (Story() delega en StoryLight/StoryDeckDark, pero la
-   * clave i18n es UNA). Reutiliza ScBody: mismo componente, testid propio
-   * para localizarlo sin depender de coincidencias de texto.
+   * clave i18n es UNA). Reutiliza ScBody (via ScSupportLead): mismo
+   * componente base, testid propio para localizarlo sin depender de
+   * coincidencias de texto.
+   *
+   * FIX DE REVISION: la primera entrega dejaba el parrafo DESPUES del
+   * cuerpo -- lectura equivocada del brief, que pide literalmente "antes del
+   * primer contenido actual de Story". Este test queda como el candado
+   * INVERSO al original: afirma que el parrafo PRECEDE al eyebrow (el primer
+   * contenido real de la rama clara), no que lo sigue.
    */
-  it("el parrafo movido desde el hero (Home.story.support) aparece tras el cuerpo de la apertura", () => {
+  it("el parrafo movido desde el hero (Home.story.support) aparece ANTES del primer contenido de la apertura", () => {
     const { container } = renderWithProviders(<Story />);
-    const cuerpo = screen.getByText(esHome.Home.story.body);
+    const eyebrow = screen.getByText(esHome.Home.story.kicker);
     const parrafo = screen.getByTestId("story-support");
 
     expect(parrafo).toHaveTextContent(esHome.Home.story.support);
     expect(parrafo.tagName).toBe("P");
-    // Orden del DOM: el parrafo trasladado va DESPUES del cuerpo existente,
-    // no antes -- cierra la apertura, no la interrumpe.
+    // Orden del DOM: el parrafo trasladado va ANTES del eyebrow/kicker --
+    // literal del brief ("antes del primer contenido actual de Story"), no
+    // despues de el ni del cuerpo.
     expect(
       Boolean(
-        cuerpo.compareDocumentPosition(parrafo) &
+        parrafo.compareDocumentPosition(eyebrow) &
         Node.DOCUMENT_POSITION_FOLLOWING,
       ),
     ).toBe(true);
@@ -1378,8 +1386,13 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
    * diapositiva 0 (la "apertura" de la rama oscura). Un render por rama
    * (Story() delega en StoryLight/StoryDeckDark), UNA sola clave
    * (`Home.story.support`).
+   *
+   * FIX DE REVISION: afirma tambien el ORDEN -- el parrafo va ANTES del
+   * kicker de la diapositiva (el primer contenido real de esa diapositiva),
+   * literal del brief ("antes del primer contenido actual de Story"). La
+   * primera entrega solo afirmaba presencia, no orden, y lo dejaba DESPUES.
    */
-  it("la diapositiva 0 incluye el parrafo trasladado desde el hero (Home.story.support)", async () => {
+  it("la diapositiva 0 incluye el parrafo trasladado (Home.story.support), ANTES del kicker", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -1390,7 +1403,15 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
       '[data-slide-index="0"]',
     ) as HTMLElement;
     const parrafo = within(slide0).getByTestId("story-support");
+    const kicker = within(slide0).getByText(esHome.Home.story.kicker);
+
     expect(parrafo).toHaveTextContent(esHome.Home.story.support);
+    expect(
+      Boolean(
+        parrafo.compareDocumentPosition(kicker) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
   });
 
   it("reparte el contenido de las 6 diapositivas en el orden del encargo: intro, 4 pilares, nota", async () => {

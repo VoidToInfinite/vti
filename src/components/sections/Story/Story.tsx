@@ -520,6 +520,41 @@ const ScBody = styled(Typography)`
 `;
 
 /*
+ * TASK 14, fix de revision (plan premium F3, 2026-08-11): `Home.story.support`
+ * -- el parrafo trasladado desde `Home.hero.support` -- va ANTES del primer
+ * contenido actual de Story (kicker/eyebrow), tal como pide el brief
+ * literalmente ("antes del primer contenido actual de Story"), no despues del
+ * cuerpo (la primera entrega lo dejo al final por error de lectura).
+ *
+ * Extiende `ScBody` en vez de reescribir su hoja de estilos: MISMA tipografia
+ * y MISMO recorrido de reveal (opacity/transform, `[data-revealed="true"] &`),
+ * solo dos ajustes de posicion:
+ * - `margin-block-start: 0`: es ahora el PRIMER hijo de ScContent (el hueco
+ *   que ocupaba ScEyebrowRow, que no declara margen propio); heredar el
+ *   space[5] de ScBody habria dejado un hueco vacio arriba del bloque.
+ * - `margin-block-end: space[5]`: MISMO espaciado que `ScBody` ya declaraba
+ *   como `margin-block-start` (el separador entre el bloque de intro y lo que
+ *   viene despues). La convencion del fichero es margen SUPERIOR en el
+ *   elemento que se separa del anterior; aqui es la UNICA excepcion
+ *   deliberada, porque este parrafo es el que abre -- el hueco tiene que ir
+ *   DESPUES de el (hacia el eyebrow que lo sigue), no antes (no hay nada por
+ *   encima de lo que separarse).
+ * - `transition-delay: STORY_REVEAL_DELAY_EYEBROW_MS` (0ms, la constante
+ *   IMPORTADA, regla 13 del manual): heredar el retardo de `ScBody` (140ms,
+ *   pensado para la TERCERA pieza de la cascada) habria dejado este parrafo
+ *   invisible mientras el eyebrow y el titulo, mas abajo en el DOM, ya se
+ *   veian -- un orden de entrada invertido respecto al de lectura. Como
+ *   primer elemento visual, entra en el mismo instante que el eyebrow (los
+ *   dos a 0ms es valido: no hay ninguna regla que exija un escalon distinto
+ *   por elemento, solo que el orden de entrada no contradiga el de lectura).
+ */
+const ScSupportLead = styled(ScBody)`
+  margin-block-start: 0;
+  margin-block-end: ${({ theme }) => theme.data.space[5]};
+  transition-delay: ${STORY_REVEAL_DELAY_EYEBROW_MS}ms;
+`;
+
+/*
  * ScPillarRow/ScPillarNumber/ScPillarCopy: desde esta entrega (2026-08-06,
  * D2) YA NO los consume la rama clara -- los cuatro pilares pasaron de fila
  * de lista a tarjeta (`ScPillarCard`, más abajo). Se conservan intactos,
@@ -1250,6 +1285,23 @@ function StoryLight(): ReactElement {
 
   const heading = (
     <>
+      {/* Task 14, fix de revision (plan premium F3, 2026-08-11):
+          `Home.hero.support` ("Aunque el infinito...") SALE del hero y
+          aterriza AQUI, ANTES del primer contenido actual de Story (el
+          eyebrow) -- literal del brief: "antes del primer contenido actual
+          de Story". Misma clave renombrada (`Home.story.support`), sin
+          duplicar el string, un render por rama de tema (Task 15 unificara
+          las dos ramas despues; este parrafo abre en las dos, para que
+          sobreviva a esa unificacion sin tener que decidir de nuevo donde
+          encaja). `ScSupportLead` extiende `ScBody` solo en posicion y
+          retardo de entrada -- ver su docblock, mas arriba, para el porque
+          completo. */}
+      <ScSupportLead
+        variant="body"
+        data-testid="story-support"
+      >
+        {t("Home.story.support")}
+      </ScSupportLead>
       <ScEyebrowRow>
         <ScEyebrowBar aria-hidden="true" />
         <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
@@ -1263,21 +1315,6 @@ function StoryLight(): ReactElement {
         <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
       </ScTitle>
       <ScBody variant="body">{t("Home.story.body")}</ScBody>
-      {/* Task 14 (plan premium F3, 2026-08-11): `Home.hero.support`
-          ("Aunque el infinito...") SALE del hero y aterriza en la apertura
-          de Story -- misma clave (renombrada a `Home.story.support`), sin
-          duplicar el string, un render por rama de tema (Task 15 unificara
-          las dos ramas despues; este parrafo queda en el mismo punto -- tras
-          el cuerpo de la diapositiva de intro -- en las dos, para que
-          sobreviva a esa unificacion sin tener que decidir de nuevo donde
-          encaja). Reutiliza ScBody tal cual: mismo tono narrativo, misma
-          cascada de entrada (transition-delay compartido via clase). */}
-      <ScBody
-        variant="body"
-        data-testid="story-support"
-      >
-        {t("Home.story.support")}
-      </ScBody>
     </>
   );
 
@@ -1356,6 +1393,21 @@ function StoryLight(): ReactElement {
     </>
   );
 }
+
+/*
+ * TASK 14, fix de revision (plan premium F3, 2026-08-11): mismo ajuste de
+ * posicion que `ScSupportLead` (ver su docblock, mas arriba) para la rama
+ * OSCURA -- extiende `ScDeckIntroBody` (estatico, sin reveal propio, asi que
+ * aqui NO hace falta tocar ningun retardo) solo para que, al pasar a ser el
+ * PRIMER elemento de la diapositiva 0 (antes de `ScKicker`), no herede el
+ * `margin-block-start: space[5]` que tenia sentido cuando iba DESPUES del
+ * cuerpo -- eso habria dejado un hueco vacio arriba de la diapositiva. El
+ * espaciado se traslada a `margin-block-end`, hacia el kicker que le sigue.
+ */
+const ScDeckSupportLead = styled(ScDeckIntroBody)`
+  margin-block-start: 0;
+  margin-block-end: ${({ theme }) => theme.data.space[5]};
+`;
 
 /*
  * Rama oscura de Story, extraida a su propio componente (ver el comentario
@@ -1446,6 +1498,15 @@ function StoryDeckDark(): ReactElement {
               data-slide-index={0}
               data-state={slideState(0)}
             >
+              {/* Task 14, fix de revision (plan premium F3, 2026-08-11):
+                  mismo parrafo reubicado que en StoryLight, mas arriba en
+                  este fichero -- ANTES del primer contenido actual de la
+                  diapositiva (el kicker), literal del brief. Ver el docblock
+                  de `ScDeckSupportLead`, mas arriba, para el porque del ajuste
+                  de margen. */}
+              <ScDeckSupportLead data-testid="story-support">
+                {t("Home.story.support")}
+              </ScDeckSupportLead>
               <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
               <ScDeckTitle id="story-title">
                 {t("Home.story.titleLead")}
@@ -1453,14 +1514,6 @@ function StoryDeckDark(): ReactElement {
                 <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
               </ScDeckTitle>
               <ScDeckIntroBody>{t("Home.story.body")}</ScDeckIntroBody>
-              {/* Task 14 (plan premium F3, 2026-08-11): mismo parrafo
-                  reubicado que en StoryLight, mas arriba en este fichero --
-                  ver su comentario para el porque completo. Reutiliza
-                  ScDeckIntroBody tal cual, misma posicion (tras el cuerpo de
-                  la diapositiva 0). */}
-              <ScDeckIntroBody data-testid="story-support">
-                {t("Home.story.support")}
-              </ScDeckIntroBody>
             </ScSlide>
             {PILLARS.map((pillar, pillarIndex) => (
               <ScSlide
