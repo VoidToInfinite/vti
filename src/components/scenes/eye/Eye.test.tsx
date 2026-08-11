@@ -540,3 +540,68 @@ describe("Eye (escalonado de carga/cruce de temas)", () => {
     expect(bloqueAmbiental).toContain("animation: none");
   });
 });
+
+/**
+ * Fallback sin JavaScript de `eyeStagger` (Task 10 del plan premium,
+ * 2026-08-11), espejo del que `aura.parts.test.tsx` cubre para la
+ * composicion clara. Sin JS, `HeroBackdrop` nunca corre su carrera de
+ * `decode()` y su envoltorio se queda en `data-state="pending"` para
+ * siempre: sin este guard, el ojo queda invisible de forma permanente.
+ *
+ * jsdom no evalua NINGUN `@media` (regla 36 de RULES.md), asi que se
+ * inspecciona `document.styleSheets`, acotando la busqueda al bloque
+ * `@media (scripting: none)` concreto.
+ */
+describe("Eye bajo @media (scripting: none) (fallback sin JavaScript)", () => {
+  /** Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`. */
+  function reglasSinScripting(): CSSStyleRule[] {
+    const out: CSSStyleRule[] = [];
+    const walk = (rules: CSSRuleList, dentro: boolean): void => {
+      Array.from(rules).forEach((rule) => {
+        const media = (rule as CSSMediaRule).media;
+        const aqui =
+          dentro || (media ? /scripting:\s*none/.test(media.mediaText) : false);
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) {
+          walk(anidadas, aqui);
+          return;
+        }
+        if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+          out.push(rule as CSSStyleRule);
+        }
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules, false);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return out;
+  }
+
+  it('devuelve las capas a opacity: 1 en "pending", con el selector DESCENDIENTE y sin animacion', () => {
+    const { container } = renderWithProviders(<Eye />);
+    const iris = container.querySelector('[data-part="iris"]') as HTMLElement;
+    expect(iris).not.toBeNull();
+    const clases = Array.from(iris.classList);
+
+    const propias = reglasSinScripting().filter((regla) =>
+      clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+    );
+    expect(propias.length).toBeGreaterThan(0);
+
+    propias.forEach((regla) => {
+      // FORMA del selector sobre selectorText (regla 35 de RULES.md): el
+      // atributo data-state vive en el envoltorio del stack (ScEyeStack,
+      // HeroBackdrop.tsx), no en la capa -- tiene que ser DESCENDIENTE.
+      expect(regla.selectorText).toMatch(/^\[data-state="pending"\]\s/);
+      expect(regla.style.opacity).toBe("1");
+      // El escalonado del ojo sale por animation, no por transition: sin
+      // apagarla, el fill backwards del heroEyeIn que nunca llega a
+      // dispararse dejaria la capa gobernada por una animacion muerta.
+      expect(regla.style.animation).toBe("none");
+    });
+  });
+});

@@ -123,6 +123,38 @@ function auraStagger(part: string | undefined) {
         transition: none;
       }
     }
+
+    /*
+     * Fallback sin JavaScript (Task 10 del plan premium, 2026-08-11). Este
+     * sitio es un export estatico: si el navegador no ejecuta scripts,
+     * HeroBackdrop nunca corre su carrera de decode() y su envoltorio se
+     * queda en data-state="pending" PARA SIEMPRE -- con la regla de arriba,
+     * el fondo del hero entero invisible de forma permanente. La copia y el
+     * navbar ya no dependen de JS desde esa misma tarea (sus intros pasaron
+     * a @keyframes estaticas), asi que el fondo era la ultima pieza del hero
+     * que faltaba por cubrir.
+     *
+     * El guard vive AQUI, dentro del mismo helper que declara la regla que
+     * neutraliza, y no en un bloque global de GlobalStyles: asi tiene la
+     * MISMA especificidad (0,2,0) que la regla de pending y gana por orden
+     * de cascada, sin necesitar ningun !important, y solo alcanza a las
+     * capas realmente escalonadas -- ScShock (el anillo del pulse, que
+     * arranca a opacity 0 A PROPOSITO y nunca se dispara sin JS) no consume
+     * auraStagger, asi que no lo toca. Un [data-part] generico desde
+     * GlobalStyles si lo habria encendido de forma permanente.
+     *
+     * scripting: none es el feature que distingue exactamente este caso
+     * (JS desactivado o no soportado); un navegador sin soporte del feature
+     * ignora el bloque entero y se queda con el comportamiento de siempre.
+     * Mismo criterio y mismo precedente que el bloque de [data-revealed] de
+     * GlobalStyles.tsx.
+     */
+    @media (scripting: none) {
+      [data-state="pending"] & {
+        opacity: 1;
+        transition: none;
+      }
+    }
   `;
 }
 

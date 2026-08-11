@@ -181,3 +181,69 @@ describe('auraStagger bajo prefers-reduced-motion: reduce (bug real, "pending" i
     expect(reglaLlana).toMatch(/opacity:\s*0/);
   });
 });
+
+/**
+ * Fallback sin JavaScript de `auraStagger` (Task 10 del plan premium,
+ * 2026-08-11). Sin JS, `HeroBackdrop` nunca corre su carrera de `decode()`
+ * y su envoltorio se queda en `data-state="pending"` para siempre: sin este
+ * guard, el fondo del hero queda invisible de forma permanente.
+ *
+ * jsdom no evalua NINGUN `@media` (regla 36 de RULES.md), asi que se
+ * inspecciona `document.styleSheets` directamente, acotando la busqueda al
+ * bloque `@media (scripting: none)` concreto -- nunca por substring del CSS
+ * completo.
+ */
+describe("auraStagger bajo @media (scripting: none) (fallback sin JavaScript)", () => {
+  /** Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`. */
+  function reglasSinScripting(): CSSStyleRule[] {
+    const out: CSSStyleRule[] = [];
+    const walk = (rules: CSSRuleList, dentro: boolean): void => {
+      Array.from(rules).forEach((rule) => {
+        const media = (rule as CSSMediaRule).media;
+        const aqui =
+          dentro || (media ? /scripting:\s*none/.test(media.mediaText) : false);
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) {
+          walk(anidadas, aqui);
+          return;
+        }
+        if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+          out.push(rule as CSSStyleRule);
+        }
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules, false);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return out;
+  }
+
+  it('devuelve la capa a opacity: 1 en "pending", con el selector DESCENDIENTE', () => {
+    const { container } = renderWithProviders(
+      <div data-state="pending">
+        <ScAuraBase data-part="base" />
+      </div>,
+    );
+    const el = container.querySelector('[data-part="base"]') as HTMLElement;
+    const clases = Array.from(el.classList);
+
+    const propias = reglasSinScripting().filter((regla) =>
+      clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+    );
+    expect(propias.length).toBeGreaterThan(0);
+
+    propias.forEach((regla) => {
+      // FORMA del selector sobre selectorText, nunca por substring (regla 35
+      // de RULES.md): tiene que ser DESCENDIENTE -- el atributo data-state
+      // vive en el envoltorio del stack (ScAuraStack, HeroBackdrop.tsx), no
+      // en la propia capa. Un `&[data-state="pending"]` calificado contiene
+      // el mismo substring y no matchearia nunca en produccion.
+      expect(regla.selectorText).toMatch(/^\[data-state="pending"\]\s/);
+      expect(regla.style.opacity).toBe("1");
+    });
+  });
+});

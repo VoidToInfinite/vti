@@ -297,6 +297,42 @@ function eyeStagger(part: string | undefined, glow?: "strong" | "soft") {
         opacity: 1;
       }
     }
+
+    /*
+     * Fallback sin JavaScript (Task 10 del plan premium, 2026-08-11), espejo
+     * exacto del que auraStagger declara en aura.parts.tsx -- ver alli el
+     * razonamiento completo (por que vive dentro del helper y no en
+     * GlobalStyles, por que no necesita !important, y por que scripting:
+     * none es el feature correcto). Las dos composiciones tienen que tratar
+     * este caso igual, igual que ya tratan igual el guard de
+     * prefers-reduced-motion de justo arriba.
+     *
+     * Nota propia del ojo: el escalonado sale por animation, no por
+     * transition, asi que aqui se apaga animation -- y con ella tambien la
+     * respiracion de la corona (glowStrong/glowSoft) mientras el stack siga
+     * en pending, que es exactamente lo que ya hace la regla de pending que
+     * este bloque neutraliza. Sin JS el stack no sale de ese estado nunca,
+     * asi que el arte queda estatico y visible, que es el objetivo.
+     *
+     * ALCANCE HONESTO, medido en el out/index.html del build: hoy este
+     * bloque concreto NO llega a aplicarse nunca. El HTML horneado monta
+     * SIEMPRE el stack claro (ThemeProvider arranca en "light" y el stack se
+     * elige de ahi, ver HeroBackdrop.tsx), asi que sin JavaScript el visitante
+     * ve Aura y el ojo ni siquiera se monta -- solo los siete guards de
+     * auraStagger viajan en el HTML exportado. Se declara igualmente, y no
+     * como codigo muerto: las dos composiciones tienen que tratar este caso
+     * igual (mismo criterio que el guard de reduce de justo arriba), y en
+     * cuanto el hero horneado pueda arrancar en oscuro -- p. ej. si algun dia
+     * se sirve una variante por prefers-color-scheme, ya en el roadmap -- este
+     * bloque es lo unico que evita que ese visitante sin JS vea un hero negro
+     * y vacio.
+     */
+    @media (scripting: none) {
+      [data-state="pending"] & {
+        animation: none;
+        opacity: 1;
+      }
+    }
   `;
 }
 
