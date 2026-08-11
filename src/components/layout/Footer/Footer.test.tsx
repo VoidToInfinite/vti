@@ -346,18 +346,51 @@ describe("Footer", () => {
   );
 
   /*
-   * SIN candado unitario para `prefetch={false}` (Task 32, docblock de
-   * `Footer.tsx` junto a `LEGAL_LINKS.map()`): `next/link` desestructura
-   * `prefetch` de las props ANTES de esparcir el resto sobre el `<a>`
-   * (`node_modules/next/dist/client/link.js:138`), así que nunca llega al
-   * DOM -- no hay atributo que un test de jsdom pueda leer, y el repo no
-   * mockea `next/link` en ningún sitio para interceptar props. Un test que
-   * afirmara sobre el JSX (p. ej. inspeccionar el arbol de React antes de
-   * renderizar) no verificaría nada que un descuido futuro pudiera romper de
-   * forma detectable. El candado real es el repro de navegador (Task 28/32):
-   * build + `serve out` + playwright-cli, cero 404 de
-   * `__next.*.__PAGE__.txt` tras el cambio.
+   * Candado de FUENTE para `prefetch={false}` (Task 32, review): `next/link`
+   * desestructura `prefetch` de las props ANTES de esparcir el resto sobre el
+   * `<a>` (`node_modules/next/dist/client/link.js:138`), así que nunca llega
+   * al DOM -- por render, jsdom no tiene nada que leer, y el repo no mockea
+   * `next/link` en ningún sitio para interceptar props. Mismo patrón que
+   * `footer.layers.test.ts` ("sin Math.random") y
+   * `Hero.qa.test.tsx` ("candado de fuente"): leer el `.tsx` real con
+   * `node:fs` y afirmar sobre su TEXTO, acotado al bloque de `LEGAL_LINKS.map()`
+   * para no afirmar sobre cualquier `prefetch={false}` suelto en el fichero.
+   *
+   * Trampa concreta de ESTE fichero (misma familia que la lección del
+   * 2026-08-11 sobre `toContain()` y comentarios): el propio comentario JSX
+   * que documenta la decisión, justo encima del `.map()` en `Footer.tsx`,
+   * cita la cadena literal `prefetch={false}` en prosa. Sin despojar
+   * comentarios antes de buscar, el assert pasaría en verde AUNQUE alguien
+   * borrara la prop real -- por eso se despoja el comentario de bloque, igual
+   * que `footer.layers.test.ts`, antes de recortar el bloque.
    */
+  describe("LEGAL_LINKS.map(): ScFooterNavLink lleva prefetch={false}", () => {
+    it("el bloque de LEGAL_LINKS.map() (fuera de comentarios) declara prefetch={false} en ScFooterNavLink", async () => {
+      const { readFileSync } = await import("node:fs");
+      const { fileURLToPath } = await import("node:url");
+      const { dirname, join } = await import("node:path");
+      const here = dirname(fileURLToPath(import.meta.url));
+      const source = readFileSync(join(here, "Footer.tsx"), "utf-8");
+
+      const withoutComments = source
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "");
+
+      const bloque = withoutComments.match(
+        /LEGAL_LINKS\.map\([\s\S]*?<\/ScBottomLinks>/,
+      )?.[0];
+
+      // Sonda positiva: el bloque existe y monta ScFooterNavLink -- así el
+      // assert de `prefetch={false}` no pasa por vacuidad de un match nulo
+      // o de haber recortado el fichero equivocado.
+      expect(
+        bloque,
+        "no se encontro el bloque LEGAL_LINKS.map()...</ScBottomLinks>",
+      ).toBeDefined();
+      expect(bloque).toContain("<ScFooterNavLink");
+      expect(bloque).toContain("prefetch={false}");
+    });
+  });
 
   it.each([["light"], ["dark"]] as const)(
     "en tema %s siempre muestra el tagline de marca",
