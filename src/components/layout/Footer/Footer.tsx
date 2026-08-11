@@ -466,10 +466,22 @@ export function Footer(): ReactElement {
           {t("Common.Footer.copyright", { year })}
         </Typography>
         <ScBottomLinks>
+          {/* prefetch={false}: bug abierto de Next 16 en static export
+              (vercel/next.js #85374 y #92341, reproducido en 16.2.11 -- Task 28)
+              -- el nombre de fichero que pide el prefetch de segmento RSC
+              (`__next.<ruta>.__PAGE__.txt`, plano) no coincide con el que
+              genera `output: "export"` (`__next.<ruta>/__PAGE__.txt`,
+              anidado), así que el prefetch SIEMPRE 404 en estas dos rutas. El
+              click sigue navegando bien (Next cae al fetch de página completa
+              como fallback), así que el único efecto de no desactivarlo es
+              ruido de 404 en consola/logs en las 3 páginas del sitio.
+              Reversión: cuando el fix llegue aguas arriba y se verifique con
+              el mismo repro, retirar esta prop. */}
           {LEGAL_LINKS.map(({ key, href }) => (
             <ScFooterNavLink
               key={key}
               href={href}
+              prefetch={false}
             >
               {t(`Common.Footer.${key}`)}
             </ScFooterNavLink>
