@@ -853,7 +853,16 @@ const ScCardLink = styled.a`
 
   @media ${PRESS.hoverGuard} {
     &:hover {
-      border-color: ${({ theme }) => theme.data.palette.secondary[400]};
+      /* MISMO acento que :focus-visible, arriba (channelAccent). Se quedó
+         fuera de la migración por rama de la Task 16 y lo cazó la revisión:
+         hover y foco son la misma afordancia de "esta tarjeta responde", así
+         que pintarlos con pasos distintos de la rampa las separa sin motivo
+         -- y en la rama CLARA el paso oscuro (secondary[400], L 0.78) queda
+         lavado sobre el panel blanco al 82 %: 2.28:1, medido por el test
+         "el acento oscuro NO se cuela en la rama clara" de esta misma
+         entrega, muy por debajo del 3:1 que WCAG 1.4.11 pide a un borde que
+         comunica estado. */
+      border-color: ${({ theme }) => channelAccent(theme.data)};
       transform: translateY(-1px);
     }
   }

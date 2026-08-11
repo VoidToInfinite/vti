@@ -1696,6 +1696,98 @@ describe("Contact: Task 16, superficies y acento del bloque de canales por rama"
   });
 
   /*
+   * Fix de la revisión de la Task 16: el `:hover` de `ScCardLink` se quedó
+   * fuera de la migración por rama (vivía dentro de `@media PRESS.hoverGuard`,
+   * un bloque anidado, y la sustitución no lo alcanzó). El resultado era que
+   * hover y foco pintaban pasos DISTINTOS de la rampa en la misma tarjeta, y
+   * en la rama clara el paso de la oscura (`secondary[400]`) da 2.28:1 sobre
+   * el panel -- por debajo del 3:1 de WCAG 1.4.11 para un borde que comunica
+   * estado (lo mide el último test de este describe).
+   *
+   * El candado busca la regla por su `selectorText` (regla 35 de RULES.md:
+   * `&:hover` y `[x] &` pueden compartir substring, solo el selector real los
+   * distingue) y baja a las reglas internas de cada `@media`, que es donde
+   * vive esta.
+   */
+  function reglasPorSelector(el: HTMLElement, fragmento: string): string[] {
+    const clases = Array.from(el.classList);
+    const salida: string[] = [];
+    const visitar = (reglas: CSSRuleList): void => {
+      Array.from(reglas).forEach((regla) => {
+        const anidadas = (regla as CSSMediaRule).cssRules;
+        if (anidadas) visitar(anidadas);
+        const selector = (regla as CSSStyleRule).selectorText;
+        if (
+          selector &&
+          selector.includes(fragmento) &&
+          clases.some((clase) => selector.includes(`.${clase}`))
+        ) {
+          salida.push(regla.cssText);
+        }
+      });
+    };
+    Array.from(document.styleSheets).forEach((hoja) => {
+      try {
+        visitar(hoja.cssRules);
+      } catch {
+        /* hoja de otro origen: no aplica en jsdom */
+      }
+    });
+    return salida;
+  }
+
+  it("rama clara: el borde de :hover y el de :focus-visible resuelven el MISMO acento (secondary[700]), no dos pasos distintos", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const card = container.querySelector(
+      `a[href="${links.discord}"]`,
+    ) as HTMLElement;
+
+    const hover = reglasPorSelector(card, ":hover");
+    const foco = reglasPorSelector(card, ":focus-visible");
+    expect(
+      hover.length,
+      "no se encontró la regla :hover de ScCardLink",
+    ).toBeGreaterThan(0);
+    expect(
+      foco.length,
+      "no se encontró la regla :focus-visible",
+    ).toBeGreaterThan(0);
+
+    const conBorde = (reglas: string[]): string =>
+      reglas.filter((r) => r.includes("border-color")).join("\n");
+    expect(conBorde(hover)).toContain(themes.light.palette.secondary[700]);
+    expect(conBorde(hover)).not.toContain(themes.dark.palette.secondary[400]);
+    expect(conBorde(foco)).toContain(themes.light.palette.secondary[700]);
+  });
+
+  it("rama oscura: el mismo par hover/foco conserva secondary[400] -- la migracion es POR RAMA, no un cambio global", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+      const card = container.querySelector(
+        `a[href="${links.discord}"]`,
+      ) as HTMLElement;
+
+      const conBorde = (reglas: string[]): string =>
+        reglas.filter((r) => r.includes("border-color")).join("\n");
+      expect(conBorde(reglasPorSelector(card, ":hover"))).toContain(
+        themes.dark.palette.secondary[400],
+      );
+      expect(conBorde(reglasPorSelector(card, ":focus-visible"))).toContain(
+        themes.dark.palette.secondary[400],
+      );
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+
+  /*
    * Alfa y color del panel se LEEN de la constante, no se escriben a mano:
    * si `CONTACT_PANEL_BG_LIGHT` cambiara de valor, esta medición cambia con
    * ella en vez de seguir afirmando un número viejo.
@@ -1756,10 +1848,17 @@ describe("Contact: Task 16, superficies y acento del bloque de canales por rama"
     const lTexto = relativeLuminance(themes.dark.palette.secondary[400]);
     const ratio =
       (Math.max(lTexto, lPanel) + 0.05) / (Math.min(lTexto, lPanel) + 0.05);
+    // Se asevera contra 3:1, no contra 4.5:1, a proposito: este paso pinta
+    // ademas el BORDE de hover/foco de la tarjeta, y 3:1 es el umbral de
+    // WCAG 1.4.11 para un elemento no textual que comunica estado. Falla
+    // incluso ese suelo mas bajo (2.28:1), que es lo que hace la resolucion
+    // por rama de `channelAccent` no negociable en claro -- y lo que
+    // convierte en defecto real el `:hover` que la revision encontro sin
+    // migrar.
     expect(
       ratio,
       `secondary[400] en claro: ${ratio.toFixed(2)}:1`,
-    ).toBeLessThan(4.5);
+    ).toBeLessThan(3);
   });
 });
 
