@@ -11,7 +11,7 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { PRESS } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
-import { links } from "@/config/links";
+import { EMAIL_ADDRESS, links } from "@/config/links";
 import { ContactCosmicGuardian } from "@/components/scenes/contactCosmicGuardian/ContactCosmicGuardian";
 import { CONTACT_GUARDIAN_VOID } from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
 import { SectionBeam } from "@/components/scenes/sectionBeam/SectionBeam";
@@ -1219,7 +1219,7 @@ export function Contact(): ReactElement {
       return;
     }
     try {
-      await navigator.clipboard.writeText(links.email.replace(/^mailto:/, ""));
+      await navigator.clipboard.writeText(EMAIL_ADDRESS);
       setCopyStatus("copied");
     } catch {
       setCopyStatus("error");
@@ -1291,9 +1291,7 @@ export function Contact(): ReactElement {
           <ScFallbackPanel role="status">
             <ScFallbackText>
               {t("Home.contact.form.fallbackLead")}{" "}
-              <ScFallbackEmail>
-                {links.email.replace(/^mailto:/, "")}
-              </ScFallbackEmail>
+              <ScFallbackEmail>{EMAIL_ADDRESS}</ScFallbackEmail>
             </ScFallbackText>
             <ScCopyButton
               type="button"

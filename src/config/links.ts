@@ -52,6 +52,23 @@ export const links = {
 export type LinkKey = keyof typeof links;
 
 /**
+ * La dirección de correo SIN el esquema `mailto:`, para pintarla como texto
+ * (Task 16, fix round, 2026-08-11).
+ *
+ * Existe porque el mismo `links.email.replace(/^mailto:/, "")` estaba escrito
+ * a mano en tres sitios (dos veces en `Contact.tsx` -- el párrafo del panel de
+ * recuperación y el valor que copia el portapapeles -- y una en el pie, al
+ * devolver la dirección a la vista): regla 13 de RULES.md, un mismo valor
+ * derivado repetido deja de ser un literal y pasa a ser una constante. Se
+ * deriva de `links.email`, nunca se reescribe: así no puede divergir de él.
+ *
+ * NO entra dentro del objeto `links`: ese es el mapa de DESTINOS navegables y
+ * su conjunto de claves está atado por un contrato cerrado (`links.test.ts`).
+ * Esto no es un destino, es la representación textual de uno.
+ */
+export const EMAIL_ADDRESS = links.email.replace(/^mailto:/, "");
+
+/**
  * Claves cuyo destino es una ruta INTERNA de este mismo sitio. El pie las usa
  * para decidir entre `next/link` y un ancla con `target="_blank"`: no es una
  * decisión estética, un `target="_blank"` sobre una ruta propia rompe el

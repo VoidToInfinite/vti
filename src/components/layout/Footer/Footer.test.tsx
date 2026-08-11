@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import esCommon from "@/i18n/locales/es/common.json";
 import esHome from "@/i18n/locales/es/home.json";
-import { links } from "@/config/links";
+import { EMAIL_ADDRESS, links } from "@/config/links";
 import { PRESS } from "@/motion/vocabulary";
 import { themes } from "@/theme/themes";
 import { FOOTER_DARK_BG, FOOTER_STARS } from "./footer.layers";
@@ -117,6 +117,44 @@ describe("Footer", () => {
       screen.getByText(esHome.Home.features.gaming.title),
     ).toBeInTheDocument();
   });
+
+  /*
+   * Task 16, fix round (2026-08-11): la direccion de correo vuelve a estar
+   * a la vista sin rellenar nada, y su sitio es el pie.
+   *
+   * Contexto, porque el "por que aqui" es la mitad del candado: la Task 16
+   * retiro de Contacto un chip que mostraba la direccion dentro de un
+   * recuadro con borde e icono de sobre, colocado donde va un campo de
+   * captura -- se leia como formulario sin serlo (hallazgo #1 de la critica
+   * independiente). Al retirarlo, la direccion dejo de verse antes de
+   * enviar. El dueno pidio devolverla, pero al PIE y no junto al
+   * formulario, para no arriesgar el mismo anti-patron.
+   *
+   * Por eso el test comprueba tambien la forma, no solo la presencia: es un
+   * enlace `mailto:` real (no un `<span>` dentro de un `<div>`), su texto es
+   * la direccion tomada de `EMAIL_ADDRESS` (derivada de `links.email`, nunca
+   * reescrita a mano) y NO lleva `target="_blank"` -- un `mailto:` no abre
+   * ninguna pestana, asi que anunciar un cambio de contexto que no ocurre
+   * seria ruido para un lector de pantalla (mismo criterio que D19 aplica a
+   * las rutas propias).
+   */
+  it.each(["light", "dark"] as const)(
+    "en tema %s muestra la direccion de correo como enlace mailto real (Task 16)",
+    async (tema) => {
+      window.localStorage.setItem("vti-theme", tema);
+      const { container } = renderWithProviders(<Footer />);
+
+      await waitFor(() => {
+        const enlace = container.querySelector(
+          `a[href="${links.email}"]`,
+        ) as HTMLAnchorElement;
+        expect(enlace, `sin enlace mailto en tema ${tema}`).not.toBeNull();
+        expect(enlace).toHaveTextContent(EMAIL_ADDRESS);
+        expect(enlace).not.toHaveAttribute("target");
+        expect(enlace.tagName).toBe("A");
+      });
+    },
+  );
 
   /*
    * SUSTITUYE al test que antes afirmaba lo contrario ("en tema oscuro NO

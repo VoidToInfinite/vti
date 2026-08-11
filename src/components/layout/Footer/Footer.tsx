@@ -13,7 +13,7 @@ import { SectionBeam } from "@/components/scenes/sectionBeam/SectionBeam";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
-import { links } from "@/config/links";
+import { EMAIL_ADDRESS, links } from "@/config/links";
 import { NAV_GROUPS } from "@/config/navigation";
 import { PRESS } from "@/motion/vocabulary";
 import type { ThemeDefinition } from "@/theme/theme.types";
@@ -423,6 +423,30 @@ export function Footer(): ReactElement {
             <BrandName />
           </ScBrandRow>
           <ScTagline variant="bodySm">{t("Common.Footer.tagline")}</ScTagline>
+          {/*
+            La dirección de correo, a la vista y sin rellenar nada (Task 16,
+            fix round, encargo del dueño 2026-08-11). Efecto colateral que
+            destapó la revisión: al retirar de Contacto el chip que SIMULABA
+            un campo, la dirección dejó de verse antes de enviar -- en la
+            experiencia unificada solo aparece en el panel que revela un envío
+            válido. Vuelve aquí, no junto al formulario, precisamente para no
+            arriesgar el anti-patrón que se acaba de retirar: en el pie, entre
+            la marca y su lema, un correo se lee como dato de contacto y no
+            como algo donde escribir.
+
+            `ScFooterLink` (el ancla externa del pie), sin `target="_blank"` y
+            por tanto SIN el aviso de `Common.Nav.newTab`: un `mailto:` no
+            abre una pestaña, delega en la aplicación de correo -- el mismo
+            criterio que D19 aplica a las rutas propias (no se anuncia un
+            cambio de contexto que no ocurre).
+
+            El texto es la dirección misma, tomada de `EMAIL_ADDRESS`
+            (derivada de `links.email`, `src/config/links.ts`): no es copia
+            traducible -- por eso mismo la Task 16 retiró `Home.contact.email`
+            del JSON -- así que no lleva clave de i18n ni etiqueta visible que
+            la acompañe. Su nombre accesible es la propia dirección.
+          */}
+          <ScFooterLink href={links.email}>{EMAIL_ADDRESS}</ScFooterLink>
         </ScBrandCol>
 
         {NAV_GROUPS.map((group) => (
