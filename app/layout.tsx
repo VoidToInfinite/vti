@@ -129,13 +129,17 @@ export default function RootLayout({
       <body>
         {/*
          * Anti-flash de tema (Task 9). `strategy="beforeInteractive"` es la
-         * vía que Next.js documenta explícitamente para scripts que tienen
-         * que correr ANTES de que React hidrate — Next lo inyecta en
-         * `<head>`, previo al `<body>`, y lo ejecuta de forma síncrona y
-         * bloqueante para el pintado, exactamente lo que un anti-flash de
-         * tema necesita. Sigue funcionando bajo `output: "export"`: es HTML/
-         * JS plano en el fichero estático, no depende de ninguna ruta de
-         * servidor.
+         * vía que Next.js documenta para scripts que tienen que correr ANTES
+         * de que React hidrate. Verificado leyendo `out/index.html` literal
+         * tras `pnpm build` (no asumido de la prosa de la documentación,
+         * pensada para SSR clásico): NO se sirve como `<script>` bloqueante
+         * dentro de `<head>` -- vive como `self.__next_s.push(...)`, un
+         * `<script>` síncrono normal pero como PRIMER hijo de `<body>`, que
+         * el propio runtime de Next (`app-bootstrap.ts`) ejecuta ANTES de
+         * hidratar, no necesariamente antes de cualquier pintado del HTML
+         * estático (detalle completo en `task/lessons.md`, 2026-08-11).
+         * Sigue funcionando bajo `output: "export"`: es HTML/JS plano en el
+         * fichero estático, no depende de ninguna ruta de servidor.
          *
          * `dangerouslySetInnerHTML` es deliberado y seguro, mismo criterio
          * que documenta `JsonLdScript.tsx`: `buildThemeBootstrapScript()`
@@ -149,16 +153,47 @@ export default function RootLayout({
          *
          * Qué hace: resuelve `localStorage` → `prefers-color-scheme` →
          * "light" (decisión D-C, vinculante: storage gana a prefers) y fija
-         * `data-theme` en `<html>` antes del primer pintado.
-         * `GlobalStyles.tsx` lo lee vía `:root[data-theme="dark"]` para
-         * adelantar en CSS puro los valores que, sin este script, solo
-         * llegarían tras el efecto de corrección de `ThemeProvider` (CLS
-         * medido: 0,0799 en el arranque oscuro de escritorio, spec §3.1 del
-         * plan premium). `ThemeProvider` SIGUE arrancando en "light" en su
-         * propio estado de React (no puede leer `localStorage` durante el
-         * render sin romper el export estático ni arriesgar un mismatch de
-         * hidratación en las secciones que ramifican por tema) — este
-         * script no sustituye esa corrección, la hace invisible.
+         * `data-theme` en `<html>`. `ThemeProvider` SIGUE arrancando en
+         * "light" en su propio estado de React, en TODOS los casos (no
+         * puede leer `localStorage` durante el render sin romper el export
+         * estático ni arriesgar un mismatch de hidratación estructural en
+         * las secciones que montan un componente hijo distinto por tema —
+         * Story/Features/Journey/Contact, regla 6 de RULES.md) — este
+         * script no sustituye la corrección post-montaje de ese proveedor,
+         * la hace invisible allí donde SÍ está cubierta.
+         *
+         * ALCANCE REAL, declarado explícitamente (no todo lo que cambia con
+         * el tema queda cubierto pre-pintado):
+         *   - CUBIERTO: `body { background-color; color }` y las 6
+         *     variables CSS de geometría de Hero (`--hero-title-vw` y
+         *     compañía, `GlobalStyles.tsx`) — las únicas propiedades que
+         *     cambian TAMAÑO/POSICIÓN entre temas y que, sin este
+         *     mecanismo, causaban el CLS 0,0799 medido (baseline spec 3.1;
+         *     ahora 0, verificado con PerformanceObserver en navegador
+         *     real, ver `task-9-report.md`).
+         *   - NO CUBIERTO, y verificado que NO hace falta cubrirlo:
+         *     `HeroBackdrop.tsx` elige Aura (claro) vs Eye (oscuro) por
+         *     `themeName` de React, que arranca en "light" y se corrige
+         *     tras montar — pero el propio stack "pending" (el estado en el
+         *     que arranca SIEMPRE, sea cual sea el tema) ya declara
+         *     `opacity: 0` en `aura.parts.tsx`/`eye.parts.tsx` (mecanismo
+         *     preexistente a esta tarea, no introducido por ella). Medido
+         *     en navegador real con un muestreo por `requestAnimationFrame`
+         *     (566 muestras a lo largo de 3,5s, visitante de sistema
+         *     oscuro sin storage): la opacidad máxima observada de las
+         *     capas de Aura fue **0** en TODAS las muestras — nunca llega a
+         *     pintarse.
+         *   - NO CUBIERTO y ACEPTADO como límite de esta tarea:
+         *     Story/Features/Journey/Contact siguen montando su rama CLARA
+         *     hasta que `ThemeProvider` corrige tras hidratar. No
+         *     contribuyen al CLS medido (están fuera del viewport en el
+         *     instante del shift, scroll 0), pero un visitante que
+         *     scrollee de inmediato podría ver un instante de rama clara.
+         *     Cerrarlo del todo exigiría o bien tolerar un mismatch de
+         *     hidratación estructural (descartado, ver arriba) o bien un
+         *     rediseño de "doble render + reveal por CSS" que excede el
+         *     alcance de Task 9 — candidato a una tarea futura, no un hueco
+         *     silencioso.
          */}
         <Script
           id="theme-bootstrap"

@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
 } from "react";
@@ -108,7 +109,36 @@ export function ThemeProvider({
   // VIEJO tras alternar. `useLayoutEffect` no hace falta aquí: a diferencia
   // del efecto de resolución de arriba, este NO dispara ningún `setState`
   // propio, así que no hay una segunda pasada de render que adelantar.
+  const attributeSyncedRef = useRef(false);
   useEffect(() => {
+    // Guarda contra el HALLAZGO DE REVISIÓN (fix round): en el PRIMER
+    // montaje, este efecto corre con el `themeName` "light" con el que el
+    // proveedor SIEMPRE arranca (arriba) -- ANTES de que el efecto de
+    // resolución (declarado primero, mismo array de efectos) tenga ocasión
+    // de corregirlo. Si el atributo YA dice algo distinto de "light" en ese
+    // instante, es el script pre-pintado de `app/layout.tsx`, no un toggle:
+    // escribir "light" encima lo PISARÍA con el valor viejo, y solo se
+    // corregiría una vuelta de render después, cuando el efecto de
+    // resolución complete su `setState` -- la MISMA familia de
+    // temporización que causaba el CLS original de esta tarea. Hoy ese
+    // hueco no llega a pintarse (los efectos de este componente resuelven
+    // en el mismo flush síncrono de React tras el commit, medido con un
+    // spy de `setAttribute`: nunca se observa "light" de por medio), pero
+    // no se confía en que siga siendo así sin una guarda explícita.
+    //
+    // La guarda solo actúa en la primera ejecución (`attributeSyncedRef`):
+    // un toggle real, mucho después de montar, siempre escribe -- no
+    // reintroduce el bug que este mismo efecto arregló.
+    const current = document.documentElement.getAttribute(THEME_ATTRIBUTE);
+    if (
+      !attributeSyncedRef.current &&
+      current !== null &&
+      current !== themeName
+    ) {
+      attributeSyncedRef.current = true;
+      return;
+    }
+    attributeSyncedRef.current = true;
     document.documentElement.setAttribute(THEME_ATTRIBUTE, themeName);
   }, [themeName]);
 

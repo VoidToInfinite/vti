@@ -161,4 +161,32 @@ describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión 
 
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
+
+  it("con el atributo ya fijado en dark por el script (simulado) antes de montar, la secuencia de setAttribute NUNCA pasa por light", () => {
+    // Candado del hallazgo de revisión (fix round, Important 2): el efecto
+    // de sincronización corre con el themeName "light" con el que el
+    // proveedor SIEMPRE arranca, ANTES de que el efecto de resolución
+    // (declarado primero) corrija el estado. Sin la guarda de
+    // `attributeSyncedRef`, esa PRIMERA pasada escribiría "light" encima de
+    // lo que el script pre-pintado ya había fijado correctamente en "dark"
+    // -- la misma familia de temporización que el CLS original de esta
+    // tarea. Se espía `setAttribute` (no solo el valor final) porque lo que
+    // importa aquí es la SECUENCIA completa, no el resultado: un estado
+    // final correcto no demuestra que nunca pasó por un valor intermedio
+    // equivocado.
+    document.documentElement.setAttribute("data-theme", "dark"); // simula el script
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    stubMatchMedia(false);
+
+    const setAttributeSpy = vi.spyOn(document.documentElement, "setAttribute");
+
+    renderProbe();
+
+    const dataThemeCalls = setAttributeSpy.mock.calls
+      .filter(([name]) => name === "data-theme")
+      .map(([, value]) => value);
+
+    expect(dataThemeCalls).not.toContain("light");
+    expect(dataThemeCalls).toEqual(["dark"]);
+  });
 });
