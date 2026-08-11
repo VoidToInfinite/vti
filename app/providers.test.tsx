@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "./providers";
 
 /*
- * `StageProvider` (dentro de `Providers`) lee `window.matchMedia` en un
- * efecto de montaje; jsdom no lo implementa. Mismo stub mínimo que
- * StageProvider.test.tsx/Hero.test.tsx.
+ * `ThemeProvider` (dentro de `Providers`) lee `window.matchMedia` de verdad
+ * en su efecto de corrección post-montaje (Task 9, prefers-color-scheme);
+ * jsdom no lo implementa. Mismo stub mínimo que ThemeProvider.test.tsx/
+ * Hero.test.tsx.
  */
 function stubMatchMedia(): void {
   vi.stubGlobal(

@@ -149,7 +149,7 @@ Tabla de divergencias de **contenido** por sección (no solo de color):
 
 Las secciones oscuras, además, pasan de contenedor centrado a sangre completa con decks pegados — un cambio de layout, no solo de paleta.
 
-**Regla del `ThemeProvider` único** (dos bugs pagados): solo hay un `ThemeProvider` en todo el árbol (`app/providers.tsx`, envolviendo `StageProvider`/`I18nProvider`/`children`). `currentColor` y la cascada de CSS heredan del árbol ambiental, no del contextual — cualquier contenedor que separe visualmente dos contextos de tema (p. ej. un componente legal que vive fuera del flujo normal) debe fijar `color` explícito, porque de lo contrario hereda de `body` vía `GlobalStyles` (`a { color: inherit }`), no del tema que uno esperaría por proximidad visual. Ejemplo real del propio código: `src/components/legal/LegalHeader.tsx` fija `color` explícito por este motivo exacto.
+**Regla del `ThemeProvider` único** (dos bugs pagados): solo hay un `ThemeProvider` en todo el árbol (`app/providers.tsx`, envolviendo `I18nProvider`/`children`). `currentColor` y la cascada de CSS heredan del árbol ambiental, no del contextual — cualquier contenedor que separe visualmente dos contextos de tema (p. ej. un componente legal que vive fuera del flujo normal) debe fijar `color` explícito, porque de lo contrario hereda de `body` vía `GlobalStyles` (`a { color: inherit }`), no del tema que uno esperaría por proximidad visual. Ejemplo real del propio código: `src/components/legal/LegalHeader.tsx` fija `color` explícito por este motivo exacto.
 
 ---
 
@@ -185,11 +185,10 @@ Valores derivados, no elegidos a mano:
 | `HERO_CHROME_OFFSET_MS` | 760 | `(HERO_STAGGER_STEPS − 1) × HERO_STEP_MS + HERO_FADE_MS / 2` = 550 + 210 |
 | `HERO_HANDOFF_MS` | 1070 | `HERO_BACKDROP_HOLD_MS + HERO_STACK_MS` = 100 + 970 |
 | `HERO_COPY_RETURN_MS` | 1830 | `HERO_HANDOFF_MS + HERO_CHROME_OFFSET_MS` = 1070 + 760 |
-| `STAGE_FALLBACK_MS` | 1570 | `HERO_DECODE_TIMEOUT_MS + HERO_STACK_MS` (peor caso honesto de cuánto puede tardar un hero real en avisar) |
 
-`hero.transition.ts` NO duplica estos timings núcleo: los reexporta desde `src/motion/timings.ts`, que es su fuente de verdad. Los timings propios del cruce de la copia del hero (`HERO_COPY_OUT_MS` 100, `HERO_COPY_IN_MS` 320, `HERO_BACKDROP_HOLD_MS` 100) sí son propios de `hero.transition.ts`, porque su hook (`useHeroCopySwap`) necesita `"use client"` y `src/motion/timings.ts` se mantiene deliberadamente sin esa directiva (evita que `src/motion/stage.ts` — infraestructura de página, no de una sección — la herede por transitividad).
+`hero.transition.ts` NO duplica estos timings núcleo: los reexporta desde `src/motion/timings.ts`, que es su fuente de verdad.
 
-**Máquina de fases** (`src/motion/stage.ts`): `"backdrop" → "chrome" → "settled"`, **terminal**. `"backdrop"` es el estado inicial (fondo revelándose, navbar y copia ocultos). `"chrome"` arranca cuando el fondo avisa o vence `STAGE_FALLBACK_MS`. `"settled"` es definitivo: nada vuelve a `"backdrop"` — los cambios de tema posteriores no reinician el intro.
+**Máquina de fases (retirada 2026-08-11, Task 27 del plan premium).** `src/motion/stage.ts` y `src/motion/StageProvider.tsx` publicaban `"backdrop" → "chrome" → "settled"`, terminal, con `STAGE_FALLBACK_MS` (1570 ms, `HERO_DECODE_TIMEOUT_MS + HERO_STACK_MS`) como red de seguridad, para que el navbar y la copia del hero supieran cuándo arrancar su propia entrada. Se retiró entera: desde la Task 10 (mismo día) ninguno de los dos leía ya `phase` — su entrada pasó a `@keyframes` + `animation-delay` estáticos, sin ninguna dependencia de JS —, así que la máquina se había quedado sin ningún consumidor real y su red de seguridad no protegía ya nada. `HeroBackdrop.tsx` conserva íntegro su propio decode-gating (§6 más abajo); lo único que cambió es que ya no avisa a nadie al terminar. Medición completa en §5.5/§5.6 de `docs/superpowers/specs/2026-07-27-hero-coreografia-carga-tema-design.md`. Los timings propios del cruce de la copia del hero (`HERO_COPY_OUT_MS` 100, `HERO_COPY_IN_MS` 320, `HERO_BACKDROP_HOLD_MS` 100) siguen siendo propios de `hero.transition.ts`, porque su hook (`useHeroCopySwap`) necesita `"use client"` y `src/motion/timings.ts` se mantiene deliberadamente sin esa directiva.
 
 ---
 

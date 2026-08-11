@@ -83,10 +83,12 @@ function auraStep(part: string | undefined): number {
  * ahi hasta que resuelve la carrera de decode() de la imagen (hasta
  * HERO_DECODE_TIMEOUT_MS mas el margen de un frame, ver HeroBackdrop.tsx):
  * sin este guard, "opacity: 0" del bloque de pending de arriba deja el fondo
- * pastel invisible ese tramo bajo reduce, y como StageProvider bajo reduce
- * salta directo a "settled" el navbar y la copia ya son visibles -- el
- * usuario ve texto sobre el hueco desnudo del tema y luego un salto al
- * pastel, justo el destello que reduced-motion existe para evitar. Mismo
+ * pastel invisible ese tramo bajo reduce, y como el navbar y la copia (CSS
+ * estatico desde 2026-08-11, Task 10) tambien colapsan a visible-inmediato
+ * bajo `prefers-reduced-motion` -- `GlobalStyles` anula su
+ * `animation-duration` -- el usuario ve texto sobre el hueco desnudo del
+ * tema y luego un salto al pastel, justo el destello que reduced-motion
+ * existe para evitar. Mismo
  * criterio que eyeStagger (eye.parts.tsx) ya aplica en su bloque final: las
  * dos composiciones tienen que tratar reduce igual, opacity: 1 en los tres
  * estados y sin transicion.

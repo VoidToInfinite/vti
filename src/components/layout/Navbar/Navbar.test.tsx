@@ -42,14 +42,22 @@ function stubMatchMedia(reducedMatches = false): void {
 }
 
 /*
- * Hasta la revision 2026-08-11, `Navbar` consumia `useStage()` (tarea C4) y
- * este helper tenia que envolverlo en un `StageProvider` para que el hook no
- * lanzara. Ya no: su entrada de carga es una @keyframes estatica con
- * animation-delay = HERO_CHROME_OFFSET_MS, sin ninguna dependencia de la
- * maquina de fases -- asi que el envoltorio se retira en vez de dejarse
- * "por si acaso" (regla 16 de RULES.md: un comentario o un andamio que ya no
- * describe el codigo es peor que ninguno). `renderWithProviders`
- * (test-utils.tsx) es un helper COMPARTIDO y sigue sin tocarse.
+ * Hasta la revision 2026-08-11 (Task 10), `Navbar` consumia `useStage()`
+ * (tarea C4) y este helper tenia que envolverlo en un `StageProvider` para
+ * que el hook no lanzara. Ya no: su entrada de carga es una @keyframes
+ * estatica con animation-delay = HERO_CHROME_OFFSET_MS, sin ninguna
+ * dependencia de la maquina de fases -- asi que el envoltorio se retiro en
+ * vez de dejarse "por si acaso" (regla 16 de RULES.md: un comentario o un
+ * andamio que ya no describe el codigo es peor que ninguno).
+ * `renderWithProviders` (test-utils.tsx) es un helper COMPARTIDO y sigue sin
+ * tocarse.
+ *
+ * CIERRE 2026-08-11 (Task 27, minor diferido de la Task 10): la maquina
+ * entera (`useStage()`/`StageProvider`, `src/motion/stage.ts`) se retiro del
+ * repo por quedarse sin ningun consumidor real -- `HeroBackdrop`, el ultimo
+ * que le avisaba, tambien dejo de hacerlo. Los dos simbolos que este bloque
+ * nombra ya no existen en ningun fichero de produccion, solo en este
+ * registro historico.
  */
 function renderNavbar(): RenderResult {
   return renderWithProviders(<Navbar />);

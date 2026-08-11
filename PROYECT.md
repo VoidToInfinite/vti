@@ -50,7 +50,7 @@ src/
                            useSectionProgress, useSlideDeck, useNavDetach,
                            useThemeScrollReset, useSceneParallax
   i18n/                   I18nProvider, config, locales/{es,en}/{home,legal,common}.json
-  motion/                 stage.ts, StageProvider, timings.ts (coreografía de entrada/tema)
+  motion/                 timings.ts (coreografía de entrada/tema), vocabulary.ts
   seo/                    metadata.ts, jsonLd.ts, JsonLdScript
   theme/                  ThemeProvider, GlobalStyles, themes.ts, tokens/
 ```

@@ -17,10 +17,10 @@ import styled from "styled-components";
  * antes que `{children}`, dentro de `I18nProvider` (necesita traducirse) y
  * de `ThemeProvider` (necesita tokens de tema) -- ninguno de los
  * proveedores que lo envuelven ahí (`StyledComponentsRegistry`,
- * `ThemeProvider`, `StageProvider`, `I18nProvider`) renderiza un nodo DOM
- * propio, así que en el árbol real sigue siendo el primer hijo focalizable
- * de `<body>`, aunque el fichero fuente no sea `app/layout.tsx` (que es
- * Server Component y no puede leer tema/idioma).
+ * `ThemeProvider`, `I18nProvider`) renderiza un nodo DOM propio, así que en
+ * el árbol real sigue siendo el primer hijo focalizable de `<body>`, aunque
+ * el fichero fuente no sea `app/layout.tsx` (que es Server Component y no
+ * puede leer tema/idioma).
  *
  * Oculto SOLO visualmente hasta `:focus-visible`, nunca del árbol de
  * accesibilidad: `display: none`/`visibility: hidden` lo sacarían también

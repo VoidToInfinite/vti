@@ -16,7 +16,6 @@ import { color } from "@/theme/tokens/color";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
 import { type as typeTokens } from "@/theme/tokens/type";
-import { StageProvider } from "@/motion/StageProvider";
 import { Hero } from "./Hero";
 
 /**
@@ -37,24 +36,14 @@ function stubMatchMedia(): void {
 }
 
 /*
- * `Hero` consume `useStage()` (tarea C5): sin un `StageProvider` en el
- * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
- * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
- * localmente, mismo patron que Navbar.test.tsx/Hero.test.tsx.
- *
- * Ninguno de los casos de este archivo mide la opacidad de la copia ni del
- * navbar (miden color, fontSize, contraste, existencia de reglas CSS, altura
- * del pie...): la fase de pagina se queda en "backdrop" a secas, sin forzar
- * "chrome" con la sonda de markBackdropRevealed() -- no hace falta, porque
- * nada de lo que se asevera aqui depende de que el intro de la copia haya
- * arrancado.
+ * `Hero` ya no consume `useStage()` desde la revision 2026-08-11 (Task 10:
+ * su intro de carga es CSS estatico), y `HeroBackdrop` -- que `Hero` monta
+ * -- tampoco desde la Task 27 (misma fecha): la maquina de fases del stage
+ * (`useStage()`/`StageProvider`) se retiro entera. Se renderiza `<Hero />`
+ * directamente, sin ningun envoltorio de proveedor propio de este archivo.
  */
 function renderHero(): RenderResult {
-  return renderWithProviders(
-    <StageProvider>
-      <Hero />
-    </StageProvider>,
-  );
+  return renderWithProviders(<Hero />);
 }
 
 beforeEach(() => {

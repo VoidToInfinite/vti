@@ -9,7 +9,6 @@ import {
 import styled from "styled-components";
 import { Aura } from "@/components/scenes/aura/Aura";
 import { Eye } from "@/components/scenes/eye/Eye";
-import { useStage } from "@/motion/StageProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeName } from "@/theme/themes";
 import {
@@ -166,12 +165,18 @@ const ScAuraStack = styled.div`
  *   corresponde al tema arranca en "pending", corre la carrera de
  *   `img.decode()` contra `HERO_DECODE_TIMEOUT_MS` (mas el frame de margen
  *   de `nextFrame()`), y al resolver pasa a "active" -- lo que dispara su
- *   propio escalonado de entrada, por capa (eye.parts.tsx/aura.parts.tsx) --
- *   y avisa UNA sola vez a `markBackdropRevealed()` (`useStage()`) para que
- *   el navbar y la copia del hero arranquen la suya. No es una maquina
- *   nueva: reutiliza `pendingEntry` y el mismo efecto de carrera que el
- *   cambio de tema (spec S7.2) -- la diferencia es que el stack saliente,
- *   sencillamente, no existe.
+ *   propio escalonado de entrada, por capa (eye.parts.tsx/aura.parts.tsx).
+ *   No es una maquina nueva: reutiliza `pendingEntry` y el mismo efecto de
+ *   carrera que el cambio de tema (spec S7.2) -- la diferencia es que el
+ *   stack saliente, sencillamente, no existe.
+ *
+ *   RETIRADO 2026-08-11 (Task 27, plan premium, spec S5.6): hasta esta
+ *   revision, al resolver tambien avisaba UNA sola vez a
+ *   `markBackdropRevealed()` (`useStage()`) para que el navbar y la copia
+ *   del hero arrancaran la suya. Se retira sin cambiar el decode-gating de
+ *   arriba ni una linea: desde la Task 10 ninguno de los dos leia ya ese
+ *   aviso (su entrada es CSS estatico), asi que `useStage()`/
+ *   `StageProvider` se habian quedado sin ningun consumidor real.
  * - **CAMBIO DE TEMA** (de usuario): un RELEVO SECUENCIAL, no un cruce
  *   solapado (spec S3 explica el porque: el `field` opaco de Aura entrando
  *   por encima del ojo saliente taparia sus ultimos escalones antes de que
@@ -201,7 +206,6 @@ const ScAuraStack = styled.div`
  */
 export function HeroBackdrop(): ReactElement {
   const { themeName, changeSource } = useTheme();
-  const { markBackdropRevealed } = useStage();
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Carga (spec S7.2): el stack del tema con el que arranca `ThemeProvider`
@@ -233,14 +237,6 @@ export function HeroBackdrop(): ReactElement {
   const prevThemeRef = useRef(themeName);
   const tokenRef = useRef(0);
 
-  // Idempotencia de markBackdropRevealed DESDE ESTE COMPONENTE (spec S7.1/
-  // S7.2): el proveedor ya es idempotente por su cuenta (StageProvider.tsx),
-  // pero esta ref evita llamarlo mas de una vez "por las buenas" -- solo la
-  // carga (montaje inicial o su ajuste de hidratacion) debe avisar, nunca un
-  // cambio de tema de usuario posterior (`finalizeHandoff`, mas abajo, no lo
-  // llama en absoluto).
-  const revealedRef = useRef(false);
-
   // Las dos condiciones del relevo secuencial de un cambio de tema (spec
   // S7.3): el reloj (HERO_HANDOFF_MS, temporizador propio) y el decode() del
   // stack entrante (efecto de la carrera, mas abajo). El entrante solo pasa
@@ -263,9 +259,7 @@ export function HeroBackdrop(): ReactElement {
   /*
    * Cierra el tramo de la CARGA (montaje inicial o ajuste de hidratacion,
    * spec S7.2): pasa el stack ENTRANTE a "active" -- lo que dispara su
-   * propio escalonado de entrada, por capa -- y, si es la PRIMERA vez que la
-   * carga revela el fondo, avisa a `markBackdropRevealed()` para que el
-   * navbar y la copia arranquen su propia entrada (spec S7.1/S7.4).
+   * propio escalonado de entrada, por capa.
    *
    * Tolera que `leaving` no exista en `stacks` (`prev[leaving] !==
    * undefined`): en la carga nunca hay un segundo stack VISIBLE que apagar,
@@ -277,12 +271,18 @@ export function HeroBackdrop(): ReactElement {
    * `finishCrossfade` de esta funcion, por si un llamador futuro SI pasa un
    * `leaving` realmente montado.
    *
-   * `useCallback` con `[markBackdropRevealed]`: es la UNICA dependencia
-   * reactiva real de esta funcion (`tokenRef`/`revealedRef` son refs,
-   * estables por garantia de React), y le da a `finishLoad` una identidad
-   * estable entre renders -- necesaria para poder declararla como
-   * dependencia del efecto de la carrera (mas abajo) sin que ese efecto se
-   * reprograme en cada render.
+   * RETIRADO 2026-08-11 (Task 27, spec S5.6): hasta esta revision, tras
+   * pasar el stack a "active" avisaba UNA vez a `markBackdropRevealed()`
+   * (guardado con `revealedRef`, tambien retirado) para que el navbar y la
+   * copia arrancaran su propia entrada. Ninguno de los dos leia ya ese
+   * aviso desde la Task 10 (su entrada es CSS estatico), asi que la llamada
+   * se retira sin efecto observable, junto con `useStage()`/
+   * `StageProvider` enteros.
+   *
+   * `useCallback` con `[]`: sin la notificacion, esta funcion ya no cierra
+   * sobre ningun valor reactivo (`tokenRef` es un ref, estable por garantia
+   * de React) -- su identidad sigue siendo estable para siempre, igual que
+   * antes, pero ya no hace falta declarar ninguna dependencia real.
    */
   const finishLoad = useCallback(
     (entering: StackName, leaving: StackName, myToken: number): void => {
@@ -292,12 +292,8 @@ export function HeroBackdrop(): ReactElement {
         if (prev[leaving] !== undefined) next[leaving] = "leaving";
         return next;
       });
-      if (!revealedRef.current) {
-        revealedRef.current = true;
-        markBackdropRevealed();
-      }
     },
-    [markBackdropRevealed],
+    [],
   );
 
   /*
@@ -310,9 +306,7 @@ export function HeroBackdrop(): ReactElement {
    * asentarse -- el reloj que programa la llamada a esta funcion
    * (`HERO_HANDOFF_MS = HERO_BACKDROP_HOLD_MS + HERO_STACK_MS`) ES
    * exactamente la duracion de ese colapso, asi que no hay nada mas que
-   * esperar. Nunca avisa a `markBackdropRevealed()`: un cambio de tema
-   * posterior a la carga no debe reiniciar el intro del navbar/copia (spec
-   * S7.1).
+   * esperar.
    */
   const finalizeHandoff = (
     entering: StackName,
@@ -423,7 +417,7 @@ export function HeroBackdrop(): ReactElement {
       //
       // Lo que SI sostiene la supresion es el mismo argumento, ya escrito y
       // aceptado, que llevan las dos supresiones hermanas del repo
-      // (`ThemeProvider.tsx` y `StageProvider.tsx`): esto no es un setState
+      // (`ThemeProvider.tsx` y `hero.transition.ts`): esto no es un setState
       // que corra en cada render, es un guard por early-return sobre una
       // lectura fresca de `matchMedia` dentro de un efecto que ya sale antes
       // si el tema no cambio de verdad (`prevThemeRef.current === themeName`,
@@ -597,14 +591,13 @@ export function HeroBackdrop(): ReactElement {
     return () => {
       cancelled = true;
     };
-    // `finishLoad` entra en las dependencias por exigencia del linter (es la
-    // unica de las dos funciones de cierre con un valor reactivo real en su
-    // clausura, `markBackdropRevealed` -- ver su propio docblock): como su
-    // identidad es estable (`useCallback`), incluirla aqui no reprograma
-    // este efecto en cada render, solo cuando `markBackdropRevealed` cambia
-    // de verdad (nunca, en la practica: `useStage()` tambien la memoiza).
-    // `finalizeHandoff` NO necesita la misma declaracion: su clausura solo
-    // contiene refs y el setter de estado, ninguno de los dos reactivo.
+    // `finishLoad` entra en las dependencias por exigencia del linter: su
+    // identidad es estable (`useCallback` con `[]`, retirado su unico valor
+    // reactivo -- `markBackdropRevealed` -- junto con `useStage()` en la
+    // Task 27), asi que incluirla aqui no reprograma este efecto en ningun
+    // render. `finalizeHandoff` NO necesita la misma declaracion: su
+    // clausura solo contiene refs y el setter de estado, ninguno de los dos
+    // reactivo.
   }, [pendingEntry, finishLoad]);
 
   // Limpieza al desmontar: ningun temporizador del relevo debe sobrevivir a

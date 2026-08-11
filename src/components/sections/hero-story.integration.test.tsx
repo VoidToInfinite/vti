@@ -8,7 +8,6 @@ import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
-import { StageProvider } from "@/motion/StageProvider";
 import { Hero } from "./Hero/Hero";
 import { Story } from "./Story/Story";
 
@@ -94,17 +93,18 @@ function cssRuleTextFor(el: HTMLElement): string {
 }
 
 /*
- * `Hero` consume `useStage()` (tarea C5): sin un `StageProvider` en el
- * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
- * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
- * localmente, mismo patron que Navbar.test.tsx/Hero.test.tsx.
+ * La maquina de fases del stage (`useStage()`/`StageProvider`) se retiro
+ * entera en la Task 27 (2026-08-11): ni `Hero` (desde la Task 10) ni
+ * `HeroBackdrop` (desde esta) la consumen ya. Se renderiza `<Hero />` y
+ * `<Story />` directamente, sin ningun envoltorio de proveedor propio de
+ * este archivo.
  */
 function renderPage(): HTMLElement {
   const { container } = renderWithProviders(
-    <StageProvider>
+    <>
       <Hero />
       <Story />
-    </StageProvider>,
+    </>,
   );
   return container;
 }

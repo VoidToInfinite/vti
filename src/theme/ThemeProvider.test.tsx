@@ -7,7 +7,7 @@ import { ThemeProvider, useTheme } from "./ThemeProvider";
 /**
  * `ThemeProvider` llama a `window.matchMedia("(prefers-color-scheme: dark)")`
  * de verdad en su efecto de corrección post-montaje (Task 9); jsdom no lo
- * implementa (mismo stub mínimo que StageProvider.test.tsx/Hero.qa.test.tsx,
+ * implementa (mismo stub mínimo que Hero.qa.test.tsx/HeroBackdrop.test.tsx,
  * adaptado a la query concreta que aquí importa).
  */
 function stubMatchMedia(prefersDark: boolean): void {

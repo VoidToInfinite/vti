@@ -64,10 +64,10 @@ export function ThemeProvider({
     // repaint once the value corrects.
     const stored = window.localStorage.getItem(STORAGE_KEYS.theme);
     // jsdom no implementa `matchMedia` (lección ya documentada en
-    // `providers.test.tsx` para `StageProvider`) y este efecto ahora corre
-    // en CADA test que monta `ThemeProvider` vía `renderWithProviders`
-    // -- decenas de ficheros que no tienen por qué conocer ni stubear esta
-    // API. Igual que el catch homólogo de `resolveTheme.ts`
+    // `providers.test.tsx`) y este efecto ahora corre en CADA test que monta
+    // `ThemeProvider` vía `renderWithProviders` -- decenas de ficheros que no
+    // tienen por qué conocer ni stubear esta API. Igual que el catch homólogo
+    // de `resolveTheme.ts`
     // (`buildThemeBootstrapScript`), degradar a "sin preferencia detectada"
     // en vez de propagar es lo correcto también en un navegador real sin
     // soporte, no solo un parche de test.

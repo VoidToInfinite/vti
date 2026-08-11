@@ -1,5 +1,5 @@
 import { act } from "@testing-library/react";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   renderWithProviders,
@@ -8,12 +8,10 @@ import {
 } from "@/test/test-utils";
 import { HeroBackdrop } from "./HeroBackdrop";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
-import { StageProvider, useStage } from "@/motion/StageProvider";
 import { AURA_STAGGER } from "@/components/scenes/aura/aura.layers";
 import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
 import {
   HERO_BACKDROP_HOLD_MS,
-  HERO_CHROME_OFFSET_MS,
   HERO_HANDOFF_MS,
   HERO_STEP_MS,
 } from "./hero.transition";
@@ -27,10 +25,6 @@ import {
  * el rAF interno de `usePointer` no arranca -- el unico `requestAnimationFrame`
  * que corre durante estos tests es el que orquesta `HeroBackdrop` (el margen
  * de un frame tras decode(), `nextFrame()`).
- *
- * `StageProvider` TAMBIEN llama a `matchMedia` de verdad en su propio efecto
- * de montaje (lee la misma preferencia): este stub lo cubre igual, sin
- * necesidad de un segundo mock.
  */
 function stubMatchMedia(reducedMatches = false): void {
   vi.stubGlobal(
@@ -51,7 +45,7 @@ function stubMatchMedia(reducedMatches = false): void {
 // para que la cadena de promesas (decode -> rAF) se resuelva por microtareas
 // sin depender de un reloj real ni de los timers falsos de vitest, que aqui
 // solo controlan los temporizadores del relevo secuencial
-// (HERO_BACKDROP_HOLD_MS, HERO_HANDOFF_MS) y los de StageProvider.
+// (HERO_BACKDROP_HOLD_MS, HERO_HANDOFF_MS).
 function stubSyncRaf(): void {
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
     cb(0);
@@ -117,26 +111,16 @@ async function clickToggle(): Promise<void> {
 }
 
 /*
- * `HeroBackdrop` consume `useStage()` (tarea D2/D3: avisa a
- * `markBackdropRevealed()` cuando la carga revela el fondo): sin un
- * `StageProvider` en el arbol, el hook lanza. `renderWithProviders`
- * (test-utils.tsx) es un helper COMPARTIDO con otros flujos y no se toca
- * (CLAUDE.md S9): se envuelve aqui, localmente, en vez de modificar su
- * firma -- mismo patron que ya usan Navbar.test.tsx/Hero.test.tsx para el
- * mismo motivo.
+ * `HeroBackdrop` consumia `useStage()` hasta la Task 27 (2026-08-11):
+ * avisaba a `markBackdropRevealed()` cuando la carga revelaba el fondo. La
+ * maquina de fases del stage (`useStage()`/`StageProvider`) se retiro
+ * entera al quedarse sin ningun consumidor real -- ver el docblock de
+ * `finishLoad` en `HeroBackdrop.tsx`. Ya no hace falta ningun envoltorio de
+ * proveedor propio de este archivo: `renderWithProviders` (test-utils.tsx)
+ * basta tal cual.
  */
 function renderHeroBackdrop(children: ReactNode): RenderResult {
-  return renderWithProviders(<StageProvider>{children}</StageProvider>);
-}
-
-/** Sonda de la fase de pagina (StageProvider), para observar desde fuera
- *  que `HeroBackdrop` avisa a `markBackdropRevealed()` sin inspeccionar sus
- *  internos: expone `phase` como texto plano. Mismo patron que
- *  `RevealBackdrop` en Navbar.test.tsx/Hero.test.tsx, en sentido inverso
- *  (aqui SE OBSERVA la fase en vez de forzarla). */
-function StagePhaseProbe(): ReactElement {
-  const { phase } = useStage();
-  return <span data-testid="stage-phase">{phase}</span>;
+  return renderWithProviders(<>{children}</>);
 }
 
 beforeEach(() => {
@@ -167,20 +151,24 @@ afterEach(() => {
 });
 
 describe("HeroBackdrop", () => {
-  it("carga (tema claro por defecto): el stack arranca en pending y pasa a active tras la carrera, avisando a markBackdropRevealed", async () => {
-    renderHeroBackdrop(
-      <>
-        <StagePhaseProbe />
-        <HeroBackdrop />
-      </>,
-    );
+  it("carga (tema claro por defecto): el stack arranca en pending y pasa a active tras la carrera", async () => {
+    renderHeroBackdrop(<HeroBackdrop />);
 
     // Recien montado: el stack del tema por defecto (claro -> Aura) arranca
     // en "pending" -- la carga YA NO monta directamente en "active" (spec
-    // S7.2). La pagina sigue en "backdrop": nadie ha avisado todavia.
+    // S7.2).
+    //
+    // RETIRADO 2026-08-11 (Task 27): este caso comprobaba ADEMAS, con una
+    // sonda `useStage()`, que la pagina seguia en "backdrop" aqui y llegaba
+    // a "chrome" tras HERO_CHROME_OFFSET_MS una vez resuelta la carrera --
+    // es decir, que `HeroBackdrop` avisaba a `markBackdropRevealed()`. Esa
+    // llamada se retiro de `HeroBackdrop.tsx` (junto con `useStage()`/
+    // `StageProvider` enteros, sin ningun consumidor real desde la Task 10),
+    // asi que la aviso ya no existe y no hay nada que sondear: se retira la
+    // asercion, no se afloja. Lo que SI sigue siendo cierto -- el
+    // decode-gating de "pending" a "active" -- es lo unico que queda abajo.
     expect(stackOf("aura")).toHaveAttribute("data-state", "pending");
     expect(stackOf("eye")).not.toBeInTheDocument();
-    expect(screen.getByTestId("stage-phase")).toHaveTextContent("backdrop");
 
     await act(async () => {
       await flushMicrotasks();
@@ -189,15 +177,6 @@ describe("HeroBackdrop", () => {
     // decode() (mas el margen de un frame) resolvio: el stack pasa a
     // "active" -- lo que dispara su propio escalonado de entrada por capa.
     expect(stackOf("aura")).toHaveAttribute("data-state", "active");
-
-    // El aviso a markBackdropRevealed() ya se disparo: avanzando SOLO
-    // HERO_CHROME_OFFSET_MS (muy por debajo de la red de seguridad de
-    // StageProvider, STAGE_FALLBACK_MS) la pagina llega a "chrome". Si el
-    // aviso no se hubiera disparado, esta ventana corta no bastaria.
-    act(() => {
-      vi.advanceTimersByTime(HERO_CHROME_OFFSET_MS);
-    });
-    expect(screen.getByTestId("stage-phase")).toHaveTextContent("chrome");
   });
 
   it("el ajuste de hidratacion NO cruza: sustituye el stack pendiente sin coexistir y sin doble intro", async () => {
@@ -206,12 +185,7 @@ describe("HeroBackdrop", () => {
     // desde HeroBackdrop igual que un toggle, pero sigue siendo la CARGA
     // asentandose con el tema correcto, no un relevo.
     window.localStorage.setItem("vti-theme", "dark");
-    renderHeroBackdrop(
-      <>
-        <StagePhaseProbe />
-        <HeroBackdrop />
-      </>,
-    );
+    renderHeroBackdrop(<HeroBackdrop />);
 
     // El pending original (aura, el tema con el que SIEMPRE arranca
     // `ThemeProvider`) nunca llega a pintarse: el ajuste de hidratacion lo
@@ -228,14 +202,12 @@ describe("HeroBackdrop", () => {
     expect(stackOf("eye")).toHaveAttribute("data-state", "active");
     expect(stackOf("aura")).not.toBeInTheDocument();
 
-    // Sin doble intro: markBackdropRevealed solo pudo dispararse UNA vez (el
-    // proveedor es idempotente, pero esto prueba que ni siquiera hizo falta
-    // la segunda llamada) -- la fase llega a "chrome" con el offset
-    // estandar, sin necesitar la red de seguridad.
-    act(() => {
-      vi.advanceTimersByTime(HERO_CHROME_OFFSET_MS);
-    });
-    expect(screen.getByTestId("stage-phase")).toHaveTextContent("chrome");
+    // RETIRADO 2026-08-11 (Task 27): este caso comprobaba ADEMAS, con una
+    // sonda `useStage()`, que markBackdropRevealed() solo se habia disparado
+    // UNA vez (sin doble intro) leyendo que la fase llegaba a "chrome" con
+    // el offset estandar. Esa notificacion ya no existe (ver el test de
+    // arriba); el "active" de las dos aserciones de encima ya demuestra que
+    // el ajuste de hidratacion no dejo el fondo pegado en "pending".
   });
 
   it("SIN tema guardado, el PRIMER toggle del usuario ya arranca un relevo real (no se lo come el ajuste de hidratacion)", async () => {
@@ -413,7 +385,7 @@ describe("HeroBackdrop", () => {
     );
     await act(async () => {
       await flushMicrotasks();
-    }); // carga: eye active (StageProvider ya esta "settled" bajo reduce)
+    }); // carga: eye active
 
     // `vi.getTimerCount()` a secas NO sirve aqui (medido: sube de 7 a 9 en
     // este mismo toggle): montar Aura arrastra su propio Sol, que trae su
@@ -598,12 +570,7 @@ describe("HeroBackdrop", () => {
      * (eso crearia una instancia nueva, con `tokenRef`/`pendingEntry`
      * reinicializados desde cero, y NUNCA reproduciria esta carrera).
      */
-    renderWithProviders(
-      <StageProvider>
-        <HeroBackdrop />
-      </StageProvider>,
-      { reactStrictMode: true },
-    );
+    renderWithProviders(<HeroBackdrop />, { reactStrictMode: true });
 
     // Recien montado (las dos invocaciones de StrictMode ya corrieron,
     // sincronas dentro de act()): el stack de carga arranca en "pending",

@@ -6,7 +6,6 @@ import {
 } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
 import { type as typeTokens } from "@/theme/tokens/type";
-import { StageProvider } from "@/motion/StageProvider";
 import { HERO_COPY_STEP_MS } from "./hero.transition";
 import { Hero } from "./Hero";
 
@@ -34,19 +33,15 @@ beforeEach(() => stubMatchMedia());
 afterEach(() => vi.unstubAllGlobals());
 
 /**
- * `Hero` YA NO consume `useStage()` (revision 2026-08-11: su intro de carga
- * es CSS estatico), pero `HeroBackdrop` -- que `Hero` monta -- SI lo sigue
- * consumiendo para su decode-gating, asi que sin un `StageProvider` en el
- * arbol el hook sigue lanzando. `renderWithProviders` (test-utils.tsx) es un
- * helper COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve
- * aqui, localmente.
+ * `Hero` YA NO consume `useStage()` (revision 2026-08-11, Task 10: su intro
+ * de carga es CSS estatico). `HeroBackdrop` -- que `Hero` monta -- tampoco
+ * lo consume desde la Task 27 (2026-08-11): la maquina de fases del stage
+ * (`useStage()`/`StageProvider`) se retiro entera, sin consumidores reales
+ * desde la Task 10. Se renderiza `<Hero />` directamente, sin ningun
+ * envoltorio de proveedor propio de este archivo.
  */
 function renderHero(): RenderResult {
-  return renderWithProviders(
-    <StageProvider>
-      <Hero />
-    </StageProvider>,
-  );
+  return renderWithProviders(<Hero />);
 }
 
 /** Devuelve el elemento marcado con ese gancho de test o falla el test. */

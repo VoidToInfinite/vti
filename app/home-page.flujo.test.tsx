@@ -8,7 +8,6 @@ import {
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
-import { StageProvider } from "@/motion/StageProvider";
 import HomePage from "./page";
 
 /*
@@ -73,22 +72,16 @@ function testId(container: HTMLElement, id: string): HTMLElement {
 }
 
 /*
- * `HomePage` monta `Navbar` y `Hero`, los dos consumidores de `useStage()`
- * (tareas C4/C5): sin un `StageProvider` en el arbol, el hook lanza.
- * `renderWithProviders` (test-utils.tsx) es un helper COMPARTIDO con otros
- * flujos y no se toca (CLAUDE.md §9): se envuelve aqui, localmente, mismo
- * patron que Navbar.test.tsx/Hero.test.tsx. Ninguno de los casos de este
- * archivo mide opacidad del navbar/copia -- el boton de idioma sigue siendo
- * clickeable en fase "backdrop" (opacity 0 no lo saca del arbol ni lo
- * deshabilita, ver el comentario de accesibilidad en Navbar.tsx) -- asi que
- * basta con el proveedor a secas, sin forzar "chrome".
+ * `HomePage` monta `Navbar` y `Hero`. Los dos consumian `useStage()`
+ * (tareas C4/C5) hasta la revision 2026-08-11: primero Navbar/Hero pasaron
+ * su intro de carga a CSS estatico (Task 10), y despues la maquina entera
+ * (`useStage()`/`StageProvider`) se retiro por quedarse sin consumidores
+ * reales (Task 27) -- `HeroBackdrop`, el ultimo que le avisaba, dejo de
+ * hacerlo. Se renderiza `<HomePage />` directamente, sin ningun envoltorio
+ * de proveedor propio de este archivo.
  */
 function renderHomePage(): RenderResult {
-  return renderWithProviders(
-    <StageProvider>
-      <HomePage />
-    </StageProvider>,
-  );
+  return renderWithProviders(<HomePage />);
 }
 
 describe("Home (pagina completa)", () => {

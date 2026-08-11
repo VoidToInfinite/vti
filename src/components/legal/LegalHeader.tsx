@@ -14,17 +14,19 @@ import { Logo } from "@/components/ui/Logo/Logo";
  * queda descartado a propósito, no por omisión.
  *
  * Motivo, verificado leyendo el código real y no de memoria: `Navbar.tsx`
- * está acoplado al hero por dos hooks (`useStage` para su animación de
- * entrada encadenada con la coreografía del hero, y `useNavDetach` para el
- * despegue al hacer scroll sobre las secciones de la home) y monta 4 anclas
- * de sección -- `#story`/`#journey`/`#features`/`#contact`
- * (`Navbar.tsx:406-411`) -- que en `/privacidad` ni en `/aviso-legal`
- * existen: esas páginas no montan
+ * está acoplado a `useNavDetach` para el despegue al hacer scroll sobre las
+ * secciones de la home, y monta 4 anclas de sección --
+ * `#story`/`#journey`/`#features`/`#contact` (`Navbar.tsx:406-411`) -- que en
+ * `/privacidad` ni en `/aviso-legal` existen: esas páginas no montan
  * `Story`/`Journey`/`Features`/`Contact`. Reusar el `Navbar` aquí produciría
  * 4 anclas muertas, exactamente el defecto que el propio `Footer` arrastró
  * durante dos entregas y que su código sigue documentando
- * (`Footer.tsx:31-41`), y además dependería de dos hooks pensados para una
- * página con hero, en una página que no tiene ninguno.
+ * (`Footer.tsx:31-41`), y además dependería de un hook pensado para el
+ * scroll de una página con secciones, en una página que no tiene ninguna.
+ * (Hasta 2026-08-11, `Navbar.tsx` dependía además de `useStage()` para su
+ * animación de entrada encadenada con la coreografía del hero; ese hook se
+ * retiró del repo entero en la Task 27 del plan premium, sin cambiar esta
+ * decisión: las anclas muertas ya bastaban por sí solas.)
  *
  * `LegalHeader` es deliberadamente sobrio: marca enlazada a `/`, selector de
  * idioma y conmutador de tema -- ni anclas de sección, ni despegue al hacer

@@ -33,7 +33,7 @@ describe("SkipLink", () => {
    * "Orden" del brief (Task 2, punto 3): el skip link tiene que ser el
    * PRIMER elemento focalizable de lo que le sigue en el documento. No se
    * puede reproducir el árbol completo de app/providers.tsx aquí (necesita
-   * StageProvider + I18nProvider reales, cubiertos en app/providers.test.tsx);
+   * ThemeProvider + I18nProvider reales, cubiertos en app/providers.test.tsx);
    * este test ata la propiedad estructural mínima y reutilizable: renderizado
    * ANTES de cualquier otro contenido, precede a ese contenido en
    * document order, sea cual sea.
