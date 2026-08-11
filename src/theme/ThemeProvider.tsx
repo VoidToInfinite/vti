@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import { ThemeProvider as SCThemeProvider } from "styled-components";
 import { STORAGE_KEYS } from "@/config/storage";
-import { resolveInitialTheme } from "./resolveTheme";
+import { resolveInitialTheme, THEME_ATTRIBUTE } from "./resolveTheme";
 import { themes, type ThemeName } from "./themes";
 
 /**
@@ -95,6 +95,21 @@ export function ThemeProvider({
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEYS.theme, themeName);
+  }, [themeName]);
+
+  // Mantiene el atributo `data-theme` (Task 9) sincronizado con el ESTADO
+  // real en TODO cambio, no solo en la carga: el script pre-pintado de
+  // `app/layout.tsx` lo fija UNA vez, antes de hidratar, y nunca vuelve a
+  // ejecutarse. Sin este efecto, un toggle de USUARIO posterior actualizaría
+  // `themeName` (y con él los colores vía styled-components) pero dejaría el
+  // atributo -- y con él las variables CSS de `GlobalStyles.tsx` que
+  // `Hero.tsx` consume (`--hero-title-vw` y compañía) -- congelado en el
+  // valor de la carga: el titulo del hero se quedaria con el tamaño del tema
+  // VIEJO tras alternar. `useLayoutEffect` no hace falta aquí: a diferencia
+  // del efecto de resolución de arriba, este NO dispara ningún `setState`
+  // propio, así que no hay una segunda pasada de render que adelantar.
+  useEffect(() => {
+    document.documentElement.setAttribute(THEME_ATTRIBUTE, themeName);
   }, [themeName]);
 
   const toggleTheme = useCallback(() => {

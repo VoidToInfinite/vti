@@ -49,6 +49,10 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   window.localStorage.clear();
+  // El efecto nuevo de Task 9 escribe en `document.documentElement`, un
+  // nodo global que sobrevive entre tests (RTL solo desmonta el árbol
+  // renderizado, no restaura atributos del <html> real de jsdom).
+  document.documentElement.removeAttribute("data-theme");
 });
 
 describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión D-C)", () => {
@@ -124,5 +128,37 @@ describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión 
     });
 
     expect(screen.getByTestId("probe")).toHaveTextContent("dark:user");
+  });
+
+  it("un toggle de USUARIO tras la carga actualiza data-theme en <html>, no solo el estado de React", () => {
+    // Candado del bug encontrado en autorrevisión: el script pre-pintado de
+    // app/layout.tsx fija data-theme UNA sola vez, antes de hidratar, y
+    // nunca vuelve a ejecutarse. Sin este efecto de sincronización, un
+    // toggle posterior actualizaría themeName (colores vía
+    // styled-components) pero dejaría el atributo -- y con él las variables
+    // CSS de GlobalStyles.tsx que Hero.tsx consume -- congelado en el valor
+    // de la carga.
+    stubMatchMedia(false);
+    document.documentElement.removeAttribute("data-theme");
+
+    function ProbeConToggle(): ReactElement {
+      const { toggleTheme } = useTheme();
+      return <button onClick={toggleTheme}>alternar</button>;
+    }
+    render(
+      <ThemeProvider>
+        <ProbeConToggle />
+      </ThemeProvider>,
+    );
+
+    // Tras la carga en claro (sin storage, sin preferencia de sistema), el
+    // atributo debe reflejar "light" -- el mismo efecto que Task 9 añadió.
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+
+    act(() => {
+      screen.getByRole("button", { name: "alternar" }).click();
+    });
+
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 });
