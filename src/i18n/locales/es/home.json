@@ -1,9 +1,8 @@
 {
     "Home": {
         "hero": {
-            "kicker": "Aprendizaje · Imaginación · Juego",
-            "subtitle": "Tu presente ya es tu futuro, solo falta que sigas definiéndolo.",
-            "support": "Aunque el infinito está en todas partes, es el conocimiento lo que lo trae a la realidad."
+            "tagline": "Del vacío al infinito: un proyecto para aprender, imaginar y jugar.",
+            "subtitle": "Tu presente ya es tu futuro, solo falta que sigas definiéndolo."
         },
         "cta": {
             "story": "Leer la historia"
@@ -13,6 +12,7 @@
             "titleLead": "De la curiosidad",
             "titleAccent": "a la creación.",
             "body": "VoidToInfinite es un espacio donde el aprendizaje se encuentra con la imaginación y el juego impulsa el progreso. Exploramos ideas, construimos habilidades con sentido y transformamos la curiosidad en experiencias que se pueden compartir.",
+            "support": "Aunque el infinito está en todas partes, es el conocimiento lo que lo trae a la realidad.",
             "note": "Cada idea puede ser un nuevo comienzo.",
             "noteLead": "Cada idea puede ser un",
             "noteAccent": "nuevo comienzo.",

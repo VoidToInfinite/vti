@@ -6,7 +6,6 @@ import {
   type RenderResult,
 } from "@/test/test-utils";
 import i18n from "@/i18n/config";
-import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import { AURA_SURFACE } from "@/components/scenes/aura/aura.layers";
 import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
@@ -95,17 +94,19 @@ function remDe(size: string): number {
 const sinEspacios = (s: string): string => s.replace(/\s+/g, "");
 
 describe("Hero (lente funcional)", () => {
-  it("la escala decrece de titulo a subtitulo a apoyo, incluso en el peor caso del clamp", () => {
+  it("la escala decrece de titulo a subtitulo a linea, incluso en el peor caso del clamp", () => {
     // jsdom no resuelve clamp()/min()/rem, asi que el ordenamiento en pixeles
     // no es aseverable aqui; SI lo es a nivel de token, que es la fuente de
     // verdad del CSS. Se toma el extremo INFERIOR del clamp del display (el
-    // caso mas desfavorable para la jerarquia).
+    // caso mas desfavorable para la jerarquia). "linea" es ScTagline (Task
+    // 14): ocupa la misma posicion y el mismo token (variant=body) que el
+    // ScSupport retirado.
     const titulo = remDe(typeTokens.scale.display.size);
     const subtitulo = remDe(typeTokens.scale.h3.size);
-    const apoyo = remDe(typeTokens.scale.body.size);
+    const linea = remDe(typeTokens.scale.body.size);
 
     expect(titulo).toBeGreaterThan(subtitulo);
-    expect(subtitulo).toBeGreaterThan(apoyo);
+    expect(subtitulo).toBeGreaterThan(linea);
     expect(typeTokens.scale.display.weight).toBeGreaterThan(
       typeTokens.scale.h3.weight,
     );
@@ -256,8 +257,8 @@ describe("Hero (lente funcional)", () => {
       expect(screen.getByTestId("hero-subtitle")).toHaveTextContent(
         enHome.Home.hero.subtitle,
       );
-      expect(screen.getByTestId("hero-support")).toHaveTextContent(
-        enHome.Home.hero.support,
+      expect(screen.getByTestId("hero-tagline")).toHaveTextContent(
+        enHome.Home.hero.tagline,
       );
     } finally {
       await act(async () => {

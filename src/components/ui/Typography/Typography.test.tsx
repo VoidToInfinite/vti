@@ -86,8 +86,8 @@ describe("Typography", () => {
 
   it("reenvia data-testid al nodo renderizado", () => {
     // Sin esta propagacion el Hero no puede exponer los ganchos
-    // hero-kicker/hero-subtitle/hero-support y no hay nada que medir en
-    // navegador con getComputedStyle.
+    // hero-tagline/hero-subtitle y no hay nada que medir en navegador con
+    // getComputedStyle.
     renderWithProviders(
       <Typography
         variant="body"

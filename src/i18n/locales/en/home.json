@@ -1,9 +1,8 @@
 {
     "Home": {
         "hero": {
-            "kicker": "Learning · Imagination · Gaming",
-            "subtitle": "Your present is already your future: you just have to keep defining it.",
-            "support": "Infinity is everywhere, but it is knowledge that brings it into reality."
+            "tagline": "From the void to infinity: a project for learning, imagining and playing.",
+            "subtitle": "Your present is already your future: you just have to keep defining it."
         },
         "cta": {
             "story": "Read the story"
@@ -13,6 +12,7 @@
             "titleLead": "From curiosity",
             "titleAccent": "to creation.",
             "body": "VoidToInfinite is a space where learning meets imagination and play drives progress. We explore ideas, build meaningful skills and transform curiosity into experiences that can be shared with others.",
+            "support": "Infinity is everywhere, but it is knowledge that brings it into reality.",
             "note": "Every idea can become a new beginning.",
             "noteLead": "Every idea can become a",
             "noteAccent": "new beginning.",

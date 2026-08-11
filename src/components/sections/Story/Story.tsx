@@ -1263,6 +1263,21 @@ function StoryLight(): ReactElement {
         <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
       </ScTitle>
       <ScBody variant="body">{t("Home.story.body")}</ScBody>
+      {/* Task 14 (plan premium F3, 2026-08-11): `Home.hero.support`
+          ("Aunque el infinito...") SALE del hero y aterriza en la apertura
+          de Story -- misma clave (renombrada a `Home.story.support`), sin
+          duplicar el string, un render por rama de tema (Task 15 unificara
+          las dos ramas despues; este parrafo queda en el mismo punto -- tras
+          el cuerpo de la diapositiva de intro -- en las dos, para que
+          sobreviva a esa unificacion sin tener que decidir de nuevo donde
+          encaja). Reutiliza ScBody tal cual: mismo tono narrativo, misma
+          cascada de entrada (transition-delay compartido via clase). */}
+      <ScBody
+        variant="body"
+        data-testid="story-support"
+      >
+        {t("Home.story.support")}
+      </ScBody>
     </>
   );
 
@@ -1438,6 +1453,14 @@ function StoryDeckDark(): ReactElement {
                 <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
               </ScDeckTitle>
               <ScDeckIntroBody>{t("Home.story.body")}</ScDeckIntroBody>
+              {/* Task 14 (plan premium F3, 2026-08-11): mismo parrafo
+                  reubicado que en StoryLight, mas arriba en este fichero --
+                  ver su comentario para el porque completo. Reutiliza
+                  ScDeckIntroBody tal cual, misma posicion (tras el cuerpo de
+                  la diapositiva 0). */}
+              <ScDeckIntroBody data-testid="story-support">
+                {t("Home.story.support")}
+              </ScDeckIntroBody>
             </ScSlide>
             {PILLARS.map((pillar, pillarIndex) => (
               <ScSlide

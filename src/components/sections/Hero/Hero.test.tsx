@@ -158,19 +158,21 @@ describe("Hero", () => {
    * IMPORTADOS del locale, asi que falla si alguien deja de pasar por i18n o
    * cambia el JSON sin querer.
    *
-   * El kicker (Home.hero.kicker) NO esta en esta lista: el usuario retiro el
-   * <ScKicker> suelto de ScCopy, y la tagline del h1 que lo recupero
-   * brevemente (auditoria SEO 2026-08-08) se retiro por decision suya el
-   * mismo dia. La clave sigue en los locales -- `locales.test.ts` la protege
-   * como texto real -- pero hoy no la renderiza nadie.
+   * TASK 14 (plan premium F3, 2026-08-11): `Home.hero.kicker` -- huerfana
+   * desde que el usuario retiro el <ScKicker> suelto de ScCopy y, el mismo
+   * dia (auditoria SEO 2026-08-08), la tagline del h1 que lo recupero
+   * brevemente -- se RETIRA como clave y se sustituye por `Home.hero.tagline`,
+   * que si se renderiza (hijo 3 de ScCopy, en la posicion que ocupaba
+   * `Home.hero.support`). `Home.hero.support` ("Aunque el infinito...") sale
+   * del hero hacia la apertura de Story -- ver Story.test.tsx.
    */
   it("los dos textos del bloque salen de i18n, no de literales en el JSX", () => {
     const { container } = renderHero();
     expect(testId(container, "hero-subtitle")).toHaveTextContent(
       esHome.Home.hero.subtitle,
     );
-    expect(testId(container, "hero-support")).toHaveTextContent(
-      esHome.Home.hero.support,
+    expect(testId(container, "hero-tagline")).toHaveTextContent(
+      esHome.Home.hero.tagline,
     );
   });
 
@@ -182,18 +184,18 @@ describe("Hero", () => {
     expect(headings[0]).toHaveTextContent(/VoidToInfinite/i);
   });
 
-  it("subtitulo y apoyo son P: ninguno usurpa un encabezado", () => {
+  it("subtitulo y linea son P: ninguno usurpa un encabezado", () => {
     const { container } = renderHero();
     expect(testId(container, "hero-subtitle").tagName).toBe("P");
-    expect(testId(container, "hero-support").tagName).toBe("P");
+    expect(testId(container, "hero-tagline").tagName).toBe("P");
   });
 
-  it("el orden del DOM es titulo, subtitulo, apoyo, acciones", () => {
+  it("el orden del DOM es titulo, subtitulo, linea, acciones", () => {
     const { container } = renderHero();
     const orden = [
       "hero-title",
       "hero-subtitle",
-      "hero-support",
+      "hero-tagline",
       "hero-actions",
     ].map((id) => testId(container, id));
 
@@ -213,24 +215,25 @@ describe("Hero", () => {
    * canvastext). Aseverar el tier completo, y no solo "son distintos", es lo
    * que lo detecta.
    */
-  it("subtitulo y apoyo se diferencian en al menos dos propiedades tipograficas", () => {
+  it("subtitulo y linea se diferencian en al menos dos propiedades tipograficas", () => {
     const { container } = renderHero();
     const sub = getComputedStyle(testId(container, "hero-subtitle"));
-    const apoyo = getComputedStyle(testId(container, "hero-support"));
+    const linea = getComputedStyle(testId(container, "hero-tagline"));
 
     // Cada uno computa SU tier de la escala, no el del otro. El subtitulo ya
     // no consume typeTokens.scale.h3.size: ScSubtitle sobrescribe font-size
     // con el clamp(15px, 2vw, 22px) literal del usuario (ver excepcion
     // documentada en Hero.tsx), pero SIGUE computando el peso de h3 --
-    // font-weight no se toco.
+    // font-weight no se toco. La linea (ScTagline, Task 14) usa variant=body
+    // SIN override: token del sistema, tal cual.
     expect(sub.fontSize).toBe("clamp(15px, 2vw, 22px)");
     expect(sub.fontWeight).toBe(String(typeTokens.scale.h3.weight));
-    expect(apoyo.fontSize).toBe(typeTokens.scale.body.size);
-    expect(apoyo.fontWeight).toBe(String(typeTokens.scale.body.weight));
+    expect(linea.fontSize).toBe(typeTokens.scale.body.size);
+    expect(linea.fontWeight).toBe(String(typeTokens.scale.body.weight));
 
     const distintas = (
       ["fontSize", "fontWeight", "letterSpacing"] as const
-    ).filter((prop) => sub[prop] !== apoyo[prop]);
+    ).filter((prop) => sub[prop] !== linea[prop]);
     expect(distintas.length).toBeGreaterThanOrEqual(2);
   });
 

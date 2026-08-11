@@ -181,10 +181,20 @@ describe("locales", () => {
     );
   });
 
+  /*
+   * TASK 14 (plan premium F3, 2026-08-11): `kicker` sale de esta lista --
+   * la clave `Home.hero.kicker` se retira (sustituida por `Home.hero.tagline`,
+   * la linea descriptiva "Del vacio al infinito...") -- y `support` tambien,
+   * porque `Home.hero.support` SALE del hero hacia `Home.story.support`
+   * (apertura de Story, ver Story.test.tsx). El test de caja natural del
+   * kicker se retira con la clave: `Home.hero.tagline` no lleva ningun
+   * text-transform en CSS (ScTagline, Hero.tsx), asi que no hay ninguna
+   * mayuscula-por-CSS que proteger aqui.
+   */
   describe("copia del hero", () => {
     it.each(
       locales.flatMap(({ lang, home }) =>
-        (["kicker", "subtitle", "support"] as const).map((key) => ({
+        (["tagline", "subtitle"] as const).map((key) => ({
           lang,
           home,
           key,
@@ -195,16 +205,6 @@ describe("locales", () => {
       expect(value).toBeDefined();
       expect(value?.trim()).not.toBe("");
     });
-
-    it.each(locales)(
-      "$lang: el kicker va en caja natural, las mayusculas las pone el CSS",
-      ({ home }) => {
-        // Varios lectores de pantalla deletrean las cadenas escritas en caja
-        // alta como si fueran siglas.
-        const kicker = valueAt(home, "Home.hero.kicker") ?? "";
-        expect(kicker).not.toBe(kicker.toUpperCase());
-      },
-    );
   });
 
   describe("claves retiradas", () => {
@@ -285,36 +285,30 @@ describe("locales", () => {
    * ese patrón (o cualquier otro con más de un "·" por valor) entre por otro
    * sitio.
    *
-   * Excepción ÚNICA y documentada: `Home.hero.kicker` ("Aprendizaje ·
-   * Imaginación · Juego" / "Learning · Imagination · Gaming") es un
-   * separador de ENUMERACIÓN de tres palabras, simétrico es/en, preexistente
-   * a esta tarea (no se tocó). No es el patrón que este candado quiere
-   * impedir -- un "·" (o "··") puesto como sustituto de una raya -- así que
-   * la regla se declara "por valor, con una excepción nombrada" en vez de
-   * "cero middots en todo el árbol", que habría roto contenido legítimo.
+   * La excepción única que tenía este candado -- `Home.hero.kicker`
+   * ("Aprendizaje · Imaginación · Juego" / "Learning · Imagination ·
+   * Gaming"), un separador de enumeración de tres palabras -- desaparece con
+   * la propia clave (Task 14, plan premium F3, 2026-08-11: `kicker` se
+   * retira, sustituida por `Home.hero.tagline`, sin ningún "·"). Sin
+   * excepciones vivas, la regla queda "cero middots en todo el árbol",
+   * literal.
    */
-  const MIDDOT_EXEMPT_PATHS = ["Home.hero.kicker"];
-
   describe("candado de middot (Tarea 5)", () => {
     it.each([
       { name: "home/es", tree: esHome as JsonTree },
       { name: "home/en", tree: enHome as JsonTree },
       { name: "common/es", tree: esCommon as JsonTree },
       { name: "common/en", tree: enCommon as JsonTree },
-    ])(
-      "$name: ningun valor (salvo la excepcion documentada) tiene mas de 1 middot",
-      ({ tree }) => {
-        const offenders = keyPaths(tree).filter((path) => {
-          if (MIDDOT_EXEMPT_PATHS.includes(path)) return false;
-          const value = valueAt(tree, path) ?? "";
-          const count = (value.match(/·/g) ?? []).length;
-          return count > 1;
-        });
-        expect(
-          offenders,
-          `Claves con mas de 1 middot: ${offenders.join(", ")}`,
-        ).toEqual([]);
-      },
-    );
+    ])("$name: ningun valor tiene mas de 1 middot", ({ tree }) => {
+      const offenders = keyPaths(tree).filter((path) => {
+        const value = valueAt(tree, path) ?? "";
+        const count = (value.match(/·/g) ?? []).length;
+        return count > 1;
+      });
+      expect(
+        offenders,
+        `Claves con mas de 1 middot: ${offenders.join(", ")}`,
+      ).toEqual([]);
+    });
   });
 });

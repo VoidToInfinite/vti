@@ -150,8 +150,8 @@ describe("Home (pagina completa)", () => {
     expect(testId(container, "hero-subtitle")).toHaveTextContent(
       enHome.Home.hero.subtitle,
     );
-    expect(testId(container, "hero-support")).toHaveTextContent(
-      enHome.Home.hero.support,
+    expect(testId(container, "hero-tagline")).toHaveTextContent(
+      enHome.Home.hero.tagline,
     );
   });
 

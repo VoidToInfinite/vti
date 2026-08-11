@@ -216,6 +216,53 @@ describe("Story", () => {
     expect(screen.getByText("04")).toBeInTheDocument();
   });
 
+  /*
+   * Task 14 (plan premium F3, 2026-08-11): `Home.hero.support` ("Aunque el
+   * infinito...") SALE del hero y aterriza aqui, renombrada a
+   * `Home.story.support` -- misma clave para las dos ramas de tema, sin
+   * duplicar el string (Story() delega en StoryLight/StoryDeckDark, pero la
+   * clave i18n es UNA). Reutiliza ScBody: mismo componente, testid propio
+   * para localizarlo sin depender de coincidencias de texto.
+   */
+  it("el parrafo movido desde el hero (Home.story.support) aparece tras el cuerpo de la apertura", () => {
+    const { container } = renderWithProviders(<Story />);
+    const cuerpo = screen.getByText(esHome.Home.story.body);
+    const parrafo = screen.getByTestId("story-support");
+
+    expect(parrafo).toHaveTextContent(esHome.Home.story.support);
+    expect(parrafo.tagName).toBe("P");
+    // Orden del DOM: el parrafo trasladado va DESPUES del cuerpo existente,
+    // no antes -- cierra la apertura, no la interrumpe.
+    expect(
+      Boolean(
+        cuerpo.compareDocumentPosition(parrafo) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+    // No queda ningun eco de la clave vieja: Home.hero.support ya no existe
+    // (ver locales.test.ts), asi que este texto solo puede venir de la clave
+    // nueva.
+    expect(
+      container.querySelectorAll('[data-testid="story-support"]'),
+    ).toHaveLength(1);
+  });
+
+  it("en ingles el parrafo trasladado tambien sale del locale ingles", async () => {
+    await act(async () => {
+      await i18n.changeLanguage("en");
+    });
+    try {
+      renderWithProviders(<Story />);
+      expect(screen.getByTestId("story-support")).toHaveTextContent(
+        enHome.Home.story.support,
+      );
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("es");
+      });
+    }
+  });
+
   it("en ingles renderiza la copia inglesa, no la espanola (mitad del contrato de paridad)", async () => {
     await act(async () => {
       await i18n.changeLanguage("en");
@@ -1323,6 +1370,27 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
         STORY_SLIDES,
       );
     });
+  });
+
+  /*
+   * Task 14 (plan premium F3, 2026-08-11): mismo parrafo trasladado que en
+   * la rama clara (ver el describe "Story" de mas arriba), aqui dentro de la
+   * diapositiva 0 (la "apertura" de la rama oscura). Un render por rama
+   * (Story() delega en StoryLight/StoryDeckDark), UNA sola clave
+   * (`Home.story.support`).
+   */
+  it("la diapositiva 0 incluye el parrafo trasladado desde el hero (Home.story.support)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const slide0 = container.querySelector(
+      '[data-slide-index="0"]',
+    ) as HTMLElement;
+    const parrafo = within(slide0).getByTestId("story-support");
+    expect(parrafo).toHaveTextContent(esHome.Home.story.support);
   });
 
   it("reparte el contenido de las 6 diapositivas en el orden del encargo: intro, 4 pilares, nota", async () => {
