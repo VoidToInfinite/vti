@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import esCommon from "@/i18n/locales/es/common.json";
 import esHome from "@/i18n/locales/es/home.json";
-import { EMAIL_ADDRESS, links } from "@/config/links";
+import { links } from "@/config/links";
 import { PRESS } from "@/motion/vocabulary";
 import { themes } from "@/theme/themes";
 import { FOOTER_DARK_BG, FOOTER_STARS } from "./footer.layers";
@@ -132,11 +132,17 @@ describe("Footer", () => {
    *
    * Por eso el test comprueba tambien la forma, no solo la presencia: es un
    * enlace `mailto:` real (no un `<span>` dentro de un `<div>`), su texto es
-   * la direccion tomada de `EMAIL_ADDRESS` (derivada de `links.email`, nunca
-   * reescrita a mano) y NO lleva `target="_blank"` -- un `mailto:` no abre
-   * ninguna pestana, asi que anunciar un cambio de contexto que no ocurre
-   * seria ruido para un lector de pantalla (mismo criterio que D19 aplica a
-   * las rutas propias).
+   * la direccion sin esquema y NO lleva `target="_blank"` -- un `mailto:` no
+   * abre ninguna pestana, asi que anunciar un cambio de contexto que no
+   * ocurre seria ruido para un lector de pantalla (mismo criterio que D19
+   * aplica a las rutas propias).
+   *
+   * La direccion esperada se DERIVA aqui de `links.email` en vez de importar
+   * `EMAIL_ADDRESS` (fix round 2, 2026-08-11): importar la constante habria
+   * hecho que este candado se moviera con ella -- comprobado con el bug
+   * inyectado, rompiendo la derivacion de `EMAIL_ADDRESS` este test seguia en
+   * VERDE y solo caia el de `jsonLd.test.ts`, que si deriva por su cuenta.
+   * Un test que asevera una constante contra si misma no protege nada.
    */
   it.each(["light", "dark"] as const)(
     "en tema %s muestra la direccion de correo como enlace mailto real (Task 16)",
@@ -149,7 +155,14 @@ describe("Footer", () => {
           `a[href="${links.email}"]`,
         ) as HTMLAnchorElement;
         expect(enlace, `sin enlace mailto en tema ${tema}`).not.toBeNull();
-        expect(enlace).toHaveTextContent(EMAIL_ADDRESS);
+        // Texto EXACTO, no `toHaveTextContent` (que compara por substring):
+        // con substring, un `EMAIL_ADDRESS` que dejara de retirar el esquema
+        // seguiria pasando -- "mailto:hello@..." CONTIENE "hello@...".
+        // Comprobado con el bug inyectado antes de dar este candado por
+        // bueno.
+        expect(enlace.textContent?.trim()).toBe(
+          links.email.replace(/^mailto:/, ""),
+        );
         expect(enlace).not.toHaveAttribute("target");
         expect(enlace.tagName).toBe("A");
       });

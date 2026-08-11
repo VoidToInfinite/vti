@@ -56,11 +56,26 @@ export type LinkKey = keyof typeof links;
  * (Task 16, fix round, 2026-08-11).
  *
  * Existe porque el mismo `links.email.replace(/^mailto:/, "")` estaba escrito
- * a mano en tres sitios (dos veces en `Contact.tsx` -- el párrafo del panel de
- * recuperación y el valor que copia el portapapeles -- y una en el pie, al
- * devolver la dirección a la vista): regla 13 de RULES.md, un mismo valor
- * derivado repetido deja de ser un literal y pasa a ser una constante. Se
- * deriva de `links.email`, nunca se reescribe: así no puede divergir de él.
+ * a mano en CUATRO puntos de producción: dos en `Contact.tsx` (el párrafo del
+ * panel de recuperación y el valor que se copia al portapapeles), uno en
+ * `jsonLd.ts` (el campo `email` de `Organization`, que schema.org modela sin
+ * esquema) y el del pie, al devolver la dirección a la vista. Regla 13 de
+ * RULES.md: un mismo valor derivado repetido deja de ser un literal y pasa a
+ * ser una constante. Se deriva de `links.email`, nunca se reescribe, así que
+ * no puede divergir de él.
+ *
+ * El recuento decía "tres" en la primera versión de este docblock (Task 16,
+ * fix round 1): se migraron los tres consumidores que la tarea tenía delante
+ * y `jsonLd.ts` se quedó fuera, con su propio `replace`. Lo cazó la revisión
+ * y se corrigen los dos a la vez -- el código y la cifra -- porque un
+ * docblock que afirma una unificación incompleta es peor que no tenerlo
+ * (regla 16). Hoy los cuatro leen de aquí.
+ *
+ * Los TESTS conservan su `links.email.replace(...)` propio a propósito
+ * (`jsonLd.test.ts`, `Contact.test.tsx`): derivan del mismo origen que la
+ * constante en vez de importarla, para no aseverar `EMAIL_ADDRESS` contra sí
+ * misma. Si esta línea se rompiera, esos tests lo dirían; si consumieran la
+ * constante, no.
  *
  * NO entra dentro del objeto `links`: ese es el mapa de DESTINOS navegables y
  * su conjunto de claves está atado por un contrato cerrado (`links.test.ts`).

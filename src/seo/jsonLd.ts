@@ -1,5 +1,5 @@
 import { SITE, absoluteUrl } from "@/config/site";
-import { links } from "@/config/links";
+import { EMAIL_ADDRESS, links } from "@/config/links";
 
 /**
  * Constructores de datos estructurados JSON-LD (schema.org).
@@ -94,10 +94,14 @@ export function organizationJsonLd(): OrganizationJsonLd {
     "logo": absoluteUrl("/brand/logo.svg"),
     "description": SITE.description,
     // `links.email` lleva el esquema "mailto:" (así lo consume el `href` de
-    // los CTA de contacto, `src/config/links.ts`); schema.org modela
-    // `email` como la dirección desnuda, sin esquema, así que se retira
-    // aquí en vez de duplicar la cadena sin el prefijo en otro sitio.
-    "email": links.email.replace(/^mailto:/, ""),
+    // los enlaces de contacto, `src/config/links.ts`); schema.org modela
+    // `email` como la dirección desnuda, sin esquema. El porqué no cambia;
+    // sí de dónde sale la cadena: desde la Task 16 (2026-08-11) la
+    // derivación vive UNA vez, en `EMAIL_ADDRESS` (`src/config/links.ts`),
+    // en vez de repetir aquí el mismo `replace` que ya hacían el panel de
+    // recuperación de Contacto y el enlace del pie. Sigue sin duplicar
+    // ninguna cadena literal: la constante se deriva de `links.email`.
+    "email": EMAIL_ADDRESS,
     "sameAs": [links.github, links.discord],
   };
 }

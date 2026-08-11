@@ -1626,3 +1626,25 @@
   medición y dejar un candado sobre la CONDICIÓN que sí sería un fallo (que la tarjeta fije
   altura, o que la columna de texto recorte por su cuenta), porque jsdom no hace layout y no
   puede atar la medición en sí.
+
+## 2026-08-11 — Un test que importa la constante bajo prueba no prueba nada (y `toHaveTextContent` compara por substring)
+
+- **Qué pasó:** al unificar la derivación `links.email.replace(/^mailto:/, "")` en una constante
+  (`EMAIL_ADDRESS`), el test del enlace del pie afirmaba `expect(enlace).toHaveTextContent(EMAIL_ADDRESS)`.
+  Al inyectar el bug a propósito —romper la derivación para que la constante dejara de retirar el
+  esquema— el test siguió en VERDE. Fallaba solo el de `jsonLd.test.ts`, que deriva por su cuenta
+  desde `links.email`.
+- **Por qué, dos causas independientes y las dos hay que arreglar:** (1) el test importaba la
+  constante que estaba comprobando, así que el valor esperado se movía con el defecto — una
+  tautología; (2) aun derivando bien, `toHaveTextContent` de jest-dom compara por SUBSTRING, y
+  `"mailto:hello@ejemplo.com"` contiene `"hello@ejemplo.com"`, así que la aserción habría pasado
+  igualmente.
+- **Regla:** el valor esperado de un test se deriva de la MISMA fuente que el código, nunca del
+  artefacto que el código produce. Si la producción consume `CONSTANTE`, el test recalcula el
+  valor desde el origen (`links.email`) — así el test y el código pueden discrepar, que es lo
+  único que hace útil al test. Y para "el texto es exactamente esto" se asevera
+  `expect(el.textContent?.trim()).toBe(...)`, no `toHaveTextContent`, que solo sirve para "el
+  texto CONTIENE esto".
+- **Corolario del ciclo de bug inyectado (regla 34):** el sabotaje tiene que atacar la pieza
+  COMPARTIDA, no solo el consumidor. Romper el render habría puesto el test en rojo y habría dado
+  una falsa sensación de cobertura; romper la constante fue lo que destapó las dos tautologías.
