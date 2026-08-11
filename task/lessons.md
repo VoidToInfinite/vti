@@ -1,5 +1,44 @@
 # Lecciones
 
+## 2026-08-11 (Task 31) — Un hallazgo "no rompía nada hoy" puede romper algo mañana, en OTRA tarea
+
+- **Qué pasó:** la entrada del 2026-08-11 de más abajo (Task 9) ya documentaba que
+  `next/script strategy="beforeInteractive"` bajo `output: "export"` corre como chunk ASÍNCRONO
+  (109-208 ms tras la navegación), no como `<script>` bloqueante en `<head>`. En su momento no
+  producía CLS observable: el `<h1>` del hero arrancaba a `opacity: 0` (escalonado de entrada
+  gateado a la fase "chrome"), así que nada visible reflowaba cuando `data-theme` llegaba tarde.
+  Se declaró el hallazgo, se midió CLS = 0 y se cerró la tarea de buena fe. Task 10 (otra tarea,
+  mismo día) hizo ese `<h1>` visible DESDE el primer pintado — palanca de LCP legítima, sin tocar
+  nada de Task 9 — y con eso, la llegada tardía del atributo pasó a reflotar contenido YA PINTADO
+  (el factor `vw` del título + 4 variables de alineación). El CLS 0,0799 de la baseline reapareció
+  en todo camino que resolviera a tema oscuro. Lo detectó el gate de integración (F2), no ninguna
+  de las dos tareas por separado.
+- **Por qué ninguna de las dos tareas lo pudo ver sola:** Task 9 verificó CLS = 0 con el `<h1>`
+  invisible (correcto para el código que existía entonces). Task 10 re-midió CLS solo en sus
+  propios escenarios CLAROS (el tema por defecto, el que no depende de que un script tardío
+  corrija nada) — nunca ejercitó el camino oscuro, que es donde vivía la interacción. Cada tarea
+  hizo su verificación honesta y completa DENTRO de su propio alcance; el defecto vivía en la
+  INTERSECCIÓN de los dos alcances, invisible desde cualquiera de los dos por separado.
+- **El arreglo, y por qué es el correcto:** no revertir Task 10 (el LCP ganado es real y grande,
+  −85 % en escritorio) ni parchear Task 9 con un truco (p. ej. retrasar el reveal del `<h1>` de
+  nuevo). Se ataca la CAUSA RAÍZ que Task 9 ya había identificado pero no necesitaba resolver en su
+  momento: sustituir `next/script beforeInteractive` por un `<script>` LITERAL dentro de un
+  `<head>` explícito en el layout raíz — el patrón CANÓNICO que la propia documentación de Next.js
+  reserva para exactamente este caso (`docs/01-app/02-guides/preventing-flash-before-hydration.mdx`,
+  confirmado vía context7 antes de escribir una sola línea, no de memoria). Verificado leyendo
+  `out/index.html`: el script ahora es un `<script>` ejecutable dentro de `<head>`, no
+  `self.__next_s` dentro de `<body>`.
+- **Regla:** un hallazgo de "esto no importa porque X" (aquí, "el atributo llega tarde pero no
+  importa porque el elemento es invisible") es una afirmación sobre el ESTADO ACTUAL del código,
+  no una garantía permanente — la condición que lo hacía inofensivo (`opacity: 0`) puede
+  desaparecer en una tarea futura, ajena, que ni siquiera sabe que ese hallazgo existe. Cuando un
+  hallazgo así queda documentado pero sin resolver por no ser necesario en el momento, declararlo
+  como lo que es — una causa raíz aplazada, no cerrada — y con ello, un candidato explícito a
+  vigilar en el gate de integración de tareas relacionadas (aquí: "todo lo que cambie la
+  visibilidad inicial del hero" debería re-ejercitar el camino oscuro de Task 9). El gate de
+  integración entre tareas del mismo plan no es redundante con el gate de cada tarea individual:
+  cubre exactamente esta clase de defecto, invisible desde dentro de cualquiera de las dos.
+
 ## 2026-08-11 — Un candado de "el texto está presente" pasa en verde con la línea COMENTADA
 
 - **Qué pasó:** el candado de `viewportFit: "cover"` en `app/layout.tsx` (Task 13) leía el
