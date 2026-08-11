@@ -50,31 +50,56 @@ describe(
 );
 
 /*
- * Task 9 (anti-flash de tema): candado de FUENTE de que el script de
- * arranque está realmente cableado en app/layout.tsx, con la MISMA técnica
- * de node:fs que el bloque de arriba (RootLayout no se puede importar/
- * renderizar en Vitest, ver su docblock). El candado de que el script
- * TERMINA en el HTML exportado -- el requisito literal del brief -- es un
- * paso posterior a pnpm build (lee out/index.html), fuera del alcance de lo
- * que Vitest puede verificar sin depender de que exista un build previo.
+ * Task 9 (anti-flash de tema), MECANISMO DE ENTREGA rehecho en Task 31:
+ * candado de FUENTE de que el script de arranque está realmente cableado en
+ * app/layout.tsx, con la MISMA técnica de node:fs que el bloque de arriba
+ * (RootLayout no se puede importar/renderizar en Vitest, ver su docblock).
+ * El candado de que el script TERMINA en el HTML exportado -- el requisito
+ * literal del brief -- es un paso posterior a pnpm build (lee out/index.html,
+ * verificado como parte de la verificación en navegador de Task 31, no
+ * repetido aquí), fuera del alcance de lo que Vitest puede verificar sin
+ * depender de que exista un build previo.
+ *
+ * `next/script strategy="beforeInteractive"` (Task 9 original) se RETIRÓ en
+ * Task 31: verificado que, bajo `output: "export"`, no se sirve como
+ * `<script>` bloqueante en `<head>` -- corre como chunk asíncrono
+ * (109-208 ms tras la navegación, medido), lo bastante tarde para reflotar
+ * contenido ya visible tras Task 10 (el CLS 0,0799 de la baseline reaparecía
+ * en todo camino que resolviera a tema oscuro). El candado de abajo afirma
+ * el mecanismo NUEVO: un `<script>` LITERAL dentro de un `<head>` explícito
+ * -- el patrón canónico que la propia documentación de Next.js usa para
+ * "preventing flash before hydration" -- y que YA NO se use `next/script`.
  */
-describe("app/layout.tsx — anti-flash de tema (Task 9)", () => {
-  it("monta next/script beforeInteractive con el HTML de buildThemeBootstrapScript()", async () => {
+describe("app/layout.tsx — anti-flash de tema (Task 9, mecanismo Task 31)", () => {
+  it("monta un <script> literal dentro de <head>, con el HTML de buildThemeBootstrapScript()", async () => {
     const { readFileSync } = await import("node:fs");
     const { fileURLToPath } = await import("node:url");
     const { dirname, join } = await import("node:path");
     const here = dirname(fileURLToPath(import.meta.url));
     const source = readFileSync(join(here, "layout.tsx"), "utf-8");
 
-    expect(source).toContain('import Script from "next/script"');
+    expect(source).not.toContain('from "next/script"');
     expect(source).toContain(
       'import { buildThemeBootstrapScript } from "@/theme/resolveTheme"',
     );
 
-    const scriptTag = source.match(/<Script\b[\s\S]*?\/>/);
-    expect(scriptTag, "no se encontro <Script ... />").not.toBeNull();
+    const withoutComments = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    const headBlock = withoutComments.match(/<head>[\s\S]*?<\/head>/);
+    expect(
+      headBlock,
+      "no se encontró un <head>...</head> explícito",
+    ).not.toBeNull();
+
+    const scriptTag = headBlock?.[0].match(/<script\b[\s\S]*?\/>/);
+    expect(
+      scriptTag,
+      "no se encontró <script ... /> dentro de <head>",
+    ).not.toBeNull();
     expect(scriptTag?.[0]).toContain('id="theme-bootstrap"');
-    expect(scriptTag?.[0]).toContain('strategy="beforeInteractive"');
+    expect(scriptTag?.[0]).not.toContain("strategy=");
     expect(scriptTag?.[0]).toContain(
       "dangerouslySetInnerHTML={{ __html: buildThemeBootstrapScript() }}",
     );

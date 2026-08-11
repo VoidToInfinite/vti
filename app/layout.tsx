@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
-import Script from "next/script";
 import type { ReactElement, ReactNode } from "react";
 import { SITE } from "@/config/site";
 import { JsonLdScript } from "@/seo/JsonLdScript";
@@ -145,20 +144,49 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${fontBody.variable} ${fontMono.variable}`}
     >
-      <body>
+      <head>
         {/*
-         * Anti-flash de tema (Task 9). `strategy="beforeInteractive"` es la
-         * vía que Next.js documenta para scripts que tienen que correr ANTES
-         * de que React hidrate. Verificado leyendo `out/index.html` literal
-         * tras `pnpm build` (no asumido de la prosa de la documentación,
-         * pensada para SSR clásico): NO se sirve como `<script>` bloqueante
-         * dentro de `<head>` -- vive como `self.__next_s.push(...)`, un
-         * `<script>` síncrono normal pero como PRIMER hijo de `<body>`, que
-         * el propio runtime de Next (`app-bootstrap.ts`) ejecuta ANTES de
-         * hidratar, no necesariamente antes de cualquier pintado del HTML
-         * estático (detalle completo en `task/lessons.md`, 2026-08-11).
-         * Sigue funcionando bajo `output: "export"`: es HTML/JS plano en el
-         * fichero estático, no depende de ninguna ruta de servidor.
+         * Anti-flash de tema (Task 9, MECANISMO DE ENTREGA rehecho en Task
+         * 31). Un `<head>` explícito en el layout raíz es soportado por
+         * Next.js a propósito para justo este caso: la propia documentación
+         * oficial de Next ("Preventing flash before hydration",
+         * docs/01-app/02-guides/preventing-flash-before-hydration.mdx) usa
+         * EXACTAMENTE este patrón —`<head><script dangerouslySetInnerHTML=
+         * {{__html: "..."}} /></head>`— como el ejemplo canónico de anti-
+         * flash de tema. "No añadas `<head>` a mano" (la advertencia general
+         * de la guía de metadata) es sobre `<title>`/`<meta>`, que SÍ cubre
+         * la Metadata API; un `<script>` de arranque no lo cubre ("Unsupported
+         * Metadata" de esa misma guía lo lista explícitamente), así que aquí
+         * SÍ es la vía correcta -- Next fusiona este `<head>` con el que
+         * genera a partir de `metadata`/`viewport` (de arriba) en uno solo,
+         * verificado leyendo `out/index.html`: un único `<head>`, con
+         * `<title>`/`<meta>` Y este `<script>` dentro.
+         *
+         * POR QUÉ NO `next/script strategy="beforeInteractive"` (usado hasta
+         * Task 31, RETIRADO): verificado leyendo `out/index.html` literal
+         * tras `pnpm build` bajo `output: "export"` (no asumido de la prosa
+         * de la documentación, pensada para SSR clásico) -- NO se sirve como
+         * `<script>` bloqueante dentro de `<head>`. Vive como
+         * `self.__next_s.push(...)`, un `<script>` síncrono normal pero como
+         * PRIMER hijo de `<body>`, que el propio runtime de Next
+         * (`app-bootstrap.ts`) ejecuta como parte de un CHUNK ASÍNCRONO --
+         * medido en 109-208 ms tras la navegación, bastante después de
+         * `DOMContentLoaded` -- antes de hidratar, pero NO antes de que el
+         * navegador pinte el HTML estático (detalle en `task/lessons.md`,
+         * 2026-08-11). Con Task 9 sola esto no producía CLS observable
+         * porque el `<h1>` del hero arrancaba en `opacity: 0` (escalonado de
+         * entrada, gateado a la fase "chrome"): nada visible reflowaba
+         * cuando el atributo llegaba tarde. Task 10 hizo ese `<h1>` visible
+         * DESDE el primer pintado (candidato a LCP) -- y a partir de ahí, la
+         * llegada tardía de `data-theme` SÍ reflowaba contenido ya pintado
+         * (el factor `vw` del título y las 4 variables `-lg` de alineación,
+         * `GlobalStyles.tsx`): el CLS 0,0799 de la baseline REAPARECÍA en
+         * todo camino que resolviera a tema oscuro (Task 31, gate F2). Un
+         * `<script>` literal, síncrono, dentro de `<head>` no depende de
+         * ningún chunk JS: el propio parser HTML lo ejecuta en línea,
+         * bloqueando el resto del documento hasta terminar -- garantía real
+         * de "antes del primer pintado del `<body>`", no solo "antes de
+         * hidratar".
          *
          * `dangerouslySetInnerHTML` es deliberado y seguro, mismo criterio
          * que documenta `JsonLdScript.tsx`: `buildThemeBootstrapScript()`
@@ -179,17 +207,24 @@ export default function RootLayout({
          * las secciones que montan un componente hijo distinto por tema —
          * Story/Features/Journey/Contact, regla 6 de RULES.md) — este
          * script no sustituye la corrección post-montaje de ese proveedor,
-         * la hace invisible allí donde SÍ está cubierta.
+         * la hace invisible allí donde SÍ está cubierta. No hace falta
+         * `suppressHydrationWarning` en `<html>` (a diferencia del ejemplo
+         * oficial de Next, que sí declara `data-theme` por JSX): este layout
+         * NUNCA renderiza `data-theme` como prop de React, así que React no
+         * tiene ninguna expectativa sobre ese atributo durante la
+         * hidratación y no hay nada que silenciar — verificado sin
+         * warnings en consola tras el cambio (ver `task-31-report.md`).
          *
          * ALCANCE REAL, declarado explícitamente (no todo lo que cambia con
          * el tema queda cubierto pre-pintado):
          *   - CUBIERTO: `body { background-color; color }` y las 6
          *     variables CSS de geometría de Hero (`--hero-title-vw` y
          *     compañía, `GlobalStyles.tsx`) — las únicas propiedades que
-         *     cambian TAMAÑO/POSICIÓN entre temas y que, sin este
-         *     mecanismo, causaban el CLS 0,0799 medido (baseline spec 3.1;
-         *     ahora 0, verificado con PerformanceObserver en navegador
-         *     real, ver `task-9-report.md`).
+         *     cambian TAMAÑO/POSICIÓN entre temas. Con la entrega de Task
+         *     31, cubierto de verdad ANTES del primer pintado en los 5
+         *     caminos de resolución medidos (storage/prefers × control),
+         *     no solo cuando el contenido protegido resultaba invisible por
+         *     casualidad.
          *   - NO CUBIERTO, y verificado que NO hace falta cubrirlo:
          *     `HeroBackdrop.tsx` elige Aura (claro) vs Eye (oscuro) por
          *     `themeName` de React, que arranca en "light" y se corrige
@@ -202,23 +237,23 @@ export default function RootLayout({
          *     oscuro sin storage): la opacidad máxima observada de las
          *     capas de Aura fue **0** en TODAS las muestras — nunca llega a
          *     pintarse.
-         *   - NO CUBIERTO y ACEPTADO como límite de esta tarea:
-         *     Story/Features/Journey/Contact siguen montando su rama CLARA
-         *     hasta que `ThemeProvider` corrige tras hidratar. No
-         *     contribuyen al CLS medido (están fuera del viewport en el
-         *     instante del shift, scroll 0), pero un visitante que
-         *     scrollee de inmediato podría ver un instante de rama clara.
-         *     Cerrarlo del todo exigiría o bien tolerar un mismatch de
-         *     hidratación estructural (descartado, ver arriba) o bien un
-         *     rediseño de "doble render + reveal por CSS" que excede el
-         *     alcance de Task 9 — candidato a una tarea futura, no un hueco
-         *     silencioso.
+         *   - NO CUBIERTO y ACEPTADO como límite: Story/Features/Journey/
+         *     Contact siguen montando su rama CLARA hasta que
+         *     `ThemeProvider` corrige tras hidratar. No contribuyen al CLS
+         *     medido (están fuera del viewport en el instante del shift,
+         *     scroll 0), pero un visitante que scrollee de inmediato podría
+         *     ver un instante de rama clara. Cerrarlo del todo exigiría o
+         *     bien tolerar un mismatch de hidratación estructural
+         *     (descartado, ver arriba) o bien un rediseño de "doble render
+         *     + reveal por CSS" que excede el alcance de esta tarea —
+         *     candidato a una tarea futura, no un hueco silencioso.
          */}
-        <Script
+        <script
           id="theme-bootstrap"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: buildThemeBootstrapScript() }}
         />
+      </head>
+      <body>
         {/* Datos estructurados de sitio, una sola vez para todas las rutas.
             La `WebPage` concreta la declara cada página legal en su propio
             `page.tsx`. */}
