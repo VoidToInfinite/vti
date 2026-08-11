@@ -178,4 +178,65 @@ describe("HomeSections", () => {
       }
     });
   });
+
+  /*
+   * Task 16 (unificacion parte 2, 2026-08-11): el mismo candado de paridad,
+   * ahora sobre Journey y Contacto. Dos mitades distintas:
+   *
+   * - TEXTO: los seis ordinales de Journey ("01".."06", que hasta hoy solo
+   *   existian en la rama clara) y toda la copia del bloque de contacto.
+   * - SALIDAS Y CONTROLES: que en las DOS ramas haya un `<form>` con un
+   *   campo de correo real y enlaces a Discord y GitHub. Esta mitad es la
+   *   que de verdad cierra el hallazgo #1 de la critica del 2026-08-11 --
+   *   la rama clara tenia el texto "correo" por todas partes y ni un solo
+   *   control con el que escribirlo.
+   */
+  it("Task 16: los ordinales de Journey y el formulario + salidas de Contacto existen en los DOS temas", async () => {
+    const ordinales = ["01", "02", "03", "04", "05", "06"];
+    const textos = [
+      ...ordinales,
+      esHome.Home.journey.steps.discover.label,
+      esHome.Home.journey.steps.evolve.label,
+      esHome.Home.contact.form.label,
+      esHome.Home.contact.form.submit,
+      esHome.Home.contact.cards.community.title,
+      esHome.Home.contact.cards.code.title,
+    ];
+
+    function comprobar(container: HTMLElement, rama: string): void {
+      for (const texto of textos) {
+        expect(container.textContent, `falta en ${rama}: ${texto}`).toContain(
+          texto,
+        );
+      }
+      const form = container.querySelector("form");
+      expect(form, `sin <form> en ${rama}`).not.toBeNull();
+      expect(
+        form?.querySelector('input[type="email"]'),
+        `sin campo de correo real en ${rama}`,
+      ).not.toBeNull();
+      expect(
+        container.querySelector('a[href*="discord"]'),
+        `sin salida a Discord en ${rama}`,
+      ).not.toBeNull();
+      expect(
+        container.querySelector('a[href*="github"]'),
+        `sin salida a GitHub en ${rama}`,
+      ).not.toBeNull();
+    }
+
+    const claro = renderWithProviders(<HomeSections />);
+    comprobar(claro.container, "CLARO");
+    claro.unmount();
+
+    window.localStorage.setItem("vti-theme", "dark");
+    const oscuro = renderWithProviders(<HomeSections />);
+    await waitFor(() => {
+      expect(
+        oscuro.container.querySelectorAll("[data-slide-index]").length,
+        "el arbol oscuro no llego a montarse",
+      ).toBeGreaterThan(0);
+      comprobar(oscuro.container, "OSCURO");
+    });
+  });
 });

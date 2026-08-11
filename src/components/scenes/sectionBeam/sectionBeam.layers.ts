@@ -11,7 +11,8 @@
  * `.06`, `.17`) no coinciden con ningún paso de la rampa, y una parada mezcla
  * el hue `235.851` del primario. Sustituirlos cambiaría el arte; derivarlos
  * con `color-mix` introduciría un valor que el mockup no pidió. Mismo
- * criterio que `contact.layers.ts:1-27` y `CONTACT_CTA_HOVER_SHADOW`.
+ * criterio que la cabecera de `contact.layers.ts` y que sus literales de
+ * composición (`CONTACT_RING_HALO_GRADIENT`, `CONTACT_FIGURE_SHADOW`…).
  *
  * El componente es compartido entre Contacto y el Footer (D7): el mockup usa
  * un retardo de dibujado y de barrido ligeramente distinto entre sus dos

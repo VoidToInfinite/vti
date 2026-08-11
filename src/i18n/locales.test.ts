@@ -227,6 +227,16 @@ describe("locales", () => {
    *   tarjeta, que en las dos lenguas repetia el titulo de la propia tarjeta
    *   en otra forma ("Aprendizaje" sobre "Aprende", "Learn" sobre
    *   "Learning").
+   * - `Home.contact.email` (Task 16, 2026-08-11): la direccion escrita a
+   *   mano dentro del chip de la rama clara. Era la MISMA direccion que
+   *   `links.email` (`src/config/links.ts`), duplicada como texto
+   *   traducible: un dato de contacto no es copia. Hoy la direccion se
+   *   muestra una sola vez, en el panel que revela un envio valido, y sale
+   *   de `links.email`.
+   * - `Home.contact.cta` / `ctaAria` (Task 16): el ancla "Contactar por
+   *   correo" que acompanaba al chip. Abria el mismo `mailto:` que el boton
+   *   de envio del formulario, que desde esta tarea existe en las dos
+   *   ramas: una segunda salida al mismo destino, presente en un solo tema.
    */
   describe("claves retiradas", () => {
     it.each(
@@ -241,6 +251,9 @@ describe("locales", () => {
           "Home.features.learning.badge",
           "Home.features.imagination.badge",
           "Home.features.gaming.badge",
+          "Home.contact.email",
+          "Home.contact.cta",
+          "Home.contact.ctaAria",
         ].map((path) => ({
           lang,
           home,

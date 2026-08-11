@@ -1602,3 +1602,27 @@
 - **Regla:** copia el fichero al scratchpad, `git checkout HEAD -- <fichero>`, reaplica SOLO el
   trozo del primer tema, commitea, y restaura la copia completa desde el scratchpad para el commit
   siguiente. Verifica con `git diff -- <fichero>` que lo que queda es exactamente el otro tema.
+
+## 2026-08-11 — Un detector de recorte no distingue arte de texto, y una imagen `lazy` sin cargar le cambia la cifra
+
+- **Qué pasó:** el gate F2 reportó `ScCard` (rama clara de Contacto) como el único recorte de
+  TEXTO real de la página: `scrollHeight` 422 contra `clientHeight` 364 a 1280×900, «58 px, ~14 %
+  del bloque h2 + párrafo + formulario». Medido en navegador, ni un glifo estaba fuera: el h2
+  ocupaba 103-140 y el párrafo 140-191 dentro de una caja de contenido de 32 a 332. Los 58 px eran
+  `ScRingHalo`, un disco decorativo de 480 px que el `overflow: hidden` recorta a propósito desde
+  el mockup. Y la cifra 422 solo aparece ANTES de que cargue la figura (`loading="lazy"`): con la
+  imagen dentro, el desbordamiento sube a 533, que es el borde inferior de la figura de 560 px.
+- **Por qué:** `scrollHeight` es una propiedad del CONTENEDOR, no de cada hijo. Si el contenedor
+  mezcla arte que desborda por diseño con texto que no desborda, la diferencia
+  `scrollHeight − clientHeight` no dice de quién es el desbordamiento; atribuirla al texto porque
+  el texto también está dentro es una inferencia, no una medida.
+- **Regla:** ante un informe de "recorte de contenido", antes de cambiar nada, mide la caja de
+  CADA hijo con texto (`getBoundingClientRect`, en coordenadas relativas al contenedor) y
+  compárala con la caja de contenido del padre. Y hazlo con la pestaña visible y las imágenes ya
+  cargadas: una `img` con `loading="lazy"` sin cargar mide 0 px de ancho y desaparece del cálculo,
+  así que la misma página da dos cifras distintas según cuándo se mire.
+- **Corolario:** la cifra de un detector automático puede ser correcta y su lectura, falsa. Se
+  reproduce primero, se explica después; y si resulta ser arte, el arreglo es documentar la
+  medición y dejar un candado sobre la CONDICIÓN que sí sería un fallo (que la tarjeta fije
+  altura, o que la columna de texto recorte por su cuenta), porque jsdom no hace layout y no
+  puede atar la medición en sí.

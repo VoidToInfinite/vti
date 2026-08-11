@@ -10,6 +10,7 @@ import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { PRESS } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
+import type { ThemeDefinition } from "@/theme/theme.types";
 import { links } from "@/config/links";
 import { ContactCosmicGuardian } from "@/components/scenes/contactCosmicGuardian/ContactCosmicGuardian";
 import { CONTACT_GUARDIAN_VOID } from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
@@ -19,11 +20,9 @@ import {
   CONTACT_CARD_BORDER,
   CONTACT_CARD_BORDER_DARK,
   CONTACT_CARD_GRADIENT,
-  CONTACT_CHIP_BG_LIGHT,
   CONTACT_CONTENT_MAX_WIDTH,
   CONTACT_CONTENT_PAIR_MAX,
   CONTACT_CONTENT_PAIR_MAX_VW,
-  CONTACT_CTA_HOVER_SHADOW,
   CONTACT_DARK_HEIGHT,
   CONTACT_FIGURE_FLOAT_MS,
   CONTACT_FIGURE_HEIGHT,
@@ -35,6 +34,7 @@ import {
   CONTACT_FORM_BG,
   CONTACT_FORM_BORDER,
   CONTACT_OVERLAY_RISE,
+  CONTACT_PANEL_BG_LIGHT,
   CONTACT_RING_A_BORDER,
   CONTACT_RING_A_RIGHT,
   CONTACT_RING_A_SIZE,
@@ -57,11 +57,29 @@ import {
 
 /*
  * Última sección. Rama CLARA (spec §7.4, mockup `#contact` L212-238):
- * tarjeta con degradado pastel, chip de email + CTA a la izquierda, figura
- * que saluda con anillos concéntricos decorativos a la derecha en ≥ md.
- * `Socials` NO vive aquí (spec §7.5: se muda al footer, que la reutiliza tal
- * cual con los enlaces reales del repo). Objetivo 1/2 (encargo 2026-08-04):
- * gana `min-height: 100dvh` con centrado vertical (ver `ScContact`, más
+ * tarjeta con degradado pastel, contenido a la izquierda, figura que saluda
+ * con anillos concéntricos decorativos a la derecha en ≥ md. `Socials` NO
+ * vive aquí (spec §7.5: se muda al footer, que la reutiliza tal cual con los
+ * enlaces reales del repo).
+ *
+ * QUÉ HAY DENTRO DE ESA TARJETA, y por qué cambió (Task 16, unificación de
+ * contenido parte 2, 2026-08-11): h2 + cuerpo + el MISMO formulario y las
+ * MISMAS dos tarjetas de salida (Discord, GitHub) que la rama oscura --
+ * `contactChannels` en `Contact()`, un único árbol de JSX que las dos ramas
+ * montan tal cual. Hasta hoy esta rama pintaba en su lugar un chip de correo
+ * + un CTA a `mailto:`, y el chip era el hallazgo #1 de una crítica
+ * independiente (2026-08-11): un `<div>` con borde, icono de sobre y la
+ * dirección dentro, colocado exactamente donde va un campo de captura y
+ * junto a un botón relleno -- se leía como formulario y no lo era (sin
+ * cursor de texto, sin foco, sin feedback), en el punto de conversión del
+ * sitio. No era "la rama clara omite el formulario": era una imitación de
+ * uno. El chip se retira entero; el CTA se retira con él porque el botón de
+ * envío del formulario abre el MISMO `mailto:` (una salida duplicada al
+ * mismo destino, presente en un solo tema, es contenido redundante -- mismo
+ * criterio de la Task 15 al retirar una etiqueta que repetía su propio
+ * título).
+ *
+ * Objetivo 1/2 (encargo 2026-08-04): centrado vertical (ver `ScContact`, más
  * abajo -- `flex-direction: column`, NO `row` el defecto de `flex`: con un
  * único hijo, `ScCard`, la dirección columna deja el eje cruzado horizontal
  * con `align-items` en su valor por defecto `stretch`, que es lo que
@@ -70,7 +88,11 @@ import {
  * contenedor -- una regresión de layout, no solo de movimiento) y un
  * parallax sutil de la figura/anillos ligado a `--contact-progress`
  * (`useSectionProgress`, ver `ScFigureWrap`/`ScRings` y `Contact()`) -- hasta
- * esta entrega no tenía ni un movimiento ligado a scroll.
+ * aquella entrega no tenía ni un movimiento ligado a scroll. El
+ * `min-height` que acompañaba a ese centrado vale `50dvh` y NO `100dvh`
+ * (este docblock afirmó `100dvh` durante tres días: ver el comentario del
+ * propio `min-height` en `ScContact` para la historia y la medición que
+ * cierra la discrepancia).
  *
  * Rama OSCURA (reescrita 2026-08-03, spec
  * `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`,
@@ -129,6 +151,23 @@ import {
 const CONTACT_FIGURE_PARALLAX_PX = 28;
 const CONTACT_RINGS_PARALLAX_PX = 14;
 
+/**
+ * Medida máxima de la columna de copia + canales, LA MISMA en las dos ramas
+ * (Task 16, 2026-08-11). Era un literal `440px` dentro de `ScDarkCopy`
+ * cuando solo una rama montaba el formulario; al montarlo también la clara,
+ * el mismo número pasa a gobernar dos piezas y deja de poder vivir escrito a
+ * mano en una de ellas (regla 13 de RULES.md: un valor idéntico repetido en
+ * dos sitios es una constante, no dos literales; aquí las dos piezas viven
+ * en el MISMO fichero, así que la constante local basta -- no hace falta
+ * subirla a los tokens de tema).
+ *
+ * No entra en `contact.layers.ts`: ese fichero documenta en su cabecera que
+ * solo contiene arte VERBATIM del mockup, y este tope es una decisión de
+ * layout de esta entrega, igual que las dos amplitudes de parallax de
+ * arriba.
+ */
+const CONTACT_COPY_MAX = "440px";
+
 const ScContact = styled.section<{ $fullBleed: boolean }>`
   ${({ $fullBleed, theme }) =>
     $fullBleed
@@ -148,8 +187,27 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
           padding: ${theme.data.space[9]} ${theme.data.space[5]};
           max-width: ${theme.data.grid.containerMax};
           margin-inline: auto;
-          /* min-height, no height exacto (ver el docblock del componente,
-             arriba, para el razonamiento completo). flex-direction: column,
+          /* min-height 50dvh, NO 100dvh. Discrepancia resuelta en la Task 16
+             (2026-08-11) MIDIENDO en navegador real (build de produccion
+             servido, tema claro, seccion #contact):
+
+               viewport   min-height 50dvh   alto real de la seccion
+               1280x600        300px                 754px
+               1280x900        450px                 754px
+               1280x1400       700px                 754px
+
+             La seccion mide 754px en los tres (tarjeta 562 + 96 de relleno
+             arriba y abajo), asi que el 50dvh no llega a atarla NUNCA: quien
+             decide la altura es el contenido. Forzando 100dvh en el mismo
+             navegador y viewport (1280x1400) la seccion pasa a 1400px con
+             419px de hueco vacio por arriba y otros 419 por abajo -- una
+             banda muerta alrededor de la tarjeta, no un centrado.
+
+             El valor lo cambio el dueno a mano el 2026-08-08 (commit 7a2d2ac,
+             "ajustes visuales del usuario") y quedo pendiente de decidir; el
+             docblock del componente siguio diciendo 100dvh tres dias. Se
+             confirma el codigo y se corrige el texto, que es lo que estaba
+             mal. flex-direction: column,
              no row (el defecto de flex): con un unico hijo y direccion
              columna, el eje principal queda vertical -- justify-content
              centra ahi -- y el eje cruzado (horizontal) mantiene su
@@ -179,6 +237,37 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
  * `eye.parts.tsx`). El reveal (opacity/translateY) vive en ESTE elemento:
  * una sola unidad de entrada para toda la tarjeta, igual que `ScContent` en
  * `Story.tsx`.
+ *
+ * QUÉ RECORTA ESE `overflow`, medido (Task 16, 2026-08-11): un detector
+ * automático del gate F2 reportó esta tarjeta como el ÚNICO recorte de texto
+ * real de la página -- `scrollHeight` 422 contra `clientHeight` 364 a
+ * 1280×900, 58px atribuidos a "h2 + párrafo". Reproducido en navegador y
+ * NO es texto:
+ *
+ * - 364 = los 300px de `min-height` de `ScFigureWrap` + los 32px de relleno
+ *   de cada lado. El contenido de texto de la columna izquierda medía 160px
+ *   (h2 en 103-140, párrafo en 140-191, todos DENTRO de la caja de contenido
+ *   32-332). Ni un glifo fuera.
+ * - 422 = el borde inferior de `ScRingHalo`, el disco de 480px del arte
+ *   (423 exactos), medido ANTES de que cargara la figura (`loading="lazy"`);
+ *   con la figura ya cargada el `scrollHeight` sube a 533, que es su propio
+ *   borde inferior (560px de alto arrancando en -26). Los dos son arte que
+ *   el mockup recorta a propósito.
+ * - El detector midió el contenedor que TAMBIÉN lleva el texto y le atribuyó
+ *   el desbordamiento del arte. La cifra era correcta; la lectura, no.
+ *
+ * Tras montar el formulario en esta rama (Task 16) la tarjeta crece a
+ * `clientHeight` 560 con `scrollHeight` 567 a 1280×720/900: los 7px que
+ * sobran son `ScRings`, desplazado por su propio parallax de scroll. El
+ * texto más bajo termina en 514, catorce píxeles por encima del borde
+ * interior.
+ *
+ * CANDADO (`Contact.test.tsx`, describe "Task 16 ... recorte"): jsdom no
+ * hace layout, así que no puede comparar alturas -- lo que sí puede atar es
+ * la condición que haría posible un recorte de texto de verdad. La tarjeta
+ * no declara `height` ni `max-height` (crece con su contenido) y la columna
+ * de texto (`ScLeft`) no declara ningún `overflow` propio: con esas dos, el
+ * único recorte posible es el del arte que desborda a propósito.
  *
  * Duración/easing (D7, encargo 2026-08-04): `slower` + `decelerate`, no
  * `slow` + `emphasized` -- mismo criterio de unificación que `ScItem`/
@@ -286,120 +375,35 @@ const ScBody = styled(Typography)`
   text-wrap-style: balance;
 `;
 
-const ScRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${({ theme }) => theme.data.space[3]};
-  margin-block-start: ${({ theme }) => theme.data.space[5]};
-`;
-
-/* Chip de email (mockup L219-222): fondo translúcido bespoke
-   (`CONTACT_CHIP_BG_LIGHT`, D10), borde `semantic.border` (rol existente).
-   El fondo ya no se elige con un ternario contra `theme.data.isLight`: este
-   chip solo se monta dentro de `chipAndCta`, que solo vive en el return de
-   la rama CLARA desde que la oscura pasó a tarjetas + formulario
-   (2026-08-03, D12/D14), así que la rama oscura del ternario era
-   inalcanzable -- ver el docblock de la constante en `contact.layers.ts`. */
-const ScChip = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.data.space[2]};
-  min-width: 280px;
-  height: 48px;
-  padding-inline: ${({ theme }) => theme.data.space[4]};
-  border-radius: ${({ theme }) => theme.data.radius.lg};
-  border: 1px solid ${({ theme }) => theme.data.semantic.border};
-  background: ${CONTACT_CHIP_BG_LIGHT};
-  color: ${({ theme }) => theme.data.semantic.textMuted};
-  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
-`;
-
-/* GlobalStyles fuerza `svg { width: 100% }` (spec 5.1/lección Logo): la
-   regla de este componente gana la cascada por especificidad de clase, así
-   que el icono SÍ mide 16px en vez de estirarse al 100% del chip. */
-const ScChipIcon = styled.svg`
-  flex: none;
-  width: 16px;
-  height: 16px;
-`;
-
 /*
- * CTA (mockup L223): anchor propio, NO un `styled(Button)`. La lección de
- * `task/lessons.md` (2026-07-26, "`background: valor` en :hover resetea
- * background-image") documenta que la variante `solid` de `Button.tsx`
- * declara `&:hover:not(:disabled) { background: color-mix(...) }` — la
- * propiedad ABREVIADA, que resetearía este degradado de fondo en cuanto se
- * compusiera encima. Un anchor propio evita el conflicto por completo en
- * vez de tener que reafirmar la sub-propiedad con el mismo selector: cero
- * herencia de un hover que este CTA no quiere.
+ * Ranura de la rama CLARA para el bloque de canales compartido (`ScForm` +
+ * las dos `ScCardLink`, ver `contactChannels` en `Contact()`). Task 16,
+ * 2026-08-11.
  *
- * Degradado con los tokens de paleta (`primary[600]`/`secondary[600]`), NO
- * un literal: el mockup referencia `var(--primary-600)`/`var(--secondary-600)`
- * de su propio design system, que resuelven exactamente a esos roles en el
- * nuestro (ver el mapeo documentado en `contact.layers.ts`).
+ * AQUI VIVIERON `ScRow`, `ScChip`, `ScChipIcon` y `ScCta`: la fila con el
+ * chip de correo (un `<div>` con borde, icono de sobre y la direccion
+ * dentro, colocado donde va un campo de captura -- hallazgo #1 de la
+ * critica independiente del 2026-08-11) y el ancla a `mailto:` que lo
+ * acompanaba. Los cuatro se retiran enteros: el chip porque simulaba un
+ * campo que no existia, el CTA porque el boton de envio del formulario
+ * abre el MISMO `mailto:` y una salida duplicada al mismo destino en una
+ * sola rama es divergencia de contenido, no arte. Con ellos se fueron
+ * `CONTACT_CTA_HOVER_SHADOW` (sin consumidor) y el nombre
+ * `CONTACT_CHIP_BG_LIGHT`, renombrado a `CONTACT_PANEL_BG_LIGHT` porque su
+ * valor lo hereda la superficie translucida de los paneles reales
+ * (contact.layers.ts).
  *
- * Transición limitada a transform/box-shadow/filter (spec §7.4): el hover
- * NUNCA toca `background`, así que el degradado no se repite aquí.
- *
- * `:focus-visible` propio (D7, encargo 2026-08-04): mismo hallazgo y mismo
- * arreglo que `ScCta` en `Features.tsx` -- hasta esta entrega este CTA de
- * sección solo tenía `:hover`/`:active`. Se compone con el `:hover` en vez
- * de sustituirlo (`box-shadow` se ACUMULA con el de hover si el foco y el
- * puntero coinciden, ninguno de los dos usa la propiedad abreviada), y
- * resuelve contra `semantic.focus` -- mismo token que el anillo GLOBAL
- * (`GlobalStyles.tsx`) y que el `focusHalo` de `Button.tsx`, para que los
- * tres mecanismos lean del mismo rol en los dos temas.
+ * Solo aporta el hueco vertical y la MEDIDA: `margin-block-start` es el que
+ * llevaba `ScRow` (space[5], sin cambio de ritmo respecto a lo que habia),
+ * y `max-width` es `CONTACT_COPY_MAX` -- el mismo tope que la columna de
+ * copia de la rama oscura (`ScDarkCopy`), para que el formulario mida lo
+ * mismo en los dos temas en vez de estirarse a los ~660px de la columna
+ * izquierda de la tarjeta clara. Nada de fondo/borde propios: los pone cada
+ * pieza del bloque compartido, que ya resuelve por rama.
  */
-const ScCta = styled.a`
-  display: inline-flex;
-  align-items: center;
-  height: 48px;
-  padding-inline: ${({ theme }) => theme.data.space[6]};
-  border-radius: ${({ theme }) => theme.data.radius.lg};
-  background-image: linear-gradient(
-    100deg,
-    ${({ theme }) => theme.data.palette.primary[600]},
-    ${({ theme }) => theme.data.palette.secondary[600]}
-  );
-  color: ${({ theme }) => theme.data.semantic.onBrand};
-  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
-  font-weight: 600;
-  transition:
-    transform ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    box-shadow ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    filter ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard};
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px ${CONTACT_CTA_HOVER_SHADOW};
-    filter: brightness(1.05);
-  }
-  &:active {
-    transform: scale(0.98);
-  }
-
-  /* focus-visible: ver el docblock de arriba. */
-  &:focus-visible {
-    box-shadow:
-      0 8px 24px ${CONTACT_CTA_HOVER_SHADOW},
-      0 0 0 4px
-        color-mix(
-          in oklch,
-          ${({ theme }) => theme.data.semantic.focus} 35%,
-          transparent
-        );
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover,
-    &:active {
-      transform: none;
-    }
-  }
+const ScLightChannels = styled.div`
+  margin-block-start: ${({ theme }) => theme.data.space[5]};
+  max-width: ${CONTACT_COPY_MAX};
 `;
 
 /* Anillos concéntricos + figura (mockup L226-236): solo ≥ md, como la
@@ -649,11 +653,13 @@ const ScDarkFrame = styled.div`
 `;
 
 /*
- * Fila de dos columnas del contenido oscuro (mockup L55): copia a la
- * izquierda (`ScDarkCopy`) y tarjeta de formulario a la derecha
- * (`ScFormCard`), envolviendo a una columna por debajo del ancho mínimo de
- * sus hijos (`flex-wrap`, sin punto de corte propio -- el `flex-basis` de
- * cada hijo ya decide cuándo baja). PIERDE `max-width: prose` y su `padding`
+ * Fila del contenido oscuro (mockup L55). Nació como fila de DOS columnas
+ * -- copia a la izquierda, tarjeta de formulario a la derecha -- y desde el
+ * reordenado del 2026-08-04 tiene un único hijo, `ScDarkCopy`, con el
+ * formulario ya dentro de él; el `flex-wrap` (sin punto de corte propio: el
+ * `flex-basis` del hijo decide cuándo baja) se conserva porque sigue
+ * describiendo bien el caso de un solo hijo que se estrecha. PIERDE
+ * `max-width: prose` y su `padding`
  * (ahora los lleva `ScDarkFrame`, arriba) y su `position: relative;
  * z-index: 1` (ahora los lleva el frame, que es quien compite por celda de
  * grid con `ScDarkSceneSlot`) -- mismo criterio que documenta `ScDarkContent`
@@ -729,7 +735,7 @@ const ScDarkContent = styled.div`
    +407px de Features), así que no necesita el mismo grado de agresividad. */
 const ScDarkCopy = styled.div`
   flex: 1 1 320px;
-  max-width: 440px;
+  max-width: ${CONTACT_COPY_MAX};
   display: flex;
   flex-direction: column;
   gap: clamp(0.75rem, 2vw, ${({ theme }) => theme.data.space[4]});
@@ -752,12 +758,62 @@ const ScCards = styled.div`
   gap: clamp(0.5rem, 1.5vw, ${({ theme }) => theme.data.space[3]});
 `;
 
+/**
+ * Superficie translúcida de los paneles del bloque de canales
+ * (`ScForm`/`ScCardLink`), resuelta POR RAMA (Task 16, 2026-08-11): el
+ * bloque es el mismo en los dos temas, pero se apoya sobre fondos opuestos
+ * -- la escena casi negra de `ContactCosmicGuardian` en oscuro, el degradado
+ * pastel de `ScCard` en claro -- y un blanco al 4-5 % sobre pastel es
+ * literalmente invisible.
+ *
+ * Los tres valores ya existían en `contact.layers.ts` y ninguno se inventa
+ * aquí: `CONTACT_FORM_BG`/`CONTACT_CARD_BG_DARK` (blanco translúcido sobre
+ * la escena, alfas .04/.05 verbatim del mockup) y `CONTACT_PANEL_BG_LIGHT`
+ * (blanco al 82 %, el que hasta hoy pintaba el chip de la rama clara). Mismo
+ * mecanismo que `accentColor()` en `Features.tsx`: la bifurcación vive en
+ * una función que lee `theme.isLight`, no en un ternario repetido dentro de
+ * cada template.
+ */
+function panelBackground(theme: ThemeDefinition, darkValue: string): string {
+  return theme.isLight ? CONTACT_PANEL_BG_LIGHT : darkValue;
+}
+
+/**
+ * Borde de esos mismos paneles, por rama. En oscuro, los literales del
+ * mockup (blanco al 12 %); en claro, `CONTACT_CARD_BORDER` -- el MISMO borde
+ * lavanda que ya dibuja el contorno de `ScCard`, para que un panel dentro de
+ * la tarjeta y la tarjeta misma no tracen dos líneas distintas. No se usa
+ * `semantic.border` (el rol que llevaba el chip retirado): en claro es
+ * `neutral[100]`, casi indistinguible del blanco al 82 % del propio panel.
+ */
+function panelBorder(theme: ThemeDefinition, darkValue: string): string {
+  return theme.isLight ? CONTACT_CARD_BORDER : darkValue;
+}
+
+/**
+ * Acento de las tarjetas de canal (icono de trazo y borde de hover/foco),
+ * por rama. `secondary[400]` en oscuro es el valor de siempre; en claro ese
+ * paso (L 0.78) sobre un panel casi blanco sería un trazo lavado, así que
+ * baja a `secondary[700]` (L 0.53). Medido con `contrastRatio` sobre el
+ * panel real (blanco 82 % compuesto sobre las tres paradas de
+ * `CONTACT_CARD_GRADIENT`): 5.81:1-5.82:1, por encima de AA de texto normal
+ * y muy por encima del 3:1 que WCAG 1.4.11 pide a un elemento gráfico o a
+ * un indicador de foco. Cifras en `Contact.test.tsx`, describe "Task 16".
+ */
+function channelAccent(theme: ThemeDefinition): string {
+  return theme.isLight
+    ? theme.palette.secondary[700]
+    : theme.palette.secondary[400];
+}
+
 /*
  * Tarjeta de contacto (mockup L63-74, D14): `<a>` real con texto propio (no
  * un `<div>` con `onClick`) -- su nombre accesible sale del título + valor
- * visibles, sin `aria-label`. Fondo/borde VERBATIM del mockup
- * (`CONTACT_CARD_BG_DARK`/`CONTACT_CARD_BORDER_DARK`, D10/D18 -- no son
- * roles semánticos, literales de esta composición). El hover SOLO toca
+ * visibles, sin `aria-label`. Fondo/borde VERBATIM del mockup en la rama
+ * oscura (`CONTACT_CARD_BG_DARK`/`CONTACT_CARD_BORDER_DARK`, D10/D18 -- no
+ * son roles semánticos, literales de esta composición) y resueltos por rama
+ * desde la Task 16, que monta estas mismas tarjetas también en claro (ver
+ * `panelBackground`/`panelBorder`, arriba). El hover SOLO toca
  * `border-color`/`transform` (compositor + paint, nunca layout), con guard
  * `reduce` explícito.
  */
@@ -776,8 +832,10 @@ const ScCardLink = styled.a`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[3]};
-  background: ${CONTACT_CARD_BG_DARK};
-  border: 1px solid ${CONTACT_CARD_BORDER_DARK};
+  background: ${({ theme }) =>
+    panelBackground(theme.data, CONTACT_CARD_BG_DARK)};
+  border: 1px solid
+    ${({ theme }) => panelBorder(theme.data, CONTACT_CARD_BORDER_DARK)};
   border-radius: ${({ theme }) => theme.data.radius.xl};
   padding: ${({ theme }) => theme.data.space[3]}
     ${({ theme }) => theme.data.space[4]};
@@ -789,7 +847,7 @@ const ScCardLink = styled.a`
     transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:focus-visible {
-    border-color: ${({ theme }) => theme.data.palette.secondary[400]};
+    border-color: ${({ theme }) => channelAccent(theme.data)};
     transform: translateY(-1px);
   }
 
@@ -815,28 +873,39 @@ const ScCardLink = styled.a`
   }
 `;
 
-/* Icono de trazo de cada tarjeta (mockup L64/72, 24px). Mismo patrón que
-   `ScChipIcon` (arriba): GlobalStyles fuerza `svg { width: 100% }` para todo
-   el sitio, así que el tamaño se fija por CSS y no por atributo -- un
-   atributo `width`/`height` perdería la cascada (lección del repo,
-   `task/lessons.md`, 2026-07-26). `stroke` resuelve contra el token de tema,
-   no `currentColor`, siguiendo la misma vía que `ScCheckIcon` en
-   `Features.tsx`. */
+/* Icono de trazo de cada tarjeta (mockup L64/72, 24px). GlobalStyles fuerza
+   `svg { width: 100% }` para todo el sitio, así que el tamaño se fija por CSS
+   y no por atributo -- un atributo `width`/`height` perdería la cascada
+   (lección del repo, `task/lessons.md`, 2026-07-26; regla 20 de RULES.md).
+   `stroke` resuelve contra el token de tema, no `currentColor`, siguiendo la
+   misma vía que `ScCheckIcon` en `Features.tsx`, y por rama desde la Task 16
+   (`channelAccent`, arriba). */
 const ScCardIcon = styled.svg`
   flex: none;
   width: 24px;
   height: 24px;
-  stroke: ${({ theme }) => theme.data.palette.secondary[400]};
+  stroke: ${({ theme }) => channelAccent(theme.data)};
 `;
 
 /* Título/valor de cada tarjeta (mockup L65): tamaños propios de esta
    composición, fuera de la escala tipográfica (`.9rem`/`.85rem` no
-   coinciden con ningún paso de `type.scale`). */
+   coinciden con ningún paso de `type.scale`).
+
+   El título es TEXTO, así que su color no puede seguir a `channelAccent`
+   sin más: en oscuro conserva su `secondary[300]` de siempre (el paso claro
+   que el mockup pide sobre la escena negra) y en claro toma el mismo
+   `secondary[700]` del icono, que es el que libra AA sobre el panel
+   translúcido (5.81:1, medido -- ver `channelAccent`). Un solo acento para
+   los dos roles habría dejado `secondary[300]` (L 0.86) como color de texto
+   sobre blanco en la rama clara: 1.3:1, ilegible. */
 const ScCardTitle = styled.span`
   display: block;
   font-size: 0.9rem;
   font-weight: 600;
-  color: ${({ theme }) => theme.data.palette.secondary[300]};
+  color: ${({ theme }) =>
+    theme.data.isLight
+      ? theme.data.palette.secondary[700]
+      : theme.data.palette.secondary[300]};
 `;
 
 const ScCardValue = styled.span`
@@ -844,23 +913,30 @@ const ScCardValue = styled.span`
   color: ${({ theme }) => theme.data.semantic.textMuted};
 `;
 
-/* Envoltura de la columna del formulario (mockup L86): solo reparte el
-   ancho flexible -- la tarjeta visual (fondo/borde/radio) vive en `ScForm`,
-   el propio `<form>`, no aquí. */
-const ScFormCard = styled.div`
-  flex: 1.3 1 220px;
-`;
+/*
+ * AQUI VIVIO `ScFormCard`, la envoltura de la columna del formulario (mockup
+ * L86, `flex: 1.3 1 220px`). Retirada en la Task 16 (2026-08-11): repartía
+ * el ancho flexible de una fila de dos columnas que ya no existe -- desde el
+ * reordenado del 2026-08-04 el formulario vive DENTRO de `ScCards`, un flex
+ * en COLUMNA, donde ese `flex-basis` dejó de describir un ancho y pasó a ser
+ * una altura base de 220px que el contenido desborda. Un envoltorio que ya
+ * no reparte nada, montado además ahora en las dos ramas, es ruido: el
+ * `<form>` va directo dentro de `ScCards`.
+ */
 
 /*
  * Tarjeta del formulario (mockup L87): fondo/borde propios de esta
  * composición (`CONTACT_FORM_BG`/`CONTACT_FORM_BORDER`, D10/D18), no roles
- * semánticos. Contiene un ÚNICO campo (D12) -- los campos Nombre/Asunto/
+ * semánticos, resueltos por rama desde la Task 16 (`panelBackground`/
+ * `panelBorder`, arriba -- el mismo formulario se monta ahora también en la
+ * rama clara). Contiene un ÚNICO campo (D12) -- los campos Nombre/Asunto/
  * Mensaje del mockup se descartan a propósito (D12: "es literalmente lo que
  * pide el encargo").
  */
 const ScForm = styled.form`
-  background: ${CONTACT_FORM_BG};
-  border: 1px solid ${CONTACT_FORM_BORDER};
+  background: ${({ theme }) => panelBackground(theme.data, CONTACT_FORM_BG)};
+  border: 1px solid
+    ${({ theme }) => panelBorder(theme.data, CONTACT_FORM_BORDER)};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   padding: ${({ theme }) => theme.data.space[5]};
   display: flex;
@@ -923,7 +999,7 @@ const ScSubmitButton = styled(Button)`
 `;
 
 /* Icono de envío (mockup L102), 16px -- mismo motivo de CSS explícito que
-   `ScCardIcon`/`ScChipIcon`. */
+   `ScCardIcon` (regla 20 de RULES.md). */
 const ScSendIcon = styled.svg`
   flex: none;
   width: 16px;
@@ -1079,11 +1155,13 @@ export function Contact(): ReactElement {
   );
 
   /*
-   * Envío del formulario (D13, rama oscura): abre el cliente de correo del
-   * visitante con `mailto:` -- el sitio es un export estático, sin backend
-   * al que postear, así que "enviar" de verdad significa delegar en la app
-   * de correo, la MISMA mecánica que el CTA de la rama clara (`links.email`,
-   * `chipAndCta` más abajo). Se usa `window.location.assign(...)` y NO
+   * Envío del formulario (D13, las DOS ramas desde la Task 16): abre el
+   * cliente de correo del visitante con `mailto:` -- el sitio es un export
+   * estático, sin backend al que postear, así que "enviar" de verdad
+   * significa delegar en la app de correo. Es también el motivo por el que
+   * el CTA de sección de la rama clara desapareció en vez de portarse a la
+   * oscura: hacía exactamente esto mismo, con el mismo `links.email`.
+   * Se usa `window.location.assign(...)` y NO
    * `window.location.href = ...`: `assign` es un método real de `Location`
    * que se puede doblar con `vi.spyOn` sin reemplazar el objeto `location`
    * entero (`Contact.test.tsx`) -- un setter de propiedad como `href` no se
@@ -1139,36 +1217,148 @@ export function Contact(): ReactElement {
     }
   }
 
-  const chipAndCta = (
-    <ScRow>
-      <ScChip>
-        <ScChipIcon
+  /*
+   * Bloque de canales de contacto, COMPARTIDO por las dos ramas (Task 16,
+   * unificacion de contenido parte 2, 2026-08-11): el formulario real (con
+   * su validacion propia, su error accesible y el panel de direccion
+   * copiable que revela un envio valido) y las dos salidas de la comunidad
+   * -- Discord y GitHub. Un unico arbol de JSX, montado tal cual en el
+   * `return` oscuro y en el claro; lo unico que cambia entre temas es el
+   * COLOR de las superficies (`panelBackground`/`panelBorder`/
+   * `channelAccent`, mas arriba), nunca lo que dice ni a donde lleva.
+   *
+   * Sustituye a `chipAndCta`, que vivia aqui y solo montaba la rama clara:
+   * un chip con la direccion escrita dentro (que se leia como campo de
+   * captura sin serlo) y un ancla al mismo `mailto:` que abre el boton de
+   * envio. Ver el docblock de cabecera del fichero para la critica que lo
+   * senalo y para por que el CTA se va con el chip en vez de portarse a la
+   * otra rama.
+   */
+  const contactChannels = (
+    <ScCards>
+      <ScForm onSubmit={handleSubmit}>
+        <Field
+          label={t("Home.contact.form.label")}
+          htmlFor="contact-email"
+          help={t("Home.contact.form.help")}
+          error={emailError ? t("Home.contact.form.emailError") : undefined}
+        >
+          <Input
+            id="contact-email"
+            type="email"
+            required
+            placeholder={t("Home.contact.form.placeholder")}
+            value={email}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              // Corregir el valor retira el error de inmediato:
+              // dejarlo pintado hasta el siguiente submit
+              // afirmaría un estado que el usuario ya resolvió.
+              if (emailError) setEmailError(false);
+            }}
+            autoComplete="email"
+          />
+        </Field>
+        <ScSubmitButton
+          type="submit"
+          size="lg"
+          aria-label={t("Home.contact.form.submitAria")}
+        >
+          {t("Home.contact.form.submit")}
+          <ScSendIcon
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 3L10 14" />
+            <path d="M21 3l-7 18-4-7-7-4z" />
+          </ScSendIcon>
+        </ScSubmitButton>
+        {sent && (
+          <ScFallbackPanel role="status">
+            <ScFallbackText>
+              {t("Home.contact.form.fallbackLead")}{" "}
+              <ScFallbackEmail>
+                {links.email.replace(/^mailto:/, "")}
+              </ScFallbackEmail>
+            </ScFallbackText>
+            <ScCopyButton
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopy}
+            >
+              {t(
+                copyStatus === "copied"
+                  ? "Home.contact.form.copied"
+                  : "Home.contact.form.copyAddress",
+              )}
+            </ScCopyButton>
+            {copyStatus === "error" && (
+              <ScCopyErrorText>
+                {t("Home.contact.form.copyError")}
+              </ScCopyErrorText>
+            )}
+          </ScFallbackPanel>
+        )}
+      </ScForm>
+      <ScCardLink
+        href={links.discord}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <ScCardIcon
           aria-hidden="true"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="currentColor"
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <rect
-            x="2"
-            y="4"
-            width="20"
-            height="16"
-            rx="2"
+          <circle
+            cx="9"
+            cy="8"
+            r="3"
           />
-          <path d="M22 6l-10 7L2 6" />
-        </ScChipIcon>
-        <span>{t("Home.contact.email")}</span>
-      </ScChip>
-      <ScCta
-        href={links.email}
-        aria-label={t("Home.contact.ctaAria")}
+          <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+          <circle
+            cx="16.5"
+            cy="9"
+            r="2.5"
+          />
+          <path d="M17 14.5c2.3.5 4 2.4 4 4.9" />
+        </ScCardIcon>
+        <div>
+          <ScCardTitle>{t("Home.contact.cards.community.title")}</ScCardTitle>
+          <ScCardValue>{t("Home.contact.cards.community.value")}</ScCardValue>
+        </div>
+      </ScCardLink>
+      <ScCardLink
+        href={links.github}
+        target="_blank"
+        rel="noopener noreferrer"
       >
-        {t("Home.contact.cta")}
-      </ScCta>
-    </ScRow>
+        <ScCardIcon
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M8 6l-5 6 5 6" />
+          <path d="M16 6l5 6-5 6" />
+        </ScCardIcon>
+        <div>
+          <ScCardTitle>{t("Home.contact.cards.code.title")}</ScCardTitle>
+          <ScCardValue>{t("Home.contact.cards.code.value")}</ScCardValue>
+        </div>
+      </ScCardLink>
+    </ScCards>
   );
 
   if (themeName !== "light") {
@@ -1204,144 +1394,7 @@ export function Contact(): ReactElement {
                 <br />
                 {t("Home.contact.bodySecond")}
               </ScBody>
-              <ScCards>
-                <ScFormCard>
-                  <ScForm onSubmit={handleSubmit}>
-                    <Field
-                      label={t("Home.contact.form.label")}
-                      htmlFor="contact-email"
-                      help={t("Home.contact.form.help")}
-                      error={
-                        emailError
-                          ? t("Home.contact.form.emailError")
-                          : undefined
-                      }
-                    >
-                      <Input
-                        id="contact-email"
-                        type="email"
-                        required
-                        placeholder={t("Home.contact.form.placeholder")}
-                        value={email}
-                        onChange={(event) => {
-                          setEmail(event.target.value);
-                          // Corregir el valor retira el error de inmediato:
-                          // dejarlo pintado hasta el siguiente submit
-                          // afirmaría un estado que el usuario ya resolvió.
-                          if (emailError) setEmailError(false);
-                        }}
-                        autoComplete="email"
-                      />
-                    </Field>
-                    <ScSubmitButton
-                      type="submit"
-                      size="lg"
-                      aria-label={t("Home.contact.form.submitAria")}
-                    >
-                      {t("Home.contact.form.submit")}
-                      <ScSendIcon
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M21 3L10 14" />
-                        <path d="M21 3l-7 18-4-7-7-4z" />
-                      </ScSendIcon>
-                    </ScSubmitButton>
-                    {sent && (
-                      <ScFallbackPanel role="status">
-                        <ScFallbackText>
-                          {t("Home.contact.form.fallbackLead")}{" "}
-                          <ScFallbackEmail>
-                            {links.email.replace(/^mailto:/, "")}
-                          </ScFallbackEmail>
-                        </ScFallbackText>
-                        <ScCopyButton
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCopy}
-                        >
-                          {t(
-                            copyStatus === "copied"
-                              ? "Home.contact.form.copied"
-                              : "Home.contact.form.copyAddress",
-                          )}
-                        </ScCopyButton>
-                        {copyStatus === "error" && (
-                          <ScCopyErrorText>
-                            {t("Home.contact.form.copyError")}
-                          </ScCopyErrorText>
-                        )}
-                      </ScFallbackPanel>
-                    )}
-                  </ScForm>
-                </ScFormCard>
-                <ScCardLink
-                  href={links.discord}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ScCardIcon
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle
-                      cx="9"
-                      cy="8"
-                      r="3"
-                    />
-                    <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-                    <circle
-                      cx="16.5"
-                      cy="9"
-                      r="2.5"
-                    />
-                    <path d="M17 14.5c2.3.5 4 2.4 4 4.9" />
-                  </ScCardIcon>
-                  <div>
-                    <ScCardTitle>
-                      {t("Home.contact.cards.community.title")}
-                    </ScCardTitle>
-                    <ScCardValue>
-                      {t("Home.contact.cards.community.value")}
-                    </ScCardValue>
-                  </div>
-                </ScCardLink>
-                <ScCardLink
-                  href={links.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ScCardIcon
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M8 6l-5 6 5 6" />
-                    <path d="M16 6l5 6-5 6" />
-                  </ScCardIcon>
-                  <div>
-                    <ScCardTitle>
-                      {t("Home.contact.cards.code.title")}
-                    </ScCardTitle>
-                    <ScCardValue>
-                      {t("Home.contact.cards.code.value")}
-                    </ScCardValue>
-                  </div>
-                </ScCardLink>
-              </ScCards>
+              {contactChannels}
             </ScDarkCopy>
           </ScDarkContent>
         </ScDarkFrame>
@@ -1376,7 +1429,7 @@ export function Contact(): ReactElement {
             <br />
             {t("Home.contact.bodySecond")}
           </ScBody>
-          {chipAndCta}
+          <ScLightChannels>{contactChannels}</ScLightChannels>
         </ScLeft>
         <ScRings aria-hidden="true">
           <ScRingHalo />

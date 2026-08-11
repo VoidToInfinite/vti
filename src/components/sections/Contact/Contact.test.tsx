@@ -14,10 +14,13 @@ import { links } from "@/config/links";
 import { PRESS } from "@/motion/vocabulary";
 import { Contact } from "./Contact";
 import {
+  CONTACT_CARD_BG_DARK,
   CONTACT_CARD_BORDER,
   CONTACT_CONTENT_MAX_WIDTH,
   CONTACT_DARK_HEIGHT,
+  CONTACT_FORM_BG,
   CONTACT_OVERLAY_RISE,
+  CONTACT_PANEL_BG_LIGHT,
 } from "./contact.layers";
 import {
   CONTACT_GUARDIAN_LAYERS,
@@ -25,15 +28,24 @@ import {
 } from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
 import { FEATURES_TAIL_HOLD } from "@/components/sections/Features/features.layers";
 import { themes } from "@/theme/themes";
-import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
+import {
+  contrastRatio,
+  contrastRatioHex,
+  relativeLuminance,
+  relativeLuminanceHex,
+} from "@/theme/tokens/contrast";
 
 /*
  * Reescritura completa (spec 2026-07-28 §7.4, mockup `#contact` L212-238):
- * la tarjeta de degradado pastel, el chip de email + CTA, y la figura con
- * anillos concéntricos sustituyen al Contact viejo (título + párrafo +
- * Button + Socials). `Socials` ya no vive aquí (se muda al footer, spec
- * §7.5) -- el test viejo que comprobaba el camino de contacto por email se
- * reescribe contra el chip/CTA reales del mockup.
+ * la tarjeta de degradado pastel y la figura con anillos concéntricos
+ * sustituyen al Contact viejo (título + párrafo + Button + Socials).
+ * `Socials` ya no vive aquí (se muda al footer, spec §7.5).
+ *
+ * Dentro de esa tarjeta, el chip de correo + CTA del mockup duraron hasta la
+ * Task 16 (2026-08-11), que los sustituyó por el formulario real y las dos
+ * salidas de comunidad de la rama oscura -- ver el describe "Task 16, el
+ * formulario real vive también en la rama clara", más abajo, y el candado
+ * inverso dentro del describe "Contact".
  */
 
 /*
@@ -152,19 +164,32 @@ describe("Contact", () => {
     expect(screen.queryByText("Contacto")).not.toBeInTheDocument();
   });
 
-  it("el chip muestra el email real, y el CTA enlaza a links.email con su aria-label de i18n", () => {
-    renderWithProviders(<Contact />);
-    // El email del chip es texto (spec §7.4), no un enlace -- se busca por
-    // contenido, no por rol.
-    expect(screen.getByText(esHome.Home.contact.email)).toBeInTheDocument();
+  /*
+   * SUSTITUYE al test "el chip muestra el email real, y el CTA enlaza a
+   * links.email" (Task 16, 2026-08-11). Ese par de piezas se retiró entero:
+   * el chip era un `<div>` con borde, icono de sobre y la dirección dentro,
+   * puesto donde va un campo de captura -- hallazgo #1 de la crítica
+   * independiente del 2026-08-11 ("en tema claro no existe formulario de
+   * contacto, y lo que hay simula serlo") -- y el CTA abría el mismo
+   * `mailto:` que el botón de envío del formulario, que ahora sí existe en
+   * esta rama.
+   *
+   * Este test es el candado INVERSO: ni el texto de las claves retiradas ni
+   * un ancla `mailto:` suelta pueden reaparecer en la rama clara. Las
+   * cadenas van como literales a propósito (las claves ya no existen en el
+   * JSON, regla 28) -- `locales.test.ts` impide por su lado que las claves
+   * vuelvan.
+   */
+  it("ya NO existe el chip que simulaba un campo, ni un CTA de correo aparte del formulario", () => {
+    const { container } = renderWithProviders(<Contact />);
 
-    const cta = screen.getByRole("link", {
-      name: esHome.Home.contact.ctaAria,
-    });
-    // El href sale de `links.email` importado, no de un literal reescrito a
-    // mano: si `links.ts` cambiara, este test lo detectaria.
-    expect(cta).toHaveAttribute("href", links.email);
-    expect(cta).toHaveTextContent(esHome.Home.contact.cta);
+    expect(
+      screen.queryByText("hello@voidtoinfinite.com"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Contactar por correo")).not.toBeInTheDocument();
+    expect(
+      container.querySelector(`a[href="${links.email}"]`),
+    ).not.toBeInTheDocument();
   });
 
   it("en ingles renderiza la copia inglesa, no la espanola (mitad del contrato de paridad)", async () => {
@@ -173,7 +198,9 @@ describe("Contact", () => {
     });
     try {
       renderWithProviders(<Contact />);
-      expect(screen.getByText(enHome.Home.contact.email)).toBeInTheDocument();
+      expect(
+        screen.getByText(enHome.Home.contact.cards.community.title),
+      ).toBeInTheDocument();
       expect(
         screen.getByText(enHome.Home.contact.titleAccent),
       ).toBeInTheDocument();
@@ -203,9 +230,9 @@ describe("Contact", () => {
     const rings = container.querySelector(
       '[aria-hidden="true"]',
     ) as HTMLElement;
-    // El SVG del icono del chip TAMBIEN es aria-hidden (decorativo dentro
-    // de un chip con texto visible): se localiza el contenedor de anillos
-    // por ser el UNICO aria-hidden con exactamente 3 hijos <div>.
+    // Los iconos de trazo de las tarjetas de canal TAMBIEN son aria-hidden
+    // (decorativos junto a texto visible): se localiza el contenedor de
+    // anillos por ser el UNICO aria-hidden con exactamente 3 hijos <div>.
     const ringContainers = Array.from(
       container.querySelectorAll('[aria-hidden="true"]'),
     ).filter((el) => el.children.length === 3);
@@ -264,6 +291,162 @@ describe("Contact", () => {
   });
 });
 
+/*
+ * Task 16 (unificación de contenido parte 2, 2026-08-11): la rama CLARA
+ * monta el MISMO bloque de canales que la oscura -- formulario real con
+ * validación, panel de dirección copiable y las dos salidas de comunidad.
+ * Estos tests son el equivalente claro de los que el bloque "Contact en tema
+ * oscuro" ya tenía: no comprueban estructura, comprueban el FLUJO (escribir,
+ * enviar, fallar, corregir, copiar) sobre la rama que hasta hoy no tenía
+ * ninguno de los dos.
+ */
+describe("Contact: Task 16, el formulario real vive también en la rama clara", () => {
+  it("monta un formulario con exactamente un campo (email, required) y un boton type=submit", () => {
+    const { container } = renderWithProviders(<Contact />);
+
+    const form = container.querySelector("form") as HTMLFormElement;
+    expect(form).toBeInTheDocument();
+
+    const controls = within(form).getAllByRole("textbox");
+    expect(controls).toHaveLength(1);
+    expect(controls[0]).toHaveAttribute("type", "email");
+    expect(controls[0]).toHaveAttribute("required");
+    expect(controls[0]).toHaveAccessibleName(esHome.Home.contact.form.label);
+    expect(form.querySelectorAll('button[type="submit"]')).toHaveLength(1);
+  });
+
+  it("al enviar un correo invalido NO navega y pinta el error accesible; corregirlo lo retira", () => {
+    const originalLocation = window.location;
+    const assignSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: assignSpy },
+    });
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      const form = container.querySelector("form") as HTMLFormElement;
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+
+      fireEvent.change(input, { target: { value: "no-es-un-correo" } });
+      fireEvent.submit(form);
+
+      expect(assignSpy).not.toHaveBeenCalled();
+      expect(screen.getByRole("status")).toHaveTextContent(
+        esHome.Home.contact.form.emailError,
+      );
+      expect(input).toHaveAttribute("aria-invalid", "true");
+
+      fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      expect(
+        screen.queryByText(esHome.Home.contact.form.emailError),
+      ).not.toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  it("un envio valido navega al mailto y revela el panel con la direccion en texto plano y el boton Copiar", () => {
+    const originalLocation = window.location;
+    const assignSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: assignSpy },
+    });
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      expect(assignSpy).toHaveBeenCalledTimes(1);
+      expect(assignSpy.mock.calls[0][0].startsWith(links.email)).toBe(true);
+
+      const panel = screen.getByRole("status");
+      expect(panel).toHaveTextContent(esHome.Home.contact.form.fallbackLead);
+      expect(panel).toHaveTextContent(links.email.replace(/^mailto:/, ""));
+      expect(
+        within(panel).getByRole("button", {
+          name: esHome.Home.contact.form.copyAddress,
+        }),
+      ).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  it("el boton Copiar escribe la direccion real (sin mailto:) y cambia su texto a la clave copied", async () => {
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: vi.fn() },
+    });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", {
+            name: esHome.Home.contact.form.copyAddress,
+          }),
+        );
+      });
+
+      expect(writeText).toHaveBeenCalledWith(
+        links.email.replace(/^mailto:/, ""),
+      );
+      expect(
+        screen.getByRole("button", { name: esHome.Home.contact.form.copied }),
+      ).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: undefined,
+      });
+    }
+  });
+
+  it("monta las 2 salidas de comunidad con los href de links.discord/github y su texto de i18n", () => {
+    const { container } = renderWithProviders(<Contact />);
+
+    const discord = container.querySelector(
+      `a[href="${links.discord}"]`,
+    ) as HTMLAnchorElement;
+    const github = container.querySelector(
+      `a[href="${links.github}"]`,
+    ) as HTMLAnchorElement;
+
+    expect(discord).toBeInTheDocument();
+    expect(github).toBeInTheDocument();
+    expect(discord).toHaveTextContent(
+      esHome.Home.contact.cards.community.title,
+    );
+    expect(github).toHaveTextContent(esHome.Home.contact.cards.code.title);
+    // Mismo contrato que la rama oscura: se abren fuera, con rel seguro.
+    [discord, github].forEach((link) => {
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    });
+  });
+});
+
 /**
  * Raíz de `ContactCosmicGuardian` (`ScScene`, `aria-hidden="true"` con las
  * capas WebP como hijas -- `CONTACT_GUARDIAN_LAYERS.length`, NUNCA un número
@@ -311,7 +494,7 @@ describe("Contact en tema oscuro", () => {
       .forEach((img) => expect(img).toHaveAttribute("alt", ""));
   });
 
-  it("sigue mostrando el titulo y el cuerpo con el mismo i18n que en claro, sin kicker (el chip+CTA de claro NO se porta a oscuro, D12/D14; Task 11 retira el kicker de las dos ramas)", async () => {
+  it("sigue mostrando el titulo y el cuerpo con el mismo i18n que en claro, sin kicker (Task 11 lo retira de las dos ramas)", async () => {
     const { container } = renderWithProviders(<Contact />);
     await waitFor(() => {
       expect(container.querySelectorAll("img")).toHaveLength(
@@ -1199,27 +1382,15 @@ describe("D7: duración/easing de entrada unificados (slower + decelerate)", () 
 });
 
 /*
- * D7 (encargo 2026-08-04, decisión propia -- ver el informe de la tarea):
- * `ScCta` (el CTA de `mailto:` de la rama clara) gana `:focus-visible`
- * propio, resuelto contra `semantic.focus`, mismo criterio que `ScCta` en
- * `Features.tsx`. No estaba nombrado explícitamente en el encargo (que citó
- * solo el de Features), pero es el mismo componente de rol "CTA de sección"
- * dentro del mismo fichero en alcance, así que se nivela igual.
+ * AQUI VIVIO el describe "D7: :focus-visible propio del CTA de seccion",
+ * que ataba el halo de foco de `ScCta` (el ancla `mailto:` de la rama
+ * clara) contra `semantic.focus`. Retirado en la Task 16 (2026-08-11) junto
+ * con el propio `ScCta`: el boton de envio del formulario, que ahora existe
+ * en las dos ramas, abre el mismo `mailto:` y ya trae su propio
+ * `:focus-visible` desde `Button.tsx` (`focusHalo`, atado en
+ * `Button.test.tsx` contra el mismo rol de token). No se pierde cobertura
+ * de foco: cambia de pieza.
  */
-describe("D7: :focus-visible propio del CTA de sección", () => {
-  it("ScCta declara :focus-visible con box-shadow resuelto contra semantic.focus, compuesto con el de :hover", () => {
-    const { container } = renderWithProviders(<Contact />);
-    const cta = container.querySelector(
-      `a[href="${links.email}"]`,
-    ) as HTMLElement;
-    const css = cssRuleTextFor(cta);
-
-    expect(css).toContain(":focus-visible");
-    const focusBlock = css.slice(css.indexOf(":focus-visible"));
-    expect(focusBlock).toContain("box-shadow");
-    expect(focusBlock).toContain(themes.light.semantic.focus);
-  });
-});
 
 /*
  * D4 (encargo 2026-08-04): palancas de compactación vertical del contenido
@@ -1461,4 +1632,175 @@ describe("Contact: Task 12, ghost-card ScCard (rama clara)", () => {
    * en `ScCard` (Contact.tsx) pone en rojo la aserción
    * `expect(css).not.toContain("box-shadow")`; restaurado, vuelve a verde.
    */
+});
+
+/*
+ * Task 16: el bloque de canales es el MISMO en las dos ramas, pero sus
+ * superficies se resuelven por tema (`panelBackground`/`panelBorder`/
+ * `channelAccent`, Contact.tsx). Dos candados distintos y los dos hacen
+ * falta:
+ *
+ * 1. CSS: la rama clara no puede quedarse con el blanco al 4-5 % pensado
+ *    para la escena casi negra -- sobre el degradado pastel es invisible.
+ * 2. CONTRASTE: el acento de las tarjetas es TEXTO (el título de cada
+ *    salida), así que se mide contra el fondo REAL de la rama clara, que no
+ *    es la página ni la tarjeta: es el panel translúcido compuesto sobre las
+ *    tres paradas de `CONTACT_CARD_GRADIENT`.
+ */
+describe("Contact: Task 16, superficies y acento del bloque de canales por rama", () => {
+  it("rama clara: el formulario y las tarjetas pintan CONTACT_PANEL_BG_LIGHT, no el fondo de la rama oscura", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const form = container.querySelector("form") as HTMLElement;
+    const card = container.querySelector(
+      `a[href="${links.discord}"]`,
+    ) as HTMLElement;
+
+    const formCss = cssRuleTextFor(form);
+    const cardCss = cssRuleTextFor(card);
+
+    expect(formCss).toContain(CONTACT_PANEL_BG_LIGHT);
+    expect(formCss).not.toContain(CONTACT_FORM_BG);
+    expect(cardCss).toContain(CONTACT_PANEL_BG_LIGHT);
+    expect(cardCss).not.toContain(CONTACT_CARD_BG_DARK);
+    // El borde de los paneles claros es el MISMO de la tarjeta que los
+    // contiene, no `semantic.border` (casi invisible sobre el blanco 82 %).
+    expect(formCss).toContain(CONTACT_CARD_BORDER);
+    expect(cardCss).toContain(CONTACT_CARD_BORDER);
+  });
+
+  /*
+   * Este test es el que ATA la medición de contraste de más abajo al color
+   * que el componente pinta de verdad. Sin él, la medición seguiría en verde
+   * midiendo `secondary[700]` aunque `channelAccent` hubiera pasado a otro
+   * paso de la rampa: mediría un color que ya no está en la página (regla 39
+   * de RULES.md, misma familia).
+   */
+  it("rama clara: el icono y el titulo de cada tarjeta resuelven secondary[700], el paso que se mide abajo", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const card = container.querySelector(
+      `a[href="${links.discord}"]`,
+    ) as HTMLElement;
+    const icono = card.querySelector("svg") as unknown as HTMLElement;
+    const titulo = card.querySelector("span") as HTMLElement;
+
+    expect(cssRuleTextFor(icono)).toContain(
+      themes.light.palette.secondary[700],
+    );
+    expect(cssRuleTextFor(titulo)).toContain(
+      themes.light.palette.secondary[700],
+    );
+    // Y el paso de la rama oscura no aparece en la clara.
+    expect(cssRuleTextFor(icono)).not.toContain(
+      themes.dark.palette.secondary[400],
+    );
+  });
+
+  /*
+   * Alfa y color del panel se LEEN de la constante, no se escriben a mano:
+   * si `CONTACT_PANEL_BG_LIGHT` cambiara de valor, esta medición cambia con
+   * ella en vez de seguir afirmando un número viejo.
+   *
+   * La composición se hace sobre LUMINANCIAS y no canal a canal porque la
+   * luminancia relativa es una combinación LINEAL de los canales: mezclar
+   * por canal y luego pesar da exactamente lo mismo que pesar y luego
+   * mezclar. Con el overlay siendo blanco puro (luminancia 1) el término se
+   * reduce a `alfa + (1 - alfa) * L(parada)`.
+   */
+  const PANEL_RGBA = CONTACT_PANEL_BG_LIGHT.match(
+    /^rgba\((\d+), (\d+), (\d+), ([\d.]+)\)$/,
+  );
+
+  it("el panel claro es blanco puro con alfa (premisa de la medicion de abajo)", () => {
+    expect(PANEL_RGBA).not.toBeNull();
+    expect([PANEL_RGBA?.[1], PANEL_RGBA?.[2], PANEL_RGBA?.[3]]).toEqual([
+      "255",
+      "255",
+      "255",
+    ]);
+  });
+
+  it("el acento claro de las tarjetas (secondary[700]) y el valor (textMuted) libran AA sobre el panel real", () => {
+    const alfa = Number(PANEL_RGBA?.[4]);
+    // Mismas tres paradas que `CONTACT_CARD_GRADIENT` (contact.layers.ts).
+    const paradas = ["#EFF4FC", "#F5F2FB", "#F9F0F7"];
+
+    paradas.forEach((parada) => {
+      const lPanel = alfa + (1 - alfa) * relativeLuminanceHex(parada);
+      const medir = (color: string): number => {
+        const lTexto = relativeLuminance(color);
+        const claro = Math.max(lTexto, lPanel);
+        const oscuro = Math.min(lTexto, lPanel);
+        return (claro + 0.05) / (oscuro + 0.05);
+      };
+
+      const acento = medir(themes.light.palette.secondary[700]);
+      const valor = medir(themes.light.semantic.textMuted);
+      expect(
+        acento,
+        `acento sobre ${parada}: ${acento.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        valor,
+        `valor sobre ${parada}: ${valor.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
+  it("el acento oscuro NO se cuela en la rama clara: secondary[400] sobre ese mismo panel no llegaria a AA", () => {
+    // Candado de la DECISION, no del valor: mide el paso que la rama oscura
+    // usa y comprueba que en claro habria sido insuficiente. Si alguien
+    // "simplifica" `channelAccent` a un único paso compartido, este test lo
+    // dice con la cifra delante.
+    const alfa = Number(PANEL_RGBA?.[4]);
+    const lPanel = alfa + (1 - alfa) * relativeLuminanceHex("#EFF4FC");
+    const lTexto = relativeLuminance(themes.dark.palette.secondary[400]);
+    const ratio =
+      (Math.max(lTexto, lPanel) + 0.05) / (Math.min(lTexto, lPanel) + 0.05);
+    expect(
+      ratio,
+      `secondary[400] en claro: ${ratio.toFixed(2)}:1`,
+    ).toBeLessThan(4.5);
+  });
+});
+
+/*
+ * Task 16, punto 5 del brief: el detector automático del gate F2 reportó
+ * `ScCard` (rama clara) como el único recorte de TEXTO real de la página --
+ * `scrollHeight` 422 contra `clientHeight` 364 a 1280×900. Medido en
+ * navegador (informe de la tarea): los 58px son `ScRingHalo` (disco
+ * decorativo de 480px), y con la figura ya cargada el desbordamiento sube a
+ * 533 porque manda `ScFigure` (560px). El texto medía 103-191 dentro de una
+ * caja de contenido 32-332: ni un glifo fuera.
+ *
+ * Este candado NO puede reproducir la medición -- jsdom no hace layout, no
+ * pinta y no evalúa @media (regla 36 de RULES.md) -- así que ata la
+ * CONDICION que haría posible un recorte de texto de verdad: que la tarjeta
+ * fijara su altura, o que la columna de texto recortara por su cuenta. Sin
+ * ninguna de las dos, lo único que el `overflow: hidden` puede recortar es
+ * el arte que desborda a propósito.
+ */
+describe("Contact: Task 16, el recorte de ScCard es del arte y no del texto", () => {
+  it("ScCard recorta (overflow: hidden) pero NO fija altura: crece con su contenido", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const card = container.querySelector("[data-revealed]") as HTMLElement;
+    const css = cssRuleTextFor(card);
+
+    expect(css).toContain("overflow: hidden");
+    expect(css).not.toMatch(/(^|[^-])height:\s*\d/m);
+    expect(css).not.toContain("max-height");
+  });
+
+  it("la columna de texto de la tarjeta no declara ningun overflow propio", () => {
+    const { container } = renderWithProviders(<Contact />);
+    // `ScLeft` es el ancestro comun del h2 y del bloque de canales: se
+    // localiza desde el h2 real, no por clase de styled-components (que
+    // cambia de hash entre builds).
+    const columna = (container.querySelector("h2") as HTMLElement)
+      .parentElement as HTMLElement;
+    expect(columna.querySelector("form")).not.toBeNull();
+
+    const css = cssRuleTextFor(columna);
+    expect(css).not.toContain("overflow");
+    expect(css).not.toContain("max-height");
+  });
 });
