@@ -23,6 +23,7 @@ import {
   ScJourneyStage,
   ScJourneyStepIconBox,
   ScJourneyStepLabel,
+  ScJourneyStepOrdinal,
   ScJourneyStepSubtitle,
   ScJourneyTrack,
 } from "./journey.deck";
@@ -60,8 +61,20 @@ import {
  * no toca esa mecanica, solo lo que hay DENTRO de la seccion una vez que el
  * solape la trae a pantalla.
  *
- * Rama CLARA: sin cambios de comportamiento (tarjeta pastel + camino
- * punteado + rejilla de 6 columnas + figura en columna propia).
+ * Rama CLARA: tarjeta pastel + camino punteado + rejilla de 6 columnas +
+ * figura en columna propia.
+ *
+ * PARIDAD DE CONTENIDO entre las dos ramas (Task 16, unificacion parte 2,
+ * 2026-08-11): las dos cuentan lo mismo -- mismo h2, mismo cuerpo, los
+ * MISMOS 6 pasos con su ordinal, su etiqueta y su subtitulo, y la misma
+ * cita de cierre -- con arte y vehiculo distintos (rejilla + camino
+ * punteado en claro, presentacion de diapositivas ancladas en oscuro). Lo
+ * unico que esta tarea movio para conseguirlo es el ORDINAL del paso, que
+ * hasta hoy solo existia en claro (`stepOrdinal`, mas abajo: una sola
+ * funcion para las dos ramas, para que "01".."06" no pueda divergir entre
+ * ellas). Ver el docblock de `ScJourneyStepOrdinal` (journey.deck.tsx) para
+ * por que vuelve un numero a la rama oscura y en que se diferencia del
+ * numeral de cartel que el usuario retiro el 2026-08-02.
  */
 
 /** Paso entre pasos del reveal escalonado (mismo mecanismo que `ScItem` en
@@ -70,6 +83,30 @@ import {
  *  reveal escalonado propio (cada diapositiva entra entera con el mismo
  *  mecanismo de `ScJourneySlide`). */
 const STEP_STAGGER_MS = 90;
+
+/**
+ * Ordinal visible de un paso ("01".."06"), a partir de su indice en
+ * `JOURNEY_STEPS`. UNA sola funcion para las DOS ramas (Task 16): el
+ * formato lo consumen `ScStepLabel` (rama clara, pegado a la etiqueta con
+ * su separador) y `ScJourneyStepOrdinal` (rama oscura, en linea propia
+ * sobre la etiqueta de cartel). Mientras las dos lean de aqui, el numero no
+ * puede divergir entre temas -- que es exactamente lo que paso hasta hoy,
+ * cuando la rama oscura simplemente no lo tenia.
+ *
+ * El ordinal NO vive en `JOURNEY_STEPS` (journey.layers.ts) a proposito: es
+ * la POSICION del paso en el array, no un dato propio del paso. Duplicarlo
+ * como campo abriria la puerta a que el dato y el orden real se
+ * contradigan.
+ */
+function stepOrdinal(index: number): string {
+  return String(index + 1).padStart(2, "0");
+}
+
+/** Separador entre ordinal y etiqueta en la rama CLARA ("01 · Descubre",
+ *  verbatim del mockup aprobado). Es tipografia de ESA composicion, no
+ *  contenido: la rama oscura pinta el mismo ordinal en linea propia, sin
+ *  separador, porque no hay nada de lo que separarlo. */
+const STEP_ORDINAL_SEPARATOR = " · ";
 
 /*
  * Rama clara: contenedor normal (padding + tope de ancho, centrado -- sin
@@ -610,8 +647,9 @@ function JourneyLight(): ReactElement {
                       $colorRamp={step.colorRamp}
                       $colorStep={step.colorStep}
                     >
-                      {String(index + 1).padStart(2, "0")} ·{" "}
-                      {t(`Home.journey.steps.${step.id}.label`)}
+                      {`${stepOrdinal(index)}${STEP_ORDINAL_SEPARATOR}${t(
+                        `Home.journey.steps.${step.id}.label`,
+                      )}`}
                     </ScStepLabel>
                     <ScStepBody variant="caption">
                       {t(`Home.journey.steps.${step.id}.body`)}
@@ -661,16 +699,20 @@ function JourneyLight(): ReactElement {
  * `ScJourneyQuote`), con su PROPIA escala de tamanos (journey.layers.ts)
  * para no filtrar ningun ajuste a la rama clara.
  *
- * SIN numero de paso (retirado 2026-08-02, encargo explicito del usuario:
- * "quita las numeraciones de la seccion Journey", acotado a esta rama tras
- * preguntar el alcance). La diapositiva de paso compuso icono -> numero ->
- * etiqueta -> cuerpo (D11 de la spec de esta entrega) hasta hoy; la rama
- * CLARA conserva su "0N · Label" tal cual, verbatim del mockup aprobado --
- * este cambio es exclusivo de la presentacion oscura. `ScJourneyStepNumber`
- * (el styled que pintaba "01".."06") se retiro por completo de
- * journey.deck.tsx junto con la constante de tamano que consumia
- * (`JOURNEY_DECK_STEP_NUMBER_SIZE`, journey.layers.ts): sin numero que
- * mostrar, ninguna de las dos tenia ya consumidor.
+ * ORDINAL DEL PASO, historia completa porque este punto ya cambio dos veces:
+ * la diapositiva compuso icono -> numero -> etiqueta -> cuerpo (D11 de la
+ * spec de las 8 diapositivas) hasta el 2026-08-02, cuando el usuario pidio
+ * explicitamente "quita las numeraciones de la seccion Journey" (acotado a
+ * esta rama tras preguntar el alcance) y se retiro `ScJourneyStepNumber`
+ * -- el numeral a escala de CARTEL -- junto con su constante de tamano
+ * (`JOURNEY_DECK_STEP_NUMBER_SIZE`). La Task 16 (2026-08-11) devuelve la
+ * INFORMACION, no aquella pieza: `ScJourneyStepOrdinal` es una linea
+ * pequena (rol `overline`, `semantic.textMuted`) sobre la etiqueta, y
+ * existe porque la paridad de contenido entre temas la exige -- el orden de
+ * la unica secuencia real del sitio no puede estar en un tema y faltar en
+ * el otro, y el rail que lo sugeria visualmente es `aria-hidden`. La rama
+ * CLARA conserva su "0N · Label" verbatim del mockup; las dos leen el
+ * numero de la MISMA funcion (`stepOrdinal`, arriba).
  */
 function JourneyDeckDark(): ReactElement {
   const { t } = useTranslation("home");
@@ -763,6 +805,9 @@ function JourneyDeckDark(): ReactElement {
                 >
                   <StepIcon id={step.id} />
                 </ScJourneyStepIconBox>
+                <ScJourneyStepOrdinal>
+                  {stepOrdinal(stepIndex)}
+                </ScJourneyStepOrdinal>
                 <ScJourneyStepLabel>
                   {t(`Home.journey.steps.${step.id}.label`)}
                 </ScJourneyStepLabel>

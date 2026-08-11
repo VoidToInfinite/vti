@@ -379,21 +379,24 @@ describe("Journey en tema oscuro", () => {
       .forEach((img) => expect(img).toHaveAttribute("alt", ""));
   });
 
-  // Adaptado TRES veces: primero (spec
+  // Adaptado CUATRO veces, y la historia importa porque el numero de paso ha
+  // ido y vuelto: primero (spec
   // 2026-08-02-journey-deck-8-diapositivas-design.md, D11) para separar
   // numero/etiqueta/cuerpo en TRES nodos de texto; luego (encargo explicito
   // del usuario, 2026-08-02, "quita las numeraciones de la seccion Journey"
   // -- acotado a esta rama tras preguntar el alcance) para quitar el numero
-  // por completo; ahora (spec 2026-08-02-journey-deck-tipografia-design.md,
-  // T5) para renombrar el rol de la pieza restante: la diapositiva de paso
-  // compone hoy etiqueta+SUBTITULO -- ya no "cuerpo" (con la etiqueta a
-  // escala de cartel, ese texto pasa a acompanarla, no a ser el cuerpo de la
-  // diapositiva) -- ni "0N · Label" concatenado (exclusivo de la rama clara,
-  // test aparte mas arriba en este archivo) ni un numero suelto. La clave de
-  // i18n sigue siendo `steps.<id>.body` (T5 no la renombra, solo el rol que
-  // pinta). El reparto preciso por diapositiva, INCLUIDA la ausencia del
-  // numero, se comprueba mas abajo (test 4, D11).
-  it("sigue mostrando el titulo, los 6 pasos (etiqueta+subtitulo, sin numero) y la cita con el mismo i18n que en claro (sin kicker, Task 11)", async () => {
+  // por completo; despues (spec 2026-08-02-journey-deck-tipografia-design.md,
+  // T5) para renombrar el rol de la pieza restante -- la diapositiva compone
+  // etiqueta+SUBTITULO, ya no "cuerpo", con la etiqueta a escala de cartel;
+  // y ahora (Task 16, unificacion de contenido, 2026-08-11) para devolver el
+  // ORDINAL a esta rama, en linea propia y a escala pequena
+  // (ScJourneyStepOrdinal), no el numeral de cartel que se retiro. Motivo:
+  // paridad de contenido entre temas -- la rama clara siempre rotulo
+  // "0N · Etiqueta" y el orden de la unica secuencia real del sitio no puede
+  // existir en un tema y faltar en el otro. La clave de i18n sigue siendo
+  // `steps.<id>.body`. El reparto preciso por diapositiva se comprueba mas
+  // abajo (test 4, D11).
+  it("sigue mostrando el titulo, los 6 pasos (ordinal+etiqueta+subtitulo) y la cita con el mismo i18n que en claro (sin kicker, Task 11)", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -404,12 +407,12 @@ describe("Journey en tema oscuro", () => {
     JOURNEY_STEPS.forEach((step, index) => {
       const label = esHome.Home.journey.steps[step.id].label;
       const subtitle = esHome.Home.journey.steps[step.id].body;
-      // El numero de paso ("01".."06") se retiro de esta rama: sin esta
-      // asercion NEGATIVA el test seguiria en verde si alguien lo
-      // reintrodujera -- es la mitad que de verdad protege el encargo, no
-      // solo un chequeo de que la etiqueta y el subtitulo siguen ahi.
+      // El ordinal ("01".."06") vuelve a esta rama con la Task 16: la
+      // asercion es POSITIVA y en nodo PROPIO (getByText exige un nodo cuyo
+      // texto completo sea el ordinal), no concatenado con la etiqueta como
+      // en la rama clara.
       const number = String(index + 1).padStart(2, "0");
-      expect(screen.queryByText(number)).not.toBeInTheDocument();
+      expect(screen.getByText(number)).toBeInTheDocument();
       expect(screen.getByText(label)).toBeInTheDocument();
       expect(screen.getByText(subtitle)).toBeInTheDocument();
     });
@@ -583,7 +586,7 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     });
   });
 
-  it("cada diapositiva de paso compone icono, etiqueta y subtitulo -- sin numero -- con el mismo i18n que la rama clara (test 4, D11/T5)", async () => {
+  it("cada diapositiva de paso compone icono, ordinal, etiqueta y subtitulo con el mismo i18n que la rama clara (test 4, D11/T5, Task 16)", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -608,31 +611,46 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
 
     // Diapositivas 1..JOURNEY_STEPS.length: un paso cada una. D11 componia
     // icono -> numero -> etiqueta -> cuerpo; el numero se retiro por
-    // completo (encargo explicito del usuario, 2026-08-02, solo esta rama
-    // -- la clara conserva el suyo, test aparte mas arriba); despues (T5,
-    // spec 2026-08-02-journey-deck-tipografia-design.md) esa tercera pieza
-    // se renombro de ROL, de "cuerpo" a "subtitulo" (misma clave de i18n,
-    // `steps.<id>.body`, sin renombrar -- T5 no toca datos), asi que hoy
-    // compone icono -> etiqueta -> subtitulo. Dos aserciones NEGATIVAS
-    // protegen la ausencia del numero: que el texto exacto del numero de
-    // este paso ("01".."06") no aparece, y que NINGUN texto con forma "0N"
-    // (la red mas amplia que pide el encargo, por si un indice se colara en
-    // la diapositiva equivocada) aparece tampoco. Sin ellas el test seguiria
-    // en verde si alguien reintrodujera la numeracion -- son la mitad que
-    // de verdad protege este encargo, no solo un chequeo de que la
-    // etiqueta y el subtitulo siguen ahi. Se comprueba ademas que el
-    // formato "0N · Label" concatenado de la rama clara sigue sin aparecer
-    // aqui (ya lo estaba antes de esta entrega).
+    // completo (encargo explicito del usuario, 2026-08-02, solo esta rama);
+    // despues (T5, spec 2026-08-02-journey-deck-tipografia-design.md) esa
+    // tercera pieza se renombro de ROL, de "cuerpo" a "subtitulo" (misma
+    // clave de i18n, `steps.<id>.body`, sin renombrar -- T5 no toca datos);
+    // y la Task 16 devuelve el ORDINAL, que hoy compone
+    // icono -> ordinal -> etiqueta -> subtitulo.
+    //
+    // Tres propiedades, y las tres importan:
+    // 1. el ordinal de ESTA diapositiva esta, en un nodo propio (getByText
+    //    exige texto completo: si volviera concatenado a la etiqueta, este
+    //    assert caeria);
+    // 2. el ORDEN de DOM es icono -> ordinal -> etiqueta -> subtitulo, que
+    //    es lo que lee un lector de pantalla -- un ordinal correcto pero
+    //    colocado detras del subtitulo diria otra cosa;
+    // 3. el formato "0N · Label" concatenado sigue siendo EXCLUSIVO de la
+    //    rama clara: el ordinal viaja, la tipografia de aquella composicion
+    //    no.
     JOURNEY_STEPS.forEach((step, i) => {
       const slide = slides[i + 1];
       const number = String(i + 1).padStart(2, "0");
       const label = esHome.Home.journey.steps[step.id].label;
       const subtitle = esHome.Home.journey.steps[step.id].body;
       expect(slide.querySelector("svg")).toBeInTheDocument();
-      expect(within(slide).getByText(label)).toBeInTheDocument();
-      expect(within(slide).getByText(subtitle)).toBeInTheDocument();
-      expect(within(slide).queryByText(number)).not.toBeInTheDocument();
-      expect(within(slide).queryByText(/^0[1-6]$/)).not.toBeInTheDocument();
+      const ordinal = within(slide).getByText(number);
+      const labelNode = within(slide).getByText(label);
+      const subtitleNode = within(slide).getByText(subtitle);
+      expect(ordinal).toBeInTheDocument();
+
+      const textos = Array.from(slide.querySelectorAll("p")).map((el) =>
+        el.textContent?.trim(),
+      );
+      expect(textos).toEqual([number, label, subtitle]);
+      expect(
+        ordinal.compareDocumentPosition(labelNode) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        labelNode.compareDocumentPosition(subtitleNode) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
       expect(
         within(slide).queryByText(`${number} · ${label}`),
       ).not.toBeInTheDocument();

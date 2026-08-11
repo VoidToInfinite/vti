@@ -409,11 +409,14 @@ function stepColor(
  * mismo precedente que ScPillarNumber en Story.tsx (un marcador por item, no
  * texto de cartel generico) y esta documentada en su propio docblock, mas
  * abajo. Hasta 2026-08-02 habia una SEGUNDA excepcion, ScJourneyStepNumber
- * (el numero de paso "01".."06" de la diapositiva): se retiro por completo,
- * junto con su constante de tamano (JOURNEY_DECK_STEP_NUMBER_SIZE,
- * journey.layers.ts), al quitar la numeracion de esta rama por encargo
- * explicito del usuario -- la rama clara de Journey conserva la suya, sin
- * cambios.
+ * (el numero de paso "01".."06" de la diapositiva a escala de cartel,
+ * JOURNEY_DECK_STEP_NUMBER_SIZE): se retiro por completo, junto con su
+ * constante de tamano, al quitar la numeracion de esta rama por encargo
+ * explicito del usuario. NO vuelve con la Task 16: lo que esa tarea
+ * introduce es ScJourneyStepOrdinal (mas abajo), una linea PEQUENA en
+ * semantic.textMuted, no un numeral de cartel compitiendo con la etiqueta
+ * -- ver su propio docblock para la decision completa y por que la paridad
+ * de contenido entre ramas la exige.
  */
 export const ScJourneyDeckTitle = styled.h2`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -476,6 +479,54 @@ export const ScJourneyStepIconBox = styled.span<{
 `;
 
 /*
+ * Ordinal del paso ("01".."06") de la diapositiva oscura (Task 16,
+ * unificacion de contenido parte 2, 2026-08-11).
+ *
+ * POR QUE VUELVE UN NUMERO A ESTA RAMA. La rama CLARA siempre ha rotulado
+ * cada paso como "0N · Etiqueta" (ScStepLabel, Journey.tsx) y la oscura
+ * mostraba solo la etiqueta: el orden de la secuencia -- la unica secuencia
+ * REAL del sitio, y por eso Journey conserva su numeracion cuando Features
+ * pierde la suya (decorativa) -- era contenido presente en un tema y
+ * ausente en el otro. Con el criterio de la Task 15 ("el tema es piel:
+ * mismo contenido y mismas salidas; lo exclusivo de cada rama es el ARTE y
+ * el VEHICULO"), un ordinal es contenido, no arte. Ademas el rail de
+ * progreso (ScJourneyRail) es aria-hidden: sin esta linea, quien navega con
+ * lector de pantalla no tenia NINGUNA senal de posicion en la secuencia.
+ *
+ * QUE LO DISTINGUE DE ScJourneyStepNumber, la pieza retirada por encargo
+ * del usuario el 2026-08-02 (ver el docblock de la cabecera de tipografia,
+ * mas arriba): aquella era un numeral a escala de CARTEL
+ * (JOURNEY_DECK_STEP_NUMBER_SIZE, su propia constante de tamano) que
+ * competia visualmente con la etiqueta de 11rem. Esta es una linea pequena
+ * en el paso `bodySm` del sistema y en semantic.textMuted -- subordinada a
+ * la etiqueta, del mismo peso visual que un sobretitulo. La informacion
+ * vuelve; el numeral gigante no.
+ *
+ * RITMO: recupera EXACTAMENTE el reparto que la propia entrega de 2026-08-02
+ * documento al retirar el numero -- ordinal a space[4] del icono (el hueco
+ * que el icono siempre tuvo reservado) y etiqueta a space[2] del ordinal (el
+ * hueco de dos textos consecutivos). No es un ajuste estetico nuevo: es el
+ * reparto anterior, restaurado con la pieza que lo motivaba.
+ */
+export const ScJourneyStepOrdinal = styled.p`
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* Rol overline COMPLETO del sistema (tamano, peso, interlineado y
+     tracking), no una mezcla de tokens ni un valor propio: es el rol que el
+     repo ya usa para un marcador pequeno sobre un titular de cartel -- el
+     kicker de la rama oscura de Features (Features.tsx, Task 15) y la pista
+     de scroll de este mismo deck (ScJourneyScrollHint, mas abajo) resuelven
+     los tres contra el mismo rol. Nada de constantes JOURNEY_DECK_* aqui:
+     esas son la escala de CARTEL de la diapositiva, y este marcador vive
+     justo en el lado contrario de esa jerarquia. */
+  font-size: ${({ theme }) => theme.data.type.scale.overline.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.overline.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.overline.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.overline.tracking};
+  margin-block-start: ${({ theme }) => theme.data.space[4]};
+`;
+
+/*
  * Etiqueta de una sola palabra del paso ("Descubre".."Evoluciona", D11):
  * antes iba pegada al numero dentro del mismo nodo de texto
  * (ScStepLabel/ScDarkStepLabel); ahora es la pieza de cartel que se lleva
@@ -503,16 +554,14 @@ export const ScJourneyStepIconBox = styled.span<{
  * para texto de cartel, en vez de inventar un numero nuevo para esta pieza.
  * letter-spacing SIGUE el de h5 -- no hay motivo medido para cambiarlo.
  *
- * margin-block-start SUBIDO de space[2] a space[4] (2026-08-02, al retirar
- * ScJourneyStepNumber junto con la numeracion de esta rama): NO es un
- * retoque estetico, es que la pieza que gobernaba el ritmo icono -> texto
- * dejo de existir. space[2] era el hueco pensado para que esta etiqueta
- * fuera pegada DEBAJO del numero -- que llevaba su propio
- * margin-block-start: space[4] separandolo a EL del icono. Al desaparecer
- * el numero, esta etiqueta pasa a seguir directamente al icono, y el hueco
- * que le corresponde es el que el icono tenia reservado (space[4]), no el
- * space[2] pensado para separar dos textos entre si. Sin cambios en esta
- * entrega.
+ * margin-block-start DE VUELTA a space[2] (Task 16, 2026-08-11), deshaciendo
+ * la subida a space[4] del 2026-08-02: aquella subida no fue un retoque
+ * estetico sino la consecuencia de que la pieza que gobernaba el ritmo
+ * icono -> texto (el numero) dejara de existir, y esta etiqueta pasara a
+ * seguir directamente al icono. Con ScJourneyStepOrdinal delante otra vez
+ * (arriba), el reparto vuelve a ser el original y por el mismo motivo:
+ * space[4] separa el icono del PRIMER texto, y space[2] es el hueco de dos
+ * textos consecutivos.
  */
 export const ScJourneyStepLabel = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -521,7 +570,7 @@ export const ScJourneyStepLabel = styled.p`
   font-weight: ${JOURNEY_DECK_STEP_LABEL_WEIGHT};
   line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.h5.tracking};
-  margin-block-start: ${({ theme }) => theme.data.space[4]};
+  margin-block-start: ${({ theme }) => theme.data.space[2]};
 `;
 
 /*
