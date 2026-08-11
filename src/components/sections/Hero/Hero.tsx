@@ -600,8 +600,10 @@ export function Hero(): ReactElement {
   const light = layoutTheme === "light";
   // Este componente ya no consume useStage(): desde la revision 2026-08-11 el
   // intro de la copia es CSS estatico y no depende de ninguna fase de JS (ver
-  // el docblock de ScCopy). HeroBackdrop, mas abajo, si lo sigue usando: su
-  // decode-gating es lo que de verdad necesita JavaScript.
+  // el docblock de ScCopy). HeroBackdrop, mas abajo, sigue necesitando
+  // JavaScript para su propio decode-gating -- pero ya no via useStage(): esa
+  // maquina se retiro entera (Task 27, sin ningun consumidor real desde esta
+  // misma revision).
 
   return (
     <ScHero id="hero">
