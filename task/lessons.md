@@ -1,5 +1,45 @@
 # Lecciones
 
+## 2026-08-11 — Recomprimir el WebP que TÚ MISMO acabas de recomprimir encadena una generación de pérdida invisible
+
+- **Qué pasó:** en la Task 11, tras elegir `q=50` para `01-nebula.webp` de Story y
+  guardarlo en disco, una revisión posterior decidió que `q=40` daba más ahorro
+  (21% frente a 13%) y cruzaba además el umbral de `2,5 bpp` de
+  `PRE-LAUNCH-QA.md` §4. Regenerar "a q40" parecía trivial: decodificar el
+  fichero de disco y volver a guardar con `quality=40`. El resultado
+  (`289472 B`) no coincidía con el que había dado el barrido de calidad
+  original para `q40` sobre el arte real (`278964 B`) — una diferencia de
+  `10508 B` sin ningún parámetro distinto.
+- **Causa raíz:** el fichero de disco en ese momento YA era el resultado de
+  la primera recompresión (`q50`), no el activo original. Decodificar un
+  WebP con pérdida y volver a codificarlo — aunque sea con parámetros
+  "correctos" — no reproduce lo que habría dado codificar la fuente original
+  a esa calidad: cada generación de recompresión cuantiza sobre datos que ya
+  perdieron información en la generación anterior, y el resultado es una
+  tercera generación de pérdida acumulada, más pesada y de peor fidelidad
+  de lo que sugiere el número de `quality` pasado. Es el mismo mecanismo,
+  en la dirección contraria, que ya midió esta misma tarea al intentar
+  reproducir BYTE A BYTE un activo de dos generaciones (ver
+  `assets/features-celestial-orbital/manifest.json`, `midTrack20260811`):
+  la pérdida por generación es real y compuesta, no solo un fallo al
+  intentar *igualar* bytes, sino un defecto real cuando se encadena sin
+  darse cuenta.
+- **Cómo se recuperó:** el fichero seguía versionado en git (`git status`
+  lo mostraba como `M`, no como nuevo), así que `git show HEAD:<ruta>` (que
+  NO toca el árbol de trabajo, a diferencia de `git checkout`/`restore` —
+  lección del 2026-07-28) recuperó los bytes ORIGINALES exactos, verificados
+  contra las cifras que ya documentaba el manifest (`354992`/`229344` B).
+  Regenerar desde ahí reprodujo exactamente los números del barrido de
+  calidad original.
+- **Regla:** cuando una tarea itera sobre varias calidades candidatas de
+  recompresión con pérdida, CADA candidato se genera desde el MISMO activo
+  fuente inmutable (el original, o una copia explícita del original guardada
+  aparte), nunca desde el resultado de un intento anterior — ni siquiera
+  "solo para probar una calidad distinta". Si el activo fuente está
+  versionado en git y aún no se ha commiteado el cambio, `git show
+  HEAD:<ruta>` es la manera segura de recuperar el original sin arriesgar
+  ningún otro cambio sin commitear del árbol de trabajo.
+
 ## 2026-08-11 — Un CLS de `0` puede significar «no hay shift» o «no había nada visible que desplazar»
 
 - **Qué pasó:** la Task 10 sacó el intro del hero de la máquina de fases JS y lo pasó a `@keyframes`
