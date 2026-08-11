@@ -19,31 +19,30 @@ import { IconMoon, IconSun } from "./ThemeIcons";
 // Common.ThemeToggle.switchToDark/switchToLight, sin cambio de texto).
 //
 // D6 (2026-08-04): `onClick` ya NO llama a `toggleTheme` directo -- pasa por
-// `useThemeScrollReset`, que decide si hay que volver arriba antes de
-// cambiar el tema (ver el hook para el porqué completo). `themeName` sigue
-// saliendo de `useTheme()` tal cual: el icono/etiqueta muestran el tema
-// ACTIVO en todo momento, incluso mientras el viaje de scroll esta en
-// curso -- no hay un tema "intermedio" que representar.
+// `useThemeScrollReset`. HISTORIA: hasta Task 17 (plan premium F1-F5,
+// 2026-08-11) ese hook decidia si habia que volver arriba (viaje de scroll)
+// antes de cambiar el tema; Task 17 retiro ese viaje por completo (una
+// auditoria independiente midio que era el propio viaje el que tiraba la
+// posicion de lectura -- ver el docblock de cabecera de useThemeScrollReset.ts
+// para el porque completo). Hoy el tema cambia SIEMPRE en el mismo tick del
+// click, sin tocar el scroll. `themeName` sigue saliendo de `useTheme()` tal
+// cual: el icono/etiqueta muestran el tema ACTIVO en todo momento.
 //
-// A PROPOSITO no se pasa `disabled={pending}` (revision 2026-08-04): un
-// <button> nativo que pasa a disabled deja de ser enfocable y el navegador
-// le arrebata el foco (lo manda a <body>). Un usuario de teclado que activa
-// el toggle con Enter/Espacio desde el pie de la pagina perderia el foco
-// hasta 1200ms, y al reactivarse el boton el foco YA NO esta ahi -- tendria
-// que volver a tabular desde el principio del documento. Un lector de
-// pantalla, ademas, anuncia "deshabilitado" justo tras la pulsacion, que se
-// lee como "tu accion ha fallado", no como "tu accion esta en marcha". La
-// reentrada NO depende de este atributo: `useThemeScrollReset` ya la
-// bloquea con un guard sincrono por ref (`pendingRef`, ver el hook), que
-// actua incluso en el mismo tick, antes de que React repinte -- mas fuerte
-// que cualquier `disabled`.
+// A PROPOSITO no se pasa `disabled` (revision 2026-08-04): un <button>
+// nativo que pasa a disabled deja de ser enfocable y el navegador le
+// arrebata el foco (lo manda a <body>). Un usuario de teclado que activa el
+// toggle con Enter/Espacio perderia el foco mientras dure el cruce de
+// composiciones del hero (hasta HERO_COPY_RETURN_MS), y al reactivarse el
+// boton el foco YA NO esta ahi -- tendria que volver a tabular desde el
+// principio del documento. Un lector de pantalla, ademas, anuncia
+// "deshabilitado" justo tras la pulsacion, que se lee como "tu accion ha
+// fallado", no como "tu accion esta en marcha".
 //
 // Task 5 (plan premium F1-F5): en su lugar se pasa `aria-busy={busy}` --
-// `busy` (`useThemeScrollReset`) cubre el viaje COMPLETO (scroll + cruce de
-// composiciones del hero, ver el docblock del hook), no solo el tramo de
-// scroll que ya cubria `pending`. Es la senal para quien NO ve la pagina
-// desplazarse ante sus ojos (un lector de pantalla): "esta accion sigue en
-// marcha", sin tocar la focusabilidad. Se pasa como atributo nativo, NO como
+// `busy` (`useThemeScrollReset`) cubre el cruce de composiciones del hero
+// (ver el docblock del hook) cuando va a ocurrir uno. Es la senal para quien
+// NO ve nada moverse ante sus ojos (un lector de pantalla): "esta accion
+// sigue en marcha", sin tocar la focusabilidad. Se pasa como atributo nativo, NO como
 // la prop `loading` de Button (que Button.tsx acopla a `disabled` a
 // proposito para su propio caso de uso -- formularios que quieren bloquear
 // el reenvio, ver Button.test.tsx "en loading marca aria-busy y

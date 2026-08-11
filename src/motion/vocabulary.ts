@@ -40,7 +40,9 @@
  * ## Por qué `vocabulary.test.ts` es un contrato cerrado (regla 40 del
  * manual) y no un test de "algunas propiedades"
  *
- * Los cuatro grupos se aseveran con `toEqual` completo (no
+ * Los cinco grupos (el quinto, `OVERLAY`, llegó con Task 17 del plan
+ * `2026-08-10-implementacion-plan-premium-f1-f5.md` -- ver su docblock más
+ * abajo) se aseveran con `toEqual` completo (no
  * `toMatchObject`/aserciones campo a campo): quien añada o cambie una clave
  * actualiza la fuente de verdad del test en el MISMO commit, igual que
  * `system.test.ts` hace con `motion.duration`/`motion.easing`. Un test que
@@ -147,6 +149,57 @@ export const DECK = {
   scrubMs: 320,
   sceneDepthShift: "6dvh",
   exitDurationMs: 200,
+} as const;
+
+/**
+ * OVERLAY — coreografía de las DOS superficies flotantes de navegación: el
+ * desplegable de escritorio (`ScNavPanel`, `Navbar.tsx`) y la hoja de
+ * navegación móvil (`ScNavSheet`/`ScBurger`, `NavSheet.tsx`). Nace en la Task
+ * 9/10 de la auditoría premium (2026-08-08) como `NAV_OVERLAY_OPEN_MS`/
+ * `NAV_OVERLAY_CLOSE_MS` (`navOverlay.transition.ts`, ahora retirado) más
+ * `NAV_PANEL_CLOSED_SCALE` inline en `Navbar.tsx`; Task 17 (plan premium
+ * F1-F5, 2026-08-11) los traslada aquí -- "valores del vocabulario" en su
+ * propio brief -- y unifica el tercer campo (`closedScale`) entre las dos
+ * superficies, que hasta ahora solo lo tenía el panel.
+ *
+ * - `openMs: 180` / `closeMs: 120` — asimetría deliberada (regla 26 de
+ *   `RULES.md`, D5 del brief de Task 9): abrir presenta contenido que hay que
+ *   leer y pide tiempo de lectura; cerrar solo retira algo que el usuario ya
+ *   decidió descartar, y alargarlo se siente como una interfaz que no
+ *   obedece. Los dos sentidos se declaran como DOS bloques de `transition` en
+ *   CSS (base = cerrar, `[data-open="true"]` = abrir), nunca con estado de
+ *   React adicional -- ver `ScNavPanel`/`ScNavSheet`.
+ * - `closedScale: 0.97` — encogimiento del estado cerrado, sumado al
+ *   `translateY` propio de cada superficie. Task 9 lo introdujo SOLO en
+ *   `ScNavPanel` (un popover que cuelga de su disparador, así que encoger la
+ *   escala refuerza ese origen -- `transform-origin: top left`) y lo
+ *   descartó a propósito en `ScNavSheet` (una hoja que DESLIZA desde el borde
+ *   inferior, donde añadir escala se leía como "un modal que salta", un
+ *   gesto distinto). Task 17 revierte esa exclusión: el brief pide paridad
+ *   de motion explícita entre las dos superficies ("cierre con scale(0.97)
+ *   en ambos"), motivada por la misma auditoría independiente que detectó el
+ *   hallazgo del scroll de tema (ver `useThemeScrollReset.ts`) -- alguien que
+ *   abre el panel en escritorio y la hoja en móvil percibe hoy dos
+ *   coreografías de cierre distintas para el mismo rol de superficie
+ *   (navegación flotante), y esa inconsistencia pesa más que la lectura de
+ *   "modal que salta" que motivó la exclusión original. Con
+ *   `transform-origin: bottom center` (la hoja no cambia su origen), el
+ *   encogimiento es simétrico respecto al eje X y tira ligeramente el borde
+ *   superior hacia el inferior -- el mismo patrón de "hoja que se asienta"
+ *   que ya usan las hojas inferiores de iOS/Material, no un gesto ajeno.
+ *
+ * Un literal PROPIO de este vocabulario, no una clave nueva de
+ * `motion.duration`/`motion.easing` (mismo criterio que documenta el bloque
+ * final de este fichero para `REVEAL.easing`/`PRESS.easing`): `openMs`/
+ * `closeMs`/`closedScale` son la coreografía de un ROL concreto (superficie
+ * flotante de navegación), no un átomo general del sistema. La curva la
+ * sigue aportando `PRESS.easing`, no este grupo: las dos superficies ya la
+ * comparten y no hay motivo para duplicarla aquí.
+ */
+export const OVERLAY = {
+  openMs: 180,
+  closeMs: 120,
+  closedScale: 0.97,
 } as const;
 
 /**

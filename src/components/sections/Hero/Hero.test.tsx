@@ -122,12 +122,14 @@ describe("Hero", () => {
   });
 
   /*
-   * D6 (spec 2026-08-04): `useThemeScrollReset` busca `document.getElementById
-   * ("hero")` para decidir si el usuario esta en la "zona del hero" antes de
-   * cambiar de tema. Sin este id la deteccion degrada silenciosamente a la
-   * regla de `scrollY` (ver el hook), que en una pagina con hero real seria
-   * incorrecta -- por eso este candado vive en el propio Hero, no solo en el
-   * test del hook que consume el id.
+   * D6 (spec 2026-08-04), actualizado por Task 17 (plan premium F1-F5,
+   * 2026-08-11): `useThemeScrollReset` busca `document.getElementById
+   * ("hero")` para decidir si va a correr un cruce de composiciones que
+   * esperar (`willCrossfade`) al cambiar de tema -- ya no para decidir un
+   * viaje de scroll (retirado en Task 17, ver el docblock de cabecera del
+   * hook). Sin este id, `willCrossfade` es siempre `false` y `aria-busy`
+   * nunca se activa -- por eso este candado vive en el propio Hero, no solo
+   * en el test del hook que consume el id.
    */
   it("la seccion raiz tiene id='hero'", () => {
     const { container } = renderHero();

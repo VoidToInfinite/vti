@@ -16,11 +16,7 @@ import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { NAV_GROUPS, type NavGroup, type NavItem } from "@/config/navigation";
 import { useActiveSectionKey } from "@/hooks/useActiveSection";
-import { DECK, PRESS } from "@/motion/vocabulary";
-import {
-  NAV_OVERLAY_CLOSE_MS,
-  NAV_OVERLAY_OPEN_MS,
-} from "./navOverlay.transition";
+import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
 
 /*
  * HOJA DE NAVEGACIÓN MÓVIL (Task 10 de la auditoría premium; spec del vault
@@ -175,15 +171,15 @@ const ScBurger = styled.svg`
     transform-box: fill-box;
     transform-origin: center;
     transition:
-      transform ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
-      opacity ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing};
+      transform ${OVERLAY.closeMs}ms ${PRESS.easing},
+      opacity ${OVERLAY.closeMs}ms ${PRESS.easing};
   }
 
   &[data-open="true"] {
     rect {
       transition:
-        transform ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing},
-        opacity ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing};
+        transform ${OVERLAY.openMs}ms ${PRESS.easing},
+        opacity ${OVERLAY.openMs}ms ${PRESS.easing};
     }
 
     [data-burger-line="top"] {
@@ -310,15 +306,30 @@ const ScSheetVeil = styled.div`
  * `border-top`, declarado explícitamente: `GlobalStyles` aplica `border: 0`
  * al selector universal, así que sin esta línea no habría filo.
  *
- * MOVIMIENTO (gramática de Task 9): `transform-origin: bottom center` -- la
- * hoja nace del borde inferior, que es de donde entra --, `translateY(100%)`
- * en cerrado y asimetría 180/120 con `PRESS.easing`, declarada como DOS
- * bloques de `transition` (base = cerrar, `[data-open="true"]` = abrir) sin
- * ningún estado de React adicional (regla 26). No lleva `scale`, a
- * diferencia de `ScNavPanel`: un panel que cuelga de su disparador se lee
- * como algo que se despliega y encoger la escala refuerza ese origen, pero
- * una hoja DESLIZA desde el borde -- añadirle escala la haría leerse como un
- * modal que salta, que es otro gesto.
+ * MOVIMIENTO (gramática de Task 9, escala añadida en Task 17): `transform-
+ * origin: bottom center` -- la hoja nace del borde inferior, que es de donde
+ * entra --, `translateY(100%) scale(OVERLAY.closedScale)` en cerrado y
+ * asimetría 180/120 con `PRESS.easing`, declarada como DOS bloques de
+ * `transition` (base = cerrar, `[data-open="true"]` = abrir) sin ningún
+ * estado de React adicional (regla 26).
+ *
+ * HISTORIA DE LA ESCALA: hasta Task 17 esta hoja NO llevaba `scale`, a
+ * diferencia de `ScNavPanel` -- la razón original: "un panel que cuelga de
+ * su disparador se lee como algo que se despliega y encoger la escala
+ * refuerza ese origen, pero una hoja DESLIZA desde el borde, añadirle escala
+ * la haría leerse como un modal que salta, que es otro gesto". Task 17 (plan
+ * premium F1-F5, 2026-08-11) revierte esa exclusión a propósito: su brief
+ * pide paridad de motion EXPLÍCITA entre panel y hoja ("cierre con
+ * scale(0.97) en ambos"), y la auditoría independiente que motivó la tarea
+ * señala la inconsistencia entre las dos superficies de navegación flotante
+ * como parte del mismo defecto de coherencia que el punto 1 de esa tarea
+ * corrige para el scroll de tema. Con `transform-origin: bottom center` (sin
+ * cambiar, a diferencia del `top left` del panel) el encogimiento es
+ * simétrico en X y tira el borde superior levemente hacia el inferior -- el
+ * mismo patrón de "hoja que se asienta" de las hojas inferiores nativas de
+ * iOS/Material al cerrarse, no el "modal que salta" que la razón original
+ * temía. Ver el docblock de `OVERLAY` (`src/motion/vocabulary.ts`) para el
+ * detalle completo de la decisión.
  *
  * `overscroll-behavior: contain` (regla 21, sustituto del bloqueo de scroll
  * clásico): al llegar al final de esta lista, el gesto NO encadena a la
@@ -401,23 +412,23 @@ const ScNavSheet = styled.div`
   transform-origin: bottom center;
   visibility: hidden;
   opacity: 0;
-  transform: translateY(100%);
+  transform: translateY(100%) scale(${OVERLAY.closedScale});
   pointer-events: none;
   transition:
-    opacity ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
-    transform ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
-    visibility ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing};
+    opacity ${OVERLAY.closeMs}ms ${PRESS.easing},
+    transform ${OVERLAY.closeMs}ms ${PRESS.easing},
+    visibility ${OVERLAY.closeMs}ms ${PRESS.easing};
 
   &[data-open="true"] {
     visibility: visible;
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     pointer-events: auto;
     /* Sin entrada de visibility a propósito: ver la nota "VISIBILITY,
        MEDIDO EN NAVEGADOR REAL" del docblock de arriba. */
     transition:
-      opacity ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing},
-      transform ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing};
+      opacity ${OVERLAY.openMs}ms ${PRESS.easing},
+      transform ${OVERLAY.openMs}ms ${PRESS.easing};
   }
 
   @media ${({ theme }) => theme.data.breakPoint.md} {

@@ -12,8 +12,8 @@ import { useScrolled } from "@/hooks/useScrolled";
  * píxel fijo, para que se ajuste solo a cualquier dispositivo: un móvil
  * alto necesita más scroll en píxeles absolutos que un portátil bajo para
  * cubrir la misma proporción de contenido leído. Mismo razonamiento que
- * `isInHeroZone()` en `useThemeScrollReset.ts`, que descarta un umbral en
- * píxeles fijo por el mismo motivo.
+ * usaba `isInHeroZone()` en `useThemeScrollReset.ts` (retirada en Task 17,
+ * plan premium F1-F5) para su propio umbral de zona.
  */
 export const BACK_TO_TOP_THRESHOLD_SCREENS = 2;
 

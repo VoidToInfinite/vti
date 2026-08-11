@@ -4,254 +4,148 @@ import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition"
 import { useTheme } from "@/theme/ThemeProvider";
 
 /**
- * Tope por INACTIVIDAD (ms): cuanto tiempo sin que `scrollY` avance ni un
- * pixel hace falta para dar el viaje de scroll por terminado (D6, revision
- * 2026-08-04). Sustituye a un tope por DURACION TOTAL (la version anterior
- * de esta constante, `THEME_SCROLL_TIMEOUT_MS = 1200`) porque ese diseño
- * era, en el fondo, una apuesta sobre cuanto tarda un navegador en un
- * `scrollTo` suave -- y esa duracion NO es una propiedad de este codigo,
- * es una propiedad del motor de scroll del navegador (variable entre
- * Chromium/WebKit/Firefox) Y de la configuracion del usuario (Firefox deja
- * ajustar la duracion del scroll suave). Un navegador mas lento, o un
- * usuario con esa preferencia mas alta, dispararia el tope ANTES de llegar
- * arriba, cambiando el tema con la pagina a mitad de camino -- exactamente
- * el defecto que D6 existe para evitar. Ademas, ese numero no se puede
- * verificar en NINGUN entorno de este equipo: este panel de navegador corre
- * con `document.visibilityState === "hidden"`, donde `scroll-behavior:
- * smooth` no progresa en absoluto (`task/lessons.md` 2026-07-31), asi que
- * la duracion real de un scroll suave es, aqui, indemostrable.
+ * Task 17 (plan premium F1-F5, 2026-08-11): este hook ya NO mueve el scroll.
+ * Hasta esta tarea, `requestThemeChange` --fuera de la "zona del hero" (D6,
+ * spec 2026-08-04)-- hacía viajar la página hasta `top: 0` con
+ * `scrollTo({ behavior: "smooth" })`, esperaba a que el viaje terminara
+ * (carrera entre `scrollend`, un sondeo por `requestAnimationFrame` y dos
+ * temporizadores de seguridad) y SOLO ENTONCES cambiaba el tema. El motivo
+ * original (D6): mostrar el cruce de composiciones del hero
+ * (`HeroBackdrop.tsx`) como confirmación visual de que el tema cambió de
+ * verdad, evitando que alguien a mitad de una página con layouts distintos
+ * por tema viera un re-maquetado brusco lejos de donde estaba mirando.
  *
- * Un tope por inactividad no necesita adivinar esa duracion: se REARMA cada
- * vez que llega un evento `scroll` con `scrollY` distinto del ultimo leido
- * (ver el listener de `scroll` en `requestThemeChange`), asi que un scroll
- * largo pero que sigue avanzando nunca lo dispara -- solo dispara cuando el
- * avance se detiene de verdad, sea cual sea la duracion total. 300ms es el
- * valor elegido: un `scrollTo` suave dispara `scroll` aproximadamente una
- * vez por frame compuesto (~16ms a 60fps) mientras esta en marcha, asi que
- * 300ms sin ni un solo evento es ~19 frames de silencio -- muy por encima de
- * un frame lento o un frame perdido en un dispositivo cargado (que retrasa
- * el SIGUIENTE evento, no produce un vacio de cientos de ms), pero corto
- * como para no demorar la reaccion percibida cuando el scroll de verdad ya
- * paro.
+ * Una auditoría independiente (2026-08-11, hallazgo #5 de 5) midió el coste
+ * real de ese viaje: `scrollY` 2500 → 2400 → 193 → 0 en ~1s, sin ningún
+ * anuncio para quien no ve la página desplazarse, y sin paridad con el
+ * cambio de idioma (que no mueve el scroll en absoluto). Quien cambia de
+ * tema a mitad de página "vuelve al principio" -- exactamente el defecto que
+ * este hook existía para evitar, pero por la vía contraria: el viaje EN SÍ
+ * es el que tira la posición de lectura.
+ *
+ * Dos salidas se evaluaron para el punto 1 del brief de Task 17:
+ *
+ * A) NO viajar fuera del hero: `toggleTheme()` en el sitio, sin tocar
+ *    `scrollTo` en absoluto. Conserva la posición de forma EXACTA (mismo
+ *    `scrollY` antes y después, cero riesgo de desajuste) al coste de que
+ *    quien no está mirando el hero deja de ver su cruce de composiciones.
+ * B) SEGUIR viajando (conservando toda la maquinaria de `scrollend`/rAF/
+ *    temporizadores) y, tras el asentamiento, restaurar el `scrollY`
+ *    original con un segundo `scrollTo`.
+ *
+ * Se eligió (A), con el código delante y estas razones:
+ *
+ * 1. `HERO_COPY_RETURN_MS` (`hero.transition.ts`) mide 1830ms -- el cruce de
+ *    composiciones por sí solo, SIN contar el viaje de scroll previo (hasta
+ *    3000ms más, `THEME_SCROLL_MAX_MS` retirada). La opción B habría forzado
+ *    a CUALQUIER usuario fuera del hero a presenciar entre ~1.8s y ~4.8s de
+ *    scroll automático (subida + bajada) por un simple cambio de color --
+ *    más automatismo de scroll que el propio defecto que el hallazgo #5
+ *    denuncia, no menos. La opción A no tiene ese coste: es instantánea.
+ * 2. Con el contenido ya unificado entre temas (Tasks 15-16 de este mismo
+ *    plan: Story/Features/Journey/Contact comparten árbol de contenido, solo
+ *    difiere el arte), la razón original de D6 --evitar un re-maquetado
+ *    brusco al cambiar de tema lejos del hero-- ya no aplica: el layout no
+ *    cambia de alto entre temas, así que quedarse exactamente donde se
+ *    estaba (opción A) muestra CONTENIDO EQUIVALENTE al de antes del cambio,
+ *    no una sección distinta. Es la lectura de "la restauración es estable"
+ *    del brief: fiarse del mismo `scrollY` sin tocarlo es fiable ahora
+ *    precisamente porque el contenido ya no diverge por tema.
+ * 3. Coherencia con el cambio de idioma, que el propio hallazgo #5 usa como
+ *    vara de medir ("el cambio de idioma sí conserva el scroll"): `i18n`
+ *    nunca mueve la página al cambiar de idioma. El tema pasa a comportarse
+ *    igual, en vez de ser el único control del sitio que fuerza un viaje.
+ *
+ * COSTE ACEPTADO, no escondido: quien cambia de tema estando lejos del hero
+ * ya NO ve el cruce de composiciones (`HeroBackdrop.tsx`) -- esa pieza queda
+ * reservada a quien cambia de tema estando en o cerca del hero, donde ya
+ * ocurría sin viaje (ver más abajo). El resto de la página sigue
+ * recolorándose de inmediato vía las variables CSS del tema, la misma señal
+ * que ya usa cualquier otro cambio de tema del sitio.
+ *
+ * CONSECUENCIA EN EL CÓDIGO: al no haber ya ningún escenario que dispare un
+ * viaje de scroll, la distinción "zona del hero" (`isInHeroZone`, retirada)
+ * deja de tener efecto -- las dos ramas hacían cosas distintas SOLO porque
+ * una viajaba y la otra no; ahora ninguna viaja. Con ella se retiran
+ * `THEME_SCROLL_IDLE_MS`/`THEME_SCROLL_MAX_MS`, la detección de `scrollend`/
+ * el sondeo por `requestAnimationFrame`, y el campo `pending` (cubría
+ * exclusivamente el tramo de scroll que ya no existe). `busy` SÍ se
+ * conserva: sigue cubriendo el cruce de composiciones del hero cuando va a
+ * ocurrir uno (ver su docblock, más abajo), que es movimiento real e
+ * independiente del scroll.
+ *
+ * El nombre `useThemeScrollReset` se mantiene deliberadamente (no se
+ * renombra en esta tarea): sigue siendo el único punto de entrada para
+ * "pedir un cambio de tema" con la coreografía que le corresponda, y los
+ * dos consumidores que le quedan (`ThemeToggle.tsx` y este propio test) ya
+ * usan ese nombre. Renombrarlo es limpieza de nomenclatura fuera del
+ * alcance de Task 17, declarada aquí en vez de hecha en silencio.
  */
-export const THEME_SCROLL_IDLE_MS = 300;
-
-/**
- * Techo ABSOLUTO (ms), sin rearmar nunca, para el viaje de scroll (D6,
- * revision 2026-08-04). Complementa a `THEME_SCROLL_IDLE_MS`, que por si
- * solo tiene un punto ciego: si llegara una sucesion INFINITA de eventos
- * `scroll` con avance real -- una fisica de scroll que jamas termina de
- * asentarse en el pixel exacto, un jitter de compositor, un bug de otra
- * capa -- el tope por inactividad se rearmaria para siempre y el boton de
- * tema quedaria inerte, el mismo fallo que el tope original queria evitar
- * pero por la via contraria. `THEME_SCROLL_MAX_MS` se programa UNA vez, al
- * arrancar el viaje, y no se toca mas: pase lo que pase con `scroll`,
- * `scrollend` o el sondeo por rAF, el tema cambia como mucho a los 3000ms.
- * (El caso "no llega ni un solo evento de scroll" -- pestaña oculta, cero
- * `requestAnimationFrame`, cero progreso -- ya queda cubierto por
- * `THEME_SCROLL_IDLE_MS`, que arranca armado desde el primer instante del
- * viaje y por tanto dispara a los 300ms aunque no llegue ningun evento; este
- * techo no depende de esa deduccion para declarar, POR ESCRITO, cual es el
- * peor caso absoluto del sistema completo.) 3000ms es holgado frente a
- * cualquier duracion de `scrollTo` suave configurable en un navegador real
- * sin llegar a percibirse como "el boton no responde".
- */
-export const THEME_SCROLL_MAX_MS = 3000;
 
 export interface ThemeScrollReset {
-  /** Punto de entrada unico del boton de tema: sustituye a `toggleTheme` a
-   *  secas (ver `ThemeToggle.tsx`). */
+  /** Punto de entrada único del botón de tema: sustituye a `toggleTheme` a
+   *  secas (ver `ThemeToggle.tsx`). Cambia el tema en el mismo tick de la
+   *  llamada, siempre -- ya no hay ningún tramo asíncrono antes del cambio
+   *  en sí (ver el docblock de cabecera, Task 17). */
   readonly requestThemeChange: () => void;
-  /** `true` mientras dura EXCLUSIVAMENTE el viaje de scroll que precede al
-   *  cambio de tema -- de click a que `toggleTheme()` se llama de verdad.
-   *  Vuelve a `false` en el MISMO tick en que el tema cambia, antes incluso
-   *  de que el cruce de composiciones del hero (HeroBackdrop.tsx) arranque.
-   *  Sigue existiendo tal cual porque el guard de reentrada de
-   *  `requestThemeChange` (mas abajo) lo usa via `pendingRef`, y varios
-   *  tests atan su transicion exacta. NINGUN consumidor lo usa para
-   *  `disabled` (revision 2026-08-04: un boton nativo deshabilitado deja de
-   *  ser enfocable y le arrebata el foco a quien lo activo por teclado) --
-   *  para reflejar el viaje COMPLETO (scroll + cruce de composiciones) en la
-   *  interfaz, usa `busy`. */
-  readonly pending: boolean;
-  /** `true` desde el click hasta que el viaje COMPLETO se asienta: el scroll
-   *  (si lo hubo) MAS el cruce de composiciones del hero (Task 5, plan
-   *  premium F1-F5), cuando va a ocurrir uno. Pensado para `aria-busy`,
-   *  NUNCA para `disabled` (misma razon que `pending`). Ver el docblock de
-   *  `requestThemeChange` para el criterio exacto de cuando se extiende mas
-   *  alla de `pending` y cuando no. */
+  /** `true` desde el click hasta que el cruce de composiciones del hero
+   *  (Task 5, plan premium F1-F5) se asienta, cuando va a ocurrir uno.
+   *  Pensado para `aria-busy`, NUNCA para `disabled` (un botón nativo
+   *  deshabilitado deja de ser enfocable y le arrebata el foco a quien lo
+   *  activó por teclado -- lección `task/lessons.md` 2026-08-04). Ver el
+   *  docblock de `requestThemeChange` para el criterio exacto de cuándo se
+   *  activa y cuándo no. */
   readonly busy: boolean;
 }
 
 /**
- * `"onscrollend" in window`, aislado en su propia funcion. `onscrollend` ya
- * esta declarado en el tipo `Window` de lib.dom.d.ts (todo navegador expone
- * el atributo IDL del manejador, lo soporte o no de verdad), asi que
- * TypeScript estrecha `window` como si la rama negativa de `in window`
- * fuera IMPOSIBLE (`never`) si el chequeo se escribe inline en el `if` que
- * usa `window` despues. Aislar la comprobacion aqui, devolviendo un
- * `boolean` plano, es lo que evita que esa estrechez se propague a la rama
- * `else` del llamador -- que si necesita seguir usando `window` con su tipo
- * normal para programar el sondeo por rAF.
- */
-function supportsScrollEndEvent(): boolean {
-  return "onscrollend" in window;
-}
-
-/**
- * `true` si el usuario esta en la "zona del hero" (D6): el punto en el que
- * cambiar el tema sin viaje de scroll sigue siendo una transicion legible,
- * porque el hero todavia ocupa buena parte de la pantalla.
+ * Cambia el tema y, si corresponde, mantiene `busy` activo mientras dura el
+ * cruce de composiciones del hero (Task 5). Ya NO decide nada sobre scroll
+ * (Task 17, ver el docblock de cabecera de este fichero): ni lo mueve ni lo
+ * restaura, así que la posición de lectura queda exactamente donde estaba
+ * antes del click, en cualquier punto de la página.
  *
- * Con `#hero` presente en el documento, la zona es `heroRect.bottom >=
- * innerHeight / 2` -- el hero sigue cubriendo AL MENOS media pantalla.
- * Dos alternativas mas obvias se descartan a proposito:
- *
- * - `scrollY === 0`: demasiado estricto. Un solo pixel de inercia de rueda
- *   (o un navegador que redondea el scroll a 1px) ya deja de cumplirlo, y
- *   dispararia el viaje de scroll completo por una diferencia invisible
- *   para el usuario -- una animacion de varios cientos de ms para "corregir"
- *   algo que el usuario no percibe como fuera de sitio.
- * - Un umbral fijo en pixeles (p.ej. `scrollY < 600`): miente en cuanto
- *   cambia el alto del hero o el del viewport. El hero mide `100dvh`
- *   (Hero.tsx): un umbral escrito a mano quedaria corto en un movil alto y
- *   largo en un portatil bajo, y habria que re-medirlo cada vez que el
- *   hero cambiara de alto. Medir contra `heroRect`/`innerHeight` en vivo no
- *   necesita mantenimiento: se ajusta solo a cualquier viewport o cambio de
- *   maquetacion futuro del hero.
- *
- * Sin `#hero` en el documento (hoy: `app/not-found.tsx`, que monta el
- * navbar sin ninguna seccion hero) la regla degrada a `scrollY <
- * innerHeight / 2`: la misma proporcion de pantalla, sin el elemento que la
- * ancla. Es el mismo criterio expresado sin geometria de un elemento que no
- * existe, no una regla distinta.
- */
-function isInHeroZone(): boolean {
-  const hero = document.getElementById("hero");
-  if (hero) {
-    return hero.getBoundingClientRect().bottom >= window.innerHeight / 2;
-  }
-  return window.scrollY < window.innerHeight / 2;
-}
-
-/**
- * D6 de la spec de cabecera: "cuando se cambia de tema, si el usuario no se
- * encuentra en la zona del Hero, realizar animacion de scroll hacia arriba
- * y despues cambiar el tema". Consumido por `ThemeToggle.tsx` en lugar de
- * `toggleTheme` directo.
- *
- * Usa `toggleTheme()` (NUNCA `setThemeName`/el setter crudo): es el unico
- * setter de `ThemeProvider` que marca `changeSource: "user"`, la senal que
- * la coreografia del fondo del hero necesita para reconocer el cambio como
+ * Usa `toggleTheme()` (NUNCA `setThemeName`/el setter crudo): es el único
+ * setter de `ThemeProvider` que marca `changeSource: "user"`, la señal que
+ * la coreografía del fondo del hero necesita para reconocer el cambio como
  * humano y animarlo (ver el docblock de `ThemeChangeSource` en
- * `ThemeProvider.tsx`). Publicar aqui un cambio de tema por otra via dejaria
- * ese cruce sin animar, un fallo silencioso identico al que ya documenta
- * ese archivo para la hidratacion.
+ * `ThemeProvider.tsx`). Publicar aquí un cambio de tema por otra vía dejaría
+ * ese cruce sin animar, un fallo silencioso idéntico al que ya documenta ese
+ * archivo para la hidratación.
  *
- * Bajo `prefers-reduced-motion: reduce` (leido con `window.matchMedia`
- * DENTRO de `requestThemeChange`, nunca durante el render -- leerlo en
- * render rompe el export estatico, mismo motivo por el que
- * `ThemeProvider.tsx` no lee `localStorage` ahi): el scroll es instantaneo
- * (`behavior: "instant"`) y el tema cambia en el MISMO tick, sin ninguna
- * espera. La intencion del encargo -- no cambiar el tema con el usuario
- * perdido a varias pantallas del hero -- se conserva; lo unico que se pierde
- * es el viaje animado, que es justo lo que `reduce` pide perder.
+ * `willCrossfade` (leído con `window.matchMedia`/`document.getElementById`
+ * DENTRO del callback, nunca durante el render -- leerlo en render rompe el
+ * export estático, mismo motivo por el que `ThemeProvider.tsx` no lee
+ * `localStorage` ahí) decide si `busy` tiene algo que esperar: bajo
+ * `prefers-reduced-motion: reduce`, o en una página sin ningún elemento
+ * `#hero` (legales, `not-found`), no va a correr ningún cruce, así que
+ * `busy` se apaga en el MISMO tick en que el tema cambia. Con cruce, `busy`
+ * sigue activo hasta `HERO_COPY_RETURN_MS` (`hero.transition.ts`) después
+ * del click -- REUTILIZADO de la propia máquina de fases del hero, no un
+ * número nuevo inventado para este hook: es el mismo instante que
+ * `HeroBackdrop.tsx`/`useHeroCopySwap` ya calculan para "la copia del hero
+ * vuelve a ser visible con la distribución nueva", el último cambio visible
+ * de todo el cruce. Este criterio es idéntico al que ya usaban las dos ramas
+ * de la versión anterior de este hook (Task 5): lo único que cambia en Task
+ * 17 es que ya no hay ninguna rama que dependa de dónde esté el usuario en
+ * la página.
  *
- * Fuera de la zona del hero y sin `reduce`, el viaje se resuelve con DOS
- * vias de deteccion de fin de scroll en carrera, mas dos temporizadores de
- * seguridad (`THEME_SCROLL_IDLE_MS` por inactividad y `THEME_SCROLL_MAX_MS`
- * como techo absoluto, ver sus docblocks para el porque de cada uno):
- *
- * 1. El evento `scrollend`, si el navegador lo soporta
- *    (`"onscrollend" in window` -- el idiom de deteccion de soporte
- *    estandar, valido incluso para navegadores que declaran la propiedad
- *    del manejador sin implementar el evento). Se acepta SOLO si
- *    `window.scrollY === 0` al dispararse (ver `onScrollEnd`, mas abajo):
- *    un gesto anterior con inercia (un fling que todavia se estuviera
- *    asentando justo cuando el usuario pulso el boton) podria disparar SU
- *    PROPIO `scrollend` -- de una posicion intermedia, no de `top: 0` --
- *    despues de que este hook ya registrara el listener pero antes de que
- *    el `scrollTo` propio hubiera progresado. Sin el guard, ese evento
- *    espurio cambiaria el tema con la pagina todavia a mitad de camino,
- *    justo el defecto que el encargo pide evitar. El registro NO usa
- *    `{ once: true }` a proposito: un disparo espurio se ignora sin
- *    consumir el listener, que sigue vivo para el `scrollend` real que
- *    vendra despues.
- * 2. Si no, un sondeo por `requestAnimationFrame` hasta que `window.scrollY
- *    === 0`. (Esta comparacion es DISTINTA de la de `isInHeroZone`: alli
- *    `scrollY === 0` se descarto por demasiado estricto para decidir SI hay
- *    que viajar; aqui es el propio destino del viaje que ya se decidio
- *    hacer -- `scrollTo({ top: 0 })` -- asi que comparar contra el mismo
- *    cero que se le pidio al navegador es exacto, no una aproximacion. Esta
- *    via no necesita guard adicional: cada frame comprueba `scrollY` de
- *    verdad, no se apoya en un evento que pueda venir de otro gesto.)
- *
- * Cualquiera de las cuatro vias que llegue primero "gana" (`scrollend`
- * valido, el sondeo por rAF, el tope por inactividad o el techo absoluto):
- * cancela los dos temporizadores, el listener de `scroll`, el de
- * `scrollend` y el rAF pendientes de las demas, y dispara el cambio de tema
- * una sola vez.
- *
- * Reentrada (paso 7 del encargo): mientras `pending` sea `true`, una nueva
- * llamada a `requestThemeChange` no hace NADA -- ni encola un segundo
- * cambio ni cancela el viaje en curso. Se comprueba contra una `ref`
- * (`pendingRef`), no contra el `pending` de estado: la ref es sincrona y
- * bloquea incluso una segunda llamada que llegue en el MISMO tick, antes de
- * que React haya repintado el boton (que sigue enfocable durante todo el
- * viaje -- revision 2026-08-04, JSDoc de `pending`).
- *
- * `busy` (Task 5, plan premium F1-F5): el boton dispara un viaje con hasta
- * ~3s de silencio (el scroll) seguido, si hay un hero montado y no hay
- * reduced-motion, de un cruce de composiciones de hasta
- * `HERO_COPY_RETURN_MS` mas (hero.transition.ts) -- ninguno de los dos
- * tramos anuncia nada por si solo a un lector de pantalla. `busy` cubre los
- * DOS, de click a asentado, y se calcula con el MISMO criterio que ya usan
- * HeroBackdrop.tsx/useHeroCopySwap para decidir si van a animar algo
- * (`willCrossfade`, mas abajo): sin `#hero` en el documento (paginas legales,
- * `not-found`) o bajo `reduce`, no hay cruce que esperar y `busy` se apaga en
- * el mismo tick que el tema cambia, exactamente como `pending`. Con cruce, se
- * arma un temporizador propio (`busySettleTimeoutRef`) con
- * `HERO_COPY_RETURN_MS` -- REUTILIZADO de `hero.transition.ts`, no un numero
- * nuevo inventado para esta revision: es el mismo instante que la propia
- * maquina ya calcula para "la copia del hero vuelve a ser visible con la
- * distribucion nueva", el ULTIMO cambio visible de todo el cruce. Vive en su
- * PROPIA ref, independiente de los temporizadores del scroll (que ya se
- * limpiaron en `finish()` para cuando esta ventana arranca), y un segundo
- * clic legitimo durante esa ventana (posible: el guard de reentrada de
- * arriba solo cubre el tramo de `pending`) la reinicia en vez de dejar que
- * la vieja apague `busy` a mitad del cruce nuevo.
+ * Reentrada: un segundo click mientras `busy` todavía cubre un cruce
+ * ANTERIOR cancela la ventana de asentamiento vieja y arranca una nueva
+ * (mismo criterio que la versión anterior) -- ya NO hace falta ningún guard
+ * síncrono por `ref` para bloquear una segunda llamada mientras un viaje de
+ * scroll está en marcha, porque ya no hay ningún viaje en marcha: la función
+ * es síncrona de principio a fin salvo por la propia ventana de `busy`.
  */
 export function useThemeScrollReset(): ThemeScrollReset {
   const { toggleTheme } = useTheme();
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-
-  // `busy` (Task 5): vive en su PROPIO temporizador (`busySettleTimeoutRef`),
-  // independiente de los del scroll -- ver el docblock de `requestThemeChange`
-  // para el criterio completo. Arranca cuando el tema YA cambio (el mismo
-  // instante en que `pending` vuelve a `false`, o antes si el viaje era
-  // instantaneo) y puede sobrevivir mas alla de ese punto, asi que no puede
-  // compartir ciclo de vida con `pendingRef`/`abortWaitRef`.
   const [busy, setBusy] = useState(false);
   const busySettleTimeoutRef = useRef<number | null>(null);
 
-  // Deja limpios los dos temporizadores (inactividad + techo absoluto), el
-  // listener de `scroll`, el de `scrollend` y el rAF en vuelo de la carrera
-  // en curso, SIN disparar el cambio de tema -- lo usa el efecto de
-  // desmontaje (mas abajo) y, dentro de cada carrera, la via que gana para
-  // cancelar a las demas. Arranca en no-op: si el hook se desmonta sin
-  // ningun viaje en marcha, no hay nada que limpiar.
-  const abortWaitRef = useRef<() => void>(() => {});
-
   useEffect(() => {
-    // Limpieza al desmontar (paso 8 del encargo): SOLO libera los mecanismos
-    // en vuelo, nunca completa el cambio de tema por su cuenta -- un
-    // consumidor que se desmonta a mitad del viaje no deberia disparar un
-    // `toggleTheme()` sobre un arbol que ya no esta. Incluye la ventana de
-    // asentamiento de `busy`: sobrevive a `abortWaitRef` (arriba), asi que
-    // necesita su propia limpieza aqui, no la hereda de la del scroll.
+    // Limpieza al desmontar: solo libera el temporizador de asentamiento en
+    // vuelo, nunca completa nada por su cuenta.
     return () => {
-      abortWaitRef.current();
       if (busySettleTimeoutRef.current !== null) {
         window.clearTimeout(busySettleTimeoutRef.current);
         busySettleTimeoutRef.current = null;
@@ -260,12 +154,9 @@ export function useThemeScrollReset(): ThemeScrollReset {
   }, []);
 
   const requestThemeChange = useCallback((): void => {
-    if (pendingRef.current) return; // reentrada: ver JSDoc del hook
-
-    // Cancela la ventana de asentamiento de `busy` de un cruce ANTERIOR que
-    // todavia siguiera en marcha (ver JSDoc de `busy`): un segundo clic
-    // legitimo es posible en cuanto `pending` ya volvio a `false`, y sin
-    // esto la ventana vieja apagaria `busy` a mitad del cruce nuevo.
+    // Cancela la ventana de asentamiento de un cruce ANTERIOR que todavía
+    // siguiera en marcha (segundo click legítimo durante esa ventana): sin
+    // esto, la ventana vieja apagaría `busy` a mitad del cruce nuevo.
     if (busySettleTimeoutRef.current !== null) {
       window.clearTimeout(busySettleTimeoutRef.current);
       busySettleTimeoutRef.current = null;
@@ -275,146 +166,20 @@ export function useThemeScrollReset(): ThemeScrollReset {
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    // Mismo criterio que HeroBackdrop.tsx/useHeroCopySwap comprueban por su
-    // cuenta al reaccionar a este mismo cambio de tema (ver el docblock de
-    // `requestThemeChange`): sin esto, `busy` se quedaria en `true` de mas en
-    // una pagina sin hero o bajo `reduce`, donde ningun cruce va a ocurrir.
     const willCrossfade = !reduced && document.getElementById("hero") !== null;
 
-    // Cierre de `busy`, comun a las TRES salidas de esta funcion (zona del
-    // hero, reduced-motion, y `finish()` del viaje de scroll, mas abajo):
-    // ver el docblock de `requestThemeChange` para el porque de
-    // `HERO_COPY_RETURN_MS`.
-    const settleBusy = (): void => {
-      if (!willCrossfade) {
-        setBusy(false);
-        return;
-      }
-      busySettleTimeoutRef.current = window.setTimeout(() => {
-        busySettleTimeoutRef.current = null;
-        setBusy(false);
-      }, HERO_COPY_RETURN_MS);
-    };
+    toggleTheme();
 
-    if (isInHeroZone()) {
-      toggleTheme();
-      settleBusy();
+    if (!willCrossfade) {
+      setBusy(false);
       return;
     }
 
-    if (reduced) {
-      window.scrollTo({ top: 0, behavior: "instant" });
-      toggleTheme();
-      settleBusy(); // willCrossfade siempre false aqui: se apaga en el acto
-      return;
-    }
-
-    pendingRef.current = true;
-    setPending(true);
-
-    let settled = false;
-    let idleTimeoutId = 0;
-    let maxTimeoutId = 0;
-    let raf = 0;
-    // Ultima lectura de `scrollY` conocida por el listener de `scroll` (ver
-    // `onScroll`, mas abajo): arranca en la posicion ACTUAL, antes de pedir
-    // el propio `scrollTo`, para que el primer evento de scroll real (el que
-    // sale de ESE `scrollTo`) se reconozca como avance.
-    let lastScrollY = window.scrollY;
-
-    // Punto de union de las CUATRO vias (`scrollend` valido, el sondeo por
-    // rAF, el tope por inactividad y el techo absoluto): cualquiera de ellas
-    // lo invoca, `settled` garantiza que solo la primera cuenta, y ella
-    // misma cancela a las demas antes de cambiar el tema.
-    const finish = (): void => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(idleTimeoutId);
-      window.clearTimeout(maxTimeoutId);
-      if (raf) window.cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("scrollend", onScrollEnd);
-      abortWaitRef.current = () => {};
-      pendingRef.current = false;
-      setPending(false);
-      toggleTheme();
-      settleBusy();
-    };
-
-    // Envoltorio de `scrollend` que descarta un disparo espurio de un gesto
-    // ANTERIOR todavia asentandose (ver el docblock del hook, punto 1 de
-    // las vias de deteccion): solo cuenta como "el viaje termino" si
-    // `scrollY` ya esta de verdad en el destino pedido.
-    const onScrollEnd = (): void => {
-      if (window.scrollY === 0) finish();
-    };
-
-    // Rearma el tope por inactividad: se llama al arrancar el viaje (para
-    // que exista un tope desde el primer instante, sin esperar a ningun
-    // evento) y cada vez que `onScroll` detecta un avance real.
-    const armIdleTimeout = (): void => {
-      window.clearTimeout(idleTimeoutId);
-      idleTimeoutId = window.setTimeout(finish, THEME_SCROLL_IDLE_MS);
-    };
-
-    // Escucha pasiva de `scroll`: NO decide nada por si sola (`scrollend`/el
-    // sondeo por rAF siguen siendo quienes reconocen la LLEGADA a `top: 0`),
-    // solo rearma el tope por inactividad cada vez que `scrollY` cambia de
-    // verdad respecto a la ultima lectura -- ver el docblock de
-    // `THEME_SCROLL_IDLE_MS` para el porque de comparar contra la ultima
-    // lectura en vez de disparar en cada evento sin mas.
-    const onScroll = (): void => {
-      const current = window.scrollY;
-      if (current !== lastScrollY) {
-        lastScrollY = current;
-        armIdleTimeout();
-      }
-    };
-
-    // Version "silenciosa" de la limpieza de arriba, para el desmontaje: NO
-    // llama a `finish` (que cambiaria el tema y haria `setState`), solo
-    // apaga los mecanismos en vuelo. `settled = true` evita que un `finish`
-    // que ya estuviera en la cola de microtareas/rAF llegue a ejecutarse
-    // tras la limpieza.
-    abortWaitRef.current = (): void => {
-      settled = true;
-      window.clearTimeout(idleTimeoutId);
-      window.clearTimeout(maxTimeoutId);
-      if (raf) window.cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("scrollend", onScrollEnd);
-    };
-
-    // El techo absoluto se programa UNA vez y no se rearma nunca (ver su
-    // docblock): es el unico de los dos temporizadores que sobrevive a
-    // cualquier cantidad de eventos `scroll`.
-    maxTimeoutId = window.setTimeout(finish, THEME_SCROLL_MAX_MS);
-    // El tope por inactividad arranca armado desde el primer instante: si no
-    // llegara ni un solo evento de `scroll` (pestaña oculta), este es el que
-    // dispara, a los `THEME_SCROLL_IDLE_MS` -- no hace falta esperar a
-    // `onScroll` para tener un tope en marcha.
-    armIdleTimeout();
-    window.addEventListener("scroll", onScroll, { passive: true });
-
-    if (supportsScrollEndEvent()) {
-      // SIN `{ once: true }` a proposito (ver `onScrollEnd`): un primer
-      // disparo espurio (scrollY todavia no es 0) no debe consumir el
-      // listener, o el `scrollend` real posterior no tendria quien lo
-      // escuche.
-      window.addEventListener("scrollend", onScrollEnd);
-    } else {
-      const poll = (): void => {
-        if (window.scrollY === 0) {
-          finish();
-          return;
-        }
-        raf = window.requestAnimationFrame(poll);
-      };
-      raf = window.requestAnimationFrame(poll);
-    }
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    busySettleTimeoutRef.current = window.setTimeout(() => {
+      busySettleTimeoutRef.current = null;
+      setBusy(false);
+    }, HERO_COPY_RETURN_MS);
   }, [toggleTheme]);
 
-  return { requestThemeChange, pending, busy };
+  return { requestThemeChange, busy };
 }

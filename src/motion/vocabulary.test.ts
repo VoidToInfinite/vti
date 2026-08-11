@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { REVEAL, DECK, PRESS, AMBIENT } from "./vocabulary";
+import { REVEAL, DECK, OVERLAY, PRESS, AMBIENT } from "./vocabulary";
 
 /**
  * Contrato cerrado (regla 40 del manual): los cuatro grupos se aseveran con
@@ -37,6 +37,15 @@ describe("vocabulary", () => {
       exitDurationMs: 200,
     };
     expect(DECK).toEqual(expectedDeck);
+  });
+
+  it("OVERLAY expone su contrato exacto (Task 17, plan premium F1-F5)", () => {
+    const expectedOverlay = {
+      openMs: 180,
+      closeMs: 120,
+      closedScale: 0.97,
+    };
+    expect(OVERLAY).toEqual(expectedOverlay);
   });
 
   it("PRESS expone su contrato exacto", () => {

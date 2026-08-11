@@ -3,11 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
-import {
-  THEME_SCROLL_IDLE_MS,
-  THEME_SCROLL_MAX_MS,
-  useThemeScrollReset,
-} from "./useThemeScrollReset";
+import { useThemeScrollReset } from "./useThemeScrollReset";
 
 // ThemeProvider lee "vti-theme" de localStorage al montar (ver
 // ThemeProvider.tsx) — mismo patron ya usado por ThemeToggle.test.tsx para
@@ -24,9 +20,9 @@ function Wrapper({ children }: { children: ReactNode }): ReactElement {
 }
 
 /**
- * Combina el hook bajo prueba con `useTheme()`. No hay ningun `vi.mock` de
+ * Combina el hook bajo prueba con `useTheme()`. No hay ningún `vi.mock` de
  * contexto de React en este repo (comprobado con Grep antes de escribir este
- * archivo): la evidencia de que `toggleTheme` se invoco es el propio
+ * archivo): la evidencia de que `toggleTheme` se invocó es el propio
  * `themeName` resultante, el MISMO criterio que ya usa
  * `ThemeToggle.test.tsx` ("click dispara toggleTheme: el tema activo
  * cambia").
@@ -49,14 +45,6 @@ function setScrollY(value: number): void {
   });
 }
 
-function setInnerHeight(value: number): void {
-  Object.defineProperty(window, "innerHeight", {
-    value,
-    writable: true,
-    configurable: true,
-  });
-}
-
 function stubMatchMedia(reducedMatches: boolean): void {
   vi.stubGlobal(
     "matchMedia",
@@ -72,14 +60,14 @@ function stubMatchMedia(reducedMatches: boolean): void {
 }
 
 /**
- * Hero de prueba: mismo `id="hero"` que busca `isInHeroZone` en el hook, con
- * `getBoundingClientRect` sustituible para fijar `rect.bottom` a mano (jsdom
- * no hace layout real, ver `task/lessons.md` 2026-07-28).
+ * Hero de prueba: mismo `id="hero"` que busca `willCrossfade` en el hook
+ * (`document.getElementById("hero") !== null`, ver useThemeScrollReset.ts).
+ * Task 17 retiró `isInHeroZone()`: ya no hace falta un `getBoundingClientRect`
+ * a medida, solo que el elemento exista en el documento.
  */
-function mountHero(bottom: number): void {
+function mountHero(): void {
   const hero = document.createElement("section");
   hero.id = "hero";
-  hero.getBoundingClientRect = () => ({ bottom }) as DOMRect;
   document.body.appendChild(hero);
 }
 
@@ -87,7 +75,6 @@ let scrollToMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   setScrollY(0);
-  setInnerHeight(800); // zona del hero: scrollY/rect.bottom < 400 => en zona
   stubMatchMedia(false);
   scrollToMock = vi.fn();
   vi.stubGlobal("scrollTo", scrollToMock);
@@ -100,280 +87,62 @@ afterEach(() => {
 });
 
 describe("useThemeScrollReset", () => {
-  it("en la zona del hero: toggleTheme se llama de inmediato y scrollTo NO se llama", () => {
-    mountHero(700); // 700 >= 800/2 (400): el hero sigue cubriendo media pantalla
-    const { result } = renderHarness();
-    expect(result.current.themeName).toBe("light");
-
-    act(() => {
-      result.current.requestThemeChange();
-    });
-
-    expect(result.current.themeName).toBe("dark");
-    expect(scrollToMock).not.toHaveBeenCalled();
-    expect(result.current.pending).toBe(false);
-  });
-
-  it("sin elemento #hero en el documento, degrada a scrollY < innerHeight/2 (mismo criterio de zona)", () => {
-    setScrollY(100); // 100 < 400: en zona segun la regla degradada
-    const { result } = renderHarness();
-
-    act(() => {
-      result.current.requestThemeChange();
-    });
-
-    expect(result.current.themeName).toBe("dark");
-    expect(scrollToMock).not.toHaveBeenCalled();
-  });
-
-  it("fuera de la zona del hero: scrollTo se llama con {top:0, behavior:'smooth'} y toggleTheme AUN NO se ha llamado", () => {
-    mountHero(100); // 100 < 400: fuera de zona
-    const { result } = renderHarness();
-
-    act(() => {
-      result.current.requestThemeChange();
-    });
-
-    expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
-    expect(result.current.themeName).toBe("light"); // todavia no cambio
-    expect(result.current.pending).toBe(true);
-  });
-
-  it("al dispararse scrollend, toggleTheme se llama exactamente una vez y pending vuelve a false", () => {
-    mountHero(100);
-    const { result } = renderHarness();
-
-    act(() => {
-      result.current.requestThemeChange();
-    });
-    expect(result.current.pending).toBe(true);
-
-    act(() => {
-      window.dispatchEvent(new Event("scrollend"));
-    });
-
-    expect(result.current.themeName).toBe("dark");
-    expect(result.current.pending).toBe(false);
-  });
-
   /*
-   * Revision 2026-08-04 (COMPROBACION 1): un `scrollend` puede llegar de un
-   * gesto ANTERIOR (un fling con inercia que se estuviera asentando justo
-   * cuando el usuario pulso el boton), disparado despues de que este hook
-   * ya registrara su listener pero de una posicion que NO es el destino
-   * pedido. `onScrollEnd` lo descarta comparando `scrollY` -- este test lo
-   * ata dos veces: que el espurio NO cambia el tema, y que el listener
-   * sigue vivo para el `scrollend` real que llega despues (candado de que
-   * NO se usa `{ once: true }`, ver el hook).
+   * Task 17 (plan premium F1-F5, 2026-08-11): el núcleo del cambio de esta
+   * tarea. Hasta aquí, fuera de la "zona del hero", `requestThemeChange`
+   * viajaba a `top: 0` ANTES de cambiar el tema (D6) -- el hallazgo #5 de la
+   * auditoría independiente midió ese viaje tirando la posición de lectura.
+   * Desde Task 17 el tema cambia SIEMPRE en el sitio, sin tocar `scrollTo`,
+   * sea cual sea la posición de scroll o si hay o no un `#hero` montado. Este
+   * test cubre las tres combinaciones que antes se comportaban distinto.
    */
-  it("un scrollend espurio (scrollY aun no es 0) se ignora, y el mismo listener sigue vivo para el scrollend real", () => {
-    mountHero(100);
-    setScrollY(500); // el viaje propio aun no ha llegado arriba
-    const { result } = renderHarness();
-
-    act(() => {
-      result.current.requestThemeChange();
-    });
-    expect(result.current.pending).toBe(true);
-
-    act(() => {
-      window.dispatchEvent(new Event("scrollend")); // espurio: scrollY !== 0
-    });
-    expect(result.current.themeName).toBe("light");
-    expect(result.current.pending).toBe(true);
-
-    setScrollY(0); // el scroll real ya llego arriba
-    act(() => {
-      window.dispatchEvent(new Event("scrollend")); // el real
-    });
-
-    expect(result.current.themeName).toBe("dark");
-    expect(result.current.pending).toBe(false);
-  });
-
-  it("sin soporte de 'scrollend' (\"onscrollend\" ausente en window), el sondeo por rAF detecta scrollY=0 y cambia el tema", () => {
-    mountHero(100);
-    setScrollY(500);
-
-    // Simula un navegador sin soporte de scrollend: se retira la propiedad
-    // de window (ver el guard `"onscrollend" in window` del hook) y se
-    // restaura al terminar el test para no filtrar el experimento a los
-    // demas tests del archivo.
-    const descriptor = Object.getOwnPropertyDescriptor(window, "onscrollend");
-    delete (window as unknown as Record<string, unknown>).onscrollend;
-
-    let rafCallback: FrameRequestCallback | undefined;
-    vi.stubGlobal(
-      "requestAnimationFrame",
-      vi.fn((cb: FrameRequestCallback) => {
-        rafCallback = cb;
-        return 1;
-      }),
-    );
-    vi.stubGlobal("cancelAnimationFrame", vi.fn());
-
-    try {
+  it.each([
+    ["con #hero montado y scrollY en 0", true, 0],
+    ["con #hero montado y scrollY lejos del top", true, 5000],
+    ["sin ningún #hero en el documento", false, 5000],
+  ] as const)(
+    "%s: toggleTheme se llama de inmediato y scrollTo NUNCA se llama",
+    (_nombre, conHero, scrollYInicial) => {
+      if (conHero) mountHero();
+      setScrollY(scrollYInicial);
       const { result } = renderHarness();
-      act(() => {
-        result.current.requestThemeChange();
-      });
-      expect(rafCallback).toBeDefined();
-
-      // Primer frame: el scroll todavia no llego a 0, sigue pendiente.
-      act(() => {
-        rafCallback?.(16);
-      });
-      expect(result.current.themeName).toBe("light");
-      expect(result.current.pending).toBe(true);
-
-      // El scroll llega a 0: el siguiente frame del sondeo lo detecta.
-      setScrollY(0);
-      act(() => {
-        rafCallback?.(32);
-      });
-
-      expect(result.current.themeName).toBe("dark");
-      expect(result.current.pending).toBe(false);
-    } finally {
-      if (descriptor) {
-        Object.defineProperty(window, "onscrollend", descriptor);
-      }
-    }
-  });
-
-  /*
-   * Revision 2026-08-04 (tope por INACTIVIDAD, ya no por duracion total):
-   * sin ningun evento 'scroll' que lo rearme, el tope por inactividad
-   * (armado desde el primer instante del viaje, ver el docblock del hook)
-   * dispara a los THEME_SCROLL_IDLE_MS -- mucho antes que el techo absoluto
-   * THEME_SCROLL_MAX_MS, que solo es la ultima red. Este test sustituye al
-   * que ataba el antiguo THEME_SCROLL_TIMEOUT_MS (tope por duracion total,
-   * retirado: dependia de adivinar cuanto tarda un scroll suave, un numero
-   * que ademas es indemostrable en este entorno -- ver el docblock de
-   * THEME_SCROLL_IDLE_MS).
-   */
-  it("si el scroll nunca progresa (ni scrollend, ni scrollY llega a 0, ni un solo evento 'scroll'), el tope por inactividad cambia el tema igual", () => {
-    vi.useFakeTimers();
-    try {
-      mountHero(100);
-      const { result } = renderHarness();
-
-      act(() => {
-        result.current.requestThemeChange();
-      });
-      expect(result.current.pending).toBe(true);
       expect(result.current.themeName).toBe("light");
 
       act(() => {
-        vi.advanceTimersByTime(THEME_SCROLL_IDLE_MS);
-      });
-
-      expect(result.current.themeName).toBe("dark");
-      expect(result.current.pending).toBe(false);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  /*
-   * Revision 2026-08-04: el test que de verdad distingue el diseño nuevo
-   * (tope por inactividad, se REARMA con cada avance real) del antiguo
-   * (tope por duracion total, fijo). Cinco eventos 'scroll' con avance real
-   * (scrollY decreciente), cada uno separado por 250ms de reloj falso --
-   * por debajo de THEME_SCROLL_IDLE_MS (300ms), asi que NINGUNO deja vencer
-   * el tope por inactividad por si solo -- pero la suma del viaje (1250ms)
-   * ya supera el antiguo THEME_SCROLL_TIMEOUT_MS de 1200ms: bajo el diseño
-   * ANTERIOR el tema ya habria cambiado a mitad de scroll, justo el defecto
-   * que motivo este cambio. Con el diseño nuevo el tema sigue "light"
-   * durante todo el tramo, y solo cambia cuando el avance se detiene de
-   * verdad y pasan THEME_SCROLL_IDLE_MS sin ningun evento mas.
-   */
-  it("mientras el scroll SIGUE avanzando (eventos 'scroll' con avance real, cada uno por debajo de THEME_SCROLL_IDLE_MS) el tema NO cambia; en cuanto el avance se detiene, cambia", () => {
-    vi.useFakeTimers();
-    try {
-      setScrollY(1000); // posicion de partida, lejos del destino (top: 0)
-      mountHero(100);
-      const { result } = renderHarness();
-
-      act(() => {
         result.current.requestThemeChange();
       });
-      expect(result.current.pending).toBe(true);
-
-      const posiciones = [800, 600, 400, 200, 0];
-      posiciones.forEach((y) => {
-        act(() => {
-          vi.advanceTimersByTime(250); // < THEME_SCROLL_IDLE_MS (300ms)
-          setScrollY(y);
-          window.dispatchEvent(new Event("scroll"));
-        });
-        expect(result.current.themeName).toBe("light");
-        expect(result.current.pending).toBe(true);
-      });
-      // 5 * 250ms = 1250ms de viaje total, por encima del antiguo tope
-      // absoluto (1200ms) -- y el tema sigue sin cambiar.
-
-      // El scroll se detiene (no llega ningun evento 'scroll' mas): el tope
-      // por inactividad, rearmado por el ultimo evento, dispara a los
-      // THEME_SCROLL_IDLE_MS de la ultima lectura.
-      act(() => {
-        vi.advanceTimersByTime(THEME_SCROLL_IDLE_MS);
-      });
 
       expect(result.current.themeName).toBe("dark");
-      expect(result.current.pending).toBe(false);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
+      expect(scrollToMock).not.toHaveBeenCalled();
+    },
+  );
 
   /*
-   * El techo absoluto (THEME_SCROLL_MAX_MS) es la red que el tope por
-   * inactividad, por si solo, no puede tender: si el scroll siguiera
-   * avanzando SIN PARAR NUNCA (aqui: un evento cada 200ms, por debajo de
-   * THEME_SCROLL_IDLE_MS, indefinidamente), el tope por inactividad no
-   * dispararia jamas -- se rearmaria para siempre. Este test comprueba que,
-   * aun asi, el tema cambia en cuanto se alcanza THEME_SCROLL_MAX_MS.
+   * "Tests: restauración (mock)" del brief de Task 17: mockea `scrollY` a
+   * mitad de página, cambia de tema, y confirma que la lectura de `scrollY`
+   * sigue siendo EXACTAMENTE la misma después -- no una sección equivalente,
+   * el mismo píxel. Complementa al test de arriba (que solo ata la ausencia
+   * de `scrollTo`): este ata explícitamente el valor que un consumidor real
+   * (p. ej. `window.scrollY` leído por cualquier otro hook de scroll del
+   * sitio) observaría antes y después del cambio.
    */
-  it("si el scroll avanza sin parar nunca, el techo absoluto (THEME_SCROLL_MAX_MS) cambia el tema igual", () => {
-    vi.useFakeTimers();
-    try {
-      setScrollY(100000);
-      mountHero(100);
-      const { result } = renderHarness();
+  it("la posición de scroll (scrollY) es exactamente la misma antes y después de cambiar de tema, lejos del hero", () => {
+    mountHero();
+    setScrollY(2500);
+    const { result } = renderHarness();
 
-      act(() => {
-        result.current.requestThemeChange();
-      });
-      expect(result.current.pending).toBe(true);
+    act(() => {
+      result.current.requestThemeChange();
+    });
 
-      // Eventos de avance cada 200ms (< THEME_SCROLL_IDLE_MS) hasta rebasar
-      // THEME_SCROLL_MAX_MS: el tope por inactividad se reprograma en cada
-      // uno y nunca llega a disparar por su cuenta.
-      let elapsed = 0;
-      let y = 100000;
-      while (elapsed < THEME_SCROLL_MAX_MS + 200) {
-        act(() => {
-          vi.advanceTimersByTime(200);
-          y -= 50;
-          setScrollY(y);
-          window.dispatchEvent(new Event("scroll"));
-        });
-        elapsed += 200;
-      }
-
-      // El techo absoluto ya se cumplio en algun punto de ese bucle, pese a
-      // que el scroll seguia "avanzando": nunca se ignoraron los eventos, el
-      // techo simplemente no depende de ellos para dispararse.
-      expect(result.current.themeName).toBe("dark");
-      expect(result.current.pending).toBe(false);
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(result.current.themeName).toBe("dark");
+    expect(window.scrollY).toBe(2500);
+    expect(scrollToMock).not.toHaveBeenCalled();
   });
 
-  it("bajo prefers-reduced-motion: reduce, el scroll es 'instant' y el tema cambia en el mismo tick, sin pending", () => {
-    mountHero(100); // fuera de zona: sin reduce, esto dispararia el viaje animado
+  it("bajo prefers-reduced-motion: reduce, scrollTo tampoco se llama (ya no hay ningún salto instantáneo a top:0)", () => {
+    mountHero();
+    setScrollY(5000);
     stubMatchMedia(true);
     const { result } = renderHarness();
 
@@ -381,81 +150,19 @@ describe("useThemeScrollReset", () => {
       result.current.requestThemeChange();
     });
 
-    expect(scrollToMock).toHaveBeenCalledWith({
-      top: 0,
-      behavior: "instant",
-    });
     expect(result.current.themeName).toBe("dark");
-    expect(result.current.pending).toBe(false);
-  });
-
-  it("un segundo clic mientras 'pending' es true no dispara una segunda llamada a toggleTheme", () => {
-    mountHero(100);
-    const { result } = renderHarness();
-
-    act(() => {
-      result.current.requestThemeChange();
-    });
-    expect(result.current.pending).toBe(true);
-    const scrollToCallsTrasElPrimero = scrollToMock.mock.calls.length;
-
-    act(() => {
-      result.current.requestThemeChange(); // segundo clic: se ignora
-    });
-
-    // Nada nuevo que cancelar ni reprogramar: el viaje en curso sigue igual.
-    expect(scrollToMock.mock.calls.length).toBe(scrollToCallsTrasElPrimero);
-    expect(result.current.themeName).toBe("light");
-
-    act(() => {
-      window.dispatchEvent(new Event("scrollend"));
-    });
-
-    // El viaje original resuelve una unica vez.
-    expect(result.current.themeName).toBe("dark");
-  });
-
-  it("al desmontar durante el viaje, limpia temporizador/listener/rAF sin dejar avisos de act() colgando", () => {
-    vi.useFakeTimers();
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    try {
-      mountHero(100);
-      const { result, unmount } = renderHarness();
-
-      act(() => {
-        result.current.requestThemeChange();
-      });
-      expect(result.current.pending).toBe(true);
-
-      unmount();
-
-      // Si la limpieza fuera incompleta, algun tope o un scrollend tardio
-      // llamarian a setState sobre un arbol ya desmontado: React lo reporta
-      // por console.error ("Warning: Can't perform a React state update...").
-      // Se avanza hasta pasado el TECHO ABSOLUTO (el mas largo de los dos
-      // temporizadores): si ese sobreviviera a la limpieza, seria el ultimo
-      // en dispararse.
-      act(() => {
-        vi.advanceTimersByTime(THEME_SCROLL_MAX_MS + 100);
-        window.dispatchEvent(new Event("scrollend"));
-      });
-
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-    } finally {
-      consoleErrorSpy.mockRestore();
-      vi.useRealTimers();
-    }
+    expect(scrollToMock).not.toHaveBeenCalled();
+    expect(window.scrollY).toBe(5000);
   });
 
   /*
-   * Task 5 (plan premium F1-F5): `busy` cubre el viaje COMPLETO (scroll +
-   * cruce de composiciones del hero), a diferencia de `pending` (solo
-   * scroll). Ver el docblock de `requestThemeChange`/`ThemeScrollReset` en
+   * Task 5 (plan premium F1-F5): `busy` cubre el cruce de composiciones del
+   * hero (`HeroBackdrop.tsx`), a diferencia del extinto `pending` (que solo
+   * cubría el tramo de scroll, retirado en Task 17 junto con el viaje). Ver
+   * el docblock de `requestThemeChange`/`ThemeScrollReset` en
    * useThemeScrollReset.ts para el criterio completo.
    */
-  describe("busy (Task 5, plan premium F1-F5)", () => {
+  describe("busy (Task 5, plan premium F1-F5; simplificado en Task 17)", () => {
     /*
      * Arranque limpio (lección task/lessons.md 2026-07-26): un guard sobre
      * "el primer evento" falla si ese evento puede no ocurrir. Aquí NO hay
@@ -474,20 +181,23 @@ describe("useThemeScrollReset", () => {
       expect(result.current.busy).toBe(false);
     });
 
-    it("en la zona del hero, con #hero montado y sin reduce: busy se activa con el toggle inmediato y se apaga a los HERO_COPY_RETURN_MS del cruce", () => {
+    /*
+     * Validado con el bug inyectado a propósito: cambiando temporalmente
+     * `willCrossfade` a una constante `false` en el hook, este test se pone
+     * en rojo (`busy` nunca llega a `true`); restaurado, vuelve a verde.
+     */
+    it("con #hero montado y sin reduce: busy se activa con el toggle inmediato y se apaga a los HERO_COPY_RETURN_MS del cruce", () => {
       vi.useFakeTimers();
       try {
-        mountHero(700); // en zona: 700 >= 800/2
+        mountHero();
         const { result } = renderHarness();
         expect(result.current.busy).toBe(false);
 
         act(() => {
           result.current.requestThemeChange();
         });
-        // Toggle inmediato (sin scroll): pending nunca llega a activarse,
-        // pero el cruce de composiciones del hero SI va a correr.
+        // El tema ya cambió, en el mismo tick del click.
         expect(result.current.themeName).toBe("dark");
-        expect(result.current.pending).toBe(false);
         expect(result.current.busy).toBe(true);
 
         act(() => {
@@ -504,43 +214,7 @@ describe("useThemeScrollReset", () => {
       }
     });
 
-    it("fuera de la zona del hero, con #hero montado: busy sigue true durante el scroll Y durante la ventana de asentamiento posterior al toggle", () => {
-      vi.useFakeTimers();
-      try {
-        mountHero(100); // fuera de zona
-        const { result } = renderHarness();
-
-        act(() => {
-          result.current.requestThemeChange();
-        });
-        expect(result.current.pending).toBe(true);
-        expect(result.current.busy).toBe(true);
-
-        act(() => {
-          window.dispatchEvent(new Event("scrollend"));
-        });
-        expect(result.current.themeName).toBe("dark");
-        expect(result.current.pending).toBe(false);
-        // El scroll ya termino, pero el cruce de composiciones sigue en
-        // marcha: busy NO se apaga a la vez que pending.
-        expect(result.current.busy).toBe(true);
-
-        act(() => {
-          vi.advanceTimersByTime(HERO_COPY_RETURN_MS - 1);
-        });
-        expect(result.current.busy).toBe(true);
-
-        act(() => {
-          vi.advanceTimersByTime(1);
-        });
-        expect(result.current.busy).toBe(false);
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it("sin #hero en el documento: busy se apaga en el mismo tick que el tema cambia, sin esperar a ningun cruce", () => {
-      setScrollY(100); // en zona por degradacion (sin #hero, ver isInHeroZone)
+    it("sin #hero en el documento: busy se apaga en el mismo tick que el tema cambia, sin esperar a ningún cruce", () => {
       const { result } = renderHarness();
 
       act(() => {
@@ -551,8 +225,8 @@ describe("useThemeScrollReset", () => {
       expect(result.current.busy).toBe(false);
     });
 
-    it("bajo prefers-reduced-motion: busy nunca se observa true (todo ocurre en el mismo tick, sin cruce que esperar)", () => {
-      mountHero(100); // fuera de zona sin reduce -- aqui hay reduce
+    it("bajo prefers-reduced-motion: busy nunca se observa true (no hay cruce que esperar)", () => {
+      mountHero();
       stubMatchMedia(true);
       const { result } = renderHarness();
 
@@ -560,18 +234,14 @@ describe("useThemeScrollReset", () => {
         result.current.requestThemeChange();
       });
 
-      expect(scrollToMock).toHaveBeenCalledWith({
-        top: 0,
-        behavior: "instant",
-      });
       expect(result.current.themeName).toBe("dark");
       expect(result.current.busy).toBe(false);
     });
 
-    it("un segundo clic legitimo durante la ventana de asentamiento la reinicia, en vez de dejar que la vieja apague busy a mitad del cruce nuevo", () => {
+    it("un segundo clic legítimo durante la ventana de asentamiento la reinicia, en vez de dejar que la vieja apague busy a mitad del cruce nuevo", () => {
       vi.useFakeTimers();
       try {
-        mountHero(700); // en zona: toggles instantaneos, sin guard de reentrada de pending
+        mountHero();
         const { result } = renderHarness();
 
         act(() => {
@@ -590,8 +260,8 @@ describe("useThemeScrollReset", () => {
         expect(result.current.themeName).toBe("light");
         expect(result.current.busy).toBe(true);
 
-        // Si la ventana vieja no se hubiera cancelado, apagaria busy justo
-        // aqui (50ms mas de reloj desde el primer clic) aunque el cruce
+        // Si la ventana vieja no se hubiera cancelado, apagaría busy justo
+        // aquí (50ms más de reloj desde el primer clic) aunque el cruce
         // nuevo apenas lleve arrancando.
         act(() => {
           vi.advanceTimersByTime(50);
@@ -613,7 +283,7 @@ describe("useThemeScrollReset", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {});
       try {
-        mountHero(700);
+        mountHero();
         const { result, unmount } = renderHarness();
 
         act(() => {

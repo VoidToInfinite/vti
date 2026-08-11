@@ -27,11 +27,7 @@ import {
 import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
 import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
-import { PRESS } from "@/motion/vocabulary";
-import {
-  NAV_OVERLAY_CLOSE_MS,
-  NAV_OVERLAY_OPEN_MS,
-} from "./navOverlay.transition";
+import { OVERLAY, PRESS } from "@/motion/vocabulary";
 import { NavSheet, NavSheetTrigger, useNavSheet } from "./NavSheet";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
@@ -702,27 +698,21 @@ const ScChevron = styled.svg<{ $open: boolean }>`
  * `position: absolute; top: 100%; left: 0` de más abajo -- el encogimiento
  * de scale tiene que anclarse ahí, no al centro por defecto, o el panel
  * "flotaría" hacia el centro de su propia caja al cerrarse). El estado
- * cerrado suma `scale(NAV_PANEL_CLOSED_SCALE)` al `translateY` que ya
- * tenía. Asimetría 120/180 (regla 26 de RULES.md, mismo patrón que ScBar
- * más arriba: DOS declaraciones de `transition` -- base y
- * `[data-open="true"]` -- sin estado de React nuevo): abrir tarda más
- * (`NAV_OVERLAY_OPEN_MS`) que cerrar (`NAV_OVERLAY_CLOSE_MS`) porque abrir
- * pide tiempo de lectura y cerrar no. `visibility` se queda en la lista,
- * mismo patrón que ya tenía.
+ * cerrado suma `scale(OVERLAY.closedScale)` al `translateY` que ya tenía.
+ * Asimetría 120/180 (regla 26 de RULES.md, mismo patrón que ScBar más
+ * arriba: DOS declaraciones de `transition` -- base y `[data-open="true"]`
+ * -- sin estado de React nuevo): abrir tarda más (`OVERLAY.openMs`) que
+ * cerrar (`OVERLAY.closeMs`) porque abrir pide tiempo de lectura y cerrar
+ * no. `visibility` se queda en la lista, mismo patrón que ya tenía.
  *
- * Las dos duraciones ya NO viven aquí: desde Task 10 son las de
- * `navOverlay.transition.ts`, compartidas con la hoja de navegación móvil,
- * que usa la misma gramática a propósito (regla 13: una constante idéntica
- * en dos sitios con obligación de no divergir es una sola fuente de verdad,
- * no dos literales que hoy coinciden).
+ * Los tres valores (`openMs`/`closeMs`/`closedScale`) ya NO viven aquí ni en
+ * `navOverlay.transition.ts` (retirado): desde Task 17 (plan premium F1-F5,
+ * 2026-08-11) son `OVERLAY` en `src/motion/vocabulary.ts` -- "valores del
+ * vocabulario" en su propio brief --, compartidos con la hoja de navegación
+ * móvil, que desde esa misma tarea usa la gramática COMPLETA (incluida la
+ * escala de cierre, antes exclusiva de este panel; ver el docblock de
+ * `OVERLAY` para el porqué del cambio) y no solo las dos duraciones.
  */
-/** Encogimiento del panel cerrado (D5 del brief Task 9): 0.97, DISTINTO de
- *  PRESS.activeScale (0.98, la escala de :active de un control pulsable
- *  cuando se presiona) -- este panel nunca se presiona, es un popover que
- *  entra/sale, así que no hay primitiva de vocabulary.PRESS que lo cubra;
- *  literal propio de esta coreografía, verbatim del brief. */
-const NAV_PANEL_CLOSED_SCALE = 0.97;
-
 const ScNavPanel = styled.div`
   position: absolute;
   top: 100%;
@@ -741,12 +731,12 @@ const ScNavPanel = styled.div`
   transform-origin: top left;
   visibility: hidden;
   opacity: 0;
-  transform: translateY(-4px) scale(${NAV_PANEL_CLOSED_SCALE});
+  transform: translateY(-4px) scale(${OVERLAY.closedScale});
   pointer-events: none;
   transition:
-    opacity ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
-    transform ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing},
-    visibility ${NAV_OVERLAY_CLOSE_MS}ms ${PRESS.easing};
+    opacity ${OVERLAY.closeMs}ms ${PRESS.easing},
+    transform ${OVERLAY.closeMs}ms ${PRESS.easing},
+    visibility ${OVERLAY.closeMs}ms ${PRESS.easing};
 
   /* Divergencia deliberada con ScNavSheet/ScSheetVeil (NavSheet.tsx): alli
      la lista de apertura RETIRO visibility (medido en Chrome real, 375x812:
@@ -768,9 +758,9 @@ const ScNavPanel = styled.div`
     transform: translateY(0) scale(1);
     pointer-events: auto;
     transition:
-      opacity ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing},
-      transform ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing},
-      visibility ${NAV_OVERLAY_OPEN_MS}ms ${PRESS.easing};
+      opacity ${OVERLAY.openMs}ms ${PRESS.easing},
+      transform ${OVERLAY.openMs}ms ${PRESS.easing},
+      visibility ${OVERLAY.openMs}ms ${PRESS.easing};
   }
 
   @media (prefers-reduced-motion: reduce) {

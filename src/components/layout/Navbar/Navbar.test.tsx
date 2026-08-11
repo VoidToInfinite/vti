@@ -10,11 +10,7 @@ import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
 import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { links } from "@/config/links";
 import { NAV_GROUPS } from "@/config/navigation";
-import { DECK, PRESS } from "@/motion/vocabulary";
-import {
-  NAV_OVERLAY_CLOSE_MS,
-  NAV_OVERLAY_OPEN_MS,
-} from "./navOverlay.transition";
+import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
 import { NAV_SHEET_SCROLL_TOLERANCE_PX } from "./NavSheet";
 import { Navbar } from "./Navbar";
 
@@ -914,16 +910,17 @@ describe("Navbar", () => {
 
     /*
      * Task 9, punto 5 del brief: ScNavPanel gana transform-origin: top left,
-     * el estado cerrado suma scale(NAV_PANEL_CLOSED_SCALE) al translateY
+     * el estado cerrado suma scale(OVERLAY.closedScale) al translateY
      * existente, y la asimetría 120/180 (regla 26 de RULES.md) se resuelve
      * con dos declaraciones de transition -- base (cierre) y
-     * [data-open="true"] (abierto) -- sin estado de React nuevo. Validado
-     * con el bug inyectado a propósito (ver informe de la tarea, tabla
-     * ScNavPanel): comentando temporalmente el scale/transform-origin, o
-     * igualando las dos duraciones, el test correspondiente se pone en
-     * rojo; restaurado, vuelve a verde.
+     * [data-open="true"] (abierto) -- sin estado de React nuevo. Desde Task
+     * 17, los tres valores vienen de `OVERLAY` (`src/motion/vocabulary.ts`),
+     * no de literales locales. Validado con el bug inyectado a propósito
+     * (ver informe de la tarea, tabla ScNavPanel): comentando temporalmente
+     * el scale/transform-origin, o igualando las dos duraciones, el test
+     * correspondiente se pone en rojo; restaurado, vuelve a verde.
      */
-    it("ScNavPanel: transform-origin: top left, scale(0.97) en cerrado, y asimetria 120/180 con la curva de PRESS.easing", () => {
+    it("ScNavPanel: transform-origin: top left, scale(OVERLAY.closedScale) en cerrado, y asimetria OVERLAY.closeMs/openMs con la curva de PRESS.easing", () => {
       renderNavbar();
       const trigger = getTrigger(ON_SITE);
       const panelId = trigger.getAttribute("aria-controls") as string;
@@ -937,15 +934,17 @@ describe("Navbar", () => {
       const openIndex = css.indexOf('[data-open="true"]');
       expect(openIndex).toBeGreaterThan(-1);
       const closedRule = css.slice(0, openIndex);
-      expect(closedRule).toContain("translateY(-4px) scale(0.97)");
-      expect(closedRule).toContain("120ms");
+      expect(closedRule).toContain(
+        `translateY(-4px) scale(${OVERLAY.closedScale})`,
+      );
+      expect(closedRule).toContain(`${OVERLAY.closeMs}ms`);
       expect(closedRule).toContain(PRESS.easing);
 
       // Estado abierto: transition PROPIA (regla 26), 180ms, misma curva.
       const openRule = css.slice(openIndex);
-      expect(openRule).toContain("180ms");
+      expect(openRule).toContain(`${OVERLAY.openMs}ms`);
       expect(openRule).toContain(PRESS.easing);
-      expect(openRule).not.toContain("120ms");
+      expect(openRule).not.toContain(`${OVERLAY.closeMs}ms`);
     });
   });
 
@@ -1671,16 +1670,43 @@ describe("Navbar", () => {
       // Estado cerrado (base, ANTES de [data-open="true"]).
       const cerrado = css.slice(0, openIndex);
       expect(cerrado).toContain("translateY(100%)");
-      expect(cerrado).toContain(`${NAV_OVERLAY_CLOSE_MS}ms`);
+      expect(cerrado).toContain(`${OVERLAY.closeMs}ms`);
       expect(cerrado).toContain(PRESS.easing);
 
       // Estado abierto: transition PROPIA (regla 26), más lenta, misma curva.
       const abierto = css.slice(openIndex);
-      expect(abierto).toContain(`${NAV_OVERLAY_OPEN_MS}ms`);
+      expect(abierto).toContain(`${OVERLAY.openMs}ms`);
       expect(abierto).toContain(PRESS.easing);
-      expect(abierto).not.toContain(`${NAV_OVERLAY_CLOSE_MS}ms`);
+      expect(abierto).not.toContain(`${OVERLAY.closeMs}ms`);
       // La asimetría solo existe si los dos números son distintos.
-      expect(NAV_OVERLAY_OPEN_MS).toBeGreaterThan(NAV_OVERLAY_CLOSE_MS);
+      expect(OVERLAY.openMs).toBeGreaterThan(OVERLAY.closeMs);
+    });
+
+    /*
+     * Task 17 (plan premium F1-F5, 2026-08-11): paridad de motion completa
+     * entre panel de escritorio y hoja móvil. Hasta esta tarea la hoja
+     * compartía las dos duraciones con ScNavPanel pero NO su escala de
+     * cierre (ver el docblock de ScNavSheet en NavSheet.tsx, sección
+     * "HISTORIA DE LA ESCALA", para el porqué del cambio). Validado con el
+     * bug inyectado a propósito: comentando temporalmente el `scale(...)` de
+     * los dos estados de ScNavSheet, este test se pone en rojo (el estado
+     * cerrado deja de contener "scale(0.97)" y el abierto deja de contener
+     * "scale(1)"); restaurado, vuelve a verde.
+     */
+    it("Task 17: la hoja gana scale(OVERLAY.closedScale) en cerrado y scale(1) en abierto, misma paridad que ScNavPanel", () => {
+      const { container } = renderNavbar();
+      const css = cssRuleTextFor(getSheet(container));
+
+      const openIndex = css.indexOf('[data-open="true"]');
+      expect(openIndex).toBeGreaterThan(-1);
+
+      const cerrado = css.slice(0, openIndex);
+      expect(cerrado).toContain(
+        `translateY(100%) scale(${OVERLAY.closedScale})`,
+      );
+
+      const abierto = css.slice(openIndex);
+      expect(abierto).toContain("translateY(0) scale(1)");
     });
 
     it("la hoja transiciona visibility SOLO al cerrar: en la lista de apertura no aparece (bug medido en navegador real)", () => {
