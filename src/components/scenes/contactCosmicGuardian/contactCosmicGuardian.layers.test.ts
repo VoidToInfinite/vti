@@ -50,8 +50,8 @@ describe("contactCosmicGuardian.layers", () => {
     expect(polvo?.blend).toBe("screen");
   });
 
-  it("CONTACT_GUARDIAN_SIZES es 100vw a secas: la escena va a sangre", () => {
-    expect(CONTACT_GUARDIAN_SIZES).toBe("100vw");
+  it("CONTACT_GUARDIAN_SIZES declara la rama movil de la decision del dueno en el gate F2 (2026-08-11, Task 30): 340px bajo 700px, 100vw en el resto", () => {
+    expect(CONTACT_GUARDIAN_SIZES).toBe("(max-width: 700px) 340px, 100vw");
   });
 
   it("el modulo no menciona neon-galaxy ni orbes", () => {

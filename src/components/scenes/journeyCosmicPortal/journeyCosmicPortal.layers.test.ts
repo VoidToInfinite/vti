@@ -3,6 +3,7 @@ import {
   JOURNEY_PORTAL_LAYERS,
   JOURNEY_PORTAL_POINTER_AMP,
   JOURNEY_PORTAL_SCROLL_AMP,
+  JOURNEY_PORTAL_SIZES,
   JOURNEY_PORTAL_VOID,
 } from "./journeyCosmicPortal.layers";
 
@@ -52,5 +53,9 @@ describe("journeyCosmicPortal.layers", () => {
 
   it("JOURNEY_PORTAL_VOID es el negro-violeta verbatim del paquete", () => {
     expect(JOURNEY_PORTAL_VOID).toBe("#0b0620");
+  });
+
+  it("JOURNEY_PORTAL_SIZES declara la rama movil de la decision del dueno en el gate F2 (2026-08-11, Task 30): 340px bajo 700px, 100vw en el resto", () => {
+    expect(JOURNEY_PORTAL_SIZES).toBe("(max-width: 700px) 340px, 100vw");
   });
 });

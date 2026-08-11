@@ -98,16 +98,18 @@ export const CONTACT_GUARDIAN_LAYERS: readonly ContactCosmicGuardianLayer[] = [
 ] as const;
 
 /**
- * `sizes` de la escena: `100vw` a secas, NO el
- * `"(min-width: 1280px) 1280px, 100vw"` de la escena saliente
- * (`CONTACT_NEON_SIZES`). La seccion paso a sangre en la entrega de ayer
- * (spec `docs/superpowers/specs/2026-08-03-contacto-footer-oscuro-design.md`,
- * D6) y ya no vive dentro de una caja con tope de 1280px: aquel `sizes` se
- * quedo describiendo una caja que ya no existe -- le mentia al navegador y
- * le hacia elegir la pista de 1024px en pantallas anchas. Mismo cambio y
- * mismo motivo que `FEATURES_ORBITAL_SIZES` (D9 de la spec de Features).
+ * `sizes` de la escena -- rama móvil añadida por decisión del dueño en el
+ * gate F2 (2026-08-11, plan premium F1-F5, Task 30):
+ * `(max-width: 700px) 340px, 100vw`. Mismo mecanismo, mismo `srcSet` de 3
+ * pistas (`1024w`/`1600w`/`2560w`) y misma decisión que
+ * `FEATURES_ORBITAL_SIZES` (`featuresCelestialOrbital.layers.ts`) -- ver
+ * ahí la derivación completa de por qué la caja de 340px hace que el
+ * navegador elija la pista de 1024px en DPR1, DPR2 **y** DPR3 por igual
+ * (densidad `1024/340 ≈ 3,01`, ya `>=` a cualquiera de los tres), y no solo
+ * la degradación 1600→1024 que el dueño aceptó viendo los pares reales. En
+ * desktop (`>= 700px`) sigue intacto: `100vw` sin cambio de comportamiento.
  */
-export const CONTACT_GUARDIAN_SIZES = "100vw";
+export const CONTACT_GUARDIAN_SIZES = "(max-width: 700px) 340px, 100vw";
 
 /**
  * Escala base comun a las 3 capas: evita bordes vacios al desplazar. Mismo

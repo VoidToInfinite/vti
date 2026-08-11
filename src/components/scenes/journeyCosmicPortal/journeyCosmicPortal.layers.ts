@@ -110,16 +110,18 @@ export const JOURNEY_PORTAL_LAYERS: readonly JourneyCosmicPortalLayer[] = [
 ] as const;
 
 /**
- * `sizes` de la escena (D9, spec
- * `2026-08-02-journey-overlay-transition-design.md`): `100vw` a secas,
- * porque desde D7 la escena va a sangre y ya no vive dentro de una caja con
- * tope de 1280px. El `sizes` anterior (`"(min-width: 1280px) 1280px,
- * 100vw"`) le mentiría al navegador y le haría elegir la pista de 1024px en
- * pantallas anchas — mismo cambio y mismo motivo que D7 de la spec
- * `2026-07-31-story-deck-hero-transition-design.md` para
- * `STORY_COSMIC_HEART_SIZES`.
+ * `sizes` de la escena -- rama móvil añadida por decisión del dueño en el
+ * gate F2 (2026-08-11, plan premium F1-F5, Task 30):
+ * `(max-width: 700px) 340px, 100vw`. Mismo mecanismo, mismo `srcSet` de 3
+ * pistas (`1024w`/`1600w`/`2560w`) y misma decisión que
+ * `FEATURES_ORBITAL_SIZES` (`featuresCelestialOrbital.layers.ts`) -- ver
+ * ahí la derivación completa de por qué la caja de 340px hace que el
+ * navegador elija la pista de 1024px en DPR1, DPR2 **y** DPR3 por igual
+ * (densidad `1024/340 ≈ 3,01`, ya `>=` a cualquiera de los tres), y no solo
+ * la degradación 1600→1024 que el dueño aceptó viendo los pares reales. En
+ * desktop (`>= 700px`) sigue intacto: `100vw` sin cambio de comportamiento.
  */
-export const JOURNEY_PORTAL_SIZES = "100vw";
+export const JOURNEY_PORTAL_SIZES = "(max-width: 700px) 340px, 100vw";
 
 /** Escala base común a las 6 capas: evita bordes vacíos al desplazar. Es el
  *  6% que recomienda el paquete, y coincide con el que ya usaba la escena

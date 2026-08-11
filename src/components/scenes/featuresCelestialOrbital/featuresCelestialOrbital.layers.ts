@@ -113,13 +113,44 @@ export const FEATURES_ORBITAL_LAYERS: readonly FeaturesCelestialOrbitalLayer[] =
   ] as const;
 
 /**
- * `sizes` de la escena (D9 de la spec): `100vw` a secas, porque la escena va
- * a sangre (D7) y ya no vive dentro de una caja con tope de 1280px. El
- * `sizes` de la escena saliente (`"(min-width: 1280px) 1280px, 100vw"`) le
- * mentiria al navegador y le haria elegir la pista de 1024px en pantallas
- * anchas — mismo cambio y mismo motivo que `JOURNEY_PORTAL_SIZES`.
+ * `sizes` de la escena -- rama móvil añadida por decisión del dueño en el
+ * gate F2 (2026-08-11, plan premium F1-F5, Task 30):
+ * `(max-width: 700px) 340px, 100vw`. Mismo mecanismo que
+ * `STORY_COSMIC_BEING_SIZES` (Task 12, 2026-08-09), aplicado aquí tras
+ * re-juzgarlo con la pista `1600w` ya desplegada (Task 11): el dueño revisó
+ * en el gate F2 pares del compuesto real a la pista `1600w` (la que pedía
+ * `sizes="100vw"` en móvil DPR3 antes de esta tarea) contra una simulación a
+ * la pista `1024w` (la que pide esta rama nueva) y aceptó la degradación
+ * como suficiente, con un ahorro medido de 759.720 B en las 16 capas de las
+ * 3 escenas (Features/Journey/Contact) y el presupuesto de "página entera,
+ * oscuro, móvil DPR3" de `PRE-LAUNCH-QA.md` §4 pasando de 3.164.894 B a
+ * ~2,41 MB, por debajo del umbral de 3 MB por primera vez.
+ *
+ * El porqué exacto, con las 3 pistas reales de `srcSet`
+ * (`${layer.srcSmall} 1024w, ${layer.srcMedium} 1600w, ${layer.src} 2560w`):
+ * el algoritmo de selección de `w` del navegador elige, para una caja de
+ * `340px` (el término bajo `max-width: 700px`), la pista de MENOR densidad
+ * (`ancho-pista / 340`) que sea `>=` al DPR real. Las tres densidades
+ * disponibles son `1024/340 ≈ 3,01`, `1600/340 ≈ 4,71` y `2560/340 ≈ 7,53`.
+ * Como la densidad de la pista de 1024px (≈3,01) YA es `>=` a cualquier DPR
+ * real hasta ese mismo 3,01, esa es la pista elegida en DPR1, DPR2 **y**
+ * DPR3 por igual -- no solo en DPR3 (verificado en navegador real con
+ * `playwright-cli`, `currentSrc`, en los 3 DPR: ver el informe de la
+ * Task 30). Haría falta un DPR por encima de ~3,01 (infrecuente en
+ * dispositivos reales) para que el navegador saltase a la pista de 1600px.
+ *
+ * En desktop (`>= 700px` de viewport) la escena SIGUE yendo a sangre
+ * (`100vw` intacto, sin cambio de comportamiento respecto a antes de esta
+ * tarea): a 1280px de caja, `1280/1280 = 1` de densidad para la pista de
+ * 1600px es la más baja `>=` DPR1, así que ahí se sigue pidiendo por encima
+ * de 1024px -- el mismo comportamiento que ya tenía `100vw` a secas.
+ *
+ * Alcance de esta decisión: las 3 escenas por capas que quedaban fuera de
+ * la Task 12 (`storyCosmicBeing` ya la tenía) -- `FEATURES_ORBITAL_SIZES`
+ * (este fichero), `JOURNEY_PORTAL_SIZES` y `CONTACT_GUARDIAN_SIZES`, las
+ * tres re-juzgadas juntas en el mismo gate con el mismo mecanismo.
  */
-export const FEATURES_ORBITAL_SIZES = "100vw";
+export const FEATURES_ORBITAL_SIZES = "(max-width: 700px) 340px, 100vw";
 
 /** Escala base comun a las 7 capas: evita bordes vacios al desplazar. Es el
  *  6% que ya usaba la escena saliente, sin cambio (D14 no lo toca).

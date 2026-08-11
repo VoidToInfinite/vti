@@ -53,7 +53,7 @@ describe("featuresCelestialOrbital.layers", () => {
     expect(FEATURES_ORBITAL_LAYERS.at(0)?.part).toBe("fondo");
   });
 
-  it("FEATURES_ORBITAL_SIZES es 100vw a secas (D9): la escena va a sangre", () => {
-    expect(FEATURES_ORBITAL_SIZES).toBe("100vw");
+  it("FEATURES_ORBITAL_SIZES declara la rama movil de la decision del dueno en el gate F2 (2026-08-11, Task 30): 340px bajo 700px, 100vw en el resto", () => {
+    expect(FEATURES_ORBITAL_SIZES).toBe("(max-width: 700px) 340px, 100vw");
   });
 });
