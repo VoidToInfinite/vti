@@ -7,6 +7,8 @@
 
 ---
 
+> **Enmienda 2026-08-11 (Task 10, plan premium F1-F5).** Todo lo que esta spec dice sobre el DESPEGUE (`data-scrolled`, `data-detach`, `ScBar`/`ScSurface`, `peelOff`/`stickOn`, `NAV_DETACH_ANIM_MS`) sigue vigente sin un solo cambio. Lo que ya NO describe el código es el mecanismo de la ENTRADA DE CARGA que menciona de pasada en §1 y §4: `data-intro` y `useStage()` desaparecieron de `Navbar.tsx`: la entrada es hoy una `@keyframes` estática (`navbarDrop`) con `animation-delay: HERO_CHROME_OFFSET_MS`, presente en el CSS del HTML exportado. El retardo de 760 ms se conserva verbatim. Motivo y medición completos en la §5.5 de `2026-07-27-hero-coreografia-carga-tema-design.md`. Consecuencia para esta spec: `opacity`/`transform` salieron de la lista de `transition` de `ScHeader` (una `@keyframes` sobre una propiedad impide que su `transition` exista), y esa lista quedó con una sola entrada, `padding-inline` — el bloque `&[data-scrolled="true"]` sigue cambiando solo su valor, que es justo lo que D1 pedía proteger.
+
 ## 1. Estado actual (medido, no de memoria)
 
 `src/components/layout/Navbar/Navbar.tsx` monta un único `ScHeader` (`<header>`, `position: fixed`, `top/left/right: 0`) que lleva TODO a la vez: posicionamiento, la banda de cristal (`glass.bg` + `backdrop-filter` + `border-bottom`) y la animación de entrada de la carga (`data-intro`, `opacity`/`transform`). Dentro va `ScNav` (`<nav>`, `height: var(--nav-height)` = 3.5rem) con marca, enlaces de sección (solo tema claro, ≥ md) y acciones.

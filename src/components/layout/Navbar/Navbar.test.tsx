@@ -351,10 +351,13 @@ describe("Navbar", () => {
   describe("entrada del navbar en la carga (CSS estatico, revision 2026-08-11)", () => {
     /*
      * CANDADO DE ESTRUCTURA. La entrada dejo de depender de la maquina de
-     * fases: `data-intro` ya no existe en este componente. Es lo que hace
-     * que la barra sea visible sin JavaScript (export estatico, sin servidor
-     * Next detras) y en `app/not-found.tsx`, donde no hay ningun hero que
-     * avise y hasta ahora dependia de la red de seguridad de StageProvider.
+     * fases: `data-intro` ya no existe en este componente. Es lo que hace que
+     * la barra sea visible sin JavaScript -- este sitio es un export estatico
+     * (`output: "export"`, sin servidor Next detras), asi que un visitante sin
+     * scripts nunca veria encenderse nada que dependa de hidratar -- y lo que
+     * la desacopla del instante en que `HeroBackdrop` gana su carrera de
+     * `decode()`, que era lo que retrasaba su entrada hasta despues de la
+     * hidratacion.
      */
     it("no depende de ningun estado de JS: el banner ya no lleva data-intro", () => {
       renderNavbar();

@@ -978,10 +978,11 @@ export function Navbar(): ReactElement {
   const { scrolled, phase: detachPhase } = useNavDetach(8);
   // Este componente ya no consume useStage(): desde la revisión 2026-08-11 su
   // entrada de carga es una @keyframes estática con animation-delay =
-  // HERO_CHROME_OFFSET_MS (ver el docblock de ScHeader), así que no necesita
-  // que nadie le avise de nada -- ni existiendo un hero (esta misma barra se
-  // monta en app/not-found.tsx, donde antes dependía de la red de seguridad
-  // de StageProvider para llegar a ser visible).
+  // HERO_CHROME_OFFSET_MS (ver el docblock de ScHeader). No necesita que nadie
+  // le avise de nada porque su entrada viaja en el CSS del HTML exportado: se
+  // ve sin esperar a que el bundle descargue ni a que React hidrate, y también
+  // con JavaScript deshabilitado -- que es el caso que antes la dejaba
+  // invisible para siempre.
   // Tarea 1 (navegación accesible): sección de la home actualmente visible,
   // reutilizando el motor ya montado por `useSectionProgress` en cada
   // sección (ver el docblock de `useActiveSection.ts`). Se lee aquí, una
