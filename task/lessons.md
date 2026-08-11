@@ -1,5 +1,40 @@
 # Lecciones
 
+## 2026-08-11 — Un candado de "el texto está presente" pasa en verde con la línea COMENTADA
+
+- **Qué pasó:** el candado de `viewportFit: "cover"` en `app/layout.tsx` (Task 13) leía el
+  fichero con `node:fs` y afirmaba `viewportExport.toContain('viewportFit: "cover"')` --
+  el mismo patrón de "candado de fuente" que ya usan los dos bloques anteriores del mismo
+  fichero (`data-scroll-behavior`, el script `beforeInteractive`). Al inyectar el bug de
+  verificación (comentar la línea con `// viewportFit: "cover",` en vez de borrarla, el
+  gesto habitual para un bug reversible) el test se quedó en **VERDE** — exactamente lo
+  contrario de lo que el protocolo de bug inyectado (`RULES.md`) espera.
+- **Causa raíz:** un `// comentario` no borra el texto, lo desactiva. `toContain()` busca
+  una subcadena en el string completo del fichero, y esa subcadena seguía ahí, dentro del
+  comentario. El candado nunca comprobaba que la línea fuera CÓDIGO ACTIVO, solo que esos
+  caracteres existieran en algún punto del fichero -- una propiedad mucho más débil de la
+  que el nombre del test ("declara viewportFit") prometía.
+- **Por qué los dos candados hermanos del mismo fichero no tienen este agujero:** los dos
+  bloques anteriores (`data-scroll-behavior`, el `<Script>`) SÍ despojan comentarios antes
+  de buscar (`source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")`) -- un
+  patrón que su propio docblock explica para un motivo distinto (que la cita en prosa del
+  docblock no gane la búsqueda por aparecer antes que el código real). El efecto colateral
+  de ese mismo despojo -- que una línea COMENTADA deja de "contener" el texto -- no estaba
+  declarado como el motivo, así que al escribir un candado nuevo en el mismo fichero no se
+  copió el paso, solo el resto del patrón.
+- **Cómo se detectó:** siguiendo el protocolo al pie de la letra. El bug inyectado (línea
+  comentada) es exactamente el tipo de cambio "reversible y realista" que pide la regla de
+  verificación de este repo -- y aquí el resultado del experimento (verde cuando debía ser
+  rojo) fue la señal, no un fallo del proceso. Un bug inyectado que no tira el test es en
+  sí mismo un hallazgo, no un paso en blanco que se pueda descartar.
+- **Regla:** todo candado que busca texto CRUDO de fuente (`toContain`, `.match()` sin
+  despojar) sobre un fichero real tiene que despojar `/* */` y `//` ANTES de buscar,
+  aunque el motivo inmediato de esa tarea no sea "evitar una cita en un docblock" -- el
+  motivo real y permanente es que una línea comentada no debe poder pasar por una línea
+  activa. Y todo bug inyectado por comentario (`// línea;`) se valida comprobando que el
+  test SÍ cae, nunca se asume por analogía con otro candado del mismo fichero que ya lo
+  hace bien.
+
 ## 2026-08-11 — Recomprimir el WebP que TÚ MISMO acabas de recomprimir encadena una generación de pérdida invisible
 
 - **Qué pasó:** en la Task 11, tras elegir `q=50` para `01-nebula.webp` de Story y
