@@ -51,6 +51,24 @@
         },
         "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
     },
+    "midTrack20260811": {
+        "why": "Task 11 (plan premium F1-F5). Objetivo: que un movil a DPR3 (slot efectivo ~1125px con sizes=100vw) deje de pedir la pista de 2560px. Sin master de 3344px versionado (ver source, arriba), la pista de 1600 se genera desde la de 2560 YA DESPLEGADA (unica fuente de mayor resolucion disponible en el repo): Image.resize(LANCZOS) a 1600x900 (misma proporcion 3344:1882 que las demas pistas) + save WEBP quality=85 method=6, igual que el resto del pipeline de esta escena.",
+        "reproducibilityCheck": "Antes de generar nada se intento reproducir BYTE A BYTE el fichero ya desplegado (mismo tamano, sin resize, quality=85/method=6/alpha_quality=80 o el que documenta este manifest por capa): NINGUNA de las 7 capas reprodujo, ni siquiera barriendo quality 85-100 con y sin exact=True. Diagnostico: no es un parametro equivocado -- un experimento de control (misma imagen, mismos parametros, aplicados dos veces seguidas) demuestra que el propio pipeline NO es idempotente sobre una entrada que ya paso por una compresion con perdida (gen3 613408B != gen4 595704B en 02-ondas.webp, parametros identicos): cada pasada adicional de recompresion encoge el fichero un poco mas, independientemente de si los parametros son 'correctos'. El activo desplegado ya es 2 generaciones de perdida desde el master (encode inicial + resave de alpha_quality de la Task 13); un tercer paso de recompresion no puede reproducirlo byte a byte por construccion. Sin master disponible (los zips de origen ya no existen en Downloads ni se versionaron en assets/), la validacion aplicable -- y la que exige este mismo encargo -- es PSNR sobre el compuesto, no igualdad de bytes.",
+        "psnrMethod": "Referencia = compuesto de las 7 capas reescaladas a 1600x900 con LANCZOS pero SIN recomprimir (pixeles en memoria, perdida cero adicional sobre la pista de 2560). Candidato = compuesto de los 7 WebP de 1600 realmente guardados y releidos. Ambos compuestos se pintan sobre --void con el mismo alpha normal de produccion. Este metodo aisla la perdida de ESTE paso de recodificacion (resize + encode), replicando la metodologia de 'deployed.rationale' de este mismo manifest pero usando la pista de 2560 como mejor fuente disponible en vez del master ausente.",
+        "psnrThreshold": "El encargo cita >=48 dB 'como referencia de la pasada alfa' (Task 13), pero el valor que documentan de verdad los manifests de esa pasada es 45 dB, y sobre una metrica DISTINTA (compuesto PREMULTIPLICADO por capa, que aisla solo la contribucion de la capa, no el compuesto RGB completo de la escena). Ninguna de las dos cifras es directamente comparable a un PSNR de compuesto RGB completo de una recodificacion de resolucion+color nueva. El criterio adoptado aqui: el compuesto a 1600 no debe ser peor que el propio precedente de esta escena a 2560 (mismo metodo de medicion: compuesto RGB reescalado con LANCZOS desde la mejor fuente disponible, sin recomprimir, vs recodificado) -- 'deployed.rationale' documenta q85/2560 en 43.22 dB contra el master. Medido: 44.59 dB a 1600, POR ENCIMA del propio precedente (resolucion menor = menos detalle de alta frecuencia = mejor PSNR a igual calidad, como cabe esperar fisicamente). Pasa con margen en las dos lecturas.",
+        "alphaQualityPolicy": "Por capa: se prueba alpha_quality=80 y el valor por defecto (100/lossless), y se conserva el que pese menos -- misma regla ya establecida en alphaRecompression20260809. Las 6 capas alfa de esta escena mejoran con 80 (igual que a 2560/1024).",
+        "results": "16 ficheros -1600.webp generados (7 capas x este manifest documenta las 7; el total de la escena en los 3 anchos es 7x3=21 ficheros). Peso de la pista de 1600: 751938 B (0.72 MiB). Compuesto PSNR: 44.59 dB.",
+        "perFile": {
+            "01-fondo": "4744 B (opaca, sin alpha_quality)",
+            "02-ondas": "300394 B (aq=80 vs 325246 B default), alfa 57.04dB, premult 51.29dB",
+            "03-orbita": "29794 B (aq=80 vs 32034 B default), alfa 70.07dB, premult 68.03dB",
+            "04-plataforma": "111306 B (aq=80 vs 123708 B default), alfa 60.75dB, premult 54.16dB",
+            "05-iconos": "107960 B (aq=80 vs 115652 B default), alfa 61.88dB, premult 52.29dB",
+            "06-figura": "185328 B (aq=80 vs 203926 B default), alfa 58.76dB, premult 47.79dB",
+            "07-particulas": "12412 B (aq=80 vs 13274 B default), alfa 76.83dB, premult 71.92dB"
+        },
+        "pendingVisualQA": "Verificacion visual en navegador real pendiente de completar en esta misma tarea (playwright-cli / panel de navegador embebido) -- ver informe de la Task 11."
+    },
     "motion": {
         "packageHints": {
             "pointerDepth": [0.05, 0.14, 0.22, 0.18, 0.3, 0.38, 0.55],

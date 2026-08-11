@@ -51,6 +51,22 @@
         },
         "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
     },
+    "midTrack20260811": {
+        "why": "Task 11 (plan premium F1-F5). Mismo objetivo y mismo metodo que features-celestial-orbital/manifest.json (ver ese manifest para el detalle completo del test de reproducibilidad y su diagnostico): pista de 1600px generada desde la de 2560 ya desplegada (LANCZOS a 1600x900 + save WEBP quality=85 method=6), porque el master de 3344px no esta versionado.",
+        "reproducibilityCheck": "Mismo resultado que en features-celestial-orbital: la reproduccion byte a byte contra el activo desplegado NO se alcanza a ninguna calidad (barrido 85-100, con y sin exact=True) porque el activo desplegado ya es una segunda generacion de perdida (encode inicial + resave de alpha_quality de la Task 13), y una recompresion de una entrada ya comprimida con perdida no es idempotente por construccion (control verificado sobre features-celestial-orbital/02-ondas.webp, mismo Pillow 12.3.0 / libwebp 1.6.0). Se valida por PSNR sobre el compuesto en su lugar.",
+        "psnrThreshold": "Mismo criterio que features-celestial-orbital: el compuesto a 1600 se compara contra el propio precedente de esta escena a 2560 (deployed.rationale: q85 en 45.17 dB contra el master v6). Medido: 46.09 dB a 1600, por encima del precedente. El '48 dB' que cita el encargo como referencia de la pasada alfa no es la cifra que documentan esos manifests (45 dB, y sobre compuesto premultiplicado por capa, una metrica distinta) -- ver la nota completa en features-celestial-orbital/manifest.json.",
+        "alphaQualityPolicy": "Por capa: se prueba alpha_quality=80 y el valor por defecto, se conserva el que pese menos. 4 de las 5 capas alfa mejoran con 80; 06-figure (igual que ya le pasaba a su pista de 2560 en la pasada de alfa) NO mejora con 80 a 1600 (60744 B con el default vs 62212 B con aq=80): se conserva el default, mismo criterio de exclusion que alphaRecompression20260809.",
+        "results": "6 ficheros -1600.webp generados. Peso de la pista de 1600: 492220 B (0.47 MiB). Compuesto PSNR: 46.09 dB.",
+        "perFile": {
+            "01-background": "10134 B (opaca)",
+            "02-stars": "80786 B (aq=80 vs 89686 B default), alfa 66.39dB, premult 63.61dB",
+            "03-light-path": "291474 B (aq=80 vs 314630 B default), alfa 58.52dB, premult 49.24dB",
+            "04-portals": "28876 B (aq=80 vs 31534 B default), alfa 69.91dB, premult 65.14dB",
+            "05-hologram-disc": "20206 B (aq=80 vs 20928 B default), alfa 70.25dB, premult 64.14dB",
+            "06-figure": "60744 B (default, aq=80 da 62212 B y NO mejora -- excluido), alfa infdB, premult 58.16dB"
+        },
+        "pendingVisualQA": "Verificacion visual en navegador real pendiente de completar en esta misma tarea (playwright-cli / panel de navegador embebido) -- ver informe de la Task 11."
+    },
     "motion": {
         "packageHints": {
             "pointerDepth": [0.015, 0.045, 0.09, 0.14, 0.19, 0.24],

@@ -44,6 +44,19 @@
         },
         "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
     },
+    "midTrack20260811": {
+        "why": "Task 11 (plan premium F1-F5). Mismo objetivo y mismo metodo que features-celestial-orbital/manifest.json (ver ese manifest para el detalle completo del test de reproducibilidad y su diagnostico): pista de 1600px generada desde la de 2560 ya desplegada (LANCZOS a 1600x900 + save WEBP quality=85 method=6), porque el master de 3344px no esta versionado.",
+        "reproducibilityCheck": "Mismo resultado que en features-celestial-orbital: la reproduccion byte a byte contra el activo desplegado NO se alcanza a ninguna calidad (barrido 85-100, con y sin exact=True) porque el activo desplegado ya es una segunda generacion de perdida (encode inicial + resave de alpha_quality de la Task 13), no idempotente por construccion. Se valida por PSNR sobre el compuesto en su lugar.",
+        "psnrThreshold": "Mismo criterio que features-celestial-orbital: el compuesto a 1600 se compara contra el propio precedente de esta escena a 2560 (deployed.rationale: q85 en 42.51 dB contra el master). Medido: 42.64 dB a 1600, ligeramente por encima del precedente (margen estrecho porque 02-figura, la capa mas pesada, es un cuerpo con textura fina que comprime peor que el resto del arte de esta escena -- ver weightNote). El '48 dB' que cita el encargo como referencia de la pasada alfa no es la cifra que documentan esos manifests -- ver la nota completa en features-celestial-orbital/manifest.json.",
+        "alphaQualityPolicy": "Por capa: se prueba alpha_quality=80 y el valor por defecto, se conserva el que pese menos. Las 2 capas alfa de esta escena mejoran con 80 a 1600 (a diferencia de 03-polvo en su pista de 2560, que en la pasada de alfa SI quedo excluida por aumento de peso -- a 1600 el mismo ajuste SI compensa).",
+        "results": "3 ficheros -1600.webp generados. Peso de la pista de 1600: 188442 B (0.18 MiB). Compuesto PSNR: 42.64 dB.",
+        "perFile": {
+            "01-fondo": "53372 B (opaca)",
+            "02-figura": "109324 B (aq=80 vs 121016 B default), alfa 60.22dB, premult 50.14dB",
+            "03-polvo": "25746 B (aq=80 vs 29066 B default), alfa 70.19dB, premult 64.98dB"
+        },
+        "pendingVisualQA": "Verificacion visual en navegador real pendiente de completar en esta misma tarea (playwright-cli / panel de navegador embebido) -- ver informe de la Task 11."
+    },
     "motion": {
         "packageHints": {
             "depth": [0, 0.03, 0.085],
