@@ -3,6 +3,41 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { BackToTop, BACK_TO_TOP_THRESHOLD_SCREENS } from "./BackToTop";
 
+/** Mismo patrón que Button.test.tsx/Navbar.test.tsx: lee el CSSOM real
+ *  inyectado por styled-components -- jsdom no resuelve `env()` (no hay
+ *  hardware que consultar), así que la única forma de atar la declaración es
+ *  leer el TEXTO de la regla, nunca `getComputedStyle`. */
+function allCssRules(): string[] {
+  const reglas: string[] = [];
+  const walk = (rules: CSSRuleList): void => {
+    Array.from(rules).forEach((rule) => {
+      reglas.push(rule.cssText);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) walk(anidadas);
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return reglas;
+}
+
+function reglasDe(el: HTMLElement): string[] {
+  const reglas = allCssRules();
+  const clases = Array.from(el.classList).filter((c) =>
+    reglas.some((r) => r.includes(c)),
+  );
+  expect(
+    clases.length,
+    "no se encontró ninguna clase inyectada del elemento",
+  ).toBeGreaterThan(0);
+  return reglas.filter((r) => clases.some((c) => r.includes(c)));
+}
+
 function setViewport(innerHeight: number, scrollY: number): void {
   Object.defineProperty(window, "innerHeight", {
     value: innerHeight,
@@ -206,5 +241,61 @@ describe("BackToTop", () => {
     ).not.toBeInTheDocument();
     expect(document.activeElement).toBe(document.getElementById("main"));
     expect(document.activeElement).not.toBe(document.body);
+  });
+
+  /*
+   * Task 13, punto 1 del brief: `right`/`bottom` reservan el hueco de
+   * `env(safe-area-inset-*)` desde la Task 2 (docblock de ScBackToTop,
+   * BackToTop.tsx) -- esta tarea es la primera que le pone un candado.
+   * `calc(token + env(..., 0px))`, aditivo por construcción: jsdom no
+   * resuelve `env()` (no hay hardware que consultar), así que el candado
+   * afirma el TEXTO de la declaración, no `getComputedStyle`. Validado con
+   * el bug inyectado a propósito (ver informe de la tarea): comentando
+   * temporalmente `+ env(safe-area-inset-right, 0px)` (y su gemelo de
+   * bottom) en BackToTop.tsx, este test se pone en rojo; restaurado, vuelve
+   * a verde.
+   */
+  it("Task 13: right/bottom reservan env(safe-area-inset-right/bottom) de forma aditiva", () => {
+    setViewport(800, 5000);
+    renderWithMain();
+    const boton = screen.getByRole("button", { name: "Volver arriba" });
+    const reglas = reglasDe(boton);
+
+    const rightRule = reglas.find(
+      (r) => r.includes("right:") && r.includes("env(safe-area-inset-right"),
+    );
+    expect(
+      rightRule,
+      "no se encontró la declaración de right con env()",
+    ).toBeDefined();
+    expect(rightRule).toContain("env(safe-area-inset-right, 0px)");
+
+    const bottomRule = reglas.find(
+      (r) => r.includes("bottom:") && r.includes("env(safe-area-inset-bottom"),
+    );
+    expect(
+      bottomRule,
+      "no se encontró la declaración de bottom con env()",
+    ).toBeDefined();
+    expect(bottomRule).toContain("env(safe-area-inset-bottom, 0px)");
+  });
+
+  /*
+   * Task 13, punto 2 del brief: BackToTop es IconButton -> styled(Button),
+   * así que hereda touch-action de ScButton (Button.tsx) por composición --
+   * mismo candado de herencia que IconButton.test.tsx, un nivel más abajo en
+   * la cadena. Validado con el bug inyectado a propósito (ver informe de la
+   * tarea): comentando temporalmente `touch-action: manipulation;` en
+   * Button.tsx, este test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 13: hereda touch-action: manipulation de ScButton por composición", () => {
+    setViewport(800, 5000);
+    renderWithMain();
+    const boton = screen.getByRole("button", { name: "Volver arriba" });
+    const reglas = reglasDe(boton);
+
+    expect(reglas.some((r) => r.includes("touch-action: manipulation"))).toBe(
+      true,
+    );
   });
 });

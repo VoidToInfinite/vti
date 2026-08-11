@@ -524,6 +524,8 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   height: 100%;
   padding: ${FEATURES_CARD_BORDER_WIDTH};
   border-radius: ${FEATURES_CARD_RADIUS};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   transition:
     transform ${PRESS.durationMs}ms ${PRESS.easing},
     box-shadow ${({ theme }) => theme.data.motion.duration.base}
@@ -843,6 +845,8 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
   color: ${({ theme, $key }) => accentColor(theme.data, $key)};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   transition:
     transform ${PRESS.durationMs}ms ${PRESS.easing},
     color ${({ theme }) => theme.data.motion.duration.fast}

@@ -1338,6 +1338,18 @@ describe("D4: palancas de compactación vertical del contenido oscuro (clamp flu
       expect(reduceBlock).toContain(":active");
       expect(reduceBlock).toContain("transform: none");
     });
+
+    /*
+     * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado
+     * con el bug inyectado a propósito (ver informe de la tarea): comentando
+     * temporalmente `touch-action: manipulation;` de ScCardLink
+     * (Contact.tsx), este test se pone en rojo; restaurado, vuelve a verde.
+     */
+    it("Task 13: declara touch-action: manipulation", async () => {
+      const cardLink = await renderCardLink();
+      const css = cssRuleTextFor(cardLink);
+      expect(css).toContain("touch-action: manipulation");
+    });
   });
 });
 

@@ -50,6 +50,8 @@ const ScBackLink = styled(Link)`
   margin-top: ${({ theme }) => theme.data.space[5]};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},

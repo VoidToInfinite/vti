@@ -281,6 +281,10 @@ const ScColumnLinks = styled.div`
 const footerLinkStyles = css`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. Un único
+     punto de declaración -- ScFooterLink y ScFooterNavLink (más abajo) lo
+     heredan interpolando este mismo bloque css, no lo redeclaran. */
+  touch-action: manipulation;
   /* transform se añade a esta lista (Task 9, vocabulary.PRESS): el hover de
      arriba solo cambia color -- sin movimiento que guardar tras
      PRESS.hoverGuard (punto 2 del brief) --, así que la entrada nace ya con

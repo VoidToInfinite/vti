@@ -115,5 +115,21 @@ describe("LanguageSelector", () => {
       expect(bloqueTexto).toContain("transition: none");
       expect(bloqueTexto).toContain("transform: none");
     });
+
+    /*
+     * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado
+     * con el bug inyectado a propósito (ver informe de la tarea): comentando
+     * temporalmente `touch-action: manipulation;` de ScLanguageButton
+     * (LanguageSelector.tsx), este test se pone en rojo; restaurado, vuelve
+     * a verde.
+     */
+    it("Task 13: declara touch-action: manipulation", () => {
+      renderWithProviders(<LanguageSelector />);
+      const boton = screen.getAllByRole("button")[0] as HTMLElement;
+      const reglas = reglasDe(boton);
+      expect(reglas.some((r) => r.includes("touch-action: manipulation"))).toBe(
+        true,
+      );
+    });
   });
 });

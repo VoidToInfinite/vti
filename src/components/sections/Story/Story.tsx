@@ -689,6 +689,8 @@ const ScPillarCard = styled.div`
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   padding: ${({ theme }) => theme.data.space[5]};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   transition:
     transform ${PRESS.durationMs}ms ${PRESS.easing},
     box-shadow ${({ theme }) => theme.data.motion.duration.base}
@@ -1086,6 +1088,10 @@ const communityLinkStyles = css`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 600;
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. Un único
+     punto de declaración -- ScStatementLink/ScDeckNoteLink (más abajo) lo
+     heredan interpolando este mismo bloque css, no lo redeclaran. */
+  touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},

@@ -187,6 +187,57 @@ describe("Navbar", () => {
     expect(header).toHaveAttribute("data-scrolled", "false");
   });
 
+  /*
+   * Task 13, punto 1 del brief: `viewport-fit=cover` (app/layout.tsx) +
+   * `env(safe-area-inset-*)` en las piezas fijas. ScHeader está anclado a
+   * `top: 0` del viewport (candidato a notch/dynamic island en vertical);
+   * ScNav es el nivel de CONTENIDO real (marca, enlaces, idioma, tema) y
+   * necesita apartarse del notch lateral en horizontal -- a diferencia de
+   * ScHeader/ScBar/ScSurface, que siguen pintando cristal edge-to-edge sin
+   * recorte. `calc(token + env(..., 0px))` en los tres, aditivo por
+   * construcción: jsdom no resuelve `env()` (no hay hardware que consultar),
+   * así que el candado afirma el TEXTO de la declaración, nunca
+   * `getComputedStyle`. Validado con el bug inyectado a propósito (ver
+   * informe de la tarea): comentando temporalmente cada `env(safe-area-
+   * inset-*)` en Navbar.tsx, el test correspondiente se pone en rojo;
+   * restaurado, vuelve a verde.
+   */
+  describe("Task 13: safe areas (ScHeader/ScNav)", () => {
+    it("ScHeader reserva env(safe-area-inset-top) en su padding-top", () => {
+      renderNavbar();
+      const header = screen.getByRole("banner");
+      const reglas = allCssRules();
+      const clase = Array.from(header.classList).find((c) =>
+        reglas.some((r) => r.includes(c)),
+      ) as string;
+      expect(
+        clase,
+        "no se encontró la clase inyectada de ScHeader",
+      ).toBeDefined();
+
+      const propias = reglas.filter((r) => r.includes(clase));
+      const paddingRule = propias.find((r) => r.includes("padding-top"));
+      expect(paddingRule, "ScHeader no declara padding-top").toBeDefined();
+      expect(paddingRule).toContain("env(safe-area-inset-top, 0px)");
+    });
+
+    it("ScNav reserva env(safe-area-inset-left/right) en su padding horizontal", () => {
+      renderNavbar();
+      const nav = screen.getByRole("navigation");
+      const reglas = allCssRules();
+      const clase = Array.from(nav.classList).find((c) =>
+        reglas.some((r) => r.includes(c)),
+      ) as string;
+      expect(clase, "no se encontró la clase inyectada de ScNav").toBeDefined();
+
+      const propias = reglas.filter((r) => r.includes(clase));
+      const paddingRule = propias.find((r) => r.includes("padding:"));
+      expect(paddingRule, "ScNav no declara padding").toBeDefined();
+      expect(paddingRule).toContain("env(safe-area-inset-left, 0px)");
+      expect(paddingRule).toContain("env(safe-area-inset-right, 0px)");
+    });
+  });
+
   it("renderiza el enlace de marca", () => {
     renderNavbar();
     const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
@@ -820,6 +871,44 @@ describe("Navbar", () => {
           `${nombre} no declara ninguna regla :active con transform`,
         ).toBeDefined();
         expect(activeRule).toContain(`scale(${PRESS.activeScale})`);
+      }
+    });
+
+    /*
+     * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado
+     * con el bug inyectado a propósito (ver informe de la tarea): comentando
+     * temporalmente `touch-action: manipulation;` de ScNavLink en
+     * Navbar.tsx, este test se pone en rojo; restaurado, vuelve a verde.
+     */
+    it("Task 13: ScNavTrigger y ScNavPanelLink (que hereda de ScNavLink) declaran touch-action: manipulation", () => {
+      renderNavbar();
+      const reglas = allCssRules();
+      const claseDe = (el: Element): string =>
+        Array.from(el.classList).find((c) =>
+          reglas.some((r) => r.includes(c)),
+        ) ?? "";
+
+      const trigger = getTrigger(ON_SITE);
+      fireEvent.click(trigger);
+      const panelId = trigger.getAttribute("aria-controls") as string;
+      const panel = document.getElementById(panelId) as HTMLElement;
+      const panelLink = panel.querySelector("a") as HTMLElement;
+
+      for (const [nombre, clase] of [
+        ["ScNavTrigger", claseDe(trigger)],
+        ["ScNavPanelLink", claseDe(panelLink)],
+      ] as const) {
+        expect(
+          clase,
+          `no se encontro la clase inyectada de ${nombre}`,
+        ).not.toBe("");
+        expect(
+          reglas.some(
+            (r) =>
+              r.includes(clase) && r.includes("touch-action: manipulation"),
+          ),
+          `${nombre} no declara touch-action: manipulation`,
+        ).toBe(true);
       }
     });
 
@@ -1695,6 +1784,42 @@ describe("Navbar", () => {
       const css = cssRuleTextFor(fila);
       expect(css).toContain(":active");
       expect(css).toContain(`scale(${PRESS.activeScale})`);
+    });
+
+    /*
+     * Task 13, punto 2 del brief: elimina el retardo de doble-tap en la fila
+     * más directamente táctil del sitio. Validado con el bug inyectado a
+     * propósito (ver informe de la tarea): comentando temporalmente
+     * `touch-action: manipulation;` de ScSheetRow en NavSheet.tsx, este test
+     * se pone en rojo; restaurado, vuelve a verde.
+     */
+    it("Task 13: las filas declaran touch-action: manipulation", () => {
+      const { container } = renderNavbar();
+      const fila = getSheet(container).querySelector("a") as HTMLElement;
+      const css = cssRuleTextFor(fila);
+      expect(css).toContain("touch-action: manipulation");
+    });
+
+    /*
+     * Task 13, punto 1 del brief: la hoja está anclada a `left/right/
+     * bottom: 0` del VIEWPORT (docblock de ScNavSheet: vive fuera de
+     * ScHeader a propósito), así que sus tres bordes físicos pueden caer
+     * bajo un recorte de hardware -- el inferior (home-indicator de iOS) es
+     * el que más importa en la práctica. `calc(token + env(..., 0px))`,
+     * aditivo por construcción: jsdom no resuelve `env()`, así que el
+     * candado afirma el TEXTO de la declaración. Validado con el bug
+     * inyectado a propósito (ver informe de la tarea): comentando
+     * temporalmente los tres `env(safe-area-inset-*)` del `padding` de
+     * ScNavSheet en NavSheet.tsx, este test se pone en rojo; restaurado,
+     * vuelve a verde.
+     */
+    it("Task 13: la hoja reserva env(safe-area-inset-left/right/bottom) en su padding, de forma aditiva", () => {
+      const { container } = renderNavbar();
+      const css = cssRuleTextFor(getSheet(container));
+
+      expect(css).toContain("env(safe-area-inset-left, 0px)");
+      expect(css).toContain("env(safe-area-inset-right, 0px)");
+      expect(css).toContain("env(safe-area-inset-bottom, 0px)");
     });
   });
 });

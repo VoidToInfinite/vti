@@ -162,6 +162,28 @@ describe("Button", () => {
     expect(transitionRule).toContain(basicLightTheme.motion.easing.standard);
   });
 
+  /*
+   * Task 13, punto 2 del brief: elimina el retardo de ~300ms de doble-tap.
+   * Raíz de composición -- IconButton (`styled(Button)`) y todo lo que
+   * compone sobre él (BackToTop, ThemeToggle) heredan esta declaración sin
+   * repetirla. Validado con el bug inyectado a propósito (ver informe de la
+   * tarea): comentando temporalmente `touch-action: manipulation;` en
+   * Button.tsx, este test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 13: declara touch-action: manipulation", () => {
+    renderWithProviders(<Button>Explorar</Button>);
+    const boton = screen.getByRole("button", { name: "Explorar" });
+    const reglas = allCssRules();
+    const clases = Array.from(boton.classList).filter((c) =>
+      reglas.some((r) => r.includes(c)),
+    );
+    const propias = reglas.filter((r) => clases.some((c) => r.includes(c)));
+
+    expect(propias.some((r) => r.includes("touch-action: manipulation"))).toBe(
+      true,
+    );
+  });
+
   it("acepta el ref como prop (React 19, sin forwardRef) y apunta al <button>", () => {
     const ref = createRef<HTMLButtonElement>();
     renderWithProviders(<Button ref={ref}>Con ref</Button>);

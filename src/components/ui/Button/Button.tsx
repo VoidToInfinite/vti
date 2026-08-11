@@ -72,6 +72,17 @@ const ScButton = styled.button<{
   font-size: ${({ theme }) => theme.data.type.scale.body.size};
   font-weight: 600;
   cursor: pointer;
+  /* Task 13, punto 2 del brief: elimina el retardo de ~300ms con el que
+     algunos navegadores móviles esperan un segundo toque (doble-tap para
+     zoom) antes de disparar click. Raíz de composición (IconButton ->
+     styled(Button), BackToTop/ThemeToggle -> styled(IconButton)): se
+     declara UNA vez aquí y viaja a todo lo que compone sobre Button, sin
+     repetirla en cada capa -- mismo criterio de "punto de menor
+     duplicación" que ya aplica PRESS.durationMs/PRESS.easing un poco más
+     abajo. No es una propiedad de movimiento (no anima, no le aplica la
+     regla de prefers-reduced-motion): decide qué gestos captura el propio
+     navegador, no qué transiciona el elemento. */
+  touch-action: manipulation;
   /* transform (compositor) + background-color (paint) — ambas permitidas por
      §9 revisada: la regla dura prohíbe propiedades de LAYOUT, no de paint. El
      tinte forma parte de la definición de hover-lift.

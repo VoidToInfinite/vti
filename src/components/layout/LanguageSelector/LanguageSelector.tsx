@@ -34,6 +34,8 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
   color: ${({ theme, $active }) =>
     $active ? theme.data.semantic.brand : theme.data.semantic.textSubtle};
   cursor: pointer;
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   /* Mismo patrón (propiedad, duración y curva) que sus dos hermanos con el
      mismo rol -- ScNavLink (Navbar.tsx) y ScFooterLink (Footer.tsx): los
      tres son enlaces/controles de texto que cambian de color en hover/foco,

@@ -70,3 +70,24 @@ describe("legalPage.parts: :active (Task 9, vocabulary.PRESS)", () => {
     expect(reduceBlock).toContain("transform: none");
   });
 });
+
+/*
+ * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado con
+ * el bug inyectado a propósito (ver informe de la tarea): comentando
+ * temporalmente `touch-action: manipulation;` de cada uno
+ * (legalPage.parts.tsx), el test correspondiente se pone en rojo;
+ * restaurado, vuelve a verde.
+ */
+describe("legalPage.parts: touch-action (Task 13, punto 2 del brief)", () => {
+  it("ScBackLink declara touch-action: manipulation", () => {
+    renderWithProviders(<ScBackLink href="/">Volver</ScBackLink>);
+    const enlace = screen.getByText("Volver");
+    expect(cssRuleTextFor(enlace)).toContain("touch-action: manipulation");
+  });
+
+  it("ScTocLink declara touch-action: manipulation", () => {
+    renderWithProviders(<ScTocLink href="#s1">Sección 1</ScTocLink>);
+    const enlace = screen.getByText("Sección 1");
+    expect(cssRuleTextFor(enlace)).toContain("touch-action: manipulation");
+  });
+});

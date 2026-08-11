@@ -781,6 +781,8 @@ const ScCardLink = styled.a`
   border-radius: ${({ theme }) => theme.data.radius.xl};
   padding: ${({ theme }) => theme.data.space[3]}
     ${({ theme }) => theme.data.space[4]};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   transition:
     border-color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},

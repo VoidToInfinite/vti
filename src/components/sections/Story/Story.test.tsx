@@ -411,6 +411,38 @@ describe("Story: tarjetas de pilar (tema claro, D2)", () => {
     expect(reduceBlock).toContain(":active");
   });
 
+  /*
+   * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado
+   * con el bug inyectado a propósito (ver informe de la tarea): comentando
+   * temporalmente `touch-action: manipulation;` de ScPillarCard en
+   * Story.tsx, este test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 13: ScPillarCard declara touch-action: manipulation", () => {
+    renderWithProviders(<Story />);
+    const title = screen.getByText(esHome.Home.story.pillars.learn.title);
+    const card = title.parentElement as HTMLElement; // ScPillarCard
+    const css = cssRuleTextFor(card);
+    expect(css).toContain("touch-action: manipulation");
+  });
+
+  /*
+   * Task 13, punto 2 del brief: communityLinkStyles (compartido por
+   * ScStatementLink/ScDeckNoteLink) declara touch-action, un único punto de
+   * declaración para las dos ramas. Validado con el bug inyectado a
+   * propósito (ver informe de la tarea): comentando temporalmente
+   * `touch-action: manipulation;` de communityLinkStyles en Story.tsx, este
+   * test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 13: el enlace de Discord del cierre (communityLinkStyles) declara touch-action: manipulation", () => {
+    const { container } = renderWithProviders(<Story />);
+    const statement = container.querySelector("#statement") as HTMLElement;
+    const link = within(statement).getByRole("link", {
+      name: `${esHome.Home.story.communityLink} ${esCommon.Common.Nav.newTab}`,
+    });
+    const css = cssRuleTextFor(link);
+    expect(css).toContain("touch-action: manipulation");
+  });
+
   it("D9: el escalonado de entrada de cada tarjeta anula transicion Y retardo bajo prefers-reduced-motion", () => {
     // Verificado con el bug quitado a proposito: sin el bloque
     // `@media (prefers-reduced-motion: reduce) { transition-delay: 0ms; }`

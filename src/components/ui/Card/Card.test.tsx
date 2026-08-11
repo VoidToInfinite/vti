@@ -252,5 +252,49 @@ describe("Card", () => {
       expect(texto).toContain(":active");
       expect(texto).toContain("transform: none");
     });
+
+    /*
+     * Task 13, punto 2 del brief: elimina el retardo de doble-tap SOLO en la
+     * rama interactiva -- una card plana no es pulsable, no tiene :active ni
+     * ningún otro feedback de PRESS. Validado con el bug inyectado a
+     * propósito (ver informe de la tarea): comentando temporalmente
+     * `touch-action: manipulation;` en Card.tsx (rama $interactive), este
+     * test se pone en rojo; restaurado, vuelve a verde.
+     */
+    it("declara touch-action: manipulation", () => {
+      renderWithProviders(
+        <Card
+          interactive
+          as="a"
+          href="#x"
+        >
+          Link
+        </Card>,
+      );
+      const link = screen.getByRole("link", { name: "Link" });
+      const reglas = reglasDe(link);
+
+      expect(reglas.some((r) => r.includes("touch-action: manipulation"))).toBe(
+        true,
+      );
+    });
+  });
+
+  /*
+   * Corolario del punto anterior: la card PLANA (interactive=false, el
+   * default) no declara touch-action -- confirma que la propiedad vive
+   * dentro de la rama $interactive de Card.tsx, no en la base compartida por
+   * las dos ramas.
+   */
+  it("la card NO interactiva no declara touch-action (no es pulsable)", () => {
+    renderWithProviders(<Card>Contenido plano</Card>);
+    const card = screen.getByText("Contenido plano");
+    const reglas = allCssRules();
+    const clases = Array.from(card.classList).filter((c) =>
+      reglas.some((r) => r.includes(c)),
+    );
+    const propias = reglas.filter((r) => clases.some((c) => r.includes(c)));
+
+    expect(propias.some((r) => r.includes("touch-action"))).toBe(false);
   });
 });

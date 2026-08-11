@@ -229,6 +229,31 @@ describe("IconButton", () => {
     });
   });
 
+  /*
+   * Task 13, punto 2 del brief: IconButton NO redeclara touch-action --lo
+   * hereda de ScButton por composición (`styled(Button)`, el mismo mecanismo
+   * de herencia que ya explota la sección de `reglasDe`, más arriba). Este
+   * test es el candado de esa herencia: si `touch-action: manipulation` se
+   * borrara de Button.tsx, IconButton se quedaría sin ella y este test se
+   * pondría en rojo, aunque IconButton.tsx no cambiara ni una línea.
+   * Validado con el bug inyectado a propósito (ver informe de la tarea):
+   * comentando temporalmente `touch-action: manipulation;` en Button.tsx,
+   * este test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 13: hereda touch-action: manipulation de ScButton (Button.tsx) por composición", () => {
+    renderWithProviders(
+      <IconButton
+        icon={<Icon />}
+        aria-label="Etiqueta"
+      />,
+    );
+    const boton = screen.getByRole("button", { name: "Etiqueta" });
+    const reglas = reglasDe(boton);
+    expect(reglas.some((r) => r.includes("touch-action: manipulation"))).toBe(
+      true,
+    );
+  });
+
   describe(":focus-visible propio (hallazgo 1, D7)", () => {
     afterEach(() => {
       window.localStorage.clear();

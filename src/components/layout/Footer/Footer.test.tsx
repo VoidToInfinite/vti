@@ -598,5 +598,24 @@ describe("Footer", () => {
       expect(reduceBlock).toContain("transition: none");
       expect(reduceBlock).toContain("transform: none");
     });
+
+    /*
+     * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Un único
+     * punto de declaración (footerLinkStyles) cubre ScFooterLink Y
+     * ScFooterNavLink. Validado con el bug inyectado a propósito (ver
+     * informe de la tarea): comentando temporalmente `touch-action:
+     * manipulation;` de footerLinkStyles en Footer.tsx, este test se pone en
+     * rojo; restaurado, vuelve a verde.
+     */
+    it("Task 13: declara touch-action: manipulation", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      renderWithProviders(<Footer />);
+      const enlace = screen.getByText(
+        esCommon.Common.Footer.privacy,
+      ) as HTMLElement;
+      const css = cssRuleTextFor(enlace);
+
+      expect(css).toContain("touch-action: manipulation");
+    });
   });
 });

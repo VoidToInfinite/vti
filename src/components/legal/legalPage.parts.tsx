@@ -38,6 +38,8 @@ export const ScBackLink = styled(Link)`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   margin-bottom: ${({ theme }) => theme.data.space[5]};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},
@@ -114,6 +116,8 @@ export const ScTocItem = styled.li`
 export const ScTocLink = styled.a`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.brandText};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},

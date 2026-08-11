@@ -47,6 +47,11 @@ const ScCard = styled.div<{ $interactive: boolean }>`
     css`
       display: block;
       cursor: pointer;
+      /* Task 13, punto 2 del brief: elimina el retardo de doble-tap del
+         navegador. Solo en la rama $interactive -- una card NO interactiva
+         no es pulsable, no tiene :active ni ningún otro feedback de PRESS
+         que este atributo tenga sentido de acompañar. */
+      touch-action: manipulation;
       /* transform migra a vocabulary.PRESS (Task 9, primera adopción real):
          es la MISMA entrada que gobierna el press de abajo -- CSS no admite
          dos duraciones distintas para la misma propiedad en una sola lista

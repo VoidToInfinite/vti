@@ -136,4 +136,18 @@ describe("NotFoundContent", () => {
     expect(reduceBlock).toContain("transition: none");
     expect(reduceBlock).toContain("transform: none");
   });
+
+  /*
+   * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado
+   * con el bug inyectado a propósito (ver informe de la tarea): comentando
+   * temporalmente `touch-action: manipulation;` de ScBackLink
+   * (NotFoundContent.tsx), este test se pone en rojo; restaurado, vuelve a
+   * verde.
+   */
+  it("Task 13: el enlace de vuelta declara touch-action: manipulation", () => {
+    renderWithProviders(<NotFoundContent />);
+    const enlace = screen.getByRole("link", { name: /volver al inicio/i });
+    const css = cssRuleTextFor(enlace);
+    expect(css).toContain("touch-action: manipulation");
+  });
 });

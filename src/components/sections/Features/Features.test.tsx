@@ -472,6 +472,21 @@ describe("D7: borde conico animado en hover, solo bajo prefers-reduced-motion: n
     );
     expect(reduceBlock).toContain(":active");
   });
+
+  /*
+   * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado
+   * con el bug inyectado a propósito (ver informe de la tarea): comentando
+   * temporalmente `touch-action: manipulation;` de ScCardBorder
+   * (Features.tsx), este test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 13: ScCardBorder declara touch-action: manipulation", () => {
+    const { container } = renderWithProviders(<Features />);
+    const card = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(card);
+    expect(css).toContain("touch-action: manipulation");
+  });
 });
 
 /*
@@ -1249,6 +1264,19 @@ describe("D7: :focus-visible propio del CTA de sección", () => {
     expect(css).toContain(`${PRESS.durationMs}ms`);
     expect(css).toContain(PRESS.easing);
     expect(css).not.toContain("150ms");
+  });
+
+  /*
+   * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado
+   * con el bug inyectado a propósito (ver informe de la tarea): comentando
+   * temporalmente `touch-action: manipulation;` de ScCta (Features.tsx),
+   * este test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 13: ScCta declara touch-action: manipulation", () => {
+    const { container } = renderWithProviders(<Features />);
+    const cta = container.querySelector('a[href="#contact"]') as HTMLElement;
+    const css = cssRuleTextFor(cta);
+    expect(css).toContain("touch-action: manipulation");
   });
 });
 

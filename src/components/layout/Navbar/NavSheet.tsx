@@ -368,8 +368,30 @@ const ScNavSheet = styled.div`
   max-height: ${NAV_SHEET_MAX_HEIGHT};
   overflow-y: auto;
   overscroll-behavior: contain;
+  /*
+   * Safe area (Task 13, punto 1 del brief): la hoja está anclada a
+   * left/right/bottom: 0 del VIEWPORT (docblock de arriba: por diseño, vive
+   * FUERA de ScHeader para que estos fixed se resuelvan contra la pantalla,
+   * no contra la barra), así que sus tres bordes físicos pueden caer bajo
+   * un recorte de hardware: el inferior es el que más importa en la
+   * práctica -- la barra de gestos/home-indicator de iOS se solapa justo
+   * con la fila de enlaces inferior sin este relleno --, y left/right
+   * cubren el notch lateral en landscape, igual que ScNav (Navbar.tsx).
+   * calc() en las tres, nunca la mera longitud del token: con insets a 0
+   * (escritorio, la inmensa mayoría de Android) los tres colapsan al valor
+   * de siempre -- layout idéntico al de antes de esta tarea. padding-top se
+   * queda en el token puro, sin env(): el borde superior de la hoja nunca
+   * toca un edge físico del dispositivo (nace por encima del contenido, no
+   * del viewport).
+   */
   padding: ${({ theme }) => theme.data.space[3]}
-    ${({ theme }) => theme.data.space[4]} ${({ theme }) => theme.data.space[6]};
+    calc(
+      ${({ theme }) => theme.data.space[4]} + env(safe-area-inset-right, 0px)
+    )
+    calc(
+      ${({ theme }) => theme.data.space[6]} + env(safe-area-inset-bottom, 0px)
+    )
+    calc(${({ theme }) => theme.data.space[4]} + env(safe-area-inset-left, 0px));
   border-top: ${({ theme }) => theme.data.glass.border};
   border-radius: ${({ theme }) => theme.data.radius.xl}
     ${({ theme }) => theme.data.radius.xl} 0 0;
@@ -472,6 +494,9 @@ const ScSheetRow = styled.a`
   border-radius: ${({ theme }) => theme.data.radius.md};
   font-size: ${({ theme }) => theme.data.type.scale.body.size};
   color: ${({ theme }) => theme.data.semantic.text};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap -- la fila
+     más directamente táctil del sitio, dentro de la hoja móvil. */
+  touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},

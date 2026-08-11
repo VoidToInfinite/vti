@@ -121,6 +121,19 @@ const ScHeader = styled.header`
   right: 0;
   z-index: ${({ theme }) => theme.data.zIndex.stickyNav};
   opacity: 1;
+  /* Safe area (Task 13, punto 1 del brief): esta barra está anclada a
+     top: 0 del VIEWPORT, no de un contenedor con margen propio -- con
+     viewport-fit=cover (app/layout.tsx) el documento se extiende bajo el
+     notch/dynamic island, así que sin este relleno la barra podría nacer
+     parcialmente tapada en un dispositivo con recorte físico arriba.
+     ADITIVO por construcción: no había padding-top declarado antes (el
+     alto real lo fija --nav-height en ScNav, más abajo), así que con
+     insets a 0 (escritorio, la inmensa mayoría de Android) el fallback de
+     env() deja este valor en 0px -- layout idéntico al de antes de esta
+     tarea. Con inset > 0 el alto total de la barra crece exactamente lo que
+     el hardware recorta, empujando el contenido hacia abajo -- el
+     comportamiento correcto para una barra fija a ese borde. */
+  padding-top: env(safe-area-inset-top, 0px);
   /* translateY(0) NO es decorativo y no se puede retirar aunque la animación
      ya escriba transform: position fixed + z-index distinto de auto ya
      aislaban esta barra, pero además hay código que depende explícitamente
@@ -357,6 +370,19 @@ const ScSurface = styled.div`
   }
 `;
 
+/*
+ * `padding` horizontal (Task 13, punto 1 del brief): `calc(token +
+ * env(safe-area-inset-*, 0px))`, no la mera longitud del token. Este es el
+ * nivel que aloja el contenido REAL de la barra (marca, enlaces, idioma,
+ * tema) -- a diferencia de `ScHeader`/`ScBar`/`ScSurface`, que siguen
+ * pintando cristal/borde edge-to-edge sin recorte, el contenido interactivo
+ * sí tiene que apartarse del notch en landscape (izquierda/derecha, donde
+ * cae el recorte físico al rotar). Left/right por separado porque un notch
+ * lateral en landscape solo recorta UN borde a la vez -- una única cifra de
+ * `padding-inline` no podría representar esa asimetría. Con insets a 0
+ * (escritorio, la inmensa mayoría de Android) los dos `calc()` colapsan al
+ * valor del token de siempre: layout idéntico al de antes de esta tarea.
+ */
 const ScNav = styled.nav`
   position: relative;
   display: flex;
@@ -366,10 +392,22 @@ const ScNav = styled.nav`
   /* La misma variable que descuenta el Hero (ver GlobalStyles): si la banda
      cambia de alto, las dos medidas cambian juntas. */
   height: var(--nav-height);
-  padding: 0 ${({ theme }) => theme.data.space[4]};
+  padding: 0
+    calc(
+      ${({ theme }) => theme.data.space[4]} + env(safe-area-inset-right, 0px)
+    )
+    0
+    calc(${({ theme }) => theme.data.space[4]} + env(safe-area-inset-left, 0px));
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding: 0 ${({ theme }) => theme.data.space[6]};
+    padding: 0
+      calc(
+        ${({ theme }) => theme.data.space[6]} + env(safe-area-inset-right, 0px)
+      )
+      0
+      calc(
+        ${({ theme }) => theme.data.space[6]} + env(safe-area-inset-left, 0px)
+      );
   }
 `;
 
@@ -492,6 +530,11 @@ const ScNavLink = styled.a`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 500;
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap.
+     ScNavPanelLink (más abajo, styled(ScNavLink)) lo hereda por
+     composición, sin declarar nada propio -- mismo criterio que ya
+     documenta el :active de este mismo componente. */
+  touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},
@@ -552,6 +595,8 @@ const ScNavTrigger = styled.button`
   font-weight: 500;
   color: ${({ theme }) => theme.data.semantic.textMuted};
   cursor: pointer;
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard},

@@ -80,3 +80,44 @@ describe("app/layout.tsx — anti-flash de tema (Task 9)", () => {
     );
   });
 });
+
+/*
+ * Task 13, punto 1 del brief: `viewport-fit=cover`, sin el cual
+ * `env(safe-area-inset-*)` resuelve siempre al fallback (ver el docblock del
+ * propio export en layout.tsx). Mismo motivo que los dos bloques de arriba
+ * para leer el FICHERO con `node:fs` en vez de importar/renderizar
+ * `RootLayout`: `next/font/google` revienta fuera de `next build`/`next
+ * dev`. El candado de que el meta TERMINA en el HTML exportado con ese
+ * valor -- el requisito literal del brief -- es un paso posterior a `pnpm
+ * build` (lee `out/index.html`), fuera del alcance de lo que Vitest puede
+ * verificar sin depender de un build previo.
+ */
+describe("app/layout.tsx — safe areas (Task 13)", () => {
+  it('el export viewport declara viewportFit: "cover"', async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const source = readFileSync(join(here, "layout.tsx"), "utf-8");
+
+    // Despoja los comentarios ANTES de buscar (mismo motivo que el bloque
+    // de data-scroll-behavior, arriba de este fichero): la propia línea que
+    // declara viewportFit vive detrás de un docblock que la CITA -- sin
+    // despojar, ese docblock ganaría la búsqueda por aparecer antes en el
+    // fichero. Además, sin este paso, comentar la línea con `// ` (en vez
+    // de borrarla) dejaría el candado en verde con la propiedad inactiva:
+    // el texto seguiría presente dentro del comentario.
+    const withoutComments = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    const viewportExport = withoutComments.match(
+      /export const viewport: Viewport = \{[\s\S]*?\n\};/,
+    );
+    expect(
+      viewportExport,
+      "no se encontró 'export const viewport: Viewport = {...}'",
+    ).not.toBeNull();
+    expect(viewportExport?.[0]).toContain('viewportFit: "cover"');
+  });
+});

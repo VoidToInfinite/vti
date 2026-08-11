@@ -76,12 +76,31 @@ export const metadata: Metadata = {
  *     rol semantico que lo consume)
  *   - oscuro: semanticDark.bg   (= color.secondary[1100]) → "#280739"
  *     (BG_FROM del degradado de esa misma imagen)
+ *
+ * `viewportFit: "cover"` (Task 13, punto 1 del brief): sin él, iOS Safari
+ * NUNCA rellena `env(safe-area-inset-*)` -- resuelve siempre al fallback de
+ * la función `env()`, sea cual sea el hardware. Verificado leyendo el motor
+ * (WebKit solo activa el layout "cover", que extiende el viewport bajo el
+ * notch/home-indicator y con ello da valor real a esos `env()`, cuando el
+ * meta viewport declara `viewport-fit=cover`; el valor por defecto es
+ * "auto", equivalente a "contain": el navegador ya evita el notch por su
+ * cuenta y `env()` se queda en 0 para siempre). Es la ÚNICA clave nueva de
+ * este objeto: `mergeViewport()` (`next/dist/lib/metadata/resolve-metadata.js`,
+ * confirmado leyendo la fuente en `node_modules`) parte de
+ * `createDefaultViewport()` (`width: "device-width", initialScale: 1`) y
+ * solo SUSTITUYE las claves presentes en el objeto exportado -- añadir
+ * `viewportFit` no toca `width`/`initialScale`, que siguen sin declararse
+ * aquí y siguen resolviendo al default de Next. Verificado además en el HTML
+ * exportado tras `pnpm build`: `<meta name="viewport" content="width=
+ * device-width, initial-scale=1, viewport-fit=cover">` -- ningún otro
+ * atributo cambia de valor.
  */
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#FAFAFA" },
     { media: "(prefers-color-scheme: dark)", color: "#280739" },
   ],
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
