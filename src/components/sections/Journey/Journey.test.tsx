@@ -388,15 +388,15 @@ describe("Journey en tema oscuro", () => {
   // por completo; despues (spec 2026-08-02-journey-deck-tipografia-design.md,
   // T5) para renombrar el rol de la pieza restante -- la diapositiva compone
   // etiqueta+SUBTITULO, ya no "cuerpo", con la etiqueta a escala de cartel;
-  // y ahora (Task 16, unificacion de contenido, 2026-08-11) para devolver el
-  // ORDINAL a esta rama, en linea propia y a escala pequena
-  // (ScJourneyStepOrdinal), no el numeral de cartel que se retiro. Motivo:
-  // paridad de contenido entre temas -- la rama clara siempre rotulo
-  // "0N · Etiqueta" y el orden de la unica secuencia real del sitio no puede
-  // existir en un tema y faltar en el otro. La clave de i18n sigue siendo
+  // y ahora (Task 16, 2026-08-11) para dejar constancia de que el ordinal
+  // VISIBLE sigue sin existir aqui: aquella tarea lo monto durante unas horas
+  // y el dueno lo retiro al confirmarse que la asimetria clara/oscura era su
+  // decision (D16 de la spec de las 8 diapositivas). Lo que si entro es el
+  // anuncio de posicion para lector de pantalla, con su propio describe mas
+  // abajo. La clave de i18n de la tercera pieza sigue siendo
   // `steps.<id>.body`. El reparto preciso por diapositiva se comprueba mas
   // abajo (test 4, D11).
-  it("sigue mostrando el titulo, los 6 pasos (ordinal+etiqueta+subtitulo) y la cita con el mismo i18n que en claro (sin kicker, Task 11)", async () => {
+  it("sigue mostrando el titulo, los 6 pasos (etiqueta+subtitulo, sin ordinal visible) y la cita con el mismo i18n que en claro (sin kicker, Task 11)", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -407,12 +407,12 @@ describe("Journey en tema oscuro", () => {
     JOURNEY_STEPS.forEach((step, index) => {
       const label = esHome.Home.journey.steps[step.id].label;
       const subtitle = esHome.Home.journey.steps[step.id].body;
-      // El ordinal ("01".."06") vuelve a esta rama con la Task 16: la
-      // asercion es POSITIVA y en nodo PROPIO (getByText exige un nodo cuyo
-      // texto completo sea el ordinal), no concatenado con la etiqueta como
-      // en la rama clara.
+      // El ordinal VISIBLE no existe en esta rama (D16, reconfirmado por el
+      // dueno el 2026-08-11): ni "01" suelto ni "01 · Descubre". Lo que SI
+      // existe es el anuncio para lector de pantalla, que se verifica en su
+      // propio describe mas abajo con las palabras completas.
       const number = String(index + 1).padStart(2, "0");
-      expect(screen.getByText(number)).toBeInTheDocument();
+      expect(screen.queryByText(number)).not.toBeInTheDocument();
       expect(screen.getByText(label)).toBeInTheDocument();
       expect(screen.getByText(subtitle)).toBeInTheDocument();
     });
@@ -586,7 +586,7 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     });
   });
 
-  it("cada diapositiva de paso compone icono, ordinal, etiqueta y subtitulo con el mismo i18n que la rama clara (test 4, D11/T5, Task 16)", async () => {
+  it("cada diapositiva de paso compone icono, etiqueta y subtitulo -- sin ordinal visible -- con el mismo i18n que la rama clara (test 4, D11/T5, Task 16)", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -611,46 +611,39 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
 
     // Diapositivas 1..JOURNEY_STEPS.length: un paso cada una. D11 componia
     // icono -> numero -> etiqueta -> cuerpo; el numero se retiro por
-    // completo (encargo explicito del usuario, 2026-08-02, solo esta rama);
+    // completo (encargo explicito del usuario, 2026-08-02, solo esta rama, y
+    // reconfirmado el 2026-08-11 cuando la Task 16 propuso devolverlo);
     // despues (T5, spec 2026-08-02-journey-deck-tipografia-design.md) esa
     // tercera pieza se renombro de ROL, de "cuerpo" a "subtitulo" (misma
-    // clave de i18n, `steps.<id>.body`, sin renombrar -- T5 no toca datos);
-    // y la Task 16 devuelve el ORDINAL, que hoy compone
-    // icono -> ordinal -> etiqueta -> subtitulo.
+    // clave de i18n, `steps.<id>.body`, sin renombrar -- T5 no toca datos).
+    // Hoy compone icono -> etiqueta -> subtitulo, con el anuncio de posicion
+    // para lector de pantalla por delante (sin caja: no aparece en la lista
+    // de <p> de abajo, y por eso esta lista sigue siendo de dos elementos).
     //
-    // Tres propiedades, y las tres importan:
-    // 1. el ordinal de ESTA diapositiva esta, en un nodo propio (getByText
-    //    exige texto completo: si volviera concatenado a la etiqueta, este
-    //    assert caeria);
-    // 2. el ORDEN de DOM es icono -> ordinal -> etiqueta -> subtitulo, que
-    //    es lo que lee un lector de pantalla -- un ordinal correcto pero
-    //    colocado detras del subtitulo diria otra cosa;
-    // 3. el formato "0N · Label" concatenado sigue siendo EXCLUSIVO de la
-    //    rama clara: el ordinal viaja, la tipografia de aquella composicion
-    //    no.
+    // Tres aserciones NEGATIVAS protegen la ausencia del numero VISIBLE: el
+    // ordinal exacto de este paso, cualquier texto con forma "0N" (por si un
+    // indice se colara en la diapositiva equivocada) y el formato
+    // "0N · Label" concatenado de la rama clara. Sin ellas el test seguiria
+    // en verde si alguien reintrodujera la numeracion.
     JOURNEY_STEPS.forEach((step, i) => {
       const slide = slides[i + 1];
       const number = String(i + 1).padStart(2, "0");
       const label = esHome.Home.journey.steps[step.id].label;
       const subtitle = esHome.Home.journey.steps[step.id].body;
       expect(slide.querySelector("svg")).toBeInTheDocument();
-      const ordinal = within(slide).getByText(number);
       const labelNode = within(slide).getByText(label);
       const subtitleNode = within(slide).getByText(subtitle);
-      expect(ordinal).toBeInTheDocument();
 
       const textos = Array.from(slide.querySelectorAll("p")).map((el) =>
         el.textContent?.trim(),
       );
-      expect(textos).toEqual([number, label, subtitle]);
-      expect(
-        ordinal.compareDocumentPosition(labelNode) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
+      expect(textos).toEqual([label, subtitle]);
       expect(
         labelNode.compareDocumentPosition(subtitleNode) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
+      expect(within(slide).queryByText(number)).not.toBeInTheDocument();
+      expect(within(slide).queryByText(/^0[1-6]$/)).not.toBeInTheDocument();
       expect(
         within(slide).queryByText(`${number} · ${label}`),
       ).not.toBeInTheDocument();
@@ -842,6 +835,86 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
  * descendiente oculto deja de tener `textContent` vacio; quitarlo lo
  * devuelve a verde.
  */
+/*
+ * Task 16, fix round (2026-08-11): la senal de POSICION de la rama oscura.
+ *
+ * El ordinal visible no vuelve -- es decision del dueno (D16 de la spec de
+ * las 8 diapositivas, reconfirmada). Lo que si entra es lo que faltaba de
+ * verdad: el rail de progreso es `aria-hidden`, asi que un lector de pantalla
+ * no tenia ninguna forma de saber por que paso de la secuencia iba. El texto
+ * se anuncia y no se ve.
+ *
+ * Se comprueban las tres propiedades que lo hacen util, no solo que exista:
+ * (1) esta en el DOM con PALABRAS ("Paso 3 de 6"), no un "03" suelto que
+ * leido en voz alta no dice nada; (2) va PRIMERO dentro de la diapositiva,
+ * antes de la etiqueta, para que la posicion se anuncie antes que el nombre;
+ * (3) el total sale de `JOURNEY_STEPS.length`, no de un literal.
+ */
+describe("Journey: senal de posicion para lector de pantalla (tema oscuro, Task 16)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("cada diapositiva de paso anuncia 'Paso N de <total>' con el total leido de JOURNEY_STEPS", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const slides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ) as HTMLElement[];
+
+    JOURNEY_STEPS.forEach((step, i) => {
+      const slide = slides[i + 1];
+      const esperado = esHome.Home.journey.stepPosition
+        .replace("{{current}}", String(i + 1))
+        .replace("{{total}}", String(JOURNEY_STEPS.length));
+      const anuncio = within(slide).getByText(esperado);
+      expect(anuncio).toBeInTheDocument();
+
+      // Primero en el DOM: antes de la etiqueta del paso.
+      const label = within(slide).getByText(
+        esHome.Home.journey.steps[step.id].label,
+      );
+      expect(
+        anuncio.compareDocumentPosition(label) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+  });
+
+  it("el anuncio NO ocupa caja: es un VisuallyHidden (1x1 recortado), no un texto visible mas", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const esperado = esHome.Home.journey.stepPosition
+      .replace("{{current}}", "1")
+      .replace("{{total}}", String(JOURNEY_STEPS.length));
+    const anuncio = screen.getByText(esperado);
+
+    // Por el CSS inyectado, no por getComputedStyle: styled-components no
+    // resuelve la clase de un átomo compartido a través de getComputedStyle
+    // de forma fiable en jsdom, y lo que hay que atar es la receta sr-only.
+    const css = cssRuleTextFor(anuncio);
+    expect(css).toContain("clip-path: inset(50%)");
+    expect(css).toContain("width: 1px");
+    expect(css).toContain("height: 1px");
+    // Y NO se oculta del arbol de accesibilidad: eso lo dejaria mudo, que es
+    // justo lo contrario de para lo que existe.
+    expect(anuncio).not.toHaveAttribute("aria-hidden");
+    expect(anuncio.closest('[aria-hidden="true"]')).toBeNull();
+  });
+});
+
 describe("Journey: candado SR del deck -- orden de DOM y ausencia de aria-hidden sobre el texto (Task 6)", () => {
   beforeEach(() => {
     stubMatchMedia();

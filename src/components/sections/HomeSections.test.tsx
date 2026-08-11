@@ -183,18 +183,24 @@ describe("HomeSections", () => {
    * Task 16 (unificacion parte 2, 2026-08-11): el mismo candado de paridad,
    * ahora sobre Journey y Contacto. Dos mitades distintas:
    *
-   * - TEXTO: los seis ordinales de Journey ("01".."06", que hasta hoy solo
-   *   existian en la rama clara) y toda la copia del bloque de contacto.
+   * - TEXTO: los seis pasos de Journey y toda la copia del bloque de
+   *   contacto. Los ORDINALES ("01".."06") NO entran en esta lista: son
+   *   visibles solo en la rama clara por decision del dueno (D16 de la spec
+   *   de las 8 diapositivas, reconfirmada el 2026-08-11) y la oscura da su
+   *   senal de posicion con texto para lector de pantalla, que se verifica
+   *   en Journey.test.tsx. Lo que ESTE fichero protege es que ninguna rama
+   *   se quede sin la senal, cada una en su forma.
    * - SALIDAS Y CONTROLES: que en las DOS ramas haya un `<form>` con un
    *   campo de correo real y enlaces a Discord y GitHub. Esta mitad es la
    *   que de verdad cierra el hallazgo #1 de la critica del 2026-08-11 --
    *   la rama clara tenia el texto "correo" por todas partes y ni un solo
    *   control con el que escribirlo.
    */
-  it("Task 16: los ordinales de Journey y el formulario + salidas de Contacto existen en los DOS temas", async () => {
-    const ordinales = ["01", "02", "03", "04", "05", "06"];
+  it("Task 16: los pasos de Journey, la senal de posicion y el formulario + salidas de Contacto existen en los DOS temas", async () => {
+    const posicionOscura = esHome.Home.journey.stepPosition
+      .replace("{{current}}", "1")
+      .replace("{{total}}", "6");
     const textos = [
-      ...ordinales,
       esHome.Home.journey.steps.discover.label,
       esHome.Home.journey.steps.evolve.label,
       esHome.Home.contact.form.label,
@@ -227,6 +233,12 @@ describe("HomeSections", () => {
 
     const claro = renderWithProviders(<HomeSections />);
     comprobar(claro.container, "CLARO");
+    // Senal de posicion en claro: el ordinal VISIBLE pegado a la etiqueta,
+    // verbatim del mockup aprobado.
+    expect(claro.container.textContent).toContain(
+      `01 · ${esHome.Home.journey.steps.discover.label}`,
+    );
+    expect(claro.container.textContent).not.toContain(posicionOscura);
     claro.unmount();
 
     window.localStorage.setItem("vti-theme", "dark");
@@ -237,6 +249,12 @@ describe("HomeSections", () => {
         "el arbol oscuro no llego a montarse",
       ).toBeGreaterThan(0);
       comprobar(oscuro.container, "OSCURO");
+      // Senal de posicion en oscuro: las mismas palabras, solo para lector
+      // de pantalla, y sin ningun ordinal visible.
+      expect(oscuro.container.textContent).toContain(posicionOscura);
+      expect(oscuro.container.textContent).not.toContain(
+        `01 · ${esHome.Home.journey.steps.discover.label}`,
+      );
     });
   });
 });
