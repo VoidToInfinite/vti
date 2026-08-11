@@ -22,11 +22,7 @@ import {
   FEATURES_ORBITAL_VOID,
 } from "@/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers";
 import { themes } from "@/theme/themes";
-import {
-  parseOklch,
-  contrastRatio,
-  contrastRatioHex,
-} from "@/theme/tokens/contrast";
+import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 
@@ -152,18 +148,32 @@ describe("Features", () => {
     expect(screen.getByText(esHome.Home.features.intro)).toBeInTheDocument();
   });
 
-  // Task 11 (dieta de ornamento A, 2026-08-09): la rama CLARA retira el
-  // eyebrow (barra + kicker) -- la cabecera abre directamente con el h2. El
-  // texto del kicker (`Home.features.kicker`) sigue existiendo en i18n
-  // porque la rama OSCURA lo sigue consumiendo como SU h2 (ver el bloque
-  // "Features en tema oscuro" más abajo); aquí solo se comprueba que en
-  // claro NO aparece. Verificado con el bug inyectado (ver informe de la
-  // tarea): reintroduciendo el `<ScEyebrow>` en la rama clara este assert
-  // se pone en rojo.
-  it("ya NO muestra el eyebrow/kicker en la rama clara: la cabecera abre con el h2", () => {
+  /*
+   * Historia de este test, porque asevera lo CONTRARIO de lo que aseveraba
+   * hace dos dias y eso no es un descuido. La Task 11 (dieta de ornamento A,
+   * 2026-08-09) retiro de la rama clara el eyebrow (barra decorativa +
+   * kicker) y este test candaba su AUSENCIA: aquel kicker era generico
+   * ("Caracteristicas"/"Features"), el andamiaje mas repetido del sitio.
+   *
+   * La Task 15 (2026-08-11) devuelve un kicker a la cabecera por decision
+   * D-E del dueno, y no es el mismo objeto: es un kicker con VOZ ("¿Por
+   * donde empiezas?", la pregunta que las tres tarjetas responden), sin la
+   * barra decorativa, y se muestra en las DOS ramas -- es una de las piezas
+   * que la unificacion de contenido tenia que igualar, porque hasta hoy el
+   * kicker existia solo en oscuro y ademas ascendido a h2. Lo que el candado
+   * protege ahora es eso: kicker presente, `overline` (11px, NO el h5 al que
+   * la rama oscura lo habia subido) y, sobre todo, que NO sea un encabezado.
+   */
+  it("Task 15/D-E: la cabecera clara abre con el kicker con voz, en overline y sin ser encabezado", () => {
     renderWithProviders(<Features />);
+    const kicker = screen.getByText(esHome.Home.features.kicker);
+    expect(kicker).toBeInTheDocument();
+    expect(kicker.tagName).not.toMatch(/^H[1-6]$/);
+    expect(getComputedStyle(kicker).fontSize).toBe(
+      themes.light.type.scale.overline.size,
+    );
     expect(
-      screen.queryByText(esHome.Home.features.kicker),
+      screen.queryByRole("heading", { name: esHome.Home.features.kicker }),
     ).not.toBeInTheDocument();
   });
 
@@ -233,13 +243,14 @@ describe("Features", () => {
     expect(items[0]).toHaveAttribute("data-revealed", "true");
   });
 
-  // Task 11 (2026-08-09): cinco elementos, no seis -- el eyebrow (y su
-  // propio retardo, antes 0ms) se retiró; los cinco restantes conservan el
-  // mismo timing verbatim que ya tenían (ver el docblock de
-  // FEATURES_LIGHT_REVEAL_DELAYS_MS, features.layers.ts).
-  it("D9: escalona el transition-delay de los cinco elementos (h2, intro, 3 tarjetas) segun los retardos verbatim del mockup", () => {
+  // Task 15 (2026-08-11): seis elementos otra vez -- el kicker con voz de la
+  // decision D-E recupera la primera posicion (y su retardo de 0ms) que el
+  // eyebrow generico habia dejado libre en la Task 11, sin renumerar los
+  // cinco de despues (ver el docblock de FEATURES_LIGHT_REVEAL_DELAYS_MS,
+  // features.layers.ts).
+  it("D9: escalona el transition-delay de los seis elementos (kicker, h2, intro, 3 tarjetas) segun los retardos verbatim del mockup", () => {
     const { container } = renderWithProviders(<Features />);
-    expect(FEATURES_LIGHT_REVEAL_DELAYS_MS).toHaveLength(5);
+    expect(FEATURES_LIGHT_REVEAL_DELAYS_MS).toHaveLength(6);
     FEATURES_LIGHT_REVEAL_DELAYS_MS.forEach((delayMs) => {
       const el = container.querySelector(
         `[data-reveal-delay="${delayMs}"]`,
@@ -299,20 +310,20 @@ describe("Features", () => {
 
 /*
  * D6/D7/D8 (spec `2026-08-06-story-features-tema-claro-design.md`):
- * estructura nueva de las tres tarjetas -- badge numérico + etiqueta, panel
- * de imagen con círculo decorativo, título/cuerpo/bullets/CTA (estos tres
- * últimos ya existían y se cubren en los tests generales de arriba).
+ * estructura de las tres tarjetas -- panel de imagen con círculo decorativo,
+ * título/cuerpo/bullets/CTA (estos tres últimos ya se cubren en los tests
+ * generales de arriba).
+ *
+ * Task 15 (numeración honesta, 2026-08-11): el badge numérico 01/02/03 y su
+ * etiqueta salieron de la tarjeta -- ver el bloque que los sustituye en
+ * `Features.tsx` para los dos motivos (numerar tres identidades simultáneas
+ * promete una secuencia que no existe; la etiqueta repetía el título de la
+ * propia tarjeta). Los dos tests que los candaban desaparecen con ellos y en
+ * su lugar queda el candado inverso, más abajo: que NO vuelvan.
  */
 describe("D6/D7/D8: estructura nueva de las tres tarjetas de la rama clara", () => {
-  it("cada tarjeta monta su badge (numero decorativo 01/02/03 + etiqueta de i18n) y su panel de imagen (figura + circulo decorativo aria-hidden)", () => {
+  it("cada tarjeta monta su panel de imagen (figura + circulo decorativo aria-hidden)", () => {
     const { container } = renderWithProviders(<Features />);
-
-    FEATURE_KEYS.forEach((key, index) => {
-      const number = String(index + 1).padStart(2, "0");
-      const badgeLabel = esHome.Home.features[key].badge;
-      expect(screen.getByText(number)).toBeInTheDocument();
-      expect(screen.getByText(badgeLabel)).toBeInTheDocument();
-    });
 
     // Panel de imagen: una figura por tarjeta (ya cubierto en detalle por
     // "cada figura trae alt de i18n..." arriba) mas un circulo decorativo
@@ -322,10 +333,10 @@ describe("D6/D7/D8: estructura nueva de las tres tarjetas de la rama clara", () 
     expect(images).toHaveLength(FEATURE_KEYS.length);
   });
 
-  it("los numeros 01/02/03 del badge son aria-hidden (decorativos, D6/D10): el orden ya lo comunica el DOM", () => {
+  it("Task 15: la numeracion decorativa 01/02/03 ya no se pinta en ninguna tarjeta", () => {
     renderWithProviders(<Features />);
     ["01", "02", "03"].forEach((number) => {
-      expect(screen.getByText(number)).toHaveAttribute("aria-hidden", "true");
+      expect(screen.queryByText(number)).not.toBeInTheDocument();
     });
   });
 
@@ -493,50 +504,23 @@ describe("D7: borde conico animado en hover, solo bajo prefers-reduced-motion: n
  * Contraste AA (spec §3, "el contrato de accesibilidad"): texto de la
  * tarjeta sobre `semantic.surface` (ya cubierto de forma genérica por
  * `theme/tokens/contrast.test.ts`, se repite aquí acotado a los roles
- * concretos que usa ESTE componente) y color del badge sobre su fondo
- * `color-mix` (sin cobertura previa -- jsdom no resuelve `color-mix()`, así
- * que la mezcla se calcula a mano, ver `mixOklab` más abajo, siguiendo el
- * patrón de `contrast.test.ts`/`legalPage.contrast.test.ts`: reutiliza
- * `parseOklch`/`contrastRatio` de `@/theme/tokens/contrast` para la
- * conversión OKLCH→sRGB→luminancia -- no se reimplementa esa parte, solo la
- * aritmética de mezcla que `contrast.ts` no expone).
+ * concretos que usa ESTE componente).
+ *
+ * Task 15 (2026-08-11): AQUÍ VIVÍA el candado del número del badge sobre su
+ * fondo `color-mix(in oklab, accentColor 12%, surface)`, con su propio
+ * `mixOklab` (jsdom no resuelve `color-mix()`, así que la mezcla se calculaba
+ * a mano). Se va con el badge -- un candado sobre un elemento que ya no se
+ * renderiza no protege nada, solo parece cobertura. El helper `mixOklab` era
+ * suyo en exclusiva y se va con él; las cifras medidas quedan en la historia
+ * de `RULES.md` (deuda cerrada por la Task 26) por si el badge volviera.
+ * La etiqueta del badge era además el único consumidor de `semantic.textSubtle`
+ * en esta sección, así que ese tercer assert también se retira: seguía en
+ * verde por aritmética pura, sin ningún elemento detrás.
  */
 describe("contraste AA de las tarjetas de Features (rama clara)", () => {
   const AA_TEXTO_NORMAL = 4.5;
 
-  /**
-   * Mezcla dos colores oklch() en espacio OKLab, replicando
-   * `color-mix(in oklab, fg P%, bg)`. En OKLab, L/a/b son coordenadas
-   * cartesianas -- `a = C·cos(H)`, `b = C·sin(H)` (H en radianes) --, así
-   * que la interpolación lineal en OKLab es una media ponderada directa de
-   * (L, a, b): `mix = t·fg + (1-t)·bg`, con `t = P/100`. El resultado se
-   * reconvierte a `oklch(L C H)` (`C = √(a²+b²)`, `H = atan2(b,a)`) para
-   * poder pasarlo a `contrastRatio`, que solo acepta strings `oklch()`.
-   */
-  function mixOklab(
-    fgOklch: string,
-    fgPercent: number,
-    bgOklch: string,
-  ): string {
-    const fg = parseOklch(fgOklch);
-    const bg = parseOklch(bgOklch);
-    const toAB = (c: { c: number; h: number }): [number, number] => {
-      const rad = (c.h * Math.PI) / 180;
-      return [c.c * Math.cos(rad), c.c * Math.sin(rad)];
-    };
-    const [aFg, bFg] = toAB(fg);
-    const [aBg, bBg] = toAB(bg);
-    const t = fgPercent / 100;
-    const l = t * fg.l + (1 - t) * bg.l;
-    const a = t * aFg + (1 - t) * aBg;
-    const b = t * bFg + (1 - t) * bBg;
-    const c = Math.sqrt(a * a + b * b);
-    let h = (Math.atan2(b, a) * 180) / Math.PI;
-    if (h < 0) h += 360;
-    return `oklch(${l} ${c} ${h})`;
-  }
-
-  it("titulo (semantic.text), cuerpo/bullets (semantic.textMuted) y etiqueta del badge (semantic.textSubtle) cumplen AA sobre semantic.surface", () => {
+  it("titulo (semantic.text) y cuerpo/bullets/intro (semantic.textMuted) cumplen AA sobre semantic.surface", () => {
     const { semantic } = themes.light;
     expect(
       contrastRatio(semantic.text, semantic.surface),
@@ -544,46 +528,56 @@ describe("contraste AA de las tarjetas de Features (rama clara)", () => {
     expect(
       contrastRatio(semantic.textMuted, semantic.surface),
     ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
-    expect(
-      contrastRatio(semantic.textSubtle, semantic.surface),
-    ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
   });
 
-  /*
-   * El número del badge usa `accentColorHover`, no `accentColor` -- ver el
-   * docblock de `accentColorHover` en `Features.tsx`. `ScBadge` SOLO se
-   * renderiza en la rama clara, así que ambas funciones resuelven aquí su
-   * rama clara.
-   *
-   * Medido tras la Task 26 (2026-08-10, "CTA de Features con AA en las seis
-   * combinaciones" -- resolución por rama de `accentColor`/`accentColorHover`,
-   * ver `Features.tsx`): `accentColor` sobre el `color-mix` de este mismo
-   * badge da 4.31:1/4.98:1/4.52:1 según la tarjeta -- "learning" sigue por
-   * debajo de AA y "gaming" raspa el umbral --, mientras que
-   * `accentColorHover` da 4.96:1/5.58:1/5.60:1, que sí cumple con margen en
-   * las tres. MEJORARON con la Task 26: antes de esa tarea (`accentColor`
-   * compartía el paso 600 entre ramas, `accentColorHover` el 700)
-   * `accentColorHover` daba 4.52:1/5.21:1/4.66:1 -- el margen de "learning"
-   * (antes 4.52:1, ahora 4.96:1) era el más ajustado de los tres y sigue
-   * siéndolo, pero con más aire. `accentColor` solo (sin la Task 26) daba
-   * 2.69:1/3.08:1/3.46:1, muy por debajo de AA en las tres -- la mejora del
-   * paso de reposo en claro (un paso más oscuro, ver `accentColor`) acerca
-   * también el fondo del badge a AA por sí solo, aunque sigue siendo
-   * `accentColorHover` quien de verdad lo garantiza.
-   */
-  it.each(FEATURE_KEYS)(
-    "tarjeta %s: el numero del badge (accentColorHover) sobre su fondo color-mix(accentColor 12%%, surface) cumple AA",
-    (key) => {
-      const light = themes.light;
-      const text = accentColorHover(light, key);
-      const bg = mixOklab(accentColor(light, key), 12, light.semantic.surface);
-      const ratio = contrastRatio(text, bg);
-      expect(
-        ratio,
-        `contraste ${ratio.toFixed(2)}:1, por debajo de AA (${AA_TEXTO_NORMAL}:1)`,
-      ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
-    },
-  );
+  // Medido subiendo el umbral a 21:1 a proposito y leyendo el mensaje del
+  // fallo (asi se comprueba que el numero es real y no una tautologia):
+  // 5.84:1.
+  it("Task 15: el kicker (semantic.brandText) cumple AA sobre semantic.surface, el fondo REAL de la rama clara", () => {
+    const { semantic } = themes.light;
+    const ratio = contrastRatio(semantic.brandText, semantic.surface);
+    expect(
+      ratio,
+      `contraste ${ratio.toFixed(2)}:1, por debajo de AA (${AA_TEXTO_NORMAL}:1)`,
+    ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
+  });
+});
+
+/*
+ * Contraste AA de la cabecera OSCURA nueva (Task 15). La unificación de
+ * CONTENIDO no unifica FONDOS: aquí el texto no cae sobre `semantic.surface`
+ * sino sobre la escena `FeaturesCelestialOrbital`, así que se mide contra
+ * `FEATURES_ORBITAL_VOID` -- el mismo suelo medible por código que ya usa el
+ * candado de `ScSpanGaming` (Task 12, más abajo), y por el mismo motivo:
+ * jsdom no compone las capas WebP reales, de modo que esto acota el peor caso
+ * de fondo plano, no el píxel final compuesto (ese se mide en navegador, ver
+ * el informe de la tarea).
+ *
+ * Se miden los TRES roles que la cabecera nueva estrena en oscuro y que hasta
+ * hoy no tenían ningún candado sobre este fondo: `brandText` (kicker), `text`
+ * (h2) y `textMuted` (párrafo de entrada; ya lo usaba `ScDarkBody`, que
+ * tampoco estaba medido contra el void).
+ *
+ * Medido subiendo el umbral a 21:1 a propósito y leyendo los tres mensajes de
+ * fallo (así se comprueba que las cifras son reales y no una tautología):
+ * kicker 12.31:1, h2 17.97:1, intro 12.25:1. Los tres muy por encima de AA;
+ * el más ajustado de esta sección sigue siendo el acento de Gaming (4.71:1,
+ * describe "Task 12", más abajo).
+ */
+describe("Task 15: contraste AA de la cabecera oscura sobre el void de la escena", () => {
+  const AA_TEXTO_NORMAL = 4.5;
+
+  it.each([
+    ["kicker (brandText)", themes.dark.semantic.brandText],
+    ["h2 (text)", themes.dark.semantic.text],
+    ["intro (textMuted)", themes.dark.semantic.textMuted],
+  ])("%s sobre FEATURES_ORBITAL_VOID >= 4.5:1", (_rol, color) => {
+    const ratio = contrastRatioHex(color, FEATURES_ORBITAL_VOID);
+    expect(
+      ratio,
+      `contraste ${ratio.toFixed(2)}:1, por debajo de AA (${AA_TEXTO_NORMAL}:1)`,
+    ).toBeGreaterThanOrEqual(AA_TEXTO_NORMAL);
+  });
 });
 
 /*
@@ -792,7 +786,7 @@ describe("Features en tema oscuro", () => {
       .forEach((img) => expect(img).toHaveAttribute("alt", ""));
   });
 
-  it("sigue mostrando el kicker (ahora el propio h2), los 3 titulos, los 12 bullets y los 3 CTA con el mismo i18n que en claro", async () => {
+  it("sigue mostrando el kicker, los 3 titulos, los 12 bullets y los 3 CTA con el mismo i18n que en claro", async () => {
     renderWithProviders(<Features />);
     await waitFor(() => {
       expect(screen.getByText(esHome.Home.features.kicker)).toBeInTheDocument();
@@ -813,38 +807,73 @@ describe("Features en tema oscuro", () => {
   });
 
   /*
-   * Task 11 (dieta de ornamento A, 2026-08-09): caso especial de Features
-   * oscuro -- su kicker ES el h2 real (`forwardedAs="h2"`, `aria-labelledby`
-   * de la sección apunta a su id). No se retira, pero sube de la variante
-   * `overline` (11px) a `h5` (18px) para dejar de ser más pequeño que su
-   * propio cuerpo (`ScDarkBody`, variante `bodySm`, 14px) -- cierra la deuda
-   * ALTA de DESIGN.md §9 ("el único encabezado es un overline de 11px").
-   * Verificado con el bug inyectado (ver informe de la tarea): devolviendo
-   * `variant="overline"` en `Features.tsx` este test se pone en rojo (el
-   * font-size vuelve a `type.scale.overline.size`).
+   * ESPEJO EXACTO del test de la cabecera clara (describe "Features", arriba:
+   * "D6: la cabecera clara monta el h2 nuevo…" + "…el parrafo de entrada" +
+   * "Task 15/D-E: …el kicker con voz…"). Que los dos aseveren lo MISMO con
+   * las MISMAS claves es el candado de la decision D-C: mismo contenido en
+   * las dos ramas.
+   *
+   * Lo que este test SUSTITUYE: hasta la Task 15, la rama oscura no tenia h2
+   * propio -- el `<h2>` era el KICKER (`forwardedAs="h2"`), y la Task 11
+   * (dieta de ornamento A, 2026-08-09) lo habia subido de `overline` (11px) a
+   * `h5` (18px) precisamente para que el unico encabezado de la seccion no
+   * fuera mas pequeno que su propio cuerpo (deuda ALTA de DESIGN.md §9). Esa
+   * deuda se cierra ahora por la via de fondo, no por compensacion: la
+   * seccion tiene un h2 de verdad (`ScDarkTitle`, la tesis "Tres formas de
+   * seguir avanzando.") y el kicker vuelve a ser un kicker `overline`.
    */
-  it("D9/DESIGN.md §9: el h2 de Features oscuro es un heading de verdad y su font-size es el de h5 (18px), no el de overline (11px)", async () => {
+  it("Task 15/D-C: la cabecera oscura monta la MISMA terna que la clara -- kicker con voz + h2 con la tesis (id=features-title) + parrafo de entrada", async () => {
     renderWithProviders(<Features />);
     await waitFor(() => {
       expect(screen.getByText(esHome.Home.features.kicker)).toBeInTheDocument();
     });
 
+    // El h2 es la TESIS, no el kicker.
     const heading = screen.getByRole("heading", {
       level: 2,
-      name: esHome.Home.features.kicker,
+      name: esHome.Home.features.title,
     });
     expect(heading).toHaveAttribute("id", "features-title");
-    expect(getComputedStyle(heading).fontSize).toBe(
-      themes.dark.type.scale.h5.size,
-    );
-    expect(getComputedStyle(heading).fontSize).not.toBe(
+
+    // El kicker NO es un encabezado, y vuelve a su tamano de kicker.
+    const kicker = screen.getByText(esHome.Home.features.kicker);
+    expect(kicker.tagName).not.toMatch(/^H[1-6]$/);
+    expect(getComputedStyle(kicker).fontSize).toBe(
       themes.dark.type.scale.overline.size,
     );
 
+    // El parrafo de entrada, que hasta hoy solo existia en claro.
+    expect(screen.getByText(esHome.Home.features.intro)).toBeInTheDocument();
+
+    // La region toma su nombre del h2 real, igual que en claro.
     const region = screen.getByRole("region", {
-      name: esHome.Home.features.kicker,
+      name: esHome.Home.features.title,
     });
     expect(region).toHaveAttribute("id", "features");
+  });
+
+  /*
+   * El clamp del h2 oscuro, por texto del CSS inyectado (misma tecnica y
+   * mismo motivo que el resto de palancas fluidas de esta rama, describe "D4"
+   * mas abajo): la restriccion es "contenido + relleno <= ALTO del viewport",
+   * asi que el termino fluido lleva `dvh` -- regla 24 de RULES.md. Sin este
+   * candado, alguien podria "arreglar" el desbordamiento del contenido nuevo
+   * escribiendo el clamp en `vw`, que es el defecto ya medido y documentado
+   * en `ScDarkFrame`.
+   */
+  it("Task 15: el h2 oscuro escala con un clamp cuyo termino fluido mide el ALTO (dvh), no solo el ancho", async () => {
+    renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(screen.getByText(esHome.Home.features.title)).toBeInTheDocument();
+    });
+    const heading = screen.getByRole("heading", {
+      level: 2,
+      name: esHome.Home.features.title,
+    });
+    const css = cssRuleTextFor(heading);
+    expect(css).toMatch(/font-size:\s*clamp\(/);
+    expect(css).toContain("dvh");
+    expect(css).toContain(themes.dark.type.scale.h2.size);
   });
 
   it("no queda ninguna imagen con alt de i18n (las figuras por tarjeta son cosa de la rama clara)", async () => {

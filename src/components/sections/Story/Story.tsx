@@ -761,12 +761,15 @@ const ScPillarCard = styled.div`
   }
 `;
 
-const ScCardTopRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${({ theme }) => theme.data.space[3]};
-`;
+/*
+ * AQUI VIVIO `ScCardTopRow`, la fila superior de la tarjeta de pilar (badge
+ * numerico + etiqueta "Paso"). Se retira en la Task 15 junto con
+ * `ScCardStepLabel`: sin la etiqueta le queda un solo hijo y un
+ * `justify-content: space-between` que ya no reparte nada. El badge cuelga
+ * ahora directamente de `ScPillarCard` (flex column), que lo alinea al
+ * comienzo sin estirarlo -- `ScCardBadge` declara su propio ancho/alto y
+ * `flex: none`.
+ */
 
 /**
  * Acento del BADGE, distinto del de `pillarColor` y por un motivo medido, no
@@ -843,9 +846,13 @@ const ScCardBadge = styled.span<{ $index: number }>`
   color: ${({ theme, $index }) => pillarBadgeColor($index)({ theme })};
 `;
 
-const ScCardStepLabel = styled(Typography)`
-  color: ${({ theme }) => theme.data.semantic.textSubtle};
-`;
+/*
+ * AQUI VIVIO `ScCardStepLabel` (la etiqueta "Paso"/"Step" en versalitas,
+ * `semantic.textSubtle`). Retirada en la Task 15 -- ver el comentario del
+ * badge en `StoryLight`, mas abajo, para el porque: los pilares no son pasos.
+ * La clave i18n `Home.story.stepLabel` se retira en el mismo commit, en es Y
+ * en en, y `locales.test.ts` la cuida para que no reaparezca.
+ */
 
 const ScCardTitle = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[5]};
@@ -1244,20 +1251,24 @@ function StoryLight(): ReactElement {
       {PILLARS.map((pillar, index) => (
         <ScPillarCardItem key={pillar.key}>
           <ScPillarCard>
-            <ScCardTopRow>
-              {/* Decorativo (D10): el orden ya lo da el DOM: un lector de
-                  pantalla que anuncie "cero uno" antes del titulo anade
-                  ruido sin informacion. */}
-              <ScCardBadge
-                $index={index}
-                aria-hidden="true"
-              >
-                {pillar.number}
-              </ScCardBadge>
-              <ScCardStepLabel variant="overline">
-                {t("Home.story.stepLabel")}
-              </ScCardStepLabel>
-            </ScCardTopRow>
+            {/* Decorativo (D10): el orden ya lo da el DOM: un lector de
+                pantalla que anuncie "cero uno" antes del titulo anade
+                ruido sin informacion.
+
+                Task 15 (numeracion honesta, 2026-08-11): la etiqueta "Paso"
+                que acompanaba a este numero se retira. Los cuatro pilares no
+                son pasos -- son cuatro maneras simultaneas de mirar lo mismo,
+                y llamarlas "Paso 01..04" prometia una secuencia que no
+                existe. La secuencia REAL del sitio es la de Journey, que si
+                conserva su numeracion. Con la etiqueta fuera, el envoltorio
+                `ScCardTopRow` (una fila flex con `space-between` para dos
+                hijos) se queda sin funcion y se va con ella. */}
+            <ScCardBadge
+              $index={index}
+              aria-hidden="true"
+            >
+              {pillar.number}
+            </ScCardBadge>
             {/* forwardedAs="p", NO as="p" (gotcha documentado en
                 Typography.tsx/Hero.tsx:358 -- con `as` en un
                 `styled(Typography)` el wrapper consume el prop, renderiza un
@@ -1522,6 +1533,17 @@ function StoryDeckDark(): ReactElement {
                 data-state={slideState(pillarIndex + 1)}
               >
                 <ScDeckPillarRow>
+                  {/* Task 15: este numero SE ANUNCIA, a diferencia del de la
+                      tarjeta clara (`aria-hidden`, D10). Se evaluo igualarlo
+                      y se decidio NO hacerlo: el candado SR de este deck
+                      (`Story.test.tsx`, "ninguna diapositiva ... lleva
+                      aria-hidden") prohibe a proposito que un `aria-hidden`
+                      envuelva TEXTO dentro de una diapositiva, y relajar esa
+                      invariante -- que protege las 6 diapositivas enteras --
+                      para ocultar un numero decorativo seria un mal cambio.
+                      Queda declarado en el informe de la tarea: los dos temas
+                      PINTAN el mismo numero; lo que difiere es si un lector
+                      de pantalla lo oye. */}
                   <ScPillarNumber $index={pillarIndex}>
                     {pillar.number}
                   </ScPillarNumber>
@@ -1542,20 +1564,53 @@ function StoryDeckDark(): ReactElement {
                 </ScDeckPillarRow>
               </ScSlide>
             ))}
+            {/* Cierre de Story, unificado con la rama clara (Task 15, D-C,
+                2026-08-11) en las dos cosas que las auditorias senalaban como
+                "dos productos distintos bajo la misma URL":
+
+                1. El TEXTO. Hasta aqui esta diapositiva consumia
+                   `Home.story.noteLead`/`noteAccent` (T3 de la spec
+                   2026-07-31), claves EXCLUSIVAS de esta rama que decian la
+                   MISMA frase que `Home.story.statement.*` de la rama clara
+                   con otra particion y un punto final ("Cada idea puede ser
+                   un | nuevo comienzo." frente a "Cada idea | puede ser | un
+                   nuevo comienzo"). Dos juegos de claves para una sola frase
+                   es justo lo que un solo arbol de contenido no admite: gana
+                   el de la rama clara -- es el que ademas sostiene el bloque a
+                   pantalla completa, la version con MAS presencia -- y las
+                   tres claves de la nota se retiran del JSON. El acento sigue
+                   cayendo sobre el mismo tramo final de la frase.
+                2. El LANDMARK. Este elemento pasa a ser `<section
+                   id="statement">`, el mismo id que la rama clara emite como
+                   hermano de `ScStory`, para que la lista de secciones de la
+                   pagina sea IDENTICA en los dos temas (candado:
+                   `HomeSections.test.tsx`). Lo que NO se unifica es el
+                   VEHICULO: en claro es una seccion a pantalla completa
+                   hermana de Story, aqui es la ultima diapositiva del deck --
+                   la identidad de esta rama, y el sitio exacto donde el deck
+                   coloca su cierre. Sacarla del deck a una seccion hermana
+                   NO es una opcion barata: el solape de la pagina oscura
+                   reserva EXACTAMENTE una pantalla vacia al final de Story
+                   (`STORY_DECK_TAIL_SCREENS`) para que Journey suba sobre
+                   ella (`JOURNEY_OVERLAY_RISE`), asi que cualquier contenido
+                   real puesto ahi lo taparia Journey; ver el informe de la
+                   tarea para las dos opciones y su coste.
+
+                `<section>` anidada dentro de otra es HTML valido y, como esta
+                no declara nombre accesible (igual que `ScStatement` en la
+                rama clara), no entra en el arbol de accesibilidad como
+                landmark: no compite con la region de Story. */}
             <ScSlide
+              as="section"
+              id="statement"
               data-slide-index={STORY_SLIDES - 1}
               data-state={slideState(STORY_SLIDES - 1)}
             >
-              {/* Nota partida en noteLead + noteAccent (T3 de la spec
-                  2026-07-31-story-deck-tipografia-design.md): claves
-                  EXCLUSIVAS de esta rama oscura, no tocadas por D12 (segunda
-                  ronda, 2026-08-06) -- la rama clara ya no consume `note` en
-                  absoluto, consume `Home.story.statement.*` en su propio
-                  bloque a pantalla completa (ScStatement, mas arriba). */}
               <ScDeckNote>
-                {t("Home.story.noteLead")}{" "}
+                {t("Home.story.statement.first")}{" "}
+                {t("Home.story.statement.second")}{" "}
                 <ScDeckNoteAccent>
-                  {t("Home.story.noteAccent")}
+                  {t("Home.story.statement.third")}
                 </ScDeckNoteAccent>
               </ScDeckNote>
               {/* Salida de pertenencia (Task 6): enlace REAL, hermano de

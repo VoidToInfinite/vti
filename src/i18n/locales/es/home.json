@@ -13,9 +13,6 @@
             "titleAccent": "a la creación.",
             "body": "VoidToInfinite es un espacio donde el aprendizaje se encuentra con la imaginación y el juego impulsa el progreso. Exploramos ideas, construimos habilidades con sentido y transformamos la curiosidad en experiencias que se pueden compartir.",
             "support": "Aunque el infinito está en todas partes, es el conocimiento lo que lo trae a la realidad.",
-            "note": "Cada idea puede ser un nuevo comienzo.",
-            "noteLead": "Cada idea puede ser un",
-            "noteAccent": "nuevo comienzo.",
             "statement": {
                 "first": "Cada idea",
                 "second": "puede ser",
@@ -44,7 +41,6 @@
                     "inspiration": "Lee menos, prueba más. Rompe algo a propósito y arréglalo. El error que entiendes vale más que el acierto que copiaste. Ahí es donde el conocimiento se vuelve tuyo."
                 }
             },
-            "stepLabel": "Paso",
             "communityLink": "Únete a la comunidad en Discord"
         },
         "journey": {
@@ -80,12 +76,11 @@
             }
         },
         "features": {
-            "kicker": "Características",
+            "kicker": "¿Por dónde empiezas?",
             "title": "Tres formas de seguir avanzando.",
             "intro": "Aprendizaje, imaginación y juego son la misma curiosidad vista desde tres ángulos. Cada uno te da una manera distinta de convertir lo que sabes en algo real.",
             "learning": {
                 "title": "Aprende",
-                "badge": "Aprendizaje",
                 "body": "Todo experto fue antes principiante. Aprende a tu ritmo, sigue las preguntas que te importan y observa cómo los pasos pequeños se convierten en comprensión real.",
                 "bullets": {
                     "one": "Rutas cuidadas que crecen contigo",
@@ -98,7 +93,6 @@
             },
             "imagination": {
                 "title": "Imagina",
-                "badge": "Imaginación",
                 "body": "Tus ideas merecen un lugar donde vivir. Convierte el «¿y si…?» en algo real que puedas compartir.",
                 "bullets": {
                     "one": "Un espacio seguro para experimentar",
@@ -111,7 +105,6 @@
             },
             "gaming": {
                 "title": "Juega",
-                "badge": "Juego",
                 "body": "Jugando es como mejor aprendemos. Compite, colabora y celebra cada victoria, grande o pequeña.",
                 "bullets": {
                     "one": "Retos que afilan tus habilidades",

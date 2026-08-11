@@ -562,9 +562,14 @@ export const ScDeckPillarBody = styled.p`
 `;
 
 /*
- * Nota de cierre (diapositiva 5), partida en noteLead (este elemento) +
- * ScDeckNoteAccent (span hijo, ver mas abajo -- T3 de la spec: envolver
- * "new beginning"/"nuevo comienzo" exige dos nodos de texto).
+ * Cierre de la presentacion (diapositiva 5, `<section id="statement">` desde
+ * la Task 15). Este elemento pinta las dos primeras partes de la frase
+ * (`Home.story.statement.first` + `second`) y `ScDeckNoteAccent` (span hijo,
+ * ver mas abajo) la tercera -- envolver el tramo final en un acento exige dos
+ * nodos de texto, igual que exigia la particion noteLead/noteAccent que la
+ * Task 15 sustituye (esas dos claves decian la misma frase que
+ * `Home.story.statement.*` y se retiraron; ver el JSX de `StoryDeckDark`,
+ * `Story.tsx`, para el porque completo).
  * `color: textMuted` se conserva de la version anterior (`ScNote` en
  * Story.tsx tenia el mismo override): no es un cambio de este encargo.
  *
@@ -594,7 +599,8 @@ export const ScDeckNote = styled.p`
 `;
 
 /*
- * "new beginning"/"nuevo comienzo" (noteAccent): MISMO tratamiento que
+ * El tramo final de la frase (`Home.story.statement.third`, "un nuevo
+ * comienzo" -- hasta la Task 15, `noteAccent`): MISMO tratamiento que
  * "ToInfinite" en el h1 del Hero (T7 de la spec) -- `gradientTextClip`
  * IMPORTADO de BrandName.tsx, sin duplicar el degradado, para que la nota y
  * el Hero recorran exactamente el mismo color en el mismo instante. Trae

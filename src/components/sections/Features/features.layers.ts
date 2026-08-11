@@ -192,13 +192,17 @@ export const FEATURES_GAMING_ACCENT_DARK_HOVER = "oklch(0.7 0.17 340)";
  * fichero fuera de `Features.tsx` importaba `FEATURE_CARD_VISUALS`.
  */
 
-/**
- * Geometría del badge numérico de cada tarjeta (spec 2026-08-06, D6; mockup
- * `Landing v2.dc.html` L200: `width: 38px; height: 38px; border-radius: 13px`).
- * 2.375rem = 38px exacto; el radio SÍ tiene equivalente de tema
- * (`radius.lg`, `Features.tsx`) y no se repite aquí.
+/*
+ * AQUI VIVIO `FEATURES_BADGE_SIZE` (2.375rem = 38px, la caja del badge
+ * numerico de cada tarjeta clara; spec 2026-08-06 D6, mockup L200).
+ * RETIRADA en la Task 15 (unificacion de contenido, 2026-08-11) junto con el
+ * propio badge: el numero 01/02/03 era decorativo (`aria-hidden`, el orden ya
+ * lo comunica el DOM) y la numeracion honesta que pide esa tarea lo saca de
+ * Features -- solo Journey conserva numeracion, porque su secuencia SI es
+ * real. La etiqueta que lo acompanaba (`Home.features.<key>.badge`) se retira
+ * en el mismo movimiento: ver el docblock de `Features()` para el porque
+ * completo.
  */
-export const FEATURES_BADGE_SIZE = "2.375rem";
 
 /**
  * Alto del panel de imagen de cada tarjeta (D8; mockup L203:
@@ -248,17 +252,23 @@ export const FEATURES_LIGHT_REVEAL_TRANSLATE_Y = "22px";
  * h2/párrafo de la cabecera, y L197/220/243, las tres tarjetas): `h2` 80ms,
  * párrafo de entrada 140ms, tarjeta Learning 200ms, tarjeta Imagination
  * 280ms, tarjeta Gaming 360ms. Un solo `IntersectionObserver` (`useReveal`,
- * ya existente) cubre los cinco; cada uno declara su propio escalón en CSS
+ * ya existente) cubre los seis; cada uno declara su propio escalón en CSS
  * -- ver `ScReveal`, `Features.tsx`.
  *
- * Task 11 (dieta de ornamento A, 2026-08-09): el eyebrow (mockup L188,
- * antes 0ms) se retira de la rama clara -- se quita ese primer valor del
- * array en vez de renumerar el resto, así los cinco retardos que SÍ siguen
- * en pantalla conservan el mismo timing verbatim del mockup que ya tenían
- * (h2 seguía entrando a 80ms, no a 0ms).
+ * Historia de este array, porque explica por qué el primer valor es 0ms y no
+ * 80ms: la Task 11 (dieta de ornamento A, 2026-08-09) retiró el eyebrow de la
+ * rama clara y con él su retardo de 0ms (mockup L188), quitando ese primer
+ * valor en vez de renumerar el resto -- así los cinco que seguían en pantalla
+ * conservaban su timing verbatim. La Task 15 (unificación de contenido,
+ * 2026-08-11) devuelve un kicker a la cabecera clara, pero YA NO es aquel
+ * eyebrow genérico: es el kicker con voz propia que sanciona la decisión D-E
+ * del dueño (`Home.features.kicker`, "¿Por dónde empiezas?"), y se muestra en
+ * las DOS ramas. Recupera su posición y su retardo originales del mockup, de
+ * modo que los cinco retardos posteriores siguen sin renumerarse: el h2 sigue
+ * entrando a 80ms, exactamente igual que antes y que después.
  */
 export const FEATURES_LIGHT_REVEAL_DELAYS_MS = [
-  80, 140, 200, 280, 360,
+  0, 80, 140, 200, 280, 360,
 ] as const;
 
 /** Nombre base de los ficheros WebP publicados en `public/figures/`

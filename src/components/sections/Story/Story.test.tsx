@@ -375,7 +375,7 @@ describe("Story", () => {
 describe("Story: tarjetas de pilar (tema claro, D2)", () => {
   const pillarKeys = ["learn", "create", "grow", "practice"] as const;
 
-  it("renderiza 4 tarjetas con numero, etiqueta de paso, titulo, body e inspiration", () => {
+  it("renderiza 4 tarjetas con numero, titulo, body e inspiration", () => {
     // Contra el código ANTERIOR a esta entrega este test falla: la rama
     // clara no consumía `inspiration` en absoluto (solo lo hacía
     // `ScDeckPillarBody` en la rama oscura) -- comprobado revirtiendo
@@ -396,9 +396,22 @@ describe("Story: tarjetas de pilar (tema claro, D2)", () => {
         screen.getByText(esHome.Home.story.pillars[key].inspiration),
       ).toBeInTheDocument();
     });
+  });
 
-    // La etiqueta de paso ("Paso"/"Step") se repite una vez por tarjeta.
-    expect(screen.getAllByText(esHome.Home.story.stepLabel)).toHaveLength(4);
+  /*
+   * Task 15 (numeracion honesta, 2026-08-11): la etiqueta "Paso"/"Step" que
+   * acompanaba al numero de cada tarjeta se retira, y con ella la clave
+   * `Home.story.stepLabel` de los dos locales. Los cuatro pilares no son
+   * pasos: son cuatro maneras simultaneas de mirar lo mismo, y numerarlas
+   * como "Paso 01..04" prometia una secuencia que no existe. La unica
+   * numeracion honesta del sitio es la de Journey, que si es una secuencia
+   * real y que esta tarea no toca. El candado que impide que la clave vuelva
+   * a aparecer vive en `locales.test.ts` (describe "claves retiradas").
+   */
+  it("Task 15: ninguna tarjeta se presenta como un PASO", () => {
+    renderWithProviders(<Story />);
+    expect(screen.queryByText(/^Paso$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Step$/i)).not.toBeInTheDocument();
   });
 
   it("los numeros del badge son aria-hidden y no ensucian el texto del titulo", () => {
@@ -1323,19 +1336,32 @@ describe("Story en tema oscuro", () => {
     ).toBeInTheDocument();
   });
 
-  it("la nota se muestra como noteLead + noteAccent en su propio elemento, sin la tarjeta ni el sparkle de claro", async () => {
-    // Sustituye al test que aseveraba `getByText(note)` (spec
-    // 2026-07-31-story-deck-tipografia-design.md T3): la nota ya no es un
-    // unico nodo de texto, se parte en noteLead + un span con noteAccent.
+  /*
+   * Task 15 (D-C, 2026-08-11): esta diapositiva consumia `noteLead`/
+   * `noteAccent`, dos claves EXCLUSIVAS de la rama oscura que decian la misma
+   * frase que `Home.story.statement.*` de la clara con otra particion. Un
+   * solo arbol de contenido no admite dos juegos de claves para una frase:
+   * gana el de la rama clara y la nota pasa a consumirlo. Lo que NO cambia es
+   * el tratamiento: el tramo final sigue viviendo en un elemento propio
+   * (`ScDeckNoteAccent`) porque envolverlo en un acento exige dos nodos.
+   */
+  it("el cierre se muestra con la MISMA frase que la rama clara, con el tramo final en su propio elemento y sin la tarjeta ni el sparkle de claro", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
-      expect(screen.getByText(esHome.Home.story.noteLead)).toBeInTheDocument();
+      expect(
+        screen.getByText(esHome.Home.story.statement.first, { exact: false }),
+      ).toBeInTheDocument();
     });
-    const accent = screen.getByText(esHome.Home.story.noteAccent);
-    // noteAccent vive en un ELEMENTO PROPIO, no en el mismo nodo de texto
-    // que noteLead.
+    const accent = screen.getByText(esHome.Home.story.statement.third);
     expect(accent.tagName).toBe("SPAN");
-    expect(accent).not.toBe(screen.getByText(esHome.Home.story.noteLead));
+    // La frase entera se lee seguida en el parrafo padre, no en tres trozos
+    // sueltos -- mismo contrato de lectura que el <p> de la rama clara.
+    const frase = [
+      esHome.Home.story.statement.first,
+      esHome.Home.story.statement.second,
+      esHome.Home.story.statement.third,
+    ].join(" ");
+    expect(accent.parentElement?.textContent).toBe(frase);
     expect(container.querySelector("svg")).not.toBeInTheDocument();
   });
 
@@ -1414,7 +1440,7 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     ).toBe(true);
   });
 
-  it("reparte el contenido de las 6 diapositivas en el orden del encargo: intro, 4 pilares, nota", async () => {
+  it("reparte el contenido de las 6 diapositivas en el orden del encargo: intro, 4 pilares, cierre", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -1440,15 +1466,60 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
       ).toBeInTheDocument();
     });
 
-    // Diapositiva 5: la nota de cierre, partida en noteLead + noteAccent
-    // (T3 de la spec 2026-07-31-story-deck-tipografia-design.md): la nota
-    // ya no es un unico nodo de texto (sustituye a la aserción anterior
-    // sobre `esHome.Home.story.note`).
+    // Diapositiva 5: el cierre, con la MISMA frase que la rama clara
+    // (`Home.story.statement.*` desde la Task 15) y el tramo final en un
+    // elemento propio. Es ademas la `<section id="statement">` de esta rama
+    // -- ver el test dedicado mas abajo.
     expect(
-      within(slides[5]).getByText(esHome.Home.story.noteLead),
+      within(slides[5]).getByText(esHome.Home.story.statement.first, {
+        exact: false,
+      }),
     ).toBeInTheDocument();
-    const accent = within(slides[5]).getByText(esHome.Home.story.noteAccent);
+    const accent = within(slides[5]).getByText(
+      esHome.Home.story.statement.third,
+    );
     expect(accent.tagName).toBe("SPAN");
+    expect(slides[5].tagName).toBe("SECTION");
+    expect(slides[5].id).toBe("statement");
+  });
+
+  /*
+   * Paridad de landmark entre ramas (Task 15, D-C). El hallazgo #2 de la
+   * critica independiente del 2026-08-11 era literalmente "secciones
+   * diferentes (#statement solo en claro)": la rama clara emitia una
+   * `<section id="statement">` a pantalla completa y la oscura no emitia
+   * NINGUNA seccion con ese id, aunque dijera la misma frase. Ahora las dos
+   * la emiten. Lo que sigue ramificando es el VEHICULO -- en claro es una
+   * seccion hermana de `#story`, aqui la ultima diapositiva del deck --, no
+   * el contenido ni las salidas.
+   *
+   * El candado que de verdad protege la propiedad ("la lista de secciones de
+   * la pagina es identica en los dos temas") vive en `HomeSections.test.tsx`,
+   * porque es ahi donde se ve la pagina entera. Este test es su mitad local:
+   * afirma que el id lo emite ESTA rama y que el cierre completo -- frase +
+   * salida a Discord -- vive dentro de el.
+   */
+  it("Task 15: la diapositiva de cierre ES la <section id=statement> de la rama oscura, con la frase y la salida dentro", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const statement = container.querySelector(
+      "section#statement",
+    ) as HTMLElement | null;
+    expect(statement).not.toBeNull();
+    expect(statement).toHaveAttribute(
+      "data-slide-index",
+      String(STORY_SLIDES - 1),
+    );
+    expect(statement?.textContent).toContain(esHome.Home.story.statement.third);
+    expect(
+      within(statement as HTMLElement).getByRole("link", {
+        name: new RegExp(esHome.Home.story.communityLink),
+      }),
+    ).toHaveAttribute("href", links.discord);
   });
 
   it("el stage arranca con data-slide=0 y data-dir=forward (estado de reposo del hook, sin scroll)", async () => {
@@ -1739,7 +1810,7 @@ describe("Story: Task 6, salida de pertenencia -- enlace real a Discord en el ci
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it("rama oscura: la ultima diapositiva (la nota de cierre) ofrece el MISMO enlace, hermano de ScDeckNote", async () => {
+  it("rama oscura: el cierre (#statement, ultima diapositiva) ofrece el MISMO enlace, hermano de ScDeckNote", async () => {
     stubMatchMedia();
     window.localStorage.setItem("vti-theme", "dark");
     const { container } = renderWithProviders(<Story />);
@@ -1758,13 +1829,15 @@ describe("Story: Task 6, salida de pertenencia -- enlace real a Discord en el ci
     expect(link).toHaveAttribute("href", links.discord);
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    // Hermano de ScDeckNote, no dentro de el -- el marcado obligatorio de la
-    // nota (noteLead + noteAccent) no cambia con esta tarea.
+    // Hermano de ScDeckNote, no dentro de el -- el marcado del cierre (la
+    // frase en un parrafo, el enlace fuera) no cambia con la Task 15; lo que
+    // cambia es de que claves i18n sale la frase.
     expect(
-      within(lastSlide).getByText(esHome.Home.story.noteLead, {
+      within(lastSlide).getByText(esHome.Home.story.statement.first, {
         exact: false,
       }),
     ).toBeInTheDocument();
+    expect(lastSlide.id).toBe("statement");
   });
 });
 
@@ -1941,6 +2014,9 @@ describe("Story: escala tipografica y texto de inspiracion de la diapositiva (te
     );
   });
 
+  /* Desde la Task 15 la frase del cierre sale de `Home.story.statement.*`,
+     las mismas claves que la rama clara -- ver el JSX de `StoryDeckDark`. El
+     parrafo se localiza por su primer tramo; el acento, por el tercero. */
   it("la nota de cierre computa STORY_DECK_NOTE_SIZE", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
@@ -1948,21 +2024,25 @@ describe("Story: escala tipografica y texto de inspiracion de la diapositiva (te
         STORY_SLIDES,
       );
     });
-    const noteLead = screen.getByText(esHome.Home.story.noteLead);
-    expect(getComputedStyle(noteLead).fontSize).toBe(STORY_DECK_NOTE_SIZE);
+    const note = screen.getByText(esHome.Home.story.statement.first, {
+      exact: false,
+    });
+    expect(getComputedStyle(note).fontSize).toBe(STORY_DECK_NOTE_SIZE);
   });
 
-  it("noteAccent esta en un elemento PROPIO, no en el mismo nodo de texto que noteLead", async () => {
+  it("el tramo acentuado esta en un elemento PROPIO, no en el mismo nodo de texto que el resto de la frase", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
         STORY_SLIDES,
       );
     });
-    const noteLead = screen.getByText(esHome.Home.story.noteLead);
-    const noteAccent = screen.getByText(esHome.Home.story.noteAccent);
-    expect(noteAccent).not.toBe(noteLead);
-    expect(noteAccent.tagName).toBe("SPAN");
+    const note = screen.getByText(esHome.Home.story.statement.first, {
+      exact: false,
+    });
+    const accent = screen.getByText(esHome.Home.story.statement.third);
+    expect(accent).not.toBe(note);
+    expect(accent.tagName).toBe("SPAN");
   });
 
   it("el cuerpo de pilar (inspiration) y la nota declaran text-wrap: balance en el CSS inyectado", async () => {
@@ -1978,7 +2058,9 @@ describe("Story: escala tipografica y texto de inspiracion de la diapositiva (te
     const inspiration = screen.getByText(
       esHome.Home.story.pillars.learn.inspiration,
     );
-    const note = screen.getByText(esHome.Home.story.noteLead);
+    const note = screen.getByText(esHome.Home.story.statement.first, {
+      exact: false,
+    });
 
     for (const el of [inspiration, note]) {
       const css = cssRuleTextFor(el);

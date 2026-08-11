@@ -13,9 +13,6 @@
             "titleAccent": "to creation.",
             "body": "VoidToInfinite is a space where learning meets imagination and play drives progress. We explore ideas, build meaningful skills and transform curiosity into experiences that can be shared with others.",
             "support": "Infinity is everywhere, but it is knowledge that brings it into reality.",
-            "note": "Every idea can become a new beginning.",
-            "noteLead": "Every idea can become a",
-            "noteAccent": "new beginning.",
             "statement": {
                 "first": "Every idea",
                 "second": "can become",
@@ -44,7 +41,6 @@
                     "inspiration": "Read less, try more. Break something on purpose and fix it. A mistake you understand beats an answer you copied. That is where knowledge becomes yours."
                 }
             },
-            "stepLabel": "Step",
             "communityLink": "Join the community on Discord"
         },
         "journey": {
@@ -80,12 +76,11 @@
             }
         },
         "features": {
-            "kicker": "Features",
+            "kicker": "Where do you begin?",
             "title": "Three ways to keep moving.",
             "intro": "Learning, imagination and gaming are the same curiosity seen from three angles. Each one gives you a different way to turn what you know into something real.",
             "learning": {
                 "title": "Learning",
-                "badge": "Learn",
                 "body": "Every expert was once a beginner. Learn at your own pace, follow the questions that matter to you, and watch small steps become real understanding.",
                 "bullets": {
                     "one": "Curated paths that grow with you",
@@ -98,7 +93,6 @@
             },
             "imagination": {
                 "title": "Imagination",
-                "badge": "Create",
                 "body": "Your ideas deserve a place to live. Turn “what if” into something real you can share.",
                 "bullets": {
                     "one": "A safe space to experiment freely",
@@ -111,7 +105,6 @@
             },
             "gaming": {
                 "title": "Gaming",
-                "badge": "Play",
                 "body": "Play is how we learn best. Compete, collaborate and celebrate every win, big or small.",
                 "bullets": {
                     "one": "Challenges that sharpen your skills",

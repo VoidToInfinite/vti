@@ -207,10 +207,41 @@ describe("locales", () => {
     });
   });
 
+  /*
+   * Claves retiradas: el candado que impide que una clave vuelva a colarse
+   * "porque parecia que faltaba". Cada entrada trae el porque de su retirada,
+   * porque sin eso la lista es indistinguible de una arbitrariedad.
+   *
+   * - `Home.description` / `Home.additionalDescription`: copia de la primera
+   *   version del sitio, sin consumidor.
+   * - `Home.story.note` / `noteLead` / `noteAccent` (Task 15, 2026-08-11):
+   *   decian la MISMA frase que `Home.story.statement.*` con otra particion,
+   *   y existian solo para la rama oscura. Un solo arbol de contenido no
+   *   admite dos juegos de claves para una frase: la rama oscura pasa a
+   *   consumir `statement.*`. (`note`, la version monolitica, ya estaba
+   *   huerfana desde el 2026-08-06.)
+   * - `Home.story.stepLabel` (Task 15): la etiqueta "Paso"/"Step" de las
+   *   tarjetas de pilar. Los cuatro pilares no son pasos -- la unica
+   *   secuencia real del sitio es la de Journey.
+   * - `Home.features.<key>.badge` (Task 15): la etiqueta del badge de cada
+   *   tarjeta, que en las dos lenguas repetia el titulo de la propia tarjeta
+   *   en otra forma ("Aprendizaje" sobre "Aprende", "Learn" sobre
+   *   "Learning").
+   */
   describe("claves retiradas", () => {
     it.each(
       locales.flatMap(({ lang, home }) =>
-        ["Home.description", "Home.additionalDescription"].map((path) => ({
+        [
+          "Home.description",
+          "Home.additionalDescription",
+          "Home.story.note",
+          "Home.story.noteLead",
+          "Home.story.noteAccent",
+          "Home.story.stepLabel",
+          "Home.features.learning.badge",
+          "Home.features.imagination.badge",
+          "Home.features.gaming.badge",
+        ].map((path) => ({
           lang,
           home,
           path,

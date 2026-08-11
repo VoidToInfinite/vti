@@ -16,7 +16,6 @@ import {
   FEATURES_FIGURE_SIZES,
   FEATURES_CARD_RADIUS,
   FEATURES_CARD_BORDER_WIDTH,
-  FEATURES_BADGE_SIZE,
   FEATURES_IMAGE_PANEL_HEIGHT,
   FEATURES_IMAGE_CIRCLE_SIZE,
   FEATURES_IMAGE_CIRCLE_OFFSET,
@@ -305,13 +304,22 @@ const ScHeader = styled.div`
    visual ("etiqueta de marca", mockup `var(--primary-600)`, L159) —
    `semantic.brandText`, no un paso de palette suelto.
 
-   Task 11 (2026-08-09): la rama CLARA dejó de usarlo (el eyebrow que lo
-   envolvía, `ScEyebrow`/`ScEyebrowBar`, se retiró por completo). Sigue
-   siendo el ÚNICO destino: la rama OSCURA, donde ES el propio `<h2>`
-   (`forwardedAs="h2"`, más abajo) -- ahí no se retira (es el único
-   encabezado accesible de la sección), pero sube de la variante `overline`
-   (11px) a `h5` (18px) para dejar de ser más pequeño que su propio cuerpo
-   (deuda ALTA de DESIGN.md §9, cerrada por esta tarea). */
+   Historia, porque su rol ha cambiado dos veces y el código por sí solo no lo
+   cuenta. La Task 11 (dieta de ornamento A, 2026-08-09) lo retiró de la rama
+   CLARA: era un eyebrow genérico ("Características"/"Features") por encima
+   del h2, el andamiaje más repetido del sitio. En la rama OSCURA no se pudo
+   retirar porque ESE kicker ERA el `<h2>` de la sección (el único encabezado
+   accesible que tenía), así que en vez de eso subió de `overline` (11px) a
+   `h5` (18px) para dejar de ser más pequeño que su propio cuerpo.
+
+   La Task 15 (unificación de contenido, 2026-08-11) deshace las dos
+   anomalías a la vez, y no revierte la Task 11: lo que aquella retiró fue un
+   kicker GENÉRICO, y lo que la decisión D-E del dueño sanciona ahora es un
+   kicker con VOZ ("¿Por dónde empiezas?", la pregunta que las tres tarjetas
+   responden — segundo kicker del sitio junto al de Story, "¿Por qué
+   VoidToInfinite?"). Con la rama oscura ya en posesión de su `<h2>` real
+   (`ScDarkTitle`, más abajo), este elemento vuelve a ser lo que su nombre
+   dice en las DOS ramas: un kicker `overline`, nunca un encabezado. */
 const ScKicker = styled(Typography)`
   text-transform: uppercase;
   color: ${({ theme }) => theme.data.semantic.brandText};
@@ -593,52 +601,31 @@ const ScCardSurface = styled.div`
   overflow: hidden;
 `;
 
-/* Fila superior: badge numérico + etiqueta (D6/D10; mockup L199). */
-const ScCardHead = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${({ theme }) => theme.data.space[3]};
-  padding: ${({ theme }) => theme.data.space[5]}
-    ${({ theme }) => theme.data.space[5]} 0;
-`;
-
 /*
- * Badge cuadrado (D6; mockup L200). El NÚMERO usa `accentColorHover`, no
- * `accentColor` -- ver el docblock de `accentColorHover`, arriba, para la
- * medición de contraste que motiva la elección: sobre el fondo `color-mix`
- * de este mismo badge, `accentColor` no llega a AA en ninguna de las tres
- * tarjetas y `accentColorHover` sí. `ScBadge` SOLO se renderiza en la rama
- * CLARA (ver `Features()`, más abajo), así que aquí `accentColorHover`
- * siempre resuelve su rama clara -- paso 800 para learning/imagination
- * (antes de la Task 26, 700), `FEATURES_GAMING_ACCENT_LIGHT_HOVER` para
- * gaming -- dando 4.96:1/5.58:1/5.60:1 (medido tras la Task 26, ver el
- * docblock de `accentColorHover`). `font-weight` reutiliza
- * `type.scale.h5.weight` (600, el "bold" más próximo de la escala) -- mismo
- * recurso que ya usa `ScCta` (más abajo) para el mismo propósito.
+ * AQUI VIVIERON `ScCardHead` (la fila superior de la tarjeta clara; D6/D10,
+ * mockup L199), `ScBadge` (el badge cuadrado con el numero 01/02/03; mockup
+ * L200) y `ScBadgeLabel` (la etiqueta `Home.features.<key>.badge` que lo
+ * acompanaba). Los TRES se retiran en la Task 15 (unificacion de contenido,
+ * 2026-08-11), y por dos motivos distintos que conviene no mezclar:
+ *
+ * - El NUMERO era decorativo declarado (`aria-hidden`, "el orden ya lo
+ *   comunica el DOM"): numerar tres identidades que no son una secuencia
+ *   sugiere un recorrido que no existe. La numeracion honesta que pide la
+ *   Task 15 lo saca de aqui; Journey conserva la suya porque su secuencia SI
+ *   es real.
+ * - La ETIQUETA era, en las dos lenguas, el titulo de la propia tarjeta en
+ *   otra forma ("Aprendizaje" sobre "Aprende", "Learn" sobre "Learning"): un
+ *   eyebrow que repite lo que se lee dos lineas mas abajo. Con el contenido
+ *   unificado habia que elegir entre anadirla tambien a la rama oscura o
+ *   retirarla de la clara; se retira, porque no aporta informacion que el
+ *   titulo no de ya y porque la rama oscura tiene un presupuesto vertical
+ *   medido (una pantalla) que esta entrega ya gasta en el h2 y el parrafo de
+ *   entrada que le faltaban. Decision declarada en el informe de la tarea.
+ *
+ * Con esto la tarjeta clara abre directamente por su panel de imagen. El
+ * fondo `color-mix(... 12% ...)` que solo existia para el badge se va con el;
+ * los del panel (7%) y el circulo (16%) siguen intactos, mas abajo.
  */
-const ScBadge = styled.span<{ $key: FeatureKey }>`
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: ${FEATURES_BADGE_SIZE};
-  height: ${FEATURES_BADGE_SIZE};
-  border-radius: ${({ theme }) => theme.data.radius.lg};
-  background: ${({ theme, $key }) =>
-    `color-mix(in oklab, ${accentColor(theme.data, $key)} 12%, ${theme.data.semantic.surface})`};
-  font-family: ${({ theme }) => theme.data.type.fontMono};
-  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
-  font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
-  letter-spacing: 0.04em;
-  color: ${({ theme, $key }) => accentColorHover(theme.data, $key)};
-`;
-
-/* Etiqueta del badge ("Aprende"/"Crea"/"Juega"): overline en
-   `semantic.textSubtle` (D6/D10). */
-const ScBadgeLabel = styled(Typography)`
-  color: ${({ theme }) => theme.data.semantic.textSubtle};
-`;
 
 /* Panel de imagen (D8; mockup L202-206): bloque de altura fija con un
    círculo decorativo desbordando por abajo (`aria-hidden`) y la figura
@@ -1125,6 +1112,55 @@ const ScDarkHeader = styled.div`
   gap: ${({ theme }) => theme.data.space[2]};
 `;
 
+/*
+ * El `<h2>` REAL de la rama oscura (Task 15, unificación de contenido,
+ * 2026-08-11). Hasta aquí la rama oscura no tenía la tesis de la sección
+ * ("Tres formas de seguir avanzando.") ni el párrafo de entrada: su único
+ * encabezado era el kicker genérico. Las dos ramas dicen ahora lo mismo; lo
+ * que sigue siendo identidad de tema es el VEHÍCULO (tarjetas en claro,
+ * bloques sobre la escena en oscuro) y la escala tipográfica.
+ *
+ * `font-size` fluido por el MISMO motivo, con la MISMA forma y con la misma
+ * desigualdad declarada que `ScDarkFeatureTitle` (ver su docblock, más
+ * abajo): la restricción que hay que satisfacer aquí es "contenido + relleno
+ * <= ALTO del viewport" -- esta rama compone sobre un slot pegado de una
+ * pantalla exacta --, así que el término fluido va en `dvh`. El `min(...vw,
+ * ...dvh)` deja que gane el eje más apretado en cada caso: un móvil estrecho
+ * y alto se rige por su ancho, un portátil ancho y bajo por su alto. Sin el
+ * término en `vw`, un 375x812 se llevaría el título a un tamaño que su ancho
+ * no puede sostener; sin el término en `dvh`, un 1280x720 lo dejaría clavado
+ * en su techo justo donde el presupuesto vertical aprieta (el defecto medido
+ * que documenta `ScDarkFrame`).
+ *
+ * NO se toca `type.scale.h2`: ese token es GLOBAL y lo consume también el h2
+ * de la rama CLARA de esta misma sección. Se sobreescribe por composición
+ * (`styled(Typography)`), mismo mecanismo que `ScDarkFeatureTitle`/
+ * `ScDarkBody`. El techo se lee del propio token en vez de repetir el
+ * literal, para que no pueda desincronizarse.
+ */
+const ScDarkTitle = styled(Typography)`
+  font-size: clamp(
+    1.5rem,
+    min(5vw, 3.6dvh),
+    ${({ theme }) => theme.data.type.scale.h2.size}
+  );
+`;
+
+/*
+ * Párrafo de entrada de la rama oscura: MISMO texto y MISMO rol de color que
+ * el de la clara (extiende `ScIntro`, no lo duplica), con el mismo `font-size`
+ * fluido y la misma desigualdad que `ScDarkTitle`, arriba -- suelo en
+ * `bodySm` (14px, el tamaño que ya usa el cuerpo de cada identidad oscura,
+ * `ScDarkBody`) y techo en `body` (16px, el de la rama clara).
+ */
+const ScDarkIntro = styled(ScIntro)`
+  font-size: clamp(
+    ${({ theme }) => theme.data.type.scale.bodySm.size},
+    min(2.6vw, 2.1dvh),
+    ${({ theme }) => theme.data.type.scale.body.size}
+  );
+`;
+
 /* Las 3 identidades como bloques verticales (mismo patrón de lista que
    Story/Journey), no como tarjetas con patrón/fondo propio: esos son
    literales de una tarjeta con fondo pastel (D10), sin sentido superpuestos
@@ -1239,20 +1275,27 @@ export function Features(): ReactElement {
             ref={revealRef}
             data-revealed={revealed}
           >
+            {/* Cabecera IDÉNTICA a la de la rama clara (Task 15, D-C/D-E,
+                2026-08-11): kicker con voz + h2 con la tesis + párrafo de
+                entrada, en ese orden y con las MISMAS claves i18n. Hasta esta
+                tarea la rama oscura solo tenía el kicker, ascendido a h2 a
+                falta de otro encabezado -- un contenido distinto bajo la
+                misma URL. Lo que sigue ramificando por tema es la escala
+                (`ScDarkTitle`/`ScDarkIntro`, fluidas para caber en la
+                pantalla que esta rama compone) y el arte, nunca el texto. */}
             <ScDarkHeader>
-              {/* Task 11 (dieta de ornamento A, 2026-08-09): CASO ESPECIAL --
-                  este kicker ES el h2 real de la sección (forwardedAs="h2",
-                  aria-labelledby de ScFeatures apunta a su id). No se
-                  retira: sube de `overline` (11px) a `h5` (18px) para dejar
-                  de ser más pequeño que su propio cuerpo (`ScDarkBody`,
-                  `bodySm`/14px) -- cierra la deuda ALTA de DESIGN.md §9. */}
-              <ScKicker
-                variant="h5"
-                forwardedAs="h2"
-                id="features-title"
-              >
+              <ScKicker variant="overline">
                 {t("Home.features.kicker")}
               </ScKicker>
+              <ScDarkTitle
+                variant="h2"
+                id="features-title"
+              >
+                {t("Home.features.title")}
+              </ScDarkTitle>
+              <ScDarkIntro variant="body">
+                {t("Home.features.intro")}
+              </ScDarkIntro>
             </ScDarkHeader>
 
             <ScDarkFeatures>
@@ -1331,9 +1374,11 @@ export function Features(): ReactElement {
     >
       {/* Envoltorio único de reveal (D9): un solo useReveal (revealRef/
           revealed) cubre cabecera + rejilla -- ver el docblock de
-          `ScRevealGroup`/`ScReveal`, arriba. Task 11 (2026-08-09): la
-          cabecera abre directamente con el h2 -- el eyebrow (kicker + barra)
-          que antes iba primero se retiró. */}
+          `ScRevealGroup`/`ScReveal`, arriba. Task 15 (2026-08-11): la
+          cabecera vuelve a abrir con un kicker, pero ya NO es el eyebrow
+          genérico que retiró la Task 11 (kicker + barra decorativa): es el
+          kicker con voz de la decisión D-E, sin barra, y se muestra en las
+          DOS ramas -- ver el docblock de `ScKicker`, arriba. */}
       <ScRevealGroup
         ref={revealRef}
         data-revealed={revealed}
@@ -1342,6 +1387,13 @@ export function Features(): ReactElement {
           <ScReveal
             $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}
             data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}
+          >
+            <ScKicker variant="overline">{t("Home.features.kicker")}</ScKicker>
+          </ScReveal>
+
+          <ScReveal
+            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
+            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
           >
             <Typography
               variant="h2"
@@ -1352,8 +1404,8 @@ export function Features(): ReactElement {
           </ScReveal>
 
           <ScReveal
-            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
-            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[1]}
+            $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[2]}
+            data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[2]}
           >
             <ScIntro variant="body">{t("Home.features.intro")}</ScIntro>
           </ScReveal>
@@ -1362,10 +1414,7 @@ export function Features(): ReactElement {
         <ScGrid>
           {FEATURE_KEYS.map((key, index) => {
             const basename = FEATURE_FIGURE_BASENAME[key];
-            const delayMs = FEATURES_LIGHT_REVEAL_DELAYS_MS[2 + index];
-            /* Números 01/02/03: decorativos (D6/D10) -- aria-hidden en
-               ScBadge, más abajo; el orden ya lo comunica el DOM. */
-            const number = String(index + 1).padStart(2, "0");
+            const delayMs = FEATURES_LIGHT_REVEAL_DELAYS_MS[3 + index];
 
             return (
               <ScReveal
@@ -1378,18 +1427,6 @@ export function Features(): ReactElement {
                   aria-labelledby={`feature-${key}-title`}
                 >
                   <ScCardSurface>
-                    <ScCardHead>
-                      <ScBadge
-                        $key={key}
-                        aria-hidden="true"
-                      >
-                        {number}
-                      </ScBadge>
-                      <ScBadgeLabel variant="overline">
-                        {t(`Home.features.${key}.badge`)}
-                      </ScBadgeLabel>
-                    </ScCardHead>
-
                     <ScImagePanel $key={key}>
                       <ScImageCircle
                         $key={key}
