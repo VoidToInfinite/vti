@@ -48,3 +48,35 @@ describe(
     });
   },
 );
+
+/*
+ * Task 9 (anti-flash de tema): candado de FUENTE de que el script de
+ * arranque está realmente cableado en app/layout.tsx, con la MISMA técnica
+ * de node:fs que el bloque de arriba (RootLayout no se puede importar/
+ * renderizar en Vitest, ver su docblock). El candado de que el script
+ * TERMINA en el HTML exportado -- el requisito literal del brief -- es un
+ * paso posterior a pnpm build (lee out/index.html), fuera del alcance de lo
+ * que Vitest puede verificar sin depender de que exista un build previo.
+ */
+describe("app/layout.tsx — anti-flash de tema (Task 9)", () => {
+  it("monta next/script beforeInteractive con el HTML de buildThemeBootstrapScript()", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const source = readFileSync(join(here, "layout.tsx"), "utf-8");
+
+    expect(source).toContain('import Script from "next/script"');
+    expect(source).toContain(
+      'import { buildThemeBootstrapScript } from "@/theme/resolveTheme"',
+    );
+
+    const scriptTag = source.match(/<Script\b[\s\S]*?\/>/);
+    expect(scriptTag, "no se encontro <Script ... />").not.toBeNull();
+    expect(scriptTag?.[0]).toContain('id="theme-bootstrap"');
+    expect(scriptTag?.[0]).toContain('strategy="beforeInteractive"');
+    expect(scriptTag?.[0]).toContain(
+      "dangerouslySetInnerHTML={{ __html: buildThemeBootstrapScript() }}",
+    );
+  });
+});

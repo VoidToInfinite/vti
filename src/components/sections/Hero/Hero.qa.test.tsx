@@ -125,41 +125,59 @@ describe("Hero (lente funcional)", () => {
     );
   });
 
-  it("el contenedor del titulo usa el clamp literal del usuario, no el token display (oscuro: 8vw)", () => {
+  it("el contenedor del titulo usa el clamp literal del usuario, no el token display, con el factor vw resuelto por variable CSS", () => {
     // REESCRITO (Flujo 3): ScHeroBrand paso de
     // min(theme.data.type.scale.display.size, 10vw) a un clamp(34px, 8vw,
     // 258px) literal explicito del usuario -- se documenta como excepcion en
     // el propio Hero.tsx, no se corrige a la escala. La asercion de
     // line-height SIGUE leyendo el token (B2 no la toca).
-    window.localStorage.setItem("vti-theme", "dark");
+    //
+    // REESCRITO OTRA VEZ (Task 9, anti-flash de tema): el factor vw ya NO
+    // sale de un prop `$light` interpolado por React -- ahora es
+    // var(--hero-title-vw, 7vw), la MISMA declaracion CSS sea cual sea el
+    // tema (ver el docblock de ScHeroBrand en Hero.tsx). jsdom no resuelve
+    // var() (no hace layout, tampoco cascada de custom properties), asi que
+    // getComputedStyle(...).fontSize devuelve el texto CRUDO de la
+    // declaracion, sin sustituir la variable -- exactamente lo que este test
+    // aprovecha para demostrar la propiedad que Task 9 persigue: la
+    // declaracion NO cambia con el tema (candado de "sin re-maquetacion").
     const { container } = renderHero();
     const titulo = container.querySelector(
       '[data-testid="hero-title"]',
     ) as HTMLElement;
 
     expect(sinEspacios(getComputedStyle(titulo).fontSize)).toBe(
-      sinEspacios("clamp(34px, 8vw, 258px)"),
+      sinEspacios("clamp(34px, var(--hero-title-vw, 7vw), 258px)"),
     );
     expect(getComputedStyle(titulo).lineHeight).toBe(
       String(typeTokens.scale.display.lineHeight),
     );
   });
 
-  it("el contenedor del titulo baja a 7vw en claro: la columna estrecha (min(prose, 40%)) no sostiene 8vw", () => {
-    // El factor mas bajo es un pedido explicito del usuario, no una medida:
-    // en claro la copia comparte ancho con el marco del arte (spec S3.6) y
-    // queda limitada a min(prose, 40%), mas estrecha que en oscuro.
-    const { container } = renderHero();
-    const titulo = container.querySelector(
+  it("el clamp del titulo es IDENTICO con o sin tema oscuro en storage: ya no hay re-maquetacion tras la correccion de ThemeProvider", () => {
+    // Candado directo del objetivo de Task 9 (CLS 0,0799 medido en el
+    // arranque oscuro de escritorio -> ~0): antes de esta tarea, el efecto
+    // post-montaje de ThemeProvider recalculaba este MISMO nodo con un
+    // literal de CSS distinto (7vw -> 8vw), lo que generaba una clase nueva
+    // de styled-components y, con ella, el shift. Si volviera a divergir
+    // (alguien reintroduce `${'$light'} &&` en vez de la variable CSS), este
+    // test lo detecta sin necesidad de medir CLS en un navegador real.
+    window.localStorage.setItem("vti-theme", "dark");
+    const conStorageDark = renderHero();
+    const tituloDark = conStorageDark.container.querySelector(
       '[data-testid="hero-title"]',
     ) as HTMLElement;
+    const fontSizeDark = getComputedStyle(tituloDark).fontSize;
+    conStorageDark.unmount();
+    window.localStorage.clear();
 
-    expect(sinEspacios(getComputedStyle(titulo).fontSize)).toBe(
-      sinEspacios("clamp(34px, 7vw, 258px)"),
-    );
-    expect(getComputedStyle(titulo).lineHeight).toBe(
-      String(typeTokens.scale.display.lineHeight),
-    );
+    const sinStorage = renderHero();
+    const tituloClaro = sinStorage.container.querySelector(
+      '[data-testid="hero-title"]',
+    ) as HTMLElement;
+    const fontSizeClaro = getComputedStyle(tituloClaro).fontSize;
+
+    expect(sinEspacios(fontSizeDark)).toBe(sinEspacios(fontSizeClaro));
   });
 
   it("el subtitulo usa el clamp literal del usuario, no el token h3", () => {
@@ -402,5 +420,54 @@ describe("Hero (lente funcional)", () => {
         );
       },
     );
+  });
+});
+
+/*
+ * Candados de FUENTE (Task 9, anti-flash de tema), no de render: la lección
+ * de la casa (RULES.md #37) es que `createGlobalStyle` no inyecta nada bajo
+ * jsdom + Vitest, así que las reglas ESTÁTICAS de `GlobalStyles.tsx`
+ * (`:root[data-theme="dark"] { --hero-title-vw: 8vw; ... }`) no aparecen
+ * nunca en `document.styleSheets` de un test, monte lo que monte. El test de
+ * arriba ("el clamp del titulo es IDENTICO...") ya prueba, por render, que
+ * `Hero.tsx` dejó de depender de React para este valor; lo que falta cerrar
+ * -- y solo se puede cerrar leyendo el FICHERO, mismo patrón que
+ * `app/layout.test.ts` -- es que el FALLBACK de la variable (el valor claro,
+ * el que hornea el build) y el OVERRIDE oscuro (el que activa el script
+ * pre-pintado) sean los literales correctos, no huérfanos entre sí.
+ */
+describe("Hero.tsx / GlobalStyles.tsx — variables CSS del anti-flash (candado de fuente)", () => {
+  async function leerFuente(...segments: string[]): Promise<string> {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    return readFileSync(join(here, ...segments), "utf-8");
+  }
+
+  it("ScHeroBrand declara el fallback CLARO (7vw): sin JS, el resultado es identico al de antes de Task 9", async () => {
+    const source = await leerFuente("Hero.tsx");
+    expect(source).toContain("var(--hero-title-vw, 7vw)");
+  });
+
+  it('GlobalStyles.tsx redefine --hero-title-vw a 8vw SOLO bajo :root[data-theme="dark"]', async () => {
+    const source = await leerFuente(
+      "..",
+      "..",
+      "..",
+      "theme",
+      "GlobalStyles.tsx",
+    );
+    const bloque = source.match(/:root\[data-theme="dark"\]\s*\{[^}]*\}/)?.[0];
+    expect(
+      bloque,
+      'no se encontro el bloque :root[data-theme="dark"]',
+    ).not.toBeUndefined();
+    expect(bloque).toContain("--hero-title-vw: 8vw");
+    expect(bloque).toContain("--hero-align-items-lg: center");
+    expect(bloque).toContain("--hero-justify-lg: flex-end");
+    expect(bloque).toContain("--hero-text-align-lg: center");
+    expect(bloque).toContain("--hero-copy-maxwidth-lg: 70ch");
+    expect(bloque).toContain("--hero-actions-justify-lg: center");
   });
 });

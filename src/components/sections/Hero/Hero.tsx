@@ -32,12 +32,20 @@ import {
  * tema menos que pueda divergir, y `theme.data.semantic.*` resuelve aqui al
  * mismo tema que el resto de la pagina, tal como pintan Aura/HeroBackdrop.
  *
- * La distribucion (`$light`, mas abajo) usa `layoutTheme` de
+ * La distribucion (antes `$light`, ahora `--hero-align-items-lg`/
+ * `--hero-justify-lg`, ver GlobalStyles.tsx) usaba `layoutTheme` de
  * `useHeroCopySwap`, NO el tema activo directamente: la copia no puede
  * saltar de sitio en el mismo instante en que el fondo todavia es el del
- * tema anterior (ver el hook para el porque completo).
+ * tema anterior (ver el hook para el porque completo). Task 9 (anti-flash de
+ * tema) saco esta rama concreta del prop `$light` y la paso a variables CSS
+ * fijadas por atributo (`:root[data-theme]`, GlobalStyles.tsx): es la unica
+ * propiedad de Hero que cambia TAMAÑO/POSICION -- no solo color -- entre
+ * temas, y el prop tardaba hasta el efecto post-montaje de ThemeProvider en
+ * corregirse, produciendo el CLS medido (0,0799 en el arranque oscuro de
+ * escritorio, baseline spec 3.1). Las demas ramas de Hero por tema (texto,
+ * sombra, fondo) siguen en React: son opacidad/color, no contribuyen a CLS.
  */
-const ScHero = styled.section<{ $light: boolean }>`
+const ScHero = styled.section`
   position: relative;
   /* Una pantalla exacta: el navbar es fixed, esta fuera de flujo, asi que el
      hero empieza en el borde superior y la composicion queda centrada en el
@@ -55,14 +63,15 @@ const ScHero = styled.section<{ $light: boolean }>`
 
   /* La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
      de este punto de corte el tema claro vuelve a la distribucion centrada,
-     igual que el oscuro. */
+     igual que el oscuro. Los fallback de var() son el valor CLARO -- el que
+     ya hornea el build (ThemeProvider arranca siempre en "light") -- asi que
+     un visitante sin JS ve EXACTAMENTE el mismo resultado que antes de esta
+     tarea; solo el selector data-theme=dark de :root (GlobalStyles.tsx)
+     redefine las variables al valor oscuro, y lo hace ANTES del primer
+     pintado. */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
-    ${({ $light }) =>
-      $light &&
-      css`
-        justify-content: center;
-        align-items: flex-start;
-      `}
+    justify-content: var(--hero-justify-lg, center);
+    align-items: var(--hero-align-items-lg, flex-start);
   }
 `;
 
@@ -140,14 +149,18 @@ const ScHeroFoot = styled.div<{ $light: boolean }>`
  * primer pintado; con 80ms entra a 520ms y la secuencia se sigue
  * percibiendo como secuencia. Solo transform/opacity.
  *
- * Distribucion por tema (spec S6.5), con `$light` (NO el tema activo
- * directamente: viene de `layoutTheme`, ver Hero()). El cruce entre las dos
+ * Distribucion por tema (spec S6.5): `align-items`/`text-align`/`max-width`
+ * en el breakpoint `lg` (mas abajo) leen las variables CSS de Task 9
+ * (`--hero-align-items-lg` y compañia, ver docblock de ScHero) en vez de
+ * `$light` -- misma explicacion, no se repite aqui. `$light` SIGUE vivo en
+ * este componente para `text-shadow` (mas abajo): esa propiedad es color
+ * puro, no contribuye a CLS, y su correccion via React (post-montaje de
+ * ThemeProvider) sigue siendo intencional. El cruce entre las dos
  * distribuciones es por OPACIDAD (`$hidden`), nunca interpolando
  * `text-align`/`align-items`: esas dos provocan un re-wrap que no se puede
  * animar. `$hidden` llega ya resuelto por `useHeroCopySwap`, que solo lo
- * activa en cambios de USUARIO y aplica `$light` mientras la copia sigue
- * invisible -- por eso este componente no necesita saber nada de esa
- * mecanica, solo pintar lo que le llega.
+ * activa en cambios de USUARIO -- por eso este componente no necesita saber
+ * nada de esa mecanica, solo pintar lo que le llega.
  *
  * ARRANQUE DEL INTRO (tarea C5, spec §7.4): el escalonado de 80ms de los
  * CUATRO hijos NO cambia, pero deja de arrancar en cuanto el bloque se monta
@@ -211,20 +224,20 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
 
   /* La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
      de este punto de corte el tema claro vuelve a la distribucion
-     centrada, igual que el oscuro -- ver tambien ScHero/ScActions. */
+     centrada, igual que el oscuro -- ver tambien ScHero/ScActions. Task 9:
+     mismas variables CSS que ScHero (align-items comparte
+     --hero-align-items-lg, mismo valor logico en los dos componentes) --
+     ver el docblock de ScHero para el porque completo del cambio de prop a
+     variable. */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
-    ${({ $light }) =>
-      $light &&
-      css`
-        align-items: flex-start;
-        text-align: left;
-        /* Medido (spec S3.6): la mano izquierda del arte entra hasta el
-           41.5% del hero a 16:10, el caso mas estrecho. El criterio no es
-           "40%": es que la linea mas larga de la copia termine antes de
-           ese punto. min() con el prose normal cubre el caso comun sin
-           magnificar el ancho en viewports muy anchos. */
-        max-width: min(70ch, 70%);
-      `}
+    align-items: var(--hero-align-items-lg, flex-start);
+    text-align: var(--hero-text-align-lg, left);
+    /* Medido (spec S3.6): la mano izquierda del arte entra hasta el 41.5%
+       del hero a 16:10, el caso mas estrecho. El criterio no es "40%": es
+       que la linea mas larga de la copia termine antes de ese punto. min()
+       con el prose normal cubre el caso comun sin magnificar el ancho en
+       viewports muy anchos. */
+    max-width: var(--hero-copy-maxwidth-lg, min(70ch, 70%));
   }
 
   /* Antes de "chrome": los hijos quedan invisibles por regla ESTATICA, sin
@@ -286,7 +299,7 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   }
 `;
 
-const ScActions = styled.div<{ $light: boolean }>`
+const ScActions = styled.div`
   /* Los CTAs tienen su propio fondo solido: la sombra que protege a la copia
      sobre la ilustracion aqui solo ensuciaria la etiqueta. */
   text-shadow: none;
@@ -298,13 +311,12 @@ const ScActions = styled.div<{ $light: boolean }>`
   margin-block-start: ${({ theme }) => theme.data.space[6]};
 
   /* Misma mejora de escritorio que ScHero/ScCopy: por debajo del punto de
-     corte, el tema claro vuelve a los CTA centrados. */
+     corte, el tema claro vuelve a los CTA centrados. Task 9: variable CSS
+     propia (no comparte --hero-justify-lg con ScHero: los dos van de un
+     valor CENTRADO distinto a otro extremo distinto) -- ver el docblock de
+     ScHero para el porque completo del cambio de prop a variable. */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
-    ${({ $light }) =>
-      $light &&
-      css`
-        justify-content: flex-start;
-      `}
+    justify-content: var(--hero-actions-justify-lg, flex-start);
   }
 `;
 
@@ -330,18 +342,21 @@ const ScActions = styled.div<{ $light: boolean }>`
    la izquierda y compitiendo por ancho con el marco del arte (spec S3.6, la
    columna se limita a min(prose, 40%) para no invadir la mano izquierda),
    8vw hacia el titular mas ancho de lo que esa columna estrecha puede
-   sostener sin forzar el ajuste de linea. $light usa `light`
-   (`layoutTheme === "light"`, no el tema activo directamente: la copia no
-   puede cambiar de tamano en t=0 mientras el fondo del cruce sigue siendo
-   el del tema anterior -- mismo criterio que ScCopy, ver useHeroCopySwap). */
-const ScHeroBrand = styled.div<{ $light: boolean }>`
-  font-size: clamp(34px, 8vw, 258px);
+   sostener sin forzar el ajuste de linea.
 
-  ${({ $light }) =>
-    $light &&
-    css`
-      font-size: clamp(34px, 7vw, 258px);
-    `}
+   TASK 9 (anti-flash de tema): este es el elemento LCP de la medicion de CLS
+   del arranque oscuro en escritorio (0,0799, baseline spec 3.1) -- el UNICO
+   shift registrado caia justo aqui, porque el factor pasaba de React
+   (`$light`, derivado de `layoutTheme`) y tardaba hasta el efecto post-
+   montaje de ThemeProvider en corregirse de 7vw a 8vw. Sustituido por la
+   variable CSS `--hero-title-vw` (GlobalStyles.tsx, fijada por el atributo
+   que el script pre-pintado de app/layout.tsx pone en <html> ANTES del
+   primer frame): el fallback de var() es el valor CLARO (7vw, el que ya
+   hornea el build), y solo `:root[data-theme="dark"]` lo redefine a 8vw --
+   activo desde el primer pintado, sin esperar a React. Sin JS, el resultado
+   es identico al de antes de esta tarea. */
+const ScHeroBrand = styled.div`
+  font-size: clamp(34px, var(--hero-title-vw, 7vw), 258px);
 
   /* line-height tambien hay que fijarlo: GlobalStyles pone 1.4em en el body,
      que se hereda como LONGITUD ya resuelta (22.4px), no como factor. Sin
@@ -535,10 +550,7 @@ export function Hero(): ReactElement {
   const introState = phase === "backdrop" ? "pending" : "in";
 
   return (
-    <ScHero
-      $light={light}
-      id="hero"
-    >
+    <ScHero id="hero">
       <HeroBackdrop />
       {/* El pie oscuro se ata al tema REAL (no a layoutTheme) para apagarse a
           la vez que el propio fondo, no con el retardo del cruce de la copia.
@@ -556,7 +568,6 @@ export function Hero(): ReactElement {
       >
         <ScHeroBrand
           as="h1"
-          $light={light}
           data-testid="hero-title"
         >
           <BrandName gradientTail />
@@ -574,10 +585,7 @@ export function Hero(): ReactElement {
         >
           {t("Home.hero.support")}
         </ScSupport>
-        <ScActions
-          $light={light}
-          data-testid="hero-actions"
-        >
+        <ScActions data-testid="hero-actions">
           {/* forwardedAs="a", NO as="a": ScCtaPrimary envuelve Button con
               styled(), y Button ya intercepta su propio prop `as`
               internamente (ver Button.tsx) -- el mismo gotcha ya

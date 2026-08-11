@@ -1,4 +1,5 @@
 import { createGlobalStyle } from "styled-components";
+import { semanticDark } from "./tokens/semantic";
 
 export const GlobalStyles = createGlobalStyle`
   /*
@@ -121,6 +122,72 @@ export const GlobalStyles = createGlobalStyle`
     -ms-hyphens: auto;
     hyphens: auto;
     position: relative;
+  }
+
+  /*
+   * Anti-flash de tema (Task 9). Reglas ESTÁTICAS, sin interpolar
+   * theme.data.*: a diferencia de todo lo demás en este fichero, su texto
+   * NO cambia según el prop theme que reciba GlobalStyles en cada render,
+   * así que quedan presentes DESDE EL BUILD (idénticas en el HTML estático
+   * horneado, sea cual sea el tema con el que arrancó ese build) y en cada
+   * re-render posterior. El script inline de app/layout.tsx
+   * (buildThemeBootstrapScript, src/theme/resolveTheme.ts) fija el
+   * atributo data-theme=dark en el elemento html ANTES del primer pintado,
+   * así que estas reglas ya están activas en el primer frame -- sin
+   * esperar a que React monte, hidrate ni corrija nada.
+   *
+   * ThemeProvider SIGUE arrancando su estado de React en "light" (no puede
+   * leer localStorage durante el render sin romper el export estático ni
+   * arriesgar un mismatch de hidratación en las secciones que ramifican
+   * por tema -- Story/Features/Journey/Contact). Estas reglas no sustituyen
+   * esa corrección: la hacen invisible, porque cuando el efecto
+   * post-montaje de ThemeProvider por fin corrige el estado, el resultado
+   * visual YA coincide con lo que estas reglas venían pintando desde el
+   * primer frame.
+   *
+   * Especificidad deliberada: el selector data-theme=dark de :root
+   * combinado con body tiene MÁS especificidad que el simple "body { }" de
+   * arriba (dos selectores de atributo/pseudo-clase más el tipo, contra
+   * solo el tipo), así que gana SIEMPRE que el atributo esté presente, sea
+   * cual sea el orden de inserción real de las dos reglas en la hoja de
+   * estilos.
+   *
+   * semanticDark se importa DIRECTO del token (no de theme.data.semantic,
+   * que solo resuelve al tema activo del render): es el MISMO primitivo
+   * que ya usa el resto del tema oscuro, no un hex reescrito a mano (regla
+   * 17, RULES.md).
+   */
+  :root[data-theme="dark"] body {
+    background-color: ${semanticDark.bg};
+    color: ${semanticDark.text};
+  }
+
+  /*
+   * Task 9, misma mecánica que arriba pero para las ÚNICAS propiedades de
+   * Hero que cambian TAMAÑO/POSICIÓN (no solo color) entre temas --
+   * confirmado como la causa del CLS 0,0799 medido en el arranque oscuro de
+   * escritorio (baseline spec 3.1): un único shift a t=400ms sobre el texto
+   * de BrandName, el elemento LCP de esa medición. Hero.tsx
+   * (ScHero/ScCopy/ScActions/ScHeroBrand) lee estas variables con
+   * var(--x, valor-claro): el fallback ES el valor que el build hornea por
+   * defecto (ThemeProvider arranca en "light"), así que un visitante sin
+   * JS -- el script nunca fija el atributo -- ve EXACTAMENTE el mismo
+   * resultado que antes de esta tarea. Solo esta rama, activa desde antes
+   * del primer pintado, redefine las variables al valor oscuro.
+   *
+   * Las demás ramas de Hero por tema (texto, sombra, fondo del pie) NO
+   * están aquí a propósito: son opacidad/color, no geometría -- no
+   * contribuyen a CLS -- y su fundido al cambiar de tema sigue siendo
+   * intencional (docblock de HeroBackdrop.tsx). Sacarlas de React habría
+   * apagado esa animación sin necesidad.
+   */
+  :root[data-theme="dark"] {
+    --hero-title-vw: 8vw;
+    --hero-align-items-lg: center;
+    --hero-justify-lg: flex-end;
+    --hero-text-align-lg: center;
+    --hero-copy-maxwidth-lg: 70ch;
+    --hero-actions-justify-lg: center;
   }
 
   body::-webkit-scrollbar {

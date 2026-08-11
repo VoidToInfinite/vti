@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import type { ReactElement, ReactNode } from "react";
 import { SITE } from "@/config/site";
 import { JsonLdScript } from "@/seo/JsonLdScript";
 import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
 import { buildMetadata } from "@/seo/metadata";
+import { buildThemeBootstrapScript } from "@/theme/resolveTheme";
 import { Providers } from "./providers";
 
 const fontBody = Hanken_Grotesk({
@@ -125,6 +127,44 @@ export default function RootLayout({
       className={`${fontBody.variable} ${fontMono.variable}`}
     >
       <body>
+        {/*
+         * Anti-flash de tema (Task 9). `strategy="beforeInteractive"` es la
+         * vía que Next.js documenta explícitamente para scripts que tienen
+         * que correr ANTES de que React hidrate — Next lo inyecta en
+         * `<head>`, previo al `<body>`, y lo ejecuta de forma síncrona y
+         * bloqueante para el pintado, exactamente lo que un anti-flash de
+         * tema necesita. Sigue funcionando bajo `output: "export"`: es HTML/
+         * JS plano en el fichero estático, no depende de ninguna ruta de
+         * servidor.
+         *
+         * `dangerouslySetInnerHTML` es deliberado y seguro, mismo criterio
+         * que documenta `JsonLdScript.tsx`: `buildThemeBootstrapScript()`
+         * construye el texto ÍNTEGRAMENTE en este repo, a partir de código
+         * propio (`resolveInitialTheme.toString()`) y de una constante
+         * propia (`STORAGE_KEYS.theme`) — nunca de entrada de usuario ni de
+         * una respuesta de red — así que no hay nada que un atacante pueda
+         * inyectar a través de esta prop. El script en sí es mínimo (una
+         * IIFE que lee `localStorage`/`matchMedia` y fija un atributo) y no
+         * toca el DOM más allá de `document.documentElement`.
+         *
+         * Qué hace: resuelve `localStorage` → `prefers-color-scheme` →
+         * "light" (decisión D-C, vinculante: storage gana a prefers) y fija
+         * `data-theme` en `<html>` antes del primer pintado.
+         * `GlobalStyles.tsx` lo lee vía `:root[data-theme="dark"]` para
+         * adelantar en CSS puro los valores que, sin este script, solo
+         * llegarían tras el efecto de corrección de `ThemeProvider` (CLS
+         * medido: 0,0799 en el arranque oscuro de escritorio, spec §3.1 del
+         * plan premium). `ThemeProvider` SIGUE arrancando en "light" en su
+         * propio estado de React (no puede leer `localStorage` durante el
+         * render sin romper el export estático ni arriesgar un mismatch de
+         * hidratación en las secciones que ramifican por tema) — este
+         * script no sustituye esa corrección, la hace invisible.
+         */}
+        <Script
+          id="theme-bootstrap"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: buildThemeBootstrapScript() }}
+        />
         {/* Datos estructurados de sitio, una sola vez para todas las rutas.
             La `WebPage` concreta la declara cada página legal en su propio
             `page.tsx`. */}

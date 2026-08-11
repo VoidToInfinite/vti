@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { ThemeProvider as SCThemeProvider } from "styled-components";
 import { STORAGE_KEYS } from "@/config/storage";
+import { resolveInitialTheme } from "./resolveTheme";
 import { themes, type ThemeName } from "./themes";
 
 /**
@@ -51,20 +52,44 @@ export function ThemeProvider({
     useState<ThemeChangeSource>("initial");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(
-      STORAGE_KEYS.theme,
-    ) as ThemeName | null;
-    // Reading localStorage during render would break the static export's
-    // prerendered HTML (no `window`) and risk a hydration mismatch. Syncing
-    // it once, client-side only, after mount is the correct SSR-safe pattern.
-    if (stored === "light" || stored === "dark") {
+    // Misma lógica de resolución que el script inline de `app/layout.tsx`
+    // (`resolveInitialTheme`, `src/theme/resolveTheme.ts`) — decisión D-C:
+    // localStorage gana a `prefers-color-scheme`; sin storage, decide el
+    // sistema (Task 9). Reading localStorage/matchMedia during render
+    // would break the static export's prerendered HTML (no `window`) and
+    // risk a hydration mismatch. Syncing it once, client-side only, after
+    // mount is the correct SSR-safe pattern: React state STAYS "light" for
+    // the very first client render (identical to the baked HTML), so this
+    // never causes a hydration mismatch, even though a few components may
+    // repaint once the value corrects.
+    const stored = window.localStorage.getItem(STORAGE_KEYS.theme);
+    // jsdom no implementa `matchMedia` (lección ya documentada en
+    // `providers.test.tsx` para `StageProvider`) y este efecto ahora corre
+    // en CADA test que monta `ThemeProvider` vía `renderWithProviders`
+    // -- decenas de ficheros que no tienen por qué conocer ni stubear esta
+    // API. Igual que el catch homólogo de `resolveTheme.ts`
+    // (`buildThemeBootstrapScript`), degradar a "sin preferencia detectada"
+    // en vez de propagar es lo correcto también en un navegador real sin
+    // soporte, no solo un parche de test.
+    let prefersDark = false;
+    try {
+      prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    } catch {
+      /* sin matchMedia: se resuelve como si no hubiera preferencia */
+    }
+    const resolved = resolveInitialTheme(stored, prefersDark);
+    // Solo hace falta corregir cuando el resultado difiere del "light" con
+    // el que este proveedor SIEMPRE arranca (build-time default): storage
+    // explícito en "light", o sistema claro sin storage, no generan ningún
+    // ajuste — mismo comportamiento que antes de esta tarea para ese caso.
+    if (resolved !== "light") {
       // Los dos setState del mismo efecto se agrupan en un unico render, asi
       // que ningun consumidor llega a ver el tema nuevo con el origen viejo.
       // El linter senala el PRIMER setState del bloque, asi que la excepcion
       // va aqui y cubre a los dos.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setChangeSource("hydration");
-      setTheme(stored);
+      setTheme(resolved);
     }
   }, []);
 
