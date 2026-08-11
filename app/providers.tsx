@@ -18,11 +18,12 @@ export function Providers({
     <StyledComponentsRegistry>
       <ThemeProvider>
         <GlobalStyles />
-        {/* Dentro de ThemeProvider (spec §7.1): el hero y el navbar que
-            consumen useStage() ya viven los dos en este mismo árbol, y es
-            la ubicación natural de cualquier proveedor "de interfaz
-            global" de la página -- ver el docblock de StageProvider para
-            por qué no necesita leer el tema en sí. */}
+        {/* Dentro de ThemeProvider (spec §7.1): su único consumidor vivo,
+            HeroBackdrop, ya vive en este mismo árbol, y es la ubicación
+            natural de cualquier proveedor "de interfaz global" de la página
+            -- ver el docblock de StageProvider para por qué no necesita leer
+            el tema en sí, y para el estado abierto de su `phase` desde que
+            la copia y el navbar pasaron a CSS estático (2026-08-11). */}
         {/* Aquí vivía `ConsentProvider` + `CookieBanner`, retirados el
             2026-08-08. No se "simplificó" el árbol: la revisión legal de esa
             fecha comprobó que el sitio no escribe NADA que requiera

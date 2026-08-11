@@ -247,9 +247,10 @@ const ScBar = styled.div`
        (arriba) tiene MAYOR especificidad (selector de atributo + clase) que
        el & suelto de justo encima (solo clase) -- sin redeclararlo aquí
        dentro, bajo reduce ganaría la transition CON easings reales de ese
-       bloque en vez de "none", exactamente el mismo patrón que ScHeader ya
-       resuelve redeclarando &[data-intro="pending"] dentro de su propio
-       bloque reduce (ver más arriba). */
+       bloque en vez de "none". El mismo patrón lo resuelve ScNavPanel (más
+       abajo) redeclarando su &[data-open="true"] dentro de su propio bloque
+       reduce; ScHeader era el otro ejemplo hasta 2026-08-11, cuando su
+       intro dejó de tener estado anidado que redeclarar. */
     [data-scrolled="true"] & {
       transition: none;
     }

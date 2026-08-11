@@ -619,8 +619,8 @@ const ScPillarGrid = styled.div`
  * primero. Con dos elementos, la entrada (aquí) y el hover (`ScPillarCard`)
  * no comparten `transition-delay`.
  *
- * `:nth-child` (D9, patrón `data-intro`/`nth-child` de `ScCopy` en
- * Hero.tsx), NO una prop `$index`: las CUATRO tarjetas son el MISMO
+ * `:nth-child` (D9, mismo patrón de escalonado por `nth-child` que `ScCopy`
+ * en Hero.tsx), NO una prop `$index`: las CUATRO tarjetas son el MISMO
  * componente en el MISMO contenedor (`ScPillarGrid`), así que su posición ya
  * la da el DOM -- no hace falta que React se la pase por prop. El selector
  * es DESCENDIENTE (`[data-revealed="true"] &`), no `&[data-revealed="true"]

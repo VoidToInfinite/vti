@@ -35,8 +35,27 @@ const StageContext = createContext<StageValue | null>(null);
  * token de movimiento crudo, ver `stage.ts`, precisamente porque este
  * proveedor no puede depender de qué tema esté activo), sino porque es la
  * ubicación natural de cualquier proveedor "de interfaz global" del árbol, y
- * porque el hero y el navbar que consumen `useStage()` ya viven los dos
- * dentro de ese mismo árbol.
+ * porque `HeroBackdrop`, que consume `useStage()`, ya vive dentro de ese
+ * mismo árbol.
+ *
+ * ESTADO ABIERTO (2026-08-11, Task 10 del plan premium — enmienda §5.5 de la
+ * spec). Este proveedor sigue montado y `HeroBackdrop` sigue llamando a
+ * `markBackdropRevealed()`, pero `phase` **ya no tiene ningún consumidor**:
+ * los dos que tenía —la copia del hero y el navbar— pasaron a animar su
+ * entrada con `@keyframes` estáticas, porque encadenarla a la hidratación
+ * costaba hasta 3,7 s de LCP (medido). Con ello, la red de seguridad de
+ * `STAGE_FALLBACK_MS` tampoco protege ya nada: ninguna página puede quedarse
+ * con el navbar invisible por falta de aviso.
+ *
+ * Retirar la máquina entera es la conclusión lógica, pero es una decisión de
+ * arquitectura por encima del alcance de aquella tarea (cuyo encargo pedía
+ * expresamente parar y reportar ante cualquier conflicto con esta máquina en
+ * vez de forzar), así que se deja anotada aquí en vez de ejecutada en
+ * silencio. Quien la retome: los ficheros implicados son este, `stage.ts`,
+ * `StageProvider.test.tsx`, `app/providers.tsx` y las tres llamadas de
+ * `HeroBackdrop.tsx` (`useStage`, `revealedRef`, la dependencia de
+ * `finishLoad`), más los envoltorios `<StageProvider>` de los tests que
+ * montan hero o navbar.
  */
 export function StageProvider({
   children,
