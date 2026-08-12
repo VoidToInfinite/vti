@@ -155,7 +155,29 @@ Preguntas que el sitio deja sin responder al final del recorrido: ¿quiénes soi
 
 ## 10. Datos que necesita dar el dueño
 
-Lista íntegra de 21 puntos, tal como los identificó la auditoría del 2026-08-08. Se separan en dos bloques porque tienen naturaleza distinta: los primeros diez son **bloqueantes legales** (sin ellos, `/privacidad` y `/aviso-legal` no son publicables); los once restantes son **decisiones de producto** (afectan al copy y a la arquitectura de información, no a la legalidad de las páginas).
+### Decisiones de Fase 0 ya tomadas (13 de 14 — plan premium F1-F5, encargo del dueño, 2026-08-10)
+
+Fuente estratégica: nota del vault `01-Projects/vti/typescript/specs/2026-08-09-plan-premium-por-fases-90.md` (§5, no accesible desde este repo — se cita tal como la trae el plan operativo, `docs/superpowers/plans/2026-08-10-implementacion-plan-premium-f1-f5.md`, Global Constraint 6). El dueño respondió 13 de las decisiones de Fase 0 pedidas; **la decimocuarta no está identificada en ninguna fuente accesible desde este repo** — se declara `_por completar_` en vez de adivinar cuál es, siguiendo el protocolo de veracidad. Las 13 respondidas, con dónde viven en el código:
+
+1. **Identidad de VoidToInfinite: «proyecto creativo».** Responde directamente la pregunta 11 de más abajo (¿equipo, espacio o proyecto?) — queda marcada RESUELTA.
+2. **Línea del hero, candidata C (ya implementada).** Texto exacto, verbatim: ES «Del vacío al infinito: un proyecto para aprender, imaginar y jugar.» / EN «From the void to infinity: a project for learning, imagining and playing.» — clave `Home.hero.tagline`, Task 14 (2026-08-11), ver §5 y §9 de este documento.
+3. **`hero.support` fuera del pliegue.** El párrafo «Aunque el infinito…» sale del hero y aterriza en la apertura de Story (`Home.story.support`) — Task 14, mismo commit que el punto anterior.
+4. **Tema = piel con contenido unificado.** Revierte la lectura previa de `DESIGN.md` §4 («el tema NO es una piel»): las cuatro secciones comparten hoy un único árbol de contenido; solo el arte y el vehículo (tarjeta vs. deck) ramifican por tema. Tasks 15-16 (2026-08-11) — ver `DESIGN.md` §4, enmienda 2026-08-12. Responde de facto los hallazgos de §8 sobre "Features en oscuro pierde `h2`" e "interacción de contacto distinta por tema", ambos cerrados por esta misma vía (ver esas entradas más abajo).
+5. **`prefers-color-scheme` inicial (con anti-flash).** `localStorage` gana a `prefers-color-scheme`; sin storage, decide el sistema — Task 9 (2026-08-11) y su corrección, Task 34 (2026-08-12, "detectar no es elegir": la detección automática dejó de persistirse como si fuera una elección).
+6. **CTAs de Features a `#contact`.** Confirma el destino ya vigente (no lo cambia): los tres CTA siguen resolviendo en un `mailto:` vía `#contact`. Responde la pregunta 13 de más abajo — queda marcada RESUELTA (decisión: mantener, no un destino nuevo).
+7. **`/en` no indexable.** Responde la pregunta 19 de más abajo — queda marcada RESUELTA. No implica ningún cambio de código en esta ronda (el estado actual, sin rutas `/en` indexables, ya cumplía la decisión); ver "Fuera de alcance" del plan operativo, que excluye explícitamente hacer `/en` indexable o añadir hreflang.
+8. **Claves fósiles conservadas como roadmap documentado.** El dueño pidió explícitamente NO borrarlas: `framework`/`games`/`projects`/`reflection` (`Common.Navigation.*`) se conservan como roadmap, no como restos muertos. Responde la pregunta 18 de más abajo — queda marcada RESUELTA. Sin cambio de código en esta ronda (la decisión es "conservar", no "implementar"); la entrada correspondiente de `RULES.md` ("Deuda conocida") queda pendiente de anotar con esta decisión en una tarea futura que toque ese fichero.
+9. **Numeración honesta.** Fuera «Paso»/«Step» de los pilares de Story (`Home.story.stepLabel`, retirada es/en); fuera el 01/02/03 decorativo de Features (`ScBadge`); Journey conserva su numeración real y la rama clara la conecta con sus 6 pasos en las dos ramas. Tasks 15-16 (2026-08-11); Task 21 del plan queda subsumida.
+10. **`sizes` móvil en las 4 escenas.** Ampliado más allá del alcance original (que preveía solo Story): `storyCosmicBeing` desde la Task 12, y `featuresCelestialOrbital`/`journeyCosmicPortal`/`contactCosmicGuardian` desde la Task 30 (2026-08-11, gate F2, decisión del dueño con capturas delante) — los cuatro con `(max-width: 700px) 340px, 100vw`. Ver `PRE-LAUNCH-QA.md` §4 para la cifra de presupuesto de página resultante (2.405.231 B, por debajo de 3 MB por primera vez).
+11. **Radios de tarjeta a 16px.** Las tarjetas de Features bajan de 26px a `theme.data.radius.xl` (16px) — Task 23 (2026-08-12). Ver `DESIGN.md` §5.1/§9.
+12. **`overshoot` identidad sancionada.** El rebote del despegue del navbar (`motion.easing.overshoot`) se conserva a propósito pese a que el detector anti-slop lo marca — documentado como excepción de identidad en `DESIGN.md` §5.1, Task 23.
+13. **Kicker con voz en Features.** `Home.features.kicker` = «¿Por dónde empiezas?» / «Where do you begin?», paralelo del kicker ya sancionado de Story — Task 15 (2026-08-11), decisión D1 de ese informe.
+
+**Los datos D-D (10 bloqueantes legales) y D-B (producto, pendientes) siguen sin respuesta.** La nota del vault los agrupa como "D-B, 6 de producto" pendientes; **este documento no puede verificar esa cifra de 6 de forma independiente** — cotejando los 13 puntos de arriba contra la lista original de 11 decisiones de producto (11-21, más abajo), 4 quedan resueltas (11, 13, 18, 19) y **7** siguen abiertas (12, 14, 15, 16, 17, 20, 21), no 6. La discrepancia se declara en vez de forzarse: puede deberse a que la enumeración "D-B" del vault no sea 1:1 con la lista de 11 puntos de este documento (por ejemplo, si agrupa dos preguntas relacionadas como una sola decisión pendiente), pero no hay forma de confirmarlo desde este repo. Los siete puntos de producto sin responder, y los diez legales, se marcan `_por completar_` tal cual — no se inventan.
+
+### Datos que necesita dar el dueño
+
+Lista íntegra de 21 puntos, tal como los identificó la auditoría del 2026-08-08. Se separan en dos bloques porque tienen naturaleza distinta: los primeros diez son **bloqueantes legales** (sin ellos, `/privacidad` y `/aviso-legal` no son publicables); los once restantes son **decisiones de producto** (afectan al copy y a la arquitectura de información, no a la legalidad de las páginas). **Estado actualizado 2026-08-12 (Task 25):** de los once de producto, 11/13/18/19 quedan RESUELTOS por las decisiones de Fase 0 de arriba; el resto sigue `_por completar_`.
 
 ### Bloqueantes legales
 
@@ -172,14 +194,14 @@ Lista íntegra de 21 puntos, tal como los identificó la auditoría del 2026-08-
 
 ### Decisiones de producto
 
-11. ¿Qué es VoidToInfinite hoy — equipo, espacio o proyecto? (§1: las tres definiciones conviven sin que ninguna se haya fijado como la oficial).
-12. ¿Existe de verdad la plataforma que Features promete, o el Aviso legal dice la verdad al negarla?
-13. ¿A dónde deberían llevar realmente los tres CTA de Features, si no es a un `mailto:` genérico?
-14. ¿Qué es el SDK (`VTI - SDK`, `dev.voidtoinfinite.com`) y para quién está pensado?
-15. ¿Hay algo ya hecho que se pueda enseñar como prueba (un repositorio, una entrega, un canal activo)?
-16. ¿Quiénes están detrás del proyecto?
-17. ¿Desde cuándo existe VoidToInfinite?
-18. Las claves de navegación `framework`, `games`, `projects` y `reflection`: ¿son secciones planificadas o restos de una iteración anterior?
-19. Estrategia de idioma: ¿debe `/en` ser indexable, o el inglés es solo una cortesía para quien ya está en el sitio?
-20. ¿Existen otras plataformas propias además de GitHub y Discord que deban enlazarse?
-21. Métricas reales, si algún día se quiere aportar prueba social — hoy no existe ninguna cifra verificable en el repo.
+11. ~~¿Qué es VoidToInfinite hoy — equipo, espacio o proyecto? (§1: las tres definiciones conviven sin que ninguna se haya fijado como la oficial).~~ **RESUELTA (Fase 0, plan premium F1-F5, 2026-08-10): «proyecto creativo».** Ver la lista de decisiones de Fase 0, arriba. El copy de §1 (`SITE.description`, "equipo creativo") y `Home.story.body` ("un espacio") no se han actualizado todavía para reflejar esta decisión — la ambigüedad de §1 sigue viva EN EL COPY hasta que una tarea de contenido lo alinee; lo que queda resuelto es la decisión, no (todavía) su propagación al texto publicado.
+12. ¿Existe de verdad la plataforma que Features promete, o el Aviso legal dice la verdad al negarla? `_por completar_`.
+13. ~~¿A dónde deberían llevar realmente los tres CTA de Features, si no es a un `mailto:` genérico?~~ **RESUELTA (Fase 0, 2026-08-10): siguen a `#contact`/`mailto:`.** El dueño decidió mantener el destino actual, no uno nuevo — ver la lista de decisiones de Fase 0, arriba.
+14. ¿Qué es el SDK (`VTI - SDK`, `dev.voidtoinfinite.com`) y para quién está pensado? `_por completar_` (declarado explícitamente fuera de alcance por el plan operativo del 2026-08-10: "explicación de VTI-SDK, F3.4 — necesita hechos del dueño").
+15. ¿Hay algo ya hecho que se pueda enseñar como prueba (un repositorio, una entrega, un canal activo)? `_por completar_`.
+16. ¿Quiénes están detrás del proyecto? `_por completar_`.
+17. ¿Desde cuándo existe VoidToInfinite? `_por completar_`.
+18. ~~Las claves de navegación `framework`, `games`, `projects` y `reflection`: ¿son secciones planificadas o restos de una iteración anterior?~~ **RESUELTA (Fase 0, 2026-08-10): se conservan como roadmap documentado — encargo explícito del dueño de no borrarlas.** Ver la lista de decisiones de Fase 0, arriba. Sin cambio de código todavía: la decisión es "conservar y documentar", no "implementar"; `RULES.md` ("Deuda conocida", entrada "Claves `Common.Navigation.*` fósiles") sigue sin la anotación de esta decisión, pendiente de una tarea que toque ese fichero.
+19. ~~Estrategia de idioma: ¿debe `/en` ser indexable, o el inglés es solo una cortesía para quien ya está en el sitio?~~ **RESUELTA (Fase 0, 2026-08-10): `/en` NO indexable.** Confirma el estado actual del código — ver la lista de decisiones de Fase 0, arriba.
+20. ¿Existen otras plataformas propias además de GitHub y Discord que deban enlazarse? `_por completar_`.
+21. Métricas reales, si algún día se quiere aportar prueba social — hoy no existe ninguna cifra verificable en el repo. `_por completar_`.

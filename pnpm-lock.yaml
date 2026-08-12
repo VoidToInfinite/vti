@@ -27,6 +27,9 @@ importers:
         specifier: ^6.4.0
         version: 6.4.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
+      '@cspell/dict-es-es':
+        specifier: ^3.0.8
+        version: 3.0.8
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -248,6 +251,9 @@ packages:
 
   '@cspell/dict-en_us@4.4.36':
     resolution: {integrity: sha512-2yOhI/+7d1DbfvMljGW4jw8pLqDEsVmnvUXBOCFXtLU2BWgQkrqOJDCNseYjEiEbTp0OtdrWEWWPFSP1TNugQw==}
+
+  '@cspell/dict-es-es@3.0.8':
+    resolution: {integrity: sha512-tj4zYKYWtAFc+JWtJo0DxLAve7I0UJM5+6we3hvLyzQlhGCBF41cTihPa/cbLHUkTD6PkrVGf1hgOKuSR9hkMQ==}
 
   '@cspell/dict-filetypes@3.0.18':
     resolution: {integrity: sha512-yU7RKD/x1IWmDLzWeiItMwgV+6bUcU/af23uS0+uGiFUbsY1qWV/D4rxlAAO6Z7no3J2z8aZOkYIOvUrJq0Rcw==}
@@ -3280,6 +3286,8 @@ snapshots:
   '@cspell/dict-en-gb@1.1.33': {}
 
   '@cspell/dict-en_us@4.4.36': {}
+
+  '@cspell/dict-es-es@3.0.8': {}
 
   '@cspell/dict-filetypes@3.0.18': {}
 

@@ -18,10 +18,11 @@
     ],
     "languageSettings": [
         {
-            "languageId": "c,cpp,javascript,typescript,jsx",
+            "languageId": "*",
             "locale": "en, en-US, es"
         }
     ],
+    "import": ["@cspell/dict-es-es/cspell-ext.json"],
     "dictionaryDefinitions": [
         {
             "name": "cspell-words",
@@ -34,7 +35,7 @@
             "addWords": true
         }
     ],
-    "dictionaries": ["cspell-words", "cspell-es-words"],
+    "dictionaries": ["cspell-words", "cspell-es-words", "es-es"],
     "ignoreRegExpList": [
         "/```[\\w\\W]*?```/",
         "/~~~[\\w\\W]*?~~~/",

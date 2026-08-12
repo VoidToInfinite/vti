@@ -39,6 +39,7 @@
         "styled-components": "^6.4.0"
     },
     "devDependencies": {
+        "@cspell/dict-es-es": "^3.0.8",
         "@testing-library/dom": "^10.4.0",
         "@testing-library/jest-dom": "^6.6.0",
         "@testing-library/react": "^16.1.0",

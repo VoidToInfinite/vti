@@ -1,6 +1,6 @@
 # QA pendiente — viaje 3D (checklist para un humano con navegador real)
 
-> **AVISO (añadido 2026-08-09): las secciones §1-§7 están OBSOLETAS.** Describían la escena WebGL «El Descenso» (Three.js), retirada del repo por completo en la entrega Landing v2 del 2026-07-28 (ver la nota "2026-07-28 — Retirada de Three.js" más abajo, que ya lo declaraba a nivel de sección pero quedaba enterrada a mitad de documento). `src/three/` ya no existe, no hay `starfield.ts` que calibrar ni escena WebGL que perfilar: nada de §1-§7 es accionable hoy. El QA visual vigente de las secciones actuales de la home vive en `PRE-LAUNCH-QA.md` §6 (96 ítems numerados 1-49, ampliados el 2026-08-09 con los cambios de las Tareas 1-13 de la auditoría premium). §8 en adelante (jerarquía del Hero, coreografía de carga/tema, Navbar/Logo/CTAs, Landing v2) sigue vigente y se conserva sin cambios: no depende de Three.js.
+> **AVISO (añadido 2026-08-09): las secciones §1-§7 están OBSOLETAS.** Describían la escena WebGL «El Descenso» (Three.js), retirada del repo por completo en la entrega Landing v2 del 2026-07-28 (ver la nota "2026-07-28 — Retirada de Three.js" más abajo, que ya lo declaraba a nivel de sección pero quedaba enterrada a mitad de documento). `src/three/` ya no existe, no hay `starfield.ts` que calibrar ni escena WebGL que perfilar: nada de §1-§7 es accionable hoy — sus casillas abiertas se han neutralizado in situ (marcadas `N/A`, sin marcarlas `[x]` ni borrar el enunciado: nadie las verificó, dejaron de tener sentido) para que no se lean como pendientes de un QA real. El QA visual vigente de las secciones actuales de la home vive en `PRE-LAUNCH-QA.md` §6. **Cifra corregida 2026-08-12 (Task 25):** la cifra de "96 ítems numerados 1-49" que esta nota traía hasta hoy era incorrecta en las dos partes — el propio rango 1-49 solo suma 49 ítems, no 96 (posible confusión con un recuento de casillas incluyendo alguna otra sección, nunca reconciliada); contando literalmente las casillas de `PRE-LAUNCH-QA.md` §6 hoy (`grep -cE '^\s*-\s*\[[ x]\]'` acotado a esa sección) da **60 ítems** (numerados 1-59, más el 40.b) tras las ampliaciones del 2026-08-09 (Tareas 1-13 de la auditoría premium, +8), del 2026-08-11 (Task 15 del plan premium F1-F5, +2) y del 2026-08-12 (Tasks 16-35 del mismo plan, +8, Task 25). §8 en adelante (jerarquía del Hero, coreografía de carga/tema, Navbar/Logo/CTAs, Landing v2) sigue vigente y se conserva sin cambios: no depende de Three.js.
 >
 > **Petición de perfil de FPS actualizada** (sustituye a la de §1-§2, que pedía perfilar el descenso WebGL): las dos escenas de sección con más capas animadas hoy son `storyCosmicBeing` (11 capas: 1 base opaca `blend: "normal"` + 10 aditivas `blend: "plus-lighter"`, verificado en `src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts`) y `featuresCelestialOrbital` (7 capas, todas con blend `"normal"` — sin `mix-blend-mode`, D12 de su spec —, verificado en `src/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers.ts`). Nadie ha perfilado el coste de compositor de ninguna de las dos en un navegador real. Cómo: DevTools → Performance, grabar ~5s de scroll continuo por Story (oscuro) y por Features (oscuro) por separado, comparar FPS medio, tiempo de scripting/pintado por frame y long tasks entre las dos — la hipótesis a confirmar o refutar es si el blending aditivo de 10 capas de Story cuesta perceptiblemente más que las 7 capas sin blend especial de Features, y si alguna de las dos cae por debajo de 55 FPS sostenidos.
 
@@ -23,7 +23,7 @@ Marca cada casilla solo tras comprobarlo de verdad en un navegador real (no en e
 
 **Si baja de 50 FPS:** reduce los valores de `starCountForViewport` en `src/three/starfield.ts` (los cortes actuales — 500 / 900 / `DEFAULT_STAR_COUNT` = 1200 — son el punto de partida, no un suelo). Vuelve a medir tras el cambio.
 
-- [ ] Medido en escritorio. Dispositivo/navegador: **\_\_\_**. FPS medio: **\_\_\_**. Long tasks: **\_\_\_**.
+- [N/A] Medido en escritorio. Dispositivo/navegador: **\_\_\_**. FPS medio: **\_\_\_**. Long tasks: **\_\_\_**.
 
 ---
 
@@ -38,7 +38,7 @@ Marca cada casilla solo tras comprobarlo de verdad en un navegador real (no en e
 
 **Si baja de 50 FPS:** reduce `starCountForViewport` para el rango `<=640` (móvil) primero; si con eso no basta, reduce también el rango `<=1024`. Documenta el valor final elegido y por qué.
 
-- [ ] Medido en móvil/throttling. Dispositivo o throttling usado: **\_\_\_**. FPS medio: **\_\_\_**. ¿Se ajustó `starCountForViewport`? **\_\_\_** (valores antes → después).
+- [N/A] Medido en móvil/throttling. Dispositivo o throttling usado: **\_\_\_**. FPS medio: **\_\_\_**. ¿Se ajustó `starCountForViewport`? **\_\_\_** (valores antes → después).
 
 ---
 
@@ -46,10 +46,10 @@ Marca cada casilla solo tras comprobarlo de verdad en un navegador real (no en e
 
 Activa la preferencia (macOS: Ajustes → Accesibilidad → Pantalla → Reducir movimiento; Windows: Configuración → Accesibilidad → Efectos visuales → Animaciones desactivadas; o en Chrome DevTools → Cmd/Ctrl+Shift+P → "Emulate CSS prefers-reduced-motion: reduce"), recarga la página, y comprueba:
 
-- [ ] **El ojo no respira ni sigue al cursor.** Mueve el ratón sobre el hero: el iris no debe desplazarse hacia el puntero, y no debe haber ninguna pulsación/escala periódica visible en el ojo.
-- [ ] **El descenso no ocurre: se ve el gradiente.** Haz scroll por la sección de "El Descenso": la cámara no debe avanzar ni aparecer el campo de estrellas — debe quedarse visible el gradiente CSS de fondo (el fallback de `SceneLoader`, no una imagen — no busques un `.webp`).
-- [ ] **Los reveals de sección aparecen sin desplazamiento.** En Story y Features (las secciones que usan reveal por scroll), el contenido debe aparecer/desaparecer (cambio de opacidad) sin ningún desplazamiento vertical/horizontal al entrar en viewport.
-- [ ] **El anillo de foco sigue visible al tabular.** Con el teclado (`Tab` desde el principio de la página), cada control interactivo (enlaces, botones, inputs, toggles) debe mostrar un anillo de foco claramente visible (2px, color `theme.data.semantic.focus`, con offset) en cada parada. Confirma explícitamente que reduced-motion no lo atenúa ni lo hace desaparecer — el foco **nunca** se anima ni se suprime, con o sin reduced-motion.
+- [N/A] **El ojo no respira ni sigue al cursor.** Mueve el ratón sobre el hero: el iris no debe desplazarse hacia el puntero, y no debe haber ninguna pulsación/escala periódica visible en el ojo.
+- [N/A] **El descenso no ocurre: se ve el gradiente.** Haz scroll por la sección de "El Descenso": la cámara no debe avanzar ni aparecer el campo de estrellas — debe quedarse visible el gradiente CSS de fondo (el fallback de `SceneLoader`, no una imagen — no busques un `.webp`).
+- [N/A] **Los reveals de sección aparecen sin desplazamiento.** En Story y Features (las secciones que usan reveal por scroll), el contenido debe aparecer/desaparecer (cambio de opacidad) sin ningún desplazamiento vertical/horizontal al entrar en viewport.
+- [N/A] **El anillo de foco sigue visible al tabular.** Con el teclado (`Tab` desde el principio de la página), cada control interactivo (enlaces, botones, inputs, toggles) debe mostrar un anillo de foco claramente visible (2px, color `theme.data.semantic.focus`, con offset) en cada parada. Confirma explícitamente que reduced-motion no lo atenúa ni lo hace desaparecer — el foco **nunca** se anima ni se suprime, con o sin reduced-motion.
 
 ---
 
@@ -57,9 +57,9 @@ Activa la preferencia (macOS: Ajustes → Accesibilidad → Pantalla → Reducir
 
 **Cómo:** en Chrome, `chrome://flags` → deshabilita "WebGL"/"WebGL2", o usa un navegador que no soporte WebGL (o DevTools → Rendering → "Disable WebGL" si tu versión lo expone), y recarga la página desde cero.
 
-- [ ] **Se ve el gradiente CSS** en la zona del canvas (no un rectángulo vacío/negro).
-- [ ] **No falta ningún contenido.** Recorre la página entera: toda la copia (Hero, Story, Features, Contact), todos los CTAs y todos los enlaces (Socials, Navbar) siguen presentes.
-- [ ] **Todo es navegable por teclado.** `Tab` a través de toda la página sin WebGL: cada CTA, cada link, cada control debe ser alcanzable y activable (`Enter`/`Space`), con el mismo anillo de foco visible del punto anterior.
+- [N/A] **Se ve el gradiente CSS** en la zona del canvas (no un rectángulo vacío/negro).
+- [N/A] **No falta ningún contenido.** Recorre la página entera: toda la copia (Hero, Story, Features, Contact), todos los CTAs y todos los enlaces (Socials, Navbar) siguen presentes.
+- [N/A] **Todo es navegable por teclado.** `Tab` a través de toda la página sin WebGL: cada CTA, cada link, cada control debe ser alcanzable y activable (`Enter`/`Space`), con el mismo anillo de foco visible del punto anterior.
 
 ---
 
@@ -67,19 +67,19 @@ Activa la preferencia (macOS: Ajustes → Accesibilidad → Pantalla → Reducir
 
 Nada de esto lo ha podido comprobar ningún agente de este entorno — es la primera vez que un ojo humano ve el resultado real:
 
-- [ ] **Composición del ojo (hero):** el hero monta las cinco capas de `public/hero/eye/*.webp` con blending aditivo. Confirma que el resultado se ve como la imagen de referencia (`assets/hero-eye/`, composición completa): párpado, campo de nebulosa, corona e interior de la pupila, sin costuras ni halos entre capas y sin banda visible por la compresión WebP en los degradados oscuros.
-- [ ] **Encuadre en vertical:** en móvil el marco se amplía al 185% del ancho (recorta las puntas del párpado a propósito). Confirma que el encuadre resultante se sostiene y que la copia queda dentro del ojo, no desbordándolo.
-- [ ] **Contraste de la copia sobre la corona:** los párrafos del hero son más anchos que la pupila y sus extremos caen sobre la corona iluminada. Hay velo radial + sombra de texto, pero **el contraste real no se ha medido en píxeles**: comprueba con un medidor de contraste sobre captura real que el texto pasa AA (4.5:1) también en los extremos de línea.
-- [ ] **`plus-lighter` vs `screen`:** el aditivo usa `plus-lighter` con fallback a `screen` (`@supports`). Comprueba el hero en un navegador sin `plus-lighter` (Firefox < 122) y confirma que la diferencia no es perceptible.
-- [ ] **Parallax al cursor:** mueve el ratón sobre el hero (con reduced-motion **desactivado**) y confirma que las capas siguen al puntero de forma suave (lerp, sin saltos ni jitter), que la pupila se mueve más que el párpado, y que ninguna capa deja ver un borde transparente al desplazarse.
-- [ ] **Pulso al click:** un click/tap sobre el fondo del hero dispara el anillo que se expande desde la pupila, y se puede repetir inmediatamente.
-- [ ] **Transición póster → escena viva:** confirma que el fundido de opacidad entre el gradiente CSS y el canvas de Three.js (cuando WebGL y reduced-motion lo permiten) no produce un salto de color perceptible.
-- [ ] **Marca-esquina persistente (`EyeCornerMark`):** al pasar el hero, confirma que la marca aparece de forma legible y no se superpone de forma confusa con el contenido siguiente.
-- [ ] **Mascota del centro del ojo:** en tema **oscuro** el centro lo ocupa el `Wormhole` portado de `vti-sdk` (remolino + 4 anillos + núcleo); en **claro**, `Sol` (halo, corona, 12 rayos, núcleo blanco y, cada 8 minutos o al hacer click, la cara brújula). Ocupan exactamente el diámetro de la pupila pintada: confirma que el anillo exterior del Wormhole cae sobre el borde de la pupila sin leerse como un recorte, y que el halo de Sol (que se sale de su caja por diseño, 165%) no invade el párpado.
-- [ ] **La mascota sigue al cursor con la pupila:** mueve el ratón sobre el hero (reduced-motion **desactivado**) y confirma que la mascota se desplaza **exactamente igual** que la pupila pintada — misma profundidad de parallax — sin despegarse del pozo ni arrastrarse por detrás. Verificado en test unitario conduciendo el rAF a mano; en un navegador real no lo ha visto nadie.
-- [ ] **Sol contra la copia:** el velo de contraste del hero apaga justo el centro, que es donde Sol tiene su núcleo blanco, y ahora que la mascota cabe dentro de la pupila queda entera bajo el velo. Decisión tomada a favor de la legibilidad del texto: mira si el sol queda demasiado apagado y si compensa aflojar el velo (`ScScrim` en `Hero.tsx`).
-- [ ] **Pulso al click:** en oscuro la respuesta al click es la coreografía completa del Wormhole (destello del remolino, anillos que fulguran, dos ondas de choque escalonadas a 1200/1300ms); en claro es el anillo simple del ojo, y además Sol gira y cambia de cara. Comprueba los dos, y que un segundo click vuelve a disparar.
-- [ ] **Navbar sobre el hero:** arriba del todo la barra debe ser invisible (solo su contenido flotando sobre la composición) y al empezar a scrollear debe aparecer el cristal esmerilado. Comprueba los dos temas. En **tema claro** el cambio de color del texto de la barra ocurre en el mismo umbral que el cristal (8px): confirma que la transición no se lee como un parpadeo — el fondo se funde en 200ms y el color salta de golpe, y ese desfase solo se puede juzgar mirándolo.
+- [N/A] **Composición del ojo (hero):** el hero monta las cinco capas de `public/hero/eye/*.webp` con blending aditivo. Confirma que el resultado se ve como la imagen de referencia (`assets/hero-eye/`, composición completa): párpado, campo de nebulosa, corona e interior de la pupila, sin costuras ni halos entre capas y sin banda visible por la compresión WebP en los degradados oscuros.
+- [N/A] **Encuadre en vertical:** en móvil el marco se amplía al 185% del ancho (recorta las puntas del párpado a propósito). Confirma que el encuadre resultante se sostiene y que la copia queda dentro del ojo, no desbordándolo.
+- [N/A] **Contraste de la copia sobre la corona:** los párrafos del hero son más anchos que la pupila y sus extremos caen sobre la corona iluminada. Hay velo radial + sombra de texto, pero **el contraste real no se ha medido en píxeles**: comprueba con un medidor de contraste sobre captura real que el texto pasa AA (4.5:1) también en los extremos de línea.
+- [N/A] **`plus-lighter` vs `screen`:** el aditivo usa `plus-lighter` con fallback a `screen` (`@supports`). Comprueba el hero en un navegador sin `plus-lighter` (Firefox < 122) y confirma que la diferencia no es perceptible.
+- [N/A] **Parallax al cursor:** mueve el ratón sobre el hero (con reduced-motion **desactivado**) y confirma que las capas siguen al puntero de forma suave (lerp, sin saltos ni jitter), que la pupila se mueve más que el párpado, y que ninguna capa deja ver un borde transparente al desplazarse.
+- [N/A] **Pulso al click** (versión corta — duplicado del ítem "Pulso al click" más abajo en esta misma sección, que lo amplía con el detalle de Wormhole/Sol; señalado 2026-08-12, Task 25, sin borrar ninguno de los dos): un click/tap sobre el fondo del hero dispara el anillo que se expande desde la pupila, y se puede repetir inmediatamente.
+- [N/A] **Transición póster → escena viva:** confirma que el fundido de opacidad entre el gradiente CSS y el canvas de Three.js (cuando WebGL y reduced-motion lo permiten) no produce un salto de color perceptible.
+- [N/A] **Marca-esquina persistente (`EyeCornerMark`):** al pasar el hero, confirma que la marca aparece de forma legible y no se superpone de forma confusa con el contenido siguiente.
+- [N/A] **Mascota del centro del ojo:** en tema **oscuro** el centro lo ocupa el `Wormhole` portado de `vti-sdk` (remolino + 4 anillos + núcleo); en **claro**, `Sol` (halo, corona, 12 rayos, núcleo blanco y, cada 8 minutos o al hacer click, la cara brújula). Ocupan exactamente el diámetro de la pupila pintada: confirma que el anillo exterior del Wormhole cae sobre el borde de la pupila sin leerse como un recorte, y que el halo de Sol (que se sale de su caja por diseño, 165%) no invade el párpado.
+- [N/A] **La mascota sigue al cursor con la pupila:** mueve el ratón sobre el hero (reduced-motion **desactivado**) y confirma que la mascota se desplaza **exactamente igual** que la pupila pintada — misma profundidad de parallax — sin despegarse del pozo ni arrastrarse por detrás. Verificado en test unitario conduciendo el rAF a mano; en un navegador real no lo ha visto nadie.
+- [N/A] **Sol contra la copia:** el velo de contraste del hero apaga justo el centro, que es donde Sol tiene su núcleo blanco, y ahora que la mascota cabe dentro de la pupila queda entera bajo el velo. Decisión tomada a favor de la legibilidad del texto: mira si el sol queda demasiado apagado y si compensa aflojar el velo (`ScScrim` en `Hero.tsx`).
+- [N/A] **Pulso al click** (versión larga — duplica y amplía el ítem "Pulso al click" de más arriba en esta misma sección; señalado 2026-08-12, Task 25): en oscuro la respuesta al click es la coreografía completa del Wormhole (destello del remolino, anillos que fulguran, dos ondas de choque escalonadas a 1200/1300ms); en claro es el anillo simple del ojo, y además Sol gira y cambia de cara. Comprueba los dos, y que un segundo click vuelve a disparar.
+- [N/A] **Navbar sobre el hero:** arriba del todo la barra debe ser invisible (solo su contenido flotando sobre la composición) y al empezar a scrollear debe aparecer el cristal esmerilado. Comprueba los dos temas. En **tema claro** el cambio de color del texto de la barra ocurre en el mismo umbral que el cristal (8px): confirma que la transición no se lee como un parpadeo — el fondo se funde en 200ms y el color salta de golpe, y ese desfase solo se puede juzgar mirándolo.
 
 ---
 
@@ -87,8 +87,8 @@ Nada de esto lo ha podido comprobar ningún agente de este entorno — es la pri
 
 Las capas pesan **400 KiB** en la pista de 1672px y **224 KiB** en la de 1024px (medido con `du` sobre `public/hero/eye/`). La selección la hace el navegador con `srcset`/`sizes`, y `sizes` declara 60vw por debajo de 700px a propósito para que ningún móvil se lleve la pista grande.
 
-- [ ] **LCP medido:** Lighthouse o DevTools → Performance sobre el build de producción. Anota el LCP y qué elemento lo produce.
-- [ ] **Pista servida en móvil:** DevTools → Network, emulando un móvil, confirma que se descargan los `-1024.webp` y **no** los de 1672px.
+- [N/A] **LCP medido:** Lighthouse o DevTools → Performance sobre el build de producción. Anota el LCP y qué elemento lo produce.
+- [N/A] **Pista servida en móvil:** DevTools → Network, emulando un móvil, confirma que se descargan los `-1024.webp` y **no** los de 1672px.
 
 **Si el LCP no cumple:** el primer recorte razonable es bajar la calidad de las capas 01/03/04 (las tres pesadas) o añadir una pista intermedia; el script de conversión y su verificación de recomposición están descritos en el registro del vault de esta sesión.
 
@@ -98,9 +98,9 @@ Las capas pesan **400 KiB** en la pista de 1672px y **224 KiB** en la de 1024px 
 
 No se ha tocado en esta pasada, a la espera de tener la escena completa y correcta:
 
-- [ ] Tests de `src/three/Scene.tsx`.
-- [ ] Render loop en idle (la escena sigue pintando aunque no haya cambios ni esté en viewport).
-- [ ] Carga diferida por tiempo del módulo de Three.js.
+- [N/A] Tests de `src/three/Scene.tsx`.
+- [N/A] Render loop en idle (la escena sigue pintando aunque no haya cambios ni esté en viewport).
+- [N/A] Carga diferida por tiempo del módulo de Three.js.
 - [x] **Contraste de Story en tema claro — RESUELTO el 2026-07-25.** El síntoma registrado era real: `Story` monta el póster oscuro de `SceneLoader` y su copia usaba `semantic.text`, que en tema claro es casi negro (verificado en navegador: `oklch(0.32 0 286)` sobre el póster oscuro). Se ha resuelto con el mismo patrón que el hero: `Story.tsx` anida un `ThemeProvider` con el tema oscuro (`storyTheme`, constante de módulo con su justificación por escrito en el propio archivo), de modo que **todo** token dentro de la sección resuelve al valor diseñado para fondo oscuro en los dos temas de página. Cubierto por test (`Story.test.tsx`: la copia computa `semanticDark.text` renderizando bajo el `ThemeProvider` **claro** de la app, y `contrastRatio` ≥ 4.5:1 contra `semanticDark.bg`, contra el negro del hero y contra la parada más clara del póster tomada como opaca). **Sigue vivo arriba** (§8) el caso que esto NO cubre: el texto sobre la escena 3D **viva** en sus frames más claros, que solo se puede medir en píxeles con un navegador real.
 
 ---
@@ -311,4 +311,4 @@ Spec: `docs/superpowers/specs/2026-07-28-landing-v2-secciones-design.md`. Entreg
 - [ ] **Halos en los bordes de las figuras**: la pista 640 tiene ruido de des-premultiplicación medido (media 1.9–2.8/255, p99 48–66 en el borde alfa-parcial; `assets/figures/manifest.json`). Sin arreglo aplicado porque no se pudo juzgar percepción; mirar los contornos sobre los fondos pastel reales.
 - [ ] **Contraste AA del texto nuevo** sobre los degradados pastel (kickers, textMuted sobre las tarjetas de Journey/Contact) — los tokens vienen del sistema, pero los fondos son literales del mockup.
 - [ ] **Peso**: 4 de 6 pistas nativas superan el presupuesto orientativo de 150 KB (162–210 KB a q70). Decidir si duele en móvil real (todas cargan lazy, bajo el pliegue).
-- [ ] **`check-spelling` está roto a nivel de repo desde antes de esta entrega** (25.631 avisos en 113 archivos, incluidos archivos no tocados aquí: cspell sin diccionario español). Fuera del alcance; decidir si se configura o se retira del gate.
+- [x] **`check-spelling` estaba roto a nivel de repo desde antes de esta entrega** (25.631 avisos en 113 archivos en esta fecha 2026-07-28, cifra que siguió subiendo con el repo hasta 111.199/264 el 2026-08-12: cspell sin diccionario español real). **Corregido 2026-08-12 (Task 25):** diccionario `@cspell/dict-es-es` instalado y `languageSettings` ampliado a todo tipo de fichero — cae a 2.627 avisos en 221 ficheros (−97,6%), ruido mayormente jerga propia del repo. Sigue fuera de `pnpm run ci` a propósito (ver `PRE-LAUNCH-QA.md` §6 ítem 38 para el detalle completo).
