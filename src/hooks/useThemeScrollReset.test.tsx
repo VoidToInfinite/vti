@@ -60,14 +60,29 @@ function stubMatchMedia(reducedMatches: boolean): void {
 }
 
 /**
- * Hero de prueba: mismo `id="hero"` que busca `willCrossfade` en el hook
- * (`document.getElementById("hero") !== null`, ver useThemeScrollReset.ts).
- * Task 17 retiró `isInHeroZone()`: ya no hace falta un `getBoundingClientRect`
- * a medida, solo que el elemento exista en el documento.
+ * Hero de prueba: mismo `id="hero"` que busca `willCrossfade` en el hook.
+ *
+ * Fix wave B (2026-08-12): jsdom no hace layout (CLAUDE.md, sección 5,
+ * punto 2) -- `getBoundingClientRect()` de un elemento real siempre devuelve
+ * un rect en cero, que `isElementVisible()` (useThemeScrollReset.ts)
+ * interpretaría como "fuera del viewport" (`rect.bottom > 0` es falso con
+ * `bottom: 0`). Se sobreescribe `getBoundingClientRect` a mano, mismo patrón
+ * ya usado en `useSceneParallax.test.tsx`, para simular las dos posiciones
+ * que el candado de B5 necesita distinguir: `visible: true` (rect dentro del
+ * viewport, el caso por defecto -- y el único que existía antes de Task 17
+ * retirar `isInHeroZone()`, cuando "existe" y "se ve" coincidían siempre) y
+ * `visible: false` (rect con `bottom <= 0`, hero scrolleado por completo
+ * fuera de la parte superior del viewport -- el caso que motivó este fix:
+ * alguien que cambia de tema desde el pie de página).
  */
-function mountHero(): void {
+function mountHero(options: { visible?: boolean } = {}): void {
+  const { visible = true } = options;
   const hero = document.createElement("section");
   hero.id = "hero";
+  hero.getBoundingClientRect = () =>
+    (visible
+      ? { top: 100, bottom: 900 } // dentro del viewport (jsdom innerHeight 768)
+      : { top: -900, bottom: -100 }) as DOMRect; // scrolleado por encima, fuera de vista
   document.body.appendChild(hero);
 }
 
@@ -236,6 +251,47 @@ describe("useThemeScrollReset", () => {
 
       expect(result.current.themeName).toBe("dark");
       expect(result.current.busy).toBe(false);
+    });
+
+    /*
+     * Fix wave B (2026-08-12, hallazgo de review de rama): `willCrossfade`
+     * solo comprobaba que `#hero` EXISTIERA, no que se VIERA. El
+     * `<section id="hero">` sigue montado en toda la home (`HomeSections.tsx`)
+     * esté o no dentro del viewport -- alguien que cambia de tema desde el
+     * pie de página marcaba `aria-busy` durante los 1.830ms completos de
+     * `HERO_COPY_RETURN_MS` por un cruce que nunca iba a ocurrir fuera de
+     * pantalla. `mountHero({ visible: false })` simula exactamente ese caso:
+     * el elemento existe (`getElementById` lo encuentra) pero su
+     * `getBoundingClientRect()` cae fuera del viewport.
+     *
+     * Validado con el bug inyectado a propósito (informe de la tarea):
+     * revirtiendo temporalmente `willCrossfade` en `useThemeScrollReset.ts`
+     * a `!reduced && heroEl !== null` (el criterio de solo-existencia,
+     * anterior a este fix), este test cae en rojo (`busy` llega a `true`);
+     * restaurado, vuelve a verde.
+     */
+    it("con #hero montado pero FUERA del viewport (cambio de tema desde el pie): busy nunca se activa", () => {
+      mountHero({ visible: false });
+      const { result } = renderHarness();
+
+      act(() => {
+        result.current.requestThemeChange();
+      });
+
+      expect(result.current.themeName).toBe("dark");
+      expect(result.current.busy).toBe(false);
+    });
+
+    it("con #hero montado y visible: busy SÍ se activa (caso base sin regresión)", () => {
+      mountHero({ visible: true });
+      const { result } = renderHarness();
+
+      act(() => {
+        result.current.requestThemeChange();
+      });
+
+      expect(result.current.themeName).toBe("dark");
+      expect(result.current.busy).toBe(true);
     });
 
     it("un segundo clic legítimo durante la ventana de asentamiento la reinicia, en vez de dejar que la vieja apague busy a mitad del cruce nuevo", () => {

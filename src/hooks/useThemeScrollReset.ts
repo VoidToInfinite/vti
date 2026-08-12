@@ -33,7 +33,9 @@ import { useTheme } from "@/theme/ThemeProvider";
  *    temporizadores) y, tras el asentamiento, restaurar el `scrollY`
  *    original con un segundo `scrollTo`.
  *
- * Se eligió (A), con el código delante y estas razones:
+ * Se eligió (A), con el código delante y estas razones (1 y 3 siguen en
+ * pie; la 2 se corrigió el 2026-08-12, fix wave B -- ver la nota tras la
+ * lista):
  *
  * 1. `HERO_COPY_RETURN_MS` (`hero.transition.ts`) mide 1830ms -- el cruce de
  *    composiciones por sí solo, SIN contar el viaje de scroll previo (hasta
@@ -42,19 +44,49 @@ import { useTheme } from "@/theme/ThemeProvider";
  *    scroll automático (subida + bajada) por un simple cambio de color --
  *    más automatismo de scroll que el propio defecto que el hallazgo #5
  *    denuncia, no menos. La opción A no tiene ese coste: es instantánea.
- * 2. Con el contenido ya unificado entre temas (Tasks 15-16 de este mismo
- *    plan: Story/Features/Journey/Contact comparten árbol de contenido, solo
- *    difiere el arte), la razón original de D6 --evitar un re-maquetado
- *    brusco al cambiar de tema lejos del hero-- ya no aplica: el layout no
- *    cambia de alto entre temas, así que quedarse exactamente donde se
- *    estaba (opción A) muestra CONTENIDO EQUIVALENTE al de antes del cambio,
- *    no una sección distinta. Es la lectura de "la restauración es estable"
- *    del brief: fiarse del mismo `scrollY` sin tocarlo es fiable ahora
- *    precisamente porque el contenido ya no diverge por tema.
+ * 2. [PREMISA CORREGIDA 2026-08-12, fix wave B -- se midió FALSA en la
+ *    review final de rama, detalle completo en `docs/qa-3d-pendiente.md`,
+ *    entrada "Divergencia de longitud de scroll entre temas"] Se razonó en
+ *    su momento que, con el contenido ya unificado entre temas (Tasks 15-16
+ *    de este mismo plan: Story/Features/Journey/Contact comparten árbol de
+ *    contenido, solo difiere el arte), el layout NO cambiaba de alto entre
+ *    temas -- así que quedarse exactamente donde se estaba (opción A)
+ *    mostraría CONTENIDO EQUIVALENTE al de antes del cambio, no una sección
+ *    distinta. Medido en navegador real (build de producción, toggle real
+ *    pulsado -- no `toggleTheme()` a mano --, `document.visibilityState`
+ *    verificado antes de medir): la premisa es falsa. Las dos ramas
+ *    divergen ×2,20 en escritorio 1280×720 (5.827 px claro contra 12.821 px
+ *    oscuro) y ×1,61 en móvil 375×812 (9.255 contra 14.877), concentrado en
+ *    Story (+3.910 px en escritorio) y Journey (+5.845 px) -- el deck de
+ *    diapositivas de la rama oscura mide bastante más que la tarjeta de la
+ *    rama clara, la divergencia de vehículo que `DESIGN.md` §4 ya
+ *    documenta. 8 de 8 escenarios de toggle real probados (2 viewports × 2
+ *    sentidos × 2 posiciones) dejan al lector en una SECCIÓN DISTINTA de la
+ *    que tenía en el centro del viewport -- nunca en la misma; en los 3
+ *    casos oscuro→claro el salto de scroll implícito del navegador CLAMPA
+ *    contra el límite del documento más corto (hasta −3.868 px) y empuja al
+ *    lector al final, sin aterrizar dentro de ninguna `<section>` en el peor
+ *    caso (móvil, 70% de recorrido). Conservar el mismo `scrollY` NO
+ *    garantiza contenido equivalente -- eso exigiría medir la posición como
+ *    FRACCIÓN del recorrido total de cada rama, no en píxeles absolutos, y
+ *    decidir esa unificación es una decisión de arquitectura visual del
+ *    dueño (fuera de alcance de este hook y de este fix -- ver el detalle
+ *    completo, las ocho mediciones y el pendiente de decisión en
+ *    `docs/qa-3d-pendiente.md`).
  * 3. Coherencia con el cambio de idioma, que el propio hallazgo #5 usa como
  *    vara de medir ("el cambio de idioma sí conserva el scroll"): `i18n`
  *    nunca mueve la página al cambiar de idioma. El tema pasa a comportarse
  *    igual, en vez de ser el único control del sitio que fuerza un viaje.
+ *
+ * MATIZ IMPORTANTE (no se borra con la corrección de arriba): esta tarea SÍ
+ * hace lo que promete. `scrollY` se conserva EXACTO, bit a bit, en los 5
+ * casos sin clamp (medido, ver `docs/qa-3d-pendiente.md`) -- el hook no
+ * mueve el scroll, y eso está verificado y sigue siendo cierto. Lo que era
+ * falso era la PREMISA con la que se justificó la decisión (razón 2,
+ * arriba), no el comportamiento que entrega. La razón real y suficiente
+ * para NO viajar sigue siendo la 1: viajar destruía la posición de lectura
+ * (medido entonces: `scrollY` 2500 → 2400 → 193 → 0 en ~1s), y eso seguiría
+ * siendo cierto aunque las dos ramas midieran exactamente lo mismo de alto.
  *
  * COSTE ACEPTADO, no escondido: quien cambia de tema estando lejos del hero
  * ya NO ve el cruce de composiciones (`HeroBackdrop.tsx`) -- esa pieza queda
@@ -113,22 +145,47 @@ export interface ThemeScrollReset {
  * ese cruce sin animar, un fallo silencioso idéntico al que ya documenta ese
  * archivo para la hidratación.
  *
- * `willCrossfade` (leído con `window.matchMedia`/`document.getElementById`
- * DENTRO del callback, nunca durante el render -- leerlo en render rompe el
- * export estático, mismo motivo por el que `ThemeProvider.tsx` no lee
- * `localStorage` ahí) decide si `busy` tiene algo que esperar: bajo
- * `prefers-reduced-motion: reduce`, o en una página sin ningún elemento
- * `#hero` (legales, `not-found`), no va a correr ningún cruce, así que
- * `busy` se apaga en el MISMO tick en que el tema cambia. Con cruce, `busy`
- * sigue activo hasta `HERO_COPY_RETURN_MS` (`hero.transition.ts`) después
- * del click -- REUTILIZADO de la propia máquina de fases del hero, no un
- * número nuevo inventado para este hook: es el mismo instante que
- * `HeroBackdrop.tsx`/`useHeroCopySwap` ya calculan para "la copia del hero
- * vuelve a ser visible con la distribución nueva", el último cambio visible
- * de todo el cruce. Este criterio es idéntico al que ya usaban las dos ramas
- * de la versión anterior de este hook (Task 5): lo único que cambia en Task
- * 17 es que ya no hay ninguna rama que dependa de dónde esté el usuario en
- * la página.
+ * `willCrossfade` (leído con `window.matchMedia`/`document.getElementById`/
+ * `getBoundingClientRect` DENTRO del callback, nunca durante el render --
+ * leerlo en render rompe el export estático, mismo motivo por el que
+ * `ThemeProvider.tsx` no lee `localStorage` ahí) decide si `busy` tiene algo
+ * que esperar: bajo `prefers-reduced-motion: reduce`, en una página sin
+ * ningún elemento `#hero` (legales, `not-found`), o con un `#hero` que
+ * EXISTE pero no se ve (fix wave B, 2026-08-12, ver más abajo), no va a
+ * correr ningún cruce, así que `busy` se apaga en el MISMO tick en que el
+ * tema cambia. Con cruce, `busy` sigue activo hasta `HERO_COPY_RETURN_MS`
+ * (`hero.transition.ts`) después del click -- REUTILIZADO de la propia
+ * máquina de fases del hero, no un número nuevo inventado para este hook:
+ * es el mismo instante que `HeroBackdrop.tsx`/`useHeroCopySwap` ya calculan
+ * para "la copia del hero vuelve a ser visible con la distribución nueva",
+ * el último cambio visible de todo el cruce. Este criterio es idéntico al
+ * que ya usaban las dos ramas de la versión anterior de este hook (Task 5):
+ * lo único que cambia en Task 17 es que ya no hay ninguna rama que dependa
+ * de dónde esté el usuario en la página.
+ *
+ * Fix wave B (2026-08-12, hallazgo de review de rama): hasta esta revisión
+ * `willCrossfade` solo comprobaba que `document.getElementById("hero")` NO
+ * fuera `null` -- EXISTENCIA, no VISIBILIDAD. La Task 5 lo diseñó cuando el
+ * toggle todavía hacía un viaje de scroll observable HASTA el hero (D6, ver
+ * el docblock de cabecera): en esa versión, tras el viaje, el hero SIEMPRE
+ * estaba a la vista, así que "existe" y "se ve" coincidían. La Task 17
+ * retiró el viaje (arriba) y dejó el criterio de existencia intacto -- el
+ * `<section id="hero">` sigue montado en TODAS las páginas de la home
+ * (`HomeSections.tsx`), esté o no dentro del viewport. Medido: cambiar de
+ * tema desde el pie de página (`Footer.tsx`, muy lejos del hero) marcaba
+ * `aria-busy="true"` durante los 1.830ms completos de `HERO_COPY_RETURN_MS`
+ * por un cruce que NUNCA ocurre fuera de pantalla -- un lector de pantalla
+ * anunciaba "ocupado" sin nada que esperar, el propio patrón de "estado de
+ * carga fantasma" que ARIA Authoring Practices desaconseja. `heroIsVisible`
+ * (abajo) añade el chequeo que faltaba: `rect.top < innerHeight && rect.bottom
+ * > 0` -- mismo criterio de intersección con el viewport (umbral 0) que ya
+ * usa `intersectsViewport()` en `useActiveSection.ts`, para que "visible"
+ * signifique lo mismo en todo el repo. No hace falta un `IntersectionObserver`
+ * aparte: `requestThemeChange` es una respuesta a un click, no un bucle de
+ * scroll, así que una lectura puntual de `getBoundingClientRect()` en el
+ * momento del click es suficiente y más barata que suscribir un observer que
+ * viviría todo el ciclo de vida del componente para un dato que solo hace
+ * falta una vez por click.
  *
  * Reentrada: un segundo click mientras `busy` todavía cubre un cruce
  * ANTERIOR cancela la ventana de asentamiento vieja y arranca una nueva
@@ -137,6 +194,18 @@ export interface ThemeScrollReset {
  * scroll está en marcha, porque ya no hay ningún viaje en marcha: la función
  * es síncrona de principio a fin salvo por la propia ventana de `busy`.
  */
+
+/** `true` si `el` intersecta el viewport actual (umbral 0 -- cualquier
+ *  solape cuenta, igual de laxo que el `IntersectionObserver` por defecto).
+ *  Mismo criterio que `intersectsViewport()` en `useActiveSection.ts`,
+ *  reimplementado aquí (no importado: son módulos hermanos sin dependencia
+ *  compartida hoy, y la función es una línea) para que "visible" signifique
+ *  lo mismo en los dos sitios del repo que lo preguntan. */
+function isElementVisible(el: Element): boolean {
+  const rect = el.getBoundingClientRect();
+  return rect.top < window.innerHeight && rect.bottom > 0;
+}
+
 export function useThemeScrollReset(): ThemeScrollReset {
   const { toggleTheme } = useTheme();
   const [busy, setBusy] = useState(false);
@@ -166,7 +235,9 @@ export function useThemeScrollReset(): ThemeScrollReset {
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    const willCrossfade = !reduced && document.getElementById("hero") !== null;
+    const heroEl = document.getElementById("hero");
+    const willCrossfade =
+      !reduced && heroEl !== null && isElementVisible(heroEl);
 
     toggleTheme();
 
