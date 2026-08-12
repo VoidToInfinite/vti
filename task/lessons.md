@@ -1,5 +1,79 @@
 # Lecciones
 
+## 2026-08-12 (Task 35) — Un `position: absolute`/`fixed` cuyo bloque contenedor es TAMBIÉN el propio contenedor de scroll se desplaza con el contenido, aunque `fixed` normalmente sea inmune al scroll
+
+- **Qué pasó:** para que el botón de cierre nuevo de la hoja móvil (`NavSheet.tsx`)
+  quedara siempre alcanzable por encima del velo, se colocó como
+  `position: absolute` dentro de `ScNavSheet` -- que a la vez es
+  `position: fixed` (su bloque contenedor) y `overflow-y: auto` (el propio
+  contenedor de scroll de la lista de enlaces). Verificado con
+  `elementFromPoint` en navegador real (Chrome, `playwright-cli`, 375x812):
+  con la hoja recién abierta (`scrollTop = 0`) el botón se medía en el sitio
+  correcto y `elementFromPoint` devolvía el botón -- parecía arreglado. Pero
+  al scrollear la lista hasta el final (`scrollTop = 177`, el mismo valor
+  exacto del hallazgo original de la tarea) el botón se desplazaba CON el
+  contenido: su `getBoundingClientRect().top` pasaba de 252,6 a 75,6 px
+  (idéntico a los 177 px de diferencia), quedaba recortado fuera de la zona
+  visible del panel por su propio `overflow-y: auto`, y `elementFromPoint`
+  volvía a devolver `ScSheetVeil` -- el MISMO síntoma que el botón existía
+  para arreglar, ahora condicionado a "la hoja está scrolleada" en vez de "la
+  hoja está abierta".
+- **El intento intermedio que TAMPOCO bastó:** la hipótesis "cambiar a
+  `position: fixed` lo arregla, porque `ScNavSheet` ya declara `transform` y
+  un ancestro con `transform` se convierte en el bloque contenedor de
+  cualquier `fixed` de su interior (el mismo mecanismo que ya explica por qué
+  la hoja entera vive fuera de `ScHeader`)" es CIERTA a medias: sí resuelve
+  QUIÉN es el bloque contenedor, pero no exime al elemento del SCROLL de ese
+  mismo bloque contenedor cuando el bloque contenedor es también el elemento
+  que scrollea. Medido: el mismo comportamiento exacto (75,6 px con
+  `scrollTop = 177`) se reprodujo con `position: fixed`, sin cambiar nada
+  más. La intuición de que "`fixed` es inmune al scroll" viene de su caso más
+  común (`fixed` relativo al viewport, que no "scrollea" en el modelo CSS);
+  esa inmunidad NO se hereda automáticamente cuando el bloque contenedor
+  alternativo (por `transform`) es simultáneamente un contenedor de scroll
+  real -- el elemento posicionado se sigue renderizando como parte del
+  contenido que ese contenedor desplaza.
+- **La causa raíz real:** un elemento no puede tener, a la vez, la
+  responsabilidad de "ser el marco fijo que ancla la posición de un hijo
+  posicionado" y la de "ser el contenedor cuyo scroll interno desplaza a ese
+  mismo hijo" -- son dos roles en tensión, y CSS no ofrece ninguna propiedad
+  para declarar "este descendiente concreto queda exento de MI PROPIO
+  scroll". El único arreglo real es arquitectónico: separar las dos
+  responsabilidades en dos elementos del DOM.
+- **El arreglo aplicado:** `ScNavSheet` se queda con posición/z-index/
+  apariencia/animación y DEJA de scrollear (se le retiran `overflow-y` y
+  `gap`); un nuevo `ScSheetScroll` (patrón estándar "hijo flex que scrollea
+  dentro de un contenedor de altura acotada": `flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;` -- `min-height: 0` es imprescindible, sin él un hijo
+  flex nunca se encoge por debajo del tamaño intrínseco de su contenido y
+  `overflow-y: auto` nunca llega a activarse) pasa a ser el ÚNICO hijo de
+  flujo normal de `ScNavSheet` y absorbe el scroll real. El botón de cierre,
+  ahora HERMANO de `ScSheetScroll` (no descendiente), queda fuera de
+  cualquier contenedor que scrollee, y su `position: absolute` (vuelto de
+  `fixed`, ya innecesario con las responsabilidades separadas) resuelve
+  limpiamente contra `ScNavSheet`, que ya no se mueve.
+- **Cómo se detectó, y por qué el candado de Vitest no lo había visto:**
+  jsdom no hace layout ni pintado real (no implementa siquiera
+  `document.elementFromPoint`, verificado con `typeof
+  document.elementFromPoint === "undefined"` antes de escribir ningún test),
+  así que un candado de Vitest solo puede afirmar la condición ESTRUCTURAL
+  (que el botón sea descendiente del contenedor con mayor z-index que el
+  velo) -- una condición NECESARIA pero, como demostró este mismo hallazgo,
+  NO SUFICIENTE: la estructura era correcta en los dos intentos fallidos, y
+  el candado seguía en verde. El defecto solo apareció verificando en
+  navegador real (regla 44) con el escenario de scroll REPRODUCIDO de verdad
+  (`scrollTop` al máximo), no solo con la hoja recién abierta.
+- **Regla:** antes de dar por bueno un elemento "pinned"
+  (`position: absolute`/`fixed`) que vive dentro de un contenedor con
+  `overflow: auto`/`scroll`, comprobar SIEMPRE el caso con el contenedor
+  scrolleado, no solo en su posición de reposo (`scrollTop = 0`) -- el caso
+  de reposo es exactamente el que oculta este defecto. Si el bloque
+  contenedor del elemento "pinned" es TAMBIÉN el contenedor que scrollea, la
+  única solución robusta es separar las dos responsabilidades en dos
+  elementos del DOM; cambiar `absolute` por `fixed` NO basta cuando el
+  bloque contenedor alternativo (vía `transform`) es el mismo elemento que
+  scrollea.
+
 ## 2026-08-12 (Task 19) — Migrar un literal a un token que resuelve al MISMO valor hace que el bug inyectado "revertir al literal" no sirva de candado
 
 - **Qué pasó:** al migrar `gradientShift` de `9000ms` (literal) a `${AMBIENT.floatMs}ms`

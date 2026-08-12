@@ -24,7 +24,8 @@
             "github": "GitHub",
             "newTab": "opens in a new tab",
             "openMenu": "Open the navigation menu",
-            "closeMenu": "Close the navigation menu"
+            "closeMenu": "Close the navigation menu",
+            "closeSheet": "Close navigation"
         },
         "Lang": {
             "title": "Language",

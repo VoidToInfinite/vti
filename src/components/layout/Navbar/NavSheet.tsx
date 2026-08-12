@@ -333,7 +333,8 @@ const ScSheetVeil = styled.div`
  *
  * `overscroll-behavior: contain` (regla 21, sustituto del bloqueo de scroll
  * clásico): al llegar al final de esta lista, el gesto NO encadena a la
- * página de debajo.
+ * página de debajo. Vive en `ScSheetScroll` (más abajo), no aquí -- ver su
+ * docblock para el porqué de la división en dos capas.
  *
  * ## VISIBILITY, MEDIDO EN NAVEGADOR REAL: en la lista de CIERRE, nunca en la
  * de apertura
@@ -375,10 +376,7 @@ const ScNavSheet = styled.div`
   z-index: ${({ theme }) => theme.data.zIndex.modal};
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.data.space[4]};
   max-height: ${NAV_SHEET_MAX_HEIGHT};
-  overflow-y: auto;
-  overscroll-behavior: contain;
   /*
    * Safe area (Task 13, punto 1 del brief): la hoja está anclada a
    * left/right/bottom: 0 del VIEWPORT (docblock de arriba: por diseño, vive
@@ -444,6 +442,58 @@ const ScNavSheet = styled.div`
   }
 `;
 
+/*
+ * CAPA DE SCROLL, separada de `ScNavSheet` (Task 35, hallazgo de un
+ * evaluador independiente en el gate F4, 2026-08-12; medido en navegador
+ * real, no en jsdom -- jsdom no hace layout ni scroll de verdad, así que
+ * este defecto era invisible a la suite hasta que se probó en Chrome real).
+ *
+ * Hasta esta tarea, `ScNavSheet` era a la vez el CONTENEDOR DE POSICIÓN (el
+ * panel fijo que anima apertura/cierre) Y el CONTENEDOR DE SCROLL
+ * (`overflow-y: auto`) de su propio contenido. El primer intento de esta
+ * tarea añadió `ScSheetCloseSlot` (el botón de cierre nuevo, ver su
+ * docblock) como descendiente `position: absolute` DIRECTO de `ScNavSheet`
+ * -- y un descendiente posicionado (`absolute` o `fixed`, probados los dos)
+ * de un elemento que es SIMULTÁNEAMENTE su bloque contenedor Y su propio
+ * contenedor de scroll se desplaza CON el contenido al hacer scroll: su
+ * `top`/`right` se miden desde el borde de la caja, pero esa caja arrastra
+ * consigo el desplazamiento que `scrollTop` le aplica a su propio contenido
+ * (el mismo mecanismo por el que las filas de la lista se mueven al
+ * scrollear, aplicado también al botón). Medido con la hoja scrolleada al
+ * final (`scrollTop = 177`, el valor exacto del hallazgo original de esta
+ * tarea): `getBoundingClientRect().top` del botón pasaba de 252,6 (correcto,
+ * cerca del borde superior del panel) a 75,6 -- fuera de la zona visible del
+ * panel, recortado por su propio `overflow-y: auto` -- y `elementFromPoint`
+ * sobre su centro volvía a devolver `ScSheetVeil`, el MISMO síntoma que este
+ * botón existe para arreglar, ahora condicionado a "la hoja está
+ * scrolleada" en vez de a "la hoja está abierta".
+ *
+ * La solución real es separar las dos responsabilidades en dos elementos:
+ * `ScNavSheet` (arriba) se queda con la posición/z-index/apariencia/
+ * animación y dejó de scrollear (ya no declara `overflow-y`/`gap`); ESTA
+ * capa (`ScSheetScroll`) es su ÚNICO hijo de flujo normal, un `<div>`
+ * puramente de contenido que hereda el hueco restante
+ * (`flex: 1 1 auto; min-height: 0` -- el patrón estándar de "hijo flex que
+ * scrollea dentro de un contenedor de altura acotada": sin `min-height: 0`
+ * un elemento flex nunca se encoge por debajo del tamaño intrínseco de su
+ * contenido, así que `overflow-y: auto` nunca llegaría a activarse) y
+ * scrollea SU PROPIO contenido con normalidad. `ScSheetCloseSlot`, ahora
+ * HERMANO de esta capa (no descendiente), queda fuera de su contenedor de
+ * scroll por completo: su `position: absolute` sigue resolviendo contra
+ * `ScNavSheet` (que sigue siendo su bloque contenedor, `position: fixed`),
+ * pero esa caja YA NO se desplaza con nada -- el `scrollTop` que cambia vive
+ * en un elemento DISTINTO del que establece la posición del botón.
+ */
+const ScSheetScroll = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.data.space[4]};
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+`;
+
 /* Asa decorativa: la señal universal de "esto es una hoja que se puede
    retirar". `aria-hidden` y sin texto: no aporta nada a quien no ve la
    pantalla, que ya tiene el disparador con su `aria-expanded`. */
@@ -454,6 +504,57 @@ const ScSheetHandle = styled.div`
   flex: none;
   border-radius: ${({ theme }) => theme.data.radius.full};
   background: ${({ theme }) => theme.data.semantic.borderStrong};
+`;
+
+/*
+ * Botón de cierre PROPIO de la hoja (Task 35, punto 2 del brief; hallazgo de
+ * un evaluador independiente en el gate F4, 2026-08-12).
+ *
+ * Por qué hace falta uno nuevo, si el disparador de la barra YA muta a un
+ * icono de aspa (`aria-expanded="true"`, `ScBurger` con `data-open="true"`)
+ * en cuanto la hoja se abre: ese disparador vive DENTRO de `ScHeader`
+ * (`Navbar.tsx`), que crea su PROPIO contexto de apilamiento
+ * (`position: fixed` + `z-index: stickyNav` -- ver el docblock de `ScHeader`
+ * en ese fichero). Un contexto de apilamiento se pinta como una unidad
+ * ATÓMICA frente a sus hermanos: ningún `z-index` que se le ponga a un
+ * DESCENDIENTE de `ScHeader` puede escapar de él para ganarle al velo
+ * (`zIndex.overlay`, 900), que es SIEMPRE hermano de `ScHeader`, nunca su
+ * descendiente. Medido con `elementFromPoint` en navegador real sobre el
+ * centro del icono con la hoja abierta: devolvía `ScSheetVeil`, no el botón
+ * -- el velo sobre el header es el patrón modal correcto (sancionado en su
+ * día), pero tapar también su propio botón de cierre no lo es.
+ *
+ * La solución NO es subir el `z-index` de `ScHeader` entero: eso sacaría
+ * TODA la barra por encima del velo -- marca, selector de idioma,
+ * conmutador de tema -- y reabriría el problema que el velo existe para
+ * evitar (un toque sobre esos controles los activaría de verdad en vez de
+ * solo cerrar la hoja). Este botón es DESCENDIENTE de `ScNavSheet`, que ya
+ * vive fuera de `ScHeader` (ver su docblock) con
+ * `z-index: zIndex.modal` (1000) > `zIndex.overlay` (900): hereda esa
+ * posición en el apilamiento por construcción, sin necesitar ningún
+ * `z-index` propio ni tocar el disparador de la barra.
+ *
+ * `position: absolute`: el bloque contenedor es `ScNavSheet` (`position:
+ * fixed`, su padre directo), y desde esta tarea `ScNavSheet` YA NO es
+ * también un contenedor de scroll -- esa responsabilidad se aisló en
+ * `ScSheetScroll`, un HERMANO de este botón (ver su docblock para la
+ * historia completa: el primer intento de esta tarea puso este botón como
+ * descendiente `absolute` -- y luego, sin éxito, `fixed` -- de la propia
+ * `ScNavSheet` de ANTES de la división, mientras esa capa combinaba las dos
+ * responsabilidades, y el botón se desplazaba con el scroll de la lista,
+ * midiendo en navegador real el MISMO síntoma que este botón existe para
+ * arreglar). Con las dos responsabilidades separadas, `absolute` es la
+ * elección correcta y más simple: sale del flujo, así que su posición en el
+ * JSX no desplaza ni la capa de scroll ni nada dentro de ella -- se declara
+ * DESPUÉS de `ScSheetScroll` a propósito, para no adelantarse al primer
+ * enlace en el `querySelector("a, button")` del efecto de foco de
+ * `useNavSheet` (que asume que la primera fila real, no este botón, es el
+ * primer resultado).
+ */
+const ScSheetCloseSlot = styled.span`
+  position: absolute;
+  top: ${({ theme }) => theme.data.space[2]};
+  right: ${({ theme }) => theme.data.space[2]};
 `;
 
 const ScSheetGroup = styled.div`
@@ -736,8 +837,41 @@ export function useNavSheet(): NavSheetController {
 
   // Diferencia deliberada con el panel de escritorio: el foco entra en la
   // hoja al abrirla. Ver el punto 6 del docblock.
+  //
+  // Task 35 (hallazgo de un evaluador independiente, gate F4, 2026-08-12):
+  // este mismo efecto TAMBIÉN reinicia `scrollTop` a 0 en cada apertura, en
+  // `[data-nav-sheet-scroll]` -- la capa de scroll de `ScSheetScroll`, NO
+  // `sheetRef.current` (`ScNavSheet`) directamente: desde esta misma tarea
+  // `ScNavSheet` dejó de ser un contenedor de scroll (ver el docblock de
+  // `ScSheetScroll` para el porqué completo de la división en dos capas), así
+  // que `sheetRef.current.scrollTop` sería un no-op silencioso sobre un
+  // elemento que ya no scrollea. `ScSheetScroll` SÍ es un contenedor
+  // PERSISTENTE con scroll interno propio que nunca se desmonta entre
+  // aperturas (punto 2 del docblock de accesibilidad, arriba), así que sin
+  // este reinicio conserva el `scrollTop` de la vez anterior. Medido: tras
+  // scrollear hasta el final (scrollTop=177, su máximo) y cerrar, la
+  // SIGUIENTE apertura reabría ya en scrollTop=177 -- la primera pantalla
+  // empezaba en "Contacto" y dejaba fuera el rótulo "En el sitio" y los
+  // enlaces Historia/Viaje/Características, reproducido en los dos temas.
+  //
+  // `useEffect`, no `useLayoutEffect`: mismo criterio ya cerrado en
+  // `useScrolled.ts` (2026-07-25) para un dilema idéntico ("¿vale la pena un
+  // frame sin corregir a cambio del warning de SSR que emite
+  // `useLayoutEffect` en cada build de este export estático, verificado
+  // ahí?") -- el síntoma de un `useEffect` aquí es, como allí, cosmético y
+  // acotado: la hoja arranca su fundido de entrada en `opacity` prácticamente
+  // 0 (ver ScNavSheet), así que el único fotograma en el que el scroll viejo
+  // podría verse antes de que este efecto corra es, en la práctica,
+  // imperceptible. Se reinicia ANTES de mover el foco (mismo orden que el
+  // resto de este efecto), aunque las dos operaciones son independientes.
   useEffect(() => {
     if (!isOpen) return;
+    const areaDeScroll = sheetRef.current?.querySelector<HTMLElement>(
+      "[data-nav-sheet-scroll]",
+    );
+    if (areaDeScroll) {
+      areaDeScroll.scrollTop = 0;
+    }
     const primeraFila =
       sheetRef.current?.querySelector<HTMLElement>("a, button");
     primeraFila?.focus({ preventScroll: true });
@@ -945,24 +1079,88 @@ export function NavSheet({
         data-open={isOpen}
         inert={!isOpen}
       >
-        <ScSheetHandle aria-hidden="true" />
-        {NAV_GROUPS.map((group) => (
-          <NavSheetGroup
-            key={group.key}
-            group={group}
-            onNavigate={onNavigate}
-            activeSectionKey={activeSectionKey}
+        {/* Capa de scroll (Task 35, ver el docblock de ScSheetScroll):
+            único hijo de flujo normal de ScNavSheet, aísla el
+            `overflow-y: auto` del botón de cierre de más abajo -- que
+            necesita quedar FUERA de cualquier contenedor que scrollee para
+            seguir alcanzable con la lista desplazada. */}
+        <ScSheetScroll data-nav-sheet-scroll>
+          <ScSheetHandle aria-hidden="true" />
+          {NAV_GROUPS.map((group) => (
+            <NavSheetGroup
+              key={group.key}
+              group={group}
+              onNavigate={onNavigate}
+              activeSectionKey={activeSectionKey}
+            />
+          ))}
+          {/* El idioma es la pieza que se muda desde la barra (ver el
+              docblock de este fichero). Reutiliza `Common.Lang.title`, la
+              clave que ya existía para nombrar este control: no se inventa
+              copia nueva. */}
+          <ScSheetGroup>
+            <ScSheetGroupTitle>{t("Common.Lang.title")}</ScSheetGroupTitle>
+            <ScSheetLanguage>
+              <LanguageSelector />
+            </ScSheetLanguage>
+          </ScSheetGroup>
+        </ScSheetScroll>
+        {/* Task 35: botón de cierre propio, alcanzable por encima del velo
+            (ver el docblock de ScSheetCloseSlot). Etiqueta PROPIA
+            (`closeSheet`, no `closeMenu`): el disparador de la barra reusa
+            "Cerrar el menú de navegación" para su estado abierto, y las dos
+            superficies coexisten en el árbol de accesibilidad mientras la
+            hoja está abierta (el disparador no se retira ni se inertiza) --
+            un nombre accesible distinto evita dos controles anunciados con
+            el MISMO texto a la vez, y evita que un futuro `getByRole` por el
+            texto del disparador empiece a devolver dos coincidencias.
+
+            El gancho de test (`data-nav-sheet-close`) va en el envoltorio,
+            no en el `IconButton`: mismo motivo que `data-nav-sheet-trigger`
+            en `ScSheetTriggerSlot` (ver `NavSheetTrigger`, más arriba en
+            este mismo fichero) -- un atributo `data-*` sobre un COMPONENTE
+            (no un elemento intrínseco) tendría que estar declarado en su
+            interfaz de props para que TypeScript lo acepte. */}
+        <ScSheetCloseSlot data-nav-sheet-close>
+          <IconButton
+            aria-label={t("Common.Nav.closeSheet")}
+            title={t("Common.Nav.closeSheet")}
+            onClick={onNavigate}
+            icon={
+              <ScBurger
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+                focusable="false"
+                data-open="true"
+              >
+                <rect
+                  data-burger-line="top"
+                  x="2"
+                  y="3.2"
+                  width="12"
+                  height="1.6"
+                  rx="0.8"
+                />
+                <rect
+                  data-burger-line="middle"
+                  x="2"
+                  y="7.2"
+                  width="12"
+                  height="1.6"
+                  rx="0.8"
+                />
+                <rect
+                  data-burger-line="bottom"
+                  x="2"
+                  y="11.2"
+                  width="12"
+                  height="1.6"
+                  rx="0.8"
+                />
+              </ScBurger>
+            }
           />
-        ))}
-        {/* El idioma es la pieza que se muda desde la barra (ver el docblock
-            de este fichero). Reutiliza `Common.Lang.title`, la clave que ya
-            existía para nombrar este control: no se inventa copia nueva. */}
-        <ScSheetGroup>
-          <ScSheetGroupTitle>{t("Common.Lang.title")}</ScSheetGroupTitle>
-          <ScSheetLanguage>
-            <LanguageSelector />
-          </ScSheetLanguage>
-        </ScSheetGroup>
+        </ScSheetCloseSlot>
       </ScNavSheet>
     </>
   );

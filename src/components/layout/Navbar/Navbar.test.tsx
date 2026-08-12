@@ -1648,14 +1648,28 @@ describe("Navbar", () => {
       }
     });
 
-    it("la hoja declara max-height 70dvh y overscroll-behavior: contain, y NINGÚN overflow: hidden", () => {
+    /*
+     * Task 35: `max-height`/`overscroll-behavior` viven en dos elementos
+     * distintos desde esta tarea -- `ScNavSheet` (`[data-nav-sheet]`, la capa
+     * de posición/apariencia) y `ScSheetScroll` (`[data-nav-sheet-scroll]`,
+     * la capa que scrollea de verdad), ver el docblock de `ScSheetScroll`
+     * para el porqué de la división. Antes de esta tarea las dos vivían
+     * juntas en el mismo elemento.
+     */
+    it("la hoja declara max-height 70dvh, su capa de scroll overscroll-behavior: contain, y NINGUNA de las dos overflow: hidden", () => {
       const { container } = renderNavbar();
-      const css = cssRuleTextFor(getSheet(container));
+      const cssHoja = cssRuleTextFor(getSheet(container));
+      const areaScroll = getSheet(container).querySelector(
+        "[data-nav-sheet-scroll]",
+      ) as HTMLElement;
+      const cssScroll = cssRuleTextFor(areaScroll);
 
-      expect(css).toContain("max-height: 70dvh");
-      expect(css).toContain("overscroll-behavior: contain");
-      // Regla 21 en su forma CSS: la hoja no puede recortar con hidden.
-      expect(css).not.toMatch(/overflow[^:]*:\s*hidden/);
+      expect(cssHoja).toContain("max-height: 70dvh");
+      expect(cssScroll).toContain("overscroll-behavior: contain");
+      // Regla 21 en su forma CSS: ni la hoja ni su capa de scroll pueden
+      // recortar con hidden.
+      expect(cssHoja).not.toMatch(/overflow[^:]*:\s*hidden/);
+      expect(cssScroll).not.toMatch(/overflow[^:]*:\s*hidden/);
     });
 
     it("la hoja usa la gramática de Task 9: transform-origin bottom center, translateY(100%) en cerrado y asimetría 120/180 con PRESS.easing", () => {
@@ -1846,6 +1860,127 @@ describe("Navbar", () => {
       expect(css).toContain("env(safe-area-inset-left, 0px)");
       expect(css).toContain("env(safe-area-inset-right, 0px)");
       expect(css).toContain("env(safe-area-inset-bottom, 0px)");
+    });
+
+    /*
+     * Task 35 (hallazgo de un evaluador independiente, gate F4, 2026-08-12),
+     * primer punto: `ScSheetScroll` (`[data-nav-sheet-scroll]`, la capa que
+     * scrollea de verdad desde esta misma tarea -- ver su docblock en
+     * NavSheet.tsx) es un contenedor PERSISTENTE que nunca se desmonta entre
+     * aperturas (ver el docblock del efecto en `useNavSheet`, NavSheet.tsx),
+     * así que su `scrollTop` sobrevivía intacto de un cierre al siguiente
+     * abrir. Medido en navegador real: tras scrollear hasta el final
+     * (scrollTop=177, su máximo) y cerrar, la SIGUIENTE apertura reabría ya
+     * en scrollTop=177 -- la primera pantalla empezaba en "Contacto".
+     *
+     * jsdom no hace layout (`scrollHeight`/`clientHeight` dan siempre 0),
+     * pero SÍ conserva el valor crudo que se le asigna a `scrollTop` --
+     * suficiente para simular "la hoja quedó scrolleada" y comprobar que el
+     * efecto la repone a 0 en la SIGUIENTE apertura. Validado con el bug
+     * inyectado a propósito: comentando temporalmente el bloque que reinicia
+     * `areaDeScroll.scrollTop` en `useNavSheet` (NavSheet.tsx), este test se
+     * pone en rojo (`areaScroll.scrollTop` se queda en 177 en vez de volver a
+     * 0); restaurado, vuelve a verde.
+     */
+    it("Task 35: la hoja reinicia scrollTop a 0 en cada apertura, aunque quedara scrolleada al cerrarse", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+      const areaScroll = getSheet(container).querySelector(
+        "[data-nav-sheet-scroll]",
+      ) as HTMLElement;
+      expect(areaScroll, "la hoja no monta su capa de scroll").not.toBeNull();
+
+      fireEvent.click(trigger); // abre
+      areaScroll.scrollTop = 177;
+      expect(areaScroll.scrollTop).toBe(177);
+
+      fireEvent.click(trigger); // cierra, sin tocar scrollTop
+      fireEvent.click(trigger); // reabre
+
+      expect(areaScroll.scrollTop).toBe(0);
+    });
+
+    /*
+     * Task 35, segundo punto: el disparador de la barra vive DENTRO de
+     * `ScHeader` (Navbar.tsx), que crea su PROPIO contexto de apilamiento
+     * (`position: fixed` + `z-index: stickyNav`) -- ningún z-index que se le
+     * ponga a un descendiente suyo puede escapar de ahí para ganarle al
+     * velo (`zIndex.overlay`), que es SIEMPRE hermano de `ScHeader`, nunca
+     * su descendiente (spec de contextos de apilamiento del CSS Positioned
+     * Layout Module). Medido con `elementFromPoint` en navegador real sobre
+     * el centro del icono con la hoja abierta: devolvía `ScSheetVeil`, no el
+     * botón.
+     *
+     * jsdom no implementa `document.elementFromPoint` (no hace layout ni
+     * pintado real: `typeof document.elementFromPoint === "undefined"`,
+     * verificado antes de escribir este test), así que este candado prueba
+     * la condición ESTRUCTURAL que garantiza el resultado en un navegador
+     * real: el botón de cierre nuevo es DESCENDIENTE de la propia hoja
+     * (`[data-nav-sheet]`), no del disparador de la barra, y la hoja ya
+     * declara un z-index mayor que el del velo -- por construcción,
+     * cualquier punto de su rectángulo se pinta por encima del velo, sea
+     * cual sea el punto exacto. La medición real con `elementFromPoint` se
+     * hace en navegador (ver el informe de la tarea). Validado con el bug
+     * inyectado a propósito: quitando temporalmente `data-nav-sheet-close`
+     * de `ScSheetCloseSlot` (NavSheet.tsx), este test se pone en rojo (no
+     * encuentra el botón); restaurado, vuelve a verde.
+     */
+    it("Task 35: la hoja monta un botón de cierre propio, descendiente del contenedor con z-index por encima del velo", () => {
+      const { container } = renderNavbar();
+      fireEvent.click(getSheetTrigger());
+
+      const hoja = getSheet(container);
+      const boton = hoja.querySelector("[data-nav-sheet-close]");
+      expect(
+        boton,
+        "la hoja no monta su propio botón de cierre",
+      ).not.toBeNull();
+
+      const velo = container.querySelector(
+        "[data-nav-sheet-veil]",
+      ) as HTMLElement;
+      const zHoja = Number(getComputedStyle(hoja).zIndex);
+      const zVelo = Number(getComputedStyle(velo).zIndex);
+      expect(Number.isNaN(zHoja), "el z-index de la hoja no es numérico").toBe(
+        false,
+      );
+      expect(Number.isNaN(zVelo), "el z-index del velo no es numérico").toBe(
+        false,
+      );
+      expect(zHoja, "la hoja no se apila por encima del velo").toBeGreaterThan(
+        zVelo,
+      );
+    });
+
+    /*
+     * El botón de cierre nuevo cierra de verdad (mismo mecanismo que
+     * activar una fila, `onNavigate`), y no interfiere con el foco inicial
+     * de la hoja: al abrir, el foco sigue entrando en la primera fila de
+     * navegación real, no en este botón -- se declara DESPUÉS de todos los
+     * grupos en el JSX (ver el docblock de `ScSheetCloseSlot`) justo para
+     * que el `querySelector("a, button")` del efecto de foco de
+     * `useNavSheet` siga encontrando la fila primero.
+     */
+    it("Task 35: pulsar el botón de cierre nuevo cierra la hoja, y no roba el foco inicial a la primera fila", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+      expect(document.activeElement).toBe(
+        getSheet(container).querySelector("a"),
+      );
+
+      const boton = getSheet(container).querySelector(
+        "[data-nav-sheet-close] button",
+      ) as HTMLElement;
+      expect(
+        boton,
+        "el botón de cierre no monta un <button> real",
+      ).not.toBeNull();
+
+      fireEvent.click(boton);
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
   });
 });
