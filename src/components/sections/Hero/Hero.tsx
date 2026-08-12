@@ -509,9 +509,34 @@ const ScTagline = styled(Typography)`
    `margin-block-start: space[3]` (Task 14, fix de revision): hereda el valor
    que antes tenia la linea C ("separacion corta"), porque ahora es EL
    SUBTITULO el que sigue a un elemento de cuerpo, no al titular -- mismo
-   razonamiento de "el margen viaja con la posicion" que ScTagline. */
+   razonamiento de "el margen viaja con la posicion" que ScTagline.
+
+   TASK 22 (tipografia de lectura, plan premium F1-F5): `line-height` CUSTOM,
+   nuevo con esta tarea. Hasta aqui este elemento no declaraba la propiedad,
+   asi que heredaba el 1.2 de `variant="h3"` (el escalon AJUSTADO para
+   titulares grandes, donde la caja X del glifo ya llena casi todo el
+   interlineado) -- pero ScSubtitle no es un titular, es un PARRAFO
+   (`forwardedAs="p"`) de 63 caracteres a tamano de cuerpo (clamp de la
+   excepcion de arriba, 15-22px), y el detector de craft lo cazo en runtime en
+   los dos gates: 1.2 sobre un parrafo de ese largo aprieta las lineas mas de
+   lo que la lectura pide. Se sustituye por
+   `theme.data.type.scale.body.lineHeight` (1.6) -- NO un literal inventado
+   dentro del rango "~1.4-1.5" que citaba el encargo (aproximado, sin leer el
+   token): es el mismo campo que ya usan los otros DOS componentes con este
+   MISMO rol de "subtitulo de cuerpo" en el sitio -- `ScDeckPillarSubtitle`
+   (`story.deck.tsx`) y `ScJourneyStepSubtitle` (`journey.deck.tsx`), los dos
+   tambien tocados por esta tarea (punto 2 del brief) -- asi que 1.6 es el
+   escalon de "cuerpo" REAL y ya establecido del sistema, no una aproximacion
+   nueva. Un factor unitless se resuelve contra el font-size PROPIO del
+   elemento (el clamp de arriba), no el de `h3`, asi que sustituirlo no
+   reintroduce ningun otro valor del token h3.
+
+   Re-medido el pliegue tras el cambio (informe de la tarea, regla 44/47):
+   375x812 y 1280x720, los dos temas -- el CTA del hero sigue dentro del
+   viewport. */
 const ScSubtitle = styled(Typography)`
   font-size: clamp(15px, 2vw, 22px);
+  line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   max-width: 70ch;
 `;

@@ -247,6 +247,26 @@ describe("Hero", () => {
   });
 
   /*
+   * Task 22 (tipografia de lectura, plan premium F1-F5, punto 3 del brief).
+   * Hasta esta tarea `ScSubtitle` no declaraba `line-height` propio y
+   * heredaba el 1.2 de `variant="h3"` -- el detector de craft lo caza en
+   * runtime, en los dos gates, sobre un parrafo de 63 caracteres (el grep
+   * estatico no lo ve: llega heredado del token, no de una declaracion local
+   * en Hero.tsx). Se sustituye por `type.scale.body.lineHeight` (1.6), el
+   * MISMO campo que ya usan `ScDeckPillarSubtitle` (story.deck.tsx) y
+   * `ScJourneyStepSubtitle` (journey.deck.tsx) para su mismo rol de
+   * "subtitulo de cuerpo" -- ver el docblock de ScSubtitle en Hero.tsx para
+   * el razonamiento completo (por que 1.6 y no un literal dentro del rango
+   * aproximado "~1.4-1.5" que citaba el encargo).
+   */
+  it("Task 22: el subtitulo sube su line-height al escalon de cuerpo del sistema (type.scale.body, ya no hereda el 1.2 de h3)", () => {
+    const { container } = renderHero();
+    const sub = getComputedStyle(testId(container, "hero-subtitle"));
+    expect(sub.lineHeight).toBe(String(typeTokens.scale.body.lineHeight));
+    expect(sub.lineHeight).not.toBe(String(typeTokens.scale.h3.lineHeight));
+  });
+
+  /*
    * CANDADO DE ESTRUCTURA (Task 10, plan premium 2026-08-11). El intro de la
    * copia dejo de depender de la maquina de fases de JS: ni el atributo
    * `data-intro` existe ya en este componente, ni ningun hijo arranca en

@@ -471,13 +471,96 @@ const ScRevealGroup = styled.div`
 /* Rejilla de tres tarjetas IGUALES (D5, spec 2026-08-06; mockup L196):
    SUSTITUYE al `grid-template-columns: 1fr` / `repeat(2, ...)` anterior --
    se retira el caso especial `$fullWidth` de "learning" (ya no existe: las
-   tres tarjetas son geométricamente iguales, ninguna ocupa dos columnas). */
+   tres tarjetas son geométricamente iguales, ninguna ocupa dos columnas).
+   ESTA ÚLTIMA FRASE DEJA DE SER CIERTA CON LA TASK 22, ver el bloque de
+   abajo -- se conserva porque explica una decisión real de su momento, no
+   porque siga describiendo el código vivo. */
+
+/*
+ * TASK 22 (tipografía de lectura, plan premium F1-F5, punto 1 del brief;
+ * hallazgo M4 del craft audit): `repeat(auto-fit, minmax(17.5rem, 1fr))`
+ * SE RETIRA -- era la MISMA gramática de layout que Story
+ * (`ScPillarGrid`, `Story.tsx`: `repeat(auto-fit, minmax(15rem, 1fr))`) y
+ * que, aunque con una sintaxis distinta, resuelve el mismo "grid uniforme de
+ * tarjetas iguales" que Journey (`ScStepsGrid`, `Journey.tsx`:
+ * `repeat(2|3|6, 1fr)` por breakpoint) -- TRES secciones seguidas del scroll
+ * de la home resolviendo "aquí van N tarjetas" con la misma respuesta
+ * genérica. Story y Journey CONSERVAN la suya (encargo explícito, no se
+ * tocan); Features cambia de gramática.
+ *
+ * Elegida una rejilla BENTO asimétrica ("destacada + pareja", desde `lg`,
+ * 992px) en vez de una lista jerárquica: las tres identidades ya comparten
+ * exactamente la misma estructura interna (imagen + cuerpo + 4 bullets +
+ * CTA, D5-D8) y degradarlas a bloques de lista habría deshecho ESE trabajo
+ * sin necesidad -- el problema que M4 señala es la gramática de la REJILLA
+ * (cuadrícula uniforme y content-agnostic), no la tarjeta en sí. La primera
+ * identidad (`FEATURE_KEYS[0]`, "learning" -- también la primera que
+ * nombran los tres `<span>` del h2 oscuro, `ScSpanLearning` más arriba) abre
+ * la rejilla ocupando las DOS columnas en su propia fila; las otras dos
+ * quedan hermanadas debajo, una junto a otra. Es una jerarquía deliberada,
+ * no arbitraria: convierte "tres cajas iguales" en "una entrada + dos
+ * complementarias", que es justo el tipo de asimetría que M4 pide y que
+ * `auto-fit`/`minmax` no puede expresar -- esa función SOLO sabe repartir
+ * columnas iguales según el ancho disponible, nunca dar más peso a un ítem
+ * concreto.
+ *
+ * DESCARTADA en el propio proceso de esta tarea (verificado en navegador
+ * real, captura `t22-features-light-desktop-1280-scroll2.png` conservada en
+ * el informe): la primera propuesta hacía lo contrario -- la 1ª tarjeta en
+ * una columna ANCHA que abarca las DOS FILAS, con la 2ª y 3ª apiladas al
+ * lado. Con las tres tarjetas de contenido idéntico (imagen + cuerpo + 4
+ * bullets + CTA), la tarjeta ancha terminaba su contenido mucho antes que
+ * la suma de las dos apiladas, y `align-items: stretch` rellenaba esa
+ * diferencia con SUPERFICIE BLANCA VACÍA bajo su CTA -- un hueco que en
+ * pantalla no se lee como "jerarquía", se lee como una tarjeta rota. Aquí
+ * las dos tarjetas de la fila 2 comparten la MISMA estructura entre sí (no
+ * con la de la fila 1), así que su diferencia de alto es la que de verdad
+ * cabe esperar entre dos párrafos distintos -- unos pocos píxeles, no una
+ * fila entera -- y `align-items: stretch` la absorbe sin hueco visible.
+ *
+ * ESTO REVIERTE, a propósito, la mitad de la decisión D5 de 2026-08-06 (ver
+ * el docblock de arriba): aquella retiró un `$fullWidth` que existía por
+ * CONTENIDO desigual entre tarjetas (antes de la unificación de la Task 15,
+ * "learning" tenía más elementos que las otras dos). Esa razón ya no aplica
+ * -- las tres tarjetas son hoy estructuralmente idénticas -- así que la
+ * asimetría de esta tarea nace de un motivo DISTINTO (jerarquía visual
+ * deliberada para romper la gramática repetida), no de una necesidad de
+ * contenido. No hace falta ningún prop nuevo ni tocar el `$fullWidth` que
+ * D5 borró: la fila destacada se resuelve posicionalmente
+ * (`> *:first-child`), así que las tres `<article>` de las tarjetas
+ * (`ScCardBorder`) siguen compartiendo exactamente las mismas clases de
+ * estructura -- el candado de D5 ("las tres tarjetas comparten exactamente
+ * las mismas clases", `Features.test.tsx`) sigue en pie sin tocarse.
+ *
+ * Colocación de la 2ª y 3ª tarjeta: SIN `grid-area` ni prop por tarjeta,
+ * apoyada en el algoritmo de colocación implícita de CSS Grid (auto-flow
+ * `row`, el valor por defecto). Con la 1ª tarjeta fijada explícitamente en
+ * `grid-column: 1 / -1` (fila 1 completa), la siguiente celda libre en orden
+ * de fila es (fila 2, columna 1) y despues (fila 2, columna 2) -- que es
+ * exactamente donde caen, en orden de documento, la 2ª ("imagination") y la
+ * 3ª ("gaming") tarjeta.
+ *
+ * Por debajo de `lg` la sección seguía -- y sigue -- apilando las tres
+ * tarjetas en una sola columna (antes por colapso natural de `auto-fit` al
+ * quedarse sin ancho para una segunda columna de 17.5rem; ahora de forma
+ * EXPLÍCITA con `grid-template-columns: 1fr` como base, antes del `@media`).
+ * Verificado a ojo en navegador real, los dos temas y en móvil (informe de
+ * la tarea, capturas `t22-*`).
+ */
 const ScGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
+  grid-template-columns: 1fr;
   gap: ${({ theme }) => theme.data.space[5]};
   align-items: stretch;
   width: 100%;
+
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    > *:first-child {
+      grid-column: 1 / -1;
+    }
+  }
 `;
 
 /* Giro del ángulo del borde cónico (D7): anima la propiedad personalizada

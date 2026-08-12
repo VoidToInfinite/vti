@@ -1514,6 +1514,39 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
   });
 
   /*
+   * Task 22 (tipografia de lectura, plan premium F1-F5, punto 2 del brief):
+   * `ScDeckPillarSubtitle`/`ScDeckPillarBody` (`story.deck.tsx`) no
+   * declaraban `max-width` -- el detector de craft midio en runtime, en los
+   * dos gates, que su contenedor da 97,9-112ch de capacidad a 1280px. Con el
+   * copy actual ninguna instancia llega a envolver (riesgo ESTRUCTURAL
+   * latente, no defecto visible hoy), pero un copy mas largo se extenderia
+   * sin freno. Candado por TEXTO del CSS inyectado (`cssRuleTextFor`), no
+   * `getComputedStyle().maxWidth`: la declaracion vive en la clase base, sin
+   * ningun `@media` de por medio, asi que jsdom SI la resuelve por CSSOM --
+   * pero se afirma el mismo `theme.data.grid.prose` (65ch) que consume el
+   * componente, nunca el literal "65ch" a mano, para que un cambio de token
+   * no desincronice el test.
+   */
+  it("Task 22: el subtitulo y el cuerpo de cada tarjeta de pilar topan su ancho en grid.prose (65ch)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const subtitulo = screen.getByText(esHome.Home.story.pillars.learn.body);
+    const cuerpo = screen.getByText(
+      esHome.Home.story.pillars.learn.inspiration,
+    );
+    expect(cssRuleTextFor(subtitulo)).toContain(
+      `max-width: ${basicDarkTheme.grid.prose}`,
+    );
+    expect(cssRuleTextFor(cuerpo)).toContain(
+      `max-width: ${basicDarkTheme.grid.prose}`,
+    );
+  });
+
+  /*
    * Paridad de landmark entre ramas (Task 15, D-C). El hallazgo #2 de la
    * critica independiente del 2026-08-11 era literalmente "secciones
    * diferentes (#statement solo en claro)": la rama clara emitia una

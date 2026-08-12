@@ -562,6 +562,19 @@ export const ScJourneyStepLabel = styled.p`
  * clamp(1rem, 1.4vw, 1.115rem)), y tampoco cambian peso/interlineado/
  * tracking (siguen los de `body`, no los de `caption`) ni el color
  * (textMuted, texto de acompanamiento, no el titular).
+ *
+ * `max-width` (Task 22, tipografia de lectura, plan premium F1-F5): NUEVO con
+ * esta tarea. El detector de craft midio en runtime, en los dos gates, que
+ * este parrafo no declaraba tope de ancho propio y heredaba la capacidad
+ * completa de su contenedor -- 97,9-112ch a 1280px
+ * (`JOURNEY_CONTENT_MAX_WIDTH`, `journey.layers.ts`, 1280px de contenido).
+ * Con el copy actual ninguna instancia llega a envolver a ese ancho -- es
+ * riesgo ESTRUCTURAL latente, no un defecto visible hoy -- pero un copy mas
+ * largo se extenderia sin freno. `theme.data.grid.prose` (65ch,
+ * `theme/tokens/grid.ts`) es el token que el sistema ya reserva para este
+ * rol -- mismo arreglo y mismo token que `ScDeckPillarSubtitle`/
+ * `ScDeckPillarBody` en `story.deck.tsx`, la misma tarea -- y cae dentro del
+ * objetivo de legibilidad de 60-75ch del encargo.
  */
 export const ScJourneyStepSubtitle = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -572,6 +585,7 @@ export const ScJourneyStepSubtitle = styled.p`
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
   text-wrap: balance;
   text-wrap-style: balance;
+  max-width: ${({ theme }) => theme.data.grid.prose};
   margin-block-start: ${({ theme }) => theme.data.space[3]};
 `;
 

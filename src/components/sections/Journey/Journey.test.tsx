@@ -657,6 +657,34 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     ).toBeInTheDocument();
   });
 
+  /*
+   * Task 22 (tipografia de lectura, plan premium F1-F5, punto 2 del brief):
+   * `ScJourneyStepSubtitle` (`journey.deck.tsx`) no declaraba `max-width` --
+   * el detector de craft midio en runtime, en los dos gates, que su
+   * contenedor da 97,9-112ch de capacidad a 1280px
+   * (`JOURNEY_CONTENT_MAX_WIDTH`). Con el copy actual ninguna instancia llega
+   * a envolver (riesgo ESTRUCTURAL latente, no defecto visible hoy), pero un
+   * copy mas largo se extenderia sin freno. Candado por TEXTO del CSS
+   * inyectado (`cssRuleTextFor`): la declaracion vive en la clase base, sin
+   * ningun `@media` de por medio, asi que jsdom SI la resuelve por CSSOM --
+   * pero se afirma el mismo `themes.dark.grid.prose` (65ch) que consume el
+   * componente, nunca el literal "65ch" a mano.
+   */
+  it("Task 22: el subtitulo de cada paso topa su ancho en grid.prose (65ch)", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const subtitle = screen.getByText(
+      esHome.Home.journey.steps[JOURNEY_STEPS[0].id].body,
+    );
+    expect(cssRuleTextFor(subtitle)).toContain(
+      `max-width: ${themes.dark.grid.prose}`,
+    );
+  });
+
   it("hay un unico encabezado en toda la seccion, y es h2#journey-title (test 5, D14)", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {

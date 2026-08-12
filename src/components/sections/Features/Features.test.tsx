@@ -356,6 +356,69 @@ describe("D6/D7/D8: estructura nueva de las tres tarjetas de la rama clara", () 
 });
 
 /*
+ * Task 22 (tipografia de lectura, plan premium F1-F5, punto 1 del brief;
+ * hallazgo M4 del craft audit): la rejilla de la rama clara deja de resolver
+ * "tres tarjetas" con `repeat(auto-fit, minmax(17.5rem, 1fr))` -- la misma
+ * gramatica de layout que Story (`ScPillarGrid`) y, en espiritu, Journey
+ * (`ScStepsGrid`) -- y pasa a una rejilla BENTO asimetrica de "destacada +
+ * pareja" (ver el docblock de `ScGrid`, Features.tsx, para el razonamiento
+ * completo, incluida la propuesta de "columna ancha a 2 filas" que se probo
+ * y se descarto en navegador real por el hueco en blanco que dejaba).
+ * Candados por TEXTO del CSS inyectado (jsdom no evalua `@media`, leccion
+ * repo 2026-07-27): la nueva gramatica vive DENTRO del bloque `@media` de
+ * `lg` (992px), asi que se acota el texto de la regla al tramo posterior al
+ * marcador `@media` antes de buscar, mismo patron que el resto de este
+ * fichero (ver `injectedCss`/`cssRuleTextFor`, cabecera).
+ */
+describe("Task 22: rejilla bento de la rama clara (rompe la gramatica auto-fit+minmax, M4)", () => {
+  function scGridOf(container: HTMLElement): HTMLElement {
+    const firstCard = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    // article (ScCardBorder) -> ScReveal (envoltorio de entrada) -> ScGrid.
+    return firstCard.parentElement!.parentElement as HTMLElement;
+  }
+
+  it("ya no declara auto-fit/minmax(17.5rem, 1fr) en ningun punto de su CSS", () => {
+    const { container } = renderWithProviders(<Features />);
+    const css = cssRuleTextFor(scGridOf(container));
+    expect(css).not.toContain("auto-fit");
+    expect(css).not.toContain("17.5rem");
+  });
+
+  it("declara 2 columnas iguales dentro de @media lg, con la 1a tarjeta abarcando las 2 columnas en su propia fila", () => {
+    const { container } = renderWithProviders(<Features />);
+    const css = cssRuleTextFor(scGridOf(container));
+
+    expect(css).toContain("@media");
+    const mediaBlock = css.slice(css.indexOf("@media"));
+
+    // repeat(2, ...), no un tercer auto-fit ni un repeat() uniforme sin mas.
+    expect(mediaBlock).toMatch(
+      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
+    // La 1a tarjeta (posicional, sin prop/clase propia -- D5 sigue intacto,
+    // ver el test de arriba) abarca las dos columnas de su fila -- la 2a y
+    // la 3a quedan hermanadas debajo por colocacion implicita.
+    expect(mediaBlock).toMatch(
+      /:first-child\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/,
+    );
+  });
+
+  it("por debajo de lg sigue apilando las tres tarjetas en una sola columna (grid-template-columns: 1fr fuera de cualquier @media)", () => {
+    const { container } = renderWithProviders(<Features />);
+    const css = cssRuleTextFor(scGridOf(container));
+    const baseRule = css
+      .split("\n")
+      .find(
+        (line) =>
+          !line.includes("@media") && line.includes("grid-template-columns"),
+      );
+    expect(baseRule).toMatch(/grid-template-columns:\s*1fr/);
+  });
+});
+
+/*
  * D7 (borde cónico animado en hover, spec 2026-08-06). Por texto del CSS
  * inyectado, no `getComputedStyle`: jsdom no evalúa `@media` (lección repo
  * 2026-07-27). Validado con el bug inyectado a propósito (ver informe de la

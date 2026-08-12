@@ -521,6 +521,19 @@ export const ScDeckPillarTitle = styled.p`
  * (`type.scale.body.size`), asi que este elemento toma tambien su
  * peso/interlineado/tracking -- no los de `bodySm` (0.875rem), que era la
  * variante que usaba ANTES de promoverse a subtitulo.
+ *
+ * `max-width` (Task 22, tipografia de lectura): NUEVO con esta tarea. El
+ * detector de craft midio en runtime, en los dos gates, que este parrafo no
+ * declaraba tope de ancho propio y heredaba la capacidad completa de su
+ * contenedor -- 97,9-112ch a 1280px (`STORY_DARK_MAX_WIDTH`,
+ * `story.layers.ts`, 1280px de contenido). Con el copy actual ninguna
+ * instancia llega a envolver a ese ancho -- es riesgo ESTRUCTURAL latente, no
+ * un defecto visible hoy -- pero un copy mas largo se extenderia sin freno.
+ * `theme.data.grid.prose` (65ch, `theme/tokens/grid.ts`) es el token que el
+ * propio sistema ya reserva para exactamente este rol -- lo usan
+ * `ScIntro`/`ScBody`/`ScDarkBody` en Features.tsx y `ScDarkIntro` en el mismo
+ * fichero -- y cae dentro del objetivo de legibilidad de 60-75ch del
+ * encargo.
  */
 export const ScDeckPillarSubtitle = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -531,6 +544,7 @@ export const ScDeckPillarSubtitle = styled.p`
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
   text-wrap: balance;
   text-wrap-style: balance;
+  max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
 /*
@@ -548,6 +562,10 @@ export const ScDeckPillarSubtitle = styled.p`
  * uno que si la conozca la aplica con el mismo valor. No hay orden de soporte
  * en el que se pierda nada. Ver `Typography.tsx`, que es donde vive el
  * criterio completo para las variantes de cuerpo del sistema.
+ *
+ * `max-width` (Task 22, tipografia de lectura): mismo hallazgo y mismo token
+ * que `ScDeckPillarSubtitle`, arriba -- ver su docblock para la cifra medida
+ * (97,9-112ch de capacidad a 1280px) y el porque de `grid.prose` (65ch).
  */
 export const ScDeckPillarBody = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -558,6 +576,7 @@ export const ScDeckPillarBody = styled.p`
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
   text-wrap: balance;
   text-wrap-style: balance;
+  max-width: ${({ theme }) => theme.data.grid.prose};
   margin-block-start: ${({ theme }) => theme.data.space[2]};
 `;
 
