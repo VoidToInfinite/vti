@@ -192,10 +192,14 @@ describe("Task 19 (fix de revisión): stripComments no trunca una linea por un `
   });
 
   it("NO trunca codigo real que viene DESPUES de una URL en la misma linea", () => {
+    // example.invalid (RFC 2606): TLD reservado que nunca resuelve a un host
+    // real -- mismo marcador que ya usa Button.test.tsx, y ya vive en la
+    // allowlist de no-external-hosts.test.ts (Task 18), asi que este literal
+    // no necesita (ni merece) una excepcion nueva en ese candado.
     const fuente =
-      'const href = "https://example.com"; const d = REVEAL.durationMs;';
+      'const href = "https://example.invalid"; const d = REVEAL.durationMs;';
     const limpio = stripComments(fuente);
     expect(limpio).toContain("REVEAL.durationMs");
-    expect(limpio).toContain("https://example.com");
+    expect(limpio).toContain("https://example.invalid");
   });
 });
