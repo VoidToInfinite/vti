@@ -2,10 +2,16 @@ name: CI
 
 # Gate de calidad del repo (typecheck + lint + format + detector de
 # anti-patrones + tests) en cada push a main y en cada pull request. NO
-# incluye check-spelling: esta roto de
-# configuracion (76.035 issues por falta de diccionario espanol), documentado
-# por el orquestador -- por eso el script `ci` de package.json no lo
-# invoca, y este workflow tampoco lo anade por su cuenta.
+# incluye check-spelling: parcialmente corregido (Task 24 -- comentario de
+# cabecera desactualizado corregido 2026-08-12, fix wave C, revision final de
+# rama). Task 25 (2026-08-12) instalo el diccionario espanol real que
+# faltaba (@cspell/dict-es-es) y amplio su cobertura a todo tipo de fichero:
+# cae de 111.199 avisos en 264 ficheros a 2.627 en 221 (-97,6%), sobre todo
+# jerga propia del repo sin diccionario, no errores reales. Sigue fuera del
+# gate a proposito -- 2.627 sigue siendo demasiado ruido para un gate no
+# interactivo sin curar antes esa lista de terminos propios -- por eso el
+# script `ci` de package.json no lo invoca, y este workflow tampoco lo anade
+# por su cuenta.
 #
 # SIEMPRE `pnpm run ci`, NUNCA `pnpm ci` a secas: aunque el script `ci`
 # exista en package.json, `pnpm ci` ejecuta el clean-install interno de
