@@ -42,25 +42,38 @@ export const FEATURE_KEYS: readonly FeatureKey[] = [
   "gaming",
 ] as const;
 
-/**
- * Radio de esquina del ENVOLTORIO de las tres tarjetas (spec
- * `2026-08-06-story-features-tema-claro-design.md`, D7/D8; mockup
- * `Landing v2.dc.html` L197/220/243: `border-radius: 26px`). SUSTITUYE al
- * valor anterior (22px, mockup viejo L164/179/194): la entrega 2026-08-06
- * rehace la tarjeta entera como envoltorio-borde (D7), con una geometría de
- * radio distinta a la de la versión con patrón SVG que sustituye. No
- * coincide con ningún paso de `theme.tokens.radius` (xl=16px, 2xl=24px): se
- * conserva el valor exacto del arte en vez de redondear a un token.
+/*
+ * AQUÍ VIVIÓ `FEATURES_CARD_RADIUS` ("26px", el radio de esquina del
+ * envoltorio de las tres tarjetas; D7/D8 de la spec
+ * `2026-08-06-story-features-tema-claro-design.md`, mockup `Landing
+ * v2.dc.html` L197/220/243). RETIRADA en la Task 23 (plan premium F1-F5):
+ * decisión del dueño, tomada con capturas delante en la Fase 0 del plan, de
+ * bajar el radio de 26px a 16px. A diferencia del valor anterior (que no
+ * coincidía con ningún paso de `theme.tokens.radius` y por eso vivía aquí
+ * como literal de arte), 16px SÍ coincide EXACTO con `radius.xl` (`1rem`)
+ * -- el mismo token que `ScImagePanel` (Features.tsx) ya usa para el radio
+ * del panel de imagen de estas mismas tarjetas. Mantener un literal de
+ * escena que vale lo mismo que un token del sistema es la duplicación que
+ * la regla 13 del manual (`RULES.md`) prohíbe ("una constante de valor
+ * idéntico repetida... es un token de tema, no dos constantes de fichero"),
+ * así que en vez de reescribir el valor aquí, `ScCardBorder`/`ScCardSurface`
+ * (Features.tsx) pasan a consumir `theme.data.radius.xl` directamente y
+ * este fichero deja de declarar ningún radio de tarjeta.
  *
- * El radio INTERIOR (la superficie blanca dentro del envoltorio, mockup
- * L198: `border-radius: 24.5px`) NO es una segunda constante: se calcula en
- * el componente como `calc(${FEATURES_CARD_RADIUS} - ${FEATURES_CARD_BORDER_WIDTH})`
- * (26px − 1.5px = 24.5px, exacto), que es literalmente la regla que describe
- * el encargo ("el radio interior es el radio exterior menos el padding") en
- * vez de un segundo literal que podría desincronizarse si cualquiera de los
- * dos cambia.
+ * El radio INTERIOR (la superficie blanca dentro del envoltorio) se sigue
+ * calculando en el componente, ahora como
+ * `calc(${theme.data.radius.xl} - ${FEATURES_CARD_BORDER_WIDTH})` (16px −
+ * 1.8px = 14.2px) -- MISMA fórmula que antes (radio interior = radio
+ * exterior − grosor del envoltorio-borde, la regla estándar de radios
+ * anidados: se resta el hueco que separa los dos contornos, no una
+ * proporción fija), así que se reaplica sola al bajar el radio exterior sin
+ * que nadie tenga que recalcular nada. Nota de precisión sobre el valor
+ * ANTERIOR: el docblock que este bloque sustituye citaba "26px − 1.5px =
+ * 24.5px", pero `FEATURES_CARD_BORDER_WIDTH` llevaba ya en "1.8px" desde el
+ * commit `7a2d2ac` (2026-08-08) -- el resultado real con ese grosor era
+ * 24.2px, no 24.5px; ese docblock nunca se actualizó tras aquel cambio. Se
+ * corrige aquí en vez de arrastrar la cifra equivocada a la nueva nota.
  */
-export const FEATURES_CARD_RADIUS = "26px";
 
 /** Grosor del envoltorio-borde de la tarjeta (D7, mockup L197: `padding:
  *  1.5px`): el envoltorio pinta su fondo (color-mix en reposo, cónico en
@@ -183,8 +196,9 @@ export const FEATURES_GAMING_ACCENT_DARK_HOVER = "oklch(0.7 0.17 340)";
  * en esta entrega (spec `2026-08-06-story-features-tema-claro-design.md`,
  * D5/D7/D8): la tarjeta rehecha no tiene patrón de fondo ni borde/fondo/
  * sombra distintos por identidad -- las tres son geométricamente IGUALES
- * (D5), con un envoltorio-borde común (D7, `FEATURES_CARD_RADIUS`/
- * `FEATURES_CARD_BORDER_WIDTH`) y un panel de imagen común (D8, constantes
+ * (D5), con un envoltorio-borde común (D7, `theme.data.radius.xl`/
+ * `FEATURES_CARD_BORDER_WIDTH`, ver Features.tsx desde la Task 23) y un
+ * panel de imagen común (D8, constantes
  * más abajo); lo único que varía por tarjeta es el color de acento, que ya
  * resuelven `accentColor`/`accentColorHover` (`Features.tsx`) contra la
  * rampa real del tema -- no hace falta un registro paralelo de literales de

@@ -11,6 +11,7 @@ import {
   FEATURES_TAIL_HOLD,
   FEATURES_GAMING_ACCENT,
   FEATURES_LIGHT_REVEAL_DELAYS_MS,
+  FEATURES_CARD_BORDER_WIDTH,
 } from "./features.layers";
 import {
   JOURNEY_DARK_HEIGHT,
@@ -580,6 +581,68 @@ describe("D7: borde conico animado en hover, solo bajo prefers-reduced-motion: n
     ) as HTMLElement;
     const css = cssRuleTextFor(card);
     expect(css).toContain("touch-action: manipulation");
+  });
+});
+
+/*
+ * Task 23 (plan premium F1-F5): el radio de las tres tarjetas baja de 26px a
+ * 16px por decisión del dueño (Fase 0, capturas delante). Deja de ser un
+ * literal de escena (`FEATURES_CARD_RADIUS`, retirada de `features.layers.ts`)
+ * porque 16px coincide EXACTO con `theme.data.radius.xl` -- el mismo token
+ * que `ScImagePanel` ya usa para el panel de imagen de estas mismas
+ * tarjetas -- así que `ScCardBorder`/`ScCardSurface` pasan a consumirlo
+ * directamente.
+ *
+ * El envoltorio EXTERIOR (`ScCardBorder`) se canda por `getComputedStyle`:
+ * `border-radius` no vive dentro de ningún `@media` en ese componente (regla
+ * 36/38, `RULES.md` -- fuera de un media query, medir el estilo computado es
+ * legítimo), mismo patrón que ya usa `Navbar.test.tsx` para el mismo token
+ * (`radius.xl`) sobre la superficie del navbar. La superficie INTERIOR
+ * (`ScCardSurface`) se canda por TEXTO del CSS inyectado, no por
+ * `getComputedStyle`: jsdom no evalúa `calc()` (misma familia de gotcha que
+ * "jsdom no resuelve `var()`", task/lessons.md 2026-08-11), así que la única
+ * forma fiable de comprobar la fórmula es leer la declaración tal y como la
+ * inyectó styled-components -- mismo criterio que ya usa este fichero para
+ * `margin-block-start: calc(...)` ("test 1" del bloque oscuro, más abajo). El
+ * texto se compara con los espacios en blanco COLAPSADOS (`.replace(/\s+/g,
+ * " ")`): `prettier` envuelve el `calc()` en varias líneas porque la
+ * declaración de una sola línea supera su ancho máximo (verificado: `prettier
+ * --write` la reformatea así), y styled-components conserva esa indentación
+ * literal en el CSS inyectado -- sin colapsar, un `toContain` de una sola
+ * línea es frágil ante el propio formateador del repo.
+ *
+ * Validado con el bug inyectado a propósito: revirtiendo temporalmente
+ * `theme.data.radius.xl` a un literal `"26px"` en `ScCardBorder`
+ * (Features.tsx), el primer test se puso en rojo (el radio computado pasó a
+ * "26px", distinto de `radius.xl`); restaurado, volvió a verde. Mismo
+ * experimento en `ScCardSurface` (calc con `"26px"` en vez del token) puso en
+ * rojo el segundo test (el CSS inyectado dejó de contener
+ * `calc( 1rem - 1.8px )`); restaurado, volvió a verde.
+ */
+describe("Task 23: radio de tarjeta a 16px (theme.data.radius.xl, ya no FEATURES_CARD_RADIUS)", () => {
+  it("ScCardBorder (envoltorio exterior) computa border-radius = radius.xl (16px), no 26px", () => {
+    const { container } = renderWithProviders(<Features />);
+    const card = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    expect(getComputedStyle(card).borderRadius).toBe(themes.light.radius.xl);
+    expect(getComputedStyle(card).borderRadius).not.toBe("26px");
+  });
+
+  it("ScCardSurface (superficie interior) sigue derivando su radio como calc(radius.xl - FEATURES_CARD_BORDER_WIDTH), no un segundo literal", () => {
+    const { container } = renderWithProviders(<Features />);
+    const card = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    const surface = card.firstElementChild as HTMLElement;
+    // Colapsado de espacios en blanco: `prettier` envuelve este `calc()` en
+    // varias líneas (supera su ancho máximo de línea) y styled-components
+    // conserva esa indentación literal -- ver el docblock de este bloque.
+    const css = cssRuleTextFor(surface).replace(/\s+/g, " ");
+    expect(css).toContain(
+      `border-radius: calc( ${themes.light.radius.xl} - ${FEATURES_CARD_BORDER_WIDTH} )`,
+    );
+    expect(css).not.toContain("calc( 26px");
   });
 });
 

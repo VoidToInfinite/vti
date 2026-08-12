@@ -14,7 +14,6 @@ import {
   FEATURE_KEYS,
   FEATURE_FIGURE_BASENAME,
   FEATURES_FIGURE_SIZES,
-  FEATURES_CARD_RADIUS,
   FEATURES_CARD_BORDER_WIDTH,
   FEATURES_IMAGE_PANEL_HEIGHT,
   FEATURES_IMAGE_CIRCLE_SIZE,
@@ -582,7 +581,15 @@ const cardBorderSpin = keyframes`
  * `semantic.border` (gris neutro), en hover un `conic-gradient` de marca que
  * gira. Dentro, `ScCardSurface` (más abajo) pinta la superficie blanca real
  * con el radio interior (`calc(radio - padding)`, ver el docblock de
- * `FEATURES_CARD_RADIUS`).
+ * `ScCardSurface`, debajo).
+ *
+ * Radio (Task 23, plan premium F1-F5): baja de 26px a 16px por decisión del
+ * dueño (Fase 0, capturas delante). Deja de ser un literal de arte propio
+ * (`FEATURES_CARD_RADIUS`, retirada -- ver `features.layers.ts`) porque
+ * 16px coincide EXACTO con `theme.data.radius.xl`, el mismo token que
+ * `ScImagePanel` (más abajo) ya usa para el panel de imagen de esta misma
+ * tarjeta -- consumir el token en vez de reescribir el número evita la
+ * duplicación que la regla 13 del manual prohíbe.
  *
  * Excepción declarada al lenguaje de movimiento de la casa (D7 de la spec
  * `2026-08-06-story-features-tema-claro-design.md`): el `animation` de abajo
@@ -630,7 +637,7 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   display: flex;
   height: 100%;
   padding: ${FEATURES_CARD_BORDER_WIDTH};
-  border-radius: ${FEATURES_CARD_RADIUS};
+  border-radius: ${({ theme }) => theme.data.radius.xl};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
   transition:
@@ -688,15 +695,22 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   }
 `;
 
-/* Superficie interior blanca (D7): radio calculado, no un segundo literal
-   (ver el docblock de `FEATURES_CARD_RADIUS`, `features.layers.ts`). */
+/* Superficie interior blanca (D7): radio calculado, no un segundo literal.
+   Task 23: la fórmula NO cambia (radio interior = radio exterior − grosor
+   del envoltorio-borde, la regla estándar de radios anidados -- se resta el
+   hueco entre los dos contornos, no una proporción fija), así que baja sola
+   al bajar `radius.xl` -- 16px − 1.8px = 14.2px (antes: 26px − 1.8px =
+   24.2px). Ver el docblock de `ScCardBorder`, arriba, y el de la constante
+   retirada `FEATURES_CARD_RADIUS` en `features.layers.ts`. */
 const ScCardSurface = styled.div`
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   background: ${({ theme }) => theme.data.semantic.surface};
-  border-radius: calc(${FEATURES_CARD_RADIUS} - ${FEATURES_CARD_BORDER_WIDTH});
+  border-radius: calc(
+    ${({ theme }) => theme.data.radius.xl} - ${FEATURES_CARD_BORDER_WIDTH}
+  );
   overflow: hidden;
 `;
 
