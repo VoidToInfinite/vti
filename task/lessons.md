@@ -1,5 +1,34 @@
 # Lecciones
 
+## 2026-08-12 (Task 34) — Un candado de literal no distingue código de comentario que CITA ese literal
+
+- **Qué pasó:** al arreglar que `ThemeProvider.tsx` persistiera `vti-theme` sin
+  distinguir detección automática de elección humana, un comentario nuevo citó
+  entre comillas dobles la frase que ya documenta `src/config/storage.ts`
+  ("vti-theme solo se escribe cuando la persona pulsa el conmutador de
+  tema"). `pnpm run ci` cayó en rojo: `storage.test.ts` afirma que **ningún**
+  fichero de `src/` fuera de `config/storage.ts` contiene el literal `"vti-`
+  (con comillas dobles) — un candado deliberado para que un rename del
+  literal se detecte en todas partes, que no distingue código activo de un
+  comentario que simplemente lo estaba citando entre comillas.
+- **Por qué no es un fallo del candado:** su propósito explícito es justo ese
+  — cero apariciones sueltas del literal fuera de `storage.ts`, sin excepción
+  para comentarios — así que el candado hizo su trabajo. El error estaba en
+  mi comentario: cité el texto legal envolviéndolo en comillas dobles rectas,
+  la misma sintaxis que un literal TypeScript de verdad.
+- **Cómo se corrigió:** parafrasear el contenido del comentario en vez de
+  citarlo entre comillas dobles (mismo significado, sin el literal exacto);
+  una cita con backtick (`` `vti-theme=dark` ``, usada un poco más arriba en
+  el mismo bloque) NO dispara este candado porque busca específicamente
+  comilla-doble-más-`vti-`, no cualquier delimitador de código.
+- **Regla:** al escribir un docblock/comentario que mencione un identificador
+  de storage (`vti-theme`, `vti-lang`, o cualquier literal protegido por un
+  candado de "declaración única" del repo), citarlo con backticks o
+  parafrasearlo — nunca entre comillas dobles rectas — y, si el gate falla
+  por un candado de este tipo tras un cambio que "solo tocaba comentarios",
+  revisar primero el texto de los comentarios nuevos antes de sospechar del
+  candado.
+
 ## 2026-08-11 (Task 31) — Un hallazgo "no rompía nada hoy" puede romper algo mañana, en OTRA tarea
 
 - **Qué pasó:** la entrada del 2026-08-11 de más abajo (Task 9) ya documentaba que
