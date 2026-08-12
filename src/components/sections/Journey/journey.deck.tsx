@@ -228,21 +228,41 @@ export const ScJourneyDeck = styled.div`
  * El estado base (sin data-state="current"/"past") es el de una diapositiva
  * que TODAVIA no ha llegado ("next"): opacity 0 + desplazada hacia abajo.
  * "past" invierte el signo del desplazamiento; "current" limpia los dos.
+ *
+ * `visibility` (fix wave A, hallazgo A1 -- MISMO tratamiento que ScSlide en
+ * story.deck.tsx, leer su docblock es releer este). `ScJourneySlide` se
+ * salva HOY por no tener ningun elemento realmente focalizable dentro de
+ * ninguna de sus 8 diapositivas (verificado leyendo Journey.tsx: los unicos
+ * nodos interactivos de la rama oscura viven fuera del deck) -- pero es
+ * exactamente la misma estructura que ScSlide antes de que la Task 6
+ * anadiera `ScDeckNoteLink`, y por tanto la misma trampa latente: cualquier
+ * enlace o boton que se anada mas adelante a una diapositiva de Journey
+ * heredaria el mismo trap de foco invisible sin que nadie tuviera que tocar
+ * este fichero para introducirlo. Se aplica el mismo arreglo de forma
+ * preventiva, no reactiva a un hallazgo ya medido en este componente
+ * concreto -- misma logica que "declararlo como causa raiz aplazada, no
+ * cerrada" de la leccion del 2026-08-11 (Task 31, `task/lessons.md`): el
+ * momento correcto para cerrar una trampa estructural conocida es ANTES de
+ * que otra tarea, ajena a esta, la reabra sin saber que existe.
  */
 export const ScJourneySlide = styled.div`
   grid-area: 1 / 1;
   width: 100%;
   opacity: 0;
+  visibility: hidden;
   transform: translateY(${JOURNEY_SLIDE_SHIFT});
   transition:
     opacity ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate},
     transform ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.decelerate},
+    visibility ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate};
   pointer-events: none;
 
   &[data-state="current"] {
     opacity: 1;
+    visibility: visible;
     transform: none;
     pointer-events: auto;
   }
@@ -252,10 +272,15 @@ export const ScJourneySlide = styled.div`
   }
 
   /* D12: todas visibles a la vez, en flujo -- perder 7 de 8 diapositivas
-     seria perder CONTENIDO, no solo movimiento. */
+     seria perder CONTENIDO, no solo movimiento. visibility: visible
+     incondicional (fix wave A, A1): mismo motivo que ScSlide en
+     story.deck.tsx. SIN BACKTICKS en este comentario, a proposito: vive
+     DENTRO del template literal de styled-components (leccion del repo,
+     task/lessons.md 2026-07-25). */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     opacity: 1;
+    visibility: visible;
     transform: none;
     pointer-events: auto;
   }

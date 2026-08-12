@@ -92,6 +92,41 @@ function cssRuleTextFor(el: HTMLElement): string {
     .join("\n");
 }
 
+/**
+ * Regla CSS real (CSSOM, `CSSStyleRule`, no texto libre) que aplica a un
+ * elemento y cuyo `selectorText` cumple `matches` -- mismo helper que
+ * `Story.test.tsx` (`cssRuleFor`): a diferencia de `cssRuleTextFor`
+ * (concatena TODAS las reglas que mencionan la clase), esto localiza UNA
+ * regla concreta y expone `.style.<prop>`, que SI resuelve el valor
+ * declarado de una propiedad sin ambiguedad de que declaracion pertenece a
+ * que selector. Usado por el candado de A1 (fix wave A, WCAG 2.4.7).
+ */
+function cssRuleFor(
+  el: HTMLElement,
+  matches: (selectorText: string) => boolean,
+): CSSStyleRule {
+  const classes = Array.from(el.classList);
+  const rule = Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .find((r): r is CSSStyleRule => {
+      if (!("selectorText" in r)) return false;
+      const selector = (r as CSSStyleRule).selectorText ?? "";
+      return (
+        classes.some((cls) => selector.includes(`.${cls}`)) && matches(selector)
+      );
+    });
+  if (!rule) {
+    throw new Error("Ninguna regla coincide con el criterio pedido");
+  }
+  return rule as CSSStyleRule;
+}
+
 beforeEach(() => {
   ioTargets = [];
   vi.stubGlobal(
@@ -831,9 +866,22 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
  * del deck): el veredicto favorable medido por la auditoria -- las
  * JOURNEY_SLIDES diapositivas se leen completas, en orden, porque nada las
  * oculta -- se fija aqui por escrito para que un cambio futuro no pueda
- * romperlo en silencio. `ScJourneySlide` es solo opacity/transform (nunca
- * display:none/visibility:hidden), asi que ninguna diapositiva sale del
- * arbol de accesibilidad aunque este "next"/"past" visualmente.
+ * romperlo en silencio.
+ *
+ * ACTUALIZADO (fix wave A, hallazgo A1, revision final de rama): igual que
+ * su gemelo de `Story.test.tsx`, la frase "ScJourneySlide es solo
+ * opacity/transform, nunca display:none/visibility:hidden" DEJO DE SER
+ * CIERTA -- ver el docblock de `ScJourneySlide` (`journey.deck.tsx`) para el
+ * porque completo (mismo arreglo que `ScSlide` en `story.deck.tsx`,
+ * aplicado de forma PREVENTIVA aqui: Journey no tenia hoy ningun elemento
+ * focalizable dentro de una diapositiva, pero la misma estructura ya
+ * permitio el trap de foco invisible en Story en cuanto la Task 6 anadio un
+ * enlace real). Los dos asserts de este describe siguen siendo correctos y
+ * necesarios (jsdom no resuelve `visibility` de una hoja de estilos), pero
+ * ya no describen una lectura de "las 8 diapositivas de una sola pasada": en
+ * un navegador real solo la diapositiva `current` esta en el arbol de
+ * accesibilidad en cada instante. El candado que ata la visibilidad
+ * condicional vive en el describe "fix wave A" de mas abajo.
  *
  * Fix round (revision del coordinador, mismo hallazgo que su gemelo de
  * `Story.test.tsx`): la version original solo cubria la diapositiva misma
@@ -998,6 +1046,65 @@ describe("Journey: candado SR del deck -- orden de DOM y ausencia de aria-hidden
       });
       expect(slide.textContent?.trim().length ?? 0).toBeGreaterThan(0);
     });
+  });
+});
+
+/*
+ * Fix wave A, hallazgo A1 (WCAG 2.4.7, revision final de rama). MISMO
+ * candado que su gemelo de `Story.test.tsx` -- ver su docblock, verbatim
+ * salvo el nombre del componente y el numero de diapositivas. Aplicado de
+ * forma PREVENTIVA (ver el docblock de `ScJourneySlide`,
+ * `journey.deck.tsx`): hoy ninguna diapositiva de Journey monta un elemento
+ * focalizable, pero el candado ata la ESTRUCTURA, no el contenido concreto
+ * de hoy, para que un enlace/boton anadido manana no reabra el mismo trap.
+ *
+ * Verificado con un bug inyectado a proposito (informe de la tarea): al
+ * quitar `visibility: hidden` del reposo de `ScJourneySlide`
+ * (journey.deck.tsx), el primer `it` de este describe cae en rojo; al
+ * restaurarlo, vuelve a verde.
+ */
+describe("Journey: fix wave A, A1 -- las diapositivas no actuales no son tabulables (CSS declarado)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('el reposo de ScJourneySlide declara visibility: hidden, y [data-state="current"] lo revierte a visible', async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const slide = container.querySelector("[data-slide-index]") as HTMLElement;
+
+    const baseRule = cssRuleFor(slide, (sel) => !sel.includes("["));
+    expect(baseRule.style.visibility).toBe("hidden");
+
+    const currentRule = cssRuleFor(slide, (sel) =>
+      sel.includes('[data-state="current"]'),
+    );
+    expect(currentRule.style.visibility).toBe("visible");
+  });
+
+  it("bajo prefers-reduced-motion, TODAS las diapositivas vuelven a visibility: visible", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const slide = container.querySelector("[data-slide-index]") as HTMLElement;
+
+    const css = cssRuleTextFor(slide);
+    expect(css).toContain("prefers-reduced-motion: reduce");
+    const reduceBlock = css.slice(
+      css.indexOf("prefers-reduced-motion: reduce"),
+    );
+    expect(reduceBlock).toContain("visibility: visible");
   });
 });
 

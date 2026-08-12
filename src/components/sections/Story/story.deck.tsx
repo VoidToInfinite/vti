@@ -282,21 +282,78 @@ export const ScDeck = styled.div`
  * El estado base (sin data-state="current"/"past") es el de una diapositiva
  * que TODAVIA no ha llegado ("next"): opacity 0 + desplazada hacia abajo.
  * "past" invierte el signo del desplazamiento; "current" limpia los dos.
+ *
+ * `visibility` (fix wave A, hallazgo A1, WCAG 2.4.7 -- el defecto de
+ * interaccion mas grave de la revision final de rama): hasta esta tarea el
+ * estado base solo llevaba `opacity: 0` + `pointer-events: none`, y
+ * `pointer-events: none` NO saca un elemento del orden de tabulacion --
+ * ninguna de las dos propiedades lo hace. La Task 6 (mas arriba en la
+ * historia del plan) monto el primer elemento REALMENTE focalizable dentro
+ * de una `ScSlide` (`ScDeckNoteLink`, el enlace de Discord de la ultima
+ * diapositiva, Story.tsx): con tema oscuro, tabular por el deck ANTES de
+ * llegar a esa diapositiva llevaba el foco a un `<a>` invisible -- y como el
+ * stage vive en `position: sticky` (ya en el viewport), el navegador ni
+ * siquiera desplazaba la pagina para traerlo a la vista: el foco
+ * desaparecia de la pantalla sin ninguna pista de donde habia ido. Antes de
+ * la Task 6 el deck no tenia nada focalizable dentro de una diapositiva no
+ * actual, por eso nadie lo vio: el defecto vive en la INTERSECCION de dos
+ * tareas, invisible desde cualquiera de las dos por separado (misma familia
+ * que la leccion del 2026-08-11, Task 31, `task/lessons.md`).
+ *
+ * Se elige `visibility` (no `inert`) porque ya existe el selector CSS
+ * `&[data-state="current"]` que decide exactamente cuando una diapositiva
+ * es la real: anadir `visibility: hidden` al reposo y `visibility: visible`
+ * a ese mismo selector reutiliza la MISMA fuente de verdad sin tocar
+ * Story.tsx/Journey.tsx ni anadir un efecto de React que sincronice un
+ * atributo `inert` con `data-state` a mano. `visibility` entra en la MISMA
+ * lista de `transition` que ya anima opacity/transform (no dos bloques
+ * apertura/cierre como ScNavSheet/ScNavPanel en Navbar.tsx/NavSheet.tsx):
+ * la especificacion de CSS Transitions trata `visibility` como discreta con
+ * un caso especial -- al pasar a "visible" el valor computa "visible" desde
+ * el primer frame de la transicion, y al pasar a "hidden" se queda en
+ * "visible" hasta el ULTIMO frame -- asi que la diapositiva que se convierte
+ * en "current" es focalizable de inmediato y la que deja de serlo sigue
+ * siendo focalizable mientras se desvanece visualmente, sin ninguna ventana
+ * en la que el estado de foco y el estado visual diverjan. (No hay ningun
+ * `focus()` sincrono en el mismo tick que el cambio de `data-state` -- a
+ * diferencia de NavSheet.tsx, que SI necesito retirar `visibility` de su
+ * lista de apertura por esa razon -- asi que aqui no aplica esa trampa.)
+ *
+ * COSTE DECLARADO: el candado SR del deck (Story.test.tsx/Journey.test.tsx,
+ * "Task 6") documentaba que ninguna diapositiva salia del arbol de
+ * accesibilidad, precisamente porque antes de esta tarea no habia ningun
+ * `visibility`/`display` que la sacara -- un lector de pantalla podia leer
+ * las 6 diapositivas completas en un solo paso, sin depender de que el
+ * usuario "scrollee" el deck para revelarlas. Esa lectura de una sola pasada
+ * YA NO ES CIERTA tras este arreglo: con `visibility: hidden` en las
+ * diapositivas no actuales, un lector de pantalla real solo anuncia la
+ * diapositiva `current` en cada instante -- exactamente lo mismo que ve un
+ * usuario con vista, ni mas ni menos. Es la resolucion correcta de todos
+ * modos: un trampa de foco invisible (WCAG 2.4.7) es un defecto MAS grave
+ * que perder una lectura de una sola pasada que ningun usuario vidente tenia
+ * tampoco -- y el contenido no desaparece, sigue alcanzable exactamente por
+ * el mismo mecanismo (scroll) por el que ya lo era visualmente. Ver el
+ * docblock actualizado del describe "candado SR del deck" en los dos
+ * ficheros de test para el detalle completo.
  */
 export const ScSlide = styled.div`
   grid-area: 1 / 1;
   width: 100%;
   opacity: 0;
+  visibility: hidden;
   transform: translateY(${STORY_SLIDE_SHIFT});
   transition:
     opacity ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate},
     transform ${({ theme }) => theme.data.motion.duration.slow}
+      ${({ theme }) => theme.data.motion.easing.decelerate},
+    visibility ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate};
   pointer-events: none;
 
   &[data-state="current"] {
     opacity: 1;
+    visibility: visible;
     transform: none;
     pointer-events: auto;
   }
@@ -307,10 +364,17 @@ export const ScSlide = styled.div`
 
   /* D6: todas visibles a la vez, en flujo -- la degradacion a documento que
      el encargo de accesibilidad exige (perder 5 de 6 diapositivas seria
-     perder CONTENIDO, no solo movimiento). */
+     perder CONTENIDO, no solo movimiento). visibility: visible
+     incondicional (fix wave A, A1): bajo reduce todas las diapositivas se
+     apilan en flujo normal y TODAS tienen que quedar focalizables, no solo
+     la que fuera "current" en el instante en que se activo la preferencia.
+     SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
+     literal de styled-components (leccion del repo, task/lessons.md
+     2026-07-25). */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     opacity: 1;
+    visibility: visible;
     transform: none;
     pointer-events: auto;
   }
