@@ -175,7 +175,7 @@ Fuente estratégica: nota del vault `01-Projects/vti/typescript/specs/2026-08-09
 
 **Los datos D-D (10 bloqueantes legales) y D-B (producto, pendientes) siguen sin respuesta.** La nota del vault los agrupa como "D-B, 6 de producto" pendientes; **este documento no puede verificar esa cifra de 6 de forma independiente** — cotejando los 13 puntos de arriba contra la lista original de 11 decisiones de producto (11-21, más abajo), 4 quedan resueltas (11, 13, 18, 19) y **7** siguen abiertas (12, 14, 15, 16, 17, 20, 21), no 6. La discrepancia se declara en vez de forzarse: puede deberse a que la enumeración "D-B" del vault no sea 1:1 con la lista de 11 puntos de este documento (por ejemplo, si agrupa dos preguntas relacionadas como una sola decisión pendiente), pero no hay forma de confirmarlo desde este repo. Los siete puntos de producto sin responder, y los diez legales, se marcan `_por completar_` tal cual — no se inventan.
 
-### Datos que necesita dar el dueño
+### Lista completa: bloqueantes legales y decisiones de producto (2026-08-08, con estado 2026-08-12)
 
 Lista íntegra de 21 puntos, tal como los identificó la auditoría del 2026-08-08. Se separan en dos bloques porque tienen naturaleza distinta: los primeros diez son **bloqueantes legales** (sin ellos, `/privacidad` y `/aviso-legal` no son publicables); los once restantes son **decisiones de producto** (afectan al copy y a la arquitectura de información, no a la legalidad de las páginas). **Estado actualizado 2026-08-12 (Task 25):** de los once de producto, 11/13/18/19 quedan RESUELTOS por las decisiones de Fase 0 de arriba; el resto sigue `_por completar_`.
 
