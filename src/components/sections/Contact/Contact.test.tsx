@@ -513,17 +513,43 @@ describe("Contact: Task 18, la linea de privacidad junto al formulario", () => {
    * datos nunca salen de aquí" en general -- el formulario abre el cliente
    * de correo del PROPIO VISITANTE (ver `handleSubmit`), y eso no es "cero
    * salida de datos" sin matiz. Candado de CONTENIDO, no de presencia: la
-   * clave tiene que acotar el claim a la navegación y no afirmar la promesa
-   * más amplia que el sitio no puede sostener.
+   * clave tiene que acotar el claim a la navegación Y declarar la segunda
+   * cláusula que aclara el matiz del formulario -- las DOS mitades, no solo
+   * una.
+   *
+   * Corrección de revisión (fix de la Task 18, mismo día): la primera
+   * versión de este test solo ataba la mitad del matiz -- comprobaba que el
+   * texto mencionara "navegar"/"browsing" y que NO contuviera "nunca sale
+   * nada"/"never leaves", pero nunca comprobó que la SEGUNDA cláusula (la
+   * que aclara que escribir abre el cliente de correo del visitante)
+   * siguiera ahí. Con esa cobertura, borrar la segunda cláusula entera --
+   * dejando solo "Navegar por esta web no envía ningún dato tuyo a
+   * terceros: no hay analítica ni rastreo." -- habría dejado el test en
+   * verde, reintroduciendo justo la ambigüedad que el brief pedía evitar
+   * (detectado en revisión, no por este agente). Se añaden las dos
+   * aserciones que faltaban (`toContain("cliente de correo")` /
+   * `toContain("email client")`), verificadas con el bug inyectado real:
+   * borrar la segunda cláusula de las dos claves puso este test en rojo
+   * (`expected ... to include 'cliente de correo'` / `'email client'`);
+   * restaurado, volvió a verde.
    */
-  it("el texto acota el claim a NAVEGAR, no a 'nunca sale nada de aqui' en general, en los dos idiomas", () => {
+  it("el texto acota el claim a NAVEGAR y declara la segunda clausula (cliente de correo del visitante) en los dos idiomas", () => {
     const es = esHome.Home.contact.privacyNote.toLowerCase();
     const en = enHome.Home.contact.privacyNote.toLowerCase();
 
+    // Primera clausula: el claim se acota a NAVEGAR, nunca a una promesa
+    // mas amplia que el sitio no puede sostener.
     expect(es).toContain("navegar");
     expect(en).toContain("browsing");
     expect(es).not.toContain("nunca sale nada");
     expect(en).not.toContain("never leaves");
+
+    // Segunda clausula: el matiz del formulario (abre el cliente de correo
+    // DEL VISITANTE) tiene que seguir presente -- sin ella, la primera
+    // clausula por si sola es exactamente la ambiguedad que el brief pedia
+    // evitar.
+    expect(es).toContain("cliente de correo");
+    expect(en).toContain("email client");
   });
 
   /*
