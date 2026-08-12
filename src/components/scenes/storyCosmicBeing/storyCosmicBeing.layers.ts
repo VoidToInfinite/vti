@@ -168,8 +168,42 @@ export const STORY_COSMIC_BEING_VOID = "#05010e";
 export const STORY_COSMIC_BEING_POINTER_AMP = { x: 10, y: 20 } as const;
 
 /**
- * Amplitud del parallax de scroll en px, a profundidad 1. Tomada de
- * motionHints.scrollTravelPx del mismo manifest (190, frente a los 70 de
- * "Cosmic Heart") -- misma razon que STORY_COSMIC_BEING_POINTER_AMP.
+ * Amplitud del parallax de scroll en px, a profundidad 1. Hasta la Task 20
+ * (plan premium F1-F5, "motion resto") era 190 -- motionHints.scrollTravelPx
+ * del manifest de esta escena, frente a los 70 de "Cosmic Heart" -- un valor
+ * muy por encima de sus tres hermanas (`CONTACT_GUARDIAN_SCROLL_AMP`,
+ * `FEATURES_ORBITAL_SCROLL_AMP`, `JOURNEY_PORTAL_SCROLL_AMP`, las tres en 32,
+ * normalizadas contra su capa mas cercana en `depth: 1`).
+ *
+ * Esta escena NO normaliza sus 11 capas a `depth: 1` en la mas cercana (la
+ * mas cercana, `heart-core`, se queda en `depth: 0.72` -- ver
+ * `STORY_COSMIC_BEING_LAYERS`, arriba): renormalizar las 11 profundidades
+ * habria sido un cambio mucho mas amplio que el que pide el brief de Task 20
+ * ("scrollAmp 190 -> el valor de sus hermanas, 32"), asi que aqui se iguala
+ * la CONSTANTE de amplitud, no el recorrido efectivo en pixeles.
+ *
+ * MEDIDO en navegador real (Chrome, `playwright-cli`, build de produccion
+ * servido en `localhost:3600`, capturas y barrido numerico del informe de la
+ * tarea): el termino de scroll de `useSceneParallax` (`scrollProgress *
+ * scrollAmp * depth`) solo se mueve de forma perceptible en la VENTANA DE
+ * TRANSICION de ~700-800px de scroll en la que la escena entra o sale del
+ * pin (`position: sticky`) -- MIENTRAS la escena permanece anclada a pantalla
+ * completa (la inmensa mayoria del recorrido del deck, varios miles de px),
+ * `scrollProgress` apenas se mueve (~0 a ~0.07) y el termino de scroll
+ * contribuye menos de 3px en cualquiera de las dos versiones -- ahi el
+ * cambio de amplitud es indistinguible.
+ *
+ * En la capa mas cercana (`heart-core`, `depth: 0.72`), el barrido numerico
+ * dio, en la MISMA posicion de scroll con los DOS builds (antes/despues):
+ * entrada (scrollY 100) de -114,12px a -23,90px; salida (scrollY 6400) de
+ * +141,82px a +18,74px -- un recorte de ~5,9-7,6x en la ventana de
+ * transicion (esta escena queda en 32 * 0,72 = 23,04px de recorrido efectivo
+ * maximo, ligeramente por debajo de los 32 * 1 = 32px de sus hermanas,
+ * consecuencia aceptada de igualar la CONSTANTE y no el recorrido -- ver
+ * arriba). Verificado que la escena sigue leyendose como parallax real y no
+ * como imagen estatica: las 11 capas conservan su orden y su proporcion
+ * relativa de movimiento entre si (cada `depth` sigue multiplicando el mismo
+ * `scrollAmp`), solo con una ventana de transicion mas suave -- ver el
+ * informe de la tarea (Task 20) para el barrido completo y las capturas.
  */
-export const STORY_COSMIC_BEING_SCROLL_AMP = 190;
+export const STORY_COSMIC_BEING_SCROLL_AMP = 32;

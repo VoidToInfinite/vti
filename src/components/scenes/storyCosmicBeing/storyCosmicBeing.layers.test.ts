@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   STORY_COSMIC_BEING_LAYERS,
+  STORY_COSMIC_BEING_SCROLL_AMP,
   STORY_COSMIC_BEING_SIZES,
   STORY_COSMIC_BEING_VOID,
 } from "./storyCosmicBeing.layers";
@@ -37,5 +38,20 @@ describe("storyCosmicBeing.layers", () => {
 
   it("STORY_COSMIC_BEING_SIZES declara el breakpoint movil de la Decision D-E (2026-08-09): 340px bajo 700px, 100vw en el resto", () => {
     expect(STORY_COSMIC_BEING_SIZES).toBe("(max-width: 700px) 340px, 100vw");
+  });
+
+  /*
+   * Task 20 (motion resto): STORY_COSMIC_BEING_SCROLL_AMP pasa de 190 a 32,
+   * igualando la CONSTANTE de amplitud de sus tres hermanas
+   * (CONTACT_GUARDIAN_SCROLL_AMP/FEATURES_ORBITAL_SCROLL_AMP/
+   * JOURNEY_PORTAL_SCROLL_AMP, las tres en 32). Verificado en navegador real
+   * (ver el docblock de la propia constante e informe de la tarea) que la
+   * escena sigue leyendose como parallax, con la ventana de transicion de
+   * entrada/salida del pin mas suave. Validado con el bug inyectado a
+   * proposito: revirtiendo temporalmente a 190, este test se puso en rojo;
+   * restaurado, volvio a verde.
+   */
+  it("Task 20: STORY_COSMIC_BEING_SCROLL_AMP iguala la constante de amplitud de sus hermanas (32, no 190)", () => {
+    expect(STORY_COSMIC_BEING_SCROLL_AMP).toBe(32);
   });
 });
