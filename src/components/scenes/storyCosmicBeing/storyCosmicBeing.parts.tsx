@@ -87,11 +87,21 @@ export const ScLayer = styled.img<{
     $glow === "core" &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        /* Task 19 (motion core, punto 7 del brief): 6.5s pasa a
-           AMBIENT.pulseMs (@/motion/vocabulary) -- mismo valor, ahora
+        /* Task 19 (motion core, punto 7 del brief): 6.5s pasó a
+           AMBIENT.pulseMs (arroba/motion/vocabulary) -- mismo valor,
            consumidor real del vocabulario (gate F2: AMBIENT tenía 0
-           consumidores antes de esta tarea). */
-        animation: ${heartBeat} ${AMBIENT.pulseMs}ms ease-in-out infinite;
+           consumidores antes de esa tarea). Task 20 (motion resto) colapsa
+           AMBIENT de 5 campos a 3 y retira pulseMs, fusionado en breathMs --
+           el campo con el que comparte rol de coreografía (pulso de
+           opacidad/escala en una capa de glow ambiental, no disparado),
+           aunque no comparta el mismo mascota. A diferencia de la migración
+           de Task 19, ESTE cambio SÍ mueve el valor: el pulso pasa de un
+           ciclo de 6.5s a uno de 5.4s (~17% más rápido). Verificado en
+           navegador real (capturas t20- del informe de la tarea) que el
+           cambio de ritmo no aplana ni cambia el carácter de la escena --
+           ver el docblock de AMBIENT en vocabulary.ts para el razonamiento
+           completo. */
+        animation: ${heartBeat} ${AMBIENT.breathMs}ms ease-in-out infinite;
       }
     `}
 `;

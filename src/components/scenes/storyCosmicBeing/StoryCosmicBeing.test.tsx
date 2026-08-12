@@ -105,18 +105,26 @@ describe("StoryCosmicBeing", () => {
 
   /*
    * Task 19 (motion core, punto 7 del brief -- gate F2: AMBIENT con cero
-   * consumidores): heartBeat pasa de un literal (6.5s) a AMBIENT.pulseMs
-   * (@/motion/vocabulary), mismo valor numérico. Validado con el bug
-   * inyectado a propósito (ver informe de la tarea): revirtiendo
-   * temporalmente heartBeat a 6.5s en storyCosmicBeing.parts.tsx, este test
-   * se puso en rojo; restaurado, volvió a verde.
+   * consumidores): heartBeat pasó de un literal (6.5s) a AMBIENT.pulseMs
+   * (@/motion/vocabulary), mismo valor numérico.
+   *
+   * Task 20 (motion resto) colapsa AMBIENT de 5 campos a 3 y retira
+   * `pulseMs`, fusionado en `breathMs` -- mismo rol de coreografía (pulso de
+   * opacidad/escala ambiental), mascota distinta. Este SÍ es un cambio de
+   * valor real (6.5s -> 5.4s, ~17% más rápido), verificado en navegador real
+   * que no aplana la escena (ver el informe de la tarea y el docblock de
+   * AMBIENT en vocabulary.ts). Validado con el bug inyectado a propósito:
+   * revirtiendo temporalmente heartBeat a AMBIENT.pulseMs (restaurando el
+   * campo en vocabulary.ts) este test se puso en rojo; restaurado, volvió a
+   * verde.
    */
-  it("Task 19: el pulso del nucleo (heart-core) consume AMBIENT.pulseMs, no el literal 6.5s", () => {
+  it("Task 20: el pulso del nucleo (heart-core) consume AMBIENT.breathMs (5.4s), no AMBIENT.pulseMs ni el literal 6.5s", () => {
     render(<StoryCosmicBeing />);
     const css = allCssText();
 
     expect(css).toContain("prefers-reduced-motion: no-preference");
-    expect(css).toContain(`${AMBIENT.pulseMs}ms ease-in-out infinite`);
+    expect(css).toContain(`${AMBIENT.breathMs}ms ease-in-out infinite`);
     expect(css).not.toContain("6.5s");
+    expect(css).not.toContain("6500ms");
   });
 });

@@ -177,12 +177,17 @@ describe("Sol", () => {
    * consumidores): cinco animaciones de este fichero pasan de un literal en
    * segundos (5.4s/20s/40s) a `AMBIENT.breathMs`/`AMBIENT.orbitMs`/
    * `AMBIENT.orbitSlowMs` (@/motion/vocabulary), mismo valor numérico.
-   * Validado con el bug inyectado a propósito (ver informe de la tarea):
-   * revirtiendo temporalmente `solBreathe` a `5.4s` en Sol.tsx, este test se
-   * puso en rojo (deja de encontrar `${AMBIENT.breathMs}ms` en el texto
-   * inyectado); restaurado, volvió a verde.
+   *
+   * Task 20 (motion resto) colapsa AMBIENT de 5 campos a 3 y retira
+   * `orbitSlowMs`: `sweepSpin` sigue en 40000ms exactos, ahora derivados de
+   * `AMBIENT.orbitMs * 2` (ver `ORBIT_SLOW_MS` en Sol.tsx) en vez de un
+   * quinto campo. `breathMs`/`orbitMs` no cambian. Validado con el bug
+   * inyectado a propósito (ver informe de la tarea): revirtiendo
+   * temporalmente `solBreathe` a `5.4s` en Sol.tsx, este test se puso en rojo
+   * (deja de encontrar `${AMBIENT.breathMs}ms` en el texto inyectado);
+   * restaurado, volvió a verde.
    */
-  it("Task 19: solBreathe/haloGlow/coreGlow/coronaMorph/sweepSpin consumen AMBIENT.breathMs/orbitMs/orbitSlowMs, no literales en segundos", () => {
+  it("Task 19/20: solBreathe/haloGlow/coreGlow/coronaMorph/sweepSpin consumen AMBIENT.breathMs/orbitMs (sweepSpin via orbitMs*2), no literales en segundos", () => {
     renderWithProviders(<Sol />);
     const css = allCssText();
 
@@ -191,7 +196,7 @@ describe("Sol", () => {
     expect(css).toContain("prefers-reduced-motion: no-preference");
     expect(css).toContain(`${AMBIENT.breathMs}ms ease-in-out infinite`);
     expect(css).toContain(`${AMBIENT.orbitMs}ms ease-in-out infinite`);
-    expect(css).toContain(`${AMBIENT.orbitSlowMs}ms linear infinite`);
+    expect(css).toContain(`${AMBIENT.orbitMs * 2}ms linear infinite`);
     expect(css).not.toContain("5.4s");
     expect(css).not.toContain("20s ease-in-out");
     expect(css).not.toContain("40s linear");

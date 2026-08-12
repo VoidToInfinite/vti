@@ -59,13 +59,18 @@ describe("vocabulary", () => {
     expect(PRESS).toEqual(expectedPress);
   });
 
-  it("AMBIENT expone su contrato exacto", () => {
+  /*
+   * Task 20 (motion resto) colapsa AMBIENT de cinco campos a tres: `pulseMs`
+   * se fusiona en `breathMs` (storyCosmicBeing.parts.tsx pasa a consumirlo) y
+   * `orbitSlowMs` se retira porque Sol.tsx lo deriva de `AMBIENT.orbitMs * 2`
+   * (mismo valor exacto, 40000, sin necesitar un cuarto campo). Ver el
+   * docblock de AMBIENT en vocabulary.ts para el criterio completo.
+   */
+  it("AMBIENT expone su contrato exacto (Task 20: colapsado de 5 a 3 campos)", () => {
     const expectedAmbient = {
       breathMs: 5400,
-      pulseMs: 6500,
       floatMs: 9000,
       orbitMs: 20000,
-      orbitSlowMs: 40000,
     };
     expect(AMBIENT).toEqual(expectedAmbient);
   });

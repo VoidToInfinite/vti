@@ -31,6 +31,19 @@ import { Logo } from "@/components/ui/Logo/Logo";
  * `oklch()` literales son espectaculo de marca en un elemento `aria-hidden`,
  * no roles de UI. Aqui ademas son la traduccion exacta de los pasos de
  * escala que el handoff de diseno del sdk fijo.
+ *
+ * SIN `AMBIENT` (`@/motion/vocabulary`): las tres rotaciones infinitas de
+ * este fichero -- `ScSwirl` (34s), `ScRing2` (24s reverse), `ScRing3` (18s) --
+ * no coinciden con ninguno de los tres campos que sobrevivieron al colapso de
+ * Task 20 (`breathMs` 5400, `floatMs` 9000, `orbitMs` 20000, mas el
+ * `orbitMs * 2` derivado de Sol.tsx). Forzarlas exigiria cambiar su ritmo
+ * real, un cambio de comportamiento del mascota que este brief no pide y que
+ * arriesga su caracter -- inventario completo y razonamiento en el docblock
+ * de `AMBIENT`, `src/motion/vocabulary.ts`. Las animaciones de pulso
+ * DISPARADAS de este fichero (`ringExplodeStep`/`ringGlowStep`/
+ * `corePulseStep`/`shockBurst`/`markPulse`/`swirlFlash`, todas bajo
+ * `[data-pulse="true"]`) tampoco son candidatas: `AMBIENT` es exclusivamente
+ * movimiento infinito NO disparado.
  */
 
 function oklch(triplet: string, alpha: number): string {

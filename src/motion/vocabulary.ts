@@ -46,6 +46,12 @@
  * para cuando una tarea futura lo necesite, mismo criterio que ya regía antes
  * de esta entrega.
  *
+ * **Task 20** (mismo plan, "motion resto") colapsa `AMBIENT` de los cinco
+ * campos que dejó Task 19 a TRES (`breathMs`/`floatMs`/`orbitMs`) -- ver el
+ * docblock de `AMBIENT`, abajo, para el criterio de selección, el mapeo de
+ * los dos campos retirados y la verificación en navegador del único cambio
+ * de valor real que produce (`pulseMs` fusionado en `breathMs`).
+ *
  * ## Por qué `vocabulary.test.ts` es un contrato cerrado (regla 40 del
  * manual) y no un test de "algunas propiedades"
  *
@@ -285,37 +291,71 @@ export const PRESS = {
  * ojo, gradientes de marca): movimiento que respira solo mientras la escena
  * está en pantalla, nunca ligado a una interacción del usuario.
  *
- * **Task 19** migró los CINCO campos a consumidor real (el defecto que
- * detectó el gate F2: cero consumidores pese a documentar literales que ya
- * existían en el código). Es una sustitución PURA de literal por token --
- * mismo valor numérico antes y después, cero cambio visual, verificado por
- * grep de que el literal desaparece y `AMBIENT.<campo>` aparece en su lugar:
+ * **Task 19** migró CINCO campos (`breathMs`/`pulseMs`/`floatMs`/`orbitMs`/
+ * `orbitSlowMs`) a consumidor real (el defecto que detectó el gate F2: cero
+ * consumidores pese a documentar literales que ya existían en el código).
+ * **Task 20** (mismo plan, "motion resto") colapsa esos cinco a los TRES de
+ * abajo -- encargo explícito del brief ("de 5 valores a 3, elige los 3 con
+ * más consumidores reales, mapea el resto") --, conservando en todos los
+ * casos la propiedad que motivó Task 19: sustitución de literal por token
+ * verificable por `src/test/vocabulary-consumers.test.ts` (acceso de
+ * propiedad real en el fichero, no una cita en comentario).
  *
- * - `breathMs: 5400` — `5.4s` domina tres animaciones de "respiración"/glow
- *   del mismo mascota: `solBreathe`, `haloGlow` y `coreGlow` (las tres en
- *   `Sol.tsx`, `ease-in-out infinite`). Las tres pasan a
- *   `${AMBIENT.breathMs}ms`.
- * - `pulseMs: 6500` — `6.5s`, `heartBeat` (`storyCosmicBeing.parts.tsx`,
- *   `ease-in-out infinite`): el pulso de la escena "Cosmic Being" de Story.
- *   Pasa a `${AMBIENT.pulseMs}ms`.
- * - `floatMs: 9000` — `9000ms`, `gradientShift` domina el degradado animado
- *   de marca en tres consumidores: `BrandName.tsx`, `Hero.tsx` y
- *   `Contact.tsx` (los tres `linear infinite alternate`). Los tres pasan a
- *   `${AMBIENT.floatMs}ms`. No hay una animación literalmente nombrada
- *   "float" con este valor; se agrupa aquí por ser el único movimiento
- *   ambiental de deriva lenta y continua (`background-position` oscilando)
- *   que no encaja en `breathe`/`pulse` (pulsos de escala/sombra) ni en
- *   `orbit`/`orbitSlow` (rotaciones).
- * - `orbitMs: 20000` — `20s`, `coronaMorph` (`Sol.tsx`, `ease-in-out
- *   infinite`): morfa la forma de la corona Y la rota 360° en el mismo
- *   ciclo — el consumidor más cercano a una órbita completa a este ritmo.
- *   Pasa a `${AMBIENT.orbitMs}ms`.
- * - `orbitSlowMs: 40000` — `40s`, `sweepSpin` (`Sol.tsx`, `linear infinite`):
- *   rotación completa de 360° sin morfado, el doble de lenta que `orbitMs` —
- *   la órbita "lenta" del mismo mascota. Pasa a `${AMBIENT.orbitSlowMs}ms`.
+ * ## Los tres campos elegidos, y el criterio (consumidores reales = FICHEROS
+ * distintos que acceden a `AMBIENT.<campo>`, el mismo conteo que hace
+ * `realConsumersOf()` en `vocabulary-consumers.test.ts` -- un fichero cuenta
+ * una vez aunque use el campo varias veces)
  *
- * ## Lo que NO se migró en esta tarea, y por qué (mismo criterio que pide el
- * punto 7 del brief: decidir con el código delante, no forzar)
+ * - `floatMs: 9000` — 3 ficheros consumidores (`BrandName.tsx`, `Hero.tsx`,
+ *   `Contact.tsx`), el único de los cinco campos originales que cruza la
+ *   frontera de un solo componente. Gana sin empate.
+ * - `breathMs: 5400` — 1 fichero (`Sol.tsx`), pero con TRES usos dentro de
+ *   ese fichero (`solBreathe`/`haloGlow`/`coreGlow`) -- la mayor repetición
+ *   interna de los cinco campos originales, y el criterio de desempate frente
+ *   a `pulseMs`/`orbitMs`/`orbitSlowMs`, los tres empatados a 1 fichero/1 uso.
+ * - `orbitMs: 20000` — el tercer campo, elegido frente al empate a tres
+ *   (`pulseMs`, `orbitMs`, `orbitSlowMs`) por ser el único ROL que no tiene
+ *   una alternativa barata dentro de los otros dos campos: `orbitMs` gobierna
+ *   una ROTACIÓN (`coronaMorph`, `Sol.tsx`), un movimiento angular que no se
+ *   parece en nada al pulso de escala/opacidad de `breathMs` ni a la deriva
+ *   de `background-position` de `floatMs` -- forzarlo a cualquiera de los
+ *   otros dos habría convertido una rotación de 20s en un ciclo de 5.4s o
+ *   9s, 2-4× más rápido, el tipo de cambio de carácter que este mismo brief
+ *   pide evitar.
+ *
+ * ## El mapeo de los dos campos retirados (`orbitSlowMs`, `pulseMs`)
+ *
+ * - `orbitSlowMs` (40000, `sweepSpin` en `Sol.tsx`) se retira SIN cambiar su
+ *   valor: el propio docblock de Task 19 ya documentaba que "la órbita
+ *   'lenta' del mismo mascota" es exactamente el DOBLE de `orbitMs`
+ *   (40000 = 20000 × 2) -- una relación matemática real, no una coincidencia
+ *   numérica. `Sol.tsx` deriva ahora `sweepSpin` de `AMBIENT.orbitMs * 2`
+ *   (constante local `ORBIT_SLOW_MS`, ver ese fichero) en vez de un quinto
+ *   campo del vocabulario -- mismo valor exacto (40000ms), cero cambio
+ *   visual, verificado por grep de que `AMBIENT.orbitSlowMs` desaparece del
+ *   código y `AMBIENT.orbitMs * 2` ocupa su lugar.
+ * - `pulseMs` (6500, `heartBeat` en `storyCosmicBeing.parts.tsx`) NO tiene
+ *   una relación matemática limpia con ninguno de los tres campos que quedan
+ *   (6500 no es múltiplo ni submúltiplo exacto de 5400/9000/20000), así que
+ *   su retirada SÍ cambia un valor real: `storyCosmicBeing.parts.tsx` pasa a
+ *   consumir `AMBIENT.breathMs` (5400) en vez de `AMBIENT.pulseMs` (6500) --
+ *   el pulso del núcleo "heart-core" de la escena "Cosmic Being" de Story
+ *   pasa de un ciclo de 6.5s a uno de 5.4s (~17% más rápido). Es el campo
+ *   correcto para fusionar `pulseMs`, no `orbitMs`: los dos describen el
+ *   MISMO rol de coreografía -- un pulso de opacidad/escala en una capa de
+ *   glow, ambiental y no disparado -- para dos mascotas distintas; fusionar
+ *   con `orbitMs` habría mezclado un pulso con una rotación, dos roles sin
+ *   relación. Verificado en navegador real (Chrome, `playwright-cli`,
+ *   capturas `t20-*` del informe de esta tarea) que el cambio de ritmo no
+ *   aplana ni cambia el carácter de la escena: es un glow de fondo sutil
+ *   (opacity 0.72↔1 sobre una sola capa aditiva de 11), y un 17% de cambio
+ *   de cadencia en ese rango no es perceptible como "otra animación" contra
+ *   el resto de la composición, a diferencia del recorte de `scrollAmp` de
+ *   la misma escena (ver `storyCosmicBeing.layers.ts`), que sí lo era.
+ *
+ * ## Lo que sigue SIN migrar tras el colapso, y por qué (mismo inventario que
+ * dejó Task 19, ahora con MENOS campos a los que encajar -- el argumento de
+ * "no forzar" es más fuerte, no más débil)
  *
  * `Sol.tsx` tiene CUATRO animaciones ambientales más sin equivalente exacto
  * en `AMBIENT`: `raysSpin` (70s, `linear infinite`), `rayTwinkle` (6s,
@@ -333,26 +373,19 @@ export const PRESS = {
  * migrar ahí.
  *
  * Ninguno de estos siete valores (cuatro de Sol, tres de Wormhole) coincide
- * con ningún campo de `AMBIENT`. Migrarlos de verdad exigiría una de dos
- * cosas: (a) CAMBIAR su duración real para que encaje en uno de los cinco
- * campos existentes -- un cambio de comportamiento del mascota, no un
- * refactor, y el brief de Task 19 autoriza explícitamente a no forzar esto
- * si "pone en riesgo su carácter"; o (b) AÑADIR campos nuevos a `AMBIENT` --
- * que chocaría de frente con el trabajo ya planificado de la Task 20 del
- * mismo plan ("Colapso AMBIENT: de 5 valores a 3"), que además nombra
- * explícitamente a Sol/Wormhole/Footer como su alcance y pide decidir con
- * "el mismo criterio del punto 7 de la Task 19" -- es decir, Task 20 fue
- * escrita esperando encontrar este inventario ya hecho, no resuelto. Ampliar
- * `AMBIENT` ahora, para luego colapsarlo, sería trabajo que se deshace a sí
- * mismo. Se deja aquí el inventario completo (siete literales, dos ficheros,
- * cero coincidencias) para que Task 20 no tenga que rehacerlo.
+ * con `breathMs`/`floatMs`/`orbitMs` ni con el `orbitMs * 2` derivado.
+ * Forzarlos exigiría CAMBIAR su duración real -- un cambio de comportamiento
+ * del mascota, no un refactor -- y este brief autoriza explícitamente a no
+ * forzar esto si arriesga su carácter. Con solo tres campos disponibles
+ * (antes cinco), la probabilidad de que alguno de los siete encajara sin
+ * forzar solo bajó; se deja el inventario completo aquí, sin cambios, para
+ * que una tarea futura que SÍ decida ampliar `AMBIENT` (o crear un segundo
+ * vocabulario de rotaciones lentas) no tenga que rehacerlo.
  */
 export const AMBIENT = {
   breathMs: 5400,
-  pulseMs: 6500,
   floatMs: 9000,
   orbitMs: 20000,
-  orbitSlowMs: 40000,
 } as const;
 
 /**

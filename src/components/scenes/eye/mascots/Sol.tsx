@@ -36,18 +36,30 @@ import { useSolTiltSpin } from "./useSolTiltSpin";
  *   origen: remontarlas produciria un parpadeo en vez de un morph.
  *
  * Task 19 (motion core, punto 7 del brief -- gate F2 detectó `AMBIENT` con
- * cero consumidores de producción) migra CINCO animaciones ambientales de
+ * cero consumidores de producción) migró CINCO animaciones ambientales de
  * este fichero a `AMBIENT.*` (`@/motion/vocabulary`): `solBreathe`/
  * `haloGlow`/`coreGlow` (los tres 5.4s -> `AMBIENT.breathMs`), `coronaMorph`
  * (20s -> `AMBIENT.orbitMs`) y `sweepSpin` (40s -> `AMBIENT.orbitSlowMs`).
  * Sustitución PURA de literal por token: mismo valor numérico, cero cambio
- * visual. CUATRO animaciones de este mismo fichero se quedan FUERA a
+ * visual.
+ *
+ * Task 20 (motion resto) colapsa `AMBIENT` de 5 campos a 3 y retira
+ * `orbitSlowMs`: `sweepSpin` sigue en 40000ms EXACTOS, pero derivados de
+ * `AMBIENT.orbitMs * 2` (constante local `ORBIT_SLOW_MS`, más abajo) en vez
+ * de un quinto campo del vocabulario -- la "órbita lenta" de este mascota
+ * siempre fue el doble de ritmo que la rápida (documentado ya en Task 19),
+ * así que expresarlo como fórmula no pierde información ni cambia un solo
+ * píxel en pantalla. `solBreathe`/`haloGlow`/`coreGlow` y `coronaMorph` no
+ * cambian: siguen en `AMBIENT.breathMs`/`AMBIENT.orbitMs`, los dos campos que
+ * sobrevivieron intactos al colapso. Ver el docblock de `AMBIENT` en
+ * `vocabulary.ts` para el criterio de selección completo.
+ *
+ * CUATRO animaciones de este mismo fichero se quedan FUERA de `AMBIENT` a
  * propósito -- `raysSpin` (70s), `rayTwinkle` (6s), `sparkleTwinkle` y
- * `sparkTwinkle` (3.4s cada una) -- porque ninguna coincide con un campo de
- * `AMBIENT`; forzarlas exigiría o cambiar su ritmo real (arriesga el carácter
- * del mascota) o ampliar `AMBIENT` justo antes de que la Task 20 del mismo
- * plan lo COLAPSE de 5 a 3 campos. Ver el docblock de `AMBIENT` en
- * `vocabulary.ts` para el razonamiento completo (incluye también las tres
+ * `sparkTwinkle` (3.4s cada una) -- porque ninguna coincide con los TRES
+ * campos que quedan tras el colapso; forzarlas exigiría cambiar su ritmo real
+ * (arriesga el carácter del mascota). Ver el docblock de `AMBIENT` en
+ * `vocabulary.ts` para el inventario completo (incluye también las tres
  * rotaciones de `Wormhole.tsx` en el mismo caso).
  */
 
@@ -364,6 +376,14 @@ const sweepSpin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
+/* Task 20 (motion resto): la "órbita lenta" de este mascota es, y siempre
+   fue, el doble de ritmo que AMBIENT.orbitMs (documentado en Task 19) -- tras
+   el colapso de AMBIENT de 5 campos a 3, ya no tiene su propio campo
+   (`orbitSlowMs`, retirado) y se deriva de esta fórmula. Mismo valor exacto
+   (40000ms), cero cambio visual: ver el docblock de AMBIENT en
+   vocabulary.ts. */
+const ORBIT_SLOW_MS = AMBIENT.orbitMs * 2;
+
 const ScCoreSweep = styled.div`
   position: absolute;
   inset: 0;
@@ -378,7 +398,7 @@ const ScCoreSweep = styled.div`
   );
 
   @media ${MOTION_OK} {
-    animation: ${sweepSpin} ${AMBIENT.orbitSlowMs}ms linear infinite;
+    animation: ${sweepSpin} ${ORBIT_SLOW_MS}ms linear infinite;
   }
 `;
 
