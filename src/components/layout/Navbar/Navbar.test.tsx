@@ -11,7 +11,7 @@ import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { links } from "@/config/links";
 import { NAV_GROUPS } from "@/config/navigation";
 import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
-import { NAV_SHEET_SCROLL_TOLERANCE_PX } from "./NavSheet";
+import { NAV_SHEET_SCROLL_TOLERANCE_PX, navActiveAccent } from "./NavSheet";
 import { Navbar } from "./Navbar";
 
 /**
@@ -1060,8 +1060,19 @@ describe("Navbar", () => {
      * propósito (ver informe de la tarea): comentando temporalmente el
      * bloque `&[aria-current="location"]::before` de ScNavPanelLink
      * (Navbar.tsx) este test se pone en rojo; restaurado, vuelve a verde.
+     *
+     * ACTUALIZADO (fix wave A, hallazgo A4, WCAG 1.4.11): el color YA NO es
+     * `semantic.brand` a secas en las dos ramas -- ver el docblock de
+     * `navActiveAccent` (`NavSheet.tsx`). Este test renderiza en tema CLARO
+     * (default de `renderNavbar()`, sin storage de tema), así que el valor
+     * esperado es `navActiveAccent({ data: basicLightTheme })`
+     * (`brandText`), medido contra la MISMA función que pinta el punto real
+     * -- nunca un literal de tema copiado a mano, que se desincronizaría
+     * del código real al primer retoque sin que nada lo delate. El
+     * contraste en sí (2.277:1 -> 5.837:1) lo mide
+     * `navActiveAccent.contrast.test.ts`, no este fichero.
      */
-    it("el punto indicador (::before) pasa de opacity:0/scale(0.5) a opacity:1/scale(1) bajo [aria-current='location'], con el token semantic.brand", () => {
+    it("el punto indicador (::before) pasa de opacity:0/scale(0.5) a opacity:1/scale(1) bajo [aria-current='location'], con navActiveAccent(theme)", () => {
       const { container } = renderNavbar();
       const reglas = allCssRules();
 
@@ -1084,7 +1095,7 @@ describe("Navbar", () => {
       expect(before, "no se encontró la regla ::before base").toBeDefined();
       expect(before).toContain("opacity: 0");
       expect(before).toContain("scale(0.5)");
-      expect(before).toContain(basicLightTheme.semantic.brand);
+      expect(before).toContain(navActiveAccent({ data: basicLightTheme }));
 
       const activo = reglas.find((r) =>
         r.includes(`.${clase}[aria-current="location"]::before`),
@@ -1981,6 +1992,56 @@ describe("Navbar", () => {
 
       fireEvent.click(boton);
       expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    /*
+     * Fix wave A, hallazgo A3 (revisión final de rama). El test de arriba
+     * ("no roba el foco inicial") solo comprobaba que el botón nuevo CIERRA
+     * -- no a dónde va el foco al hacerlo. Hasta esta tarea, el botón usaba
+     * `onNavigate` (el mismo cierre a secas que las filas de navegación,
+     * pensadas para perder el foco porque navegan a otra parte de la
+     * página): al cerrarse, `ScNavSheet` recibe `inert`, y por la focus
+     * fixup rule del HTML el foco se resetea a `<body>` -- exactamente el
+     * defecto que esta rama trató como Important en el fix round de la
+     * Task 2 (`BackToTop`) y el que motivó prohibir `disabled` en la
+     * Task 5. El camino de Escape (test "Escape cierra la hoja y devuelve
+     * el foco al disparador", más arriba) ya hacía esto bien; el botón de
+     * cierre ahora reutiliza la MISMA función (`closeAndFocusTrigger`,
+     * `NavSheet.tsx`).
+     *
+     * jsdom no implementa la focus fixup rule de `inert` (verificado antes
+     * de escribir este test: fijar `inert` sobre un ancestro con foco
+     * dentro NO mueve `document.activeElement` en jsdom, a diferencia de un
+     * navegador real), así que el candado no puede reproducir literalmente
+     * "el foco cae en `<body>`" -- en su lugar afirma la invariante
+     * POSITIVA, igual que el test de Escape: tras pulsar el botón de
+     * cierre, el foco tiene que estar en el disparador, no donde estuviera
+     * antes de pulsar. Esa aserción sí falla sin el arreglo (permanece en
+     * la fila `<a>` donde estaba antes del click) y pasa con él.
+     *
+     * Verificado con un bug inyectado a propósito (informe de la tarea): al
+     * revertir `onClick` del botón de cierre a `onNavigate` (NavSheet.tsx),
+     * este test cae en rojo (`document.activeElement` sigue siendo la
+     * primera fila, no el disparador); restaurado a `onClose`, vuelve a
+     * verde.
+     */
+    it("Task fix wave A (A3): pulsar el botón de cierre nuevo devuelve el foco al disparador, no lo deja huérfano", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+
+      fireEvent.click(trigger);
+      expect(document.activeElement).toBe(
+        getSheet(container).querySelector("a"),
+      );
+
+      const boton = getSheet(container).querySelector(
+        "[data-nav-sheet-close] button",
+      ) as HTMLElement;
+
+      fireEvent.click(boton);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(document.activeElement).toBe(trigger);
     });
   });
 });

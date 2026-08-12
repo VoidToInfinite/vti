@@ -28,7 +28,12 @@ import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
 import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
 import { OVERLAY, PRESS } from "@/motion/vocabulary";
-import { NavSheet, NavSheetTrigger, useNavSheet } from "./NavSheet";
+import {
+  NavSheet,
+  NavSheetTrigger,
+  navActiveAccent,
+  useNavSheet,
+} from "./NavSheet";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -808,6 +813,13 @@ const ScNavPanelList = styled.ul`
  * (discover/resources/community) se queda siempre en `opacity: 0` -- un
  * espacio reservado invisible que además alinea el texto de todos los
  * items del panel al mismo margen izquierdo.
+ *
+ * `navActiveAccent(theme)`, NO `semantic.brand` a secas (fix wave A,
+ * hallazgo A4, WCAG 1.4.11): `semantic.brand` medía 2.277:1 sobre la hoja y
+ * 2.246:1 sobre el panel en tema claro, por debajo del 3:1 que exige un
+ * indicador de estado no textual. Ver el docblock de `navActiveAccent`
+ * (`NavSheet.tsx`) para las cuatro cifras completas y el porqué de la
+ * resolución por rama.
  */
 const ScNavPanelLink = styled(ScNavLink)`
   display: flex;
@@ -822,7 +834,7 @@ const ScNavPanelLink = styled(ScNavLink)`
     height: ${({ theme }) => theme.data.space[1]};
     flex: none;
     border-radius: ${({ theme }) => theme.data.radius.full};
-    background: ${({ theme }) => theme.data.semantic.brand};
+    background: ${({ theme }) => navActiveAccent(theme)};
     opacity: 0;
     transform: scale(0.5);
     transition:
@@ -1202,6 +1214,7 @@ export function Navbar(): ReactElement {
       <NavSheet
         isOpen={sheet.isOpen}
         onNavigate={sheet.close}
+        onClose={sheet.closeAndFocusTrigger}
         triggerId={sheet.triggerId}
         sheetId={sheet.sheetId}
         sheetRef={sheet.sheetRef}

@@ -10,7 +10,7 @@ import {
   type RefObject,
 } from "react";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
+import styled, { type DefaultTheme } from "styled-components";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
@@ -597,6 +597,57 @@ const ScSheetList = styled.ul`
  * guard, igual que en el resto de controles del sitio: es la primitiva que
  * funciona igual de bien con dedo que con ratón.
  */
+
+/**
+ * Color del punto indicador de sección activa (fix wave A, hallazgo A4,
+ * WCAG 1.4.11 Non-text Contrast -- revisión final de rama). Antes
+ * `semantic.brand` en las DOS ramas, en las DOS superficies (`ScSheetRow`
+ * aquí, `ScNavPanelLink` en `Navbar.tsx`). Medido con `contrastRatio`/
+ * `contrastRatioOverAlpha` (`src/theme/tokens/contrast.ts`, mismas
+ * funciones que ya usa `LanguageSelector.contrast.test.ts`, Task 33) contra
+ * los fondos REALES sobre los que pinta el punto:
+ *
+ *   TEMA CLARO (semantic.brand = primary[500]):
+ *     hoja (semantic.surface, superficie OPACA)              2.277:1  <- incumple 3:1
+ *     panel (glass.bg 68% compuesto sobre semantic.bg)        2.247:1  <- incumple 3:1
+ *   TEMA OSCURO (semantic.brand = primary[400]):
+ *     hoja (semantic.surface, superficie OPACA)               6.428:1  ya pasaba
+ *     panel (glass.bg 68% compuesto sobre semantic.bg)        9.381:1  ya pasaba
+ *
+ * Es la MISMA familia de hallazgo que la Task 33 ya corrigió para el idioma
+ * activo del navbar (`languageAccent`, `LanguageSelector.tsx`): introducido
+ * por la Task 1 (navegación accesible), ANTERIOR a la Task 33, cuyo barrido
+ * de contraste no llegó a este indicador porque entonces no existía ningún
+ * candado de contraste sobre él -- el punto es el ÚNICO signo visual de
+ * sección activa (los docblocks de `ScSheetRow`/`ScNavPanelLink` declaran a
+ * propósito que no se toca `color` ni `font-weight` del texto), mide 4px y
+ * es un indicador de estado, así que el umbral que aplica es el de
+ * componentes de interfaz/objetos gráficos (3:1), no el de texto (4.5:1).
+ *
+ * Resolución POR RAMA (`theme.data.isLight`), mismo precedente que
+ * `languageAccent` (`LanguageSelector.tsx`) y `ctaGradientMidStop`
+ * (`BrandName.tsx`, las dos de Task 33): en claro sube a
+ * `semantic.brandText` (`primary[800]`) -- 5.837:1 hoja / 5.758:1 panel, los
+ * dos con margen de sobra sobre 3:1 (de hecho también sobre el 4.5:1 de
+ * texto, aunque el indicador solo necesite 3:1 por no ser texto). En oscuro
+ * NO cambia (`semantic.brand`, ya pasaba de sobra).
+ *
+ * Se define aquí (no en `Navbar.tsx`) y se exporta porque `Navbar.tsx` ya
+ * importa de este módulo (`NavSheet`/`NavSheetTrigger`/`useNavSheet`) --
+ * añadir un símbolo más a esa misma importación no crea ninguna dependencia
+ * circular nueva, mientras que la importación en el sentido contrario sí la
+ * crearía. Exportada como función nombrada (no ternario inline), mismo
+ * motivo que `languageAccent`/`ctaGradientMidStop`: así el candado de
+ * contraste (`navActiveAccent.contrast.test.ts`) importa y mide la MISMA
+ * función que pinta el punto real en las DOS superficies, contra los tokens
+ * importados, nunca contra un literal copiado.
+ */
+export function navActiveAccent(theme: DefaultTheme): string {
+  return theme.data.isLight
+    ? theme.data.semantic.brandText
+    : theme.data.semantic.brand;
+}
+
 const ScSheetRow = styled.a`
   display: flex;
   align-items: center;
@@ -633,13 +684,19 @@ const ScSheetRow = styled.a`
   /*
    * Indicador de sección activa (Tarea 1), mismo lenguaje visual y mismo
    * criterio que ScNavPanelLink en Navbar.tsx (ver su docblock): un punto
-   * en el token semantic.brand, ligado al MISMO estado que decide
-   * aria-current (NavSheetGroup, más abajo), que solo anima
-   * opacity/transform (regla 18). Se repite aquí, no se comparte un
-   * componente, porque ScSheetRow y ScNavPanelLink ya son dos árboles de
-   * estilos independientes (deuda conocida documentada en RULES.md:
-   * "tercera copia" del switch de etiquetas de navegación, misma familia
-   * de duplicación deliberada).
+   * ligado al MISMO estado que decide aria-current (NavSheetGroup, más
+   * abajo), que solo anima opacity/transform (regla 18). Se repite aquí, no
+   * se comparte un componente, porque ScSheetRow y ScNavPanelLink ya son dos
+   * árboles de estilos independientes (deuda conocida documentada en
+   * RULES.md: "tercera copia" del switch de etiquetas de navegación, misma
+   * familia de duplicación deliberada).
+   *
+   * navActiveAccent(theme), NO semantic.brand a secas (fix wave A,
+   * hallazgo A4): ver su docblock, más arriba en este mismo fichero, para
+   * las cuatro cifras medidas y el porqué de la resolución por rama. SIN
+   * BACKTICKS en este comentario, a propósito: vive DENTRO del template
+   * literal de styled-components (lección del repo, task/lessons.md
+   * 2026-07-25).
    */
   &::before {
     content: "";
@@ -647,7 +704,7 @@ const ScSheetRow = styled.a`
     height: ${({ theme }) => theme.data.space[1]};
     flex: none;
     border-radius: ${({ theme }) => theme.data.radius.full};
-    background: ${({ theme }) => theme.data.semantic.brand};
+    background: ${({ theme }) => navActiveAccent(theme)};
     opacity: 0;
     transform: scale(0.5);
     transition:
@@ -705,6 +762,21 @@ export interface NavSheetController {
   readonly isOpen: boolean;
   readonly toggle: () => void;
   readonly close: () => void;
+  /**
+   * Fix wave A, hallazgo A3 (revisión final de rama): cierra Y devuelve el
+   * foco al disparador, mismo par que ya usa el camino de Escape (ver
+   * `handleKeyDown`, más abajo, que delega en esta misma función desde esta
+   * tarea). Distinto de `close`: las filas de navegación (`NavSheetGroup`)
+   * siguen usando `close` a secas porque NAVEGAN a otra parte de la página
+   * -- perder el foco ahí es la consecuencia correcta de activar un enlace,
+   * no un defecto. El botón de cierre propio de la hoja (`ScSheetCloseSlot`,
+   * Task 35) NO navega a ningún sitio: cerrar es su ÚNICA acción, así que
+   * "un control nunca pierde el foco como consecuencia directa de su propia
+   * activación" (regla ya aplicada a `BackToTop` en el fix round de la
+   * Task 2, y la misma razón por la que la Task 5 prohibió `disabled`)
+   * aplica aquí tal cual.
+   */
+  readonly closeAndFocusTrigger: () => void;
   readonly triggerId: string;
   readonly sheetId: string;
   /** Envoltorio del disparador, no el `<button>`: ver `useNavSheet`. */
@@ -764,6 +836,14 @@ export function useNavSheet(): NavSheetController {
     setIsOpen(false);
   }, []);
 
+  // Fix wave A, hallazgo A3: ver el docblock de `closeAndFocusTrigger` en
+  // `NavSheetController`. `triggerRef` es un ref (identidad estable), así
+  // que este callback no necesita ninguna dependencia externa.
+  const closeAndFocusTrigger = useCallback((): void => {
+    setIsOpen(false);
+    triggerRef.current?.querySelector("button")?.focus();
+  }, []);
+
   const toggle = useCallback((): void => {
     setIsOpen((current) => !current);
   }, []);
@@ -809,8 +889,10 @@ export function useNavSheet(): NavSheetController {
 
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key !== "Escape") return;
-      setIsOpen(false);
-      triggerRef.current?.querySelector("button")?.focus();
+      // Fix wave A: MISMO par que el botón de cierre propio (ver
+      // `closeAndFocusTrigger` -- antes duplicado aquí a mano, ahora una
+      // única función para los dos caminos que "cierran sin navegar").
+      closeAndFocusTrigger();
     }
 
     function handlePointerDown(event: PointerEvent): void {
@@ -833,7 +915,11 @@ export function useNavSheet(): NavSheetController {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("focusin", handleFocusIn);
     };
-  }, [isOpen]);
+    // `closeAndFocusTrigger` es un `useCallback` de dependencias `[]`
+    // (identidad estable de por vida): se declara en la lista por exigencia
+    // de `react-hooks/exhaustive-deps`, no porque pueda cambiar y necesite
+    // reiniciar este efecto.
+  }, [isOpen, closeAndFocusTrigger]);
 
   // Diferencia deliberada con el panel de escritorio: el foco entra en la
   // hoja al abrirla. Ver el punto 6 del docblock.
@@ -877,7 +963,16 @@ export function useNavSheet(): NavSheetController {
     primeraFila?.focus({ preventScroll: true });
   }, [isOpen]);
 
-  return { isOpen, toggle, close, triggerId, sheetId, triggerRef, sheetRef };
+  return {
+    isOpen,
+    toggle,
+    close,
+    closeAndFocusTrigger,
+    triggerId,
+    sheetId,
+    triggerRef,
+    sheetRef,
+  };
 }
 
 export interface NavSheetTriggerProps {
@@ -1046,6 +1141,16 @@ function NavSheetGroup({
 export interface NavSheetProps {
   readonly isOpen: boolean;
   readonly onNavigate: () => void;
+  /**
+   * Fix wave A, hallazgo A3: acción del botón de cierre PROPIO de la hoja
+   * (`ScSheetCloseSlot`, Task 35) -- distinta de `onNavigate`, que las filas
+   * de navegación siguen usando porque ELLAS navegan a otra parte de la
+   * página (perder el foco ahí es correcto). El botón de cierre no navega a
+   * ningún sitio, así que su única acción no puede dejar el foco huérfano en
+   * `<body>` cuando `ScNavSheet` recibe `inert` -- ver `closeAndFocusTrigger`
+   * en `NavSheetController` para el porqué completo.
+   */
+  readonly onClose: () => void;
   readonly triggerId: string;
   readonly sheetId: string;
   readonly sheetRef: RefObject<HTMLDivElement | null>;
@@ -1054,6 +1159,7 @@ export interface NavSheetProps {
 export function NavSheet({
   isOpen,
   onNavigate,
+  onClose,
   triggerId,
   sheetId,
   sheetRef,
@@ -1120,12 +1226,22 @@ export function NavSheet({
             en `ScSheetTriggerSlot` (ver `NavSheetTrigger`, más arriba en
             este mismo fichero) -- un atributo `data-*` sobre un COMPONENTE
             (no un elemento intrínseco) tendría que estar declarado en su
-            interfaz de props para que TypeScript lo acepte. */}
+            interfaz de props para que TypeScript lo acepte.
+
+            `onClick={onClose}`, NO `onNavigate` (fix wave A, hallazgo A3):
+            hasta esta tarea usaba `onNavigate`, el mismo cierre a secas que
+            las filas -- pensado para un control que YA iba a perder el foco
+            por su propia navegación. Este botón no navega a ningún sitio:
+            cerrar es su única acción, y al cerrarse `ScNavSheet` recibe
+            `inert` más abajo, que por la focus fixup rule del HTML resetea
+            el foco a `<body>` si no se le da un destino explícito primero.
+            `onClose` (= `closeAndFocusTrigger`, ver `useNavSheet`) cierra Y
+            devuelve el foco al disparador, mismo par que ya usa Escape. */}
         <ScSheetCloseSlot data-nav-sheet-close>
           <IconButton
             aria-label={t("Common.Nav.closeSheet")}
             title={t("Common.Nav.closeSheet")}
-            onClick={onNavigate}
+            onClick={onClose}
             icon={
               <ScBurger
                 viewBox="0 0 16 16"
