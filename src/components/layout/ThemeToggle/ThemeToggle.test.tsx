@@ -7,14 +7,27 @@ import { ThemeToggle } from "./ThemeToggle";
 /**
  * Hero de prueba minimo (mismo `id="hero"` que busca `willCrossfade` en
  * useThemeScrollReset.ts), para las pruebas de Task 5 que necesitan que el
- * hook decida que SI va a haber un cruce de composiciones que esperar. Desde
- * Task 17 (retirada de `isInHeroZone()`) el hook solo comprueba que el
- * elemento exista, así que no hace falta un `getBoundingClientRect` a
- * medida.
+ * hook decida que SI va a haber un cruce de composiciones que esperar.
+ *
+ * El rect a medida NO es opcional (fix wave B, 2026-08-12): `willCrossfade`
+ * dejó de conformarse con que el elemento EXISTA y ahora exige que se VEA
+ * (`isElementVisible()`, umbral 0 de intersección con el viewport). jsdom no
+ * hace layout, así que un elemento recién insertado devuelve un rect en
+ * cero -- que es exactamente el caso "existe pero no se ve" que el hook
+ * ahora descarta, y por tanto el hero de prueba dejaría de producir cruce.
+ * `top: 100 / bottom: 900` lo pone dentro del viewport de 768 de jsdom,
+ * mismo par que usa useThemeScrollReset.test.tsx para su rama visible.
+ *
+ * La versión anterior de este docblock afirmaba que "el hook solo comprueba
+ * que el elemento exista, así que no hace falta un `getBoundingClientRect` a
+ * medida". Era cierto entre Task 17 y la fix wave B, y dejó de serlo sin que
+ * este archivo se enterara: de ahí el fallo que destapó la review de rama.
  */
 function mountHero(): void {
   const hero = document.createElement("section");
   hero.id = "hero";
+  hero.getBoundingClientRect = (): DOMRect =>
+    ({ top: 100, bottom: 900 }) as DOMRect;
   document.body.appendChild(hero);
 }
 
