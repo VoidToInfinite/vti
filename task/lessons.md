@@ -1,5 +1,40 @@
 # Lecciones
 
+## 2026-08-12 (Task 19) — Migrar un literal a un token que resuelve al MISMO valor hace que el bug inyectado "revertir al literal" no sirva de candado
+
+- **Qué pasó:** al migrar `gradientShift` de `9000ms` (literal) a `${AMBIENT.floatMs}ms`
+  (`AMBIENT.floatMs = 9000`), se escribió un test que afirmaba el CSS renderizado
+  contenía `9000ms` (correcto) Y, además, que NO contenía `"9000ms"` (para "probar"
+  que ya no era el literal viejo). Ese segundo assert es lógicamente imposible:
+  como el token resuelve exactamente al mismo número, el TEXTO renderizado es
+  idéntico al literal que sustituye — `expect(css).not.toContain("9000ms")` falló
+  siempre, sin importar si la migración era correcta o no. Detectado al ejecutar el
+  test recién escrito (rojo inesperado), no por un bug inyectado a propósito.
+- **Por qué pasa:** un test que compara TEXTO renderizado (CSS inyectado,
+  `getComputedStyle`) no puede distinguir "literal escrito a mano" de "token que
+  resuelve al mismo valor" — ambos producen la MISMA cadena. El bug-inyectado
+  clásico de la regla 34 (revertir el cambio y comprobar que el test cae en rojo)
+  necesita que el ANTES y el DESPUÉS sean observables por el mecanismo del test;
+  cuando antes y después coinciden en valor (la migración es una sustitución PURA
+  de fuente, sin cambio de comportamiento), el mecanismo textual no tiene nada que
+  detectar.
+- **Cómo se corrigió:** el test se quedó SOLO con la aserción positiva (`toContain`
+  el valor esperado) y se documentó explícitamente que esa mitad no puede probar
+  "es un token, no una coincidencia" — esa propiedad la prueba un candado DISTINTO,
+  a nivel de FUENTE (grep sobre el `.tsx` real, con comentarios despojados —
+  `src/test/vocabulary-consumers.test.ts`, mismo criterio que la lección de arriba),
+  no el CSS renderizado. El bug inyectado válido para el candado de fuente es
+  reemplazar el uso real del token por el literal EN EL CÓDIGO (no en el valor
+  esperado del test) y comprobar que el fichero desaparece de la lista de
+  consumidores — eso sí distingue las dos cosas, porque mide DÓNDE vive el número,
+  no QUÉ número es.
+- **Regla:** antes de escribir `expect(renderizado).not.toContain(valorViejo)` en
+  una migración de literal-a-token, comprobar si `valorViejo === valorNuevo`
+  numéricamente. Si coinciden, esa aserción es un falso candado (siempre cae en
+  rojo o siempre pasa por vacuidad, según el orden) — la migración solo se puede
+  verificar por FUENTE (import + uso real del símbolo), nunca por el efecto
+  renderizado, que es indistinguible entre las dos versiones.
+
 ## 2026-08-12 (Task 34) — Un candado de literal no distingue código de comentario que CITA ese literal
 
 - **Qué pasó:** al arreglar que `ThemeProvider.tsx` persistiera `vti-theme` sin
