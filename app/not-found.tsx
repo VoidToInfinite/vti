@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
+import { Footer } from "@/components/layout/Footer/Footer";
+import { Navbar } from "@/components/layout/Navbar/Navbar";
 import { NotFoundContent } from "@/components/sections/NotFound/NotFoundContent";
 import { SITE } from "@/config/site";
 import esCommon from "@/i18n/locales/es/common.json";
@@ -48,6 +50,40 @@ export const metadata: Metadata = {
   alternates: { canonical: null },
 };
 
+/*
+ * Task 35 (hallazgo de un evaluador independiente, gate F4, 2026-08-12):
+ * esta cáscara pasa de montar SOLO `NotFoundContent` a montar también
+ * `Navbar` y `Footer` -- los MISMOS componentes que `app/page.tsx`, sin
+ * duplicar lógica. Server Component + Client Components hijos es
+ * exactamente el mismo patrón que ya usa `app/page.tsx` (`HomePage` no
+ * lleva "use client" y monta `Navbar`/`Footer`, los dos de cliente,
+ * directamente).
+ *
+ * Divergencia DELIBERADA con `/privacidad` y `/aviso-legal`: esas dos rutas
+ * usan `LegalHeader` (cabecera sobria, sin anclas de sección) en vez del
+ * `Navbar` de la home -- su propio docblock (`LegalHeader.tsx`) explica por
+ * qué: `Navbar` monta 4 anclas a secciones (`#story`/`#journey`/
+ * `#features`/`#contact`, `src/config/navigation.ts`) que en una página sin
+ * esas secciones quedan muertas (no navegan a ningún sitio; el navegador
+ * simplemente no encuentra el ancla y no hace scroll). Ese mismo argumento
+ * aplica aquí igual de literalmente -- la 404 tampoco monta esas 4
+ * secciones --, pero el brief de esta tarea pide explícitamente "los mismos
+ * componentes que la home", con la marca completa, el selector de idioma,
+ * el conmutador de tema Y la navegación entera visibles -- priorizando que
+ * quien aterriza en un error de verdad vea el sitio COMPLETO y pueda saltar
+ * a cualquier destino real (SDK, Discord, GitHub, las 4 anclas SI vuelve a
+ * la home), aunque mientras siga en esta ruta las 4 anclas de sección no
+ * resuelvan nada -- el mismo trade-off, sin gravedad añadida, que ya asume
+ * cualquier enlace del `Footer` de la home a esas mismas anclas cuando se
+ * clica desde `/privacidad`. Decisión del brief de la tarea, no una omisión
+ * de este cambio.
+ */
 export default function NotFound(): ReactElement {
-  return <NotFoundContent />;
+  return (
+    <>
+      <Navbar />
+      <NotFoundContent />
+      <Footer />
+    </>
+  );
 }

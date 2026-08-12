@@ -4,8 +4,8 @@ import type { ReactElement } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
+import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
-import { PRESS } from "@/motion/vocabulary";
 
 /*
  * Cuerpo de cliente de la 404 (auditoria SEO 2026-08-08, mismo patron que
@@ -18,61 +18,52 @@ import { PRESS } from "@/motion/vocabulary";
  */
 
 /*
- * Enlace de salida de la trampa (auditoria premium 2026-08-08, P0: la 404
- * no tenia NINGUN enlace, ni Navbar/Footer ni nada dentro del propio
- * `<main>` -- un visitante que aterrizaba aqui no tenia forma de volver al
- * sitio sin usar el boton "atras" del navegador). `next/link` a `/` para
- * navegacion de cliente real dentro del export estatico (`output: "export"`,
- * ver CLAUDE.md), no un `<a>` pelado.
+ * CONTENEDOR (Task 35, hallazgo de un evaluador independiente en el gate F4,
+ * 2026-08-12): hasta esta tarea el `<main>` no llevaba NINGUN estilo propio
+ * -- Task 3 ya le habia dado tamaño de titulo al `h1`, pero el bloque entero
+ * quedaba pegado a (0,0), con las astas superiores del titulo cortadas por
+ * el borde del viewport, sin contenedor, sin padding, sin cabecera ni pie.
+ * Es la superficie que ve alguien que ya se ha equivocado.
  *
- * Estilo LOCAL a este componente, no importado de
- * `src/components/legal/legalPage.parts.tsx` (que ya tiene un `ScBackLink`
- * visualmente identico): esa pieza es propiedad de la categoria `legal`
- * (su propio docblock la describe como "de las 4 paginas legales") y
- * `NotFoundContent` vive en la categoria `sections` (regla 2 de RULES.md,
- * categorias separadas). Se replica el MISMO lenguaje visual (mismos
- * tokens: `semantic.textMuted` en reposo, `semantic.brandText` en
- * hover/foco, `motion.duration.fast` para la transicion de color, y las
- * primitivas de press de `vocabulary.PRESS` -- transform a
- * `PRESS.durationMs`/`PRESS.easing` en `:active`, escala
- * `PRESS.activeScale`, mismo candado de `prefers-reduced-motion` -- que
- * `legalPage.parts.tsx` ya adopto en Task 9) para que la experiencia sea
- * consistente en todo el sitio, sin acoplar dos categorias de componentes
- * que hoy se mantienen deliberadamente separadas. `PRESS` SI se importa
- * directo de `src/motion/vocabulary.ts`, sin duplicar su valor: es
- * vocabulario transversal del sistema de movimiento, no una pieza propiedad
- * de la categoria `legal` -- misma frontera que separa `theme.data.motion.*`
- * (compartido) de los componentes que lo consumen.
+ * `padding-top: calc(var(--nav-height) + space[8])`: `ScHeader` (Navbar.tsx,
+ * ahora montado por `app/not-found.tsx`) es `position: fixed` -- no reserva
+ * hueco en el flujo del documento --, asi que sin este padding el `h1`
+ * nacia DEBAJO de la barra flotante, tapado por ella en vez de solo "cerca
+ * del borde". `var(--nav-height)` es la MISMA variable global que ya usa
+ * `scroll-margin-top` en `GlobalStyles.tsx` para compensar la misma barra,
+ * no un numero inventado aqui.
+ *
+ * `max-width: theme.data.grid.prose` + `margin-inline: auto`: el mismo
+ * ancho de lectura que ya usa `ScMain` de `legalPage.parts.tsx` (65ch,
+ * D21/§3 de la spec legal) -- esta pagina no es un articulo largo, pero
+ * reutiliza la misma medida del sistema en vez de inventar una tercera, y
+ * centra el bloque en vez de dejarlo pegado al borde izquierdo del
+ * viewport.
  */
-const ScBackLink = styled(Link)`
-  display: inline-flex;
+const ScMain = styled.main`
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  margin-top: ${({ theme }) => theme.data.space[5]};
-  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  gap: ${({ theme }) => theme.data.space[4]};
+  max-width: ${({ theme }) => theme.data.grid.prose};
+  margin-inline: auto;
+  padding: calc(var(--nav-height) + ${({ theme }) => theme.data.space[8]})
+    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[9]};
+  text-align: center;
+
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    padding-inline: ${({ theme }) => theme.data.space[6]};
+  }
+`;
+
+/* Jerarquía tipográfica (Task 35): título con peso completo, mensaje
+   atenuado -- mismo rol que `semantic.textMuted` cumple en el resto del
+   sitio para texto secundario (p. ej. `ScTagline` en Hero.tsx). `styled(Typography)`
+   reenvía `className` a `ScTypography` (`Typography.tsx`: el componente
+   desestructura `className` y lo pasa explícito), así que esta capa solo
+   añade el color, sin reimplementar tamaño/peso/interlineado. */
+const ScMessage = styled(Typography)`
   color: ${({ theme }) => theme.data.semantic.textMuted};
-  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
-  touch-action: manipulation;
-  transition:
-    color ${({ theme }) => theme.data.motion.duration.fast}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${PRESS.durationMs}ms ${PRESS.easing};
-
-  &:hover,
-  &:focus-visible {
-    color: ${({ theme }) => theme.data.semantic.brandText};
-  }
-
-  &:active {
-    transform: scale(${PRESS.activeScale});
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-
-    &:active {
-      transform: none;
-    }
-  }
 `;
 
 export function NotFoundContent(): ReactElement {
@@ -81,7 +72,7 @@ export function NotFoundContent(): ReactElement {
     // id="main" + tabIndex={-1}: destino del SkipLink (Task 2), mismo
     // contrato que app/page.tsx/LegalDocument.tsx -- ver el docblock de
     // SkipLink.tsx para el porque del -1.
-    <main
+    <ScMain
       id="main"
       tabIndex={-1}
     >
@@ -99,8 +90,31 @@ export function NotFoundContent(): ReactElement {
           elemento `<h1>` real (`defaultElement`, `Typography.tsx`), mismo
           heading semántico que antes. */}
       <Typography variant="h1">{t("notFound.title")}</Typography>
-      <p>{t("notFound.message")}</p>
-      <ScBackLink href="/">{t("notFound.backToHome")}</ScBackLink>
-    </main>
+      <ScMessage variant="body">{t("notFound.message")}</ScMessage>
+      {/*
+       * Salida como ACCIÓN CLARA (Task 35, punto 1 del brief), no un enlace
+       * gris a tamaño de cuerpo: se sustituye el `styled(Link)` local que
+       * replicaba a mano transform/transition/touch-action de
+       * `vocabulary.PRESS` (auditoría premium 2026-08-08 / Task 13) por el
+       * primitivo compartido `Button` -- que YA implementa esos mismos
+       * valores (`PRESS` se extrajo LITERALMENTE de `Button.tsx`, ver el
+       * docblock de `PRESS` en `vocabulary.ts`: `activeScale: 0.98`,
+       * `durationMs: 100`, la misma curva), además de fondo sólido, radio,
+       * halo de foco y hover-lift, sin reinventar nada de eso aquí.
+       * `as={Link}`, no `as="a"`: navegación de cliente real dentro del
+       * export estático (`output: "export"`, ver CLAUDE.md), igual que el
+       * enlace que sustituye -- `Button` ya soporta esta forma (su propio
+       * docblock: "Override del elemento. as='a' + href para CTAs que
+       * navegan"), y como se llama SIN envolver con `styled()` encima, no
+       * aplica el gotcha `as`/`forwardedAs` que sí afecta a `ScCtaPrimary`
+       * en Hero.tsx (esa capa SÍ envuelve `Button` con `styled()`).
+       */}
+      <Button
+        as={Link}
+        href="/"
+      >
+        {t("notFound.backToHome")}
+      </Button>
+    </ScMain>
   );
 }
