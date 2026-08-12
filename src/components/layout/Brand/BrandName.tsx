@@ -91,16 +91,8 @@ export const heroGradient = css`
  * (el color del texto del botón) en cada fotograma de la animación, y
  * `heroGradient` no lo pasaba.
  *
- * CAUSA RAÍZ, medida con `contrastRatio` (`contrast.test.ts`, describe
- * "Task 33"), no muestreada a ojo: con `background-size: 260% 100%` la
- * interpolación de un `linear-gradient()` sin hint `in <space>` usa OKLab
- * por defecto (CSS Color 4, "Interpolation") -- L es un eje lineal propio de
- * ese espacio, así que entre dos paradas ADYACENTES la claridad percibida
- * interpola de forma monótona, nunca sobrepasa el valor de ninguna de las
- * dos. Consecuencia verificable: el contraste MÍNIMO de todo el recorrido
- * ocurre siempre EN una parada, jamás entre dos -- basta medir los 3 colores
- * distintos del degradado (las paradas 0%/100% son el mismo color) para
- * conocer el peor fotograma real, no una muestra.
+ * CAUSA RAÍZ, medida con `contrastRatio` (`BrandName.contrast.test.ts`,
+ * describe "Task 33"), no muestreada a ojo:
  *
  *   TEMA CLARO (texto del botón = semantic.onBrand = blanco):
  *     parada 0%/100% (semantic.text)      12.686:1
@@ -116,6 +108,34 @@ export const heroGradient = css`
  * (`neutral[1100]`), no blanco, así que hasta el punto más claro del
  * degradado le sobra contraste. Solo la parada de 65% en tema CLARO necesita
  * un color distinto.
+ *
+ * POR QUÉ MEDIR SOLO LOS 3 STOPS BASTA AQUÍ -- Y POR QUÉ NO ES UNA LEY
+ * GENERAL (fix de revisión: corrige una afirmación previa de esta misma
+ * tarea que era incorrecta -- ver el historial del commit). Un
+ * `linear-gradient()` sin hint `in <space>` interpola en OKLab (CSS Color 4,
+ * "Interpolation"): entre dos paradas adyacentes, `L` SÍ es lineal (y por
+ * tanto monótona). Pero de ahí NO se sigue que la LUMINANCIA RELATIVA WCAG
+ * -- la que de verdad decide el contraste -- también lo sea:
+ * `oklchToLinearSrgb` (`contrast.ts`) deriva R/G/B de l/m/s con
+ * COEFICIENTES DE SIGNO MIXTO (`R = 4.077·l − 3.308·m + 0.231·s`), así que
+ * un camino monótono en `L` (o en OKLab en general) puede producir una
+ * luminancia sRGB NO monótona a lo largo del mismo segmento -- la
+ * conflación "L monótona ⇒ contraste mínimo siempre en un stop" era el
+ * error, no la conclusión práctica de esta tarea.
+ *
+ * La condición que de verdad sostiene "3 stops bastan" aquí es otra,
+ * ESTRUCTURAL de este caso concreto: `semantic.onBrand` es un EXTREMO de la
+ * escala de luminancia (blanco puro en claro; casi negro, con croma ~0, en
+ * oscuro), así que NINGÚN par de paradas del degradado puede "flanquear"
+ * (rodear) su luminancia -- el fondo nunca CRUZA el color del texto, solo
+ * se aleja o se acerca desde un único lado. Si `onBrand` dejara de ser un
+ * extremo algún día, este argumento dejaría de sostenerse y el candado de 3
+ * stops podría dejar pasar un mínimo interior real sin avisar. Por eso el
+ * candado (`BrandName.contrast.test.ts`) NO se apoya solo en esta
+ * demostración analítica: también MUESTREA cada segmento del degradado (25
+ * puntos por segmento, interpolados en OKLab -- L/a/b lineales, igual que
+ * hace el motor del navegador) y exige AA en cada punto, así que sigue
+ * siendo válido aunque la condición estructural de arriba deje de cumplirse.
  *
  * Resolución POR RAMA (`theme.data.isLight`), mismo precedente que la
  * Task 26 (`accentColor`/`accentColorHover`, `Features.tsx`: `palette` es

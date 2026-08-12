@@ -1397,7 +1397,7 @@ describe("Contact en tema oscuro", () => {
   // Falsable: quitar el bloque `@media (prefers-reduced-motion: reduce) {
   // animation: none; }` de `ScSubmitButton` pone este test en rojo (verificado
   // a mano, mismo procedimiento que el resto de guards de esta suite).
-  it("el degradado animado del boton de envio solo corre bajo no-preference, con animation: none explicito bajo reduce (heroGradient/gradientShift, 2026-08-04)", async () => {
+  it("el degradado animado del boton de envio solo corre bajo no-preference, con animation: none explicito bajo reduce (ctaGradient/gradientShift, 2026-08-04, renombrado desde heroGradient en la Task 33)", async () => {
     const { container } = renderWithProviders(<Contact />);
     await waitFor(() => {
       expect(container.querySelectorAll("img")).toHaveLength(
