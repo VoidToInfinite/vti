@@ -150,6 +150,7 @@ Decisión D-C (enmienda F4). La entrega grande. En Story y Features:
 2. Contact: experiencia única — formulario con validación + panel de dirección copiable en AMBOS temas (hoy el chip solo existe en una rama); salidas Discord/GitHub presentes en ambos; un solo árbol de copy.
 3. `min-height: 50dvh` de Contact claro resuelto contra su docblock (dice 100dvh): decidir cuál es el correcto MIDIENDO (viewport corto y largo), corregir el que esté mal (código o docblock) con la medición en el commit.
 4. Mismos candados que Task 15 (estructura, contraste por tema, i18n).
+5. **Añadido por el gate F2 (detector B, 2026-08-11):** `ScCard` de la rama clara de Contact **recorta contenido de texto real** — `scrollHeight` 422 contra `clientHeight` 364 a 1280×900 (58 px, ~14 % del bloque `h2` + párrafo + formulario) por un `overflow: hidden`. No es recorte decorativo de arte: es contenido. Medir primero (¿el recorte viene del `min-height` del punto 3, de una altura fija, o del propio `overflow`?), corregir la causa, y dejar candado. Es el único hallazgo de recorte sobre texto que el detector encontró en toda la página.
 
 ## Task 17 — El cambio de tema conserva la posición + paridad de motion del panel/hoja
 
@@ -175,10 +176,11 @@ Spec de motion (pasos 4-9 pendientes) + adenda Emil. Todo por `vocabulary.ts`/to
 4. Concepto `EXIT` en el vocabulario: `DECK.exitDurationMs: 200` (~0,6× del enter) aplicado a las salidas de diapositiva del deck.
 5. `hoverGuard` sobre las reglas de hover que sigan sin guard táctil (inventario por grep `:hover` fuera de `@media (hover: hover)`; las 12 familias PRESS ya lo tienen).
 6. Tests: tokens nuevos consumidos (grep-test), styleSheets de las reglas migradas, reduce intacto. QA en cámara lenta queda declarado para el cierre (ojo humano).
+7. **Precisión del gate F2 (detector B, 2026-08-11) — el defecto de fondo del vocabulario:** `REVEAL` y `AMBIENT` de `src/motion/vocabulary.ts` tienen **cero consumidores** (0 imports fuera del propio módulo); solo `PRESS` y `DECK` se importan de verdad (13 ficheros de producción). El vocabulario está documentando retroactivamente literales que `Sol.tsx`, `Wormhole.tsx` y `BrandName.tsx` siguen escribiendo a mano — **≥21 duraciones sueltas fuera del token** y 5 curvas fuera, incluido un `cubic-bezier(0.4, 0, 0.2, 1)` crudo en `useSolTiltSpin.ts:56` que duplica el token `standard`. Un vocabulario sin consumidores no es un vocabulario: es un comentario. Esta tarea o migra los consumidores a `REVEAL`, o retira el concepto — no lo deja a medias. El grep-test del punto 6 debe afirmar consumidores reales, no la mera existencia del símbolo.
 
 ## Task 20 — Motion resto: AMBIENT, StoryCosmicBeing, desplegable del navbar
 
-1. Colapso AMBIENT: de 5 valores a 3 (la spec lo deja a juicio del ejecutor: elegir los 3 con más consumidores reales, mapear el resto, documentar en `vocabulary.ts`).
+1. Colapso AMBIENT: de 5 valores a 3 (la spec lo deja a juicio del ejecutor: elegir los 3 con más consumidores reales, mapear el resto, documentar en `vocabulary.ts`). **Nota del gate F2:** hoy `AMBIENT` tiene 0 consumidores — decidir entre migrar las animaciones ambientales de `Sol`/`Wormhole`/`Footer` a él o retirarlo, con el mismo criterio del punto 7 de la Task 19.
 2. `StoryCosmicBeing` a `depth` 1,0: `scrollAmp` 190 → el valor de sus hermanas (32), verificando en navegador real que la escena no pierde su carácter (captura antes/después al workspace; si el cambio la aplana de forma evidente, proponer valor intermedio en el report con ambas capturas).
 3. Desplegable del navbar: `transform-origin` correcto, cierre con `scale(0.97)`, asimetría 180/120 ms («cuatro líneas» según la spec).
 4. Tests por styleSheets; reduce cubierto.
@@ -199,6 +201,29 @@ Verificar el estado tras la unificación: fuera «Paso» de los pilares de Story
 1. Tarjetas de 26px → token de radio 16px (donde el token exista; si el token actual ES 24-26, ajustar el token con docblock y verificar consumidores uno a uno con grep — cambio de token es cambio global: listar los afectados en el report).
 2. `overshoot` documentado en `DESIGN.md` como excepción sancionada (identidad, único consumidor navbar) — mismo formato que el cristal del navbar.
 3. Tests de radio actualizados; verificación visual (tarjetas claro/oscuro).
+
+## Task 33 — Los dos fallos de contraste AA medidos en el gate F4 (P1, va primero)
+
+Hallazgos del evaluador independiente del 2026-08-12, medidos sobre píxeles renderizados. Son bugs de accesibilidad en controles permanentes, y la dimensión A11y del eje técnico lleva atascada tres gates.
+
+1. **Idioma activo en tema claro: 1,89:1.** `#01B7FF` sobre `#EBE8F9` en el navbar (esquina superior derecha). AA exige 4,5:1 para texto de 14 px bold, y **el color es la única señal visible de qué idioma está activo**. Corregir midiendo con `contrastRatio` contra el fondo real de la barra en sus dos estados (transparente sobre el hero y con cristal tras el scroll — pueden dar ratios distintos: mide los dos). Si el acento de marca no llega, usar el paso de la rampa que sí llegue conservando la identidad, con el precedente de la Task 26 (resolución por rama). **Y considerar reforzar la señal más allá del color** (peso, subrayado o marca), porque WCAG 1.4.1 pide que el color no sea el único medio de transmitir información.
+2. **CTA principal oscilando a ~2,3-2,5:1 por su propio degradado animado.** `background-size: 260%`, ciclo infinito de 9 s: hay fases en las que el botón queda lavanda claro con texto blanco. Afecta al CTA del héroe y al de conversión. Bajo `prefers-reduced-motion` se detiene en la fase legible, lo que confirma que la animación es la causa. Opciones a evaluar **midiendo el peor fotograma**: acotar el recorrido del degradado para que ninguna fase baje de 4,5:1, oscurecer la rampa, o fijar un velo bajo el texto. La animación puede quedarse si el peor fotograma pasa AA.
+3. Candados: test de contraste para el estado activo del idioma (ambos estados de la barra) y test que ate el peor fotograma del degradado — para este último, calcular los extremos del recorrido de color, no muestrear a ojo.
+
+## Task 34 — Detectar no es elegir: la preferencia de tema se persiste sin intervención (P1)
+
+Hallazgo del gate F4: con `localStorage` limpio y el sistema operativo en oscuro, el sitio escribe `vti-theme=dark`; al cambiar después la preferencia del sistema a claro, **el sitio sigue oscuro** tras recargar. Es un defecto de la Task 9: la detección automática se está guardando como si fuera una elección del usuario.
+
+1. **Solo se persiste lo que el usuario elige explícitamente** (pulsar el toggle). La resolución por `prefers-color-scheme` no escribe en `localStorage`.
+2. En consecuencia, quien nunca ha tocado el toggle **sigue la preferencia del sistema en vivo**: si cambia el ajuste del SO, el sitio le acompaña. Quien sí la ha tocado conserva su elección por encima del sistema (ese es el contrato de D-C: `localStorage` gana a `prefers`).
+3. Cuidado con el script de arranque pre-paint (Task 31) y con el guard por `changeSource` (Task 9 fix round 2): la lógica de resolución sigue siendo fuente única y el CLS debe seguir en 0. Re-mídelo.
+4. Tests de los tres caminos (sin storage + prefers; con storage; cambio de `prefers` en vivo sin storage) y verificación en navegador de que el cambio del SO se refleja sin recargar cuando no hay elección guardada.
+
+## Task 35 — La 404 y la hoja móvil: dos superficies rotas (P1)
+
+1. **La 404 sigue sin maquetar.** La Task 3 le dio tamaño de título al `h1`, pero el bloque está pegado a (0,0) con las astas superiores cortadas por el borde, sin contenedor, sin padding, sin navbar ni pie, y con un único enlace de salida gris a tamaño de cuerpo. Es la superficie que ve alguien que ya se ha equivocado. Entrega: contenedor con el ancho y el ritmo del sistema, cabecera y pie reales (los mismos componentes de la home), la marca visible, y la salida como acción clara. En los dos temas y en móvil.
+2. **La hoja de navegación móvil se reabre desplazada al final** (`scrollTop = 177`, su máximo): la primera pantalla empieza en «Contacto» y quedan ocultos el rótulo «En el sitio» y los enlaces Historia/Viaje/Características. Reproducido dos veces, en ambos temas. **Y su botón de cierre queda tapado por el velo** (`elementFromPoint` sobre su centro devuelve `ScSheetVeil`). Entrega: la hoja abre siempre desde arriba (reset de `scrollTop` al abrir) y el cierre es alcanzable por puntero (revisar el `z-index` del velo contra el del botón, y verificarlo con `elementFromPoint`, no a ojo).
+3. Candados para ambos: el reset de scroll al abrir, y el `elementFromPoint` del botón de cierre.
 
 ## Task 24 — Gobernanza horizontal: regla dura + detector en CI
 
