@@ -8,7 +8,7 @@ import { Field, Input } from "@/components/ui/Input/Input";
 import { Button } from "@/components/ui/Button/Button";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
-import { PRESS } from "@/motion/vocabulary";
+import { AMBIENT, PRESS } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { EMAIL_ADDRESS, links } from "@/config/links";
@@ -1051,7 +1051,12 @@ const ScSubmitButton = styled(Button)`
   ${ctaGradient}
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: ${gradientShift} 9000ms linear infinite alternate;
+    /* Task 19 (motion core, punto 7 del brief): 9000ms pasa a
+       AMBIENT.floatMs (arroba/motion/vocabulary) -- mismo valor, ahora
+       consumidor real del vocabulario (gate F2: AMBIENT tenia 0
+       consumidores). Mismo cambio en BrandName.tsx/Hero.tsx sobre este mismo
+       gradientShift. */
+    animation: ${gradientShift} ${AMBIENT.floatMs}ms linear infinite alternate;
   }
 
   @media (prefers-reduced-motion: reduce) {

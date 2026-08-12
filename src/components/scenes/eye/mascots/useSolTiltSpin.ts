@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { motion } from "@/theme/tokens/motion";
 import { SOL_TILT_MAX_DEG } from "./Sol.constants";
 
 export interface SolTiltSpin {
@@ -59,7 +60,11 @@ export function useSolTiltSpin(onToggle: () => void): SolTiltSpin {
 
     const handleMouseLeave = (): void => {
       if (prefersReducedMotion()) return;
-      tilt.style.transition = "transform 480ms cubic-bezier(0.4, 0, 0.2, 1)";
+      // Task 19 (punto 7 del brief): este literal duplicaba
+      // motion.duration.slower (480ms) + motion.easing.standard
+      // (cubic-bezier(0.4, 0, 0.2, 1)) a mano -- se lee del token en vez de
+      // repetir el valor, mismo número, cero cambio visual.
+      tilt.style.transition = `transform ${motion.duration.slower} ${motion.easing.standard}`;
       tilt.style.transform = "";
     };
 

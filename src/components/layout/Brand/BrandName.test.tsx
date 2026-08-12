@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { BrandName } from "./BrandName";
+import { AMBIENT } from "@/motion/vocabulary";
 
 /** Todas las reglas inyectadas, incluidas las anidadas dentro de `@media`
  *  y `@supports` (mismo helper que `Hero.qa.test.tsx`). */
@@ -105,5 +106,30 @@ describe("BrandName", () => {
     expect(
       screen.getByRole("link", { name: "VoidToInfinite" }),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Task 19 (motion core, punto 7 del brief -- gate F2: AMBIENT con cero
+   * consumidores): gradientShift pasa de un literal escrito a mano (9000ms)
+   * a `${AMBIENT.floatMs}ms` (@/motion/vocabulary) -- mismo valor numérico
+   * resultante (9000 === AMBIENT.floatMs), así que el CSS renderizado no
+   * puede distinguir "literal" de "token" por texto; lo que SÍ prueba que es
+   * el token y no una coincidencia es que `BrandName.tsx` importa y usa
+   * `AMBIENT.floatMs` de verdad (`src/test/vocabulary-consumers.test.ts`).
+   * Este test es la mitad "el valor renderizado es el correcto" del par.
+   * Validado con el bug inyectado a propósito (ver informe de la tarea):
+   * cambiando temporalmente `AMBIENT.floatMs` a 9999 en `vocabulary.ts`,
+   * este test se puso en rojo (9999ms en vez de 9000ms); restaurado, volvió
+   * a verde. Hero.tsx/Contact.tsx tienen su propio candado equivalente
+   * sobre este mismo `gradientShift`.
+   */
+  it("Task 19: el degradado animado (gradientTail) renderiza AMBIENT.floatMs (9000ms)", () => {
+    const { container } = renderWithProviders(<BrandName gradientTail />);
+    const spans = Array.from(container.querySelectorAll("span"));
+    const conClip = spans.find((span) => tieneClipDeTexto(span)) as Element;
+    const css = reglasDe(conClip).join("\n");
+
+    expect(css).toContain("prefers-reduced-motion: no-preference");
+    expect(css).toContain(`${AMBIENT.floatMs}ms linear infinite alternate`);
   });
 });

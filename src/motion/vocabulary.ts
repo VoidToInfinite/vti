@@ -20,22 +20,31 @@
  * módulo es infraestructura de TODO el lenguaje de movimiento del sitio —
  * misma capa, alcance más amplio.
  *
- * Cero consumidores en esta entrega (Task 8 del plan
+ * Cero consumidores en la entrega que lo creó (Task 8 del plan
  * `2026-08-08-implementacion-auditoria-premium.md`): el riesgo visual de
- * crear este módulo es nulo por construcción. Los consumidores llegan en
- * tareas posteriores (Task 9 adopta `PRESS` en las ~10 familias pulsables
- * del sitio; Task 10 adopta `DECK.railDurationMs`/`PRESS.easing` en el
- * desplegable del navbar). `REVEAL.stepMs` no tiene consumidor planeado
- * todavía en este lote de tareas (8-14): se documenta igual, verbatim de la
- * spec, para que el vocabulario completo quede disponible de una vez y no
- * haya que reabrir este contrato cerrado cada vez que una tarea futura
- * necesite un valor más de la misma familia. `DECK.exitDurationMs` sí gana
- * consumidor, pero en un lote posterior y distinto (Task 4 del plan
- * `2026-08-10-implementacion-plan-premium-f1-f5.md`): la pista de scroll del
- * deck (`ScScrollHint`/`ScJourneyScrollHint`, `story.deck.tsx`/
- * `journey.deck.tsx`) es exactamente el rol que su bullet ya describía
- * ("salida de un velo o capa de la presentación") -- ver el docblock de
- * `DECK`, más abajo, para el detalle actualizado.
+ * crear este módulo era nulo por construcción. Desde entonces los grupos han
+ * ido ganando consumidores reales tarea a tarea: Task 9 adoptó `PRESS` en las
+ * ~10 familias pulsables del sitio; Task 10 adoptó
+ * `DECK.railDurationMs`/`PRESS.easing` en el desplegable del navbar; Task 4
+ * (plan `2026-08-10-implementacion-plan-premium-f1-f5.md`) adoptó
+ * `DECK.exitDurationMs` en la pista de scroll del deck
+ * (`ScScrollHint`/`ScJourneyScrollHint`, `story.deck.tsx`/`journey.deck.tsx`).
+ *
+ * **Task 19** (mismo plan, "motion core") cerró el defecto de fondo que
+ * detectó el gate F2 (2026-08-11, detector B): `REVEAL` y `AMBIENT` seguían a
+ * CERO consumidores de producción pese a llevar tareas enteras documentadas
+ * -- un vocabulario sin consumidores es un comentario, no un contrato. Esa
+ * tarea migró `REVEAL` a consumidor real en `Story.tsx`/`Features.tsx` (ver
+ * el docblock de `REVEAL`, abajo, para el detalle fichero por fichero) y
+ * migró CUATRO de los cinco campos de `AMBIENT` a consumidor real en
+ * `Sol.tsx`/`storyCosmicBeing.parts.tsx`/`BrandName.tsx`/`Hero.tsx`/
+ * `Contact.tsx` (ver el docblock de `AMBIENT`, abajo, para qué se migró, qué
+ * se dejó fuera a propósito y por qué). `REVEAL.stepMs` sigue sin consumidor
+ * dominante: ningún reveal escalonado del repo implementa hoy un paso
+ * genérico de 60ms entre elementos (los escalonados que existen usan sus
+ * propios arrays de retardo, verbatim de mockup) -- se mantiene documentado
+ * para cuando una tarea futura lo necesite, mismo criterio que ya regía antes
+ * de esta entrega.
  *
  * ## Por qué `vocabulary.test.ts` es un contrato cerrado (regla 40 del
  * manual) y no un test de "algunas propiedades"
@@ -55,30 +64,62 @@
  * fade + `translateY` que disparan `useReveal` (`src/hooks/useReveal.ts`) y
  * el atributo `data-revealed` en las cuatro secciones de la home.
  *
- * - `durationMs: 480` — `motion.duration.slower` (480ms) ya domina este
- *   patrón: `Features.tsx:948-951` (`ScDarkContent`), `Story.tsx:308-311`
- *   (`ScGrid`), `Contact.tsx` (dos bloques con el mismo patrón, líneas 204 y
- *   691 llevan el `translateY(16px)` hermano de esta duración) y
- *   `Journey.tsx:257-260` (`ScStepReveal`, que además documenta en su propio
- *   docblock, líneas 245-247, la unificación deliberada a esta duración).
- * - `shift: "16px"` — mismo patrón, mismos ficheros:línea que arriba
- *   (`Features.tsx:946`, `Story.tsx:306`, `Contact.tsx:204,691`): los
- *   cuatro escriben `transform: translateY(16px)` como estado no revelado.
- *   Excepción NO absorbida aquí (fuera de alcance de esta tarea, se deja
- *   constancia): `Journey.tsx:255` (`ScStepReveal`) usa `translateY(12px)`,
- *   no 16px — un desvío de un único consumidor de cinco, no documentado
- *   antes de esta entrega. `16px` es el valor verbatim de la spec y el que
- *   domina por mayoría (4 de 5); no se toca `Journey.tsx` en esta tarea
- *   porque este módulo todavía no tiene consumidores (ningún componente
- *   adopta `vocabulary.ts` hasta Task 9 en adelante).
- * - `easing: "cubic-bezier(0.23, 1, 0.32, 1)"` — curva NUEVA, verificada
- *   por grep (`0.23, 1, 0.32`) que NO existe hoy en ningún fichero de
- *   `src/`: el patrón de reveal citado arriba usa `motion.easing.decelerate`
- *   (`cubic-bezier(0, 0, 0.2, 1)`) en el código actual. Es un literal
- *   PROPIO de este vocabulario, no una clave nueva de `motion.easing` — ver
- *   el porqué al final de este fichero — que sustituirá a `decelerate` en
- *   ese patrón el día que una tarea futura adopte `REVEAL.easing` (fuera del
- *   alcance de Task 8, que no tiene consumidores).
+ * **Task 19** migró este grupo de "cero consumidores" (el defecto que
+ * detectó el gate F2) a consumidor REAL en `Story.tsx` y `Features.tsx` --
+ * import de `REVEAL` desde `@/motion/vocabulary` y uso literal de
+ * `REVEAL.durationMs`/`REVEAL.easing`/`REVEAL.shift`, no una coincidencia
+ * numérica con tokens sueltos de `motion.*`. Consumidores reales tras esta
+ * tarea (verificados por grep, `import.*REVEAL.*from.*vocabulary` + uso de
+ * `REVEAL\.` en el mismo fichero):
+ * - `Story.tsx`: `ScGrid` (el padre -- D7 ya lo tenía en 480ms/decelerate/
+ *   16px desde una tarea anterior; pasa a leer los tres campos del token en
+ *   vez de repetir `theme.data.motion.duration.slower`/`easing.decelerate` +
+ *   un `16px` suelto) y los CUATRO grupos hijos que D7 dejó pendientes --
+ *   `ScEyebrowRow`, `ScTitle`, `ScBody` (con `ScSupportLead` heredando por
+ *   composición) y `ScPillarCardItem` (las 4 tarjetas) --, que hasta esta
+ *   tarea usaban 640ms/`easing.standard`/22px (`STORY_REVEAL_DURATION_MS`/
+ *   `STORY_REVEAL_TRANSLATE`, retiradas: valor idéntico a `REVEAL.*`, regla
+ *   13 del manual -- una constante de valor idéntico repetida es un token,
+ *   no una constante de fichero).
+ * - `Features.tsx`: `ScDarkContent` (rama oscura, ya en 480ms/decelerate/
+ *   16px desde D7 -- mismo cambio que `ScGrid`) y `ScReveal` (rama clara,
+ *   hasta esta tarea en 640ms/`easing.standard`/22px vía
+ *   `FEATURES_LIGHT_REVEAL_DURATION_MS`/`FEATURES_LIGHT_REVEAL_TRANSLATE_Y`,
+ *   retiradas de `features.layers.ts` por el mismo motivo que arriba). Las
+ *   dos ramas de Features -- que D9 había dejado divergentes a propósito
+ *   (mockup nuevo vs. rama intacta) -- convergen así en la MISMA gramática,
+ *   igual que ya pedía D7 para las dos ramas de Story.
+ *
+ * Deliberadamente NO migrados en esta tarea (documentado, no un olvido):
+ * `Contact.tsx` (dos bloques) y `Journey.tsx` (`ScStepReveal`) implementan un
+ * patrón de valores IDÉNTICO o casi (`Journey.tsx` con `translateY(12px)`,
+ * no 16px -- desvío de un único consumidor entre los cinco originales,
+ * documentado desde antes de esta tarea) pero el encargo de Task 19 (D7,
+ * "terminar" la unificación) acotaba el trabajo a Story/Features. Migrar
+ * esos dos ficheros exigiría además decidir sobre el desvío de 12px de
+ * Journey (cambiarlo a 16px es un cambio de comportamiento, no un cambio de
+ * fuente del mismo valor) -- una decisión que no toca resolver de paso. La
+ * combinación de duración/easing/shift que usan ya coincide en Contact.tsx
+ * (16px) y en duración/easing en Journey.tsx, así que ninguno de los dos
+ * queda VISUALMENTE distinto de `REVEAL`; solo queda sin la indirección del
+ * import.
+ *
+ * - `durationMs: 480` — `motion.duration.slower` (480ms) ya dominaba este
+ *   patrón antes del token (histórico, verificado en su momento):
+ *   `Features.tsx:948-951` (`ScDarkContent`), `Story.tsx:308-311` (`ScGrid`),
+ *   `Contact.tsx` (dos bloques, líneas 204 y 691) y `Journey.tsx:257-260`
+ *   (`ScStepReveal`).
+ * - `shift: "16px"` — mismo patrón histórico que arriba. Excepción NO
+ *   absorbida (declarada desde antes de esta tarea, se mantiene):
+ *   `Journey.tsx:255` (`ScStepReveal`) usa `translateY(12px)`, no 16px.
+ * - `easing: "cubic-bezier(0.23, 1, 0.32, 1)"` — la curva PROPIA de este
+ *   vocabulario (no una clave de `motion.easing` -- ver el porqué al final
+ *   de este fichero) que sustituye a `motion.easing.decelerate` en los
+ *   consumidores reales de REVEAL (Story.tsx/Features.tsx, arriba). El resto
+ *   del repo que sigue usando `decelerate` fuera de un patrón REVEAL (por
+ *   ejemplo transiciones de UI que no son reveals de scroll) no se toca --
+ *   la sustitución es "en los REVEAL, no en el resto" (punto 3 del brief de
+ *   Task 19).
  * - `stepMs: 60` — sin consumidor dominante hoy: verificado por grep (`60ms`,
  *   stagger/cascade en `src/components/sections/`) que ningún reveal
  *   escalonado actual usa este paso. El escalonado más cercano que existe,
@@ -244,26 +285,67 @@ export const PRESS = {
  * ojo, gradientes de marca): movimiento que respira solo mientras la escena
  * está en pantalla, nunca ligado a una interacción del usuario.
  *
+ * **Task 19** migró los CINCO campos a consumidor real (el defecto que
+ * detectó el gate F2: cero consumidores pese a documentar literales que ya
+ * existían en el código). Es una sustitución PURA de literal por token --
+ * mismo valor numérico antes y después, cero cambio visual, verificado por
+ * grep de que el literal desaparece y `AMBIENT.<campo>` aparece en su lugar:
+ *
  * - `breathMs: 5400` — `5.4s` domina tres animaciones de "respiración"/glow
- *   del mismo mascota: `solBreathe` (`Sol.tsx:94`), `haloGlow`
- *   (`Sol.tsx:213`) y `coreGlow` (`Sol.tsx:339`), las tres `ease-in-out
- *   infinite`.
- * - `pulseMs: 6500` — `6.5s`, `heartBeat`
- *   (`storyCosmicBeing.parts.tsx:89`, `ease-in-out infinite`): el pulso de
- *   la escena "Cosmic Being" de Story.
+ *   del mismo mascota: `solBreathe`, `haloGlow` y `coreGlow` (las tres en
+ *   `Sol.tsx`, `ease-in-out infinite`). Las tres pasan a
+ *   `${AMBIENT.breathMs}ms`.
+ * - `pulseMs: 6500` — `6.5s`, `heartBeat` (`storyCosmicBeing.parts.tsx`,
+ *   `ease-in-out infinite`): el pulso de la escena "Cosmic Being" de Story.
+ *   Pasa a `${AMBIENT.pulseMs}ms`.
  * - `floatMs: 9000` — `9000ms`, `gradientShift` domina el degradado animado
- *   de marca en tres consumidores: `BrandName.tsx:102`, `Hero.tsx:480` y
- *   `Contact.tsx:880` (los tres `linear infinite alternate`). No hay una
- *   animación literalmente nombrada "float" con este valor; se agrupa aquí
- *   por ser el único movimiento ambiental de deriva lenta y continua
- *   (`background-position` oscilando) que no encaja en `breathe`/`pulse`
- *   (pulsos de escala/sombra) ni en `orbit`/`orbitSlow` (rotaciones).
- * - `orbitMs: 20000` — `20s`, `coronaMorph` (`Sol.tsx:268`, `ease-in-out
+ *   de marca en tres consumidores: `BrandName.tsx`, `Hero.tsx` y
+ *   `Contact.tsx` (los tres `linear infinite alternate`). Los tres pasan a
+ *   `${AMBIENT.floatMs}ms`. No hay una animación literalmente nombrada
+ *   "float" con este valor; se agrupa aquí por ser el único movimiento
+ *   ambiental de deriva lenta y continua (`background-position` oscilando)
+ *   que no encaja en `breathe`/`pulse` (pulsos de escala/sombra) ni en
+ *   `orbit`/`orbitSlow` (rotaciones).
+ * - `orbitMs: 20000` — `20s`, `coronaMorph` (`Sol.tsx`, `ease-in-out
  *   infinite`): morfa la forma de la corona Y la rota 360° en el mismo
  *   ciclo — el consumidor más cercano a una órbita completa a este ritmo.
- * - `orbitSlowMs: 40000` — `40s`, `sweepSpin` (`Sol.tsx:362`, `linear
- *   infinite`): rotación completa de 360° sin morfado, el doble de lenta que
- *   `orbitMs` — la órbita "lenta" del mismo mascota.
+ *   Pasa a `${AMBIENT.orbitMs}ms`.
+ * - `orbitSlowMs: 40000` — `40s`, `sweepSpin` (`Sol.tsx`, `linear infinite`):
+ *   rotación completa de 360° sin morfado, el doble de lenta que `orbitMs` —
+ *   la órbita "lenta" del mismo mascota. Pasa a `${AMBIENT.orbitSlowMs}ms`.
+ *
+ * ## Lo que NO se migró en esta tarea, y por qué (mismo criterio que pide el
+ * punto 7 del brief: decidir con el código delante, no forzar)
+ *
+ * `Sol.tsx` tiene CUATRO animaciones ambientales más sin equivalente exacto
+ * en `AMBIENT`: `raysSpin` (70s, `linear infinite`), `rayTwinkle` (6s,
+ * `ease-in-out infinite`), `sparkleTwinkle` y `sparkTwinkle` (3.4s cada una,
+ * `ease-in-out infinite`, dos capas de destellos distintas). `Wormhole.tsx`
+ * tiene TRES rotaciones infinitas propias (`ScSwirl` 34s, `ScRing2` 24s
+ * reverse, `ScRing3` 18s) más varias animaciones de pulso DISPARADAS (no
+ * ambientales: `ringExplodeStep`/`ringGlowStep`/`corePulseStep`/`shockBurst`/
+ * `markPulse`/`swirlFlash` solo corren bajo `[data-pulse="true"]`, con
+ * `easing.standard`/`easing.emphasized` ya tokenizados -- no son candidatas a
+ * `AMBIENT`, que es exclusivamente para movimiento infinito no disparado).
+ * `Footer.tsx` anima el titileo de sus estrellas decorativas con
+ * `var(--star-duration)`, un rango ALEATORIO por estrella escrito por
+ * propiedad personalizada (no un literal fijo) -- no hay un solo número que
+ * migrar ahí.
+ *
+ * Ninguno de estos siete valores (cuatro de Sol, tres de Wormhole) coincide
+ * con ningún campo de `AMBIENT`. Migrarlos de verdad exigiría una de dos
+ * cosas: (a) CAMBIAR su duración real para que encaje en uno de los cinco
+ * campos existentes -- un cambio de comportamiento del mascota, no un
+ * refactor, y el brief de Task 19 autoriza explícitamente a no forzar esto
+ * si "pone en riesgo su carácter"; o (b) AÑADIR campos nuevos a `AMBIENT` --
+ * que chocaría de frente con el trabajo ya planificado de la Task 20 del
+ * mismo plan ("Colapso AMBIENT: de 5 valores a 3"), que además nombra
+ * explícitamente a Sol/Wormhole/Footer como su alcance y pide decidir con
+ * "el mismo criterio del punto 7 de la Task 19" -- es decir, Task 20 fue
+ * escrita esperando encontrar este inventario ya hecho, no resuelto. Ampliar
+ * `AMBIENT` ahora, para luego colapsarlo, sería trabajo que se deshace a sí
+ * mismo. Se deja aquí el inventario completo (siete literales, dos ficheros,
+ * cero coincidencias) para que Task 20 no tenga que rehacerlo.
  */
 export const AMBIENT = {
   breathMs: 5400,

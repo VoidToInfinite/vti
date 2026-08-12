@@ -12,7 +12,7 @@ import esCommon from "@/i18n/locales/es/common.json";
 import i18n from "@/i18n/config";
 import { links } from "@/config/links";
 import { Story, pillarBadgeAccent } from "./Story";
-import { DECK, PRESS } from "@/motion/vocabulary";
+import { DECK, PRESS, REVEAL } from "@/motion/vocabulary";
 import { motion } from "@/theme/tokens/motion";
 import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
 import { basicLightTheme, basicDarkTheme } from "@/theme/themes";
@@ -480,6 +480,25 @@ describe("Story: tarjetas de pilar (tema claro, D2)", () => {
   });
 
   /*
+   * Task 19 (punto 2 del brief, "unificar transition de hover base->fast"):
+   * box-shadow de ScPillarCard pasa de motion.duration.base (200ms) a
+   * motion.duration.fast (100ms) -- Task 9 ya había migrado el transform a
+   * PRESS.durationMs (100ms) pero dejó box-shadow deliberadamente en base.
+   * Validado con el bug inyectado a propósito (ver informe de la tarea):
+   * revirtiendo temporalmente esa duración a motion.duration.base en
+   * Story.tsx, este test se puso en rojo; restaurado, volvió a verde.
+   */
+  it("Task 19: box-shadow de ScPillarCard usa motion.duration.fast (no duration.base)", () => {
+    renderWithProviders(<Story />);
+    const title = screen.getByText(esHome.Home.story.pillars.learn.title);
+    const card = title.parentElement as HTMLElement; // ScPillarCard
+    const css = cssRuleTextFor(card);
+
+    expect(css).toContain(`box-shadow ${motion.duration.fast}`);
+    expect(css).not.toContain(`box-shadow ${motion.duration.base}`);
+  });
+
+  /*
    * Task 13, punto 2 del brief: elimina el retardo de doble-tap. Validado
    * con el bug inyectado a propósito (ver informe de la tarea): comentando
    * temporalmente `touch-action: manipulation;` de ScPillarCard en
@@ -711,7 +730,18 @@ describe("Story: Task 12, ScAccent/ScStatementThird pasan a color solido", () =>
  * (duracion/easing), que es lo que ata el test de D7.
  */
 describe("Story: movimiento ligado a scroll y lenguaje de entrada unificado (D1/D7)", () => {
-  it("D7: ScGrid unifica su entrada a motion.duration.slower + easing.decelerate en las dos propiedades transicionadas", () => {
+  /*
+   * Task 19 (D7, "terminar la unificación" + curva propia de REVEAL):
+   * ScGrid pasa de leer `theme.data.motion.duration.slower`/
+   * `easing.decelerate` sueltos a leer `REVEAL.durationMs`/`REVEAL.easing`
+   * (mismo valor de duración, 480ms; la curva SÍ cambia -- ya no
+   * `decelerate`, la curva propia de REVEAL). Validado con el bug inyectado
+   * a propósito (ver informe de la tarea): revirtiendo temporalmente
+   * `ScGrid` a `theme.data.motion.easing.decelerate` en Story.tsx, este test
+   * se puso en rojo (`cubic-bezier(0.23, 1, 0.32, 1)` esperado frente a
+   * `cubic-bezier(0, 0, 0.2, 1)` recibido); restaurado, volvió a verde.
+   */
+  it("D7: ScGrid unifica su entrada a REVEAL.durationMs + REVEAL.easing en las dos propiedades transicionadas", () => {
     const { container } = renderWithProviders(<Story />);
     const grid = container.querySelector("[data-revealed]") as HTMLElement;
     // jsdom NO expande la shorthand `transition` en sus longhands
@@ -724,7 +754,7 @@ describe("Story: movimiento ligado a scroll y lenguaje de entrada unificado (D1/
     const transition = getComputedStyle(grid).transition;
 
     expect(transition).toBe(
-      `opacity ${motion.duration.slower} ${motion.easing.decelerate},transform ${motion.duration.slower} ${motion.easing.decelerate}`,
+      `opacity ${REVEAL.durationMs}ms ${REVEAL.easing},transform ${REVEAL.durationMs}ms ${REVEAL.easing}`,
     );
   });
 

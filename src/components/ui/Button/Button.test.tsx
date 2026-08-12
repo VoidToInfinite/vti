@@ -163,6 +163,37 @@ describe("Button", () => {
   });
 
   /*
+   * Task 19 (punto 5 del brief, inventario de hoverGuard por grep de `:hover`
+   * fuera de `@media (hover: hover)`): Button.tsx era, hasta esta tarea, el
+   * ÚNICO de las ~10 familias pulsables del sitio con un hover-lift que MUEVE
+   * (translateY) sin `PRESS.hoverGuard` -- pese a ser el propio origen citado
+   * por el docblock de `PRESS.hoverLift` en `vocabulary.ts`. Validado con el
+   * bug inyectado a propósito (ver informe de la tarea): quitando el bloque
+   * `@media ${PRESS.hoverGuard}` de Button.tsx (dejando el `:hover` suelto),
+   * este test se pone en rojo; restaurado, vuelve a verde.
+   */
+  it("Task 19: el hover-lift (translateY) vive dentro de PRESS.hoverGuard -- (hover: hover) and (pointer: fine)", () => {
+    renderWithProviders(<Button>Explorar</Button>);
+    const boton = screen.getByRole("button", { name: "Explorar" });
+    const reglas = allCssRules();
+    const clases = Array.from(boton.classList).filter((c) =>
+      reglas.some((r) => r.includes(c)),
+    );
+    const propias = reglas.filter((r) => clases.some((c) => r.includes(c)));
+
+    const guardado = propias.some(
+      (r) =>
+        r.includes(`@media ${PRESS.hoverGuard}`) &&
+        r.includes(":hover") &&
+        r.includes("translateY(-2px)"),
+    );
+    expect(
+      guardado,
+      "el hover-lift de Button no está guardado tras PRESS.hoverGuard",
+    ).toBe(true);
+  });
+
+  /*
    * Task 13, punto 2 del brief: elimina el retardo de ~300ms de doble-tap.
    * Raíz de composición -- IconButton (`styled(Button)`) y todo lo que
    * compone sobre él (BackToTop, ThemeToggle) heredan esta declaración sin

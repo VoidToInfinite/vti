@@ -1,5 +1,6 @@
 import type { ElementType, ReactElement } from "react";
 import styled, { css, keyframes } from "styled-components";
+import { AMBIENT } from "@/motion/vocabulary";
 import type { ThemeDefinition } from "@/theme/theme.types";
 
 const ScBrandName = styled.span`
@@ -201,7 +202,12 @@ export const gradientTextClip = css`
   text-shadow: none;
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: ${gradientShift} 9000ms linear infinite alternate;
+    /* Task 19 (motion core, punto 7 del brief): 9000ms pasa a
+       AMBIENT.floatMs (arroba/motion/vocabulary) -- mismo valor, ahora
+       consumidor real del vocabulario (gate F2: AMBIENT tenia 0 consumidores
+       antes de esta tarea). Hero.tsx y Contact.tsx migran el mismo literal en
+       sus propias declaraciones de animation sobre este mismo gradientShift. */
+    animation: ${gradientShift} ${AMBIENT.floatMs}ms linear infinite alternate;
   }
 
   @media (prefers-reduced-motion: reduce) {

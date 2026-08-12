@@ -10,6 +10,7 @@ import enHome from "@/i18n/locales/en/home.json";
 import { AURA_SURFACE } from "@/components/scenes/aura/aura.layers";
 import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import { Button } from "@/components/ui/Button/Button";
+import { AMBIENT } from "@/motion/vocabulary";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { color } from "@/theme/tokens/color";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
@@ -420,6 +421,29 @@ describe("Hero (lente funcional)", () => {
       // apareciera, seria la prueba de que ctaGradient revirtio a
       // heroGradient sin que el resto del test lo hubiera detectado ya.
       expect(paradas).not.toContain(color.secondary[300]);
+    });
+
+    /*
+     * Task 19 (motion core, punto 7 del brief -- gate F2: AMBIENT con cero
+     * consumidores): gradientShift pasa de un literal escrito a mano
+     * (9000ms) a `${AMBIENT.floatMs}ms` (@/motion/vocabulary) -- mismo valor
+     * numerico resultante, asi que el CSS renderizado no distingue
+     * "literal" de "token" por texto; lo que SI prueba que es el token es
+     * que Hero.tsx importa y usa AMBIENT.floatMs de verdad
+     * (src/test/vocabulary-consumers.test.ts). Validado con el bug inyectado
+     * a proposito (ver informe de la tarea): cambiando temporalmente
+     * AMBIENT.floatMs a 9999 en vocabulary.ts, este test se puso en rojo;
+     * restaurado, volvio a verde. BrandName.tsx/Contact.tsx tienen su propio
+     * candado equivalente sobre este mismo gradientShift.
+     */
+    it("Task 19: el degradado animado del CTA primario renderiza AMBIENT.floatMs (9000ms)", () => {
+      renderHero();
+      const acciones = screen.getByTestId("hero-actions");
+      const enlace = acciones.querySelector("a") as HTMLElement;
+      const css = reglasDe(enlace).join("\n");
+
+      expect(css).toContain("prefers-reduced-motion: no-preference");
+      expect(css).toContain(`${AMBIENT.floatMs}ms linear infinite alternate`);
     });
 
     /*

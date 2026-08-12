@@ -10,6 +10,7 @@ import {
 } from "@/components/layout/Brand/BrandName";
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
+import { AMBIENT } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import { HeroBackdrop } from "./HeroBackdrop";
 import {
@@ -605,7 +606,11 @@ const ScCtaPrimary = styled(Button)`
 
   @media (prefers-reduced-motion: no-preference) {
     ${ctaGradient}
-    animation: ${gradientShift} 9000ms linear infinite alternate;
+    /* Task 19 (motion core, punto 7 del brief): 9000ms pasa a AMBIENT.floatMs
+       (arroba/motion/vocabulary) -- mismo valor, ahora consumidor real del
+       vocabulario (gate F2: AMBIENT tenia 0 consumidores). Mismo cambio en
+       BrandName.tsx/Contact.tsx sobre este mismo gradientShift. */
+    animation: ${gradientShift} ${AMBIENT.floatMs}ms linear infinite alternate;
 
     /*
      * FIX (medido en render real): sin esto, al pasar el cursor el

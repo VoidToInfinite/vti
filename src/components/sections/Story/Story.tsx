@@ -8,7 +8,7 @@ import { links } from "@/config/links";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
-import { PRESS } from "@/motion/vocabulary";
+import { PRESS, REVEAL } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { StoryCosmicBeing } from "@/components/scenes/storyCosmicBeing/StoryCosmicBeing";
@@ -123,14 +123,24 @@ const STORY_CARD_BADGE_SIZE = "2.375rem";
 /** Hover de tarjeta (D3, mockup `style-hover`): `translateY(-3px)`, un
  *  desplazamiento demasiado pequeño para ningún paso de `space`. */
 const STORY_CARD_HOVER_LIFT = "-3px";
-/** Entrada escalonada (D9): 640ms/`translateY(22px)` son los valores DEL
- *  MOCKUP para las 7 piezas que se revelan en cascada (barra+kicker, h2,
- *  body, las 4 tarjetas) -- ninguno coincide con un paso de
- *  `motion.duration`/`space`, igual que `STORY_FIGURE_FLOAT_MS`
- *  (story.layers.ts). La curva SÍ es de tema: `motion.easing.standard` es la
- *  misma `cubic-bezier(0.4,0,0.2,1)` que pide el mockup. */
-const STORY_REVEAL_DURATION_MS = 640;
-const STORY_REVEAL_TRANSLATE = "22px";
+/*
+ * Entrada escalonada (D9 original, mockup: 640ms/`translateY(22px)` +
+ * `easing.standard`): las 7 piezas que se revelan en cascada (barra+kicker,
+ * h2, body, las 4 tarjetas) empezaron con esos valores del mockup, distintos
+ * de los 480ms/decelerate/16px que `ScGrid` (el padre) ya llevaba desde D7 --
+ * padre e hijo con gramáticas de entrada distintas.
+ *
+ * Task 19 (D7, "terminar la unificación") cierra esa divergencia: los 7
+ * hijos pasan a `REVEAL.durationMs`/`REVEAL.easing`/`REVEAL.shift`
+ * (`@/motion/vocabulary`), EXACTAMENTE la misma gramática que `ScGrid` (ver
+ * su docblock, más abajo). Las dos constantes locales que llevaban el valor
+ * del mockup (`STORY_REVEAL_DURATION_MS`/`STORY_REVEAL_TRANSLATE`) se
+ * retiran: regla 13 del manual -- una constante de valor idéntico repetida
+ * en dos secciones (aquí, en Story Y en Features) es un token de tema, no
+ * una constante de fichero, y ese token ya existe (`REVEAL`). Es además la
+ * migración que cierra el hallazgo del gate F2: `REVEAL` pasa de cero
+ * consumidores a consumidor real aquí.
+ */
 /** Retardo de cada pieza en cascada, mismo orden que el mockup (L74-121):
  *  barra+kicker, h2, body, tarjeta 1..4 (D9). */
 const STORY_REVEAL_DELAY_EYEBROW_MS = 0;
@@ -167,9 +177,9 @@ const STORY_CARD_INSPIRATION_LINE_HEIGHT = 1.7;
 const STORY_STATEMENT_REVEAL_MS = 900;
 /** Curva de la entrada (mockup L128-130): ninguna de las cinco curvas de
  *  `motion.easing` tiene estos cuatro puntos de control -- ni siquiera
- *  `overshoot` (la unica no monotona de la escala). Constante local
- *  documentada, mismo recurso que `STORY_REVEAL_DURATION_MS` mas arriba en
- *  este fichero para el mismo problema. */
+ *  `overshoot` (la unica no monotona de la escala), ni tampoco `REVEAL.easing`
+ *  (`@/motion/vocabulary`) -- constante local documentada, mismo recurso que
+ *  la curva propia de `EASE_ENTRANCE` en `Sol.tsx` para el mismo problema. */
 const STORY_STATEMENT_EASING = "cubic-bezier(0.22, 0.61, 0.36, 1)";
 /*
  * D5 (spec 2026-08-07): las tres constantes de retardo, retiradas en D13
@@ -289,14 +299,22 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
 `;
 
 /*
- * Reveal de sección en CLARO (mismo patrón que `ScItem` en Features.tsx).
- * Duración/easing unificados (D7, spec
+ * Reveal de sección en CLARO (mismo patrón que `ScReveal`/`ScDarkContent` en
+ * Features.tsx). Duración/easing unificados (D7, spec
  * `2026-08-04-navegacion-fluida-parallax-microinteracciones-design.md`):
- * `motion.duration.slower` (480ms) + `motion.easing.decelerate` en vez de
- * `duration.slow` (320ms) que llevaba antes -- mismo lenguaje de entrada que
- * `ScStepReveal` en Journey.tsx, que hasta esta entrega usaba la MISMA
- * duración pero `easing.emphasized`, sin ninguna razón documentada para la
- * divergencia entre las dos secciones.
+ * 480ms + decelerate en vez de `duration.slow` (320ms) que llevaba antes --
+ * mismo lenguaje de entrada que `ScStepReveal` en Journey.tsx, que hasta esa
+ * entrega usaba la MISMA duración pero `easing.emphasized`, sin ninguna razón
+ * documentada para la divergencia entre las dos secciones.
+ *
+ * Task 19 (curva propia de REVEAL, punto 3 del brief) sustituye
+ * `easing.decelerate` por `REVEAL.easing` aquí Y lee los tres campos del
+ * token (`REVEAL.durationMs`/`REVEAL.easing`/`REVEAL.shift`) en vez de
+ * `theme.data.motion.duration.slower`/`easing.decelerate` + un `16px`
+ * suelto -- incluso siendo el MISMO valor numérico, es la migración que da a
+ * `REVEAL` su primer consumidor real (gate F2: 0 consumidores antes de esta
+ * tarea). Es además la mitad "padre" de D7: los 4 grupos hijos (más abajo)
+ * migran a la MISMA gramática en esta misma tarea.
  */
 const ScGrid = styled.div`
   display: grid;
@@ -316,12 +334,10 @@ const ScGrid = styled.div`
   align-items: stretch;
   gap: ${({ theme }) => theme.data.space[7]};
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(${REVEAL.shift});
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
 
   &[data-revealed="true"] {
     opacity: 1;
@@ -447,12 +463,10 @@ const ScKicker = styled(Typography)`
 const ScTitle = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   opacity: 0;
-  transform: translateY(${STORY_REVEAL_TRANSLATE});
+  transform: translateY(${REVEAL.shift});
   transition:
-    opacity ${STORY_REVEAL_DURATION_MS}ms
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${STORY_REVEAL_DURATION_MS}ms
-      ${({ theme }) => theme.data.motion.easing.standard};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
   transition-delay: ${STORY_REVEAL_DELAY_TITLE_MS}ms;
 
   [data-revealed="true"] & {
@@ -506,12 +520,10 @@ const ScBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[5]};
   max-width: ${({ theme }) => theme.data.grid.prose};
   opacity: 0;
-  transform: translateY(${STORY_REVEAL_TRANSLATE});
+  transform: translateY(${REVEAL.shift});
   transition:
-    opacity ${STORY_REVEAL_DURATION_MS}ms
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${STORY_REVEAL_DURATION_MS}ms
-      ${({ theme }) => theme.data.motion.easing.standard};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
   transition-delay: ${STORY_REVEAL_DELAY_BODY_MS}ms;
 
   [data-revealed="true"] & {
@@ -606,12 +618,10 @@ const ScEyebrowRow = styled.div`
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
   opacity: 0;
-  transform: translateY(${STORY_REVEAL_TRANSLATE});
+  transform: translateY(${REVEAL.shift});
   transition:
-    opacity ${STORY_REVEAL_DURATION_MS}ms
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${STORY_REVEAL_DURATION_MS}ms
-      ${({ theme }) => theme.data.motion.easing.standard};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
   transition-delay: ${STORY_REVEAL_DELAY_EYEBROW_MS}ms;
 
   [data-revealed="true"] & {
@@ -673,12 +683,10 @@ const ScPillarGrid = styled.div`
  */
 const ScPillarCardItem = styled.div`
   opacity: 0;
-  transform: translateY(${STORY_REVEAL_TRANSLATE});
+  transform: translateY(${REVEAL.shift});
   transition:
-    opacity ${STORY_REVEAL_DURATION_MS}ms
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${STORY_REVEAL_DURATION_MS}ms
-      ${({ theme }) => theme.data.motion.easing.standard};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
 
   [data-revealed="true"] & {
     opacity: 1;
@@ -720,9 +728,18 @@ const ScPillarCardItem = styled.div`
  * hover-lift se UNIFICA de motion.duration.base (200ms) a PRESS.durationMs
  * (100ms) + PRESS.easing -- la misma entrada de transform pasa a gobernar
  * también el press de abajo (:active), y CSS no admite dos duraciones
- * distintas para una sola propiedad en la misma lista. box-shadow se queda
- * en duration.base/easing.standard, sin tocar -- solo se unifica el
+ * distintas para una sola propiedad en la misma lista. box-shadow se quedó
+ * entonces en duration.base/easing.standard, sin tocar -- solo se unificó el
  * hover-lift, no la sombra.
+ *
+ * Task 19 (punto 2 del brief, "unificar transition de hover base->fast")
+ * termina esa unificación: box-shadow pasa de `duration.base` (200ms) a
+ * `duration.fast` (100ms), mismo `easing.standard` -- ahora las DOS
+ * propiedades de esta lista entran/salen en el mismo tiempo de reloj (100ms),
+ * aunque con curvas distintas (`PRESS.easing` para transform, `standard`
+ * para box-shadow, un tinte de estado no una primitiva de press). Mismo
+ * cambio que ya llevaba `Card.tsx` (`src/components/ui/Card/Card.tsx`) desde
+ * Task 9 -- esta tarea alinea Story/Features con ese precedente.
  */
 const ScPillarCard = styled.div`
   display: flex;
@@ -736,7 +753,7 @@ const ScPillarCard = styled.div`
   touch-action: manipulation;
   transition:
     transform ${PRESS.durationMs}ms ${PRESS.easing},
-    box-shadow ${({ theme }) => theme.data.motion.duration.base}
+    box-shadow ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard};
 
   /* Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve

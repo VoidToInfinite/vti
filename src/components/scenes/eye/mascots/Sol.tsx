@@ -2,6 +2,7 @@
 import type { ReactElement, ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { Logo } from "@/components/ui/Logo/Logo";
+import { AMBIENT } from "@/motion/vocabulary";
 import {
   SOL_AURA_SPARKS,
   SOL_BASIC_SPARKS,
@@ -33,6 +34,21 @@ import { useSolTiltSpin } from "./useSolTiltSpin";
  *   peticion de red por una figura de ~25px.
  * - Las dos caras siguen montadas siempre y se cruzan por opacidad, como en el
  *   origen: remontarlas produciria un parpadeo en vez de un morph.
+ *
+ * Task 19 (motion core, punto 7 del brief -- gate F2 detectó `AMBIENT` con
+ * cero consumidores de producción) migra CINCO animaciones ambientales de
+ * este fichero a `AMBIENT.*` (`@/motion/vocabulary`): `solBreathe`/
+ * `haloGlow`/`coreGlow` (los tres 5.4s -> `AMBIENT.breathMs`), `coronaMorph`
+ * (20s -> `AMBIENT.orbitMs`) y `sweepSpin` (40s -> `AMBIENT.orbitSlowMs`).
+ * Sustitución PURA de literal por token: mismo valor numérico, cero cambio
+ * visual. CUATRO animaciones de este mismo fichero se quedan FUERA a
+ * propósito -- `raysSpin` (70s), `rayTwinkle` (6s), `sparkleTwinkle` y
+ * `sparkTwinkle` (3.4s cada una) -- porque ninguna coincide con un campo de
+ * `AMBIENT`; forzarlas exigiría o cambiar su ritmo real (arriesga el carácter
+ * del mascota) o ampliar `AMBIENT` justo antes de que la Task 20 del mismo
+ * plan lo COLAPSE de 5 a 3 campos. Ver el docblock de `AMBIENT` en
+ * `vocabulary.ts` para el razonamiento completo (incluye también las tres
+ * rotaciones de `Wormhole.tsx` en el mismo caso).
  */
 
 const P100 = "oklch(0.93 0.039 235.851)";
@@ -91,7 +107,7 @@ const ScPulse = styled.div`
   ${centered}
 
   @media ${MOTION_OK} {
-    animation: ${solBreathe} 5.4s ease-in-out infinite;
+    animation: ${solBreathe} ${AMBIENT.breathMs}ms ease-in-out infinite;
   }
 `;
 
@@ -213,7 +229,7 @@ const ScHalo = styled.div`
   background-image: radial-gradient(circle, ${mix(P100, 65)}, transparent 68%);
 
   @media ${MOTION_OK} {
-    animation: ${haloGlow} 5.4s ease-in-out infinite;
+    animation: ${haloGlow} ${AMBIENT.breathMs}ms ease-in-out infinite;
   }
 `;
 
@@ -268,7 +284,7 @@ const ScCorona = styled.div`
   );
 
   @media ${MOTION_OK} {
-    animation: ${coronaMorph} 20s ease-in-out infinite;
+    animation: ${coronaMorph} ${AMBIENT.orbitMs}ms ease-in-out infinite;
   }
 `;
 
@@ -339,7 +355,7 @@ const ScCoreWrap = styled.div`
     0 0 50px 16px var(--glow-s-soft);
 
   @media ${MOTION_OK} {
-    animation: ${coreGlow} 5.4s ease-in-out infinite;
+    animation: ${coreGlow} ${AMBIENT.breathMs}ms ease-in-out infinite;
   }
 `;
 
@@ -362,7 +378,7 @@ const ScCoreSweep = styled.div`
   );
 
   @media ${MOTION_OK} {
-    animation: ${sweepSpin} 40s linear infinite;
+    animation: ${sweepSpin} ${AMBIENT.orbitSlowMs}ms linear infinite;
   }
 `;
 

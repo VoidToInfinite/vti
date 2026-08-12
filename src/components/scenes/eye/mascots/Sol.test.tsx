@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen, fireEvent, act } from "@/test/test-utils";
 import { Sol } from "./Sol";
+import { AMBIENT } from "@/motion/vocabulary";
+import { motion } from "@/theme/tokens/motion";
 import {
   SOL_AUTO_CYCLE_MS,
   SOL_MANUAL_OVERRIDE_LIMIT,
@@ -8,6 +10,29 @@ import {
   SOL_RAY_ANGLES,
   SOL_TILT_MAX_DEG,
 } from "./Sol.constants";
+
+/** Texto CSS de todas las reglas inyectadas por styled-components (lección
+ *  2026-07-27: jsdom no evalúa NINGÚN `@media`, así que un guard de
+ *  `prefers-reduced-motion` o una `animation:` dentro de uno solo se puede
+ *  atar inspeccionando el TEXTO inyectado, nunca con `getComputedStyle`). */
+function allCssText(): string {
+  const reglas: string[] = [];
+  const walk = (rules: CSSRuleList): void => {
+    Array.from(rules).forEach((rule) => {
+      reglas.push(rule.cssText);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) walk(anidadas);
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return reglas.join("\n");
+}
 
 /** `useSolTiltSpin` consulta `matchMedia` en cada interaccion; jsdom no lo
  *  implementa. `reduced` controla la unica rama que importa aqui. */
@@ -120,6 +145,56 @@ describe("Sol", () => {
 
     fireEvent.mouseLeave(hit);
     expect(tilt.style.transform).toBe("");
+  });
+
+  /*
+   * Task 19 (punto 7 del brief): `useSolTiltSpin.ts:62` duplicaba a mano
+   * motion.duration.slower (480ms) + motion.easing.standard
+   * (cubic-bezier(0.4, 0, 0.2, 1)) en un literal de transición inline.
+   * Validado con el bug inyectado a propósito (ver informe de la tarea):
+   * revirtiendo temporalmente esa línea al literal
+   * "transform 480ms cubic-bezier(0.4, 0, 0.2, 1)" en useSolTiltSpin.ts,
+   * este test siguió en verde (misma cadena resultante) -- lo que SÍ cayó en
+   * rojo fue cambiar el VALOR del token importado (probar con
+   * motion.duration.slow en vez de slower): confirma que el test depende
+   * del token, no de una coincidencia textual.
+   */
+  it("Task 19: al salir el cursor, la transicion de retorno usa motion.duration.slower + motion.easing.standard (no un literal duplicado)", () => {
+    const { container } = renderWithProviders(<Sol />);
+    const hit = hitOf(container);
+    const tilt = hit.firstElementChild?.firstElementChild as HTMLElement;
+
+    fireEvent.mouseMove(hit, { clientX: 100, clientY: 100 });
+    fireEvent.mouseLeave(hit);
+
+    expect(tilt.style.transition).toBe(
+      `transform ${motion.duration.slower} ${motion.easing.standard}`,
+    );
+  });
+
+  /*
+   * Task 19 (motion core, punto 7 del brief -- gate F2: AMBIENT con cero
+   * consumidores): cinco animaciones de este fichero pasan de un literal en
+   * segundos (5.4s/20s/40s) a `AMBIENT.breathMs`/`AMBIENT.orbitMs`/
+   * `AMBIENT.orbitSlowMs` (@/motion/vocabulary), mismo valor numérico.
+   * Validado con el bug inyectado a propósito (ver informe de la tarea):
+   * revirtiendo temporalmente `solBreathe` a `5.4s` en Sol.tsx, este test se
+   * puso en rojo (deja de encontrar `${AMBIENT.breathMs}ms` en el texto
+   * inyectado); restaurado, volvió a verde.
+   */
+  it("Task 19: solBreathe/haloGlow/coreGlow/coronaMorph/sweepSpin consumen AMBIENT.breathMs/orbitMs/orbitSlowMs, no literales en segundos", () => {
+    renderWithProviders(<Sol />);
+    const css = allCssText();
+
+    // Sonda positiva: confirma que el mecanismo SÍ ve animaciones bajo este
+    // guard antes de afirmar la ausencia de los literales viejos.
+    expect(css).toContain("prefers-reduced-motion: no-preference");
+    expect(css).toContain(`${AMBIENT.breathMs}ms ease-in-out infinite`);
+    expect(css).toContain(`${AMBIENT.orbitMs}ms ease-in-out infinite`);
+    expect(css).toContain(`${AMBIENT.orbitSlowMs}ms linear infinite`);
+    expect(css).not.toContain("5.4s");
+    expect(css).not.toContain("20s ease-in-out");
+    expect(css).not.toContain("40s linear");
   });
 
   it("con reduced-motion no inclina ni gira, pero el cambio de cara sigue funcionando", () => {

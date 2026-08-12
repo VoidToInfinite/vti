@@ -182,9 +182,25 @@ const ScButton = styled.button<{
      Ningún componente inventa su propia duración/curva: salen de motion.
      :not(:disabled) no casa nunca con un <a> (la pseudo-clase :disabled
      solo aplica a form controls), así que el ancla deshabilitada necesita
-     su propia exclusión vía [aria-disabled="true"]. */
-  &:hover:not(:disabled):not([aria-disabled="true"]) {
-    transform: translateY(-2px);
+     su propia exclusión vía [aria-disabled="true"].
+
+     Task 19 (punto 5 del brief, inventario de hoverGuard): este hover-lift
+     MUEVE (translateY) y hasta esta tarea era el UNICO de las ~10 familias
+     pulsables del sitio sin PRESS.hoverGuard -- Button.tsx es, de hecho, el
+     origen citado en el propio docblock de PRESS.hoverLift (vocabulary.ts),
+     pero Task 9 adopto el guard en el resto de familias sin volver a tocar
+     este fichero. Sin guard, un tap en un dispositivo tactil puede dejar la
+     elevacion "pegada" tras soltar (el hover persistente clasico de
+     iOS/Android) hasta el siguiente toque en otro sitio -- exactamente el
+     problema que PRESS.hoverGuard existe para evitar en el resto del sitio.
+     Cascada real: IconButton/ThemeToggle/BackToTop (styled(IconButton) ->
+     styled(Button)) y los CTA de Hero/Contact (styled(Button)) heredan este
+     bloque sin declarar hover propio -- ninguno tenia el guard hasta esta
+     tarea. */
+  @media ${PRESS.hoverGuard} {
+    &:hover:not(:disabled):not([aria-disabled="true"]) {
+      transform: translateY(-2px);
+    }
   }
   &:active:not(:disabled):not([aria-disabled="true"]) {
     transform: scale(0.98);

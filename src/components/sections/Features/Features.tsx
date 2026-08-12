@@ -6,7 +6,7 @@ import styled, { css, keyframes } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
-import { PRESS } from "@/motion/vocabulary";
+import { PRESS, REVEAL } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { FeaturesCelestialOrbital } from "@/components/scenes/featuresCelestialOrbital/FeaturesCelestialOrbital";
@@ -20,8 +20,6 @@ import {
   FEATURES_IMAGE_CIRCLE_SIZE,
   FEATURES_IMAGE_CIRCLE_OFFSET,
   FEATURES_CONIC_BORDER_SPIN_MS,
-  FEATURES_LIGHT_REVEAL_DURATION_MS,
-  FEATURES_LIGHT_REVEAL_TRANSLATE_Y,
   FEATURES_LIGHT_REVEAL_DELAYS_MS,
   FEATURES_CTA_HOVER_TRANSLATE_X,
   FEATURES_CTA_MIN_HEIGHT,
@@ -426,15 +424,24 @@ const ScSpanGaming = styled.span`
  * `prefers-reduced-motion: reduce` anula la transición Y el propio retardo
  * (no solo la duración): sin eso, un elemento con 360ms de retardo se
  * quedaría invisible ese tramo bajo `reduce`, peor que no animar.
+ *
+ * Task 19 (D7, "terminar la unificación" + curva propia de REVEAL): hasta
+ * esta tarea usaba 640ms/`easing.standard`/22px verbatim del mockup
+ * (`FEATURES_LIGHT_REVEAL_DURATION_MS`/`FEATURES_LIGHT_REVEAL_TRANSLATE_Y`,
+ * retiradas de `features.layers.ts` -- regla 13 del manual: mismo valor
+ * idéntico que llevaba Story.tsx antes de esta misma tarea, así que es un
+ * token compartido, no dos constantes de fichero), distinto de la rama
+ * OSCURA (`ScDarkContent`, más abajo), que ya estaba en 480ms/decelerate/
+ * 16px. Las dos ramas convergen ahora en `REVEAL.durationMs`/`REVEAL.easing`/
+ * `REVEAL.shift` (`@/motion/vocabulary`) -- la migración que da a `REVEAL` su
+ * primer consumidor real (gate F2: 0 consumidores antes de esta tarea).
  */
 const ScReveal = styled.div<{ $delayMs: number }>`
   opacity: 0;
-  transform: translateY(${FEATURES_LIGHT_REVEAL_TRANSLATE_Y});
+  transform: translateY(${REVEAL.shift});
   transition:
-    opacity ${FEATURES_LIGHT_REVEAL_DURATION_MS}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${FEATURES_LIGHT_REVEAL_DURATION_MS}
-      ${({ theme }) => theme.data.motion.easing.standard};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
   transition-delay: ${({ $delayMs }) => $delayMs}ms;
 
   [data-revealed="true"] & {
@@ -527,7 +534,13 @@ const cardBorderSpin = keyframes`
  * hover-lift se UNIFICA de motion.duration.base (200ms) a
  * vocabulary.PRESS.durationMs (100ms) + PRESS.easing -- la misma entrada de
  * transform pasa a gobernar también el press de abajo (:active). box-shadow
- * se queda en duration.base/easing.standard, sin tocar.
+ * se quedó entonces en duration.base/easing.standard, sin tocar.
+ *
+ * Task 19 (punto 2 del brief, "unificar transition de hover base->fast")
+ * termina esa unificación: box-shadow pasa de `duration.base` (200ms) a
+ * `duration.fast` (100ms), mismo `easing.standard` -- mismo cambio que
+ * `ScPillarCard` en Story.tsx, alineando las dos secciones con el precedente
+ * que ya llevaba `Card.tsx` desde Task 9.
  */
 const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   position: relative;
@@ -539,7 +552,7 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
   touch-action: manipulation;
   transition:
     transform ${PRESS.durationMs}ms ${PRESS.easing},
-    box-shadow ${({ theme }) => theme.data.motion.duration.base}
+    box-shadow ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard};
 
   /* Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve
@@ -1081,24 +1094,31 @@ const ScDarkTail = styled.div`
    pareja más lenta de la escala, para que las entradas de Features se lean
    igual de "resueltas con calma" en los dos temas.
 
-   Esta unificación queda INTACTA solo en la rama OSCURA: la reescritura de
-   la cabecera y las tarjetas de la rama CLARA (2026-08-06, D9, spec
-   `2026-08-06-story-features-tema-claro-design.md`) sustituyó a `ScItem` por
-   `ScReveal` (arriba) con la duración/easing VERBATIM del mockup nuevo
-   (640ms + `easing.standard`, `FEATURES_LIGHT_REVEAL_DURATION_MS`), que ya
-   no coincide con `slower`/`decelerate`. No es una regresión de la
-   unificación de esta entrega: D1 de la spec nueva prohíbe tocar la rama
-   oscura, así que `ScDarkContent` se queda exactamente como estaba. */
+   Esta unificación quedó INTACTA solo en la rama OSCURA durante un tiempo: la
+   reescritura de la cabecera y las tarjetas de la rama CLARA (2026-08-06, D9,
+   spec `2026-08-06-story-features-tema-claro-design.md`) sustituyó a `ScItem`
+   por `ScReveal` (arriba) con la duración/easing VERBATIM del mockup nuevo
+   (640ms + `easing.standard`), que dejó de coincidir con `slower`/
+   `decelerate` -- D1 de la spec nueva prohibía tocar la rama oscura, así que
+   `ScDarkContent` se quedó exactamente como estaba.
+
+   Task 19 (D7, "terminar la unificación") cierra esa divergencia: `ScReveal`
+   (arriba) migra a `REVEAL.durationMs`/`REVEAL.easing`/`REVEAL.shift`
+   (`@/motion/vocabulary`), y `ScDarkContent` pasa a leer los MISMOS tres
+   campos del token en vez de repetir `theme.data.motion.duration.slower`/
+   `easing.decelerate` + un `16px` suelto -- mismo valor numérico que ya
+   tenía (480ms/16px), pero ahora `decelerate` se sustituye por
+   `REVEAL.easing` (la curva propia de REVEAL, punto 3 del brief) y la lectura
+   es del token compartido, no de tokens de tema sueltos. Las dos ramas de
+   Features vuelven a compartir gramática de entrada. */
 const ScDarkContent = styled.div`
   max-width: ${({ theme }) => theme.data.grid.prose};
   width: 100%;
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(${REVEAL.shift});
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
 
   &[data-revealed="true"] {
     opacity: 1;

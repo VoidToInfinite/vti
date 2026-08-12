@@ -1,7 +1,30 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { StoryCosmicBeing } from "./StoryCosmicBeing";
+import { AMBIENT } from "@/motion/vocabulary";
 import { STORY_COSMIC_BEING_LAYERS } from "./storyCosmicBeing.layers";
+
+/** Texto CSS de todas las reglas inyectadas por styled-components (lección
+ *  2026-07-27: jsdom no evalúa NINGÚN `@media`, así que una `animation:`
+ *  dentro de uno solo se puede atar inspeccionando el TEXTO inyectado). */
+function allCssText(): string {
+  const reglas: string[] = [];
+  const walk = (rules: CSSRuleList): void => {
+    Array.from(rules).forEach((rule) => {
+      reglas.push(rule.cssText);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) walk(anidadas);
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return reglas.join("\n");
+}
 
 function stubMatchMedia(): void {
   vi.stubGlobal(
@@ -78,5 +101,22 @@ describe("StoryCosmicBeing", () => {
     rest.forEach((img) => {
       expect(getComputedStyle(img).mixBlendMode).toBe("screen");
     });
+  });
+
+  /*
+   * Task 19 (motion core, punto 7 del brief -- gate F2: AMBIENT con cero
+   * consumidores): heartBeat pasa de un literal (6.5s) a AMBIENT.pulseMs
+   * (@/motion/vocabulary), mismo valor numérico. Validado con el bug
+   * inyectado a propósito (ver informe de la tarea): revirtiendo
+   * temporalmente heartBeat a 6.5s en storyCosmicBeing.parts.tsx, este test
+   * se puso en rojo; restaurado, volvió a verde.
+   */
+  it("Task 19: el pulso del nucleo (heart-core) consume AMBIENT.pulseMs, no el literal 6.5s", () => {
+    render(<StoryCosmicBeing />);
+    const css = allCssText();
+
+    expect(css).toContain("prefers-reduced-motion: no-preference");
+    expect(css).toContain(`${AMBIENT.pulseMs}ms ease-in-out infinite`);
+    expect(css).not.toContain("6.5s");
   });
 });

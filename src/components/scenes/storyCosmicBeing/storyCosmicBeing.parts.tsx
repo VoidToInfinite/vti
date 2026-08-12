@@ -1,5 +1,6 @@
 "use client";
 import styled, { css, keyframes } from "styled-components";
+import { AMBIENT } from "@/motion/vocabulary";
 import type { StoryCosmicBeingBlend } from "./storyCosmicBeing.layers";
 import {
   STORY_COSMIC_BEING_OVERSCAN,
@@ -86,7 +87,11 @@ export const ScLayer = styled.img<{
     $glow === "core" &&
     css`
       @media (prefers-reduced-motion: no-preference) {
-        animation: ${heartBeat} 6.5s ease-in-out infinite;
+        /* Task 19 (motion core, punto 7 del brief): 6.5s pasa a
+           AMBIENT.pulseMs (@/motion/vocabulary) -- mismo valor, ahora
+           consumidor real del vocabulario (gate F2: AMBIENT tenía 0
+           consumidores antes de esta tarea). */
+        animation: ${heartBeat} ${AMBIENT.pulseMs}ms ease-in-out infinite;
       }
     `}
 `;

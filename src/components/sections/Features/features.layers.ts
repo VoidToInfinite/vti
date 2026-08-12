@@ -228,22 +228,20 @@ export const FEATURES_IMAGE_CIRCLE_OFFSET = "-2.875rem";
  *  deliberadamente lento y constante -- se conserva el literal. */
 export const FEATURES_CONIC_BORDER_SPIN_MS = "3200ms";
 
-/**
- * Duración del reveal escalonado de la cabecera clara y las tres tarjetas
- * (D9; mockup L190/191/192/197/220/243: `transition: opacity 640ms
- * cubic-bezier(0.4,0,0.2,1), transform 640ms cubic-bezier(0.4,0,0.2,1)…`).
- * 640ms no coincide con ningún paso de `theme.tokens.motion.duration`
- * (`slower` es 480ms, el más próximo): se conserva el literal del mockup.
- * El easing SÍ es un token (`motion.easing.standard`, ver `Features.tsx`) --
- * coincide literalmente con `cubic-bezier(0.4, 0, 0.2, 1)`.
+/*
+ * AQUÍ VIVIERON FEATURES_LIGHT_REVEAL_DURATION_MS ("640ms") y
+ * FEATURES_LIGHT_REVEAL_TRANSLATE_Y ("22px") -- la duración/desplazamiento
+ * VERBATIM del mockup (D9) para el reveal escalonado de la cabecera clara y
+ * las tres tarjetas. Task 19 (D7, "terminar la unificación") las retira:
+ * `ScReveal` (`Features.tsx`) migra a 480ms/16px vía `REVEAL.durationMs`/
+ * `REVEAL.shift` (`@/motion/vocabulary`), el MISMO valor que ya llevaba
+ * `STORY_REVEAL_DURATION_MS`/`STORY_REVEAL_TRANSLATE` en Story.tsx antes de
+ * esta tarea -- regla 13 del manual: una constante de valor idéntico
+ * repetida en dos secciones es un token de tema, no dos constantes de
+ * fichero. Ver el docblock de `REVEAL` en `vocabulary.ts` para el detalle
+ * completo de la migración (padre `ScDarkContent` + hijo `ScReveal`, las dos
+ * ramas de Features convergiendo en la misma gramática que Story).
  */
-export const FEATURES_LIGHT_REVEAL_DURATION_MS = "640ms";
-
-/** Desplazamiento vertical de entrada del reveal escalonado (D9; mockup:
- *  `transform: translateY(22px)` en los elementos del bloque -- seis hasta
- *  Task 11 (2026-08-09), cinco desde que esa tarea retira el eyebrow de la
- *  rama clara). */
-export const FEATURES_LIGHT_REVEAL_TRANSLATE_Y = "22px";
 
 /**
  * Retardo (`transition-delay`) de cada uno de los elementos del reveal

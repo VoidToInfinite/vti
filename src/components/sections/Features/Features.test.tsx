@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import { Features, accentColor, accentColorHover } from "./Features";
-import { PRESS } from "@/motion/vocabulary";
+import { PRESS, REVEAL } from "@/motion/vocabulary";
 import {
   FEATURE_KEYS,
   FEATURES_OVERLAY_RISE,
@@ -11,7 +11,6 @@ import {
   FEATURES_TAIL_HOLD,
   FEATURES_GAMING_ACCENT,
   FEATURES_LIGHT_REVEAL_DELAYS_MS,
-  FEATURES_LIGHT_REVEAL_DURATION_MS,
 } from "./features.layers";
 import {
   JOURNEY_DARK_HEIGHT,
@@ -22,6 +21,7 @@ import {
   FEATURES_ORBITAL_VOID,
 } from "@/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers";
 import { themes } from "@/theme/themes";
+import { motion } from "@/theme/tokens/motion";
 import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
@@ -446,6 +446,26 @@ describe("D7: borde conico animado en hover, solo bajo prefers-reduced-motion: n
       hoverBeforeMedia.indexOf(":hover"),
     );
     expect(restRule).not.toContain("box-shadow:");
+  });
+
+  /*
+   * Task 19 (punto 2 del brief, "unificar transition de hover base->fast"):
+   * box-shadow de ScCardBorder pasa de motion.duration.base (200ms) a
+   * motion.duration.fast (100ms) -- Task 9 ya había migrado el transform a
+   * PRESS.durationMs (100ms) pero dejó box-shadow deliberadamente en base.
+   * Validado con el bug inyectado a propósito (ver informe de la tarea):
+   * revirtiendo temporalmente esa duración a motion.duration.base en
+   * Features.tsx, este test se puso en rojo; restaurado, volvió a verde.
+   */
+  it("Task 19: box-shadow de ScCardBorder usa motion.duration.fast (no duration.base)", () => {
+    const { container } = renderWithProviders(<Features />);
+    const card = container.querySelector(
+      'article[aria-labelledby^="feature-"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(card);
+
+    expect(css).toContain(`box-shadow ${motion.duration.fast}`);
+    expect(css).not.toContain(`box-shadow ${motion.duration.base}`);
   });
 
   /*
@@ -1190,14 +1210,20 @@ describe("D7/D1: progreso de scroll de la rama clara (useSectionProgress)", () =
  * usaba `slow` + `emphasized`, `ScDarkContent` usaba `slow` + `decelerate`
  * -- dos criterios de entrada distintos en el mismo fichero.
  *
- * D9 (spec `2026-08-06-story-features-tema-claro-design.md`) REVISA esa
+ * D9 (spec `2026-08-06-story-features-tema-claro-design.md`) REVISÓ esa
  * unificación solo en la rama CLARA: `ScItem` se sustituyó por `ScReveal`
  * (cabecera + tarjetas bajo un único reveal), con la duración/easing
- * VERBATIM del mockup nuevo -- `FEATURES_LIGHT_REVEAL_DURATION_MS` (640ms) +
- * `motion.easing.standard` --, que ya NO coincide con `slower`/`decelerate`.
- * La rama OSCURA (`ScDarkContent`) queda INTACTA (D1 de la spec nueva: no se
- * toca) y su test sigue verificando la pareja `slower`/`decelerate` sin
- * cambios.
+ * VERBATIM del mockup nuevo -- 640ms + `motion.easing.standard` --, que dejó
+ * de coincidir con `slower`/`decelerate`. La rama OSCURA (`ScDarkContent`)
+ * quedó INTACTA (D1 de la spec nueva: no se tocaba) y las dos ramas
+ * divergieron durante varias tareas.
+ *
+ * Task 19 (D7, "terminar la unificación" + curva propia de REVEAL) cierra
+ * esa divergencia: las DOS ramas migran a `REVEAL.durationMs`/
+ * `REVEAL.easing`/`REVEAL.shift` (`@/motion/vocabulary`) -- 480ms, la curva
+ * propia de REVEAL (ya NO `decelerate`), 16px. Es la migración que da a
+ * `REVEAL` su primer consumidor real (gate F2: 0 consumidores antes de esta
+ * tarea) -- ver también `src/test/vocabulary-consumers.test.ts`.
  *
  * Por texto del CSS inyectado, no `getComputedStyle`: medido en este repo,
  * jsdom SÍ resuelve el longhand `transition-delay` cuando se declara SUELTO
@@ -1209,8 +1235,8 @@ describe("D7/D1: progreso de scroll de la rama clara (useSectionProgress)", () =
  * 2026-07-25 para `animation:`. `cssRuleTextFor` no depende de esa
  * resolución: lee el texto tal como lo escribió el componente.
  */
-describe("D9: duración/easing de entrada de la cabecera y las tarjetas de la rama clara (640ms + easing.standard, ya no slower/decelerate)", () => {
-  it("ScReveal (rama clara) usa FEATURES_LIGHT_REVEAL_DURATION_MS (640ms) + motion.easing.standard, verbatim del mockup", () => {
+describe("Task 19 (D7): duración/easing de entrada convergen en REVEAL.* en las DOS ramas", () => {
+  it("ScReveal (rama clara) usa REVEAL.durationMs/REVEAL.easing/REVEAL.shift, ya no 640ms/easing.standard/22px", () => {
     const { container } = renderWithProviders(<Features />);
     // Ancla al PRIMER retardo real del array (80ms, el h2 -- Task 11,
     // 2026-08-09, retiró el eyebrow que antes ocupaba el retardo 0ms), no a
@@ -1220,13 +1246,15 @@ describe("D9: duración/easing de entrada de la cabecera y las tarjetas de la ra
     ) as HTMLElement;
     const css = cssRuleTextFor(item);
 
-    expect(css).toContain(FEATURES_LIGHT_REVEAL_DURATION_MS);
-    expect(css).toContain(themes.light.motion.easing.standard);
-    expect(css).not.toContain(themes.light.motion.duration.slower);
+    expect(css).toContain(`${REVEAL.durationMs}ms`);
+    expect(css).toContain(REVEAL.easing);
+    expect(css).toContain(`translateY(${REVEAL.shift})`);
+    expect(css).not.toContain("640ms");
+    expect(css).not.toContain(themes.light.motion.easing.standard);
     expect(css).not.toContain(themes.light.motion.easing.decelerate);
   });
 
-  it("ScDarkContent (rama oscura) usa motion.duration.slower + motion.easing.decelerate", async () => {
+  it("ScDarkContent (rama oscura) usa REVEAL.durationMs/REVEAL.easing/REVEAL.shift, ya no easing.decelerate en crudo", async () => {
     stubMatchMedia();
     window.localStorage.setItem("vti-theme", "dark");
     try {
@@ -1237,9 +1265,42 @@ describe("D9: duración/easing de entrada de la cabecera y las tarjetas de la ra
       const content = container.querySelector("[data-revealed]") as HTMLElement;
       const css = cssRuleTextFor(content);
 
-      expect(css).toContain(themes.dark.motion.duration.slower);
-      expect(css).toContain(themes.dark.motion.easing.decelerate);
+      expect(css).toContain(`${REVEAL.durationMs}ms`);
+      expect(css).toContain(REVEAL.easing);
+      expect(css).toContain(`translateY(${REVEAL.shift})`);
+      expect(css).not.toContain(themes.dark.motion.easing.decelerate);
       expect(css).not.toContain(themes.dark.motion.duration.slow);
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+
+  it("las DOS ramas producen el MISMO texto de transition (misma gramática de entrada)", async () => {
+    const light = renderWithProviders(<Features />);
+    const lightItem = light.container.querySelector(
+      `[data-reveal-delay="${FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}"]`,
+    ) as HTMLElement;
+    const lightTransition = getComputedStyle(lightItem).transition;
+    light.unmount();
+
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const dark = renderWithProviders(<Features />);
+      await waitFor(() => {
+        expect(dark.container.querySelectorAll("img").length).toBeGreaterThan(
+          0,
+        );
+      });
+      const darkContent = dark.container.querySelector(
+        "[data-revealed]",
+      ) as HTMLElement;
+      const darkTransition = getComputedStyle(darkContent).transition;
+
+      expect(lightTransition).toBe(darkTransition);
+      expect(lightTransition).toBe(
+        `opacity ${REVEAL.durationMs}ms ${REVEAL.easing},transform ${REVEAL.durationMs}ms ${REVEAL.easing}`,
+      );
     } finally {
       window.localStorage.clear();
     }

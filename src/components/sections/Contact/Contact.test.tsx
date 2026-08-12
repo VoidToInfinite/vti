@@ -11,7 +11,7 @@ import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
 import { links } from "@/config/links";
-import { PRESS } from "@/motion/vocabulary";
+import { AMBIENT, PRESS } from "@/motion/vocabulary";
 import { Contact } from "./Contact";
 import {
   CONTACT_CARD_BG_DARK,
@@ -1423,6 +1423,34 @@ describe("Contact en tema oscuro", () => {
       );
     expect(reduceLine).toBeDefined();
     expect(reduceLine as string).toContain("animation: none");
+  });
+
+  /*
+   * Task 19 (motion core, punto 7 del brief -- gate F2: AMBIENT con cero
+   * consumidores): gradientShift pasa de un literal escrito a mano (9000ms)
+   * a `${AMBIENT.floatMs}ms` (@/motion/vocabulary) -- mismo valor numerico
+   * resultante, asi que el CSS renderizado no distingue "literal" de
+   * "token" por texto; lo que SI prueba que es el token es que Contact.tsx
+   * importa y usa AMBIENT.floatMs de verdad
+   * (src/test/vocabulary-consumers.test.ts). Validado con el bug inyectado
+   * a proposito (ver informe de la tarea): cambiando temporalmente
+   * AMBIENT.floatMs a 9999 en vocabulary.ts, este test se puso en rojo;
+   * restaurado, volvio a verde. BrandName.tsx/Hero.tsx tienen su propio
+   * candado equivalente sobre este mismo gradientShift.
+   */
+  it("Task 19: el degradado animado del boton de envio renderiza AMBIENT.floatMs (9000ms)", async () => {
+    const { container } = renderWithProviders(<Contact />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img")).toHaveLength(
+        CONTACT_GUARDIAN_LAYERS.length,
+      );
+    });
+    const button = container.querySelector(
+      'button[type="submit"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(button);
+
+    expect(css).toContain(`${AMBIENT.floatMs}ms linear infinite alternate`);
   });
 });
 
