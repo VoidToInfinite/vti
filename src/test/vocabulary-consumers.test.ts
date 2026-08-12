@@ -71,13 +71,28 @@ function relativePath(file: string): string {
   return file.slice(srcRoot.length + 1).replace(/\\/g, "/");
 }
 
-/** Despoja comentarios de bloque y de línea ANTES de buscar (lección del
- *  repo, `task/lessons.md` 2026-08-11): un docblock que CITA
- *  `REVEAL.durationMs` en prosa para explicar una migración no puede contar
- *  como "consumo real" -- solo el CÓDIGO que sobrevive a este despojo
- *  cuenta. */
+/**
+ * Despoja comentarios de bloque y de línea ANTES de buscar (lección del
+ * repo, `task/lessons.md` 2026-08-11): un docblock que CITA
+ * `REVEAL.durationMs` en prosa para explicar una migración no puede contar
+ * como "consumo real" -- solo el CÓDIGO que sobrevive a este despojo cuenta.
+ *
+ * Fix de revisión (Task 19): un `//` de línea NO siempre abre un comentario
+ * -- `"https://…"` lo contiene dentro de un string, y un despojo ciego
+ * (`\/\/.*$`) trunca el resto de la línea, incluida cualquier referencia de
+ * código real que viniera DESPUÉS en esa misma línea (falso negativo: un
+ * consumidor real desaparecería de la lista). El guard `(?<!:)` exige que el
+ * `//` NO esté precedido por `:` -- cubre el caso real y común (`http://`,
+ * `https://`, y cualquier URL con esquema), que es la fuente casi universal
+ * de `//` dentro de un string en código TypeScript de este repo (verificado:
+ * `src/config/links.ts`/`src/seo/*` son los únicos ficheros con URLs
+ * literales, y ninguno comparte línea con un símbolo de vocabulario). NO es
+ * un tokenizador completo -- una línea con `//` dentro de un string que NO
+ * vaya precedido de `:` (infrecuente, no observado en este repo) seguiría
+ * truncándose de más; declarado como límite conocido, no escondido.
+ */
 function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(?<!:)\/\/.*$/gm, "");
 }
 
 /**
@@ -152,5 +167,35 @@ describe("Task 19: REVEAL y AMBIENT tienen consumidores REALES de producción (g
     expect(deckConsumers).toContain(
       "components/sections/Journey/journey.deck.tsx",
     );
+  });
+});
+
+/*
+ * Fix de revisión (Task 19): `stripComments` despoja `//` de línea con un
+ * regex ciego (`\/\/.*$`), que trunca cualquier `//` -- incluido el que vive
+ * dentro de un string (`"https://…"`), no solo el que abre un comentario
+ * real. Sin el guard `(?<!:)`, una línea con una URL y un uso REAL de
+ * `REVEAL.`/`AMBIENT.` a su derecha desaparecería entera -- un falso
+ * negativo silencioso en el candado cuyo trabajo es justo no tener falsos
+ * negativos. Validado con el bug inyectado a propósito: quitando `(?<!:)`
+ * del regex (dejando `\/\/.*$` a secas, el código previo a este fix), el
+ * segundo test de este bloque cae en rojo; restaurado, vuelve a verde.
+ */
+describe("Task 19 (fix de revisión): stripComments no trunca una linea por un `//` dentro de una URL", () => {
+  it("SI despoja un comentario de linea real", () => {
+    const fuente =
+      "const x = 1; // REVEAL.durationMs citado en un comentario\nconst y = 2;";
+    const limpio = stripComments(fuente);
+    expect(limpio).not.toContain("REVEAL.durationMs");
+    expect(limpio).toContain("const x = 1;");
+    expect(limpio).toContain("const y = 2;");
+  });
+
+  it("NO trunca codigo real que viene DESPUES de una URL en la misma linea", () => {
+    const fuente =
+      'const href = "https://example.com"; const d = REVEAL.durationMs;';
+    const limpio = stripComments(fuente);
+    expect(limpio).toContain("REVEAL.durationMs");
+    expect(limpio).toContain("https://example.com");
   });
 });

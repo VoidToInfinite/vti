@@ -218,8 +218,19 @@ const ScButton = styled.button<{
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
-    &:hover,
-    &:active {
+    /* Fix de revision (Task 19): un &:hover, &:active a secas compila a
+       especificidad (0,2,0) -- menor que la de las reglas reales de arriba
+       (&:hover:not(:disabled):not([aria-disabled="true"]), (0,4,0): un
+       :not() toma la especificidad de su argumento, asi que cada uno suma
+       un punto). Con menor especificidad, este guard NUNCA gana pese a venir
+       despues en la hoja: bajo reduce, transform: translateY(-2px)
+       seguia aplicandose en hover (el colapso global de
+       transition-duration lo dejaba como un salto instantaneo de 2px en
+       vez de un movimiento animado, pero seguia siendo movimiento). Repetir
+       aqui los mismos :not() iguala la especificidad exacta, y al venir
+       despues en la hoja, el empate lo gana este bloque. */
+    &:hover:not(:disabled):not([aria-disabled="true"]),
+    &:active:not(:disabled):not([aria-disabled="true"]) {
       transform: none;
     }
   }

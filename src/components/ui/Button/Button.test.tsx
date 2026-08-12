@@ -194,6 +194,58 @@ describe("Button", () => {
   });
 
   /*
+   * Fix de revisión (Task 19): `&:hover, &:active { transform: none }` bajo
+   * `prefers-reduced-motion: reduce` compilaba a especificidad (0,2,0) --
+   * menor que la de las reglas reales que quiere anular,
+   * `&:hover:not(:disabled):not([aria-disabled="true"])` (0,4,0): `:not()`
+   * toma la especificidad de su argumento, así que cada uno de los dos
+   * `:not()` suma un punto sobre el simple `:hover`. Con menor especificidad
+   * el guard nunca gana, pese a venir después en la hoja: bajo `reduce`,
+   * `transform: translateY(-2px)` seguía aplicándose en `:hover` (el
+   * colapso global de `transition-duration` lo dejaba como salto instantáneo
+   * de 2px en vez de movimiento animado, pero seguía siendo movimiento).
+   *
+   * jsdom no simula pseudo-clases dinámicas (`:hover`/`:active`) al resolver
+   * `getComputedStyle` (mismo motivo que `:focus-visible`, ver el docblock de
+   * `allCssRules`), así que este candado no puede medir "quién gana la
+   * cascada" directamente -- mide que el SELECTOR del guard tiene la MISMA
+   * forma (mismos `:not()`) que las reglas reales, que es la condición que
+   * garantiza la victoria por especificidad. La victoria real (transform se
+   * queda en "none" bajo reduce con el ratón encima) se verificó en
+   * navegador real (informe de la tarea).
+   *
+   * Validado con el bug inyectado a propósito: quitando los dos `:not(...)`
+   * del guard de `reduce` (dejando `&:hover, &:active` a secas, el código
+   * previo a este fix), este test se pone en rojo; restaurado, vuelve a
+   * verde.
+   */
+  it("Task 19 (fix de revisión): el guard de reduce iguala la especificidad de :hover/:active reales -- (0,4,0), no (0,2,0)", () => {
+    renderWithProviders(<Button>Explorar</Button>);
+    const boton = screen.getByRole("button", { name: "Explorar" });
+    const reglas = allCssRules();
+    const clases = Array.from(boton.classList).filter((c) =>
+      reglas.some((r) => r.includes(c)),
+    );
+    const propias = reglas.filter((r) => clases.some((c) => r.includes(c)));
+
+    const reduceBlock = propias.find(
+      (r) =>
+        r.includes("prefers-reduced-motion: reduce") &&
+        r.includes("transform: none"),
+    );
+    expect(
+      reduceBlock,
+      "no se encontró el bloque de reduce con transform: none",
+    ).toBeDefined();
+    expect(reduceBlock).toContain(
+      ':hover:not(:disabled):not([aria-disabled="true"])',
+    );
+    expect(reduceBlock).toContain(
+      ':active:not(:disabled):not([aria-disabled="true"])',
+    );
+  });
+
+  /*
    * Task 13, punto 2 del brief: elimina el retardo de ~300ms de doble-tap.
    * Raíz de composición -- IconButton (`styled(Button)`) y todo lo que
    * compone sobre él (BackToTop, ThemeToggle) heredan esta declaración sin
