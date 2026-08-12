@@ -146,7 +146,8 @@
                 "copyAddress": "Copiar dirección",
                 "copied": "Copiada",
                 "copyError": "No se pudo copiar automáticamente. Selecciona la dirección de arriba."
-            }
+            },
+            "privacyNote": "Navegar por esta web no envía ningún dato tuyo a terceros: no hay analítica ni rastreo. Escribirnos abre tu propio cliente de correo. El envío lo haces tú, no un servidor nuestro."
         }
     }
 }

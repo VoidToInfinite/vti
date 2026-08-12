@@ -447,6 +447,159 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
   });
 });
 
+/*
+ * Task 18 (M5, "privacidad radical a la superficie", 2026-08-12): línea
+ * factual junto al formulario, en las DOS ramas (mismo bloque compartido
+ * `contactChannels` que Task 16 unificó) y en los dos idiomas -- ver el
+ * docblock de `ScPrivacyNote` en `Contact.tsx` para la fuente completa (gate
+ * F2, auditoría `design-taste-frontend` 2026-08-08) y la razón de la
+ * precisión del texto.
+ */
+describe("Contact: Task 18, la linea de privacidad junto al formulario", () => {
+  it("se muestra en la rama clara, entre el formulario y las tarjetas de canal (orden real en el DOM)", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const note = screen.getByText(esHome.Home.contact.privacyNote);
+    expect(note).toBeInTheDocument();
+
+    const form = container.querySelector("form") as HTMLFormElement;
+    const cardLinks = screen.getAllByRole("link");
+
+    // Sonda de orden real (no solo de presencia): la nota vive DESPUES del
+    // <form> y ANTES de la primera tarjeta de canal en el árbol -- mismo
+    // mecanismo (`compareDocumentPosition`) que ya usan Story/Journey/Hero.
+    expect(
+      form.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      note.compareDocumentPosition(cardLinks[0]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("se muestra tambien en la rama oscura, con el mismo texto (bloque compartido)", () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      renderWithProviders(<Contact />);
+      expect(
+        screen.getByText(esHome.Home.contact.privacyNote),
+      ).toBeInTheDocument();
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+
+  it("en ingles muestra la copia inglesa de la nota, no la espanola (paridad es/en)", async () => {
+    await act(async () => {
+      await i18n.changeLanguage("en");
+    });
+    try {
+      renderWithProviders(<Contact />);
+      expect(
+        screen.getByText(enHome.Home.contact.privacyNote),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(esHome.Home.contact.privacyNote),
+      ).not.toBeInTheDocument();
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("es");
+      });
+    }
+  });
+
+  /*
+   * Precisión del texto (brief, punto 1): la frase no puede leerse como "tus
+   * datos nunca salen de aquí" en general -- el formulario abre el cliente
+   * de correo del PROPIO VISITANTE (ver `handleSubmit`), y eso no es "cero
+   * salida de datos" sin matiz. Candado de CONTENIDO, no de presencia: la
+   * clave tiene que acotar el claim a la navegación y no afirmar la promesa
+   * más amplia que el sitio no puede sostener.
+   */
+  it("el texto acota el claim a NAVEGAR, no a 'nunca sale nada de aqui' en general, en los dos idiomas", () => {
+    const es = esHome.Home.contact.privacyNote.toLowerCase();
+    const en = enHome.Home.contact.privacyNote.toLowerCase();
+
+    expect(es).toContain("navegar");
+    expect(en).toContain("browsing");
+    expect(es).not.toContain("nunca sale nada");
+    expect(en).not.toContain("never leaves");
+  });
+
+  /*
+   * Ata el TOKEN al ELEMENTO real: la medición de contraste de más abajo
+   * solo dice algo sobre lo que el visitante ve si `ScPrivacyNote` de verdad
+   * pinta con `semantic.textMuted` y no con un literal aparte -- mismo
+   * mecanismo que ya usa este fichero para `ScAccent`/`brandText` (describe
+   * "Task 12", más abajo, `getComputedStyle(accent).color`).
+   *
+   * Bug inyectado a propósito (regla 34, informe de la tarea): cambiar
+   * `color: theme.data.semantic.textMuted` por `theme.data.semantic.text` en
+   * `ScPrivacyNote` (`Contact.tsx`) puso este test en rojo (`getComputedStyle`
+   * devolvía el valor de `semantic.text`, no el de `textMuted`); restaurado,
+   * volvió a verde.
+   */
+  it("el color de la nota es exactamente semantic.textMuted (no un literal aparte)", () => {
+    const { container: claro } = renderWithProviders(<Contact />);
+    const notaClara = within(claro).getByText(esHome.Home.contact.privacyNote);
+    expect(getComputedStyle(notaClara).color).toBe(
+      themes.light.semantic.textMuted,
+    );
+
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container: oscuro } = renderWithProviders(<Contact />);
+      const notaOscura = within(oscuro).getByText(
+        esHome.Home.contact.privacyNote,
+      );
+      expect(getComputedStyle(notaOscura).color).toBe(
+        themes.dark.semantic.textMuted,
+      );
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+
+  /*
+   * Contraste AA medido contra el fondo REAL de cada rama (jsdom no compone
+   * layout ni las capas WebP -- misma técnica que el resto de este fichero,
+   * `contrastRatioHex`, describe "brandText sobre las tres paradas..." más
+   * arriba). Junto con el test anterior (que ata el token al elemento
+   * renderizado), esta medición sí dice algo sobre lo que el visitante ve:
+   * `semantic.textMuted` es el MISMO rol que ya usan `ScBody`/`ScCardValue`
+   * sobre estos dos fondos.
+   *
+   * Verificado con valores REALES, no supuestos: `textSubtle` (el otro rol
+   * "apagado" del sistema, candidato obvio a confundirse con `textMuted`) se
+   * midió TAMBIÉN aquí antes de escribir este test -- 4.74:1-4.78:1 sobre las
+   * tres paradas claras, así que NO sirve como bug inyectado sobre este
+   * fondo concreto (sigue librando AA, solo con menos margen). El bug
+   * inyectado real que verificó este test vive en el test anterior (color
+   * literal distinto, `semantic.text`), no aquí: este test mide el TOKEN de
+   * forma aislada y no puede fallar por un cambio en el componente.
+   */
+  it("semantic.textMuted libra AA (>=4.5:1) sobre las tres paradas de CONTACT_CARD_GRADIENT (claro) y sobre CONTACT_GUARDIAN_VOID (oscuro)", () => {
+    const paradas = ["#EFF4FC", "#F5F2FB", "#F9F0F7"];
+    paradas.forEach((parada) => {
+      const ratio = contrastRatioHex(themes.light.semantic.textMuted, parada);
+      expect(
+        ratio,
+        `textMuted claro sobre ${parada}: ${ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    const ratioDark = contrastRatioHex(
+      themes.dark.semantic.textMuted,
+      CONTACT_GUARDIAN_VOID,
+    );
+    expect(
+      ratioDark,
+      `textMuted oscuro sobre el void: ${ratioDark.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
 /**
  * Raíz de `ContactCosmicGuardian` (`ScScene`, `aria-hidden="true"` con las
  * capas WebP como hijas -- `CONTACT_GUARDIAN_LAYERS.length`, NUNCA un número

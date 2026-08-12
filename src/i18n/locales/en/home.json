@@ -146,7 +146,8 @@
                 "copyAddress": "Copy address",
                 "copied": "Copied",
                 "copyError": "Couldn't copy automatically. Select the address above."
-            }
+            },
+            "privacyNote": "Browsing this site sends none of your data to third parties: no analytics, no tracking. Writing to us opens your own email client. You send it, not a server of ours."
         }
     }
 }

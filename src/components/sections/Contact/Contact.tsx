@@ -954,6 +954,50 @@ const ScForm = styled.form`
 `;
 
 /*
+ * Task 18 (M5, "privacidad radical a la superficie"): la única prueba
+ * sostenible del sitio con el código delante -- cero peticiones a terceros,
+ * cero analítica, cero cookies de rastreo -- verificada, no es un eslogan:
+ * el detector determinista del gate F2 confirmó cero hostnames externos fuera
+ * de destinos de navegación (`links.ts`) y las mediciones CWV registraron
+ * solo peticiones al propio origen en los 5 escenarios. Hasta esta tarea el
+ * sitio no lo decía en ninguna parte.
+ *
+ * Vive DENTRO de `contactChannels` (más abajo, `Contact()`), justo debajo del
+ * `<ScForm>` y antes de las dos tarjetas de canal -- un único nodo de JSX
+ * montado en las DOS ramas, "cerca del formulario" tal como pide el brief sin
+ * quedar atrapado dentro del `<form>` (que ya tiene su propio `role="status"`
+ * condicional para el panel de fallback).
+ *
+ * PRECISIÓN DEL TEXTO (lo que distingue esto de un eslogan de marketing): la
+ * clave `Home.contact.privacyNote` afirma que NAVEGAR no envía datos a
+ * terceros -- eso es lo que el sitio controla y lo único que un export
+ * estático sin backend puede prometer. El formulario, en cambio, abre el
+ * cliente de correo DEL PROPIO VISITANTE (`handleSubmit`, más abajo,
+ * `window.location.assign` a un `mailto:`) -- eso no es una petición del
+ * sitio a un tercero, pero tampoco es "tus datos nunca salen de aquí" en
+ * general, así que el texto lo aclara en su segunda cláusula en vez de
+ * dejarlo implícito. Coherente con `/privacidad` (`Legal.privacy.sections`,
+ * apartado "resumen": "navegar por esta web no nos da ningún dato sobre ti...
+ * no hay analítica, ni seguimiento" y apartado "contacto": "La web no
+ * recibe, no envía y no almacena nada de eso; el envío lo haces tú, desde tu
+ * propia cuenta") -- ningún claim de negocio nuevo, solo el mismo hecho ya
+ * declarado ahí, repetido en la superficie donde importa.
+ *
+ * `semantic.textMuted` es el MISMO rol que ya usa `ScBody`/`ScCardValue`
+ * sobre estos DOS fondos reales de esta sección, y libra AA con margen
+ * medido (`contrastRatioHex`, describe "Task 18" en `Contact.test.tsx`):
+ * 5.38:1-5.43:1 sobre las tres paradas de `CONTACT_CARD_GRADIENT` (rama
+ * clara) y 13.11:1 sobre `CONTACT_GUARDIAN_VOID` (rama oscura) -- las dos muy
+ * por encima del 4.5:1 de AA para texto normal.
+ */
+const ScPrivacyNote = styled.p`
+  margin: 0;
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  line-height: ${({ theme }) => theme.data.type.scale.bodySm.lineHeight};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+/*
  * Botón de envío (mockup L102): `styled(Button)`, no un anchor propio como
  * `ScCta` (arriba) -- este SÍ es un `<button type="submit">` real que
  * dispara `onSubmit`, no una navegación de ancla.
@@ -1230,8 +1274,9 @@ export function Contact(): ReactElement {
    * Bloque de canales de contacto, COMPARTIDO por las dos ramas (Task 16,
    * unificacion de contenido parte 2, 2026-08-11): el formulario real (con
    * su validacion propia, su error accesible y el panel de direccion
-   * copiable que revela un envio valido) y las dos salidas de la comunidad
-   * -- Discord y GitHub. Un unico arbol de JSX, montado tal cual en el
+   * copiable que revela un envio valido), la linea de privacidad (Task 18,
+   * ver `ScPrivacyNote` mas arriba) y las dos salidas de la comunidad --
+   * Discord y GitHub. Un unico arbol de JSX, montado tal cual en el
    * `return` oscuro y en el claro; lo unico que cambia entre temas es el
    * COLOR de las superficies (`panelBackground`/`panelBorder`/
    * `channelAccent`, mas arriba), nunca lo que dice ni a donde lleva.
@@ -1313,6 +1358,7 @@ export function Contact(): ReactElement {
           </ScFallbackPanel>
         )}
       </ScForm>
+      <ScPrivacyNote>{t("Home.contact.privacyNote")}</ScPrivacyNote>
       <ScCardLink
         href={links.discord}
         target="_blank"
