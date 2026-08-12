@@ -45,7 +45,19 @@
  * >=2px solid), curvas `cubic-bezier` con rebote (y fuera de [-0.1, 1.1]),
  * `border-radius` literal fuera de token (excluyendo `0`, que nunca es deriva
  * de escala), kickers repetidos (componentes `*Kicker*` en JSX) y numeracion
- * decorativa de seccion (`number: "0N"` / `.padStart(2, "0")`).
+ * decorativa de seccion (`number: "0N"`, o el ordinal 1-based
+ * `String(<expr> + 1).padStart(2, "0")`).
+ *
+ * Nota sobre `numbering`/padStart (fix de revision, 2026-08-12): la primera
+ * version aceptaba CUALQUIER `.padStart(2, "0")` como numeracion decorativa.
+ * Es demasiado generico -- formatear una hora (`String(hours).padStart(2,
+ * "0")`) o una pagina no tiene nada que ver con el anti-patron y habria
+ * disparado en falso el dia que alguien lo escribiera. Se acota al idioma
+ * EXACTO que usa el unico consumidor real del repo (`Journey.tsx`,
+ * `stepOrdinal`): un `String(...)` cuyo argumento sea una expresion `+ 1`
+ * (el "indice de array pasa a ordinal 1-based") encadenado con
+ * `.padStart(2, "0")`. Un `String(hours).padStart(2, "0")` sin el `+ 1`
+ * dentro de `String(...)` ya no coincide.
  *
  * Familias descartadas explicitamente (no se detectan, documentado por que):
  * - "ghost-card en reposo" (borde fino + sombra ancha EN REPOSO, no solo en
@@ -218,98 +230,191 @@ const FAMILIES = [
     },
     {
         id: "numbering",
-        label: "numeracion decorativa de seccion (01, 02, 03...)",
+        label: 'numeracion decorativa de seccion (number: "0N", u ordinal String(idx + 1).padStart(2, "0"))',
         test(line) {
             if (/\bnumber\s*:\s*["']0\d["']/.test(line)) return line.trim();
-            if (/\.padStart\(\s*2\s*,\s*["']0["']\s*\)/.test(line))
-                return 'padStart(2, "0")';
-            return null;
+            // Acotado al idioma EXACTO de "indice de array -> ordinal 1-based
+            // con 2 digitos": String(<expr> + 1).padStart(2, "0"). Un
+            // padStart(2, "0") generico (formatear una hora, una pagina) NO
+            // coincide -- ver la nota de cabecera del fichero (fix de
+            // revision, 2026-08-12).
+            const m =
+                /String\([^()]*\+\s*1\)\s*\.padStart\(\s*2\s*,\s*["']0["']\s*\)/.exec(
+                    line,
+                );
+            return m ? m[0] : null;
         },
     },
 ];
 
 // ---------------------------------------------------------------------------
-// 4. Allowlist -- excepciones YA sancionadas por el repo. `maxCount` es el
-//    numero EXACTO de apariciones verificado contra el repo en la Task 24
-//    (2026-08-12, gate de referencia: 90 ficheros / 1313 tests). Una
-//    aparicion ADICIONAL sobre ese numero, en ese mismo fichero y familia, se
-//    trata como hallazgo nuevo -- el allowlist no es un comodin por fichero,
-//    es un recuento con candado.
+// 4. Allowlist -- excepciones YA sancionadas por el repo.
+//
+// Fix de revision (2026-08-12): la primera version candaba por RECUENTO
+// (family+file -> maxCount). Un reviewer demostro el bypass: en
+// BrandName.tsx retiro la linea legitima del @supports (una de las 5
+// apariciones) y anadio un `background-clip: text` NUEVO y no relacionado
+// en un componente ficticio -- el total seguia siendo 5 y el gate daba
+// "sin hallazgos nuevos". El recuento no sabe QUE linea es la sancionada,
+// solo CUANTAS hay.
+//
+// Ahora cada entrada ancla por (linea, contenido exacto de esa linea ya sin
+// comentarios y recortada): `anchors: [{ line, snippet }, ...]`. Un hallazgo
+// solo se suprime si existe un ancla en su MISMA familia+fichero+linea CUYO
+// snippet coincide caracter a caracter con lo que hay hoy en esa linea. Si
+// la linea sancionada se edita, se mueve, o se borra y se sustituye por otra
+// (aunque el recuento total cuadre), deja de tener ancla que la cubra y
+// aparece como hallazgo nuevo -- el swap del reviewer ya no pasa: el
+// @supports retirado deja su ancla sin cubrir (aviso, no bloquea: quitar un
+// patron sancionado nunca es problema) y el `background-clip: text` nuevo
+// no tiene ancla en su linea -> falla el gate.
+//
+// Los snippets de abajo se generaron leyendo el fichero real (no a mano):
+// `stripComments(fs.readFileSync(file)).split("\n")[line - 1].trim()`.
 // ---------------------------------------------------------------------------
 
 const ALLOWLIST = [
     {
         family: "gradient-text",
         file: "src/components/layout/Brand/BrandName.tsx",
-        maxCount: 5,
+        anchors: [
+            { line: 196, snippet: "export const gradientTextClip = css`" },
+            { line: 198, snippet: "-webkit-background-clip: text;" },
+            { line: 199, snippet: "background-clip: text;" },
+            { line: 222, snippet: "@supports not (background-clip: text) {" },
+            { line: 230, snippet: "${gradientTextClip}" },
+        ],
         reason: "Wordmark ToInfinite: definicion del mixin gradientTextClip -- declaracion background-clip (2, con prefijo -webkit-), su feature-detection @supports not (background-clip: text) (1), el nombre del propio export (1) y su segundo consumo interno (ScGradientTail, 1). El degradado ES la identidad de marca del wordmark -- unico origen del mecanismo.",
     },
     {
         family: "gradient-text",
         file: "src/components/sections/Story/story.deck.tsx",
-        maxCount: 2,
+        anchors: [
+            {
+                line: 3,
+                snippet:
+                    'import { gradientTextClip } from "@/components/layout/Brand/BrandName";',
+            },
+            { line: 631, snippet: "${gradientTextClip}" },
+        ],
         reason: "Cierre del deck de Story reutiliza gradientTextClip tal cual: el import (1) y su unico consumo (1), ambos apuntando a la definicion de BrandName.tsx, sin declaracion propia.",
     },
     {
         family: "important",
         file: "src/theme/GlobalStyles.tsx",
-        maxCount: 5,
+        anchors: [
+            { line: 289, snippet: "animation-duration: 0.001ms !important;" },
+            { line: 290, snippet: "animation-iteration-count: 1 !important;" },
+            { line: 291, snippet: "transition-duration: 0.001ms !important;" },
+            { line: 409, snippet: "opacity: 1 !important;" },
+            { line: 410, snippet: "transform: none !important;" },
+        ],
         reason: "Reset de prefers-reduced-motion (animation-duration/iteration-count, transition-duration, 3 declaraciones) + fallback @media (scripting: none) para JS deshabilitado (opacity/transform, 2 declaraciones): las dos necesitan ganar por especificidad al selector universal bajo el mismo media query. Documentado en el propio fichero.",
     },
     {
         family: "important",
         file: "src/components/ui/Button/Button.tsx",
-        maxCount: 1,
+        anchors: [
+            {
+                line: 276,
+                snippet: "theme.data.motion.duration.spinReduced} !important;",
+            },
+        ],
         reason: "Spinner reducido (aria-busy): gana al reset global de GlobalStyles bajo el mismo media query prefers-reduced-motion (docblock linea 267 del propio fichero).",
     },
     {
         family: "side-stripe",
         file: "src/components/legal/legalPage.parts.tsx",
-        maxCount: 1,
+        anchors: [
+            {
+                line: 240,
+                snippet:
+                    "border-left: 3px solid ${({ theme }) => theme.data.semantic.warning};",
+            },
+        ],
         reason: "Callout de advertencia legal: franja lateral de 3px, unico consumo del patron en el repo (side-tab, excepcion visual documentada).",
     },
     {
         family: "overshoot",
         file: "src/theme/tokens/motion.ts",
-        maxCount: 1,
+        anchors: [
+            {
+                line: 22,
+                snippet: 'overshoot: "cubic-bezier(0.34, 1.56, 0.64, 1)",',
+            },
+        ],
         reason: "motion.easing.overshoot: unica curva no monotona del sistema, reservada al despegue del navbar al hacer scroll (Navbar.tsx, ScBar). Excepcion sancionada y medida en DESIGN.md Seccion 5.1 (Task 23, plan premium F1-F5).",
     },
     {
         family: "radius-literal",
         file: "src/components/scenes/eye/mascots/Sol.tsx",
-        maxCount: 1,
+        anchors: [{ line: 330, snippet: "border-radius: 3px;" }],
         reason: "Punta del rayo del mascote Sol (ScRay, 3px = su propio width): geometria de trazo de arte de marca, mismo fichero que ya usa formas organicas en % sin token (excepcion de regla 17 de RULES.md, arte de marca con constantes propias).",
     },
     {
         family: "kicker",
         file: "src/components/sections/Story/Story.tsx",
-        maxCount: 2,
+        anchors: [
+            {
+                line: 1343,
+                snippet:
+                    '<ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>',
+            },
+            {
+                line: 1546,
+                snippet:
+                    '<ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>',
+            },
+        ],
         reason: 'ScKicker con voz propia (decision D-E del dueno) en las dos ramas de Story -- render en la rama clara y en la oscura, misma clave i18n "Home.story.kicker".',
     },
     {
         family: "kicker",
         file: "src/components/sections/Features/Features.tsx",
-        maxCount: 2,
+        anchors: [
+            { line: 1410, snippet: '<ScKicker variant="overline">' },
+            {
+                line: 1514,
+                snippet:
+                    '<ScKicker variant="overline">{t("Home.features.kicker")}</ScKicker>',
+            },
+        ],
         reason: 'ScKicker con voz propia (decision D-E del dueno) en las dos ramas de Features -- render en la rama clara y en la oscura, misma clave i18n "Home.features.kicker".',
     },
     {
         family: "numbering",
         file: "src/components/sections/Story/Story.tsx",
-        maxCount: 4,
+        anchors: [
+            { line: 87, snippet: '{ key: "learn", number: "01" },' },
+            { line: 88, snippet: '{ key: "create", number: "02" },' },
+            { line: 89, snippet: '{ key: "grow", number: "03" },' },
+            { line: 90, snippet: '{ key: "practice", number: "04" },' },
+        ],
         reason: 'Numeracion 01-04 de los cuatro pilares de Story (aprendizaje/creacion/crecimiento/practica), array STORY_STEPS con "number: \\"0N\\"".',
     },
     {
         family: "numbering",
         file: "src/components/sections/Journey/Journey.tsx",
-        maxCount: 1,
+        anchors: [
+            {
+                line: 116,
+                snippet: 'return String(index + 1).padStart(2, "0");',
+            },
+        ],
         reason: 'Ordinal 01..06 de los pasos de Journey, rama clara (stepOrdinal via padStart(2, "0")), unico generador del repo.',
     },
 ];
 
-function allowlistEntry(family, relFile) {
-    return (
-        ALLOWLIST.find((e) => e.family === family && e.file === relFile) || null
-    );
+// Mapa plano "familia fichero:linea" -> { snippet esperado, entrada } para
+// resolucion O(1) por hallazgo.
+const ANCHOR_MAP = new Map();
+for (const entry of ALLOWLIST) {
+    for (const a of entry.anchors) {
+        ANCHOR_MAP.set(`${entry.family} ${entry.file}:${a.line}`, {
+            snippet: a.snippet,
+            reason: entry.reason,
+        });
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -332,7 +437,14 @@ function scanFile(absFile) {
                     label: family.label,
                     file: relFile,
                     line: i + 1,
+                    // Etiqueta normalizada para el mensaje de error (p. ej.
+                    // "background-clip: text" sale igual venga de la linea
+                    // que venga). El candado del allowlist NO compara esto
+                    // -- compara `rawLine`, el contenido literal de la linea,
+                    // para que dos apariciones distintas de la misma familia
+                    // nunca se confundan entre si (ver seccion 4).
                     snippet,
+                    rawLine: line.trim(),
                 });
             }
         }
@@ -344,54 +456,68 @@ function run() {
     const files = collectFiles();
     const allFindings = files.flatMap(scanFile);
 
-    // Agrupa por (familia, fichero) para aplicar el candado de recuento.
-    const groups = new Map();
-    for (const f of allFindings) {
-        const key = `${f.family} ${f.file}`;
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(f);
-    }
-
+    // Candado por ancla: un hallazgo se suprime SOLO si existe una entrada en
+    // ANCHOR_MAP para su misma familia+fichero+linea Y el contenido literal
+    // de esa linea (rawLine) coincide caracter a caracter con el snippet
+    // esperado. Ni el recuento total ni la familia/fichero por si solos
+    // bastan -- tiene que ser ESA linea, con ESE contenido (ver seccion 4).
     const failures = [];
     const suppressed = [];
-    for (const [key, hits] of groups) {
-        const [family, file] = key.split(" ");
-        const entry = allowlistEntry(family, file);
-        const maxCount = entry ? entry.maxCount : 0;
-        const ok = hits.slice(0, maxCount);
-        const excess = hits.slice(maxCount);
-        if (ok.length)
-            suppressed.push({
-                family,
-                file,
-                count: ok.length,
-                reason: entry?.reason,
-            });
-        if (excess.length) failures.push(...excess);
+    const matchedAnchorKeys = new Set();
+    for (const f of allFindings) {
+        const anchorKey = f.family + " " + f.file + ":" + f.line;
+        const anchor = ANCHOR_MAP.get(anchorKey);
+        if (anchor && anchor.snippet === f.rawLine) {
+            suppressed.push({ ...f, reason: anchor.reason });
+            matchedAnchorKeys.add(anchorKey);
+        } else {
+            failures.push(f);
+        }
     }
 
-    // Allowlist obsoleto: un entry cuyo maxCount ya no tiene ningun hit real
-    // (el codigo cambio y la excepcion dejo de aplicar) no rompe el gate --
-    // reducir o retirar un patron sancionado nunca es un problema -- pero se
-    // avisa para que alguien lo limpie.
+    // Allowlist obsoleto: un ancla sin hallazgo que la cubra hoy (la linea
+    // sancionada se borro, se movio, o su contenido cambio) no rompe el gate
+    // -- reducir o retirar un patron sancionado nunca es un problema -- pero
+    // se avisa para que alguien limpie la entrada. Distinto de "hallazgo
+    // nuevo sin ancla", que SI rompe el gate (ver arriba).
     const stale = [];
     for (const entry of ALLOWLIST) {
-        const key = `${entry.family} ${entry.file}`;
-        const actual = (groups.get(key) || []).length;
-        if (actual < entry.maxCount) {
-            stale.push({ ...entry, actual });
+        for (const a of entry.anchors) {
+            const key = entry.family + " " + entry.file + ":" + a.line;
+            if (!matchedAnchorKeys.has(key)) {
+                stale.push({
+                    family: entry.family,
+                    file: entry.file,
+                    line: a.line,
+                    expected: a.snippet,
+                });
+            }
         }
     }
 
     if (suppressed.length) {
+        // Agrupa las anclas suprimidas por (familia, fichero) solo para el
+        // resumen en consola -- el candado en si ya opero linea a linea.
+        const byGroup = new Map();
+        for (const s of suppressed) {
+            const key = `${s.family} ${s.file}`;
+            if (!byGroup.has(key))
+                byGroup.set(key, {
+                    family: s.family,
+                    file: s.file,
+                    lines: [],
+                    reason: s.reason,
+                });
+            byGroup.get(key).lines.push(s.line);
+        }
         console.log(
             "Excepciones sancionadas (allowlist), suprimidas del gate:\n",
         );
-        for (const s of suppressed.sort((a, b) =>
+        for (const g of [...byGroup.values()].sort((a, b) =>
             a.file.localeCompare(b.file),
         )) {
             console.log(
-                `  [${s.family}] ${s.file} -- ${s.count} hit(s). ${s.reason}`,
+                `  [${g.family}] ${g.file} -- lineas ${g.lines.sort((a, b) => a - b).join(", ")}. ${g.reason}`,
             );
         }
         console.log("");
@@ -399,14 +525,15 @@ function run() {
 
     if (stale.length) {
         console.log(
-            "Aviso (no bloquea el gate): allowlist con menos hits de los esperados --",
+            "Aviso (no bloquea el gate): anclas del allowlist sin hallazgo que las cubra hoy --",
         );
         console.log(
-            "revisa si la excepcion sigue aplicando o si ya se puede retirar del script.\n",
+            "la linea sancionada se borro, se movio o su contenido cambio. Revisa si la excepcion",
         );
+        console.log("sigue aplicando o si ya se puede retirar del script.\n");
         for (const s of stale) {
             console.log(
-                `  [${s.family}] ${s.file} -- esperado ${s.maxCount}, encontrado ${s.actual}.`,
+                `  [${s.family}] ${s.file}:${s.line} -- se esperaba: ${JSON.stringify(s.expected)}`,
             );
         }
         console.log("");
@@ -441,7 +568,7 @@ function run() {
     }
 
     console.log(
-        `detect-anti-patterns: sin hallazgos nuevos (${files.length} ficheros escaneados, ${suppressed.reduce((n, s) => n + s.count, 0)} excepcion(es) sancionada(s) suprimida(s)).`,
+        `detect-anti-patterns: sin hallazgos nuevos (${files.length} ficheros escaneados, ${suppressed.length} excepcion(es) sancionada(s) suprimida(s)).`,
     );
     process.exitCode = 0;
 }
