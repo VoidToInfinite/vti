@@ -50,13 +50,90 @@ function notify(): void {
  * casi toda la sección saliente y está mirando la entrante, así que
  * mantener resaltada la que se va leería como una navegación que va por
  * detrás del scroll real.
+ *
+ * FIX WAVE A, hallazgo A2 (revisión final de rama). Bajo
+ * `prefers-reduced-motion: reduce`, `useSectionProgress.stopForReduced()`
+ * escribe `data-inview="true"` de forma INCONDICIONAL en las CUATRO
+ * secciones a la vez (ver su JSDoc: "el consumidor debe quedar visible y
+ * quieto exista o no una interseccion previa") y desconecta su propio
+ * observer -- una decisión correcta para SU consumidor (un parallax
+ * inmóvil no tiene "dentro/fuera de pantalla" que describir bajo `reduce`,
+ * así que se queda fijo en el estado "ya colocada"). Pero la lectura de
+ * arriba ("gana la ÚLTIMA con `data-inview=true`") asume que esa señal
+ * significa "visible AHORA", y bajo `reduce` deja de significarlo: con las
+ * CUATRO secciones en `true` de forma permanente, la última del orden de
+ * página (`contact`) ganaba SIEMPRE, sin importar dónde estuviera el
+ * scroll real -- `aria-current="location"` quedaba clavado en "Contacto"
+ * para cualquier visitante con `reduce` activado, en el panel de escritorio
+ * Y en la hoja móvil. Es información FALSA anunciada a lectores de
+ * pantalla, más grave que no anunciar nada, y afecta desproporcionadamente
+ * a quien más depende de tecnología asistiva.
+ *
+ * Arreglo elegido (de las dos opciones razonables -- resolver por geometría
+ * real, o devolver `null` sin más -- se prefiere la primera): bajo `reduce`
+ * se ignora `data-inview` por completo y se resuelve con
+ * `getBoundingClientRect()` sobre las mismas cuatro secciones, con el MISMO
+ * criterio de desempate (última en orden de página que interseca el
+ * viewport). Se prefiere a devolver `null` porque el usuario con `reduce`
+ * activado sigue navegando por scroll con normalidad -- solo el PARALLAX
+ * está inmóvil, no la página -- así que apagar `aria-current` del todo para
+ * este grupo de visitantes sería perder la función completa por una
+ * limitación de un consumidor DISTINTO (`useSectionProgress`) que no
+ * aplica aquí: medir un `getBoundingClientRect` en cada `scroll`/`resize`
+ * es exactamente el coste que este módulo ya evita en el camino normal
+ * (docblock de arriba), pero aquí es barato porque ni `reduce` ni el
+ * scrollspy corren a 60fps -- solo en los eventos discretos que ya
+ * escuchaba este mismo módulo.
  */
-function evaluate(): void {
+/**
+ * Defensivo ante `typeof window.matchMedia !== "function"` (jsdom SIN stub):
+ * a diferencia de `useSectionProgress`/`useSlideDeck` -- hooks que solo monta
+ * la sección concreta que los usa, con un puñado de ficheros de test que ya
+ * saben que necesitan el stub -- este módulo es un SINGLETON que arranca
+ * desde `useActiveSectionKey()`, y hoy lo llaman tanto `Navbar.tsx` (panel de
+ * escritorio) como `NavSheet.tsx` (hoja móvil): cualquier test de CUALQUIER
+ * parte del repo que renderice `<Navbar />` sin stubar `matchMedia` pasaría a
+ * fallar por una rama nueva que ni siquiera ejercita a propósito. Sin
+ * `matchMedia` disponible se asume "no reduce" -- exactamente el
+ * comportamiento de ANTES de este arreglo (fix wave A, A2) para cualquier
+ * entorno que no declare la preferencia.
+ */
+function isReducedMotion(): boolean {
+  if (typeof window.matchMedia !== "function") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Mismo criterio de "está en el viewport" que exige un solape > 0 contra
+ *  `rect.top`/`rect.bottom` -- el mismo umbral implícito (threshold 0) que
+ *  ya usa el `IntersectionObserver` por defecto de `useSectionProgress` en
+ *  el camino normal, para que el desempate ("última en orden de página")
+ *  se comporte igual en los dos caminos. */
+function intersectsViewport(rect: DOMRect): boolean {
+  return rect.top < window.innerHeight && rect.bottom > 0;
+}
+
+function resolveActiveKeyReduced(): string | null {
+  let next: string | null = null;
+  for (const id of ACTIVE_SECTION_IDS) {
+    const el = document.getElementById(id);
+    if (el && intersectsViewport(el.getBoundingClientRect())) next = id;
+  }
+  return next;
+}
+
+function resolveActiveKeyByInview(): string | null {
   let next: string | null = null;
   for (const id of ACTIVE_SECTION_IDS) {
     const el = document.getElementById(id);
     if (el?.dataset.inview === "true") next = id;
   }
+  return next;
+}
+
+function evaluate(): void {
+  const next = isReducedMotion()
+    ? resolveActiveKeyReduced()
+    : resolveActiveKeyByInview();
   if (next !== activeKey) {
     activeKey = next;
     notify();
