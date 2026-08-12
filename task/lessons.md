@@ -1,5 +1,35 @@
 # Lecciones
 
+## 2026-08-12 (fix wave A, hallazgo A1) — `getByRole(..., { hidden: true })` NO revierte un nombre accesible vacío sobre contenido genuinamente oculto
+
+- **Qué pasó:** al arreglar el trap de foco invisible del deck de Story (`ScSlide` pasa a `visibility: hidden` en reposo,
+  `visibility: visible` bajo `[data-state="current"]`), dos tests preexistentes de `Story.test.tsx` (Task 15 y Task 6)
+  que consultaban el enlace de Discord con `within(slide).getByRole("link", { name: /.../  })` mientras esa diapositiva
+  NO era la actual (el deck arranca en el índice 0, la última diapositiva queda en reposo) cayeron en rojo:
+  `Unable to find an accessible element with the role "link" and name ...`. Añadir `hidden: true` a la consulta —el
+  parche obvio, y el que ya usa este mismo repo para enlaces dentro de un panel/hoja CERRADOS (`Navbar.test.tsx`,
+  `getTrigger`)— NO arregló nada: el error cambió a "Unable to find an element with the role... and name ..." con el
+  debug mostrando el enlace real presente pero con `Name: ""` (vacío).
+- **Causa raíz:** `hidden: true` en `getByRole` solo desactiva el filtro `isInaccessible` que EXCLUYE de la lista de
+  candidatos a los elementos ocultos por CSS — no toca el cálculo del NOMBRE ACCESIBLE, que es un paso completamente
+  aparte (`computeAccessibleName`, algoritmo AccName de WAI-ARIA). Ese algoritmo, al construir el nombre "a partir del
+  contenido" de un enlace, respeta la visibilidad de sus nodos de texto descendientes: si el enlace entero vive dentro
+  de un `visibility: hidden` real (no solo `opacity: 0`), el nombre calculado es la cadena vacía, sea cual sea el
+  `hidden: true` de la consulta. El precedente de `Navbar.test.tsx` que SÍ funciona con `hidden: true` no contradice
+  esto: en esos tests el panel/grupo relevante se ABRE primero (`fireEvent.click(trigger)`) antes de la consulta por
+  rol — el elemento buscado YA es `visibility: visible` en el momento de calcular su nombre; `hidden: true` ahí solo
+  sirve para que la búsqueda no descarte de entrada otras copias todavía ocultas (p.ej. el mismo enlace duplicado en
+  un panel distinto que sigue cerrado), no para leer el nombre de un elemento que sigue oculto.
+- **Cómo se corrigió:** los dos tests pasaron de `getByRole("link", { name, hidden: true })` a una consulta de DOM
+  plano (`slide.querySelector("a")`) más aserciones directas sobre `textContent`/`href`/`target`/`rel` — verifica
+  exactamente la misma propiedad (el enlace existe, con el destino y las etiquetas correctas) sin pasar por el cálculo
+  de nombre accesible, que solo tiene sentido cuando el elemento va a ser genuinamente anunciado.
+- **Regla:** `getByRole(..., { hidden: true })` encuentra elementos ocultos, pero NO les da un nombre si su texto real
+  está detrás de un `visibility: hidden`/`display: none` real (no `opacity`). Antes de usar ese patrón sobre un
+  elemento que sigue oculto en el momento de la consulta, comprobar si el test necesita el NOMBRE (en cuyo caso hay
+  que abrir/revelar el contenedor primero, o cambiar a una consulta de DOM plano) o solo la PRESENCIA/atributos (en
+  cuyo caso el DOM plano es más simple y no depende de esta trampa).
+
 ## 2026-08-12 (Task 22) — `align-items: stretch` en un bento asimétrico rellena la diferencia de alto con superficie vacía si las dos celdas que se comparan NO tienen la misma estructura
 
 - **Qué pasó:** para romper la tercera rejilla `auto-fit+minmax` seguida (Story/Journey/Features,
