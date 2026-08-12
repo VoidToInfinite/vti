@@ -1,5 +1,6 @@
 import type { ElementType, ReactElement } from "react";
 import styled, { css, keyframes } from "styled-components";
+import type { ThemeDefinition } from "@/theme/theme.types";
 
 const ScBrandName = styled.span`
   display: inline-flex;
@@ -59,16 +60,97 @@ export const gradientShift = keyframes`
   }
 `;
 
-/* Compartido con los CTA del Hero (ver ScCtaPrimary/ScCtaSecondary en
-   Hero.tsx): MISMO degradado, una sola definicion de los stops -- así el
-   titulo y los dos CTA recorren exactamente el mismo color en el mismo
-   instante en vez de tres declaraciones que podrian divergir con el tiempo. */
+/*
+ * Hasta la Task 33 (2026-08-12) este mismo degradado alimentaba TAMBIÉN los
+ * dos CTA del sitio (ScCtaPrimary en Hero.tsx, ScSubmitButton en
+ * Contact.tsx): "MISMO degradado, una sola definición de los stops, para que
+ * título y CTA recorran exactamente el mismo color en el mismo instante".
+ * ESO YA NO ES CIERTO -- ver `ctaGradient`, más abajo, para el porqué del
+ * split y las cifras que lo obligan. `heroGradient` se queda con su único
+ * consumidor real: `gradientTextClip`, el degradado del título "ToInfinite",
+ * porque ahí el degradado ES el texto (background-clip: text) y no hay
+ * ningún glifo opaco superpuesto cuyo contraste dependa de él -- la clase de
+ * fallo que sí afecta a un botón con letras blancas ENCIMA de este fondo.
+ */
 export const heroGradient = css`
   background-image: linear-gradient(
     100deg,
     ${({ theme }) => theme.data.semantic.text} 0%,
     ${({ theme }) => theme.data.semantic.brandText} 35%,
     ${({ theme }) => theme.data.palette.secondary[300]} 65%,
+    ${({ theme }) => theme.data.semantic.text} 100%
+  );
+  background-size: 260% 100%;
+`;
+
+/*
+ * ctaGradient (Task 33, gate F4, hallazgo del evaluador independiente
+ * 2026-08-12): degradado de fondo para los DOS CTA con texto legible ENCIMA
+ * -- ScCtaPrimary (Hero.tsx) y ScSubmitButton (Contact.tsx) -- separado de
+ * `heroGradient` porque ese SÍ necesita pasar AA contra `semantic.onBrand`
+ * (el color del texto del botón) en cada fotograma de la animación, y
+ * `heroGradient` no lo pasaba.
+ *
+ * CAUSA RAÍZ, medida con `contrastRatio` (`contrast.test.ts`, describe
+ * "Task 33"), no muestreada a ojo: con `background-size: 260% 100%` la
+ * interpolación de un `linear-gradient()` sin hint `in <space>` usa OKLab
+ * por defecto (CSS Color 4, "Interpolation") -- L es un eje lineal propio de
+ * ese espacio, así que entre dos paradas ADYACENTES la claridad percibida
+ * interpola de forma monótona, nunca sobrepasa el valor de ninguna de las
+ * dos. Consecuencia verificable: el contraste MÍNIMO de todo el recorrido
+ * ocurre siempre EN una parada, jamás entre dos -- basta medir los 3 colores
+ * distintos del degradado (las paradas 0%/100% son el mismo color) para
+ * conocer el peor fotograma real, no una muestra.
+ *
+ *   TEMA CLARO (texto del botón = semantic.onBrand = blanco):
+ *     parada 0%/100% (semantic.text)      12.686:1
+ *     parada 35% (semantic.brandText)      5.837:1
+ *     parada 65% (palette.secondary[300])  1.690:1  <- PEOR, incumple AA (4.5:1)
+ *
+ *   TEMA OSCURO (texto del botón = semantic.onBrand = casi negro):
+ *     parada 0%/100% (semantic.text)      16.590:1
+ *     parada 35% (semantic.brandText)     11.365:1
+ *     parada 65% (palette.secondary[300]) 10.248:1  <- PEOR, YA pasaba AA
+ *
+ * El tema oscuro nunca incumplió -- su `semantic.onBrand` es casi negro
+ * (`neutral[1100]`), no blanco, así que hasta el punto más claro del
+ * degradado le sobra contraste. Solo la parada de 65% en tema CLARO necesita
+ * un color distinto.
+ *
+ * Resolución POR RAMA (`theme.data.isLight`), mismo precedente que la
+ * Task 26 (`accentColor`/`accentColorHover`, `Features.tsx`: `palette` es
+ * compartida entre `themes.light`/`themes.dark`, así que un único paso no
+ * puede servir a las dos ramas a la vez): en claro la parada de 65% sube de
+ * `secondary[300]` (L 0.86) a `secondary[700]` (L 0.53, mismo hue 311.928)
+ * -- **5.921:1** contra blanco, con margen sobre AA. En oscuro se queda
+ * igual (`secondary[300]`, ya pasaba con 10.248:1).
+ *
+ * La animación NO se retira -- el brief de la tarea lo permite si el peor
+ * fotograma pasa AA, y ahora pasa -- sigue siendo `gradientShift`, 9000ms,
+ * `linear infinite alternate`, sobre `background-position`: la única
+ * diferencia con `heroGradient` es qué color pinta la parada de 65% en tema
+ * claro.
+ *
+ * `ctaGradientMidStop` se exporta como función nombrada, no como ternario
+ * inline dentro del `css` (mismo motivo que `accentColor`/
+ * `accentColorHover` en `Features.tsx`, Task 26): así el candado de
+ * `BrandName.contrast.test.ts` importa y llama la MISMA función que resuelve
+ * el color real en pantalla, en vez de duplicar el ternario a mano en el
+ * test -- una duplicación que podría divergir del código real sin que nada
+ * lo delate.
+ */
+export function ctaGradientMidStop(theme: ThemeDefinition): string {
+  return theme.isLight
+    ? theme.palette.secondary[700]
+    : theme.palette.secondary[300];
+}
+
+export const ctaGradient = css`
+  background-image: linear-gradient(
+    100deg,
+    ${({ theme }) => theme.data.semantic.text} 0%,
+    ${({ theme }) => theme.data.semantic.brandText} 35%,
+    ${({ theme }) => ctaGradientMidStop(theme.data)} 65%,
     ${({ theme }) => theme.data.semantic.text} 100%
   );
   background-size: 260% 100%;

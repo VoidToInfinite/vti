@@ -51,8 +51,8 @@ import {
   CONTACT_TOP_GLOW_WIDTH,
 } from "./contact.layers";
 import {
+  ctaGradient,
   gradientShift,
-  heroGradient,
 } from "@/components/layout/Brand/BrandName";
 
 /*
@@ -1003,14 +1003,26 @@ const ScPrivacyNote = styled.p`
  * dispara `onSubmit`, no una navegación de ancla.
  *
  * `background-image` deja de ser un degradado propio de esta sección y pasa
- * a `heroGradient` (2026-08-04, `BrandName.tsx`): el mismo degradado
- * animado que ya recorren el título del Hero y sus dos CTA, para que el
- * botón principal de la página lea como parte del mismo lenguaje visual en
- * vez de un morado suelto. `gradientShift` (`background-position` 0%→100%)
- * es la animación compartida; solo `transform`/`opacity`/`background-position`
+ * a `ctaGradient` (2026-08-04, `BrandName.tsx`; renombrado desde
+ * `heroGradient` en la Task 33, ver más abajo): el mismo degradado animado
+ * que ya recorre el título del Hero y el CTA primario, para que el botón
+ * principal de la página lea como parte del mismo lenguaje visual en vez de
+ * un morado suelto. `gradientShift` (`background-position` 0%→100%) es la
+ * animación compartida; solo `transform`/`opacity`/`background-position`
  * se animan, nunca layout.
  *
- * `heroGradient` se reafirma con el MISMO selector EXACTO que declara
+ * `ctaGradient`, NO `heroGradient` (Task 33, gate F4): hasta esa tarea este
+ * botón compartía el degradado LITERAL del título (`heroGradient`), y el
+ * evaluador independiente midió que su parada de 65%
+ * (`palette.secondary[300]`, la más clara del recorrido) da 1.69:1 contra el
+ * texto blanco del botón en tema claro -- muy por debajo de AA (4.5:1),
+ * "CTA de conversión" en el hallazgo del gate. `ctaGradient` es el mismo
+ * degradado con esa única parada resuelta POR RAMA (`theme.data.isLight`)
+ * para pasar AA en los dos temas -- ver su docblock en `BrandName.tsx` para
+ * las cifras completas y la demostración de por qué el peor fotograma real
+ * está SIEMPRE en un stop, no entre dos.
+ *
+ * `ctaGradient` se reafirma con el MISMO selector EXACTO que declara
  * `Button.tsx` en su variante `solid`
  * (`&:hover:not(:disabled) { background: color-mix(...) }`, lección
  * `task/lessons.md` 2026-07-26 "`background: valor` en :hover resetea
@@ -1019,7 +1031,7 @@ const ScPrivacyNote = styled.p`
  * Reafirmar la sub-propiedad aquí, en la MISMA capa aditiva (`styled(Button)`
  * se inyecta DESPUÉS del propio `Button`, orden de inserción de
  * styled-components), gana el empate sin `!important` y sin tocar
- * `Button.tsx`. `heroGradient` ya declara `background-image` (nunca el
+ * `Button.tsx`. `ctaGradient` ya declara `background-image` (nunca el
  * shorthand), así que reafirmarlo dos veces no arrastra el mismo bug.
  *
  * `animation` SOLO se declara bajo `no-preference`, con `animation: none`
@@ -1027,7 +1039,7 @@ const ScPrivacyNote = styled.p`
  * en este mismo fichero: el colapso global de `GlobalStyles`
  * (`animation-iteration-count: 1 !important`) no detiene una animación
  * infinita, la deja correr un fotograma arbitrario. Bajo `reduce` el botón
- * se queda con el degradado ESTÁTICO de `heroGradient` (primer fotograma de
+ * se queda con el degradado ESTÁTICO de `ctaGradient` (primer fotograma de
  * `background-position`), no con `background-image: none`: a diferencia de
  * `gradientTextClip` en `BrandName.tsx` (que SÍ necesita ese fallback
  * porque el texto está clippeado y quedaría invisible sin fondo), aquí el
@@ -1036,7 +1048,7 @@ const ScPrivacyNote = styled.p`
  */
 const ScSubmitButton = styled(Button)`
   width: 100%;
-  ${heroGradient}
+  ${ctaGradient}
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${gradientShift} 9000ms linear infinite alternate;
@@ -1047,7 +1059,7 @@ const ScSubmitButton = styled(Button)`
   }
 
   &:hover:not(:disabled) {
-    ${heroGradient}
+    ${ctaGradient}
   }
 `;
 

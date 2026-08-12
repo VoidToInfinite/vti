@@ -5,8 +5,8 @@ import styled, { css, keyframes } from "styled-components";
 import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import {
   BrandName,
+  ctaGradient,
   gradientShift,
-  heroGradient,
 } from "@/components/layout/Brand/BrandName";
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
@@ -516,15 +516,23 @@ const ScSubtitle = styled(Typography)`
 `;
 
 /*
- * CTA primario: MISMO degradado y animacion que ScGradientTail
- * (BrandName.tsx) -- ver alli la excepcion completa al lenguaje de
- * movimiento del sistema (background-position no es una propiedad de
- * compositor, guard no-preference, y por que el colapso de GlobalStyles
- * bajo reduced-motion es un flash de un punto no determinista del
- * degradado, no "gira para siempre"). heroGradient/gradientShift se
- * IMPORTAN de BrandName.tsx en vez de redeclararse aqui: titulo y CTA
- * recorren exactamente el mismo color en el mismo instante, no tres
- * declaraciones que podrian divergir con el tiempo.
+ * CTA primario: MISMA animacion (gradientShift, background-position) que
+ * ScGradientTail (BrandName.tsx) -- ver alli la excepcion completa al
+ * lenguaje de movimiento del sistema (background-position no es una
+ * propiedad de compositor, guard no-preference, y por que el colapso de
+ * GlobalStyles bajo reduced-motion es un flash de un punto no determinista
+ * del degradado, no "gira para siempre"). gradientShift se IMPORTA de
+ * BrandName.tsx en vez de redeclararse aqui.
+ *
+ * `ctaGradient`, NO `heroGradient` (Task 33, gate F4): hasta esa tarea este
+ * boton compartia el degradado LITERAL del titulo, y el evaluador
+ * independiente midio que su parada de 65% (palette.secondary[300], la mas
+ * clara del recorrido) da 1.69:1 contra el texto blanco del boton en tema
+ * claro -- muy por debajo de AA (4.5:1). `ctaGradient` (BrandName.tsx) es el
+ * mismo degradado con esa unica parada resuelta POR RAMA para pasar AA en
+ * los dos temas; ver su docblock para las cifras completas y la
+ * demostracion de por que el peor fotograma real esta SIEMPRE en un stop, no
+ * entre dos.
  *
  * Aditivo sobre Button: ScButton.tsx no se toca, esto es un envoltorio
  * styled(Button) que anade una capa de fondo por encima -- las 4 variantes x
@@ -596,7 +604,7 @@ const ScCtaPrimary = styled(Button)`
   ${ctaGlow}
 
   @media (prefers-reduced-motion: no-preference) {
-    ${heroGradient}
+    ${ctaGradient}
     animation: ${gradientShift} 9000ms linear infinite alternate;
 
     /*
@@ -619,7 +627,7 @@ const ScCtaPrimary = styled(Button)`
      * estilos que el de este componente.
      */
     &:hover:not(:disabled) {
-      ${heroGradient}
+      ${ctaGradient}
     }
   }
   /* Bajo reduced-motion no se aplica ninguna capa nueva: el boton conserva

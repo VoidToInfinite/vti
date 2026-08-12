@@ -346,20 +346,80 @@ describe("Hero (lente funcional)", () => {
 
   describe("CTAs animados del hero (Flujo 3)", () => {
     /*
-     * heroGradient (BrandName.tsx, reutilizado por ScCtaPrimary/
-     * ScCtaSecondary) tiene 4 paradas: semantic.text (L .985), brandText
-     * (primary[300], L .86), palette.secondary[300] (L .86) y semantic.text
-     * de nuevo. Las dos paradas NO blancas (brandText y secondary[300]) son
-     * el "punto mas oscuro" del recorrido -- se mide el contraste contra
-     * esas dos, no solo contra el extremo claro.
+     * ctaGradient (BrandName.tsx, desde la Task 33 -- antes heroGradient,
+     * ver su docblock para el porqué del split) tiene 4 paradas:
+     * semantic.text, brandText, la parada de 65% (secondary[300] en oscuro,
+     * secondary[700] en claro desde la Task 33) y semantic.text de nuevo.
+     * Este test SOLO cubría tema oscuro -- el hueco exacto que dejó pasar el
+     * hallazgo del evaluador independiente (gate F4, 2026-08-12): la parada
+     * de 65% en CLARO (antes secondary[300], L .86) daba 1.69:1 contra el
+     * texto blanco del botón, muy por debajo de AA. La cobertura completa
+     * (las 3 paradas distintas, en los 2 temas, calculando los extremos del
+     * recorrido) vive en `BrandName.contrast.test.ts`, describe "Task 33" --
+     * este test se queda como red de regresión del caso oscuro que ya tenía.
      */
-    it("el label del CTA primario (onBrand) pasa AA contra las dos paradas mas oscuras del degradado", () => {
+    it("el label del CTA primario (onBrand) pasa AA contra las dos paradas mas oscuras del degradado (tema oscuro)", () => {
       expect(
         contrastRatio(semanticDark.onBrand, semanticDark.brandText),
       ).toBeGreaterThanOrEqual(4.5);
       expect(
         contrastRatio(semanticDark.onBrand, color.secondary[300]),
       ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    /*
+     * Task 33: candado por RENDER (no solo por token) atado al código real
+     * de `Hero.tsx` -- si `ScCtaPrimary` alguna vez revirtiera a
+     * `heroGradient` (o a cualquier otro color suelto) en la parada de 65%,
+     * este test lo detectaría leyendo el CSS INYECTADO de verdad, no una
+     * copia recalculada a mano. `reglasDe` (no `getComputedStyle`): el
+     * degradado vive bajo `@media (prefers-reduced-motion: no-preference)`,
+     * que jsdom no evalúa (regla 5.2 del CLAUDE.md del repo) -- solo el
+     * TEXTO de la regla inyectada es inspeccionable.
+     */
+    it("Task 33: el degradado renderizado del CTA primario en tema CLARO pasa AA en sus 3 paradas distintas", () => {
+      renderHero(); // por defecto: claro (sin localStorage)
+      const acciones = screen.getByTestId("hero-actions");
+      const enlace = acciones.querySelector("a") as HTMLElement;
+      const css = reglasDe(enlace).join("\n");
+
+      // Se aisla la declaracion `background-image: linear-gradient(...);`
+      // en vez de acotar por @media (que aparece dos veces en este
+      // elemento: el propio de ctaGlow, sin colores, y el del degradado) --
+      // asi la extraccion de oklch() no depende de en que orden el CSSOM
+      // haya insertado cada regla, solo de que la declaracion exista.
+      const declaracionesDeGradiente =
+        css.match(/background-image:\s*linear-gradient\([^;]*\);/g) ?? [];
+      expect(
+        declaracionesDeGradiente.length,
+        "no se encontro ninguna declaracion background-image: linear-gradient(...)",
+      ).toBeGreaterThan(0);
+
+      const paradas = Array.from(
+        new Set(
+          declaracionesDeGradiente.flatMap(
+            (decl) => decl.match(/oklch\([^)]*\)/g) ?? [],
+          ),
+        ),
+      );
+      expect(
+        paradas.length,
+        "se esperaban 3 colores de parada distintos (semantic.text, semantic.brandText, ctaGradientMidStop)",
+      ).toBe(3);
+
+      paradas.forEach((parada) => {
+        const ratio = contrastRatio(semanticLight.onBrand, parada);
+        expect(
+          ratio,
+          `parada ${parada} da ${ratio.toFixed(3)}:1 contra onBrand, por debajo de AA (4.5:1)`,
+        ).toBeGreaterThanOrEqual(4.5);
+      });
+
+      // Sonda de no-vacuidad: secondary[300] (la parada VIEJA) NO puede
+      // aparecer entre las paradas renderizadas en tema claro -- si
+      // apareciera, seria la prueba de que ctaGradient revirtio a
+      // heroGradient sin que el resto del test lo hubiera detectado ya.
+      expect(paradas).not.toContain(color.secondary[300]);
     });
 
     /*

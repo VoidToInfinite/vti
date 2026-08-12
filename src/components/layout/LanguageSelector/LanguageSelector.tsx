@@ -2,11 +2,56 @@
 
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
+import styled, { type DefaultTheme } from "styled-components";
 import { STORAGE_KEYS } from "@/config/storage";
 import { PRESS } from "@/motion/vocabulary";
 
 const LANGUAGES = ["es", "en"] as const;
+
+/*
+ * Color del idioma ACTIVO (Task 33, gate F4, hallazgo del evaluador
+ * independiente 2026-08-12): antes `theme.data.semantic.brand`
+ * (`palette.primary[500]`) en las DOS ramas de tema. Medido con
+ * `contrastRatio` contra el fondo REAL de la barra en sus dos estados
+ * (transparente sobre el hero -- `AURA_SURFACE`/`EYE_SURFACE` -- y con
+ * cristal -- `glass.bg` compuesto sobre `semantic.bg`/`semantic.surface`/
+ * el void del hero, `contrastRatioOverAlpha`), describe "Task 33" en
+ * `LanguageSelector.contrast.test.ts`:
+ *
+ *   TEMA CLARO (semantic.brand = primary[500]):
+ *     transparente (sobre AURA_SURFACE)         1.915:1  <- incumple AA
+ *     cristal (peor de los 3 fondos probados)    2.162:1  <- incumple AA
+ *   TEMA OSCURO (semantic.brand = primary[400]):
+ *     transparente (sobre EYE_SURFACE)          10.641:1  ya pasaba
+ *     cristal (peor de los 3 fondos probados)    8.271:1  ya pasaba
+ *
+ * El evaluador midió el pixel real en tema claro sin scroll: #01B7FF sobre
+ * #EBE8F9, 1,89:1 -- coincide con el 1.915:1 de `contrastRatio` contra
+ * `AURA_SURFACE` (primary[500] resuelve a #02B7FF, un redondeo de un dígito
+ * hex). Tema oscuro nunca incumplió: `semantic.onBrand` no aplica aquí --
+ * este es texto sobre el propio fondo de la barra, no sobre un botón sólido.
+ *
+ * Resolución POR RAMA (`theme.data.isLight`), precedente Task 26
+ * (`accentColor`, `Features.tsx`): en claro sube a `semantic.brandText`
+ * (`primary[800]`, el MISMO rol que ya usan el kicker de marca y el CTA de
+ * Features sobre `surface` en este sitio -- no un paso de `palette` suelto)
+ * -- 4.909:1 transparente / 5.540-5.837:1 con cristal, los cuatro casos con
+ * margen sobre AA. En oscuro NO cambia (`semantic.brand`, `primary[400]`):
+ * ya pasaba.
+ *
+ * Se exporta como función nombrada (no ternario inline) para que
+ * `LanguageSelector.contrast.test.ts` importe y mida la MISMA función que
+ * pinta el botón real, y para que TAMBIÉN gobierne `:hover`/`:focus-visible`
+ * (ver `ScLanguageButton`, más abajo): antes de esta tarea el hover usaba
+ * `semantic.brand` sin condición de `$active`, así que pasar el cursor por
+ * CUALQUIER botón -- activo o no -- en tema claro mostraba el mismo
+ * primary[500] que incumplía AA.
+ */
+export function languageAccent(theme: DefaultTheme): string {
+  return theme.data.isLight
+    ? theme.data.semantic.brandText
+    : theme.data.semantic.brand;
+}
 
 const ScLanguageSelector = styled.div`
   display: inline-flex;
@@ -14,6 +59,17 @@ const ScLanguageSelector = styled.div`
   gap: ${({ theme }) => theme.data.space[1]};
 `;
 
+/*
+ * WCAG 1.4.1 (Task 33, punto 2 del hallazgo): el color NUNCA fue el único
+ * medio de indicar el idioma activo -- `font-weight` ya distinguía 700/400 --
+ * pero a 14px la diferencia de peso es sutil para quien no distingue el
+ * color. Se refuerza con `text-decoration: underline` (mismo criterio que el
+ * brief sugiere: "peso tipográfico, subrayado, marca"), aditivo al peso que
+ * ya existía -- ninguna señal sustituye a la otra, se suman.
+ * `text-underline-offset` se explicita porque el subrayado por defecto del
+ * navegador pega la línea al descendente de la tipografía a este tamaño; el
+ * valor es un múltiplo del font-size, no un literal de píxeles sueltos.
+ */
 const ScLanguageButton = styled.button<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
@@ -32,7 +88,9 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
   font-size: 0.875rem;
   font-weight: ${({ $active }) => ($active ? 700 : 400)};
   color: ${({ theme, $active }) =>
-    $active ? theme.data.semantic.brand : theme.data.semantic.textSubtle};
+    $active ? languageAccent(theme) : theme.data.semantic.textSubtle};
+  text-decoration: ${({ $active }) => ($active ? "underline" : "none")};
+  text-underline-offset: 0.2em;
   cursor: pointer;
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
@@ -54,7 +112,7 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
 
   &:hover,
   &:focus-visible {
-    color: ${({ theme }) => theme.data.semantic.brand};
+    color: ${({ theme }) => languageAccent(theme)};
   }
 
   /* Press (Task 9): único feedback táctil de este control -- el hover de

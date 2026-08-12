@@ -445,6 +445,58 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
     });
   });
+
+  /*
+   * Task 33 (gate F4, hallazgo del evaluador independiente 2026-08-12): el
+   * "CTA de conversión" del hallazgo es ESTE botón -- hasta esa tarea
+   * compartía `heroGradient` con el título del Hero, y su parada de 65%
+   * (`palette.secondary[300]`) daba 1.69:1 contra el texto blanco del botón
+   * en tema claro (este describe: `renderWithProviders(<Contact />)` sin
+   * localStorage, la rama que Task 16 confirma que YA monta el formulario
+   * real). Candado por RENDER, atado al CSS realmente inyectado por
+   * `Contact.tsx` -- no una copia recalculada a mano -- mismo patrón que el
+   * test equivalente de `Hero.qa.test.tsx` ("Task 33: el degradado
+   * renderizado del CTA primario..."). Cifras completas y causa raíz:
+   * docblock de `ctaGradient` (`BrandName.tsx`).
+   */
+  it("Task 33: el degradado renderizado del boton de envio en tema CLARO pasa AA en sus 3 paradas distintas", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const button = container.querySelector(
+      'button[type="submit"]',
+    ) as HTMLElement;
+    const css = cssRuleTextFor(button);
+
+    const declaracionesDeGradiente =
+      css.match(/background-image:\s*linear-gradient\([^;]*\);/g) ?? [];
+    expect(
+      declaracionesDeGradiente.length,
+      "no se encontro ninguna declaracion background-image: linear-gradient(...)",
+    ).toBeGreaterThan(0);
+
+    const paradas = Array.from(
+      new Set(
+        declaracionesDeGradiente.flatMap(
+          (decl) => decl.match(/oklch\([^)]*\)/g) ?? [],
+        ),
+      ),
+    );
+    expect(
+      paradas.length,
+      "se esperaban 3 colores de parada distintos (semantic.text, semantic.brandText, ctaGradientMidStop)",
+    ).toBe(3);
+
+    paradas.forEach((parada) => {
+      const ratio = contrastRatio(themes.light.semantic.onBrand, parada);
+      expect(
+        ratio,
+        `parada ${parada} da ${ratio.toFixed(3)}:1 contra onBrand, por debajo de AA (4.5:1)`,
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    // Sonda de no-vacuidad: secondary[300] (la parada VIEJA) NO puede
+    // aparecer entre las paradas renderizadas en tema claro.
+    expect(paradas).not.toContain(themes.light.palette.secondary[300]);
+  });
 });
 
 /*
