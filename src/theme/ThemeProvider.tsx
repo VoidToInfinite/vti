@@ -42,6 +42,43 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+/**
+ * Fix wave B (2026-08-12, hallazgo de review de rama): `localStorage.getItem`/
+ * `setItem` pueden LANZAR, no solo devolver `null` -- en modo privado
+ * estricto (Safari) o con el almacenamiento bloqueado por política del
+ * navegador, el acceso mismo tira una excepción (verificado leyendo el
+ * motor: `SecurityError`/`QuotaExceededError` según el caso). `matchMedia`,
+ * más abajo en este mismo componente, ya llevaba su catch homólogo desde
+ * antes -- con un comentario que decía explícitamente "igual que el catch
+ * homólogo de resolveTheme.ts"-- pero los dos accesos a `localStorage` se
+ * quedaron sin el suyo: en ESE navegador, el script pre-paint
+ * (`resolveTheme.ts`, que sí protege los dos) resolvía bien, pero el
+ * runtime de React lanzaba en CADA toggle -- sin ningún error boundary en
+ * el árbol, eso tira la sección entera. Estas dos funciones son el mismo
+ * catch, centralizado para los tres puntos de acceso de este módulo
+ * (resolución inicial, persistencia del toggle, lectura en el listener de
+ * `prefers-color-scheme`): degradar a "sin valor guardado"/"no se pudo
+ * persistir" en vez de propagar es correcto también en un navegador real
+ * sin soporte, no solo un parche de test -- mismo criterio que ya aplica el
+ * catch de `matchMedia` y que documenta `resolveTheme.ts`
+ * (`buildThemeBootstrapScript`) para su propio `try/catch` gemelo.
+ */
+function readStoredTheme(): string | null {
+  try {
+    return window.localStorage.getItem(STORAGE_KEYS.theme);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredTheme(name: ThemeName): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.theme, name);
+  } catch {
+    /* almacenamiento bloqueado: la sesion sigue funcionando sin persistir */
+  }
+}
+
 export function ThemeProvider({
   children,
 }: {
@@ -62,7 +99,7 @@ export function ThemeProvider({
     // the very first client render (identical to the baked HTML), so this
     // never causes a hydration mismatch, even though a few components may
     // repaint once the value corrects.
-    const stored = window.localStorage.getItem(STORAGE_KEYS.theme);
+    const stored = readStoredTheme();
     // jsdom no implementa `matchMedia` (lección ya documentada en
     // `providers.test.tsx`) y este efecto ahora corre en CADA test que monta
     // `ThemeProvider` vía `renderWithProviders` -- decenas de ficheros que no
@@ -108,7 +145,7 @@ export function ThemeProvider({
   // efecto no lo cumplía.
   useEffect(() => {
     if (changeSource !== "user") return;
-    window.localStorage.setItem(STORAGE_KEYS.theme, themeName);
+    writeStoredTheme(themeName);
   }, [themeName, changeSource]);
 
   // Task 34, corolario de D-C: quien NUNCA ha tocado el toggle no tiene
@@ -140,7 +177,7 @@ export function ThemeProvider({
       return;
     }
     const handleChange = (event: MediaQueryListEvent): void => {
-      const stored = window.localStorage.getItem(STORAGE_KEYS.theme);
+      const stored = readStoredTheme();
       if (stored === "light" || stored === "dark") return; // D-C: storage gana
       setChangeSource("hydration");
       setTheme(event.matches ? "dark" : "light");

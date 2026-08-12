@@ -381,3 +381,101 @@ describe("ThemeProvider — Task 34: detectar no es elegir (gate F4, D-C)", () =
     expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
   });
 });
+
+describe("ThemeProvider — fix wave B (2026-08-12): localStorage bloqueado no tira el runtime", () => {
+  // El `Storage` de jsdom se implementa por dentro con un Proxy (para
+  // soportar `localStorage.miClave = "x"` ademas de `setItem`), que ignora
+  // un `vi.spyOn` sobre `getItem`/`setItem` de la instancia real -- probado
+  // y descartado al escribir este test (el spy se instala pero la llamada
+  // real sigue sin lanzar). La via que SI funciona es sustituir el objeto
+  // `window.localStorage` COMPLETO por uno propio, mismo patron que ya usan
+  // otros repos para simular modo privado estricto.
+  const realLocalStorage = window.localStorage;
+
+  /** Modo privado estricto (Safari) o política de navegador que bloquea el
+   *  almacenamiento: `getItem`/`setItem` LANZAN, no devuelven `null`. */
+  function blockStorage(): void {
+    const blocked: Storage = {
+      length: 0,
+      clear: () => {},
+      key: () => null,
+      getItem: () => {
+        throw new DOMException("almacenamiento bloqueado", "SecurityError");
+      },
+      setItem: () => {
+        throw new DOMException("almacenamiento bloqueado", "SecurityError");
+      },
+      removeItem: () => {},
+    };
+    Object.defineProperty(window, "localStorage", {
+      value: blocked,
+      configurable: true,
+    });
+  }
+
+  afterEach(() => {
+    Object.defineProperty(window, "localStorage", {
+      value: realLocalStorage,
+      configurable: true,
+    });
+  });
+
+  it("con localStorage bloqueado, el montaje no lanza y resuelve al default claro (sin preferencia detectada)", () => {
+    blockStorage();
+    stubMatchMedia(false);
+
+    expect(() => renderProbe()).not.toThrow();
+    expect(screen.getByTestId("probe")).toHaveTextContent("light:initial");
+  });
+
+  /**
+   * El escenario que motivó este fix: en un navegador con storage bloqueado,
+   * el script pre-paint (`resolveTheme.ts`, ya protegido) resuelve bien,
+   * pero SIN el try/catch de esta revisión el runtime de React lanzaba en
+   * cada toggle -- el control principal de esa rama, sin ningún error
+   * boundary en el árbol. Verificado con el bug inyectado a propósito
+   * (informe de la tarea): quitando temporalmente los dos `try/catch` de
+   * `readStoredTheme`/`writeStoredTheme` en `ThemeProvider.tsx`, este test
+   * cae en rojo (el `act()` del click relanza la excepción de `setItem`);
+   * restaurados, vuelve a verde.
+   */
+  it("con localStorage bloqueado, el toggle SIGUE cambiando el tema en memoria sin lanzar", () => {
+    blockStorage();
+    stubMatchMedia(false);
+    function ProbeConToggle(): ReactElement {
+      const { themeName, changeSource, toggleTheme } = useTheme();
+      return (
+        <div>
+          <p data-testid="probe">
+            {themeName}:{changeSource}
+          </p>
+          <button onClick={toggleTheme}>alternar</button>
+        </div>
+      );
+    }
+    render(
+      <ThemeProvider>
+        <ProbeConToggle />
+      </ThemeProvider>,
+    );
+
+    expect(() => {
+      act(() => {
+        screen.getByRole("button", { name: "alternar" }).click();
+      });
+    }).not.toThrow();
+
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:user");
+  });
+
+  it("con localStorage bloqueado, el listener de prefers-color-scheme en vivo tampoco lanza", () => {
+    blockStorage();
+    const { dispatchChange } = stubMatchMedia(false);
+    renderProbe();
+    expect(screen.getByTestId("probe")).toHaveTextContent("light:initial");
+
+    expect(() => dispatchChange(true)).not.toThrow();
+
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
+  });
+});
