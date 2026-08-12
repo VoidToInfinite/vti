@@ -1,5 +1,55 @@
 # Lecciones
 
+## 2026-08-12 (Task 22) — `align-items: stretch` en un bento asimétrico rellena la diferencia de alto con superficie vacía si las dos celdas que se comparan NO tienen la misma estructura
+
+- **Qué pasó:** para romper la tercera rejilla `auto-fit+minmax` seguida (Story/Journey/Features,
+  hallazgo M4), el primer diseño de la rejilla clara de Features hacía que la 1ª tarjeta ocupara una
+  columna ANCHA a lo largo de las DOS filas (`grid-row: 1 / span 2`), con la 2ª y 3ª apiladas en la
+  columna estrecha al lado. En navegador real (`playwright-cli`, captura conservada en el informe de
+  la tarea) el resultado no era "jerarquía visual": era un hueco de superficie blanca vacía bajo el
+  CTA de la tarjeta ancha, porque su contenido (imagen + cuerpo + 4 bullets + CTA) terminaba mucho
+  antes que la SUMA de las dos tarjetas apiladas al lado, y `align-items: stretch` (ya declarado en el
+  contenedor) estiraba la tarjeta ancha a esa altura combinada sin nada que pintar en el sobrante.
+- **Por qué no lo vio ningún test:** jsdom no hace layout (`getBoundingClientRect()` da ceros), así que
+  ningún candado de CSSOM puede detectar un hueco de ALTURA -- es una propiedad puramente visual, solo
+  observable en un motor de layout real.
+- **La causa raíz:** `align-items: stretch` iguala la altura de un ítem de grid a la de su ÁREA
+  asignada, no a la de otro ítem "comparable". Cuando el ítem ancho ocupa 2 filas y los otros dos
+  ocupan 1 fila cada uno, la comparación implícita no es "misma estructura contra misma estructura"
+  (que sí produce diferencias de un par de líneas, absorbibles sin verse) sino "una tarjeta contra DOS
+  tarjetas + el gap entre ellas" -- una diferencia de una fila entera, casi nunca absorbible sin hueco.
+- **El arreglo:** cambiar la asimetría de EJE. La 1ª tarjeta pasa a ocupar las DOS COLUMNAS en su
+  propia FILA (`grid-column: 1 / -1`), y la 2ª/3ª quedan hermanadas debajo, una junto a otra. Ahora la
+  comparación de `align-items: stretch` es entre las dos tarjetas de la fila inferior, que SÍ comparten
+  la misma estructura entre sí -- su diferencia de alto es la que cabe esperar entre dos párrafos
+  distintos (unos pocos píxeles), no una fila entera, y se absorbe sin dejar hueco visible.
+- **Regla:** antes de dar por buena una rejilla bento/asimétrica con `align-items: stretch`, identificar
+  qué DOS elementos va a comparar el motor de grid para decidir la altura del más alto, y comprobar que
+  esos dos comparten la MISMA estructura de contenido -- si el motor va a comparar "1 tarjeta" contra
+  "N tarjetas apiladas", el sobrante casi siempre se lee como una caja rota, no como jerarquía. Y
+  verificar SIEMPRE en navegador real (regla 44), nunca solo por la forma del CSS: jsdom no puede ver
+  este defecto.
+
+## 2026-08-12 (Task 22) — Dos sesiones de `playwright-cli` sin nombre propio (`-s=`) comparten la MISMA sesión `default` y una puede navegar la pestaña de la otra
+
+- **Qué pasó:** con T19/T20 corriendo en paralelo (aviso explícito del brief), un `playwright-cli open
+  http://localhost:3400/` seguido de varios `resize`/`eval` funcionó con normalidad -- pero tras un
+  `reload`, la página resultante mostraba `location.href` apuntando a `http://localhost:3600/`, un
+  puerto que esta sesión nunca solicitó. El log del `serve` propio (puerto 3400) confirmaba que las
+  peticiones habían dejado de llegar en ese instante.
+- **Causa raíz:** ningún comando de la sesión llevaba `-s=<nombre>`, así que `playwright-cli` operaba
+  contra la sesión `default` -- la MISMA que usa cualquier otra invocación de `playwright-cli` en la
+  máquina que tampoco especifique nombre. Otra sesión concurrente (con toda probabilidad T19/T20,
+  trabajando su propio verificado en navegador) navegó esa pestaña compartida a su propio servidor.
+- **Cómo se detectó y se corrigió:** comparando `location.href`/el título de la página contra lo
+  esperado tras cada comando -- no asumir que el puerto sigue siendo el que se abrió al principio. El
+  arreglo fue abrir una sesión con nombre propio (`playwright-cli -s=t22 open ...`), que ya no compartió
+  estado con ninguna otra sesión concurrente durante el resto de la verificación.
+- **Regla:** en cualquier tarea con sesiones paralelas en vuelo (el caso habitual de este repo, ver
+  CLAUDE.md §9), toda invocación de `playwright-cli` para verificación en navegador lleva **siempre**
+  `-s=<nombre-propio-de-la-tarea>` desde el primer comando -- nunca la sesión `default`, que cualquier
+  otra tarea concurrente puede estar usando (y navegando) al mismo tiempo.
+
 ## 2026-08-12 (Task 35) — Un `position: absolute`/`fixed` cuyo bloque contenedor es TAMBIÉN el propio contenedor de scroll se desplaza con el contenido, aunque `fixed` normalmente sea inmune al scroll
 
 - **Qué pasó:** para que el botón de cierre nuevo de la hoja móvil (`NavSheet.tsx`)
