@@ -250,26 +250,49 @@ const FAMILIES = [
 // ---------------------------------------------------------------------------
 // 4. Allowlist -- excepciones YA sancionadas por el repo.
 //
-// Fix de revision (2026-08-12): la primera version candaba por RECUENTO
+// Fix de revision #1 (2026-08-12): la primera version candaba por RECUENTO
 // (family+file -> maxCount). Un reviewer demostro el bypass: en
 // BrandName.tsx retiro la linea legitima del @supports (una de las 5
 // apariciones) y anadio un `background-clip: text` NUEVO y no relacionado
 // en un componente ficticio -- el total seguia siendo 5 y el gate daba
 // "sin hallazgos nuevos". El recuento no sabe QUE linea es la sancionada,
-// solo CUANTAS hay.
+// solo CUANTAS hay. Se sustituyo por anclar en (linea, contenido exacto).
 //
-// Ahora cada entrada ancla por (linea, contenido exacto de esa linea ya sin
-// comentarios y recortada): `anchors: [{ line, snippet }, ...]`. Un hallazgo
-// solo se suprime si existe un ancla en su MISMA familia+fichero+linea CUYO
-// snippet coincide caracter a caracter con lo que hay hoy en esa linea. Si
-// la linea sancionada se edita, se mueve, o se borra y se sustituye por otra
-// (aunque el recuento total cuadre), deja de tener ancla que la cubra y
-// aparece como hallazgo nuevo -- el swap del reviewer ya no pasa: el
-// @supports retirado deja su ancla sin cubrir (aviso, no bloquea: quitar un
-// patron sancionado nunca es problema) y el `background-clip: text` nuevo
-// no tiene ancla en su linea -> falla el gate.
+// Fix de revision #2 (2026-08-12, mismo dia): anclar por NUMERO DE LINEA
+// resulto ser la coordenada equivocada. Un reviewer demostro el bypass
+// contrario: insertar una UNICA linea en blanco al principio de
+// src/theme/tokens/motion.ts desplazo la linea sancionada de `overshoot`
+// de la 22 a la 23 sin que su CONTENIDO cambiara un caracter -- y el gate
+// se puso en rojo con un hallazgo falso (`motion.ts:23 [overshoot]`). Con
+// 25 anclas en 9 ficheros, varias en ficheros de alto trafico
+// (Story.tsx/Features.tsx/GlobalStyles.tsx), cualquier import o linea de
+// docblock anadida por ENCIMA de una linea sancionada rompe el gate por una
+// razon ajena al cambio -- exactamente el escenario en el que alguien acaba
+// desactivando el detector. La propia RULES.md (deuda de `color-mix()`) ya
+// razona esto para otro caso: "los numeros de linea se omiten a proposito:
+// se desplazan a cada entrega y ya caducaron una vez; los nombres de los
+// styled-components no". La propiedad que de verdad cierra el bypass del
+// fix #1 es el CONTENIDO exacto de la linea, no su posicion.
 //
-// Los snippets de abajo se generaron leyendo el fichero real (no a mano):
+// Diseno final: cada entrada ancla por (familia, fichero, contenido EXACTO
+// de una linea ya sin comentarios y recortada) -- SIN numero de linea.
+// `anchors: [{ snippet, count? }, ...]`, donde `count` (opcional, default 1)
+// es cuantas apariciones de ESE contenido exacto estan sancionadas dentro de
+// la MISMA familia+fichero (p. ej. el kicker de Story.tsx aparece dos veces,
+// una por rama de tema, con el mismo JSX literal -- `count: 2`). Un
+// hallazgo se suprime si su familia+fichero+contenido coincide con un ancla
+// Y todavia queda presupuesto sin consumir (occurrence <= count); a partir
+// de ahi, cualquier aparicion EXTRA de ese mismo contenido, o cualquier
+// contenido que no coincide con ningun ancla, es un hallazgo nuevo -- el
+// swap del fix #1 (retirar una linea sancionada, anadir una NUEVA con
+// contenido distinto en otro sitio) sigue sin pasar: el contenido nuevo no
+// tiene ancla que lo cubra. Y el bypass del fix #2 (insertar una linea en
+// blanco arriba) tampoco: el contenido de la linea sancionada no cambia, asi
+// que su ancla la sigue cubriendo sea cual sea su numero de linea actual.
+//
+// `lines` en cada ancla es solo documentacion para un humano (donde vivia
+// esta excepcion cuando se escribio la entrada) -- el motor NUNCA lo lee.
+// Los snippets se generaron leyendo el fichero real (no a mano):
 // `stripComments(fs.readFileSync(file)).split("\n")[line - 1].trim()`.
 // ---------------------------------------------------------------------------
 
@@ -278,11 +301,17 @@ const ALLOWLIST = [
         family: "gradient-text",
         file: "src/components/layout/Brand/BrandName.tsx",
         anchors: [
-            { line: 196, snippet: "export const gradientTextClip = css`" },
-            { line: 198, snippet: "-webkit-background-clip: text;" },
-            { line: 199, snippet: "background-clip: text;" },
-            { line: 222, snippet: "@supports not (background-clip: text) {" },
-            { line: 230, snippet: "${gradientTextClip}" },
+            {
+                snippet: "export const gradientTextClip = css`",
+                lines: [196],
+            },
+            { snippet: "-webkit-background-clip: text;", lines: [198] },
+            { snippet: "background-clip: text;", lines: [199] },
+            {
+                snippet: "@supports not (background-clip: text) {",
+                lines: [222],
+            },
+            { snippet: "${gradientTextClip}", lines: [230] },
         ],
         reason: "Wordmark ToInfinite: definicion del mixin gradientTextClip -- declaracion background-clip (2, con prefijo -webkit-), su feature-detection @supports not (background-clip: text) (1), el nombre del propio export (1) y su segundo consumo interno (ScGradientTail, 1). El degradado ES la identidad de marca del wordmark -- unico origen del mecanismo.",
     },
@@ -291,11 +320,11 @@ const ALLOWLIST = [
         file: "src/components/sections/Story/story.deck.tsx",
         anchors: [
             {
-                line: 3,
                 snippet:
                     'import { gradientTextClip } from "@/components/layout/Brand/BrandName";',
+                lines: [3],
             },
-            { line: 631, snippet: "${gradientTextClip}" },
+            { snippet: "${gradientTextClip}", lines: [631] },
         ],
         reason: "Cierre del deck de Story reutiliza gradientTextClip tal cual: el import (1) y su unico consumo (1), ambos apuntando a la definicion de BrandName.tsx, sin declaracion propia.",
     },
@@ -303,11 +332,20 @@ const ALLOWLIST = [
         family: "important",
         file: "src/theme/GlobalStyles.tsx",
         anchors: [
-            { line: 289, snippet: "animation-duration: 0.001ms !important;" },
-            { line: 290, snippet: "animation-iteration-count: 1 !important;" },
-            { line: 291, snippet: "transition-duration: 0.001ms !important;" },
-            { line: 409, snippet: "opacity: 1 !important;" },
-            { line: 410, snippet: "transform: none !important;" },
+            {
+                snippet: "animation-duration: 0.001ms !important;",
+                lines: [289],
+            },
+            {
+                snippet: "animation-iteration-count: 1 !important;",
+                lines: [290],
+            },
+            {
+                snippet: "transition-duration: 0.001ms !important;",
+                lines: [291],
+            },
+            { snippet: "opacity: 1 !important;", lines: [409] },
+            { snippet: "transform: none !important;", lines: [410] },
         ],
         reason: "Reset de prefers-reduced-motion (animation-duration/iteration-count, transition-duration, 3 declaraciones) + fallback @media (scripting: none) para JS deshabilitado (opacity/transform, 2 declaraciones): las dos necesitan ganar por especificidad al selector universal bajo el mismo media query. Documentado en el propio fichero.",
     },
@@ -316,8 +354,8 @@ const ALLOWLIST = [
         file: "src/components/ui/Button/Button.tsx",
         anchors: [
             {
-                line: 276,
                 snippet: "theme.data.motion.duration.spinReduced} !important;",
+                lines: [276],
             },
         ],
         reason: "Spinner reducido (aria-busy): gana al reset global de GlobalStyles bajo el mismo media query prefers-reduced-motion (docblock linea 267 del propio fichero).",
@@ -327,9 +365,9 @@ const ALLOWLIST = [
         file: "src/components/legal/legalPage.parts.tsx",
         anchors: [
             {
-                line: 240,
                 snippet:
                     "border-left: 3px solid ${({ theme }) => theme.data.semantic.warning};",
+                lines: [240],
             },
         ],
         reason: "Callout de advertencia legal: franja lateral de 3px, unico consumo del patron en el repo (side-tab, excepcion visual documentada).",
@@ -339,8 +377,8 @@ const ALLOWLIST = [
         file: "src/theme/tokens/motion.ts",
         anchors: [
             {
-                line: 22,
                 snippet: 'overshoot: "cubic-bezier(0.34, 1.56, 0.64, 1)",',
+                lines: [22],
             },
         ],
         reason: "motion.easing.overshoot: unica curva no monotona del sistema, reservada al despegue del navbar al hacer scroll (Navbar.tsx, ScBar). Excepcion sancionada y medida en DESIGN.md Seccion 5.1 (Task 23, plan premium F1-F5).",
@@ -348,7 +386,7 @@ const ALLOWLIST = [
     {
         family: "radius-literal",
         file: "src/components/scenes/eye/mascots/Sol.tsx",
-        anchors: [{ line: 330, snippet: "border-radius: 3px;" }],
+        anchors: [{ snippet: "border-radius: 3px;", lines: [330] }],
         reason: "Punta del rayo del mascote Sol (ScRay, 3px = su propio width): geometria de trazo de arte de marca, mismo fichero que ya usa formas organicas en % sin token (excepcion de regla 17 de RULES.md, arte de marca con constantes propias).",
     },
     {
@@ -356,27 +394,23 @@ const ALLOWLIST = [
         file: "src/components/sections/Story/Story.tsx",
         anchors: [
             {
-                line: 1343,
                 snippet:
                     '<ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>',
-            },
-            {
-                line: 1546,
-                snippet:
-                    '<ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>',
+                count: 2,
+                lines: [1343, 1546],
             },
         ],
-        reason: 'ScKicker con voz propia (decision D-E del dueno) en las dos ramas de Story -- render en la rama clara y en la oscura, misma clave i18n "Home.story.kicker".',
+        reason: 'ScKicker con voz propia (decision D-E del dueno) en las dos ramas de Story -- render en la rama clara y en la oscura, misma clave i18n "Home.story.kicker" (mismo JSX literal en las dos ramas, count: 2).',
     },
     {
         family: "kicker",
         file: "src/components/sections/Features/Features.tsx",
         anchors: [
-            { line: 1410, snippet: '<ScKicker variant="overline">' },
+            { snippet: '<ScKicker variant="overline">', lines: [1410] },
             {
-                line: 1514,
                 snippet:
                     '<ScKicker variant="overline">{t("Home.features.kicker")}</ScKicker>',
+                lines: [1514],
             },
         ],
         reason: 'ScKicker con voz propia (decision D-E del dueno) en las dos ramas de Features -- render en la rama clara y en la oscura, misma clave i18n "Home.features.kicker".',
@@ -385,10 +419,10 @@ const ALLOWLIST = [
         family: "numbering",
         file: "src/components/sections/Story/Story.tsx",
         anchors: [
-            { line: 87, snippet: '{ key: "learn", number: "01" },' },
-            { line: 88, snippet: '{ key: "create", number: "02" },' },
-            { line: 89, snippet: '{ key: "grow", number: "03" },' },
-            { line: 90, snippet: '{ key: "practice", number: "04" },' },
+            { snippet: '{ key: "learn", number: "01" },', lines: [87] },
+            { snippet: '{ key: "create", number: "02" },', lines: [88] },
+            { snippet: '{ key: "grow", number: "03" },', lines: [89] },
+            { snippet: '{ key: "practice", number: "04" },', lines: [90] },
         ],
         reason: 'Numeracion 01-04 de los cuatro pilares de Story (aprendizaje/creacion/crecimiento/practica), array STORY_STEPS con "number: \\"0N\\"".',
     },
@@ -397,23 +431,43 @@ const ALLOWLIST = [
         file: "src/components/sections/Journey/Journey.tsx",
         anchors: [
             {
-                line: 116,
                 snippet: 'return String(index + 1).padStart(2, "0");',
+                lines: [116],
             },
         ],
         reason: 'Ordinal 01..06 de los pasos de Journey, rama clara (stepOrdinal via padStart(2, "0")), unico generador del repo.',
     },
 ];
 
-// Mapa plano "familia fichero:linea" -> { snippet esperado, entrada } para
-// resolucion O(1) por hallazgo.
+// Clave compuesta (familia, fichero, contenido de linea) -- UNA sola
+// funcion, reutilizada por la construccion de ANCHOR_MAP y por el motor
+// (seccion 5) para agrupar hallazgos: que las dos mitades del candado
+// deriven la clave del mismo sitio es lo que garantiza que nunca se
+// desincronicen entre si. El separador " :: " no es un caracter de control
+// (evita la clase de bug ya pagada aqui con un separador NUL invisible) y no
+// aparece de forma realista dentro de un id de familia, una ruta de fichero
+// o un contenido de linea de este repo.
+function anchorKey(family, file, snippet) {
+    return family + " :: " + file + " :: " + snippet;
+}
+
+// Mapa "familia :: fichero :: snippet" -> { allowed, reason } para
+// resolucion O(1) por hallazgo. `allowed` es el presupuesto de apariciones
+// sancionadas de ESE contenido exacto (suma de `count`, default 1, de todas
+// las entradas de ALLOWLIST que compartan familia+fichero+snippet -- no
+// deberia haber mas de una, pero sumar en vez de sobreescribir es la opcion
+// segura si alguna vez la hay).
 const ANCHOR_MAP = new Map();
 for (const entry of ALLOWLIST) {
     for (const a of entry.anchors) {
-        ANCHOR_MAP.set(`${entry.family} ${entry.file}:${a.line}`, {
-            snippet: a.snippet,
-            reason: entry.reason,
-        });
+        const key = anchorKey(entry.family, entry.file, a.snippet);
+        const count = a.count ?? 1;
+        const existing = ANCHOR_MAP.get(key);
+        if (existing) {
+            existing.allowed += count;
+        } else {
+            ANCHOR_MAP.set(key, { allowed: count, reason: entry.reason });
+        }
     }
 }
 
@@ -452,44 +506,109 @@ function scanFile(absFile) {
     return findings;
 }
 
+// ---------------------------------------------------------------------------
+// 4bis. Guia por familia para el mensaje de fallo.
+//
+// Fix "de paso" (revision 2026-08-12): el mensaje de fallo enmarcaba las DIEZ
+// familias como violaciones de "toda transition/animation nueva usa un token
+// de motion.ts" -- falso para "kicker", "numbering", "radius-literal" y
+// "side-stripe", que no son transiciones ni animaciones en absoluto (un
+// componente *Kicker* repetido, una numeracion decorativa, un radio o una
+// franja lateral). Cada familia tiene ahora su propia guia, mostrada solo
+// para las familias que de verdad aparecen en los hallazgos.
+// ---------------------------------------------------------------------------
+
+const FAMILY_GUIDANCE = {
+    "transition-all":
+        "toda transition/animation nueva usa una duracion+curva de src/theme/tokens/motion.ts (nunca `all`, que anima cualquier propiedad que cambie, incluidas las que disparan reflow).",
+    "ease-in-bare":
+        "toda transition/animation nueva usa una curva de src/theme/tokens/motion.ts; `ease-in` a secas (sin `-out`) acelera hasta el final y se lee como un frenazo.",
+    "repeating-gradient":
+        "un patron decorativo repetitivo (repeating-*-gradient) es la clase de detalle que esta familia vigila -- si es intencional, documentalo en el propio codigo y anade la excepcion a ALLOWLIST.",
+    "important":
+        "un !important nuevo casi siempre es sintoma de una guerra de especificidad; si de verdad hace falta ganarle a un reset global bajo el mismo media query (como el reset de prefers-reduced-motion), documentalo igual que las excepciones ya sancionadas.",
+    "gradient-text":
+        "un texto con degradado recortado nuevo (background-clip: text) fuera del wordmark de marca ya sancionado necesita su propia justificacion documentada.",
+    "side-stripe":
+        "una franja lateral decorativa nueva (border-left/right >=2px solid) fuera del callout legal ya sancionado necesita su propia justificacion documentada.",
+    "overshoot":
+        "una curva cubic-bezier con rebote fuera de src/theme/tokens/motion.ts (motion.easing.overshoot es la unica sancionada, reservada al despegue del navbar) necesita su propia justificacion documentada.",
+    "radius-literal":
+        "un border-radius literal nuevo usa un token de src/theme/tokens/radius.ts en vez de un numero escrito a mano.",
+    "kicker":
+        "un <*Kicker*> nuevo fuera de Story.tsx/Features.tsx (las dos ramas ya sancionadas, decision D-E del dueno) necesita decidirse con el dueno del producto, igual que el resto de kickers del sitio.",
+    "numbering":
+        'una numeracion decorativa de seccion nueva (number: "0N", o el ordinal String(idx + 1).padStart(2, "0")) fuera de Story.tsx/Journey.tsx (los dos generadores ya sancionados) necesita decidirse igual que el resto.',
+};
+
 function run() {
     const files = collectFiles();
     const allFindings = files.flatMap(scanFile);
 
-    // Candado por ancla: un hallazgo se suprime SOLO si existe una entrada en
-    // ANCHOR_MAP para su misma familia+fichero+linea Y el contenido literal
-    // de esa linea (rawLine) coincide caracter a caracter con el snippet
-    // esperado. Ni el recuento total ni la familia/fichero por si solos
-    // bastan -- tiene que ser ESA linea, con ESE contenido (ver seccion 4).
-    const failures = [];
-    const suppressed = [];
-    const matchedAnchorKeys = new Set();
+    // Candado por ancla de CONTENIDO (fix de revision #2, ver seccion 4): un
+    // hallazgo se suprime SOLO si existe una entrada en ANCHOR_MAP para su
+    // misma familia+fichero+contenido-de-linea (rawLine) Y todavia queda
+    // presupuesto de apariciones sin consumir para ese contenido exacto. El
+    // numero de linea NUNCA participa en la comparacion -- una linea
+    // sancionada sigue cubierta aunque se desplace (insertar una linea en
+    // blanco arriba, por ejemplo), y un contenido NUEVO nunca queda cubierto
+    // por la sola coincidencia de recuento total (ver seccion 4 para el
+    // porque de cada uno de los dos bypasses ya cerrados).
+    //
+    // Se agrupa por familia+fichero+contenido y se consume el presupuesto en
+    // orden ascendente de linea (determinista): las primeras `allowed`
+    // apariciones de ESE contenido exacto se suprimen, cualquier aparicion
+    // extra es un hallazgo nuevo.
+    const contentGroups = new Map();
     for (const f of allFindings) {
-        const anchorKey = f.family + " " + f.file + ":" + f.line;
-        const anchor = ANCHOR_MAP.get(anchorKey);
-        if (anchor && anchor.snippet === f.rawLine) {
-            suppressed.push({ ...f, reason: anchor.reason });
-            matchedAnchorKeys.add(anchorKey);
-        } else {
-            failures.push(f);
-        }
+        const key = anchorKey(f.family, f.file, f.rawLine);
+        if (!contentGroups.has(key)) contentGroups.set(key, []);
+        contentGroups.get(key).push(f);
     }
 
-    // Allowlist obsoleto: un ancla sin hallazgo que la cubra hoy (la linea
-    // sancionada se borro, se movio, o su contenido cambio) no rompe el gate
-    // -- reducir o retirar un patron sancionado nunca es un problema -- pero
-    // se avisa para que alguien limpie la entrada. Distinto de "hallazgo
-    // nuevo sin ancla", que SI rompe el gate (ver arriba).
+    const failures = [];
+    const suppressed = [];
+    const matchedCountByAnchorKey = new Map();
+    for (const [key, findings] of contentGroups) {
+        const anchor = ANCHOR_MAP.get(key);
+        if (!anchor) {
+            failures.push(...findings);
+            continue;
+        }
+        findings.sort((a, b) => a.line - b.line);
+        findings.forEach((f, idx) => {
+            if (idx < anchor.allowed) {
+                suppressed.push({ ...f, reason: anchor.reason });
+            } else {
+                failures.push(f);
+            }
+        });
+        matchedCountByAnchorKey.set(
+            key,
+            Math.min(findings.length, anchor.allowed),
+        );
+    }
+
+    // Allowlist obsoleto: un ancla cuyo contenido ya no aparece HOY tantas
+    // veces como su presupuesto (la linea sancionada se borro, se movio de
+    // contenido, o se redujo su numero de apariciones) no rompe el gate --
+    // reducir o retirar un patron sancionado nunca es un problema -- pero se
+    // avisa para que alguien limpie la entrada. Distinto de "hallazgo nuevo
+    // sin ancla", que SI rompe el gate (ver arriba).
     const stale = [];
     for (const entry of ALLOWLIST) {
         for (const a of entry.anchors) {
-            const key = entry.family + " " + entry.file + ":" + a.line;
-            if (!matchedAnchorKeys.has(key)) {
+            const key = anchorKey(entry.family, entry.file, a.snippet);
+            const allowed = ANCHOR_MAP.get(key)?.allowed ?? a.count ?? 1;
+            const matched = matchedCountByAnchorKey.get(key) ?? 0;
+            if (matched < allowed) {
                 stale.push({
                     family: entry.family,
                     file: entry.file,
-                    line: a.line,
+                    lines: a.lines ?? [],
                     expected: a.snippet,
+                    allowed,
+                    matched,
                 });
             }
         }
@@ -532,8 +651,11 @@ function run() {
         );
         console.log("sigue aplicando o si ya se puede retirar del script.\n");
         for (const s of stale) {
+            const where = s.lines.length
+                ? ` (lineas ${s.lines.join(", ")} al escribir la entrada)`
+                : "";
             console.log(
-                `  [${s.family}] ${s.file}:${s.line} -- se esperaba: ${JSON.stringify(s.expected)}`,
+                `  [${s.family}] ${s.file}${where} -- se esperaban ${s.allowed} aparicion(es) de: ${JSON.stringify(s.expected)}; hoy hay ${s.matched}.`,
             );
         }
         console.log("");
@@ -549,19 +671,28 @@ function run() {
             console.error(`  ${f.file}:${f.line}  [${f.family}]  ${f.snippet}`);
         }
         console.error(
-            "\nCada linea de arriba es una familia de RULES.md (regla 48, seccion Estilos y movimiento):",
+            "\nCada hallazgo de arriba pertenece a una familia de RULES.md (regla 48, seccion Estilos y",
         );
         console.error(
-            "toda transition/animation nueva usa un token de src/theme/tokens/motion.ts o una entrada",
+            "movimiento) -- guia especifica de la familia que salio en rojo:\n",
+        );
+        const familiesInFailures = [
+            ...new Set(failures.map((f) => f.family)),
+        ].sort();
+        for (const familyId of familiesInFailures) {
+            const guidance =
+                FAMILY_GUIDANCE[familyId] ??
+                "revisa la familia correspondiente en RULES.md (regla 48).";
+            console.error(`  [${familyId}] ${guidance}`);
+        }
+        console.error(
+            "\nSi el literal/patron es intencional y ya esta justificado con un docblock en el propio",
         );
         console.error(
-            "de src/motion/vocabulary.ts. Si el literal es intencional y ya esta justificado con un",
+            "codigo, anade una entrada a ALLOWLIST en scripts/detect-anti-patterns.mjs con el porque.",
         );
         console.error(
-            "docblock en el propio codigo, anade una entrada a ALLOWLIST en scripts/detect-anti-patterns.mjs",
-        );
-        console.error(
-            "con el porque. Si no lo esta, usa el token/vocabulario existente.\n",
+            "Si no lo esta, usa el token/vocabulario/patron ya existente.\n",
         );
         process.exitCode = 1;
         return;
