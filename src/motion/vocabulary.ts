@@ -63,6 +63,61 @@
  * `system.test.ts` hace con `motion.duration`/`motion.easing`. Un test que
  * solo comprobara un subconjunto de campos dejaría pasar en silencio un
  * cambio de valor en un campo no cubierto.
+ *
+ * ## Fix de revisión (fix wave B, 2026-08-12): el candado media por GRUPO,
+ * no por CAMPO, y dejaba huérfanos campos enteros
+ *
+ * `src/test/vocabulary-consumers.test.ts` (Task 19) solo comprobaba que cada
+ * GRUPO tuviera AL MENOS un consumidor real -- así que un grupo con cuatro
+ * campos podía pasar el candado con tres de ellos completamente muertos. La
+ * review final de rama midió exactamente eso: `REVEAL.stepMs`,
+ * `DECK.slideDurationMs`, `DECK.slideShift`, `DECK.scrubMs` y
+ * `DECK.sceneDepthShift` tenían CERO consumidores de producción (grep
+ * `\bDECK\.<campo>\b`/`\bREVEAL\.<campo>\b`, sin tests ni el propio
+ * `vocabulary.ts`) pese a que `DECK` en conjunto sí pasaba el candado
+ * (gracias a `railDurationMs`/`exitDurationMs`, que sí tienen consumidor). Y
+ * peor: `DECK.sceneDepthShift`/`DECK.slideShift` estaban DUPLICADOS a mano en
+ * `story.layers.ts`/`journey.layers.ts` (`STORY_SCENE_DEPTH_SHIFT`/
+ * `JOURNEY_SCENE_DEPTH_SHIFT`, `STORY_SLIDE_SHIFT`/`JOURNEY_SLIDE_SHIFT`) --
+ * el mismo patrón "literal repetido que debería ser token" que motivó crear
+ * este vocabulario en Task 8.
+ *
+ * `REVEAL` pierde aquí `stepMs` (retirado, ver su docblock) y `DECK` pierde
+ * `slideDurationMs`/`slideShift`/`scrubMs`/`sceneDepthShift` (retirados, ver
+ * el docblock de `DECK`): los CINCO carecían de consumidor real y ninguno se
+ * pudo migrar en esta revisión porque sus consumidores potenciales
+ * (`story.deck.tsx`/`journey.deck.tsx`/`story.layers.ts`/`journey.layers.ts`,
+ * los cuatro bajo `src/components/**`) están reservados a otra fix wave
+ * concurrente de la misma review de rama -- retirar el campo muerto del
+ * vocabulario es lo único que esta revisión puede hacer sin invadir ese
+ * territorio. La duplicación de `STORY_SCENE_DEPTH_SHIFT`/
+ * `JOURNEY_SCENE_DEPTH_SHIFT` y `STORY_SLIDE_SHIFT`/`JOURNEY_SLIDE_SHIFT`
+ * en sí SIGUE viva en esos dos ficheros -- no se resuelve retirando el
+ * puntero muerto del vocabulario, solo se deja de fingir que ya estaba
+ * resuelta. Queda como deuda abierta, declarada aquí a propósito para que
+ * una tarea futura que sí pueda tocar `src/components/**` la recoja: migrar
+ * esos cuatro ficheros a consumir `DECK.sceneDepthShift`/`DECK.slideShift`
+ * directamente (mismos valores exactos, cero cambio visual) y, de paso,
+ * `DECK.slideDurationMs` en `ScSlide`/`ScJourneySlide` (hoy leen
+ * `theme.data.motion.duration.slow` inline, mismo valor 320) y
+ * `DECK.scrubMs` en el `@keyframes story-deck-scrub` de `story.deck.tsx`
+ * (hoy `STORY_SCRUB_MS`, mismo valor 320, sin equivalente en Journey).
+ *
+ * El candado (`vocabulary-consumers.test.ts`) pasa ahora a medir por CAMPO,
+ * no por grupo -- itera las claves reales de cada grupo exportado, así que
+ * un campo huérfano nuevo (o el día de mañana `slideDurationMs`/`slideShift`/
+ * `scrubMs`/`sceneDepthShift` si alguien los reintroduce sin consumidor)
+ * sale en rojo de inmediato, sin esperar a que alguien piense en ampliar la
+ * lista de grupos comprobados. `OVERLAY` (Task 17, el único grupo que no
+ * tenía ningún candado) se añade a esa comprobación en la misma revisión.
+ *
+ * El candado por campo, ya construido, encontró un SEXTO huérfano que no
+ * estaba en la lista de la review de rama: `PRESS.hoverLift` (ver el
+ * docblock de `PRESS`, abajo) -- `Button.tsx` cita el campo en un
+ * comentario para explicar de dónde sale su `-2px`, pero el código nunca lo
+ * importó. Mismo motivo, mismo tratamiento (retirado, no migrado, misma
+ * deuda declarada): el único consumidor posible está bajo
+ * `src/components/**`, fuera del alcance de esta revisión.
  */
 
 /**
@@ -126,58 +181,44 @@
  *   ejemplo transiciones de UI que no son reveals de scroll) no se toca --
  *   la sustitución es "en los REVEAL, no en el resto" (punto 3 del brief de
  *   Task 19).
- * - `stepMs: 60` — sin consumidor dominante hoy: verificado por grep (`60ms`,
- *   stagger/cascade en `src/components/sections/`) que ningún reveal
- *   escalonado actual usa este paso. El escalonado más cercano que existe,
- *   `Journey.tsx:74` (`STEP_STAGGER_MS = 90`), es un valor DISTINTO para un
- *   propósito distinto (paso entre pasos del `ScStepReveal` de Journey, no
- *   entre elementos de una lista genérica). `60` es el valor verbatim de la
- *   spec del vault + adenda Emil para un escalonado de reveal que todavía no
- *   tiene implementación en el repo.
+ * `stepMs` (60, RETIRADO en fix wave B, 2026-08-12): sin consumidor dominante
+ * desde que se documentó (Task 19) hasta esta revisión -- verificado por
+ * grep (`60ms`, stagger/cascade en `src/components/sections/`) que ningún
+ * reveal escalonado del repo usa este paso, y por
+ * `src/test/vocabulary-consumers.test.ts` que mide por CAMPO desde esta
+ * revisión (antes solo medía que el GRUPO `REVEAL` tuviera algún
+ * consumidor, y `durationMs`/`easing`/`shift` ya lo cubrían, así que
+ * `stepMs` podía quedarse muerto indefinidamente sin que el candado lo
+ * viera). El escalonado más cercano que existe, `Journey.tsx:74`
+ * (`STEP_STAGGER_MS = 90`), es un valor DISTINTO para un propósito distinto
+ * (paso entre pasos del `ScStepReveal` de Journey, no entre elementos de una
+ * lista genérica) -- no hay ningún consumidor real al que migrar `stepMs`,
+ * a diferencia de `DECK.sceneDepthShift`/`DECK.slideShift` (ver el docblock
+ * de `DECK`, abajo), que sí tienen un destino conocido fuera del alcance de
+ * esta revisión. `60` seguía siendo el valor verbatim de la spec del vault +
+ * adenda Emil para un escalonado de reveal que nunca llegó a implementarse;
+ * si una tarea futura lo necesita, se reintroduce entonces, con su propio
+ * consumidor en el mismo commit -- no antes.
  */
 export const REVEAL = {
   durationMs: 480,
   easing: "cubic-bezier(0.23, 1, 0.32, 1)",
   shift: "16px",
-  stepMs: 60,
 } as const;
 
 /**
  * DECK — coreografía de las presentaciones de diapositivas (Story/Journey,
- * `story.deck.tsx`/`journey.deck.tsx`): el paso de una diapositiva a la
- * siguiente, el rail de progreso decorativo, el scrub de rewind y la
- * profundidad de parallax de la escena que las acompaña.
+ * `story.deck.tsx`/`journey.deck.tsx`): el rail de progreso decorativo y la
+ * salida de la pista de scroll de la presentación.
  *
- * - `slideDurationMs: 320` — `motion.duration.slow` (320ms) ya domina la
- *   transición de opacidad/`transform` de cada diapositiva: `ScSlide`
- *   (`story.deck.tsx:278-281`) y `ScJourneySlide`
- *   (`journey.deck.tsx:237-240`), las dos con el mismo par
- *   `motion.duration.slow` + `motion.easing.decelerate`.
- * - `slideShift: "40px"` — `STORY_SLIDE_SHIFT`
- *   (`story.layers.ts:137`, `"40px"`) y `JOURNEY_SLIDE_SHIFT`
- *   (`journey.layers.ts:308`, `"40px"`): el desplazamiento vertical de
- *   entrada/salida de cada diapositiva, idéntico en las dos presentaciones.
  * - `railDurationMs: 200` — `motion.duration.base` (200ms) ya domina la
  *   transición de las marcas del rail decorativo: `ScRailMark`
  *   (`story.deck.tsx:336-341`) y `ScJourneyRailMark`
  *   (`journey.deck.tsx:293-297`), las dos con el mismo trío
  *   opacity/transform/background-color a `motion.duration.base` +
- *   `motion.easing.standard`.
- * - `scrubMs: 320` — `STORY_SCRUB_MS` (`story.layers.ts:178`, atado por test
- *   a `motion.duration.slow` en `story.layers.test.ts:34`), consumido por el
- *   `@keyframes story-deck-scrub` de `story.deck.tsx:238`: el
- *   micro-desplazamiento en X que hace que retroceder (`data-dir="rewind"`)
- *   se lea como cinta rebobinando. Solo Story lo implementa hoy (verificado
- *   por grep: `journey.deck.tsx` no tiene un scrub equivalente); coincide
- *   numéricamente con `slideDurationMs` pero son dos roles distintos (avance
- *   entre diapositivas vs. detalle de sentido inverso), de ahí que el grupo
- *   los declare como dos campos separados en vez de reusar uno.
- * - `sceneDepthShift: "6dvh"` — `STORY_SCENE_DEPTH_SHIFT`
- *   (`story.layers.ts:169`) y `JOURNEY_SCENE_DEPTH_SHIFT`
- *   (`journey.layers.ts:330`, verificado también por
- *   `journey.layers.test.ts:70`): el recorrido en `transform` del
- *   envoltorio de la escena 3D mientras el stage está pegado, idéntico en
- *   las dos presentaciones.
+ *   `motion.easing.standard`. Consumidor real: `NavSheet.tsx` (la hoja de
+ *   navegación móvil reutiliza el mismo valor para su propia transición de
+ *   opacidad/visibilidad).
  * - `exitDurationMs: 200` — consumidor real desde Task 4 del plan
  *   `2026-08-10-implementacion-plan-premium-f1-f5.md` (posterior a este
  *   lote 8-14, que lo dejó sin implementar): `ScScrollHint`
@@ -188,13 +229,51 @@ export const REVEAL = {
  *   `railDurationMs`, arriba) y es el verbatim de la spec del vault + adenda
  *   Emil para la salida de un velo o capa de la presentación — el rol que
  *   describe exactamente ese desvanecimiento.
+ *
+ * ## Cuatro campos RETIRADOS en fix wave B (2026-08-12): cero consumidor
+ * real, y el candado ahora los habría atrapado
+ *
+ * Hasta esta revisión el grupo declaraba también `slideDurationMs` (320,
+ * pensado para `ScSlide`/`ScJourneySlide`), `slideShift` (`"40px"`, pensado
+ * para el mismo par), `scrubMs` (320, pensado para el `@keyframes
+ * story-deck-scrub` de Story) y `sceneDepthShift` (`"6dvh"`, pensado para el
+ * envoltorio de la escena 3D de Story/Journey mientras el stage está
+ * pegado). Los CUATRO llevaban desde su creación (lote 8-14) sin que ningún
+ * fichero de producción los consumiera vía `DECK.<campo>` -- verificado por
+ * grep, cero resultados para los cuatro -- pese a que el grupo `DECK` en
+ * conjunto SÍ pasaba `vocabulary-consumers.test.ts` (gracias a
+ * `railDurationMs`/`exitDurationMs`, arriba): ese candado medía por GRUPO,
+ * no por CAMPO, así que cuatro campos muertos podían esconderse detrás de
+ * dos vivos indefinidamente. Peor aún: `sceneDepthShift` y `slideShift`
+ * tenían el MISMO valor duplicado a mano en dos ficheros cada uno
+ * (`STORY_SCENE_DEPTH_SHIFT`/`JOURNEY_SCENE_DEPTH_SHIFT` = `"6dvh"`;
+ * `STORY_SLIDE_SHIFT`/`JOURNEY_SLIDE_SHIFT` = `"40px"`, ambos en
+ * `story.layers.ts`/`journey.layers.ts`) -- el propio patrón "literal
+ * repetido que debería ser token" que motivó crear este vocabulario en
+ * Task 8, reproducido dentro del vocabulario mismo. `slideDurationMs`
+ * coincidía con `theme.data.motion.duration.slow`, ya consumido inline en
+ * `ScSlide`/`ScJourneySlide` sin pasar por este grupo; `scrubMs` coincidía
+ * con `STORY_SCRUB_MS` (`story.layers.ts`, atado por test a
+ * `motion.duration.slow`), consumido solo por Story.
+ *
+ * Se retiran en vez de migrar sus consumidores potenciales porque los CUATRO
+ * ficheros que los consumirían de verdad
+ * (`story.deck.tsx`/`journey.deck.tsx`/`story.layers.ts`/`journey.layers.ts`)
+ * están bajo `src/components/**`, territorio reservado a otra fix wave
+ * concurrente de esta misma review de rama -- tocarlos aquí habría invadido
+ * ese alcance. La duplicación de `sceneDepthShift`/`slideShift` en
+ * `story.layers.ts`/`journey.layers.ts` sigue viva sin resolver: se deja
+ * declarada como deuda abierta (ver el docblock de cabecera de este
+ * fichero, sección "Fix de revisión") para que una tarea futura con acceso
+ * a `src/components/**` migre esos cuatro ficheros a `DECK.sceneDepthShift`/
+ * `DECK.slideShift`/`DECK.slideDurationMs`/`DECK.scrubMs` -- mismos valores
+ * exactos, cero cambio visual -- en vez de reintroducir estos cuatro campos
+ * sin más. Si esa migración vuelve a necesitarlos, se reintroducen entonces,
+ * en el MISMO commit que su primer consumidor real -- nunca antes, que es
+ * exactamente el estado que este fix cierra.
  */
 export const DECK = {
-  slideDurationMs: 320,
-  slideShift: "40px",
   railDurationMs: 200,
-  scrubMs: 320,
-  sceneDepthShift: "6dvh",
   exitDurationMs: 200,
 } as const;
 
@@ -260,8 +339,6 @@ export const OVERLAY = {
  * - `durationMs: 100` — `motion.duration.fast` (100ms) ya domina el press de
  *   `Button.tsx`: `transition: transform ${motion.duration.fast}
  *   ${motion.easing.standard}` (`Button.tsx:78-81`).
- * - `hoverLift: "-2px"` — `Button.tsx:166`,
- *   `transform: translateY(-2px)` en `:hover`.
  * - `activeScale: 0.98` — `Button.tsx:169`, `transform: scale(0.98)` en
  *   `:active`.
  * - `hoverGuard: "(hover: hover) and (pointer: fine)"` — cadena EXACTA de
@@ -277,11 +354,29 @@ export const OVERLAY = {
  *   transform de press — Task 9, punto 4, sustituye exactamente esa curva
  *   por `PRESS.easing` (`background-color` se queda con `standard`); Task 8
  *   no toca `Button.tsx`.
+ *
+ * `hoverLift` (`"-2px"`, RETIRADO en fix wave B, 2026-08-12): hallazgo
+ * ADICIONAL del candado por campo (`vocabulary-consumers.test.ts`, ver el
+ * docblock de cabecera de ese fichero), fuera de la lista que trajo la
+ * review de rama para este grupo. `Button.tsx:202` sigue escribiendo
+ * `transform: translateY(-2px)` a mano -- el propio docblock de ese bloque
+ * (líneas 181-199) CITA `PRESS.hoverLift` en prosa para explicar el origen
+ * del valor, pero el CÓDIGO nunca llegó a importar ni consumir el campo. La
+ * comprobación de grupo (anterior a esta revisión) no lo veía porque no
+ * despojaba comentarios de la misma forma exhaustiva; el candado por campo
+ * de esta revisión sí. Mismo motivo que los cuatro campos retirados de
+ * `DECK` (ver su docblock): el único consumidor real posible
+ * (`Button.tsx`, bajo `src/components/**`) está fuera del alcance de esta
+ * revisión -- reservado a otra fix wave concurrente de esta misma review de
+ * rama. Se retira en vez de migrar; queda como deuda abierta declarada (ver
+ * la sección "Fix de revisión" del docblock de cabecera de este fichero)
+ * para que una tarea futura con acceso a `src/components/**` conecte
+ * `Button.tsx:202` a `PRESS.hoverLift` -- mismo valor exacto, cero cambio
+ * visual.
  */
 export const PRESS = {
   durationMs: 100,
   easing: "cubic-bezier(0.23, 1, 0.32, 1)",
-  hoverLift: "-2px",
   activeScale: 0.98,
   hoverGuard: "(hover: hover) and (pointer: fine)",
 } as const;
@@ -413,10 +508,10 @@ export const AMBIENT = {
  * prescribe la MISMA curva de salida para las dos coreografías (entrada al
  * hacer scroll y press de un control) — no es una coincidencia que haya que
  * deduplicar en una constante compartida: son dos campos de dos grupos
- * distintos que hoy resultan iguales, igual que `DECK.slideDurationMs` y
- * `DECK.scrubMs` comparten valor (320) sin ser el mismo campo (ver `DECK`,
- * arriba). Si el día de mañana una de las dos coreografías necesita una
- * curva distinta, cambia SU campo sin arrastrar al otro — un alias
+ * distintos que hoy resultan iguales, igual que `DECK.railDurationMs` y
+ * `DECK.exitDurationMs` comparten valor (200) sin ser el mismo campo (ver
+ * `DECK`, arriba). Si el día de mañana una de las dos coreografías necesita
+ * una curva distinta, cambia SU campo sin arrastrar al otro — un alias
  * compartido (una sola constante importada por los dos grupos) se rompería
  * en silencio esa vez, mismo razonamiento que `timings.ts` aplica a
  * `HERO_FADE_MS` para no aliasearlo a `motion.duration.base` pese a ser su

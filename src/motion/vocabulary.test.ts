@@ -15,6 +15,16 @@ import { REVEAL, DECK, OVERLAY, PRESS, AMBIENT } from "./vocabulary";
  * frente al 480 esperado), se restauró el valor original y se confirmó que
  * la suite completa de este fichero volvía a verde. Ver el informe de la
  * tarea para la salida literal de las dos ejecuciones.
+ *
+ * Fix wave B (2026-08-12): `REVEAL` pierde `stepMs`, `DECK` pierde
+ * `slideDurationMs`/`slideShift`/`scrubMs`/`sceneDepthShift` y `PRESS` pierde
+ * `hoverLift` -- los seis campos sin consumidor real de producción que
+ * `vocabulary-consumers.test.ts` (medición corregida a nivel de CAMPO en
+ * esta misma revisión) atrapó (los cinco primeros ya los traía la review de
+ * rama; `hoverLift` lo encontró el propio candado nuevo). Ver el docblock de
+ * cabecera de `vocabulary.ts` para el porqué completo, y los docblocks de
+ * `DECK`/`PRESS` en ese mismo fichero para la deuda de migración/duplicación
+ * que queda abierta en `src/components/**`.
  */
 describe("vocabulary", () => {
   it("REVEAL expone su contrato exacto", () => {
@@ -22,18 +32,13 @@ describe("vocabulary", () => {
       durationMs: 480,
       easing: "cubic-bezier(0.23, 1, 0.32, 1)",
       shift: "16px",
-      stepMs: 60,
     };
     expect(REVEAL).toEqual(expectedReveal);
   });
 
   it("DECK expone su contrato exacto", () => {
     const expectedDeck = {
-      slideDurationMs: 320,
-      slideShift: "40px",
       railDurationMs: 200,
-      scrubMs: 320,
-      sceneDepthShift: "6dvh",
       exitDurationMs: 200,
     };
     expect(DECK).toEqual(expectedDeck);
@@ -52,7 +57,6 @@ describe("vocabulary", () => {
     const expectedPress = {
       durationMs: 100,
       easing: "cubic-bezier(0.23, 1, 0.32, 1)",
-      hoverLift: "-2px",
       activeScale: 0.98,
       hoverGuard: "(hover: hover) and (pointer: fine)",
     };

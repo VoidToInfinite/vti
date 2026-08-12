@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { REVEAL, DECK, PRESS, AMBIENT, OVERLAY } from "@/motion/vocabulary";
 
 /**
  * Task 19 (motion core) — candado del "defecto de fondo del vocabulario" que
@@ -45,6 +46,39 @@ import { fileURLToPath } from "node:url";
  *    consumidores reales pese a que sus comentarios siguen mencionando el
  *    símbolo) -- confirma que el despojo de comentarios funciona y que el
  *    candado mide código, no prosa. Restaurado, volvió a verde.
+ *
+ * ## Fix de revisión (fix wave B, 2026-08-12): el candado medía por GRUPO,
+ * no por CAMPO -- añade `fieldConsumersOf`, mide por campo y suma `OVERLAY`
+ *
+ * `realConsumersOf(group)` (abajo) comprueba que exista AL MENOS UN campo
+ * del grupo con consumidor real -- suficiente para que el GRUPO pase, pero
+ * no para que cada CAMPO tenga uno. La review final de rama demostró el
+ * agujero con el código delante: `DECK` pasaba este candado gracias a
+ * `railDurationMs`/`exitDurationMs`, mientras `slideDurationMs`/`slideShift`/
+ * `scrubMs`/`sceneDepthShift` llevaban desde su creación sin ningún
+ * consumidor -- cuatro campos muertos escondidos detrás de dos vivos. Y
+ * `OVERLAY` (Task 17) no tenía NINGÚN candado, ni de grupo ni de campo --
+ * el único de los cinco grupos sin cobertura.
+ *
+ * `fieldConsumersOf(group, field)` (nuevo) mide `\b${group}\.${field}\b`
+ * (borde de campo exacto, para que `DECK.railDurationMs` no cuente como
+ * consumidor de un `DECK.rail` que no existe) y el describe "cada CAMPO de
+ * cada grupo tiene consumidor real" itera las claves REALES de los cinco
+ * objetos importados (`Object.keys(REVEAL)`, etc.), no una lista escrita a
+ * mano -- así un campo nuevo queda cubierto automáticamente el día que se
+ * añada, sin que nadie tenga que acordarse de ampliar este fichero. Fix wave
+ * B retiró los cinco campos que este candado, de haber existido antes, habría
+ * atrapado (`REVEAL.stepMs`, `DECK.slideDurationMs`/`slideShift`/`scrubMs`/
+ * `sceneDepthShift` -- ver `vocabulary.ts` para el porqué de cada retirada),
+ * así que hoy los cinco grupos pasan con cero campos huérfanos.
+ *
+ * Verificado con el bug inyectado a propósito (regla 34): se añadió
+ * temporalmente un campo `phantomMs: 1` a `PRESS` en `vocabulary.ts` (sin
+ * ningún consumidor real) -- el nuevo test "cada CAMPO..." cayó en rojo
+ * señalando `PRESS.phantomMs: cero consumidores reales`, mientras que
+ * `realConsumersOf("PRESS")` (el candado de grupo, sin tocar) seguía en
+ * verde -- confirma exactamente el agujero que este fix cierra. Retirado el
+ * campo, volvió a verde.
  */
 
 const srcRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -95,16 +129,45 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(?<!:)\/\/.*$/gm, "");
 }
 
+/** Los cinco grupos del vocabulario. `OVERLAY` (Task 17) se suma a la unión
+ *  en el fix wave B (2026-08-12): era el único de los cinco sin candado,
+ *  ni de grupo ni de campo. */
+type VocabularyGroup = "REVEAL" | "AMBIENT" | "PRESS" | "DECK" | "OVERLAY";
+
 /**
  * Ficheros de PRODUCCIÓN (no tests, no el propio `vocabulary.ts`) que
  * consumen `${group}.<campo>` de verdad -- acceso de propiedad en CÓDIGO
  * activo, no solo el import y no una cita en un comentario.
  */
-function realConsumersOf(
-  group: "REVEAL" | "AMBIENT" | "PRESS" | "DECK",
-): string[] {
+function realConsumersOf(group: VocabularyGroup): string[] {
   const files = walk(srcRoot);
   const pattern = new RegExp(`\\b${group}\\.[a-zA-Z]+`);
+  const consumers: string[] = [];
+
+  for (const file of files) {
+    const relative = relativePath(file);
+    if (relative === "motion/vocabulary.ts") continue; // la fuente, no un consumidor
+    if (relative.endsWith(".test.ts") || relative.endsWith(".test.tsx"))
+      continue;
+
+    const content = stripComments(readFileSync(file, "utf-8"));
+    if (pattern.test(content)) {
+      consumers.push(relative);
+    }
+  }
+  return consumers;
+}
+
+/**
+ * Igual que `realConsumersOf`, pero acotado a UN CAMPO concreto del grupo
+ * (`\b${group}\.${field}\b`, borde de campo exacto -- así `DECK.rail` no
+ * cuenta como consumidor de `DECK.railDurationMs`). Es la pieza que faltaba
+ * para medir el candado por CAMPO en vez de por GRUPO (fix wave B,
+ * 2026-08-12, ver el docblock de cabecera de este fichero).
+ */
+function fieldConsumersOf(group: VocabularyGroup, field: string): string[] {
+  const files = walk(srcRoot);
+  const pattern = new RegExp(`\\b${group}\\.${field}\\b`);
   const consumers: string[] = [];
 
   for (const file of files) {
@@ -168,6 +231,53 @@ describe("Task 19: REVEAL y AMBIENT tienen consumidores REALES de producción (g
       "components/sections/Journey/journey.deck.tsx",
     );
   });
+
+  // OVERLAY (Task 17) era el único de los cinco grupos sin NINGÚN candado
+  // antes de esta revisión (fix wave B, 2026-08-12). Mismo criterio de sonda
+  // positiva que arriba: confirma que el mecanismo encuentra sus
+  // consumidores YA CONOCIDOS (Navbar.tsx/NavSheet.tsx, Task 9/10/17).
+  it("sonda positiva: OVERLAY.* se consume de verdad desde Navbar.tsx y NavSheet.tsx", () => {
+    const overlayConsumers = realConsumersOf("OVERLAY");
+
+    expect(overlayConsumers).toContain("components/layout/Navbar/Navbar.tsx");
+    expect(overlayConsumers).toContain("components/layout/Navbar/NavSheet.tsx");
+  });
+});
+
+/**
+ * Fix de revisión (fix wave B, 2026-08-12): el candado de arriba solo exige
+ * un consumidor por GRUPO -- ver el docblock de cabecera de este fichero
+ * para la medición completa (`DECK` pasaba con dos campos vivos y cuatro
+ * campos muertos escondidos detrás). Este bloque mide por CAMPO: itera las
+ * claves REALES de cada grupo exportado por `vocabulary.ts` (nunca una
+ * lista escrita a mano, que se desincronizaría el día que alguien añada o
+ * retire un campo) y exige que CADA UNO tenga al menos un consumidor real de
+ * producción.
+ */
+describe("fix wave B: cada CAMPO de cada grupo del vocabulario tiene consumidor real, no solo el grupo", () => {
+  const GROUPS: Record<VocabularyGroup, Record<string, unknown>> = {
+    REVEAL,
+    DECK,
+    PRESS,
+    AMBIENT,
+    OVERLAY,
+  };
+
+  for (const [groupName, groupValue] of Object.entries(GROUPS) as Array<
+    [VocabularyGroup, Record<string, unknown>]
+  >) {
+    describe(groupName, () => {
+      for (const field of Object.keys(groupValue)) {
+        it(`${groupName}.${field} tiene al menos un consumidor real de producción`, () => {
+          const consumers = fieldConsumersOf(groupName, field);
+          expect(
+            consumers,
+            `${groupName}.${field}: cero consumidores reales -- migra un consumidor o retira el campo (ver el docblock de ${groupName} en vocabulary.ts)`,
+          ).not.toHaveLength(0);
+        });
+      }
+    });
+  }
 });
 
 /*
