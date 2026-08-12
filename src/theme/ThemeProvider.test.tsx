@@ -9,8 +9,21 @@ import { ThemeProvider, useTheme } from "./ThemeProvider";
  * de verdad en su efecto de corrección post-montaje (Task 9); jsdom no lo
  * implementa (mismo stub mínimo que Hero.qa.test.tsx/HeroBackdrop.test.tsx,
  * adaptado a la query concreta que aquí importa).
+ *
+ * Task 34: el proveedor ahora también se SUSCRIBE a `change` sobre el
+ * `MediaQueryList` (seguimiento en vivo del sistema, sin storage guardado).
+ * El stub registra de verdad los listeners que `addEventListener`/
+ * `removeEventListener` reciben -- en un `Set` compartido por TODAS las
+ * instancias de `MediaQueryList` que devuelva esta factoría, porque el
+ * proveedor llama a `window.matchMedia` más de una vez (efecto de
+ * resolución inicial + efecto de listener; el doble bajo StrictMode) -- para
+ * que `dispatchChange` pueda simular un cambio real del sistema operativo
+ * sin recargar la página, exactamente lo que pide el brief.
  */
-function stubMatchMedia(prefersDark: boolean): void {
+function stubMatchMedia(prefersDark: boolean): {
+  dispatchChange: (matches: boolean) => void;
+} {
+  const listeners = new Set<(event: { matches: boolean }) => void>();
   vi.stubGlobal(
     "matchMedia",
     vi.fn().mockImplementation((query: string) => ({
@@ -18,10 +31,25 @@ function stubMatchMedia(prefersDark: boolean): void {
         ? prefersDark
         : false,
       media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
+      addEventListener: vi.fn(
+        (type: string, handler: (event: { matches: boolean }) => void) => {
+          if (type === "change") listeners.add(handler);
+        },
+      ),
+      removeEventListener: vi.fn(
+        (type: string, handler: (event: { matches: boolean }) => void) => {
+          if (type === "change") listeners.delete(handler);
+        },
+      ),
     })),
   );
+  return {
+    dispatchChange: (matches: boolean) => {
+      act(() => {
+        listeners.forEach((handler) => handler({ matches }));
+      });
+    },
+  };
 }
 
 /** Sonda: expone `themeName` y `changeSource` como texto plano. */
@@ -242,5 +270,114 @@ describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión 
     expect(dataThemeCalls).not.toContain("light");
     expect(dataThemeCalls).toEqual(["dark"]);
     expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
+  });
+});
+
+describe("ThemeProvider — Task 34: detectar no es elegir (gate F4, D-C)", () => {
+  it("sin storage, la detección automática del sistema NO escribe en localStorage", () => {
+    // Candado directo del defecto medido por el gate F4: con localStorage
+    // limpio y el sistema en oscuro, la carga resolvía a "dark" (correcto)
+    // pero ANTES de esta tarea el efecto de escritura no distinguía el
+    // origen y grababa esa detección como si fuera una elección humana.
+    stubMatchMedia(true);
+    renderProbe();
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBeNull();
+  });
+
+  it("storage 'light' explícito tampoco se reescribe al resolverse (initial, sin escritura)", () => {
+    window.localStorage.setItem(STORAGE_KEYS.theme, "light");
+    stubMatchMedia(false);
+    renderProbe();
+    expect(screen.getByTestId("probe")).toHaveTextContent("light:initial");
+    // El valor sigue siendo el que el propio storage ya tenía -- ningún
+    // efecto lo reescribió por su cuenta.
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("light");
+  });
+
+  it("sin storage, un cambio EN VIVO de prefers-color-scheme actualiza el tema sin recargar, y sigue sin persistir", () => {
+    const { dispatchChange } = stubMatchMedia(false);
+    renderProbe();
+    expect(screen.getByTestId("probe")).toHaveTextContent("light:initial");
+
+    dispatchChange(true); // el sistema operativo pasa a oscuro
+
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBeNull();
+
+    dispatchChange(false); // y vuelve a claro
+
+    expect(screen.getByTestId("probe")).toHaveTextContent("light:hydration");
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBeNull();
+  });
+
+  it("con storage guardado, un cambio EN VIVO de prefers-color-scheme NO manda (D-C: storage gana)", () => {
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    const { dispatchChange } = stubMatchMedia(true);
+    renderProbe();
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
+
+    dispatchChange(false); // el sistema pasa a claro; la elección guardada gana
+
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
+  });
+
+  it("el toggle SÍ escribe en localStorage (la única ruta que persiste)", () => {
+    stubMatchMedia(false);
+    function ProbeConToggle(): ReactElement {
+      const { themeName, changeSource, toggleTheme } = useTheme();
+      return (
+        <div>
+          <p data-testid="probe">
+            {themeName}:{changeSource}
+          </p>
+          <button onClick={toggleTheme}>alternar</button>
+        </div>
+      );
+    }
+    render(
+      <ThemeProvider>
+        <ProbeConToggle />
+      </ThemeProvider>,
+    );
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBeNull();
+
+    act(() => {
+      screen.getByRole("button", { name: "alternar" }).click();
+    });
+
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:user");
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
+  });
+
+  it("tras el toggle, un cambio EN VIVO de prefers-color-scheme ya no manda (la elección de esta sesión también gana)", () => {
+    const { dispatchChange } = stubMatchMedia(false);
+    function ProbeConToggle(): ReactElement {
+      const { themeName, changeSource, toggleTheme } = useTheme();
+      return (
+        <div>
+          <p data-testid="probe">
+            {themeName}:{changeSource}
+          </p>
+          <button onClick={toggleTheme}>alternar</button>
+        </div>
+      );
+    }
+    render(
+      <ThemeProvider>
+        <ProbeConToggle />
+      </ThemeProvider>,
+    );
+
+    act(() => {
+      screen.getByRole("button", { name: "alternar" }).click();
+    });
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:user");
+
+    dispatchChange(false); // el sistema "cambia" a claro (ya lo estaba); no debe alterar nada
+
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:user");
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
   });
 });

@@ -93,9 +93,63 @@ export function ThemeProvider({
     }
   }, []);
 
+  // Task 34 («detectar no es elegir», hallazgo del gate F4): SOLO una
+  // elección EXPLÍCITA (el toggle, `changeSource === "user"`) se persiste.
+  // Antes de esta tarea este efecto escribía en TODO cambio de `themeName`
+  // sin mirar `changeSource`, así que la mera detección automática --carga
+  // inicial con storage vacío y sistema oscuro, o el seguimiento en vivo del
+  // efecto de abajo-- quedaba grabada en `localStorage` como si fuera una
+  // decisión humana: con storage limpio y el SO en oscuro, el sitio escribía
+  // `vti-theme=dark` en la primera carga, y un cambio posterior del SO a
+  // claro ya no podía revertirlo (storage, una vez escrito, gana siempre a
+  // `prefers` -- decisión D-C). El propio registro legal de
+  // `src/config/storage.ts` ya documentaba el contrato correcto (el storage
+  // del tema solo se escribe cuando la persona pulsa el conmutador); este
+  // efecto no lo cumplía.
   useEffect(() => {
+    if (changeSource !== "user") return;
     window.localStorage.setItem(STORAGE_KEYS.theme, themeName);
-  }, [themeName]);
+  }, [themeName, changeSource]);
+
+  // Task 34, corolario de D-C: quien NUNCA ha tocado el toggle no tiene
+  // ninguna elección que "conservar" -- si cambia el ajuste de tema del
+  // sistema operativo, el sitio le acompaña EN VIVO, sin recargar. Quien SÍ
+  // tiene un valor guardado (toggle propio, en esta sesión o en una
+  // anterior) conserva su elección por encima del sistema: `handleChange`
+  // relee `localStorage` en el momento del EVENTO, nunca un valor capturado
+  // en el cierre de este efecto -- el toggle puede ocurrir después de que
+  // este listener ya esté suscrito, y `localStorage` es la única fuente que
+  // sigue viva en ese instante.
+  //
+  // `[]` como dependencias: el listener se suscribe UNA vez al montar y no
+  // necesita reaccionar a cambios de `themeName`/`changeSource` -- lee
+  // ambos indirectamente (vía `localStorage`) en cada evento, no desde un
+  // cierre. Bajo StrictMode (montaje doble con limpieza intermedia) esto es
+  // seguro: cada invocación añade y limpia su propio listener por
+  // referencia, sin ningún ref ni contador escrito a mano que pueda
+  // desincronizarse de un remontaje (la clase de bug de
+  // `task/lessons.md`, 2026-08-05).
+  useEffect(() => {
+    let mql: MediaQueryList;
+    try {
+      mql = window.matchMedia("(prefers-color-scheme: dark)");
+    } catch {
+      // Mismo criterio que el resto del módulo (buildThemeBootstrapScript,
+      // el efecto de resolución de arriba): sin `matchMedia`, no hay nada
+      // que escuchar y el tema se queda en lo que la carga ya resolvió.
+      return;
+    }
+    const handleChange = (event: MediaQueryListEvent): void => {
+      const stored = window.localStorage.getItem(STORAGE_KEYS.theme);
+      if (stored === "light" || stored === "dark") return; // D-C: storage gana
+      setChangeSource("hydration");
+      setTheme(event.matches ? "dark" : "light");
+    };
+    mql.addEventListener("change", handleChange);
+    return () => {
+      mql.removeEventListener("change", handleChange);
+    };
+  }, []);
 
   // Mantiene el atributo `data-theme` (Task 9) sincronizado con el ESTADO
   // real en TODO cambio, no solo en la carga: el script pre-pintado de
