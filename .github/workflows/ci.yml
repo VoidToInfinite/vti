@@ -1,7 +1,8 @@
 name: CI
 
-# Gate de calidad del repo (typecheck + lint + format + tests) en cada push a
-# main y en cada pull request. NO incluye check-spelling: esta roto de
+# Gate de calidad del repo (typecheck + lint + format + detector de
+# anti-patrones + tests) en cada push a main y en cada pull request. NO
+# incluye check-spelling: esta roto de
 # configuracion (76.035 issues por falta de diccionario espanol), documentado
 # por el orquestador -- por eso el script `ci` de package.json no lo
 # invoca, y este workflow tampoco lo anade por su cuenta.
