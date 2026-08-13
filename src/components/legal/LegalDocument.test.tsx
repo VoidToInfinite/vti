@@ -132,10 +132,33 @@ describe("LegalDocument", () => {
     const texto = document.body.textContent ?? "";
 
     expect(texto).toContain(LEGAL_ENTITY.name);
-    expect(texto).toContain(LEGAL_ENTITY.legalForm);
+    expect(texto).toContain(esLegal.Legal.common.legalForm.naturalPerson);
     expect(texto).toContain(LEGAL_ENTITY.contactEmail);
     // Los tres campos declarados `null` comparten un único texto localizado.
     expect(texto).toContain("No procede.");
+  });
+
+  /*
+   * ESTE CANDADO EXISTE PORQUE EL DEFECTO OCURRIÓ (2026-08-13, verificación en
+   * navegador): `legalForm` era el literal "Persona física" en `legal.ts` y el
+   * documento INGLÉS lo pintaba tal cual, en español. Ningún test lo vio
+   * porque todos renderizaban en español, que es justo el idioma donde una
+   * fuga de español es invisible.
+   *
+   * La lección general, más allá de este campo: un dato que sale de la config
+   * y aterriza en un documento bilingüe hay que verlo en el OTRO idioma.
+   */
+  it("el bloque 'entity' en inglés no filtra ni una palabra en español", async () => {
+    await i18n.changeLanguage("en");
+    renderWithProviders(<LegalDocument docKey="legalNotice" />);
+    const texto = document.body.textContent ?? "";
+
+    expect(texto).toContain(enLegal.Legal.common.legalForm.naturalPerson);
+    expect(texto).not.toContain(esLegal.Legal.common.legalForm.naturalPerson);
+    expect(texto).toContain(enLegal.Legal.common.notApplicable);
+    expect(texto).not.toContain(esLegal.Legal.common.notApplicable);
+
+    await i18n.changeLanguage("es");
   });
 
   it("la tabla de almacenamiento tiene una fila por entrada de STORAGE_REGISTRY", () => {

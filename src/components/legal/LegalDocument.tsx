@@ -220,16 +220,21 @@ function EntityBlock({
   labels,
   dpoNotAppointed,
   notApplicable,
+  legalFormText,
   placeholderTitle,
 }: {
   labels: EntityLabels;
   dpoNotAppointed: string;
   notApplicable: string;
+  legalFormText: string;
   placeholderTitle: string;
 }): ReactElement {
   const rows: Array<{ label: string; value: string | null }> = [
     { label: labels.name, value: LEGAL_ENTITY.name },
-    { label: labels.legalForm, value: LEGAL_ENTITY.legalForm },
+    /* Resuelto por i18n, no pintado tal cual: `legalForm` es un
+       identificador desde que la verificación en navegador lo pilló
+       pintando español dentro del documento inglés (ver `legal.ts`). */
+    { label: labels.legalForm, value: legalFormText },
     { label: labels.taxId, value: LEGAL_ENTITY.taxId },
     { label: labels.address, value: LEGAL_ENTITY.address },
     { label: labels.registry, value: LEGAL_ENTITY.registry },
@@ -331,6 +336,7 @@ function renderBlock(
     entityLabels: EntityLabels;
     dpoNotAppointed: string;
     notApplicable: string;
+    legalFormText: string;
     storageLabels: StorageTableLabels;
     storageCaption: string;
     durationLabelFor: (durationDays: number | null) => string;
@@ -397,6 +403,7 @@ function renderBlock(
           labels={ctx.entityLabels}
           dpoNotAppointed={ctx.dpoNotAppointed}
           notApplicable={ctx.notApplicable}
+          legalFormText={ctx.legalFormText}
           placeholderTitle={ctx.placeholderTitle}
         />
       );
@@ -436,6 +443,7 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
   const placeholderTitle = t("Legal.common.placeholderTitle");
   const dpoNotAppointed = t("Legal.common.dpoNotAppointed");
   const notApplicable = t("Legal.common.notApplicable");
+  const legalFormText = t(`Legal.common.legalForm.${LEGAL_ENTITY.legalForm}`);
   const tocLabel = t("Legal.common.tocLabel");
   const backToHome = t("Legal.common.backToHome");
   const versionLabel = t("Legal.common.versionLabel");
@@ -483,6 +491,7 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
               entityLabels,
               dpoNotAppointed,
               notApplicable,
+              legalFormText,
               storageLabels,
               storageCaption: section.heading,
               durationLabelFor,

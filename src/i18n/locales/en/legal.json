@@ -17,6 +17,9 @@
             },
             "dpoNotAppointed": "No Data Protection Officer (DPO) has been appointed.",
             "notApplicable": "Not applicable.",
+            "legalForm": {
+                "naturalPerson": "Natural person"
+            },
             "storageTable": {
                 "id": "Identifier",
                 "purpose": "Purpose",

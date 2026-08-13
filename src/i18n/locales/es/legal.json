@@ -17,6 +17,9 @@
             },
             "dpoNotAppointed": "No se ha designado un Delegado de Protección de Datos (DPO).",
             "notApplicable": "No procede.",
+            "legalForm": {
+                "naturalPerson": "Persona física"
+            },
             "storageTable": {
                 "id": "Identificador",
                 "purpose": "Finalidad",

@@ -6,6 +6,8 @@ import {
   hasPendingLegalData,
 } from "./legal";
 import { links } from "./links";
+import esLegal from "@/i18n/locales/es/legal.json";
+import enLegal from "@/i18n/locales/en/legal.json";
 
 /**
  * Candado de veracidad (§0 CLAUDE.md, spec §9.1), INVERTIDO el 2026-08-13.
@@ -29,7 +31,7 @@ import { links } from "./links";
  *     publicar.
  */
 describe("LEGAL_ENTITY", () => {
-  const realFields = ["name", "legalForm", "contactEmail"] as const;
+  const realFields = ["name", "contactEmail"] as const;
   const declaredAbsent = ["taxId", "address", "registry"] as const;
 
   it.each(realFields)("%s tiene un valor real, no el marcador", (field) => {
@@ -42,8 +44,25 @@ describe("LEGAL_ENTITY", () => {
     expect(LEGAL_ENTITY.name).toBe("Daniel Mosquera");
   });
 
-  it("legalForm declara persona física, no una sociedad inventada", () => {
-    expect(LEGAL_ENTITY.legalForm).toBe("Persona física");
+  /*
+   * `legalForm` es una CLAVE, no el texto. Nació como el literal "Persona
+   * física" y la verificación en navegador lo pilló pintado en español dentro
+   * del documento inglés; este candado impide que vuelva a serlo. Un valor con
+   * espacios o acentos aquí es, por construcción, prosa colada en la config.
+   */
+  it("legalForm es un identificador resoluble por i18n, no prosa", () => {
+    expect(LEGAL_ENTITY.legalForm).toBe("naturalPerson");
+    expect(LEGAL_ENTITY.legalForm).toMatch(/^[a-zA-Z]+$/);
+  });
+
+  it("la clave de legalForm existe en los DOS idiomas y difiere entre ellos", () => {
+    const es = esLegal.Legal.common.legalForm[LEGAL_ENTITY.legalForm];
+    const en = enLegal.Legal.common.legalForm[LEGAL_ENTITY.legalForm];
+
+    expect(es).toBeTruthy();
+    expect(en).toBeTruthy();
+    // Si coincidieran, o falta la traducción o alguien copió el español.
+    expect(en).not.toBe(es);
   });
 
   /* Deriva de `links.email`, no de `EMAIL_ADDRESS`: aseverar la constante

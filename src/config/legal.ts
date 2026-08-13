@@ -72,9 +72,26 @@ import { EMAIL_ADDRESS } from "@/config/links";
  */
 export const PLACEHOLDER = "POR_COMPLETAR";
 
+/**
+ * Forma jurídica del responsable, como IDENTIFICADOR, no como texto.
+ *
+ * Nació siendo el literal "Persona física" y duró unas horas: la verificación
+ * en navegador del 2026-08-13 lo pilló pintado EN ESPAÑOL dentro del
+ * documento inglés (`/aviso-legal` con `lang="en"` mostraba «Forma jurídica:
+ * Persona física»). Los tests no lo vieron porque renderizan en español, que
+ * es el idioma en el que la fuga es invisible.
+ *
+ * Es el mismo defecto que la regla 30 de `RULES.md` describe: prosa metida en
+ * el código en vez de en i18n. `name` y `contactEmail` pueden quedarse como
+ * literales porque un nombre propio y una dirección de correo no se traducen;
+ * una forma jurídica sí.
+ */
+export type LegalForm = "naturalPerson";
+
 export interface LegalEntity {
   readonly name: string;
-  readonly legalForm: string;
+  /** Clave, no prosa: la resuelve `Legal.common.legalForm.<valor>`. */
+  readonly legalForm: LegalForm;
   /** `null` = no procede: persona física sin actividad económica declarada. */
   readonly taxId: string | null;
   /** `null` = no procede, mismo motivo que `taxId`. */
@@ -88,7 +105,7 @@ export interface LegalEntity {
 
 export const LEGAL_ENTITY: LegalEntity = {
   name: "Daniel Mosquera",
-  legalForm: "Persona física",
+  legalForm: "naturalPerson",
   taxId: null,
   address: null,
   registry: null,
@@ -134,10 +151,14 @@ export const LEGAL_VERSIONS: Record<"privacy" | "legalNotice", LegalVersion> = {
  * DECLARACIÓN, no como hueco. Lo que esta lista sigue vigilando es que
  * ninguno de los campos que SÍ tienen que tener valor real se quede con el
  * centinela.
+ *
+ * `legalForm` también queda fuera, y por un motivo distinto: desde que es un
+ * `LegalForm` y no un string libre, el compilador impide que valga
+ * `PLACEHOLDER`. Comprobarlo en tiempo de ejecución sería comprobar algo que
+ * el tipo ya garantiza.
  */
 const IDENTIFYING_FIELDS = [
   "name",
-  "legalForm",
   "taxId",
   "address",
   "registry",
