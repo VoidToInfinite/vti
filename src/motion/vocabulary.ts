@@ -118,6 +118,35 @@
  * importó. Mismo motivo, mismo tratamiento (retirado, no migrado, misma
  * deuda declarada): el único consumidor posible está bajo
  * `src/components/**`, fuera del alcance de esta revisión.
+ *
+ * ## Fix de revisión (fix wave D, 2026-08-12): `DECK.sceneDepthShift`/
+ * `DECK.slideShift` vuelven, esta vez CON consumidores reales -- cierra la
+ * deuda que la fix wave B dejó declarada arriba
+ *
+ * La fix wave B acertó en el diagnóstico (duplicación de
+ * `STORY_SCENE_DEPTH_SHIFT`/`JOURNEY_SCENE_DEPTH_SHIFT` = `"6dvh"` y
+ * `STORY_SLIDE_SHIFT`/`JOURNEY_SLIDE_SHIFT` = `"40px"`, cuatro literales
+ * repetidos a mano en dos ficheros) pero, al no poder tocar
+ * `src/components/**`, la única corrección disponible era RETIRAR el token
+ * muerto -- lo que invertía la intención del hallazgo original: antes había
+ * un token sin consumidores; después había una duplicación sin token. La fix
+ * wave D, con `src/components/**` en su alcance, cierra el círculo: reintroduce
+ * `sceneDepthShift`/`slideShift` en `DECK` (ver su docblock, abajo, para el
+ * porqué de cada uno) Y, en el MISMO movimiento, migra `story.layers.ts`/
+ * `journey.layers.ts` para que `STORY_SCENE_DEPTH_SHIFT`/
+ * `JOURNEY_SCENE_DEPTH_SHIFT`/`STORY_SLIDE_SHIFT`/`JOURNEY_SLIDE_SHIFT` dejen
+ * de ser literales propios y pasen a derivar de `DECK.sceneDepthShift`/
+ * `DECK.slideShift` -- mismos valores exactos, cero cambio visual, y ahora la
+ * ÚNICA declaración de cada valor vive en `vocabulary.ts`; las cuatro
+ * constantes de sección son alias con nombre, no fuentes. `story.deck.tsx`/
+ * `journey.deck.tsx` no cambian: siguen importando esas mismas cuatro
+ * constantes de sus respectivos `*.layers.ts`, así que heredan el token sin
+ * tocar una línea. `slideDurationMs`/`scrubMs` (los otros dos campos que la
+ * fix wave B retiró) SIGUEN fuera: no estaban duplicados a mano (el defecto
+ * concreto que motivó esta revisión), y migrarlos exigiría decisiones
+ * adicionales fuera del alcance de D2 (ver el docblock de `DECK` para el
+ * detalle de cada uno) -- se dejan como la misma deuda declarada, ahora más
+ * pequeña.
  */
 
 /**
@@ -151,19 +180,37 @@
  *   (mockup nuevo vs. rama intacta) -- convergen así en la MISMA gramática,
  *   igual que ya pedía D7 para las dos ramas de Story.
  *
- * Deliberadamente NO migrados en esta tarea (documentado, no un olvido):
- * `Contact.tsx` (dos bloques) y `Journey.tsx` (`ScStepReveal`) implementan un
- * patrón de valores IDÉNTICO o casi (`Journey.tsx` con `translateY(12px)`,
- * no 16px -- desvío de un único consumidor entre los cinco originales,
- * documentado desde antes de esta tarea) pero el encargo de Task 19 (D7,
- * "terminar" la unificación) acotaba el trabajo a Story/Features. Migrar
- * esos dos ficheros exigiría además decidir sobre el desvío de 12px de
- * Journey (cambiarlo a 16px es un cambio de comportamiento, no un cambio de
- * fuente del mismo valor) -- una decisión que no toca resolver de paso. La
- * combinación de duración/easing/shift que usan ya coincide en Contact.tsx
- * (16px) y en duración/easing en Journey.tsx, así que ninguno de los dos
- * queda VISUALMENTE distinto de `REVEAL`; solo queda sin la indirección del
- * import.
+ * **Fix wave D (hallazgo D3, revisión final de rama, 2026-08-12)** cierra la
+ * divergencia que Task 19 dejó declarada: `Contact.tsx` (dos bloques) y
+ * `Journey.tsx` (`ScStepReveal`) seguían en `motion.duration.slower` +
+ * `motion.easing.decelerate` sueltos, NO en el token -- y el párrafo de
+ * arriba (versión anterior a este fix) afirmaba que "ninguno de los dos
+ * queda VISUALMENTE distinto de `REVEAL`", lo cual era FALSO: `decelerate`
+ * (`cubic-bezier(0, 0, 0.2, 1)`, `motion.ts`) y `REVEAL.easing`
+ * (`cubic-bezier(0.23, 1, 0.32, 1)`) son dos curvas distintas -- coincidir en
+ * duración (480ms) no basta para que la ENTRADA se lea igual; la forma de la
+ * curva es justo lo que Task 9 introdujo `REVEAL.easing` para reemplazar.
+ * Dos curvas de reveal convivían en la misma página, contradiciendo D7 ("D7
+ * terminado" era falso a medias).
+ *
+ * `Contact.tsx` (`ScCard`, `ScDarkContent`) migra COMPLETO a
+ * `REVEAL.durationMs`/`REVEAL.easing`/`REVEAL.shift`: su `translateY(16px)`
+ * ya coincidía exacto con `REVEAL.shift`, así que es la misma migración de
+ * fuente pura que Story.tsx/Features.tsx (Task 19), sin cambio de
+ * comportamiento en ningún eje.
+ *
+ * `Journey.tsx` (`ScStepReveal`) migra `REVEAL.durationMs`/`REVEAL.easing`
+ * pero CONSERVA su `translateY(12px)` literal: el desvío de `shift` frente a
+ * los 16px del resto (documentado desde antes de esta tarea, ver más abajo)
+ * es una decisión de composición ya tomada -- ScStepReveal anima un paso
+ * dentro de una rejilla de 6 columnas, un desplazamiento menor que el de un
+ * bloque de sección completo -- y unificarla no era el encargo de D3 (que
+ * pedía la CURVA, no el desplazamiento). Verificado en navegador real
+ * (Chrome, `playwright-cli`, capturas `fixD-*` del informe de la tarea) que
+ * sustituir solo `decelerate` por `REVEAL.easing` no cambia el carácter del
+ * movimiento de Journey/Contact: las dos curvas comparten forma de
+ * "desaceleración pronunciada" a esta duración y este desplazamiento, la
+ * diferencia es sutil, no un cambio de lenguaje de movimiento.
  *
  * - `durationMs: 480` — `motion.duration.slower` (480ms) ya dominaba este
  *   patrón antes del token (histórico, verificado en su momento):
@@ -230,51 +277,54 @@ export const REVEAL = {
  *   Emil para la salida de un velo o capa de la presentación — el rol que
  *   describe exactamente ese desvanecimiento.
  *
- * ## Cuatro campos RETIRADOS en fix wave B (2026-08-12): cero consumidor
- * real, y el candado ahora los habría atrapado
+ * - `sceneDepthShift: "6dvh"` — REINTRODUCIDO en fix wave D (2026-08-12,
+ *   hallazgo D2), tras haber sido retirado en fix wave B por falta de
+ *   consumidor real (ver más abajo el porqué de esa retirada). Recorrido, en
+ *   `transform`, del envoltorio de la escena 3D de Story/Journey
+ *   (`ScSceneWrap`/`ScJourneySceneWrap`) mientras el `stage` está pegado por
+ *   `position: sticky` y el término de scroll de `useSceneParallax` deja de
+ *   aportar profundidad. Consumidores reales:
+ *   `STORY_SCENE_DEPTH_SHIFT`/`JOURNEY_SCENE_DEPTH_SHIFT`
+ *   (`story.layers.ts`/`journey.layers.ts`) pasan de declarar el literal
+ *   `"6dvh"` a mano a derivarlo de `DECK.sceneDepthShift` -- mismo valor
+ *   exacto, cero cambio visual; `story.deck.tsx`/`journey.deck.tsx` no
+ *   cambian, siguen importando esas dos constantes de sus respectivos
+ *   `*.layers.ts` sin tocar una línea.
+ * - `slideShift: "40px"` — REINTRODUCIDO en fix wave D, mismo motivo y mismo
+ *   tratamiento que `sceneDepthShift`. Desplazamiento vertical de
+ *   entrada/salida de cada diapositiva (`data-state="past"`/`"next"`) de
+ *   `ScSlide`/`ScJourneySlide`. Consumidores reales:
+ *   `STORY_SLIDE_SHIFT`/`JOURNEY_SLIDE_SHIFT` (mismos dos ficheros), con el
+ *   mismo criterio de derivación -- mismo valor exacto, `story.deck.tsx`/
+ *   `journey.deck.tsx` intactos.
  *
- * Hasta esta revisión el grupo declaraba también `slideDurationMs` (320,
- * pensado para `ScSlide`/`ScJourneySlide`), `slideShift` (`"40px"`, pensado
- * para el mismo par), `scrubMs` (320, pensado para el `@keyframes
- * story-deck-scrub` de Story) y `sceneDepthShift` (`"6dvh"`, pensado para el
- * envoltorio de la escena 3D de Story/Journey mientras el stage está
- * pegado). Los CUATRO llevaban desde su creación (lote 8-14) sin que ningún
- * fichero de producción los consumiera vía `DECK.<campo>` -- verificado por
- * grep, cero resultados para los cuatro -- pese a que el grupo `DECK` en
- * conjunto SÍ pasaba `vocabulary-consumers.test.ts` (gracias a
- * `railDurationMs`/`exitDurationMs`, arriba): ese candado medía por GRUPO,
- * no por CAMPO, así que cuatro campos muertos podían esconderse detrás de
- * dos vivos indefinidamente. Peor aún: `sceneDepthShift` y `slideShift`
- * tenían el MISMO valor duplicado a mano en dos ficheros cada uno
- * (`STORY_SCENE_DEPTH_SHIFT`/`JOURNEY_SCENE_DEPTH_SHIFT` = `"6dvh"`;
- * `STORY_SLIDE_SHIFT`/`JOURNEY_SLIDE_SHIFT` = `"40px"`, ambos en
- * `story.layers.ts`/`journey.layers.ts`) -- el propio patrón "literal
- * repetido que debería ser token" que motivó crear este vocabulario en
- * Task 8, reproducido dentro del vocabulario mismo. `slideDurationMs`
- * coincidía con `theme.data.motion.duration.slow`, ya consumido inline en
- * `ScSlide`/`ScJourneySlide` sin pasar por este grupo; `scrubMs` coincidía
- * con `STORY_SCRUB_MS` (`story.layers.ts`, atado por test a
- * `motion.duration.slow`), consumido solo por Story.
+ * ## Dos campos siguen RETIRADOS (`slideDurationMs`, `scrubMs`): no eran el
+ * defecto de duplicación que esta revisión cierra
  *
- * Se retiran en vez de migrar sus consumidores potenciales porque los CUATRO
- * ficheros que los consumirían de verdad
- * (`story.deck.tsx`/`journey.deck.tsx`/`story.layers.ts`/`journey.layers.ts`)
- * están bajo `src/components/**`, territorio reservado a otra fix wave
- * concurrente de esta misma review de rama -- tocarlos aquí habría invadido
- * ese alcance. La duplicación de `sceneDepthShift`/`slideShift` en
- * `story.layers.ts`/`journey.layers.ts` sigue viva sin resolver: se deja
- * declarada como deuda abierta (ver el docblock de cabecera de este
- * fichero, sección "Fix de revisión") para que una tarea futura con acceso
- * a `src/components/**` migre esos cuatro ficheros a `DECK.sceneDepthShift`/
- * `DECK.slideShift`/`DECK.slideDurationMs`/`DECK.scrubMs` -- mismos valores
- * exactos, cero cambio visual -- en vez de reintroducir estos cuatro campos
- * sin más. Si esa migración vuelve a necesitarlos, se reintroducen entonces,
- * en el MISMO commit que su primer consumidor real -- nunca antes, que es
- * exactamente el estado que este fix cierra.
+ * `slideDurationMs` (320, pensado para `ScSlide`/`ScJourneySlide`) y
+ * `scrubMs` (320, pensado para el `@keyframes story-deck-scrub` de Story)
+ * siguen sin consumidor real y NO se reintroducen en fix wave D: a
+ * diferencia de `sceneDepthShift`/`slideShift`, ninguno de los dos estaba
+ * DUPLICADO a mano entre Story y Journey -- `slideDurationMs` coincidía con
+ * `theme.data.motion.duration.slow`, ya consumido inline en
+ * `ScSlide`/`ScJourneySlide` sin pasar por este grupo (un solo valor, un
+ * solo sitio, nada que desduplicar); `scrubMs` coincidía con
+ * `STORY_SCRUB_MS` (`story.layers.ts`, atado por test a
+ * `motion.duration.slow`), consumido SOLO por Story, sin gemelo en Journey
+ * (`journey.deck.tsx` no tiene scrub propio). El hallazgo que trajo esta
+ * revisión (D2 del brief de fix wave D) era específicamente "dos literales
+ * iguales por casualidad en dos ficheros donde antes había un token" --
+ * migrar estos dos campos sin ese defecto concreto sería alcance nuevo, no
+ * el cierre de la deuda declarada. Siguen como deuda abierta: si una tarea
+ * futura decide que merecen su propio consumidor, se reintroducen entonces,
+ * en el MISMO commit que ese consumidor -- mismo criterio que ya regía antes
+ * de este fix.
  */
 export const DECK = {
   railDurationMs: 200,
   exitDurationMs: 200,
+  sceneDepthShift: "6dvh",
+  slideShift: "40px",
 } as const;
 
 /**

@@ -18,6 +18,7 @@
  * ya aplica `Hero.tsx`/`BrandName.tsx` (p. ej. `theme.data.palette.secondary[300]`
  * en `ctaGlow`).
  */
+import { DECK } from "@/motion/vocabulary";
 
 /**
  * Halo radial detrás de la figura (mockup L73): dos paradas de alfa
@@ -120,8 +121,15 @@ export const STORY_DECK_TRACK_HEIGHT = `calc((${STORY_SLIDES} + ${STORY_DECK_TAI
  * el cambio de diapositiva se lea como un paso, no como un salto de layout;
  * solo se anima junto a `opacity`, nunca una propiedad que dispare reflow
  * (regla de la casa: solo `transform`/`opacity`).
+ *
+ * Deriva de `DECK.slideShift` (fix wave D, hallazgo D2, 2026-08-12): hasta
+ * esta revisión declaraba el literal `"40px"` a mano, DUPLICADO byte a byte
+ * en `JOURNEY_SLIDE_SHIFT` (`journey.layers.ts`) -- el propio patrón
+ * "literal repetido que debería ser token" que motivó crear
+ * `src/motion/vocabulary.ts`. Mismo valor exacto, cero cambio visual; ver el
+ * docblock de `DECK` en ese fichero para el detalle completo.
  */
-export const STORY_SLIDE_SHIFT = "40px";
+export const STORY_SLIDE_SHIFT = DECK.slideShift;
 
 /**
  * Escala del `stage` cuando `--story-enter` vale 0, es decir, antes de que
@@ -152,8 +160,14 @@ export const STORY_STAGE_ENTER_SCALE = 0.92;
  * el bug que esta unidad cierra: la escena se iba 48px hacia abajo al
  * scrollear y dejaba una banda de fondo plano asomando por arriba.
  * `dvh` es la misma referencia para los dos.
+ *
+ * Deriva de `DECK.sceneDepthShift` (fix wave D, hallazgo D2, 2026-08-12):
+ * hasta esta revisión declaraba el literal `"6dvh"` a mano, DUPLICADO byte a
+ * byte en `JOURNEY_SCENE_DEPTH_SHIFT` (`journey.layers.ts`). Mismo valor
+ * exacto, cero cambio visual; ver el docblock de `DECK` en
+ * `src/motion/vocabulary.ts` para el detalle completo.
  */
-export const STORY_SCENE_DEPTH_SHIFT = "6dvh";
+export const STORY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
 
 /**
  * Duración del "scrub" de rewind (`data-dir="rewind"`): el micro-desplazamiento

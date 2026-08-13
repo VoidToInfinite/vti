@@ -16,6 +16,7 @@
  * borde/sombra de los discos, el trazo del path punteado, el degradado de la
  * cita y la sombra de la figura) se congela aquí como literal.
  */
+import { DECK } from "@/motion/vocabulary";
 
 export type JourneyStepId =
   "discover" | "learn" | "imagine" | "create" | "share" | "evolve";
@@ -299,8 +300,14 @@ export const JOURNEY_DECK_TRACK_HEIGHT = `calc((${JOURNEY_SLIDES} + ${JOURNEY_DE
  * paso dentro de la misma composición, no como un salto de layout. Se anima
  * siempre junto a `opacity`, nunca sobre una propiedad que dispare reflow
  * (regla de la casa: solo `transform`/`opacity`).
+ *
+ * Deriva de `DECK.slideShift` (fix wave D, hallazgo D2, 2026-08-12): hasta
+ * esta revisión declaraba el literal `"40px"` a mano, DUPLICADO byte a byte
+ * en `STORY_SLIDE_SHIFT` (`story.layers.ts`). Mismo valor exacto, cero
+ * cambio visual; ver el docblock de `DECK` en `src/motion/vocabulary.ts`
+ * para el detalle completo.
  */
-export const JOURNEY_SLIDE_SHIFT = "40px";
+export const JOURNEY_SLIDE_SHIFT = DECK.slideShift;
 
 /**
  * Recorrido, en `transform`, del envoltorio de la escena de fondo
@@ -321,8 +328,14 @@ export const JOURNEY_SLIDE_SHIFT = "40px";
  * (una banda de fondo asomando por arriba al scrollear). `dvh` es la misma
  * referencia en los dos sitios y cierra esa clase de fallo antes de que
  * vuelva a aparecer aquí.
+ *
+ * Deriva de `DECK.sceneDepthShift` (fix wave D, hallazgo D2, 2026-08-12):
+ * hasta esta revisión declaraba el literal `"6dvh"` a mano, DUPLICADO byte a
+ * byte en `STORY_SCENE_DEPTH_SHIFT` (`story.layers.ts`). Mismo valor exacto,
+ * cero cambio visual; ver el docblock de `DECK` en
+ * `src/motion/vocabulary.ts` para el detalle completo.
  */
-export const JOURNEY_SCENE_DEPTH_SHIFT = "6dvh";
+export const JOURNEY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
 
 /*
  * Escala tipográfica de cartel de la presentación oscura (D10/D11, spec

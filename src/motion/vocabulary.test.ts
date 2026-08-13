@@ -25,6 +25,13 @@ import { REVEAL, DECK, OVERLAY, PRESS, AMBIENT } from "./vocabulary";
  * cabecera de `vocabulary.ts` para el porqué completo, y los docblocks de
  * `DECK`/`PRESS` en ese mismo fichero para la deuda de migración/duplicación
  * que queda abierta en `src/components/**`.
+ *
+ * Fix wave D (hallazgo D2, 2026-08-12): `DECK` recupera `sceneDepthShift`/
+ * `slideShift` -- esta vez CON consumidor real (`story.layers.ts`/
+ * `journey.layers.ts`, dentro de `src/components/**`), así que el contrato
+ * esperado de abajo pasa de dos campos a cuatro. `slideDurationMs`/`scrubMs`
+ * siguen retirados: no tenían el defecto de duplicación que motivó esta
+ * reintroducción (ver el docblock de `DECK` en `vocabulary.ts`).
  */
 describe("vocabulary", () => {
   it("REVEAL expone su contrato exacto", () => {
@@ -40,6 +47,8 @@ describe("vocabulary", () => {
     const expectedDeck = {
       railDurationMs: 200,
       exitDurationMs: 200,
+      sceneDepthShift: "6dvh",
+      slideShift: "40px",
     };
     expect(DECK).toEqual(expectedDeck);
   });
