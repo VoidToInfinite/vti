@@ -8,6 +8,7 @@ import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
+import { REVEAL } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { JourneyCosmicPortal } from "@/components/scenes/journeyCosmicPortal/JourneyCosmicPortal";
@@ -286,15 +287,26 @@ const ScStepsGrid = styled.div`
  * delay`, siguiente línea) y su guard de `reduce` (más abajo, que también
  * anula el delay) NO cambian: siguen siendo la parte de este bloque que sí
  * distingue a Journey de Story.
+ *
+ * Curva migrada a `REVEAL.easing` (fix wave D, hallazgo D3, revisión final de
+ * rama, 2026-08-12): hasta esta revisión seguía en `motion.easing.decelerate`
+ * suelto pese a que Task 19 ya había migrado el mismo patrón en Story.tsx/
+ * Features.tsx a la curva PROPIA de `REVEAL` (`cubic-bezier(0.23, 1, 0.32,
+ * 1)`, distinta de `decelerate`) -- dos curvas de reveal convivían en la
+ * misma página. `REVEAL.durationMs` sustituye también a
+ * `theme.data.motion.duration.slower` (mismos 480ms, ahora por el token). El
+ * `translateY(12px)` NO se toca: es un desvío de composición ya documentado
+ * (ver el docblock de `REVEAL` en `src/motion/vocabulary.ts`), no parte del
+ * hallazgo D3 (que pedía la curva, no el desplazamiento). Verificado en
+ * navegador real que el cambio de curva no altera el carácter del
+ * movimiento (capturas `fixD-*` del informe de la tarea).
  */
 const ScStepReveal = styled.div<{ $index: number }>`
   opacity: 0;
   transform: translateY(12px);
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
   transition-delay: ${({ $index }) => $index * STEP_STAGGER_MS}ms;
 
   &[data-revealed="true"] {

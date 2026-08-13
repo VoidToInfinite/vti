@@ -11,7 +11,7 @@ import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import i18n from "@/i18n/config";
 import { links } from "@/config/links";
-import { AMBIENT, PRESS } from "@/motion/vocabulary";
+import { AMBIENT, PRESS, REVEAL } from "@/motion/vocabulary";
 import { Contact } from "./Contact";
 import {
   CONTACT_CARD_BG_DARK,
@@ -1603,20 +1603,42 @@ describe("D7/D1: progreso de scroll de la rama clara (useSectionProgress)", () =
  * `getComputedStyle`: medido en este repo (ver Features.test.tsx), jsdom no
  * resuelve `transitionDuration`/`transitionTimingFunction` cuando
  * `transition` es una lista de declaraciones separadas por coma.
+ *
+ * Fix wave D (hallazgo D3, revisión final de rama, 2026-08-12): las DOS
+ * ramas migran de `motion.duration.slower`/`motion.easing.decelerate`
+ * sueltos a `REVEAL.durationMs`/`REVEAL.easing`/`REVEAL.shift`
+ * (`@/motion/vocabulary`) -- mismo motivo y mismo patrón que Task 19 ya
+ * aplicó a Story.tsx/Features.tsx (ver el describe "Task 19 (D7)..." en
+ * Features.test.tsx): la duración coincidía (480ms == `REVEAL.durationMs`)
+ * pero la curva NO (`decelerate`, `cubic-bezier(0, 0, 0.2, 1)`, frente a la
+ * propia de `REVEAL`, `cubic-bezier(0.23, 1, 0.32, 1)`) -- dos curvas de
+ * reveal convivían en la misma página. Este bloque deja de comprobar el
+ * literal de tema (`motion.duration.slower`/`motion.easing.decelerate`, que
+ * el componente YA NO emite) y pasa a comprobar el token de vocabulario, con
+ * `not.toContain(decelerate)` como candado explícito de que la curva vieja
+ * no vuelve a colarse.
+ *
+ * Validado con el bug inyectado a propósito: revirtiendo temporalmente
+ * `REVEAL.easing` por `${({ theme }) => theme.data.motion.easing.decelerate}`
+ * en `ScCard`/`ScDarkContent` (Contact.tsx), las dos aserciones
+ * `not.toContain(themes.*.motion.easing.decelerate)` de este bloque cayeron
+ * en rojo; restaurado, volvieron a verde.
  */
-describe("D7: duración/easing de entrada unificados (slower + decelerate)", () => {
-  it("ScCard (rama clara) usa motion.duration.slower + motion.easing.decelerate", () => {
+describe("D7/D3: duración/easing de entrada unificados a REVEAL.*", () => {
+  it("ScCard (rama clara) usa REVEAL.durationMs + REVEAL.easing + REVEAL.shift, ya no motion.easing.decelerate en crudo", () => {
     const { container } = renderWithProviders(<Contact />);
     const card = container.querySelector("[data-revealed]") as HTMLElement;
     const css = cssRuleTextFor(card);
 
-    expect(css).toContain(themes.light.motion.duration.slower);
-    expect(css).toContain(themes.light.motion.easing.decelerate);
+    expect(css).toContain(`${REVEAL.durationMs}ms`);
+    expect(css).toContain(REVEAL.easing);
+    expect(css).toContain(`translateY(${REVEAL.shift})`);
+    expect(css).not.toContain(themes.light.motion.easing.decelerate);
     expect(css).not.toContain(themes.light.motion.duration.slow);
     expect(css).not.toContain(themes.light.motion.easing.emphasized);
   });
 
-  it("ScDarkContent (rama oscura) usa motion.duration.slower + motion.easing.decelerate", async () => {
+  it("ScDarkContent (rama oscura) usa REVEAL.durationMs + REVEAL.easing + REVEAL.shift, ya no motion.easing.decelerate en crudo", async () => {
     stubMatchMedia();
     window.localStorage.setItem("vti-theme", "dark");
     try {
@@ -1631,8 +1653,10 @@ describe("D7: duración/easing de entrada unificados (slower + decelerate)", () 
       ).find((el) => el.getAttribute("aria-hidden") !== "true") as HTMLElement;
       const css = cssRuleTextFor(content);
 
-      expect(css).toContain(themes.dark.motion.duration.slower);
-      expect(css).toContain(themes.dark.motion.easing.decelerate);
+      expect(css).toContain(`${REVEAL.durationMs}ms`);
+      expect(css).toContain(REVEAL.easing);
+      expect(css).toContain(`translateY(${REVEAL.shift})`);
+      expect(css).not.toContain(themes.dark.motion.easing.decelerate);
       expect(css).not.toContain(themes.dark.motion.duration.slow);
     } finally {
       window.localStorage.clear();

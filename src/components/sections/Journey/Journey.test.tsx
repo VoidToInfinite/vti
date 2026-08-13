@@ -32,7 +32,7 @@ import esHome from "@/i18n/locales/es/home.json";
 import esCommon from "@/i18n/locales/es/common.json";
 import { themes } from "@/theme/themes";
 import { contrastRatioHex } from "@/theme/tokens/contrast";
-import { DECK } from "@/motion/vocabulary";
+import { DECK, REVEAL } from "@/motion/vocabulary";
 
 /*
  * Journey monta con frecuencia VARIOS IntersectionObserver a la vez: en
@@ -283,7 +283,7 @@ describe("Journey", () => {
  * `transition` (duracion/easing), que es lo que ata el test de D7.
  */
 describe("Journey: movimiento ligado a scroll y lenguaje de entrada unificado (D1/D7)", () => {
-  it("D7: ScStepReveal unifica su entrada a motion.duration.slower + easing.decelerate en las dos propiedades transicionadas (conserva el escalonado por indice)", () => {
+  it("D7/D3: ScStepReveal unifica su entrada a REVEAL.durationMs + REVEAL.easing en las dos propiedades transicionadas (conserva el escalonado por indice y el translateY(12px) propio)", () => {
     const { container } = renderWithProviders(<Journey />);
     const items = Array.from(container.querySelectorAll("[data-revealed]"));
     expect(items).toHaveLength(JOURNEY_STEPS.length);
@@ -298,9 +298,20 @@ describe("Journey: movimiento ligado a scroll y lenguaje de entrada unificado (D
       // porque se declara como longhand SEPARADO (ver ScStepReveal,
       // Journey.tsx) -- por eso el test "escalona el transition-delay..."
       // de mas arriba ya funcionaba antes de esta entrega.
+      //
+      // Fix wave D (hallazgo D3, revisión final de rama, 2026-08-12):
+      // ScStepReveal migra de `motion.duration.slower`/`motion.easing.
+      // decelerate` sueltos a `REVEAL.durationMs`/`REVEAL.easing` (mismo
+      // motivo que Contact.tsx -- ver el describe "D7/D3..." en
+      // Contact.test.tsx). Este test dejó de comprobar el literal de tema
+      // que el componente YA NO emite y pasa a comprobar el token; el
+      // `translateY(12px)` de ScStepReveal (fuera del alcance de D3, no
+      // toca `REVEAL.shift`) no aparece en `transition`, así que este
+      // candado no lo necesita.
       expect(style.transition).toBe(
-        `opacity ${motion.duration.slower} ${motion.easing.decelerate},transform ${motion.duration.slower} ${motion.easing.decelerate}`,
+        `opacity ${REVEAL.durationMs}ms ${REVEAL.easing},transform ${REVEAL.durationMs}ms ${REVEAL.easing}`,
       );
+      expect(style.transition).not.toContain(motion.easing.decelerate);
       // El escalonado por indice (D7 no lo toca) sigue vivo: mismo assert
       // que "escalona el transition-delay..." mas arriba en este archivo.
       expect(style.transitionDelay).toBe(`${index * 90}ms`);

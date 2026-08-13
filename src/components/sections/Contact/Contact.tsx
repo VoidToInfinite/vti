@@ -8,7 +8,7 @@ import { Field, Input } from "@/components/ui/Input/Input";
 import { Button } from "@/components/ui/Button/Button";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
-import { AMBIENT, PRESS } from "@/motion/vocabulary";
+import { AMBIENT, PRESS, REVEAL } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { EMAIL_ADDRESS, links } from "@/config/links";
@@ -274,6 +274,14 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
  * `ScDarkContent` en `Features.tsx`: las entradas de las secciones claras
  * pasan a la pareja más lenta de la escala, para que se lean "resueltas con
  * calma" en vez de "puntuales".
+ *
+ * Migrado a `REVEAL.durationMs`/`REVEAL.easing`/`REVEAL.shift` (fix wave D,
+ * hallazgo D3, revisión final de rama, 2026-08-12): el `translateY(16px)` de
+ * este bloque ya coincidía EXACTO con `REVEAL.shift`, y `slower`/480ms con
+ * `REVEAL.durationMs` -- lo único que divergía era la curva
+ * (`motion.easing.decelerate` suelto, no la propia de `REVEAL`, que Task 19
+ * ya había migrado en Story.tsx/Features.tsx). Migración de fuente pura,
+ * mismos tres valores exactos, cero cambio de comportamiento.
  */
 /*
  * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, ghost-card):
@@ -302,13 +310,11 @@ const ScCard = styled.div`
   padding: ${({ theme }) => theme.data.space[6]};
 
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(${REVEAL.shift});
   /* Duracion/easing: ver el docblock de arriba. */
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
 
   &[data-revealed="true"] {
     opacity: 1;
@@ -671,6 +677,14 @@ const ScDarkFrame = styled.div`
  * mismo criterio de unificación que `ScDarkContent` en `Features.tsx`: el
  * easing `decelerate` ya era el correcto, solo la duración divergía de la
  * pareja elegida para las cuatro entradas de estas dos secciones.
+ *
+ * Migrado a `REVEAL.durationMs`/`REVEAL.easing`/`REVEAL.shift` (fix wave D,
+ * hallazgo D3, revisión final de rama, 2026-08-12): mismo motivo y misma
+ * migración de fuente pura que `ScCard`, arriba -- `translateY(16px)` ya
+ * coincidía con `REVEAL.shift` y `slower`/480ms con `REVEAL.durationMs`; solo
+ * la curva (`decelerate` suelto, no la propia de `REVEAL`) divergía del
+ * resto de la página tras Task 19. Mismos tres valores exactos, cero cambio
+ * de comportamiento.
  */
 const ScDarkContent = styled.div`
   width: 100%;
@@ -703,13 +717,11 @@ const ScDarkContent = styled.div`
   gap: ${({ theme }) => theme.data.space[7]};
   align-items: flex-start;
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(${REVEAL.shift});
   /* Duracion: ver el docblock de arriba. */
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
 
   &[data-revealed="true"] {
     opacity: 1;
