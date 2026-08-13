@@ -194,6 +194,127 @@ describe("useSectionProgress", () => {
     expect(section.style.getPropertyValue("--section-progress")).toBe("1.0000");
   });
 
+  /*
+   * Fix wave E, hallazgo E1 (evaluador de navegador real, 2026-08-13): ver
+   * el docblock del respaldo de salida en `tick()` (useSectionProgress.ts)
+   * para el diagnóstico completo, medido en Chrome real instrumentando
+   * `IntersectionObserver` de verdad -- tras un scroll rápido que atraviesa
+   * una sección de punta a punta, el observer entregó la ENTRADA pero nunca
+   * la SALIDA, y `data-inview` se quedaba en `"true"` para siempre (el bucle
+   * de `tick()` lo escribía sin condición mientras `running` siguiera
+   * `true`, y nada volvía a comprobarlo).
+   *
+   * Este describe reproduce el CAMINO REAL del defecto en jsdom -- nunca
+   * pilotando `dataset.inview` a mano -- ejerciendo exactamente los DOS
+   * mecanismos reales que intervienen: el `IntersectionObserver` mockeado
+   * (que aquí, a propósito, NUNCA vuelve a llamarse tras la entrada -- el
+   * mismo silencio medido en el navegador) y un evento `scroll` real de
+   * `window` (el listener que `start()` engancha mientras `running` es
+   * `true`), que es quien de verdad actualiza la geometría cacheada
+   * (`lastTop`/`lastHeight`/`lastVh`) que el respaldo lee.
+   */
+  describe("fix wave E, hallazgo E1 -- respaldo de salida cuando el observer nunca avisa", () => {
+    function stubRafQueue(): {
+      flush: (times: number) => void;
+    } {
+      let pending: FrameRequestCallback[] = [];
+      vi.stubGlobal(
+        "requestAnimationFrame",
+        (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+      );
+      vi.stubGlobal("cancelAnimationFrame", vi.fn());
+      return {
+        flush(times: number) {
+          for (let i = 0; i < times; i += 1) {
+            const batch = pending;
+            pending = [];
+            for (const cb of batch) cb(i * 16);
+          }
+        },
+      };
+    }
+
+    it("si la geometría cacheada se aleja > 8px de la entrada tras un 'scroll' real, SIN que el observer vuelva a avisar, el bucle se auto-corrige a data-inview=false", () => {
+      const { flush } = stubRafQueue();
+
+      const section = sectionWith(600, VH);
+      const sectionRef = refOf(section);
+      renderHook(() => useSectionProgress(sectionRef));
+
+      act(() => ioTrigger(true));
+      expect(section.dataset.inview).toBe("true");
+      // No debe haber ningun IntersectionObserver adicional -- sigue siendo
+      // el mismo, mockInstances no crece por este respaldo.
+      expect(mockInstances).toHaveLength(1);
+
+      // La sección se desplaza CLARAMENTE fuera del viewport por abajo
+      // (top=1000, muy por encima de VH=800) -- pero el observer NUNCA
+      // vuelve a avisar (a propósito: ioTrigger NO se llama de nuevo en
+      // este test), reproduciendo el silencio medido en el navegador real.
+      section.getBoundingClientRect = () =>
+        ({ top: 1000, height: VH, bottom: 1000 + VH }) as DOMRect;
+      // El evento 'scroll' real es lo único que refresca la caché mientras
+      // `running` sigue activo (`onScroll`, dentro del hook).
+      act(() => {
+        window.dispatchEvent(new Event("scroll"));
+      });
+
+      // Unos pocos frames de rAF para que `tick()` lea la caché ya
+      // refrescada y dispare el respaldo.
+      act(() => flush(3));
+
+      expect(section.dataset.inview).toBe("false");
+      // "Salió por abajo" (bottom > 0): mismo criterio que el test hermano
+      // de arriba ("al salir del viewport por abajo").
+      expect(section.style.getPropertyValue("--section-enter")).toBe("0.0000");
+      expect(section.style.getPropertyValue("--section-progress")).toBe(
+        "0.0000",
+      );
+    });
+
+    it("NO deshace una entrada que llega justo al borde exacto del viewport (rect.top === innerHeight, cero px de solape real)", () => {
+      // Reproduce el hallazgo REAL encontrado verificando este mismo fix en
+      // navegador (Chrome, playwright-cli): una sección justo debajo de un
+      // Hero a pantalla completa (`min-height: 100dvh`) puede empezar a
+      // intersecar con `rect.top` EXACTAMENTE igual a `innerHeight` -- el
+      // propio `IntersectionObserver` real ya lo cuenta como
+      // `isIntersecting: true` (por eso llama a `start()`), pero la fórmula
+      // estricta de este mismo respaldo (`lastTop < lastVh`), aplicada SIN
+      // el margen de `topAtStart`/`SETTLE_TOLERANCE_PX`, la juzga "no
+      // intersecta" y deshace la entrada en el mismo ciclo en que se creó.
+      const { flush } = stubRafQueue();
+
+      const section = sectionWith(VH, 0);
+      const sectionRef = refOf(section);
+      renderHook(() => useSectionProgress(sectionRef));
+
+      act(() => ioTrigger(true));
+      // Ni el primer tick síncrono (dentro de start()) ni varios frames más
+      // sin ningún scroll real deben deshacer la entrada: `topAtStart` sigue
+      // siendo la MISMA geometría que el propio observer acaba de validar.
+      expect(section.dataset.inview).toBe("true");
+      act(() => flush(3));
+      expect(section.dataset.inview).toBe("true");
+    });
+
+    /*
+     * Bug inyectado a propósito (regla 34), verificado en esta tarea:
+     * sustituir la condición de guarda de `tick()` (useSectionProgress.ts,
+     * `Math.abs(lastTop - topAtStart) > SETTLE_TOLERANCE_PX`) por `true` a
+     * secas -- es decir, comprobar SIEMPRE la fórmula de intersección, sin
+     * el margen de tolerancia -- pone en rojo el SEGUNDO test de este
+     * describe ("NO deshace una entrada que llega justo al borde exacto"):
+     * `data-inview` pasa a `"false"` en el mismo ciclo en que `start()` lo
+     * puso a `"true"`, exactamente la regresión de falso positivo que
+     * `topAtStart`/`SETTLE_TOLERANCE_PX` existen para evitar. El primer test
+     * (salida real tras scroll sustancial) sigue en verde con el bug
+     * inyectado -- esperado, porque ese escenario mueve la geometría muy por
+     * encima de cualquier tolerancia razonable, así que no distingue "con
+     * margen" de "sin margen". Restaurada la condición original, los dos
+     * vuelven a verde.
+     */
+  });
+
   it("bajo reduced-motion no arranca ningun rAF y escribe el estado final estable", () => {
     stubMatchMedia(true);
     const raf = vi.fn().mockReturnValue(1);

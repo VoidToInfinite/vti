@@ -218,9 +218,112 @@ export function useSectionProgress(
       return { enter, progress };
     };
 
+    // Geometria cacheada EN EL INSTANTE en que `start()` la confirmo (ver el
+    // docblock de `tick()`, justo abajo): punto de referencia para medir
+    // cuanto se ha movido `lastTop` desde entonces, no solo SI se ha movido.
+    let topAtStart = 0;
+
+    /**
+     * Margen de tolerancia del respaldo de salida (fix wave E, hallazgo E1),
+     * en píxeles. Absorbe el sub-píxel de la PRIMERA actualización real de
+     * `onScroll` tras `start()` -- medido en Chrome real: el primer evento
+     * `scroll` de una animación `scroll-behavior: smooth` recién arrancada
+     * puede mover el elemento menos de 1-2px (el tramo de aceleración de la
+     * curva de easing), así que "¿se ha movido ALGO?" no basta -- un simple
+     * `true`/`false` seguía dejando pasar ese primer paso minúsculo como
+     * "movimiento real" y disparaba el respaldo contra la MISMA geometría
+     * boundary que el observer real ya había confirmado. 8px es un margen
+     * amplio frente al paso de 1-6px medido en ese primer evento, y minúsculo
+     * frente a cualquier cruce real de sección (cientos de píxeles) -- no
+     * hay tensión entre proteger la entrada reciente y detectar una salida
+     * genuina.
+     */
+    const SETTLE_TOLERANCE_PX = 8;
+
+    /**
+     * Respaldo de salida (fix wave E, hallazgo E1 -- evaluador de navegador
+     * real, 2026-08-13), medido en Chrome real, sin CPU throttling: la
+     * MISMA fórmula de "¿intersecta?" que ya usa el resto del repo
+     * (`rect.top < vh && rect.bottom > 0` -- ver `intersectsViewport` en
+     * `useActiveSection.ts`), aplicada sobre la geometría CACHEADA
+     * (`lastTop`/`lastHeight`/`lastVh`, ya fresca por `onScroll`/`onResize`
+     * mientras el bucle corre) en vez de un nuevo `getBoundingClientRect`.
+     *
+     * DIAGNÓSTICO (instrumentando `IntersectionObserver` de verdad en el
+     * navegador, no supuesto): tras un gesto de scroll hacia arriba de
+     * varios pasos (`page.mouse.wheel`, 12 muescas realistas, o el
+     * equivalente `window.scrollTo(behavior:"instant")`) que atraviesa una
+     * sección de punta a punta -- entra por un lado, sale por el otro --, el
+     * `IntersectionObserver` entregó la notificación de ENTRADA
+     * (`isIntersecting: true`, capturado por el log instrumentado) pero
+     * NUNCA la de SALIDA: el cruce final quedó a un pelo del borde exacto
+     * del viewport, y sin un evento adicional que reevaluara la geometría
+     * después de ese último frame, el navegador simplemente no volvió a
+     * comprobar. Esto NO es el mismo defecto que el fix de
+     * `useActiveSection.ts` (que reevalúa CUÁNDO re-leer `data-inview`) --
+     * este es más profundo: `data-inview` mismo se queda mal escrito, porque
+     * `tick()` (mientras `running` siga `true`) escribía `inView: true`
+     * INCONDICIONALMENTE en cada frame, sin volver a comprobar si la
+     * sección seguía intersecando de verdad. Con `running` nunca puesto a
+     * `false` (porque `pause()` solo lo hace desde `onIntersectExit`, que
+     * nunca llegó a dispararse), el bucle -- y la señal falsa -- corrían
+     * para siempre.
+     *
+     * `onScroll`/`onResize` SIGUEN corriendo durante todo ese tramo (activos
+     * mientras `running === true`, que es justo la ventana en la que el
+     * aviso se perdió), así que `lastTop`/`lastHeight`/`lastVh` YA reflejan
+     * la geometría real y fresca en cada frame -- verificar contra ellos
+     * aquí no añade ningún listener, `Observer` ni layout forzado nuevo:
+     * reutiliza el mismo dato que `computeTargets()`, dos líneas más abajo,
+     * ya iba a leer. Si la caché dice que ya no intersecta, se trata
+     * exactamente como si el observer hubiera avisado -- mismo camino
+     * (`onIntersectExit`), sin duplicar la lógica de reposo.
+     *
+     * `topAtStart`/`SETTLE_TOLERANCE_PX` (dos hallazgos adicionales,
+     * atrapados por el propio candado antes de darlos por buenos -- las dos
+     * fórmulas anteriores de este respaldo, "sáltate solo el primer `tick`"
+     * y luego "sáltate hasta el primer `scroll` real", NO bastaban):
+     *
+     * Esta sección -- como cualquiera que llegue justo después de un Hero a
+     * pantalla completa, `min-height: 100dvh` -- puede empezar a intersecar
+     * con `rect.top` EXACTAMENTE igual a `innerHeight` (el borde justo, cero
+     * píxeles de solape real). Medido en Chrome real: el propio
+     * `IntersectionObserver` considera ESE borde exacto como
+     * `isIntersecting: true` (así llamó a `start()`), y la geometría se
+     * queda clavada en ese mismo valor durante varios `tick()` -- a veces
+     * varios frames enteros -- hasta que la animación de scroll suave emite
+     * su primer evento `scroll` real. Ese primer evento, medido, puede mover
+     * el elemento tan solo 1-2px (el arranque de la curva de easing) --
+     * seguir sin cruzar de forma clara el límite ambiguo. Con un simple
+     * `true`/`false` (intento anterior), ese primer paso minúsculo ya
+     * contaba como "algo se movió" y activaba la fórmula estricta contra una
+     * geometría que seguía, en la práctica, siendo la misma que el observer
+     * real ya había validado -- deshaciendo la entrada, de forma
+     * intermitente según cuántos px trajera ese primer evento (de ahí la
+     * inconsistencia entre corridas: 1px de más o de menos decidía si el
+     * candado se disparaba).
+     *
+     * La distinción real entre los dos casos no está en la geometría en sí
+     * (los dos pueden compartir el MISMO `rect.top === innerHeight` exacto)
+     * sino en CUÁNTO se ha alejado la geometría de la que el observer
+     * confirmó por última vez: `topAtStart` guarda esa foto original, y el
+     * respaldo solo se activa una vez que `lastTop` se ha separado de ella
+     * más de `SETTLE_TOLERANCE_PX` -- lo bastante para no ser ruido de
+     * arranque de la animación, lo bastante poco para no retrasar la
+     * detección de una salida real (que implica cientos de píxeles de
+     * scroll, no unos pocos).
+     */
     const tick = (): void => {
       const el = ref.current;
       if (el) {
+        if (Math.abs(lastTop - topAtStart) > SETTLE_TOLERANCE_PX) {
+          const stillIntersecting =
+            lastTop < lastVh && lastTop + lastHeight > 0;
+          if (!stillIntersecting) {
+            onIntersectExit();
+            return;
+          }
+        }
         const { enter: targetEnter, progress: targetProgress } =
           computeTargets();
         const { smooth } = resolveOptions(optionsRef.current);
@@ -239,6 +342,7 @@ export function useSectionProgress(
       running = true;
       hasEntered = true;
       updateMeasurement();
+      topAtStart = lastTop;
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onResize, { passive: true });
       // Primer frame SINCRONO (mismo patron que `measure()` en

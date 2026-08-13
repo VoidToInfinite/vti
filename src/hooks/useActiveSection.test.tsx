@@ -1,7 +1,9 @@
+import { useRef, type ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { render, renderHook, act } from "@testing-library/react";
 import { NAV_GROUPS } from "@/config/navigation";
 import { useActiveSectionKey } from "./useActiveSection";
+import { useSectionProgress } from "./useSectionProgress";
 
 /** Mismos `key` que el hook deriva internamente de `NAV_GROUPS` (grupo
  *  `onSite`, items `kind: "section"`): "story", "journey", "features",
@@ -261,4 +263,207 @@ describe("useActiveSectionKey bajo prefers-reduced-motion: reduce (fix wave A, A
 
     expect(result.current).toBeNull();
   });
+});
+
+/*
+ * Fix wave E, hallazgo E1 (evaluador de navegador real, 2026-08-13):
+ * `aria-current` se desincroniza tras navegar por ancla y no se recupera.
+ * Ver el docblock de `observeSectionInviewMutations` (`useActiveSection.ts`)
+ * para el diagnóstico completo -- resumen: `evaluate()` solo se re-ejecutaba
+ * en `scroll`/`resize`, una señal PROXY de "`data-inview` pudo haber
+ * cambiado"; `data-inview` lo escribe de forma ASÍNCRONA el
+ * `IntersectionObserver` de `useSectionProgress`, en una tarea posterior al
+ * evento `scroll`. En scroll continuo la carrera se autocura (llegan más
+ * eventos de inercia); tras un salto de ancla (`scroll-behavior: smooth`
+ * nativo, sin inercia posterior) el ÚLTIMO `scroll` puede correr antes de
+ * que el observer entregue, y como no vuelve a haber otro evento, la lectura
+ * vieja se queda para siempre.
+ *
+ * Candado que recorre el CAMINO REAL, no `setInView()` a mano (regla
+ * explícita del encargo: pilotar `dataset.inview` directamente es
+ * exactamente el motivo por el que la suite existente -- los tests de
+ * arriba, TODOS con `setInView` + `fireScroll()` en ese orden -- no vio
+ * ninguno de los dos fallos de esta familia, porque ese orden simula
+ * justamente el caso en el que la señal YA está actualizada antes del
+ * scroll). Este harness monta `useSectionProgress` REAL (el mismo hook que
+ * escribe `data-inview` en producción) sobre las cuatro secciones, con su
+ * propio `IntersectionObserver` mockeado -- así `data-inview` cambia por el
+ * mismo mecanismo asíncrono real, y el test puede reproducir la carrera
+ * exacta: disparar el `scroll` ANTES de que el observer entregue, y NO
+ * disparar ningún `scroll`/`resize` después (el paso que el salto de ancla
+ * nunca da).
+ */
+describe("useActiveSectionKey: fix wave E, hallazgo E1 -- resincroniza tras un salto de ancla sin depender de otro scroll", () => {
+  let ioTargets: { target: Element; emit: (isIntersecting: boolean) => void }[];
+
+  function triggerFor(target: Element, isIntersecting: boolean): void {
+    const instance = ioTargets.find((entry) => entry.target === target);
+    if (!instance) {
+      throw new Error("Ningun IntersectionObserver observa ese elemento");
+    }
+    instance.emit(isIntersecting);
+  }
+
+  function triggerForId(id: string, isIntersecting: boolean): void {
+    const el = document.getElementById(id);
+    if (!el) throw new Error(`no existe la sección de prueba #${id}`);
+    triggerFor(el, isIntersecting);
+  }
+
+  let latestKey: string | null | undefined;
+
+  function ActiveSectionHarness(): ReactElement {
+    const storyRef = useRef<HTMLDivElement>(null);
+    const journeyRef = useRef<HTMLDivElement>(null);
+    const featuresRef = useRef<HTMLDivElement>(null);
+    const contactRef = useRef<HTMLDivElement>(null);
+    useSectionProgress(storyRef, { cssVarPrefix: "story" });
+    useSectionProgress(journeyRef, { cssVarPrefix: "journey" });
+    useSectionProgress(featuresRef, { cssVarPrefix: "features" });
+    useSectionProgress(contactRef, { cssVarPrefix: "contact" });
+    latestKey = useActiveSectionKey();
+    return (
+      <div>
+        <div
+          ref={storyRef}
+          id="story"
+        />
+        <div
+          ref={journeyRef}
+          id="journey"
+        />
+        <div
+          ref={featuresRef}
+          id="features"
+        />
+        <div
+          ref={contactRef}
+          id="contact"
+        />
+      </div>
+    );
+  }
+
+  beforeEach(() => {
+    // El `beforeEach` del describe EXTERIOR (arriba en este mismo fichero)
+    // ya corrió y montó, vía `mountSections()`, cuatro `<div>` vacíos con
+    // estos mismos cuatro ids -- necesarios para los tests de arriba, que
+    // pilotan `data-inview` a mano sobre ellos. Este describe monta su
+    // PROPIO harness con elementos reales (`ActiveSectionHarness`, más
+    // abajo) para los mismos cuatro ids: sin retirar los de
+    // `mountSections()` primero, `document.getElementById` encontraría el
+    // div vacío (el PRIMERO en el DOM), nunca el que de verdad tiene
+    // `useSectionProgress` enganchado -- exactamente el motivo por el que
+    // `triggerForId` fallaría con "ningún observer" pese a que el
+    // IntersectionObserver del harness sí se creó.
+    unmountSections();
+    ioTargets = [];
+    latestKey = undefined;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        private cb: (entries: { isIntersecting: boolean }[]) => void;
+        constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+          this.cb = cb;
+        }
+        observe(target: Element) {
+          ioTargets.push({
+            target,
+            emit: (v: boolean) => this.cb([{ isIntersecting: v }]),
+          });
+        }
+        disconnect() {}
+      },
+    );
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    stubMatchMedia(false);
+    Object.defineProperty(window, "innerHeight", {
+      value: 800,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("tras la última sección quedar marcada por un scroll adelantado a la entrega del observer, se resincroniza SIN un scroll adicional", async () => {
+    render(<ActiveSectionHarness />);
+
+    // Estado "antes del salto": el visitante estaba al final, en Contacto.
+    await act(async () => {
+      triggerForId("contact", true);
+      window.dispatchEvent(new Event("scroll"));
+      await Promise.resolve();
+    });
+    expect(latestKey).toBe("contact");
+
+    // El salto de ancla mueve `scrollY` de golpe. El navegador despacha su
+    // ÚLTIMO evento `scroll` de la animación ANTES de que el
+    // IntersectionObserver de "story" (la sección de destino) entregue su
+    // notificación para la posición final -- se modela disparando el
+    // `scroll` mientras `data-inview` de las dos secciones SIGUE con el
+    // valor de antes del salto (contact=true, story=false todavía).
+    await act(async () => {
+      window.dispatchEvent(new Event("scroll"));
+      await Promise.resolve();
+    });
+    // Instante intermedio, esperado: `evaluate()` no tiene nada nuevo que
+    // leer todavía, sigue en "contact".
+    expect(latestKey).toBe("contact");
+
+    // El IntersectionObserver entrega, tarde, la notificación real de la
+    // navegación: "contact" sale de pantalla, "story" (el destino del
+    // salto) entra. CERO eventos `scroll`/`resize` después de esto -- el
+    // paso que un salto de ancla, sin inercia, nunca da.
+    await act(async () => {
+      triggerForId("contact", false);
+      triggerForId("story", true);
+      await Promise.resolve();
+    });
+
+    expect(latestKey).toBe("story");
+    expect(latestKey).not.toBe("contact");
+  });
+
+  it("volviendo al Hero tras un salto (scrollY=0), ningún id queda marcado, sin un scroll adicional", async () => {
+    render(<ActiveSectionHarness />);
+
+    await act(async () => {
+      triggerForId("journey", true);
+      window.dispatchEvent(new Event("scroll"));
+      await Promise.resolve();
+    });
+    expect(latestKey).toBe("journey");
+
+    // Rueda hacia arriba hasta el Hero: el último `scroll` del gesto corre
+    // antes de que el observer confirme que "journey" ya salió de pantalla.
+    await act(async () => {
+      window.dispatchEvent(new Event("scroll"));
+      await Promise.resolve();
+    });
+    expect(latestKey).toBe("journey");
+
+    // Entrega tardía, sin ningún scroll/resize posterior.
+    await act(async () => {
+      triggerForId("journey", false);
+      await Promise.resolve();
+    });
+
+    expect(latestKey).toBeNull();
+  });
+
+  /*
+   * Bug inyectado a propósito (regla 34): comentar la línea
+   * `observeSectionInviewMutations();` dentro de `subscribe()`
+   * (`useActiveSection.ts`) -- de modo que el módulo vuelva a depender
+   * EXCLUSIVAMENTE de `scroll`/`resize` -- pone en rojo los dos tests de
+   * arriba (`latestKey` se queda en "contact"/"journey" tras la entrega
+   * tardía, en vez de resincronizar); restaurada la línea, vuelven a verde.
+   * Documentado aquí en vez de dejado como comentario suelto en el fichero
+   * de producción, mismo criterio que el resto de bugs inyectados de este
+   * repo.
+   */
 });

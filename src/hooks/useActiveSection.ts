@@ -24,6 +24,7 @@ const ACTIVE_SECTION_IDS: readonly string[] = (
 let activeKey: string | null = null;
 let subscriberCount = 0;
 const listeners = new Set<() => void>();
+let sectionMutationObserver: MutationObserver | null = null;
 
 function notify(): void {
   listeners.forEach((listener) => listener());
@@ -144,6 +145,81 @@ function handleScrollOrResize(): void {
   evaluate();
 }
 
+/**
+ * Fix wave E, hallazgo E1 (evaluador de navegador real, 2026-08-13):
+ * `aria-current` se desincroniza tras navegar por ancla y no se recupera,
+ * ni siquiera 4s después ni volviendo a scrollear con normalidad. MISMA
+ * familia que fix wave A/A2 (`aria-current` afirmando una ubicación falsa
+ * por ARIA) pero por un disparador DISTINTO: A2 era `data-inview` clavado
+ * de forma PERMANENTE bajo `reduce`; esto es una CARRERA de un solo tiro
+ * bajo navegación normal.
+ *
+ * DIAGNÓSTICO (antes de tocar nada, según pide el encargo): `evaluate()`
+ * -- la única función que relee `data-inview` y decide `activeKey` -- solo
+ * se re-ejecuta en dos disparadores: los eventos `scroll`/`resize` de
+ * `window`, y una vez al montar el primer suscriptor (síncrona + 1 rAF de
+ * margen). Pero `data-inview` no lo escribe un evento de `window`: lo
+ * escribe, de forma ASÍNCRONA, el propio `IntersectionObserver` de CADA
+ * sección (`useSectionProgress.ts`), cuya notificación el navegador entrega
+ * en una tarea POSTERIOR al evento `scroll` que causó el cambio de
+ * geometría -- nunca en el mismo tick síncrono. En scroll continuo (rueda
+ * física, con inercia) esto no se nota: cada muesca genera un nuevo
+ * `scroll`, y el navegador sigue emitiendo eventos de inercia varios
+ * frames después de que la mano se detenga, así que aunque UN `evaluate()`
+ * lea `data-inview` todavía "viejo", el SIGUIENTE evento (pocos ms después,
+ * cuando el IntersectionObserver ya entregó) lo corrige -- la carrera se
+ * autocura sola, invisible en las 14 paradas medidas de carga limpia.
+ *
+ * La navegación por ancla nativa (`<a href="#story">`, `scroll-behavior:
+ * smooth` global, `GlobalStyles.tsx`) rompe esa autocorrección: la
+ * animación de scroll del navegador termina en un alto SECO, sin ningún
+ * evento de inercia posterior. Si el ÚLTIMO evento `scroll` de esa
+ * animación se procesa ANTES de que el `IntersectionObserver` de la
+ * sección de destino entregue su notificación para la posición final
+ * (una carrera real y documentada: la entrega de `IntersectionObserver`
+ * está gateada a "antes del siguiente pintado", una tarea distinta y
+ * posterior al despacho síncrono del evento `scroll`), `evaluate()` lee
+ * `data-inview` desactualizado -- y como no vuelve a haber NINGÚN
+ * `scroll`/`resize` después (el usuario ya no se está moviendo), nada
+ * vuelve a comprobar la señal real. El mismo mecanismo explica el caso de
+ * la rueda hacia arriba hasta el Hero: si esa gesticulación también
+ * termina en un alto seco justo cuando la última sección activa pasa a
+ * `data-inview="false"`, la carrera puede perderse igual y dejar
+ * `activeKey` clavado en la sección que ya se abandonó.
+ *
+ * ARREGLO (causa raíz, no un `setTimeout` que esconda el síntoma): en vez
+ * de depender EXCLUSIVAMENTE de la señal PROXY (`scroll`/`resize`, "algo
+ * pudo haber cambiado"), este módulo observa también la señal REAL
+ * directamente -- un `MutationObserver` sobre el atributo `data-inview` de
+ * las cuatro secciones. `evaluate()` se re-ejecuta entonces exactamente
+ * cuando `useSectionProgress` escribe el nuevo valor, sin importar qué lo
+ * disparó (scroll físico, navegación por ancla, resize) ni cómo terminó el
+ * gesto que lo causó -- cierra la carrera por construcción, no por más
+ * reintentos. NO es un `IntersectionObserver` nuevo (el docblock de
+ * `evaluate()`, arriba, sigue cumpliéndose: "reutilizar, no crear un
+ * observer nuevo" se refería a NO duplicar la detección de intersección de
+ * `useSectionProgress`; un `MutationObserver` no mide intersección, solo
+ * escucha el resultado YA calculado por el observer que ya existe). Los
+ * listeners de `scroll`/`resize` se conservan: el camino de
+ * `reduce`-motion (`resolveActiveKeyReduced()`) no usa `data-inview` en
+ * absoluto, sigue necesitando el disparador de scroll/resize para su
+ * propio `getBoundingClientRect()`.
+ */
+function observeSectionInviewMutations(): void {
+  sectionMutationObserver = new MutationObserver(() => {
+    evaluate();
+  });
+  for (const id of ACTIVE_SECTION_IDS) {
+    const el = document.getElementById(id);
+    if (el) {
+      sectionMutationObserver.observe(el, {
+        attributes: true,
+        attributeFilter: ["data-inview"],
+      });
+    }
+  }
+}
+
 /*
  * `subscribe` de `useSyncExternalStore`, mismo patrón de singleton de
  * módulo que `usePointer` (ver su docblock): un solo par de listeners de
@@ -178,6 +254,10 @@ function subscribe(onStoreChange: () => void): () => void {
     window.addEventListener("resize", handleScrollOrResize, {
       passive: true,
     });
+    // Fix wave E, hallazgo E1: ver el docblock de `observeSectionInviewMutations`,
+    // arriba, para el porqué (cierra la carrera scroll-vs-IntersectionObserver
+    // que scroll/resize por sí solos no cubren tras un salto de ancla).
+    observeSectionInviewMutations();
   }
   subscriberCount += 1;
   listeners.add(onStoreChange);
@@ -188,6 +268,8 @@ function subscribe(onStoreChange: () => void): () => void {
     if (subscriberCount === 0) {
       window.removeEventListener("scroll", handleScrollOrResize);
       window.removeEventListener("resize", handleScrollOrResize);
+      sectionMutationObserver?.disconnect();
+      sectionMutationObserver = null;
       activeKey = null;
     }
   };
