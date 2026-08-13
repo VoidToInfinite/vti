@@ -29,6 +29,13 @@ export const links = {
   playground: "https://dev.voidtoinfinite.com",
   github: "https://github.com/voidtoinfinite",
   discord: "https://discord.gg/CuGhqdG3g3",
+  /* Perfil personal del titular del sitio, aportado por él el 2026-08-13 al
+     cerrar la Fase 0. Es el ÚNICO destino de este mapa que apunta a una
+     persona y no al proyecto, y esa diferencia es deliberada: desde que el
+     aviso legal identifica al responsable por su nombre sin publicar
+     domicilio ni NIF, este enlace es la vía por la que quien lea el sitio
+     puede comprobar quién hay detrás. */
+  linkedin: "https://www.linkedin.com/in/demosquerag/",
   email: "mailto:hello@voidtoinfinite.com",
   /* Destino público del SDK (VTI - SDK), consumido por el grupo "resources"
      del modelo de navegación compartido (`src/config/navigation.ts`).

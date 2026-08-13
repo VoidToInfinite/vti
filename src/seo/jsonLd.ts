@@ -102,7 +102,12 @@ export function organizationJsonLd(): OrganizationJsonLd {
     // recuperación de Contacto y el enlace del pie. Sigue sin duplicar
     // ninguna cadena literal: la constante se deriva de `links.email`.
     "email": EMAIL_ADDRESS,
-    "sameAs": [links.github, links.discord],
+    /* `sameAs` es, por definición de schema.org, el conjunto de URLs que
+       identifican inequívocamente a la MISMA entidad. El perfil de LinkedIn
+       del titular entra aquí desde que el aviso legal lo identifica por su
+       nombre: es la señal que permite a un buscador atar el proyecto con la
+       persona que responde de él. */
+    "sameAs": [links.github, links.discord, links.linkedin],
   };
 }
 

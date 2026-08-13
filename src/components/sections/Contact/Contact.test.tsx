@@ -882,7 +882,7 @@ describe("Contact en tema oscuro", () => {
    * más abajo), así que mostrarlo también en una tarjeta era el mismo dato
    * repetido. Quedan las dos tarjetas restantes, Comunidad y Código.
    */
-  it("hay exactamente 2 tarjetas de contacto con href a links.discord/github importados, cada una con su icono aria-hidden", async () => {
+  it("hay exactamente 3 tarjetas de contacto con href a links.discord/github/linkedin importados, cada una con su icono aria-hidden", async () => {
     const { container } = renderWithProviders(<Contact />);
     await waitFor(() => {
       expect(container.querySelectorAll("img")).toHaveLength(
@@ -891,10 +891,12 @@ describe("Contact en tema oscuro", () => {
     });
 
     const cardLinks = screen.getAllByRole("link");
-    expect(cardLinks).toHaveLength(2);
+    expect(cardLinks).toHaveLength(3);
 
     const hrefs = cardLinks.map((el) => el.getAttribute("href"));
-    expect(hrefs.sort()).toEqual([links.discord, links.github].sort());
+    expect(hrefs.sort()).toEqual(
+      [links.discord, links.github, links.linkedin].sort(),
+    );
 
     cardLinks.forEach((link) => {
       expect(link.querySelector('svg[aria-hidden="true"]')).toBeInTheDocument();

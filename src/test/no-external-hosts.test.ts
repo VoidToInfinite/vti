@@ -136,6 +136,7 @@ const ALLOWED_HOSTS = new Set([
   "dev.voidtoinfinite.com",
   "github.com",
   "discord.gg",
+  "www.linkedin.com",
   "example.invalid",
 ]);
 

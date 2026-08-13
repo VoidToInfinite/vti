@@ -72,9 +72,13 @@ const EXPECTED_ITEMS: Record<
   resources: [{ key: "sdk", href: links.sdk, kind: "external" }],
   // Grupo nuevo (auditoría premium, tarea 6): Discord y GitHub, ambos
   // externos, mismo mecanismo que resources.sdk (ver navigation.ts).
+  // LinkedIn se suma el 2026-08-13 al cerrar la Fase 0, el último del grupo:
+  // los dos primeros apuntan al proyecto, este a la persona que responde de
+  // él (`links.ts`, docblock de `linkedin`).
   community: [
     { key: "discord", href: links.discord, kind: "external" },
     { key: "github", href: links.github, kind: "external" },
+    { key: "linkedin", href: links.linkedin, kind: "external" },
   ],
 };
 

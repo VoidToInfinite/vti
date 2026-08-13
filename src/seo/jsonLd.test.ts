@@ -41,7 +41,11 @@ describe("organizationJsonLd", () => {
   });
 
   it("sameAs contiene EXACTAMENTE los destinos externos reales confirmados", () => {
-    expect(organizationJsonLd().sameAs).toEqual([links.github, links.discord]);
+    expect(organizationJsonLd().sameAs).toEqual([
+      links.github,
+      links.discord,
+      links.linkedin,
+    ]);
   });
 
   it("sameAs NO incluye el subdominio propio de desarrollo (no es un perfil externo)", () => {

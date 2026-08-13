@@ -9,6 +9,7 @@ describe("links de CTA", () => {
       "email",
       "github",
       "legalNotice",
+      "linkedin",
       "playground",
       "privacy",
       "sdk",
@@ -19,6 +20,14 @@ describe("links de CTA", () => {
     expect(links.github).toBe("https://github.com/voidtoinfinite");
     expect(links.discord).toBe("https://discord.gg/CuGhqdG3g3");
     expect(links.email).toBe("mailto:hello@voidtoinfinite.com");
+  });
+
+  /* El perfil del titular, aportado al cerrar la Fase 0 (2026-08-13). Se ata
+     el valor EXACTO, igual que sus hermanos: es el destino que el aviso legal
+     usa como vía de comprobación de quién responde del sitio, así que apuntar
+     a otro perfil sería un defecto de identificación, no una errata. */
+  it("linkedin apunta al perfil del titular declarado en el aviso legal", () => {
+    expect(links.linkedin).toBe("https://www.linkedin.com/in/demosquerag/");
   });
 
   /*

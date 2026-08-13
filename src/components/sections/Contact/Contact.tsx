@@ -1440,6 +1440,38 @@ export function Contact(): ReactElement {
           <ScCardValue>{t("Home.contact.cards.code.value")}</ScCardValue>
         </div>
       </ScCardLink>
+      {/* Tercera tarjeta, añadida el 2026-08-13 al cerrar la Fase 0. Las dos
+          anteriores apuntan al PROYECTO (su comunidad, su código); esta
+          apunta a la PERSONA que responde de él, y por eso va la última: la
+          progresión va de lo más público a lo más personal, no al revés.
+          Misma estructura que sus hermanas -- ningún estilo nuevo, ningún
+          styled nuevo -- para que la rejilla no tenga que aprender un caso
+          especial. */}
+      <ScCardLink
+        href={links.linkedin}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <ScCardIcon
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle
+            cx="12"
+            cy="7"
+            r="3.5"
+          />
+          <path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" />
+        </ScCardIcon>
+        <div>
+          <ScCardTitle>{t("Home.contact.cards.profile.title")}</ScCardTitle>
+          <ScCardValue>{t("Home.contact.cards.profile.value")}</ScCardValue>
+        </div>
+      </ScCardLink>
     </ScCards>
   );
 

@@ -113,6 +113,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { key: "discord", href: links.discord, kind: "external" },
       { key: "github", href: links.github, kind: "external" },
+      /* Último del grupo, mismo criterio aditivo que el propio grupo estrenó:
+         los dos anteriores ya existían y reordenarlos cambiaría un camino que
+         alguien ya conoce. Su etiqueta sale de `Common.Nav.linkedin`, igual
+         que las otras dos -- el `switch` de `itemLabel` resuelve todo
+         `kind: "external"` por clave, así que este destino no toca ninguna de
+         sus tres copias (Navbar, Footer, NavSheet). */
+      { key: "linkedin", href: links.linkedin, kind: "external" },
     ],
   },
 ] as const;

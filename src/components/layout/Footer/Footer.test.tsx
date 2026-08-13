@@ -282,7 +282,7 @@ describe("Footer", () => {
    * columna: exactamente los dos enlaces esperados, ninguno más.
    */
   it.each([["light"], ["dark"]] as const)(
-    "en tema %s la columna Comunidad contiene exactamente los enlaces de Discord y GitHub",
+    "en tema %s la columna Comunidad contiene exactamente los enlaces de Discord, GitHub y LinkedIn",
     (theme) => {
       window.localStorage.setItem("vti-theme", theme);
       renderWithProviders(<Footer />);
@@ -292,7 +292,7 @@ describe("Footer", () => {
       const anclas = Array.from(columna.querySelectorAll("a"));
 
       expect(anclas.map((ancla) => ancla.getAttribute("href")).sort()).toEqual(
-        [links.discord, links.github].sort(),
+        [links.discord, links.github, links.linkedin].sort(),
       );
     },
   );
