@@ -825,59 +825,51 @@ describe("Task 3: CTA de tarjeta de Features a >=14px (antes 12px)", () => {
 
 /*
  * Ajuste visual 2026-08-08: los bullets vuelven a UNA columna en TODOS los
- * anchos -- el `@media` de `lg` sobrevive (mecanismo `$compactFrom`
- * pendiente, ver `ScBullets` en `Features.tsx`), pero ya no reparte en dos
- * columnas: solo ensancha el `gap`. Por texto del CSS inyectado y no con
- * `getComputedStyle`: jsdom no evalua NINGUN @media al calcular estilos
- * (lección repo 2026-07-27), asi que el estilo computado devuelve `1fr` tanto
- * con la regla como sin ella. Se acota con `cssRuleTextFor` a las clases del
- * PROPIO contenedor de bullets: `injectedCss()` arrastraria el resto del
- * stylesheet y cualquier otro `repeat(1, minmax(0, 1fr))` del componente daria
- * un verde falso.
+ * anchos. Hasta fix wave D sobrevivía un `@media` de `lg` (mecanismo
+ * `$compactFrom`) que ya no repartía en dos columnas, solo ensanchaba el
+ * `gap`. Por texto del CSS inyectado y no con `getComputedStyle`: jsdom no
+ * evalua NINGUN @media al calcular estilos (lección repo 2026-07-27), asi
+ * que el estilo computado devuelve `1fr` tanto con la regla como sin ella.
+ * Se acota con `cssRuleTextFor` a las clases del PROPIO contenedor de
+ * bullets: `injectedCss()` arrastraria el resto del stylesheet.
  *
- * El breakpoint se lee del tema (`themes.light.breakPoint.lg`), no se escribe
- * "992px" a mano: un literal deja de proteger en silencio el dia que el token
- * cambie (lección repo 2026-08-01).
+ * Fix wave D (hallazgo D4, revisión final de rama, 2026-08-12) retira el
+ * `@media` COMPLETO, no solo el `grid-template-columns` no-op que una
+ * revisión anterior de este mismo fix había identificado y quitado -- ver el
+ * docblock de `ScBullets` en `Features.tsx` para la medición completa en
+ * navegador real: el `gap` que el `@media` ensanchaba es la shorthand
+ * `row-gap column-gap`, y este grid nunca tiene una segunda columna a la que
+ * aplicar `column-gap` (ni con la regla ni sin ella, en ningún ancho), así
+ * que ni siquiera ESE efecto era real -- `$compactFrom` se retira con él.
+ * Este test deja de comprobar "el @media existe y ensancha el gap" y pasa a
+ * comprobar "no hay NINGÚN `@media` en el CSS de este contenedor" -- el
+ * candado que habría atrapado el no-op original (el del gap, no solo el de
+ * `grid-template-columns`) si hubiera existido antes.
  *
- * Validado con el bug inyectado: cambiando `repeat(1, minmax(0, 1fr))` por
- * `repeat(2, minmax(0, 1fr))` dentro del `@media` de `ScBullets` en
- * Features.tsx, este test se pone rojo (la linea del breakpoint deja de
- * matchear `repeat(1, ...)`); restaurado, verde.
+ * Validado con el bug inyectado: reintroduciendo el bloque
+ * `@media ${(...) => themes.light.breakPoint.lg} { gap: ...; }` dentro de
+ * `ScBullets` en Features.tsx, este test se pone rojo (`css` vuelve a
+ * contener "@media"); restaurado, verde.
  */
-describe("bullets a una columna en todos los anchos (el @media de lg solo ajusta el gap)", () => {
+describe("bullets a una columna en todos los anchos, sin ningun @media (el gap ya no varia por breakpoint)", () => {
   function bulletsContainer(): HTMLElement {
     const cta = document.querySelector('a[href="#contact"]');
     return cta?.previousElementSibling as HTMLElement;
   }
 
-  it("declara UNA columna por defecto y sigue en una columna (solo cambia el gap) dentro del @media de lg", () => {
+  it("declara UNA columna incondicional y NINGUN @media (el mecanismo $compactFrom se retiró: no producía ninguna diferencia observable)", () => {
     renderWithProviders(<Features />);
     const css = cssRuleTextFor(bulletsContainer());
 
-    // Regla base (fuera de cualquier @media): una sola columna.
-    const baseRule = css
-      .split("\n")
-      .find(
-        (line) =>
-          !line.includes("@media") && line.includes("grid-template-columns"),
-      );
-    expect(baseRule).toBeDefined();
-    expect(baseRule).toMatch(/grid-template-columns:\s*1fr/);
+    // Regla base (incondicional): una sola columna, gap fijo de space[2].
+    expect(css).toMatch(/grid-template-columns:\s*1fr/);
+    expect(css).toContain(`gap: ${themes.light.space[2]};`);
 
-    // La MISMA linea tiene que ser a la vez el bloque del breakpoint y la
-    // declaracion de una columna: separarlo en dos aserciones dejaria pasar
-    // un CSS con dos columnas fuera del @media.
-    const lgLine = css
-      .split("\n")
-      .find(
-        (line) =>
-          line.includes(themes.light.breakPoint.lg) &&
-          line.includes("grid-template-columns"),
-      );
-    expect(lgLine).toBeDefined();
-    expect(lgLine).toMatch(
-      /grid-template-columns:\s*repeat\(1,\s*minmax\(0,\s*1fr\)\)/,
-    );
+    // Fix wave D (D4): ya no hay ningún @media -- ni de lg ni de sm -- que
+    // dependa de un breakpoint para el gap.
+    expect(css).not.toContain("@media");
+    expect(css).not.toContain(themes.light.breakPoint.lg);
+    expect(css).not.toContain(themes.light.space[5]);
   });
 
   it("aplica la MISMA regla a las tres tarjetas (ya no depende de cual sea)", () => {
@@ -1620,19 +1612,29 @@ describe("D4: palancas de compactación vertical del contenido oscuro (clamp flu
 });
 
 /*
- * D4/ajuste visual 2026-08-08: en la rama OSCURA el `@media` del bloque de
- * bullets sigue en el breakpoint `sm` (600px), no `lg` (992px) como en la
- * rama clara -- ver el docblock de `ScBullets` en `Features.tsx` para el
- * porqué completo (el mecanismo `$compactFrom` sigue vivo, decisión
- * pendiente). Lo que SÍ cambia es la columna: el ajuste visual del
- * 2026-08-08 vuelve a UNA columna en ese breakpoint, igual que en la rama
- * clara -- el `@media` solo ensancha el `gap`. Validado con el bug inyectado
- * a propósito (ver informe de la tarea): cambiando `repeat(1, minmax(0, 1fr))`
- * por `repeat(2, minmax(0, 1fr))` dentro del bloque `sm` de `ScBullets` en
- * Features.tsx, este test se pone en rojo (la linea del breakpoint `sm` deja
- * de matchear `repeat(1, ...)`); restaurado, vuelve a verde.
+ * D4/ajuste visual 2026-08-08 (histórico): en la rama OSCURA el `@media` del
+ * bloque de bullets vivía en el breakpoint `sm` (600px), no `lg` (992px)
+ * como en la rama clara -- mecanismo `$compactFrom`. El ajuste visual del
+ * 2026-08-08 lo dejó en UNA columna en ese breakpoint, igual que en la rama
+ * clara -- el `@media` solo ensanchaba el `gap`.
+ *
+ * Fix wave D (hallazgo D4, revisión final de rama, 2026-08-12) retira el
+ * `@media` COMPLETO -- ver el docblock de `ScBullets` en `Features.tsx` para
+ * la medición en navegador real: el `gap` que este bloque `sm` ensanchaba es
+ * la shorthand `row-gap column-gap`, y el grid de bullets (rama oscura
+ * incluida) nunca tiene una segunda columna a la que aplicar `column-gap`
+ * -- cero diferencia observable en ningún ancho, con o sin la regla.
+ * `$compactFrom="sm"` se retira de la rama oscura con él. Este test pasa de
+ * comprobar "el bloque `sm` ensancha el gap" a comprobar que la rama oscura
+ * NO declara ningún `@media` propio para sus bullets -- mismo candado que la
+ * rama clara (ver el describe "bullets a una columna..." de más arriba).
+ *
+ * Validado con el bug inyectado a propósito: reintroduciendo
+ * `<ScBullets $compactFrom="sm">` en la rama oscura de `Features.tsx` (con
+ * su `@media` correspondiente restaurado en `ScBullets`), este test se pone
+ * en rojo (`css` vuelve a contener "@media"); restaurado, vuelve a verde.
  */
-describe("D4: en tema oscuro el bloque de bullets sigue en el breakpoint sm (no lg), ahora en una columna", () => {
+describe("D4: en tema oscuro el bloque de bullets tampoco declara ningun @media (mismo criterio que la rama clara)", () => {
   beforeEach(() => {
     stubMatchMedia();
     window.localStorage.setItem("vti-theme", "dark");
@@ -1641,7 +1643,7 @@ describe("D4: en tema oscuro el bloque de bullets sigue en el breakpoint sm (no 
     window.localStorage.clear();
   });
 
-  it("declara el bloque de una columna (con el gap ensanchado) dentro del breakpoint sm", async () => {
+  it("declara UNA columna incondicional, gap fijo, y NINGUN @media (ni sm ni lg)", async () => {
     const { container } = renderWithProviders(<Features />);
     await waitFor(() => {
       expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
@@ -1650,18 +1652,10 @@ describe("D4: en tema oscuro el bloque de bullets sigue en el breakpoint sm (no 
     const bullets = cta.previousElementSibling as HTMLElement;
     const css = cssRuleTextFor(bullets);
 
-    const smLine = css
-      .split("\n")
-      .find(
-        (line) =>
-          line.includes(themes.dark.breakPoint.sm) &&
-          line.includes("grid-template-columns"),
-      );
-    expect(smLine).toBeDefined();
-    expect(smLine).toMatch(
-      /grid-template-columns:\s*repeat\(1,\s*minmax\(0,\s*1fr\)\)/,
-    );
-
+    expect(css).toMatch(/grid-template-columns:\s*1fr/);
+    expect(css).toContain(`gap: ${themes.dark.space[2]};`);
+    expect(css).not.toContain("@media");
+    expect(css).not.toContain(themes.dark.breakPoint.sm);
     expect(css).not.toContain(themes.dark.breakPoint.lg);
   });
 });

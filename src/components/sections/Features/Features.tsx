@@ -824,52 +824,49 @@ const ScBody = styled(Typography)`
 `;
 
 /*
- * Bullets a DOS COLUMNAS en dispositivos grandes (encargo 2026-08-03).
+ * Bullets a UNA columna en todos los anchos (D4, compactación vertical
+ * 2026-08-04; revertido de un reparto a DOS columnas por el "ajuste visual"
+ * del 2026-08-08 -- ver el docblock del describe "bullets a una columna..."
+ * en Features.test.tsx para la medición de ese cambio). Nació como reparto a
+ * DOS columnas (encargo 2026-08-03) con el razonamiento completo de por qué
+ * `lg` y no `md`, y de por qué la rama oscura necesitaba un breakpoint más
+ * temprano (`$compactFrom="sm"`) que la clara: ese razonamiento comparaba
+ * anchos de COLUMNA en un reparto a dos columnas que el 2026-08-08 retiró.
  *
- * Antes lo decidía una prop (`$twoColumns`) que cada rama pasaba con su
- * propio criterio: la tarjeta "learning" en oscuro (la única a ancho
- * completo), un `true` fijo en claro. Ninguno de los dos describía la
- * condición real, que no es "qué tarjeta es" sino "cuánto ancho hay" -- con
- * la prop fija, en un móvil de 375px los cuatro bullets se partían igualmente
- * en dos columnas de ~150px. Por eso la decisión baja al propio componente,
- * como `@media`, y las dos ramas lo consumen sin parámetro salvo el nuevo
- * `$compactFrom` (D4, más abajo).
+ * Fix wave D (hallazgo D4, revisión final de rama, 2026-08-12) retira el
+ * `@media` COMPLETO, no solo el `grid-template-columns` no-op que una
+ * revisión anterior de este mismo fix había identificado y quitado. El
+ * `@media` sobreviviente solo ensanchaba el `gap` (de `space[2]` a
+ * `space[2] space[5]`) -- un intento de fix a medias concluyó que ESE efecto
+ * SÍ era real y verificado ("EN QUÉ breakpoint se ensancha el gap"), pero esa
+ * conclusión no se contrastó en navegador antes de escribirse (no existe
+ * ninguna captura `fixD-*` en el informe de la tarea que la respalde).
+ * Verificado aquí en navegador real (Chrome, panel embebido, 1280×900 y
+ * 500-1300px de viewport, temas claro y oscuro, a los dos lados de `lg` y de
+ * `sm`): `gap` es la shorthand `row-gap column-gap`, y este grid SIEMPRE
+ * resuelve `grid-template-columns` a UNA sola pista (`grid-template-columns:
+ * 1fr` sin `grid-auto-flow: column`, contenido que nunca desborda a una
+ * segunda columna) -- así que el valor que el `@media` cambiaba
+ * (`column-gap`, de `space[2]` a `space[5]`) no tiene NINGÚN gap de columna
+ * al que aplicarse, en NINGÚN ancho. El `row-gap` -- el único que sí
+ * afectaría el espaciado visible entre bullets apilados -- se queda fijo en
+ * `space[2]` a los dos lados del breakpoint, en las dos ramas: medido
+ * `getBoundingClientRect().top` de cada bullet antes y después de cruzar el
+ * breakpoint, mismo incremento (~30-31px) en los dos casos. Cero diferencia
+ * observable, en ningún eje -- el `@media` entero es no-op, no solo la línea
+ * ya retirada.
  *
- * `lg` (992px) y no `md` (768px), que es donde el resto del componente
- * cambia de layout: justo en `md` la rama clara reparte las tarjetas en DOS
- * columnas de grid (`ScGrid`), así que al cruzar ese punto el ancho real de
- * una tarjeta no crece -- se parte por la mitad. Poner aquí `md` haría que
- * los bullets se dividieran en el mismo salto en el que su contenedor se
- * estrecha, que es exactamente al revés de lo que se busca.
- *
- * `$compactFrom` (D4, compactación vertical 2026-08-04): la rama OSCURA no
- * tiene ese problema -- su contenido es una columna vertical de ancho
- * completo (hasta `FEATURES_CONTENT_MAX_WIDTH`) en TODOS los anchos, nunca
- * se reparte en dos columnas de grid, así que el argumento de arriba
- * ("no partir en el mismo salto en que el contenedor se estrecha") no
- * aplica ahí. Ancho de columna de bullets resultante en oscuro, calculado
- * contra `FEATURES_DARK_HEIGHT`/el padding real de `ScDarkFrame` (sin medir
- * en navegador -- ver el informe de la tarea): ≈256px a 600px de viewport
- * (arranque de `sm`) y ≈452px a 992px (arranque de `lg`), muy por encima de
- * los ~150px que el párrafo de arriba señala como el caso que había que
- * evitar. Por eso la rama oscura pasa `$compactFrom="sm"` (600px) en vez de
- * heredar `lg`: gana dos columnas de bullets ya en tablet, que es la mayor
- * partida del presupuesto vertical de la sección (D4) en ese rango. La rama
- * clara NO pasa la prop -- por defecto sigue en `lg`, sin cambios.
+ * `$compactFrom` se retira con él: sin ningún efecto real que decidir, el
+ * prop (y la elección de breakpoint `sm` vs `lg` que transportaba, herencia
+ * del reparto a dos columnas ya retirado) no tiene ninguna razón para seguir
+ * vivo. Si una tarea futura decide ensanchar el `gap` a partir de algún
+ * ancho, es una decisión de diseño nueva que se verifica de cero -- no una
+ * resurrección de este mecanismo.
  */
-const ScBullets = styled.div<{ $compactFrom?: "sm" | "lg" }>`
+const ScBullets = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${({ theme }) => theme.data.space[2]};
-
-  @media ${({ theme, $compactFrom }) =>
-    $compactFrom === "sm"
-      ? theme.data.breakPoint.sm
-      : theme.data.breakPoint.lg} {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: ${({ theme }) => theme.data.space[2]}
-      ${({ theme }) => theme.data.space[5]};
-  }
 `;
 
 const ScBulletItem = styled.div`
@@ -1449,7 +1446,7 @@ export function Features(): ReactElement {
                   <ScDarkBody variant="bodySm">
                     {t(`Home.features.${key}.body`)}
                   </ScDarkBody>
-                  <ScBullets $compactFrom="sm">
+                  <ScBullets>
                     {BULLET_KEYS.map((bulletKey) => (
                       <ScBulletItem key={bulletKey}>
                         <ScCheckIcon
