@@ -180,18 +180,24 @@ Preguntas que el sitio deja sin responder al final del recorrido: ¿quiénes soi
 
 Lista íntegra de 21 puntos, tal como los identificó la auditoría del 2026-08-08. Se separan en dos bloques porque tienen naturaleza distinta: los primeros diez son **bloqueantes legales** (sin ellos, `/privacidad` y `/aviso-legal` no son publicables); los once restantes son **decisiones de producto** (afectan al copy y a la arquitectura de información, no a la legalidad de las páginas). **Estado actualizado 2026-08-12 (Task 25):** de los once de producto, 11/13/18/19 quedan RESUELTOS por las decisiones de Fase 0 de arriba; el resto sigue `_por completar_`.
 
+**Estado actualizado 2026-08-13:** los **diez bloqueantes legales quedan cerrados** (detalle en el bloque siguiente). De los once de producto siguen abiertos **siete** — 12, 14, 15, 16, 17, 20 y 21 —, que son los que frenan los puntos 3, 4 y 5 de la Fase 3 del plan premium. El bloqueante de publicación ya no es legal: es de contenido.
+
 ### Bloqueantes legales
 
-1. Denominación del responsable del tratamiento / titular legal.
-2. Forma jurídica.
-3. NIF/CIF.
-4. Domicilio.
-5. Datos registrales, o confirmación explícita de que no aplican.
-6. Correo legal y dirección para el ejercicio de derechos RGPD.
-7. Proveedor de correo electrónico donde se reciben los mensajes de contacto.
-8. Garantía concreta de transferencia internacional de datos aplicable al alojamiento en Netlify (por ejemplo, cláusulas contractuales tipo).
-9. Plazo de conservación de las consultas recibidas por correo.
-10. Confirmación de que `hello@voidtoinfinite.com` está operativo.
+**CERRADOS EL 2026-08-13.** El dueño aportó los diez en sesión. `hasPendingLegalData()` devuelve `false` por primera vez desde que existe el fichero y las dos páginas legales son publicables. Los valores viven en `src/config/legal.ts` (`LEGAL_ENTITY`) y en `src/i18n/locales/{es,en}/legal.json`; aquí queda el registro de qué se respondió y con qué fundamento.
+
+1. ~~Denominación del responsable del tratamiento / titular legal.~~ **Daniel Mosquera**, persona física.
+2. ~~Forma jurídica.~~ **Persona física**: sin sociedad, sin alta de autónomo, sin actividad económica. En el código es la clave `naturalPerson`, no el texto — se traduce por i18n.
+3. ~~NIF/CIF.~~ **No procede** (decisión expresa del dueño de no publicar su DNI). Ver el límite declarado abajo.
+4. ~~Domicilio.~~ **No procede**, mismo motivo y mismo límite.
+5. ~~Datos registrales.~~ **No aplican**: no hay sociedad inscribible en ningún registro público. Es una imposibilidad material, no una omisión.
+6. ~~Correo legal y dirección para el ejercicio de derechos RGPD.~~ **`hello@voidtoinfinite.com`**, derivado de `EMAIL_ADDRESS` para que no pueda divergir del que el sitio pinta y copia.
+7. ~~Proveedor de correo electrónico donde se reciben los mensajes de contacto.~~ **Cadena de dos, no uno**: Cloudflare Email Routing **enruta y no almacena** (verificado en su documentación), y el buzón de destino es una **cuenta personal de Gmail**, que es la que conserva los mensajes.
+8. ~~Garantía concreta de transferencia internacional.~~ **Netlify, Inc.**: cláusulas contractuales tipo en su DPA (act. 2026-06-09) + certificación EU-U.S. Data Privacy Framework. **Cloudflare, Inc.**: CCT módulo dos en la §6.2 de su DPA (v6.4, vigente 2026-04-03) + adhesión al DPF confirmada en su §6.4. **Google**: la cuenta es de consumo, así que **no está cubierta por un DPA de encargado** — la política de privacidad lo declara así en vez de afirmar una relación contractual que no existe.
+9. ~~Plazo de conservación de las consultas recibidas por correo.~~ **Hasta resolver la consulta y como máximo 3 meses desde entonces.**
+10. ~~Confirmación de que `hello@voidtoinfinite.com` está operativo.~~ **Confirmado por el dueño.** Queda como ítem de humo en `PRE-LAUNCH-QA.md` §1 una prueba real de envío y recepción antes de publicar: es barato y es la clase de cosa que se rompe en silencio.
+
+**LÍMITE DECLARADO, y no es un formalismo.** Los puntos 3 y 4 se apoyan en la lectura de que el art. 10 LSSI-CE no le resulta exigible a este sitio, porque ese régimen se activa con la **actividad económica** y aquí no la hay: no vende, no anuncia, no ingresa y no recaba datos de quien lo visita. Es una **interpretación razonada, no una certeza confirmada por un profesional**, y así consta también en el propio aviso legal y en el docblock de `src/config/legal.ts`. Si el proyecto pasa a ingresar dinero — donaciones, patrocinio, venta, publicidad —, esta decisión hay que **volver a tomarla, no heredarla**.
 
 ### Decisiones de producto
 
@@ -204,5 +210,5 @@ Lista íntegra de 21 puntos, tal como los identificó la auditoría del 2026-08-
 17. ¿Desde cuándo existe VoidToInfinite? `_por completar_`.
 18. ~~Las claves de navegación `framework`, `games`, `projects` y `reflection`: ¿son secciones planificadas o restos de una iteración anterior?~~ **RESUELTA (Fase 0, 2026-08-10): se conservan como roadmap documentado — encargo explícito del dueño de no borrarlas.** Ver la lista de decisiones de Fase 0, arriba. Sin cambio de código todavía: la decisión es "conservar y documentar", no "implementar"; `RULES.md` ("Deuda conocida", entrada "Claves `Common.Navigation.*` fósiles") sigue sin la anotación de esta decisión, pendiente de una tarea que toque ese fichero.
 19. ~~Estrategia de idioma: ¿debe `/en` ser indexable, o el inglés es solo una cortesía para quien ya está en el sitio?~~ **RESUELTA (Fase 0, 2026-08-10): `/en` NO indexable.** Confirma el estado actual del código — ver la lista de decisiones de Fase 0, arriba.
-20. ¿Existen otras plataformas propias además de GitHub y Discord que deban enlazarse? `_por completar_`.
+20. ¿Existen otras plataformas propias además de GitHub y Discord que deban enlazarse? **PARCIALMENTE RESUELTA (2026-08-13):** se añade el perfil de LinkedIn del titular (`links.linkedin`), presente en el grupo `community` de navegación, como tercera tarjeta de Contacto y en el `sameAs` del JSON-LD. Es el único destino que apunta a la **persona** y no al proyecto, y desde que el aviso legal identifica al responsable por su nombre sin publicar domicilio ni NIF, es la vía por la que un lector puede comprobar quién hay detrás. Queda abierto si hay **más** plataformas: `_por completar_`.
 21. Métricas reales, si algún día se quiere aportar prueba social — hoy no existe ninguna cifra verificable en el repo. `_por completar_`.

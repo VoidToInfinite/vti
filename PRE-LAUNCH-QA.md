@@ -26,14 +26,20 @@ Gate de calidad completo del repo: `pnpm check` (typecheck + ESLint + formato) y
 
 ## 1. Bloqueante legal (impide publicar — sin excepciones)
 
-Sin estos datos, `/privacidad` no cumple el art. 13.1.a RGPD y `/aviso-legal` no cumple los arts. 10.a) y 10.e) LSSI-CE. Los propios documentos legales lo declaran mientras el marcador `POR_COMPLETAR` siga presente. Estos datos **solo puede darlos el usuario/titular del sitio**; no se inventan ni se estiman.
+**LEVANTADO EL 2026-08-13.** El dueño aportó los diez datos en sesión; el registro completo, con el fundamento de cada uno, está en `PRODUCT.md` §10. `hasPendingLegalData()` devuelve `false` y no queda ningún `POR_COMPLETAR` en los documentos.
 
-- [ ] `LEGAL_ENTITY` completa en `src/config/legal.ts`: nombre o razón social, forma jurídica, NIF/CIF, domicilio y registro (mercantil u otro) donde corresponda.
-- [ ] Los 6 marcadores `POR_COMPLETAR` resueltos en `src/i18n/locales/es/legal.json` y en `src/i18n/locales/en/legal.json` (paridad es/en).
-- [ ] Garantía de transferencia internacional de datos de Netlify (dónde se alojan/procesan los datos que recoge el sitio).
-- [ ] Plazo de conservación de los correos recibidos a través del sitio.
-- [ ] Confirmación de que `hello@voidtoinfinite.com` está operativo y se supervisa.
-- [ ] Proveedor de correo declarado en el aviso legal / política de privacidad si aplica.
+Contexto que se conserva porque explica por qué estas casillas existían: sin estos datos, `/privacidad` no cumplía el art. 13.1.a RGPD y `/aviso-legal` no cumplía los arts. 10.a) y 10.e) LSSI-CE, y los propios documentos lo declaraban mientras el marcador siguiera presente. Solo podía darlos el titular del sitio; no se inventaron ni se estimaron.
+
+- [x] `LEGAL_ENTITY` completa en `src/config/legal.ts`. NIF, domicilio y datos registrales quedan como `null` = «no procede», que es una **declaración** y no un hueco (ver el límite declarado en `PRODUCT.md` §10: la lectura de que el art. 10 LSSI-CE no aplica sin actividad económica es razonada, no confirmada por un profesional).
+- [x] Los 6 marcadores `POR_COMPLETAR` resueltos en `es` y `en`, con paridad atada por `locales.test.ts`.
+- [x] Garantía de transferencia internacional: CCT + Data Privacy Framework verificados contra los DPA publicados de Netlify y Cloudflare. La cuenta de Gmail de destino es de consumo y **no** está bajo DPA de encargado — declarado como tal en la política.
+- [x] Plazo de conservación: hasta resolver la consulta, máximo 3 meses.
+- [x] Confirmación de que `hello@voidtoinfinite.com` está operativo — confirmado por el dueño.
+- [x] Proveedor de correo declarado: la cadena real (Cloudflare enruta sin almacenar, Gmail conserva) figura en la política de privacidad.
+
+**Queda una prueba de humo, barata y no delegable:** enviar un correo real a `hello@voidtoinfinite.com` desde una cuenta ajena y confirmar que llega al buzón de destino. Es la clase de cosa que se rompe en silencio con un cambio de DNS o de regla de enrutado.
+
+- [ ] Prueba real de envío y recepción a `hello@voidtoinfinite.com` antes de publicar.
 
 ---
 
