@@ -1,5 +1,70 @@
 # Lecciones
 
+## 2026-08-13 (fix wave E, hallazgo E1) — Reimplementar a mano el umbral de un `IntersectionObserver` real puede desacordar con él justo en el borde exacto (`rect.top === innerHeight`), y verificar UNA vez no basta para saberlo
+
+- **Qué pasó:** el arreglo de `useSectionProgress.ts` (respaldo de salida en
+  `tick()`, para el caso en que el observer real nunca entrega la
+  notificación de salida tras un scroll rápido) pasó por tres versiones. La
+  primera (`justStarted`, saltar solo el primer `tick()`) y la segunda
+  (`hasMovedSinceStart`, saltar hasta el primer `scroll` real) verificaban
+  en verde el bug original PERO introducían un falso positivo distinto:
+  navegar directo a "#story" desde el Hero (`min-height: 100dvh`, así que
+  Story empieza exactamente en `rect.top === innerHeight`) deshacía la
+  entrada que el propio `IntersectionObserver` REAL acababa de confirmar,
+  en el mismo ciclo en que la confirmó -- instrumentando el observer de
+  verdad en Chrome (envolviendo el constructor global antes de que la app
+  arrancara), se vio que el navegador considera ese borde EXACTO como
+  `isIntersecting: true`, mientras que la fórmula estricta (`rect.top <
+  innerHeight`) del respaldo, aplicada por separado en JS sobre la MISMA
+  geometría, dice que no. Las dos primeras versiones solo protegían "el
+  primer tick" o "hasta el primer scroll" -- insuficiente porque el primer
+  evento `scroll` real de una animación `scroll-behavior: smooth` recién
+  arrancada puede mover el elemento apenas 1-2px, dejando la geometría
+  cacheada prácticamente en el mismo borde ambiguo durante varios frames.
+- **Por qué costó verlo:** cada versión SE VERIFICÓ en navegador real y dio
+  el resultado correcto en varias corridas seguidas antes de que el
+  siguiente escenario (uno DISTINTO, no el que motivó el arreglo) lo
+  delatara. Y peor: el propio arreglo final (tercera versión, con
+  `topAtStart`/`SETTLE_TOLERANCE_PX = 8px`) pareció fallar de forma
+  INTERMITENTE en una tanda de reproducciones -- una corrida en rojo entre
+  varias en verde, con el MISMO código fuente. La causa de esa
+  intermitencia resultó ser contaminación del propio proceso de
+  verificación: la misma sesión de navegador (`playwright-cli -s=...`)
+  llevaba muchas rondas de `pnpm build` sucesivas sin `Network.
+  setCacheDisabled`, así que algunas corridas podían estar sirviendo un
+  bundle JS de una iteración ANTERIOR del propio arreglo.
+- **Causa raíz real (la de los dos primeros intentos):** los dos casos que
+  había que distinguir -- "acabo de entrar, el observer YA lo confirmó a
+  esta misma geometría" (no tocar) vs. "llevo un rato aquí y el usuario ha
+  scrolleado mucho desde entonces sin que el observer avisara de la salida"
+  (respaldo debe actuar) -- pueden compartir el MISMO `rect.top ===
+  innerHeight` exacto como estado final. Ninguna fórmula que solo mire la
+  geometría ACTUAL puede distinguirlos; hace falta comparar contra la
+  geometría que el observer confirmó la ÚLTIMA vez (`topAtStart`) y exigir
+  una separación mínima (no solo "distinta de cero") antes de desconfiar.
+- **Cómo se verificó de verdad (y por qué no bastaba con un solo passing
+  run):** instrumentar el `IntersectionObserver` real (constructor
+  envuelto vía `page.addInitScript`, ANTES de que la app arrancara) para
+  ver qué entregaba el navegador de verdad, en vez de asumirlo desde la
+  lectura del código; reproducir el MISMO escenario 20-48 veces seguidas
+  (no una) tras cada iteración del arreglo, con `Network.
+  setCacheDisabled` explícito para eliminar la caché del navegador como
+  variable; y añadir un candado de jsdom que reproduce el escenario exacto
+  de la regresión (`sectionWith(VH, 0)`, entrada justo en el borde) además
+  del candado del bug original.
+- **Regla:** cuando un "respaldo" reimplementa en JS un umbral que un API
+  del navegador (`IntersectionObserver`, pero aplica a cualquier API con
+  semántica de borde) ya calcula por su cuenta, el umbral EXACTO puede no
+  coincidir bit a bit -- verificar contra el navegador real, instrumentando
+  el API real (no solo leyendo su spec), antes de asumir qué hace en el
+  caso límite. Un solo `run-code` en verde tras un cambio NO es
+  verificación suficiente cuando el defecto que se persigue es
+  dependiente de timing: repetir el mismo escenario varias veces (10+) y,
+  si algo falla de forma intermitente, sospechar PRIMERO de la propia
+  cadena de verificación (caché del navegador entre builds sucesivos,
+  sesión de navegador reutilizada) antes de asumir que el código es
+  realmente no determinista.
+
 ## 2026-08-12 (fix wave A, hallazgo A1) — `getByRole(..., { hidden: true })` NO revierte un nombre accesible vacío sobre contenido genuinamente oculto
 
 - **Qué pasó:** al arreglar el trap de foco invisible del deck de Story (`ScSlide` pasa a `visibility: hidden` en reposo,
