@@ -6,7 +6,7 @@ import enHome from "./locales/en/home.json";
 import esLegal from "./locales/es/legal.json";
 import enLegal from "./locales/en/legal.json";
 import { namespaces as registeredNamespaces } from "./config";
-import { PLACEHOLDER } from "@/config/legal";
+import { PLACEHOLDER, hasPendingLegalData } from "@/config/legal";
 
 /**
  * Candado permanente de los locales. Existe por dos motivos concretos, todos
@@ -150,15 +150,48 @@ describe("locales", () => {
           JSON.stringify((arbol.Legal as JsonTree)[doc]).split(PLACEHOLDER)
             .length - 1;
 
-        // Sonda positiva: el documento SÍ lleva marcadores. Sin ella, borrar
-        // los de los DOS idiomas dejaría este test en verde mientras la página
-        // afirma en silencio unos datos identificativos que nadie ha aportado.
-        expect(cuenta(esLegal as unknown as JsonTree)).toBeGreaterThan(0);
+        /*
+         * PARIDAD, que es el defecto original que este candado existe para
+         * impedir: da igual cuántos marcadores haya, tiene que haber los
+         * MISMOS en los dos idiomas. Un idioma con marcador y otro sin él es
+         * exactamente el fallo de la traducción "PENDING".
+         */
         expect(cuenta(esLegal as unknown as JsonTree)).toBe(
           cuenta(enLegal as unknown as JsonTree),
         );
+
+        /*
+         * La sonda positiva de este candado era `toBeGreaterThan(0)`: exigía
+         * que el documento LLEVARA marcadores, porque mientras los datos del
+         * responsable no existieran, borrarlos de los dos idiomas a la vez
+         * habría dejado la página afirmando en silencio unos datos que nadie
+         * había aportado.
+         *
+         * El 2026-08-13 el dueño aportó los datos y esa sonda dejó de ser
+         * cierta: hoy el recuento correcto es CERO. Se invierte en vez de
+         * retirarse -- un test que no asevera nada sobre el recuento dejaría
+         * pasar que alguien reintroduzca un marcador y publique un documento
+         * legal incompleto sin que nada avise.
+         */
+        expect(cuenta(esLegal as unknown as JsonTree)).toBe(0);
       },
     );
+
+    /*
+     * Candado de coherencia entre las DOS fuentes que describen lo mismo: el
+     * JSON de los documentos y `LEGAL_ENTITY`. Antes daba igual porque las dos
+     * decían "incompleto"; desde que las dos dicen "completo", pueden
+     * divergir, y la divergencia sería invisible -- un marcador nuevo en el
+     * JSON con `hasPendingLegalData()` en `false` publica una página que se
+     * declara pendiente mientras el código la considera lista.
+     */
+    it("el estado del JSON y el de LEGAL_ENTITY coinciden: nada pendiente", () => {
+      const marcadoresTotales =
+        JSON.stringify(esLegal).split(PLACEHOLDER).length - 1;
+
+      expect(marcadoresTotales).toBe(0);
+      expect(hasPendingLegalData()).toBe(false);
+    });
   });
 
   /*

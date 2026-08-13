@@ -16,6 +16,7 @@
                 "dpo": "Data Protection Officer"
             },
             "dpoNotAppointed": "No Data Protection Officer (DPO) has been appointed.",
+            "notApplicable": "Not applicable.",
             "storageTable": {
                 "id": "Identifier",
                 "purpose": "Purpose",
@@ -54,7 +55,7 @@
                             "items": [
                                 {
                                     "term": "Controller",
-                                    "description": "POR_COMPLETAR (see the «Who is the controller» section)."
+                                    "description": "Daniel Mosquera, a natural person (see the «Who is the controller» section)."
                                 },
                                 {
                                     "term": "Purpose",
@@ -66,7 +67,7 @@
                                 },
                                 {
                                     "term": "Recipients",
-                                    "description": "Netlify, as processor for technical hosting. We do not disclose or sell data to third parties."
+                                    "description": "Netlify (hosting), plus Cloudflare and Google if you write to us by email. We do not disclose or sell data to third parties."
                                 },
                                 {
                                     "term": "Your rights",
@@ -227,7 +228,8 @@
                             "kind": "ul",
                             "items": [
                                 "Netlify, as processor, for the technical hosting of the site.",
-                                "POR_COMPLETAR: the email provider where the messages you decide to send us are received."
+                                "Cloudflare, which routes email sent to the contact address. It does not store it: it forwards it to a destination mailbox.",
+                                "Google, the provider of that destination mailbox, where the message is stored. It is a personal Gmail account, not a service engaged as a data processor: this is stated plainly rather than claiming a contractual relationship that does not exist."
                             ]
                         },
                         {
@@ -242,11 +244,18 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "The site is hosted on Netlify's infrastructure, which may involve transfers of technical data outside the European Economic Area."
+                            "text": "The site is hosted on Netlify's infrastructure and contact email is routed through Cloudflare. Both are US companies, so transfers of technical data outside the European Economic Area may occur."
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Netlify, Inc.: European Commission standard contractual clauses, set out in its data processing agreement, plus certified adherence to the EU-U.S. Data Privacy Framework.",
+                                "Cloudflare, Inc.: standard contractual clauses (module two, controller to processor) in section 6.2 of its data processing addendum, plus adherence to the Data Privacy Framework confirmed in its section 6.4."
+                            ]
                         },
                         {
                             "kind": "note",
-                            "text": "POR_COMPLETAR: the specific safeguard that applies (standard contractual clauses, for example) has not been independently verified yet. No specific safeguard is claimed here without having checked it."
+                            "text": "The final mailbox behind the contact address is a personal Gmail account. Google adheres to the Data Privacy Framework, but a consumer account is not covered by a data processing agreement: no contractual safeguard that has not been signed is claimed here. If you would rather not send your data to a US provider, do not use email to get in touch."
                         }
                     ]
                 },
@@ -263,7 +272,7 @@
                                 },
                                 {
                                     "term": "Your email and its content",
-                                    "description": "POR_COMPLETAR: how long your enquiry is kept depends on the controller's internal policy, which is not defined yet."
+                                    "description": "Kept until your enquiry has been resolved and, at most, three months from that point. After that it is deleted."
                                 }
                             ]
                         }
@@ -290,7 +299,7 @@
                         },
                         {
                             "kind": "p",
-                            "text": "To exercise them, write to POR_COMPLETAR stating which right you want to exercise."
+                            "text": "To exercise them, write to hello@voidtoinfinite.com stating which right you want to exercise."
                         },
                         {
                             "kind": "p",
@@ -331,14 +340,14 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "In compliance with article 10.a) (name, address and email) and article 10.e) (tax ID) LSSI-CE:"
+                            "text": "Identifying information about the site owner, following article 10.a) (name, address and email) and article 10.e) (tax ID) LSSI-CE:"
                         },
                         {
                             "kind": "entity"
                         },
                         {
                             "kind": "note",
-                            "text": "These identifying details are still pending from the site owner. While they are missing, this legal notice does not meet article 10.a) or 10.e) LSSI-CE."
+                            "text": "On the address and tax ID: they are not published. The LSSI-CE governs information society services provided as an economic activity, and this site has none. It does not sell, advertise, earn revenue or collect data from visitors, so that identification duty is understood not to apply to it. This is a reasoned interpretation, not a certainty confirmed by a professional, and it is stated as such rather than left unaddressed. The owner is identified by name and reachable at the email address given, which is monitored. Should the project ever take on economic activity, this decision would be revisited."
                         }
                     ]
                 },
@@ -348,7 +357,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "This website presents the VoidToInfinite team and its work. It is an informational site: it does not sell products or services, it does not allow purchases or bookings, it offers no registration or user accounts, it hosts no visitor-published content and it provides no service that can be contracted online."
+                            "text": "This website presents the VoidToInfinite project and its work. It is an informational site: it does not sell products or services, it does not allow purchases or bookings, it offers no registration or user accounts, it hosts no visitor-published content and it provides no service that can be contracted online."
                         },
                         {
                             "kind": "p",
@@ -362,7 +371,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "Registration details in the relevant public registry, where applicable: POR_COMPLETAR."
+                            "text": "Not applicable: the controller is a natural person, not a company, so there is no entry in any public registry to report."
                         }
                     ]
                 },

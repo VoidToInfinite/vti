@@ -197,20 +197,37 @@ function MarkedText({
   );
 }
 
-/** Bloque `entity` (D21): ficha identificativa pintada desde `LEGAL_ENTITY`,
- *  con las etiquetas del namespace `legal`. `dpo === null` no es un dato
- *  pendiente (ver `src/config/legal.ts`): se pinta con su propio texto
- *  explicativo, sin marcador. */
+/**
+ * Bloque `entity` (D21): ficha identificativa pintada desde `LEGAL_ENTITY`,
+ * con las etiquetas del namespace `legal`.
+ *
+ * TRES CLASES DE VALOR, y la diferencia entre ellas es justo lo que este
+ * bloque tiene que comunicar sin ambigüedad (ver `src/config/legal.ts`):
+ *
+ *   - Un string real: se pinta tal cual.
+ *   - `null`: el dato NO PROCEDE (persona física sin actividad económica).
+ *     Es una afirmación sobre el mundo, no un hueco, así que se pinta con
+ *     texto localizado y SIN `<mark>`. Marcarlo diría lo contrario de lo que
+ *     es cierto.
+ *   - `PLACEHOLDER` dentro del string: dato desconocido, va marcado. Hoy no
+ *     queda ninguno, pero el camino se conserva vivo a propósito.
+ *
+ * `dpo === null` conserva su propia rama y su propio texto porque declara
+ * algo distinto («no se ha designado DPO», art. 13.1.b RGPD), no «no
+ * procede».
+ */
 function EntityBlock({
   labels,
   dpoNotAppointed,
+  notApplicable,
   placeholderTitle,
 }: {
   labels: EntityLabels;
   dpoNotAppointed: string;
+  notApplicable: string;
   placeholderTitle: string;
 }): ReactElement {
-  const rows: Array<{ label: string; value: string }> = [
+  const rows: Array<{ label: string; value: string | null }> = [
     { label: labels.name, value: LEGAL_ENTITY.name },
     { label: labels.legalForm, value: LEGAL_ENTITY.legalForm },
     { label: labels.taxId, value: LEGAL_ENTITY.taxId },
@@ -225,10 +242,14 @@ function EntityBlock({
         <ScDlRow key={row.label}>
           <ScDt>{row.label}</ScDt>
           <ScDd>
-            <MarkedText
-              text={row.value}
-              placeholderTitle={placeholderTitle}
-            />
+            {row.value === null ? (
+              notApplicable
+            ) : (
+              <MarkedText
+                text={row.value}
+                placeholderTitle={placeholderTitle}
+              />
+            )}
           </ScDd>
         </ScDlRow>
       ))}
@@ -309,6 +330,7 @@ function renderBlock(
     placeholderTitle: string;
     entityLabels: EntityLabels;
     dpoNotAppointed: string;
+    notApplicable: string;
     storageLabels: StorageTableLabels;
     storageCaption: string;
     durationLabelFor: (durationDays: number | null) => string;
@@ -374,6 +396,7 @@ function renderBlock(
           key={index}
           labels={ctx.entityLabels}
           dpoNotAppointed={ctx.dpoNotAppointed}
+          notApplicable={ctx.notApplicable}
           placeholderTitle={ctx.placeholderTitle}
         />
       );
@@ -412,6 +435,7 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
 
   const placeholderTitle = t("Legal.common.placeholderTitle");
   const dpoNotAppointed = t("Legal.common.dpoNotAppointed");
+  const notApplicable = t("Legal.common.notApplicable");
   const tocLabel = t("Legal.common.tocLabel");
   const backToHome = t("Legal.common.backToHome");
   const versionLabel = t("Legal.common.versionLabel");
@@ -458,6 +482,7 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
               placeholderTitle,
               entityLabels,
               dpoNotAppointed,
+              notApplicable,
               storageLabels,
               storageCaption: section.heading,
               durationLabelFor,

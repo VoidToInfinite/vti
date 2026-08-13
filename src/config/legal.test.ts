@@ -5,31 +5,59 @@ import {
   PLACEHOLDER,
   hasPendingLegalData,
 } from "./legal";
+import { links } from "./links";
 
 /**
- * Candado de veracidad (§0 CLAUDE.md, spec §9.1): mientras el usuario no
- * aporte los datos identificativos reales, TODOS los campos string de
- * `LEGAL_ENTITY` tienen que ser EXACTAMENTE `PLACEHOLDER` -- ni vacíos, ni un
- * valor plausible-pero-inventado ("VoidToInfinite S.L.", un NIF con forma
- * válida, una dirección creíble). Un test que solo comprobara `.length > 0`
- * o `!== ""` dejaría pasar cualquiera de esos inventos; comparar con
- * `toBe(PLACEHOLDER)` es el único candado que de verdad lo impide.
+ * Candado de veracidad (§0 CLAUDE.md, spec §9.1), INVERTIDO el 2026-08-13.
+ *
+ * Hasta esa fecha este bloque aseveraba que los seis campos identificativos
+ * valían EXACTAMENTE `PLACEHOLDER`: mientras el dueño no aportara los datos,
+ * cualquier valor plausible-pero-inventado ("VoidToInfinite S.L.", un NIF con
+ * forma válida, una dirección creíble) tenía que poner el test en rojo.
+ *
+ * El dueño aportó los datos y cerró la Fase 0, así que el candado cambia de
+ * dirección pero NO de fuerza. Lo que ata ahora:
+ *
+ *   - Los campos con valor real no pueden volver a `PLACEHOLDER` ni quedarse
+ *     vacíos.
+ *   - Los tres declarados «no procede» tienen que ser `null` EXACTO. No una
+ *     cadena vacía, no "N/A", no "no procede" escrito a mano: cualquiera de
+ *     esas variantes pintaría prosa sin traducir en un documento bilingüe y
+ *     esquivaría la rama de render que existe para ellos. Y sobre todo, NO un
+ *     string con datos: el dueño decidió expresamente no publicar su DNI ni
+ *     su domicilio, así que un valor ahí sería publicar lo que se decidió no
+ *     publicar.
  */
 describe("LEGAL_ENTITY", () => {
-  const stringFields = [
-    "name",
-    "legalForm",
-    "taxId",
-    "address",
-    "registry",
-    "contactEmail",
-  ] as const;
+  const realFields = ["name", "legalForm", "contactEmail"] as const;
+  const declaredAbsent = ["taxId", "address", "registry"] as const;
 
-  it.each(stringFields)(
-    "%s es exactamente el marcador PLACEHOLDER, no un valor inventado",
+  it.each(realFields)("%s tiene un valor real, no el marcador", (field) => {
+    const value = LEGAL_ENTITY[field];
+    expect(value).not.toBe(PLACEHOLDER);
+    expect(value.trim()).not.toBe("");
+  });
+
+  it("name es el titular que el dueño declaró", () => {
+    expect(LEGAL_ENTITY.name).toBe("Daniel Mosquera");
+  });
+
+  it("legalForm declara persona física, no una sociedad inventada", () => {
+    expect(LEGAL_ENTITY.legalForm).toBe("Persona física");
+  });
+
+  /* Deriva de `links.email`, no de `EMAIL_ADDRESS`: aseverar la constante
+     contra sí misma no ataría nada (misma doctrina que `jsonLd.test.ts` y
+     `Contact.test.tsx`, declarada en `links.ts:74-78`). */
+  it("contactEmail es la MISMA dirección que el resto del sitio", () => {
+    expect(LEGAL_ENTITY.contactEmail).toBe(links.email.replace(/^mailto:/, ""));
+    expect(LEGAL_ENTITY.contactEmail).toBe("hello@voidtoinfinite.com");
+  });
+
+  it.each(declaredAbsent)(
+    "%s es null exacto: declaración de «no procede», no un hueco ni prosa",
     (field) => {
-      expect(LEGAL_ENTITY[field]).toBe(PLACEHOLDER);
-      expect(LEGAL_ENTITY[field]).toBe("POR_COMPLETAR");
+      expect(LEGAL_ENTITY[field]).toBeNull();
     },
   );
 
@@ -37,21 +65,44 @@ describe("LEGAL_ENTITY", () => {
     expect(LEGAL_ENTITY.dpo).toBeNull();
   });
 
-  it("ningún campo string está vacío, en blanco o es un marcador distinto al oficial", () => {
-    for (const field of stringFields) {
-      const value = LEGAL_ENTITY[field];
-      expect(value.trim()).not.toBe("");
-      // Candado adicional: cualquier variante casi-correcta ("por completar",
-      // "PENDIENTE", "TBD"...) tiene que fallar este test tanto como un dato
-      // inventado -- solo el marcador exacto y consistente vale.
-      expect(value).toBe(PLACEHOLDER);
-    }
+  /* Candado de la REGLA DURA del docblock del módulo: `null` y `PLACEHOLDER`
+     dicen cosas distintas y no pueden confundirse. Si alguien añade un campo
+     nuevo sin dato y lo marca `null` en vez de `PLACEHOLDER`, la publicación
+     dejaría de bloquearse sin que nada avise. */
+  it("ningún campo lleva el marcador: si vuelve uno, la publicación se bloquea", () => {
+    const values = Object.values(LEGAL_ENTITY);
+    expect(values).not.toContain(PLACEHOLDER);
+    expect(values).not.toContain("POR_COMPLETAR");
   });
 });
 
 describe("hasPendingLegalData", () => {
-  it("es true mientras LEGAL_ENTITY siga con datos sin aportar", () => {
-    expect(hasPendingLegalData()).toBe(true);
+  /* Era `true` desde que existe el fichero. Pasa a `false` el 2026-08-13: es
+     la primera vez que las dos páginas legales son publicables. */
+  it("es false: no queda ningún dato identificativo sin aportar", () => {
+    expect(hasPendingLegalData()).toBe(false);
+  });
+
+  /* Sonda de no-vacuidad: sin ella, una función que devolviera `false` a palo
+     seco pasaría el test de arriba y el bloqueo habría dejado de existir sin
+     que nadie lo notara. Se reintroduce un marcador sobre una COPIA y se
+     comprueba que la lógica lo detectaría. */
+  it("seguiría detectando un dato pendiente si alguien reintrodujera uno", () => {
+    const conPendiente: Record<string, unknown> = {
+      ...LEGAL_ENTITY,
+      name: PLACEHOLDER,
+    };
+    const identifying = [
+      "name",
+      "legalForm",
+      "taxId",
+      "address",
+      "registry",
+      "contactEmail",
+    ];
+    expect(
+      identifying.some((field) => conPendiente[field] === PLACEHOLDER),
+    ).toBe(true);
   });
 });
 
@@ -78,19 +129,26 @@ describe("LEGAL_VERSIONS", () => {
   });
 
   /*
-   * La revisión legal del 2026-08-08 no corrigió erratas: cambió el contenido
-   * sustantivo de los dos documentos (la privacidad pierde todo lo relativo al
-   * consentimiento; el aviso legal absorbe las cláusulas de uso del retirado
-   * `/terminos`). Un lector que se hubiera quedado con la 1.x no puede dar por
-   * buena su lectura, y eso es lo que comunica el salto de MAYOR -- por eso el
-   * candado es sobre la mayor, no sobre la cadena completa: la menor y el
+   * Dos revisiones sustantivas encadenadas, y las dos movieron la MAYOR por el
+   * mismo motivo: quien se hubiera quedado con la versión anterior no puede dar
+   * por buena su lectura.
+   *
+   *   1.x -> 2.0.0 (2026-08-08): la privacidad pierde todo lo relativo al
+   *   consentimiento y el aviso legal absorbe las cláusulas del retirado
+   *   `/terminos`.
+   *   2.x -> 3.0.0 (2026-08-13): aparece por primera vez la identidad del
+   *   responsable, la cadena real de proveedores del correo y el plazo de
+   *   conservación. Antes de esto, el lector no sabía quién respondía de sus
+   *   datos.
+   *
+   * El candado es sobre la mayor, no sobre la cadena completa: la menor y el
    * parche pueden moverse con retoques posteriores sin tener que tocar aquí.
    */
   it.each(docKeys)(
-    "%s está al menos en la versión mayor 2 (revisión sustantiva del 2026-08-08)",
+    "%s está al menos en la versión mayor 3 (identidad del responsable, 2026-08-13)",
     (key) => {
       const major = Number(LEGAL_VERSIONS[key].version.split(".")[0]);
-      expect(major).toBeGreaterThanOrEqual(2);
+      expect(major).toBeGreaterThanOrEqual(3);
     },
   );
 });

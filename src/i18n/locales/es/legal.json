@@ -16,6 +16,7 @@
                 "dpo": "Delegado de Protección de Datos"
             },
             "dpoNotAppointed": "No se ha designado un Delegado de Protección de Datos (DPO).",
+            "notApplicable": "No procede.",
             "storageTable": {
                 "id": "Identificador",
                 "purpose": "Finalidad",
@@ -54,7 +55,7 @@
                             "items": [
                                 {
                                     "term": "Responsable",
-                                    "description": "POR_COMPLETAR (ver el apartado «Quién es el responsable»)."
+                                    "description": "Daniel Mosquera, persona física (ver el apartado «Quién es el responsable»)."
                                 },
                                 {
                                     "term": "Finalidad",
@@ -66,7 +67,7 @@
                                 },
                                 {
                                     "term": "Destinatarios",
-                                    "description": "Netlify, como encargado del tratamiento para el alojamiento técnico. No cedemos ni vendemos datos a terceros."
+                                    "description": "Netlify (alojamiento), y Cloudflare y Google si nos escribes por correo. No cedemos ni vendemos datos a terceros."
                                 },
                                 {
                                     "term": "Derechos",
@@ -227,7 +228,8 @@
                             "kind": "ul",
                             "items": [
                                 "Netlify, como encargado del tratamiento, para el alojamiento técnico del sitio.",
-                                "POR_COMPLETAR: el proveedor de correo electrónico donde se reciben los mensajes que decidas enviarnos."
+                                "Cloudflare, que enruta el correo dirigido a la dirección de contacto. No lo almacena: lo reenvía a un buzón de destino.",
+                                "Google, proveedor de ese buzón de destino, donde el mensaje queda alojado. Es una cuenta personal de Gmail, no un servicio contratado como encargado del tratamiento: se declara así en vez de afirmar una relación contractual que no existe."
                             ]
                         },
                         {
@@ -242,11 +244,18 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "El sitio se aloja en la infraestructura de Netlify, que puede implicar transferencias de datos técnicos fuera del Espacio Económico Europeo."
+                            "text": "El sitio se aloja en la infraestructura de Netlify y el correo de contacto se enruta a través de Cloudflare. Las dos son empresas estadounidenses, así que puede haber transferencias de datos técnicos fuera del Espacio Económico Europeo."
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Netlify, Inc.: cláusulas contractuales tipo de la Comisión Europea, recogidas en su acuerdo de tratamiento de datos, y adhesión certificada al Marco de Privacidad de Datos UE-EE. UU.",
+                                "Cloudflare, Inc.: cláusulas contractuales tipo (módulo dos, responsable a encargado) en la sección 6.2 de su acuerdo de tratamiento de datos, y adhesión al Marco de Privacidad de Datos confirmada en su sección 6.4."
+                            ]
                         },
                         {
                             "kind": "note",
-                            "text": "POR_COMPLETAR: la garantía concreta aplicable (por ejemplo, cláusulas contractuales tipo) no se ha verificado todavía de forma independiente. No se afirma aquí ninguna garantía específica sin haberla comprobado."
+                            "text": "El buzón final de la dirección de contacto es una cuenta personal de Gmail. Google se adhiere al Marco de Privacidad de Datos, pero una cuenta de consumo no está cubierta por un acuerdo de tratamiento como encargado: no se afirma aquí una garantía contractual que no se ha suscrito. Si prefieres no enviar tus datos a un proveedor estadounidense, no uses el correo para contactar."
                         }
                     ]
                 },
@@ -263,7 +272,7 @@
                                 },
                                 {
                                     "term": "Tu correo y su contenido",
-                                    "description": "POR_COMPLETAR: el plazo de conservación de tu consulta depende de la política interna del responsable, todavía sin definir."
+                                    "description": "Se conserva hasta que tu consulta quede resuelta y, como máximo, tres meses desde entonces. Pasado ese plazo se elimina."
                                 }
                             ]
                         }
@@ -290,7 +299,7 @@
                         },
                         {
                             "kind": "p",
-                            "text": "Para ejercerlos, escribe a POR_COMPLETAR indicando el derecho que quieres ejercer."
+                            "text": "Para ejercerlos, escribe a hello@voidtoinfinite.com indicando el derecho que quieres ejercer."
                         },
                         {
                             "kind": "p",
@@ -331,14 +340,14 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "En cumplimiento del artículo 10.a) (denominación, domicilio y correo electrónico) y del artículo 10.e) (NIF) de la LSSI-CE:"
+                            "text": "Información identificativa del titular, siguiendo el artículo 10.a) (denominación, domicilio y correo electrónico) y el artículo 10.e) (NIF) de la LSSI-CE:"
                         },
                         {
                             "kind": "entity"
                         },
                         {
                             "kind": "note",
-                            "text": "Estos datos identificativos están pendientes de que el titular del sitio los aporte. Mientras falten, este aviso legal no cumple el artículo 10.a) ni el 10.e) de la LSSI-CE."
+                            "text": "Sobre el domicilio y el NIF: no se publican. La LSSI-CE regula los servicios de la sociedad de la información prestados como actividad económica, y este sitio no la tiene —no vende, no anuncia, no ingresa y no recaba datos de quien lo visita—, por lo que se entiende que ese deber de identificación no le resulta exigible. Es una interpretación razonada, no una certeza confirmada por un profesional, y se declara como tal en lugar de omitir la cuestión. El titular queda identificado por su nombre y es localizable en la dirección de correo indicada, que se atiende. Si el proyecto pasara a tener actividad económica, esta decisión se revisaría."
                         }
                     ]
                 },
@@ -348,7 +357,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "Este sitio presenta al equipo VoidToInfinite y su trabajo. Es una web informativa: no vende productos ni servicios, no permite realizar compras ni reservas, no ofrece registro ni cuentas de usuario, no aloja contenido publicado por visitantes y no presta ningún servicio contratable en línea."
+                            "text": "Este sitio presenta el proyecto VoidToInfinite y su trabajo. Es una web informativa: no vende productos ni servicios, no permite realizar compras ni reservas, no ofrece registro ni cuentas de usuario, no aloja contenido publicado por visitantes y no presta ningún servicio contratable en línea."
                         },
                         {
                             "kind": "p",
@@ -362,7 +371,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "Datos de inscripción en el registro público correspondiente, cuando aplique: POR_COMPLETAR."
+                            "text": "No procede: el responsable es una persona física, no una sociedad, así que no hay inscripción en ningún registro público que reseñar."
                         }
                     ]
                 },

@@ -4,6 +4,7 @@ import i18n from "@/i18n/config";
 import esLegal from "@/i18n/locales/es/legal.json";
 import enLegal from "@/i18n/locales/en/legal.json";
 import { STORAGE_REGISTRY } from "@/config/storage";
+import { LEGAL_ENTITY } from "@/config/legal";
 import {
   LegalDocument,
   splitPlaceholderMarkers,
@@ -100,18 +101,41 @@ describe("LegalDocument", () => {
     },
   );
 
-  it("el bloque 'entity' (privacidad y aviso legal) pinta los campos POR_COMPLETAR dentro de <mark>", () => {
-    renderWithProviders(<LegalDocument docKey="privacy" />);
-    const marks = document.querySelectorAll("mark");
-    expect(marks.length).toBeGreaterThan(0);
-    for (const mark of Array.from(marks)) {
-      expect(mark).toHaveTextContent("POR_COMPLETAR");
-    }
-  });
+  /*
+   * Estos dos candados están INVERTIDOS desde el 2026-08-13. Aseveraban que
+   * los dos documentos pintaban al menos un `<mark>` y que TODO `<mark>`
+   * contenía `POR_COMPLETAR` -- el mecanismo que impedía publicar datos
+   * identificativos que nadie había aportado.
+   *
+   * Cerrada la Fase 0, el recuento correcto es CERO: un `<mark>` hoy
+   * significaría que un dato volvió a estar pendiente sin que nadie lo
+   * declarara. La aserción cambia de dirección, no de fuerza.
+   */
+  it.each(["privacy", "legalNotice"] as const)(
+    "'%s' no pinta ningún <mark>: no queda dato pendiente",
+    (docKey) => {
+      renderWithProviders(<LegalDocument docKey={docKey} />);
+      expect(document.querySelectorAll("mark")).toHaveLength(0);
+      expect(document.body.textContent).not.toContain("POR_COMPLETAR");
+    },
+  );
 
-  it("legalNotice también pinta el bloque entity con <mark>", () => {
+  /*
+   * Sonda de contenido real: sin ella, un `EntityBlock` que no pintara NADA
+   * pasaría el candado de cero marcas. Se comprueban las tres clases de valor
+   * que el bloque sabe distinguir (string real, `null` = no procede, y el
+   * correo derivado), porque son justo las que un refactor podría colapsar en
+   * una sola sin que ningún otro test lo notara.
+   */
+  it("el bloque 'entity' pinta el titular, el «no procede» y el correo", () => {
     renderWithProviders(<LegalDocument docKey="legalNotice" />);
-    expect(document.querySelectorAll("mark").length).toBeGreaterThan(0);
+    const texto = document.body.textContent ?? "";
+
+    expect(texto).toContain(LEGAL_ENTITY.name);
+    expect(texto).toContain(LEGAL_ENTITY.legalForm);
+    expect(texto).toContain(LEGAL_ENTITY.contactEmail);
+    // Los tres campos declarados `null` comparten un único texto localizado.
+    expect(texto).toContain("No procede.");
   });
 
   it("la tabla de almacenamiento tiene una fila por entrada de STORAGE_REGISTRY", () => {
