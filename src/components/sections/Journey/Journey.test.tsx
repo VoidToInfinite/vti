@@ -6,7 +6,7 @@ import {
   waitFor,
   within,
 } from "@/test/test-utils";
-import { Journey } from "./Journey";
+import { Journey, stepLabelColor } from "./Journey";
 import { motion } from "@/theme/tokens/motion";
 import {
   JOURNEY_STEPS,
@@ -1375,6 +1375,82 @@ describe("Journey: Task 12, ScQuoteText pasa a color solido", () => {
    * tarea: revertir `ScQuoteText` (Journey.tsx) a
    * `color: theme.data.semantic.text` (en vez de `brandText`) pone en rojo
    * los dos primeros tests de este describe; restaurado, vuelve a verde.
+   */
+});
+
+/*
+ * Fix wave E, hallazgo E2 (evaluador de navegador real, 2026-08-13): cinco
+ * de las seis etiquetas de paso (rama clara, `ScStepLabel`) incumplian AA
+ * sobre el fondo pastel de la tarjeta -- ver el docblock de
+ * `stepLabelColor`, Journey.tsx, para las seis cifras medidas (antes/
+ * despues) y el porque del desplazamiento de +2 escalones dentro de la
+ * MISMA rampa (preserva la progresion 500<600<700 del mockup en vez de
+ * colapsar varios pasos al mismo color).
+ */
+describe("Journey: fix wave E, hallazgo E2 -- ScStepLabel sube de escalon en tema claro (AA)", () => {
+  /** Las dos paradas de `JOURNEY_CARD_BACKGROUND` ya compuestas con su alfa
+   *  (~0.92) sobre `semantic.bg` (light) -- MISMOS dos literales que ya usa
+   *  el describe "Task 12, ScQuoteText" de arriba para medir sobre el mismo
+   *  fondo real; `contrastRatioHex` no compone alfa, solo mide. */
+  const PARADAS_COMPUESTAS = ["#ffecfd", "#e5f6ff"];
+
+  it("cada etiqueta resuelve stepLabelColor (el escalon +2 AA-seguro), no stepColor (el escalon original del icono)", () => {
+    renderWithProviders(<Journey />);
+    JOURNEY_STEPS.forEach((step, index) => {
+      const label = esHome.Home.journey.steps[step.id].label;
+      const number = String(index + 1).padStart(2, "0");
+      const node = screen.getByText(`${number} · ${label}`);
+      const esperado = stepLabelColor(themes.light, {
+        colorRamp: step.colorRamp,
+        colorStep: step.colorStep,
+      });
+      expect(getComputedStyle(node).color).toBe(esperado);
+    });
+  });
+
+  it("las seis etiquetas resuelven >= 4.5:1 contra las dos paradas reales de la tarjeta", () => {
+    JOURNEY_STEPS.forEach((step) => {
+      const color = stepLabelColor(themes.light, {
+        colorRamp: step.colorRamp,
+        colorStep: step.colorStep,
+      });
+      PARADAS_COMPUESTAS.forEach((parada) => {
+        const ratio = contrastRatioHex(color, parada);
+        expect(
+          ratio,
+          `${step.id} (${step.colorRamp}/${step.colorStep} tras el ajuste) sobre ${parada} da ${ratio.toFixed(2)}:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      });
+    });
+  });
+
+  /*
+   * Sonda de no-vacuidad (mismo patron que `navActiveAccent.contrast.test.ts`,
+   * fix wave A): sin esto, el test de arriba pasaria en verde igual si
+   * `stepLabelColor` colapsara por error a devolver siempre un unico
+   * escalon de sobra (p.ej. 1100) -- esto demuestra que los escalones
+   * ORIGINALES (`stepColor`, el que sigue usando el icono del disco) de
+   * verdad incumplian AA en al menos una de las dos paradas, asi que el
+   * candado de arriba mide una correccion real, no una coincidencia.
+   */
+  it("sonda de no-vacuidad: los escalones ORIGINALES (stepColor, sin el ajuste de E2) seguian incumpliendo 4.5:1", () => {
+    const incumplioAlguno = JOURNEY_STEPS.some((step) => {
+      const colorOriginal =
+        themes.light.palette[step.colorRamp][step.colorStep];
+      return PARADAS_COMPUESTAS.some(
+        (parada) => contrastRatioHex(colorOriginal, parada) < 4.5,
+      );
+    });
+    expect(incumplioAlguno).toBe(true);
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), verificado en esta tarea: revertir
+   * `ScStepLabel` (Journey.tsx) de `stepLabelColor(...)` a `stepColor(...)`
+   * (el escalon original) pone en rojo el primer test de este describe
+   * (`getComputedStyle` deja de coincidir con `stepLabelColor`) Y el
+   * segundo (5 de las 6 etiquetas vuelven a incumplir 4.5:1); restaurado,
+   * los tres vuelven a verde.
    */
 });
 

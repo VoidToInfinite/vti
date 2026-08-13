@@ -344,6 +344,72 @@ function stepColor(
   return theme.palette[step.colorRamp][step.colorStep];
 }
 
+/**
+ * Escalón AA-seguro de la rampa, para TEXTO en tema claro (fix wave E,
+ * hallazgo E2 -- evaluador de navegador real, 2026-08-13). `ScStepLabel`
+ * pintaba `stepColor(...)` directo -- el MISMO escalón de rampa
+ * (`step.colorStep`, `journey.layers.ts`) que también usa el icono del
+ * disco (`ScDisc`) -- sobre el fondo pastel translúcido de `ScCard`
+ * (`JOURNEY_CARD_BACKGROUND`, compuesto sobre `semantic.bg`). Medido con
+ * `contrastRatio`/píxel real contra los SEIS fondos que pinta el
+ * degradado a 135deg de la tarjeta detrás de cada etiqueta:
+ *
+ *   01 Descubre   (primary/500)    2.05:1  incumple 4.5:1
+ *   02 Aprende    (primary/600)    2.72:1  incumple
+ *   03 Imagina    (secondary/500)  2.49:1  incumple
+ *   04 Crea       (secondary/600)  3.18:1  incumple
+ *   05 Comparte   (secondary/700)  5.36:1  ya cumplía
+ *   06 Evoluciona (error/500)      2.82:1  incumple
+ *
+ * MISMA FAMILIA que Task 33 (`languageAccent`, `LanguageSelector.tsx`) y fix
+ * wave A hallazgo A4 (`navActiveAccent`, `NavSheet.tsx`): un acento de marca
+ * tomado DIRECTAMENTE de `palette` (sin pasar por un rol semántico ya
+ * auditado) incumple por defecto sobre los fondos claros del sistema -- la
+ * TERCERA vez que aparece este patrón exacto. El candado de familia que
+ * cubre esto de forma sistémica (no solo estos seis casos) vive en
+ * `src/theme/tokens/brandAccentContrast.test.ts`.
+ *
+ * El primer escalón de `primary`/`secondary`/`error` que pasa 4.5:1 contra
+ * los fondos claros del sistema es 700 (medido exhaustivamente, ver el test
+ * de familia) -- cualquier escalón por debajo queda descartado como color de
+ * texto. El arreglo sube exactamente DOS escalones dentro de la MISMA rampa
+ * (500→700, 600→800, 700→900) en vez de saltar todos al mismo "700 mínimo":
+ * `05 Comparte` (secondary/700) ya cumplía por sí sola, pero si se dejara
+ * intacta mientras `03 Imagina` sube de 500 a 700, las dos compartirían el
+ * MISMO color exacto y `04 Crea` (subiendo a 800) se leería más oscura que
+ * Comparte -- invirtiendo la progresión 500<600<700 del mockup original. El
+ * desplazamiento UNIFORME de +2 escalones conserva esa progresión relativa
+ * completa, sin que ningún escalón quede por debajo del piso AA. Verificado
+ * contra los 6 fondos reales (`Journey.test.tsx`, fix wave E): 4.57 · 5.27 ·
+ * 5.33 · 6.01 · 8.34 · 5.33, los seis con margen sobre 4.5:1.
+ *
+ * SOLO afecta al TEXTO de la etiqueta: `ScDisc` (el icono del disco, misma
+ * rama clara) y `ScJourneyStepIconBox` (rama oscura, que ni siquiera monta
+ * esta etiqueta) siguen leyendo `stepColor(...)` sin cambios -- ninguno de
+ * los dos es texto, y el icono se pinta sobre `semantic.surface` (blanco
+ * opaco), un fondo distinto con su propio margen de sobra.
+ *
+ * La rama `!theme.isLight` de esta función nunca se ejercita hoy --
+ * `ScStepLabel` solo lo monta `JourneyLight` (`Journey()` nunca monta las
+ * dos ramas a la vez) -- pero se resuelve igual que `stepColor` por simetría
+ * con el resto de resolvers de acento del repo (`languageAccent`/
+ * `navActiveAccent`/`ctaGradientMidStop`, todos `theme.isLight ? A : B`
+ * aunque hoy solo una rama tenga consumidor real).
+ */
+const LABEL_SAFE_STEP: Record<JourneyStep["colorStep"], 700 | 800 | 900> = {
+  500: 700,
+  600: 800,
+  700: 900,
+};
+
+export function stepLabelColor(
+  theme: ThemeDefinition,
+  step: Pick<JourneyStep, "colorRamp" | "colorStep">,
+): string {
+  if (!theme.isLight) return stepColor(theme, step);
+  return theme.palette[step.colorRamp][LABEL_SAFE_STEP[step.colorStep]];
+}
+
 /*
  * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, ghost-card):
  * regla borde-O-sombra, nunca los dos (impeccable) -- este disco CONSERVA su
@@ -394,8 +460,14 @@ const ScStepLabel = styled.p<{
   font-family: ${({ theme }) => theme.data.type.fontBody};
   font-size: 0.8125rem;
   font-weight: 700;
+  /* stepLabelColor, NO stepColor (fix wave E, hallazgo E2): ver su docblock,
+     más arriba, para las cifras medidas -- el color de TEXTO necesita un
+     escalón AA-seguro distinto del que usa el icono del disco. */
   color: ${({ theme, $colorRamp, $colorStep }) =>
-    stepColor(theme.data, { colorRamp: $colorRamp, colorStep: $colorStep })};
+    stepLabelColor(theme.data, {
+      colorRamp: $colorRamp,
+      colorStep: $colorStep,
+    })};
 `;
 
 const ScStepBody = styled(Typography)`
