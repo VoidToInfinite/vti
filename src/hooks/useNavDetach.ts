@@ -16,6 +16,44 @@ export type NavDetachPhase = "idle" | "detaching" | "attaching";
  * `src/components/sections/Hero/hero.transition.ts`: un número compartido se
  * declara una vez y un test lo ata al token del sistema de movimiento
  * (`motion.duration.slower`, 480ms) para que no pueda desviarse en silencio.
+ *
+ * ## Por qué NO consume `theme.data.motion.duration.slower` directamente
+ * (fix wave E, hallazgo E4 -- detector determinista, 2026-08-13: coincide
+ * numéricamente con el token sin consumirlo; se verifica aquí si la
+ * coincidencia es intencional)
+ *
+ * Sí es intencional, y sí ya estaba verificada -- el test
+ * `useNavDetach.test.tsx` ("NAV_DETACH_ANIM_MS coincide con el token
+ * motion.duration.slower") ya ata los dos valores por IGUALDAD desde antes
+ * de este hallazgo. Lo que faltaba era este párrafo: por qué la igualdad se
+ * vigila con un test en vez de resolverse importando el token en el propio
+ * sitio de declaración.
+ *
+ * Dos motivos, el mismo razonamiento que ya usa `HERO_FADE_MS`/
+ * `HERO_COPY_OUT_MS` (`hero.transition.ts` L51-55) para el mismo dilema:
+ *
+ * 1. **Forma distinta.** `motion.duration.slower` es un STRING CSS
+ *    (`"480ms"`), pensado para interpolarse directo dentro de una plantilla
+ *    de styled-components. `NAV_DETACH_ANIM_MS` es un NÚMERO puro: lo
+ *    consume `window.setTimeout(fn, NAV_DETACH_ANIM_MS)` (más abajo en este
+ *    mismo fichero) y, en `Navbar.tsx`, se interpola DENTRO de una
+ *    declaración `${NAV_DETACH_ANIM_MS}ms` con el sufijo puesto a mano.
+ *    Derivar el número parseando el string (`parseInt(motion.duration.slower,
+ *    10)`) en el sitio de declaración es exactamente lo que ya hace el TEST
+ *    -- moverlo a la fuente no gana nada, solo cambia dónde vive el parseo.
+ * 2. **Independencia semántica.** `motion.duration.slower` es un átomo
+ *    genérico del sistema de movimiento (`system.test.ts` lo cierra con
+ *    `toEqual`, contrato compartido por decenas de transiciones de interfaz
+ *    sin relación con el navbar). Si `NAV_DETACH_ANIM_MS` fuera un ALIAS
+ *    (`export const NAV_DETACH_ANIM_MS = Number(theme.data.motion.duration.
+ *    slower...)`), un cambio futuro de `slower` por un motivo de UI AJENO al
+ *    navbar retimearía esta coreografía en silencio -- exactamente el riesgo
+ *    que `hero.transition.ts` ya declaró para `HERO_FADE_MS`: "un alias se
+ *    rompería en silencio el día que alguien cambiara `base` por una razón
+ *    de UI ajena a esta transición". La coincidencia de VALOR (480) es
+ *    intencional y vigilada; la independencia de FUENTE es la que evita que
+ *    un cambio no relacionado mueva esta coreografía sin que nadie lo decida
+ *    a propósito.
  */
 export const NAV_DETACH_ANIM_MS = 480;
 

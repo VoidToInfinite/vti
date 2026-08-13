@@ -585,6 +585,35 @@ const ctaGlowPulse = keyframes`
   to { opacity: 1; }
 `;
 
+/*
+ * `1600ms` (fix wave E, hallazgo E4 -- detector determinista, 2026-08-13):
+ * era el único literal de duración de animación del repo sin documentar
+ * (los otros 15 están inventariados con su porqué en el docblock de
+ * `AMBIENT`, `src/motion/vocabulary.ts`). NO migra a `AMBIENT`: ese grupo es
+ * EXCLUSIVAMENTE para movimiento infinito NUNCA ligado a una interacción del
+ * usuario (ver su docblock de cabecera, `vocabulary.ts`) -- y `ctaGlowPulse`
+ * es justo lo contrario: el docblock de arriba ya lo declara explícito, "la
+ * respiración solo corre MIENTRAS hay hover o foco: no es una animación
+ * ambiental permanente". Forzarlo dentro de `AMBIENT` mezclaría un rol de
+ * coreografía distinto (retroalimentación de hover sostenido, más cercano a
+ * la familia de `PRESS` que a `AMBIENT` -- salvo que `PRESS` tampoco encaja:
+ * sus dos primitivas son un tap de 100ms y un hover-lift instantáneo, no un
+ * pulso repetido mientras el puntero se queda quieto) bajo un contrato que
+ * el propio nombre del grupo ya excluye por definición.
+ *
+ * Sin relación matemática limpia con ningún token existente (no es múltiplo
+ * de `motion.duration.*` ni de los tres campos de `AMBIENT` -- 5400/9000/
+ * 20000), y sin una medida de "por qué 1600 y no 1400 o 2000" registrada en
+ * ninguna spec de este repo: se declara aquí, como constante local con
+ * nombre (mismo tratamiento que el propio `vocabulary.ts` ya da a las
+ * animaciones de `Sol.tsx`/`Wormhole.tsx`/`Footer.tsx` que tampoco encajan
+ * en ningún grupo -- documentadas y dejadas fuera a propósito, en vez de
+ * forzadas dentro de un contrato que no las describe). Si una tarea futura
+ * decide que este pulso pertenece a un vocabulario nuevo (retroalimentación
+ * de hover sostenido, un rol que hoy no existe), nace entonces con su propio
+ * consumidor, no antes.
+ */
+
 const ctaGlow = css`
   &::after {
     content: "";

@@ -526,6 +526,21 @@ export const PRESS = {
  * forzar solo bajó; se deja el inventario completo aquí, sin cambios, para
  * que una tarea futura que SÍ decida ampliar `AMBIENT` (o crear un segundo
  * vocabulario de rotaciones lentas) no tenga que rehacerlo.
+ *
+ * ## Octavo valor sin migrar, distinto de los siete de arriba: `ctaGlowPulse`
+ * (`Hero.tsx`, 1600ms) -- fix wave E, hallazgo E4 (detector determinista,
+ * 2026-08-13)
+ *
+ * Los siete de arriba son animaciones AMBIENTALES de verdad (corren solas,
+ * sin interacción) que simplemente no encajan en NINGÚN campo por su
+ * duración. `ctaGlowPulse` es un caso distinto: NO es ambiental en absoluto
+ * -- solo corre mientras hay `:hover`/`:focus-visible` sostenido sobre el
+ * CTA del hero (ver su propio docblock, `Hero.tsx`), así que queda excluido
+ * de `AMBIENT` por DEFINICIÓN de grupo ("nunca ligado a una interacción del
+ * usuario", párrafo de cabecera de este docblock), no por falta de hueco
+ * entre los tres campos disponibles. Documentado en su sitio de declaración,
+ * no aquí con un valor propio: no hay ningún campo de `AMBIENT` al que
+ * pudiera aspirar sin contradecir lo que el grupo significa.
  */
 export const AMBIENT = {
   breathMs: 5400,
