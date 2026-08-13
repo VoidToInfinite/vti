@@ -37,3 +37,13 @@ yarn.lock
 
 # Trazas de playwright-cli (verificacion del agente):
 .playwright-cli/
+
+# Configuracion de Codex (`.codex/hooks.json`), la otra herramienta de agente
+# que trabaja sobre este repo. Mismo caso que `.superpowers/` y `.impeccable/`
+# de arriba: sin rastrear por git, escrito por una herramienta con su propio
+# formato, y nadie le pasa Prettier. Al no estar rastreado NO llega ni a
+# GitHub Actions ni a Netlify, asi que su deriva solo tumbaba `pnpm run ci` en
+# la maquina local -- un rojo que no corresponde a ningun defecto del sitio
+# (observado el 2026-08-13: `check-format` en rojo por este unico fichero,
+# aparecido esa manana, con el resto del gate limpio).
+.codex/
