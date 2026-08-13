@@ -336,7 +336,7 @@ export const ScDeck = styled.div`
  * docblock actualizado del describe "candado SR del deck" en los dos
  * ficheros de test para el detalle completo.
  */
-export const ScSlide = styled.div`
+export const ScSlide = styled.div<{ $anchorTop?: boolean }>`
   grid-area: 1 / 1;
   width: 100%;
   opacity: 0;
@@ -350,6 +350,52 @@ export const ScSlide = styled.div`
     visibility ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate};
   pointer-events: none;
+
+  /*
+   * Fix wave D (hallazgo D1, revision final de rama): SOLO la diapositiva de
+   * cierre (#statement, Story.tsx) pasa este prop. ScDeck centra las 6
+   * diapositivas con place-items: center (D6, mas arriba en este fichero);
+   * para las 5 primeras eso es correcto, pero para la de cierre deja su
+   * contenido (474px de alto medido, h2+enlace) a caballo del tercio INFERIOR
+   * del viewport (screen-y 123-597 de 720 medido en navegador real,
+   * playwright-cli, 1280x720). El "solape" documentado del D11 de la spec
+   * 2026-08-02-journey-overlay-transition-design.md (Journey sube sobre
+   * Story exactamente STORY_DECK_TAIL_SCREENS == JOURNEY_OVERLAY_RISE, 1
+   * pantalla) NO es un salto instantaneo: es un bloque de 6480px que entra en
+   * el viewport en flujo NORMAL por el borde inferior mientras su propio
+   * position: sticky todavia no engancha (no engancha hasta que scrollY
+   * alcanza el tope real de su pista) -- su borde superior barre la pantalla
+   * de abajo hacia arriba durante TODO ese tramo de 720px, y z-index: 1 +
+   * orden de DOM posterior (Journey.tsx, ScJourney) lo pinta por encima de
+   * Story en cualquier punto que ya haya cruzado. Medido en navegador real:
+   * con el contenido centrado, el enlace de Discord (la parte MAS BAJA del
+   * bloque) queda cubierto a los ~123px de iniciado ese barrido -- mucho antes
+   * de que el barrido complete su recorrido -- dejando una ventana alcanzable
+   * de solo ~400-480px de una pagina de 12.821px (scrollY ~3960 a ~4440).
+   *
+   * align-self: start sustituye el place-items: center heredado SOLO en
+   * este item de grid (align-self en un hijo gana siempre a place-items/
+   * align-items del contenedor -- no hace falta tocar ScDeck, que sigue
+   * centrando las otras 5 diapositivas sin cambios). Con el bloque pegado al
+   * borde SUPERIOR del stage (screen-y 0-474 en vez de 123-597), el mismo
+   * barrido tarda 123px MAS en alcanzar el enlace -- la ganancia maxima que
+   * da este contenedor de 720px con un bloque de 474px de alto, sin tocar
+   * STORY_DECK_TAIL_SCREENS/JOURNEY_OVERLAY_RISE (arquitectura del
+   * solape, decision del dueño, fuera de alcance de este arreglo) ni la
+   * longitud de ninguna de las dos ramas. Verificado en navegador real tras
+   * el cambio (fixD-* del informe de la tarea): la ventana alcanzable crece a
+   * ~600px.
+   *
+   * SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
+   * literal de styled-components, donde un backtick lo cierra y rompe el
+   * build (leccion del repo, task/lessons.md 2026-07-25, reincidida el
+   * 2026-08-02 y aqui, fix wave D).
+   */
+  ${({ $anchorTop }) =>
+    $anchorTop &&
+    css`
+      align-self: start;
+    `}
 
   &[data-state="current"] {
     opacity: 1;

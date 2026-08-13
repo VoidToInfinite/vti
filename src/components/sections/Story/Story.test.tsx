@@ -1632,6 +1632,43 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     expect(link).toHaveAttribute("href", links.discord);
   });
 
+  /*
+   * Fix wave D (hallazgo D1, revisión final de rama, 2026-08-12): `ScSlide`
+   * (`story.deck.tsx`) gana el prop `$anchorTop`, que SOLO pasa la
+   * diapositiva de cierre (`#statement`) -- ver el docblock de `ScSlide` en
+   * `story.deck.tsx` para la medición completa en navegador real (la
+   * ganancia de ~123px en la ventana alcanzable del enlace a Discord antes
+   * de que Journey lo tape). `align-self: start` (que gana siempre a
+   * `place-items: center` del contenedor `ScDeck` para ESTE item de grid,
+   * sin tocar las otras cinco diapositivas) es la parte verificable por
+   * jsdom: texto del CSS inyectado, no layout real (jsdom no lo calcula).
+   *
+   * Validado con el bug inyectado a propósito: quitando `$anchorTop` de la
+   * diapositiva `#statement` en `Story.tsx` (StoryDeckDark), la primera
+   * aserción de este test cae en rojo (`align-self: start` deja de aparecer
+   * en su CSS); restaurado, vuelve a verde.
+   */
+  it("Fix wave D (D1): SOLO la diapositiva de cierre (#statement) declara align-self: start -- las demás heredan el place-items: center de ScDeck", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const statement = container.querySelector(
+      "section#statement",
+    ) as HTMLElement;
+    expect(cssRuleTextFor(statement)).toContain("align-self: start");
+
+    const otherSlides = Array.from(
+      container.querySelectorAll("[data-slide-index]"),
+    ).filter((el) => el !== statement) as HTMLElement[];
+    expect(otherSlides).toHaveLength(STORY_SLIDES - 1);
+    otherSlides.forEach((slide) => {
+      expect(cssRuleTextFor(slide)).not.toContain("align-self");
+    });
+  });
+
   it("el stage arranca con data-slide=0 y data-dir=forward (estado de reposo del hook, sin scroll)", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {

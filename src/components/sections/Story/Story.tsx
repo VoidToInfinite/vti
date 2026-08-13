@@ -1624,12 +1624,29 @@ function StoryDeckDark(): ReactElement {
                 `<section>` anidada dentro de otra es HTML valido y, como esta
                 no declara nombre accesible (igual que `ScStatement` en la
                 rama clara), no entra en el arbol de accesibilidad como
-                landmark: no compite con la region de Story. */}
+                landmark: no compite con la region de Story.
+
+                `$anchorTop` (fix wave D, hallazgo D1, revision final de rama):
+                el riesgo que el parrafo de arriba ya declaraba ("cualquier
+                contenido real puesto ahi lo taparia Journey") se materializo:
+                medido en navegador real, el enlace de Discord solo quedaba
+                alcanzable y sin tapar entre scrollY ~3960 y ~4440 de una
+                pagina de 12.821px -- Journey entra en el viewport en flujo
+                normal por el borde inferior mientras su `position: sticky`
+                todavia no engancha, y su borde superior barre la pantalla de
+                abajo hacia arriba durante TODO el tramo de solape, cubriendo
+                antes lo que este mas abajo en pantalla. Ver el docblock de
+                `ScSlide`/`$anchorTop` en story.deck.tsx para la medicion
+                completa; no toca `STORY_DECK_TAIL_SCREENS`/
+                `JOURNEY_OVERLAY_RISE` (arquitectura del solape) ni la
+                longitud de ninguna rama, solo la alineacion vertical de ESTA
+                diapositiva dentro de su propio stage. */}
             <ScSlide
               as="section"
               id="statement"
               data-slide-index={STORY_SLIDES - 1}
               data-state={slideState(STORY_SLIDES - 1)}
+              $anchorTop
             >
               <ScDeckNote>
                 {t("Home.story.statement.first")}{" "}
