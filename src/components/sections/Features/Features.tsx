@@ -1364,7 +1364,61 @@ const ScDarkBody = styled(Typography)`
 export function Features(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
-  const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
+  /*
+   * Fix wave E, hallazgo E3 (evaluador de navegador real, 2026-08-13):
+   * `threshold: 0` EXPLÍCITO, no el `0.2` por defecto de `useReveal`
+   * (`src/hooks/useReveal.ts`). Reproducido en Chrome real
+   * (`playwright-cli`, 1280x720, CPU x6 + caché fría Y también sin
+   * throttling): bajando a `scrollY=2900` en pasos de 500px, `#features-title`
+   * ya está DENTRO del viewport (`vpTop=419` de 720) pero `ScRevealGroup`
+   * (más abajo, el envoltorio que agrupa cabecera + rejilla bajo un ÚNICO
+   * `useReveal`, D9) sigue en `data-revealed="false"` -- opacity 0 en TODOS
+   * sus hijos `ScReveal` (cabecera Y las tres tarjetas a la vez), sin
+   * recuperarse solo aunque pasen varios segundos quieto.
+   *
+   * DIAGNÓSTICO (medido, no supuesto -- `getBoundingClientRect()` real de
+   * `ScRevealGroup` en ese instante, sin throttle, tras `networkidle`):
+   * `rect.height = 1336px` (cabecera + rejilla de 3 tarjetas con imagen,
+   * bento de 2 filas) -- casi el DOBLE del viewport (720px). Con el
+   * `threshold: 0.2` por defecto, el observer exige que el 20% del ÁREA DEL
+   * PROPIO ELEMENTO esté visible -- sobre un elemento así de alto eso son
+   * ~267px de ALTURA visible, que solo se alcanzan cuando el borde superior
+   * del grupo ya ha subido a `rect.top ≈ 366px` (más de MEDIA pantalla). En
+   * el rango `rect.top ∈ [366, 720]` -- una banda de ~354px, la que mide
+   * `getBoundingClientRect()` en la reproducción real -- el grupo YA está
+   * entrando en el viewport (su cabecera y su primera tarjeta son
+   * geométricamente visibles) pero el observer TODAVÍA no ha disparado:
+   * medido exacto, `ratio = 0.19825`, apenas por DEBAJO de `0.2` -- no es una
+   * carrera asíncrona (confirmado sin CPU throttle, tras `networkidle`, con
+   * varios cientos de ms de margen), es que el UMBRAL DE ÁREA no escala con
+   * la ALTURA del objetivo: cuanto más alto es el envoltorio observado, más
+   * scroll hace falta para satisfacer el mismo 20%, y `ScRevealGroup` es,
+   * con diferencia, el objetivo más alto de los 6 consumidores de
+   * `useReveal` del repo (los otros cinco -- `ScSectionBeam`, `ScCard`/
+   * `ScDarkContent` de Contact, `ScGrid` de Journey/Story -- envuelven una
+   * sola pieza o una franja acotada, no cinco piezas apiladas con imagen).
+   * Un usuario real que se detiene a leer justo cuando el título ya es
+   * visible (el gesto más natural del mundo) puede quedarse parado DENTRO de
+   * esa banda indefinidamente -- nada la vuelve a comprobar sin un scroll/
+   * resize nuevo.
+   *
+   * ARREGLO (causa raíz -- desacopla el disparo de la ALTURA del objetivo,
+   * no un `setTimeout` que esconda el síntoma): `threshold: 0` hace que
+   * "intersecta" signifique "CUALQUIER solape con la ventana de
+   * intersección" (la misma semántica que ya usa el `IntersectionObserver`
+   * de `useSectionProgress`, sin threshold expreso = 0 por defecto), así que
+   * el disparo deja de depender del alto total del envoltorio -- dispara en
+   * cuanto el borde superior de `ScRevealGroup` empieza a asomar por el
+   * `rootMargin` ajustado, sin importar cuántas tarjetas cuelguen debajo.
+   * Verificado con el mismo guion de reproducción tras el cambio: revela en
+   * cuanto la cabecera asoma, muy por debajo de `scrollY=2900`, sin dejar
+   * ninguna banda ciega. SOLO afecta a Features -- el `useReveal<T>()` sin
+   * opciones de los otros cinco consumidores no se toca, no hay evidencia de
+   * que ninguno tenga un objetivo comparable de alto.
+   */
+  const { ref: revealRef, revealed } = useReveal<HTMLDivElement>({
+    threshold: 0,
+  });
   /*
    * Progreso de scroll de la rama CLARA (D7/D1, encargo 2026-08-04):
    * `useSectionProgress` exige un ref ESTABLE (`useRef`, nunca creado inline

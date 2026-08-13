@@ -267,6 +267,81 @@ describe("Features", () => {
     });
   });
 
+  /*
+   * Fix wave E, hallazgo E3 (evaluador de navegador real, 2026-08-13): ver
+   * el docblock del `useReveal<HTMLDivElement>({ threshold: 0 })` en
+   * `Features()` para la reproducción completa (Chrome real, `playwright-cli`,
+   * CPU x6 + caché fría Y sin throttling) y la geometría medida (`ratio =
+   * 0.19825`, justo por debajo del `0.2` por defecto, sobre un
+   * `ScRevealGroup` de 1336px de alto -- casi el doble del viewport). jsdom
+   * no hace layout (no puede reproducir la carrera geométrica real), así que
+   * este candado se queda en lo que SÍ es observable en jsdom: qué opciones
+   * recibe el `IntersectionObserver` real -- un mock LOCAL a este describe
+   * que, a diferencia del mock genérico de cabecera (que ignora el segundo
+   * argumento), captura `options` de verdad.
+   */
+  describe("fix wave E, hallazgo E3 -- ScRevealGroup observa con threshold: 0, no el 0.2 por defecto", () => {
+    // Features() monta DOS IntersectionObserver a la vez (mismo motivo que
+    // el `trigger()` de cabecera de este fichero, D7): `useReveal` sobre
+    // `ScRevealGroup` (CON opciones, `{ threshold: 0 }`) y
+    // `useSectionProgress` sobre `ScFeatures` (SIN opciones -- ver
+    // `useSectionProgress.ts`, `new IntersectionObserver(cb)` a secas). Se
+    // captura CADA instancia con su target real (mismo patrón `ioTargets`/
+    // `triggerFor` que ya usa `Journey.test.tsx` para el mismo problema) en
+    // vez de una variable única -- con una sola variable, la instancia SIN
+    // opciones de `useSectionProgress` pisaba a la de `useReveal` sin que el
+    // test lo notara.
+    let instances: {
+      options: IntersectionObserverInit | undefined;
+      target: Element | null;
+    }[];
+
+    beforeEach(() => {
+      instances = [];
+      vi.stubGlobal(
+        "IntersectionObserver",
+        class {
+          private entry: {
+            options: IntersectionObserverInit | undefined;
+            target: Element | null;
+          };
+          constructor(
+            _cb: (entries: { isIntersecting: boolean }[]) => void,
+            options?: IntersectionObserverInit,
+          ) {
+            this.entry = { options, target: null };
+            instances.push(this.entry);
+          }
+          observe(target: Element) {
+            this.entry.target = target;
+          }
+          disconnect() {}
+        },
+      );
+    });
+
+    it("el IntersectionObserver de ScRevealGroup (el que observa el elemento con data-revealed) se crea con threshold: 0", () => {
+      const { container } = renderWithProviders(<Features />);
+      const revealGroup = container.querySelector("[data-revealed]");
+      expect(revealGroup).not.toBeNull();
+
+      const own = instances.find((entry) => entry.target === revealGroup);
+      expect(
+        own,
+        "ningun IntersectionObserver observa el ScRevealGroup real",
+      ).toBeDefined();
+      expect(own?.options?.threshold).toBe(0);
+    });
+
+    /*
+     * Bug inyectado a proposito (regla 34), verificado en esta tarea:
+     * revertir `Features()` a `useReveal<HTMLDivElement>()` (sin opciones,
+     * el 0.2 por defecto de `useReveal.ts`) pone en rojo el test de arriba
+     * (`capturedOptions?.threshold` pasa a ser `0.2`, no `0`); restaurado,
+     * vuelve a verde.
+     */
+  });
+
   it("paridad es/en: las claves de features existen en los dos locales", () => {
     expect(Object.keys(enHome.Home.features)).toEqual(
       Object.keys(esHome.Home.features),
