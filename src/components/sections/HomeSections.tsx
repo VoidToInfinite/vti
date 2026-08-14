@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { Story } from "./Story/Story";
 import { Journey } from "./Journey/Journey";
 import { Features } from "./Features/Features";
+import { About } from "./About/About";
 import { Contact } from "./Contact/Contact";
 
 /*
@@ -20,6 +21,12 @@ export function HomeSections(): ReactElement {
       <Story />
       <Journey />
       <Features />
+      {/* `About` es la quinta y la única sin rama por tema: es un bloque de
+          hechos citable, no narrativa, y un hecho no cambia según la piel
+          (ver su docblock). Va entre Features y Contacto a propósito —
+          después de las tres formas de avanzar, «esto es lo que hay» y
+          luego el contacto. */}
+      <About />
       <Contact />
     </>
   );

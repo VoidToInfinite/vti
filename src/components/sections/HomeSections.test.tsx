@@ -78,6 +78,7 @@ describe("HomeSections", () => {
       "statement",
       "journey",
       "features",
+      "about",
       "contact",
     ]);
   });
@@ -124,6 +125,7 @@ describe("HomeSections", () => {
         "statement",
         "journey",
         "features",
+        "about",
         "contact",
       ]);
       expect(
