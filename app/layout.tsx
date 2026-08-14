@@ -143,6 +143,28 @@ export default function RootLayout({
       lang={SITE.lang}
       data-scroll-behavior="smooth"
       className={`${fontBody.variable} ${fontMono.variable}`}
+      /*
+       * El script anti-flash del `<head>` escribe `data-theme` en ESTE
+       * elemento antes de que React hidrate. React compara los atributos del
+       * DOM hidratado con los que él renderizó, encuentra uno de más y avisa:
+       * "some attributes of the server rendered HTML didn't match the client
+       * properties. This won't be patched up."
+       *
+       * "This won't be patched up" es la parte que explica por qué el tema
+       * funcionaba igual: React deja el atributo puesto, no lo borra. Por eso
+       * el aviso era ruido y no un fallo -- pero ruido en cada carga, y el
+       * ruido en consola es exactamente lo que hace que nadie mire la consola
+       * el día que aparece algo de verdad.
+       *
+       * ALCANCE, y es la razón por la que esto no tapa nada: la propiedad
+       * suprime los mismatches de ESTE elemento -- sus atributos y su
+       * contenido directo -- y NO los de su subárbol. Un mismatch dentro de
+       * cualquier sección sigue apareciendo con todo detalle. Comprobado en
+       * esta misma sesión: con esta prop puesta, el mismatch de copy de
+       * `Story` (texto viejo servido desde el chunk SSR cacheado del dev)
+       * seguía reportándose entero.
+       */
+      suppressHydrationWarning
     >
       <head>
         {/*
@@ -207,13 +229,18 @@ export default function RootLayout({
          * las secciones que montan un componente hijo distinto por tema —
          * Story/Features/Journey/Contact, regla 6 de RULES.md) — este
          * script no sustituye la corrección post-montaje de ese proveedor,
-         * la hace invisible allí donde SÍ está cubierta. No hace falta
-         * `suppressHydrationWarning` en `<html>` (a diferencia del ejemplo
-         * oficial de Next, que sí declara `data-theme` por JSX): este layout
-         * NUNCA renderiza `data-theme` como prop de React, así que React no
-         * tiene ninguna expectativa sobre ese atributo durante la
-         * hidratación y no hay nada que silenciar — verificado sin
-         * warnings en consola tras el cambio (ver `task-31-report.md`).
+         * la hace invisible allí donde SÍ está cubierta.
+         *
+         * CORRECCIÓN 2026-08-14: este bloque afirmaba que NO hacía falta
+         * `suppressHydrationWarning` en `<html>` porque "este layout nunca
+         * renderiza `data-theme` como prop de React, así que React no tiene
+         * ninguna expectativa sobre ese atributo". **Es falso**, y lo refutó
+         * la consola del dueño con Next 16.2.11: React no compara solo los
+         * atributos que él declaró, compara el elemento hidratado ENTERO, así
+         * que un `data-theme` de más lo hace avisar en cada carga. La
+         * afirmación "verificado sin warnings en consola" del informe de la
+         * Task 31 no se sostiene hoy. La prop está puesta arriba, con el
+         * razonamiento de su alcance y la verificación que lo respalda.
          *
          * ALCANCE REAL, declarado explícitamente (no todo lo que cambia con
          * el tema queda cubierto pre-pintado):

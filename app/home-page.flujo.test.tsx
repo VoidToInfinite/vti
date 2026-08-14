@@ -26,6 +26,14 @@ import HomePage from "./page";
  * tema de la PAGINA completa (`HomeSections`, D3): claro monta las 4, en
  * orden, entre el hero y el footer; oscuro no monta ninguna (el encargo del
  * usuario, spec §1, es "tema oscuro: solo hero y footer").
+ *
+ * ENMIENDA 2026-08-14: vuelve a haber una seccion `About` entre `Features` y
+ * `Contact`, y NO es la que D1 elimino. Aquella era una declaracion de marca
+ * (funcion que el tagline del pie ya cubria, motivo por el que se retiro);
+ * esta es el bloque de hechos verificables de F3.3 del plan premium, que el
+ * mockup no podia prever porque su encargo es posterior. El porque completo
+ * vive en el docblock de `src/components/sections/About/About.tsx`. Los dos
+ * casos de abajo la incluyen en su lista de secciones.
  */
 
 function stubMatchMedia(): void {
@@ -166,7 +174,7 @@ describe("Home (pagina completa)", () => {
     const h1 = container.querySelector("h1");
     expect(h1).not.toBeNull();
 
-    const seccionIds = ["story", "journey", "features", "contact"];
+    const seccionIds = ["story", "journey", "features", "about", "contact"];
     const secciones = seccionIds.map((id) => {
       const el = container.querySelector(`section#${id}`);
       expect(el, `falta la seccion #${id}`).not.toBeNull();
@@ -229,7 +237,7 @@ describe("Home (pagina completa)", () => {
 
     expect(container.querySelector("h1")).not.toBeNull();
     expect(container.querySelector("footer")).not.toBeNull();
-    for (const id of ["story", "journey", "features", "contact"]) {
+    for (const id of ["story", "journey", "features", "about", "contact"]) {
       expect(container.querySelector(`section#${id}`)).not.toBeNull();
     }
   }, 15000);

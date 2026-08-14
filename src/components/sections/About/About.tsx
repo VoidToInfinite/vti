@@ -10,6 +10,21 @@ import { motion } from "@/theme/tokens/motion";
  * Sección «¿Qué es VoidToInfinite?» — el bloque de hechos citable (F3.3, F3.4
  * y F3.5 del plan premium, 2026-08-13).
  *
+ * HUBO OTRA `About` AQUÍ, Y SE ELIMINÓ. La spec
+ * `2026-07-28-landing-v2-secciones-design.md` (D1) retiró una sección `About`
+ * que ocupaba EXACTAMENTE esta posición, entre `Features` y `Contact`. Su
+ * motivo: "el mockup no tiene sección About; su función de declaración de
+ * marca la cubre el tagline del footer". Ese motivo sigue siendo válido para
+ * lo que aquella sección hacía — y por eso esta NO lo hace.
+ *
+ * La diferencia no es cosmética: aquella era una DECLARACIÓN DE MARCA, que en
+ * efecto ya vive en el pie. Esta es un BLOQUE DE HECHOS VERIFICABLES, que no
+ * existe en ninguna otra parte del sitio y que el mockup no podía prever
+ * porque su encargo es posterior (F3.3 del plan premium, con los datos de la
+ * Fase 0 que el dueño no había aportado cuando se dibujó el mockup). D1 no se
+ * ignora: se enmienda a propósito, con el motivo escrito y con el mockup
+ * dejando de ser la fuente de verdad SOLO para este bloque.
+ *
  * POR QUÉ ES UNA SECCIÓN PROPIA Y NO UN BLOQUE DENTRO DE STORY. Story ramifica
  * en dos vehículos —tarjeta acotada en claro, deck de diapositivas en
  * oscuro— y meter contenido nuevo ahí obliga a operar las dos ramas a la vez,

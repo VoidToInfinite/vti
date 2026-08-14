@@ -46,6 +46,46 @@ describe(
       expect(htmlOpenTag).not.toBeNull();
       expect(htmlOpenTag?.[0]).toContain('data-scroll-behavior="smooth"');
     });
+
+    /*
+     * `suppressHydrationWarning` en `<html>`, añadido el 2026-08-14 porque el
+     * defecto OCURRIÓ: el script anti-flash del `<head>` escribe `data-theme`
+     * en ese elemento antes de que React hidrate, y React avisaba en CADA
+     * carga ("some attributes of the server rendered HTML didn't match").
+     * El docblock del layout llegó a afirmar que la prop no hacía falta; la
+     * consola con Next 16.2.11 lo refutó.
+     *
+     * Se ata por candado de fuente, no por render: `renderWithProviders` no
+     * monta el layout raíz, así que jsdom no puede ver esta prop de ninguna
+     * otra forma. Mismo patrón que ya usan `footer.layers.test.ts` y el
+     * candado de `prefetch={false}` de la Task 32.
+     *
+     * LO QUE ESTE CANDADO PROTEGE NO ES EL SILENCIO, ES SU ALCANCE: la prop
+     * suprime los mismatches de ESE elemento y no los de su subárbol
+     * (verificado en navegador real inyectando un mismatch de texto dentro de
+     * `About`: seguía reportándose entero con la prop puesta). Si alguien la
+     * moviera a un contenedor interior para "silenciar más", empezaría a
+     * tapar defectos reales -- y ahí este test dejaría de encontrarla en la
+     * etiqueta de `<html>`.
+     */
+    it("el elemento <html> declara suppressHydrationWarning", async () => {
+      const { readFileSync } = await import("node:fs");
+      const { fileURLToPath } = await import("node:url");
+      const { dirname, join } = await import("node:path");
+      const here = dirname(fileURLToPath(import.meta.url));
+      const source = readFileSync(join(here, "layout.tsx"), "utf-8");
+
+      // Mismo despojado de comentarios: el docblock del propio elemento
+      // NOMBRA la prop varias veces al explicar su alcance, así que sin esto
+      // el test pasaría en verde aunque la prop no estuviera en el JSX.
+      const withoutComments = source
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "");
+
+      const htmlOpenTag = withoutComments.match(/<html\b[\s\S]*?>/);
+      expect(htmlOpenTag).not.toBeNull();
+      expect(htmlOpenTag?.[0]).toContain("suppressHydrationWarning");
+    });
   },
 );
 
