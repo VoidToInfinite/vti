@@ -11,7 +11,7 @@
             "kicker": "¿Por qué VoidToInfinite?",
             "titleLead": "De la curiosidad",
             "titleAccent": "a la creación.",
-            "body": "VoidToInfinite es un espacio donde el aprendizaje se encuentra con la imaginación y el juego impulsa el progreso. Exploramos ideas, construimos habilidades con sentido y transformamos la curiosidad en experiencias que se pueden compartir.",
+            "body": "VoidToInfinite es un proyecto donde el aprendizaje se encuentra con la imaginación y el juego impulsa el progreso. Exploro ideas, construyo habilidades con sentido y transformo la curiosidad en experiencias que se pueden compartir.",
             "support": "Aunque el infinito está en todas partes, es el conocimiento lo que lo trae a la realidad.",
             "statement": {
                 "first": "Cada idea",
@@ -84,44 +84,50 @@
                 "title": "Aprende",
                 "body": "Todo experto fue antes principiante. Aprende a tu ritmo, sigue las preguntas que te importan y observa cómo los pasos pequeños se convierten en comprensión real.",
                 "bullets": {
-                    "one": "Rutas cuidadas que crecen contigo",
-                    "two": "Proyectos reales, no solo teoría",
-                    "three": "Progreso que se ve y se siente",
-                    "four": "Un ritmo que respeta tu tiempo"
+                    "one": "Seguir la pregunta antes que el temario",
+                    "two": "Construir algo, no solo leer sobre ello",
+                    "three": "Avanzar despacio y no perder el hilo",
+                    "four": "Parar cuando toca, sin deuda pendiente"
                 },
-                "cta": "Explora el aprendizaje",
+                "cta": "Hablemos de aprender",
                 "figureAlt": "Figura celestial estudiando una tableta holográfica"
             },
             "imagination": {
                 "title": "Imagina",
                 "body": "Tus ideas merecen un lugar donde vivir. Convierte el «¿y si…?» en algo real que puedas compartir.",
                 "bullets": {
-                    "one": "Un espacio seguro para experimentar",
-                    "two": "Herramientas que despiertan conexiones",
-                    "three": "Del boceto a un concepto real",
-                    "four": "Cada idea cuenta, incluso las pequeñas"
+                    "one": "Probar sin que el error cueste caro",
+                    "two": "Unir cosas que no venían juntas",
+                    "three": "Sacar la idea de la cabeza cuanto antes",
+                    "four": "Tomarse en serio las ideas pequeñas"
                 },
-                "cta": "Explora la imaginación",
+                "cta": "Cuéntame tu idea",
                 "figureAlt": "Figura celestial pensando con un corazón radiante"
             },
             "gaming": {
                 "title": "Juega",
                 "body": "Jugando es como mejor aprendemos. Compite, colabora y celebra cada victoria, grande o pequeña.",
                 "bullets": {
-                    "one": "Retos que afilan tus habilidades",
-                    "two": "Competición sana, conexión real",
-                    "three": "Trabajo en equipo que se vuelve amistad",
-                    "four": "Cada logro merece celebrarse"
+                    "one": "Buscar el reto que aún no sabes hacer",
+                    "two": "Competir sin que deje de ser un juego",
+                    "three": "Jugar acompañado siempre que se pueda",
+                    "four": "Celebrar lo conseguido, por pequeño que sea"
                 },
-                "cta": "Explora el juego",
+                "cta": "Únete a la partida",
                 "figureAlt": "Figura celestial alzando un trofeo de estrella dorada"
             }
+        },
+        "about": {
+            "title": "¿Qué es VoidToInfinite?",
+            "what": "VoidToInfinite es un proyecto creativo personal de Daniel Mosquera, en marcha desde 2020. No es una empresa ni un producto a la venta: es un recorrido documentado sobre aprender, imaginar y jugar construyendo cosas.",
+            "sdk": "Su pieza central es el System Design Kit: la idea de que se puede crear algo con sentido partiendo de una página en blanco. El proyecto documenta ese mismo recorrido, construir un sistema de diseño paso a paso, del vacío a lo que viene después. Está en construcción.",
+            "proof": "Esta web es lo que hay hecho, y se puede comprobar sin fiarse de nadie: no usa analítica, no hace seguimiento y no envía una sola petición a terceros."
         },
         "contact": {
             "titleLead": "Construyamos algo",
             "titleAccent": "infinito.",
             "body": "¿Tienes una pregunta, una idea o una colaboración en mente?",
-            "bodySecond": "Escríbenos por correo: nos encantará leerte.",
+            "bodySecond": "Escríbeme por correo: me encantará leerte.",
             "figureAlt": "Figura celestial saludando",
             "cards": {
                 "community": {
@@ -140,18 +146,18 @@
             "form": {
                 "label": "Tu correo",
                 "placeholder": "tu@correo.com",
-                "help": "Abriremos tu aplicación de correo con el mensaje preparado.",
-                "submit": "Escríbenos",
-                "submitAria": "Escríbenos: abre tu aplicación de correo con tu dirección ya incluida",
+                "help": "Se abrirá tu aplicación de correo con el mensaje preparado.",
+                "submit": "Escríbeme",
+                "submitAria": "Escríbeme: abre tu aplicación de correo con tu dirección ya incluida",
                 "subject": "Hola VoidToInfinite",
                 "body": "Mi correo de contacto: {{email}}",
                 "emailError": "Escribe un correo válido.",
-                "fallbackLead": "Si no se ha abierto tu aplicación de correo, escríbenos a",
+                "fallbackLead": "Si no se ha abierto tu aplicación de correo, escríbeme a",
                 "copyAddress": "Copiar dirección",
                 "copied": "Copiada",
                 "copyError": "No se pudo copiar automáticamente. Selecciona la dirección de arriba."
             },
-            "privacyNote": "Navegar por esta web no envía ningún dato tuyo a terceros: no hay analítica ni rastreo. Escribirnos abre tu propio cliente de correo. El envío lo haces tú, no un servidor nuestro."
+            "privacyNote": "Navegar por esta web no envía ningún dato tuyo a terceros: no hay analítica ni rastreo. Escribirme abre tu propio cliente de correo. El envío lo haces tú, no un servidor mío."
         }
     }
 }
