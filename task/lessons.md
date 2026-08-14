@@ -1931,3 +1931,27 @@
 - **Corolario del ciclo de bug inyectado (regla 34):** el sabotaje tiene que atacar la pieza
   COMPARTIDA, no solo el consumidor. Romper el render habría puesto el test en rojo y habría dado
   una falsa sensación de cobertura; romper la constante fue lo que destapó las dos tautologías.
+
+## 2026-08-14 — Un mismatch de hidratación con copy VIEJO no es un bug de código: es el chunk SSR del dev sin invalidar
+
+- **Qué pasó:** tras cambiar `Home.story.body` en `src/i18n/locales/{es,en}/home.json`
+  («un espacio» → «un proyecto»), el navegador reportó un error de hidratación con las
+  dos versiones del texto enfrentadas: el servidor renderizaba la vieja y el cliente la
+  nueva. Suite en verde, `pnpm run ci` exit 0.
+- **Causa raíz:** editar un JSON de i18n **no invalida los chunks SSR** que Next 16 tiene
+  compilados en `.next/dev/server/chunks/ssr/`. El bundle de cliente sí se recompila por
+  HMR, así que las dos mitades divergen y React lo reporta como mismatch. No hay ningún
+  defecto en el código.
+- **Cómo se distingue de un bug real, en dos comandos y sin adivinar:**
+  1. `grep -rn "<texto viejo>" src/ app/` — si aparece, ES un bug: quedó una copia.
+     Si sale vacío, el código está bien.
+  2. `grep -c "<texto viejo>" out/index.html` tras `pnpm build` — si es 0, el build de
+     producción está limpio y el problema vive solo en el dev.
+  Con esos dos, el diagnóstico está cerrado antes de tocar nada.
+- **Regla:** ante un mismatch de hidratación cuyo diff muestra **contenido que tú
+  acabas de cambiar**, la primera hipótesis es caché de dev, no regresión. Se comprueba
+  contra `src/` y contra `out/` ANTES de reabrir código que ya estaba bien.
+- **Arreglo:** `rm -rf .next/dev && pnpm dev`. No hace falta tocar el código.
+- **Corolario sobre procesos ajenos:** el servidor del 3000 puede ser del usuario. Se
+  comprueba con `netstat -ano | grep :3000` y **no se mata**: se le dice al dueño qué
+  reiniciar. Matar un proceso que no es tuyo ya se declaró fuera de límite en este repo.
