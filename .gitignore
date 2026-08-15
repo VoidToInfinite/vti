@@ -47,3 +47,6 @@ graphify-out/cache/
 # Artefactos de herramientas de auditoria/verificacion (sesiones del agente):
 .impeccable/
 .playwright-cli/
+# Capturas de QA visual para el juicio del dueno: se regeneran desde el build
+# de produccion cuando hagan falta, y su veredicto ya vive en PRE-LAUNCH-QA.md.
+qa-capturas/
