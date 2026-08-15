@@ -380,19 +380,27 @@ const ScSpanImagination = styled.span`
  * tarjeta". ESO YA NO ES CIERTO -- Task 26 resuelve accentColor()/
  * accentColorHover() por RAMA de tema (ver su docblock, más arriba) y el
  * literal que Gaming usa ahí en oscuro pasó a FEATURES_GAMING_ACCENT_DARK
- * (L distinto, mismo hue 340), porque FEATURES_GAMING_ACCENT (L=0.62) no
- * pasaba AA contra semantic.bg (4.47:1, por debajo de 4.5:1) y SÍ pasa
- * contra FEATURES_ORBITAL_VOID (4.71:1, medido más abajo) -- son dos fondos
+ * (L distinto, mismo hue 340), porque FEATURES_GAMING_ACCENT no pasaba AA
+ * contra semantic.bg y SÍ pasa contra FEATURES_ORBITAL_VOID -- son dos fondos
  * DISTINTOS con presupuestos de contraste distintos, así que ya no hay
- * ninguna razón para que compartan el mismo L. ScSpanGaming se queda
- * exactamente con el literal que ya tenía (su medida no cambia).
+ * ninguna razón para que compartan el mismo L.
  *
  * A diferencia de ScAccent/ScQuoteText, ScSpanGaming SOLO se renderiza
  * en la rama OSCURA (el h2 de la rama clara es una frase sin spans de color,
- * D6 mas arriba en este fichero) -- una sola medida hace falta: sobre
- * FEATURES_ORBITAL_VOID (el void de la escena, "#150b2e") da 4.71:1, por
- * encima de AA (4.5:1) pero con margen mas ajustado que el resto de acentos
- * de esta tarea (13+:1 en Story/Contact/Journey oscuro) -- declarado, no
+ * D6 mas arriba en este fichero) -- una sola medida hace falta, contra el
+ * fondo de la escena oscura. Sobre FEATURES_ORBITAL_VOID (el void, "#150b2e")
+ * da 5.31:1, y sobre el PIXEL PINTADO con las capas WebP reales encima 5.05
+ * de mediana con el 0% del borde de glifo bajo umbral.
+ *
+ * ESAS DOS CIFRAS SON DOS MEDIDAS DISTINTAS Y LAS DOS HACEN FALTA, que es lo
+ * que el ítem 44 del QA vino a comprobar: hasta el 2026-08-15 aquí ponía
+ * 4.71:1 contra el void, y era cierto -- pero el void es el suelo que
+ * `contrast.ts` puede calcular en jsdom, no lo que se ve. Con el arte real
+ * encima la mediana caía a 4.49-4.66 según la posición de scroll, cruzando el
+ * umbral de 4.5. Se corrigió subiendo L de 0.62 a 0.65 en la constante (mismo
+ * hue, misma croma); el porqué del 0.65 y no del 0.63 está en su docblock,
+ * features.layers.ts. Sigue siendo el margen más ajustado de los acentos de
+ * esta tarea (13+:1 en Story/Contact/Journey oscuro) -- declarado, no
  * escondido; medicion completa en Features.test.tsx, describe "Task 12".
  */
 const ScSpanGaming = styled.span`

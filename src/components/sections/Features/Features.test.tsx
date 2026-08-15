@@ -1618,14 +1618,43 @@ describe("bug corregido: el termino 'gaming' del titulo oscuro usa ScSpanGaming"
  * tarea le hace, reutilizada tambien por Story.test.tsx/Contact.test.tsx/
  * Journey.test.tsx para su propio void oscuro.
  */
+/*
+ * QA §6, item 44 (2026-08-15): ESTE CANDADO YA NO EXIGE 4.5:1, EXIGE 5.0:1, y
+ * el motivo es la unica leccion transferible del item.
+ *
+ * Hasta hoy pedia AA (4.5) contra el void hexadecimal, y el acento daba 4.71
+ * -- verde. Medido en navegador sobre el PIXEL PINTADO, con las capas WebP de
+ * la escena encima del void y las animaciones congeladas, ese mismo acento
+ * daba entre 4.49 y 4.66 de mediana segun la posicion de scroll: por debajo de
+ * AA en el peor caso. El candado estaba verde sobre un fondo que el visitante
+ * no ve.
+ *
+ * jsdom no compone las capas, asi que este test NO PUEDE medir el pixel final;
+ * lo que si puede es exigirle al suelo medible una RESERVA del tamano que la
+ * medicion en navegador demostro que hace falta:
+ *
+ *   coste del arte sobre el void, medido a L=0.65: 5.31 (void) -> 5.05 (pixel
+ *   pintado, peor posicion de scroll) = 0.26
+ *   variacion entre posiciones de scroll, medida en 7 posiciones x 2 anchos:
+ *   0.17
+ *
+ * Con el suelo en 5.0, el peor pixel pintado queda en ~4.74 -- por encima de
+ * AA con margen. Con el suelo en 4.5 no quedaba: por eso el numero sube.
+ *
+ * Efecto practico: devolver `FEATURES_GAMING_ACCENT` a su L de 0.62 (4.72
+ * contra el void) pone este test en ROJO, que es justo lo que el candado
+ * viejo no hacia.
+ */
+const GAMING_SUELO_SOBRE_VOID = 5.0;
+
 describe("Task 12: contraste AA del acento solido de Gaming (rama oscura)", () => {
-  it("FEATURES_GAMING_ACCENT sobre FEATURES_ORBITAL_VOID >= 4.5:1 (medido: 4.71:1, margen mas ajustado que el resto de acentos de esta tarea)", () => {
+  it(`FEATURES_GAMING_ACCENT sobre FEATURES_ORBITAL_VOID >= ${GAMING_SUELO_SOBRE_VOID}:1, la reserva que el arte real se come (medido: 5.31:1 contra el void, 5.05 sobre el pixel pintado)`, () => {
     const ratio = contrastRatioHex(
       FEATURES_GAMING_ACCENT,
       FEATURES_ORBITAL_VOID,
     );
     expect(ratio, `contraste ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(
-      4.5,
+      GAMING_SUELO_SOBRE_VOID,
     );
   });
 });

@@ -122,7 +122,7 @@ export const FEATURES_CHECK_ICON_PATH = "M20 6L9 17l-4-4";
  * (Features.tsx) pasa a color solido (`FEATURES_GAMING_ACCENT`, ver debajo --
  * el mismo literal que ya usaba como fallback de
  * `@supports not (background-clip: text)`) para poder medir su contraste con
- * `contrast.ts`. Medido: 4.71:1 sobre `FEATURES_ORBITAL_VOID` -- por encima
+ * `contrast.ts`. Medido: 5.31:1 sobre `FEATURES_ORBITAL_VOID` -- por encima
  * de AA (4.5:1); ver el docblock de `ScSpanGaming`, Features.tsx. Hasta la
  * Task 26 (2026-08-10) este literal también alimentaba el CTA/check/badge de
  * la tarjeta vía `accentColor()` -- ya NO, ver el bloque de abajo.
@@ -146,8 +146,31 @@ export const FEATURES_CHECK_ICON_PATH = "M20 6L9 17l-4-4";
  *  este literal); ESTE literal queda RESERVADO en exclusiva para
  *  `ScSpanGaming` (el término del `h2`, que mide contra el void de la
  *  escena, no contra `semantic.bg` -- un fondo distinto con su propio
- *  presupuesto de contraste, sin relación con el CTA). */
-export const FEATURES_GAMING_ACCENT = "oklch(0.62 0.17 340)";
+ *  presupuesto de contraste, sin relación con el CTA).
+ *
+ *  L SUBE DE 0.62 A 0.65 (QA §6, ítem 44, 2026-08-15). El 4.71:1 que este
+ *  bloque declaró desde la Task 12 se medía contra el void HEXADECIMAL de la
+ *  escena, que es el suelo que `contrast.ts` puede calcular, no el píxel que
+ *  el visitante ve: encima del void van las capas WebP de
+ *  `featuresCelestialOrbital`, y son más claras que él. Medido sobre píxel
+ *  pintado con las animaciones congeladas, barriendo las 7 posiciones de
+ *  scroll en las que el término es visible, a 1280 y a 1920: la mediana del
+ *  contraste de borde de glifo iba de 4.49 a 4.66 según la posición -- es
+ *  decir, ATRAVESANDO el umbral de 4.5, con el peor caso (scrollY 13800,
+ *  idéntico en los dos anchos) 0.01 POR DEBAJO de AA. No era ruido de un
+ *  píxel suelto: la distribución entera estaba centrada en el umbral.
+ *
+ *  0.65 y no 0.63 (que ya bastaba para cruzar, mediana 4.66) porque 0.63
+ *  deja 0.16 de holgura y la variación medida entre posiciones de scroll es
+ *  de 0.17 -- el arreglo se comería su propio margen. Con 0.65 la mediana
+ *  sobre el arte real sube a 5.05 y el 0% del borde de glifo queda bajo
+ *  umbral; contra el void hexadecimal da 5.31:1, el mismo orden de margen
+ *  que sus cuatro constantes hermanas de abajo (5.04-6.61). Mismo hue 340 y
+ *  misma croma 0.17: es un L vecino, no un matiz nuevo.
+ *
+ *  Consumidor único (`ScSpanGaming`, el término del `h2` de la rama oscura),
+ *  así que el radio de impacto del cambio es esa palabra. */
+export const FEATURES_GAMING_ACCENT = "oklch(0.65 0.17 340)";
 
 /*
  * `FEATURES_GAMING_ACCENT_HOVER` ("oklch(0.55 0.18 340)", mockup L206)
