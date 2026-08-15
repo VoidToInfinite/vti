@@ -515,13 +515,32 @@ const ScQuoteText = styled.span`
 `;
 
 /*
- * Ocupa EXACTAMENTE el hueco reservado por `ScStepsAndQuote` (mismo ancho en el
- * `padding-inline-end` de arriba, mismo alto que el contenido real de esa
- * columna vía `inset-block: 0` + `height: 100%`): no puede solaparse con el
- * camino/rejilla porque ese hueco es espacio que ellos ya no ocupan, y no
- * puede recortarse porque `object-fit: contain` reduce imagen entera para
- * caber en la caja en vez de desbordarla (a diferencia del `cover` global
- * de GlobalStyles).
+ * NO SE SOLAPA CON EL CAMINO, pero NO por el motivo que este bloque afirmaba.
+ * Corregido el 2026-08-14 con medición en navegador (QA §6, bloqueante 3).
+ *
+ * Lo que decía: que ocupa exactamente el hueco reservado por
+ * `ScStepsAndQuote`, «mismo alto que el contenido real de esa columna vía
+ * `inset-block: 0` + `height: 100%`», y que por eso no puede solaparse. Eso
+ * dejó de ser cierto cuando la caja pasó a `height: 150%` con `top: -50px` y
+ * `right: -50px`: **la caja SÍ invade la columna del texto**, 20 px sobre el
+ * cuerpo del paso 06, y además la figura se pinta ENCIMA (`elementFromPoint`
+ * devuelve la imagen en ese punto).
+ *
+ * Por qué aun así no se ve ningún solape, medido a 1200/1280/1440/1920:
+ *
+ *   1. `object-fit: contain` reduce la imagen entera para caber en la caja en
+ *      vez de desbordarla (a diferencia del `cover` global de GlobalStyles),
+ *      así que la caja crece pero el bitmap no.
+ *   2. El propio bitmap trae un **margen transparente de 43 px** a esa escala
+ *      en su borde izquierdo. Entre el final del texto y la primera columna de
+ *      píxeles opacos quedan **23 px libres**, idénticos en los cuatro anchos.
+ *
+ * CONSECUENCIA FRÁGIL, y es el motivo de escribir esto en vez de borrar el
+ * párrafo viejo: la holgura no la sostiene el layout, la sostiene el
+ * RECORTE DEL ASSET. Si alguien re-exporta esta figura con el recorte más
+ * ajustado —lo normal al optimizar peso— esos 43 px desaparecen y el texto
+ * del paso 06 queda debajo de la ilustración sin que ningún test lo note.
+ * Quien toque el asset re-mide; hay un ítem para ello en `PRE-LAUNCH-QA.md`.
  *
  * Desplazamiento de scroll (D1, ver el docblock de
  * JOURNEY_FIGURE_SCROLL_SHIFT en journey.layers.ts): directo en este mismo
