@@ -62,6 +62,43 @@ describe("SITE", () => {
     expect(SITE.description).toContain("imaginación");
     expect(SITE.description).toContain("travesía");
   });
+
+  /*
+   * Candado de VERACIDAD, no de estilo (barrido de §2 de `PRE-LAUNCH-QA.md`
+   * contra el `out/` real, 2026-08-15). `SITE.description` decía "VoidToInfinite
+   * es un equipo creativo" cuando la Fase 0 había decidido dos cosas
+   * incompatibles con esa frase: la identidad es "proyecto creativo", y detrás
+   * hay UNA persona. La entrega de la Fase 3 propagó la decisión al copy
+   * visible -- voz en singular, `story.body` deja de decir "un espacio" -- pero
+   * se detuvo un nivel antes de llegar a esta cadena, que es justo la que un
+   * buscador enseña y la que viaja en cada vista previa compartida.
+   *
+   * Este test no comprueba que la frase suene bien: comprueba que no afirme
+   * algo que el proyecto no puede sostener. Se ata la ausencia del sustantivo
+   * problemático MÁS la presencia del que la Fase 0 fijó, porque solo con la
+   * ausencia el assert pasaría por vacuidad si alguien vaciara la cadena.
+   */
+  it("no se presenta como un equipo: la Fase 0 fijó «proyecto creativo» y detrás hay una persona", () => {
+    for (const prohibido of ["equipo", "team", "nuestro equipo", "somos"]) {
+      expect(
+        SITE.description.toLowerCase(),
+        `SITE.description afirma "${prohibido}", y no hay equipo detrás del proyecto`,
+      ).not.toContain(prohibido);
+    }
+    expect(SITE.description).toContain("proyecto creativo");
+  });
+
+  /*
+   * §2 de `PRE-LAUNCH-QA.md` exige que la `<meta name="description">` mida
+   * entre 120 y 165 caracteres, y esta cadena ES esa etiqueta. Se ata aquí
+   * -- en la fuente -- y no solo en el HTML construido, para que un cambio de
+   * copy salga en rojo en `pnpm test` y no dos pasos más tarde, al auditar el
+   * `out/`.
+   */
+  it("mide entre 120 y 165 caracteres, el rango que §2 exige a la meta description", () => {
+    expect(SITE.description.length).toBeGreaterThanOrEqual(120);
+    expect(SITE.description.length).toBeLessThanOrEqual(165);
+  });
 });
 
 describe("ROUTES", () => {

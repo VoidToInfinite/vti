@@ -1765,13 +1765,13 @@
     "semantic_hash": ""
   },
   "src/config/site.test.ts": {
-    "mtime": 1786190210.5487797,
-    "ast_hash": "e1912b4840f7cf614d3f603d2d8f6e1e",
+    "mtime": 1786817786.826195,
+    "ast_hash": "db34e03c01e4b2d2c2b69d82f0273be0",
     "semantic_hash": ""
   },
   "src/config/site.ts": {
-    "mtime": 1786189832.0693846,
-    "ast_hash": "195c452768e57a2dafcfd9f6dd8cc0a6",
+    "mtime": 1786817822.1104226,
+    "ast_hash": "b78c43f012459ef931de80f9a689fdee",
     "semantic_hash": ""
   },
   "src/i18n/I18nProvider.test.tsx": {
@@ -2125,13 +2125,13 @@
     "semantic_hash": ""
   },
   "PRE-LAUNCH-QA.md": {
-    "mtime": 1786814765.7157314,
-    "ast_hash": "946cbace9a496a5207a16d861c857479",
+    "mtime": 1786818003.523185,
+    "ast_hash": "294ce8b85271820640c2396643174a1f",
     "semantic_hash": ""
   },
   "PRODUCT.md": {
-    "mtime": 1786725219.1010349,
-    "ast_hash": "dd7ea685272c1068e9b132632814ce09",
+    "mtime": 1786817838.6026237,
+    "ast_hash": "538fcb00bf128a2a1cff11daf3c4ffcd",
     "semantic_hash": ""
   },
   "PROYECT.md": {

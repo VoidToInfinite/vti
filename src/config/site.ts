@@ -44,11 +44,24 @@ export const SITE = {
   /* Acentos corregidos el 2026-08-05: decía "imaginacion", "travesia" y
      "como". Esta cadena NO es solo interna -- es la `<meta name="description">`
      y el `og:description` de la home, el subtítulo de la imagen Open Graph
-     (`app/opengraph-image.tsx`) y la `description` de su nodo `WebPage`, así
-     que las faltas se leían en el resultado de búsqueda y en cada vista
-     previa compartida. */
+     (`app/opengraph-image.tsx`), la `description` de su nodo `WebPage` y la
+     de `Organization` en el JSON-LD, así que las faltas se leían en el
+     resultado de búsqueda y en cada vista previa compartida.
+
+     "EQUIPO" -> "PROYECTO" el 2026-08-15 (barrido de §2 de `PRE-LAUNCH-QA.md`
+     contra el `out/` real). No es un matiz de estilo: la decisión de identidad
+     de la Fase 0 fue "proyecto creativo", y la Fase 0 también dejó dicho que
+     detrás hay UNA persona, no un equipo. La entrega de la Fase 3 propagó esa
+     decisión al copy visible -- pasó la voz a singular y cambió `story.body`,
+     que decía "un espacio" -- pero se detuvo un nivel antes de llegar aquí, y
+     ésta es justo la cadena que un buscador enseña. `PRODUCT.md` §10 punto 11
+     ya declaraba la deuda por escrito: "el copy de §1 (`SITE.description`,
+     'equipo creativo') no se ha actualizado todavía". Queda saldada.
+
+     Longitud tras el cambio: 158 caracteres, dentro del rango 120-165 que
+     §2 exige a la `<meta name="description">`. */
   description:
-    "VoidToInfinite es un equipo creativo que construye aprendizaje, imaginación y juego en una misma travesía. Descubre su historia, su viaje y cómo participar.",
+    "VoidToInfinite es un proyecto creativo que construye aprendizaje, imaginación y juego en una misma travesía. Descubre su historia, su viaje y cómo participar.",
 } as const;
 
 /**
