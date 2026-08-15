@@ -467,3 +467,68 @@ describe("useActiveSectionKey: fix wave E, hallazgo E1 -- resincroniza tras un s
    * repo.
    */
 });
+
+/*
+ * QA §6, hallazgo derivado del ítem 16 (2026-08-15): en el tema OSCURO este
+ * módulo no resaltaba nada, nunca. Medido en navegador sobre build de
+ * producción, 25 posiciones a lo largo de los 16.297 px de la página oscura:
+ * `aria-current="location"` era `null` en los cuatro enlaces en LAS 25.
+ *
+ * La causa está en el docblock de `hasInviewSignal()` (`useActiveSection.ts`)
+ * -- resumen: `data-inview` lo escribe `useSectionProgress`, que solo montan
+ * los componentes de la rama CLARA; la oscura usa `useSlideDeck` y no escribe
+ * ese atributo. La señal que este módulo lee NO EXISTE en ese árbol.
+ *
+ * POR QUÉ LA SUITE ENTERA ESTABA VERDE CON EL DEFECTO DELANTE, que es la
+ * parte reutilizable: todos los tests de arriba llaman a `setInView()` antes
+ * de medir, es decir, dan por supuesta la existencia de la señal. Ninguno
+ * ejercitaba el caso "el atributo no está escrito en ningún sitio", que es
+ * exactamente el estado de la mitad del sitio. `mountSections()` sí crea las
+ * secciones sin el atributo, pero el único test que las deja así
+ * ("empieza en null...") espera `null` -- y `null` era también la respuesta
+ * equivocada del defecto, así que ese test pasaba igual.
+ *
+ * Los dos candados de abajo cubren las dos mitades de la condición, y hacen
+ * falta las dos: que SIN señal se resuelva por geometría, y que CON señal
+ * (aunque valga "false" en las cuatro) NO se caiga a geometría -- eso último
+ * es lo que protege a la rama clara, donde "las cuatro en false" significa
+ * "el lector está en el Hero" y `null` es la respuesta correcta.
+ */
+describe("useActiveSectionKey sin señal data-inview en el árbol (rama oscura)", () => {
+  it("resuelve por geometría cuando NINGUNA sección declara data-inview", () => {
+    // Sin `setInView`: las secciones quedan como las deja `mountSections`,
+    // igual que las de la rama oscura, que nunca reciben el atributo.
+    setRect("story", -900, 800);
+    setRect("journey", 100, 800);
+    setRect("features", 1900, 800);
+    setRect("contact", 2900, 800);
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("journey");
+  });
+
+  it("con el atributo presente y en 'false' en las cuatro NO cae a geometría: sigue devolviendo null aunque una intersecte", () => {
+    for (const id of SECTION_IDS) setInView(id, false);
+    setRect("story", -900, 800);
+    setRect("journey", 100, 800);
+    setRect("features", 1900, 800);
+    setRect("contact", 2900, 800);
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBeNull();
+  });
+
+  /*
+   * Bug inyectado a propósito (regla 34): sustituir la condición de
+   * `evaluate()` por la anterior a este arreglo (`isReducedMotion()` a secas,
+   * sin `|| !hasInviewSignal()`) pone en rojo el primer test
+   * ("expected null to be 'journey'"); restaurada, vuelve a verde. El segundo
+   * test es el complementario -- se comprueba que sigue verde con la
+   * condición puesta, porque su función es impedir que el arreglo se pase de
+   * largo y pise la rama clara.
+   */
+});

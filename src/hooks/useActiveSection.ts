@@ -113,28 +113,114 @@ function intersectsViewport(rect: DOMRect): boolean {
   return rect.top < window.innerHeight && rect.bottom > 0;
 }
 
-function resolveActiveKeyReduced(): string | null {
-  let next: string | null = null;
-  for (const id of ACTIVE_SECTION_IDS) {
-    const el = document.getElementById(id);
-    if (el && intersectsViewport(el.getBoundingClientRect())) next = id;
-  }
-  return next;
-}
+/*
+ * DOS CAMINOS PARA UNA MISMA PREGUNTA, y la condición que elige entre ellos
+ * es la parte que hay que entender antes de tocar nada aquí.
+ *
+ * Camino normal: leer `data-inview`, la señal que el `IntersectionObserver`
+ * de `useSectionProgress` ya calculó (ver el docblock de `evaluate()`, más
+ * arriba: "reutilizar, no crear un observer nuevo").
+ *
+ * Camino por geometría: `getBoundingClientRect()` sobre las mismas cuatro
+ * secciones, con el MISMO criterio de desempate. Nació en la fix wave A (A2)
+ * como camino exclusivo de `prefers-reduced-motion` y se llamaba
+ * `resolveActiveKeyReduced`; desde el ítem 16 del QA visual tiene un SEGUNDO
+ * motivo que no tiene nada que ver con `reduce`, así que ya no lleva ese
+ * nombre.
+ *
+ * QA §6, hallazgo derivado del ítem 16 (2026-08-15): EN EL TEMA OSCURO ESTE
+ * MÓDULO NO RESALTABA NADA, NUNCA.
+ *
+ * Medido en navegador sobre build de producción, 25 posiciones a lo largo de
+ * los 16.297 px de la página oscura: `aria-current="location"` era `null` en
+ * los cuatro enlaces de sección en LAS 25, y no había ni un solo elemento con
+ * `data-inview` en ninguna. En claro el mismo barrido seguía al scroll sin
+ * fallar (`#story` → `#journey` → `#features` → `#contact`).
+ *
+ * CAUSA RAÍZ, y es de reparto de responsabilidades, no de un bug puntual:
+ * `data-inview` lo escribe `useSectionProgress`, y ese hook lo montan los
+ * componentes de la rama CLARA (`JourneyLight`, `Features` claro, `Contact`).
+ * La rama oscura usa `useSlideDeck`, que no escribe ese atributo -- ni tiene
+ * por qué: describe el progreso de un deck, no una intersección. La señal que
+ * este módulo lee sencillamente NO EXISTE en ese árbol, así que el camino
+ * normal devolvía `null` en todas las posiciones y nadie lo había notado
+ * porque `null` es también la respuesta legítima cuando el lector está en el
+ * Hero.
+ *
+ * No era incumplimiento WCAG (`aria-current` refuerza la navegación; su
+ * ausencia no la rompe, y anunciar la sección EQUIVOCADA -- lo que arregló la
+ * fix wave A -- es peor que no anunciar ninguna), pero sí una asimetría entre
+ * ramas que nadie había declarado, y justo en la rama que la decisión D-C
+ * convierte en el camino por defecto de una primera visita con el sistema en
+ * oscuro.
+ *
+ * ARREGLO: cuando la señal no existe en el árbol, se resuelve por geometría
+ * con la función de arriba -- exactamente el mismo mecanismo, el mismo
+ * criterio de desempate y el mismo coste que el camino de `reduce` ya
+ * validó, sin un `IntersectionObserver` nuevo ni un hook nuevo en la rama
+ * oscura. Los listeners de `scroll`/`resize` que ese camino necesita ya
+ * estaban registrados.
+ *
+ * SE MIRA LA PRESENCIA DEL ATRIBUTO, NO SU VALOR, y la diferencia importa:
+ * "las cuatro en `false`" es un estado legítimo del camino normal (el lector
+ * está en el Hero) y ahí `null` es la respuesta correcta, así que tomar ese
+ * estado por "no hay señal" pisaría la rama clara. "Ninguna declara el
+ * atributo" solo ocurre en dos situaciones: la rama oscura, y la ventana
+ * entre el montaje y la primera entrega del `IntersectionObserver` en la
+ * clara -- y en esa ventana la geometría no degrada nada, da la respuesta
+ * correcta antes; en cuanto `useSectionProgress` escribe el atributo, el
+ * módulo vuelve solo al camino de la señal ya calculada.
+ */
+/*
+ * UNA SOLA PASADA POR EL DOM. La primera versión de este arreglo preguntaba
+ * dos veces: un predicado "hay señal" que recorría las cuatro secciones con
+ * `getElementById`, y después el resolutor elegido, que las volvía a
+ * recorrer. `evaluate()` está en camino caliente -- lo dispara cada
+ * `scroll`/`resize` y, en la rama clara, cada escritura de `data-inview` vía
+ * `MutationObserver`, que ocurre por frame --, así que no se duplican cuatro
+ * `getElementById` por evaluación pudiendo no hacerlo.
+ *
+ * NOTA DE HONESTIDAD SOBRE POR QUÉ SE ESCRIBIÓ ASÍ, porque la primera
+ * atribución fue FALSA y la corrección vale más que el dato: al ver la
+ * versión de dos pasadas, dos ficheros de test (`hero-story.integration` y
+ * `HomeSections`) agotaron su límite de 5 s en la suite con paralelismo por
+ * defecto, y lo atribuí a esta duplicación. Medido después back-to-back en
+ * la misma ventana de carga de máquina -- dos pasadas con el cambio y dos
+ * sin él -- resultó que SIN el cambio fallan 3 ficheros y CON él 2: los
+ * timeouts son la contención de CPU que este repo documenta desde el
+ * 2026-08-12, no esta función. La pasada única se conserva porque sigue
+ * siendo la forma correcta de escribirlo, no porque arregle ningún timeout.
+ *
+ * `getBoundingClientRect()` solo se llama en el camino que lo necesita: se
+ * recogen los elementos primero y la geometría se mide después de saber si
+ * hace falta.
+ */
+function resolveActiveKey(): string | null {
+  const secciones: { id: string; el: HTMLElement }[] = [];
+  let haySenal = false;
+  let porInview: string | null = null;
 
-function resolveActiveKeyByInview(): string | null {
-  let next: string | null = null;
   for (const id of ACTIVE_SECTION_IDS) {
     const el = document.getElementById(id);
-    if (el?.dataset.inview === "true") next = id;
+    if (!el) continue;
+    secciones.push({ id, el });
+    if (el.dataset.inview !== undefined) {
+      haySenal = true;
+      if (el.dataset.inview === "true") porInview = id;
+    }
   }
-  return next;
+
+  if (!isReducedMotion() && haySenal) return porInview;
+
+  let porGeometria: string | null = null;
+  for (const { id, el } of secciones) {
+    if (intersectsViewport(el.getBoundingClientRect())) porGeometria = id;
+  }
+  return porGeometria;
 }
 
 function evaluate(): void {
-  const next = isReducedMotion()
-    ? resolveActiveKeyReduced()
-    : resolveActiveKeyByInview();
+  const next = resolveActiveKey();
   if (next !== activeKey) {
     activeKey = next;
     notify();
@@ -201,9 +287,12 @@ function handleScrollOrResize(): void {
  * `useSectionProgress`; un `MutationObserver` no mide intersección, solo
  * escucha el resultado YA calculado por el observer que ya existe). Los
  * listeners de `scroll`/`resize` se conservan: el camino de
- * `reduce`-motion (`resolveActiveKeyReduced()`) no usa `data-inview` en
- * absoluto, sigue necesitando el disparador de scroll/resize para su
- * propio `getBoundingClientRect()`.
+ * `reduce`-motion no usa `data-inview` en absoluto, sigue necesitando el
+ * disparador de scroll/resize para su propio `getBoundingClientRect()` -- y
+ * desde el arreglo del tema oscuro (ver el docblock de `resolveActiveKey()`)
+ * ese mismo camino por geometría es el único que corre en la rama oscura,
+ * donde este `MutationObserver` no se dispara nunca porque nadie escribe el
+ * atributo que observa.
  */
 function observeSectionInviewMutations(): void {
   sectionMutationObserver = new MutationObserver(() => {
