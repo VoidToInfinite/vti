@@ -2125,8 +2125,8 @@
     "semantic_hash": ""
   },
   "PRE-LAUNCH-QA.md": {
-    "mtime": 1786801689.7686036,
-    "ast_hash": "afb383ea8afc677cf85046247e255794",
+    "mtime": 1786810086.0612285,
+    "ast_hash": "090089102f85d714809e881443760671",
     "semantic_hash": ""
   },
   "PRODUCT.md": {
@@ -2335,13 +2335,13 @@
     "semantic_hash": ""
   },
   "src/hooks/useActiveSection.test.tsx": {
-    "mtime": 1786608514.859642,
-    "ast_hash": "1e579aefe572a9d3b0123344ad8d431a",
+    "mtime": 1786809393.1966493,
+    "ast_hash": "4463d625c70a4e1b7a083e83b6278a4f",
     "semantic_hash": ""
   },
   "src/hooks/useActiveSection.ts": {
-    "mtime": 1786608554.8317702,
-    "ast_hash": "7f5ec727a2410d053f334b05704aeec6",
+    "mtime": 1786809428.007383,
+    "ast_hash": "88f8084e01a1274ce39a96060d81c5df",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-10-implementacion-plan-premium-f1-f5/progress.md": {
