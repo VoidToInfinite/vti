@@ -1,16 +1,16 @@
 # Graph Report - vti  (2026-08-15)
 
 ## Corpus Check
-- 449 files · ~4,226,447 words
+- 449 files · ~4,225,736 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4348 nodes · 5373 edges · 352 communities (276 shown, 76 thin omitted)
+- 4348 nodes · 5377 edges · 353 communities (277 shown, 76 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.58)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8dd24f47`
+- Built from commit: `5421c1d5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -323,6 +323,7 @@
 - [[_COMMUNITY_Task 34 — «detectar no es elegir» la preferencia de tema se persistía sin intervención del usuario|Task 34 — «detectar no es elegir»: la preferencia de tema se persistía sin intervención del usuario]]
 - [[_COMMUNITY_task-13-brief|task-13-brief.md]]
 - [[_COMMUNITY_01-nebula|01-nebula]]
+- [[_COMMUNITY_navigation.ts|navigation.ts]]
 - [[_COMMUNITY_task-14-brief|task-14-brief.md]]
 - [[_COMMUNITY_story.deck.tsx|story.deck.tsx]]
 - [[_COMMUNITY_basicLightTheme|basicLightTheme]]
@@ -371,7 +372,7 @@
 3. `Implementación del plan premium ≥90/100 — Fases 1-5 (2026-08-10)` - 35 edges
 4. `VTI — Framework de interacción 3D · design spec` - 22 edges
 5. `VTI — Sistema de interfaz de lujo · design spec` - 21 edges
-6. `PRESS` - 19 edges
+6. `PRESS` - 20 edges
 7. `ThemeDefinition` - 19 edges
 8. `QA pendiente — viaje 3D (checklist para un humano con navegador real)` - 19 edges
 9. `useTheme()` - 18 edges
@@ -392,7 +393,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (352 total, 76 thin omitted)
+## Communities (353 total, 76 thin omitted)
 
 ### Community 0 - "themes.ts"
 Cohesion: 0.16
@@ -436,7 +437,7 @@ Nodes (22): 1. Tabla de migración por archivo, 2. Cambios visuales perceptibles
 
 ### Community 10 - "Navbar.tsx"
 Cohesion: 0.17
-Nodes (12): alphaQuality, effort, lossless, quality, smartSubsample, 02-hand-left, byLayer, heightPx (+4 more)
+Nodes (12): alphaQuality, effort, lossless, quality, smartSubsample, 01-energy, byLayer, heightPx (+4 more)
 
 ### Community 11 - "compilerOptions"
 Cohesion: 0.09
@@ -604,7 +605,7 @@ Nodes (18): attachPointerTracking(), clamp(), computeEnabled(), detachPointerTra
 
 ### Community 52 - "FeaturesCelestialGuide.tsx"
 Cohesion: 0.29
-Nodes (7): alphaQuality, effort, lossless, quality, smartSubsample, 01-energy, byLayer
+Nodes (7): alphaQuality, effort, lossless, quality, smartSubsample, 02-hand-left, byLayer
 
 ### Community 53 - "Task 8: Landing lean (Navbar, Hero, About, Footer, Socials, BackOrbs) + ensamblaje"
 Cohesion: 0.17
@@ -679,8 +680,8 @@ Cohesion: 0.50
 Nodes (3): Execution Handoff, Self-review (cobertura del spec), Task 13: Calibración de densidad y QA final de accesibilidad
 
 ### Community 102 - "alfa1_4"
-Cohesion: 0.09
-Nodes (41): alfa1_4, alfa5_19, alfa1_4, alfa1_4, alfa5_19, alfa1_4, alfa1_4, alfa5_19 (+33 more)
+Cohesion: 0.14
+Nodes (30): alfa1_4, alfa5_19, alfa1_4, alfa1_4, alfa5_19, alfa1_4, alfa1_4, alfa5_19 (+22 more)
 
 ### Community 103 - "responsiveTrack"
 Cohesion: 0.08
@@ -1374,6 +1375,10 @@ Nodes (11): Cambios, Causa raíz, Commits, Concurrencia, Gate, graphify, Resumen
 Cohesion: 0.22
 Nodes (8): 1. Rejilla de Features: por qué "destacada + pareja" y no "columna ancha a 2 filas", 2. Cuerpos del deck: ch antes/después, 3. Subtítulo del hero: line-height y fold antes/después, Capturas, Concurrencia, Resumen, Task 22 — Tipografía de lectura: rejilla de Features, línea del deck, subtítulo del hero, Tests: bug inyectado y restaurado (regla 34)
 
+### Community 311 - "navigation.ts"
+Cohesion: 0.18
+Nodes (11): rgbNoiseDiagnosis, context, step2_afterMitchellResizeTo1024, step3_endToEndPipelineVerification, conclusion, method, appliesTo, conclusion (+3 more)
+
 ### Community 313 - "story.deck.tsx"
 Cohesion: 0.21
 Nodes (6): Eye(), ParallaxAmplitude, ParallaxTarget, AMP, Consumer(), useParallaxLayers()
@@ -1497,7 +1502,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `renderWithProviders()` connect `pipeline` to `metadata.ts`, `Button.tsx`, `locales.test.ts`, `vocabulary.ts`, `site.ts`, `Aura.tsx`, `page.tsx`, `Typography.tsx`, `story.deck.tsx`, `story.deck.tsx`, `Story.test.tsx`, `storage.ts`, `ThemeProvider.tsx`, `NotFoundContent.test.tsx`, `Navbar.test.tsx`, `step3_endToEndPipelineVerification`, `Features.test.tsx`, `hero.transition.ts`, `site.ts`, `usePointer.test.tsx`, `BrandName.tsx`, `hero.transition.ts`, `LanguageSelector.tsx`, `Sol.constants.ts`, `06-figure`?**
   _High betweenness centrality (0.010) - this node is a cross-community bridge._
 - **Why does `PRESS` connect `story.deck.tsx` to `pipeline`, `LanguageSelector.tsx`, `Features.test.tsx`, `hero.transition.ts`, `Story.tsx`, `scripts`, `Story.test.tsx`, `locales.test.ts`, `Button.tsx`, `05-hologram-disc`, `step3_endToEndPipelineVerification`, `page.tsx`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Why does `useParallaxLayers()` connect `story.deck.tsx` to `Input.tsx`, `metadata.ts`, `06-figure`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **What connects `0. Cómo usar este documento`, `1. Bloqueante legal (impide publicar — sin excepciones)`, `2. SEO verificable en el build (contra `out/`, sin sitio vivo)` to the rest of the system?**

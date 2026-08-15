@@ -184,74 +184,14 @@
       "norm_label": "7. anti-regresion"
     },
     {
-      "label": "LanguageSelector.tsx",
-      "file_type": "code",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_components_layout_languageselector_languageselector",
-      "community": 355,
-      "norm_label": "languageselector.tsx"
-    },
-    {
-      "label": "LANGUAGES",
-      "file_type": "code",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L9",
-      "_origin": "ast",
-      "id": "src_components_layout_languageselector_languageselector_languages",
-      "community": 355,
-      "norm_label": "languages"
-    },
-    {
-      "label": "languageAccent()",
-      "file_type": "code",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L50",
-      "_origin": "ast",
-      "id": "src_components_layout_languageselector_languageselector_languageaccent",
-      "community": 279,
-      "norm_label": "languageaccent()"
-    },
-    {
-      "label": "ScLanguageSelector",
-      "file_type": "code",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L56",
-      "_origin": "ast",
-      "id": "src_components_layout_languageselector_languageselector_sclanguageselector",
-      "community": 355,
-      "norm_label": "sclanguageselector"
-    },
-    {
-      "label": "ScLanguageButton",
-      "file_type": "code",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L73",
-      "_origin": "ast",
-      "id": "src_components_layout_languageselector_languageselector_sclanguagebutton",
-      "community": 355,
-      "norm_label": "sclanguagebutton"
-    },
-    {
-      "label": "LanguageSelector()",
-      "file_type": "code",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L176",
-      "_origin": "ast",
-      "id": "src_components_layout_languageselector_languageselector_languageselector",
-      "community": 355,
-      "norm_label": "languageselector()"
-    },
-    {
       "label": "Contact.test.tsx",
       "file_type": "code",
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test",
       "community": 289,
-      "norm_label": "contact.test.tsx",
-      "id": "src_components_sections_contact_contact_test"
+      "norm_label": "contact.test.tsx"
     },
     {
       "label": "ioCallbacks",
@@ -259,9 +199,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L66",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_iocallbacks",
       "community": 289,
-      "norm_label": "iocallbacks",
-      "id": "src_components_sections_contact_contact_test_iocallbacks"
+      "norm_label": "iocallbacks"
     },
     {
       "label": "trigger()",
@@ -269,9 +209,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L67",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_trigger",
       "community": 289,
-      "norm_label": "trigger()",
-      "id": "src_components_sections_contact_contact_test_trigger"
+      "norm_label": "trigger()"
     },
     {
       "label": "stubMatchMedia()",
@@ -279,9 +219,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L82",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_stubmatchmedia",
       "community": 289,
-      "norm_label": "stubmatchmedia()",
-      "id": "src_components_sections_contact_contact_test_stubmatchmedia"
+      "norm_label": "stubmatchmedia()"
     },
     {
       "label": "constructor()",
@@ -289,9 +229,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L100",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_constructor",
       "community": 289,
-      "norm_label": "constructor()",
-      "id": "src_components_sections_contact_contact_test_constructor"
+      "norm_label": "constructor()"
     },
     {
       "label": "observe()",
@@ -299,9 +239,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L103",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_observe",
       "community": 289,
-      "norm_label": "observe()",
-      "id": "src_components_sections_contact_contact_test_observe"
+      "norm_label": "observe()"
     },
     {
       "label": "disconnect()",
@@ -309,9 +249,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L104",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_disconnect",
       "community": 289,
-      "norm_label": "disconnect()",
-      "id": "src_components_sections_contact_contact_test_disconnect"
+      "norm_label": "disconnect()"
     },
     {
       "label": "cssRuleTextFor()",
@@ -319,9 +259,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L120",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_cssruletextfor",
       "community": 289,
-      "norm_label": "cssruletextfor()",
-      "id": "src_components_sections_contact_contact_test_cssruletextfor"
+      "norm_label": "cssruletextfor()"
     },
     {
       "label": "getSceneRoot()",
@@ -329,9 +269,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L691",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_getsceneroot",
       "community": 289,
-      "norm_label": "getsceneroot()",
-      "id": "src_components_sections_contact_contact_test_getsceneroot"
+      "norm_label": "getsceneroot()"
     },
     {
       "label": "submitValidEmail()",
@@ -339,9 +279,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1187",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_submitvalidemail",
       "community": 289,
-      "norm_label": "submitvalidemail()",
-      "id": "src_components_sections_contact_contact_test_submitvalidemail"
+      "norm_label": "submitvalidemail()"
     },
     {
       "label": "renderCardLink()",
@@ -349,9 +289,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1745",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_rendercardlink",
       "community": 289,
-      "norm_label": "rendercardlink()",
-      "id": "src_components_sections_contact_contact_test_rendercardlink"
+      "norm_label": "rendercardlink()"
     },
     {
       "label": "reglasPorSelector()",
@@ -359,9 +299,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1997",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_reglasporselector",
       "community": 289,
-      "norm_label": "reglasporselector()",
-      "id": "src_components_sections_contact_contact_test_reglasporselector"
+      "norm_label": "reglasporselector()"
     },
     {
       "label": "Contact.tsx",
@@ -369,9 +309,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact",
       "community": 114,
-      "norm_label": "contact.tsx",
-      "id": "src_components_sections_contact_contact"
+      "norm_label": "contact.tsx"
     },
     {
       "label": "ScContact",
@@ -379,9 +319,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L171",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccontact",
       "community": 114,
-      "norm_label": "sccontact",
-      "id": "src_components_sections_contact_contact_sccontact"
+      "norm_label": "sccontact"
     },
     {
       "label": "ScCard",
@@ -389,9 +329,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L300",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccard",
       "community": 114,
-      "norm_label": "sccard",
-      "id": "src_components_sections_contact_contact_sccard"
+      "norm_label": "sccard"
     },
     {
       "label": "ScLeft",
@@ -399,9 +339,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L335",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scleft",
       "community": 114,
-      "norm_label": "scleft",
-      "id": "src_components_sections_contact_contact_scleft"
+      "norm_label": "scleft"
     },
     {
       "label": "ScAccent",
@@ -409,9 +349,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L363",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scaccent",
       "community": 114,
-      "norm_label": "scaccent",
-      "id": "src_components_sections_contact_contact_scaccent"
+      "norm_label": "scaccent"
     },
     {
       "label": "ScBody",
@@ -419,9 +359,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L378",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scbody",
       "community": 114,
-      "norm_label": "scbody",
-      "id": "src_components_sections_contact_contact_scbody"
+      "norm_label": "scbody"
     },
     {
       "label": "ScLightChannels",
@@ -429,9 +369,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L410",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sclightchannels",
       "community": 114,
-      "norm_label": "sclightchannels",
-      "id": "src_components_sections_contact_contact_sclightchannels"
+      "norm_label": "sclightchannels"
     },
     {
       "label": "ScRings",
@@ -439,9 +379,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L432",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scrings",
       "community": 114,
-      "norm_label": "scrings",
-      "id": "src_components_sections_contact_contact_scrings"
+      "norm_label": "scrings"
     },
     {
       "label": "ScRingHalo",
@@ -449,9 +389,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L450",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scringhalo",
       "community": 114,
-      "norm_label": "scringhalo",
-      "id": "src_components_sections_contact_contact_scringhalo"
+      "norm_label": "scringhalo"
     },
     {
       "label": "ScRingA",
@@ -459,9 +399,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L461",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scringa",
       "community": 114,
-      "norm_label": "scringa",
-      "id": "src_components_sections_contact_contact_scringa"
+      "norm_label": "scringa"
     },
     {
       "label": "ScRingB",
@@ -469,9 +409,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L472",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scringb",
       "community": 114,
-      "norm_label": "scringb",
-      "id": "src_components_sections_contact_contact_scringb"
+      "norm_label": "scringb"
     },
     {
       "label": "ScFigureWrap",
@@ -479,9 +419,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L500",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfigurewrap",
       "community": 114,
-      "norm_label": "scfigurewrap",
-      "id": "src_components_sections_contact_contact_scfigurewrap"
+      "norm_label": "scfigurewrap"
     },
     {
       "label": "contactFloat",
@@ -489,9 +429,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L524",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_contactfloat",
       "community": 114,
-      "norm_label": "contactfloat",
-      "id": "src_components_sections_contact_contact_contactfloat"
+      "norm_label": "contactfloat"
     },
     {
       "label": "ScFigure",
@@ -499,9 +439,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L533",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfigure",
       "community": 114,
-      "norm_label": "scfigure",
-      "id": "src_components_sections_contact_contact_scfigure"
+      "norm_label": "scfigure"
     },
     {
       "label": "ScDarkSceneSlot",
@@ -509,9 +449,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L562",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scdarksceneslot",
       "community": 114,
-      "norm_label": "scdarksceneslot",
-      "id": "src_components_sections_contact_contact_scdarksceneslot"
+      "norm_label": "scdarksceneslot"
     },
     {
       "label": "glowPulse",
@@ -519,9 +459,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L584",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_glowpulse",
       "community": 114,
-      "norm_label": "glowpulse",
-      "id": "src_components_sections_contact_contact_glowpulse"
+      "norm_label": "glowpulse"
     },
     {
       "label": "ScTopGlow",
@@ -529,9 +469,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L605",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sctopglow",
       "community": 114,
-      "norm_label": "sctopglow",
-      "id": "src_components_sections_contact_contact_sctopglow"
+      "norm_label": "sctopglow"
     },
     {
       "label": "ScDarkFrame",
@@ -539,9 +479,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L646",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scdarkframe",
       "community": 114,
-      "norm_label": "scdarkframe",
-      "id": "src_components_sections_contact_contact_scdarkframe"
+      "norm_label": "scdarkframe"
     },
     {
       "label": "ScDarkContent",
@@ -549,9 +489,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L689",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scdarkcontent",
       "community": 114,
-      "norm_label": "scdarkcontent",
-      "id": "src_components_sections_contact_contact_scdarkcontent"
+      "norm_label": "scdarkcontent"
     },
     {
       "label": "ScDarkCopy",
@@ -559,9 +499,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L748",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scdarkcopy",
       "community": 114,
-      "norm_label": "scdarkcopy",
-      "id": "src_components_sections_contact_contact_scdarkcopy"
+      "norm_label": "scdarkcopy"
     },
     {
       "label": "ScCards",
@@ -569,9 +509,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L767",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccards",
       "community": 114,
-      "norm_label": "sccards",
-      "id": "src_components_sections_contact_contact_sccards"
+      "norm_label": "sccards"
     },
     {
       "label": "panelBackground()",
@@ -579,9 +519,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L789",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_panelbackground",
       "community": 114,
-      "norm_label": "panelbackground()",
-      "id": "src_components_sections_contact_contact_panelbackground"
+      "norm_label": "panelbackground()"
     },
     {
       "label": "panelBorder()",
@@ -589,9 +529,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L801",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_panelborder",
       "community": 114,
-      "norm_label": "panelborder()",
-      "id": "src_components_sections_contact_contact_panelborder"
+      "norm_label": "panelborder()"
     },
     {
       "label": "channelAccent()",
@@ -599,9 +539,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L815",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_channelaccent",
       "community": 114,
-      "norm_label": "channelaccent()",
-      "id": "src_components_sections_contact_contact_channelaccent"
+      "norm_label": "channelaccent()"
     },
     {
       "label": "ScCardLink",
@@ -609,9 +549,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L843",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccardlink",
       "community": 114,
-      "norm_label": "sccardlink",
-      "id": "src_components_sections_contact_contact_sccardlink"
+      "norm_label": "sccardlink"
     },
     {
       "label": "ScCardIcon",
@@ -619,9 +559,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L904",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccardicon",
       "community": 114,
-      "norm_label": "sccardicon",
-      "id": "src_components_sections_contact_contact_sccardicon"
+      "norm_label": "sccardicon"
     },
     {
       "label": "ScCardTitle",
@@ -629,9 +569,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L922",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccardtitle",
       "community": 114,
-      "norm_label": "sccardtitle",
-      "id": "src_components_sections_contact_contact_sccardtitle"
+      "norm_label": "sccardtitle"
     },
     {
       "label": "ScCardValue",
@@ -639,9 +579,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L955",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccardvalue",
       "community": 114,
-      "norm_label": "sccardvalue",
-      "id": "src_components_sections_contact_contact_sccardvalue"
+      "norm_label": "sccardvalue"
     },
     {
       "label": "ScForm",
@@ -649,9 +589,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L981",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scform",
       "community": 114,
-      "norm_label": "scform",
-      "id": "src_components_sections_contact_contact_scform"
+      "norm_label": "scform"
     },
     {
       "label": "ScPrivacyNote",
@@ -659,9 +599,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1029",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scprivacynote",
       "community": 114,
-      "norm_label": "scprivacynote",
-      "id": "src_components_sections_contact_contact_scprivacynote"
+      "norm_label": "scprivacynote"
     },
     {
       "label": "ScSubmitButton",
@@ -669,9 +609,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1085",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scsubmitbutton",
       "community": 114,
-      "norm_label": "scsubmitbutton",
-      "id": "src_components_sections_contact_contact_scsubmitbutton"
+      "norm_label": "scsubmitbutton"
     },
     {
       "label": "ScSendIcon",
@@ -679,9 +619,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1109",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scsendicon",
       "community": 114,
-      "norm_label": "scsendicon",
-      "id": "src_components_sections_contact_contact_scsendicon"
+      "norm_label": "scsendicon"
     },
     {
       "label": "ScFallbackPanel",
@@ -689,9 +629,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1127",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfallbackpanel",
       "community": 114,
-      "norm_label": "scfallbackpanel",
-      "id": "src_components_sections_contact_contact_scfallbackpanel"
+      "norm_label": "scfallbackpanel"
     },
     {
       "label": "ScFallbackText",
@@ -699,9 +639,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1139",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfallbacktext",
       "community": 114,
-      "norm_label": "scfallbacktext",
-      "id": "src_components_sections_contact_contact_scfallbacktext"
+      "norm_label": "scfallbacktext"
     },
     {
       "label": "ScFallbackEmail",
@@ -709,9 +649,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1150",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfallbackemail",
       "community": 114,
-      "norm_label": "scfallbackemail",
-      "id": "src_components_sections_contact_contact_scfallbackemail"
+      "norm_label": "scfallbackemail"
     },
     {
       "label": "ScCopyButton",
@@ -719,9 +659,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1158",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccopybutton",
       "community": 114,
-      "norm_label": "sccopybutton",
-      "id": "src_components_sections_contact_contact_sccopybutton"
+      "norm_label": "sccopybutton"
     },
     {
       "label": "ScCopyErrorText",
@@ -729,9 +669,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1181",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccopyerrortext",
       "community": 114,
-      "norm_label": "sccopyerrortext",
-      "id": "src_components_sections_contact_contact_sccopyerrortext"
+      "norm_label": "sccopyerrortext"
     },
     {
       "label": "isValidEmail()",
@@ -739,9 +679,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1200",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_isvalidemail",
       "community": 114,
-      "norm_label": "isvalidemail()",
-      "id": "src_components_sections_contact_contact_isvalidemail"
+      "norm_label": "isvalidemail()"
     },
     {
       "label": "Contact()",
@@ -749,9 +689,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1204",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_contact",
       "community": 306,
-      "norm_label": "contact()",
-      "id": "src_components_sections_contact_contact_contact"
+      "norm_label": "contact()"
     },
     {
       "label": "RFC-5322",
@@ -759,9 +699,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1196",
       "_origin": "ast",
+      "id": "docref_rfc_5322",
       "community": 114,
-      "norm_label": "rfc-5322",
-      "id": "docref_rfc_5322"
+      "norm_label": "rfc-5322"
     },
     {
       "label": "contact.layers.ts",
@@ -769,9 +709,9 @@
       "source_file": "src/components/sections/Contact/contact.layers.ts",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_layers",
       "community": 289,
-      "norm_label": "contact.layers.ts",
-      "id": "src_components_sections_contact_contact_layers"
+      "norm_label": "contact.layers.ts"
     },
     {
       "label": "Hero.tsx",
@@ -4919,7 +4859,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L123",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "rgbnoisediagnosis",
       "id": "assets_hero_aura_manifest_pipeline_rgbnoisediagnosis"
     },
@@ -4929,7 +4869,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L124",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "context",
       "id": "assets_hero_aura_manifest_rgbnoisediagnosis_context"
     },
@@ -5149,7 +5089,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L173",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "step2_aftermitchellresizeto1024",
       "id": "assets_hero_aura_manifest_rgbnoisediagnosis_step2_aftermitchellresizeto1024"
     },
@@ -5159,7 +5099,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L174",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "method",
       "id": "assets_hero_aura_manifest_step2_aftermitchellresizeto1024_method"
     },
@@ -5259,7 +5199,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L207",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "conclusion",
       "id": "assets_hero_aura_manifest_step2_aftermitchellresizeto1024_conclusion"
     },
@@ -5269,7 +5209,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L209",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "step3_endtoendpipelineverification",
       "id": "assets_hero_aura_manifest_rgbnoisediagnosis_step3_endtoendpipelineverification"
     },
@@ -5279,7 +5219,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L210",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "method",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_method"
     },
@@ -5289,7 +5229,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L211",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "thresholdsweepresults",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_thresholdsweepresults"
     },
@@ -5299,7 +5239,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L312",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "conclusion",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_conclusion"
     },
@@ -5309,7 +5249,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L313",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "whydifferentfromlasttime",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_whydifferentfromlasttime"
     },
@@ -5319,7 +5259,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L314",
       "_origin": "ast",
-      "community": 102,
+      "community": 311,
       "norm_label": "appliesto",
       "id": "assets_hero_aura_manifest_step3_endtoendpipelineverification_appliesto"
     },
@@ -5459,7 +5399,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L331",
       "_origin": "ast",
-      "community": 52,
+      "community": 10,
       "norm_label": "01-energy",
       "id": "assets_hero_aura_manifest_bylayer_01_energy"
     },
@@ -5469,7 +5409,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L332",
       "_origin": "ast",
-      "community": 52,
+      "community": 10,
       "norm_label": "quality",
       "id": "assets_hero_aura_manifest_01_energy_quality"
     },
@@ -5479,7 +5419,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L333",
       "_origin": "ast",
-      "community": 52,
+      "community": 10,
       "norm_label": "alphaquality",
       "id": "assets_hero_aura_manifest_01_energy_alphaquality"
     },
@@ -5489,7 +5429,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L334",
       "_origin": "ast",
-      "community": 52,
+      "community": 10,
       "norm_label": "lossless",
       "id": "assets_hero_aura_manifest_01_energy_lossless"
     },
@@ -5499,7 +5439,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L335",
       "_origin": "ast",
-      "community": 52,
+      "community": 10,
       "norm_label": "effort",
       "id": "assets_hero_aura_manifest_01_energy_effort"
     },
@@ -5509,7 +5449,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L336",
       "_origin": "ast",
-      "community": 52,
+      "community": 10,
       "norm_label": "smartsubsample",
       "id": "assets_hero_aura_manifest_01_energy_smartsubsample"
     },
@@ -5519,7 +5459,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L338",
       "_origin": "ast",
-      "community": 10,
+      "community": 52,
       "norm_label": "02-hand-left",
       "id": "assets_hero_aura_manifest_bylayer_02_hand_left"
     },
@@ -5529,7 +5469,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L339",
       "_origin": "ast",
-      "community": 10,
+      "community": 52,
       "norm_label": "quality",
       "id": "assets_hero_aura_manifest_02_hand_left_quality"
     },
@@ -5539,7 +5479,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L340",
       "_origin": "ast",
-      "community": 10,
+      "community": 52,
       "norm_label": "alphaquality",
       "id": "assets_hero_aura_manifest_02_hand_left_alphaquality"
     },
@@ -5549,7 +5489,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L341",
       "_origin": "ast",
-      "community": 10,
+      "community": 52,
       "norm_label": "lossless",
       "id": "assets_hero_aura_manifest_02_hand_left_lossless"
     },
@@ -5559,7 +5499,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L342",
       "_origin": "ast",
-      "community": 10,
+      "community": 52,
       "norm_label": "effort",
       "id": "assets_hero_aura_manifest_02_hand_left_effort"
     },
@@ -5569,7 +5509,7 @@
       "source_file": "assets/hero-aura/manifest.json",
       "source_location": "L343",
       "_origin": "ast",
-      "community": 10,
+      "community": 52,
       "norm_label": "smartsubsample",
       "id": "assets_hero_aura_manifest_02_hand_left_smartsubsample"
     },
@@ -9162,6 +9102,66 @@
       "community": 355,
       "norm_label": "reglasde()",
       "id": "src_components_layout_languageselector_languageselector_test_reglasde"
+    },
+    {
+      "label": "LanguageSelector.tsx",
+      "file_type": "code",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 355,
+      "norm_label": "languageselector.tsx",
+      "id": "src_components_layout_languageselector_languageselector"
+    },
+    {
+      "label": "LANGUAGES",
+      "file_type": "code",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 355,
+      "norm_label": "languages",
+      "id": "src_components_layout_languageselector_languageselector_languages"
+    },
+    {
+      "label": "languageAccent()",
+      "file_type": "code",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L50",
+      "_origin": "ast",
+      "community": 279,
+      "norm_label": "languageaccent()",
+      "id": "src_components_layout_languageselector_languageselector_languageaccent"
+    },
+    {
+      "label": "ScLanguageSelector",
+      "file_type": "code",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L56",
+      "_origin": "ast",
+      "community": 355,
+      "norm_label": "sclanguageselector",
+      "id": "src_components_layout_languageselector_languageselector_sclanguageselector"
+    },
+    {
+      "label": "ScLanguageButton",
+      "file_type": "code",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L73",
+      "_origin": "ast",
+      "community": 355,
+      "norm_label": "sclanguagebutton",
+      "id": "src_components_layout_languageselector_languageselector_sclanguagebutton"
+    },
+    {
+      "label": "LanguageSelector()",
+      "file_type": "code",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L155",
+      "_origin": "ast",
+      "community": 355,
+      "norm_label": "languageselector()",
+      "id": "src_components_layout_languageselector_languageselector_languageselector"
     },
     {
       "label": "NavSheet.tsx",
@@ -43656,197 +43656,15 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L50",
-      "weight": 1.0,
-      "source": "src_components_layout_languageselector_languageselector",
-      "target": "src_components_layout_languageselector_languageselector_languageaccent",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L9",
-      "weight": 1.0,
-      "source": "src_components_layout_languageselector_languageselector",
-      "target": "src_components_layout_languageselector_languageselector_languages",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L176",
-      "weight": 1.0,
-      "source": "src_components_layout_languageselector_languageselector",
-      "target": "src_components_layout_languageselector_languageselector_languageselector",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L73",
-      "weight": 1.0,
-      "source": "src_components_layout_languageselector_languageselector",
-      "target": "src_components_layout_languageselector_languageselector_sclanguagebutton",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
-      "source_location": "L56",
-      "weight": 1.0,
-      "source": "src_components_layout_languageselector_languageselector",
-      "target": "src_components_layout_languageselector_languageselector_sclanguageselector",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.contrast.test.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_layout_languageselector_languageselector_contrast_test",
-      "target": "src_components_layout_languageselector_languageselector"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.test.tsx",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_layout_languageselector_languageselector_test",
-      "target": "src_components_layout_languageselector_languageselector"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/Navbar/Navbar.tsx",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_layout_navbar_navbar",
-      "target": "src_components_layout_languageselector_languageselector"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/Navbar/NavSheet.tsx",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_layout_navbar_navsheet",
-      "target": "src_components_layout_languageselector_languageselector"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/legal/LegalHeader.tsx",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_legal_legalheader",
-      "target": "src_components_layout_languageselector_languageselector"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/theme/tokens/brandAccentContrast.test.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_theme_tokens_brandaccentcontrast_test",
-      "target": "src_components_layout_languageselector_languageselector"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.contrast.test.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_layout_languageselector_languageselector_contrast_test",
-      "target": "src_components_layout_languageselector_languageselector_languageaccent"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/theme/tokens/brandAccentContrast.test.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_theme_tokens_brandaccentcontrast_test",
-      "target": "src_components_layout_languageselector_languageselector_languageaccent"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.test.tsx",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_layout_languageselector_languageselector_test",
-      "target": "src_components_layout_languageselector_languageselector_languageselector"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/Navbar/Navbar.tsx",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_layout_navbar_navbar",
-      "target": "src_components_layout_languageselector_languageselector_languageselector"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/layout/Navbar/NavSheet.tsx",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_layout_navbar_navsheet",
-      "target": "src_components_layout_languageselector_languageselector_languageselector"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/legal/LegalHeader.tsx",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_legal_legalheader",
-      "target": "src_components_layout_languageselector_languageselector_languageselector"
-    },
-    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L15",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact"
+      "target": "src_components_sections_contact_contact",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -43855,9 +43673,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L15",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_contact"
+      "target": "src_components_sections_contact_contact_contact",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -43866,9 +43684,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L16",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_layers"
+      "target": "src_components_sections_contact_contact_layers",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43876,9 +43694,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L100",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_constructor"
+      "target": "src_components_sections_contact_contact_test_constructor",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43886,9 +43704,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L120",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_cssruletextfor"
+      "target": "src_components_sections_contact_contact_test_cssruletextfor",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43896,9 +43714,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L104",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_disconnect"
+      "target": "src_components_sections_contact_contact_test_disconnect",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43906,9 +43724,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L691",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_getsceneroot"
+      "target": "src_components_sections_contact_contact_test_getsceneroot",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43916,9 +43734,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L66",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_iocallbacks"
+      "target": "src_components_sections_contact_contact_test_iocallbacks",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43926,9 +43744,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L103",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_observe"
+      "target": "src_components_sections_contact_contact_test_observe",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43936,9 +43754,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1997",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_reglasporselector"
+      "target": "src_components_sections_contact_contact_test_reglasporselector",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43946,9 +43764,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1745",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_rendercardlink"
+      "target": "src_components_sections_contact_contact_test_rendercardlink",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43956,9 +43774,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L82",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_stubmatchmedia"
+      "target": "src_components_sections_contact_contact_test_stubmatchmedia",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43966,9 +43784,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1187",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_submitvalidemail"
+      "target": "src_components_sections_contact_contact_test_submitvalidemail",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43976,9 +43794,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L67",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_trigger"
+      "target": "src_components_sections_contact_contact_test_trigger",
+      "confidence_score": 1.0
     },
     {
       "relation": "cites",
@@ -43986,9 +43804,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1196",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "docref_rfc_5322"
+      "target": "docref_rfc_5322",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -43996,9 +43814,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L815",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_channelaccent"
+      "target": "src_components_sections_contact_contact_channelaccent",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44006,9 +43824,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1204",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_contact"
+      "target": "src_components_sections_contact_contact_contact",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44016,9 +43834,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L524",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_contactfloat"
+      "target": "src_components_sections_contact_contact_contactfloat",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44026,9 +43844,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L584",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_glowpulse"
+      "target": "src_components_sections_contact_contact_glowpulse",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44036,9 +43854,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1200",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_isvalidemail"
+      "target": "src_components_sections_contact_contact_isvalidemail",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -44047,9 +43865,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L18",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_layers"
+      "target": "src_components_sections_contact_contact_layers",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44057,9 +43875,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L789",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_panelbackground"
+      "target": "src_components_sections_contact_contact_panelbackground",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44067,9 +43885,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L801",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_panelborder"
+      "target": "src_components_sections_contact_contact_panelborder",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44077,9 +43895,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L363",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scaccent"
+      "target": "src_components_sections_contact_contact_scaccent",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44087,9 +43905,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L378",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scbody"
+      "target": "src_components_sections_contact_contact_scbody",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44097,9 +43915,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L300",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccard"
+      "target": "src_components_sections_contact_contact_sccard",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44107,9 +43925,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L904",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccardicon"
+      "target": "src_components_sections_contact_contact_sccardicon",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44117,9 +43935,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L843",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccardlink"
+      "target": "src_components_sections_contact_contact_sccardlink",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44127,9 +43945,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L767",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccards"
+      "target": "src_components_sections_contact_contact_sccards",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44137,9 +43955,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L922",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccardtitle"
+      "target": "src_components_sections_contact_contact_sccardtitle",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44147,9 +43965,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L955",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccardvalue"
+      "target": "src_components_sections_contact_contact_sccardvalue",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44157,9 +43975,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L171",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccontact"
+      "target": "src_components_sections_contact_contact_sccontact",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44167,9 +43985,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1158",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccopybutton"
+      "target": "src_components_sections_contact_contact_sccopybutton",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44177,9 +43995,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1181",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccopyerrortext"
+      "target": "src_components_sections_contact_contact_sccopyerrortext",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44187,9 +44005,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L689",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scdarkcontent"
+      "target": "src_components_sections_contact_contact_scdarkcontent",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44197,9 +44015,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L748",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scdarkcopy"
+      "target": "src_components_sections_contact_contact_scdarkcopy",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44207,9 +44025,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L646",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scdarkframe"
+      "target": "src_components_sections_contact_contact_scdarkframe",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44217,9 +44035,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L562",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scdarksceneslot"
+      "target": "src_components_sections_contact_contact_scdarksceneslot",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44227,9 +44045,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1150",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfallbackemail"
+      "target": "src_components_sections_contact_contact_scfallbackemail",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44237,9 +44055,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1127",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfallbackpanel"
+      "target": "src_components_sections_contact_contact_scfallbackpanel",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44247,9 +44065,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1139",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfallbacktext"
+      "target": "src_components_sections_contact_contact_scfallbacktext",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44257,9 +44075,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L533",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfigure"
+      "target": "src_components_sections_contact_contact_scfigure",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44267,9 +44085,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L500",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfigurewrap"
+      "target": "src_components_sections_contact_contact_scfigurewrap",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44277,9 +44095,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L981",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scform"
+      "target": "src_components_sections_contact_contact_scform",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44287,9 +44105,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L335",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scleft"
+      "target": "src_components_sections_contact_contact_scleft",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44297,9 +44115,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L410",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sclightchannels"
+      "target": "src_components_sections_contact_contact_sclightchannels",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44307,9 +44125,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1029",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scprivacynote"
+      "target": "src_components_sections_contact_contact_scprivacynote",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44317,9 +44135,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L461",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scringa"
+      "target": "src_components_sections_contact_contact_scringa",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44327,9 +44145,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L472",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scringb"
+      "target": "src_components_sections_contact_contact_scringb",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44337,9 +44155,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L450",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scringhalo"
+      "target": "src_components_sections_contact_contact_scringhalo",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44347,9 +44165,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L432",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scrings"
+      "target": "src_components_sections_contact_contact_scrings",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44357,9 +44175,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1109",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scsendicon"
+      "target": "src_components_sections_contact_contact_scsendicon",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44367,9 +44185,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1085",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scsubmitbutton"
+      "target": "src_components_sections_contact_contact_scsubmitbutton",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -44377,9 +44195,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L605",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sctopglow"
+      "target": "src_components_sections_contact_contact_sctopglow",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -56209,6 +56027,17 @@
       "target": "src_components_layout_footer_footer_layers_footerstarglowtintlight"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.contrast.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector_contrast_test",
+      "target": "src_components_layout_languageselector_languageselector"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/layout/LanguageSelector/LanguageSelector.contrast.test.ts",
@@ -56217,6 +56046,17 @@
       "confidence_score": 1.0,
       "source": "src_components_layout_languageselector_languageselector_contrast_test",
       "target": "src_components_layout_languageselector_languageselector_contrast_test_parseglassbg"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.contrast.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector_contrast_test",
+      "target": "src_components_layout_languageselector_languageselector_languageaccent"
     },
     {
       "relation": "imports_from",
@@ -56296,6 +56136,28 @@
       "target": "src_theme_tokens_contrast_contrastratiooveralpha"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.test.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector_test",
+      "target": "src_components_layout_languageselector_languageselector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.test.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector_test",
+      "target": "src_components_layout_languageselector_languageselector_languageselector"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/layout/LanguageSelector/LanguageSelector.test.tsx",
@@ -56369,6 +56231,188 @@
       "confidence_score": 1.0,
       "source": "src_components_layout_languageselector_languageselector_test_reglasde",
       "target": "src_components_layout_languageselector_languageselector_test_allcssrules"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L50",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_components_layout_languageselector_languageselector_languageaccent"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_components_layout_languageselector_languageselector_languages"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L155",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_components_layout_languageselector_languageselector_languageselector"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L73",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_components_layout_languageselector_languageselector_sclanguagebutton"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L56",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_components_layout_languageselector_languageselector_sclanguageselector"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_config_storage"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_config_storage_storage_keys"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_motion_vocabulary"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/LanguageSelector/LanguageSelector.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_languageselector_languageselector",
+      "target": "src_motion_vocabulary_press"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/Navbar/Navbar.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_navbar_navbar",
+      "target": "src_components_layout_languageselector_languageselector"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/Navbar/NavSheet.tsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_navbar_navsheet",
+      "target": "src_components_layout_languageselector_languageselector"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/LegalHeader.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_legal_legalheader",
+      "target": "src_components_layout_languageselector_languageselector"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/theme/tokens/brandAccentContrast.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_theme_tokens_brandaccentcontrast_test",
+      "target": "src_components_layout_languageselector_languageselector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/theme/tokens/brandAccentContrast.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_theme_tokens_brandaccentcontrast_test",
+      "target": "src_components_layout_languageselector_languageselector_languageaccent"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/Navbar/Navbar.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_navbar_navbar",
+      "target": "src_components_layout_languageselector_languageselector_languageselector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/layout/Navbar/NavSheet.tsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_layout_navbar_navsheet",
+      "target": "src_components_layout_languageselector_languageselector_languageselector"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/LegalHeader.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_legal_legalheader",
+      "target": "src_components_layout_languageselector_languageselector_languageselector"
     },
     {
       "relation": "imports_from",
@@ -98584,5 +98628,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8dd24f473613322ec93fdb94e827170525d7dc5e"
+  "built_at_commit": "5421c1d59344f03548d9bc4e0c7f0c6943b0190f"
 }
