@@ -6,13 +6,13 @@ import styled from "styled-components";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   /**
-   * Azúcar para marcar error en uso suelto (sin `Field`). Su único efecto es
-   * fijar `aria-invalid="true"` cuando el consumidor no pasa `aria-invalid`
+   * Azúcar para marcar error en uso suelto (sin Field). Su único efecto es
+   * fijar aria-invalid="true" cuando el consumidor no pasa aria-invalid
    * explícito — no abre un camino de estilo paralelo. El borde de error se
-   * deriva SIEMPRE del atributo `aria-invalid` en el DOM (selector
-   * `&[aria-invalid="true"]` en `ScInput`), nunca de este prop directamente:
+   * deriva SIEMPRE del atributo aria-invalid en el DOM (selector
+   * &[aria-invalid="true"] en ScInput), nunca de este prop directamente:
    * así el estado visual y el accesible no pueden desincronizarse, vengan de
-   * este prop, de `Field` o de un `aria-invalid` puesto a mano.
+   * este prop, de Field o de un aria-invalid puesto a mano.
    */
   error?: boolean;
   ref?: Ref<HTMLInputElement>;
@@ -23,7 +23,32 @@ const ScInput = styled.input`
   width: 100%;
   padding: 0 ${({ theme }) => theme.data.space[4]};
   border-radius: ${({ theme }) => theme.data.radius.sm};
-  border: 1px solid ${({ theme }) => theme.data.semantic.border};
+  /*
+   * BORDE EN REPOSO — incumplimiento REAL de WCAG 1.4.11 corregido el
+   * 2026-08-14 (QA §6, hallazgo lateral del bloqueante 2).
+   *
+   * Este campo usaba semantic.border, y medido sobre píxel pintado contra
+   * su PROPIO relleno daba **1,128:1 en claro** y **2,103:1 en oscuro**. Un
+   * campo de formulario SÍ es un componente de interfaz: su contorno es lo
+   * que permite identificarlo, así que aquí el 3:1 de 1.4.11 no es opinión
+   * de diseño, es requisito. En claro el campo era blanco sobre casi blanco
+   * con un borde casi invisible.
+   *
+   * POR QUÉ UN VALOR FIJO Y NO UN ROL SEMÁNTICO: los dos temas tiran en
+   * sentidos opuestos —en claro hace falta oscurecer, en oscuro aclarar— y
+   * neutral[600] es el ÚNICO escalón de la rampa que cruza el umbral en
+   * las dos ramas a la vez: **3,112:1 en claro y 4,060:1 en oscuro**. Los
+   * escalones vecinos fallan en una u otra (500 da 2,340 en claro; 700 da
+   * 2,406 en oscuro).
+   *
+   * HALLAZGO DE SISTEMA que este arreglo NO resuelve, y conviene no perder:
+   * semantic.borderStrong —el rol que el sistema ofrece como "borde
+   * fuerte"— tampoco llega a 3:1 en ninguna rama (1,999 en claro con
+   * neutral[400], 2,406 en oscuro con neutral[700]). Cualquier otro
+   * componente que confíe en él para delimitar un control tiene el mismo
+   * problema que tenía este.
+   */
+  border: 1px solid ${({ theme }) => theme.data.palette.neutral[600]};
   background: ${({ theme }) => theme.data.semantic.surface};
   color: ${({ theme }) => theme.data.semantic.text};
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -45,8 +70,25 @@ const ScInput = styled.input`
      sea la modalidad: si solo reaccionara a :focus-visible, un clic de ratón
      dejaría el campo activo sin ninguna señal de que ahí es donde va a
      aparecer el texto que se escriba. */
+  /*
+   * El foco tiene que REFORZAR el borde, y con el reposo ya en neutral[600]
+   * el antiguo semantic.borderStrong lo DEBILITABA en las dos ramas (1,999
+   * en claro y 2,406 en oscuro, contra 3,112 y 4,060 del reposo): enfocar el
+   * campo habría hecho su contorno menos visible, que es lo contrario de lo
+   * que un refuerzo de foco significa.
+   *
+   * Se resuelve por rama (theme.isLight, mismo precedente que la Task 26 y
+   * que BrandName/LanguageSelector) porque "más fuerte" apunta en
+   * direcciones opuestas según el fondo: en claro se oscurece hasta
+   * neutral[800], en oscuro se aclara hasta neutral[400]. Las dos
+   * direcciones suben respecto a su propio reposo, que es la única propiedad
+   * que este bloque tiene que garantizar.
+   */
   &:focus {
-    border-color: ${({ theme }) => theme.data.semantic.borderStrong};
+    border-color: ${({ theme }) =>
+      theme.data.isLight
+        ? theme.data.palette.neutral[800]
+        : theme.data.palette.neutral[400]};
   }
 
   /* :focus-visible propio, ADEMÁS del &:focus de arriba (D7 pide un
@@ -114,9 +156,9 @@ interface FieldProps {
   help?: string;
   error?: string;
   /**
-   * El control envuelto (típicamente `Input`, en el futuro `Textarea`/
-   * `Select`). Debe ser un único elemento: `Field` le inyecta
-   * `aria-describedby`/`aria-invalid` vía `cloneElement`, así que necesita
+   * El control envuelto (típicamente Input, en el futuro Textarea/
+   * Select). Debe ser un único elemento: Field le inyecta
+   * aria-describedby/aria-invalid vía cloneElement, así que necesita
    * un elemento real al que clonar, no una lista de nodos.
    */
   children: ReactElement<FieldControlProps>;

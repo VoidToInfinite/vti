@@ -2,6 +2,7 @@ import { createRef } from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
+import { contrastRatio } from "@/theme/tokens/contrast";
 import { Field, Input } from "./Input";
 
 /** Mismo patrón que Button.test.tsx/Navbar.test.tsx: lee el CSSOM real
@@ -367,7 +368,49 @@ describe("Input / Field", () => {
           bloqueFocus,
           "no se encontró la regla &:focus que refuerza border-color",
         ).toBeDefined();
-        expect(bloqueFocus).toContain(theme.semantic.borderStrong);
+
+        /*
+         * Esta aserción decía `toContain(theme.semantic.borderStrong)` y se
+         * cambió el 2026-08-14 (QA §6). Atar un TOKEN concreto no ataba lo
+         * que el bloque promete: `borderStrong` da 1,999:1 en claro y 2,406:1
+         * en oscuro y, con el reposo corregido a `neutral[600]` (3,112 y
+         * 4,060), enfocar el campo lo habría DEBILITADO — el test habría
+         * seguido en verde mientras el foco hacía lo contrario de reforzar.
+         *
+         * Lo que se ata ahora es la propiedad: el borde de foco contrasta
+         * MÁS que el de reposo contra el relleno del campo, en la rama que
+         * toque. Es indiferente a qué token se use, y se rompe justo cuando
+         * el refuerzo deja de reforzar.
+         */
+        const colorDe = (bloque: string): string => {
+          const m = bloque.match(/border-color:\s*([^;]+);/);
+          return (m?.[1] ?? "").trim();
+        };
+        // La regla base de styled-components no lleva pseudo-clase en su
+        // SELECTOR, pero sí dos puntos en cada declaración: filtrar por
+        // `includes(":")` descartaba justo la que se busca.
+        const reposo = reglas.find((regla) =>
+          /border:\s*1px\s+solid\s+oklch\(/.test(regla),
+        );
+        const colorReposo = (reposo?.match(
+          /border:\s*1px\s+solid\s+(oklch\([^)]+\))/,
+        ) ?? [])[1];
+        const colorFoco = colorDe(bloqueFocus as string);
+
+        expect(
+          colorReposo,
+          "no se leyó el color del borde en reposo",
+        ).toBeTruthy();
+        expect(colorFoco, "no se leyó el color del borde en foco").toBeTruthy();
+
+        const relleno = theme.semantic.surface;
+        const cReposo = contrastRatio(colorReposo as string, relleno);
+        const cFoco = contrastRatio(colorFoco, relleno);
+
+        // Reposo por encima del umbral de 1.4.11 para el contorno de un
+        // control, y foco estrictamente por encima del reposo.
+        expect(cReposo).toBeGreaterThanOrEqual(3);
+        expect(cFoco).toBeGreaterThan(cReposo);
 
         // No sustituye el anillo global (regla dura: outline: none vetado).
         expect(reglas.some((regla) => /outline\s*:\s*none/.test(regla))).toBe(
