@@ -289,10 +289,36 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
      ilustracion entera. En claro NO hace falta (spec S6.5): el texto oscuro
      sobre el pastel ya pasa AA medido (Hero.qa.test.tsx), y una sombra
      oscura sobre un fondo claro solo ensuciaria la lectura. */
+  /* CALIBRADO el 2026-08-14 con medición en navegador (QA §6, bloqueante 5).
+     La sombra anterior era 0 1px 2px / 0.9 mas 0 0 18px / 0.75, y medida
+     resultaba insuficiente donde de verdad hace falta.
+
+     COMO SE MIDIO, porque el metodo decide el resultado: el "peor pixel" NO
+     sirve sobre este fondo -- la corona tiene estrellas y filamentos finos, y
+     siempre existe un pixel brillante bajo el borde de algun glifo, asi que
+     el minimo era ruido (calibrar contra el daba resultados contradictorios,
+     como que subir la opacidad del velo del ojo empeorara la cifra). La
+     medida estable es el PORCENTAJE de borde de glifo por debajo de su
+     umbral, leyendo el fondo tal y como se renderiza, con esta sombra ya
+     aplicada.
+
+     Lo que cambia, medido a 1280 y 1440 (los anchos donde el arco cruza el
+     texto; a 1920 no cruza ninguno):
+       - subtitulo a 1440, el peor caso: 5,4% -> 2,4% del borde bajo umbral,
+         y el percentil 5 sube de 4,19 a 6,18, cruzando el 4,5 exigido.
+       - tagline a 1280: 1,7% -> 1,3%.
+
+     NO lo cierra del todo, y conviene no fingir que si: queda un 1-2% donde
+     el borde del glifo cruza los filamentos mas brillantes. Cerrarlo entero
+     exigiria apagar el arte, y el docblock del velo (ScScrim, eye.parts.tsx)
+     pide expresamente preservar el anillo exterior.
+
+     El wordmark queda fuera de esta cuenta: WCAG 1.4.3 exime al texto que
+     forma parte de un nombre de marca. */
   text-shadow: ${({ $light }) =>
     $light
       ? "none"
-      : "0 1px 2px oklch(0 0 0 / 0.9), 0 0 18px oklch(0 0 0 / 0.75)"};
+      : "0 0 3px oklch(0 0 0 / 1), 0 0 9px oklch(0 0 0 / 0.95), 0 0 22px oklch(0 0 0 / 0.9)"};
   opacity: ${({ $hidden }) => ($hidden ? 0 : 1)};
   transition: opacity
     ${({ $hidden }) => ($hidden ? HERO_COPY_OUT_MS : HERO_COPY_IN_MS)}ms
