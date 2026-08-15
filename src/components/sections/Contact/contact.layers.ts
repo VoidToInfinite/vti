@@ -124,7 +124,7 @@ export const CONTACT_RING_B_RIGHT = "52px";
 /** Geometría de la figura que saluda (mockup L233/234). */
 export const CONTACT_FIGURE_HEIGHT = "560px";
 export const CONTACT_FIGURE_LEFT = "8px";
-export const CONTACT_FIGURE_TOP = "-44px";
+export const CONTACT_FIGURE_TOP = "80px";
 
 /**
  * Flotación (mockup: keyframe `vtiFloat4`, definido en el `<style>` de

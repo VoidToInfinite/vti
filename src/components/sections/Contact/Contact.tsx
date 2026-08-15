@@ -929,9 +929,33 @@ const ScCardTitle = styled.span`
       : theme.data.palette.secondary[300]};
 `;
 
+/*
+ * `overflow-wrap: anywhere` — arreglo de un REFLOW roto a 320px (WCAG 1.4.10),
+ * introducido y cazado el mismo dia (2026-08-14, QA §6 bloqueante 6).
+ *
+ * Estos valores son cadenas SIN espacios (`discord.gg/CuGhqdG3g3`,
+ * `github.com/voidtoinfinite`, `linkedin.com/in/demosquerag`), asi que su
+ * `min-content` es su ancho ENTERO: no hay punto por el que el navegador
+ * pueda partirlas. `ScCard` es un grid cuya pista `auto` nunca baja de ese
+ * `min-content`, asi que la cadena mas larga fija el ancho de toda la
+ * tarjeta.
+ *
+ * Que paso, medido a 320px en claro: la tarjeta de LinkedIn -- la mas larga
+ * de las tres -- empujo la pista de 220,9px a 251,4px dentro de una caja de
+ * contenido de 206px. La tarjeta desbordaba 45px y la nota de privacidad
+ * quedaba 7px FUERA, recortada por su `overflow: hidden`. Aislado retirando
+ * solo esa tarjeta: la nota volvia a 19px DENTRO.
+ *
+ * Por que `anywhere` y no acortar el texto: acortarlo dejaria el problema
+ * armado para el siguiente valor largo que alguien añada. `anywhere` es
+ * ademas la unica de las dos variantes que afecta al calculo de
+ * `min-content` (`break-word` no lo hace), que es exactamente la magnitud
+ * que aqui hay que dejar encoger.
+ */
 const ScCardValue = styled.span`
   font-size: 0.85rem;
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  overflow-wrap: anywhere;
 `;
 
 /*

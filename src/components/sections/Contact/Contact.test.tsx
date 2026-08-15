@@ -2021,6 +2021,47 @@ describe("Contact: Task 16, superficies y acento del bloque de canales por rama"
     return salida;
   }
 
+  /*
+   * CANDADO DE REFLOW (WCAG 1.4.10), escrito porque el defecto OCURRIO el
+   * 2026-08-14 y lo introdujo la entrega de ese mismo dia.
+   *
+   * Los valores de estas tarjetas son cadenas SIN espacios
+   * (`discord.gg/...`, `github.com/...`, `linkedin.com/in/...`), asi que su
+   * `min-content` es su ancho entero. `ScCard` es un grid cuya pista `auto`
+   * nunca baja de ese `min-content`, de modo que la cadena mas larga fija el
+   * ancho de la tarjeta ENTERA.
+   *
+   * Medido a 320px en claro cuando se anadio la tercera tarjeta: la pista
+   * paso de 220,9px a 251,4px dentro de una caja de contenido de 206px, la
+   * tarjeta desbordo 45px y la nota de privacidad quedo 7px FUERA, recortada
+   * por su `overflow: hidden`. Aislado retirando solo esa tarjeta, la nota
+   * volvia a quedar 19px dentro.
+   *
+   * `anywhere` y no `break-word`: solo la primera afecta al calculo de
+   * `min-content`, que es la magnitud que aqui hay que dejar encoger. Un
+   * test que aceptara cualquiera de las dos no ataria nada.
+   */
+  it("el valor de cada tarjeta puede partir en cualquier punto: sin eso, una URL larga rompe el reflow a 320px", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const valores = Array.from(
+      container.querySelectorAll('a[target="_blank"] span'),
+    ).filter((n) => /[./]/.test(n.textContent ?? ""));
+
+    expect(
+      valores.length,
+      "no se encontro ningun valor de tarjeta que medir",
+    ).toBeGreaterThan(0);
+
+    for (const valor of valores) {
+      const reglas = reglasPorSelector(valor as HTMLElement, "");
+      const declara = reglas.some((r) => /overflow-wrap:\s*anywhere/.test(r));
+      expect(
+        declara,
+        `"${valor.textContent}" no declara overflow-wrap: anywhere`,
+      ).toBe(true);
+    }
+  });
+
   it("rama clara: el borde de :hover y el de :focus-visible resuelven el MISMO acento (secondary[700]), no dos pasos distintos", () => {
     const { container } = renderWithProviders(<Contact />);
     const card = container.querySelector(
