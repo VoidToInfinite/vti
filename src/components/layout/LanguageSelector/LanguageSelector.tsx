@@ -87,8 +87,29 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
   border-radius: ${({ theme }) => theme.data.radius.md};
   font-size: 0.875rem;
   font-weight: ${({ $active }) => ($active ? 700 : 400)};
+  /* INACTIVO: un escalon por debajo de textSubtle SOLO en claro (QA §6, item
+     41, 2026-08-14). Medido sobre pixel pintado con el selector encima del
+     arte del hero -- que es donde vive al cargar, antes de que el navbar pase
+     a cristal --, textSubtle daba 4,27 de mediana con el 100% del texto bajo
+     el umbral de 4,5. No era un borde rozando el arte: era uniformemente
+     bajo.
+
+     Por que aqui y no en el token: textSubtle es global. Por que solo en
+     claro: en oscuro la misma pieza mide 10,5 y no necesita nada.
+
+     La Task 33 midio este mismo control en 4,909, y no se contradice con el
+     4,27: aquella cifra era contra el CRISTAL del navbar, esta es contra el
+     arte del hero. Son dos fondos distintos para el mismo texto, y el peor
+     manda.
+
+     La jerarquia activo/inactivo NO depende de este color: la dan el peso
+     (700 contra 400) y el subrayado, los dos declarados justo aqui debajo. */
   color: ${({ theme, $active }) =>
-    $active ? languageAccent(theme) : theme.data.semantic.textSubtle};
+    $active
+      ? languageAccent(theme)
+      : theme.data.isLight
+        ? theme.data.palette.neutral[800]
+        : theme.data.semantic.textSubtle};
   text-decoration: ${({ $active }) => ($active ? "underline" : "none")};
   text-underline-offset: 0.2em;
   cursor: pointer;
