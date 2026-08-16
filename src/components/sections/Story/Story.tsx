@@ -1155,6 +1155,28 @@ const communityLinkStyles = css`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 600;
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* SUBRAYADO, porque sin el esto no parece un enlace (Ola B, 2026-08-16).
+     GlobalStyles declara text-decoration: none para todo elemento a del sitio,
+     y este enlace usaba EXACTAMENTE el mismo color que el cuerpo de texto que
+     lo rodea: medido, el contraste entre el enlace y su prosa vecina era de
+     2,18:1 en claro y 1,46:1 en oscuro. WCAG 1.4.1 pide 3:1 cuando el color es
+     lo UNICO que distingue un enlace, y aqui ni siquiera llegaba a eso -- no
+     habia nada que distinguir. El hover cambiaba el color, pero un hover no
+     existe para quien navega con el dedo.
+
+     Se subraya y no se recolorea porque el color es la palanca que ya esta
+     agotada: subir el enlace al color de marca en reposo lo separaria de la
+     prosa, si, pero dejaria el hover sin ningun cambio que comunicar. El
+     subrayado da la afordancia en reposo y deja el color libre para el estado.
+
+     text-underline-offset separa la linea de las descendentes; sin el, con
+     este tamaño de cuerpo, la linea corta las jotas y las ges.
+
+     SIN BACKTICKS: esto vive dentro de un template literal css de
+     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. Un único
      punto de declaración -- ScStatementLink/ScDeckNoteLink (más abajo) lo
      heredan interpolando este mismo bloque css, no lo redeclaran. */

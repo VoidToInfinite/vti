@@ -1996,3 +1996,21 @@
 - **Detección barata:** `pnpm typecheck` lo caza en segundos. Un comentario largo dentro de un
   template literal es motivo suficiente para ejecutarlo ANTES de seguir editando, en vez de
   descubrirlo al final junto con el resto del gate.
+
+## 2026-08-16 (bis) — Los backticks del template literal, dos ficheros a la vez
+
+- **Qué pasó:** el mismo día que registré la lección anterior sobre backticks en
+  `GlobalStyles.tsx`, volví a caer en `Story.tsx` (`communityLinkStyles`, un literal `css`) y en
+  `legalPage.parts.tsx` (`ScBackLink`) al documentar el subrayado de los enlaces. El síntoma en
+  esta ocasión NO fue `tsc`: fue esbuild al transformar el fichero de test —
+  `ERROR: Expected ";" but found "communityLinkStyles"` — porque el fallo estaba en el módulo que
+  el test importa, no en el test.
+- **Por qué se repite:** el aviso «SIN BACKTICKS» vive en los ficheros que ya lo sufrieron, así
+  que cada fichero nuevo que estrena un comentario largo dentro de un literal empieza sin la
+  advertencia delante. Es un candado por convención, y las convenciones no se aplican solas.
+- **Regla, más dura que la de la mañana:** en cuanto un comentario nuevo vaya dentro de
+  `styled.x\`\`` o de `css\`\``, se escribe sin backticks DESDE EL PRIMER CARÁCTER y se añade la
+  coletilla «SIN BACKTICKS» al propio comentario. Los nombres de símbolo van en texto llano.
+- **Detección:** `pnpm typecheck` caza el caso del componente; cuando el fichero roto es un
+  módulo importado por un test, el error aparece como fallo de transformación de esbuild con
+  «Expected ";"». Los dos apuntan al mismo sitio: un backtick de más.

@@ -91,3 +91,33 @@ describe("legalPage.parts: touch-action (Task 13, punto 2 del brief)", () => {
     expect(cssRuleTextFor(enlace)).toContain("touch-action: manipulation");
   });
 });
+
+/*
+ * Afordancia de enlace (Ola B, 2026-08-16). `GlobalStyles` declara
+ * `a { text-decoration: none }` para todo el sitio, y `ScBackLink` usaba
+ * EXACTAMENTE el mismo color que el cuerpo de texto que lo rodea
+ * (`oklch(0.86 0.004 286)` los dos: contraste 1,0:1). En una página legal de
+ * 5.198 px es la única salida de la parte alta, y los enlaces del índice de la
+ * MISMA página sí se distinguían — la incoherencia era interna.
+ *
+ * Lo que se bloquea es la afordancia EN REPOSO, no en hover: un hover no
+ * existe para quien navega con el dedo.
+ *
+ * Validado con el bug inyectado a propósito: quitando `text-decoration:
+ * underline` de `ScBackLink` (`legalPage.parts.tsx`), este test cae en rojo;
+ * restaurado, vuelve a verde.
+ */
+describe("legalPage.parts: afordancia de enlace (Ola B)", () => {
+  it("ScBackLink se subraya en reposo, no solo al pasar el puntero", () => {
+    renderWithProviders(<ScBackLink href="/">Volver</ScBackLink>);
+    const enlace = screen.getByText("Volver");
+    const css = cssRuleTextFor(enlace);
+    const reposo = css.split(":hover")[0];
+
+    expect(
+      reposo,
+      "sin subrayado el enlace es tipográficamente indistinguible de la prosa que lo rodea",
+    ).toContain("text-decoration: underline");
+    expect(reposo).toContain("text-underline-offset");
+  });
+});
