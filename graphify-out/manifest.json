@@ -110,13 +110,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.test.tsx": {
-    "mtime": 1786603920.655872,
-    "ast_hash": "e4c3450e169f006fa647e608bbea2c37",
+    "mtime": 1786871216.236984,
+    "ast_hash": "61a083b37e0a9bf8b754991937e29031",
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.tsx": {
-    "mtime": 1786603920.6589174,
-    "ast_hash": "f4c316cef4ae8960cfc89854a13f5944",
+    "mtime": 1786871188.586935,
+    "ast_hash": "c5d719045b8113f055de735f4fa04895",
     "semantic_hash": ""
   },
   "src/components/ui/Button/Button.test.tsx": {
@@ -1260,8 +1260,8 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.deck.tsx": {
-    "mtime": 1786603920.6589174,
-    "ast_hash": "b2d5b78b0b79fd3d55e1f38cab1c877c",
+    "mtime": 1786871281.4869974,
+    "ast_hash": "f54a5377ced18785541d015b551d966d",
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.layers.test.ts": {
@@ -1900,8 +1900,8 @@
     "semantic_hash": ""
   },
   "task/lessons.md": {
-    "mtime": 1786734205.3716216,
-    "ast_hash": "095f70b56c4ef768cc181f8ee8519816",
+    "mtime": 1786871875.873611,
+    "ast_hash": "c3db35f515fd68b57f8b7a75c53f0dfb",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/Aura.test.tsx": {
