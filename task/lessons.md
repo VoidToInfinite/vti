@@ -1979,3 +1979,20 @@
   exige que NINGUNA diapositiva declare `align-self`) y el docblock guarda la medición de
   las dos variantes, para que el siguiente que quiera anclar tenga los números delante en
   vez de repetir el experimento.
+
+## 2026-08-16 — Reincidencia: backticks dentro de un template literal de styled-components
+
+- **Qué pasó:** al ampliar el selector de `scroll-margin-top` en `GlobalStyles.tsx` escribí un
+  comentario CSS explicando el cambio y lo puntué con backticks (`` `h3[id]` ``, `` `navigation.ts` ``).
+  Ese comentario vive DENTRO del template literal de `createGlobalStyle`, así que el primer
+  backtick lo cerró: `tsc` cayó con cinco errores de sintaxis (`TS1005`, `TS1443`) y ESLint con
+  `Parsing error`.
+- **Por qué duele:** es exactamente la lección del 2026-07-25, ya reincidida el 2026-08-02 y de
+  nuevo en la fix wave D. Los ficheros que la sufrieron llevan el aviso escrito en su propio
+  comentario; `GlobalStyles.tsx` no lo llevaba, y por eso fue el siguiente en caer.
+- **Regla:** antes de escribir un comentario dentro de un template literal de styled-components,
+  se comprueba si el fichero ya tiene el aviso «SIN BACKTICKS»; si no lo tiene, se añade en el
+  mismo movimiento. Los nombres de símbolo van sin comillas de ningún tipo, en texto llano.
+- **Detección barata:** `pnpm typecheck` lo caza en segundos. Un comentario largo dentro de un
+  template literal es motivo suficiente para ejecutarlo ANTES de seguir editando, en vez de
+  descubrirlo al final junto con el resto del gate.

@@ -111,13 +111,35 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
   /* Mismo criterio que ya seguía `DISCOVER_LINKS` en el Footer: Learning,
      Imagination y Gaming son los TÍTULOS de `Home.features.*`, no claves de
-     navegación nuevas -- los tres apuntan a la misma sección `/#features`. */
+     navegación nuevas.
+   *
+   * CADA UNO LLEVA A SU PROPIA TARJETA, no los tres a `/#features`. Hasta el
+   * 2026-08-16 los tres compartían destino, y el efecto medido era peor de lo
+   * que suena: contando las tres superficies que consumen este modelo
+   * (`Navbar`, `NavSheet`, `Footer`), `/#features` era el destino de **12
+   * enlaces con 4 etiquetas distintas** — «Características», «Aprende»,
+   * «Imagina» y «Juega» —, frente a 3 enlaces por cada una de las otras
+   * secciones. Un menú que ofrece cuatro nombres y entrega un solo sitio no
+   * está informando de nada: está prometiendo una elección que no existe.
+   *
+   * Los destinos separados YA EXISTÍAN en el DOM sin que nadie los usara:
+   * `Features.tsx` emite `id={`feature-${key}-title`}` en el `<h3>` de cada
+   * tarjeta desde que existen las tarjetas. Lo único que faltaba era que la
+   * navegación dejara de ignorarlos.
+   *
+   * El `key` NO cambia: sigue siendo `learning`/`imagination`/`gaming` porque
+   * es la clave i18n (`home:Home.features.<key>.title`, tabla de resolución
+   * del docblock de arriba). Lo que cambia es solo el `href`. */
   {
     key: "discover",
     items: [
-      { key: "learning", href: "/#features", kind: "feature" },
-      { key: "imagination", href: "/#features", kind: "feature" },
-      { key: "gaming", href: "/#features", kind: "feature" },
+      { key: "learning", href: "/#feature-learning-title", kind: "feature" },
+      {
+        key: "imagination",
+        href: "/#feature-imagination-title",
+        kind: "feature",
+      },
+      { key: "gaming", href: "/#feature-gaming-title", kind: "feature" },
     ],
   },
   /* Único destino externo del modelo hasta esta entrega: el SDK público de

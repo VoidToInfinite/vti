@@ -239,8 +239,21 @@ export const GlobalStyles = createGlobalStyle`
 
   /* El navbar flota fijo sobre el contenido: al saltar a un ancla (#story
      desde el CTA del hero), el destino quedaría tapado por la barra. El
-     margen de scroll lo compensa sin tocar el layout. */
-  :where(section[id]) {
+     margen de scroll lo compensa sin tocar el layout.
+
+     h3[id] entra en la lista desde el 2026-08-16, cuando los tres destinos de
+     «Descubre» dejaron de apuntar todos a /#features y pasaron a apuntar cada
+     uno a su propia tarjeta (src/config/navigation.ts). Esos destinos son los
+     h3 con id="feature-...-title" que Features.tsx ya emitía, y sin este
+     margen aterrizarían justo DEBAJO de la barra fija: el arreglo de
+     navegación habría creado un defecto de layout. Son los UNICOS h3 con id
+     del sitio (verificado contra el HTML construido), así que el selector no
+     alcanza nada más.
+
+     SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
+     literal de styled-components, donde un backtick lo cierra y rompe el
+     build (leccion del repo, task/lessons.md 2026-07-25). */
+  :where(section[id], h3[id]) {
     scroll-margin-top: calc(var(--nav-height) + var(--nav-gap));
   }
 

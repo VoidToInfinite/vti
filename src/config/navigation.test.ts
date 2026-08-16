@@ -65,9 +65,13 @@ const EXPECTED_ITEMS: Record<
     { key: "contact", href: "/#contact", kind: "section" },
   ],
   discover: [
-    { key: "learning", href: "/#features", kind: "feature" },
-    { key: "imagination", href: "/#features", kind: "feature" },
-    { key: "gaming", href: "/#features", kind: "feature" },
+    { key: "learning", href: "/#feature-learning-title", kind: "feature" },
+    {
+      key: "imagination",
+      href: "/#feature-imagination-title",
+      kind: "feature",
+    },
+    { key: "gaming", href: "/#feature-gaming-title", kind: "feature" },
   ],
   resources: [{ key: "sdk", href: links.sdk, kind: "external" }],
   // Grupo nuevo (auditoría premium, tarea 6): Discord y GitHub, ambos
@@ -177,5 +181,40 @@ describe("NAV_GROUPS", () => {
         expect(value?.trim()).not.toBe("");
       },
     );
+  });
+});
+
+/*
+ * Candado de destinos DISTINGUIBLES (Ola B, 2026-08-16). Hasta esa fecha los
+ * tres ítems de «Descubre» apuntaban los tres a `/#features`, y contando las
+ * tres superficies que consumen este modelo (Navbar, NavSheet, Footer) eso
+ * eran 12 enlaces con 4 etiquetas distintas cayendo en un único sitio.
+ *
+ * Lo que se bloquea no es "que los href sean estos" —eso ya lo hace la tabla
+ * EXPECTED_ITEMS de arriba— sino la propiedad de la que depende que el menú
+ * informe: que dos etiquetas distintas no compartan destino.
+ *
+ * Validado con el bug inyectado a propósito: devolviendo `learning` a
+ * `/#features` en `navigation.ts`, este test cae en rojo nombrando el destino
+ * duplicado; restaurado, vuelve a verde.
+ */
+describe("destinos distinguibles", () => {
+  it("dos ítems de navegación no comparten href, salvo los externos", () => {
+    const internos = NAV_GROUPS.flatMap((group) => group.items).filter(
+      (item) => item.kind !== "external",
+    );
+    const porHref = new Map<string, string[]>();
+    internos.forEach((item) => {
+      porHref.set(item.href, [...(porHref.get(item.href) ?? []), item.key]);
+    });
+    const duplicados = [...porHref.entries()].filter(
+      ([, claves]) => claves.length > 1,
+    );
+    expect(
+      duplicados,
+      `estos destinos los comparten varias etiquetas, así que el menú ofrece una elección que no existe: ${duplicados
+        .map(([href, claves]) => `${href} <- ${claves.join(", ")}`)
+        .join(" | ")}`,
+    ).toHaveLength(0);
   });
 });
