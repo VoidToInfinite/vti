@@ -2400,7 +2400,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_source_extractionmethod",
-      "community": 355,
+      "community": 319,
       "norm_label": "extractionmethod"
     },
     {
@@ -2410,7 +2410,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_extractionmethod_summary",
-      "community": 355,
+      "community": 319,
       "norm_label": "summary"
     },
     {
@@ -2420,7 +2420,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_extractionmethod_steps",
-      "community": 355,
+      "community": 319,
       "norm_label": "steps"
     },
     {
@@ -2430,7 +2430,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "assets_hero_aura_manifest_extractionmethod_knownlimitation",
-      "community": 355,
+      "community": 319,
       "norm_label": "knownlimitation"
     },
     {
@@ -100398,5 +100398,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "212cc01121ea31a4d1b8c5ecad0c7f3e751fe417"
+  "built_at_commit": "10707fde5aecf4c03f1cb12ecdb05f7f1430bc3b"
 }

@@ -1,7 +1,7 @@
 # Graph Report - vti  (2026-08-16)
 
 ## Corpus Check
-- 449 files · ~4,223,952 words
+- 449 files · ~4,224,359 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `212cc011`
+- Built from commit: `10707fde`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -331,6 +331,7 @@
 - [[_COMMUNITY_layout.tsx|layout.tsx]]
 - [[_COMMUNITY_LanguageSelector.tsx|LanguageSelector.tsx]]
 - [[_COMMUNITY_opengraph-image.tsx|opengraph-image.tsx]]
+- [[_COMMUNITY_links.ts|links.ts]]
 - [[_COMMUNITY_vocabulary-consumers.test.ts|vocabulary-consumers.test.ts]]
 - [[_COMMUNITY_VisuallyHidden.tsx|VisuallyHidden.tsx]]
 - [[_COMMUNITY_legalPage.parts.test.tsx|legalPage.parts.test.tsx]]
@@ -356,7 +357,6 @@
 - [[_COMMUNITY_useThemeScrollReset.test.tsx|useThemeScrollReset.test.tsx]]
 - [[_COMMUNITY_config.ts|config.ts]]
 - [[_COMMUNITY_BrandName.tsx|BrandName.tsx]]
-- [[_COMMUNITY_LanguageSelector.tsx|LanguageSelector.tsx]]
 - [[_COMMUNITY_jsonLd.ts|jsonLd.ts]]
 - [[_COMMUNITY_VisuallyHidden.tsx|VisuallyHidden.tsx]]
 
@@ -1393,6 +1393,10 @@ Nodes (5): HERO_BACKDROP_HOLD_MS, HeroCopySwap, Probe(), useHeroCopySwap(), HERO
 Cohesion: 0.28
 Nodes (5): clickToggle(), eyeDelayOf(), flushMicrotasks(), partOf(), renderHeroBackdrop()
 
+### Community 319 - "links.ts"
+Cohesion: 0.50
+Nodes (4): knownLimitation, steps, summary, extractionMethod
+
 ### Community 320 - "vocabulary-consumers.test.ts"
 Cohesion: 0.18
 Nodes (10): B1 — Detector de anti-patrones: ancla por contenido, no por línea, B2 — Candado de hosts externos: cubre `app/`, B3 — Candado del vocabulario: mide por campo, no por grupo, B4 — `ThemeProvider.tsx`: `localStorage` sin `try/catch`, B5 — `aria-busy` de 1.830 ms por un cruce invisible, B6 — Docblock de `useThemeScrollReset.ts` con premisa falsa, Fix wave B — informe (2026-08-12), Gate (+2 more)
@@ -1452,10 +1456,6 @@ Nodes (18): Providers(), ScSkipLink, SkipLink(), EAGER_NAMESPACES, initI18n(), n
 ### Community 351 - "BrandName.tsx"
 Cohesion: 0.67
 Nodes (3): 1024, 1280, 02-galaxy
-
-### Community 355 - "LanguageSelector.tsx"
-Cohesion: 0.50
-Nodes (4): knownLimitation, steps, summary, extractionMethod
 
 ### Community 356 - "jsonLd.ts"
 Cohesion: 0.14

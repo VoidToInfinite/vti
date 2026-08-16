@@ -318,6 +318,7 @@
   "316": "layout.tsx",
   "317": "LanguageSelector.tsx",
   "318": "opengraph-image.tsx",
+  "319": "links.ts",
   "320": "vocabulary-consumers.test.ts",
   "321": "VisuallyHidden.tsx",
   "322": "legalPage.parts.test.tsx",
@@ -343,7 +344,6 @@
   "348": "useThemeScrollReset.test.tsx",
   "350": "config.ts",
   "351": "BrandName.tsx",
-  "355": "LanguageSelector.tsx",
   "356": "jsonLd.ts",
   "358": "VisuallyHidden.tsx"
 }
