@@ -1,16 +1,16 @@
 # Graph Report - vti  (2026-08-16)
 
 ## Corpus Check
-- 449 files · ~4,224,359 words
+- 449 files · ~4,224,768 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4354 nodes · 5533 edges · 347 communities (272 shown, 75 thin omitted)
+- 4354 nodes · 5533 edges · 348 communities (272 shown, 76 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 22 edges (avg confidence: 0.58)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `10707fde`
+- Built from commit: `72df335d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -288,7 +288,7 @@
 - [[_COMMUNITY_locales.test.ts|locales.test.ts]]
 - [[_COMMUNITY_Typography.tsx|Typography.tsx]]
 - [[_COMMUNITY_05-stars-near|05-stars-near]]
-- [[_COMMUNITY_step3_endToEndPipelineVerification|step3_endToEndPipelineVerification]]
+- [[_COMMUNITY_Hero.qa.test.tsx|Hero.qa.test.tsx]]
 - [[_COMMUNITY_Contact.test.tsx|Contact.test.tsx]]
 - [[_COMMUNITY_features.layers.ts|features.layers.ts]]
 - [[_COMMUNITY_vocabulary.ts|vocabulary.ts]]
@@ -323,7 +323,7 @@
 - [[_COMMUNITY_Task 34 — «detectar no es elegir» la preferencia de tema se persistía sin intervención del usuario|Task 34 — «detectar no es elegir»: la preferencia de tema se persistía sin intervención del usuario]]
 - [[_COMMUNITY_task-13-brief|task-13-brief.md]]
 - [[_COMMUNITY_01-nebula|01-nebula]]
-- [[_COMMUNITY_Input.test.tsx|Input.test.tsx]]
+- [[_COMMUNITY_Typography.tsx|Typography.tsx]]
 - [[_COMMUNITY_task-14-brief|task-14-brief.md]]
 - [[_COMMUNITY_Hero.test.tsx|Hero.test.tsx]]
 - [[_COMMUNITY_basicLightTheme|basicLightTheme]]
@@ -335,6 +335,7 @@
 - [[_COMMUNITY_vocabulary-consumers.test.ts|vocabulary-consumers.test.ts]]
 - [[_COMMUNITY_VisuallyHidden.tsx|VisuallyHidden.tsx]]
 - [[_COMMUNITY_legalPage.parts.test.tsx|legalPage.parts.test.tsx]]
+- [[_COMMUNITY_Input.test.tsx|Input.test.tsx]]
 - [[_COMMUNITY_task-19-brief|task-19-brief.md]]
 - [[_COMMUNITY_task-35-brief|task-35-brief.md]]
 - [[_COMMUNITY_HomeSections.tsx|HomeSections.tsx]]
@@ -387,7 +388,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (347 total, 75 thin omitted)
+## Communities (348 total, 76 thin omitted)
 
 ### Community 0 - "themes.ts"
 Cohesion: 0.15
@@ -572,10 +573,6 @@ Nodes (13): Accesibilidad: nombre accesible real, reforzado desde el principio, 
 ### Community 45 - "Task 11 — Sección Contact (la invitación) — Reporte"
 Cohesion: 0.14
 Nodes (13): Archivos cambiados, Autorrevisión, Conteo de `<h1>`, Decisión propia no dictada literalmente por el brief, Evidencia TDD, `git show --stat HEAD`, `git status --short` (tras commit), `pnpm build` (+5 more)
-
-### Community 46 - "Footer.tsx"
-Cohesion: 0.15
-Nodes (9): reglasDe(), renderHero(), todasLasReglas(), CMUL, color, L, Ramp, Step (+1 more)
 
 ### Community 47 - "scripts"
 Cohesion: 0.09
@@ -986,8 +983,8 @@ Cohesion: 0.25
 Nodes (8): JourneyCosmicPortal(), JOURNEY_PORTAL_LAYERS, JOURNEY_PORTAL_POINTER_AMP, JourneyCosmicPortalLayer, ScLayer, ScScene, ScVignette, ScVoid
 
 ### Community 181 - "Typography.tsx"
-Cohesion: 0.16
-Nodes (8): SOL_AURA_SPARKS, SOL_BASIC_SPARKS, SOL_CLINE_ANGLES, SOL_CLINE_GROUPS, SOL_RAY_ANGLES, SolAuraSparkLayout, SolClineGroup, SolSparkLayout
+Cohesion: 0.29
+Nodes (7): SOL_AURA_SPARKS, SOL_BASIC_SPARKS, SOL_CLINE_ANGLES, SOL_CLINE_GROUPS, SolAuraSparkLayout, SolClineGroup, SolSparkLayout
 
 ### Community 182 - "ThemeProvider.tsx"
 Cohesion: 0.10
@@ -1261,9 +1258,9 @@ Nodes (14): 0. Encargo y alcance, 10. Encargos pendientes de reviews anteriores,
 Cohesion: 0.33
 Nodes (6): alphaRecompression20260809, excluded, pendingVisualQA, results, scope, why
 
-### Community 276 - "step3_endToEndPipelineVerification"
+### Community 276 - "Hero.qa.test.tsx"
 Cohesion: 0.15
-Nodes (10): NotFoundContent(), ScMain, ScMessage, BODY_VARIANTS, defaultElement, ScTypography, Typography(), TypographyProps (+2 more)
+Nodes (9): reglasDe(), renderHero(), todasLasReglas(), CMUL, color, L, Ramp, Step (+1 more)
 
 ### Community 277 - "Contact.test.tsx"
 Cohesion: 0.29
@@ -1369,9 +1366,9 @@ Nodes (11): Cambios, Causa raíz, Commits, Concurrencia, Gate, graphify, Resumen
 Cohesion: 0.22
 Nodes (8): 1. Rejilla de Features: por qué "destacada + pareja" y no "columna ancha a 2 filas", 2. Cuerpos del deck: ch antes/después, 3. Subtítulo del hero: line-height y fold antes/después, Capturas, Concurrencia, Resumen, Task 22 — Tipografía de lectura: rejilla de Features, línea del deck, subtítulo del hero, Tests: bug inyectado y restaurado (regla 34)
 
-### Community 311 - "Input.test.tsx"
-Cohesion: 0.19
-Nodes (12): Field(), FieldControlProps, FieldProps, Input(), InputProps, mergeDescribedBy(), ScInput, ScLabel (+4 more)
+### Community 311 - "Typography.tsx"
+Cohesion: 0.15
+Nodes (10): NotFoundContent(), ScMain, ScMessage, BODY_VARIANTS, defaultElement, ScTypography, Typography(), TypographyProps (+2 more)
 
 ### Community 313 - "Hero.test.tsx"
 Cohesion: 0.20
@@ -1401,6 +1398,10 @@ Nodes (4): knownLimitation, steps, summary, extractionMethod
 Cohesion: 0.18
 Nodes (10): B1 — Detector de anti-patrones: ancla por contenido, no por línea, B2 — Candado de hosts externos: cubre `app/`, B3 — Candado del vocabulario: mide por campo, no por grupo, B4 — `ThemeProvider.tsx`: `localStorage` sin `try/catch`, B5 — `aria-busy` de 1.830 ms por un cruce invisible, B6 — Docblock de `useThemeScrollReset.ts` con premisa falsa, Fix wave B — informe (2026-08-12), Gate (+2 more)
 
+### Community 323 - "Input.test.tsx"
+Cohesion: 0.19
+Nodes (12): Field(), FieldControlProps, FieldProps, Input(), InputProps, mergeDescribedBy(), ScInput, ScLabel (+4 more)
+
 ### Community 328 - "HomeSections.tsx"
 Cohesion: 0.18
 Nodes (10): bugs, url, contributors, engines, node, name, packageManager, private (+2 more)
@@ -1410,8 +1411,8 @@ Cohesion: 0.22
 Nodes (8): 1. `Button.tsx` — el guard de `reduce` no ganaba por especificidad (bug real), 2. `vocabulary-consumers.test.ts` — `stripComments` truncaba por un `//` dentro de una URL, 3. Precisión del report sobre `stepMs` (punto 3 del brief), 4. Por qué el gate completo no se re-ejecutó de punta a punta EN LA PRIMERA RONDA (resuelto en §5), 5. Segunda ronda — el cabo cruzado (`example.com`) + gate completo + navegador, Concurrencia, Ficheros tocados (las dos rondas), Task 19 — Fix round (revisión del coordinador)
 
 ### Community 332 - "useSolCycle.ts"
-Cohesion: 0.50
-Nodes (4): otherVariant(), SolCycle, SolVariant, useSolCycle()
+Cohesion: 0.40
+Nodes (5): Sol(), otherVariant(), SolCycle, SolVariant, useSolCycle()
 
 ### Community 333 - "useSolTiltSpin.ts"
 Cohesion: 0.29
@@ -1442,8 +1443,8 @@ Cohesion: 0.21
 Nodes (8): NAV_GROUPS, NavGroupKey, NavItem, NavItemKind, EXPECTED_ITEMS, GROUP_ORDER, JsonTree, JsonValue
 
 ### Community 345 - "useSolTiltSpin.ts"
-Cohesion: 0.50
-Nodes (4): Sol(), prefersReducedMotion(), SolTiltSpin, useSolTiltSpin()
+Cohesion: 0.67
+Nodes (3): prefersReducedMotion(), SolTiltSpin, useSolTiltSpin()
 
 ### Community 348 - "useThemeScrollReset.test.tsx"
 Cohesion: 0.18
@@ -1468,14 +1469,14 @@ Nodes (3): ScVisuallyHidden, VisuallyHidden(), VisuallyHiddenProps
 ## Knowledge Gaps
 - **2768 isolated node(s):** `fontBody`, `fontMono`, `metadata`, `viewport`, `paginas` (+2763 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **75 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **76 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `useTheme()` connect `VisuallyHidden.tsx` to `Features.tsx`, `Journey.tsx`, `Story.tsx`, `Contact.tsx`, `HeroBackdrop.tsx`, `ThemeProvider.tsx`, `LegalHeader.tsx`, `color.ts`, `Hero.test.tsx`, `layout.tsx`, `useThemeScrollReset.test.tsx`, `LanguageSelector.tsx`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
-- **Why does `renderWithProviders()` connect `pipeline` to `metadata.ts`, `Button.tsx`, `locales.test.ts`, `step3_endToEndPipelineVerification`, `Aura.tsx`, `useReveal`, `story.deck.tsx`, `Features.tsx`, `config.ts`, `story.deck.tsx`, `Footer.tsx`, `Story.test.tsx`, `footer.layers.ts`, `Typography.tsx`, `ThemeProvider.tsx`, `Input.test.tsx`, `Hero.test.tsx`, `LanguageSelector.tsx`, `opengraph-image.tsx`, `Features.test.tsx`, `hero.transition.ts`, `LegalHeader.tsx`, `useThemeScrollReset.test.tsx`, `config.ts`, `jsonLd.ts`, `VisuallyHidden.tsx`, `HeroBackdrop.tsx`, `06-figure`?**
+- **Why does `renderWithProviders()` connect `pipeline` to `metadata.ts`, `Button.tsx`, `locales.test.ts`, `Hero.qa.test.tsx`, `Aura.tsx`, `useReveal`, `story.deck.tsx`, `Features.tsx`, `Footer.tsx`, `story.deck.tsx`, `config.ts`, `Story.test.tsx`, `footer.layers.ts`, `ThemeProvider.tsx`, `Typography.tsx`, `Hero.test.tsx`, `LanguageSelector.tsx`, `opengraph-image.tsx`, `Input.test.tsx`, `Features.test.tsx`, `hero.transition.ts`, `LegalHeader.tsx`, `useThemeScrollReset.test.tsx`, `config.ts`, `jsonLd.ts`, `VisuallyHidden.tsx`, `HeroBackdrop.tsx`, `06-figure`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Why does `useSectionProgress()` connect `usePointer.test.tsx` to `Features.tsx`, `Journey.tsx`, `Story.tsx`, `story.deck.tsx`, `Contact.tsx`, `config.ts`, `Input.tsx`, `VisuallyHidden.tsx`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
