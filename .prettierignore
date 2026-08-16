@@ -47,3 +47,13 @@ yarn.lock
 # (observado el 2026-08-13: `check-format` en rojo por este unico fichero,
 # aparecido esa manana, con el resto del gate limpio).
 .codex/
+
+# Ajustes locales de Claude Code. Mismo criterio que `.codex/` de arriba, con
+# un motivo mas para ignorarlo: esta gitignorado (no llega ni a GitHub Actions
+# ni a Netlify) y la propia herramienta lo REESCRIBE cada vez que se concede un
+# permiso, en la maquina de quien lo concede -- asi que formatearlo no seria un
+# arreglo, seria una pelea que se pierde en la siguiente sesion. Aparecio como
+# rojo del gate el 2026-08-16, al fijar LF en todo el arbol (.gitattributes):
+# la unica diferencia era el fin de linea, el contenido era identico byte a
+# byte tras quitar los CR.
+.claude/settings.local.json
