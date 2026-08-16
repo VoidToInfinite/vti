@@ -1340,6 +1340,72 @@ describe("Navbar", () => {
       return hoja as HTMLElement;
     }
 
+    function focalizablesDe(hoja: HTMLElement): HTMLElement[] {
+      return Array.from(
+        hoja.querySelectorAll<HTMLElement>("a[href], button:not([disabled])"),
+      );
+    }
+
+    /*
+     * Candados de la Ola C.1 (2026-08-16): la hoja pasa a ser un diálogo de
+     * verdad. Antes tenía todo el COMPORTAMIENTO —velo opaco real, foco que
+     * entra al abrir, Escape que cierra y devuelve el foco al disparador— y
+     * nada de la SEMÁNTICA, y además el foco se escapaba por el final: medido
+     * en navegador real a 390px, tabular más allá del último elemento llevaba
+     * el foco a Features y el navegador arrastraba la página de `scrollY` 0 a
+     * 12.539, sin ningún aviso y sin forma de volver.
+     *
+     * Validados con bugs inyectados a propósito: quitando `role="dialog"` de
+     * `ScNavSheet` cae el primero; quitando la rama de `Tab` del `keydown` cae
+     * el segundo. Restaurados, los dos vuelven a verde.
+     */
+    it("es un role=dialog y solo declara aria-modal mientras está abierta", () => {
+      const { container } = renderWithProviders(<Navbar />);
+      const hoja = getSheet(container);
+      expect(hoja).toHaveAttribute("role", "dialog");
+      expect(
+        hoja.getAttribute("aria-modal"),
+        "cerrada la hoja sigue en el DOM: declarar aria-modal afirmaría que hay un modal activo cuando no lo hay",
+      ).toBeNull();
+
+      act(() => {
+        fireEvent.click(getSheetTrigger());
+      });
+      expect(hoja).toHaveAttribute("aria-modal", "true");
+    });
+
+    it("el foco cicla dentro de la hoja en los dos sentidos", () => {
+      const { container } = renderWithProviders(<Navbar />);
+      const hoja = getSheet(container);
+      act(() => {
+        fireEvent.click(getSheetTrigger());
+      });
+
+      const focalizables = focalizablesDe(hoja);
+      expect(focalizables.length).toBeGreaterThan(1);
+      const primero = focalizables[0];
+      const ultimo = focalizables[focalizables.length - 1];
+
+      act(() => {
+        ultimo.focus();
+      });
+      act(() => {
+        fireEvent.keyDown(document, { key: "Tab" });
+      });
+      expect(
+        document.activeElement,
+        "el foco se escapó por el final: fuera de la hoja le espera un salto de 12.539 px",
+      ).toBe(primero);
+
+      act(() => {
+        fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+      });
+      expect(
+        document.activeElement,
+        "el foco se escapó hacia atrás: es el mismo defecto por el otro lado",
+      ).toBe(ultimo);
+    });
+
     /** Primera clase del elemento que aparece en alguna regla inyectada. */
     function claseInyectadaDe(el: Element, reglas: string[]): string {
       return (

@@ -887,12 +887,86 @@ export function useNavSheet(): NavSheetController {
       );
     }
 
+    /*
+     * Trampa de foco (Ola C.1, 2026-08-16). El defecto que cierra estaba
+     * medido y no era teórico: con la hoja abierta a 390px y `scrollY = 0`,
+     * tabular 14 veces recorría sus 14 elementos y el `Tab` número 15 llevaba
+     * el foco a «Hablemos de aprender →», dentro de Features. La hoja se
+     * cerraba, y el navegador arrastraba al viewport el elemento recién
+     * enfocado: **`scrollY` saltaba de 0 a 12.539** sin ningún aviso. Un
+     * usuario de teclado no tenía forma de saber qué había pasado ni de
+     * volver salvo recorrer la página entera hacia arriba.
+     *
+     * Se implementa a mano y no con `<dialog>`: esta hoja se abre y se cierra
+     * con `visibility` + `inert` + `opacity`/`transform` (ver el docblock de
+     * este fichero, punto 2), no montándose y desmontándose, así que
+     * `showModal()` exigiría rehacer toda su coreografía de apertura.
+     *
+     * `inert` ya saca del orden de tabulación TODO lo que está fuera cuando la
+     * hoja está cerrada, pero no al revés: con la hoja ABIERTA, el resto del
+     * documento sigue siendo tabulable. Esto lo suple ciclando dentro.
+     */
+    function focusables(): HTMLElement[] {
+      const sheet = sheetRef.current;
+      if (!sheet) return [];
+      /*
+       * SIN filtro de visibilidad a propósito. El primer intento descartaba
+       * lo oculto con `offsetParent !== null`, y eso es exactamente la trampa
+       * que el repo tiene documentada: jsdom NO calcula layout, así que ahí
+       * `offsetParent` es SIEMPRE `null` y la lista se quedaba vacía — el
+       * candado de `Navbar.test.tsx` lo cazó en el primer intento.
+       *
+       * Tampoco hace falta: mientras la hoja está abierta, todo lo que hay
+       * dentro es alcanzable de verdad. Lo que se oculta es la hoja ENTERA, y
+       * de eso ya se encargan `visibility` + `inert` en `ScNavSheet`, que
+       * sacan del orden de tabulación todo el subárbol de una vez.
+       */
+      return Array.from(
+        sheet.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+    }
+
     function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key !== "Escape") return;
-      // Fix wave A: MISMO par que el botón de cierre propio (ver
-      // `closeAndFocusTrigger` -- antes duplicado aquí a mano, ahora una
-      // única función para los dos caminos que "cierran sin navegar").
-      closeAndFocusTrigger();
+      if (event.key === "Escape") {
+        // Fix wave A: MISMO par que el botón de cierre propio (ver
+        // `closeAndFocusTrigger` -- antes duplicado aquí a mano, ahora una
+        // única función para los dos caminos que "cierran sin navegar").
+        closeAndFocusTrigger();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const primero = items[0];
+      const ultimo = items[items.length - 1];
+      const activo = document.activeElement;
+
+      // El ciclo se cierra en los DOS sentidos: Tab desde el último vuelve al
+      // primero, y Shift+Tab desde el primero va al último. Sin la segunda
+      // mitad, el foco se escaparía hacia atrás -- hacia el disparador y de
+      // ahí al resto de la barra -- que es el mismo defecto por el otro lado.
+      if (!event.shiftKey && activo === ultimo) {
+        event.preventDefault();
+        primero.focus();
+        return;
+      }
+      if (event.shiftKey && activo === primero) {
+        event.preventDefault();
+        ultimo.focus();
+        return;
+      }
+      // Si el foco ya se hubiera ido fuera de la hoja por cualquier otra vía,
+      // se devuelve dentro en vez de dejarlo escapar.
+      if (
+        activo instanceof Node &&
+        sheetRef.current?.contains(activo) !== true
+      ) {
+        event.preventDefault();
+        primero.focus();
+      }
     }
 
     function handlePointerDown(event: PointerEvent): void {
@@ -1177,9 +1251,25 @@ export function NavSheet({
         data-nav-sheet-veil
         data-open={isOpen}
       />
+      {/* `role="dialog"` + `aria-modal` (Ola C.1, 2026-08-16). Hasta ahora
+          esta hoja tenía TODO el comportamiento de un diálogo —velo opaco
+          real (`ScSheetVeil`, `oklch(0.178 0 0 / 0.68)`), foco que entra al
+          abrir, `Escape` que cierra y devuelve el foco al disparador— y
+          ninguna de su semántica: `document.querySelector('[role="dialog"]')`
+          no encontraba nada, así que un lector de pantalla la anunciaba como
+          un grupo cualquiera y no avisaba de que el resto de la página quedaba
+          detrás.
+
+          `aria-modal` se declara SOLO mientras está abierta, y no siempre:
+          cerrada, la hoja sigue en el DOM (se oculta con `visibility` +
+          `inert`, no desmontándose), y un `aria-modal="true"` permanente
+          afirmaría que hay un modal activo cuando no lo hay. `undefined` no
+          emite el atributo. */}
       <ScNavSheet
         id={sheetId}
         ref={sheetRef}
+        role="dialog"
+        aria-modal={isOpen ? true : undefined}
         aria-labelledby={triggerId}
         data-nav-sheet
         data-open={isOpen}
