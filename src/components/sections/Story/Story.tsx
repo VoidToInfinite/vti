@@ -964,7 +964,28 @@ const ScDeckPillarRow = styled(ScPillarRow)`
  * ScStatementFirst/Second/Third, mas abajo).
  */
 const ScStatement = styled.section`
-  min-height: 100dvh;
+  /* 70dvh y no 100dvh (Ola B, 2026-08-16). Esta seccion es un remate a
+     pantalla completa por diseño, y el problema no era ese: era que su
+     contenido mide unos 120 px y se centra en una banda de 900, asi que entre
+     el ultimo texto de Story y el primero de este quedaban 308 px sin nada a
+     la vista incluso despues de recortar el relleno de la frontera.
+
+     LO QUE NO SE HACE, y conviene dejarlo escrito porque era la salida obvia:
+     NO se cambia justify-content a flex-start. Anclar arriba un bloque
+     pequeño dentro de una banda alta es exactamente el defecto que el dueño
+     rechazo esta misma mañana en la diapositiva de cierre del deck oscuro
+     --dejaba 431 px de hueco vacio DEBAJO a 1920x905-- y aqui produciria lo
+     mismo un poco mas abajo. Mover el hueco no es cerrarlo.
+
+     Reducir la banda si lo cierra, y de forma simetrica: el contenido sigue
+     centrado, y los dos huecos --el de arriba y el de abajo-- se encogen a la
+     vez. 70dvh conserva el caracter de remate (sigue siendo la pieza mas alta
+     de la rama clara y sigue ocupando la mayor parte del viewport) sin
+     reservar una pantalla entera para 120 px de texto.
+
+     SIN BACKTICKS: esto vive dentro del template literal de
+     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+  min-height: 70dvh;
   display: flex;
   flex-direction: column;
   align-items: center;

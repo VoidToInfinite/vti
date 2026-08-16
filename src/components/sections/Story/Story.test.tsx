@@ -930,7 +930,7 @@ describe("Story: statement a pantalla completa, reveal por IntersectionObserver 
     expect(lines[2].textContent).toBe(esHome.Home.story.statement.third);
   });
 
-  it("D2: #statement es UNA sola <section> que contiene directamente el parrafo -- min-height: 100dvh, sin position: sticky/top ni ninguna height: de varias pantallas", () => {
+  it("D2: #statement es UNA sola <section> que contiene directamente el parrafo -- min-height como suelo (70dvh), sin position: sticky/top ni ninguna height: de varias pantallas", () => {
     const { container } = renderWithProviders(<Story />);
     const statement = container.querySelector("#statement") as HTMLElement;
     const paragraph = statement.querySelector("p") as HTMLElement;
@@ -947,7 +947,26 @@ describe("Story: statement a pantalla completa, reveal por IntersectionObserver 
 
     const css = cssRuleTextFor(statement);
     const topLevelCss = css.split("@media")[0];
-    expect(topLevelCss).toContain("min-height: 100dvh");
+    /*
+     * 70dvh desde el 2026-08-16 (Ola B), antes 100dvh. El valor concreto NO es
+     * lo que este candado protege —lo que protege es que sea un SUELO
+     * (`min-height`) y no un alto fijo, y que no haya `sticky`— pero se ata
+     * igualmente porque cambiarlo tiene consecuencias medidas.
+     *
+     * Por qué bajó: el contenido de esta sección mide unos 120 px y se centra
+     * en su banda, así que con 100dvh quedaban 308 px sin nada a la vista
+     * entre el último texto de Story y el primero de éste, incluso tras
+     * recortar el relleno de la frontera. Con 70dvh el hueco baja a 173 px,
+     * medido a 1440x900 en tema claro.
+     *
+     * Y lo que NO se hizo, que es la parte que conviene que sobreviva a este
+     * test: no se cambió `justify-content` a `flex-start`. Anclar arriba un
+     * bloque pequeño en una banda alta es el defecto que el dueño rechazó esa
+     * misma mañana en la diapositiva de cierre del deck oscuro. Mover el hueco
+     * no es cerrarlo.
+     */
+    expect(topLevelCss).toContain("min-height: 70dvh");
+    expect(topLevelCss).toContain("justify-content: center");
     expect(topLevelCss).not.toContain("position: sticky");
     expect(topLevelCss).not.toContain("top: 0");
 
