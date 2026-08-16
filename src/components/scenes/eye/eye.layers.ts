@@ -91,6 +91,36 @@ export const EYE_LAYERS: readonly EyeLayer[] = [
  */
 export const EYE_SIZES = "(max-width: 700px) 60vw, 100vw";
 
+/**
+ * Descriptores de precarga del arte oscuro, en el MISMO formato que emite el
+ * `<img>` de `Eye.tsx`. Los consume el script de arranque del tema
+ * (`buildThemeBootstrapScript`, `src/theme/resolveTheme.ts`), que es el único
+ * punto del sitio que conoce el tema resuelto ANTES de hidratar.
+ *
+ * POR QUÉ VIVE AQUÍ y no en `layout.tsx` ni en `resolveTheme.ts`: el navegador
+ * solo reconoce una precarga y la petición del `<img>` como la MISMA cosa si
+ * `imagesrcset`/`imagesizes` coinciden con `srcSet`/`sizes` carácter a
+ * carácter. Si divergen, la imagen se descarga dos veces y el arreglo sale más
+ * caro que el defecto. Declarándolo junto a la tabla de capas que las dos
+ * partes consumen, la única forma de que diverjan es que alguien cambie la
+ * plantilla de `Eye.tsx` sin tocar ésta — y para eso está el candado de
+ * `Eye.test.tsx`, que compara lo que el componente RENDERIZA de verdad contra
+ * esta lista, no una constante contra otra.
+ *
+ * Ganancia medida contra el build de producción con estrangulamiento (4× CPU,
+ * ~1,6 Mbps, 150 ms de latencia, contexto nuevo por corrida, mediana de 3, la
+ * misma sesión para las dos ramas): **LCP oscuro 10.388 ms → 2.108 ms** y el
+ * elemento LCP deja de ser una capa del ojo para pasar a ser texto. El tema
+ * claro no cambia (2.252 → 2.212 ms, dentro del ruido): no se le inyecta nada.
+ */
+export const EYE_PRELOADS: readonly {
+  readonly srcSet: string;
+  readonly sizes: string;
+}[] = EYE_LAYERS.map((layer) => ({
+  srcSet: `${layer.srcSmall} 1024w, ${layer.src} 1672w`,
+  sizes: EYE_SIZES,
+}));
+
 /** Relación de aspecto del lienzo original (1672 × 941). */
 export const EYE_ASPECT = "1672 / 941";
 

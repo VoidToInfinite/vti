@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen, fireEvent, act } from "@/test/test-utils";
 import { HERO_STEP_MS } from "@/components/sections/Hero/hero.transition";
 import { Eye } from "./Eye";
-import { EYE_LAYERS, EYE_STAGGER } from "./eye.layers";
+import { EYE_LAYERS, EYE_PRELOADS, EYE_STAGGER } from "./eye.layers";
 
 /**
  * Mock minimo de `matchMedia`. `usePointer` (consumido por `Eye`) llama a
@@ -602,6 +602,40 @@ describe("Eye bajo @media (scripting: none) (fallback sin JavaScript)", () => {
       // apagarla, el fill backwards del heroEyeIn que nunca llega a
       // dispararse dejaria la capa gobernada por una animacion muerta.
       expect(regla.style.animation).toBe("none");
+    });
+  });
+});
+
+/*
+ * Candado de `EYE_PRELOADS` (Ola A.1, 2026-08-16). Existe porque el navegador
+ * solo trata una precarga y la petición del `<img>` como la MISMA cosa si
+ * `imagesrcset`/`imagesizes` coinciden con `srcSet`/`sizes` carácter a
+ * carácter; si divergen, la imagen se descarga DOS veces y el arreglo de
+ * rendimiento se convierte en un defecto de rendimiento.
+ *
+ * NO es tautológico aunque las dos partes salgan de `EYE_LAYERS`: `Eye.tsx`
+ * construye su `srcSet` con su propia plantilla literal, y `EYE_PRELOADS`
+ * construye la suya. Este test compara lo que el componente RENDERIZA de
+ * verdad contra la lista que el script de arranque inyecta — que es
+ * exactamente el punto por donde pueden separarse.
+ *
+ * Validado con el bug inyectado a propósito: cambiando `1672w` por `1673w` en
+ * la plantilla de `EYE_PRELOADS` (`eye.layers.ts`), este test cae en rojo;
+ * restaurado, vuelve a verde.
+ */
+describe("Eye: las precargas del arranque coinciden con lo que se renderiza", () => {
+  it("cada capa renderizada tiene una precarga con su srcSet y su sizes exactos", () => {
+    const { container } = renderWithProviders(<Eye />);
+    const imgs = Array.from(container.querySelectorAll("img"));
+    expect(imgs).toHaveLength(EYE_LAYERS.length);
+    expect(EYE_PRELOADS).toHaveLength(EYE_LAYERS.length);
+
+    imgs.forEach((img, i) => {
+      expect(
+        img.getAttribute("srcset"),
+        `la capa ${i} renderiza un srcSet que ninguna precarga reproduce: el navegador descargaría la imagen dos veces`,
+      ).toBe(EYE_PRELOADS[i].srcSet);
+      expect(img.getAttribute("sizes")).toBe(EYE_PRELOADS[i].sizes);
     });
   });
 });

@@ -5,6 +5,7 @@ import { SITE } from "@/config/site";
 import { JsonLdScript } from "@/seo/JsonLdScript";
 import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
 import { buildMetadata } from "@/seo/metadata";
+import { EYE_PRELOADS } from "@/components/scenes/eye/eye.layers";
 import { buildThemeBootstrapScript } from "@/theme/resolveTheme";
 import { Providers } from "./providers";
 
@@ -277,7 +278,9 @@ export default function RootLayout({
          */}
         <script
           id="theme-bootstrap"
-          dangerouslySetInnerHTML={{ __html: buildThemeBootstrapScript() }}
+          dangerouslySetInnerHTML={{
+            __html: buildThemeBootstrapScript(EYE_PRELOADS),
+          }}
         />
       </head>
       <body>

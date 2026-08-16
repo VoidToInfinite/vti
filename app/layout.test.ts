@@ -140,9 +140,21 @@ describe("app/layout.tsx — anti-flash de tema (Task 9, mecanismo Task 31)", ()
     ).not.toBeNull();
     expect(scriptTag?.[0]).toContain('id="theme-bootstrap"');
     expect(scriptTag?.[0]).not.toContain("strategy=");
-    expect(scriptTag?.[0]).toContain(
-      "dangerouslySetInnerHTML={{ __html: buildThemeBootstrapScript() }}",
-    );
+    /*
+     * Se comprueba el MECANISMO (`dangerouslySetInnerHTML` alimentado por el
+     * constructor del script), no la línea entera formateada: desde la Ola A.1
+     * (2026-08-16) la llamada recibe `EYE_PRELOADS` y Prettier la parte en
+     * varias líneas, así que exigir el literal exacto convertía este candado en
+     * un test de formato. Lo que NO puede cambiar sin que esto se entere es que
+     * el `<script>` siga recibiendo su contenido del constructor y no de otra
+     * fuente.
+     */
+    expect(scriptTag?.[0]).toContain("dangerouslySetInnerHTML");
+    expect(scriptTag?.[0]).toMatch(/__html:\s*buildThemeBootstrapScript\(/);
+    expect(
+      scriptTag?.[0],
+      "el script de arranque dejó de recibir las precargas del arte oscuro (Ola A.1): sin ellas el LCP oscuro vuelve a 10,4 s",
+    ).toContain("EYE_PRELOADS");
   });
 });
 
