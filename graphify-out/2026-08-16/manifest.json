@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.tsx": {
-    "mtime": 1786874359.1227527,
-    "ast_hash": "68816ecf9fe0eefc7c2459bf3f413398",
+    "mtime": 1786904115.3226366,
+    "ast_hash": "53ee08cbe3049350e76c39595da69cc7",
     "semantic_hash": ""
   },
   "src/components/ui/Button/Button.test.tsx": {
@@ -1750,8 +1750,8 @@
     "semantic_hash": ""
   },
   "src/components/legal/legalPage.parts.tsx": {
-    "mtime": 1786874359.0213923,
-    "ast_hash": "859cc8e49f7f5d7ff05e8e740556b40a",
+    "mtime": 1786904179.3418539,
+    "ast_hash": "2a908218c3b7582b6d8a8989ce3a272e",
     "semantic_hash": ""
   },
   "src/config/legal.test.ts": {
@@ -1900,8 +1900,8 @@
     "semantic_hash": ""
   },
   "task/lessons.md": {
-    "mtime": 1786898798.0198014,
-    "ast_hash": "dffb78ceb72c81f7922d4b4c0bbe1676",
+    "mtime": 1786904520.9936175,
+    "ast_hash": "eefa9ddf395087b7e6ecc54bd12ed38d",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/Aura.test.tsx": {
@@ -2285,8 +2285,8 @@
     "semantic_hash": ""
   },
   "src/components/legal/legalPage.parts.test.tsx": {
-    "mtime": 1786874359.0189955,
-    "ast_hash": "3f7cbb5d06a22900507bdf2c1338c17a",
+    "mtime": 1786904022.0820918,
+    "ast_hash": "75ffdbe33ce91a4da3795b42d9e62e43",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-08-implementacion-auditoria-premium/task-8-report.md": {
