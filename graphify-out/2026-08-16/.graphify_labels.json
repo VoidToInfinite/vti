@@ -344,7 +344,6 @@
   "342": "02-galaxy",
   "343": "navigation.ts",
   "344": "meanAbsDiff255",
-  "345": "Logo.tsx",
   "346": "task-24-brief.md",
   "347": "task-25-brief.md",
   "348": "usePointer.test.tsx",
@@ -355,6 +354,8 @@
   "353": "VisuallyHidden.tsx",
   "354": "features.layers.ts",
   "355": "LanguageSelector.tsx",
+  "356": "BackToTop.test.tsx",
   "357": "LanguageSelector.tsx",
+  "358": "journey.layers.ts",
   "359": "pillarBadgeAccent"
 }
