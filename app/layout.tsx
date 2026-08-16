@@ -6,7 +6,7 @@ import { JsonLdScript } from "@/seo/JsonLdScript";
 import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
 import { buildMetadata } from "@/seo/metadata";
 import { EYE_PRELOADS } from "@/components/scenes/eye/eye.layers";
-import { buildThemeBootstrapScript } from "@/theme/resolveTheme";
+import { buildThemeBootstrapScript, THEME_COLORS } from "@/theme/resolveTheme";
 import { Providers } from "./providers";
 
 const fontBody = Hanken_Grotesk({
@@ -96,10 +96,21 @@ export const metadata: Metadata = {
  * atributo cambia de valor.
  */
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FAFAFA" },
-    { media: "(prefers-color-scheme: dark)", color: "#280739" },
-  ],
+  /*
+   * UNA sola entrada y SIN `media`, desde el 2026-08-16 (Ola C). Antes había
+   * dos, una por `prefers-color-scheme`, y eso ataba el color de la barra del
+   * navegador al SISTEMA OPERATIVO — mientras que el tema de este sitio lo
+   * decide el CONMUTADOR (`localStorage` gana a `prefers`, decisión D-C).
+   * Medido: con el sistema en claro y el conmutador en oscuro, la barra seguía
+   * en `#FAFAFA` sobre una página casi negra.
+   *
+   * El valor estático es el CLARO a propósito: es el tema del HTML que hornea
+   * el build, así que es el correcto mientras nadie ejecute JavaScript. A
+   * partir de ahí lo actualizan el script de arranque (antes del primer
+   * pintado) y `ThemeProvider` (en cada cambio), los dos leyendo de
+   * `THEME_COLORS`.
+   */
+  themeColor: THEME_COLORS.light,
   viewportFit: "cover",
 };
 

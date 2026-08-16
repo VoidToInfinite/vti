@@ -12,6 +12,33 @@ import type { ThemeName } from "./themes";
 export const THEME_ATTRIBUTE = "data-theme";
 
 /**
+ * Color de la barra del navegador por tema. Los dos hex son EXACTAMENTE los
+ * que `app/opengraph-image.tsx` ya documenta y usa para estos MISMOS
+ * primitivos (conversión oklch → OKLab → sRGB lineal → sRGB con gamma, con las
+ * matrices de `src/theme/tokens/contrast.ts`), no un hex elegido a ojo:
+ * claro = `semanticLight.bg` (`color.neutral[50]`), oscuro = `semanticDark.bg`
+ * (`color.secondary[1100]`).
+ *
+ * POR QUÉ VIVEN AQUÍ Y NO EN `layout.tsx`, donde estaban: hasta el 2026-08-16
+ * el `theme-color` se declaraba con DOS entradas, una por
+ * `prefers-color-scheme`. Eso ata el color de la barra al SISTEMA OPERATIVO,
+ * mientras que el tema de este sitio lo decide el CONMUTADOR (`localStorage`
+ * gana a `prefers`, decisión D-C). Quien tenga el sistema en claro y pulse el
+ * conmutador a oscuro veía la barra del navegador en `#FAFAFA` sobre una
+ * página casi negra — el navegador no tenía forma de enterarse.
+ *
+ * Ahora hay UNA sola entrada sin `media` (la clara, que es la del HTML
+ * estático y por tanto la correcta sin JavaScript) y son el script de arranque
+ * —antes del primer pintado— y `ThemeProvider` —en cada cambio— quienes la
+ * ponen al día. Los tres consumidores leen de aquí para que no puedan
+ * divergir.
+ */
+export const THEME_COLORS: Readonly<Record<ThemeName, string>> = {
+  light: "#FAFAFA",
+  dark: "#280739",
+};
+
+/**
  * Lógica de resolución de tema — decisión D-C (vinculante, dueño del
  * producto): `localStorage` gana a `prefers-color-scheme`; sin storage,
  * decide el sistema. Es la ÚNICA fuente de esta regla en el repo: la
@@ -121,6 +148,14 @@ export function buildThemeBootstrapScript(
     `try{prefersDark=window.matchMedia("(prefers-color-scheme: dark)").matches;}catch(e){}` +
     `var theme=resolveInitialTheme(stored,prefersDark);` +
     `document.documentElement.setAttribute(${attrLiteral},theme);` +
+    // theme-color al día ANTES del primer pintado, en su propio try/catch: la
+    // barra del navegador tiene que seguir al conmutador, no al sistema
+    // operativo (ver el docblock de THEME_COLORS). El <meta> ya existe en el
+    // <head> y aparece ANTES que este script (verificado en el HTML
+    // construido), así que aquí siempre se encuentra.
+    `try{var mc=document.querySelectorAll('meta[name="theme-color"]');` +
+    `var tc=${JSON.stringify(THEME_COLORS)}[theme];` +
+    `for(var j=0;j<mc.length;j++){mc[j].setAttribute("content",tc);}}catch(e){}` +
     // Precarga del arte oscuro: su propio try/catch, separado del de arriba.
     // Fijar `data-theme` es lo que impide el flash y no puede quedar a merced
     // de que `createElement`/`appendChild` fallen en un navegador raro.

@@ -28,6 +28,26 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   :root {
+    /* color-scheme le dice al NAVEGADOR en que esquema esta el documento, y de
+       el dependen piezas que esta hoja no pinta: barra de scroll, controles de
+       formulario nativos y fondo por defecto del lienzo. No se declaraba en
+       ninguna parte del repo hasta el 2026-08-16, y el efecto era medible:
+       como el tema lo decide el CONMUTADOR y no el sistema (localStorage gana
+       a prefers-color-scheme, decision D-C), quien tuviera el sistema en claro
+       y pulsara a oscuro se quedaba con la barra de scroll clara sobre un
+       documento casi negro de 12.821 px.
+
+       Va atado a data-theme (la rama oscura, mas abajo) y no a
+       prefers-color-scheme: es el atributo que el script de arranque fija
+       ANTES del primer pintado y que ThemeProvider mantiene al dia en cada
+       cambio, asi que vale en los tres momentos sin ningun estado nuevo. El
+       valor base es light porque el HTML estatico que hornea el build es el
+       claro: sin JavaScript, ese es el estado real de la pagina.
+
+       SIN BACKTICKS: esto vive dentro del template literal de
+       styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+    color-scheme: light;
+
     /* Alto de la banda del navbar. Vive aquí, y no en los tokens de tema,
        porque es una medida de LAYOUT que se consume desde dos sitios sin
        poder derivarla: el propio Navbar (que la fija) y el margen de scroll
@@ -61,6 +81,25 @@ export const GlobalStyles = createGlobalStyle`
     vertical-align: baseline;
   }
 
+  /* color-scheme le dice al NAVEGADOR en que esquema esta el documento, que no
+     es lo mismo que decirselo al usuario. De el dependen piezas que no pinta
+     esta hoja de estilos: la barra de scroll, los controles de formulario
+     nativos, el fondo por defecto del lienzo y el color de seleccion de los
+     campos.
+
+     Hasta el 2026-08-16 no se declaraba en ninguna parte del repo, y el
+     efecto era medible: el tema de este sitio lo decide el CONMUTADOR
+     (localStorage gana a prefers-color-scheme, decision D-C), asi que quien
+     tenga el sistema en claro y pulse el conmutador a oscuro se quedaba con la
+     barra de scroll clara sobre un documento casi negro de 12.821 px de alto.
+
+     Se ata a data-theme y no a prefers-color-scheme a proposito: es el mismo
+     atributo que el script de arranque fija ANTES del primer pintado y que
+     ThemeProvider mantiene sincronizado en cada cambio (ThemeProvider.tsx),
+     asi que vale en los tres momentos --antes de hidratar, despues, y tras
+     cada pulsacion del conmutador-- sin ningun estado nuevo. El valor base es
+     light porque el HTML estatico que hornea el build es el claro: sin
+     JavaScript, ese es el estado real de la pagina y tambien el correcto. */
   html {
     -webkit-scroll-behavior: smooth;
     -moz-scroll-behavior: smooth;
@@ -182,6 +221,8 @@ export const GlobalStyles = createGlobalStyle`
    * apagado esa animación sin necesidad.
    */
   :root[data-theme="dark"] {
+    color-scheme: dark;
+
     --hero-title-vw: 8vw;
     --hero-align-items-lg: center;
     --hero-justify-lg: flex-end;

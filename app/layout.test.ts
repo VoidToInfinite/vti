@@ -119,8 +119,14 @@ describe("app/layout.tsx — anti-flash de tema (Task 9, mecanismo Task 31)", ()
     const source = readFileSync(join(here, "layout.tsx"), "utf-8");
 
     expect(source).not.toContain('from "next/script"');
-    expect(source).toContain(
-      'import { buildThemeBootstrapScript } from "@/theme/resolveTheme"',
+    /*
+     * Se comprueba el SÍMBOLO importado y su módulo, no la línea de import
+     * completa: desde la Ola C (2026-08-16) ese import trae además
+     * `THEME_COLORS`, y exigir el literal exacto convertía este candado en un
+     * test de cómo Prettier ordena una lista de imports.
+     */
+    expect(source).toMatch(
+      /import \{[^}]*buildThemeBootstrapScript[^}]*\} from "@\/theme\/resolveTheme"/,
     );
 
     const withoutComments = source

@@ -11,7 +11,11 @@ import React, {
 } from "react";
 import { ThemeProvider as SCThemeProvider } from "styled-components";
 import { STORAGE_KEYS } from "@/config/storage";
-import { resolveInitialTheme, THEME_ATTRIBUTE } from "./resolveTheme";
+import {
+  resolveInitialTheme,
+  THEME_ATTRIBUTE,
+  THEME_COLORS,
+} from "./resolveTheme";
 import { themes, type ThemeName } from "./themes";
 
 /**
@@ -231,6 +235,26 @@ export function ThemeProvider({
   // en un único render). `useLayoutEffect` sigue sin hacer falta: este
   // efecto no dispara ningún `setState` propio.
   useEffect(() => {
+    /*
+     * `theme-color` se actualiza SIEMPRE, también en el paso inicial, y ahí
+     * está la diferencia con `data-theme` (que sí sale antes si el cambio es
+     * "initial", porque el script de arranque ya lo dejó puesto y reescribirlo
+     * no aporta nada).
+     *
+     * El motivo es medido: al hidratar, Next vuelve a insertar SU
+     * `<meta name="theme-color">` con el valor estático, así que en oscuro el
+     * documento acaba con dos — el que el script de arranque corrigió y el
+     * recién insertado con el valor claro. Hoy gana el primero por orden de
+     * documento, pero apoyarse en ese orden es apoyarse en un detalle de
+     * implementación de Next. Recorrer TODAS las etiquetas (aquí y en el
+     * script de arranque) hace que el resultado no dependa de cuántas haya ni
+     * de cuál llegue primero.
+     */
+    const metas = document.querySelectorAll('meta[name="theme-color"]');
+    metas.forEach((meta) =>
+      meta.setAttribute("content", THEME_COLORS[themeName]),
+    );
+
     if (changeSource === "initial") return;
     document.documentElement.setAttribute(THEME_ATTRIBUTE, themeName);
   }, [themeName, changeSource]);
