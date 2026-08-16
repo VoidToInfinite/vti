@@ -293,6 +293,32 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
         `
       : css`
           padding: ${theme.data.space[9]} ${theme.data.space[5]};
+          /* Recorte del relleno de la FRONTERA con el statement (Ola B,
+             2026-08-16). Medido a 1440x900 en tema claro, scrollY 1500: entre
+             el ultimo texto de Story (acaba en y=383) y el primero del
+             statement (empieza en y=739) habia 356 px sin nada a la vista, un
+             40 % del viewport. Ningun margen que culpar -- margin-bottom de
+             Story y margin-top del statement son los dos 0 px: el hueco lo
+             ponen los rellenos.
+
+             Solo se recorta ESTE lado, no el de arriba: la respiracion sobre
+             Story separa el hero de la seccion y esa si esta bien. Y solo se
+             toca Story, no el statement, porque la medicion desmintio la
+             hipotesis obvia -- el statement declara min-height: 100dvh y
+             centra su contenido con justify-content: center, asi que su
+             padding-block NO participa del hueco: lo que separa su borde
+             superior de su primer texto es el centrado, no el relleno.
+             Recortarselo no habria movido un pixel.
+
+             space[7] en vez de space[9]: de 96 a 48 px, la mitad exacta. El
+             hueco baja de 356 a 308 px. El resto es estructural (el statement
+             ES un bloque de un viewport con su contenido centrado, por
+             diseño) y cerrarlo del todo exige decidir que ocupa el espacio,
+             no restar relleno.
+
+             SIN BACKTICKS: esto vive dentro de un template literal css de
+             styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+          padding-block-end: ${theme.data.space[7]};
           max-width: ${theme.data.grid.navMax};
           margin-inline: auto;
         `}
