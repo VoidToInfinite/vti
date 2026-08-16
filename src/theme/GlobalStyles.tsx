@@ -149,7 +149,53 @@ export const GlobalStyles = createGlobalStyle`
 
   body {
     height: unset;
+    /* El pie llega SIEMPRE al borde inferior, aunque el contenido no dé para
+       llenar la pantalla (Ola B, 2026-08-16). Medido en la 404 a 1440x900:
+       body medía 656 px en un viewport de 900, con display: block y
+       min-height: 0, asi que el pie terminaba en y=656 y quedaban 244 px de
+       fondo vacio debajo. document.scrollHeight era 900 y la pagina no
+       scrolleaba: no era contenido cortado, era una pagina que no llenaba el
+       viewport. En una pagina de error, donde alguien ya frustrado juzga si
+       el sitio esta mantenido, un pie flotando a media pantalla se lee como
+       roto.
+
+       Se resuelve en global y no solo en la 404 a proposito: es la unica
+       pagina corta que existe HOY, y acotar el arreglo dejaria el defecto
+       esperando a la siguiente.
+
+       display: flex NO rompe el pin de la presentacion de Story, y eso habia
+       que comprobarlo antes de escribirlo, no despues: lo que convierte a
+       html/body en contenedor de scroll --y por tanto lo que romperia
+       position: sticky-- es el overflow, no el display (ver el bloque de
+       overflow-x: clip unas lineas mas arriba, que documenta esa trampa).
+       Verificado en navegador tras el cambio, no razonado: el stage de Story
+       sigue clavado en top 0 en las 8 posiciones muestreadas de su pista, en
+       oscuro.
+
+       LO QUE SI SE MUEVE, y se declara en vez de ocultarse: la altura de
+       documento de la home baja 31 px EXACTOS en los dos temas (claro
+       6.727 -> 6.696, oscuro 16.297 -> 16.266). No es aleatorio ni es el
+       sticky: un contenedor flex no colapsa los margenes de sus hijos, asi
+       que un margen que antes se escapaba a traves del body ahora se queda
+       dentro. El delta identico en las dos ramas confirma que es un solo
+       margen, no un efecto disperso. 31 px sobre 16.266 es un 0,19 % y el
+       resultado es mas predecible que el anterior, no menos.
+
+       SIN BACKTICKS: esto vive dentro del template literal de
+       styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
     background-color: ${({ theme }) => theme.data.semantic.bg};
+  }
+
+  /* La mitad que hace el trabajo: sin esto el body seria alto pero el pie
+     seguiria pegado al contenido. main crece hasta ocupar el sobrante y
+     empuja el pie al borde inferior. En las paginas cuyo contenido YA pasa
+     del viewport --la home, las legales-- no hay sobrante que repartir y la
+     regla no cambia nada. */
+  body > main {
+    flex: 1;
     color: ${({ theme }) => theme.data.semantic.text};
     font-size: 100%;
     font-family: ${({ theme }) => theme.data.type.fontBody};
