@@ -1,8 +1,10 @@
 "use client";
 
-import { Fragment, type ReactElement, type ReactNode } from "react";
+import { Fragment, useEffect, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LEGAL_ENTITY, LEGAL_VERSIONS, PLACEHOLDER } from "@/config/legal";
+import { SITE } from "@/config/site";
+import { TITLE_SEPARATOR } from "@/seo/metadata";
 import { STORAGE_REGISTRY } from "@/config/storage";
 import i18n, { initI18n } from "@/i18n/config";
 import esLegal from "@/i18n/locales/es/legal.json";
@@ -449,6 +451,40 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
   const versionLabel = t("Legal.common.versionLabel");
   const updatedLabel = t("Legal.common.updatedLabel");
   const { version, updated } = LEGAL_VERSIONS[docKey];
+
+  /*
+   * EL TÍTULO DE LA PESTAÑA SIGUE AL IDIOMA (Ola D, 2026-08-16).
+   *
+   * El defecto era visible dentro de una sola página: con el inglés activo en
+   * `/privacidad`, el `<h1>` decía «Privacy policy» mientras `document.title`
+   * seguía siendo «Política de privacidad · VoidToInfinite». La pestaña del
+   * navegador y el encabezado del documento afirmaban idiomas distintos a la
+   * vez, y el título es lo que acaba en el marcador, en el historial y en
+   * cualquier cosa que se comparta.
+   *
+   * Se resuelve aquí y no en la `metadata` de la ruta porque bajo
+   * `output: "export"` esa metadata se hornea UNA vez, en castellano, y el
+   * idioma lo elige el visitante después. Este componente ya tiene el título
+   * traducido en la mano (`doc.title`, del mismo árbol que pinta el `<h1>`),
+   * así que el efecto no introduce ninguna fuente de verdad nueva: reusa
+   * exactamente la que ya decide el encabezado, que es lo que impide que
+   * vuelvan a divergir.
+   *
+   * ALCANCE DECLARADO: esto arregla el TÍTULO, no toda la ola D. La
+   * `description`, el `og:locale` y el `hreflang` siguen en castellano y sin
+   * alternativa, y no se tocan aquí a propósito: la home no tiene copy SEO en
+   * inglés escrito (`src/config/site.ts` es monolingüe) y declarar `hreflang`
+   * sin rutas `/en/` reales apuntaría a URLs que no existen. Las legales son
+   * el único caso donde la traducción del título YA existía.
+   *
+   * El formato replica el que emite el build (`título` + `TITLE_SEPARATOR` +
+   * nombre del sitio), verificado contra el `document.title` real del HTML
+   * servido: si alguien cambia la plantilla de `buildMetadata`, esto se
+   * quedaría desincronizado -- y para eso está el candado de este fichero.
+   */
+  useEffect(() => {
+    document.title = `${doc.title}${TITLE_SEPARATOR}${SITE.name}`;
+  }, [doc.title]);
 
   const durationLabelFor = (durationDays: number | null): string =>
     durationDays === null

@@ -265,3 +265,56 @@ describe("splitPlaceholderMarkers", () => {
     ]);
   });
 });
+
+/*
+ * Candado del título de la pestaña (Ola D, 2026-08-16).
+ *
+ * El defecto era visible dentro de una sola página: con el inglés activo en
+ * `/privacidad`, el `<h1>` decía «Privacy policy» mientras `document.title`
+ * seguía siendo «Política de privacidad · VoidToInfinite». La pestaña del
+ * navegador y el encabezado del documento afirmaban idiomas distintos a la vez,
+ * y el título es lo que acaba en el marcador, en el historial y en lo que se
+ * comparte.
+ *
+ * Bajo `output: "export"` la metadata de la ruta se hornea UNA vez, en
+ * castellano, y el idioma lo elige el visitante después: por eso el título lo
+ * sincroniza el componente, desde el MISMO árbol traducido que pinta el `<h1>`.
+ * Lo que este test ata es justamente esa igualdad — que el título de la pestaña
+ * y el encabezado no puedan volver a divergir.
+ *
+ * Validado con el bug inyectado a propósito: comentando el `useEffect` que
+ * sincroniza `document.title` en `LegalDocument.tsx`, el caso en inglés cae en
+ * rojo; restaurado, vuelve a verde.
+ */
+describe("LegalDocument: el título de la pestaña sigue al idioma", () => {
+  it.each(DOC_KEYS)(
+    "%s: document.title usa el título traducido, en los dos idiomas",
+    async (docKey) => {
+      for (const lang of ["es", "en"] as const) {
+        await i18n.changeLanguage(lang);
+        const bundle = lang === "es" ? esLegal : enLegal;
+        const esperado = (
+          bundle as unknown as {
+            Legal: Record<string, { title: string }>;
+          }
+        ).Legal[docKey].title;
+
+        const { unmount } = renderWithProviders(
+          <LegalDocument docKey={docKey} />,
+        );
+
+        expect(
+          screen.getByRole("heading", { level: 1 }).textContent,
+          "el encabezado no está en el idioma activo",
+        ).toBe(esperado);
+        expect(
+          document.title,
+          `la pestaña y el <h1> afirman idiomas distintos en ${lang}`,
+        ).toContain(esperado);
+
+        unmount();
+      }
+      await i18n.changeLanguage("es");
+    },
+  );
+});
