@@ -310,7 +310,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_opengraph_image",
-      "community": 197,
+      "community": 161,
       "norm_label": "opengraph-image.tsx"
     },
     {
@@ -320,7 +320,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "app_opengraph_image_size",
-      "community": 197,
+      "community": 161,
       "norm_label": "size"
     },
     {
@@ -330,7 +330,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "app_opengraph_image_image",
-      "community": 197,
+      "community": 161,
       "norm_label": "image()"
     },
     {
@@ -390,7 +390,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_providers_test",
-      "community": 304,
+      "community": 350,
       "norm_label": "providers.test.tsx"
     },
     {
@@ -400,7 +400,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "app_providers_test_stubmatchmedia",
-      "community": 304,
+      "community": 350,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -410,7 +410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_providers",
-      "community": 304,
+      "community": 350,
       "norm_label": "providers.tsx"
     },
     {
@@ -420,7 +420,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "app_providers_providers",
-      "community": 304,
+      "community": 350,
       "norm_label": "providers()"
     },
     {
@@ -6790,7 +6790,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_backtotop_backtotop",
-      "community": 330,
+      "community": 283,
       "norm_label": "backtotop.tsx"
     },
     {
@@ -6800,7 +6800,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_layout_backtotop_backtotop_usebacktotopthreshold",
-      "community": 330,
+      "community": 283,
       "norm_label": "usebacktotopthreshold()"
     },
     {
@@ -6810,7 +6810,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "src_components_layout_backtotop_backtotop_scicon",
-      "community": 330,
+      "community": 283,
       "norm_label": "scicon"
     },
     {
@@ -6820,7 +6820,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_layout_backtotop_backtotop_iconarrowup",
-      "community": 330,
+      "community": 283,
       "norm_label": "iconarrowup()"
     },
     {
@@ -6830,7 +6830,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_components_layout_backtotop_backtotop_scbacktotop",
-      "community": 330,
+      "community": 283,
       "norm_label": "scbacktotop"
     },
     {
@@ -6840,7 +6840,7 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "src_components_layout_backtotop_backtotop_backtotop",
-      "community": 330,
+      "community": 283,
       "norm_label": "backtotop()"
     },
     {
@@ -7010,7 +7010,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test",
-      "community": 46,
+      "community": 116,
       "norm_label": "footer.test.tsx"
     },
     {
@@ -7020,7 +7020,7 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_constructor",
-      "community": 46,
+      "community": 116,
       "norm_label": "constructor()"
     },
     {
@@ -7030,7 +7030,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_observe",
-      "community": 46,
+      "community": 116,
       "norm_label": "observe()"
     },
     {
@@ -7040,7 +7040,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_disconnect",
-      "community": 46,
+      "community": 116,
       "norm_label": "disconnect()"
     },
     {
@@ -7050,7 +7050,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_cssruletextfor",
-      "community": 46,
+      "community": 116,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -7060,7 +7060,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_findstarscontainer",
-      "community": 46,
+      "community": 116,
       "norm_label": "findstarscontainer()"
     },
     {
@@ -7070,7 +7070,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_test_findbeam",
-      "community": 46,
+      "community": 116,
       "norm_label": "findbeam()"
     },
     {
@@ -7130,7 +7130,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_starvars",
-      "community": 306,
+      "community": 116,
       "norm_label": "starvars()"
     },
     {
@@ -7280,7 +7280,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_test",
-      "community": 306,
+      "community": 116,
       "norm_label": "footer.layers.test.ts"
     },
     {
@@ -7290,7 +7290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers",
-      "community": 306,
+      "community": 116,
       "norm_label": "footer.layers.ts"
     },
     {
@@ -7300,7 +7300,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_footerstartintkey",
-      "community": 306,
+      "community": 116,
       "norm_label": "footerstartintkey"
     },
     {
@@ -7320,7 +7320,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_dark_star_lch",
-      "community": 306,
+      "community": 116,
       "norm_label": "dark_star_lch"
     },
     {
@@ -7330,7 +7330,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_darkstarcolor",
-      "community": 306,
+      "community": 116,
       "norm_label": "darkstarcolor()"
     },
     {
@@ -7340,7 +7340,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_star_tint_white",
-      "community": 306,
+      "community": 116,
       "norm_label": "star_tint_white"
     },
     {
@@ -7350,7 +7350,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_star_tint_secondary",
-      "community": 306,
+      "community": 116,
       "norm_label": "star_tint_secondary"
     },
     {
@@ -7360,7 +7360,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_star_tint_primary",
-      "community": 306,
+      "community": 116,
       "norm_label": "star_tint_primary"
     },
     {
@@ -7370,7 +7370,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_dark_star_point",
-      "community": 306,
+      "community": 116,
       "norm_label": "dark_star_point"
     },
     {
@@ -7380,7 +7380,7 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_footerstarlighttoken",
-      "community": 306,
+      "community": 116,
       "norm_label": "footerstarlighttoken()"
     },
     {
@@ -7390,7 +7390,7 @@
       "source_location": "L172",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_alphatopercent",
-      "community": 306,
+      "community": 116,
       "norm_label": "alphatopercent()"
     },
     {
@@ -7400,7 +7400,7 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_footerstartintlight",
-      "community": 306,
+      "community": 116,
       "norm_label": "footerstartintlight()"
     },
     {
@@ -7410,7 +7410,7 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_footerstarglowtintlight",
-      "community": 306,
+      "community": 116,
       "norm_label": "footerstarglowtintlight()"
     },
     {
@@ -7420,7 +7420,7 @@
       "source_location": "L203",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_footerstartint",
-      "community": 306,
+      "community": 116,
       "norm_label": "footerstartint()"
     },
     {
@@ -7430,7 +7430,7 @@
       "source_location": "L219",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_footerstarglow",
-      "community": 306,
+      "community": 116,
       "norm_label": "footerstarglow()"
     },
     {
@@ -7440,7 +7440,7 @@
       "source_location": "L258",
       "_origin": "ast",
       "id": "src_components_layout_footer_footer_layers_footer_stars",
-      "community": 306,
+      "community": 116,
       "norm_label": "footer_stars"
     },
     {
@@ -7450,7 +7450,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_contrast_test",
-      "community": 317,
+      "community": 306,
       "norm_label": "languageselector.contrast.test.ts"
     },
     {
@@ -7460,7 +7460,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_contrast_test_parseglassbg",
-      "community": 317,
+      "community": 306,
       "norm_label": "parseglassbg()"
     },
     {
@@ -7470,7 +7470,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_test",
-      "community": 317,
+      "community": 306,
       "norm_label": "languageselector.test.tsx"
     },
     {
@@ -7480,7 +7480,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_test_allcssrules",
-      "community": 317,
+      "community": 306,
       "norm_label": "allcssrules()"
     },
     {
@@ -7490,7 +7490,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_test_reglasde",
-      "community": 317,
+      "community": 306,
       "norm_label": "reglasde()"
     },
     {
@@ -7500,7 +7500,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector",
-      "community": 317,
+      "community": 306,
       "norm_label": "languageselector.tsx"
     },
     {
@@ -7510,7 +7510,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_languages",
-      "community": 317,
+      "community": 306,
       "norm_label": "languages"
     },
     {
@@ -7520,7 +7520,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_languageaccent",
-      "community": 317,
+      "community": 306,
       "norm_label": "languageaccent()"
     },
     {
@@ -7530,7 +7530,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_sclanguageselector",
-      "community": 317,
+      "community": 306,
       "norm_label": "sclanguageselector"
     },
     {
@@ -7540,7 +7540,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_sclanguagebutton",
-      "community": 317,
+      "community": 306,
       "norm_label": "sclanguagebutton"
     },
     {
@@ -7550,7 +7550,7 @@
       "source_location": "L176",
       "_origin": "ast",
       "id": "src_components_layout_languageselector_languageselector_languageselector",
-      "community": 317,
+      "community": 306,
       "norm_label": "languageselector()"
     },
     {
@@ -8180,7 +8180,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_skiplink_skiplink_test",
-      "community": 304,
+      "community": 350,
       "norm_label": "skiplink.test.tsx"
     },
     {
@@ -8190,7 +8190,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_layout_skiplink_skiplink_test_cssruletextfor",
-      "community": 304,
+      "community": 350,
       "norm_label": "cssruletextfor()"
     },
     {
@@ -8200,7 +8200,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_layout_skiplink_skiplink",
-      "community": 304,
+      "community": 350,
       "norm_label": "skiplink.tsx"
     },
     {
@@ -8210,7 +8210,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_components_layout_skiplink_skiplink_scskiplink",
-      "community": 304,
+      "community": 350,
       "norm_label": "scskiplink"
     },
     {
@@ -8220,7 +8220,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "src_components_layout_skiplink_skiplink_skiplink",
-      "community": 304,
+      "community": 350,
       "norm_label": "skiplink()"
     },
     {
@@ -8300,7 +8300,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_test",
-      "community": 349,
+      "community": 143,
       "norm_label": "legaldocument.test.tsx"
     },
     {
@@ -8310,7 +8310,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_test_doc_keys",
-      "community": 349,
+      "community": 143,
       "norm_label": "doc_keys"
     },
     {
@@ -8327,17 +8327,17 @@
       "label": "LegalDocKey",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L93",
+      "source_location": "L95",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldockey",
-      "community": 349,
+      "community": 143,
       "norm_label": "legaldockey"
     },
     {
       "label": "LegalDocumentProps",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L95",
+      "source_location": "L97",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldocumentprops",
       "community": 143,
@@ -8347,7 +8347,7 @@
       "label": "DlItemData",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L99",
+      "source_location": "L101",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_dlitemdata",
       "community": 143,
@@ -8357,7 +8357,7 @@
       "label": "LegalBlock",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L104",
+      "source_location": "L106",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legalblock",
       "community": 143,
@@ -8367,7 +8367,7 @@
       "label": "LegalSectionData",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L112",
+      "source_location": "L114",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legalsectiondata",
       "community": 143,
@@ -8377,7 +8377,7 @@
       "label": "LegalDocData",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L118",
+      "source_location": "L120",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldocdata",
       "community": 143,
@@ -8387,7 +8387,7 @@
       "label": "EntityLabels",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L125",
+      "source_location": "L127",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_entitylabels",
       "community": 143,
@@ -8397,7 +8397,7 @@
       "label": "StorageTableLabels",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L135",
+      "source_location": "L137",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_storagetablelabels",
       "community": 143,
@@ -8407,7 +8407,7 @@
       "label": "MarkerSegment",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L146",
+      "source_location": "L148",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_markersegment",
       "community": 143,
@@ -8417,27 +8417,27 @@
       "label": "splitPlaceholderMarkers()",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L156",
+      "source_location": "L158",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_splitplaceholdermarkers",
-      "community": 349,
+      "community": 143,
       "norm_label": "splitplaceholdermarkers()"
     },
     {
       "label": "MarkedText()",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L175",
+      "source_location": "L177",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_markedtext",
-      "community": 349,
+      "community": 143,
       "norm_label": "markedtext()"
     },
     {
       "label": "EntityBlock()",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L219",
+      "source_location": "L221",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_entityblock",
       "community": 143,
@@ -8447,7 +8447,7 @@
       "label": "StorageBlock()",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L287",
+      "source_location": "L289",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_storageblock",
       "community": 143,
@@ -8457,7 +8457,7 @@
       "label": "renderBlock()",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L331",
+      "source_location": "L333",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_renderblock",
       "community": 343,
@@ -8467,7 +8467,7 @@
       "label": "LegalDocument()",
       "file_type": "code",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L425",
+      "source_location": "L427",
       "_origin": "ast",
       "id": "src_components_legal_legaldocument_legaldocument",
       "community": 343,
@@ -8560,7 +8560,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_legal_documents_legalnoticedocument_legalnoticedocument",
-      "community": 343,
+      "community": 159,
       "norm_label": "legalnoticedocument()"
     },
     {
@@ -9430,7 +9430,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_scenes_eye_eye",
-      "community": 134,
+      "community": 279,
       "norm_label": "eye.tsx"
     },
     {
@@ -9440,7 +9440,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_scenes_eye_eye_amp",
-      "community": 134,
+      "community": 279,
       "norm_label": "amp"
     },
     {
@@ -9450,7 +9450,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_scenes_eye_eye_eyeprops",
-      "community": 134,
+      "community": 279,
       "norm_label": "eyeprops"
     },
     {
@@ -9460,7 +9460,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_scenes_eye_eye_eye",
-      "community": 134,
+      "community": 279,
       "norm_label": "eye()"
     },
     {
@@ -9550,7 +9550,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_scenes_eye_eye_parts_scframe",
-      "community": 134,
+      "community": 279,
       "norm_label": "scframe"
     },
     {
@@ -10490,7 +10490,7 @@
       "source_location": "L366",
       "_origin": "ast",
       "id": "src_components_scenes_eye_mascots_wormhole_wormhole",
-      "community": 134,
+      "community": 279,
       "norm_label": "wormhole()"
     },
     {
@@ -11430,7 +11430,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_about_about_test",
-      "community": 46,
+      "community": 356,
       "norm_label": "about.test.tsx"
     },
     {
@@ -11440,7 +11440,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_sections_about_about_test_stubintersectionobserver",
-      "community": 46,
+      "community": 356,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -12590,7 +12590,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test",
-      "community": 279,
+      "community": 46,
       "norm_label": "hero.qa.test.tsx"
     },
     {
@@ -12600,7 +12600,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_stubmatchmedia",
-      "community": 279,
+      "community": 46,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -12610,7 +12610,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_renderhero",
-      "community": 279,
+      "community": 46,
       "norm_label": "renderhero()"
     },
     {
@@ -12620,7 +12620,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_todaslasreglas",
-      "community": 279,
+      "community": 46,
       "norm_label": "todaslasreglas()"
     },
     {
@@ -12630,7 +12630,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_reglasde",
-      "community": 279,
+      "community": 46,
       "norm_label": "reglasde()"
     },
     {
@@ -12640,7 +12640,7 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_remde",
-      "community": 279,
+      "community": 46,
       "norm_label": "remde()"
     },
     {
@@ -12650,7 +12650,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_sinespacios",
-      "community": 279,
+      "community": 46,
       "norm_label": "sinespacios()"
     },
     {
@@ -12660,7 +12660,7 @@
       "source_location": "L514",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_qa_test_leerfuente",
-      "community": 279,
+      "community": 46,
       "norm_label": "leerfuente()"
     },
     {
@@ -12670,7 +12670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test",
-      "community": 352,
+      "community": 304,
       "norm_label": "hero.test.tsx"
     },
     {
@@ -12680,7 +12680,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_stubmatchmedia",
-      "community": 352,
+      "community": 304,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -12690,7 +12690,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_renderhero",
-      "community": 352,
+      "community": 304,
       "norm_label": "renderhero()"
     },
     {
@@ -12700,7 +12700,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_testid",
-      "community": 352,
+      "community": 304,
       "norm_label": "testid()"
     },
     {
@@ -12710,7 +12710,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_precede",
-      "community": 352,
+      "community": 304,
       "norm_label": "precede()"
     },
     {
@@ -12720,7 +12720,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_allcssrules",
-      "community": 352,
+      "community": 304,
       "norm_label": "allcssrules()"
     },
     {
@@ -12730,7 +12730,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_test_allstylerules",
-      "community": 352,
+      "community": 304,
       "norm_label": "allstylerules()"
     },
     {
@@ -12860,7 +12860,7 @@
       "source_location": "L737",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_hero",
-      "community": 352,
+      "community": 304,
       "norm_label": "hero()"
     },
     {
@@ -12870,7 +12870,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test",
-      "community": 283,
+      "community": 318,
       "norm_label": "herobackdrop.test.tsx"
     },
     {
@@ -12880,7 +12880,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stubmatchmedia",
-      "community": 283,
+      "community": 318,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -12890,7 +12890,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stubsyncraf",
-      "community": 283,
+      "community": 318,
       "norm_label": "stubsyncraf()"
     },
     {
@@ -12900,7 +12900,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_stackof",
-      "community": 283,
+      "community": 318,
       "norm_label": "stackof()"
     },
     {
@@ -12910,7 +12910,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_partof",
-      "community": 283,
+      "community": 318,
       "norm_label": "partof()"
     },
     {
@@ -12920,7 +12920,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_eyedelayof",
-      "community": 283,
+      "community": 318,
       "norm_label": "eyedelayof()"
     },
     {
@@ -12930,7 +12930,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_flushmicrotasks",
-      "community": 283,
+      "community": 318,
       "norm_label": "flushmicrotasks()"
     },
     {
@@ -12940,7 +12940,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_clicktoggle",
-      "community": 283,
+      "community": 318,
       "norm_label": "clicktoggle()"
     },
     {
@@ -12950,7 +12950,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "src_components_sections_hero_herobackdrop_test_renderherobackdrop",
-      "community": 283,
+      "community": 318,
       "norm_label": "renderherobackdrop()"
     },
     {
@@ -13090,7 +13090,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_test",
-      "community": 325,
+      "community": 317,
       "norm_label": "hero.transition.test.tsx"
     },
     {
@@ -13100,7 +13100,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_test_stubmatchmedia",
-      "community": 325,
+      "community": 317,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -13110,7 +13110,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_test_probe",
-      "community": 325,
+      "community": 317,
       "norm_label": "probe()"
     },
     {
@@ -13120,7 +13120,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_test_clicktoggle",
-      "community": 325,
+      "community": 317,
       "norm_label": "clicktoggle()"
     },
     {
@@ -13130,7 +13130,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition",
-      "community": 325,
+      "community": 317,
       "norm_label": "hero.transition.ts"
     },
     {
@@ -13140,7 +13140,7 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_herocopyswap",
-      "community": 316,
+      "community": 317,
       "norm_label": "herocopyswap"
     },
     {
@@ -13150,7 +13150,7 @@
       "source_location": "L154",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_useherocopyswap",
-      "community": 325,
+      "community": 317,
       "norm_label": "useherocopyswap()"
     },
     {
@@ -15320,7 +15320,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_legal_test",
-      "community": 46,
+      "community": 159,
       "norm_label": "legal.test.ts"
     },
     {
@@ -15330,7 +15330,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_legal",
-      "community": 46,
+      "community": 159,
       "norm_label": "legal.ts"
     },
     {
@@ -15340,7 +15340,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_config_legal_legalform",
-      "community": 46,
+      "community": 159,
       "norm_label": "legalform"
     },
     {
@@ -15350,7 +15350,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_config_legal_legalentity",
-      "community": 46,
+      "community": 159,
       "norm_label": "legalentity"
     },
     {
@@ -15360,7 +15360,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_config_legal_legal_entity",
-      "community": 46,
+      "community": 159,
       "norm_label": "legal_entity"
     },
     {
@@ -15370,7 +15370,7 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "src_config_legal_legalversion",
-      "community": 46,
+      "community": 159,
       "norm_label": "legalversion"
     },
     {
@@ -15390,7 +15390,7 @@
       "source_location": "L176",
       "_origin": "ast",
       "id": "src_config_legal_haspendinglegaldata",
-      "community": 46,
+      "community": 159,
       "norm_label": "haspendinglegaldata()"
     },
     {
@@ -15410,7 +15410,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_links",
-      "community": 46,
+      "community": 356,
       "norm_label": "links.ts"
     },
     {
@@ -15420,7 +15420,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_config_links_links",
-      "community": 46,
+      "community": 356,
       "norm_label": "links"
     },
     {
@@ -15430,7 +15430,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_config_links_linkkey",
-      "community": 46,
+      "community": 356,
       "norm_label": "linkkey"
     },
     {
@@ -15440,7 +15440,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_config_links_email_address",
-      "community": 46,
+      "community": 356,
       "norm_label": "email_address"
     },
     {
@@ -15450,7 +15450,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "src_config_links_internallinkkey",
-      "community": 46,
+      "community": 356,
       "norm_label": "internallinkkey"
     },
     {
@@ -15460,7 +15460,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_config_links_ts_docref_rfc_2606",
-      "community": 46,
+      "community": 356,
       "norm_label": "rfc-2606"
     },
     {
@@ -15620,7 +15620,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_config_site_site",
-      "community": 197,
+      "community": 356,
       "norm_label": "site"
     },
     {
@@ -15670,7 +15670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_storage_test",
-      "community": 349,
+      "community": 316,
       "norm_label": "storage.test.ts"
     },
     {
@@ -15680,7 +15680,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_config_storage_test_listsourcefiles",
-      "community": 349,
+      "community": 316,
       "norm_label": "listsourcefiles()"
     },
     {
@@ -15690,7 +15690,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_config_storage",
-      "community": 349,
+      "community": 316,
       "norm_label": "storage.ts"
     },
     {
@@ -15710,7 +15710,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_config_storage_storageentry",
-      "community": 349,
+      "community": 316,
       "norm_label": "storageentry"
     },
     {
@@ -15720,7 +15720,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "src_config_storage_storage_registry",
-      "community": 349,
+      "community": 316,
       "norm_label": "storage_registry"
     },
     {
@@ -16010,7 +16010,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach",
-      "community": 330,
+      "community": 283,
       "norm_label": "usenavdetach.ts"
     },
     {
@@ -16020,7 +16020,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_navdetachphase",
-      "community": 330,
+      "community": 283,
       "norm_label": "navdetachphase"
     },
     {
@@ -16030,7 +16030,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "src_hooks_usenavdetach_navdetachstate",
-      "community": 330,
+      "community": 283,
       "norm_label": "navdetachstate"
     },
     {
@@ -16050,7 +16050,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test",
-      "community": 255,
+      "community": 279,
       "norm_label": "useparallaxlayers.test.tsx"
     },
     {
@@ -16060,7 +16060,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_amp",
-      "community": 255,
+      "community": 279,
       "norm_label": "amp"
     },
     {
@@ -16070,7 +16070,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_stubintersectionobserver",
-      "community": 255,
+      "community": 279,
       "norm_label": "stubintersectionobserver()"
     },
     {
@@ -16080,7 +16080,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_sceneof",
-      "community": 255,
+      "community": 279,
       "norm_label": "sceneof()"
     },
     {
@@ -16090,7 +16090,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_stubmatchmedia",
-      "community": 255,
+      "community": 279,
       "norm_label": "stubmatchmedia()"
     },
     {
@@ -16100,7 +16100,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_targetof",
-      "community": 255,
+      "community": 279,
       "norm_label": "targetof()"
     },
     {
@@ -16110,7 +16110,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_movetocorner",
-      "community": 255,
+      "community": 279,
       "norm_label": "movetocorner()"
     },
     {
@@ -16120,7 +16120,7 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_test_consumer",
-      "community": 255,
+      "community": 279,
       "norm_label": "consumer()"
     },
     {
@@ -16130,7 +16130,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers",
-      "community": 255,
+      "community": 279,
       "norm_label": "useparallaxlayers.ts"
     },
     {
@@ -16140,7 +16140,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_parallaxtarget",
-      "community": 255,
+      "community": 279,
       "norm_label": "parallaxtarget"
     },
     {
@@ -16150,7 +16150,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_parallaxamplitude",
-      "community": 255,
+      "community": 279,
       "norm_label": "parallaxamplitude"
     },
     {
@@ -16160,7 +16160,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_hooks_useparallaxlayers_useparallaxlayers",
-      "community": 255,
+      "community": 279,
       "norm_label": "useparallaxlayers()"
     },
     {
@@ -16660,7 +16660,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usescrolled_test",
-      "community": 330,
+      "community": 283,
       "norm_label": "usescrolled.test.tsx"
     },
     {
@@ -16670,7 +16670,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_hooks_usescrolled",
-      "community": 330,
+      "community": 283,
       "norm_label": "usescrolled.ts"
     },
     {
@@ -16680,7 +16680,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_hooks_usescrolled_usescrolled",
-      "community": 330,
+      "community": 283,
       "norm_label": "usescrolled()"
     },
     {
@@ -17230,7 +17230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_motion_timings",
-      "community": 325,
+      "community": 317,
       "norm_label": "timings.ts"
     },
     {
@@ -17240,7 +17240,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_motion_timings_hero_stagger_steps",
-      "community": 325,
+      "community": 317,
       "norm_label": "hero_stagger_steps"
     },
     {
@@ -17440,7 +17440,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_seo_metadata_test",
-      "community": 197,
+      "community": 161,
       "norm_label": "metadata.test.ts"
     },
     {
@@ -17450,7 +17450,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_seo_metadata_test_all_route_keys",
-      "community": 197,
+      "community": 161,
       "norm_label": "all_route_keys"
     },
     {
@@ -17460,7 +17460,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_seo_metadata_test_fixture_titles",
-      "community": 197,
+      "community": 161,
       "norm_label": "fixture_titles"
     },
     {
@@ -17470,7 +17470,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_seo_metadata_test_expectopengraphwebsite",
-      "community": 197,
+      "community": 161,
       "norm_label": "expectopengraphwebsite()"
     },
     {
@@ -17480,7 +17480,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_seo_metadata_test_expecttwittercard",
-      "community": 197,
+      "community": 161,
       "norm_label": "expecttwittercard()"
     },
     {
@@ -17490,7 +17490,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_seo_metadata_test_expectmaximagepreviewlarge",
-      "community": 197,
+      "community": 161,
       "norm_label": "expectmaximagepreviewlarge()"
     },
     {
@@ -17500,7 +17500,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_seo_metadata",
-      "community": 197,
+      "community": 161,
       "norm_label": "metadata.ts"
     },
     {
@@ -17510,7 +17510,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_seo_metadata_og_image_size",
-      "community": 197,
+      "community": 161,
       "norm_label": "og_image_size"
     },
     {
@@ -17520,7 +17520,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_seo_metadata_buildmetadatainput",
-      "community": 197,
+      "community": 161,
       "norm_label": "buildmetadatainput"
     },
     {
@@ -17530,7 +17530,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_seo_metadata_buildmetadata",
-      "community": 197,
+      "community": 161,
       "norm_label": "buildmetadata()"
     },
     {
@@ -17920,7 +17920,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_globalstyles",
-      "community": 304,
+      "community": 350,
       "norm_label": "globalstyles.tsx"
     },
     {
@@ -17930,7 +17930,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_theme_globalstyles_globalstyles",
-      "community": 304,
+      "community": 350,
       "norm_label": "globalstyles"
     },
     {
@@ -18080,7 +18080,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_registry",
-      "community": 304,
+      "community": 350,
       "norm_label": "registry.tsx"
     },
     {
@@ -18090,7 +18090,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_theme_registry_styledcomponentsregistry",
-      "community": 304,
+      "community": 350,
       "norm_label": "styledcomponentsregistry()"
     },
     {
@@ -18260,7 +18260,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_brandaccentcontrast_test",
-      "community": 279,
+      "community": 46,
       "norm_label": "brandaccentcontrast.test.ts"
     },
     {
@@ -18270,7 +18270,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_color_test",
-      "community": 279,
+      "community": 46,
       "norm_label": "color.test.ts"
     },
     {
@@ -18280,7 +18280,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_theme_tokens_color_test_parseoklch",
-      "community": 279,
+      "community": 46,
       "norm_label": "parseoklch()"
     },
     {
@@ -18290,7 +18290,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_color",
-      "community": 279,
+      "community": 46,
       "norm_label": "color.ts"
     },
     {
@@ -18300,7 +18300,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_color_steps",
-      "community": 279,
+      "community": 46,
       "norm_label": "steps"
     },
     {
@@ -18310,7 +18310,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_theme_tokens_color_step",
-      "community": 279,
+      "community": 46,
       "norm_label": "step"
     },
     {
@@ -18320,7 +18320,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_theme_tokens_color_ramp",
-      "community": 279,
+      "community": 46,
       "norm_label": "ramp"
     },
     {
@@ -18330,7 +18330,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_theme_tokens_color_l",
-      "community": 279,
+      "community": 46,
       "norm_label": "l"
     },
     {
@@ -18340,7 +18340,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_theme_tokens_color_cmul",
-      "community": 279,
+      "community": 46,
       "norm_label": "cmul"
     },
     {
@@ -18350,7 +18350,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_theme_tokens_color_neutral",
-      "community": 279,
+      "community": 46,
       "norm_label": "neutral()"
     },
     {
@@ -18360,7 +18360,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_theme_tokens_color_color",
-      "community": 279,
+      "community": 46,
       "norm_label": "color"
     },
     {
@@ -18740,7 +18740,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_type_test",
-      "community": 352,
+      "community": 304,
       "norm_label": "type.test.ts"
     },
     {
@@ -18750,7 +18750,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_theme_tokens_type",
-      "community": 352,
+      "community": 304,
       "norm_label": "type.ts"
     },
     {
@@ -18770,7 +18770,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_theme_tokens_type_typestyle",
-      "community": 352,
+      "community": 304,
       "norm_label": "typestyle"
     },
     {
@@ -18780,7 +18780,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_theme_tokens_type_type",
-      "community": 352,
+      "community": 304,
       "norm_label": "type"
     },
     {
@@ -43540,7 +43540,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_components_sections_hero_hero_transition_hero_backdrop_hold_ms",
-      "community": 325,
+      "community": 317,
       "norm_label": "hero_backdrop_hold_ms"
     }
   ],
@@ -56619,7 +56619,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L99",
+      "source_location": "L101",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_dlitemdata",
@@ -56629,7 +56629,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L219",
+      "source_location": "L221",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_entityblock",
@@ -56639,7 +56639,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L125",
+      "source_location": "L127",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_entitylabels",
@@ -56649,7 +56649,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L104",
+      "source_location": "L106",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_legalblock",
@@ -56659,7 +56659,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L118",
+      "source_location": "L120",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_legaldocdata",
@@ -56669,7 +56669,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L93",
+      "source_location": "L95",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_legaldockey",
@@ -56679,7 +56679,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L425",
+      "source_location": "L427",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_legaldocument",
@@ -56689,7 +56689,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L95",
+      "source_location": "L97",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_legaldocumentprops",
@@ -56699,7 +56699,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L112",
+      "source_location": "L114",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_legalsectiondata",
@@ -56709,7 +56709,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L175",
+      "source_location": "L177",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_markedtext",
@@ -56719,7 +56719,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L146",
+      "source_location": "L148",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_markersegment",
@@ -56729,7 +56729,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L331",
+      "source_location": "L333",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_renderblock",
@@ -56739,7 +56739,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L156",
+      "source_location": "L158",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_splitplaceholdermarkers",
@@ -56749,7 +56749,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L287",
+      "source_location": "L289",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_storageblock",
@@ -56759,7 +56759,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L135",
+      "source_location": "L137",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legaldocument_storagetablelabels",
@@ -56770,7 +56770,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts",
@@ -56781,7 +56781,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scbacklink",
@@ -56792,7 +56792,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sccaption",
@@ -56803,7 +56803,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scdd",
@@ -56814,7 +56814,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scdl",
@@ -56825,7 +56825,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scdlrow",
@@ -56836,7 +56836,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scdt",
@@ -56847,7 +56847,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sclist",
@@ -56858,7 +56858,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sclistitem",
@@ -56869,7 +56869,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scmain",
@@ -56880,7 +56880,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scmark",
@@ -56891,7 +56891,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scnote",
@@ -56902,7 +56902,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scparagraph",
@@ -56913,7 +56913,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scsection",
@@ -56924,7 +56924,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scsectionheading",
@@ -56935,7 +56935,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctable",
@@ -56946,7 +56946,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctablewrap",
@@ -56957,7 +56957,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctd",
@@ -56968,7 +56968,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scth",
@@ -56979,7 +56979,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctitle",
@@ -56990,7 +56990,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctoc",
@@ -57001,7 +57001,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctocheading",
@@ -57012,7 +57012,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctocitem",
@@ -57023,7 +57023,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctoclink",
@@ -57034,7 +57034,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_sctoclist",
@@ -57045,7 +57045,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_components_legal_legalpage_parts_scversionmeta",
@@ -57092,7 +57092,7 @@
       "source_location": "L6",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
-      "target": "src_config_storage",
+      "target": "src_config_site",
       "confidence_score": 1.0
     },
     {
@@ -57103,6 +57103,28 @@
       "source_location": "L6",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
+      "target": "src_config_site_site",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/LegalDocument.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "src_components_legal_legaldocument",
+      "target": "src_config_storage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/LegalDocument.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "src_components_legal_legaldocument",
       "target": "src_config_storage_storage_registry",
       "confidence_score": 1.0
     },
@@ -57111,7 +57133,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L7",
+      "source_location": "L9",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_i18n_config",
@@ -57122,10 +57144,21 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L7",
+      "source_location": "L9",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument",
       "target": "src_i18n_config_initi18n",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/legal/LegalDocument.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "src_components_legal_legaldocument",
+      "target": "src_seo_metadata",
       "confidence_score": 1.0
     },
     {
@@ -57133,7 +57166,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L184",
+      "source_location": "L186",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument_markedtext",
       "target": "src_components_legal_legaldocument_splitplaceholdermarkers",
@@ -57144,7 +57177,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/components/legal/LegalDocument.tsx",
-      "source_location": "L489",
+      "source_location": "L525",
       "weight": 1.0,
       "source": "src_components_legal_legaldocument_legaldocument",
       "target": "src_components_legal_legaldocument_renderblock",
@@ -100365,5 +100398,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "fca9e5d12fcc883652198bd42119a9e630f86591"
+  "built_at_commit": "25b143d8877f7990930e79a686f92d7f974aa592"
 }

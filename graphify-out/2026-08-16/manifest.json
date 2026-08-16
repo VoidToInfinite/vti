@@ -1720,13 +1720,13 @@
     "semantic_hash": ""
   },
   "src/components/legal/LegalDocument.test.tsx": {
-    "mtime": 1786874359.010152,
-    "ast_hash": "e294390a65159ca29b36de171227c9b9",
+    "mtime": 1786907189.3809993,
+    "ast_hash": "d443746d60f273ef85ca3bcb71932df2",
     "semantic_hash": ""
   },
   "src/components/legal/LegalDocument.tsx": {
-    "mtime": 1786874359.0112214,
-    "ast_hash": "96c9fe720e95992f3180182a9f37fe75",
+    "mtime": 1786907344.7429397,
+    "ast_hash": "571bad84af1d9602b0a6f3b47c2f29b9",
     "semantic_hash": ""
   },
   "src/components/legal/LegalHeader.test.tsx": {
