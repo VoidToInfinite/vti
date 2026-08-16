@@ -101,7 +101,7 @@ describe("Footer", () => {
     expect(screen.getByText(esCommon.Common.Nav.onSite)).toBeInTheDocument();
     expect(screen.getByText(esCommon.Common.Nav.discover)).toBeInTheDocument();
 
-    for (const href of ["#story", "#journey", "#features", "#contact"]) {
+    for (const href of ["/#story", "/#journey", "/#features", "/#contact"]) {
       expect(
         document.querySelector(`a[href="${href}"]`),
         `falta el enlace ${href}`,
@@ -198,7 +198,7 @@ describe("Footer", () => {
     expect(screen.getByText(esCommon.Common.Nav.onSite)).toBeInTheDocument();
     expect(screen.getByText(esCommon.Common.Nav.discover)).toBeInTheDocument();
 
-    for (const href of ["#story", "#journey", "#features", "#contact"]) {
+    for (const href of ["/#story", "/#journey", "/#features", "/#contact"]) {
       expect(
         document.querySelector(`a[href="${href}"]`),
         `falta el enlace ${href}`,

@@ -21,13 +21,43 @@ export function HomeSections(): ReactElement {
       <Story />
       <Journey />
       <Features />
+      <Contact />
       {/* `About` es la quinta y la única sin rama por tema: es un bloque de
           hechos citable, no narrativa, y un hecho no cambia según la piel
-          (ver su docblock). Va entre Features y Contacto a propósito —
-          después de las tres formas de avanzar, «esto es lo que hay» y
-          luego el contacto. */}
+          (ver su docblock).
+
+          VA DESPUÉS DE CONTACTO, Y NO ENTRE FEATURES Y CONTACTO COMO EN SU
+          ENTREGA ORIGINAL (Fase 3, 2026-08-14). El motivo NO es de ritmo
+          editorial: es que en la rama oscura ahí era INVISIBLE. Crítica #6
+          (2026-08-15), P0-1.
+
+          La rama oscura encadena solapes: cada sección sube 100dvh sobre la
+          cola de la anterior (`JOURNEY_OVERLAY_RISE`, `FEATURES_OVERLAY_RISE`,
+          `CONTACT_OVERLAY_RISE`, los tres `100dvh`), y Features reserva esa
+          cola con un hueco propio (`FEATURES_TAIL_HOLD`, también `100dvh`) que
+          Contacto está diseñado para consumir. Medido en el navegador: Contacto
+          mide EXACTAMENTE 900 px con `margin-block-start: -900px` a 1280×900,
+          así que cubre justo un viewport de lo que tenga delante, y su
+          `ScDarkFrame` con el formulario ocupa esa banda entera — no es una
+          franja de solo escena.
+
+          About se insertó en medio de esa cadena sin cola propia, así que caía
+          entera bajo el solape: `#about` ocupaba 15471→16003 y `#contact`
+          15103→16003 con `z-index` 3 contra 2. NO existía posición de scroll en
+          la que se viera, ni en escritorio ni en móvil.
+
+          Las tres alternativas y por qué se descartaron:
+          - Subir `About` por encima de Contacto con `z-index`: taparía el
+            formulario, porque el contenido de Contacto ocupa toda la banda.
+          - Darle a `About` su propia cola de 100dvh: funciona, pero añade un
+            viewport de scroll vacío a una página que ya arrastra el hallazgo
+            de «zonas muertas» de las críticas anteriores.
+          - Moverla entre Journey y Features: mueve el bug, no lo arregla —
+            Features sube 100dvh sobre esa misma cola.
+
+          Detrás de Contacto no sube nadie (el pie no solapa), que es lo que
+          hace de esta la única posición libre que no está en la cabecera. */}
       <About />
-      <Contact />
     </>
   );
 }

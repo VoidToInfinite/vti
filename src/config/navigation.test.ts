@@ -59,15 +59,15 @@ const EXPECTED_ITEMS: Record<
   readonly { key: string; href: string; kind: NavItem["kind"] }[]
 > = {
   onSite: [
-    { key: "story", href: "#story", kind: "section" },
-    { key: "journey", href: "#journey", kind: "section" },
-    { key: "features", href: "#features", kind: "section" },
-    { key: "contact", href: "#contact", kind: "section" },
+    { key: "story", href: "/#story", kind: "section" },
+    { key: "journey", href: "/#journey", kind: "section" },
+    { key: "features", href: "/#features", kind: "section" },
+    { key: "contact", href: "/#contact", kind: "section" },
   ],
   discover: [
-    { key: "learning", href: "#features", kind: "feature" },
-    { key: "imagination", href: "#features", kind: "feature" },
-    { key: "gaming", href: "#features", kind: "feature" },
+    { key: "learning", href: "/#features", kind: "feature" },
+    { key: "imagination", href: "/#features", kind: "feature" },
+    { key: "gaming", href: "/#features", kind: "feature" },
   ],
   resources: [{ key: "sdk", href: links.sdk, kind: "external" }],
   // Grupo nuevo (auditoría premium, tarea 6): Discord y GitHub, ambos
@@ -109,14 +109,34 @@ describe("NAV_GROUPS", () => {
     }
   });
 
-  it("todo item 'section' tiene un href que empieza por #", () => {
+  /*
+   * ESTE CANDADO EXIGÍA EXACTAMENTE EL BUG QUE LA CRÍTICA #6 ENCONTRÓ. Pedía
+   * que las anclas de sección empezaran por `#`, y una ancla relativa se
+   * resuelve contra el documento actual: en `/privacidad`, `/aviso-legal` y la
+   * 404 no existe ningún `#story`, así que los 7 enlaces de sección del pie no
+   * hacían absolutamente nada — verificado con clic real, `scrollY` sin
+   * moverse. En la 404 eran 15 de 17 enlaces inertes.
+   *
+   * Ahora exige `/#`, que funciona en los DOS casos: dentro de la home el
+   * navegador lo resuelve contra el mismo documento y se comporta igual que
+   * antes; fuera de ella navega a la home y aterriza en la sección.
+   *
+   * Se ata también que NO empiecen por `#` a secas, y no solo que empiecen por
+   * `/#`: sin esa segunda mitad, un futuro `href: "#story"` seguiría pasando
+   * el `toMatch` si alguien relajara la expresión regular.
+   */
+  it("todo item 'section' tiene un href ABSOLUTO a la home (`/#`), no un ancla relativa", () => {
     for (const group of NAV_GROUPS) {
       for (const item of group.items) {
-        if (item.kind === "section") {
+        if (item.kind === "section" || item.kind === "feature") {
           expect(
             item.href,
-            `${group.key}.${item.key} deberia ser un ancla de seccion`,
-          ).toMatch(/^#/);
+            `${group.key}.${item.key}: un ancla relativa no navega desde /privacidad, /aviso-legal ni la 404`,
+          ).toMatch(/^\/#/);
+          expect(
+            item.href.startsWith("#"),
+            `${group.key}.${item.key} vuelve a ser un ancla relativa`,
+          ).toBe(false);
         }
       }
     }

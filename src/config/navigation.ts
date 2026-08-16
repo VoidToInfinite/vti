@@ -59,6 +59,43 @@ export interface NavGroup {
   readonly items: readonly NavItem[];
 }
 
+/*
+ * LAS ANCLAS SON ABSOLUTAS (`/#story`), NO RELATIVAS (`#story`), y ésa es la
+ * diferencia entre un enlace que funciona y uno que no hace absolutamente
+ * nada. Crítica #6 (2026-08-15), P0-2, verificado con clic REAL y no por
+ * inspección:
+ *
+ *   En `/privacidad`, con `scrollY = 7427`, clic en «Contacto» del pie:
+ *   la URL pasa a `/privacidad#contact`, el `h1` sigue siendo «Política de
+ *   privacidad» y `scrollY` sigue siendo 7427. No se mueve nada, y no hay
+ *   ningún feedback de que el clic no llevó a ninguna parte.
+ *
+ * El motivo es que este modelo lo consumen TRES superficies —`Navbar`,
+ * `NavSheet` y `Footer`— y las tres se montan en TODAS las páginas, no solo
+ * en la home. Una ancla relativa se resuelve contra el documento actual, y
+ * fuera de la home no existe ningún `#story`:
+ * `['story','journey','features','contact'].filter(id =>
+ * document.getElementById(id))` devuelve `[]` en `/privacidad`,
+ * `/aviso-legal` y la 404.
+ *
+ * Alcance del defecto: 7 enlaces × 3 páginas = 21 instancias. En la 404 se
+ * sumaban los 8 de los desplegables de cabecera —las legales sí retiran esos
+ * desplegables, la 404 no—, así que quedaban **15 de 17 enlaces de navegación
+ * inertes en la única página cuyo trabajo entero es devolverte al sitio**.
+ * Agravante en las legales: su cabecera no lleva navegación de secciones, así
+ * que el pie era el único camino de vuelta al contenido, y era el que fallaba
+ * en silencio.
+ *
+ * Por qué `/#story` y no otra cosa: dentro de la propia home el navegador
+ * resuelve `/#story` contra el mismo documento y hace exactamente lo que
+ * hacía antes (desplazamiento suave por `scroll-behavior`, sin recarga),
+ * mientras que fuera de ella navega a la home y aterriza en la sección. Es la
+ * forma que funciona en los dos casos, no un parche para uno.
+ *
+ * NOTA PARA QUIEN AÑADA UN DESTINO: el `key` NO lleva barra y se sigue usando
+ * como `id` de la sección (`useActiveSection` deriva `ACTIVE_SECTION_IDS` de
+ * estos `key`, no de los `href`). Lo que lleva `/` es el `href`, y solo él.
+ */
 export const NAV_GROUPS: readonly NavGroup[] = [
   /* Mismos 4 destinos que ya usaban `NAV_SECTION_LINKS` (Navbar) y
      `SECTION_LINKS` (Footer): las 4 secciones de la home, en el orden en que
@@ -66,21 +103,21 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     key: "onSite",
     items: [
-      { key: "story", href: "#story", kind: "section" },
-      { key: "journey", href: "#journey", kind: "section" },
-      { key: "features", href: "#features", kind: "section" },
-      { key: "contact", href: "#contact", kind: "section" },
+      { key: "story", href: "/#story", kind: "section" },
+      { key: "journey", href: "/#journey", kind: "section" },
+      { key: "features", href: "/#features", kind: "section" },
+      { key: "contact", href: "/#contact", kind: "section" },
     ],
   },
   /* Mismo criterio que ya seguía `DISCOVER_LINKS` en el Footer: Learning,
      Imagination y Gaming son los TÍTULOS de `Home.features.*`, no claves de
-     navegación nuevas -- los tres apuntan a la misma sección `#features`. */
+     navegación nuevas -- los tres apuntan a la misma sección `/#features`. */
   {
     key: "discover",
     items: [
-      { key: "learning", href: "#features", kind: "feature" },
-      { key: "imagination", href: "#features", kind: "feature" },
-      { key: "gaming", href: "#features", kind: "feature" },
+      { key: "learning", href: "/#features", kind: "feature" },
+      { key: "imagination", href: "/#features", kind: "feature" },
+      { key: "gaming", href: "/#features", kind: "feature" },
     ],
   },
   /* Único destino externo del modelo hasta esta entrega: el SDK público de

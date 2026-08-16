@@ -48,6 +48,39 @@ afterEach(() => {
 
 describe("HomeSections", () => {
   /*
+   * CANDADO DE LA CRÍTICA #6, P0-1. `About` estuvo entre Features y Contacto
+   * desde su entrega (Fase 3, 2026-08-14) y en la rama OSCURA era invisible:
+   * la cadena de solapes hace que cada sección suba 100dvh sobre la cola de la
+   * anterior, y Contacto —que mide exactamente un viewport y sube exactamente
+   * un viewport— cubría About entera. Medido: `#about` en 15471→16003 y
+   * `#contact` en 15103→16003 con z-index 3 contra 2, sin ninguna posición de
+   * scroll en la que About se viera.
+   *
+   * Por qué este test y no uno de visibilidad: jsdom no hace layout ni pinta,
+   * así que NO puede detectar un solape. Lo que sí puede atar es la invariante
+   * estructural que lo evita — **About va después de Contacto, fuera de la
+   * cadena** —, y esa invariante es exactamente lo que se rompió.
+   *
+   * Si alguien vuelve a mover About dentro de la cadena, este test se pone en
+   * rojo antes de que nadie tenga que abrir un navegador en tema oscuro.
+   */
+  it("About va DESPUÉS de Contacto: dentro de la cadena de solapes quedaría tapada en oscuro", () => {
+    const { container } = renderWithProviders(<HomeSections />);
+    const ids = [...container.querySelectorAll("section[id]")].map((n) => n.id);
+    const iContacto = ids.indexOf("contact");
+    const iAbout = ids.indexOf("about");
+    expect(
+      iContacto,
+      "no se encontró la sección de contacto",
+    ).toBeGreaterThanOrEqual(0);
+    expect(iAbout, "no se encontró la sección about").toBeGreaterThanOrEqual(0);
+    expect(
+      iAbout,
+      "About vuelve a estar dentro de la cadena de solapes: en oscuro la cubre Contacto",
+    ).toBeGreaterThan(iContacto);
+  });
+
+  /*
    * En CLARO son CINCO secciones desde el 2026-08-06, no cuatro: `Story`
    * emite ademas `#statement`, la nota de cierre promovida a pantalla
    * completa (spec `2026-08-06-story-features-tema-claro-design.md`, D12).
@@ -67,7 +100,7 @@ describe("HomeSections", () => {
    * unica propiedad que este test protege, y una lista parcial dejaria pasar
    * que una seccion se colara en medio de otras dos.
    */
-  it("en tema claro (por defecto, sin nada guardado) monta las 5 secciones, en orden story/statement/journey/features/contact", () => {
+  it("en tema claro (por defecto, sin nada guardado) monta las 5 secciones, en orden story/statement/journey/features/contact/about", () => {
     const { container } = renderWithProviders(<HomeSections />);
 
     const ids = Array.from(container.querySelectorAll("section")).map(
@@ -78,8 +111,8 @@ describe("HomeSections", () => {
       "statement",
       "journey",
       "features",
-      "about",
       "contact",
+      "about",
     ]);
   });
 
@@ -125,8 +158,8 @@ describe("HomeSections", () => {
         "statement",
         "journey",
         "features",
-        "about",
         "contact",
+        "about",
       ]);
       expect(
         container.querySelectorAll("[data-slide-index]").length,

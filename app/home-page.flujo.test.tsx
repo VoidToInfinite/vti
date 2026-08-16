@@ -174,7 +174,7 @@ describe("Home (pagina completa)", () => {
     const h1 = container.querySelector("h1");
     expect(h1).not.toBeNull();
 
-    const seccionIds = ["story", "journey", "features", "about", "contact"];
+    const seccionIds = ["story", "journey", "features", "contact", "about"];
     const secciones = seccionIds.map((id) => {
       const el = container.querySelector(`section#${id}`);
       expect(el, `falta la seccion #${id}`).not.toBeNull();
@@ -237,7 +237,7 @@ describe("Home (pagina completa)", () => {
 
     expect(container.querySelector("h1")).not.toBeNull();
     expect(container.querySelector("footer")).not.toBeNull();
-    for (const id of ["story", "journey", "features", "about", "contact"]) {
+    for (const id of ["story", "journey", "features", "contact", "about"]) {
       expect(container.querySelector(`section#${id}`)).not.toBeNull();
     }
   }, 15000);

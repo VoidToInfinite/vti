@@ -493,12 +493,12 @@ describe("Navbar", () => {
     // `Common.Navigation.story` y `Common.Navigation.history` traducen los
     // dos a "Historia" (mismo string), asi que el nombre accesible no
     // identifica de forma unica cual de los cuatro enlaces es.
-    const SECTION_HREFS = ["#story", "#journey", "#features", "#contact"];
+    const SECTION_HREFS = ["/#story", "/#journey", "/#features", "/#contact"];
 
     // Ampliación tarea W4, extendida en la tarea 6 (auditoría premium): los
     // cuatro enlaces de sección, ahora dentro del panel del grupo "onSite",
     // conviven con los TRES enlaces de discover (Learning/Imagination/Gaming,
-    // grupo "discover", los tres apuntan a "#features"), el enlace externo
+    // grupo "discover", los tres apuntan a "/#features"), el enlace externo
     // del SDK (grupo "resources") y los DOS enlaces externos del grupo nuevo
     // "community" (Discord, GitHub) -- TODOS siguen en el DOM sea cual sea el
     // estado abierto/cerrado de su panel (regla dura de la tarea: el panel se
@@ -520,7 +520,7 @@ describe("Navbar", () => {
           ).not.toBeNull();
         }
 
-        // "#features" lo comparten el enlace de sección "features" (onSite)
+        // "/#features" lo comparten el enlace de sección "features" (onSite)
         // y los tres de discover. Desde la hoja de navegación móvil (Task 10)
         // el Navbar pinta esos mismos destinos DOS veces: una en el panel de
         // escritorio y otra en la hoja (regla 40: se actualiza la fuente de
@@ -530,10 +530,10 @@ describe("Navbar", () => {
         // este test sigue diciendo la verdad sin tocarlo.
         const anclasFeatures = NAV_GROUPS.flatMap(
           (group) => group.items,
-        ).filter((item) => item.href === "#features").length;
+        ).filter((item) => item.href === "/#features").length;
         const SUPERFICIES_DE_NAV = 2; // panel de escritorio + hoja móvil
         expect(
-          container.querySelectorAll('a[href="#features"]'),
+          container.querySelectorAll('a[href="/#features"]'),
           `deberian ser ${anclasFeatures * SUPERFICIES_DE_NAV} anclas hacia #features en tema ${tema}`,
         ).toHaveLength(anclasFeatures * SUPERFICIES_DE_NAV);
 
@@ -699,7 +699,7 @@ describe("Navbar", () => {
       // pulsa Escape -- aquí, un enlace de su panel ya abierto --, no solo
       // en el propio disparador.
       const firstLink = container.querySelector(
-        'a[href="#story"]',
+        'a[href="/#story"]',
       ) as HTMLElement;
       firstLink.focus();
       expect(document.activeElement).toBe(firstLink);
@@ -727,7 +727,7 @@ describe("Navbar", () => {
       const trigger = getTrigger(ON_SITE);
 
       fireEvent.click(trigger);
-      const link = container.querySelector('a[href="#story"]') as HTMLElement;
+      const link = container.querySelector('a[href="/#story"]') as HTMLElement;
       const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
 
       // React 17+ resuelve `onBlur` sobre el evento nativo `focusout` (que
@@ -743,7 +743,7 @@ describe("Navbar", () => {
       const trigger = getTrigger(ON_SITE);
 
       fireEvent.click(trigger);
-      const link = container.querySelector('a[href="#story"]') as HTMLElement;
+      const link = container.querySelector('a[href="/#story"]') as HTMLElement;
 
       fireEvent.click(link);
 
@@ -1000,7 +1000,7 @@ describe("Navbar", () => {
     it("sin ninguna sección en pantalla, ningún enlace de sección tiene aria-current", () => {
       const { container } = renderNavbar();
 
-      for (const href of ["#story", "#journey", "#features", "#contact"]) {
+      for (const href of ["/#story", "/#journey", "/#features", "/#contact"]) {
         expect(
           container.querySelector(`a[href="${href}"]`),
         ).not.toHaveAttribute("aria-current");
@@ -1013,12 +1013,12 @@ describe("Navbar", () => {
       setInView("journey", true);
       fireScroll();
 
-      expect(container.querySelector('a[href="#journey"]')).toHaveAttribute(
+      expect(container.querySelector('a[href="/#journey"]')).toHaveAttribute(
         "aria-current",
         "location",
       );
 
-      for (const href of ["#story", "#features", "#contact"]) {
+      for (const href of ["/#story", "/#features", "/#contact"]) {
         expect(
           container.querySelector(`a[href="${href}"]`),
         ).not.toHaveAttribute("aria-current");
@@ -1032,7 +1032,7 @@ describe("Navbar", () => {
       fireScroll();
 
       const hoja = container.querySelector("[data-nav-sheet]") as HTMLElement;
-      expect(hoja.querySelector('a[href="#features"]')).toHaveAttribute(
+      expect(hoja.querySelector('a[href="/#features"]')).toHaveAttribute(
         "aria-current",
         "location",
       );
@@ -1049,7 +1049,7 @@ describe("Navbar", () => {
       fireScroll();
 
       const conAriaCurrent = Array.from(
-        container.querySelectorAll('a[href="#features"]'),
+        container.querySelectorAll('a[href="/#features"]'),
       ).filter((a) => a.hasAttribute("aria-current"));
       expect(conAriaCurrent).toHaveLength(2);
     });
@@ -1076,7 +1076,7 @@ describe("Navbar", () => {
       const { container } = renderNavbar();
       const reglas = allCssRules();
 
-      const link = container.querySelector('a[href="#story"]') as HTMLElement;
+      const link = container.querySelector('a[href="/#story"]') as HTMLElement;
       // La clase que interesa aquí es la que lleva la regla `::before`
       // -- no la primera clase inyectada cualquiera del `classList`, que
       // encontraría antes la clase base de ScNavLink (hover/:active, sin
@@ -1474,7 +1474,7 @@ describe("Navbar", () => {
 
       fireEvent.click(trigger);
       const fila = getSheet(container).querySelector(
-        'a[href="#story"]',
+        'a[href="/#story"]',
       ) as HTMLElement;
 
       fireEvent.click(fila);
