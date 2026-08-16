@@ -335,8 +335,44 @@ export const ScDeck = styled.div`
  * el mismo mecanismo (scroll) por el que ya lo era visualmente. Ver el
  * docblock actualizado del describe "candado SR del deck" en los dos
  * ficheros de test para el detalle completo.
+ *
+ * LAS SEIS DIAPOSITIVAS SE CENTRAN, SIN EXCEPCIONES: no hay ningún prop de
+ * alineación aquí, y eso es una decisión revertida, no una que nunca se tomó.
+ * Entre el 2026-08-12 y el 2026-08-16 la diapositiva de cierre (`#statement`,
+ * `Story.tsx`) recibía un prop `$anchorTop` que le ponía `align-self: start`
+ * para pegarla al borde superior del stage. El motivo era real y medido: en la
+ * rama oscura Journey sube 100dvh sobre la cola de Story y su borde superior
+ * barre la pantalla de abajo hacia arriba, así que cuanto más arriba esté el
+ * enlace de Discord, más tarda en quedar tapado.
+ *
+ * Se revierte porque el precio visual es mucho mayor que la ganancia, y quien
+ * lo vio fue el dueño mirando la página, no un test. Medido en navegador real
+ * (playwright-cli, dev server, tema oscuro, `#statement` recién puesta
+ * `current`), el bloque de cierre mide entre 211 y 474 px de alto según el
+ * ancho, y el stage siempre 100dvh — con `align-self: start` el hueco que
+ * queda DEBAJO del bloque es de 246 px a 1280x720, **431 px a 1920x905**, 633
+ * px a 390x844 y 726 px a 1920x1200. Es decir: en cualquier pantalla algo alta
+ * la última diapositiva del deck se leía como un bloque desprendido en la
+ * esquina superior con media pantalla vacía debajo, y en móvil como tres
+ * cuartos de pantalla vacía.
+ *
+ * Lo que cuesta centrarla, medido con el mismo barrido en las dos variantes
+ * (paso de 60 px, se registra en qué scrollY `elementFromPoint` sobre el
+ * centro del enlace deja de devolver el propio enlace):
+ *
+ *   1280x720  ventana limpia del enlace 600 px anclado -> 480 px centrado
+ *   1920x905  ventana limpia del enlace 840 px anclado -> 660 px centrado
+ *
+ * O sea 120-180 px de recorrido, un 20-21 % de la ventana. Lo que NO cambia:
+ * la diapositiva sigue entrando entera y sin tapar, y el bloque cabe con
+ * holgura en todos los tamaños probados (el margen más justo es 174 px a
+ * 1024x600), así que centrar no reintroduce el desbordamiento que la QA cerró
+ * en su día. El resto del hallazgo D1 sigue siendo cierto y sin resolver: el
+ * solape ES una arquitectura que tapa el cierre de Story, y arreglarlo de
+ * verdad pasa por `STORY_DECK_TAIL_SCREENS`/`JOURNEY_OVERLAY_RISE`, que es
+ * decisión del dueño y no de este componente.
  */
-export const ScSlide = styled.div<{ $anchorTop?: boolean }>`
+export const ScSlide = styled.div`
   grid-area: 1 / 1;
   width: 100%;
   opacity: 0;
@@ -350,52 +386,6 @@ export const ScSlide = styled.div<{ $anchorTop?: boolean }>`
     visibility ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate};
   pointer-events: none;
-
-  /*
-   * Fix wave D (hallazgo D1, revision final de rama): SOLO la diapositiva de
-   * cierre (#statement, Story.tsx) pasa este prop. ScDeck centra las 6
-   * diapositivas con place-items: center (D6, mas arriba en este fichero);
-   * para las 5 primeras eso es correcto, pero para la de cierre deja su
-   * contenido (474px de alto medido, h2+enlace) a caballo del tercio INFERIOR
-   * del viewport (screen-y 123-597 de 720 medido en navegador real,
-   * playwright-cli, 1280x720). El "solape" documentado del D11 de la spec
-   * 2026-08-02-journey-overlay-transition-design.md (Journey sube sobre
-   * Story exactamente STORY_DECK_TAIL_SCREENS == JOURNEY_OVERLAY_RISE, 1
-   * pantalla) NO es un salto instantaneo: es un bloque de 6480px que entra en
-   * el viewport en flujo NORMAL por el borde inferior mientras su propio
-   * position: sticky todavia no engancha (no engancha hasta que scrollY
-   * alcanza el tope real de su pista) -- su borde superior barre la pantalla
-   * de abajo hacia arriba durante TODO ese tramo de 720px, y z-index: 1 +
-   * orden de DOM posterior (Journey.tsx, ScJourney) lo pinta por encima de
-   * Story en cualquier punto que ya haya cruzado. Medido en navegador real:
-   * con el contenido centrado, el enlace de Discord (la parte MAS BAJA del
-   * bloque) queda cubierto a los ~123px de iniciado ese barrido -- mucho antes
-   * de que el barrido complete su recorrido -- dejando una ventana alcanzable
-   * de solo ~400-480px de una pagina de 12.821px (scrollY ~3960 a ~4440).
-   *
-   * align-self: start sustituye el place-items: center heredado SOLO en
-   * este item de grid (align-self en un hijo gana siempre a place-items/
-   * align-items del contenedor -- no hace falta tocar ScDeck, que sigue
-   * centrando las otras 5 diapositivas sin cambios). Con el bloque pegado al
-   * borde SUPERIOR del stage (screen-y 0-474 en vez de 123-597), el mismo
-   * barrido tarda 123px MAS en alcanzar el enlace -- la ganancia maxima que
-   * da este contenedor de 720px con un bloque de 474px de alto, sin tocar
-   * STORY_DECK_TAIL_SCREENS/JOURNEY_OVERLAY_RISE (arquitectura del
-   * solape, decision del dueño, fuera de alcance de este arreglo) ni la
-   * longitud de ninguna de las dos ramas. Verificado en navegador real tras
-   * el cambio (fixD-* del informe de la tarea): la ventana alcanzable crece a
-   * ~600px.
-   *
-   * SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
-   * literal de styled-components, donde un backtick lo cierra y rompe el
-   * build (leccion del repo, task/lessons.md 2026-07-25, reincidida el
-   * 2026-08-02 y aqui, fix wave D).
-   */
-  ${({ $anchorTop }) =>
-    $anchorTop &&
-    css`
-      align-self: start;
-    `}
 
   &[data-state="current"] {
     opacity: 1;

@@ -1633,22 +1633,34 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
   });
 
   /*
-   * Fix wave D (hallazgo D1, revisión final de rama, 2026-08-12): `ScSlide`
-   * (`story.deck.tsx`) gana el prop `$anchorTop`, que SOLO pasa la
-   * diapositiva de cierre (`#statement`) -- ver el docblock de `ScSlide` en
-   * `story.deck.tsx` para la medición completa en navegador real (la
-   * ganancia de ~123px en la ventana alcanzable del enlace a Discord antes
-   * de que Journey lo tape). `align-self: start` (que gana siempre a
-   * `place-items: center` del contenedor `ScDeck` para ESTE item de grid,
-   * sin tocar las otras cinco diapositivas) es la parte verificable por
-   * jsdom: texto del CSS inyectado, no layout real (jsdom no lo calcula).
+   * ESTE CANDADO ESTÁ INVERTIDO A PROPÓSITO respecto a su versión anterior, y
+   * el motivo importa más que la aserción. Entre el 2026-08-12 y el 2026-08-16
+   * exigía justo lo contrario -- que `#statement` declarase `align-self: start`
+   * (prop `$anchorTop` de `ScSlide`, fix wave D / hallazgo D1) -- para retrasar
+   * el momento en que Journey tapa el enlace a Discord al subir sobre la cola
+   * de Story.
    *
-   * Validado con el bug inyectado a propósito: quitando `$anchorTop` de la
-   * diapositiva `#statement` en `Story.tsx` (StoryDeckDark), la primera
-   * aserción de este test cae en rojo (`align-self: start` deja de aparecer
-   * en su CSS); restaurado, vuelve a verde.
+   * El dueño revirtió esa decisión el 2026-08-16 mirando la página: anclada
+   * arriba, la diapositiva de cierre dejaba 431px de hueco vacío debajo a
+   * 1920x905 y 633px a 390x844, y se leía como un bloque desprendido en la
+   * esquina superior. Medido en navegador real, centrarla cuesta 120-180px de
+   * ventana limpia (600 -> 480 px a 1280x720; 840 -> 660 px a 1920x905) y no
+   * reintroduce desbordamiento en ningún tamaño probado. Detalle completo en el
+   * docblock de `ScSlide` (`story.deck.tsx`).
+   *
+   * Lo que este test bloquea, por tanto, no es "no usar align-self" como manía
+   * de estilo: es que NADIE vuelva a anclar una diapositiva suelta del deck sin
+   * pasar antes por esa medición. Las seis se centran con el `place-items:
+   * center` de `ScDeck`, y la de cierre no es una excepción.
+   *
+   * Verificable en jsdom porque mira el TEXTO del CSS inyectado, no el layout
+   * (jsdom no calcula layout: `docs/qa-3d-pendiente.md` y CLAUDE.md §5.2).
+   *
+   * Validado con el bug inyectado a propósito: añadiendo `align-self: start;`
+   * al template de `ScSlide` en `story.deck.tsx`, este test cae en rojo;
+   * quitándolo, vuelve a verde.
    */
-  it("Fix wave D (D1): SOLO la diapositiva de cierre (#statement) declara align-self: start -- las demás heredan el place-items: center de ScDeck", async () => {
+  it("ninguna de las 6 diapositivas declara align-self: la de cierre (#statement) se centra como las demás", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -1658,13 +1670,16 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     const statement = container.querySelector(
       "section#statement",
     ) as HTMLElement;
-    expect(cssRuleTextFor(statement)).toContain("align-self: start");
+    expect(
+      cssRuleTextFor(statement),
+      "la diapositiva de cierre volvió a anclarse: ver el docblock de ScSlide antes de tocarlo",
+    ).not.toContain("align-self");
 
-    const otherSlides = Array.from(
+    const slides = Array.from(
       container.querySelectorAll("[data-slide-index]"),
-    ).filter((el) => el !== statement) as HTMLElement[];
-    expect(otherSlides).toHaveLength(STORY_SLIDES - 1);
-    otherSlides.forEach((slide) => {
+    ) as HTMLElement[];
+    expect(slides).toHaveLength(STORY_SLIDES);
+    slides.forEach((slide) => {
       expect(cssRuleTextFor(slide)).not.toContain("align-self");
     });
   });

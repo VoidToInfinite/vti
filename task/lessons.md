@@ -1955,3 +1955,27 @@
 - **Corolario sobre procesos ajenos:** el servidor del 3000 puede ser del usuario. Se
   comprueba con `netstat -ano | grep :3000` y **no se mata**: se le dice al dueño qué
   reiniciar. Matar un proceso que no es tuyo ya se declaró fuera de límite en este repo.
+
+## 2026-08-16 — Un arreglo medido puede ser un defecto visual: la métrica no era la única variable
+
+- **Qué pasó:** el dueño reportó que la última diapositiva del deck oscuro de Story
+  (`#statement`) se veía «alineada al inicio y no centrada». No era un bug introducido por
+  descuido: era el `$anchorTop` (`align-self: start`) que yo mismo había añadido el
+  2026-08-12 como fix wave D / hallazgo D1, con medición en navegador real detrás.
+- **Causa raíz de la mala decisión:** optimicé UNA variable medible —los píxeles de scroll
+  que el enlace de Discord aguanta antes de que Journey lo tape— y no medí la que el
+  usuario ve primero, que es la composición. Anclada arriba, la diapositiva dejaba
+  **431 px de hueco vacío debajo a 1920x905 y 633 px a 390x844**. La medición original era
+  correcta y estaba incompleta: solo miraba 1280x720, el tamaño donde el hueco (246 px) es
+  el menor de todos y el defecto todavía se puede racionalizar.
+- **El coste real de revertir, medido en las dos variantes con el mismo barrido:** la
+  ventana limpia del enlace cae de 600 a 480 px a 1280x720 y de 840 a 660 px a 1920x905 —
+  un 20-21 %. Se paga: el bloque entra entero y sin tapar igualmente.
+- **Regla:** cuando un arreglo cambia la POSICIÓN de un bloque en pantalla, la medición
+  tiene que incluir el hueco resultante en al menos un viewport alto y uno móvil, no solo
+  el que motivó el arreglo. Un número que mejora no autoriza a no mirar la página.
+- **Corolario sobre los candados:** el test que exigía `align-self: start` estaba
+  fosilizando la decisión, no protegiéndola. Al revertir se invierte el candado (ahora
+  exige que NINGUNA diapositiva declare `align-self`) y el docblock guarda la medición de
+  las dos variantes, para que el siguiente que quiera anclar tenga los números delante en
+  vez de repetir el experimento.

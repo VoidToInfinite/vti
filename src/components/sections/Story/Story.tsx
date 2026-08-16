@@ -1626,27 +1626,25 @@ function StoryDeckDark(): ReactElement {
                 rama clara), no entra en el arbol de accesibilidad como
                 landmark: no compite con la region de Story.
 
-                `$anchorTop` (fix wave D, hallazgo D1, revision final de rama):
+                ALINEACION: esta diapositiva NO lleva ningun prop propio y se
+                centra como las otras cinco. Entre el 2026-08-12 y el
+                2026-08-16 llevaba `$anchorTop` (`align-self: start`) para
+                retrasar el momento en que Journey tapa el enlace de Discord:
                 el riesgo que el parrafo de arriba ya declaraba ("cualquier
-                contenido real puesto ahi lo taparia Journey") se materializo:
-                medido en navegador real, el enlace de Discord solo quedaba
-                alcanzable y sin tapar entre scrollY ~3960 y ~4440 de una
-                pagina de 12.821px -- Journey entra en el viewport en flujo
-                normal por el borde inferior mientras su `position: sticky`
-                todavia no engancha, y su borde superior barre la pantalla de
-                abajo hacia arriba durante TODO el tramo de solape, cubriendo
-                antes lo que este mas abajo en pantalla. Ver el docblock de
-                `ScSlide`/`$anchorTop` en story.deck.tsx para la medicion
-                completa; no toca `STORY_DECK_TAIL_SCREENS`/
-                `JOURNEY_OVERLAY_RISE` (arquitectura del solape) ni la
-                longitud de ninguna rama, solo la alineacion vertical de ESTA
-                diapositiva dentro de su propio stage. */}
+                contenido real puesto ahi lo taparia Journey") se materializo,
+                y anclarla arriba compraba 120-180px de ventana limpia. Se
+                revirtio el 2026-08-16 por veredicto del dueño mirando la
+                pagina: ese anclaje dejaba 431px de hueco vacio debajo del
+                bloque a 1920x905 (633px a 390x844), y la ultima diapositiva
+                del deck se leia como un bloque desprendido arriba. La medicion
+                completa de las dos variantes, y por que el hallazgo D1 sigue
+                vivo pero no se arregla desde aqui, en el docblock de `ScSlide`
+                (story.deck.tsx). */}
             <ScSlide
               as="section"
               id="statement"
               data-slide-index={STORY_SLIDES - 1}
               data-state={slideState(STORY_SLIDES - 1)}
-              $anchorTop
             >
               <ScDeckNote>
                 {t("Home.story.statement.first")}{" "}
