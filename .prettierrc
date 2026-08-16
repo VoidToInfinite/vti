@@ -3,7 +3,7 @@
     "bracketSameLine": false,
     "proseWrap": "never",
     "quoteProps": "consistent",
-    "endOfLine": "crlf",
+    "endOfLine": "lf",
     "singleAttributePerLine": true,
     "semi": true,
     "overrides": [

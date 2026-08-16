@@ -1,0 +1,45 @@
+# Finales de línea: LF en el repositorio Y en el árbol de trabajo, en todas
+# las plataformas.
+#
+# POR QUÉ EXISTE ESTE FICHERO (medido, no preventivo): sin él, el gate de
+# calidad no podía pasar NUNCA en CI. `.prettierrc` declaraba
+# `"endOfLine": "crlf"`, pero git tenía guardados los blobs en LF -- medido
+# con `git cat-file blob HEAD:<fichero> | tr -cd '\r' | wc -c`, que devuelve
+# 0 para todo el repo. En Windows eso no se notaba porque `core.autocrlf=true`
+# convierte a CRLF al sacar los ficheros al disco, así que `pnpm check-format`
+# veía CRLF y pasaba. El runner de GitHub es ubuntu-latest, donde `autocrlf`
+# está en `false` por defecto: los ficheros llegan al disco tal cual, en LF,
+# y `prettier . --list-different` los listaba TODOS como distintos. El gate
+# moría en `check-format`, el tercer eslabón de `pnpm run ci`, antes de llegar
+# a los tests.
+#
+# Se alinea Prettier con lo que git ya guardaba (LF) y no al revés: los blobs
+# no cambian ni un byte, así que este arreglo NO produce el diff de ~490
+# ficheros que habría costado normalizar el repo a CRLF. Lo que cambia es el
+# árbol de trabajo en Windows, que pasa a ser LF como el de cualquier otra
+# plataforma. `.gitattributes` gana a `core.autocrlf`, así que el ajuste
+# global de la máquina deja de decidir si el gate pasa.
+#
+# NO hay ningún fichero en el repo que dependa de CRLF (`git ls-files` no
+# devuelve ni un `.bat`, `.cmd`, `.ps1` ni `.sh`), así que forzar LF no rompe
+# nada ejecutable.
+* text=auto eol=lf
+
+# Binarios: marcados explícitamente para que la detección automática no tenga
+# ni la oportunidad de equivocarse y corromperlos aplicando conversión de
+# finales de línea.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.mp4 binary
+*.webm binary
