@@ -103,12 +103,9 @@ Ambas vía `next/font/google`, `display: swap`, autoalojadas, con métricas de f
 
 ### 3.2 Escala del sistema (`src/theme/tokens/type.ts`)
 
-12 variantes (`display`, `h1`…`h5`, `bodyLg`, `body`, `bodySm`, `caption`, `overline`, `code`), cada una con `size`/`weight`/`lineHeight`/`tracking`.
+9 variantes (`display`, `h1`, `h2`, `h3`, `h5`, `body`, `bodySm`, `caption`, `overline`), cada una con `size`/`weight`/`lineHeight`/`tracking`.
 
-**Dos problemas documentados honestamente, no ocultos:**
-
-1. **h4→h5 colapsa por abajo.** `h4` = 1.25rem (20px) → `h5` = 1.125rem (18px): un salto de solo 1.11× entre dos pasos consecutivos de la escala.
-2. **h5 = bodyLg en tamaño exacto.** Ambos son `1.125rem`; solo divergen en peso (`h5` 600 vs `bodyLg` 400) e interlineado (`h5` 1.35 vs `bodyLg` 1.55).
+**Enmienda 2026-08-17 (crítica externa #9):** eran 12; se retiraron tres variantes con cero consumidores en todo el repo — `h4`, `bodyLg` y `code` — y con ellas se disolvieron los dos problemas que esta sección documentaba desde su origen: el colapso `h4`→`h5` (1,11×; sin `h4`, el salto real es `h3`→`h5` = 1,33×) y la igualdad de tamaño `h5` = `bodyLg`. `code` además nunca funcionó: `ScTypography` fijaba `fontBody` para todas las variantes, así que jamás se pintó monoespaciado (`type.fontMono` sigue vivo con su consumidor real en Story). El recuento de 9 quedó cerrado por candado en `type.test.ts`.
 
 ### 3.3 Segundo nivel: tipografía por escena
 
@@ -281,15 +278,15 @@ Prioridad tal y como la dejó la auditoría A2 (Opus, 2026-08-08), sin editorial
 - Anillo de foco con especificidad cero (`:where()`) y contraste no medido sobre arte (WCAG **1.4.11** "Non-text Contrast" — corregido 2026-08-12, Task 25: el criterio citado aquí hasta hoy, 2.4.11 "Focus Not Obscured", no es el criterio de contraste; ver `PRE-LAUNCH-QA.md` §6 ítem 40, que ya traía esta misma corrección desde 2026-08-09 y que esta entrada no había recogido). Sigue sin medirse en navegador real; QA pendiente.
 - ~~Formulario de contacto vía `mailto` sin validación ni salida de fallo — `Field`/`Input` ya soportan estado de error, no está conectado.~~ **Resuelto.** Rama oscura: Tarea 1 de la implementación de la auditoría premium, 2026-08-09 (campo vacío, validación de formato, panel de confirmación copiable). Rama clara: **Task 16 del plan premium F1-F5, 2026-08-11** — el chip con la dirección en texto plano se retira; las dos ramas montan hoy el MISMO `<form>` real con validación y panel de confirmación (`contactChannels`, único árbol de JSX). Verificado en navegador real, flujo completo (correo inválido → error accesible `role="status"` → corregir → válido → panel con «Copiar dirección»), en las dos ramas, `task-16-report.md` §5.
 - ~~Interacción de contacto distinta por tema (chip en claro, formulario en oscuro) — coherente con "el tema es modo de contenido" (§4), pero sin resolver como experiencia única.~~ **Resuelto junto con el punto anterior (Task 16, 2026-08-11).** Ya no aplica además la lectura de "§4" que motivaba esta entrada: el tema pasó a ser piel con contenido unificado (§4, enmienda 2026-08-12) — la premisa que hacía "coherente" la divergencia dejó de existir a la vez que la propia divergencia.
-- Desplegables del navbar sin `aria-haspopup` ni flechas indicadoras.
+- ~~Desplegables del navbar sin `aria-haspopup` ni flechas indicadoras.~~ **Cerrado con criterio inverso al que esta entrada pedía (2026-08-16/17, críticas #8-#9):** `aria-haspopup="true"` es sinónimo ARIA exacto de `"menu"` y prometería un patrón de menú (flechas, Home/End) que el disclosure no implementa — se retiró en vez de añadirse, y el patrón quedó como disclosure APG puro (`aria-expanded` + `aria-controls`). Las flechas indicadoras (chevrones) sí existen desde antes.
 - `aria-pressed` en los botones de idioma, que son mutuamente excluyentes (semántica de grupo radio, no de toggles independientes); el grupo no tiene etiqueta accesible.
-- El botón de tema teletransporta la vista a top sin aviso (`aria-busy` propuesto y no implementado).
+- ~~El botón de tema teletransporta la vista a top sin aviso (`aria-busy` propuesto y no implementado).~~ **Resuelto en dos tiempos:** `aria-busy` se implementó en la Task 5 (plan premium F1-F5), y el viaje a top se retiró en la Task 17; desde el 2026-08-17 el cambio de tema conserva además la sección de lectura (ancla por sección dominante + desplazamiento, `themeScrollAnchor.ts`).
 - Tema claro sin coreografía de entrada entre secciones — pendiente decidir si es intencional o orden de construcción.
 - ~~Statement de Story: tres `white-space: nowrap` con tope estimado a mano, sin verificar en navegador real — riesgo de desbordamiento.~~ **Parcialmente resuelto (Tarea 7, 2026-08-09):** el `padding-inline` pasó de fijo a mobile-first (`theme.data.space[4]` bajo 600px, `space[6]` desde ahí) y se verificó en navegador real (no jsdom) que a 320/375/599/600px, en ES, el statement mide exactamente 24,00 / 28,58 / 47,25 / 44,67px de fuente sin desbordamiento horizontal (`scrollWidth === clientWidth` en los cuatro anchos). Lo que sigue sin verificar: 768/1280/1920px (fuera del rango que cubrió esta tarea) y el idioma EN, cuya línea más larga a 320px se confirmó más corta que la ES por conteo de caracteres pero **no se remidió en navegador** — inferencia declarada, no medición directa.
 
 **BAJA**
 
-- Variante `lead` de `Typography` sin ningún consumidor.
+- ~~Variante `lead` de `Typography` sin ningún consumidor.~~ **Resuelto (2026-08-17, crítica #9):** el shim `lead` se eliminó junto con las variantes muertas `h4`/`bodyLg`/`code` (ver §3.2, enmienda).
 - `brandSolid` = `brandText` en el tema claro (mismo primitivo, ver §2.2 — documentado, no un bug, pero listado por si un futuro retoque quiere separarlos).
 - Tres andamiajes de numeración de pilares/badges conviviendo sin unificar.
 - `height: 200px` fijo en una figura de Journey (candidato a `min-height`).
