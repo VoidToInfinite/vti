@@ -133,8 +133,10 @@ export default function RootLayout({
      *
      * `data-scroll-behavior="smooth"`: Next detecta `scroll-behavior: smooth`
      * en `html` (declarado a propósito en `GlobalStyles.tsx` para los saltos
-     * a ancla del CTA del hero y para el `scrollTo({ top: 0, behavior:
-     * "smooth" })` de `useThemeScrollReset`) y, sin este atributo, avisa en
+     * a ancla del CTA del hero y del navbar; `useThemeScrollReset` dejó de
+     * viajar a top en la Task 17 — 2026-08-11 — y hoy usa `behavior:
+     * "instant"` precisamente para escapar de esta regla global) y, sin este
+     * atributo, avisa en
      * consola en cada carga y cada transición de ruta con el mensaje "Detected
      * `scroll-behavior: smooth` on the `<html>` element. To disable smooth
      * scrolling during route transitions, add `data-scroll-behavior="smooth"`

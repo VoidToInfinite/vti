@@ -25,8 +25,12 @@ import { IconMoon, IconSun } from "./ThemeIcons";
 // auditoria independiente midio que era el propio viaje el que tiraba la
 // posicion de lectura -- ver el docblock de cabecera de useThemeScrollReset.ts
 // para el porque completo). Hoy el tema cambia SIEMPRE en el mismo tick del
-// click, sin tocar el scroll. `themeName` sigue saliendo de `useTheme()` tal
-// cual: el icono/etiqueta muestran el tema ACTIVO en todo momento.
+// click; el scroll solo se toca DESPUES, y de forma instantanea, para
+// devolver al lector a la seccion que estaba leyendo -- el documento cambia
+// de alto x2,20 entre temas y mantener el scrollY absoluto lo dejaba en otra
+// seccion (enmienda 2026-08-17, ver el docblock de useThemeScrollReset.ts).
+// `themeName` sigue saliendo de `useTheme()` tal cual: el icono/etiqueta
+// muestran el tema ACTIVO en todo momento.
 //
 // A PROPOSITO no se pasa `disabled` (revision 2026-08-04): un <button>
 // nativo que pasa a disabled deja de ser enfocable y el navegador le

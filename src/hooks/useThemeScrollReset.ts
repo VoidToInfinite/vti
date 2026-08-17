@@ -2,11 +2,41 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition";
 import { useTheme } from "@/theme/ThemeProvider";
+import {
+  captureReadingAnchor,
+  restoreReadingAnchor,
+  type ReadingAnchor,
+} from "./themeScrollAnchor";
 
 /**
- * Task 17 (plan premium F1-F5, 2026-08-11): este hook ya NO mueve el scroll.
- * Hasta esta tarea, `requestThemeChange` --fuera de la "zona del hero" (D6,
- * spec 2026-08-04)-- hacía viajar la página hasta `top: 0` con
+ * QUÉ HACE HOY, EN UNA FRASE (revisión 2026-08-17, crítica externa #8):
+ * cambia el tema en el mismo tick del click, sin viajar a ninguna parte, y
+ * cuando el re-maquetado de las dos ramas se ha asentado devuelve al lector
+ * a la MISMA sección que estaba mirando, en el mismo punto de ella, con un
+ * salto instantáneo. La corrección solo la dispara una llamada real a
+ * `requestThemeChange` (un click humano); el ajuste de tema de la
+ * hidratación, que no pasa por aquí, no mueve nada.
+ *
+ * Las tres capas de historia de este archivo, porque ninguna se entiende
+ * sin la anterior:
+ *
+ * 1. **D6 (spec 2026-08-04, encargo literal del usuario):** "cuando se
+ *    cambia de tema, si el usuario no se encuentra en la zona del Hero,
+ *    realizar animación de scroll hacia arriba y después cambiar el tema".
+ *    Así nació este hook.
+ * 2. **Task 17 (plan premium F1-F5, 2026-08-11):** retira ese viaje. El
+ *    detalle completo y las razones siguen abajo, intactas.
+ * 3. **Hoy (2026-08-17):** el hook vuelve a tocar el scroll, pero por el
+ *    motivo contrario al de D6 y con el gesto contrario -- no viaja a
+ *    ninguna parte "interesante", solo deshace el arrastre que el propio
+ *    cambio de tema le provoca al lector. El porqué, con las cifras, en la
+ *    sección "ENMIENDA 2026-08-17" al final de este bloque.
+ *
+ * ---
+ *
+ * Task 17 (plan premium F1-F5, 2026-08-11): este hook dejó de mover el
+ * scroll. Hasta esa tarea, `requestThemeChange` --fuera de la "zona del
+ * hero" (D6, spec 2026-08-04)-- hacía viajar la página hasta `top: 0` con
  * `scrollTo({ behavior: "smooth" })`, esperaba a que el viaje terminara
  * (carrera entre `scrollend`, un sondeo por `requestAnimationFrame` y dos
  * temporizadores de seguridad) y SOLO ENTONCES cambiaba el tema. El motivo
@@ -112,13 +142,75 @@ import { useTheme } from "@/theme/ThemeProvider";
  * dos consumidores que le quedan (`ThemeToggle.tsx` y este propio test) ya
  * usan ese nombre. Renombrarlo es limpieza de nomenclatura fuera del
  * alcance de Task 17, declarada aquí en vez de hecha en silencio.
+ *
+ * ---
+ *
+ * ## ENMIENDA 2026-08-17 -- el ancla de lectura (crítica externa #8)
+ *
+ * La razón 2 de arriba ya quedó marcada como PREMISA FALSA el 2026-08-12:
+ * las dos ramas no miden lo mismo de alto. Lo que faltaba entonces era la
+ * consecuencia en el código, aplazada a propósito por considerarse
+ * arquitectura visual. Los tres evaluadores de la crítica #8 (2026-08-17)
+ * volvieron a reportar el mismo defecto por separado, con la página de hoy:
+ * documento de ~6.700 px en claro contra ~16.300 px en oscuro, el punto de
+ * lectura pasa del 50 % del recorrido al 18,4 %, y quien estaba en Features
+ * aterriza en Story.
+ *
+ * QUÉ SE CORRIGE Y QUÉ NO, para que la frontera quede escrita:
+ *
+ * - **Se corrige la NAVEGACIÓN.** Conservar el `scrollY` numérico (Task 17)
+ *   conserva la posición pero no el contenido, porque lo que cambia de alto
+ *   es lo que queda POR ENCIMA del lector. Este hook captura qué sección
+ *   domina el viewport en el instante del click y, tras el re-maquetado,
+ *   deshace exactamente ese arrastre. Ver `themeScrollAnchor.ts` para el
+ *   criterio de dominancia, la exclusión de las secciones anidadas y la
+ *   fórmula (con su clamp para el sentido oscuro -> claro).
+ * - **NO se unifica la longitud de scroll entre temas.** Sigue siendo la
+ *   decisión pendiente del dueño que `docs/qa-3d-pendiente.md` (entrada del
+ *   2026-08-12) declara: cambiar el vehículo oscuro, aceptar la divergencia,
+ *   o navegar por fracción de recorrido. Esta enmienda no la toma ni la
+ *   cierra; solo hace que la divergencia deje de tirar al lector de sección
+ *   mientras se decide.
+ * - **NO vuelve el viaje de D6.** El salto es instantáneo (`behavior:
+ *   "instant"`) y su longitud es exactamente el arrastre a compensar, nunca
+ *   "hasta arriba". Las tres razones de Task 17 para no viajar siguen
+ *   íntegras: aquí no hay animación de scroll que presenciar, ni espera, ni
+ *   pérdida de la posición de lectura -- es su restitución.
+ *
+ * POR QUÉ HAY QUE ESPERAR, Y POR QUÉ CON DOS RELOJES: el alto nuevo de la
+ * página no existe en el mismo tick del click. React confirma el cambio de
+ * tema al terminar el manejador, y las ramas nuevas montan y maquetan
+ * después. Se pide un `requestAnimationFrame` ANIDADO (el primero cae en el
+ * commit del cambio, el segundo ya con la página nueva compuesta) y, en
+ * paralelo, un temporizador de `THEME_ANCHOR_SETTLE_MS`: en una pestaña
+ * oculta NO hay frames -- ni `requestAnimationFrame`, ni relojes de
+ * animación (CLAUDE.md §5.3 y las tres lecciones de `task/lessons.md` sobre
+ * `visibilityState: "hidden"`) --, así que un aviso que puede no llegar
+ * jamás no puede ser la única vía de progreso. Es la misma lección que ya
+ * exigía el tope de D6, aplicada al gesto contrario. Gana el que llegue
+ * primero y cancela al otro: la corrección se aplica UNA sola vez.
  */
+
+/**
+ * Tope de espera al re-maquetado cuando el doble `requestAnimationFrame` no
+ * llega (pestaña oculta, donde no hay frames en absoluto). No es un tiempo
+ * de animación --no hay ninguna que temporizar-- así que no sale de
+ * `motion.duration` ni del vocabulario: es el mismo tipo de constante de
+ * seguridad que `HERO_DECODE_TIMEOUT_MS` (`timings.ts`), un plazo tras el
+ * cual se actúa igual. 100 ms deja margen de sobra para los dos frames del
+ * camino normal (~33 ms a 60 Hz, y son ellos los que ganan la carrera casi
+ * siempre) sin que la corrección llegue a leerse como un salto tardío si
+ * hay que esperar al tope.
+ */
+export const THEME_ANCHOR_SETTLE_MS = 100;
 
 export interface ThemeScrollReset {
   /** Punto de entrada único del botón de tema: sustituye a `toggleTheme` a
    *  secas (ver `ThemeToggle.tsx`). Cambia el tema en el mismo tick de la
-   *  llamada, siempre -- ya no hay ningún tramo asíncrono antes del cambio
-   *  en sí (ver el docblock de cabecera, Task 17). */
+   *  llamada, siempre -- no hay ningún tramo asíncrono antes del cambio en
+   *  sí. Lo único asíncrono ocurre DESPUÉS: la restitución del ancla de
+   *  lectura cuando el re-maquetado se asienta (enmienda 2026-08-17 del
+   *  docblock de cabecera). */
   readonly requestThemeChange: () => void;
   /** `true` desde el click hasta que el cruce de composiciones del hero
    *  (Task 5, plan premium F1-F5) se asienta, cuando va a ocurrir uno.
@@ -132,10 +224,18 @@ export interface ThemeScrollReset {
 
 /**
  * Cambia el tema y, si corresponde, mantiene `busy` activo mientras dura el
- * cruce de composiciones del hero (Task 5). Ya NO decide nada sobre scroll
- * (Task 17, ver el docblock de cabecera de este fichero): ni lo mueve ni lo
- * restaura, así que la posición de lectura queda exactamente donde estaba
- * antes del click, en cualquier punto de la página.
+ * cruce de composiciones del hero (Task 5). Sobre el scroll decide UNA sola
+ * cosa (enmienda 2026-08-17, ver el docblock de cabecera): captura el ancla
+ * de lectura antes del cambio y la restituye cuando el re-maquetado se
+ * asienta. No viaja a ningún destino propio, y si el ancla no se movió no
+ * llama a `scrollTo` en absoluto.
+ *
+ * `busy` NO cubre esa corrección, y es deliberado: la ventana de
+ * asentamiento son dos frames (~33 ms, `THEME_ANCHOR_SETTLE_MS` en el peor
+ * caso), y anunciar "ocupado" durante ese tramo sería el mismo estado de
+ * carga fantasma que la fix wave B retiró de aquí abajo. `busy` sigue
+ * significando exactamente "hay un cruce de composiciones del hero en
+ * marcha", ni más ni menos.
  *
  * Usa `toggleTheme()` (NUNCA `setThemeName`/el setter crudo): es el único
  * setter de `ThemeProvider` que marca `changeSource: "user"`, la señal que
@@ -189,10 +289,13 @@ export interface ThemeScrollReset {
  *
  * Reentrada: un segundo click mientras `busy` todavía cubre un cruce
  * ANTERIOR cancela la ventana de asentamiento vieja y arranca una nueva
- * (mismo criterio que la versión anterior) -- ya NO hace falta ningún guard
- * síncrono por `ref` para bloquear una segunda llamada mientras un viaje de
- * scroll está en marcha, porque ya no hay ningún viaje en marcha: la función
- * es síncrona de principio a fin salvo por la propia ventana de `busy`.
+ * (mismo criterio que la versión anterior), y hace lo propio con la
+ * corrección de ancla pendiente -- que se descarta entera, no se encola:
+ * un ancla capturada contra el maquetado de hace un click describe una
+ * página que ya no existe. Sigue sin hacer falta ningún guard síncrono que
+ * BLOQUEE la segunda llamada (el patrón de D6, cuando había un viaje de
+ * scroll que no se podía interrumpir): aquí el segundo click siempre gana y
+ * el tema cambia en su propio tick, como el primero.
  */
 
 /** `true` si `el` intersecta el viewport actual (umbral 0 -- cualquier
@@ -210,17 +313,76 @@ export function useThemeScrollReset(): ThemeScrollReset {
   const { toggleTheme } = useTheme();
   const [busy, setBusy] = useState(false);
   const busySettleTimeoutRef = useRef<number | null>(null);
+  const anchorFrameRef = useRef<number | null>(null);
+  const anchorTimeoutRef = useRef<number | null>(null);
+
+  /** Deja sin efecto la corrección todavía pendiente de un click ANTERIOR:
+   *  sus dos relojes (frames y tope) se cancelan juntos, siempre, porque
+   *  cualquiera de los dos que sobreviviera aplicaría un ancla capturada
+   *  contra una página que ya no existe. */
+  const cancelPendingAnchorCorrection = useCallback((): void => {
+    if (anchorFrameRef.current !== null) {
+      window.cancelAnimationFrame(anchorFrameRef.current);
+      anchorFrameRef.current = null;
+    }
+    if (anchorTimeoutRef.current !== null) {
+      window.clearTimeout(anchorTimeoutRef.current);
+      anchorTimeoutRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Carrera entre el doble `requestAnimationFrame` (camino normal) y el
+   * tope de `THEME_ANCHOR_SETTLE_MS` (pestaña sin frames): gana el primero
+   * que llegue y `applied` deja al perdedor sin efecto, así que la
+   * corrección se aplica UNA vez. Ver el docblock de cabecera para el
+   * porqué de los dos relojes.
+   *
+   * El ganador NO cancela al perdedor, y es deliberado: cancelar desde aquí
+   * dejaría a `applied` sin poder observarse (el perdedor no llegaría a
+   * intentarlo nunca), y un guard que ningún test puede ver fallar no está
+   * verificado -- medido con el bug inyectado de esta tarea, que con la
+   * cancelación puesta seguía en VERDE al retirar el guard. Dejar que el
+   * perdedor llegue y se encuentre la puerta cerrada cuesta una llamada a
+   * función vacía; a cambio, el mecanismo que garantiza el "una sola vez"
+   * es exactamente el que los tests ejercitan. La cancelación sigue
+   * existiendo para lo que sí necesita cancelar de verdad: el desmontaje y
+   * el segundo click, donde la corrección pendiente NO debe aplicarse
+   * jamás.
+   */
+  const scheduleAnchorCorrection = useCallback(
+    (anchor: ReadingAnchor): void => {
+      let applied = false;
+      const applyOnce = (): void => {
+        if (applied) return;
+        applied = true;
+        restoreReadingAnchor(anchor);
+      };
+
+      if (typeof window.requestAnimationFrame === "function") {
+        anchorFrameRef.current = window.requestAnimationFrame(() => {
+          anchorFrameRef.current = window.requestAnimationFrame(applyOnce);
+        });
+      }
+      anchorTimeoutRef.current = window.setTimeout(
+        applyOnce,
+        THEME_ANCHOR_SETTLE_MS,
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
-    // Limpieza al desmontar: solo libera el temporizador de asentamiento en
-    // vuelo, nunca completa nada por su cuenta.
+    // Limpieza al desmontar: libera los relojes en vuelo (asentamiento de
+    // `busy` y corrección del ancla), nunca completa nada por su cuenta.
     return () => {
       if (busySettleTimeoutRef.current !== null) {
         window.clearTimeout(busySettleTimeoutRef.current);
         busySettleTimeoutRef.current = null;
       }
+      cancelPendingAnchorCorrection();
     };
-  }, []);
+  }, [cancelPendingAnchorCorrection]);
 
   const requestThemeChange = useCallback((): void => {
     // Cancela la ventana de asentamiento de un cruce ANTERIOR que todavía
@@ -230,6 +392,9 @@ export function useThemeScrollReset(): ThemeScrollReset {
       window.clearTimeout(busySettleTimeoutRef.current);
       busySettleTimeoutRef.current = null;
     }
+    // Un segundo click cancela la corrección pendiente del primero antes de
+    // capturar la suya: el ancla vieja describe el maquetado viejo.
+    cancelPendingAnchorCorrection();
     setBusy(true);
 
     const reduced = window.matchMedia(
@@ -239,7 +404,15 @@ export function useThemeScrollReset(): ThemeScrollReset {
     const willCrossfade =
       !reduced && heroEl !== null && isElementVisible(heroEl);
 
+    // ANTES de `toggleTheme()`, a propósito: es la última oportunidad de
+    // medir la página que el lector tiene delante. Bajo `reduce` se captura
+    // igual -- un salto instantáneo no es movimiento que la preferencia
+    // pida retirar (ver `restoreReadingAnchor`).
+    const anchor = captureReadingAnchor();
+
     toggleTheme();
+
+    if (anchor !== null) scheduleAnchorCorrection(anchor);
 
     if (!willCrossfade) {
       setBusy(false);
@@ -250,7 +423,7 @@ export function useThemeScrollReset(): ThemeScrollReset {
       busySettleTimeoutRef.current = null;
       setBusy(false);
     }, HERO_COPY_RETURN_MS);
-  }, [toggleTheme]);
+  }, [toggleTheme, cancelPendingAnchorCorrection, scheduleAnchorCorrection]);
 
   return { requestThemeChange, busy };
 }

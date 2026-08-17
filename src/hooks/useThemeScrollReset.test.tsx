@@ -3,7 +3,10 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
-import { useThemeScrollReset } from "./useThemeScrollReset";
+import {
+  THEME_ANCHOR_SETTLE_MS,
+  useThemeScrollReset,
+} from "./useThemeScrollReset";
 
 // ThemeProvider lee "vti-theme" de localStorage al montar (ver
 // ThemeProvider.tsx) — mismo patron ya usado por ThemeToggle.test.tsx para
@@ -81,42 +84,91 @@ function mountHero(options: { visible?: boolean } = {}): void {
   hero.id = "hero";
   hero.getBoundingClientRect = () =>
     (visible
-      ? { top: 100, bottom: 900 } // dentro del viewport (jsdom innerHeight 768)
-      : { top: -900, bottom: -100 }) as DOMRect; // scrolleado por encima, fuera de vista
+      ? { top: 100, bottom: 900, height: 800 } // dentro del viewport (jsdom innerHeight 768)
+      : { top: -900, bottom: -100, height: 800 }) as DOMRect; // scrolleado por encima, fuera de vista
   document.body.appendChild(hero);
+}
+
+/*
+ * Sección de contenido con DOS geometrías, la de antes del cambio de tema y
+ * la de después: el re-maquetado real (las dos ramas divergen x2,4 de alto,
+ * crítica externa #8) se simula moviendo `phase`, porque jsdom no maqueta
+ * nada por su cuenta. Con `scrollY` en 5.000 el lector está 232 px dentro
+ * de esta sección, y tras el cambio la sección empieza 8.000 px más abajo:
+ * el destino correcto es 13.000 (12.768 + 232).
+ */
+let phase: "before" | "after" = "before";
+const ANCHOR_TARGET = 13000;
+
+function mountMovingSection(): void {
+  const section = document.createElement("section");
+  section.id = "features";
+  section.getBoundingClientRect = () =>
+    (phase === "before"
+      ? { top: -232, bottom: 1768, height: 2000 }
+      : { top: 7768, bottom: 9768, height: 2000 }) as DOMRect;
+  document.body.appendChild(section);
+}
+
+/*
+ * `requestAnimationFrame` propio, con cancelación REAL (un `vi.fn()` vacío
+ * como `cancelAnimationFrame` dejaría correr los frames que el hook cree
+ * haber cancelado, y el test del segundo click dejaría de probar nada).
+ * Sirve además para el escenario de pestaña oculta: basta con NO vaciar la
+ * cola, que es literalmente lo que hace el navegador ahí.
+ */
+let frames: Map<number, FrameRequestCallback>;
+let nextFrameId: number;
+
+function flushFrame(): void {
+  const pending = [...frames.values()];
+  frames.clear();
+  for (const callback of pending) callback(0);
 }
 
 let scrollToMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+  phase = "before";
+  frames = new Map();
+  nextFrameId = 1;
   setScrollY(0);
   stubMatchMedia(false);
   scrollToMock = vi.fn();
   vi.stubGlobal("scrollTo", scrollToMock);
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    const id = nextFrameId;
+    nextFrameId += 1;
+    frames.set(id, callback);
+    return id;
+  });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+    frames.delete(id);
+  });
 });
 
 afterEach(() => {
-  document.getElementById("hero")?.remove();
+  document.body.innerHTML = "";
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("useThemeScrollReset", () => {
   /*
-   * Task 17 (plan premium F1-F5, 2026-08-11): el núcleo del cambio de esta
-   * tarea. Hasta aquí, fuera de la "zona del hero", `requestThemeChange`
-   * viajaba a `top: 0` ANTES de cambiar el tema (D6) -- el hallazgo #5 de la
-   * auditoría independiente midió ese viaje tirando la posición de lectura.
-   * Desde Task 17 el tema cambia SIEMPRE en el sitio, sin tocar `scrollTo`,
-   * sea cual sea la posición de scroll o si hay o no un `#hero` montado. Este
-   * test cubre las tres combinaciones que antes se comportaban distinto.
+   * Task 17 (plan premium F1-F5, 2026-08-11): el tema cambia SIEMPRE en el
+   * mismo tick del click, sin viaje previo a `top: 0` (D6) -- el hallazgo #5
+   * de la auditoría independiente midió ese viaje tirando la posición de
+   * lectura. Sigue vigente palabra por palabra tras la enmienda del
+   * 2026-08-17: lo único que esta añade ocurre DESPUÉS del cambio, nunca
+   * antes, así que en el tick del click no puede haber ningún `scrollTo`
+   * sea cual sea la posición de scroll o si hay o no un `#hero` montado.
    */
   it.each([
     ["con #hero montado y scrollY en 0", true, 0],
     ["con #hero montado y scrollY lejos del top", true, 5000],
     ["sin ningún #hero en el documento", false, 5000],
   ] as const)(
-    "%s: toggleTheme se llama de inmediato y scrollTo NUNCA se llama",
+    "%s: toggleTheme se llama de inmediato y en ese tick no se toca el scroll",
     (_nombre, conHero, scrollYInicial) => {
       if (conHero) mountHero();
       setScrollY(scrollYInicial);
@@ -133,41 +185,258 @@ describe("useThemeScrollReset", () => {
   );
 
   /*
-   * "Tests: restauración (mock)" del brief de Task 17: mockea `scrollY` a
-   * mitad de página, cambia de tema, y confirma que la lectura de `scrollY`
-   * sigue siendo EXACTAMENTE la misma después -- no una sección equivalente,
-   * el mismo píxel. Complementa al test de arriba (que solo ata la ausencia
-   * de `scrollTo`): este ata explícitamente el valor que un consumidor real
-   * (p. ej. `window.scrollY` leído por cualquier otro hook de scroll del
-   * sitio) observaría antes y después del cambio.
+   * ENMIENDA 2026-08-17 (crítica externa #8, reportada por sus tres
+   * evaluadores): conservar el `scrollY` numérico conserva la POSICIÓN pero
+   * no el CONTENIDO, porque las dos ramas de tema no miden lo mismo de alto
+   * (docH ~6.700 px en claro contra ~16.300 en oscuro). Estos tests fijan el
+   * comportamiento nuevo: tras el re-maquetado, el lector vuelve a su
+   * sección. La aritmética y el criterio de dominancia se prueban aparte
+   * (`themeScrollAnchor.test.ts`); aquí se prueba el CUÁNDO.
    */
-  it("la posición de scroll (scrollY) es exactamente la misma antes y después de cambiar de tema, lejos del hero", () => {
-    mountHero();
-    setScrollY(2500);
-    const { result } = renderHarness();
+  describe("ancla de lectura tras el re-maquetado (enmienda 2026-08-17)", () => {
+    /* Sitúa al lector 232 px dentro de una sección que va a moverse 8.000 px
+     * hacia abajo, con el hero fuera de vista (nadie va a ver ningún cruce
+     * de composiciones desde ahí). */
+    function renderLejosDelHero() {
+      mountHero({ visible: false });
+      mountMovingSection();
+      setScrollY(5000);
+      return renderHarness();
+    }
 
-    act(() => {
-      result.current.requestThemeChange();
+    it("tras dos frames, salta a la posición que devuelve al lector a su sección", () => {
+      const { result } = renderLejosDelHero();
+
+      act(() => {
+        result.current.requestThemeChange();
+      });
+      expect(scrollToMock).not.toHaveBeenCalled();
+
+      // Primer frame: React ya confirmó el cambio, el maquetado nuevo aún no
+      // está compuesto. Segundo frame: ya sí.
+      act(() => {
+        flushFrame();
+      });
+      phase = "after";
+      act(() => {
+        flushFrame();
+      });
+
+      expect(scrollToMock).toHaveBeenCalledTimes(1);
+      expect(scrollToMock).toHaveBeenCalledWith({
+        top: ANCHOR_TARGET,
+        behavior: "instant",
+      });
     });
 
-    expect(result.current.themeName).toBe("dark");
-    expect(window.scrollY).toBe(2500);
-    expect(scrollToMock).not.toHaveBeenCalled();
-  });
+    /*
+     * Lección pagada tres veces en este repo (`task/lessons.md` 2026-08-06 y
+     * 2026-08-02, CLAUDE.md §5.3): en una pestaña oculta no hay frames -- ni
+     * `requestAnimationFrame`, ni relojes de animación. Aquí eso se
+     * reproduce literalmente: la cola de frames NUNCA se vacía. Sin el tope,
+     * el lector se quedaría desplazado para siempre.
+     */
+    it("en una pestaña sin frames, el tope de THEME_ANCHOR_SETTLE_MS aplica la corrección igual", () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const { result } = renderLejosDelHero();
 
-  it("bajo prefers-reduced-motion: reduce, scrollTo tampoco se llama (ya no hay ningún salto instantáneo a top:0)", () => {
-    mountHero();
-    setScrollY(5000);
-    stubMatchMedia(true);
-    const { result } = renderHarness();
+        act(() => {
+          result.current.requestThemeChange();
+        });
+        phase = "after";
 
-    act(() => {
-      result.current.requestThemeChange();
+        act(() => {
+          vi.advanceTimersByTime(THEME_ANCHOR_SETTLE_MS - 1);
+        });
+        expect(scrollToMock).not.toHaveBeenCalled();
+
+        act(() => {
+          vi.advanceTimersByTime(1);
+        });
+        expect(scrollToMock).toHaveBeenCalledTimes(1);
+        expect(scrollToMock).toHaveBeenCalledWith({
+          top: ANCHOR_TARGET,
+          behavior: "instant",
+        });
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
-    expect(result.current.themeName).toBe("dark");
-    expect(scrollToMock).not.toHaveBeenCalled();
-    expect(window.scrollY).toBe(5000);
+    it("los dos relojes corren a la vez pero la corrección se aplica UNA sola vez", () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const { result } = renderLejosDelHero();
+
+        act(() => {
+          result.current.requestThemeChange();
+        });
+        act(() => {
+          flushFrame();
+        });
+        phase = "after";
+        act(() => {
+          flushFrame();
+        });
+        expect(scrollToMock).toHaveBeenCalledTimes(1);
+
+        // El tope ya no tiene nada que hacer: se canceló al aplicar.
+        act(() => {
+          vi.advanceTimersByTime(THEME_ANCHOR_SETTLE_MS * 4);
+        });
+        expect(scrollToMock).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    /*
+     * `prefers-reduced-motion: reduce` no exime de la corrección: un salto
+     * instantáneo no es una animación, y dejar al lector desplazado le
+     * costaría exactamente igual que a cualquier otro. Lo que la preferencia
+     * prohíbe es ANIMAR el salto, y eso lo fija el `behavior: "instant"` de
+     * la aserción (nunca `"auto"`, que resolvería al `scroll-behavior:
+     * smooth` global de `GlobalStyles.tsx`).
+     */
+    it("bajo prefers-reduced-motion: reduce la corrección ocurre igual, e igual de instantánea", () => {
+      stubMatchMedia(true);
+      const { result } = renderLejosDelHero();
+
+      act(() => {
+        result.current.requestThemeChange();
+      });
+      act(() => {
+        flushFrame();
+      });
+      phase = "after";
+      act(() => {
+        flushFrame();
+      });
+
+      expect(scrollToMock).toHaveBeenCalledWith({
+        top: ANCHOR_TARGET,
+        behavior: "instant",
+      });
+    });
+
+    it("si nada se movió (el lector en el hero), no se llama a scrollTo en absoluto", () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        mountHero();
+        setScrollY(0);
+        const { result } = renderHarness();
+
+        act(() => {
+          result.current.requestThemeChange();
+        });
+        act(() => {
+          flushFrame();
+        });
+        act(() => {
+          flushFrame();
+        });
+        act(() => {
+          vi.advanceTimersByTime(THEME_ANCHOR_SETTLE_MS * 2);
+        });
+
+        expect(result.current.themeName).toBe("dark");
+        expect(scrollToMock).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    /*
+     * El ajuste de tema de la HIDRATACIÓN (`ThemeProvider` leyendo el tema
+     * guardado al montar) no pasa por `requestThemeChange`, así que no puede
+     * reposicionar nada: quien acaba de cargar la página no ha pedido ningún
+     * cambio, y moverle el scroll sería un salto sin causa visible. Mismo
+     * criterio que el candado hermano de `busy`, más abajo.
+     */
+    it("el ajuste de hidratación de ThemeProvider no reposiciona nada", () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        window.localStorage.setItem("vti-theme", "dark");
+        mountHero({ visible: false });
+        mountMovingSection();
+        setScrollY(5000);
+
+        const { result } = renderHarness();
+        expect(result.current.themeName).toBe("dark");
+
+        phase = "after";
+        act(() => {
+          flushFrame();
+        });
+        act(() => {
+          vi.advanceTimersByTime(THEME_ANCHOR_SETTLE_MS * 2);
+        });
+
+        expect(scrollToMock).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("un segundo click descarta la corrección pendiente del primero en vez de encolar dos saltos", () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const { result } = renderLejosDelHero();
+
+        act(() => {
+          result.current.requestThemeChange(); // -> dark
+        });
+        act(() => {
+          flushFrame(); // el primer click ya tiene un frame consumido
+        });
+        act(() => {
+          result.current.requestThemeChange(); // -> light, cancela lo anterior
+        });
+        phase = "after";
+        act(() => {
+          flushFrame();
+        });
+        act(() => {
+          flushFrame();
+        });
+        act(() => {
+          vi.advanceTimersByTime(THEME_ANCHOR_SETTLE_MS * 4);
+        });
+
+        expect(result.current.themeName).toBe("light");
+        expect(scrollToMock).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("al desmontar antes de que el maquetado se asiente, la corrección no se aplica", () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const { result, unmount } = renderLejosDelHero();
+
+        act(() => {
+          result.current.requestThemeChange();
+        });
+        unmount();
+        phase = "after";
+
+        act(() => {
+          flushFrame();
+        });
+        act(() => {
+          flushFrame();
+        });
+        act(() => {
+          vi.advanceTimersByTime(THEME_ANCHOR_SETTLE_MS * 4);
+        });
+
+        expect(scrollToMock).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   /*
