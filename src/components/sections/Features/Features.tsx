@@ -1503,6 +1503,16 @@ export function Features(): ReactElement {
                   <ScDarkFeatureTitle
                     variant="h3"
                     id={`feature-${key}-title`}
+                    /* Destino de foco de los tres enlaces de «Descubre»
+                       (crítica externa #8, punto 3). MISMO tratamiento en las
+                       dos ramas aunque el defecto medido sea de la clara --
+                       las tarjetas apiladas de la rama oscura sí se
+                       distinguen por scroll, pero el anuncio del titular al
+                       llegar es igual de valioso para un lector de pantalla,
+                       y un `id` de ancla que es focalizable en una rama y no
+                       en la otra sería justo la clase de divergencia que la
+                       regla 41 pide atar. Ver `navAnchorFocus.ts`. */
+                    tabIndex={-1}
                   >
                     {key === "learning" && (
                       <ScSpanLearning>
@@ -1645,6 +1655,15 @@ export function Features(): ReactElement {
                       <Typography
                         variant="h3"
                         id={`feature-${key}-title`}
+                        /* Destino de foco de los tres enlaces de «Descubre»
+                           (crítica externa #8, punto 3): EN ESTA RAMA las
+                           tarjetas están una al lado de otra, así que
+                           `feature-imagination-title` y `feature-gaming-title`
+                           resuelven al mismo píxel de scroll (4354, medido) y
+                           el desplazamiento no distingue a cuál se ha llegado.
+                           El foco sí. Ver `navAnchorFocus.ts` para el
+                           mecanismo completo. */
+                        tabIndex={-1}
                       >
                         {t(`Home.features.${key}.title`)}
                       </Typography>

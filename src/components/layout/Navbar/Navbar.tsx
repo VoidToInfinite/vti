@@ -34,6 +34,7 @@ import {
   navActiveAccent,
   useNavSheet,
 } from "./NavSheet";
+import { focusNavAnchorTarget } from "./navAnchorFocus";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -906,8 +907,19 @@ function NavGroupMenu({
 
   // Regla 6: activar un enlace del panel lo cierra -- si no, el salto al
   // ancla deja un panel flotando sobre la página.
-  function handleLinkActivate(): void {
+  //
+  // Y, desde la crítica externa #8 (punto 3), mueve el foco al titular de
+  // destino cuando ese destino es una tarjeta de Features (ver
+  // `navAnchorFocus.ts`; los demás items salen por su guarda sin tocar el
+  // foco). ORDEN DELIBERADO: `onClose()` primero, `focus()` después. El
+  // cierre es un `setState`, así que en este instante el panel todavía no es
+  // `inert` ni `visibility: hidden` -- y no importa, porque el elemento que
+  // gana el foco vive FUERA del panel. Lo que sí importa es no invertirlo:
+  // enfocar antes de pedir el cierre dejaría el `focus()` a merced de lo que
+  // el re-render haga después.
+  function handleLinkActivate(item: NavItem): void {
     onClose();
+    focusNavAnchorTarget(item);
   }
 
   function itemLabel(item: NavItem): string {
@@ -932,13 +944,35 @@ function NavGroupMenu({
         ref={triggerRef}
         aria-expanded={isOpen}
         aria-controls={panelId}
-        /* Punto 3 del brief (Tarea 1): el panel que este botón revela no es
-           un `role="menu"` de ARIA -- sus items son enlaces normales, con
-           navegación por Tab estándar, sin flechas ni `role="menuitem"` --
-           así que el valor correcto es el genérico `"true"`, nunca
-           `"menu"` (que prometería una semántica de menú que este
-           componente no implementa). */
-        aria-haspopup="true"
+        /*
+         * SIN `aria-haspopup`, y su ausencia es la parte deliberada
+         * (crítica externa #8, punto 2). Lo declaró la Tarea 1 con el valor
+         * genérico `"true"`, razonando que el panel no es un `role="menu"` y
+         * que por tanto `"menu"` habría sido peor. La conclusión correcta era
+         * la contraria: si esto no es un menú, `aria-haspopup` sobra ENTERO.
+         *
+         * `aria-haspopup` anuncia "este control abre un elemento emergente
+         * con semántica propia" -- menu, listbox, tree, grid o dialog -- y el
+         * valor `"true"` es exactamente sinónimo de `"menu"` en WAI-ARIA, no
+         * un "algo emergente" genérico. Un lector de pantalla lo anuncia como
+         * "menú" y su usuario espera lo que un menú ofrece: flechas para
+         * recorrer los items, Home/End, escritura para saltar. Nada de eso
+         * existe aquí -- son enlaces normales navegables por Tab -- así que el
+         * atributo estaba prometiendo un teclado que no se implementa.
+         *
+         * El patrón que este componente SÍ implementa es el disclosure de
+         * APG: un `<button>` con `aria-expanded` + `aria-controls` que revela
+         * una lista de enlaces. Ese patrón NO lleva `aria-haspopup`, y ese
+         * par de atributos (justo arriba) ya comunica todo lo que hay que
+         * comunicar: que el control se expande y qué región controla.
+         *
+         * No se implementa `role="menu"` con su teclado en su lugar a
+         * propósito: un menú ARIA es la semántica de una aplicación (comandos
+         * que actúan sobre algo), no la de un índice de navegación por
+         * enlaces, y añadir flechas obligaría además a sacar los enlaces del
+         * orden de tabulación (`tabindex="-1"` + roving) -- más teclado que
+         * aprender a cambio de ninguna capacidad nueva.
+         */
         onClick={onToggle}
       >
         {t(`Common.Nav.${group.key}`)}
@@ -972,7 +1006,7 @@ function NavGroupMenu({
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={handleLinkActivate}
+                  onClick={() => handleLinkActivate(item)}
                 >
                   {itemLabel(item)}
                   {/* Espacio literal DENTRO del texto oculto, no entre nodos
@@ -988,7 +1022,7 @@ function NavGroupMenu({
               <li key={item.key}>
                 <ScNavPanelLink
                   href={item.href}
-                  onClick={handleLinkActivate}
+                  onClick={() => handleLinkActivate(item)}
                   /*
                    * Punto 1 del brief (Tarea 1): solo los items
                    * `kind: "section"` representan una sección real de la

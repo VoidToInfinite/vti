@@ -30,6 +30,23 @@ interface TypographyProps {
   "children": ReactNode;
   "className"?: string;
   "id"?: string;
+  /**
+   * Solo `-1`, y a propósito: el único uso legítimo de `tabIndex` sobre un
+   * titular es hacerlo DESTINO de foco programático sin meterlo en el orden
+   * de tabulación (patrón del skip link, ya usado en `LegalDocument.tsx` y
+   * `NotFoundContent.tsx` sobre sus `<main>`). Un valor positivo reordenaría
+   * la tabulación de la página entera -- un anti-patrón de accesibilidad que
+   * el tipo impide escribir en vez de dejarlo a la revisión humana.
+   *
+   * Existe desde la crítica externa #8 (punto 3): los `<h3>` de las tarjetas
+   * de Features son el destino de los tres enlaces de «Descubre», y en la
+   * rama clara dos de esas tarjetas comparten posición de scroll -- el foco
+   * es lo único que distingue a cuál se ha llegado (ver
+   * `navAnchorFocus.ts`). Sin este paso, `Typography` descarta el atributo en
+   * silencio: destructura sus props una a una, así que todo lo que no esté
+   * declarado aquí nunca llega al DOM.
+   */
+  "tabIndex"?: -1;
   /** Gancho de test. No participa en el estilado. */
   "data-testid"?: string;
 }
@@ -90,6 +107,7 @@ export function Typography({
   children,
   className,
   id,
+  tabIndex,
   "data-testid": testId,
 }: TypographyProps): ReactElement {
   const resolvedVariant: TypeVariant = variant === "lead" ? "bodyLg" : variant;
@@ -100,6 +118,7 @@ export function Typography({
       $variant={resolvedVariant}
       className={className}
       id={id}
+      tabIndex={tabIndex}
       data-testid={testId}
     >
       {children}

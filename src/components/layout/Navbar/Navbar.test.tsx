@@ -631,19 +631,111 @@ describe("Navbar", () => {
     });
 
     /*
-     * Tarea 1 (navegación accesible), punto 3 del brief: "aria-haspopup
-     * correcto en los disparadores si falta" -- hoy faltaba en los cuatro.
-     * "true" (genérico), no "menu": el panel que cada disparador revela son
-     * enlaces normales navegables por Tab, no un role="menu" de ARIA con
-     * navegación por flechas y role="menuitem" (ver el comentario del
-     * propio ScNavTrigger en Navbar.tsx).
+     * INVERSIÓN DELIBERADA de un candado anterior (crítica externa #8, punto
+     * 2). Hasta el 2026-08-17 este mismo test exigía `aria-haspopup="true"`
+     * en los cuatro disparadores, añadido por la Tarea 1 razonando que
+     * `"true"` era el valor "genérico" y por tanto más honesto que `"menu"`.
+     * Es al revés: en WAI-ARIA `aria-haspopup="true"` es SINÓNIMO EXACTO de
+     * `"menu"`, así que el atributo anunciaba un menú -- con su teclado de
+     * flechas/Home/End -- que este componente no implementa ni pretende
+     * implementar (sus items son enlaces, y el patrón APG correcto para eso
+     * es el disclosure: botón con aria-expanded + aria-controls, sin
+     * haspopup y sin role="menu").
+     *
+     * El test afirma las DOS mitades a la vez a propósito: que la promesa
+     * falsa no está Y que la señal verdadera sí -- "no hay haspopup" a secas
+     * pasaría también si alguien borrara la semántica entera del disparador.
+     *
+     * Validado con el bug inyectado a propósito: devolviendo
+     * `aria-haspopup="true"` al `ScNavTrigger` de `Navbar.tsx`, este test cae
+     * en rojo nombrando el atributo; retirado de nuevo, vuelve a verde.
      */
-    it("los cuatro disparadores declaran aria-haspopup='true'", () => {
+    it("ningún disparador promete un menú con aria-haspopup: son disclosures con aria-expanded", () => {
       renderNavbar();
 
       for (const name of [ON_SITE, DISCOVER, RESOURCES, COMMUNITY]) {
-        expect(getTrigger(name)).toHaveAttribute("aria-haspopup", "true");
+        const trigger = getTrigger(name);
+        expect(
+          trigger,
+          "aria-haspopup anuncia un role=menu con teclado de flechas que este desplegable no implementa",
+        ).not.toHaveAttribute("aria-haspopup");
+        expect(trigger).toHaveAttribute("aria-expanded");
+        expect(trigger).toHaveAttribute("aria-controls");
       }
+    });
+
+    /*
+     * Crítica externa #8, punto 3: destinos indistinguibles en la rama clara.
+     * Los tres enlaces de «Descubre» ya apuntan a tarjetas distintas desde el
+     * 2026-08-16, pero en el tema claro esas tarjetas están una al lado de
+     * otra: `feature-imagination-title` y `feature-gaming-title` resuelven al
+     * MISMO píxel de scroll (4354, medido), así que el desplazamiento no
+     * puede informar de a cuál se ha llegado. El foco sí.
+     *
+     * `Navbar` no monta `Features`, así que el destino se inyecta aquí con la
+     * misma forma exacta que `Features.tsx` le da (un `h3` con el id del href
+     * y `tabIndex = -1`). La OTRA mitad del contrato -- que Features emita de
+     * verdad esos ids y que sean focalizables -- vive en `Features.test.tsx`,
+     * que importa `NAV_GROUPS` y las cruza (regla 41).
+     */
+    function withAnchorTarget(
+      id: string,
+      run: (target: HTMLElement) => void,
+    ): void {
+      const target = document.createElement("h3");
+      target.id = id;
+      target.tabIndex = -1;
+      document.body.appendChild(target);
+      try {
+        run(target);
+      } finally {
+        target.remove();
+      }
+    }
+
+    it("al activar un enlace de «Descubre», el foco salta al titular de la tarjeta de destino", () => {
+      const { container } = renderNavbar();
+
+      withAnchorTarget("feature-imagination-title", (target) => {
+        const link = container.querySelector(
+          'a[href="/#feature-imagination-title"]',
+        ) as HTMLElement;
+        expect(
+          link,
+          "el panel no monta el enlace de imagination",
+        ).not.toBeNull();
+
+        fireEvent.click(link);
+
+        expect(
+          document.activeElement,
+          "sin mover el foco, dos tarjetas contiguas del tema claro son el mismo destino para el lector",
+        ).toBe(target);
+      });
+    });
+
+    /*
+     * La otra mitad de la decisión, y no es simetría gratuita: el mecanismo se
+     * limita a `kind: "feature"` porque una sección entera YA es distinguible
+     * (llega una pantalla distinta) y su `<section id>` no es focalizable en
+     * producción. Este test lo comprueba con un destino que SÍ sería
+     * focalizable, que es la única forma de que la guarda por `kind` se pueda
+     * observar: si desapareciera, el foco se movería aquí.
+     */
+    it("un enlace de sección no mueve el foco: su destino ya se distingue por el propio scroll", () => {
+      const { container } = renderNavbar();
+
+      withAnchorTarget("story", (target) => {
+        const link = container.querySelector(
+          'a[href="/#story"]',
+        ) as HTMLElement;
+        const antes = document.activeElement;
+
+        fireEvent.click(link);
+
+        expect(document.activeElement).not.toBe(target);
+        expect(document.activeElement).toBe(antes);
+      });
     });
 
     it("al pulsar un disparador, su aria-expanded pasa a 'true', su panel pierde inert y aria-controls apunta al id real del panel", () => {
@@ -1038,20 +1130,67 @@ describe("Navbar", () => {
       );
     });
 
-    it("los enlaces de discover (mismo href #features, kind distinto) NO ganan aria-current", () => {
-      // "features" (onSite) y los tres de discover comparten href, pero
-      // solo el item kind: "section" representa una sección real de
-      // scrollspy (ver navigation.ts). Dos superficies (panel de
-      // escritorio + hoja móvil) x 1 enlace de sección real cada una.
+    /*
+     * MAPEO ANCLA -> SECCIÓN, escrito como candado (crítica externa #8, punto
+     * 1). Los tres ítems de «Descubre» apuntan DENTRO de Features
+     * (`/#feature-*-title`), así que "¿cuál es su sección activa?" tiene dos
+     * respuestas posibles y hay que elegir una: encender los tres a la vez
+     * cuando Features está en pantalla, o encender solo el ítem de sección
+     * («Características») y dejarlos apagados. Se elige la segunda:
+     * `aria-current="location"` significa "la ubicación ACTUAL", en singular
+     * -- tres enlaces marcados a la vez dentro del mismo menú no señalan una
+     * ubicación, la difuminan --, y el ítem que sí representa esa ubicación
+     * ya existe y es único. Los `kind: "feature"` son títulos de contenido,
+     * no destinos de scrollspy (ver `navigation.ts`).
+     *
+     * REESCRITO el 2026-08-17: hasta hoy este test se llamaba "los enlaces de
+     * discover (mismo href #features, kind distinto)" y filtraba
+     * `a[href="/#features"]`. Esa premisa caducó el 2026-08-16, cuando los
+     * tres destinos de «Descubre» se separaron: desde entonces ese selector
+     * ya solo encuentra los DOS enlaces de sección, y la parte de "discover"
+     * del test había dejado de comprobar absolutamente nada -- pasaba en
+     * verde por vacuidad, con el nombre describiendo un código que ya no
+     * existía (regla 16). Ahora los hrefs se leen de `NAV_GROUPS` (regla 39),
+     * así que no pueden volver a caducar en silencio.
+     *
+     * Validado con el bug inyectado a propósito: implementando la OTRA rama
+     * del mapeo en `Navbar.tsx` (`|| (item.kind === "feature" &&
+     * activeSectionKey === "features")`), este test cae en rojo nombrando el
+     * enlace de discover que se encendió; restaurado, vuelve a verde.
+     */
+    it("con Features en pantalla se enciende su ítem de sección, y ninguno de los tres de «Descubre»", () => {
       const { container } = renderNavbar();
 
       setInView("features", true);
       fireScroll();
 
+      // El item kind: "section", en sus DOS superficies (panel de escritorio
+      // + hoja móvil), que es donde vive el único "estás aquí" del modelo.
       const conAriaCurrent = Array.from(
         container.querySelectorAll('a[href="/#features"]'),
       ).filter((a) => a.hasAttribute("aria-current"));
       expect(conAriaCurrent).toHaveLength(2);
+
+      const discoverHrefs = NAV_GROUPS.flatMap((group) => group.items)
+        .filter((item) => item.kind === "feature")
+        .map((item) => item.href);
+      expect(discoverHrefs.length).toBeGreaterThan(0);
+
+      for (const href of discoverHrefs) {
+        const enlaces = Array.from(
+          container.querySelectorAll(`a[href="${href}"]`),
+        );
+        expect(
+          enlaces.length,
+          `«${href}» no se monta en ninguna superficie`,
+        ).toBeGreaterThan(0);
+        enlaces.forEach((enlace) => {
+          expect(
+            enlace,
+            `«${href}» se marca como ubicación actual a la vez que «Características»`,
+          ).not.toHaveAttribute("aria-current");
+        });
+      }
     });
 
     /*

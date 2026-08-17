@@ -21,6 +21,7 @@ import {
   FEATURES_ORBITAL_LAYERS,
   FEATURES_ORBITAL_VOID,
 } from "@/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers";
+import { NAV_GROUPS } from "@/config/navigation";
 import { themes } from "@/theme/themes";
 import { motion } from "@/theme/tokens/motion";
 import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
@@ -1761,5 +1762,88 @@ describe("D4: en tema oscuro el bloque de bullets tampoco declara ningun @media 
     expect(css).not.toContain("@media");
     expect(css).not.toContain(themes.dark.breakPoint.sm);
     expect(css).not.toContain(themes.dark.breakPoint.lg);
+  });
+});
+
+/*
+ * Crítica externa #8, punto 3: destinos indistinguibles en la rama clara.
+ *
+ * La entrega del 2026-08-16 separó los tres destinos de «Descubre» para que
+ * tres etiquetas distintas dejaran de caer en el mismo sitio. Eso arregla el
+ * MODELO, no la percepción: en el tema claro las tarjetas están una al lado
+ * de otra, así que `feature-imagination-title` y `feature-gaming-title`
+ * resuelven al MISMO píxel de scroll (4354, medido) -- llegar no informa de a
+ * cuál se ha llegado. La señal que sí distingue es el foco, y para poder
+ * recibirlo el titular tiene que ser focalizable sin entrar en el orden de
+ * tabulación: `tabIndex={-1}`.
+ *
+ * INVARIANTE QUE CRUZA DOS FICHEROS (regla 41), y por eso el test importa los
+ * dos: `src/config/navigation.ts` promete unos ids concretos en sus `href`, y
+ * `Features.tsx` es quien tiene que emitirlos. Los ids NO se escriben a mano
+ * aquí (regla 39): se derivan de `NAV_GROUPS`, la misma fuente que consume la
+ * navegación, así que renombrar un ancla sin renombrar el titular cae en rojo
+ * en vez de dejar un enlace mudo. La mitad del contrato que vive en el nav
+ * -- que el click mueva el foco de verdad -- está en `Navbar.test.tsx`.
+ *
+ * Se afirma el FOCO REAL, no solo el atributo: `focus()` sobre un elemento
+ * que jsdom no considera focalizable no lanza ningún error, simplemente no
+ * hace nada, así que un candado que solo mirara `toHaveAttribute("tabindex")`
+ * pasaría en verde sobre un titular que en la práctica no puede recibirlo.
+ */
+describe("crítica #8: los titulares de tarjeta son destino de foco de «Descubre»", () => {
+  /** Ids prometidos por los `href` de `kind: "feature"`, leídos del modelo. */
+  const anchorIds: readonly string[] = NAV_GROUPS.flatMap(
+    (group) => group.items,
+  )
+    .filter((item) => item.kind === "feature")
+    .map((item) => item.href.slice(item.href.indexOf("#") + 1));
+
+  it("el modelo de navegación promete al menos un destino de feature (si no, el resto del describe pasaría en vacío)", () => {
+    expect(anchorIds.length).toBeGreaterThan(0);
+  });
+
+  it("en tema CLARO cada id prometido es un h3 que recibe el foco de verdad", async () => {
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+
+    for (const id of anchorIds) {
+      const titular = document.getElementById(id);
+      expect(
+        titular,
+        `«${id}» no existe: el enlace de nav no lleva a nada`,
+      ).not.toBeNull();
+      expect(titular?.tagName).toBe("H3");
+      expect(titular).toHaveAttribute("tabindex", "-1");
+
+      titular?.focus();
+      expect(
+        document.activeElement,
+        `«${id}» no puede recibir el foco, así que nada distingue su tarjeta de la de al lado`,
+      ).toBe(titular);
+    }
+  });
+
+  it("en tema OSCURO se mantiene la misma propiedad (el id de ancla no cambia de naturaleza con el tema)", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Features />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+      });
+
+      for (const id of anchorIds) {
+        const titular = document.getElementById(id);
+        expect(titular, `«${id}» no existe en la rama oscura`).not.toBeNull();
+        expect(titular).toHaveAttribute("tabindex", "-1");
+
+        titular?.focus();
+        expect(document.activeElement).toBe(titular);
+      }
+    } finally {
+      window.localStorage.clear();
+    }
   });
 });

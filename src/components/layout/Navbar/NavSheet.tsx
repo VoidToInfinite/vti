@@ -17,6 +17,7 @@ import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { NAV_GROUPS, type NavGroup, type NavItem } from "@/config/navigation";
 import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
+import { focusNavAnchorTarget } from "./navAnchorFocus";
 
 /*
  * HOJA DE NAVEGACIÓN MÓVIL (Task 10 de la auditoría premium; spec del vault
@@ -1166,6 +1167,19 @@ function NavSheetGroup({
     }
   }
 
+  /*
+   * Mismo par cierre + foco que `handleLinkActivate` en `Navbar.tsx`, con el
+   * mismo orden y por el mismo motivo (crítica externa #8, punto 3). La
+   * trampa de foco de la hoja (Ola C.1) NO entra en conflicto: su
+   * `handleFocusIn` reacciona a un foco que se va fuera de la hoja CERRÁNDOLA
+   * -- que es justo lo que `onNavigate` acaba de pedir --, nunca devolviendo
+   * el foco dentro a la fuerza. Verificado leyendo ese efecto, no asumido.
+   */
+  function handleRowActivate(item: NavItem): void {
+    onNavigate();
+    focusNavAnchorTarget(item);
+  }
+
   return (
     <ScSheetGroup>
       <ScSheetGroupTitle id={titleId}>
@@ -1179,7 +1193,7 @@ function NavSheetGroup({
                 href={item.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={onNavigate}
+                onClick={() => handleRowActivate(item)}
               >
                 {itemLabel(item)}
                 {/* Espacio literal DENTRO del texto oculto, no entre nodos
@@ -1192,7 +1206,7 @@ function NavSheetGroup({
             <li key={item.key}>
               <ScSheetRow
                 href={item.href}
-                onClick={onNavigate}
+                onClick={() => handleRowActivate(item)}
                 /* Mismo criterio que ScNavPanelLink en Navbar.tsx (ver su
                    docblock): solo los items kind: "section", y "location"
                    (no "true") como valor de aria-current. */
