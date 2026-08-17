@@ -2052,3 +2052,24 @@
 - **Lo que sí quedó:** la salida temprana se conserva (elimina una segunda carrera de `decode()`
   sobre cinco imágenes en cada carga oscura, medida en el reloj de la suite: 18.390 → 16.366 ms
   en `app/home-page.flujo.test.tsx`), pero su POSICIÓN está documentada como lo que es.
+
+## 2026-08-17 (ter) — El <title> tiene dos dueños, y quién gana depende de la RUTA de entrada
+
+- **Qué pasó:** la unificación de metadatos por idioma (useDocumentMeta) pasó 124/124 en jsdom y
+  la verificación en navegador del orquestador — y aun así llegó rota a la crítica siguiente: en
+  carga DIRECTA con idioma no castellano, el título quedaba en castellano con el H1 traducido.
+- **Causa raíz (medida con traza, no supuesta):** el `<title>` tiene dos dueños — nuestro efecto
+  y el commit de metadata del App Router (un Server Component asíncrono). En carga directa ese
+  commit llega DESPUÉS de los efectos pasivos y pisa; en navegación SPA llega ANTES y perdemos
+  nosotros… es decir, ganamos. El orden se invierte según la ruta de entrada, así que cada camino
+  de prueba veía un resultado distinto. Y React escribe el título vía `nodeValue` del nodo de
+  texto, NO vía el setter de `document.title`: instrumentar el setter no lo ve.
+- **Regla 1:** todo candado sobre `document.title`/`<meta>` ejercita LA CARGA DIRECTA con el
+  estado persistido (localStorage), no solo el cambio en caliente ni la navegación SPA — son
+  tres caminos con órdenes de escritura distintos.
+- **Regla 2:** al verificar en navegador quién escribió el `<head>`, se instrumenta el canal
+  real (`nodeValue`/`textContent` del nodo, con stack) además del setter. Una sola muestra "al
+  final de la carga" tampoco basta: se muestrea a 300/1200/3000 ms.
+- **Regla 3:** un efecto que escribe en el `<head>` de una app App Router necesita defenderse
+  del re-commit de metadata: escribir solo-si-difiere bajo un MutationObserver acotado, con
+  testigo de propiedad si puede haber más de un consumidor montado.
