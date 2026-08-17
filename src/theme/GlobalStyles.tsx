@@ -187,6 +187,19 @@ export const GlobalStyles = createGlobalStyle`
     display: flex;
     flex-direction: column;
     background-color: ${({ theme }) => theme.data.semantic.bg};
+    /* La tipografia del sitio se declara AQUI, en body, y no solo en
+       body > main (donde vivio hasta el 2026-08-17): con ella scoped a main,
+       todo lo que vive FUERA de main --navbar, hoja de navegacion, footer--
+       caia al serif por defecto del navegador (Times New Roman computado,
+       medido en el build de produccion sobre una fila de la hoja movil
+       mientras un parrafo de main daba Hanken Grotesk). Tres rondas de
+       critica externa midieron tipografia siempre DENTRO de main y ninguna
+       lo vio; lo destapo la captura del footer de la 404. El bloque de
+       body > main conserva su propia declaracion (redundante pero inocua)
+       porque su docblock y sus candados razonan sobre ese bloque entero. */
+    font-family: ${({ theme }) => theme.data.type.fontBody};
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
   }
 
   /* La mitad que hace el trabajo: sin esto el body seria alto pero el pie
