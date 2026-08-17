@@ -282,9 +282,15 @@ describe("splitPlaceholderMarkers", () => {
  * Lo que este test ata es justamente esa igualdad — que el título de la pestaña
  * y el encabezado no puedan volver a divergir.
  *
- * Validado con el bug inyectado a propósito: comentando el `useEffect` que
- * sincroniza `document.title` en `LegalDocument.tsx`, el caso en inglés cae en
- * rojo; restaurado, vuelve a verde.
+ * Validado con el bug inyectado a propósito: comentando el efecto que escribe
+ * `document.title`, el caso en inglés cae en rojo; restaurado, vuelve a verde.
+ * Ese efecto ya no vive en este componente — desde la crítica externa #8 es
+ * `useDocumentMeta()` (`src/seo/useDocumentMeta.ts`), el mismo mecanismo que
+ * usan la home y la 404 —, así que el sabotaje se aplica allí. Este candado se
+ * conserva TAL CUAL a propósito: mide la propiedad observable de esta página
+ * (que la pestaña y el `<h1>` no puedan afirmar idiomas distintos), que es
+ * independiente de dónde viva la implementación, y por eso siguió en verde
+ * durante la extracción sin tocar ni una aserción.
  */
 describe("LegalDocument: el título de la pestaña sigue al idioma", () => {
   it.each(DOC_KEYS)(

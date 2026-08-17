@@ -1,10 +1,9 @@
 "use client";
 
-import { Fragment, useEffect, type ReactElement, type ReactNode } from "react";
+import { Fragment, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LEGAL_ENTITY, LEGAL_VERSIONS, PLACEHOLDER } from "@/config/legal";
-import { SITE } from "@/config/site";
-import { TITLE_SEPARATOR } from "@/seo/metadata";
+import { useDocumentMeta } from "@/seo/useDocumentMeta";
 import { STORAGE_REGISTRY } from "@/config/storage";
 import i18n, { initI18n } from "@/i18n/config";
 import esLegal from "@/i18n/locales/es/legal.json";
@@ -465,26 +464,19 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
    * Se resuelve aquí y no en la `metadata` de la ruta porque bajo
    * `output: "export"` esa metadata se hornea UNA vez, en castellano, y el
    * idioma lo elige el visitante después. Este componente ya tiene el título
-   * traducido en la mano (`doc.title`, del mismo árbol que pinta el `<h1>`),
-   * así que el efecto no introduce ninguna fuente de verdad nueva: reusa
-   * exactamente la que ya decide el encabezado, que es lo que impide que
-   * vuelvan a divergir.
+   * y la descripción traducidos en la mano (`doc.title`/`doc.description`,
+   * del mismo árbol que pinta el `<h1>` y del mismo del que salió la
+   * `metadata` horneada — `app/privacidad/page.tsx` lee esas dos claves del
+   * locale español), así que no introduce ninguna fuente de verdad nueva.
    *
-   * ALCANCE DECLARADO: esto arregla el TÍTULO, no toda la ola D. La
-   * `description`, el `og:locale` y el `hreflang` siguen en castellano y sin
-   * alternativa, y no se tocan aquí a propósito: la home no tiene copy SEO en
-   * inglés escrito (`src/config/site.ts` es monolingüe) y declarar `hreflang`
-   * sin rutas `/en/` reales apuntaría a URLs que no existen. Las legales son
-   * el único caso donde la traducción del título YA existía.
-   *
-   * El formato replica el que emite el build (`título` + `TITLE_SEPARATOR` +
-   * nombre del sitio), verificado contra el `document.title` real del HTML
-   * servido: si alguien cambia la plantilla de `buildMetadata`, esto se
-   * quedaría desincronizado -- y para eso está el candado de este fichero.
+   * DESDE LA CRÍTICA EXTERNA #8 el efecto ya no vive aquí: es
+   * `useDocumentMeta()` (`src/seo/useDocumentMeta.ts`), compartido con la
+   * home y con la 404. La causa raíz de que aquellas dos se quedaran sin
+   * título traducido era justamente que este efecto era LOCAL de las
+   * legales; extraerlo es lo que impide que las tres rutas vuelvan a
+   * divergir, en el comportamiento y en el formato del título.
    */
-  useEffect(() => {
-    document.title = `${doc.title}${TITLE_SEPARATOR}${SITE.name}`;
-  }, [doc.title]);
+  useDocumentMeta({ title: doc.title, description: doc.description });
 
   const durationLabelFor = (durationDays: number | null): string =>
     durationDays === null

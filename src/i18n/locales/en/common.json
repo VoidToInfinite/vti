@@ -59,6 +59,12 @@
         },
         "Deck": {
             "scrollHint": "Scroll to continue"
+        },
+        "Meta": {
+            "home": {
+                "title": "Learning, imagination and gaming",
+                "description": "VoidToInfinite is a creative project that builds learning, imagination and gaming into a single journey. Discover its story, its journey and how to take part."
+            }
         }
     },
     "notFound": {

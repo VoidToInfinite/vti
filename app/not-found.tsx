@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar/Navbar";
 import { NotFoundContent } from "@/components/sections/NotFound/NotFoundContent";
 import { SITE } from "@/config/site";
 import esCommon from "@/i18n/locales/es/common.json";
+import { DocumentMeta } from "@/seo/DocumentMeta";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
 
 /*
@@ -81,6 +82,19 @@ export const metadata: Metadata = {
 export default function NotFound(): ReactElement {
   return (
     <>
+      {/*
+       * Mismo mecanismo que la home y que las dos legales (crítica externa
+       * #8): la `metadata` de arriba se hornea en castellano en build y nada
+       * la actualizaba al cambiar de idioma, así que el `<h1>` traducido y la
+       * pestaña afirmaban idiomas distintos. Las claves son las MISMAS que ya
+       * consume esa `metadata` (`notFound.title`/`notFound.message`) y las
+       * mismas que pinta `NotFoundContent`: una sola fuente para el titular,
+       * la pestaña y la descripción. Ver `src/seo/useDocumentMeta.ts`.
+       */}
+      <DocumentMeta
+        titleKey="notFound.title"
+        descriptionKey="notFound.message"
+      />
       <Navbar />
       <NotFoundContent />
       <Footer />

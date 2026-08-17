@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { SITE } from "@/config/site";
+import i18n from "@/i18n/config";
 import esCommon from "@/i18n/locales/es/common.json";
+import enCommon from "@/i18n/locales/en/common.json";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
 import NotFound, { metadata } from "./not-found";
 
@@ -50,8 +53,15 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals();
+  // i18next es un singleton del proceso de test: sin esto el idioma se filtra
+  // a los demás archivos de la suite.
+  if (i18n.language !== "es") {
+    await act(async () => {
+      await i18n.changeLanguage("es");
+    });
+  }
 });
 
 describe("not-found metadata", () => {
@@ -140,5 +150,58 @@ describe("NotFound (cascara de servidor)", () => {
     const main = container.querySelector("main");
     expect(main).not.toBeNull();
     expect(main?.classList.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * EL TÍTULO DE LA PESTAÑA SIGUE AL IDIOMA (crítica externa #8, 2026-08-17).
+ *
+ * El defecto que cierra este candado: `/privacidad` traducía el título de la
+ * pestaña al cambiar de idioma desde la ola D, pero la 404 y la home no --
+ * seguían con el castellano horneado en build mientras su `<h1>` ya estaba en
+ * inglés. Aquí, además, el `<h1>` y el título salen de la MISMA clave
+ * (`notFound.title`), así que la propiedad comprobable es la más fuerte: los
+ * dos tienen que contar exactamente lo mismo, en los dos idiomas.
+ *
+ * La `metadata` de arriba NO se toca: bajo `output: "export"` es lo que ven
+ * los rastreadores y es correcta en castellano.
+ *
+ * Validado con bug inyectado -- ver el docblock de
+ * `src/seo/useDocumentMeta.test.tsx`.
+ */
+describe("404: el título del documento sigue al idioma", () => {
+  const COPIA = { es: esCommon.notFound, en: enCommon.notFound } as const;
+
+  it.each(["es", "en"] as const)(
+    "%s: la pestaña y el <h1> cuentan lo mismo",
+    async (lang) => {
+      if (lang !== "es") {
+        await act(async () => {
+          await i18n.changeLanguage(lang);
+        });
+      }
+      renderWithProviders(<NotFound />);
+
+      const titular = screen.getByRole("heading", { level: 1 });
+      expect(titular.textContent).toBe(COPIA[lang].title);
+      expect(document.title).toBe(
+        `${COPIA[lang].title}${TITLE_SEPARATOR}${SITE.name}`,
+      );
+    },
+  );
+
+  it("la descripción del documento sale del mensaje 404 del idioma activo", async () => {
+    renderWithProviders(<NotFound />);
+    const descripcion = (): string | null =>
+      document.head
+        .querySelector('meta[name="description"]')
+        ?.getAttribute("content") ?? null;
+
+    expect(descripcion()).toBe(esCommon.notFound.message);
+
+    await act(async () => {
+      await i18n.changeLanguage("en");
+    });
+    expect(descripcion()).toBe(enCommon.notFound.message);
   });
 });

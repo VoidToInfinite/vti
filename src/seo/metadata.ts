@@ -37,6 +37,30 @@ export const OG_IMAGE_PATH = "/opengraph-image";
 /** Dimensiones reales del PNG que emite `app/opengraph-image.tsx`. */
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
 
+/**
+ * Compone el `<title>` completo de una página: su título propio más el
+ * nombre del sitio, separados por `TITLE_SEPARATOR`.
+ *
+ * Se extrae de `buildMetadata()` (donde vivía inline) porque desde la ola D
+ * hay un SEGUNDO consumidor de la misma plantilla: `useDocumentMeta()`, que
+ * reescribe `document.title` en cliente cuando el visitante cambia de idioma
+ * (bajo `output: "export"` la metadata se hornea una sola vez, en castellano
+ * — ver el docblock de `useDocumentMeta.ts`). Los dos caminos tienen que
+ * producir EXACTAMENTE el mismo formato: si divergieran, el título cambiaría
+ * de forma al cambiar de idioma sin que nadie lo pidiera. Una función pura
+ * compartida es la única manera de que no puedan divergir.
+ *
+ * El caso especial `title === SITE.name` evita "VoidToInfinite ·
+ * VoidToInfinite". Hoy ninguna ruta lo ejerce (la home pasa por
+ * `SITE.homeTitle` desde el 2026-08-05), pero se conserva porque la
+ * condición que lo motivó sigue siendo posible.
+ */
+export function pageTitle(title: string): string {
+  return title === SITE.name
+    ? SITE.name
+    : `${title}${TITLE_SEPARATOR}${SITE.name}`;
+}
+
 export interface BuildMetadataInput {
   /** Ruta interna canónica, siempre con barra inicial y sin barra final: "/" o "/privacidad". */
   readonly path: string;
@@ -85,8 +109,7 @@ export function buildMetadata(input: BuildMetadataInput): Metadata {
   // reutilizamos esa validación en vez de duplicarla aquí.
   const url = absoluteUrl(path);
 
-  const fullTitle =
-    title === SITE.name ? SITE.name : `${title}${TITLE_SEPARATOR}${SITE.name}`;
+  const fullTitle = pageTitle(title);
 
   // Una sola descripción de la imagen para las dos redes: Open Graph y
   // Twitter piden los mismos datos y divergir en el `alt` de una de las dos
