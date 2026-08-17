@@ -113,8 +113,6 @@ describe("system tokens", () => {
         // "prose limita a 52ch...", mas abajo, y el docblock de grid.ts.
         prose: "52ch",
         proseTight: "34ch",
-        columns: 12,
-        gutter: "1.5rem",
       };
       expect(grid).toEqual(expectedGrid);
     });
@@ -167,16 +165,22 @@ describe("system tokens", () => {
       expect(ch(grid.proseTight)).toBeLessThan(ch(grid.prose));
     });
 
-    it("columns es 12", () => {
-      expect(grid.columns).toBe(12);
-    });
-
-    it("gutter es 1.5rem", () => {
-      expect(grid.gutter).toBe("1.5rem");
-    });
-
+    /*
+     * Contrato ACTUALIZADO, no relajado (regla 40). `columns: 12` y
+     * `gutter: "1.5rem"` se retiraron en la crítica externa #9 (2026-08-17)
+     * por cero consumidores y ningún destino declarado -- ver el docblock de
+     * `containerMax` en `grid.ts` para el censo y para el motivo de fondo (no
+     * solo sobraban: describían una rejilla maestra de 12 columnas que este
+     * repo no construye en ninguna parte).
+     *
+     * Los dos `it` que fijaban sus valores exactos desaparecen con ellos, y el
+     * recuento de claves BAJA de 6 a 4 en el mismo cambio en vez de aflojarse
+     * a un `toBeGreaterThan` -- que es exactamente lo que la regla 40 prohíbe.
+     * El recuento sigue siendo cerrado: añadir una clave nueva a `grid` sin
+     * tocar este número lo pone en rojo, igual que antes.
+     */
     it("grid es un objeto congelado (as const)", () => {
-      expect(Object.keys(grid)).toHaveLength(6);
+      expect(Object.keys(grid)).toHaveLength(4);
     });
   });
 });

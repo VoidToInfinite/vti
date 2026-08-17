@@ -469,8 +469,24 @@ const ScFigureImg = styled.img`
   object-fit: contain;
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
 
+  /* CURVA POR TOKEN, no la palabra clave nativa (critica externa #9,
+     2026-08-17; regla 48 de RULES.md). Hasta hoy esta flotacion declaraba
+     ease-in-out a secas: una curva que no nace de src/theme/tokens/motion.ts
+     y que el detector de anti-patrones no podia ver, porque su unica familia
+     de palabra clave vigilaba ease-in SUELTO y eximia por construccion tanto
+     ease-in-out como ease a secas (hueco cerrado en la misma revision, ver la
+     familia easing-keyword del detector).
+     El token elegido es standard, cubic-bezier(0.4, 0, 0.2, 1): es la unica
+     de las cinco curvas del sistema que arranca Y termina suave, que es la
+     intencion de una flotacion infinita que invierte el sentido en el 50%.
+     decelerate y accelerate son curvas de un solo lado, emphasized frena
+     mucho mas tarde y overshoot rebota -- las cuatro cambiarian el caracter
+     del movimiento, no solo su procedencia. Mismo token y mismo razonamiento
+     que ScFigure en Contact.tsx y ScStar en Footer.tsx, las otras dos piezas
+     de UI ordinaria migradas en esta misma ola. */
   @media (prefers-reduced-motion: no-preference) {
-    animation: ${float} ${STORY_FIGURE_FLOAT_MS}ms ease-in-out infinite;
+    animation: ${float} ${STORY_FIGURE_FLOAT_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard} infinite;
   }
 `;
 

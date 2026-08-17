@@ -33,22 +33,10 @@ describe("type tokens", () => {
         lineHeight: 1.2,
         tracking: "-0.012em",
       },
-      h4: {
-        size: "1.25rem",
-        weight: 600,
-        lineHeight: 1.3,
-        tracking: "-0.008em",
-      },
       h5: {
         size: "1.125rem",
         weight: 600,
         lineHeight: 1.35,
-        tracking: "0",
-      },
-      bodyLg: {
-        size: "1.125rem",
-        weight: 400,
-        lineHeight: 1.55,
         tracking: "0",
       },
       body: {
@@ -75,14 +63,24 @@ describe("type tokens", () => {
         lineHeight: 1.2,
         tracking: "0.18em",
       },
-      code: {
-        size: "0.875rem",
-        weight: 400,
-        lineHeight: 1.5,
-        tracking: "0",
-      },
     };
 
     expect(typo.scale).toEqual(expectedScale);
+  });
+
+  /*
+   * Recuento cerrado de la escala, NUEVO con la crítica externa #9
+   * (2026-08-17). El `toEqual` de arriba ya es un contrato cerrado sobre los
+   * VALORES, pero no dejaba escrito en ninguna parte CUÁNTOS peldaños tiene la
+   * escala -- y este cambio la baja de 12 a 9 (`h4`, `bodyLg` y `code`
+   * retirados por cero consumidores; ver el docblock de `TypeVariant` en
+   * `type.ts` para el censo y el motivo de cada una).
+   *
+   * Se añade en el mismo cambio que la retirada, no como aserción aparte:
+   * quien vuelva a añadir un peldaño tiene que tocar los dos sitios a la vez,
+   * que es justo lo que la regla 40 pide de un contrato cerrado.
+   */
+  it("la escala tiene exactamente 9 peldaños vivos", () => {
+    expect(Object.keys(typo.scale)).toHaveLength(9);
   });
 });

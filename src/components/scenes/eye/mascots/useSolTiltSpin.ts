@@ -54,7 +54,17 @@ export function useSolTiltSpin(onToggle: () => void): SolTiltSpin {
       const py = (e.clientY - rect.top) / (rect.height || 1) - 0.5;
       const rx = (-py * SOL_TILT_MAX_DEG * 2).toFixed(2);
       const ry = (px * SOL_TILT_MAX_DEG * 2).toFixed(2);
-      tilt.style.transition = "transform 140ms ease-out";
+      // Curva migrada de la palabra clave ease-out (0, 0, 0.58, 1) al token
+      // decelerate (0, 0, 0.2, 1) -- misma familia (arranque rapido,
+      // asentamiento suave), cierre de la sancion PROVISIONAL que dejo la
+      // familia easing-keyword del detector (2026-08-17): la linea hermana de
+      // handleMouseLeave se migro en la Task 19 y esta quedo fuera. A 140 ms
+      // sobre un suavizado de seguimiento de cursor la diferencia entre las
+      // dos curvas queda bajo el umbral de percepcion; verificacion a ojo
+      // pendiente como todo cambio de movimiento. La DURACION se queda en su
+      // literal calibrado: el par 140/480 (entrada rapida, salida lenta) es
+      // asimetrico a proposito y 140 no existe en la escala.
+      tilt.style.transition = `transform 140ms ${motion.easing.decelerate}`;
       tilt.style.transform = `perspective(700px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.07)`;
     };
 

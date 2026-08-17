@@ -39,7 +39,8 @@
  * documentacion que lo explica.
  *
  * Familias cubiertas (ver FAMILIES mas abajo): transition/transition-property
- * con `all`, `ease-in` suelto (no `ease-in-out`), `repeating-*-gradient`,
+ * con `all`, curvas por PALABRA CLAVE (`ease`, `ease-in`, `ease-in-out`,
+ * `ease-out`) fuera del fichero del token, `repeating-*-gradient`,
  * `!important`, texto con degradado recortado (`background-clip: text` /
  * mixin `gradientTextClip`), franja lateral decorativa (`border-left/right`
  * >=2px solid), curvas `cubic-bezier` con rebote (y fuera de [-0.1, 1.1]),
@@ -65,6 +66,20 @@
  * a la vez (dos hallazgos sobre la misma linea, por dos motivos distintos:
  * rebota, y no nace en el token) -- es deliberado, y sancionarla exigiria
  * entonces una entrada por cada motivo.
+ *
+ * Segundo punto ciego cerrado (critica externa #9, 2026-08-17): el parrafo de
+ * arriba cerro el hueco de los literales `cubic-bezier(...)`, pero dejo
+ * intacto el de las PALABRAS CLAVE. La unica familia que las miraba,
+ * `ease-in-bare`, exigia `ease-in` SUELTO -- es decir, eximia por
+ * construccion `ease-in-out`, `ease-out` y `ease` a secas. La medicion del
+ * evaluador: 23 reglas del CSS servido llevaban una curva por palabra clave
+ * fuera de token, y NINGUNA era `ease-in` suelto, asi que las 23 pasaban el
+ * gate en verde. `ease-in-bare` se SUSTITUYE por `easing-keyword`, un
+ * superconjunto estricto que cubre las cuatro formas; ver su comentario en
+ * FAMILIES para el porque de sustituir en vez de anadir al lado, para por que
+ * `linear` queda fuera, y para el catalogo de falsos positivos descartados
+ * uno a uno sobre el corpus real (`easing`, `EASE_ENTRANCE`, `decrease`,
+ * `linear-gradient`).
  *
  * Nota sobre `numbering`/padStart (fix de revision, 2026-08-12): la primera
  * version aceptaba CUALQUIER `.padStart(2, "0")` como numeracion decorativa.
@@ -175,10 +190,55 @@ const FAMILIES = [
         },
     },
     {
-        id: "ease-in-bare",
-        label: "ease-in a secas (no ease-in-out)",
+        id: "easing-keyword",
+        label: "curva por palabra clave (ease / ease-in / ease-in-out / ease-out) fuera de src/theme/tokens/motion.ts",
+        // SUSTITUYE a la familia `ease-in-bare` (retirada en la critica
+        // externa #9, 2026-08-17), que solo cazaba `ease-in` SUELTO -- la
+        // variante que casi nadie escribe. La medicion del evaluador: 23
+        // reglas del CSS servido llevaban una curva por palabra clave fuera
+        // de token, y NINGUNA de ellas era `ease-in` a secas, asi que el
+        // detector daba verde sobre las 23. Cuatro venian de UI ordinaria
+        // (Contact.tsx x2, Footer.tsx, Story.tsx), migradas al token en esa
+        // misma ola; el resto es arte/escenas, sancionado abajo.
+        //
+        // Esta familia es un SUPERCONJUNTO ESTRICTO de la anterior (`ease-in`
+        // sigue cazado, ahora junto a las otras tres formas), asi que
+        // retirarla no baja la cobertura ni un caso: la sube de una forma a
+        // cuatro. Se sustituye en vez de anadirse al lado para que un
+        // `ease-in` suelto no dispare DOS hallazgos por el mismo motivo -- el
+        // doble disparo de `overshoot`+`easing-literal` es deliberado porque
+        // ahi cada familia mide una propiedad DISTINTA (rebota / no nace del
+        // token); aqui las dos medirian exactamente lo mismo.
+        //
+        // Alcance por fichero, igual que `easing-literal`: en el fichero del
+        // token una palabra clave seria la DEFINICION del token, no una copia
+        // suelta.
+        appliesTo: (file) => file !== MOTION_TOKENS_FILE,
+        // ALTERNACION ORDENADA DE MAS LARGA A MAS CORTA, y no es cosmetico:
+        // con `ease` primero, `ease-in-out` se reportaria como `ease` y dos
+        // apariciones distintas colapsarian en el mismo snippet de allowlist.
+        //
+        // Los dos `\b` son el candado contra la subcadena, el falso positivo
+        // que mas facil se cuela aqui. Verificado sobre el corpus real:
+        //  - `easing`, `motion.easing.standard`, `REVEAL.easing` NO coinciden
+        //    (tras `ease` viene `i`, un caracter de palabra: no hay frontera).
+        //  - `EASE_ENTRANCE` NO coincide (tras `EASE` viene `_`, que para una
+        //    regex TAMBIEN es caracter de palabra).
+        //  - `decrease`, `release`, `increase`, `please` NO coinciden (antes
+        //    de `ease` viene una letra: tampoco hay frontera por delante).
+        //  - `linear` queda FUERA de esta familia a proposito: es tambien una
+        //    palabra clave de curva, pero `\blinear\b` cazaria cada
+        //    `linear-gradient(` del repo (decenas) y ademas los giros
+        //    constantes que la usan legitimamente (`raysSpin`, `Wormhole`)
+        //    -- precision sobre cobertura, el mismo criterio con el que este
+        //    fichero descarto la familia "ghost-card en reposo".
+        //
+        // Sin exigir `transition`/`animation` en la MISMA linea, y tambien a
+        // proposito: el motor es linea a linea, y en `eye.parts.tsx` la curva
+        // vive sola en su renglon dentro de una lista multilinea de
+        // `animation-timing-function` -- pedir contexto la dejaria escapar.
         test(line) {
-            const m = /\bease-in\b(?!-out)/i.exec(line);
+            const m = /\b(?:ease-in-out|ease-in|ease-out|ease)\b/i.exec(line);
             return m ? m[0] : null;
         },
     },
@@ -485,6 +545,99 @@ const ALLOWLIST = [
         ],
         reason: "Curva PROPIA del vocabulario de movimiento, compartida por REVEAL.easing y PRESS.easing (mismo literal en las dos entradas, count: 2). Que vocabulary.ts no importe de motion.ts es deliberado y esta razonado al final de ese mismo fichero: es un vocabulario de PATRONES (reveal, press, deck), no un alias de la escala de UI. Consolidar los dos sistemas es decision del dueno.",
     },
+    // ---- easing-keyword: las 13 curvas por palabra clave que quedaban el dia
+    // que se cerro el punto ciego (critica externa #9, 2026-08-17). Las CUATRO
+    // de UI ordinaria que el evaluador conto aparte NO estan en esta lista
+    // porque se MIGRARON al token en la misma ola: Contact.tsx (x2),
+    // Footer.tsx y Story.tsx, las tres a `motion.easing.standard`.
+    //
+    // Las 13 que quedan son todas de arte de marca o de escenas decorativas
+    // (`src/components/scenes/**`), y se sancionan por DOS motivos, no por
+    // uno: (a) son ambientes en bucle infinito cuyo caracter cambiaria al
+    // sustituir la curva -- `ease-in-out` es simetrica y `standard` frena mas
+    // tarde, asi que la migracion NO seria neutra en un vaiven que invierte
+    // el sentido en el 50%; (b) el fichero que las contiene queda FUERA del
+    // alcance de la tarea que cerro este punto ciego, y migrar arte desde una
+    // tarea que no lo tiene asignado es exactamente la clase de cambio que
+    // este repo no hace en silencio. Mismo criterio con el que la critica #8
+    // sanciono, sin migrar ninguna, las cuatro curvas `cubic-bezier` propias.
+    {
+        family: "easing-keyword",
+        file: "src/components/scenes/eye/eye.parts.tsx",
+        anchors: [
+            {
+                snippet: "animation-timing-function: ease-in-out;",
+                lines: [206],
+            },
+            { snippet: "ease-in-out,", count: 2, lines: [249, 275] },
+        ],
+        reason: "Resplandor ambiental del ojo (eyeStagger): la curva del BUCLE de glow, no la de la entrada del stagger -- la entrada si usa token (motion.easing.decelerate, en la misma declaracion). Las dos apariciones con snippet identico son la rama de entrada y la de salida del mismo glow (count: 2). Migrarlas cambiaria el caracter del latido de fondo del hero oscuro, no solo su procedencia.",
+    },
+    {
+        family: "easing-keyword",
+        file: "src/components/scenes/eye/mascots/Sol.tsx",
+        anchors: [
+            {
+                snippet:
+                    "animation: ${solBreathe} ${AMBIENT.breathMs}ms ease-in-out infinite;",
+                lines: [122],
+            },
+            {
+                snippet:
+                    "animation: ${haloGlow} ${AMBIENT.breathMs}ms ease-in-out infinite;",
+                lines: [244],
+            },
+            {
+                snippet:
+                    "animation: ${coronaMorph} ${AMBIENT.orbitMs}ms ease-in-out infinite;",
+                lines: [299],
+            },
+            {
+                snippet: "animation: ${rayTwinkle} 6s ease-in-out infinite;",
+                lines: [340],
+            },
+            {
+                snippet:
+                    "animation: ${coreGlow} ${AMBIENT.breathMs}ms ease-in-out infinite;",
+                lines: [370],
+            },
+            {
+                snippet:
+                    "animation: ${sparkleTwinkle} 3.4s ease-in-out infinite;",
+                lines: [440],
+            },
+            {
+                snippet:
+                    "animation: ${sparkTwinkle} 3.4s ease-in-out infinite;",
+                lines: [462],
+            },
+        ],
+        reason: "Siete bucles ambientales del mascota Sol (respiracion, halo, corona, rayo, nucleo y dos capas de destellos): arte de marca con constantes propias, la misma excepcion de regla 17 de RULES.md que ya cubre EASE_ENTRANCE y el border-radius de este mismo fichero. Los siete son vaivenes infinitos que vuelven al punto de partida, el caso exacto para el que ease-in-out es simetrica y ninguna de las cinco curvas del sistema lo es.",
+    },
+    {
+        family: "easing-keyword",
+        file: "src/components/scenes/sectionBeam/sectionBeam.parts.tsx",
+        anchors: [
+            {
+                snippet:
+                    "animation: ${beamPulse} ${SECTION_BEAM_PULSE_MS}ms ease-in-out infinite;",
+                lines: [294],
+            },
+        ],
+        reason: "Pulso del haz de seccion: valor VERBATIM del mockup (L50/L118), ya declarado como tal en dos docblocks del propio repo -- sectionBeam.layers.ts junto a SECTION_BEAM_EASING (que dice literalmente que beamPulse usa ease-in-out, una palabra clave nativa) y el comentario del propio animation en este fichero, que anade que ninguna curva de la tabla de motion coincide. La excepcion ya estaba escrita y razonada antes de que el detector supiera verla.",
+    },
+    {
+        family: "easing-keyword",
+        file: "src/components/scenes/storyCosmicBeing/storyCosmicBeing.parts.tsx",
+        anchors: [
+            {
+                snippet:
+                    "animation: ${heartBeat} ${AMBIENT.breathMs}ms ease-in-out infinite;",
+                lines: [104],
+            },
+        ],
+        reason: "Latido del ser cosmico de Story (heartBeat, sobre AMBIENT.breathMs): mismo caso y mismo motivo que los bucles de respiracion de Sol -- un vaiven infinito que vuelve al punto de partida, donde la simetria de ease-in-out ES la intencion. Escena decorativa (aria-hidden), fuera del alcance de la tarea que cierra el punto ciego.",
+    },
     {
         family: "radius-literal",
         file: "src/components/scenes/eye/mascots/Sol.tsx",
@@ -628,8 +781,8 @@ function scanFile(absFile) {
 const FAMILY_GUIDANCE = {
     "transition-all":
         "toda transition/animation nueva usa una duracion+curva de src/theme/tokens/motion.ts (nunca `all`, que anima cualquier propiedad que cambie, incluidas las que disparan reflow).",
-    "ease-in-bare":
-        "toda transition/animation nueva usa una curva de src/theme/tokens/motion.ts; `ease-in` a secas (sin `-out`) acelera hasta el final y se lee como un frenazo.",
+    "easing-keyword":
+        "esta curva se escribe como PALABRA CLAVE nativa (ease, ease-in, ease-in-out o ease-out) en vez de salir de src/theme/tokens/motion.ts (regla 48). La sustituta habitual es motion.easing.standard, la unica de las cinco del sistema que arranca y termina suave -- el rol que ease-in-out ocupa en un vaiven o un latido. Casos aparte: `ease-in` a secas acelera hasta el final y se lee como un frenazo (casi nunca es lo que se queria escribir), y `ease` a secas es el valor por defecto del navegador, es decir, ninguna decision. Si la curva es un valor VERBATIM de un mockup o arte de marca con constantes propias, deja el porque JUNTO a la declaracion y anade la excepcion a ALLOWLIST.",
     "repeating-gradient":
         "un patron decorativo repetitivo (repeating-*-gradient) es la clase de detalle que esta familia vigila -- si es intencional, documentalo en el propio codigo y anade la excepcion a ALLOWLIST.",
     "important":

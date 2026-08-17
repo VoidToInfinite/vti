@@ -22,18 +22,24 @@ describe("Typography", () => {
     expect(screen.getByText("P").tagName).toBe("P");
   });
 
-  it("mantiene compatibilidad: 'lead' es un alias de bodyLg y renderiza <p>", () => {
-    renderWithProviders(<Typography variant="lead">Texto lead</Typography>);
-    const el = screen.getByText("Texto lead");
-    expect(el.tagName).toBe("P");
-  });
-
+  /*
+   * AQUÍ VIVIÓ el test del alias 'lead' -> bodyLg. Retirado con el propio
+   * alias en la crítica externa #9 (2026-08-17): era el ÚNICO sitio de todo
+   * `src/`/`app/` que pasaba `variant="lead"`, así que probaba una
+   * compatibilidad que no protegía a ningún consumidor real -- ver el docblock
+   * del hueco que dejó en `Typography.tsx`.
+   *
+   * Del `it.each` de titulares desaparece la fila `["h4", "H4"]`, y más abajo
+   * el test de `variant="code"`, por el mismo motivo y en el mismo cambio que
+   * sus peldaños de la escala (`theme/tokens/type.ts`). Las filas que quedan
+   * son exactamente las variantes que hoy existen: quitar una y dejar el test
+   * habría dejado un `it.each` que no compila.
+   */
   it.each([
     ["display", "H1"],
     ["h1", "H1"],
     ["h2", "H2"],
     ["h3", "H3"],
-    ["h4", "H4"],
     ["h5", "H5"],
   ] as const)(
     "la variante de titular '%s' renderiza <%s> por defecto",
@@ -55,12 +61,7 @@ describe("Typography", () => {
     },
   );
 
-  it("la variante 'code' renderiza <code> por defecto", () => {
-    renderWithProviders(<Typography variant="code">const x = 1;</Typography>);
-    expect(screen.getByText("const x = 1;").tagName).toBe("CODE");
-  });
-
-  it.each(["bodyLg", "body", "bodySm"] as const)(
+  it.each(["body", "bodySm"] as const)(
     "la variante de prosa '%s' renderiza <p> por defecto",
     (variant) => {
       renderWithProviders(
@@ -159,7 +160,7 @@ describe("Typography", () => {
     return texto;
   }
 
-  it.each(["bodyLg", "body", "bodySm"] as const)(
+  it.each(["body", "bodySm"] as const)(
     "la variante de cuerpo %s declara las DOS formas del equilibrado",
     (variant) => {
       renderWithProviders(
@@ -179,7 +180,15 @@ describe("Typography", () => {
     },
   );
 
-  it.each(["overline", "code"] as const)(
+  /*
+   * Control negativo. Era `["overline", "code"]`; `code` sale de la escala en
+   * la crítica externa #9 (2026-08-17) y su plaza la ocupa `caption`, la otra
+   * variante que el docblock de `BODY_VARIANTS` nombra explícitamente como
+   * fuera del equilibrado. Se sustituye en vez de reducirlo a un solo caso: un
+   * control negativo con UN miembro es mucho más fácil de satisfacer por
+   * casualidad que uno con dos.
+   */
+  it.each(["overline", "caption"] as const)(
     "la variante %s NO recibe el equilibrado de cuerpo",
     (variant) => {
       renderWithProviders(

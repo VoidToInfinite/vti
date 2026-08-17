@@ -191,9 +191,37 @@ const ScHeader = styled.div`
   margin-inline: auto;
 `;
 
+/*
+ * Entradilla de la cabecera de Journey (`Home.journey.body`).
+ *
+ * `max-width` (crítica externa #9, 2026-08-17): NUEVO. Hasta hoy este párrafo
+ * era el único cuerpo de texto de la home sin tope de ancho propio -- heredaba
+ * los 640px de `ScHeader` y el evaluador lo midió en runtime a **99,2
+ * caracteres reales por línea**, un 32% por encima del techo del rango 60-75
+ * que el propio sistema declara (`DESIGN.md` §3.4). No era riesgo latente como
+ * en el resto de piezas que la Task 22 tapó: era un defecto visible con el
+ * copy de hoy.
+ *
+ * POR QUÉ EL CAP VA AQUÍ Y NO EN `ScHeader`: es el criterio que ya siguen las
+ * otras tres secciones -- `ScIntro`/`ScBody`/`ScDarkBody` en `Features.tsx`,
+ * `ScBody` en `Story.tsx`, `ScJourneyIntroBody`/`ScJourneyStepSubtitle` en
+ * `journey.deck.tsx` -- todas declaran la medida de lectura sobre el PÁRRAFO,
+ * nunca sobre el contenedor. Mover el tope a `ScHeader` habría arrastrado
+ * también al `h2`, que no es prosa y cuya medida (los 640px del mockup, ver su
+ * comentario) es una decisión de composición distinta.
+ *
+ * `margin-inline: auto` acompaña al tope porque `ScHeader` centra
+ * (`text-align: center` + `margin-inline: auto`): sin él, la caja del párrafo
+ * -- ya más estrecha que su contenedor -- quedaría pegada al borde izquierdo y
+ * el texto centrado dentro de ella se leería descolgado del titular. Mismo par
+ * de declaraciones que `ScMain` en `NotFoundContent.tsx`, el otro bloque
+ * centrado del sitio que topa en esta medida.
+ */
 const ScBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  max-width: ${({ theme }) => theme.data.grid.prose};
+  margin-inline: auto;
 `;
 
 /*

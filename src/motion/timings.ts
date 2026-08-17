@@ -86,11 +86,42 @@ import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
  * `prefers-reduced-motion` en `aura.parts.tsx` y en `HeroBackdrop.tsx`,
  * igual que el resto del lenguaje de movimiento del sitio.
  *
- * PENDIENTE fuera de este fichero: la misma afirmación falsa sobrevive en
- * `DESIGN.md` (tabla de tiempos del hero, celda de `HERO_FADE_MS`: «2 ×
- * `motion.duration.base`») y en la spec citada arriba. Las dos quedan
- * declaradas aquí en vez de corregidas en silencio desde una tarea que no
- * es dueña de esos documentos.
+ * PENDIENTE fuera de este fichero: la misma afirmación falsa sobrevive en la
+ * spec citada arriba (`docs/superpowers/specs/2026-07-26-hero-aura-tema-claro-
+ * design.md` §5.3: «`HERO_FADE_MS` sí es un múltiplo reconocible (2 ×
+ * `base`)»). Queda declarada aquí en vez de corregida en silencio desde una
+ * tarea que no es dueña de ese documento. **`DESIGN.md` YA NO está en esa
+ * lista**: la revisión anterior de este mismo docblock lo daba por pendiente,
+ * pero su tabla de tiempos del hero se corrigió en el MISMO commit que
+ * reescribió este párrafo (`1c707b3`), así que la nota había quedado
+ * desactualizada el mismo día que se escribió — verificado leyendo la celda
+ * de `HERO_FADE_MS` de `DESIGN.md` antes de retirarla de aquí.
+ *
+ * ### El 420 no es un literal repetido: censo de FUENTES (crítica externa #9)
+ *
+ * La crítica #9 contó **15 reglas con `420ms` en el CSS servido** y concluyó
+ * «si es calibrado y se usa 15 veces, es un token, no un literal». La medición
+ * es correcta y la conclusión no se sostiene sobre este código: contó SALIDA,
+ * no FUENTE. Censo hecho sobre el código real, con los comentarios despojados
+ * (mismo criterio que usa `scripts/detect-anti-patterns.mjs`):
+ *
+ * - **Literales `420` sueltos en `src/` y `app/`: CERO.** La única aparición
+ *   del número en código activo de todo el repo es la declaración de tres
+ *   líneas más abajo. Todo lo demás son citas en prosa dentro de este mismo
+ *   docblock.
+ * - **Sitios que lo interpolan: 7, todos como `${HERO_FADE_MS}ms`** —
+ *   `aura.parts.tsx` (2), `eye.parts.tsx` (4) y `Hero.tsx` (1).
+ * - **Por qué 7 sitios dan ~15 reglas:** los de `aura.parts.tsx` y
+ *   `eye.parts.tsx` no viven en un componente, viven dentro de
+ *   `auraStagger(part)` / `eyeStagger(...)`, funciones que se invocan UNA VEZ
+ *   POR CAPA del stack (5 capas en claro, 6 en oscuro). El abanico ocurre en
+ *   la emisión, no en la fuente.
+ *
+ * Es decir: el valor YA está centralizado en una constante con nombre y ya
+ * tiene aquí escrito su porqué. **No hay nada que migrar**; convertirlo además
+ * en un token de `motion.duration` es justo lo que los dos párrafos de arriba
+ * argumentan en contra, y seguiría emitiendo las mismas 15 reglas. El hallazgo
+ * se cierra como DOCUMENTAL: esta nota es el arreglo.
  */
 
 /** Duración del fundido de UNA capa del stagger. */

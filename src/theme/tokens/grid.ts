@@ -1,4 +1,31 @@
 export const grid = {
+  /**
+   * Ancho máximo del contenido del sitio. Es el ÚNICO tope de composición
+   * general que este repo aplica de verdad.
+   *
+   * Aquí vivieron `columns: 12` y `gutter: "1.5rem"`, RETIRADOS en la crítica
+   * externa #9 (2026-08-17). Censo propio de consumidores antes de tocarlos
+   * (patrones con punto, con corchete, por desestructuración y por alias local
+   * de `theme.data`, el punto ciego que el censo anterior sí tuvo): **cero
+   * usos en `src/` y en `app/`** — las únicas apariciones de los dos
+   * identificadores en todo el repo eran su propia declaración y el contrato
+   * de `system.test.ts`. Y a diferencia de `space[10]`/`zIndex.toast`, que se
+   * conservaron por tener un destino escrito en código o en docs, estos dos no
+   * tenían ninguno: ni un consumidor, ni una mención en `DESIGN.md`, ni una
+   * reserva en `docs/qa-3d-pendiente.md`.
+   *
+   * El motivo de retirarlos no es solo que nadie los leyera: es que
+   * DESCRIBÍAN UN SISTEMA QUE NO EXISTE. Prometían una rejilla de 12 columnas
+   * con canal de 1.5rem, y ninguna rejilla del sitio se construye así — las
+   * reales son `repeat(2, 1fr)`/`repeat(3, 1fr)`/`repeat(6, 1fr)` en Journey,
+   * `auto-fit + minmax` en Features/Story, cada una con su propio `gap` de la
+   * escala `space`. Un token que miente sobre la arquitectura es peor que uno
+   * que solo sobra: el siguiente que lo lea creerá que hay una rejilla maestra
+   * a la que alinearse.
+   *
+   * Mismo criterio y mismo precedente que `motion.duration.ambient` (commit
+   * `3734fd0`) y que `space.px`/`zIndex.max` (commit `1c707b3`).
+   */
   containerMax: "1200px",
   /**
    * Ancho máximo de la píldora del navbar flotante al hacer scroll. Es una
@@ -50,6 +77,4 @@ export const grid = {
    * lee, contra una promesa que nunca hizo.
    */
   proseTight: "34ch",
-  columns: 12,
-  gutter: "1.5rem",
 } as const;

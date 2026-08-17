@@ -239,6 +239,33 @@ describe("Journey", () => {
     });
   });
 
+  /*
+   * Crítica externa #9 (2026-08-17): la entradilla de la cabecera clara era el
+   * ÚLTIMO cuerpo de texto de la home sin tope de ancho propio. El evaluador la
+   * midió en navegador real a 99,2 caracteres por línea -- un 32% sobre el
+   * techo del rango 60-75 que el sistema declara (DESIGN.md 3.4) -- porque
+   * heredaba los 640px de ScHeader con `max-width: none` propio.
+   *
+   * El candado se afirma contra `themes.light.grid.prose`, NUNCA contra el
+   * literal "52ch": el valor del token es una medida calibrada que ya cambió
+   * una vez (65ch -> 52ch el 2026-08-17) y un literal aquí se desincronizaría
+   * en silencio. Va por TEXTO del CSS inyectado (`cssRuleTextFor`) porque la
+   * declaración vive en la clase base, sin `@media` de por medio -- jsdom sí
+   * la resuelve por CSSOM.
+   *
+   * `margin-inline: auto` se afirma junto al tope y no aparte: sin él la caja
+   * ya estrechada quedaría pegada al borde izquierdo de una cabecera centrada,
+   * que es un defecto distinto y peor que el que se venía a arreglar. Los dos
+   * juntos son el arreglo; uno solo no lo es.
+   */
+  it("crítica #9: la entradilla topa su ancho en grid.prose y sigue centrada", () => {
+    renderWithProviders(<Journey />);
+    const entradilla = screen.getByText(esHome.Home.journey.body);
+    const css = cssRuleTextFor(entradilla);
+    expect(css).toContain(`max-width: ${themes.light.grid.prose}`);
+    expect(css).toContain("margin-inline: auto");
+  });
+
   it("paridad es/en: las claves de journey existen en los dos locales", () => {
     expect(Object.keys(enHome.Home.journey.steps)).toEqual(
       Object.keys(esHome.Home.journey.steps),

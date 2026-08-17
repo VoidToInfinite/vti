@@ -4,27 +4,43 @@ import type { ElementType, ReactElement, ReactNode } from "react";
 import styled from "styled-components";
 import type { TypeVariant } from "@/theme/tokens/type";
 
-/**
- * `lead` no existe en la escala nueva (`theme.data.type.scale`); se conserva
- * como alias de `bodyLg` para no romper a los consumidores actuales (Hero).
- * Su migración a `bodyLg` explícito es responsabilidad de la Task 15.
+/*
+ * AQUÍ VIVIÓ `TypographyVariant = TypeVariant | "lead"`, con el shim
+ * `variant === "lead" ? "bodyLg" : variant` de la función de más abajo.
+ * RETIRADOS los dos en la crítica externa #9 (2026-08-17).
+ *
+ * El docblock que acompañaba al alias decía que se conservaba «para no romper
+ * a los consumidores actuales (Hero)» y que migrarlo era responsabilidad de la
+ * Task 15. Censo propio antes de tocarlo: `Hero.tsx` no pasa `variant="lead"`
+ * en ningún sitio, y NADIE lo hace -- la única aparición de la cadena en todo
+ * `src/`/`app/` era el test que probaba el propio shim. El alias estaba muerto
+ * por los DOS extremos: sin nadie que lo pasara, y apuntando a `bodyLg`, un
+ * peldaño de la escala que tampoco tenía consumidores y que este mismo cambio
+ * retira (`theme/tokens/type.ts`).
+ *
+ * Con `lead` fuera, `TypographyVariant` quedaba como alias exacto de
+ * `TypeVariant` -- un nombre de más para el mismo tipo, exportado sin que
+ * ningún fichero lo importara -- así que se retira también y las props hablan
+ * directamente el tipo del token.
  */
-export type TypographyVariant = TypeVariant | "lead";
 
+/*
+ * `h4` y `code` desaparecen de este mapa porque desaparecen de la escala (ver
+ * el docblock de `TypeVariant`): sin ellos en `TypeVariant`, el
+ * `Partial<Record<...>>` rechazaría las claves en tiempo de compilación.
+ */
 const defaultElement: Partial<Record<TypeVariant, ElementType>> = {
   display: "h1",
   h1: "h1",
   h2: "h2",
   h3: "h3",
-  h4: "h4",
   h5: "h5",
   overline: "span",
   caption: "span",
-  code: "code",
 };
 
 interface TypographyProps {
-  "variant": TypographyVariant;
+  "variant": TypeVariant;
   /** Override del elemento por defecto de la variante. */
   "as"?: ElementType;
   "children": ReactNode;
@@ -54,12 +70,18 @@ interface TypographyProps {
 /**
  * Variantes de CUERPO de texto, las que reciben el equilibrado de línea
  * (encargo del usuario 2026-08-04). Se declara como lista y no como
- * `startsWith("body")` para que `caption`, `overline` y `code` queden fuera de
- * forma explícita y no por accidente de nombre: `overline` es una etiqueta de
- * una o dos palabras (equilibrar no tiene nada que repartir), y `code` es
- * monoespaciado, donde reagrupar líneas altera la lectura del propio código.
+ * `startsWith("body")` para que `caption` y `overline` queden fuera de forma
+ * explícita y no por accidente de nombre: `overline` es una etiqueta de una o
+ * dos palabras y `caption` un pie corto — en ninguno de los dos hay líneas
+ * suficientes que reagrupar para que equilibrar signifique algo.
+ *
+ * `bodyLg` salió de esta lista al salir de la escala (crítica externa #9,
+ * 2026-08-17, ver el docblock de `TypeVariant`). El razonamiento original
+ * citaba además a `code` — monoespaciado, donde reagrupar líneas altera la
+ * lectura del propio código — que ya no existe como variante; el criterio se
+ * conserva escrito aquí por si algún día vuelve a hacer falta.
  */
-const BODY_VARIANTS: readonly TypeVariant[] = ["bodyLg", "body", "bodySm"];
+const BODY_VARIANTS: readonly TypeVariant[] = ["body", "bodySm"];
 
 /**
  * Equilibrado de línea de las variantes de cuerpo: se declaran LAS DOS
@@ -110,12 +132,11 @@ export function Typography({
   tabIndex,
   "data-testid": testId,
 }: TypographyProps): ReactElement {
-  const resolvedVariant: TypeVariant = variant === "lead" ? "bodyLg" : variant;
-  const element: ElementType = as ?? defaultElement[resolvedVariant] ?? "p";
+  const element: ElementType = as ?? defaultElement[variant] ?? "p";
   return (
     <ScTypography
       as={element}
-      $variant={resolvedVariant}
+      $variant={variant}
       className={className}
       id={id}
       tabIndex={tabIndex}
