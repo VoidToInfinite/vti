@@ -9,6 +9,7 @@ import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
 import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
 import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { links } from "@/config/links";
+import esCommon from "@/i18n/locales/es/common.json";
 import { NAV_GROUPS } from "@/config/navigation";
 import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
 import { NAV_SHEET_SCROLL_TOLERANCE_PX, navActiveAccent } from "./NavSheet";
@@ -715,27 +716,74 @@ describe("Navbar", () => {
     });
 
     /*
-     * La otra mitad de la decisión, y no es simetría gratuita: el mecanismo se
-     * limita a `kind: "feature"` porque una sección entera YA es distinguible
-     * (llega una pantalla distinta) y su `<section id>` no es focalizable en
-     * producción. Este test lo comprueba con un destino que SÍ sería
-     * focalizable, que es la única forma de que la guarda por `kind` se pueda
-     * observar: si desapareciera, el foco se movería aquí.
+     * SUSTITUYE al test que hasta la crítica externa #9 afirmaba lo contrario
+     * ("un enlace de sección no mueve el foco: su destino ya se distingue por
+     * el propio scroll"). Ese argumento describía lo que ve quien MIRA la
+     * pantalla; dos evaluadores midieron por separado que para quien navega
+     * por teclado o con lector de pantalla el salto simplemente no ocurría --
+     * `document.activeElement` se quedaba en `<body>`. La fuente de verdad del
+     * test se actualiza con el cambio (regla 40), no se relaja.
+     *
+     * El destino se monta aquí SIN `tabindex`, con la forma exacta que le dan
+     * las cuatro secciones reales (`<section id="story">`, ver `Story.tsx`):
+     * así el candado observa las DOS mitades del arreglo -- que el helper hace
+     * focalizable un destino que no lo era, y que el foco acaba ahí.
      */
-    it("un enlace de sección no mueve el foco: su destino ya se distingue por el propio scroll", () => {
+    it("al activar un enlace de sección, el foco salta a la sección de destino, que gana tabindex=-1 para poder recibirlo", () => {
       const { container } = renderNavbar();
 
-      withAnchorTarget("story", (target) => {
+      const target = document.createElement("section");
+      target.id = "story";
+      document.body.appendChild(target);
+
+      try {
         const link = container.querySelector(
           'a[href="/#story"]',
         ) as HTMLElement;
-        const antes = document.activeElement;
+        expect(
+          target,
+          "el destino tiene que empezar SIN tabindex: es lo que lo hace no focalizable",
+        ).not.toHaveAttribute("tabindex");
 
         fireEvent.click(link);
 
-        expect(document.activeElement).not.toBe(target);
-        expect(document.activeElement).toBe(antes);
-      });
+        expect(target).toHaveAttribute("tabindex", "-1");
+        expect(
+          document.activeElement,
+          "el navegador desplaza pero no enfoca: sin foco, quien no ve la pantalla no se entera del salto",
+        ).toBe(target);
+      } finally {
+        target.remove();
+      }
+    });
+
+    /*
+     * La otra mitad del mismo helper: un destino que YA declara su propio
+     * `tabindex` no se sobrescribe. Es la guarda `hasAttribute` de
+     * `navAnchorFocus.ts`, y su consumidor real son los `<h3>` de
+     * `Features.tsx` (`tabIndex={-1}` en el JSX): sin ella, este código estaría
+     * reescribiendo un atributo que otro fichero declara a propósito.
+     */
+    it("un destino que ya declara su propio tabindex no se sobrescribe", () => {
+      const { container } = renderNavbar();
+
+      const target = document.createElement("h3");
+      target.id = "feature-gaming-title";
+      target.setAttribute("tabindex", "0");
+      document.body.appendChild(target);
+
+      try {
+        const link = container.querySelector(
+          'a[href="/#feature-gaming-title"]',
+        ) as HTMLElement;
+
+        fireEvent.click(link);
+
+        expect(target).toHaveAttribute("tabindex", "0");
+        expect(document.activeElement).toBe(target);
+      } finally {
+        target.remove();
+      }
     });
 
     it("al pulsar un disparador, su aria-expanded pasa a 'true', su panel pierde inert y aria-controls apunta al id real del panel", () => {
@@ -1585,8 +1633,50 @@ describe("Navbar", () => {
       // getElementById, nunca querySelector("#…").
       const hoja = document.getElementById(sheetId as string);
       expect(hoja).toBe(getSheet(container));
-      // Contrato inverso: la hoja se nombra con el id del disparador.
-      expect(hoja).toHaveAttribute("aria-labelledby", trigger.id);
+    });
+
+    /*
+     * Crítica externa #9, punto 2 (medido sobre el árbol de accesibilidad real
+     * por dos evaluadores). SUSTITUYE a la última aserción del test de arriba,
+     * que hasta hoy exigía justo el defecto: `aria-labelledby` al id del
+     * disparador. Ese vínculo funciona en el desplegable de escritorio, cuyo
+     * disparador tiene texto fijo, y falla aquí porque el de la hoja cambia de
+     * etiqueta al abrirse -- así que el diálogo se anunciaba como «Cerrar el
+     * menú de navegación», la acción de un botón, precisamente en el único
+     * momento en que su nombre se lee.
+     *
+     * El valor esperado se lee del JSON de es (regla 39: la misma fuente que
+     * consume el componente), nunca de una cadena escrita a mano aquí. Y la
+     * segunda aserción es la que ata el DEFECTO, no solo el arreglo: con la
+     * hoja abierta, su nombre no puede coincidir con la etiqueta del
+     * disparador.
+     */
+    it("la hoja tiene nombre accesible propio, distinto de la etiqueta del disparador (que cambia al abrirse)", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+      const hoja = getSheet(container);
+
+      expect(hoja).toHaveAttribute(
+        "aria-label",
+        esCommon.Common.Nav.sheetTitle,
+      );
+      expect(
+        hoja,
+        "aria-labelledby volvería a heredar el nombre del disparador y ganaría al aria-label",
+      ).not.toHaveAttribute("aria-labelledby");
+
+      act(() => {
+        fireEvent.click(trigger);
+      });
+
+      expect(trigger).toHaveAttribute(
+        "aria-label",
+        esCommon.Common.Nav.closeMenu,
+      );
+      expect(
+        hoja.getAttribute("aria-label"),
+        "el diálogo se estaría anunciando con la acción del botón que lo abrió",
+      ).not.toBe(trigger.getAttribute("aria-label"));
     });
 
     it("la hoja arranca cerrada con inert y data-open='false', pero SIN desmontarse", () => {
@@ -1685,6 +1775,39 @@ describe("Navbar", () => {
       fireEvent.click(fila);
 
       expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    /*
+     * Crítica externa #9, punto 1, en la TERCERA superficie. La hoja ya
+     * llamaba al helper de foco al activar una fila (`handleRowActivate`), así
+     * que ampliarlo a `kind: "section"` la cubre sin tocarla -- y justo por eso
+     * hace falta el candado: nada en este fichero afirmaba esa propiedad para
+     * la hoja, y el día que alguien "simplifique" `handleRowActivate` a un
+     * `onNavigate` a secas, el panel de escritorio y el pie seguirían en verde.
+     *
+     * Ata además que las dos acciones conviven: la fila CIERRA la hoja y el
+     * foco acaba en la sección, no en la primera fila ni en `<body>`.
+     */
+    it("activar una fila de sección cierra la hoja Y deja el foco en la sección de destino", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+      const destino = document.createElement("section");
+      destino.id = "journey";
+      document.body.appendChild(destino);
+
+      try {
+        fireEvent.click(trigger);
+        const fila = getSheet(container).querySelector(
+          'a[href="/#journey"]',
+        ) as HTMLElement;
+
+        fireEvent.click(fila);
+
+        expect(trigger).toHaveAttribute("aria-expanded", "false");
+        expect(document.activeElement).toBe(destino);
+      } finally {
+        destino.remove();
+      }
     });
 
     it("scrollear la página cierra la hoja, pero un movimiento dentro de la tolerancia no", () => {
@@ -2230,6 +2353,214 @@ describe("Navbar", () => {
      * primera fila, no el disparador); restaurado a `onClose`, vuelve a
      * verde.
      */
+    /*
+     * Crítica externa #9, punto 4 (evaluador Nielsen, P2): con la hoja abierta
+     * -- y por tanto con `aria-modal="true"` -- la rueda sobre la cabecera
+     * cerraba la hoja Y arrastraba el fondo 600 px. El bloqueo NO puede ser el
+     * clásico `overflow: hidden` en `html`/`body` (regla 21, ver el candado
+     * "abrir la hoja NO escribe overflow…" más arriba, que sigue en pie): se
+     * hace por evento, cancelando `wheel`/`touchmove` fuera de la capa de
+     * scroll de la propia hoja.
+     *
+     * jsdom no hace scroll real, así que lo observable -- y lo que de verdad
+     * decide el resultado en un navegador -- es si el evento queda cancelado:
+     * `defaultPrevented`. Los eventos se construyen `cancelable: true` a
+     * propósito: un evento no cancelable haría pasar este test por vacuidad.
+     */
+    it("con la hoja abierta, la rueda y el arrastre FUERA de ella quedan cancelados; cerrada, no se toca ningún gesto", () => {
+      const { container } = renderNavbar();
+      const trigger = getSheetTrigger();
+      const cabecera = container.querySelector("header") as HTMLElement;
+
+      function rueda(sobre: HTMLElement): Event {
+        const evento = new Event("wheel", {
+          cancelable: true,
+          bubbles: true,
+        });
+        act(() => {
+          sobre.dispatchEvent(evento);
+        });
+        return evento;
+      }
+
+      expect(
+        rueda(cabecera).defaultPrevented,
+        "sin hoja abierta la página tiene que seguir scrolleando con normalidad",
+      ).toBe(false);
+
+      fireEvent.click(trigger);
+
+      expect(
+        rueda(cabecera).defaultPrevented,
+        "un diálogo aria-modal que deja correr el fondo bajo el dedo no es modal",
+      ).toBe(true);
+
+      const arrastre = new Event("touchmove", {
+        cancelable: true,
+        bubbles: true,
+      });
+      act(() => {
+        cabecera.dispatchEvent(arrastre);
+      });
+      expect(
+        arrastre.defaultPrevented,
+        "en móvil el gesto que desplaza el fondo es touchmove, no wheel",
+      ).toBe(true);
+
+      // Cerrar tiene que devolver la página a la normalidad: un bloqueo que no
+      // se retira es peor que no bloquear.
+      fireEvent.click(trigger);
+      expect(rueda(cabecera).defaultPrevented).toBe(false);
+    });
+
+    it("la propia lista de la hoja SÍ scrollea con la hoja abierta: el bloqueo excluye su capa de scroll", () => {
+      const { container } = renderNavbar();
+      fireEvent.click(getSheetTrigger());
+
+      const fila = getSheet(container).querySelector("a") as HTMLElement;
+      const evento = new Event("wheel", { cancelable: true, bubbles: true });
+      act(() => {
+        fila.dispatchEvent(evento);
+      });
+
+      expect(
+        evento.defaultPrevented,
+        "cancelar aquí dejaría la hoja sin poder desplazar su propia lista",
+      ).toBe(false);
+    });
+
+    /*
+     * Crítica externa #9, punto 3. El evaluador midió a 390x844 que la hoja
+     * muestra 591 px y su contenido ocupa 623: con el selector de idioma al
+     * final, el único control de la hoja nacía 91 px por debajo del filo.
+     *
+     * jsdom no hace layout (no puede ver los 91 px), así que el candado ata la
+     * causa estructural: el bloque de idioma va ANTES que los grupos de salida
+     * del sitio. Los dos extremos se derivan de `NAV_GROUPS` (regla 39), nunca
+     * de una lista escrita a mano aquí: el día que el modelo gane un grupo
+     * externo, este test lo incluye solo.
+     */
+    it("el control de idioma va antes que los grupos de salida del sitio (los de items externos)", () => {
+      const { container } = renderNavbar();
+      const hoja = getSheet(container);
+
+      const gruposDeSalida = NAV_GROUPS.filter((group) =>
+        group.items.every((item) => item.kind === "external"),
+      );
+      expect(
+        gruposDeSalida.length,
+        "sin ningún grupo de salida este test no compara nada",
+      ).toBeGreaterThan(0);
+
+      // El selector de idioma es el único `button` de la capa de scroll (las
+      // filas de navegación son enlaces, y el botón de cierre vive fuera de
+      // ella): sirve como ancla del bloque de controles sin depender de su
+      // texto ni de un índice de posición.
+      const areaScroll = hoja.querySelector(
+        "[data-nav-sheet-scroll]",
+      ) as HTMLElement;
+      const primerControl = areaScroll.querySelector("button") as HTMLElement;
+      expect(
+        primerControl,
+        "la hoja no monta ningún control dentro de su capa de scroll",
+      ).not.toBeNull();
+
+      for (const group of gruposDeSalida) {
+        for (const item of group.items) {
+          const salida = hoja.querySelector(
+            `a[href="${item.href}"]`,
+          ) as HTMLElement;
+          expect(salida, `la hoja no monta ${item.key}`).not.toBeNull();
+          expect(
+            primerControl.compareDocumentPosition(salida) &
+              Node.DOCUMENT_POSITION_FOLLOWING,
+            `${item.key} se pinta antes que el control de idioma`,
+          ).toBeTruthy();
+        }
+      }
+    });
+
+    /*
+     * Crítica externa #9, punto 3, segunda mitad: aunque el control suba, la
+     * cola de la lista sigue quedando fuera del filo -- y la única pista era
+     * una fila cortada. `ScSheetFade` es la señal, y solo aparece cuando de
+     * verdad queda contenido por debajo.
+     *
+     * jsdom devuelve 0 en las tres métricas de scroll, así que se inyectan a
+     * mano sobre la instancia (`Object.defineProperty`) para representar el
+     * caso medido -- 623 px de contenido en 591 visibles -- y se dispara el
+     * `scroll` que el componente escucha. Sin métricas inyectadas, el estado
+     * de reposo de jsdom (todo a 0) es "no hay nada recortado", que es también
+     * lo que debe afirmarse antes de tocar nada.
+     */
+    it("el degradado de scroll se enciende solo cuando queda contenido por debajo del filo", () => {
+      const { container } = renderNavbar();
+      const hoja = getSheet(container);
+      const areaScroll = hoja.querySelector(
+        "[data-nav-sheet-scroll]",
+      ) as HTMLElement;
+
+      fireEvent.click(getSheetTrigger());
+      expect(
+        hoja,
+        "con todo a la vista el degradado prometería contenido que no existe",
+      ).toHaveAttribute("data-sheet-clipped", "false");
+
+      function medir(scrollTop: number): void {
+        Object.defineProperty(areaScroll, "clientHeight", {
+          value: 591,
+          configurable: true,
+        });
+        Object.defineProperty(areaScroll, "scrollHeight", {
+          value: 623,
+          configurable: true,
+        });
+        Object.defineProperty(areaScroll, "scrollTop", {
+          value: scrollTop,
+          writable: true,
+          configurable: true,
+        });
+        act(() => {
+          areaScroll.dispatchEvent(new Event("scroll"));
+        });
+      }
+
+      medir(0);
+      expect(hoja).toHaveAttribute("data-sheet-clipped", "true");
+
+      // Al final del recorrido ya no queda nada por descubrir: la señal se
+      // retira en vez de quedarse encendida para siempre.
+      medir(32);
+      expect(hoja).toHaveAttribute("data-sheet-clipped", "false");
+    });
+
+    it("el degradado lee el estado del PADRE con un selector descendiente, no del propio elemento", () => {
+      /*
+       * Regla 35: `[data-sheet-clipped="true"] &` y `&[data-sheet-clipped=
+       * "true"]` contienen el MISMO substring y describen selectores
+       * distintos (descendiente frente a mismo elemento). El atributo vive en
+       * `ScNavSheet` y el degradado es su hijo, así que solo la primera forma
+       * funciona -- y solo `selectorText` las distingue.
+       */
+      renderNavbar();
+      const reglas = Array.from(document.styleSheets).flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules);
+        } catch {
+          return [];
+        }
+      });
+      const selectores = reglas
+        .filter((rule): rule is CSSStyleRule => "selectorText" in rule)
+        .map((rule) => rule.selectorText)
+        .filter((selector) => selector.includes("data-sheet-clipped"));
+
+      expect(selectores.length).toBeGreaterThan(0);
+      for (const selector of selectores) {
+        expect(selector).toMatch(/\[data-sheet-clipped="true"\]\s+\./);
+      }
+    });
+
     it("Task fix wave A (A3): pulsar el botón de cierre nuevo devuelve el foco al disparador, no lo deja huérfano", () => {
       const { container } = renderNavbar();
       const trigger = getSheetTrigger();

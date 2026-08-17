@@ -1245,11 +1245,18 @@ export function Navbar(): ReactElement {
           el `bottom: 0` de la hoja se resolvería contra los 56 px de la
           banda en vez de contra el borde inferior de la pantalla. Ver el
           docblock de `ScNavSheet` (`NavSheet.tsx`). */}
+      {/* Sin `triggerId` desde la crítica externa #9 (punto 2): la hoja ya no
+          se nombra con el id de su disparador -- ese vínculo le daba el nombre
+          «Cerrar el menú de navegación», la etiqueta del BOTÓN en estado
+          abierto. Ahora declara su propio `aria-label` (ver el JSX de
+          `NavSheet`), así que la prop se retira en vez de quedarse sin
+          consumidor (regla 16). `sheet.triggerId` sigue vivo: lo consume
+          `NavSheetTrigger`, que necesita el id para su propio `id=` y para
+          que el `aria-controls` del par siga cerrando el círculo. */}
       <NavSheet
         isOpen={sheet.isOpen}
         onNavigate={sheet.close}
         onClose={sheet.closeAndFocusTrigger}
-        triggerId={sheet.triggerId}
         sheetId={sheet.sheetId}
         sheetRef={sheet.sheetRef}
       />

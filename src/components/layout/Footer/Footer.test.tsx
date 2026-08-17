@@ -415,6 +415,62 @@ describe("Footer", () => {
    * borrara la prop real -- por eso se despoja el comentario de bloque, igual
    * que `footer.layers.test.ts`, antes de recortar el bloque.
    */
+  /*
+   * Crítica externa #9, punto 1. El pie era la superficie ASIMÉTRICA de las
+   * tres que consumen `NAV_GROUPS`: `Navbar` y `NavSheet` ya movían el foco al
+   * destino desde la entrega anterior, y el pie no -- así que el MISMO enlace
+   * («Historia») dejaba el foco en `<body>` o lo llevaba a la sección según
+   * desde dónde se pulsara. Dos evaluadores midieron el caso del pie por
+   * separado.
+   *
+   * El destino se monta aquí con la forma exacta que le dan las cuatro
+   * secciones reales (`<section id="story">`, SIN `tabindex`: ver `Story.tsx`)
+   * y la tarjeta de Features (`<h3 id="feature-…-title" tabindex="-1">`), para
+   * cubrir los dos `kind` que apuntan dentro de la página. La tercera mitad --
+   * que un `kind: "external"` no toque el foco -- va en su propio caso: ahí no
+   * hay ningún destino en este documento que enfocar.
+   */
+  describe("foco en el destino al activar un enlace de sección (crítica externa #9, punto 1)", () => {
+    it.each([
+      ["/#story", "story", "section"],
+      ["/#feature-learning-title", "feature-learning-title", "h3"],
+    ] as const)("%s mueve el foco a su destino", (href, id, etiqueta) => {
+      const { container } = renderWithProviders(<Footer />);
+      const destino = document.createElement(etiqueta);
+      destino.id = id;
+      document.body.appendChild(destino);
+
+      try {
+        const enlace = container.querySelector(
+          `a[href="${href}"]`,
+        ) as HTMLElement;
+        expect(enlace, `el pie no monta ${href}`).not.toBeNull();
+
+        enlace.click();
+
+        expect(destino).toHaveAttribute("tabindex", "-1");
+        expect(
+          document.activeElement,
+          "el pie desplazaba sin enfocar: para quien no ve la pantalla, el salto no ocurrió",
+        ).toBe(destino);
+      } finally {
+        destino.remove();
+      }
+    });
+
+    it("un enlace externo no toca el foco: su destino no está en este documento", () => {
+      const { container } = renderWithProviders(<Footer />);
+      const enlace = container.querySelector(
+        `a[href="${links.sdk}"]`,
+      ) as HTMLElement;
+      const antes = document.activeElement;
+
+      enlace.click();
+
+      expect(document.activeElement).toBe(antes);
+    });
+  });
+
   describe("LEGAL_LINKS.map(): ScFooterNavLink lleva prefetch={false}", () => {
     it("el bloque de LEGAL_LINKS.map() (fuera de comentarios) declara prefetch={false} en ScFooterNavLink", async () => {
       const { readFileSync } = await import("node:fs");
@@ -570,6 +626,50 @@ describe("Footer", () => {
           );
         expect(reduceLine).toBeDefined();
         expect(reduceLine as string).toContain("animation: none");
+      },
+    );
+
+    /*
+     * Crítica externa #9, encargo transversal de tokens de movimiento: el
+     * titileo declaraba la palabra clave `ease-in-out`, la única curva del
+     * fichero fuera de `motion.easing` (regla 48 de `RULES.md`).
+     *
+     * Aquí SÍ vale un candado sobre el texto renderizado, a diferencia del
+     * caso que documenta `task/lessons.md` (2026-08-12, Task 19): allí el
+     * token resolvía al MISMO valor que el literal que sustituía, así que el
+     * CSS era indistinguible antes y después. `ease-in-out` y
+     * `motion.easing.standard` son textos DISTINTOS, así que la migración es
+     * observable en el CSS inyectado -- y la aserción de ausencia no es
+     * vacía: la sonda positiva de arriba ya comprueba que el helper ve la
+     * declaración `animation:` de verdad.
+     */
+    it.each([["light"], ["dark"]] as const)(
+      "en tema %s el titileo usa la curva de motion.easing.standard, no la palabra clave ease-in-out",
+      async (theme) => {
+        window.localStorage.setItem("vti-theme", theme);
+        const { container } = renderWithProviders(<Footer />);
+
+        await waitFor(() => {
+          expect(findStarsContainer(container)).toBeDefined();
+        });
+
+        const starsContainer = findStarsContainer(container) as HTMLElement;
+        const firstStar = starsContainer.children[0] as HTMLElement;
+        const animacion = cssRuleTextFor(firstStar)
+          .split("\n")
+          .find(
+            (line) =>
+              line.includes("prefers-reduced-motion: no-preference") &&
+              line.includes("animation:"),
+          );
+
+        expect(animacion).toBeDefined();
+        // Contra el token IMPORTADO (regla 38), nunca contra la cadena
+        // `cubic-bezier(...)` escrita a mano en el test.
+        expect(animacion as string).toContain(
+          themes[theme].motion.easing.standard,
+        );
+        expect(animacion as string).not.toContain("ease-in-out");
       },
     );
 

@@ -16,7 +16,29 @@ import { IconMoon, IconSun } from "./ThemeIcons";
 // (sol en claro, luna en oscuro) — lectura directa sin traducción mental,
 // icono = lo que ves ahora, no lo que vas a activar. El aria-label/title
 // siguen describiendo la ACCIÓN (mismas claves i18n
-// Common.ThemeToggle.switchToDark/switchToLight, sin cambio de texto).
+// Common.ThemeToggle.switchToDark/switchToLight).
+//
+// LA ETIQUETA DECLARA LAS DOS COSAS (crítica externa #9, punto 5, evaluador
+// Nielsen H6). El hallazgo: el icono anunciaba el tema ACTUAL y la etiqueta
+// la acción CONTRARIA, así que quien percibía los dos canales a la vez -- un
+// sol y un texto que dice "oscuro" -- recibía dos mensajes que se
+// contradicen, sin nada que dijera cuál de los dos describe el estado y cuál
+// la consecuencia de pulsar. La convención del icono NO se revierte: es una
+// decisión declarada de 2026-07-26, con su motivo escrito, y una crítica que
+// señala una AMBIGÜEDAD no es una medición que tumbe la decisión que la
+// causó. Lo que se corrige es la mitad que sí puede desambiguar sin perder
+// nada: el VALOR de las dos claves pasa de la acción sola ("Cambiar a tema
+// oscuro") a estado + acción ("Tema claro activo: cambiar a tema oscuro").
+// Ahora el icono ilustra la primera mitad de su propia etiqueta en vez de
+// contradecir la segunda, y quien solo oye el nombre accesible se entera
+// además de en qué tema está -- un dato que este control no daba por ningún
+// canal a quien no ve la pantalla.
+//
+// Sin claves nuevas y sin componer frases por concatenación: cada idioma
+// escribe su oración entera en su propio JSON (una concatenación
+// "estado" + ": " + "acción" impondría el orden y la puntuación del español
+// a todos los idiomas futuros). El nombre de las claves sigue siendo el de la
+// ACCIÓN, que es lo que el control hace.
 //
 // D6 (2026-08-04): `onClick` ya NO llama a `toggleTheme` directo -- pasa por
 // `useThemeScrollReset`. HISTORIA: hasta Task 17 (plan premium F1-F5,

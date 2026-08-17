@@ -9,6 +9,7 @@ import styled, {
   useTheme as useStyledTheme,
 } from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
+import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import { SectionBeam } from "@/components/scenes/sectionBeam/SectionBeam";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { Typography } from "@/components/ui/Typography/Typography";
@@ -153,6 +154,24 @@ const starTwinkle = keyframes`
  * En reposo (`reduce`, o antes de que `no-preference` aplique la animación)
  * queda en su opacidad mínima -- el mismo valor que el 0%/100% del propio
  * keyframe -- para no destellar de golpe a opacidad 1.
+ *
+ * CURVA (crítica externa #9, encargo transversal de tokens de movimiento):
+ * hasta hoy el titileo declaraba la palabra clave `ease-in-out`, la única
+ * curva de este fichero que no salía de ningún token -- exactamente lo que
+ * prohíbe la regla 48 de `RULES.md`. Pasa a `motion.easing.standard`
+ * (`cubic-bezier(0.4, 0, 0.2, 1)`), el paso del sistema que ocupa ese rol:
+ * acelera y frena, sin rebote. No es idéntica (`ease-in-out` es simétrica y
+ * `standard` frena más tarde), y esa diferencia es la razón de elegirla
+ * frente a `PRESS.easing`/`REVEAL.easing` (`cubic-bezier(0.23, 1, 0.32, 1)`),
+ * la otra candidata del vocabulario: esa curva es un ease-out fuerte que
+ * llegaría al pico casi de golpe y convertiría el titileo en un parpadeo.
+ *
+ * La interpolación de tema NO reabre el coste medido que documenta el párrafo
+ * anterior: lo que generaba 24 clases era la variación POR INSTANCIA (cinco
+ * props distintas por estrella). El valor de esta curva es el mismo para las
+ * 24, así que styled-components resuelve el mismo texto CSS para todas y sigue
+ * emitiendo UNA sola clase -- la variación por estrella sigue viajando entera
+ * por el atributo `style`, que es la propiedad que este docblock protege.
  */
 const ScStar = styled.div`
   position: absolute;
@@ -166,7 +185,8 @@ const ScStar = styled.div`
   opacity: ${FOOTER_STAR_TWINKLE_MIN_OPACITY};
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: ${starTwinkle} var(--star-duration) ease-in-out var(--star-delay)
+    animation: ${starTwinkle} var(--star-duration)
+      ${({ theme }) => theme.data.motion.easing.standard} var(--star-delay)
       infinite;
   }
 
@@ -470,6 +490,22 @@ export function Footer(): ReactElement {
                   <ScFooterLink
                     key={item.key}
                     href={item.href}
+                    /*
+                     * Foco en el destino (crítica externa #9, punto 1). Hasta
+                     * aquí el pie era la superficie ASIMÉTRICA de las tres que
+                     * consumen `NAV_GROUPS`: `Navbar` y `NavSheet` ya llamaban
+                     * a este mismo helper al activar una fila y el pie no,
+                     * así que el mismo enlace («Historia») dejaba el foco en
+                     * `<body>` según desde dónde se pulsara. Aquí no hay nada
+                     * que cerrar antes (no hay panel ni hoja), así que la
+                     * llamada va sola, sin el par cierre + foco que sí
+                     * necesitan las otras dos.
+                     *
+                     * Solo esta rama: `kind: "external"` sale del documento y
+                     * el helper devolvería `null` de todas formas -- ponerlo
+                     * también allí sería un manejador que no puede hacer nada.
+                     */
+                    onClick={() => focusNavAnchorTarget(item)}
                   >
                     {item.kind === "feature"
                       ? t(`home:Home.features.${item.key}.title`)

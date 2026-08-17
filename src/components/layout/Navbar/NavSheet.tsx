@@ -67,23 +67,36 @@ import { focusNavAnchorTarget } from "./navAnchorFocus";
  * `Navbar.test.tsx`). Los tests afectados se actualizan a esa verdad nueva
  * (regla 40), no se relajan.
  *
- * ## Por qué NO hay bloqueo de scroll (regla 21 de `RULES.md`)
+ * ## Por qué el bloqueo de scroll NO es `overflow: hidden` (regla 21 de
+ * `RULES.md`)
  *
  * El patrón clásico de una hoja o un modal es `overflow: hidden` en
- * `html`/`body` mientras está abierta. Aquí está VETADO: `html`/`body` con
- * `overflow: hidden` obliga al eje contrario a computar `auto`, lo que
- * convierte a `html`/`body` en contenedor de scroll y hace que los cuatro
- * `position: sticky` de las presentaciones (Story, Journey, Features,
- * Contact) se peguen respecto a ESE contenedor en vez de respecto al
+ * `html`/`body` mientras está abierta. ESE patrón está VETADO aquí:
+ * `html`/`body` con `overflow: hidden` obliga al eje contrario a computar
+ * `auto`, lo que convierte a `html`/`body` en contenedor de scroll y hace que
+ * los cuatro `position: sticky` de las presentaciones (Story, Journey,
+ * Features, Contact) se peguen respecto a ESE contenedor en vez de respecto al
  * viewport: el pin de las cuatro secciones se rompería en silencio mientras
  * la hoja estuviera abierta. Es la lección ya pagada que documenta
  * `GlobalStyles.tsx` (`overflow-x: clip`, nunca `hidden`).
  *
- * La sustitución, punto por punto:
- * - `overscroll-behavior: contain` en la hoja: llegar al final de su propia
- *   lista NO encadena el scroll a la página de debajo.
+ * Lo que SÍ hay, desde la crítica externa #9 (punto 4, evaluador Nielsen):
+ * el bloqueo se hace por EVENTO, no por CSS -- `wheel`/`touchmove` con
+ * `preventDefault()` mientras la hoja está abierta, salvo dentro de su propia
+ * capa de scroll (ver el punto 8 del docblock de `useNavSheet`). Un diálogo
+ * `aria-modal` que deja correr el fondo 600 px bajo el dedo no es un diálogo
+ * modal; y esta vía consigue el efecto sin tocar el `overflow` de nadie, así
+ * que ningún `sticky` se entera. Regalo colateral: como la barra de scroll
+ * del documento nunca desaparece, tampoco hay salto de layout que compensar
+ * -- el defecto habitual del bloqueo por `overflow`.
+ *
+ * El resto de la defensa, que ya existía y sigue en pie:
+ * - `overscroll-behavior: contain` en la capa de scroll de la hoja: llegar al
+ *   final de su propia lista NO encadena el scroll a la página de debajo.
  * - Cierre al scrollear la página, con listener PASIVO (ver `useNavSheet`):
- *   si la página se mueve, la hoja deja de tener sentido y se retira sola.
+ *   red de seguridad para los desplazamientos que el bloqueo por evento no
+ *   puede interceptar (teclado, colapso de la barra de direcciones del móvil,
+ *   scroll programático).
  * - El velo captura el puntero mientras está abierta, así que un toque fuera
  *   cierra en vez de activar lo que hubiera debajo.
  */
@@ -495,6 +508,54 @@ const ScSheetScroll = styled.div`
   overscroll-behavior: contain;
 `;
 
+/*
+ * AFORDANCIA DE SCROLL (crítica externa #9, punto 3). El evaluador midió que
+ * a 390x844 la hoja mide 591 px visibles y su contenido 623: el final de la
+ * lista queda fuera, alcanzable con scroll interno pero SIN ninguna señal de
+ * que exista -- la única pista era una fila cortada, que igual de bien podría
+ * ser el borde de la hoja. Este degradado es esa señal: aparece solo cuando
+ * de verdad queda contenido por debajo (`data-sheet-clipped`, calculado en
+ * `NavSheet()` a partir de `scrollTop`/`clientHeight`/`scrollHeight` reales)
+ * y se retira al llegar al final, así que nunca miente.
+ *
+ * Hermano de la capa de scroll, no hijo: dentro de ella se desplazaría con el
+ * contenido y dejaría de marcar el borde -- es el mismo hallazgo que ya pagó
+ * el botón de cierre (ver el docblock de `ScSheetScroll`). `bottom: 0` lo
+ * ancla al filo inferior de `ScNavSheet`, cubriendo también su relleno
+ * inferior: ahí el degradado termina en el color de la propia superficie, así
+ * que ese tramo es invisible por construcción.
+ *
+ * `pointer-events: none` es obligatorio: cubre la última fila de la lista, y
+ * sin él se comería sus toques. Anima SOLO `opacity` (regla 18) con el mismo
+ * tiempo del velo, y el selector de estado es DESCENDIENTE
+ * (`[data-sheet-clipped="true"] &`), no `&[...]`: el atributo vive en el
+ * padre, y las dos formas comparten substring pero describen selectores
+ * distintos (regla 35).
+ */
+const ScSheetFade = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: ${({ theme }) => theme.data.space[6]};
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    ${({ theme }) => theme.data.semantic.surface},
+    transparent
+  );
+  opacity: 0;
+  transition: opacity ${DECK.railDurationMs}ms ${PRESS.easing};
+
+  [data-sheet-clipped="true"] & {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
 /* Asa decorativa: la señal universal de "esto es una hoja que se puede
    retirar". `aria-hidden` y sin texto: no aporta nada a quien no ve la
    pantalla, que ya tiene el disparador con su `aria-expanded`. */
@@ -791,7 +852,11 @@ export interface NavSheetController {
  * Punto por punto:
  *
  * 1. `aria-expanded` en el disparador + `aria-controls` al id real de la
- *    hoja, y la hoja con `aria-labelledby` al id del disparador. IDÉNTICO.
+ *    hoja. IDÉNTICO. DIVERGENCIA DELIBERADA en el sentido contrario del
+ *    vínculo (crítica externa #9, punto 2): el panel de escritorio se nombra
+ *    con `aria-labelledby` al id de su disparador, y la hoja NO -- se nombra
+ *    con su propio `aria-label`. Ver el JSX de `NavSheet()` para el porqué
+ *    medido.
  * 2. La hoja se renderiza SIEMPRE: nunca se desmonta ni usa `display: none`
  *    para abrir/cerrar, sino `visibility` + `inert` + `opacity`/`transform`.
  *    IDÉNTICO (`display: none` solo aparece en el `@media md`, que es otra
@@ -823,8 +888,10 @@ export interface NavSheetController {
  * por scroll del efecto de arriba.
  *
  * 7. Cierre al scrollear la página, con listener PASIVO y tolerancia (ver
- *    `NAV_SHEET_SCROLL_TOLERANCE_PX`). No tiene equivalente en escritorio:
- *    es la contrapartida de no bloquear el scroll (regla 21).
+ *    `NAV_SHEET_SCROLL_TOLERANCE_PX`). No tiene equivalente en escritorio.
+ * 8. El fondo NO se desplaza mientras la hoja está abierta (crítica externa
+ *    #9, punto 4). Tampoco tiene equivalente en escritorio: el panel de
+ *    escritorio no es `aria-modal` y no reclama la página entera.
  */
 export function useNavSheet(): NavSheetController {
   const [isOpen, setIsOpen] = useState(false);
@@ -869,6 +936,69 @@ export function useNavSheet(): NavSheetController {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
+    };
+  }, [isOpen]);
+
+  /*
+   * Punto 8: BLOQUEO DE SCROLL DEL FONDO (crítica externa #9, punto 4,
+   * evaluador Nielsen). El defecto medido: con la hoja abierta (y por tanto
+   * con `aria-modal="true"`), la rueda sobre la cabecera cerraba la hoja Y
+   * arrastraba el fondo 600 px. Las dos mitades están mal. Un diálogo modal
+   * declara que el resto de la página no está disponible; que se desplace
+   * bajo el dedo lo desmiente, y además reubica al lector en otro punto del
+   * documento como efecto colateral de un gesto que no iba dirigido a la
+   * página.
+   *
+   * POR QUÉ POR EVENTO Y NO POR CSS: ver la sección "Por qué el bloqueo de
+   * scroll NO es overflow: hidden" del docblock de cabecera de este fichero.
+   * `overflow: hidden` en `html`/`body` rompería los cuatro `sticky` de las
+   * presentaciones (regla 21, ya pagada); `preventDefault()` sobre los dos
+   * gestos que producen scroll de usuario no toca el layout de nada.
+   *
+   * `{ passive: false }` es OBLIGATORIO y no cosmético: desde hace años los
+   * navegadores registran `wheel`/`touchmove` sobre `document` como PASIVOS
+   * por defecto, y en un listener pasivo `preventDefault()` no hace nada (con
+   * un aviso en consola). Sin ese flag este efecto sería un no-op silencioso.
+   *
+   * La ÚNICA excepción es la propia capa de scroll de la hoja: ahí el gesto
+   * va dirigido a la lista y tiene que seguir funcionando. Se comprueba por
+   * contención de nodos (`[data-nav-sheet-scroll]`), no por coordenadas.
+   * Cualquier otro punto -- velo, cabecera, relleno de la propia hoja -- queda
+   * bloqueado; ninguno de ellos scrollea nada por sí mismo.
+   *
+   * QUÉ HACE AHORA LA RUEDA SOBRE LA CABECERA, decidido y no heredado: nada.
+   * El gesto se bloquea, `window.scrollY` no cambia, y por tanto el cierre por
+   * scroll del efecto de arriba (punto 7) ya no se dispara desde ahí. Es el
+   * comportamiento que prescribe APG para un diálogo modal -- intentar
+   * desplazar el fondo no es una forma de descartarlo; para eso están Escape,
+   * el botón de cierre y el toque fuera, los tres ya implementados. El punto 7
+   * NO se retira: sigue cubriendo los desplazamientos que este bloqueo no
+   * puede ver (teclado, colapso de la barra de direcciones en móvil, scroll
+   * programático), que son justamente aquellos en los que la hoja sí se ha
+   * quedado descolgada de lo que el usuario está mirando.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function blockBackgroundScroll(event: Event): void {
+      if (!event.cancelable) return;
+      if (!(event.target instanceof Node)) return;
+      const areaDeScroll = sheetRef.current?.querySelector(
+        "[data-nav-sheet-scroll]",
+      );
+      if (areaDeScroll?.contains(event.target) === true) return;
+      event.preventDefault();
+    }
+
+    document.addEventListener("wheel", blockBackgroundScroll, {
+      passive: false,
+    });
+    document.addEventListener("touchmove", blockBackgroundScroll, {
+      passive: false,
+    });
+    return () => {
+      document.removeEventListener("wheel", blockBackgroundScroll);
+      document.removeEventListener("touchmove", blockBackgroundScroll);
     };
   }, [isOpen]);
 
@@ -1226,6 +1356,41 @@ function NavSheetGroup({
   );
 }
 
+/**
+ * ORDEN DE LA HOJA (crítica externa #9, punto 3). Medido a 390x844: la hoja
+ * muestra 591 px y su contenido ocupa 623, así que su cola quedaba fuera de la
+ * primera pantalla -- y hasta esta entrega la cola era el SELECTOR DE IDIOMA,
+ * el único control de la hoja, a 91 px por debajo del filo inferior. Un
+ * control indescubrible es un control que no existe para la mayoría.
+ *
+ * El arreglo es de ORDEN, no de tamaño (nada que recortar, ninguna medida que
+ * pelear): los grupos de SALIDA del sitio bajan por debajo del control. Y no
+ * es una lista escrita a mano de "qué grupo va dónde" -- eso se desincronizaría
+ * con `NAV_GROUPS` a la primera --, sino la partición que el propio modelo ya
+ * contiene: un grupo cuyos items son TODOS `kind: "external"` no lleva a
+ * ninguna parte de esta página. El criterio declarado, en una línea: primero
+ * lo que te mantiene en el sitio (secciones y tarjetas), luego los controles
+ * de la página que estás viendo (idioma), y al final las puertas de salida
+ * (SDK, Discord, GitHub, LinkedIn).
+ *
+ * `filter` conserva el orden relativo del array original, así que la
+ * concatenación de las dos mitades reproduce EXACTAMENTE el orden de
+ * `NAV_GROUPS` -- el candado que compara los `href` de la hoja contra el
+ * modelo, en orden, sigue diciendo la verdad sin tocarlo. Lo único que se
+ * mueve es dónde cae el bloque de idioma entre ellos.
+ *
+ * El foco de apertura tampoco cambia: sigue entrando en la primera fila de
+ * navegación real, porque el primer `a, button` del subárbol sigue siendo el
+ * primer enlace de «En el sitio» -- los grupos que se quedan arriba son los de
+ * dentro del sitio, no el control.
+ */
+function isExitGroup(group: NavGroup): boolean {
+  return group.items.every((item) => item.kind === "external");
+}
+
+const IN_SITE_GROUPS = NAV_GROUPS.filter((group) => !isExitGroup(group));
+const EXIT_GROUPS = NAV_GROUPS.filter(isExitGroup);
+
 export interface NavSheetProps {
   readonly isOpen: boolean;
   readonly onNavigate: () => void;
@@ -1239,7 +1404,6 @@ export interface NavSheetProps {
    * en `NavSheetController` para el porqué completo.
    */
   readonly onClose: () => void;
-  readonly triggerId: string;
   readonly sheetId: string;
   readonly sheetRef: RefObject<HTMLDivElement | null>;
 }
@@ -1248,7 +1412,6 @@ export function NavSheet({
   isOpen,
   onNavigate,
   onClose,
-  triggerId,
   sheetId,
   sheetRef,
 }: NavSheetProps): ReactElement {
@@ -1257,6 +1420,57 @@ export function NavSheet({
   // para su propio panel de escritorio (ver `useActiveSection.ts`) -- las
   // dos superficies leen el mismo valor sin duplicar ningún listener.
   const activeSectionKey = useActiveSectionKey();
+
+  /*
+   * ¿Queda contenido por debajo del filo de la hoja? (crítica externa #9,
+   * punto 3.) Es la entrada de `ScSheetFade` -- ver su docblock para el
+   * porqué de la pieza; aquí vive solo la MEDIDA.
+   *
+   * Estado local de este componente, no del controlador (`useNavSheet`): la
+   * hoja es la única que lo consume y `Navbar()` no tiene nada que decidir con
+   * él, así que subirlo obligaría a atravesar dos componentes con una prop que
+   * nadie más usa.
+   *
+   * ORDEN CON EL REINICIO DE `scrollTop`: `useNavSheet` vive en `Navbar()`
+   * (nuestro padre) y sus efectos corren DESPUÉS de los de este componente,
+   * así que la primera medida de cada apertura puede leer todavía el
+   * `scrollTop` de la apertura anterior. No hace falta coordinarlos: al
+   * reponerlo a 0 el navegador emite un `scroll` sobre esa misma capa, que
+   * vuelve a pasar por aquí. Lo peor que puede ocurrir es un fotograma con el
+   * degradado apagado mientras la hoja todavía está entrando en `opacity`.
+   *
+   * El margen de 1 px absorbe los `scrollHeight`/`clientHeight` fraccionarios
+   * que un zoom o un DPR no entero producen: sin él, una hoja ya scrolleada
+   * hasta el final podría quedarse marcando "hay más" para siempre.
+   */
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [clipped, setClipped] = useState(false);
+
+  useEffect(() => {
+    const area = scrollRef.current;
+    if (!isOpen || area === null) {
+      setClipped(false);
+      return;
+    }
+
+    // Relee del ref en vez de cerrar sobre `area`: una declaración de función
+    // es izada, así que TypeScript no conserva dentro de ella el estrechamiento
+    // a no-nulo que hizo la guarda de arriba (verificado: `pnpm typecheck` lo
+    // rechaza). Releer es además lo correcto si el nodo se reemplazara.
+    function update(): void {
+      const zona = scrollRef.current;
+      if (zona === null) return;
+      setClipped(zona.scrollTop + zona.clientHeight < zona.scrollHeight - 1);
+    }
+
+    update();
+    area.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      area.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [isOpen]);
 
   return (
     <>
@@ -1278,15 +1492,36 @@ export function NavSheet({
           cerrada, la hoja sigue en el DOM (se oculta con `visibility` +
           `inert`, no desmontándose), y un `aria-modal="true"` permanente
           afirmaría que hay un modal activo cuando no lo hay. `undefined` no
-          emite el atributo. */}
+          emite el atributo.
+
+          NOMBRE ACCESIBLE PROPIO (crítica externa #9, punto 2; medido sobre
+          el árbol de accesibilidad real por dos evaluadores). Hasta esta
+          entrega la hoja se nombraba con `aria-labelledby={triggerId}`, el
+          patrón que el desplegable de escritorio sí puede usar porque el texto
+          de SU disparador es fijo. Aquí no lo es: el disparador cambia de
+          etiqueta al abrirse (`Common.Nav.openMenu` -> `closeMenu`), así que
+          el diálogo heredaba el nombre «Cerrar el menú de navegación» --
+          justo en el único momento en que se anuncia, y describiendo la
+          acción de un BOTÓN en vez del contenido del DIÁLOGO. Quien lo oye no
+          sabe dónde ha entrado.
+
+          `aria-label` con clave propia, no un `<h2>` visualmente oculto
+          referenciado por `aria-labelledby`: la hoja NO tiene encabezados a
+          propósito (sus cuatro rótulos de grupo son `<p>` atados con
+          `aria-labelledby`, ver `ScSheetGroupTitle`) para no meter títulos en
+          el esquema del documento que solo existirían bajo 768 px, y hay un
+          candado que lo afirma. Un encabezado oculto reabriría eso a cambio de
+          nada: el nombre de un diálogo no necesita ser visible ni ser un
+          encabezado. */}
       <ScNavSheet
         id={sheetId}
         ref={sheetRef}
         role="dialog"
         aria-modal={isOpen ? true : undefined}
-        aria-labelledby={triggerId}
+        aria-label={t("Common.Nav.sheetTitle")}
         data-nav-sheet
         data-open={isOpen}
+        data-sheet-clipped={clipped}
         inert={!isOpen}
       >
         {/* Capa de scroll (Task 35, ver el docblock de ScSheetScroll):
@@ -1294,9 +1529,12 @@ export function NavSheet({
             `overflow-y: auto` del botón de cierre de más abajo -- que
             necesita quedar FUERA de cualquier contenedor que scrollee para
             seguir alcanzable con la lista desplazada. */}
-        <ScSheetScroll data-nav-sheet-scroll>
+        <ScSheetScroll
+          ref={scrollRef}
+          data-nav-sheet-scroll
+        >
           <ScSheetHandle aria-hidden="true" />
-          {NAV_GROUPS.map((group) => (
+          {IN_SITE_GROUPS.map((group) => (
             <NavSheetGroup
               key={group.key}
               group={group}
@@ -1307,14 +1545,32 @@ export function NavSheet({
           {/* El idioma es la pieza que se muda desde la barra (ver el
               docblock de este fichero). Reutiliza `Common.Lang.title`, la
               clave que ya existía para nombrar este control: no se inventa
-              copia nueva. */}
+              copia nueva.
+
+              ENTRE LAS DOS MITADES DE `NAV_GROUPS`, no al final (crítica
+              externa #9, punto 3): ver el docblock de `isExitGroup`, más
+              arriba, para el criterio y para por qué el orden de los enlaces
+              no cambia ni un puesto. */}
           <ScSheetGroup>
             <ScSheetGroupTitle>{t("Common.Lang.title")}</ScSheetGroupTitle>
             <ScSheetLanguage>
               <LanguageSelector />
             </ScSheetLanguage>
           </ScSheetGroup>
+          {EXIT_GROUPS.map((group) => (
+            <NavSheetGroup
+              key={group.key}
+              group={group}
+              onNavigate={onNavigate}
+              activeSectionKey={activeSectionKey}
+            />
+          ))}
         </ScSheetScroll>
+        {/* Afordancia de scroll: hermana de la capa de scroll, nunca hija
+            (ver el docblock de ScSheetFade). `aria-hidden`: lo que anuncia es
+            una propiedad visual del recorte, y quien no ve la pantalla ya
+            recorre la lista entera con el foco. */}
+        <ScSheetFade aria-hidden="true" />
         {/* Task 35: botón de cierre propio, alcanzable por encima del velo
             (ver el docblock de ScSheetCloseSlot). Etiqueta PROPIA
             (`closeSheet`, no `closeMenu`): el disparador de la barra reusa

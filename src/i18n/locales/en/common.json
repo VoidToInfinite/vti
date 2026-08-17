@@ -26,7 +26,8 @@
             "newTab": "opens in a new tab",
             "openMenu": "Open the navigation menu",
             "closeMenu": "Close the navigation menu",
-            "closeSheet": "Close navigation"
+            "closeSheet": "Close navigation",
+            "sheetTitle": "Navigation menu"
         },
         "Lang": {
             "title": "Language",
@@ -48,8 +49,8 @@
             "legalNotice": "Legal Notice"
         },
         "ThemeToggle": {
-            "switchToLight": "Switch to light theme",
-            "switchToDark": "Switch to dark theme"
+            "switchToLight": "Dark theme active: switch to light theme",
+            "switchToDark": "Light theme active: switch to dark theme"
         },
         "SkipLink": {
             "label": "Skip to content"

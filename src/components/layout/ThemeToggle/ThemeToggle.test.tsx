@@ -1,8 +1,22 @@
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition";
+import esCommon from "@/i18n/locales/es/common.json";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { ThemeToggle } from "./ThemeToggle";
+
+/*
+ * Etiquetas esperadas, LEÍDAS DEL MISMO JSON que consume el componente
+ * (crítica externa #9, punto 5). Hasta esa entrega este archivo las escribía
+ * a mano ("Cambiar a tema oscuro"), y ese literal es justo lo que el arreglo
+ * cambia: el valor de las dos claves pasa de la acción sola a estado +
+ * acción, para que la etiqueta deje de contradecir al icono (que muestra el
+ * tema ACTIVO desde 2026-07-26). Con el valor derivado del JSON, el candado
+ * sigue atando QUÉ clave usa cada estado -- que es la propiedad real -- sin
+ * romperse cada vez que alguien reescriba la copia.
+ */
+const ETIQUETA_EN_CLARO = esCommon.Common.ThemeToggle.switchToDark;
+const ETIQUETA_EN_OSCURO = esCommon.Common.ThemeToggle.switchToLight;
 
 /**
  * Hero de prueba minimo (mismo `id="hero"` que busca `willCrossfade` en
@@ -48,7 +62,7 @@ describe("ThemeToggle", () => {
     const { container } = renderWithProviders(<ThemeToggle />);
 
     expect(
-      screen.getByRole("button", { name: "Cambiar a tema oscuro" }),
+      screen.getByRole("button", { name: ETIQUETA_EN_CLARO }),
     ).toBeInTheDocument();
     // El icono de sol es un <circle> + rayos; el de luna es un único <path>.
     expect(container.querySelector("circle")).toBeInTheDocument();
@@ -60,16 +74,61 @@ describe("ThemeToggle", () => {
     const { container } = renderWithProviders(<ThemeToggle />);
 
     expect(
-      screen.getByRole("button", { name: "Cambiar a tema claro" }),
+      screen.getByRole("button", { name: ETIQUETA_EN_OSCURO }),
     ).toBeInTheDocument();
     expect(container.querySelector("path")).toBeInTheDocument();
     expect(container.querySelector("circle")).not.toBeInTheDocument();
   });
 
+  /*
+   * Crítica externa #9, punto 5 (evaluador Nielsen, H6): el icono mostraba el
+   * tema ACTUAL y la etiqueta anunciaba solo la acción CONTRARIA, así que los
+   * dos canales del mismo control se contradecían para quien percibe ambos.
+   *
+   * El arreglo NO revierte la convención del icono (decisión declarada de
+   * 2026-07-26, ver el docblock de `ThemeToggle.tsx`): amplía la etiqueta para
+   * que nombre primero el estado que el icono ilustra y después la acción. Lo
+   * que este candado ata es exactamente eso, y no la copia palabra por
+   * palabra: que el nombre accesible mencione los DOS temas y que el ACTIVO
+   * -- el que dibuja el icono -- aparezca ANTES que el destino.
+   *
+   * Los dos términos van escritos aquí a propósito: son la parte de la copia
+   * de la que depende la propiedad, y no existe ninguna clave i18n de "tema
+   * claro"/"tema oscuro" sueltos de la que derivarlos. Si la copia de es
+   * cambiara de palabras, este test tiene que verse y decidirse, no pasar de
+   * largo.
+   */
+  it.each([
+    ["light", "circle", "claro", "oscuro"],
+    ["dark", "path", "oscuro", "claro"],
+  ] as const)(
+    "en tema %s la etiqueta nombra el tema activo (el que dibuja el icono) antes que el destino",
+    (tema, marcaDelIcono, activo, destino) => {
+      window.localStorage.setItem("vti-theme", tema);
+      const { container } = renderWithProviders(<ThemeToggle />);
+
+      const boton = screen.getByRole("button");
+      const etiqueta = boton.getAttribute("aria-label") ?? "";
+
+      // Sonda del canal visual: el icono montado es el del tema ACTIVO.
+      expect(container.querySelector(marcaDelIcono)).toBeInTheDocument();
+
+      expect(
+        etiqueta.includes(activo),
+        `la etiqueta no nombra el tema activo: el icono (${marcaDelIcono}) dice una cosa y el texto otra`,
+      ).toBe(true);
+      expect(etiqueta.includes(destino)).toBe(true);
+      expect(
+        etiqueta.indexOf(activo),
+        "el estado tiene que leerse antes que la acción: es el orden en que el icono y el texto se perciben",
+      ).toBeLessThan(etiqueta.indexOf(destino));
+    },
+  );
+
   it("el title coincide con el aria-label (mismo texto, misma clave i18n)", () => {
     renderWithProviders(<ThemeToggle />);
-    const boton = screen.getByRole("button", { name: "Cambiar a tema oscuro" });
-    expect(boton).toHaveAttribute("title", "Cambiar a tema oscuro");
+    const boton = screen.getByRole("button", { name: ETIQUETA_EN_CLARO });
+    expect(boton).toHaveAttribute("title", ETIQUETA_EN_CLARO);
   });
 
   it("click dispara toggleTheme: el tema activo cambia y el icono/etiqueta se invierten", () => {
@@ -93,18 +152,18 @@ describe("ThemeToggle", () => {
     try {
       const { container } = renderWithProviders(<ThemeToggle />);
 
-      // Arranca en claro: sol + "Cambiar a tema oscuro".
+      // Arranca en claro: sol + la etiqueta que ofrece pasar a oscuro.
       expect(
-        screen.getByRole("button", { name: "Cambiar a tema oscuro" }),
+        screen.getByRole("button", { name: ETIQUETA_EN_CLARO }),
       ).toBeInTheDocument();
 
       act(() => {
         screen.getByRole("button").click();
       });
 
-      // Tras el click pasa a oscuro: luna + "Cambiar a tema claro".
+      // Tras el click pasa a oscuro: luna + la etiqueta que ofrece volver a claro.
       expect(
-        screen.getByRole("button", { name: "Cambiar a tema claro" }),
+        screen.getByRole("button", { name: ETIQUETA_EN_OSCURO }),
       ).toBeInTheDocument();
       expect(container.querySelector("path")).toBeInTheDocument();
       expect(container.querySelector("circle")).not.toBeInTheDocument();
@@ -149,7 +208,7 @@ describe("ThemeToggle", () => {
     try {
       renderWithProviders(<ThemeToggle />);
       const boton = screen.getByRole("button", {
-        name: "Cambiar a tema oscuro",
+        name: ETIQUETA_EN_CLARO,
       });
       boton.focus();
       expect(boton).toHaveFocus();
@@ -162,13 +221,13 @@ describe("ThemeToggle", () => {
       // El tema cambió de inmediato, en el mismo click -- sin ningún tramo
       // de scroll previo.
       expect(
-        screen.getByRole("button", { name: "Cambiar a tema claro" }),
+        screen.getByRole("button", { name: ETIQUETA_EN_OSCURO }),
       ).toBeInTheDocument();
       expect(scrollToMock).not.toHaveBeenCalled();
       expect(window.scrollY).toBe(5000);
 
       const botonTrasElClick = screen.getByRole("button", {
-        name: "Cambiar a tema claro",
+        name: ETIQUETA_EN_OSCURO,
       });
       expect(botonTrasElClick).not.toBeDisabled();
       expect(botonTrasElClick).toHaveFocus();
@@ -219,7 +278,7 @@ describe("ThemeToggle", () => {
     try {
       renderWithProviders(<ThemeToggle />);
       const boton = screen.getByRole("button", {
-        name: "Cambiar a tema oscuro",
+        name: ETIQUETA_EN_CLARO,
       });
       boton.focus();
       expect(boton).not.toHaveAttribute("aria-busy");
@@ -241,7 +300,7 @@ describe("ThemeToggle", () => {
       // (opacity mínima, IconButton.tsx) acompaña al mismo atributo que lee
       // la CSS -- ninguna prop nueva.
       const botonEnCruce = screen.getByRole("button", {
-        name: "Cambiar a tema claro",
+        name: ETIQUETA_EN_OSCURO,
       });
       expect(botonEnCruce).toHaveAttribute("aria-busy", "true");
       expect(botonEnCruce).not.toBeDisabled();
@@ -253,7 +312,7 @@ describe("ThemeToggle", () => {
       });
 
       const botonAsentado = screen.getByRole("button", {
-        name: "Cambiar a tema claro",
+        name: ETIQUETA_EN_OSCURO,
       });
       expect(botonAsentado).not.toHaveAttribute("aria-busy");
       expect(botonAsentado).not.toBeDisabled();
@@ -283,7 +342,7 @@ describe("ThemeToggle", () => {
     try {
       renderWithProviders(<ThemeToggle />);
       const boton = screen.getByRole("button", {
-        name: "Cambiar a tema oscuro",
+        name: ETIQUETA_EN_CLARO,
       });
 
       act(() => {
@@ -291,7 +350,7 @@ describe("ThemeToggle", () => {
       });
 
       expect(
-        screen.getByRole("button", { name: "Cambiar a tema claro" }),
+        screen.getByRole("button", { name: ETIQUETA_EN_OSCURO }),
       ).not.toHaveAttribute("aria-busy");
     } finally {
       vi.unstubAllGlobals();

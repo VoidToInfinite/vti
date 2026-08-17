@@ -26,7 +26,8 @@
             "newTab": "se abre en una pestaña nueva",
             "openMenu": "Abrir el menú de navegación",
             "closeMenu": "Cerrar el menú de navegación",
-            "closeSheet": "Cerrar navegación"
+            "closeSheet": "Cerrar navegación",
+            "sheetTitle": "Menú de navegación"
         },
         "Lang": {
             "title": "Idioma",
@@ -48,8 +49,8 @@
             "legalNotice": "Aviso legal"
         },
         "ThemeToggle": {
-            "switchToLight": "Cambiar a tema claro",
-            "switchToDark": "Cambiar a tema oscuro"
+            "switchToLight": "Tema oscuro activo: cambiar a tema claro",
+            "switchToDark": "Tema claro activo: cambiar a tema oscuro"
         },
         "SkipLink": {
             "label": "Saltar al contenido"
