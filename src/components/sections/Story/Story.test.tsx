@@ -1579,11 +1579,11 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
    * sin freno. Candado por TEXTO del CSS inyectado (`cssRuleTextFor`), no
    * `getComputedStyle().maxWidth`: la declaracion vive en la clase base, sin
    * ningun `@media` de por medio, asi que jsdom SI la resuelve por CSSOM --
-   * pero se afirma el mismo `theme.data.grid.prose` (65ch) que consume el
+   * pero se afirma el mismo `theme.data.grid.prose` (52ch) que consume el
    * componente, nunca el literal "65ch" a mano, para que un cambio de token
    * no desincronice el test.
    */
-  it("Task 22: el subtitulo y el cuerpo de cada tarjeta de pilar topan su ancho en grid.prose (65ch)", async () => {
+  it("Task 22: el subtitulo y el cuerpo de cada tarjeta de pilar topan su ancho en grid.prose (52ch)", async () => {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(

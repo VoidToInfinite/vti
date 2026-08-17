@@ -108,7 +108,10 @@ describe("system tokens", () => {
       const expectedGrid = {
         containerMax: "1200px",
         navMax: "1280px",
-        prose: "65ch",
+        // 52ch, no 65ch: la promesa del token son ~65 CARACTERES reales, y
+        // con Hanken Grotesk cada `ch` da 1,259 de ellos -- ver el candado
+        // "prose limita a 52ch...", mas abajo, y el docblock de grid.ts.
+        prose: "52ch",
         proseTight: "34ch",
         columns: 12,
         gutter: "1.5rem",
@@ -126,8 +129,34 @@ describe("system tokens", () => {
       expect(px(grid.navMax)).toBeGreaterThan(px(grid.containerMax));
     });
 
-    it("prose limita a 65ch", () => {
-      expect(grid.prose).toBe("65ch");
+    /*
+     * Candado doble: VALOR + INTENCION.
+     *
+     * La intencion documentada de `prose` son ~65 CARACTERES reales por linea
+     * (rango de legibilidad 60-75, DESIGN.md 3.4) -- no "65ch". La unidad `ch`
+     * mide el ancho de avance del glifo "0", y con Hanken Grotesk el caracter
+     * medio del copy real es mas estrecho que ese cero: 1,259 caracteres
+     * reales por `ch`, medido en navegador real (critica externa #8,
+     * 2026-08-17, dos evaluadores independientes). Con "65ch" el sitio
+     * entregaba 81,8 caracteres por linea; 65 / 1,259 = 51,6ch -> 52ch.
+     *
+     * La segunda mitad del test es la que ata la INTENCION y no el literal:
+     * si alguien "corrige" el token de vuelta a 65ch (o lo pasa de largo en
+     * cualquier otro sentido), el rango de caracteres reales cae en rojo
+     * aunque el literal esperado se haya actualizado a la vez. El ratio se
+     * escribe aqui como constante con nombre porque es una propiedad MEDIDA
+     * de la tipografia, no un token del repo: si `type.fontBody` cambia, hay
+     * que volver a medirlo en un navegador (jsdom no hace layout) y
+     * actualizar los dos sitios -- este y el docblock de grid.ts.
+     */
+    it("prose limita a 52ch, la medida que entrega ~65 caracteres reales", () => {
+      expect(grid.prose).toBe("52ch");
+
+      const CARACTERES_REALES_POR_CH = 1.259;
+      const ch = (v: string): number => Number(v.replace("ch", ""));
+      const caracteresReales = ch(grid.prose) * CARACTERES_REALES_POR_CH;
+      expect(caracteresReales).toBeGreaterThanOrEqual(60);
+      expect(caracteresReales).toBeLessThanOrEqual(75);
     });
 
     it("proseTight es una medida mas corta que prose", () => {

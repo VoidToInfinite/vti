@@ -11,7 +11,8 @@ import { PRESS } from "@/motion/vocabulary";
  * dos temas: ninguna pieza fija un fondo oscuro/claro propio, todas heredan
  * de `semantic.*`, que ya resuelve contra el tema activo.
  *
- * Ancho de lectura: `theme.data.grid.prose` (65ch, D21/§3 spec) en el
+ * Ancho de lectura: `theme.data.grid.prose` (52ch desde 2026-08-17, ~65
+ * caracteres reales; D21/§3 spec) en el
  * artículo entero, no solo en los párrafos -- así el índice y las cabeceras
  * de sección respetan la misma medida de lectura que el propio texto.
  */

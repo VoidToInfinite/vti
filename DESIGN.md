@@ -125,7 +125,7 @@ Un segundo nivel de tamaños vive fuera de `type.ts`, por escena, y no pasa por 
 
 - `text-wrap: balance` en `h1`-`h3`/`display`; `balance` + `text-wrap-style` en cuerpos.
 - `hyphens: auto` global, con `manual` en la marca.
-- Medida de línea: `65ch` (`grid.prose`) para cuerpo largo, `34ch` (`grid.proseTight`) para subtítulos — a los 65ch de `prose` y 24px, el subtítulo del hero sería una única línea interminable, lo contrario de un subtítulo.
+- Medida de línea: `52ch` (`grid.prose`) para cuerpo largo. El objetivo siempre fue 60-75 **caracteres** por línea; el valor histórico `65ch` estaba en la unidad equivocada — la unidad `ch` es el ancho del glifo «0», y Hanken Grotesk rinde 1,259 caracteres por ch (medido, crítica externa #8, 2026-08-17), así que 65ch entregaban 79-82 caracteres reales. 52 × 1,259 ≈ 65,5 caracteres, dentro del objetivo. `grid.proseTight` (34ch) existe pero hoy no tiene ningún consumidor: el subtítulo del hero declara su propio literal (`Hero.tsx`, `70ch`).
 
 ### 3.5 Gotcha: `forwardedAs`
 
@@ -294,7 +294,7 @@ Prioridad tal y como la dejó la auditoría A2 (Opus, 2026-08-08), sin editorial
 - Tres andamiajes de numeración de pilares/badges conviviendo sin unificar.
 - `height: 200px` fijo en una figura de Journey (candidato a `min-height`).
 - Uso desigual de la escala de elevación tras el commit `7a2d2ac`.
-- **Deck de Story a 59,8ch, 0,2ch por debajo del suelo de 60ch (Task 22, plan premium F1-F5, 2026-08-12).** `ScDeckPillarSubtitle`/`ScDeckPillarBody` topan en `theme.data.grid.prose` (65ch) pero el propio contenedor real (columna de texto del deck) limita el ancho renderizado a 59,8ch a 1280px — por debajo del suelo de legibilidad 60-75ch que pedía el encargo. El propio informe de la tarea lo declaró: "limitado por el contenedor real... por debajo del cap de 65ch", no por el token (`task-22-report.md` §2). Diferencia mínima (0,2ch) y no bloqueante — documentado para que no se lea como un olvido si una auditoría futura lo mide.
+- **Deck de Story: la deuda «59,8ch bajo el suelo de 60ch» quedó DISUELTA el 2026-08-17 al corregir la unidad de `grid.prose`.** La entrada original (Task 22, 2026-08-12) contaba el suelo de legibilidad en `ch` cuando la regla tipográfica se cuenta en **caracteres** — el mismo error de unidad que inflaba `grid.prose` (ver §3.4): 59,8ch de Hanken Grotesk son ~75 caracteres reales, que ya estaba DENTRO del rango 60-75, no debajo. Con `prose` en 52ch el token pasa a ser el límite efectivo del deck (~65,5 caracteres). Pendiente solo el juicio a ojo del reflow (ítem 60 de `PRE-LAUNCH-QA.md`, reescrito con esta misma corrección).
 
 **Pendiente de ojo humano (cambios de `7a2d2ac` sin test que los cubra):**
 

@@ -34,7 +34,8 @@ import { Typography } from "@/components/ui/Typography/Typography";
  * no un numero inventado aqui.
  *
  * `max-width: theme.data.grid.prose` + `margin-inline: auto`: el mismo
- * ancho de lectura que ya usa `ScMain` de `legalPage.parts.tsx` (65ch,
+ * ancho de lectura que ya usa `ScMain` de `legalPage.parts.tsx` (52ch
+ * desde 2026-08-17, ~65 caracteres reales;
  * D21/§3 de la spec legal) -- esta pagina no es un articulo largo, pero
  * reutiliza la misma medida del sistema en vez de inventar una tercera, y
  * centra el bloque en vez de dejarlo pegado al borde izquierdo del

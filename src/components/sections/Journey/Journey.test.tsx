@@ -713,10 +713,10 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
    * copy mas largo se extenderia sin freno. Candado por TEXTO del CSS
    * inyectado (`cssRuleTextFor`): la declaracion vive en la clase base, sin
    * ningun `@media` de por medio, asi que jsdom SI la resuelve por CSSOM --
-   * pero se afirma el mismo `themes.dark.grid.prose` (65ch) que consume el
+   * pero se afirma el mismo `themes.dark.grid.prose` (52ch) que consume el
    * componente, nunca el literal "65ch" a mano.
    */
-  it("Task 22: el subtitulo de cada paso topa su ancho en grid.prose (65ch)", async () => {
+  it("Task 22: el subtitulo de cada paso topa su ancho en grid.prose (52ch)", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
