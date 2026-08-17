@@ -303,7 +303,10 @@ export const CONTACT_TOP_GLOW_HEIGHT = "140px";
 export const CONTACT_TOP_GLOW_BLUR = "24px";
 
 /** Duración de `glowPulse` (mockup L28/L52: `animation:glowPulse 7s
- *  ease-in-out infinite`). Infinita — se declara solo bajo
+ *  ease-in-out infinite`; de esa declaración se toma la DURACIÓN, no la
+ *  curva — desde la crítica externa #9, 2026-08-17, `Contact.tsx` resuelve
+ *  la curva contra `motion.easing.standard`, ver su comentario in situ).
+ *  Infinita — se declara solo bajo
  *  `prefers-reduced-motion: no-preference` en `Contact.tsx`, con su propio
  *  `animation: none` explícito en el bloque `reduce` (mismo criterio D8 que
  *  `sectionBeam.layers.ts`). */

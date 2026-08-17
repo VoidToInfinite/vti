@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
+/* Render de SERVIDOR, solo para el candado del `<noscript>`: React trata los
+   hijos de esa etiqueta como contenido de texto, así que un render de cliente
+   los deja fuera del DOM -- ver el helper `markupDeServidor` en el describe de
+   la crítica externa #9. */
+import { renderToStaticMarkup } from "react-dom/server";
+import { I18nextProvider } from "react-i18next";
 import {
   renderWithProviders,
   screen,
@@ -7,8 +13,11 @@ import {
   within,
   fireEvent,
 } from "@/test/test-utils";
+import { ThemeProvider } from "@/theme/ThemeProvider";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
+import esCommon from "@/i18n/locales/es/common.json";
+import enCommon from "@/i18n/locales/en/common.json";
 import i18n from "@/i18n/config";
 import { links } from "@/config/links";
 import { AMBIENT, PRESS, REVEAL } from "@/motion/vocabulary";
@@ -21,6 +30,7 @@ import {
   CONTACT_FORM_BG,
   CONTACT_OVERLAY_RISE,
   CONTACT_PANEL_BG_LIGHT,
+  CONTACT_TOP_GLOW_PULSE_MS,
 } from "./contact.layers";
 import {
   CONTACT_GUARDIAN_LAYERS,
@@ -1554,13 +1564,32 @@ describe("Contact en tema oscuro", () => {
  * `bg`, no contra `surfaceSunken`, que es el fondo que aplica aqui).
  */
 describe("Contact: Task 3, mensaje de error del boton Copiar (contraste AA)", () => {
-  it("semantic.error sobre semantic.surfaceSunken (fondo real de ScFallbackPanel, tema oscuro) cumple AA texto normal (4.5:1)", () => {
-    const { semantic } = themes.dark;
-    const ratio = contrastRatio(semantic.error, semantic.surfaceSunken);
+  /*
+   * ACTUALIZADO por la critica externa #9 (2026-08-17): este mensaje ya no
+   * pinta `semantic.error` suelto sino el color que resuelve por rama
+   * `fieldErrorColor` (`Contact.tsx`) -- `error[300]` en oscuro, porque el
+   * OTRO mensaje de error del mismo formulario (el de campo, sobre el panel
+   * translucido de `ScForm`) no llegaba a AA con `semantic.error`. Aqui el
+   * fondo es distinto (`surfaceSunken`) y `semantic.error` ya libraba AA con
+   * 5.56:1, asi que se sigue midiendo esa cifra -- como control de que el
+   * cambio no era NECESARIO en esta pieza -- y ademas la del color que se
+   * pinta hoy de verdad, que sobre un fondo casi negro solo puede ser mayor.
+   */
+  it("el color que se pinta hoy, y el semantic.error que pintaba antes, cumplen los dos AA sobre semantic.surfaceSunken (fondo real de ScFallbackPanel, tema oscuro)", () => {
+    const { semantic, palette } = themes.dark;
+
+    const anterior = contrastRatio(semantic.error, semantic.surfaceSunken);
     expect(
-      ratio,
-      `contraste ${ratio.toFixed(2)}:1, por debajo de AA (4.5:1)`,
+      anterior,
+      `contraste ${anterior.toFixed(2)}:1, por debajo de AA (4.5:1)`,
     ).toBeGreaterThanOrEqual(4.5);
+
+    const actual = contrastRatio(palette.error[300], semantic.surfaceSunken);
+    expect(
+      actual,
+      `contraste ${actual.toFixed(2)}:1, por debajo de AA (4.5:1)`,
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(actual).toBeGreaterThan(anterior);
   });
 });
 
@@ -2531,6 +2560,505 @@ describe("Contact: critica #8, el mensaje viaja en el mailto y la validacion pro
         "placeholder",
         esHome.Home.contact.form.messagePlaceholder,
       );
+    });
+  });
+});
+
+/*
+ * CRITICA EXTERNA #9 (Nielsen + craft, 2026-08-17). Siete hallazgos sobre esta
+ * seccion, todos con su candado aqui:
+ *
+ * P1 -- sin JavaScript el formulario destruia el mensaje en silencio (envio
+ *       nativo sin `name`, sin `<noscript>` en todo el documento).
+ * P2 -- el foco no viajaba al primer campo invalido tras un envio fallido.
+ * P2 -- los mensajes de error median 12px (`caption`).
+ * P2 -- `aria-describedby` SUSTITUIA la ayuda por el error en vez de sumarlos.
+ * P2 -- 3 de los 16 enlaces a pestaña nueva del sitio (los de esta seccion) no
+ *       llevaban el aviso que los otros 13 si.
+ * Craft -- la entradilla se leia a 82,6 caracteres por linea (sin tope).
+ * Craft -- dos animaciones declaraban `ease-in-out`, una curva fuera de token.
+ */
+describe("Contact: critica externa #9", () => {
+  /**
+   * Render de SERVIDOR, con los mismos proveedores reales que
+   * `renderWithProviders`. Es la unica via que puede ver el contenido de un
+   * `<noscript>`: React trata sus hijos como contenido de TEXTO
+   * (`shouldSetTextContent` devuelve `true` para esa etiqueta), asi que un
+   * render de cliente -- el de Testing Library -- deja el `<noscript>` VACIO.
+   * Verificado con un render de cliente aislado antes de escribir esto:
+   * `outerHTML` = `<noscript></noscript>`, 0 hijos. Lo que este helper produce
+   * es exactamente el camino que genera el HTML del export estatico, que es el
+   * unico que un visitante sin JavaScript llega a ver.
+   */
+  function markupDeServidor(): string {
+    return renderToStaticMarkup(
+      <I18nextProvider i18n={i18n}>
+        <ThemeProvider>
+          <Contact />
+        </ThemeProvider>
+      </I18nextProvider>,
+    );
+  }
+
+  describe("P1: salida real sin JavaScript", () => {
+    it("el HTML horneado lleva un <noscript> dentro del formulario con el aviso y el mailto real de src/config", () => {
+      const markup = markupDeServidor();
+
+      const noscript = markup.match(/<noscript>([\s\S]*?)<\/noscript>/);
+      expect(noscript, "no hay ningun <noscript> en el markup").not.toBeNull();
+
+      const dentro = noscript?.[1] ?? "";
+      expect(dentro).toContain(esHome.Home.contact.form.noscript);
+      // La direccion NO se escribe a mano en el componente: sale de
+      // `links.email`, y el texto visible deriva de el.
+      expect(dentro).toContain(`href="${links.email}"`);
+      expect(dentro).toContain(links.email.replace(/^mailto:/, ""));
+
+      // Y vive DENTRO del formulario, no suelto al final de la seccion: es
+      // ahi donde esta quien acaba de escribir y va a pulsar el boton.
+      const form = markup.match(/<form[\s\S]*?<\/form>/)?.[0] ?? "";
+      expect(form).toContain("<noscript>");
+    });
+
+    it("en ingles el aviso sale en ingles (paridad es/en con texto propio de cada idioma)", async () => {
+      await act(async () => {
+        await i18n.changeLanguage("en");
+      });
+      try {
+        expect(markupDeServidor()).toContain(enHome.Home.contact.form.noscript);
+        expect(enHome.Home.contact.form.noscript).not.toBe(
+          esHome.Home.contact.form.noscript,
+        );
+      } finally {
+        await act(async () => {
+          await i18n.changeLanguage("es");
+        });
+      }
+    });
+
+    it("los dos campos declaran name: sin el, un envio nativo recarga con la query VACIA y lo escrito se pierde", () => {
+      renderWithProviders(<Contact />);
+
+      expect(
+        screen.getByLabelText(esHome.Home.contact.form.label),
+      ).toHaveAttribute("name", "email");
+      expect(
+        screen.getByLabelText(esHome.Home.contact.form.messageLabel),
+      ).toHaveAttribute("name", "message");
+    });
+
+    it("el form NO declara action ni method: la decision es GET al propio documento, no un mailto: como action", () => {
+      /*
+       * Candado de la DECISION documentada en el docblock de `handleSubmit`:
+       * con `action="mailto:..."` el algoritmo de envio de formularios
+       * SUSTITUYE la query del mailto por los datos del formulario, asi que
+       * los campos solo llegarian al cliente de correo si se llamaran como
+       * los parametros de mailto (`subject`, `body`), y el visitante sin JS
+       * veria abrirse un correo vacio -- peor que no abrir nada. Si alguien
+       * lo reintroduce, este test lo dice.
+       */
+      const { container } = renderWithProviders(<Contact />);
+      const form = container.querySelector("form") as HTMLFormElement;
+
+      expect(form).not.toHaveAttribute("action");
+      expect(form).not.toHaveAttribute("method");
+      // La otra mitad de la decision sigue en pie: la validacion propia es la
+      // unica que se ve, asi que `noValidate` no se retira.
+      expect(form.noValidate).toBe(true);
+    });
+  });
+
+  describe("P2: el foco viaja al primer campo invalido", () => {
+    function submitCon(email: string, mensaje: string): void {
+      const { container } = renderWithProviders(<Contact />);
+      const form = container.querySelector("form") as HTMLFormElement;
+      if (email) {
+        fireEvent.change(
+          screen.getByLabelText(esHome.Home.contact.form.label),
+          { target: { value: email } },
+        );
+      }
+      if (mensaje) escribirMensaje(mensaje);
+      fireEvent.submit(form);
+    }
+
+    it("con el correo invalido, el foco va al correo (primero en orden del DOM), no al boton de envio", () => {
+      submitCon("no-es-un-correo", MENSAJE_VALIDO);
+
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      expect(document.activeElement).toBe(input);
+      // Sonda del defecto original: el foco se quedaba en el disparador.
+      expect(document.activeElement).not.toBe(
+        screen.getByRole("button", {
+          name: esHome.Home.contact.form.submitAria,
+        }),
+      );
+    });
+
+    it("con el correo valido y el mensaje vacio, el foco va al MENSAJE: es el primer invalido que queda", () => {
+      submitCon("visitante@test.com", "");
+
+      expect(document.activeElement).toBe(
+        screen.getByLabelText(esHome.Home.contact.form.messageLabel),
+      );
+    });
+
+    it("con los DOS invalidos, el foco va al correo y los DOS errores siguen pintados a la vez", () => {
+      submitCon("", "");
+
+      expect(document.activeElement).toBe(
+        screen.getByLabelText(esHome.Home.contact.form.label),
+      );
+      const anunciados = screen
+        .getAllByRole("status")
+        .map((nodo) => nodo.textContent);
+      expect(anunciados).toContain(esHome.Home.contact.form.emailError);
+      expect(anunciados).toContain(esHome.Home.contact.form.messageError);
+    });
+  });
+
+  describe("P2: aria-describedby SUMA el error a la ayuda, no la sustituye", () => {
+    it("sin error, el campo describe solo la ayuda -- y la ayuda existe de verdad en el DOM", () => {
+      renderWithProviders(<Contact />);
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+
+      expect(input).toHaveAttribute("aria-describedby", "contact-email-help");
+      expect(document.getElementById("contact-email-help")).toHaveTextContent(
+        esHome.Home.contact.form.help,
+      );
+    });
+
+    it("con error, describe los DOS: el error PRIMERO y la ayuda DESPUES, y los dos nodos existen", () => {
+      const { container } = renderWithProviders(<Contact />);
+      escribirMensaje();
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "no-es-un-correo" },
+      });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      expect(input).toHaveAttribute(
+        "aria-describedby",
+        "contact-email-error contact-email-help",
+      );
+      // Un describedby que apunta a un id inexistente no describe nada: los
+      // DOS destinos tienen que estar montados a la vez, que es exactamente
+      // lo que el `message = error ?? help` de `Field` impedia.
+      expect(document.getElementById("contact-email-error")).toHaveTextContent(
+        esHome.Home.contact.form.emailError,
+      );
+      expect(document.getElementById("contact-email-help")).toHaveTextContent(
+        esHome.Home.contact.form.help,
+      );
+    });
+
+    it("el campo de mensaje describe su error con el id que declara, y aria-invalid sigue atado al mismo estado", () => {
+      const { container } = renderWithProviders(<Contact />);
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "visitante@test.com" },
+      });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      const textarea = screen.getByLabelText(
+        esHome.Home.contact.form.messageLabel,
+      );
+      expect(textarea).toHaveAttribute(
+        "aria-describedby",
+        "contact-message-error",
+      );
+      expect(textarea).toHaveAttribute("aria-invalid", "true");
+      expect(
+        document.getElementById("contact-message-error"),
+      ).toHaveTextContent(esHome.Home.contact.form.messageError);
+    });
+  });
+
+  describe("P2: los mensajes del formulario dejan de medir 12px", () => {
+    it("el error de campo y la ayuda resuelven type.scale.bodySm, no caption", () => {
+      const { container } = renderWithProviders(<Contact />);
+      escribirMensaje();
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "no-es-un-correo" },
+      });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      const error = document.getElementById(
+        "contact-email-error",
+      ) as HTMLElement;
+      const ayuda = document.getElementById(
+        "contact-email-help",
+      ) as HTMLElement;
+
+      [error, ayuda].forEach((nodo) => {
+        const css = cssRuleTextFor(nodo);
+        expect(css).toContain(
+          `font-size: ${themes.light.type.scale.bodySm.size}`,
+        );
+        // Falsable de verdad: los dos peldaños son valores DISTINTOS
+        // (0.875rem vs 0.75rem), asi que revertir al viejo pone esto en rojo.
+        expect(css).not.toContain(
+          `font-size: ${themes.light.type.scale.caption.size}`,
+        );
+      });
+    });
+
+    it("el mensaje de fallo del boton Copiar sube al mismo peldaño (un solo tamaño de error por formulario)", async () => {
+      const originalLocation = window.location;
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { ...originalLocation, assign: vi.fn() },
+      });
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: undefined,
+      });
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        fireEvent.change(
+          screen.getByLabelText(esHome.Home.contact.form.label),
+          { target: { value: "visitante@test.com" } },
+        );
+        escribirMensaje();
+        fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole("button", {
+              name: esHome.Home.contact.form.copyAddress,
+            }),
+          );
+        });
+
+        const css = cssRuleTextFor(
+          screen.getByText(esHome.Home.contact.form.copyError),
+        );
+        expect(css).toContain(
+          `font-size: ${themes.light.type.scale.bodySm.size}`,
+        );
+        expect(css).not.toContain(
+          `font-size: ${themes.light.type.scale.caption.size}`,
+        );
+      } finally {
+        Object.defineProperty(window, "location", {
+          configurable: true,
+          value: originalLocation,
+        });
+      }
+    });
+
+    /*
+     * El TAMAÑO sube y, midiendolo, aparecio ademas un fallo de CONTRASTE
+     * preexistente: `semantic.error` en oscuro (`error[500]`) da 3.65:1 sobre
+     * el panel real de este formulario -- por debajo de AA. Se resuelve POR
+     * RAMA dentro de la seccion (`fieldErrorColor`, `Contact.tsx`), mismo
+     * precedente que `channelAccent` aqui mismo y que las Tasks 26/33. La
+     * causa raiz (el rol `semanticDark.error`) vive en `theme/`, fuera de la
+     * particion de esta entrega, y queda declarada en el docblock de esa
+     * funcion.
+     *
+     * Fondos REALES: en claro, el panel es blanco al 82%
+     * (CONTACT_PANEL_BG_LIGHT) compuesto sobre las tres paradas de
+     * CONTACT_CARD_GRADIENT; en oscuro, CONTACT_FORM_BG (blanco al 4%) sobre
+     * el void de la escena.
+     */
+    function ratioSobrePanelClaro(color: string, parada: string): number {
+      const alfa = Number(
+        CONTACT_PANEL_BG_LIGHT.match(/([\d.]+)\)$/)?.[1] ?? "0",
+      );
+      const lPanel = alfa + (1 - alfa) * relativeLuminanceHex(parada);
+      const lTexto = relativeLuminance(color);
+      return (
+        (Math.max(lTexto, lPanel) + 0.05) / (Math.min(lTexto, lPanel) + 0.05)
+      );
+    }
+
+    function ratioSobrePanelOscuro(color: string): number {
+      const alfa = Number(CONTACT_FORM_BG.match(/([\d.]+)\)$/)?.[1] ?? "0");
+      const lPanel =
+        alfa + (1 - alfa) * relativeLuminanceHex(CONTACT_GUARDIAN_VOID);
+      const lTexto = relativeLuminance(color);
+      return (
+        (Math.max(lTexto, lPanel) + 0.05) / (Math.min(lTexto, lPanel) + 0.05)
+      );
+    }
+
+    it("el error y la ayuda libran AA sobre el fondo REAL del panel del formulario en las dos ramas", () => {
+      ["#EFF4FC", "#F5F2FB", "#F9F0F7"].forEach((parada) => {
+        const error = ratioSobrePanelClaro(themes.light.semantic.error, parada);
+        const ayuda = ratioSobrePanelClaro(
+          themes.light.semantic.textSubtle,
+          parada,
+        );
+        expect(
+          error,
+          `error claro sobre ${parada}: ${error.toFixed(2)}:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          ayuda,
+          `ayuda clara sobre ${parada}: ${ayuda.toFixed(2)}:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      });
+
+      const errorOscuro = ratioSobrePanelOscuro(themes.dark.palette.error[300]);
+      const ayudaOscura = ratioSobrePanelOscuro(
+        themes.dark.semantic.textSubtle,
+      );
+      expect(
+        errorOscuro,
+        `error oscuro sobre el panel de la escena: ${errorOscuro.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        ayudaOscura,
+        `ayuda oscura sobre el panel de la escena: ${ayudaOscura.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it("candado de la DECISION: en oscuro, semantic.error NO habria llegado a AA sobre ese panel (ni el paso siguiente)", () => {
+      /*
+       * Mismo patron que "el acento oscuro NO se cuela en la rama clara": mide
+       * el paso que se DESCARTO y comprueba con la cifra delante que habria
+       * sido insuficiente. Si alguien "simplifica" `fieldErrorColor` a un solo
+       * rol compartido, este test lo dice.
+       */
+      const conRol = ratioSobrePanelOscuro(themes.dark.semantic.error);
+      const conPaso400 = ratioSobrePanelOscuro(themes.dark.palette.error[400]);
+      expect(
+        conRol,
+        `semantic.error en oscuro: ${conRol.toFixed(2)}:1`,
+      ).toBeLessThan(4.5);
+      expect(
+        conPaso400,
+        `error[400] en oscuro: ${conPaso400.toFixed(2)}:1`,
+      ).toBeLessThan(4.5);
+    });
+
+    it("el mensaje RENDERIZADO resuelve ese color por rama, no el rol generico", async () => {
+      // Rama clara: el rol se conserva (ya libraba AA).
+      const { container, unmount } = renderWithProviders(<Contact />);
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+      expect(
+        cssRuleTextFor(
+          document.getElementById("contact-email-error") as HTMLElement,
+        ),
+      ).toContain(`color: ${themes.light.semantic.error}`);
+      unmount();
+
+      // Rama oscura: el paso claro de la rampa, no `semantic.error`.
+      window.localStorage.setItem("vti-theme", "dark");
+      try {
+        const oscuro = renderWithProviders(<Contact />);
+        await waitFor(() => {
+          expect(
+            oscuro.container.querySelectorAll("img").length,
+          ).toBeGreaterThan(0);
+        });
+        fireEvent.submit(
+          oscuro.container.querySelector("form") as HTMLFormElement,
+        );
+        const css = cssRuleTextFor(
+          document.getElementById("contact-email-error") as HTMLElement,
+        );
+        expect(css).toContain(`color: ${themes.dark.palette.error[300]}`);
+        expect(css).not.toContain(`color: ${themes.dark.semantic.error}`);
+      } finally {
+        window.localStorage.clear();
+      }
+    });
+  });
+
+  describe("P2: los 3 enlaces a pestaña nueva avisan como los otros 13 del sitio", () => {
+    it("cada tarjeta de canal lleva el aviso de Common.Nav.newTab y este forma parte de su nombre accesible", () => {
+      const { container } = renderWithProviders(<Contact />);
+
+      [links.discord, links.github, links.linkedin].forEach((href) => {
+        const enlace = container.querySelector(
+          `a[href="${href}"]`,
+        ) as HTMLAnchorElement;
+        expect(enlace, `falta el enlace a ${href}`).toBeInTheDocument();
+        // Presencia del nodo...
+        expect(
+          within(enlace).getByText(esCommon.Common.Nav.newTab),
+        ).toBeInTheDocument();
+        // ...y que de verdad se ANUNCIE: el aviso cierra el nombre accesible.
+        expect(enlace).toHaveAccessibleName(
+          new RegExp(`${esCommon.Common.Nav.newTab}$`),
+        );
+      });
+    });
+
+    it("el aviso sale del namespace common (el mismo que usan Navbar/Footer/Story), no de una clave propia de la seccion", async () => {
+      await act(async () => {
+        await i18n.changeLanguage("en");
+      });
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        const enlace = container.querySelector(
+          `a[href="${links.discord}"]`,
+        ) as HTMLAnchorElement;
+        expect(
+          within(enlace).getByText(enCommon.Common.Nav.newTab),
+        ).toBeInTheDocument();
+      } finally {
+        await act(async () => {
+          await i18n.changeLanguage("es");
+        });
+      }
+    });
+  });
+
+  describe("craft: medida de linea y curvas de movimiento", () => {
+    it("la entradilla topa su medida con grid.prose, no con el ancho de la columna", () => {
+      renderWithProviders(<Contact />);
+      const parrafo = screen.getByText(esHome.Home.contact.body, {
+        exact: false,
+      });
+      const css = cssRuleTextFor(parrafo);
+
+      expect(css).toContain(`max-width: ${themes.light.grid.prose}`);
+    });
+
+    it("la flotacion de la figura resuelve motion.easing.standard, ya no la palabra clave ease-in-out", () => {
+      renderWithProviders(<Contact />);
+      const figura = screen.getByAltText(esHome.Home.contact.figureAlt);
+      const css = cssRuleTextFor(figura);
+
+      expect(css).toContain(themes.light.motion.easing.standard);
+      // Falsable: la palabra clave y la curva del token son cadenas
+      // DISTINTAS, asi que revertir la migracion pone esto en rojo.
+      expect(css).not.toContain("ease-in-out");
+    });
+
+    it("el halo superior de la rama oscura hace la misma migracion de curva", async () => {
+      window.localStorage.setItem("vti-theme", "dark");
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        await waitFor(() => {
+          expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+        });
+
+        /*
+         * El nombre del `keyframes` es un hash generado, no la cadena
+         * `glowPulse`, asi que la regla se localiza por su DURACION -- 7000ms,
+         * `CONTACT_TOP_GLOW_PULSE_MS`, unica en el fichero.
+         */
+        const css = Array.from(document.styleSheets)
+          .flatMap((sheet) => {
+            try {
+              return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+            } catch {
+              return [];
+            }
+          })
+          .filter((text) => text.includes(`${CONTACT_TOP_GLOW_PULSE_MS}ms`))
+          .join("\n");
+
+        expect(css, "no hay ninguna regla con la duracion del halo").not.toBe(
+          "",
+        );
+        expect(css).toContain(themes.dark.motion.easing.standard);
+        expect(css).not.toContain("ease-in-out");
+      } finally {
+        window.localStorage.clear();
+      }
     });
   });
 });

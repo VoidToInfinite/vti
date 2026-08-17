@@ -6,6 +6,7 @@ import styled, { css, keyframes } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { Field, Input } from "@/components/ui/Input/Input";
 import { Button } from "@/components/ui/Button/Button";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { AMBIENT, PRESS, REVEAL } from "@/motion/vocabulary";
@@ -375,8 +376,23 @@ const ScAccent = styled.span`
    bloque se hubiera quedado en pretty, este parrafo -- y solo este -- habria
    seguido con el reparto antiguo mientras el resto de la pagina cambiaba, un
    fallo silencioso sin ningun error que lo delate. */
+/*
+   MEDIDA DE LINEA (critica externa #9, 2026-08-17): este parrafo se media a
+   82,6 caracteres por linea en la rama CLARA -- fuera del rango 60-75 que el
+   sistema persigue (DESIGN.md 3.4). La causa era la ausencia de tope: dentro
+   de ScLeft, la columna izquierda de la tarjeta mide ~660px y el parrafo
+   ocupaba los 660 enteros. Se le pone el tope de medida del sistema,
+   grid.prose (52ch = ~65 caracteres reales; el porque del 52 y no del 65 vive
+   en el docblock del propio token, grid.ts).
+
+   Vale para las DOS ramas porque es el MISMO styled: en la rama oscura el
+   parrafo vive dentro de ScDarkCopy, ya topado a CONTACT_COPY_MAX (440px),
+   asi que el tope nuevo no cambia nada ahi -- lo que hace es cerrar la
+   divergencia por la que el mismo parrafo se leia a dos medidas distintas
+   segun el tema. */
 const ScBody = styled(Typography)`
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  max-width: ${({ theme }) => theme.data.grid.prose};
   text-wrap: balance;
   text-wrap-style: balance;
 `;
@@ -520,7 +536,10 @@ const ScFigureWrap = styled.div`
    guard reduced-motion explícito (no basta el colapso global de
    `GlobalStyles`, lección 2026-07-25 en `BrandName.tsx`/`ctaGlow`: con
    `animation-iteration-count: 1 !important` forzado, una animación
-   infinita corre una vez y deja un frame arbitrario, no el último). */
+   infinita corre una vez y deja un frame arbitrario, no el último).
+   La CURVA de la animación es `motion.easing.standard`, no la palabra clave
+   nativa `ease-in-out` que declaraba el mockup — ver el comentario del propio
+   `animation` en `ScFigure`, más abajo, para el porqué. */
 const contactFloat = keyframes`
   0%, 100% {
     transform: translateY(0);
@@ -539,8 +558,19 @@ const ScFigure = styled.img`
   height: ${CONTACT_FIGURE_HEIGHT};
   filter: drop-shadow(0 12px 32px ${CONTACT_FIGURE_SHADOW});
 
+  /* CURVA POR TOKEN, no la palabra clave nativa (critica externa #9,
+     2026-08-17; regla 48 de RULES.md): el mockup declaraba ease-in-out a
+     secas -- una curva que no sale de src/theme/tokens/motion.ts y que el
+     detector de anti-patrones no veia mientras solo vigilaba ease-in suelto.
+     El token elegido es standard, cubic-bezier(0.4, 0, 0.2, 1): es la unica
+     de las cinco curvas del sistema que arranca y termina suave, que es la
+     INTENCION de una flotacion infinita que invierte el sentido en el 50%.
+     decelerate y accelerate son curvas de un solo lado (frenan o aceleran,
+     no las dos cosas), emphasized frena mucho mas tarde y overshoot rebota
+     -- las cuatro cambiarian el caracter del movimiento, no solo su fuente. */
   @media (prefers-reduced-motion: no-preference) {
-    animation: ${contactFloat} ${CONTACT_FIGURE_FLOAT_MS}ms ease-in-out infinite;
+    animation: ${contactFloat} ${CONTACT_FIGURE_FLOAT_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard} infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -614,8 +644,12 @@ const ScTopGlow = styled.div`
   filter: blur(${CONTACT_TOP_GLOW_BLUR});
   pointer-events: none;
 
+  /* Misma migracion de curva y mismo criterio que ScFigure, arriba: el pulso
+     del halo tambien va y vuelve (0% - 50% - 100%), asi que la curva que
+     describe su intencion es la que suaviza los dos extremos. */
   @media (prefers-reduced-motion: no-preference) {
-    animation: ${glowPulse} ${CONTACT_TOP_GLOW_PULSE_MS}ms ease-in-out infinite;
+    animation: ${glowPulse} ${CONTACT_TOP_GLOW_PULSE_MS}ms
+      ${({ theme }) => theme.data.motion.easing.standard} infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -816,6 +850,45 @@ function channelAccent(theme: ThemeDefinition): string {
   return theme.isLight
     ? theme.palette.secondary[700]
     : theme.palette.secondary[400];
+}
+
+/**
+ * Color de los mensajes de ERROR del formulario, por rama (crítica externa #9,
+ * 2026-08-17). Tercer caso de resolución por rama de esta misma sección, misma
+ * mecánica y mismo motivo que `channelAccent`, arriba, y que los precedentes
+ * de las Tasks 26/33: `palette` es COMPARTIDA por los dos temas, así que un
+ * único paso no puede librar AA sobre dos fondos que son polos opuestos de la
+ * escala de luminancia.
+ *
+ * Medido con `relativeLuminance` sobre los fondos REALES de este formulario
+ * (`Contact.test.tsx`, describe de la crítica #9):
+ *
+ * - CLARO — `semantic.error` (`error[700]`) sobre el panel real (blanco al
+ *   82 % de `CONTACT_PANEL_BG_LIGHT` compuesto sobre las tres paradas de
+ *   `CONTACT_CARD_GRADIENT`): 5.78:1. Pasa AA con margen, no cambia nada.
+ * - OSCURO — `semantic.error` (`error[500]`) sobre el panel real
+ *   (`CONTACT_FORM_BG`, blanco al 4 %, sobre `CONTACT_GUARDIAN_VOID`):
+ *   **3.65:1**, por debajo del 4.5:1 que WCAG pide a texto normal (14px
+ *   regular no es "texto grande": eso empieza en 18.66px negrita o 24px).
+ *   Defecto PREEXISTENTE — el mensaje ya se pintaba con ese rol cuando lo
+ *   montaba `Field` —, medido por primera vez al adoptar aquí el mensaje.
+ *   `error[400]` tampoco basta (4.30:1); el primer paso que cruza el umbral
+ *   es `error[300]` (0.86 de L), con **6.03:1**.
+ *
+ * NO se corrige en `src/theme/tokens/semantic.ts` (donde vive la causa raíz:
+ * `semanticDark.error = error[500]` falla sobre cualquier fondo casi negro,
+ * no solo sobre este) porque esta entrega no puede tocar `theme/` — partición
+ * de trabajo en paralelo. Queda declarado como hallazgo de sistema: el mismo
+ * rol lo usan `ScMsg` (`Input.tsx`) y cualquier formulario futuro.
+ *
+ * El BORDE de error de los controles (`ScInput`/`ScTextarea`, selector
+ * `&[aria-invalid="true"]`) sigue con `semantic.error` sin tocar: es un
+ * elemento gráfico, su umbral es el 3:1 de WCAG 1.4.11, y 3.65:1 lo cumple.
+ * Mismo criterio que ya separa `ScCardTitle` de `channelAccent` en este
+ * fichero -- lo que porta glifos y lo que solo dibuja no piden lo mismo.
+ */
+function fieldErrorColor(theme: ThemeDefinition): string {
+  return theme.isLight ? theme.semantic.error : theme.palette.error[300];
 }
 
 /*
@@ -1088,6 +1161,92 @@ const ScTextarea = styled.textarea`
 `;
 
 /*
+ * Mensajes de campo (ayuda y error) del formulario — LOCALES desde la crítica
+ * externa #9 (2026-08-17). Hasta hoy los pintaba `Field`
+ * (`src/components/ui/Input/Input.tsx`, `ScMsg`) y la crítica midió dos
+ * defectos que nacen los dos de ahí:
+ *
+ * 1. TAMAÑO. `ScMsg` usa `type.scale.caption` (0.75rem = 12px) para el error.
+ *    12px es el peldaño de una etiqueta decorativa, no el de un texto que hay
+ *    que LEER para poder seguir adelante. Aquí los dos mensajes suben a
+ *    `type.scale.bodySm` (0.875rem = 14px), que es el peldaño de "texto de
+ *    apoyo legible" que este mismo formulario ya usa en su etiqueta
+ *    (`ScLabel`), en la nota de privacidad (`ScPrivacyNote`) y en el panel de
+ *    recuperación (`ScFallbackText`) — nada hardcodeado, el token de siempre.
+ * 2. AYUDA QUE DESAPARECE. `Field` resuelve `message = error ?? help`: con un
+ *    error activo, el texto de ayuda («Se abrirá tu aplicación de correo…»)
+ *    deja de existir en el DOM y el `aria-describedby` del campo pasa a
+ *    apuntar SOLO al error — el visitante que más ayuda necesita es
+ *    justamente el que la pierde. Aquí los dos coexisten y el campo los
+ *    referencia a los dos, el error PRIMERO (es el mensaje bloqueante, se
+ *    anuncia antes) y la ayuda después.
+ *
+ * POR QUÉ VIVEN AQUÍ Y NO EN `Field`: los dos arreglos pertenecen al
+ * primitivo — beneficiarían a cualquier formulario futuro del sitio — pero
+ * esta entrega NO puede tocar `src/components/ui/` (partición de trabajo en
+ * paralelo declarada por el encargo). Misma deuda DECLARADA y mismo
+ * tratamiento que `ScTextarea`, más arriba, y que el `ScBackLink` duplicado de
+ * `NotFoundContent.tsx` (`RULES.md`, "Deuda conocida"): cuando alguien pueda
+ * tocar `Field`, esto se retira entero y el JSX vuelve a pasar `help`/`error`
+ * como props. Lo que `Field` SIGUE aportando aquí es la etiqueta, el `id` del
+ * control y el contrato de un único hijo; lo que deja de aportar son los dos
+ * props de mensaje, así que su `mergeDescribedBy` recibe `undefined` y
+ * respeta el `aria-describedby` completo que declara el JSX.
+ *
+ * `role="status"` en el error (no `alert`): lo anuncia sin interrumpir ni
+ * robar el foco — MISMO criterio que ya tenía `ScMsg` y que el panel de
+ * recuperación (`ScFallbackPanel`). El foco lo mueve `handleSubmit` a
+ * propósito y una sola vez, ver su docblock.
+ */
+const ScFieldMessage = styled.p<{ $error?: boolean }>`
+  margin: ${({ theme }) => theme.data.space[2]} 0 0;
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  line-height: ${({ theme }) => theme.data.type.scale.bodySm.lineHeight};
+  color: ${({ theme, $error }) =>
+    $error ? fieldErrorColor(theme.data) : theme.data.semantic.textSubtle};
+`;
+
+/*
+ * Salida sin JavaScript (crítica externa #9, Nielsen, 2026-08-17). El
+ * evaluador midió con `javaScriptEnabled: false` real que este formulario
+ * DESTRUÍA el mensaje en silencio: sin JS no corre `handleSubmit`, así que el
+ * botón hacía un envío nativo que recargaba la página y el texto escrito
+ * desaparecía sin dejar rastro ni aviso. Y el documento entero no tenía ni un
+ * `<noscript>`.
+ *
+ * Este bloque es la mitad HONESTA del arreglo: dice lo que pasa y da la
+ * salida REAL — la dirección de correo, con su `mailto:` de `src/config/links`
+ * (`links.email`/`EMAIL_ADDRESS`, nunca escrita a mano aquí). La otra mitad
+ * son los atributos `name` de los dos campos (ver el JSX): si alguien llega a
+ * disparar el envío nativo de todos modos, lo escrito sobrevive en la barra de
+ * direcciones en vez de evaporarse.
+ *
+ * OJO AL VERIFICARLO EN TEST: React trata los hijos de `<noscript>` como
+ * CONTENIDO DE TEXTO (`shouldSetTextContent` devuelve `true` para esta
+ * etiqueta), así que un render de CLIENTE — el de Testing Library — produce un
+ * `<noscript>` VACÍO. En el HTML del export estático sí aparecen (lo genera el
+ * render de servidor) y la hidratación no los toca. El candado de
+ * `Contact.test.tsx` lo comprueba, por eso, sobre `renderToStaticMarkup`, que
+ * es exactamente el camino que produce el artefacto real.
+ *
+ * `a` con estilo propio: `GlobalStyles` declara `a { color: inherit;
+ * text-decoration: none; }` para todo el sitio, así que sin esto el único
+ * enlace que un visitante sin JS tiene delante se leería como texto plano.
+ */
+const ScNoscriptNote = styled.p`
+  margin: 0;
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  line-height: ${({ theme }) => theme.data.type.scale.bodySm.lineHeight};
+  color: ${({ theme }) => theme.data.semantic.text};
+
+  a {
+    color: ${({ theme }) => theme.data.semantic.brandText};
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+  }
+`;
+
+/*
  * Task 18 (M5, "privacidad radical a la superficie"): la única prueba
  * sostenible del sitio con el código delante -- cero peticiones a terceros,
  * cero analítica, cero cookies de rastreo -- verificada, no es un eslogan:
@@ -1276,11 +1435,28 @@ const ScCopyButton = styled(Button)`
  * estaba montada se anuncia igual, y un `status` anidado dentro de otro
  * `status` no añadiría nada.
  */
+/*
+ * TAMAÑO (crítica externa #9, 2026-08-17): sube de `caption` (12px) a
+ * `bodySm` (14px) por el MISMO motivo que los mensajes de campo -- ver el
+ * docblock de `ScFieldMessage`, más arriba. Es el otro mensaje de error del
+ * mismo formulario, y dos errores del mismo formulario a dos tamaños
+ * distintos serían dos escalas para un solo rol.
+ */
 const ScCopyErrorText = styled.p`
   flex-basis: 100%;
   margin: 0;
-  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
-  color: ${({ theme }) => theme.data.semantic.error};
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  line-height: ${({ theme }) => theme.data.type.scale.bodySm.lineHeight};
+  /* MISMO color que el error de campo (ver fieldErrorColor, arriba), no
+     semantic.error suelto: son los dos unicos mensajes de error de este
+     formulario, y pintarlos con dos rojos distintos en la rama oscura seria
+     dos escalas para un solo rol. Sobre SU fondo -- surfaceSunken, el de
+     ScFallbackPanel, no el panel del formulario -- semantic.error ya libraba
+     AA con 5,56:1, lo que mide el candado de la Task 3, asi que aqui este
+     cambio no arregla nada: unifica. El paso nuevo sube ese mismo ratio,
+     nunca lo baja: error 300 es mas claro que error 500 sobre un fondo casi
+     negro. */
+  color: ${({ theme }) => fieldErrorColor(theme.data)};
 `;
 
 /**
@@ -1318,8 +1494,34 @@ function hasMessage(value: string): boolean {
   return value.trim().length > 0;
 }
 
+/*
+ * Identificadores del formulario, declarados UNA vez (crítica externa #9,
+ * 2026-08-17). Antes solo existía el del control (`htmlFor="contact-email"`) y
+ * `Field` derivaba de él los de sus mensajes; desde que los mensajes se
+ * pintan aquí (ver `ScFieldMessage`), los tres los tiene que declarar este
+ * módulo. Se conservan EXACTAMENTE los nombres que `Field` generaba
+ * (`${htmlFor}-error` / `${htmlFor}-help`) para que el día que el primitivo
+ * absorba estos arreglos no cambie ni un id del DOM publicado.
+ *
+ * Deterministas y escritos a mano, nunca `useId()`: un id aleatorio por render
+ * rompería el HTML horneado del export estático (mismo criterio que ya
+ * documenta `Field`).
+ */
+const EMAIL_FIELD_ID = "contact-email";
+const EMAIL_ERROR_ID = `${EMAIL_FIELD_ID}-error`;
+const EMAIL_HELP_ID = `${EMAIL_FIELD_ID}-help`;
+const MESSAGE_FIELD_ID = "contact-message";
+const MESSAGE_ERROR_ID = `${MESSAGE_FIELD_ID}-error`;
+
 export function Contact(): ReactElement {
   const { t } = useTranslation("home");
+  /* Namespace SEPARADO, mismo criterio que `Story.tsx` (Task 6): el aviso de
+     "se abre en una pestaña nueva" (`Common.Nav.newTab`) es un patrón de
+     INTERFAZ compartido con Navbar/Footer, no copia propia de esta sección.
+     Se estrena aquí con la crítica externa #9 (2026-08-17), que midió que 3
+     de los 16 enlaces a pestaña nueva del sitio -- los tres de esta sección --
+     eran los únicos sin el aviso que los otros 13 ya llevaban. */
+  const { t: tCommon } = useTranslation("common");
   const { themeName } = useTheme();
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>();
   /*
@@ -1361,6 +1563,18 @@ export function Contact(): ReactElement {
    */
   const [message, setMessage] = useState("");
   const [messageError, setMessageError] = useState(false);
+  /*
+   * Referencias a los DOS controles, para poder mover el foco al primer campo
+   * inválido tras un envío fallido (crítica externa #9, 2026-08-17; ver
+   * `handleSubmit`). No participan en ningún render: solo las lee el manejador
+   * de envío, así que son `useRef` y no estado.
+   *
+   * `Field` las reenvía sin saberlo: clona a su hijo con `cloneElement`, y en
+   * React 19 `ref` es un prop normal más -- se conserva en el clon igual que
+   * `id` o `placeholder`.
+   */
+  const emailRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
   /*
    * Panel de fallback, revelado tras un envío VÁLIDO (D13 sigue vigente: NO
    * es un "enviado" -- este sitio no tiene backend al que postear, así que
@@ -1425,6 +1639,26 @@ export function Contact(): ReactElement {
    * codifica con `encodeURIComponent`, igual que el asunto: sin eso, un `&` o
    * un salto de línea del visitante partiría la URL del `mailto:` en
    * parámetros que nadie escribió.
+   *
+   * POR QUÉ EL `<form>` NO DECLARA `action` NI `method` (decisión de la
+   * crítica externa #9, 2026-08-17, que pedía evaluarlo explícitamente): el
+   * candidato era `action={links.email}`, para que el envío nativo sin
+   * JavaScript abriera el mismo cliente de correo que abre esta función. Se
+   * descarta, y el motivo no es "soporte errático" en abstracto sino lo que
+   * dice el algoritmo de envío de formularios del HTML para el esquema
+   * `mailto:`: con `method="get"` la query del `mailto:` se SUSTITUYE entera
+   * por los datos del formulario, así que los campos solo llegarían al cliente
+   * de correo si se llamaran exactamente como los parámetros de `mailto:`
+   * (`subject`, `body`…) — renombrar el campo del correo del visitante a
+   * `subject` para conseguirlo sería mentir sobre lo que ese campo es —, y con
+   * `method="post"` + `enctype="text/plain"` el cuerpo acaba también en la
+   * query, con la misma pérdida. En los dos caminos el visitante sin JS vería
+   * abrirse un correo VACÍO: peor que no abrir nada, porque parece que
+   * funcionó. Sin `action`, el envío nativo es un GET al propio documento y lo
+   * escrito sobrevive en la barra de direcciones (los `name` de los dos
+   * campos, ver el JSX), mientras el `<noscript>` da la salida real. Nada de
+   * esto afecta al camino CON JavaScript: `preventDefault()` es la primera
+   * línea de esta función.
    */
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -1432,7 +1666,23 @@ export function Contact(): ReactElement {
     const messageInvalid = !hasMessage(message);
     setEmailError(emailInvalid);
     setMessageError(messageInvalid);
-    if (emailInvalid || messageInvalid) return;
+    if (emailInvalid || messageInvalid) {
+      /*
+       * EL FOCO VA AL PRIMER CAMPO INVÁLIDO, en orden del DOM (crítica externa
+       * #9, Nielsen, 2026-08-17): hasta hoy el foco se quedaba en el botón de
+       * envío, así que quien navega por teclado tenía que retroceder a ciegas
+       * para encontrar qué campo había fallado, y quien usa lector de pantalla
+       * oía el anuncio del `role="status"` sin ser llevado al control que lo
+       * causó (WCAG 3.3.1).
+       *
+       * Los DOS errores se siguen pintando a la vez (ver el docblock de
+       * arriba); esto solo elige a cuál de los dos se viaja -- y viajar al
+       * primero es lo que deja la corrección en orden natural de lectura:
+       * arreglado el correo, el siguiente tabulador ya cae en el mensaje.
+       */
+      (emailInvalid ? emailRef : messageRef).current?.focus();
+      return;
+    }
 
     const subject = encodeURIComponent(t("Home.contact.form.subject"));
     const body = encodeURIComponent(
@@ -1509,50 +1759,115 @@ export function Contact(): ReactElement {
         onSubmit={handleSubmit}
         noValidate
       >
-        <Field
-          label={t("Home.contact.form.label")}
-          htmlFor="contact-email"
-          help={t("Home.contact.form.help")}
-          error={emailError ? t("Home.contact.form.emailError") : undefined}
-        >
-          <Input
-            id="contact-email"
-            type="email"
-            required
-            placeholder={t("Home.contact.form.placeholder")}
-            value={email}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              // Corregir el valor retira el error de inmediato:
-              // dejarlo pintado hasta el siguiente submit
-              // afirmaría un estado que el usuario ya resolvió.
-              if (emailError) setEmailError(false);
-            }}
-            autoComplete="email"
-          />
-        </Field>
-        <Field
-          label={t("Home.contact.form.messageLabel")}
-          htmlFor="contact-message"
-          error={messageError ? t("Home.contact.form.messageError") : undefined}
-        >
-          <ScTextarea
-            id="contact-message"
-            required
-            /* Cuatro líneas: bastante para que se lea como "aquí va un texto,
-               no una palabra" sin empujar el botón de envío fuera de pantalla
-               en móvil. Crece a voluntad con `resize: vertical`. */
-            rows={4}
-            placeholder={t("Home.contact.form.messagePlaceholder")}
-            value={message}
-            onChange={(event) => {
-              setMessage(event.target.value);
-              // Mismo criterio que el correo, arriba: corregir retira el
-              // error de inmediato, sin esperar a otro envío.
-              if (messageError) setMessageError(false);
-            }}
-          />
-        </Field>
+        {/* Aviso sin JavaScript (crítica externa #9): ver el docblock de
+            `ScNoscriptNote`. Va PRIMERO a propósito -- quien no tiene JS lo
+            lee antes de invertir esfuerzo en escribir, no después de perderlo.
+            Con JS el navegador no pinta nada de esto. */}
+        <noscript>
+          <ScNoscriptNote>
+            {t("Home.contact.form.noscript")}{" "}
+            <a href={links.email}>{EMAIL_ADDRESS}</a>
+          </ScNoscriptNote>
+        </noscript>
+        {/* Un `<div>` pelado, sin estilo: agrupa el campo con sus dos mensajes
+            para que el `gap` del formulario separe CAMPOS enteros y no meta
+            además su hueco entre un control y su propio mensaje. Es la misma
+            caja que `Field` monta internamente alrededor de etiqueta +
+            control + mensaje, y desaparece con ellos el día que el primitivo
+            absorba estos arreglos. */}
+        <div>
+          <Field
+            label={t("Home.contact.form.label")}
+            htmlFor={EMAIL_FIELD_ID}
+          >
+            <Input
+              ref={emailRef}
+              id={EMAIL_FIELD_ID}
+              /* `name` (crítica externa #9): sin él, un envío nativo -- el
+                 único posible sin JavaScript -- recarga la página con una
+                 query VACÍA y el texto escrito se pierde sin dejar rastro.
+                 Con él sobrevive en la barra de direcciones, recuperable a
+                 mano. El formulario NO declara `action` ni `method`: ver el
+                 docblock de `handleSubmit` para la decisión completa. */
+              name="email"
+              type="email"
+              required
+              placeholder={t("Home.contact.form.placeholder")}
+              value={email}
+              /* Error PRIMERO y ayuda DESPUÉS, los dos a la vez: ver el
+                 docblock de `ScFieldMessage`. Cuando no hay error queda solo
+                 la ayuda, que es lo que había antes de esta entrega. */
+              aria-describedby={
+                emailError
+                  ? `${EMAIL_ERROR_ID} ${EMAIL_HELP_ID}`
+                  : EMAIL_HELP_ID
+              }
+              /* `Field` ya no recibe el prop `error`, así que este atributo lo
+                 declara el JSX: el borde de error de `ScInput` se deriva de
+                 ÉL (selector `&[aria-invalid="true"]`), nunca de un prop
+                 propio, así que estado visual y accesible siguen sin poder
+                 desincronizarse. */
+              aria-invalid={emailError ? true : undefined}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                // Corregir el valor retira el error de inmediato:
+                // dejarlo pintado hasta el siguiente submit
+                // afirmaría un estado que el usuario ya resolvió.
+                if (emailError) setEmailError(false);
+              }}
+              autoComplete="email"
+            />
+          </Field>
+          {emailError && (
+            <ScFieldMessage
+              id={EMAIL_ERROR_ID}
+              role="status"
+              $error
+            >
+              {t("Home.contact.form.emailError")}
+            </ScFieldMessage>
+          )}
+          <ScFieldMessage id={EMAIL_HELP_ID}>
+            {t("Home.contact.form.help")}
+          </ScFieldMessage>
+        </div>
+        <div>
+          <Field
+            label={t("Home.contact.form.messageLabel")}
+            htmlFor={MESSAGE_FIELD_ID}
+          >
+            <ScTextarea
+              ref={messageRef}
+              id={MESSAGE_FIELD_ID}
+              /* Mismo motivo que el `name` del correo, arriba. */
+              name="message"
+              required
+              /* Cuatro líneas: bastante para que se lea como "aquí va un texto,
+                 no una palabra" sin empujar el botón de envío fuera de pantalla
+                 en móvil. Crece a voluntad con `resize: vertical`. */
+              rows={4}
+              placeholder={t("Home.contact.form.messagePlaceholder")}
+              value={message}
+              aria-describedby={messageError ? MESSAGE_ERROR_ID : undefined}
+              aria-invalid={messageError ? true : undefined}
+              onChange={(event) => {
+                setMessage(event.target.value);
+                // Mismo criterio que el correo, arriba: corregir retira el
+                // error de inmediato, sin esperar a otro envío.
+                if (messageError) setMessageError(false);
+              }}
+            />
+          </Field>
+          {messageError && (
+            <ScFieldMessage
+              id={MESSAGE_ERROR_ID}
+              role="status"
+              $error
+            >
+              {t("Home.contact.form.messageError")}
+            </ScFieldMessage>
+          )}
+        </div>
         <ScSubmitButton
           type="submit"
           size="lg"
@@ -1629,6 +1944,14 @@ export function Contact(): ReactElement {
           <ScCardTitle>{t("Home.contact.cards.community.title")}</ScCardTitle>
           <ScCardValue>{t("Home.contact.cards.community.value")}</ScCardValue>
         </div>
+        {/* Aviso de cambio de contexto (WCAG 3.2.5), MISMO mecanismo y MISMA
+            clave que los otros 13 enlaces externos del sitio (Navbar, Footer,
+            Story): un `VisuallyHidden` con `Common.Nav.newTab`. La crítica
+            externa #9 (2026-08-17) midió que las tres tarjetas de esta sección
+            eran las únicas que abrían pestaña sin decirlo. No ocupa caja
+            (`position: absolute`, 1x1 recortado), así que tampoco añade un
+            `gap` más a la fila flex de la tarjeta. */}
+        <VisuallyHidden> {tCommon("Common.Nav.newTab")}</VisuallyHidden>
       </ScCardLink>
       <ScCardLink
         href={links.github}
@@ -1650,6 +1973,8 @@ export function Contact(): ReactElement {
           <ScCardTitle>{t("Home.contact.cards.code.title")}</ScCardTitle>
           <ScCardValue>{t("Home.contact.cards.code.value")}</ScCardValue>
         </div>
+        {/* Mismo aviso que la tarjeta de arriba (crítica externa #9). */}
+        <VisuallyHidden> {tCommon("Common.Nav.newTab")}</VisuallyHidden>
       </ScCardLink>
       {/* Tercera tarjeta, añadida el 2026-08-13 al cerrar la Fase 0. Las dos
           anteriores apuntan al PROYECTO (su comunidad, su código); esta
@@ -1682,6 +2007,8 @@ export function Contact(): ReactElement {
           <ScCardTitle>{t("Home.contact.cards.profile.title")}</ScCardTitle>
           <ScCardValue>{t("Home.contact.cards.profile.value")}</ScCardValue>
         </div>
+        {/* Mismo aviso que sus dos hermanas (crítica externa #9). */}
+        <VisuallyHidden> {tCommon("Common.Nav.newTab")}</VisuallyHidden>
       </ScCardLink>
     </ScCards>
   );
