@@ -131,6 +131,29 @@ function cssRuleTextFor(el: HTMLElement): string {
     .join("\n");
 }
 
+/*
+ * Mensaje de los tests que ejercitan un envio COMPLETO. Desde la critica
+ * externa #8 (Nielsen, 2026-08-17) el formulario tiene DOS campos
+ * obligatorios: escribir solo el correo ya no navega a ninguna parte, asi que
+ * todo test de "envio valido" tiene que escribir tambien el mensaje. Lleva un
+ * `&` y un salto de linea A PROPOSITO: son los dos caracteres que partirian la
+ * URL del mailto en parametros que nadie escribio si el cuerpo dejara de
+ * codificarse con encodeURIComponent.
+ */
+const MENSAJE_VALIDO = "Tengo una idea & una pregunta.\nQue tal el martes?";
+
+/**
+ * Escribe el mensaje en el textarea real (consultado por su etiqueta, como el
+ * campo de correo) y lo devuelve. Sin argumento usa `MENSAJE_VALIDO`.
+ */
+function escribirMensaje(texto: string = MENSAJE_VALIDO): HTMLTextAreaElement {
+  const textarea = screen.getByLabelText(
+    esHome.Home.contact.form.messageLabel,
+  ) as HTMLTextAreaElement;
+  fireEvent.change(textarea, { target: { value: texto } });
+  return textarea;
+}
+
 describe("Contact", () => {
   it("es una region con su nombre accesible real (no un aria-labelledby colgando)", () => {
     renderWithProviders(<Contact />);
@@ -301,17 +324,28 @@ describe("Contact", () => {
  * ninguno de los dos.
  */
 describe("Contact: Task 16, el formulario real vive también en la rama clara", () => {
-  it("monta un formulario con exactamente un campo (email, required) y un boton type=submit", () => {
+  /*
+   * Contrato ampliado por la critica externa #8 (Nielsen, 2026-08-17): el
+   * formulario pasa de UN campo a DOS. `toHaveLength(2)` no se relaja nunca a
+   * `toBeGreaterThan` (regla 40): quien anada un tercer campo actualiza este
+   * numero y declara por que, en vez de aflojar la asercion.
+   */
+  it("monta un formulario con exactamente dos campos obligatorios (email + mensaje) y un boton type=submit", () => {
     const { container } = renderWithProviders(<Contact />);
 
     const form = container.querySelector("form") as HTMLFormElement;
     expect(form).toBeInTheDocument();
 
     const controls = within(form).getAllByRole("textbox");
-    expect(controls).toHaveLength(1);
+    expect(controls).toHaveLength(2);
     expect(controls[0]).toHaveAttribute("type", "email");
     expect(controls[0]).toHaveAttribute("required");
     expect(controls[0]).toHaveAccessibleName(esHome.Home.contact.form.label);
+    expect(controls[1].tagName).toBe("TEXTAREA");
+    expect(controls[1]).toHaveAttribute("required");
+    expect(controls[1]).toHaveAccessibleName(
+      esHome.Home.contact.form.messageLabel,
+    );
     expect(form.querySelectorAll('button[type="submit"]')).toHaveLength(1);
   });
 
@@ -327,6 +361,9 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
       const form = container.querySelector("form") as HTMLFormElement;
       const input = screen.getByLabelText(esHome.Home.contact.form.label);
 
+      // El mensaje SI es valido: asi el unico error posible es el del correo
+      // y `getByRole("status")` sigue siendo una consulta univoca.
+      escribirMensaje();
       fireEvent.change(input, { target: { value: "no-es-un-correo" } });
       fireEvent.submit(form);
 
@@ -359,6 +396,7 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
       const { container } = renderWithProviders(<Contact />);
       const input = screen.getByLabelText(esHome.Home.contact.form.label);
       fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      escribirMensaje();
       fireEvent.submit(container.querySelector("form") as HTMLFormElement);
 
       expect(assignSpy).toHaveBeenCalledTimes(1);
@@ -395,6 +433,7 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
       const { container } = renderWithProviders(<Contact />);
       const input = screen.getByLabelText(esHome.Home.contact.form.label);
       fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      escribirMensaje();
       fireEvent.submit(container.querySelector("form") as HTMLFormElement);
 
       await act(async () => {
@@ -913,7 +952,7 @@ describe("Contact en tema oscuro", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("el formulario tiene exactamente un control (email, required) y exactamente un boton type=submit (test 11, D12)", async () => {
+  it("el formulario tiene exactamente dos controles (email + mensaje, required) y exactamente un boton type=submit (test 11, D12 ampliado por la critica #8)", async () => {
     const { container } = renderWithProviders(<Contact />);
     await waitFor(() => {
       expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
@@ -922,10 +961,15 @@ describe("Contact en tema oscuro", () => {
     expect(form).toBeInTheDocument();
 
     const controls = within(form).getAllByRole("textbox");
-    expect(controls).toHaveLength(1);
+    expect(controls).toHaveLength(2);
     expect(controls[0]).toHaveAttribute("type", "email");
     expect(controls[0]).toHaveAttribute("required");
     expect(controls[0]).toHaveAccessibleName(esHome.Home.contact.form.label);
+    expect(controls[1].tagName).toBe("TEXTAREA");
+    expect(controls[1]).toHaveAttribute("required");
+    expect(controls[1]).toHaveAccessibleName(
+      esHome.Home.contact.form.messageLabel,
+    );
 
     const submitButtons = form.querySelectorAll('button[type="submit"]');
     expect(submitButtons).toHaveLength(1);
@@ -938,7 +982,7 @@ describe("Contact en tema oscuro", () => {
    * LA PROPIA EMPRESA ya escrita leía como VTI escribiéndose a sí misma. El
    * placeholder (`form.placeholder`) sigue existiendo y ahora por fin se ve.
    */
-  it("el campo de correo arranca vacio (el placeholder pasa a verse, no prerrellenado con links.email)", async () => {
+  it("los dos campos arrancan vacios (el placeholder pasa a verse, nada prerrellenado)", async () => {
     const { container } = renderWithProviders(<Contact />);
     await waitFor(() => {
       expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
@@ -952,6 +996,19 @@ describe("Contact en tema oscuro", () => {
       "placeholder",
       esHome.Home.contact.form.placeholder,
     );
+
+    /* El campo de mensaje hereda el MISMO candado (critica externa #8,
+       2026-08-17): el P0 de confianza de la task 1 fue exactamente un campo
+       prerrellenado por el sitio, asi que el control nuevo nace con la sonda
+       puesta en vez de esperar a repetir el error. */
+    const textarea = screen.getByLabelText(
+      esHome.Home.contact.form.messageLabel,
+    ) as HTMLTextAreaElement;
+    expect(textarea.value).toBe("");
+    expect(textarea).toHaveAttribute(
+      "placeholder",
+      esHome.Home.contact.form.messagePlaceholder,
+    );
   });
 
   /*
@@ -962,7 +1019,15 @@ describe("Contact en tema oscuro", () => {
    * accesible en vez de partir hacia `links.email` sin que el visitante haya
    * escrito nada.
    */
-  it("al enviar con el campo vacio, NO navega y pinta el error de validacion con role=status (task 1, item 2/5)", async () => {
+  /*
+   * Ampliado por la critica externa #8 (2026-08-17): con DOS campos
+   * obligatorios, un envio en blanco enciende LOS DOS errores en la misma
+   * pasada -- `handleSubmit` no hace `return` tras el primero. Por eso la
+   * consulta pasa de `getByRole` a `getAllByRole`: la version singular
+   * lanzaria "found multiple elements" en cuanto el segundo error existe, y
+   * eso no seria un fallo del componente sino de la consulta.
+   */
+  it("al enviar con los dos campos vacios, NO navega y pinta LOS DOS errores de validacion con role=status (task 1, item 2/5)", async () => {
     const originalLocation = window.location;
     const assignSpy = vi.fn();
     Object.defineProperty(window, "location", {
@@ -981,10 +1046,18 @@ describe("Contact en tema oscuro", () => {
       fireEvent.submit(form);
 
       expect(assignSpy).not.toHaveBeenCalled();
-      const status = screen.getByRole("status");
-      expect(status).toHaveTextContent(esHome.Home.contact.form.emailError);
-      const input = screen.getByLabelText(esHome.Home.contact.form.label);
-      expect(input).toHaveAttribute("aria-invalid", "true");
+      const textosAnunciados = screen
+        .getAllByRole("status")
+        .map((nodo) => nodo.textContent);
+      expect(textosAnunciados).toContain(esHome.Home.contact.form.emailError);
+      expect(textosAnunciados).toContain(esHome.Home.contact.form.messageError);
+
+      expect(
+        screen.getByLabelText(esHome.Home.contact.form.label),
+      ).toHaveAttribute("aria-invalid", "true");
+      expect(
+        screen.getByLabelText(esHome.Home.contact.form.messageLabel),
+      ).toHaveAttribute("aria-invalid", "true");
     } finally {
       Object.defineProperty(window, "location", {
         configurable: true,
@@ -1009,6 +1082,8 @@ describe("Contact en tema oscuro", () => {
       });
 
       const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      // Mensaje valido: aisla el fallo al correo, unico error esperado.
+      escribirMensaje();
       fireEvent.change(input, { target: { value: "no-es-un-correo" } });
       const form = container.querySelector("form") as HTMLFormElement;
       fireEvent.submit(form);
@@ -1035,6 +1110,10 @@ describe("Contact en tema oscuro", () => {
 
     const input = screen.getByLabelText(esHome.Home.contact.form.label);
     const form = container.querySelector("form") as HTMLFormElement;
+    // Con el mensaje ya escrito, el unico error del envio es el del correo:
+    // asi "no queda ningun status" prueba que se retiro ESE error y no que se
+    // solaparon dos.
+    escribirMensaje();
     fireEvent.submit(form);
     expect(screen.getByRole("status")).toHaveTextContent(
       esHome.Home.contact.form.emailError,
@@ -1070,6 +1149,7 @@ describe("Contact en tema oscuro", () => {
         esHome.Home.contact.form.label,
       ) as HTMLInputElement;
       fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      escribirMensaje();
       const form = container.querySelector("form") as HTMLFormElement;
       fireEvent.submit(form);
 
@@ -1118,6 +1198,7 @@ describe("Contact en tema oscuro", () => {
 
       const input = screen.getByLabelText(esHome.Home.contact.form.label);
       fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      escribirMensaje();
       const form = container.querySelector("form") as HTMLFormElement;
       fireEvent.submit(form);
 
@@ -1165,6 +1246,7 @@ describe("Contact en tema oscuro", () => {
 
       const input = screen.getByLabelText(esHome.Home.contact.form.label);
       fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      escribirMensaje();
       fireEvent.submit(container.querySelector("form") as HTMLFormElement);
 
       expect(button).not.toBeDisabled();
@@ -1184,7 +1266,10 @@ describe("Contact en tema oscuro", () => {
       });
     });
 
-    async function submitValidEmail(container: HTMLElement): Promise<void> {
+    // Rellena LOS DOS campos obligatorios y envia: desde la critica externa
+    // #8 (2026-08-17) un envio con solo el correo no navega ni revela el
+    // panel de fallback, que es lo que estos tests necesitan tener delante.
+    async function submitValidForm(container: HTMLElement): Promise<void> {
       await waitFor(() => {
         expect(container.querySelectorAll("img")).toHaveLength(
           CONTACT_GUARDIAN_LAYERS.length,
@@ -1192,6 +1277,7 @@ describe("Contact en tema oscuro", () => {
       });
       const input = screen.getByLabelText(esHome.Home.contact.form.label);
       fireEvent.change(input, { target: { value: "visitante@test.com" } });
+      escribirMensaje();
       fireEvent.submit(container.querySelector("form") as HTMLFormElement);
     }
 
@@ -1208,7 +1294,7 @@ describe("Contact en tema oscuro", () => {
       });
       try {
         const { container } = renderWithProviders(<Contact />);
-        await submitValidEmail(container);
+        await submitValidForm(container);
 
         const copyButton = screen.getByRole("button", {
           name: esHome.Home.contact.form.copyAddress,
@@ -1257,7 +1343,7 @@ describe("Contact en tema oscuro", () => {
       });
       try {
         const { container } = renderWithProviders(<Contact />);
-        await submitValidEmail(container);
+        await submitValidForm(container);
 
         expect(
           screen.queryByText(esHome.Home.contact.form.copyError),
@@ -1316,7 +1402,7 @@ describe("Contact en tema oscuro", () => {
       });
       try {
         const { container } = renderWithProviders(<Contact />);
-        await submitValidEmail(container);
+        await submitValidForm(container);
 
         const copyButton = screen.getByRole("button", {
           name: esHome.Home.contact.form.copyAddress,
@@ -2227,5 +2313,224 @@ describe("Contact: Task 16, el recorte de ScCard es del arte y no del texto", ()
     const css = cssRuleTextFor(columna);
     expect(css).not.toContain("overflow");
     expect(css).not.toContain("max-height");
+  });
+});
+
+/*
+ * CRITICA EXTERNA #8 (Nielsen, 2026-08-17). Dos defectos, cerrados juntos
+ * porque el segundo dejaba al primero sin forma de fallar visiblemente:
+ *
+ * 1. El formulario pedia el correo y NADA MAS, asi que el mailto se abria con
+ *    un cuerpo que solo repetia esa direccion: el mensaje -- lo unico que el
+ *    destinatario necesita -- habia que redactarlo desde cero en el cliente
+ *    de correo. Se anade el campo de mensaje y su texto viaja en el body.
+ * 2. El form no declaraba noValidate, asi que la validacion NATIVA ganaba: el
+ *    navegador atrapaba el envio antes de handleSubmit y mostraba su propio
+ *    globo, dejando INALCANZABLE la UI de error propia del repo para los dos
+ *    casos mas comunes (campo vacio, correo malformado).
+ *
+ * ALCANCE: hay UN SOLO form en toda la seccion -- `contactChannels` es un
+ * unico arbol de JSX que las dos ramas de tema montan tal cual (Task 16) --
+ * asi que el comportamiento se ejercita en la rama clara, y de la oscura se
+ * comprueba que monta el MISMO control y el MISMO atributo en vez de duplicar
+ * cada escenario.
+ */
+describe("Contact: critica #8, el mensaje viaja en el mailto y la validacion propia es alcanzable", () => {
+  function mockAssign(): {
+    assignSpy: ReturnType<typeof vi.fn>;
+    restore: () => void;
+  } {
+    const originalLocation = window.location;
+    const assignSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: assignSpy },
+    });
+    return {
+      assignSpy,
+      restore: () =>
+        Object.defineProperty(window, "location", {
+          configurable: true,
+          value: originalLocation,
+        }),
+    };
+  }
+
+  it("el form declara noValidate: sin el, el navegador se adelanta a handleSubmit y la UI de error propia no llega a verse", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const form = container.querySelector("form") as HTMLFormElement;
+
+    // Atributo Y propiedad: el atributo es lo que el JSX declara, la
+    // propiedad es lo que el navegador consulta antes de validar.
+    expect(form).toHaveAttribute("novalidate");
+    expect(form.noValidate).toBe(true);
+
+    // Los atributos nativos NO se retiran: siguen describiendo el campo para
+    // un lector de pantalla. Lo que noValidate apaga es el bloqueo y el globo.
+    const email = screen.getByLabelText(esHome.Home.contact.form.label);
+    expect(email).toHaveAttribute("required");
+    expect(email).toHaveAttribute("type", "email");
+    expect(
+      screen.getByLabelText(esHome.Home.contact.form.messageLabel),
+    ).toHaveAttribute("required");
+  });
+
+  it("un envio valido lleva el mensaje en el body del mailto, decodificable, y conserva el subject existente", () => {
+    const { assignSpy, restore } = mockAssign();
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "visitante@test.com" },
+      });
+      escribirMensaje();
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      expect(assignSpy).toHaveBeenCalledTimes(1);
+      /*
+       * Se PARSEA la URL en vez de comparar cadenas: searchParams deshace el
+       * porcentaje-codificado, asi que el assert lee el texto TAL CUAL lo
+       * escribio el visitante. Y es exactamente lo que caza un
+       * encodeURIComponent perdido: MENSAJE_VALIDO lleva un ampersand, que
+       * sin codificar abriria un parametro nuevo y truncaria el cuerpo ahi.
+       */
+      const url = new URL(assignSpy.mock.calls[0][0] as string);
+      expect(url.protocol).toBe("mailto:");
+      expect(url.searchParams.get("subject")).toBe(
+        esHome.Home.contact.form.subject,
+      );
+      const body = url.searchParams.get("body");
+      expect(body).toContain(MENSAJE_VALIDO);
+      expect(body).toContain("visitante@test.com");
+      // La plantilla resolvio las DOS interpolaciones: ningun marcador crudo
+      // llega al cliente de correo del visitante.
+      expect(body).not.toContain("{{");
+    } finally {
+      restore();
+    }
+  });
+
+  it("con el mensaje vacio (aunque sean espacios) NO navega y pinta el error propio del mensaje", () => {
+    const { assignSpy, restore } = mockAssign();
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "visitante@test.com" },
+      });
+      // Solo espacios: producen un correo igual de vacio que no escribir nada.
+      const textarea = escribirMensaje("   ");
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      expect(assignSpy).not.toHaveBeenCalled();
+      expect(screen.getByRole("status")).toHaveTextContent(
+        esHome.Home.contact.form.messageError,
+      );
+      expect(textarea).toHaveAttribute("aria-invalid", "true");
+      // El error del correo NO se enciende: el correo era valido.
+      expect(
+        screen.queryByText(esHome.Home.contact.form.emailError),
+      ).not.toBeInTheDocument();
+    } finally {
+      restore();
+    }
+  });
+
+  it("escribir el mensaje retira su error de inmediato, y el siguiente envio ya navega", () => {
+    const { assignSpy, restore } = mockAssign();
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      const form = container.querySelector("form") as HTMLFormElement;
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "visitante@test.com" },
+      });
+      fireEvent.submit(form);
+      expect(screen.getByRole("status")).toHaveTextContent(
+        esHome.Home.contact.form.messageError,
+      );
+
+      escribirMensaje();
+      expect(
+        screen.queryByText(esHome.Home.contact.form.messageError),
+      ).not.toBeInTheDocument();
+
+      fireEvent.submit(form);
+      expect(assignSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      restore();
+    }
+  });
+
+  it("las tres claves nuevas tienen paridad es/en con texto propio de cada idioma, y la plantilla del cuerpo interpola los dos datos en los dos idiomas", () => {
+    const nuevas = [
+      "messageLabel",
+      "messagePlaceholder",
+      "messageError",
+    ] as const;
+
+    for (const clave of nuevas) {
+      const es = esHome.Home.contact.form[clave];
+      const en = enHome.Home.contact.form[clave];
+      expect(es.trim(), `es: ${clave} vacia`).not.toBe("");
+      expect(en.trim(), `en: ${clave} vacia`).not.toBe("");
+      // Una traduccion copiada literal del espanol es el fallo que la paridad
+      // de RUTAS (locales.test.ts) no puede ver: aqui se compara el VALOR.
+      expect(en, `en: ${clave} sin traducir`).not.toBe(es);
+    }
+
+    for (const plantilla of [
+      esHome.Home.contact.form.body,
+      enHome.Home.contact.form.body,
+    ]) {
+      expect(plantilla).toContain("{{email}}");
+      expect(plantilla).toContain("{{message}}");
+    }
+  });
+
+  it("en ingles, el campo de mensaje se etiqueta en ingles (la otra mitad del contrato de paridad)", async () => {
+    await act(async () => {
+      await i18n.changeLanguage("en");
+    });
+    try {
+      renderWithProviders(<Contact />);
+      expect(
+        screen.getByLabelText(enHome.Home.contact.form.messageLabel),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByLabelText(esHome.Home.contact.form.messageLabel),
+      ).not.toBeInTheDocument();
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("es");
+      });
+    }
+  });
+
+  describe("rama oscura (mismo arbol de JSX)", () => {
+    beforeEach(() => {
+      stubMatchMedia();
+      window.localStorage.setItem("vti-theme", "dark");
+    });
+    afterEach(() => {
+      window.localStorage.clear();
+    });
+
+    it("monta el MISMO formulario: noValidate y campo de mensaje con su placeholder", async () => {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("img")).toHaveLength(
+          CONTACT_GUARDIAN_LAYERS.length,
+        );
+      });
+
+      const form = container.querySelector("form") as HTMLFormElement;
+      expect(form.noValidate).toBe(true);
+      const textarea = screen.getByLabelText(
+        esHome.Home.contact.form.messageLabel,
+      );
+      expect(textarea.tagName).toBe("TEXTAREA");
+      expect(textarea).toHaveAttribute(
+        "placeholder",
+        esHome.Home.contact.form.messagePlaceholder,
+      );
+    });
   });
 });

@@ -974,9 +974,25 @@ const ScCardValue = styled.span`
  * composición (`CONTACT_FORM_BG`/`CONTACT_FORM_BORDER`, D10/D18), no roles
  * semánticos, resueltos por rama desde la Task 16 (`panelBackground`/
  * `panelBorder`, arriba -- el mismo formulario se monta ahora también en la
- * rama clara). Contiene un ÚNICO campo (D12) -- los campos Nombre/Asunto/
- * Mensaje del mockup se descartan a propósito (D12: "es literalmente lo que
- * pide el encargo").
+ * rama clara).
+ *
+ * CUÁNTOS CAMPOS, y por qué cambió (crítica externa #8, Nielsen,
+ * 2026-08-17): DOS -- correo y mensaje. Nació con un único campo (D12
+ * descartaba a propósito los Nombre/Asunto/Mensaje del mockup: "es
+ * literalmente lo que pide el encargo") y esa decisión dejaba un agujero de
+ * producto que la crítica señaló: el `mailto:` se abría con un cuerpo que
+ * solo repetía la dirección que el propio visitante acababa de escribir, así
+ * que el mensaje -- lo único que el destinatario necesita de verdad -- había
+ * que redactarlo desde cero en el cliente de correo, justo el trabajo que un
+ * formulario aparenta haber recogido ya. Se añade el campo de mensaje (ver
+ * `ScTextarea`, más abajo) y su contenido viaja en el `body=` del `mailto:`
+ * (`handleSubmit`). Nombre y Asunto siguen descartados: el nombre lo aporta
+ * la propia cuenta desde la que el visitante envía, y el asunto ya lo pone
+ * `Home.contact.form.subject`.
+ *
+ * Hay UN SOLO `<form>` en toda la sección: `contactChannels` es un único
+ * árbol de JSX que las dos ramas de tema montan tal cual (Task 16), así que
+ * este cambio entra a la vez en claro y en oscuro sin ramificar nada.
  */
 const ScForm = styled.form`
   background: ${({ theme }) => panelBackground(theme.data, CONTACT_FORM_BG)};
@@ -987,6 +1003,88 @@ const ScForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[3]};
+`;
+
+/*
+ * Campo de mensaje (crítica externa #8, Nielsen, 2026-08-17). Ver el docblock
+ * de `ScForm`, justo arriba, para el porqué del campo; esto documenta sólo el
+ * control.
+ *
+ * POR QUÉ VIVE AQUÍ Y NO EN `src/components/ui/Input/Input.tsx`: su sitio
+ * natural es un primitivo `Textarea` hermano de `Input` -- el propio `Field`
+ * lo tiene escrito en el docblock de su prop `children` ("típicamente Input,
+ * en el futuro Textarea/Select"). Esta entrega NO puede tocar
+ * `src/components/ui/` (partición de trabajo en paralelo declarada por el
+ * encargo), así que el control nace local y con la deuda DECLARADA, mismo
+ * tratamiento que el `ScBackLink` duplicado de `NotFoundContent.tsx`
+ * (`RULES.md`, "Deuda conocida"): cuando alguien extraiga el primitivo, este
+ * bloque desaparece entero y el JSX pasa a montarlo sin más cambios --
+ * `Field` ya le inyecta `id`/`aria-describedby`/`aria-invalid` igual que a
+ * `Input`, sin saber cuál de los dos es.
+ *
+ * CONTRATO VISUAL: los MISMOS tokens exactos que `ScInput` (`Input.tsx`), no
+ * una segunda paleta para el mismo formulario -- borde `neutral[600]` en
+ * reposo (el único escalón de la rampa que cruza el 3:1 de WCAG 1.4.11 en las
+ * DOS ramas: 3,112:1 en claro y 4,060:1 en oscuro, cifras medidas en el
+ * docblock de `ScInput`), refuerzo de foco resuelto por rama, halo de
+ * `:focus-visible` sobre `semantic.focus` que compone con el `outline` global
+ * en vez de sustituirlo, y borde de error derivado del atributo
+ * `aria-invalid` que `Field` inyecta -- nunca de un prop propio, para que el
+ * estado visual y el accesible no puedan desincronizarse.
+ *
+ * La altura la fija el atributo `rows` del JSX, no un `height` de CSS: cuatro
+ * líneas de la propia tipografía del campo se adaptan solas a cualquier
+ * tamaño de fuente, un literal en píxeles no.
+ */
+const ScTextarea = styled.textarea`
+  width: 100%;
+  padding: ${({ theme }) => theme.data.space[3]}
+    ${({ theme }) => theme.data.space[4]};
+  border-radius: ${({ theme }) => theme.data.radius.sm};
+  border: 1px solid ${({ theme }) => theme.data.palette.neutral[600]};
+  background: ${({ theme }) => theme.data.semantic.surface};
+  color: ${({ theme }) => theme.data.semantic.text};
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.body.size};
+  line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
+  /* Solo vertical: el eje horizontal desbordaria la tarjeta acotada de la
+     rama clara y el marco de la oscura, que ya topan su ancho. */
+  resize: vertical;
+  transition: border-color ${({ theme }) => theme.data.motion.duration.fast}
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  /* Mismo criterio que ScInput: focus, no focus-visible. Un campo de texto
+     necesita marcar su borde SIEMPRE que tiene el foco, venga de teclado o
+     de raton -- si solo reaccionara al foco de teclado, un clic dejaria el
+     campo activo sin ninguna senal de donde va a aparecer lo que se escriba. */
+  &:focus {
+    border-color: ${({ theme }) =>
+      theme.data.isLight
+        ? theme.data.palette.neutral[800]
+        : theme.data.palette.neutral[400]};
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 4px
+      color-mix(
+        in oklch,
+        ${({ theme }) => theme.data.semantic.focus} 35%,
+        transparent
+      );
+  }
+
+  &[aria-invalid="true"] {
+    border-color: ${({ theme }) => theme.data.semantic.error};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 /*
@@ -1201,6 +1299,25 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+/**
+ * Validación del mensaje (crítica externa #8, Nielsen, 2026-08-17). Obligatorio
+ * por el MISMO criterio que ya gobernaba el correo, no por una decisión nueva:
+ * si el único campo del formulario era obligatorio y tenía su propio error
+ * accesible, un segundo campo que decide el contenido REAL del correo no puede
+ * ser opcional -- enviarlo vacío reproduce exactamente el defecto que este
+ * campo viene a cerrar (un `mailto:` sin cuerpo que el visitante tiene que
+ * redactar desde cero).
+ *
+ * Solo exige contenido no-blanco: cualquier regla más fina (longitud mínima,
+ * palabras prohibidas) juzgaría el mensaje de alguien sin ninguna base, y este
+ * sitio no tiene servidor que valide nada después. El `.trim()` es lo que
+ * distingue "no ha escrito nada" de "ha escrito espacios" -- los dos casos
+ * producen un correo igual de vacío.
+ */
+function hasMessage(value: string): boolean {
+  return value.trim().length > 0;
+}
+
 export function Contact(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
@@ -1233,6 +1350,17 @@ export function Contact(): ReactElement {
    * única fuente de verdad.
    */
   const [emailError, setEmailError] = useState(false);
+  /*
+   * Mensaje del visitante (crítica externa #8, 2026-08-17) y su error propio.
+   * Arranca VACÍO, igual que el correo y por el mismo motivo (task 1,
+   * auditoría premium 2026-08-08, P0 confianza): un campo prerrellenado en un
+   * formulario de contacto lee como texto puesto por el sitio, no como una
+   * invitación a escribir -- y ya costó un P0 en este repo. El texto del error
+   * sale de i18n en el render, así que el estado guarda un booleano y no la
+   * cadena (mismo criterio que `emailError`, arriba).
+   */
+  const [message, setMessage] = useState("");
+  const [messageError, setMessageError] = useState(false);
   /*
    * Panel de fallback, revelado tras un envío VÁLIDO (D13 sigue vigente: NO
    * es un "enviado" -- este sitio no tiene backend al que postear, así que
@@ -1274,22 +1402,42 @@ export function Contact(): ReactElement {
    * puede espiar así. NO se implementa ningún estado "enviado" (D13): sin
    * backend sería una afirmación falsa en la interfaz.
    *
-   * Validación propia (task 1) ANTES de navegar: si el valor está vacío o
-   * no tiene forma de correo, `preventDefault` (ya se llama siempre, arriba)
-   * detiene aquí -- no se toca `window.location` -- y se enciende el error
-   * accesible de `Field`. La validación NATIVA (`required`, `type="email"`)
-   * sigue en el `<input>` sin tocar: esta capa es un refuerzo, no un
-   * sustituto (ver docblock de `isValidEmail`).
+   * Validación propia (task 1) ANTES de navegar: si un campo está vacío o el
+   * correo no tiene forma de correo, `preventDefault` (ya se llama siempre,
+   * arriba) detiene aquí -- no se toca `window.location` -- y se encienden los
+   * errores accesibles de `Field`. Los atributos NATIVOS (`required`,
+   * `type="email"`) siguen en los controles sin tocar: describen el campo para
+   * un lector de pantalla. Lo que ya NO hace el navegador es BLOQUEAR el envío
+   * con su propio globo de aviso -- el `<form>` declara `noValidate` desde la
+   * crítica externa #8 (ver el JSX de `contactChannels`), así que esta capa
+   * dejó de ser un refuerzo y pasó a ser la única validación que el visitante
+   * ve (ver docblock de `isValidEmail`).
+   *
+   * LOS DOS CAMPOS SE VALIDAN EN LA MISMA PASADA y los dos errores se pintan a
+   * la vez: un `return` temprano tras el primero obligaría a un segundo viaje
+   * de envío para descubrir el segundo fallo, y WCAG 3.3.1 pide identificar
+   * los errores que hay, no el primero que se encuentra.
+   *
+   * El MENSAJE viaja en el `body=` (crítica externa #8, 2026-08-17), junto al
+   * correo de contacto que ese cuerpo ya llevaba: la plantilla entera vive en
+   * `Home.contact.form.body` (una sola cadena traducible, con `{{email}}` y
+   * `{{message}}`), no repartida entre i18n y un pegado a mano aquí. Se
+   * codifica con `encodeURIComponent`, igual que el asunto: sin eso, un `&` o
+   * un salto de línea del visitante partiría la URL del `mailto:` en
+   * parámetros que nadie escribió.
    */
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (!isValidEmail(email)) {
-      setEmailError(true);
-      return;
-    }
-    setEmailError(false);
+    const emailInvalid = !isValidEmail(email);
+    const messageInvalid = !hasMessage(message);
+    setEmailError(emailInvalid);
+    setMessageError(messageInvalid);
+    if (emailInvalid || messageInvalid) return;
+
     const subject = encodeURIComponent(t("Home.contact.form.subject"));
-    const body = encodeURIComponent(t("Home.contact.form.body", { email }));
+    const body = encodeURIComponent(
+      t("Home.contact.form.body", { email, message: message.trim() }),
+    );
     window.location.assign(`${links.email}?subject=${subject}&body=${body}`);
     setSent(true);
   }
@@ -1343,7 +1491,24 @@ export function Contact(): ReactElement {
    */
   const contactChannels = (
     <ScCards>
-      <ScForm onSubmit={handleSubmit}>
+      {/* `noValidate` (crítica externa #8, Nielsen, 2026-08-17): sin él, el
+          navegador atrapa el envío ANTES de que `handleSubmit` llegue a
+          correr y muestra su propio globo nativo -- así que los dos errores
+          más comunes (campo vacío por `required`, correo malformado por
+          `type="email"`) NUNCA alcanzaban la UI de error propia que este
+          formulario ya tenía escrita: mensaje en el idioma del NAVEGADOR y no
+          en el del sitio, sin `role="status"`, sin borde de error, y
+          desaparece solo. Los atributos nativos se quedan: `required` y
+          `type="email"` siguen describiendo el campo para un lector de
+          pantalla; lo que `noValidate` apaga es únicamente el bloqueo y el
+          globo, no la semántica. La contrapartida -- que ahora la validación
+          propia es la ÚNICA que se ve -- la cubre `handleSubmit`, que
+          comprueba los mismos dos casos (vacío y forma de correo) más el
+          mensaje vacío. */}
+      <ScForm
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <Field
           label={t("Home.contact.form.label")}
           htmlFor="contact-email"
@@ -1364,6 +1529,28 @@ export function Contact(): ReactElement {
               if (emailError) setEmailError(false);
             }}
             autoComplete="email"
+          />
+        </Field>
+        <Field
+          label={t("Home.contact.form.messageLabel")}
+          htmlFor="contact-message"
+          error={messageError ? t("Home.contact.form.messageError") : undefined}
+        >
+          <ScTextarea
+            id="contact-message"
+            required
+            /* Cuatro líneas: bastante para que se lea como "aquí va un texto,
+               no una palabra" sin empujar el botón de envío fuera de pantalla
+               en móvil. Crece a voluntad con `resize: vertical`. */
+            rows={4}
+            placeholder={t("Home.contact.form.messagePlaceholder")}
+            value={message}
+            onChange={(event) => {
+              setMessage(event.target.value);
+              // Mismo criterio que el correo, arriba: corregir retira el
+              // error de inmediato, sin esperar a otro envío.
+              if (messageError) setMessageError(false);
+            }}
           />
         </Field>
         <ScSubmitButton
