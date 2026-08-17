@@ -2014,3 +2014,41 @@
 - **Detección:** `pnpm typecheck` caza el caso del componente; cuando el fichero roto es un
   módulo importado por un test, el error aparece como fallo de transformación de esbuild con
   «Expected ";"». Los dos apuntan al mismo sitio: un backtick de más.
+
+## 2026-08-17 — Un script que se construye como texto no lo revisa ningún gate
+
+- **Qué pasó:** al pasar `buildThemeBootstrapScript` de «las precargas del tema oscuro» a un
+  registro por tema, retiré el `if(theme==="dark"){…}` que envolvía el bucle de inyección, pero
+  dejé el cierre con las mismas TRES llaves (`}}}catch(e){}`). Con el `if` fuera, sobraba una:
+  el `try` quedaba cerrado antes de tiempo y el script entero dejaba de parsear con
+  `SyntaxError: Missing catch or finally after try`.
+- **Por qué no lo vio nadie:** ese script vive dentro de plantillas de texto concatenadas. Para
+  TypeScript y para ESLint es una cadena, no código: `pnpm typecheck` y `pnpm lint` pasaron los
+  dos en verde con el script roto dentro. Lo único que lo delató fue el test que EJECUTA el
+  string (`new Function(buildThemeBootstrapScript())()`), que ya existía desde la Task 9.
+- **Consecuencia real si hubiera llegado a producción:** el anti-flash de tema y las precargas
+  del arte se pierden a la vez, en silencio, en TODAS las cargas. No hay error en consola que un
+  usuario reporte: el `<script>` sencillamente no hace nada.
+- **Regla:** cualquier cambio en el CUERPO de un script construido como texto se verifica
+  ejecutándolo, no leyéndolo. Si el fichero no tiene ya un test que haga `new Function(...)()`,
+  ése es el primer test que se escribe — antes que el del comportamiento que se venía a añadir.
+- **Corolario sobre las llaves:** al retirar un bloque de control dentro de una plantilla, se
+  cuentan las llaves de cierre a mano y se deja escrito en el código CUÁNTAS hay y a qué
+  corresponde cada una. Un `}}}` sin comentario es indistinguible de un `}}` correcto.
+
+## 2026-08-17 (bis) — Escribí «validado con bug inyectado» sin haberlo inyectado
+
+- **Qué pasó:** al documentar una salida temprana en `HeroBackdrop.tsx` afirmé que iba antes del
+  incremento del token «porque el incremento invalida la carrera en vuelo, y salir después
+  dejaría el fondo pegado en pending para siempre», y escribí en el test que el bug inyectado lo
+  ponía en rojo. Al inyectarlo de verdad, **el test siguió en verde**.
+- **Por qué la predicción era razonable y aun así falsa:** el efecto de la carrera adopta
+  `tokenRef.current` en TIEMPO DE EFECTO y está declarado después del de detección, así que en el
+  mismo lote lee el token ya incrementado y los dos siguen coincidiendo. La invalidación que yo
+  daba por hecha no ocurre.
+- **Regla:** la frase «validado con el bug inyectado» solo se escribe DESPUÉS de haberlo
+  inyectado y visto el rojo. Si el candado protege el desenlace y no el mecanismo que uno creía,
+  se dice eso — y la decisión de diseño se declara como prudencia, no como corrección.
+- **Lo que sí quedó:** la salida temprana se conserva (elimina una segunda carrera de `decode()`
+  sobre cinco imágenes en cada carga oscura, medida en el reloj de la suite: 18.390 → 16.366 ms
+  en `app/home-page.flujo.test.tsx`), pero su POSICIÓN está documentada como lo que es.

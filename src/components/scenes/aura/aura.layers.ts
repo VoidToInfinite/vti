@@ -195,6 +195,37 @@ export const AURA_LAYERS: readonly AuraLayer[] = [
  */
 export const AURA_SIZES = "(max-width: 700px) 60vw, 100vw";
 
+/**
+ * Descriptores de precarga del arte claro, hermanos exactos de `EYE_PRELOADS`
+ * (`eye.layers.ts`) y con el mismo contrato: las claves tienen que coincidir
+ * carácter a carácter con el `srcSet`/`sizes` que emite `Aura.tsx`, o el
+ * navegador no reconocerá la precarga como la misma petición y descargará
+ * cada capa DOS veces. `Aura.test.tsx` compara lo que el componente
+ * RENDERIZA contra esta lista, no una constante contra otra.
+ *
+ * POR QUÉ EXISTE (2026-08-17). Hasta esta revisión el arte claro no
+ * necesitaba precarga declarada: viajaba en el HTML estático como cuatro
+ * `<img>`, y el Float de React 19 hoisteaba sus cuatro `<link rel="preload">`
+ * al `<head>` por su cuenta. Eso daba un camino claro impecable a costa de
+ * cobrarle al visitante OSCURO 309.276 B medidos de arte que no verá nunca
+ * — el 13,1 % de su carga. Desde que `HeroBackdrop` dejó de emitir ningún
+ * stack en el HTML (ver su docblock), ese hoisteo automático ya no ocurre:
+ * las dos ramas se precargan igual, desde el script de arranque, que es el
+ * único punto del sitio que conoce el tema resuelto antes de hidratar.
+ *
+ * El orden importa: `field` va primero porque es la capa a sangre sobre el
+ * socket entero — la única candidata real a LCP — y el script le pone
+ * `fetchpriority="high"` al índice 0. Coincide con `AURA_LAYERS[0]` por
+ * construcción, no por coincidencia.
+ */
+export const AURA_PRELOADS: readonly {
+  readonly srcSet: string;
+  readonly sizes: string;
+}[] = AURA_LAYERS.map((layer) => ({
+  srcSet: `${layer.srcSmall} 1024w, ${layer.src} 1672w`,
+  sizes: AURA_SIZES,
+}));
+
 /** Relación de aspecto del lienzo original de Aura (1672 × 941), igual que
  *  la del ojo: es el mismo tamaño de lienzo de origen. */
 export const AURA_ASPECT = "1672 / 941";

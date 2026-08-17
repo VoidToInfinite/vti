@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen, fireEvent, act } from "@/test/test-utils";
 import { Aura } from "./Aura";
-import { AURA_LAYERS } from "./aura.layers";
+import { AURA_LAYERS, AURA_PRELOADS } from "./aura.layers";
 import { AURA_LAYER_BLEND_MODE } from "./aura.parts";
 
 /**
@@ -282,5 +282,50 @@ describe("Aura", () => {
     renderWithProviders(<Aura />);
 
     expect(ioObserveSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * Candado de `AURA_PRELOADS` (2026-08-17), hermano exacto del de
+ * `EYE_PRELOADS` en `Eye.test.tsx` y por el mismo motivo: el navegador solo
+ * trata una precarga y la peticion del `<img>` como la MISMA cosa si
+ * `imagesrcset`/`imagesizes` coinciden con `srcSet`/`sizes` caracter a
+ * caracter. Si divergen, cada capa se descarga DOS veces y el arreglo de
+ * rendimiento se convierte en un defecto de rendimiento.
+ *
+ * Desde esta revision el candado importa mas que antes: el HTML estatico ya
+ * no trae los `<img>` de Aura (ver el docblock de `HeroBackdrop.tsx`), asi
+ * que la UNICA precarga del arte claro es la que inyecta el script de
+ * arranque a partir de esta lista. Si diverge, el visitante claro pierde la
+ * precarga entera en vez de duplicarla -- un fallo mas silencioso todavia.
+ *
+ * NO es tautologico aunque las dos partes salgan de `AURA_LAYERS`: `Aura.tsx`
+ * construye su `srcSet` con su propia plantilla literal (y ademas en DOS
+ * ramas distintas del JSX, la capa a sangre y las del marco del sujeto), y
+ * `AURA_PRELOADS` construye la suya.
+ */
+describe("Aura: las precargas del arranque coinciden con lo que se renderiza", () => {
+  it("cada capa renderizada tiene una precarga con su srcSet y su sizes exactos", () => {
+    const { container } = renderWithProviders(<Aura />);
+    const imgs = Array.from(container.querySelectorAll("img"));
+    expect(imgs).toHaveLength(AURA_LAYERS.length);
+    expect(AURA_PRELOADS).toHaveLength(AURA_LAYERS.length);
+
+    imgs.forEach((img, i) => {
+      expect(
+        img.getAttribute("srcset"),
+        `la capa ${i} renderiza un srcSet que ninguna precarga reproduce: el visitante claro se queda sin precarga`,
+      ).toBe(AURA_PRELOADS[i].srcSet);
+      expect(img.getAttribute("sizes")).toBe(AURA_PRELOADS[i].sizes);
+    });
+  });
+
+  it("la primera precarga es la capa a sangre: es la unica candidata real a LCP y la que recibe fetchpriority alto", () => {
+    // El script de arranque pone `fetchpriority="high"` al indice 0 y solo a
+    // ese. Si alguien reordena AURA_LAYERS y `field` deja de ir primero, la
+    // prioridad alta viajaria a una capa que vive dentro del marco del
+    // sujeto -- mas pequena, nunca el elemento mas grande pintado.
+    expect(AURA_LAYERS[0].fullBleed).toBe(true);
+    expect(AURA_PRELOADS[0].srcSet).toContain(AURA_LAYERS[0].src);
   });
 });

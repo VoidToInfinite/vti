@@ -10,6 +10,7 @@ import styled from "styled-components";
 import { Aura } from "@/components/scenes/aura/Aura";
 import { Eye } from "@/components/scenes/eye/Eye";
 import { useTheme } from "@/theme/ThemeProvider";
+import { readResolvedTheme } from "@/theme/resolveTheme";
 import type { ThemeName } from "@/theme/themes";
 import {
   HERO_BACKDROP_HOLD_MS,
@@ -203,27 +204,53 @@ const ScAuraStack = styled.div`
  * cambio de lienzo sin animar background-color, y eso vale en los dos
  * sentidos del relevo -- por eso el orden de montaje en el JSX no depende de
  * cual es el entrante.
+ *
+ * ## Por que el HTML estatico no trae arte (2026-08-17)
+ *
+ * Hasta esta revision, los dos `useState` de mas abajo sembraban el stack
+ * durante el RENDER, leyendo `themeName`. Bajo `output: "export"` eso tiene
+ * una consecuencia que no es de estilo sino de bytes: `ThemeProvider` no
+ * puede leer `localStorage` durante el render, asi que `themeName` vale
+ * SIEMPRE "light" en el primer paso, asi que el HTML horneado por el build
+ * traia SIEMPRE los cuatro `<img>` de Aura -- y el Float de React 19
+ * hoisteaba ademas sus cuatro `<link rel="preload">` al `<head>`.
+ *
+ * El visitante oscuro pagaba esas nueve peticiones enteras. Medido contra el
+ * build de produccion a 1280x720, contexto nuevo por tema, sumando
+ * `encodedBodySize` de `performance.getEntriesByType("resource")`:
+ *
+ *   claro    28 peticiones    759.854 B
+ *   oscuro   44 peticiones  2.354.922 B   de los cuales 309.276 B de arte
+ *                                         claro que no vera nunca (13,1 %)
+ *
+ * Ahora el render no monta ningun stack -- ni en servidor ni en el primer
+ * render de cliente -- y lo siembra el efecto de montaje con el tema ya
+ * resuelto (ver su comentario). El HTML estatico deja de pedir arte, y quien
+ * lo pide es el script de arranque del `<head>`, que precarga la rama
+ * correcta y solo esa (`buildThemeBootstrapScript`, ahora con un registro por
+ * tema en vez de solo el oscuro).
+ *
+ * LO QUE SE PIERDE, declarado: sin JavaScript ya no hay arte de fondo en el
+ * hero. Es una perdida aceptada y acotada -- toda esta composicion es
+ * `aria-hidden="true"` con `alt=""`, no comunica nada que no este ya en el
+ * `<h1>` y la copia, que siguen viajando en el HTML estatico; el hero
+ * conserva el color de fondo del tema por CSS, asi que la copia sigue
+ * legible. No se anade respaldo `<noscript>`: las capas son elementos de
+ * styled-components, y sin renderizarlas en servidor su CSS tampoco se emite,
+ * de modo que un `<noscript>` entregaria imagenes sin encuadre ni
+ * posicionamiento -- peor que no entregar ninguna.
  */
 export function HeroBackdrop(): ReactElement {
   const { themeName, changeSource } = useTheme();
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // Carga (spec S7.2): el stack del tema con el que arranca `ThemeProvider`
-  // (siempre "light" en el primer render, nunca puede leer localStorage
-  // durante el render) se monta YA en "pending", no en "active" -- el
-  // pendingEntry inicial (mismo estado, mas abajo) dispara la MISMA carrera
-  // de decode() que usa un cambio de tema, sin ninguna maquina nueva.
-  const [stacks, setStacks] = useState<Stacks>(() => ({
-    [stackFor(themeName)]: "pending",
-  }));
-  const [pendingEntry, setPendingEntry] = useState<PendingEntry | null>(() => {
-    const entering = stackFor(themeName);
-    return {
-      entering,
-      leaving: otherStack(entering),
-      needsHandoff: false,
-    };
-  });
+  // Carga (spec S7.2): NINGUN stack se monta durante el render -- ni en
+  // servidor ni en el primer render de cliente. Los siembra el efecto de
+  // montaje de mas abajo, con el tema YA RESUELTO. Ver el docblock del
+  // componente, seccion "por que el HTML estatico no trae arte", para el
+  // porque y los bytes que eso ahorra.
+  const [stacks, setStacks] = useState<Stacks>({});
+  const [pendingEntry, setPendingEntry] = useState<PendingEntry | null>(null);
 
   const stacksRef = useRef(stacks);
   // Sincroniza DESPUES de cada render (sin dependencias), mismo patron que
@@ -236,6 +263,55 @@ export function HeroBackdrop(): ReactElement {
 
   const prevThemeRef = useRef(themeName);
   const tokenRef = useRef(0);
+
+  /*
+   * Siembra el stack de la CARGA, ya en cliente y con el tema RESUELTO.
+   *
+   * `readResolvedTheme()` y no `themeName`: en el instante en que este efecto
+   * corre, `themeName` todavia vale "light" para TODO EL MUNDO -- el efecto de
+   * correccion de `ThemeProvider` es un efecto del PADRE, y React ejecuta los
+   * de los hijos primero. Sembrar desde `themeName` montaria Aura durante un
+   * commit en un visitante oscuro, y un commit basta: el navegador arranca la
+   * peticion de los cuatro <img> en cuanto los ve en el DOM, aunque React los
+   * retire en el tick siguiente. El atributo `data-theme`, en cambio, lo dejo
+   * escrito el script de arranque antes del primer pintado.
+   *
+   * NO se toca `prevThemeRef`, y el primer intento SI lo tocaba: adelantarlo
+   * al tema del atributo parecia un ahorro (asi la correccion de
+   * `ThemeProvider` se leeria como "sin cambio" y no relanzaria la carrera de
+   * decode() que este efecto acaba de arrancar). Es un error, y lo cazo su
+   * propio candado: el efecto de deteccion tambien corre en el MONTAJE, y con
+   * `prevThemeRef` ya en "dark" mientras `themeName` sigue en "light" su
+   * primera linea deja de cortar -- entra por el camino de hidratacion,
+   * calcula `entering = "aura"` y pisa la siembra con un `setStacks` posterior
+   * en el mismo lote. Resultado: se monta Aura igual, que es EXACTAMENTE el
+   * defecto que este cambio existe para cerrar. Con `prevThemeRef` intacto, el
+   * efecto de deteccion sale en el montaje (light === light) y la correccion
+   * posterior de `ThemeProvider` entra por el camino de hidratacion de
+   * siempre, que sustituye el pendiente por el MISMO stack: una carrera de
+   * decode() de mas, ningun `<img>` de la rama equivocada.
+   *
+   * El fallback a `themeName` cubre el unico caso en el que el atributo no
+   * existe: que el script de arranque haya lanzado (almacenamiento bloqueado)
+   * y su try/catch lo haya absorbido. Ahi el HTML estatico ya es el claro por
+   * definicion, asi que sembrar "light" es exactamente lo correcto -- y si el
+   * storage decia otra cosa, la correccion de `ThemeProvider` SI se vera como
+   * un cambio real y el camino de hidratacion de siempre se encarga.
+   */
+  useEffect(() => {
+    const entering = stackFor(readResolvedTheme() ?? themeName);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- siembra de montaje: corre UNA vez, no en cada render
+    setStacks({ [entering]: "pending" });
+    setPendingEntry({
+      entering,
+      leaving: otherStack(entering),
+      needsHandoff: false,
+    });
+    // Deps vacias a proposito: es la siembra del MONTAJE. `themeName` se lee
+    // aqui solo como respaldo del atributo y no debe reprogramar el efecto --
+    // los cambios posteriores de tema son trabajo del efecto de deteccion.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ver arriba
+  }, []);
 
   // Las dos condiciones del relevo secuencial de un cambio de tema (spec
   // S7.3): el reloj (HERO_HANDOFF_MS, temporizador propio) y el decode() del
@@ -330,6 +406,39 @@ export function HeroBackdrop(): ReactElement {
 
     const entering = stackFor(themeName);
     const leaving = otherStack(entering);
+
+    /*
+     * El ajuste de hidratacion que no ajusta nada (2026-08-17). Desde que el
+     * efecto de siembra lee `data-theme`, el caso NORMAL de un visitante
+     * oscuro es este: la siembra ya monto el ojo, y la correccion de
+     * `ThemeProvider` llega despues diciendo lo mismo. Sin esta salida, el
+     * camino de hidratacion de mas abajo re-sembraba el MISMO stack y lanzaba
+     * una segunda carrera de decode() sobre las mismas cinco imagenes, para
+     * terminar exactamente donde ya estaba.
+     *
+     * Va ANTES del incremento del token por prudencia, NO porque haga falta:
+     * se probo moviendo la guarda debajo del incremento y el fondo llega a
+     * "active" igual. El motivo, medido y no supuesto: el efecto de la carrera
+     * esta declarado DESPUES de este, y adopta `tokenRef.current` en tiempo de
+     * efecto (ver su comentario), asi que en el mismo lote lee el token YA
+     * incrementado y los dos siguen coincidiendo. Se deja arriba porque salir
+     * sin tocar nada describe mejor lo que esta rama hace -- nada -- y porque
+     * esa coincidencia depende del orden de declaracion de dos efectos, que es
+     * una propiedad fragil en la que no conviene apoyarse.
+     *
+     * Solo cubre "pending"/"active". Un stack en "leaving" esta a mitad de
+     * apagarse y SI necesita el tratamiento completo -- aunque un ajuste de
+     * hidratacion no puede encontrarse uno (llega antes de que ningun relevo
+     * arranque), la guarda se escribe por lo que afirma, no por lo que hoy
+     * puede ocurrir.
+     */
+    const enteringPhase = stacksRef.current[entering];
+    if (
+      changeSource !== "user" &&
+      (enteringPhase === "pending" || enteringPhase === "active")
+    ) {
+      return;
+    }
 
     // Cualquier tramo en marcha (carga, hidratacion o relevo) queda
     // invalidado por este cambio: se descarta cualquier decode() que

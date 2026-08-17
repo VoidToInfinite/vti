@@ -1,6 +1,11 @@
 import { act } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "@/theme/ThemeProvider";
+import { THEME_ATTRIBUTE } from "@/theme/resolveTheme";
+import i18n from "@/i18n/config";
 import {
   renderWithProviders,
   screen,
@@ -125,6 +130,19 @@ function renderHeroBackdrop(children: ReactNode): RenderResult {
 
 beforeEach(() => {
   window.localStorage.clear();
+  /*
+   * `data-theme` tambien se limpia, y no es ceremonia: `document` es UNO solo
+   * para todo el fichero, y `ThemeProvider` escribe ese atributo en cuanto un
+   * test conmuta el tema. Sin esta linea, el atributo que deja un test viaja
+   * al siguiente -- y desde que `HeroBackdrop` siembra su stack leyendo el
+   * atributo (2026-08-17), esa herencia decide QUE rama se monta: el test del
+   * visitante nuevo sin storage se encontraba "dark" pegado del test anterior
+   * y montaba el ojo. En un navegador real la fuga no existe -- cada carga
+   * escribe el atributo desde cero, coherente con `localStorage` -- asi que
+   * lo correcto es devolver al fichero esa condicion inicial, no aflojar la
+   * asercion.
+   */
+  document.documentElement.removeAttribute(THEME_ATTRIBUTE);
   stubMatchMedia();
   // `vi.useFakeTimers()` ANTES del stub de rAF, no despues: los timers falsos
   // de vitest sustituyen `requestAnimationFrame` por su propio polyfill
@@ -586,5 +604,115 @@ describe("HeroBackdrop", () => {
     // desincronizado). Con el arreglo, decode() resuelve y el token
     // coincide: el stack llega a "active".
     expect(stackOf("aura")).toHaveAttribute("data-state", "active");
+  });
+});
+
+/*
+ * El HTML estatico no trae arte (2026-08-17). Es el candado del ahorro
+ * medido: 309.276 B de arte claro que el visitante OSCURO descargaba y no
+ * veia nunca -- el 13,1 % de su carga.
+ *
+ * `renderToStaticMarkup` y no `renderWithProviders`: lo que se quiere
+ * bloquear es EXACTAMENTE lo que hornea `output: "export"`, es decir el
+ * render sin efectos. `renderWithProviders` envuelve en `act()`, que los
+ * ejecuta, asi que veria ya el stack sembrado y no distinguiria la revision
+ * nueva de la vieja. Validado con el bug inyectado a proposito: devolviendo
+ * los `useState` a su inicializador viejo (`{ [stackFor(themeName)]:
+ * "pending" }`), este test cae en rojo con las cuatro capas de Aura dentro
+ * del marcado; restaurado, vuelve a verde.
+ */
+describe("HeroBackdrop: el HTML estatico no pide arte", () => {
+  it("el render de servidor no emite ni un <img>: ninguna rama de arte viaja en el HTML horneado", () => {
+    const html = renderToStaticMarkup(
+      <I18nextProvider i18n={i18n}>
+        <ThemeProvider>
+          <HeroBackdrop />
+        </ThemeProvider>
+      </I18nextProvider>,
+    );
+
+    expect(
+      html,
+      "el HTML estatico volvio a emitir <img> del hero: el visitante del OTRO tema los descargara sin verlos nunca",
+    ).not.toContain("<img");
+    expect(html).not.toContain("/hero/aura/");
+    expect(html).not.toContain("/hero/eye/");
+    // Y sin embargo el envoltorio SI esta: el fondo sigue ocupando su hueco
+    // en el arbol, solo que vacio hasta que el efecto de montaje lo siembra.
+    expect(html).toContain("<div");
+  });
+
+  it("la siembra lee el tema del atributo `data-theme`, no el `themeName` de React: es lo unico resuelto cuando se decide QUE bytes pedir", async () => {
+    // Escenario deliberadamente divergente: el atributo (que escribe el
+    // script de arranque antes del primer pintado) dice oscuro, mientras
+    // `ThemeProvider` se queda en claro porque no hay storage ni preferencia
+    // de sistema. En produccion los dos coinciden; separarlos aqui es lo que
+    // permite comprobar CUAL de los dos manda en la decision de bytes.
+    document.documentElement.setAttribute(THEME_ATTRIBUTE, "dark");
+    try {
+      renderHeroBackdrop(<HeroBackdrop />);
+      await act(async () => {
+        await flushMicrotasks();
+      });
+
+      expect(stackOf("eye")).toBeInTheDocument();
+      expect(
+        stackOf("aura"),
+        "se sembro la rama clara con el atributo en oscuro: el visitante oscuro vuelve a pagar el arte que no ve",
+      ).not.toBeInTheDocument();
+    } finally {
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    }
+  });
+
+  it("sin atributo (el script de arranque lanzo) cae al tema de React, que es el del HTML estatico", async () => {
+    document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    renderHeroBackdrop(<HeroBackdrop />);
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    expect(stackOf("aura")).toBeInTheDocument();
+    expect(stackOf("eye")).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * El camino REAL de un visitante oscuro tras el cambio del 2026-08-17: el
+ * script de arranque deja `data-theme="dark"` y `localStorage` dice lo mismo,
+ * asi que la siembra monta el ojo y la correccion de `ThemeProvider` llega
+ * despues confirmando lo que ya estaba.
+ *
+ * Lo que este candado protege es el DESENLACE de ese camino: un solo stack
+ * montado y en "active". El modo de fallo que vigila no da ningun error --
+ * seria un hero negro con las cinco capas en opacity 0, pegadas en "pending".
+ *
+ * SOBRE SU VALIDACION, dicho tal cual salio: se probo el bug de mover la
+ * salida temprana del efecto de deteccion DEBAJO de `tokenRef.current += 1`
+ * (la hipotesis era que invalidaria la carrera en vuelo) y el test SIGUIO EN
+ * VERDE. El motivo esta medido: el efecto de la carrera esta declarado despues
+ * del de deteccion y adopta el token en tiempo de efecto, asi que lee el valor
+ * ya incrementado y los dos siguen coincidiendo. Es decir: este test cubre el
+ * desenlace, no la posicion de esa guarda -- y esa posicion es prudencia
+ * declarada, no una condicion de correccion.
+ */
+describe("HeroBackdrop: el visitante oscuro real (atributo y storage de acuerdo)", () => {
+  it("la siembra monta el ojo y la correccion del proveedor no reinicia la carrera: llega a active", async () => {
+    document.documentElement.setAttribute(THEME_ATTRIBUTE, "dark");
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      renderHeroBackdrop(<HeroBackdrop />);
+      await act(async () => {
+        await flushMicrotasks();
+      });
+
+      expect(
+        stackOf("eye"),
+        "el fondo se quedo en pending: la salida temprana del efecto de deteccion corre DESPUES de invalidar el token",
+      ).toHaveAttribute("data-state", "active");
+      expect(document.querySelectorAll("[data-stack]")).toHaveLength(1);
+    } finally {
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    }
   });
 });

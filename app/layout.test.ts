@@ -161,6 +161,10 @@ describe("app/layout.tsx — anti-flash de tema (Task 9, mecanismo Task 31)", ()
       scriptTag?.[0],
       "el script de arranque dejó de recibir las precargas del arte oscuro (Ola A.1): sin ellas el LCP oscuro vuelve a 10,4 s",
     ).toContain("EYE_PRELOADS");
+    expect(
+      scriptTag?.[0],
+      "el script de arranque dejó de recibir las precargas del arte claro (2026-08-17): desde que el HTML estático no emite los <img> de Aura, ésta es la única precarga que le queda al visitante claro",
+    ).toContain("AURA_PRELOADS");
   });
 });
 

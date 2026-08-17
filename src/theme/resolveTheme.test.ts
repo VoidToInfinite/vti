@@ -79,3 +79,98 @@ describe("buildThemeBootstrapScript", () => {
     }
   });
 });
+
+/*
+ * El registro de precargas por tema (2026-08-17). Hasta esta revision el
+ * parametro era "las precargas del arte OSCURO" y el arte claro no lo
+ * necesitaba: viajaba en el HTML estatico y el Float de React hoisteaba su
+ * precarga solo. Desde que `HeroBackdrop` dejo de emitir arte en el HTML, esa
+ * via desaparecio y las dos ramas dependen de este script.
+ *
+ * Estos tests EJECUTAN el string generado en el DOM real de jsdom, no
+ * inspeccionan su texto: lo que importa no es que la plantilla contenga
+ * ciertas letras, sino que el navegador acabe con las precargas de UN tema y
+ * solo uno. Un candado de texto pasaria igual con un bucle que inyectase las
+ * dos ramas.
+ */
+describe("buildThemeBootstrapScript: precargas del tema resuelto y solo de ese", () => {
+  const LIGHT = [{ srcSet: "/claro-a.webp 1x", sizes: "100vw" }];
+  const DARK = [
+    { srcSet: "/oscuro-a.webp 1x", sizes: "100vw" },
+    { srcSet: "/oscuro-b.webp 1x", sizes: "50vw" },
+  ];
+
+  function runWithStoredTheme(stored: string): HTMLLinkElement[] {
+    const original = window.localStorage.getItem(STORAGE_KEYS.theme);
+    document.head
+      .querySelectorAll('link[rel="preload"][imagesrcset]')
+      .forEach((node) => node.remove());
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.theme, stored);
+      new Function(buildThemeBootstrapScript({ light: LIGHT, dark: DARK }))();
+      return Array.from(
+        document.head.querySelectorAll<HTMLLinkElement>(
+          'link[rel="preload"][imagesrcset]',
+        ),
+      );
+    } finally {
+      if (original === null) {
+        window.localStorage.removeItem(STORAGE_KEYS.theme);
+      } else {
+        window.localStorage.setItem(STORAGE_KEYS.theme, original);
+      }
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    }
+  }
+
+  it("con el tema oscuro resuelto inyecta las precargas oscuras, ninguna clara", () => {
+    const links = runWithStoredTheme("dark");
+    expect(links.map((l) => l.getAttribute("imagesrcset"))).toEqual(
+      DARK.map((p) => p.srcSet),
+    );
+    expect(links.map((l) => l.getAttribute("imagesizes"))).toEqual(
+      DARK.map((p) => p.sizes),
+    );
+  });
+
+  it("con el tema claro resuelto inyecta las precargas claras, ninguna oscura -- la regresion que el parametro viejo no podia evitar", () => {
+    const links = runWithStoredTheme("light");
+    expect(links.map((l) => l.getAttribute("imagesrcset"))).toEqual(
+      LIGHT.map((p) => p.srcSet),
+    );
+  });
+
+  it("solo la PRIMERA precarga lleva fetchpriority alto: es la candidata a LCP y el resto no debe competir con ella", () => {
+    const links = runWithStoredTheme("dark");
+    expect(links[0].getAttribute("fetchpriority")).toBe("high");
+    expect(links[1].getAttribute("fetchpriority")).toBeNull();
+  });
+
+  it("un tema sin entrada en el registro no inyecta nada ni lanza", () => {
+    const original = window.localStorage.getItem(STORAGE_KEYS.theme);
+    document.head
+      .querySelectorAll('link[rel="preload"][imagesrcset]')
+      .forEach((node) => node.remove());
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+      expect(() =>
+        new Function(buildThemeBootstrapScript({ light: LIGHT }))(),
+      ).not.toThrow();
+      expect(
+        document.head.querySelectorAll('link[rel="preload"][imagesrcset]'),
+      ).toHaveLength(0);
+      // Y lo importante: el atributo de tema SI se fijo. La precarga es
+      // accesoria; el anti-flash no puede caerse con ella.
+      expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe(
+        "dark",
+      );
+    } finally {
+      if (original === null) {
+        window.localStorage.removeItem(STORAGE_KEYS.theme);
+      } else {
+        window.localStorage.setItem(STORAGE_KEYS.theme, original);
+      }
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    }
+  });
+});

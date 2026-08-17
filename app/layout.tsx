@@ -5,6 +5,7 @@ import { SITE } from "@/config/site";
 import { JsonLdScript } from "@/seo/JsonLdScript";
 import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
 import { buildMetadata } from "@/seo/metadata";
+import { AURA_PRELOADS } from "@/components/scenes/aura/aura.layers";
 import { EYE_PRELOADS } from "@/components/scenes/eye/eye.layers";
 import { buildThemeBootstrapScript, THEME_COLORS } from "@/theme/resolveTheme";
 import { Providers } from "./providers";
@@ -290,7 +291,10 @@ export default function RootLayout({
         <script
           id="theme-bootstrap"
           dangerouslySetInnerHTML={{
-            __html: buildThemeBootstrapScript(EYE_PRELOADS),
+            __html: buildThemeBootstrapScript({
+              light: AURA_PRELOADS,
+              dark: EYE_PRELOADS,
+            }),
           }}
         />
       </head>
