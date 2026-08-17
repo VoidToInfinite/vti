@@ -194,7 +194,7 @@ Valores derivados, no elegidos a mano:
 
 | Constante | Valor | Derivación |
 | --- | --- | --- |
-| `HERO_FADE_MS` | 420 | duración del fundido de una capa (2 × `motion.duration.base`) |
+| `HERO_FADE_MS` | 420 | duración del fundido de una capa — valor calibrado a ojo sobre el render; la derivación «2 × base» que figuraba aquí era falsa (2 × 200 = 400 ≠ 420; corregido 2026-08-17, ver el docblock de `src/motion/timings.ts`) |
 | `HERO_STEP_MS` | 110 | paso del stagger entre capas |
 | `HERO_STAGGER_STEPS` | 6 | `Math.max` entre `EYE_STAGGER.length` (6, oscuro) y `AURA_STAGGER.length` (5, claro) |
 | `HERO_STACK_MS` | 970 | `HERO_FADE_MS + (HERO_STAGGER_STEPS − 1) × HERO_STEP_MS` = 420 + 5×110 |

@@ -83,6 +83,25 @@ const float = keyframes`
   50% { transform: translateY(${STORY_FLOAT_AMPLITUDE}); }
 `;
 
+/**
+ * Los cuatro pilares de Story. Se llama PILLARS, en plural y sin prefijo de
+ * seccion, y esa es la unica forma en que existe: nunca hubo un STORY_STEPS
+ * (verificado con `git log -S` sobre `src/`, cero commits) -- el nombre lo
+ * inventó la entrada `numbering` del allowlist de
+ * `scripts/detect-anti-patterns.mjs` al sancionar estas cuatro lineas, y
+ * quedó corregido ahí en la misma revisión que escribe este docblock
+ * (crítica externa #8, 2026-08-17).
+ *
+ * `number` es DECORACION, no una secuencia. Task 15 (numeracion honesta,
+ * 2026-08-11) retiró la etiqueta "Paso"/"Step" que lo acompañaba justo por
+ * eso: los cuatro pilares son cuatro maneras simultaneas de mirar lo mismo,
+ * y prometer un orden que no existe era el defecto. La unica secuencia real
+ * del sitio es la de Journey. Ver el comentario del badge en `StoryLight`.
+ *
+ * Lo consumen LAS DOS ramas de tema con el mismo array: la rejilla de
+ * tarjetas de `StoryLight` y las diapositivas de pilar del deck de
+ * `StoryDeckDark`.
+ */
 const PILLARS = [
   { key: "learn", number: "01" },
   { key: "create", number: "02" },

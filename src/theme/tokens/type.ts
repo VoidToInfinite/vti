@@ -12,7 +12,11 @@ export type TypeVariant =
   | "overline"
   | "code";
 
-export interface TypeStyle {
+/* Sin `export`: solo lo usa el `satisfies` del final de este mismo fichero.
+   Estuvo exportado sin un solo consumidor externo desde que se creó el
+   sistema; el censo de la crítica externa #8 (2026-08-17) lo confirmó por
+   grep sobre `src/` y `app/`. */
+interface TypeStyle {
   size: string;
   weight: number;
   lineHeight: number;

@@ -55,13 +55,42 @@ import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
  * que `Sol.tsx:147` declara sus 1100 ms de morph como una excepción propia
  * en vez de forzarlos en la escala.
  *
- * `HERO_FADE_MS` sí es un múltiplo reconocible de la escala (2 × `base` =
- * 2 × 200 ms), así que no es un número arbitrario, pero vive aquí, como
- * constante propia de la coreografía, no como alias de `motion.duration`:
- * un alias se rompería en silencio el día que alguien cambiara `base` por
- * una razón de UI ajena a esta transición. El conjunto completo se apaga
- * bajo `prefers-reduced-motion` en `aura.parts.tsx` y en `HeroBackdrop.tsx`,
+ * ### De dónde sale el 420 (corrección de honestidad, crítica externa #8,
+ * 2026-08-17)
+ *
+ * Hasta esta revisión, este párrafo afirmaba que `HERO_FADE_MS` «sí es un
+ * múltiplo reconocible de la escala (2 × `base` = 2 × 200 ms)». **Era falso
+ * por aritmética elemental: 2 × 200 son 400, no 420.** La afirmación nació
+ * en la spec `2026-07-26-hero-aura-tema-claro-design.md` §5.3 —donde se
+ * escribe sin operación delante, «un múltiplo reconocible (2 × `base`)»— y
+ * se copió al código en el mismo commit que creó el fichero original
+ * (`760146e`, `hero.transition.ts`), del que este módulo la heredó verbatim
+ * al extraerse.
+ *
+ * Buscada la derivación real antes de reescribir esto: `git log -S "420"`
+ * sobre este fichero y sobre `hero.transition.ts` da tres commits y ninguno
+ * la explica (el que introduce el valor es el mismo que introduce la
+ * afirmación falsa); en `docs/` el número solo aparece ya escrito —una fila
+ * de tabla y un bloque de código que reproducen la constante— nunca
+ * calculado. **No existe derivación aritmética: 420 ms es un valor calibrado
+ * a ojo sobre el render.** Lo que la documentación sí trata como cierto es
+ * su condición de perilla de calibración: `docs/qa-3d-pendiente.md` dice que
+ * si la secuencia «se lee plana» se suba `HERO_STEP_MS` ANTES que alargar
+ * `HERO_FADE_MS`, y que si el cambio de tema se percibe lento se bajen los
+ * dos — instrucciones de ajuste por percepción, no de recálculo.
+ *
+ * Lo que sigue siendo cierto del párrafo original, y es el motivo real de
+ * que el valor viva aquí y no como alias de `motion.duration`: un alias se
+ * rompería en silencio el día que alguien cambiara `base` por una razón de
+ * UI ajena a esta transición. El conjunto completo se apaga bajo
+ * `prefers-reduced-motion` en `aura.parts.tsx` y en `HeroBackdrop.tsx`,
  * igual que el resto del lenguaje de movimiento del sitio.
+ *
+ * PENDIENTE fuera de este fichero: la misma afirmación falsa sobrevive en
+ * `DESIGN.md` (tabla de tiempos del hero, celda de `HERO_FADE_MS`: «2 ×
+ * `motion.duration.base`») y en la spec citada arriba. Las dos quedan
+ * declaradas aquí en vez de corregidas en silencio desde una tarea que no
+ * es dueña de esos documentos.
  */
 
 /** Duración del fundido de UNA capa del stagger. */

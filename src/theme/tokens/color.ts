@@ -2,7 +2,11 @@ export const STEPS = [
   50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100,
 ] as const;
 export type Step = (typeof STEPS)[number];
-export type Ramp = Record<Step, string>;
+/* Sin `export`: solo lo usan las dos fábricas de rampa de este mismo fichero.
+   Estuvo exportado sin un solo consumidor externo desde que se creó el
+   sistema; el censo de la crítica externa #8 (2026-08-17) lo confirmó por
+   grep sobre `src/` y `app/`. */
+type Ramp = Record<Step, string>;
 
 // Escalera de luminosidad compartida por todos los hues (spec §3.1).
 // L[7] (paso 700) baja de 0.58 a 0.53 tras la auditoría AA de C1: a 0.58,

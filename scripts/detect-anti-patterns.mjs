@@ -43,10 +43,28 @@
  * `!important`, texto con degradado recortado (`background-clip: text` /
  * mixin `gradientTextClip`), franja lateral decorativa (`border-left/right`
  * >=2px solid), curvas `cubic-bezier` con rebote (y fuera de [-0.1, 1.1]),
- * `border-radius` literal fuera de token (excluyendo `0`, que nunca es deriva
- * de escala), kickers repetidos (componentes `*Kicker*` en JSX) y numeracion
- * decorativa de seccion (`number: "0N"`, o el ordinal 1-based
+ * CUALQUIER literal `cubic-bezier(...)` escrito fuera de
+ * `src/theme/tokens/motion.ts`, `border-radius` literal fuera de token
+ * (excluyendo `0`, que nunca es deriva de escala), kickers repetidos
+ * (componentes `*Kicker*` en JSX) y numeracion decorativa de seccion
+ * (`number: "0N"`, o el ordinal 1-based
  * `String(<expr> + 1).padStart(2, "0")`).
+ *
+ * Punto ciego cerrado (critica externa #8, 2026-08-17): hasta esa revision la
+ * UNICA familia de curvas era `overshoot`, que solo dispara cuando la curva
+ * REBOTA (algun punto de control con y fuera de [-0.1, 1.1]) -- pero su
+ * mensaje de fallo prometia vigilar "curvas fuera de token" en general. La
+ * medicion: habia CUATRO curvas monotonas fuera de token en produccion
+ * (`Sol.tsx` EASE_ENTRANCE, `sectionBeam.layers.ts` SECTION_BEAM_EASING,
+ * `Story.tsx` STORY_STATEMENT_EASING y la curva propia de
+ * `src/motion/vocabulary.ts`, consumida por REVEAL y por PRESS), las cuatro
+ * invisibles para el detector y las cuatro pasando el gate en verde. La
+ * familia `easing-literal` cubre ahora ese hueco y `overshoot` se queda
+ * prometiendo exactamente lo que comprueba: el REBOTE, no la procedencia.
+ * Una curva de rebote NUEVA escrita fuera del token dispara las DOS familias
+ * a la vez (dos hallazgos sobre la misma linea, por dos motivos distintos:
+ * rebota, y no nace en el token) -- es deliberado, y sancionarla exigiria
+ * entonces una entrada por cada motivo.
  *
  * Nota sobre `numbering`/padStart (fix de revision, 2026-08-12): la primera
  * version aceptaba CUALQUIER `.padStart(2, "0")` como numeracion decorativa.
@@ -91,6 +109,15 @@ const ROOT = path.resolve(__dirname, "..");
 const SCAN_DIRS = ["src", "app"];
 const SCANNABLE_EXT_RE = /\.(tsx?|css)$/i;
 const TEST_FILE_RE = /\.test\.(tsx?|ts)$/i;
+
+/**
+ * Unico fichero del repo donde una curva de easing puede NACER como literal
+ * (regla 48 de RULES.md). La familia `easing-literal` se salta este fichero
+ * entero -- no por una excepcion del allowlist, sino porque ahi el literal
+ * es la definicion del token, no una copia suelta. Ruta relativa a ROOT, con
+ * separadores POSIX (es la misma forma en que `scanFile` normaliza `relFile`).
+ */
+const MOTION_TOKENS_FILE = "src/theme/tokens/motion.ts";
 
 // ---------------------------------------------------------------------------
 // 1. Recorrido de ficheros
@@ -197,6 +224,10 @@ const FAMILIES = [
     {
         id: "overshoot",
         label: "cubic-bezier con rebote (y fuera de [-0.1, 1.1])",
+        // Solo el REBOTE. La procedencia (dentro o fuera del token) la vigila
+        // `easing-literal`, justo debajo: hasta la critica externa #8 esta
+        // familia era la unica de curvas y su mensaje prometia las dos cosas
+        // -- ver la nota "Punto ciego cerrado" de la cabecera.
         test(line) {
             const re =
                 /cubic-bezier\(\s*([\d.-]+)\s*,\s*([\d.-]+)\s*,\s*([\d.-]+)\s*,\s*([\d.-]+)\s*\)/gi;
@@ -207,6 +238,23 @@ const FAMILIES = [
                 if (y1 < -0.1 || y1 > 1.1 || y2 < -0.1 || y2 > 1.1) return m[0];
             }
             return null;
+        },
+    },
+    {
+        id: "easing-literal",
+        label: "curva cubic-bezier escrita fuera de src/theme/tokens/motion.ts",
+        // `appliesTo` (unica familia que lo usa hoy): el motor la salta
+        // entera en el fichero del token, donde el literal ES la definicion.
+        // En cualquier otro fichero, un `cubic-bezier(...)` es una curva que
+        // no nace del sistema -- monotona o no, que es justo lo que
+        // `overshoot` no podia ver.
+        appliesTo: (file) => file !== MOTION_TOKENS_FILE,
+        test(line) {
+            const m =
+                /cubic-bezier\(\s*[\d.-]+\s*,\s*[\d.-]+\s*,\s*[\d.-]+\s*,\s*[\d.-]+\s*\)/i.exec(
+                    line,
+                );
+            return m ? m[0] : null;
         },
     },
     {
@@ -383,6 +431,60 @@ const ALLOWLIST = [
         ],
         reason: "motion.easing.overshoot: unica curva no monotona del sistema, reservada al despegue del navbar al hacer scroll (Navbar.tsx, ScBar). Excepcion sancionada y medida en DESIGN.md Seccion 5.1 (Task 23, plan premium F1-F5).",
     },
+    // ---- easing-literal: las CUATRO curvas fuera de token que existian el
+    // dia que se cerro el punto ciego (critica externa #8, 2026-08-17). Cada
+    // una se comparo con las cinco de motion.easing antes de sancionarla:
+    // NINGUNA coincide en sus cuatro puntos de control con un token, asi que
+    // ninguna se migro (migrar habria cambiado el movimiento real, no solo
+    // su procedencia).
+    {
+        family: "easing-literal",
+        file: "src/components/scenes/eye/mascots/Sol.tsx",
+        anchors: [
+            {
+                snippet:
+                    'const EASE_ENTRANCE = "cubic-bezier(0.22, 1, 0.36, 1)";',
+                lines: [182],
+            },
+        ],
+        reason: "EASE_ENTRANCE del mascota Sol: aterrizaje sobreamortiguado del morph de identidad (1100ms), arte de marca con constantes propias -- misma excepcion de regla 17 de RULES.md que ya cubre el resto de este fichero, justificada en su docblock. Ninguna de las cinco curvas de motion.easing tiene estos puntos de control. DECLARADO: es casi la misma curva que la de src/motion/vocabulary.ts (0.23, 1, 0.32, 1), de la familia easeOutQuint, pero no identica; unificar los tres sistemas de movimiento del repo (motion.easing, vocabulary y las curvas propias de arte) es una decision del dueno, no de este detector.",
+    },
+    {
+        family: "easing-literal",
+        file: "src/components/scenes/sectionBeam/sectionBeam.layers.ts",
+        anchors: [
+            {
+                snippet:
+                    'export const SECTION_BEAM_EASING = "cubic-bezier(0.16, 0.8, 0.3, 1)";',
+                lines: [163],
+            },
+        ],
+        reason: "SECTION_BEAM_EASING: valor VERBATIM del mockup del haz de seccion (L46-49), citado en el docblock de la propia constante junto al resto de tiempos portados del mismo mockup. Ninguna de las cinco curvas de motion.easing tiene estos puntos de control.",
+    },
+    {
+        family: "easing-literal",
+        file: "src/components/sections/Story/Story.tsx",
+        anchors: [
+            {
+                snippet:
+                    'const STORY_STATEMENT_EASING = "cubic-bezier(0.22, 0.61, 0.36, 1)";',
+                lines: [202],
+            },
+        ],
+        reason: "STORY_STATEMENT_EASING: valor VERBATIM del mockup del statement de Story (L128-130). Su docblock ya declaraba explicitamente que ninguna de las cinco curvas de motion.easing -- ni REVEAL.easing -- tiene estos cuatro puntos de control; comprobado de nuevo al sancionarla.",
+    },
+    {
+        family: "easing-literal",
+        file: "src/motion/vocabulary.ts",
+        anchors: [
+            {
+                snippet: 'easing: "cubic-bezier(0.23, 1, 0.32, 1)",',
+                count: 2,
+                lines: [252, 429],
+            },
+        ],
+        reason: "Curva PROPIA del vocabulario de movimiento, compartida por REVEAL.easing y PRESS.easing (mismo literal en las dos entradas, count: 2). Que vocabulary.ts no importe de motion.ts es deliberado y esta razonado al final de ese mismo fichero: es un vocabulario de PATRONES (reveal, press, deck), no un alias de la escala de UI. Consolidar los dos sistemas es decision del dueno.",
+    },
     {
         family: "radius-literal",
         file: "src/components/scenes/eye/mascots/Sol.tsx",
@@ -424,7 +526,7 @@ const ALLOWLIST = [
             { snippet: '{ key: "grow", number: "03" },', lines: [89] },
             { snippet: '{ key: "practice", number: "04" },', lines: [90] },
         ],
-        reason: 'Numeracion 01-04 de los cuatro pilares de Story (aprendizaje/creacion/crecimiento/practica), array STORY_STEPS con "number: \\"0N\\"".',
+        reason: 'Numeracion 01-04 de los cuatro pilares de Story (aprendizaje/creacion/crecimiento/practica), array PILLARS con "number: \\"0N\\"". El nombre corregido en la critica externa #8 (2026-08-17): esta entrada decia "array STORY_STEPS", un identificador que NUNCA ha existido en el repo (verificado con git log -S sobre src/) -- y "steps" contradice ademas la decision de la Task 15, que retiro la etiqueta "Paso"/"Step" porque los cuatro pilares no son una secuencia. Ver el docblock de PILLARS en Story.tsx.',
     },
     {
         family: "numbering",
@@ -481,9 +583,14 @@ function scanFile(absFile) {
     const stripped = stripComments(raw);
     const lines = stripped.split("\n");
     const findings = [];
+    // Familias con alcance de fichero (`appliesTo`): se resuelven UNA vez por
+    // fichero, no por linea -- la decision no depende del contenido.
+    const families = FAMILIES.filter(
+        (f) => !f.appliesTo || f.appliesTo(relFile),
+    );
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        for (const family of FAMILIES) {
+        for (const family of families) {
             const snippet = family.test(line);
             if (snippet) {
                 findings.push({
@@ -532,7 +639,9 @@ const FAMILY_GUIDANCE = {
     "side-stripe":
         "una franja lateral decorativa nueva (border-left/right >=2px solid) fuera del callout legal ya sancionado necesita su propia justificacion documentada.",
     "overshoot":
-        "una curva cubic-bezier con rebote fuera de src/theme/tokens/motion.ts (motion.easing.overshoot es la unica sancionada, reservada al despegue del navbar) necesita su propia justificacion documentada.",
+        "esta curva REBOTA: sobrepasa su valor final antes de asentar (algun punto de control con y fuera de [-0.1, 1.1]). motion.easing.overshoot es la unica curva de rebote sancionada del repo, reservada al despegue del navbar (DESIGN.md 5.1); un rebote nuevo necesita su propia justificacion documentada. Esta familia NO comprueba de donde sale la curva -- de eso se ocupa easing-literal.",
+    "easing-literal":
+        "esta curva se escribe como literal fuera de src/theme/tokens/motion.ts, el unico sitio donde una curva nace en este repo (regla 48). Si duplica semanticamente una de las cinco de motion.easing, migra el consumidor al token; si es una curva propia justificada (arte de marca, valor verbatim de un mockup, vocabulario de movimiento con su porque documentado), deja el docblock que lo explica JUNTO a la constante y anade la excepcion a ALLOWLIST. Vale tanto para curvas monotonas como para las de rebote -- la familia overshoot solo ve estas ultimas.",
     "radius-literal":
         "un border-radius literal nuevo usa un token de src/theme/tokens/radius.ts en vez de un numero escrito a mano.",
     "kicker":

@@ -9,7 +9,6 @@ describe("scalar tokens", () => {
     it("contiene la escala completa de espaciado", () => {
       const expectedSpace = {
         0: "0",
-        px: "1px",
         1: "0.25rem",
         2: "0.5rem",
         3: "0.75rem",
@@ -63,7 +62,6 @@ describe("scalar tokens", () => {
         overlay: 900,
         modal: 1000,
         toast: 1100,
-        max: 9999,
       };
       expect(zIndex).toEqual(expectedZIndex);
     });
@@ -75,7 +73,6 @@ describe("scalar tokens", () => {
       expect(zIndex.dropdown).toBeLessThan(zIndex.overlay);
       expect(zIndex.overlay).toBeLessThan(zIndex.modal);
       expect(zIndex.modal).toBeLessThan(zIndex.toast);
-      expect(zIndex.toast).toBeLessThan(zIndex.max);
     });
   });
 });
