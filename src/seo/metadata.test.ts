@@ -1,6 +1,16 @@
 import { describe, it, expect } from "vitest";
 import type { Metadata } from "next";
-import { SITE, ROUTES, LEGAL_ROUTE_KEYS, absoluteUrl } from "@/config/site";
+import {
+  SITE,
+  LEGAL_ROUTE_KEYS,
+  LOCALES,
+  OG_LOCALES,
+  ROUTES_BY_LOCALE,
+  absoluteUrl,
+  alternateUrls,
+  routePath,
+  type Locale,
+} from "@/config/site";
 import {
   buildMetadata,
   OG_IMAGE_PATH,
@@ -8,8 +18,20 @@ import {
   TITLE_SEPARATOR,
 } from "./metadata";
 
-/** Las tres rutas reales del sitio: home + las dos legales. */
+/** Las tres paginas reales del sitio: home + las dos legales. */
 const ALL_ROUTE_KEYS = ["home", ...LEGAL_ROUTE_KEYS] as const;
+
+/**
+ * Las SEIS rutas publicas (3 paginas x 2 idiomas) desde el 2026-08-18.
+ *
+ * Se compone desde `LOCALES` y `ALL_ROUTE_KEYS`, no como lista literal: un
+ * idioma o una pagina nuevos entran solos en todos los `it.each` de este
+ * fichero, sin que nadie tenga que acordarse de ampliar una tabla a mano
+ * (regla 39).
+ */
+const ALL_ROUTES = LOCALES.flatMap((locale) =>
+  ALL_ROUTE_KEYS.map((key) => ({ key, locale })),
+);
 
 /** Títulos de prueba por ruta — fixtures del test, no copy de producción. */
 const FIXTURE_TITLES: Record<(typeof ALL_ROUTE_KEYS)[number], string> = {
@@ -76,12 +98,13 @@ function expectMaxImagePreviewLarge(metadata: Metadata): void {
 }
 
 describe("buildMetadata — contrato H2 (openGraph y twitter completos en TODAS las rutas)", () => {
-  it.each(ALL_ROUTE_KEYS)(
-    "la ruta %s expone openGraph y twitter completos, no solo title/description",
-    (key) => {
-      const path = ROUTES[key];
+  it.each(ALL_ROUTES)(
+    "la ruta $key/$locale expone openGraph y twitter completos, no solo title/description",
+    ({ key, locale }) => {
+      const path = routePath(key, locale);
       const metadata = buildMetadata({
-        path,
+        routeKey: key,
+        locale,
         title: FIXTURE_TITLES[key],
         description: FIXTURE_DESCRIPTION,
       });
@@ -91,7 +114,7 @@ describe("buildMetadata — contrato H2 (openGraph y twitter completos en TODAS 
       // por este helper.
       expectOpenGraphWebsite(metadata.openGraph);
       expect(metadata.openGraph.siteName).toBe(SITE.name);
-      expect(metadata.openGraph.locale).toBe(SITE.ogLocale);
+      expect(metadata.openGraph.locale).toBe(OG_LOCALES[locale]);
       expect(metadata.openGraph.type).toBe("website");
       expect(metadata.openGraph.url).toBe(absoluteUrl(path));
 
@@ -104,12 +127,13 @@ describe("buildMetadata — contrato H2 (openGraph y twitter completos en TODAS 
     },
   );
 
-  it.each(ALL_ROUTE_KEYS)(
-    "la ruta %s tiene canónica absoluta exacta y sin barra final",
-    (key) => {
-      const path = ROUTES[key];
+  it.each(ALL_ROUTES)(
+    "la ruta $key/$locale tiene canónica absoluta exacta y sin barra final",
+    ({ key, locale }) => {
+      const path = routePath(key, locale);
       const metadata = buildMetadata({
-        path,
+        routeKey: key,
+        locale,
         title: FIXTURE_TITLES[key],
         description: FIXTURE_DESCRIPTION,
       });
@@ -139,12 +163,12 @@ describe("buildMetadata — contrato H2 (openGraph y twitter completos en TODAS 
    * la propiedad que de verdad importa (que un enlace compartido enseñe
    * imagen).
    */
-  it.each(ALL_ROUTE_KEYS)(
-    "la ruta %s declara la imagen OG completa en openGraph y en twitter",
-    (key) => {
-      const path = ROUTES[key];
+  it.each(ALL_ROUTES)(
+    "la ruta $key/$locale declara la imagen OG completa en openGraph y en twitter",
+    ({ key, locale }) => {
       const metadata = buildMetadata({
-        path,
+        routeKey: key,
+        locale,
         title: FIXTURE_TITLES[key],
         description: FIXTURE_DESCRIPTION,
       });
@@ -169,7 +193,8 @@ describe("buildMetadata — contrato H2 (openGraph y twitter completos en TODAS 
 describe("buildMetadata — título", () => {
   it("la home no duplica el nombre del sitio en el título", () => {
     const metadata = buildMetadata({
-      path: "/",
+      routeKey: "home",
+      locale: "es",
       title: SITE.name,
       description: FIXTURE_DESCRIPTION,
     });
@@ -178,7 +203,8 @@ describe("buildMetadata — título", () => {
 
   it("una página legal añade el sufijo de marca separado por el separador exportado", () => {
     const metadata = buildMetadata({
-      path: "/privacidad",
+      routeKey: "privacy",
+      locale: "es",
       title: "Política de privacidad",
       description: FIXTURE_DESCRIPTION,
     });
@@ -191,7 +217,8 @@ describe("buildMetadata — título", () => {
 describe("buildMetadata — keywords", () => {
   it("incluye keywords solo cuando se pasan", () => {
     const conKeywords = buildMetadata({
-      path: "/privacidad",
+      routeKey: "privacy",
+      locale: "es",
       title: "Política de privacidad",
       description: FIXTURE_DESCRIPTION,
       keywords: ["privacidad", "rgpd"],
@@ -199,7 +226,8 @@ describe("buildMetadata — keywords", () => {
     expect(conKeywords.keywords).toEqual(["privacidad", "rgpd"]);
 
     const sinKeywords = buildMetadata({
-      path: "/privacidad",
+      routeKey: "privacy",
+      locale: "es",
       title: "Política de privacidad",
       description: FIXTURE_DESCRIPTION,
     });
@@ -207,14 +235,95 @@ describe("buildMetadata — keywords", () => {
   });
 });
 
-describe("buildMetadata — validación de path", () => {
-  it("lanza si el path no empieza por barra", () => {
-    expect(() =>
-      buildMetadata({
-        path: "privacidad",
-        title: "Política de privacidad",
+/*
+ * SUSTITUYE al describe "validación de path" (que comprobaba que
+ * `buildMetadata({ path: "privacidad" })` lanzara por falta de barra inicial).
+ * Ese caso dejó de ser alcanzable el 2026-08-18: la entrada ya no es una ruta
+ * suelta que quien llama pueda escribir mal, sino `routeKey` + `locale`, y la
+ * ruta la deriva `routePath()` del mapa único de `src/config/site.ts`. Un test
+ * que ejercitara una entrada imposible de construir no probaría nada; el
+ * candado equivalente —que toda ruta declarada empieza por barra— vive ahora
+ * en `site.test.ts`, sobre el propio mapa.
+ *
+ * Lo que SÍ hay que atar, y no existía porque no existía el inglés, es el
+ * grupo `hreflang`: es la pieza que un rastreador ignora ENTERA en cuanto deja
+ * de ser recíproca, y el modo de fallo es silencioso (las etiquetas siguen
+ * ahí, simplemente no surten efecto).
+ */
+describe("buildMetadata — hreflang recíproco en las seis páginas", () => {
+  it.each(ALL_ROUTES)(
+    "la ruta $key/$locale declara las tres alternativas: es, en y x-default",
+    ({ key, locale }) => {
+      const metadata = buildMetadata({
+        routeKey: key,
+        locale,
+        title: FIXTURE_TITLES[key],
         description: FIXTURE_DESCRIPTION,
-      }),
-    ).toThrow();
-  });
+      });
+
+      // Contrato CERRADO (`toEqual`, no `toMatchObject`): un idioma nuevo sin
+      // su entrada aquí tiene que romper este test, no colarse (regla 40).
+      expect(metadata.alternates?.languages).toEqual({
+        "es": absoluteUrl(ROUTES_BY_LOCALE.es[key]),
+        "en": absoluteUrl(ROUTES_BY_LOCALE.en[key]),
+        "x-default": absoluteUrl(ROUTES_BY_LOCALE.es[key]),
+      });
+    },
+  );
+
+  it.each(ALL_ROUTES)(
+    "la ruta $key/$locale se incluye A SÍ MISMA en su grupo hreflang",
+    ({ key, locale }) => {
+      const metadata = buildMetadata({
+        routeKey: key,
+        locale,
+        title: FIXTURE_TITLES[key],
+        description: FIXTURE_DESCRIPTION,
+      });
+      const propia = absoluteUrl(routePath(key, locale));
+
+      expect(metadata.alternates?.canonical).toBe(propia);
+      expect(
+        Object.values(metadata.alternates?.languages ?? {}),
+        `la canónica ${propia} no aparece en su propio grupo hreflang: Google descarta el grupo entero`,
+      ).toContain(propia);
+    },
+  );
+
+  it.each(ALL_ROUTES)(
+    "la contraparte de $key/$locale declara de vuelta esta misma ruta",
+    ({ key, locale }) => {
+      const otro: Locale = locale === "es" ? "en" : "es";
+      const propia = absoluteUrl(routePath(key, locale));
+
+      // La ida: esta ruta apunta a la contraparte.
+      expect(alternateUrls(key)[otro]).toBe(absoluteUrl(routePath(key, otro)));
+      // La vuelta: la contraparte, construida por su cuenta, apunta aquí.
+      const metadataContraparte = buildMetadata({
+        routeKey: key,
+        locale: otro,
+        title: FIXTURE_TITLES[key],
+        description: FIXTURE_DESCRIPTION,
+      });
+      expect(
+        Object.values(metadataContraparte.alternates?.languages ?? {}),
+      ).toContain(propia);
+    },
+  );
+
+  it.each(ALL_ROUTES)(
+    "la ruta $key/$locale declara el otro idioma como og:locale:alternate",
+    ({ key, locale }) => {
+      const metadata = buildMetadata({
+        routeKey: key,
+        locale,
+        title: FIXTURE_TITLES[key],
+        description: FIXTURE_DESCRIPTION,
+      });
+      const otro: Locale = locale === "es" ? "en" : "es";
+
+      expectOpenGraphWebsite(metadata.openGraph);
+      expect(metadata.openGraph.alternateLocale).toEqual([OG_LOCALES[otro]]);
+    },
+  );
 });

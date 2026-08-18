@@ -1,6 +1,7 @@
 "use client";
 
 import React, { type ReactElement } from "react";
+import { DEFAULT_LOCALE, type Locale } from "@/config/site";
 import StyledComponentsRegistry from "@/theme/registry";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { GlobalStyles } from "@/theme/GlobalStyles";
@@ -8,9 +9,33 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { SkipLink } from "@/components/layout/SkipLink/SkipLink";
 import { BackToTop } from "@/components/layout/BackToTop/BackToTop";
 
+/*
+ * DÓNDE SE MONTA ESTE ÁRBOL, Y POR QUÉ YA NO EN `app/layout.tsx` (2026-08-18).
+ *
+ * Hasta esta entrega lo montaba el root layout. Con dos idiomas anclados a la
+ * URL eso deja de servir: el root layout es un Server Component compartido por
+ * las SEIS rutas y no recibe nada que le diga cuál está renderizando, así que
+ * no puede elegir el idioma del proveedor. Quien sí lo sabe —por su posición
+ * en el árbol de ficheros, sin lógica ni adivinación en tiempo de ejecución— es
+ * el layout de cada grupo: `app/(es)/layout.tsx` y `app/en/layout.tsx`.
+ *
+ * El idioma tenía que subir hasta AQUÍ y no quedarse envolviendo solo a la
+ * página: `SkipLink` y `BackToTop` son hermanos de `children` dentro de
+ * `I18nProvider`, así que un proveedor inglés colocado por debajo los habría
+ * dejado en castellano — y el enlace de salto es literalmente lo primero que
+ * anuncia un lector de pantalla en una página inglesa.
+ *
+ * `app/not-found.tsx` monta este mismo árbol por su cuenta, en castellano: no
+ * vive dentro de ningún grupo de idioma (tiene que seguir en la raíz de `app/`
+ * para ser la 404 global) y sin esto se quedaría sin tema, sin i18n y sin
+ * estilos globales.
+ */
 export function Providers({
+  locale = DEFAULT_LOCALE,
   children,
 }: {
+  /** Idioma de la rama de rutas que monta este árbol. */
+  locale?: Locale;
   children: React.ReactNode;
 }): ReactElement {
   return (
@@ -46,7 +71,7 @@ export function Providers({
             traducirse y leer tokens de tema, de ahi que viva aqui (dentro de
             I18nProvider/ThemeProvider) y no en app/layout.tsx, que es Server
             Component y no puede consumir ninguno de los dos. */}
-        <I18nProvider>
+        <I18nProvider locale={locale}>
           <SkipLink />
           {children}
           {/* BackToTop (Task 2): global, no solo Home -- las paginas

@@ -1,5 +1,6 @@
-import i18n from "i18next";
+import i18n, { type i18n as I18nInstance } from "i18next";
 import { initReactI18next } from "react-i18next";
+import { DEFAULT_LOCALE, type Locale } from "@/config/site";
 import esCommon from "./locales/es/common.json";
 import enCommon from "./locales/en/common.json";
 import esHome from "./locales/es/home.json";
@@ -59,8 +60,8 @@ export function initI18n() {
   if (initialized) return i18n;
   i18n.use(initReactI18next).init({
     resources,
-    lng: "es",
-    fallbackLng: "es",
+    lng: DEFAULT_LOCALE,
+    fallbackLng: DEFAULT_LOCALE,
     defaultNS,
     ns: [...EAGER_NAMESPACES],
     interpolation: { escapeValue: false },
@@ -68,6 +69,52 @@ export function initI18n() {
   });
   initialized = true;
   return i18n;
+}
+
+/**
+ * UNA INSTANCIA DE i18next POR IDIOMA, ELEGIDA POR LA RUTA (2026-08-18).
+ *
+ * Por qué no basta con `changeLanguage()`: con `output: "export"` el HTML de
+ * cada ruta se hornea en el build, y el inglés tiene que estar YA en ese HTML
+ * — si el cambio de idioma ocurriera tras hidratar, el documento que ve un
+ * rastreador (y el que ve cualquiera con JavaScript desactivado) seguiría
+ * siendo castellano en `/en/`, que es exactamente el defecto que estas rutas
+ * existen para cerrar. Y forzar `changeLanguage("en")` a nivel de módulo desde
+ * la página inglesa NO sirve: i18next es un singleton de módulo compartido por
+ * TODAS las rutas que se prerenderizan en el mismo proceso, así que el idioma
+ * se filtraría a las rutas castellanas según el orden —no determinista— en que
+ * el build las renderice.
+ *
+ * `cloneInstance` es la vía que i18next documenta para justo esto (una
+ * instancia por render con idioma propio). Lo importante, y verificado leyendo
+ * el paquete instalado (`node_modules/i18next/dist/cjs/i18next.js`), es que el
+ * clon COMPARTE el almacén de recursos:
+ *
+ *   - `cloneInstance()` copia `store` por referencia (`membersToCopy =
+ *     ['store','services','language']`) y solo lo duplica si se le pasa
+ *     `forkResourceStore`, que aquí NO se pasa;
+ *   - `init()` reconstruiría el almacén desde `options.resources` — pero ese
+ *     bloque entero está dentro de `if (!this.options.isClone)`, y
+ *     `cloneInstance` fija `isClone: true`.
+ *
+ * Esa referencia compartida es la que hace que NO haya que tocar
+ * `LegalDocument.tsx`: ese módulo registra el namespace `legal` con
+ * `i18n.addResourceBundle(...)` sobre la instancia por defecto, a nivel de
+ * módulo, y el clon lo ve porque los dos escriben y leen el MISMO almacén —
+ * sin importar cuál de los dos módulos evalúe antes el bundler.
+ */
+const instances = new Map<Locale, I18nInstance>();
+
+export function getI18nInstance(locale: Locale): I18nInstance {
+  const base = initI18n();
+  if (locale === DEFAULT_LOCALE) return base;
+
+  const cached = instances.get(locale);
+  if (cached) return cached;
+
+  const clone = base.cloneInstance({ lng: locale });
+  instances.set(locale, clone);
+  return clone;
 }
 
 export default i18n;

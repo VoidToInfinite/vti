@@ -1,4 +1,10 @@
-import { SITE, absoluteUrl } from "@/config/site";
+import {
+  SITE,
+  absoluteUrl,
+  routePath,
+  type Locale,
+  type RouteKey,
+} from "@/config/site";
 import { EMAIL_ADDRESS, links } from "@/config/links";
 
 /**
@@ -125,8 +131,10 @@ export function webSiteJsonLd(): WebSiteJsonLd {
 }
 
 export interface WebPageJsonLdInput {
-  /** Ruta interna canónica, con barra inicial: "/" o "/privacidad". */
-  readonly path: string;
+  /** Identidad de la página; su ruta se deriva junto con `locale`. */
+  readonly routeKey: RouteKey;
+  /** Idioma de ESTA ruta: alimenta `inLanguage` y la etiqueta del breadcrumb. */
+  readonly locale: Locale;
   readonly name: string;
   readonly description: string;
   readonly datePublished?: string;
@@ -134,12 +142,26 @@ export interface WebPageJsonLdInput {
 }
 
 /**
+ * Etiqueta del primer nivel del breadcrumb, por idioma.
+ *
+ * No sale de i18next a propósito: `webPageJsonLd()` lo llama un Server
+ * Component en tiempo de build, donde no hay proveedor de i18next ni idioma
+ * activo que consultar — el idioma lo decide la RUTA. Son dos palabras, viven
+ * aquí y el candado de `jsonLd.test.ts` las ata a los dos idiomas.
+ */
+const BREADCRUMB_HOME_LABEL = {
+  es: "Inicio",
+  en: "Home",
+} as const satisfies Record<Locale, string>;
+
+/**
  * Página concreta, con su propio `breadcrumb` de dos niveles (Inicio → la
  * página). El ancla estable de cada sección del documento legal (D22) es lo
  * que hace "citable" un documento largo para un motor generativo; este
  * `WebPage` es el nodo que ata esa página a la organización y al sitio.
  *
- * La raíz (`path === "/"`) es la única excepción: no lleva `breadcrumb`. La
+ * La portada (`routeKey === "home"`, sea `/` o `/en`) es la única excepción:
+ * no lleva `breadcrumb`. La
  * documentación oficial de Google sobre datos estructurados de breadcrumb
  * (https://developers.google.com/search/docs/appearance/structured-data/breadcrumb,
  * sección "Guidelines", consultada el 2026-08-05) dice textualmente: "It is
@@ -154,9 +176,12 @@ export interface WebPageJsonLdInput {
  * que tampoco sería válido contra el propio mínimo que exige la guía.
  */
 export function webPageJsonLd(input: WebPageJsonLdInput): WebPageJsonLd {
-  const url = absoluteUrl(input.path);
-  const home = absoluteUrl("/");
-  const isRoot = input.path === "/";
+  const path = routePath(input.routeKey, input.locale);
+  const url = absoluteUrl(path);
+  /* El "Inicio" del breadcrumb es el de SU MISMO idioma: desde `/en/privacy`
+     la migaja de vuelta lleva a `/en`, no a la portada castellana. */
+  const home = absoluteUrl(routePath("home", input.locale));
+  const isRoot = input.routeKey === "home";
 
   return {
     "@context": "https://schema.org",
@@ -165,7 +190,7 @@ export function webPageJsonLd(input: WebPageJsonLdInput): WebPageJsonLd {
     url,
     "name": input.name,
     "description": input.description,
-    "inLanguage": SITE.lang,
+    "inLanguage": input.locale,
     "isPartOf": { "@id": WEBSITE_ID },
     ...(isRoot
       ? {}
@@ -176,7 +201,7 @@ export function webPageJsonLd(input: WebPageJsonLdInput): WebPageJsonLd {
               {
                 "@type": "ListItem",
                 "position": 1,
-                "name": "Inicio",
+                "name": BREADCRUMB_HOME_LABEL[input.locale],
                 "item": home,
               },
               {

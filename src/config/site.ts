@@ -19,13 +19,49 @@
  * p + sep + "index.html" : p + ".html"`, con `subFolders = trailingSlash`) y
  * con un build real, no de memoria.
  */
+/**
+ * Los dos idiomas con URL propia (2026-08-18, decisión del dueño «adelante con
+ * el copy actual de `en.json`»).
+ *
+ * Hasta esa fecha el inglés existía SOLO en memoria: `LanguageSelector`
+ * conmutaba i18next y nada más — sin URL, así que el inglés no se podía
+ * compartir, no se podía marcar, no lo indexaba nadie, `og:locale` decía
+ * `es_ES` en todas las páginas y el botón Atrás no deshacía el cambio (no
+ * había entrada de historial que deshacer). Anclar el idioma a la URL resuelve
+ * las cuatro cosas a la vez.
+ *
+ * El orden importa: `es` primero porque es el idioma del sitio "sin prefijo"
+ * (`/`) y el `x-default` de todas las páginas.
+ */
+export const LOCALES = ["es", "en"] as const;
+
+export type Locale = (typeof LOCALES)[number];
+
+/** Idioma del sitio cuando la URL no dice otra cosa: `/` es castellano. */
+export const DEFAULT_LOCALE: Locale = "es";
+
+/**
+ * Locale en el formato de Open Graph (`og:locale`), que usa guion bajo y
+ * región, no el código corto de i18next.
+ *
+ * `en_US` y no `en_GB`: el copy inglés de `src/i18n/locales/en/` no declara
+ * variante regional, y `en_US` es el valor que Facebook/LinkedIn documentan
+ * como inglés genérico. Es una etiqueta de idioma para vistas previas, no una
+ * afirmación sobre el público objetivo.
+ */
+export const OG_LOCALES = {
+  es: "es_ES",
+  en: "en_US",
+} as const satisfies Record<Locale, string>;
+
 export const SITE = {
   url: "https://voidtoinfinite.com",
   name: "VoidToInfinite",
-  /* Locale en el formato de Open Graph (`og:locale`), que usa guion bajo y
-     región, no el código corto de i18next. */
-  ogLocale: "es_ES",
-  lang: "es",
+  /* Se conserva como atajo del locale OG de la rama CASTELLANA. El valor por
+     ruta sale de `OG_LOCALES[locale]` (ver `buildMetadata`): desde que existen
+     rutas `/en/`, `og:locale` ya no es una constante del sitio. */
+  ogLocale: OG_LOCALES.es,
+  lang: DEFAULT_LOCALE,
   /**
    * Título de la HOME, sin la marca: `buildMetadata()` le añade el sufijo
    * ` · VoidToInfinite` (entrega 2026-08-05).
@@ -75,6 +111,83 @@ export const ROUTES = {
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;
+
+/**
+ * Las MISMAS tres páginas, en inglés y con slug inglés.
+ *
+ * El prefijo `/en` es lo que convierte el idioma en una URL compartible; los
+ * slugs se traducen también (`/en/privacy`, no `/en/privacidad`) porque una
+ * ruta inglesa con sustantivo castellano es exactamente la incoherencia que la
+ * crítica midió como P2: el visitante inglés comparte un enlace que se lee a
+ * medias en otro idioma, y un buscador lo lee como una señal contradictoria
+ * frente al `hreflang="en"` que esa misma página declara.
+ *
+ * `/en` NO lleva barra final: `trailingSlash: false` (next.config.ts) hace que
+ * el export emita `out/en.html`, cuya URL pública canónica es `/en` — misma
+ * convención, y mismo motivo, que las rutas castellanas de arriba.
+ */
+export const EN_ROUTES = {
+  home: "/en",
+  privacy: "/en/privacy",
+  legalNotice: "/en/legal-notice",
+} as const satisfies Record<RouteKey, string>;
+
+/** Las seis rutas públicas del sitio, indexadas por idioma y por página. */
+export const ROUTES_BY_LOCALE = {
+  es: ROUTES,
+  en: EN_ROUTES,
+} as const satisfies Record<Locale, Record<RouteKey, string>>;
+
+/** Ruta interna de una página en un idioma concreto. */
+export function routePath(key: RouteKey, locale: Locale): string {
+  return ROUTES_BY_LOCALE[locale][key];
+}
+
+/**
+ * Mapa `hreflang` → URL absoluta de UNA página, en los dos idiomas más
+ * `x-default`.
+ *
+ * Recíproco por construcción: las seis páginas lo componen con esta misma
+ * función, así que la contraparte inglesa de `/privacidad` apunta a
+ * `/en/privacy` y la de `/en/privacy` apunta de vuelta a `/privacidad` sin que
+ * nadie tenga que acordarse de escribir las dos mitades. Un `hreflang` que no
+ * es recíproco Google lo ignora entero — es la forma más habitual de tener
+ * las etiquetas puestas y ningún efecto.
+ *
+ * `x-default` apunta al CASTELLANO porque `/` es la raíz del sitio y el
+ * destino correcto para un visitante cuyo idioma no es ninguno de los dos.
+ */
+export function alternateUrls(key: RouteKey): Record<string, string> {
+  return {
+    "es": absoluteUrl(ROUTES_BY_LOCALE.es[key]),
+    "en": absoluteUrl(ROUTES_BY_LOCALE.en[key]),
+    "x-default": absoluteUrl(ROUTES_BY_LOCALE[DEFAULT_LOCALE][key]),
+  };
+}
+
+/**
+ * Idioma e identidad de página de una ruta interna, o `null` si la ruta no es
+ * ninguna de las seis (por ejemplo, la URL rota que sirve la 404).
+ *
+ * Coincidencia EXACTA a propósito, no por prefijo: la única consumidora es
+ * `LanguageSelector`, que se renderiza también dentro de `not-found.tsx`, y
+ * ahí la ruta de la que parte el prerenderizado (`/_not-found`) NO es la que
+ * tendrá el navegador (la URL rota que el visitante pidió). Con coincidencia
+ * exacta las dos caen en el mismo `null` y el selector compone el mismo enlace
+ * en las dos fases; con coincidencia por prefijo, una URL rota bajo `/en/`
+ * daría un `href` distinto en cliente que en el HTML horneado — un mismatch de
+ * hidratación en la única página donde nadie lo estaría buscando.
+ */
+export function resolveRoute(
+  pathname: string,
+): { readonly key: RouteKey; readonly locale: Locale } | null {
+  for (const locale of LOCALES) {
+    for (const key of Object.keys(ROUTES) as RouteKey[]) {
+      if (ROUTES_BY_LOCALE[locale][key] === pathname) return { key, locale };
+    }
+  }
+  return null;
+}
 
 /**
  * Las dos rutas de documentos legales, en el orden en que se enlazan.

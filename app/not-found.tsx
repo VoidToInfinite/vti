@@ -7,6 +7,7 @@ import { SITE } from "@/config/site";
 import esCommon from "@/i18n/locales/es/common.json";
 import { DocumentMeta } from "@/seo/DocumentMeta";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
+import { Providers } from "./providers";
 
 /*
  * Server Component a proposito, SIN "use client" (auditoria SEO 2026-08-08,
@@ -81,7 +82,17 @@ export const metadata: Metadata = {
  */
 export default function NotFound(): ReactElement {
   return (
-    <>
+    /*
+     * `Providers` se monta AQUÍ desde el 2026-08-18, no en `app/layout.tsx`.
+     * Esta página tiene que seguir viviendo en la raíz de `app/` para ser la
+     * 404 global (la entrada `/_not-found` resuelve sus ficheros en el segmento
+     * raíz, no dentro de los grupos de ruta), así que no cae dentro de
+     * `app/(es)/` ni de `app/en/` y no hereda el proveedor de idioma de
+     * ninguno de los dos. Sin este envoltorio se quedaría sin tema, sin i18n y
+     * sin estilos globales. `locale="es"`: una URL rota no pertenece a ninguna
+     * rama de idioma, y el castellano es el idioma por defecto del sitio.
+     */
+    <Providers locale="es">
       {/*
        * Mismo mecanismo que la home y que las dos legales (crítica externa
        * #8): la `metadata` de arriba se hornea en castellano en build y nada
@@ -98,6 +109,6 @@ export default function NotFound(): ReactElement {
       <Navbar />
       <NotFoundContent />
       <Footer />
-    </>
+    </Providers>
   );
 }

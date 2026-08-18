@@ -4,11 +4,9 @@ import type { ReactElement, ReactNode } from "react";
 import { SITE } from "@/config/site";
 import { JsonLdScript } from "@/seo/JsonLdScript";
 import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
-import { buildMetadata } from "@/seo/metadata";
 import { AURA_PRELOADS } from "@/components/scenes/aura/aura.layers";
 import { EYE_PRELOADS } from "@/components/scenes/eye/eye.layers";
 import { buildThemeBootstrapScript, THEME_COLORS } from "@/theme/resolveTheme";
-import { Providers } from "./providers";
 
 const fontBody = Hanken_Grotesk({
   subsets: ["latin"],
@@ -27,41 +25,30 @@ const fontMono = JetBrains_Mono({
 });
 
 /*
- * La metadata del layout hace DOS cosas distintas que conviene no confundir:
+ * AQUÍ SOLO QUEDA `metadataBase`, y desde el 2026-08-18 ya NO la metadata de
+ * la home.
  *
- * 1. `metadataBase` es lo único que las páginas hijas HEREDAN de verdad y
- *    necesitan. Es la base con la que Next resuelve a URL absoluta la imagen
- *    que genera `app/opengraph-image.tsx`; sin ella, `og:image` saldría con
- *    una ruta relativa que ningún rastreador puede seguir.
- * 2. El resto (`buildMetadata({ path: "/" })`) es la metadata DE LA HOME.
- *    No es un "valor por defecto" que las legales completen: en esta versión
- *    de Next el objeto `openGraph` del hijo SUSTITUYE entero al del padre
- *    (ver el docblock de `src/seo/metadata.ts`, con la evidencia en
- *    `node_modules`), así que cada una de las DOS páginas legales (ver
- *    `LEGAL_ROUTE_KEYS`, `src/config/site.ts`; eran cuatro hasta el
- *    2026-08-08) declara el suyo completo por su cuenta. Aquí solo queda el
- *    de `/`, que no tiene `page.tsx` con metadata propia.
+ * `metadataBase` es lo único que las páginas hijas HEREDAN de verdad y
+ * necesitan. Es la base con la que Next resuelve a URL absoluta la imagen que
+ * genera `app/opengraph-image.tsx`; sin ella, `og:image` saldría con una ruta
+ * relativa que ningún rastreador puede seguir.
  *
- * `title` sale de `SITE.homeTitle`, NO de `SITE.name` (cambio del
- * 2026-08-05). Pasar la marca como título activaba el caso especial de
- * `buildMetadata()` -- título === marca, no se añade sufijo, para no producir
- * "VoidToInfinite · VoidToInfinite" -- y el efecto colateral era que el
- * `<title>` de la home quedaba en la marca desnuda, sin una sola palabra
- * sobre qué es el sitio. Ese mismo valor alimenta el `<title>`, el
- * `og:title` y el `twitter:title` (ver `buildMetadata`), así que la carencia
- * se repetía en la pestaña, en el resultado de búsqueda y en cada vista
- * previa compartida. Con `homeTitle` el resultado es
- * "Aprendizaje, imaginación y juego · VoidToInfinite"; el caso especial de
- * `buildMetadata` sigue existiendo y sigue cubierto por su propio test, solo
- * que esta ruta ya no lo ejerce.
+ * La metadata de la portada (`buildMetadata({ routeKey: "home" })`) vivía aquí
+ * y se ha mudado a `app/(es)/page.tsx`, junto a su gemela inglesa de
+ * `app/en/page.tsx`. El motivo no es de orden: este layout es el ÚNICO root
+ * layout y ahora lo comparten SEIS rutas en DOS idiomas, así que una canónica
+ * `https://voidtoinfinite.com` declarada aquí se heredaría en toda ruta que no
+ * la sustituyera — el mismo mecanismo de herencia que `app/not-found.tsx` ya
+ * tuvo que neutralizar a mano con `alternates: { canonical: null }` (ver su
+ * docblock, con la medición sobre `out/404.html` del 2026-08-08). Con la
+ * metadata en cada página, cada URL declara la suya y ninguna hereda la de
+ * otra.
+ *
+ * Los campos concretos de la portada (por qué `SITE.homeTitle` y no
+ * `SITE.name`) se explican ahora en `app/(es)/page.tsx`.
  */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
-  ...buildMetadata({
-    path: "/",
-    title: SITE.homeTitle,
-    description: SITE.description,
-  }),
 };
 
 /*
@@ -122,14 +109,39 @@ export default function RootLayout({
 }): ReactElement {
   return (
     /*
-     * `lang="es"` es el valor del HTML PRERENDERIZADO, que es el que ve un
-     * rastreador y el correcto mientras nadie cambie de idioma. Cuando el
-     * visitante pasa a inglés, quien actualiza este atributo es
-     * `I18nProvider` (spec D18): este layout es un Server Component y el
-     * idioma elegido solo se conoce en cliente, así que aquí no se puede
-     * resolver. Sin esa sincronización, un lector de pantalla seguiría
-     * pronunciando el contenido inglés con fonética española -- incumplimiento
-     * de WCAG 3.1.1 (nivel A).
+     * `lang="es"` EN LAS SEIS RUTAS, INCLUIDAS LAS INGLESAS: LÍMITE CONOCIDO,
+     * NO DESCUIDO (2026-08-18).
+     *
+     * Bajo App Router, dos `<html lang>` distintos exigen DOS root layouts, y
+     * un root layout es, por definición, un `layout` sin `layout` padre: hay
+     * que BORRAR `app/layout.tsx` y dar a cada grupo de ruta el suyo. Ese
+     * reparto está bloqueado en este repo por su propia 404, y está verificado
+     * leyendo el paquete instalado, no supuesto — `next/dist/build/webpack/
+     * loaders/next-app-loader/index.js`:
+     *
+     *   - la entrada `/_not-found` resuelve su `layout` en el segmento RAÍZ
+     *     (`app/`), no dentro de los grupos;
+     *   - el único camino que inyecta un layout por defecto cuando ahí no hay
+     *     ninguno está guardado por `isDefaultNotFound` (`isAppBuiltinPage`),
+     *     es decir, solo cuando NO existe un `app/not-found.tsx` propio;
+     *   - con un `not-found.tsx` propio y sin `app/layout.tsx`, `rootLayout`
+     *     queda sin resolver y el build sale por
+     *     `log.error("... doesn't have a root layout ...")` + `process.exit(1)`.
+     *
+     * Es decir: o dos `<html lang>`, o la 404 propia del sitio (endurecida en
+     * la Task 35 y por la crítica externa) — no las dos, salvo activando
+     * `experimental.globalNotFound` en `next.config.ts` y reescribiendo la 404
+     * como `app/global-not-found.tsx` (bandera experimental, `false` por
+     * defecto en 16.2.11: `next/dist/server/config-shared.js`). Esa es una
+     * decisión de arquitectura del dueño, no algo que se resuelva aquí en
+     * silencio.
+     *
+     * Mientras tanto, lo que SÍ está resuelto para `/en/*`: el contenido, el
+     * `<title>`, la canónica, el `og:locale`, el `hreflang` y el sitemap son
+     * ingleses ya en el HTML horneado; y `I18nProvider` corrige este atributo
+     * a `en` tras montar, que es lo que leen los lectores de pantalla (DOM
+     * vivo) y cualquier rastreador que ejecute JavaScript. Lo que queda fuera
+     * es el atributo del HTML servido en crudo.
      *
      * `data-scroll-behavior="smooth"`: Next detecta `scroll-behavior: smooth`
      * en `html` (declarado a propósito en `GlobalStyles.tsx` para los saltos
@@ -322,7 +334,12 @@ export default function RootLayout({
           id="jsonld-organization"
           data={[organizationJsonLd(), webSiteJsonLd()]}
         />
-        <Providers>{children}</Providers>
+        {/* `Providers` ya NO se monta aquí: lo monta el layout de cada rama de
+            idioma (`app/(es)/layout.tsx`, `app/en/layout.tsx`) y, por su
+            cuenta, `app/not-found.tsx`. Este layout no sabe qué ruta está
+            renderizando, así que no puede elegir el idioma del proveedor —
+            el porqué completo está en el docblock de `app/providers.tsx`. */}
+        {children}
       </body>
     </html>
   );

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, fireEvent } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import {
   renderWithProviders,
   screen,
   type RenderResult,
 } from "@/test/test-utils";
+import { EN_ROUTES } from "@/config/site";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
-import enHome from "@/i18n/locales/en/home.json";
 import HomePage from "./page";
 
 /*
@@ -128,7 +128,23 @@ describe("Home (pagina completa)", () => {
     expect(destino?.tagName).toBe("SECTION");
   });
 
-  it("cambiar el idioma desde la barra reescribe los dos escalones del hero", async () => {
+  /*
+   * EL IDIOMA SE CAMBIA NAVEGANDO (2026-08-18). Sustituye a "cambiar el idioma
+   * desde la barra reescribe los dos escalones del hero", que montaba la home
+   * castellana, pulsaba el `<button>` de inglés y comprobaba que la copia del
+   * hero cambiaba EN SITIO.
+   *
+   * Ese comportamiento se retiró a propósito, no se rompió: el idioma vivía
+   * solo en memoria, así que el inglés no tenía URL -- no se podía compartir,
+   * ni marcar, ni indexar, y Atrás no lo deshacía (tres críticas seguidas lo
+   * midieron). Ahora el control es un `<a href>` y el inglés de la portada
+   * vive en `/en`, un documento propio horneado por el build; lo que este
+   * fichero puede comprobar desde jsdom -- donde no hay navegación real -- es
+   * que el destino existe y es el correcto. Que ese destino RENDERIZA inglés
+   * en el primer render lo mide `app/en/en-routes.test.tsx`, sobre la página
+   * inglesa de verdad.
+   */
+  it("el selector del hero ofrece el inglés como NAVEGACIÓN a /en, no como conmutador en memoria", () => {
     const { container } = renderHomePage();
 
     expect(testId(container, "hero-subtitle")).toHaveTextContent(
@@ -137,29 +153,26 @@ describe("Home (pagina completa)", () => {
 
     /*
      * `hidden: true` desde la hoja de navegación móvil (Task 10, regla 40).
-     * El selector de idioma de la BARRA es ahora mobile-first: su regla base
-     * es `display: none` y solo vuelve dentro de `@media md` (bajo 768 px el
+     * El selector de idioma de la BARRA es mobile-first: su regla base es
+     * `display: none` y solo vuelve dentro de `@media md` (bajo 768 px el
      * idioma vive dentro de la hoja, ver `NavSheet.tsx`). jsdom no evalúa
      * ningún `@media` (regla 36), así que computa siempre la regla base y
-     * `getByRole` sin `hidden` no encuentra ese botón -- exactamente el mismo
-     * peaje que `ScNavLinks` ya cobraba en `Navbar.test.tsx`. La copia que
-     * vive dentro de la hoja NO añade ambigüedad: la hoja está cerrada, y un
-     * subárbol con `inert` queda fuera del árbol accesible aunque se pida
-     * `hidden: true`.
+     * `getByRole` sin `hidden` no encontraría ese enlace.
      */
-    const botonEn = screen.getByRole("button", {
+    const enlaceEn = screen.getAllByRole("link", {
       name: /english/i,
       hidden: true,
     });
-    await act(async () => {
-      fireEvent.click(botonEn);
-    });
+    expect(enlaceEn.length).toBeGreaterThan(0);
+    for (const enlace of enlaceEn) {
+      expect(enlace).toHaveAttribute("href", EN_ROUTES.home);
+      expect(enlace).toHaveAttribute("hreflang", "en");
+    }
 
+    // Y la copia del hero NO cambia por el hecho de renderizar el selector:
+    // sigue siendo la castellana hasta que el navegador cambie de documento.
     expect(testId(container, "hero-subtitle")).toHaveTextContent(
-      enHome.Home.hero.subtitle,
-    );
-    expect(testId(container, "hero-tagline")).toHaveTextContent(
-      enHome.Home.hero.tagline,
+      esHome.Home.hero.subtitle,
     );
   });
 
@@ -243,32 +256,23 @@ describe("Home (pagina completa)", () => {
   }, 15000);
 
   /*
-   * BUG CONOCIDO (preexistente, ajeno a los dos objetivos de la entrega):
-   * al cambiar de idioma, `document.documentElement.lang` sigue en "es"
-   * aunque toda la copia pase a ingles. Es un fallo de WCAG 2.1 SC 3.1.1
-   * (nivel A): el lector de pantalla sigue leyendo el texto ingles con voz
-   * espanola. Verificado tambien en Chrome real sobre el export estatico.
+   * AQUÍ VIVÍA `it.fails("BUG: cambiar de idioma NO actualiza el atributo lang
+   * del documento")`, que documentaba un fallo de WCAG 2.1 SC 3.1.1 real:
+   * pulsar "English" reescribía toda la copia y dejaba `<html lang="es">`, así
+   * que un lector de pantalla seguía leyendo el inglés con voz española.
    *
-   * Se fija con it.fails a proposito: documenta el comportamiento actual sin
-   * dejar la suite en rojo, y el dia que alguien sincronice el atributo lang
-   * este caso empezara a fallar, obligando a convertirlo en un test normal.
+   * Se retira porque el mecanismo que medía ya no existe: el idioma no se
+   * conmuta en memoria, se navega, y quien declara el atributo es
+   * `I18nProvider` a partir del idioma de la RUTA. El candado equivalente vive
+   * donde ahora vive el comportamiento -- `src/i18n/I18nProvider.test.tsx`,
+   * "con locale=\"en\" declara lang=\"en\" en el documento" --; este fichero no
+   * puede medirlo, porque `renderWithProviders` monta `I18nextProvider`
+   * directamente y nunca pasa por `I18nProvider`.
+   *
+   * Lo que NO se resuelve, y queda declarado en `app/layout.tsx`: el atributo
+   * del HTML SERVIDO sigue siendo `es` en las rutas inglesas (un solo root
+   * layout), y solo se corrige tras montar.
    */
-  it.fails(
-    "BUG: cambiar de idioma NO actualiza el atributo lang del documento",
-    async () => {
-      renderHomePage();
-      // `hidden: true` por el mismo motivo que en el test de arriba (Task 10).
-      const botonEn = screen.getByRole("button", {
-        name: /english/i,
-        hidden: true,
-      });
-      await act(async () => {
-        fireEvent.click(botonEn);
-      });
-      expect(document.documentElement.lang).toBe("en");
-    },
-  );
-
   it("la pieza decorativa del pie del hero no entra en el orden de tabulacion", () => {
     const { container } = renderHomePage();
 

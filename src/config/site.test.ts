@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { SITE, ROUTES, LEGAL_ROUTE_KEYS, absoluteUrl } from "./site";
+import {
+  SITE,
+  ROUTES,
+  LEGAL_ROUTE_KEYS,
+  LOCALES,
+  absoluteUrl,
+  resolveRoute,
+  routePath,
+} from "./site";
 
 describe("absoluteUrl", () => {
   it("la raíz no acaba en barra final (evita declarar dos formas de la misma URL)", () => {
@@ -125,6 +133,78 @@ describe("ROUTES", () => {
       expect(Object.keys(ROUTES)).not.toContain(retirada);
     },
   );
+});
+
+/*
+ * LAS SEIS RUTAS PÚBLICAS (2026-08-18). Este bloque recoge dos candados que
+ * antes vivían dispersos y que ahora tienen un solo sitio natural, porque el
+ * mapa de rutas es la única fuente de verdad de las dos:
+ *
+ *   - la BARRA INICIAL, que hasta esta entrega comprobaba `metadata.test.ts`
+ *     ejercitando `buildMetadata({ path: "privacidad" })` para que lanzara.
+ *     Ese caso dejó de ser alcanzable: quien llama pasa `routeKey` + `locale`,
+ *     no una ruta escrita a mano, así que la propiedad hay que atarla aquí,
+ *     sobre el mapa;
+ *   - la UNICIDAD, que no existía y ahora sí importa: dos entradas con la
+ *     misma ruta harían que el export escribiera un solo fichero para dos
+ *     páginas, y que el grupo `hreflang` apuntara dos idiomas a la misma URL.
+ */
+describe("las seis rutas públicas (ROUTES_BY_LOCALE)", () => {
+  const todas = LOCALES.flatMap((locale) =>
+    (Object.keys(ROUTES) as (keyof typeof ROUTES)[]).map((key) => ({
+      key,
+      locale,
+      path: routePath(key, locale),
+    })),
+  );
+
+  it("hay exactamente una ruta por página y por idioma", () => {
+    expect(todas).toHaveLength(6);
+    expect(new Set(todas.map((r) => r.path)).size).toBe(6);
+  });
+
+  it.each(todas)(
+    "$key/$locale empieza por barra y no termina en barra",
+    ({ path }) => {
+      expect(path.startsWith("/")).toBe(true);
+      if (path !== "/") expect(path.endsWith("/")).toBe(false);
+    },
+  );
+
+  /* `trailingSlash: false` hace que el export emita ficheros planos, así que
+     la URL pública de `/en` es `/en` y no `/en/`. Un prefijo con barra final
+     produciría `/en//privacy` al componer, y una canónica que no coincide con
+     el sitemap es justo lo que un rastreador lee como contenido duplicado. */
+  it.each(["privacy", "legalNotice"] as const)(
+    "la ruta inglesa de %s cuelga del prefijo /en sin barra doble",
+    (key) => {
+      expect(
+        routePath(key, "en").startsWith(`${routePath("home", "en")}/`),
+      ).toBe(true);
+      expect(routePath(key, "en")).not.toContain("//");
+    },
+  );
+
+  /* Slugs TRADUCIDOS, no `/en/privacidad`: una URL inglesa con sustantivo
+     castellano contradice el `hreflang="en"` que esa misma página declara
+     (P2 medido por la crítica). */
+  it.each(["privacy", "legalNotice"] as const)(
+    "el slug inglés de %s no reutiliza el castellano",
+    (key) => {
+      expect(routePath(key, "en")).not.toContain(routePath(key, "es"));
+    },
+  );
+
+  it("resolveRoute reconoce las seis, y solo esas", () => {
+    for (const { key, locale, path } of todas) {
+      expect(resolveRoute(path)).toEqual({ key, locale });
+    }
+    // Una URL rota no pertenece a ninguna: es lo que permite que el selector
+    // de idioma componga el mismo destino al hornear y en el navegador.
+    expect(resolveRoute("/_not-found")).toBeNull();
+    expect(resolveRoute("/en/esto-no-existe")).toBeNull();
+    expect(resolveRoute("")).toBeNull();
+  });
 });
 
 describe("LEGAL_ROUTE_KEYS", () => {

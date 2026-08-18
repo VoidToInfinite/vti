@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { type DefaultTheme } from "styled-components";
-import { STORAGE_KEYS } from "@/config/storage";
+import { LOCALES, resolveRoute, routePath, type Locale } from "@/config/site";
 import { PRESS } from "@/motion/vocabulary";
 
-const LANGUAGES = ["es", "en"] as const;
+const LANGUAGES = LOCALES;
 
 /*
  * Color del idioma ACTIVO (Task 33, gate F4, hallazgo del evaluador
@@ -54,53 +56,31 @@ export function languageAccent(theme: DefaultTheme): string {
 }
 
 /*
- * SALIDA SIN JAVASCRIPT (crítica externa #10, hallazgo A, P1). El evaluador
- * midió con `javaScriptEnabled: false` real -- deshabilitación del motor, no
- * bloqueo de los `*.js` -- que los dos botones de idioma se pintan visibles, y
- * uno de ellos con el aspecto del idioma ACTIVO (peso 700 + subrayado),
- * mientras ninguno de sus dos manejadores puede correr: `i18n.changeLanguage`
- * y la escritura de `STORAGE_KEYS.lang` son las dos JavaScript. Tampoco hay
- * una ruta por idioma a la que un enlace pudiera llevar en su lugar:
- * `initI18n()` arranca con `lng: "es"` fijo (`src/i18n/config.ts`), así que el
- * HTML horneado ES el español y no existe ningún otro documento. Pulsar no
- * hacía nada y nada lo explicaba.
+ * EL CONTROL VUELVE A EXISTIR SIN JAVASCRIPT (2026-08-18) — se retira el
+ * `@media (scripting: none) { display: none }` que lo ocultaba.
  *
- * Se OCULTA, no se explica con un aviso. Un `<noscript>` como el del
- * formulario de contacto (`ScNoscriptNote`, `Contact.tsx`) tiene sentido allí
- * porque hay una salida REAL que ofrecer -- la dirección de correo --; aquí no
- * existe ninguna, así que lo único honesto es dejar de presentar un control
- * que no puede funcionar. (Además, un `<noscript>` renderizado en cliente sale
- * VACÍO: React trata sus hijos como contenido de texto, ver ese mismo
- * docblock.)
+ * Historia, porque el guard no fue una decisión estética: la crítica externa
+ * #10 (hallazgo A, P1) midió con `javaScriptEnabled: false` real que los dos
+ * botones de idioma se pintaban visibles —uno incluso con el aspecto del
+ * idioma ACTIVO— mientras ninguno de sus dos manejadores podía correr
+ * (`i18n.changeLanguage` y la escritura de `STORAGE_KEYS.lang` son las dos
+ * JavaScript). Pulsar no hacía nada y nada lo explicaba, así que se ocultó: un
+ * `<noscript>` como el del formulario de contacto (`ScNoscriptNote`,
+ * `Contact.tsx`) tiene sentido allí porque hay una salida REAL que ofrecer —la
+ * dirección de correo—, y aquí no existía ninguna.
  *
- * EL GUARD VIVE AQUÍ, en el componente, y no en sus dos envoltorios
- * (`ScBarLanguage` en `Navbar.tsx`, `ScSheetLanguage` en `NavSheet.tsx`):
- * `LanguageSelector` se renderiza DOS veces con visibilidad excluyente por CSS
- * (ver el docblock de cabecera de `NavSheet.tsx`), así que una sola
- * declaración cubre las dos copias y ninguna puede divergir. Los dos
- * envoltorios se quedan sin contenido que dimensionar y colapsan a cero, sin
- * dejar hueco fantasma: el `gap` de un contenedor flex solo separa ITEMS entre
- * sí, y con el conmutador de tema y el disparador de la hoja ocultos por este
- * mismo motivo, en `ScActions` no queda ningún hermano del que separarse.
- *
- * `@media (scripting: none)` es el mecanismo ya sancionado en este repo para
- * exactamente este caso (`GlobalStyles.tsx` con `[data-revealed]`,
- * `auraStagger` en `aura.parts.tsx`, `eyeStagger` en `eye.parts.tsx`):
- * distingue "JavaScript desactivado o no soportado" y un navegador sin soporte
- * del feature ignora el bloque entero y se queda con el comportamiento de
- * siempre. Gana sin `!important` y sin especificidad añadida: es el MISMO
- * selector, declarado después. CON JavaScript no cambia absolutamente nada --
- * ni layout, ni foco, ni orden de tabulación.
+ * La frase exacta que justificaba ocultarlo era: «Tampoco hay una ruta por
+ * idioma a la que un enlace pudiera llevar en su lugar». Desde esta entrega
+ * SÍ la hay — `/en`, `/en/privacy`, `/en/legal-notice` son documentos reales
+ * horneados por el build—, así que la premisa del guard ha dejado de ser
+ * cierta y el guard se retira con ella. Un `<a href>` navega sin ejecutar una
+ * sola línea de JavaScript: el control ya no promete algo que no puede
+ * cumplir, lo cumple.
  */
 const ScLanguageSelector = styled.div`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[1]};
-
-  /* Sin JavaScript no hay idioma que cambiar: ver el docblock de arriba. */
-  @media (scripting: none) {
-    display: none;
-  }
 `;
 
 /*
@@ -114,7 +94,7 @@ const ScLanguageSelector = styled.div`
  * navegador pega la línea al descendente de la tipografía a este tamaño; el
  * valor es un múltiplo del font-size, no un literal de píxeles sueltos.
  */
-const ScLanguageButton = styled.button<{ $active: boolean }>`
+const ScLanguageButton = styled(Link)<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -199,47 +179,85 @@ const ScLanguageButton = styled.button<{ $active: boolean }>`
 `;
 
 /*
- * Tarea 1 (navegación accesible), punto 2 del brief: `role="group"` +
- * `aria-label` en el envoltorio, no un patrón `radiogroup` completo.
+ * DE CONMUTADOR EN MEMORIA A NAVEGACIÓN REAL (2026-08-18).
  *
- * Los dos botones ya usan `aria-pressed` -- semántica de "activar/desactivar"
- * (WAI-ARIA "button", no "radio")-- y ESO es lo que había sin nombre de
- * grupo: dos botones pulsables sueltos que un lector de pantalla anuncia sin
- * decir a qué pertenecen. Migrar a `role="radiogroup"` + `role="radio"` +
- * `aria-checked` habría sido un cambio de widget completo (exige, además,
- * navegación por flechas y sacar los radios no seleccionados del orden de
- * Tab -- "roving tabindex" -- que hoy NO tienen: los dos botones son
- * alcanzables por Tab de forma independiente, y así se quedan). La
- * corrección mínima que resuelve el hallazgo sin reescribir el widget es
- * nombrar el GRUPO que ya envuelve a los dos botones: `role="group"` +
- * `aria-label` (reutiliza `Common.Lang.title`, la misma clave que ya nombra
- * este control en la hoja de navegación móvil, `NavSheet.tsx` -- ningún
- * string nuevo). Con esto, un lector de pantalla anuncia "Idioma, grupo" al
- * entrar y cada botón sigue anunciando su propio estado pulsado/no pulsado.
+ * Hasta esta entrega los dos controles eran `<button>` que llamaban a
+ * `i18n.changeLanguage()`: el idioma cambiaba en memoria y la URL no se movía.
+ * Tres críticas seguidas midieron las consecuencias, que son todas la misma
+ * causa: el inglés no tenía dirección. No se podía compartir (quien recibía el
+ * enlace veía castellano), no se podía marcar, ningún buscador lo veía, y el
+ * botón Atrás no deshacía el cambio porque no había ninguna entrada de
+ * historial que deshacer.
+ *
+ * Ahora cada control es un `<a href>` a la MISMA página en el otro idioma. Con
+ * eso, las cuatro cosas se arreglan a la vez y ninguna necesita código propio:
+ * las da el navegador por el hecho de ser un enlace. Se conserva `next/link`
+ * (no un `<a>` pelado) para que el salto entre `/` y `/en` sea una navegación
+ * de cliente, sin recarga -- el mismo criterio que ya usa el pie para sus
+ * destinos internos.
+ *
+ * `prefetch={false}` por el MISMO motivo documentado en `Footer.tsx`: bug
+ * abierto de Next 16 en export estático (vercel/next.js #85374 y #92341,
+ * reproducido en 16.2.11, Task 28) -- el nombre de fichero que pide el
+ * prefetch de segmento RSC no coincide con el que genera `output: "export"`,
+ * así que el prefetch SIEMPRE devuelve 404. El click navega igual (Next cae al
+ * fetch de página completa); lo único que evita esta prop es el ruido de 404.
+ *
+ * ACCESIBILIDAD, y qué cambia respecto al widget anterior:
+ *   - `role="group"` + `aria-label` en el envoltorio se conservan tal cual
+ *     (Tarea 1, punto 2 del brief): sin ellos un lector de pantalla anuncia
+ *     dos controles sueltos sin decir a qué pertenecen. Reutiliza
+ *     `Common.Lang.title`, la misma clave que ya nombra este control en la
+ *     hoja móvil (`NavSheet.tsx`) -- ningún string nuevo.
+ *   - `aria-pressed` SE RETIRA y lo sustituye `aria-current`. No es un cambio
+ *     de gusto: `aria-pressed` pertenece al rol `button` (estado
+ *     activado/desactivado de un conmutador) y no está permitido en un enlace;
+ *     el estado correcto para "de este conjunto de enlaces, éste es el de la
+ *     página en la que estás" es `aria-current`.
+ *   - `hrefLang` declara el idioma del DESTINO y `lang` el del propio texto
+ *     del enlace ("Español" / "English", cada uno escrito en su idioma): sin
+ *     el segundo, un lector de pantalla en castellano pronuncia "English" con
+ *     fonética española.
+ *
+ * `usePathname()` y no una prop: este componente se monta desde `Navbar`,
+ * `NavSheet` y `LegalHeader`, y ninguno de los tres sabe en qué ruta está --
+ * habría que enhebrar la misma prop por los tres. `resolveRoute` casa la ruta
+ * de forma EXACTA contra las seis conocidas, así que el `href` que se hornea
+ * en el prerenderizado y el que calcula el navegador coinciden siempre,
+ * incluida la 404 (ver el docblock de `resolveRoute`).
  */
 export function LanguageSelector(): ReactElement {
   const { t, i18n } = useTranslation("common");
+  const pathname = usePathname();
+
+  /* Una ruta no reconocida (la URL rota que sirve la 404) no pertenece a
+     ninguna página del sitio: desde ahí, el selector lleva a la portada del
+     idioma elegido, que es el único destino que existe con seguridad. */
+  const current = resolveRoute(pathname ?? "");
+  const routeKey = current?.key ?? "home";
 
   return (
     <ScLanguageSelector
       role="group"
       aria-label={t("Common.Lang.title")}
     >
-      {LANGUAGES.map((lng) => (
-        <ScLanguageButton
-          key={lng}
-          type="button"
-          $active={i18n.language === lng}
-          aria-pressed={i18n.language === lng}
-          title={t(`Common.Lang.${lng}.title`)}
-          onClick={() => {
-            void i18n.changeLanguage(lng);
-            window.localStorage.setItem(STORAGE_KEYS.lang, lng);
-          }}
-        >
-          {t(`language.${lng}`)}
-        </ScLanguageButton>
-      ))}
+      {LANGUAGES.map((lng: Locale) => {
+        const active = i18n.language === lng;
+        return (
+          <ScLanguageButton
+            key={lng}
+            href={routePath(routeKey, lng)}
+            prefetch={false}
+            hrefLang={lng}
+            lang={lng}
+            $active={active}
+            aria-current={active ? "true" : undefined}
+            title={t(`Common.Lang.${lng}.title`)}
+          >
+            {t(`language.${lng}`)}
+          </ScLanguageButton>
+        );
+      })}
     </ScLanguageSelector>
   );
 }

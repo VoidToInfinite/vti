@@ -133,14 +133,25 @@ describe("rutas legales", () => {
     },
   );
 
+  /*
+   * La consulta ya no puede ser "el único enlace de la cabecera" (2026-08-18):
+   * desde que el selector de idioma es un par de `<a href>` en vez de dos
+   * `<button>`, la cabecera legal tiene TRES enlaces. Se acota al que este test
+   * siempre quiso comprobar -- el de vuelta a la portada -- por su destino, no
+   * por ser el único. No se relaja nada: sigue afirmando que la cabecera lleva
+   * a `/`, y ahora además que ese enlace es identificable entre sus hermanos.
+   */
   it.each(paginas)("/$nombre monta cabecera propia y pie", ({ Page }) => {
     renderWithProviders((<Page />) as ReactElement);
 
     const cabecera = screen.getByRole("banner");
-    expect(within(cabecera).getByRole("link", { name: /./ })).toHaveAttribute(
-      "href",
-      "/",
-    );
+    // Los enlaces del selector de idioma se distinguen por `hreflang` (declaran
+    // el idioma de su destino); el de la marca es el único que no lo lleva.
+    const marca = within(cabecera)
+      .getAllByRole("link")
+      .filter((enlace) => !enlace.hasAttribute("hreflang"));
+    expect(marca).toHaveLength(1);
+    expect(marca[0]).toHaveAttribute("href", ROUTES.home);
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
   });
 });
