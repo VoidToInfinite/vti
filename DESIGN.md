@@ -143,7 +143,7 @@ Tabla de divergencias por sección, **contenido unificado desde las Tasks 15-16*
 | --- | --- | --- |
 | Story | Kicker + `<h2>` + cuerpo + 4 pilares + frase de cierre + salida a Discord | Vehículo: 4 tarjetas (claro) vs. deck de 6 diapositivas, la de cierre incluida (oscuro); arte: sin escena vs. `StoryCosmicBeing` |
 | Features | Kicker con voz + `<h2>` + intro + 3 identidades (título, cuerpo, 4 bullets, CTA a `#contact`) | Vehículo: rejilla bento asimétrica (claro, Task 22) vs. lista de bloques (oscuro); arte: figura propia por tarjeta vs. `FeaturesCelestialOrbital` |
-| Journey | `<h2>` + 6 pasos numerados (`01`…`06`) + cita de cierre | Vehículo: tarjeta con ruta punteada (claro) vs. deck de 8 diapositivas (oscuro); arte |
+| Journey | `<h2>` + entradilla + 6 pasos (etiqueta + frase; posición «Paso N de 6» anunciada a AT en ambas ramas — el ordinal visible `01`… se retiró del claro en la ola G, 2026-08-18, para igualar con el oscuro, que nunca lo pintó por decisión D16/Task 16) + cita de cierre | Vehículo: tarjeta con ruta punteada (claro) vs. deck de 8 diapositivas (oscuro); arte |
 | Contact | `<h2>` + cuerpo + formulario real con validación + panel de confirmación copiable + salidas Discord/GitHub + nota de privacidad (Task 18) | Vehículo: tarjeta pastel acotada (claro) vs. sección a sangre completa con escena pegada (oscuro); arte: figura + anillos vs. `ContactCosmicGuardian` |
 
 Las secciones oscuras, además, pasan de contenedor centrado a sangre completa con decks pegados — un cambio de layout (vehículo), no de contenido ni solo de paleta.

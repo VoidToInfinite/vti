@@ -22,8 +22,11 @@
  * estrictamente necesario para prestar el servicio expresamente solicitado por
  * el usuario, y la Guía de cookies de la AEPD (ed. julio 2023) lista la
  * personalización de interfaz ELEGIDA POR EL PROPIO USUARIO entre esos
- * supuestos: `vti-theme` y `vti-lang` solo se escriben cuando la persona pulsa
- * el conmutador de tema o el selector de idioma.
+ * supuestos: `vti-theme` se escribe cuando la persona pulsa el conmutador de
+ * tema, y `vti-lang` cuando elige idioma — sea pulsando el selector (que
+ * desde la ola G navega a la URL del otro idioma) o aterrizando directamente
+ * en una ruta `/en/*`, que es la misma eleccion expresada como URL. La
+ * exencion no cambia: sigue siendo personalizacion pedida por el usuario.
  *
  * REGLA DURA para quien añada algo aquí: este fichero solo admite
  * almacenamiento técnico exento. El día que entre una tecnología NO exenta
