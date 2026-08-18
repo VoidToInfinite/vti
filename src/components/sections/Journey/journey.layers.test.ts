@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { type } from "@/theme/tokens/type";
+import { type as typeTokens } from "@/theme/tokens/type";
 import {
   STORY_DECK_NOTE_SIZE,
   STORY_DECK_NOTE_WEIGHT,
@@ -126,6 +126,35 @@ describe("escala tipografica de la presentacion de Journey (contrato con la spec
     expect(JOURNEY_DECK_TITLE_SIZE).toMatch(/, 4rem\)$/);
   });
 
+  /*
+   * Critica externa #11 (2026-08-18), hallazgo C: la constante DERIVA del
+   * peldano `deckTitle` de la escala del sistema, ya no declara el literal.
+   *
+   * Hacen falta LAS DOS aserciones, y la segunda es la unica que prueba algo.
+   * `toBe(typeTokens.scale.deckTitle.size)` pasaria igual con el literal
+   * escrito a mano -- resuelve a la misma cadena -- asi que la propiedad "el
+   * numero vive en el token, no en este fichero" solo se observa en la FUENTE
+   * (task/lessons.md, 2026-08-12, Task 19; mismo patron que
+   * `Hero.qa.test.tsx` usa para `grid.heroCopyMax`). Se despojan los
+   * comentarios antes de buscar: sin eso, el `clamp(...)` citado en prosa
+   * dentro del docblock de la propia constante haria fallar el `not.toContain`
+   * sobre codigo que si esta migrado.
+   */
+  it("critica #11: JOURNEY_DECK_TITLE_SIZE deriva del token, no escribe el clamp a mano", async () => {
+    expect(JOURNEY_DECK_TITLE_SIZE).toBe(typeTokens.scale.deckTitle.size);
+
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "journey.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("typeTokens.scale.deckTitle.size");
+    expect(fuente).not.toContain("clamp(2rem, 6vw, 4rem)");
+  });
+
   it("la etiqueta de paso tiene tope 11rem, cadena literal del encargo (T2)", () => {
     // Cadena LITERAL del encargo del usuario ("Journey deck step label:
     // font-size: clamp(1.75rem, 10vw, 11rem)"), atada tal cual: jsdom no
@@ -180,7 +209,9 @@ describe("escala tipografica de la presentacion de Journey (contrato con la spec
 describe("los pesos 900 de Journey estan fuera de la escala del sistema (T3/T6)", () => {
   it("JOURNEY_DECK_STEP_LABEL_WEIGHT pesa 900, por encima de toda la escala del sistema", () => {
     expect(JOURNEY_DECK_STEP_LABEL_WEIGHT).toBe(900);
-    const pesosDelSistema = Object.values(type.scale).map((v) => v.weight);
+    const pesosDelSistema = Object.values(typeTokens.scale).map(
+      (v) => v.weight,
+    );
     expect(Math.max(...pesosDelSistema)).toBeLessThan(
       JOURNEY_DECK_STEP_LABEL_WEIGHT,
     );
@@ -188,7 +219,9 @@ describe("los pesos 900 de Journey estan fuera de la escala del sistema (T3/T6)"
 
   it("JOURNEY_DECK_QUOTE_WEIGHT pesa 900, por encima de toda la escala del sistema", () => {
     expect(JOURNEY_DECK_QUOTE_WEIGHT).toBe(900);
-    const pesosDelSistema = Object.values(type.scale).map((v) => v.weight);
+    const pesosDelSistema = Object.values(typeTokens.scale).map(
+      (v) => v.weight,
+    );
     expect(Math.max(...pesosDelSistema)).toBeLessThan(
       JOURNEY_DECK_QUOTE_WEIGHT,
     );

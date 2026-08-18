@@ -86,6 +86,36 @@ describe("escala tipográfica de la presentación de Story (contrato con el enca
     expect(STORY_DECK_TITLE_SIZE).toMatch(/, 4rem\)$/);
   });
 
+  /*
+   * Critica externa #11 (2026-08-18), hallazgo C: este es el UNICO de los
+   * cinco tamanos de cartel de Story que deja de ser literal -- el mismo
+   * `clamp()` estaba escrito byte a byte en `journey.layers.ts`, y una medida
+   * que comparten dos secciones ya no es una medida de seccion (regla 13 de
+   * RULES.md). Los otros cuatro siguen siendo literales de ESTA composicion, y
+   * el docblock del bloque en `story.layers.ts` explica por que.
+   *
+   * La asercion de valor (`toBe(type.scale.deckTitle.size)`) no prueba la
+   * migracion por si sola: pasaria igual con el literal, que resuelve a la
+   * misma cadena. La propiedad "el numero vive en el token, no en este
+   * fichero" solo se observa en la FUENTE (task/lessons.md, 2026-08-12, Task
+   * 19), asi que se lee el fichero despojado de comentarios -- que ademas
+   * impide que el candado se desactive comentandolo.
+   */
+  it("critica #11: STORY_DECK_TITLE_SIZE deriva del token, no escribe el clamp a mano", async () => {
+    expect(STORY_DECK_TITLE_SIZE).toBe(type.scale.deckTitle.size);
+
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "story.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("typeTokens.scale.deckTitle.size");
+    expect(fuente).not.toContain("clamp(2rem, 6vw, 4rem)");
+  });
+
   it("el título de pilar tiene tope 3rem", () => {
     expect(STORY_DECK_PILLAR_TITLE_SIZE).toBe("clamp(1.75rem, 5vw, 3rem)");
     expect(STORY_DECK_PILLAR_TITLE_SIZE).toMatch(/, 3rem\)$/);

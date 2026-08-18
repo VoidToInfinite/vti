@@ -71,22 +71,54 @@ import {
  * -- con arte y vehiculo distintos (rejilla + camino punteado en claro,
  * presentacion de diapositivas ancladas en oscuro).
  *
- * LA NUMERACION es la excepcion sancionada, y conviene saber por que antes
- * de "arreglarla": la rama clara rotula "0N · Etiqueta" y la oscura NO
- * muestra ningun numero. No es un descuido -- al dueno se le pregunto
- * explicitamente por esta asimetria el 2026-08-02 y respondio "solo la rama
- * oscura" (D16 de
- * docs/superpowers/specs/2026-08-02-journey-deck-8-diapositivas-design.md),
- * y lo reconfirmo el 2026-08-11 cuando esta tarea propuso igualarlas.
+ * LA NUMERACION dejo de ser la excepcion sancionada el 2026-08-18 (critica
+ * externa #11, hallazgo C, dimension de coherencia; decision del dueno). Lo
+ * que se decidio y por que, porque este punto se ha decidido cuatro veces:
  *
- * Lo que SI cambio en esa segunda vuelta es la accesibilidad: el rail de
- * progreso del deck es `aria-hidden`, asi que en la rama oscura no habia
- * NINGUNA senal de posicion para quien navega con lector de pantalla. La
- * diapositiva de paso lleva ahora un `VisuallyHidden` ("Paso N de 6",
- * `Home.journey.stepPosition`) delante de la etiqueta: se anuncia, no se ve,
- * y la decision visual del dueno queda intacta. En el DOM va tras la caja
- * del icono, que es `aria-hidden` y no aporta texto, asi que para un lector
- * de pantalla ES lo primero que suena de la diapositiva.
+ * 1. Hasta hoy la rama clara rotulaba "0N · Etiqueta" y la oscura no mostraba
+ *    ningun numero. No era un descuido: al dueno se le pregunto por la
+ *    asimetria el 2026-08-02 y respondio "solo la rama oscura" (D16 de
+ *    docs/superpowers/specs/2026-08-02-journey-deck-8-diapositivas-design.md),
+ *    y lo reconfirmo el 2026-08-11 cuando la Task 16 propuso igualarlas.
+ * 2. La critica #11 midio esa asimetria como el ultimo resto de divergencia
+ *    de CONTENIDO entre las dos ramas, contra la decision D-C del dueno
+ *    ("tema = piel con contenido unificado", DESIGN.md §4), y planteo la
+ *    disyuntiva en sus terminos: o el ordinal vive en las dos ramas, o en
+ *    ninguna.
+ * 3. Se elige NINGUNA como pieza VISIBLE, y las DOS como contenido. La
+ *    posicion del paso no se pierde: pasa a anunciarse en las dos ramas con
+ *    el MISMO `VisuallyHidden` y la MISMA clave (`Home.journey.stepPosition`,
+ *    "Paso N de 6"), que hasta hoy solo tenia la rama oscura. Es una
+ *    unificacion mas estricta que "las dos pintan 01", no un recorte: el dato
+ *    de posicion queda en un unico sitio, con las mismas palabras, en el mismo
+ *    canal, en las dos ramas.
+ *
+ * POR QUE ESTE LADO Y NO EL OTRO, con lo que costaria cada uno:
+ *
+ * - Devolver el ordinal VISIBLE a la rama oscura significa resucitar
+ *   `ScJourneyStepNumber` y su constante de tamano
+ *   (`JOURNEY_DECK_STEP_NUMBER_SIZE`), retiradas por encargo explicito del
+ *   dueno y montadas de nuevo -- y retiradas de nuevo el mismo dia -- por la
+ *   Task 16. Seria la cuarta vuelta sobre el mismo pixel, contra dos
+ *   decisiones primarias del dueno, y en una diapositiva cuya etiqueta es
+ *   tipografia de cartel (`JOURNEY_DECK_STEP_LABEL_SIZE`, tope 11rem, peso
+ *   900): un "01" delante de "Evoluciona" a esa escala es una decision de
+ *   composicion, no una linea de copy.
+ * - Retirarlo de la rama clara es una linea, no toca ninguna pieza del deck, y
+ *   es reversible con la misma linea si el dueno prefiere el otro lado.
+ *
+ * Ademas retira una instancia sancionada de la familia `numbering` del
+ * detector de anti-patrones (`scripts/detect-anti-patterns.mjs`), en vez de
+ * duplicarla en una segunda rama.
+ *
+ * Lo que la rama clara PIERDE al hacerlo -- y se declara en vez de
+ * disimularse: la rejilla muestra los seis pasos a la vez, asi que el orden
+ * lo comunicaban el ordinal, el camino punteado (>= lg) y el orden de
+ * lectura; sin ordinal quedan los dos ultimos. Lo que GANA a cambio es que
+ * "01" -- que leido en voz alta no significa nada -- deja de ser lo primero
+ * que un lector de pantalla oye de cada paso, y en su lugar suena "Paso 1 de
+ * 6". En las dos ramas el anuncio va tras la caja del icono, que es
+ * `aria-hidden` y no aporta texto, asi que ES lo primero que suena del paso.
  */
 
 /** Paso entre pasos del reveal escalonado (mismo mecanismo que `ScItem` en
@@ -96,32 +128,24 @@ import {
  *  mecanismo de `ScJourneySlide`). */
 const STEP_STAGGER_MS = 90;
 
-/**
- * Ordinal visible de un paso ("01".."06"), a partir de su indice en
- * `JOURNEY_STEPS`. Un solo consumidor: `ScStepLabel`, la rama CLARA, que lo
- * pinta pegado a la etiqueta con su separador. La rama oscura no muestra
- * numero (decision del dueno, ver el docblock de cabecera); su senal de
- * posicion es texto para lector de pantalla y se compone aparte, con
- * palabras ("Paso N de 6"), no con este formato de dos digitos.
+/*
+ * AQUI VIVIERON `stepOrdinal(index)` -- el ordinal visible de un paso
+ * ("01".."06"), formateado con `String(index + 1).padStart(2, "0")` -- y
+ * `STEP_ORDINAL_SEPARATOR` (" · "), el separador con el que la rama CLARA
+ * componia "01 · Descubre" verbatim del mockup aprobado. RETIRADOS los dos en
+ * la critica externa #11 (2026-08-18, hallazgo C, decision del dueno): ver el
+ * punto 3 del docblock de cabecera para la disyuntiva completa y por que se
+ * eligio este lado.
  *
- * Sigue siendo una funcion y no un literal en el JSX porque el formato
- * -- dos digitos con cero a la izquierda -- es una decision, y tenerla con
- * nombre es lo que hace evidente en la revision si alguna vez diverge.
- *
- * El ordinal NO vive en `JOURNEY_STEPS` (journey.layers.ts) a proposito: es
- * la POSICION del paso en el array, no un dato propio del paso. Duplicarlo
- * como campo abriria la puerta a que el dato y el orden real se
- * contradigan.
+ * Lo que aquellas dos piezas defendian NO se pierde con ellas, y por eso vale
+ * la pena dejarlo escrito aqui: el ordinal nunca vivio en `JOURNEY_STEPS`
+ * (`journey.layers.ts`) a proposito, porque es la POSICION del paso en el
+ * array y no un dato propio del paso -- duplicarlo como campo habria abierto
+ * la puerta a que el dato y el orden real se contradigan. Ese criterio sigue
+ * vigente y lo hereda el anuncio de posicion que lo sustituye
+ * (`Home.journey.stepPosition`), que tambien deriva de `index` y del
+ * `JOURNEY_STEPS.length` real, nunca de un literal (regla 39 de RULES.md).
  */
-function stepOrdinal(index: number): string {
-  return String(index + 1).padStart(2, "0");
-}
-
-/** Separador entre ordinal y etiqueta en la rama CLARA ("01 · Descubre",
- *  verbatim del mockup aprobado). Es tipografia de ESA composicion, no
- *  contenido: la rama oscura pinta el mismo ordinal en linea propia, sin
- *  separador, porque no hay nada de lo que separarlo. */
-const STEP_ORDINAL_SEPARATOR = " · ";
 
 /*
  * Rama clara: contenedor normal (padding + tope de ancho, centrado -- sin
@@ -842,13 +866,26 @@ function JourneyLight(): ReactElement {
                     >
                       <StepIcon id={step.id} />
                     </ScDisc>
+                    {/* Senal de posicion, MISMA clave y mismas palabras que
+                        la rama oscura (critica externa #11, 2026-08-18):
+                        sustituye al "0N · " que esta etiqueta llevaba pegado
+                        delante. Va tras la caja del icono -- que es
+                        `aria-hidden` y no aporta texto -- asi que para un
+                        lector de pantalla es lo primero que suena del paso, y
+                        no ocupa caja, asi que la composicion visual de la
+                        tarjeta no se mueve por el. Total leido de
+                        `JOURNEY_STEPS`, nunca de un literal (regla 39). */}
+                    <VisuallyHidden>
+                      {t("Home.journey.stepPosition", {
+                        current: index + 1,
+                        total: JOURNEY_STEPS.length,
+                      })}
+                    </VisuallyHidden>
                     <ScStepLabel
                       $colorRamp={step.colorRamp}
                       $colorStep={step.colorStep}
                     >
-                      {`${stepOrdinal(index)}${STEP_ORDINAL_SEPARATOR}${t(
-                        `Home.journey.steps.${step.id}.label`,
-                      )}`}
+                      {t(`Home.journey.steps.${step.id}.label`)}
                     </ScStepLabel>
                     <ScStepBody variant="caption">
                       {t(`Home.journey.steps.${step.id}.body`)}
@@ -899,7 +936,7 @@ function JourneyLight(): ReactElement {
  * para no filtrar ningun ajuste a la rama clara.
  *
  * NUMERACION Y SENAL DE POSICION, historia completa porque este punto ya se
- * ha decidido tres veces:
+ * ha decidido CUATRO veces:
  *
  * 1. La diapositiva compuso icono -> numero -> etiqueta -> cuerpo (D11 de la
  *    spec de las 8 diapositivas) hasta el 2026-08-02, cuando el usuario pidio
@@ -921,9 +958,16 @@ function JourneyLight(): ReactElement {
  *    visual (icono -> etiqueta a space[4] -> subtitulo) es exactamente el que
  *    D16 dejo.
  *
- * La rama CLARA conserva su "0N · Label" verbatim del mockup (`stepOrdinal`,
- * arriba). El total (`JOURNEY_STEPS.length`) se lee del array, nunca de un
- * literal: si el viaje gana o pierde un paso, el anuncio se corrige solo
+ * 4. Critica externa #11 (2026-08-18, hallazgo C, decision del dueno): esta
+ *    rama NO cambia -- ni gana el ordinal visible ni pierde nada. Lo que
+ *    cambia es la OTRA: la rama clara retira su "0N · Label" y monta este
+ *    mismo `VisuallyHidden` con la misma clave, asi que la senal de posicion
+ *    deja de ser una particularidad de esta rama y pasa a ser el contenido
+ *    unico de las dos. Ver el docblock de cabecera del fichero para la
+ *    disyuntiva completa y por que se eligio ese lado.
+ *
+ * El total (`JOURNEY_STEPS.length`) se lee del array en las dos ramas, nunca
+ * de un literal: si el viaje gana o pierde un paso, el anuncio se corrige solo
  * (regla 39 de RULES.md).
  */
 function JourneyDeckDark(): ReactElement {

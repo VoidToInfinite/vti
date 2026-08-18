@@ -145,16 +145,80 @@ describe("Journey", () => {
     expect(region).toHaveAttribute("id", "journey");
   });
 
-  it("muestra los 6 pasos con su label de i18n (0N · Label)", () => {
+  /*
+   * Critica externa #11 (2026-08-18), hallazgo C. Hasta hoy este test exigia
+   * el formato "0N · Label" de la rama clara -- el ULTIMO resto de divergencia
+   * de CONTENIDO entre las dos ramas de Journey, contra la decision D-C del
+   * dueno ("tema = piel con contenido unificado"). El ordinal visible se
+   * retira; la etiqueta queda pelada, exactamente la misma cadena que ya
+   * pintaba la rama oscura desde la MISMA clave de i18n.
+   *
+   * El candado ya lo cierra la asercion POSITIVA: `getByText` compara el texto
+   * completo del nodo (normalizado), no por substring, asi que con el ordinal
+   * puesto el nodo diria "01 · Descubre" y `getByText("Descubre")` lanzaria.
+   * Las dos negativas se anaden igualmente porque dicen en el propio test QUE
+   * es lo prohibido -- el formato concatenado y el ordinal suelto -- en vez de
+   * dejarlo implicito en el modo de comparacion de una utilidad de la libreria.
+   * Verificado con bug inyectado (informe de la tarea).
+   */
+  it("muestra los 6 pasos con su label de i18n PELADO, sin ordinal visible (critica #11)", () => {
     renderWithProviders(<Journey />);
     JOURNEY_STEPS.forEach((step, index) => {
       const label = esHome.Home.journey.steps[step.id].label;
       const number = String(index + 1).padStart(2, "0");
-      expect(screen.getByText(`${number} · ${label}`)).toBeInTheDocument();
+      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(
+        screen.queryByText(`${number} · ${label}`),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(number)).not.toBeInTheDocument();
       expect(
         screen.getByText(esHome.Home.journey.steps[step.id].body),
       ).toBeInTheDocument();
     });
+  });
+
+  /*
+   * Critica externa #11 (2026-08-18), hallazgo C, la otra mitad del cambio: la
+   * senal de posicion que hasta hoy solo tenia la rama OSCURA pasa a las dos.
+   * El ordinal no se pierde como CONTENIDO, cambia de canal y de palabras --
+   * "01" leido en voz alta no significa nada; "Paso 1 de 6" si.
+   *
+   * Mismo trio de propiedades que ya verifica el describe gemelo de la rama
+   * oscura, mas abajo: (1) esta con PALABRAS, (2) va antes de la etiqueta en
+   * el DOM, (3) el total sale de `JOURNEY_STEPS.length`, no de un literal.
+   */
+  it("critica #11: cada paso de la rama clara anuncia 'Paso N de <total>' para lector de pantalla, antes de la etiqueta", () => {
+    renderWithProviders(<Journey />);
+    JOURNEY_STEPS.forEach((step, index) => {
+      const esperado = esHome.Home.journey.stepPosition
+        .replace("{{current}}", String(index + 1))
+        .replace("{{total}}", String(JOURNEY_STEPS.length));
+      const anuncio = screen.getByText(esperado);
+      expect(anuncio).toBeInTheDocument();
+
+      const label = screen.getByText(esHome.Home.journey.steps[step.id].label);
+      expect(
+        anuncio.compareDocumentPosition(label) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+  });
+
+  it("critica #11: el anuncio de la rama clara NO ocupa caja (VisuallyHidden 1x1) y sigue en el arbol de accesibilidad", () => {
+    renderWithProviders(<Journey />);
+    const esperado = esHome.Home.journey.stepPosition
+      .replace("{{current}}", "1")
+      .replace("{{total}}", String(JOURNEY_STEPS.length));
+    const anuncio = screen.getByText(esperado);
+
+    // Por el CSS inyectado, no por getComputedStyle (mismo motivo que el
+    // candado gemelo de la rama oscura, mas abajo en este fichero).
+    const css = cssRuleTextFor(anuncio);
+    expect(css).toContain("clip-path: inset(50%)");
+    expect(css).toContain("width: 1px");
+    expect(css).toContain("height: 1px");
+    expect(anuncio).not.toHaveAttribute("aria-hidden");
+    expect(anuncio.closest('[aria-hidden="true"]')).toBeNull();
   });
 
   it("la figura trae alt de i18n y srcset con las dos pistas (640/1024)", () => {
@@ -675,8 +739,10 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     // Tres aserciones NEGATIVAS protegen la ausencia del numero VISIBLE: el
     // ordinal exacto de este paso, cualquier texto con forma "0N" (por si un
     // indice se colara en la diapositiva equivocada) y el formato
-    // "0N · Label" concatenado de la rama clara. Sin ellas el test seguiria
-    // en verde si alguien reintrodujera la numeracion.
+    // "0N · Label" que la rama clara pinto hasta la critica externa #11
+    // (2026-08-18, hallazgo C), donde tambien se retiro -- se conserva como
+    // sonda porque es la forma exacta en la que la numeracion podria volver.
+    // Sin ellas el test seguiria en verde si alguien la reintrodujera.
     JOURNEY_STEPS.forEach((step, i) => {
       const slide = slides[i + 1];
       const number = String(i + 1).padStart(2, "0");
@@ -934,6 +1000,12 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
  * verdad: el rail de progreso es `aria-hidden`, asi que un lector de pantalla
  * no tenia ninguna forma de saber por que paso de la secuencia iba. El texto
  * se anuncia y no se ve.
+ *
+ * Desde la critica externa #11 (2026-08-18, hallazgo C) este mecanismo YA NO
+ * ES EXCLUSIVO de la rama oscura: la clara monta el mismo `VisuallyHidden` con
+ * la misma clave al retirar su "0N · Label". Este describe se queda acotado al
+ * tema oscuro -- su gemelo de la rama clara vive arriba, en el primer describe
+ * del fichero, porque alli es donde esta el resto de la cobertura de esa rama.
  *
  * Se comprueban las tres propiedades que lo hacen util, no solo que exista:
  * (1) esta en el DOM con PALABRAS ("Paso 3 de 6"), no un "03" suelto que
@@ -1364,10 +1436,13 @@ describe("Journey: fix wave E, hallazgo E2 -- ScStepLabel sube de escalon en tem
 
   it("cada etiqueta resuelve stepLabelColor (el escalon +2 AA-seguro), no stepColor (el escalon original del icono)", () => {
     renderWithProviders(<Journey />);
-    JOURNEY_STEPS.forEach((step, index) => {
+    JOURNEY_STEPS.forEach((step) => {
+      // Etiqueta PELADA desde la critica externa #11 (2026-08-18): hasta esa
+      // fecha este localizador buscaba "0N · Label". El color medido -- que es
+      // lo que este describe protege -- no cambia con la retirada del ordinal:
+      // `ScStepLabel` sigue siendo el mismo nodo con el mismo `stepLabelColor`.
       const label = esHome.Home.journey.steps[step.id].label;
-      const number = String(index + 1).padStart(2, "0");
-      const node = screen.getByText(`${number} · ${label}`);
+      const node = screen.getByText(label);
       const esperado = stepLabelColor(themes.light, {
         colorRamp: step.colorRamp,
         colorStep: step.colorStep,

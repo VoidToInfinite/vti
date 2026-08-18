@@ -19,6 +19,7 @@
  * en `ctaGlow`).
  */
 import { DECK } from "@/motion/vocabulary";
+import { type as typeTokens } from "@/theme/tokens/type";
 
 /**
  * Halo radial detrás de la figura (mockup L73): dos paradas de alfa
@@ -271,8 +272,17 @@ export const STORY_FIGURE_SIZES =
  * pilar y nota de cierre. Viven aquí y no como literales en `story.deck.tsx`
  * ni como tokens nuevos de `type.scale` porque son medidas de ESTA
  * composición (un cartel a pantalla completa), no de la escala de texto del
- * sitio: 4rem/3rem/8rem no tienen equivalente en `type.scale` y forzarlos ahí
+ * sitio: 3rem/8rem no tienen equivalente en `type.scale` y forzarlos ahí
  * contaminaría un contrato que otras secciones también consumen.
+ *
+ * CORREGIDO 2026-08-18 (crítica externa #11, hallazgo C): esta frase decía
+ * "4rem/3rem/8rem". El 4rem sale de la lista porque resultó no ser una medida
+ * de ESTA composición — `journey.layers.ts` declaraba exactamente el mismo
+ * `clamp()`, byte a byte, para el mismo rol. Una medida que dos secciones
+ * comparten ya no es de una sección, así que ese caso concreto SÍ es un token
+ * (`type.scale.deckTitle`) y `STORY_DECK_TITLE_SIZE` pasa a derivar de él. El
+ * criterio de la frase no se retira: sigue rigiendo para los otros cuatro
+ * tamaños, que no tienen ningún consumidor fuera de Story.
  *
  * Todas salvo el subtítulo se declaran como `clamp(mínimo, preferido-en-vw,
  * máximo)` en vez de con `@media`: un término en `vw` escala de forma
@@ -290,8 +300,21 @@ export const STORY_FIGURE_SIZES =
  * 2rem: por debajo de eso el titular de una diapositiva a pantalla completa
  * se queda del tamaño de un párrafo y pierde el peso de "cartel" que pide la
  * composición.
+ *
+ * DEJA DE DECLARAR EL LITERAL (crítica externa #11, 2026-08-18, hallazgo C):
+ * el mismo `clamp(2rem, 6vw, 4rem)` estaba escrito byte a byte en
+ * `JOURNEY_DECK_TITLE_SIZE` (`journey.layers.ts`) -- dos secciones, un solo
+ * valor, ninguna de las dos sabiendo de la otra. Pasa a derivar de
+ * `type.scale.deckTitle`, el peldaño que la escala del sistema estrena para
+ * este rol exacto. Es la excepción, no la regla, dentro del bloque de arriba:
+ * los otros cuatro tamaños de cartel de Story siguen siendo literales de ESTA
+ * composición y no se tokenizan, porque nadie más los usa. El porqué completo
+ * -- incluido por qué el tope del peldaño supera al de `display` -- vive en el
+ * docblock de `deckTitle` (`src/theme/tokens/type.ts`), no aquí.
+ *
+ * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
  */
-export const STORY_DECK_TITLE_SIZE = "clamp(2rem, 6vw, 4rem)";
+export const STORY_DECK_TITLE_SIZE = typeTokens.scale.deckTitle.size;
 
 /**
  * Título de cada diapositiva de pilar (`01`…`04` + nombre del pilar; hasta

@@ -86,11 +86,13 @@
  * Es demasiado generico -- formatear una hora (`String(hours).padStart(2,
  * "0")`) o una pagina no tiene nada que ver con el anti-patron y habria
  * disparado en falso el dia que alguien lo escribiera. Se acota al idioma
- * EXACTO que usa el unico consumidor real del repo (`Journey.tsx`,
- * `stepOrdinal`): un `String(...)` cuyo argumento sea una expresion `+ 1`
+ * EXACTO que usaba el unico consumidor real que el repo tuvo (`Journey.tsx`,
+ * `stepOrdinal`, retirado el 2026-08-18 con su sancion; ver la lapida en la
+ * allowlist): un `String(...)` cuyo argumento sea una expresion `+ 1`
  * (el "indice de array pasa a ordinal 1-based") encadenado con
  * `.padStart(2, "0")`. Un `String(hours).padStart(2, "0")` sin el `+ 1`
- * dentro de `String(...)` ya no coincide.
+ * dentro de `String(...)` ya no coincide. La regla se conserva sin
+ * consumidores: lo que vigila es que ese idioma no VUELVA sin decidirlo.
  *
  * Familias descartadas explicitamente (no se detectan, documentado por que):
  * - "ghost-card en reposo" (borde fino + sombra ancha EN REPOSO, no solo en
@@ -681,17 +683,23 @@ const ALLOWLIST = [
         ],
         reason: 'Numeracion 01-04 de los cuatro pilares de Story (aprendizaje/creacion/crecimiento/practica), array PILLARS con "number: \\"0N\\"". El nombre corregido en la critica externa #8 (2026-08-17): esta entrada decia "array STORY_STEPS", un identificador que NUNCA ha existido en el repo (verificado con git log -S sobre src/) -- y "steps" contradice ademas la decision de la Task 15, que retiro la etiqueta "Paso"/"Step" porque los cuatro pilares no son una secuencia. Ver el docblock de PILLARS en Story.tsx.',
     },
-    {
-        family: "numbering",
-        file: "src/components/sections/Journey/Journey.tsx",
-        anchors: [
-            {
-                snippet: 'return String(index + 1).padStart(2, "0");',
-                lines: [116],
-            },
-        ],
-        reason: 'Ordinal 01..06 de los pasos de Journey, rama clara (stepOrdinal via padStart(2, "0")), unico generador del repo.',
-    },
+    /*
+     * AQUI VIVIO la sancion [numbering] de src/components/sections/Journey/
+     * Journey.tsx ("Ordinal 01..06 de los pasos de Journey, rama clara,
+     * stepOrdinal via padStart(2, \"0\")"). RETIRADA el 2026-08-18 (critica
+     * externa #11, hallazgo C, decision del dueno): la rama clara ya no pinta
+     * ordinal -- `stepOrdinal`/`STEP_ORDINAL_SEPARATOR` se retiraron al
+     * unificar el contenido de las dos ramas de Journey, y la posicion pasa a
+     * anunciarse con palabras para lector de pantalla en las dos.
+     *
+     * Se retira la entrada Y NO SOLO EL CODIGO: un ancla sin hallazgo que la
+     * cubra no rompe el gate (el motor la reporta como "stale", ver seccion 5),
+     * pero deja una excepcion sancionando algo que ya no existe -- deuda
+     * silenciosa que la siguiente revision leeria como "aqui hay un ordinal
+     * aprobado". La regla `numbering` en si NO se toca: sigue viva y sigue
+     * cazando el idioma `String(<expr> + 1).padStart(2, "0")`, ahora sin
+     * ningun consumidor sancionado en el repo.
+     */
 ];
 
 // Clave compuesta (familia, fichero, contenido de linea) -- UNA sola
@@ -800,7 +808,7 @@ const FAMILY_GUIDANCE = {
     "kicker":
         "un <*Kicker*> nuevo fuera de Story.tsx/Features.tsx (las dos ramas ya sancionadas, decision D-E del dueno) necesita decidirse con el dueno del producto, igual que el resto de kickers del sitio.",
     "numbering":
-        'una numeracion decorativa de seccion nueva (number: "0N", o el ordinal String(idx + 1).padStart(2, "0")) fuera de Story.tsx/Journey.tsx (los dos generadores ya sancionados) necesita decidirse igual que el resto.',
+        'una numeracion decorativa de seccion nueva (number: "0N", o el ordinal String(idx + 1).padStart(2, "0")) fuera de Story.tsx (el UNICO generador sancionado que queda: Journey.tsx retiro el suyo el 2026-08-18, critica externa #11) necesita decidirse igual que el resto -- en Journey fue una decision del dueno, no una limpieza de estilo.',
 };
 
 function run() {

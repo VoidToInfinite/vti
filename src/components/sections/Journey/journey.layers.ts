@@ -17,6 +17,7 @@
  * cita y la sombra de la figura) se congela aquí como literal.
  */
 import { DECK } from "@/motion/vocabulary";
+import { type as typeTokens } from "@/theme/tokens/type";
 
 export type JourneyStepId =
   "discover" | "learn" | "imagine" | "create" | "share" | "evolve";
@@ -30,7 +31,10 @@ export interface JourneyStep {
    */
   readonly offsetY: number;
   /** Rampa de color del tema (mockup: `var(--<ramp>-<paso>)`) para el icono
-   *  y la etiqueta `0N · Label` de este paso. */
+   *  y la etiqueta de este paso. (Hasta la crítica externa #11, 2026-08-18,
+   *  esa etiqueta se rotulaba `0N · Label` en la rama clara; el ordinal
+   *  VISIBLE se retiró al unificar el contenido de las dos ramas -- ver el
+   *  docblock de cabecera de `Journey.tsx`.) */
   readonly colorRamp: "primary" | "secondary" | "error";
   readonly colorStep: 500 | 600 | 700;
   /** `box-shadow` VERBATIM del disco (mockup, un valor por paso — no siguen
@@ -39,9 +43,13 @@ export interface JourneyStep {
 }
 
 /**
- * Orden y geometría EXACTOS del mockup (L114-143): índice = escalón `0N` y
+ * Orden y geometría EXACTOS del mockup (L114-143): el índice es la POSICIÓN
+ * del paso -- la que anuncia el texto para lector de pantalla ("Paso N de 6",
+ * las dos ramas desde la crítica externa #11, 2026-08-18) -- y también el
  * escalón del stagger de reveal (`Journey.tsx` multiplica el índice por el
- * paso de ~90ms, mismo mecanismo que `ScItem` en `Features.tsx`).
+ * paso de ~90ms, mismo mecanismo que `ScItem` en `Features.tsx`). La posición
+ * NO se duplica como campo de esta tabla, a propósito: es el orden del array,
+ * no un dato propio del paso.
  */
 export const JOURNEY_STEPS: readonly JourneyStep[] = [
   {
@@ -398,7 +406,11 @@ export const JOURNEY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
  * `2026-08-02-journey-deck-8-diapositivas-design.md`; T2/T3/T5/T6/T7, spec
  * `2026-08-02-journey-deck-tipografia-design.md`). Constantes PROPIAS, no
  * importadas de `story.layers.ts`: acoplar las dos escalas haría que
- * retocar el cartel de una sección moviera el de la otra. La mayoría de los
+ * retocar el cartel de una sección moviera el de la otra. Sigue siendo cierto
+ * tras la crítica externa #11 (2026-08-18): `JOURNEY_DECK_TITLE_SIZE` pasa a
+ * derivar de un TOKEN del sistema (`type.scale.deckTitle`), no de la constante
+ * de Story -- ninguna de las dos secciones importa nada de la otra, que es lo
+ * que este párrafo protege. La mayoría de los
  * topes de `clamp()` siguen calibrados contra el texto REAL de esta sección
  * (la etiqueta de paso, una sola palabra; el subtítulo de paso, 60-80
  * caracteres) -- salvo la cita de cierre (`JOURNEY_DECK_QUOTE_SIZE`/
@@ -414,8 +426,29 @@ export const JOURNEY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
  * `STORY_DECK_TITLE_SIZE` y mismo tramo: el contenido que viste ("Tu viaje
  * no tiene un último paso.", 33 caracteres) es de longitud comparable al h2
  * de intro de Story, así que el mismo tramo de cartel sirve sin recalibrar.
+ *
+ * DEJA DE DECLARAR EL LITERAL (crítica externa #11, 2026-08-18, hallazgo C).
+ * "Mismo tramo que Story" era una afirmación en prosa sostenida por dos
+ * `clamp(2rem, 6vw, 4rem)` idénticos byte a byte en dos ficheros que no se
+ * conocen entre sí -- exactamente la forma de duplicado que la regla 13 de
+ * `RULES.md` manda convertir en token. Ahora los dos derivan de
+ * `type.scale.deckTitle` y la frase describe el código en vez de pedir
+ * confianza.
+ *
+ * ESTE CASO ES DISTINTO del de `JOURNEY_DECK_QUOTE_SIZE`/`_WEIGHT` (más
+ * abajo), que TAMBIÉN coinciden hoy con su pareja de Story y que a propósito
+ * NO se acoplan: aquellas dos son medidas de cartel de una composición
+ * concreta cuya coincidencia es una decisión revisable (su docblock lo
+ * declara, y un test es el punto donde se decidiría divergir). Esta, en
+ * cambio, viste el MISMO rol estructural en las dos secciones -- el titular de
+ * la diapositiva de intro de un deck -- así que su coincidencia no es una
+ * casualidad que convenga poder deshacer, es la definición del peldaño. El
+ * porqué completo del token, incluido por qué su tope supera al de `display`,
+ * vive en el docblock de `deckTitle` (`src/theme/tokens/type.ts`).
+ *
+ * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
  */
-export const JOURNEY_DECK_TITLE_SIZE = "clamp(2rem, 6vw, 4rem)";
+export const JOURNEY_DECK_TITLE_SIZE = typeTokens.scale.deckTitle.size;
 
 /**
  * Etiqueta de una sola palabra de cada paso ("Descubre".."Evoluciona"),
