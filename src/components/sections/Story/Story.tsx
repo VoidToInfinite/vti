@@ -1299,6 +1299,27 @@ const ScStatementLink = styled.a`
 const ScDeckNoteLink = styled.a`
   ${communityLinkStyles}
   margin-block-start: ${({ theme }) => theme.data.space[5]};
+
+  /* Compuerta de foco (critica #10, tarea derivada del hallazgo A): el unico
+     focalizable dentro de una ScSlide. La diapositiva ya NO se oculta con
+     visibility (reversion en story.deck.tsx: expulsaba las 6 del arbol de
+     accesibilidad), asi que la garantia de A1 -- cero focos invisibles,
+     WCAG 2.4.7 -- vive ahora AQUI: mientras la diapositiva del cierre no es
+     la actual, el enlace sale del orden de tabulacion y del arbol via
+     visibility, con la MISMA fuente de verdad (data-state del ancestro,
+     selector descendiente porque el estado vive en el padre -- leccion CSS
+     de la casa). Bajo reduce todas las diapositivas estan visibles y en
+     flujo, asi que el enlace DEBE volver a ser focalizable: perderlo seria
+     perder la salida de pertenencia (Task 6).
+     SIN BACKTICKS en este comentario: vive dentro del template literal
+     (task/lessons.md 2026-07-25). */
+  [data-state]:not([data-state="current"]) & {
+    visibility: hidden;
+
+    @media (prefers-reduced-motion: reduce) {
+      visibility: visible;
+    }
+  }
 `;
 
 export function Story(): ReactElement {

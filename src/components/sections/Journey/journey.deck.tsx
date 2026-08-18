@@ -281,10 +281,11 @@ export const ScJourneyDeck = styled.div`
  * -- los botones del rail (ScJourneyRailMark, mas abajo) -- viven fuera del
  * deck y estan visibles siempre, asi que no entran en este problema.
  *
- * NOTA DE ALCANCE: ScSlide (story.deck.tsx) sigue con `visibility: hidden` y
- * tiene el MISMO defecto de arbol de accesibilidad, agravado por tener seis
- * diapositivas y un enlace real dentro. No se toca aqui porque esta fuera del
- * dominio de esta ola; queda declarado, no arreglado.
+ * NOTA DE ALCANCE (cerrada): ScSlide (story.deck.tsx) tenia el MISMO defecto,
+ * agravado por un enlace real dentro. Se arreglo el mismo dia en la tarea
+ * derivada de esta ola: misma reversion de `visibility`, con la compuerta de
+ * foco movida al propio enlace (ScDeckNoteLink, Story.tsx) porque alli la
+ * estructura SI admite un focalizable -- ver su docblock.
  */
 export const ScJourneySlide = styled.div`
   grid-area: 1 / 1;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act } from "@testing-library/react";
+import { act, isInaccessible } from "@testing-library/react";
 import {
   renderWithProviders,
   screen,
@@ -164,9 +164,11 @@ function revealedSelectorTextFor(el: HTMLElement): string {
  * (que SI resuelve el valor declarado de una propiedad concreta, a
  * diferencia de buscar una subcadena en `cssText`, que no distingue "esta
  * declaracion pertenece a ESTA regla" de "aparece en cualquier parte del
- * bloque concatenado"). Usado por el candado de A1 (fix wave A) para leer
- * `visibility` del reposo de `ScSlide` y de su variante `[data-state="current"]`
- * por separado, sin ambiguedad de cual declaracion es cual.
+ * bloque concatenado"). Lo uso el candado de A1 (fix wave A) para leer
+ * `visibility` del reposo de `ScSlide`; hoy lo usa su sustituto (describe
+ * "critica #10") para leer la COMPUERTA del enlace del cierre
+ * (`ScDeckNoteLink`) en su regla `[data-state]:not(...)`, sin ambiguedad de
+ * cual declaracion es cual.
  */
 function cssRuleFor(
   el: HTMLElement,
@@ -1634,17 +1636,15 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
       String(STORY_SLIDES - 1),
     );
     expect(statement?.textContent).toContain(esHome.Home.story.statement.third);
-    // Consulta por DOM plano, NO por rol (fix wave A, A1): el deck arranca
-    // en la diapositiva 0, así que esta -- la última -- tiene
-    // data-state="next" y visibility: hidden (ScSlide, story.deck.tsx). Con
-    // el elemento genuinamente oculto, el algoritmo de nombre accesible
-    // (AccName) resuelve el texto de su subárbol como vacío -- ni siquiera
-    // `getByRole(..., { hidden: true })` (que solo salta el filtro de
-    // "inaccesible", no recalcula el nombre) encuentra un nombre que
-    // comparar. El test verifica la ESTRUCTURA (el enlace existe con el
-    // destino correcto dentro de #statement), no si es alcanzable en ESTE
-    // instante -- eso lo cubre el candado de A1 en el describe "fix wave A"
-    // de más abajo.
+    // Consulta por DOM plano, NO por rol: este test verifica ESTRUCTURA (el
+    // enlace existe con el destino correcto dentro de #statement), no
+    // alcanzabilidad. La justificación original (A1: la diapositiva "next"
+    // llevaba visibility: hidden y AccName resolvía vacío) quedó revertida
+    // en la crítica #10 -- hoy la que está oculta mientras la diapositiva no
+    // es la actual es la COMPUERTA del propio enlace (ScDeckNoteLink), así
+    // que la consulta por rol seguiría sin encontrar nombre y la consulta
+    // plana sigue siendo la correcta aquí. La alcanzabilidad la cubre el
+    // describe "critica #10" de más abajo.
     const link = (statement as HTMLElement).querySelector("a");
     expect(link, "no hay ningun enlace dentro de #statement").not.toBeNull();
     expect(link?.textContent).toContain(esHome.Home.story.communityLink);
@@ -1867,15 +1867,23 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
  * navegador real, SOLO la diapositiva `current` esta hoy en el arbol de
  * accesibilidad, no las 6 a la vez. Los DOS asserts de este describe (orden
  * de DOM, ausencia de `aria-hidden` sobre texto) SIGUEN siendo correctos y
- * necesarios -- jsdom no evalua ninguna hoja de estilos via
- * `getComputedStyle` (no resuelve `visibility` declarado en un
- * `<style>` inyectado por styled-components), asi que este describe entero
- * sigue en verde sin verlo -- pero ya NO describen "un lector de pantalla
- * anuncia las 6 diapositivas de una sola pasada": describen "la
- * ESTRUCTURA de cada diapositiva es correcta EN EL MOMENTO en que le toca
- * ser la actual", que es una propiedad mas debil y sigue siendo necesaria. El
- * candado NUEVO que ata la visibilidad condicional -- el que de verdad
- * cierra A1 -- vive en el describe "fix wave A" de mas abajo.
+ * necesarios.
+ *
+ * RE-ACTUALIZADO (critica #10, tarea derivada, 2026-08-18): la `visibility`
+ * de A1 SE REVIRTIO -- expulsaba las 6 diapositivas del arbol de
+ * accesibilidad y hacia el contenido inalcanzable para un lector de
+ * pantalla (el cursor virtual no emite scroll; el mismo P0 medido primero
+ * en Journey). La frase "un lector de pantalla anuncia las 6 diapositivas
+ * de una sola pasada" VUELVE a ser cierta, con una excepcion declarada: el
+ * enlace del cierre lleva una compuerta de visibility atada a `data-state`
+ * (`ScDeckNoteLink`, Story.tsx) para no reabrir la trampa de foco de A1.
+ * El candado de la reversion y de la compuerta vive en el describe
+ * "critica #10" de mas abajo (que sustituye al describe "fix wave A" que
+ * vivio alli). Nota de instrumento, corregida junto con la reversion: el
+ * `isInaccessible` de Testing Library SI observa el `visibility` de las
+ * hojas inyectadas en el jsdom actual -- el rojo observado del candado
+ * gemelo de Journey lo probo empiricamente; la afirmacion contraria que
+ * vivia en este parrafo era de la epoca de A1 y ya no describe el arnes.
  *
  * Dos propiedades, las dos citadas explicitamente por el encargo:
  * 1) Orden del DOM: `data-slide-index` crece de forma estrictamente
@@ -1985,20 +1993,42 @@ describe("Story: candado SR del deck -- orden de DOM y ausencia de aria-hidden s
 });
 
 /*
- * Fix wave A, hallazgo A1 (WCAG 2.4.7, revision final de rama): candado de
- * que las diapositivas NO actuales quedan fuera del orden de tabulacion por
- * CSS declarado, no por observacion de foco real -- jsdom no hace layout ni
- * pintado (no resuelve `visibility` de una hoja de estilos via
- * `getComputedStyle`), asi que la unica via fiable es leer la regla real del
- * CSSOM (`document.styleSheets`), el mismo mecanismo que ya usa
- * `revealedSelectorTextFor` mas arriba en este fichero.
+ * AQUI VIVIO el describe "fix wave A, A1 -- las diapositivas no actuales no
+ * son tabulables (CSS declarado)", con dos `it` que exigian
+ * `visibility: hidden` en el reposo de `ScSlide` y `visibility: visible` en
+ * `[data-state="current"]`/bajo `reduce`.
  *
- * Verificado con un bug inyectado a proposito (informe de la tarea): al
- * quitar `visibility: hidden` del reposo de `ScSlide` (story.deck.tsx), el
- * primer `it` de este describe cae en rojo (`toBe("hidden")` recibe
- * `undefined`); al restaurarlo, vuelve a verde.
+ * RETIRADO en la tarea derivada de la critica externa #10 (2026-08-18,
+ * hallazgo A, P0): esa misma `visibility: hidden` expulsaba las 6
+ * diapositivas del arbol de accesibilidad -- el cursor virtual de un lector
+ * de pantalla no emite scroll, asi que 5 de 6 eran inalcanzables por
+ * cualquier medio. No es un candado que se relaja para que pase (regla 40):
+ * es un contrato REVERTIDO con medicion delante (primero en Journey, mismo
+ * mecanismo), y su sustituto vive en el describe de abajo. La historia
+ * completa de las dos decisiones esta en el docblock de `ScSlide`
+ * (story.deck.tsx).
  */
-describe("Story: fix wave A, A1 -- las diapositivas no actuales no son tabulables (CSS declarado)", () => {
+
+/*
+ * Critica externa #10, hallazgo A (P0), tarea derivada: EL DECK DE STORY NO
+ * EXISTIA PARA TECNOLOGIA ASISTIVA -- el mismo defecto medido en Journey,
+ * agravado: aqui la ultima diapositiva contiene un enlace REAL
+ * (`ScDeckNoteLink`, Discord), asi que la reversion de la `visibility` de la
+ * diapositiva NO basta -- sola, reabriria la trampa de foco invisible que A1
+ * cerro de verdad en esta seccion (WCAG 2.4.7).
+ *
+ * Los cuatro candados cubren las cuatro mitades del arreglo: (1) el efecto
+ * que importa -- las STORY_SLIDES diapositivas estan en el arbol de
+ * accesibilidad en cualquier estado del deck; (2) la fuente -- el CSS de
+ * `ScSlide` ya no declara `visibility` en ninguna de sus reglas; (3) la
+ * condicion que hace segura la reversion AQUI -- el enlace de Discord es el
+ * UNICO focalizable dentro de las diapositivas Y lleva la compuerta de
+ * estado (`[data-state]:not([data-state="current"]) &` -> visibility:
+ * hidden); (4) la excepcion de `reduce` -- con todas las diapositivas
+ * visibles y en flujo, la compuerta se levanta y el enlace vuelve a ser
+ * focalizable (perderlo seria perder la salida de pertenencia de Task 6).
+ */
+describe("Story: critica #10 hallazgo A -- el deck oscuro existe para tecnologia asistiva y el enlace lleva la compuerta", () => {
   beforeEach(() => {
     stubMatchMedia();
     window.localStorage.setItem("vti-theme", "dark");
@@ -2007,40 +2037,108 @@ describe("Story: fix wave A, A1 -- las diapositivas no actuales no son tabulable
     window.localStorage.clear();
   });
 
-  it('el reposo de ScSlide declara visibility: hidden, y [data-state="current"] lo revierte a visible', async () => {
+  async function slidesDelDeck(): Promise<{
+    container: HTMLElement;
+    slides: HTMLElement[];
+  }> {
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
         STORY_SLIDES,
       );
     });
-    const slide = container.querySelector("[data-slide-index]") as HTMLElement;
+    return {
+      container,
+      slides: Array.from(
+        container.querySelectorAll("[data-slide-index]"),
+      ) as HTMLElement[],
+    };
+  }
 
-    const baseRule = cssRuleFor(slide, (sel) => !sel.includes("["));
-    expect(baseRule.style.visibility).toBe("hidden");
+  it("las STORY_SLIDES diapositivas estan en el arbol de accesibilidad con el deck en reposo", async () => {
+    const { slides } = await slidesDelDeck();
 
-    const currentRule = cssRuleFor(slide, (sel) =>
-      sel.includes('[data-state="current"]'),
-    );
-    expect(currentRule.style.visibility).toBe("visible");
-  });
-
-  it("bajo prefers-reduced-motion, TODAS las diapositivas vuelven a visibility: visible (perder 5/6 seria perder contenido)", async () => {
-    const { container } = renderWithProviders(<Story />);
-    await waitFor(() => {
-      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
-        STORY_SLIDES,
-      );
+    // `isInaccessible` (dom-accessibility-api, el MISMO calculo que usa
+    // getByRole) mira display/visibility/aria-hidden/hidden -- NO mira
+    // `opacity`, que es la propiedad con la que el deck oculta visualmente.
+    // Ese es el punto: invisible a la vista, presente para el lector.
+    slides.forEach((slide) => {
+      expect(isInaccessible(slide)).toBe(false);
     });
-    const slide = container.querySelector("[data-slide-index]") as HTMLElement;
-
-    const css = cssRuleTextFor(slide);
-    expect(css).toContain("prefers-reduced-motion: reduce");
-    const reduceBlock = css.slice(
-      css.indexOf("prefers-reduced-motion: reduce"),
-    );
-    expect(reduceBlock).toContain("visibility: visible");
   });
+
+  it("ninguna regla de ScSlide declara visibility (ni en reposo, ni en current, ni bajo reduce)", async () => {
+    const { slides } = await slidesDelDeck();
+
+    // Por texto de CSS inyectado acotado al componente, no por
+    // getComputedStyle: lo que hay que atar es que la DECLARACION no vuelva
+    // en ninguna regla de esta pieza, incluido el bloque @media (regla 36).
+    const css = cssRuleTextFor(slides[0]);
+    expect(css).toContain("opacity: 0");
+    expect(css).not.toContain("visibility");
+  });
+
+  it("el enlace de Discord es el UNICO focalizable dentro de las diapositivas, y lleva la compuerta de estado (visibility: hidden fuera de current)", async () => {
+    const { slides } = await slidesDelDeck();
+
+    const FOCALIZABLES =
+      'a[href], button, input, select, textarea, iframe, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
+    const focalizables = slides.flatMap((slide) =>
+      Array.from(slide.querySelectorAll(FOCALIZABLES)),
+    );
+    expect(focalizables).toHaveLength(1);
+    expect(focalizables[0]).toHaveAttribute("href", links.discord);
+
+    // La compuerta, leida de su regla exacta del CSSOM (cssRuleFor): el
+    // selector descendiente de estado que la aplica SOLO fuera de current.
+    const gate = cssRuleFor(focalizables[0] as HTMLElement, (sel) =>
+      sel.includes(':not([data-state="current"])'),
+    );
+    expect(gate.style.visibility).toBe("hidden");
+  });
+
+  it("bajo prefers-reduced-motion la compuerta se levanta: el enlace vuelve a visibility: visible", async () => {
+    const { slides } = await slidesDelDeck();
+    const link = slides[slides.length - 1].querySelector("a") as HTMLElement;
+
+    // La regla vive ANIDADA en un @media dentro de la regla de compuerta:
+    // se busca el CSSMediaRule real cuyo interior aplica al enlace con el
+    // selector de compuerta y declara visible -- sin depender de en que
+    // orden concatene styled-components los bloques del componente.
+    const classes = Array.from(link.classList);
+    const reduceRule = Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules);
+        } catch {
+          return [];
+        }
+      })
+      .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule)
+      .filter((r) => r.conditionText.includes("prefers-reduced-motion"))
+      .flatMap((r) => Array.from(r.cssRules))
+      .find((r): r is CSSStyleRule => {
+        if (!("selectorText" in r)) return false;
+        const sel = (r as CSSStyleRule).selectorText ?? "";
+        return (
+          classes.some((cls) => sel.includes(`.${cls}`)) &&
+          sel.includes(':not([data-state="current"])')
+        );
+      });
+    expect(
+      reduceRule,
+      "no hay regla de reduce que levante la compuerta del enlace",
+    ).toBeDefined();
+    expect(reduceRule?.style.visibility).toBe("visible");
+  });
+
+  /*
+   * Bugs inyectados a proposito (regla 34), ejecutados en esta tarea:
+   * (a) devolver `visibility: hidden;` al reposo de `ScSlide`
+   * (story.deck.tsx) pone en rojo los candados 1 y 2; (b) retirar el bloque
+   * de compuerta de `ScDeckNoteLink` (Story.tsx) pone en rojo los candados
+   * 3 y 4. Restauradas LAS LINEAS (nunca git checkout), todo vuelve a verde.
+   */
 });
 
 /*
@@ -2082,11 +2180,11 @@ describe("Story: Task 6, salida de pertenencia -- enlace real a Discord en el ci
     const lastSlide = container.querySelector(
       `[data-slide-index="${STORY_SLIDES - 1}"]`,
     ) as HTMLElement;
-    // Consulta por DOM plano, NO por rol (fix wave A, A1): el deck arranca
-    // en la diapositiva 0, así que la última tiene data-state="next" y
-    // visibility: hidden -- ver el comentario gemelo más arriba en este
-    // fichero ("Task 15") para el porqué completo de por qué una consulta
-    // por rol no encuentra nombre en un elemento genuinamente oculto.
+    // Consulta por DOM plano, NO por rol: el deck arranca en la diapositiva
+    // 0, así que la compuerta del enlace (ScDeckNoteLink, crítica #10; antes
+    // era la visibility de A1 sobre la diapositiva entera, revertida) lo
+    // mantiene oculto y sin nombre accesible -- ver el comentario gemelo más
+    // arriba ("Task 15").
     const link = lastSlide.querySelector("a");
     expect(
       link,

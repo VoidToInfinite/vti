@@ -300,41 +300,37 @@ export const ScDeck = styled.div`
  * tareas, invisible desde cualquiera de las dos por separado (misma familia
  * que la leccion del 2026-08-11, Task 31, `task/lessons.md`).
  *
- * Se elige `visibility` (no `inert`) porque ya existe el selector CSS
- * `&[data-state="current"]` que decide exactamente cuando una diapositiva
- * es la real: anadir `visibility: hidden` al reposo y `visibility: visible`
- * a ese mismo selector reutiliza la MISMA fuente de verdad sin tocar
- * Story.tsx/Journey.tsx ni anadir un efecto de React que sincronice un
- * atributo `inert` con `data-state` a mano. `visibility` entra en la MISMA
- * lista de `transition` que ya anima opacity/transform (no dos bloques
- * apertura/cierre como ScNavSheet/ScNavPanel en Navbar.tsx/NavSheet.tsx):
- * la especificacion de CSS Transitions trata `visibility` como discreta con
- * un caso especial -- al pasar a "visible" el valor computa "visible" desde
- * el primer frame de la transicion, y al pasar a "hidden" se queda en
- * "visible" hasta el ULTIMO frame -- asi que la diapositiva que se convierte
- * en "current" es focalizable de inmediato y la que deja de serlo sigue
- * siendo focalizable mientras se desvanece visualmente, sin ninguna ventana
- * en la que el estado de foco y el estado visual diverjan. (No hay ningun
- * `focus()` sincrono en el mismo tick que el cambio de `data-state` -- a
- * diferencia de NavSheet.tsx, que SI necesito retirar `visibility` de su
- * lista de apertura por esa razon -- asi que aqui no aplica esa trampa.)
+ * A1 eligio `visibility: hidden` en el reposo (no `inert`) para reutilizar
+ * el selector `&[data-state="current"]` como unica fuente de verdad, y
+ * declaro como COSTE aceptable que un lector de pantalla solo anunciara la
+ * diapositiva `current`, con este argumento: "el contenido sigue alcanzable
+ * exactamente por el mismo mecanismo (scroll) por el que ya lo era
+ * visualmente".
  *
- * COSTE DECLARADO: el candado SR del deck (Story.test.tsx/Journey.test.tsx,
- * "Task 6") documentaba que ninguna diapositiva salia del arbol de
- * accesibilidad, precisamente porque antes de esta tarea no habia ningun
- * `visibility`/`display` que la sacara -- un lector de pantalla podia leer
- * las 6 diapositivas completas en un solo paso, sin depender de que el
- * usuario "scrollee" el deck para revelarlas. Esa lectura de una sola pasada
- * YA NO ES CIERTA tras este arreglo: con `visibility: hidden` en las
- * diapositivas no actuales, un lector de pantalla real solo anuncia la
- * diapositiva `current` en cada instante -- exactamente lo mismo que ve un
- * usuario con vista, ni mas ni menos. Es la resolucion correcta de todos
- * modos: un trampa de foco invisible (WCAG 2.4.7) es un defecto MAS grave
- * que perder una lectura de una sola pasada que ningun usuario vidente tenia
- * tampoco -- y el contenido no desaparece, sigue alcanzable exactamente por
- * el mismo mecanismo (scroll) por el que ya lo era visualmente. Ver el
- * docblock actualizado del describe "candado SR del deck" en los dos
- * ficheros de test para el detalle completo.
+ * REVERTIDO (critica externa #10, hallazgo A + tarea derivada, 2026-08-18):
+ * ese argumento ERA FALSO. El cursor virtual de un lector de pantalla
+ * recorre el arbol de accesibilidad y no emite eventos de scroll, asi que
+ * nunca hace avanzar el deck: `visibility: hidden` no aplazaba la lectura,
+ * la hacia IMPOSIBLE -- 5 de 6 diapositivas inalcanzables por cualquier
+ * medio (el mismo P0 medido primero en Journey; ver `journey.deck.tsx`).
+ * Las diapositivas vuelven a vivir SIEMPRE en el arbol de accesibilidad
+ * (`opacity: 0` oculta de la vista pero no expulsa del arbol), y la mitad
+ * de A1 que sigue viva -- cero trampas de foco invisible, WCAG 2.4.7,
+ * porque la ultima diapositiva contiene un enlace REAL (`ScDeckNoteLink`,
+ * Story.tsx) -- se ata donde vive el problema: en el PROPIO enlace, que
+ * lleva `visibility: hidden` mientras su diapositiva no es `current`, con
+ * el mismo selector descendiente de estado (`[data-state]:not(...) &` --
+ * el estado vive en el ancestro ScSlide, leccion CSS de la casa) y la
+ * excepcion de `reduce` (todas las diapositivas visibles => el enlace debe
+ * volver a ser focalizable; perderlo seria perder la salida de pertenencia
+ * de la Task 6). A diferencia de Journey (cero focalizables: su candado es
+ * estructural), aqui la estructura admite EXACTAMENTE UN focalizable y el
+ * candado exige que ese uno lleve la compuerta -- ver el describe
+ * "critica #10" en Story.test.tsx. Coste declarado del arreglo: en las
+ * diapositivas no actuales el lector de pantalla lee el TEXTO completo pero
+ * no anuncia el enlace (el mismo destino vive tambien en el footer, grupo
+ * "community"); lo contrario -- un enlace alcanzable e invisible -- seria
+ * reabrir A1.
  *
  * LAS SEIS DIAPOSITIVAS SE CENTRAN, SIN EXCEPCIONES: no hay ningún prop de
  * alineación aquí, y eso es una decisión revertida, no una que nunca se tomó.
@@ -376,20 +372,16 @@ export const ScSlide = styled.div`
   grid-area: 1 / 1;
   width: 100%;
   opacity: 0;
-  visibility: hidden;
   transform: translateY(${STORY_SLIDE_SHIFT});
   transition:
     opacity ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate},
     transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    visibility ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate};
   pointer-events: none;
 
   &[data-state="current"] {
     opacity: 1;
-    visibility: visible;
     transform: none;
     pointer-events: auto;
   }
@@ -400,17 +392,17 @@ export const ScSlide = styled.div`
 
   /* D6: todas visibles a la vez, en flujo -- la degradacion a documento que
      el encargo de accesibilidad exige (perder 5 de 6 diapositivas seria
-     perder CONTENIDO, no solo movimiento). visibility: visible
-     incondicional (fix wave A, A1): bajo reduce todas las diapositivas se
-     apilan en flujo normal y TODAS tienen que quedar focalizables, no solo
-     la que fuera "current" en el instante en que se activo la preferencia.
+     perder CONTENIDO, no solo movimiento). La linea de visibility que vivio
+     aqui (fix wave A, A1) se retiro con la reversion de la critica #10 (ver
+     el docblock de arriba): ya no hay nada que revertir bajo reduce -- las
+     diapositivas nunca salen del arbol. La excepcion de reduce del ENLACE
+     del cierre vive con el enlace (ScDeckNoteLink, Story.tsx).
      SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
      literal de styled-components (leccion del repo, task/lessons.md
      2026-07-25). */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     opacity: 1;
-    visibility: visible;
     transform: none;
     pointer-events: auto;
   }
