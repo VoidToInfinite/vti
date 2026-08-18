@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { AMBIENT } from "@/motion/vocabulary";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { color } from "@/theme/tokens/color";
+import { grid } from "@/theme/tokens/grid";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
 import { type as typeTokens } from "@/theme/tokens/type";
@@ -345,6 +346,27 @@ describe("Hero (lente funcional)", () => {
     expect(opacity).toBe("1");
   });
 
+  /*
+   * Crítica externa #10 (2026-08-18), hallazgo C — lado CONSUMIDOR de la
+   * tokenización del tope de columna. El candado de FUENTE (más abajo, en el
+   * segundo describe) prueba que el número ya no se escribe a mano; este
+   * prueba lo complementario, que es lo que de verdad se ve: lo que llega al
+   * CSS renderizado sigue siendo el MISMO ancho de antes.
+   *
+   * Se afirma contra el token importado, nunca contra el literal (regla 38, y
+   * mismo patrón que `Journey.test.tsx`/`Story.test.tsx` ya usan con
+   * `grid.prose`): si algún día el token cambia de valor, este candado no
+   * miente sobre lo que el hero pinta, cambia con él.
+   */
+  it("crítica #10: tagline y subtítulo topan su ancho en grid.heroCopyMax, el mismo valor que declaraban a mano", () => {
+    renderHero();
+    const tagline = reglasDe(screen.getByTestId("hero-tagline")).join("\n");
+    const subtitulo = reglasDe(screen.getByTestId("hero-subtitle")).join("\n");
+
+    expect(tagline).toContain(`max-width: ${grid.heroCopyMax}`);
+    expect(subtitulo).toContain(`max-width: ${grid.heroCopyMax}`);
+  });
+
   describe("CTAs animados del hero (Flujo 3)", () => {
     /*
      * ctaGradient (BrandName.tsx, desde la Task 33 -- antes heroGradient,
@@ -477,13 +499,14 @@ describe("Hero (lente funcional)", () => {
     it.each(["solid", "soft", "outline", "ghost"] as const)(
       "un Button base fuera del hero en variant='%s' no hereda el degradado ni la mascara de los CTA del hero",
       (variant) => {
+        // Sin `intent` explícito: `primary` es el valor por defecto de
+        // `Button` y era lo único que este control necesitaba. La prop se
+        // retira de aquí en la crítica externa #10 (2026-08-18), donde el
+        // union se recortó a `primary`/`neutral`: escribir el propio valor
+        // por defecto hacía pasar por call site de producción algo que solo
+        // era ruido de test.
         const { container } = renderWithProviders(
-          <Button
-            variant={variant}
-            intent="primary"
-          >
-            Boton de control
-          </Button>,
+          <Button variant={variant}>Boton de control</Button>,
         );
         const boton = container.querySelector("button") as HTMLElement;
         const css = reglasDe(boton).join("\n");
@@ -519,20 +542,75 @@ describe("Hero.tsx / GlobalStyles.tsx — variables CSS del anti-flash (candado 
     return readFileSync(join(here, ...segments), "utf-8");
   }
 
+  /*
+   * Despoja comentarios ANTES de buscar. Dos motivos, los dos ya pagados por
+   * el repo (task/lessons.md, 2026-08-11): que una cita en prosa de un
+   * docblock no gane la búsqueda por aparecer antes que el código real, y
+   * sobre todo que una línea COMENTADA no pueda pasar por línea activa -- un
+   * `toContain` sobre fuente cruda se queda en VERDE si el candado se
+   * desactiva con `//`, que es exactamente el bug inyectado con el que se
+   * valida este bloque.
+   */
+  function despojarComentarios(source: string): string {
+    return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  }
+
+  /*
+   * Extrae un bloque CSS del FUENTE contando llaves, en vez de con una clase
+   * negada (`[^}]*`, la forma que tenía este candado hasta la crítica externa
+   * #10). Desde que `--hero-copy-maxwidth-lg` lee un token, el bloque contiene
+   * una interpolación y la primera `}` del fichero deja de ser su final: con
+   * la forma anterior el candado habría medido un bloque truncado, dando por
+   * ausentes variables que sí están. Contar llaves lo REFUERZA en vez de
+   * relajarlo -- antes bastaba con que las cinco variables aparecieran antes
+   * de la primera `}`; ahora tienen que aparecer dentro del bloque real.
+   */
+  function bloqueDe(source: string, apertura: string): string | undefined {
+    const inicio = source.indexOf(apertura);
+    if (inicio === -1) return undefined;
+    let profundidad = 0;
+    for (let i = inicio + apertura.length - 1; i < source.length; i += 1) {
+      if (source[i] === "{") profundidad += 1;
+      else if (source[i] === "}") {
+        profundidad -= 1;
+        if (profundidad === 0) return source.slice(inicio, i + 1);
+      }
+    }
+    return undefined;
+  }
+
   it("ScHeroBrand declara el fallback CLARO (7vw): sin JS, el resultado es identico al de antes de Task 9", async () => {
     const source = await leerFuente("Hero.tsx");
     expect(source).toContain("var(--hero-title-vw, 7vw)");
   });
 
-  it('GlobalStyles.tsx redefine --hero-title-vw a 8vw SOLO bajo :root[data-theme="dark"]', async () => {
-    const source = await leerFuente(
-      "..",
-      "..",
-      "..",
-      "theme",
-      "GlobalStyles.tsx",
+  /*
+   * Crítica externa #10 (2026-08-18), hallazgo C. `Hero.tsx` escribía a mano
+   * el tope de la columna de copia en CUATRO declaraciones (`ScCopy` en su
+   * forma centrada y dentro del `min(..., 70%)` de escritorio, `ScTagline` y
+   * `ScSubtitle`) mientras el sistema ya tenía dónde nombrarlo. Este es el
+   * único candado que puede probar la migración: el CSS RENDERIZADO es
+   * idéntico antes y después (el token resuelve al mismo valor), así que la
+   * propiedad "el número vive en el token, no en el componente" solo se
+   * observa en la FUENTE (task/lessons.md, 2026-08-12, Task 19).
+   *
+   * El recuento es cerrado a propósito (regla 39/40): si mañana alguien añade
+   * una quinta medida al hero, o devuelve una al literal, este número deja de
+   * cuadrar y hay que decidirlo a mano, no dejarlo pasar.
+   */
+  it("crítica #10: Hero.tsx ya no escribe el tope de columna a mano -- las cuatro medidas leen grid.heroCopyMax", async () => {
+    const source = despojarComentarios(await leerFuente("Hero.tsx"));
+    expect(source).not.toContain("70ch");
+    expect(source.match(/theme\.data\.grid\.heroCopyMax/g)?.length ?? 0).toBe(
+      4,
     );
-    const bloque = source.match(/:root\[data-theme="dark"\]\s*\{[^}]*\}/)?.[0];
+  });
+
+  it('GlobalStyles.tsx redefine --hero-title-vw a 8vw SOLO bajo :root[data-theme="dark"]', async () => {
+    const source = despojarComentarios(
+      await leerFuente("..", "..", "..", "theme", "GlobalStyles.tsx"),
+    );
+    const bloque = bloqueDe(source, ':root[data-theme="dark"] {');
     expect(
       bloque,
       'no se encontro el bloque :root[data-theme="dark"]',
@@ -541,7 +619,12 @@ describe("Hero.tsx / GlobalStyles.tsx — variables CSS del anti-flash (candado 
     expect(bloque).toContain("--hero-align-items-lg: center");
     expect(bloque).toContain("--hero-justify-lg: flex-end");
     expect(bloque).toContain("--hero-text-align-lg: center");
-    expect(bloque).toContain("--hero-copy-maxwidth-lg: 70ch");
+    // El override oscuro pasa a leer el token (crítica externa #10): lo que se
+    // afirma aquí es el CONSUMO, no el literal, porque el literal ya no vive
+    // en este fichero. Su valor lo fija `system.test.ts` -- los dos candados
+    // juntos siguen cerrando la misma propiedad de antes (que el fallback
+    // claro de Hero.tsx y el override oscuro no queden huérfanos entre sí).
+    expect(bloque).toContain("--hero-copy-maxwidth-lg: ${grid.heroCopyMax}");
     expect(bloque).toContain("--hero-actions-justify-lg: center");
   });
 });

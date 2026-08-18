@@ -92,23 +92,25 @@ describe("Button", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * Ocho combinaciones, no dieciséis: `success` y `danger` se retiraron del
+   * union `ButtonIntent` en la crítica externa #10 (2026-08-18) por
+   * inalcanzables — cero call sites de producción pasaban la prop `intent`, y
+   * esta tabla era, junto con `IconButton.test.tsx`, el único sitio del repo
+   * que los ejercitaba. La tabla se recorta con el union en el mismo cambio
+   * (regla 40: se actualiza, no se relaja); si alguien devolviera un valor
+   * muerto al union sin volver aquí, `tsc` ya no lo señalaría, pero el
+   * docblock de `ButtonIntent` explica por qué no debe volver.
+   */
   it.each([
     ["solid", "primary"],
     ["solid", "neutral"],
-    ["solid", "success"],
-    ["solid", "danger"],
     ["soft", "primary"],
     ["soft", "neutral"],
-    ["soft", "success"],
-    ["soft", "danger"],
     ["outline", "primary"],
     ["outline", "neutral"],
-    ["outline", "success"],
-    ["outline", "danger"],
     ["ghost", "primary"],
     ["ghost", "neutral"],
-    ["ghost", "success"],
-    ["ghost", "danger"],
   ] as const)(
     "renderiza sin fallar con variant='%s' e intent='%s'",
     (variant, intent) => {

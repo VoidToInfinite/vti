@@ -1,4 +1,5 @@
 import { createGlobalStyle } from "styled-components";
+import { grid } from "./tokens/grid";
 import { semanticDark } from "./tokens/semantic";
 
 export const GlobalStyles = createGlobalStyle`
@@ -286,7 +287,14 @@ export const GlobalStyles = createGlobalStyle`
     --hero-align-items-lg: center;
     --hero-justify-lg: flex-end;
     --hero-text-align-lg: center;
-    --hero-copy-maxwidth-lg: 70ch;
+    /* Mismo tope de columna que Hero.tsx, hoy leído del token en vez de
+       reescrito (crítica externa #10, 2026-08-18). Se importa DIRECTO de
+       tokens/grid.ts, no vía theme.data: esta regla tiene que existir en el
+       CSS horneado sea cual sea el tema del render, exactamente por el mismo
+       motivo que semanticDark unas líneas más arriba. Aquí no hay min(...,
+       70%) a propósito -- en la composición oscura la copia va centrada y no
+       compite con la mano del arte (ver el docblock de ScCopy). */
+    --hero-copy-maxwidth-lg: ${grid.heroCopyMax};
     --hero-actions-justify-lg: center;
   }
 

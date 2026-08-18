@@ -279,7 +279,11 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
      distancia). El ritmo lo da ahora cada pieza con su margin-block-start
      logico, proporcional a la distancia semantica del par que separa. */
   gap: ${({ theme }) => theme.data.space[0]};
-  max-width: 70ch;
+  /* Tope de la columna de copia, hoy un token del sistema (critica externa
+     #10, 2026-08-18): el mismo valor que se escribia a mano aqui y en otros
+     cuatro sitios. El porque del numero, y por que no es pariente de
+     grid.prose, viven en el docblock de heroCopyMax en tokens/grid.ts. */
+  max-width: ${({ theme }) => theme.data.grid.heroCopyMax};
   text-align: center;
   /* Segunda linea de defensa del contraste, ADEMAS del velo, SOLO en
      oscuro: los parrafos son mas anchos que la pupila y sus extremos caen
@@ -337,9 +341,18 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
     /* Medido (spec S3.6): la mano izquierda del arte entra hasta el 41.5%
        del hero a 16:10, el caso mas estrecho. El criterio no es "40%": es
        que la linea mas larga de la copia termine antes de ese punto. min()
-       con el prose normal cubre el caso comun sin magnificar el ancho en
-       viewports muy anchos. */
-    max-width: var(--hero-copy-maxwidth-lg, min(70ch, 70%));
+       con el tope de columna cubre el caso comun sin magnificar el ancho en
+       viewports muy anchos.
+
+       El primer termino del min() es el mismo token que la forma centrada
+       (critica externa #10, 2026-08-18); hasta esa fecha este comentario
+       decia "el prose normal", que ya no era cierto: el literal de aqui y
+       grid.prose dejaron de coincidir cuando la critica #8 recalibro prose a
+       52ch, y nadie arrastro la correccion hasta esta linea. */
+    max-width: var(
+      --hero-copy-maxwidth-lg,
+      min(${({ theme }) => theme.data.grid.heroCopyMax}, 70%)
+    );
   }
 
   /* Intro de carga, SIN condicion de JS (ver el docblock de cabecera): la
@@ -507,16 +520,24 @@ const ScHeroBrand = styled.div`
    justo esta linea del hero con el reparto antiguo. */
 const ScTagline = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[5]};
-  max-width: 70ch;
+  max-width: ${({ theme }) => theme.data.grid.heroCopyMax};
   text-wrap: balance;
   text-wrap-style: balance;
 `;
 
 /* Cambio de tier: el subtitulo se despega de la linea C que ahora lo
    precede (hasta la Task 14 se despegaba del titular directamente -- el
-   dueno cambio el orden, ver el docblock de ScTagline, arriba). La medida
-   corta lo mantiene en dos lineas legibles de un vistazo; con los 65ch de
-   prose a 24px seria una sola linea interminable.
+   dueno cambio el orden, ver el docblock de ScTagline, arriba).
+
+   ANCHO (corregido en la critica externa #10, 2026-08-18): esta linea decia
+   que el subtitulo se apoya en "la medida corta" frente a "los 65ch de
+   prose". Las dos mitades habian caducado -- este elemento nunca consumio
+   grid.proseTight (declaraba un literal propio, hoy grid.heroCopyMax, el
+   mismo tope que el resto de la columna), y prose dejo de valer 65ch cuando
+   la critica #8 lo recalibro a 52ch. Lo que de verdad mantiene el subtitulo
+   en dos lineas legibles no es un ancho corto sino su propio font-size (el
+   clamp de la excepcion de abajo, 15-22px), muy por debajo de los 24px de
+   h3 con los que un tope ancho si daria una linea interminable.
    Se consume con forwardedAs="p", NO con as="p": en styled-components v6 el
    prop `as` lo consume el propio wrapper -- renderiza un <p> pelado y descarta
    el componente envuelto --, asi que con `as` el subtitulo perdia TODA la
@@ -564,7 +585,7 @@ const ScSubtitle = styled(Typography)`
   font-size: clamp(15px, 2vw, 22px);
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   margin-block-start: ${({ theme }) => theme.data.space[3]};
-  max-width: 70ch;
+  max-width: ${({ theme }) => theme.data.grid.heroCopyMax};
 `;
 
 /*

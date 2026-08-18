@@ -99,20 +99,51 @@ describe("IconButton", () => {
     expect(screen.getByRole("button")).toHaveAttribute("data-variant", "ghost");
   });
 
-  it("propaga variant/intent a Button: el color heredado cambia con el intent", () => {
+  it("propaga variant a Button: el color heredado cambia con la variante", () => {
     renderWithProviders(
       <IconButton
         icon={<Icon />}
-        aria-label="Peligro"
+        aria-label="Solido"
         variant="solid"
-        intent="danger"
       />,
     );
-    const boton = screen.getByRole("button", { name: "Peligro" });
+    const boton = screen.getByRole("button", { name: "Solido" });
     expect(boton).toHaveAttribute("data-variant", "solid");
     // variant="solid" en Button.tsx fija color: semantic.onBrand — un valor
     // distinto de "transparent" (ghost/outline/soft con background propio).
     expect(getComputedStyle(boton).backgroundColor).not.toBe("transparent");
+  });
+
+  /*
+   * Crítica externa #10 (2026-08-18). Este candado sustituye a la mitad
+   * "intent" del test de arriba, que pasaba `intent="danger"` — un valor del
+   * union retirado en la misma revisión por inalcanzable, y una prop que
+   * `IconButton` ya no expone.
+   *
+   * Lo que queda por candar no es la propagación de una prop que nadie pasa,
+   * sino la PROPIEDAD que la retirada tenía que preservar y que sí se pinta en
+   * producción: `IconButton` compone SIEMPRE el acento NEUTRO de `Button`
+   * (`semantic.text`), nunca el `primary` (`brandSolid`) con el que `Button`
+   * arranca por su cuenta. Es lo que pintan hoy ThemeToggle, BackToTop y los
+   * dos disparadores de `NavSheet`: si alguien borrara el `intent="neutral"`
+   * de `IconButton.tsx`, todos los botones de icono del sitio pasarían a
+   * color de marca.
+   *
+   * Se lee del CSSOM inyectado y se compara contra el token importado (regla
+   * 38), nunca contra un color escrito a mano.
+   */
+  it("crítica #10: compone el acento NEUTRO de Button (semantic.text), no el primary con el que Button arranca", () => {
+    renderWithProviders(
+      <IconButton
+        icon={<Icon />}
+        aria-label="Etiqueta"
+      />,
+    );
+    const boton = screen.getByRole("button", { name: "Etiqueta" });
+    const css = reglasDe(boton).join("\n");
+
+    expect(css).toContain(`color: ${basicLightTheme.semantic.text}`);
+    expect(css).not.toContain(`color: ${basicLightTheme.semantic.brandSolid}`);
   });
 
   it("renderiza el icono recibido", () => {

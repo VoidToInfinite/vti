@@ -1,5 +1,35 @@
 import { color } from "./color";
 
+/**
+ * Roles semánticos VIVOS: 15, no los 16 que hubo hasta la crítica externa #10
+ * (2026-08-18).
+ *
+ * RETIRADO en esa revisión — `success` — con censo propio de consumidores
+ * previo (`semantic.success`, `theme.data.semantic.success`, acceso por
+ * corchete, desestructuración y alias local de `theme.data`) sobre `src/` y
+ * `app/`: **un único punto de consumo en todo el repo**, la rama
+ * `if (intent === "success")` de `accent()` en
+ * `src/components/ui/Button/Button.tsx`. Y esa rama era INALCANZABLE: ningún
+ * call site de producción pasaba la prop `intent`, así que el rol se quedaba
+ * con su medición AA escrita al lado (5,47:1 sobre `bg` en claro) y sin una
+ * sola pantalla capaz de pintarlo.
+ *
+ * Sus dos vecinos SIGUEN VIVOS y no se tocan, cada uno con un consumidor real
+ * y directo: `warning` lo pinta el callout de las páginas legales
+ * (`legalPage.parts.tsx`: franja lateral de 3px + relleno `color-mix`) y
+ * `error` lo pinta la validación del formulario de contacto (`Contact.tsx`:
+ * borde del campo inválido y mensaje de error). El `danger` retirado del
+ * mismo union de `ButtonIntent` mapeaba precisamente a `error`, y por eso no
+ * se lleva nada consigo.
+ *
+ * PENDIENTE fuera de este fichero, declarado en vez de corregido en silencio
+ * desde una tarea que no es dueña de esas piezas: la rampa primitiva
+ * `color.success` (`color.ts`) se queda — retirar un hue entero de la paleta
+ * toca las tablas compartidas por los seis y su propio contrato
+ * (`color.test.ts`), una decisión con más alcance del que cierra este censo —
+ * y desde hoy no la consume ningún rol semántico; `DESIGN.md` §2.2 sigue
+ * listando `success` en las tablas de roles de los dos temas.
+ */
 export interface SemanticColors {
   bg: string;
   surface: string;
@@ -14,7 +44,6 @@ export interface SemanticColors {
   brandText: string;
   focus: string;
   onBrand: string;
-  success: string;
   warning: string;
   error: string;
 }
@@ -51,10 +80,11 @@ export const semanticLight: SemanticColors = {
   // bajar L[7]: quedaron obsoletas en el mismo commit que las mejoró.
   focus: color.primary[700],
   onBrand: white,
-  // AA (C1): success[700]/warning[700] daban 3.89/4.22:1 sobre bg (fallan
-  // 4.5:1); no hay paso intermedio 750. success[800]/warning[800] dan
-  // 5.47/5.89:1.
-  success: color.success[800],
+  // AA (C1): warning[700] daba 4.22:1 sobre bg (falla 4.5:1); no hay paso
+  // intermedio 750. warning[800] da 5.89:1. La misma medición cubría el rol
+  // success (3.89 -> 5.47:1), retirado en la crítica externa #10: la cifra se
+  // conserva en el docblock de SemanticColors, arriba, para que la retirada
+  // no borre lo que se llegó a medir.
   warning: color.warning[800],
   error: color.error[700],
 };
@@ -73,7 +103,6 @@ export const semanticDark: SemanticColors = {
   brandText: color.primary[300],
   focus: color.primary[400],
   onBrand: color.neutral[1100],
-  success: color.success[500],
   warning: color.warning[500],
   error: color.error[500],
 };

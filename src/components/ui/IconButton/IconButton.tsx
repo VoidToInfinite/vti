@@ -4,7 +4,6 @@ import type { ButtonHTMLAttributes, ReactElement, ReactNode } from "react";
 import styled from "styled-components";
 import {
   Button,
-  type ButtonIntent,
   type ButtonSize,
   type ButtonVariant,
 } from "@/components/ui/Button/Button";
@@ -42,7 +41,15 @@ export interface IconButtonProps extends Omit<
    *  aquí como string requerido — ButtonHTMLAttributes lo trae opcional. */
   "aria-label": string;
   "variant"?: ButtonVariant;
-  "intent"?: ButtonIntent;
+  /*
+   * `intent` RETIRADO de esta interfaz en la crítica externa #10
+   * (2026-08-18). Censo previo sobre `src/` y `app/`: ningún consumidor de
+   * `IconButton` la pasó nunca — ni ThemeToggle, ni BackToTop, ni los dos
+   * disparadores de `NavSheet` —, así que la prop solo servía para
+   * redeclarar el valor por defecto que este componente ya fija por su
+   * cuenta. El acento neutro no desaparece con ella: se fija abajo, en el
+   * único sitio donde de verdad se decide (ver el JSX de `ScSquare`).
+   */
   "size"?: ButtonSize;
 }
 
@@ -129,7 +136,6 @@ const ScSquare = styled(Button)<{ $side: string; $iconSide: string }>`
 export function IconButton({
   icon,
   variant = "ghost",
-  intent = "neutral",
   size = "md",
   ...rest
 }: IconButtonProps): ReactElement {
@@ -139,7 +145,14 @@ export function IconButton({
       $iconSide={ICON_SIDE[size]}
       data-variant={variant}
       variant={variant}
-      intent={intent}
+      /* Literal, ya no una prop con valor por defecto (crítica externa #10,
+         2026-08-18): es la ÚNICA decisión que este componente toma sobre el
+         acento, y ningún consumidor la sobrescribía. `neutral` resuelve a
+         `semantic.text` en `Button.tsx` (`accent()`); sin esta línea, un
+         botón de icono heredaría el `primary` con el que arranca `Button` y
+         ThemeToggle/BackToTop/NavSheet pasarían a color de marca. El candado
+         de esa propiedad vive en `IconButton.test.tsx`. */
+      intent="neutral"
       size={size}
       {...rest}
     >

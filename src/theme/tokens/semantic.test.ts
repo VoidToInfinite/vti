@@ -85,9 +85,19 @@ describe("semantic colors", () => {
         // AA (C1): sube de primary[500] a primary[700] — ver semantic.ts.
         focus: color.primary[700],
         onBrand: white,
-        // AA (C1): sube de success[700]/warning[700] a success[800]/
-        // warning[800] — ver semantic.ts.
-        success: color.success[800],
+        /*
+         * AA (C1): sube de warning[700] a warning[800] — ver semantic.ts.
+         *
+         * Contrato ACTUALIZADO, no relajado (regla 40): el rol `success` que
+         * figuraba aquí se retiró en la crítica externa #10 (2026-08-18) por
+         * consumidor único e inalcanzable (la rama `intent === "success"` de
+         * `Button.tsx`, que ningún call site podía activar). Desaparece de
+         * los dos objetos esperados en el mismo cambio en vez de dejar el
+         * `toEqual` con una clave de más: como `toEqual` es exacto, si
+         * `success` volviera a `semantic.ts` sin volver aquí, estos dos tests
+         * caerían en rojo — que es exactamente la propiedad que se quiere
+         * conservar.
+         */
         warning: color.warning[800],
         error: color.error[700],
       };
@@ -113,7 +123,6 @@ describe("semantic colors", () => {
         brandText: color.primary[300],
         focus: color.primary[400],
         onBrand: color.neutral[1100],
-        success: color.success[500],
         warning: color.warning[500],
         error: color.error[500],
       };

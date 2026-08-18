@@ -36,6 +36,47 @@ export const grid = {
    */
   navMax: "1280px",
   /**
+   * Tope de ancho de la COLUMNA DE COPIA DEL HERO. Gobierna hoy cinco
+   * declaraciones y ninguna más: `ScCopy` (el contenedor de la columna, en su
+   * forma centrada y otra vez dentro del `min(..., 70%)` de escritorio),
+   * `ScTagline` y `ScSubtitle` — las tres en `Hero.tsx` — más el override
+   * `--hero-copy-maxwidth-lg` de la rama oscura, en `GlobalStyles.tsx`.
+   *
+   * Hasta la crítica externa #10 (2026-08-18) las cinco escribían el valor a
+   * mano: de las tres medidas de prosa que convivían en el sitio, la que
+   * gobierna la copia más vista era la única sin nombre, y la del medio
+   * (`prose`) la única tokenizada.
+   *
+   * Por qué NO entra en la familia de `prose` — y por eso NO se llama
+   * `proseWide`: `prose` promete un RECUENTO DE CARACTERES (~65 reales por
+   * línea, rango 60-75 de `DESIGN.md` §3.4) y su valor sale de dividir esa
+   * promesa por el ratio medido de Hanken Grotesk. Este token no hace esa
+   * promesa: es el tope de una COLUMNA, el mismo rol que `navMax` cumple para
+   * la píldora del navbar, y lo que acota es un `<h1>` de
+   * `clamp(34px, 8vw, 258px)` con dos piezas cortas debajo. Nombrarlo como
+   * pariente de `prose` invitaría a "recalibrarlo" por ese ratio, que aquí no
+   * describe nada: aplicado daría 70 × 1,259 ≈ 88 caracteres, muy por encima
+   * del rango, pero el tope casi nunca llega a morder — en escritorio el
+   * término que gana suele ser el `70%` del `min()` (la mano izquierda del
+   * arte, spec S3.6), y las dos líneas que sí son texto de cuerpo se midieron
+   * en navegador real a 1280x720 oscuro en 458,73px (tagline) y 585,94px
+   * (subtítulo), muy por debajo del tope (docblock de `ScTagline`,
+   * `Hero.tsx`). Mismo criterio que `navMax` frente a `containerMax`:
+   * magnitudes con propósitos distintos, que deben poder divergir sin
+   * arrastrarse la una a la otra.
+   *
+   * Por qué este valor y no otro: es EXACTAMENTE el que el hero ya pintaba, y
+   * esta entrada no lo cambia ni un carácter — nombrar una medida repetida es
+   * refactor de vocabulario, no rediseño. Lo que este token NO cierra es si
+   * el tope es el correcto; esa es una decisión de diseño con navegador
+   * delante, declarada como pendiente y no resuelta aquí. El candado del
+   * valor vive en `system.test.ts`; el de que los cinco consumidores lo LEAN
+   * (en vez de reescribir el literal) vive en `Hero.qa.test.tsx`, porque un
+   * candado de valor renderizado no puede distinguir un token de un literal
+   * que resuelve a lo mismo (`task/lessons.md`, 2026-08-12).
+   */
+  heroCopyMax: "70ch",
+  /**
    * Medida de línea del cuerpo largo: el ancho que deja **~65 CARACTERES
    * reales** por línea — el centro del rango de legibilidad 60-75 que persigue
    * el sistema (`DESIGN.md` §3.4, spec `2026-07-24-luxury-interface-system`).
@@ -71,10 +112,18 @@ export const grid = {
    * Su valor NO se corrige por el ratio de `prose` (arriba) a propósito: lo
    * que promete no es un recuento de caracteres, sino el número de LÍNEAS de
    * una pieza concreta. Y hoy no tiene ningún consumidor en `src/` (verificado
-   * 2026-08-17): el subtítulo del hero que lo justificó declara su propio
-   * `max-width` literal en `Hero.tsx`. Sin consumidor no hay medida real que
+   * 2026-08-17, y otra vez en la crítica externa #10, 2026-08-18): el
+   * subtítulo del hero que lo justificó nunca lo consumió. Hasta el
+   * 2026-08-18 declaraba su propio `max-width` literal; desde esa fecha
+   * consume `heroCopyMax` (arriba), que es el tope de la columna entera del
+   * hero, no esta medida corta — así que el subtítulo sigue sin ser
+   * consumidor de este token. Sin consumidor no hay medida real que
    * recalibrar; recalibrarlo "por coherencia" sería mover un número que nadie
    * lee, contra una promesa que nunca hizo.
+   *
+   * NO se retira pese al cero: a diferencia de `columns`/`gutter`, este token
+   * tiene un DESTINO escrito aquí — la medida de dos líneas para un
+   * subtítulo — y su docblock es la propia decisión de conservarlo.
    */
   proseTight: "34ch",
 } as const;

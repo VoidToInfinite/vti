@@ -11,7 +11,39 @@ import styled, { css, keyframes, type DefaultTheme } from "styled-components";
 import { PRESS } from "@/motion/vocabulary";
 
 export type ButtonVariant = "solid" | "soft" | "outline" | "ghost";
-export type ButtonIntent = "primary" | "neutral" | "success" | "danger";
+/**
+ * Intents VIVOS: 2, no los 4 que hubo hasta la crítica externa #10
+ * (2026-08-18).
+ *
+ * RETIRADOS en esa revisión — `success` y `danger` — con censo propio de
+ * consumidores previo (la prop `intent=` en JSX, el tipo `ButtonIntent`, y
+ * cada valor del union suelto) sobre `src/` y `app/`: **cero call sites de
+ * producción pasan la prop**. Las dos únicas apariciones de `intent=` fuera
+ * de tests eran reenvíos INTERNOS de la propia composición — `IconButton.tsx`
+ * hacia `Button`, y este fichero hacia `ScButton` —, así que `success` y
+ * `danger` solo se alcanzaban desde `Button.test.tsx`/`IconButton.test.tsx`,
+ * que los ejercitaban sin que ninguna pantalla del sitio los pidiera.
+ *
+ * Por qué el eje NO se retira entero, pese a que ningún consumidor escriba la
+ * prop: `primary` y `neutral` SÍ se alcanzan, los dos por DEFECTO. `Button`
+ * arranca en `primary` (`brandSolid`: CTA del hero, envío de Contacto, enlace
+ * de la 404) y `IconButton` fija `neutral` (`semantic.text`: ThemeToggle,
+ * BackToTop y los dos disparadores de la hoja de navegación). Borrar el eje
+ * repintaría de color de marca todos los botones de icono del sitio — un
+ * cambio VISUAL, justo lo contrario de lo que hace una retirada de
+ * vocabulario muerto.
+ *
+ * Qué se lleva por delante cada valor retirado: con `success` se retira
+ * `semantic.success`, su ÚNICO punto de consumo en todo el repo (ver el
+ * docblock de `SemanticColors` en `src/theme/tokens/semantic.ts`). Con
+ * `danger` no se retira nada: `semantic.error` sigue vivo por otra vía —
+ * `Contact.tsx` lo lee directo para el borde del campo inválido y para el
+ * mensaje de validación.
+ *
+ * Mismo criterio y mismo precedente que las variantes `h4`/`bodyLg`/`code` de
+ * `type.ts` y que `grid.columns`/`grid.gutter` (crítica externa #9).
+ */
+export type ButtonIntent = "primary" | "neutral";
 export type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -31,8 +63,6 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 function accent(theme: DefaultTheme, intent: ButtonIntent): string {
   const s = theme.data.semantic;
   if (intent === "neutral") return s.text;
-  if (intent === "success") return s.success;
-  if (intent === "danger") return s.error;
   return s.brandSolid;
 }
 
@@ -122,8 +152,11 @@ const ScButton = styled.button<{
     `;
     /* Tinte de hover (§13.1: "hover-lift + tint, un paso más oscuro"). Se
        deriva con color-mix del propio acento en vez de añadir un rol
-       semántico por intent: así los 4 intents lo obtienen sin multiplicar
-       tokens, y sigue sin haber valores de color hardcodeados. */
+       semántico por intent: así los dos intents lo obtienen sin multiplicar
+       tokens, y sigue sin haber valores de color hardcodeados. (Eran cuatro
+       hasta la crítica externa #10, 2026-08-18 -- ver el docblock de
+       ButtonIntent, arriba: la derivación por color-mix no cambia, solo hay
+       menos acentos de los que derivarla.) */
     if ($variant === "solid")
       return css`
         background: ${a};

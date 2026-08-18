@@ -108,6 +108,12 @@ describe("system tokens", () => {
       const expectedGrid = {
         containerMax: "1200px",
         navMax: "1280px",
+        // Token NUEVO de la crítica externa #10 (2026-08-18): el tope de la
+        // columna de copia del hero, que hasta esa fecha se escribía a mano
+        // en cinco declaraciones. Contrato ACTUALIZADO, no relajado (regla
+        // 40): entra aquí y en el recuento de claves de más abajo en el mismo
+        // cambio.
+        heroCopyMax: "70ch",
         // 52ch, no 65ch: la promesa del token son ~65 CARACTERES reales, y
         // con Hanken Grotesk cada `ch` da 1,259 de ellos -- ver el candado
         // "prose limita a 52ch...", mas abajo, y el docblock de grid.ts.
@@ -157,6 +163,27 @@ describe("system tokens", () => {
       expect(caracteresReales).toBeLessThanOrEqual(75);
     });
 
+    /*
+     * Candado del token nuevo (crítica externa #10, 2026-08-18). Dos mitades,
+     * como el de `prose`: el VALOR exacto -- que es el que el hero ya pintaba,
+     * porque tokenizar una medida repetida no cambia un píxel -- y la RELACIÓN
+     * que lo separa de la familia de `prose`: es el tope de una COLUMNA, más
+     * ancho que la medida de línea del cuerpo largo. Si algún día alguien lo
+     * "corrigiera" al ratio de caracteres reales de `prose` (52ch), la segunda
+     * mitad cae en rojo aunque el literal esperado se haya actualizado a la
+     * vez.
+     *
+     * Lo que este candado NO puede probar es que los cinco consumidores lean
+     * el token en vez de reescribir el literal: el CSS renderizado es idéntico
+     * en los dos casos (`task/lessons.md`, 2026-08-12, Task 19). Esa mitad la
+     * cierra el candado de FUENTE de `Hero.qa.test.tsx`.
+     */
+    it("heroCopyMax es 70ch y es un tope MAS ANCHO que la medida de linea de prose", () => {
+      expect(grid.heroCopyMax).toBe("70ch");
+      const ch = (v: string): number => Number(v.replace("ch", ""));
+      expect(ch(grid.heroCopyMax)).toBeGreaterThan(ch(grid.prose));
+    });
+
     it("proseTight es una medida mas corta que prose", () => {
       // El subtitulo del hero se apoya en esta medida: si algun dia igualara o
       // superara a prose dejaria de ser un subtitulo de dos lineas.
@@ -178,9 +205,13 @@ describe("system tokens", () => {
      * a un `toBeGreaterThan` -- que es exactamente lo que la regla 40 prohíbe.
      * El recuento sigue siendo cerrado: añadir una clave nueva a `grid` sin
      * tocar este número lo pone en rojo, igual que antes.
+     *
+     * Y así ocurrió: la crítica externa #10 (2026-08-18) añadió `heroCopyMax`
+     * y este número SUBE de 4 a 5 en el mismo cambio, con su `it` de valor e
+     * intención arriba -- la mecánica funcionó en las dos direcciones.
      */
     it("grid es un objeto congelado (as const)", () => {
-      expect(Object.keys(grid)).toHaveLength(4);
+      expect(Object.keys(grid)).toHaveLength(5);
     });
   });
 });

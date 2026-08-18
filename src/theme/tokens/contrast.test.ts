@@ -52,13 +52,18 @@ describe("contraste WCAG AA de los roles semánticos", () => {
       expect(ratio).toBeGreaterThanOrEqual(3);
     });
 
-    it.each(["success", "warning", "error"] as const)(
-      "%s sobre bg ≥ 4.5:1",
-      (role) => {
-        const ratio = contrastRatio(semantic[role], semantic.bg);
-        expect(ratio).toBeGreaterThanOrEqual(4.5);
-      },
-    );
+    /*
+     * Dos roles de estado, no tres: `success` se retiró en la crítica externa
+     * #10 (2026-08-18) por consumidor único e inalcanzable — ver el docblock
+     * de `SemanticColors` en `semantic.ts`. La lista se actualiza en el mismo
+     * cambio en vez de dejar un `semantic["success"]` que resolvería a
+     * `undefined` y haría fallar `contrastRatio` por una razón ajena al
+     * contraste.
+     */
+    it.each(["warning", "error"] as const)("%s sobre bg ≥ 4.5:1", (role) => {
+      const ratio = contrastRatio(semantic[role], semantic.bg);
+      expect(ratio).toBeGreaterThanOrEqual(4.5);
+    });
   });
 });
 
