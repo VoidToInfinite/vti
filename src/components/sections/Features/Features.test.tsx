@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act } from "@testing-library/react";
+import { act, fireEvent } from "@testing-library/react";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import { Features, accentColor, accentColorHover } from "./Features";
 import { PRESS, REVEAL } from "@/motion/vocabulary";
@@ -1845,5 +1845,60 @@ describe("crítica #8: los titulares de tarjeta son destino de foco de «Descubr
     } finally {
       window.localStorage.clear();
     }
+  });
+});
+
+/*
+ * Ola F de la critica #11 (integracion; barrido del agente del hero): los
+ * DOS CTAs de tarjeta (#contact, rama clara y oscura) movian el scroll pero
+ * no el foco -- el mismo defecto que el hallazgo B2 midio en el CTA del
+ * hero. Cableados con el helper de la nav (focusNavAnchorTarget) y un
+ * descriptor compartido entre href y handler. El destino se monta como stub
+ * sin tabindex (la forma exacta de la seccion real de Contact) para
+ * observar las DOS mitades del helper: el salto de foco y el tabindex="-1"
+ * ganado. Validado con bug inyectado (onClick retirado -> rojo; restaurado
+ * -> verde); ver el informe de integracion de la ola.
+ */
+describe("Features: los CTAs de tarjeta mueven el foco a #contact (las dos ramas)", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+    document.getElementById("contact")?.remove();
+  });
+
+  function mountContactStub(): HTMLElement {
+    const target = document.createElement("section");
+    target.id = "contact";
+    document.body.appendChild(target);
+    return target;
+  }
+
+  it("rama clara: clic en un CTA de tarjeta deja el foco en la seccion destino", () => {
+    const target = mountContactStub();
+    const { container } = renderWithProviders(<Features />);
+    const cta = container.querySelector(
+      'a[href="#contact"]',
+    ) as HTMLElement | null;
+    expect(cta, "no hay ningun CTA a #contact en la rama clara").not.toBeNull();
+    expect(target.hasAttribute("tabindex")).toBe(false);
+
+    fireEvent.click(cta as HTMLElement);
+
+    expect(document.activeElement).toBe(target);
+    expect(target).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("rama oscura: clic en un CTA de bloque deja el foco en la seccion destino", async () => {
+    window.localStorage.setItem("vti-theme", "dark");
+    const target = mountContactStub();
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelector('a[href="#contact"]')).not.toBeNull();
+    });
+    const cta = container.querySelector('a[href="#contact"]') as HTMLElement;
+
+    fireEvent.click(cta);
+
+    expect(document.activeElement).toBe(target);
+    expect(target).toHaveAttribute("tabindex", "-1");
   });
 });

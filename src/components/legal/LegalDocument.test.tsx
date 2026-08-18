@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
+import { fireEvent } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esLegal from "@/i18n/locales/es/legal.json";
@@ -321,6 +322,41 @@ describe("LegalDocument: el título de la pestaña sigue al idioma", () => {
         unmount();
       }
       await i18n.changeLanguage("es");
+    },
+  );
+});
+
+/*
+ * Ola F de la critica #11 (integracion; barrido del agente del hero): las
+ * anclas del indice movian el scroll pero no el foco -- el mismo defecto
+ * que el hallazgo B2 midio en el CTA del hero. Cableadas con el helper de
+ * la nav (focusNavAnchorTarget), descriptor construido del propio
+ * section.id. Aqui el destino vive en el MISMO render (las ScSection con
+ * id), asi que el candado observa el ciclo completo sin stubs. Validado con
+ * bug inyectado (onClick retirado -> rojo; restaurado -> verde).
+ */
+describe("LegalDocument: el indice mueve el foco a la seccion destino (ola F)", () => {
+  it.each(DOC_KEYS)(
+    "%s: clic en la primera entrada del indice deja el foco en su seccion, con tabindex=-1 ganado",
+    (docKey) => {
+      const { container } = renderWithProviders(
+        <LegalDocument docKey={docKey} />,
+      );
+      const tocLink = container.querySelector(
+        'a[href^="#"]',
+      ) as HTMLElement | null;
+      expect(tocLink, "no hay entradas de indice").not.toBeNull();
+      const id = (tocLink as HTMLElement).getAttribute("href")!.slice(1);
+      const target = container.querySelector(
+        `[id="${id}"]`,
+      ) as HTMLElement | null;
+      expect(target, `no existe la seccion #${id}`).not.toBeNull();
+      expect((target as HTMLElement).hasAttribute("tabindex")).toBe(false);
+
+      fireEvent.click(tocLink as HTMLElement);
+
+      expect(document.activeElement).toBe(target);
+      expect(target).toHaveAttribute("tabindex", "-1");
     },
   );
 });

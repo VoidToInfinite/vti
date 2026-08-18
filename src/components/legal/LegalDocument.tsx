@@ -3,6 +3,7 @@
 import { Fragment, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LEGAL_ENTITY, LEGAL_VERSIONS, PLACEHOLDER } from "@/config/legal";
+import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import { useDocumentMeta } from "@/seo/useDocumentMeta";
 import { STORAGE_REGISTRY } from "@/config/storage";
 import i18n, { initI18n } from "@/i18n/config";
@@ -501,7 +502,25 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
         <ScTocList>
           {doc.sections.map((section) => (
             <ScTocItem key={section.id}>
-              <ScTocLink href={`#${section.id}`}>{section.heading}</ScTocLink>
+              {/* El indice mueve el foco al destino real, igual que las
+                  anclas de la nav y los CTAs de seccion (critica #11,
+                  hallazgo B2; barrido de la ola F): mismo helper, cero
+                  logica duplicada -- pone tabindex="-1" en la seccion si no
+                  lo tiene y enfoca sin robar el scroll. El descriptor se
+                  construye del propio section.id para que href y foco no
+                  puedan divergir. */}
+              <ScTocLink
+                href={`#${section.id}`}
+                onClick={() =>
+                  focusNavAnchorTarget({
+                    key: section.id,
+                    href: `#${section.id}`,
+                    kind: "section",
+                  })
+                }
+              >
+                {section.heading}
+              </ScTocLink>
             </ScTocItem>
           ))}
         </ScTocList>

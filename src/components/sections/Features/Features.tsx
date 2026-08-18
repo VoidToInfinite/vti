@@ -9,6 +9,8 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { PRESS, REVEAL } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
+import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
+import type { NavItem } from "@/config/navigation";
 import { FeaturesCelestialOrbital } from "@/components/scenes/featuresCelestialOrbital/FeaturesCelestialOrbital";
 import {
   FEATURE_KEYS,
@@ -1386,6 +1388,19 @@ const ScDarkBody = styled(Typography)`
   max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
+/* El destino compartido de los DOS CTAs de tarjeta (rama clara y oscura):
+ * `href` y foco salen del MISMO descriptor para que no puedan divergir --
+ * receta exacta del CTA del hero (critica #11, hallazgo B2: los enlaces de
+ * la nav mueven el foco al destino desde la ola de la #10, pero los CTAs de
+ * seccion a seccion quedaron fuera del cableado). El helper es el de la
+ * nav (`focusNavAnchorTarget`): guarda de tabindex existente y
+ * `preventScroll` incluidos, cero logica duplicada aqui. */
+const FEATURES_CONTACT_ANCHOR: NavItem = {
+  key: "contact",
+  href: "#contact",
+  kind: "section",
+};
+
 export function Features(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
@@ -1559,7 +1574,10 @@ export function Features(): ReactElement {
                     ))}
                   </ScBullets>
                   <ScCta
-                    href="#contact"
+                    href={FEATURES_CONTACT_ANCHOR.href}
+                    onClick={() =>
+                      focusNavAnchorTarget(FEATURES_CONTACT_ANCHOR)
+                    }
                     $key={key}
                   >
                     {t(`Home.features.${key}.cta`)} →
@@ -1694,7 +1712,10 @@ export function Features(): ReactElement {
                         ))}
                       </ScBullets>
                       <ScCta
-                        href="#contact"
+                        href={FEATURES_CONTACT_ANCHOR.href}
+                        onClick={() =>
+                          focusNavAnchorTarget(FEATURES_CONTACT_ANCHOR)
+                        }
                         $key={key}
                       >
                         {t(`Home.features.${key}.cta`)} →
