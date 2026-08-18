@@ -4,6 +4,7 @@ import {
   STORY_COSMIC_BEING_SCROLL_AMP,
   STORY_COSMIC_BEING_SIZES,
   STORY_COSMIC_BEING_VOID,
+  storyCosmicBeingAvifSrcSet,
 } from "./storyCosmicBeing.layers";
 
 describe("storyCosmicBeing.layers", () => {
@@ -53,5 +54,45 @@ describe("storyCosmicBeing.layers", () => {
    */
   it("Task 20: STORY_COSMIC_BEING_SCROLL_AMP iguala la constante de amplitud de sus hermanas (32, no 190)", () => {
     expect(STORY_COSMIC_BEING_SCROLL_AMP).toBe(32);
+  });
+});
+
+/*
+ * Candado de la convencion AVIF (2026-08-17). storyCosmicBeingAvifSrcSet
+ * deriva las rutas .avif por sustitucion de extension en vez de duplicar
+ * once pares de rutas en la tabla; el riesgo real de esa convencion -- que
+ * el fichero derivado NO exista y el <source> apunte a un 404 silencioso
+ * (el navegador con AVIF elegiria esa pista y la capa no pintaria) -- se
+ * cierra aqui comprobando con node:fs que cada AVIF derivado existe de
+ * verdad en public/, con tamano mayor que cero.
+ *
+ * Validado con bug inyectado real: renombrando temporalmente
+ * 07-geometry.avif, este test cae en rojo; restaurado, vuelve a verde.
+ */
+describe("storyCosmicBeing AVIF", () => {
+  it("cada pista AVIF derivada existe en public/ y no esta vacia", async () => {
+    const { statSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const publicDir = join(here, "..", "..", "..", "..", "public");
+
+    for (const layer of STORY_COSMIC_BEING_LAYERS) {
+      for (const track of [layer.src, layer.srcSmall]) {
+        const avif = track.replace(/\.webp$/, ".avif");
+        const stat = statSync(join(publicDir, avif.replace(/^\//, "")));
+        expect(
+          stat.size,
+          `la pista derivada ${avif} no existe o esta vacia: el <source> AVIF apuntaria a un 404 y la capa no pintaria en navegadores con AVIF`,
+        ).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("el srcSet derivado conserva anchos y orden de la pista WebP", () => {
+    const layer = STORY_COSMIC_BEING_LAYERS[1];
+    expect(storyCosmicBeingAvifSrcSet(layer)).toBe(
+      `${layer.srcSmall.replace(".webp", ".avif")} 1024w, ${layer.src.replace(".webp", ".avif")} 1280w`,
+    );
   });
 });

@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { StoryCosmicBeing } from "./StoryCosmicBeing";
 import { AMBIENT } from "@/motion/vocabulary";
-import { STORY_COSMIC_BEING_LAYERS } from "./storyCosmicBeing.layers";
+import {
+  STORY_COSMIC_BEING_LAYERS,
+  STORY_COSMIC_BEING_SIZES,
+  storyCosmicBeingAvifSrcSet,
+} from "./storyCosmicBeing.layers";
 
 /** Texto CSS de todas las reglas inyectadas por styled-components (lección
  *  2026-07-27: jsdom no evalúa NINGÚN `@media`, así que una `animation:`
@@ -126,5 +130,46 @@ describe("StoryCosmicBeing", () => {
     expect(css).toContain(`${AMBIENT.breathMs}ms ease-in-out infinite`);
     expect(css).not.toContain("6.5s");
     expect(css).not.toContain("6500ms");
+  });
+
+  /*
+   * Pista AVIF (2026-08-17, palanca del dueno para el peso del tema oscuro).
+   * Lo que este candado ata es el contrato del <picture>: cada capa lleva
+   * su <source type="image/avif"> con el srcSet derivado, y el "sizes" del
+   * source es IDENTICO al del <img> -- si divergieran, el navegador
+   * elegiria pistas de anchos distintos segun la rama que gane (la misma
+   * familia de defecto que la doble descarga de precargas del hero).
+   *
+   * Validado con bug inyectado real, dos veces: (A) retirando el <source>
+   * del JSX -> rojo en la primera asercion; (B) cambiando solo el sizes del
+   * <source> a "100vw" -> rojo en la de sizes y en ninguna mas. Restaurado,
+   * verde.
+   */
+  it("cada capa lleva su <source> AVIF con el srcSet derivado y el MISMO sizes que el img", () => {
+    const { container } = render(<StoryCosmicBeing />);
+    const imgs = Array.from(container.querySelectorAll("img"));
+    expect(imgs).toHaveLength(STORY_COSMIC_BEING_LAYERS.length);
+
+    imgs.forEach((img, i) => {
+      const layer = STORY_COSMIC_BEING_LAYERS[i];
+      const picture = img.closest("picture");
+      expect(
+        picture,
+        `la capa ${layer.part} no esta envuelta en <picture>`,
+      ).not.toBeNull();
+      const source = picture?.querySelector('source[type="image/avif"]');
+      expect(
+        source,
+        `la capa ${layer.part} no declara pista AVIF`,
+      ).not.toBeNull();
+      expect(source?.getAttribute("srcset")).toBe(
+        storyCosmicBeingAvifSrcSet(layer),
+      );
+      expect(
+        source?.getAttribute("sizes"),
+        `sizes divergente en ${layer.part}: el navegador elegiria anchos distintos por rama`,
+      ).toBe(STORY_COSMIC_BEING_SIZES);
+      expect(img.getAttribute("sizes")).toBe(STORY_COSMIC_BEING_SIZES);
+    });
   });
 });

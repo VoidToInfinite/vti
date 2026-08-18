@@ -10,6 +10,7 @@ import {
   STORY_COSMIC_BEING_POINTER_AMP,
   STORY_COSMIC_BEING_SCROLL_AMP,
   STORY_COSMIC_BEING_SIZES,
+  storyCosmicBeingAvifSrcSet,
 } from "./storyCosmicBeing.layers";
 import { ScLayer, ScScene, ScVignette, ScVoid } from "./storyCosmicBeing.parts";
 
@@ -52,19 +53,38 @@ export function StoryCosmicBeing(): ReactElement {
     >
       <ScVoid />
       {STORY_COSMIC_BEING_LAYERS.map((layer, index) => (
-        <ScLayer
-          key={layer.part}
-          ref={layerRefs[index]}
-          data-part={layer.part}
-          src={layer.src}
-          srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1280w`}
-          sizes={STORY_COSMIC_BEING_SIZES}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          $blend={layer.blend}
-          $glow={layer.glow}
-        />
+        /*
+         * <picture> con pista AVIF (2026-08-17, palanca del dueno para el
+         * peso del tema oscuro: -44,5 % medido sobre estas 22 pistas). El
+         * envoltorio NO cambia el layout: <picture> no es la caja del <img>
+         * -- ScLayer sigue siendo position absolute contra ScScene, y el
+         * parallax sigue apuntando al <img> via layerRefs, exactamente igual
+         * que antes. El "sizes" viaja IDENTICO en el <source> y en el <img>:
+         * si divergieran, el navegador elegiria pistas de anchos distintos
+         * segun la rama que gane (misma familia de defecto que la doble
+         * descarga de las precargas del hero, eye.layers.ts). Un navegador
+         * sin AVIF ignora el <source> por su type y cae al srcSet WebP del
+         * <img> -- cero perdida para nadie.
+         */
+        <picture key={layer.part}>
+          <source
+            type="image/avif"
+            srcSet={storyCosmicBeingAvifSrcSet(layer)}
+            sizes={STORY_COSMIC_BEING_SIZES}
+          />
+          <ScLayer
+            ref={layerRefs[index]}
+            data-part={layer.part}
+            src={layer.src}
+            srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1280w`}
+            sizes={STORY_COSMIC_BEING_SIZES}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            $blend={layer.blend}
+            $glow={layer.glow}
+          />
+        </picture>
       ))}
       <ScVignette />
     </ScScene>

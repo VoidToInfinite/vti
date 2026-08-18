@@ -144,6 +144,35 @@ export const STORY_COSMIC_BEING_LAYERS: readonly StoryCosmicBeingLayer[] = [
  */
 export const STORY_COSMIC_BEING_SIZES = "(max-width: 700px) 340px, 100vw";
 
+/**
+ * srcSet AVIF de una capa, derivado del WebP por sustitución de extensión.
+ *
+ * AVIF llegó el 2026-08-17 (palanca elegida por el dueño para el peso del
+ * tema oscuro: la escena era el 58 % de la carga y su WebP ya estaba en su
+ * óptimo — recomprimirlo salía MÁS grande, medido en el manifest). Cifras de
+ * la conversión, medidas fichero a fichero: las 22 pistas ganan (la guarda
+ * de ≥5 % no saltó ninguna), escena completa 2.002.824 → 1.111.842 B en
+ * disco (−44,5 %), PSNR mínimo 48,96 dB (RGB premultiplicado) / 47,16 dB
+ * (alfa) — sobre el umbral de aceptación de 45 dB que este manifest usa
+ * desde la recompresión de alfa. PROCEDENCIA DECLARADA: los maestros PNG no
+ * están en la máquina (solo en el zip de origen, no versionado), así que el
+ * AVIF se transcodificó desde el WebP q70 desplegado y la referencia de
+ * calidad ES ese WebP — la verdad visual que la QA aprobó — no el maestro.
+ * Detalle completo en assets/story-cosmic-being/manifest.json.
+ *
+ * Derivación por convención (mismo nombre, extensión .avif) en vez de once
+ * pares de rutas más en la tabla: la tabla no gana información repitiendo
+ * cada ruta con otra extensión, y el riesgo real de una convención — que el
+ * fichero derivado NO exista y el <source> apunte a un 404 silencioso — lo
+ * cierra el candado de storyCosmicBeing.layers.test.ts, que comprueba con
+ * node:fs que cada AVIF derivado existe de verdad en public/.
+ */
+export function storyCosmicBeingAvifSrcSet(
+  layer: StoryCosmicBeingLayer,
+): string {
+  return `${layer.srcSmall.replace(/\.webp$/, ".avif")} 1024w, ${layer.src.replace(/\.webp$/, ".avif")} 1280w`;
+}
+
 /** Escala base comun a las 11 capas: evita bordes vacios al desplazar. */
 export const STORY_COSMIC_BEING_OVERSCAN = 1.02;
 
