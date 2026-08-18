@@ -25,10 +25,16 @@ describe("LegalHeader", () => {
     ).toBeInTheDocument();
   });
 
-  it("monta el selector de idioma con los dos botones (Español/English)", () => {
+  it("monta el selector de idioma con los dos ENLACES (Español/English) — ola G: el idioma vive en la URL", () => {
+    // Contrato actualizado, no relajado (regla 40): desde la ola G el
+    // selector navega a la ruta del otro idioma (entrada de historial,
+    // compartible), asi que sus controles son <a> con hreflang, ya no
+    // botones que conmutan i18next en memoria.
     renderWithProviders(<LegalHeader />);
-    expect(screen.getByRole("button", { name: "Español" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "English" })).toBeInTheDocument();
+    const es = screen.getByRole("link", { name: "Español" });
+    const en = screen.getByRole("link", { name: "English" });
+    expect(es).toHaveAttribute("hreflang", "es");
+    expect(en).toHaveAttribute("hreflang", "en");
   });
 
   it("NO monta ninguna ancla de sección del Navbar de la home (D20)", () => {

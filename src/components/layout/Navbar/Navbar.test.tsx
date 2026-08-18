@@ -364,13 +364,15 @@ describe("Navbar", () => {
      */
     const { container } = renderNavbar();
 
-    const botonesEs = container.querySelectorAll("button[title*='Español']");
-    const botonesEn = container.querySelectorAll("button[title*='Inglés']");
-    expect(botonesEs).toHaveLength(2);
-    expect(botonesEn).toHaveLength(2);
+    // Desde la ola G el selector navega (enlaces con hreflang), ya no
+    // conmuta con botones — contrato actualizado, no relajado (regla 40).
+    const enlacesEs = container.querySelectorAll("a[title*='Español']");
+    const enlacesEn = container.querySelectorAll("a[title*='Inglés']");
+    expect(enlacesEs).toHaveLength(2);
+    expect(enlacesEn).toHaveLength(2);
 
     const hoja = container.querySelector("[data-nav-sheet]") as HTMLElement;
-    const enHoja = hoja.querySelectorAll("button[title*='Español']");
+    const enHoja = hoja.querySelectorAll("a[title*='Español']");
     expect(enHoja, "el idioma no se ha mudado dentro de la hoja").toHaveLength(
       1,
     );
@@ -378,7 +380,7 @@ describe("Navbar", () => {
     // La otra copia vive en la barra, FUERA de la hoja: la del banner menos
     // la de la hoja tiene que ser exactamente una.
     const banner = screen.getByRole("banner");
-    expect(banner.querySelectorAll("button[title*='Español']")).toHaveLength(1);
+    expect(banner.querySelectorAll("a[title*='Español']")).toHaveLength(1);
   });
 
   it("renderiza el toggle de tema", () => {
@@ -2091,11 +2093,21 @@ describe("Navbar", () => {
       const items = NAV_GROUPS.flatMap((group) => group.items);
       const hoja = getSheet(container);
 
-      const filas = Array.from(hoja.querySelectorAll("a[href]"));
+      // Desde la ola G el selector de idioma de la hoja también es un par de
+      // enlaces (con hreflang, navegan a la ruta del otro idioma): las filas
+      // de NAVEGACIÓN se distinguen por NO llevar hreflang — contrato
+      // actualizado, no relajado (regla 40).
+      const filas = Array.from(
+        hoja.querySelectorAll("a[href]:not([hreflang])"),
+      );
       expect(filas).toHaveLength(items.length);
       expect(filas.map((fila) => fila.getAttribute("href"))).toEqual(
         items.map((item) => item.href),
       );
+      expect(
+        hoja.querySelectorAll("a[hreflang]"),
+        "la hoja debe seguir montando el par de enlaces de idioma",
+      ).toHaveLength(2);
 
       for (const item of items.filter((i) => i.kind === "external")) {
         const externo = hoja.querySelector(
@@ -2707,14 +2719,17 @@ describe("Navbar", () => {
         "sin ningún grupo de salida este test no compara nada",
       ).toBeGreaterThan(0);
 
-      // El selector de idioma es el único `button` de la capa de scroll (las
-      // filas de navegación son enlaces, y el botón de cierre vive fuera de
-      // ella): sirve como ancla del bloque de controles sin depender de su
-      // texto ni de un índice de posición.
+      // El selector de idioma son los únicos enlaces con `hreflang` de la
+      // capa de scroll (las filas de navegación no lo llevan, y el botón de
+      // cierre vive fuera de ella) — desde la ola G navega en vez de
+      // conmutar: sirve como ancla del bloque de controles sin depender de
+      // su texto ni de un índice de posición.
       const areaScroll = hoja.querySelector(
         "[data-nav-sheet-scroll]",
       ) as HTMLElement;
-      const primerControl = areaScroll.querySelector("button") as HTMLElement;
+      const primerControl = areaScroll.querySelector(
+        "a[hreflang]",
+      ) as HTMLElement;
       expect(
         primerControl,
         "la hoja no monta ningún control dentro de su capa de scroll",

@@ -270,12 +270,15 @@ describe("HomeSections", () => {
 
     const claro = renderWithProviders(<HomeSections />);
     comprobar(claro.container, "CLARO");
-    // Senal de posicion en claro: el ordinal VISIBLE pegado a la etiqueta,
-    // verbatim del mockup aprobado.
-    expect(claro.container.textContent).toContain(
+    // Senal de posicion UNIFICADA (ola G, 2026-08-18; contrato actualizado,
+    // no relajado — regla 40): NINGUNA rama pinta el ordinal "01 · " (el
+    // claro lo retiro para igualar con el oscuro, que nunca lo pinto por
+    // decision D16/Task 16) y LAS DOS anuncian las mismas palabras a lector
+    // de pantalla ("Paso N de 6", misma clave de i18n).
+    expect(claro.container.textContent).toContain(posicionOscura);
+    expect(claro.container.textContent).not.toContain(
       `01 · ${esHome.Home.journey.steps.discover.label}`,
     );
-    expect(claro.container.textContent).not.toContain(posicionOscura);
     claro.unmount();
 
     window.localStorage.setItem("vti-theme", "dark");
@@ -286,8 +289,6 @@ describe("HomeSections", () => {
         "el arbol oscuro no llego a montarse",
       ).toBeGreaterThan(0);
       comprobar(oscuro.container, "OSCURO");
-      // Senal de posicion en oscuro: las mismas palabras, solo para lector
-      // de pantalla, y sin ningun ordinal visible.
       expect(oscuro.container.textContent).toContain(posicionOscura);
       expect(oscuro.container.textContent).not.toContain(
         `01 · ${esHome.Home.journey.steps.discover.label}`,
