@@ -287,10 +287,33 @@ const ScColumnTitle = styled(Typography)`
   font-weight: 700;
 `;
 
+/*
+ * `gap: space[0]`, antes `space[2]` (8px) -- crítica externa #11, hallazgo A,
+ * P2, y NO es una pérdida de aire: la separación entre líneas no se retira,
+ * se MUDA al interior de cada enlace (`padding-block: space[1]` en
+ * `footerLinkStyles`, más abajo, 4px arriba + 4px abajo = los mismos 8px que
+ * este `gap` dejaba entre cajas). El paso vertical entre textos sigue siendo
+ * el de siempre; lo que cambia es a quién pertenece el espacio -- y con él,
+ * si es zona de toque o tierra de nadie.
+ *
+ * Sin esa mudanza, agrandar la diana habría empujado cada enlace 8px más
+ * abajo que el anterior y estirado las cuatro columnas del pie: el aumento se
+ * habría notado en escritorio, que es justo lo que el encargo pedía evitar.
+ * Con ella, la única diferencia geométrica en TODOS los anchos es que la lista
+ * entera empieza 4px más abajo y termina 4px más arriba de donde empezaba;
+ * ninguna distancia entre enlaces se mueve.
+ *
+ * Por eso NO se acota a `pointer: coarse` ni al breakpoint móvil (las dos
+ * salidas que el encargo autorizaba si el diseño de escritorio se resentía):
+ * no se resiente. Y una diana de 24px tampoco es un apaño para dedos -- el
+ * mismo enlace de 16px es igual de fácil de fallar con un ratón impreciso o
+ * con temblor; acotarla a `coarse` habría dejado esa mejora fuera del camino
+ * por el que se prueba y se revisa este sitio.
+ */
 const ScColumnLinks = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.data.space[2]};
+  gap: ${({ theme }) => theme.data.space[0]};
 `;
 
 /* Enlace secundario del footer: `textMuted` en reposo, `brandText` al hover
@@ -298,8 +321,45 @@ const ScColumnLinks = styled.div`
    el mismo lenguaje visual para los enlaces de sección de los dos
    componentes). Sin subrayado: GlobalStyles ya fija `text-decoration: none`
    en todos los `a`. */
+/*
+ * DIANA TÁCTIL DE 24px (crítica externa #11, hallazgo A, P2, WCAG 2.5.8 Target
+ * Size (Minimum), AA en WCAG 2.2).
+ *
+ * El hallazgo, medido a 390x844: los enlaces del pie median 342x16 px con paso
+ * vertical de 24 px. Los 16 px son la caja de línea de un texto de
+ * `bodySm` (0.875rem = 14px) bajo el `line-height: 1.15` global
+ * (`GlobalStyles.tsx`) -- 16.1 px --, y los 8 px que faltaban hasta el paso
+ * eran `gap` del contenedor: espacio VISIBLE que no era de nadie y por tanto
+ * no era zona de toque. Los 14 anclas que comparten este bloque (11 destinos
+ * de `NAV_GROUPS`, la dirección de correo y los 2 documentos legales de la
+ * barra inferior) fallaban el criterio por igual.
+ *
+ * DOS declaraciones, cada una con un trabajo distinto:
+ *
+ * - `padding-block: space[1]` es la que de verdad agranda la diana en el
+ *   escenario real, y la que mantiene el texto CENTRADO en ella: 16.1 + 4 + 4
+ *   = 24.1 px. Es también la que compensa exactamente el `gap` que pierde
+ *   `ScColumnLinks` (ver su docblock), así que el paso vertical entre textos
+ *   no se mueve ni un píxel.
+ * - `min-height: space[5]` (1.5rem = 24px) es el SUELO, no un adorno
+ *   redundante: los 24.1 px de arriba dependen de dos valores que este bloque
+ *   no controla (el tamaño de `bodySm` y el `line-height` global), y bastaría
+ *   con que cualquiera de los dos bajara para volver a caer por debajo del
+ *   umbral sin que nada avisara. `space[5]` es el MISMO token, por el MISMO
+ *   motivo y con la misma cita de WCAG que ya eligió `ScJourneyRailMark`
+ *   (`journey.deck.tsx`) en la ola anterior para su caja de toque.
+ *
+ * Los tres contenedores que montan estos enlaces son flex (`ScColumnLinks`,
+ * `ScBrandCol`, `ScBottomLinks`), así que sus hijos están blockificados y las
+ * dos declaraciones se aplican como en cualquier caja de bloque -- no como el
+ * relleno vertical de un `<a>` en línea, que pinta pero no reserva alto.
+ *
+ * El TEXTO no cambia de tamaño: crece la diana, no la letra.
+ */
 const footerLinkStyles = css`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  min-height: ${({ theme }) => theme.data.space[5]};
+  padding-block: ${({ theme }) => theme.data.space[1]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. Un único
      punto de declaración -- ScFooterLink y ScFooterNavLink (más abajo) lo

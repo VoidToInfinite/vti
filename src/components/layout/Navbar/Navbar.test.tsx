@@ -1294,6 +1294,213 @@ describe("Navbar", () => {
       expect(activo).toContain("opacity: 1");
       expect(activo).toContain("scale(1)");
     });
+
+    /*
+     * TAMAÑO del punto (crítica externa #11, hallazgo A, P2). El evaluador
+     * midió 4x4 px con contraste 5.8:1 -- el color ya estaba resuelto (fix
+     * wave A, hallazgo A4), lo que fallaba era el tamaño de un indicador que
+     * es el ÚNICO signo de "estás aquí" del panel. Sube a `space[2]` (8px),
+     * el mismo diámetro que la marca del rail de Journey; ver el docblock de
+     * `ScNavPanelLink` (`Navbar.tsx`) para el porqué completo.
+     *
+     * El valor esperado se lee del TOKEN importado, nunca de un literal
+     * escrito a mano (regla 38): un test que compara "0.5rem" contra sí mismo
+     * sigue en verde el día que el token cambie de valor.
+     *
+     * Validado con el bug inyectado a propósito (regla 34): devuelta la
+     * `width` del `::before` de `ScNavPanelLink` a `space[1]`, este test cae
+     * en rojo ("el punto del panel volvió a 4x4 px"); restaurada la línea a
+     * `space[2]`, vuelve a verde.
+     */
+    it("el punto indicador mide space[2] (8px), no space[1] (4px)", () => {
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+
+      const link = container.querySelector('a[href="/#story"]') as HTMLElement;
+      const clase = Array.from(link.classList).find((c) =>
+        reglas.some((r) => r.includes(c) && r.includes("::before")),
+      );
+      const before = reglas.find(
+        (r) => r.includes(`.${clase}::before`) && !r.includes("aria-current"),
+      );
+      expect(before, "no se encontró la regla ::before base").toBeDefined();
+
+      const esperado = basicLightTheme.space[2];
+      expect(before, "el punto del panel volvió a 4x4 px").toContain(
+        `width: ${esperado}`,
+      );
+      expect(before).toContain(`height: ${esperado}`);
+      // Y la mitad exacta -- el valor viejo -- ya no aparece en la regla: si
+      // width subiera y height no, este assert lo caza.
+      expect(before).not.toContain(basicLightTheme.space[1]);
+    });
+  });
+
+  /*
+   * SALIDA SIN JAVASCRIPT DE LOS CUATRO DESPLEGABLES (crítica externa #11,
+   * hallazgo A, P1). Con `javaScriptEnabled: false` los cuatro disparadores se
+   * pintaban con su galón y, al pulsarlos, `aria-expanded` seguía en `"false"`
+   * sin abrir nada ni explicar nada. La apertura es estado de React
+   * (`openGroup`), así que no hay forma de que funcione: se retira el bloque
+   * entero, exactamente igual que la ola anterior retiró el conmutador de
+   * tema, el selector de idioma y el disparador de la hoja (commit
+   * `acbbcf4`). El pie ya expone los mismos destinos como enlaces planos.
+   *
+   * jsdom no evalúa ningún `@media` (regla 36): la condición se lee del CSSOM
+   * acotada al bloque concreto, y la FORMA del selector se afirma sobre
+   * `selectorText` (regla 35) -- tiene que apuntar al PROPIO contenedor, no a
+   * un descendiente suyo.
+   *
+   * Validado con el bug inyectado a propósito (regla 34): borrada la línea
+   * `display: none` del bloque `@media (scripting: none)` de `ScNavLinks`
+   * (`Navbar.tsx`), los dos tests de este bloque caen en rojo; restaurada esa
+   * línea, vuelven a verde.
+   */
+  describe("crítica externa #11, hallazgo A: sin JavaScript los grupos desplegables no se presentan", () => {
+    /** Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`,
+     *  mismo helper que `ThemeToggle.test.tsx` de la ola anterior. */
+    function reglasSinScripting(): CSSStyleRule[] {
+      const out: CSSStyleRule[] = [];
+      const walk = (rules: CSSRuleList, dentro: boolean): void => {
+        Array.from(rules).forEach((rule) => {
+          const media = (rule as CSSMediaRule).media;
+          const aqui =
+            dentro ||
+            (media ? /scripting:\s*none/.test(media.mediaText) : false);
+          const anidadas = (rule as CSSGroupingRule).cssRules;
+          if (anidadas) {
+            walk(anidadas, aqui);
+            return;
+          }
+          if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+            out.push(rule as CSSStyleRule);
+          }
+        });
+      };
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          walk(sheet.cssRules, false);
+        } catch {
+          /* hoja inaccesible: no aporta */
+        }
+      });
+      return out;
+    }
+
+    it("el contenedor de los grupos se retira con display: none sobre su PROPIA clase", () => {
+      const { container } = renderNavbar();
+      const bloque = container.querySelector("[data-nav-links]") as HTMLElement;
+      expect(bloque, "no se montó el bloque de grupos").not.toBeNull();
+
+      const clases = Array.from(bloque.classList);
+      const propias = reglasSinScripting().filter((regla) =>
+        clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+      );
+      expect(
+        propias.length,
+        "los cuatro desplegables se siguen presentando sin JavaScript",
+      ).toBeGreaterThan(0);
+
+      propias.forEach((regla) => {
+        // Mismo elemento, nunca un descendiente (regla 35).
+        expect(regla.selectorText).not.toMatch(/\s/);
+        expect(regla.style.display).toBe("none");
+      });
+    });
+
+    it("CON JavaScript no cambia nada: los cuatro disparadores siguen montados, operables y sin tabindex propio en el contenedor", () => {
+      const { container } = renderNavbar();
+      const bloque = container.querySelector("[data-nav-links]") as HTMLElement;
+
+      // Los cuatro grupos siguen ahí, y el primero sigue abriendo de verdad
+      // -- que es la mitad que este arreglo NO puede tocar. `hidden: true` por
+      // el mismo motivo que documenta `getTrigger` más arriba: jsdom no evalúa
+      // el `@media` de `md`, así que el bloque computa `display: none` y
+      // `getByRole` lo daría por oculto.
+      //
+      // El recuento sale de `NAV_GROUPS` (regla 39), no de un 4 escrito a
+      // mano: si mañana hay un quinto grupo, el candado lo cubre solo.
+      const disparadores = NAV_GROUPS.map((group) =>
+        screen.getByRole("button", {
+          name: new RegExp(
+            esCommon.Common.Nav[group.key as keyof typeof esCommon.Common.Nav],
+          ),
+          hidden: true,
+        }),
+      );
+      disparadores.forEach((disparador) => {
+        expect(
+          bloque.contains(disparador),
+          "un disparador dejó de vivir dentro del bloque que el guard oculta",
+        ).toBe(true);
+      });
+      expect(disparadores[0]).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(disparadores[0]);
+      expect(disparadores[0]).toHaveAttribute("aria-expanded", "true");
+
+      expect(bloque).not.toHaveAttribute("tabindex");
+      // La regla base del bloque sigue siendo la MÓVIL (mobile-first): sin el
+      // `@media` de `md`, que jsdom no evalúa, lo computado es `none`. Lo que
+      // importa aquí es que el guard nuevo no la haya alterado.
+      expect(getComputedStyle(bloque).display).toBe("none");
+    });
+  });
+
+  /*
+   * EL PUNTO DE SECCIÓN ACTIVA, EN LAS DOS SUPERFICIES (crítica externa #11,
+   * hallazgo A, P2). `ScSheetRow` (`NavSheet.tsx`) y `ScNavPanelLink`
+   * (`Navbar.tsx`) son dos árboles de estilos independientes a propósito
+   * (deuda documentada en RULES.md), pero el docblock de `ScSheetRow` declara
+   * por escrito que comparten "mismo lenguaje visual y mismo criterio". Esa
+   * invariante cruza dos ficheros, así que vive en un test que los mide a los
+   * dos (regla 41) y no en la memoria de quien tocó uno de ellos: sin este
+   * candado, subir solo el punto del panel dejaría el de la hoja a la mitad
+   * y la frase del docblock convertida en mentira, con la suite en verde.
+   *
+   * Validado con el bug inyectado a propósito (regla 34): devuelta la `width`
+   * del `::before` de `ScSheetRow` a `space[1]`, este test cae en rojo ("el
+   * punto de la hoja volvió a 4x4 px"); restaurada a `space[2]`, vuelve a
+   * verde.
+   */
+  describe("crítica externa #11, hallazgo A: el punto de sección activa mide lo mismo en la hoja y en el panel", () => {
+    /** Regla `::before` BASE (sin el estado `aria-current`) de un enlace. */
+    function beforeBaseDe(link: HTMLElement, reglas: string[]): string {
+      const clase = Array.from(link.classList).find((c) =>
+        reglas.some((r) => r.includes(c) && r.includes("::before")),
+      );
+      const regla = reglas.find(
+        (r) => r.includes(`.${clase}::before`) && !r.includes("aria-current"),
+      );
+      expect(regla, "no se encontró la regla ::before base").toBeDefined();
+      return regla as string;
+    }
+
+    it("la fila de la hoja declara el mismo diámetro que el item del panel, y es space[2]", () => {
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+      const esperado = basicLightTheme.space[2];
+
+      const fila = container.querySelector(
+        '[data-nav-sheet] a[href="/#story"]',
+      ) as HTMLElement;
+      expect(fila, "no se montó ninguna fila de la hoja").not.toBeNull();
+      const filaBefore = beforeBaseDe(fila, reglas);
+
+      expect(filaBefore, "el punto de la hoja volvió a 4x4 px").toContain(
+        `width: ${esperado}`,
+      );
+      expect(filaBefore).toContain(`height: ${esperado}`);
+
+      // Y el panel de escritorio declara EXACTAMENTE lo mismo: la invariante
+      // que el docblock de ScSheetRow promete, medida y no recordada.
+      const item = container.querySelector(
+        '[data-nav-links] a[href="/#story"]',
+      ) as HTMLElement;
+      expect(item, "no se montó ningún item del panel").not.toBeNull();
+      const itemBefore = beforeBaseDe(item, reglas);
+      expect(itemBefore).toContain(`width: ${esperado}`);
+      expect(itemBefore).toContain(`height: ${esperado}`);
+    });
   });
 
   /**

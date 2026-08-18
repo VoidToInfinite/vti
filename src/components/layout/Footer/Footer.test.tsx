@@ -816,4 +816,109 @@ describe("Footer", () => {
       expect(css).toContain("touch-action: manipulation");
     });
   });
+
+  /*
+   * DIANA TÁCTIL DE 24px EN EL PIE (crítica externa #11, hallazgo A, P2,
+   * WCAG 2.5.8 Target Size (Minimum), AA en WCAG 2.2). El evaluador midió a
+   * 390x844 que los enlaces del pie median 342x16 px con paso vertical de
+   * 24 px: los 8 px que faltaban hasta el paso eran `gap` del contenedor --
+   * espacio visible que no pertenecía a ninguna diana.
+   *
+   * El arreglo tiene DOS mitades que solo funcionan juntas, y por eso las
+   * miden los dos primeros tests de este bloque: el enlace gana relleno
+   * vertical y suelo de 24 px, y el contenedor CEDE el `gap` que ese relleno
+   * sustituye. Sin la segunda mitad, el pie crecería 8 px por enlace también
+   * en escritorio; sin la primera, la diana seguiría midiendo 16 px.
+   *
+   * jsdom no hace layout (regla 44 de RULES.md): estos candados afirman las
+   * DECLARACIONES, no la altura pintada. La comprobación de que la caja
+   * resultante mide de verdad >=24 px en un motor real queda declarada como
+   * pendiente en el informe de la tarea, no como verificada aquí.
+   *
+   * Validado con el bug inyectado a propósito (regla 34): borrada la línea
+   * `min-height` de `footerLinkStyles` (`Footer.tsx`), el primer test cae en
+   * rojo; devuelto el `gap` de `ScColumnLinks` a `space[2]`, cae el segundo.
+   * Restauradas las dos líneas, los dos vuelven a verde.
+   */
+  describe("crítica externa #11, hallazgo A: diana táctil de 24px en los enlaces del pie", () => {
+    /** El mínimo de WCAG 2.5.8 en píxeles CSS. Es la cifra del criterio, no
+     *  un valor de diseño del repo: por eso se escribe aquí y no sale de
+     *  ningún token. */
+    const WCAG_TARGET_MIN_PX = 24;
+
+    it("todo enlace del pie declara min-height y padding-block, y el token del suelo llega al mínimo de WCAG", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const { container } = renderWithProviders(<Footer />);
+
+      const suelo = themes.light.space[5];
+      const relleno = themes.light.space[1];
+
+      // El token del suelo tiene que VALER de verdad 24px o más: sin esta
+      // comprobación, el candado seguiría en verde el día que `space[5]`
+      // bajara de escalón y la diana volviera a incumplir sin avisar.
+      expect(
+        parseFloat(suelo) * 16,
+        "space[5] dejó de llegar al mínimo de WCAG 2.5.8",
+      ).toBeGreaterThanOrEqual(WCAG_TARGET_MIN_PX);
+
+      // TODOS los anclas del pie, no una muestra: los 11 destinos de
+      // NAV_GROUPS, la dirección de correo y los 2 documentos legales
+      // comparten `footerLinkStyles`, y el día que alguien añada un enlace
+      // con estilos propios este candado lo caza.
+      const enlaces = Array.from(container.querySelectorAll("a"));
+      expect(enlaces.length, "el pie no montó ningún enlace").toBeGreaterThan(
+        0,
+      );
+
+      enlaces.forEach((enlace) => {
+        const css = cssRuleTextFor(enlace as HTMLElement);
+        expect(
+          css,
+          `un enlace del pie se quedó sin suelo de diana: ${enlace.getAttribute("href")}`,
+        ).toContain(`min-height: ${suelo}`);
+        expect(
+          css,
+          `un enlace del pie se quedó sin relleno vertical: ${enlace.getAttribute("href")}`,
+        ).toContain(`padding-block: ${relleno}`);
+      });
+    });
+
+    it("la columna de enlaces cede su gap: el relleno del enlace lo sustituye, así que el paso vertical no se mueve", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const { container } = renderWithProviders(<Footer />);
+
+      const enlace = container.querySelector(
+        'a[href="/#story"]',
+      ) as HTMLElement;
+      const columna = enlace.parentElement as HTMLElement;
+      const css = cssRuleTextFor(columna);
+
+      expect(css, "la columna de enlaces perdió su display: flex").toContain(
+        "flex-direction: column",
+      );
+      // El valor se PARSEA, no se compara por substring: `toContain("gap: 0")`
+      // seguiría en verde con `gap: 0.5rem` (el valor viejo lo contiene como
+      // prefijo) y el bug inyectado no llegaría a ponerse en rojo -- misma
+      // familia de falso candado que ya documenta task/lessons.md para las
+      // migraciones literal-a-token.
+      const gapDeclarado = /gap:\s*([^;]+);/.exec(css)?.[1];
+      expect(
+        gapDeclarado,
+        "la columna de enlaces no declara gap",
+      ).toBeDefined();
+      expect(
+        parseFloat(gapDeclarado as string),
+        "la columna de enlaces recuperó un gap que ahora duplica el relleno del enlace",
+      ).toBe(parseFloat(themes.light.space[0]));
+
+      // La compensación, comprobada en aritmética y no de palabra: los dos
+      // rellenos verticales del enlace suman EXACTAMENTE el gap que la
+      // columna deja de aportar, así que la distancia entre dos textos
+      // consecutivos es la misma que antes de esta tarea.
+      expect(parseFloat(themes.light.space[1]) * 2).toBeCloseTo(
+        parseFloat(themes.light.space[2]),
+        5,
+      );
+    });
+  });
 });

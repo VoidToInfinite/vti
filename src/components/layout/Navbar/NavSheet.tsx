@@ -794,11 +794,21 @@ const ScSheetRow = styled.a`
    * BACKTICKS en este comentario, a propósito: vive DENTRO del template
    * literal de styled-components (lección del repo, task/lessons.md
    * 2026-07-25).
+   *
+   * TAMAÑO space[2] (8px), antes space[1] (4px) -- crítica externa #11,
+   * hallazgo A, P2. El evaluador midió el punto del PANEL de escritorio
+   * (ScNavPanelLink, Navbar.tsx), no este; sube igualmente, y no por
+   * simetría cosmética: el párrafo de arriba declara como invariante que las
+   * dos superficies comparten "mismo lenguaje visual y mismo criterio", y
+   * dejar aquí un indicador de la mitad de tamaño convertiría esa frase en
+   * un comentario que ya no describe el código (regla 16 de RULES.md). El
+   * porqué completo del valor -- y por qué es el mismo diámetro que la marca
+   * del rail de Journey -- vive en el docblock de ScNavPanelLink.
    */
   &::before {
     content: "";
-    width: ${({ theme }) => theme.data.space[1]};
-    height: ${({ theme }) => theme.data.space[1]};
+    width: ${({ theme }) => theme.data.space[2]};
+    height: ${({ theme }) => theme.data.space[2]};
     flex: none;
     border-radius: ${({ theme }) => theme.data.radius.full};
     background: ${({ theme }) => navActiveAccent(theme)};
