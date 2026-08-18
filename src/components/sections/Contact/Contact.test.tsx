@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
-/* Render de SERVIDOR, solo para el candado del `<noscript>`: React trata los
-   hijos de esa etiqueta como contenido de texto, así que un render de cliente
-   los deja fuera del DOM -- ver el helper `markupDeServidor` en el describe de
-   la crítica externa #9. */
+/* Render de SERVIDOR: reproduce el HTML horneado del export estático, que es
+   lo único que recibe un visitante sin JavaScript. Nació como única vía de ver
+   el contenido de un `<noscript>` (React trata sus hijos como texto y un
+   render de cliente los deja fuera del DOM); ese `<noscript>` se retiró en la
+   crítica externa #11 y el helper se quedó atando que el aviso viaja horneado
+   -- ver `markupDeServidor` en el describe de la crítica externa #9. */
 import { renderToStaticMarkup } from "react-dom/server";
 import { I18nextProvider } from "react-i18next";
 import {
@@ -216,13 +218,30 @@ describe("Contact", () => {
   it("ya NO existe el chip que simulaba un campo, ni un CTA de correo aparte del formulario", () => {
     const { container } = renderWithProviders(<Contact />);
 
-    expect(
-      screen.queryByText("hello@voidtoinfinite.com"),
-    ).not.toBeInTheDocument();
     expect(screen.queryByText("Contactar por correo")).not.toBeInTheDocument();
-    expect(
-      container.querySelector(`a[href="${links.email}"]`),
-    ).not.toBeInTheDocument();
+
+    /*
+     * ACTUALIZADO, NO RELAJADO (regla 40; critica externa #11, hallazgo B2,
+     * 2026-08-18). Este candado exigia CERO anclas al `mailto:` en el DOM de
+     * cliente, y eso se cumplia por un accidente: el aviso sin JavaScript
+     * vivia dentro de un `<noscript>`, que React deja VACIO en cualquier
+     * render de cliente. Desde que ese aviso es un elemento real oculto por
+     * CSS (ver la lapida en `ScNoJsNote`), su ancla si existe en el DOM. Lo
+     * que el candado protege -- que no vuelvan el chip ni un CTA de correo
+     * suelto -- se afirma ahora contando, que es MAS estricto que la ausencia
+     * anterior: hay EXACTAMENTE UNA ancla al mailto, esta dentro del aviso, y
+     * no se presenta.
+     */
+    const anclasMailto = Array.from(
+      container.querySelectorAll(`a[href="${links.email}"]`),
+    );
+    expect(anclasMailto).toHaveLength(1);
+    expect(anclasMailto[0].closest("[data-nojs-note]")).not.toBeNull();
+    expect(anclasMailto[0]).not.toBeVisible();
+    // La direccion literal no aparece en ningun otro sitio de la seccion.
+    expect(screen.queryByText("hello@voidtoinfinite.com")).toBe(
+      anclasMailto[0],
+    );
   });
 
   it("en ingles renderiza la copia inglesa, no la espanola (mitad del contrato de paridad)", async () => {
@@ -957,9 +976,20 @@ describe("Contact en tema oscuro", () => {
     expect(
       screen.queryByText(esHome.Home.contact.cards.community.title),
     ).toBeInTheDocument();
-    expect(
-      container.querySelector(`a[href="${links.email}"]`),
-    ).not.toBeInTheDocument();
+    /*
+     * ACTUALIZADO, NO RELAJADO (regla 40; critica externa #11, hallazgo B2):
+     * mismo motivo que el candado inverso de la rama clara -- el aviso sin
+     * JavaScript dejo de ser un `<noscript>` vacio en cliente y su ancla al
+     * mailto ya existe en el DOM. Que `getAllByRole("link")` siga devolviendo
+     * 3 justo arriba es precisamente la prueba de que esa ancla no se
+     * presenta: `display: none` la deja fuera del arbol de accesibilidad. La
+     * tarjeta de correo sigue sin existir, que es lo que aqui se protege.
+     */
+    const anclasMailto = Array.from(
+      container.querySelectorAll(`a[href="${links.email}"]`),
+    );
+    expect(anclasMailto).toHaveLength(1);
+    expect(anclasMailto[0].closest("[data-nojs-note]")).not.toBeNull();
   });
 
   it("el formulario tiene exactamente dos controles (email + mensaje, required) y exactamente un boton type=submit (test 11, D12 ampliado por la critica #8)", async () => {
@@ -1198,8 +1228,20 @@ describe("Contact en tema oscuro", () => {
         );
       });
 
+      /*
+       * ACTUALIZADO, NO RELAJADO (regla 40; critica externa #11, hallazgo B2,
+       * 2026-08-18): la direccion SI aparece ya antes del envio, dentro del
+       * aviso sin JavaScript -- un elemento real oculto por CSS desde que dejo
+       * de ser un `<noscript>` (que en cliente quedaba vacio). La sonda de
+       * ausencia se afina a lo que de verdad protege: no hay PANEL todavia, y
+       * la unica aparicion de la direccion es la del aviso.
+       */
       const plainEmail = links.email.replace(/^mailto:/, "");
-      expect(screen.queryByText(plainEmail)).not.toBeInTheDocument();
+      const aviso = container.querySelector("[data-nojs-note]") as HTMLElement;
+      screen.getAllByText(plainEmail).forEach((nodo) => {
+        expect(aviso.contains(nodo)).toBe(true);
+      });
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
       expect(
         screen.queryByRole("button", {
           name: esHome.Home.contact.form.copyAddress,
@@ -1213,8 +1255,8 @@ describe("Contact en tema oscuro", () => {
       fireEvent.submit(form);
 
       expect(assignSpy).toHaveBeenCalledTimes(1);
-      const panel = screen.getByText(plainEmail).closest('[role="status"]');
-      expect(panel).toBeInTheDocument();
+      const panel = screen.getByRole("status");
+      expect(panel).toHaveTextContent(plainEmail);
       expect(panel).toHaveTextContent(esHome.Home.contact.form.fallbackLead);
       expect(
         screen.getByRole("button", {
@@ -2581,14 +2623,19 @@ describe("Contact: critica #8, el mensaje viaja en el mailto y la validacion pro
 describe("Contact: critica externa #9", () => {
   /**
    * Render de SERVIDOR, con los mismos proveedores reales que
-   * `renderWithProviders`. Es la unica via que puede ver el contenido de un
-   * `<noscript>`: React trata sus hijos como contenido de TEXTO
-   * (`shouldSetTextContent` devuelve `true` para esa etiqueta), asi que un
-   * render de cliente -- el de Testing Library -- deja el `<noscript>` VACIO.
-   * Verificado con un render de cliente aislado antes de escribir esto:
-   * `outerHTML` = `<noscript></noscript>`, 0 hijos. Lo que este helper produce
-   * es exactamente el camino que genera el HTML del export estatico, que es el
-   * unico que un visitante sin JavaScript llega a ver.
+   * `renderWithProviders`. Es exactamente el camino que genera el HTML del
+   * export estatico -- el unico artefacto que un visitante sin JavaScript
+   * llega a recibir, porque sin JS no hay hidratacion que cambie nada.
+   *
+   * NACIO por el `<noscript>`: era la unica via capaz de ver su contenido,
+   * porque React trata los hijos de esa etiqueta como contenido de TEXTO
+   * (`shouldSetTextContent` devuelve `true`) y un render de cliente -- el de
+   * Testing Library -- la dejaba VACIA. Ese `<noscript>` se retiro en la
+   * critica externa #11 (hallazgo B2: se vaciaba tambien en el navegador, en
+   * cualquier re-render de cliente -- ver la lapida en el docblock de
+   * `ScNoJsNote`). El helper SOBREVIVE porque lo que ahora ata es otra cosa:
+   * que el aviso viaja de verdad HORNEADO en el HTML servido, no solo montado
+   * por el cliente.
    */
   function markupDeServidor(): string {
     return renderToStaticMarkup(
@@ -2601,23 +2648,31 @@ describe("Contact: critica externa #9", () => {
   }
 
   describe("P1: salida real sin JavaScript", () => {
-    it("el HTML horneado lleva un <noscript> dentro del formulario con el aviso y el mailto real de src/config", () => {
+    /*
+     * CONTRATO REVERTIDO, NO RELAJADO (regla 40; critica externa #11, hallazgo
+     * B2, 2026-08-18). Este test exigia lo contrario -- que el HTML horneado
+     * llevara un `<noscript>` dentro del formulario -- y se invierte con la
+     * medicion delante, no porque estorbara: en navegador real,
+     * `noscript.textContent.length` valia 268 en el HTML servido, 0 tras
+     * conmutar el tema y 0 al volver. Lo que aquel candado protegia (que el
+     * aviso y el mailto real viajan horneados dentro del formulario) sigue
+     * atado aqui, palabra por palabra; lo unico que cambia es la etiqueta que
+     * los transporta.
+     */
+    it("el HTML horneado lleva el aviso y el mailto real de src/config dentro del formulario, y YA NO en un <noscript>", () => {
       const markup = markupDeServidor();
 
-      const noscript = markup.match(/<noscript>([\s\S]*?)<\/noscript>/);
-      expect(noscript, "no hay ningun <noscript> en el markup").not.toBeNull();
+      // La lapida: la etiqueta que se vaciaba sola no vuelve por la puerta de
+      // atras. Si alguien la reintroduce, este test lo dice.
+      expect(markup).not.toContain("<noscript");
 
-      const dentro = noscript?.[1] ?? "";
-      expect(dentro).toContain(esHome.Home.contact.form.noscript);
+      const form = markup.match(/<form[\s\S]*?<\/form>/)?.[0] ?? "";
+      expect(form, "no hay ningun <form> en el markup").not.toBe("");
+      expect(form).toContain(esHome.Home.contact.form.noscript);
       // La direccion NO se escribe a mano en el componente: sale de
       // `links.email`, y el texto visible deriva de el.
-      expect(dentro).toContain(`href="${links.email}"`);
-      expect(dentro).toContain(links.email.replace(/^mailto:/, ""));
-
-      // Y vive DENTRO del formulario, no suelto al final de la seccion: es
-      // ahi donde esta quien acaba de escribir y va a pulsar el boton.
-      const form = markup.match(/<form[\s\S]*?<\/form>/)?.[0] ?? "";
-      expect(form).toContain("<noscript>");
+      expect(form).toContain(`href="${links.email}"`);
+      expect(form).toContain(links.email.replace(/^mailto:/, ""));
     });
 
     it("en ingles el aviso sale en ingles (paridad es/en con texto propio de cada idioma)", async () => {
@@ -3059,6 +3114,292 @@ describe("Contact: critica externa #9", () => {
       } finally {
         window.localStorage.clear();
       }
+    });
+  });
+});
+
+/*
+ * CRITICA EXTERNA #11 (2026-08-18). Dos hallazgos P1 sobre esta seccion, los
+ * dos reproducidos en navegador real antes de tocar nada:
+ *
+ * A  -- el panel de respaldo que revela un envio VALIDO sobrevivia a un
+ *       reenvio RECHAZADO por la validacion: la pantalla afirmaba a la vez
+ *       "si no se ha abierto tu aplicacion de correo, escribeme a ..." (de un
+ *       envio anterior) y "escribe un correo valido" (del intento actual).
+ * B2 -- el aviso sin JavaScript vivia en un `<noscript>`, y React vacia los
+ *       hijos de esa etiqueta en CUALQUIER re-render de cliente. Medido sobre
+ *       el HTML servido: `noscript.textContent.length` = 268, conmutar el tema
+ *       -> 0, volver -> 0. Si el JavaScript moria despues de la primera
+ *       interaccion, el aviso ya no estaba.
+ */
+describe("Contact: critica externa #11", () => {
+  describe("hallazgo A (P1): un reenvio rechazado retira el panel de respaldo", () => {
+    /*
+     * `assign` doblado, nunca `href` (un setter de propiedad no se puede
+     * espiar -- ver el docblock de `handleSubmit`). En beforeEach/afterEach y
+     * no en un try/finally por test porque los tres tests de este bloque
+     * necesitan exactamente lo mismo.
+     */
+    const originalLocation = window.location;
+    let assignSpy: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      assignSpy = vi.fn();
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { ...originalLocation, assign: assignSpy },
+      });
+    });
+
+    afterEach(() => {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    });
+
+    /** Rellena los dos campos con valores validos y envia. Devuelve el form. */
+    function envioValido(): HTMLFormElement {
+      const { container } = renderWithProviders(<Contact />);
+      const form = container.querySelector("form") as HTMLFormElement;
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "visitante@test.com" },
+      });
+      escribirMensaje();
+      fireEvent.submit(form);
+      return form;
+    }
+
+    it("con el correo cambiado a uno invalido: el error aparece y el panel del envio anterior se va", () => {
+      const form = envioValido();
+      // Reproduccion, paso 1: el panel esta ahi y es el unico status vivo.
+      expect(screen.getByRole("status")).toHaveTextContent(
+        esHome.Home.contact.form.fallbackLead,
+      );
+      expect(assignSpy).toHaveBeenCalledTimes(1);
+
+      // Reproduccion, paso 2: correo `roto` y Enviar.
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      fireEvent.change(input, { target: { value: "roto" } });
+      fireEvent.submit(form);
+
+      // El cableado de errores que dos rondas midieron como ejemplar sigue
+      // intacto: atributo, mensaje anunciado y foco en el campo que fallo.
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(
+        screen.getAllByRole("status").map((nodo) => nodo.textContent),
+      ).toContain(esHome.Home.contact.form.emailError);
+      expect(document.activeElement).toBe(input);
+
+      // Y el panel, que describia un envio anterior, se retira entero --
+      // texto y boton.
+      expect(
+        screen.queryByText(esHome.Home.contact.form.fallbackLead),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", {
+          name: esHome.Home.contact.form.copyAddress,
+        }),
+      ).not.toBeInTheDocument();
+      // El rechazo no navego: sigue habiendo un unico assign, el del valido.
+      expect(assignSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("con el mensaje vaciado: mismo resultado por el otro campo, y el foco viaja al mensaje", () => {
+      const form = envioValido();
+      expect(screen.getByRole("status")).toHaveTextContent(
+        esHome.Home.contact.form.fallbackLead,
+      );
+
+      const textarea = escribirMensaje("   ");
+      fireEvent.submit(form);
+
+      expect(textarea).toHaveAttribute("aria-invalid", "true");
+      expect(document.activeElement).toBe(textarea);
+      expect(
+        screen.queryByText(esHome.Home.contact.form.fallbackLead),
+      ).not.toBeInTheDocument();
+    });
+
+    it("ciclo completo: aparece, se retira con el rechazo y vuelve EN REPOSO -- el boton Copiar no hereda su estado anterior", async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText },
+      });
+      try {
+        const form = envioValido();
+
+        // Se pulsa Copiar: el boton pasa a su texto de exito DENTRO del panel.
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole("button", {
+              name: esHome.Home.contact.form.copyAddress,
+            }),
+          );
+        });
+        expect(
+          screen.getByRole("button", { name: esHome.Home.contact.form.copied }),
+        ).toBeInTheDocument();
+
+        // Rechazo: se va el panel, con su boton dentro.
+        const input = screen.getByLabelText(esHome.Home.contact.form.label);
+        fireEvent.change(input, { target: { value: "roto" } });
+        fireEvent.submit(form);
+        expect(
+          screen.queryByText(esHome.Home.contact.form.fallbackLead),
+        ).not.toBeInTheDocument();
+
+        // Se corrige y se reenvia: el panel vuelve, y vuelve limpio. Si
+        // `copyStatus` no se reiniciara, este panel nuevo apareceria ya con el
+        // boton en "Copiada" sin que nadie lo haya pulsado en este ciclo.
+        fireEvent.change(input, { target: { value: "visitante@test.com" } });
+        fireEvent.submit(form);
+
+        expect(screen.getByRole("status")).toHaveTextContent(
+          esHome.Home.contact.form.fallbackLead,
+        );
+        expect(
+          screen.getByRole("button", {
+            name: esHome.Home.contact.form.copyAddress,
+          }),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole("button", {
+            name: esHome.Home.contact.form.copied,
+          }),
+        ).not.toBeInTheDocument();
+      } finally {
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: undefined,
+        });
+      }
+    });
+  });
+
+  describe("hallazgo B2 (P1): el aviso sin JavaScript es un elemento real con guard de CSS", () => {
+    /** Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`.
+     *  Mismo helper y mismo motivo que `ThemeToggle.test.tsx` y
+     *  `aura.parts.test.tsx`: jsdom no evalua NINGUN `@media` (regla 36), asi
+     *  que la unica via es leer el CSSOM acotando al bloque concreto. */
+    function reglasSinScripting(): CSSStyleRule[] {
+      const out: CSSStyleRule[] = [];
+      const walk = (rules: CSSRuleList, dentro: boolean): void => {
+        Array.from(rules).forEach((rule) => {
+          const media = (rule as CSSMediaRule).media;
+          const aqui =
+            dentro ||
+            (media ? /scripting:\s*none/.test(media.mediaText) : false);
+          const anidadas = (rule as CSSGroupingRule).cssRules;
+          if (anidadas) {
+            walk(anidadas, aqui);
+            return;
+          }
+          if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+            out.push(rule as CSSStyleRule);
+          }
+        });
+      };
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          walk(sheet.cssRules, false);
+        } catch {
+          /* hoja inaccesible: no aporta */
+        }
+      });
+      return out;
+    }
+
+    function montarAviso(): { form: HTMLFormElement; aviso: HTMLElement } {
+      const { container } = renderWithProviders(<Contact />);
+      return {
+        form: container.querySelector("form") as HTMLFormElement,
+        aviso: container.querySelector("[data-nojs-note]") as HTMLElement,
+      };
+    }
+
+    it("SIN JavaScript se revela: display block dentro de @media (scripting: none), sobre su PROPIA clase", () => {
+      const { aviso } = montarAviso();
+      expect(
+        aviso,
+        "el formulario no monta ningun aviso sin JavaScript",
+      ).not.toBeNull();
+      const clases = Array.from(aviso.classList);
+
+      const propias = reglasSinScripting().filter((regla) =>
+        clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+      );
+      expect(
+        propias.length,
+        "el aviso no se revela sin JavaScript: no hay ninguna regla suya bajo scripting none",
+      ).toBeGreaterThan(0);
+
+      propias.forEach((regla) => {
+        // Mismo elemento, nunca un descendiente (regla 35).
+        expect(regla.selectorText).not.toMatch(/\s/);
+        expect(regla.style.display).toBe("block");
+      });
+    });
+
+    it("CON JavaScript no ocupa caja ni entra en el arbol de accesibilidad, y no se tapa con aria-hidden", () => {
+      const { aviso } = montarAviso();
+
+      expect(aviso).toBeInTheDocument();
+      expect(getComputedStyle(aviso).display).toBe("none");
+      expect(aviso).not.toBeVisible();
+
+      // `display: none` ya lo saca del arbol de accesibilidad y del orden de
+      // tabulacion: el enlace de dentro no se consulta por rol.
+      expect(
+        screen.queryByRole("link", {
+          name: links.email.replace(/^mailto:/, ""),
+        }),
+        "el enlace del aviso se sigue anunciando con JavaScript activo",
+      ).not.toBeInTheDocument();
+
+      // Y NO se esconde con aria-hidden/hidden: esos seguirian puestos cuando
+      // el CSS lo revela, y lo dejarian invisible justo para quien usa lector
+      // de pantalla sin JavaScript.
+      expect(aviso).not.toHaveAttribute("aria-hidden");
+      expect(aviso).not.toHaveAttribute("hidden");
+    });
+
+    it("vive DENTRO del formulario y ANTES del boton de envio, con el texto de i18n y el mailto real de config", () => {
+      const { form, aviso } = montarAviso();
+
+      expect(form.contains(aviso)).toBe(true);
+      expect(aviso).toHaveTextContent(esHome.Home.contact.form.noscript);
+
+      const enlace = aviso.querySelector("a") as HTMLAnchorElement;
+      expect(enlace).toHaveAttribute("href", links.email);
+      expect(enlace).toHaveTextContent(links.email.replace(/^mailto:/, ""));
+
+      const submit = form.querySelector(
+        'button[type="submit"]',
+      ) as HTMLButtonElement;
+      expect(
+        aviso.compareDocumentPosition(submit) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it("ningun re-render de cliente lo vacia: es el defecto EXACTO que tumbo al <noscript>", () => {
+      const { aviso } = montarAviso();
+      const antes = aviso.textContent?.length ?? 0;
+      expect(antes).toBeGreaterThan(0);
+
+      // Re-renders reales del arbol: los dos campos son controlados, asi que
+      // escribir en ellos reconstruye este JSX entero. Con un `<noscript>` el
+      // contenido ni siquiera llegaba a existir en cliente (medido en
+      // navegador real: 268 -> 0 al conmutar el tema).
+      escribirMensaje("otra cosa");
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "visitante@test.com" },
+      });
+
+      const despues = document.querySelector("[data-nojs-note]") as HTMLElement;
+      expect(despues.textContent?.length ?? 0).toBe(antes);
     });
   });
 });

@@ -1221,19 +1221,61 @@ const ScFieldMessage = styled.p<{ $error?: boolean }>`
  * disparar el envío nativo de todos modos, lo escrito sobrevive en la barra de
  * direcciones en vez de evaporarse.
  *
- * OJO AL VERIFICARLO EN TEST: React trata los hijos de `<noscript>` como
- * CONTENIDO DE TEXTO (`shouldSetTextContent` devuelve `true` para esta
- * etiqueta), así que un render de CLIENTE — el de Testing Library — produce un
- * `<noscript>` VACÍO. En el HTML del export estático sí aparecen (lo genera el
- * render de servidor) y la hidratación no los toca. El candado de
- * `Contact.test.tsx` lo comprueba, por eso, sobre `renderToStaticMarkup`, que
- * es exactamente el camino que produce el artefacto real.
+ * ═══ LÁPIDA DEL `<noscript>` (crítica externa #11, hallazgo B2, 2026-08-18)
+ *
+ * AQUÍ VIVIÓ `ScNoscriptNote`, el mismo párrafo dentro de un `<noscript>`
+ * literal. La etiqueta se retira entera, y no por preferencia de estilo: React
+ * trata los hijos de `<noscript>` como CONTENIDO DE TEXTO
+ * (`shouldSetTextContent` devuelve `true` para esa etiqueta), así que los
+ * COLAPSA en cualquier re-render de cliente. El repo ya conocía la mitad de
+ * eso — que un render de Testing Library deja el `<noscript>` vacío, por lo
+ * que su candado se escribía sobre `renderToStaticMarkup` —, pero lo daba por
+ * un detalle de test. Medido en navegador real sobre el HTML servido:
+ *
+ *     noscript.textContent.length = 268   (HTML entregado por el servidor)
+ *     conmutar el tema  ->  0             (primer re-render de cliente)
+ *     volver al tema anterior  ->  0      (no se recupera NUNCA)
+ *
+ * Es decir: el aviso solo sobrevivía mientras nadie tocara nada. En cuanto
+ * React re-renderizaba una vez, el único texto que le explica a un visitante
+ * sin JavaScript que el botón no envía nada quedaba borrado del documento —
+ * así que si el JS moría DESPUÉS de esa primera interacción (un chunk que no
+ * carga, una excepción, una extensión que lo corta), el formulario volvía
+ * exactamente al defecto que la crítica #9 vino a cerrar, y sin aviso.
+ *
+ * El sustituto es un elemento REAL — este — que ningún re-render puede vaciar,
+ * con la visibilidad resuelta en CSS por `@media (scripting: none)`: el MISMO
+ * mecanismo ya sancionado en el repo para los reveals (`GlobalStyles.tsx`), el
+ * conmutador de tema (`ThemeToggle.tsx`), el selector de idioma y el
+ * disparador de la hoja de navegación (`NavSheet.tsx`).
+ *
+ * OCULTO POR DEFECTO y revelado bajo `scripting: none`, no al revés (misma
+ * dirección que la regla de reveals de `GlobalStyles`): el caso normal es que
+ * haya JavaScript, y un navegador SIN soporte del feature `scripting`
+ * (anterior a Chrome/Edge 120, Firefox 113, Safari 17) ignora el bloque entero
+ * y se queda con el comportamiento por defecto. Lo que se compra con esa
+ * elección es que nadie con JS funcionando lea jamás un aviso que no le
+ * corresponde; lo que se paga, declarado sin adornos, es que en la
+ * intersección «navegador anterior a 2023 × JavaScript desactivado» el aviso
+ * no aparece. Se acepta porque el `<noscript>` tampoco lo cubría de verdad:
+ * era el que se vaciaba solo en los navegadores modernos, que son la inmensa
+ * mayoría del tráfico real.
+ *
+ * CON JavaScript el guard es `display: none` a secas, sin `aria-hidden` ni
+ * `hidden` ni `inert`: `display: none` ya lo saca del árbol de accesibilidad
+ * Y del orden de tabulación (el enlace de dentro deja de ser enfocable), que
+ * es todo lo que hace falta. Un `aria-hidden` fijo, en cambio, sería un error:
+ * seguiría puesto cuando el CSS lo revela, y dejaría el aviso invisible
+ * justamente para quien usa un lector de pantalla sin JavaScript.
  *
  * `a` con estilo propio: `GlobalStyles` declara `a { color: inherit;
  * text-decoration: none; }` para todo el sitio, así que sin esto el único
  * enlace que un visitante sin JS tiene delante se leería como texto plano.
  */
-const ScNoscriptNote = styled.p`
+const ScNoJsNote = styled.p`
+  /* Ver el docblock de arriba: oculto por defecto, revelado solo cuando el
+     navegador declara que no hay scripting. */
+  display: none;
   margin: 0;
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   line-height: ${({ theme }) => theme.data.type.scale.bodySm.lineHeight};
@@ -1243,6 +1285,10 @@ const ScNoscriptNote = styled.p`
     color: ${({ theme }) => theme.data.semantic.brandText};
     text-decoration: underline;
     overflow-wrap: anywhere;
+  }
+
+  @media (scripting: none) {
+    display: block;
   }
 `;
 
@@ -1656,9 +1702,10 @@ export function Contact(): ReactElement {
    * abrirse un correo VACÍO: peor que no abrir nada, porque parece que
    * funcionó. Sin `action`, el envío nativo es un GET al propio documento y lo
    * escrito sobrevive en la barra de direcciones (los `name` de los dos
-   * campos, ver el JSX), mientras el `<noscript>` da la salida real. Nada de
-   * esto afecta al camino CON JavaScript: `preventDefault()` es la primera
-   * línea de esta función.
+   * campos, ver el JSX), mientras el aviso sin JavaScript (`ScNoJsNote`, que
+   * hasta la crítica #11 era un `<noscript>`) da la salida real. Nada de esto
+   * afecta al camino CON JavaScript: `preventDefault()` es la primera línea de
+   * esta función.
    */
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -1667,6 +1714,32 @@ export function Contact(): ReactElement {
     setEmailError(emailInvalid);
     setMessageError(messageInvalid);
     if (emailInvalid || messageInvalid) {
+      /*
+       * EL INTENTO RECHAZADO RETIRA EL PANEL DE RESPALDO (crítica externa #11,
+       * hallazgo A, 2026-08-18). Reproducción medida: envío válido -> aparece
+       * el panel «Si no se ha abierto tu aplicación de correo, escríbeme a …»;
+       * se cambia el correo a `roto` y se pulsa Enviar -> el campo se marca
+       * `aria-invalid` con su mensaje de error Y EL PANEL SEGUÍA VISIBLE. Dos
+       * estados contradictorios a la vez en el mismo formulario: uno diciendo
+       * "ya se ha abierto tu correo" y el otro "esto no se ha enviado".
+       *
+       * El panel describe UN ENVÍO CONCRETO que sí llegó a `location.assign`
+       * (ver más abajo), no una propiedad permanente de la sección: en cuanto
+       * hay un intento posterior que ni siquiera llega a navegar, lo que el
+       * panel afirma dejó de ser cierto. Se retira aquí y no en el `onChange`
+       * de los campos a propósito -- editar un campo no invalida el envío
+       * anterior (de hecho el correo YA se abrió), lo que lo invalida es pedir
+       * otro envío y que ese no salga.
+       *
+       * `copyStatus` vuelve a reposo con él porque es estado INTERIOR de ese
+       * mismo panel: si no se reiniciara, un panel revelado de nuevo más tarde
+       * aparecería ya con el botón en «Copiada» -- o, peor, con el mensaje de
+       * fallo de copia de un intento anterior -- sin que nadie haya pulsado
+       * nada en este ciclo. Sería exactamente el mismo defecto que este bloque
+       * cierra, una capa más abajo.
+       */
+      setSent(false);
+      setCopyStatus("idle");
       /*
        * EL FOCO VA AL PRIMER CAMPO INVÁLIDO, en orden del DOM (crítica externa
        * #9, Nielsen, 2026-08-17): hasta hoy el foco se quedaba en el botón de
@@ -1759,16 +1832,25 @@ export function Contact(): ReactElement {
         onSubmit={handleSubmit}
         noValidate
       >
-        {/* Aviso sin JavaScript (crítica externa #9): ver el docblock de
-            `ScNoscriptNote`. Va PRIMERO a propósito -- quien no tiene JS lo
-            lee antes de invertir esfuerzo en escribir, no después de perderlo.
-            Con JS el navegador no pinta nada de esto. */}
-        <noscript>
-          <ScNoscriptNote>
-            {t("Home.contact.form.noscript")}{" "}
-            <a href={links.email}>{EMAIL_ADDRESS}</a>
-          </ScNoscriptNote>
-        </noscript>
+        {/* Aviso sin JavaScript (crítica externa #9; deja de ser un
+            `<noscript>` en la #11 -- ver la lápida en el docblock de
+            `ScNoJsNote`). Va PRIMERO a propósito -- quien no tiene JS lo lee
+            antes de invertir esfuerzo en escribir, no después de perderlo, y
+            eso lo deja además delante del botón de envío. Con JS está en el
+            DOM pero fuera del árbol de accesibilidad y sin caja: el guard es
+            CSS, no un render condicional, porque un render condicional
+            necesitaría saber si hay JS -- y quien no lo tiene tampoco ejecuta
+            la comprobación.
+
+            La clave i18n conserva el nombre `noscript` a propósito aunque la
+            etiqueta ya no exista: nombra la CONDICIÓN (no hay scripting), que
+            es lo que el texto describe, no el mecanismo con el que se muestra.
+            El `data-nojs-note` es el gancho de test, en el elemento del DOM y
+            no en un prop -- mismo criterio que `data-theme-toggle`. */}
+        <ScNoJsNote data-nojs-note>
+          {t("Home.contact.form.noscript")}{" "}
+          <a href={links.email}>{EMAIL_ADDRESS}</a>
+        </ScNoJsNote>
         {/* Un `<div>` pelado, sin estilo: agrupa el campo con sus dos mensajes
             para que el `gap` del formulario separe CAMPOS enteros y no meta
             además su hueco entre un control y su propio mensaje. Es la misma
