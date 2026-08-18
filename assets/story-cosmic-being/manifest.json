@@ -13,14 +13,8 @@
         "container": "isolation: isolate; background: #05010e;"
     },
     "anchors": {
-        "ringCenterPct": [
-            76.5,
-            30.2
-        ],
-        "heartPct": [
-            77.2,
-            29.9
-        ]
+        "ringCenterPct": [76.5, 30.2],
+        "heartPct": [77.2, 29.9]
     },
     "motionHints": {
         "swingXpx": 46,
@@ -30,10 +24,7 @@
     },
     "deployed": {
         "quality": 70,
-        "widths": [
-            1024,
-            1280
-        ],
+        "widths": [1024, 1280],
         "encoder": "Pillow: Image.resize(LANCZOS) -> save WEBP quality=70 method=6. Parametros no supuestos: antes de tocar nada se recodificaron los once PNG maestros del zip 3 (el arte SALIENTE, que no cambia) y reprodujeron byte a byte las 22 imagenes que ya estaban desplegadas (sha256 identico, 22/22). Ese test fija el filtro, el method Y la calidad de ESTA escena; la calidad se reconfirmo ademas midiendo la curva sobre el arte nuevo (ver rationale), porque es un parametro por escena, no del repo.",
         "rationale": "Medido sobre la escena compuesta (11 capas sumadas en plus-lighter contra el compuesto de los PNG maestros reescalados al mismo tamano). Arte del 2026-08-03: a q70, 1600px da 45.50 dB por 2.03 MiB y 1280px da 45.33 dB por 1.37 MiB -- +48% de peso por +0.17 dB. Subir la calidad en la pista de 1280 tampoco compensa: q85 da 45.77 dB por 1.68 MiB (+23% por +0.44 dB) y q90, 46.05 dB por 1.89 MiB. Se conserva 1280 q70, la misma eleccion (y el mismo peso) que con el arte anterior.",
         "swap20260803": "Sustitucion COMPLETA de las 22 imagenes (las 11 capas x 2 anchos), no un reencode parcial como el del 2026-08-01: el zip v2 descompone una imagen nueva. Peso desplegado: 2397978 -> 2397454 bytes (-524 B, 2.29 -> 2.29 MiB). El arte nuevo reparte distinto la misma energia -- la figura queda mas blanca y con menos halo azul (08-figure-aura baja de 102874 a 85336 B a 1280) y hay mas estrellas resueltas (03/04/05 suben en conjunto ~40 KB) -- pero el total apenas se mueve."
@@ -194,12 +185,7 @@
             "depth": 0.68,
             "blend": "plus-lighter",
             "desc": "Solo el cuerpo, sin contorno. La mascara sale del canal MINIMO de RGB (blancura), no de la luminancia: el cuerpo es casi blanco (canal minimo medio 0.780) y el halo es azul saturado (0.141), asi que por brillo se confunden y por blancura no. El halo pasa integro a 08-figure-aura y la suma de las once capas sigue reconstruyendo el original. En este arte la figura ya venia muy definida, asi que el criterio por blancura cae casi donde caeria uno por brillo -- se mantiene igualmente porque es el que garantiza que el borde no arrastre resplandor.",
-            "bboxPx": [
-                2339,
-                170,
-                448,
-                1487
-            ],
+            "bboxPx": [2339, 170, 448, 1487],
             "bytes": {
                 "1280": 30080,
                 "1024": 20924
