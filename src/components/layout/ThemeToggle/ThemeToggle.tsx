@@ -2,6 +2,7 @@
 
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import styled from "styled-components";
 import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { useThemeScrollReset } from "@/hooks/useThemeScrollReset";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -82,6 +83,58 @@ import { IconMoon, IconSun } from "./ThemeIcons";
 // undefined}` (no `busy` a secas) omite el atributo por completo cuando NO
 // esta ocupado, en vez de dejar `aria-busy="false"` -- mismo patron que
 // Button.tsx usa para `loading`.
+/**
+ * Hueco del conmutador, y SU SALIDA SIN JAVASCRIPT (crítica externa #10,
+ * hallazgo A, P1).
+ *
+ * El hallazgo, medido con `javaScriptEnabled: false` real -- deshabilitación
+ * del motor, no bloqueo de los `*.js` --: este botón se pinta visible y con
+ * aspecto activo mientras `data-theme` ni siquiera existe en el `<html>` y
+ * ningún manejador puede correr. `requestThemeChange` es JavaScript de cabo a
+ * rabo (`useThemeScrollReset` -> `toggleTheme` del `ThemeProvider`), así que
+ * pulsar no hacía nada y nada lo explicaba. Sin JavaScript el sitio se sirve
+ * SIEMPRE en la composición clara (el HTML horneado monta el stack claro, ver
+ * el docblock del guard de `eyeStagger` en `eye.parts.tsx`): no hay ningún
+ * segundo tema al que se pueda llegar, ni por enlace ni por ruta.
+ *
+ * Por eso se OCULTA en vez de avisar: un `<noscript>` como el del formulario
+ * de contacto (`ScNoscriptNote`, `Contact.tsx`) existe allí porque hay una
+ * salida real que ofrecer -- la dirección de correo --; aquí no hay ninguna.
+ * Un botón que no puede hacer su única acción es peor que su ausencia, y la
+ * página completa sigue siendo legible en claro sin él.
+ *
+ * ENVOLTORIO PROPIO, no `styled(IconButton)`, y no es preferencia de estilo:
+ * es el precedente literal de `ScSheetTriggerSlot` (`NavSheet.tsx`), que
+ * resuelve este mismo problema para el disparador de la hoja. Conmutar el
+ * `display` desde una capa `styled(IconButton)` dependería del orden de
+ * inyección de tres clases encadenadas (ScButton -> ScSquare -> la capa
+ * nueva), y `ScButton` declara `display: inline-flex` con la misma
+ * especificidad. Un envoltorio con su propio `display` no depende de ninguna
+ * cascada ajena: si no genera caja, el botón no existe, sea cual sea el CSS
+ * del botón.
+ *
+ * CON JavaScript no cambia NADA: `inline-flex` sin más declaraciones, dentro
+ * de un `ScActions` que ya es flex -- misma caja que ocupaba el botón por sí
+ * solo, mismo foco y mismo orden de tabulación (un `<span>` sin `tabindex` no
+ * entra en la secuencia). `@media (scripting: none)` es el mecanismo ya
+ * sancionado en el repo para este caso (`GlobalStyles.tsx` con
+ * `[data-revealed]`, `auraStagger`/`eyeStagger`); un navegador sin soporte del
+ * feature ignora el bloque entero y se queda con el comportamiento de siempre.
+ *
+ * El gancho de test (`data-theme-toggle`) va en el envoltorio y no en el
+ * `IconButton` por el mismo motivo que documenta `NavSheetTrigger`: un `data-*`
+ * sobre un COMPONENTE tendría que declararse en la interfaz de props de un
+ * primitivo compartido de `ui/`; sobre un elemento del DOM no hace falta nada.
+ */
+const ScThemeToggleSlot = styled.span`
+  display: inline-flex;
+
+  /* Sin JavaScript no hay tema que conmutar: ver el docblock de arriba. */
+  @media (scripting: none) {
+    display: none;
+  }
+`;
+
 export function ThemeToggle(): ReactElement {
   const { t } = useTranslation("common");
   const { themeName } = useTheme();
@@ -92,12 +145,14 @@ export function ThemeToggle(): ReactElement {
     : t("Common.ThemeToggle.switchToLight");
 
   return (
-    <IconButton
-      icon={isLight ? <IconSun /> : <IconMoon />}
-      onClick={requestThemeChange}
-      aria-label={label}
-      aria-busy={busy || undefined}
-      title={label}
-    />
+    <ScThemeToggleSlot data-theme-toggle>
+      <IconButton
+        icon={isLight ? <IconSun /> : <IconMoon />}
+        onClick={requestThemeChange}
+        aria-label={label}
+        aria-busy={busy || undefined}
+        title={label}
+      />
+    </ScThemeToggleSlot>
   );
 }

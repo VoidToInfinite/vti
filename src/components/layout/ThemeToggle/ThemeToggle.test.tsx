@@ -324,6 +324,95 @@ describe("ThemeToggle", () => {
     }
   });
 
+  /*
+   * SALIDA SIN JAVASCRIPT (crítica externa #10, hallazgo A, P1). El evaluador
+   * midió con `javaScriptEnabled: false` real que este botón se pinta visible
+   * y con aspecto activo mientras `data-theme` ni siquiera existe en el
+   * `<html>` y `requestThemeChange` no puede correr. Se oculta con el guard de
+   * `ScThemeToggleSlot`: ver su docblock (`ThemeToggle.tsx`) para el porqué de
+   * ocultar en vez de avisar, y de un envoltorio propio en vez de
+   * `styled(IconButton)`.
+   *
+   * jsdom no evalúa ningún `@media` (regla 36 de RULES.md), así que se lee
+   * `document.styleSheets` acotando al bloque `@media (scripting: none)`
+   * concreto, y la FORMA del selector se afirma sobre `selectorText`
+   * (regla 35): tiene que apuntar al PROPIO envoltorio, no a un descendiente.
+   *
+   * Validado con el bug inyectado a propósito (regla 34): borrada la línea
+   * `display: none` del guard de `ScThemeToggleSlot`, este bloque se pone en
+   * rojo ("el conmutador de tema se sigue presentando sin JavaScript");
+   * restaurada esa línea, vuelve a verde.
+   */
+  describe("sin JavaScript no se presenta (@media (scripting: none))", () => {
+    /** Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`,
+     *  mismo patrón que `aura.parts.test.tsx`/`Eye.test.tsx`. */
+    function reglasSinScripting(): CSSStyleRule[] {
+      const out: CSSStyleRule[] = [];
+      const walk = (rules: CSSRuleList, dentro: boolean): void => {
+        Array.from(rules).forEach((rule) => {
+          const media = (rule as CSSMediaRule).media;
+          const aqui =
+            dentro ||
+            (media ? /scripting:\s*none/.test(media.mediaText) : false);
+          const anidadas = (rule as CSSGroupingRule).cssRules;
+          if (anidadas) {
+            walk(anidadas, aqui);
+            return;
+          }
+          if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+            out.push(rule as CSSStyleRule);
+          }
+        });
+      };
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          walk(sheet.cssRules, false);
+        } catch {
+          /* hoja inaccesible: no aporta */
+        }
+      });
+      return out;
+    }
+
+    it("el envoltorio del boton se retira con display: none sobre su PROPIA clase", () => {
+      const { container } = renderWithProviders(<ThemeToggle />);
+      const slot = container.querySelector(
+        "[data-theme-toggle]",
+      ) as HTMLElement;
+      expect(slot, "el conmutador no monta ningun envoltorio").not.toBeNull();
+      const clases = Array.from(slot.classList);
+
+      const propias = reglasSinScripting().filter((regla) =>
+        clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+      );
+      expect(
+        propias.length,
+        "el conmutador de tema se sigue presentando sin JavaScript",
+      ).toBeGreaterThan(0);
+
+      propias.forEach((regla) => {
+        // Mismo elemento, nunca un descendiente (regla 35).
+        expect(regla.selectorText).not.toMatch(/\s/);
+        expect(regla.style.display).toBe("none");
+      });
+    });
+
+    it("CON JavaScript nada cambia: envoltorio inline-flex, sin tabindex propio, y el boton sigue siendo el mismo control de 44px", () => {
+      const { container } = renderWithProviders(<ThemeToggle />);
+      const slot = container.querySelector(
+        "[data-theme-toggle]",
+      ) as HTMLElement;
+      const boton = screen.getByRole("button", { name: ETIQUETA_EN_CLARO });
+
+      expect(getComputedStyle(slot).display).toBe("inline-flex");
+      // El envoltorio no entra en la secuencia de tabulacion: el unico control
+      // enfocable sigue siendo el boton, igual que antes de esta tarea.
+      expect(slot).not.toHaveAttribute("tabindex");
+      expect(slot.contains(boton)).toBe(true);
+      expect(getComputedStyle(boton).width).toBe("44px");
+    });
+  });
+
   it("en una pagina sin hero (legales, via LegalHeader): aria-busy se retira en el mismo tick que el tema cambia, sin esperar a un cruce inexistente", () => {
     // Sin #hero en el documento no hay ningun cruce de composiciones que
     // esperar (ver "willCrossfade" en el hook). Necesita el stub de

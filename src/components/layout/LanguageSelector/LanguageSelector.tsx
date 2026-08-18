@@ -53,10 +53,54 @@ export function languageAccent(theme: DefaultTheme): string {
     : theme.data.semantic.brand;
 }
 
+/*
+ * SALIDA SIN JAVASCRIPT (crítica externa #10, hallazgo A, P1). El evaluador
+ * midió con `javaScriptEnabled: false` real -- deshabilitación del motor, no
+ * bloqueo de los `*.js` -- que los dos botones de idioma se pintan visibles, y
+ * uno de ellos con el aspecto del idioma ACTIVO (peso 700 + subrayado),
+ * mientras ninguno de sus dos manejadores puede correr: `i18n.changeLanguage`
+ * y la escritura de `STORAGE_KEYS.lang` son las dos JavaScript. Tampoco hay
+ * una ruta por idioma a la que un enlace pudiera llevar en su lugar:
+ * `initI18n()` arranca con `lng: "es"` fijo (`src/i18n/config.ts`), así que el
+ * HTML horneado ES el español y no existe ningún otro documento. Pulsar no
+ * hacía nada y nada lo explicaba.
+ *
+ * Se OCULTA, no se explica con un aviso. Un `<noscript>` como el del
+ * formulario de contacto (`ScNoscriptNote`, `Contact.tsx`) tiene sentido allí
+ * porque hay una salida REAL que ofrecer -- la dirección de correo --; aquí no
+ * existe ninguna, así que lo único honesto es dejar de presentar un control
+ * que no puede funcionar. (Además, un `<noscript>` renderizado en cliente sale
+ * VACÍO: React trata sus hijos como contenido de texto, ver ese mismo
+ * docblock.)
+ *
+ * EL GUARD VIVE AQUÍ, en el componente, y no en sus dos envoltorios
+ * (`ScBarLanguage` en `Navbar.tsx`, `ScSheetLanguage` en `NavSheet.tsx`):
+ * `LanguageSelector` se renderiza DOS veces con visibilidad excluyente por CSS
+ * (ver el docblock de cabecera de `NavSheet.tsx`), así que una sola
+ * declaración cubre las dos copias y ninguna puede divergir. Los dos
+ * envoltorios se quedan sin contenido que dimensionar y colapsan a cero, sin
+ * dejar hueco fantasma: el `gap` de un contenedor flex solo separa ITEMS entre
+ * sí, y con el conmutador de tema y el disparador de la hoja ocultos por este
+ * mismo motivo, en `ScActions` no queda ningún hermano del que separarse.
+ *
+ * `@media (scripting: none)` es el mecanismo ya sancionado en este repo para
+ * exactamente este caso (`GlobalStyles.tsx` con `[data-revealed]`,
+ * `auraStagger` en `aura.parts.tsx`, `eyeStagger` en `eye.parts.tsx`):
+ * distingue "JavaScript desactivado o no soportado" y un navegador sin soporte
+ * del feature ignora el bloque entero y se queda con el comportamiento de
+ * siempre. Gana sin `!important` y sin especificidad añadida: es el MISMO
+ * selector, declarado después. CON JavaScript no cambia absolutamente nada --
+ * ni layout, ni foco, ni orden de tabulación.
+ */
 const ScLanguageSelector = styled.div`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[1]};
+
+  /* Sin JavaScript no hay idioma que cambiar: ver el docblock de arriba. */
+  @media (scripting: none) {
+    display: none;
+  }
 `;
 
 /*

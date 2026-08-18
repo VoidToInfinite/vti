@@ -140,11 +140,46 @@ const NAV_SHEET_MAX_HEIGHT = "70dvh";
  * Mobile-first (regla transversal de la spec): la regla base es la MÓVIL
  * (visible) y se corrige hacia arriba con `min-width`, nunca con un
  * `max-width` de layout.
+ *
+ * ## SIN JAVASCRIPT: OCULTO (crítica externa #10, hallazgo A, P1)
+ *
+ * DECISIÓN, no herencia: este disparador se oculta bajo
+ * `@media (scripting: none)`, con el mismo criterio que el conmutador de tema
+ * (`ThemeToggle.tsx`) y el selector de idioma (`LanguageSelector.tsx`) de su
+ * misma fila.
+ *
+ * El motivo: la apertura de la hoja es estado de React (`useNavSheet`, y de
+ * ahí `data-open` sobre `ScNavSheet`/`ScSheetVeil`). Sin JavaScript ese estado
+ * no cambia nunca, así que la hoja se queda en `visibility: hidden` + `inert`
+ * para siempre y el botón es una promesa que no se puede cumplir -- el mismo
+ * defecto que el evaluador midió en los otros dos controles, y aquí además en
+ * el ÚNICO acceso a la navegación bajo 768 px.
+ *
+ * Y ocultarlo NO deja a nadie sin salida, que es lo que decide el caso: el pie
+ * de página recorre `NAV_GROUPS` entero y pinta cada destino como un `<a
+ * href>` normal, siempre presente en el HTML exportado y sin ninguna capa que
+ * abrir (`Footer.tsx`). La navegación completa sigue disponible sin
+ * JavaScript; lo que desaparece es el atajo que no funciona. La alternativa
+ * -- dejarlo visible con un aviso -- exigiría un `<noscript>` que en cliente
+ * sale VACÍO (React trata sus hijos como texto, ver `ScNoscriptNote` en
+ * `Contact.tsx`) y, sobre todo, seguiría mostrando un control muerto para
+ * explicar que está muerto.
+ *
+ * El guard va DESPUÉS del bloque de `md` a propósito: los dos declaran lo
+ * mismo (`display: none`) y no compiten, pero el orden deja la lectura en el
+ * sentido en que se aplican -- primero el ancho, luego la capacidad. CON
+ * JavaScript no cambia nada de nada.
  */
 const ScSheetTriggerSlot = styled.span`
   display: inline-flex;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
+    display: none;
+  }
+
+  /* Sin JavaScript la hoja no abre y el pie ya expone la navegación completa:
+     ver el docblock de arriba. */
+  @media (scripting: none) {
     display: none;
   }
 `;

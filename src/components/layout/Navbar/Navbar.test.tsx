@@ -1619,6 +1619,10 @@ describe("Navbar", () => {
     }
 
     const MEDIA_MD = /min-width:\s*768px/;
+    /** Salida sin JavaScript (crítica externa #10, hallazgo A): el feature que
+     *  distingue "JavaScript desactivado o no soportado", ya sancionado en el
+     *  repo (GlobalStyles.tsx, auraStagger, eyeStagger). */
+    const MEDIA_SIN_JS = /scripting:\s*none/;
     const MEDIA_REDUCE = /prefers-reduced-motion:\s*reduce/;
 
     it("el disparador existe, arranca cerrado y su aria-controls apunta al id real de la hoja", () => {
@@ -1960,6 +1964,50 @@ describe("Navbar", () => {
         enMd.some((regla) => /display:\s*none/.test(regla)),
         "el disparador no se retira desde md",
       ).toBe(true);
+    });
+
+    /*
+     * SALIDA SIN JAVASCRIPT (crítica externa #10, hallazgo A, P1). La apertura
+     * de la hoja es estado de React (`useNavSheet`), así que sin JavaScript la
+     * hoja no puede abrirse nunca y el disparador es un botón que no cumple lo
+     * que promete. Se retira: el pie de página ya expone la navegación
+     * completa como enlaces normales, así que ocultarlo no deja a nadie sin
+     * salida (ver el docblock de `ScSheetTriggerSlot`, `NavSheet.tsx`).
+     *
+     * jsdom no evalúa ningún `@media` (regla 36): la condición se lee del
+     * CSSOM, acotada al bloque concreto y a la clase de ESTE elemento.
+     *
+     * Validado con el bug inyectado a propósito (regla 34): borrada la línea
+     * `display: none` del bloque `@media (scripting: none)` de
+     * `ScSheetTriggerSlot`, este test se pone en rojo ("el disparador de la
+     * hoja sigue visible sin JavaScript"); restaurada esa línea, vuelve a
+     * verde.
+     */
+    it("sin JavaScript el disparador se retira (@media (scripting: none)), y con JavaScript no cambia nada", () => {
+      const { container } = renderNavbar();
+      const reglas = allCssRules();
+      const slot = container.querySelector(
+        "[data-nav-sheet-trigger]",
+      ) as HTMLElement;
+      const clase = claseInyectadaDe(slot, reglas);
+      expect(
+        clase,
+        "no se encontró la clase inyectada del disparador",
+      ).not.toBe("");
+
+      expect(
+        reglasEnMedia(reglas, MEDIA_SIN_JS, clase).some((regla) =>
+          /display:\s*none/.test(regla),
+        ),
+        "el disparador de la hoja sigue visible sin JavaScript",
+      ).toBe(true);
+
+      // CON JavaScript nada cambia: la regla base sigue siendo la móvil
+      // (visible), el envoltorio no entra en el orden de tabulación y el botón
+      // real sigue montado y alcanzable.
+      expect(getComputedStyle(slot).display).toBe("inline-flex");
+      expect(slot).not.toHaveAttribute("tabindex");
+      expect(getSheetTrigger()).toBeInTheDocument();
     });
 
     it("la hoja y el velo se retiran desde md con display:none, sin desmontarse", () => {

@@ -132,4 +132,86 @@ describe("LanguageSelector", () => {
       );
     });
   });
+
+  /*
+   * SALIDA SIN JAVASCRIPT (crítica externa #10, hallazgo A, P1). El evaluador
+   * midió con `javaScriptEnabled: false` real que los dos botones se pintan
+   * visibles -- uno con el aspecto del idioma ACTIVO -- mientras ninguno de
+   * sus manejadores puede correr y no hay ningún otro idioma al que ir
+   * (`initI18n()` fija `lng: "es"`). Se ocultan: ver el docblock de
+   * `ScLanguageSelector` (`LanguageSelector.tsx`).
+   *
+   * jsdom no evalúa ningún `@media` (regla 36 de RULES.md), así que se
+   * inspecciona `document.styleSheets` acotando la búsqueda al bloque
+   * `@media (scripting: none)` concreto -- nunca por substring del CSS
+   * completo -- y la FORMA del selector se afirma sobre `selectorText`
+   * (regla 35): tiene que apuntar al PROPIO elemento, no a un descendiente.
+   *
+   * Validado con el bug inyectado a propósito (regla 34): borrada la línea
+   * `display: none` del guard de `ScLanguageSelector`, este bloque se pone en
+   * rojo ("el selector de idioma se sigue presentando sin JavaScript");
+   * restaurada esa línea, vuelve a verde.
+   */
+  describe("sin JavaScript no se presenta (@media (scripting: none))", () => {
+    /** Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`,
+     *  mismo patrón que `aura.parts.test.tsx`/`Eye.test.tsx`. */
+    function reglasSinScripting(): CSSStyleRule[] {
+      const out: CSSStyleRule[] = [];
+      const walk = (rules: CSSRuleList, dentro: boolean): void => {
+        Array.from(rules).forEach((rule) => {
+          const media = (rule as CSSMediaRule).media;
+          const aqui =
+            dentro ||
+            (media ? /scripting:\s*none/.test(media.mediaText) : false);
+          const anidadas = (rule as CSSGroupingRule).cssRules;
+          if (anidadas) {
+            walk(anidadas, aqui);
+            return;
+          }
+          if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+            out.push(rule as CSSStyleRule);
+          }
+        });
+      };
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          walk(sheet.cssRules, false);
+        } catch {
+          /* hoja inaccesible: no aporta */
+        }
+      });
+      return out;
+    }
+
+    it("el grupo entero se retira con display: none sobre su PROPIA clase", () => {
+      renderWithProviders(<LanguageSelector />);
+      const grupo = screen.getByRole("group");
+      const clases = Array.from(grupo.classList);
+
+      const propias = reglasSinScripting().filter((regla) =>
+        clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+      );
+      expect(
+        propias.length,
+        "el selector de idioma se sigue presentando sin JavaScript",
+      ).toBeGreaterThan(0);
+
+      propias.forEach((regla) => {
+        // Mismo elemento, nunca un descendiente: un selector con espacio
+        // describiría otra cosa y no retiraría este control (regla 35).
+        expect(regla.selectorText).not.toMatch(/\s/);
+        expect(regla.style.display).toBe("none");
+      });
+    });
+
+    it("CON JavaScript nada cambia: el grupo sigue siendo inline-flex y los dos botones siguen en el orden de tabulación", () => {
+      renderWithProviders(<LanguageSelector />);
+      const grupo = screen.getByRole("group");
+      expect(getComputedStyle(grupo).display).toBe("inline-flex");
+      expect(screen.getAllByRole("button")).toHaveLength(2);
+      for (const boton of screen.getAllByRole("button")) {
+        expect(boton).not.toHaveAttribute("tabindex", "-1");
+      }
+    });
+  });
 });
