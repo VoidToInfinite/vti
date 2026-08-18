@@ -174,3 +174,48 @@ describe("buildThemeBootstrapScript: precargas del tema resuelto y solo de ese",
     }
   });
 });
+
+/*
+ * El type de las precargas AVIF (2026-08-18). Ejecuta el script real: una
+ * entrada con type tiene que aterrizar con el atributo (asi un navegador
+ * sin AVIF la ignora en vez de descargar de mas) y una sin type, sin el.
+ * Validado con bug inyectado real: retirando la linea del type del
+ * template, rojo; restaurada, verde.
+ */
+describe("buildThemeBootstrapScript: el type de la precarga viaja cuando la entrada lo declara", () => {
+  it("entrada con type -> link con type; entrada sin type -> link sin el", () => {
+    const original = window.localStorage.getItem(STORAGE_KEYS.theme);
+    document.head
+      .querySelectorAll('link[rel="preload"][imagesrcset]')
+      .forEach((node) => node.remove());
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+      new Function(
+        buildThemeBootstrapScript({
+          dark: [
+            { srcSet: "/a.avif 1x", sizes: "100vw", type: "image/avif" },
+            { srcSet: "/b.webp 1x", sizes: "100vw" },
+          ],
+        }),
+      )();
+      const links = Array.from(
+        document.head.querySelectorAll<HTMLLinkElement>(
+          'link[rel="preload"][imagesrcset]',
+        ),
+      );
+      expect(links).toHaveLength(2);
+      expect(links[0].getAttribute("type")).toBe("image/avif");
+      expect(links[1].getAttribute("type")).toBeNull();
+    } finally {
+      if (original === null) {
+        window.localStorage.removeItem(STORAGE_KEYS.theme);
+      } else {
+        window.localStorage.setItem(STORAGE_KEYS.theme, original);
+      }
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+      document.head
+        .querySelectorAll('link[rel="preload"][imagesrcset]')
+        .forEach((node) => node.remove());
+    }
+  });
+});

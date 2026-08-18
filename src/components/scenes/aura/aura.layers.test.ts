@@ -5,6 +5,8 @@ import {
   AURA_STAGGER,
   AURA_SURFACE,
   AURA_ASPECT,
+  AURA_PRELOADS,
+  auraAvifSrcSet,
 } from "./aura.layers";
 import { parseOklch } from "@/theme/tokens/contrast";
 
@@ -31,6 +33,7 @@ describe("aura.layers", () => {
         srcSmall: "/hero/aura/00-field-1024.webp",
         depth: 0,
         fullBleed: true,
+        avif: true,
       },
       {
         part: "energy",
@@ -38,6 +41,7 @@ describe("aura.layers", () => {
         srcSmall: "/hero/aura/01-energy-1024.webp",
         depth: 0.15,
         fullBleed: false,
+        avif: false,
       },
       {
         part: "handLeft",
@@ -45,6 +49,7 @@ describe("aura.layers", () => {
         srcSmall: "/hero/aura/02-hand-left-1024.webp",
         depth: 0.3,
         fullBleed: false,
+        avif: true,
       },
       {
         part: "handRight",
@@ -52,6 +57,7 @@ describe("aura.layers", () => {
         srcSmall: "/hero/aura/03-hand-right-1024.webp",
         depth: 0.3,
         fullBleed: false,
+        avif: true,
       },
     ]);
   });
@@ -124,5 +130,53 @@ describe("aura.layers", () => {
     // posicion, asi que no tienen por que coincidir.
     const paintedParts = AURA_LAYERS.map((layer) => layer.part);
     expect(new Set(AURA_STAGGER)).toEqual(new Set([...paintedParts, "orb"]));
+  });
+});
+
+/*
+ * Candado del AVIF mixto del aura (2026-08-18): solo las capas con
+ * avif: true (resultado de la guarda de codificacion; "energy" quedo fuera)
+ * tienen ficheros derivados y precarga AVIF tipada; "energy" conserva su
+ * precarga WebP sin type. El 404 silencioso de la convencion se cierra con
+ * node:fs. Validado con bug inyectado real: renombrar un .avif -> rojo.
+ */
+describe("aura AVIF", () => {
+  it("cada capa avif:true tiene sus dos pistas derivadas en public/; energy queda fuera por la guarda", async () => {
+    const { statSync, existsSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const publicDir = join(here, "..", "..", "..", "..", "public");
+
+    for (const layer of AURA_LAYERS) {
+      for (const track of [layer.src, layer.srcSmall]) {
+        const avif = join(
+          publicDir,
+          track.replace(/\.webp$/, ".avif").replace(/^\//, ""),
+        );
+        if (layer.avif) {
+          expect(statSync(avif).size, `${track} sin AVIF`).toBeGreaterThan(0);
+        } else {
+          expect(
+            existsSync(avif),
+            `${layer.part} declara avif:false pero su fichero existe: o se actualiza la tabla o se borra el fichero`,
+          ).toBe(false);
+        }
+      }
+    }
+    expect(AURA_LAYERS.find((l) => l.part === "energy")?.avif).toBe(false);
+  });
+
+  it("AURA_PRELOADS precarga AVIF tipado en las capas convertidas y WebP sin type en energy", () => {
+    AURA_PRELOADS.forEach((preload, i) => {
+      const layer = AURA_LAYERS[i];
+      if (layer.avif) {
+        expect(preload.type).toBe("image/avif");
+        expect(preload.srcSet).toBe(auraAvifSrcSet(layer));
+      } else {
+        expect(preload.type).toBeUndefined();
+        expect(preload.srcSet).toContain(".webp");
+      }
+    });
   });
 });

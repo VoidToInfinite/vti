@@ -116,10 +116,40 @@ export const EYE_SIZES = "(max-width: 700px) 60vw, 100vw";
 export const EYE_PRELOADS: readonly {
   readonly srcSet: string;
   readonly sizes: string;
+  readonly type: string;
 }[] = EYE_LAYERS.map((layer) => ({
-  srcSet: `${layer.srcSmall} 1024w, ${layer.src} 1672w`,
+  srcSet: eyeAvifSrcSet(layer),
   sizes: EYE_SIZES,
+  type: "image/avif",
 }));
+
+/**
+ * srcSet AVIF de una capa del ojo, derivado del WebP por sustitución de
+ * extensión — la misma convención (y el mismo candado node:fs contra el 404
+ * silencioso, en eye.layers.test.ts) que estrenó la escena de Story.
+ *
+ * AVIF llegó al hero el 2026-08-18, extensión de la palanca del dueño tras
+ * medir que el cuello real del LCP oscuro era ESTE arte y no el de Story
+ * (el A/B de la escena liberó 535 KB sin mover el LCP: Chrome ya
+ * deprioritizaba las lazy). Cifras medidas fichero a fichero (Pillow,
+ * q75 speed 2 — el barrido eligió q75 porque a q65 el párpado caía a
+ * 44,55 dB, bajo el umbral de 45): las 10 pistas ganan, 619.638 → 321.306 B
+ * (−48,1 %), PSNR mínimo 45,69 dB premultiplicado. PROCEDENCIA: maestros
+ * PNG no disponibles — transcodificación desde el WebP desplegado, que es
+ * la referencia de calidad. Detalle en assets/hero-eye/manifest.json.
+ *
+ * Desde ese mismo día EYE_PRELOADS precarga la pista AVIF con
+ * type="image/avif": la precarga tiene que pedir EXACTAMENTE lo que el
+ * <picture> va a elegir, o la imagen se descarga dos veces (el contrato de
+ * siempre de este docblock, ahora contra la rama AVIF del <source>). Un
+ * navegador sin AVIF ignora una precarga cuyo type no soporta — pierde la
+ * precarga, no descarga de más — y cae al srcSet WebP del <img>, que sigue
+ * intacto como respaldo. Compromiso declarado: ese navegador residual
+ * vuelve al camino sin precarga que el hero tenía antes de la Ola A.1.
+ */
+export function eyeAvifSrcSet(layer: EyeLayer): string {
+  return `${layer.srcSmall.replace(/\.webp$/, ".avif")} 1024w, ${layer.src.replace(/\.webp$/, ".avif")} 1672w`;
+}
 
 /** Relación de aspecto del lienzo original (1672 × 941). */
 export const EYE_ASPECT = "1672 / 941";

@@ -118,14 +118,16 @@ describe("Aura", () => {
     const { container } = renderWithProviders(<Aura />);
     const socket = container.firstElementChild as HTMLElement;
     const field = socket.querySelector('img[data-part="field"]');
-    const subject = field?.nextElementSibling;
-    // `field` es hijo DIRECTO del socket (junto a `base`), no del marco del
-    // sujeto -- es lo que le permite cubrir sin recorte cualquier relacion
-    // de aspecto (spec §5.2).
-    expect(field?.parentElement).toBe(socket);
+    // Desde el AVIF (2026-08-18) cada capa vive envuelta en <picture>; la
+    // intencion del candado no cambia: el CAMPO (via su picture) es hijo
+    // DIRECTO del socket, no del marco del sujeto -- es lo que le permite
+    // cubrir sin recorte cualquier relacion de aspecto (spec §5.2).
+    const fieldPicture = field?.closest("picture");
+    const subject = fieldPicture?.nextElementSibling;
+    expect(fieldPicture?.parentElement).toBe(socket);
     for (const layer of AURA_LAYERS.filter((l) => !l.fullBleed)) {
       const img = socket.querySelector(`img[data-part="${layer.part}"]`);
-      expect(img?.parentElement).toBe(subject);
+      expect(img?.closest("picture")?.parentElement).toBe(subject);
     }
   });
 
@@ -305,17 +307,45 @@ describe("Aura", () => {
  * `AURA_PRELOADS` construye la suya.
  */
 describe("Aura: las precargas del arranque coinciden con lo que se renderiza", () => {
-  it("cada capa renderizada tiene una precarga con su srcSet y su sizes exactos", () => {
+  /*
+   * Desde el 2026-08-18 el registro es MIXTO: las capas con avif: true
+   * precargan su pista AVIF (con type) y tienen que coincidir con el
+   * <source>; "energy" -- excluida por la guarda de la codificacion --
+   * precarga su WebP sin type y coincide con el <img> de siempre.
+   */
+  it("cada capa renderizada tiene una precarga que coincide con la pista que el navegador elegira", () => {
     const { container } = renderWithProviders(<Aura />);
     const imgs = Array.from(container.querySelectorAll("img"));
     expect(imgs).toHaveLength(AURA_LAYERS.length);
     expect(AURA_PRELOADS).toHaveLength(AURA_LAYERS.length);
 
     imgs.forEach((img, i) => {
-      expect(
-        img.getAttribute("srcset"),
-        `la capa ${i} renderiza un srcSet que ninguna precarga reproduce: el visitante claro se queda sin precarga`,
-      ).toBe(AURA_PRELOADS[i].srcSet);
+      const layer = AURA_LAYERS[i];
+      const source = img
+        .closest("picture")
+        ?.querySelector('source[type="image/avif"]');
+      if (layer.avif) {
+        expect(
+          source,
+          `la capa ${layer.part} declara avif y no monta <source>`,
+        ).not.toBeNull();
+        expect(
+          source?.getAttribute("srcset"),
+          `la capa ${layer.part} renderiza un srcSet AVIF que la precarga no reproduce: doble descarga`,
+        ).toBe(AURA_PRELOADS[i].srcSet);
+        expect(AURA_PRELOADS[i].type).toBe("image/avif");
+        expect(source?.getAttribute("sizes")).toBe(AURA_PRELOADS[i].sizes);
+      } else {
+        expect(
+          source,
+          `la capa ${layer.part} NO declara avif y monta <source>`,
+        ).toBeNull();
+        expect(
+          img.getAttribute("srcset"),
+          `la capa ${layer.part} (WebP) renderiza un srcSet que la precarga no reproduce`,
+        ).toBe(AURA_PRELOADS[i].srcSet);
+        expect(AURA_PRELOADS[i].type).toBeUndefined();
+      }
       expect(img.getAttribute("sizes")).toBe(AURA_PRELOADS[i].sizes);
     });
   });
@@ -326,6 +356,8 @@ describe("Aura: las precargas del arranque coinciden con lo que se renderiza", (
     // prioridad alta viajaria a una capa que vive dentro del marco del
     // sujeto -- mas pequena, nunca el elemento mas grande pintado.
     expect(AURA_LAYERS[0].fullBleed).toBe(true);
-    expect(AURA_PRELOADS[0].srcSet).toContain(AURA_LAYERS[0].src);
+    expect(AURA_PRELOADS[0].srcSet).toContain(
+      AURA_LAYERS[0].src.replace(".webp", ".avif"),
+    );
   });
 });

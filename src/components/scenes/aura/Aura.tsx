@@ -11,7 +11,12 @@ import {
   type ParallaxTarget,
 } from "@/hooks/useParallaxLayers";
 import { Sol } from "@/components/scenes/eye/mascots/Sol";
-import { AURA_LAYERS, AURA_ORB_DEPTH, AURA_SIZES } from "./aura.layers";
+import {
+  AURA_LAYERS,
+  AURA_ORB_DEPTH,
+  AURA_SIZES,
+  auraAvifSrcSet,
+} from "./aura.layers";
 import {
   ScAuraBase,
   ScAuraField,
@@ -135,59 +140,85 @@ export function Aura({ className }: AuraProps): ReactElement {
       <ScAuraBase data-part="base" />
       {AURA_LAYERS.map((layer, index) =>
         layer.fullBleed ? (
-          <ScAuraField
-            key={layer.part}
-            ref={layerRefs[index]}
-            data-part={layer.part}
-            src={layer.src}
-            srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1672w`}
-            sizes={AURA_SIZES}
-            alt=""
-            // Las capas son el fondo del hero: cargarlas en diferido las
-            // pondria por detras de la copia en la cola de red justo donde
-            // mas se notan. `decoding="async"` evita que la decodificacion
-            // bloquee el primer pintado del texto.
-            //
-            // `fetchPriority="high"` (auditoria de rendimiento 2026-08-08):
-            // esta es la UNICA capa a sangre sobre el socket entero, asi que
-            // es la candidata real a LCP del hero -- las otras tres (energia,
-            // manos) viven dentro del marco del sujeto, mas pequenas y nunca
-            // el elemento mas grande pintado. Antes de este cambio las cuatro
-            // llevaban `loading="eager"` sin diferenciar prioridad: el
-            // scanner de precarga las trataba a las cuatro como igual de
-            // urgentes y esta, la que de verdad importa para LCP, competia
-            // por ancho de banda con las otras tres.
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-          />
-        ) : null,
-      )}
-      <ScAuraSubject>
-        {AURA_LAYERS.map((layer, index) =>
-          layer.fullBleed ? null : (
-            <ScAuraLayer
-              key={layer.part}
+          /*
+           * <picture> con pista AVIF condicionada al campo layer.avif de la
+           * tabla (2026-08-18; la guarda de la codificacion dejo a "energy"
+           * en WebP -- ver el docblock del campo). El envoltorio no cambia
+           * layout: el <img> sigue posicionado contra su contenedor y el
+           * parallax apunta al <img> via layerRefs. El sizes viaja IDENTICO
+           * en source e img, y el srcSet AVIF es EXACTAMENTE el que precarga
+           * el script de arranque (AURA_PRELOADS): divergir = doble descarga.
+           */
+          <picture key={layer.part}>
+            {layer.avif && (
+              <source
+                type="image/avif"
+                srcSet={auraAvifSrcSet(layer)}
+                sizes={AURA_SIZES}
+              />
+            )}
+            <ScAuraField
               ref={layerRefs[index]}
               data-part={layer.part}
               src={layer.src}
               srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1672w`}
               sizes={AURA_SIZES}
               alt=""
-              // SIN `loading="eager"` (auditoria 2026-08-08): estas tres
-              // capas (energia + dos manos) pesan hasta ~300 KB combinadas a
-              // resolucion nativa (~140 KB en la pista de 1024px que sirve
-              // `srcSet` en movil) y no son la candidata a LCP -- `field`, la
-              // capa hermana de arriba, ya cubre el socket entero y es lo
-              // primero que el usuario percibe como "pintado". Forzar las
-              // tres a maxima prioridad competia por ancho de banda contra
-              // `field` justo en la ventana critica. Sin el atributo siguen
-              // siendo un `<img>` normal -- el navegador las sigue cargando
-              // enseguida porque estan en el viewport inicial, solo que sin
-              // la prioridad forzada que antes competia con el LCP real.
+              // Las capas son el fondo del hero: cargarlas en diferido las
+              // pondria por detras de la copia en la cola de red justo donde
+              // mas se notan. `decoding="async"` evita que la decodificacion
+              // bloquee el primer pintado del texto.
+              //
+              // `fetchPriority="high"` (auditoria de rendimiento 2026-08-08):
+              // esta es la UNICA capa a sangre sobre el socket entero, asi que
+              // es la candidata real a LCP del hero -- las otras tres (energia,
+              // manos) viven dentro del marco del sujeto, mas pequenas y nunca
+              // el elemento mas grande pintado. Antes de este cambio las cuatro
+              // llevaban `loading="eager"` sin diferenciar prioridad: el
+              // scanner de precarga las trataba a las cuatro como igual de
+              // urgentes y esta, la que de verdad importa para LCP, competia
+              // por ancho de banda con las otras tres.
+              loading="eager"
+              fetchPriority="high"
               decoding="async"
-              $moves={layer.depth > 0}
             />
+          </picture>
+        ) : null,
+      )}
+      <ScAuraSubject>
+        {AURA_LAYERS.map((layer, index) =>
+          layer.fullBleed ? null : (
+            /* Mismo contrato AVIF que la rama del campo, arriba. */
+            <picture key={layer.part}>
+              {layer.avif && (
+                <source
+                  type="image/avif"
+                  srcSet={auraAvifSrcSet(layer)}
+                  sizes={AURA_SIZES}
+                />
+              )}
+              <ScAuraLayer
+                ref={layerRefs[index]}
+                data-part={layer.part}
+                src={layer.src}
+                srcSet={`${layer.srcSmall} 1024w, ${layer.src} 1672w`}
+                sizes={AURA_SIZES}
+                alt=""
+                // SIN `loading="eager"` (auditoria 2026-08-08): estas tres
+                // capas (energia + dos manos) pesan hasta ~300 KB combinadas a
+                // resolucion nativa (~140 KB en la pista de 1024px que sirve
+                // `srcSet` en movil) y no son la candidata a LCP -- `field`, la
+                // capa hermana de arriba, ya cubre el socket entero y es lo
+                // primero que el usuario percibe como "pintado". Forzar las
+                // tres a maxima prioridad competia por ancho de banda contra
+                // `field` justo en la ventana critica. Sin el atributo siguen
+                // siendo un `<img>` normal -- el navegador las sigue cargando
+                // enseguida porque estan en el viewport inicial, solo que sin
+                // la prioridad forzada que antes competia con el LCP real.
+                decoding="async"
+                $moves={layer.depth > 0}
+              />
+            </picture>
           ),
         )}
         <ScOrbSlot

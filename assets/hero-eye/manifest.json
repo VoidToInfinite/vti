@@ -2,8 +2,14 @@
     "name": "cosmic-eye-layers",
     "description": "Ojo cosmico VTi separado en 6 capas apilables para parallax 2.5D. Las capas 00-04 forman una particion suave de la imagen (sus mascaras suman 1 en cada pixel): compuestas con blending aditivo sobre negro reconstruyen el original. La capa 05 (logo) se compone encima con blending normal; la pupila lleva la zona del logo rellenada por inpainting para que el logo pueda desplazarse sin dejar hueco.",
     "source": "Imagen generada con ChatGPT el 2026-07-24 (Downloads/ChatGPT Image Jul 24, 2026, 06_21_46 PM.png). Capas extraidas el 2026-07-25 con mascaras radiales/superelipticas con feathering; verificacion: RMS de recomposicion 0.007 (escala 0-1), error concentrado en el borde del logo.",
-    "canvas": { "width": 1672, "height": 941 },
-    "center": { "x": 833.8, "y": 450.9 },
+    "canvas": {
+        "width": 1672,
+        "height": 941
+    },
+    "center": {
+        "x": 833.8,
+        "y": 450.9
+    },
     "geometry": {
         "pupilToCoronaFade": [270, 350],
         "coronaToFieldFade": [400, 520],
@@ -59,5 +65,12 @@
             "blending": "normal",
             "parallaxDepth": 1.0
         }
-    ]
+    ],
+    "avif20260818": {
+        "why": "El elemento LCP del tema oscuro estrangulado es una capa de este ojo (03-iris-glow); su transferencia definia el LCP (~5,2 s medianas de panel y A/B).",
+        "provenance": "Los maestros PNG no estan en la maquina: el AVIF se transcodifico desde el WebP desplegado, que es la referencia de calidad de estas metricas. Transcodificacion lossy sobre lossy, declarada. Misma palanca y mismo metodo que la escena de Story (2026-08-18); el detonante fue el A/B de aquella: liberar 535 KB de Story no movio el LCP oscuro -- el cuello era ESTE arte.",
+        "encoder": "Pillow 12.3.0 AVIF quality=75 speed=2. El barrido q50-q75 exigio q75: a q65 el parpado caia a 44,55 dB premultiplicado, bajo el umbral de 45.",
+        "results": "Las 10 pistas ganan (guarda >=5% + >=45 dB, ninguna salto): 619.638 -> 321.306 B (-48,1%). PSNR minimo 45,69 dB premultiplicado (01-eyelid-outline-1024).",
+        "delivery": "picture + source type=image/avif por capa con el WebP intacto de respaldo; EYE_PRELOADS precarga la pista AVIF con type (un navegador sin AVIF ignora la precarga tipada y cae al WebP del img sin precarga -- compromiso declarado)."
+    }
 }

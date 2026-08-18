@@ -120,6 +120,18 @@ export interface AuraLayer {
    * natural dentro del marco (spec §5.2).
    */
   readonly fullBleed: boolean;
+  /**
+   * true si la capa tiene pista AVIF publicada (2026-08-18, extension de la
+   * palanca del dueno al arte del hero). NO es una convencion: es el
+   * RESULTADO de la guarda de la codificacion (ambas pistas >=5% de ahorro
+   * y >=45 dB de PSNR contra el WebP de referencia). La guarda salto en
+   * "energy" -- su pista de 1024 solo ahorraba un 4,7% (la capa es ruido
+   * denso, el caso que AVIF menos rentabiliza) -- asi que esa capa se queda
+   * en WebP y este campo lo declara como dato, con candado en
+   * aura.layers.test.ts de que cada capa avif:true tiene sus ficheros
+   * reales en public/.
+   */
+  readonly avif: boolean;
 }
 
 /**
@@ -151,6 +163,7 @@ export const AURA_LAYERS: readonly AuraLayer[] = [
     srcSmall: "/hero/aura/00-field-1024.webp",
     depth: 0,
     fullBleed: true,
+    avif: true,
   },
   {
     part: "energy",
@@ -163,6 +176,7 @@ export const AURA_LAYERS: readonly AuraLayer[] = [
     // el campo (0, inmóvil) y las manos (spec §15.4).
     depth: 0.15,
     fullBleed: false,
+    avif: false,
   },
   {
     part: "handLeft",
@@ -173,6 +187,7 @@ export const AURA_LAYERS: readonly AuraLayer[] = [
     // al mover el cursor (spec §5.2).
     depth: 0.3,
     fullBleed: false,
+    avif: true,
   },
   {
     part: "handRight",
@@ -180,6 +195,7 @@ export const AURA_LAYERS: readonly AuraLayer[] = [
     srcSmall: "/hero/aura/03-hand-right-1024.webp",
     depth: 0.3,
     fullBleed: false,
+    avif: true,
   },
 ] as const;
 
@@ -221,10 +237,30 @@ export const AURA_SIZES = "(max-width: 700px) 60vw, 100vw";
 export const AURA_PRELOADS: readonly {
   readonly srcSet: string;
   readonly sizes: string;
-}[] = AURA_LAYERS.map((layer) => ({
-  srcSet: `${layer.srcSmall} 1024w, ${layer.src} 1672w`,
-  sizes: AURA_SIZES,
-}));
+  readonly type?: string;
+}[] = AURA_LAYERS.map((layer) =>
+  layer.avif
+    ? { srcSet: auraAvifSrcSet(layer), sizes: AURA_SIZES, type: "image/avif" }
+    : {
+        srcSet: `${layer.srcSmall} 1024w, ${layer.src} 1672w`,
+        sizes: AURA_SIZES,
+      },
+);
+
+/**
+ * srcSet AVIF de una capa del aura (solo las que declaran avif: true en la
+ * tabla -- ver ese campo para la guarda que decidio cuales). Cifras de la
+ * codificacion (Pillow, q55 speed 2): field/handLeft/handRight ganan un
+ * 33-54% con PSNR minimo 46,79 dB contra el WebP de referencia (maestros no
+ * disponibles: transcodificacion declarada, misma procedencia que el ojo y
+ * que Story). La precarga de esas capas pasa a la pista AVIF con
+ * type="image/avif" -- tiene que pedir EXACTAMENTE lo que el <picture>
+ * elegira o la capa se descarga dos veces; "energy" conserva su precarga
+ * WebP sin type. Detalle en assets/hero-aura/manifest.json.
+ */
+export function auraAvifSrcSet(layer: AuraLayer): string {
+  return `${layer.srcSmall.replace(/\.webp$/, ".avif")} 1024w, ${layer.src.replace(/\.webp$/, ".avif")} 1672w`;
+}
 
 /** Relación de aspecto del lienzo original de Aura (1672 × 941), igual que
  *  la del ojo: es el mismo tamaño de lienzo de origen. */

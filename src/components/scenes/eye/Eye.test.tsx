@@ -624,18 +624,32 @@ describe("Eye bajo @media (scripting: none) (fallback sin JavaScript)", () => {
  * restaurado, vuelve a verde.
  */
 describe("Eye: las precargas del arranque coinciden con lo que se renderiza", () => {
-  it("cada capa renderizada tiene una precarga con su srcSet y su sizes exactos", () => {
+  /*
+   * Desde el 2026-08-18 la pista que el navegador ELIGE es la AVIF del
+   * <source>, asi que la precarga (EYE_PRELOADS, ahora AVIF con type) tiene
+   * que coincidir caracter a caracter con ESE srcSet -- no con el del <img>,
+   * que queda como respaldo WebP para navegadores sin AVIF. Divergir
+   * cualquiera de las dos ramas = la imagen se descarga dos veces.
+   */
+  it("cada capa renderizada tiene una precarga AVIF con el srcSet y sizes exactos de su <source>, y el <img> conserva el respaldo WebP", () => {
     const { container } = renderWithProviders(<Eye />);
     const imgs = Array.from(container.querySelectorAll("img"));
     expect(imgs).toHaveLength(EYE_LAYERS.length);
     expect(EYE_PRELOADS).toHaveLength(EYE_LAYERS.length);
 
     imgs.forEach((img, i) => {
+      const source = img
+        .closest("picture")
+        ?.querySelector('source[type="image/avif"]');
+      expect(source, `la capa ${i} no declara pista AVIF`).not.toBeNull();
       expect(
-        img.getAttribute("srcset"),
-        `la capa ${i} renderiza un srcSet que ninguna precarga reproduce: el navegador descargaría la imagen dos veces`,
+        source?.getAttribute("srcset"),
+        `la capa ${i} renderiza un srcSet AVIF que la precarga no reproduce: el navegador descargaria la imagen dos veces`,
       ).toBe(EYE_PRELOADS[i].srcSet);
+      expect(EYE_PRELOADS[i].type).toBe("image/avif");
+      expect(source?.getAttribute("sizes")).toBe(EYE_PRELOADS[i].sizes);
       expect(img.getAttribute("sizes")).toBe(EYE_PRELOADS[i].sizes);
+      expect(img.getAttribute("srcset")).toContain(".webp");
     });
   });
 });

@@ -5,7 +5,10 @@
         "package": "capas_pastel_cosmic.zip",
         "receivedOn": "2026-07-27",
         "originalImage": "C:/Users/Daniel/Downloads/ChatGPT Image Jul 26, 2026, 06_41_34 PM Pastel Cosmic landing Page 2.png",
-        "originalSize": { "width": 1672, "height": 941 },
+        "originalSize": {
+            "width": 1672,
+            "height": 941
+        },
         "extractedOn": "2026-07-27",
         "extractionMethod": {
             "summary": "Alfa por distancia euclidea al color de fondo + inpainting del fondo + descomposicion de color por des-premultiplicado. Citado de LEEME.md incluido en el paquete de origen.",
@@ -47,22 +50,41 @@
         "verificationOfWebpConversion": {
             "note": "Medido en esta tarea (2026-07-27), recomponiendo con sharp composite() (source-over) el stack completo de 6 capas -las 4 WebP publicadas con sus parametros finales mas 04_orbe.png y 05_destello_central.png sin publicar, ambos PNG- en el orden real de composicion (field, energy, hand-left, hand-right, orbe, destello), comparado contra verificacion_recompuesta.png con verify vía sharp raw buffers.",
             "nativeTrack": {
-                "resolutionTested": { "width": 1672, "height": 941 },
+                "resolutionTested": {
+                    "width": 1672,
+                    "height": 941
+                },
                 "meanAbsDiff255": {
                     "all": 0.9025,
                     "R": 1.0057,
                     "G": 0.8805,
                     "B": 0.8213
                 },
-                "p99AbsDiff255": { "all": 4, "R": 4, "G": 4, "B": 3 },
-                "maxAbsDiff255": { "all": 19, "R": 14, "G": 19, "B": 16 },
+                "p99AbsDiff255": {
+                    "all": 4,
+                    "R": 4,
+                    "G": 4,
+                    "B": 3
+                },
+                "maxAbsDiff255": {
+                    "all": 19,
+                    "R": 14,
+                    "G": 19,
+                    "B": 16
+                },
                 "worstBlock32x32MeanAbsDiff255": {
                     "value": 2.054,
-                    "locationPx": { "x": 1120, "y": 704 }
+                    "locationPx": {
+                        "x": 1120,
+                        "y": 704
+                    }
                 }
             },
             "responsiveTrack": {
-                "resolutionTested": { "width": 1024, "height": 576 },
+                "resolutionTested": {
+                    "width": 1024,
+                    "height": 576
+                },
                 "note": "Referencia = verificacion_recompuesta.png reducida a 1024 con kernel mitchell (mismo kernel que la pista responsive), para no penalizar la pista por el propio resize de la referencia.",
                 "meanAbsDiff255": {
                     "all": 1.0472,
@@ -70,11 +92,24 @@
                     "G": 0.9711,
                     "B": 1.0625
                 },
-                "p99AbsDiff255": { "all": 4, "R": 4, "G": 4, "B": 4 },
-                "maxAbsDiff255": { "all": 14, "R": 14, "G": 13, "B": 14 },
+                "p99AbsDiff255": {
+                    "all": 4,
+                    "R": 4,
+                    "G": 4,
+                    "B": 4
+                },
+                "maxAbsDiff255": {
+                    "all": 14,
+                    "R": 14,
+                    "G": 13,
+                    "B": 14
+                },
                 "worstBlock32x32MeanAbsDiff255": {
                     "value": 2.078,
-                    "locationPx": { "x": 288, "y": 448 }
+                    "locationPx": {
+                        "x": 288,
+                        "y": 448
+                    }
                 }
             },
             "acceptanceCriteria": {
@@ -84,7 +119,10 @@
             "result": "PASS con margen en ambas pistas (nativa: mean 0.90 vs 1.5, p99 4 vs 6; responsive: mean 1.05 vs 1.5, p99 4 vs 6)."
         }
     },
-    "canvas": { "width": 1672, "height": 941 },
+    "canvas": {
+        "width": 1672,
+        "height": 941
+    },
     "orb": {
         "note": "Centroide y perfil radial medidos en esta sesion sobre 04_orbe.png (04-orb.png), a partir del canal alfa del PNG nativo 1672x941.",
         "centroid": {
@@ -95,7 +133,10 @@
         },
         "alphaByRadius": {
             "description": "Perfil de alfa medio del orbe (anillo + halo) en funcion del radio, medido desde el centroide.",
-            "peak": { "radiusPx": 150, "approxAlpha255": 195 },
+            "peak": {
+                "radiusPx": 150,
+                "approxAlpha255": 195
+            },
             "halfPeakRadiusInterpolatedPx": 178.1,
             "halfPeakRadiusPctOfWidth": 10.65,
             "coreRadiusPx": 80,
@@ -500,5 +541,12 @@
         "La profundidad de parallax del orbe/destello (AURA_ORB_DEPTH = 0.80) se documenta aparte, junto al componente Sol, y NO figura en la tabla layers[].parallaxDepth de este manifest porque esas dos capas no se publican como imagen.",
         "Orden de composicion (arte y DOM, esta generacion): field, energy, hand-left, hand-right, orbe, destello -en el DOM, Sol sustituye a orbe+destello y se monta por encima de las 4 capas WebP-. Este orden CAMBIO respecto a la generacion 2026-07-26 (alli: field, hand-left, hand-right, orbe, energy -la energia iba ULTIMA-); ver compositing.orderChangedNote.",
         "Restricciones de esta tarea: no se toco ningun fichero .ts/.tsx del repo (aura.layers.ts/aura.parts.tsx/tests los gestiona otra tarea en paralelo); no se ejecuto pnpm install ni se modifico package.json; no se hizo git commit."
-    ]
+    ],
+    "avif20260818": {
+        "why": "Extension de la palanca AVIF al arte claro del hero, junto con el ojo.",
+        "provenance": "Los maestros PNG no estan en la maquina: el AVIF se transcodifico desde el WebP desplegado, que es la referencia de calidad de estas metricas. Transcodificacion lossy sobre lossy, declarada. Misma palanca y mismo metodo que la escena de Story (2026-08-18); el detonante fue el A/B de aquella: liberar 535 KB de Story no movio el LCP oscuro -- el cuello era ESTE arte.",
+        "encoder": "Pillow 12.3.0 AVIF quality=55 speed=2 (el aura es pastel suave: q55 ya da >=46,79 dB).",
+        "results": "3 de 4 capas ganan: field -33/-54%, hand-left -14/-37%, hand-right -32/-35%, PSNR minimo 46,79 dB. LA GUARDA SALTO EN 01-energy: su pista de 1024 solo ahorraba un 4,7% (<5%) -- la capa es ruido denso, el caso que AVIF menos rentabiliza -- y se queda en WebP. La exclusion es DATO (campo avif de AURA_LAYERS), no convencion.",
+        "delivery": "picture + source condicionado al campo avif; AURA_PRELOADS mixto: AVIF tipado en las tres convertidas, WebP sin type en energy."
+    }
 }

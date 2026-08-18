@@ -4,6 +4,8 @@ import {
   EYE_MASCOT_DEPTH,
   EYE_STAGGER,
   EYE_SURFACE,
+  EYE_PRELOADS,
+  eyeAvifSrcSet,
 } from "./eye.layers";
 import { parseOklch } from "@/theme/tokens/contrast";
 
@@ -67,5 +69,39 @@ describe("eye.layers", () => {
     // profundidad ya declarado ahi. Si alguien reordenara EYE_LAYERS sin
     // tocar este array (o viceversa), este test lo detecta.
     expect(EYE_STAGGER.slice(1)).toEqual(EYE_LAYERS.map((layer) => layer.part));
+  });
+});
+
+/*
+ * Candado de la convencion AVIF del ojo (2026-08-18), gemelo del de la
+ * escena de Story: las rutas .avif se derivan por extension, y el riesgo de
+ * la convencion -- un fichero derivado inexistente al que el <source> y la
+ * PRECARGA del script de arranque apuntarian (404 silencioso con
+ * fetchpriority high) -- se cierra comprobando con node:fs que cada pista
+ * existe en public/. Validado con bug inyectado real: renombrar un .avif
+ * pone este test en rojo.
+ */
+describe("eye AVIF", () => {
+  it("cada pista AVIF derivada existe en public/ y no esta vacia", async () => {
+    const { statSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const publicDir = join(here, "..", "..", "..", "..", "public");
+
+    for (const layer of EYE_LAYERS) {
+      for (const track of [layer.src, layer.srcSmall]) {
+        const avif = track.replace(/\.webp$/, ".avif");
+        const stat = statSync(join(publicDir, avif.replace(/^\//, "")));
+        expect(stat.size, `${avif} no existe o esta vacia`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("EYE_PRELOADS precarga la pista AVIF con su type: es la que el <picture> elegira", () => {
+    EYE_PRELOADS.forEach((preload, i) => {
+      expect(preload.type).toBe("image/avif");
+      expect(preload.srcSet).toBe(eyeAvifSrcSet(EYE_LAYERS[i]));
+    });
   });
 });

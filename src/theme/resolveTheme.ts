@@ -99,6 +99,16 @@ export function readResolvedTheme(): ThemeName | null {
 export interface HeroPreload {
   readonly srcSet: string;
   readonly sizes: string;
+  /**
+   * Tipo MIME de la pista precargada (2026-08-18: "image/avif" en las capas
+   * convertidas). Con el, el navegador SOLO ejecuta la precarga si soporta
+   * el formato — un navegador sin AVIF la ignora y no descarga de más; el
+   * coste declarado es que ese navegador pierde la precarga y cae al WebP
+   * del `<img>` a la altura del parse, el camino pre-Ola A.1. Sin `type`
+   * (la capa `energy` del aura, que sigue en WebP), la precarga corre en
+   * todos los navegadores, como siempre.
+   */
+  readonly type?: string;
 }
 
 /**
@@ -203,6 +213,11 @@ export function buildThemeBootstrapScript(
     `l.rel="preload";l.as="image";` +
     `l.setAttribute("imagesrcset",p[i].srcSet);` +
     `l.setAttribute("imagesizes",p[i].sizes);` +
+    // El type viaja cuando la entrada lo declara (pistas AVIF): con el, un
+    // navegador sin el formato ignora la precarga en vez de descargar de mas.
+    `if(p[i].type){l.setAttribute("type",p[i].type);}` +
+    // El type viaja cuando la entrada lo declara (pistas AVIF): con el, un
+    // navegador sin el formato ignora la precarga en vez de descargar de mas.
     `if(i===0){l.setAttribute("fetchpriority","high");}` +
     `document.head.appendChild(l);` +
     // DOS llaves, no tres: la del cuerpo del `for` y la del `try` de esta
