@@ -176,6 +176,54 @@ export interface HeroPreload {
  * forma de que exista. El `<head>` de un visitante claro sigue arrancando
  * exactamente las mismas cuatro peticiones que antes; lo que cambia es quién
  * las declara.
+ *
+ * ### Tercera pasada (2026-08-18, crítica #11): solo donde vive el hero
+ *
+ * `app/layout.tsx` es el layout RAÍZ, así que este script se emitía —y con él
+ * sus precargas— en TODAS las rutas del sitio. El hero, en cambio, solo existe
+ * en la home. Medido sobre el HTML servido: en `/privacidad`, **253.833 B** de
+ * arte que no pinta nunca (el 41 % de los bytes de esa página) y, en la 404,
+ * cuatro avisos de Chrome "was preloaded using link preload but not used
+ * within a few seconds".
+ *
+ * POR QUÉ LA GUARDA VIVE DENTRO DEL SCRIPT y no en quien lo construye: bajo
+ * App Router el layout raíz no recibe la ruta (no hay `params` que la
+ * identifiquen; se renderiza igual para la home, para las dos legales y para
+ * la 404) y bajo `output: "export"` hay UN solo layout compilado para todas.
+ * Quien sí conoce la ruta es el NAVEGADOR, en tiempo de ejecución: por eso la
+ * condición es `location.pathname` y no una rama de build.
+ *
+ * NORMALIZACIÓN, deliberadamente mínima y explícita: cuenta como home `"/"` y
+ * `"/index.html"`, nada más. Con `trailingSlash: false` (`next.config.ts`) el
+ * export escribe la home en `out/index.html` y las legales como
+ * `out/privacidad.html` — es decir, las rutas servidas son `/`, `/privacidad`
+ * y `/aviso-legal`, sin barra final. Netlify canonicaliza `/index.html` → `/`,
+ * pero `npx serve out` (`pnpm start`) y cualquier host de ficheros sin esa
+ * canonicalización sirven la home también por su nombre de fichero: aceptar
+ * las dos formas cuesta ~20 B y evita que la home pierda su precarga en un
+ * entorno de verificación. NO se normaliza con expresión regular a propósito:
+ * dentro de esta plantilla de texto un `\/` lo consume el propio literal de
+ * TypeScript y el regex llegaría al navegador convertido en un comentario —
+ * exactamente la familia de fallo silencioso que documenta `task/lessons.md`
+ * (2026-08-17). Un `basePath` haría falsa esta comparación; hoy no hay ninguno
+ * declarado en `next.config.ts`, y si algún día lo hay, este es el punto a
+ * tocar.
+ *
+ * LO QUE NO CAMBIA: resolver el tema (`data-theme`) y poner al día
+ * `theme-color` siguen ocurriendo en TODAS las rutas — el anti-flash no es de
+ * la home, es del sitio. En la home, el orden de emisión, el
+ * `fetchpriority="high"` de la primera y el `type` de las pistas AVIF quedan
+ * idénticos.
+ *
+ * COSTE DECLARADO: una navegación de cliente (`Link`) desde una legal hacia
+ * `/` no vuelve a ejecutar este script, así que esa visita pide el arte del
+ * hero cuando `Aura`/`Eye` montan su `<picture>`, sin precarga previa — el
+ * mismo camino que tenía todo el sitio antes de la Ola A.1, y solo para una
+ * navegación que ya ocurre con la página en pie. Y el registro serializado
+ * (1.338 B medidos en el HTML construido, que además viaja dos veces: en el
+ * `<script>` del `<head>` y en la carga de datos de React) sigue presente en
+ * todas las rutas: el texto del script es el mismo para todas y no hay build
+ * por ruta que pueda podarlo.
  */
 export function buildThemeBootstrapScript(
   heroPreloads: Readonly<
@@ -207,7 +255,18 @@ export function buildThemeBootstrapScript(
     // quedar a merced de que `createElement`/`appendChild` fallen en un
     // navegador raro. El `||[]` cubre el caso de un tema sin entrada en el
     // registro: no inyecta nada, en vez de reventar sobre `undefined.length`.
-    `try{var pl=${preloadsLiteral};var p=pl[theme]||[];` +
+    //
+    // La guarda de ruta (`home`) es lo que impide que las legales y la 404
+    // paguen 253.833 B de arte que no pintan nunca: el layout raiz emite este
+    // script en todas las rutas, pero el hero solo existe en la home (ver la
+    // seccion "Tercera pasada" del docblock, con la normalizacion de pathname
+    // y su porque). Se aplica como TERNARIO, no como bloque `if`, a proposito:
+    // asi el numero de llaves de cierre de este bloque NO cambia -- justo la
+    // familia de fallo silencioso que costo la leccion del 2026-08-17. Fuera
+    // de la home el bucle recorre un array vacio y no inyecta nada.
+    `try{var pn=window.location.pathname;` +
+    `var home=(pn==="/"||pn==="/index.html");` +
+    `var pl=${preloadsLiteral};var p=home?(pl[theme]||[]):[];` +
     `for(var i=0;i<p.length;i++){` +
     `var l=document.createElement("link");` +
     `l.rel="preload";l.as="image";` +
@@ -216,8 +275,8 @@ export function buildThemeBootstrapScript(
     // El type viaja cuando la entrada lo declara (pistas AVIF): con el, un
     // navegador sin el formato ignora la precarga en vez de descargar de mas.
     `if(p[i].type){l.setAttribute("type",p[i].type);}` +
-    // El type viaja cuando la entrada lo declara (pistas AVIF): con el, un
-    // navegador sin el formato ignora la precarga en vez de descargar de mas.
+    // Solo la PRIMERA lleva prioridad alta: es la candidata a LCP y el resto
+    // no debe competir con ella por ancho de banda.
     `if(i===0){l.setAttribute("fetchpriority","high");}` +
     `document.head.appendChild(l);` +
     // DOS llaves, no tres: la del cuerpo del `for` y la del `try` de esta
@@ -227,7 +286,9 @@ export function buildThemeBootstrapScript(
     // ("SyntaxError: Missing catch or finally after try"). Lo unico que
     // delata un error asi es EJECUTAR el string, que es lo que hace
     // `resolveTheme.test.ts`: ningun typecheck ni lint mira dentro de una
-    // plantilla de texto.
+    // plantilla de texto. La guarda de ruta del 2026-08-18 NO anadio una
+    // tercera: se escribio como ternario precisamente para no volver a mover
+    // esta cuenta.
     `}}catch(e){}` +
     `}catch(e){}})();`
   );

@@ -106,6 +106,11 @@ describe("buildThemeBootstrapScript: precargas del tema resuelto y solo de ese",
       .querySelectorAll('link[rel="preload"][imagesrcset]')
       .forEach((node) => node.remove());
     try {
+      // La ruta es load-bearing desde el 2026-08-18 (las precargas solo se
+      // emiten en la home), asi que se fija explicitamente en vez de heredar
+      // la URL por defecto de jsdom: un cambio de `environmentOptions.jsdom
+      // .url` no puede convertir estos casos en un fallo desconcertante.
+      window.history.replaceState(null, "", "/");
       window.localStorage.setItem(STORAGE_KEYS.theme, stored);
       new Function(buildThemeBootstrapScript({ light: LIGHT, dark: DARK }))();
       return Array.from(
@@ -152,6 +157,7 @@ describe("buildThemeBootstrapScript: precargas del tema resuelto y solo de ese",
       .querySelectorAll('link[rel="preload"][imagesrcset]')
       .forEach((node) => node.remove());
     try {
+      window.history.replaceState(null, "", "/");
       window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
       expect(() =>
         new Function(buildThemeBootstrapScript({ light: LIGHT }))(),
@@ -189,6 +195,7 @@ describe("buildThemeBootstrapScript: el type de la precarga viaja cuando la entr
       .querySelectorAll('link[rel="preload"][imagesrcset]')
       .forEach((node) => node.remove());
     try {
+      window.history.replaceState(null, "", "/");
       window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
       new Function(
         buildThemeBootstrapScript({
@@ -217,5 +224,97 @@ describe("buildThemeBootstrapScript: el type de la precarga viaja cuando la entr
         .querySelectorAll('link[rel="preload"][imagesrcset]')
         .forEach((node) => node.remove());
     }
+  });
+});
+
+/*
+ * La ruta acota las precargas (2026-08-18, critica #11). `app/layout.tsx` es
+ * el layout RAIZ: este script se emite en TODAS las rutas, pero el hero solo
+ * existe en la home -- en `/privacidad` se medieron 253.833 B de arte que no
+ * pinta nunca (41 % de la pagina) y en la 404, cuatro avisos de Chrome
+ * "preloaded but not used".
+ *
+ * Estos casos EJECUTAN el script real en jsdom (no inspeccionan su texto) y
+ * conducen `location.pathname` con `history.replaceState`, que es lo que el
+ * script lee. Lo que se afirma es el desenlace en el DOM: que fuera de la home
+ * no aparece NI UN `<link rel="preload">` del hero, y que aun asi `data-theme`
+ * queda puesto -- el anti-flash es del sitio entero, no de la home.
+ *
+ * Validado con bug inyectado REAL: sustituyendo el ternario de la guarda por
+ * el `var p=pl[theme]||[];` anterior, los dos casos de ruta no-home se pusieron
+ * en rojo (2 fallos); restaurada la linea, verde otra vez.
+ */
+describe("buildThemeBootstrapScript: las precargas del hero solo se emiten donde hay hero", () => {
+  const HERO = [
+    { srcSet: "/hero-a.avif 1x", sizes: "100vw", type: "image/avif" },
+    { srcSet: "/hero-b.webp 1x", sizes: "100vw" },
+  ];
+
+  function runAtPath(pathname: string): {
+    links: HTMLLinkElement[];
+    resolvedTheme: string | null;
+  } {
+    const originalStored = window.localStorage.getItem(STORAGE_KEYS.theme);
+    const originalPath = window.location.pathname;
+    document.head
+      .querySelectorAll('link[rel="preload"][imagesrcset]')
+      .forEach((node) => node.remove());
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+      window.history.replaceState(null, "", pathname);
+      new Function(buildThemeBootstrapScript({ dark: HERO }))();
+      return {
+        links: Array.from(
+          document.head.querySelectorAll<HTMLLinkElement>(
+            'link[rel="preload"][imagesrcset]',
+          ),
+        ),
+        // Se captura ANTES del `finally` que lo limpia: el atributo es la
+        // mitad del contrato de este bloque y tiene que poder afirmarse desde
+        // el caso de prueba.
+        resolvedTheme: document.documentElement.getAttribute(THEME_ATTRIBUTE),
+      };
+    } finally {
+      window.history.replaceState(null, "", originalPath);
+      if (originalStored === null) {
+        window.localStorage.removeItem(STORAGE_KEYS.theme);
+      } else {
+        window.localStorage.setItem(STORAGE_KEYS.theme, originalStored);
+      }
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    }
+  }
+
+  it("en la home ('/') emite las precargas del tema resuelto, en orden y con el type intacto", () => {
+    const { links, resolvedTheme } = runAtPath("/");
+    expect(links.map((l) => l.getAttribute("imagesrcset"))).toEqual(
+      HERO.map((p) => p.srcSet),
+    );
+    expect(links[0].getAttribute("type")).toBe("image/avif");
+    expect(links[1].getAttribute("type")).toBeNull();
+    expect(links[0].getAttribute("fetchpriority")).toBe("high");
+    expect(resolvedTheme).toBe("dark");
+  });
+
+  it("en una ruta legal ('/privacidad') no emite NI UNA precarga -- pero deja data-theme puesto igualmente", () => {
+    const { links, resolvedTheme } = runAtPath("/privacidad");
+    expect(links).toHaveLength(0);
+    expect(resolvedTheme).toBe("dark");
+  });
+
+  it("en una ruta inexistente (la 404, servida en cualquier path) tampoco -- eran 4 avisos de consola de Chrome", () => {
+    const { links, resolvedTheme } = runAtPath("/ruta-que-no-existe");
+    expect(links).toHaveLength(0);
+    expect(resolvedTheme).toBe("dark");
+  });
+
+  it("'/index.html' cuenta como home: es la forma que sirve un host que no canonicaliza el nombre de fichero", () => {
+    // `npx serve out` (`pnpm start`) es el entorno de verificacion del repo, y
+    // no todo host reescribe /index.html -> /. Sin esta segunda forma, la home
+    // perderia su precarga justo donde se la mide.
+    const { links } = runAtPath("/index.html");
+    expect(links.map((l) => l.getAttribute("imagesrcset"))).toEqual(
+      HERO.map((p) => p.srcSet),
+    );
   });
 });

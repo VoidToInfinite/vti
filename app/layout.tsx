@@ -289,6 +289,20 @@ export default function RootLayout({
          *     (descartado, ver arriba) o bien un rediseño de "doble render
          *     + reveal por CSS" que excede el alcance de esta tarea —
          *     candidato a una tarea futura, no un hueco silencioso.
+         *
+         * LAS PRECARGAS QUE VIAJAN EN ESTE SCRIPT SE ACOTAN A LA HOME DESDE
+         * DENTRO DEL PROPIO SCRIPT (2026-08-18, crítica #11), no desde aquí:
+         * este es el layout RAÍZ y no sabe qué ruta está renderizando (no
+         * recibe `params` que la identifiquen y, bajo `output: "export"`, hay
+         * un único layout compilado para la home, las dos legales y la 404).
+         * Quien conoce la ruta es el navegador, así que la guarda es
+         * `location.pathname` en tiempo de ejecución. Medido antes del
+         * arreglo: 253.833 B de arte del hero descargados en `/privacidad`
+         * —el 41 % de esa página— sin que nada de eso llegue a pintarse.
+         * Las dos constantes de abajo se siguen pasando enteras: es el
+         * script, no esta llamada, quien decide si emitirlas. El porqué
+         * completo y la normalización de pathname viven en el docblock de
+         * `buildThemeBootstrapScript`.
          */}
         <script
           id="theme-bootstrap"
