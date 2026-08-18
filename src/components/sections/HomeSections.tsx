@@ -1,4 +1,7 @@
+"use client";
 import type { ReactElement } from "react";
+import { useFragmentLanding } from "@/hooks/useFragmentLanding";
+import { useTheme } from "@/theme/ThemeProvider";
 import { Story } from "./Story/Story";
 import { Journey } from "./Journey/Journey";
 import { Features } from "./Features/Features";
@@ -14,8 +17,27 @@ import { Contact } from "./Contact/Contact";
  * 4 se montan siempre, y cada una decide su propia rama claro/oscuro
  * internamente contra `useTheme()` (mismo patron que ya usaban Story.tsx/
  * Journey.tsx/Features.tsx/Contact.tsx antes de esta simplificacion).
+ *
+ * `"use client"` desde el 2026-08-18 (crítica externa #11, hallazgo A). Este
+ * componente era el único de la cadena sin la directiva -- las cinco secciones
+ * que monta ya la traen --, así que pasar a cliente no mueve ni un byte al
+ * bundle que no estuviera ya ahí; lo que habilita es leer el tema y consumir
+ * `useFragmentLanding` (abajo), que necesita un hook.
+ *
+ * POR QUÉ AQUÍ Y NO EN LA PÁGINA: este componente es el que decide qué rama de
+ * tema se monta, y la corrección del aterrizaje en un fragmento existe
+ * EXACTAMENTE porque esas dos ramas no miden lo mismo de alto (`DESIGN.md` §4).
+ * Las páginas legales no lo necesitan: sin decks no hay divergencia.
  */
 export function HomeSections(): ReactElement {
+  /* El `themeName` no se usa para pintar nada aquí -- las secciones resuelven
+     su propia rama --, sino como SEÑAL de que la rama efectiva ya montó: es la
+     dependencia que hace que la corrección del fragmento se arme contra la
+     geometría definitiva y no contra la del HTML horneado. Ver el docblock de
+     `useFragmentLanding.ts`. */
+  const { themeName } = useTheme();
+  useFragmentLanding(themeName);
+
   return (
     <>
       <Story />

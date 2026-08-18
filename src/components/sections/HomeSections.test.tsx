@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
+import { act, renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
+import { FRAGMENT_LANDING_SETTLE_MS } from "@/hooks/useFragmentLanding";
 import { HomeSections } from "./HomeSections";
 
 /*
@@ -44,6 +45,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   window.localStorage.clear();
+  window.location.hash = "";
 });
 
 describe("HomeSections", () => {
@@ -291,5 +293,49 @@ describe("HomeSections", () => {
         `01 · ${esHome.Home.journey.steps.discover.label}`,
       );
     });
+  });
+
+  /*
+   * CANDADO DE CABLEADO DEL HALLAZGO A (crítica externa #11): este componente
+   * es el que decide qué rama de tema se monta, así que es el que tiene que
+   * consumir `useFragmentLanding`. El mecanismo (cuándo, cuántas veces, las
+   * guardas) se prueba entero en `src/hooks/useFragmentLanding.test.ts`; lo
+   * único que este test protege es que el hook siga ENCHUFADO aquí -- si
+   * alguien lo retira, la navegación con fragmento vuelve a aterrizar a miles
+   * de píxeles del destino en tema oscuro y ningún test del hook se enteraría.
+   *
+   * Se ejercita por el TOPE y no por los frames: `vi.useFakeTimers` con solo
+   * `setTimeout`/`clearTimeout` falseados deja la cola de `requestAnimationFrame`
+   * de jsdom sin avanzar en un test síncrono, que es exactamente el camino de
+   * "pestaña sin frames" que el hook cubre con su temporizador de seguridad.
+   *
+   * jsdom no maqueta ni implementa la navegación por fragmento, así que aquí
+   * NO se puede afirmar dónde aterriza el lector -- solo a quién se le pide el
+   * desplazamiento y con qué opciones. La comprobación de píxeles es en
+   * navegador real (regla 44).
+   */
+  it("crítica #11: consume useFragmentLanding, así que una carga con fragmento reposiciona su destino", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      window.location.hash = "#contact";
+      const { container } = renderWithProviders(<HomeSections />);
+
+      const destino = container.querySelector<HTMLElement>("#contact");
+      expect(destino, "no se encontró la sección de contacto").not.toBeNull();
+      const scrollIntoView = vi.fn();
+      destino!.scrollIntoView = scrollIntoView;
+
+      act(() => {
+        vi.advanceTimersByTime(FRAGMENT_LANDING_SETTLE_MS);
+      });
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "instant",
+        block: "start",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
