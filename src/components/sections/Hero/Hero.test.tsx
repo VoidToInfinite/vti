@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
+  fireEvent,
   renderWithProviders,
   screen,
   type RenderResult,
@@ -382,5 +383,89 @@ describe("Hero", () => {
     expect(enlaces).toHaveLength(1);
     expect(enlaces[0]).toHaveAttribute("href", "#story");
     expect(enlaces[0]).toHaveTextContent(esHome.Home.cta.story);
+  });
+
+  /*
+   * CRITICA EXTERNA #11, punto B2. La ola de la #10 cableo el foco de las
+   * anclas en las TRES superficies que consumen `NAV_GROUPS` (`Navbar`,
+   * `NavSheet`, `Footer`) -- ver `navAnchorFocus.ts` --, pero el CTA del hero
+   * quedo fuera: apunta al MISMO `#story` y su enlace no sale de ese modelo,
+   * asi que tras el clic `document.activeElement` seguia siendo
+   * `document.body`. Quien navega por teclado perdia la referencia: la
+   * siguiente tabulacion continuaba desde el enlace de origen, no desde
+   * Story.
+   *
+   * El destino se monta aqui con la forma EXACTA que le da la seccion real
+   * (`<section id="story">`, SIN `tabindex`: ver `Story.tsx`) para que el
+   * candado observe las DOS mitades del arreglo -- que el destino, que no era
+   * focalizable, lo pasa a ser, y que el foco acaba ahi. Y esa es tambien la
+   * razon de que un test en verde signifique algo: jsdom NO implementa la
+   * navegacion por fragmento, asi que no hay ningun paso del "navegador" que
+   * pueda mover el foco por su cuenta -- si acaba en la seccion, lo movio
+   * este componente.
+   */
+  describe("foco en el destino al activar el CTA (critica externa #11, punto B2)", () => {
+    /** Monta el destino real de `#story` y lo retira pase lo que pase. */
+    function conDestinoStory(
+      run: (destino: HTMLElement) => void,
+      tabindexPropio?: string,
+    ): void {
+      const destino = document.createElement("section");
+      destino.id = "story";
+      if (tabindexPropio !== undefined) {
+        destino.setAttribute("tabindex", tabindexPropio);
+      }
+      document.body.appendChild(destino);
+      try {
+        run(destino);
+      } finally {
+        destino.remove();
+      }
+    }
+
+    it("el foco salta a la seccion Story, que gana tabindex=-1 para poder recibirlo", () => {
+      const { container } = renderHero();
+
+      conDestinoStory((destino) => {
+        const cta = container.querySelector<HTMLElement>('a[href="#story"]');
+        expect(cta, "el hero no monta el CTA hacia #story").not.toBeNull();
+        expect(
+          destino,
+          "el destino tiene que empezar SIN tabindex: es lo que lo hace no focalizable",
+        ).not.toHaveAttribute("tabindex");
+
+        fireEvent.click(cta as HTMLElement);
+
+        expect(destino).toHaveAttribute("tabindex", "-1");
+        expect(
+          document.activeElement,
+          "el CTA desplazaba sin enfocar: quien navega por teclado seguia tabulando desde el hero",
+        ).toBe(destino);
+      });
+    });
+
+    /*
+     * La otra mitad del helper, ejercitada tambien por ESTE camino: un
+     * destino que ya declara su propio `tabindex` no se sobrescribe. Es la
+     * guarda `hasAttribute` de `navAnchorFocus.ts`; el candado vive aqui
+     * ademas de en `Navbar.test.tsx` porque lo que se afirma es que este
+     * consumidor IMPORTA el helper en vez de reimplementar la llamada a
+     * `focus()` por su cuenta -- una copia local sin la guarda pasaria el
+     * test de arriba y caeria en este.
+     */
+    it("un destino que ya declara su propio tabindex no se sobrescribe", () => {
+      const { container } = renderHero();
+
+      conDestinoStory((destino) => {
+        fireEvent.click(
+          container.querySelector<HTMLElement>(
+            'a[href="#story"]',
+          ) as HTMLElement,
+        );
+
+        expect(destino).toHaveAttribute("tabindex", "0");
+        expect(document.activeElement).toBe(destino);
+      }, "0");
+    });
   });
 });

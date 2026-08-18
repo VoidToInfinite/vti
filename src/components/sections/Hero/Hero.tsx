@@ -8,8 +8,10 @@ import {
   ctaGradient,
   gradientShift,
 } from "@/components/layout/Brand/BrandName";
+import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
+import type { NavItem } from "@/config/navigation";
 import { AMBIENT } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import { HeroBackdrop } from "./HeroBackdrop";
@@ -755,6 +757,50 @@ const ScCtaPrimary = styled(Button)`
  * consume el tramo "ToInfinite" del titular), no se toca.
  */
 
+/*
+ * DESTINO DEL UNICO CTA DEL HERO, descrito con la MISMA forma que el modelo
+ * de navegacion (`NavItem`) para poder entregarselo tal cual al helper de
+ * foco de anclas -- critica externa #11, punto B2.
+ *
+ * EL DEFECTO QUE CIERRA, medido y no teorico: la ola de la critica #10
+ * cableo el foco de las anclas en las TRES superficies que consumen
+ * `NAV_GROUPS` (`Navbar`, `NavSheet`, `Footer`), asi que pulsar «Historia»
+ * en el menu o en el pie deja el foco en `section#story` -- que gana su
+ * `tabindex="-1"` de manos del propio helper. Este CTA («Leer la historia»,
+ * el MISMO destino `#story`) quedo fuera de ese cableado, porque su enlace
+ * no sale de `NAV_GROUPS`: tras el clic, `document.activeElement` seguia
+ * siendo `document.body`. Para quien navega por teclado el salto no ocurre
+ * -- la siguiente tabulacion continua desde el enlace de origen, no desde
+ * Story.
+ *
+ * NO SE DUPLICA NADA de la logica del helper (guarda de `tabindex` previo,
+ * `preventScroll: true` para no pisar el desplazamiento suave que el
+ * navegador acaba de arrancar): se importa `focusNavAnchorTarget` y se le
+ * entrega este descriptor. El porque de cada una de esas decisiones -- y por
+ * que el destino es el `<section>` y nunca su `<h2>` -- vive en
+ * `navAnchorFocus.ts` y no se reproduce aqui.
+ *
+ * POR QUE UN DESCRIPTOR PROPIO Y NO UNA BUSQUEDA EN `NAV_GROUPS`: el `href`
+ * del hero es RELATIVO (`#story`) y el del modelo es ABSOLUTO (`/#story`), y
+ * esa diferencia es deliberada en los dos sitios -- el modelo se monta en
+ * TODAS las paginas y necesita la forma absoluta para funcionar fuera de la
+ * home (ver el docblock de `NAV_GROUPS`), mientras que el hero solo existe
+ * EN la home. `navAnchorTargetId` deriva el mismo `id` ("story") de las dos
+ * formas, asi que el helper no las distingue. Lo que si garantiza esta
+ * constante es que el `href` que se PINTA y el que decide el FOCO sean
+ * literalmente el mismo valor: imposible desincronizarlos en un retoque
+ * futuro.
+ *
+ * `key` no lo lee el helper (solo mira `kind` y `href`); se declara con el
+ * mismo valor que el modelo usa para esta seccion para que las dos
+ * descripciones del mismo destino no puedan contradecirse.
+ */
+const HERO_STORY_ANCHOR: NavItem = {
+  key: "story",
+  href: "#story",
+  kind: "section",
+};
+
 export function Hero(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
@@ -821,8 +867,14 @@ export function Hero(): ReactElement {
               logica -- el wrapper solo anade su clase por encima. */}
           <ScCtaPrimary
             forwardedAs="a"
-            href="#story"
+            href={HERO_STORY_ANCHOR.href}
             size="lg"
+            /* Foco en el destino (critica externa #11, punto B2): el mismo
+               gesto que ya hacen navbar, hoja movil y pie con este mismo
+               `#story`. Ver el docblock de HERO_STORY_ANCHOR, arriba. Aqui
+               no hay ningun panel que cerrar antes, asi que la llamada va
+               sola -- igual que en el pie. */
+            onClick={() => focusNavAnchorTarget(HERO_STORY_ANCHOR)}
           >
             {t("Home.cta.story")}
           </ScCtaPrimary>
