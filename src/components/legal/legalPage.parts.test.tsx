@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { PRESS } from "@/motion/vocabulary";
-import { ScBackLink, ScTocLink } from "./legalPage.parts";
+import { themes } from "@/theme/themes";
+import { ScBackLink, ScMain, ScTable, ScTocLink } from "./legalPage.parts";
 
 /** Texto CSS de las reglas que styled-components inyectó para un elemento
  *  (jsdom no evalúa ningún @media, regla 36): mismo patrón que
@@ -119,5 +120,109 @@ describe("legalPage.parts: afordancia de enlace (Ola B)", () => {
       "sin subrayado el enlace es tipográficamente indistinguible de la prosa que lo rodea",
     ).toContain("text-decoration: underline");
     expect(reposo).toContain("text-underline-offset");
+  });
+
+  /*
+   * Crítica externa #10, hallazgo C: los enlaces del índice se distinguían
+   * SOLO por color (`semantic.brandText` contra `semantic.text`), que es lo
+   * que WCAG 1.4.1 (nivel A) no admite como única señal. Se replica el
+   * precedente del propio fichero (`ScBackLink`, Ola B) con sus mismos
+   * valores, no un estilo nuevo.
+   *
+   * Se afirma sobre el bloque EN REPOSO (todo lo anterior al primer
+   * `:hover`) a propósito, igual que el test de arriba: un hover no existe
+   * para quien navega con el dedo.
+   *
+   * Validado con el bug inyectado a propósito: comentando
+   * `text-decoration: underline;` en `ScTocLink` (`legalPage.parts.tsx`)
+   * este test cae en rojo; restaurada la línea, vuelve a verde.
+   */
+  it("ScTocLink se subraya en reposo: el color no puede ser su única señal", () => {
+    renderWithProviders(<ScTocLink href="#s1">Sección 1</ScTocLink>);
+    const enlace = screen.getByText("Sección 1");
+    const css = cssRuleTextFor(enlace);
+    const reposo = css.split(":hover")[0];
+
+    expect(
+      reposo,
+      "sin subrayado, el índice solo se distingue del texto por su color (WCAG 1.4.1)",
+    ).toContain("text-decoration: underline");
+    expect(reposo).toContain("text-underline-offset");
+  });
+});
+
+/*
+ * Crítica externa #10, hallazgo A (P0). `/privacidad` recortaba contenido en
+ * todo móvil por debajo de 466 px: a 320 px se perdían 122 px de página y el
+ * `h1` renderizaba «Política de privacidac».
+ *
+ * La causa raíz completa vive en el comentario de `ScMain`
+ * (`legalPage.parts.tsx`); en dos líneas: `body` es un contenedor flex en
+ * columna desde la Ola B, un ítem flex con un margen AUTO en el eje
+ * transversal NO se estira, y sin estirarse su ancho cae a `fit-content` —
+ * que la tabla de almacenamiento de 5 columnas empujaba hasta ~476 px,
+ * topados por el `max-width` de la propia caja.
+ *
+ * Lo que estos dos candados protegen es exactamente la línea que impide ese
+ * camino (`width: 100%`, un ancho DEFINIDO) y la que entrega la medida de
+ * lectura prometida. jsdom no hace layout, así que ninguno de los dos puede
+ * medir el recorte: afirman la declaración que lo evita, contra los tokens
+ * importados y nunca contra un número escrito a mano.
+ *
+ * Validados con el bug inyectado a propósito (ver informe de la tarea):
+ * comentando la línea real de cada uno en `legalPage.parts.tsx` el candado
+ * correspondiente cae en rojo; restaurada la línea, vuelve a verde.
+ */
+describe("legalPage.parts: ancho de ScMain (crítica externa #10, hallazgos A y C)", () => {
+  it("ScMain declara un ancho DEFINIDO (width: 100%), sin el que la caja se dimensiona por su contenido", () => {
+    renderWithProviders(<ScMain>documento</ScMain>);
+    const css = cssRuleTextFor(screen.getByRole("main"));
+
+    expect(
+      css,
+      "sin un ancho definido, el min-content de la tabla infla la caja por encima del viewport",
+    ).toMatch(/[{;]\s*width:\s*100%/);
+  });
+
+  it("ScMain suma los dos rellenos a su tope, para que quien mida grid.prose sea la caja de CONTENIDO", () => {
+    renderWithProviders(<ScMain>documento</ScMain>);
+    /* Se compara sobre el texto NORMALIZADO, no crudo: el valor de un
+       `calc()` conserva los saltos de línea con los que se escribió en el
+       template de styled-components (verificado leyendo el `cssText` real
+       que devuelve jsdom, no supuesto), así que un `toContain` literal
+       dependería del ancho con el que Prettier decida partir la línea —
+       una propiedad del formateo, no del CSS. */
+    const css = cssRuleTextFor(screen.getByRole("main"))
+      .replace(/\s+/g, " ")
+      .replace(/\(\s+/g, "(")
+      .replace(/\s+\)/g, ")");
+
+    expect(
+      css,
+      "con el tope a grid.prose pelado, el padding se come 48 px de la medida de lectura",
+    ).toContain(
+      `calc(${themes.light.grid.prose} + 2 * ${themes.light.space[5]})`,
+    );
+  });
+
+  /*
+   * El suelo de la tabla: lo que impide que «que ScMain deje de inflarse» se
+   * pague aplastando las 5 columnas (el atajo `table-layout: fixed` con
+   * `width: 100%` daría columnas de 64 px a 320 px). Se afirma contra el
+   * token, no contra su valor.
+   */
+  it("ScTable declara un suelo de ancho igual a la medida de lectura", () => {
+    renderWithProviders(
+      <ScTable>
+        <tbody>
+          <tr>
+            <td>dato</td>
+          </tr>
+        </tbody>
+      </ScTable>,
+    );
+    const css = cssRuleTextFor(screen.getByRole("table"));
+
+    expect(css).toContain(`min-width: ${themes.light.grid.prose}`);
   });
 });

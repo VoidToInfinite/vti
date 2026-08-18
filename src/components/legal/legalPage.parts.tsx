@@ -14,11 +14,71 @@ import { PRESS } from "@/motion/vocabulary";
  * Ancho de lectura: `theme.data.grid.prose` (52ch desde 2026-08-17, ~65
  * caracteres reales; D21/§3 spec) en el
  * artículo entero, no solo en los párrafos -- así el índice y las cabeceras
- * de sección respetan la misma medida de lectura que el propio texto.
+ * de sección respetan la misma medida de lectura que el propio texto. Quien
+ * ENTREGA esa medida es `ScMain`, y desde la crítica externa #10 la entrega
+ * de verdad: ver el porqué del `calc()` de su `max-width` ahí abajo.
  */
 
 export const ScMain = styled.main`
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  /*
+   * CAUSA RAÍZ del recorte de /privacidad en todo móvil por debajo de 466 px
+   * (crítica externa #10, hallazgo A: a 320 px se perdían 122 px de página
+   * -- el 38 % de la pantalla --, con el h1 renderizando Política de
+   * privacidac; a 390 px la columna Titular de la tabla de almacenamiento
+   * quedaba entera fuera de pantalla).
+   *
+   * El mecanismo, que vive en el ANCESTRO y no aquí: GlobalStyles pasó body
+   * a display: flex con flex-direction: column en la Ola B (2026-08-16, el
+   * pie pegado al borde inferior). Con eso este main es un ítem flex, y su
+   * ANCHO es su tamaño en el eje TRANSVERSAL. Un ítem flex solo se estira al
+   * ancho del contenedor si su align-self resuelve a stretch Y NINGUNO de
+   * sus dos márgenes del eje transversal es auto (CSS Flexible Box, §8.3).
+   * Esta caja declara margin-inline: auto para centrarse, así que NUNCA se
+   * estiraba: su ancho caía al tamaño por contenido, fit-content =
+   * min(max-content, max(min-content, disponible)). Y su min-content lo
+   * fijaba el descendiente más ancho e indivisible -- la tabla de
+   * almacenamiento de 5 columnas (ScTable, table-layout auto implícito,
+   * ScTh con white-space: nowrap), ~476 px medidos --, así que en un
+   * viewport de 320 px ese max() daba 476 y lo único que lo frenaba era el
+   * max-width de esta misma caja: 466 px medidos. Todo el documento se
+   * maquetaba entonces contra 466 px y el viewport recortaba el resto.
+   * /aviso-legal, sin tabla, nunca alcanza ese min-content: por eso no
+   * sufría el defecto.
+   *
+   * Por qué min-width: 0 aquí NO cambiaba nada (probado en vivo por el
+   * evaluador): esa propiedad fija el MÍNIMO de la caja, y aquí nada topaba
+   * contra un mínimo -- la caja se estaba DIMENSIONANDO por su contenido.
+   * Y el eje principal de este contenedor es el vertical, así que el suelo
+   * automático de min-size de un ítem flex (el caso clásico que min-width: 0
+   * resuelve) ni siquiera aplica en el eje que aquí importa.
+   *
+   * width: 100% le da un ancho DEFINIDO (el de su bloque contenedor, que es
+   * el viewport), con lo que fit-content deja de intervenir; max-width sigue
+   * topando en pantallas anchas y margin-inline: auto sigue centrando. Lo
+   * único que puede exceder del viewport pasa a ser la TABLA, dentro de
+   * ScTableWrap -- justo donde su overflow-x: auto prometía que vivía el
+   * scroll.
+   */
+  width: 100%;
+  /*
+   * El tope SUMA el relleno a propósito (crítica externa #10, hallazgo C).
+   * Con box-sizing: border-box global, un max-width de grid.prose a secas
+   * dejaba la COLUMNA REAL de texto en 465,92 - 2x24 = 417,92 px = 46,6ch:
+   * ~55 caracteres por línea medidos, por debajo de la banda 60-75 que el
+   * token persigue. El token NO es el problema -- su ratio de caracteres
+   * reales por ch está verificado de forma independiente, ver el docblock de
+   * grid.ts --: lo estaba la ENTREGA en esta caja. Sumando los dos rellenos,
+   * quien mide grid.prose pasa a ser la caja de CONTENIDO, que es la que
+   * porta el texto.
+   *
+   * Se elige el calc() y no un envoltorio nuevo que se lleve el padding: no
+   * añade un nodo al DOM y deja el relleno donde protege al texto del borde
+   * de la pantalla en móvil.
+   */
+  max-width: calc(
+    ${({ theme }) => theme.data.grid.prose} + 2 *
+      ${({ theme }) => theme.data.space[5]}
+  );
   margin-inline: auto;
   padding: ${({ theme }) => theme.data.space[7]}
     ${({ theme }) => theme.data.space[5]};
@@ -135,6 +195,26 @@ export const ScTocItem = styled.li`
 export const ScTocLink = styled.a`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.brandText};
+  /* SUBRAYADO (crítica externa #10, hallazgo C): mismos valores y mismo
+     criterio que ScBackLink en este mismo fichero, que lo ganó en la Ola B
+     (2026-08-16) -- no un estilo nuevo.
+
+     El motivo aquí es el complementario del suyo: ScBackLink se subrayó
+     porque su color era IDÉNTICO al del cuerpo de texto; estos enlaces del
+     índice SÍ tienen color propio (semantic.brandText contra semantic.text),
+     y ese color era su ÚNICA señal. WCAG 1.4.1 (Uso del color, nivel A) pide
+     justo que el color no sea el único medio de transmitir información:
+     quien no distingue ese matiz -- daltonismo, pantalla al sol, modo de
+     alto contraste -- no ve ningún enlace en el índice, que es la única
+     navegación interna de un documento de 5.198 px. El subrayado es la
+     afordancia nativa del enlace, que GlobalStyles retira para todo el
+     sitio, así que devolverla aquí no inventa nada.
+
+     SIN BACKTICKS: esto vive dentro del template literal de
+     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
   transition:
@@ -293,7 +373,15 @@ export const ScMark = styled.mark`
 export const ScTableWrap = styled.div`
   /* La tabla de almacenamiento puede desbordar en móvil (5 columnas): el
      scroll horizontal vive AQUÍ, nunca en el body -- misma regla que
-     cualquier tabla/bloque de código ancho del sistema. */
+     cualquier tabla/bloque de código ancho del sistema.
+
+     CORRECCIÓN 2026-08-18 (crítica externa #10, hallazgo A): esta promesa
+     era falsa hasta hoy. El desbordamiento nunca llegaba a este contenedor
+     porque el crecimiento ocurría POR ENCIMA -- ScMain se dimensionaba por
+     contenido y se inflaba hasta su propio max-width para dar cabida al
+     min-content de la tabla (ver el comentario de ScMain). Con el ancho de
+     ScMain ya definido, el sobrante cae aquí y este overflow-x actúa de
+     verdad. */
   overflow-x: auto;
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
 
@@ -304,6 +392,17 @@ export const ScTableWrap = styled.div`
 
 export const ScTable = styled.table`
   width: 100%;
+  /* SUELO de ancho, no ancho de trabajo (crítica externa #10, hallazgo A).
+     Hoy el ancho real lo sigue poniendo el min-content de table-layout: auto
+     (~476 px medidos con estas 5 columnas y los th en nowrap), que por sí
+     solo ya impide que las columnas se aplasten; este mínimo explícito está
+     para que eso no pueda dejar de ser cierto. El caso concreto que cierra
+     es el atajo que TAMBIÉN hace que ScMain deje de inflarse y que por eso
+     es el primer candidato a arreglo -- table-layout: fixed con width: 100%
+     --: a 320 px daría cinco columnas de 64 px, ilegible. Con este suelo, el
+     ancho mínimo de la tabla sigue siendo la medida de lectura y lo que
+     sobre lo scrollea ScTableWrap. */
+  min-width: ${({ theme }) => theme.data.grid.prose};
   border-collapse: collapse;
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
 `;
