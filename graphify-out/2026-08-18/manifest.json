@@ -800,13 +800,13 @@
     "semantic_hash": ""
   },
   "assets/hero-aura/manifest.json": {
-    "mtime": 1786874358.2762258,
-    "ast_hash": "815be595453a0cc292fae99f9919f4cc",
+    "mtime": 1787035974.3233802,
+    "ast_hash": "ddb5e4ab04e5f9b634f044fcd91e3d0e",
     "semantic_hash": ""
   },
   "assets/hero-eye/manifest.json": {
-    "mtime": 1786874358.311226,
-    "ast_hash": "bcfdccb933c416690ab25c7e290f8b4a",
+    "mtime": 1787035974.2771676,
+    "ast_hash": "42c2e07c1fa30f322f75fc91b6a9acbc",
     "semantic_hash": ""
   },
   "src/components/layout/Brand/BrandName.contrast.test.ts": {
@@ -1905,23 +1905,23 @@
     "semantic_hash": ""
   },
   "src/components/scenes/aura/Aura.test.tsx": {
-    "mtime": 1786980635.1821802,
-    "ast_hash": "f526896b8a797d4560fd5cd906ad2045",
+    "mtime": 1787035974.822365,
+    "ast_hash": "4e4664c59a4d7e6afee8ad6b4b70ead1",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/Aura.tsx": {
-    "mtime": 1786874359.0240319,
-    "ast_hash": "b5b26e2da860601c65de3fcbb17afff5",
+    "mtime": 1787035706.2626424,
+    "ast_hash": "4fc5904623cb3a44ec1671f37e41f9d8",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/aura.layers.test.ts": {
-    "mtime": 1786874359.025073,
-    "ast_hash": "8191793593e00927347690fec5b3f608",
+    "mtime": 1787035890.2881477,
+    "ast_hash": "6967de069f33e4cbe83b9503a088dfc9",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/aura.layers.ts": {
-    "mtime": 1786980635.1873882,
-    "ast_hash": "71aecf4fb89c339c9af30c9788a64648",
+    "mtime": 1787035620.6134644,
+    "ast_hash": "61ead3807c211b525d4b5a0f163c3b47",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/aura.parts.test.tsx": {
@@ -1960,23 +1960,23 @@
     "semantic_hash": ""
   },
   "src/components/scenes/eye/Eye.test.tsx": {
-    "mtime": 1786884604.2351527,
-    "ast_hash": "aa49da951cb9bbbcf2410e53b89985f6",
+    "mtime": 1787035761.5698347,
+    "ast_hash": "b1a56bb13b5457e5b668cbc8f49e419e",
     "semantic_hash": ""
   },
   "src/components/scenes/eye/Eye.tsx": {
-    "mtime": 1786874359.039652,
-    "ast_hash": "a375cfe9b1de8de141df9f671ce67f27",
+    "mtime": 1787035678.4837866,
+    "ast_hash": "b30aecfbbd1e5f8c118bb129e89b29f1",
     "semantic_hash": ""
   },
   "src/components/scenes/eye/eye.layers.test.ts": {
-    "mtime": 1786874359.0406542,
-    "ast_hash": "13ec0cb96af10355a5c7a5015181ce6d",
+    "mtime": 1787035856.900876,
+    "ast_hash": "b29a988fdba794f2d77240276d0ae18c",
     "semantic_hash": ""
   },
   "src/components/scenes/eye/eye.layers.ts": {
-    "mtime": 1786885044.3410542,
-    "ast_hash": "6c4e5d9736ed6322b75e47ce39182d5e",
+    "mtime": 1787035594.2505777,
+    "ast_hash": "091f2ae4acc4c6312edb44c8e42ef24e",
     "semantic_hash": ""
   },
   "src/components/scenes/eye/eye.parts.tsx": {
@@ -2710,13 +2710,13 @@
     "semantic_hash": ""
   },
   "src/theme/resolveTheme.test.ts": {
-    "mtime": 1786980635.2064748,
-    "ast_hash": "28d44e99b8f8a3c828f636f52bb3720e",
+    "mtime": 1787035913.886992,
+    "ast_hash": "dacf8418af7f64797b9be076958d79dc",
     "semantic_hash": ""
   },
   "src/theme/resolveTheme.ts": {
-    "mtime": 1786980635.2130182,
-    "ast_hash": "55ad15772557a0de0fb5d2e1af92befd",
+    "mtime": 1787035942.5117524,
+    "ast_hash": "2ca71767ae5b9e190e1f7de19a9fe71a",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-10-implementacion-plan-premium-f1-f5/task-9-brief.md": {
