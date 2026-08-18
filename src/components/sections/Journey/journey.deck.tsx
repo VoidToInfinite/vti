@@ -229,40 +229,77 @@ export const ScJourneyDeck = styled.div`
  * que TODAVIA no ha llegado ("next"): opacity 0 + desplazada hacia abajo.
  * "past" invierte el signo del desplazamiento; "current" limpia los dos.
  *
- * `visibility` (fix wave A, hallazgo A1 -- MISMO tratamiento que ScSlide en
- * story.deck.tsx, leer su docblock es releer este). `ScJourneySlide` se
- * salva HOY por no tener ningun elemento realmente focalizable dentro de
- * ninguna de sus 8 diapositivas (verificado leyendo Journey.tsx: los unicos
- * nodos interactivos de la rama oscura viven fuera del deck) -- pero es
- * exactamente la misma estructura que ScSlide antes de que la Task 6
- * anadiera `ScDeckNoteLink`, y por tanto la misma trampa latente: cualquier
- * enlace o boton que se anada mas adelante a una diapositiva de Journey
- * heredaria el mismo trap de foco invisible sin que nadie tuviera que tocar
- * este fichero para introducirlo. Se aplica el mismo arreglo de forma
- * preventiva, no reactiva a un hallazgo ya medido en este componente
- * concreto -- misma logica que "declararlo como causa raiz aplazada, no
- * cerrada" de la leccion del 2026-08-11 (Task 31, `task/lessons.md`): el
- * momento correcto para cerrar una trampa estructural conocida es ANTES de
- * que otra tarea, ajena a esta, la reabra sin saber que existe.
+ * SIN `visibility` -- REVERSION MEDIDA de la mitad del fix wave A, hallazgo
+ * A1, que aqui nunca llego a proteger nada real. Historia completa, porque
+ * este punto ya se ha decidido dos veces en sentidos opuestos:
+ *
+ * 1. Fix wave A (2026-08-12) anadio `visibility: hidden` al reposo y
+ *    `visibility: visible` a `[data-state="current"]` copiando el arreglo de
+ *    ScSlide (story.deck.tsx), donde SI cerraba una trampa de foco invisible
+ *    real: la Task 6 habia metido un enlace de Discord dentro de una
+ *    diapositiva de Story. Aqui se aplico de forma PREVENTIVA -- el propio
+ *    docblock declaraba que ninguna diapositiva de Journey monta nada
+ *    focalizable -- y su coste quedo escrito como aceptable ("un lector de
+ *    pantalla solo anuncia la diapositiva current, exactamente lo mismo que
+ *    ve un usuario con vista").
+ * 2. La critica externa #10 (2026-08-18) MIDIO ese coste, y no era el que
+ *    aquel razonamiento suponia. `ariaSnapshot()` de la seccion a scroll 0
+ *    devolvia solo el h2 y el parrafo de intro: `textContent` 730 caracteres
+ *    frente a `innerText` 184. Los seis pasos y la cita no aparecian NUNCA
+ *    salvo de uno en uno al scrollear a su posicion exacta, y un cursor
+ *    virtual saltaba de la intro directamente a la seccion siguiente.
+ *
+ * DONDE FALLABA EL RAZONAMIENTO DE 2026-08-12, y es lo que hay que recordar:
+ * decia que el contenido "sigue alcanzable exactamente por el mismo mecanismo
+ * (scroll) por el que ya lo era visualmente". Eso NO es cierto para un lector
+ * de pantalla: su cursor virtual recorre el ARBOL DE ACCESIBILIDAD, no
+ * produce eventos de scroll y por tanto no hace avanzar el deck. Un usuario
+ * con vista puede llegar a las 8 diapositivas girando la rueda; con
+ * `visibility: hidden` en las no actuales, un usuario de lector de pantalla
+ * no podia llegar a 7 de las 8 por ningun medio. No era "la misma experiencia
+ * que un usuario vidente": era perder el contenido entero.
+ *
+ * POR QUE `opacity: 0` SOLO ES SUFICIENTE, Y CORRECTO: `opacity` no
+ * interviene en el arbol de accesibilidad (solo lo hacen `display: none`,
+ * `visibility: hidden/collapse`, `aria-hidden`, el atributo `hidden` e
+ * `inert`), asi que la diapositiva sigue invisible a la vista y presente para
+ * la tecnologia asistiva -- que es exactamente la linearizacion que ya
+ * entrega el camino de `prefers-reduced-motion` (D12) y que ese camino NO
+ * pierde con este cambio.
+ *
+ * LA MITAD DE A1 QUE SIGUE VIVA, y como se ata ahora: `opacity: 0` y
+ * `pointer-events: none` NO sacan del orden de tabulacion. La garantia de que
+ * no hay trampa de foco invisible es que ninguna diapositiva de Journey
+ * contiene un elemento focalizable -- una condicion de ESTRUCTURA, no de
+ * CSS -- y esa condicion pasa a estar atada por un test (Journey.test.tsx,
+ * describe "critica #10 hallazgo A", ultimo it). Si manana alguien mete un
+ * enlace o un boton en una diapositiva, ese candado cae en rojo y obliga a
+ * resolver el foco de forma explicita (tabIndex -1 atado a data-state, o el
+ * atributo inert, los dos con el mismo criterio) en vez de reintroducir un
+ * `visibility: hidden` que volveria a vaciar el arbol de accesibilidad de la
+ * seccion entera. Los dos controles interactivos que la rama oscura SI monta
+ * -- los botones del rail (ScJourneyRailMark, mas abajo) -- viven fuera del
+ * deck y estan visibles siempre, asi que no entran en este problema.
+ *
+ * NOTA DE ALCANCE: ScSlide (story.deck.tsx) sigue con `visibility: hidden` y
+ * tiene el MISMO defecto de arbol de accesibilidad, agravado por tener seis
+ * diapositivas y un enlace real dentro. No se toca aqui porque esta fuera del
+ * dominio de esta ola; queda declarado, no arreglado.
  */
 export const ScJourneySlide = styled.div`
   grid-area: 1 / 1;
   width: 100%;
   opacity: 0;
-  visibility: hidden;
   transform: translateY(${JOURNEY_SLIDE_SHIFT});
   transition:
     opacity ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate},
     transform ${({ theme }) => theme.data.motion.duration.slow}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    visibility ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.decelerate};
   pointer-events: none;
 
   &[data-state="current"] {
     opacity: 1;
-    visibility: visible;
     transform: none;
     pointer-events: auto;
   }
@@ -272,25 +309,31 @@ export const ScJourneySlide = styled.div`
   }
 
   /* D12: todas visibles a la vez, en flujo -- perder 7 de 8 diapositivas
-     seria perder CONTENIDO, no solo movimiento. visibility: visible
-     incondicional (fix wave A, A1): mismo motivo que ScSlide en
-     story.deck.tsx. SIN BACKTICKS en este comentario, a proposito: vive
+     seria perder CONTENIDO, no solo movimiento. Este bloque ya no necesita
+     revertir ninguna visibility: el reposo dejo de declararla (ver el
+     docblock de arriba). SIN BACKTICKS en este comentario, a proposito: vive
      DENTRO del template literal de styled-components (leccion del repo,
      task/lessons.md 2026-07-25). */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     opacity: 1;
-    visibility: visible;
     transform: none;
     pointer-events: auto;
   }
 `;
 
 /*
- * Rail de progreso decorativo (D13): aria-hidden, refleja data-slide del
- * stage (un ANCESTRO de ScJourneyRailMark) por selector descendiente. Se
- * retira en reduce: sin pin ni avance atado al scroll, "por donde voy" deja
- * de tener sentido -- las 8 diapositivas ya estan a la vista a la vez.
+ * Rail de progreso (D13): refleja data-slide del stage (un ANCESTRO de
+ * ScJourneyRailMark) por selector descendiente. Se retira en reduce: sin pin
+ * ni avance atado al scroll, "por donde voy" deja de tener sentido -- las 8
+ * diapositivas ya estan a la vista a la vez.
+ *
+ * DEJO DE SER aria-hidden en la critica externa #10 (hallazgo A, 2026-08-18):
+ * sus marcas son ahora botones reales (ver ScJourneyRailMark, abajo), asi que
+ * ocultarlo del arbol de accesibilidad esconderia ocho controles operables.
+ * El nombre del grupo lo pone Journey.tsx via aria-label + role group: ocho
+ * botones sueltos sin agrupar se anuncian como ocho controles sin relacion
+ * entre si.
  */
 export const ScJourneyRail = styled.div`
   position: absolute;
@@ -308,31 +351,113 @@ export const ScJourneyRail = styled.div`
   }
 `;
 
-export const ScJourneyRailMark = styled.span<{ $index: number }>`
-  width: ${({ theme }) => theme.data.space[2]};
-  height: ${({ theme }) => theme.data.space[2]};
+/*
+ * Marca del rail (critica externa #10, hallazgo A, P2 que puntua en la
+ * heuristica 7 de Nielsen). Hasta esta tarea era un `span` decorativo con
+ * `tabIndex -1` heredado del `aria-hidden` del rail: se veia "por donde vas"
+ * pero no se podia ir a ningun sitio, y encima apenas se veia -- los
+ * inactivos pintaban `semantic.border` (neutral 800) a `opacity: 0.4` sobre
+ * la escena casi negra del portal.
+ *
+ * TRES CAMBIOS, cada uno cerrando una mitad distinta del hallazgo:
+ *
+ * 1. ELEMENTO: `button` real, no `span`. Journey.tsx le pone `type="button"`,
+ *    `aria-label` de i18n y `aria-current` en el activo, y engancha el salto
+ *    a `scrollToSlide` (`useSlideDeck`), que invierte la geometria de la
+ *    pista. Al ser un boton nativo trae foco, Enter/Espacio y rol sin nada
+ *    que sincronizar a mano.
+ *
+ * 2. DIANA: el punto sigue midiendo space[2] (8px) -- la decision visual del
+ *    rail no cambia -- pero se dibuja con `::before` DENTRO de una caja de
+ *    space[5] (24px), que es el minimo de WCAG 2.5.8 (Target Size, AA en
+ *    WCAG 2.2). Un boton de 8x8 es inoperable con el dedo y casi con el
+ *    raton. La caja es transparente: no se ve, solo se toca.
+ *
+ * 3. CONTRASTE: los inactivos pasan de `semantic.border` al 40% de opacidad
+ *    a `semantic.borderStrong` OPACO. La opacidad desaparece de la
+ *    declaracion y de la lista de `transition` -- ya no hay nada que
+ *    interpolar en ese eje. WCAG 1.4.11 pide 3:1 para un componente de
+ *    interfaz frente a lo que tiene detras; el candado que lo mide contra el
+ *    void real de la escena vive en Journey.test.tsx (describe "critica #10
+ *    hallazgo A -- rail"). El activo conserva `semantic.brand` y su
+ *    `scale(1.5)`: la jerarquia entre activo e inactivo sigue viniendo de
+ *    color MAS tamano, no de que el inactivo sea invisible.
+ *
+ * EL SELECTOR DESCENDIENTE `[data-slide="N"] &` NO CAMBIA de forma (regla 35
+ * de RULES.md): sigue leyendo el estado desde el ANCESTRO -- el `data-slide`
+ * que ScJourneyStage ya escribe con el index de useSlideDeck -- y no desde un
+ * atributo del propio boton. `aria-current` se anade en el JSX como senal
+ * para tecnologia asistiva, no como fuente del estilo: dos fuentes de verdad
+ * para lo mismo pueden divergir, y la que ya estaba probada es esta.
+ */
+export const ScJourneyRailMark = styled.button<{ $index: number }>`
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: ${({ theme }) => theme.data.space[5]};
+  height: ${({ theme }) => theme.data.space[5]};
   border-radius: ${({ theme }) => theme.data.radius.full};
-  background-color: ${({ theme }) => theme.data.semantic.border};
-  opacity: 0.4;
-  transform: scale(1);
-  transition:
-    opacity ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    background-color ${({ theme }) => theme.data.motion.duration.base}
+  color: ${({ theme }) => theme.data.semantic.borderStrong};
+  cursor: pointer;
+  transition: color ${({ theme }) => theme.data.motion.duration.base}
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  /* El punto visible. Hereda currentColor para que el color viva en UNA sola
+     declaracion (la del boton) y el estado activo no tenga que repetirlo
+     sobre dos elementos. SIN BACKTICKS en este comentario, a proposito: vive
+     DENTRO del template literal de styled-components, donde un backtick lo
+     cierra y rompe el build (leccion del repo, task/lessons.md 2026-07-25). */
+  &::before {
+    content: "";
+    display: block;
+    width: ${({ theme }) => theme.data.space[2]};
+    height: ${({ theme }) => theme.data.space[2]};
+    border-radius: ${({ theme }) => theme.data.radius.full};
+    background-color: currentColor;
+    transform: scale(1);
+    transition: transform ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard};
+  }
+
+  &:hover {
+    color: ${({ theme }) => theme.data.semantic.text};
+  }
+
+  /* Halo de foco por teclado, mismo lenguaje que IconButton.tsx (anillo
+     externo con semantic.focus mezclado con transparente). El boton es
+     redondo, asi que el anillo hereda su border-radius sin declarar nada. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px
+      color-mix(
+        in oklch,
+        ${({ theme }) => theme.data.semantic.focus} 45%,
+        transparent
+      );
+  }
 
   ${({ $index, theme }) => css`
     [data-slide="${$index}"] & {
-      opacity: 1;
+      color: ${theme.data.semantic.brand};
+    }
+
+    [data-slide="${$index}"] &::before {
       transform: scale(1.5);
-      background-color: ${theme.data.semantic.brand};
     }
   `}
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &::before {
+      transition: none;
+    }
   }
 `;
 

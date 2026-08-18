@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act } from "@testing-library/react";
+import { act, isInaccessible } from "@testing-library/react";
 import {
   renderWithProviders,
   screen,
@@ -31,7 +31,11 @@ import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
 import esCommon from "@/i18n/locales/es/common.json";
 import { themes } from "@/theme/themes";
-import { contrastRatioHex } from "@/theme/tokens/contrast";
+import {
+  contrastRatioHex,
+  relativeLuminance,
+  relativeLuminanceHex,
+} from "@/theme/tokens/contrast";
 import { DECK, REVEAL } from "@/motion/vocabulary";
 
 /*
@@ -92,40 +96,15 @@ function cssRuleTextFor(el: HTMLElement): string {
     .join("\n");
 }
 
-/**
- * Regla CSS real (CSSOM, `CSSStyleRule`, no texto libre) que aplica a un
- * elemento y cuyo `selectorText` cumple `matches` -- mismo helper que
- * `Story.test.tsx` (`cssRuleFor`): a diferencia de `cssRuleTextFor`
- * (concatena TODAS las reglas que mencionan la clase), esto localiza UNA
- * regla concreta y expone `.style.<prop>`, que SI resuelve el valor
- * declarado de una propiedad sin ambiguedad de que declaracion pertenece a
- * que selector. Usado por el candado de A1 (fix wave A, WCAG 2.4.7).
+/*
+ * AQUI VIVIO `cssRuleFor`, el helper que localizaba UNA regla del CSSOM por
+ * su `selectorText` y exponia `.style.<prop>`. Su unico consumidor era el
+ * candado de A1 (fix wave A) sobre la `visibility` de `ScJourneySlide`, que
+ * la critica externa #10 retiro con medicion delante -- ver el docblock de
+ * `ScJourneySlide` (`journey.deck.tsx`). Se retira con el (regla 16 de
+ * RULES.md: un helper que ya no describe nada es peor que ninguno). Sigue
+ * vivo, intacto, en `Story.test.tsx`, que si conserva ese candado.
  */
-function cssRuleFor(
-  el: HTMLElement,
-  matches: (selectorText: string) => boolean,
-): CSSStyleRule {
-  const classes = Array.from(el.classList);
-  const rule = Array.from(document.styleSheets)
-    .flatMap((sheet) => {
-      try {
-        return Array.from(sheet.cssRules);
-      } catch {
-        return [];
-      }
-    })
-    .find((r): r is CSSStyleRule => {
-      if (!("selectorText" in r)) return false;
-      const selector = (r as CSSStyleRule).selectorText ?? "";
-      return (
-        classes.some((cls) => selector.includes(`.${cls}`)) && matches(selector)
-      );
-    });
-  if (!rule) {
-    throw new Error("Ninguna regla coincide con el criterio pedido");
-  }
-  return rule as CSSStyleRule;
-}
 
 beforeEach(() => {
   ioTargets = [];
@@ -906,20 +885,18 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
  * oculta -- se fija aqui por escrito para que un cambio futuro no pueda
  * romperlo en silencio.
  *
- * ACTUALIZADO (fix wave A, hallazgo A1, revision final de rama): igual que
- * su gemelo de `Story.test.tsx`, la frase "ScJourneySlide es solo
- * opacity/transform, nunca display:none/visibility:hidden" DEJO DE SER
- * CIERTA -- ver el docblock de `ScJourneySlide` (`journey.deck.tsx`) para el
- * porque completo (mismo arreglo que `ScSlide` en `story.deck.tsx`,
- * aplicado de forma PREVENTIVA aqui: Journey no tenia hoy ningun elemento
- * focalizable dentro de una diapositiva, pero la misma estructura ya
- * permitio el trap de foco invisible en Story en cuanto la Task 6 anadio un
- * enlace real). Los dos asserts de este describe siguen siendo correctos y
- * necesarios (jsdom no resuelve `visibility` de una hoja de estilos), pero
- * ya no describen una lectura de "las 8 diapositivas de una sola pasada": en
- * un navegador real solo la diapositiva `current` esta en el arbol de
- * accesibilidad en cada instante. El candado que ata la visibilidad
- * condicional vive en el describe "fix wave A" de mas abajo.
+ * HISTORIA DE ESTA NOTA, en dos vueltas: el fix wave A (hallazgo A1,
+ * 2026-08-12) anadio `visibility: hidden` al reposo de `ScJourneySlide` y
+ * con ello la frase "ScJourneySlide es solo opacity/transform, nunca
+ * display:none/visibility:hidden" dejo de ser cierta -- solo la diapositiva
+ * `current` quedaba en el arbol de accesibilidad. La critica externa #10
+ * (2026-08-18, hallazgo A, P0) midio el coste real de aquello (el deck
+ * entero desaparecia para un lector de pantalla) y REVIRTIO la
+ * `visibility`: hoy la frase vuelve a ser cierta y las JOURNEY_SLIDES
+ * diapositivas se leen otra vez de una sola pasada. El porque completo de
+ * las dos decisiones vive en el docblock de `ScJourneySlide`
+ * (`journey.deck.tsx`); el candado que lo ata, en el describe "critica #10
+ * hallazgo A" del final de este fichero.
  *
  * Fix round (revision del coordinador, mismo hallazgo que su gemelo de
  * `Story.test.tsx`): la version original solo cubria la diapositiva misma
@@ -1088,63 +1065,27 @@ describe("Journey: candado SR del deck -- orden de DOM y ausencia de aria-hidden
 });
 
 /*
- * Fix wave A, hallazgo A1 (WCAG 2.4.7, revision final de rama). MISMO
- * candado que su gemelo de `Story.test.tsx` -- ver su docblock, verbatim
- * salvo el nombre del componente y el numero de diapositivas. Aplicado de
- * forma PREVENTIVA (ver el docblock de `ScJourneySlide`,
- * `journey.deck.tsx`): hoy ninguna diapositiva de Journey monta un elemento
- * focalizable, pero el candado ata la ESTRUCTURA, no el contenido concreto
- * de hoy, para que un enlace/boton anadido manana no reabra el mismo trap.
+ * AQUI VIVIO el describe "fix wave A, A1 -- las diapositivas no actuales no
+ * son tabulables (CSS declarado)", con dos `it` que exigian
+ * `visibility: hidden` en el reposo de `ScJourneySlide` y
+ * `visibility: visible` en `[data-state="current"]` y bajo `reduce`.
  *
- * Verificado con un bug inyectado a proposito (informe de la tarea): al
- * quitar `visibility: hidden` del reposo de `ScJourneySlide`
- * (journey.deck.tsx), el primer `it` de este describe cae en rojo; al
- * restaurarlo, vuelve a verde.
+ * RETIRADO en la critica externa #10 (2026-08-18, hallazgo A, P0): esa
+ * misma `visibility: hidden` era la causa raiz de que el deck oscuro no
+ * existiera para tecnologia asistiva. No es un candado que se relaja para
+ * que pase (regla 40): es un contrato REVERTIDO con medicion delante, y su
+ * sustituto -- que ata la MISMA propiedad de fondo (cero trampas de foco
+ * invisible, WCAG 2.4.7) por estructura en vez de por CSS -- vive en el
+ * describe "critica #10 hallazgo A" del final de este fichero, junto con el
+ * porque completo. El docblock de `ScJourneySlide` (`journey.deck.tsx`)
+ * guarda la historia de las dos decisiones.
+ *
+ * El bloque `@media (prefers-reduced-motion: reduce)` de `ScJourneySlide`
+ * sigue existiendo y sigue atado (`opacity: 1` / `transform: none` /
+ * `pointer-events: auto`) por el describe de `reduce` que ya existia mas
+ * arriba en este fichero; lo unico que desaparece de el es la linea de
+ * `visibility`, que ya no tiene nada que revertir.
  */
-describe("Journey: fix wave A, A1 -- las diapositivas no actuales no son tabulables (CSS declarado)", () => {
-  beforeEach(() => {
-    stubMatchMedia();
-    window.localStorage.setItem("vti-theme", "dark");
-  });
-  afterEach(() => {
-    window.localStorage.clear();
-  });
-
-  it('el reposo de ScJourneySlide declara visibility: hidden, y [data-state="current"] lo revierte a visible', async () => {
-    const { container } = renderWithProviders(<Journey />);
-    await waitFor(() => {
-      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
-        JOURNEY_SLIDES,
-      );
-    });
-    const slide = container.querySelector("[data-slide-index]") as HTMLElement;
-
-    const baseRule = cssRuleFor(slide, (sel) => !sel.includes("["));
-    expect(baseRule.style.visibility).toBe("hidden");
-
-    const currentRule = cssRuleFor(slide, (sel) =>
-      sel.includes('[data-state="current"]'),
-    );
-    expect(currentRule.style.visibility).toBe("visible");
-  });
-
-  it("bajo prefers-reduced-motion, TODAS las diapositivas vuelven a visibility: visible", async () => {
-    const { container } = renderWithProviders(<Journey />);
-    await waitFor(() => {
-      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
-        JOURNEY_SLIDES,
-      );
-    });
-    const slide = container.querySelector("[data-slide-index]") as HTMLElement;
-
-    const css = cssRuleTextFor(slide);
-    expect(css).toContain("prefers-reduced-motion: reduce");
-    const reduceBlock = css.slice(
-      css.indexOf("prefers-reduced-motion: reduce"),
-    );
-    expect(reduceBlock).toContain("visibility: visible");
-  });
-});
 
 /*
  * Task 4 (plan `2026-08-10-implementacion-plan-premium-f1-f5`): pista de
@@ -1510,5 +1451,409 @@ describe("Journey: Task 12, ghost-card ScDisc (rama clara)", () => {
    * tarea: reintroducir `border: 1px solid oklch(0.9 0.03 275);` en `ScDisc`
    * (Journey.tsx) pone en rojo la aserción `expect(css).not.toContain("border:")`;
    * restaurado, vuelve a verde.
+   */
+});
+
+/*
+ * Critica externa #10, hallazgo A (P0): EL DECK OSCURO NO EXISTIA PARA
+ * TECNOLOGIA ASISTIVA.
+ *
+ * Medido por el evaluador: `ariaSnapshot()` de `#journey` a scroll 0 devolvia
+ * solo el `<h2>` y el parrafo de intro; los seis pasos y la cita no aparecian
+ * NUNCA salvo de uno en uno al scrollear hasta su posicion exacta.
+ * `textContent` 730 caracteres frente a `innerText` 184. Un cursor virtual de
+ * lector de pantalla saltaba de la intro directamente a `#features`.
+ *
+ * Causa raiz: `visibility: hidden` en el reposo de `ScJourneySlide`
+ * (`journey.deck.tsx`, fix wave A hallazgo A1), que SACA el nodo del arbol de
+ * accesibilidad. Ver el docblock de `ScJourneySlide` para la reversion
+ * completa y por que la mitad de A1 que si sigue viva (cero focalizables) se
+ * ata ahora por ESTRUCTURA en vez de por CSS.
+ *
+ * Los tres candados de este describe cubren las tres mitades del arreglo:
+ * (1) el efecto que importa -- las JOURNEY_SLIDES diapositivas estan en el
+ * arbol de accesibilidad, en CUALQUIER estado del deck; (2) la fuente -- el
+ * CSS de la diapositiva ya no declara `visibility` en ninguna de sus reglas;
+ * (3) la condicion que hace segura la reversion -- ninguna diapositiva
+ * contiene un elemento focalizable, asi que no hay trampa de foco invisible
+ * que reabrir (WCAG 2.4.7).
+ */
+describe("Journey: critica #10 hallazgo A -- el deck oscuro existe para tecnologia asistiva", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  async function deck(): Promise<{
+    container: HTMLElement;
+    track: HTMLElement;
+    slides: HTMLElement[];
+  }> {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    return {
+      container,
+      track: stage.parentElement as HTMLElement,
+      slides: Array.from(
+        container.querySelectorAll("[data-slide-index]"),
+      ) as HTMLElement[],
+    };
+  }
+
+  it("las JOURNEY_SLIDES diapositivas estan en el arbol de accesibilidad con el deck en reposo", async () => {
+    const { slides } = await deck();
+
+    // `isInaccessible` (dom-accessibility-api, el MISMO calculo que usa
+    // getByRole para decidir si un nodo entra en el arbol) mira
+    // display/visibility/aria-hidden/hidden -- NO mira `opacity`, que es
+    // justo la propiedad con la que el deck oculta visualmente. Ese es el
+    // punto: la diapositiva puede estar invisible y seguir existiendo para
+    // un lector de pantalla, que es lo que el hallazgo A pedia.
+    slides.forEach((slide) => {
+      expect(isInaccessible(slide)).toBe(false);
+    });
+  });
+
+  it("los seis pasos y la cita siguen en el arbol con el deck en un indice intermedio (past + current + next a la vez)", async () => {
+    vi.stubGlobal("innerHeight", 800);
+    const { track, slides } = await deck();
+    // progress = 0.5 con span = (JOURNEY_SLIDES - 1) pantallas: el indice
+    // cae en mitad del recorrido, asi que conviven diapositivas `past`,
+    // `current` y `next` en el mismo render.
+    const alto = (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * 800;
+    const span = alto - 800 - JOURNEY_DECK_TAIL_SCREENS * 800;
+    track.getBoundingClientRect = () =>
+      ({ top: -span / 2, height: alto }) as DOMRect;
+
+    act(() => triggerFor(track, true));
+
+    const estados = slides.map((slide) => slide.getAttribute("data-state"));
+    expect(estados).toContain("past");
+    expect(estados).toContain("current");
+    expect(estados).toContain("next");
+
+    slides.forEach((slide) => {
+      expect(isInaccessible(slide)).toBe(false);
+    });
+    JOURNEY_STEPS.forEach((step) => {
+      expect(
+        screen.getByText(esHome.Home.journey.steps[step.id].label),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(`“${esHome.Home.journey.quote}”`),
+    ).toBeInTheDocument();
+  });
+
+  it("ninguna regla de ScJourneySlide declara visibility (ni en reposo, ni en current, ni bajo reduce)", async () => {
+    const { slides } = await deck();
+
+    // Por texto de CSS inyectado acotado al componente (cssRuleTextFor), no
+    // por getComputedStyle: lo que hay que atar es que la DECLARACION no
+    // vuelva, en ninguna de las reglas de esta pieza -- incluido el bloque
+    // de @media, que jsdom no evalua (regla 36 de RULES.md).
+    const css = cssRuleTextFor(slides[0]);
+    expect(css).toContain("opacity: 0");
+    expect(css).not.toContain("visibility");
+  });
+
+  it("ninguna diapositiva contiene un elemento focalizable (la condicion que hace segura la reversion, WCAG 2.4.7)", async () => {
+    const { slides } = await deck();
+
+    // La mitad de A1 que SIGUE VIVA: `opacity: 0` no saca del orden de
+    // tabulacion, asi que la unica garantia real de que no hay trampa de
+    // foco invisible es que no exista nada focalizable dentro. Este candado
+    // ata esa ESTRUCTURA -- si manana alguien anade un enlace o un boton a
+    // una diapositiva, cae en rojo y obliga a resolver el foco de forma
+    // explicita (p.ej. `tabIndex={-1}` atado a `data-state`) en vez de
+    // reintroducir un `visibility: hidden` que volveria a vaciar el arbol de
+    // accesibilidad.
+    const FOCALIZABLES =
+      'a[href], button, input, select, textarea, iframe, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
+    slides.forEach((slide) => {
+      expect(slide.querySelectorAll(FOCALIZABLES)).toHaveLength(0);
+    });
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), ejecutado en esta tarea: devolver
+   * `visibility: hidden;` al reposo de `ScJourneySlide` (`journey.deck.tsx`)
+   * pone en rojo los tres primeros `it` de este describe (las diapositivas
+   * vuelven a salir del arbol de accesibilidad y la declaracion reaparece en
+   * el CSS); restaurada la linea, los cuatro vuelven a verde.
+   */
+});
+
+/*
+ * Critica externa #10, hallazgo B2: banda muerta de 290 px (34 % del
+ * viewport) entre el cierre de Story y la tarjeta de Journey a 390x844 en
+ * tema claro. El recorte y su aritmetica completa viven en el comentario de
+ * `ScJourney` (`Journey.tsx`); aqui solo se ata que el valor recortado y su
+ * restauracion por breakpoint siguen declarados, contra los TOKENS
+ * importados y nunca contra una cadena escrita a mano (regla 38).
+ *
+ * Por texto de CSS inyectado y no por getComputedStyle: la mitad del
+ * contrato vive dentro de un `@media`, que jsdom no evalua (regla 36).
+ */
+describe("Journey: critica #10 hallazgo B2 -- frontera statement -> Journey en movil (tema claro)", () => {
+  it("la seccion clara recorta su padding-block-start a space[4] y lo restaura a space[8] desde md", () => {
+    const { container } = renderWithProviders(<Journey />);
+    const seccion = container.querySelector("#journey") as HTMLElement;
+    const css = cssRuleTextFor(seccion);
+
+    // Base (movil primero): el valor recortado.
+    expect(css).toContain(`padding-block-start: ${themes.light.space[4]}`);
+    // Y desde md, el original intacto -- dentro del bloque de @media, no
+    // antes: si estuviera fuera pisaria al recorte en TODO ancho.
+    const md = css.indexOf(themes.light.breakPoint.md);
+    expect(md).toBeGreaterThan(-1);
+    expect(css.slice(md)).toContain(
+      `padding-block-start: ${themes.light.space[8]}`,
+    );
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), ejecutado en esta tarea: devolver
+   * `padding-block-start: ${theme.data.space[8]}` al bloque BASE de la rama
+   * clara de `ScJourney` (Journey.tsx) pone este test en rojo por la primera
+   * asercion; restaurado el space[4], vuelve a verde.
+   */
+});
+
+/*
+ * Critica externa #10, hallazgo A (P2, heuristica 7 de Nielsen): los puntos
+ * del rail del deck eran `span` decorativos -- `tabIndex -1` heredado del
+ * `aria-hidden` del rail, sin rol, no clicables -- y encima casi invisibles
+ * (`semantic.border` a `opacity: 0.4`, 8 px sobre la escena casi negra del
+ * portal). Pasan a ser botones reales. El porque de cada mitad vive en el
+ * docblock de `ScJourneyRailMark` (`journey.deck.tsx`) y en el comentario
+ * del rail en `Journey.tsx`.
+ */
+describe("Journey: critica #10 hallazgo A -- el rail del deck es operable (tema oscuro)", () => {
+  const VH = 800;
+
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    vi.stubGlobal("innerHeight", VH);
+    vi.stubGlobal("scrollY", 0);
+    vi.stubGlobal("scrollTo", vi.fn());
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  async function railDeck(): Promise<{
+    track: HTMLElement;
+    botones: HTMLElement[];
+  }> {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    // La pista se fija ANTES de avisar al observer para que `measure()`
+    // calcule un progress exacto (misma tecnica que el resto de describes
+    // de este fichero).
+    track.getBoundingClientRect = () =>
+      ({
+        top: 0,
+        height: (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * VH,
+      }) as DOMRect;
+    const grupo = screen.getByRole("group", {
+      name: esHome.Home.journey.railLabel,
+    });
+    return {
+      track,
+      botones: within(grupo).getAllByRole("button"),
+    };
+  }
+
+  it("el rail es un grupo con nombre de i18n, y NO esta oculto del arbol de accesibilidad", async () => {
+    const { botones } = await railDeck();
+    const grupo = screen.getByRole("group", {
+      name: esHome.Home.journey.railLabel,
+    });
+
+    expect(grupo).not.toHaveAttribute("aria-hidden");
+    expect(botones).toHaveLength(JOURNEY_SLIDES);
+  });
+
+  it("cada marca es un boton con aria-label de i18n (posicion N de JOURNEY_SLIDES) y type=button", async () => {
+    const { botones } = await railDeck();
+
+    botones.forEach((boton, i) => {
+      const esperado = esHome.Home.journey.railGoTo
+        .replace("{{current}}", String(i + 1))
+        .replace("{{total}}", String(JOURNEY_SLIDES));
+      expect(boton).toHaveAttribute("type", "button");
+      expect(boton).toHaveAccessibleName(esperado);
+    });
+  });
+
+  it("aria-current marca UNA sola diapositiva y sigue al index del hook", async () => {
+    const { track, botones } = await railDeck();
+
+    act(() => triggerFor(track, true));
+    expect(
+      botones.filter((b) => b.getAttribute("aria-current") === "true"),
+    ).toHaveLength(1);
+    expect(botones[0]).toHaveAttribute("aria-current", "true");
+
+    // span = alto - vh - cola*vh = (8 + 1 - 1 - 1) * VH = 7 * VH; un
+    // progress de 3/7 pone el index en 3 (round(3/7 * 7)).
+    const span = (JOURNEY_SLIDES - 1) * VH;
+    track.getBoundingClientRect = () =>
+      ({
+        top: -(span * 3) / (JOURNEY_SLIDES - 1),
+        height: (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * VH,
+      }) as DOMRect;
+    // Salir y volver a entrar, no un segundo aviso de entrada: `start()`
+    // lleva guarda de reentrada (dos avisos seguidos de isIntersecting true
+    // no repiten la medicion inmediata), asi que sin el `false` de en medio
+    // este segundo trigger no mediria nada.
+    act(() => triggerFor(track, false));
+    act(() => triggerFor(track, true));
+
+    expect(botones[3]).toHaveAttribute("aria-current", "true");
+    expect(
+      botones.filter((b) => b.getAttribute("aria-current") === "true"),
+    ).toHaveLength(1);
+  });
+
+  it("pulsar la marca N lleva el scroll a la posicion exacta que activa esa diapositiva, con behavior smooth", async () => {
+    const { botones } = await railDeck();
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    // Aritmetica, no un numero magico: con la pista en top 0 y scrollY 0,
+    //   span = (JOURNEY_SLIDES + cola) * VH - VH - cola * VH
+    //        = (JOURNEY_SLIDES - 1) * VH
+    //   top(k) = k / (JOURNEY_SLIDES - 1) * span = k * VH
+    const span = (JOURNEY_SLIDES - 1) * VH;
+    [0, 3, JOURNEY_SLIDES - 1].forEach((k) => {
+      scrollTo.mockClear();
+      act(() => {
+        botones[k].click();
+      });
+      expect(scrollTo).toHaveBeenCalledWith({
+        top: (k / (JOURNEY_SLIDES - 1)) * span,
+        behavior: "smooth",
+      });
+    });
+  });
+
+  it("bajo prefers-reduced-motion el salto es instantaneo, nunca animado", async () => {
+    const { botones } = await railDeck();
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    // matchMedia que SI responde a la consulta de reduced-motion (el stub
+    // global de este fichero devuelve matches:false para cualquier query).
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes("prefers-reduced-motion"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+    scrollTo.mockClear();
+    act(() => {
+      botones[2].click();
+    });
+
+    expect(scrollTo).toHaveBeenCalledWith(
+      expect.objectContaining({ behavior: "instant" }),
+    );
+  });
+
+  it("el punto inactivo libra 3:1 (WCAG 1.4.11) sobre el void de la escena, y el activo sigue siendo otro color", async () => {
+    const { botones } = await railDeck();
+
+    // Que el COMPONENTE use de verdad el token que se mide abajo: sin esta
+    // linea, las cifras de contraste seguirian saliendo bien aunque el
+    // reposo del boton hubiera vuelto a `semantic.border` (regla 38 --
+    // contra el token importado, nunca contra una cadena a mano).
+    expect(cssRuleTextFor(botones[0])).toContain(
+      `color: ${themes.dark.semantic.borderStrong}`,
+    );
+
+    // Los dos fondos medibles por codigo de esta escena, mismo criterio que
+    // el candado de `ScQuoteText` (describe "Task 12"): el void declarado y
+    // la esquina MEDIDA de la capa opaca real, que es el dato mas cercano al
+    // pixel que existe en el repo.
+    const FONDOS = [JOURNEY_PORTAL_VOID, "#12012a"];
+    FONDOS.forEach((fondo) => {
+      const ratio = contrastRatioHex(themes.dark.semantic.borderStrong, fondo);
+      expect(
+        ratio,
+        `${fondo}: contraste ${ratio.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(3);
+    });
+
+    // Sonda de no-vacuidad: el punto ANTERIOR incumplia 1.4.11 de verdad, y
+    // la pieza que lo hundia era la OPACIDAD, no el token de color --
+    // `semantic.border` OPACO da 3.30:1, justo por encima del umbral, pero
+    // al 40 % sobre el void se queda muy por debajo.
+    //
+    // La composicion se calcula sobre la LUMINANCIA directamente, y eso es
+    // exacto, no una aproximacion: la luminancia relativa es una
+    // combinacion LINEAL de los canales RGB lineales, asi que mezclar los
+    // canales al 40 % y mezclar las luminancias al 40 % dan el mismo
+    // numero. (`contrastRatioOverAlpha` no sirve aqui: parsea las dos
+    // superficies como oklch y el void de la escena es un hex.)
+    const yPunto = relativeLuminance(themes.dark.semantic.border);
+    const yVoid = relativeLuminanceHex(JOURNEY_PORTAL_VOID);
+    const yCompuesto = 0.4 * yPunto + 0.6 * yVoid;
+    const ratioAntes =
+      (Math.max(yCompuesto, yVoid) + 0.05) /
+      (Math.min(yCompuesto, yVoid) + 0.05);
+    expect(
+      ratioAntes,
+      `punto inactivo anterior: ${ratioAntes.toFixed(2)}:1`,
+    ).toBeLessThan(3);
+
+    // El activo se distingue por COLOR ademas de por tamano: si los dos
+    // resolvieran al mismo token, el rail dejaria de comunicar posicion.
+    expect(themes.dark.semantic.brand).not.toBe(
+      themes.dark.semantic.borderStrong,
+    );
+  });
+
+  it("la diana del boton mide space[5] (24px, WCAG 2.5.8) aunque el punto siga midiendo space[2]", async () => {
+    const { botones } = await railDeck();
+    const css = cssRuleTextFor(botones[0]);
+
+    expect(css).toContain(`width: ${themes.dark.space[5]}`);
+    expect(css).toContain(`height: ${themes.dark.space[5]}`);
+    // El punto, en el pseudo-elemento, conserva su medida original.
+    const before = css.slice(css.indexOf("::before"));
+    expect(before).toContain(`width: ${themes.dark.space[2]}`);
+    // Y ya no hay ninguna opacidad recortando el inactivo.
+    expect(css).not.toContain("opacity: 0.4");
+  });
+
+  /*
+   * Bugs inyectados a proposito (regla 34), ejecutados en esta tarea:
+   * (a) devolver `background-color: semantic.border` + `opacity: 0.4` al
+   *     reposo de `ScJourneyRailMark` pone en rojo el candado de contraste y
+   *     el de la diana; restaurado, vuelven a verde.
+   * (b) cambiar `behavior: reduce ? "instant" : "smooth"` por un `"smooth"`
+   *     fijo en `scrollToSlide` (`useSlideDeck.ts`) pone en rojo el test de
+   *     reduced-motion; restaurado, vuelve a verde.
    */
 });

@@ -55,6 +55,44 @@ describe("constantes de la presentacion de Journey (test 1 de la spec, D3)", () 
     expect(JOURNEY_DECK_TAIL_SCREENS).toBe(1);
   });
 
+  /*
+   * Critica externa #10, hallazgo A ("tramo muerto de ~1.250 px al final del
+   * deck"): la cola NO se puede recortar desde Journey, y este test lo
+   * demuestra con la geometria en vez de dejarlo en prosa. La derivacion
+   * completa vive en el docblock de JOURNEY_DECK_TAIL_SCREENS
+   * (journey.layers.ts); aqui se comprueban las dos costuras que fijan el
+   * valor, calculadas sobre una pantalla arbitraria para que el resultado no
+   * dependa de ningun viewport concreto.
+   */
+  it("la cola es la UNICA solucion de las dos costuras con Features (T = R y R = 1)", () => {
+    const p = 900; // una pantalla cualquiera: las dos costuras son en `p`
+    const S = JOURNEY_SLIDES;
+    const T = JOURNEY_DECK_TAIL_SCREENS;
+    // R = el solape de Features, en pantallas. La igualdad R === T frente a
+    // FEATURES_OVERLAY_RISE la ata Features.test.tsx (invariante D5, importa
+    // los dos ficheros); aqui se parte de ella y se comprueba que ademas
+    // cierra la SEGUNDA costura, que aquel test no cubre.
+    const R = T;
+
+    const spanDelDeck = (S + T) * p - p - T * p;
+    const progresoLlegaA1 = spanDelDeck;
+    const stageSeDespega = (S + T - 1) * p;
+    const featuresEmpiezaACubrir = (S + T - R - 1) * p;
+    const featuresCubreDelTodo = (S + T - R) * p;
+
+    // Costura 1: Features no empieza a tapar la cita antes de que el deck
+    // termine su recorrido.
+    expect(featuresEmpiezaACubrir).toBe(progresoLlegaA1);
+    // Costura 2: el stage no se despega antes de que Features cubra del
+    // todo -- si lo hiciera, subiria una banda de la escena destapada.
+    expect(stageSeDespega).toBe(featuresCubreDelTodo);
+    // Las dos a la vez solo se cumplen con T = 1 (y R = T).
+    expect(T).toBe(1);
+    // Y el reparto resultante: la cita se lee limpia media ventana de indice
+    // (media pantalla) antes de que Features empiece a subir.
+    expect(featuresEmpiezaACubrir - (S - 1.5) * p).toBe(0.5 * p);
+  });
+
   it("cada diapositiva ocupa el alto completo de la vista", () => {
     expect(JOURNEY_DARK_HEIGHT).toBe("100dvh");
   });

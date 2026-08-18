@@ -171,6 +171,60 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
           max-width: ${theme.data.grid.navMax};
           margin-inline: auto;
           padding: ${theme.data.space[8]} ${theme.data.space[6]};
+
+          /* RECORTE DE LA FRONTERA statement -> Journey en MOVIL (critica
+             externa #10, hallazgo B2, 2026-08-18). Medido a 390x844 en tema
+             claro, y=3421: 290 px de banda vacia (34 % del viewport) entre el
+             enlace de Discord que cierra Story y el borde superior de la
+             tarjeta de Journey.
+
+             ARITMETICA DE LA BANDA, reproducida desde la fuente (el modelo da
+             289,9 px frente a los 290 medidos, asi que describe el hueco
+             real, no una hipotesis):
+
+               ScStatement (Story.tsx) mide min-height 70dvh = 590,8 px con
+               padding-block space[8] (64 px por lado) y su contenido -- unos
+               139 px de texto mas el enlace -- centrado con
+               justify-content center.
+                 hueco bajo el enlace = (590,8 - 128 - 139) / 2 = 161,9 px
+                 + padding-block-end de ScStatement                =  64,0 px
+                 + padding-block-start de ESTA seccion             =  64,0 px
+                                                                    ---------
+                                                                     289,9 px
+
+             POR QUE SOLO SE RECORTA ESTE TERMINO: los otros dos son de Story
+             y no responden como parece. Con min-height mandando (590,8 muy
+             por encima de 128 + 139), recortar el padding de ScStatement
+             AGRANDA su caja de contenido y el centrado se traga la mitad del
+             recorte -- bajarlo de 64 a 32 px devolveria 16 px, no 32. Es el
+             mismo mecanismo que la Ola B (2026-08-16) ya midio en el otro
+             extremo de esa seccion y dejo escrito en el docblock de ScStory.
+             El padding-block-start de aqui, en cambio, es 100 % efectivo: no
+             hay ningun centrado que lo absorba.
+
+             ANTES 64 px  ->  DESPUES 16 px (space[4]), banda 290 -> 242 px
+             (34,3 % -> 28,7 % del viewport de 844). La tarjeta ya aporta sus
+             propios 48 px de relleno interior (ScCard), asi que sobre el h2
+             quedan 64 px de aire, no 16.
+
+             SOLO POR DEBAJO DE md: la critica midio el defecto en movil y a
+             partir de 768 px el relleno original vuelve intacto -- no se
+             toca una composicion que nadie ha medido rota.
+
+             LO QUE NO CIERRA ESTE RECORTE, declarado y no disimulado: los
+             226 px restantes son el centrado de ScStatement dentro de sus
+             70dvh. Esa altura es una decision de diseno del dueno (Ola B,
+             2026-08-16) tomada midiendo a 1440x900, nunca re-medida a
+             390x844; cambiarla es rediseno de Story, no espaciado de
+             frontera.
+
+             SIN BACKTICKS: esto vive dentro de un template literal css de
+             styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+          padding-block-start: ${theme.data.space[4]};
+
+          @media ${theme.data.breakPoint.md} {
+            padding-block-start: ${theme.data.space[8]};
+          }
         `}
 `;
 
@@ -907,10 +961,19 @@ function JourneyDeckDark(): ReactElement {
   // contrato -- pero aqui no se desestructura: D6 dice explicitamente que
   // Journey no consume "rewind", asi que no hay ningun `data-dir` en esta
   // seccion.
-  const { index } = useSlideDeck(trackRef, stageRef, JOURNEY_SLIDES, {
-    tailScreens: JOURNEY_DECK_TAIL_SCREENS,
-    cssVarPrefix: "journey",
-  });
+  // `scrollToSlide` (critica externa #10, hallazgo A): el rail deja de ser
+  // decorativo y sus marcas pasan a ser botones que llevan al tramo de pista
+  // que activa cada diapositiva. La geometria la invierte el hook, que es
+  // quien ya la calcula en el sentido directo -- ver su docblock.
+  const { index, scrollToSlide } = useSlideDeck(
+    trackRef,
+    stageRef,
+    JOURNEY_SLIDES,
+    {
+      tailScreens: JOURNEY_DECK_TAIL_SCREENS,
+      cssVarPrefix: "journey",
+    },
+  );
 
   // Estado de cada diapositiva: se decide AQUI, comparando su indice con el
   // `index` que escribe el hook -- el CSS de ScJourneySlide
@@ -986,15 +1049,43 @@ function JourneyDeckDark(): ReactElement {
               </ScJourneyQuote>
             </ScJourneySlide>
           </ScJourneyDeck>
-          {/* Rail decorativo (D13): JOURNEY_SLIDES marcas, aria-hidden, que
-              reflejan data-slide del stage por CSS puro
-              (ScJourneyRailMark, journey.deck.tsx) -- no llevan estado
-              propio de React, solo su indice fijo. */}
-          <ScJourneyRail aria-hidden="true">
+          {/* Rail de progreso (D13), OPERABLE desde la critica externa #10
+              (hallazgo A): JOURNEY_SLIDES marcas que reflejan data-slide del
+              stage por CSS puro (ScJourneyRailMark, journey.deck.tsx) y que
+              ademas llevan a su diapositiva al pulsarlas.
+
+              De aria-hidden a role="group" + aria-label: ocho botones
+              operables no pueden estar fuera del arbol de accesibilidad, y
+              sin agrupar se anunciarian como ocho controles sin relacion
+              entre si.
+
+              EL aria-label DICE LA POSICION, NO EL DESTINO ("Ir a la
+              diapositiva 4 de 8", no "Ir a: Crea"), y es una decision, no una
+              simplificacion: lo que este rail comunica es POR DONDE VAS
+              --heuristica 7 de Nielsen, visibilidad del estado del sistema--
+              y el nombre de cada diapositiva ya se anuncia al llegar a ella.
+              Nombrar los ocho destinos aqui duplicaria el copy de la seccion
+              en una segunda fuente (h2, seis etiquetas y la cita) que
+              tendria que moverse a la vez que la primera.
+
+              aria-current marca el activo. NO gobierna el estilo: eso lo
+              sigue haciendo el selector descendiente sobre data-slide, que ya
+              estaba probado -- ver el docblock de ScJourneyRailMark. */}
+          <ScJourneyRail
+            role="group"
+            aria-label={t("Home.journey.railLabel")}
+          >
             {Array.from({ length: JOURNEY_SLIDES }, (_, railIndex) => (
               <ScJourneyRailMark
                 key={railIndex}
+                type="button"
                 $index={railIndex}
+                aria-label={t("Home.journey.railGoTo", {
+                  current: railIndex + 1,
+                  total: JOURNEY_SLIDES,
+                })}
+                aria-current={railIndex === index ? "true" : undefined}
+                onClick={() => scrollToSlide(railIndex)}
               />
             ))}
           </ScJourneyRail>

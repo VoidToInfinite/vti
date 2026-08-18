@@ -271,6 +271,62 @@ export const JOURNEY_SLIDES = JOURNEY_STEPS.length + 2;
  *
  * Precedente exacto: `STORY_DECK_TAIL_SCREENS` (`story.layers.ts`), la misma
  * zona de hold que hoy sostiene la superposición de Journey sobre Story.
+ *
+ * ---
+ *
+ * POR QUÉ EL VALOR ES 1 Y NO SE PUEDE RECORTAR DESDE AQUÍ (crítica externa
+ * #10, hallazgo A, 2026-08-18). La crítica midió, a 1440×900 en tema oscuro,
+ * «un tramo muerto de ~1.250 px al final del deck»: entre `scrollY` 12.150 y
+ * 13.400 la cita de cierre se queda clavada con el DOM de `#journey`
+ * idéntico. La medición es correcta; la conclusión de que sobra pista, no.
+ * Queda escrito aquí para que la próxima ola no vuelva a intentar recortar la
+ * cola sin ver las dos condiciones que la fijan.
+ *
+ * Sea `S` = `JOURNEY_SLIDES` (8), `T` = esta constante, `R` =
+ * `FEATURES_OVERLAY_RISE` en pantallas, `p` = una pantalla, `A` = el inicio
+ * de la pista en el documento. Con `track = (S + T)·p`:
+ *
+ *   span (el recorrido que reparte `useSlideDeck`) = (S + T)·p − p − T·p
+ *                                                  = (S − 1)·p
+ *   `progress` llega a 1 en          A + (S − 1)·p
+ *   el stage se despega en           A + (S + T − 1)·p
+ *   Features empieza a cubrir en     A + (S + T − R − 1)·p
+ *   Features cubre del todo en       A + (S + T − R)·p
+ *
+ * Dos costuras que tienen que cerrar a la vez:
+ *   (1) Features NO puede empezar a tapar la cita antes de que el deck
+ *       termine  ⟹  S + T − R − 1 = S − 1  ⟹  **T = R**
+ *   (2) el stage no puede despegarse antes de que Features cubra del todo, o
+ *       una banda de la escena de Journey sube destapada
+ *              ⟹  S + T − 1 = S + T − R  ⟹  **R = 1**, y con (1), **T = 1**
+ *
+ * `T = 1` no es un número elegido: es la única solución del sistema. Bajarlo
+ * exige bajar `FEATURES_OVERLAY_RISE` a la vez — otra sección, otro fichero —
+ * y aun así (2) obliga a que sigan siendo iguales, así que el recorte no sale
+ * gratis en ninguna de las dos.
+ *
+ * QUÉ ES DE VERDAD ESE TRAMO, con las cifras del propio modelo (que reproduce
+ * el 12.150 medido al píxel, así que describe la página real):
+ *
+ *   12.150 → 12.600 (450 px, = 0,5 pantallas)
+ *       la cita ya es la diapositiva activa y `progress` sube de 0,9286 a 1.
+ *       Es media ventana de índice: `useSlideDeck` redondea, así que la
+ *       primera y la última diapositiva se llevan media ventana cada una.
+ *       NO es desperdicio — es la ÚNICA franja en la que la cita se lee sin
+ *       Features encima. Recortarla dejaría el cierre de la sección sin un
+ *       solo píxel de lectura limpia.
+ *   12.600 → 13.500 (900 px, = T)
+ *       Features sube y va cubriendo. Aquí el DOM de `#journey` sí es
+ *       idéntico frame a frame — que es exactamente lo que la crítica midió —
+ *       pero la pantalla no está quieta: lo que se mueve es la sección
+ *       siguiente, que la sonda no observaba.
+ *
+ * Y el segundo síntoma del mismo hallazgo («entre 14.150 y 14.400 no se
+ * renderiza nada») cae FUERA de esta sección: la pista de Journey acaba en
+ * 14.400 y Features empieza en 13.500, así que ese tramo es el final de
+ * `ScDarkFrame` y el principio de `ScDarkTail` (`Features.tsx`) — la zona de
+ * hold que Features reserva a propósito para que Contacto suba sobre ella.
+ * Se declara, no se toca: es otra sección.
  */
 export const JOURNEY_DECK_TAIL_SCREENS = 1;
 

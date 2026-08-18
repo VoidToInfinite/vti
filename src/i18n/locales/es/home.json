@@ -49,6 +49,8 @@
             "quote": "El destino no es el infinito. El viaje lo es.",
             "figureAlt": "Figura celestial presentando el viaje con la palma abierta",
             "stepPosition": "Paso {{current}} de {{total}}",
+            "railLabel": "Progreso del viaje",
+            "railGoTo": "Ir a la diapositiva {{current}} de {{total}}",
             "steps": {
                 "discover": {
                     "label": "Descubre",

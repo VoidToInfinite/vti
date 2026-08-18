@@ -49,6 +49,8 @@
             "quote": "The destination is not infinity. The journey is.",
             "figureAlt": "Celestial figure presenting the journey with an open palm",
             "stepPosition": "Step {{current}} of {{total}}",
+            "railLabel": "Journey progress",
+            "railGoTo": "Go to slide {{current}} of {{total}}",
             "steps": {
                 "discover": {
                     "label": "Discover",

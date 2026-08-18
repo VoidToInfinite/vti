@@ -1,5 +1,11 @@
 "use client";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 /** Sentido del último desplazamiento significativo dentro de la pista. */
 export type SlideDeckDirection = "forward" | "rewind";
@@ -9,6 +15,24 @@ export interface SlideDeckState {
   index: number;
   /** Sentido del último desplazamiento significativo dentro de la pista. */
   direction: SlideDeckDirection;
+  /**
+   * Lleva el scroll de la página a la posición de la pista que activa la
+   * diapositiva `slideIndex` (crítica externa #10, hallazgo A: el rail de
+   * progreso deja de ser decorativo y pasa a ser un control real).
+   *
+   * Vive AQUÍ y no en el consumidor porque la geometría que hay que invertir
+   * (`progress = -rect.top / span`, con `span` descontando el viewport y la
+   * cola) es exactamente la que calcula `measure()` unas líneas más abajo:
+   * reimplementarla en la sección duplicaría la fórmula en dos sitios que
+   * tendrían que moverse a la vez — la clase de duplicación que este repo ya
+   * ha pagado (regla 13/41 de `RULES.md`). El hook sigue sin saber a qué
+   * presentación gobierna: solo invierte su propia fórmula.
+   *
+   * No hace nada si la pista todavía no está montada, si la presentación
+   * tiene una sola diapositiva o si el tramo de recorrido es <= 0 (los
+   * mismos casos degenerados que `measure()` ya trata).
+   */
+  scrollToSlide: (slideIndex: number) => void;
 }
 
 /**
@@ -317,5 +341,60 @@ export function useSlideDeck(
     };
   }, [trackRef, stageRef]);
 
-  return { index, direction };
+  /*
+   * Inversa exacta de `measure()`: dado un índice de diapositiva, devuelve la
+   * posición de scroll del documento en la que ese índice sería el activo.
+   *
+   *   measure:  progress = -rect.top / span      index = round(progress * (N-1))
+   *   inversa:  progress = slideIndex / (N-1)    top   = trackTopDoc + progress * span
+   *
+   * `span` se recalcula aquí y no se cachea a propósito: `vh` y la altura de
+   * la pista cambian con cada `resize`, y el hook ya renuncia a cachear
+   * geometría por ese motivo en el motor de medición. Un
+   * `getBoundingClientRect()` en el instante de un click no compite con
+   * nada — a diferencia del de `measure()`, que corre por frame de scroll.
+   *
+   * El centro exacto de la ventana de un índice es `slideIndex / (N-1)`
+   * porque `updateIndex` redondea: el índice k es el activo mientras
+   * `progress` cae en `[(k-0.5)/(N-1), (k+0.5)/(N-1)]`. Aterrizar en el
+   * centro deja media ventana de margen a cada lado, así que un píxel de
+   * diferencia por redondeo del navegador no cambia la diapositiva activa.
+   *
+   * `behavior` bajo `prefers-reduced-motion: reduce`: "instant", nunca
+   * "smooth" — un salto de varias pantallas con desplazamiento animado es
+   * exactamente el movimiento que esa preferencia pide evitar. Se consulta
+   * `matchMedia` en el momento del click y no se cachea porque la
+   * preferencia puede cambiar en caliente (el efecto de arriba ya escucha
+   * ese `change` por su cuenta). En la práctica, bajo `reduce` el rail está
+   * en `display: none` (la presentación se linealiza, D12) y este camino no
+   * es alcanzable; se implementa igualmente para que el contrato del hook no
+   * dependa de una decisión de CSS de UNO de sus consumidores.
+   */
+  const scrollToSlide = useCallback(
+    (slideIndex: number): void => {
+      const track = trackRef.current;
+      if (!track) return;
+      const total = slidesRef.current;
+      if (total <= 1) return;
+
+      const rect = track.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const span = rect.height - vh - optionsRef.current.tailScreens * vh;
+      if (span <= 0) return;
+
+      const progress = clamp(slideIndex, 0, total - 1) / (total - 1);
+      const trackTopDoc = rect.top + window.scrollY;
+      const reduce = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      window.scrollTo({
+        top: trackTopDoc + progress * span,
+        behavior: reduce ? "instant" : "smooth",
+      });
+    },
+    [trackRef],
+  );
+
+  return { index, direction, scrollToSlide };
 }

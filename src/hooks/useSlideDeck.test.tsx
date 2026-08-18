@@ -328,7 +328,20 @@ describe("useSlideDeck", () => {
     );
 
     expect(raf).not.toHaveBeenCalled();
-    expect(result.current).toEqual({ index: 0, direction: "forward" });
+    // Contrato CERRADO del valor devuelto (regla 40 de RULES.md): se
+    // actualiza la fuente de verdad del test al ampliar la API, no se relaja
+    // la asercion. `scrollToSlide` (critica externa #10, hallazgo A) es la
+    // tercera clave desde 2026-08-18; se compara su TIPO, porque la
+    // identidad de la funcion cambia con cada render y `toEqual` sobre ella
+    // no diria nada util.
+    expect(Object.keys(result.current).sort()).toEqual([
+      "direction",
+      "index",
+      "scrollToSlide",
+    ]);
+    expect(result.current.index).toBe(0);
+    expect(result.current.direction).toBe("forward");
+    expect(typeof result.current.scrollToSlide).toBe("function");
   });
 
   it("dos avisos seguidos de interseccion no arrancan dos bucles", () => {
@@ -482,4 +495,165 @@ describe("useSlideDeck", () => {
     expect(removedTypes).toContain("scroll");
     expect(removedTypes).toContain("resize");
   });
+});
+
+/*
+ * `scrollToSlide` (critica externa #10, hallazgo A): la inversa de la
+ * geometria que `measure()` calcula en el sentido directo. Existe para que el
+ * rail de progreso del deck pueda ser un control real y no un adorno --
+ * consumidor de hoy: `ScJourneyRailMark` via `JourneyDeckDark`
+ * (`Journey.tsx`).
+ *
+ * Los numeros de estos tests NO son literales: se derivan de las mismas
+ * constantes (`SLIDES`, `VH`, la cola) que usa el hook, para que sigan
+ * describiendo la misma propiedad si alguna cambia (regla 39 de RULES.md).
+ */
+describe("useSlideDeck: scrollToSlide", () => {
+  /** Alto de pista con la misma forma que usan Story/Journey: (N + cola) pantallas. */
+  function pistaDe(cola: number): number {
+    return (SLIDES + cola) * VH;
+  }
+  /** El mismo `span` que calcula `measure()`. */
+  function spanDe(cola: number): number {
+    return pistaDe(cola) - VH - cola * VH;
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    vi.stubGlobal("scrollTo", vi.fn());
+    vi.stubGlobal("scrollY", 0);
+  });
+
+  it("lleva el scroll al centro de la ventana de cada indice, con la pista en el origen del documento", () => {
+    const cola = 0;
+    const track = trackWith(0, pistaDe(cola));
+    const trackRef = refOf(track);
+    const stageRef = refOf(document.createElement("div"));
+    const { result } = renderHook(() =>
+      useSlideDeck(trackRef, stageRef, SLIDES),
+    );
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    for (let k = 0; k < SLIDES; k += 1) {
+      scrollTo.mockClear();
+      act(() => result.current.scrollToSlide(k));
+      expect(scrollTo).toHaveBeenCalledWith({
+        top: (k / (SLIDES - 1)) * spanDe(cola),
+        behavior: "smooth",
+      });
+    }
+  });
+
+  it("descuenta la cola del recorrido, igual que measure(): sobre la MISMA pista, el ultimo indice cae una pantalla antes", () => {
+    const alto = pistaDe(1);
+    const stageRef = refOf(document.createElement("div"));
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    const conCola = renderHook(() =>
+      useSlideDeck(refOf(trackWith(0, alto)), stageRef, SLIDES, {
+        tailScreens: 1,
+      }),
+    );
+    act(() => conCola.result.current.scrollToSlide(SLIDES - 1));
+    const topConCola = scrollTo.mock.calls.at(-1)?.[0].top as number;
+
+    const sinCola = renderHook(() =>
+      useSlideDeck(refOf(trackWith(0, alto)), stageRef, SLIDES),
+    );
+    act(() => sinCola.result.current.scrollToSlide(SLIDES - 1));
+    const topSinCola = scrollTo.mock.calls.at(-1)?.[0].top as number;
+
+    // Sin descontar la cola, el ultimo indice aterrizaria EXACTAMENTE una
+    // pantalla mas abajo: dentro del tramo de hold, donde el deck ya no
+    // avanza y la ultima diapositiva lleva rato quieta.
+    expect(topConCola).toBe(alto - VH - VH);
+    expect(topSinCola).toBe(alto - VH);
+    expect(topSinCola - topConCola).toBe(VH);
+  });
+
+  it("suma la posicion de la pista en el documento (scrollY + rect.top), no solo el progreso", () => {
+    const cola = 0;
+    vi.stubGlobal("scrollY", 1234);
+    const track = trackWith(500, pistaDe(cola));
+    const trackRef = refOf(track);
+    const stageRef = refOf(document.createElement("div"));
+    const { result } = renderHook(() =>
+      useSlideDeck(trackRef, stageRef, SLIDES),
+    );
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    act(() => result.current.scrollToSlide(0));
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 1734, behavior: "smooth" });
+  });
+
+  it("bajo prefers-reduced-motion el salto es instantaneo", () => {
+    stubMatchMedia(true);
+    const track = trackWith(0, pistaDe(0));
+    const trackRef = refOf(track);
+    const stageRef = refOf(document.createElement("div"));
+    const { result } = renderHook(() =>
+      useSlideDeck(trackRef, stageRef, SLIDES),
+    );
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    act(() => result.current.scrollToSlide(2));
+
+    expect(scrollTo).toHaveBeenCalledWith(
+      expect.objectContaining({ behavior: "instant" }),
+    );
+  });
+
+  it("no hace nada con una sola diapositiva ni con un recorrido de pista <= 0", () => {
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    const unaSola = renderHook(() =>
+      useSlideDeck(
+        refOf(trackWith(0, pistaDe(0))),
+        refOf(document.createElement("div")),
+        1,
+      ),
+    );
+    act(() => unaSola.result.current.scrollToSlide(0));
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    // Pista mas corta que el viewport: no hay tramo del que derivar
+    // progreso, el mismo caso degenerado que measure() ya trata.
+    const sinRecorrido = renderHook(() =>
+      useSlideDeck(
+        refOf(trackWith(0, VH / 2)),
+        refOf(document.createElement("div")),
+        SLIDES,
+      ),
+    );
+    act(() => sinRecorrido.result.current.scrollToSlide(3));
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("acota el indice al rango valido en vez de salirse de la pista", () => {
+    const track = trackWith(0, pistaDe(0));
+    const trackRef = refOf(track);
+    const stageRef = refOf(document.createElement("div"));
+    const { result } = renderHook(() =>
+      useSlideDeck(trackRef, stageRef, SLIDES),
+    );
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    act(() => result.current.scrollToSlide(999));
+    expect(scrollTo).toHaveBeenLastCalledWith({
+      top: spanDe(0),
+      behavior: "smooth",
+    });
+
+    act(() => result.current.scrollToSlide(-5));
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: "smooth" });
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), ejecutado en esta tarea: cambiar
+   * `const span = rect.height - vh - optionsRef.current.tailScreens * vh` por
+   * `rect.height - vh` en `scrollToSlide` pone en rojo el test de la cola
+   * (aterriza una pantalla mas abajo); restaurada la linea, vuelve a verde.
+   */
 });
