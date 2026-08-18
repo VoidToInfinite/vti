@@ -150,4 +150,34 @@ describe("NotFoundContent", () => {
     const css = cssRuleTextFor(enlace);
     expect(css).toContain("touch-action: manipulation");
   });
+
+  /*
+   * Critica #10, hallazgo C (integracion de la ola): este es el otro
+   * `styled.main` del repo con el patron `max-width: prose` +
+   * `margin-inline: auto` + padding dentro de `border-box`. Mismo arreglo y
+   * mismo candado que `legalPage.parts.test.tsx`: `width: 100%` (sin ancho
+   * definido, un item flex de la columna de `body` con margenes auto no se
+   * estira y se dimensiona por contenido — Flexbox §8.3) y el tope sumando
+   * los dos rellenos para que `grid.prose` gobierne la caja de CONTENIDO.
+   * jsdom conserva el `calc()` con los saltos de linea del template, asi
+   * que se normaliza el espacio antes de comparar. Validado con bug
+   * inyectado (linea `width: 100%` retirada -> rojo; restaurada -> verde;
+   * `calc` devuelto a `max-width: prose` pelado -> rojo).
+   */
+  it("critica #10: el main tiene ancho definido y la medida de prosa gobierna la caja de contenido", () => {
+    const { container } = renderWithProviders(<NotFoundContent />);
+    const main = container.querySelector("main") as HTMLElement;
+    const css = cssRuleTextFor(main)
+      .replace(/\s+/g, " ")
+      .replace(/\(\s/g, "(")
+      .replace(/\s\)/g, ")");
+
+    expect(css).toMatch(/[{;]\s*width: 100%/);
+    expect(css).toContain(
+      `max-width: calc(${themes.light.grid.prose} + 2 * ${themes.light.space[5]})`,
+    );
+    expect(css).toContain(
+      `max-width: calc(${themes.light.grid.prose} + 2 * ${themes.light.space[6]})`,
+    );
+  });
 });

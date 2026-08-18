@@ -33,26 +33,44 @@ import { Typography } from "@/components/ui/Typography/Typography";
  * `scroll-margin-top` en `GlobalStyles.tsx` para compensar la misma barra,
  * no un numero inventado aqui.
  *
- * `max-width: theme.data.grid.prose` + `margin-inline: auto`: el mismo
- * ancho de lectura que ya usa `ScMain` de `legalPage.parts.tsx` (52ch
- * desde 2026-08-17, ~65 caracteres reales;
- * D21/§3 de la spec legal) -- esta pagina no es un articulo largo, pero
- * reutiliza la misma medida del sistema en vez de inventar una tercera, y
- * centra el bloque en vez de dejarlo pegado al borde izquierdo del
+ * `max-width` + `margin-inline: auto`: el mismo ancho de lectura que ya usa
+ * `ScMain` de `legalPage.parts.tsx` (52ch desde 2026-08-17, ~65 caracteres
+ * reales; D21/§3 de la spec legal) -- esta pagina no es un articulo largo,
+ * pero reutiliza la misma medida del sistema en vez de inventar una tercera,
+ * y centra el bloque en vez de dejarlo pegado al borde izquierdo del
  * viewport.
+ *
+ * `width: 100%` + `calc(prose + 2 * padding-inline)` (critica #10, hallazgo
+ * C, mismo arreglo que la ScMain legal): este es el OTRO `styled.main` del
+ * repo con el patron `max-width: prose` + `margin-inline: auto` + padding
+ * dentro de `border-box`. Sin el `calc`, el relleno se comia 48 px de la
+ * medida (columna real 417,92 px); sin el `width` definido, un item flex de
+ * la columna de `body` con margenes auto no se estira (Flexbox §8.3) y se
+ * dimensiona por contenido -- aqui el mecanismo esta latente (texto
+ * centrado, sin tabla que dispare el `min-content`), pero se cierra igual
+ * para que nadie lo herede al anadir contenido ancho. El `calc` sigue al
+ * padding en cada breakpoint (space[5] base, space[6] en `md`).
  */
 const ScMain = styled.main`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[4]};
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  width: 100%;
+  max-width: calc(
+    ${({ theme }) => theme.data.grid.prose} + 2 *
+      ${({ theme }) => theme.data.space[5]}
+  );
   margin-inline: auto;
   padding: calc(var(--nav-height) + ${({ theme }) => theme.data.space[8]})
     ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[9]};
   text-align: center;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
+    max-width: calc(
+      ${({ theme }) => theme.data.grid.prose} + 2 *
+        ${({ theme }) => theme.data.space[6]}
+    );
     padding-inline: ${({ theme }) => theme.data.space[6]};
   }
 `;
