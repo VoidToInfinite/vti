@@ -41,16 +41,14 @@ function notify(): void {
  * Este módulo se limita a LEER esa señal ya calculada; no vuelve a medir
  * ninguna geometría de scroll por su cuenta.
  *
- * Desempate cuando más de una sección tiene `data-inview="true"` a la vez:
- * ocurre en la franja de transición entre dos secciones contiguas, porque
- * el `IntersectionObserver` de `useSectionProgress` usa el `threshold` por
- * defecto (0) -- "dentro" es cualquier solape mayor que cero, así que la
- * sección que sale por arriba y la que entra por abajo pueden estar las dos
- * en `true` durante un tramo del cruce. Gana la ÚLTIMA en el orden de la
- * página (`ACTIVE_SECTION_IDS`, de arriba a abajo): el usuario ya ha visto
- * casi toda la sección saliente y está mirando la entrante, así que
- * mantener resaltada la que se va leería como una navegación que va por
- * detrás del scroll real.
+ * Más de una sección puede tener `data-inview="true"` a la vez, y de hecho
+ * es lo normal: el `IntersectionObserver` de `useSectionProgress` usa el
+ * `threshold` por defecto (0), así que "dentro" es cualquier solape mayor
+ * que cero. `data-inview` es por tanto el FILTRO de candidatas de este
+ * módulo, no su respuesta: quién gana ENTRE las candidatas lo decide la
+ * geometría, con la regla que documenta `resolveAmongCandidates()` más
+ * abajo (reescrita el 2026-08-18 por la crítica externa #10; hasta esa
+ * fecha ganaba la última en el orden de la página, y ahí estaba el fallo).
  *
  * FIX WAVE A, hallazgo A2 (revisión final de rama). Bajo
  * `prefers-reduced-motion: reduce`, `useSectionProgress.stopForReduced()`
@@ -73,18 +71,19 @@ function notify(): void {
  * Arreglo elegido (de las dos opciones razonables -- resolver por geometría
  * real, o devolver `null` sin más -- se prefiere la primera): bajo `reduce`
  * se ignora `data-inview` por completo y se resuelve con
- * `getBoundingClientRect()` sobre las mismas cuatro secciones, con el MISMO
- * criterio de desempate (última en orden de página que interseca el
- * viewport). Se prefiere a devolver `null` porque el usuario con `reduce`
- * activado sigue navegando por scroll con normalidad -- solo el PARALLAX
- * está inmóvil, no la página -- así que apagar `aria-current` del todo para
- * este grupo de visitantes sería perder la función completa por una
- * limitación de un consumidor DISTINTO (`useSectionProgress`) que no
- * aplica aquí: medir un `getBoundingClientRect` en cada `scroll`/`resize`
- * es exactamente el coste que este módulo ya evita en el camino normal
- * (docblock de arriba), pero aquí es barato porque ni `reduce` ni el
- * scrollspy corren a 60fps -- solo en los eventos discretos que ya
- * escuchaba este mismo módulo.
+ * `getBoundingClientRect()` sobre las mismas cuatro secciones, con la MISMA
+ * regla de resolución que el camino normal (`resolveAmongCandidates`, ver su
+ * docblock): lo único que cambia entre los dos caminos es de dónde salen las
+ * candidatas -- de la señal ya calculada, o de la geometría medida aquí --,
+ * nunca cómo se decide entre ellas. Se prefiere a devolver `null` porque el
+ * usuario con `reduce` activado sigue navegando por scroll con normalidad
+ * -- solo el PARALLAX está inmóvil, no la página -- así que apagar
+ * `aria-current` del todo para este grupo de visitantes sería perder la
+ * función completa por una limitación de un consumidor DISTINTO
+ * (`useSectionProgress`) que no aplica aquí. El coste (un
+ * `getBoundingClientRect` por sección en cada `scroll`/`resize`) es barato
+ * porque ni `reduce` ni el scrollspy corren a 60fps: se paga solo en los
+ * eventos discretos que este mismo módulo ya escuchaba.
  */
 /**
  * Defensivo ante `typeof window.matchMedia !== "function"` (jsdom SIN stub):
@@ -107,8 +106,10 @@ function isReducedMotion(): boolean {
 /** Mismo criterio de "está en el viewport" que exige un solape > 0 contra
  *  `rect.top`/`rect.bottom` -- el mismo umbral implícito (threshold 0) que
  *  ya usa el `IntersectionObserver` por defecto de `useSectionProgress` en
- *  el camino normal, para que el desempate ("última en orden de página")
- *  se comporte igual en los dos caminos. */
+ *  el camino normal. Es lo que hace que el camino por geometría produzca
+ *  EXACTAMENTE el mismo conjunto de candidatas que `data-inview` marcaría en
+ *  el normal, y por tanto que la regla de resolución
+ *  (`resolveAmongCandidates`) dé la misma respuesta en los dos. */
 function intersectsViewport(rect: DOMRect): boolean {
   return rect.top < window.innerHeight && rect.bottom > 0;
 }
@@ -155,11 +156,11 @@ function intersectsViewport(rect: DOMRect): boolean {
  * oscuro.
  *
  * ARREGLO: cuando la señal no existe en el árbol, se resuelve por geometría
- * con la función de arriba -- exactamente el mismo mecanismo, el mismo
- * criterio de desempate y el mismo coste que el camino de `reduce` ya
- * validó, sin un `IntersectionObserver` nuevo ni un hook nuevo en la rama
- * oscura. Los listeners de `scroll`/`resize` que ese camino necesita ya
- * estaban registrados.
+ * con la función de arriba -- exactamente el mismo mecanismo, la misma regla
+ * de resolución y el mismo coste que el camino de `reduce` ya validó, sin un
+ * `IntersectionObserver` nuevo ni un hook nuevo en la rama oscura. Los
+ * listeners de `scroll`/`resize` que ese camino necesita ya estaban
+ * registrados.
  *
  * SE MIRA LA PRESENCIA DEL ATRIBUTO, NO SU VALOR, y la diferencia importa:
  * "las cuatro en `false`" es un estado legítimo del camino normal (el lector
@@ -171,14 +172,133 @@ function intersectsViewport(rect: DOMRect): boolean {
  * correcta antes; en cuanto `useSectionProgress` escribe el atributo, el
  * módulo vuelve solo al camino de la señal ya calculada.
  */
+/** Una sección de la home y su elemento real, tal como los recoge la única
+ *  pasada por el DOM de `resolveActiveKey()`. */
+interface SectionElement {
+  readonly id: string;
+  readonly el: HTMLElement;
+}
+
+/** Una candidata YA medida: la geometría se toma una sola vez por evaluación
+ *  y viaja con ella, así que ninguna de las dos mitades de la regla vuelve a
+ *  pedir el `getBoundingClientRect()` de un elemento ya medido. */
+interface MeasuredSection {
+  readonly id: string;
+  readonly rect: DOMRect;
+}
+
+function measure(secciones: readonly SectionElement[]): MeasuredSection[] {
+  return secciones.map(({ id, el }) => ({
+    id,
+    rect: el.getBoundingClientRect(),
+  }));
+}
+
+/**
+ * Punto del viewport contra el que se decide qué sección se está leyendo,
+ * como fracción de su alto: 0,5 = el centro vertical. Se elige el centro y no
+ * un punto sesgado hacia arriba (el patrón de "línea de lectura" bajo la
+ * barra de navegación) porque el centro es el único valor que no depende del
+ * alto de la barra ni de la altura del viewport: con él, la ventana de scroll
+ * en la que una sección está activa mide exactamente su propio alto,
+ * empezando y terminando cuando sus bordes cruzan el punto. Cualquier sesgo
+ * es una preferencia estética que habría que volver a justificar cada vez que
+ * cambie la barra; el centro no.
+ */
+const VIEWPORT_REFERENCE_FRACTION = 0.5;
+
+/**
+ * REGLA DE RESOLUCIÓN entre las candidatas de cualquiera de los dos caminos:
+ * gana la sección que CONTIENE el punto de referencia del viewport y, solo si
+ * ese punto cae en un hueco entre secciones, la de MAYOR superficie visible.
+ *
+ * POR QUÉ CAMBIÓ (crítica externa #10, 2026-08-18, hallazgo convergente en
+ * tres barridos independientes). Hasta esa fecha ganaba la ÚLTIMA candidata
+ * en el orden de la página. Sobre un `threshold` 0 -- cualquier solape mayor
+ * que cero marca `data-inview` -- eso significa que la sección SIGUIENTE gana
+ * desde su primer píxel de solape. Medido en navegador (tema claro,
+ * 1440x900, viewport de 800 px; en coordenadas de documento: story 800-1882,
+ * journey 2442-3076,6 -- 634,6 px de alto --, features 3077-4573): con el
+ * scroll en 2500, Viaje ocupa 577 px del viewport (72 %) y Características
+ * 223 px (28 %), y la navegación anunciaba «Características». Viaje solo
+ * ganaba en una ventana de 395 px de scroll, menos de dos tercios de su
+ * propio alto. El mecanismo castiga a TODA sección más corta que el viewport,
+ * y anunciar por ARIA una ubicación falsa es peor que no anunciar ninguna --
+ * el mismo criterio con el que se arregló la fix wave A, más arriba.
+ *
+ * POR QUÉ EL PUNTO DE REFERENCIA, y no la alternativa razonable (dominancia
+ * directa: gana siempre la de mayor superficie visible), que arreglaría igual
+ * de bien el caso medido. La dominancia tiene un SUELO DE ALTURA por debajo
+ * del cual una sección no puede ganar en NINGUNA posición de scroll: con una
+ * sección corta de alto `h` entre dos vecinas contiguas y un viewport de alto
+ * `V`, la superficie de la corta nunca pasa de `h`, mientras que las vecinas
+ * se reparten `V - h`; en su mejor posición (centrada) cada vecina enseña
+ * `(V - h) / 2`, así que la corta solo gana si `h > V/3`. Con el viewport de
+ * 800 px medido, cualquier sección de menos de 267 px de alto quedaría
+ * invisible para la navegación para siempre -- exactamente la familia de
+ * defecto que se está arreglando, con otro disfraz. El punto de referencia no
+ * tiene suelo: basta con que la sección exista bajo él. Y da además la
+ * propiedad que hace la regla explicable en una línea: cada sección es la
+ * activa durante tantos píxeles de scroll como mide de alto, sea cual sea el
+ * viewport.
+ *
+ * La dominancia se conserva como RESPALDO porque el punto de referencia puede
+ * caer en un HUECO entre dos secciones (el que separa el Hero de Story, o
+ * Story de Viaje: el arte de fondo y los márgenes de sección no son sección),
+ * y ahí sigue habiendo una respuesta correcta -- la que más pantalla ocupa --
+ * en vez de apagar `aria-current` a mitad de la página. Sin candidatas la
+ * respuesta sigue siendo `null`: ese contrato (el lector está en el Hero) no
+ * cambia.
+ *
+ * EMPATE EXACTO, en las dos mitades: gana la sección de MÁS ABAJO en el orden
+ * de la página. La contención se prueba sobre el intervalo SEMIABIERTO
+ * `[top, bottom)`, así que dos secciones contiguas que comparten un borde
+ * exacto no lo contienen las dos: lo contiene la de abajo, la que se está
+ * entrando -- con dos secciones repartiéndose la pantalla, eso pone el cambio
+ * exactamente en el 50/50, ni un píxel antes ni después. El respaldo compara
+ * con `>=` (se recorre de arriba abajo, así que gana la última empatada) por
+ * coherencia con lo anterior. No hay parpadeo posible en la frontera porque
+ * no hay histéresis ni estado que mantener: la respuesta es una función pura
+ * de la geometría, con UN solo cruce por frontera y monótona en el sentido
+ * del scroll -- para que oscilara tendría que oscilar el propio scroll.
+ * `dominantSectionId` (`themeScrollAnchor.ts`) resuelve su empate al revés
+ * (`>`, gana la primera) y también a propósito: allí la pregunta es "¿a qué
+ * sección devuelvo al lector moviéndolo lo menos posible?", no "¿cuál está
+ * mirando ahora?".
+ */
+function resolveAmongCandidates(
+  candidatas: readonly MeasuredSection[],
+): string | null {
+  const vh = window.innerHeight;
+  const referencia = vh * VIEWPORT_REFERENCE_FRACTION;
+  let contiene: string | null = null;
+  let dominante: string | null = null;
+  let mayorSolape = -1;
+
+  for (const { id, rect } of candidatas) {
+    if (rect.top <= referencia && referencia < rect.bottom) contiene = id;
+    const solape = Math.min(rect.bottom, vh) - Math.max(rect.top, 0);
+    if (solape >= mayorSolape) {
+      mayorSolape = solape;
+      dominante = id;
+    }
+  }
+
+  return contiene ?? dominante;
+}
+
 /*
- * UNA SOLA PASADA POR EL DOM. La primera versión de este arreglo preguntaba
- * dos veces: un predicado "hay señal" que recorría las cuatro secciones con
- * `getElementById`, y después el resolutor elegido, que las volvía a
- * recorrer. `evaluate()` está en camino caliente -- lo dispara cada
- * `scroll`/`resize` y, en la rama clara, cada escritura de `data-inview` vía
- * `MutationObserver`, que ocurre por frame --, así que no se duplican cuatro
- * `getElementById` por evaluación pudiendo no hacerlo.
+ * UNA SOLA PASADA POR EL DOM. La primera versión del arreglo del tema oscuro
+ * preguntaba dos veces: un predicado "hay señal" que recorría las cuatro
+ * secciones con `getElementById`, y después el resolutor elegido, que las
+ * volvía a recorrer. `evaluate()` está en camino caliente -- lo dispara cada
+ * `scroll`/`resize` y, en la rama clara, cada cambio de `data-inview` vía
+ * `MutationObserver` --, así que no se duplican cuatro `getElementById` por
+ * evaluación pudiendo no hacerlo. (Ese `MutationObserver` NO se dispara por
+ * frame, aunque el bucle de rAF de `useSectionProgress` sí corra a esa
+ * frecuencia: su `writeVars()` compara contra `lastInViewText` y solo escribe
+ * el atributo cuando el valor CAMBIA de verdad, así que las mutaciones son
+ * los cruces reales de entrada/salida, un puñado por recorrido de página.)
  *
  * NOTA DE HONESTIDAD SOBRE POR QUÉ SE ESCRIBIÓ ASÍ, porque la primera
  * atribución fue FALSA y la corrección vale más que el dato: al ver la
@@ -191,14 +311,20 @@ function intersectsViewport(rect: DOMRect): boolean {
  * 2026-08-12, no esta función. La pasada única se conserva porque sigue
  * siendo la forma correcta de escribirlo, no porque arregle ningún timeout.
  *
- * `getBoundingClientRect()` solo se llama en el camino que lo necesita: se
- * recogen los elementos primero y la geometría se mide después de saber si
- * hace falta.
+ * COSTE DE MEDIR GEOMETRÍA, que es lo único que la crítica #10 añadió a esta
+ * función: ni un listener, ni un observer, ni un rAF nuevos -- la resolución
+ * sigue corriendo exactamente donde ya corría. El camino por geometría hace
+ * las MISMAS cuatro lecturas de `getBoundingClientRect()` que hacía antes
+ * (ahora recogidas en una lista en vez de descartadas sobre la marcha). El
+ * camino normal es el que puede medir donde antes no medía, y por eso mide lo
+ * menos posible: con 0 o 1 candidata la geometría no puede cambiar la
+ * respuesta y no se llama a `getBoundingClientRect()` ni una vez; con 2 o más
+ * se mide solo la candidata, nunca la sección que la señal ya descartó.
  */
 function resolveActiveKey(): string | null {
-  const secciones: { id: string; el: HTMLElement }[] = [];
+  const secciones: SectionElement[] = [];
+  const conSenalActiva: SectionElement[] = [];
   let haySenal = false;
-  let porInview: string | null = null;
 
   for (const id of ACTIVE_SECTION_IDS) {
     const el = document.getElementById(id);
@@ -206,17 +332,19 @@ function resolveActiveKey(): string | null {
     secciones.push({ id, el });
     if (el.dataset.inview !== undefined) {
       haySenal = true;
-      if (el.dataset.inview === "true") porInview = id;
+      if (el.dataset.inview === "true") conSenalActiva.push({ id, el });
     }
   }
 
-  if (!isReducedMotion() && haySenal) return porInview;
-
-  let porGeometria: string | null = null;
-  for (const { id, el } of secciones) {
-    if (intersectsViewport(el.getBoundingClientRect())) porGeometria = id;
+  if (!isReducedMotion() && haySenal) {
+    if (conSenalActiva.length === 0) return null;
+    if (conSenalActiva.length === 1) return conSenalActiva[0].id;
+    return resolveAmongCandidates(measure(conSenalActiva));
   }
-  return porGeometria;
+
+  return resolveAmongCandidates(
+    measure(secciones).filter(({ rect }) => intersectsViewport(rect)),
+  );
 }
 
 function evaluate(): void {

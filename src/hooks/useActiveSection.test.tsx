@@ -120,16 +120,28 @@ describe("useActiveSectionKey", () => {
     expect(ObserverSpy).not.toHaveBeenCalled();
   });
 
-  it("con dos secciones contiguas a la vez en data-inview='true', gana la ÚLTIMA en el orden de la página", () => {
-    const { result } = renderHook(() => useActiveSectionKey());
-
-    // "story" y "journey" solapando en la franja de transición: el usuario
-    // ya ha visto casi toda "story" y está mirando "journey".
+  /*
+   * REESCRITO el 2026-08-18 (crítica externa #10). Hasta hoy este test se
+   * llamaba "gana la ÚLTIMA en el orden de la página" y pilotaba las dos
+   * secciones SIN geometría, así que afirmaba justamente el desempate que
+   * resultó ser el defecto: sobre un `threshold` 0, la sección siguiente
+   * ganaba desde su primer píxel de solape. La situación que cubre (dos
+   * candidatas contiguas a la vez) es la misma; lo que cambia es quién
+   * decide -- ver el describe del punto de referencia, más abajo, para el
+   * caso medido en navegador y para el empate exacto.
+   */
+  it("con dos secciones contiguas a la vez en data-inview='true', decide la geometría, no el orden de la página", () => {
+    // "story" ocupa tres cuartos del viewport y "journey" asoma por abajo:
+    // el punto de referencia (el centro, 400 px de 800) cae dentro de "story".
     setInView("story", true);
     setInView("journey", true);
+    setRect("story", -200, 800); // [-200, 600): 600 px visibles
+    setRect("journey", 600, 800); // [600, 1400): 200 px visibles
+
+    const { result } = renderHook(() => useActiveSectionKey());
     fireScroll();
 
-    expect(result.current).toBe("journey");
+    expect(result.current).toBe("story");
   });
 
   it("vuelve a null cuando la sección deja de estar en pantalla", () => {
@@ -181,6 +193,196 @@ describe("useActiveSectionKey", () => {
     expect(scrollCalls.length).toBeGreaterThan(0);
     expect(resizeCalls.length).toBeGreaterThan(0);
     removeSpy.mockRestore();
+  });
+});
+
+/**
+ * Geometría REAL del hallazgo de la crítica externa #10, en coordenadas de
+ * DOCUMENTO (tema claro, 1440x900, viewport de 800 px). `contact` NO formaba
+ * parte de aquella medición: se coloca muy por debajo, fuera de todas las
+ * posiciones que se prueban, en vez de inventarle una geometría "plausible"
+ * que pareciera medida sin serlo.
+ */
+const FINDING_DOC_GEOMETRY: Readonly<
+  Record<string, { readonly top: number; readonly bottom: number }>
+> = {
+  story: { top: 800, bottom: 1882 },
+  journey: { top: 2442, bottom: 3076.6 },
+  features: { top: 3077, bottom: 4573 },
+  contact: { top: 9000, bottom: 9800 },
+};
+
+/** Coloca las cuatro secciones de prueba en la geometría del hallazgo para
+ *  una posición de scroll dada (documento -> viewport). */
+function applyFindingGeometry(scrollY: number): void {
+  for (const [id, { top, bottom }] of Object.entries(FINDING_DOC_GEOMETRY)) {
+    setRect(id, top - scrollY, bottom - top);
+  }
+}
+
+/** Escribe `data-inview` como lo haría el `IntersectionObserver` real de
+ *  `useSectionProgress` sobre esa misma geometría: `threshold` 0, "dentro" es
+ *  cualquier solape mayor que cero. Es la parte del hallazgo que importa --
+ *  con ese umbral, en la mayoría de posiciones hay DOS secciones marcadas a
+ *  la vez, y el defecto vivía en cómo se elegía entre ellas. */
+function applyFindingInviewSignal(scrollY: number): void {
+  for (const [id, { top, bottom }] of Object.entries(FINDING_DOC_GEOMETRY)) {
+    setInView(id, top - scrollY < window.innerHeight && bottom - scrollY > 0);
+  }
+}
+
+/*
+ * Crítica externa #10 (2026-08-18), hallazgo convergente en tres barridos
+ * independientes: `aria-current="location"` se adelantaba. El desempate
+ * anterior ("gana la última candidata en el orden de la página") sobre un
+ * `threshold` 0 hacía que la sección SIGUIENTE ganara desde su primer píxel
+ * de solape: medido en el tema claro, con el scroll en 2500 Viaje ocupaba el
+ * 72 % del viewport y la navegación anunciaba «Características». Viaje solo
+ * ganaba en una ventana de 395 px de scroll, y el mecanismo castigaba a toda
+ * sección más corta que el viewport (Viaje mide 634,6 px de alto contra 800
+ * de viewport).
+ *
+ * La regla nueva -- gana la sección que contiene el punto de referencia del
+ * viewport (su centro), y solo en los huecos entre secciones decide la
+ * superficie visible -- se prueba aquí en los DOS caminos del módulo, porque
+ * el fichero de producción insiste en que se comporten igual: el normal (por
+ * `data-inview`) y el de geometría (bajo `reduce`, y en la rama oscura, donde
+ * nadie escribe ese atributo).
+ *
+ * Bug inyectado a propósito (regla 34), ejecutado en esta tarea: sustituir el
+ * `return contiene ?? dominante;` de `resolveAmongCandidates()` por el
+ * desempate viejo (`candidatas[candidatas.length - 1].id`, la última en orden
+ * de página). Salida literal con él: 7 fallidos y 17 en verde de los 24 del
+ * fichero -- 6 de los 9 de este describe (entre ellos la posición 2500 del
+ * hallazgo, "expected 'features' to be 'journey'") más el test reescrito del
+ * primer describe. Restaurada la línea, los 24 vuelven a verde. Los 3 que NO
+ * caen son los dos de empate exacto y el de una sola candidata: ahí las dos
+ * reglas coinciden a propósito, y están para fijar la dirección documentada
+ * del empate y el coste, no para distinguir una regla de la otra.
+ */
+describe("useActiveSectionKey: gana la sección del punto de referencia del viewport (crítica externa #10)", () => {
+  it("con Viaje ocupando el 72 % del viewport, la activa es 'journey' -- no Características por asomar por abajo", () => {
+    applyFindingGeometry(2500);
+    applyFindingInviewSignal(2500);
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("journey");
+  });
+
+  it("las seis posiciones medidas del hallazgo siguen al scroll sin adelantarse", () => {
+    // Mismas posiciones de la tabla del hallazgo. Antes: Viaje solo en 2100;
+    // Características ya desde 2300. Ahora el cambio ocurre cuando el centro
+    // del viewport cruza el borde de Características (documento 3077, es
+    // decir scrollY 2677), que es el 2700 de la tabla.
+    const esperado: readonly (readonly [number, string])[] = [
+      [2100, "journey"],
+      [2300, "journey"],
+      [2500, "journey"],
+      [2700, "features"],
+      [2900, "features"],
+      [3050, "features"],
+    ];
+
+    const { result } = renderHook(() => useActiveSectionKey());
+
+    for (const [scrollY, key] of esperado) {
+      applyFindingGeometry(scrollY);
+      applyFindingInviewSignal(scrollY);
+      fireScroll();
+      expect(result.current).toBe(key);
+    }
+  });
+
+  it("empate exacto 50/50 entre dos contiguas: gana la de abajo, la que se está entrando", () => {
+    setInView("journey", true);
+    setInView("features", true);
+    setRect("journey", -400, 800); // [-400, 400): 400 px visibles
+    setRect("features", 400, 800); // [400, 1200): 400 px visibles
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("features");
+  });
+
+  it("un píxel antes del reparto exacto sigue ganando la de arriba: el cambio ocurre EN el 50/50", () => {
+    setInView("journey", true);
+    setInView("features", true);
+    setRect("journey", -399, 800); // [-399, 401): 401 px visibles
+    setRect("features", 401, 800); // [401, 1201): 399 px visibles
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("journey");
+  });
+
+  it("con el punto de referencia en un hueco entre secciones, decide la superficie visible", () => {
+    setInView("story", true);
+    setInView("journey", true);
+    setRect("story", -500, 800); // [-500, 300): 300 px visibles
+    setRect("journey", 700, 800); // [700, 1500): 100 px visibles
+    // El centro (400) cae en el hueco (300, 700): ninguna lo contiene.
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("story");
+  });
+
+  it("empate exacto de superficie visible en un hueco: gana también la de abajo", () => {
+    setInView("story", true);
+    setInView("journey", true);
+    setRect("story", -500, 800); // [-500, 300): 300 px visibles
+    setRect("journey", 500, 800); // [500, 1300): 300 px visibles
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("journey");
+  });
+
+  it("con una sola candidata NO se mide geometría: la señal ya decide", () => {
+    // Candado del coste declarado en el docblock de `resolveActiveKey()`: la
+    // resolución por geometría no puede convertirse en un
+    // `getBoundingClientRect()` por sección y por evento en el camino normal,
+    // que es el que corre en la rama clara.
+    setInView("features", true);
+    const el = document.getElementById("features");
+    if (!el) throw new Error("no existe la sección de prueba #features");
+    const rectSpy = vi.fn(() => ({ top: 0, height: 0, bottom: 0 }) as DOMRect);
+    el.getBoundingClientRect = rectSpy;
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("features");
+    expect(rectSpy).not.toHaveBeenCalled();
+  });
+
+  it("bajo prefers-reduced-motion, con las cuatro clavadas en data-inview=true, misma regla y misma respuesta", () => {
+    // `stopForReduced()` de `useSectionProgress` escribe "true" en las cuatro
+    // de forma permanente (ver el describe de la fix wave A, más abajo): la
+    // señal deja de significar "visible ahora" y solo queda la geometría.
+    stubMatchMedia(true);
+    applyFindingGeometry(2500);
+    for (const id of SECTION_IDS) setInView(id, true);
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("journey");
+  });
+
+  it("rama oscura (ningún data-inview en el árbol): misma regla y misma respuesta", () => {
+    applyFindingGeometry(2500);
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("journey");
   });
 });
 
