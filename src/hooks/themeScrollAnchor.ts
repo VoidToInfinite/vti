@@ -43,17 +43,21 @@
  *
  * ## Criterio de dominancia, y por qué NO es el de `useActiveSection.ts`
  *
- * `useActiveSection` resuelve empates quedándose con la ÚLTIMA sección en
- * orden de página que interseca el viewport, a propósito: alimenta
- * `aria-current` y prefiere ir por delante del scroll (ver su docblock).
- * Ese criterio es correcto ahí y sería malo aquí: en la franja de
- * transición, con la sección saliente ocupando el 90 % de la pantalla,
- * elegir la entrante mandaría al lector al principio de una sección que
- * todavía no está leyendo -- un salto de casi un viewport para "corregir"
- * su posición. Un reposicionamiento CORRECTIVO quiere el desplazamiento
- * mínimo, así que gana la sección con MÁS superficie visible. Los dos
- * módulos preguntan cosas distintas con la misma palabra; no se comparte
- * la función a propósito, y esta nota es el enlace entre ambas.
+ * `useActiveSection` resuelve por CONTENCIÓN del centro del viewport (con
+ * dominancia solo como respaldo para huecos, y empate hacia la sección de
+ * más abajo — crítica #10; antes usaba "la última en orden de página con
+ * cualquier solape", que se adelantaba desde el primer píxel del vecino):
+ * alimenta `aria-current` y responde "¿en qué sección ESTÁ el lector?".
+ * Este módulo responde otra pregunta: "¿a qué sección le debo el MENOR
+ * desplazamiento correctivo?" — en la franja de transición, con la
+ * saliente ocupando el 90 % de la pantalla, anclar a la entrante mandaría
+ * al lector al principio de una sección que todavía no está leyendo, un
+ * salto de casi un viewport. Un reposicionamiento CORRECTIVO quiere el
+ * desplazamiento mínimo, así que aquí gana la sección con MÁS superficie
+ * visible (y el empate exacto cae del lado contrario, `>` vs `>=`, también
+ * a propósito). Los dos módulos preguntan cosas distintas con la misma
+ * palabra; no se comparte la función a propósito, y esta nota es el enlace
+ * entre ambas.
  */
 
 /** Selector único de ancla. Se declara aquí (y no en el hook que lo consume)

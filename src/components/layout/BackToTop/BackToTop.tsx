@@ -88,9 +88,10 @@ function IconArrowUp(): ReactElement {
 // viewport>; hasta que aterrice, `env()` sin ese meta resuelve siempre al
 // fallback, así que esta declaración es hoy un no-op preparado, no un
 // comportamiento nuevo).
-// Sin variant/intent explícitos: hereda el default de IconButton
-// (ghost/neutral), el MISMO que ya usa ThemeToggle para un control de
-// utilidad flotante del sistema. Verificado en navegador real (frames
+// Sin variant explícito: hereda el default de IconButton (ghost, que desde
+// la crítica #10 fija además el acento neutral internamente — la prop
+// `intent` se retiró por inalcanzable), el MISMO que ya usa ThemeToggle
+// para un control de utilidad flotante del sistema. Verificado en navegador real (frames
 // reales, playwright-cli): con box-shadow (elevation[3]) de por sí ya se
 // separa con claridad de cualquier fondo de sección, y un "solid/primary"
 // aquí competiría en peso visual con los CTA reales de la página (p. ej.
