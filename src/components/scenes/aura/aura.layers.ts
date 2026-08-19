@@ -123,13 +123,23 @@ export interface AuraLayer {
   /**
    * true si la capa tiene pista AVIF publicada (2026-08-18, extension de la
    * palanca del dueno al arte del hero). NO es una convencion: es el
-   * RESULTADO de la guarda de la codificacion (ambas pistas >=5% de ahorro
-   * y >=45 dB de PSNR contra el WebP de referencia). La guarda salto en
-   * "energy" -- su pista de 1024 solo ahorraba un 4,7% (la capa es ruido
-   * denso, el caso que AVIF menos rentabiliza) -- asi que esa capa se queda
-   * en WebP y este campo lo declara como dato, con candado en
-   * aura.layers.test.ts de que cada capa avif:true tiene sus ficheros
-   * reales en public/.
+   * RESULTADO de la guarda de la codificacion (>=5% de ahorro y >=45 dB de
+   * PSNR contra el WebP de referencia).
+   *
+   * HOY LAS CUATRO CAPAS SON true. "energy" estuvo en false desde el
+   * 2026-08-18 hasta la critica externa #13 (2026-08-20), y esa exclusion
+   * estaba mal decidida: la guarda se evaluo sobre la pista de 1024 (-4,7%,
+   * bajo el umbral) en vez de sobre la de 1672, que es la que descarga un
+   * escritorio de 1440px -- y ahi el mismo quality=55 ahorra -11,3%
+   * (157.568 -> 139.793 B, PSNR 42,65 dB). La leccion generalizable, escrita
+   * aqui para el que venga: **una guarda de ahorro se evalua sobre la pista
+   * que el visitante DESCARGA, no sobre la mas pequena del srcset.**
+   *
+   * El campo se conserva como dato por capa (no se colapsa a una constante)
+   * porque la guarda puede volver a saltar en un lote futuro. Candado en
+   * aura.layers.test.ts: cada capa avif:true tiene sus dos ficheros reales en
+   * public/, cada avif:false NO puede tener derivado huerfano, y una sonda
+   * positiva impide que el conjunto pase en verde por vacuidad.
    */
   readonly avif: boolean;
 }
@@ -176,7 +186,26 @@ export const AURA_LAYERS: readonly AuraLayer[] = [
     // el campo (0, inmóvil) y las manos (spec §15.4).
     depth: 0.15,
     fullBleed: false,
-    avif: false,
+    /*
+     * `false` hasta la crítica externa #13 (2026-08-20), y la exclusión estaba
+     * MAL DECIDIDA: la guarda del 5 % se aplicó a la pista de 1024 (−4,7 %,
+     * 63.084 → 60.145 B) y se dio por hecho que la capa no rentabilizaba AVIF.
+     * Pero la pista que un escritorio de 1440 px descarga de verdad es la de
+     * 1672, y ahí el mismo `quality=55` ya sancionado para las otras ocho
+     * capas del hero ahorra **−11,3 % (157.568 → 139.793 B)** con PSNR 42,65
+     * dB. Medido dos veces por partes independientes, mismo encoder que el
+     * resto del lote (Pillow 12.3.0, `quality=55 speed=2`).
+     *
+     * Por qué importa más que 17 KB: esta capa ES el elemento LCP del tema
+     * claro. El LCP claro no es un número sino una CARRERA — si la imagen
+     * termina de descargar DESPUÉS de que arranque la rampa de revelado del
+     * stack, entra como candidata y el LCP se dispara a ~5,2 s; si llega
+     * mientras el stack sigue a `opacity: 0`, Chromium la registra invisible,
+     * no la reencola nunca, y el LCP se queda en el wordmark (~1,2 s). El
+     * margen medido era de −338 ms (llegaba tarde); con esta conversión pasa
+     * a **+390 ms**, reproducible en 4/4 corridas estranguladas.
+     */
+    avif: true,
   },
   {
     part: "handLeft",

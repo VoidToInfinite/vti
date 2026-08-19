@@ -41,7 +41,7 @@ describe("aura.layers", () => {
         srcSmall: "/hero/aura/01-energy-1024.webp",
         depth: 0.15,
         fullBleed: false,
-        avif: false,
+        avif: true,
       },
       {
         part: "handLeft",
@@ -134,14 +134,25 @@ describe("aura.layers", () => {
 });
 
 /*
- * Candado del AVIF mixto del aura (2026-08-18): solo las capas con
- * avif: true (resultado de la guarda de codificacion; "energy" quedo fuera)
- * tienen ficheros derivados y precarga AVIF tipada; "energy" conserva su
- * precarga WebP sin type. El 404 silencioso de la convencion se cierra con
- * node:fs. Validado con bug inyectado real: renombrar un .avif -> rojo.
+ * Candado del AVIF del aura. Nacio mixto (2026-08-18) porque la guarda del
+ * 5 % dejo "energy" fuera; la critica externa #13 (2026-08-20) demostro que
+ * esa guarda se aplico a la pista EQUIVOCADA -- la de 1024 (-4,7 %) en vez de
+ * la de 1672 (-11,3 %), que es la que descarga un escritorio y ademas ES el
+ * elemento LCP del tema claro. Con la capa convertida, las CUATRO declaran
+ * avif: true.
+ *
+ * La rama `else` del bucle (avif:false => el .avif NO puede existir) se
+ * conserva viva a proposito aunque hoy no la ejerza ninguna capa: es la que
+ * impide que una capa futura declare `false` y deje un derivado huerfano en
+ * `public/`. Por eso el `it` de abajo lleva ADEMAS una sonda positiva
+ * explicita -- sin ella, poner las cuatro a `false` y borrar los ficheros
+ * pasaria en verde por vacuidad.
+ *
+ * El 404 silencioso de la convencion se cierra con node:fs. Validado con bug
+ * inyectado real: renombrar un .avif -> rojo.
  */
 describe("aura AVIF", () => {
-  it("cada capa avif:true tiene sus dos pistas derivadas en public/; energy queda fuera por la guarda", async () => {
+  it("las CUATRO capas declaran avif:true y tienen sus dos pistas derivadas en public/", async () => {
     const { statSync, existsSync } = await import("node:fs");
     const { fileURLToPath } = await import("node:url");
     const { dirname, join } = await import("node:path");
@@ -164,10 +175,15 @@ describe("aura AVIF", () => {
         }
       }
     }
-    expect(AURA_LAYERS.find((l) => l.part === "energy")?.avif).toBe(false);
+    // Sonda positiva: sin esto, `avif:false` en las cuatro capas + los
+    // ficheros borrados pasaria el bucle en verde por vacuidad.
+    expect(AURA_LAYERS.filter((l) => l.avif)).toHaveLength(AURA_LAYERS.length);
+    // "energy" es la capa que la critica externa #13 rescato de la guarda mal
+    // aplicada: su pista de 1672 (la del LCP claro) ahorra -11,3 %, no -4,7 %.
+    expect(AURA_LAYERS.find((l) => l.part === "energy")?.avif).toBe(true);
   });
 
-  it("AURA_PRELOADS precarga AVIF tipado en las capas convertidas y WebP sin type en energy", () => {
+  it("AURA_PRELOADS precarga AVIF tipado en toda capa convertida, y WebP sin type en la que no lo este", () => {
     AURA_PRELOADS.forEach((preload, i) => {
       const layer = AURA_LAYERS[i];
       if (layer.avif) {
