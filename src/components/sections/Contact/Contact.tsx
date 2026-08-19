@@ -170,6 +170,11 @@ const CONTACT_RINGS_PARALLAX_PX = 14;
 const CONTACT_COPY_MAX = "440px";
 
 const ScContact = styled.section<{ $fullBleed: boolean }>`
+  /* WCAG 2.1 SC 1.4.4 (critica externa #13), mismo criterio y mismo motivo que
+     ScStory: overflow-wrap se hereda, asi que una declaracion en la raiz de la
+     seccion cubre su texto entero en las dos ramas. */
+  overflow-wrap: break-word;
+
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`
@@ -302,7 +307,13 @@ const ScCard = styled.div`
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr), NO 1fr (WCAG 2.1 SC 1.4.4, critica externa #13): 1fr es
+     minmax(auto, 1fr) y ese auto vale el min-content de la columna, que con la
+     raiz al 200% medía 414px dentro de una caja de 166px. Aqui ademas el
+     overflow: hidden de arriba lo convertia en perdida DEFINITIVA de texto, sin
+     siquiera el clip del documento de por medio. Mismo criterio que ScContact,
+     que ya declara la pista asi. */
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: ${({ theme }) => theme.data.space[6]};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
@@ -329,7 +340,7 @@ const ScCard = styled.div`
   }
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    grid-template-columns: 1.4fr 1fr;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   }
 `;
 
@@ -781,6 +792,15 @@ const ScDarkContent = styled.div`
    +407px de Features), así que no necesita el mismo grado de agresividad. */
 const ScDarkCopy = styled.div`
   flex: 1 1 320px;
+  /* min-width: 0 (WCAG 2.1 SC 1.4.4, critica externa #13). Un item de flex trae
+     min-width: auto, que vale el min-content de su contenido y le impide
+     encogerse por debajo de el: con la raiz al 200% este bloque medía 414px
+     dentro de un contenedor de 262px y su texto salia del viewport sin scroll
+     que lo recuperase (html declara overflow-x: clip, regla 21). El 0 solo
+     levanta ese suelo; el flex: 1 1 320px sigue mandando mientras quepa, asi
+     que a raiz 16px el ancho resultante no cambia (326px antes y despues).
+     Mismo patron que ScItem en Features.tsx, que ya lo declara. */
+  min-width: 0;
   max-width: ${CONTACT_COPY_MAX};
   display: flex;
   flex-direction: column;

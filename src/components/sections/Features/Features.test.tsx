@@ -126,6 +126,22 @@ beforeEach(() => {
 
 const BULLET_KEYS = ["one", "two", "three", "four"] as const;
 
+/*
+ * `overflow` QUE ROMPE UN PIN, no cualquier propiedad cuyo nombre empiece por
+ * "overflow". La regla 21 del repo prohibe `overflow: hidden|auto|scroll` en
+ * cualquier ancestro de un elemento con `position: sticky` -- eso es lo que
+ * estos tests protegen. `overflow-wrap` (anadida en la critica externa #13,
+ * 2026-08-19, para que el texto reflote sin recortarse al 200% de tamano de
+ * fuente, WCAG 2.1 SC 1.4.4) NO crea contenedor de scroll ni afecta al pin:
+ * solo decide si una palabra que no cabe entera puede partirse. El patron
+ * anterior (`/overflow/`) las confundia por prefijo compartido, asi que el
+ * candado decia mas de lo que su nombre promete. Este patron exige los DOS
+ * PUNTOS de la propiedad completa, de modo que sigue cazando exactamente las
+ * mismas declaraciones peligrosas (`overflow`, `-x`, `-y`, `-block`,
+ * `-inline`) y ninguna mas.
+ */
+const OVERFLOW_DE_SCROLL = /overflow(-x|-y|-block|-inline)?\s*:/;
+
 describe("Features", () => {
   it("D6: la cabecera clara monta el h2 nuevo (frase real, no las tres palabras de marca) como nombre accesible de la region, con id=features-title", () => {
     // D6 (spec 2026-08-06-story-features-tema-claro-design.md): el h2 deja
@@ -1157,7 +1173,7 @@ describe("Features en tema oscuro", () => {
     expect(slotCss).toContain(`height: ${FEATURES_DARK_HEIGHT}`);
 
     const sectionCss = cssRuleTextFor(section);
-    expect(sectionCss).not.toMatch(/overflow/);
+    expect(sectionCss).not.toMatch(OVERFLOW_DE_SCROLL);
   });
 
   it("bajo prefers-reduced-motion el slot de la escena pasa a position: static (test 5, D15)", async () => {
@@ -1269,7 +1285,7 @@ describe("zona de hold al final de Features (D3/D4/D5, spec 2026-08-03)", () => 
     });
     const section = container.querySelector("#features") as HTMLElement;
     const sectionCss = cssRuleTextFor(section);
-    expect(sectionCss).not.toMatch(/overflow/);
+    expect(sectionCss).not.toMatch(OVERFLOW_DE_SCROLL);
 
     const css = injectedCss();
     expect(css).toContain(
@@ -1935,5 +1951,30 @@ describe("Features: critica externa #12 (T2)", () => {
 
     expect(fuente).toContain("grid.sectionMax");
     expect(fuente).not.toContain("1280px");
+  });
+});
+
+/*
+ * Critica externa #13 (2026-08-19), P0 de la ronda: WCAG 2.1 SC 1.4.4 (AA).
+ * Ver el docblock equivalente en `Story.test.tsx` para el mecanismo completo.
+ *
+ * Features es el caso que demuestra que acotar las pistas NO basta: sus
+ * rejillas ya declaraban `minmax(0, 1fr)` desde la Task 22 y aun asi, medido
+ * en Chrome real a 390x844 con la raiz a 32px, el `h2` de la seccion pintaba
+ * una linea de 320px dentro de una caja de 294px -- una sola palabra mas ancha
+ * que su propia caja, que ninguna pista puede arreglar. `overflow-wrap:
+ * break-word` es aqui el arreglo COMPLETO, no un refuerzo.
+ */
+describe("Features: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", () => {
+  it("ScFeatures declara overflow-wrap: break-word, que se hereda a todo su texto", () => {
+    renderWithProviders(<Features />);
+    const section = document.getElementById("features") as HTMLElement;
+    const base = cssRuleTextFor(section)
+      .split("\n")
+      .find(
+        (line) => !line.includes("@media") && line.includes("overflow-wrap"),
+      );
+
+    expect(base).toMatch(/overflow-wrap:\s*break-word/);
   });
 });

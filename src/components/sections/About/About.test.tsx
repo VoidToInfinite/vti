@@ -142,3 +142,47 @@ describe("About", () => {
     await i18n.changeLanguage("es");
   });
 });
+
+/*
+ * Critica externa #13 (2026-08-19), P0 de la ronda: WCAG 2.1 SC 1.4.4 (AA).
+ * Ver el docblock equivalente en `Story.test.tsx` para el mecanismo completo.
+ * Medido en Chrome real a 390x844 con la raiz a 32px: sin `grid-template-
+ * columns` propio, esta seccion creaba una pista IMPLICITA de tamano `auto`
+ * cuyo minimo es el min-content de su contenido -- el termino de marca del h2
+ * aportaba 412px dentro de una caja de 294px y el bloque entero terminaba en
+ * x=460.3 sobre un viewport de 390, sin scroll horizontal que lo recuperase
+ * (`html` declara `overflow-x: clip`, regla 21). Las dos declaraciones son
+ * necesarias y ninguna sustituye a la otra: la pista acota la CAJA, el
+ * overflow-wrap permite que la palabra larga quepa DENTRO de esa caja.
+ *
+ * Candado de CSSOM, no de geometria: jsdom no hace layout.
+ */
+describe("About: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", () => {
+  function cssRuleTextFor(el: HTMLElement): string {
+    const classes = Array.from(el.classList);
+    return Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+      .join("\n");
+  }
+
+  it("ScAbout declara su pista (minmax(0, 1fr)) y overflow-wrap: break-word", () => {
+    renderWithProviders(<About />);
+    const section = document.getElementById("about") as HTMLElement;
+    const css = cssRuleTextFor(section);
+    const base = css
+      .split("\n")
+      .find((line) => !line.includes("@media") && line.includes("display"));
+
+    expect(base).toMatch(
+      /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
+    );
+    expect(base).toMatch(/overflow-wrap:\s*break-word/);
+  });
+});

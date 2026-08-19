@@ -135,6 +135,22 @@ beforeEach(() => {
   stubMatchMedia();
 });
 
+/*
+ * `overflow` QUE ROMPE UN PIN, no cualquier propiedad cuyo nombre empiece por
+ * "overflow". La regla 21 del repo prohibe `overflow: hidden|auto|scroll` en
+ * cualquier ancestro de un elemento con `position: sticky` -- eso es lo que
+ * estos tests protegen. `overflow-wrap` (anadida en la critica externa #13,
+ * 2026-08-19, para que el texto reflote sin recortarse al 200% de tamano de
+ * fuente, WCAG 2.1 SC 1.4.4) NO crea contenedor de scroll ni afecta al pin:
+ * solo decide si una palabra que no cabe entera puede partirse. El patron
+ * anterior (`/overflow/`) las confundia por prefijo compartido, asi que el
+ * candado decia mas de lo que su nombre promete. Este patron exige los DOS
+ * PUNTOS de la propiedad completa, de modo que sigue cazando exactamente las
+ * mismas declaraciones peligrosas (`overflow`, `-x`, `-y`, `-block`,
+ * `-inline`) y ninguna mas.
+ */
+const OVERFLOW_DE_SCROLL = /overflow(-x|-y|-block|-inline)?\s*:/;
+
 describe("Journey", () => {
   it("es una region con su nombre accesible real (aria-labelledby -> h2)", () => {
     renderWithProviders(<Journey />);
@@ -830,7 +846,7 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     expect(stageCss).toContain("position: sticky");
 
     const sectionCss = cssRuleTextFor(section);
-    expect(sectionCss).not.toMatch(/overflow/);
+    expect(sectionCss).not.toMatch(OVERFLOW_DE_SCROLL);
   });
 
   it("bajo prefers-reduced-motion la pista vuelve a flujo, el stage a static y las diapositivas quedan visibles (test 7, D12)", async () => {
@@ -2030,4 +2046,56 @@ describe("Journey: critica #12 -- el tope de contenido sale de grid.sectionMax (
    * restaurado, vuelve a verde. El primero se valida igual devolviendo el
    * literal `"1280px"` a `journey.layers.ts`.
    */
+});
+
+/*
+ * Critica externa #13 (2026-08-19), P0 de la ronda: WCAG 2.1 SC 1.4.4 (AA).
+ * Ver el docblock equivalente en `Story.test.tsx` para el mecanismo completo
+ * (el tamano minimo automatico de una pista `1fr` es el min-content de lo que
+ * contiene, y crece con la raiz por encima del contenedor). Medido en Chrome
+ * real a 390x844 con la raiz a 32px: las dos pistas de `ScStepsGrid` median
+ * 186.7px + 154.1px dentro de una caja de 70px y el ultimo paso terminaba en
+ * x=548.8 sobre un viewport de 390, sin scroll horizontal que lo recuperase.
+ *
+ * Candado de CSSOM, no de geometria: jsdom no hace layout, asi que la
+ * propiedad medida en navegador no es observable aqui; lo que si lo es es que
+ * la declaracion culpable no exista y la nueva este presente.
+ */
+describe("Journey: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", () => {
+  function declaracionBase(el: HTMLElement, prop: string): string | undefined {
+    return cssRuleTextFor(el)
+      .split("\n")
+      .find((line) => !line.includes("@media") && line.includes(prop));
+  }
+
+  it("ScJourney declara overflow-wrap: break-word, que se hereda a todo su texto", () => {
+    renderWithProviders(<Journey />);
+    const section = document.getElementById("journey") as HTMLElement;
+    expect(declaracionBase(section, "overflow-wrap")).toMatch(
+      /overflow-wrap:\s*break-word/,
+    );
+  });
+
+  it("ScStepsGrid acota el minimo de sus dos pistas base: repeat(2, minmax(0, 1fr))", () => {
+    const { container } = renderWithProviders(<Journey />);
+    // ScStepLabel (p) -> ScStepOffset -> ScStepReveal -> ScStepsGrid. El
+    // primer paso se localiza por su etiqueta REAL de i18n (no por el primer
+    // <p> del arbol, que es el cuerpo de la cabecera).
+    const primerPaso = JOURNEY_STEPS[0];
+    const label = screen.getByText(
+      esHome.Home.journey.steps[
+        primerPaso.id as keyof typeof esHome.Home.journey.steps
+      ].label,
+    );
+    const stepsGrid = label.parentElement!.parentElement!
+      .parentElement as HTMLElement;
+    expect(container).toBeTruthy();
+    const base = declaracionBase(stepsGrid, "grid-template-columns");
+
+    expect(base).toMatch(
+      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
+    // El `repeat(2, 1fr)` desnudo -- el que medimos desbordando -- ya no esta.
+    expect(base).not.toMatch(/repeat\(2,\s*1fr\)/);
+  });
 });

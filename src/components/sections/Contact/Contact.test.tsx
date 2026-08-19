@@ -206,6 +206,22 @@ function escribirMensaje(texto: string = MENSAJE_VALIDO): HTMLTextAreaElement {
   return textarea;
 }
 
+/*
+ * `overflow` QUE ROMPE UN PIN, no cualquier propiedad cuyo nombre empiece por
+ * "overflow". La regla 21 del repo prohibe `overflow: hidden|auto|scroll` en
+ * cualquier ancestro de un elemento con `position: sticky` -- eso es lo que
+ * estos tests protegen. `overflow-wrap` (anadida en la critica externa #13,
+ * 2026-08-19, para que el texto reflote sin recortarse al 200% de tamano de
+ * fuente, WCAG 2.1 SC 1.4.4) NO crea contenedor de scroll ni afecta al pin:
+ * solo decide si una palabra que no cabe entera puede partirse. El patron
+ * anterior (`/overflow/`) las confundia por prefijo compartido, asi que el
+ * candado decia mas de lo que su nombre promete. Este patron exige los DOS
+ * PUNTOS de la propiedad completa, de modo que sigue cazando exactamente las
+ * mismas declaraciones peligrosas (`overflow`, `-x`, `-y`, `-block`,
+ * `-inline`) y ninguna mas.
+ */
+const OVERFLOW_DE_SCROLL = /overflow(-x|-y|-block|-inline)?\s*:/;
+
 describe("Contact", () => {
   it("es una region con su nombre accesible real (no un aria-labelledby colgando)", () => {
     renderWithProviders(<Contact />);
@@ -940,7 +956,7 @@ describe("Contact en tema oscuro", () => {
     const sectionCss = cssRuleTextFor(
       container.querySelector("#contact") as HTMLElement,
     );
-    expect(sectionCss).not.toMatch(/overflow/);
+    expect(sectionCss).not.toMatch(OVERFLOW_DE_SCROLL);
   });
 
   it("el marco topa el CONTENIDO con CONTACT_CONTENT_MAX_WIDTH, no un literal a mano (test 9, D6)", async () => {
@@ -3573,5 +3589,63 @@ describe("Contact: critica externa #12", () => {
       expect(fuente).toContain("grid.sectionMax");
       expect(fuente).not.toContain("1280px");
     });
+  });
+});
+
+/*
+ * Critica externa #13 (2026-08-19), P0 de la ronda: WCAG 2.1 SC 1.4.4 (AA).
+ * Ver el docblock equivalente en `Story.test.tsx` para el mecanismo completo.
+ * Medido en Chrome real a 390x844 con la raiz a 32px: en la rama CLARA la
+ * pista de `ScCard` valia 414px dentro de una caja de 166px (y esta tarjeta
+ * declara `overflow: hidden`, asi que el sobrante se perdia sin siquiera
+ * llegar al clip del documento); en la OSCURA `ScDarkCopy` -- item de flex con
+ * el `min-width: auto` por defecto -- media 414px dentro de un contenedor de
+ * 262px. En las dos ramas el texto terminaba fuera del viewport sin scroll
+ * horizontal que lo recuperase.
+ *
+ * Candado de CSSOM, no de geometria: jsdom no hace layout.
+ */
+describe("Contact: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", () => {
+  function declaracionBase(el: HTMLElement, prop: string): string | undefined {
+    return cssRuleTextFor(el)
+      .split("\n")
+      .find((line) => !line.includes("@media") && line.includes(prop));
+  }
+
+  it("ScContact declara overflow-wrap: break-word, que se hereda a todo su texto", () => {
+    renderWithProviders(<Contact />);
+    const section = document.getElementById("contact") as HTMLElement;
+    expect(declaracionBase(section, "overflow-wrap")).toMatch(
+      /overflow-wrap:\s*break-word/,
+    );
+  });
+
+  it("rama clara: ScCard acota el minimo de su pista base con minmax(0, 1fr)", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const card = container.querySelector("[data-revealed]") as HTMLElement;
+    const base = declaracionBase(card, "grid-template-columns");
+
+    expect(base).toMatch(
+      /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
+    );
+    expect(base).not.toMatch(/grid-template-columns:\s*1fr\s*;/);
+  });
+
+  it("rama oscura: ScDarkCopy levanta su min-width automatico a 0 para poder encogerse", async () => {
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      await waitFor(() => {
+        expect(container.querySelector("[data-revealed]")).not.toBeNull();
+      });
+      // El h2 de la rama oscura cuelga DIRECTAMENTE de ScDarkCopy: se ancla
+      // ahi (id estable del documento) en vez de por posicion de hijo.
+      const darkCopy = document.getElementById("contact-title")!
+        .parentElement as HTMLElement;
+
+      expect(declaracionBase(darkCopy, "min-width")).toMatch(/min-width:\s*0/);
+    } finally {
+      window.localStorage.clear();
+    }
   });
 });

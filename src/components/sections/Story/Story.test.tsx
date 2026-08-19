@@ -2920,3 +2920,107 @@ describe("Story: critica #12 -- el tope de contenido sale de grid.sectionMax (ca
    * `story.layers.ts`.
    */
 });
+
+/*
+ * Critica externa #13 (2026-08-19), P0 de la ronda: WCAG 2.1 SC 1.4.4 (AA)
+ * exige que ampliar el tamano de fuente hasta el 200% no pierda contenido ni
+ * funcionalidad. Medido en Chrome real a 390x844 con la raiz forzada a 32px:
+ * la pista unica de `ScGrid` valia 480px dentro de una caja de 294px y el
+ * cuerpo de Story terminaba en x=528 sobre un viewport de 390, sin ningun
+ * scroll horizontal que lo recuperase -- `html` declara `overflow-x: clip`
+ * (GlobalStyles, deliberado por el pin `sticky` de los decks, regla 21), asi
+ * que el sobrante es texto PERDIDO, no texto desplazado.
+ *
+ * La causa es siempre la misma y tiene nombre propio en la especificacion de
+ * Grid: el TAMANO MINIMO AUTOMATICO. `1fr` es `minmax(auto, 1fr)`, y ese
+ * `auto` vale el min-content de lo que la pista contiene; una pista implicita
+ * de tamano `auto` (la que crea un grid sin `grid-template-columns`) tiene el
+ * mismo minimo. Cuando la raiz escala, el min-content del texto crece y la
+ * pista crece con el POR ENCIMA de su contenedor. `minmax(0, ...)` levanta
+ * ese suelo sin tocar el reparto de fracciones; y un suelo escrito en `rem`
+ * (el `minmax(15rem, 1fr)` de `ScPillarGrid`) necesita ademas envolverse en
+ * `min(..., 100%)`, porque escala con la raiz por definicion.
+ *
+ * POR QUE EL CANDADO ES DE CSSOM Y NO DE GEOMETRIA: jsdom no hace layout
+ * (`getBoundingClientRect()` devuelve ceros), asi que la propiedad medida en
+ * navegador -- "ningun elemento termina mas alla del viewport" -- no es
+ * observable aqui por construccion. Lo que si es observable es la DECLARACION:
+ * que la culpable ya no exista y que la nueva este presente en la regla real
+ * que styled-components inyecta. La verificacion geometrica es de navegador
+ * (regla 44) y esta en el informe de la tarea.
+ */
+describe("Story: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", () => {
+  /* Regla BASE (fuera de cualquier @media) que declara una propiedad para un
+     elemento. Mismo patron que `Features.test.tsx` ya usa para su ScGrid:
+     jsdom no evalua `@media`, asi que el bloque de lg convive en el mismo
+     texto y hay que descartarlo por linea antes de afirmar sobre la base. */
+  function declaracionBase(el: HTMLElement, prop: string): string | undefined {
+    return cssRuleTextFor(el)
+      .split("\n")
+      .find((line) => !line.includes("@media") && line.includes(prop));
+  }
+
+  it("ScStory declara overflow-wrap: break-word, que se hereda a todo el texto de las dos ramas", () => {
+    renderWithProviders(<Story />);
+    const section = document.getElementById("story") as HTMLElement;
+    expect(declaracionBase(section, "overflow-wrap")).toMatch(
+      /overflow-wrap:\s*break-word/,
+    );
+  });
+
+  it("ScGrid acota el minimo de su pista con minmax(0, 1fr) y no deja ningun 1fr suelto", () => {
+    renderWithProviders(<Story />);
+    const grid = document.getElementById("story")!
+      .firstElementChild as HTMLElement;
+    const base = declaracionBase(grid, "grid-template-columns");
+
+    expect(base).toMatch(
+      /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
+    );
+    // El bug que se persigue es EXACTAMENTE el `1fr` sin minmax: se afirma su
+    // ausencia con un negativo que no puede satisfacerse por vacuidad (la
+    // linea existe y contiene la propiedad, solo cambia su valor).
+    expect(base).not.toMatch(/grid-template-columns:\s*1fr\s*;/);
+  });
+
+  it("ScPillarGrid envuelve su suelo en rem con min(..., 100%): el suelo no puede superar el ancho real", () => {
+    const { container } = renderWithProviders(<Story />);
+    // ScCardTitle (p) -> ScPillarCard -> ScPillarCardItem -> ScPillarGrid.
+    const title = screen.getByText(esHome.Home.story.pillars.learn.title);
+    const pillarGrid = title.parentElement!.parentElement!
+      .parentElement as HTMLElement;
+    const base = declaracionBase(pillarGrid, "grid-template-columns");
+
+    expect(base).toMatch(
+      /minmax\(\s*min\(\s*15rem\s*,\s*100%\s*\)\s*,\s*1fr\s*\)/,
+    );
+    // El suelo desnudo (el que medimos desbordando a 480px con la raiz al
+    // 200%) ya no existe en la regla.
+    expect(base).not.toMatch(/minmax\(\s*15rem\s*,/);
+    expect(container).toBeTruthy();
+  });
+
+  it("rama oscura: ScDeck declara su pista en vez de heredar una implicita de tamano auto", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      renderWithProviders(<Story />);
+      await waitFor(() => {
+        expect(
+          screen.getByText(esHome.Home.story.titleAccent),
+        ).toBeInTheDocument();
+      });
+      // ScSlide (la diapositiva que contiene el titulo) cuelga directamente
+      // de ScDeck: h2 -> ScSlide -> ScDeck.
+      const deck = document.getElementById("story-title")!.parentElement!
+        .parentElement as HTMLElement;
+      const base = declaracionBase(deck, "grid-template-columns");
+
+      expect(base).toMatch(
+        /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
+      );
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+});

@@ -179,6 +179,12 @@ const STEP_STAGGER_MS = 90;
  * que esta spec no toca.
  */
 const ScJourney = styled.section<{ $fullBleed: boolean }>`
+  /* WCAG 2.1 SC 1.4.4 (critica externa #13), mismo criterio y mismo motivo que
+     ScStory: overflow-wrap se hereda, asi que una declaracion en la raiz de la
+     seccion cubre su texto entero en las dos ramas. break-word solo actua
+     cuando una palabra no cabe entera en su linea. */
+  overflow-wrap: break-word;
+
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`
@@ -372,18 +378,30 @@ const ScPath = styled.svg`
   }
 `;
 
+/*
+ * minmax(0, 1fr) en los tres regimenes, NO 1fr (WCAG 2.1 SC 1.4.4, critica
+ * externa #13). 1fr es minmax(auto, 1fr), y ese auto es el tamano minimo
+ * automatico de la pista: el min-content del paso que contiene. Con la raiz al
+ * 200% el texto de un paso mide mas que su sexta/tercera/mitad de fila, asi que
+ * las pistas crecian por encima de la rejilla -- medido a 390px de ancho y raiz
+ * 32px: dos pistas de 186.7px + 154.1px dentro de una caja de 70px, con el
+ * ultimo paso terminando en x=548.8 sobre un viewport de 390 y sin scroll
+ * horizontal que lo recupere (html declara overflow-x: clip, regla 21). Con el
+ * minimo a 0 el reparto de fracciones no cambia: a raiz 16px las dos pistas
+ * siguen midiendo 103px cada una.
+ */
 const ScStepsGrid = styled.div`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: ${({ theme }) => theme.data.space[5]};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   @media ${({ theme }) => theme.data.breakPoint.lg} {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: ${({ theme }) => theme.data.space[2]};
   }
 `;

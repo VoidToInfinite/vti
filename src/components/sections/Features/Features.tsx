@@ -252,6 +252,14 @@ export function accentColorHover(
  * página -- Story (auto) → Journey (1) → Features (2).
  */
 const ScFeatures = styled.section<{ $fullBleed: boolean }>`
+  /* WCAG 2.1 SC 1.4.4 (critica externa #13), mismo criterio y mismo motivo que
+     ScStory: overflow-wrap se hereda, asi que una declaracion en la raiz de la
+     seccion cubre su texto entero en las dos ramas. Aqui es el arreglo COMPLETO
+     y no un refuerzo: las pistas de esta seccion ya estaban acotadas con
+     minmax(0, 1fr), y aun asi el h2 medía 320px de linea dentro de una caja de
+     294px a raiz 32px -- una palabra sola mas ancha que su caja. */
+  overflow-wrap: break-word;
+
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`

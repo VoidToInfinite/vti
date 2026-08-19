@@ -208,6 +208,17 @@ export const ScDeck = styled.div`
   max-width: ${STORY_DARK_MAX_WIDTH};
   margin-inline: auto;
   display: grid;
+  /* Pista UNICA declarada, y declarada como minmax(0, 1fr) (WCAG 2.1 SC 1.4.4,
+     critica externa #13). Sin grid-template-columns el deck creaba una pista
+     IMPLICITA de tamano auto, cuyo minimo es el min-content de la diapositiva
+     mas ancha: con la raiz al 200% eso medía 391.6px dentro de una caja de
+     262px, y las diapositivas (width: 100%) heredaban esa pista desbordada --
+     texto fuera del viewport sin scroll horizontal que lo recupere, porque
+     html declara overflow-x: clip (regla 21). Una pista auto tambien se estira
+     hasta llenar el hueco libre cuando cabe, asi que a raiz 16px el ancho
+     resultante es el MISMO (326px medidos antes y despues): lo unico que
+     cambia es que ahora tiene un minimo de 0 en vez de min-content. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding-inline: ${({ theme }) => theme.data.space[6]};
 

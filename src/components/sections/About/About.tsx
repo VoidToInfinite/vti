@@ -65,7 +65,21 @@ const ScAbout = styled.section`
   position: relative;
   z-index: 2;
   display: grid;
+  /* Pista UNICA declarada, y declarada como minmax(0, 1fr) (WCAG 2.1 SC 1.4.4,
+     critica externa #13). Sin grid-template-columns esta seccion creaba una
+     pista IMPLICITA de tamano auto, cuyo minimo es el min-content de su
+     contenido: con la raiz al 200% el h2 aportaba 412px de min-content dentro
+     de una caja de 294px y la pista crecia con el -- texto fuera del viewport
+     sin scroll horizontal que lo recupere (html declara overflow-x: clip,
+     regla 21). Una pista auto se estira igualmente hasta llenar el hueco libre
+     cuando cabe, asi que a raiz 16px el ancho no cambia (342px antes y
+     despues); lo unico que cambia es su minimo. */
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
+  /* overflow-wrap se hereda: una declaracion aqui cubre el h2 y los tres
+     parrafos. Sin ella, acotar la pista solo mueve el recorte -- el termino de
+     marca del titulo sigue siendo mas ancho que su caja al 200%. */
+  overflow-wrap: break-word;
   background-color: ${({ theme }) => theme.data.semantic.surface};
   padding: ${({ theme }) => theme.data.space[9]}
     ${({ theme }) => theme.data.space[5]};

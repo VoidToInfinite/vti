@@ -350,6 +350,15 @@ function storyStatementFontSize(): string {
  * (D8), no lo que hubiera detras por casualidad.
  */
 const ScStory = styled.section<{ $fullBleed: boolean }>`
+  /* WCAG 2.1 SC 1.4.4 (critica externa #13). overflow-wrap SE HEREDA, asi que
+     una sola declaracion en la raiz de la seccion cubre las dos ramas de tema
+     y todo su texto. break-word solo parte una palabra cuando NO cabe entera
+     en su propia linea -- a tamano normal no cambia ni un salto de linea --,
+     y es lo unico que evita que un termino largo (una URL, un compuesto de
+     marca) siga saliendose de su caja despues de acotar las pistas del grid:
+     acotar la caja sin permitir la rotura mueve el recorte, no lo quita. */
+  overflow-wrap: break-word;
+
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`
@@ -418,7 +427,18 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
  */
 const ScGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr), NO 1fr (WCAG 2.1 SC 1.4.4, critica externa #13). 1fr es
+     minmax(auto, 1fr) y ese auto es el TAMANO MINIMO AUTOMATICO de la pista:
+     el min-content de lo que contiene. Con la raiz a 150-200% el min-content
+     de ScContent (que arrastra el suelo de ScPillarGrid, ver mas abajo) supera
+     el ancho disponible y la pista crece POR ENCIMA del contenedor -- medido a
+     390px de ancho y raiz 32px: pista de 480px dentro de una caja de 294px.
+     Como html declara overflow-x: clip (GlobalStyles, deliberado por el sticky
+     de los decks, regla 21), ese sobrante no se puede recuperar con scroll: es
+     texto perdido. El 0 del minmax solo cambia el MINIMO de la pista; el 1fr
+     sigue repartiendo igual, asi que a raiz 16px la geometria es identica
+     (342px medidos antes y despues). */
+  grid-template-columns: minmax(0, 1fr);
   /* D11 (segunda ronda, 2026-08-06): stretch, NO center. SIN BACKTICKS en
      este comentario a proposito (vive dentro del template literal de
      styled-components, un backtick lo cierra y rompe el build -- leccion del
@@ -445,7 +465,7 @@ const ScGrid = styled.div`
   }
 
   @media ${({ theme }) => theme.data.breakPoint.lg} {
-    grid-template-columns: minmax(280px, ${STORY_FIGURE_WIDTH}) 1fr;
+    grid-template-columns: minmax(280px, ${STORY_FIGURE_WIDTH}) minmax(0, 1fr);
     gap: ${({ theme }) => theme.data.space[8]};
   }
 
@@ -699,7 +719,10 @@ const ScSupportLead = styled(ScBody)`
  */
 const ScPillarRow = styled.div`
   display: grid;
-  grid-template-columns: 2.5rem 1fr;
+  /* minmax(0, 1fr) en la segunda pista por el mismo motivo que ScGrid (WCAG
+     2.1 SC 1.4.4): la copia del pilar no puede empujar la fila mas alla de la
+     diapositiva que la contiene cuando la raiz escala. */
+  grid-template-columns: 2.5rem minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[4]};
   align-items: baseline;
   padding-block: ${({ theme }) => theme.data.space[4]};
@@ -772,7 +795,14 @@ const ScEyebrowBar = styled.span`
  */
 const ScPillarGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  /* El suelo va envuelto en min(..., 100%) (WCAG 2.1 SC 1.4.4, critica externa
+     #13): 15rem es una medida RELATIVA A LA RAIZ, asi que con la preferencia
+     del usuario al 200% valen 480px -- mas que los 294px disponibles a 390px
+     de ancho -- y la pista desborda el contenedor sin scroll que lo recupere
+     (html declara overflow-x: clip, regla 21). min(15rem, 100%) conserva el
+     suelo mientras cabe y lo rinde al ancho real cuando no; con la raiz por
+     defecto min() resuelve a los mismos 15rem y no cambia nada. */
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
   gap: ${({ theme }) => theme.data.space[4]};
   margin-block-start: ${({ theme }) => theme.data.space[6]};
 `;
