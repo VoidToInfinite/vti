@@ -14,7 +14,12 @@ import { links } from "@/config/links";
 import { Story, pillarAccent, pillarBadgeAccent } from "./Story";
 import { DECK, PRESS, REVEAL } from "@/motion/vocabulary";
 import { motion } from "@/theme/tokens/motion";
-import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
+import {
+  contrastRatio,
+  contrastRatioHex,
+  relativeLuminance,
+  relativeLuminanceHex,
+} from "@/theme/tokens/contrast";
 import { basicLightTheme, basicDarkTheme } from "@/theme/themes";
 import {
   STORY_DARK_HEIGHT,
@@ -2611,5 +2616,241 @@ describe("Story: critica #12 -- el numeral de pilar del deck oscuro libra AA sob
    *     divergencia que (a) no puede ver.
    *
    * Restaurados los dos, los seis `it` de este describe vuelven a verde.
+   */
+});
+
+/*
+ * Critica externa #12 (2026-08-19), dimension 4 de Craft: el rail del deck de
+ * Story seguia siendo un `div` `aria-hidden` con seis `span` decorativos --
+ * "por donde vas" sin poder ir a ningun sitio -- mientras el de Journey ya era
+ * operable desde la critica #10 (commit f9cf823). Dos railes con dos contratos
+ * distintos en la misma pagina.
+ *
+ * Este describe es el GEMELO del de Journey ("critica #10 hallazgo A -- el
+ * rail del deck es operable"), caso por caso y con la misma aritmetica de
+ * pista, porque lo que se exige es exactamente el mismo contrato. La UNICA
+ * divergencia declarada es el nombre del grupo: Journey lo toma de
+ * `Home.journey.railLabel` y Story no tiene clave equivalente -- ver el
+ * comentario del rail en `Story.tsx`.
+ */
+describe("Story: critica #12 -- el rail del deck es operable (tema oscuro)", () => {
+  const VH = 800;
+  const PILLAR_KEYS = ["learn", "create", "grow", "practice"] as const;
+
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    vi.stubGlobal("innerHeight", VH);
+    vi.stubGlobal("scrollY", 0);
+    vi.stubGlobal("scrollTo", vi.fn());
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  async function railDeck(): Promise<{
+    track: HTMLElement;
+    botones: HTMLElement[];
+  }> {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    // La pista se fija ANTES de avisar al observer para que `measure()`
+    // calcule un progress exacto (misma tecnica que el resto de describes de
+    // este fichero y que el gemelo de Journey).
+    track.getBoundingClientRect = () =>
+      ({
+        top: 0,
+        height: (STORY_SLIDES + STORY_DECK_TAIL_SCREENS) * VH,
+      }) as DOMRect;
+    const grupo = screen.getByRole("group");
+    return {
+      track,
+      botones: within(grupo).getAllByRole("button"),
+    };
+  }
+
+  it("el rail es un grupo que NO esta oculto del arbol de accesibilidad, con una marca por diapositiva", async () => {
+    const { botones } = await railDeck();
+    const grupo = screen.getByRole("group");
+
+    expect(grupo).not.toHaveAttribute("aria-hidden");
+    expect(botones).toHaveLength(STORY_SLIDES);
+  });
+
+  /*
+   * El nombre de cada boton es el TITULO de su diapositiva, derivado de las
+   * MISMAS claves de i18n que esa diapositiva pinta -- no de una segunda
+   * fuente de copia. El valor esperado se compone aqui desde el JSON, no desde
+   * el helper del componente: si `slideName` empezara a nombrar otra cosa,
+   * este candado tiene que verlo (leccion `task/lessons.md` 2026-08-11).
+   */
+  it("cada marca es un boton con type=button y el nombre de la diapositiva a la que lleva", async () => {
+    const { botones } = await railDeck();
+    const esperados = [
+      `${esHome.Home.story.titleLead} ${esHome.Home.story.titleAccent}`,
+      ...PILLAR_KEYS.map((key) => esHome.Home.story.pillars[key].title),
+      [
+        esHome.Home.story.statement.first,
+        esHome.Home.story.statement.second,
+        esHome.Home.story.statement.third,
+      ].join(" "),
+    ];
+
+    expect(esperados).toHaveLength(STORY_SLIDES);
+    botones.forEach((boton, i) => {
+      expect(boton).toHaveAttribute("type", "button");
+      expect(boton).toHaveAccessibleName(esperados[i]);
+    });
+  });
+
+  it("aria-current marca UNA sola diapositiva y sigue al index del hook", async () => {
+    const { track, botones } = await railDeck();
+
+    act(() => triggerFor(track, true));
+    expect(
+      botones.filter((b) => b.getAttribute("aria-current") === "true"),
+    ).toHaveLength(1);
+    expect(botones[0]).toHaveAttribute("aria-current", "true");
+
+    // span = alto - vh - cola*vh = (STORY_SLIDES - 1) * VH; un progress de
+    // 3/(STORY_SLIDES - 1) pone el index en 3.
+    const span = (STORY_SLIDES - 1) * VH;
+    track.getBoundingClientRect = () =>
+      ({
+        top: -(span * 3) / (STORY_SLIDES - 1),
+        height: (STORY_SLIDES + STORY_DECK_TAIL_SCREENS) * VH,
+      }) as DOMRect;
+    // Salir y volver a entrar, no un segundo aviso de entrada: `start()` lleva
+    // guarda de reentrada, asi que sin el `false` de en medio este segundo
+    // trigger no mediria nada.
+    act(() => triggerFor(track, false));
+    act(() => triggerFor(track, true));
+
+    expect(botones[3]).toHaveAttribute("aria-current", "true");
+    expect(
+      botones.filter((b) => b.getAttribute("aria-current") === "true"),
+    ).toHaveLength(1);
+  });
+
+  it("pulsar la marca N lleva el scroll a la posicion exacta que activa esa diapositiva, con behavior smooth", async () => {
+    const { botones } = await railDeck();
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    // Aritmetica, no un numero magico: con la pista en top 0 y scrollY 0,
+    //   span = (STORY_SLIDES + cola) * VH - VH - cola * VH
+    //        = (STORY_SLIDES - 1) * VH
+    //   top(k) = k / (STORY_SLIDES - 1) * span = k * VH
+    const span = (STORY_SLIDES - 1) * VH;
+    [0, 3, STORY_SLIDES - 1].forEach((k) => {
+      scrollTo.mockClear();
+      act(() => {
+        botones[k].click();
+      });
+      expect(scrollTo).toHaveBeenCalledWith({
+        top: (k / (STORY_SLIDES - 1)) * span,
+        behavior: "smooth",
+      });
+    });
+  });
+
+  it("bajo prefers-reduced-motion el salto es instantaneo, nunca animado", async () => {
+    const { botones } = await railDeck();
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes("prefers-reduced-motion"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+    scrollTo.mockClear();
+    act(() => {
+      botones[2].click();
+    });
+
+    expect(scrollTo).toHaveBeenCalledWith(
+      expect.objectContaining({ behavior: "instant" }),
+    );
+  });
+
+  it("el punto inactivo libra 3:1 (WCAG 1.4.11) sobre el void de la escena, y el activo sigue siendo otro color", async () => {
+    const { botones } = await railDeck();
+
+    // Que el COMPONENTE use de verdad el token que se mide abajo: sin esta
+    // linea las cifras seguirian saliendo bien aunque el reposo del boton
+    // hubiera vuelto a `semantic.border` (regla 38).
+    expect(cssRuleTextFor(botones[0])).toContain(
+      `color: ${basicDarkTheme.semantic.borderStrong}`,
+    );
+
+    const ratio = contrastRatioHex(
+      basicDarkTheme.semantic.borderStrong,
+      STORY_COSMIC_BEING_VOID,
+    );
+    expect(ratio, `void: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+
+    // Sonda de no-vacuidad: el punto ANTERIOR incumplia 1.4.11 de verdad, y la
+    // pieza que lo hundia era la OPACIDAD, no el token de color. La
+    // composicion se calcula sobre la LUMINANCIA directamente, y eso es
+    // exacto: la luminancia relativa es una combinacion LINEAL de los canales
+    // lineales, asi que mezclar canales al 40% y mezclar luminancias al 40%
+    // dan el mismo numero.
+    const yPunto = relativeLuminance(basicDarkTheme.semantic.border);
+    const yVoid = relativeLuminanceHex(STORY_COSMIC_BEING_VOID);
+    const yCompuesto = 0.4 * yPunto + 0.6 * yVoid;
+    const ratioAntes =
+      (Math.max(yCompuesto, yVoid) + 0.05) /
+      (Math.min(yCompuesto, yVoid) + 0.05);
+    expect(
+      ratioAntes,
+      `punto inactivo anterior: ${ratioAntes.toFixed(2)}:1`,
+    ).toBeLessThan(3);
+
+    expect(basicDarkTheme.semantic.brand).not.toBe(
+      basicDarkTheme.semantic.borderStrong,
+    );
+  });
+
+  it("la diana del boton mide space[5] (24px, WCAG 2.5.8) aunque el punto siga midiendo space[2]", async () => {
+    const { botones } = await railDeck();
+    const css = cssRuleTextFor(botones[0]);
+
+    expect(css).toContain(`width: ${basicDarkTheme.space[5]}`);
+    expect(css).toContain(`height: ${basicDarkTheme.space[5]}`);
+    // El punto, en el pseudo-elemento, conserva su medida original.
+    const before = css.slice(css.indexOf("::before"));
+    expect(before).toContain(`width: ${basicDarkTheme.space[2]}`);
+    // Y ya no hay ninguna opacidad recortando el inactivo.
+    expect(css).not.toContain("opacity: 0.4");
+  });
+
+  /*
+   * TRES bugs inyectados a proposito (regla 34), ejecutados en esta tarea y
+   * anotados DESPUES de ver cada rojo (leccion `task/lessons.md` 2026-08-17
+   * bis) -- uno por candado que no se puede validar por construccion:
+   *
+   * (a) devolver `background-color: semantic.border` + `opacity: 0.4` al
+   *     reposo de `ScRailMark` (`story.deck.tsx`) pone en rojo LOS DOS
+   *     candados de CSS: el de contraste ("expected ... to contain
+   *     'color: oklch(0.53 0 286)'") y el de la diana ("not to contain
+   *     'opacity: 0.4'").
+   * (b) retirar `aria-current` del JSX del rail (`Story.tsx`) pone en rojo el
+   *     candado de estado ("expected [] to have a length of 1").
+   * (c) hacer que `slideName` devuelva siempre el primer pilar pone en rojo el
+   *     candado de nombres -- el que garantiza que cada boton nombra SU
+   *     diapositiva y no otra.
+   *
+   * Restaurados los tres, los siete `it` de este describe vuelven a verde.
    */
 });

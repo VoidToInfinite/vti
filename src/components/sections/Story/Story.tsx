@@ -1681,10 +1681,20 @@ function StoryDeckDark(): ReactElement {
   // explicitamente el hook sigue escribiendo `--story-enter`/
   // `--story-progress`, EXACTAMENTE lo que ese fichero ya lee: el
   // renombrado del hook no mueve ni una linea de CSS en esta seccion.
-  const { index, direction } = useSlideDeck(trackRef, stageRef, STORY_SLIDES, {
-    tailScreens: STORY_DECK_TAIL_SCREENS,
-    cssVarPrefix: "story",
-  });
+  // `scrollToSlide` (critica externa #12, dimension 4 de Craft): el rail deja
+  // de ser decorativo y sus marcas pasan a ser botones que llevan al tramo de
+  // pista que activa cada diapositiva. La geometria la invierte el hook, que
+  // es quien ya la calcula en el sentido directo -- ver su docblock. Journey
+  // consume esta misma pieza desde la critica #10 (commit f9cf823).
+  const { index, direction, scrollToSlide } = useSlideDeck(
+    trackRef,
+    stageRef,
+    STORY_SLIDES,
+    {
+      tailScreens: STORY_DECK_TAIL_SCREENS,
+      cssVarPrefix: "story",
+    },
+  );
 
   // Estado de cada diapositiva (spec seccion 5b): se decide AQUI, comparando
   // su indice con el `index` que escribe el hook -- el CSS de ScSlide
@@ -1695,6 +1705,42 @@ function StoryDeckDark(): ReactElement {
     if (slideIndex < index) return "past";
     if (slideIndex === index) return "current";
     return "next";
+  };
+
+  /*
+   * Nombre accesible de cada parada del rail (critica externa #12): el TITULO
+   * de la diapositiva a la que lleva, leido de las MISMAS claves que esa
+   * diapositiva pinta -- no una segunda fuente de copia que tendria que
+   * moverse a la vez que la primera (el riesgo real que el rail de Journey
+   * declaraba al elegir numerar en vez de nombrar).
+   *
+   * POR QUE EL DESTINO Y NO LA POSICION, y por que Journey cambia con esta
+   * misma ola: numerar las paradas ("Ir a la diapositiva N de 6") obliga a
+   * elegir QUE se cuenta, y en Journey esa eleccion choco de frente -- el rail
+   * contaba 8 diapositivas mientras las diapositivas anunciaban "Paso N de 6",
+   * con desfase de uno. Nombrar el destino no cuenta nada, asi que no puede
+   * contradecir a ninguna otra numeracion de la seccion, y ademas dice mas: a
+   * donde vas, no cuantos hay.
+   *
+   * Las CUATRO paradas centrales son los cuatro pilares, en el mismo orden en
+   * que `PILLARS` los pinta; la primera es el h2 de la intro (sus dos mitades
+   * unidas por el mismo espacio con el que se pintan) y la ultima, la frase de
+   * cierre. Todo derivado de `PILLARS`/`STORY_SLIDES`, nunca de un literal
+   * (regla 39 de RULES.md): si el deck gana o pierde una diapositiva, esto se
+   * corrige solo.
+   */
+  const slideName = (slideIndex: number): string => {
+    if (slideIndex === 0) {
+      return `${t("Home.story.titleLead")} ${t("Home.story.titleAccent")}`;
+    }
+    if (slideIndex === STORY_SLIDES - 1) {
+      return [
+        t("Home.story.statement.first"),
+        t("Home.story.statement.second"),
+        t("Home.story.statement.third"),
+      ].join(" ");
+    }
+    return t(`Home.story.pillars.${PILLARS[slideIndex - 1].key}.title`);
   };
 
   return (
@@ -1857,14 +1903,39 @@ function StoryDeckDark(): ReactElement {
               </ScDeckNoteLink>
             </ScSlide>
           </ScDeck>
-          {/* Rail decorativo (D13): 6 marcas, aria-hidden, que reflejan
-              data-slide del stage por CSS puro (ScRailMark, story.deck.tsx) --
-              no llevan estado propio de React, solo su indice fijo. */}
-          <ScRail aria-hidden="true">
+          {/* Rail de progreso (D13), OPERABLE desde la critica externa #12
+              (dimension 4 de Craft): STORY_SLIDES marcas que reflejan
+              data-slide del stage por CSS puro (ScRailMark, story.deck.tsx) y
+              que ademas llevan a su diapositiva al pulsarlas. Mismo contrato
+              que el rail de Journey desde la critica #10 (commit f9cf823):
+              botones reales, aria-current, diana de 24px.
+
+              De aria-hidden a role="group": seis botones operables no pueden
+              estar fuera del arbol de accesibilidad, y sin agrupar se
+              anunciarian como seis controles sin relacion entre si.
+
+              EL GRUPO SE QUEDA SIN NOMBRE EN ESTA ENTREGA, y se declara en vez
+              de disimularse: el equivalente de Journey lo toma de
+              `Home.journey.railLabel`, y Story no tiene ninguna clave que
+              nombre este rail. Inventarla exige tocar los JSON de i18n, fuera
+              del alcance de esta tarea; reutilizar la de Journey seria peor
+              (una seccion nombrandose con el copy de otra). Los seis botones
+              SI tienen nombre propio -- el titulo de su diapositiva, ver
+              slideName mas arriba -- asi que ninguno queda mudo; lo que falta
+              es el rotulo del conjunto. Cuando la clave exista, es una linea.
+
+              aria-current marca el activo. NO gobierna el estilo: eso lo sigue
+              haciendo el selector descendiente sobre data-slide, que ya estaba
+              probado -- ver el docblock de ScRailMark. */}
+          <ScRail role="group">
             {Array.from({ length: STORY_SLIDES }, (_, railIndex) => (
               <ScRailMark
                 key={railIndex}
+                type="button"
                 $index={railIndex}
+                aria-current={railIndex === index ? "true" : undefined}
+                aria-label={slideName(railIndex)}
+                onClick={() => scrollToSlide(railIndex)}
               />
             ))}
           </ScRail>

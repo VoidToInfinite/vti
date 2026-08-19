@@ -409,11 +409,22 @@ export const ScSlide = styled.div`
 `;
 
 /*
- * Rail de progreso decorativo (D13): aria-hidden, refleja data-slide del
- * stage (un ANCESTRO de ScRailMark) por el mismo selector descendiente que
- * ya usa el scrub de ScDeck. Se retira en reduce: sin pin ni avance atado al
- * scroll, "por donde voy" deja de tener sentido -- todas las diapositivas ya
- * estan a la vista a la vez.
+ * Rail de progreso (D13): refleja data-slide del stage (un ANCESTRO de
+ * ScRailMark) por el mismo selector descendiente que ya usa el scrub de
+ * ScDeck. Se retira en reduce: sin pin ni avance atado al scroll, "por donde
+ * voy" deja de tener sentido -- todas las diapositivas ya estan a la vista a
+ * la vez.
+ *
+ * DEJO DE SER aria-hidden en la critica externa #12 (2026-08-19, dimension 4
+ * de Craft): sus marcas son ahora botones reales (ver ScRailMark, abajo), asi
+ * que ocultarlo del arbol de accesibilidad esconderia seis controles
+ * operables. Es el MISMO contrato que Journey ya estreno en la critica #10
+ * (commit f9cf823) -- este rail se quedo atras aquella vez porque el hallazgo
+ * se midio alli, no aqui.
+ *
+ * El nombre del GRUPO lo pone Story.tsx via role="group": ver el comentario
+ * del rail en ese fichero para el estado exacto de ese nombre, que es lo unico
+ * de este contrato que esta tarea no pudo cerrar.
  */
 export const ScRail = styled.div`
   position: absolute;
@@ -431,42 +442,132 @@ export const ScRail = styled.div`
   }
 `;
 
-export const ScRailMark = styled.span<{ $index: number }>`
-  width: ${({ theme }) => theme.data.space[2]};
-  height: ${({ theme }) => theme.data.space[2]};
+/*
+ * Marca del rail (critica externa #12, 2026-08-19, dimension 4 de Craft: el
+ * rail de ESTE deck seguia siendo mudo para tecnologia asistiva). Hasta esta
+ * tarea era un `span` decorativo dentro de un rail `aria-hidden`: se veia "por
+ * donde vas" pero no se podia ir a ningun sitio, y encima apenas se veia --
+ * los inactivos pintaban `semantic.border` (neutral 800) a `opacity: 0.4`
+ * sobre la escena casi negra de StoryCosmicBeing.
+ *
+ * MISMO CONTRATO, PIEZA A PIEZA, que ScJourneyRailMark (journey.deck.tsx,
+ * commit f9cf823, critica #10) -- no una variacion: los dos decks son gemelos
+ * declarados (deuda "Decks Story/Journey gemelos", RULES.md) y dos raíles que
+ * se operan distinto en la misma pagina serian dos gramaticas para el mismo
+ * mecanismo. Se DUPLICA aqui en vez de importarse de alli, mismo criterio que
+ * ScScrollHint y stepColor: este fichero es una hoja estructural sin ninguna
+ * dependencia de la seccion hermana.
+ *
+ * TRES CAMBIOS, cada uno cerrando una mitad distinta del hallazgo:
+ *
+ * 1. ELEMENTO: `button` real, no `span`. Story.tsx le pone `type="button"`,
+ *    `aria-label` con el NOMBRE de la diapositiva a la que lleva (claves de
+ *    i18n que ya pinta el propio deck), `aria-current` en el activo, y
+ *    engancha el salto a `scrollToSlide` (`useSlideDeck`), que invierte la
+ *    geometria de la pista. Al ser un boton nativo trae foco, Enter/Espacio y
+ *    rol sin nada que sincronizar a mano.
+ *
+ * 2. DIANA: el punto sigue midiendo space[2] (8px) -- la decision visual del
+ *    rail no cambia -- pero se dibuja con `::before` DENTRO de una caja de
+ *    space[5] (24px), el minimo de WCAG 2.5.8 (Target Size, AA en WCAG 2.2).
+ *    Un boton de 8x8 es inoperable con el dedo y casi con el raton. La caja es
+ *    transparente: no se ve, solo se toca.
+ *
+ * 3. CONTRASTE: los inactivos pasan de `semantic.border` al 40% de opacidad a
+ *    `semantic.borderStrong` OPACO. La opacidad desaparece de la declaracion y
+ *    de la lista de `transition` -- ya no hay nada que interpolar en ese eje.
+ *    WCAG 1.4.11 pide 3:1 para un componente de interfaz frente a lo que tiene
+ *    detras; el candado que lo mide contra el void real de esta escena vive en
+ *    Story.test.tsx (describe "critica #12 -- rail"). El activo conserva
+ *    `semantic.brand` y su `scale(1.5)`.
+ *
+ * EL SELECTOR DESCENDIENTE `[data-slide="N"] &` NO CAMBIA de forma (regla 35
+ * de RULES.md): sigue leyendo el estado desde el ANCESTRO -- el `data-slide`
+ * que ScStage ya escribe con el index de useSlideDeck -- y no desde un
+ * atributo del propio boton. `aria-current` se anade en el JSX como senal para
+ * tecnologia asistiva, no como fuente del estilo: dos fuentes de verdad para
+ * lo mismo pueden divergir, y la que ya estaba probada es esta.
+ */
+export const ScRailMark = styled.button<{ $index: number }>`
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: ${({ theme }) => theme.data.space[5]};
+  height: ${({ theme }) => theme.data.space[5]};
   border-radius: ${({ theme }) => theme.data.radius.full};
-  background-color: ${({ theme }) => theme.data.semantic.border};
-  opacity: 0.4;
-  transform: scale(1);
-  transition:
-    opacity ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    background-color ${({ theme }) => theme.data.motion.duration.base}
+  color: ${({ theme }) => theme.data.semantic.borderStrong};
+  cursor: pointer;
+  transition: color ${({ theme }) => theme.data.motion.duration.base}
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  /* El punto visible. Hereda currentColor para que el color viva en UNA sola
+     declaracion (la del boton) y el estado activo no tenga que repetirlo sobre
+     dos elementos. SIN BACKTICKS en este comentario, a proposito: vive DENTRO
+     del template literal de styled-components, donde un backtick lo cierra y
+     rompe el build (leccion del repo, task/lessons.md 2026-07-25). */
+  &::before {
+    content: "";
+    display: block;
+    width: ${({ theme }) => theme.data.space[2]};
+    height: ${({ theme }) => theme.data.space[2]};
+    border-radius: ${({ theme }) => theme.data.radius.full};
+    background-color: currentColor;
+    transform: scale(1);
+    transition: transform ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard};
+  }
+
+  &:hover {
+    color: ${({ theme }) => theme.data.semantic.text};
+  }
+
+  /* Halo de foco por teclado, mismo lenguaje que IconButton.tsx (anillo
+     externo con semantic.focus mezclado con transparente). El boton es
+     redondo, asi que el anillo hereda su border-radius sin declarar nada. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px
+      color-mix(
+        in oklch,
+        ${({ theme }) => theme.data.semantic.focus} 45%,
+        transparent
+      );
+  }
 
   ${({ $index, theme }) => css`
     [data-slide="${$index}"] & {
-      opacity: 1;
+      color: ${theme.data.semantic.brand};
+    }
+
+    [data-slide="${$index}"] &::before {
       transform: scale(1.5);
-      background-color: ${theme.data.semantic.brand};
     }
   `}
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &::before {
+      transition: none;
+    }
   }
 `;
 
 /*
  * Pista de scroll del deck (Task 4, plan
  * `2026-08-10-implementacion-plan-premium-f1-f5`): indicio visual de que la
- * presentacion avanza con scroll. `aria-hidden` como ScRail (arriba): el
- * rail decorativo ya comunica "por donde voy" por otra via, y esta pista
- * solo dice "puedes seguir bajando" -- ninguna de las dos aporta contenido
- * que un lector de pantalla necesite (las diapositivas siguen accesibles en
- * el DOM sin importar cual de las dos vea).
+ * presentacion avanza con scroll. Sigue siendo `aria-hidden`, y desde la
+ * critica externa #12 es el UNICO de los dos adornos del stage que lo es: el
+ * rail de al lado dejo de serlo al convertirse en seis botones operables (ver
+ * ScRail, arriba), mientras que esta pista no gana nada al anunciarse -- no es
+ * un control, no dice "por donde voy" sino "puedes seguir bajando", y las
+ * diapositivas siguen accesibles en el DOM sin importar si se lee o no.
  *
  * Reutiliza `data-slide`, que `ScStage` (Story.tsx) YA escribe con el
  * `index` de `useSlideDeck` -- SIN listener nuevo, mismo mecanismo que
