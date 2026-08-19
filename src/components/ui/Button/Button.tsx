@@ -249,6 +249,39 @@ const ScButton = styled.button<{
     pointer-events: none;
   }
 
+  /* Forma de boton bajo forced-colors (critica externa #12, 2026-08-19: el
+     CTA medido en modo de colores forzados daba fondo Canvas, color LinkText
+     y border-top-width: 0px, o sea, se leia como texto enlazado y no como
+     boton). En ese modo el navegador descarta los valores de autor de color,
+     background-color y border-color -- los sustituye por la paleta del
+     sistema -- y ademas fuerza box-shadow: none, asi que las TRES cosas que
+     hoy dan forma a este boton desaparecen a la vez: el fondo de la variante
+     solid, el anillo inset de outline y el halo de :focus-visible. El borde
+     es lo unico que el modo forzado si pinta. Se declara aqui, en la base y
+     no dentro de cada rama de variante, para que las cuatro lo hereden --
+     mismo punto de menor duplicacion que ya usan touch-action y las dos
+     primitivas de movimiento de arriba.
+
+     Por que DENTRO del media query y no como un borde transparente
+     permanente en la base: una sombra inset se dibuja desde el borde
+     interior del borde, asi que 1px de borde transparente moveria 1px hacia
+     dentro el anillo inset de la variante outline -- un cambio visual real
+     en los dos temas normales, justo lo que este arreglo no puede permitirse.
+     Dentro del media query no mueve nada de nada: el reset global declara
+     box-sizing: border-box (GlobalStyles), asi que el borde se come 1px del
+     interior y la caja exterior conserva exactos sus 36/44/52px de alto.
+
+     ButtonText es la palabra clave de color de sistema que el propio ejemplo
+     de MDN usa para este caso (borde que sustituye a un box-shadow forzado a
+     none). El CTA que se monta con as="a" recibe LinkText como color de
+     texto -- es lo que se midio --, asi que texto y borde pueden salir de
+     dos entradas distintas de la paleta forzada: las dos son visibles sobre
+     el mismo fondo, y lo que este bloque garantiza es la FORMA, no que los
+     dos tonos coincidan. */
+  @media (forced-colors: active) {
+    border: 1px solid ButtonText;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     /* Fix de revision (Task 19): un &:hover, &:active a secas compila a

@@ -470,4 +470,88 @@ describe("Button", () => {
       }
     });
   });
+
+  /*
+   * Crítica externa #12 (2026-08-19): el CTA medido bajo `forced-colors:
+   * active` daba fondo `Canvas`, color `LinkText` y `border-top-width: 0px`
+   * — sin borde ni fondo propios se leía como texto enlazado, no como botón.
+   * En modo de colores forzados el navegador descarta los valores de autor de
+   * `color`/`background-color`/`border-color` y fuerza `box-shadow: none`, así
+   * que el fondo de `solid`, el anillo `inset` de `outline` y el halo de
+   * `:focus-visible` desaparecen a la vez; el borde es lo único que ese modo
+   * sí pinta.
+   *
+   * jsdom no evalúa NINGÚN `@media` (regla 36), así que este candado no puede
+   * "activar" el modo forzado: inspecciona `document.styleSheets` acotando la
+   * búsqueda al bloque `@media (forced-colors: active)` concreto — nunca por
+   * substring del CSS completo — y comprueba, además, que la regla del borde
+   * cuelga del MISMO elemento (su propia clase en `selectorText`, regla 35) y
+   * no de un descendiente. Que el borde se vea de verdad en modo forzado es
+   * verificación de navegador real, pendiente de humano (regla 47).
+   */
+  describe("forma de botón bajo forced-colors (crítica externa #12)", () => {
+    /** Reglas de estilo declaradas DENTRO de un `@media (forced-colors: active)`. */
+    function reglasForcedColors(): CSSStyleRule[] {
+      const out: CSSStyleRule[] = [];
+      const walk = (rules: CSSRuleList, dentro: boolean): void => {
+        Array.from(rules).forEach((rule) => {
+          const media = (rule as CSSMediaRule).media;
+          const aqui =
+            dentro ||
+            (media ? /forced-colors:\s*active/.test(media.mediaText) : false);
+          const anidadas = (rule as CSSGroupingRule).cssRules;
+          if (anidadas) {
+            walk(anidadas, aqui);
+            return;
+          }
+          if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+            out.push(rule as CSSStyleRule);
+          }
+        });
+      };
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          walk(sheet.cssRules, false);
+        } catch {
+          /* hoja inaccesible: no aporta */
+        }
+      });
+      return out;
+    }
+
+    it.each(["solid", "soft", "outline", "ghost"] as const)(
+      "variante %s: declara un borde propio dentro de @media (forced-colors: active)",
+      (variant) => {
+        renderWithProviders(
+          <Button variant={variant}>{`Forzado ${variant}`}</Button>,
+        );
+        const boton = screen.getByRole("button", {
+          name: `Forzado ${variant}`,
+        });
+        // Solo las clases que styled-components inyectó de verdad para ESTE
+        // render (mismo criterio que reglasDe, arriba): la hoja acumula
+        // renders anteriores de la suite entera.
+        const propias = reglasForcedColors().filter((regla) =>
+          Array.from(boton.classList).some((cls) =>
+            regla.selectorText.includes(`.${cls}`),
+          ),
+        );
+        const conBorde = propias.filter((regla) =>
+          /border(-(top|right|bottom|left))?(-width|-style)?\s*:/.test(
+            regla.style.cssText || regla.cssText,
+          ),
+        );
+        expect(
+          conBorde.length,
+          `la variante ${variant} no declara borde bajo forced-colors`,
+        ).toBeGreaterThan(0);
+        // El borde cuelga del propio elemento, no de un descendiente suyo:
+        // `.claseX` a secas, sin nada detrás (regla 35 — la forma del
+        // selector se afirma sobre selectorText, no por substring del CSS).
+        for (const regla of conBorde) {
+          expect(regla.selectorText.trim()).toMatch(/^\.[\w-]+$/);
+        }
+      },
+    );
+  });
 });
