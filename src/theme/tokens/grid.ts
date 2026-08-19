@@ -104,48 +104,134 @@ export const grid = {
    * el sistema (`DESIGN.md` §3.4, spec `2026-07-24-luxury-interface-system`).
    * Esa es la promesa; el número de abajo es solo cómo se expresa.
    *
-   * Por qué NO es "65ch", y por qué 52ch no es un capricho: la unidad `ch` no
-   * mide un carácter, mide el ancho de avance del glifo "0". Hanken Grotesk
-   * (`type.fontBody`) tiene la caja media de sus caracteres de texto más
-   * estrecha que su cero, así que cada `ch` cabe MÁS de un carácter. Ratio
-   * medido en navegador real sobre el copy del sitio (crítica externa #8,
-   * 2026-08-17; dos evaluadores independientes coincidieron): **1,259
-   * caracteres reales por `ch`**.
+   * ## CAPACIDAD NO ES REALIZACIÓN — la distinción que este docblock enseñaba
+   * mal hasta la crítica externa #13 (2026-08-18)
    *
-   *   65ch × 1,259 = 81,8 caracteres reales → fuera del rango, promesa rota
-   *   52ch × 1,259 = 65,5 caracteres reales → la promesa, cumplida
+   * Hay DOS magnitudes distintas y la promesa habla de la segunda:
    *
-   * Derivación del valor: 65 ÷ 1,259 = 51,6ch, redondeado a 52ch.
+   * - **CAPACIDAD**: cuántos caracteres CABEN en la caja. Es una división:
+   *   ancho ÷ ancho medio de carácter. La unidad `ch` no mide un carácter,
+   *   mide el ancho de avance del glifo "0", y Hanken Grotesk
+   *   (`type.fontBody`) tiene la caja media de sus caracteres de texto más
+   *   estrecha que su cero, así que cada `ch` cabe MÁS de un carácter. Ratio
+   *   medido en navegador real (crítica externa #8, 2026-08-17, dos
+   *   evaluadores independientes; reconfirmado en la #13, que midió un rango
+   *   de 1,204-1,309 según el texto): **1,259 caracteres reales por `ch`**.
+   * - **REALIZACIÓN**: cuántos caracteres hay DE VERDAD en una línea llena.
+   *   Siempre son MENOS que los que caben, y no por un margen despreciable:
+   *   con bandera derecha (`text-align: start`, lo que este sitio usa en todas
+   *   sus superficies de prosa) la línea corta por PALABRA, así que el hueco
+   *   que deja la última palabra que no entra se desperdicia entero, línea
+   *   tras línea. Pérdida medida por el evaluador de la #13: **8-10 %**.
    *
-   * AVISO a quien pase por aquí después: devolverlo a "65ch" REINTRODUCE el
-   * defecto — ese 65 es la promesa escrita en la unidad equivocada, no el
-   * valor correcto. Si algún día cambia la tipografía de cuerpo, lo que hay
-   * que volver a medir es el RATIO (no el 65): se compara el ancho de avance
-   * del "0" con el ancho medio de carácter del copy real, y eso solo se mide
-   * en un navegador — jsdom no hace layout. El candado del valor y del rango
-   * vive en `system.test.ts`.
+   * La derivación anterior (`65 ÷ 1,259 = 52ch`) dividía la promesa por el
+   * ratio de CAPACIDAD y se detenía ahí. Es decir: calculaba la caja en la que
+   * caben 65 caracteres, no la caja que ENTREGA 65. El error no estaba en el
+   * ratio (la #13 lo remidió y lo confirmó) sino en el paso que faltaba.
+   * Medido en navegador real por dos partes independientes, carácter a
+   * carácter con `Range.getClientRects()` sobre líneas llenas — nunca
+   * estimando por el ancho de la caja:
+   *
+   *   caja de 52ch = 465,92 px → capacidad 65,5 caracteres
+   *     home  (párrafos cortos): 54 / 61 / 62 por línea, media 59  ← BAJO 60
+   *     legales (párrafos largos): 61-69 por línea
+   *
+   * La home, que es donde vive la mayoría de los consumidores de este token,
+   * quedaba POR DEBAJO del suelo de 60 del rango. La promesa estaba rota en la
+   * dirección contraria a la que la #8 corrigió.
+   *
+   * ## Derivación nueva, por dos caminos que convergen en el mismo entero
+   *
+   * (A) FORWARD — promesa ÷ (capacidad × realización):
+   *
+   *       65 ÷ (1,259 × 0,92) = 56,1ch  →  **56ch**
+   *
+   *     El **factor de realización 0,92** (un 8 % de pérdida) sale del extremo
+   *     conservador de la banda 8-10 % medida por la #13, y es el que hace
+   *     cuadrar el corpus entero (ver (B)); a 56ch la cuenta da 56 × 1,259 ×
+   *     0,92 = 64,9 caracteres realizados.
+   *
+   * (B) EMPÍRICO — el único entero que mete el corpus MEDIDO en la banda.
+   *     Los recuentos realizados escalan con el ancho de la caja, así que
+   *     desde las medidas tomadas a 52ch:
+   *
+   *       suelo:  56 × (V/52) ≥ 60  →  V ≥ 55,7ch   (peor línea de la home)
+   *       techo:  69 × (V/52) ≤ 75  →  V ≤ 56,5ch   (mejor línea de legales)
+   *
+   *     V ∈ [55,7 ; 56,5] deja **56ch** como ÚNICO valor entero posible: a
+   *     55ch la home cae a 59,2 (bajo el suelo) y a 57ch las legales suben a
+   *     75,6 (sobre el techo).
+   *
+   * Que los dos caminos den 56 es lo que sostiene el valor; ninguno de los dos
+   * por separado lo haría.
+   *
+   * ## Lo que este token NO puede prometer, y por qué se dice aquí
+   *
+   * El contrato es por SUPERFICIE (el rango de una superficie de prosa entra
+   * en 60-75), **no por LÍNEA**. No es una rebaja cómoda: es que la versión
+   * por línea es aritméticamente imposible. La línea más corta que midió el
+   * integrador en la home fueron 54 caracteres a 52ch; exigirle 60 obligaría a
+   * V ≥ 57,8ch, y el techo de las legales exige V ≤ 56,5ch — conjunto vacío.
+   * Con bandera derecha ninguna medida de línea puede garantizar un suelo
+   * POR LÍNEA: la línea anterior a una palabra larga siempre se queda corta.
+   *
+   * La otra mitad de lo mismo: home y legales realizan ~15 % distinto DENTRO
+   * DE LA MISMA CAJA (párrafos cortos contra párrafos largos, y texto con más
+   * o menos versales dentro del rango de ratio 1,204-1,309). Ese spread es
+   * mayor que la corrección que este token aplica, así que ningún valor único
+   * centra las dos superficies a la vez en 65: se elige el que mete a las dos
+   * dentro de la banda, con la home — la que realizaba peor — despegada del
+   * suelo.
+   *
+   * AVISO a quien pase por aquí después: ni "65ch" ni "52ch" son el valor
+   * correcto, y por motivos OPUESTOS. 65ch es la promesa escrita en la unidad
+   * equivocada — realizaría 75,3 por el camino (A) y hasta 86 en las legales
+   * por el (B), fuera del techo por los dos; 52ch es la promesa dividida solo
+   * por la capacidad, y la home MIDIÓ 59 con él, bajo el suelo. Si algún día
+   * cambia la tipografía de cuerpo hay que volver a medir LAS DOS cosas —el
+   * ratio de capacidad Y el factor de realización—, y las dos solo se miden en
+   * un navegador contando caracteres con `Range.getClientRects()` sobre líneas
+   * llenas: jsdom no hace layout, así que ningún test de este repo puede
+   * observar la realización. El candado del valor, de la banda y de la
+   * promesa vive en `system.test.ts`.
    */
-  prose: "52ch",
-  /**
-   * Medida corta para subtítulos: dos líneas legibles de un vistazo. Con la
-   * medida de `prose` y 24px, el subtítulo del hero sería una única línea
-   * interminable, que es lo contrario de un subtítulo.
+  prose: "56ch",
+  /*
+   * AQUÍ VIVIÓ `proseTight: "34ch"` — "medida corta para subtítulos: dos
+   * líneas legibles de un vistazo". RETIRADO en la crítica externa #13
+   * (2026-08-18) tras un censo propio de consumidores, con los cuatro
+   * patrones que exige este fichero (con punto, con corchete, por
+   * desestructuración y por alias local de `theme.data`, el punto ciego que
+   * un censo anterior sí tuvo) más la comprobación de que nadie lee `grid`
+   * de forma dinámica (`grid[...]`, `...grid`, `Object.keys/values/entries`
+   * sobre `grid`): **cero usos en `src/` y en `app/`**. Sus únicas
+   * apariciones en todo el repo eran su declaración, el contrato de
+   * `system.test.ts`, una línea de `DESIGN.md` que dice que no tiene
+   * consumidores, y un comentario de `Hero.tsx` que dice explícitamente que
+   * el subtítulo ya NO lo consume.
    *
-   * Su valor NO se corrige por el ratio de `prose` (arriba) a propósito: lo
-   * que promete no es un recuento de caracteres, sino el número de LÍNEAS de
-   * una pieza concreta. Y hoy no tiene ningún consumidor en `src/` (verificado
-   * 2026-08-17, y otra vez en la crítica externa #10, 2026-08-18): el
-   * subtítulo del hero que lo justificó nunca lo consumió. Hasta el
-   * 2026-08-18 declaraba su propio `max-width` literal; desde esa fecha
-   * consume `heroCopyMax` (arriba), que es el tope de la columna entera del
-   * hero, no esta medida corta — así que el subtítulo sigue sin ser
-   * consumidor de este token. Sin consumidor no hay medida real que
-   * recalibrar; recalibrarlo "por coherencia" sería mover un número que nadie
-   * lee, contra una promesa que nunca hizo.
+   * POR QUÉ AHORA Y NO EN LA #10, que ya midió el mismo cero y lo conservó:
+   * porque lo que aquel docblock ofrecía como motivo para conservarlo era él
+   * mismo. "Tiene un DESTINO escrito aquí" y "su docblock es la propia
+   * decisión de conservarlo" son la misma frase dicha dos veces — un token
+   * que se justifica citándose a sí mismo no tiene evidencia externa, tiene
+   * inercia. Contrástese con `space[10]`, que en esta misma ola SÍ se
+   * conserva y por eso mismo: su destino no lo declara él, lo declara una
+   * casilla todavía abierta de `docs/qa-3d-pendiente.md` que lo nombra por su
+   * nombre. Ese es el listón, y `proseTight` no lo pasaba: ni un consumidor,
+   * ni una reserva en `DESIGN.md`, ni un pendiente que lo nombre.
    *
-   * NO se retira pese al cero: a diferencia de `columns`/`gutter`, este token
-   * tiene un DESTINO escrito aquí — la medida de dos líneas para un
-   * subtítulo — y su docblock es la propia decisión de conservarlo.
+   * Y hay un motivo de fondo, el mismo que retiró `columns`/`gutter` (ver el
+   * docblock de `containerMax`): el token DESCRIBÍA UNA PIEZA QUE NO EXISTE.
+   * Prometía la medida de un subtítulo de dos líneas, y el único subtítulo
+   * que lo justificó nunca lo leyó — hoy consume `heroCopyMax`, el tope de la
+   * columna entera del hero. Un token que promete gobernar algo que gobierna
+   * otro es peor que uno que solo sobra: invita a "recalibrarlo" contra una
+   * medida real que no es la suya.
+   *
+   * Mismo criterio y mismo precedente que `motion.duration.ambient` (commit
+   * `3734fd0`), `space.px`/`zIndex.max` (commit `1c707b3`) y `columns`/
+   * `gutter` (crítica externa #9). El recuento de claves de `system.test.ts`
+   * BAJA de 6 a 5 en el mismo cambio, nunca se afloja (regla 40).
    */
-  proseTight: "34ch",
 } as const;

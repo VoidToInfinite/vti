@@ -24,6 +24,33 @@ export const space = {
    * consumidores de esta escala, que no tenía ningún destino declarado en
    * ninguna parte (mismo criterio y mismo precedente que
    * `motion.duration.ambient`, commit `3734fd0`).
+   *
+   * ## Re-examinado en la crítica externa #13 (2026-08-18): SE CONSERVA, con
+   * dos evidencias NUEVAS — no con la de la vez pasada repetida
+   *
+   * 1. **La casilla que lo justifica sigue ABIERTA.** No se da por buena la
+   *    cita de arriba: se volvió a leer `docs/qa-3d-pendiente.md` y su ítem
+   *    "Banding y costura en la rampa de 10rem Hero→Story" sigue sin marcar
+   *    (`- [ ]`) y sigue nombrando este paso como la mitigación. La razón que
+   *    conserva el token no es su propio docblock —eso sería inercia, y por
+   *    eso mismo se retiró `grid.proseTight` en esta misma ola— sino un
+   *    pendiente EXTERNO, vivo y comprobado hoy.
+   * 2. **Censo propio paso a paso de la escala entera** (consumidores reales
+   *    en `src/`+`app/`, sin tokens ni tests, con las cuatro formas de acceso
+   *    y comprobando además que nadie indexa `space` con una clave dinámica —
+   *    no hay ni un `space[<variable>]` en el repo): 0→4, 1→18, 2→61, 3→37,
+   *    4→41, 5→63, 6→37, 7→14, 8→15, 9→6, **10→0**. Es el ÚLTIMO peldaño de
+   *    una escala continua, no un token suelto: el cero de un extremo de una
+   *    rampa es el estado normal de una escala que todavía no ha necesitado
+   *    su tramo más largo, y retirarlo dejaría el sistema sin la casilla que
+   *    la QA abierta ya reservó. Distinto por completo de un token con nombre
+   *    propio y cero consumidores, que no forma serie con nada.
+   *
+   * QUÉ LO RETIRARÍA, escrito para que la próxima revisión no tenga que
+   * volver a deducirlo: que esa casilla de `docs/qa-3d-pendiente.md` se
+   * cierre —en el sentido que sea— sin que este paso haya llegado a
+   * consumirse. En ese momento deja de haber evidencia externa y aplica el
+   * mismo criterio que a `proseTight`.
    */
   10: "8rem",
 } as const;

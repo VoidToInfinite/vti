@@ -115,11 +115,17 @@ describe("system tokens", () => {
         // 40): entra aquí y en el recuento de claves de más abajo en el mismo
         // cambio.
         heroCopyMax: "70ch",
-        // 52ch, no 65ch: la promesa del token son ~65 CARACTERES reales, y
-        // con Hanken Grotesk cada `ch` da 1,259 de ellos -- ver el candado
-        // "prose limita a 52ch...", mas abajo, y el docblock de grid.ts.
-        prose: "52ch",
-        proseTight: "34ch",
+        // 56ch: ni 65ch (la promesa escrita en la unidad equivocada) ni 52ch
+        // (la promesa dividida solo por la CAPACIDAD de la caja, que ignora
+        // que una linea con bandera derecha REALIZA un 8-10 % menos de lo que
+        // cabe). Ver el candado "prose limita a 56ch...", mas abajo, y el
+        // docblock de grid.ts para las dos derivaciones que convergen en 56.
+        prose: "56ch",
+        // `proseTight: "34ch"` se retiro en la critica externa #13
+        // (2026-08-18): cero consumidores y ninguna evidencia EXTERNA que lo
+        // reservara -- su unica justificacion era su propio docblock. Su
+        // lapida, con el censo completo, vive en grid.ts. El recuento de
+        // claves de mas abajo BAJA de 6 a 5 en el mismo cambio (regla 40).
       };
       expect(grid).toEqual(expectedGrid);
     });
@@ -148,33 +154,81 @@ describe("system tokens", () => {
     });
 
     /*
-     * Candado doble: VALOR + INTENCION.
+     * Candado TRIPLE: VALOR + PROMESA + CORPUS MEDIDO.
      *
      * La intencion documentada de `prose` son ~65 CARACTERES reales por linea
-     * (rango de legibilidad 60-75, DESIGN.md 3.4) -- no "65ch". La unidad `ch`
-     * mide el ancho de avance del glifo "0", y con Hanken Grotesk el caracter
-     * medio del copy real es mas estrecho que ese cero: 1,259 caracteres
-     * reales por `ch`, medido en navegador real (critica externa #8,
-     * 2026-08-17, dos evaluadores independientes). Con "65ch" el sitio
-     * entregaba 81,8 caracteres por linea; 65 / 1,259 = 51,6ch -> 52ch.
+     * (rango de legibilidad 60-75, DESIGN.md 3.4) -- no "65ch" y, desde la
+     * critica externa #13 (2026-08-18), tampoco "52ch". Lo que cambia no es el
+     * ratio (se remidio y se confirmo) sino que hay DOS magnitudes y la
+     * promesa habla de la segunda:
      *
-     * La segunda mitad del test es la que ata la INTENCION y no el literal:
-     * si alguien "corrige" el token de vuelta a 65ch (o lo pasa de largo en
-     * cualquier otro sentido), el rango de caracteres reales cae en rojo
-     * aunque el literal esperado se haya actualizado a la vez. El ratio se
-     * escribe aqui como constante con nombre porque es una propiedad MEDIDA
-     * de la tipografia, no un token del repo: si `type.fontBody` cambia, hay
-     * que volver a medirlo en un navegador (jsdom no hace layout) y
-     * actualizar los dos sitios -- este y el docblock de grid.ts.
+     *   CAPACIDAD  = cuantos caracteres CABEN   = ch x 1,259
+     *   REALIZACION= cuantos caracteres HAY     = capacidad x 0,92
+     *
+     * La bandera derecha corta por PALABRA y desperdicia el hueco de la que no
+     * entra: 8-10 % menos, medido en navegador por el evaluador de la #13. La
+     * derivacion vieja (65 / 1,259 = 52ch) se quedaba en la capacidad, asi que
+     * calculaba la caja donde CABEN 65, no la que ENTREGA 65 -- y medida, esa
+     * caja entregaba 54/61/62 (media 59) en la home: BAJO el suelo de 60.
+     *
+     * Las dos constantes se escriben aqui con nombre porque son propiedades
+     * MEDIDAS (de la tipografia una, del maquetado con bandera derecha la
+     * otra), no tokens del repo: si `type.fontBody` cambia hay que volver a
+     * medir LAS DOS en un navegador contando caracteres con
+     * `Range.getClientRects()` sobre lineas llenas -- jsdom no hace layout, no
+     * puede observar ninguna de las dos -- y actualizar este candado y el
+     * docblock de grid.ts a la vez.
+     *
+     * MITAD 2 (promesa): la realizacion tiene que caer en la banda 60-75 Y a
+     * menos de 2 caracteres de la promesa de ~65. La tolerancia no es
+     * decorativa: cada paso entero de `ch` mueve el resultado 1,16 caracteres,
+     * asi que +-2 es lo mas estrecho que sigue siendo satisfacible por un
+     * entero. Con 52ch da 60,2 -- DENTRO de la banda, fuera de la promesa por
+     * 4,8: es exactamente la mitad que caza la regresion que esta ola corrige,
+     * y la que la version anterior de este candado no podia ver porque media
+     * la capacidad.
+     *
+     * MITAD 3 (corpus medido): los recuentos REALIZADOS escalan con el ancho
+     * de la caja, asi que el corpus medido a 52ch se proyecta al valor actual
+     * y tiene que caber entero en la banda. Es la mitad independiente del
+     * modelo: no usa el ratio ni el factor, solo lo que dos partes contaron en
+     * un navegador. A 55ch la home cae a 59,2 (bajo el suelo) y a 57ch las
+     * legales suben a 75,6 (sobre el techo) -- entre las dos mitades, 56ch es
+     * el unico entero que pasa.
      */
-    it("prose limita a 52ch, la medida que entrega ~65 caracteres reales", () => {
-      expect(grid.prose).toBe("52ch");
+    it("prose limita a 56ch, la medida que REALIZA ~65 caracteres por linea", () => {
+      expect(grid.prose).toBe("56ch");
 
-      const CARACTERES_REALES_POR_CH = 1.259;
       const ch = (v: string): number => Number(v.replace("ch", ""));
-      const caracteresReales = ch(grid.prose) * CARACTERES_REALES_POR_CH;
-      expect(caracteresReales).toBeGreaterThanOrEqual(60);
-      expect(caracteresReales).toBeLessThanOrEqual(75);
+
+      /** Caracteres reales que CABEN por cada `ch` con Hanken Grotesk. Medido
+       *  en navegador real (critica #8, dos evaluadores; remedido en la #13,
+       *  rango 1,204-1,309 segun el texto). */
+      const CARACTERES_POR_CH_DE_CAPACIDAD = 1.259;
+      /** Fraccion de esa capacidad que una linea con bandera derecha llega a
+       *  REALIZAR: corta por palabra y pierde el hueco de la ultima que no
+       *  entra. Medido 8-10 % de perdida (critica #13); se toma el extremo
+       *  conservador. */
+      const FACTOR_DE_REALIZACION = 0.92;
+      const PROMESA_CARACTERES = 65;
+
+      const capacidad = ch(grid.prose) * CARACTERES_POR_CH_DE_CAPACIDAD;
+      const realizados = capacidad * FACTOR_DE_REALIZACION;
+
+      expect(realizados).toBeGreaterThanOrEqual(60);
+      expect(realizados).toBeLessThanOrEqual(75);
+      expect(Math.abs(realizados - PROMESA_CARACTERES)).toBeLessThanOrEqual(2);
+
+      /* Corpus medido en navegador a 52ch: la peor linea de la home (56, por
+       * el evaluador de la #13) y la mejor de las legales (69). Proyectados al
+       * ancho actual, los dos extremos siguen dentro de la banda. */
+      const CH_DE_LA_MEDICION = 52;
+      const REALIZADOS_MIN_MEDIDOS = 56;
+      const REALIZADOS_MAX_MEDIDOS = 69;
+      const escala = ch(grid.prose) / CH_DE_LA_MEDICION;
+
+      expect(REALIZADOS_MIN_MEDIDOS * escala).toBeGreaterThanOrEqual(60);
+      expect(REALIZADOS_MAX_MEDIDOS * escala).toBeLessThanOrEqual(75);
     });
 
     /*
@@ -198,13 +252,16 @@ describe("system tokens", () => {
       expect(ch(grid.heroCopyMax)).toBeGreaterThan(ch(grid.prose));
     });
 
-    it("proseTight es una medida mas corta que prose", () => {
-      // El subtitulo del hero se apoya en esta medida: si algun dia igualara o
-      // superara a prose dejaria de ser un subtitulo de dos lineas.
-      expect(grid.proseTight).toBe("34ch");
-      const ch = (v: string): number => Number(v.replace("ch", ""));
-      expect(ch(grid.proseTight)).toBeLessThan(ch(grid.prose));
-    });
+    /*
+     * AQUI VIVIO el candado de `proseTight` ("proseTight es una medida mas
+     * corta que prose", 34ch). Se retira CON el token, en el mismo cambio
+     * (critica externa #13, 2026-08-18): cero consumidores en `src/` y `app/`
+     * con los cuatro patrones de acceso mas la comprobacion de que nadie lee
+     * `grid` de forma dinamica, y ninguna evidencia externa que lo reservara
+     * -- a diferencia de `space[10]`, que en la misma ola SI se conserva
+     * porque una casilla todavia abierta de `docs/qa-3d-pendiente.md` lo
+     * nombra. El censo completo y el porque viven en su lapida, en grid.ts.
+     */
 
     /*
      * Contrato ACTUALIZADO, no relajado (regla 40). `columns: 12` y
@@ -224,10 +281,12 @@ describe("system tokens", () => {
      * y este número SUBE de 4 a 5 en el mismo cambio, con su `it` de valor e
      * intención arriba -- la mecánica funcionó en las dos direcciones. La
      * crítica #12 (2026-08-18) añade `sectionMax` y el número sube de 5 a 6,
-     * por el mismo camino.
+     * por el mismo camino. Y la #13 (2026-08-18) retira `proseTight` y lo BAJA
+     * de 6 a 5, otra vez en el mismo cambio que la clave: la mecánica ha
+     * funcionado ya cuatro veces, dos en cada sentido.
      */
     it("grid es un objeto congelado (as const)", () => {
-      expect(Object.keys(grid)).toHaveLength(6);
+      expect(Object.keys(grid)).toHaveLength(5);
     });
   });
 });
