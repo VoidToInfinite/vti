@@ -14,7 +14,7 @@ import styled, { type DefaultTheme } from "styled-components";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
-import { NAV_GROUPS, type NavGroup, type NavItem } from "@/config/navigation";
+import { navGroupsFor, type NavGroup, type NavItem } from "@/config/navigation";
 import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
 import { focusNavAnchorTarget } from "./navAnchorFocus";
@@ -848,6 +848,70 @@ const ScSheetLanguage = styled.div`
   padding-inline: ${({ theme }) => theme.data.space[1]};
 `;
 
+/*
+ * EL FONDO QUEDA `inert` MIENTRAS LA HOJA ESTÁ ABIERTA (crítica #12).
+ *
+ * QUÉ FALTABA, exactamente: la trampa de foco (Ola C.1) ya impedía que el
+ * TABULADOR saliera de la hoja, y eso es solo la mitad del contrato de un
+ * `aria-modal`. Un lector de pantalla en modo exploración (las flechas de
+ * NVDA/JAWS, el rotor de VoiceOver) NO usa el orden de tabulación: recorre el
+ * árbol de accesibilidad completo, así que seguía leyendo la página entera por
+ * detrás del velo -- una página que la propia hoja declara no disponible con
+ * `aria-modal="true"`. Declarar una cosa y hacer la contraria es peor que no
+ * declararla.
+ *
+ * `inert` y no `aria-hidden`: `aria-hidden` solo esconde del árbol de
+ * accesibilidad y deja el contenido clicable y focalizable (y un `aria-hidden`
+ * sobre un ancestro del elemento enfocado es, además, una violación conocida de
+ * ARIA). `inert` hace las dos cosas a la vez y es la propiedad que la propia
+ * plataforma define para esto -- la MISMA que este fichero ya usa sobre
+ * `ScNavSheet` cuando la hoja está cerrada.
+ *
+ * QUÉ SE MARCA: los HERMANOS de la hoja en cada nivel, subiendo hasta `body`
+ * -- nunca un ancestro suyo (dejaría inerte a la propia hoja) y nunca una lista
+ * escrita a mano de landmarks ("`#main` y el pie"), que se quedaría corta el día
+ * que alguien monte algo nuevo en la raíz. El velo se excluye por su
+ * `data-nav-sheet-veil`: tiene que seguir capturando el puntero para que un
+ * toque fuera cierre. La CABECERA no se excluye, y es deliberado: APG lo pide
+ * (el disparador queda fuera del diálogo) y quien esté dentro tiene tres
+ * salidas ya implementadas -- Escape, el botón de cierre propio de la hoja y el
+ * toque en el velo.
+ *
+ * SSR / HIDRATACIÓN (`output: "export"`): esto NO puede ser un atributo del
+ * JSX. El HTML se hornea con la hoja cerrada, así que un `inert` renderizado
+ * condicionalmente estaría siempre ausente en el HTML y aparecería solo tras
+ * una interacción -- pero además viviría en nodos (`<main>`, el pie, el
+ * cabecero) que este componente no renderiza y no puede tocar desde su JSX. Se
+ * aplica en un efecto, que por definición corre solo en cliente y solo tras
+ * montar: el primer render del cliente es idéntico al HTML horneado.
+ *
+ * SOLO SE RETIRA LO QUE ESTA HOJA PUSO: si un nodo ya traía su propio `inert`
+ * (hoy no ocurre, mañana puede), se deja fuera de la lista y el cierre no se lo
+ * quita.
+ */
+const INERT_SKIP_TAGS = new Set(["SCRIPT", "STYLE", "LINK", "TEMPLATE"]);
+
+function backgroundSiblings(sheet: HTMLElement): HTMLElement[] {
+  const fondo: HTMLElement[] = [];
+  let node: HTMLElement | null = sheet;
+
+  while (node !== null && node !== document.body) {
+    const parent: HTMLElement | null = node.parentElement;
+    if (parent === null) break;
+    for (const sibling of Array.from(parent.children)) {
+      if (sibling === node) continue;
+      if (!(sibling instanceof HTMLElement)) continue;
+      if (INERT_SKIP_TAGS.has(sibling.tagName)) continue;
+      /* El velo sigue vivo a propósito: es quien captura el toque de "fuera". */
+      if (sibling.hasAttribute("data-nav-sheet-veil")) continue;
+      fondo.push(sibling);
+    }
+    node = parent;
+  }
+
+  return fondo;
+}
+
 /**
  * Estado y contrato de comportamiento de la hoja, compartido por el
  * disparador (que vive DENTRO de la barra) y por la hoja en sí (que vive
@@ -937,6 +1001,10 @@ export interface NavSheetController {
  * 8. El fondo NO se desplaza mientras la hoja está abierta (crítica externa
  *    #9, punto 4). Tampoco tiene equivalente en escritorio: el panel de
  *    escritorio no es `aria-modal` y no reclama la página entera.
+ * 9. El fondo queda `inert` mientras la hoja está abierta (crítica #12).
+ *    Tampoco tiene equivalente en escritorio, y por el mismo motivo que el
+ *    punto 8: solo una capa que declara `aria-modal` tiene que hacer cierto lo
+ *    que declara. Ver el docblock de `backgroundSiblings`.
  */
 export function useNavSheet(): NavSheetController {
   const [isOpen, setIsOpen] = useState(false);
@@ -944,18 +1012,46 @@ export function useNavSheet(): NavSheetController {
   const sheetId = useId();
   const triggerRef = useRef<HTMLSpanElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  /* Los nodos de fondo a los que ESTA hoja les puso `inert` (ver
+     `backgroundSiblings`), para no retirar el de nadie más. */
+  const inertedRef = useRef<HTMLElement[]>([]);
+
+  /*
+   * SE LIBERA ANTES DE CERRAR, NUNCA DESPUÉS, y el orden no es cosmético.
+   *
+   * Los dos caminos de cierre de abajo mueven el foco a un elemento que está
+   * FUERA de la hoja -- al disparador (`closeAndFocusTrigger`) o al destino del
+   * ancla que se acaba de pulsar (`focusNavAnchorTarget`, llamado por
+   * `NavSheetGroup` justo después de `close`) -- y los dos lo hacen de forma
+   * SÍNCRONA, dentro del mismo manejador. La limpieza del efecto que aplica
+   * `inert` corre mucho más tarde (efecto pasivo, tras el commit), así que en
+   * ese instante el destino del `focus()` todavía sería inerte y el navegador
+   * descartaría la llamada en silencio: el foco acabaría en `<body>`. Sería
+   * reintroducir, por otra puerta, los dos defectos que el repo ya pagó (fix
+   * wave A hallazgo A3, y crítica externa #9 punto 1).
+   *
+   * Liberar antes es seguro: lo único que ocurre en ese hueco de unos
+   * milisegundos es que el fondo vuelve a ser explorable mientras la hoja se
+   * cierra, que es exactamente lo que va a pasar de todas formas.
+   */
+  const releaseBackgroundInert = useCallback((): void => {
+    inertedRef.current.forEach((el) => el.removeAttribute("inert"));
+    inertedRef.current = [];
+  }, []);
 
   const close = useCallback((): void => {
+    releaseBackgroundInert();
     setIsOpen(false);
-  }, []);
+  }, [releaseBackgroundInert]);
 
   // Fix wave A, hallazgo A3: ver el docblock de `closeAndFocusTrigger` en
   // `NavSheetController`. `triggerRef` es un ref (identidad estable), así
   // que este callback no necesita ninguna dependencia externa.
   const closeAndFocusTrigger = useCallback((): void => {
+    releaseBackgroundInert();
     setIsOpen(false);
     triggerRef.current?.querySelector("button")?.focus();
-  }, []);
+  }, [releaseBackgroundInert]);
 
   const toggle = useCallback((): void => {
     setIsOpen((current) => !current);
@@ -1153,6 +1249,24 @@ export function useNavSheet(): NavSheetController {
 
     function handleFocusIn(event: FocusEvent): void {
       if (!(event.target instanceof Node)) return;
+      /*
+       * "El foco se ha PERDIDO" no es "el foco se ha ido a otro control"
+       * (crítica #12, segunda red del fondo inerte). Cuando el navegador no
+       * tiene dónde poner el foco lo devuelve al documento -- `<body>`, el
+       * `<html>` o el propio `document` --, y eso ocurre por vías que NO son
+       * un usuario navegando fuera: la focus fixup rule al inertizar u ocultar
+       * el elemento enfocado, o al retirarlo del DOM. Cerrar la hoja ahí sería
+       * reaccionar a un accidente; el contrato del punto 5 es cerrar cuando el
+       * foco ATERRIZA en algo de fuera, y el ciclo de `handleKeyDown` ya
+       * devuelve el foco dentro si se hubiera escapado por cualquier otra vía.
+       */
+      if (
+        event.target === document ||
+        event.target === document.body ||
+        event.target === document.documentElement
+      ) {
+        return;
+      }
       if (isInside(event.target)) return;
       setIsOpen(false);
     }
@@ -1212,6 +1326,45 @@ export function useNavSheet(): NavSheetController {
       sheetRef.current?.querySelector<HTMLElement>("a, button");
     primeraFila?.focus({ preventScroll: true });
   }, [isOpen]);
+
+  /*
+   * Punto 9: el FONDO queda `inert` mientras la hoja está abierta (crítica
+   * #12). El porqué completo -- qué se marca, qué se excluye y por qué esto no
+   * puede ser un atributo del JSX bajo `output: "export"` -- vive en el
+   * docblock de `backgroundSiblings`, justo encima de este hook.
+   *
+   * DECLARADO EL ÚLTIMO A PROPÓSITO, y el orden es la parte no obvia: los
+   * efectos corren en orden de declaración dentro del mismo commit, así que
+   * cuando este aplica `inert` el foco YA está dentro de la hoja (lo acaba de
+   * meter el efecto de arriba). Si se declarara antes, en el instante de
+   * marcar la cabecera el foco seguiría en el disparador que abrió la hoja --
+   * y un elemento que queda dentro de un subárbol inerte pierde el foco por la
+   * focus fixup rule del HTML, con el `focusin` de rebote que el contrato de
+   * abajo (punto 5) interpretaría como "el foco se ha ido fuera": la hoja se
+   * cerraría sola en el mismo frame en que se abre. jsdom no implementa `inert`
+   * ni esa regla, así que ese fallo no sería visible en la suite; el orden es
+   * la defensa, y `handleFocusIn` ignora además el foco que cae en `<body>`
+   * como segunda red.
+   *
+   * La limpieza cubre el desmontaje y los cierres que no mueven el foco
+   * (puntero fuera, foco que se va, scroll de la página); los dos que SÍ lo
+   * mueven liberan antes, de forma síncrona: ver `releaseBackgroundInert`.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+    const sheet = sheetRef.current;
+    if (sheet === null) return;
+
+    const fondo = backgroundSiblings(sheet).filter(
+      (el) => !el.hasAttribute("inert"),
+    );
+    fondo.forEach((el) => el.setAttribute("inert", ""));
+    inertedRef.current = fondo;
+
+    return () => {
+      releaseBackgroundInert();
+    };
+  }, [isOpen, releaseBackgroundInert]);
 
   return {
     isOpen,
@@ -1419,22 +1572,26 @@ function NavSheetGroup({
  * (SDK, Discord, GitHub, LinkedIn).
  *
  * `filter` conserva el orden relativo del array original, así que la
- * concatenación de las dos mitades reproduce EXACTAMENTE el orden de
- * `NAV_GROUPS` -- el candado que compara los `href` de la hoja contra el
- * modelo, en orden, sigue diciendo la verdad sin tocarlo. Lo único que se
- * mueve es dónde cae el bloque de idioma entre ellos.
+ * concatenación de las dos mitades reproduce EXACTAMENTE el orden del modelo
+ * -- el candado que compara los `href` de la hoja contra él, en orden, sigue
+ * diciendo la verdad sin tocarlo. Lo único que se mueve es dónde cae el bloque
+ * de idioma entre ellos.
  *
  * El foco de apertura tampoco cambia: sigue entrando en la primera fila de
  * navegación real, porque el primer `a, button` del subárbol sigue siendo el
  * primer enlace de «En el sitio» -- los grupos que se quedan arriba son los de
  * dentro del sitio, no el control.
+ *
+ * LA PARTICIÓN SE CALCULA EN RENDER desde 2026-08-19 (crítica #12, P0), no en
+ * dos constantes de módulo: el modelo ya no es único, se resuelve para el
+ * idioma de la página (`navGroupsFor`), y una constante de módulo lo habría
+ * congelado en castellano para las dos ramas. El criterio no cambia ni un
+ * ápice -- `kind` es idéntico en los dos idiomas, solo cambia el prefijo del
+ * `href` -- y el coste es filtrar cuatro grupos por render.
  */
 function isExitGroup(group: NavGroup): boolean {
   return group.items.every((item) => item.kind === "external");
 }
-
-const IN_SITE_GROUPS = NAV_GROUPS.filter((group) => !isExitGroup(group));
-const EXIT_GROUPS = NAV_GROUPS.filter(isExitGroup);
 
 export interface NavSheetProps {
   readonly isOpen: boolean;
@@ -1460,7 +1617,13 @@ export function NavSheet({
   sheetId,
   sheetRef,
 }: NavSheetProps): ReactElement {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
+  /* Mismo modelo y mismo idioma que la barra de escritorio (ver el docblock de
+     `navGroupsFor`): la hoja es la ÚNICA navegación bajo 768 px, así que era
+     donde la fuga de idioma de la crítica #12 se pagaba entera. */
+  const groups = navGroupsFor(i18n.language);
+  const inSiteGroups = groups.filter((group) => !isExitGroup(group));
+  const exitGroups = groups.filter(isExitGroup);
   // Tarea 1 (navegación accesible): mismo singleton que consume `Navbar()`
   // para su propio panel de escritorio (ver `useActiveSection.ts`) -- las
   // dos superficies leen el mismo valor sin duplicar ningún listener.
@@ -1579,7 +1742,7 @@ export function NavSheet({
           data-nav-sheet-scroll
         >
           <ScSheetHandle aria-hidden="true" />
-          {IN_SITE_GROUPS.map((group) => (
+          {inSiteGroups.map((group) => (
             <NavSheetGroup
               key={group.key}
               group={group}
@@ -1602,7 +1765,7 @@ export function NavSheet({
               <LanguageSelector />
             </ScSheetLanguage>
           </ScSheetGroup>
-          {EXIT_GROUPS.map((group) => (
+          {exitGroups.map((group) => (
             <NavSheetGroup
               key={group.key}
               group={group}

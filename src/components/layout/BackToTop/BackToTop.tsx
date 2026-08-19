@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
+import styled, { type DefaultTheme } from "styled-components";
 import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { useScrolled } from "@/hooks/useScrolled";
 
@@ -108,6 +108,50 @@ const ScBackToTop = styled(IconButton)`
   z-index: ${({ theme }) => theme.data.zIndex.raised};
   box-shadow: ${({ theme }) => theme.data.elevation[3]};
 `;
+
+/**
+ * Lado del botón, en píxeles. Es el área táctil mínima AA (44x44) que
+ * `IconButton` ya garantiza por su cuenta -- el MISMO literal, y por el mismo
+ * motivo, que ya declaran `ScLanguageButton` (`LanguageSelector.tsx`),
+ * `ScNavTrigger`/`ScBrandLink` (`Navbar.tsx`) y `ScSheetRow` (`NavSheet.tsx`):
+ * no hay casilla de la escala de `space` para ese mínimo, y el sistema
+ * sanciona el literal con nombre en vez de inventar un paso.
+ */
+export const BACK_TO_TOP_SIDE_PX = 44;
+
+/**
+ * BANDA QUE ESTE BOTÓN OCUPA SOBRE EL FILO INFERIOR DEL VIEWPORT, para que
+ * quien termine el documento pueda reservarla (crítica #12).
+ *
+ * EL DEFECTO QUE CIERRA, medido a 390x844 en tema oscuro: el botón (44x44,
+ * `position: fixed`) tapaba los últimos ~36 px de dos enlaces del pie --
+ * «Únete a la comunidad» y «Explora el código». No es un problema de z-index
+ * ni de opacidad: es que un elemento fijo al borde inferior se posa SIEMPRE
+ * sobre lo último del documento, y lo último del documento son enlaces.
+ *
+ * Por qué la reserva vive en el CONTENIDO y no en el botón: mover el botón
+ * hacia arriba lo alejaría del pulgar (su única razón de estar abajo a la
+ * derecha) y seguiría tapando lo que hubiera en su nueva posición. Reservar la
+ * banda en el pie no mueve nada de sitio: añade recorrido de scroll al final,
+ * que es exactamente el hueco que el botón necesita para no posarse encima de
+ * nada.
+ *
+ * Los tres sumandos, cada uno con su trabajo:
+ * - `env(safe-area-inset-bottom)` y `space[5]`: reproducen VERBATIM el `bottom`
+ *   del propio botón (ver `ScBackToTop`), así que la banda empieza donde
+ *   empieza el botón de verdad. Que salgan de aquí y no de un número copiado en
+ *   el pie es lo que impide que las dos medidas se desincronicen el día que el
+ *   botón se separe más del borde (regla 13/41: la invariante cruza dos
+ *   ficheros, así que vive en un sitio y la ata un test que importa los dos).
+ * - `BACK_TO_TOP_SIDE_PX`: el alto real del botón.
+ * - `space[3]`: separación mínima entre el filo superior del botón y el texto
+ *   que queda justo encima -- sin ella, el enlace quedaría "libre" pero pegado
+ *   al botón, que se lee igual de mal.
+ */
+export function backToTopClearance(theme: DefaultTheme): string {
+  const { space } = theme.data;
+  return `calc(env(safe-area-inset-bottom, 0px) + ${space[5]} + ${BACK_TO_TOP_SIDE_PX}px + ${space[3]})`;
+}
 
 export function BackToTop(): ReactElement | null {
   const { t } = useTranslation("common");

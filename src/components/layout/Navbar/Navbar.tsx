@@ -19,11 +19,13 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import {
-  NAV_GROUPS,
+  navGroupsFor,
+  navLocale,
   type NavGroup,
   type NavGroupKey,
   type NavItem,
 } from "@/config/navigation";
+import { routePath } from "@/config/site";
 import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { NAV_DETACH_ANIM_MS, useNavDetach } from "@/hooks/useNavDetach";
 import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
@@ -494,7 +496,8 @@ const ScBarLanguage = styled.div`
  * (`NAV_SECTION_LINKS`). Tres al nacer (onSite/discover/resources); cuatro
  * desde la tarea 6 (auditoría premium), que añade "community" a
  * `NAV_GROUPS` -- este bloque no necesitó ningún cambio propio para ganarlo,
- * ya recorre el array entero (`NAV_GROUPS.map`, más abajo). SOLO ≥ md
+ * ya recorre el array entero (`navGroups.map`, más abajo, el mismo modelo
+ * resuelto para el idioma de la página). SOLO ≥ md
  * (mockup: barra angosta en breakpoints menores). Bajo `md` la navegación NO
  * desaparece desde Task 10: los MISMOS `NAV_GROUPS` se entregan en la hoja
  * de navegación móvil (`NavSheet.tsx`), que es la otra cara de este bloque
@@ -535,7 +538,7 @@ const ScBarLanguage = styled.div`
  *
  * EL GUARD VA SOBRE EL CONTENEDOR, no sobre cada `ScNavGroup`, y es una
  * decisión: `ScNavLinks` no tiene hoy ningún hijo que no sea un grupo
- * desplegable (`NAV_GROUPS.map`, sin excepciones), así que ocultar los cuatro
+ * desplegable (`navGroups.map`, sin excepciones), así que ocultar los cuatro
  * grupos y ocultar su contenedor describen exactamente el mismo conjunto --
  * pero un contenedor oculto no genera CAJA, mientras que cuatro grupos ocultos
  * dentro de un flex vivo dejan un ítem de anchura cero en `ScNav`. Si algún
@@ -1139,6 +1142,21 @@ function NavGroupMenu({
 
 export function Navbar(): ReactElement {
   const { scrolled, phase: detachPhase } = useNavDetach(8);
+  /*
+   * IDIOMA DE LA PÁGINA (crítica #12, P0), leído del proveedor de i18next que
+   * ya monta la rama de rutas (`app/(es)/layout.tsx` / `app/en/layout.tsx` ->
+   * `Providers locale=...` -> `I18nProvider`). No se infiere de la URL con
+   * `usePathname()`: el idioma es una propiedad del ÁRBOL, fijada por la
+   * posición del fichero de layout, así que el valor es el mismo en el HTML que
+   * hornea el build y en el primer render del cliente -- cero riesgo de
+   * mismatch de hidratación bajo `output: "export"`.
+   *
+   * `NAV_GROUPS` deja de consumirse directamente aquí: en `/en` sus `href`
+   * empiezan por `/` y devolvían al visitante inglés a la home castellana en
+   * los 7 destinos de la barra (ver el docblock de `navGroupsFor`).
+   */
+  const { i18n } = useTranslation("common");
+  const navGroups = navGroupsFor(i18n.language);
   // Este componente ya no consume useStage(): desde la revisión 2026-08-11 su
   // entrada de carga es una @keyframes estática con animation-delay =
   // HERO_CHROME_OFFSET_MS (ver el docblock de ScHeader). No necesita que nadie
@@ -1269,7 +1287,12 @@ export function Navbar(): ReactElement {
             data-nav-surface
           />
           <ScNav>
-            <ScBrandLink href="/">
+            {/* `routePath("home", locale)`, no `"/"` (crítica #12, P0): en
+              `/en` el logotipo era el enlace que devolvía al visitante inglés a
+              la home castellana -- el gesto más habitual de "volver al
+              principio" y el que perdía el idioma sin avisar. En castellano
+              resuelve exactamente al `/` de siempre. */}
+            <ScBrandLink href={routePath("home", navLocale(i18n.language))}>
               {/* Aqui vivia `EyeCornerMark`, un punto decorativo que se
                 encendia con `data-scrolled`. Retirado el 2026-07-31 a
                 peticion del usuario: al cruzar el umbral, el unico cambio
@@ -1301,7 +1324,7 @@ export function Navbar(): ReactElement {
               ref={navLinksRef}
               data-nav-links
             >
-              {NAV_GROUPS.map((group) => (
+              {navGroups.map((group) => (
                 <NavGroupMenu
                   key={group.key}
                   group={group}

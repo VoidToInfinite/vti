@@ -8,6 +8,7 @@ import styled, {
   keyframes,
   useTheme as useStyledTheme,
 } from "styled-components";
+import { backToTopClearance } from "@/components/layout/BackToTop/BackToTop";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import { SectionBeam } from "@/components/scenes/sectionBeam/SectionBeam";
@@ -15,7 +16,8 @@ import { Logo } from "@/components/ui/Logo/Logo";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { EMAIL_ADDRESS, links } from "@/config/links";
-import { NAV_GROUPS } from "@/config/navigation";
+import { navGroupsFor, navLocale } from "@/config/navigation";
+import { LEGAL_ROUTE_KEYS, routePath } from "@/config/site";
 import { PRESS } from "@/motion/vocabulary";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -424,6 +426,25 @@ const ScBottomBar = styled.div`
   margin-inline: auto;
   padding: 0 ${({ theme }) => theme.data.space[5]}
     ${({ theme }) => theme.data.space[5]};
+  /*
+   * HUECO DEL BOTÓN «VOLVER ARRIBA» (crítica #12). Medido a 390x844 en tema
+   * oscuro: el botón flotante (44x44, fijo al filo inferior derecho) tapaba los
+   * últimos ~36 px de «Únete a la comunidad» y «Explora el código» -- dos
+   * enlaces reales, en la última fila del documento, imposibles de pulsar sin
+   * acertar en el trozo que asomaba.
+   *
+   * La medida sale ENTERA de backToTopClearance (BackToTop.tsx), que compone la
+   * banda con el mismo bottom y el mismo lado del botón real: aquí no se
+   * escribe ni un número. Ver su docblock para el porqué de cada sumando y para
+   * por qué la reserva vive en el contenido y no en el botón. (Regla 23: sin
+   * comillas invertidas dentro de un comentario de template -- cierran el
+   * literal y rompen el build.)
+   *
+   * Sustituye al space[5] inferior del padding de arriba (declaración
+   * posterior, misma especificidad), no se suma a él: la banda ya incluye la
+   * separación del filo.
+   */
+  padding-bottom: ${({ theme }) => backToTopClearance(theme)};
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -435,6 +456,16 @@ const ScBottomBar = styled.div`
     align-items: flex-start;
     justify-content: space-between;
     padding-inline: ${({ theme }) => theme.data.space[6]};
+    /*
+     * DESDE md VUELVE AL RELLENO DE SIEMPRE, y no es una excepción cosmética:
+     * el solape solo existe cuando la barra está CENTRADA. Con align-items:
+     * flex-start (justo arriba) sus dos filas se alinean al borde izquierdo y
+     * el botón vive en el derecho del viewport, así que no hay nada bajo él que
+     * reservar -- y reservarlo igualmente añadiría vacío al final de cada
+     * página en escritorio, que es un problema nuevo a cambio de ninguno
+     * resuelto.
+     */
+    padding-bottom: ${({ theme }) => theme.data.space[5]};
     text-align: start;
   }
 
@@ -463,14 +494,26 @@ const ScBottomLinks = styled.div`
  * pedido y cambia de contexto sin avisar, que es lo que WCAG 3.2.5 pide
  * evitar. El target blank se queda SOLO donde el destino de verdad sale del
  * sitio (el SDK, unico enlace de la columna de Recursos).
+ *
+ * LA LISTA DEJA DE SER UNA CONSTANTE DE MODULO (critica #12, P0): su `href`
+ * salia de `links.privacy`/`links.legalNotice`, que son las rutas CASTELLANAS
+ * (`ROUTES`, ver `links.ts`), asi que en `/en` los dos unicos enlaces del pie
+ * que no son anclas llevaban al documento en castellano -- «Privacy Policy» a
+ * `/privacidad` y «Legal Notice» a `/aviso-legal`. Ahora se componen por
+ * idioma con `routePath()`, la misma funcion y el mismo mapa que ya usa el
+ * selector de idioma para su contraparte. Las CLAVES no se escriben aqui: son
+ * `LEGAL_ROUTE_KEYS` (`src/config/site.ts`), que ya es su duena y ya declara
+ * por que son dos y no cuatro -- repetirlas aqui era una segunda lista que
+ * podia divergir de ella.
  */
-const LEGAL_LINKS = [
-  { key: "privacy", href: links.privacy },
-  { key: "legalNotice", href: links.legalNotice },
-] as const;
 
 export function Footer(): ReactElement {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
+  /* Idioma de la pagina, leido del proveedor que monta la rama de rutas (ver
+     el docblock de `navGroupsFor`): en `/en` los 7 destinos de seccion de este
+     pie apuntaban a la home castellana. */
+  const locale = navLocale(i18n.language);
+  const navGroups = navGroupsFor(i18n.language);
   const { themeName } = useTheme();
   const year = new Date().getFullYear();
   const isDark = themeName === "dark";
@@ -529,7 +572,7 @@ export function Footer(): ReactElement {
           <ScFooterLink href={links.email}>{EMAIL_ADDRESS}</ScFooterLink>
         </ScBrandCol>
 
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <ScColumn key={group.key}>
             <ScColumnTitle variant="bodySm">
               {t(`Common.Nav.${group.key}`)}
@@ -597,10 +640,10 @@ export function Footer(): ReactElement {
               ruido de 404 en consola/logs en las 3 páginas del sitio.
               Reversión: cuando el fix llegue aguas arriba y se verifique con
               el mismo repro, retirar esta prop. */}
-          {LEGAL_LINKS.map(({ key, href }) => (
+          {LEGAL_ROUTE_KEYS.map((key) => (
             <ScFooterNavLink
               key={key}
-              href={href}
+              href={routePath(key, locale)}
               prefetch={false}
             >
               {t(`Common.Footer.${key}`)}

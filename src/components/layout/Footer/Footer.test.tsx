@@ -1,8 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { DefaultTheme } from "styled-components";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import esCommon from "@/i18n/locales/es/common.json";
 import esHome from "@/i18n/locales/es/home.json";
+import {
+  BACK_TO_TOP_SIDE_PX,
+  backToTopClearance,
+} from "@/components/layout/BackToTop/BackToTop";
 import { links } from "@/config/links";
+import { navGroupsFor } from "@/config/navigation";
+import { LEGAL_ROUTE_KEYS, routePath } from "@/config/site";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { PRESS } from "@/motion/vocabulary";
 import { themes } from "@/theme/themes";
 import { FOOTER_DARK_BG, FOOTER_STARS } from "./footer.layers";
@@ -404,8 +412,11 @@ describe("Footer", () => {
    * `next/link` en ningún sitio para interceptar props. Mismo patrón que
    * `footer.layers.test.ts` ("sin Math.random") y
    * `Hero.qa.test.tsx` ("candado de fuente"): leer el `.tsx` real con
-   * `node:fs` y afirmar sobre su TEXTO, acotado al bloque de `LEGAL_LINKS.map()`
-   * para no afirmar sobre cualquier `prefetch={false}` suelto en el fichero.
+   * `node:fs` y afirmar sobre su TEXTO, acotado al bloque de
+   * `LEGAL_ROUTE_KEYS.map()` para no afirmar sobre cualquier `prefetch={false}`
+   * suelto en el fichero. (La lista se llamó `LEGAL_LINKS` hasta la crítica
+   * #12, cuando dejó de ser una constante de módulo para poder componer su
+   * `href` por idioma -- ver el docblock que sustituyó a esa constante.)
    *
    * Trampa concreta de ESTE fichero (misma familia que la lección del
    * 2026-08-11 sobre `toContain()` y comentarios): el propio comentario JSX
@@ -471,8 +482,8 @@ describe("Footer", () => {
     });
   });
 
-  describe("LEGAL_LINKS.map(): ScFooterNavLink lleva prefetch={false}", () => {
-    it("el bloque de LEGAL_LINKS.map() (fuera de comentarios) declara prefetch={false} en ScFooterNavLink", async () => {
+  describe("LEGAL_ROUTE_KEYS.map(): ScFooterNavLink lleva prefetch={false}", () => {
+    it("el bloque de LEGAL_ROUTE_KEYS.map() (fuera de comentarios) declara prefetch={false} en ScFooterNavLink", async () => {
       const { readFileSync } = await import("node:fs");
       const { fileURLToPath } = await import("node:url");
       const { dirname, join } = await import("node:path");
@@ -484,7 +495,7 @@ describe("Footer", () => {
         .replace(/\/\/.*$/gm, "");
 
       const bloque = withoutComments.match(
-        /LEGAL_LINKS\.map\([\s\S]*?<\/ScBottomLinks>/,
+        /LEGAL_ROUTE_KEYS\.map\([\s\S]*?<\/ScBottomLinks>/,
       )?.[0];
 
       // Sonda positiva: el bloque existe y monta ScFooterNavLink -- así el
@@ -492,7 +503,7 @@ describe("Footer", () => {
       // o de haber recortado el fichero equivocado.
       expect(
         bloque,
-        "no se encontro el bloque LEGAL_LINKS.map()...</ScBottomLinks>",
+        "no se encontro el bloque LEGAL_ROUTE_KEYS.map()...</ScBottomLinks>",
       ).toBeDefined();
       expect(bloque).toContain("<ScFooterNavLink");
       expect(bloque).toContain("prefetch={false}");
@@ -919,6 +930,197 @@ describe("Footer", () => {
         parseFloat(themes.light.space[2]),
         5,
       );
+    });
+  });
+
+  /*
+   * CRÍTICA #12, P0: EL PIE INGLÉS DEVOLVÍA AL CASTELLANO POR SUS 9 ENLACES
+   * INTERNOS.
+   *
+   * Los 7 destinos de sección salían de `NAV_GROUPS` con prefijo `/`, y los 2
+   * legales de `links.privacy`/`links.legalNotice`, que son las rutas
+   * CASTELLANAS: «Privacy Policy» llevaba a `/privacidad` y «Legal Notice» a
+   * `/aviso-legal`. El pie es además la ÚNICA navegación completa disponible
+   * sin JavaScript (ver el docblock de `ScNavLinks` en `Navbar.tsx`), así que
+   * era también la única salida de quien no ejecuta el bundle.
+   *
+   * `I18nProvider locale="en"` reproduce `app/en/layout.tsx`: mismo patrón que
+   * `app/en/en-routes.test.tsx` y que los candados equivalentes de
+   * `Navbar.test.tsx`.
+   */
+  describe("crítica #12: en /en el pie conserva el idioma", () => {
+    function renderFooterEn() {
+      return renderWithProviders(
+        <I18nProvider locale="en">
+          <Footer />
+        </I18nProvider>,
+      );
+    }
+
+    it("los 7 destinos de sección llevan el prefijo /en", () => {
+      const { container } = renderFooterEn();
+      const internos = navGroupsFor("en")
+        .flatMap((group) => group.items)
+        .filter((item) => item.kind !== "external");
+
+      expect(internos).toHaveLength(7);
+      for (const item of internos) {
+        expect(
+          container.querySelector(`a[href="${item.href}"]`),
+          `${item.key} no apunta a ${item.href}`,
+        ).not.toBeNull();
+      }
+    });
+
+    it("los dos documentos legales llevan a su contraparte inglesa, no a la castellana", () => {
+      const { container } = renderFooterEn();
+
+      for (const key of LEGAL_ROUTE_KEYS) {
+        expect(
+          container.querySelector(`a[href="${routePath(key, "en")}"]`),
+          `${key} no apunta a ${routePath(key, "en")}`,
+        ).not.toBeNull();
+        expect(
+          container.querySelector(`a[href="${routePath(key, "es")}"]`),
+          `${key} sigue llevando al documento castellano`,
+        ).toBeNull();
+      }
+    });
+
+    it("no queda NI UN enlace interno apuntando a la rama castellana", () => {
+      const { container } = renderFooterEn();
+
+      const fugas = Array.from(container.querySelectorAll("a"))
+        .map((ancla) => ancla.getAttribute("href") ?? "")
+        .filter(
+          (href) =>
+            href.startsWith("/#") ||
+            href === routePath("privacy", "es") ||
+            href === routePath("legalNotice", "es"),
+        );
+
+      expect(
+        fugas,
+        "estos enlaces del pie devuelven al visitante inglés al castellano",
+      ).toEqual([]);
+    });
+
+    /* Complementario: sin él, "he quitado todos los destinos castellanos"
+       pasaría en verde. La rama castellana es el 100 % del tráfico de hoy. */
+    it("la rama castellana no se mueve: legales en /privacidad y /aviso-legal", () => {
+      const { container } = renderWithProviders(<Footer />);
+
+      for (const key of LEGAL_ROUTE_KEYS) {
+        expect(
+          container.querySelector(`a[href="${routePath(key, "es")}"]`),
+          `${key} dejó de apuntar a su ruta castellana`,
+        ).not.toBeNull();
+      }
+      expect(container.querySelector('a[href="/#story"]')).not.toBeNull();
+    });
+  });
+
+  /*
+   * CRÍTICA #12: EL BOTÓN FLOTANTE «VOLVER ARRIBA» TAPABA DOS ENLACES DEL PIE.
+   *
+   * Medido a 390x844 en tema oscuro: el botón (44x44, `position: fixed` al filo
+   * inferior derecho) cubría los últimos ~36 px de «Únete a la comunidad» y
+   * «Explora el código». La reserva no es un número escrito aquí: se compone en
+   * `backToTopClearance` (`BackToTop.tsx`) con el MISMO `bottom` y el MISMO
+   * lado que usa el botón real -- es una invariante que cruza dos ficheros, así
+   * que el test importa los dos y los cruza (regla 41).
+   *
+   * jsdom no hace layout: no puede medir el solape (ésa es verificación de
+   * navegador real, regla 44). Lo que sí se puede atar, y es donde vive el
+   * defecto, es que la banda esté DECLARADA y que su valor siga siendo el del
+   * botón.
+   */
+  describe("crítica #12: la barra inferior reserva el hueco del botón «volver arriba»", () => {
+    function barraInferior(container: HTMLElement): HTMLElement {
+      const copyright = screen.getByText(
+        new RegExp(String(new Date().getFullYear())),
+      );
+      expect(container).toContainElement(copyright);
+      return copyright.parentElement as HTMLElement;
+    }
+
+    it("declara padding-bottom con la banda exacta que ocupa el botón", () => {
+      const { container } = renderWithProviders(<Footer />);
+      /*
+       * SOLO la regla BASE, sin los bloques `@media`: el bloque de `md` declara
+       * su propio `padding-bottom` (el relleno de siempre), y `cssRuleTextFor`
+       * devuelve el texto de las dos reglas concatenado. Sin este filtro, al
+       * borrar la declaración base el `exec()` encontraría la de `md` y el
+       * candado pasaría en verde con el defecto delante -- comprobado con el
+       * bug inyectado, que devolvía "1.5rem" en vez de fallar por ausencia.
+       */
+      const css = cssRuleTextFor(barraInferior(container))
+        .split("\n")
+        .filter((regla) => !regla.startsWith("@media"))
+        .join("\n");
+
+      const esperado = backToTopClearance({
+        data: themes.light,
+      } as DefaultTheme);
+      expect(esperado).toContain(`${BACK_TO_TOP_SIDE_PX}px`);
+      expect(esperado).toContain("env(safe-area-inset-bottom, 0px)");
+
+      /* El CSSOM normaliza los espacios de `calc()`, así que se comparan los
+         TÉRMINOS de la banda, no la cadena entera: los cuatro tienen que estar
+         en el `padding-bottom` de esta barra. */
+      const paddingBottom = /padding-bottom:\s*([^;]+);/.exec(css)?.[1];
+      expect(
+        paddingBottom,
+        "la barra inferior no declara padding-bottom propio",
+      ).toBeDefined();
+      expect(paddingBottom).toContain("env(safe-area-inset-bottom, 0px)");
+      expect(paddingBottom).toContain(`${BACK_TO_TOP_SIDE_PX}px`);
+      expect(paddingBottom).toContain(themes.light.space[5]);
+      expect(paddingBottom).toContain(themes.light.space[3]);
+    });
+
+    /*
+     * Desde `md` la barra se alinea a la izquierda y el botón vive en el borde
+     * derecho del viewport: no hay nada bajo él que reservar. jsdom no evalúa
+     * ningún `@media` (regla 36), así que el bloque se lee del CSSOM.
+     */
+    it("desde md vuelve al relleno de siempre: en escritorio no hay solape que compensar", () => {
+      const { container } = renderWithProviders(<Footer />);
+      const barra = barraInferior(container);
+      const clase = Array.from(barra.classList).find((c) =>
+        Array.from(document.styleSheets).some((sheet) => {
+          try {
+            return Array.from(sheet.cssRules).some((rule) =>
+              rule.cssText.includes(`.${c}`),
+            );
+          } catch {
+            return false;
+          }
+        }),
+      );
+      expect(clase, "la barra inferior no tiene clase inyectada").toBeDefined();
+
+      const enMd = Array.from(document.styleSheets)
+        .flatMap((sheet) => {
+          try {
+            return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+          } catch {
+            return [];
+          }
+        })
+        .filter(
+          (texto) =>
+            texto.startsWith("@media") &&
+            /min-width:\s*768px/.test(texto) &&
+            texto.includes(`.${clase}`),
+        )
+        .join("\n");
+
+      expect(enMd, "no se encontró el bloque md de la barra inferior").not.toBe(
+        "",
+      );
+      expect(enMd).toContain(`padding-bottom: ${themes.light.space[5]}`);
+      expect(enMd).not.toContain(`${BACK_TO_TOP_SIDE_PX}px`);
     });
   });
 });

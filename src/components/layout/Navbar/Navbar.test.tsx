@@ -10,7 +10,9 @@ import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
 import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { links } from "@/config/links";
 import esCommon from "@/i18n/locales/es/common.json";
-import { NAV_GROUPS } from "@/config/navigation";
+import { NAV_GROUPS, navGroupsFor } from "@/config/navigation";
+import { routePath } from "@/config/site";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
 import { NAV_SHEET_SCROLL_TOLERANCE_PX, navActiveAccent } from "./NavSheet";
 import { Navbar } from "./Navbar";
@@ -2848,6 +2850,286 @@ describe("Navbar", () => {
 
       expect(trigger).toHaveAttribute("aria-expanded", "false");
       expect(document.activeElement).toBe(trigger);
+    });
+
+    /*
+     * EL FONDO QUEDA `inert` MIENTRAS LA HOJA ESTÁ ABIERTA (crítica #12).
+     *
+     * Qué faltaba: la trampa de foco (Ola C.1) ya impedía que el TABULADOR
+     * saliera, y eso es media promesa. Un lector de pantalla en modo
+     * exploración no usa el orden de tabulación -- recorre el árbol de
+     * accesibilidad --, así que seguía leyendo la página de detrás de una capa
+     * que se declara `aria-modal="true"`.
+     *
+     * LÍMITE DECLARADO DE ESTOS CANDADOS: jsdom no implementa el
+     * COMPORTAMIENTO de `inert` (ni el bloqueo de foco ni la retirada del árbol
+     * de accesibilidad), así que lo único honesto que se puede afirmar aquí es
+     * QUÉ NODOS llevan el atributo y CUÁNDO -- que es justo donde vive el
+     * defecto y donde puede reaparecer. Que el navegador lo respete de verdad
+     * es verificación de navegador real (regla 44), no de esta suite.
+     */
+    describe("el fondo queda inert mientras la hoja está abierta (crítica #12)", () => {
+      /** Un nodo de fondo que NO pertenece al Navbar: reproduce lo que en la
+       *  página real son `<main>`, el pie y el botón de «volver arriba», que
+       *  este componente no renderiza pero sí tiene que inertizar. */
+      function montarFondoAjeno(): HTMLElement {
+        const ajeno = document.createElement("main");
+        document.body.appendChild(ajeno);
+        return ajeno;
+      }
+
+      it("marca la cabecera y el fondo ajeno, y nunca la hoja ni el velo", () => {
+        const { container } = renderNavbar();
+        const hoja = getSheet(container);
+        const velo = container.querySelector(
+          "[data-nav-sheet-veil]",
+        ) as HTMLElement;
+        const cabecera = container.querySelector("header") as HTMLElement;
+        const ajeno = montarFondoAjeno();
+
+        try {
+          expect(
+            cabecera.hasAttribute("inert"),
+            "con la hoja cerrada nada del fondo puede estar inerte",
+          ).toBe(false);
+          expect(ajeno.hasAttribute("inert")).toBe(false);
+
+          fireEvent.click(getSheetTrigger());
+
+          expect(
+            cabecera.hasAttribute("inert"),
+            "un lector de pantalla seguiría recorriendo la barra por detrás del velo",
+          ).toBe(true);
+          expect(
+            ajeno.hasAttribute("inert"),
+            "un lector de pantalla seguiría recorriendo la página por detrás del velo",
+          ).toBe(true);
+          expect(
+            hoja.hasAttribute("inert"),
+            "la hoja abierta no puede inertizarse a sí misma",
+          ).toBe(false);
+          expect(
+            velo.hasAttribute("inert"),
+            "el velo tiene que seguir capturando el toque de fuera",
+          ).toBe(false);
+        } finally {
+          ajeno.remove();
+        }
+      });
+
+      it("al cerrar con Escape lo devuelve todo, y el foco vuelve al disparador", () => {
+        const { container } = renderNavbar();
+        const cabecera = container.querySelector("header") as HTMLElement;
+        const ajeno = montarFondoAjeno();
+        const trigger = getSheetTrigger();
+
+        try {
+          fireEvent.click(trigger);
+          expect(cabecera.hasAttribute("inert")).toBe(true);
+
+          fireEvent.keyDown(document.activeElement ?? document.body, {
+            key: "Escape",
+          });
+
+          expect(cabecera.hasAttribute("inert")).toBe(false);
+          expect(ajeno.hasAttribute("inert")).toBe(false);
+          expect(
+            document.activeElement,
+            "cerrar con la cabecera todavía inerte dejaría el foco en <body>",
+          ).toBe(trigger);
+        } finally {
+          ajeno.remove();
+        }
+      });
+
+      /*
+       * EL ORDEN, que es la parte que un refactor puede romper sin que se note,
+       * y que NO se puede observar mirando el estado final: los dos caminos de
+       * cierre que mueven el foco lo mueven a un elemento del FONDO -- el
+       * destino del ancla, o el propio disparador --, y para cuando el test
+       * mira, la limpieza del efecto ya ha liberado el `inert` de todas formas.
+       * El único instante que importa es el del `focus()`, así que se
+       * instrumenta ESE: se envuelve el método del elemento de destino y se
+       * anota si en ese momento seguía inerte.
+       *
+       * jsdom no implementa el comportamiento de `inert` (un `focus()` sobre un
+       * elemento inerte le funciona igual), así que sin esta instrumentación el
+       * defecto sería invisible aquí -- en un navegador real es la diferencia
+       * entre que el foco llegue al destino o acabe en `<body>`, que es el
+       * defecto de la crítica externa #9, punto 1.
+       */
+      /*
+       * `closest("[inert]")` y no `hasAttribute("inert")`: `inert` se hereda
+       * por SUBÁRBOL, y los dos elementos que estos candados vigilan lo reciben
+       * de sitios distintos -- la sección de destino lo lleva ella misma (es
+       * hermana de la hoja en `<body>`), y el disparador lo hereda de la
+       * cabecera que lo contiene. Preguntar solo por el atributo propio dejaría
+       * el segundo caso pasando en verde con el defecto delante (comprobado:
+       * con `hasAttribute` el bug inyectado del botón de cierre NO tumbaba el
+       * test).
+       */
+      function espiarInertAlEnfocar(el: HTMLElement): () => boolean | null {
+        let inerteAlEnfocar: boolean | null = null;
+        const original = el.focus.bind(el);
+        el.focus = ((options?: FocusOptions) => {
+          inerteAlEnfocar = el.closest("[inert]") !== null;
+          original(options);
+        }) as typeof el.focus;
+        return () => inerteAlEnfocar;
+      }
+
+      it("activar una fila libera el fondo ANTES de mover el foco al destino", () => {
+        const { container } = renderNavbar();
+        const destino = document.createElement("section");
+        destino.id = "journey";
+        document.body.appendChild(destino);
+        const inerteAlEnfocar = espiarInertAlEnfocar(destino);
+
+        try {
+          fireEvent.click(getSheetTrigger());
+          expect(destino.hasAttribute("inert")).toBe(true);
+
+          const fila = getSheet(container).querySelector(
+            'a[href="/#journey"]',
+          ) as HTMLElement;
+          fireEvent.click(fila);
+
+          expect(
+            inerteAlEnfocar(),
+            "el destino seguía inerte en el instante del focus(): en un navegador real el foco se habría perdido",
+          ).toBe(false);
+          expect(document.activeElement).toBe(destino);
+        } finally {
+          destino.remove();
+        }
+      });
+
+      it("el botón de cierre libera el fondo ANTES de devolver el foco al disparador", () => {
+        const { container } = renderNavbar();
+        const trigger = getSheetTrigger();
+        const inerteAlEnfocar = espiarInertAlEnfocar(trigger);
+
+        fireEvent.click(trigger);
+        const boton = getSheet(container).querySelector(
+          "[data-nav-sheet-close] button",
+        ) as HTMLElement;
+
+        fireEvent.click(boton);
+
+        expect(
+          inerteAlEnfocar(),
+          "el disparador seguía dentro de una cabecera inerte al recibir el foco",
+        ).toBe(false);
+        expect(document.activeElement).toBe(trigger);
+      });
+
+      it("no retira el inert que otro ya había puesto: solo suelta el suyo", () => {
+        const ajeno = montarFondoAjeno();
+        ajeno.setAttribute("inert", "");
+        renderNavbar();
+
+        try {
+          fireEvent.click(getSheetTrigger());
+          fireEvent.keyDown(document.activeElement ?? document.body, {
+            key: "Escape",
+          });
+
+          expect(ajeno.hasAttribute("inert")).toBe(true);
+        } finally {
+          ajeno.remove();
+        }
+      });
+    });
+  });
+
+  /*
+   * CRÍTICA #12, P0: EN `/en` LA NAVEGACIÓN CONSERVABA EL IDIOMA EN CERO
+   * ENLACES.
+   *
+   * Medido sobre el `out/` del build, no supuesto: `out/en.html` llevaba **21
+   * `href="/#..."`** -- los 7 destinos de sección del cabecero, los 7 del pie y
+   * los 7 de la hoja móvil -- más el logotipo apuntando a `/`. El inglés
+   * estrenó URL propia el 2026-08-18 y se perdía al primer clic, cualquiera que
+   * fuese.
+   *
+   * `I18nProvider locale="en"` reproduce lo que hace `app/en/layout.tsx` en
+   * producción (mismo patrón que `app/en/en-routes.test.tsx`): el proveedor
+   * interno gana al de `renderWithProviders` por proximidad, que es exactamente
+   * el mecanismo del árbol real. Se monta el Navbar COMPLETO porque la hoja
+   * móvil no es renderizable por su cuenta (ver el docblock de su describe).
+   */
+  describe("crítica #12: en /en la navegación conserva el idioma", () => {
+    function renderNavbarEn(): RenderResult {
+      return renderWithProviders(
+        <I18nProvider locale="en">
+          <Navbar />
+        </I18nProvider>,
+      );
+    }
+
+    /** Los 7 destinos DE DENTRO del sitio, leídos del mismo modelo que consume
+     *  el componente (regla 39): el día que el modelo gane una sección, este
+     *  test la exige solo. */
+    const internosEn = navGroupsFor("en")
+      .flatMap((group) => group.items)
+      .filter((item) => item.kind !== "external");
+
+    it.each([
+      ["la barra de escritorio", "[data-nav-links]"],
+      ["la hoja móvil", "[data-nav-sheet]"],
+    ])("%s entrega los 7 destinos con el prefijo /en", (_nombre, selector) => {
+      const { container } = renderNavbarEn();
+      const superficie = container.querySelector(selector) as HTMLElement;
+      expect(superficie).not.toBeNull();
+
+      for (const item of internosEn) {
+        expect(
+          superficie.querySelector(`a[href="${item.href}"]`),
+          `${item.key} no apunta a ${item.href}`,
+        ).not.toBeNull();
+      }
+    });
+
+    it("no queda NI UN enlace interno apuntando a la home castellana", () => {
+      const { container } = renderNavbarEn();
+
+      const fugas = Array.from(container.querySelectorAll("a"))
+        .map((ancla) => ancla.getAttribute("href") ?? "")
+        .filter((href) => href.startsWith("/#"));
+
+      expect(
+        fugas,
+        "estos enlaces devuelven al visitante inglés a la home castellana",
+      ).toEqual([]);
+    });
+
+    it("el logotipo lleva a la home inglesa", () => {
+      renderNavbarEn();
+      expect(
+        screen.getByRole("link", { name: /VoidToInfinite/i }),
+      ).toHaveAttribute("href", routePath("home", "en"));
+    });
+
+    /*
+     * COMPLEMENTARIO OBLIGATORIO: sin él, "he quitado todos los `/#`" pasaría
+     * en verde. La rama castellana tiene que quedar EXACTAMENTE como estaba --
+     * es el 100 % del tráfico de hoy.
+     */
+    it("la rama castellana no se mueve: logotipo a / y los 7 destinos en /#", () => {
+      const { container } = renderNavbar();
+
+      expect(
+        screen.getByRole("link", { name: /VoidToInfinite/i }),
+      ).toHaveAttribute("href", "/");
+      for (const item of NAV_GROUPS.flatMap((group) => group.items).filter(
+        (candidate) => candidate.kind !== "external",
+      )) {
+        expect(item.href.startsWith("/#")).toBe(true);
+        expect(
+          container.querySelector(`a[href="${item.href}"]`),
+          `${item.key} dejó de apuntar a ${item.href} en castellano`,
+        ).not.toBeNull();
+      }
     });
   });
 });
