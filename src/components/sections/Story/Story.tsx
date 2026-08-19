@@ -886,13 +886,43 @@ const ScPillarCardItem = styled.div`
  * para box-shadow, un tinte de estado no una primitiva de press). Mismo
  * cambio que ya llevaba `Card.tsx` (`src/components/ui/Card/Card.tsx`) desde
  * Task 9 -- esta tarea alinea Story/Features con ese precedente.
+ *
+ * TARJETA FANTASMA, corregido en la critica externa #13 (2026-08-19). Esta
+ * tarjeta se pintaba `semantic.surface` (blanco puro) sobre una pagina
+ * `semantic.bg` casi identica -- 1.044:1 medido, invisible como superficie --
+ * y su unica delimitacion, un filete de `semantic.border` (`neutral[100]`),
+ * daba 1.124:1 contra la propia tarjeta y 1.076:1 contra la pagina. Sin
+ * sombra en reposo, el conjunto no leia como tarjeta: leia como texto suelto
+ * sobre el fondo. Comprobado tambien en captura de navegador real, no solo
+ * por la cifra.
+ *
+ * El borde pasa a `palette.neutral[600]`: **3.111:1 contra la superficie de
+ * la tarjeta y 2.980:1 contra la pagina**, frente a 1.124/1.076. Es el MISMO
+ * paso y el MISMO motivo que `Input.tsx` ya documenta para el borde de sus
+ * campos -- ese docblock deja escrito el hallazgo de sistema que se aplica
+ * aqui letra por letra: `semantic.borderStrong`, el rol que el sistema ofrece
+ * como "borde fuerte", NO llega a 3:1 en ninguna rama (1.999:1 en claro con
+ * `neutral[400]`, medido de nuevo aqui: 2.004:1 contra blanco). Elegir el rol
+ * semantico habria dejado el borde por debajo del unico umbral objetivo que
+ * existe para un limite no textual (WCAG 1.4.11).
+ *
+ * NO se anade sombra en reposo, y no por olvido: la Task 12 ("dieta de
+ * ornamento B", misma familia de hallazgo "ghost-card") dejo la regla escrita
+ * en `contact.layers.ts` -- borde O sombra, nunca los dos. Esta tarjeta se
+ * queda con el borde, igual que la de Contacto. El `elevation[1]` de hover no
+ * se toca.
+ *
+ * El hover TAMPOCO refuerza el borde a `borderStrong` como hace `Card.tsx`:
+ * con el reposo ya en `neutral[600]`, ese "refuerzo" lo DEBILITARIA
+ * (2.004:1 < 3.111:1) -- exactamente la trampa que `Input.tsx` documenta para
+ * su propio estado de foco.
  */
 const ScPillarCard = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
   background-color: ${({ theme }) => theme.data.semantic.surface};
-  border: 1px solid ${({ theme }) => theme.data.semantic.border};
+  border: 1px solid ${({ theme }) => theme.data.palette.neutral[600]};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   padding: ${({ theme }) => theme.data.space[5]};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */

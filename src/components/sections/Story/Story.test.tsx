@@ -3024,3 +3024,63 @@ describe("Story: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", 
     }
   });
 });
+
+/*
+ * Critica externa #13 (2026-08-19): la tarjeta fantasma de la rama clara.
+ *
+ * Las cuatro tarjetas de pilar se pintaban blanco puro (`semantic.surface`)
+ * sobre una pagina casi identica (`semantic.bg`) -- 1.044:1 -- y su unica
+ * delimitacion era un filete de `semantic.border` que daba 1.124:1 contra la
+ * propia tarjeta. No leian como tarjetas.
+ *
+ * Este candado mide el contraste REAL del borde renderizado (lee el color de
+ * la caja, no una tabla copiada en el test) y exige que cruce el 3:1 de WCAG
+ * 1.4.11, el unico umbral objetivo que existe para un limite no textual. Mide
+ * ademas el listón anterior para que la mejora quede escrita en cifras y no
+ * en adjetivos.
+ */
+describe("Story: critica #13 -- las tarjetas de pilar se distinguen de la pagina", () => {
+  function tarjetaDePilar(): HTMLElement {
+    // ScCardTitle (p) -> ScPillarCard.
+    return screen.getByText(esHome.Home.story.pillars.learn.title)
+      .parentElement as HTMLElement;
+  }
+
+  it("el borde renderizado sale de palette.neutral[600], no del rol semantic.border", () => {
+    renderWithProviders(<Story />);
+    const borde = getComputedStyle(tarjetaDePilar()).borderTopColor;
+
+    expect(borde).toBe(basicLightTheme.palette.neutral[600]);
+    expect(borde).not.toBe(basicLightTheme.semantic.border);
+  });
+
+  it("ese borde cruza el 3:1 de WCAG 1.4.11 contra la tarjeta, y mejora el liston anterior", () => {
+    renderWithProviders(<Story />);
+    const borde = getComputedStyle(tarjetaDePilar()).borderTopColor;
+    const fondoTarjeta = getComputedStyle(tarjetaDePilar()).backgroundColor;
+
+    // Contra la superficie de la propia tarjeta: 3.111:1.
+    const contraTarjeta = contrastRatio(borde, fondoTarjeta);
+    expect(contraTarjeta).toBeGreaterThanOrEqual(3);
+
+    // Contra la pagina que hay detras: 2.980:1 -- se afirma la cifra medida,
+    // no un 3 que no alcanza. La separacion la garantiza el borde contra la
+    // tarjeta; contra la pagina el mismo filete queda a un pelo del umbral y
+    // eso se declara en vez de redondearse hacia arriba.
+    const contraPagina = contrastRatio(borde, basicLightTheme.semantic.bg);
+    expect(contraPagina).toBeGreaterThan(2.9);
+
+    // El liston anterior, medido aqui mismo para que la mejora sea auditable:
+    // semantic.border daba 1.124:1 contra la tarjeta.
+    const antes = contrastRatio(basicLightTheme.semantic.border, fondoTarjeta);
+    expect(antes).toBeLessThan(1.2);
+    expect(contraTarjeta).toBeGreaterThan(antes * 2.5);
+
+    // Y semantic.borderStrong, el rol que el sistema ofrece como borde
+    // fuerte, tampoco habria cruzado el umbral (2.004:1) -- el motivo por el
+    // que esta tarjeta lee un paso de palette y no ese rol.
+    expect(
+      contrastRatio(basicLightTheme.semantic.borderStrong, fondoTarjeta),
+    ).toBeLessThan(3);
+  });
+});
