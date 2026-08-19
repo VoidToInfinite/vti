@@ -27,7 +27,8 @@
                 "duration": "Duration",
                 "provider": "Owner",
                 "persistent": "Persistent until you delete it",
-                "days": "{{count}} days"
+                "days": "{{count}} days",
+                "regionLabel": "Storage table, horizontally scrollable"
             },
             "storage": {
                 "vti-theme": {

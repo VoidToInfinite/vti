@@ -8,9 +8,11 @@ import { routePath } from "@/config/site";
 import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import { useDocumentMeta } from "@/seo/useDocumentMeta";
 import { STORAGE_REGISTRY } from "@/config/storage";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import i18n, { initI18n } from "@/i18n/config";
 import esLegal from "@/i18n/locales/es/legal.json";
 import enLegal from "@/i18n/locales/en/legal.json";
+import { splitAutoLinks, type LegalAutoLink } from "./legalAutoLinks";
 import {
   ScBackLink,
   ScCaption,
@@ -18,6 +20,7 @@ import {
   ScDl,
   ScDlRow,
   ScDt,
+  ScInlineLink,
   ScList,
   ScListItem,
   ScMain,
@@ -174,8 +177,63 @@ export function splitPlaceholderMarkers(text: string): MarkerSegment[] {
   return segments;
 }
 
-/** Pinta un texto envolviendo cada ocurrencia de `PLACEHOLDER` en `<mark>`
- *  (D23): un dato pendiente se ve, no se disimula. */
+/**
+ * Un destino de `legalAutoLinks.ts` pintado como enlace real dentro de la
+ * prosa legal (crítica #13, T1).
+ *
+ * Lee `Common.Nav.newTab` del namespace `common` con una segunda llamada a
+ * `useTranslation`, el mismo patrón que ya usan `Story.tsx` y `Contact.tsx`
+ * (`tCommon`) — no una copia de esa frase dentro de `legal.json`, que sería
+ * una segunda fuente de verdad para la misma cadena. Va aquí y no en
+ * `MarkedText` porque `MarkedText` se pinta decenas de veces por documento y
+ * este componente solo se monta en las apariciones reales de un destino
+ * (tres en todo el sitio hoy).
+ *
+ * El aviso solo acompaña a los destinos EXTERNOS. Un `mailto:` no abre una
+ * pestaña, delega en la aplicación de correo: mismo criterio ya razonado en
+ * `Footer.tsx` para el correo del pie. No se anuncia un cambio de contexto
+ * que no ocurre.
+ */
+function AutoLink({
+  text,
+  link,
+}: {
+  text: string;
+  link: LegalAutoLink;
+}): ReactElement {
+  const { t: tCommon } = useTranslation("common");
+
+  if (!link.external) {
+    return <ScInlineLink href={link.href}>{text}</ScInlineLink>;
+  }
+
+  return (
+    <ScInlineLink
+      href={link.href}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {text}
+      <VisuallyHidden> {tCommon("Common.Nav.newTab")}</VisuallyHidden>
+    </ScInlineLink>
+  );
+}
+
+/**
+ * Pinta un texto legal con sus dos marcados posibles, en este orden:
+ *
+ *   1. cada ocurrencia de `PLACEHOLDER` envuelta en `<mark>` (D23): un dato
+ *      pendiente se ve, no se disimula;
+ *   2. dentro de lo que NO es marcador, cada destino declarado en
+ *      `legalAutoLinks.ts` envuelto en un enlace real (crítica #13, T1).
+ *
+ * El orden importa y no es reversible: el marcador es un centinela de máquina
+ * (regla 30 de `RULES.md`) y tiene que trocearse primero para que un destino
+ * no pueda quedar a caballo entre un `<mark>` y el texto que lo rodea.
+ *
+ * Ningún paso añade, quita ni reordena una sola palabra: los dos parten el
+ * MISMO string en tramos y lo vuelven a pintar completo.
+ */
 function MarkedText({
   text,
   placeholderTitle,
@@ -194,7 +252,19 @@ function MarkedText({
             {segment.text}
           </ScMark>
         ) : (
-          <Fragment key={index}>{segment.text}</Fragment>
+          <Fragment key={index}>
+            {splitAutoLinks(segment.text).map((piece, pieceIndex) =>
+              piece.link === null ? (
+                <Fragment key={pieceIndex}>{piece.text}</Fragment>
+              ) : (
+                <AutoLink
+                  key={pieceIndex}
+                  text={piece.text}
+                  link={piece.link}
+                />
+              ),
+            )}
+          </Fragment>
         ),
       )}
     </>
@@ -291,16 +361,47 @@ function EntityBlock({
 function StorageBlock({
   labels,
   captionText,
+  regionLabel,
   durationLabelFor,
   storageCopy,
 }: {
   labels: StorageTableLabels;
   captionText: string;
+  regionLabel: string;
   durationLabelFor: (durationDays: number | null) => string;
   storageCopy: (key: string) => string;
 }): ReactElement {
   return (
-    <ScTableWrap>
+    /*
+     * SCROLLER ANUNCIADO Y ALCANZABLE POR TECLADO (crítica #13, T2).
+     *
+     * El defecto medido: esta tabla mide ~476 px dentro de un contenedor con
+     * overflow-x: auto de 342 px a móvil, así que su última columna solo se
+     * alcanza desplazando. Con ratón y con gesto funcionaba; por teclado
+     * dependía de que el navegador decidiera por su cuenta hacer focusables
+     * los scrollers (Chrome moderno sí lo hace, pero no es una garantía del
+     * lenguaje ni de las otras familias de motores), y para un lector de
+     * pantalla no había nada que anunciara que ahí hay una región que se
+     * desplaza.
+     *
+     * Los tres atributos son un solo patrón y van juntos: `tabIndex={0}` lo
+     * mete en el orden de tabulación (WCAG 2.1.1: el contenido que se
+     * desplaza tiene que poder operarse con teclado), y `role="region"` con
+     * `aria-label` le da el nombre accesible sin el que ese punto de
+     * tabulación sería mudo — un `role="region"` sin nombre ni siquiera se
+     * expone como landmark. El nombre sale de una clave i18n propia
+     * (`Legal.common.storageTable.regionLabel`, es y en) y no del `<caption>`
+     * vía `aria-labelledby`: el caption repite el encabezado de la sección,
+     * que no dice nada de que aquí haya desplazamiento.
+     *
+     * El anillo de foco no se declara aquí: `GlobalStyles` ya lo entrega a
+     * todo `[tabindex]` con `:focus-visible`.
+     */
+    <ScTableWrap
+      role="region"
+      aria-label={regionLabel}
+      tabIndex={0}
+    >
       <ScTable>
         <ScCaption>{captionText}</ScCaption>
         <thead>
@@ -343,6 +444,7 @@ function renderBlock(
     legalFormText: string;
     storageLabels: StorageTableLabels;
     storageCaption: string;
+    storageRegionLabel: string;
     durationLabelFor: (durationDays: number | null) => string;
     storageCopy: (key: string) => string;
   },
@@ -417,6 +519,7 @@ function renderBlock(
           key={index}
           labels={ctx.storageLabels}
           captionText={ctx.storageCaption}
+          regionLabel={ctx.storageRegionLabel}
           durationLabelFor={ctx.durationLabelFor}
           storageCopy={ctx.storageCopy}
         />
@@ -449,6 +552,11 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
     returnObjects: true,
   }) as unknown as StorageTableLabels;
 
+  /* Nombre accesible del scroller de la tabla de almacenamiento (crítica
+     #13, T2). Se lee con una llamada suelta, igual que
+     `Legal.common.storageTable.days`, y no desde el objeto `storageLabels`:
+     ese objeto tipa las CABECERAS de columna, y esto no es una cabecera. */
+  const storageRegionLabel = t("Legal.common.storageTable.regionLabel");
   const placeholderTitle = t("Legal.common.placeholderTitle");
   const dpoNotAppointed = t("Legal.common.dpoNotAppointed");
   const notApplicable = t("Legal.common.notApplicable");
@@ -550,6 +658,7 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
               legalFormText,
               storageLabels,
               storageCaption: section.heading,
+              storageRegionLabel,
               durationLabelFor,
               storageCopy: t,
             }),

@@ -27,7 +27,8 @@
                 "duration": "Duración",
                 "provider": "Titular",
                 "persistent": "Persistente hasta que la borres",
-                "days": "{{count}} días"
+                "days": "{{count}} días",
+                "regionLabel": "Tabla de almacenamiento, desplazable en horizontal"
             },
             "storage": {
                 "vti-theme": {

@@ -2,9 +2,12 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { fireEvent } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import i18n from "@/i18n/config";
+import esCommon from "@/i18n/locales/es/common.json";
+import enCommon from "@/i18n/locales/en/common.json";
 import esLegal from "@/i18n/locales/es/legal.json";
 import enLegal from "@/i18n/locales/en/legal.json";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { AEPD_HOST } from "./legalAutoLinks";
 import { STORAGE_REGISTRY } from "@/config/storage";
 import { LEGAL_ENTITY } from "@/config/legal";
 import { routePath } from "@/config/site";
@@ -25,6 +28,30 @@ beforeAll(() => {
 });
 
 const DOC_KEYS: readonly LegalDocKey[] = ["privacy", "legalNotice"];
+
+/** Los párrafos (`kind: "p"`) de una sección, leídos del JSON tal cual: el
+ *  valor esperado de los candados de contenido sale del documento, nunca de
+ *  lo que el renderer haya pintado. */
+function parrafosDe(
+  bundle: unknown,
+  docKey: LegalDocKey,
+  sectionId: string,
+): string[] {
+  const arbol = (
+    bundle as {
+      Legal: Record<
+        string,
+        { sections: Array<{ id: string; blocks: Array<{ text?: string }> }> }
+      >;
+    }
+  ).Legal;
+  const seccion = arbol[docKey].sections.find(
+    (candidata) => candidata.id === sectionId,
+  );
+  return (seccion?.blocks ?? []).flatMap((bloque) =>
+    typeof bloque.text === "string" ? [bloque.text] : [],
+  );
+}
 
 describe("LegalDocument", () => {
   it.each(DOC_KEYS)(
@@ -153,7 +180,9 @@ describe("LegalDocument", () => {
    */
   it("el bloque 'entity' en inglés no filtra ni una palabra en español", async () => {
     await i18n.changeLanguage("en");
-    renderWithProviders(<LegalDocument docKey="legalNotice" />);
+    const { unmount } = renderWithProviders(
+      <LegalDocument docKey="legalNotice" />,
+    );
     const texto = document.body.textContent ?? "";
 
     expect(texto).toContain(enLegal.Legal.common.legalForm.naturalPerson);
@@ -161,6 +190,13 @@ describe("LegalDocument", () => {
     expect(texto).toContain(enLegal.Legal.common.notApplicable);
     expect(texto).not.toContain(esLegal.Legal.common.notApplicable);
 
+    /* Desmontar ANTES de revertir el idioma, por el mismo motivo ya
+       documentado en «el idioma inglés también monta sin errores» más abajo:
+       con el componente montado, `useTranslation` dispara una actualización
+       de estado fuera de `act()`. La crítica #13 (T1) lo hizo visible por
+       partida doble — `AutoLink` añade su propia suscripción al namespace
+       `common` —, así que se cierra aquí igual que allí. */
+    unmount();
     await i18n.changeLanguage("es");
   });
 
@@ -367,6 +403,226 @@ describe("LegalDocument: el título de la pestaña sigue al idioma", () => {
  * id), asi que el candado observa el ciclo completo sin stubs. Validado con
  * bug inyectado (onClick retirado -> rojo; restaurado -> verde).
  */
+/*
+ * CRÍTICA #13, T1: lo accionable no lo parecía.
+ *
+ * Medido por el integrador en navegador sobre el build servido, en las dos
+ * rutas legales y en sus gemelas inglesas: `hello@voidtoinfinite.com` aparecía
+ * en el CUERPO de `/aviso-legal` y `/privacidad` como texto plano
+ * (`main a[href^="mailto:"]` = 0) mientras el PIE de esas mismas páginas sí lo
+ * llevaba enlazado (= 1) y la home también; y `www.aepd.es` — la autoridad
+ * ante la que la propia política te dice que puedes reclamar — tampoco era
+ * enlace (`a[href*=aepd]` = 0).
+ *
+ * Los selectores de estos candados son LOS MISMOS con los que se midió el
+ * defecto, a propósito: lo que se ata es la propiedad observable que estaba en
+ * cero, no la implementación que hoy la entrega.
+ *
+ * Validados con el bug inyectado a propósito (ver el informe de la tarea):
+ * neutralizando el segundo troceo de `MarkedText` (`splitAutoLinks`) los
+ * candados de enlace caen en rojo; restaurado, vuelven a verde.
+ */
+describe("LegalDocument: los destinos del cuerpo son enlaces (crítica #13, T1)", () => {
+  it.each(DOC_KEYS)(
+    "%s: el correo del CUERPO es un mailto: real, no texto plano",
+    (docKey) => {
+      const { container } = renderWithProviders(
+        <LegalDocument docKey={docKey} />,
+      );
+      const enlaces = Array.from(
+        container.querySelectorAll<HTMLAnchorElement>(
+          'main a[href^="mailto:"]',
+        ),
+      );
+
+      expect(
+        enlaces.length,
+        "el correo del cuerpo sigue siendo texto plano",
+      ).toBeGreaterThan(0);
+
+      for (const enlace of enlaces) {
+        /* El destino se comprueba contra el texto VISIBLE del propio enlace:
+           si lo que se lee y adónde lleva divergieran, esto lo caza sin
+           depender de ninguna constante del código bajo prueba. */
+        expect(enlace.getAttribute("href")).toBe(
+          `mailto:${enlace.textContent}`,
+        );
+        /* Un mailto: no abre pestaña, delega en la aplicación de correo: ni
+           target ni aviso de cambio de contexto (mismo criterio que el pie). */
+        expect(enlace.hasAttribute("target")).toBe(false);
+        expect(enlace.textContent).not.toContain(esCommon.Common.Nav.newTab);
+      }
+    },
+  );
+
+  /*
+   * La ficha identificativa es la procedencia que NO sale del JSON: su correo
+   * viene de `LEGAL_ENTITY.contactEmail` (`src/config/legal.ts`). Es la única
+   * aparición del correo en `/aviso-legal`, así que sin este caso la página
+   * entera podría volver a quedarse sin enlace con el candado de arriba en
+   * verde por lo que pintara `/privacidad`.
+   */
+  it.each(DOC_KEYS)(
+    "%s: la ficha 'entity' enlaza su correo de contacto",
+    (docKey) => {
+      const { container } = renderWithProviders(
+        <LegalDocument docKey={docKey} />,
+      );
+      const enlace = container.querySelector<HTMLAnchorElement>(
+        'dd a[href^="mailto:"]',
+      );
+
+      expect(
+        enlace,
+        "el correo de la ficha sigue siendo texto plano",
+      ).not.toBeNull();
+      expect(enlace?.textContent).toBe(LEGAL_ENTITY.contactEmail);
+    },
+  );
+
+  it("privacidad: la AEPD es un enlace externo con el rel, el target y el aviso del repo", () => {
+    const { container } = renderWithProviders(
+      <LegalDocument docKey="privacy" />,
+    );
+    const enlaces = Array.from(
+      container.querySelectorAll<HTMLAnchorElement>('a[href*="aepd"]'),
+    );
+
+    expect(
+      enlaces,
+      "la autoridad ante la que reclamar no es enlace",
+    ).toHaveLength(1);
+
+    const [enlace] = enlaces;
+    /* El primer hijo es el texto visible; el segundo es el aviso oculto. */
+    expect(enlace.firstChild?.textContent).toBe(AEPD_HOST);
+    expect(enlace.getAttribute("href")).toBe(`https://${AEPD_HOST}`);
+    expect(enlace).toHaveAttribute("target", "_blank");
+    expect(enlace).toHaveAttribute("rel", "noopener noreferrer");
+    expect(enlace).toHaveAccessibleName(
+      new RegExp(`${esCommon.Common.Nav.newTab}$`),
+    );
+  });
+
+  /*
+   * EL ENCARGO PROHÍBE TOCAR EL CONTENIDO LEGAL: solo su marcado. Este es el
+   * candado de esa promesa — el texto que el visitante lee tiene que seguir
+   * siendo, carácter a carácter, el del JSON. Se asevera con `toBe` sobre
+   * `textContent`, no con `toHaveTextContent` (lección 2026-08-11: compara por
+   * substring, así que un párrafo con una palabra de más pasaría igual).
+   */
+  it("privacidad: el párrafo del correo conserva EXACTAMENTE el texto del JSON", () => {
+    const { container } = renderWithProviders(
+      <LegalDocument docKey="privacy" />,
+    );
+    const esperado = parrafosDe(esLegal, "privacy", "derechos").find((texto) =>
+      texto.includes("@"),
+    );
+    expect(
+      esperado,
+      "el JSON ya no trae el correo en 'derechos'",
+    ).toBeDefined();
+
+    const parrafo = Array.from(
+      container.querySelectorAll("section#derechos p"),
+    ).find((candidato) => candidato.querySelector('a[href^="mailto:"]'));
+
+    expect(parrafo?.textContent).toBe(esperado);
+  });
+
+  it("privacidad: el párrafo de la AEPD solo añade el aviso oculto, ni una palabra visible", () => {
+    const { container } = renderWithProviders(
+      <LegalDocument docKey="privacy" />,
+    );
+    const original = parrafosDe(esLegal, "privacy", "reclamacion")[0];
+    const parrafo = container.querySelector("section#reclamacion p");
+
+    expect(parrafo?.textContent).toBe(
+      original.replace(AEPD_HOST, `${AEPD_HOST} ${esCommon.Common.Nav.newTab}`),
+    );
+  });
+
+  /*
+   * PARIDAD es/en. El defecto se midió también en las rutas inglesas, y el
+   * mecanismo busca literales que viven en los dos árboles de copia: si una
+   * traducción escribiera el correo o la sede de otra forma, el enlace
+   * desaparecería solo en ese idioma. Se monta `I18nProvider locale="en"`
+   * reproduciendo `app/en/layout.tsx`, el mismo patrón que el candado del
+   * «volver al inicio» de este fichero.
+   */
+  it("inglés: el correo y la AEPD también son enlaces, con el aviso en inglés", () => {
+    const { container } = renderWithProviders(
+      <I18nProvider locale="en">
+        <LegalDocument docKey="privacy" />
+      </I18nProvider>,
+    );
+
+    expect(
+      container.querySelectorAll('main a[href^="mailto:"]').length,
+    ).toBeGreaterThan(0);
+
+    const aepd = container.querySelector<HTMLAnchorElement>('a[href*="aepd"]');
+    expect(aepd, "la AEPD no es enlace en la ruta inglesa").not.toBeNull();
+    expect(aepd).toHaveAccessibleName(
+      new RegExp(`${enCommon.Common.Nav.newTab}$`),
+    );
+
+    const original = parrafosDe(enLegal, "privacy", "reclamacion")[0];
+    expect(container.querySelector("section#reclamacion p")?.textContent).toBe(
+      original.replace(AEPD_HOST, `${AEPD_HOST} ${enCommon.Common.Nav.newTab}`),
+    );
+  });
+});
+
+/*
+ * CRÍTICA #13, T2: la tabla scrolleable no se anunciaba.
+ *
+ * Medido: la tabla de almacenamiento ocupa ~476 px dentro de un contenedor
+ * con `overflow-x: auto` de 342 px a móvil, así que su última columna solo se
+ * alcanza desplazando. Funcionaba con ratón y con gesto, pero el contenedor no
+ * tenía `tabindex` ni `role="region"` con nombre accesible: por teclado
+ * dependía de que el navegador hiciera focusables los scrollers por su cuenta
+ * (Chrome moderno sí; no es garantía), y para un lector de pantalla no había
+ * nada que anunciara la región.
+ *
+ * Se consulta por ROL y por NOMBRE (`getByRole("region", { name })`), no por
+ * el atributo suelto: así el candado mide lo que de verdad importa — que el
+ * árbol de accesibilidad expone una región con ese nombre —, que es
+ * exactamente lo que un `role="region"` sin nombre NO hace.
+ *
+ * Validados con el bug inyectado a propósito (ver el informe de la tarea):
+ * retirando `role`/`aria-label` la consulta por rol falla, y retirando
+ * `tabIndex` cae el caso del punto de tabulación; restaurados, vuelven a
+ * verde.
+ */
+describe("LegalDocument: el scroller de la tabla se anuncia y se alcanza (crítica #13, T2)", () => {
+  it("el contenedor de la tabla es una región con nombre accesible y punto de tabulación propio", () => {
+    const { getByRole, container } = renderWithProviders(
+      <LegalDocument docKey="privacy" />,
+    );
+    const region = getByRole("region", {
+      name: esLegal.Legal.common.storageTable.regionLabel,
+    });
+
+    expect(region).toHaveAttribute("tabindex", "0");
+    /* Es el contenedor de scroll, no otro nodo cualquiera con ese nombre. */
+    expect(region.contains(container.querySelector("table"))).toBe(true);
+  });
+
+  it("inglés: la región conserva el nombre accesible, traducido", () => {
+    const { getByRole } = renderWithProviders(
+      <I18nProvider locale="en">
+        <LegalDocument docKey="privacy" />
+      </I18nProvider>,
+    );
+    const region = getByRole("region", {
+      name: enLegal.Legal.common.storageTable.regionLabel,
+    });
+
+    expect(region).toHaveAttribute("tabindex", "0");
+  });
+});
+
 describe("LegalDocument: el indice mueve el foco a la seccion destino (ola F)", () => {
   it.each(DOC_KEYS)(
     "%s: clic en la primera entrada del indice deja el foco en su seccion, con tabindex=-1 ganado",

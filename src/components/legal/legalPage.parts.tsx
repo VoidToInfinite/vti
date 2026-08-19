@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { PRESS } from "@/motion/vocabulary";
 
 /*
@@ -189,29 +189,38 @@ export const ScTocItem = styled.li`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
 `;
 
-/* Mismo criterio que ScBackLink, arriba: transform nace ya con los valores
-   de vocabulary.PRESS (Task 9), sin guard de hover -- el hover de abajo es
-   solo color. */
-export const ScTocLink = styled.a`
-  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+/*
+ * AFORDANCIA DE ENLACE EN PROSA LEGAL, en un solo sitio.
+ *
+ * Nació dentro de ScTocLink (crítica externa #10, hallazgo C) y se extrae a
+ * un bloque css compartido en la ola de la crítica #13 (T1), cuando apareció
+ * el SEGUNDO consumidor: ScInlineLink, el enlace que vive dentro del texto
+ * corrido (el correo de ejercicio de derechos y la AEPD). Es un bloque css y
+ * no un componente único porque los dos consumidores difieren en una
+ * propiedad real -- el índice fija su propio tamaño de cuerpo (bodySm) y el
+ * enlace en prosa hereda el del párrafo que lo contiene --, mismo criterio y
+ * mismo mecanismo que `communityLinkStyles` en Story.tsx.
+ *
+ * Las dos señales, y por qué las DOS: color propio (semantic.brandText contra
+ * el semantic.text del cuerpo) MÁS subrayado. WCAG 1.4.1 (Uso del color,
+ * nivel A) pide justo que el color no sea el único medio de transmitir
+ * información: quien no distingue ese matiz -- daltonismo, pantalla al sol,
+ * modo de alto contraste -- no vería ningún enlace. El subrayado es la
+ * afordancia nativa del enlace, que GlobalStyles retira para todo el sitio
+ * (a { text-decoration: none }), así que devolverla aquí no inventa nada.
+ * text-underline-offset separa la línea de las descendentes.
+ *
+ * La afordancia se declara EN REPOSO, no en hover: un hover no existe para
+ * quien navega con el dedo.
+ *
+ * transform nace ya con los valores de vocabulary.PRESS (Task 9), sin guard
+ * de hover -- el hover de aquí abajo es solo color.
+ *
+ * SIN BACKTICKS: esto vive dentro del template literal de styled-components
+ * (task/lessons.md 2026-07-25 y 2026-08-16).
+ */
+const legalLinkStyles = css`
   color: ${({ theme }) => theme.data.semantic.brandText};
-  /* SUBRAYADO (crítica externa #10, hallazgo C): mismos valores y mismo
-     criterio que ScBackLink en este mismo fichero, que lo ganó en la Ola B
-     (2026-08-16) -- no un estilo nuevo.
-
-     El motivo aquí es el complementario del suyo: ScBackLink se subrayó
-     porque su color era IDÉNTICO al del cuerpo de texto; estos enlaces del
-     índice SÍ tienen color propio (semantic.brandText contra semantic.text),
-     y ese color era su ÚNICA señal. WCAG 1.4.1 (Uso del color, nivel A) pide
-     justo que el color no sea el único medio de transmitir información:
-     quien no distingue ese matiz -- daltonismo, pantalla al sol, modo de
-     alto contraste -- no ve ningún enlace en el índice, que es la única
-     navegación interna de un documento de 5.198 px. El subrayado es la
-     afordancia nativa del enlace, que GlobalStyles retira para todo el
-     sitio, así que devolverla aquí no inventa nada.
-
-     SIN BACKTICKS: esto vive dentro del template literal de
-     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.25em;
@@ -238,6 +247,28 @@ export const ScTocLink = styled.a`
       transform: none;
     }
   }
+`;
+
+/* Enlaces del índice: el bloque compartido de arriba más su propio tamaño de
+   cuerpo. Es la única navegación interna de un documento de 5.198 px. */
+export const ScTocLink = styled.a`
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  ${legalLinkStyles}
+`;
+
+/*
+ * Enlace DENTRO del texto corrido (crítica #13, T1): el correo de ejercicio
+ * de derechos y la sede de la AEPD, que hasta esta ola se pintaban como texto
+ * plano en el cuerpo de las dos páginas legales mientras el pie de esas
+ * mismas páginas sí llevaba el correo enlazado.
+ *
+ * No declara font-size a propósito: hereda el del bloque que lo contiene
+ * (párrafo, ítem de lista o `dd` de la ficha identificativa), que es lo que
+ * un enlace en prosa tiene que hacer para no romper la línea base del texto
+ * que atraviesa.
+ */
+export const ScInlineLink = styled.a`
+  ${legalLinkStyles}
 `;
 
 /* `scroll-margin-top` propio (no depende del `:where(section[id])` global de
@@ -381,7 +412,16 @@ export const ScTableWrap = styled.div`
      contenido y se inflaba hasta su propio max-width para dar cabida al
      min-content de la tabla (ver el comentario de ScMain). Con el ancho de
      ScMain ya definido, el sobrante cae aquí y este overflow-x actúa de
-     verdad. */
+     verdad.
+
+     QUIÉN PUEDE OPERAR ESE SCROLL (crítica #13, T2): los atributos que hacen
+     esta caja alcanzable por teclado y anunciable -- role region, aria-label
+     desde clave i18n y tabindex 0 -- los pone StorageBlock en
+     LegalDocument.tsx, que es quien tiene el texto traducido en la mano. Van
+     juntos a propósito: un tabindex sin nombre accesible deja un punto de
+     tabulación mudo, y un nombre sin tabindex deja el scroll sin teclado.
+     No hay estilo de foco propio porque GlobalStyles ya lo entrega a todo
+     [tabindex] vía :focus-visible. */
   overflow-x: auto;
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
 

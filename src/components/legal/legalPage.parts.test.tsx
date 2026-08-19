@@ -2,7 +2,13 @@ import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { PRESS } from "@/motion/vocabulary";
 import { themes } from "@/theme/themes";
-import { ScBackLink, ScMain, ScTable, ScTocLink } from "./legalPage.parts";
+import {
+  ScBackLink,
+  ScInlineLink,
+  ScMain,
+  ScTable,
+  ScTocLink,
+} from "./legalPage.parts";
 
 /** Texto CSS de las reglas que styled-components inyectó para un elemento
  *  (jsdom no evalúa ningún @media, regla 36): mismo patrón que
@@ -148,6 +154,46 @@ describe("legalPage.parts: afordancia de enlace (Ola B)", () => {
       "sin subrayado, el índice solo se distingue del texto por su color (WCAG 1.4.1)",
     ).toContain("text-decoration: underline");
     expect(reposo).toContain("text-underline-offset");
+  });
+
+  /*
+   * Crítica #13, T1: `ScInlineLink` es el segundo consumidor del bloque
+   * compartido `legalLinkStyles` — el enlace que vive DENTRO del texto
+   * corrido (el correo de ejercicio de derechos y la sede de la AEPD).
+   *
+   * Aquí la afordancia pesa todavía más que en el índice: un enlace en prosa
+   * está rodeado de texto que se le parece, así que sin las DOS señales
+   * (color propio + subrayado) es literalmente indistinguible de la frase que
+   * atraviesa. Se afirma sobre el bloque EN REPOSO, igual que los dos de
+   * arriba: un hover no existe para quien navega con el dedo.
+   *
+   * El color se compara contra el TOKEN importado (regla 38), no contra un
+   * string escrito a mano, y contra el rol del cuerpo del documento
+   * (`semantic.text`, el de `ScParagraph`) para que «distinto del cuerpo» sea
+   * una comprobación y no una afirmación de prosa.
+   *
+   * Validado con el bug inyectado a propósito: comentando
+   * `text-decoration: underline;` en `legalLinkStyles` (`legalPage.parts.tsx`)
+   * este caso cae en rojo; restaurada la línea, vuelve a verde.
+   */
+  it("ScInlineLink se subraya en reposo y no comparte color con el cuerpo del documento", () => {
+    renderWithProviders(
+      <ScInlineLink href="mailto:x@y.test">x@y.test</ScInlineLink>,
+    );
+    const enlace = screen.getByText("x@y.test");
+    const css = cssRuleTextFor(enlace);
+    const reposo = css.split(":hover")[0];
+
+    expect(
+      reposo,
+      "sin subrayado, un enlace en prosa es indistinguible de la frase que atraviesa",
+    ).toContain("text-decoration: underline");
+    expect(reposo).toContain("text-underline-offset");
+    expect(reposo).toContain(`color: ${themes.light.semantic.brandText}`);
+    expect(themes.light.semantic.brandText).not.toBe(
+      themes.light.semantic.text,
+    );
+    expect(themes.dark.semantic.brandText).not.toBe(themes.dark.semantic.text);
   });
 });
 
