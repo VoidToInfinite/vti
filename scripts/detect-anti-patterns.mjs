@@ -784,7 +784,8 @@ const ALLOWLIST = [
                 lines: [472],
             },
             {
-                snippet: "animation: ${sparkTwinkle} 3.4s ease-in-out infinite;",
+                snippet:
+                    "animation: ${sparkTwinkle} 3.4s ease-in-out infinite;",
                 lines: [494],
             },
         ],
