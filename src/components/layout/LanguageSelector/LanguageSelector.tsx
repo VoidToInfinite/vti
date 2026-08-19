@@ -6,6 +6,7 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { type DefaultTheme } from "styled-components";
 import { LOCALES, resolveRoute, routePath, type Locale } from "@/config/site";
+import { useActiveSectionKey } from "@/hooks/useActiveSection";
 import { PRESS } from "@/motion/vocabulary";
 
 const LANGUAGES = LOCALES;
@@ -178,6 +179,69 @@ const ScLanguageButton = styled(Link)<{ $active: boolean }>`
   }
 `;
 
+/**
+ * CAMBIAR DE IDIOMA YA NO TIRA LA POSICIÓN DE LECTURA (2026-08-20, ola
+ * post-crítica #13).
+ *
+ * EL DEFECTO, medido: leyendo la home en `scrollY = 2500` y pulsando
+ * «English» se llegaba a `/en` con `scrollY = 0`
+ * (`performance.getEntriesByType("navigation")[0].type === "navigate"`: es
+ * navegación de documento completo, así que el navegador arranca arriba). El
+ * lector reiniciaba la lectura desde el principio justo cuando acababa de
+ * declarar que no entiende el idioma. La inconsistencia era además INTERNA: el
+ * conmutador de TEMA sí conserva la sección de lectura desde el 2026-08-17
+ * (`useThemeScrollReset` + `themeScrollAnchor.ts`).
+ *
+ * EL ARREGLO EN UNA LÍNEA: el enlace del OTRO idioma lleva como fragmento la
+ * sección que el lector tiene delante -- `/en#journey` en vez de `/en` --, así
+ * que el navegador aterriza en esa misma sección del documento nuevo.
+ *
+ * POR QUÉ EN TÉRMINOS DE SECCIÓN Y NO DE PÍXELES: los dos documentos NO miden
+ * lo mismo (el copy inglés no ocupa lo que el castellano), así que restaurar un
+ * `scrollY` literal conservaría la posición y no el contenido -- exactamente lo
+ * que `themeScrollAnchor.ts` ya midió entre ramas de tema y documenta en su
+ * cabecera. Se aterriza en el INICIO de la sección, que es el mismo trato que
+ * ese módulo reserva para el caso en que el desplazamiento dentro del ancla
+ * vieja no significa nada en la nueva (`preserveOffset: false`).
+ *
+ * POR QUÉ UN FRAGMENTO EN EL `href` Y NO UN TRASPASO POR ALMACENAMIENTO
+ * (`sessionStorage`/`localStorage` leído al montar en el destino):
+ *
+ *   1. NO ES UN MECANISMO NUEVO EN ESTE SITIO. Desde el arreglo del P0-2 de la
+ *      crítica #6, los 7 destinos de sección del pie y de la barra son
+ *      `/#story`-style ABSOLUTOS precisamente para poder navegar a la home
+ *      desde otro documento y aterrizar en la sección (ver el docblock de
+ *      `NAV_GROUPS`, `src/config/navigation.ts`). Un idioma es otro documento
+ *      más: se reutiliza el camino ya sancionado en vez de abrir uno propio.
+ *   2. NO ESCRIBE NADA EN EL EQUIPO DEL VISITANTE. `src/config/storage.ts` es
+ *      el registro único de lo que el sitio guarda y la tabla legal de
+ *      `/privacidad` se apoya en él: un traspaso por almacenamiento habría
+ *      añadido una entrada nueva a esa superficie para resolver algo que la URL
+ *      ya sabe expresar.
+ *   3. NO DEPENDE DE QUE EL DESTINO EJECUTE JAVASCRIPT. El salto lo hace el
+ *      navegador al procesar el documento; un traspaso por almacenamiento
+ *      aterrizaría arriba y corregiría después de hidratar, con un salto
+ *      visible y una carrera contra el re-maquetado que habría que temporizar.
+ *   4. EL DESTINO ES HONESTO: se ve en la barra de estado, se puede copiar,
+ *      abrir en pestaña nueva o compartir, y lleva al mismo sitio que el click.
+ *
+ * NO CAMBIA NADA SIN JAVASCRIPT, y es deliberado: `useActiveSectionKey` es un
+ * `useSyncExternalStore` cuyo `getServerSnapshot()` devuelve `null`, así que el
+ * HTML horneado por el build lleva SIEMPRE el `href` pelado (`/en`) -- el
+ * control sigue siendo el enlace normal a la portada del otro idioma que la
+ * entrega del 2026-08-18 dejó, y el fragmento solo aparece después de hidratar.
+ * Ese mismo contrato es lo que garantiza que la hidratación no tenga mismatch:
+ * React usa el snapshot de servidor para el render de hidratación.
+ *
+ * EL IDIOMA ACTIVO NO LO LLEVA (`active ? null : ...`, ver el JSX): su enlace
+ * apunta a la página en la que ya estás, así que añadirle el fragmento
+ * convertiría un click inocuo en un salto al inicio de la sección más una
+ * entrada de historial.
+ */
+export function languageHref(path: string, sectionId: string | null): string {
+  return sectionId === null ? path : `${path}#${sectionId}`;
+}
+
 /*
  * DE CONMUTADOR EN MEMORIA A NAVEGACIÓN REAL (2026-08-18).
  *
@@ -236,6 +300,17 @@ export function LanguageSelector(): ReactElement {
   const current = resolveRoute(pathname ?? "");
   const routeKey = current?.key ?? "home";
 
+  /* La MISMA fuente de verdad que ya decide `aria-current="location"` en la
+     barra y en la hoja móvil (`Navbar.tsx`/`NavSheet.tsx`): lo que la
+     navegación anuncia como "estás aquí" es exactamente lo que el cambio de
+     idioma conserva, sin un segundo criterio que pueda divergir del primero.
+     Es además un singleton de módulo, así que las dos o tres copias montadas
+     de este componente (barra, hoja móvil, cabecera legal) no duplican ni un
+     listener. Fuera de la home no hay ninguna de esas secciones en el DOM y
+     devuelve `null` por su propio contrato: en las legales y en la 404 el
+     `href` queda byte a byte como estaba. */
+  const readingSection = useActiveSectionKey();
+
   return (
     <ScLanguageSelector
       role="group"
@@ -246,7 +321,10 @@ export function LanguageSelector(): ReactElement {
         return (
           <ScLanguageButton
             key={lng}
-            href={routePath(routeKey, lng)}
+            href={languageHref(
+              routePath(routeKey, lng),
+              active ? null : readingSection,
+            )}
             prefetch={false}
             hrefLang={lng}
             lang={lng}

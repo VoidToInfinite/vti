@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { LOCALES, ROUTES_BY_LOCALE, routePath } from "@/config/site";
 import { PRESS } from "@/motion/vocabulary";
-import { LanguageSelector } from "./LanguageSelector";
+import { languageHref, LanguageSelector } from "./LanguageSelector";
 
 /*
  * `usePathname()` devuelve `null` fuera del contexto del App Router, que es
@@ -192,6 +193,102 @@ describe("LanguageSelector", () => {
         .replace(/\/\/.*$/gm, "");
 
       expect(withoutComments).toContain("prefetch={false}");
+    });
+  });
+
+  /*
+   * CANDADO DE LA ENTREGA DEL 2026-08-20 (ola post-crítica #13, T1): cambiar de
+   * idioma ya no tira la posición de lectura.
+   *
+   * Lo medido antes del arreglo: leyendo la home en `scrollY = 2500` y pulsando
+   * «English» se llegaba a `/en` con `scrollY = 0`, sin aviso. El arreglo es que
+   * el enlace del OTRO idioma lleve como fragmento la sección que el lector
+   * tiene delante, así que lo que hay que atar es exactamente eso -- y sus dos
+   * fronteras, que son donde un arreglo así se rompe en silencio: el idioma
+   * ACTIVO no lo lleva (su enlace apunta a la página en la que ya estás) y sin
+   * sección en pantalla el destino queda pelado (que es SIEMPRE el caso del HTML
+   * horneado por el build, y por tanto el del visitante sin JavaScript).
+   *
+   * Las secciones reales de la home no se montan aquí (solo se renderiza este
+   * componente), así que se simulan con `<div id="story|journey|...">` en
+   * `document.body` pilotando `dataset.inview` a mano -- exactamente la señal
+   * que `useSectionProgress` escribe en producción sobre esos mismos ids, y el
+   * mismo patrón que ya usa `Navbar.test.tsx` para el scrollspy.
+   *
+   * Validado con bug inyectado (rojo observado): ver el informe de la entrega.
+   */
+  describe("conserva la sección de lectura al cambiar de idioma (T1, 2026-08-20)", () => {
+    const SCROLLSPY_IDS = ["story", "journey", "features", "contact"];
+
+    function mockScrollSections(): void {
+      for (const id of SCROLLSPY_IDS) {
+        const el = document.createElement("div");
+        el.id = id;
+        document.body.appendChild(el);
+      }
+    }
+
+    function setInView(id: string): void {
+      const el = document.getElementById(id);
+      if (!el) throw new Error(`no existe la sección de prueba #${id}`);
+      el.dataset.inview = "true";
+      act(() => {
+        window.dispatchEvent(new Event("scroll"));
+      });
+    }
+
+    beforeEach(() => {
+      // Mismo stub que `Navbar.test.tsx`: sin él, el rAF de margen que
+      // `useActiveSection` pide al primer suscriptor evalúa fuera de `act`.
+      vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+      mockScrollSections();
+    });
+
+    afterEach(() => {
+      for (const id of SCROLLSPY_IDS) document.getElementById(id)?.remove();
+      vi.unstubAllGlobals();
+    });
+
+    it("leyendo 'journey', el enlace del OTRO idioma lleva su fragmento", () => {
+      pathnameMock.current = ROUTES_BY_LOCALE.es.home;
+      renderWithProviders(<LanguageSelector />);
+      setInView("journey");
+
+      const [, en] = screen.getAllByRole("link");
+      expect(en).toHaveAttribute("href", `${routePath("home", "en")}#journey`);
+    });
+
+    it("el idioma ACTIVO nunca lo lleva: su destino es la página en la que ya estás", () => {
+      pathnameMock.current = ROUTES_BY_LOCALE.es.home;
+      renderWithProviders(<LanguageSelector />);
+      setInView("journey");
+
+      const [es] = screen.getAllByRole("link");
+      expect(es).toHaveAttribute("href", routePath("home", "es"));
+    });
+
+    it("sin ninguna sección en pantalla (el lector está en el Hero) el destino queda pelado", () => {
+      pathnameMock.current = ROUTES_BY_LOCALE.es.home;
+      renderWithProviders(<LanguageSelector />);
+
+      const [es, en] = screen.getAllByRole("link");
+      expect(es).toHaveAttribute("href", routePath("home", "es"));
+      expect(en).toHaveAttribute("href", routePath("home", "en"));
+    });
+
+    /*
+     * El fragmento se compone sobre la ruta del idioma de destino, nunca sobre
+     * la de partida: en castellano `/` + `#story` da la forma canónica
+     * `/#story` que ya usa `NAV_GROUPS`, y en inglés `/en#story`. Se prueba la
+     * función pura porque es donde vive esa composición -- el componente solo
+     * decide QUÉ sección pasarle.
+     */
+    it("languageHref compone ruta + fragmento, y devuelve la ruta intacta sin sección", () => {
+      expect(languageHref(routePath("home", "en"), "story")).toBe("/en#story");
+      expect(languageHref(routePath("home", "es"), "story")).toBe("/#story");
+      expect(languageHref(routePath("privacy", "en"), null)).toBe(
+        routePath("privacy", "en"),
+      );
     });
   });
 
