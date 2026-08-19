@@ -342,6 +342,7 @@
   "340": "useTheme",
   "341": "maxAbsDiff255",
   "342": "useTheme",
+  "343": "LegalHeader.tsx",
   "344": "LanguageSelector.tsx",
   "345": "p99AbsDiff255",
   "346": "task-24-brief.md",
@@ -349,11 +350,17 @@
   "348": "useThemeScrollReset.test.tsx",
   "349": "About.tsx",
   "350": "Sol.test.tsx",
+  "351": "registry.tsx",
+  "352": "metadata.ts",
   "353": "en-routes.test.tsx",
   "354": "02-galaxy",
   "355": "Input.tsx",
+  "356": "NotFoundContent.test.tsx",
   "357": "SectionBeam.test.tsx",
+  "358": "vocabulary-consumers.test.ts",
   "359": "HeroBackdrop.test.tsx",
   "361": "GlobalStyles.test.tsx",
-  "363": "useFragmentLanding.test.ts"
+  "363": "useFragmentLanding.test.ts",
+  "365": "pillarAccent",
+  "366": "pillarBadgeAccent"
 }
