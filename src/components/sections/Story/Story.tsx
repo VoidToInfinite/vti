@@ -384,7 +384,16 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
              SIN BACKTICKS: esto vive dentro de un template literal css de
              styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
           padding-block-end: ${theme.data.space[7]};
-          max-width: ${theme.data.grid.navMax};
+          /* grid.sectionMax, NO grid.navMax (critica externa #12,
+             2026-08-19). Esta rama leia el tope de la PILDORA DEL NAVBAR como
+             ancho de contenido de la seccion -- contra el docblock del propio
+             navMax, que se declara exclusivo de esa pildora y exige que las
+             dos medidas puedan divergir sin arrastrarse. Coincidian en el
+             numero (1280px) y por eso nadie lo notaba: el dia que alguien
+             retocara la pildora, la seccion se habria movido con ella. El CSS
+             renderizado no cambia ni un caracter; lo que cambia es de que
+             promesa cuelga. */
+          max-width: ${theme.data.grid.sectionMax};
           margin-inline: auto;
         `}
 `;

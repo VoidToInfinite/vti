@@ -17,6 +17,7 @@
  * cita y la sombra de la figura) se congela aquí como literal.
  */
 import { DECK } from "@/motion/vocabulary";
+import { grid } from "@/theme/tokens/grid";
 import { type as typeTokens } from "@/theme/tokens/type";
 
 export type JourneyStepId =
@@ -201,8 +202,27 @@ export const JOURNEY_PATH_SCROLL_SHIFT = "16px";
  * reutilización de la anterior porque, aunque el número coincide, el sujeto
  * cambió: reutilizar `JOURNEY_PORTAL_MAX_WIDTH` para el contenido escondería
  * ese cambio de sujeto detrás de un nombre que ya no describe lo que acota.
+ *
+ * DESDE LA CRÍTICA EXTERNA #12 (2026-08-19) EL NÚMERO NO VIVE AQUÍ: deriva de
+ * `grid.sectionMax`, el token que nombra el ancho de contenido de las
+ * secciones que componen a sangre completa. El valor resultante es EXACTAMENTE
+ * el mismo (1280px) — nombrar una medida repetida es refactor de vocabulario,
+ * no rediseño —, así que el CSS renderizado no cambia ni un carácter. Lo que
+ * cambia es que este fichero deja de ser una de las cuatro copias del mismo
+ * número (regla 13 de `RULES.md`).
+ *
+ * La constante NO se retira en favor de leer el token directamente desde
+ * `journey.deck.tsx`: sigue siendo el nombre con el que ESTA sección se
+ * refiere a su propio tope de contenido, y conservarla deja el día de mañana
+ * abierto a que Journey diverja del resto sin tocar a nadie más. Mismo patrón,
+ * mismas palabras y misma ola que `FEATURES_CONTENT_MAX_WIDTH`
+ * (`features.layers.ts`), `CONTACT_CONTENT_MAX_WIDTH` (`contact.layers.ts`) y
+ * `STORY_DARK_MAX_WIDTH` (`story.layers.ts`). El candado de que el número no
+ * vuelva a escribirse a mano se observa en la FUENTE (`Journey.test.tsx`),
+ * porque token y literal resuelven a la misma cadena y ningún candado de valor
+ * puede distinguirlos (`task/lessons.md`, 2026-08-12).
  */
-export const JOURNEY_CONTENT_MAX_WIDTH = "1280px";
+export const JOURNEY_CONTENT_MAX_WIDTH = grid.sectionMax;
 
 /**
  * Cuánto sube Journey por encima de Story al superponerse (D2/D5, spec

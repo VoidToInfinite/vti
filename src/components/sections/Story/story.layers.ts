@@ -19,6 +19,7 @@
  * en `ctaGlow`).
  */
 import { DECK } from "@/motion/vocabulary";
+import { grid } from "@/theme/tokens/grid";
 import { type as typeTokens } from "@/theme/tokens/type";
 
 /**
@@ -51,11 +52,32 @@ export const STORY_HALO_GRADIENT =
  * esta entrega ceñía la SECCIÓN entera (`ScStory`) a una caja centrada;
  * ahora la escena `StoryCosmicBeing` va a sangre (llena el stage a
  * `100vw`/`100vh`, D7) y es el deck de cada diapositiva quien queda acotado
- * a este ancho mientras la escena de fondo lo ignora. No se crea un token
- * nuevo en `grid.*`: el valor ya existía con este nombre en el propio
- * archivo de la sección, solo cambia a qué se aplica.
+ * a este ancho mientras la escena de fondo lo ignora.
+ *
+ * DESDE LA CRÍTICA EXTERNA #12 (2026-08-19) EL NÚMERO NO VIVE AQUÍ: deriva de
+ * `grid.sectionMax`, el token que nombra el ancho de contenido de las
+ * secciones que componen a sangre completa. El valor resultante es EXACTAMENTE
+ * el mismo (1280px) — nombrar una medida repetida es refactor de vocabulario,
+ * no rediseño —, así que el CSS renderizado no cambia ni un carácter. Lo que
+ * cambia es que este fichero deja de ser una de las cuatro copias del mismo
+ * número (regla 13 de `RULES.md`). El docblock de esta constante decía hasta
+ * hoy que "no se crea un token nuevo en `grid.*`" porque el valor ya existía
+ * aquí: ese razonamiento es justo el que la crítica #12 desmonta — el mismo
+ * número vivía a mano en CUATRO secciones y en dos lecturas de `grid.navMax`,
+ * que es un tope de la píldora del navbar y no de una sección.
+ *
+ * La constante NO se retira en favor de leer el token directamente desde
+ * `story.deck.tsx`: sigue siendo el nombre con el que ESTA sección se refiere
+ * a su propio tope de contenido, y conservarla deja el día de mañana abierto a
+ * que Story diverja del resto sin tocar a nadie más. Mismo patrón, mismas
+ * palabras y misma ola que `FEATURES_CONTENT_MAX_WIDTH`
+ * (`features.layers.ts`) y `CONTACT_CONTENT_MAX_WIDTH`
+ * (`contact.layers.ts`). El candado de que el número no vuelva a escribirse a
+ * mano se observa en la FUENTE (`Story.test.tsx`), porque token y literal
+ * resuelven a la misma cadena y ningún candado de valor puede distinguirlos
+ * (`task/lessons.md`, 2026-08-12).
  */
-export const STORY_DARK_MAX_WIDTH = "1280px";
+export const STORY_DARK_MAX_WIDTH = grid.sectionMax;
 
 /**
  * Alto de UNA diapositiva de la presentación, a pantalla completa (D12): el

@@ -2854,3 +2854,64 @@ describe("Story: critica #12 -- el rail del deck es operable (tema oscuro)", () 
    * Restaurados los tres, los siete `it` de este describe vuelven a verde.
    */
 });
+
+/*
+ * Candados de FUENTE (critica externa #12, 2026-08-19), no de render: el token
+ * `grid.sectionMax` y el literal `"1280px"` resuelven a la MISMA cadena, asi
+ * que ningun candado de valor renderizado puede distinguir "la seccion lee el
+ * token" de "la seccion reescribe el numero" -- la propiedad solo se observa
+ * en el FICHERO (`task/lessons.md` 2026-08-12; mismo patron que
+ * `Hero.qa.test.tsx` estreno para `grid.heroCopyMax` en la critica #10).
+ *
+ * Dos propiedades distintas, un candado cada una:
+ * 1. `story.layers.ts` deriva su tope de contenido del token en vez de
+ *    declarar el numero a mano (era una de las cuatro copias del mismo 1280).
+ * 2. `Story.tsx` deja de leer `grid.navMax` -- el tope de la PILDORA del
+ *    navbar -- como ancho de contenido de la seccion clara, contra el docblock
+ *    del propio `navMax`.
+ */
+describe("Story: critica #12 -- el tope de contenido sale de grid.sectionMax (candado de fuente)", () => {
+  async function leerFuente(...segments: string[]): Promise<string> {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    return readFileSync(join(here, ...segments), "utf-8");
+  }
+
+  /*
+   * Despoja comentarios ANTES de buscar, mismo motivo que `Hero.qa.test.tsx`
+   * (`task/lessons.md` 2026-08-11): que una cita en prosa de un docblock no
+   * gane la busqueda, y sobre todo que una linea COMENTADA no pueda pasar por
+   * linea activa.
+   */
+  function despojarComentarios(source: string): string {
+    return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  }
+
+  it("story.layers.ts no escribe el numero a mano: STORY_DARK_MAX_WIDTH deriva del token", async () => {
+    const source = despojarComentarios(await leerFuente("story.layers.ts"));
+
+    expect(source).not.toContain("1280px");
+    expect(source).toContain("STORY_DARK_MAX_WIDTH = grid.sectionMax");
+  });
+
+  it("Story.tsx no lee grid.navMax: el ancho de contenido de la rama clara cuelga de grid.sectionMax", async () => {
+    const source = despojarComentarios(await leerFuente("Story.tsx"));
+
+    expect(source).not.toContain("grid.navMax");
+    // Recuento CERRADO (regla 39/40): una sola medida de seccion en este
+    // fichero. Si manana aparece otra, o vuelve un literal, este numero deja de
+    // cuadrar y hay que decidirlo a mano en vez de dejarlo pasar.
+    expect(source.match(/theme\.data\.grid\.sectionMax/g)?.length ?? 0).toBe(1);
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), ejecutado en esta tarea: devolver
+   * `max-width: ${theme.data.grid.navMax}` a la rama clara de `ScStory`
+   * (`Story.tsx`) pone en rojo el segundo `it` por sus DOS aserciones (aparece
+   * `grid.navMax`, y el recuento de `sectionMax` baja a 0); restaurado, vuelve
+   * a verde. El primero se valida igual devolviendo el literal `"1280px"` a
+   * `story.layers.ts`.
+   */
+});

@@ -1980,3 +1980,54 @@ describe("Journey: critica #10 hallazgo A -- el rail del deck es operable (tema 
    *     restaurado `slideName`, los dos vuelven a verde.
    */
 });
+
+/*
+ * Candados de FUENTE (critica externa #12, 2026-08-19), no de render: el token
+ * `grid.sectionMax` y el literal `"1280px"` resuelven a la MISMA cadena, asi
+ * que ningun candado de valor renderizado puede distinguir "la seccion lee el
+ * token" de "la seccion reescribe el numero" -- la propiedad solo se observa
+ * en el FICHERO (`task/lessons.md` 2026-08-12; mismo patron que
+ * `Hero.qa.test.tsx` estreno para `grid.heroCopyMax` en la critica #10).
+ *
+ * Gemelo exacto del de `Story.test.tsx`, porque el defecto era el mismo en las
+ * dos secciones: el numero a mano en el fichero de datos y `grid.navMax` --el
+ * tope de la PILDORA del navbar-- leido como ancho de contenido en la rama
+ * clara.
+ */
+describe("Journey: critica #12 -- el tope de contenido sale de grid.sectionMax (candado de fuente)", () => {
+  async function leerFuente(...segments: string[]): Promise<string> {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    return readFileSync(join(here, ...segments), "utf-8");
+  }
+
+  function despojarComentarios(source: string): string {
+    return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  }
+
+  it("journey.layers.ts no escribe el numero a mano: JOURNEY_CONTENT_MAX_WIDTH deriva del token", async () => {
+    const source = despojarComentarios(await leerFuente("journey.layers.ts"));
+
+    expect(source).not.toContain("1280px");
+    expect(source).toContain("JOURNEY_CONTENT_MAX_WIDTH = grid.sectionMax");
+  });
+
+  it("Journey.tsx no lee grid.navMax: el ancho de contenido de la rama clara cuelga de grid.sectionMax", async () => {
+    const source = despojarComentarios(await leerFuente("Journey.tsx"));
+
+    expect(source).not.toContain("grid.navMax");
+    // Recuento CERRADO (regla 39/40): una sola medida de seccion en este
+    // fichero.
+    expect(source.match(/theme\.data\.grid\.sectionMax/g)?.length ?? 0).toBe(1);
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), ejecutado en esta tarea: devolver
+   * `max-width: ${theme.data.grid.navMax}` a la rama clara de `ScJourney`
+   * (`Journey.tsx`) pone en rojo el segundo `it` por sus DOS aserciones;
+   * restaurado, vuelve a verde. El primero se valida igual devolviendo el
+   * literal `"1280px"` a `journey.layers.ts`.
+   */
+});
