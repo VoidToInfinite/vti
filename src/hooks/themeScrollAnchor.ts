@@ -41,23 +41,75 @@
  * mentiría. La regla estructural ("no anidada") describe exactamente esa
  * diferencia sin tener que preguntar por `position` computada.
  *
- * ## Criterio de dominancia, y por qué NO es el de `useActiveSection.ts`
+ * ## Criterio de ancla: el MISMO que `useActiveSection.ts`, desde la crítica
+ * externa #13 (2026-08-18)
  *
- * `useActiveSection` resuelve por CONTENCIÓN del centro del viewport (con
- * dominancia solo como respaldo para huecos, y empate hacia la sección de
- * más abajo — crítica #10; antes usaba "la última en orden de página con
- * cualquier solape", que se adelantaba desde el primer píxel del vecino):
- * alimenta `aria-current` y responde "¿en qué sección ESTÁ el lector?".
- * Este módulo responde otra pregunta: "¿a qué sección le debo el MENOR
- * desplazamiento correctivo?" — en la franja de transición, con la
- * saliente ocupando el 90 % de la pantalla, anclar a la entrante mandaría
- * al lector al principio de una sección que todavía no está leyendo, un
- * salto de casi un viewport. Un reposicionamiento CORRECTIVO quiere el
- * desplazamiento mínimo, así que aquí gana la sección con MÁS superficie
- * visible (y el empate exacto cae del lado contrario, `>` vs `>=`, también
- * a propósito). Los dos módulos preguntan cosas distintas con la misma
- * palabra; no se comparte la función a propósito, y esta nota es el enlace
- * entre ambas.
+ * **Contrato, en una frase: el ancla es la sección que el sitio ya considera
+ * activa** — la que CONTIENE el punto de referencia del viewport (su centro),
+ * con la superficie visible como respaldo solo cuando ese punto cae en un
+ * hueco entre secciones. Es literalmente la regla de `resolveAmongCandidates`
+ * en `useActiveSection.ts`, empate incluido: contención sobre el intervalo
+ * SEMIABIERTO `[top, bottom)` y, en el respaldo, gana la de MÁS ABAJO.
+ *
+ * HASTA ESA FECHA ESTE MÓDULO USABA OTRA REGLA: la sección con MÁS superficie
+ * visible, con el empate exacto resuelto al revés (`>`, ganaba la primera del
+ * documento). El argumento escrito entonces era que un reposicionamiento
+ * CORRECTIVO quiere el desplazamiento mínimo, y que en una franja de
+ * transición "con la saliente ocupando el 90 % de la pantalla" anclar a la
+ * entrante mandaría al lector al principio de una sección que todavía no
+ * lee. Ese argumento se sostiene sobre un ejemplo que no distingue nada: con
+ * la saliente al 90 %, el centro del viewport TAMBIÉN cae dentro de la
+ * saliente, así que las dos reglas responden lo mismo. Las dos solo divergen
+ * en una franja estrecha alrededor del 50/50 — y ahí divergen en el sentido
+ * PEOR, porque el desempate estaba invertido respecto al del scrollspy.
+ *
+ * EL DEFECTO MEDIDO (integrador de la crítica #13, 1440x900, criterio "qué
+ * sección ocupa el CENTRO del viewport"):
+ *
+ *   claro y=1200 (story)    -> oscuro y=1200  (story)    conserva
+ *   claro y=4200 (features) -> oscuro y=14453 (features) conserva
+ *   claro y=3000 (features) -> oscuro y=13253 (journey)  SALTA una sección
+ *
+ * Reconstruida la geometría del caso que falla, sale una sola solución: el
+ * lector estaba en el punto EXACTO en que Features empieza en el centro de la
+ * pantalla (top de documento 3450 = 3000 + 900/2). Ahí Journey y Features
+ * enseñan 450 px cada una — empate perfecto de superficie —, así que la regla
+ * vieja anclaba a Journey por ser la primera, mientras la barra de navegación
+ * anunciaba Features por contener el centro. Dos módulos del mismo sitio
+ * respondiendo distinto a "¿qué sección está leyendo esta persona?", y el
+ * lector aterrizando en la que el sitio decía que ya había dejado atrás.
+ *
+ * Nota de método, porque explica una discrepancia de informes y no un fallo
+ * de nadie: un evaluador midió ESTE MISMO caso con el criterio de "sección
+ * dominante" y lo dio por correcto. Los dos tenían razón dentro de su propia
+ * definición; el problema era justo ese, que había dos definiciones. Por eso
+ * la corrección no es "elegir la definición que mejor puntúa", sino dejar UNA
+ * sola en todo el repo.
+ *
+ * POR QUÉ GANA LA DEL SCROLLSPY, y no al revés:
+ *
+ * 1. Es la que el lector ya tiene delante. `aria-current="location"` en el
+ *    navbar sale de ella; si el ancla usara otra, el sitio devolvería a la
+ *    persona a una sección distinta de la que él mismo acaba de anunciar.
+ * 2. Da una GARANTÍA que la dominancia no puede dar. Con contención del
+ *    centro, el desplazamiento capturado (`scrollY - topDoc`, que es
+ *    `-rect.top`) cumple siempre `offset >= -viewport/2`; al restituirlo, el
+ *    centro cae en `offset + viewport/2 >= 0` respecto al inicio del ancla,
+ *    es decir DENTRO de ella. Con dominancia no hay cota: una sección puede
+ *    dominar la pantalla asomando solo por abajo, y entonces el centro
+ *    aterriza fuera. La propiedad "tras el salto, la sección bajo el centro
+ *    es la misma" pasa de aspiración a consecuencia aritmética (su candado
+ *    vive en `themeScrollAnchor.test.ts`).
+ * 3. El argumento del "desplazamiento mínimo" no se pierde: lo entrega
+ *    `anchoredScrollY` conservando el desplazamiento DENTRO de la sección,
+ *    no la elección de sección. Con el ancla inmóvil la corrección sigue
+ *    siendo exactamente cero.
+ *
+ * LO QUE SIGUE SIENDO DISTINTO, y es correcto que lo sea: `useActiveSection`
+ * solo mira las cuatro secciones de `NAV_GROUPS` (Story, Journey, Features,
+ * Contact) y responde `null` en el Hero; este módulo mira toda `section[id]`
+ * de primer nivel, porque necesita un ancla también para quien cambia de tema
+ * mirando el hero. La REGLA es la misma; el CONJUNTO de candidatas no.
  */
 
 /** Selector único de ancla. Se declara aquí (y no en el hook que lo consume)
@@ -73,33 +125,63 @@ export interface SectionViewportGeometry {
 }
 
 /**
- * `id` de la sección que ocupa MÁS superficie vertical del viewport, o
- * `null` si ninguna lo interseca (el lector está en un tramo sin ancla).
+ * Punto del viewport contra el que se decide qué sección se está leyendo,
+ * como fracción de su alto: 0,5 = el centro vertical.
  *
- * Empate exacto: gana la PRIMERA en el orden en que llegan (el del
- * documento, tal como las entrega `querySelectorAll`), porque la
- * comparación es estrictamente mayor. Es la elección conservadora para un
- * reposicionamiento: ante dos candidatas idénticas, quedarse con la que el
- * lector lleva más rato viendo mueve menos que saltar a la siguiente.
+ * INVARIANTE QUE CRUZA DOS FICHEROS (regla 41): tiene que valer lo mismo que
+ * `VIEWPORT_REFERENCE_FRACTION` en `useActiveSection.ts`, o el ancla y el
+ * `aria-current` del navbar volverían a contestar cosas distintas a la misma
+ * pregunta — el defecto exacto que la crítica #13 midió. Se duplica en vez de
+ * importarse por la misma razón que `isElementVisible` duplica
+ * `intersectsViewport` en `useThemeScrollReset.ts`: son módulos hermanos sin
+ * dependencia compartida hoy y la constante es un número. Lo que NO se deja a
+ * la memoria de nadie es la igualdad: un candado de FUENTE en
+ * `themeScrollAnchor.test.ts` lee el otro fichero y compara los dos valores.
  */
-export function dominantSectionId(
+export const VIEWPORT_REFERENCE_FRACTION = 0.5;
+
+/**
+ * `id` de la sección que el lector está leyendo, con la MISMA regla que
+ * `resolveAmongCandidates()` en `useActiveSection.ts` (ver el docblock de
+ * cabecera para el porqué del cambio y para el caso medido que lo motivó):
+ * gana la que CONTIENE el punto de referencia del viewport y, solo si ese
+ * punto cae en un HUECO entre secciones, la de mayor superficie visible.
+ * `null` si ninguna interseca el viewport (el lector está en un tramo sin
+ * ancla: la 404, o cualquier página que no monte ninguna sección).
+ *
+ * Las dos mitades desempatan hacia la sección de MÁS ABAJO, igual que allí:
+ * la contención se prueba sobre el intervalo SEMIABIERTO `[top, bottom)`, así
+ * que dos secciones que comparten un borde exacto no lo contienen las dos —
+ * lo contiene la de abajo, la que se está entrando; y el respaldo compara con
+ * `>=` recorriendo en orden de documento, así que gana la última empatada.
+ *
+ * El respaldo exige superficie ESTRICTAMENTE positiva (`visible > 0`) y esa
+ * condición no sobra: a diferencia de `useActiveSection`, aquí la lista de
+ * candidatas NO viene pre-filtrada por intersección, así que sin ella una
+ * sección completamente fuera de pantalla (solape 0 o negativo) ganaría el
+ * respaldo y este módulo dejaría de poder devolver `null`.
+ */
+export function readingAnchorSectionId(
   sections: readonly SectionViewportGeometry[],
   viewportHeight: number,
 ): string | null {
-  let bestId: string | null = null;
+  const reference = viewportHeight * VIEWPORT_REFERENCE_FRACTION;
+  let containsId: string | null = null;
+  let fallbackId: string | null = null;
   let bestVisible = 0;
 
   for (const section of sections) {
-    const visible =
-      Math.min(section.top + section.height, viewportHeight) -
-      Math.max(section.top, 0);
-    if (visible > bestVisible) {
+    const bottom = section.top + section.height;
+    if (section.top <= reference && reference < bottom) containsId = section.id;
+
+    const visible = Math.min(bottom, viewportHeight) - Math.max(section.top, 0);
+    if (visible > 0 && visible >= bestVisible) {
       bestVisible = visible;
-      bestId = section.id;
+      fallbackId = section.id;
     }
   }
 
-  return bestId;
+  return containsId ?? fallbackId;
 }
 
 /** Entrada de `anchoredScrollY`: todo en coordenadas de DOCUMENTO salvo
@@ -162,16 +244,26 @@ export interface AnchoredScrollInput {
  *
  * NO HAY SUELO, y esa ausencia es una decisión, no un olvido: el
  * desplazamiento capturado puede ser NEGATIVO con toda normalidad --
- * significa que la sección dominante empieza por debajo del borde superior
+ * significa que la sección del lector empieza por debajo del borde superior
  * del viewport, que es el estado de cualquier franja de transición entre
  * dos secciones. Recortarlo a 0 "por prudencia" rompería la propiedad más
  * importante de esta función: que con el ancla inmóvil la cuenta devuelva
  * EXACTAMENTE el `scrollY` de partida. Con un suelo en 0, un lector parado
  * en esa franja recibiría un tirón de hasta un viewport entero al cambiar
  * de tema aunque nada se hubiera movido -- un defecto nuevo, del mismo
- * tamaño que el que esta función existe para arreglar. Un negativo no se
- * puede desbocar: si la sección domina el viewport, su inicio nunca está
- * más de una pantalla por debajo del borde superior.
+ * tamaño que el que esta función existe para arreglar.
+ *
+ * Y ese negativo no se puede desbocar, con una cota EXACTA desde la crítica
+ * #13 (2026-08-18): el ancla la elige `readingAnchorSectionId` por contención
+ * del centro del viewport, así que `rect.top <= viewport/2` siempre y por
+ * tanto `offset = -rect.top >= -viewport/2`. De ahí sale la garantía que el
+ * criterio anterior (dominancia) no podía dar: al restituir, el centro cae en
+ * `offset + viewport/2 >= 0` respecto al inicio del ancla -- DENTRO de ella.
+ * Las dos únicas fugas posibles están declaradas, no tapadas: una sección que
+ * al encoger mida MENOS de medio viewport no puede contener el centro desde
+ * ninguna posición (imposibilidad geométrica, no un fallo de la fórmula), y
+ * el `Math.max(0, ...)` del final puede recortar el destino contra el inicio
+ * del documento. El candado de la garantía vive en el test de este módulo.
  */
 export function anchoredScrollY(input: AnchoredScrollInput): number {
   const {
@@ -212,7 +304,7 @@ function isTopLevelSectionAnchor(el: Element): boolean {
 }
 
 /**
- * Sección que domina el viewport AHORA, con su posición de documento.
+ * Sección que el lector está leyendo AHORA, con su posición de documento.
  * `null` si ninguna ancla interseca el viewport (el lector está en un tramo
  * sin sección: la 404, o cualquier página que no monte ninguna).
  *
@@ -231,17 +323,17 @@ export function captureReadingAnchor(): ReadingAnchor | null {
     return { id: el.id, top: rect.top, height: rect.height };
   });
 
-  const id = dominantSectionId(geometries, window.innerHeight);
+  const id = readingAnchorSectionId(geometries, window.innerHeight);
   if (id === null) return null;
 
-  const dominant = geometries.find((geometry) => geometry.id === id);
-  if (dominant === undefined) return null;
+  const anchored = geometries.find((geometry) => geometry.id === id);
+  if (anchored === undefined) return null;
 
   const scrollY = window.scrollY;
   return {
     id,
-    topDoc: dominant.top + scrollY,
-    height: dominant.height,
+    topDoc: anchored.top + scrollY,
+    height: anchored.height,
     scrollY,
   };
 }

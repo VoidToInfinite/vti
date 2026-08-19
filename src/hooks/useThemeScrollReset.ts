@@ -161,10 +161,13 @@ import {
  * - **Se corrige la NAVEGACIÓN.** Conservar el `scrollY` numérico (Task 17)
  *   conserva la posición pero no el contenido, porque lo que cambia de alto
  *   es lo que queda POR ENCIMA del lector. Este hook captura qué sección
- *   domina el viewport en el instante del click y, tras el re-maquetado,
- *   deshace exactamente ese arrastre. Ver `themeScrollAnchor.ts` para el
- *   criterio de dominancia, la exclusión de las secciones anidadas y la
- *   fórmula (con su clamp para el sentido oscuro -> claro).
+ *   está leyendo la persona en el instante del click y, tras el
+ *   re-maquetado, deshace exactamente ese arrastre. Ver
+ *   `themeScrollAnchor.ts` para el criterio de ancla —desde la crítica
+ *   externa #13 (2026-08-18), el MISMO que usa el scrollspy del navbar:
+ *   contención del centro del viewport, con la superficie visible solo como
+ *   respaldo—, la exclusión de las secciones anidadas y la fórmula (con su
+ *   clamp para el sentido oscuro -> claro).
  * - **NO se unifica la longitud de scroll entre temas.** Sigue siendo la
  *   decisión pendiente del dueño que `docs/qa-3d-pendiente.md` (entrada del
  *   2026-08-12) declara: cambiar el vehículo oscuro, aceptar la divergencia,
