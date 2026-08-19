@@ -1082,12 +1082,10 @@ function JourneyDeckDark(): ReactElement {
    * Mismo contrato y mismas palabras que el rail de Story, que estrena esta
    * gramatica en la misma ola: un rail de deck nombra sus destinos.
    *
-   * CONSECUENCIA DECLARADA, no disimulada: `Home.journey.railGoTo` ("Ir a la
-   * diapositiva {{current}} de {{total}}") pierde con esto su UNICO consumidor
-   * y queda huerfana en `es` y en `en`. Retirarla del JSON no entra en el
-   * alcance de esta tarea -- esos ficheros los toca otra mano en esta misma
-   * ola -- asi que queda anotada aqui y en el informe: es una clave a retirar,
-   * no una reserva para el futuro. Regla 32 de RULES.md.
+   * `Home.journey.railGoTo` ("Ir a la diapositiva {{current}} de {{total}}")
+   * perdio con esto su UNICO consumidor; la integracion de la ola H la retiro
+   * de `es` y `en` en el mismo movimiento (regla 32 de RULES.md -- el agente
+   * del deck tenia los JSON fuera de su dominio y lo dejo declarado aqui).
    */
   const slideName = (slideIndex: number): string => {
     if (slideIndex === 0) return t("Home.journey.title");

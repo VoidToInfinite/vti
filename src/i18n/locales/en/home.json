@@ -19,6 +19,7 @@
                 "third": "a new beginning"
             },
             "figureAlt": "Celestial figure pointing upward",
+            "railLabel": "Story progress",
             "pillars": {
                 "learn": {
                     "title": "Learn with purpose",
@@ -50,7 +51,6 @@
             "figureAlt": "Celestial figure presenting the journey with an open palm",
             "stepPosition": "Step {{current}} of {{total}}",
             "railLabel": "Journey progress",
-            "railGoTo": "Go to slide {{current}} of {{total}}",
             "steps": {
                 "discover": {
                     "label": "Discover",

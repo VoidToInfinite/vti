@@ -2628,10 +2628,11 @@ describe("Story: critica #12 -- el numeral de pilar del deck oscuro libra AA sob
  *
  * Este describe es el GEMELO del de Journey ("critica #10 hallazgo A -- el
  * rail del deck es operable"), caso por caso y con la misma aritmetica de
- * pista, porque lo que se exige es exactamente el mismo contrato. La UNICA
- * divergencia declarada es el nombre del grupo: Journey lo toma de
- * `Home.journey.railLabel` y Story no tiene clave equivalente -- ver el
- * comentario del rail en `Story.tsx`.
+ * pista, porque lo que se exige es exactamente el mismo contrato. La
+ * divergencia que esta cabecera declaraba (grupo sin nombre por falta de
+ * clave) se cerro en la integracion de la ola H: `Home.story.railLabel`
+ * existe y el grupo se localiza POR ese nombre en railDeck() -- si el rotulo
+ * desaparece o cambia de clave, todos los casos de este describe caen.
  */
 describe("Story: critica #12 -- el rail del deck es operable (tema oscuro)", () => {
   const VH = 800;
@@ -2669,16 +2670,20 @@ describe("Story: critica #12 -- el rail del deck es operable (tema oscuro)", () 
         top: 0,
         height: (STORY_SLIDES + STORY_DECK_TAIL_SCREENS) * VH,
       }) as DOMRect;
-    const grupo = screen.getByRole("group");
+    const grupo = screen.getByRole("group", {
+      name: esHome.Home.story.railLabel,
+    });
     return {
       track,
       botones: within(grupo).getAllByRole("button"),
     };
   }
 
-  it("el rail es un grupo que NO esta oculto del arbol de accesibilidad, con una marca por diapositiva", async () => {
+  it("el rail es un grupo con nombre de i18n, y NO esta oculto del arbol de accesibilidad", async () => {
     const { botones } = await railDeck();
-    const grupo = screen.getByRole("group");
+    const grupo = screen.getByRole("group", {
+      name: esHome.Home.story.railLabel,
+    });
 
     expect(grupo).not.toHaveAttribute("aria-hidden");
     expect(botones).toHaveLength(STORY_SLIDES);

@@ -1923,20 +1923,20 @@ function StoryDeckDark(): ReactElement {
               estar fuera del arbol de accesibilidad, y sin agrupar se
               anunciarian como seis controles sin relacion entre si.
 
-              EL GRUPO SE QUEDA SIN NOMBRE EN ESTA ENTREGA, y se declara en vez
-              de disimularse: el equivalente de Journey lo toma de
-              `Home.journey.railLabel`, y Story no tiene ninguna clave que
-              nombre este rail. Inventarla exige tocar los JSON de i18n, fuera
-              del alcance de esta tarea; reutilizar la de Journey seria peor
-              (una seccion nombrandose con el copy de otra). Los seis botones
-              SI tienen nombre propio -- el titulo de su diapositiva, ver
-              slideName mas arriba -- asi que ninguno queda mudo; lo que falta
-              es el rotulo del conjunto. Cuando la clave exista, es una linea.
+              El nombre del grupo sale de `Home.story.railLabel` (clave creada
+              en la integracion de la ola H: el agente del deck tenia los JSON
+              de i18n fuera de su dominio y lo dejo declarado; reutilizar
+              `Home.journey.railLabel` habria sido una seccion nombrandose con
+              el copy de otra). Los seis botones tienen ademas nombre propio --
+              el titulo de su diapositiva, ver slideName mas arriba.
 
               aria-current marca el activo. NO gobierna el estilo: eso lo sigue
               haciendo el selector descendiente sobre data-slide, que ya estaba
               probado -- ver el docblock de ScRailMark. */}
-          <ScRail role="group">
+          <ScRail
+            role="group"
+            aria-label={t("Home.story.railLabel")}
+          >
             {Array.from({ length: STORY_SLIDES }, (_, railIndex) => (
               <ScRailMark
                 key={railIndex}

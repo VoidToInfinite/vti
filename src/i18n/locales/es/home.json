@@ -19,6 +19,7 @@
                 "third": "un nuevo comienzo"
             },
             "figureAlt": "Figura celestial señalando hacia arriba",
+            "railLabel": "Progreso de la historia",
             "pillars": {
                 "learn": {
                     "title": "Aprende con propósito",
@@ -50,7 +51,6 @@
             "figureAlt": "Figura celestial presentando el viaje con la palma abierta",
             "stepPosition": "Paso {{current}} de {{total}}",
             "railLabel": "Progreso del viaje",
-            "railGoTo": "Ir a la diapositiva {{current}} de {{total}}",
             "steps": {
                 "discover": {
                     "label": "Descubre",
