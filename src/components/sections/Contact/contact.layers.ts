@@ -33,6 +33,7 @@
  * criterio de mapeo por rol, no por nombre literal, que ya usa el resto del
  * repo (p. ej. `accent()` en `Button.tsx`).
  */
+import { grid } from "@/theme/tokens/grid";
 
 /** Borde de la tarjeta (mockup L213). El fondo del propio degradado
  * pastel de la tarjeta va en `CONTACT_CARD_GRADIENT`.
@@ -197,8 +198,28 @@ export const CONTACT_OVERLAY_RISE = "100dvh";
  * reutilizarla escondería el cambio de sujeto. Mismo criterio y mismas
  * palabras que `FEATURES_CONTENT_MAX_WIDTH` (`features.layers.ts`) cuando
  * reemplazó a `FEATURES_DARK_MAX_WIDTH`.
+ *
+ * DESDE LA CRÍTICA EXTERNA #12 (2026-08-18) EL NÚMERO NO VIVE AQUÍ: deriva de
+ * `grid.sectionMax`, el token que nombra el ancho de contenido de las
+ * secciones que componen a sangre completa. El valor resultante es EXACTAMENTE
+ * el mismo (1280px) — nombrar una medida repetida es refactor de vocabulario,
+ * no rediseño —, así que el CSS renderizado no cambia ni un carácter. Lo que
+ * cambia es que este fichero deja de ser una de las cuatro copias del mismo
+ * número (regla 13 de `RULES.md`: una constante de valor idéntico repetida en
+ * dos secciones es un token de tema, no dos constantes).
+ *
+ * La constante NO se retira en favor de leer el token directamente desde
+ * `Contact.tsx`: sigue siendo el nombre con el que ESTA sección se refiere a
+ * su propio tope de contenido, y conservarla deja el día de mañana abierto a
+ * que Contacto diverja del resto sin tocar a nadie más. Mismo patrón y mismo
+ * precedente que `JOURNEY_DECK_TITLE_SIZE` (`journey.layers.ts`), que deriva
+ * su `clamp()` del peldaño `deckTitle` de la escala tipográfica desde la
+ * crítica #11. El candado de que el número no vuelva a escribirse a mano se
+ * observa en la FUENTE (`Contact.test.tsx`), porque token y literal resuelven
+ * a la misma cadena y ningún candado de valor puede distinguirlos
+ * (`task/lessons.md`, 2026-08-12).
  */
-export const CONTACT_CONTENT_MAX_WIDTH = "1280px";
+export const CONTACT_CONTENT_MAX_WIDTH = grid.sectionMax;
 
 /**
  * Tope de ancho de la PAREJA de columnas (copia + tarjeta de formulario)

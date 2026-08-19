@@ -33,6 +33,7 @@
  * sombras, patrones decorativos, y los dos acentos de Gaming que no usan
  * `var()`) se transcribe tal cual en este archivo.
  */
+import { grid } from "@/theme/tokens/grid";
 
 export type FeatureKey = "learning" | "imagination" | "gaming";
 
@@ -364,8 +365,28 @@ export const FEATURES_DARK_HEIGHT = "100dvh";
  * reutilizarla escondería el cambio de sujeto. Mismo criterio y mismas
  * palabras que `JOURNEY_CONTENT_MAX_WIDTH` (`journey.layers.ts`) cuando
  * reemplazó a `JOURNEY_PORTAL_MAX_WIDTH`.
+ *
+ * DESDE LA CRÍTICA EXTERNA #12 (2026-08-18) EL NÚMERO NO VIVE AQUÍ: deriva de
+ * `grid.sectionMax`, el token que nombra el ancho de contenido de las
+ * secciones que componen a sangre completa. El valor resultante es EXACTAMENTE
+ * el mismo (1280px) — nombrar una medida repetida es refactor de vocabulario,
+ * no rediseño —, así que el CSS renderizado no cambia ni un carácter. Lo que
+ * cambia es que este fichero deja de ser una de las cuatro copias del mismo
+ * número (regla 13 de `RULES.md`: una constante de valor idéntico repetida en
+ * dos secciones es un token de tema, no dos constantes).
+ *
+ * La constante NO se retira en favor de leer el token directamente desde
+ * `Features.tsx`: sigue siendo el nombre con el que ESTA sección se refiere a
+ * su propio tope de contenido, y conservarla deja el día de mañana abierto a
+ * que Features diverja del resto sin tocar a nadie más. Mismo patrón y mismo
+ * precedente que `JOURNEY_DECK_TITLE_SIZE` (`journey.layers.ts`), que deriva
+ * su `clamp()` del peldaño `deckTitle` de la escala tipográfica desde la
+ * crítica #11. El candado de que el número no vuelva a escribirse a mano se
+ * observa en la FUENTE (`Features.test.tsx`), porque token y literal resuelven
+ * a la misma cadena y ningún candado de valor puede distinguirlos
+ * (`task/lessons.md`, 2026-08-12).
  */
-export const FEATURES_CONTENT_MAX_WIDTH = "1280px";
+export const FEATURES_CONTENT_MAX_WIDTH = grid.sectionMax;
 
 /**
  * Zona de "hold" al final de la sección oscura de Features (D3/D4/D5, spec

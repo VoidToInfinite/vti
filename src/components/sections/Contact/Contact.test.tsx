@@ -40,6 +40,7 @@ import {
 } from "@/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers";
 import { FEATURES_TAIL_HOLD } from "@/components/sections/Features/features.layers";
 import { themes } from "@/theme/themes";
+import { grid } from "@/theme/tokens/grid";
 import {
   contrastRatio,
   contrastRatioHex,
@@ -3542,6 +3543,35 @@ describe("Contact: critica externa #12", () => {
       // condicion, no vaciandose para pasar el assert de arriba.
       expect(esHome.Home.contact.form.noscript).toContain("JavaScript");
       expect(enHome.Home.contact.form.noscript).toContain("JavaScript");
+    });
+  });
+
+  /*
+   * T2. El CSS renderizado es IDENTICO antes y despues (el token resuelve al
+   * mismo `1280px`), asi que la propiedad "el numero vive en el token, no en
+   * este fichero" solo se observa en la FUENTE (`task/lessons.md`, 2026-08-12;
+   * mismo patron que `Hero.qa.test.tsx` con `grid.heroCopyMax` y que
+   * `journey.layers.test.ts` con `typeTokens.scale.deckTitle.size`). El lado
+   * CONSUMIDOR -- que `ScDarkFrame` topa el contenido con esta constante -- ya
+   * lo ata el test 9 (D6) mas arriba en este mismo fichero.
+   */
+  describe("T2: el tope de contenido deriva de grid.sectionMax", () => {
+    it("CONTACT_CONTENT_MAX_WIDTH deriva del token, y contact.layers.ts ya no escribe el literal", async () => {
+      expect(CONTACT_CONTENT_MAX_WIDTH).toBe(grid.sectionMax);
+
+      const { readFileSync } = await import("node:fs");
+      const { fileURLToPath } = await import("node:url");
+      const { dirname, join } = await import("node:path");
+      const here = dirname(fileURLToPath(import.meta.url));
+      // Se despojan los comentarios antes de buscar: el docblock de la propia
+      // constante cita el `1280px` en prosa, y sin esto el `not.toContain`
+      // fallaria sobre codigo que SI esta migrado.
+      const fuente = readFileSync(join(here, "contact.layers.ts"), "utf-8")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "");
+
+      expect(fuente).toContain("grid.sectionMax");
+      expect(fuente).not.toContain("1280px");
     });
   });
 });

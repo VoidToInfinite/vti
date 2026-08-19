@@ -24,6 +24,7 @@ import {
 import { NAV_GROUPS } from "@/config/navigation";
 import { themes } from "@/theme/themes";
 import { motion } from "@/theme/tokens/motion";
+import { grid } from "@/theme/tokens/grid";
 import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
@@ -1900,5 +1901,39 @@ describe("Features: los CTAs de tarjeta mueven el foco a #contact (las dos ramas
 
     expect(document.activeElement).toBe(target);
     expect(target).toHaveAttribute("tabindex", "-1");
+  });
+});
+
+/*
+ * Critica externa #12 (2026-08-18), T2: el tope de ancho del CONTENIDO de la
+ * seccion escribia `1280px` a mano teniendo ya `grid.sectionMax` (token creado
+ * en el commit `b31be06`) para nombrar esa medida, que hasta esa fecha vivia
+ * repetida en cuatro ficheros de seccion.
+ *
+ * El CSS renderizado es IDENTICO antes y despues -- el token resuelve al mismo
+ * valor --, asi que la propiedad "el numero vive en el token, no en este
+ * fichero" solo se observa en la FUENTE (`task/lessons.md`, 2026-08-12; mismo
+ * patron que `Hero.qa.test.tsx` con `grid.heroCopyMax` y que
+ * `journey.layers.test.ts` con `typeTokens.scale.deckTitle.size`). El lado
+ * CONSUMIDOR -- que `ScDarkFrame` topa el contenido con esta constante -- ya lo
+ * ata el test 3 (D8) mas arriba en este mismo fichero.
+ */
+describe("Features: critica externa #12 (T2)", () => {
+  it("FEATURES_CONTENT_MAX_WIDTH deriva de grid.sectionMax, y features.layers.ts ya no escribe el literal", async () => {
+    expect(FEATURES_CONTENT_MAX_WIDTH).toBe(grid.sectionMax);
+
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    // Se despojan los comentarios antes de buscar: el docblock de la propia
+    // constante cita el `1280px` en prosa, y sin esto el `not.toContain`
+    // fallaria sobre codigo que SI esta migrado.
+    const fuente = readFileSync(join(here, "features.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("grid.sectionMax");
+    expect(fuente).not.toContain("1280px");
   });
 });
