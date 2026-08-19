@@ -1,4 +1,5 @@
 import { links } from "@/config/links";
+import { DEFAULT_LOCALE, LOCALES, routePath, type Locale } from "@/config/site";
 
 /**
  * Modelo de navegación compartido por `Navbar` y `Footer`.
@@ -95,6 +96,13 @@ export interface NavGroup {
  * NOTA PARA QUIEN AÑADA UN DESTINO: el `key` NO lleva barra y se sigue usando
  * como `id` de la sección (`useActiveSection` deriva `ACTIVE_SECTION_IDS` de
  * estos `key`, no de los `href`). Lo que lleva `/` es el `href`, y solo él.
+ *
+ * ESTE ARRAY ES LA RAMA CASTELLANA, y desde 2026-08-19 esa precisión importa:
+ * `navGroupsFor(idioma)` (final del fichero) deriva de aquí la rama inglesa
+ * cambiando el prefijo `/` por `/en`. La derivación EXIGE la forma canónica
+ * `/#<id>` que el candado de `navigation.test.ts` ya obliga a respetar: un
+ * `href` que no empiece por `/#` viaja tal cual a las dos ramas y, en `/en`,
+ * expulsaría al visitante inglés al castellano sin que nada avise.
  */
 export const NAV_GROUPS: readonly NavGroup[] = [
   /* Mismos 4 destinos que ya usaban `NAV_SECTION_LINKS` (Navbar) y
@@ -182,3 +190,106 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     ],
   },
 ] as const;
+
+/**
+ * EL MISMO MODELO, CONSCIENTE DEL IDIOMA DE LA PÁGINA (crítica #12, P0).
+ *
+ * EL DEFECTO QUE CIERRA, medido sobre el `out/` del build y no supuesto:
+ * `out/en.html` llevaba **21 `href="/#..."` y cero enlaces internos que
+ * conservaran `/en`**. Es decir: en la home inglesa, los 7 destinos de sección
+ * del cabecero, los 7 del pie y los 7 de la hoja móvil devolvían al visitante
+ * a la home CASTELLANA. El inglés estrenó URL propia el 2026-08-18, y con esta
+ * fuga el idioma se perdía al primer clic — cualquier clic — así que la URL
+ * inglesa solo sobrevivía mientras nadie navegara por ella.
+ *
+ * La causa raíz es la decisión que documenta el bloque de arriba, correcta
+ * cuando se tomó y ya no: las anclas se hicieron ABSOLUTAS (`/#story`, no
+ * `#story`) porque las tres superficies que consumen este modelo (`Navbar`,
+ * `NavSheet`, `Footer`) se montan en TODAS las páginas y un ancla relativa no
+ * navega desde `/privacidad`. Ese `/` inicial era «la home» cuando solo había
+ * una; desde que hay dos, nombra una de las dos, y siempre la misma.
+ *
+ * El arreglo NO es volver a las anclas relativas (reabriría el P0-2 de la
+ * crítica #6, medido con clic real) sino hacer el prefijo consciente del
+ * idioma: `/` en castellano — byte a byte lo que había, `NAV_GROUPS` se
+ * devuelve tal cual, por identidad — y `/en` en inglés. El fragmento (`#story`)
+ * no cambia nunca, así que `navAnchorTargetId`/`focusNavAnchorTarget`
+ * (`navAnchorFocus.ts`), `useActiveSection` (que deriva sus ids de los `key`,
+ * no de los `href`) y el contrato de `NavItem` siguen intactos.
+ *
+ * POR QUÉ EL PREFIJO SALE DE `routePath("home", locale)` y no de un literal
+ * `"/en"`: `src/config/site.ts` ya es la fuente de verdad única de las seis
+ * rutas del sitio (`ROUTES_BY_LOCALE`), y es la misma función que ya usa el
+ * selector de idioma. Un literal aquí sería una segunda copia que se
+ * desincronizaría el día que el prefijo cambie.
+ *
+ * MEMOIZADO POR IDIOMA a propósito: los tres consumidores llaman a esta
+ * función EN CADA RENDER, y `NavSheet` además parte el resultado en dos mitades
+ * (`isExitGroup`). Devolver un array nuevo cada vez no rompería nada hoy
+ * —ningún efecto lo tiene como dependencia— pero fabricaría basura en cada
+ * frame de scroll de la hoja sin necesidad. Con el mapa, cada idioma se
+ * construye UNA vez por proceso.
+ *
+ * El parámetro es la cadena cruda de i18next (`i18n.language`), no un `Locale`
+ * ya validado, porque quien llama es siempre un componente que acaba de leer
+ * `useTranslation()`: normalizar aquí evita repetir la misma guarda en las tres
+ * superficies. Cualquier valor que no sea uno de los dos idiomas del sitio cae
+ * en `DEFAULT_LOCALE` — el mismo criterio conservador que ya aplica
+ * `LanguageSelector` ante una ruta que no reconoce.
+ */
+const groupsByLocale = new Map<Locale, readonly NavGroup[]>([
+  /* La rama castellana ES `NAV_GROUPS`, sin copiar ni recomponer nada: así
+     ninguna página castellana puede cambiar de href por esta entrega, ni
+     siquiera por un error de la derivación. */
+  [DEFAULT_LOCALE, NAV_GROUPS],
+]);
+
+function localizedHref(item: NavItem, locale: Locale): string {
+  /* `external` sale del sitio: su `href` es una URL completa a otro dominio y
+     el idioma de ESTE sitio no le dice nada. */
+  if (item.kind === "external") return item.href;
+  /* Guarda explícita, no defensiva: la derivación solo sabe traducir la forma
+     canónica `/#<id>`. Cualquier otra se devuelve intacta en vez de producir
+     una ruta inventada, y el candado de `navigation.test.ts` impide que esa
+     rama llegue a existir en el modelo real. */
+  if (!item.href.startsWith("/#")) return item.href;
+  const home = routePath("home", locale);
+  return home === "/" ? item.href : `${home}${item.href.slice(1)}`;
+}
+
+/**
+ * El idioma del sitio que corresponde a una cadena de i18next
+ * (`i18n.language`), o `DEFAULT_LOCALE` si no es ninguno de los dos.
+ *
+ * Vive aquí y no en `src/config/site.ts` -- su hogar "natural", que es quien
+ * declara `LOCALES` -- porque sus tres consumidores son exactamente las tres
+ * superficies de navegación (`Navbar`, `NavSheet`, `Footer`), que ya importan
+ * este módulo y no importaban `site.ts`. Se exporta en vez de resolverse en
+ * cada una porque además del modelo de enlaces hay DOS destinos que también
+ * dependen del idioma y no salen de `NAV_GROUPS`: el logotipo de la barra
+ * (`routePath("home", ...)`) y los dos documentos legales del pie
+ * (`routePath("privacy"/"legalNotice", ...)`). Repetir la normalización tres
+ * veces sería justo la clase de copia que diverge al primer idioma nuevo.
+ */
+export function navLocale(language: string | undefined): Locale {
+  return LOCALES.find((candidate) => candidate === language) ?? DEFAULT_LOCALE;
+}
+
+export function navGroupsFor(
+  language: string | undefined,
+): readonly NavGroup[] {
+  const locale = navLocale(language);
+
+  const cached = groupsByLocale.get(locale);
+  if (cached) return cached;
+
+  const localized: readonly NavGroup[] = NAV_GROUPS.map((group) => ({
+    key: group.key,
+    items: group.items.map((item) => ({
+      ...item,
+      href: localizedHref(item, locale),
+    })),
+  }));
+  groupsByLocale.set(locale, localized);
+  return localized;
+}

@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { NAV_GROUPS, type NavGroupKey, type NavItem } from "./navigation";
+import {
+  NAV_GROUPS,
+  navGroupsFor,
+  navLocale,
+  type NavGroupKey,
+  type NavItem,
+} from "./navigation";
 import { links } from "./links";
+import { DEFAULT_LOCALE, LOCALES, routePath } from "./site";
 import esCommon from "@/i18n/locales/es/common.json";
 import enCommon from "@/i18n/locales/en/common.json";
 import esHome from "@/i18n/locales/es/home.json";
@@ -198,6 +205,112 @@ describe("NAV_GROUPS", () => {
  * `/#features` en `navigation.ts`, este test cae en rojo nombrando el destino
  * duplicado; restaurado, vuelve a verde.
  */
+/*
+ * EL MODELO CONSERVA EL IDIOMA DE LA PÁGINA (crítica #12, P0).
+ *
+ * Lo que se bloquea aquí es exactamente lo que el build medía en `out/en.html`
+ * antes de esta entrega: **21 `href="/#..."` y cero enlaces internos con `/en`**
+ * en la home inglesa. Cada `href` del modelo lo pintan TRES superficies
+ * (`Navbar`, `NavSheet`, `Footer`), así que un solo destino mal prefijado en
+ * este array son tres enlaces rotos en la página, no uno.
+ *
+ * Se afirma sobre el modelo y no solo sobre el render de cada superficie
+ * porque es aquí donde vive la propiedad: si la derivación se rompiera, las
+ * tres superficies se romperían a la vez y por la misma causa.
+ */
+describe("navGroupsFor: el idioma de la página viaja en cada href", () => {
+  it("navLocale reconoce los dos idiomas del sitio y cae en el por defecto con cualquier otra cosa", () => {
+    for (const locale of LOCALES) {
+      expect(navLocale(locale)).toBe(locale);
+    }
+    expect(navLocale(undefined)).toBe(DEFAULT_LOCALE);
+    expect(navLocale("")).toBe(DEFAULT_LOCALE);
+    // Una etiqueta regional no es ninguno de los dos idiomas declarados: se
+    // resuelve al de por defecto en vez de fabricar un prefijo inexistente.
+    expect(navLocale("en-US")).toBe(DEFAULT_LOCALE);
+  });
+
+  /*
+   * La rama castellana tiene que ser EL MISMO OBJETO, no una copia con los
+   * mismos valores: es lo que garantiza que ninguna página castellana pueda
+   * cambiar de href por esta entrega, ni siquiera por un error de la
+   * derivación. `toBe` (identidad), nunca `toEqual`.
+   */
+  it("en castellano devuelve NAV_GROUPS tal cual, por identidad", () => {
+    expect(navGroupsFor("es")).toBe(NAV_GROUPS);
+    expect(navGroupsFor(undefined)).toBe(NAV_GROUPS);
+  });
+
+  it("en inglés prefija TODO destino interno con la home inglesa, y ninguno se queda en /#", () => {
+    const internos = navGroupsFor("en")
+      .flatMap((group) => group.items)
+      .filter((item) => item.kind !== "external");
+
+    expect(internos.length, "el modelo se quedó sin destinos internos").toBe(7);
+    for (const item of internos) {
+      expect(
+        item.href.startsWith(`${routePath("home", "en")}#`),
+        `${item.key} manda al visitante inglés a la home castellana: ${item.href}`,
+      ).toBe(true);
+      expect(item.href.startsWith("/#")).toBe(false);
+      expect(item.href).not.toContain("//");
+    }
+  });
+
+  it("los externos no se tocan: su href es de otro sitio y el idioma de éste no le dice nada", () => {
+    const externos = navGroupsFor("en")
+      .flatMap((group) => group.items)
+      .filter((item) => item.kind === "external");
+    const originales = NAV_GROUPS.flatMap((group) => group.items).filter(
+      (item) => item.kind === "external",
+    );
+
+    expect(externos.map((item) => item.href)).toEqual(
+      originales.map((item) => item.href),
+    );
+  });
+
+  /*
+   * El FRAGMENTO es la parte que consumen `navAnchorTargetId`/
+   * `focusNavAnchorTarget` (`navAnchorFocus.ts`) para mover el foco al destino,
+   * y `useActiveSection` para casar la sección visible. Si la derivación lo
+   * tocara -- aunque solo fuera un carácter -- el foco dejaría de llegar en la
+   * rama inglesa sin que ningún test de href se enterara.
+   */
+  it("el fragmento (#id) es idéntico en los dos idiomas: solo cambia el prefijo", () => {
+    const fragmento = (href: string): string => href.slice(href.indexOf("#"));
+    const es = NAV_GROUPS.flatMap((group) => group.items).filter(
+      (item) => item.kind !== "external",
+    );
+    const en = navGroupsFor("en")
+      .flatMap((group) => group.items)
+      .filter((item) => item.kind !== "external");
+
+    expect(en.map((item) => fragmento(item.href))).toEqual(
+      es.map((item) => fragmento(item.href)),
+    );
+  });
+
+  it("la estructura no se mueve: mismos grupos, mismas claves y mismos kind, en el mismo orden", () => {
+    const forma = (
+      grupos: readonly { key: NavGroupKey; items: readonly NavItem[] }[],
+    ) =>
+      grupos.map((group) => ({
+        key: group.key,
+        items: group.items.map((item) => ({ key: item.key, kind: item.kind })),
+      }));
+
+    expect(forma(navGroupsFor("en"))).toEqual(forma(NAV_GROUPS));
+  });
+
+  /* Memoizado por idioma (ver el docblock de `navGroupsFor`): las tres
+     superficies llaman en cada render, y la hoja además parte el resultado en
+     dos mitades. */
+  it("devuelve el mismo array en llamadas sucesivas del mismo idioma", () => {
+    expect(navGroupsFor("en")).toBe(navGroupsFor("en"));
+  });
+});
+
 describe("destinos distinguibles", () => {
   it("dos ítems de navegación no comparten href, salvo los externos", () => {
     const internos = NAV_GROUPS.flatMap((group) => group.items).filter(
