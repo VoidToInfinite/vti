@@ -7,6 +7,7 @@ import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
 import { AURA_PRELOADS } from "@/components/scenes/aura/aura.layers";
 import { EYE_PRELOADS } from "@/components/scenes/eye/eye.layers";
 import { buildThemeBootstrapScript, THEME_COLORS } from "@/theme/resolveTheme";
+import { Providers } from "./providers";
 
 const fontBody = Hanken_Grotesk({
   subsets: ["latin"],
@@ -334,12 +335,23 @@ export default function RootLayout({
           id="jsonld-organization"
           data={[organizationJsonLd(), webSiteJsonLd()]}
         />
-        {/* `Providers` ya NO se monta aquí: lo monta el layout de cada rama de
-            idioma (`app/(es)/layout.tsx`, `app/en/layout.tsx`) y, por su
-            cuenta, `app/not-found.tsx`. Este layout no sabe qué ruta está
-            renderizando, así que no puede elegir el idioma del proveedor —
-            el porqué completo está en el docblock de `app/providers.tsx`. */}
-        {children}
+        {/* `Providers` vuelve a montarse AQUÍ desde el 2026-08-19, y solo con
+            la mitad del árbol que NO depende del idioma (registro de estilos,
+            tema, estilos globales). La otra mitad —`LocaleShell`: i18next,
+            `SkipLink`, `BackToTop`— la sigue montando el layout de cada rama
+            (`app/(es)/layout.tsx`, `app/en/layout.tsx`) y, por su cuenta,
+            `app/not-found.tsx`, porque este layout no sabe qué ruta está
+            renderizando y no puede elegir idioma.
+
+            El motivo de que la parte sin idioma tenga que estar aquí es de
+            PESO, no de orden: entre el 2026-08-18 y el 2026-08-19 no hubo
+            ninguna frontera de cliente en el root layout, así que los mismos
+            módulos vivían en dos grupos de chunks hermanos (el de `(es)` y el
+            de `/_not-found`, que viaja en el manifiesto de TODAS las páginas)
+            y Turbopack los emitía dos veces: 313.928 B brotli en la portada
+            frente a 285.430 B con esta partición. La medición completa y la
+            regla que se deriva están en el docblock de `app/providers.tsx`. */}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

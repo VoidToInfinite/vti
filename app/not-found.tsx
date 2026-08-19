@@ -7,7 +7,7 @@ import { SITE } from "@/config/site";
 import esCommon from "@/i18n/locales/es/common.json";
 import { DocumentMeta } from "@/seo/DocumentMeta";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
-import { Providers } from "./providers";
+import { LocaleShell } from "./providers";
 
 /*
  * Server Component a proposito, SIN "use client" (auditoria SEO 2026-08-08,
@@ -83,16 +83,23 @@ export const metadata: Metadata = {
 export default function NotFound(): ReactElement {
   return (
     /*
-     * `Providers` se monta AQUÍ desde el 2026-08-18, no en `app/layout.tsx`.
-     * Esta página tiene que seguir viviendo en la raíz de `app/` para ser la
-     * 404 global (la entrada `/_not-found` resuelve sus ficheros en el segmento
-     * raíz, no dentro de los grupos de ruta), así que no cae dentro de
-     * `app/(es)/` ni de `app/en/` y no hereda el proveedor de idioma de
-     * ninguno de los dos. Sin este envoltorio se quedaría sin tema, sin i18n y
-     * sin estilos globales. `locale="es"`: una URL rota no pertenece a ninguna
-     * rama de idioma, y el castellano es el idioma por defecto del sitio.
+     * `LocaleShell` (el IDIOMA, con `SkipLink`/`BackToTop`) se monta AQUÍ desde
+     * el 2026-08-18. Esta página tiene que seguir viviendo en la raíz de `app/`
+     * para ser la 404 global (la entrada `/_not-found` resuelve sus ficheros en
+     * el segmento raíz, no dentro de los grupos de ruta), así que no cae dentro
+     * de `app/(es)/` ni de `app/en/` y no hereda el idioma de ninguno de los
+     * dos. `locale="es"`: una URL rota no pertenece a ninguna rama de idioma, y
+     * el castellano es el idioma por defecto del sitio.
+     *
+     * El TEMA y los estilos globales NO se montan aquí: los pone `Providers` en
+     * `app/layout.tsx`, que también envuelve a esta página. Desde el 2026-08-19
+     * eso no es un detalle de gusto — el árbol de esta ruta viaja en el
+     * manifiesto de cliente de TODAS las páginas (es su `NotFoundBoundary`), así
+     * que cada módulo que se monte aquí y no cuelgue de un ancestro común se
+     * emite por duplicado y lo descarga también quien solo abre la portada.
+     * Medido: 313.928 → 285.430 B brotli (docblock de `app/providers.tsx`).
      */
-    <Providers locale="es">
+    <LocaleShell locale="es">
       {/*
        * Mismo mecanismo que la home y que las dos legales (crítica externa
        * #8): la `metadata` de arriba se hornea en castellano en build y nada
@@ -109,6 +116,6 @@ export default function NotFound(): ReactElement {
       <Navbar />
       <NotFoundContent />
       <Footer />
-    </Providers>
+    </LocaleShell>
   );
 }

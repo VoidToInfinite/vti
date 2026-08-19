@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { Providers } from "../providers";
+import { LocaleShell } from "../providers";
 
 /**
  * Rama INGLESA del sitio: `/en`, `/en/privacy`, `/en/legal-notice`
@@ -12,14 +12,16 @@ import { Providers } from "../providers";
  *
  * Aquí no se duplica ni un componente: las páginas de dentro montan LOS MISMOS
  * `Navbar`/`Hero`/`HomeSections`/`Footer` y el mismo renderer legal que las
- * castellanas. Lo único que cambia es el `locale` de este proveedor, y con él
+ * castellanas. Lo único que cambia es el `locale` de este envoltorio, y con él
  * la instancia de i18next contra la que resuelve cada `t()` del subárbol — así
- * que el inglés está YA en el HTML que hornea el build, no tras hidratar.
+ * que el inglés está YA en el HTML que hornea el build, no tras hidratar, y
+ * `SkipLink`/`BackToTop` (hermanos de `children` dentro de `LocaleShell`) se
+ * anuncian también en inglés.
  */
 export default function EnLayout({
   children,
 }: {
   children: ReactNode;
 }): ReactElement {
-  return <Providers locale="en">{children}</Providers>;
+  return <LocaleShell locale="en">{children}</LocaleShell>;
 }
