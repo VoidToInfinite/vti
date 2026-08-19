@@ -7,7 +7,7 @@ import { SITE } from "@/config/site";
 import esCommon from "@/i18n/locales/es/common.json";
 import { DocumentMeta } from "@/seo/DocumentMeta";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
-import { LocaleShell } from "./providers";
+import { NotFoundLocaleShell } from "./NotFoundLocaleShell";
 
 /*
  * Server Component a proposito, SIN "use client" (auditoria SEO 2026-08-08,
@@ -88,8 +88,18 @@ export default function NotFound(): ReactElement {
      * para ser la 404 global (la entrada `/_not-found` resuelve sus ficheros en
      * el segmento raíz, no dentro de los grupos de ruta), así que no cae dentro
      * de `app/(es)/` ni de `app/en/` y no hereda el idioma de ninguno de los
-     * dos. `locale="es"`: una URL rota no pertenece a ninguna rama de idioma, y
-     * el castellano es el idioma por defecto del sitio.
+     * dos.
+     *
+     * EL `locale="es"` FIJO SE RETIRA EL 2026-08-20 (crítica #13). Decía que
+     * «una URL rota no pertenece a ninguna rama de idioma», y eso es falso en
+     * cuanto el sitio tiene dos: `GET /en/lo-que-sea` respondía 404 correcto
+     * pero enteramente en castellano —`<html lang="es">`, título «Página no
+     * encontrada», cuerpo castellano y el selector marcando Español como
+     * actual— a alguien que venía navegando en inglés. La rama SÍ está en la
+     * URL que falló, y `NotFoundLocaleShell` la lee del navegador tras montar:
+     * el porqué completo, el motivo de que arranque en castellano y el coste
+     * declarado (un instante de copia castellana antes de corregir) viven en su
+     * docblock, no se duplican aquí.
      *
      * El TEMA y los estilos globales NO se montan aquí: los pone `Providers` en
      * `app/layout.tsx`, que también envuelve a esta página. Desde el 2026-08-19
@@ -99,7 +109,7 @@ export default function NotFound(): ReactElement {
      * emite por duplicado y lo descarga también quien solo abre la portada.
      * Medido: 313.928 → 285.430 B brotli (docblock de `app/providers.tsx`).
      */
-    <LocaleShell locale="es">
+    <NotFoundLocaleShell>
       {/*
        * Mismo mecanismo que la home y que las dos legales (crítica externa
        * #8): la `metadata` de arriba se hornea en castellano en build y nada
@@ -116,6 +126,6 @@ export default function NotFound(): ReactElement {
       <Navbar />
       <NotFoundContent />
       <Footer />
-    </LocaleShell>
+    </NotFoundLocaleShell>
   );
 }

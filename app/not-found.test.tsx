@@ -7,6 +7,7 @@ import esCommon from "@/i18n/locales/es/common.json";
 import enCommon from "@/i18n/locales/en/common.json";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
 import NotFound, { metadata } from "./not-found";
+import { resolveNotFoundLocale } from "./NotFoundLocaleShell";
 
 /*
  * Split de la 404 (auditoria SEO 2026-08-08): `not-found.tsx` paso de
@@ -203,5 +204,90 @@ describe("404: el título del documento sigue al idioma", () => {
       await i18n.changeLanguage("en");
     });
     expect(descripcion()).toBe(enCommon.notFound.message);
+  });
+});
+
+/*
+ * LA 404 BAJO `/en` RESPONDE EN INGLÉS (crítica externa #13, 2026-08-20).
+ *
+ * El defecto que cierra este candado, medido sobre el sitio servido:
+ * `GET /en/lo-que-sea` devolvía 404 con el estado HTTP correcto pero
+ * enteramente en castellano — `<html lang="es">`, `<title>` «Página no
+ * encontrada · VoidToInfinite», cuerpo castellano y el selector marcando
+ * Español como idioma actual — a alguien que venía navegando en inglés.
+ *
+ * Bajo `output: "export"` solo existe UN `404.html`, así que el idioma no
+ * puede decidirse en el build: lo resuelve `NotFoundLocaleShell` leyendo
+ * `window.location.pathname` tras montar. Estos candados comprueban las dos
+ * mitades: la función pura que clasifica el camino, y el efecto real sobre el
+ * documento renderizado.
+ *
+ * La `metadata` exportada arriba NO cambia y sigue en castellano a propósito:
+ * es lo que se hornea en `out/404.html` y lo que lee un rastreador sin
+ * ejecutar JavaScript.
+ *
+ * Validado con bug inyectado: sustituir la comparación de prefijo de
+ * `resolveNotFoundLocale` por `DEFAULT_LOCALE` fijo (el estado anterior) pone
+ * en rojo los cuatro `it` de este bloque.
+ */
+describe("404 bajo /en: el idioma sigue a la URL rota", () => {
+  const CAMINO_ORIGINAL = "/";
+
+  afterEach(() => {
+    window.history.pushState({}, "", CAMINO_ORIGINAL);
+    document.documentElement.lang = "es";
+  });
+
+  it.each([
+    ["/en/lo-que-sea", "en"],
+    ["/en/privacy/roto", "en"],
+    ["/en", "en"],
+    ["/lo-que-sea", "es"],
+    ["/", "es"],
+    // Ni `/english…` ni `/enlaces` son la rama inglesa: el prefijo se exige
+    // seguido de `/` o como camino completo, nunca como `startsWith("/en")`.
+    ["/english-corner", "es"],
+    ["/enlaces", "es"],
+  ] as const)("%s resuelve a %s", (camino, esperado) => {
+    expect(resolveNotFoundLocale(camino)).toBe(esperado);
+  });
+
+  it("una URL rota bajo /en monta el titular, el mensaje y el <title> ingleses", () => {
+    window.history.pushState({}, "", "/en/lo-que-sea");
+    renderWithProviders(<NotFound />);
+
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      enCommon.notFound.title,
+    );
+    expect(screen.getByText(enCommon.notFound.message)).toBeInTheDocument();
+    expect(document.title).toBe(
+      `${enCommon.notFound.title}${TITLE_SEPARATOR}${SITE.name}`,
+    );
+    // WCAG 3.1.1: lo que anuncia un lector de pantalla es el DOM vivo, y este
+    // es el único mecanismo que corrige el atributo bajo `output: "export"`.
+    expect(document.documentElement.lang).toBe("en");
+  });
+
+  it("el selector de idioma marca INGLÉS como actual, no español", () => {
+    window.history.pushState({}, "", "/en/lo-que-sea");
+    const { container } = renderWithProviders(<NotFound />);
+
+    expect(
+      container.querySelectorAll('a[hreflang="en"][aria-current="true"]')
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      container.querySelectorAll('a[hreflang="es"][aria-current="true"]'),
+    ).toHaveLength(0);
+  });
+
+  it("una URL rota castellana sigue en castellano -- la 404 española no se rompe", () => {
+    window.history.pushState({}, "", "/lo-que-sea");
+    renderWithProviders(<NotFound />);
+
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      esCommon.notFound.title,
+    );
+    expect(document.documentElement.lang).toBe("es");
   });
 });
