@@ -57,3 +57,9 @@ yarn.lock
 # la unica diferencia era el fin de linea, el contenido era identico byte a
 # byte tras quitar los CR.
 .claude/settings.local.json
+
+# Worktrees efimeros de agentes (`.claude/worktrees/*`). Estan excluidos en
+# .git/info/exclude, pero Prettier NO lee los ignorados de git: sin esta
+# linea, un README dentro de un worktree en vuelo tumba `pnpm run ci` del
+# arbol principal por un fichero que ni siquiera pertenece al repo.
+.claude/worktrees/
