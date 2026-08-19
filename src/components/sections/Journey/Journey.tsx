@@ -1030,6 +1030,61 @@ function JourneyDeckDark(): ReactElement {
     return "next";
   };
 
+  /*
+   * Nombre accesible de cada parada del rail (critica externa #12,
+   * 2026-08-19): el CONTENIDO de la diapositiva a la que lleva -- el h2 de la
+   * intro, la etiqueta del paso, la cita de cierre -- leido de las MISMAS
+   * claves que esa diapositiva pinta.
+   *
+   * SUSTITUYE A LA NUMERACION, y este punto se decide por SEGUNDA vez, asi que
+   * conviene dejar escrito por que cambia el sentido:
+   *
+   * 1. La critica #10 (2026-08-18) eligio numerar la posicion ("Ir a la
+   *    diapositiva N de 8") en vez de nombrar el destino, con este argumento:
+   *    nombrar los ocho destinos "duplicaria el copy de la seccion en una
+   *    segunda fuente que tendria que moverse a la vez que la primera".
+   * 2. La critica #12 MIDIO el coste de aquella eleccion, y era peor que el
+   *    riesgo que evitaba: el rail contaba OCHO diapositivas mientras las
+   *    diapositivas anunciaban "Paso N de 6" (`Home.journey.stepPosition`,
+   *    VisuallyHidden, en las DOS ramas desde la critica #11), y ademas con
+   *    DESFASE -- el boton 2 aterriza en "Paso 1 de 6", el 6 en "Paso 5 de 6".
+   *    Un usuario de tecnologia asistiva oia dos numeraciones desalineadas del
+   *    mismo mecanismo (P2 de la heuristica 7 de Nielsen, la misma que el rail
+   *    existe para servir).
+   *
+   * POR QUE NOMBRAR CIERRA EL HALLAZGO Y RENUMERAR NO: la pista tiene 8
+   * paradas porque incluye apertura y cierre, y los pasos son 6. Cualquier
+   * numeracion del rail tiene que elegir QUE cuenta, y las dos elecciones
+   * chocan con la otra numeracion de la seccion (contar diapositivas
+   * contradice "de 6"; contar pasos deja sin numero la apertura y el cierre, y
+   * miente sobre cuantas paradas hay). Nombrar el destino NO CUENTA NADA, asi
+   * que no puede contradecir a ninguna numeracion -- y dice mas: a donde vas,
+   * no cuantos hay. "Paso N de 6" sigue sonando al aterrizar, que es donde esa
+   * informacion siempre fue cierta.
+   *
+   * Y el riesgo que temia la critica #10 no se materializa: esto no es una
+   * segunda fuente de copy, es la MISMA -- `Home.journey.title`,
+   * `steps.<id>.label` y `quote` son las claves que ya pintan esas
+   * diapositivas unas lineas mas arriba, asi que el rail se mueve con ellas
+   * por construccion. Todo derivado de `JOURNEY_STEPS`/`JOURNEY_SLIDES`, nunca
+   * de un literal (regla 39 de RULES.md).
+   *
+   * Mismo contrato y mismas palabras que el rail de Story, que estrena esta
+   * gramatica en la misma ola: un rail de deck nombra sus destinos.
+   *
+   * CONSECUENCIA DECLARADA, no disimulada: `Home.journey.railGoTo` ("Ir a la
+   * diapositiva {{current}} de {{total}}") pierde con esto su UNICO consumidor
+   * y queda huerfana en `es` y en `en`. Retirarla del JSON no entra en el
+   * alcance de esta tarea -- esos ficheros los toca otra mano en esta misma
+   * ola -- asi que queda anotada aqui y en el informe: es una clave a retirar,
+   * no una reserva para el futuro. Regla 32 de RULES.md.
+   */
+  const slideName = (slideIndex: number): string => {
+    if (slideIndex === 0) return t("Home.journey.title");
+    if (slideIndex === JOURNEY_SLIDES - 1) return t("Home.journey.quote");
+    return t(`Home.journey.steps.${JOURNEY_STEPS[slideIndex - 1].id}.label`);
+  };
+
   return (
     <ScJourney
       id="journey"
@@ -1103,14 +1158,13 @@ function JourneyDeckDark(): ReactElement {
               sin agrupar se anunciarian como ocho controles sin relacion
               entre si.
 
-              EL aria-label DICE LA POSICION, NO EL DESTINO ("Ir a la
-              diapositiva 4 de 8", no "Ir a: Crea"), y es una decision, no una
-              simplificacion: lo que este rail comunica es POR DONDE VAS
-              --heuristica 7 de Nielsen, visibilidad del estado del sistema--
-              y el nombre de cada diapositiva ya se anuncia al llegar a ella.
-              Nombrar los ocho destinos aqui duplicaria el copy de la seccion
-              en una segunda fuente (h2, seis etiquetas y la cita) que
-              tendria que moverse a la vez que la primera.
+              EL aria-label DICE EL DESTINO, NO LA POSICION, desde la critica
+              externa #12 (2026-08-19): "Descubre", no "Ir a la diapositiva 2
+              de 8". La critica #10 habia elegido lo contrario, y lo que la #12
+              midio es que aquella numeracion contradecia la de las propias
+              diapositivas ("Paso N de 6", con desfase de uno). El porque
+              completo de las dos vueltas vive en el docblock de slideName, mas
+              arriba.
 
               aria-current marca el activo. NO gobierna el estilo: eso lo
               sigue haciendo el selector descendiente sobre data-slide, que ya
@@ -1124,10 +1178,7 @@ function JourneyDeckDark(): ReactElement {
                 key={railIndex}
                 type="button"
                 $index={railIndex}
-                aria-label={t("Home.journey.railGoTo", {
-                  current: railIndex + 1,
-                  total: JOURNEY_SLIDES,
-                })}
+                aria-label={slideName(railIndex)}
                 aria-current={railIndex === index ? "true" : undefined}
                 onClick={() => scrollToSlide(railIndex)}
               />

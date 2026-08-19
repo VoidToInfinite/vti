@@ -470,9 +470,11 @@ export const ScJourneyRailMark = styled.button<{ $index: number }>`
  * `stepColor` mas abajo: este fichero es una hoja estructural sin ninguna
  * dependencia de la seccion hermana.
  *
- * `aria-hidden` como `ScJourneyRail` (arriba): el rail decorativo ya
- * comunica "por donde voy" por otra via, esta pista solo dice "puedes
- * seguir bajando". Reutiliza `data-slide`, que `ScJourneyStage`
+ * `aria-hidden`, y desde la critica externa #10 es el UNICO de los dos adornos
+ * del stage que lo es: el rail de al lado dejo de serlo al convertirse en ocho
+ * botones operables (ver `ScJourneyRail`, arriba), mientras que esta pista no
+ * gana nada al anunciarse -- no es un control y no dice "por donde voy", solo
+ * "puedes seguir bajando". Reutiliza `data-slide`, que `ScJourneyStage`
  * (Journey.tsx) YA escribe con el `index` de `useSlideDeck` -- SIN listener
  * nuevo. Visible en la diapositiva 0, desvanecida en cuanto `data-slide`
  * deja de ser "0" (selector descendiente sobre el mismo ancestro que ya lee

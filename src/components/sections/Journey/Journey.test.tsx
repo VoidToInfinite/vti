@@ -1767,16 +1767,55 @@ describe("Journey: critica #10 hallazgo A -- el rail del deck es operable (tema 
     expect(botones).toHaveLength(JOURNEY_SLIDES);
   });
 
-  it("cada marca es un boton con aria-label de i18n (posicion N de JOURNEY_SLIDES) y type=button", async () => {
+  /*
+   * CRITICA EXTERNA #12 (2026-08-19): este candado exigia la NUMERACION DE
+   * POSICION ("Ir a la diapositiva N de 8", `Home.journey.railGoTo`) y pasa a
+   * exigir el NOMBRE DEL DESTINO. No es una relajacion: es el mismo contrato
+   * de "cada boton tiene nombre propio de i18n" con la gramatica corregida --
+   * la #12 midio que aquella numeracion contradecia la de las propias
+   * diapositivas ("Paso N de 6", `stepPosition`, con desfase de uno), que es
+   * exactamente el defecto que un rail de progreso no puede tener. El porque
+   * completo, y por que renumerar no lo cerraba, en el docblock de `slideName`
+   * (`Journey.tsx`).
+   *
+   * Los valores esperados se componen aqui desde el JSON -- las mismas claves
+   * que pintan las diapositivas -- y no desde el helper del componente: si
+   * `slideName` empezara a nombrar otra cosa, este candado tiene que verlo
+   * (leccion `task/lessons.md` 2026-08-11).
+   */
+  it("cada marca es un boton con type=button y el nombre de la diapositiva a la que lleva", async () => {
+    const { botones } = await railDeck();
+    const esperados = [
+      esHome.Home.journey.title,
+      ...JOURNEY_STEPS.map((step) => esHome.Home.journey.steps[step.id].label),
+      esHome.Home.journey.quote,
+    ];
+
+    expect(esperados).toHaveLength(JOURNEY_SLIDES);
+    botones.forEach((boton, i) => {
+      expect(boton).toHaveAttribute("type", "button");
+      expect(boton).toHaveAccessibleName(esperados[i]);
+    });
+  });
+
+  /*
+   * La mitad del hallazgo que este describe no puede olvidar: el rail y las
+   * diapositivas contaban DOS cosas distintas del mismo mecanismo. Hoy solo
+   * cuenta una -- la de las diapositivas -- y este candado lo ata por
+   * exclusion, que es la unica forma de que no vuelva por la puerta de atras
+   * (un `aria-label` numerado nuevo, con el numero que sea, lo pone en rojo).
+   */
+  it("critica #12: ningun nombre del rail numera nada -- la unica numeracion de la seccion es la de los pasos", async () => {
     const { botones } = await railDeck();
 
-    botones.forEach((boton, i) => {
-      const esperado = esHome.Home.journey.railGoTo
-        .replace("{{current}}", String(i + 1))
-        .replace("{{total}}", String(JOURNEY_SLIDES));
-      expect(boton).toHaveAttribute("type", "button");
-      expect(boton).toHaveAccessibleName(esperado);
+    botones.forEach((boton) => {
+      expect(boton.getAttribute("aria-label")).not.toMatch(/\d/);
     });
+    // Y la que SI numera sigue viva, con su total real leido del array.
+    const posicion = esHome.Home.journey.stepPosition
+      .replace("{{current}}", "1")
+      .replace("{{total}}", String(JOURNEY_STEPS.length));
+    expect(screen.getAllByText(posicion).length).toBeGreaterThan(0);
   });
 
   it("aria-current marca UNA sola diapositiva y sigue al index del hook", async () => {
@@ -1923,12 +1962,21 @@ describe("Journey: critica #10 hallazgo A -- el rail del deck es operable (tema 
   });
 
   /*
-   * Bugs inyectados a proposito (regla 34), ejecutados en esta tarea:
+   * Bugs inyectados a proposito (regla 34), ejecutados en la tarea de la
+   * critica #10:
    * (a) devolver `background-color: semantic.border` + `opacity: 0.4` al
    *     reposo de `ScJourneyRailMark` pone en rojo el candado de contraste y
    *     el de la diana; restaurado, vuelven a verde.
    * (b) cambiar `behavior: reduce ? "instant" : "smooth"` por un `"smooth"`
    *     fijo en `scrollToSlide` (`useSlideDeck.ts`) pone en rojo el test de
    *     reduced-motion; restaurado, vuelve a verde.
+   *
+   * Y el de la critica #12, ejecutado en ESTA tarea:
+   * (c) devolver el `aria-label` del rail a la interpolacion anterior
+   *     (`Home.journey.railGoTo`, "Ir a la diapositiva N de 8") pone en rojo
+   *     los DOS candados de gramatica a la vez -- el de nombres ("expected
+   *     element to have accessible name") y el de exclusion de numeracion
+   *     ("expected 'Ir a la diapositiva 1 de 8' not to match /\d/");
+   *     restaurado `slideName`, los dos vuelven a verde.
    */
 });
