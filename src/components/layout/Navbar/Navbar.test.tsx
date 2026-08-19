@@ -271,6 +271,49 @@ describe("Navbar", () => {
     expect(container.querySelectorAll("h1")).toHaveLength(0);
   });
 
+  /*
+   * T2 de la ola post-crítica #13 (2026-08-20): el 404 de prefetch de RSC que
+   * quedaba abierto en la barra.
+   *
+   * Bug abierto de Next 16 en export estático (vercel/next.js #85374 y #92341,
+   * reproducido en 16.2.11, Task 28): el prefetch de segmento RSC pide
+   * `__next.<ruta>.__PAGE__.txt` (plano) y `output: "export"` genera
+   * `__next.<ruta>/__PAGE__.txt` (anidado), así que SIEMPRE devuelve 404. El
+   * repo ya lo había cerrado en DOS consumidores -- los enlaces legales del pie
+   * (`Footer.tsx`) y el selector de idioma -- y este `<Link>` se quedó fuera:
+   * es el logotipo, está en todas las páginas y su destino es justo el que Next
+   * prefetcha en cuanto entra en el viewport, es decir en cada carga y sin que
+   * nadie interactúe.
+   *
+   * Candado de FUENTE, no de DOM, y por el mismo motivo que ya documentan
+   * `Footer.test.tsx` y `LanguageSelector.test.tsx`: `next/link` desestructura
+   * `prefetch` de sus props ANTES de esparcir el resto sobre el `<a>`, así que
+   * no hay ningún atributo que observar en el DOM renderizado.
+   *
+   * Se despoja de comentarios ANTES de buscar y se acota al JSX de
+   * `ScBrandLink`: el docblock que acompaña la prop CITA `prefetch={false}` en
+   * prosa, así que sin lo primero el candado pasaría en verde con la prop
+   * ausente (lección del 2026-08-11), y sin lo segundo pasaría en verde por el
+   * `prefetch={false}` de cualquier OTRO enlace del fichero.
+   *
+   * Validado con bug inyectado (rojo observado): ver el informe de la entrega.
+   */
+  it("el enlace de marca declara prefetch={false} (fuente, T2)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const source = readFileSync(join(here, "Navbar.tsx"), "utf-8");
+
+    const sinComentarios = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+    const jsx = sinComentarios.match(/<ScBrandLink[\s\S]*?>/);
+
+    expect(jsx, "no se encontró el JSX de ScBrandLink").not.toBeNull();
+    expect(jsx?.[0]).toContain("prefetch={false}");
+  });
+
   describe("el Logo (currentColor) hereda el tema de la pagina en las cuatro combinaciones tema x scroll", () => {
     // Regresion real (documentada en task/lessons.md), corregida ahora en
     // espejo: `Navbar` forzaba `basicDarkTheme` mientras la barra era
@@ -1337,6 +1380,111 @@ describe("Navbar", () => {
       // Y la mitad exacta -- el valor viejo -- ya no aparece en la regla: si
       // width subiera y height no, este assert lo caza.
       expect(before).not.toContain(basicLightTheme.space[1]);
+    });
+
+    /*
+     * T3 de la ola post-crítica #13 (2026-08-20): SEÑAL VISIBLE DE SECCIÓN
+     * ACTUAL CON LOS PANELES PLEGADOS.
+     *
+     * El defecto medido: el scrollspy funciona y `aria-current="location"` es
+     * correcto, pero con la barra plegada los cuatro disparadores se pintan
+     * idénticos, así que la señal solo existe abriendo un panel o con
+     * tecnología de apoyo. El tratamiento definitivo es decisión del dueño
+     * desde la crítica #9; lo que estos candados atan es el mínimo reversible
+     * que se entrega: el MISMO par de declaraciones (`text-decoration:
+     * underline` + `text-underline-offset`) que `ScLanguageButton` `$active`
+     * ya usa para el idioma actual en esta misma barra.
+     *
+     * Se afirma sobre el CSSOM y no sobre `getComputedStyle` porque lo que
+     * distingue a los dos disparadores es la clase DINÁMICA que
+     * styled-components genera por valor de prop -- y porque jsdom no pinta:
+     * el subrayado no se puede observar, solo su declaración.
+     *
+     * Validado con bug inyectado (rojo observado): ver el informe de la
+     * entrega.
+     */
+    describe("señal visible con los paneles plegados (T3)", () => {
+      /** Reglas inyectadas que pertenecen a alguna clase de `el`. Mismo patrón
+       *  que `LanguageSelector.test.tsx`: la clase estática la comparten todos
+       *  los disparadores, la dinámica (la que lleva la declaración que
+       *  depende de la prop) es propia de cada valor. */
+      function reglasDe(el: Element): string {
+        const reglas = allCssRules();
+        const clases = Array.from(el.classList).filter((c) =>
+          reglas.some((r) => r.includes(c)),
+        );
+        expect(
+          clases.length,
+          "no se encontró ninguna clase inyectada del disparador",
+        ).toBeGreaterThan(0);
+        return reglas
+          .filter((r) => clases.some((c) => r.includes(c)))
+          .join("\n");
+      }
+
+      function trigger(name: RegExp): HTMLElement {
+        return screen.getByRole("button", { name, hidden: true });
+      }
+
+      it("el disparador del grupo que contiene la sección activa se subraya; los otros tres no", () => {
+        renderNavbar();
+        setInView("journey", true);
+        fireScroll();
+
+        const conSeccion = reglasDe(trigger(/En el sitio/i));
+        expect(conSeccion).toContain("text-decoration: underline");
+        // El offset acompaña siempre (no depende de la prop): sin él, el
+        // subrayado se pega al descendente de la tipografía a este tamaño.
+        expect(conSeccion).toContain("text-underline-offset: 0.2em");
+
+        for (const otro of [/Descubre/i, /Recursos/i, /Comunidad/i]) {
+          const reglas = reglasDe(trigger(otro));
+          expect(reglas).toContain("text-decoration: none");
+          expect(
+            reglas,
+            "un grupo sin la sección activa se está subrayando",
+          ).not.toContain("text-decoration: underline");
+        }
+      });
+
+      it("sin ninguna sección en pantalla (el lector está en el Hero) no se subraya ninguno", () => {
+        renderNavbar();
+
+        for (const nombre of [
+          /En el sitio/i,
+          /Descubre/i,
+          /Recursos/i,
+          /Comunidad/i,
+        ]) {
+          expect(reglasDe(trigger(nombre))).not.toContain(
+            "text-decoration: underline",
+          );
+        }
+      });
+
+      /*
+       * La marca no es una segunda fuente de verdad: se enciende exactamente
+       * en el grupo cuyo enlace de panel lleva `aria-current="location"`, y
+       * nunca en un grupo cuyos items no son secciones («Descubre» apunta
+       * DENTRO de Features y no es destino de scrollspy, ver `navigation.ts`).
+       */
+      it("se enciende en el mismo grupo que lleva aria-current, y no cambia nada de ARIA en el disparador", () => {
+        renderNavbar();
+        setInView("features", true);
+        fireScroll();
+
+        const onSite = trigger(/En el sitio/i);
+        const panelId = onSite.getAttribute("aria-controls") as string;
+        const panel = document.getElementById(panelId) as HTMLElement;
+
+        expect(
+          panel.querySelector('a[aria-current="location"]'),
+        ).toHaveAttribute("href", "/#features");
+        expect(reglasDe(onSite)).toContain("text-decoration: underline");
+        // El disparador es un <button> que abre un panel, no un destino: el
+        // estado de ubicación sigue viviendo solo en el enlace de arriba.
+        expect(onSite).not.toHaveAttribute("aria-current");
+      });
     });
   });
 

@@ -644,7 +644,51 @@ const ScNavGroup = styled.div`
 /* transform se añade a esta lista (Task 9, vocabulary.PRESS), mismo
    criterio que ScNavLink arriba: el hover solo cambia color, sin nada que
    guardar tras PRESS.hoverGuard. */
-const ScNavTrigger = styled.button`
+/*
+ * `$current` -- SEÑAL VISIBLE DE SECCIÓN ACTUAL CON LOS PANELES PLEGADOS
+ * (2026-08-20, ola post-crítica #13).
+ *
+ * EL DEFECTO: el scrollspy funciona y marca `aria-current="location"`
+ * correctamente, pero con la barra plegada los cuatro disparadores se pintan
+ * idénticos (mismo `textMuted`, ningún pseudo-elemento con `content`), así que
+ * la señal solo se percibe abriendo un panel o con tecnología de apoyo. Un
+ * usuario vidente no tiene ninguna.
+ *
+ * TRATAMIENTO REVERSIBLE EN UNA LÍNEA (borrar esta declaración y la prop
+ * `$current` de `NavGroupMenu`): el tratamiento visual definitivo es DECISIÓN
+ * DEL DUEÑO desde la crítica #9 («señal de sección activa visible con paneles
+ * cerrados») y esta entrega no la toma. Lo único que se hace aquí es reutilizar
+ * VERBATIM el tratamiento que este mismo sitio ya usa para "de este conjunto,
+ * éste es el actual": `text-decoration: underline` + `text-underline-offset:
+ * 0.2em`, exactamente lo que `ScLanguageButton` `$active`
+ * (`LanguageSelector.tsx`) pinta para el idioma activo -- y que vive en ESTA
+ * MISMA barra, a unos píxeles de aquí.
+ *
+ * POR QUÉ EL SUBRAYADO Y NO EL PUNTO DEL PANEL (`ScNavPanelLink::before`), que
+ * sería la otra reutilización literal: el punto mide `space[2]` (8px) más el
+ * `gap` de la fila y ocupa sitio en el flujo. En el panel eso no cuesta nada
+ * (columna vertical, ancho libre), pero en la barra los cuatro disparadores
+ * comparten una fila con la marca, el idioma y el conmutador de tema: darles a
+ * los cuatro el hueco reservado ensancharía la barra ~12px por disparador
+ * (~48px en total) y pintarlo solo en el activo movería los otros tres al
+ * entrar el lector en las secciones. Ninguna de las dos consecuencias se puede
+ * medir en jsdom (no hace layout), y el ancho de la barra a 768px es justo
+ * donde este sitio ya va apretado. El subrayado no participa del layout: no
+ * reflowea nada y no puede empujar nada.
+ *
+ * NO CAMBIA NADA DE ARIA, a propósito: el disparador es un `<button>` que abre
+ * un panel, no un destino, así que `aria-current` sigue viviendo donde
+ * corresponde -- en el enlace del panel que SÍ representa la ubicación. Esta
+ * marca es un refuerzo visual redundante para quien no abre el panel, no una
+ * segunda fuente de verdad: se calcula del MISMO `activeSectionKey`.
+ *
+ * SOLO PUEDE ENCENDERSE EL GRUPO `onSite`, y conviene saberlo antes de leer el
+ * JSX: es el único con items `kind: "section"` (los de «Descubre» apuntan
+ * dentro de Features y no son destinos de scrollspy, ver `navigation.ts`). La
+ * marca responde por tanto "la sección que estás leyendo está en este grupo",
+ * no "cuál es"; esa segunda mitad sigue siendo el punto del panel al abrirlo.
+ */
+const ScNavTrigger = styled.button<{ $current: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[1]};
@@ -656,6 +700,12 @@ const ScNavTrigger = styled.button`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 500;
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* Ver el docblock de arriba: mismo par de declaraciones que ScLanguageButton
+     $active usa para el idioma actual, ni una más. (Sin comillas invertidas
+     dentro del template: regla 23 de RULES.md, ya ha roto el build tres
+     veces.) */
+  text-decoration: ${({ $current }) => ($current ? "underline" : "none")};
+  text-underline-offset: 0.2em;
   cursor: pointer;
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
@@ -1007,6 +1057,15 @@ function NavGroupMenu({
     focusNavAnchorTarget(item);
   }
 
+  /* Señal visible de sección actual con el panel plegado (ver el docblock de
+     `ScNavTrigger`). Se deriva del MISMO `activeSectionKey` que decide
+     `aria-current` más abajo -- nunca un segundo estado -- y con el MISMO
+     predicado (`kind === "section"`), así que no puede encenderse por un item
+     que no represente una sección real. */
+  const hasActiveSection = group.items.some(
+    (item) => item.kind === "section" && item.key === activeSectionKey,
+  );
+
   function itemLabel(item: NavItem): string {
     switch (item.kind) {
       case "section":
@@ -1027,6 +1086,7 @@ function NavGroupMenu({
         type="button"
         id={triggerId}
         ref={triggerRef}
+        $current={hasActiveSection}
         aria-expanded={isOpen}
         aria-controls={panelId}
         /*
@@ -1292,7 +1352,25 @@ export function Navbar(): ReactElement {
               la home castellana -- el gesto más habitual de "volver al
               principio" y el que perdía el idioma sin avisar. En castellano
               resuelve exactamente al `/` de siempre. */}
-            <ScBrandLink href={routePath("home", navLocale(i18n.language))}>
+            {/* `prefetch={false}`: MISMO bug y MISMO criterio que ya
+              documentan `Footer.tsx` (enlaces legales) y `LanguageSelector.tsx`
+              -- bug abierto de Next 16 en export estático (vercel/next.js
+              #85374 y #92341, reproducido en 16.2.11, Task 28): el prefetch de
+              segmento RSC pide `__next.<ruta>.__PAGE__.txt` (plano) y
+              `output: "export"` genera `__next.<ruta>/__PAGE__.txt` (anidado),
+              así que SIEMPRE devuelve 404. Este era el `<Link>` que faltaba por
+              cerrar dentro de la barra: es el logotipo, está presente en TODAS
+              las páginas del sitio y su destino (`/` o `/en`) es justo el que
+              Next intenta prefetchar en cuanto entra en el viewport -- es decir,
+              en cada carga, sin que nadie interactúe. El click sigue navegando
+              igual (Next cae al fetch de página completa); lo único que la prop
+              evita es el 404 en consola. Reversión: cuando el fix llegue aguas
+              arriba y se verifique con el mismo repro, retirar la prop en los
+              tres consumidores a la vez. */}
+            <ScBrandLink
+              href={routePath("home", navLocale(i18n.language))}
+              prefetch={false}
+            >
               {/* Aqui vivia `EyeCornerMark`, un punto decorativo que se
                 encendia con `data-scrolled`. Retirado el 2026-07-31 a
                 peticion del usuario: al cruzar el umbral, el unico cambio
