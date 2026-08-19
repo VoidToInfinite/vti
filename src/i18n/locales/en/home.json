@@ -151,7 +151,7 @@
                 "help": "Your email app will open with the message ready to send.",
                 "messageLabel": "Your message",
                 "messagePlaceholder": "Tell me what you have in mind.",
-                "noscript": "This form needs JavaScript to open your email app. Without it the button sends nothing: write to me directly at",
+                "noscript": "This form needs JavaScript to open your email app and does not work without it. Write to me directly at",
                 "submit": "Write to me",
                 "submitAria": "Write to me: opens your email app with your address and your message already included",
                 "subject": "Hello VoidToInfinite",

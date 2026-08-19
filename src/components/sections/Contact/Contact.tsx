@@ -1216,10 +1216,22 @@ const ScFieldMessage = styled.p<{ $error?: boolean }>`
  *
  * Este bloque es la mitad HONESTA del arreglo: dice lo que pasa y da la
  * salida REAL — la dirección de correo, con su `mailto:` de `src/config/links`
- * (`links.email`/`EMAIL_ADDRESS`, nunca escrita a mano aquí). La otra mitad
- * son los atributos `name` de los dos campos (ver el JSX): si alguien llega a
- * disparar el envío nativo de todos modos, lo escrito sobrevive en la barra de
- * direcciones en vez de evaporarse.
+ * (`links.email`/`EMAIL_ADDRESS`, nunca escrita a mano aquí).
+ *
+ * QUÉ CAMBIÓ EN LA CRÍTICA EXTERNA #12 (2026-08-18). Hasta esa fecha la otra
+ * mitad eran los `name` de los dos campos: si alguien disparaba el envío
+ * nativo de todos modos, lo escrito sobrevivía en la barra de direcciones en
+ * vez de evaporarse. El evaluador midió que esa red era, a la vez, una fuga:
+ * el correo y el mensaje del visitante acababan en la URL, el historial y los
+ * logs del host. Desde la #12 el envío nativo NO OCURRE (`method="dialog"` en
+ * el `<form>`, más el botón retirado bajo el mismo `scripting: none` que
+ * revela este aviso — ver el docblock de `handleSubmit`), así que este párrafo
+ * dejó de ser "el aviso que acompaña a un botón que rompe cosas" y pasó a ser
+ * lo ÚNICO que un visitante sin JavaScript tiene delante. Por eso su copia
+ * (`Home.contact.form.noscript`) también cambió en esa entrega: describe el
+ * estado ("este formulario necesita JavaScript y sin él no funciona") y da la
+ * dirección, en vez de prometer un comportamiento del navegador — la anterior
+ * decía "el botón no envía nada" mientras el navegador sí enviaba.
  *
  * ═══ LÁPIDA DEL `<noscript>` (crítica externa #11, hallazgo B2, 2026-08-18)
  *
@@ -1388,6 +1400,21 @@ const ScPrivacyNote = styled.p`
 const ScSubmitButton = styled(Button)`
   width: 100%;
   ${ctaGradient}
+
+  /* SIN JavaScript el boton se retira (critica externa #12, Nielsen,
+     2026-08-18): sin JS no corre handleSubmit, asi que este boton no puede
+     abrir ninguna aplicacion de correo -- ofrecerlo seria un control que
+     miente sobre lo que hace. Mismo mecanismo ya sancionado en el repo para
+     los controles que dependen de JS: conmutador de tema (ThemeToggle.tsx),
+     selector de idioma y disparador de la hoja de navegacion (NavSheet.tsx).
+     OJO: esconder el boton NO impide el envio nativo -- Enter en el campo de
+     correo lo dispara igual (envio implicito, medido en navegador real). Lo
+     que si lo impide es el method=dialog del propio formulario; ver el
+     docblock de handleSubmit para la medicion completa. Las dos mitades son
+     necesarias y ninguna sustituye a la otra. */
+  @media (scripting: none) {
+    display: none;
+  }
 
   @media (prefers-reduced-motion: no-preference) {
     /* Task 19 (motion core, punto 7 del brief): 9000ms pasa a
@@ -1686,26 +1713,70 @@ export function Contact(): ReactElement {
    * un salto de línea del visitante partiría la URL del `mailto:` en
    * parámetros que nadie escribió.
    *
-   * POR QUÉ EL `<form>` NO DECLARA `action` NI `method` (decisión de la
-   * crítica externa #9, 2026-08-17, que pedía evaluarlo explícitamente): el
-   * candidato era `action={links.email}`, para que el envío nativo sin
-   * JavaScript abriera el mismo cliente de correo que abre esta función. Se
-   * descarta, y el motivo no es "soporte errático" en abstracto sino lo que
-   * dice el algoritmo de envío de formularios del HTML para el esquema
-   * `mailto:`: con `method="get"` la query del `mailto:` se SUSTITUYE entera
-   * por los datos del formulario, así que los campos solo llegarían al cliente
-   * de correo si se llamaran exactamente como los parámetros de `mailto:`
-   * (`subject`, `body`…) — renombrar el campo del correo del visitante a
-   * `subject` para conseguirlo sería mentir sobre lo que ese campo es —, y con
-   * `method="post"` + `enctype="text/plain"` el cuerpo acaba también en la
-   * query, con la misma pérdida. En los dos caminos el visitante sin JS vería
-   * abrirse un correo VACÍO: peor que no abrir nada, porque parece que
-   * funcionó. Sin `action`, el envío nativo es un GET al propio documento y lo
-   * escrito sobrevive en la barra de direcciones (los `name` de los dos
-   * campos, ver el JSX), mientras el aviso sin JavaScript (`ScNoJsNote`, que
-   * hasta la crítica #11 era un `<noscript>`) da la salida real. Nada de esto
-   * afecta al camino CON JavaScript: `preventDefault()` es la primera línea de
-   * esta función.
+   * POR QUÉ EL `<form>` NO DECLARA `action` (decisión de la crítica externa
+   * #9, 2026-08-17, que pedía evaluarlo explícitamente): el candidato era
+   * `action={links.email}`, para que el envío nativo sin JavaScript abriera el
+   * mismo cliente de correo que abre esta función. Se descarta, y el motivo no
+   * es "soporte errático" en abstracto sino lo que dice el algoritmo de envío
+   * de formularios del HTML para el esquema `mailto:`: con `method="get"` la
+   * query del `mailto:` se SUSTITUYE entera por los datos del formulario, así
+   * que los campos solo llegarían al cliente de correo si se llamaran
+   * exactamente como los parámetros de `mailto:` (`subject`, `body`…) —
+   * renombrar el campo del correo del visitante a `subject` para conseguirlo
+   * sería mentir sobre lo que ese campo es —, y con `method="post"` +
+   * `enctype="text/plain"` el cuerpo acaba también en la query, con la misma
+   * pérdida. En los dos caminos el visitante sin JS vería abrirse un correo
+   * VACÍO: peor que no abrir nada, porque parece que funcionó.
+   *
+   * POR QUÉ SÍ DECLARA `method="dialog"` (crítica externa #12, Nielsen,
+   * 2026-08-18). Lo que la #9 dio por aceptable — "sin `action`, el envío
+   * nativo es un GET al propio documento y lo escrito sobrevive en la barra de
+   * direcciones" — la #12 lo midió en vivo y lo llamó por su nombre: ese GET
+   * publica el CORREO Y EL MENSAJE del visitante en la URL
+   * (`?email=…&message=…`), y con ella en el historial del navegador y en los
+   * logs del host, mientras la página vuelve arriba con los campos vacíos. La
+   * "red de seguridad" para no perder lo escrito era, en realidad, una fuga de
+   * datos personales por defecto.
+   *
+   * `method="dialog"` en un formulario que NO tiene ningún `<dialog>` por
+   * ancestro hace que el algoritmo de envío TERMINE sin enviar nada: no hay
+   * petición, no hay query, no se pierde lo escrito, no se recarga la página.
+   * Es el único mecanismo que apaga el envío nativo SIN depender de JavaScript
+   * para apagarse — un `disabled` habría que ponerlo con JS (y CSS no puede
+   * declararlo), que es justo lo que aquí no existe.
+   *
+   * NO BASTA CON OCULTAR EL BOTÓN, y por eso se hacen las dos cosas:
+   * `ScSubmitButton` se retira bajo `@media (scripting: none)` (control que no
+   * puede funcionar, control que no se ofrece), pero un `<input type="email">`
+   * dispara el envío IMPLÍCITO con solo pulsar Enter dentro del campo, con el
+   * botón oculto o incluso sin botón. Medido en navegador real sobre un
+   * fixture estático sin ningún script (Chrome 151.0.7922.138 y WebKit 26.5,
+   * dos motores independientes, mismo resultado en los cuatro casos):
+   *
+   *     sin method,       botón visible, click -> ENVÍA  ?email=…&message=…
+   *     sin method,       botón OCULTO,  Enter -> ENVÍA  ?email=…&message=…
+   *     method="dialog",  botón visible, click -> NO ENVÍA, URL intacta
+   *     method="dialog",  botón OCULTO,  Enter -> NO ENVÍA, URL intacta
+   *
+   * Nada de esto afecta al camino CON JavaScript: `preventDefault()` es la
+   * primera línea de esta función y cancela el envío mucho antes de que el
+   * `method` llegue a mirarse.
+   *
+   * DEGRADACIÓN DECLARADA: `method` es un atributo enumerado y su valor
+   * inválido por defecto es GET, así que un navegador que no entienda `dialog`
+   * cae al comportamiento anterior a esta entrega. Es el MISMO tramo de
+   * navegadores en el que `@media (scripting: none)` tampoco existe (soporte
+   * de `scripting`: Chrome/Edge 120, Firefox 113, Safari 17, todos de 2023;
+   * soporte de `<dialog>` y su `method`: Chrome 37, Firefox 98, Safari 15.4,
+   * todos anteriores), de modo que ahí el botón tampoco se oculta y el
+   * visitante ve exactamente lo que veía antes — incluidos los `name` de los
+   * dos campos, que siguen siendo la red que la #9 puso para ese caso.
+   *
+   * AVISO a quien mueva este JSX: si el formulario acabara DENTRO de un
+   * `<dialog>`, `method="dialog"` dejaría de ser un no-op y pasaría a CERRAR
+   * ese diálogo. El candado que vigila las dos condiciones a la vez (el
+   * `method` declarado y la ausencia de `<dialog>` por encima) vive en
+   * `Contact.test.tsx`, describe "Contact: critica externa #12".
    */
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -1828,8 +1899,15 @@ export function Contact(): ReactElement {
           propia es la ÚNICA que se ve -- la cubre `handleSubmit`, que
           comprueba los mismos dos casos (vacío y forma de correo) más el
           mensaje vacío. */}
+      {/* `method="dialog"` (crítica externa #12, Nielsen, 2026-08-18): sin
+          JavaScript apaga el envío nativo entero — el del botón Y el
+          implícito de Enter en el campo de correo —, que hasta hoy publicaba
+          el correo y el mensaje del visitante en la URL. Sigue SIN `action`.
+          El porqué completo, la medición en dos motores y la degradación
+          declarada están en el docblock de `handleSubmit`. */}
       <ScForm
         onSubmit={handleSubmit}
+        method="dialog"
         noValidate
       >
         {/* Aviso sin JavaScript (crítica externa #9; deja de ser un
@@ -1865,12 +1943,16 @@ export function Contact(): ReactElement {
             <Input
               ref={emailRef}
               id={EMAIL_FIELD_ID}
-              /* `name` (crítica externa #9): sin él, un envío nativo -- el
-                 único posible sin JavaScript -- recarga la página con una
-                 query VACÍA y el texto escrito se pierde sin dejar rastro.
-                 Con él sobrevive en la barra de direcciones, recuperable a
-                 mano. El formulario NO declara `action` ni `method`: ver el
-                 docblock de `handleSubmit` para la decisión completa. */
+              /* `name` (crítica externa #9): sin él, un envío nativo recarga
+                 la página con una query VACÍA y el texto escrito se pierde
+                 sin dejar rastro; con él sobrevive en la barra de
+                 direcciones, recuperable a mano. Desde la crítica externa #12
+                 ese envío nativo YA NO OCURRE en ningún navegador moderno
+                 (`method="dialog"`, ver el docblock de `handleSubmit`), así
+                 que este atributo solo sigue haciendo algo en el tramo de
+                 navegadores anteriores a 2023 declarado allí -- y es
+                 justamente ahí donde la red de la #9 sigue siendo lo mejor
+                 disponible. */
               name="email"
               type="email"
               required

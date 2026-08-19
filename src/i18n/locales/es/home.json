@@ -151,7 +151,7 @@
                 "help": "Se abrirá tu aplicación de correo con el mensaje preparado.",
                 "messageLabel": "Tu mensaje",
                 "messagePlaceholder": "Cuéntame qué tienes en mente.",
-                "noscript": "Este formulario necesita JavaScript para abrir tu aplicación de correo. Sin él, el botón no envía nada: escríbeme directamente a",
+                "noscript": "Este formulario necesita JavaScript para abrir tu aplicación de correo y sin él no funciona. Escríbeme directamente a",
                 "submit": "Escríbeme",
                 "submitAria": "Escríbeme: abre tu aplicación de correo con tu dirección y tu mensaje ya incluidos",
                 "subject": "Hola VoidToInfinite",

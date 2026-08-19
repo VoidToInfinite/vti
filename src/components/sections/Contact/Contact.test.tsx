@@ -143,6 +143,45 @@ function cssRuleTextFor(el: HTMLElement): string {
     .join("\n");
 }
 
+/**
+ * Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`. Mismo
+ * helper y mismo motivo que `ThemeToggle.test.tsx` y `aura.parts.test.tsx`:
+ * jsdom no evalua NINGUN `@media` (regla 36) y tampoco conoce el feature
+ * `scripting`, asi que la unica via es leer el CSSOM acotando al bloque
+ * concreto -- nunca por substring del CSS inyectado (regla 35).
+ *
+ * Vive en el modulo desde la critica externa #12 (2026-08-18): lo consumen dos
+ * describes distintos de este mismo fichero -- el aviso sin JavaScript
+ * (hallazgo B2 de la #11, que lo REVELA) y el boton de envio (#12, que se
+ * RETIRA) -- y una copia por describe habria sido la tercera del repo.
+ */
+function reglasSinScripting(): CSSStyleRule[] {
+  const out: CSSStyleRule[] = [];
+  const walk = (rules: CSSRuleList, dentro: boolean): void => {
+    Array.from(rules).forEach((rule) => {
+      const media = (rule as CSSMediaRule).media;
+      const aqui =
+        dentro || (media ? /scripting:\s*none/.test(media.mediaText) : false);
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) {
+        walk(anidadas, aqui);
+        return;
+      }
+      if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+        out.push(rule as CSSStyleRule);
+      }
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules, false);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return out;
+}
+
 /*
  * Mensaje de los tests que ejercitan un envio COMPLETO. Desde la critica
  * externa #8 (Nielsen, 2026-08-17) el formulario tiene DOS campos
@@ -2702,7 +2741,19 @@ describe("Contact: critica externa #9", () => {
       ).toHaveAttribute("name", "message");
     });
 
-    it("el form NO declara action ni method: la decision es GET al propio documento, no un mailto: como action", () => {
+    /*
+     * CONTRATO REVERTIDO EN SU MITAD DE `method`, NO RELAJADO (regla 40;
+     * critica externa #12, 2026-08-18). Este test exigia que el form NO
+     * declarara `method` -- "la decision es GET al propio documento" --, y esa
+     * decision se revoca con la medicion delante: ese GET publicaba el correo
+     * y el mensaje del visitante en la URL (y con ella en el historial y en
+     * los logs del host). La mitad de `action` sigue exactamente igual, con su
+     * motivo intacto; la de `method` pasa a exigir el valor que apaga el envio
+     * nativo entero. Ver el docblock de `handleSubmit` para la medicion en dos
+     * motores y para el caso Enter, y el describe "Contact: critica externa
+     * #12" (mas abajo) para el candado del boton y el del ancestro `<dialog>`.
+     */
+    it("el form NO declara action (no un mailto: como action) y declara method=dialog (envio nativo apagado)", () => {
       /*
        * Candado de la DECISION documentada en el docblock de `handleSubmit`:
        * con `action="mailto:..."` el algoritmo de envio de formularios
@@ -2716,7 +2767,7 @@ describe("Contact: critica externa #9", () => {
       const form = container.querySelector("form") as HTMLFormElement;
 
       expect(form).not.toHaveAttribute("action");
-      expect(form).not.toHaveAttribute("method");
+      expect(form).toHaveAttribute("method", "dialog");
       // La otra mitad de la decision sigue en pie: la validacion propia es la
       // unica que se ve, asi que `noValidate` no se retira.
       expect(form.noValidate).toBe(true);
@@ -3279,38 +3330,6 @@ describe("Contact: critica externa #11", () => {
   });
 
   describe("hallazgo B2 (P1): el aviso sin JavaScript es un elemento real con guard de CSS", () => {
-    /** Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`.
-     *  Mismo helper y mismo motivo que `ThemeToggle.test.tsx` y
-     *  `aura.parts.test.tsx`: jsdom no evalua NINGUN `@media` (regla 36), asi
-     *  que la unica via es leer el CSSOM acotando al bloque concreto. */
-    function reglasSinScripting(): CSSStyleRule[] {
-      const out: CSSStyleRule[] = [];
-      const walk = (rules: CSSRuleList, dentro: boolean): void => {
-        Array.from(rules).forEach((rule) => {
-          const media = (rule as CSSMediaRule).media;
-          const aqui =
-            dentro ||
-            (media ? /scripting:\s*none/.test(media.mediaText) : false);
-          const anidadas = (rule as CSSGroupingRule).cssRules;
-          if (anidadas) {
-            walk(anidadas, aqui);
-            return;
-          }
-          if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
-            out.push(rule as CSSStyleRule);
-          }
-        });
-      };
-      Array.from(document.styleSheets).forEach((sheet) => {
-        try {
-          walk(sheet.cssRules, false);
-        } catch {
-          /* hoja inaccesible: no aporta */
-        }
-      });
-      return out;
-    }
-
     function montarAviso(): { form: HTMLFormElement; aviso: HTMLElement } {
       const { container } = renderWithProviders(<Contact />);
       return {
@@ -3400,6 +3419,129 @@ describe("Contact: critica externa #11", () => {
 
       const despues = document.querySelector("[data-nojs-note]") as HTMLElement;
       expect(despues.textContent?.length ?? 0).toBe(antes);
+    });
+  });
+});
+
+/*
+ * Critica externa #12 (2026-08-18). Dos hallazgos de esta seccion:
+ *
+ * P1 (Nielsen) -- el sin-JS de Contacto MENTIA y publicaba el correo. Medido
+ * en vivo por el evaluador: sin JavaScript el `<form>` (sin `action` ni
+ * `method`) hacia un GET al propio documento, asi que el correo y el mensaje
+ * del visitante acababan en la URL, en el historial y en los logs del host, y
+ * la pagina volvia arriba con los campos vacios -- mientras el unico aviso
+ * visible sin JS afirmaba que "el boton no envia nada".
+ *
+ * T2 -- el tope de contenido de la seccion escribia 1280px a mano teniendo el
+ * token `grid.sectionMax` (creado en el commit `b31be06`) para nombrarlo.
+ */
+describe("Contact: critica externa #12", () => {
+  describe("P1: sin JavaScript el envio nativo no puede ocurrir", () => {
+    function montarFormulario(): {
+      form: HTMLFormElement;
+      submit: HTMLButtonElement;
+    } {
+      const { container } = renderWithProviders(<Contact />);
+      return {
+        form: container.querySelector("form") as HTMLFormElement,
+        submit: container.querySelector(
+          'button[type="submit"]',
+        ) as HTMLButtonElement,
+      };
+    }
+
+    /*
+     * MITAD 1 (el control que no puede funcionar no se ofrece). Mismo
+     * mecanismo y mismo candado que el conmutador de tema
+     * (`ThemeToggle.test.tsx`) y el disparador de la hoja de navegacion
+     * (`Navbar.test.tsx`): la regla se busca en el CSSOM acotando al bloque
+     * `@media (scripting: none)`, porque jsdom no evalua ningun `@media`
+     * (regla 36) ni conoce el feature `scripting`.
+     */
+    it("el boton de envio se RETIRA sin JavaScript: display none dentro de @media (scripting: none), sobre su PROPIA clase", () => {
+      const { submit } = montarFormulario();
+      expect(submit, "el formulario no monta boton de envio").not.toBeNull();
+      const clases = Array.from(submit.classList);
+
+      const propias = reglasSinScripting().filter((regla) =>
+        clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+      );
+      expect(
+        propias.length,
+        "el boton de envio no se retira sin JavaScript: no hay ninguna regla suya bajo scripting none",
+      ).toBeGreaterThan(0);
+
+      propias.forEach((regla) => {
+        // Mismo elemento, nunca un descendiente (regla 35).
+        expect(regla.selectorText).not.toMatch(/\s/);
+        expect(regla.style.display).toBe("none");
+      });
+    });
+
+    it("CON JavaScript el boton sigue exactamente como estaba: el guard vive SOLO dentro del media query", () => {
+      const { submit } = montarFormulario();
+
+      expect(submit).toBeInTheDocument();
+      expect(getComputedStyle(submit).display).not.toBe("none");
+      // NO se usa `toBeVisible()` a proposito: el matcher tambien mira la
+      // `opacity` de los ancestros, y en este render el reveal de la seccion
+      // todavia no se ha disparado (`data-revealed` en false => opacity 0), asi
+      // que diria "invisible" por un motivo que no tiene nada que ver con este
+      // guard. Lo que aqui se afirma es la propiedad del guard: `display` no lo
+      // toca fuera del media query.
+      //
+      // Y el boton tampoco se apaga por atributo: un `disabled` fijo dejaria el
+      // formulario inservible tambien CON JavaScript, que es el 99% del
+      // trafico real.
+      expect(submit).not.toBeDisabled();
+    });
+
+    /*
+     * MITAD 2 (la unica que cubre el caso Enter). Esconder el boton NO impide
+     * el envio nativo: un `<input type="email">` dispara el envio IMPLICITO
+     * con Enter aunque el boton este oculto o no exista. Medido en navegador
+     * real sobre un fixture estatico SIN NINGUN SCRIPT (Chrome 151.0.7922.138
+     * y WebKit 26.5, mismo resultado en los dos motores):
+     *
+     *     sin method,      boton OCULTO, Enter -> ENVIA  ?email=...&message=...
+     *     method="dialog", boton OCULTO, Enter -> NO ENVIA, URL intacta
+     *
+     * `method="dialog"` solo es ese no-op mientras el formulario NO tenga un
+     * `<dialog>` por ancestro; dentro de uno pasaria a CERRAR el dialogo. Las
+     * DOS condiciones se atan aqui juntas a proposito: la segunda es
+     * exactamente la que rompe un futuro refactor que mueva este JSX, y jsdom
+     * no puede observar el envio nativo para avisarlo por su cuenta.
+     */
+    it("el form declara method=dialog y NO tiene ningun <dialog> por ancestro: las dos condiciones que apagan el envio nativo", () => {
+      const { form } = montarFormulario();
+
+      expect(form).toHaveAttribute("method", "dialog");
+      expect(
+        form.closest("dialog"),
+        "el formulario vive dentro de un <dialog>: method=dialog dejaria de ser un no-op y pasaria a cerrarlo",
+      ).toBeNull();
+    });
+
+    /*
+     * LAPIDA DE LA COPIA ANTERIOR. El aviso prometia un comportamiento del
+     * navegador ("el boton no envia nada") que el navegador no cumplia: el
+     * boton enviaba, y por eso el correo acababa en la URL. La copia nueva
+     * describe el ESTADO (necesita JavaScript, sin el no funciona) y da la
+     * salida real, que es la direccion enlazada en el propio aviso. Si alguien
+     * devuelve la promesa, este test lo dice -- en los dos idiomas.
+     */
+    it("la copia del aviso ya no promete un comportamiento del navegador (es y en)", () => {
+      expect(esHome.Home.contact.form.noscript).not.toContain(
+        "el botón no envía nada",
+      );
+      expect(enHome.Home.contact.form.noscript).not.toContain(
+        "the button sends nothing",
+      );
+      // Sonda positiva: el aviso sigue existiendo y sigue nombrando la
+      // condicion, no vaciandose para pasar el assert de arriba.
+      expect(esHome.Home.contact.form.noscript).toContain("JavaScript");
+      expect(enHome.Home.contact.form.noscript).toContain("JavaScript");
     });
   });
 });
