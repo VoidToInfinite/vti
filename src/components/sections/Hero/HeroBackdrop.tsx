@@ -8,6 +8,7 @@ import {
 } from "react";
 import styled from "styled-components";
 import { Aura } from "@/components/scenes/aura/Aura";
+import { AURA_SURFACE } from "@/components/scenes/aura/aura.layers";
 import { Eye } from "@/components/scenes/eye/Eye";
 import { useTheme } from "@/theme/ThemeProvider";
 import { readResolvedTheme } from "@/theme/resolveTheme";
@@ -89,6 +90,48 @@ const ScBackdrop = styled.div`
   position: absolute;
   inset: 0;
   z-index: ${({ theme }) => theme.data.zIndex.base};
+
+  /*
+   * SIN JAVASCRIPT el hero se quedaba COMPLETAMENTE vacio, y no por un fallo
+   * de carga: los dos stacks se montan desde el estado (la variable stacks,
+   * que arranca vacia), asi que el HTML horneado no contiene ni el Aura ni el
+   * Eye -- ni una sola de sus capas. Medido a 390x844 con javaScriptEnabled
+   * en false (critica externa #13, 2026-08-19): 6 imagenes en toda la pagina
+   * frente a 10 con JS, y las 4 que faltan son exactamente las de Aura. La
+   * captura mostraba unos 900px de blanco liso entre la barra y la copia.
+   *
+   * SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
+   * literal de styled-components y un backtick lo cierra y rompe el build
+   * (regla 23, reincidida cuatro veces ya en este repo -- la cuarta, aqui).
+   *
+   * Esto NO devuelve el arte, y decirlo importa: pinta el tono base del campo
+   * de Aura (AURA_SURFACE, la media RGB medida de 00-field, la MISMA
+   * constante que la escena ya usa como color previo a que su WebP resuelva).
+   * El hero pasa de hueco en blanco a superficie deliberada con la copia y el
+   * CTA encima, que es la degradacion honesta que se puede entregar sin tocar
+   * nada del cruce.
+   *
+   * POR QUE NO SE ENTREGA EL ARTE, con la razon medida delante: montarlo
+   * exigiria que stacks arrancase con el stack claro ya presente. El HTML
+   * horneado es SIEMPRE el tema claro, asi que el estado inicial coincidiria
+   * entre build y primer render de cliente y no habria desajuste de
+   * hidratacion -- pero el stack entrante nace en pending, es decir
+   * invisible, y solo pasa a active al resolver una carrera de decode()
+   * contra temporizadores (ver los efectos de mas abajo). Sin JS esa carrera
+   * no corre nunca, asi que el arte estaria en el DOM y seguiria sin verse:
+   * haria falta ADEMAS forzar aqui el estado final bajo este mismo media
+   * query. Son dos cambios sobre una maquina con historial propio de fallos
+   * sutiles (task/lessons.md, 2026-08-05: el contador de invalidacion y el
+   * remontaje de StrictMode), y la decision de pagar ese riesgo -- mas los
+   * ~309 KB de arte claro que la ola de peso del 2026-08-17 decidio NO servir
+   * cuando no toca -- no es de esta tarea. Queda declarada, no cerrada.
+   *
+   * El media query de scripting none es el mismo mecanismo que GlobalStyles
+   * ya usa para el respaldo de los reveals: ninguna via nueva que mantener.
+   */
+  @media (scripting: none) {
+    background-color: ${AURA_SURFACE};
+  }
 `;
 
 /*

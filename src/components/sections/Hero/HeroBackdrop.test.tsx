@@ -13,7 +13,10 @@ import {
 } from "@/test/test-utils";
 import { HeroBackdrop } from "./HeroBackdrop";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
-import { AURA_STAGGER } from "@/components/scenes/aura/aura.layers";
+import {
+  AURA_STAGGER,
+  AURA_SURFACE,
+} from "@/components/scenes/aura/aura.layers";
 import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
 import {
   HERO_BACKDROP_HOLD_MS,
@@ -714,5 +717,64 @@ describe("HeroBackdrop: el visitante oscuro real (atributo y storage de acuerdo)
     } finally {
       document.documentElement.removeAttribute(THEME_ATTRIBUTE);
     }
+  });
+});
+
+/*
+ * Critica externa #13 (2026-08-19): sin JavaScript el hero se quedaba
+ * completamente vacio.
+ *
+ * Medido en Chrome real a 390x844 con `javaScriptEnabled: false`: 6 imagenes
+ * en toda la pagina frente a 10 con JS, y las cuatro que faltaban eran
+ * exactamente las capas de Aura. No es un fallo de carga: los dos stacks se
+ * montan desde el estado (`stacks` arranca vacio), asi que el HTML horneado
+ * del export estatico no contiene ninguno de los dos. El resultado en captura
+ * eran ~900px de blanco liso entre la barra y la copia del hero.
+ *
+ * `ScBackdrop` gana un respaldo bajo `@media (scripting: none)` -- el MISMO
+ * mecanismo que `GlobalStyles` ya usa para los reveals -- que pinta el tono
+ * base del campo de Aura. No devuelve el arte (ver el comentario del propio
+ * `ScBackdrop` para por que eso exigiria tocar la maquina del cruce): lo que
+ * hace es que el hueco deje de ser un hueco.
+ *
+ * jsdom NO evalua ningun `@media` (regla 36), asi que el respaldo solo se
+ * puede atar inspeccionando el texto de la regla inyectada, acotado al bloque
+ * concreto -- nunca por `getComputedStyle`, que aqui no aplicaria la regla.
+ */
+describe("HeroBackdrop: critica #13 -- respaldo del fondo sin JavaScript", () => {
+  function cssDeScBackdrop(): string {
+    const backdrop = document.querySelector("[data-stack]")
+      ?.parentElement as HTMLElement | null;
+    const el = backdrop ?? (document.querySelector("div") as HTMLElement);
+    const classes = Array.from(el.classList);
+    return Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+      .join("\n");
+  }
+
+  it("declara el tono base de Aura bajo scripting: none, y solo ahi", async () => {
+    // `act` asincrono: el montaje dispara la carrera de decode() del cruce y
+    // sin el React avisa de actualizaciones de estado fuera de act.
+    await act(async () => {
+      renderWithProviders(<HeroBackdrop />);
+    });
+    const css = cssDeScBackdrop();
+
+    expect(css).toContain("scripting: none");
+    const bloque = css.slice(css.indexOf("scripting: none"));
+    expect(bloque).toContain(`background-color: ${AURA_SURFACE}`);
+
+    // Y NO fuera del media query: con JavaScript el fondo lo pintan las capas
+    // de la escena, no un color plano debajo -- si el color se escapara del
+    // bloque, quedaria por detras del arte en TODA visita.
+    const antesDelMedia = css.slice(0, css.indexOf("scripting: none"));
+    expect(antesDelMedia).not.toContain("background-color");
   });
 });
