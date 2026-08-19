@@ -3,6 +3,8 @@
 import { Fragment, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LEGAL_ENTITY, LEGAL_VERSIONS, PLACEHOLDER } from "@/config/legal";
+import { navLocale } from "@/config/navigation";
+import { routePath } from "@/config/site";
 import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import { useDocumentMeta } from "@/seo/useDocumentMeta";
 import { STORAGE_REGISTRY } from "@/config/storage";
@@ -425,7 +427,12 @@ function renderBlock(
 }
 
 export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
-  const { t } = useTranslation("legal");
+  /* `activeI18n` (el del árbol, no la instancia de módulo importada arriba):
+     en `/en/*` el provider monta un `cloneInstance` con `lng: "en"` y solo
+     el hook lo ve — la instancia de módulo se queda en el idioma con que
+     arrancó. Se usa para que la salida a la home conserve el idioma
+     (crítica #12, P0: `href="/"` expulsaba al castellano). */
+  const { t, i18n: activeI18n } = useTranslation("legal");
 
   // `returnObjects: true` es la única forma de leer un árbol JSON completo
   // (no una hoja de texto) con i18next; el tipado de `t` de este repo no
@@ -492,7 +499,9 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
       id="main"
       tabIndex={-1}
     >
-      <ScBackLink href="/">{backToHome}</ScBackLink>
+      <ScBackLink href={routePath("home", navLocale(activeI18n.language))}>
+        {backToHome}
+      </ScBackLink>
       <ScTitle>{doc.title}</ScTitle>
       <ScVersionMeta>
         {versionLabel} {version} · {updatedLabel}: {updated}

@@ -2,11 +2,14 @@
 
 import type { ReactElement } from "react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
+import { navLocale } from "@/config/navigation";
+import { routePath } from "@/config/site";
 
 /*
  * Cabecera propia de las páginas legales (D20 de la spec
@@ -76,10 +79,18 @@ const ScActions = styled.div`
 `;
 
 export function LegalHeader(): ReactElement {
+  /* El idioma sale del i18n del ÁRBOL (el provider de `/en/*` monta un
+     `cloneInstance` con `lng: "en"`), nunca de la instancia de módulo, cuyo
+     idioma no cambia por ruta. Crítica #12, P0: el logotipo con `href="/"`
+     era una de las dos salidas de las legales inglesas que expulsaban al
+     castellano — la ola H hizo la navegación consciente del idioma y esta
+     cabecera usa el mismo camino (`routePath` + `navLocale`, sin literales
+     "/en"). */
+  const { i18n } = useTranslation();
   return (
     <ScHeader>
       <ScInner>
-        <ScBrandLink href="/">
+        <ScBrandLink href={routePath("home", navLocale(i18n.language))}>
           <Logo size="1.5rem" />
           <BrandName />
         </ScBrandLink>

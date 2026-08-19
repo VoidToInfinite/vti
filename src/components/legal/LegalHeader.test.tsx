@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { routePath } from "@/config/site";
 import { LegalHeader } from "./LegalHeader";
 
 /*
@@ -13,6 +15,29 @@ describe("LegalHeader", () => {
   it("tiene un enlace a la home ('/')", () => {
     const { container } = renderWithProviders(<LegalHeader />);
     expect(container.querySelector('a[href="/"]')).not.toBeNull();
+  });
+
+  /*
+   * CRÍTICA #12, P0 (resto legal): el logotipo con `href="/"` fijo era una de
+   * las dos salidas de `/en/privacy`/`/en/legal-notice` que expulsaban al
+   * castellano (la otra, el «volver» de `LegalDocument`). `I18nProvider
+   * locale="en"` reproduce `app/en/layout.tsx` — el proveedor interno gana al
+   * de `renderWithProviders` por proximidad, el mismo mecanismo del árbol
+   * real (patrón de `Navbar.test.tsx`, ola H). El complemento castellano es
+   * el test de arriba: sin él, un logotipo clavado en `/en` también pasaría.
+   */
+  it("en /en/* el logotipo lleva a la home inglesa, no a la castellana", () => {
+    const { container } = renderWithProviders(
+      <I18nProvider locale="en">
+        <LegalHeader />
+      </I18nProvider>,
+    );
+    // Primer ancla del DOM = la marca (ScBrandLink va antes que el selector
+    // de idioma). La aserción se acota a ELLA: el selector de idioma enlaza
+    // legítimamente a la alternativa castellana y un "ningún href='/'"
+    // global daría falso rojo.
+    const brand = container.querySelector("a");
+    expect(brand).toHaveAttribute("href", routePath("home", "en"));
   });
 
   it("monta el conmutador de tema", () => {

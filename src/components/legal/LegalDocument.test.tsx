@@ -4,8 +4,10 @@ import { renderWithProviders, screen } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esLegal from "@/i18n/locales/es/legal.json";
 import enLegal from "@/i18n/locales/en/legal.json";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { STORAGE_REGISTRY } from "@/config/storage";
 import { LEGAL_ENTITY } from "@/config/legal";
+import { routePath } from "@/config/site";
 import {
   LegalDocument,
   splitPlaceholderMarkers,
@@ -214,6 +216,36 @@ describe("LegalDocument", () => {
       expect(header.getAttribute("scope")).toBe("col");
     }
   });
+
+  /*
+   * CRÍTICA #12, P0 (resto legal): el «volver al inicio» con `href="/"` fijo
+   * era una de las dos salidas de las legales inglesas que expulsaban al
+   * castellano (la otra, el logotipo de `LegalHeader`). El idioma se lee del
+   * i18n del ÁRBOL (`useTranslation`, que en `/en/*` ve el `cloneInstance`
+   * del provider), no de la instancia de módulo — por eso el candado monta
+   * `I18nProvider locale="en"` reproduciendo `app/en/layout.tsx` (patrón de
+   * `Navbar.test.tsx`, ola H). Complemento castellano incluido: sin él, un
+   * enlace clavado en `/en` también pasaría el test inglés.
+   */
+  it.each(DOC_KEYS)(
+    "%s: el «volver al inicio» conserva el idioma (en → /en, es → /)",
+    (docKey) => {
+      const en = renderWithProviders(
+        <I18nProvider locale="en">
+          <LegalDocument docKey={docKey} />
+        </I18nProvider>,
+      );
+      expect(
+        en.getByRole("link", { name: enLegal.Legal.common.backToHome }),
+      ).toHaveAttribute("href", routePath("home", "en"));
+      en.unmount();
+
+      const es = renderWithProviders(<LegalDocument docKey={docKey} />);
+      expect(
+        es.getByRole("link", { name: esLegal.Legal.common.backToHome }),
+      ).toHaveAttribute("href", "/");
+    },
+  );
 
   it("el idioma inglés también monta sin errores (paridad de estructura)", async () => {
     await i18n.changeLanguage("en");
