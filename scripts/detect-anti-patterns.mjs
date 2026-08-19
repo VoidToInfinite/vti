@@ -45,11 +45,24 @@
  * mixin `gradientTextClip`), franja lateral decorativa (`border-left/right`
  * >=2px solid), curvas `cubic-bezier` con rebote (y fuera de [-0.1, 1.1]),
  * CUALQUIER literal `cubic-bezier(...)` escrito fuera de
- * `src/theme/tokens/motion.ts`, `border-radius` literal fuera de token
- * (excluyendo `0`, que nunca es deriva de escala), kickers repetidos
+ * `src/theme/tokens/motion.ts`, CUALQUIER literal de TIEMPO (`Nms`/`Ns`, cero
+ * excluido) escrito fuera de ese mismo fichero, `border-radius` literal fuera
+ * de token (excluyendo `0`, que nunca es deriva de escala), kickers repetidos
  * (componentes `*Kicker*` en JSX) y numeracion decorativa de seccion
  * (`number: "0N"`, o el ordinal 1-based
  * `String(<expr> + 1).padStart(2, "0")`).
+ *
+ * Tercer punto ciego cerrado (critica externa #13, 2026-08-18): el detector
+ * vigilaba las dos mitades de una regla de movimiento a medias. La regla 48
+ * dice "duracion, curva", y hasta esta revision habia TRES familias mirando
+ * curvas (`overshoot`, `easing-literal`, `easing-keyword`) y NI UNA mirando
+ * duraciones -- ni un solo `ms` en todo el fichero. La medicion del
+ * evaluador: 22 duraciones distintas en codigo real, 15 fuera de la escala de
+ * siete pasos de `motion.duration`, y once de esas quince en `Wormhole.tsx`,
+ * cuya excepcion de arte de marca (regla 17) era legitima pero NO estaba
+ * declarada en ninguna parte, precisamente porque no habia familia que la
+ * pidiera. La familia `duration-literal` cierra el hueco y, al hacerlo,
+ * convierte esas excepciones tacitas en excepciones escritas.
  *
  * Punto ciego cerrado (critica externa #8, 2026-08-17): hasta esa revision la
  * UNICA familia de curvas era `overshoot`, que solo dispara cuando la curva
@@ -317,6 +330,87 @@ const FAMILIES = [
                     line,
                 );
             return m ? m[0] : null;
+        },
+    },
+    {
+        id: "duration-literal",
+        label: "duracion escrita como literal de tiempo (Nms / Ns) fuera de src/theme/tokens/motion.ts",
+        // Familia hermana de `easing-literal`, y por el mismo motivo: la regla
+        // 48 pide que toda transition/animation nueva saque su DURACION Y su
+        // CURVA del sistema, pero hasta la critica externa #13 (2026-08-18) el
+        // detector no miraba ni un solo `ms`. Medicion del evaluador sobre
+        // codigo real (comentarios recortados, tests excluidos): 22 duraciones
+        // distintas, 15 fuera de la escala de siete pasos de motion.duration.
+        //
+        // Censo propio antes de escribir el allowlist (mismo motor que este
+        // fichero: strip de comentarios + linea a linea sobre src/ y app/):
+        // 55 literales de tiempo en 48 lineas fuera de tokens/motion.ts, de
+        // los cuales 35 caen fuera de la escala {0, 100, 200, 320, 480, 700,
+        // 2100} ms. El censo propio confirma los 14 valores en `ms` que
+        // reporto el evaluador (140, 160, 850, 860, 900, 1100, 1150, 1200,
+        // 1300, 1600, 1680, 2000, 3200 y el 0.001 del reset de reduce) y anade
+        // OCHO que su recuento no vio porque solo miraba el sufijo `ms`: las
+        // duraciones escritas en SEGUNDOS (3.4s, 6s, 7s, 9s, 18s, 24s, 34s,
+        // 70s), todas en el arte del ojo. Por eso esta familia acepta los dos
+        // sufijos: una duracion no deja de estar fuera del sistema por
+        // escribirse en otra unidad.
+        //
+        // POR PROCEDENCIA, NO POR VALOR -- igual que `easing-literal` y por el
+        // mismo argumento: un `200ms` escrito a mano coincide HOY con
+        // motion.duration.base y deja de coincidir el dia que alguien retoque
+        // el token, sin que nada avise (task/lessons.md, 2026-08-12: un
+        // literal que resuelve al mismo valor que el token es indistinguible
+        // en el CSS renderizado; solo un candado de FUENTE los separa). La
+        // familia que mide VALOR seria "fuera de escala", el papel que
+        // `overshoot` juega frente a `easing-literal`; aqui no hace falta
+        // porque el conjunto sancionado ya deja escrito, uno a uno, que cada
+        // excepcion es arte con tiempos propios.
+        //
+        // Alcance por fichero: en tokens/motion.ts el literal ES la definicion
+        // de la escala, no una copia suelta -- mismo `appliesTo` que las dos
+        // familias de curvas.
+        appliesTo: (file) => file !== MOTION_TOKENS_FILE,
+        // El digito es OBLIGATORIO justo antes del sufijo, y ese detalle es el
+        // que exime a todo el vocabulario interpolado del repo:
+        // `${AMBIENT.breathMs}ms` y `${SECTION_BEAM_PULSE_MS}ms` llevan `}`
+        // delante de `ms`, no un digito, asi que NO coinciden -- que es
+        // exactamente lo que se quiere, porque ahi la duracion sale de una
+        // constante con nombre. Verificado sobre el corpus real:
+        //  - `(?<![\w.$])` evita la subcadena: `x2s`, `v1s` no coinciden, y en
+        //    `0.5s` no se caza el `5s` (el punto decimal es lookbehind).
+        //  - `(?![\w-])` cierra por la derecha: `100px` nunca llega a probar
+        //    el sufijo, y un `3s-algo` queda fuera.
+        //  - No se exige `transition`/`animation` en la misma linea, mismo
+        //    motivo que en `easing-keyword`: el motor es linea a linea y en
+        //    Wormhole.tsx/Sol.tsx la duracion vive sola en su renglon dentro
+        //    de una shorthand multilinea.
+        //
+        // EL CERO SE EXIME, con el mismo criterio y el mismo precedente que
+        // `radius-literal` ("excluyendo 0, que nunca es deriva de escala"):
+        // `0ms`/`0s` no es una duracion inventada fuera del sistema, es la
+        // AUSENCIA de duracion, y no puede desincronizarse de ningun token
+        // porque no hay ningun valor que pueda derivar. Censo de los 12 casos
+        // que exime hoy: siete `transition-delay: 0ms` dentro de bloques
+        // `@media (prefers-reduced-motion: reduce)` que ya declaran
+        // `transition: none` (Story x7, Features, Journey), el `0ms` de
+        // retardo de la shorthand de `ringGlowStep` (Wormhole) y dos
+        // `animation-delay: 0s` de la lista multilinea del ojo. Ninguno es un
+        // tiempo que alguien haya elegido. `0.001ms` NO entra por aqui (no es
+        // cero) y se sanciona explicitamente: es el reset de reduce, donde el
+        // valor esta elegido a proposito para ser efectivamente nulo sin
+        // llegar a serlo.
+        //
+        // Se recorren TODAS las coincidencias de la linea (como `overshoot`) y
+        // no solo la primera: con `test()` devolviendo en el primer match, una
+        // linea que empieza por un cero eximido (`transition: opacity 0ms,
+        // transform 850ms`) escondería el literal real que viene detrás.
+        test(line) {
+            const re = /(?<![\w.$])(\d+(?:\.\d+)?)(?:ms|s)(?![\w-])/gi;
+            let m;
+            while ((m = re.exec(line)) !== null) {
+                if (parseFloat(m[1]) !== 0) return m[0];
+            }
+            return null;
         },
     },
     {
@@ -640,6 +734,177 @@ const ALLOWLIST = [
         ],
         reason: "Latido del ser cosmico de Story (heartBeat, sobre AMBIENT.breathMs): mismo caso y mismo motivo que los bucles de respiracion de Sol -- un vaiven infinito que vuelve al punto de partida, donde la simetria de ease-in-out ES la intencion. Escena decorativa (aria-hidden), fuera del alcance de la tarea que cierra el punto ciego.",
     },
+    // ---- duration-literal: los 35 literales de tiempo que existian el dia
+    // que se cerro este punto ciego (critica externa #13, 2026-08-18). Censo
+    // propio ejecutado con el motor de este mismo fichero antes de escribir
+    // una sola entrada: 55 literales de tiempo en src/ y app/, de los cuales 7
+    // nacen en tokens/motion.ts (la definicion de la escala, fuera de alcance
+    // por `appliesTo`), 12 son ceros eximidos por la regla (ver el comentario
+    // de la familia) y 36 lineas quedan como hallazgo. De esas 36, UNA se
+    // migro al token en esta misma ola en vez de sancionarse -- ninguna: las
+    // 35 restantes viven todas en arte de marca o escenas decorativas
+    // (`aria-hidden`), y las 35 llegan a esta lista con su porque YA escrito
+    // junto a la declaracion, que es la condicion que este fichero exige para
+    // sancionar. Se comprobo una a una; ninguna es UI ordinaria.
+    //
+    // Que las 35 esten sancionadas no las deja sin vigilancia: el ancla es de
+    // CONTENIDO, asi que retocar el numero de cualquiera de ellas (850 -> 900)
+    // cambia el contenido de la linea, se queda sin ancla y pone el gate en
+    // rojo. Lo que la sancion permite es que sigan EXISTIENDO, no que puedan
+    // moverse en silencio.
+    {
+        family: "duration-literal",
+        file: "src/components/scenes/eye/eye.parts.tsx",
+        anchors: [
+            {
+                snippet:
+                    'glow === "strong" ? "7s" : glow === "soft" ? "9s" : undefined;',
+                lines: [196],
+            },
+        ],
+        reason: "Duracion del bucle de resplandor ambiental del ojo (eyeStagger, dos intensidades en la misma linea: 7s fuerte y 9s suave; el motor reporta la primera). Escena decorativa aria-hidden, mismo caso y mismo motivo que la curva ease-in-out de este mismo fichero ya sancionada en easing-keyword: es el latido de fondo del hero oscuro, un ambiente en bucle infinito cuyo ritmo no es una duracion de interfaz. Ningun paso de motion.duration llega a esa escala (la mas larga, spinReduced, mide 2100ms).",
+    },
+    {
+        family: "duration-literal",
+        file: "src/components/scenes/eye/mascots/Sol.tsx",
+        anchors: [
+            { snippet: "animation: ${solSpin} 900ms", lines: [169] },
+            { snippet: 'const MORPH_MS = "1100ms";', lines: [206] },
+            {
+                snippet: "animation: ${raysSpin} 70s linear infinite;",
+                lines: [349],
+            },
+            {
+                snippet: "animation: ${rayTwinkle} 6s ease-in-out infinite;",
+                lines: [372],
+            },
+            {
+                snippet:
+                    "animation: ${sparkleTwinkle} 3.4s ease-in-out infinite;",
+                lines: [472],
+            },
+            {
+                snippet: "animation: ${sparkTwinkle} 3.4s ease-in-out infinite;",
+                lines: [494],
+            },
+        ],
+        reason: "Seis tiempos propios del mascota Sol: el giro de identidad (900ms), el morph que fija el origen (MORPH_MS, 1100ms), la rotacion lenta de los rayos (70s), el centelleo del rayo (6s) y dos capas de destellos (3.4s). Arte de marca con constantes propias, la misma excepcion de regla 17 de RULES.md que ya cubre EASE_ENTRANCE, el border-radius y los siete ease-in-out de este mismo fichero. El docblock de MORPH_MS ya razonaba en el propio codigo por que 1100 no tiene casilla en la escala (la mas larga de la familia de interfaz, slower, mide 480ms); los cinco restantes son bucles ambientales de segundos, un orden de magnitud fuera de cualquier paso de motion.duration.",
+    },
+    {
+        family: "duration-literal",
+        file: "src/components/scenes/eye/mascots/Wormhole.tsx",
+        anchors: [
+            {
+                snippet: "animation: ${spin} 34s linear infinite;",
+                lines: [150],
+            },
+            { snippet: "${spin} 34s linear infinite,", lines: [154] },
+            {
+                snippet:
+                    "${swirlFlash} 850ms ${({ theme }) => theme.data.motion.easing.standard}",
+                lines: [155],
+            },
+            { snippet: "1150ms;", lines: [156] },
+            {
+                snippet: "animation: ${ringExplodeStep} 850ms",
+                lines: [176],
+            },
+            {
+                snippet:
+                    "${({ theme }) => theme.data.motion.easing.standard} 1150ms;",
+                count: 3,
+                lines: [177, 250, 331],
+            },
+            {
+                snippet: "animation: ${spin} 24s linear infinite reverse;",
+                lines: [190],
+            },
+            {
+                snippet: "${spin} 24s linear infinite reverse,",
+                lines: [194],
+            },
+            { snippet: "${ringGlowStep} 1680ms", lines: [195] },
+            {
+                snippet:
+                    "${({ theme }) => theme.data.motion.easing.standard} 320ms;",
+                lines: [196],
+            },
+            {
+                snippet: "animation: ${spin} 18s linear infinite;",
+                lines: [209],
+            },
+            { snippet: "${spin} 18s linear infinite,", lines: [213] },
+            { snippet: "${ringGlowStep} 1840ms", lines: [214] },
+            {
+                snippet:
+                    "${({ theme }) => theme.data.motion.easing.standard} 160ms;",
+                lines: [215],
+            },
+            { snippet: "animation: ${ringGlowStep} 2000ms", lines: [229] },
+            { snippet: "animation: ${corePulseStep} 850ms", lines: [249] },
+            { snippet: "animation: ${markPulse} 850ms", lines: [330] },
+            { snippet: "animation: ${shockBurst} 900ms", lines: [353] },
+            {
+                snippet:
+                    "${({ theme }) => theme.data.motion.easing.emphasized} 1200ms;",
+                lines: [354],
+            },
+            { snippet: "animation: ${shockBurst} 860ms", lines: [370] },
+            {
+                snippet:
+                    "${({ theme }) => theme.data.motion.easing.emphasized} 1300ms;",
+                lines: [371],
+            },
+        ],
+        reason: "Coreografia completa del Wormhole: 21 lineas con tiempo literal (giros de anillo de 18/24/34s, destellos y pulsos de 850/860/900/1680/1840/2000ms y sus retardos de 160/320/1150/1200/1300ms). Es un PORT VERBATIM del widget homonimo de vti-sdk (src/widgets/landing-fx/Wormhole.tsx + Wormhole.css.ts), y su docblock de cabecera ya declara exactamente esta clase de excepcion para los colores: valores verbatim del handoff, espectaculo de marca en un elemento aria-hidden, no roles de UI. Los tiempos vienen del mismo handoff y por el mismo camino; lo que ese docblock SI migro al sistema de este repo fue la CURVA (easingEmphasized -> motion.easing.emphasized), porque una curva de interfaz si es un rol del sistema. El 320ms de la linea 196 se sanciona por procedencia aunque COINCIDA hoy con motion.duration.slow: es un retardo portado, no una lectura del token, y esa diferencia solo se ve en la fuente (task/lessons.md, 2026-08-12).",
+    },
+    {
+        family: "duration-literal",
+        file: "src/components/scenes/eye/mascots/useSolTiltSpin.ts",
+        anchors: [
+            {
+                snippet:
+                    "tilt.style.transition = `transform 140ms ${motion.easing.decelerate}`;",
+                lines: [67],
+            },
+        ],
+        reason: "Suavizado del seguimiento de cursor del mascota Sol. El comentario justo encima de la linea ya lo declara y lo razona: la CURVA se migro al token (decelerate) al cerrar la sancion provisional de easing-keyword, y la DURACION se queda en su literal calibrado porque el par 140/480 -- entrada rapida, salida lenta -- es asimetrico a proposito y 140 no existe en la escala. Sancionar la duracion aqui no reabre nada: deja escrito lo que ese comentario ya decia, ahora tambien para el gate.",
+    },
+    {
+        family: "duration-literal",
+        file: "src/components/sections/Features/features.layers.ts",
+        anchors: [
+            {
+                snippet:
+                    'export const FEATURES_CONIC_BORDER_SPIN_MS = "3200ms";',
+                lines: [267],
+            },
+        ],
+        reason: "Giro del borde conico de Features en hover, valor VERBATIM del mockup (D7, L197: animation vtiBorderSpin 3200ms linear infinite). Es ademas la forma EXACTA que la regla 17 de RULES.md sanciona -- constante con nombre en su propio modulo *.layers.ts, importada tal cual y nunca reescrita como valor suelto -- y su docblock ya explica por que no coincide con ningun paso de motion.duration: es una animacion ambiental de marca, no una transicion de interfaz.",
+    },
+    {
+        family: "duration-literal",
+        file: "src/components/sections/Hero/Hero.tsx",
+        anchors: [
+            { snippet: "animation: ${ctaGlowPulse} 1600ms", lines: [695] },
+        ],
+        reason: "Respiracion del resplandor del CTA del hero mientras hay hover o foco. El docblock de ctaGlowPulse (Hero.tsx) ya inventaria por que este numero no entra en ningun grupo: no es multiplo de ningun motion.duration ni de los tres campos de AMBIENT (5400/9000/20000), y AMBIENT esta reservado por contrato al movimiento infinito NUNCA ligado a una interaccion. Se declaro como constante local con nombre, con su porque, en vez de forzarse dentro de un vocabulario que no lo describe. La curva de la misma declaracion SI sale del token (motion.easing.standard).",
+    },
+    {
+        family: "duration-literal",
+        file: "src/theme/GlobalStyles.tsx",
+        anchors: [
+            {
+                snippet: "animation-duration: 0.001ms !important;",
+                lines: [410],
+            },
+            {
+                snippet: "transition-duration: 0.001ms !important;",
+                lines: [412],
+            },
+        ],
+        reason: "Reset de prefers-reduced-motion. El 0.001ms es el idioma estandar de este reset y NO puede sustituirse por motion.duration.instant (0ms) ni exime por la regla del cero: el valor esta elegido a proposito para ser efectivamente nulo SIN llegar a serlo, de modo que el navegador siga emitiendo transitionend/animationend y ningun codigo que espere ese evento se quede colgado. Las dos MISMAS lineas ya estan sancionadas en la familia important por su otro motivo (ganar por especificidad al selector universal); esta entrada cubre el tiempo, no el !important -- dos familias miden dos propiedades distintas de la misma linea, igual que overshoot y easing-literal.",
+    },
     {
         family: "radius-literal",
         file: "src/components/scenes/eye/mascots/Sol.tsx",
@@ -803,6 +1068,8 @@ const FAMILY_GUIDANCE = {
         "esta curva REBOTA: sobrepasa su valor final antes de asentar (algun punto de control con y fuera de [-0.1, 1.1]). motion.easing.overshoot es la unica curva de rebote sancionada del repo, reservada al despegue del navbar (DESIGN.md 5.1); un rebote nuevo necesita su propia justificacion documentada. Esta familia NO comprueba de donde sale la curva -- de eso se ocupa easing-literal.",
     "easing-literal":
         "esta curva se escribe como literal fuera de src/theme/tokens/motion.ts, el unico sitio donde una curva nace en este repo (regla 48). Si duplica semanticamente una de las cinco de motion.easing, migra el consumidor al token; si es una curva propia justificada (arte de marca, valor verbatim de un mockup, vocabulario de movimiento con su porque documentado), deja el docblock que lo explica JUNTO a la constante y anade la excepcion a ALLOWLIST. Vale tanto para curvas monotonas como para las de rebote -- la familia overshoot solo ve estas ultimas.",
+    "duration-literal":
+        "esta duracion (o retardo) se escribe como literal de tiempo fuera de src/theme/tokens/motion.ts, el unico sitio donde una duracion nace en este repo (regla 48). Si el valor coincide con un paso de la escala (0, 100, 200, 320, 480, 700, 2100 ms), lee el token -- un literal que hoy vale lo mismo deja de valerlo el dia que el token se retoque, y el CSS renderizado no distingue los dos casos. Si es un tiempo PROPIO justificado (arte de marca con constantes en su *.layers.ts, valor verbatim de un mockup o de un port, ambiente en bucle de varios segundos), declaralo como constante con nombre, deja el porque JUNTO a ella y anade la excepcion a ALLOWLIST. El cero (0ms/0s) no dispara esta familia: es la ausencia de duracion, no una duracion elegida.",
     "radius-literal":
         "un border-radius literal nuevo usa un token de src/theme/tokens/radius.ts en vez de un numero escrito a mano.",
     "kicker":
