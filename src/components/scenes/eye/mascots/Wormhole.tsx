@@ -29,8 +29,18 @@ import { Logo } from "@/components/ui/Logo/Logo";
  *
  * Excepcion de color sancionada, la misma que rige `eye.parts.tsx`: los
  * `oklch()` literales son espectaculo de marca en un elemento `aria-hidden`,
- * no roles de UI. Aqui ademas son la traduccion exacta de los pasos de
- * escala que el handoff de diseno del sdk fijo.
+ * no roles de UI. Son valores VERBATIM del handoff del sdk: CERCANOS a la
+ * escala de este repo -- comparten hue exacto con ella (235.851 = rampa
+ * `primary`, 311.928 = rampa `secondary`) -- pero NINGUNO equivale a un paso
+ * de `src/theme/tokens/color.ts`, ni al que su etiqueta nombraba hasta la
+ * critica externa #12 (2026-08-19) ni a ningun otro de su rampa: comprobados
+ * los seis uno a uno contra la escala generada. Misma redaccion honesta que
+ * ya usa `DARK_STAR_LCH` en `src/components/layout/Footer/footer.layers.ts`
+ * (D18), que documenta DOS de estos mismos literales -- `0.8 0.117 235.851`
+ * (aqui `RING_3`) y `0.73 0.195 311.928` (aqui `RING_4`) -- como valores de
+ * mockup que deliberadamente no se redondean a un paso de paleta. Sustituir
+ * uno de estos valores por "su" paso de escala NO es una limpieza: es
+ * repintar el arte.
  *
  * SIN `AMBIENT` (`@/motion/vocabulary`): las tres rotaciones infinitas de
  * este fichero -- `ScSwirl` (34s), `ScRing2` (24s reverse), `ScRing3` (18s) --
@@ -50,12 +60,19 @@ function oklch(triplet: string, alpha: number): string {
   return `oklch(${triplet} / ${alpha})`;
 }
 
-const RING_1 = "0.66 0.142 235.851"; // primary-500
-const RING_2 = "0.66 0.233 311.928"; // secondary-500
-const RING_3 = "0.8 0.117 235.851"; // primary-300
-const RING_4 = "0.73 0.195 311.928"; // secondary-400
-const CORE_START = "0.66 0.142 235.851"; // primary-500
-const CORE_END = "0.528 0.259 311.928"; // secondary-700
+/* L/C/H verbatim del handoff del sdk (ver cabecera). La etiqueta de cada uno
+   dice DONDE cae respecto a la escala del repo, no que sea un paso de ella:
+   el hue si coincide con el de su rampa, pero la pareja L+croma no coincide
+   con ninguno de los doce pasos -- la escalera de L es
+   0.985/0.96/0.92/0.86/0.78/0.737/0.66/0.53/0.5/0.42/0.32/0.22 y el croma de
+   cada paso sale de multiplicarla por su CMUL, asi que "L de un paso + croma
+   de otro" no existe en la escala. */
+const RING_1 = "0.66 0.142 235.851"; // hue primary; L del paso 600, croma del 400
+const RING_2 = "0.66 0.233 311.928"; // hue secondary; L del paso 600, croma del 400
+const RING_3 = "0.8 0.117 235.851"; // hue primary; L y croma fuera de la escalera
+const RING_4 = "0.73 0.195 311.928"; // hue secondary; L y croma fuera de la escalera
+const CORE_START = "0.66 0.142 235.851"; // identico a RING_1
+const CORE_END = "0.528 0.259 311.928"; // hue secondary; L fuera (0.53 es el vecino), croma del 500
 
 /* La animacion continua se condiciona a `no-preference` en vez de apoyarse en
    el colapso global de duraciones de `GlobalStyles`: colapsar la duracion de

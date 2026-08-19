@@ -63,13 +63,41 @@ import { useSolTiltSpin } from "./useSolTiltSpin";
  * rotaciones de `Wormhole.tsx` en el mismo caso).
  */
 
-const P100 = "oklch(0.93 0.039 235.851)";
-const P200 = "oklch(0.87 0.074 235.851)";
-const P300 = "oklch(0.8 0.117 235.851)";
-const P500 = "oklch(0.66 0.142 235.851)";
-const S200 = "oklch(0.87 0.088 311.928)";
-const S300 = "oklch(0.8 0.14 311.928)";
-const S500 = "oklch(0.66 0.233 311.928)";
+/*
+ * Los siete colores del mascota, VERBATIM del handoff del sdk. Se llamaban
+ * `P100`/`P200`/`P300`/`P500`/`S200`/`S300`/`S500` hasta la critica externa
+ * #12 (2026-08-19), y esos nombres MENTIAN: prometian pasos de la escala de
+ * `src/theme/tokens/color.ts` y ninguno de los siete equivale al paso que
+ * nombraba, ni a ningun otro de su rampa (comprobados uno a uno contra la
+ * escala generada). Lo unico que SI comparten con ella es el hue exacto:
+ * 235.851 es el de la rampa `primary` (un azul cielo) y 311.928 el de
+ * `secondary` (un violeta), asi que los nombres nuevos conservan la familia
+ * de hue y el escalon relativo (haze < soft < mid < deep) sin prometer una
+ * casilla de paleta que no existe. La pareja L+croma cae siempre entre dos
+ * pasos, o mezcla la L de uno con el croma de otro:
+ *
+ *   SKY_HAZE     0.93 0.039  -- L entre los pasos 200 (0.92) y 100 (0.96)
+ *   SKY_SOFT     0.87 0.074  -- L entre 300 (0.86) y 200 (0.92)
+ *   SKY_MID      0.8  0.117  -- L entre 400 (0.78) y 300 (0.86)
+ *   SKY_DEEP     0.66 0.142  -- L del paso 600, croma del 400
+ *   VIOLET_SOFT  0.87 0.088  -- L entre 300 y 200
+ *   VIOLET_MID   0.8  0.14   -- L entre 400 y 300
+ *   VIOLET_DEEP  0.66 0.233  -- L del paso 600, croma del 400
+ *
+ * Misma redaccion honesta que `DARK_STAR_LCH` en
+ * `src/components/layout/Footer/footer.layers.ts` (D18) y que las constantes
+ * de `Wormhole.tsx`, que comparte con este fichero tres de estos literales
+ * (`SKY_MID`, `SKY_DEEP` y `VIOLET_DEEP` son `RING_3`, `RING_1`/`CORE_START`
+ * y `RING_2` alli). Cambiar uno por "su" paso de escala no es una limpieza:
+ * es repintar el arte.
+ */
+const SKY_HAZE = "oklch(0.93 0.039 235.851)";
+const SKY_SOFT = "oklch(0.87 0.074 235.851)";
+const SKY_MID = "oklch(0.8 0.117 235.851)";
+const SKY_DEEP = "oklch(0.66 0.142 235.851)";
+const VIOLET_SOFT = "oklch(0.87 0.088 311.928)";
+const VIOLET_MID = "oklch(0.8 0.14 311.928)";
+const VIOLET_DEEP = "oklch(0.66 0.233 311.928)";
 /* La escala neutra del sdk corre al reves que la de este repo: su
    `neutral-1100` es el BLANCO (lo que en `vti` es `neutral-50`) y su
    `neutral-200` es un gris oscuro. Se resuelven aqui a su valor literal para
@@ -159,12 +187,12 @@ const ScFaces = styled.div`
   width: 82%;
   height: 82%;
   perspective: 900px;
-  --glow-p-soft: ${mix(P300, 45)};
-  --glow-s-soft: ${mix(S300, 40)};
-  --glow-p-40: ${mix(P500, 40)};
-  --glow-s-25: ${mix(S500, 25)};
-  --rose-primary: ${P200};
-  --rose-secondary: ${S200};
+  --glow-p-soft: ${mix(SKY_MID, 45)};
+  --glow-s-soft: ${mix(VIOLET_MID, 40)};
+  --glow-p-40: ${mix(SKY_DEEP, 40)};
+  --glow-s-25: ${mix(VIOLET_DEEP, 25)};
+  --rose-primary: ${SKY_SOFT};
+  --rose-secondary: ${VIOLET_SOFT};
   --rose-neutral: ${ROSE_NEUTRAL};
 `;
 
@@ -238,7 +266,11 @@ const ScHalo = styled.div`
   transform: translate(-50%, -50%);
   border-radius: ${({ theme }) => theme.data.radius.full};
   filter: blur(14px);
-  background-image: radial-gradient(circle, ${mix(P100, 65)}, transparent 68%);
+  background-image: radial-gradient(
+    circle,
+    ${mix(SKY_HAZE, 65)},
+    transparent 68%
+  );
 
   @media ${MOTION_OK} {
     animation: ${haloGlow} ${AMBIENT.breathMs}ms ease-in-out infinite;
@@ -288,11 +320,11 @@ const ScCorona = styled.div`
   filter: blur(9px);
   background-image: conic-gradient(
     from 0deg,
-    ${P200},
-    ${S300} 25%,
-    ${P300} 50%,
-    ${S200} 75%,
-    ${P200} 100%
+    ${SKY_SOFT},
+    ${VIOLET_MID} 25%,
+    ${SKY_MID} 50%,
+    ${VIOLET_SOFT} 75%,
+    ${SKY_SOFT} 100%
   );
 
   @media ${MOTION_OK} {
@@ -330,10 +362,10 @@ const ScRay = styled.div`
   border-radius: 3px;
   transform-origin: 50% 100%;
   filter: blur(1px);
-  background-image: linear-gradient(to top, ${P300}, transparent);
+  background-image: linear-gradient(to top, ${SKY_MID}, transparent);
 
   &:nth-child(even) {
-    background-image: linear-gradient(to top, ${S300}, transparent);
+    background-image: linear-gradient(to top, ${VIOLET_MID}, transparent);
   }
 
   @media ${MOTION_OK} {
@@ -390,11 +422,11 @@ const ScCoreSweep = styled.div`
   border-radius: ${({ theme }) => theme.data.radius.full};
   background-image: conic-gradient(
     from 0deg,
-    ${P200},
-    ${S300} 25%,
-    ${P300} 50%,
-    ${S200} 75%,
-    ${P200} 100%
+    ${SKY_SOFT},
+    ${VIOLET_MID} 25%,
+    ${SKY_MID} 50%,
+    ${VIOLET_SOFT} 75%,
+    ${SKY_SOFT} 100%
   );
 
   @media ${MOTION_OK} {
