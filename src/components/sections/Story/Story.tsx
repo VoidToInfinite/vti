@@ -109,22 +109,68 @@ const PILLARS = [
   { key: "practice", number: "04" },
 ] as const;
 
-/** Color de cada numero de pilar: los tres primeros son pasos reales de
- *  `palette.primary`/`palette.secondary` (mockup L82/87/92: `--primary-500`,
- *  `--secondary-500`, `--secondary-600`) -- referencia directa al tema, no
- *  un literal nuevo. El cuarto pilar ("practice", 2026-07-28) continua la
- *  MISMA rampa un paso mas (`secondary[700]`). `palette.*` no cambia entre
- *  temas (vive en `shared` de `themes.ts`), asi que estos colores sirven
- *  tal cual en las dos ramas. */
+/**
+ * Acento del NUMERO de pilar (`ScPillarNumber`), cuyo unico consumidor vivo
+ * es la rama OSCURA -- las tarjetas claras pintan `pillarBadgeAccent`, otra
+ * escala y otro fondo (ver su docblock, mas abajo).
+ *
+ * Nacio copiando el mockup claro (L82/87/92: `--primary-500`,
+ * `--secondary-500`, `--secondary-600`) y continuando esa MISMA rampa un paso
+ * mas para el cuarto pilar ("practice", 2026-07-28: `secondary[700]`). Como
+ * `palette.*` no cambia entre temas (vive en `shared` de `themes.ts`), la
+ * escala se heredo tal cual al deck oscuro -- y ahi el sentido de la rampa
+ * juega EN CONTRA: cada paso mas alto es mas oscuro, y el fondo tambien lo es.
+ *
+ * CRITICA EXTERNA #12 (2026-08-19) lo midio: el numeral "04"
+ * (`secondary[700]`, `oklch(0.53 0.212 311.928)`, 14px/700) daba **3.01:1**
+ * sobre el pixel real de la escena bajo esa diapositiva (`#280739`) -- el
+ * UNICO fallo de contraste en los ~110 elementos que audito. AA pide 4.5:1
+ * (14px en negrita no llega al umbral de "texto grande", que exige >=18.66px).
+ *
+ * ARREGLO: la cadena `secondary` se desplaza UN paso hacia el lado claro
+ * (500->400, 600->500, 700->600). No se toca el 01 (`primary[500]`, otro hue,
+ * 7.82:1 -- cambio minimo). Por que un desplazamiento UNIFORME de los tres y
+ * no solo del que fallaba, mismo criterio que `LABEL_SAFE_STEP`
+ * (`Journey.tsx`, fix wave E) ya sanciono para este mismo patron: subir solo
+ * el 04 al unico escalon que libra AA y sigue siendo distinguible lo dejaria
+ * o pintando el MISMO color que el 03 (`secondary[600]`) o INVIRTIENDO la
+ * progresion del mockup (400 es mas claro que el 500 del 02). Con los tres
+ * movidos a la vez, la progresion relativa "cada pilar un paso mas hondo en la
+ * misma rampa" queda intacta y ningun escalon cae por debajo del piso AA.
+ *
+ * Ratios medidos (`contrastRatio`/`contrastRatioHex`, `Story.test.tsx`,
+ * describe "critica #12") contra los TRES fondos medibles por codigo de esta
+ * rama -- el pixel de la escena que midio la critica, el void declarado de
+ * `storyCosmicBeing.layers.ts` y `semantic.bg`, que es lo que asoma donde la
+ * escena no cubre:
+ *
+ * | pilar | antes            | #280739 | despues          | #280739 |
+ * |-------|------------------|---------|------------------|---------|
+ * | 01    | `primary[500]`   | 7.82:1  | `primary[500]`   | 7.82:1  |
+ * | 02    | `secondary[500]` | 6.45:1  | `secondary[400]` | 7.68:1  |
+ * | 03    | `secondary[600]` | 5.08:1  | `secondary[500]` | 6.45:1  |
+ * | 04    | `secondary[700]` | 3.01:1  | `secondary[600]` | 5.08:1  |
+ *
+ * Se exporta la funcion PURA (valor, sin `theme` de styled-components) y no
+ * el envoltorio de abajo, mismo motivo y mismo precedente que
+ * `pillarBadgeAccent`: es lo que permite que el test MIDA el contraste real
+ * contra los mismos tokens que pinta el componente, en vez de repetir aqui y
+ * alli una tabla de acentos que se desincronizaria al primer retoque.
+ */
+export function pillarAccent(
+  palette: ThemeDefinition["palette"],
+  index: number,
+): string {
+  if (index === 0) return palette.primary[500];
+  if (index === 1) return palette.secondary[400];
+  if (index === 2) return palette.secondary[500];
+  return palette.secondary[600];
+}
+
 function pillarColor(
   index: number,
 ): (props: { theme: DefaultTheme }) => string {
-  return ({ theme }) => {
-    if (index === 0) return theme.data.palette.primary[500];
-    if (index === 1) return theme.data.palette.secondary[500];
-    if (index === 2) return theme.data.palette.secondary[600];
-    return theme.data.palette.secondary[700];
-  };
+  return ({ theme }) => pillarAccent(theme.data.palette, index);
 }
 
 /*
@@ -866,12 +912,19 @@ const ScPillarCard = styled.div`
  * contraste que la propia spec exige en su §3 (el número sobre el fondo
  * `color-mix` del badge), **tres de los cuatro acentos no llegaban a AA**:
  *
- * | pilar | `pillarColor`      | sobre `surface` | sobre el `color-mix` 12% |
- * |-------|--------------------|-----------------|--------------------------|
- * | 01    | `primary[500]`     | 2.28:1          | 2.06:1                   |
- * | 02    | `secondary[500]`   | 2.76:1          | 2.45:1                   |
- * | 03    | `secondary[600]`   | 3.50:1          | 3.05:1                   |
- * | 04    | `secondary[700]`   | 5.92:1          | 4.98:1                   |
+ * | pilar | `pillarColor` (2026-08-06) | sobre `surface` | sobre el `color-mix` 12% |
+ * |-------|---------------------------|-----------------|--------------------------|
+ * | 01    | `primary[500]`            | 2.28:1          | 2.06:1                   |
+ * | 02    | `secondary[500]`          | 2.76:1          | 2.45:1                   |
+ * | 03    | `secondary[600]`          | 3.50:1          | 3.05:1                   |
+ * | 04    | `secondary[700]`          | 5.92:1          | 4.98:1                   |
+ *
+ * La columna del medio es la escala que `pillarAccent` (antes `pillarColor`)
+ * tenia EN AQUELLA FECHA; desde la critica externa #12 (2026-08-19) su cadena
+ * `secondary` va un paso mas clara (ver su docblock). La medicion de arriba no
+ * se re-hace ni se borra: describe por que ESTA funcion existe, y esa razon no
+ * cambia -- un acento pensado para leerse sobre el void oscuro nunca fue el
+ * mismo que hace falta sobre el blanco de una tarjeta.
  *
  * Es decir: la spec se contradecía a sí misma, y gana §3 -- un requisito de
  * accesibilidad no cede ante una preferencia de reutilización. El propio
@@ -883,9 +936,11 @@ const ScPillarCard = styled.div`
  * CUATRO libran AA (los ratios reales los mide `Story.test.tsx`, contra los
  * tokens importados, nunca contra literales copiados aquí).
  *
- * `pillarColor` NO se toca: sigue siendo el acento de `ScPillarNumber`, que
- * es la pieza de la rama OSCURA (vía `ScDeckPillarRow`), donde el fondo es
- * otro y los ratios son otros.
+ * Las dos escalas siguen SEPARADAS: `pillarAccent` es el acento de
+ * `ScPillarNumber`, la pieza de la rama OSCURA (vía `ScDeckPillarRow`), donde
+ * el fondo es otro y los ratios son otros -- por eso la crítica #12 pudo mover
+ * aquella sin tocar esta, y por eso las dos tienen su propio candado de
+ * contraste en `Story.test.tsx`.
  */
 export function pillarBadgeAccent(
   palette: ThemeDefinition["palette"],

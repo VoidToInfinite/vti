@@ -11,7 +11,7 @@ import enHome from "@/i18n/locales/en/home.json";
 import esCommon from "@/i18n/locales/es/common.json";
 import i18n from "@/i18n/config";
 import { links } from "@/config/links";
-import { Story, pillarBadgeAccent } from "./Story";
+import { Story, pillarAccent, pillarBadgeAccent } from "./Story";
 import { DECK, PRESS, REVEAL } from "@/motion/vocabulary";
 import { motion } from "@/theme/tokens/motion";
 import { contrastRatio, contrastRatioHex } from "@/theme/tokens/contrast";
@@ -2492,5 +2492,124 @@ describe("Story: critica #12 -- el h2 separa sus dos mitades con un espacio real
    * ("curiosidada la creacion"); retirarlo de `ScDeckTitle`, el segundo. Cada
    * rama tiene su propio candado a proposito: un solo test no habria visto la
    * mitad que faltaba.
+   */
+});
+
+/*
+ * Critica externa #12 (2026-08-19), P2 de contraste: el numeral "04" de la
+ * diapositiva de pilar del deck OSCURO (`ScPillarNumber`, 14px/700,
+ * `secondary[700]` = `oklch(0.53 0.212 311.928)`) daba 3.01:1 sobre el pixel
+ * real de la escena bajo esa diapositiva -- el UNICO fallo de contraste en los
+ * ~110 elementos que la critica audito. El arreglo y por que se mueven los
+ * TRES escalones de `secondary` y no solo el que fallaba viven en el docblock
+ * de `pillarAccent` (`Story.tsx`).
+ *
+ * Se mide contra los TRES fondos que esta rama tiene medibles por codigo,
+ * mismo criterio que el candado del rail de Journey (describe "critica #10
+ * hallazgo A") y que el de `ScQuoteText`: jsdom no compone las 11 capas WebP
+ * de `StoryCosmicBeing`, asi que lo mas cercano al pixel real que existe en el
+ * repo es (1) el pixel que MIDIO la critica, (2) el void declarado de la
+ * escena y (3) `semantic.bg`, que es lo que asoma donde la escena no cubre.
+ *
+ * El test NO compara el acento con un color esperado escrito a mano -- eso
+ * seria la tautologia de `task/lessons.md` 2026-08-11 (el valor esperado se
+ * moveria con el defecto): MIDE el ratio del color que el componente pinta de
+ * verdad, asi que cualquier escalon que no libre AA lo pone en rojo, venga de
+ * donde venga.
+ */
+describe("Story: critica #12 -- el numeral de pilar del deck oscuro libra AA sobre la escena", () => {
+  /* Pixel MEDIDO por la critica externa #12 bajo la diapositiva 04 (la escena
+     compuesta, no un token): el dato mas cercano al render real que existe.
+     Vive en el test y no en `src/` a proposito -- no es un color del sistema,
+     es una observacion. */
+  const PIXEL_MEDIDO_CRITICA_12 = "#280739";
+  const AA = 4.5;
+
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it.each([0, 1, 2, 3])(
+    "el acento del pilar %i libra 4.5:1 sobre el pixel medido, el void de la escena y semantic.bg",
+    (index) => {
+      const acento = pillarAccent(basicDarkTheme.palette, index);
+
+      const sobrePixel = contrastRatioHex(acento, PIXEL_MEDIDO_CRITICA_12);
+      const sobreVoid = contrastRatioHex(acento, STORY_COSMIC_BEING_VOID);
+      const sobreBg = contrastRatio(acento, basicDarkTheme.semantic.bg);
+
+      expect(
+        sobrePixel,
+        `pixel medido: ${sobrePixel.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(AA);
+      expect(
+        sobreVoid,
+        `void de la escena: ${sobreVoid.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(AA);
+      expect(
+        sobreBg,
+        `semantic.bg: ${sobreBg.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(AA);
+    },
+  );
+
+  /*
+   * Sonda de NO-VACUIDAD: el umbral de arriba tiene que ser capaz de fallar.
+   * El escalon que la critica midio (`secondary[700]`, el que este arreglo
+   * retira) sigue incumpliendo sobre el mismo pixel -- si algun dia esta
+   * asercion se pusiera en verde, el modelo de medicion habria dejado de
+   * describir el defecto y el candado de arriba dejaria de proteger nada.
+   */
+  it("el escalon retirado (secondary[700]) SIGUE incumpliendo sobre el mismo pixel: el umbral no es vacuo", () => {
+    const ratio = contrastRatioHex(
+      basicDarkTheme.palette.secondary[700],
+      PIXEL_MEDIDO_CRITICA_12,
+    );
+    expect(ratio, `secondary[700]: ${ratio.toFixed(2)}:1`).toBeLessThan(AA);
+  });
+
+  /*
+   * Que el COMPONENTE consuma de verdad el acento que se mide arriba: sin
+   * esta mitad, las cifras seguirian saliendo bien aunque `ScPillarNumber`
+   * hubiera vuelto a pintar otro escalon (regla 38 -- contra el token
+   * importado, nunca contra una cadena a mano). Los cuatro numerales, no solo
+   * el 04: el arreglo movio tres escalones.
+   */
+  it("los cuatro numerales pintan EXACTAMENTE el acento medido (CSS inyectado, no un color suelto)", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+
+    [0, 1, 2, 3].forEach((index) => {
+      const numeral = screen.getByText(`0${index + 1}`);
+      expect(cssRuleTextFor(numeral)).toContain(
+        `color: ${pillarAccent(basicDarkTheme.palette, index)}`,
+      );
+    });
+  });
+
+  /*
+   * DOS bugs inyectados a proposito (regla 34), ejecutados en esta tarea --
+   * dos, y no uno, porque cada mitad del candado protege una propiedad
+   * distinta y el primer sabotaje NO pone en rojo la segunda:
+   *
+   * (a) devolver `palette.secondary[700]` al cuarto pilar de `pillarAccent`
+   *     (`Story.tsx`) pone en rojo el caso `%i = 3` del primer `it`, con la
+   *     cifra exacta de la critica ("pixel medido: 3.01:1"). El candado de CSS
+   *     inyectado sigue en VERDE con este sabotaje, y es correcto que asi sea:
+   *     el componente y el test leen la misma funcion, asi que lo que ese
+   *     candado vigila es que no DIVERJAN, no cual es el valor.
+   * (b) cambiar el `color` de `ScPillarNumber` por otro token
+   *     (`semantic.textMuted`) pone en rojo el candado de CSS inyectado -- la
+   *     divergencia que (a) no puede ver.
+   *
+   * Restaurados los dos, los seis `it` de este describe vuelven a verde.
    */
 });
