@@ -65,8 +65,9 @@ function oklch(triplet: string, alpha: number): string {
    el hue si coincide con el de su rampa, pero la pareja L+croma no coincide
    con ninguno de los doce pasos -- la escalera de L es
    0.985/0.96/0.92/0.86/0.78/0.737/0.66/0.53/0.5/0.42/0.32/0.22 y el croma de
-   cada paso sale de multiplicarla por su CMUL, asi que "L de un paso + croma
-   de otro" no existe en la escala. */
+   cada paso es el croma pico de su rampa (0.158 en primary, 0.259 en
+   secondary) multiplicado por el CMUL de ese paso, asi que "L de un paso +
+   croma de otro" no existe en la escala. */
 const RING_1 = "0.66 0.142 235.851"; // hue primary; L del paso 600, croma del 400
 const RING_2 = "0.66 0.233 311.928"; // hue secondary; L del paso 600, croma del 400
 const RING_3 = "0.8 0.117 235.851"; // hue primary; L y croma fuera de la escalera
