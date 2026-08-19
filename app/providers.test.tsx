@@ -132,6 +132,10 @@ describe("Providers + LocaleShell", () => {
  * ramas (o a bajar `Providers` a la 404), este candado cae antes de que la
  * regresión llegue a medirse en un build.
  *
+ * La 404 llega hoy a `LocaleShell` a través de `NotFoundLocaleShell`
+ * (2026-08-20, idioma resuelto desde la URL rota): son dos eslabones y el
+ * candado recorre los dos — ver el `it` correspondiente.
+ *
  * Se lee la FUENTE con `node:fs`, mismo patrón que `app/layout.test.ts`, y se
  * despojan comentarios ANTES de buscar (lección del 2026-08-11: `toContain`
  * sobre fuente cruda da por activa una línea comentada, y aquí los docblocks
@@ -166,10 +170,28 @@ describe("dónde se monta cada mitad del árbol (candado de presupuesto)", () =>
     },
   );
 
-  it("la 404 monta `LocaleShell`, no `Providers` (su árbol viaja en TODAS las páginas)", () => {
-    const source = fuenteSinComentarios("not-found.tsx");
+  /*
+   * DESDE EL 2026-08-20 LA 404 MONTA `LocaleShell` A TRAVÉS DE UNA CÁSCARA, y
+   * el candado sigue a la cadena entera en vez de aflojarse.
+   *
+   * El `locale="es"` fijo se retiró al arreglar la 404 inglesa (`GET
+   * /en/lo-que-sea` respondía en castellano): el idioma lo resuelve ahora
+   * `NotFoundLocaleShell` leyendo la URL rota en cliente. La condición que
+   * este bloque protege NO ha cambiado —la 404 no puede montar `Providers`,
+   * porque su árbol viaja en el manifiesto de cliente de todas las páginas—,
+   * así que se comprueban los DOS eslabones: que la página monte la cáscara, y
+   * que la cáscara siga montando `LocaleShell`. Comprobar solo el primero
+   * dejaría pasar una cáscara que montara cualquier otra cosa.
+   */
+  it("la 404 monta `LocaleShell` vía `NotFoundLocaleShell`, no `Providers` (su árbol viaja en TODAS las páginas)", () => {
+    const pagina = fuenteSinComentarios("not-found.tsx");
 
-    expect(source).toContain('<LocaleShell locale="es">');
-    expect(source).not.toContain("<Providers");
+    expect(pagina).toContain("<NotFoundLocaleShell>");
+    expect(pagina).not.toContain("<Providers");
+
+    const cascara = fuenteSinComentarios("NotFoundLocaleShell.tsx");
+
+    expect(cascara).toContain("<LocaleShell locale={locale}>");
+    expect(cascara).not.toContain("<Providers");
   });
 });
