@@ -108,6 +108,7 @@ describe("system tokens", () => {
       const expectedGrid = {
         containerMax: "1200px",
         navMax: "1280px",
+        sectionMax: "1280px",
         // Token NUEVO de la crítica externa #10 (2026-08-18): el tope de la
         // columna de copia del hero, que hasta esa fecha se escribía a mano
         // en cinco declaraciones. Contrato ACTUALIZADO, no relajado (regla
@@ -131,6 +132,19 @@ describe("system tokens", () => {
       expect(grid.navMax).toBe("1280px");
       const px = (v: string): number => Number(v.replace("px", ""));
       expect(px(grid.navMax)).toBeGreaterThan(px(grid.containerMax));
+    });
+
+    /*
+     * sectionMax nombra el ancho de contenido de las secciones a sangre
+     * completa, que hasta la crítica #12 vivía como cuatro constantes
+     * literales y dos lecturas prestadas de navMax (contra el docblock del
+     * propio navMax). La igualdad con navMax se documenta como HECHO actual,
+     * no como contrato: el candado fija el valor propio de sectionMax y NO
+     * ata los dos tokens entre sí, porque su razón de existir es que puedan
+     * divergir.
+     */
+    it("sectionMax es 1280px, el ancho de contenido de las secciones a sangre", () => {
+      expect(grid.sectionMax).toBe("1280px");
     });
 
     /*
@@ -208,10 +222,12 @@ describe("system tokens", () => {
      *
      * Y así ocurrió: la crítica externa #10 (2026-08-18) añadió `heroCopyMax`
      * y este número SUBE de 4 a 5 en el mismo cambio, con su `it` de valor e
-     * intención arriba -- la mecánica funcionó en las dos direcciones.
+     * intención arriba -- la mecánica funcionó en las dos direcciones. La
+     * crítica #12 (2026-08-18) añade `sectionMax` y el número sube de 5 a 6,
+     * por el mismo camino.
      */
     it("grid es un objeto congelado (as const)", () => {
-      expect(Object.keys(grid)).toHaveLength(5);
+      expect(Object.keys(grid)).toHaveLength(6);
     });
   });
 });

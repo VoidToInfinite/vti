@@ -36,6 +36,28 @@ export const grid = {
    */
   navMax: "1280px",
   /**
+   * Ancho máximo del CONTENIDO de las secciones de la home que componen a
+   * sangre completa (Story, Journey, Features, Contact). Nombra una medida que
+   * ya existía repetida: hasta la crítica externa #12 (2026-08-18) el mismo
+   * valor vivía escrito a mano como cuatro constantes de sección
+   * (`STORY_DARK_MAX_WIDTH`, `JOURNEY_CONTENT_MAX_WIDTH`,
+   * `FEATURES_CONTENT_MAX_WIDTH`, `CONTACT_CONTENT_MAX_WIDTH`) y además dos
+   * secciones LEÍAN `navMax` como ancho de contenido — contra el docblock del
+   * propio `navMax`, que lo declara exclusivo de la píldora del navbar y
+   * exige que ambas medidas puedan divergir sin arrastrarse.
+   *
+   * Que hoy coincida numéricamente con `navMax` es un hecho, no un contrato:
+   * son magnitudes de propósitos distintos y este token existe precisamente
+   * para que retocar la píldora del navbar no mueva cuatro secciones.
+   *
+   * Lo que este token NO resuelve: la convivencia de DOS raíles en la misma
+   * página (`containerMax` 1200 vs este 1280, bordes de sección a 120 y 80 px
+   * — crítica #12, Craft dim. 4). Unificarlos es una decisión de diseño del
+   * dueño; nombrar la medida existente es refactor de vocabulario, no
+   * rediseño (mismo criterio que `heroCopyMax`).
+   */
+  sectionMax: "1280px",
+  /**
    * Tope de ancho de la COLUMNA DE COPIA DEL HERO. Gobierna hoy cinco
    * declaraciones y ninguna más: `ScCopy` (el contenedor de la columna, en su
    * forma centrada y otra vez dentro del `min(..., 70%)` de escritorio),
