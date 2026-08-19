@@ -2438,3 +2438,59 @@ describe("Story: escala tipografica y texto de inspiracion de la diapositiva (te
     }
   });
 });
+
+/*
+ * Critica externa #12 (2026-08-19). El h2 de Story pintaba
+ * `{titleLead}<br /><ScAccent>{titleAccent}</ScAccent>` SIN separador entre
+ * las dos mitades, en las DOS ramas. El nombre accesible NO estaba roto --
+ * la propia critica lo verifico por CDP: Chrome inserta un espacio al cruzar
+ * un `<br>` al calcular AccName -- pero `textContent` concatenaba
+ * "curiosidada la creacion", y `Contact.tsx` ya separaba asi las suyas: era
+ * la unica inconsistencia con el patron hermano.
+ *
+ * Se asevera sobre `textContent` con `toBe`, NO con `toHaveTextContent`, que
+ * compara por SUBSTRING y habria seguido en verde con el texto pegado
+ * (leccion del repo, `task/lessons.md` 2026-08-11). El valor esperado se
+ * compone desde el JSON de i18n -- la MISMA fuente que consume el
+ * componente -- y no desde el artefacto que el componente produce.
+ *
+ * Las DOS ramas en el mismo describe porque las dos pintan el MISMO titulo
+ * con la misma particion (`DESIGN.md` §4: el contenido no ramifica por tema,
+ * solo el vehiculo y el arte). Un arreglo en una sola de ellas volveria a
+ * abrir la divergencia que las Tasks 15-16 cerraron.
+ */
+describe("Story: critica #12 -- el h2 separa sus dos mitades con un espacio real", () => {
+  const ESPERADO = `${esHome.Home.story.titleLead} ${esHome.Home.story.titleAccent}`;
+
+  it("rama clara: el textContent del h2 es exactamente titleLead + espacio + titleAccent", () => {
+    const { container } = renderWithProviders(<Story />);
+    const h2 = container.querySelector("h2#story-title") as HTMLElement;
+
+    expect(h2).not.toBeNull();
+    expect(h2.textContent).toBe(ESPERADO);
+  });
+
+  it("rama oscura: el textContent del h2 de la diapositiva 0 es el mismo, caracter a caracter", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Story />);
+      await waitFor(() => {
+        expect(container.querySelector("h2#story-title")).toBeInTheDocument();
+      });
+      const h2 = container.querySelector("h2#story-title") as HTMLElement;
+
+      expect(h2.textContent).toBe(ESPERADO);
+    } finally {
+      window.localStorage.clear();
+    }
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), ejecutado en esta tarea: retirar el
+   * `{" "}` de `ScTitle` (`Story.tsx`) pone en rojo el primer `it`
+   * ("curiosidada la creacion"); retirarlo de `ScDeckTitle`, el segundo. Cada
+   * rama tiene su propio candado a proposito: un solo test no habria visto la
+   * mitad que faltaba.
+   */
+});

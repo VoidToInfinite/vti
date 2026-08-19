@@ -1467,12 +1467,19 @@ function StoryLight(): ReactElement {
         <ScEyebrowBar aria-hidden="true" />
         <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
       </ScEyebrowRow>
+      {/* `{" "}` ANTES del `<br />` (critica externa #12, 2026-08-19): sin el,
+          las dos mitades del titulo se concatenan sin separador en
+          `textContent` ("curiosidada la creacion") -- el nombre accesible se
+          salva porque Chrome inserta un espacio al cruzar un `<br>`, pero
+          cualquier consumidor que lea el TEXTO del nodo (un test, un scraper,
+          un motor de busqueda) lee las dos palabras pegadas. `Contact.tsx` ya
+          separaba asi las suyas; esta era la unica de las dos ramas del h2 de
+          Story que no lo hacia. */}
       <ScTitle
         variant="h2"
         id="story-title"
       >
-        {t("Home.story.titleLead")}
-        <br />
+        {t("Home.story.titleLead")} <br />
         <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
       </ScTitle>
       <ScBody variant="body">{t("Home.story.body")}</ScBody>
@@ -1669,9 +1676,13 @@ function StoryDeckDark(): ReactElement {
                 {t("Home.story.support")}
               </ScDeckSupportLead>
               <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
+              {/* `{" "}` ANTES del `<br />`: mismo arreglo y mismo motivo que
+                  en la rama clara (ver el comentario de `heading`, mas arriba
+                  en este fichero) -- las dos ramas pintan el MISMO titulo, asi
+                  que el separador tiene que estar en las dos o el texto de una
+                  de ellas se lee pegado. */}
               <ScDeckTitle id="story-title">
-                {t("Home.story.titleLead")}
-                <br />
+                {t("Home.story.titleLead")} <br />
                 <ScAccent>{t("Home.story.titleAccent")}</ScAccent>
               </ScDeckTitle>
               <ScDeckIntroBody>{t("Home.story.body")}</ScDeckIntroBody>
