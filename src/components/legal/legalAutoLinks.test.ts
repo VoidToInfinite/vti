@@ -14,6 +14,15 @@ import {
  * registro real: así el test describe la función y no se convierte en una
  * copia del registro que dejaría de fallar cada vez que alguien lo cambie.
  * El registro real tiene sus propios candados, más abajo.
+ *
+ * El host de juguete es `example.invalid` y no uno inventado: el candado
+ * `no-external-hosts.test.ts` (Task 18) exige que TODO `https://` de `src/`
+ * resuelva a un host de su allowlist, comparando el host EXACTO. Ese TLD está
+ * reservado por RFC 2606 (nunca resuelve) y ya vive en esa allowlist con su
+ * motivo escrito, así que reusarlo evita abrir una excepción nueva por un
+ * fixture — mismo criterio que `vocabulary-consumers.test.ts` dejó dicho.
+ * Por eso también el destino CORTO comparte host: lo que ese caso ejercita es
+ * el desempate por longitud del TEXTO, no el destino.
  */
 const UNO: LegalAutoLink = {
   text: "uno@x.test",
@@ -21,8 +30,8 @@ const UNO: LegalAutoLink = {
   external: false,
 };
 const DOS: LegalAutoLink = {
-  text: "www.dos.test",
-  href: "https://www.dos.test",
+  text: "example.invalid",
+  href: "https://example.invalid",
   external: true,
 };
 const JUGUETE = [UNO, DOS] as const;
@@ -54,12 +63,15 @@ describe("splitAutoLinks", () => {
 
   it("dos destinos DISTINTOS en el mismo texto se enlazan cada uno con el suyo", () => {
     expect(
-      splitAutoLinks("escribe a uno@x.test o visita www.dos.test hoy", JUGUETE),
+      splitAutoLinks(
+        "escribe a uno@x.test o visita example.invalid hoy",
+        JUGUETE,
+      ),
     ).toEqual([
       { text: "escribe a ", link: null },
       { text: "uno@x.test", link: UNO },
       { text: " o visita ", link: null },
-      { text: "www.dos.test", link: DOS },
+      { text: "example.invalid", link: DOS },
       { text: " hoy", link: null },
     ]);
   });
@@ -78,13 +90,13 @@ describe("splitAutoLinks", () => {
    * primero la sede y después el correo saldría con los tramos cruzados.
    */
   it("el orden de los tramos lo marca el texto, no el orden del registro", () => {
-    expect(splitAutoLinks("www.dos.test antes de uno@x.test", JUGUETE)).toEqual(
-      [
-        { text: "www.dos.test", link: DOS },
-        { text: " antes de ", link: null },
-        { text: "uno@x.test", link: UNO },
-      ],
-    );
+    expect(
+      splitAutoLinks("example.invalid antes de uno@x.test", JUGUETE),
+    ).toEqual([
+      { text: "example.invalid", link: DOS },
+      { text: " antes de ", link: null },
+      { text: "uno@x.test", link: UNO },
+    ]);
   });
 
   /*
@@ -95,17 +107,17 @@ describe("splitAutoLinks", () => {
    */
   it("a igualdad de posición gana el destino más largo", () => {
     const CORTO: LegalAutoLink = {
-      text: "www.dos",
-      href: "https://www.dos",
+      text: "example",
+      href: "https://example.invalid",
       external: true,
     };
-    expect(splitAutoLinks("www.dos.test", [CORTO, DOS])).toEqual([
-      { text: "www.dos.test", link: DOS },
+    expect(splitAutoLinks("example.invalid", [CORTO, DOS])).toEqual([
+      { text: "example.invalid", link: DOS },
     ]);
   });
 
   it("no reconstruye nada: la concatenación de los tramos es el texto original", () => {
-    const original = "uno@x.test, y también www.dos.test. Fin.";
+    const original = "uno@x.test, y también example.invalid. Fin.";
     const recompuesto = splitAutoLinks(original, JUGUETE)
       .map((piece) => piece.text)
       .join("");
