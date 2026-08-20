@@ -3281,3 +3281,51 @@ describe("Navbar", () => {
     });
   });
 });
+
+/*
+ * CRITICA #13, verificacion de la ola I: A 200 % DE FUENTE LA HAMBURGUESA
+ * QUEDABA FUERA DE PANTALLA.
+ *
+ * Medido en navegador real (390x844, raiz del documento a 32px, que es lo que
+ * hereda este sitio porque no declara `font-size` en `html`): el boton del
+ * menu aterrizaba en `left: 434` sobre 390px de ancho -- entero fuera del
+ * viewport -- y `document.elementFromPoint` sobre su centro devolvia null. La
+ * unica navegacion en movil dejaba de existir. Causa: `ScNav` es un flex y
+ * sus items no encogen por debajo de su contenido (`min-width: auto` es el
+ * valor inicial), asi que al escalar todo en `rem` a la vez la fila medía mas
+ * que la pantalla y el grupo de la derecha se salia.
+ *
+ * jsdom NO hace layout, asi que aqui no se puede reproducir la geometria: lo
+ * que se ata es la DECLARACION que la gobierna, leida de las reglas que
+ * inyecta styled-components. La geometria quedo verificada en navegador
+ * (tras el arreglo: `left: 314`, dentro del viewport y alcanzable) y esa
+ * medicion vive en el docblock de `ScBrandLink`.
+ */
+describe("critica #13: la marca cede espacio antes que los controles", () => {
+  it("la marca declara min-width: 0 (sin el, un item flex nunca encoge)", () => {
+    renderNavbar();
+    const marca = allCssRules().filter(
+      (r) => r.includes("min-height: 44px") && r.includes("font-size: 1.15rem"),
+    );
+    expect(marca.length).toBeGreaterThan(0);
+    expect(marca.join(" ")).toContain("min-width: 0");
+  });
+
+  it("el rotulo de la marca se recorta con puntos suspensivos en vez de empujar", () => {
+    renderNavbar();
+    const conRecorte = allCssRules().filter(
+      (r) =>
+        r.includes("text-overflow: ellipsis") &&
+        r.includes("white-space: nowrap"),
+    );
+    expect(conRecorte.length).toBeGreaterThan(0);
+  });
+
+  it("el grupo de controles declara flex: none y NUNCA cede", () => {
+    renderNavbar();
+    const acciones = allCssRules().filter(
+      (r) => r.includes("flex: none") && r.includes("align-items: center"),
+    );
+    expect(acciones.length).toBeGreaterThan(0);
+  });
+});

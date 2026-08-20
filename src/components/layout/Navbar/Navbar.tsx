@@ -450,6 +450,31 @@ const ScNav = styled.nav`
  * `align-items: center` ya centran el contenido: min-height solo agranda la
  * caja de clic, no cambia el aspecto visual del logo ni del nombre.
  */
+/*
+ * `min-width: 0` + recorte del rotulo: la marca CEDE espacio antes que los
+ * controles (critica externa #13, verificacion de la ola I).
+ *
+ * El defecto que cierra, medido en navegador a 390x844 con la raiz del
+ * documento en 32px (el 200 % de la preferencia del usuario, que este sitio
+ * hereda porque no declara `font-size` en `html`): la fila del navbar es un
+ * flex con `space-between`, y sus items no encogen por debajo de su
+ * contenido -- `min-width: auto` es el valor inicial de un item flex. Con
+ * todo escalando en `rem` a la vez (gap, padding lateral y el 1.15rem de
+ * esta marca), la fila medía mas que el viewport y el grupo de la derecha
+ * salia fuera: la hamburguesa quedaba en `left: 434` sobre 390px de ancho,
+ * ENTERAMENTE fuera de pantalla y no alcanzable (`document.elementFromPoint`
+ * sobre su centro devolvia null). A 200 % de fuente no habia forma de abrir
+ * el menu de navegacion.
+ *
+ * Por que ceder aqui y no en los controles: la marca es texto y degrada
+ * legiblemente con puntos suspensivos; la hamburguesa, el conmutador de tema
+ * y el selector de idioma son dianas de 44px que WCAG 2.5.8 no deja encoger
+ * y que ademas son la unica via de navegacion en movil. Entre recortar un
+ * rotulo y perder el menu, se recorta el rotulo.
+ *
+ * El logotipo (`flex: none` en su propio bloque) no se recorta: lo que cede
+ * es el texto de al lado.
+ */
 const ScBrandLink = styled(Link)`
   display: inline-flex;
   align-items: center;
@@ -457,11 +482,22 @@ const ScBrandLink = styled(Link)`
   min-height: 44px;
   font-size: 1.15rem;
   color: ${({ theme }) => theme.data.semantic.text};
+  min-width: 0;
+  overflow: hidden;
+
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
+/* `flex: none`: el grupo de controles NUNCA cede espacio (ver el docblock de
+   `ScBrandLink`). Son dianas de 44px y la unica navegacion en movil. */
 const ScActions = styled.div`
   display: flex;
   align-items: center;
+  flex: none;
   gap: ${({ theme }) => theme.data.space[3]};
 `;
 
