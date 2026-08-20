@@ -1669,6 +1669,31 @@ export function Contact(): ReactElement {
   const emailRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
   /*
+   * "Este campo ya suspendió una vez" (crítica externa #13, 2026-08-19).
+   *
+   * Reproducción del defecto que cierran: tras un envío inválido,
+   * `contact-email` quedaba con `aria-invalid="true"` y su mensaje; al
+   * escribir `no-es-un-correo` el `onChange` retiraba los dos (correcto: ver
+   * su comentario, dejar el error pintado mientras se corrige afirma un
+   * estado que el usuario ya está resolviendo), pero salir del campo con Tab
+   * NO revalidaba. El error no volvía hasta el siguiente envío, así que el
+   * formulario dejaba avanzar a quien ya había demostrado que necesitaba la
+   * corrección — WCAG 3.3.1/3.3.3 en espíritu: el aviso llega tarde y en el
+   * peor momento.
+   *
+   * `useRef` y no estado (regla 7): esta bandera no se materializa como
+   * ningún atributo del DOM ni cambia nada del render — lo único que se
+   * pinta sigue siendo `emailError`/`messageError`. Guardarla en estado
+   * añadiría un render por campo sin ninguna diferencia observable.
+   *
+   * NO se reinicia al corregir: el criterio es "una vez que un campo ha sido
+   * marcado inválido, revalida al salir de él". Volver a ocultarlo tras el
+   * primer acierto devolvería al usuario al modo silencioso justo cuando ya
+   * sabemos que este campo le está costando.
+   */
+  const emailFailedOnceRef = useRef(false);
+  const messageFailedOnceRef = useRef(false);
+  /*
    * Panel de fallback, revelado tras un envío VÁLIDO (D13 sigue vigente: NO
    * es un "enviado" -- este sitio no tiene backend al que postear, así que
    * nunca puede confirmar una entrega real). Resuelve el caso "mailto sin
@@ -1804,6 +1829,12 @@ export function Contact(): ReactElement {
     const messageInvalid = !hasMessage(message);
     setEmailError(emailInvalid);
     setMessageError(messageInvalid);
+    /* Desde este envío, cada campo que haya suspendido se revalida al salir
+       de él (ver el docblock de las dos banderas, más arriba). Se marcan aquí
+       y no en el `onBlur` porque es el envío -- no el foco -- lo que convierte
+       a un campo en "ya reprobado". */
+    if (emailInvalid) emailFailedOnceRef.current = true;
+    if (messageInvalid) messageFailedOnceRef.current = true;
     if (emailInvalid || messageInvalid) {
       /*
        * EL INTENTO RECHAZADO RETIRA EL PANEL DE RESPALDO (crítica externa #11,
@@ -1999,6 +2030,17 @@ export function Contact(): ReactElement {
                 // afirmaría un estado que el usuario ya resolvió.
                 if (emailError) setEmailError(false);
               }}
+              /* Revalidación al SALIR, solo si este campo ya suspendió un
+                 envío (crítica externa #13). Nunca mientras se teclea: avisar
+                 en cada pulsación es validación agresiva, y marca en rojo un
+                 correo que todavía se está escribiendo. `onBlur` es el
+                 momento en que el usuario ha terminado con el campo, así que
+                 es el primer instante en que juzgarlo es justo. */
+              onBlur={() => {
+                if (emailFailedOnceRef.current) {
+                  setEmailError(!isValidEmail(email));
+                }
+              }}
               autoComplete="email"
             />
           </Field>
@@ -2039,6 +2081,12 @@ export function Contact(): ReactElement {
                 // Mismo criterio que el correo, arriba: corregir retira el
                 // error de inmediato, sin esperar a otro envío.
                 if (messageError) setMessageError(false);
+              }}
+              /* Mismo criterio que el correo, arriba. */
+              onBlur={() => {
+                if (messageFailedOnceRef.current) {
+                  setMessageError(!hasMessage(message));
+                }
               }}
             />
           </Field>

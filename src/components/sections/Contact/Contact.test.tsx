@@ -3649,3 +3649,111 @@ describe("Contact: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)"
     }
   });
 });
+
+/*
+ * Critica externa #13 (2026-08-19): el error del campo se borraba al teclear y
+ * no volvia hasta el siguiente envio.
+ *
+ * Reproduccion del defecto: tras un envio invalido, `contact-email` quedaba
+ * con `aria-invalid="true"` y su mensaje; al escribir `no-es-un-correo` los
+ * dos desaparecian (eso es correcto y se conserva: mantener el error pintado
+ * mientras se corrige afirma un estado que el usuario ya esta resolviendo), y
+ * salir del campo NO revalidaba. El usuario solo volvia a enterarse al
+ * reenviar -- el aviso llegaba tarde y en el peor momento.
+ *
+ * El arreglo: una vez que un campo ha suspendido un envio, revalida al SALIR
+ * de el (`blur`). Nunca mientras se teclea: avisar en cada pulsacion marca en
+ * rojo un correo a medio escribir, que es peor que el defecto que arregla.
+ */
+describe("Contact: critica #13 -- el campo ya reprobado revalida al salir", () => {
+  function envioInvalidoDeCorreo(): HTMLInputElement {
+    const { container } = renderWithProviders(<Contact />);
+    const form = container.querySelector("form") as HTMLFormElement;
+    const input = screen.getByLabelText(
+      esHome.Home.contact.form.label,
+    ) as HTMLInputElement;
+
+    // El mensaje SI es valido: asi el unico error posible es el del correo.
+    escribirMensaje();
+    fireEvent.change(input, { target: { value: "no-es-un-correo" } });
+    fireEvent.submit(form);
+    return input;
+  }
+
+  it("teclear sigue retirando el error de inmediato (no se vuelve a validacion agresiva)", () => {
+    const input = envioInvalidoDeCorreo();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+
+    fireEvent.change(input, { target: { value: "sigue-sin-ser-un-correo" } });
+
+    // Mientras se teclea NO se juzga, aunque el valor siga siendo invalido.
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(
+      screen.queryByText(esHome.Home.contact.form.emailError),
+    ).not.toBeInTheDocument();
+  });
+
+  it("salir del campo con el valor todavia invalido devuelve el error, sin esperar a otro envio", () => {
+    const input = envioInvalidoDeCorreo();
+    fireEvent.change(input, { target: { value: "sigue-sin-ser-un-correo" } });
+    expect(input).not.toHaveAttribute("aria-invalid");
+
+    fireEvent.blur(input);
+
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(
+      screen.getByText(esHome.Home.contact.form.emailError),
+    ).toBeInTheDocument();
+    // Y el mensaje sigue asociado al control, no suelto en la pagina.
+    expect(input).toHaveAttribute(
+      "aria-describedby",
+      "contact-email-error contact-email-help",
+    );
+  });
+
+  it("salir del campo ya corregido lo deja limpio", () => {
+    const input = envioInvalidoDeCorreo();
+    fireEvent.change(input, { target: { value: "visitante@test.com" } });
+    fireEvent.blur(input);
+
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(
+      screen.queryByText(esHome.Home.contact.form.emailError),
+    ).not.toBeInTheDocument();
+  });
+
+  it("un campo que NUNCA ha suspendido no se valida al salir de el", () => {
+    renderWithProviders(<Contact />);
+    const input = screen.getByLabelText(
+      esHome.Home.contact.form.label,
+    ) as HTMLInputElement;
+
+    // Sin ningun envio previo: escribir algo invalido y salir no marca nada.
+    fireEvent.change(input, { target: { value: "todavia-escribiendo" } });
+    fireEvent.blur(input);
+
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(
+      screen.queryByText(esHome.Home.contact.form.emailError),
+    ).not.toBeInTheDocument();
+  });
+
+  it("el mensaje sigue el mismo criterio: revalida al salir solo si ya suspendio", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const form = container.querySelector("form") as HTMLFormElement;
+    const input = screen.getByLabelText(esHome.Home.contact.form.label);
+    const textarea = escribirMensaje("");
+
+    fireEvent.change(input, { target: { value: "visitante@test.com" } });
+    fireEvent.submit(form);
+    expect(textarea).toHaveAttribute("aria-invalid", "true");
+
+    // Escribir espacios en blanco retira el error (se esta corrigiendo)...
+    fireEvent.change(textarea, { target: { value: "   " } });
+    expect(textarea).not.toHaveAttribute("aria-invalid");
+
+    // ...y salir con el campo todavia vacio de contenido real lo devuelve.
+    fireEvent.blur(textarea);
+    expect(textarea).toHaveAttribute("aria-invalid", "true");
+  });
+});
