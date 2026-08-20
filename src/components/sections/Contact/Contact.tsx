@@ -393,7 +393,7 @@ const ScAccent = styled.span`
    sistema persigue (DESIGN.md 3.4). La causa era la ausencia de tope: dentro
    de ScLeft, la columna izquierda de la tarjeta mide ~660px y el parrafo
    ocupaba los 660 enteros. Se le pone el tope de medida del sistema,
-   grid.prose (52ch = ~65 caracteres reales; el porque del 52 y no del 65 vive
+   grid.prose (56ch = ~65 caracteres REALIZADOS; el porque del 56, y no del 52 ni del 65, vive
    en el docblock del propio token, grid.ts).
 
    Vale para las DOS ramas porque es el MISMO styled: en la rama oscura el

@@ -90,7 +90,10 @@ export function LegalHeader(): ReactElement {
   return (
     <ScHeader>
       <ScInner>
-        <ScBrandLink href={routePath("home", navLocale(i18n.language))}>
+        <ScBrandLink
+          href={routePath("home", navLocale(i18n.language))}
+          prefetch={false}
+        >
           <Logo size="1.5rem" />
           <BrandName />
         </ScBrandLink>

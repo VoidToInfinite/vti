@@ -261,10 +261,13 @@ const VIEWPORT_REFERENCE_FRACTION = 0.5;
  * no hay histéresis ni estado que mantener: la respuesta es una función pura
  * de la geometría, con UN solo cruce por frontera y monótona en el sentido
  * del scroll -- para que oscilara tendría que oscilar el propio scroll.
- * `dominantSectionId` (`themeScrollAnchor.ts`) resuelve su empate al revés
- * (`>`, gana la primera) y también a propósito: allí la pregunta es "¿a qué
- * sección devuelvo al lector moviéndolo lo menos posible?", no "¿cuál está
- * mirando ahora?".
+ * `readingAnchorSectionId` (`themeScrollAnchor.ts`) usa desde la crítica
+ * externa #13 (2026-08-20) esta MISMA regla, no una propia: lo único que
+ * cambia allí es el conjunto de candidatas. Antes se llamaba
+ * `dominantSectionId` y resolvía por superficie visible, lo que devolvía al
+ * lector a una sección que este mismo hook ya consideraba abandonada -- dos
+ * reglas para la misma pregunta. La fracción de referencia que las une está
+ * atada por un candado de fuente en `themeScrollAnchor.test.ts`.
  */
 function resolveAmongCandidates(
   candidatas: readonly MeasuredSection[],

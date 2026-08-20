@@ -607,7 +607,10 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
       id="main"
       tabIndex={-1}
     >
-      <ScBackLink href={routePath("home", navLocale(activeI18n.language))}>
+      <ScBackLink
+        href={routePath("home", navLocale(activeI18n.language))}
+        prefetch={false}
+      >
         {backToHome}
       </ScBackLink>
       <ScTitle>{doc.title}</ScTitle>

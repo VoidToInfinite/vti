@@ -733,7 +733,7 @@ export const ScDeckPillarTitle = styled.p`
  * `story.layers.ts`, 1280px de contenido). Con el copy actual ninguna
  * instancia llega a envolver a ese ancho -- es riesgo ESTRUCTURAL latente, no
  * un defecto visible hoy -- pero un copy mas largo se extenderia sin freno.
- * `theme.data.grid.prose` (52ch desde 2026-08-17, ~65 caracteres reales;
+ * `theme.data.grid.prose` (56ch desde la critica #13, ~65 caracteres REALIZADOS;
  * ver la derivacion del ratio en theme/tokens/grid.ts) es el token que el
  * propio sistema ya reserva para exactamente este rol -- lo usan
  * `ScIntro`/`ScBody`/`ScDarkBody` en Features.tsx y `ScDarkIntro` en el mismo
@@ -770,7 +770,7 @@ export const ScDeckPillarSubtitle = styled.p`
  *
  * `max-width` (Task 22, tipografia de lectura): mismo hallazgo y mismo token
  * que `ScDeckPillarSubtitle`, arriba -- ver su docblock para la cifra medida
- * (97,9-112ch de capacidad a 1280px) y el porque de `grid.prose` (52ch
+ * (97,9-112ch de capacidad a 1280px) y el porque de `grid.prose` (56ch
  * desde 2026-08-17).
  */
 export const ScDeckPillarBody = styled.p`

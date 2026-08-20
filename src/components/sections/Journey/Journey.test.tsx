@@ -307,7 +307,7 @@ describe("Journey", () => {
    *
    * El candado se afirma contra `themes.light.grid.prose`, NUNCA contra el
    * literal "52ch": el valor del token es una medida calibrada que ya cambió
-   * una vez (65ch -> 52ch el 2026-08-17) y un literal aquí se desincronizaría
+   * dos veces (65ch -> 52ch el 2026-08-17, 52ch -> 56ch en la critica #13) y un literal aquí se desincronizaría
    * en silencio. Va por TEXTO del CSS inyectado (`cssRuleTextFor`) porque la
    * declaración vive en la clase base, sin `@media` de por medio -- jsdom sí
    * la resuelve por CSSOM.
@@ -801,10 +801,10 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
    * copy mas largo se extenderia sin freno. Candado por TEXTO del CSS
    * inyectado (`cssRuleTextFor`): la declaracion vive en la clase base, sin
    * ningun `@media` de por medio, asi que jsdom SI la resuelve por CSSOM --
-   * pero se afirma el mismo `themes.dark.grid.prose` (52ch) que consume el
+   * pero se afirma el mismo `themes.dark.grid.prose` que consume el
    * componente, nunca el literal "65ch" a mano.
    */
-  it("Task 22: el subtitulo de cada paso topa su ancho en grid.prose (52ch)", async () => {
+  it("Task 22: el subtitulo de cada paso topa su ancho en grid.prose", async () => {
     const { container } = renderWithProviders(<Journey />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(

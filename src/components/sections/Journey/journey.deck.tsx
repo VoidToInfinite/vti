@@ -723,7 +723,7 @@ export const ScJourneyStepLabel = styled.p`
  * (`JOURNEY_CONTENT_MAX_WIDTH`, `journey.layers.ts`, 1280px de contenido).
  * Con el copy actual ninguna instancia llega a envolver a ese ancho -- es
  * riesgo ESTRUCTURAL latente, no un defecto visible hoy -- pero un copy mas
- * largo se extenderia sin freno. `theme.data.grid.prose` (52ch desde
+ * largo se extenderia sin freno. `theme.data.grid.prose` (56ch desde la critica #13; 52ch desde
  * 2026-08-17, ~65 caracteres reales;
  * `theme/tokens/grid.ts`) es el token que el sistema ya reserva para este
  * rol -- mismo arreglo y mismo token que `ScDeckPillarSubtitle`/

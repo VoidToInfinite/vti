@@ -3,6 +3,8 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
+import { navLocale } from "@/config/navigation";
+import { routePath } from "@/config/site";
 import styled from "styled-components";
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
@@ -34,7 +36,7 @@ import { Typography } from "@/components/ui/Typography/Typography";
  * no un numero inventado aqui.
  *
  * `max-width` + `margin-inline: auto`: el mismo ancho de lectura que ya usa
- * `ScMain` de `legalPage.parts.tsx` (52ch desde 2026-08-17, ~65 caracteres
+ * `ScMain` de `legalPage.parts.tsx` (56ch desde la critica #13, ~65 caracteres
  * reales; D21/§3 de la spec legal) -- esta pagina no es un articulo largo,
  * pero reutiliza la misma medida del sistema en vez de inventar una tercera,
  * y centra el bloque en vez de dejarlo pegado al borde izquierdo del
@@ -86,7 +88,7 @@ const ScMessage = styled(Typography)`
 `;
 
 export function NotFoundContent(): ReactElement {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   return (
     // id="main" + tabIndex={-1}: destino del SkipLink (Task 2), mismo
     // contrato que app/page.tsx/LegalDocument.tsx -- ver el docblock de
@@ -128,9 +130,24 @@ export function NotFoundContent(): ReactElement {
        * aplica el gotcha `as`/`forwardedAs` que sí afecta a `ScCtaPrimary`
        * en Hero.tsx (esa capa SÍ envuelve `Button` con `styled()`).
        */}
+      {/* La salida conserva el IDIOMA de la URL que fallo (critica externa
+          #13): desde esta misma ola `/en/lo-que-sea` responde en ingles, y
+          mandar a la home castellana al unico visitante que ya se ha perdido
+          -- y que ademas habia elegido idioma -- deshace justo lo que esa
+          correccion arreglo. Mismo camino que LegalHeader/LegalDocument:
+          `routePath` + `navLocale`, sin literales "/en".
+
+          NO lleva `prefetch={false}` como los otros seis <Link> del sitio, y
+          no por olvido: `ButtonProps` extiende `ButtonHTMLAttributes`, que no
+          conoce esa prop, asi que pasarla es error de tipos aunque el
+          `...rest` la reenviaria bien en runtime. Cerrarlo exige tipado
+          polimorfico real en `Button` (as={ElementType} con las props del
+          elemento destino), refactor del primitivo que no cabe en esta ola.
+          Coste de dejarlo: una peticion 404 de prefetch RSC por visita a una
+          404 -- la pagina menos visitada del sitio. */}
       <Button
         as={Link}
-        href="/"
+        href={routePath("home", navLocale(i18n.language))}
       >
         {t("notFound.backToHome")}
       </Button>

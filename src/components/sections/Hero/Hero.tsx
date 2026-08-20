@@ -350,7 +350,7 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
        (critica externa #10, 2026-08-18); hasta esa fecha este comentario
        decia "el prose normal", que ya no era cierto: el literal de aqui y
        grid.prose dejaron de coincidir cuando la critica #8 recalibro prose a
-       52ch, y nadie arrastro la correccion hasta esta linea. */
+       52ch -- y despues a 56ch en la #13 --, y nadie arrastro la correccion hasta esta linea. */
     max-width: var(
       --hero-copy-maxwidth-lg,
       min(${({ theme }) => theme.data.grid.heroCopyMax}, 70%)
@@ -535,8 +535,10 @@ const ScTagline = styled(Typography)`
    que el subtitulo se apoya en "la medida corta" frente a "los 65ch de
    prose". Las dos mitades habian caducado -- este elemento nunca consumio
    grid.proseTight (declaraba un literal propio, hoy grid.heroCopyMax, el
-   mismo tope que el resto de la columna), y prose dejo de valer 65ch cuando
-   la critica #8 lo recalibro a 52ch. Lo que de verdad mantiene el subtitulo
+   mismo tope que el resto de la columna; ese token se RETIRO del sistema en
+   la critica #13 por cero consumidores), y prose dejo de valer 65ch cuando
+   la critica #8 lo recalibro -- primero a 52ch y, tras medir que esa caja
+   REALIZABA 59 caracteres y no 65, a 56ch en la critica #13. Lo que de verdad mantiene el subtitulo
    en dos lineas legibles no es un ancho corto sino su propio font-size (el
    clamp de la excepcion de abajo, 15-22px), muy por debajo de los 24px de
    h3 con los que un tope ancho si daria una linea interminable.
