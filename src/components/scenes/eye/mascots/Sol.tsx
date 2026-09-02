@@ -204,10 +204,18 @@ const ScFaces = styled.div`
    portada: es el cambio de identidad entero del mascota, no una transicion
    de UI. */
 const MORPH_MS = "1100ms";
-/* Curva de entrada del origen, sin equivalente en `motion.easing` de este
-   repo. Las cuatro curvas de la casa son de UI; esta es un aterrizaje
-   sobreamortiguado propio del mascota. */
-const EASE_ENTRANCE = "cubic-bezier(0.22, 1, 0.36, 1)";
+/* La curva de entrada del morph SI tiene equivalente en `motion.easing`
+   desde la critica externa #14 (2026-09-02): `settle`, el peldaño nuevo que
+   absorbio la curva propia de `src/motion/vocabulary.ts` y, con ella, la
+   `EASE_ENTRANCE` que este fichero declaraba aqui
+   (`cubic-bezier(0.22, 1, 0.36, 1)`). Las dos eran la misma curva desviada
+   0,01 y 0,04 en dos puntos de control: distancia maxima de progreso medida
+   entre ambas, 0,0109 (1,09 puntos porcentuales), y desfase temporal maximo
+   0,0158 de la duracion -- sobre los 1100ms de MORPH_MS, 17,3ms, menos que
+   un fotograma a 60 Hz. El aterrizaje sobreamortiguado del mascota sigue
+   siendo exactamente el mismo movimiento; lo que cambia es que ya no lo
+   define este fichero. La medicion completa vive en el docblock de
+   `motion.easing.settle`. */
 
 const faceBase = css`
   position: absolute;
@@ -217,7 +225,7 @@ const faceBase = css`
   pointer-events: none;
   transition-property: opacity, transform, filter;
   transition-duration: ${MORPH_MS};
-  transition-timing-function: ${EASE_ENTRANCE};
+  transition-timing-function: ${({ theme }) => theme.data.motion.easing.settle};
 `;
 
 /* Direcciones de entrada contrarias (+/-) para que las dos caras se lean como

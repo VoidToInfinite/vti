@@ -147,7 +147,52 @@
  * adicionales fuera del alcance de D2 (ver el docblock de `DECK` para el
  * detalle de cada uno) -- se dejan como la misma deuda declarada, ahora más
  * pequeña.
+ *
+ * ## Crítica externa #14 (2026-09-02): este módulo deja de tener valores
+ * PROPIOS de tiempo y de curva -- ahora los LEE de `motion.*`
+ *
+ * Hasta esta revisión, `vocabulary.ts` escribía sus números y su curva a
+ * mano (`durationMs: 480`, `easing: "cubic-bezier(0.23, 1, 0.32, 1)"`) y el
+ * bloque final de este fichero razonaba por qué eso era correcto: `motion.*`
+ * son los átomos, `vocabulary.ts` las moléculas, y una molécula no tiene por
+ * qué vivir dentro del objeto de los átomos. El argumento sigue siendo bueno
+ * para la ESTRUCTURA (los cinco grupos de roles siguen aquí, no en
+ * `motion.ts`) y era falso para los VALORES: el evaluador midió el CSS
+ * servido y encontró que la curva más usada del sitio -- 72 ocurrencias en
+ * claro, 105 en oscuro -- era precisamente el literal de este fichero, es
+ * decir, que la escala real de movimiento del sitio no era `motion.easing`
+ * sino este módulo, con un peldaño que `motion.easing` no tenía. Y las
+ * duraciones: 480/200/100 estaban escritas aquí como números crudos que
+ * COINCIDÍAN con `slower`/`base`/`fast` sin derivar de ellos (el mismo
+ * defecto de procedencia que `task/lessons.md` documenta el 2026-08-12: un
+ * literal que hoy vale lo mismo que el token deja de valerlo el día que el
+ * token se retoque, y el CSS renderizado no distingue los dos casos), más
+ * `180`/`120`, que no existían en ninguna escala.
+ *
+ * Qué cambia (nada de la API pública -- mismos exports, mismos nombres de
+ * campo, mismos tipos de valor; los consumidores no se tocan):
+ * - La curva pasa a ser `motion.easing.settle`, un peldaño NUEVO del token
+ *   con su porqué y su medición en `src/theme/tokens/motion.ts`. Mismos
+ *   cuatro puntos de control que antes: cero cambio visual, solo
+ *   procedencia. En el mismo movimiento absorbe `EASE_ENTRANCE`
+ *   (`Sol.tsx`), que era esa misma curva desviada 0,01/0,04 en dos puntos
+ *   de control -- ver la medición de la diferencia en el docblock del token.
+ * - Las duraciones pasan a leer `motion.durationMs.*` (la misma escala de
+ *   siete pasos en formato numérico, añadida en `motion.ts` para esto).
+ *   480/200/100 no cambian de valor, solo de fuente.
+ * - `OVERLAY.openMs`/`closeMs` (180/120) SÍ cambian de valor, al peldaño
+ *   más cercano de la escala: `base` (200) y `fast` (100) -- ver el docblock
+ *   de `OVERLAY` para el porqué y para lo que se comprobó que no se rompe.
+ * - `AMBIENT` se queda con sus tres literales (5400/9000/20000) a propósito
+ *   y con excepción escrita en el allowlist del detector: son bucles
+ *   ambientales de segundos, un orden de magnitud fuera del peldaño más
+ *   largo de la escala de interfaz (`spinReduced`, 2100 ms), y meterlos
+ *   dentro convertiría una escala de transiciones en un cajón. Es la misma
+ *   frontera que el propio detector ya sancionó, uno a uno, para los tiempos
+ *   de arte de `Sol.tsx`/`Wormhole.tsx`.
  */
+
+import { motion } from "@/theme/tokens/motion";
 
 /**
  * REVEAL — coreografía de aparición al entrar en el viewport: el patrón
@@ -220,9 +265,11 @@
  * - `shift: "16px"` — mismo patrón histórico que arriba. Excepción NO
  *   absorbida (declarada desde antes de esta tarea, se mantiene):
  *   `Journey.tsx:255` (`ScStepReveal`) usa `translateY(12px)`, no 16px.
- * - `easing: "cubic-bezier(0.23, 1, 0.32, 1)"` — la curva PROPIA de este
- *   vocabulario (no una clave de `motion.easing` -- ver el porqué al final
- *   de este fichero) que sustituye a `motion.easing.decelerate` en los
+ * - `easing: motion.easing.settle` — MISMOS cuatro puntos de control que el
+ *   literal `"cubic-bezier(0.23, 1, 0.32, 1)"` que este campo escribía a
+ *   mano hasta la crítica externa #14 (ver la sección final del docblock de
+ *   cabecera): cero cambio visual, solo procedencia. Sustituye a
+ *   `motion.easing.decelerate` en los
  *   consumidores reales de REVEAL (Story.tsx/Features.tsx, arriba). El resto
  *   del repo que sigue usando `decelerate` fuera de un patrón REVEAL (por
  *   ejemplo transiciones de UI que no son reveals de scroll) no se toca --
@@ -248,8 +295,8 @@
  * consumidor en el mismo commit -- no antes.
  */
 export const REVEAL = {
-  durationMs: 480,
-  easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+  durationMs: motion.durationMs.slower,
+  easing: motion.easing.settle,
   shift: "16px",
 } as const;
 
@@ -321,8 +368,8 @@ export const REVEAL = {
  * de este fix.
  */
 export const DECK = {
-  railDurationMs: 200,
-  exitDurationMs: 200,
+  railDurationMs: motion.durationMs.base,
+  exitDurationMs: motion.durationMs.base,
   sceneDepthShift: "6dvh",
   slideShift: "40px",
 } as const;
@@ -338,13 +385,28 @@ export const DECK = {
  * propio brief -- y unifica el tercer campo (`closedScale`) entre las dos
  * superficies, que hasta ahora solo lo tenía el panel.
  *
- * - `openMs: 180` / `closeMs: 120` — asimetría deliberada (regla 26 de
+ * - `openMs: motion.durationMs.base` (200) / `closeMs: motion.durationMs.fast`
+ *   (100) — asimetría deliberada (regla 26 de
  *   `RULES.md`, D5 del brief de Task 9): abrir presenta contenido que hay que
  *   leer y pide tiempo de lectura; cerrar solo retira algo que el usuario ya
  *   decidió descartar, y alargarlo se siente como una interfaz que no
  *   obedece. Los dos sentidos se declaran como DOS bloques de `transition` en
  *   CSS (base = cerrar, `[data-open="true"]` = abrir), nunca con estado de
  *   React adicional -- ver `ScNavPanel`/`ScNavSheet`.
+ *
+ *   Los DOS eran literales fuera de la escala hasta la crítica externa #14
+ *   (180 y 120: ningún peldaño de `motion.duration` vale eso). Se redondean
+ *   al peldaño MÁS CERCANO en vez de añadir dos peldaños nuevos a una escala
+ *   de siete -- el encargo del evaluador era "una escala, no dos", y meter
+ *   180/120 en `motion.duration` habría hecho lo contrario: convertir la
+ *   escala en el inventario de lo que ya existe. Deltas: abrir +20 ms
+ *   (180 -> 200, +11 %), cerrar -20 ms (120 -> 100, -17 %), los dos por
+ *   debajo de dos fotogramas a 60 Hz. Lo que el redondeo NO toca es la
+ *   propiedad que este campo existe para garantizar: abrir sigue siendo más
+ *   lento que cerrar, y la razón entre los dos pasa de 1,5:1 a 2:1 -- la
+ *   asimetría se lee MÁS, no menos. `Navbar.test.tsx` la candaba ya como
+ *   propiedad (`OVERLAY.openMs > OVERLAY.closeMs`) y no como número, así que
+ *   sigue en verde sin tocar el test.
  * - `closedScale: 0.97` — encogimiento del estado cerrado, sumado al
  *   `translateY` propio de cada superficie. Task 9 lo introdujo SOLO en
  *   `ScNavPanel` (un popover que cuelga de su disparador, así que encoger la
@@ -364,17 +426,20 @@ export const DECK = {
  *   superior hacia el inferior -- el mismo patrón de "hoja que se asienta"
  *   que ya usan las hojas inferiores de iOS/Material, no un gesto ajeno.
  *
- * Un literal PROPIO de este vocabulario, no una clave nueva de
+ * Un GRUPO propio de este vocabulario, no claves nuevas de
  * `motion.duration`/`motion.easing` (mismo criterio que documenta el bloque
- * final de este fichero para `REVEAL.easing`/`PRESS.easing`): `openMs`/
- * `closeMs`/`closedScale` son la coreografía de un ROL concreto (superficie
- * flotante de navegación), no un átomo general del sistema. La curva la
- * sigue aportando `PRESS.easing`, no este grupo: las dos superficies ya la
- * comparten y no hay motivo para duplicarla aquí.
+ * final de este fichero): `openMs`/`closeMs`/`closedScale` son la
+ * coreografía de un ROL concreto (superficie flotante de navegación), no
+ * átomos generales del sistema -- lo que cambia tras la crítica externa #14
+ * es que los dos tiempos LEEN la escala en vez de escribir su propio número,
+ * no que el rol se mude a `motion.ts`. `closedScale` no es un tiempo ni una
+ * curva y no tiene escala a la que pertenecer. La curva la sigue aportando
+ * `PRESS.easing`, no este grupo: las dos superficies ya la comparten y no
+ * hay motivo para duplicarla aquí.
  */
 export const OVERLAY = {
-  openMs: 180,
-  closeMs: 120,
+  openMs: motion.durationMs.base,
+  closeMs: motion.durationMs.fast,
   closedScale: 0.97,
 } as const;
 
@@ -397,9 +462,11 @@ export const OVERLAY = {
  *   sitio. Task 9 la reutiliza para guardar los hovers que MUEVEN (no los
  *   que solo cambian de color) tras un `@media` interpolado, en vez de que
  *   cada componente escriba la cadena a mano.
- * - `easing: "cubic-bezier(0.23, 1, 0.32, 1)"` — misma curva NUEVA que
- *   `REVEAL.easing` (ver el porqué al final de este fichero), verificada por
- *   grep que no existe hoy en `src/`. `Button.tsx` usa hoy
+ * - `easing: motion.easing.settle` — misma curva que `REVEAL.easing` (ver el
+ *   porqué al final de este fichero), y desde la crítica externa #14 un
+ *   peldaño del token en vez del literal `"cubic-bezier(0.23, 1, 0.32, 1)"`
+ *   que este campo escribía a mano: mismos puntos de control, cero cambio
+ *   visual. `Button.tsx` usa hoy
  *   `motion.easing.standard` (`cubic-bezier(0.4, 0, 0.2, 1)`) para su
  *   transform de press — Task 9, punto 4, sustituye exactamente esa curva
  *   por `PRESS.easing` (`background-color` se queda con `standard`); Task 8
@@ -425,8 +492,8 @@ export const OVERLAY = {
  * visual.
  */
 export const PRESS = {
-  durationMs: 100,
-  easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+  durationMs: motion.durationMs.fast,
+  easing: motion.easing.settle,
   activeScale: 0.98,
   hoverGuard: "(hover: hover) and (pointer: fine)",
 } as const;
@@ -549,36 +616,48 @@ export const AMBIENT = {
 } as const;
 
 /**
- * ## Por qué `REVEAL.easing`/`PRESS.easing` son literales PROPIOS y NO
- * claves nuevas de `motion.easing`
+ * ## Dónde está la frontera entre `motion.*` y este fichero (revisada por la
+ * crítica externa #14, 2026-09-02)
  *
- * `motion.easing` (`src/theme/tokens/motion.ts`) es un contrato CERRADO:
- * `system.test.ts` lo cierra con `toEqual` (líneas 22-31) +
- * `toHaveLength(5)` (línea 48) — 91 consumos verificados de
- * `theme.data.motion.easing.*` en `src/` (grep, sin contar tests) repartidos
- * en 26 ficheros, todos transiciones de INTERFAZ (hover, foco, aparición de
- * un panel). Añadir una sexta clave (`emphasized2`, `pressCurve`...) a ese
- * objeto para una curva que pertenece a la coreografía de un ROL concreto
- * (revelado al hacer scroll, press) rompería la misma frontera que
- * `timings.ts` ya documenta para `motion.duration` (líneas 43-64 de ese
- * fichero): forzaría una coreografía puntual dentro de un objeto que un test
- * de contrato cierra por completo, por una necesidad que no es un rol
- * general del sistema de movimiento sino de un vocabulario de más alto
- * nivel. Misma frontera, mismo criterio, un nivel más arriba: `motion.*` son
- * los átomos (duración/curva sueltos); `vocabulary.ts` son las moléculas
- * (qué átomos usa cada ROL de coreografía, agrupados con nombre).
+ * Hasta esa crítica, este bloque argumentaba que `REVEAL.easing`/
+ * `PRESS.easing` debían ser literales PROPIOS y no una clave nueva de
+ * `motion.easing`, porque `motion.easing` es un contrato cerrado
+ * (`system.test.ts`, `toEqual` + `toHaveLength`) y una curva "de rol" no
+ * pertenece al objeto de los átomos. **El argumento estaba mal aplicado, y
+ * la medición lo demostró:** el evaluador midió el CSS realmente servido y
+ * esa "curva de rol" era la MÁS USADA del sitio (72 ocurrencias en tema
+ * claro, 105 en oscuro), muy por encima de cualquiera de las cinco del
+ * token. Una curva que gobierna la mitad del movimiento de la página no es
+ * una excepción de rol: es el sistema. Lo que el argumento protegía de
+ * verdad -- que `motion.easing` no se convierta en un cajón de curvas
+ * puntuales -- se protege igual con una escala de SEIS peldaños razonados
+ * que con una de cinco más un literal fuera; lo que no se protegía era la
+ * procedencia, y ese es el defecto que se paga.
  *
- * `REVEAL.easing` y `PRESS.easing` comparten el mismo literal
- * (`cubic-bezier(0.23, 1, 0.32, 1)`) porque la spec del vault + adenda Emil
- * prescribe la MISMA curva de salida para las dos coreografías (entrada al
- * hacer scroll y press de un control) — no es una coincidencia que haya que
- * deduplicar en una constante compartida: son dos campos de dos grupos
- * distintos que hoy resultan iguales, igual que `DECK.railDurationMs` y
- * `DECK.exitDurationMs` comparten valor (200) sin ser el mismo campo (ver
- * `DECK`, arriba). Si el día de mañana una de las dos coreografías necesita
- * una curva distinta, cambia SU campo sin arrastrar al otro — un alias
- * compartido (una sola constante importada por los dos grupos) se rompería
- * en silencio esa vez, mismo razonamiento que `timings.ts` aplica a
- * `HERO_FADE_MS` para no aliasearlo a `motion.duration.base` pese a ser su
- * múltiplo exacto.
+ * La frontera que SIGUE en pie, y que esta revisión no mueve: `motion.*` son
+ * los átomos (una duración, una curva); `vocabulary.ts` son las moléculas
+ * (qué átomos usa cada ROL de coreografía, agrupados con nombre, más lo que
+ * no es ni tiempo ni curva -- `shift`, `activeScale`, `closedScale`,
+ * `hoverGuard`, `sceneDepthShift`, `slideShift`). Los cinco grupos siguen
+ * aquí. Lo que se muda a `motion.ts` no es la molécula, es el átomo que le
+ * faltaba.
+ *
+ * `REVEAL.easing` y `PRESS.easing` siguen siendo DOS campos que leen el
+ * MISMO peldaño (`motion.easing.settle`), no un alias compartido entre los
+ * dos grupos: la spec del vault + adenda Emil prescribe la misma curva de
+ * salida para las dos coreografías (entrada al hacer scroll y press de un
+ * control), pero son dos decisiones distintas que hoy coinciden -- igual que
+ * `DECK.railDurationMs` y `DECK.exitDurationMs` comparten valor sin ser el
+ * mismo campo. Si mañana una de las dos necesita otra curva, cambia SU campo
+ * al peldaño que le toque sin arrastrar a la otra. `vocabulary.test.ts`
+ * canda las dos cosas a la vez: que cada campo salga de `motion.*` (la
+ * procedencia que esta revisión gana) y que hoy coincidan (la decisión
+ * deliberada que ya se candaba antes).
+ *
+ * `AMBIENT` es la única excepción viva, y es de ORDEN DE MAGNITUD, no de
+ * criterio: 5400/9000/20000 ms son bucles ambientales de escenas
+ * decorativas, entre 2,5 y 9,5 veces el peldaño más largo de la escala de
+ * interfaz (`spinReduced`, 2100 ms). Está declarada como tal en el allowlist
+ * de `scripts/detect-anti-patterns.mjs` (familia `duration-const`), no
+ * escondida.
  */

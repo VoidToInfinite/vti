@@ -24,6 +24,11 @@ describe("system tokens", () => {
         decelerate: "cubic-bezier(0, 0, 0.2, 1)",
         accelerate: "cubic-bezier(0.4, 0, 1, 1)",
         emphasized: "cubic-bezier(0.2, 0, 0, 1)",
+        // Sexto peldaño desde la crítica externa #14 (2026-09-02): absorbe la
+        // curva propia de src/motion/vocabulary.ts (la más usada del CSS
+        // servido) y la EASE_ENTRANCE de Sol.tsx. Contrato y medición en
+        // motion.test.ts y en el docblock del propio token.
+        settle: "cubic-bezier(0.23, 1, 0.32, 1)",
         overshoot: "cubic-bezier(0.34, 1.56, 0.64, 1)",
       };
       expect(motion.easing).toEqual(expectedEasing);
@@ -44,7 +49,7 @@ describe("system tokens", () => {
     it("motion es un objeto congelado (as const)", () => {
       // Verificar que las duraciones tienen las propiedades esperadas
       expect(Object.keys(motion.duration)).toHaveLength(7);
-      expect(Object.keys(motion.easing)).toHaveLength(5);
+      expect(Object.keys(motion.easing)).toHaveLength(6);
     });
   });
 
