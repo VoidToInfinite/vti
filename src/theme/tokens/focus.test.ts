@@ -91,26 +91,23 @@ describe("candado: el anillo de foco se declara en UN solo sitio", () => {
   const globalStyles = join(themeDir, "..", "GlobalStyles.tsx");
 
   /**
-   * ÚNICA excepción viva, y es DEUDA DECLARADA, no una decisión de diseño:
-   * `Card.tsx` conserva el halo por `box-shadow` de su variante
-   * `interactive`. Quedó fuera del alcance de ficheros de la tarea que
+   * Sin excepciones. `Card.tsx` fue la última deuda declarada: la tarea que
    * unificó el anillo (ola de cinco agentes en paralelo sobre el mismo árbol,
-   * 2026-09-02) y su arreglo es idéntico al de los otros seis: borrar el
-   * `box-shadow` del bloque `&:focus-visible` -- el `border-color` y la
-   * elevación de ese mismo bloque son afordancias propias de la card y se
-   * quedan. Mientras siga aquí, una card interactiva enfocada pinta dos
-   * anillos y las demás piezas uno.
+   * 2026-09-02) no tenía ese fichero en su dominio y dejó su halo de
+   * `box-shadow` sancionado aquí; la integración de la misma ola lo saldó
+   * borrando el `box-shadow` del bloque `&:focus-visible` -- el
+   * `border-color` y la elevación de ese bloque son afordancias propias de
+   * la card y se quedan. La lista se conserva vacía a propósito: si alguien
+   * vuelve a necesitar una excepción, tiene que escribirla aquí con su porqué.
    */
-  const DEUDA_DECLARADA = [
-    join(srcRoot, "components", "ui", "Card", "Card.tsx"),
-  ];
+  const DEUDA_DECLARADA: string[] = [];
 
   const sourceFiles = [
     ...listSourceFiles(srcRoot),
     ...listSourceFiles(appRoot),
   ];
 
-  it("solo GlobalStyles.tsx consume el rol semantic.focus (más la deuda declarada de Card.tsx)", () => {
+  it("solo GlobalStyles.tsx consume el rol semantic.focus", () => {
     // Sonda positiva: si el recorrido no encontrara ficheros, el test de
     // abajo pasaría por vacuidad sin comprobar nada.
     expect(sourceFiles.length).toBeGreaterThan(50);

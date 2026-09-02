@@ -113,7 +113,7 @@ describe("Card", () => {
       ["light", basicLightTheme],
       ["dark", basicDarkTheme],
     ] as const)(
-      "interactive declara :focus-visible con box-shadow contra semantic.focus del tema %s (nunca un literal)",
+      "interactive declara :focus-visible con borde reforzado y elevación del tema %s, sin halo propio contra semantic.focus",
       (nombreTema, theme) => {
         window.localStorage.setItem("vti-theme", nombreTema);
         renderWithProviders(
@@ -135,8 +135,11 @@ describe("Card", () => {
           bloque,
           "no se encontró ninguna regla :focus-visible con box-shadow en Card",
         ).toBeDefined();
-        expect(bloque).toContain(theme.semantic.focus);
+        // Crítica externa #14 (2026-09-02): el halo propio se retiró; el
+        // estado de foco lo señaliza solo el anillo global (token focusRing).
+        expect(bloque).not.toContain(theme.semantic.focus);
         expect(bloque).toContain(theme.semantic.borderStrong);
+        expect(bloque).toContain(theme.elevation[1]);
         // No sustituye el anillo global (regla dura: outline: none vetado).
         expect(
           reglasDe(link).some((regla) => /outline\s*:\s*none/.test(regla)),
