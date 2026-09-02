@@ -2244,11 +2244,16 @@ describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo m
 
     // El literal duplicado del token desaparece de la fuente...
     expect(source).not.toMatch(/font-size:\s*1rem/);
-    // ...y el valor RENDERIZADO no cambia: sigue siendo el mismo 1rem.
+    // ...y lo RENDERIZADO es exactamente lo que dice el token. Se asevera
+    // contra el token y no contra "1rem": el dia que la escala cambie, este
+    // candado tiene que seguir al token -- que es justo lo que se gana al
+    // dejar de escribir el numero a mano.
     renderWithProviders(<Journey />);
     const quote = screen.getByText(`“${esHome.Home.journey.quote}”`)
       .parentElement as HTMLElement;
-    expect(cssRuleTextFor(quote)).toMatch(/font-size:\s*1rem/);
+    expect(cssRuleTextFor(quote)).toContain(
+      `font-size: ${themes.light.type.scale.body.size};`,
+    );
   });
 });
 
