@@ -1205,13 +1205,12 @@ const ALLOWLIST = [
         family: "duration-const",
         file: "src/components/sections/Story/story.layers.ts",
         anchors: [
-            { snippet: "export const STORY_SCRUB_MS = 320;", lines: [202] },
             {
                 snippet: "export const STORY_FIGURE_FLOAT_MS = 9000;",
                 lines: [235],
             },
         ],
-        reason: "STORY_SCRUB_MS (320) y STORY_FIGURE_FLOAT_MS (9000). El primero es el caso de PROCEDENCIA en estado puro y por eso vale la pena leerlo entero: su docblock dice que esta 'atada al valor de motion.duration.slow (verificado por test)' -- atada por un TEST, no derivada en codigo, que es justo la diferencia que esta familia mide. Es el candidato REAL de migracion que deja abierto la ola que estrena la familia (a motion.durationMs.slow, cero cambio de valor), fuera de su alcance porque *.layers.ts esta reservado a otro agente de la misma ola: se sanciona y se deja anotado, no se finge resuelto. El segundo es la flotacion de la figura, verbatim del mockup (vtiFloat6, 9s), bucle ambiental un orden de magnitud fuera de la escala.",
+        reason: "STORY_FIGURE_FLOAT_MS (9000): la flotacion de la figura, verbatim del mockup (vtiFloat6, 9s), bucle ambiental un orden de magnitud fuera de la escala. Hasta la integracion de la ola J (2026-09-02) esta entrada sancionaba tambien STORY_SCRUB_MS = 320, el caso de PROCEDENCIA en estado puro (atado a motion.duration.slow por un TEST, no derivado en codigo); ya deriva de motion.durationMs.slow con cero cambio de valor y la familia deja de verlo -- que es exactamente lo que la familia existe para provocar.",
     },
     {
         family: "duration-const",

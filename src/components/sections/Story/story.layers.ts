@@ -20,6 +20,7 @@
  */
 import { DECK } from "@/motion/vocabulary";
 import { grid } from "@/theme/tokens/grid";
+import { motion } from "@/theme/tokens/motion";
 import { type as typeTokens } from "@/theme/tokens/type";
 
 /**
@@ -195,11 +196,15 @@ export const STORY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
 /**
  * Duración del "scrub" de rewind (`data-dir="rewind"`): el micro-desplazamiento
  * en X + caída breve de opacidad que hace que invertir el sentido se lea
- * como cinta rebobinando y no como "ir hacia atrás despacio". Atada al
- * valor de `motion.duration.slow` (verificado por test) para no introducir
- * una duración fuera de la escala de movimiento del tema.
+ * como cinta rebobinando y no como "ir hacia atrás despacio". DERIVA de
+ * `motion.durationMs.slow` (320) desde la crítica externa #14 (2026-09-02):
+ * hasta esa ronda era el literal `320` "atado al valor de
+ * `motion.duration.slow` (verificado por test)" -- atado por un TEST, no
+ * derivado en código, que es exactamente la diferencia que mide la familia
+ * `duration-const` del detector estrenada en esa misma ola. Cero cambio de
+ * valor; el test de la escala se conserva como candado del número.
  */
-export const STORY_SCRUB_MS = 320;
+export const STORY_SCRUB_MS = motion.durationMs.slow;
 
 /*
  * AQUI VIVIERON `STORY_CARD_BG`/`STORY_CARD_BORDER`/`STORY_CARD_SHADOW`, el
