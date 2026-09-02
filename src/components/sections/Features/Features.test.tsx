@@ -1520,22 +1520,45 @@ describe("Task 19 (D7): duración/easing de entrada convergen en REVEAL.* en las
 
 /*
  * D7 (encargo 2026-08-04): `ScCta` -- el CTA de texto de cada identidad --
- * ganó `:focus-visible` propio, resuelto contra `semantic.focus`. Hasta esta
- * entrega solo tenía `:hover`. Validado con el bug inyectado a propósito
- * (ver el informe de la tarea): comentando el bloque `&:focus-visible` de
- * `ScCta` en `Features.tsx` este test se pone en rojo (no hay ningún bloque
- * que mencione `focus-visible`); restaurado, vuelve a verde.
+ * ganó `:focus-visible` propio, resuelto contra `semantic.focus`, encima del
+ * anillo global.
+ *
+ * ESTE CANDADO SE DIO LA VUELTA el 2026-09-02 (crítica externa #14, P1 de
+ * Craft): el halo por `box-shadow` se retiró al unificar el anillo de foco
+ * del sitio en una sola declaración (`GlobalStyles.tsx`, geometría en
+ * `src/theme/tokens/focus.ts`). Lo que el bloque `&:focus-visible` de `ScCta`
+ * sigue aportando, y este test sigue atando como sonda positiva, es lo que NO
+ * es anillo: el salto de acento -- foco y hover comunican aquí la misma cosa
+ * -- y el `border-radius`, que ahora redondea el outline global.
  */
-describe("D7: :focus-visible propio del CTA de sección", () => {
-  it("ScCta declara :focus-visible con box-shadow resuelto contra semantic.focus", () => {
+describe("crítica #14 (P1): el :focus-visible del CTA aporta acento, no anillo", () => {
+  it("ScCta declara :focus-visible con el acento de hover y sin ningún anillo propio", () => {
     const { container } = renderWithProviders(<Features />);
     const cta = container.querySelector('a[href="#contact"]') as HTMLElement;
-    const css = cssRuleTextFor(cta);
 
-    expect(css).toContain(":focus-visible");
-    const focusBlock = css.slice(css.indexOf(":focus-visible"));
-    expect(focusBlock).toContain("box-shadow");
-    expect(focusBlock).toContain(themes.light.semantic.focus);
+    /*
+     * Se acota a la REGLA de :focus-visible, no al texto desde su índice
+     * hasta el final: `cssRuleTextFor` une las reglas con saltos de línea,
+     * así que un `slice()` arrastraría también las reglas siguientes y una
+     * aserción negativa sobre él no probaría nada de este bloque.
+     *
+     * Y se ata el MECANISMO (no hay ni box-shadow ni outline aquí), no el
+     * color: `semantic.focus` en claro resuelve al MISMO valor exacto que el
+     * acento de una de las tarjetas -- oklch(0.53 0.13 235.851) --, así que
+     * una aserción "el CSS no contiene el color de foco" da rojo por el
+     * motivo equivocado. Medido al escribir este test, no supuesto.
+     */
+    const reglaFoco = cssRuleTextFor(cta)
+      .split("\n")
+      .find((regla) => regla.includes(":focus-visible"));
+    expect(reglaFoco, "ScCta perdió su bloque :focus-visible").toBeDefined();
+
+    // Sonda positiva: sigue aportando lo suyo -- acento y radio.
+    expect(reglaFoco).toContain("color:");
+    expect(reglaFoco).toContain("border-radius");
+    // Y ya no pinta anillo de ninguna de las dos formas posibles.
+    expect(reglaFoco).not.toContain("box-shadow");
+    expect(reglaFoco).not.toContain("outline");
   });
 
   /*

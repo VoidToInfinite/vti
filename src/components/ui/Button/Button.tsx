@@ -133,23 +133,16 @@ const ScButton = styled.button<{
   ${({ $size }) => sizeStyles[$size]}
   ${({ theme, $variant, $intent }) => {
     const a = accent(theme, $intent);
-    /* Halo de :focus-visible (hallazgo 1, D7): las cuatro variantes lo
-       necesitan y las tres que no tocan box-shadow (solid/soft/ghost) lo
-       comparten tal cual. Resuelve contra semantic.focus -- el MISMO rol que
-       ya usa el anillo GLOBAL (GlobalStyles.tsx, outline 2px + offset 2px) --
-       para que halo y anillo compartan tono en los dos temas sin inventar un
-       rol nuevo. Es ADITIVO, nunca sustituye el anillo: el outline sigue
-       viviendo intacto en GlobalStyles, esto es una capa aparte (box-shadow,
-       propiedad distinta) que ocupa el área justo después de esos 4px
-       (2px de ancho + 2px de offset), como un segundo halo más suave. Sin
-       transition propia a propósito: aparece tan instantáneo como el propio
-       outline (que tampoco se transiciona por defecto), así que no hace
-       falta guard de prefers-reduced-motion -- esa regla dura solo aplica a
-       transiciones/animaciones que sí existen. */
-    const focusHalo = css`
-      box-shadow: 0 0 0 4px
-        color-mix(in oklch, ${theme.data.semantic.focus} 35%, transparent);
-    `;
+    /* AQUÍ VIVIÓ focusHalo (hallazgo 1, D7): un box-shadow de 4px contra
+       semantic.focus que las cuatro variantes sumaban al anillo global, de
+       modo que cada botón enfocado pintaba DOS anillos. Retirado el
+       2026-09-02 (crítica externa #14, P1 de Craft): el anillo de foco es
+       uno solo y se declara una única vez, en GlobalStyles.tsx, con la
+       geometría de src/theme/tokens/focus.ts -- ver ese docblock para el
+       porqué. Nada lo sustituye aquí: el botón enfocado sigue llevando el
+       mismo outline que cualquier otro control del sitio, y la variante
+       outline conserva intacto su anillo inset de reposo, que ya no hay que
+       reescribir dentro de ningún bloque de foco. */
     /* Tinte de hover (§13.1: "hover-lift + tint, un paso más oscuro"). Se
        deriva con color-mix del propio acento en vez de añadir un rol
        semántico por intent: así los dos intents lo obtienen sin multiplicar
@@ -164,9 +157,6 @@ const ScButton = styled.button<{
         &:hover:not(:disabled) {
           background: color-mix(in oklch, ${a} 88%, black);
         }
-        &:focus-visible {
-          ${focusHalo}
-        }
       `;
     if ($variant === "soft")
       return css`
@@ -175,28 +165,19 @@ const ScButton = styled.button<{
         &:hover:not(:disabled) {
           background: color-mix(in oklch, ${a} 20%, transparent);
         }
-        &:focus-visible {
-          ${focusHalo}
-        }
       `;
     if ($variant === "outline")
       return css`
         background: transparent;
         color: ${a};
+        /* Anillo inset de reposo. Ya no se reescribe dentro de ningún bloque
+           de foco: cuando el halo vivía en box-shadow había que repetirlo
+           aquí -- box-shadow no fusiona entre declaraciones, la última gana
+           entera -- y esa duplicación desaparece con el anillo único por
+           outline (2026-09-02, crítica #14 P1). */
         box-shadow: inset 0 0 0 1px ${theme.data.semantic.borderStrong};
         &:hover:not(:disabled) {
           background: color-mix(in oklch, ${a} 10%, transparent);
-        }
-        /* Aquí el halo no puede reusar focusHalo suelto: box-shadow no
-           fusiona entre declaraciones distintas (la última gana entera), así
-           que perdería el anillo inset propio de outline. Se combinan las
-           dos capas en la MISMA declaración, separadas por coma -- la
-           sintaxis estándar de box-shadow para apilar sombras. */
-        &:focus-visible {
-          box-shadow:
-            inset 0 0 0 1px ${theme.data.semantic.borderStrong},
-            0 0 0 4px
-              color-mix(in oklch, ${theme.data.semantic.focus} 35%, transparent);
         }
       `;
     return css`
@@ -204,9 +185,6 @@ const ScButton = styled.button<{
       color: ${a};
       &:hover:not(:disabled) {
         background: color-mix(in oklch, ${a} 10%, transparent);
-      }
-      &:focus-visible {
-        ${focusHalo}
       }
     `;
   }}
@@ -256,7 +234,11 @@ const ScButton = styled.button<{
      background-color y border-color -- los sustituye por la paleta del
      sistema -- y ademas fuerza box-shadow: none, asi que las TRES cosas que
      hoy dan forma a este boton desaparecen a la vez: el fondo de la variante
-     solid, el anillo inset de outline y el halo de :focus-visible. El borde
+     solid y el anillo inset de outline. (Eran tres hasta el 2026-09-02: el
+     halo de :focus-visible por box-shadow tambien se apagaba aqui, y por eso
+     mismo se retiro en la unificacion del anillo de foco -- ver
+     src/theme/tokens/focus.ts. El indicador de foco de este boton es ahora un
+     outline, que el modo forzado si respeta.) El borde
      es lo unico que el modo forzado si pinta. Se declara aqui, en la base y
      no dentro de cada rama de variante, para que las cuatro lo hereden --
      mismo punto de menor duplicacion que ya usan touch-action y las dos

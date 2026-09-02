@@ -2,7 +2,7 @@ import { createRef } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { PRESS } from "@/motion/vocabulary";
-import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
+import { basicLightTheme } from "@/theme/themes";
 import { Button } from "./Button";
 
 /** Texto CSS de todas las reglas inyectadas por styled-components, planas
@@ -363,7 +363,24 @@ describe("Button", () => {
     expect(link).not.toHaveAttribute("aria-disabled");
   });
 
-  describe(":focus-visible propio (hallazgo 1, D7)", () => {
+  /*
+   * ESTE BLOQUE SE DIO LA VUELTA el 2026-09-02 (crítica externa #14, P1 de
+   * Craft). Hasta esa fecha ataba lo contrario de lo que ata ahora: que las
+   * cuatro variantes declararan un halo PROPIO de `:focus-visible`
+   * (`focusHalo`, box-shadow de 4px contra `semantic.focus`) además del
+   * anillo global. Ese halo se retiró -- el sitio tenía tres vocabularios de
+   * anillo de foco y ahora tiene uno solo, declarado en `GlobalStyles.tsx`
+   * con la geometría de `src/theme/tokens/focus.ts` --, así que el candado
+   * pasa a proteger la propiedad NUEVA: que `Button` no vuelva a declarar
+   * anillo por su cuenta.
+   *
+   * Un candado de AUSENCIA es débil si se queda solo, así que cada test lleva
+   * su sonda positiva: `reglasDe` ya falla si el elemento no tiene ninguna
+   * clase inyectada, y la variante `outline` comprueba además que su anillo
+   * `inset` de reposo -- lo único que este componente sigue pintando con
+   * `box-shadow` -- sobrevive intacto.
+   */
+  describe("anillo de foco único (crítica #14, P1): Button no declara anillo propio", () => {
     beforeEach(() => {
       window.localStorage.clear();
     });
@@ -395,53 +412,66 @@ describe("Button", () => {
       return reglas.filter((r) => clases.some((c) => r.includes(c)));
     }
 
-    it.each([
-      ["light", basicLightTheme],
-      ["dark", basicDarkTheme],
-    ] as const)(
-      "variante solid: declara :focus-visible con box-shadow contra semantic.focus del tema %s (nunca un literal)",
-      (nombreTema, theme) => {
+    /**
+     * Reglas cuyo SELECTOR incluye `:focus-visible`. Se ata el MECANISMO --
+     * que ninguna de ellas pinte anillo, con `box-shadow` o con `outline` --
+     * y no el color: `semantic.focus` resuelve en claro al mismo valor exacto
+     * que algún acento del sitio (medido: `oklch(0.53 0.13 235.851)` es a la
+     * vez el rol de foco y el acento de una tarjeta de Features), así que un
+     * candado por color daría rojo por el motivo equivocado en cuanto un
+     * componente use ese tono para otra cosa.
+     */
+    function anillosDeFoco(el: HTMLElement): string[] {
+      return reglasDe(el).filter(
+        (regla) =>
+          regla.includes(":focus-visible") &&
+          (regla.includes("box-shadow") || regla.includes("outline")),
+      );
+    }
+
+    // Solo el NOMBRE del tema: desde que el candado ata el mecanismo y no el
+    // color, el objeto de tema ya no hace falta en el cuerpo del test.
+    it.each(["light", "dark"] as const)(
+      "variante solid: ninguna regla de :focus-visible pinta anillo, en el tema %s (lo pone GlobalStyles)",
+      (nombreTema) => {
         window.localStorage.setItem("vti-theme", nombreTema);
         renderWithProviders(<Button variant="solid">Guardar</Button>);
         const boton = screen.getByRole("button", { name: "Guardar" });
 
-        const bloque = reglasDe(boton).find(
-          (regla) =>
-            regla.includes(":focus-visible") && regla.includes("box-shadow"),
-        );
-        expect(
-          bloque,
-          "no se encontró ninguna regla :focus-visible con box-shadow",
-        ).toBeDefined();
-        expect(bloque).toContain(theme.semantic.focus);
-        // No sustituye el anillo global: ninguna regla de ESTA clase
-        // declara `outline: none` (regla dura del repo, vetada desde el
-        // sistema de lujo) en ningún selector, no solo en :focus-visible.
+        expect(anillosDeFoco(boton)).toEqual([]);
+        // Y tampoco apaga el global (regla dura del repo: outline: none
+        // vetado) en ningún selector, no solo en :focus-visible.
         expect(
           reglasDe(boton).some((regla) => /outline\s*:\s*none/.test(regla)),
         ).toBe(false);
       },
     );
 
-    it("variante outline: :focus-visible COMPONE el halo con el anillo inset propio, no lo sustituye", () => {
+    it("variante outline: conserva su anillo inset de reposo, que ya no hay que repetir en ningún bloque de foco", () => {
       renderWithProviders(<Button variant="outline">Cancelar</Button>);
       const boton = screen.getByRole("button", { name: "Cancelar" });
+      const reglas = reglasDe(boton);
 
-      const bloque = reglasDe(boton).find(
+      // Sonda positiva: la variante sigue pintando SU sombra propia -- la
+      // que existía antes del halo y no tiene nada que ver con el foco.
+      const inset = reglas.find(
         (regla) =>
-          regla.includes(":focus-visible") && regla.includes("box-shadow"),
+          regla.includes("box-shadow") &&
+          regla.includes("inset") &&
+          regla.includes(basicLightTheme.semantic.borderStrong),
       );
-      expect(bloque).toBeDefined();
-      // Las DOS capas tienen que convivir en la MISMA declaración
-      // (box-shadow no fusiona entre reglas distintas): el anillo inset de
-      // la variante outline (inset ...) y el halo nuevo (color-mix con
-      // semantic.focus), separados por coma.
-      expect(bloque).toContain("inset");
-      expect(bloque).toContain(basicLightTheme.semantic.borderStrong);
-      expect(bloque).toContain(basicLightTheme.semantic.focus);
+      expect(
+        inset,
+        "la variante outline perdió su anillo inset de reposo",
+      ).toBeDefined();
+
+      // Y ninguna regla de foco vuelve a mezclar ese anillo con un halo:
+      // esa duplicación era una consecuencia de escribir el anillo de foco
+      // con box-shadow, y desaparece con el anillo único por outline.
+      expect(anillosDeFoco(boton)).toEqual([]);
     });
 
-    it("las cuatro variantes declaran su propio :focus-visible (ninguna depende solo del anillo global)", () => {
+    it("las cuatro variantes dependen del MISMO anillo global: ninguna declara uno propio", () => {
       const variantes = ["solid", "soft", "outline", "ghost"] as const;
       const botones: HTMLElement[] = [];
       for (const variant of variantes) {
@@ -460,13 +490,10 @@ describe("Button", () => {
       }
 
       for (const boton of botones) {
-        const tieneFocusVisible = reglasDe(boton).some((regla) =>
-          regla.includes(":focus-visible"),
-        );
         expect(
-          tieneFocusVisible,
-          `la variante del botón "${boton.textContent}" no declara :focus-visible propio`,
-        ).toBe(true);
+          anillosDeFoco(boton),
+          `la variante del botón "${boton.textContent}" declara un anillo de foco propio`,
+        ).toEqual([]);
       }
     });
   });

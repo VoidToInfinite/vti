@@ -7,6 +7,7 @@ import type { zIndex } from "./tokens/zIndex";
 import type { motion } from "./tokens/motion";
 import type { Glass } from "./tokens/glass";
 import type { grid } from "./tokens/grid";
+import type { focusRing } from "./tokens/focus";
 
 interface BreakPoints {
   sm: string;
@@ -28,5 +29,12 @@ export interface ThemeDefinition {
   motion: typeof motion;
   zIndex: typeof zIndex;
   grid: typeof grid;
+  /**
+   * Geometría del anillo de foco. Vive en el tema (y no solo como import
+   * suelto) para que cualquier consumidor futuro lo lea igual que cualquier
+   * otro token; hoy su único consumidor es `GlobalStyles.tsx`, que declara el
+   * anillo una sola vez para todo el sitio. Ver `tokens/focus.ts`.
+   */
+  focusRing: typeof focusRing;
   breakPoint: BreakPoints;
 }

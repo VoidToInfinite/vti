@@ -907,16 +907,21 @@ const ScCheckIcon = styled.svg<{ $key: FeatureKey }>`
 `;
 
 /*
- * :focus-visible propio (D7, encargo 2026-08-04): hasta esta entrega este
- * CTA de sección solo tenía :hover. El anillo GLOBAL (GlobalStyles.tsx,
- * :where(a, ...)) ya cubre este enlace con un outline de semantic.focus,
- * pero es un :where() de especificidad CERO -- cualquier regla futura con
- * más peso lo desplazaría en silencio -- y no es verificable con un test
- * propio de este componente. Se declara aquí, ADITIVO (no sustituye el
- * anillo global, mismo criterio que focusHalo en Button.tsx), resuelto
- * contra semantic.focus en los dos temas -- ese token ya cambia de paso de
- * paleta entre claro y oscuro (theme/tokens/semantic.ts), así que un único
- * color-mix sirve para ambos sin ternario.
+ * :focus-visible propio (D7, encargo 2026-08-04): hasta esa entrega este CTA
+ * de sección solo tenía :hover, y se le añadió un halo ADITIVO por
+ * box-shadow sobre el anillo global. El argumento de entonces era que el
+ * anillo global vive en un :where() de especificidad CERO -- cualquier regla
+ * futura con más peso lo desplazaría en silencio -- y que un anillo propio
+ * era verificable desde el test de este componente.
+ *
+ * RETIRADO el 2026-09-02 (crítica externa #14, P1 de Craft), y el argumento
+ * de 2026-08-04 se responde en vez de ignorarse: el anillo de foco vale
+ * justamente porque es el MISMO en todo el sitio, y duplicarlo por
+ * componente producía tres vocabularios distintos (dos anillos aquí, uno
+ * sustitutivo en los decks, uno solo en el resto). El riesgo de que una
+ * regla futura desplace el :where() se cubre ahora donde corresponde: con el
+ * token único de src/theme/tokens/focus.ts y su candado de punto único de
+ * declaración (tokens/focus.test.ts), no con una copia local.
  */
 /*
  * Task 9 (craft de interacción, punto 3 del brief): FEATURES_CTA_TRANSITION_MS
@@ -991,16 +996,20 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
   }
 
   /* focus-visible: ver el docblock de arriba. Sin transform: no necesita
-     guard de hover -- es un estado de teclado, no de puntero. */
+     guard de hover -- es un estado de teclado, no de puntero.
+
+     Este bloque YA NO declara anillo. Tenía un halo de 4px por box-shadow
+     contra semantic.focus, aditivo al anillo global, retirado el 2026-09-02
+     (crítica externa #14, P1 de Craft): el anillo de foco se declara una
+     sola vez en GlobalStyles.tsx, con la geometría de
+     src/theme/tokens/focus.ts. Lo que queda es lo que este CTA aporta de
+     suyo: el mismo salto de acento que el hover -- foco y hover comunican
+     aquí la misma cosa, "esto es accionable" -- y el border-radius, que
+     antes redondeaba el halo y ahora redondea el outline global (outline
+     adopta el border-radius del elemento). */
   &:focus-visible {
     color: ${({ theme, $key }) => accentColorHover(theme.data, $key)};
     border-radius: ${({ theme }) => theme.data.radius.sm};
-    box-shadow: 0 0 0 4px
-      color-mix(
-        in oklch,
-        ${({ theme }) => theme.data.semantic.focus} 35%,
-        transparent
-      );
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -9,6 +9,7 @@ import { zIndex } from "./tokens/zIndex";
 import { motion } from "./tokens/motion";
 import { glassLight, glassDark } from "./tokens/glass";
 import { grid } from "./tokens/grid";
+import { focusRing } from "./tokens/focus";
 
 const shared = {
   palette: color,
@@ -19,6 +20,7 @@ const shared = {
   zIndex,
   motion,
   grid,
+  focusRing,
 } as const;
 
 export const basicLightTheme: ThemeDefinition = {

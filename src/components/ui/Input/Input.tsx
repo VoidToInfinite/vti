@@ -91,25 +91,17 @@ const ScInput = styled.input`
         : theme.data.palette.neutral[400]};
   }
 
-  /* :focus-visible propio, ADEMÁS del &:focus de arriba (D7 pide un
-     tratamiento de :focus-visible en los cuatro átomos; aquí se añade sin
-     duplicar el efecto que &:focus ya cubre): un halo translúcido contra
-     semantic.focus -- el mismo rol que ya resuelve el anillo GLOBAL de
-     GlobalStyles -- que compone con él en vez de sustituirlo (propiedad
-     distinta, box-shadow, nunca outline). Como :focus-visible es siempre un
-     subconjunto de :focus (todo lo que casa con :focus-visible casa también
-     con :focus), este bloque NO repite border-color: solo añade la capa
-     nueva que &:focus todavía no cubre. Mismo patrón que Button.tsx/
-     Card.tsx/IconButton.tsx: sin transition propia, aparece tan instantáneo
-     como el propio outline global. */
-  &:focus-visible {
-    box-shadow: 0 0 0 4px
-      color-mix(
-        in oklch,
-        ${({ theme }) => theme.data.semantic.focus} 35%,
-        transparent
-      );
-  }
+  /* AQUÍ VIVIÓ un &:focus-visible propio (hallazgo 1, D7): un halo de 4px
+     por box-shadow contra semantic.focus, ADITIVO al anillo global, así que
+     un campo enfocado por teclado pintaba dos anillos. Retirado el
+     2026-09-02 (crítica externa #14, P1 de Craft): el anillo de foco se
+     declara una sola vez en GlobalStyles.tsx con la geometría de
+     src/theme/tokens/focus.ts, y ningún componente añade el suyo.
+
+     Lo que NO cambia es el refuerzo de borde de &:focus de arriba, que sigue
+     siendo lo específico de un campo de texto (reacciona también al ratón,
+     donde :focus-visible no casa) y es lo único que este componente aporta
+     al estado de foco. */
 
   /* El borde de error se deriva del atributo aria-invalid, no de un prop
      $error transitorio. Así el estado visual queda atado al mismo dato que

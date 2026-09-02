@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
-import { basicDarkTheme, basicLightTheme } from "@/theme/themes";
+import { basicLightTheme } from "@/theme/themes";
 import { IconButton } from "./IconButton";
 
 const Icon = (): ReactElement => (
@@ -285,17 +285,33 @@ describe("IconButton", () => {
     );
   });
 
-  describe(":focus-visible propio (hallazgo 1, D7)", () => {
+  /*
+   * ESTE BLOQUE SE DIO LA VUELTA el 2026-09-02 (crítica externa #14, P1 de
+   * Craft). Ataba una regla combinada
+   * `[data-variant="ghost"]:focus-visible` que repetía el anillo de
+   * descubribilidad y le sumaba, en la MISMA declaración, un halo contra
+   * `semantic.focus`. Esa regla existía por una razón puramente mecánica --
+   * `box-shadow` no fusiona entre declaraciones, así que un anillo de foco
+   * escrito con `box-shadow` obligaba a reescribir cualquier otra sombra del
+   * control y a ganarle la especificidad al anillo de descubribilidad.
+   *
+   * Con el anillo único declarado por `outline` en `GlobalStyles.tsx`
+   * (geometría en `src/theme/tokens/focus.ts`) el conflicto desaparece en su
+   * raíz: `outline` y `box-shadow` son propiedades distintas y no compiten.
+   * Lo que este candado protege ahora es justo eso -- que el anillo de
+   * descubribilidad siga vivo (sonda positiva) y que nadie vuelva a añadir
+   * aquí un anillo de foco propio.
+   */
+  describe("anillo de foco único (crítica #14, P1): IconButton no declara anillo propio", () => {
     afterEach(() => {
       window.localStorage.clear();
     });
 
-    it.each([
-      ["light", basicLightTheme],
-      ["dark", basicDarkTheme],
-    ] as const)(
-      "variant='ghost' (por defecto): :focus-visible COMPONE el anillo de descubribilidad con el halo de foco, del tema %s",
-      (nombreTema, theme) => {
+    // Solo el NOMBRE del tema: desde que el candado ata el mecanismo y no el
+    // color, el objeto de tema ya no hace falta en el cuerpo del test.
+    it.each(["light", "dark"] as const)(
+      "variant='ghost' (por defecto): conserva su anillo de descubribilidad y no declara halo de foco, del tema %s",
+      (nombreTema) => {
         window.localStorage.setItem("vti-theme", nombreTema);
         renderWithProviders(
           <IconButton
@@ -304,22 +320,39 @@ describe("IconButton", () => {
           />,
         );
         const boton = screen.getByRole("button", { name: "Etiqueta" });
+        const reglas = reglasDe(boton);
 
-        const bloque = reglasDe(boton).find(
+        // Sonda positiva: el anillo de descubribilidad del reposo ghost
+        // -- la razón de ser de esta capa -- sigue declarado.
+        const descubribilidad = reglas.find(
           (regla) =>
-            regla.includes('[data-variant="ghost"]:focus-visible') &&
-            regla.includes("box-shadow"),
+            regla.includes('[data-variant="ghost"]') &&
+            regla.includes("box-shadow") &&
+            regla.includes("currentColor"),
         );
         expect(
-          bloque,
-          'no se encontró la regla combinada [data-variant="ghost"]:focus-visible',
+          descubribilidad,
+          "el anillo de descubribilidad del ghost desapareció",
         ).toBeDefined();
-        // Las DOS sombras en la MISMA declaración: el anillo de
-        // descubribilidad (currentColor) del reposo ghost, y el halo nuevo
-        // contra el token de foco del tema activo -- ninguna sustituye a la
-        // otra.
-        expect(bloque).toContain("currentColor");
-        expect(bloque).toContain(theme.semantic.focus);
+
+        /*
+         * Y ninguna regla de :focus-visible de esta capa vuelve a pintar
+         * anillo: ese trabajo es del outline global, idéntico en todo el
+         * sitio. Se ata el MECANISMO y no el color -- `semantic.focus`
+         * coincide en claro con algún acento del sitio (medido), así que un
+         * candado por color daría rojo por el motivo equivocado.
+         */
+        expect(
+          reglas.filter(
+            (regla) =>
+              regla.includes(":focus-visible") &&
+              (regla.includes("box-shadow") || regla.includes("outline")),
+          ),
+          "IconButton volvió a declarar un anillo de foco propio",
+        ).toEqual([]);
+        expect(reglas.some((regla) => /outline\s*:\s*none/.test(regla))).toBe(
+          false,
+        );
       },
     );
   });

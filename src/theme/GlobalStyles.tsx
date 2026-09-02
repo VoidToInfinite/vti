@@ -394,9 +394,19 @@ export const GlobalStyles = createGlobalStyle`
     scroll-padding-top: calc(var(--nav-height) + var(--nav-gap));
   }
 
+  /* ANILLO DE FOCO: ÚNICO PUNTO DE DECLARACIÓN DE TODO EL SITIO.
+     Desde la crítica externa #14 (P1 de Craft, 2026-09-02) ningún componente
+     declara anillo propio -- ni aditivo por box-shadow, ni sustitutivo con
+     outline: none. La geometría sale de tokens/focus.ts (vía el bloque
+     shared del tema) y el color del rol semantic.focus, que ya cambia por
+     piel. El porqué completo -- los tres vocabularios que había, por qué
+     gana el outline y qué se pierde -- vive en el docblock de
+     src/theme/tokens/focus.ts, no se repite aquí. */
   :where(a, button, input, textarea, select, [tabindex]):focus-visible {
-    outline: 2px solid ${({ theme }) => theme.data.semantic.focus};
-    outline-offset: 2px;
+    outline: ${({ theme }) => theme.data.focusRing.width}
+      ${({ theme }) => theme.data.focusRing.style}
+      ${({ theme }) => theme.data.semantic.focus};
+    outline-offset: ${({ theme }) => theme.data.focusRing.offset};
   }
 
   @media (prefers-reduced-motion: reduce) {

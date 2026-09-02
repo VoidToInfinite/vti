@@ -308,7 +308,22 @@ describe("Input / Field", () => {
     consoleError.mockRestore();
   });
 
-  describe(":focus-visible propio (hallazgo 1, D7)", () => {
+  /*
+   * ESTE BLOQUE SE DIO LA VUELTA el 2026-09-02 (crítica externa #14, P1 de
+   * Craft). Ataba que `ScInput` declarase un halo PROPIO de `:focus-visible`
+   * (box-shadow de 4px contra `semantic.focus`) además del anillo global;
+   * ese halo se retiró al unificar el anillo de foco del sitio en una sola
+   * declaración (`GlobalStyles.tsx`, geometría en
+   * `src/theme/tokens/focus.ts`).
+   *
+   * Lo que este bloque protege NO cambia de intención: que el estado de foco
+   * de un campo de texto siga completo. Cambia qué lo compone -- el anillo
+   * ahora es el global y solo el global -- y se conserva íntegra la mitad que
+   * SÍ es propia del campo y que ninguna unificación toca: el refuerzo de
+   * `border-color` bajo `&:focus` (no `:focus-visible`), con su medición de
+   * contraste.
+   */
+  describe("foco del campo (crítica #14, P1: anillo global + refuerzo de borde propio)", () => {
     afterEach(() => {
       window.localStorage.clear();
     });
@@ -333,26 +348,29 @@ describe("Input / Field", () => {
       ["light", basicLightTheme],
       ["dark", basicDarkTheme],
     ] as const)(
-      "declara :focus-visible con box-shadow contra semantic.focus del tema %s (nunca un literal), SIN repetir el border-color que ya pone &:focus",
+      "no declara anillo propio de :focus-visible en el tema %s, y sigue reforzando border-color bajo &:focus",
       (nombreTema, theme) => {
         window.localStorage.setItem("vti-theme", nombreTema);
         renderWithProviders(<Input />);
         const input = screen.getByRole("textbox");
 
         const reglas = reglasDe(input);
-        const bloqueFocusVisible = reglas.find(
-          (regla) =>
-            regla.includes(":focus-visible") && regla.includes("box-shadow"),
-        );
+        /*
+         * El anillo lo pone GlobalStyles y solo GlobalStyles. Se ata el
+         * MECANISMO -- ninguna regla de `:focus-visible` de este componente
+         * pinta anillo, ni con box-shadow ni con outline -- y no el color:
+         * `semantic.focus` coincide en claro con algún acento del sitio
+         * (medido), así que un candado por color daría rojo por el motivo
+         * equivocado.
+         */
         expect(
-          bloqueFocusVisible,
-          "no se encontró ninguna regla :focus-visible con box-shadow",
-        ).toBeDefined();
-        expect(bloqueFocusVisible).toContain(theme.semantic.focus);
-        // No duplica el efecto de &:focus (regla dura del hallazgo): el
-        // bloque de :focus-visible no repite la declaración de
-        // border-color, esa la sigue aportando en solitario &:focus.
-        expect(bloqueFocusVisible).not.toContain("border-color");
+          reglas.filter(
+            (regla) =>
+              regla.includes(":focus-visible") &&
+              (regla.includes("box-shadow") || regla.includes("outline")),
+          ),
+          "ScInput volvió a declarar un anillo de foco propio",
+        ).toEqual([]);
 
         // &:focus (no :focus-visible) sigue reforzando border-color: sigue
         // siendo la decisión correcta para un input de texto (documentada en

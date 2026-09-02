@@ -430,18 +430,16 @@ export const ScJourneyRailMark = styled.button<{ $index: number }>`
     color: ${({ theme }) => theme.data.semantic.text};
   }
 
-  /* Halo de foco por teclado, mismo lenguaje que IconButton.tsx (anillo
-     externo con semantic.focus mezclado con transparente). El boton es
-     redondo, asi que el anillo hereda su border-radius sin declarar nada. */
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px
-      color-mix(
-        in oklch,
-        ${({ theme }) => theme.data.semantic.focus} 45%,
-        transparent
-      );
-  }
+  /* AQUI VIVIO un halo de foco propio: outline: none mas un box-shadow de
+     3px contra semantic.focus al 45%. Era el tercer vocabulario de anillo
+     del sitio -- y el unico SUSTITUTIVO -- y ademas dejaba esta marca sin
+     ningun indicador de foco bajo forced-colors, donde el navegador fuerza
+     box-shadow: none y el outline: none ya habia apagado el anillo global.
+     Retirado el 2026-09-02 (critica externa #14, P1 de Craft): el anillo
+     unico se declara en GlobalStyles.tsx con la geometria de
+     src/theme/tokens/focus.ts. El boton es redondo y outline adopta el
+     border-radius del elemento, asi que el anillo sigue saliendo redondo sin
+     declarar nada aqui. */
 
   ${({ $index, theme }) => css`
     [data-slide="${$index}"] & {

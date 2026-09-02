@@ -97,40 +97,21 @@ const ScSquare = styled(Button)<{ $side: string; $iconSide: string }>`
     }
   }
 
-  /* :focus-visible propio (hallazgo 1, D7) — necesario AQUÍ, no solo en
-     Button.tsx: Button.tsx ya declara su propio halo por variante (rama
-     ghost incluida), pero esa regla vive en la clase de ScButton, que se
-     inyecta ANTES que la de esta capa (lección task/lessons.md 2026-07-26,
-     "styled(Base) se inyecta después del propio Base"), y el anillo de
-     descubribilidad de arriba tiene la MISMA especificidad que un selector
-     de focus-visible suelto (una clase + un selector simple, en los dos
-     casos: atributo vs. pseudo-clase pesan igual). En un empate de
-     especificidad gana el ÚLTIMO declarado en el documento, que aquí es
-     SIEMPRE esta capa — así que sin este bloque, al enfocar por teclado el
-     ghost (el variant por defecto de IconButton, y el único que usa hoy
-     ThemeToggle) el halo de Button.tsx quedaría tapado por el anillo de
-     descubribilidad, invisible en la práctica.
-     La combinación de selector atributo+focus-visible de abajo sube la
-     especificidad por encima de las dos reglas que compone (atributo +
-     pseudo-clase > solo atributo, o que solo pseudo-clase), así que gana
-     SIEMPRE, sin depender del orden de inserción — y las dos sombras
-     (anillo de descubribilidad + halo de foco) se escriben en la MISMA
-     declaración, separadas por coma, para no perder ninguna (box-shadow no
-     fusiona entre declaraciones distintas: la última gana entera).
-     Para el resto de variantes (solid/soft/outline), pasadas explícitamente
-     por el consumidor, no hace falta nada en esta capa: ninguna regla de
-     ScSquare las toca, así que el halo que Button.tsx ya declara por su
-     cuenta llega intacto. */
-  &[data-variant="ghost"]:focus-visible {
-    box-shadow:
-      inset 0 0 0 1px color-mix(in oklch, currentColor 18%, transparent),
-      0 0 0 4px
-        color-mix(
-          in oklch,
-          ${({ theme }) => theme.data.semantic.focus} 35%,
-          transparent
-        );
-  }
+  /* AQUÍ VIVIÓ un [data-variant="ghost"]:focus-visible propio (hallazgo 1,
+     D7) que repetía el anillo de descubribilidad de arriba y le sumaba, en
+     la MISMA declaración, un halo de 4px contra semantic.focus. Existía por
+     una razón puramente mecánica: cuando el anillo de foco se escribía con
+     box-shadow había que reescribir en el bloque de foco cualquier otra
+     sombra del control (box-shadow no fusiona entre declaraciones, la última
+     gana entera) y subir la especificidad por encima del anillo de
+     descubribilidad, que empataba con él.
+
+     Retirado el 2026-09-02 (crítica externa #14, P1 de Craft): con el anillo
+     único declarado por outline en GlobalStyles.tsx (geometría en
+     src/theme/tokens/focus.ts) el problema desaparece en su raíz -- outline
+     y box-shadow son propiedades distintas, así que no compiten, y el anillo
+     de descubribilidad de arriba sigue pintándose intacto durante el foco
+     sin que nadie tenga que repetirlo. */
 `;
 
 export function IconButton({

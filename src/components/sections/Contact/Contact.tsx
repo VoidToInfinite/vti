@@ -1119,9 +1119,9 @@ const ScForm = styled.form`
  * una segunda paleta para el mismo formulario -- borde `neutral[600]` en
  * reposo (el único escalón de la rampa que cruza el 3:1 de WCAG 1.4.11 en las
  * DOS ramas: 3,112:1 en claro y 4,060:1 en oscuro, cifras medidas en el
- * docblock de `ScInput`), refuerzo de foco resuelto por rama, halo de
- * `:focus-visible` sobre `semantic.focus` que compone con el `outline` global
- * en vez de sustituirlo, y borde de error derivado del atributo
+ * docblock de `ScInput`), refuerzo de foco resuelto por rama, el anillo de
+ * foco ÚNICO del sitio (el `outline` de `GlobalStyles.tsx`, sin halo propio
+ * desde el 2026-09-02), y borde de error derivado del atributo
  * `aria-invalid` que `Field` inyecta -- nunca de un prop propio, para que el
  * estado visual y el accesible no puedan desincronizarse.
  *
@@ -1157,14 +1157,12 @@ const ScTextarea = styled.textarea`
         : theme.data.palette.neutral[400]};
   }
 
-  &:focus-visible {
-    box-shadow: 0 0 0 4px
-      color-mix(
-        in oklch,
-        ${({ theme }) => theme.data.semantic.focus} 35%,
-        transparent
-      );
-  }
+  /* AQUI VIVIO un &:focus-visible con un halo de 4px por box-shadow contra
+     semantic.focus, aditivo al anillo global. Retirado el 2026-09-02
+     (critica externa #14, P1 de Craft): el anillo de foco se declara una
+     sola vez, en GlobalStyles.tsx, con la geometria de
+     src/theme/tokens/focus.ts. El refuerzo de borde de &:focus de arriba,
+     que es lo propio de un campo de texto, se queda igual. */
 
   &[aria-invalid="true"] {
     border-color: ${({ theme }) => theme.data.semantic.error};
