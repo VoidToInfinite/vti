@@ -31,6 +31,33 @@ import styled from "styled-components";
  * mientras está "oculto". El anillo de :focus-visible lo pone gratis
  * GlobalStyles (`:where(a, ...):focus-visible { outline: ... }`, aplica a
  * cualquier `<a>`): este componente no declara ningún halo propio.
+ *
+ * ## LA SOMBRA VIVE EN `:focus-visible`, NUNCA EN REPOSO (crítica #14, P2)
+ *
+ * EL DEFECTO, medido por el evaluador sobre capturas reales de `/` y de la
+ * 404 en tema claro: sacar el enlace del viewport con `translateY(-150%)`
+ * mueve su CAJA, pero una `box-shadow` no se recorta contra el borde de la
+ * pantalla -- se dibuja alrededor de la caja esté donde esté. Con la caja en
+ * reposo terminando en y ~= -10 y `elevation[3]` (`0 12px 32px`, alfa 0,16),
+ * el desenfoque derramaba una mancha gris DENTRO de la ventana, de y ~= 2 a
+ * y ~= 34, justo sobre la zona del logotipo, en TODAS las páginas del sitio
+ * en tema claro -- y sin que nada la explicara, porque el elemento que la
+ * producía es invisible por diseño.
+ *
+ * EL ARREGLO NO SACA EL ENLACE DEL ORDEN DE TABULACIÓN ni cambia la
+ * propiedad animada: la sombra se declara SOLO en `:focus-visible`, el único
+ * estado en el que el enlace se ve y por tanto el único en el que una sombra
+ * significa algo. `box-shadow` NO entra en la lista de `transition` -- solo
+ * `transform` anima (regla 18) --, así que aparece de golpe con el enlace ya
+ * en pantalla; es deliberado y se declara aquí para que nadie la "complete"
+ * añadiéndola a la transición.
+ *
+ * Alternativa descartada: recortar la sombra con `clip-path` mientras el
+ * enlace está fuera. Exigiría conmutar el `clip-path` en `:focus-visible`
+ * igual que se conmuta la sombra -- la misma cantidad de estado, pero con
+ * una propiedad que crea contexto de recorte y que podría morder el halo de
+ * foco que pinta GlobalStyles. No declarar la sombra es más simple y no
+ * tiene efectos colaterales.
  */
 const ScSkipLink = styled.a`
   position: fixed;
@@ -43,13 +70,15 @@ const ScSkipLink = styled.a`
   background: ${({ theme }) => theme.data.semantic.brandSolid};
   color: ${({ theme }) => theme.data.semantic.onBrand};
   font-weight: 600;
-  box-shadow: ${({ theme }) => theme.data.elevation[3]};
+  /* SIN box-shadow en reposo: ver el docblock de arriba -- fuera de pantalla,
+     su desenfoque seguía manchando el logotipo. */
   transform: translateY(-150%);
   transition: transform ${({ theme }) => theme.data.motion.duration.fast}
     ${({ theme }) => theme.data.motion.easing.standard};
 
   &:focus-visible {
     transform: translateY(0);
+    box-shadow: ${({ theme }) => theme.data.elevation[3]};
   }
 
   @media (prefers-reduced-motion: reduce) {

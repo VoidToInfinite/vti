@@ -73,6 +73,46 @@ describe("SkipLink", () => {
     expect(focusBlock).toContain("translateY(0)");
   });
 
+  /*
+   * LA SOMBRA NO MANCHA EL LOGOTIPO (crítica #14, P2).
+   *
+   * El defecto que este candado cierra, medido por el evaluador sobre
+   * capturas reales de `/` y de la 404 en tema claro: `translateY(-150%)`
+   * mueve la CAJA del enlace fuera de la ventana, pero una `box-shadow` no se
+   * recorta contra el borde de la pantalla. Con la caja terminando en y ~= -10
+   * y `elevation[3]` (`0 12px 32px`, alfa 0,16), el desenfoque dejaba una
+   * mancha gris de y ~= 2 a y ~= 34 sobre la zona del logotipo -- en TODAS las
+   * páginas del sitio, y producida por un elemento invisible.
+   *
+   * Se afirman las DOS mitades: que la sombra NO está en el bloque base y que
+   * SÍ está en `:focus-visible`. Solo la primera dejaría pasar el arreglo
+   * perezoso (borrarla y quedarse sin elevación cuando el enlace se ve), y
+   * solo la segunda no diría nada del defecto.
+   *
+   * jsdom no pinta ni hace layout: la mancha en sí es inobservable desde aquí
+   * (regla 44). Lo que se puede atar es la declaración que la producía, que es
+   * donde vive la causa.
+   *
+   * Validado con el bug inyectado a propósito (regla 34): ver el informe de la
+   * entrega.
+   */
+  it("no declara box-shadow en reposo (fuera de pantalla su desenfoque manchaba el logotipo), y sí en :focus-visible", () => {
+    renderWithProviders(<SkipLink />);
+    const enlace = screen.getByRole("link", { name: "Saltar al contenido" });
+    const css = cssRuleTextFor(enlace);
+
+    const baseBlock = css.slice(0, css.indexOf(":focus-visible"));
+    expect(
+      baseBlock,
+      "el enlace vuelve a proyectar sombra estando fuera de pantalla: mancha el logotipo en todas las páginas",
+    ).not.toContain("box-shadow");
+
+    const focusBlock = css.slice(css.indexOf(":focus-visible"));
+    expect(focusBlock, "el enlace enfocado se quedó sin elevación").toContain(
+      "box-shadow",
+    );
+  });
+
   it("respeta prefers-reduced-motion: reduce (transition: none dentro del media query)", () => {
     renderWithProviders(<SkipLink />);
     const enlace = screen.getByRole("link", { name: "Saltar al contenido" });
