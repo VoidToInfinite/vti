@@ -22,7 +22,9 @@ const SECTION_IDS =
  *
  * Es un literal y no una derivación PORQUE EL MODELO NO LO SABE: `NAV_GROUPS`
  * declara qué destinos existen, no qué hook monta cada componente. Lo sabe el
- * componente, y su candado vive en `About.test.tsx`.
+ * componente, y el candado de que sigue sin declarar el atributo vive junto a
+ * él ("no declara data-inview: el scrollspy la resuelve por geometría en las
+ * dos ramas", `About.test.tsx`).
  */
 const SECTION_ID_SIN_SENAL = "about";
 

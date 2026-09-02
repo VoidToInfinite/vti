@@ -41,6 +41,39 @@ describe("About", () => {
     );
   });
 
+  /*
+   * NO ESCRIBE `data-inview`, Y ESO ES UNA PREMISA DE OTRO MÓDULO (regla 41;
+   * decisión del dueño D2, 2026-09-02, que mete `about` en el scrollspy).
+   *
+   * Esa señal la escribe `useSectionProgress`, y esta sección no lo monta:
+   * es plana a propósito -- sin escena, sin deck y sin parallax cuyo progreso
+   * describir (ver su docblock). `useActiveSection` depende de ello en las
+   * DOS direcciones, así que el día que alguien le dé un parallax a esta
+   * sección tiene que leer esto antes:
+   *
+   * - En la rama CLARA, `about` es la única sección que no declara la señal,
+   *   y por eso entra al camino normal por geometría.
+   * - En la OSCURA no la declara NADIE, y de eso depende que el módulo entero
+   *   caiga al camino por geometría. Si esta sección empezara a escribirla,
+   *   sería la única del árbol oscuro que lo hace: el camino normal se
+   *   activaría con una sola candidata posible y el resaltado se apagaría en
+   *   las otras cuatro secciones.
+   *
+   * Se afirma sobre el elemento con `id="about"` -- el que `useActiveSection`
+   * consulta por `getElementById` -- y no sobre "el componente no importa el
+   * hook": lo que el otro módulo lee es el atributo, no el import.
+   */
+  it("no declara data-inview: el scrollspy la resuelve por geometría en las dos ramas", () => {
+    const { container } = renderWithProviders(<About />);
+
+    const section = container.querySelector("#about") as HTMLElement;
+    expect(section).not.toBeNull();
+    expect(
+      section.dataset.inview,
+      "About empezó a escribir data-inview: en la rama oscura sería la única, y apagaría el resaltado de las otras cuatro secciones",
+    ).toBeUndefined();
+  });
+
   /* El encabezado es `h2` REAL, no un párrafo con aspecto de título: es lo que
      permite que un buscador o un asistente cite el bloque como respuesta a
      "¿qué es VoidToInfinite?". Un `div` estilado se vería igual y no serviría
