@@ -876,15 +876,6 @@ const ALLOWLIST = [
     },
     {
         family: "font-size-literal",
-        file: "src/components/sections/Contact/Contact.tsx",
-        anchors: [
-            { snippet: "font-size: 0.9rem;", lines: [1016] },
-            { snippet: "font-size: 0.85rem;", lines: [1048] },
-        ],
-        reason: "Dos tamanos de la seccion de Contacto (14,4px y 13,6px) que NO coinciden con ningun peldano: caen entre bodySm (0.875rem, 14px) y caption (0.75rem, 12px), y estan ademas a 1,06x el uno del otro -- dos tamanos casi iguales en la misma seccion, el defecto que la #14 pago retirando h4. Migrarlos a bodySm/caption CAMBIA lo que se pinta, asi que es una decision de diseno de quien sea dueno de la seccion, no del detector. Excepcion de transicion, con la decision declarada como pendiente.",
-    },
-    {
-        family: "font-size-literal",
         file: "src/components/sections/Journey/Journey.tsx",
         anchors: [{ snippet: "font-size: 0.8125rem;", lines: [676] }],
         reason: "13px en la rama clara de Journey: tampoco coincide con ningun peldano (cae entre bodySm y caption, como los dos de Contact). Mismo tratamiento y mismo motivo: elegir entre 14px y 12px es diseno. El 1rem que este mismo fichero tenia SI se migro en esta ola, por eso no aparece aqui. Excepcion de transicion.",

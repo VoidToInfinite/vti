@@ -1020,7 +1020,10 @@ const ScCardIcon = styled.svg`
    sobre blanco en la rama clara: 1.3:1, ilegible. */
 const ScCardTitle = styled.span`
   display: block;
-  font-size: 0.9rem;
+  /* bodySm (14px) en vez del literal 0.9rem (14,4px) que llevaba hasta la
+     crítica externa #15 (2026-09-02): el peso 600 ya separa el título del
+     valor, y 0,4px no es una decisión que nadie pueda ver. */
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 600;
   color: ${({ theme }) =>
     theme.data.isLight
@@ -1052,7 +1055,9 @@ const ScCardTitle = styled.span`
  * que aqui hay que dejar encoger.
  */
 const ScCardValue = styled.span`
-  font-size: 0.85rem;
+  /* bodySm (14px) en vez del literal 0.85rem (13,6px), mismo motivo que
+     ScCardTitle: la jerarquía la dan peso y color, no medio píxel. */
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   overflow-wrap: anywhere;
 `;
