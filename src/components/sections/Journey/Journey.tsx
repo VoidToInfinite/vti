@@ -268,13 +268,44 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
         `}
 `;
 
+/*
+ * RELLENO INTERIOR EN MOVIL (critica externa #15, hallazgo A P2-2 / C 2,
+ * 2026-09-02). La mitad horizontal del defecto de los pasos no la ponia la
+ * rejilla, la ponia esta tarjeta: a 390x844 el primer paso empezaba en x=80 y
+ * el ultimo terminaba en x=310 -- 80 px de margen muerto por lado, el 41 % del
+ * viewport gastado en relleno antes de que empiece a haber texto.
+ *
+ * ARITMETICA DEL MARGEN, reproducida desde la fuente:
+ *
+ *     padding-inline de ScJourney (space[6])   32 px
+ *   + padding-inline de ESTA tarjeta (space[7]) 48 px
+ *                                             --------
+ *                                              80 px por lado
+ *
+ * Solo se recorta el termino de la tarjeta, y solo por debajo de md: los 32 px
+ * de la seccion son el mismo rail que usan Story/Features/Contact en movil, y
+ * moverlos aqui haria que Journey dejara de alinearse con sus hermanas por un
+ * defecto que se cierra entero dentro de la tarjeta. Con space[5] (24 px) el
+ * ancho util de la rejilla pasa de 230 a 278 px, que es lo que permite que la
+ * columna unica de ScStepsGrid (ver su docblock) llegue a >= 45 caracteres por
+ * linea.
+ *
+ * A partir de md el relleno original vuelve intacto: la composicion ancha
+ * nunca se midio rota y no se toca. Mismo criterio, mismo par de bloques y
+ * misma direccion (base movil + restauracion en md) que el recorte de
+ * padding-block-start de ScJourney, justo arriba.
+ */
 const ScCard = styled.div`
   position: relative;
   overflow: hidden;
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   background: ${JOURNEY_CARD_BACKGROUND};
   padding: ${({ theme }) => theme.data.space[7]}
-    ${({ theme }) => theme.data.space[7]} ${({ theme }) => theme.data.space[8]};
+    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[8]};
+
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    padding-inline: ${({ theme }) => theme.data.space[7]};
+  }
 `;
 
 const ScHeader = styled.div`
@@ -389,15 +420,65 @@ const ScPath = styled.svg`
  * horizontal que lo recupere (html declara overflow-x: clip, regla 21). Con el
  * minimo a 0 el reparto de fracciones no cambia: a raiz 16px las dos pistas
  * siguen midiendo 103px cada una.
+ *
+ * ---
+ *
+ * ESCALERA DE COLUMNAS REESCRITA (critica externa #15, hallazgo A P2-2 y C 2,
+ * 2026-09-02). Aquellas dos pistas de 103px de la nota de arriba dejaron de
+ * ser una hipotesis del 200 % de raiz y pasaron a ser la medida REAL a raiz
+ * normal: a 390x844 la rejilla montaba 2x3 con tarjetas de 103px en x=80 y
+ * x=207, y el cuerpo de cada paso caia a 18-20 caracteres por linea («Explora
+ * ideas, / hazte preguntas y / observa el mundo / de otra manera.»). El rango
+ * de lectura que el propio sistema declara es 60-75 (DESIGN.md §3.4) y el
+ * suelo que fija esta critica es 45.
+ *
+ * BREAKPOINT ELEGIDO: `md` (768px), y se elige por MEDIDA, no por costumbre.
+ * Con el relleno de la tarjeta ya recortado en movil (ver el docblock de
+ * ScCard), el ancho util es `viewport - 64 (seccion) - 48 (tarjeta)`, y el
+ * ancho de una pista es `(util - gap*(n-1)) / n`. Midiendo el cuerpo real de
+ * los pasos, una linea de este parrafo (variante `caption`, 12px) cabe a razon
+ * de ~5,4-6,0 px por caracter, asi que 45 caracteres piden >= 270px de pista:
+ *
+ *     390px, 1 columna  -> 278px  ->  46-51 caracteres   OK
+ *     390px, 2 columnas -> 127px  ->  21-23 caracteres   NO
+ *     768px, 2 columnas -> 292px  ->  48-54 caracteres   OK
+ *     768px, 3 columnas -> 187px  ->  31-34 caracteres   NO   <- lo que habia
+ *
+ * De ahi las dos correcciones: UNA columna por debajo de md (antes dos) y DOS
+ * por encima (antes tres). La escalera queda 1 -> 2 -> 6 en vez de 2 -> 3 -> 6.
+ *
+ * LO QUE NO CAMBIA, Y POR QUE: el tramo `lg` sigue siendo de SEIS columnas. Es
+ * el regimen del mockup aprobado (spec 2026-07-28-landing-v2-secciones-design,
+ * §7.2: «>= lg: 6 columnas con offsets verticales alternos y el path SVG
+ * punteado detras»), y el camino punteado esta atado a el por construccion:
+ * JOURNEY_PATH_D traza sus seis vertices en x=63,190,317,444,571,698 sobre un
+ * viewBox de 760, es decir en el centro exacto de cada una de las seis pistas.
+ * Con cualquier otro recuento de columnas el camino deja de enhebrar los
+ * discos.
+ *
+ * Y ESE TRAMO NO PUEDE LLEGAR A ~40 CARACTERES, medido y no supuesto: el rail
+ * de la seccion topa en grid.sectionMax (1280px), asi que el ancho util maximo
+ * de la rejilla es 1280 - 64 (seccion) - 96 (tarjeta) - 149 (hueco reservado
+ * de la figura, >= xl) = 971px, y seis pistas con gap space[2] miden 155px
+ * cada una: 26-28 caracteres. Incluso regalando los tres rellenos -- que
+ * romperia la reserva de hueco de la figura, ver el docblock de
+ * JOURNEY_FIGURE_WIDTH -- seis pistas dentro de 1280px miden 205px: ~37
+ * caracteres. NO HAY viewport en el que seis columnas lleguen a 40. Cerrar esa
+ * mitad del hallazgo exige bajar a <= 4 columnas en escritorio, y eso es
+ * retirar el camino punteado del mockup: decision del dueno, no de esta ola.
+ * Queda declarada, no disimulada.
  */
 const ScStepsGrid = styled.div`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Base MOVIL: una sola pista. minmax(0, 1fr) y no 1fr por el mismo motivo
+     que las demas (ver el docblock, arriba): el minimo automatico de una pista
+     1fr es el min-content de su contenido y desborda al ampliar la raiz. */
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[5]};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   @media ${({ theme }) => theme.data.breakPoint.lg} {
@@ -604,16 +685,47 @@ const ScStepLabel = styled.p<{
     })};
 `;
 
+/*
+ * `max-width` (critica externa #15, 2026-09-02): NUEVO, y es la otra mitad del
+ * arreglo de ScStepsGrid -- la que protege el extremo CONTRARIO. Con una sola
+ * columna por debajo de md, el ancho disponible para este parrafo pasa de 103
+ * a 278px a 390px de viewport (lo que buscaba el hallazgo) pero tambien a
+ * 655px en un 767x1024, donde la misma frase se leeria en una linea de mas de
+ * 100 caracteres: por encima del techo de 75 del sistema (DESIGN.md §3.4).
+ * `grid.prose` es el token que el sistema ya reserva para este rol, y es el
+ * mismo arreglo que la critica #9 aplico a ScBody (arriba en este fichero) y
+ * a ScJourneyStepSubtitle (journey.deck.tsx).
+ *
+ * NO hace falta `margin-inline: auto` -- a diferencia de ScBody, este parrafo
+ * cuelga de ScStepOffset, que es un flex en columna con `align-items: center`,
+ * asi que la caja ya queda centrada por el propio contenedor. En los tramos
+ * `md`/`lg` la pista es mas estrecha que el tope y esta declaracion no llega a
+ * actuar.
+ */
 const ScStepBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[2]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
+/*
+ * `font-size` DEL TOKEN, no el literal (critica externa #15, hallazgo C 6,
+ * 2026-09-02). Esta linea escribia `1rem`, que es EXACTAMENTE el valor de
+ * `type.scale.body.size`: un token vivo duplicado a mano, el caso que prohibe
+ * la regla 17 de RULES.md. El CSS renderizado no cambia ni un caracter -- lo
+ * que cambia es de que promesa cuelga, igual que en la migracion de
+ * `grid.navMax` a `grid.sectionMax` de la critica #12 (ver ScJourney, arriba).
+ *
+ * El `font-weight: 600` se queda como literal a proposito: no coincide con el
+ * peso de la variante `body` (400) que da el tamano, sino con el de `h5`, y
+ * emparejar el tamano de un rol con el peso de otro por el nombre del token
+ * seria peor documentacion que el numero. El hallazgo nombra `font-size`.
+ */
 const ScQuote = styled.div`
   margin-top: ${({ theme }) => theme.data.space[7]};
   text-align: center;
   font-family: ${({ theme }) => theme.data.type.fontBody};
-  font-size: 1rem;
+  font-size: ${({ theme }) => theme.data.type.scale.body.size};
   font-weight: 600;
 `;
 

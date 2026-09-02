@@ -2076,7 +2076,18 @@ describe("Journey: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)"
     );
   });
 
-  it("ScStepsGrid acota el minimo de sus dos pistas base: repeat(2, minmax(0, 1fr))", () => {
+  /*
+   * REESCRITO en la critica externa #15 (2026-09-02) porque la escalera de
+   * columnas cambio debajo de el: el tramo base dejo de ser `repeat(2, ...)` y
+   * paso a ser UNA sola pista (ver el docblock de `ScStepsGrid`,
+   * `Journey.tsx`, y el describe de la #15 al final de este fichero). NO se
+   * relaja la asercion (regla 40 de RULES.md): la invariante de la #13 -- que
+   * ninguna pista se declare como `1fr` desnudo, porque su minimo automatico
+   * es el min-content del paso y desborda al ampliar la raiz -- pasa a
+   * comprobarse sobre los TRES regimenes a la vez, que es mas estricto que lo
+   * que este candado cubria antes (solo el base).
+   */
+  it("ScStepsGrid acota el minimo de TODAS sus pistas: ninguna es 1fr desnudo", () => {
     const { container } = renderWithProviders(<Journey />);
     // ScStepLabel (p) -> ScStepOffset -> ScStepReveal -> ScStepsGrid. El
     // primer paso se localiza por su etiqueta REAL de i18n (no por el primer
@@ -2090,12 +2101,152 @@ describe("Journey: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)"
     const stepsGrid = label.parentElement!.parentElement!
       .parentElement as HTMLElement;
     expect(container).toBeTruthy();
-    const base = declaracionBase(stepsGrid, "grid-template-columns");
+    const css = cssRuleTextFor(stepsGrid);
+    const lineas = css
+      .split("\n")
+      .filter((line) => line.includes("grid-template-columns"));
 
-    expect(base).toMatch(
+    // Un regimen por breakpoint: movil, md y lg (recuento cerrado, regla 40).
+    expect(lineas).toHaveLength(3);
+    expect(declaracionBase(stepsGrid, "grid-template-columns")).toMatch(
+      /grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+    );
+    lineas.forEach((linea) => {
+      expect(linea).toMatch(/minmax\(0,\s*1fr\)/);
+    });
+    // El `repeat(N, 1fr)` desnudo -- el que medimos desbordando -- no esta en
+    // ningun tramo.
+    expect(css).not.toMatch(/repeat\(\d+,\s*1fr\)/);
+  });
+});
+
+/*
+ * Critica externa #15 (2026-09-02), hallazgos A P2-2 y C 2: la rejilla de
+ * pasos de la rama CLARA se leia en columnas de 103px a 390x844, con el cuerpo
+ * de cada paso partido en lineas de 18-20 caracteres. Ver el docblock de
+ * `ScStepsGrid` (`Journey.tsx`) para la escalera nueva (1 -> 2 -> 6), la
+ * aritmetica que fija el breakpoint en `md` y por que el tramo `lg` de SEIS
+ * columnas -- el del camino punteado del mockup -- no se toca.
+ *
+ * Candado de CSSOM, no de geometria: jsdom no hace layout ni evalua `@media`
+ * (regla 36 de RULES.md), asi que lo observable aqui es el TEXTO de la regla
+ * inyectada, acotado al bloque concreto (leccion 2026-08-02: trocear por
+ * "@media" arrastra el stylesheet entero).
+ */
+describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo md)", () => {
+  function reglaBase(el: HTMLElement, prop: string): string | undefined {
+    return cssRuleTextFor(el)
+      .split("\n")
+      .find((line) => !line.includes("@media") && line.includes(prop));
+  }
+
+  function reglaEnMedia(
+    el: HTMLElement,
+    consulta: string,
+    prop: string,
+  ): string | undefined {
+    return cssRuleTextFor(el)
+      .split("\n")
+      .find((line) => line.includes(consulta) && line.includes(prop));
+  }
+
+  function pasoDeLaRejilla(): {
+    offset: HTMLElement;
+    reveal: HTMLElement;
+    grid: HTMLElement;
+  } {
+    // ScStepLabel (p) -> ScStepOffset -> ScStepReveal -> ScStepsGrid. El
+    // primer paso se localiza por su etiqueta REAL de i18n, nunca por el
+    // primer <p> del arbol (que es el cuerpo de la cabecera).
+    const primerPaso = JOURNEY_STEPS[0];
+    const label = screen.getByText(
+      esHome.Home.journey.steps[
+        primerPaso.id as keyof typeof esHome.Home.journey.steps
+      ].label,
+    );
+    const offset = label.parentElement as HTMLElement;
+    const reveal = offset.parentElement as HTMLElement;
+    return { offset, reveal, grid: reveal.parentElement as HTMLElement };
+  }
+
+  it("la hoja de estilos declara UNA sola columna fuera de todo @media (regimen movil)", () => {
+    renderWithProviders(<Journey />);
+    const { grid } = pasoDeLaRejilla();
+    const base = reglaBase(grid, "grid-template-columns");
+
+    expect(base).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    // Ni las dos columnas de 103px que midio la critica, ni ningun repeat().
+    expect(base).not.toMatch(/repeat\(/);
+  });
+
+  it("las dos columnas empiezan en md (768px) y las tres de antes ya no existen", () => {
+    renderWithProviders(<Journey />);
+    const { grid } = pasoDeLaRejilla();
+    const enMd = reglaEnMedia(
+      grid,
+      "min-width: 768px",
+      "grid-template-columns",
+    );
+
+    expect(enMd).toMatch(
       /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
     );
-    // El `repeat(2, 1fr)` desnudo -- el que medimos desbordando -- ya no esta.
-    expect(base).not.toMatch(/repeat\(2,\s*1fr\)/);
+    // El tramo intermedio de TRES columnas (187px a 768px, 31-34 caracteres)
+    // se retira: ver la tabla del docblock de ScStepsGrid.
+    expect(cssRuleTextFor(grid)).not.toMatch(/repeat\(3,/);
+    // El regimen del mockup (6 columnas + camino punteado) sigue intacto.
+    expect(
+      reglaEnMedia(grid, "min-width: 992px", "grid-template-columns"),
+    ).toMatch(/grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/);
+  });
+
+  it("por debajo de md ninguna pieza del paso declara ancho fijo: la pista manda", () => {
+    renderWithProviders(<Journey />);
+    const { offset, reveal } = pasoDeLaRejilla();
+
+    // `width: <numero>` en la regla BASE seria un ancho fijo que ignoraria la
+    // pista de la rejilla. El disco (ScDisc, 56px) no entra: es el icono, no
+    // la caja del paso, y vive en otro elemento.
+    [reveal, offset].forEach((el) => {
+      const base = cssRuleTextFor(el)
+        .split("\n")
+        .filter((line) => !line.includes("@media"))
+        .join("\n");
+      expect(base).not.toMatch(/[;{ ]width:\s*\d/);
+      expect(base).not.toMatch(/[;{ ]max-width:\s*\d/);
+    });
+  });
+
+  it("la tarjeta recorta su relleno lateral en movil y lo restaura en md", () => {
+    renderWithProviders(<Journey />);
+    const { grid } = pasoDeLaRejilla();
+    // ScStepsGrid -> ScStepsRow -> ScStepsAndQuote -> ScCard.
+    const card = grid.parentElement!.parentElement!
+      .parentElement as HTMLElement;
+    const base = reglaBase(card, "padding");
+
+    // 3rem 1.5rem 4rem: space[7] arriba, space[5] a los lados, space[8] abajo.
+    expect(base).toMatch(/padding:\s*3rem\s+1\.5rem\s+4rem/);
+    expect(reglaEnMedia(card, "min-width: 768px", "padding-inline")).toMatch(
+      /padding-inline:\s*3rem/,
+    );
+  });
+
+  it("critica #15 C 6: la cita clara toma su font-size del token, no del literal", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const source = readFileSync(join(here, "Journey.tsx"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    // El literal duplicado del token desaparece de la fuente...
+    expect(source).not.toMatch(/font-size:\s*1rem/);
+    // ...y el valor RENDERIZADO no cambia: sigue siendo el mismo 1rem.
+    renderWithProviders(<Journey />);
+    const quote = screen.getByText(`“${esHome.Home.journey.quote}”`)
+      .parentElement as HTMLElement;
+    expect(cssRuleTextFor(quote)).toMatch(/font-size:\s*1rem/);
   });
 });
