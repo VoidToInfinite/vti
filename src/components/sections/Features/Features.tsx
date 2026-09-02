@@ -720,6 +720,44 @@ const ScCardBorder = styled.article<{ $key: FeatureKey }>`
    al bajar radius.xl -- 16px − 1.8px = 14.2px (antes: 26px − 1.8px =
    24.2px). Ver el docblock de ScCardBorder, arriba, y el de la constante
    retirada FEATURES_CARD_RADIUS en features.layers.ts. */
+/*
+ * COMPOSICION A DOS COLUMNAS DE LA TARJETA DESTACADA (critica externa #15,
+ * hallazgo C 3, 2026-09-02). Medido a 1440 en tema claro: la tarjeta destacada
+ * -- la que la Task 22 hace abarcar las dos columnas de la rejilla bento --
+ * medía 1.148 px de ancho y solo 416 px de tinta (36 %). Los 416 px son el tope
+ * de lectura de ScBody (grid.prose), asi que el sobrante no era un descuido de
+ * relleno: era una columna de texto acotada a proposito dentro de una caja tres
+ * veces mas ancha, con 709 px de superficie blanca a su derecha. La rama OSCURA
+ * resuelve la misma seccion con una composicion llena.
+ *
+ * POR QUE DOS COLUMNAS Y NO ACOTAR LA TARJETA AL CONTENIDO, que era la otra via
+ * del hallazgo: acotarla es deshacer la Task 22 -- la jerarquia «una entrada +
+ * dos complementarias» que sustituyo a la rejilla uniforme de auto-fit, con
+ * capturas del dueno delante (ver el docblock de ScGrid, arriba). Dos columnas
+ * conserva esa jerarquia Y llena la caja.
+ *
+ * Y NO ES UNA COMPOSICION NUEVA: es la del mockup aprobado. La spec
+ * 2026-07-28-landing-v2-secciones-design §7.3 describe literalmente «tarjeta
+ * Learning a ancho completo (figura izquierda + contenido con bullets en 2
+ * columnas), Imagination y Gaming a media anchura cada una». La entrega de
+ * 2026-08-06 (D5) igualo las tres tarjetas porque entonces el contenido era
+ * desigual; la Task 22 devolvio el ancho completo a la primera pero se quedo a
+ * medias, con la composicion interior de una tarjeta estrecha dentro de una
+ * caja ancha. Esto termina aquel movimiento.
+ *
+ * SIN PROP NI CLASE PROPIA, igual que la Task 22: la tarjeta destacada se
+ * resuelve POSICIONALMENTE desde la rejilla (selector de componente sobre
+ * ScGrid + :first-child), asi que las tres <article> siguen compartiendo
+ * exactamente las mismas clases de estructura y el candado de D5
+ * (Features.test.tsx) sigue en pie sin tocarse. El estado vive en un ANCESTRO y
+ * se lee con selector DESCENDIENTE -- la forma correcta segun la regla 35 de
+ * RULES.md y el gotcha transversal de CSS con atributos de estado.
+ *
+ * DESDE lg (992px) Y NO ANTES: por debajo, la rejilla apila las tres tarjetas en
+ * una sola columna y la primera no tiene ningun ancho extra que llenar -- es
+ * exactamente el mismo umbral en el que ScGrid le da su grid-column: 1 / -1, y
+ * tiene que serlo: las dos declaraciones describen la misma tarjeta.
+ */
 const ScCardSurface = styled.div`
   flex: 1;
   min-width: 0;
@@ -730,6 +768,14 @@ const ScCardSurface = styled.div`
     ${({ theme }) => theme.data.radius.xl} - ${FEATURES_CARD_BORDER_WIDTH}
   );
   overflow: hidden;
+
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    ${ScGrid} > *:first-child & {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: stretch;
+    }
+  }
 `;
 
 /*
@@ -779,6 +825,32 @@ const ScImagePanel = styled.div<{ $key: FeatureKey }>`
   display: flex;
   align-items: flex-end;
   justify-content: center;
+
+  /* Columna de arte de la tarjeta destacada (critica externa #15, hallazgo C 3
+     -- ver el docblock de ScCardSurface, arriba, para el porque completo).
+     Tres cambios, uno por cada suposicion de la composicion apilada que deja
+     de valer al pasar a dos columnas:
+
+     height: auto ENTREGA EL ALTO A LA FILA -- como elemento de rejilla con el
+     align-self por defecto (stretch), el panel acompana al contenido de arriba
+     abajo en vez de quedarse en una franja fija con blanco debajo. Es el mismo
+     criterio que D11 de la spec 2026-08-06 ya fijo para la figura de Story:
+     «el alto correcto es el que tenga la otra columna, y eso solo lo sabe el
+     layout en tiempo real». min-height conserva la medida del mockup como
+     SUELO, para que una tarjeta de copy corto no encoja el arte.
+
+     margin-inline-end: 0 lleva el panel hasta el limite de su columna; la
+     separacion con el texto la pone el padding de ScContent, que ya existe. El
+     margin-block-end lo devuelve la simetria que la version apilada no
+     necesitaba (alli el hueco inferior lo daba el propio contenido). */
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    ${ScGrid} > *:first-child & {
+      height: auto;
+      min-height: ${FEATURES_IMAGE_PANEL_HEIGHT};
+      margin-block-end: ${({ theme }) => theme.data.space[4]};
+      margin-inline-end: 0;
+    }
+  }
 `;
 
 const ScImageCircle = styled.span<{ $key: FeatureKey }>`
@@ -834,6 +906,19 @@ const ScContent = styled.div`
   flex: 1;
   gap: ${({ theme }) => theme.data.space[2]};
   padding: ${({ theme }) => theme.data.space[5]};
+
+  /* Columna de texto de la tarjeta destacada (critica externa #15, hallazgo
+     C 3): centrada en el eje de bloque contra la columna de arte de al lado.
+     En la composicion apilada no hacia falta -- el texto venia despues del
+     panel y el orden de lectura ya lo colocaba --; en dos columnas, si el arte
+     impone una fila mas alta que el texto (su min-height es el suelo del
+     mockup), sin esto el texto quedaria colgando del borde superior con todo
+     el hueco debajo. */
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    ${ScGrid} > *:first-child & {
+      justify-content: center;
+    }
+  }
 `;
 
 const ScBody = styled(Typography)`
@@ -885,6 +970,30 @@ const ScBullets = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${({ theme }) => theme.data.space[2]};
+
+  /*
+   * DOS COLUMNAS SOLO EN LA TARJETA DESTACADA, y solo desde lg (critica
+   * externa #15, hallazgo C 3). No revierte el fix wave D del docblock de
+   * arriba: aquel retiro un @media que NO tenia efecto -- cambiaba column-gap
+   * en una rejilla que siempre resolvia a una sola pista, asi que no habia
+   * ningun hueco de columna al que aplicarse. Aqui la rejilla SI tiene dos
+   * pistas, asi que el column-gap vuelve a existir y hay algo que separar.
+   *
+   * Es ademas la composicion literal del mockup para esta tarjeta (spec
+   * 2026-07-28 §7.3: «figura izquierda + contenido con bullets en 2
+   * columnas»), y la que evita que cuatro frases cortas dejen media columna de
+   * texto en blanco a su derecha.
+   *
+   * minmax(0, 1fr) y no 1fr, mismo motivo que el resto de rejillas del repo
+   * desde la critica #13: el minimo automatico de una pista 1fr es el
+   * min-content de su contenido y desborda al ampliar la raiz.
+   */
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    ${ScGrid} > *:first-child & {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: ${({ theme }) => theme.data.space[5]};
+    }
+  }
 `;
 
 const ScBulletItem = styled.div`

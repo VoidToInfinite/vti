@@ -12,6 +12,7 @@ import {
   FEATURES_GAMING_ACCENT,
   FEATURES_LIGHT_REVEAL_DELAYS_MS,
   FEATURES_CARD_BORDER_WIDTH,
+  FEATURES_IMAGE_PANEL_HEIGHT,
 } from "./features.layers";
 import {
   JOURNEY_DARK_HEIGHT,
@@ -84,6 +85,39 @@ function cssRuleTextFor(el: HTMLElement): string {
     })
     .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
     .join("\n");
+}
+
+/**
+ * Los `selectorText` REALES de las reglas condicionales (`@media`) que
+ * mencionan alguna clase de `el`. Sirve para lo que el texto del CSS no puede
+ * responder: si una regla declarada sobre un styled COMPARTIDO entre las dos
+ * ramas llega o no a alcanzar al arbol que hay montado ahora mismo -- se
+ * resuelve el selector contra el DOM en vez de leer su cadena (critica externa
+ * #15, hallazgo C 3). Devuelve el selector, no la regla, precisamente para que
+ * quien lo use tenga que pasarlo por `querySelector`.
+ */
+function selectoresCondicionalesDe(el: HTMLElement): string[] {
+  const classes = Array.from(el.classList);
+  return Array.from(document.styleSheets).flatMap((sheet) => {
+    try {
+      return Array.from(sheet.cssRules)
+        .filter(
+          (rule): rule is CSSMediaRule =>
+            typeof CSSMediaRule !== "undefined" && rule instanceof CSSMediaRule,
+        )
+        .flatMap((media) =>
+          Array.from(media.cssRules)
+            .filter(
+              (rule): rule is CSSStyleRule =>
+                rule instanceof CSSStyleRule &&
+                classes.some((cls) => rule.selectorText.includes(`.${cls}`)),
+            )
+            .map((rule) => rule.selectorText),
+        );
+    } catch {
+      return [];
+    }
+  });
 }
 
 /**
@@ -934,35 +968,59 @@ describe("Task 3: CTA de tarjeta de Features a >=14px (antes 12px)", () => {
  * `row-gap column-gap`, y este grid nunca tiene una segunda columna a la que
  * aplicar `column-gap` (ni con la regla ni sin ella, en ningún ancho), así
  * que ni siquiera ESE efecto era real -- `$compactFrom` se retira con él.
- * Este test deja de comprobar "el @media existe y ensancha el gap" y pasa a
- * comprobar "no hay NINGÚN `@media` en el CSS de este contenedor" -- el
+ * Este test dejó entonces de comprobar "el @media existe y ensancha el gap" y
+ * pasó a comprobar "no hay NINGÚN `@media` en el CSS de este contenedor" -- el
  * candado que habría atrapado el no-op original (el del gap, no solo el de
- * `grid-template-columns`) si hubiera existido antes.
+ * `grid-template-columns`) si hubiera existido antes. La crítica externa #15
+ * (2026-09-02) lo endurece una vuelta más -- "hay EXACTAMENTE una regla
+ * condicional, y es la de la tarjeta destacada" -- porque esa tarjeta estrena
+ * bullets a dos columnas; ver el comentario del propio `it`.
  *
  * Validado con el bug inyectado: reintroduciendo el bloque
  * `@media ${(...) => themes.light.breakPoint.lg} { gap: ...; }` dentro de
  * `ScBullets` en Features.tsx, este test se pone rojo (`css` vuelve a
  * contener "@media"); restaurado, verde.
  */
-describe("bullets a una columna en todos los anchos, sin ningun @media (el gap ya no varia por breakpoint)", () => {
+describe("bullets: una columna de base, y el UNICO @media es el de la tarjeta destacada", () => {
   function bulletsContainer(): HTMLElement {
     const cta = document.querySelector('a[href="#contact"]');
     return cta?.previousElementSibling as HTMLElement;
   }
 
-  it("declara UNA columna incondicional y NINGUN @media (el mecanismo $compactFrom se retiró: no producía ninguna diferencia observable)", () => {
+  /*
+   * REESCRITO en la critica externa #15 (hallazgo C 3, 2026-09-02): la tarjeta
+   * DESTACADA estrena bullets a dos columnas desde `lg`, asi que "ningun
+   * @media" deja de ser cierto. NO se relaja el candado (regla 40): lo que fix
+   * wave D midio y retiro era un `@media` NO-OP -- ensanchaba `column-gap` en
+   * una rejilla que siempre resolvia a UNA pista, asi que no tenia ningun hueco
+   * de columna al que aplicarse. La regla nueva si tiene dos pistas, y el
+   * candado pasa de "no hay ninguna" a "hay EXACTAMENTE una, es esa, y esta
+   * acotada a la tarjeta destacada" -- que es mas estricto: un `@media` suelto
+   * y sin acotar, como el que fix wave D quito, seguiria cayendo en rojo aqui.
+   */
+  it("la regla base sigue siendo una columna sin breakpoint, y el UNICO @media es el de la tarjeta destacada", () => {
     renderWithProviders(<Features />);
     const css = cssRuleTextFor(bulletsContainer());
+    const base = css.split("\n").filter((line) => !line.includes("@media"));
+    const enMedia = css.split("\n").filter((line) => line.includes("@media"));
 
     // Regla base (incondicional): una sola columna, gap fijo de space[2].
-    expect(css).toMatch(/grid-template-columns:\s*1fr/);
-    expect(css).toContain(`gap: ${themes.light.space[2]};`);
+    expect(base.join("\n")).toMatch(/grid-template-columns:\s*1fr/);
+    expect(base.join("\n")).toContain(`gap: ${themes.light.space[2]};`);
 
-    // Fix wave D (D4): ya no hay ningún @media -- ni de lg ni de sm -- que
-    // dependa de un breakpoint para el gap.
-    expect(css).not.toContain("@media");
-    expect(css).not.toContain(themes.light.breakPoint.lg);
-    expect(css).not.toContain(themes.light.space[5]);
+    // Recuento CERRADO: una sola regla condicional en todo el componente.
+    expect(enMedia).toHaveLength(1);
+    // Y es la de la tarjeta destacada: breakpoint lg, acotada por posicion
+    // dentro de la rejilla (nunca un @media suelto que afecte a las tres).
+    expect(enMedia[0]).toContain(themes.light.breakPoint.lg);
+    expect(enMedia[0]).toContain(":first-child");
+    expect(enMedia[0]).toMatch(
+      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
+    expect(enMedia[0]).toContain(`column-gap: ${themes.light.space[5]};`);
+
+    // El mecanismo `$compactFrom` sigue retirado: nada cuelga de `sm`.
+    expect(css).not.toContain(themes.light.breakPoint.sm);
   });
 
   it("aplica la MISMA regla a las tres tarjetas (ya no depende de cual sea)", () => {
@@ -1769,17 +1827,20 @@ describe("D4: palancas de compactación vertical del contenido oscuro (clamp flu
  * la shorthand `row-gap column-gap`, y el grid de bullets (rama oscura
  * incluida) nunca tiene una segunda columna a la que aplicar `column-gap`
  * -- cero diferencia observable en ningún ancho, con o sin la regla.
- * `$compactFrom="sm"` se retira de la rama oscura con él. Este test pasa de
+ * `$compactFrom="sm"` se retira de la rama oscura con él. Este test pasó de
  * comprobar "el bloque `sm` ensancha el gap" a comprobar que la rama oscura
  * NO declara ningún `@media` propio para sus bullets -- mismo candado que la
- * rama clara (ver el describe "bullets a una columna..." de más arriba).
+ * rama clara (ver el describe "bullets: una columna de base..." de más
+ * arriba). La crítica externa #15 (2026-09-02) cambia el instrumento sin
+ * aflojar la promesa: `ScBullets` es compartido, así que ahora se resuelve el
+ * selector contra el DOM en vez de leer su texto; ver el comentario del `it`.
  *
  * Validado con el bug inyectado a propósito: reintroduciendo
  * `<ScBullets $compactFrom="sm">` en la rama oscura de `Features.tsx` (con
  * su `@media` correspondiente restaurado en `ScBullets`), este test se pone
  * en rojo (`css` vuelve a contener "@media"); restaurado, vuelve a verde.
  */
-describe("D4: en tema oscuro el bloque de bullets tampoco declara ningun @media (mismo criterio que la rama clara)", () => {
+describe("D4: en tema oscuro los bullets siguen a una columna y la regla de la tarjeta destacada no los alcanza", () => {
   beforeEach(() => {
     stubMatchMedia();
     window.localStorage.setItem("vti-theme", "dark");
@@ -1788,7 +1849,18 @@ describe("D4: en tema oscuro el bloque de bullets tampoco declara ningun @media 
     window.localStorage.clear();
   });
 
-  it("declara UNA columna incondicional, gap fijo, y NINGUN @media (ni sm ni lg)", async () => {
+  /*
+   * REESCRITO en la critica externa #15 (hallazgo C 3, 2026-09-02) por el mismo
+   * motivo que su gemelo de la rama clara -- ver el describe "bullets a una
+   * columna..." mas arriba -- pero el candado de ESTA rama es mas fuerte y no
+   * mira texto: `ScBullets` es un styled COMPARTIDO por las dos ramas, asi que
+   * la regla nueva vive en la misma clase y su texto aparece aqui igual. Lo
+   * que hay que garantizar no es que el texto falte, sino que la regla no pueda
+   * ALCANZAR a esta rama. Se comprueba resolviendo el selector real contra el
+   * DOM oscuro: la regla cuelga de `ScGrid`, la rejilla bento que solo monta la
+   * rama clara, asi que aqui no matchea nada.
+   */
+  it("una columna incondicional, y la regla de la tarjeta destacada no alcanza a esta rama", async () => {
     const { container } = renderWithProviders(<Features />);
     await waitFor(() => {
       expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
@@ -1799,9 +1871,16 @@ describe("D4: en tema oscuro el bloque de bullets tampoco declara ningun @media 
 
     expect(css).toMatch(/grid-template-columns:\s*1fr/);
     expect(css).toContain(`gap: ${themes.dark.space[2]};`);
-    expect(css).not.toContain("@media");
+    // `$compactFrom` sigue retirado: esta rama no cuelga nada de `sm`.
     expect(css).not.toContain(themes.dark.breakPoint.sm);
-    expect(css).not.toContain(themes.dark.breakPoint.lg);
+
+    // Los selectores condicionales que mencionan esta clase -- hoy solo el de
+    // la tarjeta destacada -- no resuelven a ningun nodo del arbol oscuro.
+    const selectores = selectoresCondicionalesDe(bullets);
+    expect(selectores).toHaveLength(1);
+    selectores.forEach((selector) => {
+      expect(document.querySelector(selector)).toBeNull();
+    });
   });
 });
 
@@ -1999,5 +2078,99 @@ describe("Features: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)
       );
 
     expect(base).toMatch(/overflow-wrap:\s*break-word/);
+  });
+});
+
+/*
+ * Critica externa #15 (2026-09-02), hallazgo C 3: a 1440 en tema claro la
+ * tarjeta DESTACADA medía 1.148 px de ancho y solo 416 px de tinta (36 %) --
+ * 709 px de superficie blanca a la derecha de una columna de texto acotada por
+ * `grid.prose`. Pasa a la composicion a dos columnas del mockup (arte a la
+ * izquierda, contenido con bullets a dos columnas a la derecha) DESDE `lg`, el
+ * mismo umbral en el que la rejilla le da su ancho completo. El porque completo
+ * -- y por que no se acota la tarjeta al contenido, la otra via del hallazgo --
+ * vive en el docblock de `ScCardSurface` (`Features.tsx`).
+ *
+ * Los candados no se conforman con el TEXTO de la regla: resuelven su
+ * `selectorText` contra el DOM (`selectoresCondicionalesDe`, cabecera de este
+ * fichero). Es la unica forma de afirmar lo que de verdad importa aqui -- que
+ * la composicion alcanza a UNA tarjeta y no a las tres -- sin darle a ninguna
+ * un prop o una clase propia, que es lo que el candado de D5 prohibe.
+ */
+describe("critica #15: la tarjeta destacada clara llena su ancho (composicion a dos columnas)", () => {
+  function piezas(container: HTMLElement) {
+    const cards = Array.from(
+      container.querySelectorAll('article[aria-labelledby^="feature-"]'),
+    ) as HTMLElement[];
+    const surface = cards[0].firstElementChild as HTMLElement;
+    return {
+      cards,
+      surface,
+      panel: surface.firstElementChild as HTMLElement,
+      content: surface.children[1] as HTMLElement,
+    };
+  }
+
+  it("la superficie de la tarjeta destacada reparte arte y texto en dos pistas iguales desde lg", () => {
+    const { container } = renderWithProviders(<Features />);
+    const { surface } = piezas(container);
+    const enMedia = cssRuleTextFor(surface)
+      .split("\n")
+      .filter((line) => line.includes("@media"));
+
+    expect(enMedia).toHaveLength(1);
+    expect(enMedia[0]).toContain(themes.light.breakPoint.lg);
+    expect(enMedia[0]).toMatch(
+      /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/,
+    );
+    // display: grid, no la columna flex de la composicion apilada.
+    expect(enMedia[0]).toMatch(/display:\s*grid/);
+  });
+
+  it("la regla alcanza SOLO a la primera tarjeta, y sin darle prop ni clase propia", () => {
+    const { container } = renderWithProviders(<Features />);
+    const { cards, surface } = piezas(container);
+    const selectores = selectoresCondicionalesDe(surface);
+
+    expect(selectores).toHaveLength(1);
+    const alcanzadas = Array.from(document.querySelectorAll(selectores[0]));
+    expect(alcanzadas).toHaveLength(1);
+    expect(cards[0].contains(alcanzadas[0])).toBe(true);
+    // Las otras dos quedan fuera: la posicion es lo unico que las distingue.
+    expect(cards[1].contains(alcanzadas[0])).toBe(false);
+    expect(cards[2].contains(alcanzadas[0])).toBe(false);
+    // Y las tres siguen compartiendo exactamente las mismas clases (D5).
+    const clases = cards.map((c) => Array.from(c.classList).sort().join(" "));
+    expect(new Set(clases).size).toBe(1);
+  });
+
+  it("el panel de arte suelta su alto fijo y conserva la medida del mockup como suelo", () => {
+    const { container } = renderWithProviders(<Features />);
+    const { panel } = piezas(container);
+    const css = cssRuleTextFor(panel);
+    const base = css.split("\n").filter((l) => !l.includes("@media"));
+    const enMedia = css.split("\n").filter((l) => l.includes("@media"));
+
+    // La composicion apilada conserva su alto fijo del mockup.
+    expect(base.join("\n")).toContain(
+      `height: ${FEATURES_IMAGE_PANEL_HEIGHT};`,
+    );
+    expect(enMedia).toHaveLength(1);
+    // La destacada lo entrega a la fila, con el mismo valor como min-height.
+    expect(enMedia[0]).toMatch(/height:\s*auto/);
+    expect(enMedia[0]).toContain(`min-height: ${FEATURES_IMAGE_PANEL_HEIGHT};`);
+    expect(enMedia[0]).toMatch(/margin-inline-end:\s*0/);
+  });
+
+  it("la columna de texto se centra contra el arte en la tarjeta destacada", () => {
+    const { container } = renderWithProviders(<Features />);
+    const { content } = piezas(container);
+    const enMedia = cssRuleTextFor(content)
+      .split("\n")
+      .filter((line) => line.includes("@media"));
+
+    expect(enMedia).toHaveLength(1);
+    expect(enMedia[0]).toContain(themes.light.breakPoint.lg);
+    expect(enMedia[0]).toMatch(/justify-content:\s*center/);
   });
 });
