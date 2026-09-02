@@ -125,6 +125,22 @@ export const NAV_SHEET_SCROLL_TOLERANCE_PX = 8;
 const NAV_SHEET_MAX_HEIGHT = "70dvh";
 
 /**
+ * Relleno inferior de la hoja: el token más el recorte de hardware (la barra
+ * de gestos de iOS), que en escritorio y en casi todo Android colapsa a cero.
+ *
+ * VIVE EN UNA FUNCIÓN Y NO ESCRITO DOS VECES porque lo consumen DOS reglas
+ * que tienen que valer lo mismo o el resultado es un defecto silencioso: el
+ * `padding-bottom` de `ScNavSheet` (que es donde TERMINA la capa de scroll) y
+ * el `bottom` de `ScSheetFade` (que es donde EMPIEZA la señal de que hay más
+ * contenido). Si divergen, el degradado deja de marcar el filo del recorte y
+ * pasa a pintar sobre relleno vacío -- que es exactamente el defecto que la
+ * crítica externa #15 midió; ver el docblock de `ScSheetFade`.
+ */
+function sheetBottomInset(theme: DefaultTheme): string {
+  return `calc(${theme.data.space[6]} + env(safe-area-inset-bottom, 0px))`;
+}
+
+/**
  * Disparador de la hoja: el hueco responsivo que lo contiene.
  *
  * Es un envoltorio propio, y no un `styled(IconButton)`, a propósito: el
@@ -441,14 +457,18 @@ const ScNavSheet = styled.div`
    * queda en el token puro, sin env(): el borde superior de la hoja nunca
    * toca un edge físico del dispositivo (nace por encima del contenido, no
    * del viewport).
+   *
+   * El valor de ABAJO sale de sheetBottomInset() y no se escribe aquí: es la
+   * misma medida que necesita el degradado de desbordamiento para saber dónde
+   * termina la capa de scroll (ver el docblock de esa función y el de
+   * ScSheetFade). Sigue siendo el mismo calc() de siempre, ahora con un solo
+   * origen.
    */
   padding: ${({ theme }) => theme.data.space[3]}
     calc(
       ${({ theme }) => theme.data.space[4]} + env(safe-area-inset-right, 0px)
     )
-    calc(
-      ${({ theme }) => theme.data.space[6]} + env(safe-area-inset-bottom, 0px)
-    )
+    ${({ theme }) => sheetBottomInset(theme)}
     calc(${({ theme }) => theme.data.space[4]} + env(safe-area-inset-left, 0px));
   border-top: ${({ theme }) => theme.data.glass.border};
   border-radius: ${({ theme }) => theme.data.radius.xl}
@@ -555,10 +575,45 @@ const ScSheetScroll = styled.div`
  *
  * Hermano de la capa de scroll, no hijo: dentro de ella se desplazaría con el
  * contenido y dejaría de marcar el borde -- es el mismo hallazgo que ya pagó
- * el botón de cierre (ver el docblock de `ScSheetScroll`). `bottom: 0` lo
- * ancla al filo inferior de `ScNavSheet`, cubriendo también su relleno
- * inferior: ahí el degradado termina en el color de la propia superficie, así
- * que ese tramo es invisible por construcción.
+ * el botón de cierre (ver el docblock de `ScSheetScroll`).
+ *
+ * ## LA SEÑAL EXISTÍA Y NO SE VEÍA (crítica externa #15, hallazgo A, P2-6)
+ *
+ * El evaluador volvió a medir el MISMO síntoma que esta pieza existe para
+ * cerrar: a 390x844 en oscuro la hoja mide 591 px con scroller interno
+ * (`scrollHeight` 692 > `clientHeight` 546) y el grupo «Comunidad» queda
+ * partido en el borde inferior «sin degradado ni indicador». Y la medida de
+ * `data-sheet-clipped` era correcta -- con `scrollTop` 0 y esos números,
+ * `clipped` vale `true` y el atributo se escribe.
+ *
+ * CAUSA RAÍZ, que es de GEOMETRÍA y no de la medida: este elemento es
+ * `position: absolute` dentro de `ScNavSheet`, así que su bloque contenedor
+ * es la CAJA DE RELLENO de la hoja -- `bottom: 0` no es el filo del
+ * contenido, es el filo INTERIOR del borde, por debajo del
+ * `padding-bottom`. Con `height` = `space[6]` y `padding-bottom` =
+ * `space[6] + env(safe-area-inset-bottom)`, el degradado ocupaba EXACTAMENTE
+ * la banda de relleno (o menos, con recorte de hardware): CERO píxeles de
+ * solape con la capa de scroll. Se pintaba, pero sobre superficie vacía y del
+ * mismo color al que llega su propia parada opaca -- invisible por
+ * construcción, que es justo lo que el docblock anterior afirmaba del tramo
+ * de relleno... sin notar que ese tramo era el degradado ENTERO.
+ *
+ * ARREGLO: el filo inferior del degradado se ancla donde TERMINA la capa de
+ * scroll (`bottom: sheetBottomInset(theme)`, la misma medida que el
+ * `padding-bottom` de la hoja, de una sola fuente para que no puedan
+ * divergir), así que sus 32 px cubren las últimas 32 filas de píxeles del
+ * contenido recortado y su parada opaca cae EN la línea de corte. Por debajo
+ * queda la banda de relleno, que ya es el mismo `semantic.surface` en el que
+ * termina el degradado: la continuidad se conserva sin pintar nada allí.
+ *
+ * POR QUÉ NO SE AGRANDA LA HOJA EN VEZ DE SEÑALAR EL CORTE, que era la otra
+ * salida posible: no cabe. Con `about` en la navegación la hoja gana una fila
+ * más (`min-height: 44px`, sin `gap` en la lista), así que el contenido pasa
+ * de 692 a 736 px sobre un `clientHeight` de 546. Hacerlo caber exigiría
+ * ~92dvh de alto de hoja a 390x844 -- una hoja que tapa la pantalla entera y
+ * deja el velo en una franja de 8 %, es decir, otra cosa: un menú a pantalla
+ * completa, no una hoja. `NAV_SHEET_MAX_HEIGHT` se queda en el 70dvh que
+ * declara la spec, y lo que se arregla es la señal, que es lo que estaba roto.
  *
  * `pointer-events: none` es obligatorio: cubre la última fila de la lista, y
  * sin él se comería sus toques. Anima SOLO `opacity` (regla 18) con el mismo
@@ -571,7 +626,11 @@ const ScSheetFade = styled.div`
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* NO bottom: 0 -- ver el docblock de arriba: esta caja se resuelve contra
+     la caja de RELLENO de la hoja, asi que el cero cae por debajo del
+     padding-bottom y el degradado entero se pintaba sobre relleno vacio.
+     Anclado aqui, sus 32 px cubren el contenido recortado de verdad. */
+  bottom: ${({ theme }) => sheetBottomInset(theme)};
   height: ${({ theme }) => theme.data.space[6]};
   pointer-events: none;
   background: linear-gradient(
@@ -1848,8 +1907,17 @@ export function NavSheet({
         {/* Afordancia de scroll: hermana de la capa de scroll, nunca hija
             (ver el docblock de ScSheetFade). `aria-hidden`: lo que anuncia es
             una propiedad visual del recorte, y quien no ve la pantalla ya
-            recorre la lista entera con el foco. */}
-        <ScSheetFade aria-hidden="true" />
+            recorre la lista entera con el foco.
+
+            `data-sheet-fade`: gancho de test, mismo criterio que
+            `data-nav-sheet-scroll`/`data-nav-sheet-close` de este mismo
+            fichero -- la pieza no tiene texto, ni rol, ni ninguna otra forma
+            estable de seleccionarla, y su POSICIÓN es justo lo que la crítica
+            #15 encontró mal. */}
+        <ScSheetFade
+          aria-hidden="true"
+          data-sheet-fade
+        />
         {/* Task 35: botón de cierre propio, alcanzable por encima del velo
             (ver el docblock de ScSheetCloseSlot). Etiqueta PROPIA
             (`closeSheet`, no `closeMenu`): el disparador de la barra reusa

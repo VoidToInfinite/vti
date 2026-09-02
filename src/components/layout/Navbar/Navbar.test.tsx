@@ -3310,6 +3310,53 @@ describe("Navbar", () => {
       expect(hoja).toHaveAttribute("data-sheet-clipped", "false");
     });
 
+    /*
+     * CRÍTICA EXTERNA #15, HALLAZGO A (P2-6): la señal existía, se calculaba
+     * bien y NO SE VEÍA. El evaluador midió a 390x844 la hoja recortada
+     * (`scrollHeight` 692 > `clientHeight` 546) con el grupo «Comunidad»
+     * partido en el borde inferior «sin degradado ni indicador».
+     *
+     * La causa es de geometría: el degradado es `position: absolute` dentro de
+     * `ScNavSheet`, cuyo bloque contenedor es su CAJA DE RELLENO, así que
+     * `bottom: 0` caía por debajo del `padding-bottom` -- sus 32 px ocupaban
+     * exactamente la banda de relleno y cero píxeles del contenido recortado.
+     *
+     * ESTE CANDADO ES DE FUENTE, no de píxeles: jsdom no hace layout, así que
+     * no puede medir dónde cae la caja (regla 44 -- eso lo cierra el
+     * integrador en navegador). Lo que sí puede afirmar, y es donde vive el
+     * defecto, son las DOS declaraciones y su igualdad: el degradado se ancla
+     * al filo de la capa de scroll y esa medida es la MISMA que el relleno
+     * inferior de la hoja (regla 41: una invariante entre dos declaraciones
+     * vive en un test que las lee las dos, no en la memoria de quien las
+     * escribió a la vez).
+     */
+    it("crítica #15 P2-6: el degradado se ancla al filo de la capa de scroll, no al relleno de la hoja", () => {
+      const { container } = renderNavbar();
+      const hoja = getSheet(container);
+      const fade = hoja.querySelector("[data-sheet-fade]") as HTMLElement;
+      expect(fade, "la hoja perdió su señal de desbordamiento").not.toBeNull();
+
+      const normaliza = (texto: string): string =>
+        texto.replace(/\s+/g, " ").replace(/\(\s/g, "(").replace(/\s\)/g, ")");
+      const cssFade = normaliza(cssRuleTextFor(fade));
+      const cssHoja = normaliza(cssRuleTextFor(hoja));
+
+      const relleno = `calc(${basicLightTheme.space[6]} + env(safe-area-inset-bottom, 0px))`;
+      expect(
+        cssFade,
+        "el degradado vuelve a anclarse al filo de la caja de relleno: se pinta entero sobre relleno vacío",
+      ).toContain(`bottom: ${relleno}`);
+      expect(cssFade).not.toMatch(/bottom: 0[;\s}]/);
+
+      /* La otra mitad de la invariante: ese anclaje solo marca el corte si
+         coincide con dónde TERMINA de verdad la capa de scroll, que es el
+         relleno inferior de la hoja. */
+      expect(
+        cssHoja,
+        "el relleno inferior de la hoja dejó de coincidir con el anclaje del degradado",
+      ).toContain(relleno);
+    });
+
     it("el degradado lee el estado del PADRE con un selector descendiente, no del propio elemento", () => {
       /*
        * Regla 35: `[data-sheet-clipped="true"] &` y `&[data-sheet-clipped=
