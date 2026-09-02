@@ -775,6 +775,15 @@ describe("Navbar", () => {
           link,
           `${item.key} no se pinta como enlace visible de la barra`,
         ).not.toBeNull();
+        /* Y NOMBRA SU DESTINO, que es la mitad del defecto que D2 cierra:
+           «En el sitio» o «Más» no dicen a dónde llevan, «Contacto» sí. El
+           texto esperado se lee del MISMO JSON que resuelve el componente
+           (regla 39/28), nunca de una cadena escrita a mano en el test. */
+        expect(link?.textContent?.trim()).toBe(
+          esCommon.Common.Navigation[
+            item.key as keyof typeof esCommon.Common.Navigation
+          ],
+        );
       }
 
       const triggers = container.querySelectorAll(
