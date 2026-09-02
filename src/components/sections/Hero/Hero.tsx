@@ -145,6 +145,88 @@ const ScHeroFoot = styled.div<{ $light: boolean }>`
 `;
 
 /*
+ * VELO DE CONTRASTE DE LA COPIA (D1, decision del dueno 2026-09-02).
+ *
+ * QUE CIERRA, con las cifras del hallazgo delante (critica externa #15,
+ * coincidente en tres evaluadores independientes y re-medida por el
+ * orquestador a 1440x900 leyendo el fondo BAJO cada glifo, con las
+ * animaciones congeladas): una fraccion de los glifos de esta copia cae por
+ * debajo de AA alli donde el arte pasa por debajo -- el aura en claro, la
+ * corona del ojo en oscuro.
+ *
+ *   h1 oscuro           p05 2,73:1   6 % del nucleo de glifo bajo 3:1 (min 1,16)
+ *   parrafo oscuro 16px p05 2,05:1   15 % bajo 3:1
+ *   h1 claro            p05 3,02:1   5 % bajo 3:1
+ *   parrafo claro 16px  mediana 4,06:1, 38 % bajo 3:1
+ *
+ * El objetivo del encargo es p05 >= 3:1 en el h1 y p05 >= 4,5:1 en los
+ * parrafos, en los DOS temas.
+ *
+ * DE DONDE SALE EL 40 %, y por que no es un numero de gusto. Es la
+ * atenuacion que hace falta para subir el peor de los cuatro casos -- el
+ * parrafo OSCURO, de p05 2,05 a 4,5 -- resuelta sobre las propias cifras de
+ * arriba:
+ *
+ *   1. Un contraste de 2,05:1 contra el texto claro (semantic.text, casi
+ *      blanco, luminancia relativa ~0,955) situa el fondo de ese percentil
+ *      en Y = (0,955 + 0,05) / 2,05 - 0,05 = 0,44 -- un punto brillante de
+ *      la corona.
+ *   2. Para que ese mismo punto llegue a 4,5:1 hace falta Y' <= (1,005 /
+ *      4,5) - 0,05 = 0,173.
+ *   3. Componer alfa se hace en el espacio con gamma de la superficie, no en
+ *      luminancia lineal: 0,44 y 0,173 corresponden a ~0,687 y ~0,451 de
+ *      valor de canal. El velo aporta el fondo del tema (~0,10 en oscuro),
+ *      asi que alfa = (0,687 - 0,451) / (0,687 - 0,10) = 0,40.
+ *
+ * La cuenta simetrica en CLARO -- texto oscuro sobre el aura, velo casi
+ * blanco -- da 0,37 para el mismo salto, asi que un unico valor sirve para
+ * las dos ramas y no hay que ramificar la intensidad por tema: lo que
+ * ramifica es el COLOR, que es `semantic.bg` y por tanto ya cambia solo.
+ *
+ * ES UNA ESTIMACION, no una medida: este componente no puede abrir un
+ * navegador. `HERO_SCRIM_ALPHA` es la unica palanca que hay que mover si el
+ * integrador mide corto (subir) o si la ilustracion se apaga mas de lo que
+ * el dueno quiere (bajar); `HERO_SCRIM_CORE` mueve el tamano de la zona
+ * plana y `HERO_SCRIM_BLEED` cuanto desborda el velo la caja de la copia.
+ *
+ * POR QUE UN ::before Y NO UN ELEMENTO. `ScCopy > *` reparte el escalonado
+ * de entrada por `nth-child` y su recuento de CUATRO hijos esta atornillado
+ * por test: un `<div>` nuevo como primer hijo correria toda la tabla de
+ * retardos un puesto. Un pseudo-elemento no entra en `> *`, no existe en el
+ * arbol de accesibilidad (no hace falta `aria-hidden`), no puede recibir
+ * foco y no anade ni un nodo al HTML exportado. `z-index: -1` lo deja detras
+ * del texto DENTRO del contexto de apilamiento que `ScCopy` ya crea
+ * (position: relative + zIndex.raised), asi que sigue por delante del arte;
+ * ese -1 no es un peldano del sistema (`tokens/zIndex.ts` arranca en
+ * `base: 0`, que describe capas de PAGINA) sino la relacion local "detras de
+ * mi propio contenido", y esta ola no puede tocar los tokens para darle
+ * nombre.
+ *
+ * ES ESTATICO A PROPOSITO, y eso es lo que lo hace invisible al arrancar: en
+ * el primer pintado todavia no hay arte (HeroBackdrop mantiene su
+ * decode-gating en JS), asi que el velo se compone sobre el MISMO
+ * `semantic.bg` de la pagina y no se ve nada; el arte aparece despues, por
+ * debajo, ya atenuado. Una rampa de opacidad propia solo podria empeorarlo
+ * (un parche que se enciende sobre un fondo que ya estaba). Sigue heredando
+ * el fundido de `$hidden` de su propio contenedor en el cruce de tema, que
+ * es lo unico que tiene que acompanar. Cero propiedades de layout animadas,
+ * cero peticiones nuevas: no toca al LCP (el wordmark), que se pinta encima.
+ *
+ * La elipse `closest-side` centrada llega a alfa 0 EXACTAMENTE en el borde
+ * del pseudo-elemento, asi que no hay corte duro por ninguno de los cuatro
+ * lados; con el desbordamiento del 40 % la caja del texto queda dentro de la
+ * zona plana por los flancos (donde estan los extremos de parrafo que
+ * midieron peor) y solo las esquinas -- donde una columna centrada casi
+ * nunca pone glifos, y donde el h1 solo necesita 3:1 por ser texto grande --
+ * reciben ~la mitad. La parada final se escribe `transparent`: los
+ * degradados CSS interpolan con alfa premultiplicado por especificacion, asi
+ * que no aparece el halo gris del fundido a negro transparente.
+ */
+const HERO_SCRIM_ALPHA = "40%";
+const HERO_SCRIM_CORE = "58%";
+const HERO_SCRIM_BLEED = "-40%";
+
+/*
  * Escalonado de entrada de la copia (spec §5). Los DOS extremos, from Y to,
  * se declaran explicitamente: task/lessons.md (2026-07-27) documenta que un
  * keyframe implicito -- confiar en que el navegador complete el extremo que
@@ -287,8 +369,11 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
      grid.prose, viven en el docblock de heroCopyMax en tokens/grid.ts. */
   max-width: ${({ theme }) => theme.data.grid.heroCopyMax};
   text-align: center;
-  /* Segunda linea de defensa del contraste, ADEMAS del velo, SOLO en
-     oscuro: los parrafos son mas anchos que la pupila y sus extremos caen
+  /* Segunda linea de defensa del contraste, ADEMAS del velo de la escena
+     (ScScrim, eye.parts.tsx) y, desde el 2026-09-02, del velo propio de este
+     bloque (ver HERO_SCRIM_ALPHA, arriba; ese SI existe en los dos temas).
+     Esta sombra sigue siendo SOLO de oscuro: los parrafos son mas anchos
+     que la pupila y sus extremos caen
      sobre la corona, que es la zona mas brillante y la mas irregular
      (filamentos finos, no un tono plano). Una sombra pegada al glifo
      garantiza el borde oscuro justo donde hace falta sin apagar la
@@ -329,6 +414,33 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   transition: opacity
     ${({ $hidden }) => ($hidden ? HERO_COPY_OUT_MS : HERO_COPY_IN_MS)}ms
     ${({ theme }) => theme.data.motion.easing.decelerate};
+
+  /* Velo de contraste (D1): el porque completo, las cifras del hallazgo y
+     de donde sale cada numero estan en el docblock de HERO_SCRIM_ALPHA, mas
+     arriba. Aqui solo vive la declaracion. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: ${HERO_SCRIM_BLEED};
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(
+      ellipse closest-side at 50% 50%,
+      ${({ theme }) =>
+        `color-mix(in oklch, ${theme.data.semantic.bg} ${HERO_SCRIM_ALPHA}, transparent)`}
+        0%,
+      ${({ theme }) =>
+        `color-mix(in oklch, ${theme.data.semantic.bg} ${HERO_SCRIM_ALPHA}, transparent)`}
+        ${HERO_SCRIM_CORE},
+      transparent 100%
+    );
+
+    /* Con el arte fuera, un velo del color de fondo solo se interpondria
+       entre los colores que fuerza el sistema. Mismo gesto que ScHeroFoot. */
+    @media (forced-colors: active) {
+      display: none;
+    }
+  }
 
   /* La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
      de este punto de corte el tema claro vuelve a la distribucion
@@ -833,6 +945,10 @@ export function Hero(): ReactElement {
       <ScCopy
         $light={light}
         $hidden={hidden}
+        /* Gancho de test del bloque de copia: el velo de contraste (D1) vive
+           en su `::before`, y un candado de CSS necesita poder llegar a las
+           clases de ESTE elemento sin deducirlo desde un hijo. */
+        data-testid="hero-copy"
       >
         <ScHeroBrand
           as="h1"

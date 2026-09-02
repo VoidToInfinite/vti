@@ -628,3 +628,128 @@ describe("Hero.tsx / GlobalStyles.tsx — variables CSS del anti-flash (candado 
     expect(bloque).toContain("--hero-actions-justify-lg: center");
   });
 });
+
+/*
+ * Velo de contraste de la copia del hero (D1, decision del dueno
+ * 2026-09-02). El velo es una propiedad puramente de PINTADO: jsdom no
+ * pinta, no hace layout y no compone alfa, asi que estos candados solo
+ * pueden aseverar lo que es verificable sin motor de render -- que la regla
+ * existe, que cuelga del `::before` del bloque de copia, que su color sale
+ * del token de fondo del TEMA (dos valores distintos, uno por rama: un
+ * literal escrito a mano no podria satisfacer las dos aserciones a la vez) y
+ * que no anima nada. La medida real (p05 del h1 >= 3:1 y p05 del parrafo >=
+ * 4,5:1 en los dos temas) es de navegador y queda declarada como pendiente
+ * de un humano, regla 47.
+ */
+describe("Hero: velo de contraste de la copia (D1, 2026-09-02)", () => {
+  /* Reglas de estilo (el OBJETO, no su texto) cuyo selector menciona alguna
+     de las clases del elemento: la FORMA de un selector solo se puede
+     aseverar sobre `selectorText` (regla 35). */
+  function reglasConSelectorDe(el: HTMLElement): CSSStyleRule[] {
+    const clases = Array.from(el.classList);
+    const out: CSSStyleRule[] = [];
+    const walk = (rules: CSSRuleList): void => {
+      Array.from(rules).forEach((rule) => {
+        const selector = (rule as CSSStyleRule).selectorText;
+        if (
+          selector !== undefined &&
+          clases.some((cls) => selector.includes(`.${cls}`))
+        ) {
+          out.push(rule as CSSStyleRule);
+        }
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) walk(anidadas);
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return out;
+  }
+
+  /** Las reglas `::before` del bloque de copia: la del velo y su guard de
+   *  forced-colors, que comparten selector y solo se distinguen por lo que
+   *  declaran (el guard vive dentro de un @media anidado). */
+  function reglasDelVelo(): {
+    base: CSSStyleRule;
+    forcedColors: CSSStyleRule | undefined;
+  } {
+    const copia = screen.getByTestId("hero-copy");
+    const before = reglasConSelectorDe(copia).filter((regla) =>
+      regla.selectorText.endsWith("::before"),
+    );
+    const base = before.filter((r) => r.cssText.includes("radial-gradient"));
+    expect(
+      base,
+      "se esperaba exactamente una regla ::before con el degradado del velo",
+    ).toHaveLength(1);
+    return {
+      base: base[0],
+      forcedColors: before.find((r) =>
+        sinEspacios(r.cssText).includes("display:none"),
+      ),
+    };
+  }
+
+  it.each([
+    ["claro", null, semanticLight.bg],
+    ["oscuro", "dark", semanticDark.bg],
+  ] as const)(
+    "en tema %s el velo cuelga del ::before de la copia y tine con el semantic.bg de ESA rama",
+    (_nombre, storage, fondo) => {
+      if (storage) window.localStorage.setItem("vti-theme", storage);
+      renderHero();
+      const regla = reglasDelVelo().base;
+
+      // Cuelga del contenedor de la copia, no de un hijo ni del hero.
+      const copia = screen.getByTestId("hero-copy");
+      expect(
+        Array.from(copia.classList).some((cls) =>
+          regla.selectorText.includes(`.${cls}`),
+        ),
+      ).toBe(true);
+
+      // El color sale del token de fondo del tema, con alfa por color-mix:
+      // el mismo fichero renderiza DOS valores distintos segun la rama, que
+      // es justo lo que un literal escrito a mano no puede hacer.
+      const css = sinEspacios(regla.cssText);
+      expect(css).toContain("radial-gradient");
+      expect(css).toContain(sinEspacios(fondo));
+      expect(css).toContain("color-mix(inoklch");
+      // Y NO el fondo de la rama contraria.
+      const contrario = storage ? semanticLight.bg : semanticDark.bg;
+      expect(css).not.toContain(sinEspacios(contrario));
+    },
+  );
+
+  it("el velo es estatico, no captura el puntero y se retira bajo forced-colors", () => {
+    renderHero();
+    const { base, forcedColors } = reglasDelVelo();
+    const css = sinEspacios(base.cssText);
+
+    // Estatico a proposito (ver el docblock de HERO_SCRIM_ALPHA): hereda el
+    // fundido de $hidden de su contenedor y no declara canal propio.
+    expect(css).not.toContain("transition");
+    expect(css).not.toContain("animation");
+    // Ni "transition: all" ni ninguna propiedad de layout animada.
+    expect(css).not.toContain("transition:all");
+    expect(css).toContain("pointer-events:none");
+    // Detras del texto, dentro del contexto de apilamiento de ScCopy.
+    expect(css).toContain("z-index:-1");
+
+    // El guard de forced-colors comparte selector con el velo y vive dentro
+    // de su propio @media anidado: jsdom no lo evalua (regla 36), asi que se
+    // comprueba que la regla existe y a que @media pertenece.
+    expect(
+      forcedColors,
+      "falta el guard de forced-colors del velo",
+    ).toBeDefined();
+    expect((forcedColors as CSSStyleRule).parentRule?.cssText ?? "").toContain(
+      "forced-colors: active",
+    );
+  });
+});
