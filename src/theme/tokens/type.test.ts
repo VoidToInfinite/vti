@@ -9,12 +9,6 @@ describe("type tokens", () => {
 
   it("escala tipográfica completa tiene los valores canónicos correctos", () => {
     const expectedScale = {
-      deckTitle: {
-        size: "clamp(2rem, 6vw, 4rem)",
-        weight: 700,
-        lineHeight: 1.15,
-        tracking: "-0.014em",
-      },
       display: {
         size: "clamp(2.5rem, 4.4vw, 3.5rem)",
         weight: 800,
@@ -85,34 +79,23 @@ describe("type tokens", () => {
    * Se añade en el mismo cambio que la retirada, no como aserción aparte:
    * quien vuelva a añadir un peldaño tiene que tocar los dos sitios a la vez,
    * que es justo lo que la regla 40 pide de un contrato cerrado. Y así ha
-   * funcionado: la crítica externa #11 (2026-08-18) sube el recuento a 10 al
-   * añadir `deckTitle`, y esta cifra se actualiza CON el `toEqual` de arriba,
-   * nunca relajando ninguno de los dos.
+   * funcionado: la crítica externa #11 (2026-08-18) subió el recuento a 10 al
+   * añadir `deckTitle`, y la #14 (2026-09-02) lo devuelve a 9 al retirarlo --
+   * las dos veces actualizando esta cifra CON el `toEqual` de arriba, nunca
+   * relajando ninguno de los dos.
    */
-  it("la escala tiene exactamente 10 peldaños vivos", () => {
-    expect(Object.keys(typo.scale)).toHaveLength(10);
+  it("la escala tiene exactamente 9 peldaños vivos", () => {
+    expect(Object.keys(typo.scale)).toHaveLength(9);
   });
 
   /*
-   * Crítica externa #11 (2026-08-18), hallazgo C. `deckTitle` es el ÚNICO
-   * peldaño cuyo máximo supera al de `display`, y su docblock declara que eso
-   * es deliberado: es tipografía de CARTEL (una diapositiva a sangre completa)
-   * y no de documento. Sin este candado, esa afirmación viviría solo en prosa
-   * -- y la siguiente revisión que viera un 4rem por encima del techo de
-   * `display` podría "corregirlo" a 3.5rem creyendo que arregla una fuga de la
-   * escala, cambiando de paso lo que pintan los dos decks.
-   *
-   * Se afirma la RELACIÓN (deckTitle > display), no los dos números sueltos:
-   * si algún día `display` se recalibrara, lo que tiene que seguir siendo
-   * cierto es el orden, no el par de cifras de hoy.
+   * AQUÍ VIVIÓ el candado "deckTitle es el único peldaño por encima del techo
+   * de display", nacido con ese peldaño en la crítica externa #11
+   * (2026-08-18). Se retira CON su sujeto en la #14 (2026-09-02, decisión D4
+   * del dueño): sin `deckTitle` en la escala no queda ninguna variante por
+   * encima de `display`, así que el test no tenía nada que afirmar -- y un
+   * candado que se queda sin sujeto no protege, estorba (regla 16 de
+   * `RULES.md`). El porqué de la retirada del peldaño vive en el hueco que
+   * dejó dentro de `type.scale` (`type.ts`).
    */
-  it("deckTitle es el único peldaño por encima del techo de display, y es deliberado", () => {
-    const tope = (size: string): number =>
-      parseFloat(/,\s*([\d.]+)rem\)$/.exec(size)?.[1] ?? size);
-    expect(tope(typo.scale.deckTitle.size)).toBe(4);
-    expect(tope(typo.scale.display.size)).toBe(3.5);
-    expect(tope(typo.scale.deckTitle.size)).toBeGreaterThan(
-      tope(typo.scale.display.size),
-    );
-  });
 });

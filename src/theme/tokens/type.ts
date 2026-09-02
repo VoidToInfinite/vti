@@ -1,7 +1,8 @@
 /**
- * Variantes vivas de la escala tipográfica: 10 desde la crítica externa #11
- * (2026-08-18, ver `deckTitle` más abajo), 9 desde la crítica externa #9
- * (2026-08-17), 12 antes de esa.
+ * Variantes vivas de la escala tipográfica: 9 desde la crítica externa #14
+ * (2026-09-02, retirada de `deckTitle`, ver el hueco que dejó más abajo), 10
+ * entre la #11 y esa fecha, 9 desde la crítica externa #9 (2026-08-17), 12
+ * antes de esa.
  *
  * RETIRADAS en esa revisión — `h4`, `bodyLg` y `code` — con censo propio de
  * consumidores previo (patrones `variant="X"`, `theme.data.type.scale.X`,
@@ -28,9 +29,10 @@
  *   cumplía en ninguna parte. (`type.fontMono` NO se retira: lo consume
  *   `Story.tsx` por su cuenta, verificado.)
  *
- * AÑADIDA en la crítica externa #11 (2026-08-18): `deckTitle`, el décimo
- * peldaño. Ver su propio docblock, dentro de `scale`, para el porqué completo
- * — incluido por qué es el único peldaño cuyo máximo supera al de `display`.
+ * AQUÍ VIVIÓ `deckTitle`, añadido en la crítica externa #11 (2026-08-18) y
+ * RETIRADO en la #14 (2026-09-02). Ver el hueco documentado dentro de
+ * `scale`, en el sitio exacto que ocupaba, para las dos mitades de su
+ * historia: por qué nació y por qué se va.
  *
  * PENDIENTE fuera de este fichero, declarado en vez de corregido en silencio
  * desde una tarea que no es dueña de ese documento: `DESIGN.md` sigue diciendo
@@ -39,7 +41,6 @@
  * `h5`=`bodyLg`) más «variante `lead` sin ningún consumidor».
  */
 export type TypeVariant =
-  | "deckTitle"
   | "display"
   | "h1"
   | "h2"
@@ -65,65 +66,52 @@ export const type = {
   fontBody: "var(--font-body)",
   fontMono: "var(--font-mono)",
   scale: {
-    /**
-     * Titular de la diapositiva de INTRO de una presentación a sangre
-     * completa (los decks oscuros de Story y de Journey). Peldaño nuevo de la
-     * crítica externa #11 (2026-08-18, hallazgo C, decisión del dueño:
-     * «`deckTitle` entra en token de paso»).
+    /*
+     * AQUÍ VIVIÓ `deckTitle` — "titular de la diapositiva de INTRO de una
+     * presentación a sangre completa", `clamp(2rem, 6vw, 4rem)` con el resto
+     * de propiedades copiadas de `h2`. Nació en la crítica externa #11
+     * (2026-08-18, hallazgo C) y se RETIRA en la #14 (2026-09-02, decisión D4
+     * del dueño). Las dos mitades de la historia, porque ninguna se entiende
+     * sin la otra:
      *
-     * POR QUÉ EXISTE: el mismo `clamp(2rem, 6vw, 4rem)` estaba escrito byte a
-     * byte en DOS ficheros de datos de secciones distintas —
+     * POR QUÉ NACIÓ: el mismo `clamp()` estaba escrito byte a byte en
      * `STORY_DECK_TITLE_SIZE` (`story.layers.ts`) y `JOURNEY_DECK_TITLE_SIZE`
-     * (`journey.layers.ts`) — y las dos piezas que lo pintan
-     * (`ScDeckTitle`/`ScJourneyDeckTitle`) ya leían de aquí el resto de sus
-     * propiedades tipográficas. Regla 13 de `RULES.md`: una constante de valor
-     * idéntico repetida en dos secciones es un token de tema, no dos
-     * constantes. Las dos constantes NO desaparecen — siguen siendo el nombre
-     * con el que cada sección habla de su cartel — pero ahora derivan de este
-     * peldaño en vez de declarar el literal.
+     * (`journey.layers.ts`) — dos secciones, un solo valor, ninguna sabiendo
+     * de la otra. Regla 13 de `RULES.md`: una constante de valor idéntico
+     * repetida en dos secciones es un token de tema. Ese diagnóstico era
+     * correcto y NO es lo que se revisa aquí: las dos constantes siguen
+     * derivando de un peldaño de esta escala, solo que ahora del que ya
+     * existía.
      *
-     * ESTO REVISA, no ignora, el criterio que `story.layers.ts` dejó escrito
-     * en 2026-07-31 («4rem/3rem/8rem no tienen equivalente en `type.scale` y
-     * forzarlos ahí contaminaría un contrato que otras secciones también
-     * consumen»). Aquel criterio sigue valiendo para los otros cuatro tamaños
-     * de cartel de Story, que son medidas de UNA composición y siguen siendo
-     * literales en su fichero. Lo que cambió es el hecho que aquel
-     * razonamiento no tenía delante: éste NO es de una composición, es el
-     * mismo de DOS, y una medida compartida por dos secciones ya no es una
-     * medida de sección.
+     * POR QUÉ SE VA: el peldaño tokenizó la duplicación, pero heredó el
+     * TAMAÑO que ninguna de las dos secciones había justificado nunca frente
+     * al resto de la página. Medido a 1440x900 por el evaluador de Craft: el
+     * `<h2>` de Story y de Journey en tema oscuro pintaba 64 px (el tope de
+     * 4rem de este `clamp()`), mientras Features y Contact, en el mismo tema
+     * y en la misma página, pintaban su `<h2>` a 32 px (la escala `h2`;
+     * Features con su propio `clamp(1.5rem, min(5vw, 3.6dvh), h2)`). El mismo
+     * rango semántico a dos tamaños distintos: no una jerarquía, una
+     * incoherencia. Decisión del dueño: UN SOLO h2 dentro del oscuro, y son
+     * Story y Journey los que bajan al rango de Features/Contact.
      *
-     * SU MÁXIMO SUPERA A `display` (4rem = 64px frente a 3.5rem = 56px), Y ES
-     * DELIBERADO. `display` es el techo de la tipografía de DOCUMENTO: lo más
-     * grande que puede pedir una página que se lee desplazándose, con más
-     * cosas alrededor compitiendo por la atención. Este peldaño viste otra
-     * cosa: el único texto de una diapositiva que ocupa el viewport entero,
-     * donde no hay nada alrededor de lo que destacar y donde 56px se leería
-     * como un párrafo grande, no como un cartel. Que el techo de documento no
-     * sea el techo de cartel no es una fuga de la escala, es la distinción que
-     * este peldaño nombra — y por eso el máximo NO se recorta a 3.5rem "por
-     * coherencia": eso cambiaría lo que hoy pintan las dos secciones, y esta
-     * entrada es refactor de vocabulario, no rediseño.
+     * Con ese cambio, el peldaño se quedaba sin nada propio que decir: sus
+     * cuatro propiedades pasaban a ser, una a una, las de `h2` — que es de
+     * donde ya salían `weight`/`lineHeight`/`tracking` — así que habría sido
+     * un segundo nombre para el mismo estilo. `STORY_DECK_TITLE_SIZE` y
+     * `JOURNEY_DECK_TITLE_SIZE` derivan hoy de `h2.size` directamente, y las
+     * piezas que los pintan (`ScDeckTitle`, `ScJourneyDeckTitle`) componen ya
+     * un `h2` completo del sistema.
      *
-     * `weight`/`lineHeight`/`tracking` son los de `h2`, sin desviación: es
-     * EXACTAMENTE lo que `ScDeckTitle` y `ScJourneyDeckTitle` ya declaraban
-     * (cada una leyendo `type.scale.h2.*` para esas tres y el literal solo
-     * para el tamaño). El peldaño no inventa ningún valor nuevo; recoge el
-     * que las dos piezas ya componían a mano.
-     *
-     * NO TIENE ENTRADA EN `defaultElement` (`Typography.tsx`) A PROPÓSITO. Sus
-     * consumidores son los dos `*.layers.ts`, no `<Typography variant=…>`: las
-     * piezas de cartel de los dos decks son elementos planos
-     * (`styled.h2`), decisión ya razonada en los docblocks de
-     * `story.deck.tsx`/`journey.deck.tsx`. Si alguien lo pidiera por
-     * `Typography`, el `??` de ese mapa lo resolvería a `<p>` — que es lo
-     * correcto para un tamaño sin semántica de encabezado propia.
+     * LO QUE SÍ SIGUE DIFERENCIANDO CLARO Y OSCURO, y por eso queda escrito:
+     * el VEHÍCULO, no el tamaño del titular. En oscuro, ese `<h2>` es el
+     * cartel de la diapositiva de intro de un deck a sangre completa —
+     * elemento plano (`styled.h2`), con su propio equilibrado y su propio
+     * ritmo vertical dentro de la diapositiva; en claro, el mismo rango vive
+     * dentro de una tarjeta acotada y pasa por `Typography`. Esa diferencia
+     * es una decisión de composición (`DESIGN.md` §4: "tema = piel con
+     * contenido unificado"), no el accidente de dos escalas que nadie
+     * comparó.
      */
-    deckTitle: {
-      size: "clamp(2rem, 6vw, 4rem)",
-      weight: 700,
-      lineHeight: 1.15,
-      tracking: "-0.014em",
-    },
     display: {
       size: "clamp(2.5rem, 4.4vw, 3.5rem)",
       weight: 800,

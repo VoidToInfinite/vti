@@ -301,10 +301,10 @@ export const STORY_FIGURE_SIZES =
  * "4rem/3rem/8rem". El 4rem sale de la lista porque resultó no ser una medida
  * de ESTA composición — `journey.layers.ts` declaraba exactamente el mismo
  * `clamp()`, byte a byte, para el mismo rol. Una medida que dos secciones
- * comparten ya no es de una sección, así que ese caso concreto SÍ es un token
- * (`type.scale.deckTitle`) y `STORY_DECK_TITLE_SIZE` pasa a derivar de él. El
- * criterio de la frase no se retira: sigue rigiendo para los otros cuatro
- * tamaños, que no tienen ningún consumidor fuera de Story.
+ * comparten ya no es de una sección, así que ese caso concreto SÍ es un
+ * token, y `STORY_DECK_TITLE_SIZE` pasa a derivar de él. El criterio de la
+ * frase no se retira: sigue rigiendo para los otros cuatro tamaños, que no
+ * tienen ningún consumidor fuera de Story.
  *
  * Todas salvo el subtítulo se declaran como `clamp(mínimo, preferido-en-vw,
  * máximo)` en vez de con `@media`: un término en `vw` escala de forma
@@ -318,25 +318,34 @@ export const STORY_FIGURE_SIZES =
  */
 
 /**
- * `h2#story-title` de la diapositiva de intro. Tope 4rem (encargo). Mínimo
- * 2rem: por debajo de eso el titular de una diapositiva a pantalla completa
- * se queda del tamaño de un párrafo y pierde el peso de "cartel" que pide la
- * composición.
+ * `h2#story-title` de la diapositiva de intro. Es el `h2` del sistema, sin
+ * tamaño propio: `type.scale.h2.size` (2rem = 32px), el mismo rango que ya
+ * pintaban Features y Contact en las DOS ramas de tema y que Story y Journey
+ * pintaban solo en la clara.
  *
- * DEJA DE DECLARAR EL LITERAL (crítica externa #11, 2026-08-18, hallazgo C):
- * el mismo `clamp(2rem, 6vw, 4rem)` estaba escrito byte a byte en
- * `JOURNEY_DECK_TITLE_SIZE` (`journey.layers.ts`) -- dos secciones, un solo
- * valor, ninguna de las dos sabiendo de la otra. Pasa a derivar de
- * `type.scale.deckTitle`, el peldaño que la escala del sistema estrena para
- * este rol exacto. Es la excepción, no la regla, dentro del bloque de arriba:
- * los otros cuatro tamaños de cartel de Story siguen siendo literales de ESTA
- * composición y no se tokenizan, porque nadie más los usa. El porqué completo
- * -- incluido por qué el tope del peldaño supera al de `display` -- vive en el
- * docblock de `deckTitle` (`src/theme/tokens/type.ts`), no aquí.
+ * TUVO TAMAÑO PROPIO HASTA LA CRÍTICA EXTERNA #14 (2026-09-02, decisión D4
+ * del dueño: «un solo h2 dentro del oscuro»). El recorrido completo:
+ * declaraba el literal `clamp(2rem, 6vw, 4rem)` hasta la #11 (2026-08-18),
+ * que lo tokenizó como `type.scale.deckTitle` al encontrarlo escrito byte a
+ * byte también en `JOURNEY_DECK_TITLE_SIZE`; la #14 midió que ese peldaño
+ * pintaba el `<h2>` de Story y de Journey a 64px en oscuro mientras
+ * Features/Contact pintaban el suyo a 32px en la misma página y el mismo
+ * tema, y el dueño decidió bajar estas dos al rango de las otras dos. Con el
+ * tamaño igualado, el peldaño se quedó siendo un duplicado exacto de `h2` y
+ * se retiró; su docblock de despedida, con las dos mitades del porqué, vive
+ * en el hueco que dejó dentro de `type.scale` (`src/theme/tokens/type.ts`).
  *
- * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
+ * ESTO SÍ CAMBIA LO RENDERIZADO, al revés que la migración de la #11: por
+ * encima de ~533px de viewport (donde `6vw` superaba las 2rem) el titular
+ * pasa de hasta 64px a 32px fijos. Por debajo de ese ancho no cambia nada --
+ * el mínimo del `clamp()` retirado ya era 2rem.
+ *
+ * Sigue siendo la excepción dentro del bloque de arriba en un sentido: es el
+ * único de los cinco tamaños de cartel de Story que NO es una medida de esta
+ * composición. Los otros cuatro siguen calibrados contra el texto real de
+ * estas diapositivas; este viste un rango semántico de la página entera.
  */
-export const STORY_DECK_TITLE_SIZE = typeTokens.scale.deckTitle.size;
+export const STORY_DECK_TITLE_SIZE = typeTokens.scale.h2.size;
 
 /**
  * Título de cada diapositiva de pilar (`01`…`04` + nombre del pilar; hasta

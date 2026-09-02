@@ -81,9 +81,17 @@ describe("constantes de la presentacion de Story", () => {
  * señala.
  */
 describe("escala tipográfica de la presentación de Story (contrato con el encargo)", () => {
-  it("el h2 de intro tiene tope 4rem", () => {
-    expect(STORY_DECK_TITLE_SIZE).toBe("clamp(2rem, 6vw, 4rem)");
-    expect(STORY_DECK_TITLE_SIZE).toMatch(/, 4rem\)$/);
+  /*
+   * Critica externa #14 (2026-09-02), decision D4 del dueno: el h2 de intro
+   * del deck BAJA al rango de Features/Contact -- 2rem = 32px, la escala `h2`
+   * del sistema -- en vez de los hasta 64px que pintaba el peldano
+   * `deckTitle`, hoy retirado. Esta asercion cambio de "tope 4rem" a esto;
+   * el porque completo vive en el docblock de la constante
+   * (`story.layers.ts`) y en el hueco que `deckTitle` dejo en `type.scale`.
+   */
+  it("critica #14: el h2 de intro es el h2 del sistema, sin tamano propio", () => {
+    expect(STORY_DECK_TITLE_SIZE).toBe(type.scale.h2.size);
+    expect(STORY_DECK_TITLE_SIZE).toBe("2rem");
   });
 
   /*
@@ -94,15 +102,20 @@ describe("escala tipográfica de la presentación de Story (contrato con el enca
    * RULES.md). Los otros cuatro siguen siendo literales de ESTA composicion, y
    * el docblock del bloque en `story.layers.ts` explica por que.
    *
-   * La asercion de valor (`toBe(type.scale.deckTitle.size)`) no prueba la
-   * migracion por si sola: pasaria igual con el literal, que resuelve a la
-   * misma cadena. La propiedad "el numero vive en el token, no en este
-   * fichero" solo se observa en la FUENTE (task/lessons.md, 2026-08-12, Task
-   * 19), asi que se lee el fichero despojado de comentarios -- que ademas
-   * impide que el candado se desactive comentandolo.
+   * La asercion de valor (`toBe(type.scale.h2.size)`) no prueba la migracion
+   * por si sola: pasaria igual con el literal, que resuelve a la misma
+   * cadena. La propiedad "el numero vive en el token, no en este fichero"
+   * solo se observa en la FUENTE (task/lessons.md, 2026-08-12, Task 19), asi
+   * que se lee el fichero despojado de comentarios -- que ademas impide que
+   * el candado se desactive comentandolo.
+   *
+   * Los DOS literales prohibidos son los dos que esta constante ha declarado
+   * a mano en su historia: el `clamp()` de antes de la #11 y el `"2rem"` al
+   * que la #14 baja el titular. Sin el segundo, "migrado al token" y
+   * "reescrito a mano con el valor nuevo" volverian a ser indistinguibles.
    */
-  it("critica #11: STORY_DECK_TITLE_SIZE deriva del token, no escribe el clamp a mano", async () => {
-    expect(STORY_DECK_TITLE_SIZE).toBe(type.scale.deckTitle.size);
+  it("critica #11/#14: STORY_DECK_TITLE_SIZE deriva del token, no escribe el valor a mano", async () => {
+    expect(STORY_DECK_TITLE_SIZE).toBe(type.scale.h2.size);
 
     const { readFileSync } = await import("node:fs");
     const { fileURLToPath } = await import("node:url");
@@ -112,8 +125,9 @@ describe("escala tipográfica de la presentación de Story (contrato con el enca
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\/\/.*$/gm, "");
 
-    expect(fuente).toContain("typeTokens.scale.deckTitle.size");
+    expect(fuente).toContain("typeTokens.scale.h2.size");
     expect(fuente).not.toContain("clamp(2rem, 6vw, 4rem)");
+    expect(fuente).not.toContain('"2rem"');
   });
 
   it("el título de pilar tiene tope 3rem", () => {

@@ -121,27 +121,39 @@ describe("constantes de la presentacion de Journey (test 1 de la spec, D3)", () 
  * (punto 1 de la spec de tipografia, §6).
  */
 describe("escala tipografica de la presentacion de Journey (contrato con la spec)", () => {
-  it("el h2 de intro tiene tope 4rem, mismo tramo que Story", () => {
-    expect(JOURNEY_DECK_TITLE_SIZE).toBe("clamp(2rem, 6vw, 4rem)");
-    expect(JOURNEY_DECK_TITLE_SIZE).toMatch(/, 4rem\)$/);
+  /*
+   * Critica externa #14 (2026-09-02), decision D4 del dueno: el h2 de intro
+   * del deck BAJA al rango de Features/Contact -- 2rem = 32px, la escala `h2`
+   * del sistema -- en vez de los hasta 64px que pintaba el peldano
+   * `deckTitle`, hoy retirado. "Mismo tramo que Story" sigue siendo cierto y
+   * por un motivo mas fuerte que antes: las dos secciones leen el MISMO
+   * peldano de la escala.
+   */
+  it("critica #14: el h2 de intro es el h2 del sistema, sin tamano propio", () => {
+    expect(JOURNEY_DECK_TITLE_SIZE).toBe(typeTokens.scale.h2.size);
+    expect(JOURNEY_DECK_TITLE_SIZE).toBe("2rem");
   });
 
   /*
-   * Critica externa #11 (2026-08-18), hallazgo C: la constante DERIVA del
-   * peldano `deckTitle` de la escala del sistema, ya no declara el literal.
+   * Critica externa #11 (2026-08-18), hallazgo C: la constante DERIVA de un
+   * peldano de la escala del sistema, ya no declara el literal.
    *
    * Hacen falta LAS DOS aserciones, y la segunda es la unica que prueba algo.
-   * `toBe(typeTokens.scale.deckTitle.size)` pasaria igual con el literal
-   * escrito a mano -- resuelve a la misma cadena -- asi que la propiedad "el
-   * numero vive en el token, no en este fichero" solo se observa en la FUENTE
+   * `toBe(typeTokens.scale.h2.size)` pasaria igual con el literal escrito a
+   * mano -- resuelve a la misma cadena -- asi que la propiedad "el numero
+   * vive en el token, no en este fichero" solo se observa en la FUENTE
    * (task/lessons.md, 2026-08-12, Task 19; mismo patron que
    * `Hero.qa.test.tsx` usa para `grid.heroCopyMax`). Se despojan los
    * comentarios antes de buscar: sin eso, el `clamp(...)` citado en prosa
    * dentro del docblock de la propia constante haria fallar el `not.toContain`
    * sobre codigo que si esta migrado.
+   *
+   * Los DOS literales prohibidos son los dos que esta constante ha declarado
+   * a mano en su historia: el `clamp()` de antes de la #11 y el `"2rem"` al
+   * que la #14 baja el titular.
    */
-  it("critica #11: JOURNEY_DECK_TITLE_SIZE deriva del token, no escribe el clamp a mano", async () => {
-    expect(JOURNEY_DECK_TITLE_SIZE).toBe(typeTokens.scale.deckTitle.size);
+  it("critica #11/#14: JOURNEY_DECK_TITLE_SIZE deriva del token, no escribe el valor a mano", async () => {
+    expect(JOURNEY_DECK_TITLE_SIZE).toBe(typeTokens.scale.h2.size);
 
     const { readFileSync } = await import("node:fs");
     const { fileURLToPath } = await import("node:url");
@@ -151,8 +163,9 @@ describe("escala tipografica de la presentacion de Journey (contrato con la spec
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\/\/.*$/gm, "");
 
-    expect(fuente).toContain("typeTokens.scale.deckTitle.size");
+    expect(fuente).toContain("typeTokens.scale.h2.size");
     expect(fuente).not.toContain("clamp(2rem, 6vw, 4rem)");
+    expect(fuente).not.toContain('"2rem"');
   });
 
   it("la etiqueta de paso tiene tope 11rem, cadena literal del encargo (T2)", () => {

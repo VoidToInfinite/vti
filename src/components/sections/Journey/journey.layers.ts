@@ -438,10 +438,11 @@ export const JOURNEY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
  * `2026-08-02-journey-deck-tipografia-design.md`). Constantes PROPIAS, no
  * importadas de `story.layers.ts`: acoplar las dos escalas haría que
  * retocar el cartel de una sección moviera el de la otra. Sigue siendo cierto
- * tras la crítica externa #11 (2026-08-18): `JOURNEY_DECK_TITLE_SIZE` pasa a
- * derivar de un TOKEN del sistema (`type.scale.deckTitle`), no de la constante
- * de Story -- ninguna de las dos secciones importa nada de la otra, que es lo
- * que este párrafo protege. La mayoría de los
+ * tras las críticas externas #11 (2026-08-18) y #14 (2026-09-02):
+ * `JOURNEY_DECK_TITLE_SIZE` deriva de un TOKEN del sistema
+ * (`type.scale.h2`), no de la constante de Story -- ninguna de las dos
+ * secciones importa nada de la otra, que es lo que este párrafo protege. La
+ * mayoría de los
  * topes de `clamp()` siguen calibrados contra el texto REAL de esta sección
  * (la etiqueta de paso, una sola palabra; el subtítulo de paso, 60-80
  * caracteres) -- salvo la cita de cierre (`JOURNEY_DECK_QUOTE_SIZE`/
@@ -453,33 +454,34 @@ export const JOURNEY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
  */
 
 /**
- * `h2#journey-title` de la diapositiva de intro. Mismo rol que
- * `STORY_DECK_TITLE_SIZE` y mismo tramo: el contenido que viste ("Tu viaje
- * no tiene un último paso.", 33 caracteres) es de longitud comparable al h2
- * de intro de Story, así que el mismo tramo de cartel sirve sin recalibrar.
+ * `h2#journey-title` de la diapositiva de intro. Es el `h2` del sistema, sin
+ * tamaño propio: `type.scale.h2.size` (2rem = 32px), el mismo rango que ya
+ * pintaban Features y Contact en las DOS ramas de tema y que Journey y Story
+ * pintaban solo en la clara. Mismo rol y mismo valor que
+ * `STORY_DECK_TITLE_SIZE`, ahora porque los dos leen el MISMO peldaño de la
+ * escala, no porque dos ficheros repitan el mismo `clamp()`.
  *
- * DEJA DE DECLARAR EL LITERAL (crítica externa #11, 2026-08-18, hallazgo C).
- * "Mismo tramo que Story" era una afirmación en prosa sostenida por dos
- * `clamp(2rem, 6vw, 4rem)` idénticos byte a byte en dos ficheros que no se
- * conocen entre sí -- exactamente la forma de duplicado que la regla 13 de
- * `RULES.md` manda convertir en token. Ahora los dos derivan de
- * `type.scale.deckTitle` y la frase describe el código en vez de pedir
- * confianza.
+ * TUVO TAMAÑO PROPIO HASTA LA CRÍTICA EXTERNA #14 (2026-09-02, decisión D4
+ * del dueño: «un solo h2 dentro del oscuro»). Hasta la #11 (2026-08-18)
+ * declaraba el literal `clamp(2rem, 6vw, 4rem)`, que aquella crítica tokenizó
+ * como `type.scale.deckTitle` al encontrarlo escrito byte a byte también en
+ * `STORY_DECK_TITLE_SIZE`; la #14 midió a 1440x900 que ese peldaño pintaba el
+ * `<h2>` de Journey y de Story a 64px en oscuro mientras Features y Contact
+ * pintaban el suyo a 32px en la misma página y el mismo tema -- el mismo
+ * rango semántico a dos tamaños --, y el dueño decidió bajar estas dos. Con
+ * el tamaño igualado, `deckTitle` pasó a ser un duplicado exacto de `h2` y se
+ * retiró; su docblock de despedida vive en el hueco que dejó dentro de
+ * `type.scale` (`src/theme/tokens/type.ts`).
  *
- * ESTE CASO ES DISTINTO del de `JOURNEY_DECK_QUOTE_SIZE`/`_WEIGHT` (más
- * abajo), que TAMBIÉN coinciden hoy con su pareja de Story y que a propósito
- * NO se acoplan: aquellas dos son medidas de cartel de una composición
- * concreta cuya coincidencia es una decisión revisable (su docblock lo
- * declara, y un test es el punto donde se decidiría divergir). Esta, en
- * cambio, viste el MISMO rol estructural en las dos secciones -- el titular de
- * la diapositiva de intro de un deck -- así que su coincidencia no es una
- * casualidad que convenga poder deshacer, es la definición del peldaño. El
- * porqué completo del token, incluido por qué su tope supera al de `display`,
- * vive en el docblock de `deckTitle` (`src/theme/tokens/type.ts`).
- *
- * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
+ * ESTO SÍ CAMBIA LO RENDERIZADO, al revés que la migración de la #11: por
+ * encima de ~533px de viewport (donde `6vw` superaba las 2rem) el titular
+ * pasa de hasta 64px a 32px fijos. Por debajo de ese ancho no cambia nada --
+ * el mínimo del `clamp()` retirado ya era 2rem. El párrafo de cabecera de
+ * este bloque sigue valiendo: las constantes de Journey no importan nada de
+ * `story.layers.ts`; lo que comparten las dos secciones lo comparten a través
+ * de la escala del sistema.
  */
-export const JOURNEY_DECK_TITLE_SIZE = typeTokens.scale.deckTitle.size;
+export const JOURNEY_DECK_TITLE_SIZE = typeTokens.scale.h2.size;
 
 /**
  * Etiqueta de una sola palabra de cada paso ("Descubre".."Evoluciona"),
