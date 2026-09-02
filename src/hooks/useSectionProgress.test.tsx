@@ -1,5 +1,6 @@
+import { useRef, type ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { render, renderHook, act } from "@testing-library/react";
 import { useSectionProgress } from "./useSectionProgress";
 
 const VH = 800;
@@ -383,5 +384,186 @@ describe("useSectionProgress", () => {
     unmount();
 
     expect(caf).toHaveBeenCalled();
+  });
+
+  /*
+   * CRÍTICA EXTERNA #14, P0 del scrollspy fosilizado (reproducido byte a byte
+   * en Chrome real por el orquestador de la ola J, 2026-09-02). Ver el bloque
+   * "DUEÑO DEL NODO Y RETRACCIÓN" del JSDoc de `useSectionProgress.ts` para el
+   * diagnóstico completo. Resumen del defecto: este hook escribía
+   * `data-inview` y las dos variables sobre el elemento y NUNCA las borraba,
+   * ni al desmontar ni -- el caso real y medido -- al perder su elemento sin
+   * desmontarse, que es lo que le pasa a `Features.tsx`/`Contact.tsx` al pasar
+   * al tema oscuro: llaman al hook en las dos ramas pero solo ATAN el ref en
+   * la clara, y React reutiliza el mismo `<section id="features">`. El
+   * atributo escrito en claro se quedaba fósil en el nodo y `useActiveSection`
+   * lo leía como si describiera la posición actual.
+   *
+   * POR QUÉ LA SUITE ESTABA VERDE CON EL DEFECTO DELANTE, que es la parte
+   * reutilizable: los diez tests de arriba ejercitan un ref que se ata al
+   * montar y no se suelta jamás -- el ÚNICO ciclo de vida que este hook tenía
+   * probado. Ninguno preguntaba qué queda ESCRITO en el DOM cuando el hook
+   * deja de ser el dueño de ese nodo, ni al desmontar ni al desatarse.
+   */
+  describe("crítica #14: retracta lo que escribió al dejar de ser dueño del nodo", () => {
+    function stubRafQueue(): { flush: (times: number) => void } {
+      let pending: FrameRequestCallback[] = [];
+      vi.stubGlobal(
+        "requestAnimationFrame",
+        (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+      );
+      vi.stubGlobal("cancelAnimationFrame", vi.fn());
+      return {
+        flush(times: number) {
+          for (let i = 0; i < times; i += 1) {
+            const batch = pending;
+            pending = [];
+            for (const cb of batch) cb(i * 16);
+          }
+        },
+      };
+    }
+
+    /** Ni el atributo ni las dos variables: el nodo tiene que quedar como si
+     *  este hook no lo hubiera tocado nunca. Un valor "neutro" escrito encima
+     *  NO vale -- `useActiveSection` distingue "no hay atributo" (resuelve por
+     *  geometría) de "el atributo dice false" (el lector está en el Hero). */
+    function expectRetracted(el: HTMLElement): void {
+      expect(el.dataset.inview).toBeUndefined();
+      expect(el.style.getPropertyValue("--section-enter")).toBe("");
+      expect(el.style.getPropertyValue("--section-progress")).toBe("");
+    }
+
+    it("al desmontar, el nodo queda sin data-inview ni variables (puede sobrevivir al desmontaje)", () => {
+      vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+      vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+      const section = sectionWith(600, VH);
+      const sectionRef = refOf(section);
+      const { unmount } = renderHook(() => useSectionProgress(sectionRef));
+
+      act(() => ioTrigger(true));
+      expect(section.dataset.inview).toBe("true");
+      expect(section.style.getPropertyValue("--section-enter")).not.toBe("");
+
+      unmount();
+
+      expectRetracted(section);
+    });
+
+    it("si el ref se desata, la notificación del observer retracta sobre el nodo que sí observaba", () => {
+      vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+      vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+      const section = sectionWith(600, VH);
+      const sectionRef = refOf(section);
+      renderHook(() => useSectionProgress(sectionRef));
+
+      act(() => ioTrigger(true));
+      expect(section.dataset.inview).toBe("true");
+
+      // El ref deja de apuntar al nodo observado -- lo que en producción hace
+      // React al desatarlo en el commit de la rama oscura.
+      sectionRef.current = null;
+      act(() => ioTrigger(false));
+
+      expectRetracted(section);
+    });
+
+    it("si el ref se desata, el propio bucle retracta en el siguiente frame y se para", () => {
+      const caf = vi.fn();
+      const { flush } = stubRafQueue();
+      vi.stubGlobal("cancelAnimationFrame", caf);
+
+      const section = sectionWith(600, VH);
+      const sectionRef = refOf(section);
+      renderHook(() => useSectionProgress(sectionRef));
+
+      act(() => ioTrigger(true));
+      expect(section.dataset.inview).toBe("true");
+
+      sectionRef.current = null;
+      act(() => flush(1));
+
+      expectRetracted(section);
+      expect(caf).toHaveBeenCalled();
+      // Y el bucle no sigue vivo girando sobre un nodo que ya no es suyo: tras
+      // parar, ningún frame posterior vuelve a escribir nada.
+      act(() => flush(5));
+      expectRetracted(section);
+    });
+
+    /*
+     * EL CASO REAL, con la forma exacta de `Features.tsx`/`Contact.tsx`: el
+     * hook se llama INCONDICIONALMENTE (reglas de hooks) y el ref solo se ata
+     * en la rama clara, sobre un `<section id="features">` que React reutiliza
+     * entre ramas porque las dos lo renderizan en la misma posición del árbol.
+     * Aquí no se pilota `ref.current` a mano: lo desata y lo vuelve a atar
+     * React, que es como ocurre en producción.
+     */
+    function ThemeBranchHarness({ light }: { light: boolean }): ReactElement {
+      const sectionRef = useRef<HTMLElement>(null);
+      useSectionProgress(sectionRef);
+      return (
+        <section
+          id="features"
+          ref={light ? sectionRef : undefined}
+        />
+      );
+    }
+
+    it("al conmutar a la rama que NO ata el ref, el nodo reutilizado queda limpio", () => {
+      vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+      vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+      const { container, rerender } = render(<ThemeBranchHarness light />);
+      const section = container.querySelector("section") as HTMLElement;
+
+      act(() => ioTrigger(true));
+      expect(section.dataset.inview).toBe("true");
+
+      rerender(<ThemeBranchHarness light={false} />);
+
+      // MISMO nodo (React lo reutiliza: las dos ramas rinden un <section> en
+      // la misma posición), ya sin rastro del hook.
+      expect(container.querySelector("section")).toBe(section);
+      expectRetracted(section);
+    });
+
+    it("y al volver a la rama que sí lo ata, el hook vuelve a observar el MISMO nodo y a publicar", () => {
+      vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+      vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+      const { container, rerender } = render(<ThemeBranchHarness light />);
+      const section = container.querySelector("section") as HTMLElement;
+
+      act(() => ioTrigger(true));
+      rerender(<ThemeBranchHarness light={false} />);
+      expectRetracted(section);
+
+      // Camino de VUELTA (oscuro -> claro): el efecto principal depende solo
+      // de `[ref]` y NO se re-ejecuta, así que si nadie vuelve a observar el
+      // nodo la rama clara se queda sin sus variables para siempre.
+      rerender(<ThemeBranchHarness light />);
+      act(() => ioTrigger(true));
+
+      expect(container.querySelector("section")).toBe(section);
+      expect(section.dataset.inview).toBe("true");
+      expect(section.style.getPropertyValue("--section-enter")).not.toBe("");
+    });
+
+    /*
+     * Bugs inyectados a propósito (regla 34), ejecutados en esta tarea -- el
+     * rojo LITERAL de cada uno está en el informe de la ola J:
+     *
+     * - Quitar `detachTarget()` de la limpieza del efecto principal pone en
+     *   rojo el primero de este describe ("al desmontar...").
+     * - Quitar la guarda `if (ref.current !== observed)` de la notificación
+     *   del `IntersectionObserver` pone en rojo el segundo.
+     * - Quitar esa misma guarda de `tick()` pone en rojo el tercero.
+     * - Quitar el latido `syncTargetRef.current?.()` del efecto sin
+     *   dependencias pone en rojo los dos últimos (el de ida y el de vuelta),
+     *   que son los que reproducen la forma real de Features/Contact.
+     */
   });
 });
