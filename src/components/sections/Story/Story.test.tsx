@@ -2420,10 +2420,16 @@ describe("Story: escala tipografica y texto de inspiracion de la diapositiva (te
     expect(accent.tagName).toBe("SPAN");
   });
 
-  it("el cuerpo de pilar (inspiration) y la nota declaran text-wrap: balance en el CSS inyectado", async () => {
+  it("la nota declara text-wrap: balance y el cuerpo de pilar (inspiration) NO, en el CSS inyectado", async () => {
     // jsdom no evalua NINGUN efecto de layout de text-wrap (leccion
     // 2026-07-27 repetida en todo este archivo): se ata por TEXTO de la
     // regla inyectada, con el mismo helper que ya usa el resto de la suite.
+    //
+    // Critica externa #14 (2026-09-02, decision D1): el equilibrado se queda
+    // en las piezas de cartel (la nota) y sale del cuerpo acotado por
+    // grid.prose, porque con el la prosa realizaba 53,5 caracteres por linea
+    // en vez de los 60-75 que el token promete. Las dos mitades se candan a
+    // la vez para que nadie vuelva a igualarlas en ningun sentido.
     const { container } = renderWithProviders(<Story />);
     await waitFor(() => {
       expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
@@ -2437,10 +2443,8 @@ describe("Story: escala tipografica y texto de inspiracion de la diapositiva (te
       exact: false,
     });
 
-    for (const el of [inspiration, note]) {
-      const css = cssRuleTextFor(el);
-      expect(css).toMatch(/text-wrap:\s*balance/);
-    }
+    expect(cssRuleTextFor(note)).toMatch(/text-wrap:\s*balance/);
+    expect(cssRuleTextFor(inspiration)).not.toMatch(/text-wrap:\s*balance/);
   });
 });
 

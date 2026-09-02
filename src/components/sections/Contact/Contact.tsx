@@ -379,14 +379,15 @@ const ScAccent = styled.span`
 /* `var(--text-secondary)` del mockup -> `semantic.textMuted` (ver el mapeo
    de rol documentado en `contact.layers.ts`).
 
-   El equilibrado pasa de pretty a balance (encargo del usuario 2026-08-04:
-   todo el texto de cuerpo lleva text-wrap-style balance). Este override
-   NO es cosmetico ni redundante con el que ya trae Typography para sus
-   variantes de cuerpo: styled(Typography) inyecta su clase DESPUES de la del
-   propio Typography, asi que lo que se declare aqui GANA la cascada. Si este
-   bloque se hubiera quedado en pretty, este parrafo -- y solo este -- habria
-   seguido con el reparto antiguo mientras el resto de la pagina cambiaba, un
-   fallo silencioso sin ningun error que lo delate. */
+   Sin equilibrado de linea (critica externa #14, 2026-09-02, decision D1
+   del dueno): este parrafo es cuerpo acotado por grid.prose, y el token
+   promete un RECUENTO REALIZADO sobre corte con bandera derecha. Con
+   text-wrap: balance la caja dejaba de ser la restriccion activa (medido
+   A/B sobre los mismos nodos: 53,5 caracteres por linea con equilibrado,
+   64,5 sin el). Hasta esa ronda este bloque llevaba el override del encargo
+   del 2026-08-04 ("todo el texto de cuerpo lleva balance"), que ganaba la
+   cascada a Typography; se retira junto con el de Typography para que el
+   parrafo vuelva a llenar la medida que promete. */
 /*
    MEDIDA DE LINEA (critica externa #9, 2026-08-17): este parrafo se media a
    82,6 caracteres por linea en la rama CLARA -- fuera del rango 60-75 que el
@@ -404,8 +405,6 @@ const ScAccent = styled.span`
 const ScBody = styled(Typography)`
   color: ${({ theme }) => theme.data.semantic.textMuted};
   max-width: ${({ theme }) => theme.data.grid.prose};
-  text-wrap: balance;
-  text-wrap-style: balance;
 `;
 
 /*

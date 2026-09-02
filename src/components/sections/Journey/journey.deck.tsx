@@ -596,8 +596,6 @@ export const ScJourneyIntroBody = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
   margin-block-start: ${({ theme }) => theme.data.space[5]};
   max-width: ${({ theme }) => theme.data.grid.prose};
 `;
@@ -735,8 +733,6 @@ export const ScJourneyStepSubtitle = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
   max-width: ${({ theme }) => theme.data.grid.prose};
   margin-block-start: ${({ theme }) => theme.data.space[3]};
 `;

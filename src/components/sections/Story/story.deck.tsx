@@ -692,8 +692,6 @@ export const ScDeckIntroBody = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
   margin-block-start: ${({ theme }) => theme.data.space[5]};
   max-width: ${({ theme }) => theme.data.grid.prose};
 `;
@@ -745,8 +743,6 @@ export const ScDeckPillarSubtitle = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
   max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
@@ -754,17 +750,17 @@ export const ScDeckPillarSubtitle = styled.p`
  * Cuerpo de la diapositiva de pilar: el texto de inspiracion NUEVO
  * (`pillars.<key>.inspiration`, cuatro frases por pilar).
  *
- * Lleva LAS DOS formas del equilibrado, `text-wrap: balance` y
- * `text-wrap-style: balance` (encargo del usuario 2026-08-04). Hasta hoy solo
- * llevaba la shorthand, por decision T6 de la spec de tipografia de Story
- * (2026-08-02): el encargo de entonces tambien nombraba la longhand de CSS
- * Text 4, y se prefirio la shorthand porque su soporte es mas amplio para el
- * MISMO efecto. Esa disyuntiva era falsa y se corrige aqui: declarando la
- * shorthand como base y la longhand encima, un motor que no conozca la
- * segunda descarta esa declaracion y conserva el equilibrado de la primera, y
- * uno que si la conozca la aplica con el mismo valor. No hay orden de soporte
- * en el que se pierda nada. Ver `Typography.tsx`, que es donde vive el
- * criterio completo para las variantes de cuerpo del sistema.
+ * SIN equilibrado de linea (critica externa #14, 2026-09-02, decision D1 del
+ * dueno). Hasta esa ronda este cuerpo llevaba las dos formas de
+ * `text-wrap: balance` (encargo del 2026-08-04, con la disyuntiva
+ * shorthand/longhand de la decision T6 resuelta declarando ambas). El A/B en
+ * navegador sobre los mismos nodos lo desmonto: con equilibrado la prosa
+ * realizaba 53,5 caracteres por linea (2 de 11 lineas dentro de 60-75) y sin
+ * el 64,5 (10 de 11), porque el equilibrado minimiza la linea mas larga sin
+ * cambiar el numero de lineas y deja de llenar la caja que `grid.prose`
+ * promete. El equilibrado se queda en los titulares y en las piezas de
+ * cartel (`ScDeckTitle`, `ScDeckNote`); el cuerpo vuelve al corte con
+ * bandera derecha sobre el que se derivo el token. Ver `Typography.tsx`.
  *
  * `max-width` (Task 22, tipografia de lectura): mismo hallazgo y mismo token
  * que `ScDeckPillarSubtitle`, arriba -- ver su docblock para la cifra medida
@@ -778,8 +774,6 @@ export const ScDeckPillarBody = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
   max-width: ${({ theme }) => theme.data.grid.prose};
   margin-block-start: ${({ theme }) => theme.data.space[2]};
 `;
