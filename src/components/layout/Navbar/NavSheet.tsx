@@ -943,7 +943,7 @@ function backgroundSiblings(sheet: HTMLElement): HTMLElement[] {
  * disparador (que vive DENTRO de la barra) y por la hoja en sí (que vive
  * FUERA de ella, ver el docblock de `ScNavSheet`). Los dos nodos no tienen
  * ancestro común propio, así que el estado sube a `Navbar()` y baja a las
- * dos piezas, igual que `NavGroupMenu` recibe `isOpen`/`onToggle`/`onClose`.
+ * dos piezas, igual que `NavMoreMenu` recibe `isOpen`/`onToggle`/`onClose`.
  *
  * `Navbar()` DESESTRUCTURA este objeto y pasa cada campo como su propia prop
  * en vez de reenviarlo entero. No es preferencia de estilo: la regla
@@ -983,7 +983,7 @@ export interface NavSheetController {
 
 /**
  * Contrato de accesibilidad de la hoja, replicado del desplegable de
- * escritorio (`NavGroupMenu`, `Navbar.tsx`), que es la referencia de la casa.
+ * escritorio (`NavMoreMenu`, `Navbar.tsx`), que es la referencia de la casa.
  * Punto por punto:
  *
  * 1. `aria-expanded` en el disparador + `aria-controls` al id real de la
@@ -1507,14 +1507,14 @@ export function NavSheetTrigger({
 
 /*
  * Un grupo de la hoja. Vive fuera de `NavSheet()` por el mismo motivo que
- * `NavGroupMenu` vive fuera de `Navbar()`: cada instancia necesita SU PROPIO
+ * `NavMoreMenu` vive fuera de `Navbar()`: necesita SU PROPIO
  * `useId()` para atar el título a su lista, y `useId` no se puede llamar
  * dentro de un `map`.
  */
 interface NavSheetGroupProps {
   readonly group: NavGroup;
   readonly onNavigate: () => void;
-  /** Mismo contrato que `NavGroupMenuProps.activeSectionKey` en
+  /** Mismo contrato que `NavMoreMenuProps.activeSectionKey` en
    *  `Navbar.tsx`: `key` de la sección visible, o `null`. */
   readonly activeSectionKey: string | null;
 }
@@ -1530,7 +1530,7 @@ function NavSheetGroup({
   /*
    * Tabla de resolución de etiquetas del modelo compartido, documentada en
    * `src/config/navigation.ts`. Se repite aquí -- igual que ya la repiten
-   * `NavGroupMenu` (`Navbar.tsx`) y `Footer.tsx` -- porque extraerla a un
+   * `NavMoreMenu` (`Navbar.tsx`) y `Footer.tsx` -- porque extraerla a un
    * módulo común exigiría tipar la `t` de i18next como parámetro, y esa
    * firma es genérica por namespace: el contrato que impide la divergencia
    * no es este `switch` sino `navigation.test.ts`, que resuelve DE VERDAD

@@ -1116,7 +1116,7 @@ const ScNavPanelList = styled.ul`
  * de `color` que ya anima `:hover`/`:focus-visible` en `ScNavLink`.
  *
  * Solo los items `kind: "section"` reciben `aria-current` (ver
- * `NavGroupMenu`, más abajo), así que el `::before` de los demás items
+ * `NavMoreMenu`, más abajo), así que el `::before` de los demás items
  * (discover/resources/community) se queda siempre en `opacity: 0` -- un
  * espacio reservado invisible que además alinea el texto de todos los
  * items del panel al mismo margen izquierdo.
@@ -1477,7 +1477,7 @@ export function Navbar(): ReactElement {
   // Tarea 1 (navegación accesible): sección de la home actualmente visible,
   // reutilizando el motor ya montado por `useSectionProgress` en cada
   // sección (ver el docblock de `useActiveSection.ts`). Se lee aquí, una
-  // sola vez, y se reparte a cada `NavGroupMenu` -- ninguno vuelve a
+  // sola vez, y se reparte al desplegable y a la hoja -- ninguno vuelve a
   // suscribirse por su cuenta.
   const activeSectionKey = useActiveSectionKey();
 
@@ -1500,7 +1500,7 @@ export function Navbar(): ReactElement {
    * `ScHeader` para que su `position: fixed` se resuelva contra el viewport
    * y no contra la barra (`ScHeader` declara `transform`, y un ancestro con
    * `transform` se convierte en el bloque contenedor de los `fixed` de su
-   * interior). Mismo reparto que `NavGroupMenu`, que también recibe su
+   * interior). Mismo reparto que `NavMoreMenu`, que también recibe su
    * estado desde aquí.
    */
   const sheet = useNavSheet();
