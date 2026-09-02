@@ -49,10 +49,43 @@
  * excluido) escrito fuera de ese mismo fichero, CUALQUIER duracion declarada
  * como constante numerica con nombre (`durationMs: 480`, `const HERO_FADE_MS
  * = 420`) que no derive de `motion.durationMs`, `border-radius` literal fuera
- * de token (excluyendo `0`, que nunca es deriva de escala), kickers repetidos
+ * de token (excluyendo `0`, que nunca es deriva de escala), CUALQUIER
+ * `font-size` escrito como literal `rem`/`px`/`em` fuera de
+ * `src/theme/tokens/` (con `clamp()`, `var()`, `calc()`, `inherit` y `1em`
+ * exentos), CUALQUIER `z-index` entero -- incluidos el cero y los negativos --
+ * fuera de `src/theme/tokens/zIndex.ts`, kickers repetidos
  * (componentes `*Kicker*` en JSX) y numeracion decorativa de seccion
  * (`number: "0N"`, o el ordinal 1-based
  * `String(<expr> + 1).padStart(2, "0")`).
+ *
+ * Quinto punto ciego cerrado (critica externa #15, 2026-09-02): el detector
+ * vigilaba movimiento con cuatro familias, mas radios, franjas, degradados de
+ * texto y dos patrones de composicion -- y NI UNA propiedad de TIPOGRAFIA ni
+ * de CAPA, que son los otros dos sistemas de tokens que este repo mantiene
+ * escritos y cita en decenas de docblocks. Medicion del evaluador de Craft: 10
+ * `font-size` literales en UI ordinaria (tres duplicando un peldano vivo de
+ * `type.scale`, y uno -- el `1.15rem` del rotulo de marca -- escrito byte a
+ * byte en dos cabeceras que no se conocen) y 16 `z-index` enteros al lado de
+ * una escala de siete roles. Las familias `font-size-literal` y
+ * `z-index-literal` cubren los dos caminos; ver sus comentarios en FAMILIES
+ * para las exenciones, el porque de cada una y sus limites declarados (la
+ * shorthand `font:`, el `clamp()` multilinea y el z-index interpolado desde
+ * una constante con nombre).
+ *
+ * Lo que la familia `repeating-gradient` NO cubre, dicho aqui porque su NOMBRE
+ * promete mas de lo que hace (senalado por el evaluador de Craft en la #15):
+ * comprueba la funcion CSS `repeating-*-gradient(`, es decir un patron que se
+ * repite DENTRO de una misma declaracion. NO detecta lo otro que ese nombre
+ * sugiere -- un mismo `linear-gradient(...)`/`radial-gradient(...)` escrito
+ * dos veces en ficheros distintos, que es la clase de duplicacion que la regla
+ * 13 manda convertir en token. Cubrirlo de verdad exigiria un pase CRUZADO
+ * entre ficheros (este motor es linea a linea, por diseno declarado arriba) y,
+ * sobre el corpus real, comparar cadenas que casi siempre llevan
+ * interpolaciones `${({ theme }) => ...}` dentro: dos degradados con el MISMO
+ * texto pueden resolver a colores distintos segun el tema, y dos con texto
+ * DISTINTO pueden resolver a lo mismo. Se prioriza precision sobre cobertura,
+ * el mismo criterio con el que este fichero descarto "ghost-card en reposo",
+ * y se deja el limite escrito en vez de dejar que el nombre lo tape.
  *
  * Cuarto punto ciego cerrado (critica externa #14, 2026-09-02): la familia
  * `duration-literal` que cerro el tercero (justo abajo) promete en su propio
@@ -165,6 +198,26 @@ const TEST_FILE_RE = /\.test\.(tsx?|ts)$/i;
  * separadores POSIX (es la misma forma en que `scanFile` normaliza `relFile`).
  */
 const MOTION_TOKENS_FILE = "src/theme/tokens/motion.ts";
+
+/**
+ * Carpeta donde nacen los tokens del sistema. La familia `font-size-literal`
+ * se salta sus ficheros enteros por el mismo motivo por el que
+ * `easing-literal` se salta `motion.ts`: ahi el literal ES la definicion de la
+ * escala (`type.scale.h1.size = "2.5rem"`), no una copia suelta. Se declara
+ * como CARPETA y no como un fichero concreto porque un tamano de fuente puede
+ * nacer legitimamente en mas de un token (`type.ts` hoy; manana un token de
+ * densidad o de tipografia de escena). Prefijo con separadores POSIX, la misma
+ * forma en que `scanFile` normaliza `relFile`.
+ */
+const TOKENS_DIR = "src/theme/tokens/";
+
+/**
+ * Unico fichero del repo donde un z-index puede NACER como entero literal
+ * (los siete peldanos de la escala: base, raised, stickyNav, dropdown,
+ * overlay, modal, toast). Mismo papel que `MOTION_TOKENS_FILE` para las
+ * curvas y las duraciones.
+ */
+const Z_INDEX_TOKENS_FILE = "src/theme/tokens/zIndex.ts";
 
 // ---------------------------------------------------------------------------
 // 1. Recorrido de ficheros
@@ -531,6 +584,118 @@ const FAMILIES = [
         },
     },
     {
+        id: "font-size-literal",
+        label: "font-size literal (rem/px/em) fuera de src/theme/tokens/",
+        // QUINTO PUNTO CIEGO CERRADO (critica externa #15, 2026-09-02).
+        // Hasta esta revision el detector vigilaba movimiento (cuatro
+        // familias), radios, franjas, degradados de texto y dos patrones de
+        // composicion -- y NI UNA sola propiedad de TIPOGRAFIA, que es el
+        // sistema que este repo mas cita en sus docblocks. Medicion del
+        // evaluador de Craft: 10 `font-size` literales en UI ordinaria, de los
+        // que TRES duplicaban un peldano vivo de `type.scale` y uno estaba
+        // escrito byte a byte en dos ficheros que no se conocen (el 1.15rem
+        // del rotulo de marca, en `Navbar.tsx` y en `LegalHeader.tsx`). Los
+        // cuatro pasaban el gate en verde por construccion.
+        //
+        // POR PROCEDENCIA, NO POR VALOR, igual que las cuatro familias de
+        // movimiento y por el mismo argumento: el `0.875rem` que
+        // `LanguageSelector.tsx` escribia a mano resolvia EXACTAMENTE a
+        // `type.scale.bodySm.size`, asi que el CSS renderizado no distinguia
+        // los dos casos -- solo la fuente los separa (`task/lessons.md`,
+        // 2026-08-12). Un candado de valor renderizado no puede cerrar esto;
+        // esta familia si.
+        //
+        // QUE SE EXIME, y por que cada cosa:
+        //  - `clamp(...)`: un tramo fluido no es un peldano de la escala, y el
+        //    repo lo usa a proposito en el hero y en los decks. Ademas los
+        //    `clamp()` multilinea reparten sus literales en renglones sin
+        //    `font-size`, invisibles para un motor linea a linea (limite
+        //    declarado, no sancion -- mismo caso que la tabla de retardos
+        //    multilinea de `duration-const`).
+        //  - `var(...)` y `calc(...)`: el tamano sale de otro sitio; lo que
+        //    hubiera que vigilar es ese otro sitio.
+        //  - `inherit`: hereda, no elige.
+        //  - `1em` EXACTAMENTE: es "el tamano del contexto", la AUSENCIA de
+        //    decision de tamano -- mismo criterio y mismo precedente que el
+        //    cero de `radius-literal`/`duration-literal`. Exime hoy dos casos,
+        //    los dos deliberados y documentados: `ScBrandName`
+        //    (`BrandName.tsx`), que hereda el peldano del enlace que lo
+        //    contiene, y el reset de `GlobalStyles.tsx`. Un `2em` o un `0.9em`
+        //    SI disparan: eso ya es elegir.
+        //  - Los porcentajes (`font-size: 100%` del reset) no llevan ninguna
+        //    de las tres unidades y no llegan a probarse.
+        //
+        // Se exige `font-size` en la MISMA linea, al reves que `easing-keyword`
+        // y `duration-literal`: aqui el nombre de la propiedad es lo unico que
+        // distingue un `0.2em` de tamano de un `0.2em` de
+        // `text-underline-offset` o de `letter-spacing`, que son legitimos y
+        // abundantes. Limite conocido de esa decision: la shorthand `font:`
+        // no dispara -- no existe hoy en el repo, y aceptarla exigiria separar
+        // el tamano del resto de la shorthand linea a linea.
+        appliesTo: (file) => !file.startsWith(TOKENS_DIR),
+        test(line) {
+            if (!/font-size/i.test(line)) return null;
+            if (/clamp\(|var\(|calc\(|inherit/i.test(line)) return null;
+            const re = /(\d+(?:\.\d+)?)(rem|px|em)\b/gi;
+            let m;
+            while ((m = re.exec(line)) !== null) {
+                const esUnEm =
+                    parseFloat(m[1]) === 1 && m[2].toLowerCase() === "em";
+                if (!esUnEm) return m[0];
+            }
+            return null;
+        },
+    },
+    {
+        id: "z-index-literal",
+        label: "z-index entero literal fuera de src/theme/tokens/zIndex.ts",
+        // La otra mitad del quinto punto ciego (critica externa #15). El repo
+        // tiene una escala de siete peldanos con roles escritos (base, raised,
+        // stickyNav, dropdown, overlay, modal, toast) y ningun gate que
+        // impidiera escribir un entero al lado. Censo del evaluador: 16
+        // z-index literales, todos escalones LOCALES 1-3 entre hermanos --
+        // ninguno compitiendo con una capa flotante del sistema. Ese censo
+        // propio se reprodujo con este mismo motor antes de sancionarlos, y
+        // los 16 estan abajo uno a uno.
+        //
+        // POR QUE SE SANCIONAN EN VEZ DE MIGRARSE: un `z-index: 1` entre dos
+        // hermanos de la misma pila NO es el mismo concepto que `zIndex.raised`
+        // (10). La escala nombra capas del DOCUMENTO -- que el navbar va por
+        // encima del contenido, que el modal va por encima del navbar --, y
+        // meter en ella el orden de dos capas decorativas dentro de una sola
+        // seccion la convertiria en un cajon, exactamente el argumento con el
+        // que `AMBIENT` se queda fuera de `motion.duration`. Lo que la familia
+        // aporta no es migrarlos: es que el 17o no pueda entrar sin que nadie
+        // lo mire, y que si algun dia aparece un `z-index: 500` compitiendo a
+        // ciegas con `overlay` (900), salte.
+        //
+        // EL CERO NO SE EXIME, y aqui SI se rompe el precedente de
+        // `radius-literal`/`duration-literal`/`duration-const`, con motivo: en
+        // esas tres el cero es la AUSENCIA de la propiedad (sin radio, sin
+        // duracion). Un `z-index: 0` no es ausencia -- es `zIndex.base`, un
+        // peldano real de la escala, y ademas crea contexto de apilamiento
+        // igual que cualquier otro valor. Eximirlo dejaria fuera del gate justo
+        // el caso que mas se parece a leer el token sin leerlo. Hoy no hay
+        // ninguno en el repo.
+        //
+        // Los valores NEGATIVOS entran (`-?\d+`): un `z-index: -1` manda un
+        // elemento DETRAS de su contexto de apilamiento, que es una decision
+        // de capa como cualquier otra y de las que mas sorprenden a quien lee
+        // el CSS despues.
+        //
+        // Limite declarado, mismo que `duration-const` frente a
+        // `duration-literal`: un z-index que pase por una CONSTANTE con nombre
+        // e interpolada (`z-index: ${SECTION_BEAM_Z}`, sectionBeam.parts.tsx)
+        // no lleva ningun digito en la linea y no dispara. Se deja escrito
+        // para que nadie lo lea como "sancionado": es un camino que esta
+        // familia no ve.
+        appliesTo: (file) => file !== Z_INDEX_TOKENS_FILE,
+        test(line) {
+            const m = /z-index\s*:\s*(-?\d+)\b/i.exec(line);
+            return m ? m[0] : null;
+        },
+    },
+    {
         id: "kicker",
         label: "kicker/eyebrow repetido (componente *Kicker* en JSX)",
         test(line) {
@@ -681,6 +846,105 @@ const ALLOWLIST = [
             },
         ],
         reason: "Callout de advertencia legal: franja lateral de 3px, unico consumo del patron en el repo (side-tab, excepcion visual documentada).",
+    },
+    // ---- font-size-literal: los CINCO literales de tamano que quedaban en UI
+    // ordinaria el dia que se cerro el quinto punto ciego (critica externa
+    // #15, 2026-09-02). Los TRES que el mismo censo encontro y que NO estan
+    // aqui se migraron al token en la misma ola en vez de sancionarse:
+    // `LanguageSelector.tsx` (0.875rem -> type.scale.bodySm),
+    // `LegalHeader.tsx` (1.15rem -> el peldano nuevo type.scale.wordmark) y el
+    // 1rem de `Journey.tsx`.
+    //
+    // ESTAS CINCO SON EXCEPCIONES DE TRANSICION, NO DE DISENO, y conviene que
+    // se lea asi: ninguna tiene un argumento como el de las curvas de mockup o
+    // los bucles ambientales. Son literales que existian el dia que la familia
+    // nacio, en ficheros que la tarea que la escribio no tenia asignados. Cada
+    // una lleva abajo su token candidato; el dia que su dueno las migre, el
+    // aviso de "ancla sin hallazgo que la cubra" de este mismo script pedira
+    // retirar la entrada.
+    {
+        family: "font-size-literal",
+        file: "src/components/layout/Footer/Footer.tsx",
+        anchors: [{ snippet: "font-size: 1rem;", lines: [281] }],
+        reason: "Pie de pagina: 1rem duplica EXACTAMENTE type.scale.body.size, el token candidato. Sin argumento propio -- el mismo fichero ya lee type.scale.bodySm.size dos declaraciones mas abajo, asi que la unica razon de que este siga a mano es que nadie lo miro. Excepcion de transicion.",
+    },
+    {
+        family: "font-size-literal",
+        file: "src/components/layout/Navbar/Navbar.tsx",
+        anchors: [{ snippet: "font-size: 1.15rem;", lines: [550] }],
+        reason: "Rotulo de marca del navbar: es la MITAD que queda del valor que la critica #15 encontro escrito byte a byte en dos cabeceras. La otra mitad (LegalHeader.tsx) ya lee el peldano nuevo type.scale.wordmark, creado por ese hallazgo; este fichero estaba fuera del alcance de esa tarea. Token candidato: type.scale.wordmark.size. Excepcion de transicion, y la mas corta de las cinco: el peldano ya existe.",
+    },
+    {
+        family: "font-size-literal",
+        file: "src/components/sections/Contact/Contact.tsx",
+        anchors: [
+            { snippet: "font-size: 0.9rem;", lines: [1016] },
+            { snippet: "font-size: 0.85rem;", lines: [1048] },
+        ],
+        reason: "Dos tamanos de la seccion de Contacto (14,4px y 13,6px) que NO coinciden con ningun peldano: caen entre bodySm (0.875rem, 14px) y caption (0.75rem, 12px), y estan ademas a 1,06x el uno del otro -- dos tamanos casi iguales en la misma seccion, el defecto que la #14 pago retirando h4. Migrarlos a bodySm/caption CAMBIA lo que se pinta, asi que es una decision de diseno de quien sea dueno de la seccion, no del detector. Excepcion de transicion, con la decision declarada como pendiente.",
+    },
+    {
+        family: "font-size-literal",
+        file: "src/components/sections/Journey/Journey.tsx",
+        anchors: [{ snippet: "font-size: 0.8125rem;", lines: [676] }],
+        reason: "13px en la rama clara de Journey: tampoco coincide con ningun peldano (cae entre bodySm y caption, como los dos de Contact). Mismo tratamiento y mismo motivo: elegir entre 14px y 12px es diseno. El 1rem que este mismo fichero tenia SI se migro en esta ola, por eso no aparece aqui. Excepcion de transicion.",
+    },
+    // ---- z-index-literal: los 16 escalones locales que el censo de la
+    // critica externa #15 conto, reproducidos con este mismo motor antes de
+    // sancionarlos. Los 16 son el MISMO patron: ordenar dos o tres hermanos
+    // dentro de una sola pila (contenido por delante de su fondo decorativo),
+    // con valores 1-3 que nunca compiten con las capas flotantes del sistema
+    // -- el peldano mas bajo de la escala que si compite, `raised`, vale 10.
+    // Ver el comentario de la familia para por que se sancionan en vez de
+    // migrarse: meter el orden interno de una seccion en una escala que nombra
+    // capas del DOCUMENTO la convertiria en un cajon.
+    {
+        family: "z-index-literal",
+        file: "src/components/layout/Footer/Footer.tsx",
+        anchors: [{ snippet: "z-index: 1;", count: 2, lines: [247, 519] }],
+        reason: "Pie de pagina: dos capas de contenido por delante de sus propios fondos decorativos, dentro de la pila del propio footer.",
+    },
+    {
+        family: "z-index-literal",
+        file: "src/components/sections/About/About.tsx",
+        anchors: [{ snippet: "z-index: 2;", lines: [66] }],
+        reason: "About: contenido por delante del arte de su seccion. El 2 (y no 1) ordena frente a un hermano que ya usa el escalon de abajo en la misma pila.",
+    },
+    {
+        family: "z-index-literal",
+        file: "src/components/sections/Contact/Contact.tsx",
+        anchors: [
+            { snippet: "z-index: 3;", lines: [182] },
+            { snippet: "z-index: 1;", count: 2, lines: [650, 694] },
+        ],
+        reason: "Contacto: pila local de tres escalones (arte, capa intermedia, contenido). Esta seccion es ademas la que YA consume el token donde de verdad hace falta -- z-index: theme.data.zIndex.raised en la misma pagina --, que es la prueba de que los tres literales de aqui son otro concepto, no un olvido.",
+    },
+    {
+        family: "z-index-literal",
+        file: "src/components/sections/Features/Features.tsx",
+        anchors: [
+            { snippet: "z-index: 2;", lines: [267] },
+            { snippet: "z-index: 1;", count: 2, lines: [812, 1139] },
+        ],
+        reason: "Features: mismo patron de pila local en sus dos ramas de tema (tarjeta acotada en claro, seccion a sangre en oscuro), mas un escalon 2 sobre un hermano decorativo.",
+    },
+    {
+        family: "z-index-literal",
+        file: "src/components/sections/Journey/journey.deck.tsx",
+        anchors: [{ snippet: "z-index: 1;", count: 3, lines: [184, 343, 495] }],
+        reason: "Deck de Journey: tres diapositivas con el mismo patron -- el contenido de la diapositiva por delante de su propio fondo. Tres apariciones del MISMO contenido de linea, no tres decisiones distintas.",
+    },
+    {
+        family: "z-index-literal",
+        file: "src/components/sections/Journey/Journey.tsx",
+        anchors: [{ snippet: "z-index: 1;", lines: [192] }],
+        reason: "Rama clara de Journey: contenido por delante del arte de la seccion, el mismo escalon local que su deck usa en oscuro.",
+    },
+    {
+        family: "z-index-literal",
+        file: "src/components/sections/Story/story.deck.tsx",
+        anchors: [{ snippet: "z-index: 1;", count: 3, lines: [205, 444, 612] }],
+        reason: "Deck de Story: gemelo exacto del de Journey (los dos decks son 13 piezas practicamente 1 a 1, deuda ya declarada en RULES.md), con el mismo escalon local en tres diapositivas.",
     },
     {
         family: "overshoot",
@@ -1441,6 +1705,10 @@ const FAMILY_GUIDANCE = {
         "esta duracion (o retardo) se declara como constante numerica con nombre -- `durationMs: 480`, `const HERO_FADE_MS = 420` -- sin derivar de motion.durationMs, la misma escala de siete pasos que motion.duration, en numeros. Es el camino por el que una duracion llega al CSS sin pasar por el sistema: el literal de tiempo no aparece hasta que alguien lo interpola (`${X.durationMs}ms`), donde la familia duration-literal ya no puede verlo. Si el valor coincide con un peldano (0, 100, 200, 320, 480, 700, 2100 ms), lee motion.durationMs.<paso> -- un numero que hoy vale lo mismo deja de valerlo el dia que el token se retoque. Si es un tiempo PROPIO justificado (arte de marca o de escena, coreografia con su porque escrito, reloj o tope de JS que no anima nada), deja ese porque JUNTO a la constante y anade la excepcion a ALLOWLIST. El cero no dispara: es la ausencia de retardo, no un tiempo elegido.",
     "radius-literal":
         "un border-radius literal nuevo usa un token de src/theme/tokens/radius.ts en vez de un numero escrito a mano.",
+    "font-size-literal":
+        "este tamano de fuente se escribe como literal (rem/px/em) fuera de src/theme/tokens/, el unico sitio donde un tamano nace en este repo (regla 48). Si coincide con un peldano de type.scale (deckClosing, display, h1, h2, h3, wordmark, h5, deckBody, body, bodySm, caption, overline), lee `theme.data.type.scale.<peldano>.size` -- un literal que hoy vale lo mismo deja de valerlo el dia que el token se retoque, y el CSS renderizado no distingue los dos casos (task/lessons.md, 2026-08-12). Si NO coincide con ninguno, la pregunta es de diseno antes que de codigo: o la pieza baja al peldano vecino, o el tamano merece un peldano propio con su nombre semantico y su docblock (precedente: `wordmark`, el rotulo de marca, critica #15). Un tramo fluido va en `clamp()`, que esta familia exime; `1em` tambien, porque es heredar, no elegir.",
+    "z-index-literal":
+        "esta capa se escribe como entero literal fuera de src/theme/tokens/zIndex.ts, donde viven los siete roles del sistema (base 0, raised 10, stickyNav 100, dropdown 200, overlay 900, modal 1000, toast 1100). Si la pieza compite con una capa FLOTANTE del documento -- por encima del navbar, de un desplegable, de un modal -- lee el peldano que nombra ese rol: escribir un numero al lado de esa escala es apostar a ciegas contra ella. Si es solo el orden de dos o tres hermanos DENTRO de una misma pila (contenido por delante de su fondo decorativo, valores 1-3), es el patron ya sancionado 16 veces en el repo: deja el porque JUNTO a la declaracion y anade la excepcion a ALLOWLIST -- pero comprueba antes que el ancestro tenga su propio contexto de apilamiento, porque si no, ese 1 local compite de verdad con toda la pagina. El cero NO se exime aqui, al reves que en radius/duration: `z-index: 0` es zIndex.base, un peldano real.",
     "kicker":
         "un <*Kicker*> nuevo fuera de Story.tsx/Features.tsx (las dos ramas ya sancionadas, decision D-E del dueno) necesita decidirse con el dueno del producto, igual que el resto de kickers del sitio.",
     "numbering":
