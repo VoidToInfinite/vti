@@ -9,6 +9,50 @@ import { EYE_PRELOADS } from "@/components/scenes/eye/eye.layers";
 import { buildThemeBootstrapScript, THEME_COLORS } from "@/theme/resolveTheme";
 import { Providers } from "./providers";
 
+/*
+ * EL AVISO «woff2 preloaded but not used» YA ESTÁ IDENTIFICADO — NO ES UN PESO
+ * NI UN SUBSET DE MÁS, Y POR ESO SIGUE ABIERTO (crítica externa #15, 2026-09-02,
+ * hallazgo A P2-8; el aviso lo arrastra el repo al menos desde el 2026-08-10,
+ * declarado entonces como «preexistente y ajeno» en el informe de la Task 14).
+ *
+ * QUÉ FICHERO ES, medido sobre el build de producción versionado en `out/`
+ * (`out/index.html` + `out/_next/static/chunks/416_*.css`, del 2026-09-02), no
+ * supuesto: `/_next/static/media/c47649aa31f9e140-s.p.*.woff2`, 34.664 B. Su
+ * `@font-face` dice `font-family: Hanken Grotesk; font-style: normal;
+ * font-weight: 100 900; unicode-range: U+??,U+131,U+152-153,…` — es decir, el
+ * subset LATIN de la fuente de cuerpo de todo el sitio. No es un peso muerto ni
+ * un subset exótico: es la única cara que el sitio pinta.
+ *
+ * LAS DOS SALIDAS OBVIAS ESTÁN DESCARTADAS POR ESA MEDICIÓN:
+ *
+ * - «Retirar el peso/subset que nadie usa»: el `<head>` emite UN solo preload
+ *   de fuente y es el de esta cara. Las otras tres caras de Hanken
+ *   (cyrillic-ext, vietnamese, latin-ext) se declaran pero NO se precargan, así
+ *   que no pueden ser el aviso.
+ * - «`preload: false` en la fuente secundaria»: `JetBrains_Mono`, justo debajo,
+ *   ya lo lleva desde el 2026-08-08.
+ *
+ * QUEDA `preload: false` AQUÍ, Y NO SE HACE: silenciaría el aviso quitando la
+ * precarga de la fuente que el PRIMER pintado necesita, con la carga en vuelo
+ * desde el `<head>`. Es un parche de síntoma que no explica el síntoma, y su
+ * coste es justo la métrica que la ola I compró (LCP 5,3 s → 1,3 s). Todo lo
+ * demás está bien cableado y verificado en el mismo build: el CSS del
+ * `@font-face` entra como hoja BLOQUEANTE en el `<head>`, `<html>` lleva la
+ * clase que declara `--font-body: "Hanken Grotesk", "Hanken Grotesk Fallback"`
+ * y el HTML horneado ya trae 22 declaraciones `font-family: var(--font-body)`.
+ * Sobre el papel, la cara precargada se usa en el primer pintado.
+ *
+ * LO QUE FALTA, y hace falta un navegador real contra un build servido para
+ * discriminarlo (fuera del alcance de la sesión que escribe esto): si el
+ * preload se consume TARDE en vez de no consumirse — y entonces lo que hay que
+ * mirar es qué compite con él en el `<head>`, no esta declaración — o si el
+ * aviso es un artefacto de medir con la pestaña oculta (`visibilityState ===
+ * "hidden"`: sin pintado no hay glifo que pedir, así que la precarga no se
+ * empareja nunca y Chrome dice exactamente esto). El repo ya cerró la MISMA
+ * familia de aviso una vez por la primera vía, y la historia está escrita en el
+ * docblock de `buildThemeBootstrapScript` (`src/theme/resolveTheme.ts`): eran
+ * cuatro precargas de imagen emitidas en rutas que no pintaban ese arte.
+ */
 const fontBody = Hanken_Grotesk({
   subsets: ["latin"],
   display: "swap",
