@@ -46,11 +46,28 @@
  * >=2px solid), curvas `cubic-bezier` con rebote (y fuera de [-0.1, 1.1]),
  * CUALQUIER literal `cubic-bezier(...)` escrito fuera de
  * `src/theme/tokens/motion.ts`, CUALQUIER literal de TIEMPO (`Nms`/`Ns`, cero
- * excluido) escrito fuera de ese mismo fichero, `border-radius` literal fuera
+ * excluido) escrito fuera de ese mismo fichero, CUALQUIER duracion declarada
+ * como constante numerica con nombre (`durationMs: 480`, `const HERO_FADE_MS
+ * = 420`) que no derive de `motion.durationMs`, `border-radius` literal fuera
  * de token (excluyendo `0`, que nunca es deriva de escala), kickers repetidos
  * (componentes `*Kicker*` en JSX) y numeracion decorativa de seccion
  * (`number: "0N"`, o el ordinal 1-based
  * `String(<expr> + 1).padStart(2, "0")`).
+ *
+ * Cuarto punto ciego cerrado (critica externa #14, 2026-09-02): la familia
+ * `duration-literal` que cerro el tercero (justo abajo) promete en su propio
+ * docblock sancionar "POR PROCEDENCIA, NO POR VALOR", pero su regex exige el
+ * sufijo `ms`/`s` PEGADO al digito -- es decir, solo ve una duracion cuando
+ * ya esta escrita como tiempo CSS. En TypeScript casi nunca lo esta: se
+ * declara como numero con nombre (`durationMs: 480`) y se interpola despues
+ * (`${REVEAL.durationMs}ms`), donde el caracter que precede a `ms` es `}` y
+ * la familia deja de coincidir. Medicion del evaluador: los seis tiempos de
+ * `src/motion/vocabulary.ts` gobernaban transiciones reales de la interfaz y
+ * pasaban el gate en verde por construccion; el censo propio encontro 86
+ * declaraciones asi en el repo. La familia `duration-const` cubre ese camino
+ * -- ver su comentario en FAMILIES para el criterio de nombre, la forma de
+ * valor que cuenta, la exencion del cero y el unico limite declarado (la
+ * tabla de retardos multilinea).
  *
  * Tercer punto ciego cerrado (critica externa #13, 2026-08-18): el detector
  * vigilaba las dos mitades de una regla de movimiento a medias. La regla 48
@@ -414,6 +431,92 @@ const FAMILIES = [
         },
     },
     {
+        id: "duration-const",
+        label: "duracion declarada como constante numerica (*Ms / *_MS) que no deriva de motion.durationMs",
+        // El AGUJERO que esta familia cierra (critica externa #14,
+        // 2026-09-02). `duration-literal`, justo arriba, promete en su propio
+        // docblock sancionar "POR PROCEDENCIA, NO POR VALOR" -- pero su regex
+        // exige el sufijo `ms`/`s` PEGADO al digito, asi que solo ve la
+        // duracion cuando ya esta escrita como tiempo CSS. En TypeScript, una
+        // duracion casi nunca se escribe asi: se declara como numero con
+        // nombre (`durationMs: 480`, `const HERO_FADE_MS = 420`) y se
+        // interpola despues (`${REVEAL.durationMs}ms`), donde el caracter que
+        // precede a `ms` es `}` y la familia hermana ya no coincide. Medicion
+        // del evaluador sobre `src/motion/vocabulary.ts`: `durationMs: 480`,
+        // `railDurationMs: 200`, `openMs: 180` y `closeMs: 120` gobernaban
+        // transiciones reales de la interfaz y pasaban el gate en verde por
+        // construccion -- ninguna de las once familias podia verlas. Cualquier
+        // duracion que pase por una constante con nombre estaba exenta.
+        //
+        // Censo propio antes de escribir el allowlist (mismo motor: strip de
+        // comentarios + linea a linea sobre src/ y app/, tests excluidos): 76
+        // declaraciones en 14 ficheros. DOS se arreglaron en esta misma ola en
+        // vez de sancionarse (`vocabulary.ts`: los seis campos de tiempo de
+        // REVEAL/DECK/OVERLAY/PRESS pasan a leer `motion.durationMs.*`); el
+        // resto se sanciona una a una, abajo, con su porque.
+        //
+        // POR PROCEDENCIA, NO POR VALOR, igual que sus tres familias hermanas:
+        // `HERO_COPY_OUT_MS = 100` coincide HOY con motion.duration.fast y
+        // deja de coincidir el dia que alguien retoque el token, sin que nada
+        // avise (task/lessons.md, 2026-08-12).
+        //
+        // QUE NOMBRE CUENTA COMO DURACION, y por que este criterio y no otro:
+        // el identificador tiene que terminar en `Ms` precedido de minuscula
+        // (`durationMs`, `delayMs`, `railDurationMs`) o en `_MS`
+        // (`HERO_FADE_MS`, `STEP_STAGGER_MS`). Es el idioma REAL del repo --
+        // verificado sobre el corpus: las 76 declaraciones de tiempo con
+        // nombre lo siguen, sin una sola excepcion -- y el candado de
+        // mayusculas evita el falso positivo obvio (`PARAMS`, `FORMS`,
+        // `ITEMS` terminan en `MS` pero con mayuscula delante y sin
+        // subrayado, asi que no coinciden). Un nombre `MS` a secas no
+        // coincide: no hay ninguno en el repo y aceptarlo abriria la puerta a
+        // cualquier sigla.
+        //
+        // QUE FORMA DE VALOR CUENTA: un DIGITO justo despues de `:`/`=`, con
+        // un `[` opcional en medio para la forma "tabla de retardos"
+        // (`const STORY_CARD_REVEAL_DELAYS_MS = [200, 260, 320, 380]`). Eso
+        // exime exactamente lo que se quiere eximir -- una constante que ya
+        // deriva del sistema (`railDurationMs: motion.durationMs.base`,
+        // `const ORBIT_SLOW_MS = AMBIENT.orbitMs * 2`) empieza por letra, no
+        // por digito, y no coincide. Y no solapa con `duration-literal`: un
+        // `const MORPH_MS = "1100ms"` empieza por comilla aqui (no coincide) y
+        // ya lo caza la familia hermana por su sufijo CSS -- una linea, una
+        // familia, un hallazgo.
+        //
+        // LIMITE DECLARADO, no disimulado: la tabla de retardos MULTILINEA
+        // (`export const FEATURES_LIGHT_REVEAL_DELAYS_MS = [` con los numeros
+        // en los renglones siguientes, features.layers.ts) NO dispara. El
+        // motor es linea a linea -- la restriccion de diseno que la cabecera
+        // de este fichero ya declara -- y en esas lineas no hay nombre al que
+        // atribuir el numero. Es el unico caso conocido del corpus que la
+        // familia no ve; se deja escrito aqui para que nadie lo lea como
+        // "sancionado".
+        //
+        // EL CERO SE EXIME, con el mismo criterio y el mismo precedente que
+        // `duration-literal` y `radius-literal`: un `const
+        // STORY_REVEAL_DELAY_EYEBROW_MS = 0` no es un tiempo elegido fuera del
+        // sistema, es la ausencia de retardo, y no puede desincronizarse de
+        // ningun token porque no hay valor que derivar.
+        //
+        // Alcance por fichero: mismo `appliesTo` que las tres familias
+        // hermanas. Hoy no cambia ningun resultado (en tokens/motion.ts la
+        // escala numerica se declara como claves de un objeto, `base: 200`,
+        // que no terminan en `Ms`), pero deja escrito que si esa escala se
+        // renombrara algun dia a la forma `*_MS`, seguiria siendo la
+        // definicion y no una copia suelta.
+        appliesTo: (file) => file !== MOTION_TOKENS_FILE,
+        test(line) {
+            const re =
+                /\b([A-Za-z_$][\w$]*(?:[a-z]Ms|_MS))\s*[:=]\s*\[?\s*(-?\d[\d_]*(?:\.\d+)?)(?![\w.])/g;
+            let m;
+            while ((m = re.exec(line)) !== null) {
+                if (parseFloat(m[2].replace(/_/g, "")) !== 0)
+                    return `${m[1]} = ${m[2]}`;
+            }
+            return null;
+        },
+    },
+    {
         id: "radius-literal",
         label: "border-radius literal fuera de src/theme/tokens/radius.ts",
         test(line) {
@@ -587,24 +690,22 @@ const ALLOWLIST = [
         ],
         reason: "motion.easing.overshoot: unica curva no monotona del sistema, reservada al despegue del navbar al hacer scroll (Navbar.tsx, ScBar). Excepcion sancionada y medida en DESIGN.md Seccion 5.1 (Task 23, plan premium F1-F5).",
     },
-    // ---- easing-literal: las CUATRO curvas fuera de token que existian el
-    // dia que se cerro el punto ciego (critica externa #8, 2026-08-17). Cada
-    // una se comparo con las cinco de motion.easing antes de sancionarla:
-    // NINGUNA coincide en sus cuatro puntos de control con un token, asi que
-    // ninguna se migro (migrar habria cambiado el movimiento real, no solo
-    // su procedencia).
-    {
-        family: "easing-literal",
-        file: "src/components/scenes/eye/mascots/Sol.tsx",
-        anchors: [
-            {
-                snippet:
-                    'const EASE_ENTRANCE = "cubic-bezier(0.22, 1, 0.36, 1)";',
-                lines: [182],
-            },
-        ],
-        reason: "EASE_ENTRANCE del mascota Sol: aterrizaje sobreamortiguado del morph de identidad (1100ms), arte de marca con constantes propias -- misma excepcion de regla 17 de RULES.md que ya cubre el resto de este fichero, justificada en su docblock. Ninguna de las cinco curvas de motion.easing tiene estos puntos de control. DECLARADO: es casi la misma curva que la de src/motion/vocabulary.ts (0.23, 1, 0.32, 1), de la familia easeOutQuint, pero no identica; unificar los tres sistemas de movimiento del repo (motion.easing, vocabulary y las curvas propias de arte) es una decision del dueno, no de este detector.",
-    },
+    // ---- easing-literal: quedan DOS de las cuatro curvas fuera de token que
+    // existian el dia que se cerro el punto ciego (critica externa #8,
+    // 2026-08-17). Cada una se comparo con las curvas de motion.easing antes
+    // de sancionarla: ninguna de las dos coincide en sus cuatro puntos de
+    // control con un token, asi que ninguna se migro (migrar habria cambiado
+    // el movimiento real, no solo su procedencia).
+    //
+    // Las otras DOS entradas de esta familia -- `Sol.tsx` (EASE_ENTRANCE) y
+    // `src/motion/vocabulary.ts` (la curva compartida por REVEAL.easing y
+    // PRESS.easing) -- se RETIRAN en la critica externa #14 (2026-09-02),
+    // porque las dos lineas que sancionaban ya no existen: las dos curvas se
+    // unificaron en `motion.easing.settle`, el peldaño nuevo del token. Esta
+    // lista decia que consolidar los tres sistemas de movimiento del repo era
+    // "una decision del dueno, no de este detector"; la crítica la tomo, con
+    // la medicion del CSS servido delante (esa curva era la mas usada del
+    // sitio: 72 ocurrencias en claro, 105 en oscuro).
     {
         family: "easing-literal",
         file: "src/components/scenes/sectionBeam/sectionBeam.layers.ts",
@@ -628,18 +729,6 @@ const ALLOWLIST = [
             },
         ],
         reason: "STORY_STATEMENT_EASING: valor VERBATIM del mockup del statement de Story (L128-130). Su docblock ya declaraba explicitamente que ninguna de las cinco curvas de motion.easing -- ni REVEAL.easing -- tiene estos cuatro puntos de control; comprobado de nuevo al sancionarla.",
-    },
-    {
-        family: "easing-literal",
-        file: "src/motion/vocabulary.ts",
-        anchors: [
-            {
-                snippet: 'easing: "cubic-bezier(0.23, 1, 0.32, 1)",',
-                count: 2,
-                lines: [252, 429],
-            },
-        ],
-        reason: "Curva PROPIA del vocabulario de movimiento, compartida por REVEAL.easing y PRESS.easing (mismo literal en las dos entradas, count: 2). Que vocabulary.ts no importe de motion.ts es deliberado y esta razonado al final de ese mismo fichero: es un vocabulario de PATRONES (reveal, press, deck), no un alias de la escala de UI. Consolidar los dos sistemas es decision del dueno.",
     },
     // ---- easing-keyword: las 13 curvas por palabra clave que quedaban el dia
     // que se cerro el punto ciego (critica externa #9, 2026-08-17). Las CUATRO
@@ -906,6 +995,281 @@ const ALLOWLIST = [
         ],
         reason: "Reset de prefers-reduced-motion. El 0.001ms es el idioma estandar de este reset y NO puede sustituirse por motion.duration.instant (0ms) ni exime por la regla del cero: el valor esta elegido a proposito para ser efectivamente nulo SIN llegar a serlo, de modo que el navegador siga emitiendo transitionend/animationend y ningun codigo que espere ese evento se quede colgado. Las dos MISMAS lineas ya estan sancionadas en la familia important por su otro motivo (ganar por especificidad al selector universal); esta entrada cubre el tiempo, no el !important -- dos familias miden dos propiedades distintas de la misma linea, igual que overshoot y easing-literal.",
     },
+    // ---- duration-const: las 80 duraciones declaradas como constante
+    // numerica que existian el dia que se cerro este punto ciego (critica
+    // externa #14, 2026-09-02). Censo propio ejecutado con el motor de este
+    // mismo fichero antes de escribir una sola entrada: 86 declaraciones
+    // `*Ms`/`*_MS` con valor numerico en src/ y app/, de las cuales 6 se
+    // ARREGLARON en la misma ola en vez de sancionarse -- los seis campos de
+    // tiempo de REVEAL/DECK/OVERLAY/PRESS (src/motion/vocabulary.ts) pasan a
+    // leer motion.durationMs.*, que es el hallazgo que trajo esta familia --
+    // y 80 se sancionan aqui, una a una, con su porque.
+    //
+    // El reparto de esas 80, porque explica que clase de excepcion es cada
+    // una y por que ninguna es UI ordinaria sin justificar:
+    //  - 65 son ARTE o escena decorativa con tiempos propios, casi siempre
+    //    verbatim de un mockup: 48 de la tabla de estrellas del footer, 6 de
+    //    la cascada de Story, 5 del haz de seccion, 3 de AMBIENT
+    //    (vocabulary.ts), 2 de Contacto y 1 de la flotacion de la figura de
+    //    Story.
+    //  - 9 son COREOGRAFIAS con su excepcion ya razonada por escrito antes
+    //    de que existiera esta familia: los 4 del hero (timings.ts), los 2
+    //    del cruce de copia (hero.transition.ts), el escalonado de Journey,
+    //    el scrub de Story y el despegue del navbar.
+    //  - 6 son RELOJES Y TOPES DE JS que no animan nada: los 2 del ciclo de
+    //    caras del mascota Sol, el margen de un frame de HeroBackdrop y los
+    //    3 de hooks (aterrizaje en fragmento, inactividad de puntero,
+    //    re-maquetado tras cambiar de tema). En los seis, el numero decide
+    //    cuanto se espera antes de actuar igual, no cuanto dura un
+    //    movimiento.
+    //
+    // NUEVE de las 80 COINCIDEN hoy con un peldano de la escala (100 x2,
+    // 200 x3, 320 x2, 480 y 2100) y se sancionan igual, por PROCEDENCIA: es
+    // justo el caso que esta familia existe para hacer visible. En cinco de
+    // las nueve el docblock del propio codigo ya argumentaba por que no
+    // debian aliasearse; una (el retardo de 2100 ms de una estrella del
+    // footer) coincide por pura casualidad aritmetica dentro de una tabla de
+    // 48 numeros.
+    //
+    // Que esten sancionadas no las deja sin vigilancia: el ancla es de
+    // CONTENIDO, asi que retocar cualquiera de estos numeros (90 -> 120)
+    // cambia el contenido de la linea, la deja sin ancla y pone el gate en
+    // rojo. Lo que la sancion permite es que sigan EXISTIENDO, no que puedan
+    // moverse en silencio.
+    {
+        family: "duration-const",
+        file: "src/components/layout/Footer/footer.layers.ts",
+        anchors: [
+            { snippet: "durationMs: 2800,", lines: [266] },
+            { snippet: "delayMs: 1200,", lines: [267] },
+            { snippet: "durationMs: 4100,", lines: [276] },
+            { snippet: "delayMs: 2000,", lines: [277] },
+            { snippet: "durationMs: 3300,", lines: [286] },
+            { snippet: "delayMs: 900,", count: 2, lines: [287, 477] },
+            { snippet: "durationMs: 5200,", lines: [296] },
+            { snippet: "delayMs: 3100,", lines: [297] },
+            { snippet: "durationMs: 2500,", lines: [306] },
+            { snippet: "delayMs: 1600,", lines: [307] },
+            { snippet: "durationMs: 3900,", lines: [316] },
+            { snippet: "delayMs: 2400,", lines: [317] },
+            { snippet: "durationMs: 4700,", lines: [326] },
+            { snippet: "delayMs: 1100,", lines: [327] },
+            { snippet: "durationMs: 2200,", lines: [336] },
+            { snippet: "delayMs: 800,", lines: [337] },
+            { snippet: "durationMs: 3600,", lines: [346] },
+            { snippet: "delayMs: 2900,", lines: [347] },
+            { snippet: "durationMs: 5800,", lines: [356] },
+            { snippet: "delayMs: 1700,", lines: [357] },
+            { snippet: "durationMs: 3100,", lines: [366] },
+            { snippet: "delayMs: 2300,", lines: [367] },
+            { snippet: "durationMs: 4400,", lines: [376] },
+            { snippet: "delayMs: 1400,", lines: [377] },
+            { snippet: "durationMs: 2900,", lines: [386] },
+            { snippet: "delayMs: 3500,", lines: [387] },
+            { snippet: "durationMs: 3700,", lines: [396] },
+            { snippet: "delayMs: 1000,", count: 2, lines: [397, 497] },
+            { snippet: "durationMs: 5000,", lines: [406] },
+            { snippet: "delayMs: 2600,", lines: [407] },
+            { snippet: "durationMs: 3400,", lines: [416] },
+            { snippet: "delayMs: 1900,", lines: [417] },
+            { snippet: "durationMs: 6000,", lines: [426] },
+            { snippet: "delayMs: 3600,", lines: [427] },
+            { snippet: "durationMs: 2600,", lines: [436] },
+            { snippet: "delayMs: 1300,", lines: [437] },
+            { snippet: "durationMs: 4900,", lines: [446] },
+            { snippet: "delayMs: 2100,", lines: [447] },
+            { snippet: "durationMs: 3000,", lines: [456] },
+            { snippet: "delayMs: 1500,", lines: [457] },
+            { snippet: "durationMs: 4300,", lines: [466] },
+            { snippet: "delayMs: 2800,", lines: [467] },
+            { snippet: "durationMs: 3800,", lines: [476] },
+            { snippet: "durationMs: 5500,", lines: [486] },
+            { snippet: "delayMs: 3200,", lines: [487] },
+            { snippet: "durationMs: 2700,", lines: [496] },
+        ],
+        reason: "Tabla FOOTER_STARS: 24 estrellas decorativas escritas a mano, cada una con su duracion de titileo y su retardo -- 48 numeros en 46 lineas distintas (dos retardos se repiten, de ahi los dos count: 2). Es un dato de ARTE congelado a proposito: el docblock de la tabla ya razona por que no se genera con Math.random() (mismatch de hidratacion garantizado en un sitio con output: 'export' que si hidrata) y de donde salen los pesos y los rangos (el generador del mockup, L180-193). Ningun paso de motion.duration entra en el rango real de estos valores -- 2200-6000 ms de duracion y 800-3600 ms de retardo, todos por encima del peldano mas largo de la escala de interfaz (spinReduced, 2100 ms) -- y forzarlos dentro colapsaria 48 valores distintos en siete, que es lo contrario de lo que la tabla existe para dar: variedad deterministica. El ancla es de CONTENIDO, asi que retocar el numero de cualquier estrella la deja sin ancla y pone el gate en rojo.",
+    },
+    {
+        family: "duration-const",
+        file: "src/components/scenes/eye/mascots/Sol.constants.ts",
+        anchors: [
+            {
+                snippet: "export const SOL_AUTO_CYCLE_MS = 8 * 60 * 1000;",
+                lines: [11],
+            },
+            {
+                snippet: "export const SOL_MANUAL_OVERRIDE_MS = 44 * 1000;",
+                lines: [13],
+            },
+        ],
+        reason: "SOL_AUTO_CYCLE_MS (8 x 60 x 1000, ocho minutos) y SOL_MANUAL_OVERRIDE_MS (44 x 1000, 44 segundos): NO son duraciones de animacion sino relojes de JS -- cada cuanto alterna la cara programada del mascota Sol y cuanto dura el override que fuerza un click. El docblock de cabecera del fichero ya lo declara ('datos de render y de temporizacion consumidos desde JS; las duraciones puramente decorativas viven en el CSS de Sol.tsx') y los dos son un port 1:1 de vti-sdk. La regla 48 habla de transition/animation: un intervalo de ocho minutos no tiene peldano posible en una escala cuyo maximo son 2100 ms. Se SANCIONAN en vez de eximirse por nombre a proposito -- dejar escrito que se revisaron es preferible a una regex que los excluya en silencio.",
+    },
+    {
+        family: "duration-const",
+        file: "src/components/scenes/sectionBeam/sectionBeam.layers.ts",
+        anchors: [
+            {
+                snippet: "export const SECTION_BEAM_DRAW_MS = 1600;",
+                lines: [149],
+            },
+            {
+                snippet: "export const SECTION_BEAM_DRAW_DELAY_MS = 200;",
+                lines: [151],
+            },
+            {
+                snippet: "export const SECTION_BEAM_SWEEP_MS = 18000;",
+                lines: [155],
+            },
+            {
+                snippet: "export const SECTION_BEAM_SWEEP_DELAY_MS = 1800;",
+                lines: [157],
+            },
+            {
+                snippet: "export const SECTION_BEAM_PULSE_MS = 4500;",
+                lines: [159],
+            },
+        ],
+        reason: "Los cinco tiempos del haz de seccion, VERBATIM del mockup y citados uno a uno en el docblock de su propia constante: beamDraw 1.6s y su retardo .2s (L46-47), beamOut 18s y su retardo 1.8s (L48-49), beamPulse 4.5s (L50/L118). Es la forma EXACTA que la regla 17 de RULES.md sanciona -- constante con nombre en su propio *.layers.ts, importada tal cual y nunca reescrita como valor suelto -- y esta misma pieza ya tiene sancionadas su curva (SECTION_BEAM_EASING, familia easing-literal) y el ease-in-out de su pulso (sectionBeam.parts.tsx, familia easing-keyword) por el mismo motivo.",
+    },
+    {
+        family: "duration-const",
+        file: "src/components/sections/Contact/contact.layers.ts",
+        anchors: [
+            {
+                snippet: "export const CONTACT_FIGURE_FLOAT_MS = 8000;",
+                lines: [142],
+            },
+            {
+                snippet: "export const CONTACT_TOP_GLOW_PULSE_MS = 7000;",
+                lines: [334],
+            },
+        ],
+        reason: "CONTACT_FIGURE_FLOAT_MS (8000) y CONTACT_TOP_GLOW_PULSE_MS (7000): flotacion de la figura de Contacto y pulso de su resplandor superior, los dos VERBATIM del mockup (keyframe vtiFloat6; glowPulse 7s, L28/L52) y los dos bucles infinitos declarados solo bajo prefers-reduced-motion: no-preference. Bucles ambientales de segundos, un orden de magnitud fuera de la escala de interfaz. De la declaracion del mockup ya se migro al sistema lo que SI es un rol suyo -- la CURVA: Contact.tsx resuelve motion.easing.standard desde la critica externa #9; lo que queda aqui es el ritmo.",
+    },
+    {
+        family: "duration-const",
+        file: "src/components/sections/Hero/HeroBackdrop.tsx",
+        anchors: [
+            { snippet: "const NEXT_FRAME_TIMEOUT_MS = 50;", lines: [72] },
+        ],
+        reason: "NEXT_FRAME_TIMEOUT_MS (50): no temporiza ninguna animacion -- es el tope de una Promise.race contra requestAnimationFrame para que el cruce del fondo del hero no se quede colgado en una pestana oculta, donde el navegador no emite frames. Su propio docblock lo dice literalmente: 'El margen de un frame es una MEJORA de alineacion, no una condicion de correccion'. Misma familia de constante de SEGURIDAD que HERO_DECODE_TIMEOUT_MS (timings.ts) y THEME_ANCHOR_SETTLE_MS (useThemeScrollReset.ts).",
+    },
+    {
+        family: "duration-const",
+        file: "src/components/sections/Hero/hero.transition.ts",
+        anchors: [
+            { snippet: "export const HERO_COPY_OUT_MS = 100;", lines: [57] },
+            { snippet: "export const HERO_COPY_IN_MS = 320;", lines: [65] },
+        ],
+        reason: "HERO_COPY_OUT_MS (100) y HERO_COPY_IN_MS (320): los dos COINCIDEN hoy con un peldano de la escala (fast y slow) y los dos se sancionan por PROCEDENCIA, que es exactamente el caso que esta familia existe para hacer visible. Sus docblocks ya argumentan por que no se aliasean: son la coreografia del cruce del hero, y un alias las retimearia en silencio el dia que fast/slow cambien por una razon de UI ajena a esta transicion. Mismo razonamiento, escrito antes y en otro fichero, que NAV_DETACH_ANIM_MS (useNavDetach.ts).",
+    },
+    {
+        family: "duration-const",
+        file: "src/components/sections/Journey/Journey.tsx",
+        anchors: [{ snippet: "const STEP_STAGGER_MS = 90;", lines: [129] }],
+        reason: "STEP_STAGGER_MS (90): paso del reveal escalonado de la rama clara de Journey, valor de la spec ('~90ms por paso', seccion 7.2). El vocabulario de movimiento LLEGO a tener un campo para esto -- REVEAL.stepMs, 60 -- y se retiro en la fix wave B (2026-08-12) precisamente porque 90 no es 60: el docblock de REVEAL en vocabulary.ts deja escrito que este valor es distinto, para un proposito distinto, y que no habia ningun consumidor real al que migrarlo. Un retardo entre piezas tampoco tiene casilla en una escala de duraciones de transicion.",
+    },
+    {
+        family: "duration-const",
+        file: "src/components/sections/Story/Story.tsx",
+        anchors: [
+            {
+                snippet: "const STORY_REVEAL_DELAY_TITLE_MS = 80;",
+                lines: [212],
+            },
+            {
+                snippet: "const STORY_REVEAL_DELAY_BODY_MS = 140;",
+                lines: [213],
+            },
+            {
+                snippet:
+                    "const STORY_CARD_REVEAL_DELAYS_MS = [200, 260, 320, 380] as const;",
+                lines: [214],
+            },
+            { snippet: "const STORY_STATEMENT_REVEAL_MS = 900;", lines: [242] },
+            {
+                snippet: "const STORY_STATEMENT_DELAY_SECOND_MS = 220;",
+                lines: [258],
+            },
+            {
+                snippet: "const STORY_STATEMENT_DELAY_THIRD_MS = 440;",
+                lines: [259],
+            },
+        ],
+        reason: "Los seis retardos y duraciones de la cascada de Story, VERBATIM del mockup (L74-121 la cascada de la rejilla, L127-131 el statement) y ya documentados uno a uno en el propio fichero -- el docblock de STORY_STATEMENT_REVEAL_MS explica por que 900 no tiene casilla en la escala. Los retardos son un ORDEN entre piezas, no duraciones de interfaz: motion.duration no tiene ni pretende tener peldanos de retardo. STORY_CARD_REVEAL_DELAYS_MS es la unica tabla de retardos del repo escrita en UNA sola linea, y por eso es la unica que esta familia ve; su gemela multilinea (FEATURES_LIGHT_REVEAL_DELAYS_MS, features.layers.ts) NO dispara por el limite linea-a-linea del motor, NO por estar sancionada -- ver el comentario de la familia.",
+    },
+    {
+        family: "duration-const",
+        file: "src/components/sections/Story/story.layers.ts",
+        anchors: [
+            { snippet: "export const STORY_SCRUB_MS = 320;", lines: [202] },
+            {
+                snippet: "export const STORY_FIGURE_FLOAT_MS = 9000;",
+                lines: [235],
+            },
+        ],
+        reason: "STORY_SCRUB_MS (320) y STORY_FIGURE_FLOAT_MS (9000). El primero es el caso de PROCEDENCIA en estado puro y por eso vale la pena leerlo entero: su docblock dice que esta 'atada al valor de motion.duration.slow (verificado por test)' -- atada por un TEST, no derivada en codigo, que es justo la diferencia que esta familia mide. Es el candidato REAL de migracion que deja abierto la ola que estrena la familia (a motion.durationMs.slow, cero cambio de valor), fuera de su alcance porque *.layers.ts esta reservado a otro agente de la misma ola: se sanciona y se deja anotado, no se finge resuelto. El segundo es la flotacion de la figura, verbatim del mockup (vtiFloat6, 9s), bucle ambiental un orden de magnitud fuera de la escala.",
+    },
+    {
+        family: "duration-const",
+        file: "src/hooks/useFragmentLanding.ts",
+        anchors: [
+            {
+                snippet: "export const FRAGMENT_LANDING_SETTLE_MS = 200;",
+                lines: [151],
+            },
+        ],
+        reason: "FRAGMENT_LANDING_SETTLE_MS (200): tope de espera de la correccion de scroll al aterrizar en un fragmento cuando los dos frames del camino normal no llegan (pestana oculta). Su docblock ya lo declara 'una constante de seguridad, de la misma familia que HERO_DECODE_TIMEOUT_MS', y razona el unico vinculo aritmetico que si tiene: es el DOBLE de THEME_ANCHOR_SETTLE_MS, porque cubre mas trabajo. Que coincida con motion.duration.base es casualidad de valor, no derivacion -- y sancionarlo por procedencia es precisamente dejar esa distincion escrita.",
+    },
+    {
+        family: "duration-const",
+        file: "src/hooks/useNavDetach.ts",
+        anchors: [
+            { snippet: "export const NAV_DETACH_ANIM_MS = 480;", lines: [58] },
+        ],
+        reason: "NAV_DETACH_ANIM_MS (480): coincide con motion.duration.slower y su docblock dedica un parrafo entero a argumentar por que NO debe ser un alias -- un cambio futuro de slower por un motivo de UI ajeno al navbar retimearia esta coreografia en silencio. La sancion no reabre esa decision: escribe para el gate lo que ese docblock ya decidio, y el ancla de contenido garantiza que el 480 no pueda moverse sin que alguien lo vea.",
+    },
+    {
+        family: "duration-const",
+        file: "src/hooks/useSceneParallax.ts",
+        anchors: [{ snippet: "const DEFAULT_IDLE_MS = 2200;", lines: [31] }],
+        reason: "DEFAULT_IDLE_MS (2200): umbral de INACTIVIDAD del puntero antes de que la deriva automatica tome el control de la escena, no la duracion de ninguna animacion -- es cuanto tiene que estar quieto el raton. Una escala de duraciones de transicion no describe eso, y el valor esta ademas por encima de su peldano mas largo (spinReduced, 2100 ms).",
+    },
+    {
+        family: "duration-const",
+        file: "src/hooks/useThemeScrollReset.ts",
+        anchors: [
+            {
+                snippet: "export const THEME_ANCHOR_SETTLE_MS = 100;",
+                lines: [208],
+            },
+        ],
+        reason: "THEME_ANCHOR_SETTLE_MS (100): tope de espera al re-maquetado cuando el doble requestAnimationFrame no llega (pestana oculta, donde no hay frames). Su docblock lo dice literal: 'No es un tiempo de animacion --no hay ninguna que temporizar-- asi que no sale de motion.duration ni del vocabulario'. Coincide con motion.duration.fast por valor, no por fuente; es la misma familia de constante de seguridad que HERO_DECODE_TIMEOUT_MS y FRAGMENT_LANDING_SETTLE_MS.",
+    },
+    {
+        family: "duration-const",
+        file: "src/motion/timings.ts",
+        anchors: [
+            { snippet: "export const HERO_FADE_MS = 420;", lines: [128] },
+            { snippet: "export const HERO_STEP_MS = 110;", lines: [131] },
+            {
+                snippet: "export const HERO_DECODE_TIMEOUT_MS = 600;",
+                lines: [139],
+            },
+            { snippet: "export const HERO_COPY_STEP_MS = 80;", lines: [194] },
+        ],
+        reason: "Los cuatro tiempos de la coreografia de carga del hero: HERO_FADE_MS (420), HERO_STEP_MS (110), HERO_DECODE_TIMEOUT_MS (600) y HERO_COPY_STEP_MS (80). El docblock de cabecera del fichero dedica una seccion entera -- 'Por que estos numeros NO salen de theme.data.motion.duration' -- a razonar la excepcion, y la critica externa #8 ya cerro aqui un hallazgo DOCUMENTAL sobre el origen del 420 (la afirmacion falsa de que era 2 x base). Ninguno de los cuatro tiene peldano en la escala, y HERO_DECODE_TIMEOUT_MS ni siquiera anima nada: es el tope de img.decode(), otra constante de seguridad.",
+    },
+    {
+        family: "duration-const",
+        file: "src/motion/vocabulary.ts",
+        anchors: [
+            { snippet: "breathMs: 5400,", lines: [613] },
+            { snippet: "floatMs: 9000,", lines: [614] },
+            { snippet: "orbitMs: 20000,", lines: [615] },
+        ],
+        reason: "Los tres campos de AMBIENT (breathMs 5400, floatMs 9000, orbitMs 20000): bucles infinitos de escenas decorativas, entre 2,5 y 9,5 veces el peldano mas largo de la escala de interfaz (spinReduced, 2100 ms). Es la UNICA excepcion que queda en este fichero tras la critica externa #14: los seis campos de tiempo de REVEAL/DECK/OVERLAY/PRESS pasaron a leer motion.durationMs.* en esa misma ola, y vocabulary.test.ts canda en POSITIVO las dos mitades -- que esos seis esten dentro de la escala y que los tres de AMBIENT esten fuera. Meter bucles de 5 a 20 segundos en una escala de transiciones la convertiria en un cajon.",
+    },
     {
         family: "radius-literal",
         file: "src/components/scenes/eye/mascots/Sol.tsx",
@@ -1071,6 +1435,8 @@ const FAMILY_GUIDANCE = {
         "esta curva se escribe como literal fuera de src/theme/tokens/motion.ts, el unico sitio donde una curva nace en este repo (regla 48). Si duplica semanticamente una de las cinco de motion.easing, migra el consumidor al token; si es una curva propia justificada (arte de marca, valor verbatim de un mockup, vocabulario de movimiento con su porque documentado), deja el docblock que lo explica JUNTO a la constante y anade la excepcion a ALLOWLIST. Vale tanto para curvas monotonas como para las de rebote -- la familia overshoot solo ve estas ultimas.",
     "duration-literal":
         "esta duracion (o retardo) se escribe como literal de tiempo fuera de src/theme/tokens/motion.ts, el unico sitio donde una duracion nace en este repo (regla 48). Si el valor coincide con un paso de la escala (0, 100, 200, 320, 480, 700, 2100 ms), lee el token -- un literal que hoy vale lo mismo deja de valerlo el dia que el token se retoque, y el CSS renderizado no distingue los dos casos. Si es un tiempo PROPIO justificado (arte de marca con constantes en su *.layers.ts, valor verbatim de un mockup o de un port, ambiente en bucle de varios segundos), declaralo como constante con nombre, deja el porque JUNTO a ella y anade la excepcion a ALLOWLIST. El cero (0ms/0s) no dispara esta familia: es la ausencia de duracion, no una duracion elegida.",
+    "duration-const":
+        "esta duracion (o retardo) se declara como constante numerica con nombre -- `durationMs: 480`, `const HERO_FADE_MS = 420` -- sin derivar de motion.durationMs, la misma escala de siete pasos que motion.duration, en numeros. Es el camino por el que una duracion llega al CSS sin pasar por el sistema: el literal de tiempo no aparece hasta que alguien lo interpola (`${X.durationMs}ms`), donde la familia duration-literal ya no puede verlo. Si el valor coincide con un peldano (0, 100, 200, 320, 480, 700, 2100 ms), lee motion.durationMs.<paso> -- un numero que hoy vale lo mismo deja de valerlo el dia que el token se retoque. Si es un tiempo PROPIO justificado (arte de marca o de escena, coreografia con su porque escrito, reloj o tope de JS que no anima nada), deja ese porque JUNTO a la constante y anade la excepcion a ALLOWLIST. El cero no dispara: es la ausencia de retardo, no un tiempo elegido.",
     "radius-literal":
         "un border-radius literal nuevo usa un token de src/theme/tokens/radius.ts en vez de un numero escrito a mano.",
     "kicker":
