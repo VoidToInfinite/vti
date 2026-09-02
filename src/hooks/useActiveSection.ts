@@ -74,7 +74,9 @@ function notify(): void {
  * Arreglo elegido (de las dos opciones razonables -- resolver por geometría
  * real, o devolver `null` sin más -- se prefiere la primera): bajo `reduce`
  * se ignora `data-inview` por completo y se resuelve con
- * `getBoundingClientRect()` sobre las mismas cuatro secciones, con la MISMA
+ * `getBoundingClientRect()` sobre las mismas secciones (`ACTIVE_SECTION_IDS`;
+ * cuatro cuando se escribió esto, cinco desde que `about` entró en la
+ * navegación el 2026-09-02), con la MISMA
  * regla de resolución que el camino normal (`resolveAmongCandidates`, ver su
  * docblock): lo único que cambia entre los dos caminos es de dónde salen las
  * candidatas -- de la señal ya calculada, o de la geometría medida aquí --,
@@ -381,7 +383,7 @@ function resolveVisibleSection(
 
 /*
  * UNA SOLA PASADA POR EL DOM. La primera versión del arreglo del tema oscuro
- * preguntaba dos veces: un predicado "hay señal" que recorría las cuatro
+ * preguntaba dos veces: un predicado "hay señal" que recorría todas las
  * secciones con `getElementById`, y después el resolutor elegido, que las
  * volvía a recorrer. `evaluate()` está en camino caliente -- lo dispara cada
  * `scroll`/`resize` y, en la rama clara, cada cambio de `data-inview` vía
@@ -419,9 +421,10 @@ function resolveVisibleSection(
  * Desde aquí la señal es una PISTA que hay que confirmar, nunca una respuesta:
  * las candidatas se validan contra geometría (`clearlyOutsideViewport`, ver su
  * docblock para por qué descartar exige evidencia) y, si no sobrevive ninguna,
- * se cae al camino por geometría sobre las cuatro secciones -- la señal
- * entera era mentira, así que se ignora entera. El coste sube de 0 a entre 1 y
- * 4 `getBoundingClientRect()` por `evaluate()`, que sigue sin correr por frame:
+ * se cae al camino por geometría sobre todas ellas -- la señal
+ * entera era mentira, así que se ignora entera. El coste sube de 0 a como
+ * mucho un `getBoundingClientRect()` por sección y `evaluate()`, que sigue sin
+ * correr por frame:
  * lo disparan `scroll`/`resize` y las mutaciones de `data-inview` (un puñado
  * por recorrido de página, ver el paréntesis de arriba). Es el mismo coste que
  * el camino por geometría ya paga en la rama oscura y bajo `reduce` desde hace
@@ -575,7 +578,7 @@ function handleScrollOrResize(): void {
  * de depender EXCLUSIVAMENTE de la señal PROXY (`scroll`/`resize`, "algo
  * pudo haber cambiado"), este módulo observa también la señal REAL
  * directamente -- un `MutationObserver` sobre el atributo `data-inview` de
- * las cuatro secciones. `evaluate()` se re-ejecuta entonces exactamente
+ * las secciones que lo escriben. `evaluate()` se re-ejecuta entonces exactamente
  * cuando `useSectionProgress` escribe el nuevo valor, sin importar qué lo
  * disparó (scroll físico, navegación por ancla, resize) ni cómo terminó el
  * gesto que lo causó -- cierra la carrera por construcción, no por más
@@ -627,7 +630,7 @@ function observeSectionInviewMutations(): void {
  * componentes (el panel de escritorio Y la hoja móvil, Tarea 10) llamen a
  * este hook a la vez -- exactamente el motivo por el que "no crear un
  * observer nuevo" importa aquí: sin este singleton, cada consumidor
- * repetiría su propio listener recorriendo las mismas cuatro secciones.
+ * repetiría su propio listener recorriendo las mismas secciones.
  *
  * Un `requestAnimationFrame` adicional tras el primer `evaluate()` síncrono
  * (solo en el primer suscriptor) cubre la carrera de montaje: el
