@@ -61,6 +61,7 @@ describe("Typography", () => {
     h1: "H1",
     h2: "H2",
     h3: "H3",
+    wordmark: "SPAN",
     h5: "P",
     deckBody: "P",
     body: "P",

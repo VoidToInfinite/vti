@@ -70,6 +70,14 @@ const defaultElement: Partial<Record<TypeVariant, ElementType>> = {
   h1: "h1",
   h2: "h2",
   h3: "h3",
+  /* `wordmark` (crítica externa #15) entra como `span` y no como titular: es
+     un rótulo INLINE dentro de un enlace, que es exactamente lo que pinta hoy
+     `ScBrandName` (`BrandName.tsx`). Ningún consumidor pasa por aquí todavía
+     -- las dos cabeceras componen el rótulo con sus propias piezas styled --,
+     pero la tabla exhaustiva de `Typography.test.tsx` obliga a decidir la
+     etiqueta de cada peldaño, y para éste la respuesta ya existe en el DOM
+     real. */
+  wordmark: "span",
   overline: "span",
   caption: "span",
 };

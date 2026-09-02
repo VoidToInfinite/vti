@@ -1,8 +1,8 @@
 /**
- * Variantes vivas de la escala tipográfica: 11 desde la crítica externa #14
- * (2026-09-02, que retira `deckTitle` y añade `deckClosing` y `deckBody`), 10
- * entre la #11 y esa fecha, 9 desde la crítica externa #9 (2026-08-17), 12
- * antes de esa.
+ * Variantes vivas de la escala tipográfica: 12 desde la crítica externa #15
+ * (2026-09-02, que añade `wordmark`), 11 desde la #14 (2026-09-02, que retira
+ * `deckTitle` y añade `deckClosing` y `deckBody`), 10 entre la #11 y esa
+ * fecha, 9 desde la crítica externa #9 (2026-08-17), 12 antes de esa.
  *
  * Que la #14 retire un peldaño de deck y añada dos no es contradictorio, y
  * conviene leerlo junto: `deckTitle` se fue porque su tamaño pasó a ser el de
@@ -103,6 +103,7 @@ export type TypeVariant =
   | "h1"
   | "h2"
   | "h3"
+  | "wordmark"
   | "h5"
   | "deckBody"
   | "body"
@@ -257,6 +258,56 @@ export const type = {
       weight: 600,
       lineHeight: 1.2,
       tracking: "-0.012em",
+    },
+    /**
+     * RÓTULO DE MARCA de una cabecera de sitio: el texto «VoidToInfinite» que
+     * acompaña al logotipo en la barra superior. Lo visten hoy los dos
+     * `ScBrandLink` del repo — el de `Navbar.tsx` (home) y el de
+     * `LegalHeader.tsx` (páginas legales). Peldaño nuevo de la crítica externa
+     * #15 (2026-09-02, hallazgo C6 del evaluador de Craft).
+     *
+     * POR QUÉ EXISTE: el mismo `1.15rem` estaba escrito byte a byte en esos
+     * dos ficheros, sin que ninguno supiera del otro. Regla 13 de `RULES.md`:
+     * un valor idéntico repetido en dos sitios es un token, no dos literales.
+     * Y era además el único de los literales de tamaño del repo que NO
+     * duplicaba un peldaño vivo — los otros tres (`0.875rem` de
+     * `LanguageSelector`, `1rem` de `Footer` y de `Journey`) sí, y su arreglo
+     * es leer el peldaño que ya existía.
+     *
+     * POR QUÉ NO ES `h5`, aunque estén a 1,02× (1.15rem = 18,4px frente a
+     * 1.125rem = 18px). No es un rango de TITULAR: es el rótulo de la marca,
+     * y el sistema ya distingue exactamente así en otra escala — `grid.navMax`
+     * (1280px) frente a `grid.containerMax` (1200px), «magnitudes con
+     * propósitos distintos, que deben poder divergir sin arrastrarse la una a
+     * la otra». Meterlo en `h5` ataría el rótulo de la cabecera al cuarto
+     * rango de titular de los documentos: recalibrar uno movería el otro sin
+     * que nadie lo pidiera, y en la dirección contraria un ajuste de marca
+     * retocaría los títulos de tarjeta de Story y de Features. Fundirlos
+     * además CAMBIARÍA lo que se pinta hoy (18,4px → 18px), que es un cambio
+     * de diseño; nombrar una medida repetida no lo es.
+     *
+     * QUÉ DESCRIBE CADA PROPIEDAD, y cuál no se midió. Tres salen del rótulo
+     * REAL, leídas de las dos piezas que lo componen: `size` de los dos
+     * `ScBrandLink`; `weight` (700) y `tracking` (0.02em) de `ScBrandName`
+     * (`BrandName.tsx`), que es el `<span>` que pinta el texto dentro del
+     * enlace. `lineHeight` NO se mide de ninguna declaración: el rótulo es un
+     * `inline-flex` de una sola línea dentro de una fila centrada, así que
+     * hoy hereda el `1.4em` de `body` — un valor ya computado en píxeles que
+     * no describe ningún rol. Se declara 1.2, el paso tenso de la escala
+     * (`h3`, `overline`), y se deja escrito que es la única de las cuatro sin
+     * consumidor.
+     *
+     * DEUDA DECLARADA, no descuido: hoy solo `LegalHeader.tsx` lee este
+     * peldaño (y solo su `size`). `Navbar.tsx` está fuera del alcance de la
+     * tarea que estrena el token, y `ScBrandName` sigue escribiendo su 700 y
+     * su 0.02em a mano — los tres puntos quedan para quien sea dueño de esos
+     * ficheros, con el peldaño ya disponible.
+     */
+    wordmark: {
+      size: "1.15rem",
+      weight: 700,
+      lineHeight: 1.2,
+      tracking: "0.02em",
     },
     h5: { size: "1.125rem", weight: 600, lineHeight: 1.35, tracking: "0" },
     /**

@@ -68,7 +68,18 @@ const ScBrandLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
-  font-size: 1.15rem;
+  /* El peldaño type.scale.wordmark (crítica externa #15, hallazgo C6): este
+     1.15rem estaba escrito byte a byte aquí y en el ScBrandLink de Navbar.tsx,
+     dos cabeceras sin saber la una de la otra. Es el peldaño del rótulo de
+     marca, no un rango de titular -- su docblock en theme/tokens/type.ts
+     explica por qué no se funde con h5 pese a estar a 1,02x. Navbar.tsx queda
+     fuera del alcance de este cambio y sigue con su literal.
+
+     Sin comillas invertidas en este comentario a propósito: vive DENTRO del
+     template literal de styled-components, donde una sola cerraría el
+     template (lección reincidente de task/lessons.md, 2026-07-31 y
+     2026-08-16). */
+  font-size: ${({ theme }) => theme.data.type.scale.wordmark.size};
   color: ${({ theme }) => theme.data.semantic.text};
 `;
 

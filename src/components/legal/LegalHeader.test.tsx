@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { routePath } from "@/config/site";
+import { type } from "@/theme/tokens/type";
 import { LegalHeader } from "./LegalHeader";
 
 /*
@@ -79,5 +80,51 @@ describe("LegalHeader", () => {
   it("renderiza un <header> semántico", () => {
     const { container } = renderWithProviders(<LegalHeader />);
     expect(container.querySelector("header")).not.toBeNull();
+  });
+
+  /*
+   * CRÍTICA EXTERNA #15, hallazgo C6 (2026-09-02). El rótulo de marca de esta
+   * cabecera escribía `font-size: 1.15rem` a mano, byte a byte el mismo valor
+   * que el `ScBrandLink` de `Navbar.tsx` -- dos cabeceras sin saber la una de
+   * la otra. Ahora lee `type.scale.wordmark`, el peldaño que nombra esa
+   * medida.
+   *
+   * Este candado ata la mitad que jsdom puede ver: el tamaño que llega al CSS
+   * es el del peldaño, así que retocar el token y esta pieza no pueden
+   * divergir. La mitad de la PROCEDENCIA (que la fuente lea el token en vez de
+   * repetir un literal equivalente) no la ve ningún test -- el CSS renderizado
+   * no distingue los dos casos (`task/lessons.md`, 2026-08-12) -- y la cierra
+   * la familia `font-size` de `scripts/detect-anti-patterns.mjs`.
+   *
+   * Se inspecciona `document.styleSheets` y no `getComputedStyle` por el
+   * motivo de siempre en este repo (regla 36/44): jsdom no resuelve la
+   * cascada de styled-components de forma fiable, pero el texto de la regla
+   * inyectada es exactamente lo que llega al navegador.
+   */
+  it("crítica #15: el rótulo de marca lee type.scale.wordmark, no un 1.15rem propio", () => {
+    const { container } = renderWithProviders(<LegalHeader />);
+    // Primer ancla del DOM = la marca (mismo criterio que el test de /en/*).
+    const marca = container.querySelector("a");
+    expect(marca).not.toBeNull();
+
+    const clases = Array.from(marca!.classList);
+    let css = "";
+    for (const hoja of Array.from(document.styleSheets)) {
+      let reglas: CSSRuleList;
+      try {
+        reglas = hoja.cssRules;
+      } catch {
+        continue;
+      }
+      for (const regla of Array.from(reglas)) {
+        if (clases.some((c) => regla.cssText.includes(`.${c}`)))
+          css += regla.cssText;
+      }
+    }
+
+    // Guarda contra el verde vacío: si no se hubiera encontrado ninguna regla
+    // del elemento, el `toContain` de abajo fallaría por el motivo equivocado.
+    expect(css).toContain("font-size");
+    expect(css).toContain(`font-size: ${type.scale.wordmark.size}`);
   });
 });

@@ -3,6 +3,7 @@ import { act } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { LOCALES, ROUTES_BY_LOCALE, routePath } from "@/config/site";
 import { PRESS } from "@/motion/vocabulary";
+import { type } from "@/theme/tokens/type";
 import { languageHref, LanguageSelector } from "./LanguageSelector";
 
 /*
@@ -331,6 +332,32 @@ describe("LanguageSelector", () => {
       expect(es).not.toHaveAttribute("aria-pressed");
       expect(en).not.toHaveAttribute("aria-pressed");
     });
+  });
+
+  /*
+   * CRÍTICA EXTERNA #15, hallazgo C6 (2026-09-02). Aquí había un
+   * `font-size: 0.875rem` escrito a mano que resolvía EXACTAMENTE a
+   * `type.scale.bodySm.size`. Este candado ata la mitad que un test puede
+   * ver: que el tamaño que llega al CSS sea el del peldaño, así que un
+   * retoque del token y esta pieza no pueden divergir.
+   *
+   * La otra mitad -- que la fuente LEA el token en vez de reescribir un
+   * literal equivalente -- ningún test de jsdom puede verla: el CSS
+   * renderizado no distingue los dos casos (`task/lessons.md`, 2026-08-12).
+   * Esa mitad la cierra la familia `font-size` de
+   * `scripts/detect-anti-patterns.mjs`, que sanciona por PROCEDENCIA. Las dos
+   * juntas cubren el caso; ninguna por separado.
+   */
+  it("crítica #15: el tamaño del control sale de type.scale.bodySm, no de un literal propio", () => {
+    renderWithProviders(<LanguageSelector />);
+    const enlace = screen.getAllByRole("link")[0] as HTMLElement;
+    const reglas = reglasDe(enlace).join("");
+
+    // Guarda contra el verde vacío: sin esto, un `toContain` sobre una cadena
+    // que no lleva ninguna declaración de tamaño fallaría por el motivo
+    // equivocado o pasaría por casualidad.
+    expect(reglas).toContain("font-size");
+    expect(reglas).toContain(`font-size: ${type.scale.bodySm.size}`);
   });
 
   /*

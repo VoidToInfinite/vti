@@ -39,6 +39,12 @@ describe("type tokens", () => {
         lineHeight: 1.2,
         tracking: "-0.012em",
       },
+      wordmark: {
+        size: "1.15rem",
+        weight: 700,
+        lineHeight: 1.2,
+        tracking: "0.02em",
+      },
       h5: {
         size: "1.125rem",
         weight: 600,
@@ -95,9 +101,11 @@ describe("type tokens", () => {
    * añadir `deckTitle`, y la #14 (2026-09-02) lo deja en 11 -- retira ese
    * peldaño y añade `deckClosing` y `deckBody` --, las dos veces actualizando
    * esta cifra CON el `toEqual` de arriba, nunca relajando ninguno de los dos.
+   * La #15 (2026-09-02) la sube a 12 al añadir `wordmark`, el rótulo de marca
+   * de las dos cabeceras del sitio, por el mismo camino.
    */
-  it("la escala tiene exactamente 11 peldaños vivos", () => {
-    expect(Object.keys(typo.scale)).toHaveLength(11);
+  it("la escala tiene exactamente 12 peldaños vivos", () => {
+    expect(Object.keys(typo.scale)).toHaveLength(12);
   });
 
   /*

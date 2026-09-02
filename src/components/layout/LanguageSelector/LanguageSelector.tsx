@@ -110,7 +110,18 @@ const ScLanguageButton = styled(Link)<{ $active: boolean }>`
   padding: ${({ theme }) => theme.data.space[1]}
     ${({ theme }) => theme.data.space[2]};
   border-radius: ${({ theme }) => theme.data.radius.md};
-  font-size: 0.875rem;
+  /* El peldaño bodySm, y no un 0.875rem a mano (crítica externa #15, hallazgo
+     C6): el literal que había aquí resolvía EXACTAMENTE al peldaño, así que el
+     CSS renderizado no distinguía los dos casos -- solo la fuente los separa
+     (task/lessons.md, 2026-08-12). Los docblocks de arriba y de abajo hablan
+     de "14px" y de "a 14px la diferencia de peso es sutil": ese 14px es este
+     peldaño, y ahora lo lee en vez de repetirlo.
+
+     Sin comillas invertidas en este comentario a propósito: vive DENTRO del
+     template literal de styled-components, donde una sola cerraría el
+     template (lección reincidente de task/lessons.md, 2026-07-31 y
+     2026-08-16). */
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: ${({ $active }) => ($active ? 700 : 400)};
   /* INACTIVO: un escalon por debajo de textSubtle SOLO en claro (QA §6, item
      41, 2026-08-14). Medido sobre pixel pintado con el selector encima del
