@@ -874,12 +874,6 @@ const ALLOWLIST = [
         anchors: [{ snippet: "font-size: 1.15rem;", lines: [550] }],
         reason: "Rotulo de marca del navbar: es la MITAD que queda del valor que la critica #15 encontro escrito byte a byte en dos cabeceras. La otra mitad (LegalHeader.tsx) ya lee el peldano nuevo type.scale.wordmark, creado por ese hallazgo; este fichero estaba fuera del alcance de esa tarea. Token candidato: type.scale.wordmark.size. Excepcion de transicion, y la mas corta de las cinco: el peldano ya existe.",
     },
-    {
-        family: "font-size-literal",
-        file: "src/components/sections/Journey/Journey.tsx",
-        anchors: [{ snippet: "font-size: 0.8125rem;", lines: [676] }],
-        reason: "13px en la rama clara de Journey: tampoco coincide con ningun peldano (cae entre bodySm y caption, como los dos de Contact). Mismo tratamiento y mismo motivo: elegir entre 14px y 12px es diseno. El 1rem que este mismo fichero tenia SI se migro en esta ola, por eso no aparece aqui. Excepcion de transicion.",
-    },
     // ---- z-index-literal: los 16 escalones locales que el censo de la
     // critica externa #15 conto, reproducidos con este mismo motor antes de
     // sancionarlos. Los 16 son el MISMO patron: ordenar dos o tres hermanos

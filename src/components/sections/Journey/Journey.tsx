@@ -673,7 +673,10 @@ const ScStepLabel = styled.p<{
 }>`
   margin: ${({ theme }) => theme.data.space[3]} 0 0;
   font-family: ${({ theme }) => theme.data.type.fontBody};
-  font-size: 0.8125rem;
+  /* bodySm (14px) en vez del literal 0.8125rem (13px) que llevaba hasta la
+     crítica externa #15 (2026-09-02): el rótulo del paso ya se distingue por
+     peso 700 y color de rampa; un píxel no era una decisión visible. */
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 700;
   /* stepLabelColor, NO stepColor (fix wave E, hallazgo E2): ver su docblock,
      más arriba, para las cifras medidas -- el color de TEXTO necesita un
