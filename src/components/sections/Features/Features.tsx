@@ -3,6 +3,7 @@
 import { useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes } from "styled-components";
+import { Kicker } from "@/components/ui/Kicker/Kicker";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
@@ -310,9 +311,13 @@ const ScHeader = styled.div`
   gap: ${({ theme }) => theme.data.space[3]};
 `;
 
-/* Kicker: mismo mapeo que ScKicker en Story.tsx/Hero.tsx para el mismo rol
-   visual ("etiqueta de marca", mockup var(--primary-600), L159) —
-   semantic.brandText, no un paso de palette suelto.
+/* Kicker: desde la integración de la ola K (crítica externa #15,
+   2026-09-02) es el primitivo compartido src/components/ui/Kicker, el mismo
+   que consume Story -- hasta esa ronda este fichero y Story.tsx declaraban
+   dos ScKicker byte a byte idénticos (mismo rol visual, "etiqueta de marca",
+   mockup var(--primary-600), L159: semantic.brandText, no un paso de palette
+   suelto), y la regla decorativa que lo acompaña solo se pintaba en
+   Story/claro. El primitivo la lleva en las cuatro combinaciones.
 
    Historia, porque su rol ha cambiado dos veces y el código por sí solo no lo
    cuenta. La Task 11 (dieta de ornamento A, 2026-08-09) lo retiró de la rama
@@ -329,11 +334,9 @@ const ScHeader = styled.div`
    responden — segundo kicker del sitio junto al de Story, "¿Por qué
    VoidToInfinite?"). Con la rama oscura ya en posesión de su <h2> real
    (ScDarkTitle, más abajo), este elemento vuelve a ser lo que su nombre
-   dice en las DOS ramas: un kicker overline, nunca un encabezado. */
-const ScKicker = styled(Typography)`
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.data.semantic.brandText};
-`;
+   dice en las DOS ramas: un kicker overline, nunca un encabezado -- y el
+   primitivo compartido lo garantiza por construcción, porque no expone
+   `variant`. */
 
 /* Párrafo de entrada nuevo (D6; mockup L192, color: var(--text-secondary)).
    Mismo mapeo que ScBulletItem/ScBody (más abajo) para ese rol de texto
@@ -1624,9 +1627,7 @@ export function Features(): ReactElement {
                 (ScDarkTitle/ScDarkIntro, fluidas para caber en la
                 pantalla que esta rama compone) y el arte, nunca el texto. */}
             <ScDarkHeader>
-              <ScKicker variant="overline">
-                {t("Home.features.kicker")}
-              </ScKicker>
+              <Kicker>{t("Home.features.kicker")}</Kicker>
               <ScDarkTitle
                 variant="h2"
                 id="features-title"
@@ -1741,7 +1742,7 @@ export function Features(): ReactElement {
             $delayMs={FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}
             data-reveal-delay={FEATURES_LIGHT_REVEAL_DELAYS_MS[0]}
           >
-            <ScKicker variant="overline">{t("Home.features.kicker")}</ScKicker>
+            <Kicker>{t("Home.features.kicker")}</Kicker>
           </ScReveal>
 
           <ScReveal
