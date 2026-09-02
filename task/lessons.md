@@ -2073,3 +2073,11 @@
 - **Regla 3:** un efecto que escribe en el `<head>` de una app App Router necesita defenderse
   del re-commit de metadata: escribir solo-si-difiere bajo un MutationObserver acotado, con
   testigo de propiedad si puede haber más de un consumidor montado.
+
+## 2026-09-02 — Una cadena de shell commiteó con un rojo que no existió
+
+- **Qué pasó:** al validar el candado nuevo del scrollspy (una sección remontada que escribe `data-inview` resincroniza sin scroll) encadené en un solo comando: insertar test → verde → inyectar el observer viejo → «rojo esperado» → restaurar → verde → `git commit`. El paso del rojo dio 29/29 en verde (el bug inyectado NO rompía el test) y la cadena, que usaba `;` en ese punto, siguió y commiteó con un mensaje que afirmaba «rojo observado». Lo vi al leer la salida, no antes.
+- **Por qué el test no se ponía en rojo:** en su último paso mutaba también `contact` (nodo viejo, sí observado por el observer por nodo) y esa mutación disparaba la evaluación que leía el nodo nuevo. El test no aislaba el mecanismo que pretendía candar. Corregido: solo el nodo nuevo muta en el último paso; con el observer viejo da `expected null to be 'story'`.
+- **Regla 1:** un guion que valida un candado con bug inyectado GATEA el commit sobre el rojo (`grep -q failed` sobre la salida, o equivalente); nunca `;` entre el paso del rojo y el commit. Sin rojo observado no hay commit, y desde luego no hay mensaje que lo afirme.
+- **Regla 2:** un test de resincronización por observer muta SOLO el nodo cuyo mecanismo se está probando; cualquier otra mutación en la misma tanda puede disparar el mismo camino por otra vía y dejar el candado sin filo.
+- **Coste:** dos commits locales deshechos con `git reset --soft` (sin push) y rehechos con el rojo real.
