@@ -18,7 +18,7 @@
                 "second": "can become",
                 "third": "a new beginning"
             },
-            "figureAlt": "Celestial figure pointing upward",
+            "figureAlt": "Celestial figure offering an open palm",
             "railLabel": "Story progress",
             "pillars": {
                 "learn": {
@@ -48,7 +48,7 @@
             "title": "Your journey has no final step.",
             "body": "Every discovery creates a new question. Every skill opens another path. The journey continues as long as curiosity remains.",
             "quote": "The destination is not infinity. The journey is.",
-            "figureAlt": "Celestial figure presenting the journey with an open palm",
+            "figureAlt": "Celestial figure pointing upward with an index finger",
             "stepPosition": "Step {{current}} of {{total}}",
             "railLabel": "Journey progress",
             "steps": {

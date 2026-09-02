@@ -18,7 +18,7 @@
                 "second": "puede ser",
                 "third": "un nuevo comienzo"
             },
-            "figureAlt": "Figura celestial señalando hacia arriba",
+            "figureAlt": "Figura celestial ofreciendo la palma abierta",
             "railLabel": "Progreso de la historia",
             "pillars": {
                 "learn": {
@@ -48,7 +48,7 @@
             "title": "Tu viaje no tiene un último paso.",
             "body": "Cada descubrimiento crea una pregunta nueva. Cada habilidad abre otro camino. El viaje continúa mientras quede curiosidad.",
             "quote": "El destino no es el infinito. El viaje lo es.",
-            "figureAlt": "Figura celestial presentando el viaje con la palma abierta",
+            "figureAlt": "Figura celestial señalando hacia arriba con el índice",
             "stepPosition": "Paso {{current}} de {{total}}",
             "railLabel": "Progreso del viaje",
             "steps": {

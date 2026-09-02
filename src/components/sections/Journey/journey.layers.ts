@@ -156,13 +156,24 @@ export const JOURNEY_FIGURE_WIDTH = "240px";
 export const JOURNEY_FIGURE_SIZES = "305px";
 
 /*
- * Intercambio deliberado 2026-07-28 (edicion manual del usuario, en los dos
+ * Intercambio deliberado 2026-07-28 (edición manual del usuario, en los dos
  * lados a la vez: Story.tsx pasa a usar journey-presenting-*): Journey usa
- * la figura que originalmente se genero para Story. El alt de i18n
- * (`Home.journey.figureAlt`, "presentando el viaje con la palma abierta")
- * queda desalineado con el contenido real de esta imagen (una figura
- * senalando hacia arriba) -- señalado al usuario, no corregido aqui sin
- * consultar: el texto alternativo es contenido, no geometria de layout.
+ * el fichero que originalmente se generó para Story, y Story el que se
+ * generó para Journey. El intercambio de IMÁGENES se conserva: es una
+ * decisión de composición del dueño, no un error.
+ *
+ * RESUELTO 2026-09-01 (decisión del dueño: reescribir los dos textos
+ * alternativos desde cero, mirando cada imagen). Durante cinco semanas el alt
+ * de i18n describió la figura de la sección contraria — aquí prometía "el
+ * viaje con la palma abierta" sobre una imagen de una figura con el índice
+ * levantado. Hoy `Home.journey.figureAlt` dice "señalando hacia arriba con
+ * el índice" y `Home.story.figureAlt` dice "ofreciendo la palma abierta",
+ * que es lo que cada fichero contiene de verdad.
+ *
+ * El texto alternativo es CONTENIDO, no geometría de layout: si algún día se
+ * vuelve a mover un fichero de sección, el alt viaja con la imagen, no con
+ * la sección. Un cambio de `JOURNEY_FIGURE_SRC` sin tocar
+ * `Home.journey.figureAlt` vuelve a mentirle al lector de pantalla.
  */
 export const JOURNEY_FIGURE_SRC = "/figures/story-pointing-1024.webp";
 export const JOURNEY_FIGURE_SRC_SMALL = "/figures/story-pointing-640.webp";

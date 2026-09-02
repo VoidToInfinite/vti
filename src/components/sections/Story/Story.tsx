@@ -1628,6 +1628,11 @@ function StoryLight(): ReactElement {
                 figura (D1) -- ver su docblock, mas arriba, para el porque
                 (conflicto @keyframes/transform). */}
             <ScFigureShift>
+              {/* El fichero se llama journey-* a propósito: el 2026-07-28 el
+                  dueño intercambió las dos figuras entre Story y Journey y el
+                  intercambio se conserva. El alt describe LA IMAGEN (la palma
+                  abierta), no el nombre del fichero ni la sección -- ver el
+                  docblock de `JOURNEY_FIGURE_SRC` en journey.layers.ts. */}
               <ScFigureImg
                 src="/figures/journey-presenting-1024.webp"
                 srcSet="/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w"
