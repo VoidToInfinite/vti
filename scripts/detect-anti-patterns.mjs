@@ -254,8 +254,11 @@ const FAMILIES = [
         // que mas facil se cuela aqui. Verificado sobre el corpus real:
         //  - `easing`, `motion.easing.standard`, `REVEAL.easing` NO coinciden
         //    (tras `ease` viene `i`, un caracter de palabra: no hay frontera).
-        //  - `EASE_ENTRANCE` NO coincide (tras `EASE` viene `_`, que para una
-        //    regex TAMBIEN es caracter de palabra).
+        //  - `EASE_ENTRANCE` NO coincidia (tras `EASE` viene `_`, que para
+        //    una regex TAMBIEN es caracter de palabra). Esa constante se
+        //    retiro en la critica externa #14 -- se conserva el ejemplo
+        //    porque el candado de frontera que ilustra sigue vigente para
+        //    cualquier `EASE_*` futuro.
         //  - `decrease`, `release`, `increase`, `please` NO coinciden (antes
         //    de `ease` viene una letra: tampoco hay frontera por delante).
         //  - `linear` queda FUERA de esta familia a proposito: es tambien una
@@ -797,7 +800,7 @@ const ALLOWLIST = [
                 lines: [462],
             },
         ],
-        reason: "Siete bucles ambientales del mascota Sol (respiracion, halo, corona, rayo, nucleo y dos capas de destellos): arte de marca con constantes propias, la misma excepcion de regla 17 de RULES.md que ya cubre EASE_ENTRANCE y el border-radius de este mismo fichero. Los siete son vaivenes infinitos que vuelven al punto de partida, el caso exacto para el que ease-in-out es simetrica y ninguna de las cinco curvas del sistema lo es.",
+        reason: "Siete bucles ambientales del mascota Sol (respiracion, halo, corona, rayo, nucleo y dos capas de destellos): arte de marca con constantes propias, la misma excepcion de regla 17 de RULES.md que ya cubre el border-radius de este mismo fichero (la curva propia EASE_ENTRANCE, que tambien se citaba aqui, dejo de existir en la critica externa #14: se unifico en motion.easing.settle). Los siete son vaivenes infinitos que vuelven al punto de partida, el caso exacto para el que ease-in-out es simetrica y ninguna de las cinco curvas del sistema lo es.",
     },
     {
         family: "easing-keyword",
@@ -878,7 +881,7 @@ const ALLOWLIST = [
                 lines: [494],
             },
         ],
-        reason: "Seis tiempos propios del mascota Sol: el giro de identidad (900ms), el morph que fija el origen (MORPH_MS, 1100ms), la rotacion lenta de los rayos (70s), el centelleo del rayo (6s) y dos capas de destellos (3.4s). Arte de marca con constantes propias, la misma excepcion de regla 17 de RULES.md que ya cubre EASE_ENTRANCE, el border-radius y los siete ease-in-out de este mismo fichero. El docblock de MORPH_MS ya razonaba en el propio codigo por que 1100 no tiene casilla en la escala (la mas larga de la familia de interfaz, slower, mide 480ms); los cinco restantes son bucles ambientales de segundos, un orden de magnitud fuera de cualquier paso de motion.duration.",
+        reason: "Seis tiempos propios del mascota Sol: el giro de identidad (900ms), el morph que fija el origen (MORPH_MS, 1100ms), la rotacion lenta de los rayos (70s), el centelleo del rayo (6s) y dos capas de destellos (3.4s). Arte de marca con constantes propias, la misma excepcion de regla 17 de RULES.md que ya cubre el border-radius y los siete ease-in-out de este mismo fichero. El docblock de MORPH_MS ya razonaba en el propio codigo por que 1100 no tiene casilla en la escala (la mas larga de la familia de interfaz, slower, mide 480ms); los cinco restantes son bucles ambientales de segundos, un orden de magnitud fuera de cualquier paso de motion.duration.",
     },
     {
         family: "duration-literal",
