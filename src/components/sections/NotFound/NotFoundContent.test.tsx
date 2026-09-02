@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { PRESS } from "@/motion/vocabulary";
 import { themes } from "@/theme/themes";
+import { ctaGradientMidStop } from "@/components/layout/Brand/BrandName";
 import { NotFoundContent } from "./NotFoundContent";
 
 /** Texto CSS de las reglas que styled-components inyecto para un elemento
@@ -179,5 +180,73 @@ describe("NotFoundContent", () => {
     expect(css).toContain(
       `max-width: calc(${themes.light.grid.prose} + 2 * ${themes.light.space[6]})`,
     );
+  });
+
+  /*
+   * CRITICA EXTERNA #15, HALLAZGO C 4 -- LAS DOS MITADES DEL MISMO SINTOMA:
+   * "la 404 no es del sitio". El evaluador midio (1) un CTA plano
+   * -- `oklch(0.737 0.158 235.851)`, `padding: 0 24px` -- distinto del boton
+   * primario real del sitio (`ctaGradient`, `padding: 0 32px`, el del hero y
+   * el de Contacto), y (2) un `<main>` de 621 px con 137 px de tinta y 368
+   * vacios bajo el boton.
+   *
+   * Los dos candados se afirman sobre el CSS REALMENTE INYECTADO (jsdom no
+   * pinta ni evalua `@media`, reglas 36/44): lo que se ve en pantalla lo
+   * cierra el integrador en navegador.
+   */
+  it("critica #15 C4: el CTA de vuelta pinta el MISMO degradado que el primario del hero y de Contacto, con el mismo tamano", () => {
+    renderWithProviders(<NotFoundContent />);
+    const enlace = screen.getByRole("link", { name: /volver al inicio/i });
+    const css = cssRuleTextFor(enlace);
+
+    /* Las tres paradas se derivan de la MISMA fuente que consume el
+       componente (`ctaGradient`/`ctaGradientMidStop` en `BrandName.tsx`),
+       nunca de colores escritos a mano aqui: es lo que convierte este test en
+       un candado de "es el mismo degradado" y no en una segunda copia que
+       podria divergir (regla 41). */
+    const paradasEsperadas = [
+      themes.light.semantic.text,
+      themes.light.semantic.brandText,
+      ctaGradientMidStop(themes.light),
+    ];
+    const declaraciones =
+      css.match(/background-image:\s*linear-gradient\([^;]*\);/g) ?? [];
+    expect(
+      declaraciones.length,
+      "el CTA de la 404 volvio a ser un boton de relleno plano: ninguna declaracion background-image: linear-gradient(...)",
+    ).toBeGreaterThan(0);
+    for (const parada of paradasEsperadas) {
+      expect(
+        declaraciones.join(" "),
+        `falta la parada ${parada} de ctaGradient`,
+      ).toContain(parada);
+    }
+
+    /* El tamano sale de `size="lg"` del primitivo, no de un padding propio:
+       esta asercion es ademas la que caza el gotcha `as`/`forwardedAs` -- con
+       `as` sobre una capa `styled(Button)`, styled-components renderiza un
+       `<a>` PELADO y `Button` entero (tamanos incluidos) desaparece, asi que
+       este padding no se declararia. */
+    expect(css.replace(/\s+/g, " ")).toContain(
+      `padding: 0 ${themes.light.space[6]}`,
+    );
+  });
+
+  it("critica #15 C4: el bloque se centra en el alto disponible en vez de quedar pegado al techo", () => {
+    const { container } = renderWithProviders(<NotFoundContent />);
+    const main = container.querySelector("main") as HTMLElement;
+    const css = cssRuleTextFor(main).replace(/\s+/g, " ");
+
+    /* El alto disponible lo entrega `body > main { flex: 1 }`
+       (`GlobalStyles.tsx`), que jsdom NO inyecta (regla 37: `createGlobalStyle`
+       no inyecta nada bajo Vitest), asi que lo que se puede afirmar aqui es la
+       mitad que vive en este componente: que la columna reparte su hueco
+       centrando en vez de amontonar arriba. Que el hueco EXISTE se mide en
+       navegador. */
+    expect(css).toContain("flex-direction: column");
+    expect(
+      css,
+      "sin justify-content la columna vuelve a flex-start: el bloque se pega al techo y deja el vacio debajo",
+    ).toContain("justify-content: center");
   });
 });

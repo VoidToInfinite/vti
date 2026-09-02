@@ -8,6 +8,11 @@ import { routePath } from "@/config/site";
 import styled from "styled-components";
 import { Button } from "@/components/ui/Button/Button";
 import { Typography } from "@/components/ui/Typography/Typography";
+import {
+  ctaGradient,
+  gradientShift,
+} from "@/components/layout/Brand/BrandName";
+import { AMBIENT } from "@/motion/vocabulary";
 
 /*
  * Cuerpo de cliente de la 404 (auditoria SEO 2026-08-08, mismo patron que
@@ -53,10 +58,43 @@ import { Typography } from "@/components/ui/Typography/Typography";
  * para que nadie lo herede al anadir contenido ancho. El `calc` sigue al
  * padding en cada breakpoint (space[5] base, space[6] en `md`).
  */
+/*
+ * CENTRADO VERTICAL (crítica externa #15, hallazgo C 4; la #14 ya había
+ * medido el mismo síntoma como «~330 px de vacío»).
+ *
+ * LO MEDIDO: a 1440x900 el `<main>` de esta página mide 621 px, de los que
+ * 137 son tinta (título + mensaje + botón) y 368 quedan VACÍOS bajo el botón.
+ * El bloque se lee pegado al techo con un desierto debajo, en la única página
+ * cuyo trabajo entero es reorientar a alguien que ya se ha equivocado.
+ *
+ * LA CAUSA NO ES QUE FALTE ALTURA, es que sobra y nadie la reparte: `body`
+ * ya es `display: flex; flex-direction: column; min-height: 100dvh` y
+ * `body > main` ya declara `flex: 1` (los dos en `GlobalStyles.tsx`, Ola B
+ * 2026-08-16, para que el pie llegue siempre al borde inferior). Ese `flex: 1`
+ * es lo que estira este `<main>` hasta los 621 px -- el viewport menos el pie
+ * --, así que el hueco ya está DENTRO de la caja: lo único que faltaba era
+ * decirle a la columna dónde poner su contenido, y el valor inicial de
+ * `justify-content` es `flex-start`.
+ *
+ * POR QUÉ NO SE AÑADE AQUÍ UN `min-height` PROPIO, que es lo primero que
+ * apetece escribir: el alto disponible YA lo entrega el `flex: 1` de arriba,
+ * en `dvh` y descontando el pie -- algo que ningún `min-height` local puede
+ * hacer, porque en CSS este elemento no conoce el alto de su hermano. Un
+ * `min-height: calc(100dvh - var(--nav-height))` daría 844 px a 1440x900 y,
+ * sumado al pie, empujaría a 1123 px una página que hoy cabe entera: una 404
+ * que aparece scrolleada. Se descarta por medición, no por gusto.
+ *
+ * `justify-content: center` no puede dejar contenido inalcanzable por arriba
+ * -- el caso clásico del centrado en flex --: un item flex no baja de su
+ * `min-height: auto` (el tamaño mínimo automático), así que cuando la tinta
+ * crece por encima del hueco (tipografía al 200 %, viewport corto) `main`
+ * mide exactamente su contenido y el centrado no desplaza nada.
+ */
 const ScMain = styled.main`
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: ${({ theme }) => theme.data.space[4]};
   width: 100%;
   max-width: calc(
@@ -85,6 +123,72 @@ const ScMain = styled.main`
    añade el color, sin reimplementar tamaño/peso/interlineado. */
 const ScMessage = styled(Typography)`
   color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+/*
+ * LA SALIDA SE PARECE A LAS OTRAS DOS SALIDAS DEL SITIO (crítica externa
+ * #15, hallazgo C 4).
+ *
+ * LO MEDIDO: este CTA se pintaba con el relleno sólido por defecto de
+ * `Button` (`oklch(0.737 0.158 235.851)`, `padding: 0 24px`) mientras que el
+ * botón primario real del sitio -- el «Leer la historia» del hero
+ * (`ScCtaPrimary`, `Hero.tsx`) y el de envío de Contacto (`ScSubmitButton`,
+ * `Contact.tsx`) -- lleva `ctaGradient` y `padding: 0 32px`. Dos acciones
+ * primarias con dos aspectos distintos: quien aterriza en un error ve un
+ * botón que no ha visto en ninguna otra parte del sitio, justo cuando lo que
+ * necesita es reconocer que sigue dentro de él.
+ *
+ * SE COMPONE, NO SE COPIA. El degradado no se vuelve a escribir: se importa
+ * `ctaGradient` de `BrandName.tsx`, la MISMA fuente que consumen los otros
+ * dos -- con su parada de 65 % resuelta por rama para pasar AA sobre
+ * `semantic.onBrand`, medida y con candado en `BrandName.contrast.test.ts`.
+ * El `padding` no se escribe tampoco: sale de `size="lg"` (`space[6]`), el
+ * mismo tamaño que usa el CTA del hero.
+ *
+ * LA FORMA ES LA DE CONTACTO, no la del hero, y la diferencia es deliberada:
+ * el hero mete el degradado DENTRO de `prefers-reduced-motion: no-preference`
+ * (bajo `reduce` su CTA vuelve al relleno sólido), Contacto lo declara fuera
+ * y apaga solo la animación. Aquí manda el mismo motivo que la corrección:
+ * bajo `reduce` esta salida tiene que seguir siendo reconocible como la
+ * acción primaria del sitio, así que pierde el movimiento y conserva el
+ * degradado estático. Los dos casos pasan AA -- el sólido está auditado en
+ * `contrast.test.ts` y el degradado en `BrandName.contrast.test.ts` --, así
+ * que la elección es de identidad visual, no de contraste.
+ *
+ * NO se copia `ctaGlow` (el resplandor pulsante del hero): es una llamada de
+ * atención para la primera pantalla de la portada, no para una página de
+ * error, y además no está exportado -- traerlo aquí obligaría a tocar
+ * `Hero.tsx`.
+ *
+ * El `:hover` reafirma `ctaGradient` con el MISMO selector que declara
+ * `Button.tsx` en su variante `solid` (`&:hover:not(:disabled)`): esa regla
+ * usa la propiedad ABREVIADA `background`, que resetea `background-image` a
+ * `none`: sin esta reafirmación el degradado desaparecía al pasar el cursor.
+ * Lección ya pagada dos veces en el repo (`task/lessons.md` 2026-07-26, y los
+ * docblocks de `ScCtaPrimary`/`ScSubmitButton`); se aplica igual aquí porque
+ * es el mismo primitivo y el mismo orden de inyección.
+ */
+const ScBackHome = styled(Button)`
+  ${ctaGradient}
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${gradientShift} ${AMBIENT.floatMs}ms linear infinite alternate;
+  }
+
+  /* SIN COMILLAS DE NINGÚN TIPO en este comentario: vive DENTRO del template
+     literal de styled-components, donde un backtick lo cierra y rompe el
+     build (regla 23 de RULES.md, task/lessons.md 2026-07-25 y 2026-08-16).
+     El apagado explícito no confía en el colapso global: el reset de
+     GlobalStyles fuerza animation-iteration-count: 1, que no detiene una
+     animación infinita -- la deja parada en un fotograma arbitrario. Mismo
+     guard, y por el mismo motivo, que ScSubmitButton en Contact.tsx. */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  &:hover:not(:disabled) {
+    ${ctaGradient}
+  }
 `;
 
 export function NotFoundContent(): ReactElement {
@@ -122,13 +226,20 @@ export function NotFoundContent(): ReactElement {
        * docblock de `PRESS` en `vocabulary.ts`: `activeScale: 0.98`,
        * `durationMs: 100`, la misma curva), además de fondo sólido, radio,
        * halo de foco y hover-lift, sin reinventar nada de eso aquí.
-       * `as={Link}`, no `as="a"`: navegación de cliente real dentro del
-       * export estático (`output: "export"`, ver CLAUDE.md), igual que el
-       * enlace que sustituye -- `Button` ya soporta esta forma (su propio
-       * docblock: "Override del elemento. as='a' + href para CTAs que
-       * navegan"), y como se llama SIN envolver con `styled()` encima, no
-       * aplica el gotcha `as`/`forwardedAs` que sí afecta a `ScCtaPrimary`
-       * en Hero.tsx (esa capa SÍ envuelve `Button` con `styled()`).
+       * `forwardedAs={Link}`, no `as={Link}`: navegación de cliente real
+       * dentro del export estático (`output: "export"`, ver CLAUDE.md), igual
+       * que el enlace que sustituye -- `Button` ya soporta esta forma (su
+       * propio docblock: "Override del elemento. as='a' + href para CTAs que
+       * navegan").
+       *
+       * `as` pasó a `forwardedAs` al envolver `Button` con `styled()` (ver el
+       * docblock de `ScBackHome`), y NO es un detalle de estilo: es el gotcha
+       * que `Hero.tsx` ya documenta medido en este repo -- con `as` en una
+       * capa `styled(Button)`, styled-components lo intercepta y renderiza el
+       * elemento PELADO con la clase del envoltorio, descartando `Button`
+       * entero (tamaños, variantes, `ScLabel`, spinner). `forwardedAs` se lo
+       * entrega a `Button` por su propio prop, que es quien sabe qué hacer
+       * con él.
        */}
       {/* La salida conserva el IDIOMA de la URL que fallo (critica externa
           #13): desde esta misma ola `/en/lo-que-sea` responde en ingles, y
@@ -145,12 +256,13 @@ export function NotFoundContent(): ReactElement {
           elemento destino), refactor del primitivo que no cabe en esta ola.
           Coste de dejarlo: una peticion 404 de prefetch RSC por visita a una
           404 -- la pagina menos visitada del sitio. */}
-      <Button
-        as={Link}
+      <ScBackHome
+        forwardedAs={Link}
+        size="lg"
         href={routePath("home", navLocale(i18n.language))}
       >
         {t("notFound.backToHome")}
-      </Button>
+      </ScBackHome>
     </ScMain>
   );
 }
