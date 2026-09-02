@@ -591,17 +591,43 @@ const ScSheetFade = styled.div`
   }
 `;
 
-/* Asa decorativa: la señal universal de "esto es una hoja que se puede
-   retirar". `aria-hidden` y sin texto: no aporta nada a quien no ve la
-   pantalla, que ya tiene el disparador con su `aria-expanded`. */
-const ScSheetHandle = styled.div`
-  align-self: center;
-  width: ${({ theme }) => theme.data.space[7]};
-  height: ${({ theme }) => theme.data.space[1]};
-  flex: none;
-  border-radius: ${({ theme }) => theme.data.radius.full};
-  background: ${({ theme }) => theme.data.semantic.borderStrong};
-`;
+/*
+ * AQUÍ VIVIÓ `ScSheetHandle`, el asa decorativa del borde superior --
+ * "la señal universal de que esto es una hoja que se puede retirar", decía su
+ * comentario. RETIRADA por la crítica #14 (P2), y el motivo es exactamente esa
+ * frase: era una señal de un gesto que no existe.
+ *
+ * EL DEFECTO, medido por el evaluador: el asa era un `<div>` `aria-hidden` sin
+ * un solo manejador. Arrastrada 320 px, la hoja no se movía ni un píxel ni se
+ * cerraba. Una afordancia que promete un gesto que el componente no implementa
+ * es peor que ninguna: enseña al usuario un camino que falla en silencio, y
+ * quien lo intenta no aprende que no existe -- aprende que no funcionó.
+ *
+ * LA DECISIÓN ENTRE LAS DOS SALIDAS (implementar el arrastre o retirar el asa)
+ * cae del lado de retirar, y por tres razones que se sostienen juntas:
+ *
+ * 1. La hoja YA tiene cuatro formas de descartarse, las cuatro implementadas y
+ *    con candado en la suite: Escape (devuelve el foco al disparador), su
+ *    botón de cierre propio, el toque fuera sobre el velo y el scroll de la
+ *    página. El arrastre no añadiría ninguna capacidad nueva: añadiría una
+ *    quinta forma de hacer lo que ya se puede hacer de cuatro maneras.
+ * 2. Implementarlo bien no es "escuchar pointermove": exige capturar el
+ *    puntero, un umbral de distancia y de velocidad, seguir el dedo con
+ *    `transform` sin pelearse con la transición de apertura/cierre, decidir
+ *    qué pasa bajo `prefers-reduced-motion` y no robarle el gesto de scroll a
+ *    la lista de dentro (que sí scrollea, ver `ScSheetScroll`). Nada de eso se
+ *    puede verificar en jsdom, que no hace layout ni tiene Pointer Events
+ *    reales: entraría en el repo sin ningún candado que lo sostenga.
+ * 3. El presupuesto de JavaScript del sitio está medido y ajustado. Un gesto
+ *    que duplica una salida existente no es donde gastarlo.
+ *
+ * LA HOJA SIGUE LEYÉNDOSE COMO HOJA sin el asa, verificado en el CSS y no
+ * supuesto: `ScNavSheet` declara `border-top` explícito (`glass.border`) y
+ * `border-radius: xl xl 0 0` -- esquinas superiores redondeadas y filo
+ * dibujado --, más `elevation[4]`, la sombra más alta de la escala. El lenguaje
+ * de "panel anclado al borde inferior" lo llevan esas tres declaraciones, no el
+ * asa.
+ */
 
 /*
  * Botón de cierre PROPIO de la hoja (Task 35, punto 2 del brief; hallazgo de
@@ -1241,10 +1267,36 @@ export function useNavSheet(): NavSheetController {
       }
     }
 
+    /*
+     * EL TOQUE FUERA DEVUELVE EL FOCO AL DISPARADOR (crítica #14, P2), igual
+     * que ya hacían Escape y el botón de cierre propio.
+     *
+     * EL DEFECTO, medido por el evaluador: tras cerrar con un clic en el velo,
+     * `document.activeElement` quedaba en `BODY`. No es un detalle estético --
+     * es la misma familia que el repo ya pagó dos veces (fix wave A hallazgo
+     * A3, crítica externa #9 punto 1) y por el mismo mecanismo: al cerrarse,
+     * `ScNavSheet` recibe `inert` + `visibility: hidden`, y la focus fixup rule
+     * del HTML resetea a `<body>` el foco que quedara dentro. Quien cerró la
+     * hoja con el dedo o el ratón y luego pulsa Tab no continúa desde el
+     * cabecero: vuelve a empezar la página entera.
+     *
+     * `closeAndFocusTrigger`, no un `focus()` a mano: es la MISMA función que
+     * usan los otros dos caminos, y la que garantiza el orden que importa
+     * (liberar el `inert` del fondo ANTES de mover el foco, ver
+     * `releaseBackgroundInert` -- el disparador vive dentro de la cabecera, que
+     * es uno de los nodos inertizados, así que enfocarlo antes de liberar sería
+     * un no-op silencioso).
+     *
+     * SIN GUARDA de "¿estaba el foco dentro?": con la hoja abierta no puede
+     * estar en otro sitio. El foco entra en su primera fila al abrirse (punto
+     * 6), el ciclo de `handleKeyDown` lo devuelve dentro si se escapara, y el
+     * fondo entero está `inert`. La única razón por la que este manejador se
+     * ejecuta es que alguien tocó el velo.
+     */
     function handlePointerDown(event: PointerEvent): void {
       if (!(event.target instanceof Node)) return;
       if (isInside(event.target)) return;
-      setIsOpen(false);
+      closeAndFocusTrigger();
     }
 
     function handleFocusIn(event: FocusEvent): void {
@@ -1682,10 +1734,30 @@ export function NavSheet({
 
   return (
     <>
+      {/* `onMouseDown` con `preventDefault` es la OTRA MITAD del arreglo del
+          foco al tocar fuera (crítica #14, P2), y sin ella la primera mitad se
+          deshace sola en un navegador real.
+          `handlePointerDown` (`useNavSheet`) corre en `pointerdown`, que
+          precede a `mousedown`; la acción por defecto de `mousedown` sobre un
+          elemento NO focalizable -- este velo es un `<div>` decorativo -- es
+          quitarle el foco a lo que lo tuviera, así que se ejecutaría DESPUÉS
+          de nuestro `focus()` y lo mandaría igualmente a `<body>`. Cancelar
+          esa acción por defecto es el mecanismo estándar para que un clic no
+          mueva el foco, el mismo que se usa para que pulsar un botón no le
+          robe el foco a un campo de texto.
+          jsdom no implementa esa acción por defecto, así que el candado de la
+          suite pasa igual con esta línea y sin ella: queda declarada aquí para
+          quien la lea, y verificada por el integrador en navegador real.
+          No cancela nada más: el velo no tiene ninguna otra acción por defecto
+          que importe (no arrastra selección de texto porque tapa la página
+          entera), y el `click` sigue emitiéndose con normalidad. */}
       <ScSheetVeil
         aria-hidden="true"
         data-nav-sheet-veil
         data-open={isOpen}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
       />
       {/* `role="dialog"` + `aria-modal` (Ola C.1, 2026-08-16). Hasta ahora
           esta hoja tenía TODO el comportamiento de un diálogo —velo opaco
@@ -1741,7 +1813,6 @@ export function NavSheet({
           ref={scrollRef}
           data-nav-sheet-scroll
         >
-          <ScSheetHandle aria-hidden="true" />
           {inSiteGroups.map((group) => (
             <NavSheetGroup
               key={group.key}
