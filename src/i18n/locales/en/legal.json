@@ -34,10 +34,6 @@
                 "vti-theme": {
                     "name": "Theme (light / dark)",
                     "purpose": "Remembers whether you chose the light or the dark theme, so you are not asked again on every visit."
-                },
-                "vti-lang": {
-                    "name": "Language",
-                    "purpose": "Remembers the language you chose (Spanish or English), so you are not asked again on every visit."
                 }
             }
         },
@@ -52,7 +48,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "If you only have a minute: browsing this website gives us no data about you. There is no analytics, no tracking, no advertising and no profiling. The only things stored on your device are the theme and the language you choose yourself."
+                            "text": "If you only have a minute: browsing this website gives us no data about you. There is no analytics, no tracking, no advertising and no profiling. The only thing stored on your device is the theme you choose yourself."
                         },
                         {
                             "kind": "dl",
@@ -63,7 +59,7 @@
                                 },
                                 {
                                     "term": "Purpose",
-                                    "description": "Remembering the theme and language you choose, and replying to you if you decide to email us."
+                                    "description": "Remembering the theme you choose, and replying to you if you decide to email us."
                                 },
                                 {
                                     "term": "Legal basis",
@@ -142,8 +138,8 @@
                             "kind": "dl",
                             "items": [
                                 {
-                                    "term": "Remembering the theme and language you choose",
-                                    "description": "Legal basis: the legitimate interest in giving you the interface you asked for yourself when you pressed the theme switch or the language selector (art. 6.1.f GDPR). This storage is exempt from consent under article 22.2 LSSI-CE, see the «What we store on your device» section."
+                                    "term": "Remembering the theme you choose",
+                                    "description": "Legal basis: the legitimate interest in giving you the interface you asked for yourself when you pressed the theme switch (art. 6.1.f GDPR). This storage is exempt from consent under article 22.2 LSSI-CE, see the «What we store on your device» section."
                                 },
                                 {
                                     "term": "Replying to your message if you write to us",
@@ -159,7 +155,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "The only processing based on legitimate interest (art. 6.1.f GDPR) is remembering the theme and the language, and that interest is simply to give you the preference you chose yourself. No other processing is based on the controller's legitimate interest."
+                            "text": "The only processing based on legitimate interest (art. 6.1.f GDPR) is remembering the theme, and that interest is simply to give you the preference you chose yourself. No other processing is based on the controller's legitimate interest."
                         }
                     ]
                 },
@@ -271,8 +267,8 @@
                             "kind": "dl",
                             "items": [
                                 {
-                                    "term": "Chosen theme and language",
-                                    "description": "They stay on your own device, not on a server of ours, and they do not expire on their own: they remain until you clear this site's data in your browser."
+                                    "term": "Chosen theme",
+                                    "description": "It stays on your own device, not on a server of ours, and it does not expire on its own: it remains until you clear this site's data in your browser."
                                 },
                                 {
                                     "term": "Your email and its content",

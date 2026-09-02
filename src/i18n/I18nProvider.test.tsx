@@ -1,7 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useTranslation } from "react-i18next";
-import { STORAGE_KEYS } from "@/config/storage";
 import enCommon from "./locales/en/common.json";
 import esCommon from "./locales/es/common.json";
 import i18n from "./config";
@@ -98,7 +97,15 @@ describe("I18nProvider — el idioma lo decide la ruta", () => {
    * reintroducir el mismatch y el "idioma sin URL" que esta entrega cierra.
    */
   it("una preferencia guardada NO sobrescribe el idioma de la ruta", async () => {
-    window.localStorage.setItem(STORAGE_KEYS.lang, "en");
+    /*
+     * `"vti-lang"` como LITERAL, no como `STORAGE_KEYS.lang`: la clave se
+     * retiró del registro el 2026-09-02 (D3) y ya no existe en `storage.ts`.
+     * Lo que este candado sigue midiendo no es un valor que el sitio escriba
+     * -- no escribe ninguno -- sino el residuo REAL que un visitante de antes
+     * de la retirada todavía tiene en su navegador: ni siquiera ese resto
+     * puede teñir de inglés la ruta castellana.
+     */
+    window.localStorage.setItem("vti-lang", "en");
 
     const { getByTestId } = render(
       <I18nProvider locale="es">
@@ -114,8 +121,31 @@ describe("I18nProvider — el idioma lo decide la ruta", () => {
     });
   });
 
-  it("sincroniza vti-lang con el idioma de la ruta", async () => {
-    window.localStorage.setItem(STORAGE_KEYS.lang, "es");
+  /*
+   * D3 (decisión del dueño, 2026-09-02): montar este proveedor NO escribe nada
+   * en el equipo del visitante. Sustituye al candado inverso que vivió aquí
+   * ("sincroniza vti-lang con el idioma de la ruta"), que ataba justamente la
+   * escritura que se retira.
+   *
+   * El hallazgo P1 del evaluador Nielsen de la crítica #15 era exactamente
+   * este recorrido: contexto de navegador nuevo, `goto('/')`, cero
+   * interacción, y `localStorage` pasaba de `[]` a `[["vti-lang","es"]]`. La
+   * política de privacidad promete que lo guardado son «preferencias técnicas
+   * que guardan una elección hecha por ti», y aterrizar en una URL no es
+   * elegir nada.
+   *
+   * ESPÍA sobre `setItem`, no una comprobación de que la clave concreta esté
+   * ausente: lo que hay que impedir es la ESCRITURA, sea con el nombre que
+   * sea. Un `getItem("vti-lang")` a null pasaría en verde el día que alguien
+   * reintrodujera la misma escritura con otro nombre de clave.
+   *
+   * Se afirma sobre el prototipo (`Storage.prototype.setItem`) y no sobre
+   * `window.localStorage.setItem`: es donde jsdom tiene el método, y espiar
+   * ahí caza también cualquier escritura hecha a través de `sessionStorage` o
+   * de otra referencia al mismo almacén.
+   */
+  it("montar el proveedor NO escribe nada en localStorage", async () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
 
     render(
       <I18nProvider locale="en">
@@ -123,9 +153,15 @@ describe("I18nProvider — el idioma lo decide la ruta", () => {
       </I18nProvider>,
     );
 
+    // Se espera al efecto (la sincronía de `lang` sí corre tras montar) para
+    // que el candado mire DESPUÉS del punto en el que vivía la escritura, no
+    // antes.
     await waitFor(() => {
-      expect(window.localStorage.getItem(STORAGE_KEYS.lang)).toBe("en");
+      expect(document.documentElement.lang).toBe("en");
     });
+    expect(setItem).not.toHaveBeenCalled();
+
+    setItem.mockRestore();
   });
 
   /*

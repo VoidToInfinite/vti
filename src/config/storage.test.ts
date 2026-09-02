@@ -2,12 +2,14 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import esLegal from "@/i18n/locales/es/legal.json";
+import enLegal from "@/i18n/locales/en/legal.json";
 import { STORAGE_REGISTRY } from "./storage";
 
 describe("STORAGE_REGISTRY", () => {
-  it("declara exactamente vti-theme y vti-lang", () => {
+  it("declara exactamente vti-theme", () => {
     const ids = STORAGE_REGISTRY.map((entry) => entry.id).sort();
-    expect(ids).toEqual(["vti-lang", "vti-theme"]);
+    expect(ids).toEqual(["vti-theme"]);
   });
 
   it("los id no se repiten", () => {
@@ -42,6 +44,62 @@ describe("STORAGE_REGISTRY", () => {
       "vti-consent",
     );
   });
+
+  /*
+   * Mismo candado, misma familia, entrada distinta: `vti-lang` se retiró el
+   * 2026-09-02 (D3, decisión del dueño) porque `I18nProvider` la escribía al
+   * MONTAR -- con el idioma de la ruta, sin que nadie eligiera nada y sin un
+   * solo lector en `src/` ni en `app/`. Reintroducirla en este array volvería
+   * a poner su fila en la tabla de `/privacidad` describiendo «una elección
+   * hecha por ti» que el visitante no ha hecho.
+   */
+  it("no queda rastro de vti-lang", () => {
+    expect(STORAGE_REGISTRY.map((entry) => entry.id)).not.toContain("vti-lang");
+  });
+});
+
+/**
+ * Candado que cruza los DOS ficheros de los que sale la tabla de
+ * `/privacidad` (regla 41 de `RULES.md`: una invariante entre ficheros vive en
+ * un test que importa los dos). `LegalDocument.tsx` pinta una fila por entrada
+ * de `STORAGE_REGISTRY` y resuelve su nombre y su finalidad con
+ * `t("Legal.common.storage.<id>.name"/".purpose")`. Las dos mitades pueden
+ * divergir en los dos sentidos, y ninguna de las dos divergencias es visible
+ * sin este test:
+ *
+ * - Sobra copia (el caso REAL de esta entrega): al retirar `vti-lang` del
+ *   registro, sus dos claves i18n se quedan sin consumidor. La tabla ya no las
+ *   pinta, así que ningún test de render lo nota, y quedan como copia legal
+ *   huérfana describiendo almacenamiento que el sitio no escribe (regla 32).
+ * - Falta copia: una entrada nueva en el registro sin sus claves i18n. i18next
+ *   no lanza -- devuelve la propia ruta -- así que la tabla se pintaría con
+ *   `Legal.common.storage.vti-x.name` en la celda.
+ *
+ * Se comprueba en los DOS idiomas: una fila que existiera solo en castellano
+ * dejaría la tabla inglesa incompleta.
+ */
+describe("la copia legal de la tabla describe EXACTAMENTE lo que declara el registro", () => {
+  const ids = [...STORAGE_REGISTRY.map((entry) => entry.id)].sort();
+
+  it.each([
+    ["es", esLegal],
+    ["en", enLegal],
+  ])(
+    "%s: Legal.common.storage tiene una entrada por id, ni una más",
+    (_lang, legal) => {
+      expect(Object.keys(legal.Legal.common.storage).sort()).toEqual(ids);
+    },
+  );
+
+  it.each([
+    ["es", esLegal],
+    ["en", enLegal],
+  ])(
+    "%s: la fila de idioma retirada no reaparece en la copia",
+    (_lang, legal) => {
+      expect(Object.keys(legal.Legal.common.storage)).not.toContain("vti-lang");
+    },
+  );
 });
 
 /**
@@ -49,11 +107,16 @@ describe("STORAGE_REGISTRY", () => {
  * esta entrega. ANTES `ThemeProvider.tsx`/`I18nProvider.tsx` declaraban su
  * propio literal `const STORAGE_KEY = "vti-theme"` / `"vti-lang"`, y este
  * test comparaba ese literal contra `STORAGE_REGISTRY` para detectar un
- * rename que los desincronizara. AHORA los dos importan `STORAGE_KEYS` de
- * `storage.ts`, así que ya no PUEDEN divergir por construcción -- lo que
- * queda por comprobar, leyendo el CÓDIGO FUENTE real (mismo patrón que
- * `Contact.test.tsx` y `footer.layers.test.ts`), es que de verdad importan
- * de aquí y no han vuelto a declarar un literal propio.
+ * rename que los desincronizara. DESPUÉS los dos importaron `STORAGE_KEYS` de
+ * `storage.ts`, así que dejaron de PODER divergir por construcción -- lo que
+ * quedaba por comprobar, leyendo el CÓDIGO FUENTE real (mismo patrón que
+ * `Contact.test.tsx` y `footer.layers.test.ts`), era que de verdad importaran
+ * de aquí y no hubieran vuelto a declarar un literal propio.
+ *
+ * DESDE D3 (2026-09-02) los dos ficheros ya no se miden con la misma vara:
+ * `ThemeProvider.tsx` sigue siendo un escritor y se comprueba igual;
+ * `I18nProvider.tsx` dejó de escribir, así que su mitad afirma la ausencia
+ * (ver el comentario de su propio `it`).
  */
 describe("sincronía de STORAGE_REGISTRY con las claves de localStorage reales", () => {
   const here = dirname(fileURLToPath(import.meta.url));
@@ -71,16 +134,30 @@ describe("sincronía de STORAGE_REGISTRY con las claves de localStorage reales",
     );
   });
 
-  it("I18nProvider.tsx importa STORAGE_KEYS.lang en vez de declarar su propio literal", () => {
+  /*
+   * AQUÍ VIVIÓ el gemelo de arriba para `I18nProvider.tsx`, que exigía
+   * `STORAGE_KEYS.lang`. D3 (2026-09-02) retira esa clave: el proveedor ya no
+   * escribe NADA, así que la propiedad que hay que atar es la contraria.
+   *
+   * Se comprueba sobre la FUENTE, además del candado de comportamiento que
+   * vive en `I18nProvider.test.tsx` (espía sobre `setItem`), porque los dos
+   * cazan cosas distintas: el espía mira lo que ocurre al montar con el
+   * `locale` que el test pasa; esto mira que no quede ninguna escritura en el
+   * fichero, ni siquiera en una rama que el test no ejercite.
+   */
+  it("I18nProvider.tsx no escribe en localStorage ni conserva el literal retirado", () => {
     const source = readFileSync(
       join(here, "..", "i18n", "I18nProvider.tsx"),
       "utf-8",
     );
-    expect(source).toContain('import { STORAGE_KEYS } from "@/config/storage"');
-    expect(source).toContain("STORAGE_KEYS.lang");
-    expect(source).not.toMatch(/const STORAGE_KEY\s*=\s*"vti-/);
+    const codigo = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(codigo).not.toContain("localStorage");
+    expect(codigo).not.toContain("STORAGE_KEYS");
     expect(STORAGE_REGISTRY.some((entry) => entry.id === "vti-lang")).toBe(
-      true,
+      false,
     );
   });
 });
@@ -95,8 +172,10 @@ describe("sincronía de STORAGE_REGISTRY con las claves de localStorage reales",
  * ya conocemos, este vigila CUALQUIER fichero.
  *
  * Se excluyen los ficheros de test: el propio `STORAGE_REGISTRY` obliga a
- * declarar el literal aquí en las aserciones (`toEqual(["vti-lang", ...`),
- * y decenas de tests de otros componentes siembran
+ * declarar el literal aquí en las aserciones (`toEqual(["vti-theme"])`), el
+ * candado de la clave RETIRADA tiene que nombrarla para prohibirla, el de
+ * `I18nProvider.test.tsx` siembra el residuo que un visitante antiguo aún
+ * tiene en su navegador, y decenas de tests de otros componentes siembran
  * `window.localStorage.setItem("vti-theme", ...)` directamente para no
  * depender de un montaje completo de `ThemeProvider` -- ninguno de los dos
  * usos es un "escritor" que pueda desincronizarse de `storage.ts`, son

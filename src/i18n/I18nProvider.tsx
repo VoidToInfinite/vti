@@ -3,7 +3,6 @@
 import React, { useEffect, type ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import { DEFAULT_LOCALE, type Locale } from "@/config/site";
-import { STORAGE_KEYS } from "@/config/storage";
 import { getI18nInstance } from "./config";
 
 /**
@@ -27,12 +26,28 @@ import { getI18nInstance } from "./config";
  * guardado: sorprendería a quien pide `/` a propósito y rompería el Atrás
  * (encargo explícito del dueño).
  *
- * `vti-lang` SIGUE ESCRIBIÉNDOSE, con el idioma de la ruta en la que el
- * visitante está. Es la preferencia observada, sigue declarada en
- * `STORAGE_REGISTRY` (y por tanto en la tabla de la política de privacidad,
- * que tiene que ser exacta) y queda disponible para cualquier lógica futura.
- * Hoy NADIE la lee: eso está declarado en el informe de la entrega, no
- * escondido aquí.
+ * ESTE PROVEEDOR YA NO ESCRIBE NADA EN EL EQUIPO DEL VISITANTE (D3, decisión
+ * del dueño, 2026-09-02). Hasta aquí seguía guardando `vti-lang` con el idioma
+ * de la ruta, «disponible para cualquier lógica futura». El evaluador Nielsen
+ * de la crítica #15 midió lo que eso significaba de verdad: contexto de
+ * navegador nuevo, `goto('/')`, CERO interacción, y `localStorage` pasaba de
+ * vacío a una única entrada `vti-lang` con valor `es` a los tres segundos —el
+ * literal exacto de la clave no se reproduce aquí a propósito: el candado de
+ * `storage.test.ts` prohíbe ese literal en todo `src/` fuera de
+ * `config/storage.ts`, y un docblock no es excepción. Escritura sin lector —el
+ * censo sobre `src/` y `app/` no encontró ni un `getItem` de esa clave— y, lo
+ * que la hacía insostenible, escritura sin ELECCIÓN: la política de privacidad
+ * declara que lo guardado «son preferencias técnicas que guardan una elección
+ * hecha por ti», y aterrizar en `/` no es elegir nada. Desde la ola G el
+ * idioma vive en la URL (`/` y `/en`), que es donde una elección de idioma sí
+ * queda registrada, así que la clave era además redundante.
+ *
+ * La clave se retira entera: la escritura de aquí, su entrada en
+ * `STORAGE_REGISTRY` (`src/config/storage.ts`) y su fila en la tabla «Qué
+ * guardamos en tu equipo» de la política de privacidad, que se pinta desde ese
+ * mismo registro. El candado que impide que vuelva a colarse vive en
+ * `I18nProvider.test.tsx` (espía sobre `localStorage.setItem`) y en
+ * `storage.test.ts` (`vti-lang` no reaparece en el registro).
  */
 function syncDocumentLang(lang: string): void {
   if (typeof document === "undefined") return;
@@ -62,10 +77,6 @@ export function I18nProvider({
 
   useEffect(() => {
     syncDocumentLang(locale);
-    // Escribir en `localStorage` durante el render rompería el export estático
-    // (no hay `window` al hornear); tras montar es el patrón seguro de siempre,
-    // el mismo que usa `ThemeProvider` para su propia clave.
-    window.localStorage.setItem(STORAGE_KEYS.lang, locale);
   }, [locale]);
 
   return <I18nextProvider i18n={instance}>{children}</I18nextProvider>;

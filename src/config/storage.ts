@@ -23,10 +23,21 @@
  * el usuario, y la Guía de cookies de la AEPD (ed. julio 2023) lista la
  * personalización de interfaz ELEGIDA POR EL PROPIO USUARIO entre esos
  * supuestos: `vti-theme` se escribe cuando la persona pulsa el conmutador de
- * tema, y `vti-lang` cuando elige idioma — sea pulsando el selector (que
- * desde la ola G navega a la URL del otro idioma) o aterrizando directamente
- * en una ruta `/en/*`, que es la misma eleccion expresada como URL. La
- * exencion no cambia: sigue siendo personalizacion pedida por el usuario.
+ * tema, y solo entonces.
+ *
+ * AQUÍ VIVIÓ `vti-lang`, RETIRADA el 2026-09-02 (D3, decisión del dueño). El
+ * argumento que la sostenía era el mismo de arriba —«el idioma también lo
+ * elige la persona»— pero dejó de ser cierto cuando la ola G mudó el idioma a
+ * la URL: desde entonces `I18nProvider` escribía la clave al MONTAR, con el
+ * idioma de la ruta, así que una visita a `/` sin una sola interacción ya
+ * dejaba `vti-lang: "es"` en el equipo (medido por el evaluador Nielsen de la
+ * crítica #15: contexto nuevo, `goto('/')`, `localStorage` de `[]` a
+ * `[["vti-lang","es"]]` en 3 s). Eso no es «una elección hecha por ti», que es
+ * literalmente lo que la política de privacidad promete de esta lista, y
+ * además nadie la leía: el censo sobre `src/` y `app/` no encontró un solo
+ * `getItem`. Con el idioma en la URL la clave era redundante, así que se
+ * retira entera —escritura, entrada de este registro y fila de la tabla legal—
+ * en vez de documentarse como excepción.
  *
  * REGLA DURA para quien añada algo aquí: este fichero solo admite
  * almacenamiento técnico exento. El día que entre una tecnología NO exenta
@@ -36,21 +47,25 @@
  */
 
 /**
- * Las dos claves literales de `localStorage`, declaradas UNA sola vez.
+ * La clave literal de `localStorage`, declarada UNA sola vez.
  *
- * Antes de esta entrega, `ThemeProvider.tsx`, `I18nProvider.tsx` y
+ * Hubo un tiempo en que `ThemeProvider.tsx`, `I18nProvider.tsx` y
  * `LanguageSelector.tsx` mantenían cada uno su propio `const STORAGE_KEY =
  * "vti-theme"` / `"vti-lang"` — tres copias del mismo literal que solo
  * coincidían por disciplina, no por construcción. Un rename en cualquiera de
  * los tres habría dejado la tabla legal de `/privacidad` mintiendo sobre lo
  * que el sitio realmente escribe (art. 22.2 LSSI-CE exige que esa tabla sea
- * exacta). Los tres consumidores ahora importan `STORAGE_KEYS` de aquí; el
- * candado en `storage.test.ts` falla si alguien vuelve a declarar el literal
- * fuera de este fichero.
+ * exacta). El consumidor que queda importa `STORAGE_KEYS` de aquí; el candado
+ * en `storage.test.ts` falla si alguien vuelve a declarar el literal fuera de
+ * este fichero.
+ *
+ * Que hoy quede UNA sola clave no convierte este objeto en un envoltorio
+ * innecesario: sigue siendo el único punto donde el literal existe, y es lo
+ * que ata el registro de abajo, los tres consumidores del tema y la tabla de
+ * `/privacidad` al mismo string.
  */
 export const STORAGE_KEYS = {
   theme: "vti-theme",
-  lang: "vti-lang",
 } as const;
 
 export interface StorageEntry {
@@ -76,12 +91,6 @@ export interface StorageEntry {
 export const STORAGE_REGISTRY: readonly StorageEntry[] = [
   {
     id: STORAGE_KEYS.theme,
-    kind: "localStorage",
-    durationDays: null,
-    provider: "first-party",
-  },
-  {
-    id: STORAGE_KEYS.lang,
     kind: "localStorage",
     durationDays: null,
     provider: "first-party",

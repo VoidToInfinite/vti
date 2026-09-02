@@ -34,10 +34,6 @@
                 "vti-theme": {
                     "name": "Tema (claro / oscuro)",
                     "purpose": "Recuerda si elegiste el tema claro o el oscuro, para no volver a preguntártelo en cada visita."
-                },
-                "vti-lang": {
-                    "name": "Idioma",
-                    "purpose": "Recuerda el idioma que elegiste (español o inglés), para no volver a preguntártelo en cada visita."
                 }
             }
         },
@@ -52,7 +48,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "Si solo tienes un minuto: navegar por esta web no nos da ningún dato sobre ti. No hay analítica, ni seguimiento, ni publicidad, ni perfiles. Lo único que se guarda en tu equipo son el tema y el idioma que tú mismo elijas."
+                            "text": "Si solo tienes un minuto: navegar por esta web no nos da ningún dato sobre ti. No hay analítica, ni seguimiento, ni publicidad, ni perfiles. Lo único que se guarda en tu equipo es el tema que tú mismo elijas."
                         },
                         {
                             "kind": "dl",
@@ -63,7 +59,7 @@
                                 },
                                 {
                                     "term": "Finalidad",
-                                    "description": "Recordar el tema y el idioma que elijas, y responderte si decides escribirnos por correo."
+                                    "description": "Recordar el tema que elijas, y responderte si decides escribirnos por correo."
                                 },
                                 {
                                     "term": "Legitimación",
@@ -142,8 +138,8 @@
                             "kind": "dl",
                             "items": [
                                 {
-                                    "term": "Recordar el tema y el idioma que elijas",
-                                    "description": "Base legal: el interés legítimo en ofrecerte la interfaz que tú mismo pediste al pulsar el conmutador de tema o el selector de idioma (art. 6.1.f RGPD). Este almacenamiento está exento de consentimiento por el artículo 22.2 LSSI-CE, ver el apartado «Qué guardamos en tu equipo»."
+                                    "term": "Recordar el tema que elijas",
+                                    "description": "Base legal: el interés legítimo en ofrecerte la interfaz que tú mismo pediste al pulsar el conmutador de tema (art. 6.1.f RGPD). Este almacenamiento está exento de consentimiento por el artículo 22.2 LSSI-CE, ver el apartado «Qué guardamos en tu equipo»."
                                 },
                                 {
                                     "term": "Responder a tu mensaje si nos escribes",
@@ -159,7 +155,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "El único tratamiento que se apoya en el interés legítimo (art. 6.1.f RGPD) es recordar el tema y el idioma, y ese interés es simplemente ofrecerte la preferencia que tú mismo elegiste. No se realiza ningún otro tratamiento basado en el interés legítimo del responsable."
+                            "text": "El único tratamiento que se apoya en el interés legítimo (art. 6.1.f RGPD) es recordar el tema, y ese interés es simplemente ofrecerte la preferencia que tú mismo elegiste. No se realiza ningún otro tratamiento basado en el interés legítimo del responsable."
                         }
                     ]
                 },
@@ -271,8 +267,8 @@
                             "kind": "dl",
                             "items": [
                                 {
-                                    "term": "Tema e idioma elegidos",
-                                    "description": "Se quedan en tu propio equipo, no en un servidor nuestro, y no caducan por sí solos: permanecen hasta que borres los datos de este sitio en tu navegador."
+                                    "term": "Tema elegido",
+                                    "description": "Se queda en tu propio equipo, no en un servidor nuestro, y no caduca por sí solo: permanece hasta que borres los datos de este sitio en tu navegador."
                                 },
                                 {
                                     "term": "Tu correo y su contenido",
