@@ -248,7 +248,13 @@ const ScInner = styled.div`
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-    padding-inline: ${({ theme }) => theme.data.space[6]};
+    /* Mismo raíl que las secciones acotadas de la home: containerMax +
+       space[5], igual que ScFeatures y ScContact. Hasta la crítica externa
+       #14 (2026-09-02) este bloque subía a space[6] y el texto del pie
+       arrancaba en x=152 a 1440 px mientras Features y Contacto arrancaban
+       en 144 -- cuatro raíles distintos medidos (144/152/156/177) que se
+       leían como desalineación, no como decisión. */
+    padding-inline: ${({ theme }) => theme.data.space[5]};
   }
 `;
 
