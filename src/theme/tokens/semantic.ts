@@ -22,13 +22,17 @@ import { color } from "./color";
  * mismo union de `ButtonIntent` mapeaba precisamente a `error`, y por eso no
  * se lleva nada consigo.
  *
- * PENDIENTE fuera de este fichero, declarado en vez de corregido en silencio
- * desde una tarea que no es dueña de esas piezas: la rampa primitiva
- * `color.success` (`color.ts`) se queda — retirar un hue entero de la paleta
- * toca las tablas compartidas por los seis y su propio contrato
- * (`color.test.ts`), una decisión con más alcance del que cierra este censo —
- * y desde hoy no la consume ningún rol semántico; `DESIGN.md` §2.2 sigue
- * listando `success` en las tablas de roles de los dos temas.
+ * CERRADO en la crítica externa #14 (2026-09-02): el PENDIENTE que este
+ * docblock dejaba abierto —la rampa primitiva `color.success` seguía viva en
+ * `color.ts` sin ningún rol semántico que la consumiera— se resolvió
+ * retirándola también, con su propio censo de consumidores (cero) y las tres
+ * líneas de contrato de `color.test.ts` actualizadas en el mismo cambio. El
+ * alcance que aquella revisión estimó como "más del que cierra este censo"
+ * resultó ser eso: tres líneas de test. Ver el docblock de `color` en
+ * `color.ts` para el detalle.
+ *
+ * SIGUE PENDIENTE, fuera del alcance de este fichero: `DESIGN.md` §2.2 lista
+ * `success` en la tabla de rampas y en las tablas de roles de los dos temas.
  */
 export interface SemanticColors {
   bg: string;
@@ -91,7 +95,69 @@ export const semanticLight: SemanticColors = {
 
 export const semanticDark: SemanticColors = {
   bg: color.secondary[1100],
-  surface: color.neutral[1000],
+  /*
+   * Crítica externa #14 (2026-09-02): `surface` sube de `neutral[1000]`
+   * (`oklch(0.32 0 286)`, croma CERO) a `secondary[1000]`
+   * (`oklch(0.32 0.13 311.928)`), el escalón inmediatamente superior de la
+   * MISMA rampa de la que sale `bg` (`secondary[1100]`).
+   *
+   * El defecto medido: en la hoja de navegación móvil del tema oscuro, el
+   * panel se pintaba gris `rgb(51, 51, 51)` sobre un fondo morado
+   * `rgb(40, 7, 57)`. No es un problema de contraste (el gris libraba AA de
+   * sobra) sino de FAMILIA: un panel acromático flotando sobre un fondo con
+   * croma 0,093 se lee como una pieza de otro sistema, y el tema claro no
+   * tiene esa asimetría — allí `bg` y `surface` son los dos neutros.
+   *
+   * Por qué el escalón de la rampa de marca y no un croma intermedio
+   * inventado: en la escala de 12 pasos, L = 0,32 solo existe en el paso
+   * 1000, así que "el mismo hue que `bg`, un paso más claro" tiene UNA sola
+   * respuesta dentro del sistema. Fabricar una rampa nueva de neutro teñido
+   * habría añadido doce valores y una decisión de croma sin ancla para
+   * conseguir lo mismo con menos justificación.
+   *
+   * Contraste MEDIDO con el `contrastRatio` de este mismo directorio, contra
+   * los roles que se pintan encima. Todos SUBEN: a igual L, el croma baja
+   * ligeramente la luminancia relativa, así que la superficie nueva es algo
+   * más oscura que el gris que sustituye.
+   *
+   * | par (tema oscuro)      | antes  | ahora  |
+   * |------------------------|--------|--------|
+   * | `text` / `surface`     | 12.150 | 12.904 |
+   * | `textMuted` / `surface`|  8.284 |  8.797 |
+   * | `textSubtle`/`surface` |  6.331 |  6.724 |
+   * | `focus` / `surface`    |  6.428 |  6.826 |
+   * | `brandSolid`/`surface` |  5.570 |  5.916 |
+   * | `warning` / `surface`  |  5.277 |  5.604 |
+   * | `error` / `surface`    |  4.071 |  4.324 |
+   *
+   * Lo único que BAJA es la separación de luminancia contra `bg`, de 1.403:1
+   * a 1.321:1 — el precio de compartir hue —, y sigue siendo el mismo salto
+   * de elevación de un paso de rampa que el tema claro resuelve con blanco
+   * sobre `neutral[50]` (1.08:1, cuatro veces menos separación que esta).
+   */
+  surface: color.secondary[1000],
+  /*
+   * `surfaceSunken` NO se tiñe, y la medición es la razón. Comparte L (0,22)
+   * con `bg`, así que su separación de luminancia contra el fondo es de
+   * 1.027:1 — prácticamente nula: lo ÚNICO que hoy distingue una superficie
+   * hundida del fondo de página en tema oscuro es que una es acromática y el
+   * otro tiene croma. Darle el croma de la marca la haría desaparecer contra
+   * `bg` (1.017:1 con el hue ya compartido), y no hay ningún paso por debajo
+   * del 1100 al que bajarla para recuperar la separación por luminancia.
+   *
+   * Es decir: en `surface` el croma se puede unificar porque la elevación ya
+   * la lleva la L; en `surfaceSunken` el croma ES la señal. Los consumidores
+   * reales de este rol en oscuro —el fondo del footer, los bloques de nota y
+   * de código de las páginas legales, el panel de respaldo de Contacto—
+   * dependen de leerse como una caja distinta del fondo.
+   *
+   * Los roles de TEXTO (`text`/`textMuted`/`textSubtle`) y `onBrand` también
+   * siguen en la rampa neutra, y también a propósito: teñir un texto casi
+   * blanco es una decisión tipográfica con efecto en todos los fondos del
+   * tema, no la corrección de asimetría que esta revisión mide. `border`/
+   * `borderStrong` se quedan por el mismo motivo más uno propio:
+   * `Journey.test.tsx` ata sus valores contra el void de la escena.
+   */
   surfaceSunken: color.neutral[1100],
   border: color.neutral[800],
   borderStrong: color.neutral[700],

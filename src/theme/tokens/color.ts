@@ -37,10 +37,41 @@ function neutral(): Ramp {
   return out;
 }
 
+/**
+ * Cinco rampas, no las seis que hubo hasta la crítica externa #14
+ * (2026-09-02).
+ *
+ * RETIRADA en esa revisión — `success` (hue 140, croma pico 0,17) — con censo
+ * propio de consumidores previo sobre `src/` y `app/` (`color.success`,
+ * `palette.success`, `theme.data.palette.success`, acceso por corchete y
+ * desestructuración): **cero**. Su única aparición en código era su propia
+ * declaración aquí más las tres del contrato de `color.test.ts` (la tabla de
+ * hues y las dos de croma pico), y una mención en prosa en el docblock de
+ * `brandAccentContrast.test.ts`. Doce valores OKLCH generados en cada carga
+ * para nadie.
+ *
+ * No es una retirada aislada: es el segundo paso de la que empezó la crítica
+ * externa #10 (2026-08-18), cuando el ROL semántico `success` se retiró de
+ * `semantic.ts` por tener un consumidor único e inalcanzable (la rama
+ * `intent === "success"` de `Button.tsx`, que ningún call site de producción
+ * podía activar). Aquella revisión dejó la rampa primitiva viva y lo declaró
+ * por escrito: "retirar un hue entero de la paleta toca las tablas
+ * compartidas por los seis y su propio contrato, una decisión con más alcance
+ * del que cierra este censo". Ese alcance es el de esta entrega, y las tablas
+ * resultaron ser tres líneas de test.
+ *
+ * Sus dos vecinas SIGUEN VIVAS y no se tocan, cada una con un rol semántico y
+ * un consumidor real: `warning` la pinta el callout de las páginas legales y
+ * `error` la validación del formulario de contacto (ver `semantic.ts`).
+ *
+ * Si algún día el producto necesita un estado de éxito —un formulario
+ * enviado, una copia confirmada—, la rampa vuelve en el MISMO commit que su
+ * rol semántico y su consumidor, no antes: es el criterio que este repo ya
+ * aplicó a `REVEAL.stepMs`, a `space.px` y a `grid.columns`.
+ */
 export const color = {
   primary: ramp(235.851, 0.158),
   secondary: ramp(311.928, 0.259),
-  success: ramp(140, 0.17),
   warning: ramp(70, 0.16),
   error: ramp(12, 0.24),
   neutral: neutral(),

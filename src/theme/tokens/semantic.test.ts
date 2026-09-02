@@ -111,7 +111,17 @@ describe("semantic colors", () => {
         // Fondo del body pedido explicitamente por el usuario (2026-07-30):
         // secondary[1100] en vez de neutral[1100].
         bg: color.secondary[1100],
-        surface: color.neutral[1000],
+        /*
+         * Crítica externa #14 (2026-09-02): sube de `neutral[1000]` (croma 0)
+         * a `secondary[1000]` — el escalón inmediatamente superior de la misma
+         * rampa de la que sale `bg`. Ver el docblock de `semantic.ts` para el
+         * defecto medido (panel gris sobre fondo morado en la hoja móvil
+         * oscura), por qué no se inventa un croma intermedio, y la tabla de
+         * los siete pares recalculados. `surfaceSunken` NO cambia, y ahí la
+         * medición manda en sentido contrario: comparte L con `bg`, así que su
+         * croma cero ES lo único que la separa del fondo.
+         */
+        surface: color.secondary[1000],
         surfaceSunken: color.neutral[1100],
         border: color.neutral[800],
         borderStrong: color.neutral[700],
@@ -127,6 +137,73 @@ describe("semantic colors", () => {
         error: color.error[500],
       };
       expect(semanticDark).toEqual(expected);
+    });
+
+    /*
+     * Candado de la corrección de asimetría de croma (crítica externa #14,
+     * 2026-09-02). El `toEqual` de arriba ata el VALOR; esto ata la
+     * PROPIEDAD que motivó el cambio, que es lo que tiene que seguir siendo
+     * cierto aunque mañana `bg` se mueva a otro escalón por decisión del
+     * dueño: la superficie elevada del tema oscuro pertenece a la misma
+     * familia de color que el fondo sobre el que flota.
+     */
+    it("surface comparte hue y croma real con bg en vez de ser acromática (el defecto medido en la hoja móvil oscura)", () => {
+      const hue = (c: string): number =>
+        Number(c.split(" ")[2].replace(")", ""));
+      const croma = (c: string): number => Number(c.split(" ")[1]);
+
+      expect(hue(semanticDark.surface)).toBe(hue(semanticDark.bg));
+      expect(croma(semanticDark.surface)).toBeGreaterThan(0);
+
+      // Sonda de no-vacuidad: el valor VIEJO (neutral[1000]) fallaba las dos
+      // aserciones de arriba, así que el test mide algo real y no una
+      // tautología sobre cualquier par de tokens.
+      expect(hue(color.neutral[1000])).not.toBe(hue(semanticDark.bg));
+      expect(croma(color.neutral[1000])).toBe(0);
+    });
+
+    it("el cambio de surface no baja ningún par de contraste: los siete suben", () => {
+      const antes = color.neutral[1000];
+      const roles = [
+        "text",
+        "textMuted",
+        "textSubtle",
+        "focus",
+        "brandSolid",
+        "warning",
+        "error",
+      ] as const;
+
+      for (const rol of roles) {
+        const ahora = contrastRatio(semanticDark[rol], semanticDark.surface);
+        expect(
+          ahora,
+          `${rol} sobre surface da ${ahora.toFixed(3)}:1`,
+        ).toBeGreaterThan(contrastRatio(semanticDark[rol], antes));
+      }
+    });
+
+    /*
+     * La otra mitad de la decisión, afirmada en positivo para que nadie la
+     * "arregle" por simetría: `surfaceSunken` comparte L con `bg`, así que su
+     * croma cero es lo ÚNICO que la separa del fondo de página. Teñirla la
+     * haría desaparecer.
+     */
+    it("surfaceSunken se queda acromática a propósito: comparte luminosidad con bg y el croma es su única señal", () => {
+      const luminosidad = (c: string): number =>
+        Number(c.slice("oklch(".length).split(" ")[0]);
+      const croma = (c: string): number => Number(c.split(" ")[1]);
+
+      expect(luminosidad(semanticDark.surfaceSunken)).toBe(
+        luminosidad(semanticDark.bg),
+      );
+      expect(croma(semanticDark.surfaceSunken)).toBeLessThan(
+        croma(semanticDark.bg) / 10,
+      );
+      // Separación de luminancia real contra el fondo: prácticamente nula.
+      expect(
+        contrastRatio(semanticDark.surfaceSunken, semanticDark.bg),
+      ).toBeLessThan(1.05);
     });
   });
 });

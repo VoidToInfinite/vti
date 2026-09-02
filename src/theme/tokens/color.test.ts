@@ -46,6 +46,15 @@ describe("color primitives", () => {
     });
   });
 
+  /*
+   * Cinco rampas, no seis: `success` se retiró en la crítica externa #14
+   * (2026-09-02) por cero consumidores en todo el repo — ver el docblock de
+   * `color` en `color.ts`. Las tres tablas de este fichero (hues y las dos de
+   * croma pico) se actualizan en el mismo cambio en vez de dejar una clave
+   * que resolvería a `undefined`: como `hues` está tipado contra
+   * `keyof typeof color`, reintroducir la rampa sin volver aquí rompe el
+   * typecheck, que es exactamente la propiedad que se quiere conservar.
+   */
   it("cada rampa de hue usa su ancla en todos los pasos", () => {
     const hues: Record<
       keyof typeof color,
@@ -53,7 +62,6 @@ describe("color primitives", () => {
     > = {
       primary: 235.851,
       secondary: 311.928,
-      success: 140,
       warning: 70,
       error: 12,
       neutral: 286,
@@ -74,7 +82,6 @@ describe("color primitives", () => {
     const peakChromas: Record<string, number> = {
       primary: 0.158,
       secondary: 0.259,
-      success: 0.17,
       warning: 0.16,
       error: 0.24,
     };
@@ -90,7 +97,6 @@ describe("color primitives", () => {
     const peakChromas: Record<string, number> = {
       primary: 0.158,
       secondary: 0.259,
-      success: 0.17,
       warning: 0.16,
       error: 0.24,
     };
