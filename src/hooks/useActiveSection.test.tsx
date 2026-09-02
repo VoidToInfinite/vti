@@ -252,8 +252,9 @@ function applyFindingInviewSignal(scrollY: number): void {
  * Bug inyectado a propósito (regla 34), ejecutado en esta tarea: sustituir el
  * `return contiene ?? dominante;` de `resolveAmongCandidates()` por el
  * desempate viejo (`candidatas[candidatas.length - 1].id`, la última en orden
- * de página). Salida literal con él: 7 fallidos y 17 en verde de los 24 del
- * fichero -- 6 de los 9 de este describe (entre ellos la posición 2500 del
+ * de página). Salida literal con él: 7 fallidos y 17 en verde de los 24 que el
+ * fichero tenía ENTONCES (la crítica #14 añadió cuatro después, al final)
+ * -- 6 de los 9 de este describe (entre ellos la posición 2500 del
  * hallazgo, "expected 'features' to be 'journey'") más el test reescrito del
  * primer describe. Restaurada la línea, los 24 vuelven a verde. Los 3 que NO
  * caen son los dos de empate exacto y el de una sola candidata: ahí las dos
@@ -344,22 +345,44 @@ describe("useActiveSectionKey: gana la sección del punto de referencia del view
     expect(result.current).toBe("journey");
   });
 
-  it("con una sola candidata NO se mide geometría: la señal ya decide", () => {
-    // Candado del coste declarado en el docblock de `resolveActiveKey()`: la
-    // resolución por geometría no puede convertirse en un
-    // `getBoundingClientRect()` por sección y por evento en el camino normal,
-    // que es el que corre en la rama clara.
+  /*
+   * REESCRITO el 2026-09-02 (crítica externa #14). Hasta hoy este test se
+   * llamaba "con una sola candidata NO se mide geometría: la señal ya decide"
+   * y afirmaba, con un espía sobre `getBoundingClientRect`, que la señal se
+   * devolvía SIN comprobar nada. Era el candado que sostenía la premisa falsa
+   * del docblock de `resolveActiveKey()`, y el P0 de la crítica es su
+   * consecuencia exacta: una señal fosilizada en un nodo sin dueño se
+   * convertía en la respuesta del módulo en toda la página. Lo que se conserva
+   * del test original es su intención -- que la resolución del camino normal
+   * no mida más de lo que necesita --; lo que cambia es que ese "lo que
+   * necesita" incluye ahora confirmar a la candidata.
+   */
+  it("con una sola candidata SÍ se mide geometría: la señal se valida, no se cree", () => {
     setInView("features", true);
     const el = document.getElementById("features");
     if (!el) throw new Error("no existe la sección de prueba #features");
-    const rectSpy = vi.fn(() => ({ top: 0, height: 0, bottom: 0 }) as DOMRect);
+    const rectSpy = vi.fn(
+      () => ({ top: 100, height: 800, bottom: 900 }) as DOMRect,
+    );
     el.getBoundingClientRect = rectSpy;
+    // Y solo la candidata: mientras la señal se sostenga, las otras tres NO se
+    // miden -- el coste que el docblock sí declara, y ese no ha cambiado.
+    const otrosSpies = SECTION_IDS.filter((id) => id !== "features").map(
+      (id) => {
+        const otro = document.getElementById(id);
+        if (!otro) throw new Error(`no existe la sección de prueba #${id}`);
+        const spy = vi.fn(() => ({ top: 0, height: 0, bottom: 0 }) as DOMRect);
+        otro.getBoundingClientRect = spy;
+        return spy;
+      },
+    );
 
     const { result } = renderHook(() => useActiveSectionKey());
     fireScroll();
 
     expect(result.current).toBe("features");
-    expect(rectSpy).not.toHaveBeenCalled();
+    expect(rectSpy).toHaveBeenCalled();
+    for (const spy of otrosSpies) expect(spy).not.toHaveBeenCalled();
   });
 
   it("bajo prefers-reduced-motion, con las cuatro clavadas en data-inview=true, misma regla y misma respuesta", () => {
@@ -732,5 +755,126 @@ describe("useActiveSectionKey sin señal data-inview en el árbol (rama oscura)"
    * test es el complementario -- se comprueba que sigue verde con la
    * condición puesta, porque su función es impedir que el arreglo se pase de
    * largo y pise la rama clara.
+   */
+});
+
+/*
+ * CRÍTICA EXTERNA #14 (2026-09-02), P0 y su derivado P2, los dos reproducidos
+ * byte a byte en Chrome real antes de tocar nada.
+ *
+ * P0: tras conmutar el tema con la lectura en Características, `features`
+ * conservaba `data-inview="true"` y `contact` `"false"` -- fósiles escritos por
+ * la rama clara sobre nodos que React REUTILIZA entre ramas (ver el bloque
+ * "DUEÑO DEL NODO Y RETRACCIÓN" de `useSectionProgress.ts`, arreglado en la
+ * misma ola). Con una sola candidata, este módulo la devolvía SIN mirar
+ * geometría, así que `aria-current` decía `/#features` en las cinco posiciones
+ * barridas (centro real: hero, story, journey, journey, about) y el enlace de
+ * idioma aterrizaba en `scrollY = 13.372` de la home inglesa.
+ *
+ * P2: con `scrollY = 0` en claro, el centro del viewport está en el Hero pero
+ * Story ya asoma por abajo -- única candidata --, así que el respaldo por
+ * dominancia la elegía: `/#story`. En oscuro, misma posición, `null`. Dos
+ * temas, dos respuestas.
+ *
+ * POR QUÉ LA SUITE ESTABA VERDE CON LOS DOS DEFECTOS DELANTE: todos los tests
+ * de arriba escriben la señal Y la geometría de acuerdo entre sí (o pilotan
+ * solo la señal), que es exactamente el estado que el defecto rompe. Ninguno
+ * preguntaba qué pasa cuando la señal MIENTE, ni comparaba la respuesta de los
+ * dos caminos en la MISMA posición.
+ */
+describe("useActiveSectionKey: la señal se valida contra geometría (crítica externa #14)", () => {
+  it("una candidata fosilizada muy por DEBAJO del viewport no gana: contesta la geometría de las cuatro", () => {
+    // `features` quedó marcada por la rama clara y su nodo sobrevivió al
+    // cambio de tema; el lector está en Viaje, que no declara el atributo (su
+    // deck oscuro es un componente distinto y remontó sin él).
+    setInView("features", true);
+    setRect("story", -900, 800);
+    setRect("journey", 100, 800); // contiene el centro (400)
+    setRect("features", 3000, 800);
+    setRect("contact", 5000, 800);
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("journey");
+    expect(result.current).not.toBe("features");
+  });
+
+  it("y tampoco si el fósil quedó muy por ENCIMA del viewport", () => {
+    // La otra mitad del barrido medido: con el lector al final de la página,
+    // el fósil de Características ya salió por arriba hace miles de píxeles.
+    setInView("features", true);
+    setRect("story", -9000, 800);
+    setRect("journey", -5000, 800);
+    setRect("features", -3000, 800);
+    setRect("contact", 100, 800); // contiene el centro (400)
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("contact");
+  });
+
+  it("con el centro del viewport en el Hero la respuesta es null, y es la MISMA con señal y sin ella", () => {
+    // Geometría del P2: Story asoma 100 px por el borde inferior, pero el
+    // centro (400 de 800) sigue en el Hero, que no tiene entrada de navegación.
+    //
+    // Los dos caminos se ejercitan sobre la MISMA geometría a propósito. Lo
+    // que la crítica midió fueron dos respuestas distintas (claro `/#story`,
+    // oscuro `null`) en la misma posición de scroll, pero la geometría real de
+    // los dos temas no coincide -- son dos maquetados distintos --, así que
+    // reproducir aquí esas dos cifras sería inventarse un dato. Lo que sí es
+    // reproducible, y es la propiedad que hace irrelevante el tema, es que la
+    // REGLA conteste lo mismo cuando la geometría es la misma.
+    function colocarEnElHero(): void {
+      setRect("story", 700, 800);
+      setRect("journey", 1600, 800);
+      setRect("features", 2500, 800);
+      setRect("contact", 3400, 800);
+    }
+
+    // Rama OSCURA: nadie escribe el atributo, resuelve por geometría.
+    colocarEnElHero();
+    const oscuro = renderHook(() => useActiveSectionKey());
+    fireScroll();
+    expect(oscuro.result.current).toBeNull();
+    oscuro.unmount();
+
+    // Rama CLARA: el IntersectionObserver (threshold 0) marca Story, que sí
+    // asoma. Misma posición, misma respuesta.
+    colocarEnElHero();
+    for (const id of SECTION_IDS) setInView(id, id === "story");
+    const claro = renderHook(() => useActiveSectionKey());
+    fireScroll();
+    expect(claro.result.current).toBeNull();
+  });
+
+  it("en cuanto el centro entra en la primera sección, la respuesta vuelve a existir", () => {
+    // Frontera del candado anterior: un píxel más de scroll y Story contiene
+    // el punto de referencia. La regla del Hero no puede apagar el resaltado
+    // más allá de su propio tramo.
+    setRect("story", 400, 800); // [400, 1200): contiene el centro (400)
+    setRect("journey", 1300, 800);
+    setRect("features", 2200, 800);
+    setRect("contact", 3100, 800);
+    for (const id of SECTION_IDS) setInView(id, id === "story");
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("story");
+  });
+
+  /*
+   * Bugs inyectados a propósito (regla 34), ejecutados en esta tarea -- rojo
+   * literal en el informe de la ola J:
+   *
+   * - Devolver `conSenalActiva[0].id` sin validar (la versión anterior a la
+   *   crítica #14) pone en rojo los dos primeros tests de este describe.
+   * - Hacer que `resolveVisibleSection()` llame a `resolveAmongCandidates()`
+   *   sin la guarda de `referenceReachedFirstSection()` pone en rojo el
+   *   tercero ("expected 'story' to be null"), y lo pone en su PRIMERA
+   *   aserción: sin la guarda, la dominancia elige Story en los DOS caminos,
+   *   no solo en el de la señal.
    */
 });

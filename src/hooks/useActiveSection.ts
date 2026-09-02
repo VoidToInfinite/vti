@@ -114,6 +114,36 @@ function intersectsViewport(rect: DOMRect): boolean {
   return rect.top < window.innerHeight && rect.bottom > 0;
 }
 
+/**
+ * Criterio con el que se DESCARTA una candidata del camino normal (crítica
+ * externa #14): no "¿interseca?", sino "¿hay evidencia de que NO?".
+ *
+ * Es a propósito más débil que `intersectsViewport` -- su negación, no su
+ * complemento. Descartar exige que la geometría sitúe la sección entera por
+ * encima (`bottom < 0`) o entera por debajo (`top > vh`) del viewport; el
+ * borde exacto y la caja degenerada se conservan. Los dos casos que esa
+ * diferencia protege son reales:
+ *
+ * - El BORDE EXACTO (`top === vh`, cero píxeles de solape). El
+ *   `IntersectionObserver` real lo cuenta como `isIntersecting: true` -- medido
+ *   en Chrome en este repo, ver `SETTLE_TOLERANCE_PX` en
+ *   `useSectionProgress.ts` --, así que la señal es correcta ahí y descartarla
+ *   sería contradecir al motor que la escribe.
+ * - La CAJA SIN LAYOUT (todo a cero). No es evidencia de nada: es lo que
+ *   devuelve `getBoundingClientRect()` en cualquier entorno que no haga layout
+ *   -- jsdom, donde vive la suite entera de este repo, y la ventana entre el
+ *   montaje y el primer layout en el navegador. Con el criterio estricto,
+ *   cualquier candidata quedaría descartada ahí por no haberse medido todavía,
+ *   y el camino normal dejaría de existir en toda la suite sin que nadie lo
+ *   notara.
+ *
+ * Lo que sí caza es exactamente el defecto medido: un `data-inview="true"`
+ * fosilizado en una sección que quedó muy lejos del viewport.
+ */
+function clearlyOutsideViewport(rect: DOMRect): boolean {
+  return rect.bottom < 0 || rect.top > window.innerHeight;
+}
+
 /*
  * DOS CAMINOS PARA UNA MISMA PREGUNTA, y la condición que elige entre ellos
  * es la parte que hay que entender antes de tocar nada aquí.
@@ -290,6 +320,62 @@ function resolveAmongCandidates(
   return contiene ?? dominante;
 }
 
+/**
+ * ¿Ha llegado el punto de referencia a la primera sección? Dicho de otro modo:
+ * ¿alguna candidata EMPIEZA en el punto o por encima de él?
+ *
+ * CRÍTICA EXTERNA #14, P2 (mismo origen que el P0). Con `scrollY = 0` en tema
+ * claro el centro del viewport cae en el Hero -- que no tiene entrada de
+ * navegación --, pero Story ya asoma por el borde inferior: era la única
+ * candidata y el respaldo por DOMINANCIA la elegía. `aria-current` anunciaba
+ * «Historia» y el enlace de idioma apuntaba a `/en#story` (medido: cambiar de
+ * idioma desde lo alto de la página saltaba 772 px). En OSCURO, en la misma
+ * posición, la respuesta era `null`. Dos temas, dos respuestas a la misma
+ * pregunta.
+ *
+ * La regla que faltaba: la dominancia es el respaldo para un HUECO ENTRE
+ * secciones (el arte de fondo y los márgenes de sección no son sección), no
+ * para el tramo ANTERIOR a todas ellas. Por encima de la primera el lector no
+ * ha llegado a ninguna sección todavía -- está en el Hero -- y `null` es la
+ * respuesta correcta. No es una preferencia nueva: es lo que el repo ya daba
+ * por cierto sin serlo (`themeScrollAnchor.ts` documenta desde la crítica #13
+ * que «`useActiveSection` [...] responde `null` en el Hero»). Esto lo hace
+ * verdad, y lo hace igual en los dos temas y en los dos caminos, porque la
+ * condición vive donde los dos convergen.
+ *
+ * NO toca el extremo de abajo -- el punto de referencia por DEBAJO de la
+ * última sección, con el lector en About o en el pie --, donde la dominancia
+ * sigue decidiendo igual que hasta hoy: el defecto medido está en el Hero y el
+ * cambio se acota a él.
+ *
+ * Vive AQUÍ y no dentro de `resolveAmongCandidates()` a propósito. Esa función
+ * es la regla que `readingAnchorSectionId` (`themeScrollAnchor.ts`) refleja
+ * literalmente, y el ancla de tema NO puede heredar esta condición: necesita
+ * una sección a la que devolver al lector también cuando cambia de tema
+ * mirando el Hero (su propio docblock lo declara). Misma regla de desempate,
+ * pregunta distinta.
+ *
+ * Solo puede cambiar la respuesta en la mitad de DOMINANCIA: una sección que
+ * contiene el punto de referencia empieza, por definición, en él o por encima.
+ */
+function referenceReachedFirstSection(
+  candidatas: readonly MeasuredSection[],
+): boolean {
+  const referencia = window.innerHeight * VIEWPORT_REFERENCE_FRACTION;
+  return candidatas.some(({ rect }) => rect.top <= referencia);
+}
+
+/** Respuesta del módulo para un conjunto de candidatas ya medidas: la regla de
+ *  desempate compartida, acotada por el tramo del Hero. LOS DOS CAMINOS pasan
+ *  por aquí, y eso es lo que garantiza que la misma posición conteste lo mismo
+ *  en claro y en oscuro. */
+function resolveVisibleSection(
+  candidatas: readonly MeasuredSection[],
+): string | null {
+  if (!referenceReachedFirstSection(candidatas)) return null;
+  return resolveAmongCandidates(candidatas);
+}
+
 /*
  * UNA SOLA PASADA POR EL DOM. La primera versión del arreglo del tema oscuro
  * preguntaba dos veces: un predicado "hay señal" que recorría las cuatro
@@ -314,15 +400,35 @@ function resolveAmongCandidates(
  * 2026-08-12, no esta función. La pasada única se conserva porque sigue
  * siendo la forma correcta de escribirlo, no porque arregle ningún timeout.
  *
- * COSTE DE MEDIR GEOMETRÍA, que es lo único que la crítica #10 añadió a esta
- * función: ni un listener, ni un observer, ni un rAF nuevos -- la resolución
- * sigue corriendo exactamente donde ya corría. El camino por geometría hace
- * las MISMAS cuatro lecturas de `getBoundingClientRect()` que hacía antes
- * (ahora recogidas en una lista en vez de descartadas sobre la marcha). El
- * camino normal es el que puede medir donde antes no medía, y por eso mide lo
- * menos posible: con 0 o 1 candidata la geometría no puede cambiar la
- * respuesta y no se llama a `getBoundingClientRect()` ni una vez; con 2 o más
- * se mide solo la candidata, nunca la sección que la señal ya descartó.
+ * COSTE DE MEDIR GEOMETRÍA, y la corrección de lo que este mismo bloque
+ * afirmaba hasta la crítica externa #14: «con 0 o 1 candidata la geometría no
+ * puede cambiar la respuesta y no se llama a `getBoundingClientRect()` ni una
+ * vez». La premisa era falsa y el P0 de esa crítica es su consecuencia
+ * exacta -- con UNA sola candidata la señal se devolvía sin comprobar nada, y
+ * un `data-inview="true"` FOSILIZADO en un nodo que ya no tenía dueño (ver el
+ * bloque "DUEÑO DEL NODO Y RETRACCIÓN" de `useSectionProgress.ts`) pasaba a
+ * ser la respuesta del módulo en TODA la página. Medido en Chrome real tras
+ * conmutar a oscuro leyendo Características: `/#features` en las cinco
+ * posiciones barridas (centro real: hero, story, journey, journey, about) y,
+ * con él, el enlace de idioma, que aterrizaba en `scrollY = 13.372` de la home
+ * inglesa.
+ *
+ * Desde aquí la señal es una PISTA que hay que confirmar, nunca una respuesta:
+ * las candidatas se validan contra geometría (`clearlyOutsideViewport`, ver su
+ * docblock para por qué descartar exige evidencia) y, si no sobrevive ninguna,
+ * se cae al camino por geometría sobre las cuatro secciones -- la señal
+ * entera era mentira, así que se ignora entera. El coste sube de 0 a entre 1 y
+ * 4 `getBoundingClientRect()` por `evaluate()`, que sigue sin correr por frame:
+ * lo disparan `scroll`/`resize` y las mutaciones de `data-inview` (un puñado
+ * por recorrido de página, ver el paréntesis de arriba). Es el mismo coste que
+ * el camino por geometría ya paga en la rama oscura y bajo `reduce` desde hace
+ * dos críticas, y compra que ninguna afirmación de este módulo se apoye ya en
+ * una señal que nadie comprueba.
+ *
+ * LO QUE NO CAMBIA: "hay atributo y las cuatro dicen `false`" sigue siendo
+ * `null` sin mirar geometría. Ese estado es legítimo y significa algo (la rama
+ * clara opinó: el lector está en el Hero); lo que se acaba de dejar de creer a
+ * ciegas es el `true`, no el `false`.
  */
 function resolveActiveKey(): string | null {
   const secciones: SectionElement[] = [];
@@ -341,11 +447,15 @@ function resolveActiveKey(): string | null {
 
   if (!isReducedMotion() && haySenal) {
     if (conSenalActiva.length === 0) return null;
-    if (conSenalActiva.length === 1) return conSenalActiva[0].id;
-    return resolveAmongCandidates(measure(conSenalActiva));
+    const validadas = measure(conSenalActiva).filter(
+      ({ rect }) => !clearlyOutsideViewport(rect),
+    );
+    if (validadas.length > 0) return resolveVisibleSection(validadas);
+    // Ninguna candidata resiste la geometría: la señal del árbol es fósil.
+    // Se ignora y se resuelve como si no existiera.
   }
 
-  return resolveAmongCandidates(
+  return resolveVisibleSection(
     measure(secciones).filter(({ rect }) => intersectsViewport(rect)),
   );
 }

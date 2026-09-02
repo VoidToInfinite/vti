@@ -35,7 +35,7 @@ function stubMatchMedia(reducedMatches: boolean): void {
  * 2026-07-31 (`useSlideDeck`, entonces `useStoryDeck`). En produccion el ref
  * viene de `useRef` y es estable de por vida.
  */
-function refOf(el: HTMLElement) {
+function refOf(el: HTMLElement): { current: HTMLElement | null } {
   return { current: el };
 }
 
