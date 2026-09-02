@@ -1538,13 +1538,18 @@ const ALLOWLIST = [
         file: "src/components/sections/Story/Story.tsx",
         anchors: [
             {
-                snippet:
-                    '<ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>',
+                snippet: '<Kicker>{t("Home.story.kicker")}</Kicker>',
                 count: 2,
                 lines: [1343, 1546],
             },
         ],
-        reason: 'ScKicker con voz propia (decision D-E del dueno) en las dos ramas de Story -- render en la rama clara y en la oscura, misma clave i18n "Home.story.kicker" (mismo JSX literal en las dos ramas, count: 2).',
+        reason: 'Kicker con voz propia (decision D-E del dueno) en las dos ramas de Story -- render en la rama clara y en la oscura, misma clave i18n "Home.story.kicker" (mismo JSX literal en las dos ramas, count: 2). Desde la integracion de la ola K (critica #15, 2026-09-02) consume el primitivo compartido src/components/ui/Kicker en vez de un ScKicker local.',
+    },
+    {
+        family: "kicker",
+        file: "src/components/ui/Kicker/Kicker.tsx",
+        anchors: [{ snippet: "<ScKicker", lines: [68] }],
+        reason: "El propio primitivo Kicker (integracion de la ola K, critica #15): es el UNICO sitio donde se define el kicker de seccion, y esta familia existe para cazar kickers repetidos por seccion, no la definicion compartida que los sustituye. Su JSX interno <ScKicker ...> es la implementacion, no un uso.",
     },
     {
         family: "kicker",

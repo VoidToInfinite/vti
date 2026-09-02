@@ -2,6 +2,7 @@
 import { useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes, type DefaultTheme } from "styled-components";
+import { Kicker } from "@/components/ui/Kicker/Kicker";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { links } from "@/config/links";
@@ -614,11 +615,6 @@ const ScContent = styled.div`
    `semantic.brandText`, no contra un paso de palette -- mismo mapeo que ya
    aplica `ScKicker` en Hero.tsx para el mismo rol visual ("etiqueta de
    marca"). */
-const ScKicker = styled(Typography)`
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.data.semantic.brandText};
-`;
-
 /* Segunda pieza de la cascada de D9 (retardo 80ms): mismo mecanismo que
    ScEyebrowRow -- ver su docblock, más arriba -- reutilizando el MISMO
    `data-revealed` de ScGrid. */
@@ -802,15 +798,12 @@ const ScEyebrowRow = styled.div`
   }
 `;
 
-/* Barra (D4): 1.75rem x 2px del mockup (L75), sin paso de `space` que mida
-   ninguna de las dos medidas -- literal documentado, como el resto de esta
-   entrega. */
-const ScEyebrowBar = styled.span`
-  display: block;
-  width: 1.75rem;
-  height: 2px;
-  background-color: ${({ theme }) => theme.data.semantic.brandText};
-`;
+/* La barra (D4, 1.75rem x 2px del mockup L75) vivía aquí como `ScEyebrowBar`,
+   un span decorativo hermano del kicker, y solo se pintaba en ESTA rama:
+   una de las cuatro combinaciones sección x tema improvisaba (crítica
+   externa #15, 2026-09-02). Desde la integración de la ola K la regla es
+   el `::before` del primitivo compartido `Kicker` (src/components/ui/Kicker)
+   y se pinta en las cuatro. */
 
 /*
  * Rejilla de tarjetas (D2): sustituye a la antigua `ScPillars` (columna con
@@ -1649,8 +1642,7 @@ function StoryLight(): ReactElement {
         {t("Home.story.support")}
       </ScSupportLead>
       <ScEyebrowRow>
-        <ScEyebrowBar aria-hidden="true" />
-        <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
+        <Kicker>{t("Home.story.kicker")}</Kicker>
       </ScEyebrowRow>
       {/* `{" "}` ANTES del `<br />` (critica externa #12, 2026-08-19): sin el,
           las dos mitades del titulo se concatenan sin separador en
@@ -1912,7 +1904,7 @@ function StoryDeckDark(): ReactElement {
               <ScDeckSupportLead data-testid="story-support">
                 {t("Home.story.support")}
               </ScDeckSupportLead>
-              <ScKicker variant="overline">{t("Home.story.kicker")}</ScKicker>
+              <Kicker>{t("Home.story.kicker")}</Kicker>
               {/* `{" "}` ANTES del `<br />`: mismo arreglo y mismo motivo que
                   en la rama clara (ver el comentario de `heading`, mas arriba
                   en este fichero) -- las dos ramas pintan el MISMO titulo, asi
