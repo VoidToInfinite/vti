@@ -414,8 +414,13 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
    * formulario pasa de UN campo a DOS. `toHaveLength(2)` no se relaja nunca a
    * `toBeGreaterThan` (regla 40): quien anada un tercer campo actualiza este
    * numero y declara por que, en vez de aflojar la asercion.
+   *
+   * D4 (decision del dueno, 2026-09-02): de los dos campos, solo el MENSAJE
+   * es obligatorio. El `not.toHaveAttribute("required")` del correo no es una
+   * asercion aflojada sino la contraria -- afirma la decision: el atributo
+   * tiene que estar AUSENTE, y devolverlo pone este test en rojo.
    */
-  it("monta un formulario con exactamente dos campos obligatorios (email + mensaje) y un boton type=submit", () => {
+  it("monta un formulario con dos campos -- correo OPCIONAL, mensaje obligatorio -- y un boton type=submit", () => {
     const { container } = renderWithProviders(<Contact />);
 
     const form = container.querySelector("form") as HTMLFormElement;
@@ -424,7 +429,9 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
     const controls = within(form).getAllByRole("textbox");
     expect(controls).toHaveLength(2);
     expect(controls[0]).toHaveAttribute("type", "email");
-    expect(controls[0]).toHaveAttribute("required");
+    // D4: opcional. `type="email"` se queda (describe el campo y da el
+    // teclado correcto en movil); `required` no.
+    expect(controls[0]).not.toHaveAttribute("required");
     expect(controls[0]).toHaveAccessibleName(esHome.Home.contact.form.label);
     expect(controls[1].tagName).toBe("TEXTAREA");
     expect(controls[1]).toHaveAttribute("required");
@@ -1048,7 +1055,7 @@ describe("Contact en tema oscuro", () => {
     expect(anclasMailto[0].closest("[data-nojs-note]")).not.toBeNull();
   });
 
-  it("el formulario tiene exactamente dos controles (email + mensaje, required) y exactamente un boton type=submit (test 11, D12 ampliado por la critica #8)", async () => {
+  it("el formulario tiene exactamente dos controles (email OPCIONAL + mensaje required) y exactamente un boton type=submit (test 11, D12 ampliado por la critica #8, correo opcional desde D4)", async () => {
     const { container } = renderWithProviders(<Contact />);
     await waitFor(() => {
       expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
@@ -1059,7 +1066,7 @@ describe("Contact en tema oscuro", () => {
     const controls = within(form).getAllByRole("textbox");
     expect(controls).toHaveLength(2);
     expect(controls[0]).toHaveAttribute("type", "email");
-    expect(controls[0]).toHaveAttribute("required");
+    expect(controls[0]).not.toHaveAttribute("required"); // D4: opcional
     expect(controls[0]).toHaveAccessibleName(esHome.Home.contact.form.label);
     expect(controls[1].tagName).toBe("TEXTAREA");
     expect(controls[1]).toHaveAttribute("required");
@@ -1116,14 +1123,20 @@ describe("Contact en tema oscuro", () => {
    * escrito nada.
    */
   /*
-   * Ampliado por la critica externa #8 (2026-08-17): con DOS campos
-   * obligatorios, un envio en blanco enciende LOS DOS errores en la misma
-   * pasada -- `handleSubmit` no hace `return` tras el primero. Por eso la
-   * consulta pasa de `getByRole` a `getAllByRole`: la version singular
-   * lanzaria "found multiple elements" en cuanto el segundo error existe, y
-   * eso no seria un fallo del componente sino de la consulta.
+   * REESCRITO POR D4 (decision del dueno, 2026-09-02). Hasta hoy este test
+   * afirmaba que un envio en blanco encendia LOS DOS errores; con el correo
+   * ya opcional, un correo vacio dejo de ser un error y lo que hay que
+   * atornillar es justo lo contrario: que el envio sigue sin navegar (el
+   * mensaje sigue siendo obligatorio) y que el mensaje de formato del correo
+   * NO puede aparecer sobre un campo en blanco -- el hallazgo A P2-3 de la
+   * critica #15.
+   *
+   * La consulta se queda en `getAllByRole` aunque hoy solo haya un error
+   * pintado: es la version que no se rompe cuando el formulario vuelve a
+   * tener dos mensajes a la vez (correo mal escrito + mensaje vacio), que es
+   * un caso real y esta cubierto mas abajo.
    */
-  it("al enviar con los dos campos vacios, NO navega y pinta LOS DOS errores de validacion con role=status (task 1, item 2/5)", async () => {
+  it("al enviar con los dos campos vacios, NO navega y pinta SOLO el error del mensaje: el correo vacio ya no es un error (D4)", async () => {
     const originalLocation = window.location;
     const assignSpy = vi.fn();
     Object.defineProperty(window, "location", {
@@ -1145,12 +1158,16 @@ describe("Contact en tema oscuro", () => {
       const textosAnunciados = screen
         .getAllByRole("status")
         .map((nodo) => nodo.textContent);
-      expect(textosAnunciados).toContain(esHome.Home.contact.form.emailError);
       expect(textosAnunciados).toContain(esHome.Home.contact.form.messageError);
+      // D4, hallazgo A P2-3: el mensaje de formato del correo NO puede salir
+      // con el campo vacio -- vacio es ahora una respuesta valida.
+      expect(textosAnunciados).not.toContain(
+        esHome.Home.contact.form.emailError,
+      );
 
       expect(
         screen.getByLabelText(esHome.Home.contact.form.label),
-      ).toHaveAttribute("aria-invalid", "true");
+      ).not.toHaveAttribute("aria-invalid");
       expect(
         screen.getByLabelText(esHome.Home.contact.form.messageLabel),
       ).toHaveAttribute("aria-invalid", "true");
@@ -1208,8 +1225,10 @@ describe("Contact en tema oscuro", () => {
     const form = container.querySelector("form") as HTMLFormElement;
     // Con el mensaje ya escrito, el unico error del envio es el del correo:
     // asi "no queda ningun status" prueba que se retiro ESE error y no que se
-    // solaparon dos.
+    // solaparon dos. Desde D4 el correo tiene que estar MAL ESCRITO para
+    // suspender: dejarlo vacio ya no enciende nada.
     escribirMensaje();
+    fireEvent.change(input, { target: { value: "no-es-un-correo" } });
     fireEvent.submit(form);
     expect(screen.getByRole("status")).toHaveTextContent(
       esHome.Home.contact.form.emailError,
@@ -2492,10 +2511,12 @@ describe("Contact: critica #8, el mensaje viaja en el mailto y la validacion pro
     expect(form).toHaveAttribute("novalidate");
     expect(form.noValidate).toBe(true);
 
-    // Los atributos nativos NO se retiran: siguen describiendo el campo para
-    // un lector de pantalla. Lo que noValidate apaga es el bloqueo y el globo.
+    // Los atributos nativos que quedan NO se retiran: siguen describiendo el
+    // campo para un lector de pantalla. Lo que noValidate apaga es el bloqueo
+    // y el globo. El `required` del correo si se retiro, pero por D4 (el
+    // campo dejo de ser obligatorio), no por esta regla.
     const email = screen.getByLabelText(esHome.Home.contact.form.label);
-    expect(email).toHaveAttribute("required");
+    expect(email).not.toHaveAttribute("required");
     expect(email).toHaveAttribute("type", "email");
     expect(
       screen.getByLabelText(esHome.Home.contact.form.messageLabel),
@@ -2827,7 +2848,10 @@ describe("Contact: critica externa #9", () => {
     });
 
     it("con los DOS invalidos, el foco va al correo y los DOS errores siguen pintados a la vez", () => {
-      submitCon("", "");
+      // D4: "invalido" en el correo ya solo puede significar MAL ESCRITO --
+      // vacio dejo de suspender, asi que el caso de los dos a la vez se
+      // reproduce con un correo con forma incorrecta.
+      submitCon("no-es-un-correo", "");
 
       expect(document.activeElement).toBe(
         screen.getByLabelText(esHome.Home.contact.form.label),
@@ -3055,9 +3079,20 @@ describe("Contact: critica externa #9", () => {
     });
 
     it("el mensaje RENDERIZADO resuelve ese color por rama, no el rol generico", async () => {
+      /* D4: el error del correo solo se enciende con un valor MAL ESCRITO,
+         asi que el envio en blanco que servia para provocarlo ya no vale --
+         se escribe un correo sin forma de correo antes de enviar. */
+      const conCorreoInvalido = (contenedor: HTMLElement): void => {
+        fireEvent.change(
+          within(contenedor).getByLabelText(esHome.Home.contact.form.label),
+          { target: { value: "no-es-un-correo" } },
+        );
+        fireEvent.submit(contenedor.querySelector("form") as HTMLFormElement);
+      };
+
       // Rama clara: el rol se conserva (ya libraba AA).
       const { container, unmount } = renderWithProviders(<Contact />);
-      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+      conCorreoInvalido(container);
       expect(
         cssRuleTextFor(
           document.getElementById("contact-email-error") as HTMLElement,
@@ -3074,9 +3109,7 @@ describe("Contact: critica externa #9", () => {
             oscuro.container.querySelectorAll("img").length,
           ).toBeGreaterThan(0);
         });
-        fireEvent.submit(
-          oscuro.container.querySelector("form") as HTMLFormElement,
-        );
+        conCorreoInvalido(oscuro.container);
         const css = cssRuleTextFor(
           document.getElementById("contact-email-error") as HTMLElement,
         );
@@ -3755,5 +3788,166 @@ describe("Contact: critica #13 -- el campo ya reprobado revalida al salir", () =
     // ...y salir con el campo todavia vacio de contenido real lo devuelve.
     fireEvent.blur(textarea);
     expect(textarea).toHaveAttribute("aria-invalid", "true");
+  });
+});
+
+/*
+ * D4 (decision del dueno, 2026-09-02): el correo del formulario pasa a
+ * OPCIONAL. El razonamiento -- el envio abre el cliente de correo del propio
+ * visitante, que ya viaja con su direccion -- vive en el docblock de
+ * `hasEmailFormatError` (Contact.tsx); aqui se atornillan las tres
+ * consecuencias observables: no bloquea vacio, sigue bloqueando mal escrito,
+ * y el cuerpo del mailto pierde la linea del correo cuando no hay ninguno.
+ */
+describe("Contact: D4 -- el correo del formulario es opcional (2026-09-02)", () => {
+  function mockAssignD4(): {
+    assignSpy: ReturnType<typeof vi.fn>;
+    restore: () => void;
+  } {
+    const originalLocation = window.location;
+    const assignSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: assignSpy },
+    });
+    return {
+      assignSpy,
+      restore: () =>
+        Object.defineProperty(window, "location", {
+          configurable: true,
+          value: originalLocation,
+        }),
+    };
+  }
+
+  /** El `body=` del `mailto:` de la ultima navegacion, ya decodificado. */
+  function cuerpoDelMailto(assignSpy: ReturnType<typeof vi.fn>): string {
+    expect(assignSpy).toHaveBeenCalledTimes(1);
+    const url = new URL(assignSpy.mock.calls[0][0] as string);
+    expect(url.protocol).toBe("mailto:");
+    return url.searchParams.get("body") ?? "";
+  }
+
+  it("la etiqueta y la ayuda del campo declaran que es opcional, en los DOS idiomas y con texto propio de cada uno", () => {
+    // El contrato de copy de D4: la palabra "opcional" tiene que estar donde
+    // se lee el campo. La comparacion es/en distinta es la mitad que la
+    // paridad de RUTAS (locales.test.ts) no puede ver.
+    expect(esHome.Home.contact.form.label.toLowerCase()).toContain("opcional");
+    expect(enHome.Home.contact.form.label.toLowerCase()).toContain("optional");
+    expect(esHome.Home.contact.form.help.toLowerCase()).toContain("opcional");
+    expect(enHome.Home.contact.form.help.toLowerCase()).toContain("optional");
+    (["label", "help", "emailError", "submitAria"] as const).forEach(
+      (clave) => {
+        expect(
+          enHome.Home.contact.form[clave],
+          `en: ${clave} sin traducir`,
+        ).not.toBe(esHome.Home.contact.form[clave]);
+      },
+    );
+  });
+
+  it("con el correo VACIO y el mensaje escrito, envia -- y el cuerpo del mailto es el mensaje a secas, sin la linea del correo", () => {
+    const { assignSpy, restore } = mockAssignD4();
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      escribirMensaje();
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      const body = cuerpoDelMailto(assignSpy);
+      expect(body).toBe(MENSAJE_VALIDO);
+      // La prosa de la plantilla (la parte fija que precede a {{email}}) no
+      // viaja: se compara contra el texto REAL del locale, no contra una
+      // copia escrita a mano aqui.
+      const prosaDeLaPlantilla =
+        esHome.Home.contact.form.body.split("{{email}}")[0];
+      expect(body).not.toContain(prosaDeLaPlantilla.trim());
+      expect(body).not.toContain("{{");
+    } finally {
+      restore();
+    }
+  });
+
+  it("un correo de solo espacios cuenta como vacio: ni suspende el envio ni viaja al cuerpo", () => {
+    const { assignSpy, restore } = mockAssignD4();
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "   " },
+      });
+      escribirMensaje();
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      expect(cuerpoDelMailto(assignSpy)).toBe(MENSAJE_VALIDO);
+      expect(
+        screen.queryByText(esHome.Home.contact.form.emailError),
+      ).not.toBeInTheDocument();
+    } finally {
+      restore();
+    }
+  });
+
+  it("con el correo ESCRITO y valido, el cuerpo conserva la plantilla con sus dos interpolaciones (la otra mitad del contrato)", () => {
+    const { assignSpy, restore } = mockAssignD4();
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "visitante@test.com" },
+      });
+      escribirMensaje();
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      const body = cuerpoDelMailto(assignSpy);
+      expect(body).toContain("visitante@test.com");
+      expect(body).toContain(MENSAJE_VALIDO);
+      expect(body).not.toContain("{{");
+    } finally {
+      restore();
+    }
+  });
+
+  it("un correo MAL ESCRITO sigue deteniendo el envio y pintando su error de formato", () => {
+    const { assignSpy, restore } = mockAssignD4();
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      escribirMensaje();
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "no-es-un-correo" },
+      });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      expect(assignSpy).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(esHome.Home.contact.form.emailError),
+      ).toBeInTheDocument();
+    } finally {
+      restore();
+    }
+  });
+
+  it("hallazgo A P2-3: vaciar un correo que YA suspendio y salir del campo retira el error -- vacio es una respuesta valida", () => {
+    const { assignSpy, restore } = mockAssignD4();
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      const input = screen.getByLabelText(esHome.Home.contact.form.label);
+      escribirMensaje();
+      fireEvent.change(input, { target: { value: "no-es-un-correo" } });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+      expect(input).toHaveAttribute("aria-invalid", "true");
+
+      // Vaciar el campo y salir de el: la revalidacion al salir (critica #13)
+      // sigue corriendo -- lo que cambia es su veredicto sobre el vacio.
+      fireEvent.change(input, { target: { value: "" } });
+      fireEvent.blur(input);
+      expect(input).not.toHaveAttribute("aria-invalid");
+      expect(
+        screen.queryByText(esHome.Home.contact.form.emailError),
+      ).not.toBeInTheDocument();
+
+      // Y el envio siguiente ya sale.
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+      expect(assignSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      restore();
+    }
   });
 });

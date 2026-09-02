@@ -1551,28 +1551,65 @@ const ScCopyErrorText = styled.p`
 
 /**
  * Patrón mínimo de correo (task 1, auditoría premium 2026-08-08): capa de
- * validación PROPIA, además de `type="email"` + `required` nativos del
- * `<input>` (que se mantienen sin tocar). No es redundante con lo nativo:
- * `fireEvent.submit` de jsdom NO dispara la validación de restricciones del
- * navegador, así que sin esta capa el submit inválido llegaría igual a
- * `handleSubmit` en cualquier test -- y, en un navegador real, cualquier
- * camino que rodee la validación nativa (autofill agresivo, JS de una
- * extensión) también la necesita. No pretende ser RFC 5322 completo: ese
- * nivel de rigor no lo pide el encargo y el propio `type="email"` ya cubre
- * casos más finos que solo el navegador entiende.
+ * validación PROPIA, además del `type="email"` nativo del `<input>` (que se
+ * mantiene sin tocar; el `required` SÍ se retiró, ver `hasEmailFormatError`
+ * justo debajo). No es redundante con lo nativo: `fireEvent.submit` de jsdom
+ * NO dispara la validación de restricciones del navegador, así que sin esta
+ * capa el submit inválido llegaría igual a `handleSubmit` en cualquier test
+ * -- y, en un navegador real, cualquier camino que rodee la validación
+ * nativa (autofill agresivo, JS de una extensión) también la necesita. No
+ * pretende ser RFC 5322 completo: ese nivel de rigor no lo pide el encargo y
+ * el propio `type="email"` ya cubre casos más finos que solo el navegador
+ * entiende.
  */
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 /**
- * Validación del mensaje (crítica externa #8, Nielsen, 2026-08-17). Obligatorio
- * por el MISMO criterio que ya gobernaba el correo, no por una decisión nueva:
- * si el único campo del formulario era obligatorio y tenía su propio error
- * accesible, un segundo campo que decide el contenido REAL del correo no puede
- * ser opcional -- enviarlo vacío reproduce exactamente el defecto que este
- * campo viene a cerrar (un `mailto:` sin cuerpo que el visitante tiene que
- * redactar desde cero).
+ * EL CORREO ES OPCIONAL (D4, decisión del dueño 2026-09-02). Hasta hoy era
+ * obligatorio y era, medido por la crítica externa #15, la ÚNICA fuente de
+ * error de la página: el único campo capaz de rechazar un envío por algo que
+ * el visitante no tenía que aportar.
+ *
+ * El razonamiento del dueño, que es lo que vuelve al campo prescindible: el
+ * envío no postea a ningún servidor -- abre el cliente de correo del propio
+ * visitante (`window.location.assign` a un `mailto:`, ver `handleSubmit`), y
+ * ese cliente YA viaja con su dirección de remitente. Lo que se escribe aquí
+ * solo se copia al CUERPO del mensaje, como cortesía para quien responde
+ * desde otra cuenta. Exigir un dato que el propio mecanismo de envío ya
+ * aporta es pedirlo dos veces y bloquear por la segunda.
+ *
+ * Qué queda y qué se va: se va `required` (el atributo nativo del control) y
+ * se va el caso "vacío" como error. Se queda la validación de FORMATO,
+ * porque un correo mal escrito en el cuerpo es peor que no ponerlo -- quien
+ * responda escribirá a una dirección que no existe. De ahí la forma de esta
+ * función: vacío NUNCA es error; con algo escrito, el error es exactamente
+ * el de `isValidEmail`.
+ *
+ * `.trim()` para decidir "está vacío" por el mismo motivo que `hasMessage`:
+ * un campo con solo espacios no aporta ninguna dirección, así que se trata
+ * como vacío en vez de como formato inválido -- si no, borrar el texto pero
+ * dejar un espacio dejaría al visitante bloqueado sin entender por qué.
+ */
+function hasEmailFormatError(value: string): boolean {
+  return value.trim() !== "" && !isValidEmail(value);
+}
+
+/**
+ * Validación del mensaje (crítica externa #8, Nielsen, 2026-08-17). Nació
+ * obligatorio por el criterio que entonces gobernaba también al correo: un
+ * campo que decide el contenido REAL del correo no puede ser opcional --
+ * enviarlo vacío reproduce exactamente el defecto que este campo viene a
+ * cerrar (un `mailto:` sin cuerpo que el visitante tiene que redactar desde
+ * cero).
+ *
+ * DESDE D4 (2026-09-02) ES EL ÚNICO OBLIGATORIO, y esa asimetría es
+ * deliberada, no un resto: el correo se volvió opcional porque el cliente de
+ * correo del visitante YA aporta su dirección (ver `hasEmailFormatError`),
+ * mientras que nada ni nadie puede aportar el mensaje en su lugar. Lo que
+ * decide si un campo bloquea no es su categoría, es si el envío puede
+ * cumplir su promesa sin él.
  *
  * Solo exige contenido no-blanco: cualquier regla más fina (longitud mínima,
  * palabras prohibidas) juzgaría el mensaje de alguien sin ninguna base, y este
@@ -1731,12 +1768,14 @@ export function Contact(): ReactElement {
    * puede espiar así. NO se implementa ningún estado "enviado" (D13): sin
    * backend sería una afirmación falsa en la interfaz.
    *
-   * Validación propia (task 1) ANTES de navegar: si un campo está vacío o el
-   * correo no tiene forma de correo, `preventDefault` (ya se llama siempre,
+   * Validación propia (task 1) ANTES de navegar: si el mensaje está vacío o
+   * el correo ESCRITO no tiene forma de correo (D4: vacío ya no es error,
+   * ver `hasEmailFormatError`), `preventDefault` (ya se llama siempre,
    * arriba) detiene aquí -- no se toca `window.location` -- y se encienden los
-   * errores accesibles de `Field`. Los atributos NATIVOS (`required`,
-   * `type="email"`) siguen en los controles sin tocar: describen el campo para
-   * un lector de pantalla. Lo que ya NO hace el navegador es BLOQUEAR el envío
+   * errores accesibles. Los atributos NATIVOS que quedan (`type="email"` en el
+   * correo, `required` en el mensaje) siguen en los controles sin tocar:
+   * describen el campo para un lector de pantalla. Lo que ya NO hace el
+   * navegador es BLOQUEAR el envío
    * con su propio globo de aviso -- el `<form>` declara `noValidate` desde la
    * crítica externa #8 (ver el JSX de `contactChannels`), así que esta capa
    * dejó de ser un refuerzo y pasó a ser la única validación que el visitante
@@ -1822,7 +1861,10 @@ export function Contact(): ReactElement {
    */
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const emailInvalid = !isValidEmail(email);
+    /* D4: el correo solo suspende por FORMATO, nunca por estar vacío -- ver
+       el docblock de `hasEmailFormatError`. El mensaje sigue siendo el único
+       campo obligatorio del formulario. */
+    const emailInvalid = hasEmailFormatError(email);
     const messageInvalid = !hasMessage(message);
     setEmailError(emailInvalid);
     setMessageError(messageInvalid);
@@ -1877,8 +1919,30 @@ export function Contact(): ReactElement {
     }
 
     const subject = encodeURIComponent(t("Home.contact.form.subject"));
+    /*
+     * D4: sin correo, el cuerpo es EXACTAMENTE el mensaje del visitante.
+     *
+     * No hay una segunda clave i18n para este caso, y no es un descuido: la
+     * plantilla `Home.contact.form.body` existe porque introduce prosa
+     * NUESTRA ("Mi correo de contacto: …") alrededor de dos datos. Quitada
+     * esa línea no queda ni una palabra del sitio que traducir -- una clave
+     * cuyo valor fuera `{{message}}` sería una entrada de i18n sin idioma
+     * dentro, que las dos ramas tendrían que mantener idénticas para
+     * siempre. Se compone aquí, donde se ve de un vistazo que la única
+     * diferencia entre los dos caminos es la línea del correo.
+     *
+     * `email.trim()`, no `email`: la misma normalización que ya decide si el
+     * campo cuenta como vacío (`hasEmailFormatError`), para que un espacio
+     * de más no viaje al cuerpo del correo.
+     */
+    const contactEmail = email.trim();
     const body = encodeURIComponent(
-      t("Home.contact.form.body", { email, message: message.trim() }),
+      contactEmail
+        ? t("Home.contact.form.body", {
+            email: contactEmail,
+            message: message.trim(),
+          })
+        : message.trim(),
     );
     window.location.assign(`${links.email}?subject=${subject}&body=${body}`);
     setSent(true);
@@ -1940,13 +2004,15 @@ export function Contact(): ReactElement {
           `type="email"`) NUNCA alcanzaban la UI de error propia que este
           formulario ya tenía escrita: mensaje en el idioma del NAVEGADOR y no
           en el del sitio, sin `role="status"`, sin borde de error, y
-          desaparece solo. Los atributos nativos se quedan: `required` y
-          `type="email"` siguen describiendo el campo para un lector de
-          pantalla; lo que `noValidate` apaga es únicamente el bloqueo y el
-          globo, no la semántica. La contrapartida -- que ahora la validación
-          propia es la ÚNICA que se ve -- la cubre `handleSubmit`, que
-          comprueba los mismos dos casos (vacío y forma de correo) más el
-          mensaje vacío. */}
+          desaparece solo. Los atributos nativos que quedan se quedan: el
+          `required` del mensaje y el `type="email"` del correo siguen
+          describiendo el campo para un lector de pantalla; lo que
+          `noValidate` apaga es únicamente el bloqueo y el globo, no la
+          semántica. (El `required` del correo se retiró en D4, 2026-09-02,
+          porque el campo dejó de ser obligatorio -- no por esta regla.) La
+          contrapartida -- que ahora la validación propia es la ÚNICA que se
+          ve -- la cubre `handleSubmit`, que comprueba el mensaje vacío y la
+          forma del correo cuando se ha escrito alguno. */}
       {/* `method="dialog"` (crítica externa #12, Nielsen, 2026-08-18): sin
           JavaScript apaga el envío nativo entero — el del botón Y el
           implícito de Enter en el campo de correo —, que hasta hoy publicaba
@@ -2003,7 +2069,12 @@ export function Contact(): ReactElement {
                  disponible. */
               name="email"
               type="email"
-              required
+              /* SIN `required` desde D4 (2026-09-02): el campo es opcional
+                 -- el porqué completo vive en `hasEmailFormatError`. El
+                 `type="email"` se queda: sigue describiendo qué se espera
+                 aquí para un lector de pantalla y sigue dando el teclado
+                 correcto en móvil, sin bloquear nada (el `<form>` declara
+                 `noValidate` desde la crítica externa #8). */
               placeholder={t("Home.contact.form.placeholder")}
               value={email}
               /* Error PRIMERO y ayuda DESPUÉS, los dos a la vez: ver el
@@ -2035,7 +2106,12 @@ export function Contact(): ReactElement {
                  es el primer instante en que juzgarlo es justo. */
               onBlur={() => {
                 if (emailFailedOnceRef.current) {
-                  setEmailError(!isValidEmail(email));
+                  /* D4: vaciar el campo tras haber suspendido LIMPIA el
+                     error, no lo mantiene -- dejarlo vacío es ahora una
+                     respuesta válida, así que «Ese correo no tiene un
+                     formato válido» ya no puede aparecer sobre un campo en
+                     blanco. */
+                  setEmailError(hasEmailFormatError(email));
                 }
               }}
               autoComplete="email"
