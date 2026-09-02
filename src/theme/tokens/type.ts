@@ -1,8 +1,16 @@
 /**
- * Variantes vivas de la escala tipográfica: 9 desde la crítica externa #14
- * (2026-09-02, retirada de `deckTitle`, ver el hueco que dejó más abajo), 10
+ * Variantes vivas de la escala tipográfica: 11 desde la crítica externa #14
+ * (2026-09-02, que retira `deckTitle` y añade `deckClosing` y `deckBody`), 10
  * entre la #11 y esa fecha, 9 desde la crítica externa #9 (2026-08-17), 12
  * antes de esa.
+ *
+ * Que la #14 retire un peldaño de deck y añada dos no es contradictorio, y
+ * conviene leerlo junto: `deckTitle` se fue porque su tamaño pasó a ser el de
+ * `h2` —un segundo nombre para un estilo que ya existía—, mientras que los
+ * dos nuevos nombran medidas que NINGUNA variante de documento expresa (un
+ * cartel de 8rem y un tramo fluido de 1→1.115rem) y que estaban escritas byte
+ * a byte en dos ficheros de sección cada una. El criterio es el mismo en los
+ * tres casos: un peldaño existe si dice algo que la escala no decía ya.
  *
  * RETIRADAS en esa revisión — `h4`, `bodyLg` y `code` — con censo propio de
  * consumidores previo (patrones `variant="X"`, `theme.data.type.scale.X`,
@@ -41,11 +49,13 @@
  * `h5`=`bodyLg`) más «variante `lead` sin ningún consumidor».
  */
 export type TypeVariant =
+  | "deckClosing"
   | "display"
   | "h1"
   | "h2"
   | "h3"
   | "h5"
+  | "deckBody"
   | "body"
   | "bodySm"
   | "caption"
@@ -112,6 +122,69 @@ export const type = {
      * contenido unificado"), no el accidente de dos escalas que nadie
      * comparó.
      */
+
+    /**
+     * CIERRE de una presentación a sangre completa: el texto climático de su
+     * última diapositiva. Lo visten hoy la nota de cierre de Story
+     * (`ScDeckNote`) y la cita de cierre de Journey (`ScJourneyQuote`).
+     * Peldaño nuevo de la crítica externa #14 (2026-09-02, hallazgo P3 del
+     * evaluador de Craft).
+     *
+     * POR QUÉ EXISTE: el mismo `clamp(2.5rem, 11vw, 8rem)` estaba escrito
+     * byte a byte en `STORY_DECK_NOTE_SIZE` (`story.layers.ts`) y
+     * `JOURNEY_DECK_QUOTE_SIZE` (`journey.layers.ts`) — y con él, el mismo
+     * peso 900. Regla 13 de `RULES.md`: una constante de valor idéntico
+     * repetida en dos secciones es un token de tema, no dos constantes. Las
+     * cuatro constantes siguen existiendo como el nombre con el que cada
+     * sección habla de su cierre; lo que dejan de hacer es declarar el valor.
+     *
+     * ESTO REVISA, a propósito, la decisión T7 de la spec de tipografía de
+     * Journey (2026-08-02), que había dejado escrito que las dos parejas
+     * coincidían pero NO se acoplaban («coincidir hoy no es depender»), con
+     * un test cruzado como punto donde decidir una futura divergencia. Aquel
+     * razonamiento trataba la coincidencia como una casualidad revisable; la
+     * #14 la reclasifica: los dos textos visten el MISMO rol estructural —el
+     * cierre de un deck— igual que el titular de intro vestía el mismo rol en
+     * las dos secciones, que es el caso que la #11 ya resolvió tokenizando.
+     * El punto de decisión no desaparece, se muda: divergir hoy significa
+     * sacar a una de las dos secciones de este peldaño, con su porqué escrito,
+     * en vez de editar un literal sin que nadie se entere.
+     *
+     * SU MÁXIMO SUPERA AL DE `display` (8rem = 128px frente a 3.5rem = 56px),
+     * Y ES DELIBERADO, con el mismo argumento que sostuvo al retirado
+     * `deckTitle` mientras vivió: `display` es el techo de la tipografía de
+     * DOCUMENTO —lo más grande que puede pedir una página que se lee
+     * desplazándose, con más cosas alrededor—, y esto viste el único texto de
+     * una diapositiva que ocupa el viewport entero. Que el techo de documento
+     * no sea el techo de cartel es la distinción que este peldaño nombra, no
+     * una fuga de la escala.
+     *
+     * EL PESO 900 ROMPE EL TECHO DE 800 QUE LA ESCALA TENÍA HASTA HOY, y eso
+     * es exactamente lo que tres tests de sección llevaban pidiendo desde
+     * 2026-08-02: los docblocks de `STORY_DECK_NOTE_WEIGHT`,
+     * `JOURNEY_DECK_QUOTE_WEIGHT` y `JOURNEY_DECK_STEP_LABEL_WEIGHT` declaran
+     * que el 900 es una excepción deliberada «hasta que la escala del sistema
+     * incorpore un 900», y sus tests obligaban a tomar esa decisión en ese
+     * momento en vez de dejar dos fuentes conviviendo. Es este momento: las
+     * dos constantes de CIERRE pasan a derivar de aquí. La tercera
+     * (`JOURNEY_DECK_STEP_LABEL_WEIGHT`, la etiqueta de paso de Journey) NO
+     * deriva, y su docblock explica por qué: viste otro rol, con otro tamaño,
+     * y `TypeStyle` es un paquete de cuatro propiedades, no un peso suelto que
+     * se pueda compartir sin arrastrar el resto.
+     *
+     * `lineHeight` (1.03, el de `display`) y `tracking` (0, el de `bodySm`)
+     * son EXACTAMENTE los que `ScDeckNote` y `ScJourneyQuote` ya componían a
+     * mano leyendo esos dos peldaños. El peldaño no inventa ningún valor: los
+     * recoge. Que las dos piezas sigan leyéndolos de `display`/`bodySm` en vez
+     * de de aquí es deuda declarada, no descuido — los dos `*.deck.tsx` están
+     * fuera del alcance del cambio que estrena este peldaño.
+     */
+    deckClosing: {
+      size: "clamp(2.5rem, 11vw, 8rem)",
+      weight: 900,
+      lineHeight: 1.03,
+      tracking: "0",
+    },
     display: {
       size: "clamp(2.5rem, 4.4vw, 3.5rem)",
       weight: 800,
@@ -137,6 +210,44 @@ export const type = {
       tracking: "-0.012em",
     },
     h5: { size: "1.125rem", weight: 600, lineHeight: 1.35, tracking: "0" },
+    /**
+     * CUERPO DE LECTURA dentro de una diapositiva a sangre completa: el
+     * párrafo que acompaña al elemento dominante de la diapositiva, no el
+     * cartel. Lo visten hoy el cuerpo de pilar de Story (`ScDeckPillarBody`)
+     * y el subtítulo de paso de Journey (`ScJourneyStepSubtitle`). Peldaño
+     * nuevo de la crítica externa #14 (2026-09-02, hallazgo P3 del evaluador
+     * de Craft).
+     *
+     * POR QUÉ EXISTE: el mismo `clamp(1rem, 1.4vw, 1.115rem)` estaba escrito
+     * byte a byte en `STORY_DECK_PILLAR_BODY_SIZE` y
+     * `JOURNEY_DECK_STEP_SUBTITLE_SIZE`. El docblock de la segunda ya
+     * afirmaba en prosa que era «el mismo tramo que `STORY_DECK_PILLAR_BODY_
+     * SIZE` viste para un texto del mismo rol de lectura en Story» — una
+     * invariante que vivía en la memoria de quien escribió los dos ficheros,
+     * que es justo lo que la regla 13 de `RULES.md` manda convertir en token.
+     *
+     * POR QUÉ NO ES `body`, y por eso ocupa un peldaño propio entre `h5` y
+     * `body`: `body` es 1rem fijo y esto es un tramo FLUIDO que crece hasta
+     * 1.115rem con el ancho del viewport. Comparten el suelo —el mínimo del
+     * `clamp()` es exactamente `body.size`, y es deliberado: por debajo del
+     * tamaño base de lectura del sitio ninguno de los dos párrafos debe
+     * caer— pero no el techo. Su sitio en el fichero es el que le toca por
+     * tamaño: la escala se lee como una escalera descendente y este peldaño
+     * cae entre 1.125rem y 1rem.
+     *
+     * `weight`/`lineHeight`/`tracking` son los de `body`, sin desviación: es
+     * EXACTAMENTE lo que las dos piezas ya componían a mano (cada una leyendo
+     * `type.scale.body.*` para esas tres y el literal solo para el tamaño).
+     * Que sigan leyéndolas de `body` en vez de de aquí es deuda declarada:
+     * los dos `*.deck.tsx` están fuera del alcance del cambio que estrena
+     * este peldaño.
+     */
+    deckBody: {
+      size: "clamp(1rem, 1.4vw, 1.115rem)",
+      weight: 400,
+      lineHeight: 1.6,
+      tracking: "0",
+    },
     body: { size: "1rem", weight: 400, lineHeight: 1.6, tracking: "0" },
     bodySm: {
       size: "0.875rem",

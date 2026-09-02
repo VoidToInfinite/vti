@@ -441,16 +441,19 @@ export const JOURNEY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
  * tras las críticas externas #11 (2026-08-18) y #14 (2026-09-02):
  * `JOURNEY_DECK_TITLE_SIZE` deriva de un TOKEN del sistema
  * (`type.scale.h2`), no de la constante de Story -- ninguna de las dos
- * secciones importa nada de la otra, que es lo que este párrafo protege. La
- * mayoría de los
- * topes de `clamp()` siguen calibrados contra el texto REAL de esta sección
- * (la etiqueta de paso, una sola palabra; el subtítulo de paso, 60-80
- * caracteres) -- salvo la cita de cierre (`JOURNEY_DECK_QUOTE_SIZE`/
- * `JOURNEY_DECK_QUOTE_WEIGHT`), que la spec de tipografía REVIERTE a
- * propósito para que coincida EXACTAMENTE con la nota de cierre de Story
- * (`STORY_DECK_NOTE_SIZE`/`STORY_DECK_NOTE_WEIGHT`, 8rem/900). La excepción
- * se documenta en el docblock de esas dos constantes, más abajo, no aquí,
- * para no repetir el mismo razonamiento en dos sitios.
+ * secciones importa nada de la otra, que es lo que este párrafo protege.
+ *
+ * De los tamaños que quedan, el ÚNICO calibrado contra el texto REAL de esta
+ * sección es la etiqueta de paso (una sola palabra, tope 11rem). Los otros
+ * dos derivan hoy de peldaños del SISTEMA, los dos desde la crítica externa
+ * #14 (2026-09-02, hallazgo P3): el subtítulo de paso —60-80 caracteres, el
+ * mismo rol de lectura que el cuerpo de pilar de Story— de
+ * `type.scale.deckBody`, y la cita de cierre —tamaño y peso— de
+ * `type.scale.deckClosing`. Esa cita ya coincidía con la nota de cierre de
+ * Story desde T6/T7 (la spec de tipografía REVIRTIÓ a propósito el 3.5rem de
+ * D10 para igualarla), pero lo hacía repitiendo el literal; el porqué de que
+ * la coincidencia pasara de "casualidad declarada" a "peldaño compartido"
+ * vive en el docblock de cada constante, más abajo, no aquí.
  */
 
 /**
@@ -501,15 +504,28 @@ export const JOURNEY_DECK_TITLE_SIZE = typeTokens.scale.h2.size;
 export const JOURNEY_DECK_STEP_LABEL_SIZE = "clamp(1.75rem, 10vw, 11rem)";
 
 /**
- * Peso de la etiqueta de paso (T3, misma spec). **Excepción deliberada a
- * `type.scale`**, que se detiene en 800 (`display`): el encargo pide 900 y
- * ninguna variante del sistema lo declara. Mismo tratamiento y mismo motivo
- * que `STORY_DECK_NOTE_WEIGHT` (`story.layers.ts`) -- constante propia, no
- * un token nuevo en `type.scale`, con un test que replica exactamente el
- * suyo (`journey.layers.test.ts`): si algún día la escala del sistema
- * incorporara un 900, ese test obliga a decidir si esta constante
- * desaparece en favor del token, en vez de dejar dos fuentes conviviendo en
- * silencio.
+ * Peso de la etiqueta de paso (T3, misma spec). El encargo pide 900, y hasta
+ * la crítica externa #14 (2026-09-02) eso era una **excepción a `type.scale`**
+ * en sentido estricto: la escala se detenía en 800 (`display`) y ninguna
+ * variante declaraba un 900. Su test replicaba el de las otras dos constantes
+ * de peso y dejaba escrito el punto de decisión: si algún día la escala
+ * incorporase un 900, había que decidir si esta constante desaparece en favor
+ * del token en vez de dejar dos fuentes conviviendo.
+ *
+ * LA ESCALA YA LO INCORPORÓ (`type.scale.deckClosing`, 900) Y ESTA CONSTANTE
+ * SE QUEDA, deliberadamente y por escrito. `deckClosing` no es "el peldaño de
+ * los pesos 900": es el CIERRE de un deck, un paquete completo de cuatro
+ * propiedades donde el 900 viaja con `clamp(2.5rem, 11vw, 8rem)`, 1.03 de
+ * interlineado y 0 de tracking. Esta etiqueta viste otro rol (la palabra
+ * dominante de una diapositiva de paso, `JOURNEY_DECK_STEP_LABEL_SIZE`, tope
+ * 11rem): derivar de ahí solo el peso diría que el peso de la etiqueta es el
+ * del cierre, y ataría dos decisiones que hoy solo coinciden. Las dos que sí
+ * derivan son las de cierre — `JOURNEY_DECK_QUOTE_WEIGHT` y
+ * `STORY_DECK_NOTE_WEIGHT` —, porque de ese rol es exactamente el peldaño.
+ *
+ * El día que la etiqueta de paso quiera su propio peldaño de escala, el sitio
+ * donde se decide es este docblock y su test, no un descubrimiento a
+ * posteriori.
  */
 export const JOURNEY_DECK_STEP_LABEL_WEIGHT = 900;
 
@@ -531,8 +547,19 @@ export const JOURNEY_DECK_STEP_LABEL_WEIGHT = 900;
  * qué coincidir con el nombre del rol que lo pinta (mismo criterio que
  * `pillars.<key>.body` en Story, que sigue llamándose `body` aunque hace
  * tiempo se pinta como subtítulo).
+ *
+ * DEJA DE DECLARAR EL LITERAL (crítica externa #14, 2026-09-02, hallazgo P3).
+ * "El mismo tramo que `STORY_DECK_PILLAR_BODY_SIZE` viste para un texto del
+ * mismo rol de lectura en Story" era, hasta hoy, una afirmación en prosa
+ * sostenida por dos `clamp(1rem, 1.4vw, 1.115rem)` idénticos byte a byte en
+ * dos ficheros que no se conocen entre sí — exactamente la forma de duplicado
+ * que la regla 13 de `RULES.md` manda convertir en token. Ahora los dos
+ * derivan de `type.scale.deckBody` y la frase describe el código en vez de
+ * pedir confianza.
+ *
+ * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
  */
-export const JOURNEY_DECK_STEP_SUBTITLE_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
+export const JOURNEY_DECK_STEP_SUBTITLE_SIZE = typeTokens.scale.deckBody.size;
 
 /**
  * Icono de cada paso (D11): crece de los 20px que medía dentro de una fila
@@ -563,34 +590,47 @@ export const JOURNEY_DECK_STEP_ICON_SIZE = "48px";
  * siendo real y se verifica en navegador (definición de "hecho" de la
  * spec), no se disimula.
  *
- * El valor coincide EXACTAMENTE con `STORY_DECK_NOTE_SIZE` (T7): coincidir
- * hoy no es depender -- se declara como constante PROPIA, sin importarla de
- * `story.layers.ts` (ver el docblock de `JOURNEY_DECK_QUOTE_WEIGHT`, justo
- * abajo, para el razonamiento completo de por qué no se acopla).
+ * El valor coincidía EXACTAMENTE con `STORY_DECK_NOTE_SIZE` (T7), y hasta la
+ * crítica externa #14 (2026-09-02) eso se resolvía declarando el literal aquí
+ * otra vez: "coincidir hoy no es depender", constante PROPIA, sin importar
+ * nada de `story.layers.ts`.
+ *
+ * ESA DECISIÓN SE REVISA EN LA #14 (hallazgo P3 del evaluador de Craft), y no
+ * por cambiar de gusto: el argumento de T7 trataba la coincidencia como una
+ * casualidad revisable entre dos composiciones, y la #14 la reclasifica como
+ * lo que es -- el MISMO rol estructural, el cierre de un deck a sangre
+ * completa, vestido por las dos secciones. Es el caso que la #11 ya resolvió
+ * para el titular de intro. Sigue sin importarse nada de `story.layers.ts`:
+ * las dos derivan de `type.scale.deckClosing`, un peldaño del SISTEMA, así
+ * que el párrafo de cabecera de este bloque (las escalas de las dos secciones
+ * no se acoplan entre sí) sigue intacto. Divergir mañana significa sacar a una
+ * de las dos de ese peldaño con su porqué escrito, no editar un literal.
+ *
+ * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
  */
-export const JOURNEY_DECK_QUOTE_SIZE = "clamp(2.5rem, 11vw, 8rem)";
+export const JOURNEY_DECK_QUOTE_SIZE = typeTokens.scale.deckClosing.size;
 
 /**
- * Peso de la cita de cierre (T6, misma spec): sustituye el `600` literal que
- * llevaba `ScJourneyQuote` hasta hoy. **Excepción deliberada a
- * `type.scale`**, que se detiene en 800: mismo motivo y mismo tratamiento
- * que `STORY_DECK_NOTE_WEIGHT`/`JOURNEY_DECK_STEP_LABEL_WEIGHT` -- constante
- * propia, con un test que obliga a revisar la decisión el día que la escala
- * del sistema incorpore un 900.
+ * Peso de la cita de cierre (T6, misma spec): sustituyó el `600` literal que
+ * llevaba `ScJourneyQuote`. Fue una **excepción deliberada a `type.scale`**
+ * mientras la escala se detuvo en 800, con un test que obligaba a revisar la
+ * decisión «el día que la escala del sistema incorpore un 900».
  *
- * Coincide EXACTAMENTE con `STORY_DECK_NOTE_WEIGHT` (T7): el tamaño Y el
- * peso de esta cita son, hoy, los mismos que los de la nota de cierre de
- * Story. Aun así NO se importan esas constantes -- se declaran las dos
- * propias, aquí -- porque coincidir hoy no es depender: importar las de
- * Story ataría el cartel de ESTA sección a cualquier retoque futuro de la
- * OTRA, exactamente lo que D10 (arriba) evitó la primera vez y lo que el
- * propio repo ya practica entre secciones (`story.layers.ts` y
- * `journey.layers.ts` no se importan entre sí en ningún otro punto). Si el
- * día de mañana esta pareja diverge de la de Story a propósito, el sitio
- * donde se decide es el test que las compara (`journey.layers.test.ts`), no
- * un descubrimiento a posteriori en el navegador.
+ * ESE DÍA ES LA CRÍTICA EXTERNA #14 (2026-09-02): al tokenizar el TAMAÑO de
+ * la cita, el peldaño `type.scale.deckClosing` recoge el paquete entero que
+ * la pieza compone -- tamaño, peso, interlineado y tracking -- y el 900 pasa
+ * a vivir dentro de la escala. La constante no desaparece (sigue siendo el
+ * nombre con el que Journey habla del peso de su cierre) pero deriva, que es
+ * lo que aquel punto de decisión pedía en vez de dejar dos fuentes
+ * conviviendo en silencio.
+ *
+ * Coincide EXACTAMENTE con `STORY_DECK_NOTE_WEIGHT`, y ahora por
+ * construcción: las dos leen el mismo peldaño. Sigue sin importarse nada de
+ * `story.layers.ts` -- el acoplamiento que D10 evitó y que el párrafo de
+ * cabecera de este bloque protege era entre las dos SECCIONES, no entre una
+ * sección y el sistema.
  */
-export const JOURNEY_DECK_QUOTE_WEIGHT = 900;
+export const JOURNEY_DECK_QUOTE_WEIGHT = typeTokens.scale.deckClosing.weight;
 
 /**
  * Hueco extra a la derecha del contenido de cada diapositiva, solo en

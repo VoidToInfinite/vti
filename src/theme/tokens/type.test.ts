@@ -9,6 +9,12 @@ describe("type tokens", () => {
 
   it("escala tipográfica completa tiene los valores canónicos correctos", () => {
     const expectedScale = {
+      deckClosing: {
+        size: "clamp(2.5rem, 11vw, 8rem)",
+        weight: 900,
+        lineHeight: 1.03,
+        tracking: "0",
+      },
       display: {
         size: "clamp(2.5rem, 4.4vw, 3.5rem)",
         weight: 800,
@@ -37,6 +43,12 @@ describe("type tokens", () => {
         size: "1.125rem",
         weight: 600,
         lineHeight: 1.35,
+        tracking: "0",
+      },
+      deckBody: {
+        size: "clamp(1rem, 1.4vw, 1.115rem)",
+        weight: 400,
+        lineHeight: 1.6,
         tracking: "0",
       },
       body: {
@@ -80,22 +92,68 @@ describe("type tokens", () => {
    * quien vuelva a añadir un peldaño tiene que tocar los dos sitios a la vez,
    * que es justo lo que la regla 40 pide de un contrato cerrado. Y así ha
    * funcionado: la crítica externa #11 (2026-08-18) subió el recuento a 10 al
-   * añadir `deckTitle`, y la #14 (2026-09-02) lo devuelve a 9 al retirarlo --
-   * las dos veces actualizando esta cifra CON el `toEqual` de arriba, nunca
-   * relajando ninguno de los dos.
+   * añadir `deckTitle`, y la #14 (2026-09-02) lo deja en 11 -- retira ese
+   * peldaño y añade `deckClosing` y `deckBody` --, las dos veces actualizando
+   * esta cifra CON el `toEqual` de arriba, nunca relajando ninguno de los dos.
    */
-  it("la escala tiene exactamente 9 peldaños vivos", () => {
-    expect(Object.keys(typo.scale)).toHaveLength(9);
+  it("la escala tiene exactamente 11 peldaños vivos", () => {
+    expect(Object.keys(typo.scale)).toHaveLength(11);
   });
 
   /*
-   * AQUÍ VIVIÓ el candado "deckTitle es el único peldaño por encima del techo
-   * de display", nacido con ese peldaño en la crítica externa #11
-   * (2026-08-18). Se retira CON su sujeto en la #14 (2026-09-02, decisión D4
-   * del dueño): sin `deckTitle` en la escala no queda ninguna variante por
-   * encima de `display`, así que el test no tenía nada que afirmar -- y un
-   * candado que se queda sin sujeto no protege, estorba (regla 16 de
-   * `RULES.md`). El porqué de la retirada del peldaño vive en el hueco que
-   * dejó dentro de `type.scale` (`type.ts`).
+   * ESTE CANDADO NACIÓ EN LA CRÍTICA #11 (2026-08-18) apuntando a
+   * `deckTitle`; la #14 (2026-09-02) retira aquel peldaño y lo repunta a
+   * `deckClosing`, que hereda su papel: es el único peldaño cuyo máximo
+   * supera al de `display`, y su docblock declara que eso es deliberado --
+   * tipografía de CARTEL (una diapositiva a sangre completa), no de
+   * documento. Sin este candado, esa afirmación viviría solo en prosa, y la
+   * siguiente revisión que viera un 8rem por encima del techo de `display`
+   * podría "corregirlo" creyendo que arregla una fuga de la escala,
+   * cambiando de paso lo que pintan los cierres de los dos decks.
+   *
+   * Se afirma la RELACIÓN (deckClosing > display) además del número, y la
+   * UNICIDAD sobre la escala entera: si algún día `display` se recalibrara,
+   * lo que tiene que seguir siendo cierto es el orden; y si alguien colara un
+   * tercer peldaño de cartel, este test lo obliga a declararse aquí.
    */
+  it("deckClosing es el único peldaño por encima del techo de display, y es deliberado", () => {
+    const tope = (size: string): number =>
+      parseFloat(/,\s*([\d.]+)rem\)$/.exec(size)?.[1] ?? size);
+    expect(tope(typo.scale.deckClosing.size)).toBe(8);
+    expect(tope(typo.scale.display.size)).toBe(3.5);
+
+    const porEncima = Object.entries(typo.scale)
+      .filter(([, v]) => tope(v.size) > tope(typo.scale.display.size))
+      .map(([k]) => k);
+    expect(porEncima).toEqual(["deckClosing"]);
+  });
+
+  /*
+   * El 900 de `deckClosing` es el peso MÁS ALTO de la escala, y romper el
+   * techo de 800 que rigió hasta la #14 es una decisión, no un descuido: tres
+   * constantes de sección declaraban un 900 como "excepción deliberada hasta
+   * que la escala del sistema incorpore un 900" (`STORY_DECK_NOTE_WEIGHT`,
+   * `JOURNEY_DECK_QUOTE_WEIGHT`, `JOURNEY_DECK_STEP_LABEL_WEIGHT`). Esta
+   * aserción es el registro de que la escala ya lo incorporó -- lo que obliga
+   * a cada una de esas tres a declarar si deriva o si se queda fuera, que es
+   * lo que hacen sus docblocks y sus tests.
+   */
+  it("deckClosing declara el peso más alto de la escala (900)", () => {
+    const pesos = Object.values(typo.scale).map((v) => v.weight);
+    expect(typo.scale.deckClosing.weight).toBe(900);
+    expect(Math.max(...pesos)).toBe(900);
+  });
+
+  /*
+   * `deckBody` comparte SUELO con `body` y no techo: el mínimo de su
+   * `clamp()` es exactamente `body.size`, y esa es la razón por la que no es
+   * un capricho tener los dos peldaños (su docblock lo explica). La
+   * aserción ata la relación, no la cadena: si algún día `body` se
+   * recalibrara, lo que tiene que seguir siendo cierto es que el suelo del
+   * tramo fluido sigue siendo el tamaño base de lectura del sitio.
+   */
+  it("deckBody arranca exactamente en el tamaño de body y crece desde ahí", () => {
+    expect(typo.scale.deckBody.size).toContain(`clamp(${typo.scale.body.size}`);
+    expect(typo.scale.deckBody.size).toMatch(/, 1\.115rem\)$/);
+  });
 });

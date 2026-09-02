@@ -178,13 +178,14 @@ describe("escala tipografica de la presentacion de Journey (contrato con la spec
   });
 
   it("el subtitulo de paso tiene tope 1.115rem, cadena literal del encargo (T2/T5)", () => {
-    // Cadena LITERAL del encargo ("Journey deck step body (new called
-    // subtitle): clamp(1rem, 1.4vw, 1.115rem)"). El VALOR no cambio con el
-    // renombrado de T5 -- sigue siendo exactamente el mismo tramo que ya
-    // tenia la constante antes de renombrarse (docblock de
-    // JOURNEY_DECK_STEP_SUBTITLE_SIZE, journey.layers.ts).
+    // Cadena del encargo ("Journey deck step body (new called subtitle):
+    // clamp(1rem, 1.4vw, 1.115rem)"). El VALOR no cambio con el renombrado de
+    // T5 ni con la tokenizacion de la critica #14 (2026-09-02): lo que cambio
+    // es de donde sale -- hoy es `type.scale.deckBody`, el peldano que nombra
+    // el cuerpo de lectura de una diapositiva de deck y que esta seccion
+    // comparte con el cuerpo de pilar de Story.
     expect(JOURNEY_DECK_STEP_SUBTITLE_SIZE).toBe(
-      "clamp(1rem, 1.4vw, 1.115rem)",
+      typeTokens.scale.deckBody.size,
     );
     expect(JOURNEY_DECK_STEP_SUBTITLE_SIZE).toMatch(/, 1\.115rem\)$/);
   });
@@ -193,13 +194,14 @@ describe("escala tipografica de la presentacion de Journey (contrato con la spec
     expect(JOURNEY_DECK_STEP_ICON_SIZE).toBe("48px");
   });
 
-  it("la cita de cierre tiene tope 8rem, cadena literal del encargo (T6)", () => {
-    // Cadena LITERAL del encargo ("Journey quote: font-size: clamp(2.5rem,
-    // 11vw, 8rem)"). Falsable de verdad: si alguien revirtiera esta entrega
-    // sin darse cuenta y devolviera el tope a 3.5rem (el valor de D10, la
-    // decision ANTERIOR que esta entrega revierte a proposito), esta
-    // asercion lo detecta.
-    expect(JOURNEY_DECK_QUOTE_SIZE).toBe("clamp(2.5rem, 11vw, 8rem)");
+  it("la cita de cierre tiene tope 8rem, cadena del encargo (T6)", () => {
+    // Cadena del encargo ("Journey quote: font-size: clamp(2.5rem, 11vw,
+    // 8rem)"), hoy servida por `type.scale.deckClosing` (critica externa #14,
+    // 2026-09-02). Falsable de verdad: si alguien revirtiera esta entrega sin
+    // darse cuenta y devolviera el tope a 3.5rem (el valor de D10, la decision
+    // ANTERIOR que esta entrega revierte a proposito), el segundo assert lo
+    // detecta aunque el primero siguiera pasando por leer el token.
+    expect(JOURNEY_DECK_QUOTE_SIZE).toBe(typeTokens.scale.deckClosing.size);
     expect(JOURNEY_DECK_QUOTE_SIZE).toMatch(/, 8rem\)$/);
   });
 
@@ -209,55 +211,105 @@ describe("escala tipografica de la presentacion de Journey (contrato con la spec
 });
 
 /**
- * Punto 2 de §6 de la spec de tipografia: los dos pesos 900 (etiqueta de
- * paso y cita de cierre) estan fuera de la escala del sistema. REPLICA
- * EXACTA del test que ya protege `STORY_DECK_NOTE_WEIGHT`
- * (`story.layers.test.ts`), con el mismo patron de dos aserciones: el valor
- * concreto (900) y que ese valor sea estrictamente mayor que el peso maximo
- * que declara `type.scale` hoy. La segunda asercion es la que da valor real:
- * si algun dia la escala del sistema incorporase un 900, este test obliga a
- * decidir si la constante desaparece en favor del token, en vez de dejar dos
- * fuentes conviviendo en silencio.
+ * Punto 2 de §6 de la spec de tipografia: los dos pesos 900 de Journey
+ * (etiqueta de paso y cita de cierre). Hasta la critica externa #14
+ * (2026-09-02) los dos tests eran REPLICA EXACTA del que protege
+ * `STORY_DECK_NOTE_WEIGHT` y afirmaban lo mismo -- que 900 era estrictamente
+ * mayor que el peso maximo de `type.scale` --, con el punto de decision
+ * escrito: si algun dia la escala incorporase un 900, habia que decidir si la
+ * constante desaparece en favor del token.
+ *
+ * La #14 incorporo ese 900 (`type.scale.deckClosing`) y las dos constantes
+ * tomaron caminos DISTINTOS, que es justo lo que el punto de decision pedia
+ * decidir en vez de dejar conviviendo: la cita de cierre deriva del peldano
+ * (es exactamente ese rol) y la etiqueta de paso NO (viste otro rol, con otro
+ * tamano, y `TypeStyle` es un paquete de cuatro propiedades, no un peso
+ * suelto). Los dos tests de abajo afirman cada camino, no el mismo dos veces.
  */
-describe("los pesos 900 de Journey estan fuera de la escala del sistema (T3/T6)", () => {
-  it("JOURNEY_DECK_STEP_LABEL_WEIGHT pesa 900, por encima de toda la escala del sistema", () => {
+describe("los dos pesos 900 de Journey tras la critica #14 (T3/T6)", () => {
+  it("JOURNEY_DECK_STEP_LABEL_WEIGHT se queda fuera de la escala, a proposito", () => {
     expect(JOURNEY_DECK_STEP_LABEL_WEIGHT).toBe(900);
-    const pesosDelSistema = Object.values(typeTokens.scale).map(
-      (v) => v.weight,
-    );
-    expect(Math.max(...pesosDelSistema)).toBeLessThan(
-      JOURNEY_DECK_STEP_LABEL_WEIGHT,
+
+    // Coincide con el peso mas alto que declara la escala, y aun asi NO
+    // deriva de el: si algun dia alguien "arregla" esta constante haciendola
+    // leer `deckClosing.weight`, el docblock que explica por que no debe
+    // hacerlo deja de describir el codigo. Lo que se ata es la INDEPENDENCIA,
+    // observada en la fuente igual que los demas candados de token.
+    expect(JOURNEY_DECK_STEP_LABEL_WEIGHT).toBe(
+      typeTokens.scale.deckClosing.weight,
     );
   });
 
-  it("JOURNEY_DECK_QUOTE_WEIGHT pesa 900, por encima de toda la escala del sistema", () => {
+  it("JOURNEY_DECK_QUOTE_WEIGHT pesa 900 y hoy lo lee de la escala", () => {
     expect(JOURNEY_DECK_QUOTE_WEIGHT).toBe(900);
-    const pesosDelSistema = Object.values(typeTokens.scale).map(
-      (v) => v.weight,
-    );
-    expect(Math.max(...pesosDelSistema)).toBeLessThan(
-      JOURNEY_DECK_QUOTE_WEIGHT,
-    );
+    expect(JOURNEY_DECK_QUOTE_WEIGHT).toBe(typeTokens.scale.deckClosing.weight);
   });
 });
 
 /**
  * Punto 3 de §6 de la spec de tipografia (T7): la cita de cierre de Journey
- * coincide HOY, en tamano y en peso, con la nota de cierre de Story. Este
- * test NO ES un acoplamiento -- las dos parejas de constantes siguen viviendo
- * cada una en su fichero, sin que ninguna importe a la otra en el codigo de
- * produccion (`journey.layers.ts` declara sus propios literales, no
- * reexporta los de `story.layers.ts`) -- es un PUNTO DE DECISION: si algun
- * dia Story y Journey divergen a proposito, este test es donde se decide esa
- * divergencia, actualizando la asercion con su porque, en vez de que alguien
- * la descubra por sorpresa comparando capturas de pantalla en el navegador.
+ * coincide, en tamano y en peso, con la nota de cierre de Story. Hasta la
+ * critica externa #14 (2026-09-02) esa coincidencia la sostenian dos parejas
+ * de literales identicos byte a byte, y este describe era el PUNTO DE
+ * DECISION donde se decidiria una futura divergencia.
+ *
+ * La #14 (hallazgo P3) la resuelve al reves de como T7 la habia dejado: las
+ * dos parejas no coinciden por casualidad, visten el MISMO rol -- el cierre
+ * de un deck a sangre completa -- asi que las cuatro constantes derivan hoy
+ * del peldano `type.scale.deckClosing`. El test se conserva y sigue teniendo
+ * sentido: ahora afirma que ninguna de las dos secciones se ha salido del
+ * peldano por su cuenta. Divergir sigue siendo posible -- y sigue decidiendose
+ * aqui -- pero exige sacar a una de las dos del token con su porque escrito,
+ * no editar un literal y esperar que alguien lo note comparando capturas.
+ *
+ * Que este test importe de `story.layers.ts` no acopla las dos secciones: es
+ * la invariante que cruza dos ficheros viviendo en un test que importa los
+ * dos, que es lo que pide la regla 41 de `RULES.md`.
  */
-describe("coincidencia de la cita de Journey con la nota de Story (T7, punto de decision declarado)", () => {
-  it("JOURNEY_DECK_QUOTE_SIZE coincide hoy con STORY_DECK_NOTE_SIZE", () => {
+describe("coincidencia de la cita de Journey con la nota de Story (T7, resuelta por token en la #14)", () => {
+  it("JOURNEY_DECK_QUOTE_SIZE coincide con STORY_DECK_NOTE_SIZE, y las dos leen deckClosing", () => {
     expect(JOURNEY_DECK_QUOTE_SIZE).toBe(STORY_DECK_NOTE_SIZE);
+    expect(JOURNEY_DECK_QUOTE_SIZE).toBe(typeTokens.scale.deckClosing.size);
   });
 
-  it("JOURNEY_DECK_QUOTE_WEIGHT coincide hoy con STORY_DECK_NOTE_WEIGHT", () => {
+  it("JOURNEY_DECK_QUOTE_WEIGHT coincide con STORY_DECK_NOTE_WEIGHT, y las dos leen deckClosing", () => {
     expect(JOURNEY_DECK_QUOTE_WEIGHT).toBe(STORY_DECK_NOTE_WEIGHT);
+    expect(JOURNEY_DECK_QUOTE_WEIGHT).toBe(typeTokens.scale.deckClosing.weight);
+  });
+});
+
+/**
+ * Candado de FUENTE de la critica externa #14 (2026-09-02, hallazgo P3),
+ * mismo patron y mismo motivo que el que ya protege a
+ * `JOURNEY_DECK_TITLE_SIZE`: las aserciones de valor de arriba pasarian igual
+ * con los literales escritos a mano, porque token y literal resuelven a la
+ * misma cadena (`task/lessons.md`, 2026-08-12, Task 19). La propiedad "el
+ * numero vive en el token, no en este fichero" solo se observa leyendo el
+ * fichero, despojado de comentarios para que los `clamp()` citados en prosa
+ * dentro de los docblocks no falseen el resultado.
+ *
+ * Incluye la INDEPENDENCIA de `JOURNEY_DECK_STEP_LABEL_WEIGHT`: es la unica
+ * de las tres constantes de esta familia que sigue declarando su valor a
+ * mano, y eso es una decision documentada, no un olvido de migrar.
+ */
+describe("critica #14: el cierre y el subtitulo de paso derivan del token", () => {
+  it("journey.layers.ts no escribe a mano ningun valor que ya nombre la escala", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "journey.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("typeTokens.scale.deckClosing.size");
+    expect(fuente).toContain("typeTokens.scale.deckClosing.weight");
+    expect(fuente).toContain("typeTokens.scale.deckBody.size");
+    expect(fuente).not.toContain("clamp(2.5rem, 11vw, 8rem)");
+    expect(fuente).not.toContain("clamp(1rem, 1.4vw, 1.115rem)");
+
+    // La etiqueta de paso conserva su 900 literal a proposito (ver su
+    // docblock): el candado de arriba no debe arrastrarla sin querer.
+    expect(fuente).toContain("JOURNEY_DECK_STEP_LABEL_WEIGHT = 900");
   });
 });

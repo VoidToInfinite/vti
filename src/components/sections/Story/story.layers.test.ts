@@ -140,25 +140,52 @@ describe("escala tipográfica de la presentación de Story (contrato con el enca
   });
 
   it("el cuerpo de pilar tiene tope 1.115rem", () => {
-    expect(STORY_DECK_PILLAR_BODY_SIZE).toBe("clamp(1rem, 1.4vw, 1.115rem)");
+    expect(STORY_DECK_PILLAR_BODY_SIZE).toBe(type.scale.deckBody.size);
     expect(STORY_DECK_PILLAR_BODY_SIZE).toMatch(/, 1\.115rem\)$/);
   });
 
   it("la nota de cierre tiene tope 8rem", () => {
-    expect(STORY_DECK_NOTE_SIZE).toBe("clamp(2.5rem, 11vw, 8rem)");
+    expect(STORY_DECK_NOTE_SIZE).toBe(type.scale.deckClosing.size);
     expect(STORY_DECK_NOTE_SIZE).toMatch(/, 8rem\)$/);
   });
 
-  it("la nota de cierre pesa 900, por encima de toda la escala del sistema", () => {
-    // El encargo pide 900 y `type.scale` se detiene en 800 (`display`), asi
-    // que esto es una excepcion deliberada, no un token olvidado. La segunda
-    // asercion es la que da valor: si algun dia alguien anadiera un 900 a la
-    // escala, esta constante deberia desaparecer en favor del token -- y este
-    // test es el que obliga a tomar esa decision en vez de dejar las dos
-    // fuentes conviviendo en silencio.
+  it("la nota de cierre sigue pesando 900, ahora desde la escala", () => {
+    // Hasta la critica externa #14 (2026-09-02) esta asercion decia "por
+    // encima de toda la escala del sistema": el encargo pedia 900, `type.scale`
+    // se detenia en 800 (`display`) y el test obligaba a decidir el dia que la
+    // escala incorporase un 900. Ese dia llego -- `deckClosing` recoge el
+    // paquete entero de esta pieza -- y la decision fue derivar. El VALOR
+    // renderizado no cambia; lo que cambia es de donde sale.
     expect(STORY_DECK_NOTE_WEIGHT).toBe(900);
-    const pesosDelSistema = Object.values(type.scale).map((v) => v.weight);
-    expect(Math.max(...pesosDelSistema)).toBeLessThan(STORY_DECK_NOTE_WEIGHT);
+    expect(STORY_DECK_NOTE_WEIGHT).toBe(type.scale.deckClosing.weight);
+  });
+
+  /*
+   * Critica externa #14 (2026-09-02), hallazgo P3: los dos literales que esta
+   * seccion compartia byte a byte con `journey.layers.ts` -- el cierre y el
+   * cuerpo de lectura de diapositiva -- pasan a derivar de sendos peldanos de
+   * la escala. Mismo patron de candado que el del titular de intro: las
+   * aserciones de valor de arriba pasarian igual con el literal escrito a
+   * mano (resuelve a la misma cadena), asi que la propiedad "el numero vive
+   * en el token, no en este fichero" solo se observa en la FUENTE
+   * (task/lessons.md, 2026-08-12, Task 19), despojada de comentarios para que
+   * el `clamp()` citado en prosa no la falsee y para que el candado no se
+   * pueda desactivar comentandolo.
+   */
+  it("critica #14: el cierre y el cuerpo de pilar derivan del token, no escriben el clamp a mano", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "story.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("typeTokens.scale.deckClosing.size");
+    expect(fuente).toContain("typeTokens.scale.deckClosing.weight");
+    expect(fuente).toContain("typeTokens.scale.deckBody.size");
+    expect(fuente).not.toContain("clamp(2.5rem, 11vw, 8rem)");
+    expect(fuente).not.toContain("clamp(1rem, 1.4vw, 1.115rem)");
   });
 
   it("el hueco derecho de la diapositiva en pantallas grandes es 8rem", () => {

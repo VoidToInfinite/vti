@@ -303,8 +303,18 @@ export const STORY_FIGURE_SIZES =
  * `clamp()`, byte a byte, para el mismo rol. Una medida que dos secciones
  * comparten ya no es de una sección, así que ese caso concreto SÍ es un
  * token, y `STORY_DECK_TITLE_SIZE` pasa a derivar de él. El criterio de la
- * frase no se retira: sigue rigiendo para los otros cuatro tamaños, que no
- * tienen ningún consumidor fuera de Story.
+ * frase no se retira: sigue rigiendo para los tamaños que no tienen ningún
+ * consumidor fuera de Story.
+ *
+ * CORREGIDO OTRA VEZ 2026-09-02 (crítica externa #14): con el mismo criterio
+ * salen de la lista DOS más, los dos por tener la misma medida escrita byte a
+ * byte en `journey.layers.ts` — el 8rem de la nota de cierre
+ * (`type.scale.deckClosing`) y el tramo `clamp(1rem, 1.4vw, 1.115rem)` del
+ * cuerpo de pilar (`type.scale.deckBody`). De los cinco tamaños de cartel
+ * originales quedan DOS que siguen siendo medidas de ESTA composición: el
+ * título de pilar y el subtítulo de pilar. Y el titular de intro dejó además
+ * de ser un tamaño de cartel: hoy es el `h2` del sistema (decisión D4 de esa
+ * misma crítica).
  *
  * Todas salvo el subtítulo se declaran como `clamp(mínimo, preferido-en-vw,
  * máximo)` en vez de con `@media`: un término en `vw` escala de forma
@@ -376,22 +386,51 @@ export const STORY_DECK_PILLAR_SUBTITLE_SIZE = "1rem";
  * mismo suelo de lectura que el subtítulo, para que el párrafo de cuatro
  * frases nunca quede por debajo del tamaño base del sitio en un móvil
  * estrecho.
+ *
+ * DEJA DE DECLARAR EL LITERAL (crítica externa #14, 2026-09-02, hallazgo P3):
+ * el mismo `clamp(1rem, 1.4vw, 1.115rem)` estaba escrito byte a byte en
+ * `JOURNEY_DECK_STEP_SUBTITLE_SIZE` (`journey.layers.ts`), cuyo docblock ya
+ * afirmaba en prosa que era el mismo tramo para el mismo rol de lectura. Una
+ * medida que dos secciones comparten no es una medida de sección (regla 13 de
+ * `RULES.md`): pasa a derivar de `type.scale.deckBody`, el peldaño que la
+ * escala del sistema estrena para el cuerpo de lectura de una diapositiva.
+ *
+ * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
  */
-export const STORY_DECK_PILLAR_BODY_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
+export const STORY_DECK_PILLAR_BODY_SIZE = typeTokens.scale.deckBody.size;
 
 /**
  * Nota de cierre (diapositiva 6). Tope 8rem (encargo): el tamaño de cartel
  * más grande de la presentación. Mínimo 2.5rem: por debajo de eso la nota
  * deja de leerse como el cierre climático de la presentación y se confunde
  * con el resto del texto de la diapositiva.
+ *
+ * DEJA DE DECLARAR EL LITERAL (crítica externa #14, 2026-09-02, hallazgo P3):
+ * el mismo `clamp(2.5rem, 11vw, 8rem)` estaba escrito byte a byte en
+ * `JOURNEY_DECK_QUOTE_SIZE` (`journey.layers.ts`) para el mismo rol —el
+ * cierre de un deck a sangre completa—, así que deriva de
+ * `type.scale.deckClosing`. Ese peldaño REVISA a propósito la decisión T7 de
+ * la spec de tipografía de Journey, que dejó las dos parejas coincidiendo sin
+ * acoplarse; el porqué completo vive en su docblock (`tokens/type.ts`).
+ *
+ * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
  */
-export const STORY_DECK_NOTE_SIZE = "clamp(2.5rem, 11vw, 8rem)";
+export const STORY_DECK_NOTE_SIZE = typeTokens.scale.deckClosing.size;
 
 /**
- * Peso de la nota de cierre (encargo 2026-07-31). **Excepción deliberada a
- * `type.scale`**, que se detiene en 800 (`display`): ninguna variante del
- * sistema declara 900, y añadirlo allí tocaría un contrato cerrado que
- * consumen todas las secciones para servir a UNA pieza.
+ * Peso de la nota de cierre (encargo 2026-07-31). Fue durante trece meses una
+ * **excepción deliberada a `type.scale`**, que se detenía en 800 (`display`):
+ * ninguna variante del sistema declaraba 900 y añadirlo habría tocado un
+ * contrato cerrado que consumen todas las secciones para servir a UNA pieza.
+ * Su test dejaba escrito el punto de decisión: «si algún día alguien añadiera
+ * un 900 a la escala, esta constante debería desaparecer en favor del token».
+ *
+ * ESE DÍA LLEGÓ EN LA CRÍTICA EXTERNA #14 (2026-09-02): al tokenizar el
+ * TAMAÑO del cierre (arriba), el peldaño `deckClosing` recoge el paquete
+ * entero que la pieza compone —tamaño, peso, interlineado y tracking—, y el
+ * 900 pasa a estar dentro de la escala. La constante no desaparece, que es la
+ * otra mitad de lo que el punto de decisión permitía: sigue siendo el nombre
+ * con el que Story habla del peso de su cierre, pero deriva.
  *
  * El 900 es real, no una negrita sintética: `app/layout.tsx` carga
  * `Hanken_Grotesk` por `next/font/google` SIN lista de `weight`, lo que trae
@@ -399,7 +438,7 @@ export const STORY_DECK_NOTE_SIZE = "clamp(2.5rem, 11vw, 8rem)";
  * una lista de pesos concreta en esa carga, este valor caería a la negrita
  * falsa que sintetiza el navegador — de ahí que quede escrito aquí.
  */
-export const STORY_DECK_NOTE_WEIGHT = 900;
+export const STORY_DECK_NOTE_WEIGHT = typeTokens.scale.deckClosing.weight;
 
 /**
  * Hueco extra a la DERECHA del contenido de la diapositiva, solo en
