@@ -321,8 +321,42 @@ const ScColumnLinks = styled.div`
 /* Enlace secundario del footer: `textMuted` en reposo, `brandText` al hover
    -- mismo rol/transición que `ScNavLink` del Navbar (spec §7.5/§7.6 piden
    el mismo lenguaje visual para los enlaces de sección de los dos
-   componentes). Sin subrayado: GlobalStyles ya fija `text-decoration: none`
-   en todos los `a`. */
+   componentes). */
+/*
+ * SUBRAYADO EN REPOSO (crítica externa #14, dimensión 4 de Craft; decisión
+ * del dueño D3, 2026-09-02).
+ *
+ * El hallazgo, medido en navegador: los 14 anclas del pie computaban
+ * `rgb(99, 99, 99)`, `font-weight: 400`, `14px` y `text-decoration: none` --
+ * exactamente los mismos cuatro valores que el texto PLANO del pie. El único
+ * indicio de que eran enlaces era su posición en columna, y el único indicio
+ * interactivo era el cambio de color al pasar el puntero. En táctil no hay
+ * puntero: ahí un enlace del pie no tenía ninguna señal de serlo.
+ *
+ * El sitio ya sabe hacer esto y no hay que inventar nada: las páginas
+ * legales subrayan sus enlaces con estas tres declaraciones exactas
+ * (`legalLinkStyles` y `ScBackLink` en `legalPage.parts.tsx`, y
+ * `communityLinkStyles` en `Story.tsx`). Se reutiliza ese lenguaje tal cual
+ * -- no hay mixin compartido que importar; el patrón se repite hoy en tres
+ * puntos y este es el cuarto, todos con los mismos valores.
+ *
+ * Los valores, y por qué: `1px` de grosor porque el subrayado tiene que
+ * distinguirse sin competir con el texto de 14px, y `0.25em` de separación
+ * porque el subrayado por defecto corta las descendentes (g, j, p, q, y) y a
+ * este tamaño eso se lee como una tachadura fina.
+ *
+ * El COLOR no cambia: `textMuted` en reposo y `brandText` al hover/foco,
+ * como hasta ahora. `text-decoration-color` no se declara, así que la línea
+ * hereda `currentColor` y viaja con el texto en los dos estados.
+ *
+ * No mueve la geometría: `text-decoration` no ocupa espacio de layout, así
+ * que la diana táctil de 24px de más abajo sigue midiendo lo mismo.
+ *
+ * Gana a la regla global (`a { text-decoration: none }` en `GlobalStyles`)
+ * por especificidad: una clase de styled-components (0,1,0) pesa más que un
+ * selector de elemento (0,0,1). Mismo mecanismo por el que ya funcionan los
+ * enlaces legales.
+ */
 /*
  * DIANA TÁCTIL DE 24px (crítica externa #11, hallazgo A, P2, WCAG 2.5.8 Target
  * Size (Minimum), AA en WCAG 2.2).
@@ -363,6 +397,11 @@ const footerLinkStyles = css`
   min-height: ${({ theme }) => theme.data.space[5]};
   padding-block: ${({ theme }) => theme.data.space[1]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* Ver el docblock de arriba: el subrayado es la única señal de "esto es un
+     enlace" que funciona sin puntero. */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. Un único
      punto de declaración -- ScFooterLink y ScFooterNavLink (más abajo) lo
      heredan interpolando este mismo bloque css, no lo redeclaran. */

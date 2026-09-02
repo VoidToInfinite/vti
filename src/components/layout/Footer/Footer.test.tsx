@@ -829,6 +829,68 @@ describe("Footer", () => {
   });
 
   /*
+   * SUBRAYADO EN REPOSO EN LOS ENLACES DEL PIE (crítica externa #14,
+   * dimensión 4 de Craft; decisión del dueño D3, 2026-09-02).
+   *
+   * El defecto que protege, medido en navegador: los 14 anclas del pie
+   * computaban `rgb(99, 99, 99)`, `font-weight: 400`, `14px` y
+   * `text-decoration: none` -- los mismos cuatro valores exactos que el texto
+   * PLANO del pie. El único indicio interactivo era el cambio de color al
+   * pasar el puntero, y en táctil no hay puntero: ahí un enlace del pie no
+   * tenía ninguna señal de serlo.
+   *
+   * POR QUÉ SE ATA LA REGLA BASE Y NO EL CSS COMPLETO: un subrayado que solo
+   * apareciera bajo `:hover` dejaría el hallazgo intacto en el escenario que
+   * lo motivó. El candado busca la regla cuyo SELECTOR no lleva pseudo-clase
+   * -- ojo, el cuerpo de toda regla sí lleva dos puntos en cada declaración,
+   * así que hay que partir por la llave, no filtrar por `includes(":")` (misma
+   * trampa que ya documenta `Input.test.tsx`).
+   *
+   * jsdom no pinta (regla 44): esto ata la DECLARACIÓN. Que la línea se vea
+   * de verdad a 390 y a 1440 es verificación de navegador real, declarada
+   * como pendiente en el informe de la tarea.
+   */
+  describe("crítica #14 (D3): los enlaces del pie llevan subrayado en reposo", () => {
+    /** Regla de la clase, sin pseudo-clase en el selector: el estado de reposo. */
+    function reglaBaseDe(el: HTMLElement): string | undefined {
+      return cssRuleTextFor(el)
+        .split("\n")
+        .find((regla) => {
+          const llave = regla.indexOf("{");
+          if (llave === -1) return false;
+          const selector = regla.slice(0, llave);
+          return selector.includes(".") && !selector.includes(":");
+        });
+    }
+
+    it("TODOS los anclas del pie declaran subrayado en reposo, con el grosor y la separación de los enlaces legales", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const { container } = renderWithProviders(<Footer />);
+
+      // Los 14 anclas, no una muestra: los 11 destinos de NAV_GROUPS, la
+      // dirección de correo y los 2 documentos legales comparten
+      // `footerLinkStyles`, y el día que alguien monte un enlace con estilos
+      // propios este candado lo caza.
+      const enlaces = Array.from(container.querySelectorAll("a"));
+      expect(enlaces.length, "el pie no montó ningún enlace").toBeGreaterThan(
+        0,
+      );
+
+      enlaces.forEach((enlace) => {
+        const base = reglaBaseDe(enlace as HTMLElement);
+        const donde = enlace.getAttribute("href");
+        expect(base, `sin regla base para ${donde}`).toBeDefined();
+        expect(
+          base,
+          `un enlace del pie se quedó sin subrayado en reposo: ${donde}`,
+        ).toContain("text-decoration: underline");
+        expect(base).toContain("text-decoration-thickness: 1px");
+        expect(base).toContain("text-underline-offset: 0.25em");
+      });
+    });
+  });
+
+  /*
    * DIANA TÁCTIL DE 24px EN EL PIE (crítica externa #11, hallazgo A, P2,
    * WCAG 2.5.8 Target Size (Minimum), AA en WCAG 2.2). El evaluador midió a
    * 390x844 que los enlaces del pie median 342x16 px con paso vertical de
