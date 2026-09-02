@@ -372,9 +372,10 @@ const ScColumnLinks = styled.div`
  * `bodySm` (0.875rem = 14px) bajo el `line-height: 1.15` global
  * (`GlobalStyles.tsx`) -- 16.1 px --, y los 8 px que faltaban hasta el paso
  * eran `gap` del contenedor: espacio VISIBLE que no era de nadie y por tanto
- * no era zona de toque. Los 14 anclas que comparten este bloque (11 destinos
- * de `NAV_GROUPS`, la dirección de correo y los 2 documentos legales de la
- * barra inferior) fallaban el criterio por igual.
+ * no era zona de toque. Todos los anclas que comparten este bloque (los
+ * destinos de `NAV_GROUPS` -- 11 cuando se midió, 12 desde que `about` entró
+ * en la navegación el 2026-09-02 --, la dirección de correo y los 2
+ * documentos legales de la barra inferior) fallaban el criterio por igual.
  *
  * DOS declaraciones, cada una con un trabajo distinto:
  *

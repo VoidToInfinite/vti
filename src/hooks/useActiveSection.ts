@@ -7,9 +7,12 @@ import { NAV_GROUPS } from "@/config/navigation";
  * (Tarea 1, navegación accesible): los mismos `key` de los items
  * `kind: "section"` del grupo `onSite` de `NAV_GROUPS` -- que además son
  * el `id` real de cada `<section>` de la home (`id="story"` en `Story.tsx`,
- * y lo mismo en `Journey.tsx`/`Features.tsx`/`Contact.tsx`) y el
- * `cssVarPrefix` con el que cada una llama a `useSectionProgress`
- * (`useSectionProgress(ref, { cssVarPrefix: "story" })`, etc.). Derivarla
+ * y lo mismo en `Journey.tsx`/`Features.tsx`/`Contact.tsx`/`About.tsx`). Las
+ * cuatro primeras son además el `cssVarPrefix` con el que cada una llama a
+ * `useSectionProgress` (`useSectionProgress(ref, { cssVarPrefix: "story" })`,
+ * etc.); `about` no llama a ese hook y por tanto no escribe `data-inview` --
+ * ver "TERCERA CLASE DE SECCIÓN" en el docblock de `resolveActiveKey`, más
+ * abajo, para cómo se resuelve eso. Derivarla
  * del propio modelo de navegación en vez de repetirla como array literal es
  * la misma invariante que la regla 13 de `RULES.md`: si `onSite` gana o
  * pierde una sección, este módulo la sigue sin que nadie tenga que
@@ -425,32 +428,86 @@ function resolveVisibleSection(
  * dos críticas, y compra que ninguna afirmación de este módulo se apoye ya en
  * una señal que nadie comprueba.
  *
- * LO QUE NO CAMBIA: "hay atributo y las cuatro dicen `false`" sigue siendo
- * `null` sin mirar geometría. Ese estado es legítimo y significa algo (la rama
- * clara opinó: el lector está en el Hero); lo que se acaba de dejar de creer a
- * ciegas es el `true`, no el `false`.
+ * LO QUE NO CAMBIA: "hay atributo y las que lo declaran dicen `false`" sigue
+ * siendo `null` sin mirar geometría. Ese estado es legítimo y significa algo
+ * (la rama clara opinó: el lector está en el Hero); lo que se acaba de dejar
+ * de creer a ciegas es el `true`, no el `false`.
+ *
+ * TERCERA CLASE DE SECCIÓN: LA QUE LA SEÑAL NO DESCRIBE (decisión del dueño
+ * D2, 2026-09-02; crítica #15, hallazgo C 5). Hasta esa fecha las cuatro
+ * secciones de `ACTIVE_SECTION_IDS` eran, en la rama clara, exactamente las
+ * cuatro que montan `useSectionProgress`, así que "no declara `data-inview`"
+ * solo podía significar dos cosas -- rama oscura (ninguna lo declara) o la
+ * ventana anterior a la primera entrega del observer --, y las dos las
+ * resuelve el camino por geometría de más abajo.
+ *
+ * `about` rompe esa coincidencia: es una sección real de la home, con su
+ * `h2` y su `id`, PLANA a propósito (sin escena, sin deck y sin ramificar por
+ * tema, ver el docblock de `About.tsx`), así que no monta `useSectionProgress`
+ * -- no tiene ningún parallax cuyo progreso describir -- y no escribe la señal
+ * en NINGUNA de las dos ramas. En la rama clara, donde las otras cuatro sí la
+ * escriben, `haySenal` es cierto y el camino normal era el único que decidía:
+ * con el centro del viewport DENTRO de About, la única candidata marcada era
+ * Contacto (queda arriba en pantalla, `threshold` 0) y la navegación
+ * anunciaba «Contacto» estando el lector en otra sección. En oscuro, donde
+ * nadie escribe la señal, la geometría ya contestaba «about» correctamente:
+ * dos ramas, dos respuestas, el mismo defecto de familia que la crítica #14.
+ *
+ * LA REGLA QUE LO CIERRA, y por qué no es un caso especial: una sección que
+ * la señal NO DESCRIBE no puede ser filtrada por ella -- ni admitida ni
+ * descartada --, así que entra al camino normal por la ÚNICA evidencia que
+ * existe sobre ella, su geometría, con el criterio `intersectsViewport`. No
+ * es un umbral nuevo: es el mismo `threshold` 0 del observer que escribe la
+ * señal (ver el docblock de `intersectsViewport`), es decir, EXACTAMENTE el
+ * conjunto que `data-inview` marcaría si alguien lo escribiera sobre ella. El
+ * criterio más débil de `clearlyOutsideViewport` no sirve aquí: existe para
+ * no contradecir a un observer real que dijo `true`, y aquí no hay ningún
+ * observer que respetar -- aplicarlo admitiría la caja sin layout de jsdom y
+ * la sección entraría como candidata en todas las posiciones a la vez.
+ *
+ * Coste: un `getBoundingClientRect()` más por evaluación (uno por sección sin
+ * señal, hoy solo `about`) en la rama clara. La rama oscura ya medía las
+ * cinco.
  */
 function resolveActiveKey(): string | null {
   const secciones: SectionElement[] = [];
-  const conSenalActiva: SectionElement[] = [];
+  const candidatas: SectionElement[] = [];
+  const sinSenal = new Set<string>();
+  let haySenalActiva = false;
   let haySenal = false;
 
   for (const id of ACTIVE_SECTION_IDS) {
     const el = document.getElementById(id);
     if (!el) continue;
     secciones.push({ id, el });
-    if (el.dataset.inview !== undefined) {
-      haySenal = true;
-      if (el.dataset.inview === "true") conSenalActiva.push({ id, el });
+    const senal = el.dataset.inview;
+    if (senal === undefined) {
+      /* Nadie describe esta sección con la señal: entra por geometría (ver el
+         bloque de arriba). Se recorre `ACTIVE_SECTION_IDS`, así que
+         `candidatas` conserva el ORDEN DE LA PÁGINA mezclando las dos
+         procedencias -- y de ese orden depende el desempate documentado en
+         `resolveAmongCandidates` (gana la de más abajo). */
+      sinSenal.add(id);
+      candidatas.push({ id, el });
+      continue;
+    }
+    haySenal = true;
+    if (senal === "true") {
+      haySenalActiva = true;
+      candidatas.push({ id, el });
     }
   }
 
   if (!isReducedMotion() && haySenal) {
-    if (conSenalActiva.length === 0) return null;
-    const validadas = measure(conSenalActiva).filter(
-      ({ rect }) => !clearlyOutsideViewport(rect),
+    const validadas = measure(candidatas).filter(({ id, rect }) =>
+      sinSenal.has(id)
+        ? intersectsViewport(rect)
+        : !clearlyOutsideViewport(rect),
     );
     if (validadas.length > 0) return resolveVisibleSection(validadas);
+    // Nadie se declaró dentro: el estado legítimo de la rama clara con el
+    // lector en el Hero. `null` sin mirar más, igual que antes.
+    if (!haySenalActiva) return null;
     // Ninguna candidata resiste la geometría: la señal del árbol es fósil.
     // Se ignora y se resuelve como si no existiera.
   }

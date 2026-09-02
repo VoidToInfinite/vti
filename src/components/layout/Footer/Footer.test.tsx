@@ -265,6 +265,42 @@ describe("Footer", () => {
   });
 
   /*
+   * `about` LLEGA AL PIE SIN QUE EL PIE CAMBIE (decisión del dueño D2,
+   * 2026-09-02; crítica externa #15, hallazgo C 5). El pie recorre
+   * `navGroupsFor` entero -- la partición que reparte destinos entre la barra
+   * de escritorio y «Más» es SOLO de la barra --, así que la quinta sección de
+   * la home aparece aquí sin tocar una línea de `Footer.tsx`. Este candado
+   * afirma justamente eso: que lo renderizado sigue siendo el modelo COMPLETO,
+   * no una copia que se quedó en cuatro.
+   *
+   * El recuento sale del modelo (regla 39), nunca de un 5 escrito a mano; que
+   * el modelo tenga exactamente esos cinco destinos lo ata `navigation.test.ts`
+   * con su tabla cerrada. Lo que sí se nombra aquí es `about`: sin esa
+   * aserción, retirarlo del modelo dejaría este test en verde con cuatro.
+   */
+  it("la columna «En el sitio» entrega TODOS los destinos de onSite, `about` incluido y con su etiqueta", () => {
+    window.localStorage.setItem("vti-theme", "light");
+    renderWithProviders(<Footer />);
+
+    const esperados =
+      navGroupsFor("es").find((group) => group.key === "onSite")?.items ?? [];
+    const titulo = screen.getByText(esCommon.Common.Nav.onSite);
+    const columna = titulo.parentElement as HTMLElement;
+    const anclas = Array.from(columna.querySelectorAll("a"));
+
+    expect(anclas.map((a) => a.getAttribute("href"))).toEqual(
+      esperados.map((item) => item.href),
+    );
+
+    const about = anclas.find((a) => a.getAttribute("href") === "/#about");
+    expect(
+      about,
+      "el pie perdió la salida a About: es la única que tiene en escritorio junto con «Más»",
+    ).toBeDefined();
+    expect(about?.textContent?.trim()).toBe(esCommon.Common.Navigation.about);
+  });
+
+  /*
    * WCAG 3.2.5 (Cambio a petición, AAA): un enlace externo que abre pestaña
    * nueva tiene que avisarlo a quien no ve la pantalla. El icono o el
    * `target` por sí solos no lo comunican -- por eso el aviso vive en el
@@ -1019,13 +1055,20 @@ describe("Footer", () => {
       );
     }
 
-    it("los 7 destinos de sección llevan el prefijo /en", () => {
+    it("TODOS los destinos internos llevan el prefijo /en", () => {
       const { container } = renderFooterEn();
       const internos = navGroupsFor("en")
         .flatMap((group) => group.items)
         .filter((item) => item.kind !== "external");
 
-      expect(internos).toHaveLength(7);
+      /* Guarda de no-vacuidad, no un recuento: el 7 literal que vivía aquí
+         caducó el 2026-09-02, cuando `about` entró en el modelo y lo dejó en
+         8 (regla 39 -- el número tiene que salir de la misma fuente que
+         consume el componente, y esa fuente es `navGroupsFor`). */
+      expect(
+        internos.length,
+        "el modelo se quedó sin destinos internos",
+      ).toBeGreaterThan(0);
       for (const item of internos) {
         expect(
           container.querySelector(`a[href="${item.href}"]`),

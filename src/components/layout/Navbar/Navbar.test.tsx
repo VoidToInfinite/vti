@@ -797,6 +797,55 @@ describe("Navbar", () => {
     });
 
     /*
+     * `about` NO ENTRA EN LA BARRA (decisión del dueño D2, 2026-09-02;
+     * crítica externa #15, hallazgo C 5). La quinta sección de la home entra
+     * en el modelo de navegación, y la barra de escritorio conserva SUS
+     * CUATRO enlaces: la decisión es de espacio, no de importancia -- la
+     * píldora ya lleva marca, cuatro destinos, «Más», idioma y tema en 56 px
+     * de alto, y un quinto rótulo (el más largo de los cinco) la empujaría
+     * hacia el problema que la propia crítica #15 midió en la barra a 200 %
+     * de fuente.
+     *
+     * Dos candados, no uno, y la diferencia importa: el de arriba afirma que
+     * los destinos de `navBarSectionsFor` se pintan; este afirma que los que
+     * NO están en esa lista NO se pintan. Sin el segundo, devolver el grupo
+     * entero (lo que hacía `navBarSectionsFor` antes de esta entrega) pasaría
+     * en verde.
+     */
+    it("el quinto destino de sección NO se pinta en la barra: about vive en «Más», con su rótulo de grupo", () => {
+      const { container } = renderNavbar();
+
+      expect(
+        container.querySelector('[data-nav-links] > a[href="/#about"]'),
+        "about se coló como enlace visible de la barra",
+      ).toBeNull();
+
+      const trigger = getTrigger(MORE);
+      fireEvent.click(trigger);
+      const panel = document.getElementById(
+        trigger.getAttribute("aria-controls") as string,
+      ) as HTMLElement;
+
+      const enlace = panel.querySelector('a[href="/#about"]');
+      expect(
+        enlace,
+        "about no está ni en la barra ni en «Más»: en escritorio no habría forma de llegar a la sección",
+      ).not.toBeNull();
+      expect(enlace?.textContent?.trim()).toBe(
+        esCommon.Common.Navigation.about,
+      );
+
+      /* BAJO SU RÓTULO, no suelto entre los externos: la lista que lo contiene
+         se nombra con `Common.Nav.onSite`, así que quien abre el panel sabe
+         que lleva a la misma página y no a otro sitio. */
+      const lista = enlace?.closest("ul");
+      const rotulo = document.getElementById(
+        lista?.getAttribute("aria-labelledby") as string,
+      );
+      expect(rotulo?.textContent?.trim()).toBe(esCommon.Common.Nav.onSite);
+    });
+
+    /*
      * INVERSIÓN DELIBERADA de un candado anterior (crítica externa #8, punto
      * 2). Hasta el 2026-08-17 este mismo test exigía `aria-haspopup="true"`
      * en los cuatro disparadores, añadido por la Tarea 1 razonando que
@@ -2374,7 +2423,15 @@ describe("Navbar", () => {
       const trigger = getSheetTrigger();
 
       fireEvent.click(trigger);
-      const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
+      /* Nombre EXACTO, no `/VoidToInfinite/i`: con la hoja ABIERTA sus filas
+         entran en el árbol de accesibilidad, y desde que `about` está en la
+         navegación una de ellas se llama «Qué es VoidToInfinite» -- la
+         expresión regular casaba con dos enlaces y `getByRole` fallaba por
+         ambigüedad (regla 31, en su versión de nombre accesible). Los demás
+         usos de este mismo `getByRole` en el fichero siguen con la expresión
+         regular a propósito: ahí la hoja está CERRADA (`visibility: hidden`)
+         y sus filas no están en el árbol. */
+      const brandLink = screen.getByRole("link", { name: "VoidToInfinite" });
 
       // `focusin` SÍ burbujea (a diferencia de `focus`), que es justo por lo
       // que el contrato se implementa con él en `document`.

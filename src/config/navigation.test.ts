@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   NAV_BAR_GROUP_KEY,
+  NAV_BAR_SECTION_KEYS,
   NAV_GROUPS,
   navBarMoreGroupsFor,
   navBarSectionsFor,
@@ -73,6 +74,11 @@ const EXPECTED_ITEMS: Record<
     { key: "journey", href: "/#journey", kind: "section" },
     { key: "features", href: "/#features", kind: "section" },
     { key: "contact", href: "/#contact", kind: "section" },
+    // `about` se suma el 2026-09-02 (decisión del dueño D2, crítica #15): la
+    // quinta sección de la home, hasta entonces alcanzable solo desplazándose.
+    // ÚLTIMA porque este grupo va en el orden de la página, y `About` se pinta
+    // después de Contacto desde la crítica #6 (ver `HomeSections.tsx`).
+    { key: "about", href: "/#about", kind: "section" },
   ],
   discover: [
     { key: "learning", href: "/#feature-learning-title", kind: "feature" },
@@ -249,7 +255,17 @@ describe("navGroupsFor: el idioma de la página viaja en cada href", () => {
       .flatMap((group) => group.items)
       .filter((item) => item.kind !== "external");
 
-    expect(internos.length, "el modelo se quedó sin destinos internos").toBe(7);
+    /* Guarda de no-vacuidad: sin ella el bucle de abajo pasaría con el modelo
+       vacío. El número sale de `EXPECTED_ITEMS` -- la tabla cerrada de este
+       mismo fichero, que se actualiza a propósito con cada destino nuevo
+       (regla 40) -- y no de un literal, que caducó en cuanto `about` entró en
+       el modelo el 2026-09-02 y dio "expected 8 to be 7". */
+    const internosEsperados = Object.values(EXPECTED_ITEMS)
+      .flat()
+      .filter((item) => item.kind !== "external").length;
+    expect(internos.length, "el modelo se quedó sin destinos internos").toBe(
+      internosEsperados,
+    );
     for (const item of internos) {
       expect(
         item.href.startsWith(`${routePath("home", "en")}#`),
@@ -342,9 +358,32 @@ describe("la partición de la barra de escritorio (decisión D2)", () => {
     expect([...enLaBarra, ...trasElDesplegable]).toEqual(todos);
   });
 
-  it("los destinos visibles de la barra son EXACTAMENTE los del grupo onSite, y todos son secciones", () => {
-    const onSite = NAV_GROUPS.find((group) => group.key === NAV_BAR_GROUP_KEY);
-    expect(navBarSectionsFor("es")).toEqual(onSite?.items);
+  /*
+   * REESCRITO el 2026-09-02 (decisión del dueño D2, crítica #15). Hasta hoy
+   * afirmaba que los destinos visibles eran EXACTAMENTE el grupo `onSite`
+   * entero, y esa igualdad dejó de describir la barra en cuanto la home tuvo
+   * cinco secciones y la barra siguió teniendo sitio para cuatro. Lo que se
+   * conserva es la propiedad que importa -- que la barra pinta destinos de
+   * sección, los únicos que el scrollspy puede marcar --; lo que cambia es que
+   * ahora hay una lista explícita de QUIÉNES caben, y este candado la ata a
+   * las cuatro claves y a que `about` NO esté entre ellas.
+   */
+  it("los destinos visibles de la barra son EXACTAMENTE las cuatro claves de NAV_BAR_SECTION_KEYS, y todos son secciones", () => {
+    expect(navBarSectionsFor("es").map((item) => item.key)).toEqual(
+      NAV_BAR_SECTION_KEYS,
+    );
+    expect(NAV_BAR_SECTION_KEYS).toEqual([
+      "story",
+      "journey",
+      "features",
+      "contact",
+    ]);
+    /* La barra NO gana un quinto enlace por que el modelo gane una sección:
+       ese es justo el defecto que la lista explícita existe para impedir. */
+    expect(
+      navBarSectionsFor("es").map((item) => item.key),
+      "about se coló en la barra de escritorio: D2 lo deja en «Más»",
+    ).not.toContain("about");
 
     for (const item of navBarSectionsFor("es")) {
       /* Que TODOS sean `kind: "section"` es lo que permite a la barra pintar
@@ -357,9 +396,46 @@ describe("la partición de la barra de escritorio (decisión D2)", () => {
     }
   });
 
-  it("el desplegable no repite el grupo que ya está visible en la barra", () => {
-    expect(navBarMoreGroupsFor("es").map((group) => group.key)).not.toContain(
-      NAV_BAR_GROUP_KEY,
+  /*
+   * REESCRITO el 2026-09-02 (D2 + crítica #15). El candado anterior exigía que
+   * «Más» NO contuviera el grupo de la barra, que era cierto mientras el corte
+   * fuera "el grupo entero o nada". Con el corte DENTRO del grupo, esa
+   * exigencia se volvería del revés: `about` es un destino de sección que la
+   * barra no pinta, y el único sitio de escritorio donde puede vivir es «Más».
+   *
+   * Lo que se ata ahora es lo que de verdad importa: que ahí aparezca BAJO SU
+   * RÓTULO (el grupo, no un enlace suelto entre los externos), con exactamente
+   * los destinos que la barra no pinta y ni uno de los que sí.
+   */
+  it("«Más» lleva el grupo de la barra con lo que la barra NO pinta -- hoy, about -- y ninguno de los que sí", () => {
+    const grupoEnMas = navBarMoreGroupsFor("es").find(
+      (group) => group.key === NAV_BAR_GROUP_KEY,
+    );
+    expect(
+      grupoEnMas,
+      "«Más» perdió el grupo de sección: about no tendría dónde vivir en escritorio",
+    ).toBeDefined();
+    expect(grupoEnMas?.items.map((item) => item.key)).toEqual(["about"]);
+
+    const visibles = navBarSectionsFor("es").map((item) => item.key);
+    for (const item of grupoEnMas?.items ?? []) {
+      expect(visibles).not.toContain(item.key);
+    }
+  });
+
+  /*
+   * EL PIE Y LA HOJA NO SE ENTERAN DEL CORTE: recorren `navGroupsFor`, así que
+   * reciben el grupo COMPLETO. Es la otra mitad de "la partición es de
+   * presentación": la barra es la única superficie que renuncia a un destino.
+   */
+  it("el pie sigue recibiendo el grupo onSite entero, `about` incluido", () => {
+    const onSite = navGroupsFor("es").find(
+      (group) => group.key === NAV_BAR_GROUP_KEY,
+    );
+    expect(onSite?.items).toEqual(EXPECTED_ITEMS[NAV_BAR_GROUP_KEY]);
+    expect(onSite?.items.map((item) => item.key)).toContain("about");
+    expect(onSite?.items.length).toBeGreaterThan(
+      navBarSectionsFor("es").length,
     );
   });
 

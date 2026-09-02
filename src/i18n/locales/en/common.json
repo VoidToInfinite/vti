@@ -12,7 +12,8 @@
             "story": "Story",
             "journey": "Journey",
             "features": "Features",
-            "contact": "Contact"
+            "contact": "Contact",
+            "about": "What is VoidToInfinite"
         },
         "Nav": {
             "onSite": "On Site",

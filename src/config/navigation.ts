@@ -105,9 +105,10 @@ export interface NavGroup {
  * expulsaría al visitante inglés al castellano sin que nada avise.
  */
 export const NAV_GROUPS: readonly NavGroup[] = [
-  /* Mismos 4 destinos que ya usaban `NAV_SECTION_LINKS` (Navbar) y
-     `SECTION_LINKS` (Footer): las 4 secciones de la home, en el orden en que
-     aparecen en la página. */
+  /* Las secciones de la home, EN EL ORDEN EN QUE APARECEN EN LA PÁGINA. Nació
+     con los mismos 4 destinos que ya usaban `NAV_SECTION_LINKS` (Navbar) y
+     `SECTION_LINKS` (Footer); desde el 2026-09-02 son 5, con `about` al final
+     (ver su comentario). */
   {
     key: "onSite",
     items: [
@@ -115,6 +116,29 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { key: "journey", href: "/#journey", kind: "section" },
       { key: "features", href: "/#features", kind: "section" },
       { key: "contact", href: "/#contact", kind: "section" },
+      /* QUINTO DESTINO, ÚLTIMO DEL GRUPO (decisión del dueño D2, 2026-09-02;
+         crítica #15, hallazgo C 5, pendiente desde la #12).
+         `About` («¿Qué es VoidToInfinite?») es una sección real de la home,
+         con su propio `h2` y su propio `id`, y hasta hoy NO existía ninguna
+         forma de llegar a ella que no fuera desplazarse hasta encontrarla:
+         no estaba en la barra, ni en «Más», ni en la hoja móvil, ni en el
+         pie -- las cuatro superficies recorren este array, así que una
+         sección que no esté aquí es invisible para la navegación entera.
+         ÚLTIMO, y no entre `features` y `contact`: el orden de este grupo es
+         el ORDEN DE LA PÁGINA (ver el bloque de arriba), y `About` se pinta
+         DESPUÉS de Contacto desde la crítica #6 -- en la rama oscura, entre
+         Features y Contacto quedaba enteramente bajo el solape y no había
+         posición de scroll en la que se viera (el porqué completo vive en
+         `HomeSections.tsx`, no se duplica aquí). Colocarla aquí en cuarto
+         lugar dejaría el menú anunciando un orden que la página no tiene.
+         Su etiqueta NO es el `h2` literal: `Common.Navigation.about`
+         («Qué es VoidToInfinite») es la misma frase sin la forma
+         interrogativa, que es lo que distingue un rótulo de navegación de un
+         encabezado -- el resto del grupo también nombra el destino en corto.
+         NO entra en la barra de escritorio: la partición del final del
+         fichero (`NAV_BAR_SECTION_KEYS`) la deja en «Más», con la barra
+         conservando sus cuatro enlaces de siempre. */
+      { key: "about", href: "/#about", kind: "section" },
     ],
   },
   /* Mismo criterio que ya seguía `DISCOVER_LINKS` en el Footer: Learning,
@@ -314,26 +338,57 @@ export function navGroupsFor(
  * TRES superficies —`Navbar` (barra de escritorio), `NavSheet` (hoja móvil) y
  * `Footer` (pie, en todas las páginas)— y solo la primera cambia de forma. El
  * pie sigue recorriendo los cuatro grupos enteros con `navGroupsFor`, la hoja
- * sigue entregando los 14 elementos agrupados, y estas dos funciones son
+ * sigue entregando TODOS los destinos agrupados, y estas dos funciones son
  * SOLO la vista que necesita la barra: los destinos que se pintan como
  * enlaces visibles, y los grupos que quedan detrás del único disclosure
  * («Más»).
  *
- * POR QUÉ EL CORTE ES `onSite` Y NO UNA LISTA NUEVA: `onSite` ya ES,
- * literalmente, «las 4 secciones de la home, en el orden en que aparecen en la
- * página» (ver el bloque de `NAV_GROUPS`), y es además el ÚNICO grupo con
- * items `kind: "section"` — los que `useActiveSection` puede marcar como
- * actuales. Escribir aquí una segunda lista de cuatro claves sería justo la
- * duplicación que este módulo existe para evitar: divergiría el día que
- * alguien añada una quinta sección a la home. La partición se deriva del
- * grupo, y `navigation.test.ts` ata que las dos mitades reconstruyan
- * `NAV_GROUPS` sin perder ni repetir nada.
+ * DÓNDE CAE EL CORTE, Y POR QUÉ CAMBIÓ DE FORMA EL 2026-09-02. Hasta la
+ * llegada de `about` el corte era «el grupo `onSite` entero va a la barra, el
+ * resto a «Más»», y el razonamiento que lo sostenía era que `onSite` ya ES
+ * «las secciones de la home, en el orden en que aparecen en la página»: una
+ * segunda lista de claves aquí sería la duplicación que este módulo existe
+ * para evitar. Ese razonamiento se rompe en cuanto la home tiene CINCO
+ * secciones y la barra sigue teniendo sitio para cuatro: «todo `onSite`» deja
+ * de ser una descripción de la barra y pasa a ser una promesa de que el grupo
+ * nunca crecerá.
+ *
+ * Así que la lista explícita se escribe, pero es la de la BARRA
+ * (`NAV_BAR_SECTION_KEYS`), no una copia del grupo: nombra los cuatro
+ * destinos que caben en la píldora de escritorio -- una decisión de ESPACIO,
+ * que es justo lo que ninguna propiedad del modelo puede derivar -- y todo lo
+ * demás se sigue derivando. `about` no aparece en ella y, por tanto, cae en
+ * «Más» sin que nadie lo enumere en ningún sitio: quien añada una sexta
+ * sección a la home la verá aparecer en «Más» y en el pie sin tocar este
+ * bloque, y solo tendrá que venir aquí si decide darle un enlace visible.
+ *
+ * `onSite` sigue siendo el ÚNICO grupo con items `kind: "section"` -- los que
+ * `useActiveSection` puede marcar como actuales --, así que el corte sigue
+ * cayendo dentro de un solo grupo y «Más» recibe el resto de ese grupo BAJO SU
+ * PROPIO RÓTULO, no suelto: un destino de sección presentado sin el «En el
+ * sitio» que lo agrupa perdería la única pista de que lleva a la misma página.
+ * `navigation.test.ts` ata que las dos mitades reconstruyan `NAV_GROUPS` sin
+ * perder ni repetir nada, y que la lista de la barra sea exactamente esas
+ * cuatro claves.
  *
  * MEMOIZADAS POR IDIOMA, mismo motivo que `navGroupsFor`: `Navbar()` las llama
  * EN CADA RENDER, y la barra se re-renderiza en cada cruce de umbral de scroll
  * y en cada cambio de sección activa.
  */
+/** Grupo que la barra de escritorio PARTE entre sus enlaces visibles y «Más». */
 export const NAV_BAR_GROUP_KEY: NavGroupKey = "onSite";
+
+/**
+ * Destinos de `NAV_BAR_GROUP_KEY` que la barra pinta como enlaces VISIBLES,
+ * en el orden en que los declara el grupo (esta lista decide QUIÉNES, nunca
+ * el orden). El resto del grupo viaja a «Más».
+ */
+export const NAV_BAR_SECTION_KEYS: readonly string[] = [
+  "story",
+  "journey",
+  "features",
+  "contact",
+];
 
 const barSectionsByLocale = new Map<Locale, readonly NavItem[]>();
 const moreGroupsByLocale = new Map<Locale, readonly NavGroup[]>();
@@ -347,14 +402,22 @@ export function navBarSectionsFor(
   const cached = barSectionsByLocale.get(locale);
   if (cached) return cached;
 
-  const items =
+  const items = (
     navGroupsFor(locale).find((group) => group.key === NAV_BAR_GROUP_KEY)
-      ?.items ?? [];
+      ?.items ?? []
+  ).filter((item) => NAV_BAR_SECTION_KEYS.includes(item.key));
   barSectionsByLocale.set(locale, items);
   return items;
 }
 
-/** Grupos que la barra de escritorio agrupa tras el único disclosure. */
+/**
+ * Grupos que la barra de escritorio agrupa tras el único disclosure: los que
+ * no participan en la barra, más lo que quede del grupo partido -- con su
+ * rótulo, en su sitio del orden y sin los destinos ya visibles.
+ *
+ * El grupo partido DESAPARECE si se queda sin items (hoy no ocurre: `about`
+ * vive ahí), en vez de emitir un rótulo con una lista vacía debajo.
+ */
 export function navBarMoreGroupsFor(
   language: string | undefined,
 ): readonly NavGroup[] {
@@ -363,9 +426,13 @@ export function navBarMoreGroupsFor(
   const cached = moreGroupsByLocale.get(locale);
   if (cached) return cached;
 
-  const groups = navGroupsFor(locale).filter(
-    (group) => group.key !== NAV_BAR_GROUP_KEY,
-  );
+  const groups = navGroupsFor(locale).flatMap((group) => {
+    if (group.key !== NAV_BAR_GROUP_KEY) return [group];
+    const resto = group.items.filter(
+      (item) => !NAV_BAR_SECTION_KEYS.includes(item.key),
+    );
+    return resto.length > 0 ? [{ key: group.key, items: resto }] : [];
+  });
   moreGroupsByLocale.set(locale, groups);
   return groups;
 }

@@ -14,6 +14,18 @@ const SECTION_IDS =
     ?.items.filter((item) => item.kind === "section")
     .map((item) => item.key) ?? [];
 
+/**
+ * La única sección de `SECTION_IDS` que NO escribe `data-inview` en ninguna
+ * de las dos ramas de tema: `About` es plana a propósito -- sin escena, sin
+ * deck y sin parallax -- así que no monta `useSectionProgress`, que es quien
+ * escribe esa señal (ver "TERCERA CLASE DE SECCIÓN" en `useActiveSection.ts`).
+ *
+ * Es un literal y no una derivación PORQUE EL MODELO NO LO SABE: `NAV_GROUPS`
+ * declara qué destinos existen, no qué hook monta cada componente. Lo sabe el
+ * componente, y su candado vive en `About.test.tsx`.
+ */
+const SECTION_ID_SIN_SENAL = "about";
+
 /** Monta en `document.body` un `<div>` por cada id de `SECTION_IDS`, vacíos
  *  de `data-inview` (como arrancan las secciones reales antes de su primera
  *  intersección, ver `useSectionProgress`). */
@@ -358,31 +370,51 @@ describe("useActiveSectionKey: gana la sección del punto de referencia del view
    * necesita" incluye ahora confirmar a la candidata.
    */
   it("con una sola candidata SÍ se mide geometría: la señal se valida, no se cree", () => {
-    setInView("features", true);
+    /* La señal se declara en TODAS las secciones que la escriben, como hace
+       la rama clara real en cada frame de su observer -- `false` es una
+       opinión, no una ausencia. La única que la deja sin declarar es
+       `SECTION_ID_SIN_SENAL`: ver su docblock. */
+    for (const id of SECTION_IDS) {
+      if (id !== SECTION_ID_SIN_SENAL) setInView(id, id === "features");
+    }
     const el = document.getElementById("features");
     if (!el) throw new Error("no existe la sección de prueba #features");
     const rectSpy = vi.fn(
       () => ({ top: 100, height: 800, bottom: 900 }) as DOMRect,
     );
     el.getBoundingClientRect = rectSpy;
-    // Y solo la candidata: mientras la señal se sostenga, las otras tres NO se
-    // miden -- el coste que el docblock sí declara, y ese no ha cambiado.
-    const otrosSpies = SECTION_IDS.filter((id) => id !== "features").map(
-      (id) => {
-        const otro = document.getElementById(id);
-        if (!otro) throw new Error(`no existe la sección de prueba #${id}`);
-        const spy = vi.fn(() => ({ top: 0, height: 0, bottom: 0 }) as DOMRect);
-        otro.getBoundingClientRect = spy;
-        return spy;
-      },
-    );
+    // Y solo la candidata: mientras la señal se sostenga, las que dicen
+    // `false` NO se miden -- el coste que el docblock sí declara, y ese no ha
+    // cambiado. La que no declara nada SÍ se mide, y ese es el coste NUEVO
+    // que el mismo docblock declara desde D2: sin medirla no hay ninguna otra
+    // evidencia sobre ella.
+    const spiesPorId = new Map<string, ReturnType<typeof vi.fn>>();
+    for (const id of SECTION_IDS.filter((otro) => otro !== "features")) {
+      const otro = document.getElementById(id);
+      if (!otro) throw new Error(`no existe la sección de prueba #${id}`);
+      const spy = vi.fn(() => ({ top: 0, height: 0, bottom: 0 }) as DOMRect);
+      otro.getBoundingClientRect = spy;
+      spiesPorId.set(id, spy);
+    }
 
     const { result } = renderHook(() => useActiveSectionKey());
     fireScroll();
 
     expect(result.current).toBe("features");
     expect(rectSpy).toHaveBeenCalled();
-    for (const spy of otrosSpies) expect(spy).not.toHaveBeenCalled();
+    for (const [id, spy] of spiesPorId) {
+      if (id === SECTION_ID_SIN_SENAL) {
+        expect(
+          spy,
+          "la sección sin señal no se midió: sin geometría no hay ninguna evidencia sobre ella",
+        ).toHaveBeenCalled();
+      } else {
+        expect(
+          spy,
+          `${id} declaró "false" y aun así se midió`,
+        ).not.toHaveBeenCalled();
+      }
+    }
   });
 
   it("bajo prefers-reduced-motion, con las cuatro clavadas en data-inview=true, misma regla y misma respuesta", () => {
@@ -924,4 +956,81 @@ describe("useActiveSectionKey: la señal se valida contra geometría (crítica e
    *   aserción: sin la guarda, la dominancia elige Story en los DOS caminos,
    *   no solo en el de la señal.
    */
+});
+
+/*
+ * LA SECCIÓN QUE LA SEÑAL NO DESCRIBE (decisión del dueño D2, 2026-09-02;
+ * crítica externa #15, hallazgo C 5).
+ *
+ * `about` entra en la navegación y, con ella, en `ACTIVE_SECTION_IDS` -- que
+ * se deriva del grupo `onSite` de `NAV_GROUPS`, así que no hubo que
+ * enumerarla en ningún sitio. Lo que sí hubo que resolver es que `About` NO
+ * escribe `data-inview`: es plana a propósito (sin escena, sin deck, sin
+ * parallax), así que no monta `useSectionProgress`.
+ *
+ * EL DEFECTO QUE CIERRA ESTE DESCRIBE, y por qué solo aparecía en una rama:
+ * en la CLARA las otras cuatro sí escriben la señal, así que `haySenal` es
+ * cierto y el camino normal decidía solo -- y `about`, que no está marcada,
+ * no podía ser candidata NUNCA. Con el centro del viewport dentro de About,
+ * la única marcada era Contacto (sigue asomando por arriba, `threshold` 0) y
+ * el módulo contestaba «contact» con el lector en otra sección. En OSCURO,
+ * donde nadie escribe la señal, la geometría ya contestaba «about». Dos
+ * ramas, dos respuestas a la misma pregunta.
+ *
+ * Los dos caminos se ejercitan sobre la MISMA geometría a propósito, igual
+ * que hace el describe de la crítica #14: lo que se afirma no es "contesta
+ * about", es "contesta LO MISMO mire quien mire".
+ */
+describe("useActiveSectionKey: about entra aunque no escriba data-inview (D2)", () => {
+  /** Geometría común: el lector ha pasado Contacto, que todavía asoma por
+   *  arriba, y tiene About bajo el centro del viewport (400 de 800). */
+  function aboutBajoElCentro(): void {
+    setRect("story", -3000, 800);
+    setRect("journey", -2200, 800);
+    setRect("features", -1400, 800);
+    setRect("contact", -600, 800); // [-600, 200): asoma 200 px por arriba
+    setRect("about", 200, 800); // [200, 1000): contiene el centro (400)
+  }
+
+  it("rama clara: con el centro del viewport en About la activa es 'about', no Contacto por seguir marcada", () => {
+    aboutBajoElCentro();
+    // La señal tal y como la escribe el observer real (threshold 0): Contacto
+    // solapa, las otras dos no. About no la escribe en ninguna rama.
+    for (const id of SECTION_IDS) {
+      if (id !== SECTION_ID_SIN_SENAL) setInView(id, id === "contact");
+    }
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("about");
+    expect(result.current).not.toBe("contact");
+  });
+
+  it("rama oscura (ningún data-inview en el árbol): misma geometría, misma respuesta", () => {
+    aboutBajoElCentro();
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("about");
+  });
+
+  it("y no se adelanta: con el centro todavía en Contacto la activa sigue siendo 'contact'", () => {
+    // Un solo píxel antes de la frontera: el centro (400) cae dentro de
+    // Contacto, que llega hasta 401. About empieza en 401 y no lo contiene.
+    setRect("story", -2799, 800);
+    setRect("journey", -1999, 800);
+    setRect("features", -1199, 800);
+    setRect("contact", -399, 800); // [-399, 401): contiene el centro (400)
+    setRect("about", 401, 800);
+    for (const id of SECTION_IDS) {
+      if (id !== SECTION_ID_SIN_SENAL) setInView(id, id === "contact");
+    }
+
+    const { result } = renderHook(() => useActiveSectionKey());
+    fireScroll();
+
+    expect(result.current).toBe("contact");
+  });
 });
