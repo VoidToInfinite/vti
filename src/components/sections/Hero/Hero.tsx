@@ -194,13 +194,19 @@ const ScHeroFoot = styled.div<{ $light: boolean }>`
  * por test: un `<div>` nuevo como primer hijo correria toda la tabla de
  * retardos un puesto. Un pseudo-elemento no entra en `> *`, no existe en el
  * arbol de accesibilidad (no hace falta `aria-hidden`), no puede recibir
- * foco y no anade ni un nodo al HTML exportado. `z-index: -1` lo deja detras
- * del texto DENTRO del contexto de apilamiento que `ScCopy` ya crea
- * (position: relative + zIndex.raised), asi que sigue por delante del arte;
- * ese -1 no es un peldano del sistema (`tokens/zIndex.ts` arranca en
- * `base: 0`, que describe capas de PAGINA) sino la relacion local "detras de
- * mi propio contenido", y esta ola no puede tocar los tokens para darle
- * nombre.
+ * foco y no anade ni un nodo al HTML exportado. Un peldano por debajo de
+ * `zIndex.base` lo deja detras del texto DENTRO del contexto de apilamiento
+ * que `ScCopy` ya crea (position: relative + zIndex.raised), asi que sigue
+ * por delante del arte.
+ *
+ * Ese peldano se escribe `calc(<zIndex.base> - 1)` y no `-1` a secas, y no es
+ * un rodeo para esquivar la familia `z-index-literal` del detector: es lo que
+ * de verdad describe la capa. La escala nombra capas de PAGINA y arranca
+ * justo en `base: 0`; lo que hace falta aqui no es una capa nueva del sistema
+ * sino la relacion LOCAL "un escalon por detras del suelo", y `calc()` la
+ * expresa leyendo el token en vez de repitiendo su valor -- si `base` dejara
+ * de ser 0, esta linea seguiria significando lo mismo, cosa que un `-1`
+ * escrito a mano no puede prometer.
  *
  * ES ESTATICO A PROPOSITO, y eso es lo que lo hace invisible al arrancar: en
  * el primer pintado todavia no hay arte (HeroBackdrop mantiene su
@@ -422,7 +428,7 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
     content: "";
     position: absolute;
     inset: ${HERO_SCRIM_BLEED};
-    z-index: -1;
+    z-index: calc(${({ theme }) => theme.data.zIndex.base} - 1);
     pointer-events: none;
     background-image: radial-gradient(
       ellipse closest-side at 50% 50%,

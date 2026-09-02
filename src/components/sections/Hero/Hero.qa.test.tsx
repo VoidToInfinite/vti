@@ -16,6 +16,7 @@ import { color } from "@/theme/tokens/color";
 import { grid } from "@/theme/tokens/grid";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
+import { zIndex } from "@/theme/tokens/zIndex";
 import { type as typeTokens } from "@/theme/tokens/type";
 import { Hero } from "./Hero";
 
@@ -738,8 +739,9 @@ describe("Hero: velo de contraste de la copia (D1, 2026-09-02)", () => {
     // Ni "transition: all" ni ninguna propiedad de layout animada.
     expect(css).not.toContain("transition:all");
     expect(css).toContain("pointer-events:none");
-    // Detras del texto, dentro del contexto de apilamiento de ScCopy.
-    expect(css).toContain("z-index:-1");
+    // Detras del texto, dentro del contexto de apilamiento de ScCopy, y
+    // derivado del token: un peldano por debajo de zIndex.base.
+    expect(css).toContain(`z-index:calc(${zIndex.base}-1)`);
 
     // El guard de forced-colors comparte selector con el velo y vive dentro
     // de su propio @media anidado: jsdom no lo evalua (regla 36), asi que se
