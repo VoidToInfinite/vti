@@ -2974,7 +2974,17 @@ describe("Story: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", 
 
   it("ScGrid acota el minimo de su pista con minmax(0, 1fr) y no deja ningun 1fr suelto", () => {
     renderWithProviders(<Story />);
-    const grid = document.getElementById("story")!
+    /*
+     * DOS saltos, no uno (critica #15, hallazgo C10): entre `#story` y
+     * `ScGrid` vive ahora `ScStoryInner`, el div que se quedo con la caja
+     * acotada de la rama clara (relleno, tope de ancho y centrado) cuando
+     * `#statement` paso a ser hijo de `#story` tambien en claro. La cadena
+     * completa es `#story` -> `ScStoryInner` -> `ScGrid`, y se recorre a mano
+     * a proposito: es lo que pone en rojo este test si alguien vuelve a mover
+     * la caja, en vez de dejarlo pasar con un `querySelector` que encuentre el
+     * grid este donde este.
+     */
+    const grid = document.getElementById("story")!.firstElementChild!
       .firstElementChild as HTMLElement;
     const base = declaracionBase(grid, "grid-template-columns");
 
@@ -3086,5 +3096,59 @@ describe("Story: critica #13 -- las tarjetas de pilar se distinguen de la pagina
     expect(
       contrastRatio(basicLightTheme.semantic.borderStrong, fondoTarjeta),
     ).toBeLessThan(3);
+  });
+});
+
+/*
+ * CRITICA EXTERNA #15, hallazgo C10: `#statement` cambiaba de ANIDAMIENTO
+ * segun el tema. En claro era una `<section>` HERMANA de `#story`; en oscuro,
+ * la ultima diapositiva del deck, es decir una hija de `#story`. Misma pieza,
+ * mismo id, mismo contenido, dos estructuras de documento -- exactamente lo
+ * que la decision D-C ("tema = piel con contenido unificado") no admite, y una
+ * divergencia que ningun candado veia: `HomeSections.test.tsx` afirma el ORDEN
+ * de las secciones (`querySelectorAll` devuelve orden de documento, que anidar
+ * no altera), no su jerarquia.
+ *
+ * Se unifico hacia la forma ANIDADA -- el porque completo, con las tres
+ * razones medidas, vive en el docblock de `ScStatement` (`Story.tsx`). Este es
+ * su candado, y se afirma sobre la PROPIEDAD, no sobre la implementacion de
+ * cada rama: la seccion con id que CONTIENE a `#statement` es `#story`, en los
+ * dos temas. Escrito asi tolera que cada rama meta las capas intermedias que
+ * quiera (en claro `ScStoryInner`; en oscuro pista, stage, deck y diapositiva)
+ * sin dejar de detectar el unico fallo que persigue: que una de las dos vuelva
+ * a sacar el cierre fuera de Story.
+ *
+ * Validado con bug inyectado (ver el informe de la entrega para el rojo
+ * literal): devolviendo `StoryLight` a la forma hermana (fragmento con
+ * `ScStory` y `ScStatement` al mismo nivel), el caso claro se pone en rojo
+ * porque `closest` no encuentra ninguna seccion contenedora.
+ */
+describe("Story: critica #15 (C10) -- #statement cuelga de #story en los DOS temas", () => {
+  /** La `<section>` con id que CONTIENE a `#statement`, sin contarlo a el. */
+  function seccionContenedora(): HTMLElement | null {
+    const statement = document.getElementById("statement");
+    expect(statement, "no se encontro #statement").not.toBeNull();
+    return statement!.parentElement!.closest("section[id]");
+  }
+
+  it("rama clara: #statement esta dentro de #story", () => {
+    renderWithProviders(<Story />);
+
+    expect(seccionContenedora()?.id).toBe("story");
+  });
+
+  it("rama oscura: #statement esta dentro de #story, igual que en claro", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(
+        container.querySelectorAll("[data-slide-index]").length,
+        "el arbol oscuro no llego a montarse",
+      ).toBeGreaterThan(0);
+    });
+
+    expect(seccionContenedora()?.id).toBe("story");
+    window.localStorage.clear();
   });
 });

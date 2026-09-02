@@ -60,7 +60,10 @@ import {
  * diapositiva final del deck consume `Home.story.statement.first/second/third`
  * -- las MISMAS claves que el bloque a pantalla completa de la rama clara -- y
  * es ella misma una `<section id="statement">`, de modo que la lista de
- * secciones de la pagina sale identica en los dos temas. Hasta esa tarea esta
+ * secciones de la pagina sale identica en los dos temas. Desde la critica
+ * externa #15 (hallazgo C10) tambien sale identico el ANIDAMIENTO: `#statement`
+ * es hija de `#story` en las DOS ramas, no solo en la oscura (ver el docblock
+ * de `ScStatement`). Hasta esa tarea esta
  * rama tenia dos claves propias (`noteLead`/`noteAccent`, T3 de la spec
  * 2026-07-31-story-deck-tipografia-design.md) que decian la misma frase con
  * otra particion; se retiraron del JSON. Ver el JSX de `StoryDeckDark`, al
@@ -359,52 +362,75 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
      acotar la caja sin permitir la rotura mueve el recorte, no lo quita. */
   overflow-wrap: break-word;
 
+  /* La rama CLARA ya no declara nada aqui, y no es que se haya quedado vacia
+     por descuido: su caja acotada (relleno, tope de ancho y centrado) vive
+     desde la critica #15 en ScStoryInner, justo debajo. El motivo esta en el
+     docblock de ese componente -- resumido: el statement pasa a ser hijo de
+     esta seccion tambien en claro, y no podia heredar el tope de 1280px de un
+     bloque que es a sangre completa por diseño.
+
+     SIN BACKTICKS: esto vive dentro del template literal de
+     styled-components (regla 23 de RULES.md, task/lessons.md 2026-07-25). */
   ${({ $fullBleed, theme }) =>
-    $fullBleed
-      ? css`
-          position: relative;
-          background-color: ${theme.data.semantic.bg};
-        `
-      : css`
-          padding: ${theme.data.space[9]} ${theme.data.space[5]};
-          /* Recorte del relleno de la FRONTERA con el statement (Ola B,
-             2026-08-16). Medido a 1440x900 en tema claro, scrollY 1500: entre
-             el ultimo texto de Story (acaba en y=383) y el primero del
-             statement (empieza en y=739) habia 356 px sin nada a la vista, un
-             40 % del viewport. Ningun margen que culpar -- margin-bottom de
-             Story y margin-top del statement son los dos 0 px: el hueco lo
-             ponen los rellenos.
+    $fullBleed &&
+    css`
+      position: relative;
+      background-color: ${theme.data.semantic.bg};
+    `}
+`;
 
-             Solo se recorta ESTE lado, no el de arriba: la respiracion sobre
-             Story separa el hero de la seccion y esa si esta bien. Y solo se
-             toca Story, no el statement, porque la medicion desmintio la
-             hipotesis obvia -- el statement declara min-height: 100dvh y
-             centra su contenido con justify-content: center, asi que su
-             padding-block NO participa del hueco: lo que separa su borde
-             superior de su primer texto es el centrado, no el relleno.
-             Recortarselo no habria movido un pixel.
+/*
+ * La caja acotada de la rama CLARA: relleno, tope de ancho y centrado. Vivio
+ * hasta la critica #15 en `ScStory` mismo (rama `$fullBleed === false`), y se
+ * muda aqui SIN cambiar ni una declaracion porque `#statement` pasa a ser hijo
+ * de `#story` tambien en claro (hallazgo C10, ver el docblock de
+ * `ScStatement`). Dejarlas en la seccion habria metido el cartel a pantalla
+ * completa dentro de una caja de 1280px con 24px de relleno lateral: la misma
+ * estructura de documento, pero con el statement recortado. Con la caja aqui,
+ * la geometria pintada es la MISMA que antes del cambio -- este div ocupa
+ * exactamente el sitio que ocupaba la seccion, y el statement queda a sangre
+ * completa como hermano suyo dentro de ella.
+ */
+const ScStoryInner = styled.div`
+  padding: ${({ theme }) => theme.data.space[9]}
+    ${({ theme }) => theme.data.space[5]};
+  /* Recorte del relleno de la FRONTERA con el statement (Ola B,
+     2026-08-16). Medido a 1440x900 en tema claro, scrollY 1500: entre
+     el ultimo texto de Story (acaba en y=383) y el primero del
+     statement (empieza en y=739) habia 356 px sin nada a la vista, un
+     40 % del viewport. Ningun margen que culpar -- margin-bottom de
+     Story y margin-top del statement son los dos 0 px: el hueco lo
+     ponen los rellenos.
 
-             space[7] en vez de space[9]: de 96 a 48 px, la mitad exacta. El
-             hueco baja de 356 a 308 px. El resto es estructural (el statement
-             ES un bloque de un viewport con su contenido centrado, por
-             diseño) y cerrarlo del todo exige decidir que ocupa el espacio,
-             no restar relleno.
+     Solo se recorta ESTE lado, no el de arriba: la respiracion sobre
+     Story separa el hero de la seccion y esa si esta bien. Y solo se
+     toca Story, no el statement, porque la medicion desmintio la
+     hipotesis obvia -- el statement declara min-height como suelo y
+     centra su contenido con justify-content: center, asi que su
+     padding-block NO participa del hueco: lo que separa su borde
+     superior de su primer texto es el centrado, no el relleno.
+     Recortarselo no habria movido un pixel.
 
-             SIN BACKTICKS: esto vive dentro de un template literal css de
-             styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
-          padding-block-end: ${theme.data.space[7]};
-          /* grid.sectionMax, NO grid.navMax (critica externa #12,
-             2026-08-19). Esta rama leia el tope de la PILDORA DEL NAVBAR como
-             ancho de contenido de la seccion -- contra el docblock del propio
-             navMax, que se declara exclusivo de esa pildora y exige que las
-             dos medidas puedan divergir sin arrastrarse. Coincidian en el
-             numero (1280px) y por eso nadie lo notaba: el dia que alguien
-             retocara la pildora, la seccion se habria movido con ella. El CSS
-             renderizado no cambia ni un caracter; lo que cambia es de que
-             promesa cuelga. */
-          max-width: ${theme.data.grid.sectionMax};
-          margin-inline: auto;
-        `}
+     space[7] en vez de space[9]: de 96 a 48 px, la mitad exacta. El
+     hueco baja de 356 a 308 px. El resto es estructural (el statement
+     ES un bloque de un viewport con su contenido centrado, por
+     diseño) y cerrarlo del todo exige decidir que ocupa el espacio,
+     no restar relleno.
+
+     SIN BACKTICKS: esto vive dentro de un template literal css de
+     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+  padding-block-end: ${({ theme }) => theme.data.space[7]};
+  /* grid.sectionMax, NO grid.navMax (critica externa #12,
+     2026-08-19). Esta rama leia el tope de la PILDORA DEL NAVBAR como
+     ancho de contenido de la seccion -- contra el docblock del propio
+     navMax, que se declara exclusivo de esa pildora y exige que las
+     dos medidas puedan divergir sin arrastrarse. Coincidian en el
+     numero (1280px) y por eso nadie lo notaba: el dia que alguien
+     retocara la pildora, la seccion se habria movido con ella. El CSS
+     renderizado no cambia ni un caracter; lo que cambia es de que
+     promesa cuelga. */
+  max-width: ${({ theme }) => theme.data.grid.sectionMax};
+  margin-inline: auto;
 `;
 
 /*
@@ -1098,9 +1124,44 @@ const ScDeckPillarRow = styled(ScPillarRow)`
 
 /*
  * Statement a pantalla completa (D12): sustituye a la tarjeta flotante de
- * nota. Bloque NUEVO, HERMANO de `ScStory` y no un hijo suyo: el mockup lo
- * declara como dos <section> hermanos (L72/L127), y `StoryLight` los
- * devuelve igual, en un fragmento (ver su return, mas abajo).
+ * nota.
+ *
+ * HIJO de `ScStory` desde la critica externa #15 (2026-09-02, hallazgo C10).
+ * Nacio HERMANO -- el mockup lo declara como dos <section> hermanos (L72/L127)
+ * y `StoryLight` los devolvia asi, en un fragmento-- pero la rama OSCURA nunca
+ * pudo copiar esa forma: alli el cierre es la ultima DIAPOSITIVA del deck, y
+ * sacarlo a una seccion hermana lo dejaria debajo de Journey (ver el comentario
+ * de esa diapositiva, al final del fichero, para la medicion). Resultado: la
+ * MISMA pieza tenia dos estructuras de documento segun el tema, que es
+ * exactamente lo que «tema = piel con contenido unificado» (D-C, Task 15) no
+ * admite.
+ *
+ * Se unifica hacia la forma ANIDADA, no hacia la hermana, por tres razones
+ * medidas y no supuestas:
+ *
+ * 1. `#statement` NO es destino de navegacion. No aparece en
+ *    `src/config/navigation.ts` ni en el pie, asi que no es una de las cuatro
+ *    `ACTIVE_SECTION_IDS` que resuelve `useActiveSection` ni un fragmento al
+ *    que nadie enlace (`useFragmentLanding.ts` ya lo declara por escrito). Una
+ *    seccion de nivel superior que nadie nombra no gana nada por serlo.
+ * 2. El scrollspy pasa a decir lo mismo en los dos temas. Como hermano, el
+ *    tramo del statement quedaba FUERA de la caja de `#story`, asi que
+ *    mientras se leia el cierre de Story el navbar no podia afirmar Story;
+ *    en oscuro si, porque alli ya estaba dentro. Anidarlo iguala las dos.
+ * 3. La estructura la fija el CONTENIDO, no el vehiculo: el statement ES el
+ *    cierre de Story en los dos temas. Que en claro sea un cartel a sangre
+ *    completa y en oscuro una diapositiva sigue siendo la piel, y sigue
+ *    ramificando.
+ *
+ * Lo que NO cambia, y por eso el cambio es estructural y no visual: la caja
+ * acotada de la rama clara se muda a `ScStoryInner` (su docblock, mas arriba),
+ * asi que este bloque sigue siendo a sangre completa y sigue empezando
+ * exactamente donde empezaba. El orden del documento tampoco cambia --
+ * `querySelectorAll("section")` sigue devolviendo story, statement, journey...
+ * (candado en `HomeSections.test.tsx`) -- porque anidar no reordena. Y una
+ * `<section>` sin nombre accesible no entra en el arbol de accesibilidad como
+ * landmark, asi que tampoco compite con la region de Story: el mismo argumento
+ * que ya sostenia la rama oscura.
  *
  * D13 (tercera ronda, 2026-08-06) partio este bloque UNICO en DOS piezas
  * (`ScStatementTrack`/`ScStatementStage`), calcado de como `ScTrack`/
@@ -1611,13 +1672,13 @@ function StoryLight(): ReactElement {
   );
 
   return (
-    <>
-      <ScStory
-        ref={sectionRef}
-        id="story"
-        aria-labelledby="story-title"
-        $fullBleed={false}
-      >
+    <ScStory
+      ref={sectionRef}
+      id="story"
+      aria-labelledby="story-title"
+      $fullBleed={false}
+    >
+      <ScStoryInner>
         <ScGrid
           ref={revealRef}
           data-revealed={revealed}
@@ -1649,12 +1710,13 @@ function StoryLight(): ReactElement {
             {pillars}
           </ScContent>
         </ScGrid>
-      </ScStory>
+      </ScStoryInner>
 
       {/* Statement a pantalla completa (D12; D2/D3 de la spec
-          2026-08-07-story-statement-scroll-observer-design.md): HERMANO de
-          ScStory, no un hijo suyo -- ver el docblock de ScStatement, mas
-          arriba, para el porque. Un solo <p> con las tres lineas como <span>
+          2026-08-07-story-statement-scroll-observer-design.md): HIJO de
+          ScStory desde la critica #15 (hallazgo C10), hermano de ScStoryInner
+          -- ver el docblock de ScStatement, mas arriba, para el porque y
+          para lo que NO cambia al anidarlo. Un solo <p> con las tres lineas como <span>
           en bloque (marcado obligatorio, D12): un lector de pantalla lee la
           frase entera y seguida, "Cada idea puede ser un nuevo comienzo", en
           vez de tres fragmentos sueltos. El PARRAFO lleva el `ref`/
@@ -1687,7 +1749,7 @@ function StoryLight(): ReactElement {
           <VisuallyHidden> {tCommon("Common.Nav.newTab")}</VisuallyHidden>
         </ScStatementLink>
       </ScStatement>
-    </>
+    </ScStory>
   );
 }
 
@@ -1917,10 +1979,15 @@ function StoryDeckDark(): ReactElement {
                    tres claves de la nota se retiran del JSON. El acento sigue
                    cayendo sobre el mismo tramo final de la frase.
                 2. El LANDMARK. Este elemento pasa a ser `<section
-                   id="statement">`, el mismo id que la rama clara emite como
-                   hermano de `ScStory`, para que la lista de secciones de la
-                   pagina sea IDENTICA en los dos temas (candado:
-                   `HomeSections.test.tsx`). Lo que NO se unifica es el
+                   id="statement">`, el mismo id que emite la rama clara, para
+                   que la lista de secciones de la pagina sea IDENTICA en los
+                   dos temas (candado: `HomeSections.test.tsx`). Desde la
+                   critica externa #15 (hallazgo C10) el anidamiento tambien es
+                   el mismo: la rama clara dejo de emitirlo como HERMANO de
+                   `ScStory` y lo emite, como aqui, DENTRO de `#story` -- el
+                   argumento completo esta en el docblock de `ScStatement`, y
+                   se resolvio a favor de esta forma, no de la de alla, por lo
+                   que el propio parrafo de abajo ya media. Lo que NO se unifica es el
                    VEHICULO: en claro es una seccion a pantalla completa
                    hermana de Story, aqui es la ultima diapositiva del deck --
                    la identidad de esta rama, y el sitio exacto donde el deck
