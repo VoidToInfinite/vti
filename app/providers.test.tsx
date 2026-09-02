@@ -124,6 +124,13 @@ describe("Providers + LocaleShell", () => {
  * Turbopack los emitía dos veces y la portada pagaba 313.928 B brotli en vez
  * de 285.430 B. El presupuesto vigente es 290.000 B (`PRE-LAUNCH-QA.md` §4).
  *
+ * Las dos cifras de arriba se midieron con el polyfill `nomodule` dentro.
+ * Desde el 2026-09-01 el instrumento (`scripts/measure-home-js.mjs`,
+ * `pnpm measure:js`) lo excluye, porque ningún navegador moderno lo
+ * descarga: la portada de hoy son 257.092 B descargados. La comparación
+ * 313.928 contra 285.430 sigue siendo válida —las dos ramas del experimento
+ * llevaban el polyfill— pero NO se comparan contra la cifra nueva.
+ *
  * Eso NO se puede observar desde jsdom: no hay build, no hay chunks y no hay
  * `out/index.html` que medir. Lo que sí se puede candar —y es la condición
  * ESTRUCTURAL de la que depende todo lo anterior— es que el root layout siga
