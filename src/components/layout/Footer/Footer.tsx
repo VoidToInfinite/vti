@@ -274,11 +274,23 @@ const ScBrandCol = styled.div`
   }
 `;
 
+/* La fila de marca fija su propio tamano de fuente y ESO ES LO QUE DECIDE EL
+   TAMANO DEL ROTULO: `ScBrandName` (`BrandName.tsx`) declara `font-size: 1em`,
+   es decir, hereda de aqui. El logotipo de al lado no depende de esta linea
+   (`Logo size="1.5rem"`, mas abajo, en rem).
+
+   El valor sale del TOKEN desde el 2026-09-02 (critica externa #15, hallazgo
+   C 6). Era `1rem` escrito a mano -- el mismo valor, byte a byte, que
+   `type.scale.body.size`, y sin ningun argumento propio: este mismo fichero
+   ya lee `type.scale.bodySm.size` dos declaraciones mas abajo, asi que la
+   unica razon de que este siguiera a mano es que nadie lo miro. Un literal
+   que hoy coincide con el token deja de coincidir el dia que el token se
+   retoque, y el CSS renderizado no distingue los dos casos. */
 const ScBrandRow = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
-  font-size: 1rem;
+  font-size: ${({ theme }) => theme.data.type.scale.body.size};
 `;
 
 const ScTagline = styled(Typography)`
