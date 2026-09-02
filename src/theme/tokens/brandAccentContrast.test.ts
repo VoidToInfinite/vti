@@ -24,7 +24,7 @@ import { JOURNEY_STEPS } from "@/components/sections/Journey/journey.layers";
  * 1. **El LÍMITE de la rampa** (`describe` de abajo, "límite de escalón"):
  *    barre cada escalón (`50`..`1100`) de las tres rampas de acento
  *    (`primary`/`secondary`/`error` -- las que este repo usa como acento de
- *    marca fuera de `semantic.*`; `success`/`warning`/`neutral` son roles
+ *    marca fuera de `semantic.*`; `warning`/`neutral` son roles (`success` fue rol hasta la crítica #10 y rampa hasta la #14, ya retirada)
  *    semánticos ya auditados por `contrast.test.ts`, no acentos sueltos)
  *    contra los DOS fondos claros del sistema (`semantic.bg`/
  *    `semantic.surface`) y AFIRMA el límite real: **700 es el primer

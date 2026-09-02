@@ -30,7 +30,6 @@ Seis rampas resultantes, todas `oklch(L C H)`, sin un solo hexadecimal en la cap
 | ----------- | ---------- | ----------------------------------------------- |
 | `primary`   | 235.851    | 0.158                                           |
 | `secondary` | 311.928    | 0.259                                           |
-| `success`   | 140        | 0.17                                            |
 | `warning`   | 70         | 0.16                                            |
 | `error`     | 12         | 0.24                                            |
 | `neutral`   | 286 (frío) | croma casi nulo (tabla `nc` propia, pico 0.006) |
@@ -58,11 +57,11 @@ Cada rol lleva la medición que lo justifica escrita al lado, en el propio archi
 | `warning` | `warning[800]` | 5.89:1 |
 | `error` | `error[700]` | — |
 
-El rol `success` (`success[800]`, 5.47:1 medido) se retiró el 2026-08-18 (ola de la crítica #10): su único camino era la rama `intent="success"` de Button, que ningún call site de producción alcanzaba — vocabulario inalcanzable, mismo criterio que `space.px`/`grid.columns`. La rampa primitiva `color.success` sigue en `color.ts` sin consumidor semántico, declarado en su docblock.
+El rol `success` (`success[800]`, 5.47:1 medido) se retiró el 2026-08-18 (ola de la crítica #10): su único camino era la rama `intent="success"` de Button, que ningún call site de producción alcanzaba — vocabulario inalcanzable, mismo criterio que `space.px`/`grid.columns`. La rampa primitiva `color.success` sobrevivió sin consumidor hasta la crítica externa #14 (2026-09-02), que la contó (doce valores, cero consumidores en `src/` y `app/`) y la retiró de `color.ts`; su candado es el tipo de la tabla de rampas, no una aserción de runtime.
 
 Antes de la corrección: `neutral[600]` daba 2.98/3.11/2.77 (falla 4.5:1); `primary[700]` daba 4.17:1 en `brandSolid`/`onBrand` (falla 4.5:1); `primary[500]` daba 2.18:1 en `focus`/`bg` (falla el 3:1 que exige WCAG 1.4.11/2.4.11 al indicador de foco, y afectaba a todos los elementos interactivos del sitio); `success[700]`/`warning[700]` daban 3.89/4.22:1 (fallan 4.5:1, y no hay paso intermedio 750).
 
-**Oscuro:** `bg` = `secondary[1100]`, `surface` = `neutral[1000]`, `text` = `neutral[50]`, `textMuted` = `neutral[300]`, `textSubtle` = `neutral[400]`, `brand` = `primary[400]`, `brandSolid` = `primary[500]`, `brandText` = `primary[300]`, `focus` = `primary[400]`, `onBrand` = `neutral[1100]`, `warning`/`error` = paso 500 de su rampa (`success` retirado, ver arriba).
+**Oscuro:** `bg` = `secondary[1100]`, `surface` = `secondary[1000]` (hasta la crítica externa #14 era `neutral[1000]`, croma 0 sobre un `bg` de croma 0,093 — la hoja móvil se leía gris sobre morado; el paso 1000 de la misma rampa es la única respuesta dentro del sistema a «mismo tono que `bg`, un paso más claro», y los siete pares de contraste sobre `surface` SUBEN con el cambio, de 12,150 a 12,904 en `text`; `surfaceSunken` se queda neutra a propósito: comparte L con `bg` y su croma cero es lo único que la separa del fondo), `text` = `neutral[50]`, `textMuted` = `neutral[300]`, `textSubtle` = `neutral[400]`, `brand` = `primary[400]`, `brandSolid` = `primary[500]`, `brandText` = `primary[300]`, `focus` = `primary[400]`, `onBrand` = `neutral[1100]`, `warning`/`error` = paso 500 de su rampa (`success` retirado, ver arriba).
 
 ### 2.3 REGLA DE CONTRASTE DE LA CASA
 

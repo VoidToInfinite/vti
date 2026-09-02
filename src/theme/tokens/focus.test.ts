@@ -60,7 +60,7 @@ describe("focusRing: la geometría del anillo de foco", () => {
  * comentario si no despoja primero.
  *
  * El `//` solo se trata como comentario cuando no va precedido de `:`, para
- * no truncar una línea por el `//` de una URL (`https://...`).
+ * no truncar una línea por el `//` de una URL (el esquema seguido de dos barras).
  */
 function stripComments(source: string): string {
   return source
