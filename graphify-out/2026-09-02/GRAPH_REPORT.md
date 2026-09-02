@@ -5,12 +5,12 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4583 nodes · 6075 edges · 354 communities (281 shown, 73 thin omitted)
+- 4583 nodes · 6078 edges · 357 communities (282 shown, 75 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 26 edges (avg confidence: 0.57)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `08a8a5f2`
+- Built from commit: `6ca925e1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -357,10 +357,13 @@
 - [[_COMMUNITY_ThemeProvider.tsx|ThemeProvider.tsx]]
 - [[_COMMUNITY_HomeRoute.tsx|HomeRoute.tsx]]
 - [[_COMMUNITY_LanguageSelector.tsx|LanguageSelector.tsx]]
+- [[_COMMUNITY_meanAbsDiff255|meanAbsDiff255]]
 - [[_COMMUNITY_task-24-brief|task-24-brief.md]]
 - [[_COMMUNITY_task-25-brief|task-25-brief.md]]
 - [[_COMMUNITY_useThemeScrollReset.test.tsx|useThemeScrollReset.test.tsx]]
+- [[_COMMUNITY_p99AbsDiff255|p99AbsDiff255]]
 - [[_COMMUNITY_Sol.test.tsx|Sol.test.tsx]]
+- [[_COMMUNITY_VisuallyHidden.tsx|VisuallyHidden.tsx]]
 - [[_COMMUNITY_vocabulary-consumers.test.ts|vocabulary-consumers.test.ts]]
 - [[_COMMUNITY_02-galaxy|02-galaxy]]
 - [[_COMMUNITY_useSectionProgress.test.tsx|useSectionProgress.test.tsx]]
@@ -385,19 +388,19 @@
   app/HomeRoute.tsx → src/config/site.ts
 - `renderEn()` --calls--> `renderWithProviders()`  [EXTRACTED]
   app/en/en-routes.test.tsx → src/test/test-utils.tsx
-- `HomeRoute()` --calls--> `webPageJsonLd`  [EXTRACTED]
-  app/HomeRoute.tsx → src/seo/jsonLd.ts
+- `RootLayout()` --calls--> `buildThemeBootstrapScript()`  [EXTRACTED]
+  app/layout.tsx → src/theme/resolveTheme.ts
 - `sitemap()` --calls--> `routePath()`  [EXTRACTED]
   app/sitemap.ts → src/config/site.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (354 total, 73 thin omitted)
+## Communities (357 total, 75 thin omitted)
 
 ### Community 0 - "themes.ts"
-Cohesion: 0.17
-Nodes (16): GlobalStyles, BreakPoints, ThemeDefinition, shared, themes, elevation, Glass, glassDark (+8 more)
+Cohesion: 0.18
+Nodes (16): GlobalStyles, BreakPoints, ThemeDefinition, shared, ColorPrimitives, elevation, Glass, glassDark (+8 more)
 
 ### Community 1 - "Eye.tsx"
 Cohesion: 0.15
@@ -537,7 +540,7 @@ Nodes (15): 1. `Typography` reenvía `id` (prerrequisito, paso 4b del brief), 2.
 
 ### Community 35 - "Features.tsx"
 Cohesion: 0.05
-Nodes (42): focusNavAnchorTarget(), navAnchorTargetId(), BULLET_KEYS, cardBorderSpin, Features(), FEATURES_CONTACT_ANCHOR, FEATURE_FIGURE_BASENAME, FEATURE_KEYS (+34 more)
+Nodes (39): BULLET_KEYS, cardBorderSpin, FEATURES_CONTACT_ANCHOR, FEATURE_FIGURE_BASENAME, FEATURE_KEYS, FeatureKey, FEATURES_LIGHT_REVEAL_DELAYS_MS, ScBody (+31 more)
 
 ### Community 36 - "Scene.tsx"
 Cohesion: 0.04
@@ -580,12 +583,12 @@ Cohesion: 0.14
 Nodes (13): Archivos cambiados, Autorrevisión, Conteo de `<h1>`, Decisión propia no dictada literalmente por el brief, Evidencia TDD, `git show --stat HEAD`, `git status --short` (tras commit), `pnpm build` (+5 more)
 
 ### Community 46 - "Footer.tsx"
-Cohesion: 0.09
-Nodes (29): fontBody, fontMono, metadata, RootLayout(), viewport, Providers(), LEGAL_AUTO_LINKS, LegalAutoLink (+21 more)
+Cohesion: 0.10
+Nodes (26): fontBody, fontMono, metadata, RootLayout(), viewport, LEGAL_AUTO_LINKS, LegalAutoLink, LegalTextPiece (+18 more)
 
 ### Community 47 - "scripts"
 Cohesion: 0.09
-Nodes (25): NavGroupMenuProps, backgroundSiblings(), INERT_SKIP_TAGS, isExitGroup(), NavSheet(), NavSheetController, NavSheetGroupProps, NavSheetProps (+17 more)
+Nodes (22): backgroundSiblings(), INERT_SKIP_TAGS, isExitGroup(), NavSheet(), NavSheetController, NavSheetProps, NavSheetTrigger(), NavSheetTriggerProps (+14 more)
 
 ### Community 48 - "Eye.tsx"
 Cohesion: 0.09
@@ -600,8 +603,8 @@ Cohesion: 0.15
 Nodes (12): Archivos cambiados, Evidencia TDD, `git show --stat HEAD`, `git status --short`, GREEN, Hallazgos de autorrevisión y preocupaciones, `pnpm check` — salida literal + exit code, `pnpm test` — suite completa (+4 more)
 
 ### Community 51 - "Input.tsx"
-Cohesion: 0.12
-Nodes (5): baseAndRevealedCss(), cssRuleTextFor(), declaracionBase(), railDeck(), slidesDelDeck()
+Cohesion: 0.13
+Nodes (3): baseAndRevealedCss(), cssRuleTextFor(), declaracionBase()
 
 ### Community 52 - "FeaturesCelestialGuide.tsx"
 Cohesion: 0.29
@@ -684,8 +687,8 @@ Cohesion: 0.09
 Nodes (41): alfa1_4, alfa5_19, alfa1_4, alfa1_4, alfa5_19, alfa1_4, alfa1_4, alfa5_19 (+33 more)
 
 ### Community 103 - "responsiveTrack"
-Cohesion: 0.08
-Nodes (37): meanThreshold255, p99Threshold255, x, y, all, B, G, R (+29 more)
+Cohesion: 0.19
+Nodes (13): x, y, resolutionTested, worstBlock32x32MeanAbsDiff255, height, width, note, resolutionTested (+5 more)
 
 ### Community 104 - "00-field"
 Cohesion: 0.25
@@ -735,6 +738,10 @@ Nodes (40): RFC-5322, Contact(), contactFloat, glowPulse, hasMessage(), isValidE
 Cohesion: 0.08
 Nodes (23): Arreglo, Arreglo, Arreglo, Candado, Candado, Candado, Causa raíz, Causa raíz (+15 more)
 
+### Community 116 - "HeroBackdrop.tsx"
+Cohesion: 0.16
+Nodes (6): LocaleShell(), Providers(), AQUI, ScSkipLink, SkipLink(), StyledComponentsRegistry()
+
 ### Community 117 - "Plan — Hero «Aura» para tema claro"
 Cohesion: 0.12
 Nodes (16): A1 · Assets pastel → WebP _(en curso)_, A2 · Extraer `useParallaxLayers`, B1 · `Aura`, C1 · `hero.transition.ts` + `HeroBackdrop`, C2 · `Hero.tsx`, C3 · `Navbar.tsx` — `barTheme`, Contratos de test que este plan tiene que respetar o actualizar, Datos de entorno de test ya verificados — no re-descubrirlos (+8 more)
@@ -744,12 +751,12 @@ Cohesion: 0.15
 Nodes (12): 10. Documentación, 11. No-objetivos (YAGNI), 12. Fases de entrega, 13. Definición de «hecho», 1. Contexto y estado actual, 2. Objetivo, 7. Visual y tokens, 8. i18n (+4 more)
 
 ### Community 119 - "Sol.constants.ts"
-Cohesion: 0.09
-Nodes (25): beamCoreLight(), beamMidLight(), beamTailLight(), hotspotGlowLight(), sweepCoreLight(), sweepGlowLight(), sweepMidLight(), beamCore (+17 more)
+Cohesion: 0.12
+Nodes (23): beamCoreLight(), beamMidLight(), beamTailLight(), hotspotGlowLight(), sweepCoreLight(), sweepGlowLight(), sweepMidLight(), beamCore (+15 more)
 
 ### Community 120 - "source"
-Cohesion: 0.17
-Nodes (12): files, note, height, width, source, excludedStrayFiles, extractedOn, originalImage (+4 more)
+Cohesion: 0.12
+Nodes (16): files, note, knownLimitation, steps, summary, height, width, source (+8 more)
 
 ### Community 121 - "verificationOfPngLayerExtraction"
 Cohesion: 0.18
@@ -841,7 +848,7 @@ Nodes (22): 10. Apéndice — scripts (scratchpad de la sesión, no viven en el 
 
 ### Community 143 - "Button.tsx"
 Cohesion: 0.08
-Nodes (38): splitAutoLinks(), DlItemData, EntityLabels, LegalBlock, LegalDocData, LegalDocumentProps, LegalSectionData, MarkedText() (+30 more)
+Nodes (38): DlItemData, EntityLabels, LegalBlock, LegalDocData, LegalDocumentProps, LegalSectionData, MarkedText(), MarkerSegment (+30 more)
 
 ### Community 144 - "5. API"
 Cohesion: 0.40
@@ -904,16 +911,16 @@ Cohesion: 0.14
 Nodes (13): 10. Pendiente / declarado, 1. Inventario completo de `srcset` (candado 3, base), 2. El parser de anchos WebP (base del candado 3), 3. Candados 1 y 2 — presupuesto de bytes, 4. Candado 3 — invariante de `srcset` (derivado), 5. Verificación con bug inyectado (los tres candados), 6. Gate completo (`pnpm run ci`), 7. Sin verificación visual (+5 more)
 
 ### Community 159 - "Aura.tsx"
-Cohesion: 0.17
-Nodes (8): About(), ScAbout, ScInner, ScParagraph, ScTitle, mockInstances, MockIntersectionObserver, useReveal()
+Cohesion: 0.10
+Nodes (11): SectionBeam(), renderBeam(), About(), ScAbout, ScInner, ScParagraph, ScTitle, JourneyLight() (+3 more)
 
 ### Community 160 - "useSlideDeck.ts"
 Cohesion: 0.10
 Nodes (20): 10. Ficheros tocados, 11. Self-review, 12. Concerns, 13. Fe de erratas — ronda de fix tras review (mismo día, 2026-08-10), 1. Punto de partida, 2. Inventario de consumidores (antes de tocar nada), 3. Medición completa (los 12 candidatos), 4. Elección (vía (a), resolución por rama) (+12 more)
 
 ### Community 161 - "Typography.tsx"
-Cohesion: 0.13
-Nodes (4): accentColor(), accentColorHover(), BULLET_KEYS, ioCallbacks
+Cohesion: 0.12
+Nodes (5): accentColor(), accentColorHover(), BULLET_KEYS, ioCallbacks, themes
 
 ### Community 162 - "Navbar: despegue al hacer scroll ("slime detach") — Implementation Plan"
 Cohesion: 0.29
@@ -964,8 +971,8 @@ Cohesion: 0.25
 Nodes (7): Contratos comunes a todos los subagentes, Fase 1 — piezas independientes (3 subagentes en paralelo), Fase 2 — consumidores (2 subagentes en paralelo), Fase 3 — revisión, verificación y cierre (hilo principal, Opus), Fases, Plan — Contacto (transición + presentación) y Footer oscuro, Riesgos y mitigaciones
 
 ### Community 174 - "config.ts"
-Cohesion: 0.12
-Nodes (15): ScDeck, ScDeckIntroBody, ScDeckNote, ScDeckNoteAccent, ScDeckPillarBody, ScDeckPillarSubtitle, ScDeckPillarTitle, ScDeckTitle (+7 more)
+Cohesion: 0.08
+Nodes (26): BrandName(), BrandNameProps, ctaGradient, gradientShift, gradientTextClip, heroGradient, ScBrandName, ScGradientTail (+18 more)
 
 ### Community 175 - "JourneyCosmicPortal.tsx"
 Cohesion: 0.11
@@ -1089,7 +1096,7 @@ Nodes (27): A1 — Foco de teclado sobre un enlace invisible (WCAG 2.4.7), A2 �
 
 ### Community 210 - "config.ts"
 Cohesion: 0.11
-Nodes (21): robots(), sitemap(), SITEMAP_ROUTE_KEYS, languageHref(), LanguageSelector(), ScLanguageButton, ScLanguageSelector, allCssRules() (+13 more)
+Nodes (20): robots(), sitemap(), SITEMAP_ROUTE_KEYS, languageHref(), LanguageSelector(), ScLanguageButton, ScLanguageSelector, allCssRules() (+12 more)
 
 ### Community 216 - "site.ts"
 Cohesion: 0.20
@@ -1133,7 +1140,7 @@ Nodes (11): 1.1 Feedback de «Copiar» (`src/components/sections/Contact/Contact
 
 ### Community 226 - "Typography.tsx"
 Cohesion: 0.08
-Nodes (21): navbarDrop, peelOff, ScActions, ScBar, ScBarLanguage, ScBrandLink, ScChevron, ScHeader (+13 more)
+Nodes (24): focusNavAnchorTarget(), navAnchorTargetId(), navbarDrop, NavGroupMenuProps, peelOff, ScActions, ScBar, ScBarLanguage (+16 more)
 
 ### Community 227 - "LegalHeader.tsx"
 Cohesion: 0.20
@@ -1236,8 +1243,8 @@ Cohesion: 0.18
 Nodes (13): RFC-6386, assertRealWidth(), extractSrcSetContents(), FOLDER_BUDGET_BYTES, MAX_FILE_BUDGET_BYTES, MEASURED_FOLDER_BYTES, parseSrcSetTokens(), publicRoot (+5 more)
 
 ### Community 261 - "08-figure-aura"
-Cohesion: 0.06
-Nodes (44): Footer(), footerLinkStyles, ScBottomBar, ScBottomLinks, ScBrandCol, ScBrandRow, ScColumn, ScColumnLinks (+36 more)
+Cohesion: 0.11
+Nodes (24): Footer(), Navbar(), LegalDocument(), LegalHeader(), ScActions, ScBrandLink, ScHeader, ScInner (+16 more)
 
 ### Community 262 - "09-figure"
 Cohesion: 0.29
@@ -1256,8 +1263,8 @@ Cohesion: 0.25
 Nodes (8): ALLOWED_HOSTS, appRoot, collectScanFiles(), repoRoot, SCAN_EXTENSIONS, srcRoot, RFC-2606, walk()
 
 ### Community 273 - "locales.test.ts"
-Cohesion: 0.10
-Nodes (22): paginasLegales, renderEn(), EnLegalNoticePage(), metadata, EnPrivacyPage(), metadata, LegalNoticePage(), metadata (+14 more)
+Cohesion: 0.08
+Nodes (31): paginasLegales, renderEn(), EnLegalNoticePage(), metadata, EnHomePage(), metadata, EnPrivacyPage(), metadata (+23 more)
 
 ### Community 274 - "Typography.tsx"
 Cohesion: 0.13
@@ -1296,20 +1303,20 @@ Cohesion: 0.18
 Nodes (10): Alcance, Auto-revisión, Cambios, Candado de assets de la Task 8 (`src/test/assets-budget.test.ts`), Gate completo, Preocupaciones / pendientes, Resumen, Task 12 — `sizes` móvil solo en Story: informe (+2 more)
 
 ### Community 283 - "HeroBackdrop.test.tsx"
-Cohesion: 0.09
-Nodes (16): metadata, NotFound(), getServerSnapshot(), getSnapshot(), NotFoundLocaleShell(), resolveNotFoundLocale(), subscribe(), size (+8 more)
+Cohesion: 0.10
+Nodes (14): metadata, NotFound(), getServerSnapshot(), getSnapshot(), NotFoundLocaleShell(), resolveNotFoundLocale(), subscribe(), size (+6 more)
 
 ### Community 284 - "LegalHeader.tsx"
-Cohesion: 0.25
-Nodes (7): canvas, height, width, description, layers, name, notes
+Cohesion: 0.14
+Nodes (13): avif20260818, delivery, encoder, provenance, results, why, canvas, height (+5 more)
 
 ### Community 286 - "compositing"
 Cohesion: 0.50
 Nodes (4): compositing, css, void, why
 
 ### Community 287 - "page.tsx"
-Cohesion: 0.15
-Nodes (10): JourneyDeckDark(), clamp(), SlideDeckDirection, SlideDeckOptions, SlideDeckState, mockInstances, MockIntersectionObserver, pistaDe() (+2 more)
+Cohesion: 0.22
+Nodes (12): HeroBackdrop(), nextFrame(), otherStack(), PendingEntry, ScAuraStack, ScBackdrop, ScEyeStack, stackFor() (+4 more)
 
 ### Community 288 - "fidelity"
 Cohesion: 0.67
@@ -1359,21 +1366,17 @@ Nodes (11): 1. Inventario de consumidores (grep antes de tocar nada), 2. Decisi�
 Cohesion: 0.29
 Nodes (6): 1. El `:hover` de `ScCardLink` (Important de la revisión), 2. Ordinal de Journey → solo para lector de pantalla (decisión del dueño), 3. La dirección de correo vuelve, en el pie, 4. Estado final, 5. Fix round 2 — el cuarto punto de `EMAIL_ADDRESS` (`12b30aa`), Task 16 — Fix round (revisión + decisiones del dueño)
 
-### Community 303 - "story.deck.tsx"
-Cohesion: 0.14
-Nodes (4): cssRuleTextFor(), deck(), declaracionBase(), railDeck()
-
 ### Community 304 - "Story.test.tsx"
-Cohesion: 0.09
-Nodes (17): footElement(), luminanceOf(), reglasDe(), todasLasReglas(), cssRuleTextFor(), declaracionBase(), envioInvalidoDeCorreo(), envioValido() (+9 more)
+Cohesion: 0.10
+Nodes (17): cssRuleTextFor(), declaracionBase(), envioInvalidoDeCorreo(), envioValido(), escribirMensaje(), ioCallbacks, montarAviso(), montarFormulario() (+9 more)
 
 ### Community 305 - "HomeSections.tsx"
 Cohesion: 0.21
 Nodes (13): ALLOWLIST, ANCHOR_MAP, anchorKey(), collectFiles(), __dirname, FAMILIES, FAMILY_GUIDANCE, ROOT (+5 more)
 
 ### Community 306 - "footer.layers.ts"
-Cohesion: 0.19
-Nodes (11): BrandName(), BrandNameProps, ctaGradient, gradientShift, gradientTextClip, heroGradient, ScBrandName, ScGradientTail (+3 more)
+Cohesion: 0.21
+Nodes (8): ctaGradientMidStop(), superficies, temas, allCssRules(), FieldChildren, reglasDe(), basicDarkTheme, basicLightTheme
 
 ### Community 308 - "Task 34 — «detectar no es elegir»: la preferencia de tema se persistía sin intervención del usuario"
 Cohesion: 0.17
@@ -1401,11 +1404,11 @@ Nodes (9): Field(), FieldControlProps, FieldProps, Input(), InputProps, mergeDes
 
 ### Community 317 - "useActiveSection.test.tsx"
 Cohesion: 0.13
-Nodes (20): ctaGradientMidStop(), superficies, temas, ratioSobrePanelClaro(), ratioSobrePanelOscuro(), allCssRules(), FieldChildren, reglasDe() (+12 more)
+Nodes (18): languageAccent(), navActiveAccent(), footElement(), luminanceOf(), reglasDe(), todasLasReglas(), ratioSobrePanelClaro(), ratioSobrePanelOscuro() (+10 more)
 
 ### Community 318 - "Hero.qa.test.tsx"
-Cohesion: 0.13
-Nodes (13): languageAccent(), navActiveAccent(), renderPage(), CMUL, color, ColorPrimitives, L, Ramp (+5 more)
+Cohesion: 0.10
+Nodes (13): reglasDe(), renderHero(), todasLasReglas(), renderPage(), CMUL, color, L, Ramp (+5 more)
 
 ### Community 319 - "Eye.test.tsx"
 Cohesion: 0.39
@@ -1416,24 +1419,16 @@ Cohesion: 0.18
 Nodes (10): B1 — Detector de anti-patrones: ancla por contenido, no por línea, B2 — Candado de hosts externos: cubre `app/`, B3 — Candado del vocabulario: mide por campo, no por grupo, B4 — `ThemeProvider.tsx`: `localStorage` sin `try/catch`, B5 — `aria-busy` de 1.830 ms por un cruce invisible, B6 — Docblock de `useThemeScrollReset.ts` con premisa falsa, Fix wave B — informe (2026-08-12), Gate (+2 more)
 
 ### Community 323 - "verificationOfWebpConversion"
-Cohesion: 0.20
-Nodes (16): alphaToPercent(), DARK_STAR_LCH, DARK_STAR_POINT, darkStarColor(), FOOTER_STARS, FooterStar, footerStarGlow(), footerStarGlowTintLight() (+8 more)
-
-### Community 324 - "home-page.meta.test.tsx"
-Cohesion: 0.09
-Nodes (8): EnHomePage(), metadata, renderHomePage(), HomePage(), metadata, HOME_COPY_ES, HomeRoute(), HomeRouteProps
+Cohesion: 0.08
+Nodes (35): footerLinkStyles, alphaToPercent(), DARK_STAR_LCH, DARK_STAR_POINT, darkStarColor(), FOOTER_STARS, FooterStar, footerStarGlow() (+27 more)
 
 ### Community 325 - "maxAbsDiff255"
-Cohesion: 0.07
-Nodes (13): LocaleShell(), BackToTop(), backToTopClearance(), ScBackToTop, ScIcon, allCssRules(), reglasDe(), renderWithMain() (+5 more)
+Cohesion: 0.11
+Nodes (9): BackToTop(), backToTopClearance(), ScBackToTop, ScIcon, allCssRules(), reglasDe(), renderWithMain(), useBackToTopThreshold() (+1 more)
 
 ### Community 328 - "HomeSections.tsx"
 Cohesion: 0.18
 Nodes (10): bugs, url, contributors, engines, node, name, packageManager, private (+2 more)
-
-### Community 330 - "story.layers.ts"
-Cohesion: 0.18
-Nodes (5): reglasDe(), renderHero(), todasLasReglas(), type, TypeStyle
 
 ### Community 331 - "Task 19 — Fix round (revisión del coordinador)"
 Cohesion: 0.22
@@ -1448,8 +1443,8 @@ Cohesion: 0.29
 Nodes (7): dependencies, i18next, next, react, react-dom, react-i18next, styled-components
 
 ### Community 334 - "story.deck.tsx"
-Cohesion: 0.09
-Nodes (25): ACTIVE_SECTION_IDS, evaluate(), getServerSnapshot(), getSnapshot(), handleScrollOrResize(), intersectsViewport(), isReducedMotion(), listeners (+17 more)
+Cohesion: 0.06
+Nodes (35): JourneyDeckDark(), ACTIVE_SECTION_IDS, evaluate(), getServerSnapshot(), getSnapshot(), handleScrollOrResize(), intersectsViewport(), isReducedMotion() (+27 more)
 
 ### Community 337 - "Fix wave D — Review final de rama (2026-08-12/13)"
 Cohesion: 0.18
@@ -1465,15 +1460,15 @@ Nodes (8): 1. Los 12 puntos de deriva documental del plan §6, 2. `PRODUCT.md` �
 
 ### Community 340 - "meanAbsDiff255"
 Cohesion: 0.33
-Nodes (6): avif20260818, delivery, encoder, provenance, results, why
+Nodes (6): meanThreshold255, p99Threshold255, verificationOfWebpConversion, acceptanceCriteria, note, result
 
 ### Community 341 - "maxAbsDiff255"
-Cohesion: 0.50
-Nodes (4): knownLimitation, steps, summary, extractionMethod
+Cohesion: 0.53
+Nodes (6): all, B, G, R, maxAbsDiff255, maxAbsDiff255
 
 ### Community 342 - "ThemeProvider.tsx"
-Cohesion: 0.12
-Nodes (24): HeroCopySwap, HeroBackdrop(), nextFrame(), otherStack(), PendingEntry, ScAuraStack, ScBackdrop, ScEyeStack (+16 more)
+Cohesion: 0.18
+Nodes (15): HeroCopySwap, buildThemeBootstrapScript(), HeroPreload, readResolvedTheme(), resolveInitialTheme(), runAtPath(), runWithStoredTheme(), THEME_COLORS (+7 more)
 
 ### Community 343 - "HomeRoute.tsx"
 Cohesion: 0.67
@@ -1483,9 +1478,21 @@ Nodes (3): prefersReducedMotion(), SolTiltSpin, useSolTiltSpin()
 Cohesion: 0.12
 Nodes (18): AMP, EyeProps, EYE_CENTER, EYE_LAYERS, EYE_PRELOADS, EYE_STAGGER, eyeAvifSrcSet(), EyeLayer (+10 more)
 
+### Community 345 - "meanAbsDiff255"
+Cohesion: 0.53
+Nodes (6): all, B, G, R, meanAbsDiff255, meanAbsDiff255
+
 ### Community 348 - "useThemeScrollReset.test.tsx"
 Cohesion: 0.14
 Nodes (10): HomeSections(), Journey(), Story(), SCROLL_KEYS, ALL_GUARD_EVENTS, GUARD_EVENTS, guardListenersAdded(), guardListenersRemoved() (+2 more)
+
+### Community 349 - "p99AbsDiff255"
+Cohesion: 0.53
+Nodes (6): p99AbsDiff255, all, B, G, R, p99AbsDiff255
+
+### Community 351 - "VisuallyHidden.tsx"
+Cohesion: 0.40
+Nodes (3): ScVisuallyHidden, VisuallyHidden(), VisuallyHiddenProps
 
 ### Community 352 - "vocabulary-consumers.test.ts"
 Cohesion: 0.16
@@ -1496,28 +1503,28 @@ Cohesion: 0.67
 Nodes (3): 1024, 1280, 02-galaxy
 
 ### Community 355 - "useSectionProgress.test.tsx"
-Cohesion: 0.18
-Nodes (7): JourneyLight(), clamp01(), resolveOptions(), SectionProgressOptions, mockInstances, MockIntersectionObserver, useSectionProgress()
+Cohesion: 0.19
+Nodes (6): clamp01(), resolveOptions(), SectionProgressOptions, mockInstances, MockIntersectionObserver, useSectionProgress()
 
 ### Community 356 - "08-figure-aura"
 Cohesion: 0.67
 Nodes (3): 1024, 1280, 08-figure-aura
 
 ## Knowledge Gaps
-- **2836 isolated node(s):** `0. Cómo usar este documento`, `1. Bloqueante legal (impide publicar — sin excepciones)`, `2. SEO verificable en el build (contra `out/`, sin sitio vivo)`, `3. SEO solo verificable con el sitio desplegado`, `4. Presupuestos de rendimiento (medidos hoy contra el build local)` (+2831 more)
+- **2836 isolated node(s):** `float`, `PILLARS`, `STORY_CARD_REVEAL_DELAYS_MS`, `ScStory`, `ScGrid` (+2831 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **73 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **75 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `renderWithProviders()` connect `Story.test.tsx` to `08-figure-aura`, `metadata.ts`, `Button.tsx`, `locales.test.ts`, `Hero.qa.test.tsx`, `Navbar.tsx`, `HeroBackdrop.test.tsx`, `Aura.tsx`, `Typography.tsx`, `story.deck.tsx`, `story.deck.tsx`, `footer.layers.ts`, `Input.tsx`, `ThemeProvider.tsx`, `VisuallyHidden.tsx`, `Hero.qa.test.tsx`, `useActiveSection.test.tsx`, `home-page.meta.test.tsx`, `maxAbsDiff255`, `hero.transition.ts`, `story.layers.ts`, `layout.tsx`, `config.ts`, `LanguageSelector.tsx`, `useThemeScrollReset.test.tsx`, `Sol.test.tsx`, `Footer.test.tsx`, `vocabulary-consumers.test.ts`, `Typography.tsx`, `Sol.constants.ts`, `06-figure`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `useSlideDeck()` connect `page.tsx` to `Journey.tsx`, `story.deck.tsx`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `useSectionProgress()` connect `useSectionProgress.test.tsx` to `useParallaxLayers.test.tsx`, `Features.tsx`, `Journey.tsx`, `story.deck.tsx`, `Contact.tsx`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **What connects `0. Cómo usar este documento`, `1. Bloqueante legal (impide publicar — sin excepciones)`, `2. SEO verificable en el build (contra `out/`, sin sitio vivo)` to the rest of the system?**
+- **Why does `renderWithProviders()` connect `Story.test.tsx` to `08-figure-aura`, `metadata.ts`, `Button.tsx`, `locales.test.ts`, `Hero.qa.test.tsx`, `Navbar.tsx`, `HeroBackdrop.test.tsx`, `Aura.tsx`, `Typography.tsx`, `story.deck.tsx`, `config.ts`, `story.deck.tsx`, `footer.layers.ts`, `Input.tsx`, `ThemeProvider.tsx`, `useActiveSection.test.tsx`, `VisuallyHidden.tsx`, `Hero.qa.test.tsx`, `verificationOfWebpConversion`, `home-page.meta.test.tsx`, `maxAbsDiff255`, `hero.transition.ts`, `layout.tsx`, `config.ts`, `LanguageSelector.tsx`, `useThemeScrollReset.test.tsx`, `Sol.test.tsx`, `VisuallyHidden.tsx`, `Footer.test.tsx`, `vocabulary-consumers.test.ts`, `HeroBackdrop.tsx`, `06-figure`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `useTheme()` connect `ThemeProvider.tsx` to `Footer.test.tsx`, `pipeline`, `Typography.tsx`, `Features.tsx`, `verificationOfWebpConversion`, `08-figure-aura`, `Journey.tsx`, `Contact.tsx`, `ThemeProvider.tsx`, `Hero.test.tsx`, `useThemeScrollReset.test.tsx`, `page.tsx`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
+- **Why does `useSectionProgress()` connect `useSectionProgress.test.tsx` to `useParallaxLayers.test.tsx`, `Typography.tsx`, `Features.tsx`, `Journey.tsx`, `story.deck.tsx`, `Contact.tsx`, `Aura.tsx`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **What connects `float`, `PILLARS`, `STORY_CARD_REVEAL_DELAYS_MS` to the rest of the system?**
   _2836 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `VTI — Sistema de interfaz de lujo · design spec` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._

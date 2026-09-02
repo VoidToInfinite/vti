@@ -40,8 +40,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1788293196.5722153,
-    "ast_hash": "e2c13f9c72acd055b49ac166fd8ad796",
+    "mtime": 1786874358.7963848,
+    "ast_hash": "82bc488175b3a0e00474f75814767b04",
     "semantic_hash": ""
   },
   "src/components/layout/Brand/BrandName.tsx": {
@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "src/components/sections/Story/Story.tsx": {
-    "mtime": 1788293196.5752566,
-    "ast_hash": "e00f13577f1ecc7f01d5befad57ee4ec",
+    "mtime": 1787180870.510324,
+    "ast_hash": "ae4a850e7a7c1be483366a53e6e19414",
     "semantic_hash": ""
   },
   "src/components/ui/Button/Button.test.tsx": {
@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/home.json": {
-    "mtime": 1788293196.5762737,
-    "ast_hash": "58e130eea8388fd7deebed94117f45d7",
+    "mtime": 1787161412.5171041,
+    "ast_hash": "f511b27f76b907971cde164337244395",
     "semantic_hash": ""
   },
   "src/i18n/locales/es/common.json": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/home.json": {
-    "mtime": 1788293196.5767794,
-    "ast_hash": "d787e76e85f5ae512c73d5855e2036a1",
+    "mtime": 1787161402.5223303,
+    "ast_hash": "23ad9b43b7c4bb2f03e545bdb1972b7f",
     "semantic_hash": ""
   },
   "src/test/test-utils.tsx": {
@@ -880,8 +880,8 @@
     "semantic_hash": ""
   },
   "src/components/sections/Journey/journey.layers.ts": {
-    "mtime": 1788293196.5742388,
-    "ast_hash": "8f0b8643fbef4f79fe7cc330cd042f20",
+    "mtime": 1787159010.703507,
+    "ast_hash": "c5f2280f672c7890b5ca7cfc1ef5a3fd",
     "semantic_hash": ""
   },
   "src/components/sections/Story/story.layers.ts": {
@@ -2100,8 +2100,8 @@
     "semantic_hash": ""
   },
   "PRE-LAUNCH-QA.md": {
-    "mtime": 1788293196.5701869,
-    "ast_hash": "d3e7640cede279b435146722f6a4392d",
+    "mtime": 1787156600.3881605,
+    "ast_hash": "b36b04b42f36d477662fd2476d3fd864",
     "semantic_hash": ""
   },
   "PRODUCT.md": {
@@ -2340,8 +2340,8 @@
     "semantic_hash": ""
   },
   "app/providers.test.tsx": {
-    "mtime": 1788293196.5722153,
-    "ast_hash": "ac731f19053fb9ced3761989200cb8da",
+    "mtime": 1787179536.0914972,
+    "ast_hash": "70ade565cc45682885827ee4f0f9a32d",
     "semantic_hash": ""
   },
   "src/components/layout/BackToTop/BackToTop.test.tsx": {
@@ -3622,11 +3622,6 @@
   "app/NotFoundLocaleShell.tsx": {
     "mtime": 1787179564.956269,
     "ast_hash": "6ba4b92242e7cdff9969ac82a3a33976",
-    "semantic_hash": ""
-  },
-  "scripts/measure-home-js.mjs": {
-    "mtime": 1788292556.3271892,
-    "ast_hash": "c22236a836a4edf55861ab7ff621ac35",
     "semantic_hash": ""
   }
 }
