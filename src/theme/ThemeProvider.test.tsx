@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { STORAGE_KEYS } from "@/config/storage";
+import { THEME_COLORS } from "./resolveTheme";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 
 /**
@@ -477,5 +478,115 @@ describe("ThemeProvider — fix wave B (2026-08-12): localStorage bloqueado no t
     expect(() => dispatchChange(true)).not.toThrow();
 
     expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
+  });
+});
+
+/*
+ * `theme-color` (2026-09-03, critica #16, hallazgo P1 del evaluador tecnico
+ * B1). Hasta esa fecha el efecto de sincronizacion escribia el color de la
+ * barra en TODAS las etiquetas y en TODAS las pasadas, incluida la inicial --
+ * cuando `themeName` todavia vale "light" para todo el mundo. Medido en Chrome
+ * real contra el build de produccion con `vti-theme = "dark"`, con la pila de
+ * llamadas apuntando a este efecto:
+ *
+ *   t= 214  2 metas [#FAFAFA, #FAFAFA]   <- ESTE efecto, con themeName="light"
+ *   t= 282  2 metas [#280739, #280739]   <- ESTE efecto, ya corregido
+ *
+ * Es decir, pisaba con el color claro lo que el script de arranque habia
+ * acertado antes del primer pintado: 68 ms de barra clara sobre pagina oscura
+ * en produccion, 1.472 ms en el servidor de desarrollo. La duplicacion de la
+ * etiqueta era de React 19 y se cerro en `app/layout.tsx` (retirando
+ * `themeColor` del `viewport`); esto candea la otra mitad.
+ *
+ * Se espia `setAttribute` de la etiqueta -- no solo su valor final -- porque lo
+ * que importa es la SECUENCIA: un valor final correcto no demuestra que nunca
+ * paso por uno equivocado. Mismo criterio que el candado gemelo de
+ * `data-theme`, mas arriba en este fichero.
+ */
+describe("ThemeProvider — theme-color: la etiqueta del script no se pisa en claro", () => {
+  function montarMetaDelScript(content: string): HTMLMetaElement {
+    // Simula lo que el script de arranque deja hecho antes del primer pintado
+    // (aqui no hay script: jsdom no ejecuta el `<head>` de layout.tsx).
+    const meta = document.createElement("meta");
+    meta.setAttribute("name", "theme-color");
+    meta.setAttribute("content", content);
+    document.head.appendChild(meta);
+    return meta;
+  }
+
+  afterEach(() => {
+    document.head
+      .querySelectorAll('meta[name="theme-color"]')
+      .forEach((node) => node.remove());
+  });
+
+  it("con la etiqueta ya en oscuro, la secuencia de content NUNCA pasa por el claro (modo normal)", () => {
+    const meta = montarMetaDelScript(THEME_COLORS.dark);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    stubMatchMedia(false);
+
+    const setAttributeSpy = vi.spyOn(meta, "setAttribute");
+
+    renderProbe();
+
+    const contentCalls = setAttributeSpy.mock.calls
+      .filter(([name]) => name === "content")
+      .map(([, value]) => value);
+
+    expect(contentCalls).not.toContain(THEME_COLORS.light);
+    expect(contentCalls).toEqual([THEME_COLORS.dark]);
+    expect(meta.getAttribute("content")).toBe(THEME_COLORS.dark);
+    expect(
+      document.head.querySelectorAll('meta[name="theme-color"]'),
+    ).toHaveLength(1);
+  });
+
+  it("bajo React StrictMode (activo en cada pnpm dev) tampoco: es donde la ventana medida llegaba a 1.472 ms", () => {
+    const meta = montarMetaDelScript(THEME_COLORS.dark);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    stubMatchMedia(false);
+
+    const setAttributeSpy = vi.spyOn(meta, "setAttribute");
+
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+      { reactStrictMode: true },
+    );
+
+    const contentCalls = setAttributeSpy.mock.calls
+      .filter(([name]) => name === "content")
+      .map(([, value]) => value);
+
+    expect(contentCalls).not.toContain(THEME_COLORS.light);
+    expect(contentCalls).toEqual([THEME_COLORS.dark]);
+    expect(screen.getByTestId("probe")).toHaveTextContent("dark:hydration");
+  });
+
+  it("un toggle de USUARIO si actualiza esa unica etiqueta, que es lo que la hace seguir al conmutador", () => {
+    const meta = montarMetaDelScript(THEME_COLORS.light);
+    stubMatchMedia(false);
+
+    function ProbeConToggle(): ReactElement {
+      const { toggleTheme } = useTheme();
+      return <button onClick={toggleTheme}>alternar</button>;
+    }
+    render(
+      <ThemeProvider>
+        <ProbeConToggle />
+      </ThemeProvider>,
+    );
+
+    expect(meta.getAttribute("content")).toBe(THEME_COLORS.light);
+
+    act(() => {
+      screen.getByRole("button", { name: "alternar" }).click();
+    });
+
+    expect(meta.getAttribute("content")).toBe(THEME_COLORS.dark);
+    expect(
+      document.head.querySelectorAll('meta[name="theme-color"]'),
+    ).toHaveLength(1);
   });
 });

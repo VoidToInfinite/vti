@@ -6,7 +6,7 @@ import { JsonLdScript } from "@/seo/JsonLdScript";
 import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
 import { AURA_PRELOADS } from "@/components/scenes/aura/aura.layers";
 import { EYE_PRELOADS } from "@/components/scenes/eye/eye.layers";
-import { buildThemeBootstrapScript, THEME_COLORS } from "@/theme/resolveTheme";
+import { buildThemeBootstrapScript } from "@/theme/resolveTheme";
 import { Providers } from "./providers";
 
 /*
@@ -97,18 +97,40 @@ export const metadata: Metadata = {
 };
 
 /*
- * `themeColor` por esquema, no un unico literal (el `#000000` anterior no
- * coincidia con NINGUN token real del tema oscuro). Los dos hex son
- * EXACTAMENTE los que `app/opengraph-image.tsx` ya documenta y usa para
- * estos MISMOS primitivos (conversion oklch → OKLab → sRGB lineal → sRGB
- * con gamma, matrices de Björn Ottosson de `src/theme/tokens/contrast.ts`),
- * no un hex inventado a ojo:
- *   - claro:  semanticLight.bg  (= color.neutral[50])    → "#FAFAFA"
- *     (el mismo primitivo que ese archivo etiqueta TEXT, para
- *     semanticDark.text -- es el mismo token neutral[50], solo cambia el
- *     rol semantico que lo consume)
- *   - oscuro: semanticDark.bg   (= color.secondary[1100]) → "#280739"
- *     (BG_FROM del degradado de esa misma imagen)
+ * AQUÍ NO HAY `themeColor`, Y ES UNA DECISIÓN MEDIDA (2026-09-03, crítica #16,
+ * hallazgo P1 del evaluador técnico B1). Declararlo aquí es lo que producía
+ * DOS etiquetas `meta[name="theme-color"]` en el documento y, entre ellas, una
+ * ventana con la barra del navegador en CLARO sobre la página oscura.
+ *
+ * Traza sobre el build de producción servido, Chrome real, contexto nuevo,
+ * `localStorage.vti-theme = "dark"` antes de cargar:
+ *
+ *   t=  24  1 meta  [#280739]            ← el script de arranque, pre-pintado
+ *   t= 204  2 metas [#280739, #FAFAFA]   ← React inserta una SEGUNDA, en claro
+ *   t= 214  2 metas [#FAFAFA, #FAFAFA]   ← el efecto de ThemeProvider las pisa
+ *   t= 282  2 metas [#280739, #280739]   ← y las corrige
+ *
+ * La segunda etiqueta la crea React 19, no Next: al hidratar, su caché de
+ * elementos «hoistable» busca el `<meta>` al que engancharse INDEXÁNDOLO POR
+ * SU ATRIBUTO `content` (rama `case "meta"` de `commitMutationEffectsOnFiber`
+ * en `react-dom-client.development.js`, leída en `node_modules`), y el script
+ * de arranque acababa de cambiar ese `content` de `#FAFAFA` a `#280739`: la
+ * búsqueda falla y React cae en `createElement` + `head.appendChild`. En tema
+ * claro el valor no cambiaba, la búsqueda acertaba y React adoptaba la
+ * estática — por eso el defecto solo aparecía en oscuro.
+ *
+ * ARREGLO DE CAUSA RAÍZ: si React no renderiza ninguna etiqueta `theme-color`,
+ * no hay nada que pueda duplicar. La etiqueta la CREA y la posee el script de
+ * arranque (`buildThemeBootstrapScript`), antes del primer pintado y ya con el
+ * tema resuelto, y `ThemeProvider` actualiza esa única etiqueta en cada cambio
+ * real de tema. El porqué completo, con la traza y los dos hex —los mismos que
+ * documenta `app/opengraph-image.tsx` para estos mismos primitivos— vive en el
+ * docblock de `THEME_COLORS` (`src/theme/resolveTheme.ts`).
+ *
+ * COSTE DECLARADO: sin JavaScript no hay `theme-color` y la barra queda en el
+ * color por defecto del navegador. El HTML estático se pinta en claro, así que
+ * ahí la diferencia es entre `#FAFAFA` y el blanco del navegador; lo que se
+ * evita a cambio es una barra casi blanca sobre una página casi negra.
  *
  * `viewportFit: "cover"` (Task 13, punto 1 del brief): sin él, iOS Safari
  * NUNCA rellena `env(safe-area-inset-*)` -- resuelve siempre al fallback de
@@ -129,21 +151,6 @@ export const metadata: Metadata = {
  * atributo cambia de valor.
  */
 export const viewport: Viewport = {
-  /*
-   * UNA sola entrada y SIN `media`, desde el 2026-08-16 (Ola C). Antes había
-   * dos, una por `prefers-color-scheme`, y eso ataba el color de la barra del
-   * navegador al SISTEMA OPERATIVO — mientras que el tema de este sitio lo
-   * decide el CONMUTADOR (`localStorage` gana a `prefers`, decisión D-C).
-   * Medido: con el sistema en claro y el conmutador en oscuro, la barra seguía
-   * en `#FAFAFA` sobre una página casi negra.
-   *
-   * El valor estático es el CLARO a propósito: es el tema del HTML que hornea
-   * el build, así que es el correcto mientras nadie ejecute JavaScript. A
-   * partir de ahí lo actualizan el script de arranque (antes del primer
-   * pintado) y `ThemeProvider` (en cada cambio), los dos leyendo de
-   * `THEME_COLORS`.
-   */
-  themeColor: THEME_COLORS.light,
   viewportFit: "cover",
 };
 

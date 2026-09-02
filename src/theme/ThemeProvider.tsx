@@ -235,28 +235,42 @@ export function ThemeProvider({
   // en un único render). `useLayoutEffect` sigue sin hacer falta: este
   // efecto no dispara ningún `setState` propio.
   useEffect(() => {
-    /*
-     * `theme-color` se actualiza SIEMPRE, también en el paso inicial, y ahí
-     * está la diferencia con `data-theme` (que sí sale antes si el cambio es
-     * "initial", porque el script de arranque ya lo dejó puesto y reescribirlo
-     * no aporta nada).
-     *
-     * El motivo es medido: al hidratar, Next vuelve a insertar SU
-     * `<meta name="theme-color">` con el valor estático, así que en oscuro el
-     * documento acaba con dos — el que el script de arranque corrigió y el
-     * recién insertado con el valor claro. Hoy gana el primero por orden de
-     * documento, pero apoyarse en ese orden es apoyarse en un detalle de
-     * implementación de Next. Recorrer TODAS las etiquetas (aquí y en el
-     * script de arranque) hace que el resultado no dependa de cuántas haya ni
-     * de cuál llegue primero.
-     */
-    const metas = document.querySelectorAll('meta[name="theme-color"]');
-    metas.forEach((meta) =>
-      meta.setAttribute("content", THEME_COLORS[themeName]),
-    );
-
     if (changeSource === "initial") return;
     document.documentElement.setAttribute(THEME_ATTRIBUTE, themeName);
+    /*
+     * `theme-color` sale por la MISMA puerta que `data-theme` desde el
+     * 2026-09-03 (crítica #16, hallazgo P1 del evaluador técnico B1), y ahí
+     * está el arreglo: mientras `changeSource === "initial"`, el `themeName`
+     * de este render es el default SIN CONFIRMAR —"light" para todo el mundo,
+     * incluido el visitante oscuro— así que escribirlo es pisar con el color
+     * claro lo que el script de arranque ya había acertado antes del primer
+     * pintado.
+     *
+     * Y eso es exactamente lo que hacía este efecto hasta esta fecha: escribía
+     * SIEMPRE, también en la pasada inicial. Medido sobre el build de
+     * producción (Chrome real, contexto nuevo, `vti-theme = "dark"`), con la
+     * pila de llamadas apuntando a este mismo `forEach`:
+     *
+     *   t= 204  2 metas [#280739, #FAFAFA]   ← React inserta su duplicado
+     *   t= 214  2 metas [#FAFAFA, #FAFAFA]   ← ESTE efecto, con themeName="light"
+     *   t= 282  2 metas [#280739, #280739]   ← ESTE efecto, ya corregido
+     *
+     * Los 68 ms de barra clara sobre página oscura (1.472 ms en el servidor de
+     * desarrollo) eran nuestros, no de Next. La duplicación era de React 19 y
+     * se cerró retirando `themeColor` del `viewport` de `app/layout.tsx`: la
+     * etiqueta ya no la renderiza React, la crea el script de arranque y es
+     * ÚNICA. Por eso aquí basta `querySelector` —la primera y única— en vez
+     * del `querySelectorAll` + `forEach` de antes, que existía para dar el
+     * mismo valor a las dos etiquetas cuando había dos. Si alguna vez vuelve a
+     * haber más de una, este efecto actualizará solo la primera y el defecto
+     * se verá: es preferible a taparlo escribiendo en todas.
+     *
+     * El nodo puede no existir en un navegador donde el script de arranque no
+     * llegara a correr; `?.` lo cubre sin inventar aquí una segunda vía de
+     * creación que duplicaría la propiedad de la etiqueta.
+     */
+    const meta = document.querySelector('meta[name="theme-color"]');
+    meta?.setAttribute("content", THEME_COLORS[themeName]);
   }, [themeName, changeSource]);
 
   const toggleTheme = useCallback(() => {

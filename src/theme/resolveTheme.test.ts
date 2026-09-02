@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { STORAGE_KEYS } from "@/config/storage";
 import {
   buildThemeBootstrapScript,
   resolveInitialTheme,
   THEME_ATTRIBUTE,
+  THEME_COLORS,
 } from "./resolveTheme";
 
 describe("resolveInitialTheme (decisión D-C: storage gana a prefers-color-scheme)", () => {
@@ -316,5 +317,103 @@ describe("buildThemeBootstrapScript: las precargas del hero solo se emiten donde
     expect(links.map((l) => l.getAttribute("imagesrcset"))).toEqual(
       HERO.map((p) => p.srcSet),
     );
+  });
+});
+
+/*
+ * El script es el UNICO DUENO de `meta[name="theme-color"]` (2026-09-03,
+ * critica #16, hallazgo P1 del evaluador tecnico B1). Hasta esa fecha la
+ * etiqueta la horneaba `viewport.themeColor` en `app/layout.tsx` y este script
+ * se limitaba a reescribir su `content`; medido en Chrome real contra el build
+ * de produccion con `vti-theme = "dark"`, eso dejaba DOS etiquetas (React 19 no
+ * lograba adoptar la estatica porque su cache de elementos «hoistable» las
+ * indexa por el atributo `content`, que este script acababa de cambiar) y una
+ * ventana con la barra del navegador en claro sobre la pagina oscura.
+ *
+ * Estos casos EJECUTAN el string generado sobre el DOM de jsdom, no inspeccionan
+ * su texto: lo que hay que afirmar es el DESENLACE —cuantas etiquetas quedan y
+ * con que color— y no que la plantilla contenga ciertas letras. Un candado de
+ * texto pasaria igual con un script que insertara una etiqueta por llamada.
+ */
+describe("buildThemeBootstrapScript: crea y posee UNA sola meta theme-color", () => {
+  function runWithStoredTheme(
+    stored: string,
+    pathname = "/",
+  ): HTMLMetaElement[] {
+    const originalStored = window.localStorage.getItem(STORAGE_KEYS.theme);
+    const originalPath = window.location.pathname;
+    try {
+      window.history.replaceState(null, "", pathname);
+      window.localStorage.setItem(STORAGE_KEYS.theme, stored);
+      new Function(buildThemeBootstrapScript())();
+      return Array.from(
+        document.head.querySelectorAll<HTMLMetaElement>(
+          'meta[name="theme-color"]',
+        ),
+      );
+    } finally {
+      window.history.replaceState(null, "", originalPath);
+      if (originalStored === null) {
+        window.localStorage.removeItem(STORAGE_KEYS.theme);
+      } else {
+        window.localStorage.setItem(STORAGE_KEYS.theme, originalStored);
+      }
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    }
+  }
+
+  beforeEach(() => {
+    // El `<head>` de jsdom sobrevive entre casos: se parte SIEMPRE del estado
+    // real del HTML exportado desde este cambio, que es "ninguna etiqueta".
+    document.head
+      .querySelectorAll('meta[name="theme-color"]')
+      .forEach((node) => node.remove());
+  });
+
+  afterEach(() => {
+    document.head
+      .querySelectorAll('meta[name="theme-color"]')
+      .forEach((node) => node.remove());
+  });
+
+  it("sin ninguna etiqueta previa (el HTML de hoy) crea exactamente una, con el color del tema resuelto", () => {
+    const metas = runWithStoredTheme("dark");
+    expect(metas).toHaveLength(1);
+    expect(metas[0].getAttribute("content")).toBe(THEME_COLORS.dark);
+  });
+
+  it("con el tema claro resuelto, la unica etiqueta lleva el color claro", () => {
+    const metas = runWithStoredTheme("light");
+    expect(metas).toHaveLength(1);
+    expect(metas[0].getAttribute("content")).toBe(THEME_COLORS.light);
+  });
+
+  it("con una etiqueta previa (HTML de un build anterior, o un viewport.themeColor repuesto) la ADOPTA en vez de anadir otra", () => {
+    // Este es el caso que producia el duplicado medido: una etiqueta estatica
+    // en claro y un visitante oscuro. El script tiene que dejar UNA, no dos.
+    const previa = document.createElement("meta");
+    previa.setAttribute("name", "theme-color");
+    previa.setAttribute("content", THEME_COLORS.light);
+    document.head.appendChild(previa);
+
+    const metas = runWithStoredTheme("dark");
+    expect(metas).toHaveLength(1);
+    expect(metas[0]).toBe(previa);
+    expect(metas[0].getAttribute("content")).toBe(THEME_COLORS.dark);
+  });
+
+  it("dos ejecuciones seguidas del script no acumulan etiquetas", () => {
+    runWithStoredTheme("dark");
+    const metas = runWithStoredTheme("dark");
+    expect(metas).toHaveLength(1);
+  });
+
+  it("fuera de la home tambien crea la etiqueta: el anti-flash es del sitio, no de la portada", () => {
+    // Las precargas del hero SI se acotan a la home (bloque de arriba); el
+    // color de la barra, no. En `/privacidad` la etiqueta tiene que existir
+    // igual, o esa ruta se queda sin `theme-color` en ningun momento.
+    const metas = runWithStoredTheme("dark", "/privacidad");
+    expect(metas).toHaveLength(1);
+    expect(metas[0].getAttribute("content")).toBe(THEME_COLORS.dark);
   });
 });

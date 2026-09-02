@@ -208,3 +208,56 @@ describe("app/layout.tsx — safe areas (Task 13)", () => {
     expect(viewportExport?.[0]).toContain('viewportFit: "cover"');
   });
 });
+
+/*
+ * `viewport` NO declara `themeColor` (2026-09-03, critica #16, hallazgo P1 del
+ * evaluador tecnico B1). Declararlo es lo que hacia que React 19 insertara una
+ * SEGUNDA `meta[name="theme-color"]` al hidratar: su cache de elementos
+ * «hoistable» busca la etiqueta a la que engancharse indexandola por el
+ * atributo `content` (rama `case "meta"` de `commitMutationEffectsOnFiber` en
+ * `react-dom-client.development.js`), y el script de arranque acababa de
+ * cambiar ese `content` de `#FAFAFA` a `#280739` en cada visita oscura. Traza
+ * medida en Chrome real contra el build de produccion:
+ *
+ *   t=  24  1 meta  [#280739]            <- el script de arranque, pre-pintado
+ *   t= 204  2 metas [#280739, #FAFAFA]   <- React inserta la segunda, en claro
+ *   t= 214  2 metas [#FAFAFA, #FAFAFA]   <- el efecto de ThemeProvider (ya corregido)
+ *   t= 282  2 metas [#280739, #280739]
+ *
+ * Hoy la etiqueta la CREA y la posee el script de arranque, y es unica (los
+ * candados del desenlace estan en `src/theme/resolveTheme.test.ts`). Este es de
+ * FUENTE, con la misma tecnica de `node:fs` que el resto del fichero
+ * (`RootLayout` no se puede importar en Vitest, ver el docblock de arriba):
+ * reponer `themeColor` aqui reintroduce el duplicado sin que ningun test de
+ * jsdom pueda verlo, porque el duplicado lo crea React durante una hidratacion
+ * real.
+ */
+describe("app/layout.tsx — theme-color no se declara en viewport (critica #16)", () => {
+  it("el export viewport NO declara themeColor: la etiqueta la crea el script de arranque", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const source = readFileSync(join(here, "layout.tsx"), "utf-8");
+
+    // Mismo despojado de comentarios que el resto del fichero: el docblock que
+    // precede al export NOMBRA `themeColor` varias veces al explicar por que ya
+    // no esta, asi que sin esto la busqueda encontraria la explicacion en vez
+    // de la declaracion.
+    const withoutComments = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    const viewportExport = withoutComments.match(
+      /export const viewport: Viewport = \{[\s\S]*?\n\};/,
+    );
+    expect(
+      viewportExport,
+      "no se encontró 'export const viewport: Viewport = {...}'",
+    ).not.toBeNull();
+    expect(
+      viewportExport?.[0],
+      "viewport volvió a declarar themeColor: React insertará una segunda meta[name=theme-color] al hidratar (crítica #16)",
+    ).not.toContain("themeColor");
+  });
+});

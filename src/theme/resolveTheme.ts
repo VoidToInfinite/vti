@@ -27,11 +27,62 @@ export const THEME_ATTRIBUTE = "data-theme";
  * conmutador a oscuro veía la barra del navegador en `#FAFAFA` sobre una
  * página casi negra — el navegador no tenía forma de enterarse.
  *
- * Ahora hay UNA sola entrada sin `media` (la clara, que es la del HTML
- * estático y por tanto la correcta sin JavaScript) y son el script de arranque
- * —antes del primer pintado— y `ThemeProvider` —en cada cambio— quienes la
- * ponen al día. Los tres consumidores leen de aquí para que no puedan
+ * Entre el 2026-08-16 y el 2026-09-03 quedó UNA sola entrada sin `media`, la
+ * clara, declarada como `viewport.themeColor` en `app/layout.tsx`: el HTML
+ * estático la horneaba y el script de arranque le reescribía el `content`
+ * antes del primer pintado. Ese reparto producía DOS defectos medibles en
+ * oscuro, y los dos están cerrados desde el 2026-09-03 (crítica #16, hallazgo
+ * P1 del evaluador técnico B1).
+ *
+ * LA TRAZA QUE LO DEMUESTRA (build de producción servido en :4321, Chrome
+ * real, contexto nuevo, `localStorage.vti-theme = "dark"` antes de cargar,
+ * sonda que registra cada cambio de (número, contenidos) y la PILA de quien
+ * escribe):
+ *
+ *   t=  24  1 meta  [#280739]            loading    ← el script de arranque
+ *   t= 204  2 metas [#280739, #FAFAFA]   complete   ← React inserta una SEGUNDA
+ *   t= 214  2 metas [#FAFAFA, #FAFAFA]   complete   ← `ThemeProvider` las pone en CLARO
+ *   t= 282  2 metas [#280739, #280739]   complete   ← y las corrige a oscuro
+ *
+ * DEFECTO 1, la etiqueta duplicada — es de React 19, no de Next. En su
+ * commit de elementos «hoistable» (`react-dom-client.development.js`, rama
+ * `case "meta"` de `commitMutationEffectsOnFiber`), React busca en el DOM un
+ * `<meta>` al que engancharse con una caché INDEXADA POR EL ATRIBUTO
+ * `content`: `getHydratableHoistableCache("meta","content",doc).get("meta" +
+ * props.content)`, y además exige `getAttribute("content") === props.content`.
+ * El script de arranque había cambiado ese `content` de `#FAFAFA` a `#280739`,
+ * así que la búsqueda por `meta#FAFAFA` no encontraba nada y React caía en la
+ * rama de abajo: `createElement("meta")` + `setInitialProperties` +
+ * `head.appendChild`. De ahí la segunda etiqueta, con el valor CLARO. En tema
+ * claro el `content` no cambiaba, la búsqueda acertaba y React ADOPTABA la
+ * estática: por eso el defecto solo se veía en oscuro (medido: una sola meta
+ * en todo momento con el tema claro guardado).
+ *
+ * DEFECTO 2, la ventana en claro sobre página oscura (t=214→282, 68 ms en
+ * producción y 1.472 ms medidos en el servidor de desarrollo) — es NUESTRA: el
+ * efecto de `ThemeProvider` escribía `THEME_COLORS[themeName]` en TODAS las
+ * etiquetas también en la pasada inicial, cuando `themeName` todavía vale
+ * `"light"` para todo el mundo (no puede leer `localStorage` durante el render
+ * sin romper el export estático). Es decir, pisaba con el color claro lo que
+ * el script de arranque acababa de acertar. La pila de la sonda lo señalaba
+ * literalmente: `NodeList.forEach` dentro del chunk que contiene
+ * `document.querySelectorAll('meta[name="theme-color"]').forEach(...)`.
+ *
+ * EL REPARTO DE HOY: `app/layout.tsx` ya NO declara `themeColor` en su
+ * `viewport`, así que React no renderiza ninguna etiqueta `theme-color` y no
+ * tiene ninguna que duplicar. La CREA el script de arranque (más abajo), antes
+ * del primer pintado y ya con el tema resuelto, y `ThemeProvider` se limita a
+ * actualizar esa única etiqueta cuando el tema cambia de verdad — nunca en la
+ * pasada inicial. Los dos consumidores leen los hex de aquí para que no puedan
  * divergir.
+ *
+ * COSTE DECLARADO: sin JavaScript no hay `theme-color` en absoluto (antes
+ * había la clara, que era la correcta para el HTML estático), así que la barra
+ * del navegador se queda en su color por defecto. Se acepta a cambio de que
+ * ningún visitante oscuro vea la barra clara: el camino sin JavaScript pinta
+ * la página en claro, donde la diferencia es entre el `#FAFAFA` del sitio y el
+ * blanco del navegador; el camino con JavaScript era el que enseñaba una barra
+ * casi blanca sobre una página casi negra.
  */
 export const THEME_COLORS: Readonly<Record<ThemeName, string>> = {
   light: "#FAFAFA",
@@ -209,9 +260,10 @@ export interface HeroPreload {
  * declarado en `next.config.ts`, y si algún día lo hay, este es el punto a
  * tocar.
  *
- * LO QUE NO CAMBIA: resolver el tema (`data-theme`) y poner al día
- * `theme-color` siguen ocurriendo en TODAS las rutas — el anti-flash no es de
- * la home, es del sitio. En la home, el orden de emisión, el
+ * LO QUE NO CAMBIA: resolver el tema (`data-theme`) y crear y poner al día la
+ * etiqueta `theme-color` siguen ocurriendo en TODAS las rutas — el anti-flash
+ * no es de la home, es del sitio, y desde el 2026-09-03 esa etiqueta no existe
+ * en ninguna ruta hasta que este script la crea. En la home, el orden de emisión, el
  * `fetchpriority="high"` de la primera y el `type` de las pistas AVIF quedan
  * idénticos.
  *
@@ -244,12 +296,27 @@ export function buildThemeBootstrapScript(
     `document.documentElement.setAttribute(${attrLiteral},theme);` +
     // theme-color al día ANTES del primer pintado, en su propio try/catch: la
     // barra del navegador tiene que seguir al conmutador, no al sistema
-    // operativo (ver el docblock de THEME_COLORS). El <meta> ya existe en el
-    // <head> y aparece ANTES que este script (verificado en el HTML
-    // construido), así que aquí siempre se encuentra.
-    `try{var mc=document.querySelectorAll('meta[name="theme-color"]');` +
-    `var tc=${JSON.stringify(THEME_COLORS)}[theme];` +
-    `for(var j=0;j<mc.length;j++){mc[j].setAttribute("content",tc);}}catch(e){}` +
+    // operativo (ver el docblock de THEME_COLORS).
+    //
+    // Este script es el ÚNICO DUEÑO de la etiqueta desde el 2026-09-03: la
+    // CREA él, porque `app/layout.tsx` ya no declara `themeColor` en su
+    // `viewport` y el HTML estático no trae ninguna. Mientras la traía, React
+    // 19 no lograba adoptarla al hidratar —su caché de elementos «hoistable»
+    // indexa los `<meta>` por el atributo `content`, que este script acababa
+    // de cambiar— e insertaba una SEGUNDA con el valor claro; la traza
+    // completa está en el docblock de THEME_COLORS.
+    //
+    // El `||` cubre el caso de que la etiqueta ya exista (un HTML servido
+    // desde un build anterior a este cambio, o un `viewport.themeColor` que
+    // alguien reponga): se ADOPTA la que haya en vez de añadir otra.
+    // `appendChild` devuelve el nodo insertado, así que la creación cabe en la
+    // misma expresión y NO abre ningún bloque nuevo — el número de llaves de
+    // este `try` sigue siendo exactamente el de antes, que es la cuenta que
+    // costó la lección del 2026-08-17 (`task/lessons.md`).
+    `try{var tc=${JSON.stringify(THEME_COLORS)}[theme];` +
+    `var mc=document.querySelector('meta[name="theme-color"]')||document.head.appendChild(document.createElement("meta"));` +
+    `mc.setAttribute("name","theme-color");` +
+    `mc.setAttribute("content",tc);}catch(e){}` +
     // Precarga del arte del tema resuelto: su propio try/catch, separado del
     // de arriba. Fijar `data-theme` es lo que impide el flash y no puede
     // quedar a merced de que `createElement`/`appendChild` fallen en un
