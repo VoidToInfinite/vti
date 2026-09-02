@@ -119,8 +119,10 @@ import { useEffect, useRef } from "react";
  *   ramas, así que ahí no hay nada que corregir.
  *
  * LIMITACIÓN CONOCIDA, declarada y no resuelta: `#statement` es la única `id`
- * de sección que en la rama OSCURA no es una sección hermana sino la última
- * DIAPOSITIVA del deck de Story, hija de un `ScStage` con `position: sticky`
+ * de sección que no es una sección hermana en NINGUNA rama -- desde la
+ * crítica externa #15 (2026-09-02, C10) cuelga de `#story` también en claro,
+ * y en la rama OSCURA es además la última DIAPOSITIVA del deck de Story,
+ * hija de un `ScStage` con `position: sticky`
  * (ver el docblock de `themeScrollAnchor.ts`, que excluye ese mismo caso por
  * el mismo motivo: la caja de un elemento pegado se mueve CON el scroll, así
  * que su posición no es una propiedad del documento sino del instante en que

@@ -94,14 +94,17 @@ describe("HomeSections", () => {
    * En CLARO son CINCO secciones desde el 2026-08-06, no cuatro: `Story`
    * emite ademas `#statement`, la nota de cierre promovida a pantalla
    * completa (spec `2026-08-06-story-features-tema-claro-design.md`, D12).
-   * Va entre `#story` y `#journey`, exactamente donde la coloca el mockup
-   * `Landing v2.dc`.
+   * Va entre `#story` y `#journey` en orden de documento, exactamente donde
+   * la coloca el mockup `Landing v2.dc`; desde la crítica externa #15
+   * (2026-09-02, C10) cuelga de `#story` también en claro, igual que en
+   * oscuro, así que la misma pieza tiene la misma estructura en los dos temas.
    *
    * Desde la Task 15 (unificacion de contenido, D-C, 2026-08-11) la lista es
    * la MISMA en los dos temas: la rama oscura emite tambien `#statement` --
    * su diapositiva de cierre, con la misma frase y la misma salida a Discord,
    * pasa a ser `<section id="statement">` (anidada dentro de `#story`, que es
-   * donde el deck coloca su cierre; el orden del documento sale identico).
+   * donde el deck coloca su cierre; el orden del documento sale identico --
+   * y desde la #15 la rama clara la anida igual).
    * Este fichero es exactamente el "contrato de estructura que vive en OTRO
    * fichero" de la leccion del 2026-08-06: cualquier entrega que anada o
    * quite un elemento de nivel de seccion pasa por aqui.

@@ -31,11 +31,15 @@
  * ## Qué cuenta como ancla, y por qué se excluyen las secciones anidadas
  *
  * Ancla = `<section>` con `id` que NO vive dentro de otra `<section [id]>`.
- * El caso concreto que obliga a la exclusión es `#statement`: en la rama
- * clara es una sección hermana de `#story` (posición de documento estable,
- * ancla legítima), pero en la oscura es la última DIAPOSITIVA del deck de
+ * El caso concreto que obliga a la exclusión es `#statement`: hasta la
+ * crítica externa #15 (2026-09-02, C10) en la rama clara era una sección
+ * hermana de `#story` (posición de documento estable, ancla legítima) y
+ * solo en la oscura estaba anidada; desde esa ronda cuelga de `#story` en
+ * los DOS temas, y en la oscura es además la última DIAPOSITIVA del deck de
  * Story (`Story.tsx`, `<ScSlide as="section" id="statement">`), es decir un
- * hijo de un `ScStage` con `position: sticky`. La caja de un elemento
+ * hijo de un `ScStage` con `position: sticky`. Consecuencia buscada: deja
+ * de ser ancla válida también en claro, así que este módulo se comporta
+ * igual en los dos temas. La caja de un elemento
  * pegado se mueve CON el scroll: su "top de documento" no es una propiedad
  * del documento sino del instante en que se mide, así que como ancla
  * mentiría. La regla estructural ("no anidada") describe exactamente esa

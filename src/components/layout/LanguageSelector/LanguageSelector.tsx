@@ -65,7 +65,8 @@ export function languageAccent(theme: DefaultTheme): string {
  * botones de idioma se pintaban visibles —uno incluso con el aspecto del
  * idioma ACTIVO— mientras ninguno de sus dos manejadores podía correr
  * (`i18n.changeLanguage` y la escritura de `STORAGE_KEYS.lang` son las dos
- * JavaScript). Pulsar no hacía nada y nada lo explicaba, así que se ocultó: un
+ * JavaScript; esa escritura se retiró en la crítica externa #15, 2026-09-02,
+ * porque el idioma vive en la URL y la clave nunca se leía). Pulsar no hacía nada y nada lo explicaba, así que se ocultó: un
  * `<noscript>` como el del formulario de contacto (`ScNoscriptNote`,
  * `Contact.tsx`) tiene sentido allí porque hay una salida REAL que ofrecer —la
  * dirección de correo—, y aquí no existía ninguna.

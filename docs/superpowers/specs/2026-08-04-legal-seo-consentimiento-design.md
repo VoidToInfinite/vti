@@ -53,7 +53,7 @@ Estructura vigente de lo que toca esta entrega:
 | `links.privacy/terms/accessibility` | `https://example.invalid/por-completar-*` (marcadores deliberados, RFC 2606) | `src/config/links.ts:17-19` |
 | Enlaces legales del footer | 3 anclas con `target="_blank" rel="noopener noreferrer"` a esos marcadores | `Footer.tsx:377-431` |
 | `html lang` | **`"es"` hardcodeado**, no se sincroniza al cambiar de idioma | `app/layout.tsx:38` |
-| Almacenamiento en el terminal | `localStorage`: `vti-theme` (`ThemeProvider.tsx:14`), `vti-lang` (`I18nProvider.tsx:9`). **Cero cookies HTTP** (`grep document.cookie` sin resultados) | — |
+| Almacenamiento en el terminal | `localStorage`: `vti-theme` (`ThemeProvider.tsx:14`), `vti-lang` (`I18nProvider.tsx:9`; **retirada el 2026-09-02, crítica externa #15**: se escribía sin elección y nunca se leía). **Cero cookies HTTP** (`grep document.cookie` sin resultados) | — |
 | Analítica / terceros | **Ninguna** (`grep` de `gtag\|googletagmanager\|analytics\|plausible\|umami\|sentry\|posthog\|hotjar\|sendBeacon` sobre `src app public` sin resultados) | — |
 | Formulario de contacto | **No postea a ningún servidor**: `preventDefault()` + `window.location.assign(mailto:…?subject=&body=)` | `Contact.tsx:926-939` |
 | Namespaces i18n registrados | `common`, `home` | `src/i18n/config.ts:10-13,24` |

@@ -114,7 +114,7 @@ La pieza más honesta del sitio está enterrada en la Política de privacidad, s
 
 > «Si solo tienes un minuto: navegar por esta web no nos da ningún dato sobre ti. No hay analítica, ni seguimiento, ni publicidad, ni perfiles.»
 
-Esto no es una declaración de intenciones: es descriptivamente cierto del propio código. Lo único que el sitio escribe en el equipo del visitante son dos claves de `localStorage` (`vti-theme` y `vti-lang`, ambas documentadas también en la propia política, sección «Qué guardamos en tu equipo»), y no hay banner de cookies porque, legalmente, no hace falta uno para ese almacenamiento. Es privacidad radical real, no una promesa de marketing, y hoy es prácticamente invisible: solo la ve quien llega hasta el documento legal. Es candidata natural a subir a la superficie de la landing (por ejemplo, como parte del bloque AEO pendiente, ver `PROYECT.md` §5).
+Esto no es una declaración de intenciones: es descriptivamente cierto del propio código. Lo único que el sitio escribe en el equipo del visitante es una clave de `localStorage` (`vti-theme`, documentada también en la propia política, sección «Qué guardamos en tu equipo»; `vti-lang` se retiró el 2026-09-02 en la crítica externa #15 porque se escribía sin elección del visitante y nunca se leía — el idioma vive en la URL), y no hay banner de cookies porque, legalmente, no hace falta uno para ese almacenamiento. Es privacidad radical real, no una promesa de marketing, y hoy es prácticamente invisible: solo la ve quien llega hasta el documento legal. Es candidata natural a subir a la superficie de la landing (por ejemplo, como parte del bloque AEO pendiente, ver `PROYECT.md` §5).
 
 ## 8. Hallazgos de coherencia vigentes
 
