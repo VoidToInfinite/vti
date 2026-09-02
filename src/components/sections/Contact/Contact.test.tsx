@@ -41,6 +41,7 @@ import {
 import { FEATURES_TAIL_HOLD } from "@/components/sections/Features/features.layers";
 import { themes } from "@/theme/themes";
 import { grid } from "@/theme/tokens/grid";
+import { motion } from "@/theme/tokens/motion";
 import {
   contrastRatio,
   contrastRatioHex,
@@ -204,6 +205,35 @@ function escribirMensaje(texto: string = MENSAJE_VALIDO): HTMLTextAreaElement {
   ) as HTMLTextAreaElement;
   fireEvent.change(textarea, { target: { value: texto } });
   return textarea;
+}
+
+/**
+ * Texto de TODAS las regiones live del formulario, en orden del DOM.
+ *
+ * Desde la critica externa #15 (hallazgo B3 P3) las dos regiones de error
+ * estan montadas SIEMPRE, vacias en reposo, para que un lector de pantalla
+ * anuncie el CAMBIO de su contenido -- tambien cuando lo cambia la
+ * revalidacion al salir del campo, que no mueve el foco. La consecuencia
+ * directa es que `getByRole("status")` en singular ya no puede ser univoca:
+ * hay dos regiones (mas el panel de respaldo cuando existe). Se consulta
+ * siempre en plural.
+ */
+function anunciados(): string[] {
+  return screen.getAllByRole("status").map((nodo) => nodo.textContent ?? "");
+}
+
+/**
+ * El panel de respaldo, identificado por su propio texto entre las regiones
+ * live -- no por ser "el unico status", que dejo de serlo.
+ */
+function panelDeRespaldo(): HTMLElement {
+  const panel = screen
+    .getAllByRole("status")
+    .find((nodo) =>
+      (nodo.textContent ?? "").includes(esHome.Home.contact.form.fallbackLead),
+    );
+  expect(panel, "no esta montado el panel de respaldo").toBeDefined();
+  return panel as HTMLElement;
 }
 
 /*
@@ -460,9 +490,7 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
       fireEvent.submit(form);
 
       expect(assignSpy).not.toHaveBeenCalled();
-      expect(screen.getByRole("status")).toHaveTextContent(
-        esHome.Home.contact.form.emailError,
-      );
+      expect(anunciados()).toContain(esHome.Home.contact.form.emailError);
       expect(input).toHaveAttribute("aria-invalid", "true");
 
       fireEvent.change(input, { target: { value: "visitante@test.com" } });
@@ -494,7 +522,7 @@ describe("Contact: Task 16, el formulario real vive también en la rama clara", 
       expect(assignSpy).toHaveBeenCalledTimes(1);
       expect(assignSpy.mock.calls[0][0].startsWith(links.email)).toBe(true);
 
-      const panel = screen.getByRole("status");
+      const panel = panelDeRespaldo();
       expect(panel).toHaveTextContent(esHome.Home.contact.form.fallbackLead);
       expect(panel).toHaveTextContent(links.email.replace(/^mailto:/, ""));
       expect(
@@ -1202,9 +1230,7 @@ describe("Contact en tema oscuro", () => {
       fireEvent.submit(form);
 
       expect(assignSpy).not.toHaveBeenCalled();
-      expect(screen.getByRole("status")).toHaveTextContent(
-        esHome.Home.contact.form.emailError,
-      );
+      expect(anunciados()).toContain(esHome.Home.contact.form.emailError);
     } finally {
       Object.defineProperty(window, "location", {
         configurable: true,
@@ -1230,12 +1256,12 @@ describe("Contact en tema oscuro", () => {
     escribirMensaje();
     fireEvent.change(input, { target: { value: "no-es-un-correo" } });
     fireEvent.submit(form);
-    expect(screen.getByRole("status")).toHaveTextContent(
-      esHome.Home.contact.form.emailError,
-    );
+    expect(anunciados()).toContain(esHome.Home.contact.form.emailError);
 
     fireEvent.change(input, { target: { value: "v" } });
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    // Las regiones siguen montadas (critica #15): lo que se vacia es su
+    // CONTENIDO, que es justo lo que un lector de pantalla anuncia.
+    expect(anunciados().join("")).toBe("");
   });
 
   it("al enviar navega a una URL que empieza por links.email con el correo escrito en el cuerpo, y no aparece ningun texto de exito (test 12, D13)", async () => {
@@ -1316,7 +1342,9 @@ describe("Contact en tema oscuro", () => {
       screen.getAllByText(plainEmail).forEach((nodo) => {
         expect(aviso.contains(nodo)).toBe(true);
       });
-      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(esHome.Home.contact.form.fallbackLead),
+      ).not.toBeInTheDocument();
       expect(
         screen.queryByRole("button", {
           name: esHome.Home.contact.form.copyAddress,
@@ -1330,7 +1358,7 @@ describe("Contact en tema oscuro", () => {
       fireEvent.submit(form);
 
       expect(assignSpy).toHaveBeenCalledTimes(1);
-      const panel = screen.getByRole("status");
+      const panel = panelDeRespaldo();
       expect(panel).toHaveTextContent(plainEmail);
       expect(panel).toHaveTextContent(esHome.Home.contact.form.fallbackLead);
       expect(
@@ -2569,9 +2597,7 @@ describe("Contact: critica #8, el mensaje viaja en el mailto y la validacion pro
       fireEvent.submit(container.querySelector("form") as HTMLFormElement);
 
       expect(assignSpy).not.toHaveBeenCalled();
-      expect(screen.getByRole("status")).toHaveTextContent(
-        esHome.Home.contact.form.messageError,
-      );
+      expect(anunciados()).toContain(esHome.Home.contact.form.messageError);
       expect(textarea).toHaveAttribute("aria-invalid", "true");
       // El error del correo NO se enciende: el correo era valido.
       expect(
@@ -2591,9 +2617,7 @@ describe("Contact: critica #8, el mensaje viaja en el mailto y la validacion pro
         target: { value: "visitante@test.com" },
       });
       fireEvent.submit(form);
-      expect(screen.getByRole("status")).toHaveTextContent(
-        esHome.Home.contact.form.messageError,
-      );
+      expect(anunciados()).toContain(esHome.Home.contact.form.messageError);
 
       escribirMensaje();
       expect(
@@ -3273,8 +3297,8 @@ describe("Contact: critica externa #11", () => {
 
     it("con el correo cambiado a uno invalido: el error aparece y el panel del envio anterior se va", () => {
       const form = envioValido();
-      // Reproduccion, paso 1: el panel esta ahi y es el unico status vivo.
-      expect(screen.getByRole("status")).toHaveTextContent(
+      // Reproduccion, paso 1: el panel esta ahi.
+      expect(panelDeRespaldo()).toHaveTextContent(
         esHome.Home.contact.form.fallbackLead,
       );
       expect(assignSpy).toHaveBeenCalledTimes(1);
@@ -3287,9 +3311,7 @@ describe("Contact: critica externa #11", () => {
       // El cableado de errores que dos rondas midieron como ejemplar sigue
       // intacto: atributo, mensaje anunciado y foco en el campo que fallo.
       expect(input).toHaveAttribute("aria-invalid", "true");
-      expect(
-        screen.getAllByRole("status").map((nodo) => nodo.textContent),
-      ).toContain(esHome.Home.contact.form.emailError);
+      expect(anunciados()).toContain(esHome.Home.contact.form.emailError);
       expect(document.activeElement).toBe(input);
 
       // Y el panel, que describia un envio anterior, se retira entero --
@@ -3308,7 +3330,7 @@ describe("Contact: critica externa #11", () => {
 
     it("con el mensaje vaciado: mismo resultado por el otro campo, y el foco viaja al mensaje", () => {
       const form = envioValido();
-      expect(screen.getByRole("status")).toHaveTextContent(
+      expect(panelDeRespaldo()).toHaveTextContent(
         esHome.Home.contact.form.fallbackLead,
       );
 
@@ -3357,7 +3379,7 @@ describe("Contact: critica externa #11", () => {
         fireEvent.change(input, { target: { value: "visitante@test.com" } });
         fireEvent.submit(form);
 
-        expect(screen.getByRole("status")).toHaveTextContent(
+        expect(panelDeRespaldo()).toHaveTextContent(
           esHome.Home.contact.form.fallbackLead,
         );
         expect(
@@ -3949,5 +3971,254 @@ describe("Contact: D4 -- el correo del formulario es opcional (2026-09-02)", () 
     } finally {
       restore();
     }
+  });
+});
+
+/*
+ * Hallazgo A P2-4 de la critica externa #15 (2026-09-02): la confirmacion del
+ * boton «Copiar direccion» tiene que CADUCAR. El porque -- una confirmacion
+ * que no vuelve a reposo deja de serlo, y una segunda copia se quedaba sin
+ * ninguna senal -- vive en el docblock de `COPY_FEEDBACK_MS` (Contact.tsx).
+ */
+describe("Contact: critica externa #15 -- el «Copiada» del boton caduca (2026-09-02)", () => {
+  const COPIAR = esHome.Home.contact.form.copyAddress;
+  const COPIADA = esHome.Home.contact.form.copied;
+
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+    window.localStorage.clear();
+  });
+
+  /** Monta, envia un formulario valido y devuelve el espia de `writeText`. */
+  function panelConCopia(): ReturnType<typeof vi.fn> {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const { container } = renderWithProviders(<Contact />);
+    fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+      target: { value: "visitante@test.com" },
+    });
+    escribirMensaje();
+    fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+    return writeText;
+  }
+
+  async function pulsarCopiar(nombre: string): Promise<void> {
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: nombre }));
+    });
+  }
+
+  it("vuelve a su etiqueta de reposo pasados COPY_FEEDBACK_MS, y ni un milisegundo antes", async () => {
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: vi.fn() },
+    });
+    vi.useFakeTimers();
+    try {
+      panelConCopia();
+      await pulsarCopiar(COPIAR);
+      expect(screen.getByRole("button", { name: COPIADA })).toBeInTheDocument();
+
+      // Un instante ANTES del vencimiento sigue confirmando: sin esto, el
+      // test pasaria igual con un reloj de 1 ms.
+      act(() => {
+        vi.advanceTimersByTime(motion.durationMs.spinReduced - 1);
+      });
+      expect(screen.getByRole("button", { name: COPIADA })).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.getByRole("button", { name: COPIAR })).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: COPIADA }),
+      ).not.toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  it("una SEGUNDA copia vuelve a confirmar: el defecto era justo que la segunda no decia nada", async () => {
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: vi.fn() },
+    });
+    vi.useFakeTimers();
+    try {
+      const writeText = panelConCopia();
+      await pulsarCopiar(COPIAR);
+      act(() => {
+        vi.advanceTimersByTime(motion.durationMs.spinReduced);
+      });
+      expect(screen.getByRole("button", { name: COPIAR })).toBeInTheDocument();
+
+      await pulsarCopiar(COPIAR);
+      expect(writeText).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole("button", { name: COPIADA })).toBeInTheDocument();
+
+      // Y el segundo reloj tambien vence: no se queda pegado tras la 2a vez.
+      act(() => {
+        vi.advanceTimersByTime(motion.durationMs.spinReduced);
+      });
+      expect(screen.getByRole("button", { name: COPIAR })).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  it("el MENSAJE DE FALLO no caduca: es una instruccion que sigue siendo cierta, no una confirmacion", async () => {
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: vi.fn() },
+    });
+    vi.useFakeTimers();
+    try {
+      // Sin `navigator.clipboard`: el camino de fallo ya cubierto mas arriba.
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: undefined,
+      });
+      const { container } = renderWithProviders(<Contact />);
+      fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+        target: { value: "visitante@test.com" },
+      });
+      escribirMensaje();
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+      await pulsarCopiar(COPIAR);
+      const fallo = esHome.Home.contact.form.copyError;
+      expect(screen.getByText(fallo)).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(motion.durationMs.spinReduced * 3);
+      });
+      expect(screen.getByText(fallo)).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
+  });
+
+  it("COPY_FEEDBACK_MS deriva de la escala del sistema, no de un numero escrito a mano", async () => {
+    /*
+     * Candado de FUENTE, no de comportamiento (mismo criterio que la leccion
+     * del 2026-08-12 sobre literales que resuelven al mismo valor que su
+     * token): el CSS/JS renderizado no distingue `2100` de
+     * `motion.durationMs.spinReduced`, asi que la procedencia solo se puede
+     * afirmar leyendo el fichero -- con los comentarios despojados, para que
+     * una cita en un docblock no gane la busqueda.
+     */
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const aqui = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(aqui, "Contact.tsx"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain(
+      "const COPY_FEEDBACK_MS = motion.durationMs.spinReduced",
+    );
+    expect(fuente).toContain('from "@/theme/tokens/motion"');
+  });
+});
+
+/*
+ * Hallazgo B3 P3 de la critica externa #15 (2026-09-02): los mensajes de error
+ * tienen que anunciarse tambien cuando la revalidacion al salir del campo los
+ * cambia SIN mover el foco. `role="status"` ya era `aria-live="polite"`
+ * implicito; lo que faltaba era que la region estuviera VIVA antes del cambio.
+ * El porque completo vive en el docblock de `ScLiveRegion` (Contact.tsx).
+ */
+describe("Contact: critica externa #15 -- la region live del error se actualiza, no se remonta", () => {
+  /** Las dos regiones live del formulario, en orden del DOM. */
+  function regiones(): HTMLElement[] {
+    return screen.getAllByRole("status");
+  }
+
+  it("las dos regiones existen desde el primer render, vacias y sin mensaje dentro", () => {
+    renderWithProviders(<Contact />);
+    const live = regiones();
+    expect(live).toHaveLength(2);
+    live.forEach((region) => expect(region.textContent).toBe(""));
+    // Ninguna declara aria-live a mano: `status` YA es polite + atomic, y
+    // repetirlo solo duplicaria el mapeo del rol.
+    live.forEach((region) => expect(region).not.toHaveAttribute("aria-live"));
+  });
+
+  it("al aparecer el error, el nodo de la region es EL MISMO de antes: lo que cambia es su contenido", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const regionCorreoAntes = regiones()[0];
+
+    escribirMensaje();
+    fireEvent.change(screen.getByLabelText(esHome.Home.contact.form.label), {
+      target: { value: "no-es-un-correo" },
+    });
+    fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+    const mensaje = document.getElementById("contact-email-error");
+    expect(
+      mensaje,
+      "no se pinto el mensaje de error del correo",
+    ).not.toBeNull();
+    // Que el mensaje cuelgue de la region capturada ANTES prueba las dos
+    // mitades a la vez: que regiones()[0] es la del correo, y que esa region
+    // sobrevivio al cambio en vez de ser sustituida por otra nueva.
+    expect(regionCorreoAntes.contains(mensaje)).toBe(true);
+    expect(regiones()[0]).toBe(regionCorreoAntes);
+    expect(regionCorreoAntes.textContent).toBe(
+      esHome.Home.contact.form.emailError,
+    );
+  });
+
+  it("la REVALIDACION AL SALIR reutiliza esa misma region -- el caso exacto del hallazgo, sin foco que mueva nada", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const input = screen.getByLabelText(esHome.Home.contact.form.label);
+    escribirMensaje();
+    fireEvent.change(input, { target: { value: "no-es-un-correo" } });
+    fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+    const region = regiones()[0];
+    // Teclear retira el error (no se juzga mientras se escribe): la region
+    // se queda montada y vacia.
+    fireEvent.change(input, { target: { value: "sigue-sin-ser-un-correo" } });
+    expect(regiones()[0]).toBe(region);
+    expect(region.textContent).toBe("");
+
+    // Salir del campo lo devuelve: mismo nodo, contenido nuevo. Es lo unico
+    // que un lector de pantalla puede anunciar aqui -- el foco no viaja.
+    fireEvent.blur(input);
+    expect(regiones()[0]).toBe(region);
+    expect(region.textContent).toBe(esHome.Home.contact.form.emailError);
+  });
+
+  it("la region del mensaje es la segunda y sigue el mismo contrato", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const region = regiones()[1];
+    fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+    expect(regiones()[1]).toBe(region);
+    expect(region.textContent).toBe(esHome.Home.contact.form.messageError);
+    expect(
+      region.contains(document.getElementById("contact-message-error")),
+    ).toBe(true);
   });
 });

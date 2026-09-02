@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type ReactElement } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactElement,
+} from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css, keyframes } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
@@ -10,6 +16,7 @@ import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { AMBIENT, PRESS, REVEAL } from "@/motion/vocabulary";
+import { motion } from "@/theme/tokens/motion";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { EMAIL_ADDRESS, links } from "@/config/links";
@@ -1210,10 +1217,14 @@ const ScTextarea = styled.textarea`
  * props de mensaje, así que su `mergeDescribedBy` recibe `undefined` y
  * respeta el `aria-describedby` completo que declara el JSX.
  *
- * `role="status"` en el error (no `alert`): lo anuncia sin interrumpir ni
- * robar el foco — MISMO criterio que ya tenía `ScMsg` y que el panel de
- * recuperación (`ScFallbackPanel`). El foco lo mueve `handleSubmit` a
- * propósito y una sola vez, ver su docblock.
+ * `role="status"` (no `alert`): anuncia sin interrumpir ni robar el foco —
+ * MISMO criterio que ya tenía `ScMsg` y que el panel de recuperación
+ * (`ScFallbackPanel`). El foco lo mueve `handleSubmit` a propósito y una sola
+ * vez, ver su docblock.
+ *
+ * EL `role` YA NO VIVE EN ESTE `<p>` sino en el `<div>` que lo envuelve
+ * (`ScLiveRegion`, justo debajo) — crítica externa #15, hallazgo B3 P3. El
+ * porqué completo está allí.
  */
 const ScFieldMessage = styled.p<{ $error?: boolean }>`
   margin: ${({ theme }) => theme.data.space[2]} 0 0;
@@ -1222,6 +1233,40 @@ const ScFieldMessage = styled.p<{ $error?: boolean }>`
   color: ${({ theme, $error }) =>
     $error ? fieldErrorColor(theme.data) : theme.data.semantic.textSubtle};
 `;
+
+/*
+ * REGIÓN LIVE PERMANENTE de cada campo (crítica externa #15, hallazgo B3 P3,
+ * 2026-09-02).
+ *
+ * QUÉ CIERRA. Hasta hoy el `role="status"` vivía en el propio `<p>` del
+ * error, que solo existe mientras hay error: el mensaje y su región nacían y
+ * morían juntos. Un lector de pantalla no anuncia de forma fiable una región
+ * live que aparece YA con texto dentro -- lo que anuncia es un CAMBIO dentro
+ * de una región que ya estaba registrada en el árbol de accesibilidad. Con
+ * el envio se disimulaba (el foco viaja al primer campo inválido, así que el
+ * mensaje se lee igual por `aria-describedby`), pero la revalidación al salir
+ * del campo (crítica #13) cambia el mensaje SIN mover el foco: ahí no había
+ * ninguna otra vía y el aviso podía perderse entero.
+ *
+ * `status` es `aria-live="polite"` implícito (más `aria-atomic="true"`), que
+ * es exactamente lo que se quiere: no interrumpe lo que el lector esté
+ * diciendo y no roba el foco. No hace falta declarar ninguno de los dos a
+ * mano; hacerlo solo repetiría el mapeo del rol.
+ *
+ * POR QUÉ UN ENVOLTORIO Y NO EL `<p>` SIEMPRE MONTADO. Un `<p>` permanente
+ * con el texto dentro condicionado obligaría a neutralizar su
+ * `margin-block-start` cuando está vacío (`:empty`) para no abrir un hueco
+ * bajo cada campo. El envoltorio no tiene estilo NINGUNO: un `<div>` vacío
+ * mide cero y no aporta margen, así que el resultado visual es idéntico al
+ * de antes de esta entrega, con o sin error. El `<p>` conserva su `id` (el
+ * que apunta `aria-describedby`) y su estilo.
+ *
+ * Se declara como styled sin una sola regla a propósito: da nombre a la
+ * pieza -- que se lee en el JSX como lo que es -- y deja el sitio donde
+ * escribir la primera regla el día que haga falta, sin tener que volver a
+ * decidir la estructura.
+ */
+const ScLiveRegion = styled.div``;
 
 /*
  * Salida sin JavaScript (crítica externa #9, Nielsen, 2026-08-17). El
@@ -1634,6 +1679,32 @@ function hasMessage(value: string): boolean {
  * rompería el HTML horneado del export estático (mismo criterio que ya
  * documenta `Field`).
  */
+/**
+ * Cuanto dura el «Copiada» del boton antes de volver a su etiqueta de reposo
+ * (hallazgo A P2-4 de la critica externa #15, 2026-09-02).
+ *
+ * EL DEFECTO QUE CIERRA: el boton cambiaba a «Copiada» y se quedaba asi para
+ * siempre. Una segunda copia -- el gesto mas natural del mundo si no estas
+ * seguro de que la primera funcionara, o si has copiado otra cosa en medio --
+ * no producia NINGUNA senal: el boton ya decia lo que iba a decir. Una
+ * confirmacion que no vuelve a su estado de reposo deja de ser confirmacion y
+ * pasa a ser una etiqueta.
+ *
+ * DE DONDE SALE EL NUMERO: `motion.durationMs.spinReduced` = 2100 ms, el
+ * unico peldano de la escala en el entorno de los ~2 s que pide el encargo.
+ * No se escribe `2000` a mano ni se inventa un tiempo nuevo: la regla 48 y la
+ * familia `duration-const` del detector exigen que toda duracion con nombre
+ * derive de `motion.durationMs`, y este es el peldano que existe. El nombre
+ * del peldano viene de su primer consumidor (el giro bajo reduced-motion),
+ * no de un rol exclusivo -- lo que importa aqui es el valor de la escala, y
+ * si algun dia se retoca, este tiempo lo sigue.
+ *
+ * NO ES una animacion: nada se mueve ni se desvanece. Es un reloj que
+ * devuelve el estado a reposo, asi que no le aplica ninguna guarda de
+ * `prefers-reduced-motion`.
+ */
+const COPY_FEEDBACK_MS = motion.durationMs.spinReduced;
+
 const EMAIL_FIELD_ID = "contact-email";
 const EMAIL_ERROR_ID = `${EMAIL_FIELD_ID}-error`;
 const EMAIL_HELP_ID = `${EMAIL_FIELD_ID}-help`;
@@ -1753,6 +1824,38 @@ export function Contact(): ReactElement {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle",
   );
+  /*
+   * Reloj del «Copiada» (hallazgo A P2-4, crítica externa #15): devuelve el
+   * botón a su etiqueta de reposo pasados `COPY_FEEDBACK_MS`, para que una
+   * segunda copia vuelva a tener algo que decir. `useRef` y no estado (regla
+   * 7): el identificador del temporizador no se pinta en ninguna parte -- lo
+   * único que se materializa en el DOM sigue siendo `copyStatus`.
+   *
+   * Solo lo arma el ÉXITO. El estado de fallo no caduca a propósito: no es
+   * una confirmación efímera sino una instrucción («selecciona la dirección
+   * de arriba») que sigue siendo cierta hasta que el visitante haga algo al
+   * respecto -- retirarla sola le quitaría de delante la única salida que le
+   * queda.
+   */
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* Un temporizador vivo tras desmontar la sección llamaría a `setCopyStatus`
+     sobre un componente que ya no existe. Se cancela en la limpieza, que es
+     también la que corre entre los dos montajes que StrictMode simula. */
+  useEffect(
+    () => () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    },
+    [],
+  );
+
+  /** Cancela el reloj del «Copiada» sin tocar el estado que pinta el botón. */
+  function cancelCopyReset(): void {
+    if (copyResetRef.current) {
+      clearTimeout(copyResetRef.current);
+      copyResetRef.current = null;
+    }
+  }
 
   /*
    * Envío del formulario (D13, las DOS ramas desde la Task 16): abre el
@@ -1900,6 +2003,7 @@ export function Contact(): ReactElement {
        * cierra, una capa más abajo.
        */
       setSent(false);
+      cancelCopyReset();
       setCopyStatus("idle");
       /*
        * EL FOCO VA AL PRIMER CAMPO INVÁLIDO, en orden del DOM (crítica externa
@@ -1966,13 +2070,23 @@ export function Contact(): ReactElement {
    */
   async function handleCopy(): Promise<void> {
     if (!navigator.clipboard) {
+      cancelCopyReset();
       setCopyStatus("error");
       return;
     }
     try {
       await navigator.clipboard.writeText(EMAIL_ADDRESS);
+      /* El reloj se REARMA en cada copia, no se acumula: pulsar dos veces
+         seguidas deja un solo temporizador vivo y los 2,1 s se cuentan desde
+         la última confirmación, que es la que el visitante acaba de ver. */
+      cancelCopyReset();
       setCopyStatus("copied");
+      copyResetRef.current = setTimeout(() => {
+        copyResetRef.current = null;
+        setCopyStatus("idle");
+      }, COPY_FEEDBACK_MS);
     } catch {
+      cancelCopyReset();
       setCopyStatus("error");
     }
   }
@@ -2117,15 +2231,18 @@ export function Contact(): ReactElement {
               autoComplete="email"
             />
           </Field>
-          {emailError && (
-            <ScFieldMessage
-              id={EMAIL_ERROR_ID}
-              role="status"
-              $error
-            >
-              {t("Home.contact.form.emailError")}
-            </ScFieldMessage>
-          )}
+          {/* La región existe SIEMPRE y lo que cambia es su contenido: ver el
+              docblock de `ScLiveRegion`. */}
+          <ScLiveRegion role="status">
+            {emailError && (
+              <ScFieldMessage
+                id={EMAIL_ERROR_ID}
+                $error
+              >
+                {t("Home.contact.form.emailError")}
+              </ScFieldMessage>
+            )}
+          </ScLiveRegion>
           <ScFieldMessage id={EMAIL_HELP_ID}>
             {t("Home.contact.form.help")}
           </ScFieldMessage>
@@ -2163,15 +2280,17 @@ export function Contact(): ReactElement {
               }}
             />
           </Field>
-          {messageError && (
-            <ScFieldMessage
-              id={MESSAGE_ERROR_ID}
-              role="status"
-              $error
-            >
-              {t("Home.contact.form.messageError")}
-            </ScFieldMessage>
-          )}
+          {/* Mismo criterio que el correo, arriba. */}
+          <ScLiveRegion role="status">
+            {messageError && (
+              <ScFieldMessage
+                id={MESSAGE_ERROR_ID}
+                $error
+              >
+                {t("Home.contact.form.messageError")}
+              </ScFieldMessage>
+            )}
+          </ScLiveRegion>
         </div>
         <ScSubmitButton
           type="submit"
