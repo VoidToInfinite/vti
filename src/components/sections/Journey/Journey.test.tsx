@@ -17,6 +17,7 @@ import {
   JOURNEY_DARK_HEIGHT,
   JOURNEY_DECK_TAIL_SCREENS,
   JOURNEY_OVERLAY_RISE,
+  JOURNEY_QUOTE_EXIT_SPAN,
   JOURNEY_SLIDES,
 } from "./journey.layers";
 import {
@@ -2248,5 +2249,96 @@ describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo m
     const quote = screen.getByText(`“${esHome.Home.journey.quote}”`)
       .parentElement as HTMLElement;
     expect(cssRuleTextFor(quote)).toMatch(/font-size:\s*1rem/);
+  });
+});
+
+/*
+ * Critica externa #15 (2026-09-02), hallazgo A P2-1: a 1440x900 en oscuro,
+ * `scrollY` ~ 13.100, «El destino no es el infinito. El viaje lo es.» se leia
+ * solo como «El destino no», cortada por la cortina de Features. La secuencia
+ * completa -- y por que `progress = 1` y «Features empieza a cubrir» son el
+ * MISMO instante -- esta en el docblock de `JOURNEY_QUOTE_EXIT_SPAN`
+ * (`journey.layers.ts`); la declaracion, en el de `ScJourneyQuote`
+ * (`journey.deck.tsx`).
+ *
+ * Candado de CSSOM: jsdom no hace layout ni evalua `@media` (regla 36), asi que
+ * lo observable es el TEXTO de la regla inyectada para ESE elemento, acotado
+ * por clase (nunca troceando el stylesheet por "@media", leccion 2026-08-02).
+ */
+describe("Journey: critica #15 -- la cita de cierre sale antes de que la cortina de Features la tape", () => {
+  beforeEach(() => {
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  async function citaDelDeck(): Promise<HTMLElement> {
+    renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(
+        screen.getByText(`“${esHome.Home.journey.quote}”`),
+      ).toBeInTheDocument();
+    });
+    // ScQuoteText (span) -> ScJourneyQuote (p), que es quien lleva la rampa.
+    return screen.getByText(`“${esHome.Home.journey.quote}”`)
+      .parentElement as HTMLElement;
+  }
+
+  function reglaBase(el: HTMLElement, prop: string): string | undefined {
+    return cssRuleTextFor(el)
+      .split("\n")
+      .find((line) => !line.includes("@media") && line.includes(prop));
+  }
+
+  it("la opacidad es una rampa anclada en --journey-progress = 1, con el tramo derivado", async () => {
+    const cita = await citaDelDeck();
+    const base = reglaBase(cita, "opacity");
+
+    expect(base).toBeDefined();
+    // Anclada en 1: lo que se recorre es lo que FALTA para terminar el deck,
+    // que es exactamente cuando arranca la cortina de Features.
+    expect(base).toContain("1 - var(--journey-progress, 0)");
+    // El divisor es el tramo derivado, no un literal escrito en el CSS.
+    expect(base).toContain(`/ ${JOURNEY_QUOTE_EXIT_SPAN}`);
+    // Recortada a [0, 1]: sin el clamp, la rampa daria valores de opacidad
+    // fuera de rango durante todo el resto del recorrido.
+    expect(base).toMatch(/opacity:\s*clamp\(\s*0,/);
+  });
+
+  it("sin JS -- o antes del primer frame -- la cita se pinta opaca, nunca invisible", async () => {
+    const cita = await citaDelDeck();
+    // El valor por defecto de la variable en el propio var() es 0, que la
+    // rampa traduce a opacidad 1 (queda el tramo entero por recorrer).
+    expect(reglaBase(cita, "opacity")).toContain("var(--journey-progress, 0)");
+  });
+
+  it("no declara transition: el reloj de la salida es el scroll, no un segundo reloj", async () => {
+    const cita = await citaDelDeck();
+    expect(cssRuleTextFor(cita)).not.toContain("transition");
+  });
+
+  it("bajo reduce la cita vuelve a opacidad 1 (la variable se queda pegada al desmontarse el deck)", async () => {
+    const cita = await citaDelDeck();
+    const guard = cssRuleTextFor(cita)
+      .split("\n")
+      .find(
+        (line) =>
+          line.includes("prefers-reduced-motion: reduce") &&
+          line.includes("opacity"),
+      );
+
+    expect(guard).toMatch(/opacity:\s*1/);
+  });
+
+  it("el rail NO se desvanece con ella: son botones operables (trampa de foco)", async () => {
+    await citaDelDeck();
+    const rail = screen.getByRole("group", {
+      name: esHome.Home.journey.railLabel,
+    });
+    const marca = within(rail).getAllByRole("button")[0];
+
+    expect(cssRuleTextFor(marca)).not.toContain("--journey-progress");
   });
 });

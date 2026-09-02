@@ -389,6 +389,104 @@ export const JOURNEY_DECK_TAIL_SCREENS = 1;
 export const JOURNEY_DECK_TRACK_HEIGHT = `calc((${JOURNEY_SLIDES} + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`;
 
 /**
+ * Tramo FINAL de `--journey-progress` durante el cual la cita de cierre se
+ * desvanece, en unidades de esa misma variable (0..1). Lo consume
+ * `ScJourneyQuote` (`journey.deck.tsx`) como pendiente de una rampa de
+ * `opacity`; ver su docblock para la declaración CSS exacta y para el guard de
+ * `prefers-reduced-motion`, que aquí es obligatorio y no decorativo.
+ *
+ * ## El defecto que cierra (crítica externa #15, hallazgo A P2-1, 2026-09-02)
+ *
+ * Medido en tema oscuro a 1440×900, `scrollY` ≈ 13.100: «El destino no es el
+ * infinito. El viaje lo es.» se leía solo como «El destino no», cortada por una
+ * costura horizontal dura a media pantalla mientras el panel de Features subía
+ * como cortina por debajo. A 12.600 la misma cita se leía entera.
+ *
+ * ## La secuencia real, derivada del código y no de la captura
+ *
+ * Con `A` = inicio de la pista en el documento, `p` = una pantalla, `S` =
+ * `JOURNEY_SLIDES` (8), `T` = `JOURNEY_DECK_TAIL_SCREENS` (1) y `R` =
+ * `FEATURES_OVERLAY_RISE` en pantallas (1) — las tres constantes atadas entre
+ * sí por la aritmética del docblock de `JOURNEY_DECK_TAIL_SCREENS`, más
+ * arriba, y por el test de invariante que importa los dos ficheros:
+ *
+ *   span de `useSlideDeck`      = (S − 1)·p = 7 pantallas
+ *   la cita pasa a `current` en  A + ((S − 1.5)/(S − 1))·span = A + 6,5·p
+ *   `progress` llega a 1 en      A + 7·p
+ *   Features empieza a cubrir en A + (S + T − R − 1)·p = A + 7·p   <- el MISMO
+ *   Features cubre del todo en   A + 8·p
+ *
+ * Es decir: la cita y la cortina no se solapaban por un desajuste de tiempos
+ * que hubiera que corregir — se solapaban PORQUE `progress = 1` y «Features
+ * empieza a cubrir» son, por construcción, el mismo instante. Con las cifras
+ * de 1440×900 (p = 900, A = 6.300): `current` en 12.150, `progress = 1` y
+ * comienzo de la cortina en 12.600, cobertura completa en 13.500. Los 13.100
+ * de la captura caen justo en la mitad de esa cortina, que es exactamente
+ * donde la costura cruza la caja de la cita.
+ *
+ * ## Por qué la salida es un desvanecido y no mover la cortina
+ *
+ * Las otras dos vías que el hallazgo plantea no son gratis, y conviene dejar
+ * escrito por qué se descartan:
+ *
+ * - **Retrasar la cortina** (subir `T` por encima de `R`) funciona
+ *   estructuralmente, pero regala otra pantalla de pista en la que no ocurre
+ *   nada — justo el «tramo muerto de ~1.250 px» que la crítica #10 ya midió al
+ *   final de este deck. Y no cierra el hallazgo: la cita seguiría en pantalla
+ *   cuando la cortina arrancase, una pantalla más tarde, y volvería a cortarse
+ *   igual.
+ * - **Soltar el sticky antes** rompe la segunda costura del sistema (`R = 1`):
+ *   asomaría una banda de la escena de Journey sin tapar entre las dos
+ *   secciones.
+ *
+ * Queda el desvanecido, que es la primera opción del propio hallazgo: la cita
+ * termina su turno ANTES de que llegue la cortina, así que la cortina cruza una
+ * escena vacía y no una frase a medias. No hace falta ninguna señal de scroll
+ * nueva — `--journey-progress` ya vale exactamente 1 en el instante en que la
+ * cortina arranca, así que la rampa se ancla a ese 1 y termina justo ahí.
+ *
+ * ## De dónde sale el número, que no es un número elegido
+ *
+ * La cita es la diapositiva activa mientras `progress` cae en la última media
+ * ventana de índice, `0,5 / (S − 1)` de ancho (`useSlideDeck` redondea; ver su
+ * docblock de `scrollToSlide`). Este valor reparte ESA ventana, no el recorrido
+ * entero: el 40 % final se va en el desvanecido y el 60 % inicial se queda para
+ * leer. A 1440×900 son 270 px de lectura limpia y 180 px de salida. Se deriva
+ * de `JOURNEY_SLIDES` y no de un literal, igual que la propia
+ * `JOURNEY_DECK_TRACK_HEIGHT`: si el viaje gana o pierde un paso, la ventana se
+ * recalcula sola (regla 39 de `RULES.md`).
+ *
+ * Se redondea a cuatro decimales porque el valor viaja a CSS como divisor de un
+ * `calc()` y `0,02857142857142857` no aporta ni un píxel sobre `0,0286`.
+ */
+export const JOURNEY_QUOTE_EXIT_SPAN = Number(
+  ((0.5 / (JOURNEY_SLIDES - 1)) * 0.4).toFixed(4),
+);
+
+/**
+ * La rampa de `opacity` de la cita de cierre, ya como valor CSS listo para
+ * consumir (`ScJourneyQuote`, `journey.deck.tsx`). Vale 1 mientras queda mas de
+ * `JOURNEY_QUOTE_EXIT_SPAN` de recorrido por delante y baja a 0 al llegar a
+ * `--journey-progress: 1` -- el instante exacto en que arranca la cortina de
+ * Features; ver el docblock de la constante de arriba para la secuencia
+ * completa.
+ *
+ * VIVE AQUI Y NO EN EL TEMPLATE del styled por el mismo criterio que
+ * `JOURNEY_DECK_TRACK_HEIGHT`, unas lineas mas arriba: una expresion CSS
+ * derivada de constantes de esta seccion es un DATO de la seccion. Y trae una
+ * ventaja concreta: el valor entra en la hoja como UNA sola linea. Escrito
+ * dentro del template, Prettier lo parte en cuatro (pasa de 80 columnas) y el
+ * CSSOM conserva esos saltos dentro del valor, de modo que cualquier candado
+ * que recorra la regla linea a linea solo veria `opacity: clamp(` -- medido en
+ * esta misma tarea antes de mover la constante aqui.
+ *
+ * El `0` por defecto del `var()` no es decorativo: sin JS, o antes del primer
+ * frame del hook, la rampa resuelve a 1 y la cita se pinta OPACA. Un defecto de
+ * `1` la habria dejado invisible en ese mismo caso.
+ */
+export const JOURNEY_QUOTE_EXIT_OPACITY = `clamp(0, calc((1 - var(--journey-progress, 0)) / ${JOURNEY_QUOTE_EXIT_SPAN}), 1)`;
+
+/**
  * Desplazamiento vertical de entrada/salida de cada diapositiva
  * (`data-state="past"`/`"next"`, `ScJourneySlide`). Mismo valor y mismo
  * criterio que `STORY_SLIDE_SHIFT`: lo bastante pequeño para leerse como un

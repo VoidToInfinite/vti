@@ -14,6 +14,7 @@ import {
   JOURNEY_DECK_STEP_SUBTITLE_SIZE,
   JOURNEY_DECK_TITLE_SIZE,
   JOURNEY_DECK_TRACK_HEIGHT,
+  JOURNEY_QUOTE_EXIT_OPACITY,
   JOURNEY_SCENE_DEPTH_SHIFT,
   JOURNEY_SLIDE_SHIFT,
   type JourneyStep,
@@ -765,6 +766,42 @@ export const ScJourneyStepSubtitle = styled.p`
  * letter-spacing SIN TOCAR (type.scale.bodySm.tracking, 0): tampoco lo pide
  * el encargo de esta entrega, mismo motivo que antes (no introducir un
  * tracking que nadie pidio).
+ *
+ * ---
+ *
+ * SALIDA ANTES DEL RELEVO CON FEATURES (critica externa #15, hallazgo A P2-1,
+ * 2026-09-02). El porque completo -- la secuencia medida, las dos vias
+ * descartadas y de donde sale el numero -- vive en el docblock de
+ * JOURNEY_QUOTE_EXIT_SPAN (journey.layers.ts); aqui va lo que hace falta para
+ * leer la declaracion:
+ *
+ * - La rampa se ancla en `progress = 1`, que NO es un instante cualquiera: es,
+ *   por construccion del sistema T = R = 1, el mismo frame en el que Features
+ *   empieza a subir como cortina. Con la rampa terminada ahi, la cortina cruza
+ *   una escena vacia en vez de una frase a medias.
+ * - `opacity` es la UNICA propiedad que cambia, y cambia por VARIABLE, no por
+ *   transition: `--journey-progress` ya llega frame a frame desde useSlideDeck,
+ *   asi que declarar una duracion aqui superpondria un segundo reloj al del
+ *   scroll (mismo criterio que ScJourneySceneWrap, arriba en este fichero, que
+ *   tampoco declara transition para su translateY ligado a la misma variable).
+ * - La forma es una rampa lineal recortada: vale 1 mientras queda mas de un
+ *   tramo de salida por recorrer, y baja a 0 al llegar al final. El valor por
+ *   defecto de la variable es 0, asi que sin JS -- o antes del primer frame del
+ *   hook -- la cita se pinta opaca, nunca invisible.
+ *
+ * EL GUARD DE reduce ES OBLIGATORIO, no simetria decorativa: bajo `reduce`
+ * useSlideDeck se desmonta como presentacion y deja de escribir sus variables,
+ * pero NO borra las que ya escribio (son estilo en linea sobre el stage). Un
+ * usuario que active la preferencia con la pista terminada se quedaria con
+ * `--journey-progress: 1.0000` pegado y la cita invisible para siempre, en el
+ * mismo camino que D12 existe para linealizar. Con el guard, la cita se pinta
+ * entera junto al resto de diapositivas en flujo.
+ *
+ * LO QUE NO SE DESVANECE, y es deliberado: el rail (ScJourneyRail, arriba). Sus
+ * marcas son BOTONES reales desde la critica #10, y bajarles la opacidad los
+ * dejaria invisibles pero focalizables -- exactamente la trampa de foco que el
+ * docblock de ScJourneySlide documenta al revertir su `visibility`. Un control
+ * operable no se apaga con opacity.
  */
 export const ScJourneyQuote = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -775,4 +812,9 @@ export const ScJourneyQuote = styled.p`
   letter-spacing: ${({ theme }) => theme.data.type.scale.bodySm.tracking};
   text-wrap: balance;
   text-wrap-style: balance;
+  opacity: ${JOURNEY_QUOTE_EXIT_OPACITY};
+
+  @media (prefers-reduced-motion: reduce) {
+    opacity: 1;
+  }
 `;

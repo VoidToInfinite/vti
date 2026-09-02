@@ -17,6 +17,8 @@ import {
   JOURNEY_DECK_TAIL_SCREENS,
   JOURNEY_DECK_TITLE_SIZE,
   JOURNEY_DECK_TRACK_HEIGHT,
+  JOURNEY_QUOTE_EXIT_OPACITY,
+  JOURNEY_QUOTE_EXIT_SPAN,
   JOURNEY_SCENE_DEPTH_SHIFT,
   JOURNEY_SLIDE_SHIFT,
   JOURNEY_SLIDES,
@@ -311,5 +313,58 @@ describe("critica #14: el cierre y el subtitulo de paso derivan del token", () =
     // La etiqueta de paso conserva su 900 literal a proposito (ver su
     // docblock): el candado de arriba no debe arrastrarla sin querer.
     expect(fuente).toContain("JOURNEY_DECK_STEP_LABEL_WEIGHT = 900");
+  });
+});
+
+/*
+ * Critica externa #15 (2026-09-02), hallazgo A P2-1: la cita de cierre se
+ * cortaba a media frase mientras Features subia como cortina. `progress = 1` y
+ * «Features empieza a cubrir» son el MISMO instante por construccion (T = R =
+ * 1), asi que la salida de la cita se ancla a ese 1 y termina justo ahi. Ver el
+ * docblock de `JOURNEY_QUOTE_EXIT_SPAN` (`journey.layers.ts`) para la secuencia
+ * medida completa y las dos vias descartadas.
+ *
+ * Lo que este candado protege es la DERIVACION, no el numero: el tramo tiene
+ * que seguir siendo una fraccion de la ventana de indice de la ultima
+ * diapositiva -- que `useSlideDeck` fija en `0,5 / (N - 1)` porque redondea --
+ * y no un literal que se desincronice el dia que el viaje gane o pierda un
+ * paso (regla 39 de RULES.md).
+ */
+describe("critica #15: la salida de la cita deriva de la ventana de su diapositiva", () => {
+  it("JOURNEY_QUOTE_EXIT_SPAN es el 40 % final de la media ventana de indice de la cita", () => {
+    const ventanaDeLaCita = 0.5 / (JOURNEY_SLIDES - 1);
+
+    expect(JOURNEY_QUOTE_EXIT_SPAN).toBeCloseTo(ventanaDeLaCita * 0.4, 4);
+    // Con JOURNEY_SLIDES = 8: 0,5/7 = 0,0714 de ventana, 0,0286 de salida.
+    expect(JOURNEY_QUOTE_EXIT_SPAN).toBe(0.0286);
+    // La salida nunca puede comerse la ventana entera: la cita tiene que
+    // llegar a leerse opaca en algun tramo.
+    expect(JOURNEY_QUOTE_EXIT_SPAN).toBeLessThan(ventanaDeLaCita);
+  });
+
+  it("no escribe el tramo a mano: sale de JOURNEY_SLIDES", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "journey.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("JOURNEY_QUOTE_EXIT_SPAN");
+    expect(fuente).toContain("0.5 / (JOURNEY_SLIDES - 1)");
+    expect(fuente).not.toContain("JOURNEY_QUOTE_EXIT_SPAN = 0.0286");
+  });
+
+  it("la rampa CSS se construye con el tramo derivado y cabe en UNA linea", () => {
+    // Anclada en 1 (lo que FALTA para terminar el deck), recortada a [0, 1] y
+    // con `0` por defecto para que sin JS la cita se pinte opaca.
+    expect(JOURNEY_QUOTE_EXIT_OPACITY).toBe(
+      `clamp(0, calc((1 - var(--journey-progress, 0)) / ${JOURNEY_QUOTE_EXIT_SPAN}), 1)`,
+    );
+    // Una sola linea: el CSSOM conserva los saltos DENTRO de un valor, y un
+    // candado que recorra la regla linea a linea solo veria `opacity: clamp(`
+    // (medido en la tarea que introdujo esta constante).
+    expect(JOURNEY_QUOTE_EXIT_OPACITY).not.toContain("\n");
   });
 });
