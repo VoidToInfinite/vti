@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
+  NAV_BAR_GROUP_KEY,
   NAV_GROUPS,
+  navBarMoreGroupsFor,
+  navBarSectionsFor,
   navGroupsFor,
   navLocale,
   type NavGroupKey,
@@ -308,6 +311,90 @@ describe("navGroupsFor: el idioma de la página viaja en cada href", () => {
      dos mitades. */
   it("devuelve el mismo array en llamadas sucesivas del mismo idioma", () => {
     expect(navGroupsFor("en")).toBe(navGroupsFor("en"));
+  });
+});
+
+/*
+ * LA PARTICIÓN QUE PINTA LA BARRA DE ESCRITORIO (decisión D2 del dueño,
+ * 2026-09-02, crítica #14): cuatro destinos de sección visibles y el resto tras
+ * un único disclosure.
+ *
+ * LO QUE SE BLOQUEA AQUÍ NO ES "que las dos funciones devuelvan esto", que ya
+ * lo cubriría la tabla `EXPECTED_ITEMS` de arriba, sino la propiedad de la que
+ * depende que la barra no pierda un destino por el camino: que las dos mitades
+ * RECONSTRUYAN `NAV_GROUPS` sin perder ni repetir nada. Un corte que se coma un
+ * grupo dejaría enlaces fuera de la barra sin que ningún candado de forma se
+ * enterara -- y el pie los seguiría pintando, así que ni siquiera un recuento
+ * global de enlaces del sitio lo delataría.
+ *
+ * Se afirma sobre el MODELO y no sobre el render de la barra porque es aquí
+ * donde vive la partición: si se rompiera, se rompería una sola vez y en un
+ * solo sitio.
+ */
+describe("la partición de la barra de escritorio (decisión D2)", () => {
+  it("las dos mitades reconstruyen NAV_GROUPS: ni un destino de menos, ni uno repetido", () => {
+    const enLaBarra = navBarSectionsFor("es");
+    const trasElDesplegable = navBarMoreGroupsFor("es").flatMap(
+      (group) => group.items,
+    );
+    const todos = NAV_GROUPS.flatMap((group) => group.items);
+
+    expect([...enLaBarra, ...trasElDesplegable]).toEqual(todos);
+  });
+
+  it("los destinos visibles de la barra son EXACTAMENTE los del grupo onSite, y todos son secciones", () => {
+    const onSite = NAV_GROUPS.find((group) => group.key === NAV_BAR_GROUP_KEY);
+    expect(navBarSectionsFor("es")).toEqual(onSite?.items);
+
+    for (const item of navBarSectionsFor("es")) {
+      /* Que TODOS sean `kind: "section"` es lo que permite a la barra pintar
+         `aria-current` sin abrir nada: son los únicos destinos que
+         `useActiveSection` puede marcar como actuales. */
+      expect(
+        item.kind,
+        `${item.key} no es una sección: la barra le pintaría un aria-current que el scrollspy nunca puede encender`,
+      ).toBe("section");
+    }
+  });
+
+  it("el desplegable no repite el grupo que ya está visible en la barra", () => {
+    expect(navBarMoreGroupsFor("es").map((group) => group.key)).not.toContain(
+      NAV_BAR_GROUP_KEY,
+    );
+  });
+
+  /*
+   * EL PIE NO SE ENTERA DE NADA, y es la restricción explícita de D2: la
+   * partición es de PRESENTACIÓN. `Footer.tsx` consume `navGroupsFor`, así que
+   * este candado afirma que lo que el pie lee sigue siendo idéntico a
+   * `NAV_GROUPS` -- byte a byte y por identidad en castellano.
+   */
+  it("no toca lo que consume el pie: navGroupsFor sigue devolviendo los cuatro grupos completos", () => {
+    expect(navGroupsFor("es")).toBe(NAV_GROUPS);
+    expect(navGroupsFor("en").map((group) => group.key)).toEqual(GROUP_ORDER);
+  });
+
+  /* El idioma viaja igual por las dos vistas: son envoltorios de
+     `navGroupsFor`, no una segunda derivación que pueda divergir. */
+  it("en inglés las dos vistas conservan el prefijo de la home inglesa", () => {
+    for (const item of navBarSectionsFor("en")) {
+      expect(item.href.startsWith(`${routePath("home", "en")}#`)).toBe(true);
+    }
+    const internos = navBarMoreGroupsFor("en")
+      .flatMap((group) => group.items)
+      .filter((item) => item.kind !== "external");
+    expect(internos.length).toBeGreaterThan(0);
+    for (const item of internos) {
+      expect(item.href.startsWith(`${routePath("home", "en")}#`)).toBe(true);
+    }
+  });
+
+  /* Memoizadas por idioma, mismo motivo que `navGroupsFor`: las llama el
+     render de la barra, que se rehace en cada cruce de umbral de scroll y en
+     cada cambio de sección activa. */
+  it("devuelven el mismo array en llamadas sucesivas del mismo idioma", () => {
+    expect(navBarSectionsFor("en")).toBe(navBarSectionsFor("en"));
+    expect(navBarMoreGroupsFor("en")).toBe(navBarMoreGroupsFor("en"));
   });
 });
 

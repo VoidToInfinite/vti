@@ -293,3 +293,79 @@ export function navGroupsFor(
   groupsByLocale.set(locale, localized);
   return localized;
 }
+
+/**
+ * LA MISMA LISTA, PARTIDA COMO LA PINTA LA BARRA DE ESCRITORIO (decisión del
+ * dueño D2, 2026-09-02, tras la crítica #14).
+ *
+ * EL DEFECTO QUE CIERRA, medido por el evaluador a 1440x900: los únicos
+ * enlaces visibles del cabecero eran el logotipo y los dos de idioma. Los 11
+ * destinos de este modelo vivían tras CUATRO botones de disclosure («En el
+ * sitio», «Descubre», «Recursos», «Comunidad») cuyas etiquetas no nombran
+ * ningún destino, uno de ellos («Recursos») abriendo un panel entero para
+ * revelar UN solo enlace. Llegar a Contacto exigía abrir un menú a ciegas y
+ * elegir dentro (Nielsen H6 «reconocer antes que recordar», 2/4; H7
+ * «flexibilidad y eficiencia», 2/4). La hoja móvil, que muestra los 14
+ * elementos agrupados y rotulados de una vez, resolvía mejor el mismo
+ * problema en una pantalla ocho veces más pequeña.
+ *
+ * LA PARTICIÓN ES DE PRESENTACIÓN, NO DE MODELO, y esa distinción es la parte
+ * que hay que respetar: `NAV_GROUPS` no se toca ni una coma. Lo consumen
+ * TRES superficies —`Navbar` (barra de escritorio), `NavSheet` (hoja móvil) y
+ * `Footer` (pie, en todas las páginas)— y solo la primera cambia de forma. El
+ * pie sigue recorriendo los cuatro grupos enteros con `navGroupsFor`, la hoja
+ * sigue entregando los 14 elementos agrupados, y estas dos funciones son
+ * SOLO la vista que necesita la barra: los destinos que se pintan como
+ * enlaces visibles, y los grupos que quedan detrás del único disclosure
+ * («Más»).
+ *
+ * POR QUÉ EL CORTE ES `onSite` Y NO UNA LISTA NUEVA: `onSite` ya ES,
+ * literalmente, «las 4 secciones de la home, en el orden en que aparecen en la
+ * página» (ver el bloque de `NAV_GROUPS`), y es además el ÚNICO grupo con
+ * items `kind: "section"` — los que `useActiveSection` puede marcar como
+ * actuales. Escribir aquí una segunda lista de cuatro claves sería justo la
+ * duplicación que este módulo existe para evitar: divergiría el día que
+ * alguien añada una quinta sección a la home. La partición se deriva del
+ * grupo, y `navigation.test.ts` ata que las dos mitades reconstruyan
+ * `NAV_GROUPS` sin perder ni repetir nada.
+ *
+ * MEMOIZADAS POR IDIOMA, mismo motivo que `navGroupsFor`: `Navbar()` las llama
+ * EN CADA RENDER, y la barra se re-renderiza en cada cruce de umbral de scroll
+ * y en cada cambio de sección activa.
+ */
+export const NAV_BAR_GROUP_KEY: NavGroupKey = "onSite";
+
+const barSectionsByLocale = new Map<Locale, readonly NavItem[]>();
+const moreGroupsByLocale = new Map<Locale, readonly NavGroup[]>();
+
+/** Destinos que la barra de escritorio pinta como enlaces VISIBLES. */
+export function navBarSectionsFor(
+  language: string | undefined,
+): readonly NavItem[] {
+  const locale = navLocale(language);
+
+  const cached = barSectionsByLocale.get(locale);
+  if (cached) return cached;
+
+  const items =
+    navGroupsFor(locale).find((group) => group.key === NAV_BAR_GROUP_KEY)
+      ?.items ?? [];
+  barSectionsByLocale.set(locale, items);
+  return items;
+}
+
+/** Grupos que la barra de escritorio agrupa tras el único disclosure. */
+export function navBarMoreGroupsFor(
+  language: string | undefined,
+): readonly NavGroup[] {
+  const locale = navLocale(language);
+
+  const cached = moreGroupsByLocale.get(locale);
+  if (cached) return cached;
+
+  const groups = navGroupsFor(locale).filter(
+    (group) => group.key !== NAV_BAR_GROUP_KEY,
+  );
+  moreGroupsByLocale.set(locale, groups);
+  return groups;
+}

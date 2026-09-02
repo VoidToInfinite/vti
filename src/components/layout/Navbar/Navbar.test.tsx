@@ -10,7 +10,12 @@ import { HERO_CHROME_OFFSET_MS } from "@/motion/timings";
 import { NAV_DETACH_ANIM_MS } from "@/hooks/useNavDetach";
 import { links } from "@/config/links";
 import esCommon from "@/i18n/locales/es/common.json";
-import { NAV_GROUPS, navGroupsFor } from "@/config/navigation";
+import {
+  NAV_GROUPS,
+  navBarMoreGroupsFor,
+  navBarSectionsFor,
+  navGroupsFor,
+} from "@/config/navigation";
 import { routePath } from "@/config/site";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
@@ -520,6 +525,76 @@ describe("Navbar", () => {
       );
       expect(bloqueReduce.length).toBeGreaterThan(0);
     });
+
+    /*
+     * LA CABECERA INVISIBLE NO SE PUEDE PULSAR (crítica #14, P1).
+     *
+     * El defecto que este candado cierra estaba medido, no supuesto: la barra
+     * computaba `opacity: 0` durante todo el retardo del intro y `opacity` NO
+     * desactiva los eventos de puntero, así que el conmutador de tema, el
+     * idioma, el logotipo y la hamburguesa recibían clics a ciegas -- hasta
+     * ~1,2 s con JavaScript y ~1,7 s sin él.
+     *
+     * SE AFIRMAN LAS DOS MITADES, y ninguna sola bastaría: (a) que exista la
+     * animación hermana que bloquea el puntero, con su salto AL FINAL (el
+     * keyframe del 99%: una animación discreta con solo from/to saltaría a
+     * mitad de la duración, con la barra a medio aparecer), y (b) que la
+     * cabecera declare `pointer-events: auto` como valor de reposo, que es
+     * donde vuelve al terminar (sin `fill: forwards`) y lo que rige bajo
+     * `prefers-reduced-motion`, donde no hay animación ninguna.
+     *
+     * Se inspecciona `document.styleSheets` y no `getComputedStyle`: jsdom no
+     * ejecuta animaciones ni resuelve `animation-fill-mode`, así que el valor
+     * computado durante el retardo es inobservable desde aquí. Lo que sí se
+     * puede afirmar es la DECLARACIÓN, que es donde vive el contrato.
+     *
+     * Validado con el bug inyectado a propósito (regla 34): ver el informe de
+     * la entrega.
+     */
+    it("bloquea el puntero mientras es invisible y lo libera al final del intro, sin JavaScript", () => {
+      renderNavbar();
+      const banner = screen.getByRole("banner");
+      const reglas = allCssRules();
+
+      // (a) La animación hermana existe y su salto cae al FINAL.
+      const bloqueo = reglas.find(
+        (regla) =>
+          regla.includes("@keyframes") &&
+          regla.includes("pointer-events: none") &&
+          regla.includes("pointer-events: auto"),
+      );
+      expect(
+        bloqueo,
+        "el intro no declara ninguna animación que bloquee el puntero mientras la barra es invisible",
+      ).toBeDefined();
+      const inicio = (bloqueo as string).indexOf("pointer-events: none");
+      const fin = (bloqueo as string).indexOf("pointer-events: auto");
+      expect(
+        fin,
+        "el puntero se libera antes de bloquearse: los keyframes están invertidos",
+      ).toBeGreaterThan(inicio);
+      expect(
+        (bloqueo as string).slice(0, fin),
+        "sin un keyframe tardío, una animación discreta salta a mitad de la duración: la barra sería pulsable a medio aparecer",
+      ).toContain("99%");
+
+      // Y la cabecera la ENCADENA a la del intro: mismo reloj, dos nombres.
+      expect(
+        getComputedStyle(banner).animationName.split(",").length,
+        "la cabecera no monta la animación de bloqueo junto a la del intro",
+      ).toBe(2);
+
+      /* (b) El valor de reposo al que vuelve, DECLARADO y no heredado. Se
+         afirma sobre la regla inyectada, no sobre `getComputedStyle`: jsdom
+         devuelve "auto" para `pointer-events` esté declarado o no, así que un
+         assert sobre el valor computado no puede ponerse en rojo -- comprobado
+         inyectando el bug (regla 34). La regla de `@keyframes` no contamina la
+         búsqueda: su cssText no lleva la clase de la cabecera. */
+      expect(
+        cssRuleTextFor(banner),
+        "la cabecera no declara su pointer-events de reposo: al terminar la animación (sin fill forwards) y bajo reduce, el contrato solo existiría en un comentario",
+      ).toContain("pointer-events: auto");
+    });
   });
 
   describe("enlaces de sección, discover y recursos (Common.Navigation/Nav, tarea Flow F/spec §7.6 y W4)", () => {
@@ -603,16 +678,20 @@ describe("Navbar", () => {
   });
 
   describe("grupos de navegación desplegables (tarea W4)", () => {
-    // Etiquetas reales de `Common.Nav.<groupKey>` en es-ES (idioma por
-    // defecto de `initI18n`, ver `i18n/config.ts`) -- mismo patrón que el
-    // resto de la suite para localizar controles por su nombre accesible
-    // (p. ej. `/Cambiar a tema/i`, `/Español/i`), aquí con los cuatro grupos
-    // (los tres de la tarea W4 más "community", tarea 6 de la auditoría
-    // premium).
-    const ON_SITE = /En el sitio/i;
-    const DISCOVER = /Descubre/i;
-    const RESOURCES = /Recursos/i;
-    const COMMUNITY = /Comunidad/i;
+    /*
+     * UN SOLO DISPARADOR desde la decisión D2 del dueño (2026-09-02, crítica
+     * #14). Hasta entonces había cuatro (`ON_SITE`/`DISCOVER`/`RESOURCES`/
+     * `COMMUNITY`, uno por grupo de `NAV_GROUPS`) y ninguno nombraba un
+     * destino; ahora los cuatro destinos de sección son enlaces visibles de la
+     * barra y el resto vive tras «Más».
+     *
+     * `^Más` y no `/Más/`: el nombre accesible del disparador es «Más destinos
+     * del sitio» -- la etiqueta visible más el complemento oculto de
+     * `Common.Nav.moreHint` (WCAG 2.5.3, Label in Name: el nombre accesible
+     * EMPIEZA por lo que se lee en pantalla). Anclar al principio afirma ese
+     * orden de paso, no solo que las dos cadenas estén.
+     */
+    const MORE = /^Más/i;
 
     /**
      * `ScNavLinks` solo pasa de `display: none` a `flex` dentro de
@@ -670,12 +749,42 @@ describe("Navbar", () => {
       ).not.toBe("");
     });
 
-    it("los cuatro disparadores existen y arrancan con aria-expanded='false'", () => {
-      renderNavbar();
+    /*
+     * EL CANDADO QUE SUSTITUYE A "los cuatro disparadores existen" (decisión
+     * D2). El viejo afirmaba que cada grupo de `NAV_GROUPS` tenía su botón, y
+     * describía exactamente lo que la crítica #14 midió como defecto: a
+     * 1440x900 el cabecero no ofrecía NI UN enlace de navegación visible, y
+     * llegar a Contacto exigía abrir un menú a ciegas y elegir dentro.
+     *
+     * El nuevo afirma la propiedad que D2 compra: los cuatro destinos de
+     * sección son ENLACES (no botones), están en el DOM sin abrir nada, y el
+     * único disclosure que queda arranca cerrado. El recuento sale de
+     * `navBarSectionsFor`, la misma fuente que consume el componente, nunca de
+     * un 4 escrito a mano (regla 39).
+     */
+    it("los cuatro destinos de sección son enlaces visibles de la barra, y el único disparador («Más») arranca cerrado", () => {
+      const { container } = renderNavbar();
 
-      for (const name of [ON_SITE, DISCOVER, RESOURCES, COMMUNITY]) {
-        expect(getTrigger(name)).toHaveAttribute("aria-expanded", "false");
+      const barLinks = navBarSectionsFor("es");
+      expect(barLinks.length).toBeGreaterThan(0);
+      for (const item of barLinks) {
+        const link = container.querySelector(
+          `[data-nav-links] a[href="${item.href}"]`,
+        );
+        expect(
+          link,
+          `${item.key} no se pinta como enlace visible de la barra`,
+        ).not.toBeNull();
       }
+
+      const triggers = container.querySelectorAll(
+        "[data-nav-links] button[aria-expanded]",
+      );
+      expect(
+        triggers,
+        "la barra vuelve a esconder destinos tras varios disclosures",
+      ).toHaveLength(1);
+      expect(getTrigger(MORE)).toHaveAttribute("aria-expanded", "false");
     });
 
     /*
@@ -698,18 +807,16 @@ describe("Navbar", () => {
      * `aria-haspopup="true"` al `ScNavTrigger` de `Navbar.tsx`, este test cae
      * en rojo nombrando el atributo; retirado de nuevo, vuelve a verde.
      */
-    it("ningún disparador promete un menú con aria-haspopup: son disclosures con aria-expanded", () => {
+    it("el disparador no promete un menú con aria-haspopup: es un disclosure con aria-expanded", () => {
       renderNavbar();
 
-      for (const name of [ON_SITE, DISCOVER, RESOURCES, COMMUNITY]) {
-        const trigger = getTrigger(name);
-        expect(
-          trigger,
-          "aria-haspopup anuncia un role=menu con teclado de flechas que este desplegable no implementa",
-        ).not.toHaveAttribute("aria-haspopup");
-        expect(trigger).toHaveAttribute("aria-expanded");
-        expect(trigger).toHaveAttribute("aria-controls");
-      }
+      const trigger = getTrigger(MORE);
+      expect(
+        trigger,
+        "aria-haspopup anuncia un role=menu con teclado de flechas que este desplegable no implementa",
+      ).not.toHaveAttribute("aria-haspopup");
+      expect(trigger).toHaveAttribute("aria-expanded");
+      expect(trigger).toHaveAttribute("aria-controls");
     });
 
     /*
@@ -833,9 +940,9 @@ describe("Navbar", () => {
       }
     });
 
-    it("al pulsar un disparador, su aria-expanded pasa a 'true', su panel pierde inert y aria-controls apunta al id real del panel", () => {
+    it("al pulsar el disparador, su aria-expanded pasa a 'true', su panel pierde inert y aria-controls apunta al id real del panel", () => {
       renderNavbar();
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
 
       fireEvent.click(trigger);
 
@@ -851,22 +958,54 @@ describe("Navbar", () => {
       expect(panel).toHaveAttribute("data-open", "true");
     });
 
-    it("abrir un segundo grupo cierra el primero (solo uno con aria-expanded='true' a la vez)", () => {
+    /*
+     * AQUÍ VIVIÓ "abrir un segundo grupo cierra el primero (solo uno con
+     * aria-expanded='true' a la vez)". Protegía las reglas 1 y 2 de la tarea
+     * W4 -- un solo grupo abierto a la vez -- cuando había CUATRO
+     * disparadores, y lo hacía sobre el estado `openGroup: NavGroupKey | null`
+     * que las cumplía por construcción.
+     *
+     * Con la decisión D2 no hay ningún segundo grupo que cerrar: el candado no
+     * describe una situación que el sitio pueda alcanzar. Lo que se conserva
+     * de él -- que no reaparezcan varios disclosures -- se afirma ahora en "los
+     * cuatro destinos de sección son enlaces visibles..." (más arriba), que
+     * cuenta los `button[aria-expanded]` del bloque y exige exactamente uno.
+     */
+    it("los tres grupos del panel se anuncian con su rótulo, y sus listas los nombran con aria-labelledby", () => {
       renderNavbar();
-      const first = getTrigger(ON_SITE);
-      const second = getTrigger(DISCOVER);
+      const trigger = getTrigger(MORE);
+      fireEvent.click(trigger);
 
-      fireEvent.click(first);
-      expect(first).toHaveAttribute("aria-expanded", "true");
+      const panel = document.getElementById(
+        trigger.getAttribute("aria-controls") as string,
+      ) as HTMLElement;
 
-      fireEvent.click(second);
-      expect(second).toHaveAttribute("aria-expanded", "true");
-      expect(first).toHaveAttribute("aria-expanded", "false");
+      const listas = panel.querySelectorAll("ul[aria-labelledby]");
+      const esperados = navBarMoreGroupsFor("es");
+      expect(listas).toHaveLength(esperados.length);
+
+      listas.forEach((lista, indice) => {
+        const rotuloId = lista.getAttribute("aria-labelledby") as string;
+        const rotulo = document.getElementById(rotuloId);
+        expect(
+          rotulo,
+          "el aria-labelledby de la lista no apunta a ningún id real",
+        ).not.toBeNull();
+        // El rótulo NO puede ser un encabezado: metería en el esquema del
+        // documento títulos que solo existen dentro de un desplegable de
+        // escritorio (mismo criterio ya atado para la hoja móvil).
+        expect(rotulo?.tagName).toBe("P");
+        expect(rotulo?.textContent?.trim()).not.toBe("");
+        // El orden del panel es el del modelo, sin reordenar nada.
+        expect(lista.querySelectorAll("a")).toHaveLength(
+          esperados[indice].items.length,
+        );
+      });
     });
 
-    it("click en el mismo disparador alterna su grupo: una segunda pulsación lo cierra", () => {
+    it("click en el mismo disparador alterna el panel: una segunda pulsación lo cierra", () => {
       renderNavbar();
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
 
       fireEvent.click(trigger);
       expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -875,9 +1014,9 @@ describe("Navbar", () => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
 
-    it("Escape cierra el grupo abierto y devuelve el foco a su disparador", () => {
+    it("Escape cierra el panel abierto y devuelve el foco a su disparador", () => {
       const { container } = renderNavbar();
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
 
       fireEvent.click(trigger);
       expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -886,7 +1025,7 @@ describe("Navbar", () => {
       // pulsa Escape -- aquí, un enlace de su panel ya abierto --, no solo
       // en el propio disparador.
       const firstLink = container.querySelector(
-        'a[href="/#story"]',
+        'a[href="/#feature-learning-title"]',
       ) as HTMLElement;
       firstLink.focus();
       expect(document.activeElement).toBe(firstLink);
@@ -897,9 +1036,9 @@ describe("Navbar", () => {
       expect(document.activeElement).toBe(trigger);
     });
 
-    it("un click/pointerdown fuera del bloque de navegación cierra el grupo abierto", () => {
+    it("un click/pointerdown fuera del bloque de navegación cierra el panel abierto", () => {
       renderNavbar();
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
 
       fireEvent.click(trigger);
       expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -909,12 +1048,38 @@ describe("Navbar", () => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
 
-    it("el foco saliendo del grupo hacia un elemento externo lo cierra", () => {
+    /*
+     * ...pero pulsar un ENLACE DE SECCIÓN de la propia barra no lo cierra por
+     * esa vía. Los cuatro enlaces visibles que estrena D2 son hermanos del
+     * grupo dentro de `[data-nav-links]`, así que el manejador de "click
+     * fuera" tiene que seguir considerándolos DENTRO -- si no, un usuario que
+     * abre «Más», lo piensa mejor y pulsa «Historia» vería cerrarse el panel
+     * por dos caminos a la vez. La comprobación es sobre el contenedor
+     * (`navLinksRef`), no sobre el grupo, y este candado es lo que impide que
+     * alguien la estreche al grupo "simplificando".
+     */
+    it("un pointerdown sobre un enlace de sección de la barra NO cuenta como click fuera", () => {
       const { container } = renderNavbar();
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
 
       fireEvent.click(trigger);
-      const link = container.querySelector('a[href="/#story"]') as HTMLElement;
+      const barLink = container.querySelector(
+        '[data-nav-links] a[href="/#story"]',
+      ) as HTMLElement;
+
+      fireEvent.pointerDown(barLink);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
+    });
+
+    it("el foco saliendo del grupo hacia un elemento externo lo cierra", () => {
+      const { container } = renderNavbar();
+      const trigger = getTrigger(MORE);
+
+      fireEvent.click(trigger);
+      const link = container.querySelector(
+        'a[href="/#feature-learning-title"]',
+      ) as HTMLElement;
       const brandLink = screen.getByRole("link", { name: /VoidToInfinite/i });
 
       // React 17+ resuelve `onBlur` sobre el evento nativo `focusout` (que
@@ -927,10 +1092,12 @@ describe("Navbar", () => {
 
     it("activar un enlace del panel lo cierra", () => {
       const { container } = renderNavbar();
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
 
       fireEvent.click(trigger);
-      const link = container.querySelector('a[href="/#story"]') as HTMLElement;
+      const link = container.querySelector(
+        'a[href="/#feature-learning-title"]',
+      ) as HTMLElement;
 
       fireEvent.click(link);
 
@@ -939,8 +1106,7 @@ describe("Navbar", () => {
 
     it("el enlace del SDK tiene target='_blank' y rel='noopener noreferrer', y su nombre accesible incluye el aviso de pestaña nueva", () => {
       renderNavbar();
-      const resourcesTrigger = getTrigger(RESOURCES);
-      fireEvent.click(resourcesTrigger);
+      fireEvent.click(getTrigger(MORE));
 
       const sdkLink = screen.getByRole("link", {
         name: /VTI - SDK/i,
@@ -963,8 +1129,7 @@ describe("Navbar", () => {
       "el enlace de $network (grupo community) tiene target='_blank' y rel='noopener noreferrer', y su nombre accesible incluye el aviso de pestaña nueva",
       ({ href, name }) => {
         renderNavbar();
-        const communityTrigger = getTrigger(COMMUNITY);
-        fireEvent.click(communityTrigger);
+        fireEvent.click(getTrigger(MORE));
 
         const link = screen.getByRole("link", { name, hidden: true });
 
@@ -983,7 +1148,7 @@ describe("Navbar", () => {
           reglas.some((r) => r.includes(c)),
         ) ?? "";
 
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
       const chevron = trigger.querySelector("svg") as SVGElement;
       const panelId = trigger.getAttribute("aria-controls") as string;
       const panel = document.getElementById(panelId) as HTMLElement;
@@ -1029,7 +1194,7 @@ describe("Navbar", () => {
           reglas.some((r) => r.includes(c)),
         ) ?? "";
 
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
       fireEvent.click(trigger);
       const panelId = trigger.getAttribute("aria-controls") as string;
       const panel = document.getElementById(panelId) as HTMLElement;
@@ -1071,7 +1236,7 @@ describe("Navbar", () => {
           reglas.some((r) => r.includes(c)),
         ) ?? "";
 
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
       fireEvent.click(trigger);
       const panelId = trigger.getAttribute("aria-controls") as string;
       const panel = document.getElementById(panelId) as HTMLElement;
@@ -1096,7 +1261,13 @@ describe("Navbar", () => {
     });
 
     /*
-     * Task 9, punto 5 del brief: ScNavPanel gana transform-origin: top left,
+     * Task 9, punto 5 del brief: ScNavPanel gana su transform-origin anclado
+     * a la esquina de la que cuelga -- `top right` desde la decision D2
+     * (2026-09-02), `top left` hasta entonces, cuando cada uno de los cuatro
+     * grupos colgaba de su propio disparador y ninguno estaba pegado al filo
+     * de la pildora; hoy el unico disclosure es el ULTIMO elemento de la fila
+     * y su panel tiene que crecer hacia DENTRO de la barra, no hacia el borde.
+     * El resto del contrato no cambia:
      * el estado cerrado suma scale(OVERLAY.closedScale) al translateY
      * existente, y la asimetría 120/180 (regla 26 de RULES.md) se resuelve
      * con dos declaraciones de transition -- base (cierre) y
@@ -1107,14 +1278,18 @@ describe("Navbar", () => {
      * el scale/transform-origin, o igualando las dos duraciones, el test
      * correspondiente se pone en rojo; restaurado, vuelve a verde.
      */
-    it("ScNavPanel: transform-origin: top left, scale(OVERLAY.closedScale) en cerrado, y asimetria OVERLAY.closeMs/openMs con la curva de PRESS.easing", () => {
+    it("ScNavPanel: transform-origin: top right, scale(OVERLAY.closedScale) en cerrado, y asimetria OVERLAY.closeMs/openMs con la curva de PRESS.easing", () => {
       renderNavbar();
-      const trigger = getTrigger(ON_SITE);
+      const trigger = getTrigger(MORE);
       const panelId = trigger.getAttribute("aria-controls") as string;
       const panel = document.getElementById(panelId) as HTMLElement;
       const css = cssRuleTextFor(panel);
 
-      expect(css).toContain("transform-origin: top left");
+      expect(css).toContain("transform-origin: top right");
+      // El anclaje del layout va con el del transform-origin: un panel que
+      // encoge hacia la derecha pero crece hacia la derecha es el mismo bug
+      // que el transform-origin existe para evitar, en el otro eje.
+      expect(css).toContain("right: 0");
 
       // Estado cerrado (base, ANTES de [data-open="true"]): scale(0.97)
       // sumado al translateY(-4px) que ya existía.
@@ -1310,7 +1485,14 @@ describe("Navbar", () => {
       const { container } = renderNavbar();
       const reglas = allCssRules();
 
-      const link = container.querySelector('a[href="/#story"]') as HTMLElement;
+      // Un enlace DEL PANEL, no de la barra: desde la decision D2 los cuatro
+      // destinos de seccion salieron del panel y `a[href="/#story"]` ya no lo
+      // encuentra ahi (es `ScNavSectionLink`, que lleva subrayado en vez de
+      // punto -- ver su propio candado mas abajo). El punto sigue siendo la
+      // pieza de `ScNavPanelLink`, asi que se mide sobre un item del panel.
+      const link = container.querySelector(
+        'a[href="/#feature-learning-title"]',
+      ) as HTMLElement;
       // La clase que interesa aquí es la que lleva la regla `::before`
       // -- no la primera clase inyectada cualquiera del `classList`, que
       // encontraría antes la clase base de ScNavLink (hover/:active, sin
@@ -1363,7 +1545,9 @@ describe("Navbar", () => {
       const { container } = renderNavbar();
       const reglas = allCssRules();
 
-      const link = container.querySelector('a[href="/#story"]') as HTMLElement;
+      const link = container.querySelector(
+        'a[href="/#feature-learning-title"]',
+      ) as HTMLElement;
       const clase = Array.from(link.classList).find((c) =>
         reglas.some((r) => r.includes(c) && r.includes("::before")),
       );
@@ -1383,31 +1567,31 @@ describe("Navbar", () => {
     });
 
     /*
-     * T3 de la ola post-crítica #13 (2026-08-20): SEÑAL VISIBLE DE SECCIÓN
-     * ACTUAL CON LOS PANELES PLEGADOS.
+     * SEÑAL VISIBLE DE SECCIÓN ACTUAL, AHORA EN EL ENLACE QUE LA REPRESENTA
+     * (decisión D2, 2026-09-02, crítica #14).
      *
-     * El defecto medido: el scrollspy funciona y `aria-current="location"` es
-     * correcto, pero con la barra plegada los cuatro disparadores se pintan
-     * idénticos, así que la señal solo existe abriendo un panel o con
-     * tecnología de apoyo. El tratamiento definitivo es decisión del dueño
-     * desde la crítica #9; lo que estos candados atan es el mínimo reversible
-     * que se entrega: el MISMO par de declaraciones (`text-decoration:
-     * underline` + `text-underline-offset`) que `ScLanguageButton` `$active`
-     * ya usa para el idioma actual en esta misma barra.
+     * Aquí vivió el bloque "señal visible con los paneles plegados (T3)"
+     * (2026-08-20, ola post-crítica #13). Aquellos tres candados afirmaban que
+     * el DISPARADOR del grupo que contenía la sección activa se subrayaba y
+     * los otros tres no. Era un sustituto declarado como tal: el enlace que
+     * llevaba `aria-current` vivía dentro de un panel cerrado, así que la
+     * marca del disparador solo podía responder «la sección que lees está en
+     * este grupo», nunca «cuál es» -- y su propio docblock dejaba esa segunda
+     * mitad pendiente de una decisión del dueño.
      *
-     * Se afirma sobre el CSSOM y no sobre `getComputedStyle` porque lo que
-     * distingue a los dos disparadores es la clase DINÁMICA que
-     * styled-components genera por valor de prop -- y porque jsdom no pinta:
-     * el subrayado no se puede observar, solo su declaración.
+     * D2 la toma: los cuatro destinos de sección son enlaces visibles de la
+     * barra, así que la marca visual y `aria-current` vuelven a vivir en el
+     * MISMO elemento. El candado nuevo afirma justo eso, y por eso NO es una
+     * relajación del viejo: comprueba una propiedad más fuerte (el subrayado
+     * está atado al atributo por selector CSS, no calculado por una prop en
+     * paralelo, así que no pueden divergir) sobre el elemento correcto.
      *
-     * Validado con bug inyectado (rojo observado): ver el informe de la
-     * entrega.
+     * Se afirma sobre el CSSOM y no sobre `getComputedStyle` porque jsdom no
+     * evalúa el selector de atributo al calcular estilo ni pinta nada: el
+     * subrayado no se puede observar, solo su declaración.
      */
-    describe("señal visible con los paneles plegados (T3)", () => {
-      /** Reglas inyectadas que pertenecen a alguna clase de `el`. Mismo patrón
-       *  que `LanguageSelector.test.tsx`: la clase estática la comparten todos
-       *  los disparadores, la dinámica (la que lleva la declaración que
-       *  depende de la prop) es propia de cada valor. */
+    describe("señal visible de sección actual en la barra (decisión D2)", () => {
+      /** Reglas inyectadas que pertenecen a alguna clase de `el`. */
       function reglasDe(el: Element): string {
         const reglas = allCssRules();
         const clases = Array.from(el.classList).filter((c) =>
@@ -1415,100 +1599,118 @@ describe("Navbar", () => {
         );
         expect(
           clases.length,
-          "no se encontró ninguna clase inyectada del disparador",
+          "no se encontró ninguna clase inyectada del enlace",
         ).toBeGreaterThan(0);
         return reglas
           .filter((r) => clases.some((c) => r.includes(c)))
           .join("\n");
       }
 
-      function trigger(name: RegExp): HTMLElement {
-        return screen.getByRole("button", { name, hidden: true });
+      function barLink(container: HTMLElement, href: string): HTMLElement {
+        const el = container.querySelector(
+          `[data-nav-links] a[href="${href}"]`,
+        );
+        expect(el, `la barra no monta el enlace ${href}`).not.toBeNull();
+        return el as HTMLElement;
       }
 
-      it("el disparador del grupo que contiene la sección activa se subraya; los otros tres no", () => {
-        renderNavbar();
+      it("el enlace de la sección activa lleva aria-current, y solo él", () => {
+        const { container } = renderNavbar();
         setInView("journey", true);
         fireScroll();
 
-        const conSeccion = reglasDe(trigger(/En el sitio/i));
-        expect(conSeccion).toContain("text-decoration: underline");
-        // El offset acompaña siempre (no depende de la prop): sin él, el
-        // subrayado se pega al descendente de la tipografía a este tamaño.
-        expect(conSeccion).toContain("text-underline-offset: 0.2em");
-
-        for (const otro of [/Descubre/i, /Recursos/i, /Comunidad/i]) {
-          const reglas = reglasDe(trigger(otro));
-          expect(reglas).toContain("text-decoration: none");
+        for (const item of navBarSectionsFor("es")) {
+          const esperado = item.key === "journey" ? "location" : null;
+          const enlace = barLink(container, item.href);
           expect(
-            reglas,
-            "un grupo sin la sección activa se está subrayando",
-          ).not.toContain("text-decoration: underline");
+            enlace.getAttribute("aria-current"),
+            `${item.key} no refleja el scrollspy en la barra`,
+          ).toBe(esperado);
         }
       });
 
-      it("sin ninguna sección en pantalla (el lector está en el Hero) no se subraya ninguno", () => {
-        renderNavbar();
+      it("el subrayado cuelga del propio aria-current, no de una prop paralela", () => {
+        const { container } = renderNavbar();
+        setInView("journey", true);
+        fireScroll();
 
-        for (const nombre of [
-          /En el sitio/i,
-          /Descubre/i,
-          /Recursos/i,
-          /Comunidad/i,
-        ]) {
-          expect(reglasDe(trigger(nombre))).not.toContain(
-            "text-decoration: underline",
+        const reglas = reglasDe(barLink(container, "/#journey"));
+        // El offset acompaña siempre (no depende del estado): sin él, el
+        // subrayado se pega al descendente de la tipografía a este tamaño.
+        expect(reglas).toContain("text-underline-offset: 0.2em");
+        const subrayado = allCssRules().find(
+          (r) =>
+            r.includes('[aria-current="location"]') &&
+            r.includes("text-decoration: underline"),
+        );
+        expect(
+          subrayado,
+          "el enlace de sección no declara el subrayado atado a aria-current",
+        ).toBeDefined();
+      });
+
+      it("sin ninguna sección en pantalla (el lector está en el Hero) ningún enlace de la barra lleva aria-current", () => {
+        const { container } = renderNavbar();
+
+        for (const item of navBarSectionsFor("es")) {
+          expect(barLink(container, item.href)).not.toHaveAttribute(
+            "aria-current",
           );
         }
       });
 
       /*
-       * La marca no es una segunda fuente de verdad: se enciende exactamente
-       * en el grupo cuyo enlace de panel lleva `aria-current="location"`, y
-       * nunca en un grupo cuyos items no son secciones («Descubre» apunta
-       * DENTRO de Features y no es destino de scrollspy, ver `navigation.ts`).
+       * El suelo táctil de la fila: los enlaces nuevos comparten banda con
+       * `ScNavTrigger`, `ScBrandLink` y `ScLanguageButton`, que ya declaran
+       * 44px. Muy por encima del mínimo de 24x24 de WCAG 2.5.8, y el mismo
+       * valor que el resto de la fila para que la diana no dependa de qué
+       * control se pulse.
        */
-      it("se enciende en el mismo grupo que lleva aria-current, y no cambia nada de ARIA en el disparador", () => {
-        renderNavbar();
-        setInView("features", true);
-        fireScroll();
-
-        const onSite = trigger(/En el sitio/i);
-        const panelId = onSite.getAttribute("aria-controls") as string;
-        const panel = document.getElementById(panelId) as HTMLElement;
-
-        expect(
-          panel.querySelector('a[aria-current="location"]'),
-        ).toHaveAttribute("href", "/#features");
-        expect(reglasDe(onSite)).toContain("text-decoration: underline");
-        // El disparador es un <button> que abre un panel, no un destino: el
-        // estado de ubicación sigue viviendo solo en el enlace de arriba.
-        expect(onSite).not.toHaveAttribute("aria-current");
+      it("los enlaces de sección declaran el suelo táctil de 44px", () => {
+        const { container } = renderNavbar();
+        const reglas = reglasDe(barLink(container, "/#story"));
+        expect(reglas).toContain("min-height: 44px");
       });
     });
   });
 
   /*
-   * SALIDA SIN JAVASCRIPT DE LOS CUATRO DESPLEGABLES (crítica externa #11,
-   * hallazgo A, P1). Con `javaScriptEnabled: false` los cuatro disparadores se
-   * pintaban con su galón y, al pulsarlos, `aria-expanded` seguía en `"false"`
-   * sin abrir nada ni explicar nada. La apertura es estado de React
-   * (`openGroup`), así que no hay forma de que funcione: se retira el bloque
-   * entero, exactamente igual que la ola anterior retiró el conmutador de
-   * tema, el selector de idioma y el disparador de la hoja (commit
-   * `acbbcf4`). El pie ya expone los mismos destinos como enlaces planos.
+   * SALIDA SIN JAVASCRIPT DEL DISCLOSURE (crítica externa #11, hallazgo A, P1
+   * -- y la corrección de su ALCANCE por la decisión D2).
+   *
+   * El hallazgo original: con `javaScriptEnabled: false` los cuatro
+   * disparadores se pintaban con su galón y, al pulsarlos, `aria-expanded`
+   * seguía en `"false"` sin abrir nada ni explicar nada. La apertura es estado
+   * de React, así que no hay forma de que funcione: se retira, igual que la
+   * ola anterior retiró el conmutador de tema, el selector de idioma y el
+   * disparador de la hoja (commit `acbbcf4`). El pie expone los mismos
+   * destinos como enlaces planos, así que nadie se queda sin salida.
+   *
+   * QUÉ CAMBIA CON D2: el guard vivía sobre el CONTENEDOR (`ScNavLinks`) y
+   * ahora vive sobre el disclosure (`ScNavGroup`). El docblock de aquel bloque
+   * ya lo dejó escrito: "si algún día este bloque gana un enlace PLANO (que
+   * sin JavaScript sí funcionaría), el guard baja a `ScNavGroup`". Los cuatro
+   * destinos de sección son ahora exactamente eso, y este candado afirma las
+   * DOS mitades: que el disclosure desaparece y que el contenedor NO.
    *
    * jsdom no evalúa ningún `@media` (regla 36): la condición se lee del CSSOM
    * acotada al bloque concreto, y la FORMA del selector se afirma sobre
-   * `selectorText` (regla 35) -- tiene que apuntar al PROPIO contenedor, no a
+   * `selectorText` (regla 35) -- tiene que apuntar al PROPIO elemento, no a
    * un descendiente suyo.
    *
-   * Validado con el bug inyectado a propósito (regla 34): borrada la línea
-   * `display: none` del bloque `@media (scripting: none)` de `ScNavLinks`
-   * (`Navbar.tsx`), los dos tests de este bloque caen en rojo; restaurada esa
-   * línea, vuelven a verde.
+   * Validado con el bug inyectado a propósito (regla 34): ver el informe de la
+   * entrega -- se probaron las dos direcciones, borrar el `display: none` de
+   * `ScNavGroup` y devolver el guard a `ScNavLinks`.
    */
-  describe("crítica externa #11, hallazgo A: sin JavaScript los grupos desplegables no se presentan", () => {
+  describe("crítica externa #11, hallazgo A: sin JavaScript el disclosure no se presenta (y los enlaces planos sí)", () => {
+    /** El único disparador de la barra desde la decisión D2. `hidden: true`
+     *  por el mismo motivo que documenta `getTrigger` en el bloque W4: jsdom
+     *  no evalúa el `@media` de `md`, así que el contenedor computa
+     *  `display: none` y `getByRole` daría por oculto lo que hay dentro. */
+    function getTriggerMore(): HTMLElement {
+      return screen.getByRole("button", { name: /^Más/i, hidden: true });
+    }
+
     /** Reglas de estilo declaradas DENTRO de un `@media (scripting: none)`,
      *  mismo helper que `ThemeToggle.test.tsx` de la ola anterior. */
     function reglasSinScripting(): CSSStyleRule[] {
@@ -1539,61 +1741,80 @@ describe("Navbar", () => {
       return out;
     }
 
-    it("el contenedor de los grupos se retira con display: none sobre su PROPIA clase", () => {
+    it("el disclosure se retira con display: none sobre su PROPIA clase, y el contenedor NO", () => {
       const { container } = renderNavbar();
       const bloque = container.querySelector("[data-nav-links]") as HTMLElement;
-      expect(bloque, "no se montó el bloque de grupos").not.toBeNull();
+      expect(bloque, "no se montó el bloque de navegación").not.toBeNull();
+      const trigger = getTriggerMore();
+      // `ScNavGroup` es el envoltorio del disclosure: el padre del disparador.
+      const grupo = trigger.parentElement as HTMLElement;
 
-      const clases = Array.from(bloque.classList);
-      const propias = reglasSinScripting().filter((regla) =>
-        clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
-      );
+      const sinScripting = reglasSinScripting();
+      const reglasDe = (el: HTMLElement): CSSStyleRule[] => {
+        const clases = Array.from(el.classList);
+        return sinScripting.filter((regla) =>
+          clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+        );
+      };
+
+      const propias = reglasDe(grupo);
       expect(
         propias.length,
-        "los cuatro desplegables se siguen presentando sin JavaScript",
+        "el disclosure se sigue presentando sin JavaScript",
       ).toBeGreaterThan(0);
-
       propias.forEach((regla) => {
         // Mismo elemento, nunca un descendiente (regla 35).
         expect(regla.selectorText).not.toMatch(/\s/);
         expect(regla.style.display).toBe("none");
       });
+
+      /*
+       * LA OTRA MITAD, y la que cambia con D2: el CONTENEDOR no se puede
+       * ocultar. Hasta esta entrega el guard vivía sobre `ScNavLinks` porque
+       * todos sus hijos eran disclosures inservibles sin JavaScript. Ahora
+       * cuatro de sus hijos son `<a href>` planos que navegan perfectamente
+       * sin él: heredar el guard viejo borraría la navegación de escritorio
+       * entera a cambio de nada.
+       */
+      expect(
+        reglasDe(bloque),
+        "sin JavaScript se están borrando también los cuatro enlaces de sección, que SÍ funcionan sin él",
+      ).toHaveLength(0);
     });
 
-    it("CON JavaScript no cambia nada: los cuatro disparadores siguen montados, operables y sin tabindex propio en el contenedor", () => {
+    it("CON JavaScript no cambia nada: los cuatro enlaces y el disparador siguen montados, operables y sin tabindex propio en el contenedor", () => {
       const { container } = renderNavbar();
       const bloque = container.querySelector("[data-nav-links]") as HTMLElement;
 
-      // Los cuatro grupos siguen ahí, y el primero sigue abriendo de verdad
-      // -- que es la mitad que este arreglo NO puede tocar. `hidden: true` por
-      // el mismo motivo que documenta `getTrigger` más arriba: jsdom no evalúa
-      // el `@media` de `md`, así que el bloque computa `display: none` y
-      // `getByRole` lo daría por oculto.
-      //
-      // El recuento sale de `NAV_GROUPS` (regla 39), no de un 4 escrito a
-      // mano: si mañana hay un quinto grupo, el candado lo cubre solo.
-      const disparadores = NAV_GROUPS.map((group) =>
-        screen.getByRole("button", {
-          name: new RegExp(
-            esCommon.Common.Nav[group.key as keyof typeof esCommon.Common.Nav],
-          ),
-          hidden: true,
-        }),
-      );
-      disparadores.forEach((disparador) => {
+      // Los cuatro destinos de sección siguen ahí como enlaces planos -- la
+      // mitad que este guard NO puede tocar, porque funcionan sin JavaScript.
+      // El recuento sale de `navBarSectionsFor` (regla 39), no de un 4
+      // escrito a mano.
+      for (const item of navBarSectionsFor("es")) {
+        const enlace = bloque.querySelector(`a[href="${item.href}"]`);
         expect(
-          bloque.contains(disparador),
-          "un disparador dejó de vivir dentro del bloque que el guard oculta",
-        ).toBe(true);
-      });
-      expect(disparadores[0]).toHaveAttribute("aria-expanded", "false");
-      fireEvent.click(disparadores[0]);
-      expect(disparadores[0]).toHaveAttribute("aria-expanded", "true");
+          enlace,
+          `${item.key} dejó de vivir dentro del bloque de navegación`,
+        ).not.toBeNull();
+      }
+
+      // Y el disparador sigue abriendo de verdad. `hidden: true` por el mismo
+      // motivo que documenta `getTrigger` más arriba: jsdom no evalúa el
+      // `@media` de `md`, así que el bloque computa `display: none` y
+      // `getByRole` lo daría por oculto.
+      const disparador = getTriggerMore();
+      expect(
+        bloque.contains(disparador),
+        "el disparador dejó de vivir dentro del bloque de navegación",
+      ).toBe(true);
+      expect(disparador).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(disparador);
+      expect(disparador).toHaveAttribute("aria-expanded", "true");
 
       expect(bloque).not.toHaveAttribute("tabindex");
       // La regla base del bloque sigue siendo la MÓVIL (mobile-first): sin el
       // `@media` de `md`, que jsdom no evalúa, lo computado es `none`. Lo que
-      // importa aquí es que el guard nuevo no la haya alterado.
+      // importa aquí es que el guard no la haya alterado.
       expect(getComputedStyle(bloque).display).toBe("none");
     });
   });
@@ -1645,8 +1866,12 @@ describe("Navbar", () => {
 
       // Y el panel de escritorio declara EXACTAMENTE lo mismo: la invariante
       // que el docblock de ScSheetRow promete, medida y no recordada.
+      // El item DEL PANEL, no el enlace de la barra: desde la decisión D2 los
+      // destinos de sección salieron del panel, así que la pieza comparable
+      // con la fila de la hoja es un item que siga viviendo dentro
+      // (`ScNavPanelLink`, que es quien declara el punto).
       const item = container.querySelector(
-        '[data-nav-links] a[href="/#story"]',
+        '[data-nav-links] a[href="/#feature-learning-title"]',
       ) as HTMLElement;
       expect(item, "no se montó ningún item del panel").not.toBeNull();
       const itemBefore = beforeBaseDe(item, reglas);
@@ -2100,7 +2325,26 @@ describe("Navbar", () => {
       expect(document.activeElement).toBe(trigger);
     });
 
-    it("un pointerdown fuera del disparador y de la hoja la cierra", () => {
+    /*
+     * ...Y DEVUELVE EL FOCO AL DISPARADOR (crítica #14, P2).
+     *
+     * El defecto medido por el evaluador: tras cerrar con un clic fuera,
+     * `document.activeElement` quedaba en `BODY`. Es la MISMA familia que el
+     * repo ya pagó dos veces (fix wave A hallazgo A3 con el botón de cierre,
+     * crítica externa #9 punto 1 con Escape) y por el mismo mecanismo: al
+     * cerrarse, `ScNavSheet` recibe `inert`, y la focus fixup rule del HTML
+     * resetea a `<body>` el foco que quedara dentro. Quien cierra la hoja con
+     * el dedo y luego pulsa Tab no continúa desde el cabecero: vuelve a
+     * empezar la página entera.
+     *
+     * El candado afirma las dos mitades a la vez -- que cierra Y dónde queda
+     * el foco -- porque solo la primera es lo que ya había, y pasaba en verde
+     * con el defecto delante.
+     *
+     * Validado con el bug inyectado a propósito (regla 34): ver el informe de
+     * la entrega.
+     */
+    it("un pointerdown fuera del disparador y de la hoja la cierra, y devuelve el foco al disparador", () => {
       renderNavbar();
       const trigger = getSheetTrigger();
 
@@ -2110,6 +2354,10 @@ describe("Navbar", () => {
       fireEvent.pointerDown(document.body);
 
       expect(trigger).toHaveAttribute("aria-expanded", "false");
+      expect(
+        document.activeElement,
+        "cerrar con un toque fuera deja el foco huérfano en <body>: el siguiente Tab empieza la página de cero",
+      ).toBe(trigger);
     });
 
     it("el foco saliendo de la hoja hacia un elemento externo la cierra", () => {
@@ -2402,6 +2650,48 @@ describe("Navbar", () => {
         // Y sigue en el DOM: el `display: none` de md no desmonta nada.
         expect(el).toBeInTheDocument();
       }
+    });
+
+    /*
+     * LA HOJA NO PROMETE NINGÚN GESTO QUE NO IMPLEMENTA (crítica #14, P2).
+     *
+     * El defecto medido por el evaluador: el borde superior llevaba un asa
+     * (`ScSheetHandle`), la señal universal de "esto se arrastra para cerrar",
+     * y era un `<div>` `aria-hidden` SIN un solo manejador -- arrastrada 320px
+     * la hoja no se movía ni se cerraba. Se retiró en vez de implementar el
+     * arrastre: la hoja ya tiene cuatro salidas con candado (Escape, botón de
+     * cierre, toque fuera, scroll de página) y una quinta que duplica lo mismo
+     * no paga ni el código ni el presupuesto de JavaScript. El porqué completo
+     * vive donde vivía el asa, en `NavSheet.tsx`.
+     *
+     * Las DOS mitades: que no vuelva a colarse un adorno delante del contenido
+     * de la hoja, y que la hoja siga LEYÉNDOSE como hoja sin el asa -- que era
+     * la condición de la decisión. Ese segundo papel lo llevan el filo y las
+     * esquinas superiores redondeadas de `ScNavSheet`, no el asa: se afirma
+     * aquí para que quien retoque ese borde sepa qué está sosteniendo.
+     *
+     * Validado con el bug inyectado a propósito (regla 34): ver el informe de
+     * la entrega.
+     */
+    it("la hoja arranca directamente en su primer grupo, y su filo superior es lo que la lee como hoja", () => {
+      const { container } = renderNavbar();
+      const scroll = container.querySelector(
+        "[data-nav-sheet-scroll]",
+      ) as HTMLElement;
+      expect(scroll, "no se montó la capa de scroll de la hoja").not.toBeNull();
+
+      expect(
+        scroll.firstElementChild?.querySelector("ul"),
+        "hay un adorno decorativo antes del primer grupo de la hoja: si promete un gesto, tiene que implementarlo",
+      ).not.toBeNull();
+
+      const css = cssRuleTextFor(getSheet(container));
+      expect(css).toContain("border-top:");
+      // Esquinas superiores redondeadas y las inferiores a ras: la forma de
+      // un panel anclado al borde inferior de la pantalla.
+      expect(css).toMatch(
+        /border-radius:[^;]*0px 0px;|border-radius:[^;]*0 0;/,
+      );
     });
 
     /*

@@ -19,10 +19,10 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import {
-  navGroupsFor,
+  navBarMoreGroupsFor,
+  navBarSectionsFor,
   navLocale,
   type NavGroup,
-  type NavGroupKey,
   type NavItem,
 } from "@/config/navigation";
 import { routePath } from "@/config/site";
@@ -118,6 +118,54 @@ const navbarDrop = keyframes`
   }
 `;
 
+/*
+ * LA CABECERA NO SE PUEDE PULSAR MIENTRAS ES INVISIBLE (crítica #14, P1).
+ *
+ * EL DEFECTO, medido por el evaluador sobre el sitio servido: `opacity` es la
+ * propiedad que oculta la barra durante el intro, y `opacity: 0` NO desactiva
+ * los eventos de puntero. Con JavaScript la barra computaba opacidad 0 hasta
+ * ~1,2 s y no llegaba a 1,00 hasta ~1,9 s; sin JavaScript seguía en 0 hasta
+ * ~1,7 s. Durante toda esa ventana el conmutador de tema, el selector de
+ * idioma, el logotipo y la hamburguesa recibían clics que el usuario no podía
+ * ver ni prever: pulsar donde va a estar la barra activaba el control que
+ * todavía no se ve.
+ *
+ * POR QUÉ UNA ANIMACIÓN HERMANA Y NO OTRA COSA. La coreografía no se toca (el
+ * retardo de HERO_CHROME_OFFSET_MS y la curva siguen siendo los mismos), y la
+ * regla de la casa —solo `opacity`/`transform` se ANIMAN— tampoco: esta
+ * segunda animación no interpola nada. `pointer-events` es una propiedad de
+ * animación DISCRETA por especificación, así que solo puede SALTAR entre dos
+ * valores; el `99%` la mantiene en `none` durante prácticamente toda la
+ * duración y el salto cae al final, cuando la barra ya es visible. Sin ese
+ * `99%` (con solo `from`/`to`) el salto de una animación discreta ocurre a
+ * MITAD de la duración, es decir con la barra a medio aparecer.
+ *
+ * QUÉ NO SE USA, y por qué está prohibido aquí: ni `display: none`, ni
+ * `visibility: hidden`, ni `aria-hidden`. Los tres sacarían el navbar del
+ * orden de tabulación y del árbol de accesibilidad durante el intro, que es
+ * justo lo que el comentario de accesibilidad de `ScHeader` (más abajo) y el
+ * de `Navbar()` prohíben: un `Tab` durante la carga tiene que seguir llegando
+ * a los controles. `pointer-events` no toca ninguna de las dos cosas -- solo
+ * el ratón y el dedo, que son exactamente los que no pueden ver dónde pulsan.
+ *
+ * FILL BACKWARDS lo cubre entero: durante el retardo el valor efectivo es el
+ * del keyframe `0%` (`none`), y al terminar la animación —sin `forwards`— la
+ * propiedad vuelve al valor de reposo declarado en `ScHeader`
+ * (`pointer-events: auto`), sin necesidad de JavaScript ni de ningún estado.
+ * Bajo `prefers-reduced-motion: reduce` la barra ya es visible de inmediato y
+ * el bloque de reduce apaga las DOS animaciones con `animation: none`, así que
+ * la barra nace pulsable: no hay ninguna ventana muerta que arreglar ahí.
+ */
+const navbarArm = keyframes`
+  0%,
+  99% {
+    pointer-events: none;
+  }
+  100% {
+    pointer-events: auto;
+  }
+`;
+
 const ScHeader = styled.header`
   position: fixed;
   top: 0;
@@ -162,7 +210,19 @@ const ScHeader = styled.header`
      cadena vacía y el retardo de esta coreografía quedaría sin ninguna
      prueba (regla 38 de RULES.md). Verificado en esta misma tarea: con la
      abreviatura, el test daba '' en vez de 760ms. */
-  animation-name: ${navbarDrop};
+  /* Valor de reposo al que vuelve navbarArm cuando la animación termina (sin
+     fill forwards) y el que rige bajo reduce, donde no hay animación ninguna.
+     Declarado aunque coincida con el inicial de CSS: es el otro extremo del
+     contrato que documenta navbarArm, y sin él ese contrato solo existiría en
+     un comentario. (Sin comillas invertidas dentro del template: regla 23 de
+     RULES.md, ya ha roto el build cuatro veces.) */
+  pointer-events: auto;
+  /* DOS nombres, un solo juego de duración/retardo/curva/fill: la lista de
+     animation-name se empareja con las demás longhands repitiendo sus
+     valores, así que las dos animaciones comparten exactamente el mismo reloj
+     -- que es justo lo que hace falta para que el puntero se libere cuando la
+     barra termina de aparecer, y no un instante antes o después. */
+  animation-name: ${navbarDrop}, ${navbarArm};
   animation-duration: ${({ theme }) => theme.data.motion.duration.slow};
   animation-timing-function: ${({ theme }) =>
     theme.data.motion.easing.decelerate};
@@ -189,6 +249,13 @@ const ScHeader = styled.header`
    * y anunciado; solo deja de leerse su contraste visual, y ahora el tramo
    * es un retardo FIJO de HERO_CHROME_OFFSET_MS (~0,76 s) en vez de una
    * espera abierta a que el bundle hidratara.
+   *
+   * Lo que SÍ se desactiva en ese tramo, desde la crítica #14 (P1), es el
+   * puntero: opacity 0 no impide un clic, así que la barra invisible recibía
+   * pulsaciones a ciegas. Lo resuelve navbarArm (ver su docblock), una
+   * animación hermana sobre pointer-events -- una propiedad que no toca ni el
+   * orden de tabulación ni el árbol de accesibilidad, así que no contradice
+   * ni una línea de este párrafo.
    */
 
   @media (prefers-reduced-motion: reduce) {
@@ -527,75 +594,86 @@ const ScBarLanguage = styled.div`
 `;
 
 /*
- * Grupos de navegación desplegables (tarea W4), reemplazo de los cuatro
- * enlaces planos que este bloque pintaba hasta entonces
- * (`NAV_SECTION_LINKS`). Tres al nacer (onSite/discover/resources); cuatro
- * desde la tarea 6 (auditoría premium), que añade "community" a
- * `NAV_GROUPS` -- este bloque no necesitó ningún cambio propio para ganarlo,
- * ya recorre el array entero (`navGroups.map`, más abajo, el mismo modelo
- * resuelto para el idioma de la página). SOLO ≥ md
- * (mockup: barra angosta en breakpoints menores). Bajo `md` la navegación NO
- * desaparece desde Task 10: los MISMOS `NAV_GROUPS` se entregan en la hoja
- * de navegación móvil (`NavSheet.tsx`), que es la otra cara de este bloque
- * -- una sola fuente de verdad de destinos, dos presentaciones excluyentes
- * por CSS. `<div>`, no un segundo `<nav>`: `ScNav` ya es el elemento `nav`
- * de la barra: anidar un landmark de navegación dentro de otro sería un
- * `nav` redundante para lectores de pantalla.
+ * El bloque de navegación de la barra: desde la decisión D2 (2026-09-02,
+ * crítica #14) son los CUATRO destinos de sección como enlaces visibles
+ * (`ScNavSectionLink`) más UN disclosure («Más», `NavMoreMenu`) que agrupa el
+ * resto. Hasta esa fecha eran cuatro disparadores desplegables y ni un enlace
+ * visible; antes de la tarea W4, cuatro enlaces planos sin ningún desplegable.
+ *
+ * SOLO >= md (mockup: barra angosta en breakpoints menores). Bajo `md` la
+ * navegación NO desaparece desde Task 10: los MISMOS `NAV_GROUPS` se entregan
+ * en la hoja de navegación móvil (`NavSheet.tsx`), que es la otra cara de este
+ * bloque -- una sola fuente de verdad de destinos, dos presentaciones
+ * excluyentes por CSS. `<div>`, no un segundo `<nav>`: `ScNav` ya es el
+ * elemento `nav` de la barra, y anidar un landmark de navegación dentro de
+ * otro sería un `nav` redundante para lectores de pantalla.
+ *
+ * EL BREAKPOINT NO SE MUEVE CON D2, y es una decisión medida, no inercia. La
+ * pregunta que había que responder es si la composición nueva cabe donde cabía
+ * la vieja; la respuesta se calcula sobre el ancho de texto, que es lo único
+ * que cambia. En castellano la fila pasa de cuatro rótulos de grupo con
+ * galón («En el sitio», «Descubre», «Recursos», «Comunidad» = 36 caracteres +
+ * 4 chevrones) a cuatro destinos más «Más» (39 caracteres + 1 chevrón): tres
+ * caracteres más (~21px a 14px de cuerpo) contra tres chevrones menos (~41px,
+ * contando el galón de 0.6rem y su `gap` de `space[1]`), con un `gap` de fila
+ * más (`space[5]`, 24px) por el ítem extra. Neto: unos pocos píxeles, en el
+ * mismo orden de magnitud que hoy. En inglés la fila nueva es más ESTRECHA
+ * («Story/Journey/Features/Contact/More» = 31 caracteres frente a los 33 de
+ * los cuatro rótulos de grupo). Es decir: D2 no acerca ni aleja el punto en
+ * que la barra se queda sin sitio, así que moverlo sería cambiar el
+ * comportamiento de las tablets por una razón que este cambio no aporta.
+ *
+ * Y QUÉ PASA SI AUN ASÍ NO CABE en el extremo estrecho de la ventana
+ * (768-1024px, no en 1024-1280, donde sobran ~200px por el mismo cálculo): la
+ * válvula ya existe y está declarada -- `ScBrandLink` tiene `min-width: 0` +
+ * `text-overflow: ellipsis` y `ScActions` tiene `flex: none`, así que lo que
+ * cede es el rótulo de la marca y nunca los controles (ver el docblock de
+ * `ScBrandLink`, que documenta ese reparto con la medición de la ola I a
+ * 200% de tamaño de fuente). Este bloque NO declara `min-width: 0`: sus
+ * enlaces no deben encogerse ni recortarse, porque un destino de navegación
+ * con puntos suspensivos deja de nombrar su destino.
+ *
+ * Las dos cifras de arriba son ARITMÉTICA sobre anchos de carácter, no una
+ * medición en navegador: jsdom no hace layout, así que ningún test de este
+ * repo puede observarlas (regla 44/47). Quedan declaradas para que el
+ * integrador las confirme a 768, 1024 y 1280px.
  *
  * Oculto por `display: none` bajo `md` (no desmontado): igual que el resto
  * del navbar, no cambia el orden de tabulación de forma condicional al
  * viewport.
  *
- * ## SIN JAVASCRIPT: OCULTO (crítica externa #11, hallazgo A, P1)
+ * ## SIN JAVASCRIPT: SE OCULTA EL DISCLOSURE, NO EL BLOQUE (crítica externa
+ * #11, hallazgo A, P1 -- y su corrección por D2)
  *
- * El hallazgo, medido con `javaScriptEnabled: false` real: los cuatro
- * disparadores («En el sitio», «Descubre», «Recursos», «Comunidad») se seguían
- * pintando con su galón, y al pulsarlos `aria-expanded` no se movía de
- * `"false"`, no se abría nada y nada lo explicaba. La incoherencia la creó la
- * ola anterior (commit `acbbcf4`): ocultó bajo `scripting: none` el conmutador
- * de tema, el selector de idioma y el disparador de la hoja móvil, y estos
- * cuatro se quedaron fuera de la regla -- así que el evaluador ya no lo midió
- * como una limitación del sitio sino como una incoherencia interna.
+ * El hallazgo original, medido con `javaScriptEnabled: false` real: los cuatro
+ * disparadores se seguían pintando con su galón, y al pulsarlos `aria-expanded`
+ * no se movía de `"false"`, no se abría nada y nada lo explicaba. La apertura
+ * es estado de React (`moreOpen`, y de ahí el `data-open`/`inert` de
+ * `ScNavPanel`): sin JavaScript ese estado no cambia nunca, el panel se queda
+ * para siempre en `visibility: hidden` + `inert` (los dos ya horneados en el
+ * HTML exportado, que se genera con `isOpen === false`) y el disparador es una
+ * promesa que no se puede cumplir. Mismo criterio y mismo precedente que
+ * `ScSheetTriggerSlot` (`NavSheet.tsx`), `ScThemeToggleSlot`
+ * (`ThemeToggle.tsx`) y `ScLanguageSelector` (`LanguageSelector.tsx`).
  *
- * La apertura es estado de React (`openGroup`, más abajo, y de ahí el
- * `data-open`/`inert` de `ScNavPanel`): sin JavaScript ese estado no cambia
- * nunca, el panel se queda para siempre en `visibility: hidden` + `inert` (los
- * dos ya horneados en el HTML exportado, que se genera con `isOpen === false`)
- * y el disparador es una promesa que no se puede cumplir. Mismo criterio,
- * mismo mecanismo y mismo precedente que `ScSheetTriggerSlot`
- * (`NavSheet.tsx`), `ScThemeToggleSlot` (`ThemeToggle.tsx`) y
- * `ScLanguageSelector` (`LanguageSelector.tsx`).
+ * EL GUARD BAJA A `ScNavGroup` CON D2, y el propio docblock anterior lo dejó
+ * escrito: "si algún día este bloque gana un enlace PLANO (que sin JavaScript
+ * sí funcionaría), el guard baja a `ScNavGroup` y este comentario deja de ser
+ * cierto". Ese día es hoy: los cuatro destinos de sección son `<a href>`
+ * planos que navegan perfectamente sin JavaScript, así que dejar el guard
+ * sobre el contenedor los borraría junto con el disparador y regalaría la
+ * navegación de escritorio a cambio de nada. Lo que se oculta sin JavaScript
+ * es exactamente lo que no funciona sin él: el disclosure.
  *
  * NO DEJA A NADIE SIN SALIDA, que es lo que decide el caso: `Footer.tsx`
  * recorre el MISMO `NAV_GROUPS` y pinta cada destino como un `<a href>` plano,
- * siempre presente en el HTML exportado y sin ninguna capa que abrir. La
- * navegación completa sigue disponible sin JavaScript; lo que desaparece es el
- * atajo que no funciona.
+ * siempre presente en el HTML exportado y sin ninguna capa que abrir. Los tres
+ * grupos que se ocultan aquí (Descubre, Recursos, Comunidad) siguen enteros
+ * en el pie.
  *
- * EL GUARD VA SOBRE EL CONTENEDOR, no sobre cada `ScNavGroup`, y es una
- * decisión: `ScNavLinks` no tiene hoy ningún hijo que no sea un grupo
- * desplegable (`navGroups.map`, sin excepciones), así que ocultar los cuatro
- * grupos y ocultar su contenedor describen exactamente el mismo conjunto --
- * pero un contenedor oculto no genera CAJA, mientras que cuatro grupos ocultos
- * dentro de un flex vivo dejan un ítem de anchura cero en `ScNav`. Si algún
- * día este bloque gana un enlace PLANO (que sin JavaScript sí funcionaría), el
- * guard baja a `ScNavGroup` y este comentario deja de ser cierto.
- *
- * EL HUECO NO ROMPE LA MAQUETA, verificado en fuente y no por suposición:
- * `ScNav` es `display: flex; justify-content: space-between` (ver su bloque,
- * más arriba) con tres hijos -- marca, este bloque y `ScActions`. Un hijo con
- * `display: none` no es ítem de flex, así que ni ocupa ni aporta `gap`: quedan
- * marca a la izquierda y acciones a la derecha, que es EXACTAMENTE la maqueta
- * que el sitio ya sirve hoy bajo 768px, donde la regla base de este mismo
- * bloque ya es `display: none`. No es una maqueta nueva sin probar: es la
- * móvil, en escritorio.
- *
- * El guard va DESPUÉS del bloque de `md` a propósito: los dos son
- * `@media` con la misma especificidad, así que el orden de origen es lo único
- * que decide cuál gana cuando ambos casan (≥768px sin JavaScript) -- mismo
- * orden y mismo motivo que `ScSheetTriggerSlot`. CON JavaScript no cambia
- * nada: ni el `display` de ninguna de las dos ramas, ni el foco, ni el orden
- * de tabulación.
+ * NO DEJA HUECO, verificado en fuente: `ScNavGroup` con `display: none` no es
+ * ítem de flex, así que ni ocupa ni aporta `gap` -- la fila queda con los
+ * cuatro enlaces y nada más, sin un ítem de anchura cero colgando al final.
  */
 const ScNavLinks = styled.div`
   display: none;
@@ -604,12 +682,6 @@ const ScNavLinks = styled.div`
     display: flex;
     align-items: center;
     gap: ${({ theme }) => theme.data.space[5]};
-  }
-
-  /* Sin JavaScript ningún grupo abre y el pie ya expone la navegación
-     completa: ver el docblock de arriba. */
-  @media (scripting: none) {
-    display: none;
   }
 `;
 
@@ -657,9 +729,58 @@ const ScNavLink = styled.a`
 `;
 
 /*
+ * LOS CUATRO DESTINOS DE SECCIÓN, VISIBLES EN LA PÍLDORA (decisión D2 del
+ * dueño, 2026-09-02, crítica #14 -- ver el docblock de `navBarSectionsFor` en
+ * `src/config/navigation.ts` para la medición que la motiva).
+ *
+ * Hereda de `ScNavLink` por composición, igual que `ScNavPanelLink`: mismo
+ * `textMuted` en reposo, mismo `brandText` en hover/focus, mismo press de
+ * `PRESS` y mismos guards de reduce, sin duplicar una sola declaración de
+ * aquel bloque. Lo que añade es lo propio de un enlace que vive EN LA BARRA y
+ * no en una columna desplegable:
+ *
+ * - `min-height: 44px` + `inline-flex`/`align-items: center`: el mismo suelo
+ *   táctil AA que ya declaran `ScNavTrigger`, `ScBrandLink` y
+ *   `ScLanguageButton` en esta misma fila, y muy por encima del mínimo de
+ *   24x24 de WCAG 2.5.8. No cambia el aspecto (la banda mide
+ *   `--nav-height`, 56px): solo agranda la caja de clic.
+ * - El tratamiento de «ésta es la actual», heredado VERBATIM del que
+ *   `ScNavTrigger` llevaba hasta esta entrega y que a su vez copiaba de
+ *   `ScLanguageButton` `$active` (`LanguageSelector.tsx`, el idioma activo, a
+ *   unos píxeles de aquí): `text-decoration: underline` +
+ *   `text-underline-offset: 0.2em`, ni una declaración más.
+ *
+ * SE PINTA DESDE `aria-current`, NO DESDE UNA PROP: el selector es
+ * `&[aria-current="location"]`, así que la marca visual y la semántica no
+ * pueden divergir por construcción -- si el atributo no está, no hay
+ * subrayado, y no hay ningún segundo estado que mantener sincronizado. Es la
+ * misma técnica que ya usa `ScNavPanelLink::before` para su punto.
+ *
+ * POR QUÉ SUBRAYADO Y NO EL PUNTO DEL PANEL, que sería la otra reutilización
+ * literal: el punto mide `space[2]` (8px) más el `gap` de su fila y OCUPA
+ * SITIO en el flujo. En una columna vertical eso no cuesta nada; en esta fila
+ * -- que comparte ancho con la marca, «Más», el idioma y el conmutador de
+ * tema -- reservarle hueco a los cuatro enlaces ensancharía la píldora ~48px,
+ * y pintarlo solo en el activo movería los otros tres cada vez que el lector
+ * cambia de sección. El subrayado no participa del layout: no reflowea nada.
+ */
+const ScNavSectionLink = styled(ScNavLink)`
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  /* Sin comillas invertidas dentro del template: regla 23 de RULES.md, ya ha
+     roto el build tres veces. */
+  text-underline-offset: 0.2em;
+
+  &[aria-current="location"] {
+    text-decoration: underline;
+  }
+`;
+
+/*
  * Un grupo del menú desplegable: envoltorio con `position: relative` que
  * ancla su panel (`ScNavPanel`, `position: absolute; top: 100%`) al
- * disparador que lo abre. Es además el nodo donde `NavGroupMenu` escucha
+ * disparador que lo abre. Es además el nodo donde `NavMoreMenu` escucha
  * `onKeyDown` (Escape, regla 3) y `onBlur` (foco que sale del grupo, regla
  * 5): React hace burbujear los dos eventos desde cualquier descendiente
  * -- el propio disparador o un enlace del panel --, así que se capturan
@@ -667,6 +788,15 @@ const ScNavLink = styled.a`
  */
 const ScNavGroup = styled.div`
   position: relative;
+
+  /* Sin JavaScript el desplegable no abre nunca y el pie ya expone la
+     navegación completa: ver la sección "SIN JAVASCRIPT" del docblock de
+     ScNavLinks, que explica por qué el guard vive aquí desde la decisión D2 y
+     no sobre el contenedor -- los cuatro enlaces de sección que lo acompañan
+     SÍ funcionan sin JavaScript y no se pueden ocultar con él. */
+  @media (scripting: none) {
+    display: none;
+  }
 `;
 
 /*
@@ -681,50 +811,32 @@ const ScNavGroup = styled.div`
    criterio que ScNavLink arriba: el hover solo cambia color, sin nada que
    guardar tras PRESS.hoverGuard. */
 /*
- * `$current` -- SEÑAL VISIBLE DE SECCIÓN ACTUAL CON LOS PANELES PLEGADOS
- * (2026-08-20, ola post-crítica #13).
+ * AQUÍ VIVIÓ LA PROP `$current` -- la señal visible de sección actual con los
+ * paneles plegados (2026-08-20, ola post-crítica #13). RETIRADA por la
+ * decisión D2 del dueño (2026-09-02, crítica #14), y conviene decir por qué no
+ * es una regresión sino la desaparición de su causa.
  *
- * EL DEFECTO: el scrollspy funciona y marca `aria-current="location"`
- * correctamente, pero con la barra plegada los cuatro disparadores se pintan
- * idénticos (mismo `textMuted`, ningún pseudo-elemento con `content`), así que
- * la señal solo se percibe abriendo un panel o con tecnología de apoyo. Un
- * usuario vidente no tiene ninguna.
+ * Aquel subrayado sobre el DISPARADOR era un sustituto: el scrollspy marcaba
+ * `aria-current="location"` correctamente, pero el enlace que lo llevaba vivía
+ * dentro de un panel cerrado, así que un usuario vidente no veía nada sin
+ * abrirlo. El subrayado respondía «la sección que estás leyendo está en este
+ * grupo», no «cuál es» -- y su propio docblock declaraba esa mitad como
+ * pendiente de decisión del dueño.
  *
- * TRATAMIENTO REVERSIBLE EN UNA LÍNEA (borrar esta declaración y la prop
- * `$current` de `NavGroupMenu`): el tratamiento visual definitivo es DECISIÓN
- * DEL DUEÑO desde la crítica #9 («señal de sección activa visible con paneles
- * cerrados») y esta entrega no la toma. Lo único que se hace aquí es reutilizar
- * VERBATIM el tratamiento que este mismo sitio ya usa para "de este conjunto,
- * éste es el actual": `text-decoration: underline` + `text-underline-offset:
- * 0.2em`, exactamente lo que `ScLanguageButton` `$active`
- * (`LanguageSelector.tsx`) pinta para el idioma activo -- y que vive en ESTA
- * MISMA barra, a unos píxeles de aquí.
+ * D2 toma la decisión y disuelve el problema: los cuatro destinos de sección
+ * pasan a ser enlaces VISIBLES de la píldora (ver `ScNavSectionLink`, más
+ * abajo), así que `aria-current` y su tratamiento visual vuelven a vivir en el
+ * MISMO elemento -- el enlace que de verdad representa la ubicación. El
+ * subrayado no se pierde: se muda a `ScNavSectionLink`, donde ya responde
+ * «cuál es» y no solo «en qué grupo está».
  *
- * POR QUÉ EL SUBRAYADO Y NO EL PUNTO DEL PANEL (`ScNavPanelLink::before`), que
- * sería la otra reutilización literal: el punto mide `space[2]` (8px) más el
- * `gap` de la fila y ocupa sitio en el flujo. En el panel eso no cuesta nada
- * (columna vertical, ancho libre), pero en la barra los cuatro disparadores
- * comparten una fila con la marca, el idioma y el conmutador de tema: darles a
- * los cuatro el hueco reservado ensancharía la barra ~12px por disparador
- * (~48px en total) y pintarlo solo en el activo movería los otros tres al
- * entrar el lector en las secciones. Ninguna de las dos consecuencias se puede
- * medir en jsdom (no hace layout), y el ancho de la barra a 768px es justo
- * donde este sitio ya va apretado. El subrayado no participa del layout: no
- * reflowea nada y no puede empujar nada.
- *
- * NO CAMBIA NADA DE ARIA, a propósito: el disparador es un `<button>` que abre
- * un panel, no un destino, así que `aria-current` sigue viviendo donde
- * corresponde -- en el enlace del panel que SÍ representa la ubicación. Esta
- * marca es un refuerzo visual redundante para quien no abre el panel, no una
- * segunda fuente de verdad: se calcula del MISMO `activeSectionKey`.
- *
- * SOLO PUEDE ENCENDERSE EL GRUPO `onSite`, y conviene saberlo antes de leer el
- * JSX: es el único con items `kind: "section"` (los de «Descubre» apuntan
- * dentro de Features y no son destinos de scrollspy, ver `navigation.ts`). La
- * marca responde por tanto "la sección que estás leyendo está en este grupo",
- * no "cuál es"; esa segunda mitad sigue siendo el punto del panel al abrirlo.
+ * Y no se puede dejar aquí «por si acaso»: el único disparador que queda
+ * («Más») agrupa `discover`/`resources`/`community`, y ninguno de sus items es
+ * `kind: "section"` (ver `navigation.ts`), así que `$current` sería una prop
+ * que no puede encenderse nunca -- exactamente el tipo de promesa muerta que
+ * la regla 16 prohíbe conservar.
  */
-const ScNavTrigger = styled.button<{ $current: boolean }>`
+const ScNavTrigger = styled.button`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[1]};
@@ -736,12 +848,6 @@ const ScNavTrigger = styled.button<{ $current: boolean }>`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 500;
   color: ${({ theme }) => theme.data.semantic.textMuted};
-  /* Ver el docblock de arriba: mismo par de declaraciones que ScLanguageButton
-     $active usa para el idioma actual, ni una más. (Sin comillas invertidas
-     dentro del template: regla 23 de RULES.md, ya ha roto el build tres
-     veces.) */
-  text-decoration: ${({ $current }) => ($current ? "underline" : "none")};
-  text-underline-offset: 0.2em;
   cursor: pointer;
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
@@ -845,12 +951,13 @@ const ScChevron = styled.svg<{ $open: boolean }>`
  * animación ya terminó. Es el "retardo" que pide la tarea, nativo del
  * navegador, sin ninguna sintaxis extra.
  *
- * Task 9 (craft de interacción, punto 5 del brief): transform-origin: top
- * left (el panel cuelga desde su disparador, arriba-izquierda, ver
- * `position: absolute; top: 100%; left: 0` de más abajo -- el encogimiento
- * de scale tiene que anclarse ahí, no al centro por defecto, o el panel
- * "flotaría" hacia el centro de su propia caja al cerrarse). El estado
- * cerrado suma `scale(OVERLAY.closedScale)` al `translateY` que ya tenía.
+ * Task 9 (craft de interacción, punto 5 del brief): el panel cuelga desde la
+ * esquina superior de su disparador, así que ahí se ancla el
+ * `transform-origin` -- `top right` desde la decisión D2 (ver el bloque justo
+ * encima de la declaración, que explica el cambio de anclaje), `top left`
+ * hasta entonces; nunca el centro por defecto, o el panel "flotaría" hacia el
+ * centro de su propia caja al cerrarse. El estado cerrado suma
+ * `scale(OVERLAY.closedScale)` al `translateY` que ya tenía.
  * Asimetría 120/180 (regla 26 de RULES.md, mismo patrón que ScBar más
  * arriba: DOS declaraciones de `transition` -- base y `[data-open="true"]`
  * -- sin estado de React nuevo): abrir tarda más (`OVERLAY.openMs`) que
@@ -865,10 +972,27 @@ const ScChevron = styled.svg<{ $open: boolean }>`
  * escala de cierre, antes exclusiva de este panel; ver el docblock de
  * `OVERLAY` para el porqué del cambio) y no solo las dos duraciones.
  */
+/*
+ * ANCLADO A LA DERECHA DESDE LA DECISIÓN D2 (2026-09-02), antes a la
+ * izquierda. No es cosmético: con cuatro disparadores repartidos por la fila,
+ * `left: 0` hacía que cada panel creciera hacia la derecha desde SU
+ * disparador, y el más a la derecha («Comunidad») era el único que se acercaba
+ * al filo. Ahora queda UN solo disclosure, y es el ÚLTIMO elemento del bloque
+ * de enlaces: es decir, el más cercano al grupo de acciones (idioma + tema) y
+ * al borde de la píldora. Con `left: 0` un panel de `min-width: 12rem` --
+ * ahora además con tres grupos rotulados dentro, así que más ancho que antes
+ * -- crecería justo hacia ese borde. `right: 0` lo hace crecer hacia el
+ * interior de la barra, donde el espacio libre está por construcción.
+ *
+ * `transform-origin` acompaña al anclaje (`top right`, antes `top left`): el
+ * encogimiento de `scale` tiene que anclarse en la esquina de la que el panel
+ * cuelga, o al cerrarse el panel "flotaría" hacia el centro de su propia caja
+ * en vez de replegarse contra su disparador.
+ */
 const ScNavPanel = styled.div`
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   margin-top: ${({ theme }) => theme.data.space[2]};
   min-width: 12rem;
   padding: ${({ theme }) => theme.data.space[2]};
@@ -880,7 +1004,7 @@ const ScNavPanel = styled.div`
   box-shadow: ${({ theme }) => theme.data.elevation[2]};
   z-index: ${({ theme }) => theme.data.zIndex.dropdown};
 
-  transform-origin: top left;
+  transform-origin: top right;
   visibility: hidden;
   opacity: 0;
   transform: translateY(-4px) scale(${OVERLAY.closedScale});
@@ -928,6 +1052,42 @@ const ScNavPanel = styled.div`
       transition: none;
     }
   }
+`;
+
+/*
+ * Los tres grupos DENTRO del único panel (decisión D2): hasta esta entrega
+ * cada grupo tenía su propio disparador y su propio panel, así que el rótulo
+ * del grupo ERA la etiqueta del botón. Con un solo disclosure («Más») esa
+ * etiqueta ya no puede nombrar tres cosas a la vez, y los rótulos bajan
+ * dentro del panel -- que es exactamente lo que la hoja móvil lleva haciendo
+ * desde la Task 10, y lo que la crítica #14 señala como la razón de que
+ * resuelva mejor el problema en una pantalla mucho más pequeña.
+ *
+ * Mismo par de piezas y misma semántica que `ScSheetGroup`/`ScSheetGroupTitle`
+ * (`NavSheet.tsx`) y que `ScColumnTitle` (`Footer.tsx`): el rótulo es un `<p>`
+ * atado a su lista con `aria-labelledby`, NUNCA un `h*`. Convertirlo en
+ * encabezado metería en el esquema del documento tres títulos que solo
+ * existen dentro de un desplegable de escritorio; `aria-labelledby` es la
+ * herramienta correcta para nombrar una lista, y ya hay un candado en la
+ * suite que afirma que la hoja no introduce encabezados por el mismo motivo.
+ */
+const ScNavPanelGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.data.space[1]};
+
+  & + & {
+    margin-top: ${({ theme }) => theme.data.space[3]};
+  }
+`;
+
+const ScNavPanelGroupTitle = styled.p`
+  margin: 0;
+  padding: ${({ theme }) => theme.data.space[1]}
+    ${({ theme }) => theme.data.space[2]};
+  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  font-weight: 600;
+  color: ${({ theme }) => theme.data.semantic.textSubtle};
 `;
 
 const ScNavPanelList = styled.ul`
@@ -1029,15 +1189,32 @@ const ScNavPanelLink = styled(ScNavLink)`
 `;
 
 /*
- * Un grupo desplegable individual. Vive fuera de `Navbar()` porque cada
- * instancia necesita SU PROPIO `useId()` (disparador + panel) y SU PROPIA
- * referencia al disparador (para devolverle el foco al cerrar con Escape,
- * regla 3): subir esos valores al componente padre obligaría a indexarlos
- * a mano por `NavGroupKey` sin ganar nada frente a que cada grupo resuelva
- * lo suyo.
+ * EL ÚNICO DESPLEGABLE DE LA BARRA (decisión D2, 2026-09-02): «Más», que
+ * agrupa `discover` + `resources` + `community` con sus rótulos dentro.
+ *
+ * Hasta esta entrega esto era `NavGroupMenu`, y `Navbar()` montaba CUATRO
+ * instancias -- una por grupo de `NAV_GROUPS`, cada una con su disparador y su
+ * panel. La crítica #14 midió el resultado a 1440x900: cuatro botones cuyas
+ * etiquetas no nombran ningún destino, uno de ellos abriendo un panel entero
+ * para revelar un solo enlace, y ni un enlace de navegación visible en la
+ * barra. D2 saca los cuatro destinos de sección a la píldora (ver
+ * `ScNavSectionLink`) y deja UN disclosure para el resto.
+ *
+ * Vive fuera de `Navbar()` por lo mismo que su antecesor: necesita su propio
+ * `useId()` (disparador + panel, para que `aria-controls`/`aria-labelledby`
+ * apunten a ids reales) y su propia referencia al disparador, para devolverle
+ * el foco al cerrar con Escape.
+ *
+ * SIGUE RECIBIENDO `activeSectionKey` aunque hoy ninguno de sus tres grupos
+ * pueda encenderlo: la resolución de `aria-current` es DATO-DIRIGIDA
+ * (`kind === "section"`, ver más abajo), no una lista escrita a mano, así que
+ * describe correctamente cualquier partición futura de `NAV_GROUPS` en vez de
+ * describir la de hoy. Retirarlo obligaría a reintroducirlo el día que un
+ * grupo de «Más» gane una sección, y ese día nada avisaría de que falta.
  */
-interface NavGroupMenuProps {
-  readonly group: NavGroup;
+interface NavMoreMenuProps {
+  /** Los grupos que quedan detrás del disclosure (`navBarMoreGroupsFor`). */
+  readonly groups: readonly NavGroup[];
   readonly isOpen: boolean;
   readonly onToggle: () => void;
   readonly onClose: () => void;
@@ -1047,13 +1224,13 @@ interface NavGroupMenuProps {
   readonly activeSectionKey: string | null;
 }
 
-function NavGroupMenu({
-  group,
+function NavMoreMenu({
+  groups,
   isOpen,
   onToggle,
   onClose,
   activeSectionKey,
-}: NavGroupMenuProps): ReactElement {
+}: NavMoreMenuProps): ReactElement {
   const { t } = useTranslation("common");
   const triggerId = useId();
   const panelId = useId();
@@ -1093,15 +1270,6 @@ function NavGroupMenu({
     focusNavAnchorTarget(item);
   }
 
-  /* Señal visible de sección actual con el panel plegado (ver el docblock de
-     `ScNavTrigger`). Se deriva del MISMO `activeSectionKey` que decide
-     `aria-current` más abajo -- nunca un segundo estado -- y con el MISMO
-     predicado (`kind === "section"`), así que no puede encenderse por un item
-     que no represente una sección real. */
-  const hasActiveSection = group.items.some(
-    (item) => item.kind === "section" && item.key === activeSectionKey,
-  );
-
   function itemLabel(item: NavItem): string {
     switch (item.kind) {
       case "section":
@@ -1122,7 +1290,6 @@ function NavGroupMenu({
         type="button"
         id={triggerId}
         ref={triggerRef}
-        $current={hasActiveSection}
         aria-expanded={isOpen}
         aria-controls={panelId}
         /*
@@ -1156,7 +1323,18 @@ function NavGroupMenu({
          */
         onClick={onToggle}
       >
-        {t(`Common.Nav.${group.key}`)}
+        {t("Common.Nav.more")}
+        {/* «Más» a secas es un rótulo de contenedor: dice que hay algo detrás,
+            no de qué. Se completa para lectores de pantalla con un texto
+            oculto que NO sustituye la etiqueta visible sino que la extiende
+            («Más destinos del sitio»), así que el nombre accesible sigue
+            EMPEZANDO por lo que se lee en pantalla -- WCAG 2.5.3, Label in
+            Name, que un `aria-label` con otro texto habría roto.
+
+            Espacio literal DENTRO del texto oculto, no entre nodos JSX (que
+            la compilación colapsaría): mismo criterio y mismo motivo que ya
+            documenta el aviso de pestaña nueva, unas líneas más abajo. */}
+        <VisuallyHidden> {t("Common.Nav.moreHint")}</VisuallyHidden>
         <ScChevron
           viewBox="0 0 12 8"
           aria-hidden="true"
@@ -1179,58 +1357,88 @@ function NavGroupMenu({
         data-open={isOpen}
         inert={!isOpen}
       >
-        <ScNavPanelList>
-          {group.items.map((item) =>
-            item.kind === "external" ? (
-              <li key={item.key}>
-                <ScNavPanelLink
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => handleLinkActivate(item)}
-                >
-                  {itemLabel(item)}
-                  {/* Espacio literal DENTRO del texto oculto, no entre nodos
-                      JSX (que la compilación colapsaría): sin él, el
-                      `textContent` del ancla queda pegado ("VTI - SDKse abre
-                      en...") y un lector de pantalla que lo lea como una sola
-                      cadena pronuncia una palabra inexistente. Mismo criterio
-                      ya aplicado en `Footer.tsx` para este mismo aviso. */}
-                  <VisuallyHidden> {t("Common.Nav.newTab")}</VisuallyHidden>
-                </ScNavPanelLink>
-              </li>
-            ) : (
-              <li key={item.key}>
-                <ScNavPanelLink
-                  href={item.href}
-                  onClick={() => handleLinkActivate(item)}
-                  /*
-                   * Punto 1 del brief (Tarea 1): solo los items
-                   * `kind: "section"` representan una sección real de la
-                   * home -- "discover" apunta también a "#features" pero
-                   * son títulos de contenido (Learning/Imagination/Gaming),
-                   * no destinos de scrollspy propios. `"location"`, no
-                   * `"true"`: WAI-ARIA reserva ese valor para "la posición
-                   * actual dentro de un documento o contexto que el
-                   * usuario está recorriendo" -- exactamente este caso
-                   * (un enlace de sección que refleja dónde está el
-                   * scroll), y es más preciso que el genérico `"true"`.
-                   * `undefined`, no `"false"`, cuando no es la activa: así
-                   * el atributo desaparece del DOM en vez de quedar
-                   * anunciado como "no es la actual" en cada enlace.
-                   */
-                  aria-current={
-                    item.kind === "section" && item.key === activeSectionKey
-                      ? "location"
-                      : undefined
-                  }
-                >
-                  {itemLabel(item)}
-                </ScNavPanelLink>
-              </li>
-            ),
-          )}
-        </ScNavPanelList>
+        {groups.map((group) => {
+          /* Id DERIVADO del `useId()` del panel, no un `useId()` propio: los
+             grupos se recorren en un `map`, y un hook no se puede llamar
+             dentro de un bucle. La alternativa sería extraer un componente
+             hijo solo para tener su propio `useId` (el camino que sí siguió
+             `NavSheetGroup`, que además tiene su propio `switch` de
+             etiquetas); aquí el sufijo basta y es estable: `panelId` es único
+             por instancia y `group.key` es único dentro del modelo, así que
+             el par no puede colisionar ni entre grupos ni entre barras. */
+          const groupTitleId = `${panelId}-${group.key}`;
+
+          return (
+            <ScNavPanelGroup key={group.key}>
+              <ScNavPanelGroupTitle id={groupTitleId}>
+                {t(`Common.Nav.${group.key}`)}
+              </ScNavPanelGroupTitle>
+              <ScNavPanelList aria-labelledby={groupTitleId}>
+                {group.items.map((item) =>
+                  item.kind === "external" ? (
+                    <li key={item.key}>
+                      <ScNavPanelLink
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => handleLinkActivate(item)}
+                      >
+                        {itemLabel(item)}
+                        {/* Espacio literal DENTRO del texto oculto, no entre
+                            nodos JSX (que la compilación colapsaría): sin él,
+                            el `textContent` del ancla queda pegado ("VTI -
+                            SDKse abre en...") y un lector de pantalla que lo
+                            lea como una sola cadena pronuncia una palabra
+                            inexistente. Mismo criterio ya aplicado en
+                            `Footer.tsx` para este mismo aviso. */}
+                        <VisuallyHidden>
+                          {" "}
+                          {t("Common.Nav.newTab")}
+                        </VisuallyHidden>
+                      </ScNavPanelLink>
+                    </li>
+                  ) : (
+                    <li key={item.key}>
+                      <ScNavPanelLink
+                        href={item.href}
+                        onClick={() => handleLinkActivate(item)}
+                        /*
+                         * Punto 1 del brief (Tarea 1): solo los items
+                         * `kind: "section"` representan una sección real de
+                         * la home -- "discover" apunta dentro de Features
+                         * pero son títulos de contenido
+                         * (Learning/Imagination/Gaming), no destinos de
+                         * scrollspy propios. `"location"`, no `"true"`:
+                         * WAI-ARIA reserva ese valor para "la posición
+                         * actual dentro de un documento o contexto que el
+                         * usuario está recorriendo".
+                         *
+                         * Desde la decisión D2 ningún item de este panel es
+                         * `kind: "section"` -- los cuatro que lo eran se
+                         * pintan ahora como enlaces visibles de la barra
+                         * (`ScNavSectionLink`) --, así que hoy esta rama no
+                         * se enciende nunca. Se conserva por lo mismo que
+                         * `activeSectionKey` sigue llegando hasta aquí: la
+                         * condición describe el MODELO (`kind`), no la
+                         * partición concreta de hoy, y no hay ninguna copia
+                         * que mantener sincronizada.
+                         */
+                        aria-current={
+                          item.kind === "section" &&
+                          item.key === activeSectionKey
+                            ? "location"
+                            : undefined
+                        }
+                      >
+                        {itemLabel(item)}
+                      </ScNavPanelLink>
+                    </li>
+                  ),
+                )}
+              </ScNavPanelList>
+            </ScNavPanelGroup>
+          );
+        })}
       </ScNavPanel>
     </ScNavGroup>
   );
@@ -1250,9 +1458,15 @@ export function Navbar(): ReactElement {
    * `NAV_GROUPS` deja de consumirse directamente aquí: en `/en` sus `href`
    * empiezan por `/` y devolvían al visitante inglés a la home castellana en
    * los 7 destinos de la barra (ver el docblock de `navGroupsFor`).
+   *
+   * Las dos vistas que consume la barra desde la decisión D2 salen de la MISMA
+   * derivación por idioma (`navBarSectionsFor`/`navBarMoreGroupsFor` la
+   * envuelven, ver `navigation.ts`): los cuatro destinos de sección que se
+   * pintan visibles, y los tres grupos que quedan tras «Más».
    */
-  const { i18n } = useTranslation("common");
-  const navGroups = navGroupsFor(i18n.language);
+  const { t, i18n } = useTranslation("common");
+  const barSections = navBarSectionsFor(i18n.language);
+  const moreGroups = navBarMoreGroupsFor(i18n.language);
   // Este componente ya no consume useStage(): desde la revisión 2026-08-11 su
   // entrada de carga es una @keyframes estática con animation-delay =
   // HERO_CHROME_OFFSET_MS (ver el docblock de ScHeader). No necesita que nadie
@@ -1268,13 +1482,15 @@ export function Navbar(): ReactElement {
   const activeSectionKey = useActiveSectionKey();
 
   /*
-   * Regla 1: un solo grupo abierto a la vez -- un único estado
-   * `NavGroupKey | null`, nunca un booleano por grupo. Abrir un segundo
-   * grupo (regla 2) se resuelve por construcción: `toggleGroup` sobrescribe
-   * este único valor, así que el grupo que estuviera abierto deja de serlo
-   * sin tener que coordinar N estados booleanos entre sí.
+   * Un solo desplegable en la barra desde la decisión D2, así que su apertura
+   * es un booleano. Aquí vivió `openGroup: NavGroupKey | null`, y ese tipo
+   * existía para cumplir por construcción las reglas 1 y 2 de la tarea W4 (un
+   * solo grupo abierto a la vez; abrir un segundo cierra el primero) cuando
+   * había CUATRO disparadores. Con uno, esas dos reglas no describen ninguna
+   * situación posible: no hay un segundo grupo que cerrar. Conservar la unión
+   * sería conservar la coordinación de un problema que ya no existe.
    */
-  const [openGroup, setOpenGroup] = useState<NavGroupKey | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const navLinksRef = useRef<HTMLDivElement>(null);
 
   /*
@@ -1289,38 +1505,39 @@ export function Navbar(): ReactElement {
    */
   const sheet = useNavSheet();
 
-  const closeGroup = useCallback((): void => {
-    setOpenGroup(null);
+  const closeMore = useCallback((): void => {
+    setMoreOpen(false);
   }, []);
 
-  const toggleGroup = useCallback((key: NavGroupKey): void => {
-    setOpenGroup((current) => (current === key ? null : key));
+  const toggleMore = useCallback((): void => {
+    setMoreOpen((current) => !current);
   }, []);
 
   /*
    * Regla 4: un click/pointerdown fuera del BLOQUE DE NAVEGACIÓN completo
-   * (todos los grupos, no solo el que está abierto) cierra el grupo
-   * abierto. Se escucha en `document` porque el click puede caer en
-   * cualquier parte de la página -- desde el resto de `ScHeader` hasta el
-   * fondo de una sección --, y SOLO mientras haya un grupo abierto: sin
-   * grupo abierto no hay nada que cerrar ni listener que mantener vivo, y
-   * el propio `return` de limpieza (regla 7) lo retira en cuanto
-   * `openGroup` cambia o el componente se desmonta.
+   * -- no solo fuera del desplegable: los cuatro enlaces de sección son
+   * parte del mismo bloque y pulsarlos no debe cerrar por esta vía, ya lo
+   * hace su propio manejador -- cierra el desplegable abierto. Se escucha en
+   * `document` porque el click puede caer en cualquier parte de la página
+   * -- desde el resto de `ScHeader` hasta el fondo de una sección --, y SOLO
+   * mientras esté abierto: cerrado no hay nada que cerrar ni listener que
+   * mantener vivo, y el propio `return` de limpieza (regla 7) lo retira en
+   * cuanto `moreOpen` cambia o el componente se desmonta.
    */
   useEffect(() => {
-    if (openGroup === null) return;
+    if (!moreOpen) return;
 
     function handlePointerDown(event: PointerEvent): void {
       if (!(event.target instanceof Node)) return;
       if (navLinksRef.current?.contains(event.target)) return;
-      setOpenGroup(null);
+      setMoreOpen(false);
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [openGroup]);
+  }, [moreOpen]);
 
   /*
    * ACCESIBILIDAD durante el intro: la entrada SOLO anima
@@ -1438,16 +1655,37 @@ export function Navbar(): ReactElement {
               ref={navLinksRef}
               data-nav-links
             >
-              {navGroups.map((group) => (
-                <NavGroupMenu
-                  key={group.key}
-                  group={group}
-                  isOpen={openGroup === group.key}
-                  onToggle={() => toggleGroup(group.key)}
-                  onClose={closeGroup}
-                  activeSectionKey={activeSectionKey}
-                />
+              {/* Los cuatro destinos de sección, VISIBLES (decisión D2). El
+                `onClick` es el mismo par que ya usaban dentro del panel menos
+                el cierre, que aquí no aplica porque no hay panel que cerrar:
+                mover el foco al destino del ancla (crítica externa #8, punto
+                3, ver `navAnchorFocus.ts`). */}
+              {barSections.map((item) => (
+                <ScNavSectionLink
+                  key={item.key}
+                  href={item.href}
+                  onClick={() => focusNavAnchorTarget(item)}
+                  /* Mismo valor y mismo criterio que llevaban dentro del
+                     panel: "location" (la posición actual dentro del
+                     documento que el usuario recorre), y `undefined` --no
+                     "false"-- cuando no lo es, para que el atributo
+                     desaparezca del DOM en vez de anunciarse en los cuatro.
+                     Lo que cambia con D2 es dónde se ve: el scrollspy ya no
+                     exige abrir nada para percibirse. */
+                  aria-current={
+                    item.key === activeSectionKey ? "location" : undefined
+                  }
+                >
+                  {t(`Common.Navigation.${item.key}`)}
+                </ScNavSectionLink>
               ))}
+              <NavMoreMenu
+                groups={moreGroups}
+                isOpen={moreOpen}
+                onToggle={toggleMore}
+                onClose={closeMore}
+                activeSectionKey={activeSectionKey}
+              />
             </ScNavLinks>
             <ScActions>
               <ScBarLanguage>

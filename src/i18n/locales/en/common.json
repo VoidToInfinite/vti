@@ -19,6 +19,8 @@
             "discover": "Discover",
             "resources": "Resources",
             "community": "Community",
+            "more": "More",
+            "moreHint": "site destinations",
             "sdk": "VTI - SDK",
             "discord": "Discord",
             "github": "GitHub",
