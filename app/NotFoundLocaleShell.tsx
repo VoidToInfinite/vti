@@ -96,12 +96,12 @@ function getServerSnapshot(): Locale {
  * actual el idioma de la instancia activa (`i18n.language === lng`,
  * `LanguageSelector.tsx`) y no una constante.
  *
- * LO QUE ESTA CÁSCARA NO ARREGLA, y queda declarado en vez de escondido: la
- * salida «Volver al inicio» que monta `NotFoundContent.tsx` es un
- * `href="/"` literal, así que desde una 404 inglesa sigue llevando a la portada
- * CASTELLANA. El arreglo es de una línea —`href={routePath("home", locale)}`,
- * con `locale` de `useTranslation().i18n.language`— pero vive en
- * `src/components/sections/`, fuera del alcance de esta entrega.
+ * LO QUE ESTA CÁSCARA NO ARREGLABA al nacer, y que la ola I (2026-08-20)
+ * cerró después: la salida «Volver al inicio» de `NotFoundContent.tsx` era un
+ * `href="/"` literal y desde una 404 inglesa llevaba a la portada castellana.
+ * Hoy compone `routePath("home", navLocale(i18n.language))`, así que la 404
+ * sale por su propio idioma; este docblock lo afirmaba al revés hasta la
+ * integración de la ola K (2026-09-02), que lo puso al día sin tocar código.
  */
 export function NotFoundLocaleShell({
   children,

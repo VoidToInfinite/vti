@@ -547,7 +547,10 @@ const ScBrandLink = styled(Link)`
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
   min-height: 44px;
-  font-size: 1.15rem;
+  /* Solo el TAMAÑO del peldaño wordmark (crítica externa #15, 2026-09-02): el
+     1.15rem estaba escrito byte a byte aquí y en LegalHeader.tsx. El peso y el
+     tracking los pone el propio rótulo (BrandName), no este enlace. */
+  font-size: ${({ theme }) => theme.data.type.scale.wordmark.size};
   color: ${({ theme }) => theme.data.semantic.text};
   min-width: 0;
   overflow: hidden;

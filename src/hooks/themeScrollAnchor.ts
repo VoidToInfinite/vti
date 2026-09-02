@@ -110,8 +110,8 @@
  *    siendo exactamente cero.
  *
  * LO QUE SIGUE SIENDO DISTINTO, y es correcto que lo sea: `useActiveSection`
- * solo mira las cuatro secciones de `NAV_GROUPS` (Story, Journey, Features,
- * Contact) y responde `null` en el Hero; este módulo mira toda `section[id]`
+ * solo mira las secciones de `NAV_GROUPS` (Story, Journey, Features, Contact
+ * y, desde la ola K de la crítica #15, About) y responde `null` en el Hero; este módulo mira toda `section[id]`
  * de primer nivel, porque necesita un ancla también para quien cambia de tema
  * mirando el hero. La REGLA es la misma; el CONJUNTO de candidatas no.
  */
