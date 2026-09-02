@@ -380,8 +380,9 @@ export const FEATURES_DARK_HEIGHT = "100dvh";
  * su propio tope de contenido, y conservarla deja el día de mañana abierto a
  * que Features diverja del resto sin tocar a nadie más. Mismo patrón y mismo
  * precedente que `JOURNEY_DECK_TITLE_SIZE` (`journey.layers.ts`), que deriva
- * su `clamp()` del peldaño `deckTitle` de la escala tipográfica desde la
- * crítica #11. El candado de que el número no vuelva a escribirse a mano se
+ * su tamaño de un peldaño de la escala tipográfica desde la crítica #11
+ * (`deckTitle` entonces; `type.scale.h2` desde la crítica #14, que retiró
+ * aquel peldaño al unificar el h2 dentro del tema oscuro). El candado de que el número no vuelva a escribirse a mano se
  * observa en la FUENTE (`Features.test.tsx`), porque token y literal resuelven
  * a la misma cadena y ningún candado de valor puede distinguirlos
  * (`task/lessons.md`, 2026-08-12).
