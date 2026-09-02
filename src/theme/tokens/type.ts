@@ -47,6 +47,55 @@
  * «12 variantes» y enumerando las tres retiradas, y su lista de deuda conocida
  * sigue apuntando los dos defectos que este cambio cierra (`h4`→`h5` y
  * `h5`=`bodyLg`) más «variante `lead` sin ningún consumidor».
+ *
+ * ---------------------------------------------------------------------------
+ * EL PELDAÑO LLAMADO `h5` ES EL CUARTO, Y ESE NOMBRE ES DEUDA — no un
+ * descuido. Declarado en la crítica externa #15 (2026-09-02, hallazgo C7).
+ * ---------------------------------------------------------------------------
+ *
+ * Los peldaños con nombre de titular van hoy `h1` (2.5rem) → `h2` (2rem) →
+ * `h3` (1.5rem) → `h5` (1.125rem): cuatro rangos, y el cuarto lleva el
+ * nombre del quinto. Es el residuo exacto de la #14, que retiró `h4` (1.25rem)
+ * por cero consumidores y por estar a 1,11× de `h5` — la retirada era
+ * correcta, pero dejó el hueco en el NOMBRE en vez de correr la numeración.
+ *
+ * CENSO propio antes de decidir (patrones `variant="h5"`, `scale.h5`,
+ * `scale["h5"]`, `<h5`, `styled.h5`, `as="h5"`, sobre `src/` y `app/`, tests
+ * incluidos), a HEAD `8474ea7`:
+ *
+ *   - `Story.tsx:1554`         `variant="h5"` -- y con `forwardedAs="p"`.
+ *   - `Features.tsx:968`       `type.scale.h5.weight`.
+ *   - `story.deck.tsx:711-713` `weight` / `lineHeight` / `tracking`.
+ *   - `journey.deck.tsx:695`   `tracking`.
+ *
+ * Resultado: NINGUNO depende semánticamente de un `<h5>` real. El único que
+ * pasa por `Typography` fuerza el `<p>` a propósito, y los otros tres leen
+ * propiedades sueltas dentro de sus propias piezas styled. Medido en el árbol
+ * entero: el sitio no renderiza ni un `<h5>`, así que renombrar el peldaño no
+ * moldea ni un píxel — es un cambio de vocabulario puro.
+ *
+ * POR QUÉ EL RENAME NO SE EJECUTA AQUÍ, y qué exige exactamente: los cuatro
+ * consumidores viven en `src/components/sections/`, fuera del alcance de la
+ * tarea que escribe esta nota, y esta ola tiene cinco sesiones editando el
+ * MISMO árbol de trabajo. Renombrar la clave sin tocarlos deja `pnpm
+ * typecheck` en rojo para todas ellas a la vez (`scale.h5` deja de existir y
+ * `variant="h5"` deja de tipar). Los cuatro puntos de edición son los del
+ * censo de arriba, más `Typography.tsx` (su tabla de elemento por defecto) y
+ * los dos contratos cerrados de `type.test.ts` (`toEqual` y la lista de
+ * titulares). Es un rename mecánico de seis ficheros, no un rediseño.
+ *
+ * LO QUE SÍ SE CIERRA en esta revisión, porque es la mitad que hace daño:
+ * `Typography` ya NO mapea este peldaño a un `<h5>` real. Un `<h5>` colgando
+ * de la estructura real del sitio (`h1` → `h2` → `h3`) es un salto de nivel;
+ * el docblock del hueco que dejó esa entrada, en `Typography.tsx`, lleva el
+ * razonamiento completo. Queda el nombre, que no rompe nada — solo miente.
+ *
+ * Y NO SE RELLENA EL HUECO CON UN `h4` NUEVO, que es la otra salida posible:
+ * sería revertir a los tres días una decisión de la #14 tomada con su censo y
+ * su medición escritos (1,11× de salto, cero consumidores) sin que haya
+ * aparecido ni un consumidor ni una razón nueva. El criterio de este fichero
+ * no cambia por la incomodidad de un nombre: un peldaño existe si dice algo
+ * que la escala no decía ya.
  */
 export type TypeVariant =
   | "deckClosing"

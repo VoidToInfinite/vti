@@ -145,6 +145,37 @@ describe("type tokens", () => {
   });
 
   /*
+   * FORMA de la escala de titulares, NUEVO con la crítica externa #15
+   * (2026-09-02, hallazgo C7). El `toEqual` de arriba canda los VALORES uno a
+   * uno, pero no dice nada de la propiedad que hace que una escala sea una
+   * escala: que sus rangos de titular estén ordenados y no se solapen.
+   *
+   * La lista literal `["h1", "h2", "h3", "h5"]` es el REGISTRO del hallazgo,
+   * no su bendición: son cuatro rangos y el cuarto lleva el nombre del
+   * quinto, residuo de la retirada de `h4` en la #14. El docblock de
+   * `TypeVariant` lleva el censo de consumidores y los seis puntos de edición
+   * que exige el rename; este `toEqual` es lo que obliga a pasar por aquí el
+   * día que alguien lo ejecute — o el día que alguien intente rellenar el
+   * hueco con un `h4` nuevo sin leer por qué se retiró.
+   *
+   * El orden descendente y la ausencia de empates SÍ son invariantes de
+   * diseño y sobreviven al rename: dos peldaños de titular al mismo tamaño
+   * son dos nombres para un estilo (el defecto que la #14 pagó con `h5` =
+   * `bodyLg`), y un orden roto es una escala que ya no se lee como una
+   * escalera.
+   */
+  it("los rangos de titular descienden en tamaño, sin empates, y hoy NO hay h4", () => {
+    const titulares = Object.keys(typo.scale).filter((k) => /^h\d$/.test(k));
+    expect(titulares).toEqual(["h1", "h2", "h3", "h5"]);
+
+    const tamanos = titulares.map((k) =>
+      parseFloat(typo.scale[k as keyof typeof typo.scale].size),
+    );
+    expect(tamanos).toEqual([...tamanos].sort((a, b) => b - a));
+    expect(new Set(tamanos).size).toBe(tamanos.length);
+  });
+
+  /*
    * `deckBody` comparte SUELO con `body` y no techo: el mínimo de su
    * `clamp()` es exactamente `body.size`, y esa es la razón por la que no es
    * un capricho tener los dos peldaños (su docblock lo explica). La

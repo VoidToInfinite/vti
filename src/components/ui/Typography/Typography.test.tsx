@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
+import type { TypeVariant } from "@/theme/tokens/type";
 import { Typography } from "./Typography";
 
 describe("Typography", () => {
@@ -29,47 +30,74 @@ describe("Typography", () => {
    * compatibilidad que no protegía a ningún consumidor real -- ver el docblock
    * del hueco que dejó en `Typography.tsx`.
    *
-   * Del `it.each` de titulares desaparece la fila `["h4", "H4"]`, y más abajo
-   * el test de `variant="code"`, por el mismo motivo y en el mismo cambio que
-   * sus peldaños de la escala (`theme/tokens/type.ts`). Las filas que quedan
-   * son exactamente las variantes que hoy existen: quitar una y dejar el test
-   * habría dejado un `it.each` que no compila.
+   * De aquel `it.each` de titulares desapareció la fila `["h4", "H4"]`, y más
+   * abajo el test de `variant="code"`, por el mismo motivo y en el mismo
+   * cambio que sus peldaños de la escala (`theme/tokens/type.ts`). Los tres
+   * `it.each` sueltos que quedaban se sustituyeron por la tabla exhaustiva de
+   * más abajo en la crítica externa #15 (2026-09-02).
    */
-  it.each([
-    ["display", "H1"],
-    ["h1", "H1"],
-    ["h2", "H2"],
-    ["h3", "H3"],
-    ["h5", "H5"],
-  ] as const)(
-    "la variante de titular '%s' renderiza <%s> por defecto",
-    (variant, expectedTag) => {
+  /*
+   * CANDADO EXHAUSTIVO variante -> etiqueta (crítica externa #15, 2026-09-02,
+   * hallazgo C7). SUSTITUYE a los tres `it.each` que vivían aquí -- uno de
+   * titulares, uno de `<span>` y uno de prosa --, que entre los tres cubrían
+   * las variantes que a alguien le apeteció listar: `deckClosing` y
+   * `deckBody`, añadidos en la #14, no estaban en ninguno de los tres, así
+   * que su elemento por defecto nunca se decidió ni se probó.
+   *
+   * La tabla es un `Record<TypeVariant, ...>` COMPLETO, no un `Partial`, y
+   * eso es todo el mecanismo: añadir un peldaño a `type.scale` sin decidir
+   * qué etiqueta renderiza deja de compilar (`pnpm typecheck`), y cambiar el
+   * mapa de `Typography` sin actualizar esta tabla sale en rojo. Es el mismo
+   * criterio de contrato cerrado que la regla 40 pide del recuento de
+   * `type.test.ts`: los dos sitios se tocan a la vez o no se toca ninguno.
+   *
+   * `h5` renderiza `<p>`, no `<h5>`: ver el docblock del hueco que dejó
+   * `h5: "h5"` en `Typography.tsx` para el censo y para por qué un `<h5>`
+   * bajo el `<h3>` de Features sería un salto de nivel.
+   */
+  const ELEMENTO_POR_DEFECTO: Record<TypeVariant, string> = {
+    deckClosing: "P",
+    display: "H1",
+    h1: "H1",
+    h2: "H2",
+    h3: "H3",
+    h5: "P",
+    deckBody: "P",
+    body: "P",
+    bodySm: "P",
+    caption: "SPAN",
+    overline: "SPAN",
+  };
+
+  it.each(Object.entries(ELEMENTO_POR_DEFECTO))(
+    "la variante '%s' renderiza <%s> por defecto",
+    (variant, etiqueta) => {
       renderWithProviders(
-        <Typography variant={variant}>Titular {variant}</Typography>,
+        <Typography variant={variant as TypeVariant}>
+          Texto {variant}
+        </Typography>,
       );
-      expect(screen.getByText(`Titular ${variant}`).tagName).toBe(expectedTag);
+      expect(screen.getByText(`Texto ${variant}`).tagName).toBe(etiqueta);
     },
   );
 
-  it.each(["overline", "caption"] as const)(
-    "la variante '%s' renderiza <span> por defecto",
-    (variant) => {
-      renderWithProviders(
-        <Typography variant={variant}>Texto {variant}</Typography>,
-      );
-      expect(screen.getByText(`Texto ${variant}`).tagName).toBe("SPAN");
-    },
-  );
-
-  it.each(["body", "bodySm"] as const)(
-    "la variante de prosa '%s' renderiza <p> por defecto",
-    (variant) => {
-      renderWithProviders(
-        <Typography variant={variant}>Prosa {variant}</Typography>,
-      );
-      expect(screen.getByText(`Prosa ${variant}`).tagName).toBe("P");
-    },
-  );
+  /*
+   * La otra mitad del candado anterior: que NINGUNA variante fuera de las
+   * cuatro de titular cree un encabezado. Sin esto, un mapa que devolviera
+   * `h6` para `caption` seguiría en verde arriba mientras la tabla lo
+   * declarase -- aquí se afirma la propiedad de accesibilidad (¿hay
+   * encabezado?), no la etiqueta.
+   */
+  it.each(
+    Object.entries(ELEMENTO_POR_DEFECTO).filter(
+      ([, etiqueta]) => !/^H[1-6]$/.test(etiqueta),
+    ),
+  )("la variante '%s' NO añade un encabezado a la página", (variant) => {
+    renderWithProviders(
+      <Typography variant={variant as TypeVariant}>Sin encabezado</Typography>,
+    );
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+  });
 
   it("'as' tiene prioridad incluso sobre el elemento por defecto de un titular", () => {
     renderWithProviders(

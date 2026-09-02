@@ -28,13 +28,48 @@ import type { TypeVariant } from "@/theme/tokens/type";
  * `h4` y `code` desaparecen de este mapa porque desaparecen de la escala (ver
  * el docblock de `TypeVariant`): sin ellos en `TypeVariant`, el
  * `Partial<Record<...>>` rechazaría las claves en tiempo de compilación.
+ *
+ * AQUÍ VIVIÓ `h5: "h5"`, RETIRADO en la crítica externa #15 (2026-09-02,
+ * hallazgo C7). Era el único elemento por defecto del mapa que NINGÚN nivel
+ * de encabezado de este sitio podía recibir sin romperse:
+ *
+ * - CENSO de consumidores del peldaño (patrones `variant="h5"`, `scale.h5`,
+ *   `<h5`, `styled.h5`, `as="h5"` sobre `src/` y `app/`, tests incluidos):
+ *   un solo consumidor de JSX, `ScCardTitle` en `Story.tsx`, y pasa
+ *   `forwardedAs="p"` A PROPÓSITO — su comentario dice literalmente que el
+ *   `h2#story-title` sigue siendo el único encabezado accesible de la sección
+ *   en claro. Los otros tres consumidores (`Features.tsx`,
+ *   `story.deck.tsx`, `journey.deck.tsx`) leen propiedades sueltas de
+ *   `type.scale.h5` dentro de sus propias piezas styled y no pasan por este
+ *   componente. Resultado medido: en todo el sitio NO se renderiza ni un
+ *   solo `<h5>`, así que esta entrada del mapa nunca se ejerció en
+ *   producción — solo en su propio test.
+ * - Y si se hubiera ejercido, habría roto la estructura de encabezados que
+ *   la crítica midió impecable: los niveles reales de la página son
+ *   `h1` (hero) → `h2` (título de sección) → `h3` (tarjetas de Features),
+ *   así que un `<h5>` colgando de ahí es un salto de nivel, no el siguiente
+ *   peldaño. El default vigente era una trampa esperando al primer
+ *   `<Typography variant="h5">` sin `as`.
+ *
+ * Sin entrada en el mapa, la variante cae al `?? "p"` de la función de abajo:
+ * un párrafo con el tamaño del peldaño, que es exactamente lo que su único
+ * consumidor real pide hoy escribiéndolo a mano. Deja de PROMETER un
+ * elemento que el sitio no puede usar.
+ *
+ * LO QUE ESTO NO CIERRA, declarado en vez de arreglado en silencio: el
+ * peldaño se sigue llamando `h5` siendo el CUARTO de la escala (ver el
+ * docblock de `TypeVariant` en `theme/tokens/type.ts` para el porqué del
+ * nombre y para los cuatro puntos de edición que exige renombrarlo a `h4`).
+ * El día que ese rename ocurra, la decisión del elemento por defecto se
+ * vuelve a tomar CON la estructura de encabezados delante — y entonces sí
+ * hay respuesta correcta, porque `<h4>` es el nivel que sigue al `<h3>` de
+ * las tarjetas de Features.
  */
 const defaultElement: Partial<Record<TypeVariant, ElementType>> = {
   display: "h1",
   h1: "h1",
   h2: "h2",
   h3: "h3",
-  h5: "h5",
   overline: "span",
   caption: "span",
 };
