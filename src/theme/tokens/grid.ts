@@ -99,10 +99,45 @@ export const grid = {
    */
   heroCopyMax: "70ch",
   /**
-   * Medida de línea del cuerpo largo: el ancho que deja **~65 CARACTERES
-   * reales** por línea — el centro del rango de legibilidad 60-75 que persigue
-   * el sistema (`DESIGN.md` §3.4, spec `2026-07-24-luxury-interface-system`).
-   * Esa es la promesa; el número de abajo es solo cómo se expresa.
+   * Medida de línea del cuerpo largo: el ancho que entrega un recuento de
+   * caracteres REALES por línea dentro del rango de legibilidad **60-75** que
+   * persigue el sistema (`DESIGN.md` §3.4, spec
+   * `2026-07-24-luxury-interface-system`). Esa es la promesa; el número de
+   * abajo es solo cómo se expresa.
+   *
+   * ## LA CIFRA DE ESTA PROMESA ES MEDIDA, NO DERIVADA — desde la crítica
+   * externa #15 (2026-09-02)
+   *
+   * Hasta esa revisión la primera línea de este docblock prometía «~65
+   * CARACTERES reales», un número que salía de la ARITMÉTICA de más abajo y
+   * no de contar nada: era el objetivo de la derivación, escrito como si
+   * fuera su resultado observado. Con la caja de 56ch ya en producción y el
+   * equilibrado de línea ya retirado del cuerpo (la condición que el apartado
+   * de más abajo declara), el evaluador de Craft de la #15 midió lo que esta
+   * caja entrega DE VERDAD, en navegador real y por DOS métodos de conteo
+   * independientes:
+   *
+   *   legales (párrafos largos):  66-73 caracteres por línea
+   *                               media 66,4 por un método, 71,7 por el otro
+   *   home    (párrafos cortos):  59-70 caracteres por línea
+   *
+   * Las dos superficies caen dentro de la banda salvo por un carácter: la
+   * PEOR línea de la home mide 59, uno por debajo del suelo de 60. No es un
+   * fallo del valor ni una medición que pida corregirlo — es exactamente el
+   * caso que el apartado «Lo que este token NO puede prometer» razona más
+   * abajo: con bandera derecha, la línea que precede a una palabra larga
+   * siempre se queda corta, y un suelo POR LÍNEA es aritméticamente
+   * imposible; el contrato es por SUPERFICIE. Queda escrito en vez de
+   * redondeado hacia arriba.
+   *
+   * Qué le hace esto a la derivación de abajo: la CONFIRMA en su orden de
+   * magnitud y le quita la falsa precisión. El camino (A) predecía 64,9
+   * realizados; lo medido va de 59 a 73 según superficie y método, con las
+   * medias de las legales en 66,4 y 71,7. Un solo número no describe eso, y
+   * por eso la promesa de la primera línea es ahora la BANDA y no un valor
+   * puntual. La aritmética se conserva entera porque es la que explica por
+   * qué 56ch y no 52 ni 65 — pero se lee como lo que es: la derivación que
+   * eligió el entero, no el recuento que se observa.
    *
    * ## CAPACIDAD NO ES REALIZACIÓN — la distinción que este docblock enseñaba
    * mal hasta la crítica externa #13 (2026-08-18)
