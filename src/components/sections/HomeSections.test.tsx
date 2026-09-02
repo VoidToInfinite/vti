@@ -1,7 +1,15 @@
+import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act, renderWithProviders, screen, waitFor } from "@/test/test-utils";
+import {
+  act,
+  fireEvent,
+  renderWithProviders,
+  screen,
+  waitFor,
+} from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
 import { FRAGMENT_LANDING_SETTLE_MS } from "@/hooks/useFragmentLanding";
+import { useTheme } from "@/theme/ThemeProvider";
 import { HomeSections } from "./HomeSections";
 
 /*
@@ -338,5 +346,144 @@ describe("HomeSections", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  /*
+   * CRÍTICA EXTERNA #14, P0 (ola J, 2026-09-02). Medido en Chrome real: al
+   * conmutar el tema con la lectura en Características, los nodos
+   * `<section id="features">` y `<section id="contact">` -- que React REUTILIZA
+   * entre ramas, porque las dos los renderizan en la misma posición del árbol
+   * -- conservaban el `data-inview` que la rama clara les había escrito
+   * ("true" y "false" respectivamente), FOSILIZADO, mientras Story y Viaje
+   * quedaban limpias (sus decks oscuros son componentes distintos y remontan
+   * nodos nuevos). `useActiveSection` leía esa señal muerta y el navbar -- y
+   * con él el enlace de idioma -- anunciaban «Características» en toda la
+   * página.
+   *
+   * POR QUÉ ESTE CANDADO VIVE AQUÍ Y NO SOLO EN EL HOOK: el mecanismo de la
+   * retracción ya está probado pieza a pieza en `useSectionProgress.test.tsx`,
+   * pero lo que produjo el defecto no fue el hook en abstracto -- fue el
+   * CABLEADO real: Features y Contacto llaman al hook en las dos ramas y solo
+   * atan el ref en una. Este componente es el único sitio donde ese cableado
+   * se ve entero, y la conmutación de tema en caliente (no un montaje nuevo
+   * con `localStorage` ya puesto, como hacen los tests de arriba) es la única
+   * forma de ejercitar el nodo REUTILIZADO, que es el que se fosilizaba.
+   *
+   * Es además la evidencia de por qué NO se remontan las cuatro secciones con
+   * `key={themeName}` -- la tercera vía que el encargo dejaba abierta: con la
+   * retracción hecha por su dueño, ningún nodo sobrevive con la señal puesta,
+   * así que remontar el árbol entero (y con él escenas, imágenes y estado de
+   * reveal) en cada conmutación sería pagar un precio de más por un problema
+   * que ya no existe.
+   */
+  describe("crítica #14: conmutar de tema no deja señal de scrollspy fosilizada", () => {
+    let observados: {
+      target: Element;
+      emit: (isIntersecting: boolean) => void;
+    }[] = [];
+
+    /** Reemplaza el stub mínimo del `beforeEach` de arriba por uno que sí
+     *  guarda a quién observa cada `IntersectionObserver`, para poder disparar
+     *  la intersección de UNA sección concreta. */
+    function stubIntersectionObserverConDisparo(): void {
+      observados = [];
+      vi.stubGlobal(
+        "IntersectionObserver",
+        class {
+          private readonly cb: (entries: { isIntersecting: boolean }[]) => void;
+          constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+            this.cb = cb;
+          }
+          observe(target: Element): void {
+            observados.push({
+              target,
+              emit: (v: boolean) => this.cb([{ isIntersecting: v }]),
+            });
+          }
+          unobserve(): void {}
+          disconnect(): void {}
+        },
+      );
+    }
+
+    function emitirInterseccion(el: Element): void {
+      const entradas = observados.filter((o) => o.target === el);
+      if (entradas.length === 0) {
+        throw new Error(`ningún IntersectionObserver observa #${el.id}`);
+      }
+      for (const entrada of entradas) entrada.emit(true);
+    }
+
+    /** El toggle real del proveedor: conmuta el tema EN CALIENTE, que es el
+     *  gesto que el defecto necesitaba (los tests de arriba montan cada rama
+     *  desde cero y nunca reutilizan un nodo). */
+    function ConmutadorDeTema(): ReactElement {
+      const { toggleTheme } = useTheme();
+      return <button onClick={toggleTheme}>conmutar tema</button>;
+    }
+
+    it("las secciones que la rama clara marcó quedan sin data-inview al pasar a oscuro", async () => {
+      stubIntersectionObserverConDisparo();
+      const { container } = renderWithProviders(
+        <>
+          <ConmutadorDeTema />
+          <HomeSections />
+        </>,
+      );
+
+      const features = container.querySelector<HTMLElement>("#features");
+      const contact = container.querySelector<HTMLElement>("#contact");
+      expect(
+        features,
+        "no se encontró la sección de características",
+      ).not.toBeNull();
+      expect(contact, "no se encontró la sección de contacto").not.toBeNull();
+
+      act(() => {
+        emitirInterseccion(features!);
+        emitirInterseccion(contact!);
+      });
+
+      // Precondición: en claro la señal EXISTE. Sin esto, el resto del test
+      // pasaría también con el hook desconectado, sin probar nada.
+      expect(features!.dataset.inview).toBe("true");
+      expect(contact!.dataset.inview).toBe("true");
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "conmutar tema" }));
+      });
+      await waitFor(() => {
+        expect(
+          container.querySelectorAll("[data-slide-index]").length,
+          "el árbol oscuro no llegó a montarse: la conmutación no ocurrió",
+        ).toBeGreaterThan(0);
+      });
+
+      const conSenal = Array.from(
+        container.querySelectorAll("section[data-inview]"),
+      ).map((n) => n.id);
+      expect(
+        conSenal,
+        "una sección conserva la señal escrita por la rama clara: el scrollspy la leerá como si describiera la posición actual",
+      ).toEqual([]);
+    });
+
+    /*
+     * Bug inyectado a propósito (regla 34), ejecutado en esta tarea: vaciar
+     * `retract()` en `useSectionProgress.ts` -- devolver el hook a lo que
+     * hacía cuando llegó la crítica, escribir y no borrar nunca -- pone este
+     * test en rojo reproduciendo el hallazgo palabra por palabra:
+     * "expected [ 'features', 'contact' ] to deeply equal []", las DOS
+     * secciones cuyo nodo React reutiliza, y solo esas.
+     *
+     * Lo que este candado NO aísla, y conviene saberlo antes de fiarse de él
+     * para otra cosa: quitar SOLO el latido (`syncTargetRef.current?.()`) lo
+     * deja en VERDE, porque aquí corre el `requestAnimationFrame` real de
+     * jsdom durante la espera y la guarda de `tick()` acaba retractando por su
+     * cuenta. Los tres caminos de la retracción se distinguen uno a uno en
+     * `useSectionProgress.test.tsx`, donde el reloj de frames se pilota a
+     * mano; este test prueba el CABLEADO y el desenlace, no cuál de los tres
+     * llegó antes.
+     */
   });
 });
