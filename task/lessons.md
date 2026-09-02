@@ -2081,3 +2081,12 @@
 - **Regla 1:** un guion que valida un candado con bug inyectado GATEA el commit sobre el rojo (`grep -q failed` sobre la salida, o equivalente); nunca `;` entre el paso del rojo y el commit. Sin rojo observado no hay commit, y desde luego no hay mensaje que lo afirme.
 - **Regla 2:** un test de resincronización por observer muta SOLO el nodo cuyo mecanismo se está probando; cualquier otra mutación en la misma tanda puede disparar el mismo camino por otra vía y dejar el candado sin filo.
 - **Coste:** dos commits locales deshechos con `git reset --soft` (sin push) y rehechos con el rojo real.
+
+## 2026-09-02 (bis) — Un degradado recortado al texto se convierte en «fondo» al transparentar la tinta
+
+- **Qué pasó:** dos evaluadores de la crítica #15 midieron que el h1 del hero oscuro caía a 1,4-1,5:1 en el 5 % más brillante de su fondo, y yo lo confirmé con un método propio. El dueño decidió un velo bajo la copia. Al medir el velo, el fondo bajo el h1 no cambiaba ni un decimal con y sin él.
+- **Causa:** la cola de «Infinite» es un  con . El instrumento estándar para muestrear el fondo bajo un texto (poner / en transparente) deja intacto ese degradado, que pasa a contarse como fondo. Lo que tres instrumentos llamaban «arte brillante bajo el h1» era la propia marca. Retirado el degradado del muestreo, el fondo bajo el wordmark daba P05 9,0:1 en oscuro y 10,6:1 en claro sin velo.
+- **Segunda trampa del mismo día:** el método de «núcleo de glifo» (píxeles cuya diferencia con y sin tinta supera un umbral) a 16 px mide antialiasing, no fondo: el párrafo claro daba 1,69:1 con y sin velo mientras el instrumento de tinta nominal contra distribución del fondo daba 11,3:1.
+- **Regla 1:** antes de medir contraste de un texto, comprobar si algún tramo lleva  (o un  propio) y excluirlo o neutralizarlo ( + ) en la captura de fondo; si no, el logotipo se autodenuncia.
+- **Regla 2:** para texto pequeño (≤ 20 px), el contraste se mide con la tinta NOMINAL (color computado resuelto por canvas) contra la distribución del fondo bajo la caja del texto, no con píxeles de glifo capturados.
+- **Regla 3:** una decisión de diseño tomada sobre una medición se re-mide ANTES de ejecutarse cuando el arreglo es visual (aquí el velo se implementó antes de comprobar que el problema existía; la medición posterior lo refutó y el dueño tuvo que decidir de nuevo con los datos correctos).
