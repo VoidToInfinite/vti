@@ -165,6 +165,43 @@ export const grid = {
    * Que los dos caminos den 56 es lo que sostiene el valor; ninguno de los dos
    * por separado lo haría.
    *
+   * ## LA CONDICIÓN BAJO LA QUE ESTA DERIVACIÓN ES VÁLIDA — declarada desde
+   * la crítica externa #14 (2026-09-02)
+   *
+   * El factor de realización 0,92 no es una propiedad de la tipografía: es
+   * una propiedad del ALGORITMO DE CORTE con el que se midió, el corte
+   * *greedy* con bandera derecha (`text-align: start`, sin equilibrado), que
+   * llena cada línea hasta donde cabe y desperdicia el hueco de la palabra
+   * que no entra. **Esta derivación solo describe la realidad mientras la
+   * prosa que consume este token NO lleve `text-wrap: balance`.**
+   *
+   * Por qué son incompatibles: `balance` no llena la caja, la reparte —
+   * minimiza la línea más larga sin cambiar el número de líneas — así que el
+   * ancho deja de ser la restricción activa. Medido por el evaluador de Craft
+   * en la #14, A/B en navegador real sobre los MISMOS nodos y esta MISMA caja
+   * de 56ch:
+   *
+   *   con equilibrado:  53,5 caracteres de media; 2 de 11 líneas en 60-75
+   *   sin equilibrado:  64,5 caracteres de media; 10 de 11 líneas en 60-75
+   *
+   * Eso explica, además, el resultado que la ola I no consiguió mover:
+   * ensanchar la caja de 52ch a 56ch dejó la realización de la home clavada
+   * en los mismos 59 caracteres que había medido la #13. No fue una
+   * corrección insuficiente ni un error de la aritmética de arriba — con
+   * equilibrado activo, el ancho extra se convierte en holgura al final de
+   * cada línea, no en más caracteres. La caja no podía entregar lo que la
+   * regla de reparto le impedía llenar.
+   *
+   * Desde la #14 (decisión D1 del dueño) `Typography` ya no aplica el
+   * equilibrado a `body`/`bodySm`, así que la condición se cumple en todas
+   * las superficies que pasan por ese componente. NO se cumple todavía en las
+   * que declaran el equilibrado por su cuenta y ganan la cascada — `ScBody`
+   * (`Contact.tsx`), `ScTagline` (`Hero.tsx`), `ScDeckIntroBody`/
+   * `ScDeckPillarSubtitle`/`ScDeckPillarBody` (`story.deck.tsx`) y
+   * `ScJourneyIntroBody`/`ScJourneyStepSubtitle` (`journey.deck.tsx`):
+   * mientras sigan equilibrando, este token acota su ancho pero no describe
+   * su recuento. Queda declarado, no resuelto desde aquí.
+   *
    * ## Lo que este token NO puede prometer, y por qué se dice aquí
    *
    * El contrato es por SUPERFICIE (el rango de una superficie de prosa entra

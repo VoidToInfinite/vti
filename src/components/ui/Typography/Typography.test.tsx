@@ -134,11 +134,19 @@ describe("Typography", () => {
   });
 
   /*
-   * Equilibrado de linea de las variantes de CUERPO (encargo del usuario
-   * 2026-08-04). Se lee el CSS inyectado y no `getComputedStyle`: jsdom no
-   * conoce `text-wrap-style` como propiedad, asi que el estilo computado la
-   * devuelve vacia y una asercion sobre el pasaria en verde con la regla
-   * ausente. El texto de la regla inyectada, en cambio, es exactamente lo que
+   * Equilibrado de linea: SOLO en titulares desde la critica externa #14
+   * (2026-09-02, decision D1 del dueno). Hasta esa fecha lo recibian tambien
+   * las dos variantes de CUERPO (encargo del usuario 2026-08-04) y el bloque
+   * de tests de abajo probaba lo contrario de lo que prueba hoy -- el porque
+   * completo, con las dos medidas del A/B en navegador, vive en el docblock
+   * del hueco que dejaron `BODY_VARIANTS`/`BALANCE_DECLARATIONS` en
+   * `Typography.tsx`.
+   *
+   * Se lee el CSS inyectado y no `getComputedStyle`: jsdom no conoce
+   * `text-wrap-style` como propiedad, asi que el estilo computado la devuelve
+   * vacia y una asercion sobre el pasaria en verde con la regla ausente -- y
+   * en un test que ahora afirma AUSENCIA, esa via daria un verde vacio
+   * siempre. El texto de la regla inyectada, en cambio, es exactamente lo que
    * llega al navegador.
    */
   function reglasDe(el: HTMLElement): string {
@@ -160,50 +168,60 @@ describe("Typography", () => {
     return texto;
   }
 
-  it.each(["body", "bodySm"] as const)(
-    "la variante de cuerpo %s declara las DOS formas del equilibrado",
+  /*
+   * Control POSITIVO, y es el que da sentido al negativo de abajo: el
+   * equilibrado no desaparece del componente, se concentra en los titulares.
+   * Sin esta mitad, borrar la interpolacion entera de `ScTypography` dejaria
+   * el bloque completo en verde.
+   */
+  it.each(["display", "h1", "h2", "h3", "h5"] as const)(
+    "critica #14: el titular %s SI conserva el equilibrado de linea",
     (variant) => {
       renderWithProviders(
         <Typography
           variant={variant}
-          data-testid={`cuerpo-${variant}`}
+          data-testid={`titular-${variant}`}
         >
-          Texto de cuerpo
+          Titular equilibrado
         </Typography>,
       );
-      const css = reglasDe(screen.getByTestId(`cuerpo-${variant}`));
+      const css = reglasDe(screen.getByTestId(`titular-${variant}`));
 
-      // La shorthand es la base de compatibilidad y la longhand la propiedad
-      // que pide el encargo: se exigen las dos, no una cualquiera.
       expect(css).toContain("text-wrap: balance");
-      expect(css).toContain("text-wrap-style: balance");
     },
   );
 
   /*
-   * Control negativo. Era `["overline", "code"]`; `code` sale de la escala en
-   * la crítica externa #9 (2026-08-17) y su plaza la ocupa `caption`, la otra
-   * variante que el docblock de `BODY_VARIANTS` nombra explícitamente como
-   * fuera del equilibrado. Se sustituye en vez de reducirlo a un solo caso: un
-   * control negativo con UN miembro es mucho más fácil de satisfacer por
-   * casualidad que uno con dos.
+   * Control NEGATIVO. Las dos variantes de cuerpo entran aqui con la critica
+   * externa #14 (decision D1: el equilibrado contradecia la promesa de
+   * recuento de `grid.prose` -- 53,5 caracteres por linea con el, 64,5 sin
+   * el, medido en navegador sobre los mismos nodos). `overline` y `caption`
+   * ya estaban fuera y se quedan: un control negativo con cuatro miembros es
+   * mas dificil de satisfacer por casualidad que uno con dos.
+   *
+   * Se exigen las DOS formas por separado (`text-wrap` y `text-wrap-style`),
+   * no una cualquiera: `BALANCE_DECLARATIONS` declaraba ambas, asi que una
+   * retirada a medias -- borrar la longhand y dejar la shorthand -- seguiria
+   * equilibrando en todos los motores y tiene que salir en rojo.
    */
-  it.each(["overline", "caption"] as const)(
-    "la variante %s NO recibe el equilibrado de cuerpo",
+  it.each(["body", "bodySm", "overline", "caption"] as const)(
+    "critica #14: la variante %s NO declara equilibrado de linea",
     (variant) => {
       renderWithProviders(
         <Typography
           variant={variant}
-          data-testid={`otra-${variant}`}
+          data-testid={`sin-balance-${variant}`}
         >
-          Etiqueta
+          Texto sin equilibrado
         </Typography>,
       );
-      const css = reglasDe(screen.getByTestId(`otra-${variant}`));
+      const css = reglasDe(screen.getByTestId(`sin-balance-${variant}`));
 
-      // Control negativo: sin esto, "aplicalo a todo" pasaria el test de
-      // arriba igual de verde y nadie notaria que se equilibra tambien un
-      // bloque de codigo monoespaciado o una etiqueta de dos palabras.
+      // Guarda contra el verde vacio: si `reglasDe` no encontrase la regla de
+      // esta variante, los dos `not.toContain` pasarian sin probar nada.
+      expect(css).toContain("font-size");
+
+      expect(css).not.toContain("text-wrap: balance");
       expect(css).not.toContain("text-wrap-style: balance");
     },
   );
