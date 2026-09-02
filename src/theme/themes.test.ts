@@ -21,6 +21,25 @@ describe("themes", () => {
     expect(themes.dark.breakPoint.md).toBe("screen and (min-width: 768px)");
   });
 
+  /*
+   * Crítica externa #14, P3: hasta el 2026-09-02 los cuatro breakpoints se
+   * escribían DOS veces, byte a byte, una dentro de cada tema. `toEqual`
+   * (mismos valores) no habría bastado como candado: era exactamente lo que
+   * cumplían las dos copias duplicadas mientras nadie tocara una sola de
+   * ellas. `toBe` exige la MISMA referencia, es decir, que el bloque viva en
+   * `shared` y no pueda divergir por construcción -- el mismo criterio con el
+   * que ya estaba atada `palette` justo aquí abajo.
+   */
+  it("los dos temas comparten la MISMA referencia de breakPoint (vive en shared, no duplicado por tema)", () => {
+    expect(themes.light.breakPoint).toBe(themes.dark.breakPoint);
+    expect(themes.light.breakPoint).toEqual({
+      sm: "screen and (min-width: 600px)",
+      md: "screen and (min-width: 768px)",
+      lg: "screen and (min-width: 992px)",
+      xl: "screen and (min-width: 1200px)",
+    });
+  });
+
   it("light y dark exponen exactamente el mismo conjunto de claves de nivel superior", () => {
     const lightKeys = Object.keys(themes.light).sort();
     const darkKeys = Object.keys(themes.dark).sort();
