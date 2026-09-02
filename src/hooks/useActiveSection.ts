@@ -535,19 +535,32 @@ function handleScrollOrResize(): void {
  * donde este `MutationObserver` no se dispara nunca porque nadie escribe el
  * atributo que observa.
  */
+/*
+ * SE OBSERVA EL SUBÁRBOL DEL BODY, NO LOS CUATRO NODOS (crítica externa #14,
+ * integración de la ola J, 2026-09-02). Hasta esa ronda este observer se
+ * ataba a los cuatro elementos que `getElementById` devolvía al suscribirse.
+ * Pero las secciones se REMONTAN al cambiar de tema (Story y Journey siempre,
+ * por ser componentes distintos por rama), y un observer atado a un nodo que
+ * ya no está en el documento observa un fantasma: medido en Chrome, tras
+ * conmutar oscuro→claro y saltar a scrollY=1200 con Story en el centro,
+ * `evaluate()` leía `story:"false"` (el valor de la posición anterior),
+ * devolvía `null` por «las cuatro en false», el `IntersectionObserver`
+ * escribía `"true"` unos ms después y NADIE volvía a evaluar -- `aria-current`
+ * vacío hasta el siguiente evento de scroll (1 px bastaba), y roto otra vez al
+ * volver a la misma posición. Observar el subárbol del body con
+ * `attributeFilter` cubre cualquier nodo presente o futuro que escriba el
+ * atributo; el filtro deja fuera todo lo demás, así que el coste sigue siendo
+ * «un puñado de cruces reales por recorrido de página».
+ */
 function observeSectionInviewMutations(): void {
   sectionMutationObserver = new MutationObserver(() => {
     evaluate();
   });
-  for (const id of ACTIVE_SECTION_IDS) {
-    const el = document.getElementById(id);
-    if (el) {
-      sectionMutationObserver.observe(el, {
-        attributes: true,
-        attributeFilter: ["data-inview"],
-      });
-    }
-  }
+  sectionMutationObserver.observe(document.body, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["data-inview"],
+  });
 }
 
 /*

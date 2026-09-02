@@ -653,6 +653,53 @@ describe("useActiveSectionKey: fix wave E, hallazgo E1 -- resincroniza tras un s
     expect(latestKey).not.toBe("contact");
   });
 
+  it("una sección REMONTADA (nodo nuevo) que escribe data-inview resincroniza sin un scroll adicional", async () => {
+    // Crítica externa #14, integración de la ola J (2026-09-02). Al cambiar
+    // de tema, Story y Journey se remontan como nodos NUEVOS. El observer
+    // que se ataba a los cuatro nodos del primer montaje seguía observando
+    // los fantasmas: medido en Chrome, tras conmutar y saltar a scrollY=1200
+    // el scroll leía story="false" (rancio), la regla «cuatro en false» daba
+    // null, el IntersectionObserver escribía "true" unos ms después y nadie
+    // volvía a evaluar -- aria-current vacío hasta el siguiente scroll.
+    render(<ActiveSectionHarness />);
+
+    await act(async () => {
+      triggerForId("contact", true);
+      window.dispatchEvent(new Event("scroll"));
+      await Promise.resolve();
+    });
+    expect(latestKey).toBe("contact");
+
+    // El cambio de tema: el nodo de "story" desaparece y otro ocupa su id.
+    const viejo = document.getElementById("story");
+    if (!viejo) throw new Error("no existe la sección de prueba #story");
+    viejo.remove();
+    const nuevoNodo = document.createElement("div");
+    nuevoNodo.id = "story";
+    document.body.appendChild(nuevoNodo);
+
+    // Último scroll ANTES de que el observer de la sección nueva entregue:
+    // contact ya salió ("false", escrito por su observer de siempre) y el
+    // nodo nuevo aún no tiene atributo. Con señal presente y ninguna en
+    // "true", la respuesta correcta en este instante es null.
+    await act(async () => {
+      triggerForId("contact", false);
+      window.dispatchEvent(new Event("scroll"));
+      await Promise.resolve();
+    });
+    expect(latestKey).toBeNull();
+
+    // Entrega tardía SOLO sobre el NODO NUEVO -- ninguna otra sección muta y
+    // no hay ningún evento de scroll después. Es exactamente el estado que
+    // el observer por nodo no podía ver: el nodo observado ya no existe.
+    await act(async () => {
+      nuevoNodo.dataset.inview = "true";
+      await Promise.resolve();
+    });
+
+    expect(latestKey).toBe("story");
+  });
+
   it("volviendo al Hero tras un salto (scrollY=0), ningún id queda marcado, sin un scroll adicional", async () => {
     render(<ActiveSectionHarness />);
 
