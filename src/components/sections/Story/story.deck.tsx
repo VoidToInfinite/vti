@@ -498,50 +498,6 @@ export const ScRail = styled.div`
 `;
 
 /*
- * Marca del rail (critica externa #12, 2026-08-19, dimension 4 de Craft: el
- * rail de ESTE deck seguia siendo mudo para tecnologia asistiva). Hasta esta
- * tarea era un `span` decorativo dentro de un rail `aria-hidden`: se veia "por
- * donde vas" pero no se podia ir a ningun sitio, y encima apenas se veia --
- * los inactivos pintaban `semantic.border` (neutral 800) a `opacity: 0.4`
- * sobre la escena casi negra de StoryCosmicBeing.
- *
- * MISMO CONTRATO, PIEZA A PIEZA, que ScJourneyRailMark (journey.deck.tsx,
- * commit f9cf823, critica #10) -- no una variacion: los dos decks son gemelos
- * declarados (deuda "Decks Story/Journey gemelos", RULES.md) y dos raíles que
- * se operan distinto en la misma pagina serian dos gramaticas para el mismo
- * mecanismo. Se DUPLICA aqui en vez de importarse de alli, mismo criterio que
- * ScScrollHint y stepColor: este fichero es una hoja estructural sin ninguna
- * dependencia de la seccion hermana.
- *
- * TRES CAMBIOS, cada uno cerrando una mitad distinta del hallazgo:
- *
- * 1. ELEMENTO: `button` real, no `span`. Story.tsx le pone `type="button"`,
- *    `aria-label` con el NOMBRE de la diapositiva a la que lleva (claves de
- *    i18n que ya pinta el propio deck), `aria-current` en el activo, y
- *    engancha el salto a `scrollToSlide` (`useSlideDeck`), que invierte la
- *    geometria de la pista. Al ser un boton nativo trae foco, Enter/Espacio y
- *    rol sin nada que sincronizar a mano.
- *
- * 2. DIANA: el punto sigue midiendo space[2] (8px) -- la decision visual del
- *    rail no cambia -- pero se dibuja con `::before` DENTRO de una caja de
- *    space[5] (24px), el minimo de WCAG 2.5.8 (Target Size, AA en WCAG 2.2).
- *    Un boton de 8x8 es inoperable con el dedo y casi con el raton. La caja es
- *    transparente: no se ve, solo se toca.
- *
- * 3. CONTRASTE: los inactivos pasan de `semantic.border` al 40% de opacidad a
- *    `semantic.borderStrong` OPACO. La opacidad desaparece de la declaracion y
- *    de la lista de `transition` -- ya no hay nada que interpolar en ese eje.
- *    WCAG 1.4.11 pide 3:1 para un componente de interfaz frente a lo que tiene
- *    detras; el candado que lo mide contra el void real de esta escena vive en
- *    Story.test.tsx (describe "critica #12 -- rail"). El activo conserva
- *    `semantic.brand` y su `scale(1.5)`.
- *
- * EL SELECTOR DESCENDIENTE `[data-slide="N"] &` NO CAMBIA de forma (regla 35
- * de RULES.md): sigue leyendo el estado desde el ANCESTRO -- el `data-slide`
- * que ScStage ya escribe con el index de useSlideDeck -- y no desde un
- * atributo del propio boton. `aria-current` se anade en el JSX como senal para
- * tecnologia asistiva, no como fuente del estilo: dos fuentes de verdad para
-/*
  * ROTULO DE POSICION DEL RAIL (critica externa #16, decision del dueno: «hacer
  * visible el rotulo del paso activo en el rail»).
  *
@@ -623,6 +579,50 @@ export const ScRailStatusTotal = styled.span`
   margin-block-start: ${({ theme }) => theme.data.space[1]};
 `;
 
+/*
+ * Marca del rail (critica externa #12, 2026-08-19, dimension 4 de Craft: el
+ * rail de ESTE deck seguia siendo mudo para tecnologia asistiva). Hasta esta
+ * tarea era un `span` decorativo dentro de un rail `aria-hidden`: se veia "por
+ * donde vas" pero no se podia ir a ningun sitio, y encima apenas se veia --
+ * los inactivos pintaban `semantic.border` (neutral 800) a `opacity: 0.4`
+ * sobre la escena casi negra de StoryCosmicBeing.
+ *
+ * MISMO CONTRATO, PIEZA A PIEZA, que ScJourneyRailMark (journey.deck.tsx,
+ * commit f9cf823, critica #10) -- no una variacion: los dos decks son gemelos
+ * declarados (deuda "Decks Story/Journey gemelos", RULES.md) y dos raíles que
+ * se operan distinto en la misma pagina serian dos gramaticas para el mismo
+ * mecanismo. Se DUPLICA aqui en vez de importarse de alli, mismo criterio que
+ * ScScrollHint y stepColor: este fichero es una hoja estructural sin ninguna
+ * dependencia de la seccion hermana.
+ *
+ * TRES CAMBIOS, cada uno cerrando una mitad distinta del hallazgo:
+ *
+ * 1. ELEMENTO: `button` real, no `span`. Story.tsx le pone `type="button"`,
+ *    `aria-label` con el NOMBRE de la diapositiva a la que lleva (claves de
+ *    i18n que ya pinta el propio deck), `aria-current` en el activo, y
+ *    engancha el salto a `scrollToSlide` (`useSlideDeck`), que invierte la
+ *    geometria de la pista. Al ser un boton nativo trae foco, Enter/Espacio y
+ *    rol sin nada que sincronizar a mano.
+ *
+ * 2. DIANA: el punto sigue midiendo space[2] (8px) -- la decision visual del
+ *    rail no cambia -- pero se dibuja con `::before` DENTRO de una caja de
+ *    space[5] (24px), el minimo de WCAG 2.5.8 (Target Size, AA en WCAG 2.2).
+ *    Un boton de 8x8 es inoperable con el dedo y casi con el raton. La caja es
+ *    transparente: no se ve, solo se toca.
+ *
+ * 3. CONTRASTE: los inactivos pasan de `semantic.border` al 40% de opacidad a
+ *    `semantic.borderStrong` OPACO. La opacidad desaparece de la declaracion y
+ *    de la lista de `transition` -- ya no hay nada que interpolar en ese eje.
+ *    WCAG 1.4.11 pide 3:1 para un componente de interfaz frente a lo que tiene
+ *    detras; el candado que lo mide contra el void real de esta escena vive en
+ *    Story.test.tsx (describe "critica #12 -- rail"). El activo conserva
+ *    `semantic.brand` y su `scale(1.5)`.
+ *
+ * EL SELECTOR DESCENDIENTE `[data-slide="N"] &` NO CAMBIA de forma (regla 35
+ * de RULES.md): sigue leyendo el estado desde el ANCESTRO -- el `data-slide`
+ * que ScStage ya escribe con el index de useSlideDeck -- y no desde un
+ * atributo del propio boton. `aria-current` se anade en el JSX como senal para
+ * tecnologia asistiva, no como fuente del estilo: dos fuentes de verdad para
  * lo mismo pueden divergir, y la que ya estaba probada es esta.
  */
 export const ScRailMark = styled.button<{ $index: number }>`

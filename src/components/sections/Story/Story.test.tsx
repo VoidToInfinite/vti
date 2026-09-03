@@ -33,8 +33,8 @@ import {
   STORY_SLIDES,
 } from "./story.layers";
 import { STORY_COSMIC_BEING_VOID } from "@/components/scenes/storyCosmicBeing/storyCosmicBeing.layers";
-
 import { DECK_SLIDE_TRAVEL_SCREENS } from "@/hooks/useSlideDeck";
+
 /*
  * Reescritura completa (spec 2026-07-28, D3/D4): Story ya no es una
  * superficie siempre oscura con ThemeProvider/SceneLoader/costura propios --

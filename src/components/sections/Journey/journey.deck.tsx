@@ -375,27 +375,6 @@ export const ScJourneyRail = styled.div`
 `;
 
 /*
- * Marca del rail (critica externa #10, hallazgo A, P2 que puntua en la
- * heuristica 7 de Nielsen). Hasta esta tarea era un `span` decorativo con
- * `tabIndex -1` heredado del `aria-hidden` del rail: se veia "por donde vas"
- * pero no se podia ir a ningun sitio, y encima apenas se veia -- los
- * inactivos pintaban `semantic.border` (neutral 800) a `opacity: 0.4` sobre
- * la escena casi negra del portal.
- *
- * TRES CAMBIOS, cada uno cerrando una mitad distinta del hallazgo:
- *
- * 1. ELEMENTO: `button` real, no `span`. Journey.tsx le pone `type="button"`,
- *    `aria-label` de i18n y `aria-current` en el activo, y engancha el salto
- *    a `scrollToSlide` (`useSlideDeck`), que invierte la geometria de la
- *    pista. Al ser un boton nativo trae foco, Enter/Espacio y rol sin nada
- *    que sincronizar a mano.
- *
- * 2. DIANA: el punto sigue midiendo space[2] (8px) -- la decision visual del
- *    rail no cambia -- pero se dibuja con `::before` DENTRO de una caja de
- *    space[5] (24px), que es el minimo de WCAG 2.5.8 (Target Size, AA en
- *    WCAG 2.2). Un boton de 8x8 es inoperable con el dedo y casi con el
- *    raton. La caja es transparente: no se ve, solo se toca.
-/*
  * ROTULO DE POSICION DEL RAIL (critica externa #16, decision del dueno: «hacer
  * visible el rotulo del paso activo en el rail», en los DOS decks). Fraccion
  * apilada, `aria-hidden`, gemela exacta de ScRailStatus (story.deck.tsx) --
@@ -450,6 +429,27 @@ export const ScJourneyRailStatusTotal = styled.span`
   margin-block-start: ${({ theme }) => theme.data.space[1]};
 `;
 
+/*
+ * Marca del rail (critica externa #10, hallazgo A, P2 que puntua en la
+ * heuristica 7 de Nielsen). Hasta esta tarea era un `span` decorativo con
+ * `tabIndex -1` heredado del `aria-hidden` del rail: se veia "por donde vas"
+ * pero no se podia ir a ningun sitio, y encima apenas se veia -- los
+ * inactivos pintaban `semantic.border` (neutral 800) a `opacity: 0.4` sobre
+ * la escena casi negra del portal.
+ *
+ * TRES CAMBIOS, cada uno cerrando una mitad distinta del hallazgo:
+ *
+ * 1. ELEMENTO: `button` real, no `span`. Journey.tsx le pone `type="button"`,
+ *    `aria-label` de i18n y `aria-current` en el activo, y engancha el salto
+ *    a `scrollToSlide` (`useSlideDeck`), que invierte la geometria de la
+ *    pista. Al ser un boton nativo trae foco, Enter/Espacio y rol sin nada
+ *    que sincronizar a mano.
+ *
+ * 2. DIANA: el punto sigue midiendo space[2] (8px) -- la decision visual del
+ *    rail no cambia -- pero se dibuja con `::before` DENTRO de una caja de
+ *    space[5] (24px), que es el minimo de WCAG 2.5.8 (Target Size, AA en
+ *    WCAG 2.2). Un boton de 8x8 es inoperable con el dedo y casi con el
+ *    raton. La caja es transparente: no se ve, solo se toca.
  *
  * 3. CONTRASTE: los inactivos pasan de `semantic.border` al 40% de opacidad
  *    a `semantic.borderStrong` OPACO. La opacidad desaparece de la
