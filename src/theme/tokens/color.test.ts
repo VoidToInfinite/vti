@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, dirname, extname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { color, STEPS } from "./color";
 
 // Parser para extraer componentes de oklch(L C H)
@@ -109,4 +112,90 @@ describe("color primitives", () => {
       expect(peak500Chroma).toBe(maxChroma);
     }
   });
+});
+
+/*
+ * CANDADO DE RAMPAS SIN CONSUMIDOR -- critica externa #17 (2026-09-03).
+ *
+ * POR QUE LA UNIDAD ES LA RAMPA Y NO EL PASO. Dos criticas seguidas (#16 y
+ * #17) han contado los mismos 30 pasos de 60 sin consumidor directo y han
+ * llegado a la misma conclusion: no se poda ninguno, porque un paso no
+ * existe como cosa retirable. Estas rampas son la SALIDA de `ramp(hue,
+ * peakChroma)` recorriendo la escalera compartida `STEPS`, asi que "retirar
+ * warning[50]" solo se puede hacer acortando `STEPS` -- y entonces pierden
+ * el paso las cinco, incluidas las que si lo consumen -- o bifurcando la
+ * fabrica para devolver un `Ramp` parcial, con lo que `Record<Step, string>`
+ * deja de ser cierto para `semantic.ts` y `contrast.ts`. El docblock de
+ * `color.ts` lleva el razonamiento entero.
+ *
+ * Lo que SI es retirable es una rampa completa, y ya ocurrio: `success` se
+ * fue en la #14 con cero consumidores en todo el repo. Ese es el liston que
+ * este candado afirma, para que la proxima rampa que se quede sin nadie
+ * salte en `pnpm test` en vez de esperar a una critica externa -- y para que
+ * el analisis de los 30 pasos no haya que volver a escribirlo cada ronda.
+ *
+ * Comentarios DESPOJADOS antes de buscar (leccion del repo, 2026-08-11): el
+ * docblock de `color.ts` CITA `palette.warning[50]` y compania en prosa para
+ * explicar la decision, y sin despojarlos esas citas bastarian para que el
+ * candado pasara sin consumo real.
+ */
+describe("cada rampa tiene consumidor real (critica externa #17)", () => {
+  const raiz = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const EXTENSIONES = new Set([".ts", ".tsx"]);
+
+  function recorrer(dir: string, out: string[] = []): string[] {
+    for (const entrada of readdirSync(dir)) {
+      const completo = join(dir, entrada);
+      if (statSync(completo).isDirectory()) recorrer(completo, out);
+      else if (EXTENSIONES.has(extname(completo))) out.push(completo);
+    }
+    return out;
+  }
+
+  function despojar(fuente: string): string {
+    return fuente
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(?<!:)\/\/.*$/gm, "");
+  }
+
+  const ficheros = [
+    ...recorrer(join(raiz, "src")),
+    ...recorrer(join(raiz, "app")),
+  ]
+    .map((f) => ({
+      ruta: f.slice(raiz.length + 1).replace(/\\/g, "/"),
+      texto: despojar(readFileSync(f, "utf-8")),
+    }))
+    .filter(
+      ({ ruta }) =>
+        ruta !== "src/theme/tokens/color.ts" &&
+        !ruta.endsWith(".test.ts") &&
+        !ruta.endsWith(".test.tsx"),
+    );
+
+  function pasosVivosDe(rampa: string): number[] {
+    return STEPS.filter((paso) => {
+      const patron = new RegExp(`\\b(?:palette|color)\\.${rampa}\\[${paso}\\]`);
+      return ficheros.some((f) => patron.test(f.texto));
+    }).map(Number);
+  }
+
+  /* Sonda positiva: si el mecanismo estuviera roto (raiz equivocada, regex
+     mal escrita) el bloque de abajo pasaria por vacuidad al no encontrar
+     nada. `warning` es la rampa mas flaca de las cinco -- dos pasos vivos,
+     500 y 800 -- asi que sirve de calibre exacto del instrumento. */
+  it("sonda positiva: el censo reproduce los dos pasos vivos de warning", () => {
+    expect(ficheros.length).toBeGreaterThan(50);
+    expect(pasosVivosDe("warning")).toEqual([500, 800]);
+  });
+
+  for (const rampa of Object.keys(color)) {
+    it(`${rampa} tiene al menos un paso con consumidor de produccion`, () => {
+      const vivos = pasosVivosDe(rampa);
+      expect(
+        vivos,
+        `palette.${rampa}: los doce pasos sin un solo consumidor -- ese es el liston de retirada (precedente: \`success\`, critica #14), no el de un paso suelto`,
+      ).not.toHaveLength(0);
+    });
+  }
 });

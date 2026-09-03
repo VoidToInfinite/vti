@@ -109,6 +109,29 @@ function neutral(): Ramp {
  * RAMPA ENTERA sin un solo consumidor (`success`, retirada en la #14). Ese
  * es el listón, y ninguna de las cinco que quedan lo pasa: las cinco tienen
  * al menos dos pasos vivos.
+ *
+ * ### La cifra, al día — crítica externa #17 (2026-09-03)
+ *
+ * El evaluador de la #17 volvió a levantar el mismo recuento («treinta de
+ * sesenta peldaños sin consumidor»). Censo propio reproducido a esta fecha,
+ * con el mismo instrumento y sobre el mismo alcance (`src/` y `app/`, tests
+ * excluidos, `palette.<rampa>[<paso>]` y `color.<rampa>[<paso>]`):
+ *
+ *   primary    6/12 -> 300, 400, 500, 600, 700, 800
+ *   secondary  9/12 -> 300..1100
+ *   warning    2/12 -> 500, 800
+ *   error      3/12 -> 300, 500, 700
+ *   neutral   10/12 -> 50, 100, 300..800, 1000, 1100
+ *   TOTAL: 30 de 60, paso a paso IDÉNTICO al de la #16.
+ *
+ * La conclusión no cambia, y por eso lo que cambia es el sitio donde vive:
+ * en vez de volver a razonarla la próxima ronda, el criterio pasa a tener
+ * candado en `color.test.ts` — la unidad de censo de esta escala es la
+ * RAMPA, no el paso, exactamente por lo que explican los tres párrafos de
+ * arriba (un paso no se puede retirar solo: o se acorta `STEPS` para las
+ * cinco, o se afloja `Record<Step, string>` para todos sus lectores). Ese
+ * candado es lo que habría atrapado a `success` sin esperar a una crítica
+ * externa, y lo que atrapará a la siguiente rampa que se quede sin nadie.
  */
 export const color = {
   primary: ramp(235.851, 0.158),
