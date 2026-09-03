@@ -49,6 +49,47 @@ const LANGUAGES = LOCALES;
  * `semantic.brand` sin condición de `$active`, así que pasar el cursor por
  * CUALQUIER botón -- activo o no -- en tema claro mostraba el mismo
  * primary[500] que incumplía AA.
+ *
+ * ## EL 4,909:1 DE ARRIBA ES CONTRA UN TOKEN PLANO; SOBRE EL ARTE REAL SON
+ * 4,7 (crítica externa #16, medido 2026-09-03) -- pasa AA, con margen fino
+ *
+ * Aquella cifra de la Task 33 se calculó con `contrastRatio` contra
+ * `AURA_SURFACE`, es decir contra el color con el que este repo NOMBRA el
+ * fondo del hero en claro. El fondo real no es plano: es arte pintado, y bajo
+ * la caja del enlace hay una distribución de píxeles, no un valor. Medido en
+ * navegador real (1440x900, tema claro, `scrollY` 0, animaciones pausadas con
+ * `document.getAnimations()`, tinta nominal `oklch(0.5 0.114 235.851)` =
+ * rgb(0,108,155) resuelta por canvas 1x1, texto puesto en transparente para
+ * muestrear SOLO el fondo bajo la caja de 66x44 del enlace):
+ *
+ *   evaluador de la #16      p05 4,70   mediana 4,75   mínimo 4,66   0 % < 4,5
+ *   re-medición de esta ola  p05 4,71   mediana 4,75   mínimo 4,70   0 % < 4,5
+ *
+ * Las dos medidas coinciden dentro de 0,04, y la diferencia tiene explicación:
+ * la re-medición se tomó DESPUÉS de que el raíl de la barra (hallazgo L4 de la
+ * misma crítica, `Navbar.tsx`) moviera este control unos 112 px hacia el
+ * centro a 1440, así que muestrea un trozo de arte ligeramente distinto. El
+ * inactivo («English», rgb(99,99,99)) da 4,81-4,97 y el tema oscuro
+ * 10,44-10,62 en los dos enlaces: ninguno de esos dos casos está cerca del
+ * umbral.
+ *
+ * QUÉ SIGNIFICA: el control pasa AA (4,5:1) en el peor píxel de su caja, con
+ * un margen de 0,16-0,25 -- fino pero real, y con el 0 % de los píxeles por
+ * debajo del umbral. NO SE CAMBIA EL COLOR en esta entrega: subir el margen
+ * exige oscurecer más la tinta activa sobre un fondo de marca, y eso es una
+ * decisión de diseño del dueño, no una corrección de defecto.
+ *
+ * MÉTODO, escrito porque un evaluador de la misma crítica midió 4,24-4,38 en
+ * esta misma pieza y esa cifra NO vale: muestreó por CLÚSTER DE GLIFO, es
+ * decir, tomando los píxeles que el texto pinta. A 14 px, la mayoría de esos
+ * píxeles son antialiasing -- mezclas parciales de tinta y fondo -- así que lo
+ * que mide ese método es el suavizado del renderizador, no el contraste entre
+ * la tinta y su fondo. WCAG 1.4.3 compara el color del TEXTO con el color del
+ * FONDO; el fondo se muestrea con el texto retirado, que es lo que hacen las
+ * dos filas de la tabla de arriba. Quien vuelva a medir esta pieza: retira la
+ * tinta (`color` y `-webkit-text-fill-color` en transparente, y el subrayado
+ * con ellos), captura la caja del enlace y compara la distribución del fondo
+ * contra la tinta nominal.
  */
 export function languageAccent(theme: DefaultTheme): string {
   return theme.data.isLight
