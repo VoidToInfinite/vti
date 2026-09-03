@@ -51,6 +51,22 @@ export const space = {
    * cierre —en el sentido que sea— sin que este paso haya llegado a
    * consumirse. En ese momento deja de haber evidencia externa y aplica el
    * mismo criterio que a `proseTight`.
+   *
+   * ## Tercera revisión (crítica externa #16, 2026-09-03): SE CONSERVA
+   *
+   * Se aplicó el criterio de arriba en vez de repetir el veredicto: se
+   * volvió a abrir `docs/qa-3d-pendiente.md` y su ítem «Banding y costura en
+   * la rampa de 10rem Hero→Story» sigue **sin marcar** (`- [ ]`) y sigue
+   * nombrando este paso por su nombre como la mitigación. La evidencia
+   * externa sigue viva, así que la condición de retirada no se cumple.
+   *
+   * Censo propio de la escala repetido en esta revisión (mismo método:
+   * comentarios despojados, `src/` y `app/` sin tests, más la comprobación
+   * de que nadie indexa `space` con una clave dinámica): 0→2, 1→9, 2→15,
+   * 3→14, 4→13, 5→15, 6→14, 7→8, 8→7, 9→5, **10→0**. Los recuentos por
+   * peldaño difieren de los de la #13 porque aquel censo contaba
+   * APARICIONES y este cuenta FICHEROS consumidores; el único dato que
+   * decide —que el último peldaño sigue a cero y el resto no— es el mismo.
    */
   10: "8rem",
 } as const;

@@ -83,6 +83,28 @@ export const motion = {
    * número y no la cadena CSS (hoy: los cinco grupos de
    * `src/motion/vocabulary.ts`). No añade ni un peldaño: son las siete
    * claves de `duration`, sin el sufijo.
+   *
+   * ## `durationMs.instant` y `durationMs.spin` NO son hojas muertas
+   *
+   * El evaluador de Craft de la crítica externa #16 las listó entre las 34
+   * hojas de vocabulario sin consumidor. **Refutado por censo propio**
+   * (comentarios despojados, `src/` y `app/` sin tests): `instant` lo
+   * consume `Navbar.tsx` (dos declaraciones, la transición del panel) y
+   * `spin` lo consume `Button.tsx` (la animación del spinner). Lo que sí es
+   * cierto es que los DOS se leen por su forma en cadena
+   * (`motion.duration.instant`, `motion.duration.spin`) y ninguno por la
+   * numérica — pero eso no las convierte en peldaños distintos: los dos
+   * formatos son el MISMO objeto `DURATION_MS` leído de dos maneras, como
+   * dice el docblock de cabecera y como canda `motion.test.ts` clave a
+   * clave. No existe una hoja `durationMs.instant` que se pueda retirar sin
+   * retirar `duration.instant` con ella y romper sus dos consumidores.
+   *
+   * Es el mismo falso positivo, y por la misma causa, que el de `type.scale`
+   * en esta misma crítica: `Typography.tsx` indexa la escala con una
+   * variable (`theme.data.type.scale[$variant].size`, cuatro lecturas), así
+   * que un censo que busque el nombre del peldaño no ve a su consumidor. En
+   * los dos casos el error es contar consumidores de un CAMINO DE ACCESO en
+   * vez de consumidores del dato.
    */
   durationMs: DURATION_MS,
   /**

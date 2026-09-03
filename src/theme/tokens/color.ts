@@ -68,6 +68,47 @@ function neutral(): Ramp {
  * enviado, una copia confirmada—, la rampa vuelve en el MISMO commit que su
  * rol semántico y su consumidor, no antes: es el criterio que este repo ya
  * aplicó a `REVEAL.stepMs`, a `space.px` y a `grid.columns`.
+ *
+ * ## Un PASO sin consumidor no es una hoja muerta (crítica externa #16)
+ *
+ * El evaluador de Craft de la #16 contó «30 pasos de paleta sin uso» y
+ * nombró dos rampas: `warning` con 12 pasos y 2 consumidos, `error` 12/3.
+ * La medición es EXACTA — censo propio reproducido con los comentarios
+ * despojados, sobre `src/` y `app/`, buscando `palette.<rampa>[<paso>]` y
+ * `color.<rampa>[<paso>]` (`semantic.ts` incluido, porque leer desde ahí es
+ * consumo real), y comprobando además que nadie indexa una rampa con una
+ * variable:
+ *
+ *   primary    6/12 -> 300, 400, 500, 600, 700, 800
+ *   secondary  9/12 -> 300..1100
+ *   warning    2/12 -> 500, 800
+ *   error      3/12 -> 300, 500, 700
+ *   neutral   10/12 -> 50, 100, 300..800, 1000, 1100
+ *   TOTAL: 30 pasos de 60 sin consumidor directo. Lecturas por índice
+ *   dinámico: ninguna.
+ *
+ * Y aun así NO se poda ni un paso, por un motivo estructural que el recuento
+ * no puede ver: estas rampas no son 60 hojas escritas a mano, son la SALIDA
+ * de `ramp(hue, peakChroma)` recorriendo la escalera compartida `STEPS`.
+ * «Retirar `warning[50]`» no existe como operación: o se acorta `STEPS`
+ * —y entonces se les quita el paso a las cinco rampas, incluidas las que sí
+ * lo consumen— o se bifurca la fábrica para que dos rampas devuelvan un
+ * `Ramp` parcial, con lo que `Record<Step, string>` deja de ser cierto y el
+ * tipo se afloja para todos sus lectores (`semantic.ts`, `contrast.ts`). Se
+ * cambiarían 30 valores calculados por un agujero en el sistema de tipos.
+ *
+ * Es además el mismo argumento que ya conserva `space[10]`: el paso de una
+ * escala CONTINUA que todavía no se ha necesitado no es un token suelto sin
+ * destino. Aquí la escalera es literalmente el espacio de búsqueda del que
+ * se elige por CONTRASTE MEDIDO: `Contact.tsx` documenta que eligió
+ * `error[300]` porque `error[400]` daba 4,30:1 y no llegaba a AA. El paso
+ * 400 no tiene consumidor y aun así hizo falta que existiera para poder
+ * descartarlo — y hará falta la próxima vez que alguien mida.
+ *
+ * LO QUE SÍ SE PODA, y el precedente está tres párrafos más arriba: una
+ * RAMPA ENTERA sin un solo consumidor (`success`, retirada en la #14). Ese
+ * es el listón, y ninguna de las cinco que quedan lo pasa: las cinco tienen
+ * al menos dos pasos vivos.
  */
 export const color = {
   primary: ramp(235.851, 0.158),

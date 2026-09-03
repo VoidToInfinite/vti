@@ -19,12 +19,12 @@ Convención de lectura: **sistema** = un token o regla que vive en `src/theme/` 
 
 ### 2.1 Generación (`src/theme/tokens/color.ts`)
 
-Todo el color del sistema se genera desde dos tablas compartidas por los seis hues:
+Todo el color del sistema se genera desde dos tablas compartidas por los **cinco** hues (eran seis hasta la crítica externa #14, 2026-09-02, que retiró `success` por cero consumidores; la cifra de este párrafo y la del siguiente se corrigieron el 2026-09-03 al revisar esta sección en la #16 — la tabla de abajo ya listaba cinco):
 
 - **Escalera de luminosidad `L`**, 12 pasos (`STEPS = 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100`): `0.985, 0.96, 0.92, 0.86, 0.78, 0.737, 0.66, 0.53, 0.5, 0.42, 0.32, 0.22`.
 - **Multiplicador de croma `CMUL`**, con pico en el paso 500 (`1`) y decaimiento hacia los dos extremos: `0.1, 0.2, 0.42, 0.66, 0.9, 1, 0.94, 0.82, 0.72, 0.62, 0.5, 0.36`.
 
-Seis rampas resultantes, todas `oklch(L C H)`, sin un solo hexadecimal en la capa de tokens:
+Cinco rampas resultantes, todas `oklch(L C H)`, sin un solo hexadecimal en la capa de tokens:
 
 | Rampa       | Hue        | Croma pico                                      |
 | ----------- | ---------- | ----------------------------------------------- |
@@ -35,6 +35,8 @@ Seis rampas resultantes, todas `oklch(L C H)`, sin un solo hexadecimal en la cap
 | `neutral`   | 286 (frío) | croma casi nulo (tabla `nc` propia, pico 0.006) |
 
 **Decisión pagada:** `L[7]` (paso 700) bajó de 0.58 a 0.53 tras la auditoría AA. El docblock de `color.ts` remite a `semantic.ts` para el detalle de cada rol afectado.
+
+**Un paso sin consumidor no es una hoja muerta** (crítica externa #16, 2026-09-03). El censo por paso da 30 de 60 sin consumidor directo — `warning` 2/12, `error` 3/12, `primary` 6/12, `neutral` 10/12, `secondary` 9/12 — y aun así no se poda ninguno: no son 60 hojas escritas a mano, son la salida de `ramp()` recorriendo la escalera compartida `STEPS`, así que «retirar `warning[50]`» no existe como operación (o se acorta `STEPS` para las cinco rampas, o se bifurca la fábrica y `Record<Step, string>` deja de ser cierto para todos sus lectores). La escalera es además el espacio de búsqueda del que se elige por contraste medido: `Contact.tsx` documenta que eligió `error[300]` porque `error[400]` daba 4,30:1 — el paso 400 no tiene consumidor y hizo falta que existiera para poder descartarlo. Lo que sí se poda es una RAMPA ENTERA sin un solo consumidor, y ese precedente ya se aplicó una vez (`success`, #14). Detalle completo y método en el docblock de `color.ts`.
 
 ### 2.2 Roles semánticos (`src/theme/tokens/semantic.ts`)
 
@@ -157,9 +159,11 @@ Las secciones oscuras, además, pasan de contenedor centrado a sangre completa c
 
 ### 5.1 Escala (`src/theme/tokens/motion.ts`)
 
-**Duraciones:** `instant` 0ms · `fast` 100ms · `base` 200ms · `slow` 320ms · `slower` 480ms · `ambient` 1500ms · `spin` 700ms · `spinReduced` 2100ms.
+**Duraciones:** `instant` 0ms · `fast` 100ms · `base` 200ms · `slow` 320ms · `slower` 480ms · `spin` 700ms · `spinReduced` 2100ms. Siete peldaños, no ocho: `ambient` 1500ms figuró aquí hasta el 2026-09-03 pero se había retirado del código por cero consumidores (commit `3734fd0`) — deriva documental corregida al revisar esta sección en la crítica externa #16. Cada peldaño existe además en formato numérico (`motion.durationMs.<paso>`) para quien necesita el número y no la cadena CSS: es el MISMO objeto leído de dos maneras, no dos escalas.
 
-**Curvas:** `standard`, `decelerate`, `accelerate`, `emphasized` (las cuatro monótonas) y `overshoot` (`cubic-bezier(0.34, 1.56, 0.64, 1)`) — la única que sobrepasa su valor final antes de asentar, reservada al despegue del navbar al hacer scroll, no a transiciones de interfaz normales.
+**Retardos (`motion.staggerMs`, desde la crítica externa #16, 2026-09-03):** `tight` 60ms · `base` 80ms · `loose` 110ms. Es la tercera magnitud del movimiento —cuándo empieza una pieza respecto a su hermana— y hasta esa fecha no tenía dónde nacer, así que cada sección se inventó la suya (medido: 22 de 26 retardos eran valores sueltos entre 80 y 1.800 ms). Las tres cifras salen del censo de lo que el repo ya escribía por su cuenta, no de una progresión inventada: 60 es el paso de la cascada de tarjetas de Story y de los dos escalones centrales de la cabecera de Features, 80 el más repetido (copia del hero, primer escalón de las dos cabeceras, tarjetas de Features) y 110 el del escalonado de capas del fondo del hero. Solo existe en formato numérico, a propósito: todos sus consumidores multiplican el peldaño por un índice o lo suman para acumular una cascada, así que un gemelo en cadena nacería sin consumidores. Los 90ms de Journey se quedan deliberadamente sin peldaño (ver el docblock del token).
+
+**Curvas:** `standard`, `decelerate`, `accelerate`, `emphasized`, `settle` (las cinco monótonas) y `overshoot` (`cubic-bezier(0.34, 1.56, 0.64, 1)`) — la única que sobrepasa su valor final antes de asentar, reservada al despegue del navbar al hacer scroll, no a transiciones de interfaz normales. `settle` (`cubic-bezier(0.23, 1, 0.32, 1)`) entró en la crítica externa #14 absorbiendo dos curvas que vivían como literales propios (la de `src/motion/vocabulary.ts`, la más usada del CSS servido, y la `EASE_ENTRANCE` de `Sol.tsx`); faltaba en esta lista desde entonces, corregido aquí.
 
 **Excepción sancionada — `overshoot`** (Task 23, plan premium F1-F5; mismo CRITERIO que el cristal del navbar en §8 — excepción de identidad acotada, medida y documentada con su porqué, aunque §8 sea un párrafo descriptivo y no siga este mismo formato de cuatro puntos; corregido 2026-08-12, Task 25, tras verificar que la frase original ("mismo formato") no era exacta — §8 no tiene una estructura de cuatro puntos que citar como precedente formal): la única curva no monótona del sistema (`y` fuera de `[0, 1]` en su `cubic-bezier`) es también la única identidad de marca que un rebote puede aportar en este repo — se conserva a propósito, no por omisión.
 
@@ -192,7 +196,7 @@ Valores derivados, no elegidos a mano:
 | Constante | Valor | Derivación |
 | --- | --- | --- |
 | `HERO_FADE_MS` | 420 | duración del fundido de una capa — valor calibrado a ojo sobre el render; la derivación «2 × base» que figuraba aquí era falsa (2 × 200 = 400 ≠ 420; corregido 2026-08-17, ver el docblock de `src/motion/timings.ts`) |
-| `HERO_STEP_MS` | 110 | paso del stagger entre capas |
+| `HERO_STEP_MS` | 110 | paso del stagger entre capas — desde la crítica externa #16 (2026-09-03) lee `motion.staggerMs.loose`, mismo valor y distinta procedencia |
 | `HERO_STAGGER_STEPS` | 6 | `Math.max` entre `EYE_STAGGER.length` (6, oscuro) y `AURA_STAGGER.length` (5, claro) |
 | `HERO_STACK_MS` | 970 | `HERO_FADE_MS + (HERO_STAGGER_STEPS − 1) × HERO_STEP_MS` = 420 + 5×110 |
 | `HERO_DECODE_TIMEOUT_MS` | 600 | tope de espera de `img.decode()` antes de arrancar igualmente |
