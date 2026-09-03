@@ -188,3 +188,31 @@ Se eliminan `scroll-snap-type` de `GlobalStyles` y los componentes `ScSnapPoints
 
 - `useStoryDeck` pasa de un bucle de `requestAnimationFrame` LIBRE (que se reprogramaba solo en cada frame mientras la pista estuviera en pantalla) a un motor **dirigido por eventos y coalescido por rAF**: `scroll` pasivo + `resize` programan como mucho una medición por frame, y en reposo el coste es cero. El bucle libre hacía un `getBoundingClientRect()` —un layout forzado— 60 veces por segundo aunque el usuario no tocara la rueda, compitiendo con el rAF de `useSceneParallax`, que en esta misma sección anima 8 capas a pantalla completa con `mix-blend-mode`.
 - `ScSceneWrap` declara `will-change: transform`. Es la capa que se traslada durante TODO el recorrido de la presentación y contiene el grupo de blending; sin promoverla, cada desplazamiento obliga a recomponer ese grupo en el hilo principal. Es el caso de uso para el que `will-change` existe, no un uso preventivo.
+
+---
+
+## Enmienda 2026-09-03 — el recorrido por diapositiva pasa de una pantalla a media (ola L, crítica externa #16)
+
+**Qué cambia.** Cada diapositiva de los dos decks oscuros deja de consumir una pantalla de scroll y pasa a consumir **media**: nace `DECK_SLIDE_TRAVEL_SCREENS = 0.5` (y su forma CSS `DECK_SLIDE_TRAVEL = "50dvh"`) en `src/hooks/useSlideDeck.ts`, compartida por Story y Journey para que las dos pistas no puedan divergir. La pista se recalcula como `(diapositivas − 1) × DECK_SLIDE_TRAVEL + 1 pantalla del stage pegado + cola × pantalla`; el `stage` sigue midiendo `100dvh` y la cola de cada deck no cambia. El hook deriva el progreso del recorrido real, no del alto del viewport.
+
+**Por qué.** La crítica externa #16 midió que el tema oscuro obligaba a recorrer **16.376 px** frente a 6.558 en claro a 1440×900 —3,2× hasta `#contact`—, con **11 tramos de unos 800 px sin un solo cambio de copia** (el 54 % del documento). Tres heurísticas de Nielsen cayeron a 2/4 por esa causa (H4 consistencia entre temas, H6 reconocimiento, H7 eficiencia). El dueño decidió recortar el recorrido a la mitad y hacer visible el rótulo del paso activo, sin tocar el vehículo: sigue siendo un deck pegado, no una lista.
+
+**Cifras después del cambio** (Chrome real sobre el servidor de desarrollo, tema fijado por `localStorage`):
+
+| medida | antes | después |
+| --- | --- | --- |
+| documento oscuro a 1440×900 | 16.376 px | **10.976 px** |
+| `#contact` a 1440×900 | 14.571 px | **9.171 px** |
+| documento oscuro a 1280×800 | 14.836 px | **10.036 px** |
+| recorrido por diapositiva | ~800-900 px | **400 px** (6 estados en Story, 8 en Journey, muestreado cada 200 px) |
+| documento bajo `prefers-reduced-motion` | 7.489 px | 7.490 px, sin animaciones corriendo |
+
+Las colas de los dos decks siguen siendo el único tramo largo sin cambio de copia (~1.800 px cada una), y no son scroll muerto: ahí entra la sección siguiente. Medido por diferencia de píxeles entre capturas cada 200 px, la cola cambia entre el 11 % y el 49 % de la pantalla, frente al 9-11 % de un tramo de control dentro del propio deck.
+
+**Lo que esta enmienda NO cambia.** La decisión original de esta spec —pin por `position: sticky` sobre una pista alta, sin `scroll-snap`— sigue en pie tal cual, y con ella su razonamiento y sus medidas. En particular, D2 sigue describiendo la técnica correcta; lo que caduca de su texto es la aritmética concreta («track de 6 × 100dvh»), que hoy es la fórmula de arriba. D13, el raíl de 6 marcas decorativo, sigue vigente y esta ola le añade el rótulo.
+
+**Rótulo visible del paso.** El raíl deja de ser solo puntos mudos: junto a las marcas aparece una fracción apilada (numerador, barra, denominador) que dice en qué parada se está sobre el total. Es `aria-hidden`, porque la capa accesible que ya anunciaba «Paso N de M» sigue siendo la única fuente para lectores —no hay anuncio doble—, y su contraste sobre el arte, medido con tinta nominal contra la distribución del fondo bajo su caja, da p05 entre 17,5 y 19,5 en los dos decks a 390 y a 1440.
+
+**Canal del raíl.** La copia del deck reserva ahora `space[5] + space[5] + space[2]` (56 px) de `padding-inline-end` para que ninguna línea entre en la banda del raíl entre 390 y 768 px: antes hasta 11 líneas invadían la banda y el hit-test devolvía el botón del raíl por encima del párrafo. Medido después, el peor cruce es de −2 px (ninguna caja de glifo cruza el umbral) y el hit-test devuelve el raíl en los cinco anchos. Coste declarado: la columna de lectura del deck queda en 302 px a 390 px de viewport (unos 38 caracteres por línea) frente a los ~43 de la rama clara, que no reserva ese canal.
+
+Commits: `175da8a`, `98ae371`, `6b67586`, `3f6fdc1`, `af98cfb`, `dfd8b40`.
