@@ -1443,6 +1443,25 @@ const ScStatementThird = styled(ScAccent)`
 const communityLinkStyles = css`
   display: inline-flex;
   align-items: center;
+  /*
+   * OBJETIVO DE 24 px (critica externa #16, hallazgo L3; WCAG 2.5.8 Target
+   * Size, AA en WCAG 2.2). Medido en tema oscuro a 390x844, este enlace era
+   * la UNICA diana del sitio por debajo del minimo: 208x22 px. Los 2 px que
+   * faltaban salen de que la caja se ajustaba al texto -- bodySm con su
+   * interlineado -- sin declarar altura minima propia.
+   *
+   * min-height y no padding-block: el elemento ya es un inline-flex con
+   * align-items: center, asi que la altura extra se reparte sola arriba y
+   * abajo alrededor del texto, sin mover la linea base ni empujar nada.
+   * Medido antes/despues, la caja pasa de 22,4 a 24 px de alto y ninguna otra
+   * medida de la diapositiva cambia -- que es lo que "sin salto de layout"
+   * significa aqui.
+   *
+   * space[5] es el mismo peldano con el que ScRailMark (story.deck.tsx) y el
+   * pie ya resuelven este mismo minimo: 24 px no es un numero de este enlace,
+   * es el umbral de la norma, y el sitio lo nombra siempre igual.
+   */
+  min-height: ${({ theme }) => theme.data.space[5]};
   font-family: ${({ theme }) => theme.data.type.fontBody};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 600;

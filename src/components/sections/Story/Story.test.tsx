@@ -3441,3 +3441,37 @@ describe("Story: critica #16 -- la copia del deck reserva el canal del rail", ()
   });
 });
 
+/*
+ * Critica externa #16, hallazgo L3 (WCAG 2.5.8 Target Size, AA en WCAG 2.2):
+ * el enlace de comunidad del cierre del deck media 208x22 px en movil, la
+ * UNICA diana del sitio por debajo de los 24 px. Se ata la declaracion; la
+ * caja resultante (208x24, sin mover nada mas) se mide en navegador.
+ */
+describe("Story: critica #16 -- el enlace de comunidad del deck alcanza la diana minima", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("hallazgo L3: el enlace de comunidad declara el minimo de 24 px de WCAG 2.5.8", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const enlace = container.querySelector(
+      `a[href="${links.discord}"]`,
+    ) as HTMLElement;
+
+    // space[5] es 1.5rem = 24px, el mismo peldano con el que ScRailMark ya
+    // resuelve este minimo. Medido en navegador, la caja pasa de 208x22,4 a
+    // 208x24 sin mover nada mas.
+    expect(cssRuleTextFor(enlace)).toContain(
+      `min-height: ${basicDarkTheme.space[5]}`,
+    );
+  });
+});
