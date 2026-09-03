@@ -2230,3 +2230,145 @@ describe("ola M: la escena oscura se anuncia como una sola imagen con nombre", (
     expect(container).toBeTruthy();
   });
 });
+
+/*
+ * Velo de contraste de la copia oscura (crítica externa #17, hallazgo de
+ * contraste de Features). El velo es una propiedad puramente de PINTADO:
+ * jsdom no pinta, no hace layout, no compone alfa y no evalúa `@media`, así
+ * que estos candados solo pueden aseverar lo verificable sin motor de
+ * render -- que la regla existe, de qué elemento cuelga, con qué color y qué
+ * alfa tiñe, que no captura el puntero ni anima, y en qué dos condiciones se
+ * retira. La medida real (0 % de muestras bajo 4,5:1 en un barrido de
+ * posiciones de scroll a 390 y 768 px) es de navegador y está en el docblock
+ * de `FEATURES_COPY_SCRIM_ALPHA` (Features.tsx).
+ */
+describe("Features oscuro: velo de contraste de la copia (crítica #17)", () => {
+  beforeEach(() => {
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  /** Reglas de estilo (el OBJETO, no su texto) cuyo selector menciona alguna
+   *  clase del elemento: la FORMA de un selector y el `@media` al que
+   *  pertenece una regla solo se pueden aseverar sobre el objeto. */
+  function reglasConSelectorDe(el: HTMLElement): CSSStyleRule[] {
+    const clases = Array.from(el.classList);
+    const out: CSSStyleRule[] = [];
+    const walk = (rules: CSSRuleList): void => {
+      Array.from(rules).forEach((rule) => {
+        const selector = (rule as CSSStyleRule).selectorText;
+        if (
+          selector !== undefined &&
+          clases.some((cls) => selector.includes(`.${cls}`))
+        ) {
+          out.push(rule as CSSStyleRule);
+        }
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) walk(anidadas);
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return out;
+  }
+
+  function reglasDelVelo(): {
+    base: CSSStyleRule;
+    retiradas: CSSStyleRule[];
+  } {
+    const copia = screen.getByTestId("features-dark-copy");
+    const before = reglasConSelectorDe(copia).filter((regla) =>
+      regla.selectorText.endsWith("::before"),
+    );
+    const base = before.filter((r) => r.cssText.includes("linear-gradient"));
+    expect(
+      base,
+      "se esperaba exactamente una regla ::before con el degradado del velo",
+    ).toHaveLength(1);
+    return {
+      base: base[0],
+      retiradas: before.filter((r) =>
+        r.cssText.replace(/\s/g, "").includes("display:none"),
+      ),
+    };
+  }
+
+  it("cuelga del ::before del bloque de copia y tiñe con el void de la escena, no con semantic.bg", () => {
+    renderWithProviders(<Features />);
+    const copia = screen.getByTestId("features-dark-copy");
+    const regla = reglasDelVelo().base;
+
+    expect(
+      Array.from(copia.classList).some((cls) =>
+        regla.selectorText.includes(`.${cls}`),
+      ),
+      "el velo tiene que colgar del propio bloque de copia, no de un hijo ni del marco",
+    ).toBe(true);
+
+    const css = regla.cssText.replace(/\s/g, "");
+    expect(css).toContain("linear-gradient");
+    expect(css).toContain("color-mix(inoklch");
+    // El tinte es el void de la escena: es lo que hace el velo invisible
+    // sobre el vacío de la propia ilustración a cualquier opacidad.
+    expect(css).toContain(FEATURES_ORBITAL_VOID.replace(/\s/g, ""));
+    // Y NO el fondo de la sección, que sí cambiaría el color del vacío.
+    expect(css).not.toContain(themes.dark.semantic.bg.replace(/\s/g, ""));
+  });
+
+  it("el alfa entregado es el 94 % que cerró la medición, no cualquier otro", () => {
+    renderWithProviders(<Features />);
+    const css = reglasDelVelo().base.cssText.replace(/\s/g, "");
+
+    /* Literal a propósito, no leído de la constante: el valor está
+       CALIBRADO en navegador (escalera medida a 390 px, líneas con alguna
+       muestra bajo 4,5:1 partiendo de 84: 75 % -> 21; 88 % -> 3; 90 % -> 2;
+       92 % -> 0, pero a 768 px todavía quedaba una línea con mínimo 4,46;
+       94 % -> 0 en los dos anchos). Bajarlo vuelve a abrir el defecto, así
+       que este candado tiene que ponerse rojo si alguien lo mueve sin
+       repetir la medición. */
+    expect(css).toContain("94%");
+  });
+
+  it("no captura el puntero, se pinta por detrás del texto y no anima nada", () => {
+    renderWithProviders(<Features />);
+    const css = reglasDelVelo().base.cssText.replace(/\s/g, "");
+
+    expect(css).toContain("pointer-events:none");
+    expect(css).toContain(`z-index:calc(${themes.dark.zIndex.base}-1)`);
+    // Estático a propósito: hereda el fundido de entrada de su contenedor.
+    expect(css).not.toContain("transition");
+    expect(css).not.toContain("animation");
+  });
+
+  it("se retira bajo forced-colors y a partir de lg, que es donde el escritorio ya medía limpio", () => {
+    renderWithProviders(<Features />);
+    const { retiradas } = reglasDelVelo();
+
+    const condiciones = retiradas.map(
+      (regla) => regla.parentRule?.cssText ?? "",
+    );
+    expect(
+      condiciones.some((texto) => texto.includes("forced-colors: active")),
+      "falta el guard de forced-colors del velo",
+    ).toBe(true);
+    expect(
+      condiciones.some((texto) => texto.includes(themes.dark.breakPoint.lg)),
+      "falta la retirada del velo a partir de lg",
+    ).toBe(true);
+  });
+
+  it("la rama CLARA no monta el bloque de copia oscuro, así que no puede heredar el velo", () => {
+    window.localStorage.setItem("vti-theme", "light");
+    renderWithProviders(<Features />);
+
+    expect(screen.queryByTestId("features-dark-copy")).toBeNull();
+  });
+});

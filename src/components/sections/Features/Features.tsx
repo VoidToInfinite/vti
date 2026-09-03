@@ -13,6 +13,7 @@ import type { ThemeDefinition } from "@/theme/theme.types";
 import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import type { NavItem } from "@/config/navigation";
 import { FeaturesCelestialOrbital } from "@/components/scenes/featuresCelestialOrbital/FeaturesCelestialOrbital";
+import { FEATURES_ORBITAL_VOID } from "@/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers";
 import {
   FEATURE_KEYS,
   FEATURE_FIGURE_BASENAME,
@@ -1315,11 +1316,84 @@ const ScDarkTail = styled.div`
   }
 `;
 
+/*
+ * Velo de contraste de la copia oscura (crítica externa #17, hallazgo de
+ * contraste de Features). Receta del hero (ScCopy::before, Hero.tsx, D1 del
+ * 2026-09-02): un `::before` del propio bloque de copia, sin nodo nuevo, sin
+ * puntero y sin animación.
+ *
+ * ## El defecto, medido con instrumento propio, no heredado
+ *
+ * Método (task/lessons.md 2026-09-02 bis, reglas 1 y 2): tinta NOMINAL -- el
+ * `color` computado del elemento resuelto por un canvas de 1x1 -- contra la
+ * DISTRIBUCIÓN de píxeles bajo la caja de CADA LÍNEA, capturada con el texto
+ * en `visibility: hidden` y excluyendo del muestreo las cajas de los adornos
+ * FIJOS que se pintan por encima (navbar y botón de volver arriba: su blanco
+ * no es fondo de esta sección y fabricaba fallos que no existen). Nada de
+ * núcleo de glifo, que a 12-14 px mide antialiasing. Barrido de 15
+ * posiciones de scroll a lo largo de la sección, porque la escena hace
+ * parallax y la línea peor CAMBIA con la posición.
+ *
+ * Medido sobre el build de producción de `14fb06e`, Chrome, DPR 1, tema
+ * oscuro, líneas con al menos una muestra por debajo de 4,5:1:
+ *
+ * | viewport  | líneas con fallo | peor caso                          |
+ * | --------- | ---------------- | ---------------------------------- |
+ * | 390x844   | 84               | «Juega» 100% de sus muestras, 1,00:1|
+ * | 768x1024  | 68               | cuerpo de 14 px al 25%             |
+ * | 992x800   | 6                | 0,1-0,3% de muestras, mínimo 2,76  |
+ * | 1280x800  | 2                | 0,1% de muestras, mínimo 2,61      |
+ *
+ * El hallazgo de la crítica (dos líneas de 12 px al 20,6% y 11,1%) se queda
+ * MUY corto: a 390 px la columna de copia se apoya entera sobre las tres
+ * burbujas luminosas de la escena (bombilla, cerebro, mando), y falla el
+ * cuerpo, los bullets, los CTA y el título de Gaming. Por debajo de `lg` el
+ * marco de contenido ya no tiene a su derecha el vacío sobre el que se
+ * compuso esta rama: el texto y el arte ocupan el mismo sitio.
+ *
+ * A partir de `lg` el defecto se apaga solo (6 y 2 líneas, siempre por
+ * debajo del 0,3% de sus muestras: una estrella suelta cruzando el texto de
+ * acento, que ya nace con margen fino -- 5,31:1 sobre el void). Por eso el
+ * velo es MOBILE-FIRST y se retira en `lg`: el escritorio no se toca, que es
+ * la restricción del encargo.
+ *
+ * ## De dónde sale cada número
+ *
+ * El TINTE es el void de la propia escena (`FEATURES_ORBITAL_VOID`), no
+ * `semantic.bg`. Es la elección que hace el velo invisible donde no hace
+ * falta: sobre el vacío de la escena, tapar con su mismo color no cambia ni
+ * un valor de canal a cualquier opacidad. Solo se ve donde hay arte
+ * brillante, que es exactamente donde tiene que verse.
+ *
+ * El ALFA se calibró midiendo, no estimando. Escalera completa a 390 px
+ * (líneas con fallo, de 84 en el punto de partida): 75% -> 21; 88% -> 3
+ * (mínimo 4,13); 90% -> 2 (mínimo 4,43); 92% -> 0. A 768 px el 92% todavía
+ * dejaba una línea al 0,6% con mínimo 4,46, así que el valor entregado es
+ * 94%: cero muestras bajo 4,5 en los dos anchos, con el arte aún legible
+ * como textura detrás del texto (las burbujas se leen como halos apagados,
+ * no desaparecen).
+ *
+ * `FEATURES_COPY_SCRIM_FADE` es a la vez el desborde vertical y la longitud
+ * del fundido, para que la zona plena empiece justo en el borde de la caja
+ * de la copia y el fundido quede FUERA del texto. El desborde horizontal es
+ * mayor porque el borde vertical del velo es recto: cuanto más lejos del
+ * texto, menos se lee como una caja.
+ */
+const FEATURES_COPY_SCRIM_ALPHA = "94%";
+const FEATURES_COPY_SCRIM_FADE = "32px";
+const FEATURES_COPY_SCRIM_BLEED_INLINE = "40px";
+
 /* Reveal de la rama oscura: mismo mecanismo que ScDarkContent en
    Story.tsx/Journey.tsx. PIERDE su padding (ahora lo lleva ScDarkFrame,
-   arriba) y su position: relative; z-index: 1 (ahora los lleva el frame,
-   que es quien compite por celda de grid con ScDarkSceneSlot) -- este
-   elemento ya no necesita su propio contexto de apilamiento.
+   arriba) y su z-index: 1 (ahora lo lleva el frame, que es quien compite
+   por celda de grid con ScDarkSceneSlot) -- este elemento ya no necesita su
+   propio contexto de apilamiento. RECUPERA `position: relative`, y solo
+   eso, desde el velo de contraste de arriba: un `::before` absoluto necesita
+   un bloque contenedor posicionado, y tiene que ser ESTE elemento y no el
+   marco para que el velo mida la caja de la copia (que es lo que hay que
+   tapar) y no la pantalla entera (que apagaría la escena). Sin z-index
+   propio no se crea contexto de apilamiento nuevo: el velo cuelga un
+   peldaño por debajo de zIndex.base y sigue por detrás del texto.
 
    Duración (D7, encargo 2026-08-04): slower (480ms), no slow (320ms) --
    el easing decelerate ya era el correcto aquí; lo que no coincidía con
@@ -1345,6 +1419,7 @@ const ScDarkTail = styled.div`
    es del token compartido, no de tokens de tema sueltos. Las dos ramas de
    Features vuelven a compartir gramática de entrada. */
 const ScDarkContent = styled.div`
+  position: relative;
   max-width: ${({ theme }) => theme.data.grid.prose};
   width: 100%;
   opacity: 0;
@@ -1352,6 +1427,44 @@ const ScDarkContent = styled.div`
   transition:
     opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
     transform ${REVEAL.durationMs}ms ${REVEAL.easing};
+
+  /* Velo de contraste: el porqué completo, la medición del defecto y la
+     calibración del alfa están en el docblock de
+     FEATURES_COPY_SCRIM_ALPHA, arriba. Aquí solo vive la declaración.
+     No declara canal propio a propósito: hereda el fundido de entrada de
+     su contenedor, como el velo del hero. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * ${FEATURES_COPY_SCRIM_FADE})
+      calc(-1 * ${FEATURES_COPY_SCRIM_BLEED_INLINE});
+    z-index: calc(${({ theme }) => theme.data.zIndex.base} - 1);
+    pointer-events: none;
+    background-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      ${`color-mix(in oklch, ${FEATURES_ORBITAL_VOID} ${FEATURES_COPY_SCRIM_ALPHA}, transparent)`}
+        ${FEATURES_COPY_SCRIM_FADE},
+      ${`color-mix(in oklch, ${FEATURES_ORBITAL_VOID} ${FEATURES_COPY_SCRIM_ALPHA}, transparent)`}
+        calc(100% - ${FEATURES_COPY_SCRIM_FADE}),
+      transparent 100%
+    );
+
+    /* Con el arte fuera, un velo del color del void solo se interpondría
+       entre los colores que fuerza el sistema. Mismo gesto que el velo del
+       hero. */
+    @media (forced-colors: active) {
+      display: none;
+    }
+
+    /* Mobile-first: a partir de lg el marco recupera el vacío de la escena
+       a su derecha y la medición da 0,1-0,3% de muestras bajo umbral, la
+       misma cifra que el escritorio ya tenía. El encargo prohíbe tocarlo,
+       así que el velo se retira aquí. */
+    @media ${({ theme }) => theme.data.breakPoint.lg} {
+      display: none;
+    }
+  }
 
   &[data-revealed="true"] {
     opacity: 1;
@@ -1633,6 +1746,10 @@ export function Features(): ReactElement {
           <ScDarkContent
             ref={revealRef}
             data-revealed={revealed}
+            /* Gancho de test del bloque de copia: el velo de contraste vive
+               en su ::before y jsdom solo puede aseverar la regla si sabe
+               qué elemento la lleva. Mismo gesto que hero-copy. */
+            data-testid="features-dark-copy"
           >
             {/* Cabecera IDÉNTICA a la de la rama clara (Task 15, D-C/D-E,
                 2026-08-11): kicker con voz + h2 con la tesis + párrafo de
