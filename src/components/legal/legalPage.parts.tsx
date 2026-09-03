@@ -125,12 +125,19 @@ export const ScBackLink = styled(Link)`
      enlace usaba EXACTAMENTE el mismo color que el cuerpo de texto de la
      pagina -- medido, oklch(0.86 0.004 286) en los dos, contraste 1,0:1.
 
-     Aqui pesa mas que en Story por dos razones concretas: es la UNICA salida
-     en la parte alta de un documento legal de 5.198 px, y los enlaces del
-     indice de la misma pagina SI se distinguen (oklch(0.86 0.104 235.851)),
-     asi que la incoherencia era interna. La cabecera de las legales tampoco
-     lleva navegacion de secciones, con lo que este enlace es el camino de
-     vuelta al contenido.
+     Aqui pesa mas que en Story por una razon concreta que sigue en pie: los
+     enlaces del indice de la misma pagina SI se distinguen
+     (oklch(0.86 0.104 235.851)), asi que la incoherencia era interna.
+
+     Lo que este parrafo decia ademas -- que era la UNICA salida en la parte
+     alta de un documento legal de 5.198 px, porque la cabecera no llevaba
+     navegacion de secciones -- deja de ser cierto el 2026-09-03: desde la
+     decision del dueno tras la critica externa #16 estas paginas montan la
+     navegacion completa del sitio (ver el docblock de PrivacyDocument.tsx),
+     asi que este enlace ya no es el unico camino de vuelta. Se conserva de
+     todas formas: es el destino de vuelta EN EL FLUJO del documento, no en la
+     barra flotante, y su afordancia se juzga contra el indice que tiene
+     debajo, no contra la cabecera.
 
      SIN BACKTICKS: esto vive dentro del template literal de
      styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
