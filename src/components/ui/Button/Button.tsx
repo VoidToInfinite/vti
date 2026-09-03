@@ -87,6 +87,55 @@ const spin = keyframes`
   }
 `;
 
+/**
+ * Forma de boton bajo `forced-colors: active`, en un fragmento reutilizable.
+ *
+ * ORIGEN (critica externa #12, 2026-08-19): el CTA medido en modo de colores
+ * forzados daba fondo Canvas, color LinkText y `border-top-width: 0px`, o sea,
+ * se leia como texto enlazado y no como boton. En ese modo el navegador
+ * descarta los valores de autor de `color`, `background-color` y
+ * `border-color` -- los sustituye por la paleta del sistema -- y ademas fuerza
+ * `box-shadow: none`, asi que las cosas que dan forma a un control desaparecen
+ * a la vez: el fondo de la variante solid y el anillo inset de outline. (Eran
+ * tres hasta el 2026-09-02: el halo de `:focus-visible` por box-shadow tambien
+ * se apagaba aqui, y por eso mismo se retiro en la unificacion del anillo de
+ * foco -- ver `src/theme/tokens/focus.ts`. El indicador de foco es ahora un
+ * outline, que el modo forzado si respeta.) El borde es lo unico que el modo
+ * forzado si pinta.
+ *
+ * POR QUE UN FRAGMENTO EXPORTADO Y NO UN BLOQUE LOCAL (critica externa #16,
+ * hallazgo L12, 2026-09-03): el evaluador tecnico midio que el disparador
+ * «Mas destinos del sitio» (`ScNavTrigger`, `Navbar.tsx`) computaba
+ * `border: none` bajo colores forzados mientras el conmutador de tema y la
+ * hamburguesa -- los dos `IconButton`, o sea `styled(Button)` -- si recibian
+ * su `1px solid ButtonText`. La regla no le llegaba por una razon estructural:
+ * ese disparador es un `styled.button` propio, no compone sobre `Button`, asi
+ * que no hay cascada que la herede. Copiar el literal habria dejado dos
+ * declaraciones que pueden divergir; exportar el fragmento deja UNA fuente y
+ * cualquier boton de solo texto del sitio la consume interpolandola.
+ *
+ * ButtonText es la palabra clave de color de sistema que el propio ejemplo de
+ * MDN usa para este caso (borde que sustituye a un box-shadow forzado a none).
+ * El CTA que se monta con `as="a"` recibe LinkText como color de texto -- es lo
+ * que se midio --, asi que texto y borde pueden salir de dos entradas
+ * distintas de la paleta forzada: las dos son visibles sobre el mismo fondo, y
+ * lo que este fragmento garantiza es la FORMA, no que los dos tonos coincidan.
+ *
+ * POR QUE DENTRO DEL MEDIA QUERY y no como un borde transparente permanente:
+ * una sombra inset se dibuja desde el borde interior del borde, asi que 1px de
+ * borde transparente moveria 1px hacia dentro el anillo inset de la variante
+ * outline -- un cambio visual real en los dos temas normales, justo lo que
+ * este arreglo no puede permitirse. Dentro del media query no mueve nada de
+ * nada: el reset global declara `box-sizing: border-box` (GlobalStyles), asi
+ * que el borde se come 1px del interior y la caja exterior conserva exactos
+ * sus 36/44/52px de alto.
+ */
+export const forcedColorsButtonShape = css`
+  @media (forced-colors: active) {
+    border: 1px solid ButtonText;
+  }
+`;
+
 const ScButton = styled.button<{
   $variant: ButtonVariant;
   $intent: ButtonIntent;
@@ -227,42 +276,14 @@ const ScButton = styled.button<{
     pointer-events: none;
   }
 
-  /* Forma de boton bajo forced-colors (critica externa #12, 2026-08-19: el
-     CTA medido en modo de colores forzados daba fondo Canvas, color LinkText
-     y border-top-width: 0px, o sea, se leia como texto enlazado y no como
-     boton). En ese modo el navegador descarta los valores de autor de color,
-     background-color y border-color -- los sustituye por la paleta del
-     sistema -- y ademas fuerza box-shadow: none, asi que las TRES cosas que
-     hoy dan forma a este boton desaparecen a la vez: el fondo de la variante
-     solid y el anillo inset de outline. (Eran tres hasta el 2026-09-02: el
-     halo de :focus-visible por box-shadow tambien se apagaba aqui, y por eso
-     mismo se retiro en la unificacion del anillo de foco -- ver
-     src/theme/tokens/focus.ts. El indicador de foco de este boton es ahora un
-     outline, que el modo forzado si respeta.) El borde
-     es lo unico que el modo forzado si pinta. Se declara aqui, en la base y
-     no dentro de cada rama de variante, para que las cuatro lo hereden --
-     mismo punto de menor duplicacion que ya usan touch-action y las dos
-     primitivas de movimiento de arriba.
-
-     Por que DENTRO del media query y no como un borde transparente
-     permanente en la base: una sombra inset se dibuja desde el borde
-     interior del borde, asi que 1px de borde transparente moveria 1px hacia
-     dentro el anillo inset de la variante outline -- un cambio visual real
-     en los dos temas normales, justo lo que este arreglo no puede permitirse.
-     Dentro del media query no mueve nada de nada: el reset global declara
-     box-sizing: border-box (GlobalStyles), asi que el borde se come 1px del
-     interior y la caja exterior conserva exactos sus 36/44/52px de alto.
-
-     ButtonText es la palabra clave de color de sistema que el propio ejemplo
-     de MDN usa para este caso (borde que sustituye a un box-shadow forzado a
-     none). El CTA que se monta con as="a" recibe LinkText como color de
-     texto -- es lo que se midio --, asi que texto y borde pueden salir de
-     dos entradas distintas de la paleta forzada: las dos son visibles sobre
-     el mismo fondo, y lo que este bloque garantiza es la FORMA, no que los
-     dos tonos coincidan. */
-  @media (forced-colors: active) {
-    border: 1px solid ButtonText;
-  }
+  /* Forma de boton bajo forced-colors. El porque completo -- que se apaga en
+     ese modo, por que el borde es lo unico que sobrevive, y por que la regla
+     vive en un fragmento exportado desde la critica #16 -- esta en el
+     docblock de forcedColorsButtonShape, arriba. Se interpola aqui, en la
+     base y no dentro de cada rama de variante, para que las cuatro lo hereden
+     -- mismo punto de menor duplicacion que ya usan touch-action y las dos
+     primitivas de movimiento de arriba. */
+  ${forcedColorsButtonShape}
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

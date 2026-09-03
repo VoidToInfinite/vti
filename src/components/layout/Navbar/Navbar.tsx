@@ -16,6 +16,7 @@ import styled, { keyframes } from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
+import { forcedColorsButtonShape } from "@/components/ui/Button/Button";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import {
@@ -867,6 +868,29 @@ const ScNavTrigger = styled.button`
   &:active {
     transform: scale(${PRESS.activeScale});
   }
+
+  /* Forma de boton bajo colores forzados (critica externa #16, hallazgo L12,
+     2026-09-03). Medido con forced-colors: active sobre la barra real: este
+     disparador computaba border-top-width: 0px y border-top-style: none
+     mientras sus dos vecinos de la misma fila -- el conmutador de tema y la
+     hamburguesa, los dos IconButton y por tanto styled(Button) -- computaban
+     1px solid. La diferencia no era una omision de estilo sino estructural:
+     este control es un styled.button propio con border: none (dos lineas mas
+     arriba, parte del reseteo de la apariencia nativa), asi que ninguna
+     cascada le traia la regla de Button. En modo de colores forzados el
+     navegador tira el color de fondo de autor, asi que sin borde el unico
+     boton de solo texto de la barra se leia como un enlace mas.
+
+     Se interpola el MISMO fragmento que consume ScButton, nunca una copia del
+     literal (ver el docblock de forcedColorsButtonShape): la regla que pinta
+     el borde de los tres controles de esta fila es una sola.
+
+     Va DESPUES del border: none de arriba a proposito -- misma especificidad,
+     gana el ultimo -- y dentro de su media query no mueve nada en los dos
+     temas normales. Los enlaces de idioma no entran: son anclas, y un ancla no
+     promete forma de boton en ningun modo. (Sin comillas invertidas: regla 23
+     de RULES.md.) */
+  ${forcedColorsButtonShape}
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

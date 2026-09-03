@@ -3732,3 +3732,94 @@ describe("critica #13: la marca cede espacio antes que los controles", () => {
     expect(acciones.length).toBeGreaterThan(0);
   });
 });
+
+/*
+ * CRITICA EXTERNA #16 (2026-09-03), hallazgos L12 y L4.
+ *
+ * jsdom no evalua ningun `@media` (regla 36) y no hace layout (regla 44): ni
+ * el modo de colores forzados ni la geometria del rail se pueden observar
+ * aqui. Lo que estos candados atan es la DECLARACION que gobierna cada cosa,
+ * leida de `document.styleSheets`, y la PROCEDENCIA de sus valores (el token
+ * importado, nunca un literal escrito a mano: reglas 35, 36 y 38). La
+ * geometria real esta medida en navegador y vive en el docblock de `ScNav`;
+ * el borde forzado, en el de `forcedColorsButtonShape` (`Button.tsx`).
+ */
+describe("critica #16 (L12): el disparador de «Mas» tiene forma de boton bajo colores forzados", () => {
+  /** Reglas de estilo declaradas DENTRO de un `@media (forced-colors: active)`.
+   *  Mismo helper que ya usa `Button.test.tsx` para el candado hermano. */
+  function reglasForcedColors(): CSSStyleRule[] {
+    const out: CSSStyleRule[] = [];
+    const walk = (rules: CSSRuleList, dentro: boolean): void => {
+      Array.from(rules).forEach((rule) => {
+        const media = (rule as CSSMediaRule).media;
+        const aqui =
+          dentro ||
+          (media ? /forced-colors:\s*active/.test(media.mediaText) : false);
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) {
+          walk(anidadas, aqui);
+          return;
+        }
+        if (aqui && (rule as CSSStyleRule).selectorText !== undefined) {
+          out.push(rule as CSSStyleRule);
+        }
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules, false);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return out;
+  }
+
+  it("declara un borde propio dentro de @media (forced-colors: active), sobre su MISMO elemento", () => {
+    renderNavbar();
+    /* `hidden: true`, mismo precedente que los demas candados de este
+       disparador en este fichero (ver el helper de la seccion del panel): el
+       nombre accesible empieza por la etiqueta visible «Más» y se completa con
+       el texto oculto. */
+    const disparador = screen.getByRole("button", {
+      name: /^Más/i,
+      hidden: true,
+    });
+
+    const propias = reglasForcedColors().filter((regla) =>
+      Array.from(disparador.classList).some((cls) =>
+        regla.selectorText.includes(`.${cls}`),
+      ),
+    );
+    const conBorde = propias.filter((regla) =>
+      /border(-(top|right|bottom|left))?(-width|-style)?\s*:/.test(
+        regla.style.cssText || regla.cssText,
+      ),
+    );
+    expect(
+      conBorde.length,
+      "el disparador de «Más» no declara borde bajo forced-colors",
+    ).toBeGreaterThan(0);
+    // La forma del selector se afirma sobre selectorText (regla 35): el borde
+    // cuelga del propio boton, no de un descendiente suyo.
+    for (const regla of conBorde) {
+      expect(regla.selectorText.trim()).toMatch(/^\.[\w-]+$/);
+    }
+  });
+
+  it("la regla sale del fragmento compartido de Button.tsx, no de una copia del literal", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "Navbar.tsx"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("forcedColorsButtonShape");
+    // Ni el color de sistema ni el media query aparecen escritos aqui: si
+    // alguien copia la regla en vez de interpolarla, este candado cae.
+    expect(fuente).not.toContain("ButtonText");
+    expect(fuente).not.toContain("forced-colors");
+  });
+});
