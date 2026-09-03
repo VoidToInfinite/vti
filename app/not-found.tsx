@@ -61,15 +61,16 @@ export const metadata: Metadata = {
  * lleva "use client" y monta `Navbar`/`Footer`, los dos de cliente,
  * directamente).
  *
- * Divergencia DELIBERADA con `/privacidad` y `/aviso-legal`: esas dos rutas
- * usan `LegalHeader` (cabecera sobria, sin anclas de sección) en vez del
- * `Navbar` de la home -- su propio docblock (`LegalHeader.tsx`) explica por
- * qué: `Navbar` monta 4 anclas a secciones (`#story`/`#journey`/
- * `#features`/`#contact`, `src/config/navigation.ts`) que en una página sin
- * esas secciones quedan muertas (no navegan a ningún sitio; el navegador
- * simplemente no encuentra el ancla y no hace scroll). Ese mismo argumento
- * aplica aquí igual de literalmente -- la 404 tampoco monta esas 4
- * secciones --, pero el brief de esta tarea pide explícitamente "los mismos
+ * Ya NO hay divergencia con `/privacidad` y `/aviso-legal`: desde la ola M
+ * (2026-09-03, decisión del dueño tras la crítica externa #16) esas dos
+ * rutas montan este mismo `Navbar` y `LegalHeader` se retiró. El argumento
+ * que sostenía la cabecera sobria era que `Navbar` monta anclas a secciones
+ * (`src/config/navigation.ts`) que en una página sin esas secciones no
+ * navegan a ningún sitio; lo que lo desactiva es que esas anclas se emiten
+ * como rutas ABSOLUTAS a la home (`/#story`, o `/en#story` en inglés), así
+ * que desde una legal o desde aquí sí navegan y aterrizan -- medido. Se
+ * conserva escrito porque explica por qué el sitio tuvo dos cabeceras
+ * durante un mes, y porque el brief de esta ruta ya pedía "los mismos
  * componentes que la home", con la marca completa, el selector de idioma,
  * el conmutador de tema Y la navegación entera visibles -- priorizando que
  * quien aterriza en un error de verdad vea el sitio COMPLETO y pueda saltar
