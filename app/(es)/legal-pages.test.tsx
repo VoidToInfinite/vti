@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen, within } from "@/test/test-utils";
+import { renderWithProviders, screen } from "@/test/test-utils";
 import { LEGAL_VERSIONS } from "@/config/legal";
+import { navBarSectionsFor } from "@/config/navigation";
 import { ROUTES } from "@/config/site";
 import esLegal from "@/i18n/locales/es/legal.json";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
@@ -13,7 +14,11 @@ import PrivacyPage, { metadata as privacyMetadata } from "./privacidad/page";
 
 /*
  * Candado de las DOS rutas legales montadas de verdad, no de sus piezas por
- * separado (que ya cubren `LegalDocument.test.tsx` y `LegalHeader.test.tsx`).
+ * separado (que ya cubren `LegalDocument.test.tsx` para el renderer y
+ * `PrivacyDocument.test.tsx` / `LegalNoticeDocument.test.tsx` para los
+ * envoltorios; `LegalHeader.test.tsx` se citaba aquí hasta el 2026-09-03 y
+ * desapareció con su componente al revertirse D20 -- las legales montan hoy
+ * el `Navbar` del sitio, y sus candados los sostiene `Navbar.test.tsx`).
  * Fueron cuatro hasta el 2026-08-08: `/terminos` y `/accesibilidad` se
  * retiraron en la revisión legal de esa fecha (ver `LEGAL_ROUTE_KEYS` en
  * `src/config/site.ts`).
@@ -134,24 +139,60 @@ describe("rutas legales", () => {
   );
 
   /*
-   * La consulta ya no puede ser "el único enlace de la cabecera" (2026-08-18):
-   * desde que el selector de idioma es un par de `<a href>` en vez de dos
-   * `<button>`, la cabecera legal tiene TRES enlaces. Se acota al que este test
-   * siempre quiso comprobar -- el de vuelta a la portada -- por su destino, no
-   * por ser el único. No se relaja nada: sigue afirmando que la cabecera lleva
-   * a `/`, y ahora además que ese enlace es identificable entre sus hermanos.
+   * LA CONSULTA BAJA AL DOM EL 2026-09-03, y el contrato se ENDURECE, no se
+   * relaja (regla 40).
+   *
+   * Hasta hoy este candado pedía los enlaces de la cabecera con
+   * `getAllByRole`, se quedaba con los que NO llevan `hreflang` -- los del
+   * selector de idioma sí lo llevan -- y exigía que quedara exactamente UNO,
+   * el de la marca. Esa cuenta describía la cabecera legal propia que se
+   * retiró al revertirse D20 (ver el docblock de `PrivacyDocument.tsx`). Con
+   * el `Navbar` del sitio montado, la cifra real medida en Chrome a 1440
+   * sobre `/privacidad` es de 15 enlaces en la cabecera, 13 de ellos sin
+   * `hreflang` -- y aun así el test seguía en verde afirmando 1.
+   *
+   * Por qué pasaba: `getAllByRole` filtra por visibilidad, la fila de la
+   * barra vive dentro de un contenedor cuya regla BASE es `display: none`
+   * (mobile-first; por debajo de `md` los destinos se entregan en la hoja
+   * móvil) y jsdom no evalúa ningún `@media`, así que se queda con la regla
+   * base y no ve ni uno. Es el MISMO mecanismo que ya obligó a bajar al DOM
+   * el candado hermano de `app/en/en-routes.test.tsx`. Un candado que solo
+   * puede pasar no protege nada: si la barra desapareciera entera, "hay
+   * exactamente un enlace de marca" seguiría cumpliéndose.
+   *
+   * Lo que se exige ahora, leyéndolo del DOM: que las DOS cáscaras monten la
+   * navegación del sitio -- la marca a la portada y los cuatro destinos
+   * VISIBLES de la barra, tomados del modelo compartido y no tecleados -- más
+   * el pie. La cuenta exacta de la cabecera completa (los doce destinos del
+   * modelo más marca e idiomas) la cierra `PrivacyDocument.test.tsx` sobre su
+   * envoltorio; aquí se comprueba lo que solo se ve en el ensamblaje: que
+   * ninguna de las dos rutas se quedó sin ella.
    */
-  it.each(paginas)("/$nombre monta cabecera propia y pie", ({ Page }) => {
-    renderWithProviders((<Page />) as ReactElement);
+  it.each(paginas)(
+    "/$nombre monta la navegacion del sitio y el pie",
+    ({ Page }) => {
+      const { container } = renderWithProviders((<Page />) as ReactElement);
 
-    const cabecera = screen.getByRole("banner");
-    // Los enlaces del selector de idioma se distinguen por `hreflang` (declaran
-    // el idioma de su destino); el de la marca es el único que no lo lleva.
-    const marca = within(cabecera)
-      .getAllByRole("link")
-      .filter((enlace) => !enlace.hasAttribute("hreflang"));
-    expect(marca).toHaveLength(1);
-    expect(marca[0]).toHaveAttribute("href", ROUTES.home);
-    expect(screen.getByRole("contentinfo")).toBeInTheDocument();
-  });
+      const cabecera = container.querySelector("header");
+      expect(cabecera).not.toBeNull();
+      const hrefs = Array.from(cabecera!.querySelectorAll("a")).map((enlace) =>
+        enlace.getAttribute("href"),
+      );
+
+      expect(hrefs).toContain(ROUTES.home);
+
+      const visibles = navBarSectionsFor("es");
+      // Sonda positiva: sin ella, un modelo vacío dejaría el bucle sin
+      // ejecutar y el candado volvería a pasar por vacuidad.
+      expect(visibles.length).toBeGreaterThan(0);
+      for (const destino of visibles) {
+        expect(
+          hrefs,
+          `falta el destino ${destino.href} en la cabecera`,
+        ).toContain(destino.href);
+      }
+
+      expect(screen.getByRole("contentinfo")).toBeInTheDocument();
+    },
+  );
 });
