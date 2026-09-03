@@ -3377,6 +3377,23 @@ describe("Story: critica #16 -- el rail dice visualmente por donde va el deck", 
     expect(css).toContain(`color: ${basicDarkTheme.semantic.textMuted}`);
   });
 
+  /*
+   * El candado de debajo mide los TOKENS contra el void, no la DECLARACIÓN del
+   * numerador: con `ScRailStatusCurrent` cambiado a `semantic.textMuted` la
+   * suite entera seguía en verde (comprobado en la integración de la ola L,
+   * 204 tests). Este mide lo que aquél no puede ver — que la tinta que el
+   * numerador declara de verdad es la que después se mide.
+   */
+  it("el numerador declara su tinta en el CSS, no solo en el token que el test de contraste mide", async () => {
+    const { rotulo } = await railConRotulo();
+    const numerador = rotulo.querySelector("span") as HTMLElement;
+
+    expect(numerador, "el rotulo no tiene numerador").not.toBeNull();
+    expect(cssRuleTextFor(numerador)).toContain(
+      `color: ${basicDarkTheme.semantic.text}`,
+    );
+  });
+
   it("las dos tintas del rotulo libran AA (4.5:1) sobre el void real de la escena", async () => {
     await railConRotulo();
 

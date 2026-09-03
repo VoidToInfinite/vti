@@ -2420,6 +2420,23 @@ describe("Journey: critica #16 -- el rail dice visualmente por donde va el deck"
     return { track, grupo, rotulo: grupo.querySelector("p") as HTMLElement };
   }
 
+  /*
+   * Gemelo del candado de `Story.test.tsx`: los tests de contraste del rótulo
+   * miden los TOKENS contra el void de la escena, así que un cambio en la
+   * DECLARACIÓN del numerador (`ScJourneyRailStatusCurrent`) no los movía —
+   * comprobado en la integración de la ola L: 204 tests en verde con la tinta
+   * cambiada a `textMuted` en los dos decks.
+   */
+  it("el numerador declara su tinta en el CSS, no solo en el token que el test de contraste mide", async () => {
+    const { rotulo } = await railConRotulo();
+    const numerador = rotulo.querySelector("span") as HTMLElement;
+
+    expect(numerador, "el rotulo no tiene numerador").not.toBeNull();
+    expect(cssRuleTextFor(numerador)).toContain(
+      `color: ${themes.dark.semantic.text}`,
+    );
+  });
+
   it("el rail lleva un rotulo con la parada activa y el total, derivado de JOURNEY_SLIDES", async () => {
     const { rotulo } = await railConRotulo();
 
