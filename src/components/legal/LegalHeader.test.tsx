@@ -3,6 +3,7 @@ import { renderWithProviders, screen } from "@/test/test-utils";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { routePath } from "@/config/site";
 import { type } from "@/theme/tokens/type";
+import { space } from "@/theme/tokens/space";
 import { LegalHeader } from "./LegalHeader";
 
 /*
@@ -126,5 +127,32 @@ describe("LegalHeader", () => {
     // del elemento, el `toContain` de abajo fallaría por el motivo equivocado.
     expect(css).toContain("font-size");
     expect(css).toContain(`font-size: ${type.scale.wordmark.size}`);
+  });
+
+  /*
+   * OLA L (crítica #16, hallazgo 3 de Craft trasladado a las legales por
+   * L-B): la marca de esta cabecera quedaba a 392/232/72/32/16 px
+   * (1920/1600/1280/1100/390) mientras la barra de la home y el pie ponen su
+   * raíl en 384/224/64/24/24 — la tabla `space[4]` / `space[6]` a `md` era la
+   * causa. El candado exige el mismo relleno que la barra (`space[5]`) y la
+   * ausencia de la tabla por breakpoint. Se inspecciona `document.styleSheets`
+   * porque jsdom no hace layout ni evalúa `@media`.
+   */
+  it("ola L: la caja interior usa el raíl del sitio (space[5]) en todos los anchos, sin tabla por breakpoint", () => {
+    const { container } = renderWithProviders(<LegalHeader />);
+    const inner = container.querySelector("header > div");
+    expect(inner).not.toBeNull();
+    const clases = Array.from(inner!.classList);
+    expect(clases.length).toBeGreaterThan(0);
+    let css = "";
+    for (const hoja of Array.from(document.styleSheets)) {
+      for (const regla of Array.from(hoja.cssRules)) {
+        if (clases.some((c) => regla.cssText.includes(`.${c}`)))
+          css += regla.cssText;
+      }
+    }
+    expect(css).toContain(`padding: 0 ${space[5]}`);
+    expect(css).not.toContain(`padding: 0 ${space[4]}`);
+    expect(css).not.toContain(`padding: 0 ${space[6]}`);
   });
 });

@@ -50,11 +50,17 @@ const ScInner = styled.div`
   justify-content: space-between;
   gap: ${({ theme }) => theme.data.space[4]};
   height: var(--nav-height);
-  padding: 0 ${({ theme }) => theme.data.space[4]};
-
-  @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding: 0 ${({ theme }) => theme.data.space[6]};
-  }
+  /* Mismo raíl que la barra de la home y el pie (ola L, crítica #16): la
+     marca se alinea con grid.containerMax + space[5] en TODOS los anchos.
+     Antes había una tabla space[4] / space[6] a md que dejaba la marca a
+     392/232/72/32/16 px (1920/1600/1280/1100/390) frente al raíl del sitio
+     en 384/224/64/24/24, medido en Chrome sobre /privacidad antes del
+     cambio. Con space[5] coincide en los cinco anchos; el cuerpo legal no es
+     este raíl (es la columna de prosa centrada), así que aquí solo manda la
+     coherencia con la barra y el pie. Este comentario vive dentro del
+     template de styled-components: sin comillas invertidas (lección
+     2026-08-17). */
+  padding: 0 ${({ theme }) => theme.data.space[5]};
 `;
 
 /* Mismo motivo que `ScBrandLink` de `Navbar.tsx`: `Logo` pinta con
