@@ -1,4 +1,8 @@
 import { describe, it, expect } from "vitest";
+import {
+  DECK_SLIDE_TRAVEL,
+  DECK_SLIDE_TRAVEL_SCREENS,
+} from "@/hooks/useSlideDeck";
 import { motion } from "@/theme/tokens/motion";
 import { type } from "@/theme/tokens/type";
 import {
@@ -34,18 +38,58 @@ describe("constantes de la presentacion de Story", () => {
     expect(STORY_SCRUB_MS).toBe(parseInt(motion.duration.slow, 10));
   });
 
-  it("la pista mide una diapositiva por cada slide mas la cola de hold de Journey", () => {
+  it("la pista mide el recorrido de los huecos entre diapositivas mas el stage mas la cola de hold de Journey", () => {
     // Desde D3 (spec 2026-08-02-journey-overlay-transition-design.md) la
-    // pista ya no mide solo `STORY_SLIDES` pantallas: suma
-    // `STORY_DECK_TAIL_SCREENS`, la zona de hold en la que el stage sigue
-    // pegado mientras Journey se superpone. La comparacion se hace contra
-    // las CONSTANTES, nunca contra el literal `7`: si alguna de las dos
-    // cambiara (numero de diapositivas, o el ancho del solape de Journey),
-    // este test tiene que seguir describiendo la derivacion real en vez de
-    // congelar un numero que dejaria de significar lo mismo.
+    // pista suma `STORY_DECK_TAIL_SCREENS`, la zona de hold en la que el
+    // stage sigue pegado mientras Journey se superpone; y desde la critica
+    // externa #16 (2026-09-03, decision del dueno) el RECORRIDO ya no vale
+    // una pantalla por diapositiva sino `DECK_SLIDE_TRAVEL`. La comparacion
+    // se hace contra las CONSTANTES, nunca contra los literales `5`/`50dvh`:
+    // si alguna cambiara (numero de diapositivas, recorrido, o el ancho del
+    // solape de Journey), este test tiene que seguir describiendo la
+    // derivacion real en vez de congelar numeros que dejarian de significar
+    // lo mismo.
     expect(STORY_DECK_TRACK_HEIGHT).toBe(
-      `calc((${STORY_SLIDES} + ${STORY_DECK_TAIL_SCREENS}) * ${STORY_DARK_HEIGHT})`,
+      `calc(${STORY_SLIDES - 1} * ${DECK_SLIDE_TRAVEL} + (1 + ${STORY_DECK_TAIL_SCREENS}) * ${STORY_DARK_HEIGHT})`,
     );
+  });
+
+  it("critica #16: el recorrido por diapositiva es media pantalla, y la pista resultante mide 4,5 pantallas", () => {
+    // La decision del dueno en cifras: ~800 px por diapositiva pasan a ~400
+    // (a 800 px de alto de vista). Se comprueban las DOS mitades -- el valor
+    // del recorrido y lo que la pista mide con el -- porque una sola no
+    // basta: la formula de arriba seguiria pasando con cualquier recorrido, y
+    // el recorrido suelto no dice cuanta pista queda.
+    expect(DECK_SLIDE_TRAVEL_SCREENS).toBe(0.5);
+    expect(DECK_SLIDE_TRAVEL).toBe("50dvh");
+
+    const pantallas =
+      (STORY_SLIDES - 1) * DECK_SLIDE_TRAVEL_SCREENS +
+      (1 + STORY_DECK_TAIL_SCREENS);
+    expect(pantallas).toBe(4.5);
+    // Y lo que eso vale en pixeles en los dos tamanos que midio la critica.
+    expect(pantallas * 800).toBe(3600);
+    expect(pantallas * 900).toBe(4050);
+  });
+
+  it("critica #16: el recorrido NO se escribe a mano en este fichero, se importa del hook (candado de fuente)", async () => {
+    // Mismo patron de candado que el de los tamanos tipograficos migrados a
+    // token: la asercion de valor de arriba pasaria igual con el literal
+    // "50dvh" escrito aqui, porque resuelve a la misma cadena. La propiedad
+    // "el numero vive en UN sitio compartido por los dos decks" solo se
+    // observa en la FUENTE (task/lessons.md, 2026-08-12, Task 19), despojada
+    // de comentarios para que la prosa que cita el literal no la falsee y
+    // para que el candado no se pueda desactivar comentandolo.
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "story.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("DECK_SLIDE_TRAVEL");
+    expect(fuente).not.toContain('"50dvh"');
   });
 
   it("la cola de hold mide exactamente una pantalla, la misma medida que el solape de Journey", () => {

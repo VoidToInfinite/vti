@@ -33,6 +33,7 @@ import {
 } from "./story.layers";
 import { STORY_COSMIC_BEING_VOID } from "@/components/scenes/storyCosmicBeing/storyCosmicBeing.layers";
 
+import { DECK_SLIDE_TRAVEL_SCREENS } from "@/hooks/useSlideDeck";
 /*
  * Reescritura completa (spec 2026-07-28, D3/D4): Story ya no es una
  * superficie siempre oscura con ThemeProvider/SceneLoader/costura propios --
@@ -199,6 +200,32 @@ function cssRuleFor(
     throw new Error("Ninguna regla coincide con el criterio pedido");
   }
   return rule as CSSStyleRule;
+}
+
+/**
+ * Alto simulado de la pista del deck, con la MISMA aritmetica que declara
+ * `STORY_DECK_TRACK_HEIGHT` (`story.layers.ts`): los huecos entre
+ * diapositivas por el recorrido de cada una, mas la pantalla del stage
+ * pegado, mas la cola de hold. Los tests fabrican la geometria con
+ * `getBoundingClientRect` porque jsdom no hace layout, y esa geometria
+ * fabricada solo prueba algo si describe la pista REAL -- hasta la critica
+ * externa #16 la escribian como `(STORY_SLIDES + cola) * vh`, que era
+ * exactamente la formula de entonces.
+ *
+ * Se deriva de las constantes, nunca de un numero: un literal aqui se
+ * desincronizaria en silencio el dia que cambie el recorrido o el reparto
+ * (regla 39 de `RULES.md`).
+ */
+function altoDePista(vh: number): number {
+  return (
+    (STORY_SLIDES - 1) * DECK_SLIDE_TRAVEL_SCREENS * vh +
+    (1 + STORY_DECK_TAIL_SCREENS) * vh
+  );
+}
+
+/** Recorrido que `useSlideDeck` reparte entre las diapositivas de esa pista. */
+function spanDePista(vh: number): number {
+  return altoDePista(vh) - vh - STORY_DECK_TAIL_SCREENS * vh;
 }
 
 describe("Story", () => {
@@ -2272,8 +2299,8 @@ describe("Story: Task 4, pista de scroll del deck (tema oscuro)", () => {
     // primera diapositiva de pilar, justo tras la intro. measure() corre
     // SINCRONO dentro de start() en cuanto la interseccion se activa.
     const vh = window.innerHeight;
-    const height = (STORY_SLIDES + STORY_DECK_TAIL_SCREENS) * vh;
-    const span = height - vh - STORY_DECK_TAIL_SCREENS * vh;
+    const height = altoDePista(vh);
+    const span = spanDePista(vh);
     const targetIndex = 1;
     const progress = targetIndex / (STORY_SLIDES - 1);
     track.getBoundingClientRect = () =>
@@ -2672,7 +2699,7 @@ describe("Story: critica #12 -- el rail del deck es operable (tema oscuro)", () 
     track.getBoundingClientRect = () =>
       ({
         top: 0,
-        height: (STORY_SLIDES + STORY_DECK_TAIL_SCREENS) * VH,
+        height: altoDePista(VH),
       }) as DOMRect;
     const grupo = screen.getByRole("group", {
       name: esHome.Home.story.railLabel,
@@ -2728,13 +2755,13 @@ describe("Story: critica #12 -- el rail del deck es operable (tema oscuro)", () 
     ).toHaveLength(1);
     expect(botones[0]).toHaveAttribute("aria-current", "true");
 
-    // span = alto - vh - cola*vh = (STORY_SLIDES - 1) * VH; un progress de
-    // 3/(STORY_SLIDES - 1) pone el index en 3.
-    const span = (STORY_SLIDES - 1) * VH;
+    // span = alto - vh - cola*vh = (STORY_SLIDES - 1) * recorrido; un
+    // progress de 3/(STORY_SLIDES - 1) pone el index en 3.
+    const span = spanDePista(VH);
     track.getBoundingClientRect = () =>
       ({
         top: -(span * 3) / (STORY_SLIDES - 1),
-        height: (STORY_SLIDES + STORY_DECK_TAIL_SCREENS) * VH,
+        height: altoDePista(VH),
       }) as DOMRect;
     // Salir y volver a entrar, no un segundo aviso de entrada: `start()` lleva
     // guarda de reentrada, asi que sin el `false` de en medio este segundo
@@ -2753,10 +2780,9 @@ describe("Story: critica #12 -- el rail del deck es operable (tema oscuro)", () 
     const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
 
     // Aritmetica, no un numero magico: con la pista en top 0 y scrollY 0,
-    //   span = (STORY_SLIDES + cola) * VH - VH - cola * VH
-    //        = (STORY_SLIDES - 1) * VH
-    //   top(k) = k / (STORY_SLIDES - 1) * span = k * VH
-    const span = (STORY_SLIDES - 1) * VH;
+    //   span = alto - VH - cola * VH = (STORY_SLIDES - 1) * recorrido
+    //   top(k) = k / (STORY_SLIDES - 1) * span = k * recorrido
+    const span = spanDePista(VH);
     [0, 3, STORY_SLIDES - 1].forEach((k) => {
       scrollTo.mockClear();
       act(() => {

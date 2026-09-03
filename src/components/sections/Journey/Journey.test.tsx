@@ -38,6 +38,7 @@ import {
   relativeLuminanceHex,
 } from "@/theme/tokens/contrast";
 import { DECK, REVEAL } from "@/motion/vocabulary";
+import { DECK_SLIDE_TRAVEL_SCREENS } from "@/hooks/useSlideDeck";
 
 /*
  * Journey monta con frecuencia VARIOS IntersectionObserver a la vez: en
@@ -106,6 +107,32 @@ function cssRuleTextFor(el: HTMLElement): string {
  * RULES.md: un helper que ya no describe nada es peor que ninguno). Sigue
  * vivo, intacto, en `Story.test.tsx`, que si conserva ese candado.
  */
+
+/**
+ * Alto simulado de la pista del deck, con la MISMA aritmetica que declara
+ * `JOURNEY_DECK_TRACK_HEIGHT` (`journey.layers.ts`): los huecos entre
+ * diapositivas por el recorrido de cada una, mas la pantalla del stage
+ * pegado, mas la cola de hold. Los tests fabrican la geometria con
+ * `getBoundingClientRect` porque jsdom no hace layout, y esa geometria
+ * fabricada solo prueba algo si describe la pista REAL -- hasta la critica
+ * externa #16 la escribian como `(JOURNEY_SLIDES + cola) * vh`, que era
+ * exactamente la formula de entonces. Gemelo del de `Story.test.tsx`.
+ *
+ * Se deriva de las constantes, nunca de un numero: un literal aqui se
+ * desincronizaria en silencio el dia que cambie el recorrido o el reparto
+ * (regla 39 de `RULES.md`).
+ */
+function altoDePista(vh: number): number {
+  return (
+    (JOURNEY_SLIDES - 1) * DECK_SLIDE_TRAVEL_SCREENS * vh +
+    (1 + JOURNEY_DECK_TAIL_SCREENS) * vh
+  );
+}
+
+/** Recorrido que `useSlideDeck` reparte entre las diapositivas de esa pista. */
+function spanDePista(vh: number): number {
+  return altoDePista(vh) - vh - JOURNEY_DECK_TAIL_SCREENS * vh;
+}
 
 beforeEach(() => {
   ioTargets = [];
@@ -701,8 +728,8 @@ describe("Journey: presentacion de JOURNEY_SLIDES diapositivas (tema oscuro)", (
     // measure() corre SINCRONO dentro de start() en cuanto la interseccion
     // se activa, sin necesitar rAF (misma tecnica que useSlideDeck.test.tsx).
     const vh = window.innerHeight;
-    const height = (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * vh;
-    const span = height - vh - JOURNEY_DECK_TAIL_SCREENS * vh;
+    const height = altoDePista(vh);
+    const span = spanDePista(vh);
     const targetIndex = 4;
     const progress = targetIndex / (JOURNEY_SLIDES - 1);
     track.getBoundingClientRect = () =>
@@ -1235,8 +1262,8 @@ describe("Journey: Task 4, pista de scroll del deck (tema oscuro)", () => {
     // rect.top fijado para que progress caiga EXACTAMENTE en 1/(N-1) -- la
     // primera diapositiva de paso, justo tras la intro.
     const vh = window.innerHeight;
-    const height = (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * vh;
-    const span = height - vh - JOURNEY_DECK_TAIL_SCREENS * vh;
+    const height = altoDePista(vh);
+    const span = spanDePista(vh);
     const targetIndex = 1;
     const progress = targetIndex / (JOURNEY_SLIDES - 1);
     track.getBoundingClientRect = () =>
@@ -1621,8 +1648,8 @@ describe("Journey: critica #10 hallazgo A -- el deck oscuro existe para tecnolog
     // progress = 0.5 con span = (JOURNEY_SLIDES - 1) pantallas: el indice
     // cae en mitad del recorrido, asi que conviven diapositivas `past`,
     // `current` y `next` en el mismo render.
-    const alto = (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * 800;
-    const span = alto - 800 - JOURNEY_DECK_TAIL_SCREENS * 800;
+    const alto = altoDePista(800);
+    const span = spanDePista(800);
     track.getBoundingClientRect = () =>
       ({ top: -span / 2, height: alto }) as DOMRect;
 
@@ -1763,7 +1790,7 @@ describe("Journey: critica #10 hallazgo A -- el rail del deck es operable (tema 
     track.getBoundingClientRect = () =>
       ({
         top: 0,
-        height: (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * VH,
+        height: altoDePista(VH),
       }) as DOMRect;
     const grupo = screen.getByRole("group", {
       name: esHome.Home.journey.railLabel,
@@ -1844,13 +1871,13 @@ describe("Journey: critica #10 hallazgo A -- el rail del deck es operable (tema 
     ).toHaveLength(1);
     expect(botones[0]).toHaveAttribute("aria-current", "true");
 
-    // span = alto - vh - cola*vh = (8 + 1 - 1 - 1) * VH = 7 * VH; un
+    // span = alto - vh - cola*vh = (JOURNEY_SLIDES - 1) * recorrido; un
     // progress de 3/7 pone el index en 3 (round(3/7 * 7)).
-    const span = (JOURNEY_SLIDES - 1) * VH;
+    const span = spanDePista(VH);
     track.getBoundingClientRect = () =>
       ({
         top: -(span * 3) / (JOURNEY_SLIDES - 1),
-        height: (JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS) * VH,
+        height: altoDePista(VH),
       }) as DOMRect;
     // Salir y volver a entrar, no un segundo aviso de entrada: `start()`
     // lleva guarda de reentrada (dos avisos seguidos de isIntersecting true
@@ -1870,10 +1897,9 @@ describe("Journey: critica #10 hallazgo A -- el rail del deck es operable (tema 
     const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
 
     // Aritmetica, no un numero magico: con la pista en top 0 y scrollY 0,
-    //   span = (JOURNEY_SLIDES + cola) * VH - VH - cola * VH
-    //        = (JOURNEY_SLIDES - 1) * VH
-    //   top(k) = k / (JOURNEY_SLIDES - 1) * span = k * VH
-    const span = (JOURNEY_SLIDES - 1) * VH;
+    //   span = alto - VH - cola * VH = (JOURNEY_SLIDES - 1) * recorrido
+    //   top(k) = k / (JOURNEY_SLIDES - 1) * span = k * recorrido
+    const span = spanDePista(VH);
     [0, 3, JOURNEY_SLIDES - 1].forEach((k) => {
       scrollTo.mockClear();
       act(() => {

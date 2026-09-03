@@ -10,6 +10,73 @@ import {
 /** Sentido del último desplazamiento significativo dentro de la pista. */
 export type SlideDeckDirection = "forward" | "rewind";
 
+/**
+ * RECORRIDO DE FIJACIÓN DE UNA DIAPOSITIVA, en pantallas (adimensional):
+ * cuánto scroll consume cada diapositiva de una presentación pegajosa antes
+ * de ceder el turno a la siguiente. Es la constante que los DOS decks del
+ * sitio (Story y Journey) comparten para construir la altura de su pista, y
+ * vive aquí —y no en el fichero de datos de una de las dos secciones—
+ * porque el reparto que gobierna es exactamente el que `measure()` invierte
+ * unas líneas más abajo: la pista mide `(slides - 1) * recorrido + (1 +
+ * cola)` pantallas, y de ahí el `span` que este hook reparte sale valiendo
+ * `(slides - 1) * recorrido`. Ponerla en `story.layers.ts` obligaría a
+ * `journey.layers.ts` a importar datos de una sección hermana —el acoplamiento
+ * que los docblocks de `STORY_DECK_TAIL_SCREENS`/`JOURNEY_OVERLAY_RISE`
+ * rechazan explícitamente—, y duplicarla en las dos es la clase de repetición
+ * que la regla 13 de `RULES.md` prohíbe.
+ *
+ * ## De dónde sale el 0,5 (decisión del dueño, crítica externa #16)
+ *
+ * Hasta esta ola valía 1 pantalla: cada diapositiva consumía `100dvh` de
+ * scroll, así que la pista de Story medía 7 pantallas y la de Journey 9. Lo
+ * que la crítica #16 midió sobre el build de producción, en tema oscuro:
+ *
+ * - el documento medía 16.376 px a 1440×900 y 14.836 a 1280×800, frente a
+ *   6.558 y 6.388 en tema claro — dos veces y media la misma página;
+ * - `#contact` caía en y=14.571 en oscuro y en y=4.566 en claro;
+ * - el 88 % de ese exceso eran los dos decks: 6.300 px de Story y 8.100 de
+ *   Journey a 1440×900;
+ * - 11 tramos de ~800 px sin un solo cambio de copia, el 54 % del documento.
+ *
+ * Es la raíz de tres heurísticas de Nielsen a 2/4 (consistencia entre temas,
+ * reconocimiento, eficiencia). El dueño decidió recortar el recorrido de cada
+ * diapositiva «aproximadamente a la mitad (~800 → ~400 px)» en los dos decks,
+ * NO retirar el deck ni cambiar de vehículo. Media pantalla es esa mitad
+ * expresada en la única unidad que no depende del dispositivo: a 800 px de
+ * alto da 400 px por diapositiva, a 900 da 450.
+ *
+ * ## Por qué el recorte NO toca la cola ni el solape de la sección siguiente
+ *
+ * La aritmética completa vive en el docblock de `JOURNEY_DECK_TAIL_SCREENS`
+ * (`journey.layers.ts`), que la rehace con este término dentro. El resumen:
+ * las dos costuras que fijan la cola (`T = R` y `R = 1`) se cancelan la
+ * altura de la pista, así que valen igual con el recorrido que sea. El
+ * recorrido reparte la presentación; la cola sostiene el relevo con la
+ * sección siguiente. Son dos magnitudes independientes.
+ *
+ * ## Candidata a token, declarada
+ *
+ * Su sitio natural el día que exista una escala de recorrido de scroll es
+ * `src/theme/tokens/`, junto a `motion`/`space`. No se crea aquí porque esta
+ * entrega no es dueña de los tokens; queda declarado para la integración.
+ */
+export const DECK_SLIDE_TRAVEL_SCREENS = 0.5;
+
+/**
+ * `DECK_SLIDE_TRAVEL_SCREENS` ya como longitud CSS, que es la forma en que lo
+ * consumen las dos pistas (`STORY_DECK_TRACK_HEIGHT`,
+ * `JOURNEY_DECK_TRACK_HEIGHT`). Se DERIVA del número de arriba en vez de
+ * escribirse a mano: dos constantes que dicen lo mismo en dos formatos
+ * distintos pueden divergir en silencio, y aquí la divergencia rompería la
+ * igualdad `span = (slides - 1) * recorrido` sobre la que este hook calcula
+ * todo.
+ *
+ * `dvh` y no `vh` por el mismo motivo que `STORY_DARK_HEIGHT`/
+ * `JOURNEY_DARK_HEIGHT`: la barra de direcciones móvil cambia `vh` a mitad de
+ * gesto y el recorrido de la pista se movería debajo del dedo.
+ */
+export const DECK_SLIDE_TRAVEL = `${DECK_SLIDE_TRAVEL_SCREENS * 100}dvh`;
+
 export interface SlideDeckState {
   /** Diapositiva activa, 0..slides-1. */
   index: number;
@@ -245,6 +312,19 @@ export function useSlideDeck(
         // seguiría subiendo durante la zona de hold y `progress = 1`
         // llegaría tarde, al final físico de la pista en vez de al final de
         // la última diapositiva.
+        //
+        // ESTE `span` ES EL RECORRIDO REAL, no un múltiplo de `vh`: sale de
+        // la ALTURA MEDIDA de la pista menos las dos pantallas que no son
+        // recorrido (la del stage pegado y la de la cola). Desde la crítica
+        // externa #16 las dos pistas se construyen como `(slides - 1) *
+        // DECK_SLIDE_TRAVEL + (1 + cola) * 100dvh`, así que este `span` vale
+        // exactamente `(slides - 1) * DECK_SLIDE_TRAVEL` y cada diapositiva
+        // se lleva `DECK_SLIDE_TRAVEL` de scroll -- media pantalla hoy, una
+        // entera hasta esa crítica. El hook no necesitó cambiar ni una línea
+        // para el recorte, y eso NO es casualidad: nunca supuso que una
+        // diapositiva midiera una pantalla, solo que la pista declara su
+        // recorrido en su propia altura. Queda escrito aquí porque la
+        // tentación al leer el `- vh` es justo la contraria.
         const span = rect.height - vh - optionsRef.current.tailScreens * vh;
         const progress = span > 0 ? clamp(-rect.top / span, 0, 1) : 0;
 

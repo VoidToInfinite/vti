@@ -16,6 +16,7 @@
  * borde/sombra de los discos, el trazo del path punteado, el degradado de la
  * cita y la sombra de la figura) se congela aquí como literal.
  */
+import { DECK_SLIDE_TRAVEL } from "@/hooks/useSlideDeck";
 import { DECK } from "@/motion/vocabulary";
 import { grid } from "@/theme/tokens/grid";
 import { type as typeTokens } from "@/theme/tokens/type";
@@ -322,50 +323,63 @@ export const JOURNEY_SLIDES = JOURNEY_STEPS.length + 2;
  * cola sin ver las dos condiciones que la fijan.
  *
  * Sea `S` = `JOURNEY_SLIDES` (8), `T` = esta constante, `R` =
- * `FEATURES_OVERLAY_RISE` en pantallas, `p` = una pantalla, `A` = el inicio
- * de la pista en el documento. Con `track = (S + T)·p`:
+ * `FEATURES_OVERLAY_RISE` en pantallas, `p` = una pantalla, `v` =
+ * `DECK_SLIDE_TRAVEL_SCREENS` (el recorrido de UNA diapositiva, en pantallas)
+ * y `A` = el inicio de la pista en el documento. Con
+ * `track = H = (S − 1)·v·p + (1 + T)·p`:
  *
- *   span (el recorrido que reparte `useSlideDeck`) = (S + T)·p − p − T·p
- *                                                  = (S − 1)·p
- *   `progress` llega a 1 en          A + (S − 1)·p
- *   el stage se despega en           A + (S + T − 1)·p
- *   Features empieza a cubrir en     A + (S + T − R − 1)·p
- *   Features cubre del todo en       A + (S + T − R)·p
+ *   span (el recorrido que reparte `useSlideDeck`) = H − p − T·p
+ *                                                  = (S − 1)·v·p
+ *   `progress` llega a 1 en          A + H − p − T·p
+ *   el stage se despega en           A + H − p
+ *   Features empieza a cubrir en     A + H − R·p − p
+ *   Features cubre del todo en       A + H − R·p
  *
  * Dos costuras que tienen que cerrar a la vez:
  *   (1) Features NO puede empezar a tapar la cita antes de que el deck
- *       termine  ⟹  S + T − R − 1 = S − 1  ⟹  **T = R**
+ *       termine  ⟹  H − R·p − p = H − p − T·p  ⟹  **T = R**
  *   (2) el stage no puede despegarse antes de que Features cubra del todo, o
  *       una banda de la escena de Journey sube destapada
- *              ⟹  S + T − 1 = S + T − R  ⟹  **R = 1**, y con (1), **T = 1**
+ *              ⟹  H − p = H − R·p  ⟹  **R = 1**, y con (1), **T = 1**
  *
  * `T = 1` no es un número elegido: es la única solución del sistema. Bajarlo
  * exige bajar `FEATURES_OVERLAY_RISE` a la vez — otra sección, otro fichero —
  * y aun así (2) obliga a que sigan siendo iguales, así que el recorte no sale
  * gratis en ninguna de las dos.
  *
- * QUÉ ES DE VERDAD ESE TRAMO, con las cifras del propio modelo (que reproduce
- * el 12.150 medido al píxel, así que describe la página real):
+ * LAS DOS COSTURAS SE CANCELAN `H`, y ese es el resultado que autoriza el
+ * recorte de la crítica externa #16 (2026-09-03): ni `T` ni `R` dependen de
+ * cuánta pista haya, solo de que el stage mida una pantalla. Por eso el
+ * recorrido por diapositiva pudo bajar de 1 pantalla a `v = 0,5` sin tocar la
+ * cola ni el solape de Features, y por eso la cola SIGUE midiendo una pantalla
+ * entera después del recorte: no es recorrido de la presentación, es el relevo
+ * con la sección siguiente. La consecuencia honesta es que ese relevo pesa
+ * ahora más EN PROPORCIÓN (900 px de cola sobre una pista de 4.950 a 1440×900,
+ * en vez de sobre 8.100), aunque en píxeles absolutos sea el mismo tramo de
+ * siempre.
  *
- *   12.150 → 12.600 (450 px, = 0,5 pantallas)
+ * QUÉ ES DE VERDAD ESE TRAMO, con las cifras del propio modelo a 1440×900
+ * (p = 900, v = 0,5, A = 4.050 tras el recorte; antes del recorte A = 6.300 y
+ * los tramos median el doble):
+ *
+ *   6.975 → 7.200 (225 px, = 0,5·v pantallas)
  *       la cita ya es la diapositiva activa y `progress` sube de 0,9286 a 1.
  *       Es media ventana de índice: `useSlideDeck` redondea, así que la
  *       primera y la última diapositiva se llevan media ventana cada una.
  *       NO es desperdicio — es la ÚNICA franja en la que la cita se lee sin
  *       Features encima. Recortarla dejaría el cierre de la sección sin un
  *       solo píxel de lectura limpia.
- *   12.600 → 13.500 (900 px, = T)
+ *   7.200 → 8.100 (900 px, = T·p)
  *       Features sube y va cubriendo. Aquí el DOM de `#journey` sí es
- *       idéntico frame a frame — que es exactamente lo que la crítica midió —
- *       pero la pantalla no está quieta: lo que se mueve es la sección
+ *       idéntico frame a frame — que es exactamente lo que la crítica #10
+ *       midió — pero la pantalla no está quieta: lo que se mueve es la sección
  *       siguiente, que la sonda no observaba.
  *
- * Y el segundo síntoma del mismo hallazgo («entre 14.150 y 14.400 no se
- * renderiza nada») cae FUERA de esta sección: la pista de Journey acaba en
- * 14.400 y Features empieza en 13.500, así que ese tramo es el final de
- * `ScDarkFrame` y el principio de `ScDarkTail` (`Features.tsx`) — la zona de
- * hold que Features reserva a propósito para que Contacto suba sobre ella.
- * Se declara, no se toca: es otra sección.
+ * Y el segundo síntoma de aquel hallazgo («no se renderiza nada» en el tramo
+ * siguiente) cae FUERA de esta sección: donde acaba la pista de Journey
+ * empieza el final de `ScDarkFrame` y el principio de `ScDarkTail`
+ * (`Features.tsx`) — la zona de hold que Features reserva a propósito para que
+ * Contacto suba sobre ella. Se declara, no se toca: es otra sección.
  */
 export const JOURNEY_DECK_TAIL_SCREENS = 1;
 
@@ -385,8 +399,19 @@ export const JOURNEY_DECK_TAIL_SCREENS = 1;
  * porque el encargo cambió. Un test la compara contra esta fórmula exacta
  * (no contra un número), para que la presencia de la cola se lea como una
  * decisión tomada y no como un accidente.
+ *
+ * TRES TÉRMINOS desde la crítica externa #16 (2026-09-03, decisión del dueño),
+ * exactamente los mismos que `STORY_DECK_TRACK_HEIGHT` (`story.layers.ts`), y
+ * el detalle completo de por qué la fórmula deja de poder escribirse como un
+ * múltiplo de pantallas vive en el docblock de esa constante gemela:
+ * `(JOURNEY_SLIDES - 1)` huecos de `DECK_SLIDE_TRAVEL` de recorrido, una
+ * pantalla para el stage pegado y `JOURNEY_DECK_TAIL_SCREENS` pantallas de
+ * cola. La pista pasa de 9 pantallas a 5,5: 7.200 → 4.400 px a 1280×800 y
+ * 8.100 → 4.950 px a 1440×900. La cola NO cambia — las dos costuras de arriba
+ * se cancelan la altura de la pista, así que valen igual con el recorrido que
+ * sea.
  */
-export const JOURNEY_DECK_TRACK_HEIGHT = `calc((${JOURNEY_SLIDES} + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`;
+export const JOURNEY_DECK_TRACK_HEIGHT = `calc(${JOURNEY_SLIDES - 1} * ${DECK_SLIDE_TRAVEL} + (1 + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`;
 
 /**
  * Tramo FINAL de `--journey-progress` durante el cual la cita de cierre se
@@ -404,25 +429,30 @@ export const JOURNEY_DECK_TRACK_HEIGHT = `calc((${JOURNEY_SLIDES} + ${JOURNEY_DE
  *
  * ## La secuencia real, derivada del código y no de la captura
  *
- * Con `A` = inicio de la pista en el documento, `p` = una pantalla, `S` =
- * `JOURNEY_SLIDES` (8), `T` = `JOURNEY_DECK_TAIL_SCREENS` (1) y `R` =
- * `FEATURES_OVERLAY_RISE` en pantallas (1) — las tres constantes atadas entre
- * sí por la aritmética del docblock de `JOURNEY_DECK_TAIL_SCREENS`, más
- * arriba, y por el test de invariante que importa los dos ficheros:
+ * Con `A` = inicio de la pista en el documento, `p` = una pantalla, `H` = el
+ * alto de la pista, `S` = `JOURNEY_SLIDES` (8), `T` =
+ * `JOURNEY_DECK_TAIL_SCREENS` (1), `R` = `FEATURES_OVERLAY_RISE` en pantallas
+ * (1) y `v` = `DECK_SLIDE_TRAVEL_SCREENS` (0,5 desde la crítica #16) — las
+ * constantes atadas entre sí por la aritmética del docblock de
+ * `JOURNEY_DECK_TAIL_SCREENS`, más arriba, y por el test de invariante que
+ * importa los dos ficheros:
  *
- *   span de `useSlideDeck`      = (S − 1)·p = 7 pantallas
- *   la cita pasa a `current` en  A + ((S − 1.5)/(S − 1))·span = A + 6,5·p
- *   `progress` llega a 1 en      A + 7·p
- *   Features empieza a cubrir en A + (S + T − R − 1)·p = A + 7·p   <- el MISMO
- *   Features cubre del todo en   A + 8·p
+ *   span de `useSlideDeck`      = (S − 1)·v·p = 3,5 pantallas
+ *   la cita pasa a `current` en  A + ((S − 1.5)/(S − 1))·span
+ *   `progress` llega a 1 en      A + span
+ *   Features empieza a cubrir en A + H − R·p − p = A + span      <- el MISMO
+ *   Features cubre del todo en   A + H − R·p
  *
  * Es decir: la cita y la cortina no se solapaban por un desajuste de tiempos
  * que hubiera que corregir — se solapaban PORQUE `progress = 1` y «Features
- * empieza a cubrir» son, por construcción, el mismo instante. Con las cifras
- * de 1440×900 (p = 900, A = 6.300): `current` en 12.150, `progress = 1` y
- * comienzo de la cortina en 12.600, cobertura completa en 13.500. Los 13.100
- * de la captura caen justo en la mitad de esa cortina, que es exactamente
- * donde la costura cruza la caja de la cita.
+ * empieza a cubrir» son, por construcción, el mismo instante, y lo siguen
+ * siendo con cualquier recorrido. Con las cifras de 1440×900 TRAS el recorte
+ * de la crítica #16 (p = 900, v = 0,5, A = 4.050, span = 3.150): `current` en
+ * 6.975, `progress = 1` y comienzo de la cortina en 7.200, cobertura completa
+ * en 8.100. Antes del recorte (v = 1, A = 6.300, span = 6.300) los mismos tres
+ * instantes caían en 12.150, 12.600 y 13.500, y los 13.100 de la captura de la
+ * crítica #15 caían justo en la mitad de esa cortina, que es exactamente donde
+ * la costura cruzaba la caja de la cita.
  *
  * ## Por qué la salida es un desvanecido y no mover la cortina
  *
@@ -451,10 +481,14 @@ export const JOURNEY_DECK_TRACK_HEIGHT = `calc((${JOURNEY_SLIDES} + ${JOURNEY_DE
  * ventana de índice, `0,5 / (S − 1)` de ancho (`useSlideDeck` redondea; ver su
  * docblock de `scrollToSlide`). Este valor reparte ESA ventana, no el recorrido
  * entero: el 40 % final se va en el desvanecido y el 60 % inicial se queda para
- * leer. A 1440×900 son 270 px de lectura limpia y 180 px de salida. Se deriva
- * de `JOURNEY_SLIDES` y no de un literal, igual que la propia
- * `JOURNEY_DECK_TRACK_HEIGHT`: si el viaje gana o pierde un paso, la ventana se
- * recalcula sola (regla 39 de `RULES.md`).
+ * leer. A 1440×900 son 135 px de lectura limpia y 90 px de salida tras el
+ * recorte de la crítica #16 (eran 270 y 180 cuando cada diapositiva consumía
+ * una pantalla entera): el valor está en unidades de `--journey-progress`, así
+ * que el REPARTO 60/40 no se mueve y lo que encoge es la ventana entera, en la
+ * misma proporción que el resto del deck. Se deriva de `JOURNEY_SLIDES` y no
+ * de un literal, igual que la propia `JOURNEY_DECK_TRACK_HEIGHT`: si el viaje
+ * gana o pierde un paso, la ventana se recalcula sola (regla 39 de
+ * `RULES.md`).
  *
  * Se redondea a cuatro decimales porque el valor viaja a CSS como divisor de un
  * `calc()` y `0,02857142857142857` no aporta ni un píxel sobre `0,0286`.

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useSlideDeck } from "./useSlideDeck";
+import {
+  DECK_SLIDE_TRAVEL,
+  DECK_SLIDE_TRAVEL_SCREENS,
+  useSlideDeck,
+} from "./useSlideDeck";
 
 const VH = 800;
 const SLIDES = 6;
@@ -655,5 +659,116 @@ describe("useSlideDeck: scrollToSlide", () => {
    * `const span = rect.height - vh - optionsRef.current.tailScreens * vh` por
    * `rect.height - vh` en `scrollToSlide` pone en rojo el test de la cola
    * (aterriza una pantalla mas abajo); restaurada la linea, vuelve a verde.
+   */
+});
+
+/*
+ * Critica externa #16, decision del dueno: cada diapositiva consume
+ * `DECK_SLIDE_TRAVEL` de scroll -- media pantalla -- en vez de una pantalla
+ * entera. El recorte se hace en la ALTURA DE LA PISTA (`story.layers.ts`,
+ * `journey.layers.ts`), no aqui: este hook nunca supuso que una diapositiva
+ * midiera una pantalla, solo que la pista declara su recorrido en su propia
+ * altura. Estos candados comprueban esa afirmacion, que es justo la que
+ * autoriza a no tocar el hook.
+ *
+ * Se construye la pista con la MISMA formula que las dos secciones declaran en
+ * CSS -- huecos por recorrido + pantalla del stage + cola -- porque jsdom no
+ * hace layout: la geometria fabricada solo prueba algo si describe la pista
+ * real.
+ */
+describe("useSlideDeck: recorrido por diapositiva (critica #16)", () => {
+  const COLA = 1;
+  /** Alto de la pista, misma aritmetica que STORY/JOURNEY_DECK_TRACK_HEIGHT. */
+  const ALTO = (SLIDES - 1) * DECK_SLIDE_TRAVEL_SCREENS * VH + (1 + COLA) * VH;
+  const SPAN = ALTO - VH - COLA * VH;
+
+  beforeEach(() => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    vi.stubGlobal("scrollTo", vi.fn());
+    vi.stubGlobal("scrollY", 0);
+  });
+
+  it("el span que reparte es exactamente (slides - 1) recorridos, no (slides - 1) pantallas", () => {
+    // 800 px de vista, 6 diapositivas y media pantalla de recorrido: 5 huecos
+    // de 400 px = 2.000 px de recorrido, frente a los 4.000 de antes.
+    expect(SPAN).toBe((SLIDES - 1) * DECK_SLIDE_TRAVEL_SCREENS * VH);
+    expect(SPAN).toBe(2000);
+    expect(DECK_SLIDE_TRAVEL).toBe("50dvh");
+  });
+
+  it("el indice avanza una diapositiva por cada DECK_SLIDE_TRAVEL de scroll", () => {
+    const track = trackWith(0, ALTO);
+    const stage = document.createElement("div");
+    const trackRef = refOf(track);
+    const stageRef = refOf(stage);
+    const { result } = renderHook(() =>
+      useSlideDeck(trackRef, stageRef, SLIDES, { tailScreens: COLA }),
+    );
+
+    const recorrido = DECK_SLIDE_TRAVEL_SCREENS * VH;
+    for (let k = 0; k < SLIDES; k++) {
+      // Salir y volver a entrar en cada paso: `start()` lleva guarda de
+      // reentrada, asi que dos avisos seguidos de `true` no vuelven a medir.
+      track.getBoundingClientRect = () =>
+        ({ top: -k * recorrido, height: ALTO }) as DOMRect;
+      act(() => ioTrigger(false));
+      act(() => ioTrigger(true));
+
+      expect(result.current.index, `a ${k * recorrido} px de la pista`).toBe(k);
+    }
+  });
+
+  it("un salto de rueda largo no salta ninguna diapositiva: el indice sigue siendo el que corresponde a la posicion", () => {
+    // 1.500 px de golpe (el gesto que la critica usa para probar el deck):
+    // caen dentro del recorrido de la diapositiva 4 (1.500 / 400 = 3,75, que
+    // redondea a 4). Lo que se ata NO es que el deck se resista al gesto --
+    // el scroll es del usuario -- sino que el indice describa exactamente
+    // donde esta la pagina, sin adelantarse ni quedarse corto.
+    const track = trackWith(0, ALTO);
+    const trackRef = refOf(track);
+    const stageRef = refOf(document.createElement("div"));
+    const { result } = renderHook(() =>
+      useSlideDeck(trackRef, stageRef, SLIDES, { tailScreens: COLA }),
+    );
+
+    const RUEDA = 1500;
+    track.getBoundingClientRect = () =>
+      ({ top: -RUEDA, height: ALTO }) as DOMRect;
+    act(() => ioTrigger(true));
+
+    const esperado = Math.round((RUEDA / SPAN) * (SLIDES - 1));
+    expect(esperado).toBe(4);
+    expect(result.current.index).toBe(esperado);
+  });
+
+  it("scrollToSlide sigue aterrizando en el centro de la ventana de cada indice con la pista recortada", () => {
+    const track = trackWith(0, ALTO);
+    const trackRef = refOf(track);
+    const stageRef = refOf(document.createElement("div"));
+    const { result } = renderHook(() =>
+      useSlideDeck(trackRef, stageRef, SLIDES, { tailScreens: COLA }),
+    );
+    const scrollTo = window.scrollTo as unknown as ReturnType<typeof vi.fn>;
+
+    act(() => result.current.scrollToSlide(SLIDES - 1));
+    expect(scrollTo).toHaveBeenLastCalledWith({
+      top: SPAN,
+      behavior: "smooth",
+    });
+  });
+
+  /*
+   * Bug inyectado a proposito (regla 34), ejecutado y OBSERVADO en la ola L
+   * (2026-09-03): cambiar `DECK_SLIDE_TRAVEL_SCREENS` de 0.5 a 1
+   * (useSlideDeck.ts) pone en rojo DOS de los cuatro candados de este
+   * describe -- el primero ("expected 4000 to be 2000") y el tercero
+   * ("expected 2 to be 4": 1.500 px de rueda ya solo llegan a la diapositiva
+   * 2). Los otros dos NO se ponen en rojo con ese bug, y conviene decirlo: el
+   * segundo y el cuarto construyen la pista desde la propia constante, asi que
+   * describen la geometria que sea coherente con ella -- protegen que el hook
+   * REPARTE lo que la pista declara, no el valor concreto del recorrido, que
+   * es lo que atan el primero y el tercero. Restaurado el valor, todo vuelve
+   * a verde.
    */
 });

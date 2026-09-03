@@ -18,6 +18,7 @@
  * ya aplica `Hero.tsx`/`BrandName.tsx` (p. ej. `theme.data.palette.secondary[300]`
  * en `ctaGlow`).
  */
+import { DECK_SLIDE_TRAVEL } from "@/hooks/useSlideDeck";
 import { DECK } from "@/motion/vocabulary";
 import { grid } from "@/theme/tokens/grid";
 import { motion } from "@/theme/tokens/motion";
@@ -125,19 +126,42 @@ export const STORY_DECK_TAIL_SCREENS = 1;
 
 /**
  * Alto total de la pista que da recorrido de scroll a la presentación
- * entera (D2): con el `stage` pegado por `position: sticky`, cada
- * `100dvh` adicional de pista es exactamente un tramo de scroll dedicado a
- * una diapositiva. Sin esta altura la pista mediría lo mismo que el stage
- * y el pin se despegaría en el mismo frame en que se pega, sin dar tiempo
- * a recorrer nada.
+ * entera (D2): con el `stage` pegado por `position: sticky`, cada tramo de
+ * pista que sobra por encima del alto del stage es scroll que la
+ * presentación puede repartir entre sus diapositivas. Sin esta altura la
+ * pista mediría lo mismo que el stage y el pin se despegaría en el mismo
+ * frame en que se pega, sin dar tiempo a recorrer nada.
  *
- * Suma `STORY_DECK_TAIL_SCREENS` (D3): las diapositivas siguen repartiéndose
- * `STORY_SLIDES` pantallas de recorrido (ver `tailScreens` en
- * `useSlideDeck.ts`, que resta esa misma cola del `span` antes de derivar el
- * progreso), y la pantalla añadida encima es, exclusivamente, la zona de
- * hold en la que Journey se superpone.
+ * La fórmula tiene TRES términos, y cada uno paga una cosa distinta:
+ *
+ * - `(STORY_SLIDES - 1) * DECK_SLIDE_TRAVEL` — el recorrido de la
+ *   presentación. Son los HUECOS entre diapositivas, no las diapositivas:
+ *   con 6 paradas hay 5 saltos, que es exactamente el reparto que
+ *   `useSlideDeck` hace al derivar `index = round(progress * (slides - 1))`.
+ * - `1 * STORY_DARK_HEIGHT` — la pantalla que ocupa el propio stage pegado.
+ *   `useSlideDeck` la resta del `span` (`measure()`), así que no es
+ *   recorrido: es el alto de lo que se ve.
+ * - `STORY_DECK_TAIL_SCREENS * STORY_DARK_HEIGHT` (D3) — la zona de hold en
+ *   la que la presentación ya terminó y Journey sube superponiéndose. El
+ *   hook también la resta del `span`.
+ *
+ * CAMBIÓ DE FORMA EN LA CRÍTICA EXTERNA #16 (2026-09-03, decisión del dueño).
+ * Hasta esta ola decía `calc((STORY_SLIDES + STORY_DECK_TAIL_SCREENS) *
+ * STORY_DARK_HEIGHT)` — 7 pantallas — porque el recorrido por diapositiva
+ * era, sin nombrarlo, una pantalla entera. La #16 midió que Story y Journey
+ * juntos eran el 88 % de un documento oscuro de 16.376 px frente a 6.558 en
+ * claro, y el dueño decidió recortar ese recorrido a la mitad. Al nombrarlo
+ * (`DECK_SLIDE_TRAVEL`, `useSlideDeck.ts`) la fórmula deja de poder escribirse
+ * como un múltiplo de pantallas: los tres términos tienen unidades distintas
+ * de verdad, y confundirlos era justo lo que hacía parecer que recortar el
+ * recorrido obligaba a tocar la cola. No obliga — ver el docblock de
+ * `JOURNEY_DECK_TAIL_SCREENS`, que rehace las dos costuras del relevo con
+ * este término dentro y comprueba que se cancela.
+ *
+ * La pista pasa de 7 pantallas a 4,5 (2,5 de recorrido + 1 de stage + 1 de
+ * cola): 5.600 → 3.600 px a 1280×800, y 6.300 → 4.050 px a 1440×900.
  */
-export const STORY_DECK_TRACK_HEIGHT = `calc((${STORY_SLIDES} + ${STORY_DECK_TAIL_SCREENS}) * ${STORY_DARK_HEIGHT})`;
+export const STORY_DECK_TRACK_HEIGHT = `calc(${STORY_SLIDES - 1} * ${DECK_SLIDE_TRAVEL} + (1 + ${STORY_DECK_TAIL_SCREENS}) * ${STORY_DARK_HEIGHT})`;
 
 /**
  * Desplazamiento vertical de entrada/salida de cada diapositiva

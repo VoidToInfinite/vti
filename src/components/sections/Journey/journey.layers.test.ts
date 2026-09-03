@@ -1,4 +1,8 @@
 import { describe, it, expect } from "vitest";
+import {
+  DECK_SLIDE_TRAVEL,
+  DECK_SLIDE_TRAVEL_SCREENS,
+} from "@/hooks/useSlideDeck";
 import { type as typeTokens } from "@/theme/tokens/type";
 import {
   STORY_DECK_NOTE_SIZE,
@@ -41,16 +45,49 @@ describe("constantes de la presentacion de Journey (test 1 de la spec, D3)", () 
     expect(JOURNEY_SLIDES).toBe(8);
   });
 
-  it("la pista SI lleva cola (D3, reversion de D9): mide JOURNEY_SLIDES + JOURNEY_DECK_TAIL_SCREENS pantallas", () => {
-    // Contra las CONSTANTES, nunca contra el literal `9`: un numero escrito
-    // a mano deja de proteger la formula en cuanto JOURNEY_SLIDES o
-    // JOURNEY_DECK_TAIL_SCREENS cambien de valor (task/lessons.md,
-    // 2026-08-01). Igual que STORY_DECK_TRACK_HEIGHT, esta formula SI tiene
-    // termino de adicion: comparar contra la cadena exacta demuestra la
-    // PRESENCIA de la cola, no solo el numero de pantallas.
+  it("la pista SI lleva cola (D3, reversion de D9) y reparte DECK_SLIDE_TRAVEL por hueco (critica #16)", () => {
+    // Contra las CONSTANTES, nunca contra los literales `7`/`50dvh`: un
+    // numero escrito a mano deja de proteger la formula en cuanto
+    // JOURNEY_SLIDES, JOURNEY_DECK_TAIL_SCREENS o el recorrido cambien de
+    // valor (task/lessons.md, 2026-08-01). Igual que STORY_DECK_TRACK_HEIGHT,
+    // esta formula SI tiene termino de adicion: comparar contra la cadena
+    // exacta demuestra la PRESENCIA de la cola, no solo el numero de
+    // pantallas.
     expect(JOURNEY_DECK_TRACK_HEIGHT).toBe(
-      `calc((${JOURNEY_SLIDES} + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`,
+      `calc(${JOURNEY_SLIDES - 1} * ${DECK_SLIDE_TRAVEL} + (1 + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`,
     );
+  });
+
+  it("critica #16: la pista pasa de 9 pantallas a 5,5 sin tocar la cola", () => {
+    // Las dos mitades de la decision del dueno: cuanto se recorta y que la
+    // cola NO es lo que se recorta. Sin la segunda asercion, bajar la cola a
+    // 0 daria una pista aun mas corta y este test seguiria en verde.
+    const pantallas =
+      (JOURNEY_SLIDES - 1) * DECK_SLIDE_TRAVEL_SCREENS +
+      (1 + JOURNEY_DECK_TAIL_SCREENS);
+    expect(pantallas).toBe(5.5);
+    expect(JOURNEY_DECK_TAIL_SCREENS).toBe(1);
+    // Lo que eso vale en pixeles en los dos tamanos que midio la critica.
+    expect(pantallas * 800).toBe(4400);
+    expect(pantallas * 900).toBe(4950);
+  });
+
+  it("critica #16: el recorrido NO se escribe a mano en este fichero, se importa del hook (candado de fuente)", async () => {
+    // Mismo candado y mismo motivo que su gemelo en `story.layers.test.ts`:
+    // la asercion de cadena de arriba pasaria igual con el literal "50dvh"
+    // escrito aqui. La propiedad "el numero vive en UN sitio compartido por
+    // los dos decks" solo se observa en la FUENTE (task/lessons.md,
+    // 2026-08-12, Task 19).
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "journey.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("DECK_SLIDE_TRAVEL");
+    expect(fuente).not.toContain('"50dvh"');
   });
 
   it("JOURNEY_DECK_TAIL_SCREENS vale exactamente 1 pantalla", () => {
@@ -70,17 +107,21 @@ describe("constantes de la presentacion de Journey (test 1 de la spec, D3)", () 
     const p = 900; // una pantalla cualquiera: las dos costuras son en `p`
     const S = JOURNEY_SLIDES;
     const T = JOURNEY_DECK_TAIL_SCREENS;
+    const v = DECK_SLIDE_TRAVEL_SCREENS;
     // R = el solape de Features, en pantallas. La igualdad R === T frente a
     // FEATURES_OVERLAY_RISE la ata Features.test.tsx (invariante D5, importa
     // los dos ficheros); aqui se parte de ella y se comprueba que ademas
     // cierra la SEGUNDA costura, que aquel test no cubre.
     const R = T;
 
-    const spanDelDeck = (S + T) * p - p - T * p;
+    // Alto de la pista, con el recorrido por diapositiva NOMBRADO (critica
+    // externa #16): huecos * recorrido + la pantalla del stage + la cola.
+    const H = (S - 1) * v * p + (1 + T) * p;
+    const spanDelDeck = H - p - T * p;
     const progresoLlegaA1 = spanDelDeck;
-    const stageSeDespega = (S + T - 1) * p;
-    const featuresEmpiezaACubrir = (S + T - R - 1) * p;
-    const featuresCubreDelTodo = (S + T - R) * p;
+    const stageSeDespega = H - p;
+    const featuresEmpiezaACubrir = H - R * p - p;
+    const featuresCubreDelTodo = H - R * p;
 
     // Costura 1: Features no empieza a tapar la cita antes de que el deck
     // termine su recorrido.
@@ -91,8 +132,37 @@ describe("constantes de la presentacion de Journey (test 1 de la spec, D3)", () 
     // Las dos a la vez solo se cumplen con T = 1 (y R = T).
     expect(T).toBe(1);
     // Y el reparto resultante: la cita se lee limpia media ventana de indice
-    // (media pantalla) antes de que Features empiece a subir.
-    expect(featuresEmpiezaACubrir - (S - 1.5) * p).toBe(0.5 * p);
+    // antes de que Features empiece a subir. La ventana encoge con el
+    // recorrido (media pantalla cuando `v` valia 1, un cuarto con `v = 0,5`),
+    // pero el reparto es el mismo, y por eso se escribe derivado de `v` y no
+    // como un numero.
+    expect(featuresEmpiezaACubrir - ((S - 1.5) / (S - 1)) * spanDelDeck).toBe(
+      0.5 * v * p,
+    );
+  });
+
+  /*
+   * Critica externa #16, decision del dueno: el recorrido por diapositiva se
+   * recorta a la mitad. Este test comprueba la propiedad que AUTORIZA ese
+   * recorte -- que las dos costuras del relevo con Features se cancelan la
+   * altura de la pista -- de la unica forma que demuestra algo: recalculandolo
+   * con recorridos DISTINTOS del que el repo usa hoy. Si alguien reescribiera
+   * la formula de la pista de manera que la cola dejara de ser independiente
+   * del recorrido, el relevo se rompería en silencio (una banda de escena
+   * destapada, o la cita tapada a medias) y este test lo veria antes que el
+   * navegador.
+   */
+  it("critica #16: las dos costuras valen con CUALQUIER recorrido, por eso el recorte no toca la cola", () => {
+    const p = 900;
+    const S = JOURNEY_SLIDES;
+    const T = JOURNEY_DECK_TAIL_SCREENS;
+    const R = T;
+
+    [1, 0.75, DECK_SLIDE_TRAVEL_SCREENS, 0.25].forEach((v) => {
+      const H = (S - 1) * v * p + (1 + T) * p;
+      expect(H - R * p - p, `recorrido ${v}`).toBe(H - p - T * p);
+      expect(H - p, `recorrido ${v}`).toBe(H - R * p);
+    });
   });
 
   it("cada diapositiva ocupa el alto completo de la vista", () => {
