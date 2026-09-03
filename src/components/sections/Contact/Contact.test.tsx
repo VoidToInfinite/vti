@@ -4222,3 +4222,43 @@ describe("Contact: critica externa #15 -- la region live del error se actualiza,
     ).toBe(true);
   });
 });
+
+/*
+ * OLA M (2026-09-03): paridad de arte anunciado entre temas. La rama clara de
+ * esta seccion ensena figuras con texto alternativo y la oscura no anunciaba
+ * nada de su escena, asi que el mismo contenido se contaba distinto segun el
+ * tema -- el hallazgo que la critica externa #16 midio como "32 alt vacios en
+ * oscuro frente a 5 descriptivos en claro". La composicion se nombra en el
+ * consumidor con role="img" + aria-label, mismo patron que Story, Journey y Features, y las
+ * capas de la escena siguen mudas, que es lo correcto.
+ */
+describe("ola M: la escena oscura se anuncia como una sola imagen con nombre", () => {
+  beforeEach(() => {
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("la escena expone el texto de Home.contact.sceneAlt", () => {
+    renderWithProviders(<Contact />);
+
+    const escena = screen.getByRole("img", {
+      name: esHome.Home.contact.sceneAlt,
+    });
+    expect(escena).not.toHaveAttribute("aria-hidden");
+  });
+
+  it("ninguna capa de la escena gana texto alternativo: siguen con alt vacio", () => {
+    const { container } = renderWithProviders(<Contact />);
+    const escena = screen.getByRole("img", {
+      name: esHome.Home.contact.sceneAlt,
+    });
+
+    Array.from(escena.querySelectorAll("img")).forEach((capa) => {
+      expect(capa.getAttribute("alt")).toBe("");
+    });
+    expect(container).toBeTruthy();
+  });
+});

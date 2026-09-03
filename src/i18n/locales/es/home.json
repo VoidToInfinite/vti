@@ -119,7 +119,8 @@
                 },
                 "cta": "Únete a la partida",
                 "figureAlt": "Figura celestial alzando un trofeo de estrella dorada"
-            }
+            },
+            "sceneAlt": "Figura celestial cubierta de estrellas que sostiene un punto de luz en la palma abierta, rodeada por una órbita de discos con los iconos de aprender, imaginar y jugar"
         },
         "about": {
             "title": "¿Qué es VoidToInfinite?",
@@ -165,7 +166,8 @@
                 "copied": "Copiada",
                 "copyError": "No se pudo copiar automáticamente. Selecciona la dirección de arriba."
             },
-            "privacyNote": "Navegar por esta web no envía ningún dato tuyo a terceros: no hay analítica ni rastreo. Escribirme abre tu propio cliente de correo. El envío lo haces tú, no un servidor mío."
+            "privacyNote": "Navegar por esta web no envía ningún dato tuyo a terceros: no hay analítica ni rastreo. Escribirme abre tu propio cliente de correo. El envío lo haces tú, no un servidor mío.",
+            "sceneAlt": "Figura celestial cubierta de estrellas, de frente y con la palma alzada en señal de saludo, sobre un cielo casi negro con polvo de estrellas y estelas violetas"
         }
     }
 }

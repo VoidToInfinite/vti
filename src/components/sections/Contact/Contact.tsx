@@ -2450,7 +2450,23 @@ export function Contact(): ReactElement {
         $fullBleed
       >
         <SectionBeam />
-        <ScDarkSceneSlot>
+        {/* OLA M (2026-09-03): la escena oscura de esta seccion se ANUNCIA como
+              una sola imagen con nombre, igual que las de Story, Journey y Caracteristicas. El defecto que la
+              critica externa #16 midio es de PARIDAD entre temas: en claro la
+              seccion ensena una figura con texto alternativo y en oscuro no
+              anunciaba nada de su arte, asi que el mismo contenido se contaba
+              distinto segun el tema. Se nombra AQUI, en el consumidor, y no
+              dentro de la escena: sus capas conservan su alt="" y su
+              aria-hidden, que es lo correcto porque ninguna capa suelta
+              significa nada por si misma -- lo que significa es la SUMA, y esa
+              suma solo la conoce quien la coloca en Contacto. role="img" mas
+              aria-label convierte este envoltorio en una hoja del arbol de
+              accesibilidad: se anuncia UNA imagen con UN nombre y el subarbol
+              aria-hidden de dentro no se anuncia por separado. */}
+        <ScDarkSceneSlot
+          role="img"
+          aria-label={t("Home.contact.sceneAlt")}
+        >
           <ContactCosmicGuardian />
         </ScDarkSceneSlot>
         <ScTopGlow aria-hidden="true" />

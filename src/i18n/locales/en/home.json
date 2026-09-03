@@ -119,7 +119,8 @@
                 },
                 "cta": "Join the game",
                 "figureAlt": "Celestial figure raising a golden star trophy"
-            }
+            },
+            "sceneAlt": "Star-filled celestial figure holding a point of light in an open palm, ringed by an orbit of discs bearing the learn, imagine and play icons"
         },
         "about": {
             "title": "What is VoidToInfinite?",
@@ -165,7 +166,8 @@
                 "copied": "Copied",
                 "copyError": "Couldn't copy automatically. Select the address above."
             },
-            "privacyNote": "Browsing this site sends none of your data to third parties: no analytics, no tracking. Writing to me opens your own email client. You send it, not a server of mine."
+            "privacyNote": "Browsing this site sends none of your data to third parties: no analytics, no tracking. Writing to me opens your own email client. You send it, not a server of mine.",
+            "sceneAlt": "Star-filled celestial figure facing forward with one palm raised in greeting, against a near-black sky of stardust and violet trails"
         }
     }
 }
