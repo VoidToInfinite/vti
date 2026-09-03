@@ -3579,3 +3579,71 @@ describe("Story: critica #16 -- el enlace de comunidad del deck alcanza la diana
     );
   });
 });
+
+/*
+ * Critica externa #16, hallazgo A (decision del dueno del 2026-09-03): el
+ * arte del deck oscuro no se anunciaba de ninguna forma -- 32 imagenes con
+ * alt vacio en el documento oscuro frente a las descriptivas de la rama
+ * clara --, asi que el mismo contenido se contaba distinto segun el tema.
+ *
+ * Lo que se ata aqui son las DOS mitades de esa decision, que solo juntas
+ * son correctas: (a) la composicion entera gana un nombre, y (b) ninguna
+ * capa suelta lo gana. Un candado que solo comprobara (a) dejaria pasar el
+ * arreglo ingenuo -- repartir texto alternativo por las once capas --, que
+ * convierte un fondo en once anuncios sin sentido.
+ *
+ * Es comportamiento observable en jsdom (atributos y arbol de accesibilidad),
+ * no CSS: `getByRole` resuelve el rol y el nombre accesible reales, y las
+ * capas se inspeccionan por atributo. Los dos `it` se han visto en rojo con
+ * la implementacion saboteada antes de darlos por buenos (RULES 34).
+ */
+describe("Story: critica #16 -- el arte del deck oscuro se anuncia como UNA imagen", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("hallazgo A: la escena se expone como imagen con el texto de Home.story.sceneAlt", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+
+    // Nombre accesible resuelto por Testing Library, no un substring del DOM:
+    // lo que importa es que un lector de pantalla lo anuncie asi.
+    const escena = screen.getByRole("img", {
+      name: esHome.Home.story.sceneAlt,
+    });
+    expect(escena).not.toHaveAttribute("aria-hidden");
+
+    // Es el envoltorio de la escena, no otra cosa que se le parezca: contiene
+    // las capas del fondo, y esas capas son las que siguen sin anunciarse.
+    expect(escena.querySelectorAll("img").length).toBeGreaterThan(0);
+
+    // Y es UNA sola imagen anunciada, no una por capa.
+    expect(screen.getAllByRole("img")).toHaveLength(1);
+  });
+
+  it("hallazgo A: ninguna capa del fondo gana texto alternativo -- todas siguen con alt vacio bajo aria-hidden", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const capas = Array.from(container.querySelectorAll("img"));
+
+    capas.forEach((capa) => {
+      expect(capa.getAttribute("alt")).toBe("");
+      expect(capa.closest('[aria-hidden="true"]')).not.toBeNull();
+    });
+
+    // El nombre de la composicion no es el de la figura de la rama clara: son
+    // dos artes distintos y describirlos con la misma frase seria mentir.
+    expect(esHome.Home.story.sceneAlt).not.toBe(esHome.Home.story.figureAlt);
+    expect(enHome.Home.story.sceneAlt).not.toBe(enHome.Home.story.figureAlt);
+  });
+});

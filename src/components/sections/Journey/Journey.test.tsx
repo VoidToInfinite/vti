@@ -2545,3 +2545,59 @@ describe("Journey: critica #16 -- la copia del deck reserva el canal del rail", 
     );
   });
 });
+
+/*
+ * Critica externa #16, hallazgo A (decision del dueno del 2026-09-03).
+ * Gemelo del candado de `Story.test.tsx`: mismo defecto medido (el arte del
+ * deck oscuro no se anunciaba), misma decision y mismas dos mitades atadas
+ * -- la composicion gana UN nombre, y ninguna de las seis capas gana el
+ * suyo. El razonamiento completo vive alli.
+ */
+describe("Journey: critica #16 -- el arte del deck oscuro se anuncia como UNA imagen", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("hallazgo A: la escena se expone como imagen con el texto de Home.journey.sceneAlt", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+
+    const escena = screen.getByRole("img", {
+      name: esHome.Home.journey.sceneAlt,
+    });
+    expect(escena).not.toHaveAttribute("aria-hidden");
+    expect(escena.querySelectorAll("img")).toHaveLength(
+      JOURNEY_PORTAL_LAYERS.length,
+    );
+    expect(screen.getAllByRole("img")).toHaveLength(1);
+  });
+
+  it("hallazgo A: ninguna capa del portal gana texto alternativo -- todas siguen con alt vacio bajo aria-hidden", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
+    });
+    const capas = Array.from(container.querySelectorAll("img"));
+
+    expect(capas).toHaveLength(JOURNEY_PORTAL_LAYERS.length);
+    capas.forEach((capa) => {
+      expect(capa.getAttribute("alt")).toBe("");
+      expect(capa.closest('[aria-hidden="true"]')).not.toBeNull();
+    });
+
+    expect(esHome.Home.journey.sceneAlt).not.toBe(
+      esHome.Home.journey.figureAlt,
+    );
+    expect(enHome.Home.journey.sceneAlt).not.toBe(
+      enHome.Home.journey.figureAlt,
+    );
+  });
+});
