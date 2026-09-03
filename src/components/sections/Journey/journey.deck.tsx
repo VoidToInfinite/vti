@@ -374,6 +374,61 @@ export const ScJourneyRail = styled.div`
  *    space[5] (24px), que es el minimo de WCAG 2.5.8 (Target Size, AA en
  *    WCAG 2.2). Un boton de 8x8 es inoperable con el dedo y casi con el
  *    raton. La caja es transparente: no se ve, solo se toca.
+/*
+ * ROTULO DE POSICION DEL RAIL (critica externa #16, decision del dueno: «hacer
+ * visible el rotulo del paso activo en el rail», en los DOS decks). Fraccion
+ * apilada, `aria-hidden`, gemela exacta de ScRailStatus (story.deck.tsx) --
+ * leer su docblock es releer este: alli estan el defecto que cierra, el motivo
+ * geometrico de que la fraccion se apile en vez de ir en linea, y por que este
+ * rotulo NO se anuncia.
+ *
+ * En esta seccion el ultimo argumento pesa el doble, y conviene dejarlo
+ * escrito aqui tambien: la numeracion hablada de Journey ya se decidio dos
+ * veces. La critica #10 hizo que cada marca del rail se llamara "Ir a la
+ * diapositiva N de 8" y la #12 lo midio contra el "Paso N de 6" que las
+ * propias diapositivas anuncian (`Home.journey.stepPosition`, VisuallyHidden,
+ * en las dos ramas), encontro un desfase de uno y retiro la numeracion del
+ * rail. Este rotulo cuenta PARADAS DEL RAIL, que son ocho porque incluyen la
+ * apertura y el cierre; anunciarlo devolveria a un lector de pantalla las dos
+ * numeraciones desalineadas que aquella ronda quito. Visible cuenta lo que se
+ * ve -- ocho puntos --, hablado sigue contando pasos.
+ */
+export const ScJourneyRailStatus = styled.p`
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  margin-block-end: ${({ theme }) => theme.data.space[3]};
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.caption.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.caption.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.caption.tracking};
+  /* Cifras de ancho fijo: sin esto, pasar de "1" a "4" mueve la barra de la
+     fraccion un pixel a cada cambio de diapositiva. */
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  pointer-events: none;
+`;
+
+/* El numerador: la parada activa, en el color de texto pleno. Gemelo de
+   ScRailStatusCurrent (story.deck.tsx). */
+export const ScJourneyRailStatusCurrent = styled.span`
+  color: ${({ theme }) => theme.data.semantic.text};
+`;
+
+/* El denominador, con la barra de la fraccion como borde superior en el mismo
+   token que las marcas inactivas del rail. Gemelo de ScRailStatusTotal
+   (story.deck.tsx), donde vive el porque de que la barra sea geometria y no un
+   caracter salido de i18n. */
+export const ScJourneyRailStatusTotal = styled.span`
+  border-block-start: 1px solid
+    ${({ theme }) => theme.data.semantic.borderStrong};
+  padding-block-start: ${({ theme }) => theme.data.space[1]};
+  margin-block-start: ${({ theme }) => theme.data.space[1]};
+`;
+
  *
  * 3. CONTRASTE: los inactivos pasan de `semantic.border` al 40% de opacidad
  *    a `semantic.borderStrong` OPACO. La opacidad desaparece de la

@@ -3178,3 +3178,140 @@ describe("Story: critica #15 (C10) -- #statement cuelga de #story en los DOS tem
     window.localStorage.clear();
   });
 });
+
+/*
+ * Critica externa #16, decision del dueno: «hacer visible el rotulo del paso
+ * activo en el rail». El evaluador de Nielsen midio que el progreso del deck
+ * oscuro existia SOLO como puntos mudos para quien ve -- la senal de posicion
+ * en palabras vivia en un `VisuallyHidden` -- frente al tema claro, que
+ * entrega esa misma informacion como una linea temporal con nombres.
+ *
+ * Lo que estos candados atan es lo que jsdom SI puede observar: que el rotulo
+ * existe, que dice el indice del hook y el total derivado de `STORY_SLIDES`,
+ * que sigue al hook cuando el deck avanza, que NO entra en el arbol de
+ * accesibilidad (o reabriria el defecto de doble numeracion que la critica #12
+ * retiro de Journey) y que su tinta libra AA sobre la escena. Lo que NO puede
+ * observar -- que la fraccion apilada no ensancha la columna del rail -- se
+ * mide en navegador y se reporta con cifras.
+ */
+describe("Story: critica #16 -- el rail dice visualmente por donde va el deck", () => {
+  const VH = 800;
+  const AA = 4.5;
+
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    vi.stubGlobal("innerHeight", VH);
+    vi.stubGlobal("scrollY", 0);
+    vi.stubGlobal("scrollTo", vi.fn());
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  async function railConRotulo(): Promise<{
+    track: HTMLElement;
+    grupo: HTMLElement;
+    rotulo: HTMLElement;
+  }> {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    track.getBoundingClientRect = () =>
+      ({ top: 0, height: altoDePista(VH) }) as DOMRect;
+    const grupo = screen.getByRole("group", {
+      name: esHome.Home.story.railLabel,
+    });
+    return { track, grupo, rotulo: grupo.querySelector("p") as HTMLElement };
+  }
+
+  it("el rail lleva un rotulo con la parada activa y el total, derivado de STORY_SLIDES", async () => {
+    const { rotulo } = await railConRotulo();
+
+    expect(rotulo, "el rail no tiene rotulo de posicion").not.toBeNull();
+    // En reposo el deck esta en la diapositiva 0, que se rotula como 1.
+    expect(rotulo).toHaveTextContent(`1${STORY_SLIDES}`);
+  });
+
+  it("el rotulo sigue al index del hook cuando el deck avanza", async () => {
+    const { track, rotulo } = await railConRotulo();
+
+    // Mismo mecanismo que el resto de este fichero: se fija rect.top para que
+    // `progress` caiga exactamente en 3/(N-1) y `measure()` corra sincrono
+    // dentro de `start()`.
+    track.getBoundingClientRect = () =>
+      ({
+        top: -(spanDePista(VH) * 3) / (STORY_SLIDES - 1),
+        height: altoDePista(VH),
+      }) as DOMRect;
+    act(() => triggerFor(track, true));
+
+    expect(rotulo).toHaveTextContent(`4${STORY_SLIDES}`);
+  });
+
+  it("el rotulo NO se anuncia: es el gemelo visual de una senal que ya existe, y dos numeraciones habladas es el defecto que la critica #12 retiro", async () => {
+    const { grupo, rotulo } = await railConRotulo();
+
+    expect(rotulo).toHaveAttribute("aria-hidden", "true");
+    expect(isInaccessible(rotulo)).toBe(true);
+    // Y el contenido accesible del grupo sigue siendo EXACTAMENTE los botones
+    // que la critica #12 dejo: ni un control ni un texto nuevo.
+    expect(within(grupo).getAllByRole("button")).toHaveLength(STORY_SLIDES);
+  });
+
+  it("el rotulo se apila en columna: es lo que impide que ensanche la banda del rail y se coma el canal de la copia", async () => {
+    const { rotulo } = await railConRotulo();
+    const css = cssRuleTextFor(rotulo);
+
+    // La direccion de la fraccion NO es una preferencia estetica: el canal que
+    // ScDeck reserva a la derecha se calcula sumando el ancho de la diana del
+    // rail (space[5]), asi que un rotulo en linea -- mas ancho que la diana --
+    // dejaria ese calculo corto justo en los anchos donde se midio el
+    // hallazgo L1.
+    expect(css).toContain("flex-direction: column");
+    expect(css).toContain("font-variant-numeric: tabular-nums");
+  });
+
+  it("la tinta del rotulo sale de la escala tipografica del sistema, no de un tamano suelto", async () => {
+    const { rotulo } = await railConRotulo();
+    const css = cssRuleTextFor(rotulo);
+
+    // Contra el token importado, nunca contra una cadena a mano (regla 38).
+    expect(css).toContain(
+      `font-size: ${basicDarkTheme.type.scale.caption.size}`,
+    );
+    expect(css).toContain(`color: ${basicDarkTheme.semantic.textMuted}`);
+  });
+
+  it("las dos tintas del rotulo libran AA (4.5:1) sobre el void real de la escena", async () => {
+    await railConRotulo();
+
+    // `caption` mide 0.75rem: es texto pequeno, asi que el liston es 4.5:1 y
+    // no 3:1. Se mide contra el void de StoryCosmicBeing -- el color real que
+    // hay detras del rail, no `semantic.bg`.
+    const numerador = contrastRatioHex(
+      basicDarkTheme.semantic.text,
+      STORY_COSMIC_BEING_VOID,
+    );
+    const denominador = contrastRatioHex(
+      basicDarkTheme.semantic.textMuted,
+      STORY_COSMIC_BEING_VOID,
+    );
+
+    expect(
+      numerador,
+      `numerador sobre el void: ${numerador.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(AA);
+    expect(
+      denominador,
+      `denominador sobre el void: ${denominador.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(AA);
+  });
+});
+

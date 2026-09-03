@@ -497,6 +497,88 @@ export const ScRail = styled.div`
  * que ScStage ya escribe con el index de useSlideDeck -- y no desde un
  * atributo del propio boton. `aria-current` se anade en el JSX como senal para
  * tecnologia asistiva, no como fuente del estilo: dos fuentes de verdad para
+/*
+ * ROTULO DE POSICION DEL RAIL (critica externa #16, decision del dueno: «hacer
+ * visible el rotulo del paso activo en el rail»).
+ *
+ * EL DEFECTO QUE CIERRA. El evaluador de Nielsen lo describio asi: «progreso
+ * del deck solo como puntos mudos PARA QUIEN VE; "Paso 3 de 6" en clip
+ * inset(50 %)», frente al tema claro, que entrega la misma informacion como
+ * una linea temporal con nombres. Es decir: la informacion de posicion existia
+ * -- en `VisuallyHidden`, para tecnologia asistiva -- y lo que faltaba era
+ * verla. Seis puntos de 8 px sobre una escena casi negra no dicen "vas por la
+ * tercera de seis"; dicen que hay algo ahi.
+ *
+ * FORMA: una fraccion APILADA (numerador sobre denominador, con la barra
+ * horizontal dibujada como borde del total), no "3 / 6" en linea. El motivo es
+ * geometrico y esta atado al hallazgo L1, justo arriba: el rail vive a 24 px
+ * del borde y sus marcas miden 24 px, y de esos 48 px sale el canal que la
+ * copia tiene que respetar. Un rotulo en linea ensancharia la columna del rail
+ * a ~30 px y se comeria otros 6 px de medida de lectura en el ancho donde
+ * menos sobra. Apilada, la fraccion mide menos que la propia diana (dos
+ * digitos de `caption` = ~14 px) y el canal calculado sigue siendo exacto.
+ *
+ * `aria-hidden`, A PROPOSITO Y CONTRA LA TENTACION DE ANUNCIARLO. Este rotulo
+ * es el gemelo VISUAL de una senal que ya existe para el lector de pantalla, y
+ * la pagina ya se quemo una vez con la version contraria: la critica #12 midio
+ * que el rail de Journey ANUNCIABA "Ir a la diapositiva N de 8" mientras las
+ * diapositivas anunciaban "Paso N de 6", dos numeraciones desalineadas del
+ * mismo mecanismo, y la retirada de aquella numeracion fue el arreglo. Dar voz
+ * a este rotulo reabriria exactamente ese defecto. La capa accesible del rail
+ * queda como la dejaron las criticas #10 y #12: cada marca se llama por su
+ * DESTINO y el activo lleva `aria-current`. Precedente de la misma forma en
+ * este mismo fichero: `ScScrollHint`, visible y `aria-hidden`.
+ *
+ * SIN BACKTICKS en este comentario: vive dentro del template literal de
+ * styled-components (leccion del repo, task/lessons.md 2026-07-25).
+ */
+export const ScRailStatus = styled.p`
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  margin-block-end: ${({ theme }) => theme.data.space[3]};
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.caption.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.caption.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.caption.tracking};
+  /* Cifras de ancho fijo: sin esto, pasar de "1" a "4" mueve la barra de la
+     fraccion un pixel a cada cambio de diapositiva. */
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  pointer-events: none;
+`;
+
+/*
+ * El numerador: la diapositiva activa. Unico elemento del rotulo en el color de
+ * texto pleno -- es el dato que cambia y el que se busca de un vistazo; el
+ * total se queda en textMuted como referencia. Los dos libran AA (4.5:1) sobre
+ * la escena; el candado que lo mide contra el void real vive en
+ * Story.test.tsx.
+ */
+export const ScRailStatusCurrent = styled.span`
+  color: ${({ theme }) => theme.data.semantic.text};
+`;
+
+/*
+ * El denominador, con la barra de la fraccion como borde superior. Se dibuja
+ * con el borde y no con un caracter "/" porque un caracter tendria que salir
+ * de i18n (regla 28) para ser, en realidad, un adorno de composicion: la barra
+ * es geometria, no copia.
+ */
+export const ScRailStatusTotal = styled.span`
+  /* borderStrong y no border: es el MISMO token que las marcas inactivas del
+     rail usan desde la critica #12, ya medido por encima de 3:1 sobre el void
+     de esta escena (Story.test.tsx). Un hairline en border (neutral 800) sobre
+     un fondo casi negro no se ve. */
+  border-block-start: 1px solid
+    ${({ theme }) => theme.data.semantic.borderStrong};
+  padding-block-start: ${({ theme }) => theme.data.space[1]};
+  margin-block-start: ${({ theme }) => theme.data.space[1]};
+`;
+
  * lo mismo pueden divergir, y la que ya estaba probada es esta.
  */
 export const ScRailMark = styled.button<{ $index: number }>`

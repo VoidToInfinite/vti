@@ -19,6 +19,9 @@ import {
   ScJourneyQuote,
   ScJourneyRail,
   ScJourneyRailMark,
+  ScJourneyRailStatus,
+  ScJourneyRailStatusCurrent,
+  ScJourneyRailStatusTotal,
   ScJourneyScrollHint,
   ScJourneySceneWrap,
   ScJourneySlide,
@@ -1314,6 +1317,22 @@ function JourneyDeckDark(): ReactElement {
             role="group"
             aria-label={t("Home.journey.railLabel")}
           >
+            {/* Rotulo de posicion (critica externa #16, decision del dueno),
+                gemelo del de Story: fraccion apilada, sin ninguna palabra y
+                por tanto sin clave de i18n, y aria-hidden. En esta seccion lo
+                ultimo importa el doble -- cuenta las OCHO paradas del rail,
+                mientras que el "Paso N de 6" que las diapositivas anuncian
+                cuenta pasos; anunciar las dos numeraciones a la vez es
+                literalmente el defecto que la critica #12 midio aqui y
+                retiro. Ver el docblock de ScJourneyRailStatus. */}
+            <ScJourneyRailStatus aria-hidden="true">
+              <ScJourneyRailStatusCurrent>
+                {index + 1}
+              </ScJourneyRailStatusCurrent>
+              <ScJourneyRailStatusTotal>
+                {JOURNEY_SLIDES}
+              </ScJourneyRailStatusTotal>
+            </ScJourneyRailStatus>
             {Array.from({ length: JOURNEY_SLIDES }, (_, railIndex) => (
               <ScJourneyRailMark
                 key={railIndex}

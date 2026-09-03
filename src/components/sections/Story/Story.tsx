@@ -24,6 +24,9 @@ import {
   ScDeckTitle,
   ScRail,
   ScRailMark,
+  ScRailStatus,
+  ScRailStatusCurrent,
+  ScRailStatusTotal,
   ScScrollHint,
   ScSceneWrap,
   ScSlide,
@@ -2083,3 +2086,17 @@ function StoryDeckDark(): ReactElement {
     </ScStory>
   );
 }
+            {/* Rotulo de posicion (critica externa #16, decision del dueno):
+                la fraccion apilada que hace VISIBLE por donde va el deck. No
+                lleva ni una palabra -- son dos numeros y una barra dibujada
+                con un borde -- asi que no consume ninguna clave de i18n: la
+                barra es geometria, no copia (ver el docblock de
+                ScRailStatusTotal). Y va aria-hidden a proposito: el rail ya
+                tiene su capa accesible (nombre de destino por marca +
+                aria-current) y darle voz a un segundo sistema de numeracion
+                es exactamente el defecto que la critica #12 midio y retiro en
+                Journey. */}
+            <ScRailStatus aria-hidden="true">
+              <ScRailStatusCurrent>{index + 1}</ScRailStatusCurrent>
+              <ScRailStatusTotal>{STORY_SLIDES}</ScRailStatusTotal>
+            </ScRailStatus>

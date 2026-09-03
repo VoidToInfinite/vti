@@ -2373,3 +2373,122 @@ describe("Journey: critica #15 -- la cita de cierre sale antes de que la cortina
     expect(cssRuleTextFor(marca)).not.toContain("--journey-progress");
   });
 });
+
+/*
+ * Critica externa #16, decision del dueno: «hacer visible el rotulo del paso
+ * activo en el rail», en los DOS decks. Gemelo del describe equivalente de
+ * `Story.test.tsx`, con una asercion propia que alli no tiene sentido: aqui el
+ * rotulo cuenta las OCHO paradas del rail mientras las diapositivas anuncian
+ * "Paso N de 6" (`Home.journey.stepPosition`), asi que el candado de que NO se
+ * anuncia protege literalmente el arreglo de la critica #12 -- dos
+ * numeraciones desalineadas del mismo mecanismo, con desfase de uno.
+ */
+describe("Journey: critica #16 -- el rail dice visualmente por donde va el deck", () => {
+  const VH = 800;
+  const AA = 4.5;
+
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    vi.stubGlobal("innerHeight", VH);
+    vi.stubGlobal("scrollY", 0);
+    vi.stubGlobal("scrollTo", vi.fn());
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  async function railConRotulo(): Promise<{
+    track: HTMLElement;
+    grupo: HTMLElement;
+    rotulo: HTMLElement;
+  }> {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    track.getBoundingClientRect = () =>
+      ({ top: 0, height: altoDePista(VH) }) as DOMRect;
+    const grupo = screen.getByRole("group", {
+      name: esHome.Home.journey.railLabel,
+    });
+    return { track, grupo, rotulo: grupo.querySelector("p") as HTMLElement };
+  }
+
+  it("el rail lleva un rotulo con la parada activa y el total, derivado de JOURNEY_SLIDES", async () => {
+    const { rotulo } = await railConRotulo();
+
+    expect(rotulo, "el rail no tiene rotulo de posicion").not.toBeNull();
+    expect(rotulo).toHaveTextContent(`1${JOURNEY_SLIDES}`);
+  });
+
+  it("el rotulo sigue al index del hook cuando el deck avanza", async () => {
+    const { track, rotulo } = await railConRotulo();
+
+    track.getBoundingClientRect = () =>
+      ({
+        top: -(spanDePista(VH) * 3) / (JOURNEY_SLIDES - 1),
+        height: altoDePista(VH),
+      }) as DOMRect;
+    act(() => triggerFor(track, true));
+
+    expect(rotulo).toHaveTextContent(`4${JOURNEY_SLIDES}`);
+  });
+
+  it("el rotulo NO se anuncia: cuenta paradas del rail y las diapositivas cuentan pasos, que es el desfase que la critica #12 retiro", async () => {
+    const { grupo, rotulo } = await railConRotulo();
+
+    expect(rotulo).toHaveAttribute("aria-hidden", "true");
+    expect(isInaccessible(rotulo)).toBe(true);
+    expect(within(grupo).getAllByRole("button")).toHaveLength(JOURNEY_SLIDES);
+
+    // Y la senal de posicion HABLADA sigue donde la dejo la critica #11: en la
+    // diapositiva, contando pasos y no paradas. Si alguien le diera voz al
+    // rotulo, un lector de pantalla volveria a oir las dos.
+    expect(
+      screen.getAllByText(
+        esHome.Home.journey.stepPosition
+          .replace("{{current}}", "1")
+          .replace("{{total}}", String(JOURNEY_STEPS.length)),
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("el rotulo se apila en columna y usa la escala tipografica del sistema", async () => {
+    const { rotulo } = await railConRotulo();
+    const css = cssRuleTextFor(rotulo);
+
+    expect(css).toContain("flex-direction: column");
+    expect(css).toContain("font-variant-numeric: tabular-nums");
+    expect(css).toContain(`font-size: ${themes.dark.type.scale.caption.size}`);
+    expect(css).toContain(`color: ${themes.dark.semantic.textMuted}`);
+  });
+
+  it("las dos tintas del rotulo libran AA (4.5:1) sobre el void real del portal", async () => {
+    await railConRotulo();
+
+    const numerador = contrastRatioHex(
+      themes.dark.semantic.text,
+      JOURNEY_PORTAL_VOID,
+    );
+    const denominador = contrastRatioHex(
+      themes.dark.semantic.textMuted,
+      JOURNEY_PORTAL_VOID,
+    );
+
+    expect(
+      numerador,
+      `numerador sobre el void: ${numerador.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(AA);
+    expect(
+      denominador,
+      `denominador sobre el void: ${denominador.toFixed(2)}:1`,
+    ).toBeGreaterThanOrEqual(AA);
+  });
+});
+
