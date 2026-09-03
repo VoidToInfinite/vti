@@ -45,7 +45,7 @@ En este orden, según lo que vayas a hacer:
 - **`src/components/sections/`** — Hero + las cuatro secciones de la home (`Story`, `Features`, `Journey`, `Contact`), orquestadas por `HomeSections.tsx`. Cada sección se ramifica por tema con vehículo y arte distintos (el copy es único desde las Tasks 15-16, ya no ramifica): ver sección 5, punto 1.
 - **`src/components/scenes/`** — escenas decorativas por capas (`aria-hidden`, `alt=""`): `aura`, `eye`, `storyCosmicBeing`, `featuresCelestialOrbital`, `journeyCosmicPortal`, `contactCosmicGuardian`, `sectionBeam`.
 - **`src/components/layout/`** — `Navbar`, `Footer`, `Brand`, `LanguageSelector`, `ThemeToggle`.
-- **`src/components/legal/`** — `LegalDocument.tsx` (renderer único de las páginas legales), `LegalHeader.tsx`, `legalPage.parts.tsx`, `documents/`.
+- **`src/components/legal/`** — `LegalDocument.tsx` (renderer único de las páginas legales), `legalPage.parts.tsx`, `legalAutoLinks.ts`, `documents/` (los envoltorios de cada ruta, que montan `Navbar` + documento + `Footer`). Aquí vivió `LegalHeader.tsx`, una cabecera propia y sobria, hasta el 2026-09-03: se retiró al revertirse D20 (decisión del dueño tras la crítica externa #16 — las legales llevan la navegación completa del sitio, igual que la 404), y el porqué está escrito en el docblock de `documents/PrivacyDocument.tsx`.
 - **`src/components/ui/`** — primitivos: `Button`, `Card`, `IconButton`, `Input`, `Logo`, `Typography`, `VisuallyHidden`.
 - **`src/config/`** — fuentes de verdad únicas: `site.ts`, `links.ts`, `navigation.ts`, `legal.ts`, `storage.ts` (`STORAGE_KEYS`, el registro único de lo que el sitio escribe en `localStorage`).
 - **`src/seo/`** — `metadata.ts`, `jsonLd.ts`, `JsonLdScript.tsx`.

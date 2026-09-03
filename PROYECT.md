@@ -36,7 +36,9 @@ app/                    App Router: layout, page, not-found, robots, sitemap, op
 src/
   components/
     layout/              Navbar, Footer, ThemeToggle, LanguageSelector, Brand
-    legal/                LegalDocument, LegalHeader, documentos de privacidad y aviso legal
+    legal/                LegalDocument (renderer único) y documents/ (envoltorios de
+                           privacidad y aviso legal: Navbar + documento + Footer desde
+                           el 2026-09-03, cuando se retiró la cabecera propia LegalHeader)
     scenes/               Las 7 escenas 3D/ilustradas (aura, eye, sectionBeam,
                            storyCosmicBeing, journeyCosmicPortal, featuresCelestialOrbital,
                            contactCosmicGuardian) — movidas aquí el 2026-08-08 (antes vivían

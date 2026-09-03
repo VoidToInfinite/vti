@@ -256,7 +256,10 @@ describe("LegalDocument", () => {
   /*
    * CRÍTICA #12, P0 (resto legal): el «volver al inicio» con `href="/"` fijo
    * era una de las dos salidas de las legales inglesas que expulsaban al
-   * castellano (la otra, el logotipo de `LegalHeader`). El idioma se lee del
+   * castellano (la otra era el logotipo de `LegalHeader`, la cabecera propia
+   * que estas páginas montaban hasta el 2026-09-03; desde la reversión de D20
+   * ese logotipo es el del `Navbar` y su candado vive en `Navbar.test.tsx`).
+   * El idioma se lee del
    * i18n del ÁRBOL (`useTranslation`, que en `/en/*` ve el `cloneInstance`
    * del provider), no de la instancia de módulo — por eso el candado monta
    * `I18nProvider locale="en"` reproduciendo `app/en/layout.tsx` (patrón de
