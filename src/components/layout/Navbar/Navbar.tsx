@@ -1061,30 +1061,54 @@ const ScNavGroup = styled.div`
    criterio que ScNavLink arriba: el hover solo cambia color, sin nada que
    guardar tras PRESS.hoverGuard. */
 /*
- * AQUÍ VIVIÓ LA PROP `$current` -- la señal visible de sección actual con los
- * paneles plegados (2026-08-20, ola post-crítica #13). RETIRADA por la
- * decisión D2 del dueño (2026-09-02, crítica #14), y conviene decir por qué no
- * es una regresión sino la desaparición de su causa.
+ * SEÑAL DE SECCIÓN ACTUAL CON EL PANEL PLEGADO (`data-current`).
  *
- * Aquel subrayado sobre el DISPARADOR era un sustituto: el scrollspy marcaba
- * `aria-current="location"` correctamente, pero el enlace que lo llevaba vivía
- * dentro de un panel cerrado, así que un usuario vidente no veía nada sin
- * abrirlo. El subrayado respondía «la sección que estás leyendo está en este
- * grupo», no «cuál es» -- y su propio docblock declaraba esa mitad como
- * pendiente de decisión del dueño.
+ * Existió como prop `$current` (2026-08-20, ola post-crítica #13), se retiró
+ * con la decisión D2 del dueño (2026-09-02, crítica #14) y vuelve aquí el
+ * 2026-09-03 (crítica externa #17, P1 del verificador de navegador) porque el
+ * argumento que la retiró era FALSO Y MEDIBLE COMO FALSO. Aquel docblock
+ * afirmaba que «Más» agrupa `discover`/`resources`/`community` y que ninguno
+ * de sus items es `kind: "section"`, así que la marca no podría encenderse
+ * nunca. Pero `navigation.ts` declara `{ key: "about", href: "/#about",
+ * kind: "section" }` dentro del grupo PARTIDO, y `navBarMoreGroupsFor` deja
+ * aquí justamente el resto de esa partición -- su propio docblock lo dice:
+ * «el grupo partido DESAPARECE si se queda sin items (hoy no ocurre: about
+ * vive ahí)».
  *
- * D2 toma la decisión y disuelve el problema: los cuatro destinos de sección
- * pasan a ser enlaces VISIBLES de la píldora (ver `ScNavSectionLink`, más
- * abajo), así que `aria-current` y su tratamiento visual vuelven a vivir en el
- * MISMO elemento -- el enlace que de verdad representa la ubicación. El
- * subrayado no se pierde: se muda a `ScNavSectionLink`, donde ya responde
- * «cuál es» y no solo «en qué grupo está».
+ * El efecto medido de esa contradicción (Chrome real, 1440x900,
+ * `reducedMotion: reduce`, tema fijado en `localStorage` antes de cargar, 3,5 s
+ * de asentamiento, build de producción Y servidor de desarrollo, los dos
+ * temas): con `#about` como sección activa el ÚNICO
+ * `aria-current="location"` del documento cuelga de un enlace de 169x23 con
+ * `visibility: hidden` dentro del panel plegado, y el disparador visible
+ * computa exactamente lo mismo que cuando la activa es Story
+ * (`color` `oklch(0.5 0 286)` en claro / `oklch(0.86 0.004 286)` en oscuro,
+ * `font-weight: 500`, `text-decoration-line: none`). Es decir: la barra no
+ * marcaba NADA para una de las cinco secciones de la home.
  *
- * Y no se puede dejar aquí «por si acaso»: el único disparador que queda
- * («Más») agrupa `discover`/`resources`/`community`, y ninguno de sus items es
- * `kind: "section"` (ver `navigation.ts`), así que `$current` sería una prop
- * que no puede encenderse nunca -- exactamente el tipo de promesa muerta que
- * la regla 16 prohíbe conservar.
+ * Lo que se restaura es la mitad VISIBLE, y solo eso: el mismo tratamiento
+ * que `ScNavSectionLink` da a la suya (`text-decoration: underline` +
+ * `text-underline-offset: 0.2em`, ni una declaración más), porque las dos
+ * responden a la misma pregunta del lector y no deben hablar dos idiomas. No
+ * hay doble marca posible: si la sección activa vive en un enlace visible de
+ * la píldora, no vive detrás de este disparador.
+ *
+ * SE PINTA DESDE `data-current`, NO DESDE UNA PROP transitoria, por el mismo
+ * motivo que `ScNavSectionLink` se pinta desde `aria-current`: el estado queda
+ * en el DOM, se puede aseverar desde un test sin inspeccionar hojas de estilo
+ * y no hay un segundo estado que mantener sincronizado. El atributo lo decide
+ * `NavMoreMenu` recorriendo sus grupos por `kind === "section"` (dato, no
+ * lista escrita a mano), así que sigue siendo correcto el día que la
+ * partición de `NAV_GROUPS` cambie.
+ *
+ * LO QUE SIGUE PENDIENTE, y no se resuelve aquí: el panel plegado es `inert`,
+ * así que ese `aria-current` tampoco llega al árbol de accesibilidad -- un
+ * usuario de lector de pantalla sigue sin oír «estás en Qué es
+ * VoidToInfinite». Cerrarlo exige o bien un texto oculto nuevo en el
+ * disparador (cadena de i18n en los dos idiomas, y el nombre accesible pasa a
+ * depender de la sección leída), o bien sacar `about` a la píldora como quinto
+ * enlace visible. Las dos son decisiones del dueño sobre la barra, no algo
+ * que se resuelva en silencio desde este bloque de CSS.
  */
 const ScNavTrigger = styled.button`
   display: inline-flex;
@@ -1109,6 +1133,14 @@ const ScNavTrigger = styled.button`
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brandText};
+  }
+
+  /* La sección que se está leyendo vive detrás de este disparador: ver el
+     docblock de arriba. Mismas dos declaraciones que ScNavSectionLink, sin
+     comillas invertidas dentro del template (regla 23 de RULES.md). */
+  &[data-current="true"] {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
   }
 
   &:active {
@@ -1478,12 +1510,15 @@ const ScNavPanelLink = styled(ScNavLink)`
  * apunten a ids reales) y su propia referencia al disparador, para devolverle
  * el foco al cerrar con Escape.
  *
- * SIGUE RECIBIENDO `activeSectionKey` aunque hoy ninguno de sus tres grupos
- * pueda encenderlo: la resolución de `aria-current` es DATO-DIRIGIDA
- * (`kind === "section"`, ver más abajo), no una lista escrita a mano, así que
- * describe correctamente cualquier partición futura de `NAV_GROUPS` en vez de
- * describir la de hoy. Retirarlo obligaría a reintroducirlo el día que un
- * grupo de «Más» gane una sección, y ese día nada avisaría de que falta.
+ * RECIBE `activeSectionKey` y lo usa en dos sitios, no en uno: el
+ * `aria-current` de cada enlace del panel (dato-dirigido por
+ * `kind === "section"`, más abajo) y el `data-current` del disparador, que es
+ * la única marca VISIBLE cuando la sección activa vive detrás del plegado.
+ * Ese segundo uso no es hipotético: el grupo partido que `navBarMoreGroupsFor`
+ * deposita aquí conserva `about`, que es `kind: "section"` -- ver el docblock
+ * de `ScNavTrigger` para la medición que lo demuestra y para lo que sigue
+ * pendiente del dueño. Las dos resoluciones leen el MISMO `kind`, así que
+ * describen cualquier partición futura de `NAV_GROUPS` en vez de la de hoy.
  */
 interface NavMoreMenuProps {
   /** Los grupos que quedan detrás del disclosure (`navBarMoreGroupsFor`). */
@@ -1493,7 +1528,8 @@ interface NavMoreMenuProps {
   readonly onClose: () => void;
   /** `key` de la sección actualmente visible (`useActiveSectionKey`), o
    *  `null` si ninguna lo está. Solo los items `kind: "section"` lo
-   *  consumen (ver `itemLabel`/`aria-current` más abajo). */
+   *  consumen: su `aria-current` (más abajo) y, cuando alguno de ellos es el
+   *  activo, el `data-current` del disparador. */
   readonly activeSectionKey: string | null;
 }
 
@@ -1508,6 +1544,20 @@ function NavMoreMenu({
   const triggerId = useId();
   const panelId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
+
+  /* ¿La sección que se está leyendo vive detrás de este disparador? Se
+     resuelve del MISMO dato que el aria-current de cada enlace del panel
+     (kind === "section"), nunca de una lista de claves escrita a mano: ver el
+     docblock de ScNavTrigger. Sin memoizar a propósito -- son tres grupos con
+     un puñado de items, y el propio render ya los recorre entero unas líneas
+     más abajo. */
+  const holdsActiveSection =
+    activeSectionKey !== null &&
+    groups.some((group) =>
+      group.items.some(
+        (item) => item.kind === "section" && item.key === activeSectionKey,
+      ),
+    );
 
   // Regla 3: Escape cierra el grupo (si estaba abierto) y devuelve el foco
   // a su disparador.
@@ -1565,6 +1615,12 @@ function NavMoreMenu({
         ref={triggerRef}
         aria-expanded={isOpen}
         aria-controls={panelId}
+        /* Marca VISIBLE de "la sección que lees está aquí dentro". No lleva
+           aria-current: este botón no es la ubicación, es lo que la esconde --
+           el atributo semántico se queda en el enlace que sí lo es, dentro del
+           panel. Ausente (no "false") cuando no aplica, para que el selector
+           de CSS y las aserciones lean lo mismo. */
+        data-current={holdsActiveSection ? "true" : undefined}
         /*
          * SIN `aria-haspopup`, y su ausencia es la parte deliberada
          * (crítica externa #8, punto 2). Lo declaró la Tarea 1 con el valor
@@ -1686,15 +1742,19 @@ function NavMoreMenu({
                          * actual dentro de un documento o contexto que el
                          * usuario está recorriendo".
                          *
-                         * Desde la decisión D2 ningún item de este panel es
-                         * `kind: "section"` -- los cuatro que lo eran se
-                         * pintan ahora como enlaces visibles de la barra
-                         * (`ScNavSectionLink`) --, así que hoy esta rama no
-                         * se enciende nunca. Se conserva por lo mismo que
-                         * `activeSectionKey` sigue llegando hasta aquí: la
-                         * condición describe el MODELO (`kind`), no la
-                         * partición concreta de hoy, y no hay ninguna copia
-                         * que mantener sincronizada.
+                         * La decisión D2 sacó a la barra los cuatro
+                         * destinos que ya estaban aquí
+                         * (`ScNavSectionLink`), pero NO dejó este panel sin
+                         * secciones: `about` es `kind: "section"` y vive en
+                         * el resto del grupo partido, así que esta rama sí
+                         * se enciende -- y hasta el 2026-09-03 era la única
+                         * marca que existía para esa sección, sobre un
+                         * enlace que el plegado deja en
+                         * `visibility: hidden`. La mitad visible la pone
+                         * ahora `data-current` en el disparador (ver el
+                         * docblock de `ScNavTrigger`); esta condición sigue
+                         * describiendo el MODELO (`kind`), no la partición
+                         * concreta de hoy.
                          */
                         aria-current={
                           item.kind === "section" &&

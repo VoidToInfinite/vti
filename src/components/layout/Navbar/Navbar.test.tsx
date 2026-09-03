@@ -1753,6 +1753,106 @@ describe("Navbar", () => {
         expect(reglas).toContain("min-height: 44px");
       });
     });
+
+    /*
+     * LA QUINTA SECCIÓN, LA QUE NO TIENE ENLACE VISIBLE (crítica externa #17,
+     * P1 del verificador de navegador, 2026-09-03).
+     *
+     * La decisión D2 sacó CUATRO destinos de sección a la píldora, pero la
+     * home tiene CINCO: `about` entró en la navegación el 2026-09-02 y
+     * `navBarMoreGroupsFor` la deja detrás del disparador «Más». Medido en
+     * Chrome real (1440x900, reduce, tema fijado antes de cargar, 3,5 s de
+     * asentamiento, los dos temas y los dos servidores): con `#about` como
+     * sección activa el único `aria-current="location"` colgaba de un enlace
+     * de 169x23 con `visibility: hidden` dentro del panel plegado, y el
+     * disparador visible computaba lo MISMO que con Story activa
+     * (`text-decoration-line: none`, `font-weight: 500`). La barra no marcaba
+     * nada para una de las cinco secciones.
+     *
+     * Estos dos candados afirman la mitad visible del arreglo -- el
+     * `data-current` del disparador y su subrayado atado por selector -- y su
+     * complemento, que es lo que impide que la marca se quede encendida:
+     * cuando la sección activa SÍ tiene enlace visible, el disparador no la
+     * reclama. La mitad de lectores de pantalla sigue pendiente de una
+     * decisión del dueño (ver el docblock de `ScNavTrigger`).
+     *
+     * `about` no escribe `data-inview` (no monta `useSectionProgress`, ver
+     * "TERCERA CLASE DE SECCIÓN" en `useActiveSection.ts`), así que se
+     * conduce como en producción: por geometría. jsdom no hace layout --
+     * `getBoundingClientRect()` devuelve ceros --, de ahí el rect sustituido,
+     * mismo patrón que `useActiveSection.test.tsx`. Las otras cuatro se ponen
+     * en `data-inview="false"` para reproducir la rama clara, donde la señal
+     * existe y ninguna de ellas es candidata.
+     */
+    describe("sección activa detrás del disclosure «Más» (crítica #17)", () => {
+      function mockAbout(top: number, bottom: number): HTMLElement {
+        const el = document.createElement("div");
+        el.id = "about";
+        el.getBoundingClientRect = (): DOMRect =>
+          ({ top, bottom, height: bottom - top }) as DOMRect;
+        document.body.appendChild(el);
+        return el;
+      }
+
+      afterEach(() => {
+        document.getElementById("about")?.remove();
+      });
+
+      function triggerMas(): HTMLElement {
+        return screen.getByRole("button", { name: /^Más/i, hidden: true });
+      }
+
+      it("con About como sección activa, el disparador «Más» la señala con data-current", () => {
+        mockAbout(100, 700);
+        renderNavbar();
+        for (const id of SCROLLSPY_IDS) setInView(id, false);
+        fireScroll();
+
+        // La premisa: el scrollspy resolvió About, y su aria-current vive en
+        // el panel plegado (por eso hace falta la marca del disparador).
+        expect(
+          document.querySelector('a[href="/#about"][aria-current="location"]'),
+          "el scrollspy no resolvió About: la premisa del candado no se cumple",
+        ).not.toBeNull();
+
+        expect(triggerMas()).toHaveAttribute("data-current", "true");
+      });
+
+      it("el subrayado del disparador cuelga de data-current, no de una prop paralela", () => {
+        mockAbout(100, 700);
+        renderNavbar();
+        for (const id of SCROLLSPY_IDS) setInView(id, false);
+        fireScroll();
+
+        const clases = Array.from(triggerMas().classList);
+        const subrayado = allCssRules().find(
+          (r) =>
+            clases.some((c) => r.includes(`.${c}[data-current="true"]`)) &&
+            r.includes("text-decoration: underline"),
+        );
+        expect(
+          subrayado,
+          "el disparador no declara el subrayado atado a data-current",
+        ).toBeDefined();
+      });
+
+      it("con una sección que SÍ tiene enlace visible, el disparador no la reclama", () => {
+        // About montada pero LEJOS del viewport (el lector está arriba, en
+        // Journey): existe en el DOM como en producción, y no compite.
+        mockAbout(2000, 3000);
+        renderNavbar();
+        setInView("journey", true);
+        fireScroll();
+
+        expect(
+          document.querySelector(
+            '[data-nav-links] a[href="/#journey"][aria-current="location"]',
+          ),
+          "el scrollspy no resolvió Journey en la barra",
+        ).not.toBeNull();
+        expect(triggerMas()).not.toHaveAttribute("data-current");
+      });
+    });
   });
 
   /*
