@@ -113,6 +113,7 @@ Lectura: la píldora cae contra el borde superior, se aplasta en el impacto y se
 
 - Nuevos: `grid.navMax = "1280px"` (D7), `motion.easing.overshoot` (D8), variable CSS `--nav-gap: 0.5rem` (D6).
 - Reutilizados sin cambios: `radius.xl` (16px), `elevation[2]`, `glass.*`, `zIndex.stickyNav`, `motion.duration.{fast,base,slow,slower}`, `space[4]`/`space[6]` (padding interno de `ScNav`), `--nav-height`.
+    - **Enmienda 2026-09-03 (ola L, crítica #16):** el relleno interno de `ScNav` ya no es la tabla `space[4]`/`space[6]` por breakpoint. Craft midió que la marca nunca coincidía con el raíl de contenido (1920: 352 frente a 384; 1600: 192/224; 1280: 40/64; 1100: 40/24, con cambio de signo), así que `ScNav` resuelve ahora su `padding-inline` contra `grid.containerMax` + `space[5]`, los mismos tokens de Features, Contacto y el pie, en los dos estados de la barra. La píldora (`grid.navMax`, D7) no cambia. Commit `2c406fa`.
 - Cero literales de color, tamaño o duración en el componente salvo los porcentajes/factores de las `@keyframes`, que son la forma de la curva, no medidas del sistema.
 
 ## 8. i18n
