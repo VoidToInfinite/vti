@@ -45,6 +45,33 @@ export const GlobalStyles = createGlobalStyle`
        valor base es light porque el HTML estatico que hornea el build es el
        claro: sin JavaScript, ese es el estado real de la pagina.
 
+       NO PASA A light dark, Y ESO SE MIDIO (critica externa #17, P2 del
+       evaluador Nielsen, 2026-09-03). El hallazgo es cierto y esta
+       reproducido: sin JavaScript, un visitante con el sistema en oscuro
+       recibe la pagina clara (data-theme null, background del body
+       oklch(0.985 0 286) medido en Chrome con javaScriptEnabled false y
+       colorScheme dark). El arreglo que proponia -- declarar aqui
+       light dark y dejar que el script de arranque fije el tema resuelto --
+       NO cambia ese sintoma, y eso tambien esta medido, no razonado: con la
+       regla inyectada en el HTML servido, misma sonda, dos capturas de la
+       pagina a 390x844 con prefers-color-scheme dark y reduced-motion (para
+       congelar la fase) salen BYTE A BYTE identicas a las dos capturas sin
+       ella, y el background computado del body sigue en oklch(0.985 0 286).
+
+       El motivo es que color-scheme solo decide el fondo del lienzo cuando la
+       pagina no declara ninguno, y body declara background-color siempre;
+       ademas este mismo fichero anula la apariencia nativa de los controles de
+       formulario (appearance: none) y esconde la barra de scroll de WebKit. Es
+       decir: cero beneficio medible, a cambio de anunciar al navegador un
+       esquema que la pagina no pinta -- un motor que no honre
+       ::-webkit-scrollbar pintaria barra oscura sobre pagina clara.
+
+       Lo que el hallazgo pide de verdad -- una pagina oscura sin JavaScript --
+       no es un cambio de CSS: exige hornear una variante oscura del HTML
+       estatico, y las cuatro secciones montan un componente hijo DISTINTO por
+       tema (regla 6 de RULES.md). Es una decision de arquitectura del dueno,
+       no algo que se resuelva aqui en silencio.
+
        SIN BACKTICKS: esto vive dentro del template literal de
        styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
     color-scheme: light;
@@ -82,25 +109,6 @@ export const GlobalStyles = createGlobalStyle`
     vertical-align: baseline;
   }
 
-  /* color-scheme le dice al NAVEGADOR en que esquema esta el documento, que no
-     es lo mismo que decirselo al usuario. De el dependen piezas que no pinta
-     esta hoja de estilos: la barra de scroll, los controles de formulario
-     nativos, el fondo por defecto del lienzo y el color de seleccion de los
-     campos.
-
-     Hasta el 2026-08-16 no se declaraba en ninguna parte del repo, y el
-     efecto era medible: el tema de este sitio lo decide el CONMUTADOR
-     (localStorage gana a prefers-color-scheme, decision D-C), asi que quien
-     tenga el sistema en claro y pulse el conmutador a oscuro se quedaba con la
-     barra de scroll clara sobre un documento casi negro de 12.821 px de alto.
-
-     Se ata a data-theme y no a prefers-color-scheme a proposito: es el mismo
-     atributo que el script de arranque fija ANTES del primer pintado y que
-     ThemeProvider mantiene sincronizado en cada cambio (ThemeProvider.tsx),
-     asi que vale en los tres momentos --antes de hidratar, despues, y tras
-     cada pulsacion del conmutador-- sin ningun estado nuevo. El valor base es
-     light porque el HTML estatico que hornea el build es el claro: sin
-     JavaScript, ese es el estado real de la pagina y tambien el correcto. */
   html {
     -webkit-scroll-behavior: smooth;
     -moz-scroll-behavior: smooth;
