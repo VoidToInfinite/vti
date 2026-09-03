@@ -1528,28 +1528,35 @@ const ScStatementLink = styled.a`
 const ScDeckNoteLink = styled.a`
   ${communityLinkStyles}
   margin-block-start: ${({ theme }) => theme.data.space[5]};
-
-  /* Compuerta de foco (critica #10, tarea derivada del hallazgo A): el unico
-     focalizable dentro de una ScSlide. La diapositiva ya NO se oculta con
-     visibility (reversion en story.deck.tsx: expulsaba las 6 del arbol de
-     accesibilidad), asi que la garantia de A1 -- cero focos invisibles,
-     WCAG 2.4.7 -- vive ahora AQUI: mientras la diapositiva del cierre no es
-     la actual, el enlace sale del orden de tabulacion y del arbol via
-     visibility, con la MISMA fuente de verdad (data-state del ancestro,
-     selector descendiente porque el estado vive en el padre -- leccion CSS
-     de la casa). Bajo reduce todas las diapositivas estan visibles y en
-     flujo, asi que el enlace DEBE volver a ser focalizable: perderlo seria
-     perder la salida de pertenencia (Task 6).
-     SIN BACKTICKS en este comentario: vive dentro del template literal
-     (task/lessons.md 2026-07-25). */
-  [data-state]:not([data-state="current"]) & {
-    visibility: hidden;
-
-    @media (prefers-reduced-motion: reduce) {
-      visibility: visible;
-    }
-  }
 `;
+/*
+ * AQUI VIVIO LA COMPUERTA DE FOCO del enlace de Discord: un bloque
+ * [data-state]:not([data-state="current"]) & { visibility: hidden } con su
+ * excepcion de reduce. La puso la critica #10 (tarea derivada del hallazgo A)
+ * para cerrar WCAG 2.4.7 -- este enlace es el unico focalizable dentro de una
+ * ScSlide, y el stage vive en position: sticky, asi que un foco en el enlace
+ * de una diapositiva que todavia no ha llegado desaparecia de la pantalla sin
+ * que el navegador desplazara nada para traerlo a la vista.
+ *
+ * RETIRADA EN LA CRITICA EXTERNA #16 (hallazgo L2), porque el precio ya
+ * medido era peor que el defecto: el enlace no era alcanzable con Tab HACIA
+ * DELANTE en ningun momento. No es focalizable hasta que su diapositiva es la
+ * actual, y para que lo sea hace falta scroll -- que el tabulador no produce.
+ * Con Shift+Tab desde la primera marca del rail si se alcanzaba (el enlace
+ * precede al rail en el DOM), asi que la unica via de teclado a la salida de
+ * pertenencia de Story era ir hacia atras y por casualidad.
+ *
+ * LA SUSTITUYE UN MECANISMO QUE CONSERVA LA GARANTIA en vez de renunciar a
+ * ella: el enlace vuelve al orden de tabulacion SIEMPRE, y al recibir el foco
+ * (`onFocus` en el JSX de StoryDeckDark, mas abajo) el deck lleva la pagina a
+ * la diapositiva del cierre con la MISMA funcion que activa la ultima marca
+ * del rail (`scrollToSlide`, useSlideDeck). El foco deja de poder quedarse
+ * fuera de la vista: o la diapositiva ya es la actual, o pasa a serlo por el
+ * propio gesto de enfocar. La excepcion de reduce sigue viva, ahora en el
+ * handler y no en el CSS -- bajo reduce el deck se linealiza, la pista mide
+ * height: auto y la geometria que scrollToSlide invierte no describe nada, asi
+ * que no se llama.
+ */
 
 export function Story(): ReactElement {
   const { themeName } = useTheme();
@@ -1887,6 +1894,33 @@ function StoryDeckDark(): ReactElement {
   };
 
   /*
+   * Salida de la trampa de foco del enlace de Discord (critica externa #16,
+   * hallazgo L2). Ver el comentario que sustituyo a la compuerta de
+   * visibility, junto a `ScDeckNoteLink`, para el defecto completo; aqui vive
+   * la mitad que no es CSS.
+   *
+   * Dos guardas, y ninguna es decorativa:
+   *
+   * 1. `reduce`. El deck se linealiza (la pista pasa a height: auto, el stage
+   *    a position: static y todas las diapositivas quedan visibles en flujo),
+   *    asi que la geometria que `scrollToSlide` invierte -- pista larga,
+   *    stage pegado, span de recorrido -- ya no describe la pagina. Llamarlo
+   *    lanzaria el scroll a una posicion arbitraria justo cuando el usuario
+   *    acaba de pedir menos movimiento. Se consulta en el momento del foco y
+   *    no se cachea porque la preferencia cambia en caliente (mismo criterio
+   *    que `scrollToSlide` con su `behavior`).
+   * 2. Ya estar en la diapositiva del cierre. Sin esto, cada Tab que entra en
+   *    el enlace relanzaria un scroll suave hacia donde ya estamos: el
+   *    navegador cancelaria el gesto de scroll del usuario a mitad, que es
+   *    justo el tipo de secuestro que este repo retiro con el scroll-snap.
+   */
+  const focusClosingSlide = (): void => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (index === STORY_SLIDES - 1) return;
+    scrollToSlide(STORY_SLIDES - 1);
+  };
+
+  /*
    * Nombre accesible de cada parada del rail (critica externa #12): el TITULO
    * de la diapositiva a la que lleva, leido de las MISMAS claves que esa
    * diapositiva pinta -- no una segunda fuente de copia que tendria que
@@ -2081,6 +2115,7 @@ function StoryDeckDark(): ReactElement {
                 href={links.discord}
                 target="_blank"
                 rel="noopener noreferrer"
+                onFocus={focusClosingSlide}
               >
                 {t("Home.story.communityLink")}
                 <VisuallyHidden> {tCommon("Common.Nav.newTab")}</VisuallyHidden>

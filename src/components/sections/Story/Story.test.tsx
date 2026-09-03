@@ -164,44 +164,20 @@ function revealedSelectorTextFor(el: HTMLElement): string {
   return (rule as CSSStyleRule).selectorText;
 }
 
-/**
- * Regla CSS real (CSSOM, `CSSStyleRule`, no texto libre) que aplica a un
- * elemento y cuyo `selectorText` cumple `matches` -- mismo criterio que
- * `revealedSelectorTextFor`, generalizado para poder pedir `.style.<prop>`
- * (que SI resuelve el valor declarado de una propiedad concreta, a
- * diferencia de buscar una subcadena en `cssText`, que no distingue "esta
- * declaracion pertenece a ESTA regla" de "aparece en cualquier parte del
- * bloque concatenado"). Lo uso el candado de A1 (fix wave A) para leer
- * `visibility` del reposo de `ScSlide`; hoy lo usa su sustituto (describe
- * "critica #10") para leer la COMPUERTA del enlace del cierre
- * (`ScDeckNoteLink`) en su regla `[data-state]:not(...)`, sin ambiguedad de
- * cual declaracion es cual.
+/*
+ * AQUI VIVIO `cssRuleFor`, el helper que localizaba UNA regla del CSSOM por su
+ * `selectorText` y exponia `.style.<prop>`. Su ultimo consumidor era el candado
+ * que leia la COMPUERTA de `ScDeckNoteLink` -- el `visibility: hidden` que
+ * mantenia el enlace de Discord fuera del orden de tabulacion mientras su
+ * diapositiva no fuera la actual --, y la critica externa #16 retiro esa
+ * compuerta con medicion delante (hallazgo L2: con Tab hacia delante el enlace
+ * no se alcanzaba nunca). El candado que la sustituye afirma la AUSENCIA de la
+ * declaracion, que se lee del texto concatenado sin necesitar este helper.
+ *
+ * Se retira con ella (regla 16 de RULES.md: un helper que ya no describe nada
+ * es peor que ninguno), exactamente como `Journey.test.tsx` retiro el suyo
+ * cuando la critica #10 se llevo su unico consumidor.
  */
-function cssRuleFor(
-  el: HTMLElement,
-  matches: (selectorText: string) => boolean,
-): CSSStyleRule {
-  const classes = Array.from(el.classList);
-  const rule = Array.from(document.styleSheets)
-    .flatMap((sheet) => {
-      try {
-        return Array.from(sheet.cssRules);
-      } catch {
-        return [];
-      }
-    })
-    .find((r): r is CSSStyleRule => {
-      if (!("selectorText" in r)) return false;
-      const selector = (r as CSSStyleRule).selectorText ?? "";
-      return (
-        classes.some((cls) => selector.includes(`.${cls}`)) && matches(selector)
-      );
-    });
-  if (!rule) {
-    throw new Error("Ninguna regla coincide con el criterio pedido");
-  }
-  return rule as CSSStyleRule;
-}
 
 /**
  * Alto simulado de la pista del deck, con la MISMA aritmetica que declara
@@ -2111,7 +2087,20 @@ describe("Story: critica #10 hallazgo A -- el deck oscuro existe para tecnologia
     expect(css).not.toContain("visibility");
   });
 
-  it("el enlace de Discord es el UNICO focalizable dentro de las diapositivas, y lleva la compuerta de estado (visibility: hidden fuera de current)", async () => {
+  /*
+   * ESTE CANDADO CAMBIA DE SENTIDO EN LA CRITICA EXTERNA #16 (hallazgo L2), y
+   * conviene dejar escrito por que, porque afirma casi lo contrario de lo que
+   * afirmaba: hasta esta ola exigia que el enlace llevara `visibility: hidden`
+   * mientras su diapositiva no fuera la actual -- la compuerta que la critica
+   * #10 puso para que ningun foco cayera fuera de la vista (WCAG 2.4.7). La
+   * #16 midio el precio de aquella compuerta: con Tab HACIA DELANTE el enlace
+   * no se alcanzaba NUNCA, porque para que su diapositiva sea la actual hace
+   * falta scroll y el tabulador no produce scroll. La compuerta se retira y la
+   * garantia se conserva por otra via -- al enfocarlo, el deck lleva la pagina
+   * a su diapositiva --, asi que lo que hay que atar aqui es que la
+   * declaracion NO vuelva.
+   */
+  it("el enlace de Discord es el UNICO focalizable dentro de las diapositivas, y NINGUNA regla suya lo saca del orden de tabulacion", async () => {
     const { slides } = await slidesDelDeck();
 
     const FOCALIZABLES =
@@ -2120,57 +2109,118 @@ describe("Story: critica #10 hallazgo A -- el deck oscuro existe para tecnologia
       Array.from(slide.querySelectorAll(FOCALIZABLES)),
     );
     expect(focalizables).toHaveLength(1);
-    expect(focalizables[0]).toHaveAttribute("href", links.discord);
+    const enlace = focalizables[0] as HTMLElement;
+    expect(enlace).toHaveAttribute("href", links.discord);
+    // Ni `tabindex="-1"` en el JSX: sacarlo del orden por atributo seria el
+    // mismo defecto por otra puerta.
+    expect(enlace).not.toHaveAttribute("tabindex");
 
-    // La compuerta, leida de su regla exacta del CSSOM (cssRuleFor): el
-    // selector descendiente de estado que la aplica SOLO fuera de current.
-    const gate = cssRuleFor(focalizables[0] as HTMLElement, (sel) =>
-      sel.includes(':not([data-state="current"])'),
-    );
-    expect(gate.style.visibility).toBe("hidden");
+    // Y ni una sola declaracion de `visibility` en el CSS del enlace, en
+    // ninguna de sus reglas (incluidas las de dentro de un @media, que jsdom
+    // no evalua pero cssRuleTextFor si concatena -- regla 36).
+    expect(cssRuleTextFor(enlace)).not.toContain("visibility");
   });
 
-  it("bajo prefers-reduced-motion la compuerta se levanta: el enlace vuelve a visibility: visible", async () => {
-    const { slides } = await slidesDelDeck();
-    const link = slides[slides.length - 1].querySelector("a") as HTMLElement;
+  it("al recibir el foco, el enlace lleva la pagina a la diapositiva del cierre: el foco no puede quedarse fuera de la vista", async () => {
+    const VH = 800;
+    vi.stubGlobal("innerHeight", VH);
+    vi.stubGlobal("scrollY", 0);
+    const scrollTo = vi.fn();
+    vi.stubGlobal("scrollTo", scrollTo);
 
-    // La regla vive ANIDADA en un @media dentro de la regla de compuerta:
-    // se busca el CSSMediaRule real cuyo interior aplica al enlace con el
-    // selector de compuerta y declara visible -- sin depender de en que
-    // orden concatene styled-components los bloques del componente.
-    const classes = Array.from(link.classList);
-    const reduceRule = Array.from(document.styleSheets)
-      .flatMap((sheet) => {
-        try {
-          return Array.from(sheet.cssRules);
-        } catch {
-          return [];
-        }
-      })
-      .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule)
-      .filter((r) => r.conditionText.includes("prefers-reduced-motion"))
-      .flatMap((r) => Array.from(r.cssRules))
-      .find((r): r is CSSStyleRule => {
-        if (!("selectorText" in r)) return false;
-        const sel = (r as CSSStyleRule).selectorText ?? "";
-        return (
-          classes.some((cls) => sel.includes(`.${cls}`)) &&
-          sel.includes(':not([data-state="current"])')
-        );
-      });
-    expect(
-      reduceRule,
-      "no hay regla de reduce que levante la compuerta del enlace",
-    ).toBeDefined();
-    expect(reduceRule?.style.visibility).toBe("visible");
+    const { container, slides } = await slidesDelDeck();
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    track.getBoundingClientRect = () =>
+      ({ top: 0, height: altoDePista(VH) }) as DOMRect;
+    act(() => triggerFor(track, true));
+    // Punto de partida: el deck esta en la diapositiva 0, es decir, la del
+    // cierre NO es la actual -- exactamente el estado en el que la compuerta
+    // retirada dejaba el enlace inalcanzable.
+    expect(stage).toHaveAttribute("data-slide", "0");
+
+    const enlace = slides[slides.length - 1].querySelector("a") as HTMLElement;
+    act(() => {
+      enlace.focus();
+    });
+
+    // La MISMA posicion a la que lleva la ultima marca del rail, calculada
+    // con la aritmetica del hook y no con un numero magico:
+    //   top(k) = k / (STORY_SLIDES - 1) * span, con k = STORY_SLIDES - 1
+    expect(scrollTo).toHaveBeenCalledWith({
+      top: spanDePista(VH),
+      behavior: "smooth",
+    });
+  });
+
+  it("si la diapositiva del cierre YA es la actual, enfocar el enlace no relanza ningun scroll", async () => {
+    const VH = 800;
+    vi.stubGlobal("innerHeight", VH);
+    vi.stubGlobal("scrollY", 0);
+    const scrollTo = vi.fn();
+    vi.stubGlobal("scrollTo", scrollTo);
+
+    const { container, slides } = await slidesDelDeck();
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const track = stage.parentElement as HTMLElement;
+    // rect.top al final del recorrido: progress = 1, index = STORY_SLIDES - 1.
+    track.getBoundingClientRect = () =>
+      ({ top: -spanDePista(VH), height: altoDePista(VH) }) as DOMRect;
+    act(() => triggerFor(track, true));
+    expect(stage).toHaveAttribute("data-slide", String(STORY_SLIDES - 1));
+
+    scrollTo.mockClear();
+    const enlace = slides[slides.length - 1].querySelector("a") as HTMLElement;
+    act(() => {
+      enlace.focus();
+    });
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("bajo prefers-reduced-motion enfocar el enlace no mueve la pagina: el deck esta linealizado y la geometria de la pista no describe nada", async () => {
+    const VH = 800;
+    vi.stubGlobal("innerHeight", VH);
+    vi.stubGlobal("scrollY", 0);
+    const scrollTo = vi.fn();
+    vi.stubGlobal("scrollTo", scrollTo);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes("prefers-reduced-motion"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+    const { container, slides } = await slidesDelDeck();
+    // La pista se fija CON recorrido a proposito: sin esto, `scrollToSlide`
+    // saldria por su propia guarda de `span <= 0` (jsdom da altura 0 a todo) y
+    // este candado pasaria en verde aunque la guarda de `reduce` no existiera
+    // -- que es exactamente lo que el bug inyectado descubrio la primera vez
+    // que se escribio.
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    (stage.parentElement as HTMLElement).getBoundingClientRect = () =>
+      ({ top: 0, height: altoDePista(VH) }) as DOMRect;
+
+    const enlace = slides[slides.length - 1].querySelector("a") as HTMLElement;
+    act(() => {
+      enlace.focus();
+    });
+
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   /*
    * Bugs inyectados a proposito (regla 34), ejecutados en esta tarea:
    * (a) devolver `visibility: hidden;` al reposo de `ScSlide`
-   * (story.deck.tsx) pone en rojo los candados 1 y 2; (b) retirar el bloque
-   * de compuerta de `ScDeckNoteLink` (Story.tsx) pone en rojo los candados
-   * 3 y 4. Restauradas LAS LINEAS (nunca git checkout), todo vuelve a verde.
+   * (story.deck.tsx) pone en rojo los candados 1 y 2; (b) devolver el bloque
+   * de compuerta a `ScDeckNoteLink` (Story.tsx) pone en rojo el candado 3;
+   * (c) retirar la llamada a `scrollToSlide` de `focusClosingSlide`
+   * (Story.tsx) pone en rojo el candado 4, y quitarle cualquiera de sus dos
+   * guardas pone en rojo el 5 o el 6. Restauradas LAS LINEAS (nunca git
+   * checkout), todo vuelve a verde.
    */
 });
 
