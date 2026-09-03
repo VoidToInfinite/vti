@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen, within } from "@/test/test-utils";
+import { renderWithProviders, screen } from "@/test/test-utils";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import {
   EN_ROUTES,
@@ -223,16 +223,30 @@ describe("rutas inglesas — el inglés está en el PRIMER render", () => {
    * comportamiento declarado para una ruta desconocida. Lo que este test
    * comprueba es lo que sí es observable en el ensamblaje: que la cabecera
    * inglesa monta el selector con los dos idiomas y sus `hreflang`.
+   *
+   * LA CONSULTA BAJA AL DOM EL 2026-09-03, y el contrato no se relaja (regla
+   * 40): desde que las legales montan el `Navbar` del sitio en vez de una
+   * cabecera propia (decisión del dueño tras la crítica externa #16, ver el
+   * docblock de `PrivacyDocument.tsx`), el par de idioma vive dentro de
+   * `ScBarLanguage`, cuya regla BASE es `display: none` -- mobile-first: por
+   * debajo de `md` el idioma se entrega en la hoja móvil. jsdom no evalúa
+   * ningún `@media`, así que se queda con esa regla base y `getAllByRole`,
+   * que filtra por visibilidad, devolvía cero enlaces. En Chrome a 1440 los
+   * dos siguen en la barra (verificado: paradas 8 y 9 del recorrido de
+   * teclado sobre `/privacidad`). Se sigue exigiendo lo mismo -- dos enlaces
+   * de idioma con sus `hreflang`, en ese orden, dentro de la cabecera -- pero
+   * leyéndolo del DOM, que es donde jsdom sí puede verlo.
    */
   it.each(paginasLegales)(
     "/en/$nombre monta el selector de idioma con enlaces reales en su cabecera",
     ({ Page }) => {
-      renderEn((<Page />) as ReactElement);
+      const { container } = renderEn((<Page />) as ReactElement);
 
-      const cabecera = screen.getByRole("banner");
-      const porIdioma = within(cabecera)
-        .getAllByRole("link")
-        .filter((enlace) => enlace.hasAttribute("hreflang"));
+      const cabecera = container.querySelector("header");
+      expect(cabecera).not.toBeNull();
+      const porIdioma = Array.from(cabecera!.querySelectorAll("a")).filter(
+        (enlace) => enlace.hasAttribute("hreflang"),
+      );
 
       expect(porIdioma).toHaveLength(2);
       expect(porIdioma.map((e) => e.getAttribute("hreflang"))).toEqual([
