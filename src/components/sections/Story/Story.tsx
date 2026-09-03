@@ -11,6 +11,7 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { PRESS, REVEAL } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
+import { motion } from "@/theme/tokens/motion";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { StoryCosmicBeing } from "@/components/scenes/storyCosmicBeing/StoryCosmicBeing";
 import {
@@ -214,12 +215,48 @@ const STORY_CARD_HOVER_LIFT = "-3px";
  * migración que cierra el hallazgo del gate F2: `REVEAL` pasa de cero
  * consumidores a consumidor real aquí.
  */
-/** Retardo de cada pieza en cascada, mismo orden que el mockup (L74-121):
- *  barra+kicker, h2, body, tarjeta 1..4 (D9). */
+/**
+ * Retardo de cada pieza en cascada, mismo orden que el mockup (L74-121):
+ * barra+kicker, h2, body, tarjeta 1..4 (D9).
+ *
+ * Los siete números son EXACTAMENTE los de antes —0, 80, 140, 200, 260, 320,
+ * 380— pero dejan de escribirse a mano. Sus diferencias dicen lo que la tabla
+ * escondía: 80, 60, 60, 60, 60. Dos pasos, y los dos son peldaños de
+ * `motion.staggerMs` (`base` = 80 para despegar el titular del kicker,
+ * `tight` = 60 para que las cuatro tarjetas se lean como un bloque). El censo
+ * de la crítica #16 encontró esta cascada y su gemela de Features escritas por
+ * separado en dos ficheros que no se conocen (regla 13 de `RULES.md`); aquélla
+ * migró en la ola que creó la escala y ésta quedó pendiente de integración,
+ * con la sanción provisional que `scripts/detect-anti-patterns.mjs` dejó
+ * escrita. Esto la cierra.
+ *
+ * | # | pieza          | suma                        | ms  |
+ * | - | -------------- | --------------------------- | --- |
+ * | 0 | barra + kicker | 0                           | 0   |
+ * | 1 | h2             | `base`                      | 80  |
+ * | 2 | cuerpo         | `base + tight`              | 140 |
+ * | 3 | tarjeta 1      | `base + 2·tight`            | 200 |
+ * | 4 | tarjeta 2      | `base + 3·tight`            | 260 |
+ * | 5 | tarjeta 3      | `base + 4·tight`            | 320 |
+ * | 6 | tarjeta 4      | `base + 5·tight`            | 380 |
+ *
+ * Los peldaños se leen enteros (`motion.staggerMs.base`) y no por un alias
+ * local: el candado que impide que un peldaño de la escala se quede sin
+ * consumidor (`motion.test.ts`) busca el acceso literal, y un alias lo dejaría
+ * ciego ante este fichero — el mismo punto ciego que el docblock de `grid.ts`
+ * ya declara para los censos de tokens. Los retardos del statement (220 y 440)
+ * NO entran aquí: no tienen peldaño y siguen sancionados con su motivo.
+ */
 const STORY_REVEAL_DELAY_EYEBROW_MS = 0;
-const STORY_REVEAL_DELAY_TITLE_MS = 80;
-const STORY_REVEAL_DELAY_BODY_MS = 140;
-const STORY_CARD_REVEAL_DELAYS_MS = [200, 260, 320, 380] as const;
+const STORY_REVEAL_DELAY_TITLE_MS = motion.staggerMs.base;
+const STORY_REVEAL_DELAY_BODY_MS =
+  motion.staggerMs.base + motion.staggerMs.tight;
+const STORY_CARD_REVEAL_DELAYS_MS = [
+  motion.staggerMs.base + 2 * motion.staggerMs.tight,
+  motion.staggerMs.base + 3 * motion.staggerMs.tight,
+  motion.staggerMs.base + 4 * motion.staggerMs.tight,
+  motion.staggerMs.base + 5 * motion.staggerMs.tight,
+] as const;
 /** Interlineado del párrafo de inspiración (D2, mockup L96:
  *  `line-height: 1.7`): ninguna variante de `type.scale` mide un cuerpo de
  *  texto a este interlineado (bodySm da 1.55) -- mismo recurso que

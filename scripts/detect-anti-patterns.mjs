@@ -1540,19 +1540,6 @@ const ALLOWLIST = [
         family: "duration-const",
         file: "src/components/sections/Story/Story.tsx",
         anchors: [
-            {
-                snippet: "const STORY_REVEAL_DELAY_TITLE_MS = 80;",
-                lines: [212],
-            },
-            {
-                snippet: "const STORY_REVEAL_DELAY_BODY_MS = 140;",
-                lines: [213],
-            },
-            {
-                snippet:
-                    "const STORY_CARD_REVEAL_DELAYS_MS = [200, 260, 320, 380] as const;",
-                lines: [214],
-            },
             { snippet: "const STORY_STATEMENT_REVEAL_MS = 900;", lines: [242] },
             {
                 snippet: "const STORY_STATEMENT_DELAY_SECOND_MS = 220;",
@@ -1563,7 +1550,7 @@ const ALLOWLIST = [
                 lines: [259],
             },
         ],
-        reason: "Los seis retardos y duraciones de la cascada de Story, VERBATIM del mockup (L74-121 la cascada de la rejilla, L127-131 el statement) y ya documentados uno a uno en el propio fichero -- el docblock de STORY_STATEMENT_REVEAL_MS explica por que 900 no tiene casilla en la escala. Los retardos son un ORDEN entre piezas, no duraciones de interfaz. SANCION PROVISIONAL desde la critica externa #16 (2026-09-03), y dicho aqui para que nadie la lea como definitiva: hasta esa revision el argumento era que motion.duration no tiene ni pretende tener peldanos de retardo, y era cierto -- pero desde entonces existe motion.staggerMs, y la cascada de esta seccion es precisamente de donde salieron dos de sus tres peldanos (los pasos de 80 y 60 ms que Story alterna, identicos a los de Features). La migracion de este fichero no entraba en el dominio de la ola que creo la escala; queda pendiente de integracion, con los valores exactos que le corresponden. Su gemela de Features (FEATURES_LIGHT_REVEAL_DELAYS_MS, features.layers.ts) SI se migro en esa ola y ya no dispara ninguna familia.",
+        reason: "Las tres duraciones del statement de Story, VERBATIM del mockup (L127-131) y documentadas una a una en el propio fichero: el docblock de STORY_STATEMENT_REVEAL_MS explica por que 900 no tiene casilla en la escala, y los dos retardos (220 y 440) no caen en ningun peldano de motion.staggerMs -- no son un escalonado de entrada entre hermanos, son las dos esperas de una cita que se revela en tres tiempos. La SANCION PROVISIONAL que esta entrada llevaba desde la critica externa #16 (2026-09-03) ya se cerro: la cascada de la rejilla (STORY_REVEAL_DELAY_TITLE_MS, STORY_REVEAL_DELAY_BODY_MS y STORY_CARD_REVEAL_DELAYS_MS) se migro en la integracion de la ola L a motion.staggerMs con cero cambio de valor renderizado (medido en navegador: 200/260/320/380 ms antes y despues), igual que ya habia hecho su gemela de Features (FEATURES_LIGHT_REVEAL_DELAYS_MS, features.layers.ts), y la familia deja de verla.",
     },
     {
         family: "duration-const",

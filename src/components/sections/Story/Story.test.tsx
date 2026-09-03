@@ -205,6 +205,43 @@ function spanDePista(vh: number): number {
   return altoDePista(vh) - vh - STORY_DECK_TAIL_SCREENS * vh;
 }
 
+/*
+ * Candado de VALOR de la cascada, añadido con la migración de la crítica
+ * externa #16 (integración de la ola L, 2026-09-03). Los siete retardos
+ * (kicker 0, h2 80, cuerpo 140 y las cuatro tarjetas 200/260/320/380) ya no
+ * se escriben a mano en `Story.tsx`: se derivan de `motion.staggerMs`
+ * (`base` = 80, `tight` = 60). Esa aritmética necesita quien la compruebe
+ * contra los valores VERBATIM del mockup (L74-121), y las constantes del
+ * componente son privadas del módulo, así que el candado mide lo único
+ * observable desde fuera: el CSS que styled-components inyecta. Es el gemelo
+ * del que `Features.test.tsx` estrenó para su propia cascada.
+ *
+ * Sin este candado, subir un peldaño de la escala por un motivo ajeno a esta
+ * sección retimearía la cascada en silencio y la suite seguiría en verde.
+ */
+describe("#16: la cascada de Story derivada de motion.staggerMs conserva los retardos del mockup", () => {
+  it("los peldaños de la escala siguen valiendo 80 y 60", () => {
+    expect(motion.staggerMs.base).toBe(80);
+    expect(motion.staggerMs.tight).toBe(60);
+  });
+
+  it("el CSS inyectado declara los siete retardos verbatim: 0, 80, 140, 200, 260, 320 y 380 ms", () => {
+    renderWithProviders(<Story />);
+    const css = Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .join("\n");
+    for (const ms of [80, 140, 200, 260, 320, 380]) {
+      expect(css).toContain(`transition-delay: ${ms}ms`);
+    }
+  });
+});
+
 describe("Story", () => {
   it("es una region con su nombre accesible real (no un aria-labelledby colgando)", () => {
     // Misma lección que ya documentaba este archivo: buscar por el NOMBRE
