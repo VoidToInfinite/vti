@@ -301,6 +301,22 @@ describe("Features", () => {
   // eyebrow generico habia dejado libre en la Task 11, sin renumerar los
   // cinco de despues (ver el docblock de FEATURES_LIGHT_REVEAL_DELAYS_MS,
   // features.layers.ts).
+  /*
+   * Candado de VALOR, añadido con la migración de la crítica externa #16
+   * (2026-09-03). El test de debajo itera la propia constante, así que ve
+   * que el DOM y la tabla coinciden pero NO puede ver un cambio de valor:
+   * si la tabla pasara a decir 0/90/150/..., seguiría en verde. Desde esa
+   * revisión los seis números ya no se escriben a mano — se derivan de
+   * `motion.staggerMs` — y esa aritmética necesita quien la compruebe
+   * contra los valores VERBATIM del mockup, que son estos seis literales y
+   * viven aquí precisamente porque el fichero bajo prueba ya no los tiene.
+   */
+  it("#16: la cascada derivada de motion.staggerMs sigue dando los seis retardos verbatim del mockup", () => {
+    expect([...FEATURES_LIGHT_REVEAL_DELAYS_MS]).toEqual([
+      0, 80, 140, 200, 280, 360,
+    ]);
+  });
+
   it("D9: escalona el transition-delay de los seis elementos (kicker, h2, intro, 3 tarjetas) segun los retardos verbatim del mockup", () => {
     const { container } = renderWithProviders(<Features />);
     expect(FEATURES_LIGHT_REVEAL_DELAYS_MS).toHaveLength(6);

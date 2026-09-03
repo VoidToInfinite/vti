@@ -1,5 +1,6 @@
 import { AURA_STAGGER } from "@/components/scenes/aura/aura.layers";
 import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
+import { motion } from "@/theme/tokens/motion";
 
 /**
  * Tiempos NÚCLEO de la coreografía de carga y cruce de fondos del hero
@@ -40,20 +41,37 @@ import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
  * tiene que caber la composición que más escalones necesita, o el tema
  * oscuro se quedaría sin tiempo para su último paso.
  *
- * ## Por qué estos números NO salen de `theme.data.motion.duration`
+ * ## Qué sale del sistema y qué no (revisión crítica externa #16)
  *
- * La escala de movimiento de la casa (`src/theme/tokens/motion.ts`:
- * `instant/fast/base/slow/slower/spin/spinReduced`) está pensada
- * para TRANSICIONES DE INTERFAZ —hover, foco, aparición de un panel—, no
- * para una COREOGRAFÍA de cinco escalones con un orden y un retardo
- * relativo entre piezas. Forzar esta coreografía dentro de `motion.duration`
- * obligaría a añadir una clave (`heroStagger`, `heroStep`...) a un objeto
- * que un test de contrato cierra por completo (`system.test.ts`, con
- * `toEqual` + `toHaveLength`: ver la lección de `task/lessons.md` del
- * 2026-07-25 sobre añadir una clave a un objeto de tokens) por una
- * coreografía puntual que no es un rol del sistema de movimiento — igual
- * que `Sol.tsx:147` declara sus 1100 ms de morph como una excepción propia
- * en vez de forzarlos en la escala.
+ * DOS de los cinco números de este fichero —los dos PASOS de escalonado,
+ * `HERO_STEP_MS` y `HERO_COPY_STEP_MS`— pasaron a leer
+ * `motion.staggerMs.loose` y `motion.staggerMs.base` en esa revisión, con
+ * **cero cambio de valor** (110 y 80, los mismos que llevaban): la escala
+ * de retardos que la crítica #16 añadió al token es exactamente la casilla
+ * que el párrafo de abajo daba por inexistente.
+ *
+ * El párrafo original decía que forzar esta coreografía dentro de
+ * `motion.duration` «obligaría a añadir una clave (`heroStagger`,
+ * `heroStep`...) a un objeto que un test de contrato cierra por completo».
+ * Ese argumento sigue siendo correcto, y por eso la crítica #16 NO añadió
+ * la clave a `duration`: creó `staggerMs`, una escala aparte para la
+ * magnitud aparte. Un paso de escalonado sí es un rol del sistema de
+ * movimiento —el repo lo escribió por su cuenta cuatro veces, con cuatro
+ * números distintos, en Story, Features, Journey y aquí—; lo que no lo era
+ * es meterlo entre las duraciones de hover.
+ *
+ * ### Por qué los otros tres NO salen del sistema, y siguen sin salir
+ *
+ * `HERO_FADE_MS` (420) es una DURACIÓN, `HERO_DECODE_TIMEOUT_MS` (600) es
+ * un tope de espera de `img.decode()` que no anima nada, y `HERO_STACK_MS`/
+ * `HERO_CHROME_OFFSET_MS` se derivan de los anteriores. La escala de
+ * `motion.duration` está pensada para TRANSICIONES DE INTERFAZ —hover,
+ * foco, aparición de un panel— y ninguno de los tres lo es; forzarlos ahí
+ * obligaría a abrir un contrato cerrado (`system.test.ts`, con `toEqual` +
+ * `toHaveLength`: ver la lección de `task/lessons.md` del 2026-07-25 sobre
+ * añadir una clave a un objeto de tokens) por una coreografía puntual —
+ * igual que `Sol.tsx:147` declara sus 1100 ms de morph como una excepción
+ * propia en vez de forzarlos en la escala.
  *
  * ### De dónde sale el 420 (corrección de honestidad, crítica externa #8,
  * 2026-08-17)
@@ -127,8 +145,23 @@ import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
 /** Duración del fundido de UNA capa del stagger. */
 export const HERO_FADE_MS = 420;
 
-/** Paso del stagger entre capas consecutivas. */
-export const HERO_STEP_MS = 110;
+/**
+ * Paso del stagger entre capas consecutivas.
+ *
+ * Desde la crítica externa #16 (2026-09-03) lee `motion.staggerMs.loose` en
+ * vez de escribir el 110 a mano: mismo valor, distinta procedencia — la
+ * diferencia que solo se ve en la fuente y que el CSS renderizado no
+ * distingue (`task/lessons.md`, 2026-08-12).
+ *
+ * Consecuencia para la PERILLA DE CALIBRACIÓN que `docs/qa-3d-pendiente.md`
+ * describe («si la secuencia se lee plana, sube `HERO_STEP_MS` ANTES que
+ * alargar `HERO_FADE_MS`»): esa instrucción sigue valiendo, pero el número
+ * que se toca ahora es el peldaño `loose` de la escala. Hoy el efecto es
+ * idéntico —ese peldaño existe para este stack y no tiene otro consumidor—;
+ * el día que gane uno, subirlo dejará de ser una decisión local del hero y
+ * habrá que decidir si esta pieza se sale de la escala.
+ */
+export const HERO_STEP_MS = motion.staggerMs.loose;
 
 /**
  * Tope de espera de `img.decode()` antes de arrancar la transición de todas
@@ -190,8 +223,16 @@ export const HERO_STACK_MS =
  * el candado de test pueda aseverar contra la CONSTANTE importada y no contra
  * una tabla de strings escrita a mano (regla 38 de `RULES.md`). Se reexporta
  * desde `hero.transition.ts` junto al resto, igual que las demás.
+ *
+ * Desde la crítica externa #16 (2026-09-03) lee `motion.staggerMs.base` en
+ * vez de escribir el 80 a mano: mismo valor —las cuentas de arriba no
+ * cambian ni un milisegundo—, distinta procedencia. Y no es una elección
+ * arbitraria de peldaño: 80 ms es LA cifra que este repo escribió por su
+ * cuenta más veces para el mismo trabajo (aquí, en el primer escalón de las
+ * cabeceras de Story y Features, y entre las tarjetas de Features), que es
+ * justamente lo que la convirtió en el peldaño base de la escala.
  */
-export const HERO_COPY_STEP_MS = 80;
+export const HERO_COPY_STEP_MS = motion.staggerMs.base;
 
 /**
  * Instante, medido desde el ARRANQUE de un stack (carga o entrada de un

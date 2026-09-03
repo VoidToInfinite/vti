@@ -46,10 +46,30 @@ describe("system tokens", () => {
       expect(motion.duration.base).toBe("200ms");
     });
 
+    /*
+     * Escala NUEVA de la crítica externa #16 (2026-09-03): los retardos de
+     * coreografía, la tercera magnitud del movimiento, que hasta esa fecha no
+     * tenía dónde nacer. Contrato cerrado igual que `duration` y `easing`
+     * (regla 40): quien añada o retoque un peldaño actualiza esta fuente de
+     * verdad y el recuento de abajo en el MISMO commit.
+     *
+     * Los tres valores son los del censo, no una progresión: 60 y 80 son los
+     * dos pasos que las cascadas de Story y de Features ya alternaban, y 110
+     * el del escalonado de capas del fondo del hero.
+     */
+    it("expone los tres peldaños de escalonado como número", () => {
+      expect(motion.staggerMs).toEqual({
+        tight: 60,
+        base: 80,
+        loose: 110,
+      });
+    });
+
     it("motion es un objeto congelado (as const)", () => {
       // Verificar que las duraciones tienen las propiedades esperadas
       expect(Object.keys(motion.duration)).toHaveLength(7);
       expect(Object.keys(motion.easing)).toHaveLength(6);
+      expect(Object.keys(motion.staggerMs)).toHaveLength(3);
     });
   });
 

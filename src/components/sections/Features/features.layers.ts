@@ -34,6 +34,7 @@
  * `var()`) se transcribe tal cual en este archivo.
  */
 import { grid } from "@/theme/tokens/grid";
+import { motion } from "@/theme/tokens/motion";
 
 export type FeatureKey = "learning" | "imagination" | "gaming";
 
@@ -302,9 +303,47 @@ export const FEATURES_CONIC_BORDER_SPIN_MS = "3200ms";
  * las DOS ramas. Recupera su posición y su retardo originales del mockup, de
  * modo que los cinco retardos posteriores siguen sin renumerarse: el h2 sigue
  * entrando a 80ms, exactamente igual que antes y que después.
+ *
+ * ## De tabla de literales a cascada derivada (crítica externa #16)
+ *
+ * Los seis números son EXACTAMENTE los mismos —0, 80, 140, 200, 280, 360—
+ * pero dejan de escribirse a mano. Lo que el mockup declara no son seis
+ * retardos independientes sino una CASCADA, y sus diferencias lo dicen: 80,
+ * 60, 60, 80, 80. Dos pasos, alternados, y los dos son peldaños de
+ * `motion.staggerMs` (`base` = 80, `tight` = 60) precisamente porque el
+ * censo de la crítica #16 los encontró repetidos aquí y en la cascada
+ * gemela de Story, escritos por separado en dos ficheros que no se conocen
+ * (regla 13 de `RULES.md`).
+ *
+ * Escrito como suma se ve lo que la tabla escondía: qué pieza va pegada a
+ * la anterior (`tight`) y cuál se despega (`base`). Y cierra de paso el
+ * ÚNICO hallazgo que la familia `delay-const` del detector encontró en el
+ * repo: una tabla de retardos multilínea con los números sueltos en sus
+ * propios renglones, la forma exacta que el motor línea a línea no podía
+ * atribuir a ningún nombre.
+ *
+ * | # | pieza                | suma                    | ms  |
+ * |---|----------------------|-------------------------|-----|
+ * | 0 | kicker               | (arranca la cascada)    |   0 |
+ * | 1 | h2                   | `base`                  |  80 |
+ * | 2 | párrafo de entrada   | `base + tight`          | 140 |
+ * | 3 | tarjeta Learning     | `base + 2·tight`        | 200 |
+ * | 4 | tarjeta Imagination  | `2·base + 2·tight`      | 280 |
+ * | 5 | tarjeta Gaming       | `3·base + 2·tight`      | 360 |
+ *
+ * Los peldaños se leen enteros (`motion.staggerMs.base`) y no por un alias
+ * local: el candado que impide que un peldaño de la escala se quede sin
+ * consumidor (`motion.test.ts`) busca el acceso literal, y un alias lo
+ * dejaría ciego ante este fichero — el mismo punto ciego que el docblock de
+ * `grid.ts` ya declara para los censos de tokens.
  */
 export const FEATURES_LIGHT_REVEAL_DELAYS_MS = [
-  0, 80, 140, 200, 280, 360,
+  0,
+  motion.staggerMs.base,
+  motion.staggerMs.base + motion.staggerMs.tight,
+  motion.staggerMs.base + 2 * motion.staggerMs.tight,
+  2 * motion.staggerMs.base + 2 * motion.staggerMs.tight,
+  3 * motion.staggerMs.base + 2 * motion.staggerMs.tight,
 ] as const;
 
 /** Nombre base de los ficheros WebP publicados en `public/figures/`

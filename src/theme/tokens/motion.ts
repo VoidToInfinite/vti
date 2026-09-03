@@ -30,6 +30,44 @@ const DURATION_MS = {
   spinReduced: 2100,
 } as const;
 
+/**
+ * Peldaños de la escala de retardos. No se exporta, por el mismo motivo que
+ * `DURATION_MS`: se lee siempre por `motion.staggerMs`, para que no haya dos
+ * caminos de import hacia el mismo dato.
+ *
+ * Lo que esta escala NO gobierna, dicho aquí para que su nombre no prometa
+ * de más: los DESFASES DE FASE de un bucle ambiental —las 24 estrellas del
+ * pie (`footer.layers.ts`, 800-3600 ms) y los orbes y destellos del mascota
+ * Sol (`Sol.constants.ts`, −0,2 a −4 s)— no son escalonado de una entrada,
+ * son lo contrario: números deliberadamente IRREGULARES para que dos piezas
+ * vecinas nunca laten a la vez. Colapsarlos en tres peldaños destruiría
+ * justo aquello para lo que existen, así que se quedan donde están, con su
+ * sanción escrita en `scripts/detect-anti-patterns.mjs`.
+ */
+const STAGGER_MS = {
+  /**
+   * Paso APRETADO: piezas que deben leerse como un bloque, no como una
+   * secuencia de cosas separadas. Es el paso de la cascada de tarjetas de
+   * Story y el de los dos escalones centrales de la cabecera de Features.
+   */
+  tight: 60,
+  /**
+   * Paso BASE, el más repetido del repo: la distancia por defecto entre dos
+   * hermanos de una misma entrada. Lo escribían por su cuenta la copia del
+   * hero (`HERO_COPY_STEP_MS`), el primer escalón de las cabeceras de Story
+   * y Features, y los dos escalones entre tarjetas de Features.
+   */
+  base: 80,
+  /**
+   * Paso HOLGADO: el de una composición cuyas piezas son CAPAS y no
+   * hermanas de una lista, donde cada escalón tiene que llegar a leerse por
+   * separado sobre un fundido largo. Único consumidor hoy, y por diseño: el
+   * escalonado del stack de fondo del hero (`HERO_STEP_MS`, seis capas con
+   * un fundido de 420 ms cada una).
+   */
+  loose: 110,
+} as const;
+
 export const motion = {
   duration: {
     instant: `${DURATION_MS.instant}ms`,
@@ -47,6 +85,69 @@ export const motion = {
    * claves de `duration`, sin el sufijo.
    */
   durationMs: DURATION_MS,
+  /**
+   * Escala de RETARDOS de coreografía, en milisegundos (crítica externa #16).
+   *
+   * ## El hueco que cierra
+   *
+   * Hasta esta revisión este token tenía escala para las DURACIONES y para
+   * las CURVAS, y ninguna para el tercer número que gobierna cualquier
+   * coreografía: cuánto espera una pieza respecto a su hermana. La medición
+   * del evaluador de Craft en la #16 —22 de 26 retardos como valores sueltos
+   * entre 80 y 1.800 ms— es la consecuencia directa: sin escala de donde
+   * elegir, cada sección se inventó la suya. Censo propio (mismo motor que
+   * `scripts/detect-anti-patterns.mjs`: comentarios recortados, línea a
+   * línea sobre `src/` y `app/`, tests fuera) de los PASOS entre hermanos
+   * que el repo escribió de forma independiente:
+   *
+   * - **60 ms** — cascada de tarjetas de Story (×3, `Story.tsx`) y los dos
+   *   pasos centrales de la cabecera de Features (`features.layers.ts`).
+   * - **80 ms** — copia del hero (`HERO_COPY_STEP_MS`, `src/motion/
+   *   timings.ts`), primer paso de las cabeceras de Story y de Features, y
+   *   los dos pasos entre tarjetas de Features.
+   * - **90 ms** — reveal escalonado de Journey (`STEP_STAGGER_MS`).
+   * - **110 ms** — escalonado de capas del fondo del hero
+   *   (`HERO_STEP_MS`), consumido por `aura.parts.tsx` y `eye.parts.tsx`.
+   *
+   * Cuatro números para el MISMO trabajo, elegidos por cuatro piezas que no
+   * se conocen: es la regla 13 de `RULES.md` («una constante de valor
+   * idéntico repetida en dos secciones es un token de tema») aplicada al
+   * eje que faltaba.
+   *
+   * ## Por qué TRES peldaños y no cuatro, y de dónde sale cada cifra
+   *
+   * Las cifras son las del censo, no una progresión inventada: `tight` y
+   * `base` son los dos pasos que las dos cascadas de mockup (Story y
+   * Features) ya alternaban, y `loose` es el del stack del hero. Los 90 ms
+   * de Journey NO tienen peldaño propio a propósito — su docblock los
+   * declara como «~90ms por paso», un valor aproximado, y darles casilla
+   * sería convertir la escala en el cajón que la crítica #16 pide cerrar;
+   * migrarlos a `base` o a `loose` cambia el valor renderizado y por eso
+   * queda como decisión, no como refactor.
+   *
+   * No se deriva de `durationMs` (ni al revés): un retardo y una duración
+   * son magnitudes distintas —cuándo empieza algo frente a cuánto tarda— y
+   * atarlas obligaría a que retocar el ritmo de una cascada moviera las
+   * transiciones de hover de todo el sitio. Que `spinReduced` y el retardo
+   * más largo de una cascada acaben en el mismo número sería una
+   * coincidencia, no una relación.
+   *
+   * ## Por qué NO hay gemelo en cadena CSS (a diferencia de `duration`)
+   *
+   * `duration` existe en cadena porque hay decenas de consumidores que la
+   * interpolan tal cual. Aquí ocurre lo contrario: los SEIS consumidores
+   * reales de estos peldaños necesitan el NÚMERO —lo multiplican por un
+   * índice (`step * motion.staggerMs.loose`) o lo suman para acumular una
+   * cascada—, así que un `stagger` en cadena nacería con cero consumidores,
+   * que es exactamente la hoja muerta que la misma crítica #16 pide podar
+   * (mismo criterio que retiró `REVEAL.stepMs`, `grid.proseTight` y
+   * `color.success`). El sufijo `Ms` del nombre del objeto avisa de que lo
+   * que sale de aquí es un número, igual que en `durationMs`.
+   *
+   * El candado de que ningún peldaño se quede sin consumidor real vive en
+   * `motion.test.ts` y mide por PELDAÑO, no por escala.
+   */
+  staggerMs: STAGGER_MS,
   easing: {
     standard: "cubic-bezier(0.4, 0, 0.2, 1)",
     decelerate: "cubic-bezier(0, 0, 0.2, 1)",

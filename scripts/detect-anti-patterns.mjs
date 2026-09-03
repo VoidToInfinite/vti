@@ -53,10 +53,37 @@
  * `font-size` escrito como literal `rem`/`px`/`em` fuera de
  * `src/theme/tokens/` (con `clamp()`, `var()`, `calc()`, `inherit` y `1em`
  * exentos), CUALQUIER `z-index` entero -- incluidos el cero y los negativos --
- * fuera de `src/theme/tokens/zIndex.ts`, kickers repetidos
- * (componentes `*Kicker*` en JSX) y numeracion decorativa de seccion
- * (`number: "0N"`, o el ordinal 1-based
+ * fuera de `src/theme/tokens/zIndex.ts`, CUALQUIER RETARDO declarado fuera
+ * del token -- una tabla multilinea de tiempos con los numeros sueltos en
+ * sus renglones, o un campo/constante llamado `delay` con valor numerico --,
+ * kickers repetidos (componentes `*Kicker*` en JSX) y numeracion decorativa
+ * de seccion (`number: "0N"`, o el ordinal 1-based
  * `String(<expr> + 1).padStart(2, "0")`).
+ *
+ * Sexto punto ciego cerrado (critica externa #16, 2026-09-03): el detector
+ * vigilaba las dos magnitudes que el token sabia nombrar -- duracion y
+ * curva -- y NINGUNA familia miraba la tercera que gobierna cualquier
+ * coreografia, el RETARDO. No era un olvido del detector: hasta esa revision
+ * el token TAMPOCO tenia escala de retardos, asi que no habia nada a lo que
+ * mandar migrar. Medicion del evaluador de Craft: 22 de 26 retardos del repo
+ * eran valores sueltos entre 80 y 1800 ms, sin escala comun, mientras las
+ * duraciones si la tenian. La escala nueva es `motion.staggerMs` (tight 60,
+ * base 80, loose 110, derivados del censo de lo que el repo ya escribia por
+ * su cuenta en cuatro secciones distintas) y la familia `delay-const` es su
+ * candado -- ver su comentario en FAMILIES para las dos formas que cubre,
+ * para por que es una familia APARTE en vez de un ensanchamiento de
+ * `duration-const`, y para lo que NO repite (los literales
+ * `transition-delay: 850ms` ya los caza `duration-literal`, verificado sobre
+ * el corpus: cero se le escapan).
+ *
+ * Esa familia es ademas la unica que necesita mirar mas alla de su propia
+ * linea, y por eso `family.test` recibe un segundo argumento opcional con la
+ * ventana de lineas del fichero (ver `scanFile`). El motor sigue siendo
+ * linea a linea -- el hallazgo se reporta SIEMPRE sobre la linea que se esta
+ * evaluando, y las otras trece familias ignoran ese argumento -- pero una
+ * tabla multilinea se declara en un renglon y se llena en los siguientes,
+ * asi que sin ventana la familia se quedaria exactamente igual de ciega que
+ * `duration-const`, que es el hueco que viene a cerrar.
  *
  * Quinto punto ciego cerrado (critica externa #15, 2026-09-02): el detector
  * vigilaba movimiento con cuatro familias, mas radios, franjas, degradados de
@@ -539,14 +566,16 @@ const FAMILIES = [
         // ya lo caza la familia hermana por su sufijo CSS -- una linea, una
         // familia, un hallazgo.
         //
-        // LIMITE DECLARADO, no disimulado: la tabla de retardos MULTILINEA
-        // (`export const FEATURES_LIGHT_REVEAL_DELAYS_MS = [` con los numeros
-        // en los renglones siguientes, features.layers.ts) NO dispara. El
-        // motor es linea a linea -- la restriccion de diseno que la cabecera
-        // de este fichero ya declara -- y en esas lineas no hay nombre al que
-        // atribuir el numero. Es el unico caso conocido del corpus que la
-        // familia no ve; se deja escrito aqui para que nadie lo lea como
-        // "sancionado".
+        // LIMITE DECLARADO, YA CUBIERTO POR OTRA FAMILIA (critica externa
+        // #16, 2026-09-03): la tabla de retardos MULTILINEA (`export const
+        // FEATURES_LIGHT_REVEAL_DELAYS_MS = [` con los numeros en los
+        // renglones siguientes) NO dispara AQUI -- el motor es linea a linea
+        // y en esas lineas no hay nombre al que atribuir el numero -- pero
+        // desde esa revision la familia `delay-const` la ve, mirando hacia
+        // adelante desde el renglon de la declaracion hasta el `]`. Este
+        // parrafo se conserva, en vez de borrarse, porque el limite de ESTA
+        // familia sigue siendo real: quien anada aqui una forma nueva tiene
+        // que saber que el hueco existe y quien lo cubre.
         //
         // EL CERO SE EXIME, con el mismo criterio y el mismo precedente que
         // `duration-literal` y `radius-literal`: un `const
@@ -568,6 +597,104 @@ const FAMILIES = [
             while ((m = re.exec(line)) !== null) {
                 if (parseFloat(m[2].replace(/_/g, "")) !== 0)
                     return `${m[1]} = ${m[2]}`;
+            }
+            return null;
+        },
+    },
+    {
+        id: "delay-const",
+        label: "retardo declarado fuera de src/theme/tokens/motion.ts (tabla multilinea de tiempos, o campo/constante `delay` con valor numerico)",
+        // SEXTO PUNTO CIEGO CERRADO (critica externa #16, 2026-09-03). El
+        // token tenia escala para las DURACIONES y para las CURVAS, y el
+        // detector cuatro familias vigilando esas dos cosas -- pero NINGUNA
+        // escala y NINGUNA familia para el tercer numero de cualquier
+        // coreografia: el RETARDO. Medicion del evaluador de Craft: 22 de 26
+        // retardos eran valores sueltos entre 80 y 1800 ms sin escala comun.
+        // `motion.staggerMs` (tres peldanos: tight 60, base 80, loose 110) es
+        // la escala; esta familia es su candado.
+        //
+        // POR QUE UNA FAMILIA APARTE Y NO ENSANCHAR `duration-const`, que es
+        // lo que el precedente de `easing-keyword` (sustituyo a
+        // `ease-in-bare` en vez de anadirse al lado) haria pensar: porque las
+        // dos NO piden lo mismo al que las lee. La guia de `duration-const`
+        // manda a `motion.durationMs`; la de esta, a `motion.staggerMs`. Un
+        // retardo migrado a la escala de duraciones seguiria estando fuera
+        // del sistema, asi que un solo mensaje para las dos seria un mensaje
+        // equivocado la mitad de las veces. Los dos criterios de nombre son
+        // MUTUAMENTE EXCLUYENTES por construccion (ver forma B), asi que
+        // ninguna linea dispara las dos familias por el mismo motivo.
+        //
+        // LO QUE ESTA FAMILIA NO REPITE, dicho aqui porque su nombre podria
+        // prometerlo: un `transition-delay: 850ms` / `animation-delay: 0.3s`
+        // escrito como literal de tiempo YA lo caza `duration-literal` (su
+        // regex no exige que la propiedad sea `transition-duration`: ve
+        // cualquier `Nms`/`Ns` de la linea, retardos incluidos). Verificado
+        // sobre el corpus real con el mismo motor: CERO
+        // `transition-delay`/`animation-delay` con literal no nulo escapan
+        // hoy a esa familia. Anadir aqui esa forma solo produciria dos
+        // hallazgos por el mismo motivo sobre la misma linea.
+        //
+        // FORMA A -- la tabla multilinea, el hueco que `duration-const`
+        // DECLARA en su propio comentario y no cubre: `export const
+        // FEATURES_LIGHT_REVEAL_DELAYS_MS = [` con los numeros en los
+        // renglones siguientes. `duration-const` exige el digito en la MISMA
+        // linea que el nombre, asi que ahi se queda ciega. Se cierra dandole
+        // a esta familia la unica capacidad que le falta al motor: MIRAR
+        // HACIA ADELANTE desde el renglon de la declaracion hasta el `]`, y
+        // disparar solo si alguno de esos renglones es un numero SUELTO (la
+        // linea entera es un literal, con coma opcional). Esa precision es lo
+        // que separa una tabla de literales de una tabla que ya lee el token:
+        // `PASO.base + 2 * PASO.tight,` lleva digitos, pero no es un numero
+        // suelto, y no dispara. Se reporta sobre la linea de la DECLARACION,
+        // que es donde vive el nombre y donde un ancla del allowlist tiene
+        // sentido.
+        //
+        // FORMA B -- el retardo que llega al CSS por un campo llamado
+        // `delay`: `Sol.constants.ts` declara `{ top: 72, left: 10, delay:
+        // -1.1 }` y lo interpola despues como `${s.delay}s`. Ninguna de las
+        // catorce familias anteriores podia verlo: `duration-literal` no,
+        // porque el caracter antes de `s` es `}`; `duration-const` tampoco,
+        // porque el nombre no termina en `Ms`/`_MS`. El criterio de nombre es
+        // "el identificador contiene delay" (sin distinguir mayusculas, para
+        // cubrir `delay`, `starDelay` y `_DELAY`) MENOS los que ya cumplen el
+        // criterio de `duration-const` -- por eso `delayMs: 1200`
+        // (footer.layers.ts) sigue siendo suyo y no dispara aqui.
+        //
+        // EL CERO SE EXIME en las dos formas, con el mismo criterio y el
+        // mismo precedente que `duration-literal`/`duration-const`/
+        // `radius-literal`: la ausencia de retardo no es un retardo elegido.
+        //
+        // Alcance por fichero: mismo `appliesTo` que las cuatro familias de
+        // movimiento -- en tokens/motion.ts los peldanos SON la definicion de
+        // la escala, no una copia suelta.
+        appliesTo: (file) => file !== MOTION_TOKENS_FILE,
+        test(line, ctx) {
+            // -- Forma A: apertura de tabla multilinea de tiempos.
+            const tabla =
+                /\b([A-Za-z_$][\w$]*(?:[a-z]Ms|_MS))\s*=\s*\[\s*$/.exec(line);
+            if (tabla && ctx) {
+                const SUELTO = /^\s*(-?\d[\d_]*(?:\.\d+)?)\s*,?\s*$/;
+                for (let j = ctx.index + 1; j < ctx.lines.length; j += 1) {
+                    const siguiente = ctx.lines[j];
+                    const m = SUELTO.exec(siguiente);
+                    if (m && parseFloat(m[1].replace(/_/g, "")) !== 0) {
+                        return `${tabla[1]} = [ ... ${m[1]} ... ]`;
+                    }
+                    if (/\]/.test(siguiente)) break;
+                }
+            }
+
+            // -- Forma B: campo/constante `delay` con valor numerico.
+            const re =
+                /\b([A-Za-z_$][\w$]*)\s*[:=]\s*\[?\s*(-?\d[\d_]*(?:\.\d+)?)(?![\w.])/g;
+            let m;
+            while ((m = re.exec(line)) !== null) {
+                const nombre = m[1];
+                if (!/delay/i.test(nombre)) continue;
+                // Ya es de `duration-const`: una familia, un hallazgo.
+                if (/(?:[a-z]Ms|_MS)$/.test(nombre)) continue;
+                if (parseFloat(m[2].replace(/_/g, "")) !== 0)
+                    return `${nombre} = ${m[2]}`;
             }
             return null;
         },
@@ -1407,7 +1534,7 @@ const ALLOWLIST = [
         family: "duration-const",
         file: "src/components/sections/Journey/Journey.tsx",
         anchors: [{ snippet: "const STEP_STAGGER_MS = 90;", lines: [129] }],
-        reason: "STEP_STAGGER_MS (90): paso del reveal escalonado de la rama clara de Journey, valor de la spec ('~90ms por paso', seccion 7.2). El vocabulario de movimiento LLEGO a tener un campo para esto -- REVEAL.stepMs, 60 -- y se retiro en la fix wave B (2026-08-12) precisamente porque 90 no es 60: el docblock de REVEAL en vocabulary.ts deja escrito que este valor es distinto, para un proposito distinto, y que no habia ningun consumidor real al que migrarlo. Un retardo entre piezas tampoco tiene casilla en una escala de duraciones de transicion.",
+        reason: "STEP_STAGGER_MS (90): paso del reveal escalonado de la rama clara de Journey, valor de la spec ('~90ms por paso', seccion 7.2). El vocabulario de movimiento LLEGO a tener un campo para esto -- REVEAL.stepMs, 60 -- y se retiro en la fix wave B (2026-08-12) precisamente porque 90 no es 60: el docblock de REVEAL en vocabulary.ts deja escrito que este valor es distinto, para un proposito distinto, y que no habia ningun consumidor real al que migrarlo. Desde la critica externa #16 (2026-09-03) SI hay escala de retardos -- motion.staggerMs -- y este 90 sigue sin tener peldano a proposito: cae entre base (80) y loose (110), y la propia spec que lo fija lo escribe como '~90ms por paso', un valor aproximado. Migrarlo a cualquiera de los dos CAMBIA el valor renderizado, asi que no es un refactor de procedencia como los del hero: es una decision, y se deja escrita en vez de tomarse desde una ola que no era dueña de este fichero.",
     },
     {
         family: "duration-const",
@@ -1436,7 +1563,7 @@ const ALLOWLIST = [
                 lines: [259],
             },
         ],
-        reason: "Los seis retardos y duraciones de la cascada de Story, VERBATIM del mockup (L74-121 la cascada de la rejilla, L127-131 el statement) y ya documentados uno a uno en el propio fichero -- el docblock de STORY_STATEMENT_REVEAL_MS explica por que 900 no tiene casilla en la escala. Los retardos son un ORDEN entre piezas, no duraciones de interfaz: motion.duration no tiene ni pretende tener peldanos de retardo. STORY_CARD_REVEAL_DELAYS_MS es la unica tabla de retardos del repo escrita en UNA sola linea, y por eso es la unica que esta familia ve; su gemela multilinea (FEATURES_LIGHT_REVEAL_DELAYS_MS, features.layers.ts) NO dispara por el limite linea-a-linea del motor, NO por estar sancionada -- ver el comentario de la familia.",
+        reason: "Los seis retardos y duraciones de la cascada de Story, VERBATIM del mockup (L74-121 la cascada de la rejilla, L127-131 el statement) y ya documentados uno a uno en el propio fichero -- el docblock de STORY_STATEMENT_REVEAL_MS explica por que 900 no tiene casilla en la escala. Los retardos son un ORDEN entre piezas, no duraciones de interfaz. SANCION PROVISIONAL desde la critica externa #16 (2026-09-03), y dicho aqui para que nadie la lea como definitiva: hasta esa revision el argumento era que motion.duration no tiene ni pretende tener peldanos de retardo, y era cierto -- pero desde entonces existe motion.staggerMs, y la cascada de esta seccion es precisamente de donde salieron dos de sus tres peldanos (los pasos de 80 y 60 ms que Story alterna, identicos a los de Features). La migracion de este fichero no entraba en el dominio de la ola que creo la escala; queda pendiente de integracion, con los valores exactos que le corresponden. Su gemela de Features (FEATURES_LIGHT_REVEAL_DELAYS_MS, features.layers.ts) SI se migro en esa ola y ya no dispara ninguna familia.",
     },
     {
         family: "duration-const",
@@ -1490,14 +1617,12 @@ const ALLOWLIST = [
         file: "src/motion/timings.ts",
         anchors: [
             { snippet: "export const HERO_FADE_MS = 420;", lines: [128] },
-            { snippet: "export const HERO_STEP_MS = 110;", lines: [131] },
             {
                 snippet: "export const HERO_DECODE_TIMEOUT_MS = 600;",
                 lines: [139],
             },
-            { snippet: "export const HERO_COPY_STEP_MS = 80;", lines: [194] },
         ],
-        reason: "Los cuatro tiempos de la coreografia de carga del hero: HERO_FADE_MS (420), HERO_STEP_MS (110), HERO_DECODE_TIMEOUT_MS (600) y HERO_COPY_STEP_MS (80). El docblock de cabecera del fichero dedica una seccion entera -- 'Por que estos numeros NO salen de theme.data.motion.duration' -- a razonar la excepcion, y la critica externa #8 ya cerro aqui un hallazgo DOCUMENTAL sobre el origen del 420 (la afirmacion falsa de que era 2 x base). Ninguno de los cuatro tiene peldano en la escala, y HERO_DECODE_TIMEOUT_MS ni siquiera anima nada: es el tope de img.decode(), otra constante de seguridad.",
+        reason: "DOS tiempos de la coreografia de carga del hero, no los cuatro que sancionaba esta entrada hasta la critica externa #16 (2026-09-03): HERO_FADE_MS (420) y HERO_DECODE_TIMEOUT_MS (600). Los otros dos eran los PASOS del escalonado -- HERO_STEP_MS (110) y HERO_COPY_STEP_MS (80) -- y desde esa revision derivan de motion.staggerMs.loose/.base con cero cambio de valor, asi que la familia deja de verlos: es exactamente lo que la familia existe para provocar, el mismo desenlace que tuvo STORY_SCRUB_MS en la ola J. Los dos que quedan siguen fuera del sistema con motivo: el docblock de cabecera del fichero dedica una seccion entera a razonarlo, y la critica externa #8 ya cerro aqui un hallazgo DOCUMENTAL sobre el origen del 420 (la afirmacion falsa de que era 2 x base). Ninguno de los dos tiene peldano en la escala, y HERO_DECODE_TIMEOUT_MS ni siquiera anima nada: es el tope de img.decode(), una constante de seguridad.",
     },
     {
         family: "duration-const",
@@ -1508,6 +1633,86 @@ const ALLOWLIST = [
             { snippet: "orbitMs: 20000,", lines: [615] },
         ],
         reason: "Los tres campos de AMBIENT (breathMs 5400, floatMs 9000, orbitMs 20000): bucles infinitos de escenas decorativas, entre 2,5 y 9,5 veces el peldano mas largo de la escala de interfaz (spinReduced, 2100 ms). Es la UNICA excepcion que queda en este fichero tras la critica externa #14: los seis campos de tiempo de REVEAL/DECK/OVERLAY/PRESS pasaron a leer motion.durationMs.* en esa misma ola, y vocabulary.test.ts canda en POSITIVO las dos mitades -- que esos seis esten dentro de la escala y que los tres de AMBIENT esten fuera. Meter bucles de 5 a 20 segundos en una escala de transiciones la convertiria en un cajon.",
+    },
+    {
+        family: "delay-const",
+        file: "src/components/scenes/eye/mascots/Sol.constants.ts",
+        anchors: [
+            { snippet: "{ top: 72, left: 10, delay: -1.1 },", lines: [55] },
+            { snippet: "{ top: 16, left: 12, delay: -2.2 },", lines: [56] },
+            { snippet: "{ top: 78, left: 76, delay: -1.7 },", lines: [57] },
+            {
+                snippet:
+                    "{ top: 17, left: 50, size: 3, dur: 3.2, delay: -0.4 },",
+                lines: [66],
+            },
+            {
+                snippet:
+                    "{ top: 17.1, left: 69, size: 4, dur: 3.8, delay: -1.6 },",
+                lines: [67],
+            },
+            {
+                snippet:
+                    "{ top: 35, left: 76, size: 2.6, dur: 2.9, delay: -2.3 },",
+                lines: [68],
+            },
+            {
+                snippet:
+                    "{ top: 50, left: 86, size: 3.4, dur: 4.1, delay: -0.8 },",
+                lines: [69],
+            },
+            {
+                snippet:
+                    "{ top: 60.4, left: 88.6, size: 3, dur: 3.5, delay: -3.1 },",
+                lines: [70],
+            },
+            {
+                snippet:
+                    "{ top: 72.6, left: 72.6, size: 3.8, dur: 3, delay: -1.1 },",
+                lines: [71],
+            },
+            {
+                snippet:
+                    "{ top: 85.7, left: 59.6, size: 2.8, dur: 4.4, delay: -2.6 },",
+                lines: [72],
+            },
+            {
+                snippet:
+                    "{ top: 78, left: 42.5, size: 3.2, dur: 3.3, delay: -0.2 },",
+                lines: [73],
+            },
+            {
+                snippet:
+                    "{ top: 79.4, left: 33, size: 3, dur: 3.9, delay: -3.6 },",
+                lines: [74],
+            },
+            {
+                snippet:
+                    "{ top: 69.5, left: 16.2, size: 4, dur: 2.8, delay: -1.9 },",
+                lines: [75],
+            },
+            {
+                snippet:
+                    "{ top: 50, left: 19, size: 2.6, dur: 3.6, delay: -0.6 },",
+                lines: [76],
+            },
+            {
+                snippet:
+                    "{ top: 32.5, left: 19.7, size: 3.4, dur: 4, delay: -2.9 },",
+                lines: [77],
+            },
+            {
+                snippet:
+                    "{ top: 30.2, left: 30.2, size: 3, dur: 3.1, delay: -1.4 },",
+                lines: [78],
+            },
+            {
+                snippet:
+                    "{ top: 11.4, left: 39.6, size: 3.6, dur: 3.7, delay: -4 },",
+                lines: [79],
+            },
+        ],
+        reason: "Desfases de FASE de los destellos del mascota Sol: 3 de SOL_BASIC_SPARKS y 14 de SOL_AURA_SPARKS (el cuarto basico, delay: 0, se exime por la regla del cero). No son escalonado de una entrada -- son lo contrario: todos NEGATIVOS, entre -0,2 y -4 s, para que cada destello arranque su bucle infinito ya empezado y en un punto distinto del de sus vecinos. Un retardo negativo no puede salir de motion.staggerMs, cuyos tres peldanos describen cuanto espera una pieza DESPUES de su hermana; y colapsar 17 valores irregulares en tres peldanos destruiria justo aquello para lo que la tabla existe -- variedad deterministica, el mismo argumento con el que ya estan sancionados los 48 tiempos de FOOTER_STARS. Es ademas la forma EXACTA que la regla 17 de RULES.md sanciona: arte de marca con constantes con nombre en su propio modulo, importadas tal cual. El ancla es de CONTENIDO, asi que retocar el desfase de cualquier destello lo deja sin ancla y pone el gate en rojo.",
     },
     {
         family: "radius-literal",
@@ -1625,7 +1830,14 @@ function scanFile(absFile) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         for (const family of families) {
-            const snippet = family.test(line);
+            // Segundo argumento: ventana de contexto para la UNICA familia que
+            // no puede decidir con la linea sola (`delay-const`, forma A: una
+            // tabla multilinea se declara en un renglon y se llena en los
+            // siguientes). El motor sigue siendo linea a linea -- se reporta
+            // SIEMPRE sobre `line`, y las otras trece familias ignoran este
+            // argumento -- pero una familia puede MIRAR hacia adelante para
+            // decidir, en vez de quedarse ciega como se quedo `duration-const`.
+            const snippet = family.test(line, { lines, index: i });
             if (snippet) {
                 findings.push({
                     family: family.id,
@@ -1680,6 +1892,8 @@ const FAMILY_GUIDANCE = {
         "esta duracion (o retardo) se escribe como literal de tiempo fuera de src/theme/tokens/motion.ts, el unico sitio donde una duracion nace en este repo (regla 48). Si el valor coincide con un paso de la escala (0, 100, 200, 320, 480, 700, 2100 ms), lee el token -- un literal que hoy vale lo mismo deja de valerlo el dia que el token se retoque, y el CSS renderizado no distingue los dos casos. Si es un tiempo PROPIO justificado (arte de marca con constantes en su *.layers.ts, valor verbatim de un mockup o de un port, ambiente en bucle de varios segundos), declaralo como constante con nombre, deja el porque JUNTO a ella y anade la excepcion a ALLOWLIST. El cero (0ms/0s) no dispara esta familia: es la ausencia de duracion, no una duracion elegida.",
     "duration-const":
         "esta duracion (o retardo) se declara como constante numerica con nombre -- `durationMs: 480`, `const HERO_FADE_MS = 420` -- sin derivar de motion.durationMs, la misma escala de siete pasos que motion.duration, en numeros. Es el camino por el que una duracion llega al CSS sin pasar por el sistema: el literal de tiempo no aparece hasta que alguien lo interpola (`${X.durationMs}ms`), donde la familia duration-literal ya no puede verlo. Si el valor coincide con un peldano (0, 100, 200, 320, 480, 700, 2100 ms), lee motion.durationMs.<paso> -- un numero que hoy vale lo mismo deja de valerlo el dia que el token se retoque. Si es un tiempo PROPIO justificado (arte de marca o de escena, coreografia con su porque escrito, reloj o tope de JS que no anima nada), deja ese porque JUNTO a la constante y anade la excepcion a ALLOWLIST. El cero no dispara: es la ausencia de retardo, no un tiempo elegido.",
+    "delay-const":
+        "este RETARDO llega al CSS sin pasar por el sistema. Desde la critica externa #16 hay escala para el: motion.staggerMs, tres peldanos (tight 60, base 80, loose 110) derivados del censo de lo que este repo ya escribia -- no de motion.durationMs, que es la escala de cuanto tarda algo, no de cuando empieza. Dos formas caen aqui. (1) Una TABLA MULTILINEA de tiempos con los numeros sueltos en sus renglones: escribe la cascada como suma de peldanos (`PASO.base + 2 * PASO.tight`), que ademas deja a la vista que pieza va pegada a la anterior y cual se despega. (2) Un campo o constante llamado `delay` con un numero literal: si es un paso de escalonado, lee el peldano; si es un DESFASE DE FASE de un bucle ambiental -- numeros deliberadamente irregulares para que dos piezas vecinas no laten a la vez, como las estrellas del pie o los destellos de Sol --, no tiene peldano posible y no debe tenerlo: deja el porque JUNTO a la declaracion y anade la excepcion a ALLOWLIST. El cero no dispara: es la ausencia de retardo, no un tiempo elegido.",
     "radius-literal":
         "un border-radius literal nuevo usa un token de src/theme/tokens/radius.ts en vez de un numero escrito a mano.",
     "font-size-literal":

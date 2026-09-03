@@ -1,16 +1,22 @@
 import { describe, it, expect } from "vitest";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { motion } from "./motion";
 
 /**
  * Contrato de la escala de movimiento, complementario a `system.test.ts`
- * (que ya cierra `motion.duration`/`motion.easing` con `toEqual`). Este
- * fichero canda las DOS propiedades que la crítica externa #14 (2026-09-02)
- * añadió al token y que un `toEqual` de valores no puede expresar:
+ * (que ya cierra `motion.duration`/`motion.easing`/`motion.staggerMs` con
+ * `toEqual`). Este fichero canda las propiedades que un `toEqual` de valores
+ * no puede expresar:
  *
  * 1. Que `duration` y `durationMs` son la MISMA escala en dos formatos, no
  *    dos escalas que hoy coinciden.
  * 2. Que `easing.settle` es la curva que absorbió `EASE_ENTRANCE`
  *    (`Sol.tsx`) — con la medición ejecutada aquí, no citada de memoria.
+ * 3. Que ningún peldaño de `staggerMs` —la escala de retardos que añadió la
+ *    crítica externa #16 (2026-09-03)— se queda sin consumidor real
+ *    (candado por PELDAÑO, no por escala).
  */
 
 type Bezier = readonly [number, number, number, number];
@@ -193,5 +199,97 @@ describe("motion.easing.settle (crítica externa #14, 2026-09-02)", () => {
   it("los seis peldaños de easing son seis curvas DISTINTAS", () => {
     const curvas = Object.values(motion.easing);
     expect(new Set(curvas).size).toBe(curvas.length);
+  });
+});
+
+/*
+ * Candado de la escala de RETARDOS (crítica externa #16, 2026-09-03).
+ *
+ * Existe porque esta misma crítica trae DOS hallazgos que tiran en
+ * direcciones opuestas: uno pide una escala de retardos que no existía (L5)
+ * y el otro pide podar las hojas de vocabulario sin consumidor (L6). Añadir
+ * la escala sin candado sería crear el problema del segundo mientras se
+ * arregla el primero — y este repo ya lo pagó una vez: `REVEAL.stepMs` (60
+ * ms, exactamente el mismo rol) vivió tres tareas documentado y sin un solo
+ * consumidor, hasta que la fix wave B lo retiró.
+ *
+ * Mide por PELDAÑO y no por escala, por el mismo motivo por el que
+ * `vocabulary-consumers.test.ts` pasó de medir por grupo a medir por campo:
+ * una escala de tres peldaños puede pasar un candado de escala con dos de
+ * ellos muertos.
+ */
+describe("motion.staggerMs: la escala de retardos (crítica externa #16)", () => {
+  const srcRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  const EXTENSIONES = new Set([".ts", ".tsx"]);
+
+  function recorrer(dir: string, out: string[] = []): string[] {
+    for (const entrada of readdirSync(dir)) {
+      const completo = join(dir, entrada);
+      if (statSync(completo).isDirectory()) recorrer(completo, out);
+      else if (EXTENSIONES.has(extname(completo))) out.push(completo);
+    }
+    return out;
+  }
+
+  /* Mismo despojo de comentarios, y por el mismo motivo, que
+   * `vocabulary-consumers.test.ts`: los docblocks de esta ola CITAN
+   * `motion.staggerMs.base` en prosa para explicar la migración, y sin
+   * despojarlos esas citas bastarían para que el candado pasara con el
+   * código real sin consumir nada. El guard `(?<!:)` evita truncar una línea
+   * por el `//` de una URL dentro de un string. */
+  function despojar(fuente: string): string {
+    return fuente
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(?<!:)\/\/.*$/gm, "");
+  }
+
+  function consumidoresDe(peldano: string): string[] {
+    const patron = new RegExp(`\\bstaggerMs\\.${peldano}\\b`);
+    const salida: string[] = [];
+    for (const fichero of recorrer(srcRoot)) {
+      const relativo = fichero.slice(srcRoot.length + 1).replace(/\\/g, "/");
+      if (relativo === "theme/tokens/motion.ts") continue; // la fuente
+      if (relativo.endsWith(".test.ts") || relativo.endsWith(".test.tsx"))
+        continue;
+      if (patron.test(despojar(readFileSync(fichero, "utf8"))))
+        salida.push(relativo);
+    }
+    return salida;
+  }
+
+  it("cada peldaño tiene al menos un consumidor real en código de producción", () => {
+    const sinConsumidor = (
+      Object.keys(motion.staggerMs) as Array<keyof typeof motion.staggerMs>
+    ).filter((peldano) => consumidoresDe(peldano).length === 0);
+
+    expect(sinConsumidor).toEqual([]);
+  });
+
+  /*
+   * La otra mitad, y la que da filo al candado de arriba: no basta con que
+   * "alguien" lea cada peldaño, hace falta que sean piezas DISTINTAS. Si los
+   * tres los leyera un único fichero, la escala no sería un vocabulario
+   * compartido sino tres constantes de ese fichero con un rodeo por el token.
+   */
+  it("los tres peldaños se reparten entre al menos dos ficheros distintos", () => {
+    const ficheros = new Set(
+      (
+        Object.keys(motion.staggerMs) as Array<keyof typeof motion.staggerMs>
+      ).flatMap((peldano) => consumidoresDe(peldano)),
+    );
+    expect(ficheros.size).toBeGreaterThanOrEqual(2);
+  });
+
+  /*
+   * Los tres peldaños tienen que ser MAGNITUDES DISTINGUIBLES y ordenadas:
+   * una escala cuyos peldaños se solapan no ayuda a elegir, solo a dudar.
+   * `tight < base < loose` es lo que sus propios nombres prometen.
+   */
+  it("es una escala ordenada y sin peldaños repetidos", () => {
+    const { tight, base, loose } = motion.staggerMs;
+    expect(tight).toBeLessThan(base);
+    expect(base).toBeLessThan(loose);
+    const valores = Object.values(motion.staggerMs);
+    expect(new Set(valores).size).toBe(valores.length);
   });
 });
