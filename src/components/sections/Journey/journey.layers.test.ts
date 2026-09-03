@@ -438,3 +438,59 @@ describe("critica #15: la salida de la cita deriva de la ventana de su diapositi
     expect(JOURNEY_QUOTE_EXIT_OPACITY).not.toContain("\n");
   });
 });
+/*
+ * Crítica externa #17 (2026-09-03): el docblock del campo `discShadow`
+ * afirmaba que los seis valores del mockup «no siguen una única fórmula, así
+ * que se listan literales en vez de derivarlos», y los seis eran la MISMA
+ * geometría y la MISMA alfa sobre cuatro colores -- dos de ellos repetidos
+ * byte a byte. La afirmación se corrigió y la fórmula que negaba existe hoy
+ * (`discGlow`, journey.layers.ts).
+ *
+ * Lo que estos dos tests protegen es la FÓRMULA, no los valores: el CSS
+ * renderizado es exactamente el mismo antes y después (medido en navegador
+ * sobre los seis discos, dev y build de producción), así que una asercion de
+ * valor no distinguiría las dos versiones -- solo la FUENTE lo hace
+ * (`task/lessons.md`, 2026-08-12, Task 19; mismo patrón que los cuatro
+ * candados de token de más arriba en este fichero).
+ */
+describe("crítica #17: la sombra de los discos se deriva, no se lista", () => {
+  it("los seis pasos comparten geometría y alfa, y solo se distinguen en el color", () => {
+    const partes = JOURNEY_STEPS.map((step) =>
+      /^0 8px 20px oklch\([\d. ]+ \/ (0\.\d+)\)$/.exec(step.discShadow),
+    );
+
+    // Ningún paso se sale de la fórmula (geometría idéntica, sin `spread`).
+    expect(partes.every((m) => m !== null)).toBe(true);
+    // Y la alfa es una sola para los seis, que era la otra mitad de lo que el
+    // docblock viejo negaba.
+    expect(new Set(partes.map((m) => m?.[1])).size).toBe(1);
+    expect(partes[0]?.[1]).toBe("0.14");
+
+    // Cuatro colores para seis pasos: `discover`/`learn` comparten uno y
+    // `imagine`/`create` otro. Falsable: si alguien devolviera un literal
+    // propio a cualquiera de los cuatro pasos emparejados, el conjunto
+    // pasaría de 4 a 5 o 6.
+    const porId = new Map(
+      JOURNEY_STEPS.map((step) => [step.id, step.discShadow]),
+    );
+    expect(new Set(porId.values()).size).toBe(4);
+    expect(porId.get("discover")).toBe(porId.get("learn"));
+    expect(porId.get("imagine")).toBe(porId.get("create"));
+  });
+
+  it("la geometría vive UNA vez en `discGlow`, no seis veces en la tabla", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "journey.layers.ts"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(fuente).toContain("const discGlow = (color: string): string =>");
+    // Ningún paso vuelve a escribir la sombra entera a mano.
+    expect(fuente).not.toContain('discShadow: "0 8px 20px');
+    // La geometría aparece exactamente una vez en todo el fichero.
+    expect(fuente.split("0 8px 20px").length - 1).toBe(1);
+  });
+});

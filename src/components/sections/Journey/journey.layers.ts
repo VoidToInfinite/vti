@@ -39,10 +39,64 @@ export interface JourneyStep {
    *  docblock de cabecera de `Journey.tsx`.) */
   readonly colorRamp: "primary" | "secondary" | "error";
   readonly colorStep: 500 | 600 | 700;
-  /** `box-shadow` VERBATIM del disco (mockup, un valor por paso — no siguen
-   *  una única fórmula, así que se listan literales en vez de derivarlos). */
+  /** `box-shadow` del disco (mockup, un valor por paso): la geometría común
+   *  de `discGlow()` sobre uno de los cuatro colores de abajo. */
   readonly discShadow: string;
 }
+
+/*
+ * CORRECCIÓN DE UNA AFIRMACIÓN FALSA (crítica externa #17, 2026-09-03). El
+ * docblock que este bloque sustituye decía, sobre el campo `discShadow`, que
+ * los seis valores del mockup «no siguen una única fórmula, así que se listan
+ * literales en vez de derivarlos». Comprobado renglón a renglón contra el
+ * código que describía: los seis eran `0 8px 20px oklch(<L> <C> <H> / 0.14)`
+ * -- la MISMA geometría (sin desenfoque de sombra propio, sin `spread`) y la
+ * MISMA alfa, sobre CUATRO colores, dos de ellos repetidos byte a byte
+ * (`discover` = `learn`, `imagine` = `create`). Es decir: una única fórmula,
+ * exactamente lo que el docblock negaba.
+ *
+ * De ahí sale la derivación: `discGlow()` escribe la geometría UNA vez y los
+ * cuatro colores se nombran una vez cada uno, así que los seis pasos siguen
+ * rindiendo la misma cadena que antes (verificado en navegador sobre el CSS
+ * servido, no solo en el test) y las dos parejas dejan de ser dos literales
+ * que hay que acordarse de mover a la vez.
+ *
+ * POR QUÉ LA ALFA VIAJA DENTRO DE CADA COLOR y no dentro de la fórmula, que
+ * es la otra mitad que los seis comparten: factorizarla dejaría las cuatro
+ * constantes como tripletes sueltos (`"0.6 0.12 260"`), invisibles para la
+ * familia `color-literal` del detector de anti-patrones -- añadida en esta
+ * misma ola, y cuyo límite declarado es justamente que no ve un color sin su
+ * función `oklch(...)` alrededor. Se prefiere que las cuatro sigan pasando
+ * por el gate a ahorrarse una repetición de cuatro caracteres.
+ *
+ * Son colores de ARTE, no roles reescritos a mano: medido contra las cinco
+ * rampas de `src/theme/tokens/color.ts` (las 60 combinaciones hue/paso),
+ * NINGUNO de los cuatro coincide con un peldaño -- ni siquiera los hue (260,
+ * 290, 300, 12) con los de marca (235.851 `primary`, 311.928 `secondary`),
+ * salvo el 12 de `error`, cuya croma tampoco cuadra. Mismo criterio D10 que
+ * el resto de este fichero.
+ */
+const discGlow = (color: string): string => `0 8px 20px ${color}`;
+
+/*
+ * Los cuatro colores, en el orden en que los usan los seis pasos. Las líneas
+ * del mockup NO se citan una a una a propósito: el fichero
+ * (`Landing v2.dc.html`) ya no está en la máquina, así que lo único que
+ * puede afirmarse con la fuente delante es el rango que la cabecera de este
+ * módulo declara desde el principio (L103-155, pasos en L114-143). Los
+ * nombres describen la rampa de tema que ACOMPAÑAN (campo `colorRamp` de
+ * cada paso), que es la relación que sí se observa en este fichero.
+ */
+/** Glow de los dos pasos de rampa `primary` (`discover`, `learn`). */
+const DISC_GLOW_PRIMARY = "oklch(0.6 0.12 260 / 0.14)";
+/** Glow de los dos pasos de rampa `secondary` (`imagine`, `create`). */
+const DISC_GLOW_SECONDARY = "oklch(0.6 0.15 290 / 0.14)";
+/** Glow del tercer paso `secondary`, `share`: comparado con sus dos hermanos
+ *  de rampa baja L (0.55 frente a 0.6) y sube croma (0.2 frente a 0.15), es
+ *  decir, más oscuro y más saturado. */
+const DISC_GLOW_SECONDARY_DEEP = "oklch(0.55 0.2 300 / 0.14)";
+/** Glow del único paso de rampa `error`, `evolve`. */
+const DISC_GLOW_ERROR = "oklch(0.66 0.24 12 / 0.14)";
 
 /**
  * Orden y geometría EXACTOS del mockup (L114-143): el índice es la POSICIÓN
@@ -59,42 +113,42 @@ export const JOURNEY_STEPS: readonly JourneyStep[] = [
     offsetY: 0,
     colorRamp: "primary",
     colorStep: 500,
-    discShadow: "0 8px 20px oklch(0.6 0.12 260 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_PRIMARY),
   },
   {
     id: "learn",
     offsetY: 26,
     colorRamp: "primary",
     colorStep: 600,
-    discShadow: "0 8px 20px oklch(0.6 0.12 260 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_PRIMARY),
   },
   {
     id: "imagine",
     offsetY: 6,
     colorRamp: "secondary",
     colorStep: 500,
-    discShadow: "0 8px 20px oklch(0.6 0.15 290 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_SECONDARY),
   },
   {
     id: "create",
     offsetY: 30,
     colorRamp: "secondary",
     colorStep: 600,
-    discShadow: "0 8px 20px oklch(0.6 0.15 290 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_SECONDARY),
   },
   {
     id: "share",
     offsetY: 2,
     colorRamp: "secondary",
     colorStep: 700,
-    discShadow: "0 8px 20px oklch(0.55 0.2 300 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_SECONDARY_DEEP),
   },
   {
     id: "evolve",
     offsetY: 24,
     colorRamp: "error",
     colorStep: 500,
-    discShadow: "0 8px 20px oklch(0.66 0.24 12 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_ERROR),
   },
 ] as const;
 
