@@ -326,6 +326,59 @@ export const JOURNEY_OVERLAY_RISE = "100dvh";
  * la presentación de diapositivas, además, pasa a ser literalmente el alto
  * del `stage` pegado (`ScJourneyStage`, `journey.deck.tsx`) -- un papel que
  * el fichero de la escena no tiene por qué conocer.
+ *
+ * ## POR QUÉ EL TITULAR DE JOURNEY CAE MUCHO MÁS ABAJO EN OSCURO AL LLEGAR
+ * POR ANCLA, y por qué eso NO es un aterrizaje roto (crítica externa #17,
+ * 2026-09-03)
+ *
+ * El hallazgo llegaba así: «el ancla `#journey` aterriza distinto según el
+ * tema: en claro deja el titular a 240 px y en oscuro a 528, con el cierre de
+ * Story ocupando de 244 a 500; los otros ocho anclas dejan su objetivo a
+ * 128 px exactos en los dos temas, así que este es el único que se sale».
+ * Medido de nuevo aquí, en Chrome real sobre el build de producción a
+ * 1440x900 y esperando 3,2 s a que el desplazamiento suave se asiente, las
+ * dos primeras cifras se confirman y la conclusión NO:
+ *
+ * - EL ANCLA ATERRIZA IGUAL EN LOS DOS TEMAS. `#journey` deja el borde
+ *   superior de su `<section>` en 128 px EXACTOS en claro y en oscuro
+ *   (64 px de `scroll-margin-top` más la barra). Y no es el único: los
+ *   OCHO destinos del modelo de navegación -- `story`, `journey`,
+ *   `features`, `contact`, `about` y las tres tarjetas
+ *   `feature-*-title` -- aterrizan su objetivo en esos mismos 128 px en los
+ *   dos temas. Cero divergencia de aterrizaje.
+ * - LO QUE DIVERGE ES DÓNDE CAE EL `h2` DENTRO de la sección, y no solo en
+ *   Journey. Claro → oscuro: `story` 324 → 529, `journey` 240 → 528,
+ *   `features` 217 → 181, `contact` 257 → 160, `about` 224 → 224. Cuatro de
+ *   las cinco secciones mueven su titular al cambiar de tema; Journey es la
+ *   que más, no la única.
+ * - LA CAUSA ES ESTA CONSTANTE. En oscuro la primera diapositiva ocupa un
+ *   `stage` de `100dvh` (900 px a ese viewport) y su titular va centrado en
+ *   vertical, así que cae en 128 + 450 - media altura ≈ 528. Es la
+ *   composición del vehículo de deck, la misma que gobierna las otras siete
+ *   diapositivas, no un desajuste del ancla.
+ * - «EL CIERRE DE STORY OCUPANDO DE 244 A 500» ES FALSO COMO OBSERVACIÓN
+ *   VISUAL. Story sí SOLAPA a Journey en el DOM (tras el aterrizaje su
+ *   `bottom` está en 1028, 900 px dentro de Journey: es el solape que
+ *   documenta `HomeSections.tsx`), y por eso sus nodos declaran geometría en
+ *   esa franja. Pero lo que se PINTA ahí es el deck de Journey:
+ *   `elementsFromPoint(720, y)` devuelve `ScJourneyDeck` / el `ScVoid` del
+ *   portal / `ScScene` como elementos de encima en y = 150, 250, 300, 400 y
+ *   500, y la captura de la posición confirma que en esa franja solo se ve el
+ *   portal cósmico. Ningún texto de Story es visible al aterrizar.
+ *
+ * NOTA DE INSTRUMENTO, porque explica cómo se llega a la lectura contraria:
+ * con solo 1,4 s de espera tras fijar el hash, el mismo barrido devuelve en
+ * oscuro 138, 143, 146, 141, 141 y 142 px en vez de 128 -- el desplazamiento
+ * suave de una página de casi 11.000 px todavía no ha terminado. Medir el
+ * aterrizaje de un ancla exige esperar a que el scroll se detenga; si no, la
+ * divergencia que se observa es la del reloj, no la del tema.
+ *
+ * NO SE CORRIGE NADA, y no por conformidad: no hay defecto que corregir en el
+ * aterrizaje. Que el titular de una diapositiva a pantalla completa aparezca
+ * centrado es la decisión de composición del deck (spec
+ * `2026-08-02-journey-deck-8-diapositivas-design.md`); cambiarla movería las
+ * ocho diapositivas y es una decisión de diseño del dueño, no el arreglo de
+ * un ancla.
  */
 export const JOURNEY_DARK_HEIGHT = "100dvh";
 
