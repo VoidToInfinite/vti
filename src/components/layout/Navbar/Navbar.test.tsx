@@ -136,6 +136,23 @@ describe("Navbar", () => {
     expect(screen.getByRole("navigation")).toBeInTheDocument();
   });
 
+  /*
+   * OLA M (2026-09-03): desde que las paginas legales montan esta misma barra,
+   * conviven DOS landmarks de navegacion en esas rutas -- este y el indice del
+   * documento, que ya se llama «Indice». Una lista de landmarks con uno sin
+   * nombre no dice cual es cual, medido en el arbol de accesibilidad de Chrome
+   * sobre /privacidad. El nombre se afirma contra la clave i18n, nunca contra
+   * una cadena tecleada (regla 38): asi un cambio de copia no deja el candado
+   * comprobando un texto que ya nadie pinta.
+   */
+  it("el landmark de navegacion del sitio tiene nombre accesible, para distinguirlo del indice de las paginas legales", () => {
+    renderWithProviders(<Navbar />);
+
+    expect(
+      screen.getByRole("navigation", { name: esCommon.Common.Nav.landmark }),
+    ).toBeInTheDocument();
+  });
+
   it("arranca sin estado scrolled", () => {
     renderNavbar();
     expect(screen.getByRole("banner")).toHaveAttribute(

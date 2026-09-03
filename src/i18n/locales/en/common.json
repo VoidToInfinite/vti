@@ -16,6 +16,7 @@
             "about": "What is VoidToInfinite"
         },
         "Nav": {
+            "landmark": "Site navigation",
             "onSite": "On Site",
             "discover": "Discover",
             "resources": "Resources",

@@ -1744,7 +1744,14 @@ export function Navbar(): ReactElement {
             aria-hidden="true"
             data-nav-surface
           />
-          <ScNav>
+          {/* El landmark de navegación del sitio se ROTULA desde la ola M
+              (2026-09-03): hasta entonces era el único `nav` del árbol en la
+              home y no hacía falta distinguirlo, pero desde que las páginas
+              legales montan esta misma barra conviven dos -- ésta y el índice
+              del documento, que ya se llama «Índice» -- y una lista de
+              landmarks con uno sin nombre no dice cuál es cuál. Medido en el
+              árbol de accesibilidad de Chrome sobre /privacidad. */}
+          <ScNav aria-label={t("Common.Nav.landmark")}>
             {/* `routePath("home", locale)`, no `"/"` (crítica #12, P0): en
               `/en` el logotipo era el enlace que devolvía al visitante inglés a
               la home castellana -- el gesto más habitual de "volver al
