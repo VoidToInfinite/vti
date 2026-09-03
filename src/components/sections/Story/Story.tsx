@@ -976,6 +976,46 @@ const ScPillarCardItem = styled.div`
  * con el reposo ya en `neutral[600]`, ese "refuerzo" lo DEBILITARIA
  * (2.004:1 < 3.111:1) -- exactamente la trampa que `Input.tsx` documenta para
  * su propio estado de foco.
+ *
+ * ## LA MEDIDA DE LINEA DE ESTA TARJETA NO CONSUME `grid.prose`, Y ES UNA
+ * DECISION MEDIDA -- critica externa #17 (2026-09-03)
+ *
+ * EL HALLAZGO, y es CIERTO: en la misma pagina y en el mismo rol -- texto de
+ * cuerpo dentro de una tarjeta -- conviven dos medidas de linea separadas por
+ * casi un 50 %. Medido en navegador real (servidor de desarrollo, 1440x900,
+ * tema claro, `document.visibilityState` en `visible`, contando caracter a
+ * caracter con `Range.getClientRects()` sobre lineas llenas y descartando
+ * siempre la ultima linea de cada parrafo, que no la limita el ancho):
+ *
+ *   tarjetas de Features/Journey   4 nodos, 5 lineas llenas
+ *     caja 439,03px (= `grid.prose`)   61-70 caracteres, media 64,6
+ *   tarjetas de pilar de Story     8 nodos, 16 lineas llenas
+ *     caja 301px (sin `max-width`)     35-48 caracteres, media 43,2
+ *
+ * (Los 439,04px son este mismo token a 14px: `prose` se expresa en `ch`, asi
+ * que su valor en pixeles depende del cuerpo de quien lo lee.)
+ *
+ * Y AUN ASI ESTAS OCHO PIEZAS NO PASAN A LEER EL TOKEN, porque ponerlo aqui
+ * NO MOVERIA NI UN CARACTER. Barrido de viewport de 320 a 1920px sobre el
+ * ancho real del parrafo de tarjeta: el maximo de TODO el recorrido son
+ * 442px, a 540px de viewport, y el token vale 439,04px. Es decir, `max-width`
+ * solo llegaria a morder en una franja de siete pixeles de viewport (536px
+ * da 438px y 544px cae a 190px, cuando la rejilla salta de una columna a
+ * dos), y ahi recortaria 2,96px. A 1440px, que es donde se midio el hallazgo,
+ * el parrafo mide 301px: 138px POR DEBAJO del token. Es el mismo caso que el
+ * docblock de `grid.prose` ya razona para el movil -- "cambiar un `max-width`
+ * que no muerde no moveria ni un caracter" -- y se resuelve igual, para no
+ * dejar un token que promete gobernar algo que gobierna otro.
+ *
+ * LO QUE SI DECIDE ESTA MEDIDA es la REJILLA, no el token. A 1440px la
+ * tarjeta mide 351px (los 301px de texto mas 24px de `space[5]` y 1px de
+ * borde por lado), porque `ScPillarGrid` declara cuatro pistas de
+ * `minmax(min(15rem, 100%), 1fr)` y los cuatro pilares caben en una fila.
+ * Para que el parrafo alcanzara los ~439px que entregan 64 caracteres harian
+ * falta pistas de ~489px, es decir DOS por fila en vez de cuatro: los pilares
+ * pasarian de una fila de cuatro a un 2x2. Eso es una decision de composicion
+ * del dueño -- cambia la lectura de la seccion entera, no la de un parrafo --
+ * y queda declarada aqui, no tomada desde una tarea de vocabulario.
  */
 const ScPillarCard = styled.div`
   display: flex;
