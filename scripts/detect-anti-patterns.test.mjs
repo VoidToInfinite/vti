@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -136,5 +137,53 @@ describe("guarda de entrada: importar no escanea, invocar si", () => {
         expect(salida).toMatch(
             /ficheros escaneados|Anti-patrones sin sancionar/,
         );
+    });
+});
+
+/**
+ * REGISTRO DE FAMILIAS EN RULES.md (critica externa #17, 2026-09-03).
+ *
+ * La regla 48 enumera las familias que este script vigila, y cada ola que
+ * anadio una la nombro ahi POR SU ID con la critica que la motivo --
+ * `easing-literal` (#8), `easing-keyword` (#9), `duration-literal` (#13),
+ * `duration-const` (#14), `font-size-literal` y `z-index-literal` (#15). Dos
+ * se saltaron esa convencion: `delay-const` (anadida por la #16) y
+ * `color-literal` (anadida en esta misma ola), que no aparecian ni una vez en
+ * RULES.md. El efecto no es cosmetico: quien lee la regla para saber que
+ * vigila el gate se lleva una lista incompleta, y quien recibe el fallo de una
+ * familia no registrada no tiene donde leer su porque.
+ *
+ * El candado afirma el CONJUNTO EXACTO de familias que RULES.md NO nombra por
+ * su id, no un minimo: las cinco fundacionales, que la regla describe por su
+ * comportamiento en prosa (`transition: all`, degradados repetidos, texto con
+ * degradado recortado, franja lateral, numeraciones repetidas) desde antes de
+ * que existiera la convencion de nombrarlas. Escrito como conjunto exacto y no
+ * como "todas menos estas cinco al menos" por el mismo motivo que el censo de
+ * `system.test.ts`: si alguien registra una de las cinco en prosa Y por id, el
+ * test lo dice en vez de callarse, y la lista de excepciones no puede crecer
+ * en silencio.
+ */
+describe("registro de familias en RULES.md (regla 48)", () => {
+    const RULES = readFileSync(path.join(AQUI, "..", "RULES.md"), "utf8");
+
+    /** Las que RULES.md describe en prosa, sin escribir su id, por ser
+     *  anteriores a la convencion. Cualquier otra ausencia es un olvido. */
+    const FUNDACIONALES = [
+        "gradient-text",
+        "numbering",
+        "repeating-gradient",
+        "side-stripe",
+        "transition-all",
+    ];
+
+    it("toda familia anadida por una ola aparece nombrada por su id", () => {
+        const ausentes = FAMILIES.map((f) => f.id)
+            .filter((id) => !RULES.includes(id))
+            .sort();
+
+        expect(
+            ausentes,
+            "familia del detector que RULES.md no registra por su id",
+        ).toEqual(FUNDACIONALES);
     });
 });
