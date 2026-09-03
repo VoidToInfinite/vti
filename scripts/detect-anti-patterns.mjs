@@ -823,6 +823,119 @@ const FAMILIES = [
         },
     },
     {
+        id: "color-literal",
+        label: "color escrito como literal (oklch/oklab/lch/lab/rgb/hsl/hexadecimal) fuera de src/theme/tokens/",
+        // SEPTIMO PUNTO CIEGO CERRADO (critica externa #17, 2026-09-03). El
+        // detector vigilaba movimiento (cinco familias), tipografia, capa,
+        // radios, franjas, degradados de texto y dos patrones de composicion
+        // -- y NI UNA sola propiedad de COLOR, que es el sistema de tokens
+        // MAS GRANDE del repo: cinco rampas de doce peldanos
+        // (`tokens/color.ts`) mas la capa semantica que las nombra por rol
+        // (`tokens/semantic.ts`). La regla que lo pide no es la 48 sino la 17
+        // de RULES.md ("Cero colores, espaciados o radios literales fuera de
+        // src/theme/tokens/. Excepcion unica y documentada: arte de marca con
+        // constantes con nombre en su propio modulo *.layers.ts, que se
+        // importan tal cual y nunca se reescriben con un valor suelto"), y
+        // hasta esta revision esa regla no tenia candado: se cumplia de
+        // memoria.
+        //
+        // CENSO PROPIO antes de escribir una sola entrada del allowlist
+        // (mismo motor que este fichero: strip de comentarios + linea a linea
+        // sobre `src/` y `app/`, tests excluidos): 94 literales `oklch()` en
+        // total, 79 fuera de `tokens/`, de los que 24 no son colores sino
+        // llamadas al ayudante JS homonimo de `Wormhole.tsx` (`function
+        // oklch(triplet, alpha)`) -- quedan 55 literales numericos reales.
+        // Mas 24 hexadecimales y un `rgba()`. El censo del evaluador conto
+        // 63 (58 distintos): la diferencia son esas llamadas del ayudante y
+        // las formas que su recuento no separaba; el HALLAZGO -- que ninguna
+        // familia miraba el color -- se reproduce entero.
+        //
+        // ARTE FRENTE A TOKEN REESCRITO A MANO, la distincion que esta
+        // familia tiene que sostener, y que el censo propio deja medida: se
+        // compararon los 55 literales numericos contra las 60 combinaciones
+        // hue/paso que generan las cinco rampas de `tokens/color.ts`
+        // (reproduciendo `ramp()`/`neutral()` con sus tablas `L`/`CMUL`),
+        // ignorando la alfa. COINCIDENCIAS EXACTAS: CERO. Hoy no hay ni un
+        // solo peldano de rampa reescrito como literal `oklch()`; lo que hay
+        // es arte, casi siempre verbatim de un mockup, y de ahi que todo lo
+        // sancionado abajo lo este como composicion propia y no como olvido
+        // de migrar. La UNICA excepcion a esa lectura son los siete
+        // hexadecimales de `resolveTheme.ts` y `app/opengraph-image.tsx`, que
+        // SI son conversiones fijadas de tokens concretos: van sancionados
+        // aparte y con su riesgo escrito, porque son los que pueden
+        // desincronizarse en silencio.
+        //
+        // POR PROCEDENCIA, NO POR VALOR, igual que sus familias hermanas
+        // (`easing-literal`, `duration-literal`, `font-size-literal`) y por
+        // el mismo argumento: un `oklch(0.66 0.142 235.851)` escrito a mano
+        // que HOY coincidiera con `palette.primary[600]` dejaria de coincidir
+        // el dia que alguien retoque la escalera `L`/`CMUL`, y el CSS
+        // renderizado no distingue los dos casos -- solo la fuente los separa
+        // (`task/lessons.md`, 2026-08-12). La familia que mediria VALOR
+        // ("este literal ES un peldano") no se escribe hoy porque el censo
+        // dice que su conjunto esta vacio; si algun dia deja de estarlo, el
+        // sitio donde vive es la guia de esta familia, que ya manda
+        // comprobarlo.
+        //
+        // QUE CUENTA COMO LITERAL DE COLOR, y por que cada forma:
+        //  - Una FUNCION de color CSS (`oklch`, `oklab`, `lch`, `lab`, `rgb`,
+        //    `rgba`, `hsl`, `hsla`) cuyo primer argumento empieza por DIGITO,
+        //    con una comilla opcional en medio para cazar la forma
+        //    `oklch("0.985 0 0", 1)` de `Wormhole.tsx`. Ese digito es el
+        //    candado contra el unico falso positivo real del corpus: las 24
+        //    llamadas `oklch(RING_1, 0.4)` de ese mismo fichero empiezan por
+        //    IDENTIFICADOR y no coinciden -- ahi el color no esta en la
+        //    linea, esta en la constante que se le pasa.
+        //  - Un HEXADECIMAL de 3, 4, 6 u 8 digitos. Se acepta por el mismo
+        //    argumento con el que `duration-literal` acepta `ms` y `s`: un
+        //    color no deja de estar fuera del sistema por escribirse en otra
+        //    notacion. Verificado sobre el corpus que no caza ningun ancla de
+        //    fragmento (`#contacto`, `#journey`, `#story`: ninguna tiene tres
+        //    digitos hexadecimales seguidos hasta su frontera de palabra).
+        //
+        // LO QUE ESTA FAMILIA NO VE, declarado en vez de dejar que el nombre
+        // lo tape:
+        //  - Un color separado de su funcion: `const RING_1 = "0.66 0.142
+        //    235.851"` (Wormhole.tsx) es un triplete suelto que solo se
+        //    convierte en color al pasar por el ayudante. Cazar tripletes
+        //    exigiria decidir que `0.66 0.142 235.851` es un color y
+        //    `0 8px 20px` no, sin ninguna palabra en la linea que lo diga --
+        //    precision sobre cobertura, el mismo criterio con el que este
+        //    fichero descarto "ghost-card en reposo". Los cuatro colores de
+        //    `journey.layers.ts` se escribieron con su `oklch(...)` completo
+        //    en esta misma ola precisamente para no caer en este hueco.
+        //  - Las PALABRAS CLAVE de color (`white`, `black`, `transparent`,
+        //    `currentColor`): las dos ultimas son ausencia de color o
+        //    herencia, no una eleccion -- mismo criterio que el `1em` de
+        //    `font-size-literal` --, y las nombradas de verdad no existen hoy
+        //    en el corpus. Anadirlas cazaria antes las que no importan.
+        //  - La duplicacion CRUZADA entre ficheros (el mismo color escrito en
+        //    dos modulos que no se conocen): el motor es linea a linea por
+        //    diseno declarado en la cabecera, el mismo limite que ya lleva
+        //    escrito `repeating-gradient`. Lo que si queda anotado es la
+        //    duplicacion DENTRO de un fichero: dos lineas identicas comparten
+        //    ancla y su `count` las cuenta.
+        //
+        // Alcance por fichero: la carpeta `src/theme/tokens/` entera, igual
+        // que `font-size-literal` y por el mismo motivo -- ahi el literal ES
+        // la definicion del sistema (`ramp()` genera las 60 cadenas
+        // `oklch(...)`; `glass.ts` declara sus dos superficies), no una copia
+        // suelta.
+        appliesTo: (file) => !file.startsWith(TOKENS_DIR),
+        test(line) {
+            const fn =
+                /\b(?:oklch|oklab|lch|lab|rgba?|hsla?)\(\s*["']?\s*[\d.][^)]*\)/i.exec(
+                    line,
+                );
+            if (fn) return fn[0];
+            const hex =
+                /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b/.exec(
+                    line,
+                );
+            return hex ? hex[0] : null;
+        },
+    },
+    {
         id: "kicker",
         label: "kicker/eyebrow repetido (componente *Kicker* en JSX)",
         test(line) {
@@ -1765,6 +1878,416 @@ const ALLOWLIST = [
      * cazando el idioma `String(<expr> + 1).padStart(2, "0")`, ahora sin
      * ningun consumidor sancionado en el repo.
      */
+    // ---- color-literal: los 71 literales de color que existian el dia que se
+    // cerro el septimo punto ciego (critica externa #17, 2026-09-03). Censo
+    // propio ejecutado con el motor de este mismo fichero antes de escribir
+    // una sola entrada -- ver el comentario de la familia para las cifras
+    // completas y para la comparacion contra las 60 combinaciones de las
+    // rampas, que dio CERO coincidencias.
+    //
+    // El reparto de los 71, porque explica que clase de excepcion es cada
+    // grupo y por que ninguno es un rol de tema reescrito por descuido:
+    //  - 64 son ARTE: escenas decorativas `aria-hidden` (aura, ojo, Sol,
+    //    Wormhole, el haz, los cuatro voids de los paquetes de arte) y
+    //    literales de UNA composicion concreta en los cuatro modulos
+    //    `*.layers.ts` de seccion, que es la forma EXACTA que la regla 17 de
+    //    RULES.md sanciona: constante con nombre en su propio modulo,
+    //    importada tal cual y nunca reescrita como valor suelto. Los 64
+    //    llegan aqui con su porque YA escrito junto a la declaracion, que es
+    //    la condicion que este fichero exige para sancionar; se comprobo uno
+    //    a uno.
+    //  - 7 son CONVERSIONES FIJADAS DE UN TOKEN, la unica clase de esta
+    //    familia que SI puede desincronizarse en silencio: los cinco hex de
+    //    `app/opengraph-image.tsx` y los dos de `resolveTheme.ts`. Se
+    //    verificaron los siete recalculando la conversion oklch -> OKLab ->
+    //    sRGB lineal -> sRGB con gamma (matrices de Ottosson, las mismas de
+    //    `tokens/contrast.ts`) sobre los tokens que sus docblocks nombran:
+    //    los siete dan EXACTAMENTE el hex escrito. Van sancionados con su
+    //    riesgo declarado en cada entrada, no escondidos entre el arte.
+    //
+    // Que esten sancionados no los deja sin vigilancia, igual que en
+    // `duration-literal`: el ancla es de CONTENIDO, asi que retocar un solo
+    // digito de cualquiera de ellos deja la linea sin ancla y pone el gate en
+    // rojo. Lo que la sancion permite es que sigan EXISTIENDO, no que puedan
+    // moverse en silencio.
+    {
+        family: "color-literal",
+        file: "app/opengraph-image.tsx",
+        anchors: [
+            { snippet: 'const BG_FROM = "#280739";', lines: [41] },
+            { snippet: 'const BG_TO = "#1A1A1C";', lines: [42] },
+            { snippet: 'const BRAND = "#02B7FF";', lines: [43] },
+            { snippet: 'const TEXT = "#FAFAFA";', lines: [44] },
+            { snippet: 'const TEXT_SUBTLE = "#B7B7BB";', lines: [45] },
+        ],
+        reason: "Imagen Open Graph generada en el build. CONVERSION FIJADA DE TOKEN, no arte: el docblock del propio fichero declara los cinco como la conversion a sRGB de color.secondary[1100] (= semanticDark.bg), color.neutral[1100], color.primary[500], color.neutral[50] (= semanticDark.text) y color.neutral[400], y por que no se importa el token: Satori (el motor de ImageResponse) no garantiza entender la funcion oklch() y no se arriesga el build del sitio a esa incertidumbre. Los cinco se RECALCULARON al sancionarlos (oklch -> OKLab -> sRGB, matrices de Ottosson, las mismas de tokens/contrast.ts) y dan exactamente los hex escritos. Riesgo declarado, y es el motivo de que esta familia exista: si alguien retoca la escalera L/CMUL o un hue de color.ts, estos cinco NO se enteran -- el ancla de contenido obliga a pasar por aqui para tocarlos.",
+    },
+    {
+        family: "color-literal",
+        file: "src/theme/resolveTheme.ts",
+        anchors: [
+            { snippet: 'light: "#FAFAFA",', lines: [88] },
+            { snippet: 'dark: "#280739",', lines: [89] },
+        ],
+        reason: "THEME_COLORS, el color de la barra del navegador (meta theme-color) que escriben el script de arranque y ThemeProvider. Misma clase que los cinco de opengraph-image.tsx y verificados igual: #FAFAFA es la conversion exacta de color.neutral[50] (= semanticLight.bg) y #280739 la de color.secondary[1100] (= semanticDark.bg). Se quedan en hex, y no leen el token, porque los consume una etiqueta HTML escrita antes del primer pintado desde un script inline, fuera del arbol de React y del ThemeProvider. Mismo riesgo declarado que la entrada anterior; el docblock de la constante ya documenta el resto del reparto (por que la crea el script y no el layout).",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/layout/Footer/footer.layers.ts",
+        anchors: [
+            {
+                snippet:
+                    'export const FOOTER_DARK_BG = "oklch(0.055 0.01 288)";',
+                lines: [36],
+            },
+        ],
+        reason: "Fondo del pie en oscuro: literal de UNA composicion -- la costura Contacto -> Footer --, no un rol reutilizable en otras superficies, asi que no asciende a token semantico (criterio D10, el mismo que declara contact.layers.ts para los suyos). Su docblock ya razona el valor: por encima del void de la escena de Contacto se veria como un escalon claro en vez de como continuidad, y por eso su L (0.055) queda por debajo del 0.22 del paso mas oscuro de la rampa.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/aura/aura.layers.ts",
+        anchors: [
+            {
+                snippet:
+                    'export const AURA_SURFACE = "oklch(0.942 0.023 285)";',
+                lines: [308],
+            },
+        ],
+        reason: "Color medio del campo pastel (00-field.png) convertido a OKLCH: es lo que se ve un instante antes de que el WebP termine de decodificar. Excepcion de color ya sancionada en su docblock, la misma que EYE_SURFACE -- Aura es aria-hidden y decorativa, y esta composicion solo se monta en tema claro por diseno, asi que un rol semantico (que cambia con el tema) seria justamente el token equivocado.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/aura/aura.parts.tsx",
+        anchors: [
+            { snippet: "#fff 8%,", count: 4, lines: [297, 304, 313, 320] },
+            { snippet: "#fff 92%,", count: 4, lines: [298, 305, 314, 321] },
+            {
+                snippet: "border: 2px solid oklch(0.92 0.04 250 / 0.7);",
+                lines: [443],
+            },
+            { snippet: "oklch(0.93 0.035 285 / 0.5) 50%,", lines: [516] },
+            { snippet: "oklch(0.965 0.02 285 / 0.85) 82%,", lines: [517] },
+        ],
+        reason: "Los OCHO #fff no pintan nada: son las paradas OPACAS de cuatro mask-image (dos ejes x prefijado y sin prefijar, con mask-composite: intersect). En una mascara el color no es un color, es opacidad -- blanco conserva, transparent recorta --, asi que leer un token de tema ahi no cambiaria un pixel y haria ilegible el unico dato que importa, el 8%/92% del desvanecido. Cuatro apariciones de cada snippet, una por mascara (count: 4). Los otros tres son arte de la escena aria-hidden: el borde del anillo de choque (ScShock) y las dos paradas intermedias del degradado del pie de Aura, cuya ultima parada SI lee semantic.bg -- el literal cubre el tramo que el token no modela.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/contactCosmicGuardian/contactCosmicGuardian.layers.ts",
+        anchors: [
+            {
+                snippet: 'export const CONTACT_GUARDIAN_VOID = "#0d0416";',
+                lines: [171],
+            },
+        ],
+        reason: "Void del paquete de arte de la escena de Contacto, copiado VERBATIM del propio paquete (html,body{background:#0d0416}) y a proposito SIN convertir a oklch(): el aditivo de las capas esta calibrado contra este negro exacto y un redondeo de conversion desviaria el resultado. Solo se ve como color de pintado antes de que cargue la capa opaca (loading=lazy) y como tope de la vineta. Mismo criterio en los otros tres voids de escena.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/featuresCelestialOrbital/featuresCelestialOrbital.layers.ts",
+        anchors: [
+            {
+                snippet: 'export const FEATURES_ORBITAL_VOID = "#150b2e";',
+                lines: [177],
+            },
+        ],
+        reason: "Void del paquete de arte de la escena de Features, mismo caso y mismo motivo que CONTACT_GUARDIAN_VOID: literal del paquete, no convertido, visible solo hasta que carga la capa opaca y como tope de la vineta. Es ademas el suelo contra el que Features.test.tsx mide el contraste del termino Gaming con contrast.ts, asi que cambiarlo mueve una medicion de accesibilidad, no solo un color.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/journeyCosmicPortal/journeyCosmicPortal.layers.ts",
+        anchors: [
+            {
+                snippet: 'export const JOURNEY_PORTAL_VOID = "#0b0620";',
+                lines: [143],
+            },
+        ],
+        reason: "Void del paquete de arte de la escena de Journey. Su docblock declara ademas la comprobacion que hizo quien lo escribio -- las esquinas medidas de la capa 01-background dan #12012a, algo mas claro -- y por que se conserva igual el del paquete: es el que el paquete declara y el que su demo usa detras del stack.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+        anchors: [
+            {
+                snippet: 'export const STORY_COSMIC_BEING_VOID = "#05010e";',
+                lines: [188],
+            },
+        ],
+        reason: "Void del paquete de arte de la escena de Story, con la misma sancion ya escrita en su docblock (verbatim, sin convertir, para no desviar el aditivo) y con la distincion explicita frente al literal de Cosmic Heart (#05030f): cada arte se calibro contra su propio negro.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/eye/eye.layers.ts",
+        anchors: [
+            {
+                snippet: 'export const EYE_SURFACE = "oklch(0 0 0)";',
+                lines: [171],
+            },
+        ],
+        reason: "Negro del lienzo del ojo. Es el caso contrario al de un literal suelto: existe EXPORTADO precisamente para que nadie lo repita -- la continuidad Hero -> Story exige que el extremo de la costura sea exactamente el valor que pinta ScSocket, y dos literales iguales en dos ficheros se separan al primer retoque. Excepcion de color ya sancionada en eye.parts.tsx: el ojo es aria-hidden, su negro es identidad de marca y no un rol semantico, asi que no cambia con el tema.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/eye/eye.parts.tsx",
+        anchors: [
+            { snippet: "oklch(0 0 0 / 0.22) 0%,", lines: [427] },
+            { snippet: "oklch(0 0 0 / 0.2) 58%,", lines: [428] },
+        ],
+        reason: "Las dos paradas del velo de contraste del hero (ScScrim): negro con alfa sobre el arte, calibrado para bajar el brillo de los filamentos bajo la copia sin apagar el anillo exterior. No es una eleccion de color -- el color es negro puro en las dos -- sino de OPACIDAD, y el fichero declara la misma excepcion de color para todo su contenido.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/eye/mascots/Sol.tsx",
+        anchors: [
+            {
+                snippet: 'const SKY_HAZE = "oklch(0.93 0.039 235.851)";',
+                lines: [94],
+            },
+            {
+                snippet: 'const SKY_SOFT = "oklch(0.87 0.074 235.851)";',
+                lines: [95],
+            },
+            {
+                snippet: 'const SKY_MID = "oklch(0.8 0.117 235.851)";',
+                lines: [96],
+            },
+            {
+                snippet: 'const SKY_DEEP = "oklch(0.66 0.142 235.851)";',
+                lines: [97],
+            },
+            {
+                snippet: 'const VIOLET_SOFT = "oklch(0.87 0.088 311.928)";',
+                lines: [98],
+            },
+            {
+                snippet: 'const VIOLET_MID = "oklch(0.8 0.14 311.928)";',
+                lines: [99],
+            },
+            {
+                snippet: 'const VIOLET_DEEP = "oklch(0.66 0.233 311.928)";',
+                lines: [100],
+            },
+            { snippet: 'const WHITE = "oklch(0.985 0 0)";', lines: [105] },
+            {
+                snippet: 'const ROSE_NEUTRAL = "oklch(0.324 0 0)";',
+                lines: [106],
+            },
+        ],
+        reason: "Paleta propia del mascota Sol, port verbatim del widget homonimo de vti-sdk. Los siete primeros llevan hue DE MARCA (235.851/311.928) y por eso parecen peldanos, pero son MEZCLAS de dos peldanos distintos -- su propio docblock los anota uno a uno como 'L del paso 600, croma del 400' --, lo que el censo confirma: ninguno coincide con una casilla de las rampas. El docblock lo dice en una linea que esta entrada no mejora: cambiar uno por 'su' paso de escala no es una limpieza, es repintar el arte. WHITE y ROSE_NEUTRAL se resuelven a literal porque la escala neutra del sdk corre AL REVES que la de este repo (su neutral-1100 es el blanco), y traducir el nombre de token entre dos escalas invertidas es como se pinta mal un arte entero.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/eye/mascots/Wormhole.tsx",
+        anchors: [
+            { snippet: 'color: ${oklch("0.985 0 0", 1)};', lines: [324] },
+        ],
+        reason: "Blanco del wordmark en el centro del agujero de gusano. Es el UNICO color literal que esta familia ve en este fichero, y conviene saber por que: las otras 24 apariciones de oklch( son llamadas al ayudante local (function oklch(triplet, alpha)) con constantes con nombre (RING_1..4, CORE_START/END), es decir el patron que la regla 17 pide, y quedan fuera por el limite declarado en el comentario de la familia -- un triplete separado de su funcion no se ve. El fichero entero es un port verbatim del widget de vti-sdk y su docblock de cabecera ya declara esta clase de excepcion para los colores: espectaculo de marca en un elemento aria-hidden, no roles de UI.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/scenes/sectionBeam/sectionBeam.layers.ts",
+        anchors: [
+            {
+                snippet: 'export const BEAM_CORE = "oklch(0.85 0.13 311.928)";',
+                lines: [32],
+            },
+            {
+                snippet:
+                    'export const BEAM_MID = "oklch(0.75 0.18 311.928 / 0.6)";',
+                lines: [34],
+            },
+            {
+                snippet:
+                    'export const BEAM_TAIL = "oklch(0.7 0.19 311.928 / 0.2)";',
+                lines: [36],
+            },
+            {
+                snippet:
+                    'export const SWEEP_CORE = "oklch(0.97 0.06 311.928)";',
+                lines: [38],
+            },
+            {
+                snippet:
+                    'export const SWEEP_MID = "oklch(0.9 0.12 235.851 / 0.5)";',
+                lines: [40],
+            },
+            {
+                snippet:
+                    'export const SWEEP_GLOW = "oklch(0.8 0.17 311.928 / 0.9)";',
+                lines: [42],
+            },
+            {
+                snippet:
+                    'export const HOTSPOT_GLOW = "oklch(0.8 0.17 311.928 / 0.95)";',
+                lines: [44],
+            },
+        ],
+        reason: "Las siete piezas de color del haz de seccion (nucleo, media y cola del semihaz de dibujado; nucleo, media y halo del de barrido; halo del punto caliente), cada una con su linea de mockup citada en su propio docblock. Mismo fichero y misma procedencia que SECTION_BEAM_EASING, ya sancionado en easing-literal: es un arte portado entero, no una pieza de UI que pueda leer roles. Llevan hue de marca pero no croma de rampa (0.13/0.18/0.19/0.06/0.12/0.17 frente a los 0.148/0.158 del pico primary y los 0.243/0.259 del de secondary), asi que ninguno es un peldano reescrito. La tonalidad CLARA de estas mismas siete piezas SI se resuelve contra la paleta, en las funciones del mismo fichero que reciben `palette`.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/sections/Contact/contact.layers.ts",
+        anchors: [
+            {
+                snippet:
+                    'export const CONTACT_CARD_BORDER = "oklch(0.88 0.04 270)";',
+                lines: [46],
+            },
+            {
+                snippet:
+                    '"linear-gradient(110deg, #EFF4FC 0%, #F5F2FB 55%, #F9F0F7 100%)";',
+                lines: [48],
+            },
+            {
+                snippet:
+                    'export const CONTACT_PANEL_BG_LIGHT = "rgba(255, 255, 255, 0.82)";',
+                lines: [87],
+            },
+            {
+                snippet:
+                    '"radial-gradient(circle, oklch(0.8 0.1 320 / 0.2) 0%, oklch(0.8 0.1 320 / 0.07) 45%, transparent 70%)";',
+                lines: [102],
+            },
+            {
+                snippet:
+                    'export const CONTACT_RING_A_BORDER = "oklch(0.75 0.1 300 / 0.22)";',
+                lines: [104],
+            },
+            {
+                snippet:
+                    'export const CONTACT_RING_B_BORDER = "oklch(0.75 0.1 300 / 0.12)";',
+                lines: [105],
+            },
+            {
+                snippet:
+                    'export const CONTACT_FIGURE_SHADOW = "oklch(0.55 0.15 300 / 0.3)";',
+                lines: [108],
+            },
+            {
+                snippet:
+                    'export const CONTACT_CARD_BG_DARK = "oklch(1 0 0 / 0.05)";',
+                lines: [302],
+            },
+            {
+                snippet:
+                    'export const CONTACT_CARD_BORDER_DARK = "oklch(1 0 0 / 0.12)";',
+                lines: [303],
+            },
+            {
+                snippet:
+                    'export const CONTACT_FORM_BG = "oklch(1 0 0 / 0.04)";',
+                lines: [310],
+            },
+            {
+                snippet:
+                    'export const CONTACT_FORM_BORDER = "oklch(1 0 0 / 0.12)";',
+                lines: [311],
+            },
+            {
+                snippet:
+                    '"radial-gradient(ellipse 55% 100% at 50% 0%, oklch(0.5 0.18 311.928 / 0.34), transparent 72%)";',
+                lines: [322],
+            },
+        ],
+        reason: "Los doce literales de la composicion de Contacto, rama clara (borde y degradado pastel de la tarjeta, fondo del panel, halo y bordes de los anillos, sombra de la figura) y rama oscura (fondos/bordes de tarjetas y formulario, halo superior). Criterio D10 declarado en la cabecera del fichero, que ademas documenta el mapeo de rol de lo que SI sale del tema (semantic.textMuted/text/border) para que se vea que la frontera esta pensada, no heredada. GRUPO DUPLICADO de la critica #17: CONTACT_CARD_BORDER_DARK y CONTACT_FORM_BORDER son el mismo literal oklch(1 0 0 / 0.12) y NO se unifican, con el motivo ya escrito junto a la segunda desde antes de esta revision -- el mockup declara las dos piezas por separado y sus fondos ya divergen (.05 frente a .04), asi que acoplarlas haria que retocar la tarjeta repintara el formulario. La tercera aparicion de ese literal en el repo, glassLight.border (tokens/glass.ts), NO es la misma pieza y tampoco sirve de token para estas dos: es el borde de la superficie de cristal en tema CLARO, mientras estas visten tarjetas de la rama OSCURA, cuyo cristal (glassDark.border) usa alfa .08. Comprobado byte a byte antes de sancionar.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/sections/Features/features.layers.ts",
+        anchors: [
+            {
+                snippet:
+                    'export const FEATURES_GAMING_ACCENT = "oklch(0.65 0.17 340)";',
+                lines: [175],
+            },
+            {
+                snippet:
+                    'export const FEATURES_GAMING_ACCENT_LIGHT = "oklch(0.55 0.17 340)";',
+                lines: [213],
+            },
+            {
+                snippet:
+                    'export const FEATURES_GAMING_ACCENT_LIGHT_HOVER = "oklch(0.5 0.17 340)";',
+                lines: [214],
+            },
+            {
+                snippet:
+                    'export const FEATURES_GAMING_ACCENT_DARK = "oklch(0.65 0.17 340)";',
+                lines: [215],
+            },
+            {
+                snippet:
+                    'export const FEATURES_GAMING_ACCENT_DARK_HOVER = "oklch(0.7 0.17 340)";',
+                lines: [216],
+            },
+        ],
+        reason: "Los cinco acentos de la tarjeta Gaming: hue 340, deliberadamente distinto de los dos de marca (235.851/311.928) para que la tercera identidad se distinga, con la L elegida por CONTRASTE MEDIDO contra el fondo real de cada rama (ratios en el docblock de las cuatro por rama y en Features.test.tsx). GRUPO DUPLICADO de la critica #17: FEATURES_GAMING_ACCENT y FEATURES_GAMING_ACCENT_DARK son la misma cadena, y se SANCIONAN en vez de unificarse. El motivo es el mismo que ya llevaba escrito el par de Contacto: visten piezas distintas con requisitos distintos -- el termino Gaming del h2 se midio sobre el ARTE de la escena (mediana del borde de glifo 5.05 tras subir L a 0.65) y el acento de tarjeta se midio contra semantic.bg (5.04:1) --, asi que aliasear una a la otra haria que el dia que una de las dos mediciones pida moverse, la otra se moviera sin que nadie la mida. Que hoy coincidan es el resultado de dos mediciones, no una duplicacion por descuido; el detector las deja anotadas, que es lo que faltaba.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/sections/Hero/Hero.tsx",
+        anchors: [
+            { snippet: "oklch(0 0 0 / 0) 0%,", lines: [126] },
+            {
+                snippet:
+                    ': "0 0 3px oklch(0 0 0 / 1), 0 0 9px oklch(0 0 0 / 0.95), 0 0 22px oklch(0 0 0 / 0.9)"};',
+                lines: [418],
+            },
+        ],
+        reason: "Los dos son negro puro con alfa, no una eleccion de tinte. El primero es la parada TRANSPARENTE del pie del hero, cuyo otro extremo importa EYE_SURFACE en vez de repetirlo (el docblock de la constante explica esa costura). El segundo es un halo de contraste de tres capas bajo la copia del hero oscuro, medido: sube el percentil 5 del borde de glifo del subtitulo de 4,19 a 6,18 y baja el borde bajo umbral del 5,4% al 2,4% a 1440. Es una medida de accesibilidad sobre el arte, no color de marca -- y el propio comentario declara honestamente que no cierra el 1-2% restante.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/sections/Journey/journey.layers.ts",
+        anchors: [
+            {
+                snippet:
+                    'const DISC_GLOW_PRIMARY = "oklch(0.6 0.12 260 / 0.14)";',
+                lines: [91],
+            },
+            {
+                snippet:
+                    'const DISC_GLOW_SECONDARY = "oklch(0.6 0.15 290 / 0.14)";',
+                lines: [93],
+            },
+            {
+                snippet:
+                    'const DISC_GLOW_SECONDARY_DEEP = "oklch(0.55 0.2 300 / 0.14)";',
+                lines: [97],
+            },
+            {
+                snippet:
+                    'const DISC_GLOW_ERROR = "oklch(0.66 0.24 12 / 0.14)";',
+                lines: [99],
+            },
+            {
+                snippet: '"linear-gradient(135deg, #FFEBFDEB, #E3F6FFEB)";',
+                lines: [157],
+            },
+            {
+                snippet:
+                    'export const JOURNEY_PATH_STROKE = "oklch(0.72 0.1 290 / 0.45)";',
+                lines: [177],
+            },
+            {
+                snippet:
+                    '"drop-shadow(0 16px 34px oklch(0.55 0.15 285 / 0.22))";',
+                lines: [191],
+            },
+        ],
+        reason: "Arte de Journey, criterio D10 de la cabecera del fichero: el sistema de tokens no modela el degradado pastel de la tarjeta (dos hex de ocho digitos, con alfa dentro), el trazo del path punteado ni la sombra de la figura. Los CUATRO primeros son los colores del glow de los seis discos, nombrados en esta misma ola al deshacer un GRUPO DUPLICADO de la critica #17: los seis pasos escribian la sombra entera a mano y dos parejas eran identicas byte a byte. Hoy la geometria vive una vez en discGlow() y cada color una vez aqui, con el mismo CSS renderizado (medido en navegador, seis de seis). Ninguno de los cuatro coincide con un peldano de rampa: sus hue (260, 290, 300, 12) no son los de marca salvo el 12 de error, cuya croma tampoco cuadra.",
+    },
+    {
+        family: "color-literal",
+        file: "src/components/sections/Story/story.layers.ts",
+        anchors: [
+            {
+                snippet:
+                    '"radial-gradient(circle at 55% 55%, oklch(0.9 0.05 275 / 0.55) 0%, oklch(0.93 0.03 260 / 0.3) 45%, transparent 72%)";',
+                lines: [35],
+            },
+        ],
+        reason: "Halo radial detras de la figura de Story, verbatim del mockup. Su docblock ya declara la comprobacion que esta familia pediria: los hue 275 y 260 no coinciden con los de marca (235.851 primary, 311.928 secondary), asi que no es sustituible por un paso de palette.* -- es un degradado propio de esa pieza de arte.",
+    },
 ];
 
 // Clave compuesta (familia, fichero, contenido de linea) -- UNA sola
@@ -1887,6 +2410,8 @@ const FAMILY_GUIDANCE = {
         "este tamano de fuente se escribe como literal (rem/px/em) fuera de src/theme/tokens/, el unico sitio donde un tamano nace en este repo (regla 48). Si coincide con un peldano de type.scale (deckClosing, display, h1, h2, h3, wordmark, h5, deckBody, body, bodySm, caption, overline), lee `theme.data.type.scale.<peldano>.size` -- un literal que hoy vale lo mismo deja de valerlo el dia que el token se retoque, y el CSS renderizado no distingue los dos casos (task/lessons.md, 2026-08-12). Si NO coincide con ninguno, la pregunta es de diseno antes que de codigo: o la pieza baja al peldano vecino, o el tamano merece un peldano propio con su nombre semantico y su docblock (precedente: `wordmark`, el rotulo de marca, critica #15). Un tramo fluido va en `clamp()`, que esta familia exime; `1em` tambien, porque es heredar, no elegir.",
     "z-index-literal":
         "esta capa se escribe como entero literal fuera de src/theme/tokens/zIndex.ts, donde viven los siete roles del sistema (base 0, raised 10, stickyNav 100, dropdown 200, overlay 900, modal 1000, toast 1100). Si la pieza compite con una capa FLOTANTE del documento -- por encima del navbar, de un desplegable, de un modal -- lee el peldano que nombra ese rol: escribir un numero al lado de esa escala es apostar a ciegas contra ella. Si es solo el orden de dos o tres hermanos DENTRO de una misma pila (contenido por delante de su fondo decorativo, valores 1-3), es el patron ya sancionado 16 veces en el repo: deja el porque JUNTO a la declaracion y anade la excepcion a ALLOWLIST -- pero comprueba antes que el ancestro tenga su propio contexto de apilamiento, porque si no, ese 1 local compite de verdad con toda la pagina. El cero NO se exime aqui, al reves que en radius/duration: `z-index: 0` es zIndex.base, un peldano real.",
+    "color-literal":
+        "este color se escribe como literal (oklch/rgb/hsl/hexadecimal) fuera de src/theme/tokens/, el unico sitio donde un color nace en este repo (regla 17 de RULES.md, no la 48: las demas familias de este script vigilan movimiento y esta vigila color). Tres preguntas, en este orden. (1) COINCIDE CON UN PELDANO? Compara contra las cinco rampas de tokens/color.ts -- primary, secondary, warning, error, neutral, doce pasos cada una -- y contra los roles de tokens/semantic.ts que las nombran. Si coincide, lee el token: un literal que hoy vale lo mismo deja de valerlo el dia que se retoque la escalera L/CMUL, y el CSS renderizado no distingue los dos casos (task/lessons.md, 2026-08-12). Cuando esta familia nacio, NINGUNO de los 55 literales del repo coincidia; ser el primero es una senal, no un tramite. (2) ES UNA CONVERSION de un token a otra notacion (un hexadecimal para un motor que no entiende oklch(), como la imagen Open Graph o la meta theme-color)? Entonces no es arte: deja escrito de QUE token sale y con que algoritmo se convirtio, porque ese literal no se enterara de que el token cambio. (3) ES ARTE? Entonces es la excepcion que la regla 17 ya declara -- arte de marca con constantes con nombre en su propio modulo *.layers.ts, importadas tal cual y nunca reescritas como valor suelto --: dale nombre, deja el porque JUNTO a la declaracion (que hue/croma no es de rampa, de que mockup o paquete sale) y anade la excepcion a ALLOWLIST. Una mascara (mask-image) no cuenta como color: ahi el blanco es opacidad, no tinte.",
     "kicker":
         "un <*Kicker*> nuevo fuera de Story.tsx/Features.tsx (las dos ramas ya sancionadas, decision D-E del dueno) necesita decidirse con el dueno del producto, igual que el resto de kickers del sitio.",
     "numbering":
@@ -2023,10 +2548,13 @@ function run() {
             console.error(`  ${f.file}:${f.line}  [${f.family}]  ${f.snippet}`);
         }
         console.error(
-            "\nCada hallazgo de arriba pertenece a una familia de RULES.md (regla 48, seccion Estilos y",
+            "\nCada hallazgo de arriba pertenece a una familia de RULES.md -- la regla 48 (seccion",
         );
         console.error(
-            "movimiento) -- guia especifica de la familia que salio en rojo:\n",
+            "Estilos y movimiento) para casi todas, y la 17 (tokens de tema obligatorios) para la de",
+        );
+        console.error(
+            "color -- y esta es la guia especifica de la familia que salio en rojo:\n",
         );
         const familiesInFailures = [
             ...new Set(failures.map((f) => f.family)),
@@ -2056,4 +2584,35 @@ function run() {
     process.exitCode = 0;
 }
 
-run();
+/**
+ * PUNTO DE ENTRADA. `run()` se ejecuta SOLO cuando este fichero se invoca
+ * como PROGRAMA -- `node scripts/detect-anti-patterns.mjs`, que es como lo
+ * llaman `pnpm run ci`, `.github/workflows/ci.yml` y `netlify.toml` --, y no
+ * cuando se IMPORTA como modulo, que es lo que hace su propio test para
+ * ejercitar las familias linea a linea sin escanear el repo entero ni pisar
+ * el `process.exitCode` del proceso de Vitest.
+ *
+ * El riesgo obvio de una guarda asi es el contrario del que resuelve: si
+ * fallara, el gate pasaria en verde SIN escanear nada, en silencio. Por eso
+ * el test que la acompana no comprueba solo las familias -- lanza este script
+ * como proceso hijo, igual que lo lanza el gate, y exige ver en su salida el
+ * recuento de ficheros escaneados. Una guarda rota deja ese test en rojo
+ * antes de poder dejar el gate ciego.
+ */
+const invocadoComoPrograma =
+    typeof process.argv[1] === "string" &&
+    path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (invocadoComoPrograma) run();
+
+export {
+    ALLOWLIST,
+    ANCHOR_MAP,
+    FAMILIES,
+    FAMILY_GUIDANCE,
+    anchorKey,
+    collectFiles,
+    run,
+    scanFile,
+    stripComments,
+};
