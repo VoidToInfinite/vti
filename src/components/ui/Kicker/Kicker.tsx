@@ -26,6 +26,22 @@ import { Typography } from "@/components/ui/Typography/Typography";
  * 1.75rem ni 2px, y convertirlas a tokens inventaría un peldaño para un
  * solo uso.
  *
+ * EL SEPARADOR ENTRE LA REGLA Y EL TEXTO SÍ ES UN PASO DE LA ESCALA, y hasta
+ * la crítica externa #17 (2026-09-03, hallazgo del evaluador de Craft) estaba
+ * escrito a mano: `gap: 0.75rem` es EXACTAMENTE `space[3]`, byte a byte. No
+ * es el caso de las dos medidas del párrafo anterior —esas no coinciden con
+ * ningún peldaño y por eso se quedan literales—: éste duplicaba un token
+ * VIVO, que es el defecto que la regla 13 de `RULES.md` nombra. Leerlo del
+ * tema no cambia ni un píxel (`space[3] === "0.75rem"`, candado en
+ * `scalars.test.ts`); lo que cambia es que recalibrar la escala de espaciado
+ * ya mueve también este separador en vez de dejarlo atrás en silencio.
+ *
+ * El `theme` se desestructura en la MISMA función que decide `$withRule`, no
+ * en una interpolación anidada dentro de la cadena que devuelve: lo que esa
+ * función retorna es una plantilla de texto plano, y una interpolación
+ * escrita ahí dentro se resolvería al montar la cadena —sin props— en vez de
+ * al estilar. Con `theme` en la firma exterior el valor entra ya resuelto.
+ *
  * `variant` NO es configurable: un kicker es `overline` por definición
  * (`Typography` lo mapea a `<span>`); exponerlo invitaría a que otra sección
  * lo escalara a un `h*` y rompiera la estructura de encabezados, que la
@@ -34,12 +50,12 @@ import { Typography } from "@/components/ui/Typography/Typography";
 const ScKicker = styled(Typography)<{ $withRule: boolean }>`
   text-transform: uppercase;
   color: ${({ theme }) => theme.data.semantic.brandText};
-  ${({ $withRule }) =>
+  ${({ theme, $withRule }) =>
     $withRule &&
     `
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: ${theme.data.space[3]};
 
     &::before {
       content: "";
