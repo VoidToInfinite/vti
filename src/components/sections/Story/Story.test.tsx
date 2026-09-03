@@ -29,6 +29,7 @@ import {
   STORY_DECK_TAIL_SCREENS,
   STORY_DECK_TITLE_SIZE,
   STORY_FIGURE_SCROLL_SHIFT,
+  STORY_PILLAR_NUMBER_COLUMN,
   STORY_SLIDES,
 } from "./story.layers";
 import { STORY_COSMIC_BEING_VOID } from "@/components/scenes/storyCosmicBeing/storyCosmicBeing.layers";
@@ -3312,6 +3313,131 @@ describe("Story: critica #16 -- el rail dice visualmente por donde va el deck", 
       denominador,
       `denominador sobre el void: ${denominador.toFixed(2)}:1`,
     ).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+/*
+ * Critica externa #16, hallazgo L1 (= hallazgo 2 de Craft): el rail flota
+ * sobre la copia, no sobre un margen. Medido en oscuro a 390 px, la banda del
+ * rail ocupaba x=342-366 y la caja de contenido del deck llegaba a x=358, con
+ * lineas de glifos entrando dentro de la banda y `elementsFromPoint` sobre
+ * ella devolviendo el boton del rail por encima del parrafo.
+ *
+ * Lo que se ata aqui es la DERIVACION del canal, no su valor: jsdom no hace
+ * layout, asi que la unica forma de que este candado signifique algo es
+ * comprobar que el padding se calcula desde la misma geometria del rail que
+ * tendria que moverse con el. La comprobacion de que ninguna caja de glifo
+ * cruza la banda se hace en navegador, con `Range` por caracter, y se reporta
+ * con cifras.
+ */
+describe("Story: critica #16 -- la copia del deck reserva el canal del rail", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  async function deckOscuro(): Promise<HTMLElement> {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    return container.querySelector("[data-slide-index]")!
+      .parentElement as HTMLElement;
+  }
+
+  it("ScDeck declara padding-inline-end como la suma del inset del rail, su diana y el canal libre", async () => {
+    const css = cssRuleTextFor(await deckOscuro());
+    const { space } = basicDarkTheme;
+
+    // Espacios normalizados: styled-components conserva los saltos de linea
+    // del template dentro del `calc()`, y lo que se afirma es la SUMA, no como
+    // esta formateada.
+    const plano = css.replace(/\s+/g, " ");
+    // Los tres sumandos, cada uno leido de su token (regla 38): el inset del
+    // rail, la diana de la marca y el canal libre.
+    expect(plano).toContain(
+      `padding-inline-end: calc( ${space[5]} + ${space[5]} + ${space[2]} )`,
+    );
+  });
+
+  it("la suma reservada cubre la banda del rail mas el canal de 8 px que el hallazgo fija como umbral, y no mas", () => {
+    // Aritmetica sobre los MISMOS tokens que el CSS interpola, en px. El
+    // hallazgo pide que ninguna caja de glifo cruce rail.left - 8 px: con la
+    // caja de contenido terminando justo ahi, el texto no puede cruzarlo
+    // porque no desborda su caja. Y se ata tambien el techo: la primera
+    // version reservaba 96 px y dejaba la copia en 25-36 caracteres por
+    // linea a 390 (frente a 38-46 en la rama clara); cada pixel de mas se
+    // paga en medida de lectura. Sin esta asercion el candado de arriba solo
+    // diria que hay una suma, no que la suma sea la justa.
+    const rem = 16;
+    const px = (valor: string): number => parseFloat(valor) * rem;
+    const { space } = basicDarkTheme;
+    const bandaDelRail = px(space[5]) + px(space[5]);
+    const reservado = bandaDelRail + px(space[2]);
+
+    expect(bandaDelRail).toBe(48);
+    expect(reservado).toBe(56);
+    expect(reservado - bandaDelRail).toBe(8);
+  });
+
+  /*
+   * La otra mitad del canal: reservar 56 px a la derecha dejaba la copia del
+   * pilar en 246 px a 390 (302 de caja menos los 56 de la columna del numero
+   * mas su gap) -- 31 caracteres por linea a 16 px, medidos con Range por
+   * caracter, cuando el encargo pide conservar >= 38. La fila del deck apila
+   * el numero sobre la copia por debajo de sm y restaura las dos columnas de
+   * ScPillarRow desde sm. Lo que se ata: la FORMA de la cascada (base de dos
+   * columnas, extension del deck a una, sm de vuelta a dos) y que el ancho de
+   * la columna restaurada sea el MISMO que declara la base -- leido de la
+   * constante con nombre, no de un literal repetido (regla 13/41 de RULES.md:
+   * la invariante entre las dos declaraciones vive aqui, no en la memoria).
+   */
+  it("ScDeckPillarRow apila el numero sobre la copia por debajo de sm y restaura desde sm la columna de ScPillarRow con el mismo ancho con nombre", async () => {
+    const deck = await deckOscuro();
+    const fila = deck.querySelector('[data-slide-index="1"]')!
+      .firstElementChild as HTMLElement;
+    const classes = Array.from(fila.classList);
+    const aplica = (selectorText: string): boolean =>
+      classes.some((cls) => selectorText.includes(`.${cls}`));
+    const reglas = Array.from(document.styleSheets).flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    });
+    const columnasDe = (regla: CSSRule): string | null =>
+      "selectorText" in regla && aplica((regla as CSSStyleRule).selectorText)
+        ? (regla as CSSStyleRule).style.getPropertyValue(
+            "grid-template-columns",
+          ) || null
+        : null;
+
+    // Nivel superior, en orden de hoja: la base de ScPillarRow (dos columnas)
+    // y DESPUES la extension del deck (una sola pista). El orden es la
+    // cascada: si la extension precediera a la base, la base ganaria.
+    const nivelSuperior = reglas
+      .map(columnasDe)
+      .filter((v): v is string => v !== null);
+    expect(nivelSuperior).toEqual([
+      `${STORY_PILLAR_NUMBER_COLUMN} minmax(0, 1fr)`,
+      "minmax(0, 1fr)",
+    ]);
+
+    // Y dentro del @media de sm (jsdom no lo evalua: se lee del CSSOM, regla
+    // 36), la fila vuelve a las dos columnas con el ancho de la constante.
+    const enSm = reglas
+      .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule)
+      .filter((r) => r.conditionText.includes(basicDarkTheme.breakPoint.sm))
+      .flatMap((r) => Array.from(r.cssRules))
+      .map(columnasDe)
+      .filter((v): v is string => v !== null);
+    expect(enSm).toEqual([`${STORY_PILLAR_NUMBER_COLUMN} minmax(0, 1fr)`]);
   });
 });
 

@@ -44,6 +44,7 @@ import {
   STORY_FLOAT_AMPLITUDE,
   STORY_HALO_GRADIENT,
   STORY_HALO_INSET,
+  STORY_PILLAR_NUMBER_COLUMN,
   STORY_SLIDES,
 } from "./story.layers";
 
@@ -1112,10 +1113,38 @@ const ScCardInspiration = styled(Typography)`
  * vez de retirarla de `ScPillarRow` -- no se toca esa declaración (D1: no
  * tocar lo que consume el deck), aunque ahora su único efecto práctico sea
  * quedar siempre anulada por esta extensión.
+ *
+ * EL NUMERO SE APILA SOBRE LA COPIA POR DEBAJO DE sm (critica externa #16,
+ * hallazgo L1, ola L). El canal que ScDeck reserva para el rail
+ * (story.deck.tsx, 56 px) deja la caja de contenido en 302 px a 390 px de
+ * ancho, y la columna del numero de ScPillarRow -- STORY_PILLAR_NUMBER_COLUMN
+ * mas el gap de space[4], 56 px -- se comia otros 56: la copia del pilar
+ * quedaba en 246 px, 31 caracteres por linea a 16 px, medidos con Range por
+ * caracter. Con el numero apilado la copia recupera los 302 px enteros y sube
+ * a ~38, que es la medida que el encargo pide conservar. A partir de sm
+ * (600 px) la caja ya tiene 512 px y la fila vuelve a las dos columnas de
+ * siempre, con el ancho de la columna leido de la misma constante con nombre.
+ *
+ * Se declara AQUI y no en ScPillarRow por la misma regla D1 del comentario de
+ * arriba: la base no se toca; la extension del deck es el unico consumidor y
+ * el unico contexto en el que la fila convive con un rail. La rama clara
+ * apila su numero (badge) sobre el titulo en todos los anchos, asi que el
+ * movil de las dos ramas queda ademas alineado.
+ *
+ * SIN BACKTICKS en este comentario ni en el de dentro: viven junto a y dentro
+ * de un template literal de styled-components (task/lessons.md 2026-07-25).
  */
 const ScDeckPillarRow = styled(ScPillarRow)`
   border-block-start: none;
   padding-block: 0;
+  /* Mobile-first: una sola pista con minimo 0 (mismo motivo WCAG 1.4.4 que la
+     base) y el numero encima; la fila de dos columnas de ScPillarRow se
+     restaura desde sm. */
+  grid-template-columns: minmax(0, 1fr);
+
+  @media ${({ theme }) => theme.data.breakPoint.sm} {
+    grid-template-columns: ${STORY_PILLAR_NUMBER_COLUMN} minmax(0, 1fr);
+  }
 `;
 
 /*

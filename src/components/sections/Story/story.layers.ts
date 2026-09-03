@@ -410,6 +410,26 @@ export const STORY_DECK_PILLAR_TITLE_SIZE = "clamp(1.75rem, 5vw, 3rem)";
 export const STORY_DECK_PILLAR_SUBTITLE_SIZE = "1rem";
 
 /**
+ * Ancho de la columna del NÚMERO en la fila de pilar (`ScPillarRow`,
+ * `Story.tsx`): la pista fija de su `grid-template-columns: 2.5rem minmax(0,
+ * 1fr)`. Existe con nombre desde la crítica externa #16 (hallazgo L1, ola L)
+ * porque `ScDeckPillarRow` — la extensión que consume el deck oscuro — tiene
+ * que volver a DECLARAR esa misma fila a partir de `sm` después de apilarla en
+ * una sola pista por debajo, y dos literales `2.5rem` en dos declaraciones que
+ * describen la misma columna es la clase de duplicado que la regla 13 de
+ * `RULES.md` prohíbe. La base de `ScPillarRow` conserva su literal tal cual
+ * (D1 de la spec 2026-08-06: no se toca lo que el deck consume); el candado
+ * que impide que los dos valores diverjan vive en `Story.test.tsx`, que lee
+ * las dos reglas del CSSOM y las compara contra esta constante.
+ *
+ * No es `space[6]` (2rem) ni `space[7]` (3rem): 2.5rem cabe exactamente dos
+ * cifras de `bodySm` en negrita con aire a los lados, y ninguno de los dos
+ * peldaños vecinos de la escala lo hace — el primero aprieta, el segundo abre
+ * un hueco que se lee como columna vacía.
+ */
+export const STORY_PILLAR_NUMBER_COLUMN = "2.5rem";
+
+/**
  * Cuerpo de la diapositiva de pilar: el texto de inspiración nuevo
  * (`pillars.<key>.inspiration`). Tope 1.115rem (encargo). Mínimo 1rem: el
  * mismo suelo de lectura que el subtítulo, para que el párrafo de cuatro

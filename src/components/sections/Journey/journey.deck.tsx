@@ -192,6 +192,27 @@ export const ScJourneyDeck = styled.div`
   padding-inline: ${({ theme }) => theme.data.space[6]};
 
   /*
+   * CANAL DEL RAIL (critica externa #16, hallazgo L1). MISMA suma, mismo
+   * motivo y mismo orden de declaracion que en ScDeck (story.deck.tsx) -- los
+   * dos decks son gemelos declarados (deuda "Decks Story/Journey gemelos",
+   * RULES.md) y el rail de esta seccion tiene exactamente la misma geometria:
+   * inset space[5], diana de space[5] y un canal libre de space[2] -- los
+   * 8 px que el propio hallazgo fija como umbral, y ni uno mas, porque cada
+   * pixel de canal sobrante se paga en medida de lectura a 390 px (el porque
+   * completo, con la version de 6rem que se descarto, en el docblock de
+   * ScDeck). La medicion que abre el hallazgo se tomo sobre Story, pero el
+   * defecto es estructural, no de una copia concreta: cualquier linea que
+   * llegue al borde de la caja de contenido entra en la banda del rail. Se
+   * duplica aqui en vez de importarse de alla, mismo criterio que
+   * ScScrollHint y el propio rail: este fichero es una hoja estructural sin
+   * ninguna dependencia de la seccion hermana.
+   */
+  padding-inline-end: calc(
+    ${({ theme }) => theme.data.space[5]} +
+      ${({ theme }) => theme.data.space[5]} +
+      ${({ theme }) => theme.data.space[2]}
+  );
+  /*
    * Hueco extra a la derecha SOLO en pantallas grandes (mismo recurso que
    * STORY_DECK_PADDING_INLINE_END): rompe a proposito la simetria del
    * padding-inline de arriba para desplazar la columna de texto hacia la

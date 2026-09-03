@@ -2492,3 +2492,39 @@ describe("Journey: critica #16 -- el rail dice visualmente por donde va el deck"
   });
 });
 
+/*
+ * Critica externa #16, hallazgo L1: el rail flota sobre la copia. Mismo
+ * candado, misma suma y mismo motivo que en `Story.test.tsx` -- los dos decks
+ * son gemelos declarados y el rail de esta seccion tiene la misma geometria.
+ * Lo que se ata es la DERIVACION del canal desde los tokens del rail, no un
+ * numero: jsdom no hace layout, asi que la comprobacion de que ninguna caja de
+ * glifo cruza la banda se hace en navegador y se reporta con cifras.
+ */
+describe("Journey: critica #16 -- la copia del deck reserva el canal del rail", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("ScJourneyDeck declara padding-inline-end como la suma del inset del rail, su diana y el canal libre", async () => {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    const deckEl = container.querySelector("[data-slide-index]")!
+      .parentElement as HTMLElement;
+    const { space } = themes.dark;
+
+    // Espacios normalizados: styled-components conserva los saltos de linea
+    // del template dentro del `calc()`, y lo que se afirma es la SUMA.
+    const plano = cssRuleTextFor(deckEl).replace(/\s+/g, " ");
+    expect(plano).toContain(
+      `padding-inline-end: calc( ${space[5]} + ${space[5]} + ${space[2]} )`,
+    );
+  });
+});

@@ -223,6 +223,50 @@ export const ScDeck = styled.div`
   padding-inline: ${({ theme }) => theme.data.space[6]};
 
   /*
+   * CANAL DEL RAIL (critica externa #16, hallazgo L1 = hallazgo 2 de Craft):
+   * el rail no flota sobre un margen vacio, flota sobre la copia. Medido en
+   * tema oscuro a 390 px de ancho, la banda del rail ocupa x=342-366 mientras
+   * la caja de contenido del deck llegaba hasta x=358 (390 menos el
+   * padding-inline de 2rem): 11 lineas de glifos entraban entre 2 y 13 px
+   * dentro de la banda, ScDeckPillarSubtitle terminaba en x=358 solapando el
+   * rail entero, y elementsFromPoint sobre la banda devolvia el BUTTON del
+   * rail POR ENCIMA del parrafo -- es decir, el control tapaba texto y el
+   * texto pasaba por debajo del control. Se reproduce igual a 414, 480, 600 y
+   * 768 (maximo 16 px de invasion) y desaparece a 1024, donde la regla lg de
+   * mas abajo ya deja 8rem libres.
+   *
+   * El valor NO es un numero elegido: es la geometria del rail sumada
+   * termino a termino, para que se mueva sola si el rail se mueve.
+   *   space[5] -> inset-inline-end del rail (ScRail, mas abajo)
+   *   space[5] -> ancho de la caja de una marca (ScRailMark: la diana de
+   *               24 px de WCAG 2.5.8; el rotulo de posicion se stackea en
+   *               vertical justamente para no ensanchar esta columna)
+   *   space[2] -> el canal libre entre la copia y la banda del rail, 8 px:
+   *               exactamente el margen que el propio hallazgo fija como
+   *               objetivo (ninguna caja de glifo cruza rail.left - 8 px)
+   * Total 3.5rem, 56 px. A 390 px la copia pasa a terminar en x=334 = el
+   * borde del rail menos el canal, asi que ningun glifo puede cruzar el
+   * umbral por construccion: el texto no desborda su caja.
+   *
+   * POR QUE NO MAS. La primera version de esta ola reservaba space[7] de
+   * canal (6rem en total, 96 px) y la medicion de un agente vecino la tumbo:
+   * a 390 px dejaba la copia del deck en 25-36 caracteres por linea, frente
+   * a los 38-46 de la rama clara. El rail solo necesita que el texto no entre
+   * en su banda; cada pixel de canal por encima de eso se paga en medida de
+   * lectura justo en el ancho donde menos sobra. Con 56 px la copia conserva
+   * la medida (cifras en el informe de la ola L, medidas con Range por
+   * caracter) y el hit-test sobre la banda devuelve el rail.
+   *
+   * Va DESPUES del padding-inline de arriba (longhand contra shorthand, lo
+   * decide el orden) y ANTES del bloque lg, que lo sustituye por su hueco de
+   * composicion -- 8rem, mas ancho todavia, asi que la garantia se conserva.
+   */
+  padding-inline-end: calc(
+    ${({ theme }) => theme.data.space[5]} +
+      ${({ theme }) => theme.data.space[5]} +
+      ${({ theme }) => theme.data.space[2]}
+  );
+  /*
    * Hueco extra a la derecha SOLO en pantallas grandes (encargo
    * 2026-07-31): rompe a proposito la simetria del padding de arriba para
    * desplazar la columna de texto hacia la izquierda y dejar respirar el
