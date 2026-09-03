@@ -19,6 +19,7 @@
                 "third": "un nuevo comienzo"
             },
             "figureAlt": "Figura celestial ofreciendo la palma abierta",
+            "sceneAlt": "Figura celestial que sostiene un núcleo de luz a la altura del pecho, rodeada de anillos orbitales en una nebulosa violeta",
             "railLabel": "Progreso de la historia",
             "pillars": {
                 "learn": {
@@ -49,6 +50,7 @@
             "body": "Cada descubrimiento crea una pregunta nueva. Cada habilidad abre otro camino. El viaje continúa mientras quede curiosidad.",
             "quote": "El destino no es el infinito. El viaje lo es.",
             "figureAlt": "Figura celestial señalando hacia arriba con el índice",
+            "sceneAlt": "Figura celestial de brazos abiertos al final de un sendero de luz que atraviesa una hilera de arcos",
             "stepPosition": "Paso {{current}} de {{total}}",
             "railLabel": "Progreso del viaje",
             "steps": {

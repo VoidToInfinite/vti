@@ -1244,7 +1244,19 @@ function JourneyDeckDark(): ReactElement {
           ref={stageRef}
           data-slide={index}
         >
-          <ScJourneySceneWrap>
+          {/* Texto alternativo del arte del deck, gemelo del de Story
+              (critica externa #16, hallazgo A, decision del dueno del
+              2026-09-03): el mismo razonamiento completo vive en el
+              comentario equivalente de `Story.tsx`. En resumen: se nombra en
+              el consumidor porque `JourneyCosmicPortal` no cambia -- sus 6
+              capas siguen con `alt=""` bajo un `aria-hidden="true"`, que es
+              lo correcto para un fondo, mientras que la composicion entera
+              (la figura al final del sendero) si dice algo y es lo que la
+              rama clara ya describia con `figureAlt`. */}
+          <ScJourneySceneWrap
+            role="img"
+            aria-label={t("Home.journey.sceneAlt")}
+          >
             <JourneyCosmicPortal />
           </ScJourneySceneWrap>
           <ScJourneyDeck>

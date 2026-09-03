@@ -2009,7 +2009,31 @@ function StoryDeckDark(): ReactElement {
           data-slide={index}
           data-dir={direction}
         >
-          <ScSceneWrap>
+          {/* Texto alternativo del arte del deck (critica externa #16,
+              hallazgo A, decision del dueno del 2026-09-03). El defecto
+              medido: en oscuro la seccion no describia ni una sola imagen (32
+              `alt=""` en el documento) mientras que en claro `figureAlt`
+              describia su figura, asi que el MISMO contenido se contaba
+              distinto segun el tema.
+
+              Se nombra AQUI, en el consumidor, y no dentro de la escena:
+              `StoryCosmicBeing` sigue intacta -- sus 11 capas conservan su
+              `alt=""` y su `aria-hidden="true"`, que es lo correcto, porque
+              ninguna capa suelta (nebulosa, estrellas lejanas, geometria)
+              significa nada por si misma. Lo que significa algo es la SUMA, y
+              esa suma solo la conoce quien la coloca en una seccion concreta.
+
+              `role="img"` + `aria-label` es el patron estandar para una
+              imagen compuesta de varias imagenes: convierte este envoltorio
+              en una hoja del arbol de accesibilidad, asi que el subarbol
+              `aria-hidden` de dentro no entra en el nombre ni se anuncia por
+              separado -- se anuncia UNA imagen con UN nombre, igual que la
+              figura de la rama clara. El envoltorio no lleva texto propio, y
+              el atributo no toca layout ni pintura. */}
+          <ScSceneWrap
+            role="img"
+            aria-label={t("Home.story.sceneAlt")}
+          >
             <StoryCosmicBeing />
           </ScSceneWrap>
           <ScDeck>
