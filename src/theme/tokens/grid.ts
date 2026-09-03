@@ -321,10 +321,13 @@ export const grid = {
    * 16px) — pero se deja escrito para que nadie la dé por migrada al leer
    * esta corrección.
    *
-   * PENDIENTE fuera de este fichero, declarado en vez de corregido en
-   * silencio desde una tarea que no es dueña de ese componente:
-   * `Typography.tsx` arrastra la MISMA lista de siete en su apartado «QUÉ NO
-   * CIERRA ESTE CAMBIO», con la misma parte ya obsoleta.
+   * CERRADO el mismo día en el otro extremo de la contradicción: hasta esa
+   * corrección `Typography.tsx` arrastraba la MISMA lista de siete en su
+   * apartado «QUÉ NO CIERRA ESTE CAMBIO», así que el repo afirmaba dos cosas
+   * incompatibles sobre las mismas piezas y quien abriera aquel fichero
+   * primero se llevaba la versión refutada. Su docblock cuenta hoy el mismo
+   * recuento, verificado por separado sobre el bloque `styled` de cada una de
+   * las siete.
    *
    * ## LA BANDA POR VIEWPORT — declarada desde la crítica externa #16
    * (2026-09-03)

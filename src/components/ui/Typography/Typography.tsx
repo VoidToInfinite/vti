@@ -161,14 +161,32 @@ interface TypographyProps {
  * formas. El criterio de T6 sigue vigente donde el equilibrado sí se aplica
  * (los titulares, que declaran la shorthand).
  *
- * QUÉ NO CIERRA ESTE CAMBIO. Cuatro piezas de cuerpo fuera de este componente
- * declaran el equilibrado por su cuenta y ganan la cascada aunque sean
- * `styled(Typography)` — `ScBody` (`Contact.tsx`), `ScTagline` (`Hero.tsx`),
- * `ScDeckIntroBody`/`ScDeckPillarSubtitle`/`ScDeckPillarBody`
- * (`story.deck.tsx`) y `ScJourneyIntroBody`/`ScJourneyStepSubtitle`
- * (`journey.deck.tsx`). Siguen equilibrando después de esta retirada; están
- * fuera del alcance de este cambio y quedan declaradas aquí en vez de
- * corregidas en silencio desde un fichero que no es su dueño.
+ * QUÉ NO CERRÓ ESTE CAMBIO, Y QUÉ QUEDA HOY. La retirada dejó fuera siete
+ * piezas de cuerpo que declaraban el equilibrado por su cuenta y ganaban la
+ * cascada aunque fueran `styled(Typography)`: `ScBody` (`Contact.tsx`),
+ * `ScTagline` (`Hero.tsx`), `ScDeckIntroBody`/`ScDeckPillarSubtitle`/
+ * `ScDeckPillarBody` (`story.deck.tsx`) y `ScJourneyIntroBody`/
+ * `ScJourneyStepSubtitle` (`journey.deck.tsx`).
+ *
+ * SEIS DE LAS SIETE YA NO EQUILIBRAN (crítica externa #17, 2026-09-03): las
+ * olas posteriores a la #14 fueron retirando esas declaraciones una a una sin
+ * volver aquí a tacharlas, así que este párrafo describía el árbol del día que
+ * se escribió y no el de hoy. Contado sobre el código real, delimitando el
+ * bloque `styled` de cada una de las siete y buscando `text-wrap` dentro: solo
+ * `ScTagline` (`Hero.tsx`) sigue declarándolo. Y en todo `src/` las únicas
+ * declaraciones de `text-wrap: balance` que quedan son las de este componente
+ * para titulares, esa `ScTagline`, los dos `<h2>` de deck
+ * (`ScDeckTitle`/`ScJourneyDeckTitle`), los dos cierres de deck
+ * (`ScDeckNote`/`ScJourneyQuote`) y una pieza de las páginas legales
+ * (`legalPage.parts.tsx`) -- ninguno de los seis nombres restantes aparece
+ * entre ellas.
+ *
+ * La misma medición, hecha en navegador sobre los nodos reales, vive en
+ * `grid.prose` (`src/theme/tokens/grid.ts`), que es quien depende de ella: su
+ * derivación de 56ch solo describe lo que pasa si la prosa que lo consume no
+ * equilibra. Aquí se corrige el recuento para que el lector que llegue primero
+ * a este fichero no se lleve la versión refutada; la excepción viva
+ * (`ScTagline`) se conserva escrita para que nadie la dé por migrada.
  */
 
 const ScTypography = styled.p<{ $variant: TypeVariant }>`
