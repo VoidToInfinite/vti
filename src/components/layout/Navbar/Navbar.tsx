@@ -453,7 +453,78 @@ const ScSurface = styled.div`
  * lateral en landscape solo recorta UN borde a la vez -- una única cifra de
  * `padding-inline` no podría representar esa asimetría. Con insets a 0
  * (escritorio, la inmensa mayoría de Android) los dos `calc()` colapsan al
- * valor del token de siempre: layout idéntico al de antes de esta tarea.
+ * valor del raíl de siempre.
+ */
+/*
+ * EL CONTENIDO DE LA BARRA VIVE EN EL RAÍL DE CONTENIDO DEL SITIO
+ * (crítica externa #16, hallazgo L4 de Craft, 2026-09-03).
+ *
+ * EL DEFECTO, medido en navegador real (dev server, tema claro, barra
+ * despegada, x del borde izquierdo de la píldora de marca frente a x del
+ * contenido de `#features`/`#contact`/`footer`, que comparten raíl desde la
+ * crítica #14):
+ *
+ *   ancho    marca    contenido    desfase
+ *    1920      352          384       -32
+ *    1600      192          224       -32
+ *    1280       40           64       -24
+ *    1100       40           24        +16   <- cambia de signo
+ *
+ * El desfase no solo existía: cambiaba de signo al estrecharse la ventana, así
+ * que ningún lector podía interpretarlo como una sangría deliberada. La causa
+ * es que la barra nunca tuvo raíl propio: su contenido colgaba del ancho de la
+ * píldora (`grid.navMax`, 1280px) más un relleno de 16/32px por breakpoint,
+ * mientras el contenido del sitio cuelga de `grid.containerMax` (1200px) más
+ * `space[5]`. Dos orígenes distintos no pueden coincidir salvo por casualidad,
+ * y de hecho solo coincidían en un punto (390px, donde los dos colapsan a 24).
+ *
+ * LA DECISIÓN: el contenido de la barra hereda el raíl del contenido, no la
+ * geometría de su propia píldora. Es la opción (a) de las dos que planteaba el
+ * encargo, y la que ya tomó el pie de página en la crítica #14 -- ver el
+ * comentario de `ScInner` (`Footer.tsx`), que lo bajó de `space[6]` a
+ * `space[5]` por este mismo motivo. Las dos bandas de chrome del sitio
+ * (cabecera arriba, pie abajo) comparten ahora el raíl del contenido que
+ * enmarcan, y ninguna de las dos lo escribe con números propios.
+ *
+ * QUÉ NO CAMBIA, y es importante para la spec 2026-07-31 (D7): la PÍLDORA
+ * sigue midiendo `grid.navMax` (1280px). `navMax` y `containerMax` siguen
+ * siendo dos medidas independientes que pueden divergir; lo que este bloque
+ * declara es que la píldora es el CHROME y el raíl es del CONTENIDO, así que
+ * el ancho de una no decide la sangría del otro. `ScHeader`/`ScBar`/
+ * `ScSurface` quedan byte a byte como estaban.
+ *
+ * LA FORMA DEL RAÍL, y por qué no es `max-width` + `margin-inline: auto`:
+ * porque la caja que centra a este elemento cambia de tamaño entre los dos
+ * estados de la barra (`ScBar` va de `100vw` a `navMax`, y `ScHeader` le mete
+ * `var(--nav-gap)` de hueco lateral al despegarse). Expresado como relleno
+ * contra el ancho del PROPIO contenedor, el desfase se cancela solo:
+ *
+ *   sea B el ancho de `ScBar` y L su borde izquierdo respecto al viewport.
+ *   Con el tope activo, `margin-inline: auto` centra la píldora, así que
+ *   L = (W - B) / 2 -- el hueco lateral de `ScHeader` se cancela --, y
+ *   L + (B - containerMax) / 2 + space[5] = (W - containerMax) / 2 + space[5],
+ *   que es EXACTAMENTE el borde del contenido de la sección. La cifra no
+ *   depende ni de B ni del hueco, así que la marca no se mueve ni un píxel
+ *   durante toda la animación de despegue.
+ *
+ * EL SUELO (el término izquierdo del `max()`) es el que gobierna por debajo de
+ * `containerMax`, donde el raíl ya no muerde y el contenido va a `space[5]` del
+ * borde. Ahí sí entra el hueco de la píldora, y por eso el suelo del estado
+ * despegado le RESTA `var(--nav-gap)`: la píldora ya ha movido su contenido
+ * esos 8px hacia dentro, así que el relleno tiene que devolverlos para que la
+ * marca siga cayendo sobre el raíl. Las dos formas del suelo transicionan con
+ * la misma duración y curva que el `padding-inline` de `ScHeader` (`base` /
+ * `standard`), así que los 8px que uno pone y el otro quita se compensan
+ * fotograma a fotograma: sin esa transición, la marca daría un salto de 8px al
+ * cruzar el umbral.
+ *
+ * LO QUE ESTE RAÍL NO ALINEA, declarado porque es deuda conocida del repo y no
+ * un descuido de esta tarea (`RULES.md`, "Deuda conocida": la convivencia de
+ * DOS raíles en la misma página es una decisión de diseño del dueño): las
+ * secciones a sangre del tema oscuro y el deck claro de Journey cuelgan de
+ * `grid.sectionMax` (1280px) + `space[6]`, y Story claro de `sectionMax` +
+ * `space[5]`. Medido a 1920: 352 y 344 frente a los 384 de este raíl. Alinear
+ * eso exige mover secciones, que no es de esta tarea ni de este fichero.
  */
 const ScNav = styled.nav`
   position: relative;
@@ -464,22 +535,69 @@ const ScNav = styled.nav`
   /* La misma variable que descuenta el Hero (ver GlobalStyles): si la banda
      cambia de alto, las dos medidas cambian juntas. */
   height: var(--nav-height);
-  padding: 0
-    calc(
-      ${({ theme }) => theme.data.space[4]} + env(safe-area-inset-right, 0px)
-    )
-    0
-    calc(${({ theme }) => theme.data.space[4]} + env(safe-area-inset-left, 0px));
+  padding-block: 0;
+  padding-right: calc(
+    max(
+        ${({ theme }) => theme.data.space[5]},
+        calc(
+          (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
+            ${({ theme }) => theme.data.space[5]}
+        )
+      ) +
+      env(safe-area-inset-right, 0px)
+  );
+  padding-left: calc(
+    max(
+        ${({ theme }) => theme.data.space[5]},
+        calc(
+          (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
+            ${({ theme }) => theme.data.space[5]}
+        )
+      ) +
+      env(safe-area-inset-left, 0px)
+  );
+  /* Misma duración y curva que el padding-inline de ScHeader: ver el docblock
+     de arriba, apartado del suelo. (Sin comillas invertidas dentro del
+     template: regla 23 de RULES.md, ya ha roto el build cinco veces.) */
+  transition:
+    padding-left ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    padding-right ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard};
 
-  @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding: 0
-      calc(
-        ${({ theme }) => theme.data.space[6]} + env(safe-area-inset-right, 0px)
-      )
-      0
-      calc(
-        ${({ theme }) => theme.data.space[6]} + env(safe-area-inset-left, 0px)
-      );
+  [data-scrolled="true"] & {
+    padding-right: calc(
+      max(
+          calc(${({ theme }) => theme.data.space[5]} - var(--nav-gap)),
+          calc(
+            (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
+              ${({ theme }) => theme.data.space[5]}
+          )
+        ) +
+        env(safe-area-inset-right, 0px)
+    );
+    padding-left: calc(
+      max(
+          calc(${({ theme }) => theme.data.space[5]} - var(--nav-gap)),
+          calc(
+            (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
+              ${({ theme }) => theme.data.space[5]}
+          )
+        ) +
+        env(safe-area-inset-left, 0px)
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    /* Mismo motivo que documenta ScBar en su propio bloque de reduce: el
+       estado anidado con el atributo tiene MAYOR especificidad que el
+       ampersand suelto, así que sin redeclararlo aquí dentro ganaría la
+       transición con curva real del bloque de estado. */
+    [data-scrolled="true"] & {
+      transition: none;
+    }
   }
 `;
 

@@ -235,8 +235,14 @@ describe("Navbar", () => {
       expect(clase, "no se encontró la clase inyectada de ScNav").toBeDefined();
 
       const propias = reglas.filter((r) => r.includes(clase));
-      const paddingRule = propias.find((r) => r.includes("padding:"));
-      expect(paddingRule, "ScNav no declara padding").toBeDefined();
+      /* `padding-left`/`padding-right`, no la abreviatura `padding:` que este
+         candado buscaba hasta la crítica #16: el raíl de contenido (hallazgo
+         L4) resuelve cada lado con su propio `max()`, así que las dos
+         longhands sustituyen a la shorthand de cuatro valores. Lo que el
+         candado ata NO cambia: que el inset del notch se sigue reservando en
+         los dos lados, y de forma ADITIVA sobre el raíl. */
+      const paddingRule = propias.find((r) => r.includes("padding-left:"));
+      expect(paddingRule, "ScNav no declara padding-left").toBeDefined();
       expect(paddingRule).toContain("env(safe-area-inset-left, 0px)");
       expect(paddingRule).toContain("env(safe-area-inset-right, 0px)");
     });
@@ -3821,5 +3827,121 @@ describe("critica #16 (L12): el disparador de «Mas» tiene forma de boton bajo 
     // alguien copia la regla en vez de interpolarla, este candado cae.
     expect(fuente).not.toContain("ButtonText");
     expect(fuente).not.toContain("forced-colors");
+  });
+});
+
+describe("critica #16 (L4): el contenido de la barra cuelga del rail de contenido del sitio", () => {
+  /** La regla propia de ScNav: es la unica que declara la altura de la banda. */
+  function reglaScNav(): string {
+    const encontradas = allCssRules().filter(
+      (r) =>
+        r.includes("height: var(--nav-height)") && r.includes("padding-left:"),
+    );
+    expect(
+      encontradas.length,
+      "no se encontro la regla base de ScNav",
+    ).toBeGreaterThan(0);
+    return encontradas.join(" ");
+  }
+
+  /** Las reglas del estado despegado que declaran relleno horizontal. */
+  function reglaDespegada(): string {
+    const encontradas = allCssRules().filter(
+      (r) =>
+        r.includes('[data-scrolled="true"]') &&
+        r.includes("padding-left:") &&
+        r.includes("var(--nav-gap)"),
+    );
+    expect(
+      encontradas.length,
+      "no se encontro la regla de ScNav en estado despegado",
+    ).toBeGreaterThan(0);
+    return encontradas.join(" ");
+  }
+
+  it("el relleno se resuelve contra grid.containerMax y space[5], los MISMOS tokens del contenido", () => {
+    renderNavbar();
+    const regla = reglaScNav();
+
+    // Contra el token importado, nunca contra un string escrito a mano
+    // (regla 38). Es el mismo par que declaran ScFeatures/ScContact/ScInner.
+    expect(regla).toContain(basicLightTheme.grid.containerMax);
+    expect(regla).toContain(basicLightTheme.space[5]);
+    expect(regla).toContain("max(");
+  });
+
+  it("el rail NO cuelga de grid.navMax: la pildora es chrome y el rail es del contenido (spec 2026-07-31, D7)", () => {
+    renderNavbar();
+    const regla = reglaScNav();
+
+    expect(regla).not.toContain(basicLightTheme.grid.navMax);
+  });
+
+  it("en el estado despegado el suelo del rail descuenta var(--nav-gap), el hueco que la pildora ya mete", () => {
+    renderNavbar();
+    const regla = reglaDespegada();
+
+    expect(regla).toContain("var(--nav-gap)");
+    expect(regla).toContain(basicLightTheme.grid.containerMax);
+    // Y el descuento va SOLO en el suelo: el termino del rail sigue siendo el
+    // mismo que en reposo, asi que la marca no se mueve al cruzar el umbral.
+    expect(regla).toContain(basicLightTheme.space[5]);
+  });
+
+  it("los dos rellenos transicionan con la misma duracion y curva que el padding-inline de ScHeader", () => {
+    renderNavbar();
+    const regla = reglaScNav();
+
+    expect(regla).toContain(
+      `padding-left ${basicLightTheme.motion.duration.base} ${basicLightTheme.motion.easing.standard}`,
+    );
+    expect(regla).toContain(
+      `padding-right ${basicLightTheme.motion.duration.base} ${basicLightTheme.motion.easing.standard}`,
+    );
+  });
+
+  it("bajo reduce, el estado despegado redeclara transition: none (si no, gana por especificidad)", () => {
+    stubMatchMedia(true);
+    renderNavbar();
+    const nav = screen.getByRole("navigation");
+    const reglas = allCssRules();
+    /* Acotado a la clase de ScNav, no a "alguna regla del documento con esas
+       tres palabras": ScBar declara EXACTAMENTE el mismo par de bloques por el
+       mismo motivo, asi que un filtro global pasaba en verde leyendo la regla
+       del vecino -- comprobado con el bug inyectado de esta tarea. */
+    const clase = Array.from(nav.classList).find((c) =>
+      reglas.some((r) => r.includes(`.${c}`)),
+    ) as string;
+    expect(clase, "no se encontro la clase inyectada de ScNav").toBeDefined();
+
+    const reduce = reglas.filter(
+      (r) =>
+        r.includes("prefers-reduced-motion: reduce") &&
+        r.includes(`[data-scrolled="true"] .${clase}`) &&
+        r.includes("transition: none"),
+    );
+    expect(
+      reduce.length,
+      "el bloque de reduce de ScNav no redeclara el estado despegado",
+    ).toBeGreaterThan(0);
+  });
+
+  it("la barra ya no reparte relleno por breakpoint: el rail es continuo (candado de fuente)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "Navbar.tsx"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    // Recuento CERRADO (reglas 39/40): el unico consumidor de containerMax en
+    // este fichero son los cuatro terminos del rail (dos lados x dos estados).
+    expect(fuente.match(/theme\.data\.grid\.containerMax/g)?.length ?? 0).toBe(
+      4,
+    );
+    // space[6] era el relleno de escritorio que el rail sustituye; ya no lo
+    // consume nadie en este fichero.
+    expect(fuente).not.toContain("space[6]");
   });
 });
