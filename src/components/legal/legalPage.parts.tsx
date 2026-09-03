@@ -80,11 +80,31 @@ export const ScMain = styled.main`
       ${({ theme }) => theme.data.space[5]}
   );
   margin-inline: auto;
-  padding: ${({ theme }) => theme.data.space[7]}
-    ${({ theme }) => theme.data.space[5]};
+  /*
+   * EL RELLENO SUPERIOR DESCUENTA LA BANDA DEL NAVBAR (2026-09-03, decisión
+   * del dueño tras la crítica externa #16). Hasta hoy las legales montaban una
+   * cabecera propia EN FLUJO, que ocupaba su propia franja y empujaba este
+   * main hacia abajo por sí sola. Desde que montan el Navbar del sitio (ver el
+   * docblock de PrivacyDocument.tsx) la cabecera es position: fixed y NO deja
+   * hueco en el flujo: sin este descuento, el enlace de vuelta y el h1
+   * nacerían justo debajo del borde superior, con la barra encima.
+   *
+   * var(--nav-height) es la MISMA variable global que fija la banda
+   * (GlobalStyles) y la misma que ya descuenta NotFoundContent por este mismo
+   * motivo desde la Task 35: si la banda cambia de alto, las tres medidas
+   * cambian juntas. El relleno inferior conserva su valor de siempre --
+   * el descuento es del borde superior, no del ritmo vertical del documento --,
+   * así que aquí se escriben las dos longitudes del eje de bloque por separado.
+   * (Sin comillas invertidas dentro del template: regla 23 de RULES.md.)
+   */
+  padding: calc(var(--nav-height) + ${({ theme }) => theme.data.space[7]})
+    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[7]};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding-block: ${({ theme }) => theme.data.space[8]};
+    padding-block: calc(
+        var(--nav-height) + ${({ theme }) => theme.data.space[8]}
+      )
+      ${({ theme }) => theme.data.space[8]};
   }
 `;
 

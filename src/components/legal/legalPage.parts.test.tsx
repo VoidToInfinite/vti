@@ -252,6 +252,37 @@ describe("legalPage.parts: ancho de ScMain (crítica externa #10, hallazgos A y 
   });
 
   /*
+   * DECISIÓN DEL DUEÑO 2026-09-03 (crítica externa #16): las páginas legales
+   * pasan a montar el `Navbar` del sitio (ver el docblock de
+   * `documents/PrivacyDocument.tsx`), que es `position: fixed` y NO deja hueco
+   * en el flujo -- a diferencia de la cabecera propia que montaban hasta hoy.
+   * Sin este descuento, el enlace de vuelta y el `h1` nacen debajo de la barra.
+   *
+   * jsdom no hace layout, así que la superposición real no se puede observar
+   * aquí: se inspecciona `document.styleSheets`, que es exactamente el texto
+   * que llega al navegador (regla 36/44). La comprobación en Chrome de que el
+   * `main` empieza por debajo de la banda va en el informe de la tarea.
+   */
+  it("ScMain descuenta la banda del navbar fijo en su relleno superior, en los dos escalones", () => {
+    renderWithProviders(<ScMain>documento</ScMain>);
+    // Normalizado por el mismo motivo que el test de arriba: un `calc()`
+    // conserva los saltos de línea del template.
+    const css = cssRuleTextFor(screen.getByRole("main"))
+      .replace(/\s+/g, " ")
+      .replace(/\(\s+/g, "(")
+      .replace(/\s+\)/g, ")");
+
+    expect(
+      css,
+      "sin descontar --nav-height, el documento nace tapado por la barra fija",
+    ).toContain(`calc(var(--nav-height) + ${themes.light.space[7]})`);
+    expect(
+      css,
+      "el escalón md tiene su propio relleno de bloque y también tiene que descontar la banda",
+    ).toContain(`calc(var(--nav-height) + ${themes.light.space[8]})`);
+  });
+
+  /*
    * El suelo de la tabla: lo que impide que «que ScMain deje de inflarse» se
    * pague aplastando las 5 columnas (el atajo `table-layout: fixed` con
    * `width: 100%` daría columnas de 64 px a 320 px). Se afirma contra el
