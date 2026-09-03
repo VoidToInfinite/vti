@@ -273,6 +273,34 @@ const ScHeader = styled.header`
     opacity: 1;
     transform: translateY(0);
   }
+
+  /*
+   * SIN JAVASCRIPT LA CABECERA VUELVE AL FLUJO (crítica externa #17, P1 del
+   * evaluador Nielsen, 2026-09-03).
+   *
+   * position: fixed existe para UNA cosa: que la barra flote sobre el hero
+   * transparente y se convierta en cristal al scrollear. Ese segundo estado
+   * lo escribe data-scrolled, que sale de useScrolled -- estado de React. Sin
+   * JavaScript el atributo no se pone nunca, ScSurface se queda en opacity 0
+   * para siempre y lo único que queda de la barra fija es una capa
+   * transparente que tapa contenido al hacer scroll y que, en cuanto muestra
+   * los destinos de sección (ver ScNavLinks, más abajo), envuelve a dos o
+   * tres filas de alto sobre el texto de la página.
+   *
+   * En flujo, la banda mide lo que mide su contenido, empuja el hero hacia
+   * abajo en vez de taparlo, y el salto a un ancla aterriza donde tiene que
+   * aterrizar sin depender de que scroll-margin-top (GlobalStyles) adivine la
+   * altura de una barra que ahora envuelve. Es exactamente lo que pedía el
+   * encargo: la fila de destinos, en flujo, envolviendo si hace falta.
+   *
+   * QUÉ NO CAMBIA: con JavaScript no cambia absolutamente nada -- este bloque
+   * entero no se evalúa. Y en un navegador sin soporte de scripting (Chrome
+   * < 120, Firefox < 113, Safari < 17) el bloque se ignora y queda el
+   * comportamiento de siempre.
+   */
+  @media (scripting: none) {
+    position: static;
+  }
 `;
 
 /*
@@ -599,6 +627,29 @@ const ScNav = styled.nav`
       transition: none;
     }
   }
+
+  /*
+   * SIN JAVASCRIPT LA BANDA ENVUELVE (crítica externa #17, P1 del evaluador
+   * Nielsen, 2026-09-03). Con los destinos de sección visibles en móvil (ver
+   * ScNavLinks) el contenido ya no cabe en una sola fila de 390 px, y una
+   * altura FIJA de var(--nav-height) recortaría justo lo que este arreglo
+   * existe para mostrar.
+   *
+   * height: auto + min-height conserva la banda de 3,5rem como SUELO: donde el
+   * contenido cabe en una fila --escritorio sin JavaScript, que es el caso que
+   * el evaluador midió como "degradación suave"-- la barra mide exactamente lo
+   * que medía antes, al píxel. Solo crece cuando de verdad hay una fila más.
+   *
+   * row-gap y no gap: el gap horizontal entre marca, destinos y controles
+   * sigue siendo el de space[4] declarado arriba; lo que hace falta aquí es
+   * separar las filas nuevas, que antes no existían.
+   */
+  @media (scripting: none) {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--nav-height);
+    row-gap: ${({ theme }) => theme.data.space[2]};
+  }
 `;
 
 /*
@@ -713,6 +764,35 @@ const ScBarLanguage = styled.div`
     display: inline-flex;
     align-items: center;
   }
+
+  /*
+   * SIN JAVASCRIPT EL IDIOMA VUELVE A LA BARRA TAMBIÉN EN MÓVIL (crítica
+   * externa #17, P1 del evaluador Nielsen, 2026-09-03).
+   *
+   * La copia móvil del selector vive DENTRO de la hoja (ver el docblock de
+   * NavSheet.tsx), y la hoja no abre nunca sin JavaScript: la consecuencia
+   * medida es que bajo 768 px las DOS copias quedaban a 0x0 y el visitante se
+   * quedaba sin forma de cambiar de idioma. Aquí no hay nada que dependa de
+   * JavaScript --LanguageSelector pinta dos <a href> a / y /en desde
+   * la crítica #10 (ver su docblock)--, así que la copia de la barra puede
+   * encenderse tal cual.
+   *
+   * NO DUPLICA EL CONTROL, y esto había que comprobarlo antes de encenderlo:
+   * sin JavaScript la hoja se queda para siempre en visibility: hidden +
+   * inert (los dos ya horneados en el HTML exportado, que se genera con
+   * isOpen === false), y cualquiera de los dos basta para sacar su copia del
+   * árbol de accesibilidad y del orden de tabulación. Sigue habiendo
+   * exactamente UNA copia anunciable, igual que en el reparto por md -- la
+   * diferencia es que allí la excluyente es display: none y aquí es el
+   * estado cerrado del que la hoja ya no puede salir.
+   *
+   * Va después del bloque de md y declara los mismos valores, así que en
+   * escritorio sin JavaScript no cambia un píxel.
+   */
+  @media (scripting: none) {
+    display: inline-flex;
+    align-items: center;
+  }
 `;
 
 /*
@@ -722,13 +802,17 @@ const ScBarLanguage = styled.div`
  * resto. Hasta esa fecha eran cuatro disparadores desplegables y ni un enlace
  * visible; antes de la tarea W4, cuatro enlaces planos sin ningún desplegable.
  *
- * SOLO >= md (mockup: barra angosta en breakpoints menores). Bajo `md` la
- * navegación NO desaparece desde Task 10: los MISMOS `NAV_GROUPS` se entregan
- * en la hoja de navegación móvil (`NavSheet.tsx`), que es la otra cara de este
- * bloque -- una sola fuente de verdad de destinos, dos presentaciones
- * excluyentes por CSS. `<div>`, no un segundo `<nav>`: `ScNav` ya es el
- * elemento `nav` de la barra, y anidar un landmark de navegación dentro de
- * otro sería un `nav` redundante para lectores de pantalla.
+ * SOLO >= md CON JAVASCRIPT (mockup: barra angosta en breakpoints menores).
+ * Bajo `md` la navegación NO desaparece desde Task 10: los MISMOS
+ * `NAV_GROUPS` se entregan en la hoja de navegación móvil (`NavSheet.tsx`),
+ * que es la otra cara de este bloque -- una sola fuente de verdad de destinos,
+ * dos presentaciones excluyentes por CSS. SIN JavaScript esa otra cara no
+ * existe (la hoja no abre nunca), así que desde la crítica externa #17 este
+ * bloque también se enciende bajo `md`: ver el bloque `@media (scripting:
+ * none)` del final, que es donde vive esa excepción y su medición. `<div>`, no
+ * un segundo `<nav>`: `ScNav` ya es el elemento `nav` de la barra, y anidar un
+ * landmark de navegación dentro de otro sería un `nav` redundante para
+ * lectores de pantalla.
  *
  * EL BREAKPOINT NO SE MUEVE CON D2, y es una decisión medida, no inercia. La
  * pregunta que había que responder es si la composición nueva cabe donde cabía
@@ -803,6 +887,50 @@ const ScNavLinks = styled.div`
   @media ${({ theme }) => theme.data.breakPoint.md} {
     display: flex;
     align-items: center;
+    gap: ${({ theme }) => theme.data.space[5]};
+  }
+
+  /*
+   * SIN JAVASCRIPT LOS DESTINOS DE SECCIÓN SE VEN TAMBIÉN EN MÓVIL (crítica
+   * externa #17, P1 del evaluador Nielsen, 2026-09-03).
+   *
+   * EL DEFECTO, reproducido con javaScriptEnabled: false real antes de
+   * tocar nada (Chrome, build de producción servido, 390x844, tema claro): de
+   * los 18 controles del header, DIECISIETE median 0x0 y solo sobrevivía el
+   * logotipo. La página mide 10.201 px a ese ancho, así que un visitante móvil
+   * sin JavaScript no tenía un solo enlace de navegación hasta el pie. A 1440
+   * la misma medición daba 11 controles a 0x0 y siete vivos --marca, los
+   * cuatro destinos y los dos idiomas--, es decir: la degradación suave ya
+   * existía en escritorio y se caía entera al bajar de 768 px.
+   *
+   * LA CAUSA NO ERA TÉCNICA, ERA HEREDADA. La regla base display: none de
+   * este bloque se escribió cuando el contenido eran cuatro DISPARADORES de
+   * desplegable (estado de React) y la hoja móvil era su única alternativa.
+   * Desde la decisión D2 (2026-09-02, crítica #14) los cuatro destinos son
+   * <a href> a anclas ABSOLUTAS (/#story, /en#story) que navegan
+   * perfectamente sin JavaScript: ocultarlos en móvil dejó de ser una
+   * necesidad y pasó a ser inercia. Lo que sí sigue exigiendo JavaScript --el
+   * disclosure «Más»-- ya se retira por su cuenta en ScNavGroup, así que
+   * este bloque puede encenderse entero sin arrastrar ninguna promesa muerta.
+   *
+   * flex-wrap: wrap y no una fila fija: a 390 px los cuatro rótulos
+   * castellanos ocupan unos 306 px de los 342 disponibles, así que caben --
+   * pero en un teléfono más estrecho, con el idioma en inglés más largo o a
+   * 200 % de tamaño de fuente, dejan de caber, y una fila que desborda no es
+   * mejor que una fila oculta. ScNav aporta la otra mitad (envolver y
+   * crecer, ver su propio bloque de scripting: none).
+   *
+   * CON JAVASCRIPT NO CAMBIA NADA, y el orden de los bloques es lo que lo
+   * garantiza: este va DESPUÉS del de md y declara los mismos valores
+   * (display: flex, align-items: center, el mismo gap), así que en
+   * escritorio sin JavaScript la fila queda byte a byte como estaba salvo por
+   * el flex-wrap, que no cambia nada mientras el contenido quepa. Con
+   * JavaScript el bloque entero no se evalúa.
+   */
+  @media (scripting: none) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
     gap: ${({ theme }) => theme.data.space[5]};
   }
 `;
@@ -1840,7 +1968,14 @@ export function Navbar(): ReactElement {
               />
             </ScNavLinks>
             <ScActions>
-              <ScBarLanguage>
+              {/* `data-bar-language`: gancho de test del guard sin JavaScript
+                (crítica externa #17). Mismo criterio que `data-nav-links` y
+                `data-nav-surface` de arriba: un `data-*` sobre un elemento del
+                DOM no obliga a declarar nada en la interfaz de props de nadie,
+                y jsdom no evalúa ningún `@media`, así que la única forma
+                honesta de afirmar algo sobre este bloque es localizar su clase
+                inyectada y leer la regla del CSSOM. */}
+              <ScBarLanguage data-bar-language>
                 <LanguageSelector />
               </ScBarLanguage>
               <ThemeToggle />

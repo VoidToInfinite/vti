@@ -175,7 +175,20 @@ function sheetBottomInset(theme: DefaultTheme): string {
  * de página recorre `NAV_GROUPS` entero y pinta cada destino como un `<a
  * href>` normal, siempre presente en el HTML exportado y sin ninguna capa que
  * abrir (`Footer.tsx`). La navegación completa sigue disponible sin
- * JavaScript; lo que desaparece es el atajo que no funciona. La alternativa
+ * JavaScript; lo que desaparece es el atajo que no funciona.
+ *
+ * ESO ERA VERDAD Y ERA INSUFICIENTE (crítica externa #17, P1 del evaluador
+ * Nielsen, 2026-09-03). Medido con `javaScriptEnabled: false` real a 390x844:
+ * con este disparador oculto y `ScNavLinks` todavía en `display: none` bajo
+ * `md`, de los 18 controles de la cabecera DIECISIETE median 0x0 y solo
+ * sobrevivía el logotipo -- es decir, la única salida quedaba a 10.201 px de
+ * scroll. «Hay salida en el pie» no es lo mismo que «hay navegación». Este
+ * guard NO se retira (sigue siendo un botón que no puede cumplir lo que
+ * promete), pero deja de ser la única respuesta: desde esa crítica la barra
+ * muestra los cuatro destinos de sección y el selector de idioma también en
+ * móvil sin JavaScript, y son ellos los que sostienen la degradación (ver los
+ * bloques `@media (scripting: none)` de `ScNavLinks` y `ScBarLanguage`,
+ * `Navbar.tsx`). La alternativa
  * -- dejarlo visible con un aviso -- exigiría un `<noscript>` que en cliente
  * sale VACÍO (React trata sus hijos como texto, ver `ScNoscriptNote` en
  * `Contact.tsx`) y, sobre todo, seguiría mostrando un control muerto para
