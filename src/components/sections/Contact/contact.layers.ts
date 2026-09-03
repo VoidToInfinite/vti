@@ -306,7 +306,15 @@ export const CONTACT_CARD_BORDER_DARK = "oklch(1 0 0 / 0.12)";
  *  translúcido que las tarjetas de contacto pero con su propia alfa de fondo
  *  (`.04` frente a `.05`) — constante independiente aunque el borde coincida
  *  numéricamente con `CONTACT_CARD_BORDER_DARK`, para no acoplar dos piezas
- *  que el mockup declara por separado. */
+ *  que el mockup declara por separado.
+ *
+ *  El censo de color de la crítica externa #17 (2026-09-03) encontró una
+ *  TERCERA aparición del mismo `oklch(1 0 0 / 0.12)`: `glassLight.border`
+ *  (`src/theme/tokens/glass.ts`). Tampoco es el token que estas dos piezas
+ *  necesitan, y por eso siguen siendo literales: ese es el borde del cristal
+ *  del tema CLARO, mientras estas dos visten la rama OSCURA, cuyo cristal
+ *  (`glassDark.border`) usa alfa `.08`. La coincidencia queda anotada en los
+ *  dos sitios; ver el docblock de `glass.ts` para el otro lado. */
 export const CONTACT_FORM_BG = "oklch(1 0 0 / 0.04)";
 export const CONTACT_FORM_BORDER = "oklch(1 0 0 / 0.12)";
 
