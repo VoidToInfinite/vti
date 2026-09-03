@@ -20,24 +20,70 @@ import { NotFoundLocaleShell } from "./NotFoundLocaleShell";
  * deberia declarar -- y la canonica apuntaba a `/`, no a la URL rota que el
  * visitante pidio de verdad.
  *
- * `robots.index: false` es la pieza central: una 404 SI debe permitir que
- * el rastreador siga los enlaces del sitio (`follow: true` -- desde la
- * auditoria premium 2026-08-08 la plantilla SI incluye navegacion: el
- * enlace "Volver al inicio" que `NotFoundContent` monta dentro de su
- * `<main>`, el unico enlace que esta pagina lleva), pero NUNCA debe
- * indexarse como resultado de busqueda -- indexar paginas de error diluye
- * la relevancia del dominio.
+ * ESTA RUTA NO DECLARA `robots`, Y ESA AUSENCIA ES DELIBERADA (critica
+ * externa #17, 2026-09-03). Hasta esa fecha declaraba
+ * `robots: { index: false, follow: true }` y el resultado medido era que la
+ * 404 emitia DOS `<meta name="robots">` a la vez:
+ *
+ *     <meta name="robots" content="noindex"/>
+ *     <meta name="robots" content="noindex, follow"/>
+ *
+ * Medido sobre el build de produccion servido (`out/404.html` y
+ * `GET /una-ruta-rota`, que responde 404 con ese mismo documento) y
+ * reproducido igual en `next dev`. La segunda salia de aqui; la PRIMERA la
+ * emite el propio framework: `HTTPAccessFallbackErrorBoundary`
+ * (`next/dist/client/components/http-access-fallback/error-boundary.js`)
+ * antepone un `<meta name="robots" content="noindex">` fijo a los hijos del
+ * limite de not-found en cuanto ese limite se dispara. No es configurable ni
+ * suprimible desde `metadata`: esta escrito en el render del componente.
+ *
+ * Asi que de las dos etiquetas solo una esta bajo nuestro control, y la
+ * unica forma de dejar UNA es no anadir la nuestra. La directiva efectiva no
+ * cambia: `noindex` a secas significa `noindex` + `follow`, porque `follow`
+ * es el valor por defecto de la etiqueta y solo `nofollow` lo revoca. Es
+ * decir, la 404 sigue sin indexarse y sigue permitiendo que el rastreador
+ * siga sus enlaces -- que es lo que se queria desde la auditoria premium
+ * 2026-08-08, cuando esta plantilla estreno navegacion propia.
+ *
+ * LO QUE HAY QUE COMPROBAR ANTES DE VOLVER A DECLARARLO: que el limite de
+ * Next siga emitiendo su etiqueta. Si una actualizacion de Next la retira,
+ * esta ruta se queda SIN ninguna directiva y una pagina de error pasa a ser
+ * indexable -- exactamente el defecto que la auditoria SEO 2026-08-08
+ * cerro. Ese es el riesgo real de esta decision y por eso lleva candado
+ * propio en `not-found.test.tsx`, que lee el fichero del framework
+ * instalado: en cuanto deje de emitirla, el gate se pone en rojo y hay que
+ * devolver el `robots` a este objeto.
+ *
+ * Tampoco se HEREDA ninguna: `app/layout.tsx` dejo de declarar metadata de
+ * pagina el 2026-08-18 y hoy solo declara `metadataBase` (ver su docblock),
+ * asi que aqui no llega el `index: true` de `buildMetadata()` que aquella
+ * auditoria encontro.
  *
  * `alternates.canonical: null` es una anulacion DELIBERADA, no una omision:
  * en la metadata de Next un campo de primer nivel que el hijo NO declara se
- * HEREDA del padre (`app/layout.tsx` declara la canonica de la home), asi
- * que omitir `alternates` dejaba a la 404 emitiendo
+ * HEREDA del padre, y cuando `app/layout.tsx` todavia declaraba la metadata
+ * de la portada eso dejaba a la 404 emitiendo
  * `<link rel="canonical" href="https://voidtoinfinite.com">` -- medido en
- * `out/404.html` el 2026-08-08. Declarar el campo con `null` sustituye la
- * herencia y suprime la etiqueta: una 404 no tiene URL propia que
- * canonicalizar. Tampoco se declaran `openGraph`/`twitter` (por eso NO se
- * usa `buildMetadata()`, que los construye siempre completos): no tiene
- * sentido compartir un "resultado" que no es una pagina real del sitio.
+ * `out/404.html` el 2026-08-08. El padre ya no declara `alternates`, asi que
+ * hoy no hay nada que anular; el campo se conserva porque expresa la
+ * intencion (una 404 no tiene URL propia que canonicalizar) y porque
+ * retirarlo devolveria la herencia el dia que la portada vuelva al layout.
+ * Verificado el 2026-09-03: `out/404.html` no emite ningun
+ * `<link rel="canonical">`.
+ *
+ * NO SE DECLARAN `openGraph`/`twitter`, PERO LA PAGINA SI LOS EMITE, y este
+ * docblock afirmaba lo contrario hasta la critica externa #17. Lo que decia
+ * -- que no tiene sentido compartir un "resultado" que no es una pagina real
+ * -- describe la intencion de no usar `buildMetadata()`, no el HTML que sale.
+ * Medido en `out/404.html` el 2026-09-03: la 404 emite `og:title`,
+ * `og:description`, `og:image` (con sus cuatro metas de tipo y tamano) y las
+ * siete de `twitter:*`. La causa es la convencion de fichero
+ * `app/opengraph-image.tsx`, que vive en el MISMO segmento raiz que esta
+ * ruta y por tanto tambien la cubre: Next crea el bloque Open Graph para
+ * colgar de el la imagen y lo completa con el `title` y la `description` de
+ * arriba. Queda escrito como hecho medido; cerrarlo (si es que debe
+ * cerrarse) es una decision de SEO con su propia medicion, no una omision de
+ * esta entrega.
  *
  * La copia sale del locale ESPAÑOL directamente, no vía `t()`: `metadata`
  * se resuelve en tiempo de build, sobre el HTML prerrenderizado en español
@@ -48,7 +94,6 @@ import { NotFoundLocaleShell } from "./NotFoundLocaleShell";
 export const metadata: Metadata = {
   title: `${esCommon.notFound.title}${TITLE_SEPARATOR}${SITE.name}`,
   description: esCommon.notFound.message,
-  robots: { index: false, follow: true },
   alternates: { canonical: null },
 };
 

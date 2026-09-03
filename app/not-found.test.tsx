@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
@@ -77,14 +78,39 @@ describe("not-found metadata", () => {
   });
 
   /*
-   * Candado del bug que esta entrega corrige: la version anterior, al
-   * heredar la metadata de la home, emitia a la vez `noindex` (de un ajuste
-   * suelto) e `index,follow` (de `buildMetadata()`) -- contradictorios. Una
-   * 404 debe seguir enlaces (`follow: true`) pero NUNCA indexarse
-   * (`index: false`).
+   * UNA SOLA `<meta name="robots">`, Y LA QUE QUEDA ES LA DEL FRAMEWORK
+   * (critica externa #17, 2026-09-03). Medido sobre el build de produccion
+   * servido: la 404 emitia DOS -- `noindex` y `noindex, follow` --, la
+   * segunda desde el `robots` que esta ruta declaraba. La primera la
+   * antepone el limite de not-found de Next y no se puede suprimir, asi que
+   * dejar una sola pasa por no anadir la nuestra. Ver el docblock de
+   * `not-found.tsx` para por que la directiva efectiva no cambia.
    */
-  it("robots declara index:false, follow:true -- nunca index:true ni un noindex/follow contradictorio", () => {
-    expect(metadata.robots).toEqual({ index: false, follow: true });
+  it("la ruta NO declara robots propio: la unica meta la emite el limite de Next", () => {
+    expect(metadata.robots).toBeUndefined();
+  });
+
+  /*
+   * EL CANARIO DE LA DECISION DE ARRIBA, y la unica parte de ella que no
+   * depende de este repo. No declarar `robots` solo es correcto mientras el
+   * limite de not-found de Next siga emitiendo el suyo; si una actualizacion
+   * lo retira, la 404 se queda sin directiva y una pagina de error pasa a
+   * ser indexable. Este candado lee el fichero del framework INSTALADO -- no
+   * una version supuesta -- y se pone en rojo el dia que eso cambie, que es
+   * el dia en que hay que devolver `robots` a `metadata`.
+   *
+   * Se comprueba sobre la fuente y no sobre HTML renderizado porque ese
+   * limite solo se monta cuando Next dispara la 404 de verdad: en jsdom no
+   * hay router que la dispare, y el `out/` del build no existe cuando corre
+   * el gate (`pnpm run ci` va antes de `pnpm build`).
+   */
+  it("el limite de not-found de Next sigue emitiendo su propia meta robots noindex", () => {
+    const fuente = readFileSync(
+      require.resolve("next/dist/client/components/http-access-fallback/error-boundary.js"),
+      "utf8",
+    );
+    expect(fuente).toContain('name: "robots"');
+    expect(fuente).toContain('content: "noindex"');
   });
 
   /*
