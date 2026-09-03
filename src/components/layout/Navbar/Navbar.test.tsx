@@ -1856,11 +1856,23 @@ describe("Navbar", () => {
        * cuatro de sus hijos son `<a href>` planos que navegan perfectamente
        * sin él: heredar el guard viejo borraría la navegación de escritorio
        * entera a cambio de nada.
+       *
+       * LA ASERCIÓN CAMBIA DE FORMA CON LA CRÍTICA #17 (regla 40: el test se
+       * actualiza a la verdad nueva, no se relaja). Hasta el 2026-09-03 esto
+       * exigía CERO reglas del contenedor bajo `scripting: none`, que era una
+       * forma indirecta de decir "no se oculta" -- y dejaba de ser correcta en
+       * cuanto el contenedor ganó un bloque `scripting: none` para hacer lo
+       * CONTRARIO (presentarse también en móvil, ver el describe de la crítica
+       * #17 al final del fichero). La aserción pasa a decir lo que de verdad
+       * hay que garantizar: ninguna de sus reglas sin JavaScript lo oculta.
        */
-      expect(
-        reglasDe(bloque),
-        "sin JavaScript se están borrando también los cuatro enlaces de sección, que SÍ funcionan sin él",
-      ).toHaveLength(0);
+      const delBloque = reglasDe(bloque);
+      delBloque.forEach((regla) => {
+        expect(
+          regla.style.display,
+          "sin JavaScript se están borrando también los cuatro enlaces de sección, que SÍ funcionan sin él",
+        ).not.toBe("none");
+      });
     });
 
     it("CON JavaScript no cambia nada: los cuatro enlaces y el disparador siguen montados, operables y sin tabindex propio en el contenedor", () => {
@@ -3960,5 +3972,179 @@ describe("critica #16 (L4): el contenido de la barra cuelga del rail de contenid
     // space[6] era el relleno de escritorio que el rail sustituye; ya no lo
     // consume nadie en este fichero.
     expect(fuente).not.toContain("space[6]");
+  });
+});
+
+/*
+ * LA CABECERA NAVEGA SIN JAVASCRIPT TAMBIÉN EN MÓVIL (crítica externa #17, P1
+ * del evaluador Nielsen, 2026-09-03).
+ *
+ * EL DEFECTO, reproducido con `javaScriptEnabled: false` real en Chrome sobre
+ * el build de producción servido, ANTES de tocar nada: a 390x844, de los 18
+ * controles del `header` DIECISIETE median 0x0 y solo sobrevivía el logotipo,
+ * con un documento de 10.201 px por delante. A 1440 la misma medición daba
+ * siete controles vivos (marca, los cuatro destinos y los dos idiomas), así que
+ * la degradación suave existía en escritorio y se caía entera bajo 768 px.
+ * Tras el arreglo, la misma sonda da SIETE controles vivos en los cuatro
+ * anchos medidos (320, 390, 768, 1440) y ningún desbordamiento horizontal.
+ *
+ * QUÉ PUEDE AFIRMAR ESTE FICHERO Y QUÉ NO. jsdom no hace layout y no evalúa
+ * ningún `@media` (regla 36), así que "17 cajas a 0x0" no es observable aquí:
+ * lo es en navegador, y ahí se midió. Lo que estos candados atan es la
+ * CONDICIÓN que produce ese resultado —qué declara cada bloque
+ * `@media (scripting: none)` y en qué ORDEN queda respecto al de `md`—, leída
+ * del CSSOM, que es la única fuente honesta bajo jsdom.
+ */
+describe("crítica externa #17: sin JavaScript la cabecera sigue navegando en móvil", () => {
+  const MEDIA_SIN_JS_17 = /scripting:\s*none/;
+  const MEDIA_MD_17 = /min-width:\s*768px/;
+
+  /** Primera clase del elemento que aparece en alguna regla inyectada. */
+  function claseDe(el: Element, reglas: string[]): string {
+    const clase = Array.from(el.classList).find((c) =>
+      reglas.some((r) => r.includes(`.${c}`)),
+    );
+    expect(
+      clase,
+      "no se encontró la clase inyectada del elemento",
+    ).toBeTruthy();
+    return clase as string;
+  }
+
+  /** Reglas `@media` que casan con `patron` y mencionan `.clase`. Acotar a la
+   *  clase es obligatorio: varios componentes de este fichero declaran bloques
+   *  `scripting: none` idénticos, y un filtro global pasaría en verde leyendo
+   *  la regla del vecino (misma trampa que documenta el candado del raíl). */
+  function enMedia(reglas: string[], patron: RegExp, clase: string): string[] {
+    return reglas.filter(
+      (r) =>
+        r.startsWith("@media") && patron.test(r) && r.includes(`.${clase}`),
+    );
+  }
+
+  it("los cuatro destinos de sección se presentan sin JavaScript (el bloque deja de estar en display:none bajo md)", () => {
+    const { container } = renderNavbar();
+    const reglas = allCssRules();
+    const bloque = container.querySelector("[data-nav-links]") as HTMLElement;
+    expect(bloque, "no se montó el bloque de navegación").not.toBeNull();
+    const clase = claseDe(bloque, reglas);
+
+    const sinJs = enMedia(reglas, MEDIA_SIN_JS_17, clase);
+    expect(
+      sinJs.some((r) => /display:\s*flex/.test(r)),
+      "sin JavaScript los destinos de sección siguen ocultos en móvil",
+    ).toBe(true);
+    // Envolver es la otra mitad: una fila que desborda no es mejor que una
+    // fila oculta (a 320px la sonda midió cuatro filas y scrollWidth === 320).
+    expect(
+      sinJs.some((r) => /flex-wrap:\s*wrap/.test(r)),
+      "la fila de destinos no envuelve sin JavaScript",
+    ).toBe(true);
+  });
+
+  it("el selector de idioma vuelve a la barra sin JavaScript (su copia de la hoja es inalcanzable)", () => {
+    const { container } = renderNavbar();
+    const reglas = allCssRules();
+    const hueco = container.querySelector("[data-bar-language]") as HTMLElement;
+    expect(hueco, "no se montó el hueco de idioma de la barra").not.toBeNull();
+    const clase = claseDe(hueco, reglas);
+
+    expect(
+      enMedia(reglas, MEDIA_SIN_JS_17, clase).some((r) =>
+        /display:\s*inline-flex/.test(r),
+      ),
+      "sin JavaScript el idioma sigue sin aparecer en la barra",
+    ).toBe(true);
+  });
+
+  it("el guard sin JavaScript va DESPUÉS del de md: en escritorio no cambia nada", () => {
+    const { container } = renderNavbar();
+    const reglas = allCssRules();
+
+    for (const [nombre, selector] of [
+      ["los destinos de sección", "[data-nav-links]"],
+      ["el idioma de la barra", "[data-bar-language]"],
+    ] as const) {
+      const el = container.querySelector(selector) as HTMLElement;
+      const clase = claseDe(el, reglas);
+      const iMd = reglas.findIndex(
+        (r) =>
+          r.startsWith("@media") &&
+          MEDIA_MD_17.test(r) &&
+          r.includes(`.${clase}`),
+      );
+      const iSinJs = reglas.findIndex(
+        (r) =>
+          r.startsWith("@media") &&
+          MEDIA_SIN_JS_17.test(r) &&
+          r.includes(`.${clase}`),
+      );
+      expect(iMd, `no se encontró el bloque md de ${nombre}`).toBeGreaterThan(
+        -1,
+      );
+      expect(
+        iSinJs,
+        `no se encontró el bloque sin JavaScript de ${nombre}`,
+      ).toBeGreaterThan(-1);
+      // Los dos bloques tienen la MISMA especificidad, así que en un escritorio
+      // sin JavaScript (los dos casan) decide el orden. Con el de md primero,
+      // el de scripting: none gana declarando los MISMOS valores -- y por eso
+      // la barra de 1440 quedó byte a byte como estaba (medido: 56 px de alto,
+      // siete controles vivos, antes y después).
+      expect(
+        iSinJs,
+        `el guard sin JavaScript de ${nombre} se adelantó al de md`,
+      ).toBeGreaterThan(iMd);
+    }
+  });
+
+  it("sin JavaScript la cabecera vuelve al flujo y la banda puede envolver", () => {
+    const { container } = renderNavbar();
+    const reglas = allCssRules();
+
+    const header = container.querySelector("header") as HTMLElement;
+    const claseHeader = claseDe(header, reglas);
+    expect(
+      enMedia(reglas, MEDIA_SIN_JS_17, claseHeader).some((r) =>
+        /position:\s*static/.test(r),
+      ),
+      "sin JavaScript la cabecera sigue fija tapando el contenido",
+    ).toBe(true);
+
+    const nav = container.querySelector("header nav") as HTMLElement;
+    const claseNav = claseDe(nav, reglas);
+    const sinJsNav = enMedia(reglas, MEDIA_SIN_JS_17, claseNav);
+    expect(
+      sinJsNav.some((r) => /flex-wrap:\s*wrap/.test(r)),
+      "la banda no envuelve sin JavaScript",
+    ).toBe(true);
+    // min-height, no height: donde el contenido cabe en una fila la banda mide
+    // exactamente lo que medía antes (medido a 768 y a 1440: 56 px).
+    expect(
+      sinJsNav.some((r) => /min-height:\s*var\(--nav-height\)/.test(r)),
+      "la banda pierde su suelo de var(--nav-height) sin JavaScript",
+    ).toBe(true);
+  });
+
+  it("lo que SÍ exige JavaScript sigue retirado sin él: el disclosure «Más» y el conmutador de tema", () => {
+    const { container } = renderNavbar();
+    const reglas = allCssRules();
+
+    const trigger = screen.getByRole("button", { name: /^Más/i, hidden: true });
+    const grupo = trigger.parentElement as HTMLElement;
+    expect(
+      enMedia(reglas, MEDIA_SIN_JS_17, claseDe(grupo, reglas)).some((r) =>
+        /display:\s*none/.test(r),
+      ),
+      "el disclosure se sigue presentando sin JavaScript",
+    ).toBe(true);
+
+    const tema = container.querySelector("[data-theme-toggle]") as HTMLElement;
+    expect(
+      enMedia(reglas, MEDIA_SIN_JS_17, claseDe(tema, reglas)).some((r) =>
+        /display:\s*none/.test(r),
+      ),
+      "el conmutador de tema se sigue presentando sin JavaScript",
+    ).toBe(true);
   });
 });
