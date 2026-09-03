@@ -257,6 +257,52 @@ describe("system tokens", () => {
     });
 
     /*
+     * Candado de la CLÁUSULA MÓVIL (crítica externa #16, 2026-09-03).
+     *
+     * El candado de arriba fija la banda de ESCRITORIO. Este fija lo que el
+     * docblock de `grid.ts` declara para móvil, y sobre todo la afirmación
+     * de la que cuelga todo lo demás: que por debajo de `sm` la caja de este
+     * token NO es la restricción activa, así que la medida de línea de un
+     * móvil no la decide este número.
+     *
+     * jsdom no hace layout, así que ninguna de las dos columnas se puede
+     * MEDIR aquí — se escriben como constantes con nombre, igual que el
+     * ratio de capacidad y el factor de realización del candado de arriba,
+     * porque son propiedades medidas en navegador y no tokens del repo. Lo
+     * que el test sí puede probar, y prueba, es la ARITMÉTICA que las une:
+     * si alguien recalibra `prose` sin volver a medir, la primera mitad cae.
+     */
+    it("por debajo de sm la caja de prose NO es la restricción activa (cláusula móvil)", () => {
+      /** Ancho de un `ch` con el cuerpo de 16px de Hanken Grotesk, leído del
+       *  `max-width` computado en navegador real (501,76px / 56ch). */
+      const PX_POR_CH = 8.96;
+      /** Columna de contenido real medida en navegador: viewport menos el
+       *  canal lateral, a 390px y a 414px. */
+      const COLUMNA_390 = 342;
+      const COLUMNA_414 = 366;
+
+      const cajaPx = Number(grid.prose.replace("ch", "")) * PX_POR_CH;
+
+      // La caja es MÁS ANCHA que las dos columnas: `max-width` no muerde.
+      expect(cajaPx).toBeGreaterThan(COLUMNA_390);
+      expect(cajaPx).toBeGreaterThan(COLUMNA_414);
+
+      /*
+       * Segunda mitad: la banda móvil declarada en el docblock es la que
+       * predice la realización medida. A 390px la home realiza 43,7
+       * caracteres de media en 342px -> 7,83px por carácter; el mismo
+       * píxel-por-carácter aplicado a la columna de 414px tiene que caer
+       * dentro de la media declarada allí (47,2), con la misma tolerancia de
+       * ±2 caracteres que usa el candado de escritorio.
+       */
+      const PX_POR_CARACTER = COLUMNA_390 / 43.7;
+      const MEDIA_DECLARADA_414 = 47.2;
+      expect(
+        Math.abs(COLUMNA_414 / PX_POR_CARACTER - MEDIA_DECLARADA_414),
+      ).toBeLessThanOrEqual(2);
+    });
+
+    /*
      * Candado del token nuevo (crítica externa #10, 2026-08-18). Dos mitades,
      * como el de `prose`: el VALOR exacto -- que es el que el hero ya pintaba,
      * porque tokenizar una medida repetida no cambia un píxel -- y la RELACIÓN

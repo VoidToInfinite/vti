@@ -237,6 +237,60 @@ export const grid = {
    * mientras sigan equilibrando, este token acota su ancho pero no describe
    * su recuento. Queda declarado, no resuelto desde aquí.
    *
+   * ## LA BANDA POR VIEWPORT — declarada desde la crítica externa #16
+   * (2026-09-03)
+   *
+   * Todo lo de arriba describe la banda de ESCRITORIO, y hasta esta revisión
+   * el docblock no decía que solo describía esa. El evaluador de Craft midió
+   * la home a 390 px en 40,8 caracteres de media (32-49) y las legales en
+   * 43,5, muy por debajo del suelo de 60 que este token promete — y la
+   * conclusión que parece seguirse («el token incumple en móvil») es falsa
+   * por un motivo que hay que medir para ver: **a esos anchos la caja de
+   * este token NO es la restricción activa**.
+   *
+   * `56ch` con el cuerpo de 16 px resuelve a **501,76 px** (1ch = 8,96 px,
+   * leído del `max-width` computado en navegador). La columna de contenido
+   * real a 390 px mide **342 px**, y a 414 px, **366 px**: el viewport menos
+   * el canal lateral. Los dos son MÁS ESTRECHOS que la caja, así que
+   * `max-width` no llega a morder ni una vez y lo que decide la medida de
+   * línea es el ancho de la página, no este número.
+   *
+   * Medición propia, con el mismo instrumento que el resto de este docblock
+   * —`Range.getClientRects()` carácter a carácter sobre líneas llenas,
+   * descartando siempre la última línea de cada párrafo, que no la limita el
+   * ancho—, en tema claro y oscuro (las legales no ramifican por tema y dan
+   * la misma cifra en los dos; en la home se miden las superficies que SÍ
+   * consumen este token):
+   *
+   *   viewport   home (prose)            legales
+   *   390 px     38-46, media 43,7       38-51, media 44,7
+   *   414 px     41-50, media 47,2       40-54, media 47,9
+   *   1280 px    61-69, media 65,0       62-72, media 68,5
+   *
+   * La fila de 1280 es la que este token gobierna y cumple lo prometido: la
+   * home clava la promesa de ~65 y las legales entran en la banda 60-75. Las
+   * dos filas de móvil son propiedad del LAYOUT.
+   *
+   * QUÉ HARÍA FALTA PARA SUBIR LA CIFRA MÓVIL, medido y no estimado: a 390
+   * px la realización sale a 7,83 px por carácter (342 ÷ 43,7), así que
+   * llegar a 45 caracteres pide 352 px de columna —bajar el canal lateral de
+   * 24 a 19 px por lado— y llegar a 46 pide 360 px, es decir 15 px por lado.
+   * El suelo de 60 es imposible por aritmética: exigiría 470 px de columna
+   * dentro de un viewport de 390. Ninguna de esas dos palancas es este
+   * token: son el canal lateral de la página o el tamaño del cuerpo, y las
+   * dos tienen su propio coste (ergonomía del pulgar y reflow a 320 px la
+   * primera, legibilidad la segunda). Se declara la banda en vez de
+   * cambiarlas desde aquí — cambiar un `max-width` que no muerde no movería
+   * ni un carácter.
+   *
+   * SUPERFICIE QUE ESTE TOKEN NO GOBIERNA EN MÓVIL, dicho para que nadie la
+   * confunda con las cifras de arriba: la copia del deck oscuro de Story
+   * (`ScDeckIntroBody` y sus vecinas) mide 25-36 caracteres por línea a 390
+   * px, no por este `max-width` —que tampoco muerde— sino porque `ScDeck`
+   * reserva 6rem de canal a la derecha para el rail. Es el precio del
+   * arreglo de solape que esta misma ola aplicó al rail; queda declarado
+   * aquí, no resuelto desde este fichero.
+   *
    * ## Lo que este token NO puede prometer, y por qué se dice aquí
    *
    * El contrato es por SUPERFICIE (el rango de una superficie de prosa entra
