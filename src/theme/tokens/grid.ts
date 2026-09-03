@@ -229,13 +229,52 @@ export const grid = {
    *
    * Desde la #14 (decisión D1 del dueño) `Typography` ya no aplica el
    * equilibrado a `body`/`bodySm`, así que la condición se cumple en todas
-   * las superficies que pasan por ese componente. NO se cumple todavía en las
-   * que declaran el equilibrado por su cuenta y ganan la cascada — `ScBody`
-   * (`Contact.tsx`), `ScTagline` (`Hero.tsx`), `ScDeckIntroBody`/
-   * `ScDeckPillarSubtitle`/`ScDeckPillarBody` (`story.deck.tsx`) y
-   * `ScJourneyIntroBody`/`ScJourneyStepSubtitle` (`journey.deck.tsx`):
-   * mientras sigan equilibrando, este token acota su ancho pero no describe
-   * su recuento. Queda declarado, no resuelto desde aquí.
+   * las superficies que pasan por ese componente.
+   *
+   * AQUÍ VIVIÓ UNA LISTA DE SIETE EXCEPCIONES — «`ScBody` (`Contact.tsx`),
+   * `ScTagline` (`Hero.tsx`), `ScDeckIntroBody`/`ScDeckPillarSubtitle`/
+   * `ScDeckPillarBody` (`story.deck.tsx`) y `ScJourneyIntroBody`/
+   * `ScJourneyStepSubtitle` (`journey.deck.tsx`)», declaradas como piezas que
+   * «siguen equilibrando» y a las que este token acotaba el ancho sin
+   * describir su recuento. Seis de las siete YA NO EQUILIBRAN, y la lista se
+   * corrige en vez de arrastrarse una ronda más (crítica externa #17,
+   * 2026-09-03). Las olas posteriores a la #14 fueron retirando esas
+   * declaraciones una a una sin volver aquí a tacharlas: la lista describía
+   * el árbol del día que se escribió, no el de hoy.
+   *
+   * MEDIDO, no leído del código — servidor de desarrollo a 1440x900,
+   * `document.visibilityState` en `visible`, `getComputedStyle` sobre los
+   * nodos reales, en la rama OSCURA (la que pinta los dos decks):
+   *
+   *   ScDeckIntroBody        16px    max-width 501.76px   text-wrap: wrap
+   *   ScDeckPillarSubtitle   16px    max-width 501.76px   text-wrap: wrap
+   *   ScDeckPillarBody       17.84px max-width 559.46px   text-wrap: wrap
+   *   ScJourneyIntroBody     16px    max-width 501.76px   text-wrap: wrap
+   *   ScJourneyStepSubtitle  17.84px max-width 559.46px   text-wrap: wrap
+   *   ScBody (Contact)       16px    max-width 501.76px   text-wrap: wrap
+   *
+   * (Las dos de 559,46px son `deckBody`, cuyo `clamp()` topa en 1.115rem =
+   * 17,84px a ese ancho: 56ch de ESE cuerpo, no del de 16px. El token se
+   * expresa en `ch`, así que su píxel depende del tamaño de quien lo lee.)
+   *
+   * Confirmado también en el código, que es la otra mitad de la prueba: las
+   * ÚNICAS declaraciones de `text-wrap: balance` que quedan en `src/` son las
+   * de `Typography` para titulares, `ScTagline` (`Hero.tsx`), los dos `<h2>`
+   * de deck (`ScDeckTitle`, `ScJourneyDeckTitle`), los dos cierres de deck
+   * (`ScDeckNote`, `ScJourneyQuote`) y una pieza de las páginas legales.
+   * Ninguno de los seis nombres de la tabla aparece entre ellas.
+   *
+   * QUEDA UNA, y por eso la excepción no desaparece del todo: `ScTagline`
+   * (`Hero.tsx`) sigue declarando el equilibrado, medido `text-wrap: balance`
+   * en el mismo pase. No afecta a la derivación de este token porque esa
+   * pieza no lo consume — su tope es `heroCopyMax` (70ch, medido 627,2px a
+   * 16px) — pero se deja escrito para que nadie la dé por migrada al leer
+   * esta corrección.
+   *
+   * PENDIENTE fuera de este fichero, declarado en vez de corregido en
+   * silencio desde una tarea que no es dueña de ese componente:
+   * `Typography.tsx` arrastra la MISMA lista de siete en su apartado «QUÉ NO
+   * CIERRA ESTE CAMBIO», con la misma parte ya obsoleta.
    *
    * ## LA BANDA POR VIEWPORT — declarada desde la crítica externa #16
    * (2026-09-03)

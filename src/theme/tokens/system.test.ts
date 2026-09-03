@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, dirname, extname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { motion } from "./motion";
 import { glassLight, glassDark } from "./glass";
 import { grid } from "./grid";
@@ -359,5 +362,85 @@ describe("system tokens", () => {
     it("grid es un objeto congelado (as const)", () => {
       expect(Object.keys(grid)).toHaveLength(5);
     });
+  });
+});
+
+/*
+ * CANDADO DE LA LISTA DE EXCEPCIONES DE `grid.prose` — crítica externa #17
+ * (2026-09-03).
+ *
+ * La derivación de `prose` solo describe la realidad mientras la prosa que lo
+ * consume NO lleve `text-wrap: balance` (su docblock lleva el A/B medido:
+ * 53,5 caracteres de media con equilibrado frente a 64,5 sin él). Esa
+ * condición vivía en el docblock como una LISTA de piezas escrita a mano, y
+ * la #17 la encontró desfasada: declaraba siete superficies equilibrando y
+ * seis de ellas ya no lo hacían — las olas posteriores a la #14 fueron
+ * retirando las declaraciones una a una sin volver a tachar la lista.
+ *
+ * Este candado convierte esa lista en una aserción. No mide el CSS computado
+ * (jsdom no hace layout: la medición en navegador vive en el docblock de
+ * `grid.prose`), mide el TEXTO FUENTE — qué ficheros de producción declaran
+ * el equilibrado — que es justo lo que la lista afirmaba y nadie comprobaba.
+ * El día que alguien añada o retire una declaración, este test obliga a pasar
+ * por el docblock en el mismo cambio, que es lo que la regla 40 pide de un
+ * contrato cerrado.
+ *
+ * Se afirma el CONJUNTO EXACTO de ficheros, no un "al menos": una lista de
+ * excepciones que solo prohíbe quitar no sirve de nada — el defecto que la
+ * #17 midió fue precisamente de sobra, no de falta.
+ *
+ * Los comentarios se despojan antes de buscar, por la lección del repo
+ * (`task/lessons.md`, 2026-08-11): el docblock de `grid.ts` y el de
+ * `Typography.tsx` CITAN `text-wrap: balance` en prosa para explicar la
+ * decisión, y sin despojarlos esas citas contarían como declaraciones.
+ */
+describe("grid.prose: quién equilibra de verdad (crítica externa #17)", () => {
+  const raiz = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const EXTENSIONES = new Set([".ts", ".tsx"]);
+
+  function recorrer(dir: string, out: string[] = []): string[] {
+    for (const entrada of readdirSync(dir)) {
+      const completo = join(dir, entrada);
+      if (statSync(completo).isDirectory()) recorrer(completo, out);
+      else if (EXTENSIONES.has(extname(completo))) out.push(completo);
+    }
+    return out;
+  }
+
+  function despojar(fuente: string): string {
+    return fuente
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(?<!:)\/\/.*$/gm, "");
+  }
+
+  it("solo estos ficheros de producción declaran el equilibrado de línea", () => {
+    const equilibran = [
+      ...recorrer(join(raiz, "src")),
+      ...recorrer(join(raiz, "app")),
+    ]
+      .map((f) => ({
+        ruta: f.slice(raiz.length + 1).replace(/\\/g, "/"),
+        texto: despojar(readFileSync(f, "utf-8")),
+      }))
+      .filter(
+        ({ ruta }) => !ruta.endsWith(".test.ts") && !ruta.endsWith(".test.tsx"),
+      )
+      .filter(({ texto }) => /text-wrap(-style)?:\s*balance/.test(texto))
+      .map(({ ruta }) => ruta)
+      .sort();
+
+    expect(equilibran).toEqual(
+      [
+        // los dos cierres de deck y los dos <h2> de deck (tipografía de cartel)
+        "src/components/sections/Journey/journey.deck.tsx",
+        "src/components/sections/Story/story.deck.tsx",
+        // la tagline del hero: NO consume `prose` (su tope es `heroCopyMax`)
+        "src/components/sections/Hero/Hero.tsx",
+        // una pieza de las páginas legales
+        "src/components/legal/legalPage.parts.tsx",
+        // los titulares (`h*`/`display`), la única regla que queda en el primitivo
+        "src/components/ui/Typography/Typography.tsx",
+      ].sort(),
+    );
   });
 });
