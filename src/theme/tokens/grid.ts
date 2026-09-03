@@ -50,11 +50,61 @@ export const grid = {
    * son magnitudes de propósitos distintos y este token existe precisamente
    * para que retocar la píldora del navbar no mueva cuatro secciones.
    *
-   * Lo que este token NO resuelve: la convivencia de DOS raíles en la misma
-   * página (`containerMax` 1200 vs este 1280, bordes de sección a 120 y 80 px
-   * — crítica #12, Craft dim. 4). Unificarlos es una decisión de diseño del
-   * dueño; nombrar la medida existente es refactor de vocabulario, no
-   * rediseño (mismo criterio que `heroCopyMax`).
+   * ## LO QUE ESTE TOKEN NO RESUELVE: LA DEUDA DE RAÍLES, CENSADA DE VERDAD
+   *
+   * Hasta la crítica externa #17 (2026-09-03) este párrafo decía que la deuda
+   * era «la convivencia de DOS raíles en la misma página (`containerMax` 1200
+   * vs este 1280, bordes de sección a 120 y 80 px)». Las dos mitades de esa
+   * frase están mal. Ni el 120 ni el 80 aparecen como canal lateral en ningún
+   * sitio: son el resto de dividir el viewport entre el tope de anchura, ANTES
+   * del relleno que cada sección añade por su cuenta, así que describen una
+   * aritmética intermedia que nadie ve. Y los raíles reales no son dos.
+   *
+   * Censo medido en Chrome real sobre el build de producción, 2026-09-03. Cada
+   * cifra es la inserción lateral de la columna de copia de la banda (la caja
+   * que abarca su `h2` y su primer párrafo); el pie se mide por la tinta de su
+   * contenido. En píxeles, a 1440x900 y TEMA CLARO:
+   *
+   *     24    hero
+   *     144   Features, y el pie
+   *     156   el manifiesto (`#statement`, dentro de Story)
+   *     177   Contacto
+   *     400   Journey        (columna centrada, 400 a cada lado)
+   *     469   About          (columna centrada, 469 a cada lado)
+   *     618   Story          (columna de copia de la tarjeta, a la derecha)
+   *
+   * SIETE valores distintos en ocho bandas, no dos. Cuatro son raíles de banda
+   * (24, 144, 156, 177) y tres son columnas centradas o desplazadas dentro de
+   * su banda. El evaluador de artesanía de la #17 contó cuatro y listó cinco
+   * (24, 144, 156, 177, 469): las cinco se confirman una a una, y se le
+   * escaparon las otras dos.
+   *
+   * De dónde sale cada uno, trazado por la cadena de contenedores y no
+   * supuesto:
+   *
+   * - 144 = 120 + 24. La sección de Features tope a `containerMax` (1200) y
+   *   centrada deja 120, y su propio `padding-inline` de 24 empuja el
+   *   contenido hasta 144. El pie repite exactamente la misma composición.
+   * - 177 = esos mismos 144 más los 32 de relleno de la tarjeta de Contacto
+   *   (más el píxel de su borde). La sección de Contacto es idéntica a la de
+   *   Features; lo que la separa es una capa más de relleno hacia dentro.
+   * - 156 sale de una banda a sangre completa: `#statement` ocupa los 1440 y
+   *   su párrafo se acota en 1128 y se centra.
+   * - 469 es `prose` (la columna de About mide 501,8 = 56ch) centrada.
+   * - Ni una sola banda mide 80. `sectionMax` no gobierna ningún canal lateral
+   *   visible a este viewport.
+   *
+   * A 390x844 el reparto cambia con el tema y por eso se declara por
+   * separado. CLARO: 24 en hero, Story, Features, About y el pie; 48 en el
+   * manifiesto; 56 en Journey; 57 en Contacto. OSCURO: 24 en hero, About y el
+   * pie; 32 en Journey, Features y Contacto; y Story con su manifiesto en 45 a
+   * la izquierda y 67 a la derecha -- el único caso ASIMÉTRICO del censo,
+   * también confirmado con las cifras exactas que reportó la #17.
+   *
+   * UNIFICAR ES DECISIÓN DEL DUEÑO y este bloque no la toma: nombrar una
+   * medida repetida es refactor de vocabulario, no rediseño (mismo criterio
+   * que `heroCopyMax`). Lo que sí queda cerrado es la contabilidad: quien
+   * decida sobre esto ya no arranca de un «dos» que nunca fue cierto.
    */
   sectionMax: "1280px",
   /**
