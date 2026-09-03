@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, dirname, extname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { type as typo } from "./type";
 
 describe("type tokens", () => {
@@ -195,4 +198,118 @@ describe("type tokens", () => {
     expect(typo.scale.deckBody.size).toContain(`clamp(${typo.scale.body.size}`);
     expect(typo.scale.deckBody.size).toMatch(/, 1\.115rem\)$/);
   });
+});
+
+/*
+ * CANDADO DE PELDAÑOS SIN CONSUMIDOR — crítica externa #17 (2026-09-03).
+ *
+ * POR QUÉ EXISTE. Esta escala ya ha perdido cinco peldaños por el mismo
+ * motivo (`h4`, `bodyLg` y `code` en la #9; `deckTitle` en la #14; y `lead`,
+ * su alias, en la #9), y las cinco veces el cero se descubrió por un censo
+ * MANUAL escrito en un docblock: una lista de patrones de grep que quien
+ * viniera después tenía que acordarse de repetir. Nada obligaba a hacerlo, y
+ * nada avisaba el día que el último consumidor de un peldaño se iba. Este
+ * bloque convierte ese censo en una aserción que corre en cada `pnpm test`.
+ *
+ * MIDE POR PELDAÑO, NO POR CAMPO, y esa es la decisión de fondo. El hallazgo
+ * que abrió esta revisión decía que `h5.size` tenía cero consumidores frente
+ * a seis de `h5.weight`/`lineHeight`/`tracking`; el recuento textual es
+ * exacto y la conclusión es falsa, porque `ScTypography` lee el peldaño POR
+ * ÍNDICE (`theme.data.type.scale[$variant].size`) y consume sus cuatro
+ * propiedades de una vez. Medido en navegador real: los títulos de las
+ * tarjetas de pilar de Story pintan 18px / 24.3px, que son `h5.size` y
+ * `h5.lineHeight`. Un censo por CAMPO sobre esta escala declararía muerto
+ * justo lo que se está pintando. El docblock de `h5` en `type.ts` lleva la
+ * medición completa.
+ *
+ * Es la unidad de censo CONTRARIA a la de `vocabulary-consumers.test.ts`, y
+ * a propósito: allí cada campo se lee por su nombre y medir por grupo
+ * escondía cuatro campos muertos detrás de dos vivos. La unidad correcta no
+ * es una preferencia de estilo, es cómo lee el código a cada escala.
+ *
+ * DOS VÍAS DE CONSUMO, porque las dos son reales y ninguna sola basta:
+ * `scale.<peldaño>` (la pieza styled que lee propiedades sueltas) y
+ * `variant="<peldaño>"` (el consumidor que pasa por `Typography`). Con solo
+ * la primera, `Story.tsx` desaparecería y `h5` daría cero; con solo la
+ * segunda, `deckClosing` y `deckBody` —que nadie pasa por `Typography`—
+ * darían cero. Ningún fichero de producción pasa `variant` desde una
+ * variable, verificado por grep, así que el censo estático los ve a todos.
+ *
+ * Comentarios DESPOJADOS antes de buscar, por la lección del repo
+ * (`task/lessons.md`, 2026-08-11): los docblocks de este mismo fichero y los
+ * de `type.ts` CITAN `scale.h5` y `variant="h5"` en prosa para explicar el
+ * hallazgo, y sin despojarlos esas citas bastarían para que el candado
+ * pasara sin que el código consumiera nada. El guard `(?<!:)` evita truncar
+ * una línea por el `//` de una URL dentro de un string, mismo criterio y
+ * mismo límite conocido que `vocabulary-consumers.test.ts`.
+ */
+describe("cada peldaño de la escala tiene consumidor real (crítica externa #17)", () => {
+  const raiz = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const EXTENSIONES = new Set([".ts", ".tsx"]);
+
+  function recorrer(dir: string, out: string[] = []): string[] {
+    for (const entrada of readdirSync(dir)) {
+      const completo = join(dir, entrada);
+      if (statSync(completo).isDirectory()) recorrer(completo, out);
+      else if (EXTENSIONES.has(extname(completo))) out.push(completo);
+    }
+    return out;
+  }
+
+  function despojar(fuente: string): string {
+    return fuente
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(?<!:)\/\/.*$/gm, "");
+  }
+
+  const ficheros = [
+    ...recorrer(join(raiz, "src")),
+    ...recorrer(join(raiz, "app")),
+  ]
+    .map((f) => ({
+      ruta: f.slice(raiz.length + 1).replace(/\\/g, "/"),
+      fuente: f,
+    }))
+    .filter(
+      ({ ruta }) =>
+        ruta !== "src/theme/tokens/type.ts" && // la fuente, no un consumidor
+        !ruta.endsWith(".test.ts") &&
+        !ruta.endsWith(".test.tsx"),
+    )
+    .map(({ ruta, fuente }) => ({
+      ruta,
+      texto: despojar(readFileSync(fuente, "utf-8")),
+    }));
+
+  function consumidoresDe(peldano: string): string[] {
+    const patron = new RegExp(`\\bscale\\.${peldano}\\b|variant="${peldano}"`);
+    return ficheros.filter((f) => patron.test(f.texto)).map((f) => f.ruta);
+  }
+
+  /* Sonda positiva, mismo criterio que `vocabulary-consumers.test.ts`: si el
+     mecanismo estuviera roto (raíz equivocada, regex mal escrita, despojo
+     demasiado agresivo) el bloque de abajo podría pasar por vacuidad al no
+     encontrar NADA. Este test confirma que el instrumento ve las dos vías de
+     consumo sobre dos peldaños de consumidor conocido. */
+  it("sonda positiva: el censo ve las dos vías de consumo", () => {
+    expect(ficheros.length).toBeGreaterThan(50);
+    // vía `variant="..."`, la única de este peldaño
+    expect(consumidoresDe("h5")).toContain(
+      "src/components/sections/Story/Story.tsx",
+    );
+    // vía `scale....`, la única de este otro
+    expect(consumidoresDe("deckBody")).toContain(
+      "src/components/sections/Story/story.layers.ts",
+    );
+  });
+
+  for (const peldano of Object.keys(typo.scale)) {
+    it(`${peldano} lo consume al menos un fichero de producción`, () => {
+      const consumidores = consumidoresDe(peldano);
+      expect(
+        consumidores,
+        `type.scale.${peldano}: cero consumidores reales -- migra un consumidor o retira el peldaño (y baja el recuento de la escala en el mismo cambio, regla 40)`,
+      ).not.toHaveLength(0);
+    });
+  }
 });

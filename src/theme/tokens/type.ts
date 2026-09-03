@@ -309,6 +309,52 @@ export const type = {
       lineHeight: 1.2,
       tracking: "0.02em",
     },
+    /**
+     * EL CUARTO RANGO DE TITULAR. Su nombre es deuda declarada (ver el
+     * docblock de `TypeVariant`, arriba); esta entrada documenta otra cosa: un
+     * hallazgo de la crítica externa #17 (2026-09-03) que se midió y resultó
+     * FALSO, y que conviene dejar escrito para que la próxima ronda no lo
+     * vuelva a levantar.
+     *
+     * EL HALLAZGO: «`h5.size` tiene CERO consumidores mientras `h5.weight`,
+     * `h5.lineHeight` y `h5.tracking` suman seis en tres ficheros». La primera
+     * mitad de la frase es CIERTA como recuento textual y se reproduce igual
+     * hoy: la cadena `scale.h5.size` no aparece ni una vez en `src/` ni en
+     * `app/`, mientras las otras tres propiedades sí (`Features.tsx` lee
+     * `weight`; `story.deck.tsx`, las tres; `journey.deck.tsx`, `tracking`).
+     *
+     * POR QUÉ LA CONCLUSIÓN NO SE SIGUE: `ScTypography` (`Typography.tsx`) no
+     * lee las propiedades por su nombre, lee el peldaño POR ÍNDICE —
+     * `theme.data.type.scale[$variant].size`, y lo mismo para las otras tres—,
+     * así que un `<Typography variant="h5">` consume las CUATRO de golpe sin
+     * escribir ninguna. Y hay uno: `ScCardTitle`, el título de las cuatro
+     * tarjetas de pilar de Story (`Story.tsx`), que pasa `variant="h5"` con
+     * `forwardedAs="p"`.
+     *
+     * MEDIDO EN NAVEGADOR REAL, no deducido del código — servidor de
+     * desarrollo a 1440x900, tema claro, `document.visibilityState` en
+     * `visible`, `getComputedStyle` sobre los cuatro títulos de tarjeta:
+     *
+     *   font-size    18px    = 1.125rem = ESTE `size`
+     *   line-height  24.3px  = 18 x 1.35 = ESTE `lineHeight`
+     *
+     * El peso computa 700 porque `ScCardTitle` lo pisa a propósito en su
+     * propia declaración, no porque el peldaño no se lea. Es decir: el único
+     * campo que el recuento textual daba por muerto es el que está pintando
+     * ahora mismo cuatro títulos de la home.
+     *
+     * LA LECCIÓN, y por eso el candado de `type.test.ts` mide por PELDAÑO y no
+     * por campo: en esta escala el campo NO es la unidad de consumo. `TypeStyle`
+     * es un paquete de cuatro propiedades que `Typography` aplica entero —el
+     * mismo argumento que el docblock de `deckClosing` ya usa para negarse a
+     * compartir un peso suelto—, así que un censo por campo produce muertes
+     * falsas en cuanto alguien consume el peldaño por la vía normal. Es
+     * exactamente lo contrario de lo que necesita el vocabulario de movimiento
+     * (`vocabulary-consumers.test.ts`), donde cada campo SÍ se lee por su
+     * nombre y el censo por grupo escondía cuatro campos muertos detrás de dos
+     * vivos. Dos escalas, dos unidades de censo, y la diferencia es cómo las
+     * lee el código, no una preferencia.
+     */
     h5: { size: "1.125rem", weight: 600, lineHeight: 1.35, tracking: "0" },
     /**
      * CUERPO DE LECTURA dentro de una diapositiva a sangre completa: el
