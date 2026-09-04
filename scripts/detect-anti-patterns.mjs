@@ -2051,12 +2051,6 @@ const ALLOWLIST = [
     },
     {
         family: "spacing-literal",
-        file: "src/theme/GlobalStyles.tsx",
-        anchors: [{ snippet: "--nav-gap: 0.5rem;", lines: [93] }],
-        reason: 'PROVISIONAL, y no es una excepcion de diseno: es el hallazgo que el evaluador nombro por su fichero y su linea, y la razon de que esta familia exista. `0.5rem` es `space[2]` BYTE A BYTE, y la variable se declara dentro de un `createGlobalStyle` que ya recibe el tema (dos lineas mas abajo el mismo fichero interpola `theme.data.*`), asi que leer el token es posible sin cambiar nada de arquitectura -- el docblock de al lado justifica que la MEDIDA viva en una variable CSS de layout, que es otra pregunta, y no que su VALOR se escriba a mano. No se migra en esta entrega porque `src/theme/GlobalStyles.tsx` pertenece al dominio de otro frente en esta ola; queda anotado para su dueno. Cuando se migre, el aviso de "ancla sin hallazgo que la cubra" de este mismo script pedira retirar esta entrada.',
-    },
-    {
-        family: "spacing-literal",
         file: "src/components/sections/Story/Story.tsx",
         anchors: [{ snippet: "gap: clamp(4px, 1vh, 14px);", lines: [1356] }],
         reason: "Separacion de las tres lineas del cartel de Story (ScStatementText): es el unico `clamp()` de espaciado del repo cuyos DOS extremos quedan fuera de la escala -- 4px es space[1] (0.25rem) pero 14px no es ningun peldano (space[3] son 12px, space[4] son 16px), y el tramo esta calibrado contra la ALTURA del viewport (`1vh`) para que las tres lineas del cartel respiren igual en una pantalla corta que en una alta. Migrar solo el suelo dejaria un clamp mitad token mitad literal, que es peor que los dos escritos a mano: esconde que el tramo no pertenece al sistema. Si algun dia se sistematiza, el sitio es un peldano nuevo con nombre, no un suelo migrado a medias.",

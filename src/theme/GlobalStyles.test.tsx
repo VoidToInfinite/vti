@@ -43,3 +43,71 @@ describe("GlobalStyles: la tipografía se declara en body, no solo en main", () 
     );
   });
 });
+
+/*
+ * Candado del VALOR de las variables CSS de layout del navbar (crítica externa
+ * #18, 2026-09-04).
+ *
+ * El defecto que atrapa: `--nav-gap` se declaraba como `0.5rem` escrito a
+ * mano, que es `space[2]` byte a byte. Es la deriva silenciosa que la regla 17
+ * de `RULES.md` previene y el caso exacto que abrió la familia
+ * `spacing-literal` del detector -- el día que la escala se retoque, la
+ * variable no se entera, y el CSS renderizado no distingue un literal de un
+ * token que resuelven al mismo valor (`task/lessons.md`, 2026-08-12). Por eso
+ * este candado mide la FUENTE, no el valor pintado: un test de valor pasaría
+ * en verde con el literal de vuelta.
+ *
+ * POR QUÉ LEE EL FICHERO y no el CSSOM: el docblock del candado de tipografía,
+ * arriba, ya lo dejó medido en este mismo entorno -- montar `<GlobalStyles/>`
+ * con los providers reales inyecta CERO hojas (`document.styleSheets.length
+ * === 0`), así que no hay CSSOM que interrogar.
+ *
+ * NO exige la forma exacta `${space[2]}`: exige que la declaración cite la
+ * escala y que no lleve ninguna medida absoluta escrita a mano. Así el candado
+ * sobrevive a un cambio de peldaño deliberado (`space[3]`) y sigue cayendo
+ * ante una regresión a literal, que es lo que vigila.
+ */
+describe("GlobalStyles: --nav-gap sale de la escala de espaciado", () => {
+  async function leerFuente(): Promise<string> {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    return readFileSync(join(here, "GlobalStyles.tsx"), "utf-8");
+  }
+
+  function declaracionDe(source: string, variable: string): string {
+    const m = new RegExp(`--${variable}:([^;]*);`).exec(source);
+    if (m === null)
+      throw new Error(`no existe la declaración de --${variable}`);
+    return m[1];
+  }
+
+  it("interpola el token space y no una medida escrita a mano", async () => {
+    const declaracion = declaracionDe(await leerFuente(), "nav-gap");
+
+    expect(
+      declaracion,
+      "--nav-gap dejó de citar la escala: el hueco de la píldora del navbar vuelve a ser un literal que se desincroniza de space",
+    ).toMatch(/\$\{\s*space\[\d+\]\s*\}/);
+    expect(
+      declaracion,
+      "--nav-gap volvió a llevar una medida absoluta escrita a mano",
+    ).not.toMatch(/\d+(?:\.\d+)?(?:rem|px|em)\b/);
+  });
+
+  /*
+   * SONDA NEGATIVA del mecanismo: `--nav-height` es la variable de al lado y
+   * SÍ es un literal a propósito -- la escala `space` gobierna huecos entre
+   * cosas, no el tamaño de las cosas, y el propio detector declara ese límite
+   * ("un `--nav-height: 3.5rem` NO dispara, y es deliberado"). Si el extractor
+   * de arriba estuviera roto y devolviera siempre lo mismo, esta comprobación
+   * lo delataría.
+   */
+  it("sonda negativa: --nav-height sigue siendo un literal, y el extractor lo ve", async () => {
+    const declaracion = declaracionDe(await leerFuente(), "nav-height");
+
+    expect(declaracion).toMatch(/\d+(?:\.\d+)?rem\b/);
+    expect(declaracion).not.toMatch(/\$\{\s*space\[/);
+  });
+});

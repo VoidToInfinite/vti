@@ -1,6 +1,7 @@
 import { createGlobalStyle } from "styled-components";
 import { grid } from "./tokens/grid";
 import { semanticDark } from "./tokens/semantic";
+import { space } from "./tokens/space";
 
 export const GlobalStyles = createGlobalStyle`
   /*
@@ -90,7 +91,18 @@ export const GlobalStyles = createGlobalStyle`
        margen/hueco lateral) y el margen de scroll de las secciones
        ancladas, que ahora tiene que descontar la barra MÁS esta
        separación. */
-    --nav-gap: 0.5rem;
+    /* El VALOR sale de la escala, aunque la MEDIDA viva en una variable CSS:
+       son dos preguntas distintas y el comentario de arriba solo contesta la
+       segunda. Hasta la crítica externa #18 (2026-09-04) aquí había un
+       \`0.5rem\` escrito a mano que era \`space[2]\` byte a byte -- el hallazgo
+       que la familia \`spacing-literal\` de scripts/detect-anti-patterns.mjs
+       se creó para cazar, y que esa familia dejó sancionado como PROVISIONAL
+       en vez de excepción. Es la deriva silenciosa de la regla 17 de
+       RULES.md en estado puro: el día que la escala se retoque, la variable
+       no se entera y el CSS renderizado no distingue los dos casos. El token
+       se importa por módulo, como \`grid\` y \`semanticDark\` arriba, y no por
+       \`theme.data\`: es una medida de layout que no cambia con el tema. */
+    --nav-gap: ${space[2]};
   }
 
   *,
