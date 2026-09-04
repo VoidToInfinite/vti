@@ -4,84 +4,14 @@
   "graph": {},
   "nodes": [
     {
-      "label": "storyCosmicBeing.layers.test.ts",
-      "file_type": "code",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_test",
-      "community": 133,
-      "norm_label": "storycosmicbeing.layers.test.ts"
-    },
-    {
-      "label": "storyCosmicBeing.layers.ts",
-      "file_type": "code",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
-      "community": 133,
-      "norm_label": "storycosmicbeing.layers.ts"
-    },
-    {
-      "label": "StoryCosmicBeingBlend",
-      "file_type": "code",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L16",
-      "_origin": "ast",
-      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingblend",
-      "community": 133,
-      "norm_label": "storycosmicbeingblend"
-    },
-    {
-      "label": "StoryCosmicBeingLayer",
-      "file_type": "code",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L18",
-      "_origin": "ast",
-      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeinglayer",
-      "community": 133,
-      "norm_label": "storycosmicbeinglayer"
-    },
-    {
-      "label": "STORY_COSMIC_BEING_LAYERS",
-      "file_type": "code",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L37",
-      "_origin": "ast",
-      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers",
-      "community": 133,
-      "norm_label": "story_cosmic_being_layers"
-    },
-    {
-      "label": "storyCosmicBeingAvifSrcSet()",
-      "file_type": "code",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L226",
-      "_origin": "ast",
-      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset",
-      "community": 133,
-      "norm_label": "storycosmicbeingavifsrcset()"
-    },
-    {
-      "label": "STORY_COSMIC_BEING_POINTER_AMP",
-      "file_type": "code",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L253",
-      "_origin": "ast",
-      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp",
-      "community": 133,
-      "norm_label": "story_cosmic_being_pointer_amp"
-    },
-    {
       "label": "detect-anti-patterns.mjs",
       "file_type": "code",
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns",
       "community": 305,
-      "norm_label": "detect-anti-patterns.mjs",
-      "id": "scripts_detect_anti_patterns"
+      "norm_label": "detect-anti-patterns.mjs"
     },
     {
       "label": "__dirname",
@@ -89,9 +19,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L244",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_dirname",
       "community": 305,
-      "norm_label": "__dirname",
-      "id": "scripts_detect_anti_patterns_dirname"
+      "norm_label": "__dirname"
     },
     {
       "label": "ROOT",
@@ -99,9 +29,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L245",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_root",
       "community": 305,
-      "norm_label": "root",
-      "id": "scripts_detect_anti_patterns_root"
+      "norm_label": "root"
     },
     {
       "label": "SCAN_DIRS",
@@ -109,9 +39,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L246",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_scan_dirs",
       "community": 305,
-      "norm_label": "scan_dirs",
-      "id": "scripts_detect_anti_patterns_scan_dirs"
+      "norm_label": "scan_dirs"
     },
     {
       "label": "walk()",
@@ -119,9 +49,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L283",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_walk",
       "community": 305,
-      "norm_label": "walk()",
-      "id": "scripts_detect_anti_patterns_walk"
+      "norm_label": "walk()"
     },
     {
       "label": "collectFiles()",
@@ -129,9 +59,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L299",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_collectfiles",
       "community": 305,
-      "norm_label": "collectfiles()",
-      "id": "scripts_detect_anti_patterns_collectfiles"
+      "norm_label": "collectfiles()"
     },
     {
       "label": "stripComments()",
@@ -139,9 +69,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L313",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_stripcomments",
       "community": 305,
-      "norm_label": "stripcomments()",
-      "id": "scripts_detect_anti_patterns_stripcomments"
+      "norm_label": "stripcomments()"
     },
     {
       "label": "FAMILIES",
@@ -149,9 +79,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L325",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_families",
       "community": 305,
-      "norm_label": "families",
-      "id": "scripts_detect_anti_patterns_families"
+      "norm_label": "families"
     },
     {
       "label": "ALLOWLIST",
@@ -159,9 +89,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L1181",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_allowlist",
       "community": 305,
-      "norm_label": "allowlist",
-      "id": "scripts_detect_anti_patterns_allowlist"
+      "norm_label": "allowlist"
     },
     {
       "label": "anchorKey()",
@@ -169,9 +99,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2512",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_anchorkey",
       "community": 305,
-      "norm_label": "anchorkey()",
-      "id": "scripts_detect_anti_patterns_anchorkey"
+      "norm_label": "anchorkey()"
     },
     {
       "label": "ANCHOR_MAP",
@@ -179,9 +109,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2522",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_anchor_map",
       "community": 305,
-      "norm_label": "anchor_map",
-      "id": "scripts_detect_anti_patterns_anchor_map"
+      "norm_label": "anchor_map"
     },
     {
       "label": "scanFile()",
@@ -189,9 +119,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2540",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_scanfile",
       "community": 305,
-      "norm_label": "scanfile()",
-      "id": "scripts_detect_anti_patterns_scanfile"
+      "norm_label": "scanfile()"
     },
     {
       "label": "FAMILY_GUIDANCE",
@@ -199,9 +129,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2595",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_family_guidance",
       "community": 305,
-      "norm_label": "family_guidance",
-      "id": "scripts_detect_anti_patterns_family_guidance"
+      "norm_label": "family_guidance"
     },
     {
       "label": "run()",
@@ -209,9 +139,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2634",
       "_origin": "ast",
+      "id": "scripts_detect_anti_patterns_run",
       "community": 305,
-      "norm_label": "run()",
-      "id": "scripts_detect_anti_patterns_run"
+      "norm_label": "run()"
     },
     {
       "label": "Footer.tsx",
@@ -219,9 +149,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer",
       "community": 0,
-      "norm_label": "footer.tsx",
-      "id": "src_components_layout_footer_footer"
+      "norm_label": "footer.tsx"
     },
     {
       "label": "ScFooter",
@@ -229,9 +159,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L95",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scfooter",
       "community": 0,
-      "norm_label": "scfooter",
-      "id": "src_components_layout_footer_footer_scfooter"
+      "norm_label": "scfooter"
     },
     {
       "label": "ScStars",
@@ -239,9 +169,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L114",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scstars",
       "community": 0,
-      "norm_label": "scstars",
-      "id": "src_components_layout_footer_footer_scstars"
+      "norm_label": "scstars"
     },
     {
       "label": "starTwinkle",
@@ -249,9 +179,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L126",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_startwinkle",
       "community": 0,
-      "norm_label": "startwinkle",
-      "id": "src_components_layout_footer_footer_startwinkle"
+      "norm_label": "startwinkle"
     },
     {
       "label": "ScStar",
@@ -259,9 +189,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L178",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scstar",
       "community": 0,
-      "norm_label": "scstar",
-      "id": "src_components_layout_footer_footer_scstar"
+      "norm_label": "scstar"
     },
     {
       "label": "starVars()",
@@ -269,9 +199,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L220",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_starvars",
       "community": 0,
-      "norm_label": "starvars()",
-      "id": "src_components_layout_footer_footer_starvars"
+      "norm_label": "starvars()"
     },
     {
       "label": "ScInner",
@@ -279,9 +209,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L243",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scinner",
       "community": 0,
-      "norm_label": "scinner",
-      "id": "src_components_layout_footer_footer_scinner"
+      "norm_label": "scinner"
     },
     {
       "label": "ScBrandCol",
@@ -289,9 +219,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L266",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scbrandcol",
       "community": 0,
-      "norm_label": "scbrandcol",
-      "id": "src_components_layout_footer_footer_scbrandcol"
+      "norm_label": "scbrandcol"
     },
     {
       "label": "ScBrandRow",
@@ -299,9 +229,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L294",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scbrandrow",
       "community": 0,
-      "norm_label": "scbrandrow",
-      "id": "src_components_layout_footer_footer_scbrandrow"
+      "norm_label": "scbrandrow"
     },
     {
       "label": "ScTagline",
@@ -309,9 +239,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L301",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_sctagline",
       "community": 0,
-      "norm_label": "sctagline",
-      "id": "src_components_layout_footer_footer_sctagline"
+      "norm_label": "sctagline"
     },
     {
       "label": "ScColumn",
@@ -319,9 +249,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L305",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_sccolumn",
       "community": 0,
-      "norm_label": "sccolumn",
-      "id": "src_components_layout_footer_footer_sccolumn"
+      "norm_label": "sccolumn"
     },
     {
       "label": "ScColumnTitle",
@@ -329,9 +259,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L311",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_sccolumntitle",
       "community": 0,
-      "norm_label": "sccolumntitle",
-      "id": "src_components_layout_footer_footer_sccolumntitle"
+      "norm_label": "sccolumntitle"
     },
     {
       "label": "ScColumnLinks",
@@ -339,9 +269,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L338",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_sccolumnlinks",
       "community": 0,
-      "norm_label": "sccolumnlinks",
-      "id": "src_components_layout_footer_footer_sccolumnlinks"
+      "norm_label": "sccolumnlinks"
     },
     {
       "label": "footerLinkStyles",
@@ -349,9 +279,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L419",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_footerlinkstyles",
       "community": 0,
-      "norm_label": "footerlinkstyles",
-      "id": "src_components_layout_footer_footer_footerlinkstyles"
+      "norm_label": "footerlinkstyles"
     },
     {
       "label": "ScFooterLink",
@@ -359,9 +289,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L460",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scfooterlink",
       "community": 0,
-      "norm_label": "scfooterlink",
-      "id": "src_components_layout_footer_footer_scfooterlink"
+      "norm_label": "scfooterlink"
     },
     {
       "label": "ScFooterNavLink",
@@ -369,9 +299,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L468",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scfooternavlink",
       "community": 0,
-      "norm_label": "scfooternavlink",
-      "id": "src_components_layout_footer_footer_scfooternavlink"
+      "norm_label": "scfooternavlink"
     },
     {
       "label": "ScBottomBar",
@@ -379,9 +309,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L487",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scbottombar",
       "community": 0,
-      "norm_label": "scbottombar",
-      "id": "src_components_layout_footer_footer_scbottombar"
+      "norm_label": "scbottombar"
     },
     {
       "label": "ScBottomLinks",
@@ -389,9 +319,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L539",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_scbottomlinks",
       "community": 0,
-      "norm_label": "scbottomlinks",
-      "id": "src_components_layout_footer_footer_scbottomlinks"
+      "norm_label": "scbottomlinks"
     },
     {
       "label": "Footer()",
@@ -399,9 +329,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L573",
       "_origin": "ast",
+      "id": "src_components_layout_footer_footer_footer",
       "community": 0,
-      "norm_label": "footer()",
-      "id": "src_components_layout_footer_footer_footer"
+      "norm_label": "footer()"
     },
     {
       "label": "Contact.test.tsx",
@@ -409,9 +339,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test",
       "community": 161,
-      "norm_label": "contact.test.tsx",
-      "id": "src_components_sections_contact_contact_test"
+      "norm_label": "contact.test.tsx"
     },
     {
       "label": "ioCallbacks",
@@ -419,9 +349,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L87",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_iocallbacks",
       "community": 161,
-      "norm_label": "iocallbacks",
-      "id": "src_components_sections_contact_contact_test_iocallbacks"
+      "norm_label": "iocallbacks"
     },
     {
       "label": "trigger()",
@@ -429,9 +359,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L88",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_trigger",
       "community": 161,
-      "norm_label": "trigger()",
-      "id": "src_components_sections_contact_contact_test_trigger"
+      "norm_label": "trigger()"
     },
     {
       "label": "stubMatchMedia()",
@@ -439,9 +369,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L103",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_stubmatchmedia",
       "community": 161,
-      "norm_label": "stubmatchmedia()",
-      "id": "src_components_sections_contact_contact_test_stubmatchmedia"
+      "norm_label": "stubmatchmedia()"
     },
     {
       "label": "constructor()",
@@ -449,9 +379,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L121",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_constructor",
       "community": 161,
-      "norm_label": "constructor()",
-      "id": "src_components_sections_contact_contact_test_constructor"
+      "norm_label": "constructor()"
     },
     {
       "label": "observe()",
@@ -459,9 +389,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L124",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_observe",
       "community": 161,
-      "norm_label": "observe()",
-      "id": "src_components_sections_contact_contact_test_observe"
+      "norm_label": "observe()"
     },
     {
       "label": "disconnect()",
@@ -469,9 +399,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L125",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_disconnect",
       "community": 161,
-      "norm_label": "disconnect()",
-      "id": "src_components_sections_contact_contact_test_disconnect"
+      "norm_label": "disconnect()"
     },
     {
       "label": "cssRuleTextFor()",
@@ -479,9 +409,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L141",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_cssruletextfor",
       "community": 161,
-      "norm_label": "cssruletextfor()",
-      "id": "src_components_sections_contact_contact_test_cssruletextfor"
+      "norm_label": "cssruletextfor()"
     },
     {
       "label": "reglasSinScripting()",
@@ -489,9 +419,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L167",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_reglassinscripting",
       "community": 161,
-      "norm_label": "reglassinscripting()",
-      "id": "src_components_sections_contact_contact_test_reglassinscripting"
+      "norm_label": "reglassinscripting()"
     },
     {
       "label": "escribirMensaje()",
@@ -499,9 +429,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L209",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_escribirmensaje",
       "community": 161,
-      "norm_label": "escribirmensaje()",
-      "id": "src_components_sections_contact_contact_test_escribirmensaje"
+      "norm_label": "escribirmensaje()"
     },
     {
       "label": "anunciados()",
@@ -509,9 +439,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L228",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_anunciados",
       "community": 161,
-      "norm_label": "anunciados()",
-      "id": "src_components_sections_contact_contact_test_anunciados"
+      "norm_label": "anunciados()"
     },
     {
       "label": "panelDeRespaldo()",
@@ -519,9 +449,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L236",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_panelderespaldo",
       "community": 161,
-      "norm_label": "panelderespaldo()",
-      "id": "src_components_sections_contact_contact_test_panelderespaldo"
+      "norm_label": "panelderespaldo()"
     },
     {
       "label": "getSceneRoot()",
@@ -529,9 +459,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L857",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_getsceneroot",
       "community": 161,
-      "norm_label": "getsceneroot()",
-      "id": "src_components_sections_contact_contact_test_getsceneroot"
+      "norm_label": "getsceneroot()"
     },
     {
       "label": "submitValidForm()",
@@ -539,9 +469,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1434",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_submitvalidform",
       "community": 161,
-      "norm_label": "submitvalidform()",
-      "id": "src_components_sections_contact_contact_test_submitvalidform"
+      "norm_label": "submitvalidform()"
     },
     {
       "label": "renderCardLink()",
@@ -549,9 +479,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2022",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_rendercardlink",
       "community": 161,
-      "norm_label": "rendercardlink()",
-      "id": "src_components_sections_contact_contact_test_rendercardlink"
+      "norm_label": "rendercardlink()"
     },
     {
       "label": "reglasPorSelector()",
@@ -559,9 +489,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2274",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_reglasporselector",
       "community": 161,
-      "norm_label": "reglasporselector()",
-      "id": "src_components_sections_contact_contact_test_reglasporselector"
+      "norm_label": "reglasporselector()"
     },
     {
       "label": "mockAssign()",
@@ -569,9 +499,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2530",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_mockassign",
       "community": 161,
-      "norm_label": "mockassign()",
-      "id": "src_components_sections_contact_contact_test_mockassign"
+      "norm_label": "mockassign()"
     },
     {
       "label": "markupDeServidor()",
@@ -579,9 +509,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2758",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_markupdeservidor",
       "community": 161,
-      "norm_label": "markupdeservidor()",
-      "id": "src_components_sections_contact_contact_test_markupdeservidor"
+      "norm_label": "markupdeservidor()"
     },
     {
       "label": "submitCon()",
@@ -589,9 +519,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2857",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_submitcon",
       "community": 161,
-      "norm_label": "submitcon()",
-      "id": "src_components_sections_contact_contact_test_submitcon"
+      "norm_label": "submitcon()"
     },
     {
       "label": "ratioSobrePanelClaro()",
@@ -599,9 +529,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3058",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_ratiosobrepanelclaro",
       "community": 161,
-      "norm_label": "ratiosobrepanelclaro()",
-      "id": "src_components_sections_contact_contact_test_ratiosobrepanelclaro"
+      "norm_label": "ratiosobrepanelclaro()"
     },
     {
       "label": "ratioSobrePanelOscuro()",
@@ -609,9 +539,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3069",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_ratiosobrepaneloscuro",
       "community": 161,
-      "norm_label": "ratiosobrepaneloscuro()",
-      "id": "src_components_sections_contact_contact_test_ratiosobrepaneloscuro"
+      "norm_label": "ratiosobrepaneloscuro()"
     },
     {
       "label": "envioValido()",
@@ -619,9 +549,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3311",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_enviovalido",
       "community": 161,
-      "norm_label": "enviovalido()",
-      "id": "src_components_sections_contact_contact_test_enviovalido"
+      "norm_label": "enviovalido()"
     },
     {
       "label": "montarAviso()",
@@ -629,9 +559,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3429",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_montaraviso",
       "community": 161,
-      "norm_label": "montaraviso()",
-      "id": "src_components_sections_contact_contact_test_montaraviso"
+      "norm_label": "montaraviso()"
     },
     {
       "label": "montarFormulario()",
@@ -639,9 +569,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3537",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_montarformulario",
       "community": 161,
-      "norm_label": "montarformulario()",
-      "id": "src_components_sections_contact_contact_test_montarformulario"
+      "norm_label": "montarformulario()"
     },
     {
       "label": "declaracionBase()",
@@ -649,9 +579,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3688",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_declaracionbase",
       "community": 161,
-      "norm_label": "declaracionbase()",
-      "id": "src_components_sections_contact_contact_test_declaracionbase"
+      "norm_label": "declaracionbase()"
     },
     {
       "label": "envioInvalidoDeCorreo()",
@@ -659,9 +589,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3748",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_envioinvalidodecorreo",
       "community": 161,
-      "norm_label": "envioinvalidodecorreo()",
-      "id": "src_components_sections_contact_contact_test_envioinvalidodecorreo"
+      "norm_label": "envioinvalidodecorreo()"
     },
     {
       "label": "mockAssignD4()",
@@ -669,9 +599,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3849",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_mockassignd4",
       "community": 161,
-      "norm_label": "mockassignd4()",
-      "id": "src_components_sections_contact_contact_test_mockassignd4"
+      "norm_label": "mockassignd4()"
     },
     {
       "label": "cuerpoDelMailto()",
@@ -679,9 +609,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3870",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_cuerpodelmailto",
       "community": 161,
-      "norm_label": "cuerpodelmailto()",
-      "id": "src_components_sections_contact_contact_test_cuerpodelmailto"
+      "norm_label": "cuerpodelmailto()"
     },
     {
       "label": "panelConCopia()",
@@ -689,9 +619,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4021",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_panelconcopia",
       "community": 161,
-      "norm_label": "panelconcopia()",
-      "id": "src_components_sections_contact_contact_test_panelconcopia"
+      "norm_label": "panelconcopia()"
     },
     {
       "label": "pulsarCopiar()",
@@ -699,9 +629,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4036",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_pulsarcopiar",
       "community": 161,
-      "norm_label": "pulsarcopiar()",
-      "id": "src_components_sections_contact_contact_test_pulsarcopiar"
+      "norm_label": "pulsarcopiar()"
     },
     {
       "label": "regiones()",
@@ -709,9 +639,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4181",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_regiones",
       "community": 161,
-      "norm_label": "regiones()",
-      "id": "src_components_sections_contact_contact_test_regiones"
+      "norm_label": "regiones()"
     },
     {
       "label": "mensajeDe()",
@@ -719,9 +649,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4355",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_mensajede",
       "community": 161,
-      "norm_label": "mensajede()",
-      "id": "src_components_sections_contact_contact_test_mensajede"
+      "norm_label": "mensajede()"
     },
     {
       "label": "urlDe()",
@@ -729,9 +659,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4366",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_urlde",
       "community": 358,
-      "norm_label": "urlde()",
-      "id": "src_components_sections_contact_contact_test_urlde"
+      "norm_label": "urlde()"
     },
     {
       "label": "ratioClaro()",
@@ -739,9 +669,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4678",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_ratioclaro",
       "community": 161,
-      "norm_label": "ratioclaro()",
-      "id": "src_components_sections_contact_contact_test_ratioclaro"
+      "norm_label": "ratioclaro()"
     },
     {
       "label": "ratioOscuro()",
@@ -749,9 +679,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4689",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_test_ratiooscuro",
       "community": 161,
-      "norm_label": "ratiooscuro()",
-      "id": "src_components_sections_contact_contact_test_ratiooscuro"
+      "norm_label": "ratiooscuro()"
     },
     {
       "label": "Contact.tsx",
@@ -759,9 +689,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact",
       "community": 114,
-      "norm_label": "contact.tsx",
-      "id": "src_components_sections_contact_contact"
+      "norm_label": "contact.tsx"
     },
     {
       "label": "ScContact",
@@ -769,9 +699,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L179",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccontact",
       "community": 114,
-      "norm_label": "sccontact",
-      "id": "src_components_sections_contact_contact_sccontact"
+      "norm_label": "sccontact"
     },
     {
       "label": "ScCard",
@@ -779,9 +709,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L313",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccard",
       "community": 114,
-      "norm_label": "sccard",
-      "id": "src_components_sections_contact_contact_sccard"
+      "norm_label": "sccard"
     },
     {
       "label": "ScLeft",
@@ -789,9 +719,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L354",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scleft",
       "community": 114,
-      "norm_label": "scleft",
-      "id": "src_components_sections_contact_contact_scleft"
+      "norm_label": "scleft"
     },
     {
       "label": "ScAccent",
@@ -799,9 +729,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L382",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scaccent",
       "community": 114,
-      "norm_label": "scaccent",
-      "id": "src_components_sections_contact_contact_scaccent"
+      "norm_label": "scaccent"
     },
     {
       "label": "ScBody",
@@ -809,9 +739,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L412",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scbody",
       "community": 114,
-      "norm_label": "scbody",
-      "id": "src_components_sections_contact_contact_scbody"
+      "norm_label": "scbody"
     },
     {
       "label": "ScLightChannels",
@@ -819,9 +749,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L443",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sclightchannels",
       "community": 114,
-      "norm_label": "sclightchannels",
-      "id": "src_components_sections_contact_contact_sclightchannels"
+      "norm_label": "sclightchannels"
     },
     {
       "label": "ScRings",
@@ -829,9 +759,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L465",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scrings",
       "community": 114,
-      "norm_label": "scrings",
-      "id": "src_components_sections_contact_contact_scrings"
+      "norm_label": "scrings"
     },
     {
       "label": "ScRingHalo",
@@ -839,9 +769,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L483",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scringhalo",
       "community": 114,
-      "norm_label": "scringhalo",
-      "id": "src_components_sections_contact_contact_scringhalo"
+      "norm_label": "scringhalo"
     },
     {
       "label": "ScRingA",
@@ -849,9 +779,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L494",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scringa",
       "community": 114,
-      "norm_label": "scringa",
-      "id": "src_components_sections_contact_contact_scringa"
+      "norm_label": "scringa"
     },
     {
       "label": "ScRingB",
@@ -859,9 +789,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L505",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scringb",
       "community": 114,
-      "norm_label": "scringb",
-      "id": "src_components_sections_contact_contact_scringb"
+      "norm_label": "scringb"
     },
     {
       "label": "ScFigureWrap",
@@ -869,9 +799,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L533",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfigurewrap",
       "community": 114,
-      "norm_label": "scfigurewrap",
-      "id": "src_components_sections_contact_contact_scfigurewrap"
+      "norm_label": "scfigurewrap"
     },
     {
       "label": "contactFloat",
@@ -879,9 +809,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L560",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_contactfloat",
       "community": 114,
-      "norm_label": "contactfloat",
-      "id": "src_components_sections_contact_contact_contactfloat"
+      "norm_label": "contactfloat"
     },
     {
       "label": "ScFigure",
@@ -889,9 +819,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L569",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfigure",
       "community": 114,
-      "norm_label": "scfigure",
-      "id": "src_components_sections_contact_contact_scfigure"
+      "norm_label": "scfigure"
     },
     {
       "label": "ScDarkSceneSlot",
@@ -899,9 +829,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L609",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scdarksceneslot",
       "community": 114,
-      "norm_label": "scdarksceneslot",
-      "id": "src_components_sections_contact_contact_scdarksceneslot"
+      "norm_label": "scdarksceneslot"
     },
     {
       "label": "glowPulse",
@@ -909,9 +839,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L631",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_glowpulse",
       "community": 114,
-      "norm_label": "glowpulse",
-      "id": "src_components_sections_contact_contact_glowpulse"
+      "norm_label": "glowpulse"
     },
     {
       "label": "ScTopGlow",
@@ -919,9 +849,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L652",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sctopglow",
       "community": 114,
-      "norm_label": "sctopglow",
-      "id": "src_components_sections_contact_contact_sctopglow"
+      "norm_label": "sctopglow"
     },
     {
       "label": "ScDarkFrame",
@@ -929,9 +859,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L697",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scdarkframe",
       "community": 114,
-      "norm_label": "scdarkframe",
-      "id": "src_components_sections_contact_contact_scdarkframe"
+      "norm_label": "scdarkframe"
     },
     {
       "label": "ScDarkContent",
@@ -939,9 +869,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L744",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scdarkcontent",
       "community": 114,
-      "norm_label": "scdarkcontent",
-      "id": "src_components_sections_contact_contact_scdarkcontent"
+      "norm_label": "scdarkcontent"
     },
     {
       "label": "ScDarkCopy",
@@ -949,9 +879,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L803",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scdarkcopy",
       "community": 114,
-      "norm_label": "scdarkcopy",
-      "id": "src_components_sections_contact_contact_scdarkcopy"
+      "norm_label": "scdarkcopy"
     },
     {
       "label": "ScCards",
@@ -959,9 +889,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L838",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccards",
       "community": 114,
-      "norm_label": "sccards",
-      "id": "src_components_sections_contact_contact_sccards"
+      "norm_label": "sccards"
     },
     {
       "label": "panelBackground()",
@@ -969,9 +899,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L864",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_panelbackground",
       "community": 114,
-      "norm_label": "panelbackground()",
-      "id": "src_components_sections_contact_contact_panelbackground"
+      "norm_label": "panelbackground()"
     },
     {
       "label": "panelBorder()",
@@ -979,9 +909,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L876",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_panelborder",
       "community": 114,
-      "norm_label": "panelborder()",
-      "id": "src_components_sections_contact_contact_panelborder"
+      "norm_label": "panelborder()"
     },
     {
       "label": "channelAccent()",
@@ -989,9 +919,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L890",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_channelaccent",
       "community": 114,
-      "norm_label": "channelaccent()",
-      "id": "src_components_sections_contact_contact_channelaccent"
+      "norm_label": "channelaccent()"
     },
     {
       "label": "fieldErrorColor()",
@@ -999,9 +929,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L931",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_fielderrorcolor",
       "community": 114,
-      "norm_label": "fielderrorcolor()",
-      "id": "src_components_sections_contact_contact_fielderrorcolor"
+      "norm_label": "fielderrorcolor()"
     },
     {
       "label": "ScCardLink",
@@ -1009,9 +939,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L957",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccardlink",
       "community": 114,
-      "norm_label": "sccardlink",
-      "id": "src_components_sections_contact_contact_sccardlink"
+      "norm_label": "sccardlink"
     },
     {
       "label": "ScCardIcon",
@@ -1019,9 +949,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1018",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccardicon",
       "community": 114,
-      "norm_label": "sccardicon",
-      "id": "src_components_sections_contact_contact_sccardicon"
+      "norm_label": "sccardicon"
     },
     {
       "label": "ScCardTitle",
@@ -1029,9 +959,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1036",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccardtitle",
       "community": 114,
-      "norm_label": "sccardtitle",
-      "id": "src_components_sections_contact_contact_sccardtitle"
+      "norm_label": "sccardtitle"
     },
     {
       "label": "ScCardValue",
@@ -1039,9 +969,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1072",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccardvalue",
       "community": 114,
-      "norm_label": "sccardvalue",
-      "id": "src_components_sections_contact_contact_sccardvalue"
+      "norm_label": "sccardvalue"
     },
     {
       "label": "ScForm",
@@ -1049,9 +979,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1116",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scform",
       "community": 114,
-      "norm_label": "scform",
-      "id": "src_components_sections_contact_contact_scform"
+      "norm_label": "scform"
     },
     {
       "label": "ScTextarea",
@@ -1059,9 +989,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1158",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sctextarea",
       "community": 114,
-      "norm_label": "sctextarea",
-      "id": "src_components_sections_contact_contact_sctextarea"
+      "norm_label": "sctextarea"
     },
     {
       "label": "ScFieldMessage",
@@ -1069,9 +999,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1249",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfieldmessage",
       "community": 114,
-      "norm_label": "scfieldmessage",
-      "id": "src_components_sections_contact_contact_scfieldmessage"
+      "norm_label": "scfieldmessage"
     },
     {
       "label": "ScLiveRegion",
@@ -1079,9 +1009,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1289",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scliveregion",
       "community": 114,
-      "norm_label": "scliveregion",
-      "id": "src_components_sections_contact_contact_scliveregion"
+      "norm_label": "scliveregion"
     },
     {
       "label": "CounterState",
@@ -1089,9 +1019,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1297",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_counterstate",
       "community": 114,
-      "norm_label": "counterstate",
-      "id": "src_components_sections_contact_contact_counterstate"
+      "norm_label": "counterstate"
     },
     {
       "label": "ScCounter",
@@ -1099,9 +1029,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1343",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccounter",
       "community": 114,
-      "norm_label": "sccounter",
-      "id": "src_components_sections_contact_contact_sccounter"
+      "norm_label": "sccounter"
     },
     {
       "label": "ScNoJsNote",
@@ -1109,9 +1039,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1435",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scnojsnote",
       "community": 114,
-      "norm_label": "scnojsnote",
-      "id": "src_components_sections_contact_contact_scnojsnote"
+      "norm_label": "scnojsnote"
     },
     {
       "label": "ScPrivacyNote",
@@ -1119,9 +1049,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1492",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scprivacynote",
       "community": 114,
-      "norm_label": "scprivacynote",
-      "id": "src_components_sections_contact_contact_scprivacynote"
+      "norm_label": "scprivacynote"
     },
     {
       "label": "ScSubmitButton",
@@ -1129,9 +1059,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1548",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scsubmitbutton",
       "community": 114,
-      "norm_label": "scsubmitbutton",
-      "id": "src_components_sections_contact_contact_scsubmitbutton"
+      "norm_label": "scsubmitbutton"
     },
     {
       "label": "ScSendIcon",
@@ -1139,9 +1069,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1587",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scsendicon",
       "community": 114,
-      "norm_label": "scsendicon",
-      "id": "src_components_sections_contact_contact_scsendicon"
+      "norm_label": "scsendicon"
     },
     {
       "label": "ScFallbackPanel",
@@ -1149,9 +1079,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1613",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfallbackpanel",
       "community": 114,
-      "norm_label": "scfallbackpanel",
-      "id": "src_components_sections_contact_contact_scfallbackpanel"
+      "norm_label": "scfallbackpanel"
     },
     {
       "label": "ScFallbackText",
@@ -1159,9 +1089,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1625",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfallbacktext",
       "community": 114,
-      "norm_label": "scfallbacktext",
-      "id": "src_components_sections_contact_contact_scfallbacktext"
+      "norm_label": "scfallbacktext"
     },
     {
       "label": "ScFallbackEmail",
@@ -1169,9 +1099,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1636",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_scfallbackemail",
       "community": 114,
-      "norm_label": "scfallbackemail",
-      "id": "src_components_sections_contact_contact_scfallbackemail"
+      "norm_label": "scfallbackemail"
     },
     {
       "label": "ScCopyButton",
@@ -1179,9 +1109,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1644",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccopybutton",
       "community": 114,
-      "norm_label": "sccopybutton",
-      "id": "src_components_sections_contact_contact_sccopybutton"
+      "norm_label": "sccopybutton"
     },
     {
       "label": "ScCopyErrorText",
@@ -1189,9 +1119,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1674",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_sccopyerrortext",
       "community": 114,
-      "norm_label": "sccopyerrortext",
-      "id": "src_components_sections_contact_contact_sccopyerrortext"
+      "norm_label": "sccopyerrortext"
     },
     {
       "label": "isValidEmail()",
@@ -1199,9 +1129,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1704",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_isvalidemail",
       "community": 358,
-      "norm_label": "isvalidemail()",
-      "id": "src_components_sections_contact_contact_isvalidemail"
+      "norm_label": "isvalidemail()"
     },
     {
       "label": "hasEmailFormatError()",
@@ -1209,9 +1139,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1734",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_hasemailformaterror",
       "community": 358,
-      "norm_label": "hasemailformaterror()",
-      "id": "src_components_sections_contact_contact_hasemailformaterror"
+      "norm_label": "hasemailformaterror()"
     },
     {
       "label": "hasMessage()",
@@ -1219,9 +1149,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1759",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_hasmessage",
       "community": 358,
-      "norm_label": "hasmessage()",
-      "id": "src_components_sections_contact_contact_hasmessage"
+      "norm_label": "hasmessage()"
     },
     {
       "label": "MESSAGE_WARN",
@@ -1229,9 +1159,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1868",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_message_warn",
       "community": 161,
-      "norm_label": "message_warn",
-      "id": "src_components_sections_contact_contact_message_warn"
+      "norm_label": "message_warn"
     },
     {
       "label": "buildMailtoUrl()",
@@ -1239,9 +1169,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1884",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_buildmailtourl",
       "community": 358,
-      "norm_label": "buildmailtourl()",
-      "id": "src_components_sections_contact_contact_buildmailtourl"
+      "norm_label": "buildmailtourl()"
     },
     {
       "label": "exceedsMailtoBudget()",
@@ -1249,9 +1179,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1906",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_exceedsmailtobudget",
       "community": 358,
-      "norm_label": "exceedsmailtobudget()",
-      "id": "src_components_sections_contact_contact_exceedsmailtobudget"
+      "norm_label": "exceedsmailtobudget()"
     },
     {
       "label": "Contact()",
@@ -1259,9 +1189,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1910",
       "_origin": "ast",
+      "id": "src_components_sections_contact_contact_contact",
       "community": 358,
-      "norm_label": "contact()",
-      "id": "src_components_sections_contact_contact_contact"
+      "norm_label": "contact()"
     },
     {
       "label": "RFC-5322",
@@ -1269,9 +1199,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1700",
       "_origin": "ast",
+      "id": "docref_rfc_5322",
       "community": 114,
-      "norm_label": "rfc-5322",
-      "id": "docref_rfc_5322"
+      "norm_label": "rfc-5322"
     },
     {
       "label": "Features.tsx",
@@ -1279,9 +1209,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "src_components_sections_features_features",
       "community": 35,
-      "norm_label": "features.tsx",
-      "id": "src_components_sections_features_features"
+      "norm_label": "features.tsx"
     },
     {
       "label": "BULLET_KEYS",
@@ -1289,9 +1219,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L86",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_bullet_keys",
       "community": 35,
-      "norm_label": "bullet_keys",
-      "id": "src_components_sections_features_features_bullet_keys"
+      "norm_label": "bullet_keys"
     },
     {
       "label": "accentColor()",
@@ -1299,9 +1229,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L150",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_accentcolor",
       "community": 287,
-      "norm_label": "accentcolor()",
-      "id": "src_components_sections_features_features_accentcolor"
+      "norm_label": "accentcolor()"
     },
     {
       "label": "accentColorHover()",
@@ -1309,9 +1239,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L193",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_accentcolorhover",
       "community": 287,
-      "norm_label": "accentcolorhover()",
-      "id": "src_components_sections_features_features_accentcolorhover"
+      "norm_label": "accentcolorhover()"
     },
     {
       "label": "ScFeatures",
@@ -1319,9 +1249,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L256",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scfeatures",
       "community": 35,
-      "norm_label": "scfeatures",
-      "id": "src_components_sections_features_features_scfeatures"
+      "norm_label": "scfeatures"
     },
     {
       "label": "ScHeader",
@@ -1329,9 +1259,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L309",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scheader",
       "community": 35,
-      "norm_label": "scheader",
-      "id": "src_components_sections_features_features_scheader"
+      "norm_label": "scheader"
     },
     {
       "label": "ScIntro",
@@ -1339,9 +1269,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L345",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scintro",
       "community": 35,
-      "norm_label": "scintro",
-      "id": "src_components_sections_features_features_scintro"
+      "norm_label": "scintro"
     },
     {
       "label": "ScSpanLearning",
@@ -1349,9 +1279,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L363",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scspanlearning",
       "community": 35,
-      "norm_label": "scspanlearning",
-      "id": "src_components_sections_features_features_scspanlearning"
+      "norm_label": "scspanlearning"
     },
     {
       "label": "ScSpanImagination",
@@ -1359,9 +1289,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L369",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scspanimagination",
       "community": 35,
-      "norm_label": "scspanimagination",
-      "id": "src_components_sections_features_features_scspanimagination"
+      "norm_label": "scspanimagination"
     },
     {
       "label": "ScSpanGaming",
@@ -1369,9 +1299,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L420",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scspangaming",
       "community": 35,
-      "norm_label": "scspangaming",
-      "id": "src_components_sections_features_features_scspangaming"
+      "norm_label": "scspangaming"
     },
     {
       "label": "ScReveal",
@@ -1379,9 +1309,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L460",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_screveal",
       "community": 35,
-      "norm_label": "screveal",
-      "id": "src_components_sections_features_features_screveal"
+      "norm_label": "screveal"
     },
     {
       "label": "ScRevealGroup",
@@ -1389,9 +1319,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L486",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_screvealgroup",
       "community": 35,
-      "norm_label": "screvealgroup",
-      "id": "src_components_sections_features_features_screvealgroup"
+      "norm_label": "screvealgroup"
     },
     {
       "label": "ScGrid",
@@ -1399,9 +1329,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L571",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scgrid",
       "community": 35,
-      "norm_label": "scgrid",
-      "id": "src_components_sections_features_features_scgrid"
+      "norm_label": "scgrid"
     },
     {
       "label": "cardBorderSpin",
@@ -1409,9 +1339,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L594",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_cardborderspin",
       "community": 35,
-      "norm_label": "cardborderspin",
-      "id": "src_components_sections_features_features_cardborderspin"
+      "norm_label": "cardborderspin"
     },
     {
       "label": "ScCardBorder",
@@ -1419,9 +1349,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L657",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_sccardborder",
       "community": 35,
-      "norm_label": "sccardborder",
-      "id": "src_components_sections_features_features_sccardborder"
+      "norm_label": "sccardborder"
     },
     {
       "label": "ScCardSurface",
@@ -1429,9 +1359,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L765",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_sccardsurface",
       "community": 35,
-      "norm_label": "sccardsurface",
-      "id": "src_components_sections_features_features_sccardsurface"
+      "norm_label": "sccardsurface"
     },
     {
       "label": "ScImagePanel",
@@ -1439,9 +1369,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L820",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scimagepanel",
       "community": 35,
-      "norm_label": "scimagepanel",
-      "id": "src_components_sections_features_features_scimagepanel"
+      "norm_label": "scimagepanel"
     },
     {
       "label": "ScImageCircle",
@@ -1449,9 +1379,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L860",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scimagecircle",
       "community": 35,
-      "norm_label": "scimagecircle",
-      "id": "src_components_sections_features_features_scimagecircle"
+      "norm_label": "scimagecircle"
     },
     {
       "label": "ScFigure",
@@ -1459,9 +1389,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L886",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scfigure",
       "community": 35,
-      "norm_label": "scfigure",
-      "id": "src_components_sections_features_features_scfigure"
+      "norm_label": "scfigure"
     },
     {
       "label": "ScContent",
@@ -1469,9 +1399,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L907",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_sccontent",
       "community": 35,
-      "norm_label": "sccontent",
-      "id": "src_components_sections_features_features_sccontent"
+      "norm_label": "sccontent"
     },
     {
       "label": "ScBody",
@@ -1479,9 +1409,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L928",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scbody",
       "community": 35,
-      "norm_label": "scbody",
-      "id": "src_components_sections_features_features_scbody"
+      "norm_label": "scbody"
     },
     {
       "label": "ScBullets",
@@ -1489,9 +1419,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1028",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scbullets",
       "community": 35,
-      "norm_label": "scbullets",
-      "id": "src_components_sections_features_features_scbullets"
+      "norm_label": "scbullets"
     },
     {
       "label": "ScBulletItem",
@@ -1499,9 +1429,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1034",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scbulletitem",
       "community": 35,
-      "norm_label": "scbulletitem",
-      "id": "src_components_sections_features_features_scbulletitem"
+      "norm_label": "scbulletitem"
     },
     {
       "label": "ScCheckIcon",
@@ -1509,9 +1439,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1042",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_sccheckicon",
       "community": 35,
-      "norm_label": "sccheckicon",
-      "id": "src_components_sections_features_features_sccheckicon"
+      "norm_label": "sccheckicon"
     },
     {
       "label": "ScCta",
@@ -1519,9 +1449,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1107",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_sccta",
       "community": 35,
-      "norm_label": "sccta",
-      "id": "src_components_sections_features_features_sccta"
+      "norm_label": "sccta"
     },
     {
       "label": "ScDarkSceneSlot",
@@ -1529,9 +1459,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1213",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarksceneslot",
       "community": 35,
-      "norm_label": "scdarksceneslot",
-      "id": "src_components_sections_features_features_scdarksceneslot"
+      "norm_label": "scdarksceneslot"
     },
     {
       "label": "ScDarkFrame",
@@ -1539,9 +1469,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1279",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarkframe",
       "community": 35,
-      "norm_label": "scdarkframe",
-      "id": "src_components_sections_features_features_scdarkframe"
+      "norm_label": "scdarkframe"
     },
     {
       "label": "ScDarkTail",
@@ -1549,9 +1479,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1343",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarktail",
       "community": 35,
-      "norm_label": "scdarktail",
-      "id": "src_components_sections_features_features_scdarktail"
+      "norm_label": "scdarktail"
     },
     {
       "label": "ScDarkContent",
@@ -1559,9 +1489,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1456",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarkcontent",
       "community": 35,
-      "norm_label": "scdarkcontent",
-      "id": "src_components_sections_features_features_scdarkcontent"
+      "norm_label": "scdarkcontent"
     },
     {
       "label": "ScDarkHeader",
@@ -1569,9 +1499,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1516",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarkheader",
       "community": 35,
-      "norm_label": "scdarkheader",
-      "id": "src_components_sections_features_features_scdarkheader"
+      "norm_label": "scdarkheader"
     },
     {
       "label": "ScDarkTitle",
@@ -1579,9 +1509,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1558",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarktitle",
       "community": 35,
-      "norm_label": "scdarktitle",
-      "id": "src_components_sections_features_features_scdarktitle"
+      "norm_label": "scdarktitle"
     },
     {
       "label": "ScDarkIntro",
@@ -1589,9 +1519,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1573",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarkintro",
       "community": 35,
-      "norm_label": "scdarkintro",
-      "id": "src_components_sections_features_features_scdarkintro"
+      "norm_label": "scdarkintro"
     },
     {
       "label": "ScDarkFeatures",
@@ -1599,9 +1529,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1592",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarkfeatures",
       "community": 35,
-      "norm_label": "scdarkfeatures",
-      "id": "src_components_sections_features_features_scdarkfeatures"
+      "norm_label": "scdarkfeatures"
     },
     {
       "label": "ScDarkFeatureBlock",
@@ -1609,9 +1539,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1624",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarkfeatureblock",
       "community": 35,
-      "norm_label": "scdarkfeatureblock",
-      "id": "src_components_sections_features_features_scdarkfeatureblock"
+      "norm_label": "scdarkfeatureblock"
     },
     {
       "label": "ScDarkBody",
@@ -1619,9 +1549,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1690",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_scdarkbody",
       "community": 35,
-      "norm_label": "scdarkbody",
-      "id": "src_components_sections_features_features_scdarkbody"
+      "norm_label": "scdarkbody"
     },
     {
       "label": "FEATURES_CONTACT_ANCHOR",
@@ -1629,9 +1559,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1703",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_features_contact_anchor",
       "community": 35,
-      "norm_label": "features_contact_anchor",
-      "id": "src_components_sections_features_features_features_contact_anchor"
+      "norm_label": "features_contact_anchor"
     },
     {
       "label": "Features()",
@@ -1639,9 +1569,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1709",
       "_origin": "ast",
+      "id": "src_components_sections_features_features_features",
       "community": 348,
-      "norm_label": "features()",
-      "id": "src_components_sections_features_features_features"
+      "norm_label": "features()"
     },
     {
       "label": "DESIGN.md",
@@ -6432,6 +6362,76 @@
       "community": 385,
       "norm_label": "check-dark-art-weight.test.mjs",
       "id": "scripts_check_dark_art_weight_test"
+    },
+    {
+      "label": "storyCosmicBeing.layers.ts",
+      "file_type": "code",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 133,
+      "norm_label": "storycosmicbeing.layers.ts",
+      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
+    },
+    {
+      "label": "StoryCosmicBeingBlend",
+      "file_type": "code",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L16",
+      "_origin": "ast",
+      "community": 133,
+      "norm_label": "storycosmicbeingblend",
+      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingblend"
+    },
+    {
+      "label": "StoryCosmicBeingLayer",
+      "file_type": "code",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L18",
+      "_origin": "ast",
+      "community": 133,
+      "norm_label": "storycosmicbeinglayer",
+      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeinglayer"
+    },
+    {
+      "label": "STORY_COSMIC_BEING_LAYERS",
+      "file_type": "code",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L37",
+      "_origin": "ast",
+      "community": 133,
+      "norm_label": "story_cosmic_being_layers",
+      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
+    },
+    {
+      "label": "storyCosmicBeingAvifSrcSet()",
+      "file_type": "code",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L199",
+      "_origin": "ast",
+      "community": 133,
+      "norm_label": "storycosmicbeingavifsrcset()",
+      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
+    },
+    {
+      "label": "STORY_COSMIC_BEING_POINTER_AMP",
+      "file_type": "code",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L226",
+      "_origin": "ast",
+      "community": 133,
+      "norm_label": "story_cosmic_being_pointer_amp",
+      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp"
+    },
+    {
+      "label": "storyCosmicBeing.layers.test.ts",
+      "file_type": "code",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 133,
+      "norm_label": "storycosmicbeing.layers.test.ts",
+      "id": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_test"
     },
     {
       "label": "BrandName.contrast.test.ts",
@@ -47466,229 +47466,14 @@
   ],
   "links": [
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_test",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_test",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_test",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L37",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L253",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L226",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L16",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingblend",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
-      "source_location": "L18",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeinglayer",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.parts.tsx",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_parts",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.test.tsx",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_test",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/test/assets-budget.test.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_test_assets_budget_test",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.parts.tsx",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_parts",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingblend"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.test.tsx",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_test",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/test/assets-budget.test.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_test_assets_budget_test",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
-      "source_location": "L72",
-      "weight": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_storycosmicbeing",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.test.tsx",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_test",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing",
-      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp"
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L1181",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_allowlist"
+      "target": "scripts_detect_anti_patterns_allowlist",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47696,9 +47481,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2522",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_anchor_map"
+      "target": "scripts_detect_anti_patterns_anchor_map",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47706,9 +47491,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2512",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_anchorkey"
+      "target": "scripts_detect_anti_patterns_anchorkey",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47716,9 +47501,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L299",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_collectfiles"
+      "target": "scripts_detect_anti_patterns_collectfiles",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47726,9 +47511,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L244",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_dirname"
+      "target": "scripts_detect_anti_patterns_dirname",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47736,9 +47521,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L325",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_families"
+      "target": "scripts_detect_anti_patterns_families",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47746,9 +47531,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2595",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_family_guidance"
+      "target": "scripts_detect_anti_patterns_family_guidance",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47756,9 +47541,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L245",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_root"
+      "target": "scripts_detect_anti_patterns_root",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47766,9 +47551,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2634",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_run"
+      "target": "scripts_detect_anti_patterns_run",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47776,9 +47561,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L246",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_scan_dirs"
+      "target": "scripts_detect_anti_patterns_scan_dirs",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47786,9 +47571,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2540",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_scanfile"
+      "target": "scripts_detect_anti_patterns_scanfile",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47796,9 +47581,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L313",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_stripcomments"
+      "target": "scripts_detect_anti_patterns_stripcomments",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47806,9 +47591,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L283",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns",
-      "target": "scripts_detect_anti_patterns_walk"
+      "target": "scripts_detect_anti_patterns_walk",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -47828,9 +47613,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L303",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns_collectfiles",
-      "target": "scripts_detect_anti_patterns_walk"
+      "target": "scripts_detect_anti_patterns_walk",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -47839,9 +47624,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2635",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns_run",
-      "target": "scripts_detect_anti_patterns_collectfiles"
+      "target": "scripts_detect_anti_patterns_collectfiles",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -47850,9 +47635,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2543",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns_scanfile",
-      "target": "scripts_detect_anti_patterns_stripcomments"
+      "target": "scripts_detect_anti_patterns_stripcomments",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -47883,9 +47668,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2654",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "scripts_detect_anti_patterns_run",
-      "target": "scripts_detect_anti_patterns_anchorkey"
+      "target": "scripts_detect_anti_patterns_anchorkey",
+      "confidence_score": 1.0
     },
     {
       "relation": "references",
@@ -47905,9 +47690,9 @@
       "source_file": "scripts/detect-anti-patterns.mjs",
       "source_location": "L2636",
       "weight": 1.0,
-      "confidence_score": 0.5,
       "source": "scripts_detect_anti_patterns_run",
-      "target": "scripts_detect_anti_patterns_scanfile"
+      "target": "scripts_detect_anti_patterns_scanfile",
+      "confidence_score": 0.5
     },
     {
       "relation": "imports",
@@ -47937,9 +47722,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L573",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_footer"
+      "target": "src_components_layout_footer_footer_footer",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47947,9 +47732,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L419",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_footerlinkstyles"
+      "target": "src_components_layout_footer_footer_footerlinkstyles",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47957,9 +47742,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L487",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scbottombar"
+      "target": "src_components_layout_footer_footer_scbottombar",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47967,9 +47752,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L539",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scbottomlinks"
+      "target": "src_components_layout_footer_footer_scbottomlinks",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47977,9 +47762,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L266",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scbrandcol"
+      "target": "src_components_layout_footer_footer_scbrandcol",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47987,9 +47772,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L294",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scbrandrow"
+      "target": "src_components_layout_footer_footer_scbrandrow",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -47997,9 +47782,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L305",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_sccolumn"
+      "target": "src_components_layout_footer_footer_sccolumn",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48007,9 +47792,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L338",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_sccolumnlinks"
+      "target": "src_components_layout_footer_footer_sccolumnlinks",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48017,9 +47802,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L311",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_sccolumntitle"
+      "target": "src_components_layout_footer_footer_sccolumntitle",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48027,9 +47812,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L95",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scfooter"
+      "target": "src_components_layout_footer_footer_scfooter",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48037,9 +47822,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L460",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scfooterlink"
+      "target": "src_components_layout_footer_footer_scfooterlink",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48047,9 +47832,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L468",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scfooternavlink"
+      "target": "src_components_layout_footer_footer_scfooternavlink",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48057,9 +47842,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L243",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scinner"
+      "target": "src_components_layout_footer_footer_scinner",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48067,9 +47852,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L178",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scstar"
+      "target": "src_components_layout_footer_footer_scstar",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48077,9 +47862,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L114",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_scstars"
+      "target": "src_components_layout_footer_footer_scstars",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48087,9 +47872,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L301",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_sctagline"
+      "target": "src_components_layout_footer_footer_sctagline",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48097,9 +47882,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L126",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_startwinkle"
+      "target": "src_components_layout_footer_footer_startwinkle",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48107,9 +47892,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L220",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer",
-      "target": "src_components_layout_footer_footer_starvars"
+      "target": "src_components_layout_footer_footer_starvars",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -48129,9 +47914,9 @@
       "source_file": "src/components/layout/Footer/Footer.tsx",
       "source_location": "L600",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_layout_footer_footer_footer",
-      "target": "src_components_layout_footer_footer_starvars"
+      "target": "src_components_layout_footer_footer_starvars",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -48162,9 +47947,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L26",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact"
+      "target": "src_components_sections_contact_contact",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -48173,9 +47958,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L26",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_buildmailtourl"
+      "target": "src_components_sections_contact_contact_buildmailtourl",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -48184,9 +47969,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L26",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_contact"
+      "target": "src_components_sections_contact_contact_contact",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -48195,9 +47980,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L26",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_exceedsmailtobudget"
+      "target": "src_components_sections_contact_contact_exceedsmailtobudget",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -48206,9 +47991,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L26",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_message_warn"
+      "target": "src_components_sections_contact_contact_message_warn",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48216,9 +48001,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L228",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_anunciados"
+      "target": "src_components_sections_contact_contact_test_anunciados",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48226,9 +48011,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L121",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_constructor"
+      "target": "src_components_sections_contact_contact_test_constructor",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48236,9 +48021,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L141",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_cssruletextfor"
+      "target": "src_components_sections_contact_contact_test_cssruletextfor",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48246,9 +48031,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3870",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_cuerpodelmailto"
+      "target": "src_components_sections_contact_contact_test_cuerpodelmailto",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48256,9 +48041,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3688",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_declaracionbase"
+      "target": "src_components_sections_contact_contact_test_declaracionbase",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48266,9 +48051,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L125",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_disconnect"
+      "target": "src_components_sections_contact_contact_test_disconnect",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48276,9 +48061,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3748",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_envioinvalidodecorreo"
+      "target": "src_components_sections_contact_contact_test_envioinvalidodecorreo",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48286,9 +48071,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3311",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_enviovalido"
+      "target": "src_components_sections_contact_contact_test_enviovalido",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48296,9 +48081,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L209",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_escribirmensaje"
+      "target": "src_components_sections_contact_contact_test_escribirmensaje",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48306,9 +48091,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L857",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_getsceneroot"
+      "target": "src_components_sections_contact_contact_test_getsceneroot",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48316,9 +48101,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L87",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_iocallbacks"
+      "target": "src_components_sections_contact_contact_test_iocallbacks",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48326,9 +48111,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2758",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_markupdeservidor"
+      "target": "src_components_sections_contact_contact_test_markupdeservidor",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48336,9 +48121,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4355",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_mensajede"
+      "target": "src_components_sections_contact_contact_test_mensajede",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48346,9 +48131,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4322",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_mockassign"
+      "target": "src_components_sections_contact_contact_test_mockassign",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48356,9 +48141,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3849",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_mockassignd4"
+      "target": "src_components_sections_contact_contact_test_mockassignd4",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48366,9 +48151,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3429",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_montaraviso"
+      "target": "src_components_sections_contact_contact_test_montaraviso",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48376,9 +48161,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3537",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_montarformulario"
+      "target": "src_components_sections_contact_contact_test_montarformulario",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48386,9 +48171,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L124",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_observe"
+      "target": "src_components_sections_contact_contact_test_observe",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48396,9 +48181,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4021",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_panelconcopia"
+      "target": "src_components_sections_contact_contact_test_panelconcopia",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48406,9 +48191,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L236",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_panelderespaldo"
+      "target": "src_components_sections_contact_contact_test_panelderespaldo",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48416,9 +48201,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4036",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_pulsarcopiar"
+      "target": "src_components_sections_contact_contact_test_pulsarcopiar",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48426,9 +48211,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4678",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_ratioclaro"
+      "target": "src_components_sections_contact_contact_test_ratioclaro",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48436,9 +48221,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4689",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_ratiooscuro"
+      "target": "src_components_sections_contact_contact_test_ratiooscuro",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48446,9 +48231,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3058",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_ratiosobrepanelclaro"
+      "target": "src_components_sections_contact_contact_test_ratiosobrepanelclaro",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48456,9 +48241,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3069",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_ratiosobrepaneloscuro"
+      "target": "src_components_sections_contact_contact_test_ratiosobrepaneloscuro",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48466,9 +48251,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4181",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_regiones"
+      "target": "src_components_sections_contact_contact_test_regiones",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48476,9 +48261,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2274",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_reglasporselector"
+      "target": "src_components_sections_contact_contact_test_reglasporselector",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48486,9 +48271,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L167",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_reglassinscripting"
+      "target": "src_components_sections_contact_contact_test_reglassinscripting",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48496,9 +48281,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2022",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_rendercardlink"
+      "target": "src_components_sections_contact_contact_test_rendercardlink",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48506,9 +48291,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L103",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_stubmatchmedia"
+      "target": "src_components_sections_contact_contact_test_stubmatchmedia",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48516,9 +48301,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2857",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_submitcon"
+      "target": "src_components_sections_contact_contact_test_submitcon",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48526,9 +48311,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1434",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_submitvalidform"
+      "target": "src_components_sections_contact_contact_test_submitvalidform",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48536,9 +48321,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L88",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_trigger"
+      "target": "src_components_sections_contact_contact_test_trigger",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48546,9 +48331,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4366",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test",
-      "target": "src_components_sections_contact_contact_test_urlde"
+      "target": "src_components_sections_contact_contact_test_urlde",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48557,9 +48342,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3689",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test_declaracionbase",
-      "target": "src_components_sections_contact_contact_test_cssruletextfor"
+      "target": "src_components_sections_contact_contact_test_cssruletextfor",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48568,9 +48353,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3756",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test_envioinvalidodecorreo",
-      "target": "src_components_sections_contact_contact_test_escribirmensaje"
+      "target": "src_components_sections_contact_contact_test_escribirmensaje",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48579,9 +48364,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L3317",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test_enviovalido",
-      "target": "src_components_sections_contact_contact_test_escribirmensaje"
+      "target": "src_components_sections_contact_contact_test_escribirmensaje",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48590,9 +48375,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4031",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test_panelconcopia",
-      "target": "src_components_sections_contact_contact_test_escribirmensaje"
+      "target": "src_components_sections_contact_contact_test_escribirmensaje",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48601,9 +48386,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L2866",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test_submitcon",
-      "target": "src_components_sections_contact_contact_test_escribirmensaje"
+      "target": "src_components_sections_contact_contact_test_escribirmensaje",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48612,9 +48397,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L1442",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test_submitvalidform",
-      "target": "src_components_sections_contact_contact_test_escribirmensaje"
+      "target": "src_components_sections_contact_contact_test_escribirmensaje",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -48623,9 +48408,9 @@
       "source_file": "src/components/sections/Contact/Contact.test.tsx",
       "source_location": "L4372",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_test_urlde",
-      "target": "src_components_sections_contact_contact_buildmailtourl"
+      "target": "src_components_sections_contact_contact_buildmailtourl",
+      "confidence_score": 1.0
     },
     {
       "relation": "cites",
@@ -48633,9 +48418,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1700",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "docref_rfc_5322"
+      "target": "docref_rfc_5322",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48643,9 +48428,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1884",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_buildmailtourl"
+      "target": "src_components_sections_contact_contact_buildmailtourl",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48653,9 +48438,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L890",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_channelaccent"
+      "target": "src_components_sections_contact_contact_channelaccent",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48663,9 +48448,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1910",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_contact"
+      "target": "src_components_sections_contact_contact_contact",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48673,9 +48458,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L560",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_contactfloat"
+      "target": "src_components_sections_contact_contact_contactfloat",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48683,9 +48468,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1297",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_counterstate"
+      "target": "src_components_sections_contact_contact_counterstate",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48693,9 +48478,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1906",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_exceedsmailtobudget"
+      "target": "src_components_sections_contact_contact_exceedsmailtobudget",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48703,9 +48488,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L931",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_fielderrorcolor"
+      "target": "src_components_sections_contact_contact_fielderrorcolor",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48713,9 +48498,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L631",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_glowpulse"
+      "target": "src_components_sections_contact_contact_glowpulse",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48723,9 +48508,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1734",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_hasemailformaterror"
+      "target": "src_components_sections_contact_contact_hasemailformaterror",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48733,9 +48518,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1759",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_hasmessage"
+      "target": "src_components_sections_contact_contact_hasmessage",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48743,9 +48528,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1704",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_isvalidemail"
+      "target": "src_components_sections_contact_contact_isvalidemail",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48753,9 +48538,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1868",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_message_warn"
+      "target": "src_components_sections_contact_contact_message_warn",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48763,9 +48548,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L864",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_panelbackground"
+      "target": "src_components_sections_contact_contact_panelbackground",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48773,9 +48558,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L876",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_panelborder"
+      "target": "src_components_sections_contact_contact_panelborder",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48783,9 +48568,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L382",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scaccent"
+      "target": "src_components_sections_contact_contact_scaccent",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48793,9 +48578,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L412",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scbody"
+      "target": "src_components_sections_contact_contact_scbody",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48803,9 +48588,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L313",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccard"
+      "target": "src_components_sections_contact_contact_sccard",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48813,9 +48598,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1018",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccardicon"
+      "target": "src_components_sections_contact_contact_sccardicon",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48823,9 +48608,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L957",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccardlink"
+      "target": "src_components_sections_contact_contact_sccardlink",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48833,9 +48618,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L838",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccards"
+      "target": "src_components_sections_contact_contact_sccards",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48843,9 +48628,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1036",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccardtitle"
+      "target": "src_components_sections_contact_contact_sccardtitle",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48853,9 +48638,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1072",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccardvalue"
+      "target": "src_components_sections_contact_contact_sccardvalue",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48863,9 +48648,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L179",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccontact"
+      "target": "src_components_sections_contact_contact_sccontact",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48873,9 +48658,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1644",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccopybutton"
+      "target": "src_components_sections_contact_contact_sccopybutton",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48883,9 +48668,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1674",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccopyerrortext"
+      "target": "src_components_sections_contact_contact_sccopyerrortext",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48893,9 +48678,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1343",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sccounter"
+      "target": "src_components_sections_contact_contact_sccounter",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48903,9 +48688,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L744",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scdarkcontent"
+      "target": "src_components_sections_contact_contact_scdarkcontent",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48913,9 +48698,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L803",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scdarkcopy"
+      "target": "src_components_sections_contact_contact_scdarkcopy",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48923,9 +48708,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L697",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scdarkframe"
+      "target": "src_components_sections_contact_contact_scdarkframe",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48933,9 +48718,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L609",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scdarksceneslot"
+      "target": "src_components_sections_contact_contact_scdarksceneslot",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48943,9 +48728,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1636",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfallbackemail"
+      "target": "src_components_sections_contact_contact_scfallbackemail",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48953,9 +48738,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1613",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfallbackpanel"
+      "target": "src_components_sections_contact_contact_scfallbackpanel",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48963,9 +48748,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1625",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfallbacktext"
+      "target": "src_components_sections_contact_contact_scfallbacktext",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48973,9 +48758,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1249",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfieldmessage"
+      "target": "src_components_sections_contact_contact_scfieldmessage",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48983,9 +48768,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L569",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfigure"
+      "target": "src_components_sections_contact_contact_scfigure",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -48993,9 +48778,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L533",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scfigurewrap"
+      "target": "src_components_sections_contact_contact_scfigurewrap",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49003,9 +48788,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1116",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scform"
+      "target": "src_components_sections_contact_contact_scform",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49013,9 +48798,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L354",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scleft"
+      "target": "src_components_sections_contact_contact_scleft",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49023,9 +48808,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L443",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sclightchannels"
+      "target": "src_components_sections_contact_contact_sclightchannels",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49033,9 +48818,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1289",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scliveregion"
+      "target": "src_components_sections_contact_contact_scliveregion",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49043,9 +48828,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1435",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scnojsnote"
+      "target": "src_components_sections_contact_contact_scnojsnote",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49053,9 +48838,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1492",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scprivacynote"
+      "target": "src_components_sections_contact_contact_scprivacynote",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49063,9 +48848,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L494",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scringa"
+      "target": "src_components_sections_contact_contact_scringa",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49073,9 +48858,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L505",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scringb"
+      "target": "src_components_sections_contact_contact_scringb",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49083,9 +48868,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L483",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scringhalo"
+      "target": "src_components_sections_contact_contact_scringhalo",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49093,9 +48878,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L465",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scrings"
+      "target": "src_components_sections_contact_contact_scrings",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49103,9 +48888,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1587",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scsendicon"
+      "target": "src_components_sections_contact_contact_scsendicon",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49113,9 +48898,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1548",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_scsubmitbutton"
+      "target": "src_components_sections_contact_contact_scsubmitbutton",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49123,9 +48908,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1158",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sctextarea"
+      "target": "src_components_sections_contact_contact_sctextarea",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49133,9 +48918,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L652",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact",
-      "target": "src_components_sections_contact_contact_sctopglow"
+      "target": "src_components_sections_contact_contact_sctopglow",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -49155,9 +48940,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L1735",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_hasemailformaterror",
-      "target": "src_components_sections_contact_contact_isvalidemail"
+      "target": "src_components_sections_contact_contact_isvalidemail",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -49166,9 +48951,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L2498",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_contact",
-      "target": "src_components_sections_contact_contact_hasemailformaterror"
+      "target": "src_components_sections_contact_contact_hasemailformaterror",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -49177,9 +48962,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L2558",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_contact",
-      "target": "src_components_sections_contact_contact_hasmessage"
+      "target": "src_components_sections_contact_contact_hasmessage",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -49188,9 +48973,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L2101",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_contact",
-      "target": "src_components_sections_contact_contact_buildmailtourl"
+      "target": "src_components_sections_contact_contact_buildmailtourl",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -49199,9 +48984,9 @@
       "source_file": "src/components/sections/Contact/Contact.tsx",
       "source_location": "L2110",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_contact_contact_contact",
-      "target": "src_components_sections_contact_contact_exceedsmailtobudget"
+      "target": "src_components_sections_contact_contact_exceedsmailtobudget",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -49220,9 +49005,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L150",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_accentcolor"
+      "target": "src_components_sections_features_features_accentcolor",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49230,9 +49015,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L193",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_accentcolorhover"
+      "target": "src_components_sections_features_features_accentcolorhover",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49240,9 +49025,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L86",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_bullet_keys"
+      "target": "src_components_sections_features_features_bullet_keys",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49250,9 +49035,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L594",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_cardborderspin"
+      "target": "src_components_sections_features_features_cardborderspin",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49260,9 +49045,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1709",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_features"
+      "target": "src_components_sections_features_features_features",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49270,9 +49055,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1703",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_features_contact_anchor"
+      "target": "src_components_sections_features_features_features_contact_anchor",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49280,9 +49065,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L928",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scbody"
+      "target": "src_components_sections_features_features_scbody",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49290,9 +49075,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1034",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scbulletitem"
+      "target": "src_components_sections_features_features_scbulletitem",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49300,9 +49085,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1028",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scbullets"
+      "target": "src_components_sections_features_features_scbullets",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49310,9 +49095,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L657",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_sccardborder"
+      "target": "src_components_sections_features_features_sccardborder",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49320,9 +49105,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L765",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_sccardsurface"
+      "target": "src_components_sections_features_features_sccardsurface",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49330,9 +49115,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1042",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_sccheckicon"
+      "target": "src_components_sections_features_features_sccheckicon",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49340,9 +49125,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L907",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_sccontent"
+      "target": "src_components_sections_features_features_sccontent",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49350,9 +49135,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1107",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_sccta"
+      "target": "src_components_sections_features_features_sccta",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49360,9 +49145,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1690",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarkbody"
+      "target": "src_components_sections_features_features_scdarkbody",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49370,9 +49155,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1456",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarkcontent"
+      "target": "src_components_sections_features_features_scdarkcontent",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49380,9 +49165,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1624",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarkfeatureblock"
+      "target": "src_components_sections_features_features_scdarkfeatureblock",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49390,9 +49175,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1592",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarkfeatures"
+      "target": "src_components_sections_features_features_scdarkfeatures",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49400,9 +49185,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1279",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarkframe"
+      "target": "src_components_sections_features_features_scdarkframe",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49410,9 +49195,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1516",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarkheader"
+      "target": "src_components_sections_features_features_scdarkheader",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49420,9 +49205,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1573",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarkintro"
+      "target": "src_components_sections_features_features_scdarkintro",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49430,9 +49215,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1213",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarksceneslot"
+      "target": "src_components_sections_features_features_scdarksceneslot",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49440,9 +49225,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1343",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarktail"
+      "target": "src_components_sections_features_features_scdarktail",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49450,9 +49235,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L1558",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scdarktitle"
+      "target": "src_components_sections_features_features_scdarktitle",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49460,9 +49245,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L256",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scfeatures"
+      "target": "src_components_sections_features_features_scfeatures",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49470,9 +49255,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L886",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scfigure"
+      "target": "src_components_sections_features_features_scfigure",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49480,9 +49265,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L571",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scgrid"
+      "target": "src_components_sections_features_features_scgrid",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49490,9 +49275,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L309",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scheader"
+      "target": "src_components_sections_features_features_scheader",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49500,9 +49285,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L860",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scimagecircle"
+      "target": "src_components_sections_features_features_scimagecircle",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49510,9 +49295,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L820",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scimagepanel"
+      "target": "src_components_sections_features_features_scimagepanel",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49520,9 +49305,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L345",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scintro"
+      "target": "src_components_sections_features_features_scintro",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49530,9 +49315,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L460",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_screveal"
+      "target": "src_components_sections_features_features_screveal",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49540,9 +49325,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L486",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_screvealgroup"
+      "target": "src_components_sections_features_features_screvealgroup",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49550,9 +49335,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L420",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scspangaming"
+      "target": "src_components_sections_features_features_scspangaming",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49560,9 +49345,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L369",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scspanimagination"
+      "target": "src_components_sections_features_features_scspanimagination",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -49570,9 +49355,9 @@
       "source_file": "src/components/sections/Features/Features.tsx",
       "source_location": "L363",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "src_components_sections_features_features",
-      "target": "src_components_sections_features_features_scspanlearning"
+      "target": "src_components_sections_features_features_scspanlearning",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -56337,6 +56122,221 @@
       "confidence_score": 1.0,
       "source": "scripts_check_dark_art_weight_test",
       "target": "scripts_check_dark_art_weight_checkdarkartweight"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L226",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L199",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingblend"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeinglayer"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_test",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.parts.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_parts",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.test.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_test",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/test/assets-budget.test.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_test_assets_budget_test",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.parts.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_parts",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingblend"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_test",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.test.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_test",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/test/assets-budget.test.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_test_assets_budget_test",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_layers"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_test",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_storycosmicbeing",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.test.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing_test",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_storycosmicbeingavifsrcset"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/scenes/storyCosmicBeing/StoryCosmicBeing.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_scenes_storycosmicbeing_storycosmicbeing",
+      "target": "src_components_scenes_storycosmicbeing_storycosmicbeing_layers_story_cosmic_being_pointer_amp"
     },
     {
       "relation": "imports_from",
@@ -104419,5 +104419,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "149488f30a6321ee7c0b8c0ce201421db07d189f"
+  "built_at_commit": "eb1fd02afc1d20dbc42cb7d852e341840b86146f"
 }

@@ -1,7 +1,7 @@
 # Graph Report - vti  (2026-09-04)
 
 ## Corpus Check
-- 480 files · ~4,487,041 words
+- 480 files · ~4,486,249 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `149488f3`
+- Built from commit: `eb1fd02a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1607,7 +1607,7 @@ Cohesion: 0.17
 Nodes (11): prefersReducedMotion(), SolTiltSpin, useSolTiltSpin(), FEATURE_FIGURE_BASENAME, FEATURE_KEYS, FeatureKey, FEATURES_LIGHT_REVEAL_DELAYS_MS, HERO_STAGGER_STEPS (+3 more)
 
 ## Knowledge Gaps
-- **2880 isolated node(s):** `StoryCosmicBeingLayer`, `__dirname`, `ROOT`, `SCAN_DIRS`, `ScFooter` (+2875 more)
+- **2880 isolated node(s):** `__dirname`, `ROOT`, `SCAN_DIRS`, `ScFooter`, `ScStars` (+2875 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **81 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -1618,9 +1618,9 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Why does `Navbar()` connect `scripts` to `08-figure-aura`, `VisuallyHidden.tsx`?**
   _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `useSceneParallax()` connect `manifest.json` to `story.deck.tsx`, `centroid`, `registry.tsx`, `story.deck.tsx`, `StoryCosmicBeing.tsx`, `useNavSheet`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **What connects `StoryCosmicBeingLayer`, `__dirname`, `ROOT` to the rest of the system?**
+- **Why does `pipeline` connect `Journey.test.tsx` to `alfa1_4`, `responsiveOutput`, `00-field`, `Navbar.tsx`, `LegalHeader.tsx`?**
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **What connects `__dirname`, `ROOT`, `SCAN_DIRS` to the rest of the system?**
   _2880 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `themes.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.07635467980295567 - nodes in this community are weakly interconnected._
