@@ -89,6 +89,57 @@ describe("storyCosmicBeing AVIF", () => {
     }
   });
 
+  /*
+   * Candado de la premultiplicacion (ola O, frente defensivo). Las diez capas
+   * aditivas publican su AVIF con el alfa YA multiplicado dentro del RGB y sin
+   * canal alfa: para una capa que se compone en `plus-lighter` (o en su
+   * fallback `screen`) sobre una base opaca, la contribucion es `alfa x color`
+   * en los dos casos, asi que el resultado en pantalla es el mismo — pero el
+   * canal alfa costaba el 90 % del fichero. Medido: las 20 pistas aditivas
+   * pasaron de 1.108.805 a 100.388 B (-90,9 %), y la escena entera en su pista
+   * ancha de 1.280 px, de 655.523 a 59.696 B.
+   *
+   * Lo que este candado atrapa es la REGRESION de la causa raiz, con nombre:
+   * si alguien vuelve a generar estas pistas con canal alfa (rehaciendo la
+   * cadena de Pillow anterior, por ejemplo), el peso se multiplica por diez y
+   * el ancla de 1,5 MB del tema oscuro vuelve a depender de que precargue el
+   * navegador. El presupuesto en bytes lo vigila aparte
+   * `scripts/check-dark-art-weight.mjs`; aqui se vigila el porque.
+   *
+   * `00-space-base` queda FUERA a proposito: es la unica capa opaca, se compone
+   * en blend `normal` y nunca tuvo alfa que premultiplicar.
+   *
+   * Se detecta leyendo los bytes del fichero: un AVIF con alfa declara su item
+   * auxiliar con la URN `urn:mpeg:mpegB:cicp:systems:auxiliary:alpha` en la
+   * caja `auxC`, y un AVIF sin alfa no la lleva. Validado con bug inyectado
+   * real: restaurando `07-geometry.avif` tal y como estaba en `f486570`, este
+   * test se puso en rojo; restaurado el premultiplicado, verde.
+   */
+  it("las diez capas aditivas publican su AVIF premultiplicado, sin canal alfa", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const publicDir = join(here, "..", "..", "..", "..", "public");
+    const MARCA_ALFA = "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha";
+
+    const aditivas = STORY_COSMIC_BEING_LAYERS.filter(
+      (layer) => layer.blend === "plus-lighter",
+    );
+    expect(aditivas).toHaveLength(10);
+
+    for (const layer of aditivas) {
+      for (const track of [layer.src, layer.srcSmall]) {
+        const avif = track.replace(/\.webp$/, ".avif");
+        const bytes = readFileSync(join(publicDir, avif.replace(/^\//, "")));
+        expect(
+          bytes.includes(MARCA_ALFA),
+          `${avif} lleva canal alfa: esa pista deberia ir premultiplicada (alfa dentro del RGB). Con alfa el fichero pesa ~10x y el peso del tema oscuro vuelve a depender de lo que precargue el navegador.`,
+        ).toBe(false);
+      }
+    }
+  });
+
   it("el srcSet derivado conserva anchos y orden de la pista WebP", () => {
     const layer = STORY_COSMIC_BEING_LAYERS[1];
     expect(storyCosmicBeingAvifSrcSet(layer)).toBe(

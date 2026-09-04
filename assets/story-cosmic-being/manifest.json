@@ -209,5 +209,156 @@
         "encoder": "Pillow 12.3.0 save AVIF quality=55 speed=2. Barrido previo de calidad (q45-q85, speed 4) sobre 07-geometry, 01-nebula y 03-stars-far: q55 da margen comodo sobre el umbral de 45 dB en las tres con la mayor ganancia; q45 dejaba el alfa de geometry en 45,85 dB, demasiado justo.",
         "results": "Las 22 pistas ganan (guarda por capa: ambas pistas >=5% de ahorro; ninguna salto). Escena completa en disco: 2002824 -> 1111842 B (-44,5%). Pista nativa 1280 (la carga de escritorio): 1190786 -> 655523 B (-45,0%). PSNR minimo contra el WebP de referencia: 48,96 dB RGB premultiplicado (00-space-base-1024), 47,16 dB alfa (07-geometry-1024) -- ambos sobre el umbral de aceptacion de 45 dB de este manifest.",
         "fallback": "Los WebP no se tocan ni se borran: son el fallback del <picture> para navegadores sin AVIF y siguen siendo la referencia de calidad. El candado de storyCosmicBeing.layers.test.ts comprueba con node:fs que cada .avif derivado existe en public/."
+    },
+    "premultiply20260904": {
+        "why": "Ola O, frente defensivo. El ancla tecnica de la critica externa (tema oscuro por debajo de 1,5 MB transferidos) no la garantizaba el repo sino el navegador: medido en Chrome sobre el build de f486570 (1440x900, tema oscuro, 3 s tras load, sin scroll), una visita oscura transferia 1.391.461 B, el 92,8 % del ancla, y 655.523 de esos bytes eran las once capas de esta escena -- que loading=lazy NO evita descargar, Chrome las pidio igual sin tocar el scroll. Con la pista ancha de la figura de Journey el peor caso subia a 1.467.569 B: 32.431 B de margen.",
+        "method": "Las diez capas aditivas se republican con el alfa multiplicado dentro del RGB y SIN canal alfa. No es una decision de calidad, es aritmetica: en plus-lighter la capa aporta alfa x color, asi que premultiplicar y publicar opaco da el mismo pixel; con el fallback screen sobre la base opaca tambien sale identico ((1-a)Cb + a(Cs+Cb-CsCb) = Cs2+Cb-Cs2Cb con Cs2 = a*Cs). 00-space-base queda fuera: es opaca, va en blend normal y nunca tuvo alfa.",
+        "encoder": "sharp 0.34 (libaom) desde el AVIF q55 desplegado: decodificar a RGBA, premultiplicar con redondeo a 8 bits, reencodear avif({quality: 85, effort: 6, chromaSubsampling: 4:4:4}) sin alfa. Guarda por pista heredada de este manifest: si el resultado no baja al menos un 5 %, se reintenta a quality 70 y, si tampoco, se conserva el fichero anterior. La unica pista que necesito quality 70 fue 09-figure (a 85 salia MAS grande que el original en las dos anchuras).",
+        "results": "Las 20 pistas aditivas: 1108805 -> 100388 B (-90,9 %). Escena completa AVIF: pista 1280 de 655523 -> 59696 B, pista 1024 de 456319 -> 43729 B. Caso extremo 07-geometry 1280: 309350 -> 18217 B (-94,1 %); su RGB era casi blanco y toda la forma vivia en el alfa, con una contribucion real de media 1,04/255. PSNR contra el objetivo exacto (el AVIF anterior premultiplicado en coma flotante): minimo 50,40 dB, muy por encima del umbral de 45 dB de este manifest.",
+        "browserVerification": "Verificado en Chrome real, no en jsdom: las once capas montadas con el CSS exacto de la escena (isolation isolate, ScVoid #05010e, mix-blend-mode plus-lighter, object-fit cover, scale 1.02, vineta), animacion congelada en la misma fase en los dos lados, servidas desde un servidor estatico local, capturas a 1440x900. Antes vs despues: PSNR 47,86 dB en la pista 1280 y 47,54 dB en la 1024, maximo error 18-20/255 sobre el 0,011 % de los subpixeles, 97,3 % de los subpixeles dentro de +-2. Campo de estrellas: los pixeles por encima de los umbrales de luminancia caen entre un 1,4 % y un 3,3 %, y las estrellas mas brillantes (>200) conservan el recuento exacto -- no se pierde ninguna capa ni estructura, la diferencia amplificada x12 es ruido sin forma.",
+        "fallback": "Los WebP NO se tocan: conservan su alfa, siguen siendo el fallback del <picture> para navegadores sin AVIF y siguen siendo la referencia de calidad de este manifest.",
+        "locks": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts comprueba que ninguna pista aditiva vuelve a llevar canal alfa (marca urn:mpeg:mpegB:cicp:systems:auxiliary:alpha en los bytes del fichero). Validado con bug inyectado real: restaurando 07-geometry.avif tal y como estaba en f486570, ese test se pone en rojo.",
+        "tracks": [
+            {
+                "file": "01-nebula.avif",
+                "quality": 85,
+                "before": 129143,
+                "after": 9392,
+                "psnr": 50.44
+            },
+            {
+                "file": "01-nebula-1024.avif",
+                "quality": 85,
+                "before": 84605,
+                "after": 6737,
+                "psnr": 50.4
+            },
+            {
+                "file": "02-galaxy.avif",
+                "quality": 85,
+                "before": 13585,
+                "after": 2377,
+                "psnr": 61.91
+            },
+            {
+                "file": "02-galaxy-1024.avif",
+                "quality": 85,
+                "before": 9254,
+                "after": 1706,
+                "psnr": 61.29
+            },
+            {
+                "file": "03-stars-far.avif",
+                "quality": 85,
+                "before": 70277,
+                "after": 626,
+                "psnr": 87.55
+            },
+            {
+                "file": "03-stars-far-1024.avif",
+                "quality": 85,
+                "before": 55119,
+                "after": 530,
+                "psnr": 88.18
+            },
+            {
+                "file": "04-stars-mid.avif",
+                "quality": 85,
+                "before": 47872,
+                "after": 1471,
+                "psnr": 68
+            },
+            {
+                "file": "04-stars-mid-1024.avif",
+                "quality": 85,
+                "before": 35684,
+                "after": 1347,
+                "psnr": 67.15
+            },
+            {
+                "file": "05-stars-near.avif",
+                "quality": 85,
+                "before": 29760,
+                "after": 7368,
+                "psnr": 64.91
+            },
+            {
+                "file": "05-stars-near-1024.avif",
+                "quality": 85,
+                "before": 20988,
+                "after": 5470,
+                "psnr": 65.83
+            },
+            {
+                "file": "06-orbs.avif",
+                "quality": 85,
+                "before": 3006,
+                "after": 1103,
+                "psnr": 68.57
+            },
+            {
+                "file": "06-orbs-1024.avif",
+                "quality": 85,
+                "before": 2179,
+                "after": 897,
+                "psnr": 68.01
+            },
+            {
+                "file": "07-geometry.avif",
+                "quality": 85,
+                "before": 309350,
+                "after": 18217,
+                "psnr": 51.35
+            },
+            {
+                "file": "07-geometry-1024.avif",
+                "quality": 85,
+                "before": 210479,
+                "after": 12738,
+                "psnr": 51.17
+            },
+            {
+                "file": "08-figure-aura.avif",
+                "quality": 85,
+                "before": 36910,
+                "after": 7042,
+                "psnr": 58.34
+            },
+            {
+                "file": "08-figure-aura-1024.avif",
+                "quality": 85,
+                "before": 25816,
+                "after": 4918,
+                "psnr": 57.95
+            },
+            {
+                "file": "09-figure.avif",
+                "quality": 70,
+                "before": 8462,
+                "after": 7072,
+                "psnr": 54.38
+            },
+            {
+                "file": "09-figure-1024.avif",
+                "quality": 70,
+                "before": 6556,
+                "after": 5394,
+                "psnr": 53.42
+            },
+            {
+                "file": "10-heart-core.avif",
+                "quality": 85,
+                "before": 5479,
+                "after": 3349,
+                "psnr": 61.87
+            },
+            {
+                "file": "10-heart-core-1024.avif",
+                "quality": 85,
+                "before": 4281,
+                "after": 2634,
+                "psnr": 61.42
+            }
+        ]
     }
 }

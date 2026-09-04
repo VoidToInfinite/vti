@@ -160,12 +160,39 @@ export const STORY_COSMIC_BEING_SIZES = "(max-width: 700px) 340px, 100vw";
  * calidad ES ese WebP — la verdad visual que la QA aprobó — no el maestro.
  * Detalle completo en assets/story-cosmic-being/manifest.json.
  *
+ * PREMULTIPLICACIÓN (ola O, frente defensivo): desde este cambio, las diez
+ * pistas aditivas de cada ancho llevan el alfa YA multiplicado dentro del RGB
+ * y NO publican canal alfa. No es una decisión de calidad, es aritmética: una
+ * capa que se compone en `plus-lighter` aporta `αs × Cs` al resultado, así que
+ * meter esa multiplicación en el fichero y publicarlo opaco da el MISMO píxel;
+ * y con el fallback `screen` sobre la base opaca también sale idéntico
+ * (`(1−αs)·Cb + αs·(Cs+Cb−Cs·Cb)` = `Cs'+Cb−Cs'·Cb` con `Cs' = αs·Cs`). Lo que
+ * cambia es el peso: el canal alfa costaba el 90 % del fichero. Medido pista a
+ * pista, las 20 aditivas pasan de 1.108.805 a 100.388 B (−90,9 %) y la escena
+ * entera en su pista ancha de 1.280 px, de 655.523 a 59.696 B (−90,9 %); la
+ * de 1.024, de 456.319 a 43.729 B. El caso extremo es 07-geometry: 309.350 →
+ * 18.217 B, porque su RGB era casi blanco y toda la forma vivía en el alfa —
+ * su contribución real a la escena tiene una media de 1,04/255.
+ *
+ * Verificado en Chrome real (no en jsdom, que no compone): las once capas
+ * renderizadas con el CSS de esta escena, antes y después, dan PSNR 47,86 dB
+ * en la pista de 1.280 y 47,54 dB en la de 1.024, con el 97 % de los
+ * subpíxeles dentro de ±2/255 y el recuento de estrellas conservado (−1,4 %
+ * a −3,3 % de píxeles por encima de los umbrales de luminancia; idéntico en
+ * las más brillantes). Encoder: sharp/libaom `quality: 85, effort: 6,
+ * chromaSubsampling: "4:4:4"` sobre el RGB premultiplicado, con la guarda por
+ * pista de este manifest (≥5 % de ahorro o no se sustituye) — la única que
+ * bajó a `quality: 70` fue 09-figure, que a 85 salía MÁS grande. Los WebP no
+ * se tocan: siguen con su alfa, siguen siendo el fallback y la referencia.
+ *
  * Derivación por convención (mismo nombre, extensión .avif) en vez de once
  * pares de rutas más en la tabla: la tabla no gana información repitiendo
  * cada ruta con otra extensión, y el riesgo real de una convención — que el
  * fichero derivado NO exista y el <source> apunte a un 404 silencioso — lo
  * cierra el candado de storyCosmicBeing.layers.test.ts, que comprueba con
- * node:fs que cada AVIF derivado existe de verdad en public/.
+ * node:fs que cada AVIF derivado existe de verdad en public/. Ese mismo
+ * fichero de test cierra también la premultiplicación: ninguna pista aditiva
+ * puede volver a llevar alfa sin ponerlo en rojo.
  */
 export function storyCosmicBeingAvifSrcSet(
   layer: StoryCosmicBeingLayer,
