@@ -597,9 +597,39 @@ function stepColor(
  * MISMO color exacto y `04 Crea` (subiendo a 800) se leería más oscura que
  * Comparte -- invirtiendo la progresión 500<600<700 del mockup original. El
  * desplazamiento UNIFORME de +2 escalones conserva esa progresión relativa
- * completa, sin que ningún escalón quede por debajo del piso AA. Verificado
- * contra los 6 fondos reales (`Journey.test.tsx`, fix wave E): 4.57 · 5.27 ·
- * 5.33 · 6.01 · 8.34 · 5.33, los seis con margen sobre 4.5:1.
+ * completa, sin que ningún escalón quede por debajo del piso AA.
+ *
+ * ## LAS SEIS CIFRAS, CORREGIDAS (ola Q, 2026-09-04)
+ *
+ * Hasta esta fecha este docblock cerraba con «Verificado contra los 6 fondos
+ * reales (`Journey.test.tsx`, fix wave E): 4.57 · 5.27 · 5.33 · 6.01 · 8.34 ·
+ * 5.33, los seis con margen sobre 4.5:1». Esas seis cifras son las de la
+ * parada CLARA del degradado de la tarjeta (`#e5f6ff`), o sea el mejor caso.
+ * La que manda es la OSCURA (`#ffecfd`), y contra ella —reproducido con el
+ * `contrastRatioHex` de `src/theme/tokens/contrast.ts`, que es el mismo que
+ * usa el test— sale:
+ *
+ *   01 Descubre   (primary/700)    4.510:1   0.010 de margen
+ *   02 Aprende    (primary/800)    5.189:1
+ *   03 Imagina    (secondary/700)  5.263:1
+ *   04 Crea       (secondary/800)  5.890:1
+ *   05 Comparte   (secondary/900)  8.194:1
+ *   06 Evoluciona (error/700)      5.228:1
+ *
+ * El test de más abajo YA medía contra las dos paradas (por eso sigue en
+ * verde: 4.510 ≥ 4.5); lo que estaba mal era la prosa, que anunciaba 0.07 de
+ * margen donde hay 0.010. Y 0.010 no sobrevive al render real: censo en Chrome
+ * del 2026-09-04 sobre el build de producción (tinta nominal por canvas 1×1
+ * contra la distribución del fondo bajo la caja del texto, 390 y 1440, 40-49
+ * posiciones de scroll por combinación), la etiqueta «Descubre» da **p05 4.47,
+ * mediana 4.53 y el 15.9 % de su caja por debajo de 4.5 a 1440** (17.5 % a
+ * 390). Las otras cinco pasan con holgura en el mismo censo (5.12 a 8.09).
+ *
+ * Queda ANOTADO Y SANCIONADO en `scripts/check-text-contrast.mjs`
+ * (`SANCIONADAS`), no arreglado: subir solo «Descubre» a primary/800 la
+ * dejaría del mismo color que «Aprende» —justo la colisión que el
+ * desplazamiento uniforme evita, dos párrafos más arriba— y subir las seis a
+ * +3 cambia seis colores visibles de la sección. Es una decisión del dueño.
  *
  * SOLO afecta al TEXTO de la etiqueta: `ScDisc` (el icono del disco, misma
  * rama clara) y `ScJourneyStepIconBox` (rama oscura, que ni siquiera monta
