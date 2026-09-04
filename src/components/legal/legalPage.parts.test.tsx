@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { PRESS } from "@/motion/vocabulary";
@@ -6,6 +8,7 @@ import {
   ScBackLink,
   ScInlineLink,
   ScMain,
+  ScSection,
   ScTable,
   ScTocLink,
 } from "./legalPage.parts";
@@ -288,6 +291,111 @@ describe("legalPage.parts: ancho de ScMain (crítica externa #10, hallazgos A y 
    * `width: 100%` daría columnas de 64 px a 320 px). Se afirma contra el
    * token, no contra su valor.
    */
+  /*
+   * EL ATERRIZAJE DEL ÍNDICE, Y LA DEPENDENCIA CRUZADA QUE LO SOSTIENE
+   * (frente Q-2, 2026-09-04; regla 41).
+   *
+   * QUÉ SE MIDIÓ, y por qué este candado existe aunque la medición saliera
+   * limpia. Ninguna de las tres superficies que la ola M rehízo —
+   * `/privacidad`, `/aviso-legal` y la 404, en los dos idiomas — había pasado
+   * nunca por el protocolo técnico. Medido en Chrome sobre el build de
+   * `0226846` servido, en las cuatro rutas legales y en los dos idiomas:
+   * `getComputedStyle(header).position === "fixed"` con la banda terminando en
+   * `bottom = 64 px`; los 14 destinos del índice de `/privacidad` y los 15 de
+   * `/aviso-legal` aterrizan con su `<h2>` en `top = 88 px` (el primero) o
+   * `137 px` (los demás). CERO quedan bajo la barra.
+   *
+   * DE DÓNDE SALEN ESOS 88 px, que es lo que este candado ata: NO de la
+   * declaración de `ScSection`, que aporta solo 24 px (`space[5]`) y por sí
+   * sola dejaría el título a 24 px del borde superior — es decir, 40 px POR
+   * DEBAJO del borde inferior de una barra que termina en 64. Los otros 64
+   * salen de `html { scroll-padding-top: calc(var(--nav-height) +
+   * var(--nav-gap)) }`, declarado en `GlobalStyles.tsx`: una propiedad del
+   * CONTENEDOR DE SCROLL, que gobierna cualquier desplazamiento hacia un
+   * destino de este documento, el salto por fragmento del índice incluido.
+   *
+   * Es una invariante que cruza dos ficheros y hasta hoy no vivía en ninguno:
+   * el comentario de `ScSection` afirmaba, al contrario, que «este header no es
+   * fixed, así que no hace falta compensar nada» — cierto para la cabecera
+   * legal propia que se retiró al revertirse D20, falso desde la ola M. Quien
+   * retirara el `scroll-padding-top` global convencido de que las legales no lo
+   * necesitan dejaría los 29 destinos de los dos índices bajo la barra sin que
+   * nada se pusiera en rojo.
+   *
+   * `createGlobalStyle` no inyecta nada bajo jsdom (regla 37), así que la mitad
+   * global se comprueba sobre la FUENTE de `GlobalStyles.tsx` — el mismo
+   * recurso que ya usa `app/not-found.test.tsx` para vigilar el fichero del
+   * framework instalado.
+   */
+  it("ScSection declara su propio scroll-margin-top desde la escala, no un literal", () => {
+    renderWithProviders(<ScSection id="s1">sección</ScSection>);
+    const css = cssRuleTextFor(
+      screen.getByText("sección") as HTMLElement,
+    ).replace(/\s+/g, " ");
+
+    expect(
+      css,
+      "sin margen de scroll propio, el título de la sección nace pegado al borde inferior de la barra",
+    ).toContain(`scroll-margin-top: ${themes.light.space[5]}`);
+  });
+
+  it("el aterrizaje del índice supera la banda de la barra: scroll-padding-top global + scroll-margin-top propio", () => {
+    const fuenteGlobal = readFileSync(
+      path.join(process.cwd(), "src/theme/GlobalStyles.tsx"),
+      "utf8",
+    );
+
+    /* La declaración que compensa la barra, sobre el `html` y no sobre la
+       sección: es la única que gobierna el salto por fragmento del índice. */
+    expect(
+      fuenteGlobal.replace(/\s+/g, " "),
+      "sin scroll-padding-top en html, los destinos del índice legal aterrizan bajo la barra fija",
+    ).toContain(
+      "scroll-padding-top: calc(var(--nav-height) + var(--nav-gap));",
+    );
+
+    /* Aritmética del aterrizaje, con las dos mitades leídas de su fuente y
+       nunca de un número escrito aquí: la banda mide `--nav-height` +
+       `--nav-gap`, y el desfase efectivo es esa banda MÁS el margen propio de
+       la sección. Se exige que el desfase supere de verdad la banda, que es la
+       propiedad observable (el título no queda tapado), no que las cadenas
+       coincidan. */
+    const nav = /--nav-height:\s*([\d.]+)rem/.exec(fuenteGlobal);
+    expect(
+      nav,
+      "--nav-height dejó de declararse en rem en GlobalStyles",
+    ).not.toBeNull();
+    const remAPx = (valor: string): number => parseFloat(valor) * 16;
+    const bandaPx = remAPx(nav![1]) + remAPx(themes.light.space[2]);
+    const desfasePx = bandaPx + remAPx(themes.light.space[5]);
+
+    expect(bandaPx).toBeGreaterThan(0);
+    expect(
+      desfasePx,
+      "el desfase de aterrizaje no supera la banda: el título quedaría bajo la barra",
+    ).toBeGreaterThan(bandaPx);
+  });
+
+  /*
+   * SONDA NEGATIVA del candado de arriba (el repo ya tuvo dos candados que
+   * pasaban por vacuidad y los dos se descubrieron tarde). La mitad global no
+   * se puede poner en rojo con un bug inyectado sin editar `GlobalStyles.tsx`,
+   * que pertenece a otro frente de esta ola; lo que sí se puede demostrar —y es
+   * evidencia más fuerte que una edición temporal— es que el matcher RECHAZA de
+   * verdad una fuente sin la regla. Si alguien "simplificara" la comprobación a
+   * algo que siempre pasa, este caso cae con ella.
+   */
+  it("sonda negativa: la comprobación anterior rechaza una fuente global sin scroll-padding-top", () => {
+    const fuenteMutilada = `
+      html { scroll-behavior: smooth; }
+      :where(section[id]) { scroll-margin-top: calc(var(--nav-height) + var(--nav-gap)); }
+    `.replace(/\s+/g, " ");
+
+    expect(fuenteMutilada).not.toContain(
+      "scroll-padding-top: calc(var(--nav-height) + var(--nav-gap));",
+    );
+  });
+
   it("ScTable declara un suelo de ancho igual a la medida de lectura", () => {
     renderWithProviders(
       <ScTable>

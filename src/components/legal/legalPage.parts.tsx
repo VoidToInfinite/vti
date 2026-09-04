@@ -298,11 +298,48 @@ export const ScInlineLink = styled.a`
   ${legalLinkStyles}
 `;
 
-/* `scroll-margin-top` propio (no depende del `:where(section[id])` global de
-   GlobalStyles, que descuenta el navbar FIJO de la home -- este header no es
-   fixed, así que no hace falta compensar nada, pero se declara un margen
-   pequeño de todos modos para que el salto de ancla no pegue el título al
-   borde superior del viewport). */
+/*
+ * `scroll-margin-top` propio: SEPARACIÓN, NO COMPENSACIÓN DE LA BARRA.
+ *
+ * ESTE COMENTARIO DECÍA UNA FALSEDAD MEDIBLE HASTA EL 2026-09-04. Decía «este
+ * header no es fixed, así que no hace falta compensar nada»: describía la
+ * cabecera legal propia que se retiró al revertirse D20. Desde la ola M
+ * (2026-09-03) estas páginas montan el `Navbar` del sitio, y lo medido en
+ * Chrome sobre el build servido, en las cuatro rutas legales y en los dos
+ * idiomas, es `getComputedStyle(header).position === "fixed"` con la banda
+ * terminando en `bottom = 64 px`. La premisa del comentario era falsa; el
+ * comportamiento, en cambio, es correcto — y conviene saber por qué, porque no
+ * es por esta línea.
+ *
+ * QUIÉN COMPENSA DE VERDAD LA BANDA: `html { scroll-padding-top: calc(
+ * var(--nav-height) + var(--nav-gap)) }` en `GlobalStyles.tsx`. Es una
+ * propiedad del CONTENEDOR DE SCROLL, así que gobierna CUALQUIER
+ * desplazamiento hacia un destino de este documento — el salto por fragmento
+ * del índice incluido — sin que el destino tenga que declarar nada. Los 24 px
+ * de aquí se SUMAN a esos 64: medido, el `<h2>` de la primera sección aterriza
+ * en `top = 88 px` (64 + 24) con la barra terminando en 64, y el de las demás
+ * en 137 px (los mismos 88 más el `padding-top` de esta caja). Cero de los 14
+ * destinos de `/privacidad` y de los 15 de `/aviso-legal` queda bajo la barra,
+ * en los dos idiomas.
+ *
+ * O sea: esta declaración NO compensa la cabecera y no debe intentarlo. Subirla
+ * a `calc(var(--nav-height) + var(--nav-gap) + ...)` compensaría DOS VECES la
+ * misma banda (128 px de hueco) porque el `scroll-padding-top` de `html` no se
+ * va a ninguna parte. Lo que aporta es el respiro entre el borde inferior de la
+ * barra y el título, que sin ella quedarían pegados.
+ *
+ * También gana al `:where(section[id])` global por especificidad — una clase de
+ * styled-components (0,1,0) contra un `:where()`, que aporta cero (0,0,0) —, así
+ * que estas secciones llevan 24 px donde las de la home llevan 64. La suma con
+ * el `scroll-padding-top` es la que hace que las dos aterricen bien; el candado
+ * que ata esa dependencia cruzada vive en `legalPage.parts.test.tsx`, que lee
+ * la fuente de `GlobalStyles.tsx` (regla 41: una invariante entre dos ficheros
+ * vive en un test que importa los dos).
+ *
+ * SIN BACKTICKS: esto vive fuera del template, pero se conserva el criterio del
+ * fichero para que mover el bloque hacia dentro no rompa el build (regla 23 de
+ * RULES.md).
+ */
 export const ScSection = styled.section`
   scroll-margin-top: ${({ theme }) => theme.data.space[5]};
   padding-top: ${({ theme }) => theme.data.space[7]};
