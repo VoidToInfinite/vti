@@ -22,6 +22,7 @@ import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import {
   navBarMoreGroupsFor,
   navBarSectionsFor,
+  navBarWideSectionsFor,
   navLocale,
   type NavGroup,
   type NavItem,
@@ -38,6 +39,7 @@ import {
   useNavSheet,
 } from "./NavSheet";
 import { focusNavAnchorTarget } from "./navAnchorFocus";
+import { NAVBAR_CONTAINER, NAVBAR_WIDE_QUERY } from "./navbarContainer";
 
 // El glass es el único uso sancionado de glassmorphism del sistema (§13.2 de
 // la spec): reservado a capas que flotan sobre contenido en scroll (nav
@@ -333,6 +335,24 @@ const ScBar = styled.div`
   margin-inline: auto;
   margin-top: 0;
   max-width: 100vw;
+  /*
+   * CONTENEDOR DE CONSULTA DE LA FILA (crítica externa #18, O-3 y O-4): las
+   * dos piezas que la barra estrena en esa crítica se preguntan por el ancho
+   * DE ESTA CAJA y por el tamaño de fuente que hereda, no por el de la
+   * ventana. El porqué completo, con la medición a 200 % de fuente que lo
+   * obliga, vive en navbarContainer.ts.
+   *
+   * NO CAMBIA NADA DE LA COMPOSICIÓN, y se comprobó antes de escribirlo:
+   * medido en Chrome real a 1440x900 sobre el build de producción, con y sin
+   * esta declaración, las cajas de la barra (esta, el nav, la superficie, el
+   * bloque de enlaces, el de acciones y el panel de Más ABIERTO) salen
+   * idénticas al píxel. Es lo esperado: el ancho de este bloque lo fija su
+   * padre y su max-width, nunca su contenido, así que la contención en el eje
+   * en línea no tiene nada que restringir. (Sin comillas invertidas dentro
+   * del template: regla 23 de RULES.md.)
+   */
+  container-type: inline-size;
+  container-name: ${NAVBAR_CONTAINER};
   transition:
     max-width ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.emphasized}
@@ -1025,6 +1045,45 @@ const ScNavSectionLink = styled(ScNavLink)`
   &[aria-current="location"] {
     text-decoration: underline;
   }
+
+  /*
+   * EL DESTINO QUE SOLO CABE EN LA BARRA ANCHA (crítica externa #18, hallazgo
+   * O-4; medición completa en el docblock de la partición, navigation.ts).
+   * Sin comillas invertidas dentro del template: regla 23 de RULES.md.
+   *
+   * El atributo lo pone Navbar() a los items que devuelve
+   * navBarWideSectionsFor -- derivados del modelo, no de una lista tecleada
+   * --, y lo que decide aquí es SOLO desde qué ancho se pinta. La regla base
+   * es la estrecha (display: none, el destino vive tras «Más», que es lo que
+   * ocurre hoy en toda la franja md..lg) y se corrige hacia arriba,
+   * mobile-first como el resto del fichero.
+   *
+   * LA CONSULTA ES DE CONTENEDOR, NO DE VENTANA, y no es un capricho: mide el
+   * ancho de la barra Y responde al tamaño de fuente del usuario, de modo que
+   * este enlace se retira solo cuando el texto crece (a 200 % de fuente la
+   * fila no tiene sitio para él a ningún ancho hasta 1440 px, medido). El
+   * porqué completo, con la tabla, vive en navbarContainer.ts.
+   *
+   * inline-flex, no flex ni initial: repite EXACTAMENTE el valor que declara
+   * la regla base de este mismo componente unas líneas más arriba, que es lo
+   * que le da su suelo táctil de 44px junto a align-items: center. Un
+   * display: revert habría devuelto el inline del ancla y encogido la caja de
+   * clic a la altura del texto.
+   *
+   * 62em (992 px con la raíz por defecto, o sea lg) NO es una cifra elegida a
+   * ojo: a 900 px la fila tiene 146 px
+   * de holgura total y este enlace pide 156 (132 de tinta más los 24 del gap
+   * de la fila), así que el déficit se lo comería el rótulo de la marca --
+   * que a 768 px ya se recorta hoy sin este enlace. A 992 px la holgura es
+   * 238 px y sobran 82.
+   */
+  &[data-wide-only] {
+    display: none;
+
+    @container ${NAVBAR_WIDE_QUERY} {
+      display: inline-flex;
+    }
+  }
 `;
 
 /*
@@ -1138,9 +1197,29 @@ const ScNavTrigger = styled.button`
   /* La sección que se está leyendo vive detrás de este disparador: ver el
      docblock de arriba. Mismas dos declaraciones que ScNavSectionLink, sin
      comillas invertidas dentro del template (regla 23 de RULES.md). */
-  &[data-current="true"] {
+  &[data-current="true"],
+  &[data-current="wide"] {
     text-decoration: underline;
     text-underline-offset: 0.2em;
+  }
+
+  /*
+   * EL VALOR wide ES «detrás de mí, pero solo mientras la barra sea
+   * estrecha» (crítica externa #18, hallazgo O-4; sin comillas invertidas
+   * dentro del template, regla 23 de RULES.md). Lo emite NavMoreMenu cuando
+   * la sección que se está leyendo vive en un grupo que la barra ancha se
+   * lleva fuera de aquí: por debajo de lg la marca es correcta (el destino
+   * está de verdad detrás de este botón), y desde lg sería una
+   * segunda marca compitiendo con el subrayado del enlace ya visible en la
+   * fila -- dos «estás aquí» a la vez, que es peor que ninguno.
+   *
+   * Va DESPUÉS del bloque de arriba y a la misma especificidad, así que gana
+   * el último dentro de su media query, y solo para ese valor.
+   */
+  @container ${NAVBAR_WIDE_QUERY} {
+    &[data-current="wide"] {
+      text-decoration: none;
+    }
   }
 
   &:active {
@@ -1384,6 +1463,29 @@ const ScNavPanelGroup = styled.div`
   & + & {
     margin-top: ${({ theme }) => theme.data.space[3]};
   }
+
+  /*
+   * LA OTRA MITAD DEL RÉGIMEN ANCHO (crítica externa #18, hallazgo O-4).
+   *
+   * Sin comillas invertidas dentro del template: regla 23 de RULES.md.
+   *
+   * Desde lg la barra pinta como enlace visible el resto del grupo partido
+   * (ver el bloque data-wide-only de ScNavSectionLink), así que ya no tiene
+   * nada que aportar aquí dentro: sin esta regla, «Más» ofrecería a partir de
+   * 992 px un rótulo («En el sitio») con el MISMO destino que se está leyendo
+   * a dos centímetros, en la propia barra.
+   *
+   * Se oculta el GRUPO entero y no sus items uno a uno, y no es lo mismo:
+   * esconder solo los enlaces dejaría el rótulo del grupo suelto sobre una
+   * lista vacía. El atributo lo pone NavMoreMenu solo cuando TODOS los items
+   * del grupo se mudan a la barra ancha -- si algún día queda uno que no se
+   * muda, el grupo sigue aquí con él, sin que nadie tenga que acordarse.
+   */
+  &[data-wide-only] {
+    @container ${NAVBAR_WIDE_QUERY} {
+      display: none;
+    }
+  }
 `;
 
 const ScNavPanelGroupTitle = styled.p`
@@ -1531,6 +1633,12 @@ interface NavMoreMenuProps {
    *  consumen: su `aria-current` (más abajo) y, cuando alguno de ellos es el
    *  activo, el `data-current` del disparador. */
   readonly activeSectionKey: string | null;
+  /** Destinos que la barra ANCHA pinta como enlaces visibles
+   *  (`navBarWideSectionsFor`) y que, por tanto, sobran de este panel desde
+   *  `lg`. Llega el MISMO array memoizado que `Navbar()` ya pinta en la fila
+   *  -- aquí no se vuelve a derivar nada, ni se teclea ninguna clave, ni se
+   *  fabrica una lista nueva en cada render de scroll. */
+  readonly wideOnlySections: readonly NavItem[];
 }
 
 function NavMoreMenu({
@@ -1539,6 +1647,7 @@ function NavMoreMenu({
   onToggle,
   onClose,
   activeSectionKey,
+  wideOnlySections,
 }: NavMoreMenuProps): ReactElement {
   const { t } = useTranslation("common");
   const triggerId = useId();
@@ -1558,6 +1667,16 @@ function NavMoreMenu({
         (item) => item.kind === "section" && item.key === activeSectionKey,
       ),
     );
+
+  /* ¿Y esa sección es de las que la barra ANCHA se lleva fuera de aquí? El
+     disparador la marca igual (por debajo de `lg` sigue estando detrás de él),
+     pero con un valor distinto, para que el CSS pueda retirar la marca justo
+     donde el enlace ya se ve en la fila -- ver el bloque `data-current` de
+     ScNavTrigger. Derivado de la misma lista que pinta la barra, no de una
+     condición sobre `about`. */
+  const activeSectionIsWideOnly =
+    activeSectionKey !== null &&
+    wideOnlySections.some((item) => item.key === activeSectionKey);
 
   // Regla 3: Escape cierra el grupo (si estaba abierto) y devuelve el foco
   // a su disparador.
@@ -1620,7 +1739,13 @@ function NavMoreMenu({
            el atributo semántico se queda en el enlace que sí lo es, dentro del
            panel. Ausente (no "false") cuando no aplica, para que el selector
            de CSS y las aserciones lean lo mismo. */
-        data-current={holdsActiveSection ? "true" : undefined}
+        data-current={
+          holdsActiveSection
+            ? activeSectionIsWideOnly
+              ? "wide"
+              : "true"
+            : undefined
+        }
         /*
          * SIN `aria-haspopup`, y su ausencia es la parte deliberada
          * (crítica externa #8, punto 2). Lo declaró la Tarea 1 con el valor
@@ -1696,9 +1821,22 @@ function NavMoreMenu({
              por instancia y `group.key` es único dentro del modelo, así que
              el par no puede colisionar ni entre grupos ni entre barras. */
           const groupTitleId = `${panelId}-${group.key}`;
+          /* El grupo entero se muda a la barra desde `lg`: TODOS sus items
+             están entre los que la fila ancha pinta como enlaces visibles. Se
+             calcula sobre el grupo, no sobre `about`, para que un grupo con
+             un item que no se muda siga apareciendo aquí (ver el bloque
+             `data-wide-only` de ScNavPanelGroup). `every` sobre una lista
+             vacía sería `true`, pero `navBarMoreGroupsFor` ya descarta los
+             grupos sin items antes de llegar aquí. */
+          const groupIsWideOnly = group.items.every((item) =>
+            wideOnlySections.some((wide) => wide.key === item.key),
+          );
 
           return (
-            <ScNavPanelGroup key={group.key}>
+            <ScNavPanelGroup
+              key={group.key}
+              data-wide-only={groupIsWideOnly || undefined}
+            >
               <ScNavPanelGroupTitle id={groupTitleId}>
                 {t(`Common.Nav.${group.key}`)}
               </ScNavPanelGroupTitle>
@@ -1799,6 +1937,13 @@ export function Navbar(): ReactElement {
    */
   const { t, i18n } = useTranslation("common");
   const barSections = navBarSectionsFor(i18n.language);
+  /* Los destinos de sección que el modelo declara y que la barra estrecha no
+     puede pintar: se montan SIEMPRE en el DOM y es el CSS quien los enciende
+     desde `lg` (crítica externa #18, hallazgo O-4). No se decide aquí con una
+     media query en JavaScript a propósito: bajo `output: "export"` el HTML se
+     hornea sin saber el ancho de la ventana, y medir el viewport en el primer
+     render produciría un árbol distinto del horneado. */
+  const barWideSections = navBarWideSectionsFor(i18n.language);
   const moreGroups = navBarMoreGroupsFor(i18n.language);
   // Este componente ya no consume useStage(): desde la revisión 2026-08-11 su
   // entrada de carga es una @keyframes estática con animation-delay =
@@ -2019,12 +2164,39 @@ export function Navbar(): ReactElement {
                   {t(`Common.Navigation.${item.key}`)}
                 </ScNavSectionLink>
               ))}
+              {/* Los destinos que solo caben en la barra ANCHA (crítica
+                externa #18, hallazgo O-4). Mismo componente, mismo `onClick` y
+                mismo `aria-current` que los de arriba -- no son enlaces de
+                otra clase, son los mismos destinos de sección con un ancho
+                mínimo para pintarse --, y el único añadido es el
+                `data-wide-only` que su CSS lee para encenderse desde `lg`. Van
+                DESPUÉS de los cuatro fijos y antes de «Más», que es su sitio
+                en el orden del grupo (el orden de la página) y el sitio donde
+                el visitante ya espera encontrar lo que venía de «Más». El
+                rótulo sale de la MISMA clave que el pie y la hoja
+                (`Common.Navigation.<key>`): un rótulo propio para la barra
+                sería un segundo nombre para el mismo destino, y la medición
+                dice que el completo cabe con 82 px de sobra a 992 px. */}
+              {barWideSections.map((item) => (
+                <ScNavSectionLink
+                  key={item.key}
+                  href={item.href}
+                  data-wide-only
+                  onClick={() => focusNavAnchorTarget(item)}
+                  aria-current={
+                    item.key === activeSectionKey ? "location" : undefined
+                  }
+                >
+                  {t(`Common.Navigation.${item.key}`)}
+                </ScNavSectionLink>
+              ))}
               <NavMoreMenu
                 groups={moreGroups}
                 isOpen={moreOpen}
                 onToggle={toggleMore}
                 onClose={closeMore}
                 activeSectionKey={activeSectionKey}
+                wideOnlySections={barWideSections}
               />
             </ScNavLinks>
             <ScActions>

@@ -21,6 +21,12 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
 import { NAV_SHEET_SCROLL_TOLERANCE_PX, navActiveAccent } from "./NavSheet";
 import { Navbar } from "./Navbar";
+import {
+  NAVBAR_CONTAINER,
+  NAVBAR_LABEL_EM,
+  NAVBAR_WIDE_EM,
+  NAVBAR_CONTAINER_ROOT_PX,
+} from "./navbarContainer";
 
 /**
  * Stub minimo de `window.matchMedia`, que jsdom no implementa. Entro en este
@@ -88,6 +94,55 @@ function allCssRules(): string[] {
     }
   });
   return reglas;
+}
+
+/**
+ * Reglas del CSSOM que califican una de las clases dadas CON el atributo
+ * indicado (el texto entre corchetes, con su valor si lo lleva), cada una con
+ * el media query en el que vive (o `null` si está en la regla base).
+ *
+ * `allCssRules()` (arriba) devuelve texto plano y no distingue en qué media
+ * query vive cada regla ni la FORMA del selector: para un reparto por ancho
+ * las dos cosas son justo lo que hay que afirmar (reglas 35 y 36). El
+ * `selectorText` se devuelve entero para que quien llame pueda exigir que el
+ * atributo cuelgue del MISMO elemento y no de un descendiente.
+ */
+function reglasPorAtributo(
+  atributo: string,
+  clases: readonly string[],
+): { rule: CSSStyleRule; media: string | null }[] {
+  const out: { rule: CSSStyleRule; media: string | null }[] = [];
+  const walk = (rules: CSSRuleList, media: string | null): void => {
+    Array.from(rules).forEach((rule) => {
+      const anidadas = (rule as CSSGroupingRule).cssRules;
+      if (anidadas) {
+        /* La condicion se lee del propio `cssText`, no de `media.mediaText`:
+           las reglas de esta entrega son `@container`, que en el CSSOM son
+           `CSSContainerRule` y no exponen `media` (comprobado en jsdom con
+           una sonda desechable antes de escribir el candado). El prefijo
+           sirve para las dos familias. */
+        walk(anidadas, rule.cssText.split("{")[0].trim() || media);
+        return;
+      }
+      const estilo = rule as CSSStyleRule;
+      if (
+        estilo.selectorText !== undefined &&
+        clases.some((cls) =>
+          estilo.selectorText.includes(`.${cls}[${atributo}]`),
+        )
+      ) {
+        out.push({ rule: estilo, media });
+      }
+    });
+  };
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      walk(sheet.cssRules, null);
+    } catch {
+      /* hoja inaccesible: no aporta */
+    }
+  });
+  return out;
 }
 
 // Dispara el estado `scrolled` del hook `useScrolled(8)` igual que el resto
@@ -820,28 +875,50 @@ describe("Navbar", () => {
     });
 
     /*
-     * `about` NO ENTRA EN LA BARRA (decisión del dueño D2, 2026-09-02;
-     * crítica externa #15, hallazgo C 5). La quinta sección de la home entra
-     * en el modelo de navegación, y la barra de escritorio conserva SUS
-     * CUATRO enlaces: la decisión es de espacio, no de importancia -- la
-     * píldora ya lleva marca, cuatro destinos, «Más», idioma y tema en 56 px
-     * de alto, y un quinto rótulo (el más largo de los cinco) la empujaría
-     * hacia el problema que la propia crítica #15 midió en la barra a 200 %
-     * de fuente.
+     * EL QUINTO DESTINO ESTÁ EN LOS DOS SITIOS, Y CADA UNO SE VE A SU ANCHO
+     * (crítica externa #18, hallazgo O-4).
      *
-     * Dos candados, no uno, y la diferencia importa: el de arriba afirma que
-     * los destinos de `navBarSectionsFor` se pintan; este afirma que los que
-     * NO están en esa lista NO se pintan. Sin el segundo, devolver el grupo
-     * entero (lo que hacía `navBarSectionsFor` antes de esta entrega) pasaría
-     * en verde.
+     * Aquí vivió el candado inverso: hasta el 2026-09-04 este test exigía que
+     * `about` NO se pintara en la barra, razonando que «la decisión es de
+     * espacio» y que la píldora no tenía sitio para un quinto rótulo. La
+     * premisa era cierta a 768 px y falsa desde 992: medido en Chrome real
+     * sobre el build de producción, la fila tiene 238 px de holgura a 992 px y
+     * 446 px desde 1200, contra los 156 px que pide este enlace (132 de tinta
+     * más el gap de 24). El candado no se relaja, se INVIERTE con la medición
+     * delante -- y la mitad que sí sigue siendo cierta (que por debajo de `lg`
+     * el destino vive tras «Más», bajo su rótulo de grupo) se conserva entera.
+     *
+     * Lo que este test ata es la presencia en las DOS superficies a la vez.
+     * Qué se ve a cada ancho es CSS, y jsdom no evalúa `@media` (regla 36):
+     * eso lo atan los dos candados de reglas que vienen justo después.
      */
-    it("el quinto destino de sección NO se pinta en la barra: about vive en «Más», con su rótulo de grupo", () => {
+    it("el quinto destino de sección se pinta en la barra (marcado como ancho) Y sigue en «Más» bajo su rótulo de grupo", () => {
       const { container } = renderNavbar();
 
+      const enLaBarra = container.querySelector(
+        '[data-nav-links] > a[href="/#about"]',
+      );
       expect(
-        container.querySelector('[data-nav-links] > a[href="/#about"]'),
-        "about se coló como enlace visible de la barra",
-      ).toBeNull();
+        enLaBarra,
+        "la quinta sección no tiene enlace visible en la barra a ningún ancho",
+      ).not.toBeNull();
+      /* Con el rótulo COMPLETO, el mismo del pie y la hoja: la medición dice
+         que cabe, así que un rótulo corto propio sería un segundo nombre para
+         el mismo destino sin ninguna necesidad. */
+      expect(enLaBarra?.textContent?.trim()).toBe(
+        esCommon.Common.Navigation.about,
+      );
+      /* Y marcado como del régimen ancho: sin este atributo el enlace se
+         pintaría también a 768 px, donde la marca ya se recorta hoy. */
+      expect(enLaBarra).toHaveAttribute("data-wide-only");
+
+      /* Los cuatro fijos NO llevan la marca: si la llevaran, la barra
+         estrecha se quedaría sin ningún destino visible. */
+      for (const item of navBarSectionsFor("es")) {
+        expect(
+          container.querySelector(`[data-nav-links] > a[href="${item.href}"]`),
+        ).not.toHaveAttribute("data-wide-only");
+      }
 
       const trigger = getTrigger(MORE);
       fireEvent.click(trigger);
@@ -866,6 +943,125 @@ describe("Navbar", () => {
         lista?.getAttribute("aria-labelledby") as string,
       );
       expect(rotulo?.textContent?.trim()).toBe(esCommon.Common.Nav.onSite);
+
+      /* Y el grupo entero queda marcado como del régimen ancho: es la señal
+         que el CSS lee para retirarlo desde `lg`, donde su único destino ya
+         se ve en la fila. Sin ella, «Más» ofrecería a 1440 px el MISMO enlace
+         que está a dos centímetros. */
+      const grupo = lista?.closest("div");
+      expect(grupo).toHaveAttribute("data-wide-only");
+    });
+
+    /*
+     * LAS DOS REGLAS QUE REPARTEN LOS REGÍMENES (crítica externa #18, O-4).
+     *
+     * jsdom no evalúa ninguna consulta condicional (regla 36, escrita para
+     * `@media` y válida igual para `@container`) y no hace layout, así que la
+     * única forma honesta de afirmar algo sobre el reparto por ancho es leer
+     * el CSSOM: qué declara la regla BASE y qué declara la que vive dentro de
+     * la consulta de contenedor del régimen ancho. La FORMA del selector se afirma sobre
+     * `selectorText` (regla 35): el atributo va sobre el MISMO elemento
+     * (`.clase[data-wide-only]`), no sobre un descendiente.
+     */
+    it("el enlace ancho está oculto en la regla base y se enciende dentro de la consulta de contenedor del régimen ancho", () => {
+      const { container } = renderNavbar();
+      const enlace = container.querySelector(
+        '[data-nav-links] > a[href="/#about"]',
+      ) as HTMLElement;
+      const clases = Array.from(enlace.classList);
+
+      const propias = reglasPorAtributo("data-wide-only", clases);
+      const base = propias.filter((entrada) => entrada.media === null);
+      const anchas = propias.filter((entrada) =>
+        (entrada.media ?? "").includes(`min-width: ${NAVBAR_WIDE_EM}em`),
+      );
+
+      expect(
+        base.length,
+        "el enlace ancho no declara ninguna regla base: se pintaría también donde no cabe",
+      ).toBeGreaterThan(0);
+      base.forEach((entrada) => {
+        expect(entrada.rule.selectorText).not.toMatch(/\s/);
+        expect(entrada.rule.style.display).toBe("none");
+      });
+
+      expect(
+        anchas.length,
+        "el enlace ancho no se enciende en ningún media query de lg: sería invisible a cualquier ancho",
+      ).toBeGreaterThan(0);
+      anchas.forEach((entrada) => {
+        expect(entrada.rule.style.display).toBe("inline-flex");
+      });
+    });
+
+    it("el grupo que se muda a la barra se retira de «Más» dentro de la misma consulta de contenedor", () => {
+      renderNavbar();
+      const trigger = getTrigger(MORE);
+      fireEvent.click(trigger);
+      const panel = document.getElementById(
+        trigger.getAttribute("aria-controls") as string,
+      ) as HTMLElement;
+      const grupo = panel
+        .querySelector('a[href="/#about"]')
+        ?.closest("div") as HTMLElement;
+      /* La regla existe en la hoja aunque ningún elemento la califique, así
+         que la mitad del DOM se afirma aquí también: sin el atributo, la
+         regla de abajo no se aplicaría a nada. */
+      expect(grupo).toHaveAttribute("data-wide-only");
+      const clases = Array.from(grupo.classList);
+
+      const anchas = reglasPorAtributo("data-wide-only", clases).filter(
+        (entrada) =>
+          (entrada.media ?? "").includes(`min-width: ${NAVBAR_WIDE_EM}em`),
+      );
+      expect(
+        anchas.length,
+        "el grupo sigue en «Más» a cualquier ancho: duplicaría el destino que la barra ya pinta",
+      ).toBeGreaterThan(0);
+      anchas.forEach((entrada) => {
+        expect(entrada.rule.selectorText).not.toMatch(/\s/);
+        expect(entrada.rule.style.display).toBe("none");
+      });
+    });
+
+    /*
+     * EL CONTENEDOR EXISTE Y SUS DOS UMBRALES SON LOS DEL TEMA (crítica #18).
+     *
+     * Una consulta de contenedor que nombra un contenedor que nadie declara no
+     * falla: simplemente NO SE APLICA NUNCA, en silencio -- el quinto destino
+     * y el rótulo del conmutador quedarían invisibles a cualquier ancho sin
+     * que nada avisara. Y los dos umbrales viven en `em` (para que respondan
+     * al tamaño de fuente del usuario, ver `navbarContainer.ts`) mientras el
+     * resto del sitio se corta en píxeles: la equivalencia entre ambos es una
+     * invariante que cruza dos ficheros, así que vive en un test que importa
+     * los dos (regla 41), no en la memoria de quien los escribió a la vez.
+     */
+    it("la barra declara el contenedor que sus consultas nombran, y los umbrales en em equivalen a los breakpoints del tema", () => {
+      const { container } = renderNavbar();
+      const barra = container.querySelector("header > div") as HTMLElement;
+      const clases = Array.from(barra.classList);
+
+      const propia = allCssRules().find((r) =>
+        clases.some((c) => r.startsWith(`.${c}`)),
+      );
+      expect(propia, "la barra no inyecta ninguna regla propia").toBeDefined();
+      expect(
+        propia,
+        "la barra no declara el contenedor: las consultas de esta entrega no se aplicarían nunca, y en silencio",
+      ).toContain(`container-name: ${NAVBAR_CONTAINER}`);
+      expect(propia).toContain("container-type: inline-size");
+
+      /* `lg` y `xl` del tema llegan como cadenas de media query
+         ("screen and (min-width: 992px)"): se extrae el número, que es el
+         dato que tiene que coincidir. */
+      const px = (consulta: string): number =>
+        Number(/min-width:\s*(\d+)px/.exec(consulta)?.[1]);
+      expect(NAVBAR_WIDE_EM * NAVBAR_CONTAINER_ROOT_PX).toBe(
+        px(basicLightTheme.breakPoint.lg),
+      );
+      expect(NAVBAR_LABEL_EM * NAVBAR_CONTAINER_ROOT_PX).toBe(
+        px(basicLightTheme.breakPoint.xl),
+      );
     });
 
     /*
@@ -1802,7 +1998,7 @@ describe("Navbar", () => {
         return screen.getByRole("button", { name: /^Más/i, hidden: true });
       }
 
-      it("con About como sección activa, el disparador «Más» la señala con data-current", () => {
+      it("con About como sección activa, el disparador «Más» la señala con data-current (valor «wide»: solo mientras la barra sea estrecha)", () => {
         mockAbout(100, 700);
         renderNavbar();
         for (const id of SCROLLSPY_IDS) setInView(id, false);
@@ -1815,10 +2011,15 @@ describe("Navbar", () => {
           "el scrollspy no resolvió About: la premisa del candado no se cumple",
         ).not.toBeNull();
 
-        expect(triggerMas()).toHaveAttribute("data-current", "true");
+        /* «wide» y no «true» desde la crítica #18 (O-4): por debajo de `lg`
+           el destino sigue detrás de este botón y la marca es correcta, pero
+           desde 992 px el mismo destino se ve como enlace en la fila, y dos
+           «estás aquí» a la vez son peor que ninguno. El valor es lo que
+           permite al CSS retirar solo esa marca, solo a partir de ese ancho. */
+        expect(triggerMas()).toHaveAttribute("data-current", "wide");
       });
 
-      it("el subrayado del disparador cuelga de data-current, no de una prop paralela", () => {
+      it("el subrayado del disparador cuelga de data-current, no de una prop paralela, y el valor «wide» se retira dentro de la consulta de contenedor", () => {
         mockAbout(100, 700);
         renderNavbar();
         for (const id of SCROLLSPY_IDS) setInView(id, false);
@@ -1827,13 +2028,33 @@ describe("Navbar", () => {
         const clases = Array.from(triggerMas().classList);
         const subrayado = allCssRules().find(
           (r) =>
-            clases.some((c) => r.includes(`.${c}[data-current="true"]`)) &&
+            clases.some((c) => r.includes(`.${c}[data-current="wide"]`)) &&
             r.includes("text-decoration: underline"),
         );
         expect(
           subrayado,
           "el disparador no declara el subrayado atado a data-current",
         ).toBeDefined();
+
+        const retirada = reglasPorAtributo(
+          'data-current="wide"',
+          clases,
+        ).filter((entrada) =>
+          (entrada.media ?? "").includes(`min-width: ${NAVBAR_WIDE_EM}em`),
+        );
+        expect(
+          retirada.length,
+          "la marca del disparador se queda encendida a cualquier ancho: competiría con el subrayado del enlace ya visible",
+        ).toBeGreaterThan(0);
+        retirada.forEach((entrada) => {
+          /* `getPropertyValue`, no `style.textDecoration`: jsdom no expone
+             todas las propiedades como atributos camelCase de la declaración
+             (ésta devuelve `undefined`), y un `undefined` comparado contra
+             otra cosa daría un rojo que no dice nada de la implementación. */
+          expect(entrada.rule.style.getPropertyValue("text-decoration")).toBe(
+            "none",
+          );
+        });
       });
 
       it("con una sección que SÍ tiene enlace visible, el disparador no la reclama", () => {
