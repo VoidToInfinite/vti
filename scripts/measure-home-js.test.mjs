@@ -2,22 +2,32 @@ import { existsSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import {
     BASELINE_CHUNKS,
+    BASELINE_DIGEST,
+    BASELINE_PAGES,
     BUDGET_BYTES,
     CHUNK_GROWTH_LIMIT_BYTES,
     DECLARED_TWIN_BROTLI_BYTES,
     DECLARED_TWIN_GROUPS,
     DECLARED_DUPLICATE_MODULES,
     DECLARED_DUPLICATE_RAW_BYTES,
+    HOME_PAGE,
     analyze,
+    analyzeSite,
+    auditBaseline,
     compareWithBaseline,
+    digestOf,
     findDuplicateModules,
     findTwinChunks,
     fingerprintOf,
+    listPages,
+    pageBaseline,
     parseModuleIds,
     parseModuleSizes,
     readBaseline,
     readChunks,
+    toCensus,
     verdict,
+    verdictSite,
 } from "./measure-home-js.mjs";
 
 /*
@@ -27,16 +37,16 @@ import {
  * construido y el gate corre sin build (en Netlify el `command` es
  * `pnpm run ci && pnpm build`, con el gate ANTES). Lo que sí puede correr
  * siempre es esto: la lógica del instrumento ejercitada con chunks
- * sintéticos, más la coherencia interna de la línea base versionada. Y cuando
- * la máquina tiene un `out/` a mano —la del desarrollador, no la de CI— el
- * último bloque compara además el build real contra esa línea base. Mismo
- * patrón que `check-dark-art-weight.test.mjs` y `detect-anti-patterns.test.mjs`
- * con sus scripts.
+ * sintéticos, más la AUDITORÍA COMPLETA del censo versionado. Y cuando la
+ * máquina tiene un `out/` a mano —la del desarrollador, no la de CI— el
+ * último bloque compara además el build real contra ese censo. Mismo patrón
+ * que `check-dark-art-weight.test.mjs` y `detect-anti-patterns.test.mjs` con
+ * sus scripts.
  *
  * VALIDADO CON BUG INYECTADO, uno por candado, sobre el build servido en
- * local (el de `0226846`). Cada bug se aplicó solo, se observó el rojo, se
- * restauró y la suite volvió a 22/22 verde. Las líneas son literales de la
- * salida de `pnpm test -- scripts/measure-home-js.test.mjs`:
+ * local. Cada bug se aplicó solo, se observó el rojo, se restauró y la suite
+ * volvió a verde. Las líneas son literales de la salida de
+ * `pnpm test -- scripts/measure-home-js.test.mjs`:
  *
  *  1. Presupuesto — bajando `BUDGET_BYTES` de 290_000 a 280_000:
  *       AssertionError: el build real no pasa los candados: el JS descargado
@@ -54,39 +64,30 @@ import {
  *       419m3cs9m8bxt.js (2e66fe0db941) crece 5000 B brotli sobre la línea
  *       base, más que el límite de 1000 B
  *       AssertionError: expected 279559 to be 284559
- *
- * LOS TRES CANDADOS QUE ESTRENÓ EL 2026-09-04 (frente del presupuesto) van
- * validados igual, sobre el build ya arreglado, y el cuarto bug es el que
- * importa: se REVIRTIÓ el arreglo entero y se comprobó que el instrumento canta
- * el defecto que nadie vio en cinco olas.
- *
  *  4. Chunks gemelos — bajando `DECLARED_TWIN_BROTLI_BYTES` de 1_261 a 1_000:
  *       AssertionError: el build real no pasa los candados: los chunks
  *       3036pivcxrs_-.js y 01v6e5k6mmr1y.js tienen la MISMA composición
  *       (7e2d90d23593, 3 módulos): 1261 B brotli viajan por duplicado en la
  *       misma página · la duplicación de chunks ÍNTEGROS sube a 1261 B brotli
  *       en 1 grupo(s), por encima de los 1000 B en 1 grupo(s) ya declarados
- *  5. Censo de la línea base encogido — borrando la última fila de
- *     `home-js-baseline.json` y restando su peso al total para que la suma
- *     siguiera cuadrando (que es exactamente como se dejaría en verde a mano).
- *     Se puso en rojo por DOS sitios, y el primero corre en CI sin `out/`:
- *       AssertionError: expected 14 to be 15
- *       AssertionError: el build real no pasa los candados: el chunk
- *       306xg6yr9irvl.js (d209e951feff, 499 B brotli) no está en la línea base:
- *       composición nueva sin revisar · la línea base declara 14 chunks y el
- *       script espera 15: el censo cambió de tamaño sin actualizar
- *       `BASELINE_CHUNKS`
- *  6. Chunk de la línea base que el build ya no emite — cambiando la firma de
- *     una fila por una inexistente, sin tocar el número de filas:
- *       AssertionError: el build real no pasa los candados: … · la línea base
- *       declara un chunk (000000000000, 499 B brotli) que el build ya no emite:
- *       el censo encogió sin revisarse
- *  7. EL DEFECTO ORIGINAL — devolviendo `Navbar`/`Footer` a `app/HomeRoute.tsx`
- *     y `app/not-found.tsx` (revirtiendo el arreglo) y reconstruyendo:
+ *  5. EL DEFECTO ORIGINAL DE LA CÁSCARA — devolviendo `Navbar`/`Footer` a
+ *     `app/HomeRoute.tsx` y `app/not-found.tsx` (revirtiendo el arreglo) y
+ *     reconstruyendo:
  *       AssertionError: el build real no pasa los candados: … los chunks
  *       34q7k99kqn6xz.js y 0_x-_m0pog71z.js tienen la MISMA composición
  *       (a9c4eb656386, 8 módulos): 25.427 B brotli viajan por duplicado en la
  *       misma página
+ *
+ * LOS CANDADOS QUE ESTRENA LA OLA R (2026-09-04) van validados igual, y el
+ * primero es el que importa: es la reproducción literal del defecto que el
+ * verificador midió sobre `571b6df`. Antes de este cambio, borrar una fila del
+ * censo, restar su peso al total y bajar `BASELINE_CHUNKS` en el mismo gesto
+ * daba `Tests 30 passed | 1 skipped (31)` con salida 0 en el escenario de CI.
+ * Ahora ese mismo recorte tiene su propio caso aquí abajo ("el recorte
+ * coordinado…") y no hay forma de dejarlo en verde sin regenerar el sello
+ * desde un build. Los rojos literales de los otros cinco están en el informe
+ * de la ola; los cuatro que dependen solo del JSON se reproducen inyectando la
+ * misma edición sobre `scripts/home-js-baseline.json`.
  */
 
 /** Chunk sintético con la forma que emite Turbopack. */
@@ -294,7 +295,7 @@ describe("delta contra la línea base", () => {
     });
 });
 
-describe("veredicto de los seis candados", () => {
+describe("veredicto de una página contra su rebanada del censo", () => {
     const baseline = {
         totalDescargadoBrotli: 10,
         chunks: [{ firma: "abc123", modulos: 1, brotli: 10, crudo: 10 }],
@@ -317,10 +318,10 @@ describe("veredicto de los seis candados", () => {
     };
 
     /*
-     * La línea base sintética tiene UN chunk, no los `BASELINE_CHUNKS` del
-     * censo real; se le dice a `verdict` cuántos espera para que estos casos
+     * La rebanada sintética tiene UN chunk, no los `BASELINE_CHUNKS` del censo
+     * real; se le dice a `verdict` cuántos espera para que estos casos
      * ejerciten el candado que cada uno mira y no el del tamaño del censo. Ese
-     * candado tiene sus propios casos, abajo y en el bloque de coherencia.
+     * candado tiene sus propios casos en el bloque de auditoría.
      */
     const juzga = (analysis, base = baseline) =>
         verdict(analysis, base, base.chunks.length);
@@ -375,11 +376,12 @@ describe("veredicto de los seis candados", () => {
     });
 
     /*
-     * CANDADO 4 — CHUNKS GEMELOS. Es el que nadie tenía durante cinco olas y el
-     * que habría cantado los 28.413 B redundantes de las portadas el primer día.
-     * Se ejercitan las DOS cotas por separado, porque cada una tapa un agujero
-     * de la otra: los bytes atrapan un gemelo grande, el recuento atrapa dos
-     * gemelos pequeños que caben por debajo del listón de bytes.
+     * CHUNKS GEMELOS DENTRO DE LA PÁGINA. Es el candado que nadie tenía durante
+     * cinco olas y el que habría cantado los 28.413 B redundantes de las
+     * portadas el primer día. Se ejercitan las DOS cotas por separado, porque
+     * cada una tapa un agujero de la otra: los bytes atrapan un gemelo grande,
+     * el recuento atrapa dos gemelos pequeños que caben por debajo del listón
+     * de bytes.
      */
     it("falla cuando la copia redundante pesa más que la deuda declarada", () => {
         const { problems } = juzga({
@@ -411,11 +413,6 @@ describe("veredicto de los seis candados", () => {
         expect(problems.join(" ")).toContain("duplicación de chunks ÍNTEGROS");
     });
 
-    /*
-     * CANDADOS 5 y 6 — LAS DOS ATADURAS DE EXTENSIÓN. Sin ellas, el candado del
-     * delta por chunk se deja en verde encogiendo el censo que recorre: es el
-     * modo de fallo que la ola Q encontró cuatro veces en candados distintos.
-     */
     it("falla cuando la línea base declara un chunk que el build ya no emite", () => {
         const { problems } = juzga(
             { ...sano, chunks: [], downloadedBytes: 0 },
@@ -424,7 +421,7 @@ describe("veredicto de los seis candados", () => {
         expect(problems.join(" ")).toContain("el censo encogió sin revisarse");
     });
 
-    it("falla cuando el censo de la línea base cambia de tamaño", () => {
+    it("falla cuando la rebanada de la página cambia de tamaño", () => {
         const recortada = { ...baseline, chunks: [] };
         const { problems } = verdict(
             { ...sano, chunks: [], downloadedBytes: 0 },
@@ -491,46 +488,383 @@ describe("detección de chunks con la misma composición", () => {
     });
 });
 
-describe("coherencia de la línea base versionada", () => {
-    const baseline = readBaseline();
-
-    it("existe y no está vacía", () => {
-        expect(baseline, "falta scripts/home-js-baseline.json").not.toBeNull();
-        expect(baseline.chunks.length).toBeGreaterThan(0);
+/*
+ * EL CANDADO ENTRE PÁGINAS. Hasta la ola R el censo solo miraba
+ * `out/index.html`, y la cáscara duplicada que se acababa de eliminar vivía
+ * precisamente en la relación ENTRE páginas: un chunk que pedían las ocho y una
+ * copia íntegra suya que solo pedían las dos portadas. El sitio sintético de
+ * aquí abajo es la forma pura de ese defecto — dos ficheros idénticos que
+ * NINGUNA página pide a la vez —, y sirve para demostrar que ninguna página por
+ * separado lo ve y la unión sí.
+ */
+describe("gemelos que solo se ven mirando las ocho páginas a la vez", () => {
+    const modulosA = [
+        { id: "1001", size: 400 },
+        { id: "1002", size: 300 },
+    ];
+    const modulosB = [
+        { id: "2001", size: 400 },
+        { id: "2002", size: 300 },
+    ];
+    const sitio = () => {
+        const home = analyze([
+            makeChunk("a.js", modulosA),
+            makeChunk("b.js", modulosB),
+        ]);
+        const otra = analyze([
+            makeChunk("c.js", modulosA),
+            makeChunk("d.js", modulosB),
+        ]);
+        return {
+            rutas: [HOME_PAGE, "otra.html"],
+            union: analyze([
+                makeChunk("a.js", modulosA),
+                makeChunk("b.js", modulosB),
+                makeChunk("c.js", modulosA),
+                makeChunk("d.js", modulosB),
+            ]),
+            paginas: [
+                { ruta: HOME_PAGE, analysis: home },
+                { ruta: "otra.html", analysis: otra },
+            ],
+        };
+    };
+    /* El censo de un sitio sintético no tiene la deuda del sitio real; se le
+     * pone la declarada para que la auditoría no proteste por eso y el caso
+     * ejercite lo que dice ejercitar. */
+    const censoDe = (site) => {
+        const base = {
+            ...toCensus(site, { medido: "2026-09-04", origen: "sintético" }),
+            duplicacionCrudaBytes: DECLARED_DUPLICATE_RAW_BYTES,
+            modulosDuplicados: DECLARED_DUPLICATE_MODULES,
+        };
+        return base;
+    };
+    const opciones = (site, censo) => ({
+        expectedChunks: censo.chunks.length,
+        expectedPages: site.rutas.length,
+        expectedDigest: digestOf(censo),
     });
 
-    it("el total declarado es exactamente la suma de sus chunks, no una cifra suelta", () => {
-        const suma = baseline.chunks.reduce(
-            (acc, chunk) => acc + chunk.brotli,
-            0,
-        );
-        expect(suma).toBe(baseline.totalDescargadoBrotli);
+    it("ninguna de las dos páginas, por sí sola, tiene gemelos", () => {
+        const site = sitio();
+        for (const pagina of site.paginas) {
+            expect(pagina.analysis.twins).toEqual([]);
+        }
     });
 
-    it("el presupuesto y la deuda de duplicación son los mismos que declara el script", () => {
-        expect(baseline.presupuestoBytes).toBe(BUDGET_BYTES);
-        expect(baseline.duplicacionCrudaBytes).toBe(
-            DECLARED_DUPLICATE_RAW_BYTES,
+    it("la unión de las dos sí los tiene, y el veredicto del sitio los canta", () => {
+        const site = sitio();
+        const censo = censoDe(site);
+        expect(site.union.twins).toHaveLength(2);
+        const { problems } = verdictSite(site, censo, opciones(site, censo));
+        expect(problems.join(" ")).toContain(
+            "duplicación de chunks ÍNTEGROS entre páginas",
         );
-        expect(baseline.modulosDuplicados).toBe(DECLARED_DUPLICATE_MODULES);
+        expect(problems.join(" ")).toContain("[unión]");
+    });
+
+    it("un sitio sin copias entre páginas pasa el mismo veredicto en verde", () => {
+        const home = analyze([makeChunk("a.js", modulosA)]);
+        const otra = analyze([makeChunk("c.js", modulosB)]);
+        const site = {
+            rutas: [HOME_PAGE, "otra.html"],
+            union: analyze([
+                makeChunk("a.js", modulosA),
+                makeChunk("c.js", modulosB),
+            ]),
+            paginas: [
+                { ruta: HOME_PAGE, analysis: home },
+                { ruta: "otra.html", analysis: otra },
+            ],
+        };
+        const censo = censoDe(site);
+        expect(
+            verdictSite(site, censo, opciones(site, censo)).problems,
+        ).toEqual([]);
+    });
+
+    it("falla cuando el build emite una página que el censo no declara", () => {
+        const site = sitio();
+        const censo = censoDe(site);
+        const recortado = {
+            ...censo,
+            paginas: censo.paginas.filter(
+                (pagina) => pagina.ruta === HOME_PAGE,
+            ),
+        };
+        const { problems } = verdictSite(site, recortado, {
+            expectedChunks: recortado.chunks.length,
+            expectedPages: 1,
+            expectedDigest: digestOf(recortado),
+        });
+        expect(problems.join(" ")).toContain("página nueva sin revisar");
+    });
+
+    it("falla cuando el censo declara una página que el build ya no emite", () => {
+        const site = sitio();
+        const censo = censoDe(site);
+        const ampliado = {
+            ...censo,
+            paginas: [
+                ...censo.paginas,
+                {
+                    ruta: "fantasma.html",
+                    chunksDescargados: 0,
+                    descargadoBrotli: 0,
+                    polyfillBrotli: 0,
+                    refs: [],
+                },
+            ],
+        };
+        const { problems } = verdictSite(site, ampliado, {
+            expectedChunks: ampliado.chunks.length,
+            expectedPages: 3,
+            expectedDigest: digestOf(ampliado),
+        });
+        expect(problems.join(" ")).toContain(
+            "el censo de páginas encogió sin revisarse",
+        );
+    });
+});
+
+/*
+ * LA AUDITORÍA DEL CENSO, QUE ES LA QUE CORRE EN CI. Aquí no hay `out/` que
+ * medir: lo único disponible es el JSON versionado y las constantes del script.
+ * Cada caso ataca el censo por una vía distinta, y el que abre el bloque es la
+ * reproducción literal del defecto que el verificador midió sobre `571b6df`.
+ */
+describe("auditoría del censo versionado", () => {
+    const censo = readBaseline();
+
+    it("existe, tiene chunks y tiene páginas", () => {
+        expect(censo, "falta scripts/home-js-baseline.json").not.toBeNull();
+        expect(censo.chunks.length).toBeGreaterThan(0);
+        expect(censo.paginas.length).toBeGreaterThan(0);
+    });
+
+    it("pasa la auditoría completa sin problemas", () => {
+        expect(auditBaseline(censo)).toEqual([]);
+    });
+
+    it("declara exactamente los chunks y las páginas que dice el script", () => {
+        expect(censo.chunks.length).toBe(BASELINE_CHUNKS);
+        expect(censo.paginas.length).toBe(BASELINE_PAGES);
+    });
+
+    it("el sello del censo es el que declara el script", () => {
+        expect(digestOf(censo)).toBe(BASELINE_DIGEST);
+    });
+
+    it("el total declarado es el de la home, y cabe en el presupuesto", () => {
+        const home = censo.paginas.find((pagina) => pagina.ruta === HOME_PAGE);
+        expect(home).toBeDefined();
+        expect(censo.totalDescargadoBrotli).toBe(home.descargadoBrotli);
+        expect(censo.totalDescargadoBrotli).toBeLessThanOrEqual(BUDGET_BYTES);
+    });
+
+    it("cada página declara lo que suman las filas que cita", () => {
+        for (const pagina of censo.paginas) {
+            const suma = pagina.refs.reduce(
+                (acc, index) => acc + censo.chunks[index].brotli,
+                0,
+            );
+            expect(suma, `descuadre en ${pagina.ruta}`).toBe(
+                pagina.descargadoBrotli,
+            );
+        }
     });
 
     /*
-     * LA ATADURA DE EXTENSIÓN, COMPROBADA SIN INTERMEDIARIOS. `verdict` la mira
-     * también, pero acepta el número esperado como parámetro para que los casos
-     * sintéticos puedan trabajar con una línea base de un chunk; aquí se compara
-     * el JSON versionado contra la constante del script y no hay parámetro que
-     * valga. Borrar una fila del censo se pone en rojo aquí aunque la máquina no
-     * tenga un `out/` que medir — que es el caso de CI.
+     * EL RECORTE COORDINADO. Es el defecto que invalidaba la garantía entera:
+     * hasta la ola R, borrar una fila del censo Y bajar `BASELINE_CHUNKS` a la
+     * vez dejaba la suite en verde en CI, porque la única atadura sin `out/`
+     * comparaba dos números que el mismo gesto controla. Aquí se ejecuta el
+     * recorte completo —fila borrada, referencias retiradas de las páginas que
+     * la citaban, totales de esas páginas corregidos y constante bajada— y se
+     * comprueba que sigue en rojo.
      */
-    it("el censo tiene exactamente los chunks que declara el script", () => {
-        expect(baseline.chunks.length).toBe(BASELINE_CHUNKS);
+    it("el recorte coordinado del censo ya no pasa en verde", () => {
+        const sobrante = censo.chunks.length - 1;
+        const peso = censo.chunks[sobrante].brotli;
+        const recortado = {
+            ...censo,
+            chunks: censo.chunks.slice(0, sobrante),
+            paginas: censo.paginas.map((pagina) => {
+                if (!pagina.refs.includes(sobrante)) return pagina;
+                return {
+                    ...pagina,
+                    chunksDescargados: pagina.chunksDescargados - 1,
+                    descargadoBrotli: pagina.descargadoBrotli - peso,
+                    refs: pagina.refs.filter((index) => index !== sobrante),
+                };
+            }),
+        };
+        const problems = auditBaseline(recortado, {
+            expectedChunks: sobrante,
+            expectedPages: BASELINE_PAGES,
+        });
+        expect(problems.join(" ")).toContain("el sello del censo es");
+        expect(problems.join(" ")).toContain("sin regenerarlo desde un build");
     });
 
-    it("la línea base cabe en el presupuesto que declara", () => {
-        expect(baseline.totalDescargadoBrotli).toBeLessThanOrEqual(
-            BUDGET_BYTES,
+    it("borrar una fila sin bajar la constante también falla, por los dos sitios", () => {
+        const recortado = { ...censo, chunks: censo.chunks.slice(0, -1) };
+        const problems = auditBaseline(recortado);
+        expect(problems.join(" ")).toContain(
+            "la tabla cambió de tamaño sin actualizar",
         );
+        expect(problems.join(" ")).toContain("que no existe en una tabla de");
+    });
+
+    it("bajar la constante sin tocar el censo también falla", () => {
+        const problems = auditBaseline(censo, {
+            expectedChunks: BASELINE_CHUNKS - 1,
+        });
+        expect(problems.join(" ")).toContain(
+            "la tabla cambió de tamaño sin actualizar",
+        );
+    });
+
+    /*
+     * Borrar una PÁGINA es el recorte hermano del de la fila, y se cierra por
+     * las mismas dos vías: si la página era la única que citaba alguna fila, esa
+     * fila queda huérfana; y si no lo era —como pasa con la última del censo
+     * real, cuya fila propia también la cita su gemela en inglés—, lo que queda
+     * en pie es el sello. Se comprueban los dos casos porque el primero no cubre
+     * al segundo.
+     */
+    it("borrar una página del censo falla aunque se baje `BASELINE_PAGES`", () => {
+        const recortado = { ...censo, paginas: censo.paginas.slice(0, -1) };
+        const problems = auditBaseline(recortado, {
+            expectedPages: BASELINE_PAGES - 1,
+        });
+        expect(problems.join(" ")).toContain("el sello del censo es");
+    });
+
+    it("borrar las únicas páginas que citan una fila la deja huérfana", () => {
+        const citadaPorTodas = new Map();
+        for (const pagina of censo.paginas) {
+            for (const index of pagina.refs) {
+                citadaPorTodas.set(index, (citadaPorTodas.get(index) ?? 0) + 1);
+            }
+        }
+        const rara = [...citadaPorTodas.entries()].find(
+            ([, veces]) => veces < censo.paginas.length,
+        );
+        expect(
+            rara,
+            "el censo real tiene filas que no citan todas",
+        ).toBeDefined();
+        const recortado = {
+            ...censo,
+            paginas: censo.paginas.filter(
+                (pagina) => !pagina.refs.includes(rara[0]),
+            ),
+        };
+        const problems = auditBaseline(recortado, {
+            expectedPages: recortado.paginas.length,
+        });
+        expect(problems.join(" ")).toContain("es una fila huérfana");
+    });
+
+    it("una fila que ninguna página cita se declara huérfana", () => {
+        const inflado = {
+            ...censo,
+            chunks: [
+                ...censo.chunks,
+                {
+                    firma: "000000000000",
+                    modulos: 1,
+                    brotli: 1,
+                    crudo: 1,
+                    pistas: [],
+                },
+            ],
+        };
+        const problems = auditBaseline(inflado, {
+            expectedChunks: censo.chunks.length + 1,
+        });
+        expect(problems.join(" ")).toContain("es una fila huérfana");
+    });
+
+    it("un total de página que no cuadra con sus filas falla", () => {
+        const trucado = {
+            ...censo,
+            paginas: censo.paginas.map((pagina, index) =>
+                index === 0
+                    ? {
+                          ...pagina,
+                          descargadoBrotli: pagina.descargadoBrotli - 1,
+                      }
+                    : pagina,
+            ),
+        };
+        expect(auditBaseline(trucado).join(" ")).toContain(
+            "el censo y sus totales no cuadran",
+        );
+    });
+
+    it("una página que referencia una fila inexistente falla", () => {
+        const trucado = {
+            ...censo,
+            paginas: censo.paginas.map((pagina, index) =>
+                index === 0
+                    ? { ...pagina, refs: [...pagina.refs, censo.chunks.length] }
+                    : pagina,
+            ),
+        };
+        expect(auditBaseline(trucado).join(" ")).toContain(
+            "que no existe en una tabla de",
+        );
+    });
+
+    it("una página que cita dos veces la misma fila falla", () => {
+        const trucado = {
+            ...censo,
+            paginas: censo.paginas.map((pagina, index) =>
+                index === 0
+                    ? {
+                          ...pagina,
+                          chunksDescargados: pagina.chunksDescargados + 1,
+                          descargadoBrotli:
+                              pagina.descargadoBrotli +
+                              censo.chunks[pagina.refs[0]].brotli,
+                          refs: [...pagina.refs, pagina.refs[0]],
+                      }
+                    : pagina,
+            ),
+        };
+        expect(auditBaseline(trucado).join(" ")).toContain(
+            "referencia dos veces la fila",
+        );
+    });
+
+    /*
+     * El sello se calcula sobre el CONTENIDO ya interpretado, no sobre el
+     * fichero: pasar Prettier por el JSON o reordenar sus claves no lo mueve.
+     * Si dependiera del texto, cualquier reformateo dejaría el gate en rojo y
+     * alguien "arreglaría" el candado desactivándolo.
+     */
+    it("el sello no depende del formato ni del orden de las claves", () => {
+        const reordenado = Object.fromEntries(Object.entries(censo).reverse());
+        expect(digestOf(reordenado)).toBe(digestOf(censo));
+    });
+
+    it("el sello sí depende de cualquier número del censo", () => {
+        const movido = {
+            ...censo,
+            totalDescargadoBrotli: censo.totalDescargadoBrotli + 1,
+        };
+        expect(digestOf(movido)).not.toBe(digestOf(censo));
+    });
+
+    it("la rebanada de una página son exactamente las filas que cita", () => {
+        const home = censo.paginas.find((pagina) => pagina.ruta === HOME_PAGE);
+        const slice = pageBaseline(censo, HOME_PAGE);
+        expect(slice.chunks).toHaveLength(home.refs.length);
+        expect(slice.totalDescargadoBrotli).toBe(home.descargadoBrotli);
+        expect(pageBaseline(censo, "no-existe.html")).toBeNull();
     });
 });
 
@@ -540,15 +874,33 @@ describe("coherencia de la línea base versionada", () => {
  * preferible a un verde que no midió nada.
  */
 describe.skipIf(!existsSync("out/index.html"))(
-    "el build real contra la línea base",
+    "el build real contra el censo",
     () => {
-        it("pasa los tres candados", () => {
-            const analysis = analyze(readChunks());
-            const { problems } = verdict(analysis, readBaseline());
+        it("el build emite exactamente las páginas que el censo declara", () => {
+            const rutas = listPages();
+            expect(rutas).toHaveLength(BASELINE_PAGES);
+            expect(rutas).toEqual(
+                readBaseline().paginas.map((pagina) => pagina.ruta),
+            );
+        });
+
+        it("pasa los nueve candados", () => {
+            const site = analyzeSite();
+            const { problems } = verdictSite(site, readBaseline());
             expect(
                 problems,
                 `el build real no pasa los candados: ${problems.join(" · ")}`,
             ).toEqual([]);
+        });
+
+        it("la home que mide `readChunks` es la misma que mide el sitio entero", () => {
+            const site = analyzeSite();
+            const home = site.paginas.find(
+                (pagina) => pagina.ruta === HOME_PAGE,
+            );
+            expect(home.analysis.downloadedBytes).toBe(
+                analyze(readChunks()).downloadedBytes,
+            );
         });
     },
 );

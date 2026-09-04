@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Instrumento canónico del presupuesto de JavaScript de la home
+ * Instrumento canónico del presupuesto de JavaScript del sitio
  * (`PRE-LAUNCH-QA.md` §4). Hasta el 2026-09-01 vivía como un `node -e` suelto
  * escrito a mano en cada medición; que dos personas midieran "lo mismo"
  * dependía de que recordaran los mismos parámetros. Aquí queda fijado.
  *
- * QUÉ MIDE: los chunks que `out/index.html` referencia con `<script src=…>`,
- * comprimidos con **brotli de calidad 11** — que es lo que el hosting sirve de
- * verdad, no gzip. Requiere un `out/` ya construido (`pnpm build`); no lo
- * construye por su cuenta, y por eso no está en `pnpm run ci`: el gate corre
- * sin build.
+ * QUÉ MIDE: los chunks que cada página del build referencia con
+ * `<script src=…>`, comprimidos con **brotli de calidad 11** — que es lo que el
+ * hosting sirve de verdad, no gzip. Requiere un `out/` ya construido
+ * (`pnpm build`); no lo construye por su cuenta, y por eso no está en
+ * `pnpm run ci`: el gate corre sin build.
  *
  * QUÉ NO CUENTA CONTRA EL PRESUPUESTO, y por qué (decisión del dueño,
  * 2026-09-01): el chunk marcado `nomodule`. Es el polyfill que Next emite para
@@ -50,26 +50,7 @@
  * candado lo canta como desconocido, que es justo lo que se quiere: un chunk
  * nuevo es crecimiento invisible hasta que revienta el total.
  *
- * QUÉ VIGILA, en seis candados independientes:
- *
- *   1. **Presupuesto total** (el de siempre): el JS descargado cabe en
- *      `BUDGET_BYTES`.
- *   2. **Duplicación entre chunks**: ningún módulo debería viajar dos veces en
- *      la misma página. La deuda ya medida se declara en
- *      `DECLARED_DUPLICATE_RAW_BYTES` y cualquier duplicación por encima de
- *      ella falla.
- *   3. **Delta por chunk** contra `scripts/home-js-baseline.json`: un chunk
- *      conocido que crece más de `CHUNK_GROWTH_LIMIT_BYTES` brotli falla, y un
- *      chunk cuya firma no está en la línea base falla también.
- *   4. **Chunks gemelos**: ningún par de chunks de la misma página debería
- *      tener la MISMA firma de módulos. La deuda del repo se pagó entera; lo
- *      que queda declarado (`DECLARED_TWIN_BROTLI_BYTES`) es reparto interno
- *      de Next. Ver el apartado siguiente.
- *   5. **La línea base no encoge por su lado**: un chunk que la línea base
- *      declara y el build ya no emite falla en vez de imprimirse como nota.
- *   6. **La línea base tiene el tamaño declarado**: `BASELINE_CHUNKS`.
- *
- * EL DEFECTO QUE ESTRENÓ EL CANDADO 4, Y POR QUÉ LOS TRES ANTERIORES NO LO
+ * EL DEFECTO QUE ESTRENÓ EL CANDADO DE GEMELOS, Y POR QUÉ LOS ANTERIORES NO LO
  * VEÍAN (medido el 2026-09-04 sobre el build de `0226846`, servido en local).
  * El censo encontró que `out/index.html` y `out/en.html` —las dos portadas—
  * referenciaban DOS chunks con la misma composición: 17 identificadores de
@@ -82,12 +63,13 @@
  * (`04mie4ud-_mu2.js`, 28.413 B brotli) solo las dos portadas, y era
  * íntegramente redundante.
  *
- * Ninguno de los candados 1-3 podía cantarlo, y merece la pena escribir por
- * qué: el total cabía en el presupuesto, la duplicación estaba DECLARADA como
- * deuda (los 116.368 B crudos de entonces) y el delta por chunk decía `==` en
- * las dos filas, porque las dos existían ya el día en que se tomó la línea
- * base. Una copia íntegra de un chunk no es un caso extremo de duplicación de
- * módulos: es una categoría propia, y solo se ve comparando FIRMAS.
+ * Ninguno de los candados de presupuesto, duplicación y delta podía cantarlo, y
+ * merece la pena escribir por qué: el total cabía en el presupuesto, la
+ * duplicación estaba DECLARADA como deuda (los 116.368 B crudos de entonces) y
+ * el delta por chunk decía `==` en las dos filas, porque las dos existían ya el
+ * día en que se tomó la línea base. Una copia íntegra de un chunk no es un caso
+ * extremo de duplicación de módulos: es una categoría propia, y solo se ve
+ * comparando FIRMAS.
  *
  * LA CAUSA RAÍZ, y está arreglada. `Navbar` y `Footer` los montaban a la vez
  * `app/HomeRoute.tsx`, `app/not-found.tsx` y los dos envoltorios legales, cada
@@ -103,26 +85,144 @@
  * duplicación de módulos de 116.368 a 4.264 B crudos (de 21 módulos a 5, todos
  * del runtime de Next), y cero pares de chunks con la misma firma.
  *
- * SALIDA: tabla por chunk con su delta, censo de gemelos, censo de duplicación,
- * los dos totales (descargado y HTML completo) y el veredicto. Código de salida
- * 1 si falla cualquiera de los seis candados.
+ * ─────────────────────────────────────────────────────────────────────────
+ * AMPLIACIÓN 2026-09-04 (ola R, frente del censo del bundle): LAS OCHO PÁGINAS
+ * Y EL SELLO DEL CENSO. Dos defectos medidos por el verificador de la ola Q,
+ * los dos reproducidos aquí antes de tocar nada.
+ *
+ * DEFECTO 1 — EL CENSO SOLO MIRABA `out/index.html`. `readChunks(outDir,
+ * entry = "index.html")` se llamaba sin argumentos y el resultado se sellaba
+ * como `origen: "out/index.html"`. `en.html`, las dos legales en español, las
+ * dos en inglés y las dos variantes de la 404 no entraban en NINGÚN censo. Y la
+ * cáscara duplicada que se acaba de eliminar vivía precisamente en la relación
+ * ENTRE páginas —un chunk que pedían las ocho y una copia íntegra suya que solo
+ * pedían dos—, así que medir una sola página era medir justo donde ese defecto
+ * no se ve. Medido el 2026-09-04 sobre el build de `9018c18`: las ocho páginas
+ * referencian **19 ficheros de chunk distintos** (18 descargados más el
+ * polyfill), de los cuales la home solo toca 15. Las cuatro cifras por página:
+ * `index.html` y `en.html` 253.853 B en 15 chunks; las cuatro legales 222.915 B
+ * en 15; `404.html` y `_not-found.html` 204.515 B en 13. Tres chunks —el arte
+ * del hero, el cuerpo de las legales y los dos documentos legales— no aparecen
+ * en la home o no aparecen fuera de ella.
+ *
+ * QUÉ SE COMPARA POR PÁGINA Y QUÉ ENTRE PÁGINAS, que es la decisión de diseño
+ * de este frente:
+ *
+ *   · POR PÁGINA se comparan las magnitudes que un visitante concreto paga al
+ *     abrir ESA url: el presupuesto, la duplicación de módulos dentro de la
+ *     página, los chunks gemelos dentro de la página y el delta de cada chunk
+ *     contra la fila que el censo le asigna. Las cotas declaradas
+ *     (`DECLARED_DUPLICATE_*`, `DECLARED_TWIN_*`) se evalúan página a página y
+ *     son las de la peor: las dos portadas, con 5 módulos repetidos / 4.264 B
+ *     crudos; las legales quedan en 4 / 4.027 y las dos 404 en 3 / 3.266, todas
+ *     por debajo. El grupo de gemelos del runtime de Next (1.261 B) aparece en
+ *     las ocho.
+ *   · ENTRE PÁGINAS se compara lo que ninguna página ve sola: la UNIÓN de los
+ *     ficheros de chunk de las ocho, agrupados por firma. Ahí es donde se
+ *     detecta que dos ficheros DISTINTOS llevan la misma composición aunque
+ *     ninguna página los pida a la vez — el caso que la home, por sí sola, no
+ *     puede cantar. Hoy la unión tiene exactamente un grupo de gemelos, el
+ *     mismo del runtime de Next, y ningún par nuevo.
+ *
+ * DEFECTO 2 — EL RECORTE COORDINADO DEL CENSO PASABA EN VERDE. Es el grave, y
+ * es el que invalidaba la garantía entera. El commit `571b6df` afirmaba que
+ * «borrar una fila del JSON se pone en rojo desde dos sitios, uno de ellos sin
+ * `out/`». La primera mitad no se sostenía, y así se reprodujo el 2026-09-04:
+ * borrando la última fila del censo, restando su peso al total declarado y
+ * bajando `BASELINE_CHUNKS` de 15 a 14 en el mismo gesto, la suite completa dio
+ * `Tests 30 passed | 1 skipped (31)` con código de salida 0 en el escenario de
+ * CI — que es el escenario sin `out/`, donde `describe.skipIf` salta el bloque
+ * de integración. El único rojo salía del bloque que necesita el build, y ése
+ * en CI no corre.
+ *
+ * LA CAUSA RAÍZ, dicha con precisión: la ÚNICA atadura de extensión que corría
+ * sin build comparaba dos números que el editor controla en el MISMO gesto —el
+ * número de filas del JSON y la constante del script que dice cuántas debe
+ * haber—. Una atadura que se satisface ajustando la misma constante que cuenta
+ * no es una atadura. Para que lo sea, el censo tiene que derivarse de algo que
+ * quien recorta no pueda ajustar leyendo el fichero.
+ *
+ * CÓMO SE CIERRA, en tres capas que hay que satisfacer a la vez:
+ *
+ *   1. **El censo es sobredeterminado.** Cada página declara a qué filas de la
+ *      tabla de chunks apunta (por ÍNDICE, no por nombre) y cuánto pesa su JS
+ *      descargado. Borrar una fila deja índices fuera de rango en las páginas
+ *      que la citaban y, si se renumeran, descuadra la suma declarada de cada
+ *      una de ellas. Ya no es un número: son ocho sumas y dieciocho filas
+ *      referenciadas.
+ *   2. **La atadura va en las dos direcciones.** `BASELINE_CHUNKS` y
+ *      `BASELINE_PAGES` siguen ahí, así que el censo tampoco puede encoger
+ *      dejando la constante quieta; y además ninguna fila puede quedar huérfana
+ *      (una fila que ninguna página cita es una fila inventada) ni ninguna
+ *      página puede citar un índice repetido.
+ *   3. **El sello.** `BASELINE_DIGEST` es el resumen SHA-256 del censo entero,
+ *      canonicalizado. No se puede satisfacer leyendo el JSON ni ajustando una
+ *      constante que se vea: hay que CALCULARLO, y el único productor
+ *      documentado del sello es `--update-baseline`, que deriva el censo del
+ *      `out/` real. Un censo recortado a mano y luego resellado ya no es un
+ *      recorte silencioso: es un build nuevo o una manipulación explícita.
+ *
+ * LÍMITE DECLARADO, para que nadie lea aquí más garantía de la que hay: en un
+ * gate que corre SIN build no existe verdad de referencia contra la que
+ * contrastar el censo, así que ninguna comprobación local puede distinguir «el
+ * censo encogió porque el build encogió» de «alguien lo recortó y volvió a
+ * sellarlo ejecutando el sellador». Lo que estas tres capas garantizan es que
+ * el recorte deje de ser posible **en silencio**: cualquier camino a verde pasa
+ * por regenerar el sello, y regenerar el sello sin `out/` no está soportado.
+ * Lo que sí cierra el caso del todo es el bloque de integración, que compara el
+ * censo contra el build real — y ése, por diseño, solo corre donde hay `out/`.
+ *
+ * QUÉ VIGILA, en NUEVE candados independientes:
+ *
+ *   1. **Presupuesto**, página a página: el JS descargado de cada una de las
+ *      ocho cabe en `BUDGET_BYTES`.
+ *   2. **Duplicación de módulos** dentro de cada página, contra
+ *      `DECLARED_DUPLICATE_RAW_BYTES` y `DECLARED_DUPLICATE_MODULES`.
+ *   3. **Delta por chunk** contra las filas que el censo asigna a esa página: un
+ *      chunk conocido que crece más de `CHUNK_GROWTH_LIMIT_BYTES` brotli falla,
+ *      y un chunk cuya firma no está entre las suyas falla también.
+ *   4. **Chunks gemelos dentro de la página**, contra
+ *      `DECLARED_TWIN_BROTLI_BYTES` y `DECLARED_TWIN_GROUPS`.
+ *   5. **Chunks del censo que la página ya no emite**: falla en vez de
+ *      imprimirse como nota.
+ *   6. **La tabla de chunks tiene el tamaño declarado**: `BASELINE_CHUNKS`.
+ *   7. **Chunks gemelos en la UNIÓN de las ocho páginas**, que es la relación
+ *      donde vivía la cáscara duplicada y donde una sola página no ve nada.
+ *   8. **El censo de páginas es coherente y tiene el tamaño declarado**:
+ *      `BASELINE_PAGES`, rutas únicas, índices en rango y sin repetir, sin filas
+ *      huérfanas, y la suma declarada de cada página igual a la suma real de las
+ *      filas que cita.
+ *   9. **El sello**: `BASELINE_DIGEST`.
+ *
+ * De los nueve, los candados 6, 8 y 9 NO necesitan `out/` — corren en CI a
+ * través de `scripts/measure-home-js.test.mjs`. Los otros seis necesitan el
+ * build y corren donde lo haya.
+ *
+ * SALIDA: tabla por chunk de la home con su delta, censo por página, censo de
+ * gemelos de la unión, censo de duplicación, los dos totales (descargado y HTML
+ * completo) y el veredicto. Código de salida 1 si falla cualquiera de los nueve
+ * candados.
  *
  * REGENERAR LA LÍNEA BASE: `node scripts/measure-home-js.mjs --update-baseline`
  * tras un `pnpm build`, y SOLO después de haber mirado el delta y entendido
  * por qué sube. La línea base es un acta de lo medido, no un botón para
- * callar al instrumento. El JSON se escribe con `JSON.stringify`, que no
- * coincide con el estilo de Prettier para arrays cortos, así que después hay
- * que pasar `pnpm exec prettier --write scripts/home-js-baseline.json` o
- * `pnpm check-format` lo listará como diferente.
+ * callar al instrumento. El comando imprime el sello nuevo y las dos
+ * constantes de extensión: hay que pegarlos a mano en este fichero, a
+ * propósito — que el sello no se refresque solo es lo que hace que un cambio de
+ * censo aparezca siempre en el diff del script y no solo en el del JSON. El
+ * JSON se escribe con `JSON.stringify`, que no coincide con el estilo de
+ * Prettier para arrays cortos, así que después hay que pasar
+ * `pnpm exec prettier --write scripts/home-js-baseline.json` o
+ * `pnpm check-format` lo listará como diferente. El sello se calcula sobre el
+ * CONTENIDO ya interpretado, así que reformatear el JSON no lo mueve.
  *
  * POR QUÉ ESTE SCRIPT SIGUE FUERA DE `pnpm run ci`, dicho explícitamente para
  * que nadie lo "arregle" sin leer: necesita un `out/` construido, y el gate
  * corre sin build (también en Netlify, cuyo `command` es `pnpm run ci &&
  * pnpm build` — el gate va ANTES). Lo que sí corre en el gate es
  * `scripts/measure-home-js.test.mjs`, que ejercita esta lógica con chunks
- * sintéticos y comprueba la coherencia interna de la línea base; y cuando la
- * máquina donde corre tiene un `out/` a mano, ese mismo test compara el build
- * real contra ella.
+ * sintéticos y audita el censo versionado entero; y cuando la máquina donde
+ * corre tiene un `out/` a mano, ese mismo test compara el build real contra él.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * CLS BAJO EL PERFIL ESTRANGULADO (medido 2026-09-04, ola Q, frente Q-4).
@@ -157,7 +257,13 @@
  * puede significar «no hay salto» o «no había nada que desplazar», y solo
  * ejercitar la sonda distingue los dos casos.
  */
-import { readFileSync, existsSync, writeFileSync } from "node:fs";
+import {
+    readFileSync,
+    existsSync,
+    readdirSync,
+    statSync,
+    writeFileSync,
+} from "node:fs";
 import { brotliCompressSync, constants } from "node:zlib";
 import { createHash } from "node:crypto";
 import path from "node:path";
@@ -177,10 +283,15 @@ export const BUDGET_BYTES = 290_000;
  */
 export const CHUNK_GROWTH_LIMIT_BYTES = 1_000;
 
-/** Bytes CRUDOS que hoy viajan repetidos entre chunks descargados (ver docblock). */
+/**
+ * Bytes CRUDOS que hoy viajan repetidos entre chunks descargados de UNA MISMA
+ * página (ver docblock). La cota es la de la peor de las ocho: las dos
+ * portadas, con 4.264 B. Las cuatro legales quedan en 4.027 y las dos 404 en
+ * 3.266.
+ */
 export const DECLARED_DUPLICATE_RAW_BYTES = 4_264;
 
-/** Módulos distintos que hoy aparecen en más de un chunk descargado. */
+/** Módulos distintos que hoy aparecen en más de un chunk de la misma página. */
 export const DECLARED_DUPLICATE_MODULES = 5;
 
 /**
@@ -192,7 +303,8 @@ export const DECLARED_DUPLICATE_MODULES = 5;
  * `execOnce`, `getURL`, `isAbsoluteUrl`… de `next/dist/shared/lib/utils`, más
  * dos ayudantes suyos). No hay ningún componente, hook ni constante del repo en
  * ellos, así que no hay ningún punto de montaje que mover para unirlos: es
- * reparto interno del framework.
+ * reparto interno del framework. Las ocho páginas del build los piden a la vez,
+ * así que la misma cota vale por página y sobre la unión.
  *
  * Y la cifra es una MEJORA, no un empeoramiento que se legaliza: antes del
  * arreglo esos mismos tres módulos viajaban en TRES chunks (`01v6e5k6mmr1y`,
@@ -209,19 +321,43 @@ export const DECLARED_TWIN_BROTLI_BYTES = 1_261;
 export const DECLARED_TWIN_GROUPS = 1;
 
 /**
- * Chunks descargados que declara la línea base versionada. NO es un número
- * decorativo: es la ATADURA DE EXTENSIÓN de `scripts/home-js-baseline.json`.
- *
- * El delta por chunk se evalúa recorriendo esa lista, y una comprobación que
- * recorre una lista se puede dejar en verde ENCOGIENDO la lista — borrar una
- * fila del censo y quedarse con «todo cuadra, 0 incumplimientos». Es el modo de
- * fallo más caro que tiene este repo y ya se pagó cuatro veces en la ola Q.
- * Con este número declarado aparte, borrar una fila del JSON pone el candado en
- * rojo aunque el build siga siendo el mismo; y no se puede «arreglar» bajando
- * también esta constante, porque entonces el chunk borrado deja de estar en la
- * línea base y el build real lo canta como composición desconocida.
+ * Filas de la tabla de chunks del censo versionado: la UNIÓN de los ficheros
+ * de chunk descargados que referencian las ocho páginas del build. NO es un
+ * número decorativo, es una de las tres ataduras de extensión del censo — pero
+ * por sí sola NO basta, y eso está medido: ver `BASELINE_DIGEST` y el apartado
+ * "DEFECTO 2" del docblock. El delta por chunk se evalúa recorriendo esta
+ * tabla, y una comprobación que recorre una lista se puede dejar en verde
+ * ENCOGIENDO la lista.
  */
-export const BASELINE_CHUNKS = 15;
+export const BASELINE_CHUNKS = 18;
+
+/**
+ * Páginas HTML que el build emite y que el censo declara. La segunda atadura de
+ * extensión: sin ella, el censo se podría dejar en verde borrando una página
+ * entera en vez de una fila de chunk.
+ */
+export const BASELINE_PAGES = 8;
+
+/**
+ * SELLO DEL CENSO: resumen SHA-256 (16 hex) del contenido de
+ * `scripts/home-js-baseline.json`, canonicalizado con las claves ordenadas.
+ *
+ * Es la capa que cierra el recorte coordinado. `BASELINE_CHUNKS` y
+ * `BASELINE_PAGES` se pueden satisfacer LEYENDO el fichero recortado y bajando
+ * el número; este no. Para dejarlo en verde hay que CALCULARLO, y el único
+ * productor documentado es `--update-baseline`, que deriva el censo del `out/`
+ * real. El límite de lo que garantiza está escrito en el docblock, en "LÍMITE
+ * DECLARADO": impide el recorte SILENCIOSO, no el recorte deliberado de quien
+ * ejecute el sellador a sabiendas.
+ *
+ * Se recalcula con `--update-baseline` y se pega a mano aquí. Que no se
+ * refresque solo es deliberado: obliga a que todo cambio de censo aparezca
+ * también en el diff de este fichero.
+ */
+export const BASELINE_DIGEST = "d3b09dbe909e0586";
+
+/** La página cuyo total es el que cita el presupuesto de la crítica externa. */
+export const HOME_PAGE = "index.html";
 
 export const OUT_DIR = "out";
 export const BASELINE_PATH = path.join(
@@ -306,11 +442,41 @@ export function brotliBytes(text) {
 }
 
 /**
- * Lee del disco los chunks que una página referencia. Devuelve el texto sin
- * medir nada: quien mide es `analyze`, que así se puede ejercitar con chunks
- * sintéticos sin tocar el disco.
+ * Las páginas HTML que el build emite, en orden estable y con separador `/`
+ * en todas las plataformas. `_next/` queda fuera: ahí viven los assets, no las
+ * páginas. Se descubren leyendo el directorio en vez de escribirse a mano
+ * porque una lista escrita a mano es exactamente la clase de censo que encoge
+ * sin que nadie lo note.
  */
-export function readChunks(outDir = OUT_DIR, entry = "index.html") {
+export function listPages(outDir = OUT_DIR) {
+    const walk = (dir, base) => {
+        const found = [];
+        for (const name of readdirSync(dir)) {
+            if (name === "_next") continue;
+            const full = path.join(dir, name);
+            if (statSync(full).isDirectory()) {
+                found.push(...walk(full, `${base}${name}/`));
+            } else if (name.endsWith(".html")) {
+                found.push(`${base}${name}`);
+            }
+        }
+        return found;
+    };
+    if (!existsSync(outDir)) {
+        throw new Error(
+            `No existe ${outDir}. Este instrumento mide el build real: ejecuta ` +
+                `\`pnpm build\` antes.`,
+        );
+    }
+    return walk(outDir, "").sort();
+}
+
+/**
+ * Lee del disco los chunks que una página referencia. Devuelve el texto sin
+ * medir nada: quien mide es `measureChunks`, que así se puede ejercitar con
+ * chunks sintéticos sin tocar el disco.
+ */
+export function readChunks(outDir = OUT_DIR, entry = HOME_PAGE) {
     const entryPath = path.join(outDir, entry);
     if (!existsSync(entryPath)) {
         throw new Error(
@@ -379,6 +545,10 @@ export function findDuplicateModules(chunks) {
  * Se agrupa por firma y se devuelve un grupo por cada firma con dos o más
  * chunks. El polyfill `nomodule` queda fuera, como en todo lo demás: no se
  * descarga.
+ *
+ * Sirve para las dos escalas del censo, y por eso no sabe nada de páginas: se
+ * le pasan los chunks de UNA página para el candado por página, o la unión de
+ * las ocho para el candado entre páginas.
  */
 export function findTwinChunks(chunks) {
     const byFingerprint = new Map();
@@ -410,9 +580,14 @@ export function findTwinChunks(chunks) {
         .sort((a, b) => b.wastedBrotliBytes - a.wastedBrotliBytes);
 }
 
-/** Mide cada chunk y saca los totales, el censo de módulos y la duplicación. */
-export function analyze(rawChunks) {
-    const chunks = rawChunks.map((chunk) => {
+/**
+ * Mide cada chunk una sola vez. Va separado de `summarize` porque el brotli de
+ * calidad 11 sobre 19 ficheros no se puede repetir ocho veces, una por página:
+ * el sitio comparte casi todos sus chunks entre páginas, así que se miden en la
+ * unión y cada página se resume seleccionando de ahí.
+ */
+export function measureChunks(rawChunks) {
+    return rawChunks.map((chunk) => {
         const modules = parseModuleSizes(chunk.text);
         return {
             name: chunk.name,
@@ -425,6 +600,10 @@ export function analyze(rawChunks) {
             hints: hintsOf(chunk.text),
         };
     });
+}
+
+/** Totales, censo de gemelos y censo de duplicación de un conjunto de chunks ya medidos. */
+export function summarize(chunks) {
     const sum = (list) => list.reduce((acc, chunk) => acc + chunk.brotli, 0);
     const downloaded = chunks.filter((chunk) => !chunk.legacyOnly);
     const legacy = chunks.filter((chunk) => chunk.legacyOnly);
@@ -442,6 +621,46 @@ export function analyze(rawChunks) {
     };
 }
 
+/** Mide y resume de una vez. La forma que consumen los casos sintéticos del test. */
+export function analyze(rawChunks) {
+    return summarize(measureChunks(rawChunks));
+}
+
+/**
+ * El sitio entero: las ocho páginas, cada una con su resumen propio, más la
+ * UNIÓN de los ficheros de chunk distintos que referencian entre todas. Cada
+ * fichero se lee y se comprime UNA vez.
+ */
+export function analyzeSite(outDir = OUT_DIR) {
+    const rutas = listPages(outDir);
+    const refs = new Map();
+    const porNombre = new Map();
+    for (const ruta of rutas) {
+        const raw = readChunks(outDir, ruta);
+        refs.set(
+            ruta,
+            raw.map((chunk) => chunk.name),
+        );
+        for (const chunk of raw) {
+            if (!porNombre.has(chunk.name)) porNombre.set(chunk.name, chunk);
+        }
+    }
+    const medidos = measureChunks([...porNombre.values()]);
+    const porNombreMedido = new Map(
+        medidos.map((chunk) => [chunk.name, chunk]),
+    );
+    return {
+        rutas,
+        union: summarize(medidos),
+        paginas: rutas.map((ruta) => ({
+            ruta,
+            analysis: summarize(
+                refs.get(ruta).map((name) => porNombreMedido.get(name)),
+            ),
+        })),
+    };
+}
+
 /**
  * Empareja el build actual con la línea base por FIRMA de módulos y devuelve
  * el delta de cada chunk descargado. Un chunk cuya firma no está en la línea
@@ -451,11 +670,11 @@ export function analyze(rawChunks) {
 export function compareWithBaseline(analysis, baseline) {
     /*
      * La línea base se consume como MULTICONJUNTO, no como diccionario: dos
-     * chunks con la misma composición comparten firma —hoy los gemelos de la
-     * portada lo hacen— y un `Map` simple haría que el segundo se comparase
-     * contra la entrada del primero. Cada chunk actual consume una entrada de
-     * su firma, la de tamaño más parecido; lo que sobra al final es lo que
-     * desapareció del build.
+     * chunks con la misma composición comparten firma —hoy los gemelos del
+     * runtime de Next lo hacen— y un `Map` simple haría que el segundo se
+     * comparase contra la entrada del primero. Cada chunk actual consume una
+     * entrada de su firma, la de tamaño más parecido; lo que sobra al final es
+     * lo que desapareció del build.
      */
     const pool = new Map();
     for (const chunk of baseline?.chunks ?? []) {
@@ -504,15 +723,35 @@ export function compareWithBaseline(analysis, baseline) {
 }
 
 /**
- * Los seis candados juntos. `problems` vacío = todo en verde.
+ * La rebanada del censo que corresponde a una página: las filas que declara
+ * citar y su total. Es lo que se le pasa a `verdict`, que así sigue siendo una
+ * función de UNA página contra SU censo y no sabe nada de las otras siete.
+ *
+ * Si el censo no declara esa página, devuelve `null` en vez de una rebanada
+ * vacía: una rebanada vacía haría que todos sus chunks salieran como
+ * desconocidos, un mensaje verdadero pero que no dice lo que pasa.
+ */
+export function pageBaseline(baseline, ruta) {
+    const pagina = (baseline?.paginas ?? []).find(
+        (entry) => entry.ruta === ruta,
+    );
+    if (!pagina) return null;
+    return {
+        totalDescargadoBrotli: pagina.descargadoBrotli,
+        chunks: pagina.refs.map((index) => baseline.chunks[index]),
+    };
+}
+
+/**
+ * Los candados que necesitan el build, sobre UNA página. `problems` vacío =
+ * todo en verde.
  *
  * `expectedBaselineChunks` existe para que los casos sintéticos del test puedan
- * ejercitar los otros cinco candados con una línea base de un chunk sin chocar
- * contra el censo real; el CLI y el bloque de integración NO lo pasan, así que
- * sobre el build de verdad rige siempre `BASELINE_CHUNKS`. Y para que este
- * parámetro no se pueda usar como llave para aflojar el censo, el mismo número
- * se comprueba otra vez, sin intermediarios, contra el JSON versionado en
- * `measure-home-js.test.mjs`.
+ * ejercitar los candados con una línea base de un chunk sin chocar contra el
+ * censo real; el CLI y el bloque de integración pasan siempre el número de
+ * filas que el censo asigna a esa página. Y para que este parámetro no se pueda
+ * usar como llave para aflojar el censo, la extensión se comprueba otra vez, sin
+ * intermediarios y sin `out/`, en `auditBaseline`.
  */
 export function verdict(
     analysis,
@@ -585,15 +824,10 @@ export function verdict(
         );
     }
     /*
-     * LAS DOS ATADURAS DE EXTENSIÓN DE LA LÍNEA BASE. Sin ellas, el candado del
-     * delta por chunk se puede dejar en verde encogiendo el censo que recorre.
-     *
-     *  - Un chunk de la línea base que ya no aparece en el build era antes solo
-     *    una línea informativa por pantalla. Ahora falla: o el chunk se fue de
-     *    verdad (y entonces la línea base se regenera A MANO, mirando el delta)
-     *    o alguien borró su fila.
-     *  - Y el censo tiene un tamaño declarado en el propio script, así que
-     *    recortar el JSON se pone en rojo aunque el build no cambie.
+     * Un chunk de la línea base que ya no aparece en el build era antes solo
+     * una línea informativa por pantalla. Ahora falla: o el chunk se fue de
+     * verdad (y entonces la línea base se regenera A MANO, mirando el delta) o
+     * alguien borró su fila.
      */
     for (const chunk of comparison.missing) {
         problems.push(
@@ -610,32 +844,288 @@ export function verdict(
     return { comparison, problems, overBudgetBytes: over };
 }
 
+/**
+ * Serialización canónica del censo: claves ordenadas, sin espacios. Lo que se
+ * sella es el CONTENIDO ya interpretado, no el fichero, así que reformatear el
+ * JSON con Prettier no mueve el sello — pero cambiar un solo número sí.
+ */
+export function canonicalize(value) {
+    if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
+    if (value && typeof value === "object") {
+        return `{${Object.keys(value)
+            .sort()
+            .map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`)
+            .join(",")}}`;
+    }
+    return JSON.stringify(value);
+}
+
+/** Sello del censo: SHA-256 de su forma canónica, recortado a 16 hex. */
+export function digestOf(baseline) {
+    return createHash("sha256")
+        .update(canonicalize(baseline))
+        .digest("hex")
+        .slice(0, 16);
+}
+
+/**
+ * AUDITORÍA DEL CENSO SIN BUILD. Estos son los tres candados que corren en CI,
+ * donde no hay `out/` que medir, y son los que cierran el recorte coordinado.
+ *
+ * La idea es que el censo esté SOBREDETERMINADO: la misma información aparece
+ * en más de un sitio y las copias tienen que cuadrar entre sí. Borrar una fila
+ * de la tabla de chunks deja índices fuera de rango en las páginas que la
+ * citaban; renumerar los índices descuadra la suma declarada de cada página; y
+ * arreglar también las sumas rompe el sello, que no se puede satisfacer leyendo
+ * el fichero. Lo que este bloque NO puede hacer está escrito en el docblock,
+ * apartado "LÍMITE DECLARADO".
+ */
+export function auditBaseline(baseline, options = {}) {
+    const {
+        expectedChunks = BASELINE_CHUNKS,
+        expectedPages = BASELINE_PAGES,
+        expectedDigest = BASELINE_DIGEST,
+        homePage = HOME_PAGE,
+    } = options;
+    const problems = [];
+    if (!baseline) {
+        return ["no hay censo versionado que auditar"];
+    }
+    const chunks = baseline.chunks ?? [];
+    const paginas = baseline.paginas ?? [];
+
+    if (chunks.length !== expectedChunks) {
+        problems.push(
+            `el censo declara ${chunks.length} chunks y el script espera ${expectedChunks}: ` +
+                `la tabla cambió de tamaño sin actualizar \`BASELINE_CHUNKS\``,
+        );
+    }
+    if (paginas.length !== expectedPages) {
+        problems.push(
+            `el censo declara ${paginas.length} páginas y el script espera ${expectedPages}: ` +
+                `el censo de páginas cambió de tamaño sin actualizar \`BASELINE_PAGES\``,
+        );
+    }
+    if (baseline.presupuestoBytes !== BUDGET_BYTES) {
+        problems.push(
+            `el censo declara un presupuesto de ${baseline.presupuestoBytes} B y el script ` +
+                `${BUDGET_BYTES} B`,
+        );
+    }
+    if (baseline.duplicacionCrudaBytes !== DECLARED_DUPLICATE_RAW_BYTES) {
+        problems.push(
+            `el censo declara ${baseline.duplicacionCrudaBytes} B de duplicación cruda y el ` +
+                `script ${DECLARED_DUPLICATE_RAW_BYTES} B`,
+        );
+    }
+    if (baseline.modulosDuplicados !== DECLARED_DUPLICATE_MODULES) {
+        problems.push(
+            `el censo declara ${baseline.modulosDuplicados} módulos duplicados y el script ` +
+                `${DECLARED_DUPLICATE_MODULES}`,
+        );
+    }
+
+    const citadas = new Set();
+    const rutas = new Set();
+    for (const pagina of paginas) {
+        if (rutas.has(pagina.ruta)) {
+            problems.push(`la página ${pagina.ruta} aparece dos veces`);
+        }
+        rutas.add(pagina.ruta);
+        const refs = pagina.refs ?? [];
+        if (refs.length !== pagina.chunksDescargados) {
+            problems.push(
+                `la página ${pagina.ruta} dice referenciar ${pagina.chunksDescargados} chunks y ` +
+                    `enumera ${refs.length}`,
+            );
+        }
+        const vistos = new Set();
+        let suma = 0;
+        let valido = true;
+        for (const index of refs) {
+            if (
+                !Number.isInteger(index) ||
+                index < 0 ||
+                index >= chunks.length
+            ) {
+                problems.push(
+                    `la página ${pagina.ruta} referencia la fila ${index}, que no existe en una ` +
+                        `tabla de ${chunks.length}: el censo encogió por debajo de lo que sus ` +
+                        `páginas citan`,
+                );
+                valido = false;
+                continue;
+            }
+            if (vistos.has(index)) {
+                problems.push(
+                    `la página ${pagina.ruta} referencia dos veces la fila ${index}`,
+                );
+            }
+            vistos.add(index);
+            citadas.add(index);
+            suma += chunks[index].brotli;
+        }
+        if (valido && suma !== pagina.descargadoBrotli) {
+            problems.push(
+                `la página ${pagina.ruta} declara ${pagina.descargadoBrotli} B descargados y las ` +
+                    `filas que cita suman ${suma} B: el censo y sus totales no cuadran`,
+            );
+        }
+        if (pagina.descargadoBrotli > BUDGET_BYTES) {
+            problems.push(
+                `la página ${pagina.ruta} declara ${pagina.descargadoBrotli} B descargados, por ` +
+                    `encima del presupuesto de ${BUDGET_BYTES} B`,
+            );
+        }
+    }
+    for (let index = 0; index < chunks.length; index++) {
+        if (!citadas.has(index)) {
+            problems.push(
+                `la fila ${index} (${chunks[index].firma}) no la referencia ninguna página: ` +
+                    `es una fila huérfana`,
+            );
+        }
+    }
+
+    const home = paginas.find((pagina) => pagina.ruta === homePage);
+    if (!home) {
+        problems.push(`el censo no declara la página ${homePage}`);
+    } else if (baseline.totalDescargadoBrotli !== home.descargadoBrotli) {
+        problems.push(
+            `el total declarado (${baseline.totalDescargadoBrotli} B) no es el de ${homePage} ` +
+                `(${home.descargadoBrotli} B)`,
+        );
+    }
+
+    const sello = digestOf(baseline);
+    if (sello !== expectedDigest) {
+        problems.push(
+            `el sello del censo es ${sello} y el script espera ${expectedDigest}: el censo se ` +
+                `editó sin regenerarlo desde un build (\`--update-baseline\`)`,
+        );
+    }
+    return problems;
+}
+
+/**
+ * Los nueve candados juntos, sobre el sitio entero. `problems` vacío = todo en
+ * verde. Cada problema de página va prefijado con su ruta para que la salida se
+ * pueda diagnosticar sin volver a medir.
+ */
+export function verdictSite(site, baseline, options = {}) {
+    const problems = [...auditBaseline(baseline, options)];
+    const porPagina = [];
+    for (const pagina of site.paginas) {
+        const slice = pageBaseline(baseline, pagina.ruta);
+        if (!slice) {
+            problems.push(
+                `el build emite ${pagina.ruta} y el censo no la declara: página nueva sin revisar`,
+            );
+            continue;
+        }
+        const resultado = verdict(pagina.analysis, slice, slice.chunks.length);
+        porPagina.push({ ruta: pagina.ruta, ...resultado });
+        for (const problem of resultado.problems) {
+            problems.push(`[${pagina.ruta}] ${problem}`);
+        }
+    }
+    for (const ruta of (baseline?.paginas ?? []).map((entry) => entry.ruta)) {
+        if (!site.rutas.includes(ruta)) {
+            problems.push(
+                `el censo declara la página ${ruta} y el build ya no la emite: el censo de ` +
+                    `páginas encogió sin revisarse`,
+            );
+        }
+    }
+    /*
+     * CANDADO ENTRE PÁGINAS. Dos ficheros de chunk distintos con la misma
+     * composición son una copia íntegra aunque NINGUNA página los pida a la vez
+     * — y ése es justo el caso que un censo de una sola página no puede ver. La
+     * cáscara del sitio vivía ahí: un chunk que pedían las ocho páginas y una
+     * copia suya que solo pedían las dos portadas.
+     */
+    const twins = site.union.twins ?? [];
+    const twinBytes = twins.reduce(
+        (acc, twin) => acc + twin.wastedBrotliBytes,
+        0,
+    );
+    if (
+        twinBytes > DECLARED_TWIN_BROTLI_BYTES ||
+        twins.length > DECLARED_TWIN_GROUPS
+    ) {
+        for (const twin of twins) {
+            problems.push(
+                `[unión] los chunks ${twin.names.join(" y ")} tienen la MISMA composición ` +
+                    `(${twin.fingerprint}, ${twin.modules} módulos): ` +
+                    `${twin.wastedBrotliBytes.toLocaleString("es-ES")} B brotli redundantes entre las ` +
+                    `páginas del build`,
+            );
+        }
+        problems.push(
+            `[unión] la duplicación de chunks ÍNTEGROS entre páginas sube a ` +
+                `${twinBytes.toLocaleString("es-ES")} B brotli en ${twins.length} grupo(s), por encima de los ` +
+                `${DECLARED_TWIN_BROTLI_BYTES.toLocaleString("es-ES")} B en ${DECLARED_TWIN_GROUPS} grupo(s) ya declarados`,
+        );
+    }
+    return { problems, porPagina };
+}
+
 /** Línea base versionada, o `null` si todavía no existe. */
 export function readBaseline(file = BASELINE_PATH) {
     if (!existsSync(file)) return null;
     return JSON.parse(readFileSync(file, "utf8"));
 }
 
-/** Serializa el acta de una medición para guardarla como línea base. */
-export function toBaseline(analysis, meta) {
+/**
+ * Serializa el acta de una medición para guardarla como censo.
+ *
+ * La tabla de chunks es la UNIÓN de los ficheros descargados de las ocho
+ * páginas, ordenada por peso descendente y, a igualdad de peso, por firma —
+ * hay dos chunks de 495 B en este build, así que el desempate no es teórico y
+ * sin él el orden (y con él el sello) no sería reproducible. Cada página
+ * apunta a sus filas por índice: es lo que ata la tabla a sus consumidores en
+ * las dos direcciones.
+ */
+export function toCensus(site, meta) {
+    const filas = site.union.chunks
+        .filter((chunk) => !chunk.legacyOnly)
+        .sort(
+            (a, b) =>
+                b.brotli - a.brotli ||
+                a.fingerprint.localeCompare(b.fingerprint) ||
+                a.name.localeCompare(b.name),
+        );
+    const indice = new Map(filas.map((chunk, index) => [chunk.name, index]));
+    const home = site.paginas.find((pagina) => pagina.ruta === HOME_PAGE);
     return {
         medido: meta.medido,
         origen: meta.origen,
         presupuestoBytes: BUDGET_BYTES,
-        totalDescargadoBrotli: analysis.downloadedBytes,
-        polyfillNomoduleBrotli: analysis.legacyBytes,
-        duplicacionCrudaBytes: analysis.duplicateRawBytes,
-        modulosDuplicados: analysis.duplicates.length,
-        chunks: analysis.chunks
-            .filter((chunk) => !chunk.legacyOnly)
-            .map((chunk) => ({
-                firma: chunk.fingerprint,
-                modulos: chunk.modules.length,
-                brotli: chunk.brotli,
-                crudo: chunk.raw,
-                pistas: chunk.hints,
-            }))
-            .sort((a, b) => b.brotli - a.brotli),
+        totalDescargadoBrotli: home ? home.analysis.downloadedBytes : 0,
+        polyfillNomoduleBrotli: home ? home.analysis.legacyBytes : 0,
+        duplicacionCrudaBytes: home ? home.analysis.duplicateRawBytes : 0,
+        modulosDuplicados: home ? home.analysis.duplicates.length : 0,
+        chunks: filas.map((chunk) => ({
+            firma: chunk.fingerprint,
+            modulos: chunk.modules.length,
+            brotli: chunk.brotli,
+            crudo: chunk.raw,
+            pistas: chunk.hints,
+        })),
+        paginas: site.paginas.map((pagina) => {
+            const descargados = pagina.analysis.chunks.filter(
+                (chunk) => !chunk.legacyOnly,
+            );
+            return {
+                ruta: pagina.ruta,
+                chunksDescargados: descargados.length,
+                descargadoBrotli: pagina.analysis.downloadedBytes,
+                polyfillBrotli: pagina.analysis.legacyBytes,
+                refs: descargados
+                    .map((chunk) => indice.get(chunk.name))
+                    .sort((a, b) => a - b),
+            };
+        }),
     };
 }
 
@@ -647,35 +1137,55 @@ if (
     process.argv[1] &&
     path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-    let rawChunks;
+    let site;
     try {
-        rawChunks = readChunks();
+        site = analyzeSite();
     } catch (error) {
         console.error(error.message);
         process.exit(2);
     }
-    const analysis = analyze(rawChunks);
     const es = (bytes) => bytes.toLocaleString("es-ES");
+    const home =
+        site.paginas.find((pagina) => pagina.ruta === HOME_PAGE) ??
+        site.paginas[0];
+    const analysis = home.analysis;
 
     if (process.argv.includes("--update-baseline")) {
-        const baseline = toBaseline(analysis, {
+        const census = toCensus(site, {
             medido: new Date().toISOString().slice(0, 10),
-            origen: "out/index.html",
+            origen: `out/ (${site.rutas.length} páginas)`,
         });
         writeFileSync(
             BASELINE_PATH,
-            `${JSON.stringify(baseline, null, 4)}\n`,
+            `${JSON.stringify(census, null, 4)}\n`,
             "utf8",
         );
         console.log(
-            `Línea base reescrita en ${path.relative(ROOT, BASELINE_PATH)}: ` +
-                `${baseline.chunks.length} chunks, ${es(baseline.totalDescargadoBrotli)} B brotli.`,
+            `Censo reescrito en ${path.relative(ROOT, BASELINE_PATH)}: ` +
+                `${census.chunks.length} chunks en ${census.paginas.length} páginas, ` +
+                `${es(census.totalDescargadoBrotli)} B brotli en ${HOME_PAGE}.`,
         );
+        console.log(
+            "Pega estas tres constantes en scripts/measure-home-js.mjs:",
+        );
+        console.log(
+            `  export const BASELINE_CHUNKS = ${census.chunks.length};`,
+        );
+        console.log(
+            `  export const BASELINE_PAGES = ${census.paginas.length};`,
+        );
+        console.log(`  export const BASELINE_DIGEST = "${digestOf(census)}";`);
         process.exit(0);
     }
 
     const baseline = readBaseline();
-    const { comparison, problems } = verdict(analysis, baseline);
+    const { problems } = verdictSite(site, baseline);
+    const slice = pageBaseline(baseline, home.ruta);
+    const { comparison } = verdict(
+        analysis,
+        slice,
+        slice ? slice.chunks.length : 0,
+    );
     const deltaOf = (row) => {
         if (row.delta === null) return "  NUEVO";
         if (row.delta === 0) return "     ==";
@@ -695,19 +1205,40 @@ if (
     }
 
     console.log("—".repeat(72));
-    if (analysis.twins.length > 0) {
+    console.log(`censo por página (${site.rutas.length} páginas del build):`);
+    for (const pagina of site.paginas) {
+        const declarada = (baseline?.paginas ?? []).find(
+            (entry) => entry.ruta === pagina.ruta,
+        );
+        const delta = declarada
+            ? pagina.analysis.downloadedBytes - declarada.descargadoBrotli
+            : null;
+        const marca =
+            delta === null
+                ? "  NUEVA"
+                : delta === 0
+                  ? "     =="
+                  : `${delta > 0 ? "+" : ""}${delta}`.padStart(7);
         console.log(
-            `chunks GEMELOS (misma composición en la misma página): ${analysis.twins.length} ` +
+            `  ${pagina.ruta.padEnd(22)} ${String(pagina.analysis.chunks.filter((chunk) => !chunk.legacyOnly).length).padStart(2)} chunks · ` +
+                `${es(pagina.analysis.downloadedBytes).padStart(9)} B br · ${marca} Δ`,
+        );
+    }
+
+    console.log("—".repeat(72));
+    if (site.union.twins.length > 0) {
+        console.log(
+            `chunks GEMELOS en la unión de las ${site.rutas.length} páginas: ${site.union.twins.length} ` +
                 `(deuda declarada: ${es(DECLARED_TWIN_BROTLI_BYTES)} B brotli en ${DECLARED_TWIN_GROUPS} grupo(s))`,
         );
-        for (const twin of analysis.twins) {
+        for (const twin of site.union.twins) {
             console.log(
                 `  ${twin.names.join(" = ")} · ${twin.modules} mód · ` +
                     `+${es(twin.wastedBrotliBytes)} B brotli redundantes`,
             );
         }
     } else {
-        console.log("chunks GEMELOS: ninguno");
+        console.log("chunks GEMELOS en la unión: ninguno");
     }
 
     console.log("—".repeat(72));
@@ -733,6 +1264,9 @@ if (
     console.log("—".repeat(72));
     console.log(`chunks referenciados      : ${analysis.chunks.length}`);
     console.log(
+        `chunks distintos del sitio: ${site.union.chunks.length} en ${site.rutas.length} páginas`,
+    );
+    console.log(
         `polyfill nomodule         : ${es(analysis.legacyBytes)} B (no lo descarga ningún navegador moderno)`,
     );
     console.log(
@@ -747,6 +1281,7 @@ if (
             `línea base (${baseline.medido})  : ${es(baseline.totalDescargadoBrotli)} B brotli · ` +
                 `delta total ${comparison.totalDelta > 0 ? "+" : ""}${es(comparison.totalDelta)} B`,
         );
+        console.log(`sello del censo           : ${digestOf(baseline)}`);
         if (comparison.missing.length > 0) {
             console.log(
                 `chunks de la línea base que ya no aparecen: ${comparison.missing.length} ` +
@@ -766,7 +1301,7 @@ if (
             : `presupuesto: NO CUMPLE — ${es(delta)} B por encima`,
     );
     if (problems.length === 0) {
-        console.log("VEREDICTO: los seis candados en verde.");
+        console.log("VEREDICTO: los nueve candados en verde.");
     } else {
         console.log("VEREDICTO: FALLA —");
         for (const problem of problems) console.log(`  · ${problem}`);
