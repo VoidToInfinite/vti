@@ -179,8 +179,11 @@ const CONTACT_COPY_MAX = "440px";
 const ScContact = styled.section<{ $fullBleed: boolean }>`
   /* WCAG 2.1 SC 1.4.4 (critica externa #13), mismo criterio y mismo motivo que
      ScStory: overflow-wrap se hereda, asi que una declaracion en la raiz de la
-     seccion cubre su texto entero en las dos ramas. */
-  overflow-wrap: break-word;
+     seccion cubre su texto entero en las dos ramas.
+
+     El valor pasa de break-word a anywhere en la critica #19, por el mismo
+     motivo y con la misma medicion que documenta ScStory. */
+  overflow-wrap: anywhere;
 
   ${({ $fullBleed, theme }) =>
     $fullBleed

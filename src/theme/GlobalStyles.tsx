@@ -3,6 +3,50 @@ import { grid } from "./tokens/grid";
 import { semanticDark } from "./tokens/semantic";
 import { space } from "./tokens/space";
 
+/*
+ * `overflow-wrap: anywhere` EN `body`: ninguna palabra puede empujar su caja
+ * fuera del viewport (critica externa #19, 2026-09-04, WCAG 1.4.4 Resize text).
+ *
+ * Este docblock vive FUERA del template a proposito, y no es una manía de
+ * formato: el texto que se escribe DENTRO de un template de styled-components
+ * es CSS, viaja al bundle y se paga en el presupuesto de JavaScript que vigila
+ * `scripts/measure-home-js.mjs`. La primera version de este arreglo lo escribio
+ * dentro y ese candado cayo en rojo por 1.010 B de mas sobre un limite de 1.000.
+ *
+ * QUE PASABA. Con la preferencia de tamano de texto del usuario al 200 % (raiz
+ * del documento a 32px, emulada con `Page.setFontSizes`, que es la palanca real
+ * de esa preferencia) las longitudes en `rem` crecen y el viewport se queda
+ * donde estaba. Toda caja que se dimensione por su contenido --un item flex con
+ * `min-width: auto`, una pista de rejilla `auto` o `1fr`-- se enrasa entonces al
+ * `min-content` de lo que contiene, y el `min-content` de un parrafo es su
+ * palabra mas larga. Medido en Chrome real sobre el build de produccion a 320 px
+ * de ancho: el kicker de Story pedia 314,47 px en una caja de 224 y se salia
+ * 42,47 px; las tarjetas de Features en ingles se salian 72,50 px, arrastrando
+ * titulo, cuerpo, vinetas y su enlace; a 768 px la fila de destinos de la barra
+ * se salia 24,13 px con su disparador «Mas» dentro.
+ *
+ * POR QUE ESOS PIXELES SON CONTENIDO PERDIDO Y NO CONTENIDO DESPLAZABLE: `html`
+ * y `body` declaran `overflow-x: clip` --deliberado, por el pin de los decks--,
+ * asi que `scrollWidth` no se mueve y no hay gesto ni tecla que alcance lo que
+ * sobresale.
+ *
+ * POR QUE `anywhere` Y NO `break-word`, que es la forma que este mismo fichero
+ * usa para el contenido editable: solo `anywhere` entra tambien en el calculo
+ * del `min-content` de la caja. `break-word` parte la linea pero deja el
+ * `min-content` en la palabra entera, asi que la caja seguiria inflandose
+ * exactamente igual -- que es el defecto, no el sintoma.
+ *
+ * POR QUE EN GLOBAL Y NO SECCION A SECCION: es una propiedad heredada y el
+ * defecto es de clase, no de pieza. Las rejillas que ademas declaraban su pista
+ * sin minimo cero se corrigen aparte, en su fichero (`Footer`, el deck de
+ * Journey, la rejilla de Features): esta regla y aquellas son las dos mitades
+ * del mismo arreglo, y ninguna sirve sola.
+ *
+ * NO CAMBIA NADA MIENTRAS EL TEXTO QUEPA: una palabra solo se parte cuando la
+ * alternativa es salirse. Medido antes y despues con la raiz por defecto a 320,
+ * 390 y 768 px en los dos temas: las mismas capas de arte a sangre en las dos
+ * corridas y ni un pixel de diferencia en el resto.
+ */
 export const GlobalStyles = createGlobalStyle`
   /*
    * Ángulo del borde cónico animado de las tarjetas de Features en hover
@@ -221,6 +265,9 @@ export const GlobalStyles = createGlobalStyle`
     font-family: ${({ theme }) => theme.data.type.fontBody};
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
+    /* WCAG 1.4.4, critica externa #19: el porque completo, con las medidas,
+       en el docblock que precede a este createGlobalStyle. */
+    overflow-wrap: anywhere;
   }
 
   /* La mitad que hace el trabajo: sin esto el body seria alto pero el pie

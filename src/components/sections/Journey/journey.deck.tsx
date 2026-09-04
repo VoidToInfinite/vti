@@ -179,6 +179,24 @@ export const ScJourneySceneWrap = styled.div`
  * el stage. z-index: 1 lo sube por encima de ScJourneySceneWrap (que no
  * declara ninguno, asi que participa del orden normal del documento) sin
  * necesitar tocar la escena.
+ *
+ * LA PISTA SE DECLARA, Y CON MINIMO CERO (critica externa #19, 2026-09-04,
+ * WCAG 1.4.4). Sin `grid-template-columns` la unica columna es implicita y
+ * `auto`, cuyo minimo automatico es el `min-content` de lo que contiene -- y con
+ * la preferencia de tamano de texto del usuario al 200 % ese minimo deja de
+ * caber. Medido en Chrome real sobre el build de produccion, raiz a 32px con
+ * `Page.setFontSizes` y viewport de 320 px: la caja de contenido de este deck
+ * mide 144 px (320 menos sus dos railes, escritos en `rem` y por tanto tambien
+ * escalados) y la pista salia de 279,39 px, asi que la diapositiva entera
+ * --titulo, cuerpo, los seis pasos y la cita-- se salia 23,39 px por la derecha.
+ * Y salirse aqui es perderse: `GlobalStyles` declara
+ * `html, body { overflow-x: clip }`, de modo que `scrollWidth` no se mueve y
+ * esos pixeles no se alcanzan con ningun gesto ni tecla.
+ *
+ * `minmax(0, 1fr)` deja que la pista baje del contenido; la division la resuelve
+ * el `overflow-wrap` que la seccion ya declara. La diapositiva
+ * (`ScJourneySlide`) sigue con `width: 100%`, asi que ocupa la pista entera pese
+ * al `place-items: center`.
  */
 export const ScJourneyDeck = styled.div`
   position: relative;
@@ -188,6 +206,8 @@ export const ScJourneyDeck = styled.div`
   max-width: ${JOURNEY_CONTENT_MAX_WIDTH};
   margin-inline: auto;
   display: grid;
+  /* Pista con minimo cero (WCAG 1.4.4, critica #19): ver el docblock. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding-inline: ${({ theme }) => theme.data.space[6]};
 

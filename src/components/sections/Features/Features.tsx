@@ -259,8 +259,11 @@ const ScFeatures = styled.section<{ $fullBleed: boolean }>`
      seccion cubre su texto entero en las dos ramas. Aqui es el arreglo COMPLETO
      y no un refuerzo: las pistas de esta seccion ya estaban acotadas con
      minmax(0, 1fr), y aun asi el h2 medía 320px de linea dentro de una caja de
-     294px a raiz 32px -- una palabra sola mas ancha que su caja. */
-  overflow-wrap: break-word;
+     294px a raiz 32px -- una palabra sola mas ancha que su caja.
+
+     El valor pasa de break-word a anywhere en la critica #19, por el mismo
+     motivo y con la misma medicion que documenta ScStory. */
+  overflow-wrap: anywhere;
 
   ${({ $fullBleed, theme }) =>
     $fullBleed
@@ -564,13 +567,28 @@ const ScRevealGroup = styled.div`
  * Por debajo de lg la sección seguía -- y sigue -- apilando las tres
  * tarjetas en una sola columna (antes por colapso natural de auto-fit al
  * quedarse sin ancho para una segunda columna de 17.5rem; ahora de forma
- * EXPLÍCITA con grid-template-columns: 1fr como base, antes del @media).
+ * EXPLÍCITA con grid-template-columns como base, antes del @media).
  * Verificado a ojo en navegador real, los dos temas y en móvil (informe de
  * la tarea, capturas t22-*).
+ *
+ * ESA PISTA BASE PASA DE `1fr` A `minmax(0, 1fr)` (critica externa #19,
+ * 2026-09-04, WCAG 1.4.4). Mismo defecto, misma cita y mismo arreglo que
+ * `ScGrid` en `Story.tsx`, que ya lo cerro en la critica #13 -- esta rejilla se
+ * quedo atras porque nadie habia medido la home a 200 % de tamano de texto.
+ * `1fr` es `minmax(auto, 1fr)`, y ese `auto` es el `min-content` de la tarjeta:
+ * medido en Chrome real sobre el build de produccion a 320 px de ancho con la
+ * raiz a 32px, la pista salia de 344,50 px dentro de una caja de 224 y la
+ * tarjeta entera --titulo, cuerpo, vinetas y enlace-- se salia 72,50 px en la
+ * rama inglesa. Con `html, body { overflow-x: clip }` declarado en
+ * `GlobalStyles`, ese sobrante no se recupera con scroll: es texto perdido. El
+ * `0` solo cambia el MINIMO de la pista; el `1fr` sigue repartiendo igual, asi
+ * que con la raiz por defecto la geometria no cambia (el bloque `lg` de mas
+ * abajo ya lo declaraba bien desde el principio).
  */
 const ScGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr), NO 1fr (WCAG 1.4.4, critica #19): ver el docblock. */
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[5]};
   align-items: stretch;
   width: 100%;
@@ -861,6 +879,10 @@ const ScImageCircle = styled.span<{ $key: FeatureKey }>`
   position: absolute;
   width: ${FEATURES_IMAGE_CIRCLE_SIZE};
   height: ${FEATURES_IMAGE_CIRCLE_SIZE};
+  /* Tope contra la caja que lo aloja (critica #19): su medida esta en rem y
+     dobla con la preferencia de tamano de texto mientras el panel no -- medido:
+     18 px fuera del viewport a 320 px con la raiz a 32px. */
+  max-width: 100%;
   bottom: ${FEATURES_IMAGE_CIRCLE_OFFSET};
   border-radius: ${({ theme }) => theme.data.radius.full};
   background: ${({ theme, $key }) =>

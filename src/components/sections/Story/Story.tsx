@@ -351,16 +351,33 @@ function storyStatementFontSize(): string {
  * stage escalandose durante la apertura/cierre de la presentacion, el borde
  * que asoma detras tiene que ser el mismo `secondary[1100]` del encargo
  * (D8), no lo que hubiera detras por casualidad.
+ *
+ * EL `overflow-wrap` DE ABAJO PASA DE `break-word` A `anywhere` (critica externa
+ * #19, 2026-09-04), y la diferencia no es de matiz: `break-word` parte la LINEA
+ * pero deja el `min-content` de la caja en la palabra entera, asi que cualquier
+ * caja que se dimensione por su contenido --un item flex con `min-width: auto`,
+ * una pista `auto`-- sigue inflandose hasta esa palabra y saliendose. Medido en
+ * Chrome real sobre el build de produccion a 320 px con la raiz a 32px: el
+ * kicker de esta misma seccion, que es un contenedor flex y por tanto se
+ * dimensiona asi, pedia 314,47 px en una caja de 224 y se salia 42,47 px con
+ * `break-word` puesto y heredado. Con `anywhere` el `min-content` baja y la caja
+ * encoge. Es la misma correccion, y por el mismo motivo, que ya llevaban `ScDd`
+ * y `ScTableWrap` en `legalPage.parts.tsx`; las otras cuatro secciones de la
+ * home la reciben en el mismo commit.
  */
 const ScStory = styled.section<{ $fullBleed: boolean }>`
-  /* WCAG 2.1 SC 1.4.4 (critica externa #13). overflow-wrap SE HEREDA, asi que
-     una sola declaracion en la raiz de la seccion cubre las dos ramas de tema
-     y todo su texto. break-word solo parte una palabra cuando NO cabe entera
-     en su propia linea -- a tamano normal no cambia ni un salto de linea --,
-     y es lo unico que evita que un termino largo (una URL, un compuesto de
-     marca) siga saliendose de su caja despues de acotar las pistas del grid:
-     acotar la caja sin permitir la rotura mueve el recorte, no lo quita. */
-  overflow-wrap: break-word;
+  /* WCAG 2.1 SC 1.4.4 (critica externa #13, corregida en la #19). overflow-wrap
+     SE HEREDA, asi que una sola declaracion en la raiz de la seccion cubre las
+     dos ramas de tema y todo su texto. Solo parte una palabra cuando NO cabe
+     entera en su propia linea -- a tamano normal no cambia ni un salto de
+     linea --, y es lo unico que evita que un termino largo (una URL, un
+     compuesto de marca) siga saliendose de su caja despues de acotar las
+     pistas del grid: acotar la caja sin permitir la rotura mueve el recorte,
+     no lo quita.
+
+     El valor pasa de break-word a anywhere en la critica externa #19: ver el
+     docblock de esta seccion para la medicion. */
+  overflow-wrap: anywhere;
 
   /* La rama CLARA ya no declara nada aqui, y no es que se haya quedado vacia
      por descuido: su caja acotada (relleno, tope de ancho y centrado) vive

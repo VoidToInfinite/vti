@@ -205,7 +205,12 @@ describe("About: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", 
       .join("\n");
   }
 
-  it("ScAbout declara su pista (minmax(0, 1fr)) y overflow-wrap: break-word", () => {
+  /* El valor sube de `break-word` a `anywhere` en la critica externa #19
+     (2026-09-04) y el candado sube con el: `break-word` queda prohibido aqui
+     porque es la forma que dejaba vivo el defecto -- parte la linea sin tocar el
+     `min-content`, asi que la caja sigue inflandose. Ver el docblock de
+     `ScStory` (`Story.tsx`) para la medicion. */
+  it("ScAbout declara su pista (minmax(0, 1fr)) y overflow-wrap: anywhere", () => {
     renderWithProviders(<About />);
     const section = document.getElementById("about") as HTMLElement;
     const css = cssRuleTextFor(section);
@@ -216,6 +221,7 @@ describe("About: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", 
     expect(base).toMatch(
       /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
     );
-    expect(base).toMatch(/overflow-wrap:\s*break-word/);
+    expect(base).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(base).not.toMatch(/overflow-wrap:\s*break-word/);
   });
 });

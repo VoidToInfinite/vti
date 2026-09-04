@@ -2979,12 +2979,25 @@ describe("Story: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", 
       .find((line) => !line.includes("@media") && line.includes(prop));
   }
 
-  it("ScStory declara overflow-wrap: break-word, que se hereda a todo el texto de las dos ramas", () => {
+  /*
+   * EL VALOR SUBE DE `break-word` A `anywhere` (critica externa #19,
+   * 2026-09-04), y el candado sube con el en vez de aflojarse: `break-word` se
+   * prohibe explicitamente aqui porque es EXACTAMENTE la forma que dejaba vivo
+   * el defecto -- parte la linea pero no toca el `min-content`, asi que toda
+   * caja que se dimensione por su contenido (el kicker de esta seccion es un
+   * contenedor flex y lo hace) sigue inflandose hasta la palabra entera y
+   * saliendose. Medido: 314,47 px pedidos en una caja de 224 a 320 px de ancho
+   * con la raiz a 32px, con `break-word` puesto y heredado.
+   */
+  it("ScStory declara overflow-wrap: anywhere, que se hereda a todo el texto de las dos ramas", () => {
     renderWithProviders(<Story />);
     const section = document.getElementById("story") as HTMLElement;
-    expect(declaracionBase(section, "overflow-wrap")).toMatch(
-      /overflow-wrap:\s*break-word/,
-    );
+    const declaracion = declaracionBase(section, "overflow-wrap");
+    expect(declaracion).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(
+      declaracion,
+      "break-word no basta: no entra en el calculo del min-content y deja la caja inflada",
+    ).not.toMatch(/overflow-wrap:\s*break-word/);
   });
 
   it("ScGrid acota el minimo de su pista con minmax(0, 1fr) y no deja ningun 1fr suelto", () => {

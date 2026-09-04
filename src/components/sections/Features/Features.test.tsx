@@ -549,7 +549,17 @@ describe("Task 22: rejilla bento de la rama clara (rompe la gramatica auto-fit+m
     );
   });
 
-  it("por debajo de lg sigue apilando las tres tarjetas en una sola columna (grid-template-columns: 1fr fuera de cualquier @media)", () => {
+  /*
+   * LA PISTA BASE PASA DE `1fr` A `minmax(0, 1fr)` (critica externa #19,
+   * 2026-09-04) y este candado cambia con ella, sin aflojarse: sigue exigiendo
+   * UNA sola columna fuera de cualquier `@media` --que es lo que este caso
+   * existe para proteger-- y ademas que su minimo sea CERO, que es lo que
+   * faltaba. `1fr` a secas queda prohibido aqui: es `minmax(auto, 1fr)`, y ese
+   * `auto` vale el `min-content` de la tarjeta, asi que con el texto al 200 % la
+   * pista crecia por encima de su contenedor (medido: 344,50 px de pista en una
+   * caja de 224 a 320 px de ancho, con la tarjeta entera 72,50 px fuera).
+   */
+  it("por debajo de lg sigue apilando las tres tarjetas en una sola columna, y esa pista tiene minimo cero", () => {
     const { container } = renderWithProviders(<Features />);
     const css = cssRuleTextFor(scGridOf(container));
     const baseRule = css
@@ -558,7 +568,13 @@ describe("Task 22: rejilla bento de la rama clara (rompe la gramatica auto-fit+m
         (line) =>
           !line.includes("@media") && line.includes("grid-template-columns"),
       );
-    expect(baseRule).toMatch(/grid-template-columns:\s*1fr/);
+    expect(baseRule).toMatch(
+      /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
+    );
+    expect(
+      baseRule,
+      "1fr a secas es minmax(auto, 1fr): la pista no baja del min-content y se sale al 200 % de tamano de texto",
+    ).not.toMatch(/grid-template-columns:\s*1fr\s*;/);
   });
 });
 
@@ -2086,7 +2102,13 @@ describe("Features: critica externa #12 (T2)", () => {
  * break-word` es aqui el arreglo COMPLETO, no un refuerzo.
  */
 describe("Features: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", () => {
-  it("ScFeatures declara overflow-wrap: break-word, que se hereda a todo su texto", () => {
+  /* El valor sube de `break-word` a `anywhere` en la critica externa #19
+     (2026-09-04) y el candado sube con el: `break-word` queda prohibido aqui
+     porque es la forma que dejaba vivo el defecto -- parte la linea sin tocar el
+     `min-content`, asi que la caja sigue inflandose. Medido en esta misma
+     seccion: la tarjeta entera se salia 72,50 px a 320 px en la rama inglesa con
+     `break-word` puesto. */
+  it("ScFeatures declara overflow-wrap: anywhere, que se hereda a todo su texto", () => {
     renderWithProviders(<Features />);
     const section = document.getElementById("features") as HTMLElement;
     const base = cssRuleTextFor(section)
@@ -2095,7 +2117,8 @@ describe("Features: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)
         (line) => !line.includes("@media") && line.includes("overflow-wrap"),
       );
 
-    expect(base).toMatch(/overflow-wrap:\s*break-word/);
+    expect(base).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(base).not.toMatch(/overflow-wrap:\s*break-word/);
   });
 });
 

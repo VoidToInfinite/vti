@@ -78,8 +78,11 @@ const ScAbout = styled.section`
   justify-items: center;
   /* overflow-wrap se hereda: una declaracion aqui cubre el h2 y los tres
      parrafos. Sin ella, acotar la pista solo mueve el recorte -- el termino de
-     marca del titulo sigue siendo mas ancho que su caja al 200%. */
-  overflow-wrap: break-word;
+     marca del titulo sigue siendo mas ancho que su caja al 200%.
+
+     El valor pasa de break-word a anywhere en la critica #19, por el mismo
+     motivo y con la misma medicion que documenta ScStory. */
+  overflow-wrap: anywhere;
   background-color: ${({ theme }) => theme.data.semantic.surface};
   padding: ${({ theme }) => theme.data.space[9]}
     ${({ theme }) => theme.data.space[5]};

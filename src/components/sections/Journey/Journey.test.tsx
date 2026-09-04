@@ -2097,12 +2097,17 @@ describe("Journey: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)"
       .find((line) => !line.includes("@media") && line.includes(prop));
   }
 
-  it("ScJourney declara overflow-wrap: break-word, que se hereda a todo su texto", () => {
+  /* El valor sube de `break-word` a `anywhere` en la critica externa #19
+     (2026-09-04) y el candado sube con el: `break-word` queda prohibido aqui
+     porque es la forma que dejaba vivo el defecto -- parte la linea sin tocar el
+     `min-content`, asi que la caja sigue inflandose. Ver el docblock de
+     `ScStory` (`Story.tsx`) para la medicion. */
+  it("ScJourney declara overflow-wrap: anywhere, que se hereda a todo su texto", () => {
     renderWithProviders(<Journey />);
     const section = document.getElementById("journey") as HTMLElement;
-    expect(declaracionBase(section, "overflow-wrap")).toMatch(
-      /overflow-wrap:\s*break-word/,
-    );
+    const declaracion = declaracionBase(section, "overflow-wrap");
+    expect(declaracion).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(declaracion).not.toMatch(/overflow-wrap:\s*break-word/);
   });
 
   /*
