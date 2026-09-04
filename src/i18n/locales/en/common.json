@@ -53,8 +53,10 @@
             "legalNotice": "Legal Notice"
         },
         "ThemeToggle": {
-            "switchToLight": "Dark theme active: switch to light theme",
-            "switchToDark": "Light theme active: switch to dark theme"
+            "switchToLight": "Dark theme active: switch to light theme, which recomposes the whole page with the sections as cards and a shorter read",
+            "switchToDark": "Light theme active: switch to dark theme, which recomposes the whole page with the sections as slides and a longer read",
+            "stateLight": "Light theme",
+            "stateDark": "Dark theme"
         },
         "SkipLink": {
             "label": "Skip to content"

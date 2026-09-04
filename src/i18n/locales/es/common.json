@@ -53,8 +53,10 @@
             "legalNotice": "Aviso legal"
         },
         "ThemeToggle": {
-            "switchToLight": "Tema oscuro activo: cambiar a tema claro",
-            "switchToDark": "Tema claro activo: cambiar a tema oscuro"
+            "switchToLight": "Tema oscuro activo: cambiar a tema claro, que recompone la página entera con las secciones en tarjetas y un recorrido más corto",
+            "switchToDark": "Tema claro activo: cambiar a tema oscuro, que recompone la página entera con las secciones en diapositivas y un recorrido más largo",
+            "stateLight": "Tema claro",
+            "stateDark": "Tema oscuro"
         },
         "SkipLink": {
             "label": "Saltar al contenido"

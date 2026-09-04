@@ -3,6 +3,7 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
+import { NAVBAR_LABEL_QUERY } from "@/components/layout/Navbar/navbarContainer";
 import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { useThemeScrollReset } from "@/hooks/useThemeScrollReset";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -40,6 +41,36 @@ import { IconMoon, IconSun } from "./ThemeIcons";
 // "estado" + ": " + "acción" impondría el orden y la puntuación del español
 // a todos los idiomas futuros). El nombre de las claves sigue siendo el de la
 // ACCIÓN, que es lo que el control hace.
+//
+// LA ETIQUETA ANUNCIA LO QUE EL CONTROL HACE DE VERDAD (decisión del dueño,
+// 2026-09-04, tras tres rondas de crítica externa penalizando este punto en
+// Nielsen H4 «consistencia y estándares»). El hallazgo: este botón se
+// presentaba como una preferencia de visualización -- «Tema claro activo:
+// cambiar a tema oscuro» -- y lo que hace es CAMBIAR EL DOCUMENTO. Medido en
+// Chrome real sobre el build de producción a 1440x900, castellano: el alto de
+// la página pasa de 6.432 px en claro a 10.976 px en oscuro (+71 %), Story
+// pasa de rejilla de tarjetas a deck de diapositivas, Journey de recorrido a
+// deck, y la composición se espeja (en claro el arte va a un lado y la copia
+// al otro; en oscuro al revés). Un control que promete color y entrega otra
+// página incumple la expectativa que él mismo crea.
+//
+// LA FORMA ELEGIDA es «nombre accesible + rótulo», no un texto de apoyo
+// aparte, y el motivo es que este control ya tenía media solución escrita: su
+// nombre accesible es una oración de dos mitades (estado, luego acción) desde
+// la crítica #9, así que la consecuencia cabe como tercera mitad de la MISMA
+// oración -- «..., que recompone la página entera con las secciones en
+// diapositivas y un recorrido más largo» -- sin añadir ni una clave, ni una frase
+// compuesta por concatenación, ni un párrafo de advertencia en una fila de
+// 56 px de alto. Esa oración llega por TRES canales a la vez y no solo al
+// lector de pantalla: es el `aria-label`, es el `title` (el globo que ve
+// cualquiera que pase el cursor) y su primera mitad es el rótulo visible que
+// estrena esta misma entrega (`ScThemeToggleLabel`, más abajo).
+//
+// EL TONO ES DE CARACTERÍSTICA, NO DE AVISO, y es parte de la decisión: se
+// describe lo que se gana («otra composición», «en diapositivas»), no se
+// advierte de un peligro. No hay nada que temer -- el cambio es reversible con
+// el mismo botón, y `useThemeScrollReset` ya devuelve al lector a la sección
+// que estaba leyendo (ver su docblock).
 //
 // D6 (2026-08-04): `onClick` ya NO llama a `toggleTheme` directo -- pasa por
 // `useThemeScrollReset`. HISTORIA: hasta Task 17 (plan premium F1-F5,
@@ -135,6 +166,101 @@ const ScThemeToggleSlot = styled.span`
   }
 `;
 
+/**
+ * EL CONMUTADOR DEJA DE SER SOLO UN ICONO EN PANTALLAS ANCHAS (crítica externa
+ * #18, hallazgo O-3).
+ *
+ * EL HALLAZGO: este control era 44x44 de icono puro -- con su `aria-label`
+ * correcto, pero sin una sola palabra en pantalla -- mientras su vecino de la
+ * misma fila, el selector de idioma, lleva sus dos rótulos escritos («ES»,
+ * «EN»). Un icono solo obliga a adivinar o a pasar el cursor por encima, y el
+ * gesto de pasar el cursor no existe en táctil ni para quien navega con
+ * teclado.
+ *
+ * DESDE 75em (1200 px con la raíz por defecto, o sea `xl`) Y NO ANTES, y la
+ * cifra sale de medir, no de elegir: la
+ * fila tiene 446 px de holgura total a partir de 1200 px (donde el contenido
+ * topa en `containerMax` y deja de crecer), 238 px a 992 px y 32 px a 768 px
+ * -- y en la misma entrega la barra gasta 156 px de esa holgura en el quinto
+ * destino de sección desde 992 px (ver `navigation.ts`). El rótulo pide unos
+ * 80 px más: a 1200 px sobran de largo, a 992 px se comerían casi todo lo que
+ * queda tras el quinto enlace, y a 768 px la marca ya se recorta hoy. Por eso
+ * los dos umbrales son distintos -- `lg` para el destino, `xl` para el rótulo
+ * --: cada uno entra donde su propia medición dice que cabe.
+ *
+ * Y LA CONSULTA ES DE CONTENEDOR (`@container`), NO DE VENTANA (`@media`): la
+ * segunda variable de esta cuenta es el tamaño de fuente, y una consulta de
+ * contenedor sí lo tiene en cuenta -- con la raíz del documento al 200 % este
+ * rótulo se retira solo, porque a ese tamaño la fila no tiene sitio para él a
+ * ningún ancho hasta 1440 px (medido; la tabla y el porqué del mecanismo
+ * viven en `Navbar/navbarContainer.ts`, que declara el nombre y los dos
+ * umbrales para que la barra y este componente no puedan divergir).
+ *
+ * `styled(IconButton)` Y `&&`, no una capa suelta: `ScSquare` (`IconButton`)
+ * declara `width`, `padding` y `gap` con especificidad de una clase, así que
+ * una segunda clase encadenada empataría con ella y el resultado dependería
+ * del orden de inyección -- justo lo que el docblock de `ScThemeToggleSlot`
+ * (arriba) evita para el `display`. `&&` duplica la clase propia y sube la
+ * especificidad a (0,2,0), que gana siempre y sin depender de nada. Componer
+ * sobre `IconButton` en vez de re-declarar un botón propio conserva de una
+ * pieza TODO lo que ese primitivo ya decide (el suelo táctil de 44px, el
+ * `aria-busy` que apaga la opacidad, la forma de botón bajo colores forzados)
+ * -- copiarlas aquí sería la clase de duplicación que este repo ya paga en
+ * `ScNavTrigger`, el único botón del sitio escrito a mano, que se quedó sin la
+ * regla de colores forzados hasta la crítica #16.
+ *
+ * `box-shadow: none` en el régimen ancho NO es una pérdida: el anillo inset de
+ * `IconButton` existe porque «un botón de solo icono en ghost es invisible en
+ * reposo» (su propio docblock), y con el rótulo escrito al lado esa premisa ya
+ * no se cumple -- la palabra es la afordancia, igual que en los dos enlaces de
+ * idioma de al lado, que tampoco llevan anillo.
+ */
+const ScThemeToggleButton = styled(IconButton)`
+  @container ${NAVBAR_LABEL_QUERY} {
+    && {
+      width: auto;
+      padding-inline: ${({ theme }) => theme.data.space[3]};
+      gap: ${({ theme }) => theme.data.space[2]};
+      box-shadow: none;
+    }
+  }
+`;
+
+/**
+ * El rótulo visible, que es la PRIMERA MITAD LITERAL del nombre accesible.
+ *
+ * No es una coincidencia ni un adorno: `Common.ThemeToggle.switchTo*` empieza
+ * por el estado («Tema claro activo: ...») desde la crítica #9, y este rótulo
+ * es exactamente ese estado (`Common.ThemeToggle.stateLight`/`stateDark`). Así
+ * el texto que se lee en pantalla está contenido en el nombre que anuncia un
+ * lector de pantalla -- WCAG 2.5.3, Label in Name, que un rótulo con otras
+ * palabras habría roto -- y, sobre todo, el rótulo dice lo MISMO que el icono:
+ * los dos nombran el tema ACTIVO, que es la convención declarada de este
+ * control desde 2026-07-26. Un rótulo con el tema DESTINO habría reabierto la
+ * contradicción entre canales que la crítica #9 cerró.
+ *
+ * `display: none` en la regla base y encendido con `min-width`, mobile-first:
+ * bajo `xl` el botón vuelve a ser el cuadrado de 44px de siempre, y el rótulo
+ * no ocupa ni una caja. El texto sigue en el DOM en los dos regímenes -- no
+ * hay dos árboles distintos entre el HTML horneado y el cliente, que bajo
+ * `output: "export"` es la única forma segura de resolver un cambio por ancho.
+ *
+ * Cuerpo y peso propios (`bodySm`/500) y no los del botón: `Button` pinta sus
+ * rótulos a `body`/600 -- el peso de una llamada a la acción -- y `ScSquare`
+ * además sube el `font-size` a 20px para dimensionar el glifo, que es lo que
+ * este `span` heredaría sin declarar nada. Los valores son los de
+ * `ScNavLink`/`ScNavTrigger`, los vecinos de esta misma fila.
+ */
+const ScThemeToggleLabel = styled.span`
+  display: none;
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  font-weight: 500;
+
+  @container ${NAVBAR_LABEL_QUERY} {
+    display: inline;
+  }
+`;
+
 export function ThemeToggle(): ReactElement {
   const { t } = useTranslation("common");
   const { themeName } = useTheme();
@@ -143,11 +269,31 @@ export function ThemeToggle(): ReactElement {
   const label = isLight
     ? t("Common.ThemeToggle.switchToDark")
     : t("Common.ThemeToggle.switchToLight");
+  const state = isLight
+    ? t("Common.ThemeToggle.stateLight")
+    : t("Common.ThemeToggle.stateDark");
 
   return (
     <ScThemeToggleSlot data-theme-toggle>
-      <IconButton
-        icon={isLight ? <IconSun /> : <IconMoon />}
+      <ScThemeToggleButton
+        /* `icon` es el hueco de CONTENIDO del botón (`IconButton` lo pinta
+           como sus children, sin envolverlo en nada), y aquí recibe el glifo
+           MÁS su rótulo. El nombre de la prop se queda corto desde esta
+           entrega: describe lo único que se le pasaba hasta hoy, no lo que
+           acepta. Retiparla (`content`, o una prop `label` propia) es trabajo
+           dentro de `src/components/ui/IconButton`, que esta entrega no toca;
+           queda anotado como pendiente. Pasar el rótulo por aquí y no como un
+           `<span>` hermano del botón es lo que lo hace parte del control: un
+           texto fuera del `<button>` no sería zona de clic ni contaría como
+           su etiqueta visible para WCAG 2.5.3. */
+        icon={
+          <>
+            {isLight ? <IconSun /> : <IconMoon />}
+            <ScThemeToggleLabel data-theme-toggle-label>
+              {state}
+            </ScThemeToggleLabel>
+          </>
+        }
         onClick={requestThemeChange}
         aria-label={label}
         aria-busy={busy || undefined}

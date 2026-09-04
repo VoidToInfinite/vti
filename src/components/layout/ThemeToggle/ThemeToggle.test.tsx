@@ -1,7 +1,9 @@
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HERO_COPY_RETURN_MS } from "@/components/sections/Hero/hero.transition";
+import enCommon from "@/i18n/locales/en/common.json";
 import esCommon from "@/i18n/locales/es/common.json";
+import { NAVBAR_LABEL_EM } from "@/components/layout/Navbar/navbarContainer";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -444,5 +446,151 @@ describe("ThemeToggle", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  /*
+   * EL RÓTULO VISIBLE Y LO QUE ANUNCIA (crítica externa #18, hallazgo O-3, más
+   * la decisión del dueño de rotular este control por lo que de verdad hace).
+   *
+   * Los tres candados de este bloque atrapan tres defectos distintos, y
+   * ninguno de ellos lo ve el ojo en jsdom: (1) que el rótulo visible vuelva a
+   * ser una cadena tecleada en el componente en vez de su clave i18n --
+   * defecto que dejaría el conmutador en castellano dentro de la home inglesa
+   * --; (2) que la copia vuelva a prometer solo un cambio de color, que es la
+   * penalización de H4 que arrastra tres rondas; y (3) que el rótulo se pinte
+   * a cualquier ancho, incluido el que no tiene sitio para él.
+   */
+  describe("rótulo visible (crítica #18, O-3)", () => {
+    /** El `span` del rótulo dentro del botón, por su gancho de DOM. */
+    function rotulo(container: HTMLElement): HTMLElement {
+      const nodo = container.querySelector("[data-theme-toggle-label]");
+      expect(nodo, "el conmutador no pinta ningún rótulo").not.toBeNull();
+      return nodo as HTMLElement;
+    }
+
+    /* Los dos temas se fijan por `localStorage` y no pulsando el botón (el
+       patrón que ya usan los dos primeros tests del archivo): así este candado
+       mide SOLO el rótulo, sin arrastrar el stub de `matchMedia` que
+       `requestThemeChange` necesita. */
+    it.each([
+      ["light", esCommon.Common.ThemeToggle.stateLight],
+      ["dark", esCommon.Common.ThemeToggle.stateDark],
+    ] as const)(
+      "en tema %s el rótulo sale de su clave i18n y nombra el tema ACTIVO, igual que el icono",
+      (tema, esperado) => {
+        window.localStorage.setItem("vti-theme", tema);
+        const { container } = renderWithProviders(<ThemeToggle />);
+
+        /* Resuelto contra el MISMO JSON que consume el componente, nunca
+           contra un literal escrito aquí: si alguien cambia la clave por otra
+           (o por una cadena tecleada), el texto deja de coincidir. */
+        expect(rotulo(container)).toHaveTextContent(esperado);
+      },
+    );
+
+    it("el rótulo visible ES la primera mitad del nombre accesible (WCAG 2.5.3) y este anuncia que la página cambia, en los dos idiomas", () => {
+      /* CENTINELA, no prosa: la palabra que distingue «esto cambia el color»
+         de «esto recompone el documento». No se compara la oración entera --
+         la copia puede reescribirse -- sino la propiedad que la decisión del
+         dueño exige que se conserve: que hable de la PÁGINA. */
+      const HABLA_DE_LA_PAGINA: Record<string, string> = {
+        es: "página",
+        en: "page",
+      };
+
+      for (const [idioma, copia] of [
+        ["es", esCommon],
+        ["en", enCommon],
+      ] as const) {
+        const pares = [
+          [
+            copia.Common.ThemeToggle.stateLight,
+            copia.Common.ThemeToggle.switchToDark,
+          ],
+          [
+            copia.Common.ThemeToggle.stateDark,
+            copia.Common.ThemeToggle.switchToLight,
+          ],
+        ];
+
+        for (const [estado, anuncio] of pares) {
+          expect(
+            anuncio.startsWith(estado),
+            `${idioma}: el nombre accesible no empieza por el rótulo visible (${estado}), así que quien lo lee en pantalla y quien lo oye reciben nombres distintos`,
+          ).toBe(true);
+          expect(
+            anuncio.toLowerCase(),
+            `${idioma}: el conmutador vuelve a prometer solo un cambio de tema sin decir que recompone el documento`,
+          ).toContain(HABLA_DE_LA_PAGINA[idioma]);
+        }
+      }
+    });
+
+    /*
+     * jsdom no evalúa ninguna consulta condicional (regla 36, que nació con
+     * `@media` y vale igual para `@container`), así que las dos reglas de
+     * ancho se afirman leyendo el CSSOM: la regla BASE del rótulo (oculto) y
+     * la que vive dentro de la consulta de contenedor. La FORMA del selector
+     * se comprueba sobre `selectorText` (regla 35).
+     *
+     * El umbral no se escribe aquí: sale de `NAVBAR_LABEL_EM`, el mismo
+     * módulo que consume el componente, así que moverlo no deja este candado
+     * comprobando un número que ya no existe.
+     */
+    it("el rótulo está oculto en la regla base y solo se enciende dentro de la consulta de contenedor del régimen rotulado", () => {
+      const { container } = renderWithProviders(<ThemeToggle />);
+      const clases = Array.from(rotulo(container).classList);
+
+      const reglasPropias: { rule: CSSStyleRule; media: string | null }[] = [];
+      const walk = (rules: CSSRuleList, media: string | null): void => {
+        Array.from(rules).forEach((rule) => {
+          const anidadas = (rule as CSSGroupingRule).cssRules;
+          if (anidadas) {
+            /* Del `cssText`, no de `media.mediaText`: la regla del rótulo
+               es `@container` (`CSSContainerRule`), que no expone `media`. */
+            walk(anidadas, rule.cssText.split("{")[0].trim() || media);
+            return;
+          }
+          const estilo = rule as CSSStyleRule;
+          if (
+            estilo.selectorText !== undefined &&
+            clases.some((cls) => estilo.selectorText.includes(`.${cls}`))
+          ) {
+            reglasPropias.push({ rule: estilo, media });
+          }
+        });
+      };
+      Array.from(document.styleSheets).forEach((sheet) => {
+        try {
+          walk(sheet.cssRules, null);
+        } catch {
+          /* hoja inaccesible: no aporta */
+        }
+      });
+
+      const base = reglasPropias.filter((entrada) => entrada.media === null);
+      expect(
+        base.length,
+        "el rótulo no declara ninguna regla base propia",
+      ).toBeGreaterThan(0);
+      base.forEach((entrada) => {
+        expect(entrada.rule.selectorText).not.toMatch(/\s/);
+        expect(
+          entrada.rule.style.display,
+          "el rótulo se pinta también en la barra estrecha, donde la medición dice que no cabe",
+        ).toBe("none");
+      });
+
+      const anchas = reglasPropias.filter((entrada) =>
+        (entrada.media ?? "").includes(`min-width: ${NAVBAR_LABEL_EM}em`),
+      );
+      expect(
+        anchas.length,
+        "el rótulo no se enciende en ninguna consulta de contenedor: sería invisible a cualquier ancho",
+      ).toBeGreaterThan(0);
+      anchas.forEach((entrada) => {
+        expect(entrada.rule.style.display).toBe("inline");
+      });
+    });
   });
 });
