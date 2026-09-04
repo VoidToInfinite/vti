@@ -135,9 +135,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
          («Qué es VoidToInfinite») es la misma frase sin la forma
          interrogativa, que es lo que distingue un rótulo de navegación de un
          encabezado -- el resto del grupo también nombra el destino en corto.
-         NO entra en la barra de escritorio: la partición del final del
-         fichero (`NAV_BAR_SECTION_KEYS`) la deja en «Más», con la barra
-         conservando sus cuatro enlaces de siempre. */
+         En la barra de escritorio entra SOLO desde `lg` (992 px), que es donde
+         la medición dice que cabe: la partición del final del fichero
+         (`NAV_BAR_NARROW_SECTION_KEYS` para el régimen estrecho,
+         `navBarWideSectionsFor` para el ancho) la deja en «Más» por debajo de
+         ese ancho, con la barra conservando sus cuatro enlaces de siempre. */
       { key: "about", href: "/#about", kind: "section" },
     ],
   },
@@ -354,13 +356,58 @@ export function navGroupsFor(
  * nunca crecerá.
  *
  * Así que la lista explícita se escribe, pero es la de la BARRA
- * (`NAV_BAR_SECTION_KEYS`), no una copia del grupo: nombra los cuatro
- * destinos que caben en la píldora de escritorio -- una decisión de ESPACIO,
- * que es justo lo que ninguna propiedad del modelo puede derivar -- y todo lo
- * demás se sigue derivando. `about` no aparece en ella y, por tanto, cae en
- * «Más» sin que nadie lo enumere en ningún sitio: quien añada una sexta
- * sección a la home la verá aparecer en «Más» y en el pie sin tocar este
- * bloque, y solo tendrá que venir aquí si decide darle un enlace visible.
+ * (`NAV_BAR_NARROW_SECTION_KEYS`), no una copia del grupo: nombra los cuatro
+ * destinos que caben en la píldora de escritorio -- una decisión de ESPACIO --
+ * y todo lo demás se sigue derivando.
+ *
+ * ## LA PREMISA DE ESPACIO ERA CIERTA A MEDIAS, Y LA MEDIDA LA ACOTA
+ *
+ * Hasta el 2026-09-04 este párrafo añadía que el corte es «una decisión de
+ * ESPACIO, que es justo lo que ninguna propiedad del modelo puede derivar», y
+ * de ahí concluía que `about` se queda en «Más» SIEMPRE. La primera mitad
+ * sigue siendo verdad; la segunda no, y la refuta una medición en Chrome real
+ * sobre el build de producción (2026-09-04, tema claro y oscuro, castellano e
+ * inglés, la cifra no cambia entre temas porque la barra no depende de ellos).
+ *
+ * Lo que se mide es la HOLGURA de la fila: `ScNav` es un flex con
+ * `justify-content: space-between` y tres hijos (marca, bloque de enlaces,
+ * bloque de acciones), así que el hueco libre total es la suma de los dos
+ * huecos, y meter un enlace nuevo consume de los dos a la vez. En píxeles, con
+ * el hueco enlaces->acciones medido a la izquierda y la holgura total (los dos
+ * huecos) a la derecha, en castellano:
+ *
+ *     768 px    16      32     <- la marca YA se recorta aquí hoy (19 px)
+ *     900 px    73     146
+ *     992 px   119     238
+ *     1200 px  223     446     <- y no crece más: el contenido topa en
+ *     1440 px  223     446        `containerMax` (1200 px)
+ *
+ * El quinto destino con su rótulo completo («Qué es VoidToInfinite») mide
+ * 132 px de tinta más el `gap` de 24 px de la fila: 156 px. Es decir, cabe
+ * desde 992 px (238 - 156 = 82 px de sobra, 41 por hueco) y NO cabe a 900
+ * (146 - 156 = 10 px de déficit, que se los come la marca) ni a 768. En
+ * inglés («What is VoidToInfinite», 136 px) las cifras son las mismas con
+ * ~17 px más de holgura.
+ *
+ * Por eso el corte deja de ser «una lista y ya» y pasa a tener DOS regímenes,
+ * que es lo que la medida sostiene:
+ *
+ * - `NAV_BAR_NARROW_SECTION_KEYS` (`md`..`lg`): los cuatro destinos que caben
+ *   en la barra estrecha. Sigue siendo una lista tecleada porque sigue siendo
+ *   una decisión de espacio.
+ * - `navBarWideSectionsFor` (desde `lg`, 992 px): TODO lo demás que el modelo
+ *   declara como sección del grupo partido, DERIVADO. Ninguna clave se teclea
+ *   aquí: quien añada una sexta sección a la home la verá aparecer en la barra
+ *   ancha, en «Más» por debajo de `lg`, en la hoja y en el pie sin tocar este
+ *   bloque.
+ *
+ * Los dos regímenes son EXCLUYENTES y se resuelven en CSS, no en JavaScript
+ * (`Navbar.tsx`: el enlace ancho se oculta bajo `lg`, y el grupo que queda en
+ * «Más» se oculta desde `lg`). Bajo `output: "export"` no hay servidor que
+ * sepa el ancho de la ventana, y medir el viewport en el cliente para decidir
+ * qué se pinta produciría un HTML horneado que no coincide con el primer
+ * render -- exactamente el riesgo de hidratación que el resto de este módulo
+ * evita.
  *
  * `onSite` sigue siendo el ÚNICO grupo con items `kind: "section"` -- los que
  * `useActiveSection` puede marcar como actuales --, así que el corte sigue
@@ -368,8 +415,10 @@ export function navGroupsFor(
  * PROPIO RÓTULO, no suelto: un destino de sección presentado sin el «En el
  * sitio» que lo agrupa perdería la única pista de que lleva a la misma página.
  * `navigation.test.ts` ata que las dos mitades reconstruyan `NAV_GROUPS` sin
- * perder ni repetir nada, y que la lista de la barra sea exactamente esas
- * cuatro claves.
+ * perder ni repetir nada, que la lista estrecha sea exactamente esas cuatro
+ * claves, y que la barra ancha (estrecha + derivada) sea EXACTAMENTE todas las
+ * secciones del grupo -- ese último candado es el que impide volver a dejar
+ * una sección de la home fuera de la barra por olvido.
  *
  * MEMOIZADAS POR IDIOMA, mismo motivo que `navGroupsFor`: `Navbar()` las llama
  * EN CADA RENDER, y la barra se re-renderiza en cada cruce de umbral de scroll
@@ -379,11 +428,17 @@ export function navGroupsFor(
 export const NAV_BAR_GROUP_KEY: NavGroupKey = "onSite";
 
 /**
- * Destinos de `NAV_BAR_GROUP_KEY` que la barra pinta como enlaces VISIBLES,
- * en el orden en que los declara el grupo (esta lista decide QUIÉNES, nunca
- * el orden). El resto del grupo viaja a «Más».
+ * Destinos de `NAV_BAR_GROUP_KEY` que la barra pinta como enlaces VISIBLES EN
+ * TODOS SUS ANCHOS, en el orden en que los declara el grupo (esta lista decide
+ * QUIÉNES, nunca el orden).
+ *
+ * Es la lista del régimen ESTRECHO (`md`..`lg`), la única que sigue siendo una
+ * decisión de espacio tecleada a mano: a 768 px la fila ya recorta el rótulo
+ * de la marca con estos cuatro destinos, así que el quinto no cabe de ninguna
+ * forma (medición completa en el docblock de arriba). Lo que el grupo declare
+ * de más lo recoge `navBarWideSectionsFor`, derivándolo.
  */
-export const NAV_BAR_SECTION_KEYS: readonly string[] = [
+export const NAV_BAR_NARROW_SECTION_KEYS: readonly string[] = [
   "story",
   "journey",
   "features",
@@ -391,9 +446,17 @@ export const NAV_BAR_SECTION_KEYS: readonly string[] = [
 ];
 
 const barSectionsByLocale = new Map<Locale, readonly NavItem[]>();
+const barWideSectionsByLocale = new Map<Locale, readonly NavItem[]>();
 const moreGroupsByLocale = new Map<Locale, readonly NavGroup[]>();
 
-/** Destinos que la barra de escritorio pinta como enlaces VISIBLES. */
+function barGroupItemsFor(locale: Locale): readonly NavItem[] {
+  return (
+    navGroupsFor(locale).find((group) => group.key === NAV_BAR_GROUP_KEY)
+      ?.items ?? []
+  );
+}
+
+/** Destinos que la barra de escritorio pinta como enlaces VISIBLES siempre. */
 export function navBarSectionsFor(
   language: string | undefined,
 ): readonly NavItem[] {
@@ -402,11 +465,37 @@ export function navBarSectionsFor(
   const cached = barSectionsByLocale.get(locale);
   if (cached) return cached;
 
-  const items = (
-    navGroupsFor(locale).find((group) => group.key === NAV_BAR_GROUP_KEY)
-      ?.items ?? []
-  ).filter((item) => NAV_BAR_SECTION_KEYS.includes(item.key));
+  const items = barGroupItemsFor(locale).filter((item) =>
+    NAV_BAR_NARROW_SECTION_KEYS.includes(item.key),
+  );
   barSectionsByLocale.set(locale, items);
+  return items;
+}
+
+/**
+ * Destinos que la barra pinta como enlaces visibles SOLO desde `lg` (992 px),
+ * y que por debajo de ese ancho siguen viviendo tras «Más».
+ *
+ * NO SE TECLEA NINGUNA CLAVE AQUÍ, y esa es toda la diferencia con la lista de
+ * arriba: son las secciones que el grupo partido declara y que la barra
+ * estrecha no puede pintar. `kind === "section"` es la condición del MODELO
+ * (los únicos destinos que `useActiveSection` puede marcar como actuales, ver
+ * el docblock de `NavItemKind`), no una enumeración de la partición de hoy.
+ */
+export function navBarWideSectionsFor(
+  language: string | undefined,
+): readonly NavItem[] {
+  const locale = navLocale(language);
+
+  const cached = barWideSectionsByLocale.get(locale);
+  if (cached) return cached;
+
+  const items = barGroupItemsFor(locale).filter(
+    (item) =>
+      item.kind === "section" &&
+      !NAV_BAR_NARROW_SECTION_KEYS.includes(item.key),
+  );
+  barWideSectionsByLocale.set(locale, items);
   return items;
 }
 
@@ -417,6 +506,14 @@ export function navBarSectionsFor(
  *
  * El grupo partido DESAPARECE si se queda sin items (hoy no ocurre: `about`
  * vive ahí), en vez de emitir un rótulo con una lista vacía debajo.
+ *
+ * DESDE `lg` ESE RESTO SE PINTA EN LA BARRA, así que el grupo partido sobra en
+ * el panel a partir de ese ancho: la lista que devuelve esta función es la del
+ * régimen ESTRECHO, y `Navbar.tsx` retira su grupo por CSS cuando el ancho
+ * enciende la barra ancha (no aquí: esta función no puede saber el ancho de la
+ * ventana bajo `output: "export"`, ver el docblock de la partición). Quien
+ * consuma esto necesita saber QUÉ items son los que se mudan, y esa pregunta
+ * la responde `navBarWideSectionsFor` sobre el mismo modelo.
  */
 export function navBarMoreGroupsFor(
   language: string | undefined,
@@ -429,7 +526,7 @@ export function navBarMoreGroupsFor(
   const groups = navGroupsFor(locale).flatMap((group) => {
     if (group.key !== NAV_BAR_GROUP_KEY) return [group];
     const resto = group.items.filter(
-      (item) => !NAV_BAR_SECTION_KEYS.includes(item.key),
+      (item) => !NAV_BAR_NARROW_SECTION_KEYS.includes(item.key),
     );
     return resto.length > 0 ? [{ key: group.key, items: resto }] : [];
   });

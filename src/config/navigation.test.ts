@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   NAV_BAR_GROUP_KEY,
-  NAV_BAR_SECTION_KEYS,
+  NAV_BAR_NARROW_SECTION_KEYS,
   NAV_GROUPS,
   navBarMoreGroupsFor,
   navBarSectionsFor,
+  navBarWideSectionsFor,
   navGroupsFor,
   navLocale,
   type NavGroupKey,
@@ -367,12 +368,17 @@ describe("la partición de la barra de escritorio (decisión D2)", () => {
    * sección, los únicos que el scrollspy puede marcar --; lo que cambia es que
    * ahora hay una lista explícita de QUIÉNES caben, y este candado la ata a
    * las cuatro claves y a que `about` NO esté entre ellas.
+   *
+   * ACOTADO el 2026-09-04 (crítica externa #18, hallazgo O-4): esta lista es
+   * la del régimen ESTRECHO (`md`..`lg`). Que `about` no esté aquí ya NO
+   * significa que la barra no lo pinte -- desde `lg` sí lo pinta, y de eso se
+   * ocupa el candado siguiente.
    */
-  it("los destinos visibles de la barra son EXACTAMENTE las cuatro claves de NAV_BAR_SECTION_KEYS, y todos son secciones", () => {
+  it("los destinos visibles de la barra ESTRECHA son EXACTAMENTE las cuatro claves de NAV_BAR_NARROW_SECTION_KEYS, y todos son secciones", () => {
     expect(navBarSectionsFor("es").map((item) => item.key)).toEqual(
-      NAV_BAR_SECTION_KEYS,
+      NAV_BAR_NARROW_SECTION_KEYS,
     );
-    expect(NAV_BAR_SECTION_KEYS).toEqual([
+    expect(NAV_BAR_NARROW_SECTION_KEYS).toEqual([
       "story",
       "journey",
       "features",
@@ -394,6 +400,71 @@ describe("la partición de la barra de escritorio (decisión D2)", () => {
         `${item.key} no es una sección: la barra le pintaría un aria-current que el scrollspy nunca puede encender`,
       ).toBe("section");
     }
+  });
+
+  /*
+   * CANDADO DEL QUINTO DESTINO (crítica externa #18, hallazgo O-4).
+   *
+   * EL DEFECTO QUE ATRAPA: que una sección de la home vuelva a quedarse fuera
+   * de la barra de escritorio por olvido. Hasta hoy la presencia en la barra
+   * salía ENTERA de una lista tecleada a mano, así que añadir una sección al
+   * modelo la dejaba invisible en la barra sin que nada avisara -- que es
+   * exactamente lo que le pasó a `about` entre el 2026-09-02 y hoy.
+   *
+   * Lo que se afirma es una IGUALDAD entre dos derivaciones: lo que la barra
+   * ancha pinta (los cuatro fijos más lo que devuelve `navBarWideSectionsFor`)
+   * y lo que el modelo declara como sección del grupo partido. Ninguna de las
+   * dos mitades se escribe a mano en este test, así que la igualdad no se
+   * puede satisfacer tecleando una clave nueva en el sitio equivocado: o la
+   * barra ancha deriva del modelo, o el test se pone rojo.
+   *
+   * Se comprueba en los DOS idiomas: la derivación pasa por `navGroupsFor`,
+   * que reescribe los `href` por idioma, y una regresión ahí dejaría a la rama
+   * inglesa con otra lista.
+   */
+  it("la barra ANCHA pinta todas las secciones del grupo partido, derivadas del modelo y no de una lista tecleada", () => {
+    const seccionesDelModelo = NAV_GROUPS.find(
+      (group) => group.key === NAV_BAR_GROUP_KEY,
+    )!
+      .items.filter((item) => item.kind === "section")
+      .map((item) => item.key);
+
+    for (const idioma of LOCALES) {
+      const enLaBarraAncha = [
+        ...navBarSectionsFor(idioma),
+        ...navBarWideSectionsFor(idioma),
+      ].map((item) => item.key);
+
+      expect(
+        enLaBarraAncha,
+        `la barra ancha de ${idioma} no pinta todas las secciones del modelo: alguna quedó escondida tras «Más» a cualquier ancho`,
+      ).toEqual(seccionesDelModelo);
+    }
+
+    /* Y la mitad derivada es la que NO cabe en la barra estrecha: ni repite
+       ninguno de los cuatro fijos ni se inventa destinos de otro kind. */
+    const anchos = navBarWideSectionsFor("es");
+    expect(anchos.map((item) => item.key)).toEqual(["about"]);
+    for (const item of anchos) {
+      expect(item.kind).toBe("section");
+      expect(NAV_BAR_NARROW_SECTION_KEYS).not.toContain(item.key);
+    }
+  });
+
+  /*
+   * La otra mitad del régimen: lo que la barra ancha pinta es EXACTAMENTE lo
+   * que «Más» deja de necesitar. Si las dos listas se separan, el panel se
+   * queda con un rótulo sobre una lista vacía (o con un destino duplicado a
+   * dos centímetros del que ya se ve en la fila), que es lo que el
+   * `data-wide-only` de `Navbar.tsx` retira por CSS.
+   */
+  it("lo que la barra ancha pinta es exactamente el resto del grupo que vive en «Más»", () => {
+    const grupoEnMas = navBarMoreGroupsFor("es").find(
+      (group) => group.key === NAV_BAR_GROUP_KEY,
+    );
+    expect(grupoEnMas?.items.map((item) => item.key)).toEqual(
+      navBarWideSectionsFor("es").map((item) => item.key),
+    );
   });
 
   /*
