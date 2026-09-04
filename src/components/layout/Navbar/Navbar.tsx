@@ -580,9 +580,62 @@ const ScNav = styled.nav`
   align-items: center;
   justify-content: space-between;
   gap: ${({ theme }) => theme.data.space[4]};
+  /*
+   * LA BANDA ENVUELVE SIEMPRE, NO SOLO SIN JAVASCRIPT (crítica externa #18,
+   * ola O+P: WCAG 1.4.4 a 200 % de tamaño de texto).
+   *
+   * EL DEFECTO, reproducido en Chrome real sobre el build de producción antes
+   * de tocar nada (tema claro, DPR 1, visibilityState "visible", raíz del
+   * documento a 32px -- el 200 % de la preferencia del usuario, el mismo
+   * instrumento del docblock de ScBrandLink): con la fila en nowrap y altura
+   * FIJA, el contenido pedía 1179 px a cualquier ancho, así que entre 992 y
+   * 1152 el bloque de acciones salía del viewport. Medido a 1024: el
+   * conmutador de tema en x 1135..1179, inViewport false, y
+   * elementFromPoint en su centro devolviendo el arte del hero, no el botón.
+   * Sin rescate posible: html/body están en overflow-x clip y
+   * maxScrollLeft = 0, así que el control no se podía ni alcanzar ni
+   * scrollear hasta él. El rótulo de la marca, en la misma medición, estaba
+   * ya a ancho 0 -- el enlace a la home tampoco tenía zona de clic.
+   *
+   * LA CAUSA ERA HEREDADA, igual que la del bloque sin JavaScript de más
+   * abajo: una altura fija más nowrap obligan a que TODO quepa en una fila de
+   * alto constante, y cuando no cabe el sobrante no se pliega, se sale. La
+   * respuesta que el repo ya tenía escrita para el caso sin JavaScript --
+   * envolver, con la banda como SUELO y no como techo-- es la misma que
+   * resuelve éste, así que sube a la regla base en vez de duplicarse en un
+   * segundo guard: una consulta de medio o de contenedor habría necesitado
+   * un umbral, y
+   * ningún umbral separa los dos casos (a 375 px con la raíz a 16 el
+   * contenedor mide 23,4em y NO debe envolver; a 1152 px con la raíz a 32
+   * mide 36em y SÍ). No caber no es un ancho: es exactamente lo que
+   * flex-wrap ya sabe decidir por su cuenta.
+   *
+   * NO CAMBIA NADA DONDE EL CONTENIDO YA CABÍA, y se midió caja por caja
+   * antes de escribirlo: con la raíz a 16px, a 375, 800, 992, 1024, 1152,
+   * 1280, 1440 y 1920 px las cajas de la cabecera salen IDÉNTICAS AL PÍXEL,
+   * subárbol entero incluido. La única banda que cambia es 768-787 px, donde
+   * hoy la fila "cabía" solo porque el nombre del sitio se recortaba
+   * (medido a 768: scrollWidth 119 contra clientWidth 100 del span de la
+   * marca, con overflow hidden -- 19 px del nombre del sitio perdidos); ahí
+   * ahora la banda mide 96 px en dos filas y el nombre se lee entero.
+   *
+   * DESPUÉS, a 200 % y a los mismos anchos: cero desbordamiento
+   * (scrollWidth === clientWidth en los ocho), el conmutador dentro del
+   * viewport y elementFromPoint devolviéndolo en todos, y el rótulo de la
+   * marca de vuelta a 301,72 px desde 0.
+   *
+   * row-gap y no gap: el hueco horizontal entre marca, destinos y controles
+   * sigue siendo el space[4] de arriba; lo que hace falta aquí es separar las
+   * filas cuando de verdad hay más de una.
+   */
+  flex-wrap: wrap;
+  row-gap: ${({ theme }) => theme.data.space[2]};
   /* La misma variable que descuenta el Hero (ver GlobalStyles): si la banda
-     cambia de alto, las dos medidas cambian juntas. */
-  height: var(--nav-height);
+     cambia de alto, las dos medidas cambian juntas. Es un SUELO, no una
+     altura fija: donde el contenido cabe en una fila la banda mide
+     exactamente lo que medía antes, al píxel (medido, ver arriba). */
+  height: auto;
+  min-height: var(--nav-height);
   padding-block: 0;
   padding-right: calc(
     max(
@@ -652,13 +705,19 @@ const ScNav = styled.nav`
    * SIN JAVASCRIPT LA BANDA ENVUELVE (crítica externa #17, P1 del evaluador
    * Nielsen, 2026-09-03). Con los destinos de sección visibles en móvil (ver
    * ScNavLinks) el contenido ya no cabe en una sola fila de 390 px, y una
-   * altura FIJA de var(--nav-height) recortaría justo lo que este arreglo
-   * existe para mostrar.
+   * altura FIJA de var(--nav-height) recortaría justo lo que aquel arreglo
+   * existía para mostrar.
    *
-   * height: auto + min-height conserva la banda de 3,5rem como SUELO: donde el
-   * contenido cabe en una fila --escritorio sin JavaScript, que es el caso que
-   * el evaluador midió como "degradación suave"-- la barra mide exactamente lo
-   * que medía antes, al píxel. Solo crece cuando de verdad hay una fila más.
+   * LAS CUATRO DECLARACIONES DE ESTE BLOQUE SUBIERON A LA REGLA BASE en la
+   * ola O+P, porque el mismo recorte resultó no ser exclusivo del caso sin
+   * JavaScript: a 200 % de tamaño de texto ocurre igual CON JavaScript, y
+   * peor (el conmutador de tema quedaba fuera del viewport, ver el docblock
+   * de arriba). El bloque se queda por dos motivos que no son cosméticos:
+   * documenta el caso que lo descubrió, y sigue siendo el candado de la
+   * crítica #17 -- si alguien retirase la envoltura de la base, este bloque
+   * la conservaría exactamente donde aquel evaluador la midió. Declarar los
+   * MISMOS valores que la base es aquí una redundancia deliberada, no una
+   * divergencia: mismo peso, mismos valores, resultado idéntico.
    *
    * row-gap y no gap: el gap horizontal entre marca, destinos y controles
    * sigue siendo el de space[4] declarado arriba; lo que hace falta aquí es

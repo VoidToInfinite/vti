@@ -4469,3 +4469,136 @@ describe("crítica externa #17: sin JavaScript la cabecera sigue navegando en m�
     ).toBe(true);
   });
 });
+
+/*
+ * CANDADO DE LA FILA QUE NO PUEDE DESBORDAR (crítica externa #18, ola O+P --
+ * WCAG 1.4.4, "Redimensionamiento del texto").
+ *
+ * EL DEFECTO QUE ATRAPA, medido en Chrome real sobre el build de producción
+ * antes de existir este candado (tema claro, DPR 1, visibilityState
+ * "visible", raíz del documento a 32px = 200 % de la preferencia del
+ * usuario): con `ScNav` en `flex-wrap: nowrap` y `height: var(--nav-height)`
+ * la fila pedía 1179 px a cualquier ancho, y entre 992 y 1152 px el bloque de
+ * acciones salía del viewport -- conmutador de tema en x 1135..1179,
+ * `inViewport` false, `elementFromPoint` en su centro devolviendo el arte del
+ * hero. `overflow-x: clip` en html/body y `maxScrollLeft = 0`: ni alcanzable
+ * ni scrolleable. La ola que lo midió no lo arregló ni le puso candado.
+ *
+ * POR QUÉ EL CANDADO VIVE AQUÍ Y NO EN NAVEGADOR: jsdom no hace layout, así
+ * que "el botón se sale del viewport" no es observable bajo Vitest (regla
+ * 36). Lo que SÍ es observable, y es la CONDICIÓN exacta que produce el
+ * defecto, es qué declara la regla BASE de `ScNav`: una fila que no envuelve
+ * y cuyo alto es un techo en vez de un suelo no tiene dónde plegar el
+ * sobrante. Esa es la propiedad que se ata.
+ *
+ * Y SE ATA EN LA REGLA BASE, no "en alguna regla": el reparto por ancho es
+ * justo lo que no puede resolver este defecto -- ningún umbral separa los dos
+ * casos (a 375 px con la raíz a 16 el contenedor mide 23,4em y NO debe
+ * envolver; a 1152 px con la raíz a 32 mide 36em y SÍ). Si mañana alguien
+ * mueve la envoltura dentro de un `@media`/`@container`, este candado lo
+ * dice.
+ */
+describe("crítica externa #18: la banda de navegación no puede desbordar el viewport", () => {
+  /** Reglas del CSSOM que casan `.clase` FUERA de todo `@media`/`@container`
+   *  (`media === null`), con su texto. Reutiliza el mismo recorrido que
+   *  `reglasPorAtributo`, pero sin exigir atributo: aquí lo que se afirma es
+   *  la regla base del componente, no un estado suyo. */
+  function reglasBase(clase: string): string[] {
+    const out: string[] = [];
+    const walk = (rules: CSSRuleList, dentroDeGrupo: boolean): void => {
+      Array.from(rules).forEach((rule) => {
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) {
+          walk(anidadas, true);
+          return;
+        }
+        const estilo = rule as CSSStyleRule;
+        if (
+          !dentroDeGrupo &&
+          estilo.selectorText !== undefined &&
+          estilo.selectorText.includes(`.${clase}`)
+        ) {
+          out.push(estilo.cssText);
+        }
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules, false);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return out;
+  }
+
+  /** Primera clase inyectada del elemento (mismo criterio que `claseDe`). */
+  function claseInyectada(el: Element, reglas: string[]): string {
+    const clase = Array.from(el.classList).find((c) =>
+      reglas.some((r) => r.includes(`.${c}`)),
+    );
+    expect(
+      clase,
+      "no se encontró la clase inyectada del elemento",
+    ).toBeTruthy();
+    return clase as string;
+  }
+
+  it("la fila envuelve en la regla BASE, no solo sin JavaScript", () => {
+    const { container } = renderNavbar();
+    const nav = container.querySelector("header nav") as HTMLElement;
+    expect(nav, "no se montó la banda de navegación").not.toBeNull();
+    const base = reglasBase(claseInyectada(nav, allCssRules()));
+    expect(
+      base.length,
+      "no se encontró la regla base de la banda",
+    ).toBeGreaterThan(0);
+
+    expect(
+      base.some((r) => /flex-wrap:\s*wrap/.test(r)),
+      "la banda no envuelve en su regla base: a 200 % de fuente el sobrante " +
+        "sale del viewport en vez de plegarse",
+    ).toBe(true);
+  });
+
+  it("el alto de la banda es un SUELO, no un techo", () => {
+    const { container } = renderNavbar();
+    const nav = container.querySelector("header nav") as HTMLElement;
+    const base = reglasBase(claseInyectada(nav, allCssRules()));
+
+    /*
+     * `flex-wrap: wrap` sin esto no arregla nada: con `height` fija la fila
+     * envuelve PERO la segunda fila queda fuera de la caja de la banda
+     * (medido en Chrome: con solo la envoltura inyectada, el conmutador
+     * aparecía en y=155 dentro de un `<header>` de 112 px de alto). Las dos
+     * declaraciones son una sola decisión y se atan juntas.
+     */
+    expect(
+      base.some((r) => /min-height:\s*var\(--nav-height\)/.test(r)),
+      "la banda perdió su suelo de --nav-height",
+    ).toBe(true);
+    expect(
+      base.some((r) => /[^-]height:\s*auto/.test(r)),
+      "la banda vuelve a tener alto FIJO: la fila que envuelve se saldría de " +
+        "su propia caja",
+    ).toBe(true);
+    expect(
+      base.some((r) => /[^-]height:\s*var\(--nav-height\)/.test(r)),
+      "la banda declara --nav-height como ALTURA, no como suelo",
+    ).toBe(false);
+  });
+
+  it("la separación entre filas es vertical: el hueco horizontal no cambia", () => {
+    const { container } = renderNavbar();
+    const nav = container.querySelector("header nav") as HTMLElement;
+    const base = reglasBase(claseInyectada(nav, allCssRules()));
+
+    // row-gap y no gap: con `gap` la envoltura habría movido también el hueco
+    // entre marca, destinos y controles, y la medición de "idéntico al píxel"
+    // a la raíz por defecto habría dejado de ser cierta.
+    expect(
+      base.some((r) => /row-gap:/.test(r)),
+      "la banda no separa sus filas",
+    ).toBe(true);
+  });
+});
