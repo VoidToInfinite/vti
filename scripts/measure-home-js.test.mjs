@@ -584,6 +584,64 @@ describe("gemelos que solo se ven mirando las ocho páginas a la vez", () => {
         ).toEqual([]);
     });
 
+    /*
+     * Casi todos los chunks del sitio los piden las ocho páginas, así que un
+     * solo chunk que engorde imprimía ocho líneas literalmente iguales. Se
+     * agrupan en una, con las páginas enumeradas: el hallazgo no se pierde y
+     * deja de enterrar a los demás.
+     */
+    it("agrupa en una línea el problema que comparten varias páginas", () => {
+        const compartidos = [
+            { id: "3001", size: 900 },
+            { id: "3002", size: 500 },
+        ];
+        const home = analyze([
+            makeChunk("compartido.js", compartidos),
+            makeChunk("solo-a.js", modulosA),
+        ]);
+        const otra = analyze([
+            makeChunk("compartido.js", compartidos),
+            makeChunk("solo-b.js", modulosB),
+        ]);
+        const site = {
+            rutas: [HOME_PAGE, "otra.html"],
+            union: analyze([
+                makeChunk("compartido.js", compartidos),
+                makeChunk("solo-a.js", modulosA),
+                makeChunk("solo-b.js", modulosB),
+            ]),
+            paginas: [
+                { ruta: HOME_PAGE, analysis: home },
+                { ruta: "otra.html", analysis: otra },
+            ],
+        };
+        const firma = fingerprintOf(compartidos.map((entry) => entry.id));
+        const exceso = CHUNK_GROWTH_LIMIT_BYTES + 1;
+        const base = censoDe(site);
+        const trucado = {
+            ...base,
+            chunks: base.chunks.map((chunk) =>
+                chunk.firma === firma
+                    ? { ...chunk, brotli: chunk.brotli - exceso }
+                    : chunk,
+            ),
+            paginas: base.paginas.map((pagina) => ({
+                ...pagina,
+                descargadoBrotli: pagina.descargadoBrotli - exceso,
+            })),
+        };
+        const { problems } = verdictSite(site, trucado, {
+            expectedChunks: trucado.chunks.length,
+            expectedPages: site.rutas.length,
+            expectedDigest: digestOf(trucado),
+        });
+        const crecidos = problems.filter((problem) =>
+            problem.includes("sobre la línea base"),
+        );
+        expect(crecidos).toHaveLength(1);
+        expect(crecidos[0]).toContain("[las 2 páginas]");
+    });
+
     it("falla cuando el build emite una página que el censo no declara", () => {
         const site = sitio();
         const censo = censoDe(site);

@@ -1009,12 +1009,19 @@ export function auditBaseline(baseline, options = {}) {
 
 /**
  * Los nueve candados juntos, sobre el sitio entero. `problems` vacío = todo en
- * verde. Cada problema de página va prefijado con su ruta para que la salida se
- * pueda diagnosticar sin volver a medir.
+ * verde. Cada problema de página va prefijado con las rutas donde aparece.
+ *
+ * Los problemas idénticos de varias páginas se agrupan en UNA línea que las
+ * enumera, en vez de repetirse una vez por página. No es cosmética: casi todos
+ * los chunks del sitio los piden las ocho páginas, así que un solo chunk que
+ * engorde imprimía ocho líneas literalmente iguales y enterraba cualquier otro
+ * hallazgo debajo. La información de en qué páginas ocurre no se pierde —se
+ * enumeran—, y cuando son todas se dice así en vez de listar las ocho.
  */
 export function verdictSite(site, baseline, options = {}) {
     const problems = [...auditBaseline(baseline, options)];
     const porPagina = [];
+    const porMensaje = new Map();
     for (const pagina of site.paginas) {
         const slice = pageBaseline(baseline, pagina.ruta);
         if (!slice) {
@@ -1026,8 +1033,16 @@ export function verdictSite(site, baseline, options = {}) {
         const resultado = verdict(pagina.analysis, slice, slice.chunks.length);
         porPagina.push({ ruta: pagina.ruta, ...resultado });
         for (const problem of resultado.problems) {
-            problems.push(`[${pagina.ruta}] ${problem}`);
+            if (!porMensaje.has(problem)) porMensaje.set(problem, []);
+            porMensaje.get(problem).push(pagina.ruta);
         }
+    }
+    for (const [mensaje, rutas] of porMensaje) {
+        const donde =
+            rutas.length === site.paginas.length && rutas.length > 1
+                ? `las ${rutas.length} páginas`
+                : rutas.join(", ");
+        problems.push(`[${donde}] ${mensaje}`);
     }
     for (const ruta of (baseline?.paginas ?? []).map((entry) => entry.ruta)) {
         if (!site.rutas.includes(ruta)) {
