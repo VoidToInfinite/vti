@@ -181,7 +181,12 @@ const ScStar = styled.div`
   left: var(--star-left);
   width: var(--star-size);
   height: var(--star-size);
-  border-radius: 50%;
+  /* Circulo por token, no por porcentaje (critica externa #18, ola O+P):
+     la caja es cuadrada (width = height = var(--star-size)), asi que
+     radius.full la redondea igual que el 50 % que habia aqui -- y es lo que
+     escriben ya los circulos de Sol, Wormhole, Contact, Journey, Story y
+     Navbar. Esta era la unica que se salia. */
+  border-radius: ${({ theme }) => theme.data.radius.full};
   background: var(--star-tint);
   box-shadow: var(--star-glow);
   opacity: ${FOOTER_STAR_TWINKLE_MIN_OPACITY};

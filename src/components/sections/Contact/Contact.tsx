@@ -703,7 +703,11 @@ const ScDarkFrame = styled.div`
   width: 100%;
   max-width: ${CONTACT_CONTENT_MAX_WIDTH};
   margin-inline: auto;
-  padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});
+  padding-block: clamp(
+    ${({ theme }) => theme.data.space[4]},
+    3.5dvh,
+    ${({ theme }) => theme.data.space[8]}
+  );
   padding-inline: ${({ theme }) => theme.data.space[6]};
   display: flex;
   align-items: center;
@@ -792,7 +796,7 @@ const ScDarkContent = styled.div`
 
    `gap` FLUIDO (D4, encargo 2026-08-04, palanca 2): mismo criterio que
    `ScDarkFeatures`/`ScDarkFeatureBlock` en `Features.tsx` -- clamp entre
-   0.75rem (12px, suelo) y `space[4]` (16px, techo de escritorio, sin
+   `space[3]` (12px, suelo) y `space[4]` (16px, techo de escritorio, sin
    cambios). El margen de compactación aquí es menor que en Features a
    propósito: Contacto solo tenía +105px de sobrante medido (frente a los
    +407px de Features), así que no necesita el mismo grado de agresividad. */
@@ -810,7 +814,11 @@ const ScDarkCopy = styled.div`
   max-width: ${CONTACT_COPY_MAX};
   display: flex;
   flex-direction: column;
-  gap: clamp(0.75rem, 2vw, ${({ theme }) => theme.data.space[4]});
+  gap: clamp(
+    ${({ theme }) => theme.data.space[3]},
+    2vw,
+    ${({ theme }) => theme.data.space[4]}
+  );
 `;
 
 /*
@@ -822,12 +830,19 @@ const ScDarkCopy = styled.div`
  * (GitHub).
  *
  * `gap` FLUIDO (D4, palanca 2, mismo criterio que `ScDarkCopy` arriba):
- * clamp entre 0.5rem (8px, suelo) y `space[3]` (12px, techo de escritorio).
+ * clamp entre `space[2]` (8px, suelo) y `space[3]` (12px, techo de
+ * escritorio). Los DOS extremos leen la escala desde la ola O+P: mientras el
+ * suelo estuvo escrito a mano, el dia que la escala se retocara el techo se
+ * habria movido y el suelo no (regla 17).
  */
 const ScCards = styled.div`
   display: flex;
   flex-direction: column;
-  gap: clamp(0.5rem, 1.5vw, ${({ theme }) => theme.data.space[3]});
+  gap: clamp(
+    ${({ theme }) => theme.data.space[2]},
+    1.5vw,
+    ${({ theme }) => theme.data.space[3]}
+  );
 `;
 
 /**

@@ -1994,7 +1994,17 @@ describe("D4: palancas de compactación vertical del contenido oscuro (clamp flu
     const copy = revealedEl.firstElementChild as HTMLElement;
     const css = cssRuleTextFor(copy);
 
-    expect(css).toMatch(/gap:\s*clamp\(0\.75rem/);
+    /*
+     * El suelo se DERIVA de la escala, no se teclea (ola O+P): desde que los
+     * dos extremos del clamp leen `space` -- antes solo lo hacia el tope --,
+     * un test que escribiera 0.75rem a mano dejaria de significar "es el
+     * peldano" para significar "es ese numero", que es justo la deriva que la
+     * migracion cerraba. Y se compara sin espacios: con dos interpolaciones
+     * dentro, Prettier parte el clamp en varias lineas y el CSS inyectado
+     * conserva esos saltos.
+     */
+    const suelo = themes.light.space[3];
+    expect(css.replace(/\s+/g, "")).toContain(`gap:clamp(${suelo}`);
   });
 
   /*

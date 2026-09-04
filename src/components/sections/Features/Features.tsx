@@ -1285,7 +1285,11 @@ const ScDarkFrame = styled.div`
   width: 100%;
   max-width: ${FEATURES_CONTENT_MAX_WIDTH};
   margin-inline: auto;
-  padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});
+  padding-block: clamp(
+    ${({ theme }) => theme.data.space[4]},
+    3.5dvh,
+    ${({ theme }) => theme.data.space[8]}
+  );
   padding-inline: ${({ theme }) => theme.data.space[6]};
   display: flex;
   align-items: center;
@@ -1596,7 +1600,7 @@ const ScDarkFeatures = styled.div`
 `;
 
 /* padding-block FLUIDO (D4, palanca 2): separación entre las tres
-   identidades. Clamp entre 0.75rem (12px, suelo) y space[5] (24px, techo)
+   identidades. Clamp entre space[3] (12px, suelo) y space[5] (24px, techo)
    -- mismo criterio, mismas unidades y mismos motivos que ScDarkFrame/
    ScDarkFeatures, arriba. Son CINCO bordes de relleno en total (el primer
    bloque no lleva el superior), así que cada píxel que se ahorra aquí cuenta
@@ -1618,7 +1622,11 @@ const ScDarkFeatures = styled.div`
    necesaria y debe volver a semantic.border en vez de quedarse como una
    excepción huérfana. */
 const ScDarkFeatureBlock = styled.div`
-  padding-block: clamp(0.75rem, 2.2dvh, ${({ theme }) => theme.data.space[5]});
+  padding-block: clamp(
+    ${({ theme }) => theme.data.space[3]},
+    2.2dvh,
+    ${({ theme }) => theme.data.space[5]}
+  );
   border-block-start: 1px solid
     ${({ theme }) => theme.data.palette.neutral[700]};
 

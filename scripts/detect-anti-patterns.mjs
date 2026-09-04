@@ -1995,17 +1995,15 @@ const ALLOWLIST = [
         ],
         reason: "Morfeo de la corona del mascota Sol: los cuatro fotogramas de `coronaMorph` (0/25/50/75 %) mas el cierre en 100 % y el estado de reposo de ScCorona, que repiten la forma del fotograma inicial -- de ahi el count 3 sobre el mismo contenido de linea, que son tres apariciones de UNA forma y no tres decisiones. Es la forma de ocho valores (`a b c d / e f g h`, radios horizontales y verticales por esquina) con la que se dibuja una silueta organica que late; NINGUN peldano de tokens/radius.ts puede expresarla -- la escala son siete radios uniformes, y `radius.full` (9999px) daria un ovalo perfecto, que es justo lo contrario de lo que este arte busca. Excepcion de la regla 17 de RULES.md: arte de marca, en el mismo fichero que ya tiene sancionada la punta de rayo de 3px. El ancla es de CONTENIDO: retocar un solo porcentaje de cualquier fotograma deja esa linea sin ancla y pone el gate en rojo.",
     },
-    {
-        family: "radius-literal",
-        file: "src/components/layout/Footer/Footer.tsx",
-        anchors: [{ snippet: "border-radius: 50%;", lines: [184] }],
-        reason: 'PROVISIONAL, y no es una excepcion de diseno: es el hallazgo vivo que la critica externa #18 encontro y la razon de que esta familia mire ahora los porcentajes. `ScStar` es un div cuadrado (width = height = var(--star-size)) al que 50 % convierte en circulo -- exactamente lo que el resto del repo escribe como `theme.data.radius.full`: los circulos de Sol, Wormhole, Contact, Journey, Story y Navbar leen el token, y esta es la unica que no. No se migra en esta entrega porque `Footer.tsx` pertenece al dominio de otro frente en esta ola; queda anotado para su dueno. Cuando se migre, el aviso de "ancla sin hallazgo que la cubra" de este mismo script pedira retirar esta entrada.',
-    },
-    // ---- spacing-literal: las DIEZ lineas del censo que abrio la familia
-    // (critica externa #18, 2026-09-04). Se agrupan por naturaleza y no por
-    // fichero: primero las cuatro que son excepciones de verdad, despues las
-    // seis de `clamp()`, cinco de las cuales son deuda medida con dueno
-    // asignado en esta misma ola.
+    // ---- spacing-literal: lo que queda del censo que abrio la familia
+    // (critica externa #18, 2026-09-04). Nacio con DIEZ lineas: cuatro
+    // excepciones de verdad y seis `clamp()`, de los cuales CINCO se
+    // sancionaron como deuda "PROVISIONAL" porque sus ficheros eran de otros
+    // frentes de aquella ola. Esas cinco se migraron a la escala en la ola
+    // O+P -- junto con el `border-radius: 50%` del pie, que llevaba la misma
+    // etiqueta -- y sus entradas se retiran aqui: una sancion que suprime un
+    // defecto vivo deja el gate en verde mintiendo, que es peor que no tener
+    // la familia. Lo que sigue abajo son excepciones reales, no deuda.
     {
         family: "spacing-literal",
         file: "src/components/ui/VisuallyHidden/VisuallyHidden.tsx",
@@ -2032,45 +2030,6 @@ const ALLOWLIST = [
         file: "src/components/sections/Story/Story.tsx",
         anchors: [{ snippet: "gap: clamp(4px, 1vh, 14px);", lines: [1356] }],
         reason: "Separacion de las tres lineas del cartel de Story (ScStatementText): es el unico `clamp()` de espaciado del repo cuyos DOS extremos quedan fuera de la escala -- 4px es space[1] (0.25rem) pero 14px no es ningun peldano (space[3] son 12px, space[4] son 16px), y el tramo esta calibrado contra la ALTURA del viewport (`1vh`) para que las tres lineas del cartel respiren igual en una pantalla corta que en una alta. Migrar solo el suelo dejaria un clamp mitad token mitad literal, que es peor que los dos escritos a mano: esconde que el tramo no pertenece al sistema. Si algun dia se sistematiza, el sitio es un peldano nuevo con nombre, no un suelo migrado a medias.",
-    },
-    {
-        family: "spacing-literal",
-        file: "src/components/sections/Contact/Contact.tsx",
-        anchors: [
-            {
-                snippet:
-                    "padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});",
-                lines: [706],
-            },
-            {
-                snippet:
-                    "gap: clamp(0.75rem, 2vw, ${({ theme }) => theme.data.space[4]});",
-                lines: [813],
-            },
-            {
-                snippet:
-                    "gap: clamp(0.5rem, 1.5vw, ${({ theme }) => theme.data.space[3]});",
-                lines: [830],
-            },
-        ],
-        reason: "PROVISIONAL: deuda medida, no excepcion. Los tres `clamp()` ya leen el token en su TOPE y escriben el suelo a mano, y los tres suelos son peldanos vivos byte a byte -- 1rem es space[4], 0.75rem es space[3], 0.5rem es space[2] --, que es la forma exacta de deriva silenciosa que la regla 17 previene: el dia que la escala se retoque, el tope se movera y el suelo no. Ademas el primero esta escrito byte a byte en `Features.tsx`, en dos ficheros que no se conocen. No se migran en esta entrega porque `Contact.tsx` pertenece al dominio de otro frente en esta ola; quedan anotados para su dueno, y el aviso de ancla sin hallazgo pedira retirar estas entradas cuando se cierren.",
-    },
-    {
-        family: "spacing-literal",
-        file: "src/components/sections/Features/Features.tsx",
-        anchors: [
-            {
-                snippet:
-                    "padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});",
-                lines: [1257],
-            },
-            {
-                snippet:
-                    "padding-block: clamp(0.75rem, 2.2dvh, ${({ theme }) => theme.data.space[5]});",
-                lines: [1580],
-            },
-        ],
-        reason: "PROVISIONAL: la misma deuda medida que en `Contact.tsx`, y el primero de los dos es la MISMA LINEA byte a byte que `Contact.tsx:706` -- dos ficheros que no se conocen escribiendo el mismo suelo a mano, que es el sintoma clasico de una medida que deberia ser un token. Los dos suelos son peldanos vivos (1rem = space[4], 0.75rem = space[3]) y los dos topes ya leen la escala. No se migran en esta entrega porque `Features.tsx` pertenece al dominio de otro frente en esta ola; el aviso de ancla sin hallazgo pedira retirar estas entradas cuando se cierren.",
     },
     {
         family: "kicker",
