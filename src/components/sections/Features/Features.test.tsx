@@ -988,35 +988,36 @@ describe("Task 3: CTA de tarjeta de Features a >=14px (antes 12px)", () => {
  * pasó a comprobar "no hay NINGÚN `@media` en el CSS de este contenedor" -- el
  * candado que habría atrapado el no-op original (el del gap, no solo el de
  * `grid-template-columns`) si hubiera existido antes. La crítica externa #15
- * (2026-09-02) lo endurece una vuelta más -- "hay EXACTAMENTE una regla
- * condicional, y es la de la tarjeta destacada" -- porque esa tarjeta estrena
- * bullets a dos columnas; ver el comentario del propio `it`.
+ * (2026-09-02) lo relajó a "hay EXACTAMENTE una regla condicional y es la de
+ * la tarjeta destacada", porque aquella entrega estrenó viñetas a dos columnas
+ * en la destacada; la paridad de temas del 2026-09-04 retira esa regla (con la
+ * medición que la refuta, en el docblock de `ScBullets`) y este candado vuelve
+ * a su forma FUERTE: cero reglas condicionales, ni una.
  *
  * Validado con el bug inyectado: reintroduciendo el bloque
  * `@media ${(...) => themes.light.breakPoint.lg} { gap: ...; }` dentro de
  * `ScBullets` en Features.tsx, este test se pone rojo (`css` vuelve a
  * contener "@media"); restaurado, verde.
  */
-describe("bullets: una columna de base, y el UNICO @media es el de la tarjeta destacada", () => {
+describe("bullets: una columna, sin NINGUNA regla condicional", () => {
   function bulletsContainer(): HTMLElement {
     const cta = document.querySelector('a[href="#contact"]');
     return cta?.previousElementSibling as HTMLElement;
   }
 
   /*
-   * REESCRITO en la critica externa #15 (hallazgo C 3, 2026-09-02): la tarjeta
-   * DESTACADA estrena bullets a dos columnas desde `lg`, asi que "ningun
-   * @media" deja de ser cierto. NO se relaja el candado (regla 40): lo que fix
-   * wave D midio y retiro era un `@media` NO-OP -- ensanchaba `column-gap` en
-   * una rejilla que siempre resolvia a UNA pista, asi que no tenia ningun hueco
-   * de columna al que aplicarse. La regla nueva si tiene dos pistas, y el
-   * candado pasa de "no hay ninguna" a "hay EXACTAMENTE una, es esa, y esta
-   * acotada a la tarjeta destacada" -- que es mas estricto: un `@media` suelto
-   * y sin acotar, como el que fix wave D quito, seguiria cayendo en rojo aqui.
+   * CANDADO de la LEY DE VIÑETAS (mitad clara; la oscura está en el describe
+   * "D4: en tema oscuro los bullets...", más abajo, y las dos juntas son el
+   * candado de paridad). `ScBullets` es un styled COMPARTIDO por las dos ramas,
+   * así que cualquier regla que alguien vuelva a colgar de él aparece en el
+   * texto de ESTA clase -- da igual a qué rama pretenda alcanzar. Por eso el
+   * recuento cerrado a CERO es lo que ata la ley: no "una columna en claro",
+   * sino "una sola ley, sin excepciones por ancho ni por posición".
    */
-  it("la regla base sigue siendo una columna sin breakpoint, y el UNICO @media es el de la tarjeta destacada", () => {
+  it("la regla base es una columna sin breakpoint, y no hay NINGUNA regla condicional", () => {
     renderWithProviders(<Features />);
-    const css = cssRuleTextFor(bulletsContainer());
+    const contenedor = bulletsContainer();
+    const css = cssRuleTextFor(contenedor);
     const base = css.split("\n").filter((line) => !line.includes("@media"));
     const enMedia = css.split("\n").filter((line) => line.includes("@media"));
 
@@ -1024,19 +1025,13 @@ describe("bullets: una columna de base, y el UNICO @media es el de la tarjeta de
     expect(base.join("\n")).toMatch(/grid-template-columns:\s*1fr/);
     expect(base.join("\n")).toContain(`gap: ${themes.light.space[2]};`);
 
-    // Recuento CERRADO: una sola regla condicional en todo el componente.
-    expect(enMedia).toHaveLength(1);
-    // Y es la de la tarjeta destacada: breakpoint lg, acotada por posicion
-    // dentro de la rejilla (nunca un @media suelto que afecte a las tres).
-    expect(enMedia[0]).toContain(themes.light.breakPoint.lg);
-    expect(enMedia[0]).toContain(":first-child");
-    expect(enMedia[0]).toMatch(
-      /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
-    );
-    expect(enMedia[0]).toContain(`column-gap: ${themes.light.space[5]};`);
-
-    // El mecanismo `$compactFrom` sigue retirado: nada cuelga de `sm`.
+    // Recuento CERRADO a cero: ni el `lg` de la tarjeta destacada (retirado
+    // el 2026-09-04) ni el `sm` de `$compactFrom` (retirado en fix wave D).
+    expect(enMedia).toHaveLength(0);
+    expect(css).not.toContain(themes.light.breakPoint.lg);
     expect(css).not.toContain(themes.light.breakPoint.sm);
+    // Y ninguna regla condicional del stylesheet menciona esta clase.
+    expect(selectoresCondicionalesDe(contenedor)).toHaveLength(0);
   });
 
   it("aplica la MISMA regla a las tres tarjetas (ya no depende de cual sea)", () => {
@@ -1866,17 +1861,23 @@ describe("D4: en tema oscuro los bullets siguen a una columna y la regla de la t
   });
 
   /*
-   * REESCRITO en la critica externa #15 (hallazgo C 3, 2026-09-02) por el mismo
-   * motivo que su gemelo de la rama clara -- ver el describe "bullets a una
-   * columna..." mas arriba -- pero el candado de ESTA rama es mas fuerte y no
-   * mira texto: `ScBullets` es un styled COMPARTIDO por las dos ramas, asi que
-   * la regla nueva vive en la misma clase y su texto aparece aqui igual. Lo
-   * que hay que garantizar no es que el texto falte, sino que la regla no pueda
-   * ALCANZAR a esta rama. Se comprueba resolviendo el selector real contra el
-   * DOM oscuro: la regla cuelga de `ScGrid`, la rejilla bento que solo monta la
-   * rama clara, asi que aqui no matchea nada.
+   * MITAD OSCURA DEL CANDADO DE LA LEY DE VIÑETAS (2026-09-04, paridad de
+   * Features entre temas). La critica externa #15 (hallazgo C 3, 2026-09-02)
+   * habia dejado este test comprobando algo mas debil -- "existe UNA regla
+   * condicional y no alcanza a esta rama" --, que es justo la forma del defecto
+   * que el dueno mando cerrar: la regla existia y repartia las viñetas en 2x2
+   * en claro mientras aqui seguian en 4x1, sin que ninguna decision de
+   * producto lo pidiera. Medido en Chrome sobre el build de `ef62b26`: claro
+   * >= lg, primera tarjeta, `199.094px 199.109px`; oscuro, `501.75px` a un
+   * carril en todos los anchos.
+   *
+   * El candado vuelve a su forma fuerte y ahora es SIMETRICO con el de la rama
+   * clara: cero reglas condicionales. `ScBullets` es un styled COMPARTIDO, asi
+   * que la clase es la misma en las dos ramas -- cualquiera que vuelva a
+   * colgarle un `@media`, acotado o no, cae en rojo AQUI y en su gemelo claro
+   * a la vez. Eso es lo que convierte dos tests en una sola ley.
    */
-  it("una columna incondicional, y la regla de la tarjeta destacada no alcanza a esta rama", async () => {
+  it("una columna incondicional, sin NINGUNA regla condicional, igual que la rama clara", async () => {
     const { container } = renderWithProviders(<Features />);
     await waitFor(() => {
       expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
@@ -1887,16 +1888,14 @@ describe("D4: en tema oscuro los bullets siguen a una columna y la regla de la t
 
     expect(css).toMatch(/grid-template-columns:\s*1fr/);
     expect(css).toContain(`gap: ${themes.dark.space[2]};`);
-    // `$compactFrom` sigue retirado: esta rama no cuelga nada de `sm`.
+    // Ni `sm` (`$compactFrom`, fix wave D) ni `lg` (tarjeta destacada,
+    // retirada en la paridad de temas del 2026-09-04).
     expect(css).not.toContain(themes.dark.breakPoint.sm);
+    expect(css).not.toContain(themes.dark.breakPoint.lg);
+    expect(css).not.toContain("@media");
 
-    // Los selectores condicionales que mencionan esta clase -- hoy solo el de
-    // la tarjeta destacada -- no resuelven a ningun nodo del arbol oscuro.
-    const selectores = selectoresCondicionalesDe(bullets);
-    expect(selectores).toHaveLength(1);
-    selectores.forEach((selector) => {
-      expect(document.querySelector(selector)).toBeNull();
-    });
+    // Recuento CERRADO a cero, el mismo numero que la rama clara.
+    expect(selectoresCondicionalesDe(bullets)).toHaveLength(0);
   });
 });
 

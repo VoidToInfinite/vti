@@ -970,34 +970,65 @@ const ScBody = styled(Typography)`
  * ancho, es una decisión de diseño nueva que se verifica de cero -- no una
  * resurrección de este mecanismo.
  */
+/*
+ * UNA SOLA LEY DE VIÑETAS, IDÉNTICA EN LAS DOS RAMAS DE TEMA (decisión del
+ * dueño, paridad de Features entre temas, 2026-09-04). Aquí vivió, desde la
+ * crítica externa #15 (hallazgo C 3, 2026-09-02), un bloque
+ * `@media lg { ${ScGrid} > *:first-child & { grid-template-columns: repeat(2,
+ * minmax(0, 1fr)); column-gap: space[5]; } }` que repartía las viñetas de la
+ * tarjeta DESTACADA en dos columnas. Se retira, y el motivo no es de gusto: es
+ * medido, y son dos defectos distintos.
+ *
+ * ## Defecto 1: la regla solo podía existir en una de las dos ramas
+ *
+ * `ScBullets` es un styled COMPARTIDO por la rama clara y la oscura, pero la
+ * regla colgaba de `${ScGrid}` -- la rejilla bento que SOLO monta la rama
+ * clara. El mismo nivel de contenido quedaba así en 2x2 en claro y en 4x1 en
+ * oscuro, sin que ninguna decisión de producto lo pidiera: el reparto no lo
+ * elegía el diseño, lo elegía qué envoltorio existía en cada rama. Medido en
+ * Chrome sobre el build de producción de `ef62b26` (DPR 1, es y en, temas
+ * claro y oscuro): claro >= lg, primera tarjeta, `grid-template-columns`
+ * resuelto a `199.094px 199.109px` (992) / `251.094px 251.109px` (1280-1920),
+ * dos filas de dos; oscuro, `501.75px` a un solo carril, cuatro filas, en
+ * TODOS los anchos.
+ *
+ * ## Defecto 2: la premisa de la regla no se sostiene con la copia de hoy
+ *
+ * El docblock retirado justificaba las dos columnas como lo que «evita que
+ * cuatro frases cortas dejen media columna de texto en blanco». Las viñetas
+ * dejaron de ser frases cortas en las Tasks 15-16 (unificación de copia): hoy
+ * son oraciones de 34 a 43 caracteres que ocupan de 169 a 245 px a 12 px. Con
+ * dos columnas eso no cabe. Medido forzando `repeat(2, minmax(0, 1fr))` con
+ * `column-gap: 24px` sobre el build de producción, en las dos ramas y las dos
+ * lenguas:
+ *
+ * | ancho | columna | resultado                                              |
+ * | ----- | ------- | ------------------------------------------------------ |
+ * | 992   | 192-199 | las CUATRO viñetas a dos líneas (45 px), en las 3 cajas |
+ * | 1280+ | 239-251 | dos de las cuatro de Gaming a dos líneas, es y en       |
+ *
+ * Es decir: el reparto a dos columnas no llega a caber a NINGÚN ancho que la
+ * composición pueda ofrecer. En producción hoy eso ya se ve: a 992-1279, en
+ * claro, las cuatro viñetas de la tarjeta destacada miden 45 px de alto
+ * (dos líneas) mientras las de sus dos hermanas miden 22 px (una) -- una
+ * incoherencia DENTRO de la propia rama clara, no solo entre temas.
+ *
+ * La ley que queda es la que las dos ramas ya compartían como base y la única
+ * en la que ninguna viñeta se parte: UNA columna, sin ningún breakpoint. Coste
+ * medido de volver a ella en la rama clara: la caja de viñetas de la tarjeta
+ * destacada pasa de 53 px (>= 1280) y 98 px (992) a 114 px, y la sección de
+ * 1.194 px a 1.255 px de alto a 1440x900. La rama oscura no se mueve.
+ *
+ * Lo que la crítica #15 arregló de verdad NO se toca: la tarjeta destacada
+ * sigue repartiendo arte y texto en dos pistas desde `lg` (`ScCardSurface`,
+ * más abajo), que es lo que corregía los 709 px de superficie blanca que
+ * aquel hallazgo midió. Lo que se retira es solo el sub-reparto de las
+ * viñetas dentro de esa columna de texto.
+ */
 const ScBullets = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${({ theme }) => theme.data.space[2]};
-
-  /*
-   * DOS COLUMNAS SOLO EN LA TARJETA DESTACADA, y solo desde lg (critica
-   * externa #15, hallazgo C 3). No revierte el fix wave D del docblock de
-   * arriba: aquel retiro un @media que NO tenia efecto -- cambiaba column-gap
-   * en una rejilla que siempre resolvia a una sola pista, asi que no habia
-   * ningun hueco de columna al que aplicarse. Aqui la rejilla SI tiene dos
-   * pistas, asi que el column-gap vuelve a existir y hay algo que separar.
-   *
-   * Es ademas la composicion literal del mockup para esta tarjeta (spec
-   * 2026-07-28 §7.3: «figura izquierda + contenido con bullets en 2
-   * columnas»), y la que evita que cuatro frases cortas dejen media columna de
-   * texto en blanco a su derecha.
-   *
-   * minmax(0, 1fr) y no 1fr, mismo motivo que el resto de rejillas del repo
-   * desde la critica #13: el minimo automatico de una pista 1fr es el
-   * min-content de su contenido y desborda al ampliar la raiz.
-   */
-  @media ${({ theme }) => theme.data.breakPoint.lg} {
-    ${ScGrid} > *:first-child & {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      column-gap: ${({ theme }) => theme.data.space[5]};
-    }
-  }
 `;
 
 const ScBulletItem = styled.div`
