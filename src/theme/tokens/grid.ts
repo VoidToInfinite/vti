@@ -9,10 +9,17 @@ export const grid = {
    * de `theme.data`, el punto ciego que el censo anterior sí tuvo): **cero
    * usos en `src/` y en `app/`** — las únicas apariciones de los dos
    * identificadores en todo el repo eran su propia declaración y el contrato
-   * de `system.test.ts`. Y a diferencia de `space[10]`/`zIndex.toast`, que se
-   * conservaron por tener un destino escrito en código o en docs, estos dos no
+   * de `system.test.ts`. Y a diferencia de `space[10]`, que se conserva por
+   * tener un destino escrito fuera de su propio docblock (un ítem sin marcar
+   * de `docs/qa-3d-pendiente.md` que lo nombra como mitigación), estos dos no
    * tenían ninguno: ni un consumidor, ni una mención en `DESIGN.md`, ni una
-   * reserva en `docs/qa-3d-pendiente.md`.
+   * reserva en `docs/qa-3d-pendiente.md`. El tercer caso que este párrafo
+   * citaba, `zIndex.toast`, dejó de ser el contraejemplo en la crítica externa
+   * #18 (2026-09-04): se comprobó su evidencia externa —la lista «nav
+   * on-scroll, modal, sheet, toast» de `Navbar.tsx`/`Card.tsx`— y resultó ser
+   * un catálogo de roles donde se admite cristal, no un índice de la escala de
+   * capas (`sheet` nunca tuvo peldaño), así que se retiró por este mismo
+   * criterio. Ver su docblock de despedida en `zIndex.ts`.
    *
    * El motivo de retirarlos no es solo que nadie los leyera: es que
    * DESCRIBÍAN UN SISTEMA QUE NO EXISTE. Prometían una rejilla de 12 columnas
