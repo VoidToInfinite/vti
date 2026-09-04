@@ -1,13 +1,17 @@
 import { existsSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import {
+    BASELINE_CHUNKS,
     BUDGET_BYTES,
     CHUNK_GROWTH_LIMIT_BYTES,
+    DECLARED_TWIN_BROTLI_BYTES,
+    DECLARED_TWIN_GROUPS,
     DECLARED_DUPLICATE_MODULES,
     DECLARED_DUPLICATE_RAW_BYTES,
     analyze,
     compareWithBaseline,
     findDuplicateModules,
+    findTwinChunks,
     fingerprintOf,
     parseModuleIds,
     parseModuleSizes,
@@ -50,6 +54,39 @@ import {
  *       419m3cs9m8bxt.js (2e66fe0db941) crece 5000 B brotli sobre la línea
  *       base, más que el límite de 1000 B
  *       AssertionError: expected 279559 to be 284559
+ *
+ * LOS TRES CANDADOS QUE ESTRENÓ EL 2026-09-04 (frente del presupuesto) van
+ * validados igual, sobre el build ya arreglado, y el cuarto bug es el que
+ * importa: se REVIRTIÓ el arreglo entero y se comprobó que el instrumento canta
+ * el defecto que nadie vio en cinco olas.
+ *
+ *  4. Chunks gemelos — bajando `DECLARED_TWIN_BROTLI_BYTES` de 1_261 a 1_000:
+ *       AssertionError: el build real no pasa los candados: los chunks
+ *       3036pivcxrs_-.js y 01v6e5k6mmr1y.js tienen la MISMA composición
+ *       (7e2d90d23593, 3 módulos): 1261 B brotli viajan por duplicado en la
+ *       misma página · la duplicación de chunks ÍNTEGROS sube a 1261 B brotli
+ *       en 1 grupo(s), por encima de los 1000 B en 1 grupo(s) ya declarados
+ *  5. Censo de la línea base encogido — borrando la última fila de
+ *     `home-js-baseline.json` y restando su peso al total para que la suma
+ *     siguiera cuadrando (que es exactamente como se dejaría en verde a mano).
+ *     Se puso en rojo por DOS sitios, y el primero corre en CI sin `out/`:
+ *       AssertionError: expected 14 to be 15
+ *       AssertionError: el build real no pasa los candados: el chunk
+ *       306xg6yr9irvl.js (d209e951feff, 499 B brotli) no está en la línea base:
+ *       composición nueva sin revisar · la línea base declara 14 chunks y el
+ *       script espera 15: el censo cambió de tamaño sin actualizar
+ *       `BASELINE_CHUNKS`
+ *  6. Chunk de la línea base que el build ya no emite — cambiando la firma de
+ *     una fila por una inexistente, sin tocar el número de filas:
+ *       AssertionError: el build real no pasa los candados: … · la línea base
+ *       declara un chunk (000000000000, 499 B brotli) que el build ya no emite:
+ *       el censo encogió sin revisarse
+ *  7. EL DEFECTO ORIGINAL — devolviendo `Navbar`/`Footer` a `app/HomeRoute.tsx`
+ *     y `app/not-found.tsx` (revirtiendo el arreglo) y reconstruyendo:
+ *       AssertionError: el build real no pasa los candados: … los chunks
+ *       34q7k99kqn6xz.js y 0_x-_m0pog71z.js tienen la MISMA composición
+ *       (a9c4eb656386, 8 módulos): 25.427 B brotli viajan por duplicado en la
+ *       misma página
  */
 
 /** Chunk sintético con la forma que emite Turbopack. */
@@ -257,7 +294,7 @@ describe("delta contra la línea base", () => {
     });
 });
 
-describe("veredicto de los tres candados", () => {
+describe("veredicto de los seis candados", () => {
     const baseline = {
         totalDescargadoBrotli: 10,
         chunks: [{ firma: "abc123", modulos: 1, brotli: 10, crudo: 10 }],
@@ -274,27 +311,37 @@ describe("veredicto de los tres candados", () => {
         ],
         downloadedBytes: 10,
         legacyBytes: 0,
+        twins: [],
         duplicates: [],
         duplicateRawBytes: 0,
     };
 
+    /*
+     * La línea base sintética tiene UN chunk, no los `BASELINE_CHUNKS` del
+     * censo real; se le dice a `verdict` cuántos espera para que estos casos
+     * ejerciten el candado que cada uno mira y no el del tamaño del censo. Ese
+     * candado tiene sus propios casos, abajo y en el bloque de coherencia.
+     */
+    const juzga = (analysis, base = baseline) =>
+        verdict(analysis, base, base.chunks.length);
+
     it("no encuentra problemas en un build que cuadra con la línea base", () => {
-        expect(verdict(sano, baseline).problems).toEqual([]);
+        expect(juzga(sano).problems).toEqual([]);
     });
 
     it("falla cuando el JS descargado se pasa del presupuesto", () => {
-        const { problems } = verdict(
-            { ...sano, downloadedBytes: BUDGET_BYTES + 1 },
-            baseline,
-        );
+        const { problems } = juzga({
+            ...sano,
+            downloadedBytes: BUDGET_BYTES + 1,
+        });
         expect(problems.join(" ")).toContain("se pasa del presupuesto");
     });
 
     it("falla cuando la duplicación crece por encima de la deuda declarada", () => {
-        const { problems } = verdict(
-            { ...sano, duplicateRawBytes: DECLARED_DUPLICATE_RAW_BYTES + 1 },
-            baseline,
-        );
+        const { problems } = juzga({
+            ...sano,
+            duplicateRawBytes: DECLARED_DUPLICATE_RAW_BYTES + 1,
+        });
         expect(problems.join(" ")).toContain(
             "módulos NUEVOS viajando dos veces",
         );
@@ -309,25 +356,138 @@ describe("veredicto de los tres candados", () => {
                 wastedRawBytes: 0,
             }),
         );
-        const { problems } = verdict({ ...sano, duplicates }, baseline);
+        const { problems } = juzga({ ...sano, duplicates });
         expect(problems.join(" ")).toContain("módulos repetidos entre chunks");
     });
 
     it("falla cuando un chunk conocido engorda más del límite", () => {
-        const { problems } = verdict(
-            {
-                ...sano,
-                chunks: [
-                    {
-                        ...sano.chunks[0],
-                        brotli: 10 + CHUNK_GROWTH_LIMIT_BYTES + 1,
-                    },
-                ],
-                downloadedBytes: 10 + CHUNK_GROWTH_LIMIT_BYTES + 1,
-            },
+        const { problems } = juzga({
+            ...sano,
+            chunks: [
+                {
+                    ...sano.chunks[0],
+                    brotli: 10 + CHUNK_GROWTH_LIMIT_BYTES + 1,
+                },
+            ],
+            downloadedBytes: 10 + CHUNK_GROWTH_LIMIT_BYTES + 1,
+        });
+        expect(problems.join(" ")).toContain("sobre la línea base");
+    });
+
+    /*
+     * CANDADO 4 — CHUNKS GEMELOS. Es el que nadie tenía durante cinco olas y el
+     * que habría cantado los 28.413 B redundantes de las portadas el primer día.
+     * Se ejercitan las DOS cotas por separado, porque cada una tapa un agujero
+     * de la otra: los bytes atrapan un gemelo grande, el recuento atrapa dos
+     * gemelos pequeños que caben por debajo del listón de bytes.
+     */
+    it("falla cuando la copia redundante pesa más que la deuda declarada", () => {
+        const { problems } = juzga({
+            ...sano,
+            twins: [
+                {
+                    fingerprint: "abc123",
+                    modules: 17,
+                    names: ["a.js", "b.js"],
+                    wastedBrotliBytes: DECLARED_TWIN_BROTLI_BYTES + 1,
+                },
+            ],
+        });
+        expect(problems.join(" ")).toContain("tienen la MISMA composición");
+        expect(problems.join(" ")).toContain("duplicación de chunks ÍNTEGROS");
+    });
+
+    it("falla cuando aparecen más grupos de gemelos de los declarados, aunque no sumen bytes", () => {
+        const twins = Array.from(
+            { length: DECLARED_TWIN_GROUPS + 1 },
+            (_, index) => ({
+                fingerprint: `f${index}`,
+                modules: 1,
+                names: [`a${index}.js`, `b${index}.js`],
+                wastedBrotliBytes: 0,
+            }),
+        );
+        const { problems } = juzga({ ...sano, twins });
+        expect(problems.join(" ")).toContain("duplicación de chunks ÍNTEGROS");
+    });
+
+    /*
+     * CANDADOS 5 y 6 — LAS DOS ATADURAS DE EXTENSIÓN. Sin ellas, el candado del
+     * delta por chunk se deja en verde encogiendo el censo que recorre: es el
+     * modo de fallo que la ola Q encontró cuatro veces en candados distintos.
+     */
+    it("falla cuando la línea base declara un chunk que el build ya no emite", () => {
+        const { problems } = juzga(
+            { ...sano, chunks: [], downloadedBytes: 0 },
             baseline,
         );
-        expect(problems.join(" ")).toContain("sobre la línea base");
+        expect(problems.join(" ")).toContain("el censo encogió sin revisarse");
+    });
+
+    it("falla cuando el censo de la línea base cambia de tamaño", () => {
+        const recortada = { ...baseline, chunks: [] };
+        const { problems } = verdict(
+            { ...sano, chunks: [], downloadedBytes: 0 },
+            recortada,
+            baseline.chunks.length,
+        );
+        expect(problems.join(" ")).toContain("el censo cambió de tamaño");
+    });
+});
+
+describe("detección de chunks con la misma composición", () => {
+    it("empareja dos chunks por su firma, aunque el orden de los módulos difiera", () => {
+        const analysis = analyze([
+            makeChunk("a.js", [
+                { id: "83467", size: 400 },
+                { id: "11712", size: 200 },
+            ]),
+            makeChunk("b.js", [
+                { id: "11712", size: 200 },
+                { id: "83467", size: 400 },
+            ]),
+        ]);
+        const twins = findTwinChunks(analysis.chunks);
+
+        expect(twins).toHaveLength(1);
+        expect(twins[0].names.sort()).toEqual(["a.js", "b.js"]);
+        expect(twins[0].modules).toBe(2);
+        expect(twins[0].wastedBrotliBytes).toBeGreaterThan(0);
+    });
+
+    it("no llama gemelos a dos chunks de composición distinta", () => {
+        const analysis = analyze([
+            makeChunk("a.js", [{ id: "83467", size: 400 }]),
+            makeChunk("b.js", [{ id: "11712", size: 400 }]),
+        ]);
+        expect(findTwinChunks(analysis.chunks)).toEqual([]);
+    });
+
+    /*
+     * El polyfill `nomodule` no lo descarga ningún navegador moderno, así que
+     * emparejarlo con un chunk real inventaría un coste que nadie transfiere.
+     */
+    it("ignora el polyfill nomodule al buscar gemelos", () => {
+        const analysis = analyze([
+            makeChunk("a.js", [{ id: "83467", size: 400 }]),
+            makeChunk("legacy.js", [{ id: "83467", size: 400 }], {
+                legacyOnly: true,
+            }),
+        ]);
+        expect(findTwinChunks(analysis.chunks)).toEqual([]);
+    });
+
+    /*
+     * Dos chunks sin módulos reconocibles (el runtime de Turbopack lo es)
+     * comparten la firma `sin-modulos` sin ser copias: declararlos gemelos
+     * sería inventar un hallazgo que el instrumento no ha visto.
+     */
+    it("no empareja chunks de los que no sabe leer ningún módulo", () => {
+        const analysis = analyze([
+            { name: "a.js", text: "(function(){})()", legacyOnly: false },
+            { name: "b.js", text: "(function(){})()", legacyOnly: false },
+        ]);
+        expect(findTwinChunks(analysis.chunks)).toEqual([]);
     });
 });
 
@@ -353,6 +513,18 @@ describe("coherencia de la línea base versionada", () => {
             DECLARED_DUPLICATE_RAW_BYTES,
         );
         expect(baseline.modulosDuplicados).toBe(DECLARED_DUPLICATE_MODULES);
+    });
+
+    /*
+     * LA ATADURA DE EXTENSIÓN, COMPROBADA SIN INTERMEDIARIOS. `verdict` la mira
+     * también, pero acepta el número esperado como parámetro para que los casos
+     * sintéticos puedan trabajar con una línea base de un chunk; aquí se compara
+     * el JSON versionado contra la constante del script y no hay parámetro que
+     * valga. Borrar una fila del censo se pone en rojo aquí aunque la máquina no
+     * tenga un `out/` que medir — que es el caso de CI.
+     */
+    it("el censo tiene exactamente los chunks que declara el script", () => {
+        expect(baseline.chunks.length).toBe(BASELINE_CHUNKS);
     });
 
     it("la línea base cabe en el presupuesto que declara", () => {

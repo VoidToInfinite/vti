@@ -50,42 +50,62 @@
  * candado lo canta como desconocido, que es justo lo que se quiere: un chunk
  * nuevo es crecimiento invisible hasta que revienta el total.
  *
- * QUÉ VIGILA, en tres candados independientes:
+ * QUÉ VIGILA, en seis candados independientes:
  *
  *   1. **Presupuesto total** (el de siempre): el JS descargado cabe en
  *      `BUDGET_BYTES`.
  *   2. **Duplicación entre chunks**: ningún módulo debería viajar dos veces en
  *      la misma página. La deuda ya medida se declara en
  *      `DECLARED_DUPLICATE_RAW_BYTES` y cualquier duplicación por encima de
- *      ella falla. Ver el apartado siguiente.
+ *      ella falla.
  *   3. **Delta por chunk** contra `scripts/home-js-baseline.json`: un chunk
  *      conocido que crece más de `CHUNK_GROWTH_LIMIT_BYTES` brotli falla, y un
  *      chunk cuya firma no está en la línea base falla también.
+ *   4. **Chunks gemelos**: ningún par de chunks de la misma página debería
+ *      tener la MISMA firma de módulos. La deuda del repo se pagó entera; lo
+ *      que queda declarado (`DECLARED_TWIN_BROTLI_BYTES`) es reparto interno
+ *      de Next. Ver el apartado siguiente.
+ *   5. **La línea base no encoge por su lado**: un chunk que la línea base
+ *      declara y el build ya no emite falla en vez de imprimirse como nota.
+ *   6. **La línea base tiene el tamaño declarado**: `BASELINE_CHUNKS`.
  *
- * LA DEUDA DECLARADA DE DUPLICACIÓN (medida el 2026-09-04 sobre el build de
- * `0226846`, servido en local). El censo encontró que `out/index.html` (y
- * `out/en.html`, las dos portadas) referencian DOS chunks con la misma
- * composición: 17 identificadores de módulo idénticos, 109.716 B crudos cada
- * uno, cuerpos byte a byte iguales módulo a módulo. Lo que contienen es la
- * cáscara del sitio — `Navbar` (con `NavSheet`, `ThemeToggle`,
- * `LanguageSelector`), `Footer`, `Logo`, `Typography`, `VisuallyHidden`,
- * `BrandName`, `SectionBeam`, `useReveal`, `useDocumentMeta`, `links`,
- * `NAV_GROUPS` y las constantes del arte del hero. Uno de los dos
- * (`3u03_w22jspj8.js`) lo referencian las OCHO páginas del build; el otro
- * (`04mie4ud-_mu2.js`, 28.413 B brotli) solo las dos portadas, y es
- * íntegramente redundante. Es la misma familia de defecto que la ola G ya
- * pagó una vez —los mismos módulos emitidos en dos grupos de chunks
- * hermanos— y su arreglo vive en el árbol de `app/`, fuera del alcance de
- * este frente: queda escrito con su cifra para que lo decida el dueño. El
- * total de bytes crudos que viajan repetidos hoy es 116.368 en 21 módulos
- * (los 17 de los gemelos más cuatro módulos pequeños del runtime de Next
- * repartidos entre tres chunks). Mientras esa decisión no se tome, el candado
- * NO se pone rojo por la deuda ya conocida — se pone rojo si la duplicación
- * CRECE.
+ * EL DEFECTO QUE ESTRENÓ EL CANDADO 4, Y POR QUÉ LOS TRES ANTERIORES NO LO
+ * VEÍAN (medido el 2026-09-04 sobre el build de `0226846`, servido en local).
+ * El censo encontró que `out/index.html` y `out/en.html` —las dos portadas—
+ * referenciaban DOS chunks con la misma composición: 17 identificadores de
+ * módulo idénticos, 109.716 B crudos cada uno, los mismos cuerpos módulo a
+ * módulo. Dentro iba la cáscara del sitio: `Navbar` (con `NavSheet`,
+ * `ThemeToggle`, `LanguageSelector`), `Footer`, `Logo`, `Typography`,
+ * `VisuallyHidden`, `BrandName`, `SectionBeam`, `useReveal`, `useDocumentMeta`,
+ * `links`, `NAV_GROUPS` y las constantes del arte del hero. Uno
+ * (`3u03_w22jspj8.js`) lo pedían las ocho páginas del build; el otro
+ * (`04mie4ud-_mu2.js`, 28.413 B brotli) solo las dos portadas, y era
+ * íntegramente redundante.
  *
- * SALIDA: tabla por chunk con su delta, censo de duplicación, los dos totales
- * (descargado y HTML completo) y el veredicto. Código de salida 1 si falla
- * cualquiera de los tres candados.
+ * Ninguno de los candados 1-3 podía cantarlo, y merece la pena escribir por
+ * qué: el total cabía en el presupuesto, la duplicación estaba DECLARADA como
+ * deuda (los 116.368 B crudos de entonces) y el delta por chunk decía `==` en
+ * las dos filas, porque las dos existían ya el día en que se tomó la línea
+ * base. Una copia íntegra de un chunk no es un caso extremo de duplicación de
+ * módulos: es una categoría propia, y solo se ve comparando FIRMAS.
+ *
+ * LA CAUSA RAÍZ, y está arreglada. `Navbar` y `Footer` los montaban a la vez
+ * `app/HomeRoute.tsx`, `app/not-found.tsx` y los dos envoltorios legales, cada
+ * uno abriendo su propia frontera de servidor a cliente. El árbol de la 404
+ * viaja en el manifiesto de cliente de TODAS las páginas, así que la cáscara
+ * quedaba en dos grupos de chunks hermanos y Turbopack la emitía dos veces —
+ * exactamente la misma familia de defecto que la ola G ya pagó con el tema y
+ * el i18n, y exactamente lo que advertía la regla escrita en el docblock de
+ * `app/providers.tsx`: lo que monten a la vez una rama de idioma y la 404 tiene
+ * que colgar de un ancestro común. Desde el 2026-09-04 la cáscara la monta
+ * `LocaleShell`, que es ese ancestro. Medido sobre el mismo árbol, dos builds
+ * consecutivos: **284.559 → 253.853 B brotli descargados (−30.706 B)**, la
+ * duplicación de módulos de 116.368 a 4.264 B crudos (de 21 módulos a 5, todos
+ * del runtime de Next), y cero pares de chunks con la misma firma.
+ *
+ * SALIDA: tabla por chunk con su delta, censo de gemelos, censo de duplicación,
+ * los dos totales (descargado y HTML completo) y el veredicto. Código de salida
+ * 1 si falla cualquiera de los seis candados.
  *
  * REGENERAR LA LÍNEA BASE: `node scripts/measure-home-js.mjs --update-baseline`
  * tras un `pnpm build`, y SOLO después de haber mirado el delta y entendido
@@ -158,10 +178,50 @@ export const BUDGET_BYTES = 290_000;
 export const CHUNK_GROWTH_LIMIT_BYTES = 1_000;
 
 /** Bytes CRUDOS que hoy viajan repetidos entre chunks descargados (ver docblock). */
-export const DECLARED_DUPLICATE_RAW_BYTES = 116_368;
+export const DECLARED_DUPLICATE_RAW_BYTES = 4_264;
 
 /** Módulos distintos que hoy aparecen en más de un chunk descargado. */
-export const DECLARED_DUPLICATE_MODULES = 21;
+export const DECLARED_DUPLICATE_MODULES = 5;
+
+/**
+ * DEUDA DE CHUNKS GEMELOS QUE NO ES DEL REPO, medida el 2026-09-04 sobre el
+ * build ya arreglado. Tras subir la cáscara al ancestro común quedan DOS
+ * chunks idénticos de tres módulos —`3036pivcxrs_-.js` y `01v6e5k6mmr1y.js`,
+ * 1.261 B brotli la copia sobrante— y lo que llevan dentro no es código de
+ * este proyecto: son módulos internos de Next (el que exporta `DecodeError`,
+ * `execOnce`, `getURL`, `isAbsoluteUrl`… de `next/dist/shared/lib/utils`, más
+ * dos ayudantes suyos). No hay ningún componente, hook ni constante del repo en
+ * ellos, así que no hay ningún punto de montaje que mover para unirlos: es
+ * reparto interno del framework.
+ *
+ * Y la cifra es una MEJORA, no un empeoramiento que se legaliza: antes del
+ * arreglo esos mismos tres módulos viajaban en TRES chunks (`01v6e5k6mmr1y`,
+ * `3mf3ek8ecbzi9` y `3wulsif4rqayb`), y el módulo mayor de los tres gastaba
+ * 4.638 B crudos repetidos; hoy son dos copias y 2.319 B. Lo que cambia es que
+ * ahora se ven, porque las dos copias caen en chunks de composición idéntica.
+ *
+ * Se declara con dos ataduras, no una: los bytes Y el número de grupos. Con
+ * solo los bytes, dos gemelos nuevos y pequeños pasarían por debajo del listón.
+ */
+export const DECLARED_TWIN_BROTLI_BYTES = 1_261;
+
+/** Grupos de chunks de composición idéntica que hoy admite el candado. */
+export const DECLARED_TWIN_GROUPS = 1;
+
+/**
+ * Chunks descargados que declara la línea base versionada. NO es un número
+ * decorativo: es la ATADURA DE EXTENSIÓN de `scripts/home-js-baseline.json`.
+ *
+ * El delta por chunk se evalúa recorriendo esa lista, y una comprobación que
+ * recorre una lista se puede dejar en verde ENCOGIENDO la lista — borrar una
+ * fila del censo y quedarse con «todo cuadra, 0 incumplimientos». Es el modo de
+ * fallo más caro que tiene este repo y ya se pagó cuatro veces en la ola Q.
+ * Con este número declarado aparte, borrar una fila del JSON pone el candado en
+ * rojo aunque el build siga siendo el mismo; y no se puede «arreglar» bajando
+ * también esta constante, porque entonces el chunk borrado deja de estar en la
+ * línea base y el build real lo canta como composición desconocida.
+ */
+export const BASELINE_CHUNKS = 15;
 
 export const OUT_DIR = "out";
 export const BASELINE_PATH = path.join(
@@ -304,6 +364,52 @@ export function findDuplicateModules(chunks) {
     return duplicates.sort((a, b) => b.wastedRawBytes - a.wastedRawBytes);
 }
 
+/**
+ * Pares de chunks DESCARGADOS con la MISMA composición de módulos.
+ *
+ * Este es el defecto concreto que nadie vio durante cinco olas: la portada
+ * referenciaba dos chunks con los mismos 17 identificadores de módulo y 109.716
+ * B crudos cada uno, y ninguno de los candados anteriores lo miraba. El total
+ * cabía en el presupuesto, la duplicación estaba declarada como deuda y el
+ * delta por chunk decía `==` en las dos filas, porque las dos existían desde el
+ * primer día en que se tomó la línea base. Una copia íntegra de un chunk no es
+ * un caso extremo de duplicación de módulos: es una categoría propia, y se
+ * detecta comparando FIRMAS, no contando módulos repetidos.
+ *
+ * Se agrupa por firma y se devuelve un grupo por cada firma con dos o más
+ * chunks. El polyfill `nomodule` queda fuera, como en todo lo demás: no se
+ * descarga.
+ */
+export function findTwinChunks(chunks) {
+    const byFingerprint = new Map();
+    for (const chunk of chunks) {
+        if (chunk.legacyOnly) continue;
+        /*
+         * Un chunk sin módulos reconocibles (el runtime de Turbopack, por
+         * ejemplo) comparte la firma `sin-modulos` con cualquier otro igual de
+         * opaco, y eso no es una copia: es que el instrumento no sabe mirar
+         * dentro. Declararlo gemelo sería inventar un hallazgo.
+         */
+        if (chunk.moduleIds.length === 0) continue;
+        if (!byFingerprint.has(chunk.fingerprint)) {
+            byFingerprint.set(chunk.fingerprint, []);
+        }
+        byFingerprint.get(chunk.fingerprint).push(chunk);
+    }
+    return [...byFingerprint.values()]
+        .filter((group) => group.length > 1)
+        .map((group) => ({
+            fingerprint: group[0].fingerprint,
+            modules: group[0].modules.length,
+            names: group.map((chunk) => chunk.name),
+            /* Lo que sobra: todas las copias menos la que el sitio necesita. */
+            wastedBrotliBytes: group
+                .slice(1)
+                .reduce((acc, chunk) => acc + chunk.brotli, 0),
+        }))
+        .sort((a, b) => b.wastedBrotliBytes - a.wastedBrotliBytes);
+}
+
 /** Mide cada chunk y saca los totales, el censo de módulos y la duplicación. */
 export function analyze(rawChunks) {
     const chunks = rawChunks.map((chunk) => {
@@ -327,6 +433,7 @@ export function analyze(rawChunks) {
         chunks,
         downloadedBytes: sum(downloaded),
         legacyBytes: sum(legacy),
+        twins: findTwinChunks(chunks),
         duplicates,
         duplicateRawBytes: duplicates.reduce(
             (acc, duplicate) => acc + duplicate.wastedRawBytes,
@@ -396,8 +503,22 @@ export function compareWithBaseline(analysis, baseline) {
     };
 }
 
-/** Los tres candados juntos. `problems` vacío = todo en verde. */
-export function verdict(analysis, baseline) {
+/**
+ * Los seis candados juntos. `problems` vacío = todo en verde.
+ *
+ * `expectedBaselineChunks` existe para que los casos sintéticos del test puedan
+ * ejercitar los otros cinco candados con una línea base de un chunk sin chocar
+ * contra el censo real; el CLI y el bloque de integración NO lo pasan, así que
+ * sobre el build de verdad rige siempre `BASELINE_CHUNKS`. Y para que este
+ * parámetro no se pueda usar como llave para aflojar el censo, el mismo número
+ * se comprueba otra vez, sin intermediarios, contra el JSON versionado en
+ * `measure-home-js.test.mjs`.
+ */
+export function verdict(
+    analysis,
+    baseline,
+    expectedBaselineChunks = BASELINE_CHUNKS,
+) {
     const comparison = compareWithBaseline(analysis, baseline);
     const problems = [];
     const over = analysis.downloadedBytes - BUDGET_BYTES;
@@ -429,6 +550,61 @@ export function verdict(analysis, baseline) {
         problems.push(
             `el chunk ${row.name} (${row.fingerprint}, ${row.brotli.toLocaleString("es-ES")} B brotli) ` +
                 `no está en la línea base: composición nueva sin revisar`,
+        );
+    }
+    /*
+     * CANDADO DE CHUNKS GEMELOS. La deuda del repo se pagó entera el
+     * 2026-09-04; lo que queda declarado son los 1.261 B de reparto interno de
+     * Next (ver `DECLARED_TWIN_BROTLI_BYTES`). Se comprueban las DOS cotas —
+     * bytes y número de grupos — porque cada una deja pasar lo que la otra
+     * atrapa: un gemelo grande nuevo sube los bytes sin cambiar el recuento si
+     * sustituye al conocido, y dos gemelos diminutos suben el recuento sin
+     * llegar al listón de bytes.
+     */
+    const twins = analysis.twins ?? [];
+    const twinBytes = twins.reduce(
+        (acc, twin) => acc + twin.wastedBrotliBytes,
+        0,
+    );
+    if (
+        twinBytes > DECLARED_TWIN_BROTLI_BYTES ||
+        twins.length > DECLARED_TWIN_GROUPS
+    ) {
+        for (const twin of twins) {
+            problems.push(
+                `los chunks ${twin.names.join(" y ")} tienen la MISMA composición ` +
+                    `(${twin.fingerprint}, ${twin.modules} módulos): ` +
+                    `${twin.wastedBrotliBytes.toLocaleString("es-ES")} B brotli viajan por duplicado ` +
+                    `en la misma página`,
+            );
+        }
+        problems.push(
+            `la duplicación de chunks ÍNTEGROS sube a ${twinBytes.toLocaleString("es-ES")} B brotli en ` +
+                `${twins.length} grupo(s), por encima de los ${DECLARED_TWIN_BROTLI_BYTES.toLocaleString("es-ES")} B ` +
+                `en ${DECLARED_TWIN_GROUPS} grupo(s) ya declarados`,
+        );
+    }
+    /*
+     * LAS DOS ATADURAS DE EXTENSIÓN DE LA LÍNEA BASE. Sin ellas, el candado del
+     * delta por chunk se puede dejar en verde encogiendo el censo que recorre.
+     *
+     *  - Un chunk de la línea base que ya no aparece en el build era antes solo
+     *    una línea informativa por pantalla. Ahora falla: o el chunk se fue de
+     *    verdad (y entonces la línea base se regenera A MANO, mirando el delta)
+     *    o alguien borró su fila.
+     *  - Y el censo tiene un tamaño declarado en el propio script, así que
+     *    recortar el JSON se pone en rojo aunque el build no cambie.
+     */
+    for (const chunk of comparison.missing) {
+        problems.push(
+            `la línea base declara un chunk (${chunk.firma}, ${Number(chunk.brotli).toLocaleString("es-ES")} B brotli) ` +
+                `que el build ya no emite: el censo encogió sin revisarse`,
+        );
+    }
+    if (baseline && baseline.chunks.length !== expectedBaselineChunks) {
+        problems.push(
+            `la línea base declara ${baseline.chunks.length} chunks y el script espera ` +
+                `${expectedBaselineChunks}: el censo cambió de tamaño sin actualizar \`BASELINE_CHUNKS\``,
         );
     }
     return { comparison, problems, overBudgetBytes: over };
@@ -519,6 +695,22 @@ if (
     }
 
     console.log("—".repeat(72));
+    if (analysis.twins.length > 0) {
+        console.log(
+            `chunks GEMELOS (misma composición en la misma página): ${analysis.twins.length} ` +
+                `(deuda declarada: ${es(DECLARED_TWIN_BROTLI_BYTES)} B brotli en ${DECLARED_TWIN_GROUPS} grupo(s))`,
+        );
+        for (const twin of analysis.twins) {
+            console.log(
+                `  ${twin.names.join(" = ")} · ${twin.modules} mód · ` +
+                    `+${es(twin.wastedBrotliBytes)} B brotli redundantes`,
+            );
+        }
+    } else {
+        console.log("chunks GEMELOS: ninguno");
+    }
+
+    console.log("—".repeat(72));
     if (analysis.duplicates.length > 0) {
         console.log(
             `módulos repetidos entre chunks descargados: ${analysis.duplicates.length} ` +
@@ -574,7 +766,7 @@ if (
             : `presupuesto: NO CUMPLE — ${es(delta)} B por encima`,
     );
     if (problems.length === 0) {
-        console.log("VEREDICTO: los tres candados en verde.");
+        console.log("VEREDICTO: los seis candados en verde.");
     } else {
         console.log("VEREDICTO: FALLA —");
         for (const problem of problems) console.log(`  · ${problem}`);
