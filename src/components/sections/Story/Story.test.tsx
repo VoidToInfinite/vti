@@ -650,7 +650,7 @@ describe("Story: tarjetas de pilar (tema claro, D2)", () => {
  */
 describe("Story: contraste AA de las tarjetas de pilar sobre semantic.surface (D2/§3)", () => {
   it.each([
-    ["titulo (Typography h5, color por defecto)", "text"],
+    ["titulo (Typography h4, color por defecto)", "text"],
     ["lead / body", "textMuted"],
     ["inspiracion", "textSubtle"],
   ] as const)("%s sobre surface >= 4.5:1", (_label, semanticKey) => {

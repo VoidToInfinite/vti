@@ -639,7 +639,7 @@ export const AMBIENT = {
    * (7 s → 5,4 s en la corona del ojo), y eso es una decisión de diseño;
    * nombrar una medida repetida no lo es. Mismo criterio, y mismo precedente,
    * que el docblock de `type.scale.wordmark` deja escrito para el rótulo de
-   * marca frente a `h5`.
+   * marca frente a `h4`.
    *
    * POR QUÉ NO SE COLAPSA EN `floatMs` (9000), que es su otro vecino y donde
    * la tentación es mayor porque el ojo usa LOS DOS: son un PAR

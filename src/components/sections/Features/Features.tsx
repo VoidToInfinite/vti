@@ -326,7 +326,7 @@ const ScHeader = styled.div`
    del h2, el andamiaje más repetido del sitio. En la rama OSCURA no se pudo
    retirar porque ESE kicker ERA el <h2> de la sección (el único encabezado
    accesible que tenía), así que en vez de eso subió de overline (11px) a
-   h5 (18px) para dejar de ser más pequeño que su propio cuerpo.
+   h4 (18px) para dejar de ser más pequeño que su propio cuerpo.
 
    La Task 15 (unificación de contenido, 2026-08-11) deshace las dos
    anomalías a la vez, y no revierte la Task 11: lo que aquella retiró fue un
@@ -1082,7 +1082,7 @@ const ScCheckIcon = styled.svg<{ $key: FeatureKey }>`
  * 14px) -- el escalón de la escala tipográfica del sistema más próximo que
  * cumple el suelo de 14px del encargo (el siguiente paso, body, es 16px:
  * más lejos de los 12px de partida que bodySm). font-weight se queda en
- * h5.weight (600, sin cambios): el encargo pide un tamaño mínimo, no un
+ * h4.weight (600, sin cambios): el encargo pide un tamaño mínimo, no un
  * peso distinto, y el semibold ya venía dando la jerarquía de "acción" frente
  * al cuerpo de la tarjeta. Contraste AA verificado en Features.test.tsx,
  * describe "Task 3": el cambio de tamaño no altera el color del CTA
@@ -1110,7 +1110,7 @@ const ScCta = styled.a<{ $key: FeatureKey }>`
   min-height: ${FEATURES_CTA_MIN_HEIGHT};
   margin-block-start: ${({ theme }) => theme.data.space[1]};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
-  font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
+  font-weight: ${({ theme }) => theme.data.type.scale.h4.weight};
   color: ${({ theme, $key }) => accentColor(theme.data, $key)};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;

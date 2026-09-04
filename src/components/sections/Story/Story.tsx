@@ -1648,7 +1648,7 @@ function StoryLight(): ReactElement {
                 claro, mismo criterio que ya aplicaba el titulo de fila
                 anterior. */}
             <ScCardTitle
-              variant="h5"
+              variant="h4"
               forwardedAs="p"
             >
               {t(`Home.story.pillars.${pillar.key}.title`)}

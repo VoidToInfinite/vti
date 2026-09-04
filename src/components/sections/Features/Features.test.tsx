@@ -214,7 +214,7 @@ describe("Features", () => {
    * barra decorativa, y se muestra en las DOS ramas -- es una de las piezas
    * que la unificacion de contenido tenia que igualar, porque hasta hoy el
    * kicker existia solo en oscuro y ademas ascendido a h2. Lo que el candado
-   * protege ahora es eso: kicker presente, `overline` (11px, NO el h5 al que
+   * protege ahora es eso: kicker presente, `overline` (11px, NO el h4 al que
    * la rama oscura lo habia subido) y, sobre todo, que NO sea un encabezado.
    */
   it("Task 15/D-E: la cabecera clara abre con el kicker con voz, en overline y sin ser encabezado", () => {
@@ -1116,7 +1116,7 @@ describe("Features en tema oscuro", () => {
    * Lo que este test SUSTITUYE: hasta la Task 15, la rama oscura no tenia h2
    * propio -- el `<h2>` era el KICKER (`forwardedAs="h2"`), y la Task 11
    * (dieta de ornamento A, 2026-08-09) lo habia subido de `overline` (11px) a
-   * `h5` (18px) precisamente para que el unico encabezado de la seccion no
+   * `h4` (18px) precisamente para que el unico encabezado de la seccion no
    * fuera mas pequeno que su propio cuerpo (deuda ALTA de DESIGN.md §9). Esa
    * deuda se cierra ahora por la via de fondo, no por compensacion: la
    * seccion tiene un h2 de verdad (`ScDarkTitle`, la tesis "Tres formas de

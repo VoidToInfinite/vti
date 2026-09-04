@@ -51,7 +51,7 @@ describe("Typography", () => {
    * criterio de contrato cerrado que la regla 40 pide del recuento de
    * `type.test.ts`: los dos sitios se tocan a la vez o no se toca ninguno.
    *
-   * `h5` renderiza `<p>`, no `<h5>`: ver el docblock del hueco que dejó
+   * `h4` renderiza `<p>`, no `<h4>`: ver el docblock del hueco que dejó
    * `h5: "h5"` en `Typography.tsx` para el censo y para por qué un `<h5>`
    * bajo el `<h3>` de Features sería un salto de nivel.
    */
@@ -62,7 +62,7 @@ describe("Typography", () => {
     h2: "H2",
     h3: "H3",
     wordmark: "SPAN",
-    h5: "P",
+    h4: "P",
     deckBody: "P",
     body: "P",
     bodySm: "P",
@@ -203,7 +203,7 @@ describe("Typography", () => {
    * Sin esta mitad, borrar la interpolacion entera de `ScTypography` dejaria
    * el bloque completo en verde.
    */
-  it.each(["display", "h1", "h2", "h3", "h5"] as const)(
+  it.each(["display", "h1", "h2", "h3", "h4"] as const)(
     "critica #14: el titular %s SI conserva el equilibrado de linea",
     (variant) => {
       renderWithProviders(

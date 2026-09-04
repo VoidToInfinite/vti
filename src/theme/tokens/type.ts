@@ -22,11 +22,14 @@
  *
  * Cada una traía además su propio motivo, no solo el recuento a cero:
  *
- * - `h4` (1.25rem) y `h5` (1.125rem) están a 1,11× — un salto que `DESIGN.md`
- *   ya listaba como defecto de la escala («colapsa por abajo»). Con `h4`
- *   fuera, el salto real pasa a ser `h3`→`h5` (1.5 → 1.125rem, 1,33×), del
- *   orden del resto de la escala.
- * - `bodyLg` (1.125rem/400) coincidía EXACTAMENTE en tamaño con `h5`, la otra
+ * - El `h4` de entonces (1.25rem) y el peldaño de 1.125rem —que en aquel
+ *   momento se llamaba `h5` y desde la #18 se llama `h4`, ver más abajo—
+ *   estaban a 1,11× — un salto que `DESIGN.md` ya listaba como defecto de la
+ *   escala («colapsa por abajo»). Con aquel `h4` fuera, el salto real pasa a
+ *   ser `h3`→cuarto rango (1.5 → 1.125rem, 1,33×), del orden del resto de la
+ *   escala.
+ * - `bodyLg` (1.125rem/400) coincidía EXACTAMENTE en tamaño con el cuarto
+ *   rango, la otra
  *   mitad del mismo defecto declarado en `DESIGN.md`. Solo se alcanzaba a
  *   través del alias muerto `lead` de `Typography`, retirado en el mismo
  *   cambio.
@@ -45,57 +48,63 @@
  * PENDIENTE fuera de este fichero, declarado en vez de corregido en silencio
  * desde una tarea que no es dueña de ese documento: `DESIGN.md` sigue diciendo
  * «12 variantes» y enumerando las tres retiradas, y su lista de deuda conocida
- * sigue apuntando los dos defectos que este cambio cierra (`h4`→`h5` y
- * `h5`=`bodyLg`) más «variante `lead` sin ningún consumidor».
+ * sigue apuntando los dos defectos que aquel cambio cerró (el salto de 1,11×
+ * entre el `h4` de entonces y el cuarto rango, y la coincidencia de ese cuarto
+ * rango con `bodyLg`) más «variante `lead` sin ningún consumidor». A esa lista
+ * se suma desde la #18 que `DESIGN.md` nombra el cuarto rango por su nombre
+ * viejo, `h5`.
  *
  * ---------------------------------------------------------------------------
- * EL PELDAÑO LLAMADO `h5` ES EL CUARTO, Y ESE NOMBRE ES DEUDA — no un
- * descuido. Declarado en la crítica externa #15 (2026-09-02, hallazgo C7).
+ * EL CUARTO RANGO DE TITULAR SE LLAMA `h4`, Y ESO ES NUEVO: hasta la crítica
+ * externa #18 (2026-09-04) se llamaba `h5` — el nombre del QUINTO — y la
+ * escala mentía sobre el nivel que representaba.
  * ---------------------------------------------------------------------------
  *
- * Los peldaños con nombre de titular van hoy `h1` (2.5rem) → `h2` (2rem) →
- * `h3` (1.5rem) → `h5` (1.125rem): cuatro rangos, y el cuarto lleva el
- * nombre del quinto. Es el residuo exacto de la #14, que retiró `h4` (1.25rem)
- * por cero consumidores y por estar a 1,11× de `h5` — la retirada era
- * correcta, pero dejó el hueco en el NOMBRE en vez de correr la numeración.
+ * DE DÓNDE VENÍA. Los peldaños con nombre de titular iban `h1` (2.5rem) →
+ * `h2` (2rem) → `h3` (1.5rem) → `h5` (1.125rem): cuatro rangos, y el cuarto
+ * con el nombre del quinto. Era el residuo exacto de la #14, que retiró el
+ * `h4` de entonces (1.25rem) por cero consumidores y por estar a 1,11× del
+ * siguiente — la retirada era correcta, pero dejó el hueco en el NOMBRE en vez
+ * de correr la numeración. La #15 declaró la deuda aquí mismo, con su censo y
+ * sus seis puntos de edición, y la dejó sin ejecutar porque los consumidores
+ * vivían fuera del alcance de aquella tarea.
  *
- * CENSO propio antes de decidir (patrones `variant="h5"`, `scale.h5`,
- * `scale["h5"]`, `<h5`, `styled.h5`, `as="h5"`, sobre `src/` y `app/`, tests
- * incluidos), a HEAD `8474ea7`:
+ * QUE NO SE MUEVE NI UN PÍXEL no es una suposición heredada del docblock
+ * anterior: se volvió a medir. El censo de consumidores del peldaño (patrones
+ * `variant="…"`, `scale.…`, `scale["…"]`, `<hN`, `styled.hN`, `as="…"`, sobre
+ * `src/` y `app/`, tests incluidos) da HOY cuatro puntos, los mismos cuatro
+ * que la #15 anotó y ninguno más:
  *
- *   - `Story.tsx:1554`         `variant="h5"` -- y con `forwardedAs="p"`.
- *   - `Features.tsx:968`       `type.scale.h5.weight`.
- *   - `story.deck.tsx:711-713` `weight` / `lineHeight` / `tracking`.
- *   - `journey.deck.tsx:695`   `tracking`.
+ *   - `Story.tsx`        `variant="h4"` -- y con `forwardedAs="p"`.
+ *   - `Features.tsx`     `type.scale.h4.weight`.
+ *   - `story.deck.tsx`   `weight` / `lineHeight` / `tracking`.
+ *   - `journey.deck.tsx` `tracking`.
  *
- * Resultado: NINGUNO depende semánticamente de un `<h5>` real. El único que
- * pasa por `Typography` fuerza el `<p>` a propósito, y los otros tres leen
- * propiedades sueltas dentro de sus propias piezas styled. Medido en el árbol
- * entero: el sitio no renderiza ni un `<h5>`, así que renombrar el peldaño no
- * moldea ni un píxel — es un cambio de vocabulario puro.
+ * Ninguno depende semánticamente de un `<h5>` real: el único que pasa por
+ * `Typography` fuerza el `<p>` a propósito, y los otros tres leen propiedades
+ * sueltas dentro de sus propias piezas styled. El sitio no renderiza ni un
+ * `<h5>`, así que el rename es un cambio de VOCABULARIO puro — cambia lo que
+ * el peldaño se llama, no lo que pinta.
  *
- * POR QUÉ EL RENAME NO SE EJECUTA AQUÍ, y qué exige exactamente: los cuatro
- * consumidores viven en `src/components/sections/`, fuera del alcance de la
- * tarea que escribe esta nota, y esta ola tiene cinco sesiones editando el
- * MISMO árbol de trabajo. Renombrar la clave sin tocarlos deja `pnpm
- * typecheck` en rojo para todas ellas a la vez (`scale.h5` deja de existir y
- * `variant="h5"` deja de tipar). Los cuatro puntos de edición son los del
- * censo de arriba, más `Typography.tsx` (su tabla de elemento por defecto) y
- * los dos contratos cerrados de `type.test.ts` (`toEqual` y la lista de
- * titulares). Es un rename mecánico de seis ficheros, no un rediseño.
+ * EL ELEMENTO POR DEFECTO SIGUE SIN ENTRADA EN EL MAPA de `Typography`, y eso
+ * es una decisión de esta revisión, no un olvido. El docblock que retiró
+ * `h5: "h5"` en la #15 dejó escrito que «el día que ese rename ocurra, la
+ * decisión se vuelve a tomar CON la estructura de encabezados delante, y
+ * entonces sí hay respuesta correcta, porque `<h4>` es el nivel que sigue al
+ * `<h3>` de las tarjetas de Features». Se ha tomado: aquel default se retiró
+ * por DOS motivos —prometía un salto de nivel Y no lo ejercía ningún
+ * consumidor— y el rename cierra el primero pero no el segundo. Su único
+ * consumidor de JSX sigue pasando `forwardedAs="p"` a propósito, así que una
+ * entrada `h4: "h4"` nacería sin ejercerse: exactamente la hoja sin consumidor
+ * que esta misma ola está podando en otras escalas. Lo que la añadiría es
+ * concreto y está escrito para que no haya que deducirlo: el primer
+ * `<Typography variant="h4">` sin `as`, que hoy cae al `?? "p"`.
  *
- * LO QUE SÍ SE CIERRA en esta revisión, porque es la mitad que hace daño:
- * `Typography` ya NO mapea este peldaño a un `<h5>` real. Un `<h5>` colgando
- * de la estructura real del sitio (`h1` → `h2` → `h3`) es un salto de nivel;
- * el docblock del hueco que dejó esa entrada, en `Typography.tsx`, lleva el
- * razonamiento completo. Queda el nombre, que no rompe nada — solo miente.
- *
- * Y NO SE RELLENA EL HUECO CON UN `h4` NUEVO, que es la otra salida posible:
- * sería revertir a los tres días una decisión de la #14 tomada con su censo y
- * su medición escritos (1,11× de salto, cero consumidores) sin que haya
- * aparecido ni un consumidor ni una razón nueva. El criterio de este fichero
- * no cambia por la incomodidad de un nombre: un peldaño existe si dice algo
- * que la escala no decía ya.
+ * NO SE RELLENA NINGÚN HUECO CON UN PELDAÑO NUEVO. El rename corre la
+ * numeración, no reabre la decisión de la #14: sigue sin haber un rango entre
+ * `h3` (1.5rem) y este (1.125rem), y el salto real de la escala sigue siendo
+ * 1,33×, del orden del resto. Un peldaño existe si dice algo que la escala no
+ * decía ya.
  */
 export type TypeVariant =
   | "deckClosing"
@@ -104,7 +113,7 @@ export type TypeVariant =
   | "h2"
   | "h3"
   | "wordmark"
-  | "h5"
+  | "h4"
   | "deckBody"
   | "body"
   | "bodySm"
@@ -274,12 +283,12 @@ export const type = {
      * `LanguageSelector`, `1rem` de `Footer` y de `Journey`) sí, y su arreglo
      * es leer el peldaño que ya existía.
      *
-     * POR QUÉ NO ES `h5`, aunque estén a 1,02× (1.15rem = 18,4px frente a
+     * POR QUÉ NO ES `h4`, aunque estén a 1,02× (1.15rem = 18,4px frente a
      * 1.125rem = 18px). No es un rango de TITULAR: es el rótulo de la marca,
      * y el sistema ya distingue exactamente así en otra escala — `grid.navMax`
      * (1280px) frente a `grid.containerMax` (1200px), «magnitudes con
      * propósitos distintos, que deben poder divergir sin arrastrarse la una a
-     * la otra». Meterlo en `h5` ataría el rótulo de la cabecera al cuarto
+     * la otra». Meterlo en `h4` ataría el rótulo de la cabecera al cuarto
      * rango de titular de los documentos: recalibrar uno movería el otro sin
      * que nadie lo pidiera, y en la dirección contraria un ajuste de marca
      * retocaría los títulos de tarjeta de Story y de Features. Fundirlos
@@ -310,25 +319,26 @@ export const type = {
       tracking: "0.02em",
     },
     /**
-     * EL CUARTO RANGO DE TITULAR. Su nombre es deuda declarada (ver el
-     * docblock de `TypeVariant`, arriba); esta entrada documenta otra cosa: un
-     * hallazgo de la crítica externa #17 (2026-09-03) que se midió y resultó
-     * FALSO, y que conviene dejar escrito para que la próxima ronda no lo
-     * vuelva a levantar.
+     * EL CUARTO RANGO DE TITULAR, y desde la crítica externa #18 (2026-09-04)
+     * también el cuarto por su NOMBRE: hasta esa fecha se llamaba `h5` y el
+     * docblock de `TypeVariant`, arriba, lleva el porqué del rename. Esta
+     * entrada documenta otra cosa: un hallazgo de la crítica externa #17
+     * (2026-09-03) que se midió y resultó FALSO, y que conviene dejar escrito
+     * para que la próxima ronda no lo vuelva a levantar.
      *
-     * EL HALLAZGO: «`h5.size` tiene CERO consumidores mientras `h5.weight`,
-     * `h5.lineHeight` y `h5.tracking` suman seis en tres ficheros». La primera
+     * EL HALLAZGO: «`size` tiene CERO consumidores mientras `weight`,
+     * `lineHeight` y `tracking` suman seis en tres ficheros». La primera
      * mitad de la frase es CIERTA como recuento textual y se reproduce igual
-     * hoy: la cadena `scale.h5.size` no aparece ni una vez en `src/` ni en
+     * hoy: la cadena `scale.h4.size` no aparece ni una vez en `src/` ni en
      * `app/`, mientras las otras tres propiedades sí (`Features.tsx` lee
      * `weight`; `story.deck.tsx`, las tres; `journey.deck.tsx`, `tracking`).
      *
      * POR QUÉ LA CONCLUSIÓN NO SE SIGUE: `ScTypography` (`Typography.tsx`) no
      * lee las propiedades por su nombre, lee el peldaño POR ÍNDICE —
      * `theme.data.type.scale[$variant].size`, y lo mismo para las otras tres—,
-     * así que un `<Typography variant="h5">` consume las CUATRO de golpe sin
+     * así que un `<Typography variant="h4">` consume las CUATRO de golpe sin
      * escribir ninguna. Y hay uno: `ScCardTitle`, el título de las cuatro
-     * tarjetas de pilar de Story (`Story.tsx`), que pasa `variant="h5"` con
+     * tarjetas de pilar de Story (`Story.tsx`), que pasa `variant="h4"` con
      * `forwardedAs="p"`.
      *
      * MEDIDO EN NAVEGADOR REAL, no deducido del código — servidor de
@@ -355,7 +365,7 @@ export const type = {
      * vivos. Dos escalas, dos unidades de censo, y la diferencia es cómo las
      * lee el código, no una preferencia.
      */
-    h5: { size: "1.125rem", weight: 600, lineHeight: 1.35, tracking: "0" },
+    h4: { size: "1.125rem", weight: 600, lineHeight: 1.35, tracking: "0" },
     /**
      * CUERPO DE LECTURA dentro de una diapositiva a sangre completa: el
      * párrafo que acompaña al elemento dominante de la diapositiva, no el
@@ -372,7 +382,7 @@ export const type = {
      * invariante que vivía en la memoria de quien escribió los dos ficheros,
      * que es justo lo que la regla 13 de `RULES.md` manda convertir en token.
      *
-     * POR QUÉ NO ES `body`, y por eso ocupa un peldaño propio entre `h5` y
+     * POR QUÉ NO ES `body`, y por eso ocupa un peldaño propio entre `h4` y
      * `body`: `body` es 1rem fijo y esto es un tramo FLUIDO que crece hasta
      * 1.115rem con el ancho del viewport. Comparten el suelo —el mínimo del
      * `clamp()` es exactamente `body.size`, y es deliberado: por debajo del

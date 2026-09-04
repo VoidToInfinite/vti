@@ -723,7 +723,7 @@ const ScStepBody = styled(Typography)`
  * `grid.navMax` a `grid.sectionMax` de la critica #12 (ver ScJourney, arriba).
  *
  * El `font-weight: 600` se queda como literal a proposito: no coincide con el
- * peso de la variante `body` (400) que da el tamano, sino con el de `h5`, y
+ * peso de la variante `body` (400) que da el tamano, sino con el de `h4`, y
  * emparejar el tamano de un rol con el peso de otro por el nombre del token
  * seria peor documentacion que el numero. El hallazgo nombra `font-size`.
  */

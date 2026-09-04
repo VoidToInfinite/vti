@@ -630,7 +630,7 @@ function stepColor(
  * cuyo ROL sustituye cada pieza (documentado pieza a pieza mas abajo), SALVO
  * donde el propio docblock de la pieza declare una excepcion explicita:
  * ScJourneyStepLabel y ScJourneyQuote toman su font-weight de una constante
- * PROPIA (900), no del token h5/600 que sustituyen -- excepcion deliberada a
+ * PROPIA (900), no del token h4/600 que sustituyen -- excepcion deliberada a
  * type.scale (se detiene en 800), spec 2026-08-02-journey-deck-tipografia-
  * design.md, T3/T6. La UNICA excepcion de COLOR -- ScJourneyStepIconBox, que
  * SI toma el color de la rampa del paso en vez de semantic.text -- sigue el
@@ -736,19 +736,19 @@ export const ScJourneyStepIconBox = styled.span<{
  * pilar de Story (tope 3rem) a ser el elemento DOMINANTE de la diapositiva
  * (tope 11rem, literal del encargo -- ver el docblock de la constante en
  * journey.layers.ts para lo medido sobre en que viewport se alcanza el
- * tope). El peso deja de seguir el token h5 (600) y pasa a
+ * tope). El peso deja de seguir el token h4 (600) y pasa a
  * JOURNEY_DECK_STEP_LABEL_WEIGHT (900, constante propia y no un token --
  * type.scale se detiene en 800, ver su docblock).
  *
  * line-height CAMBIADO, y esto NO lo pide el encargo -- hay que explicarlo:
- * type.scale.h5.lineHeight vale 1.35, un factor UNITLESS, y a 11rem eso
+ * type.scale.h4.lineHeight vale 1.35, un factor UNITLESS, y a 11rem eso
  * resuelve a ~14.9rem de caja de linea para una palabra de una sola linea --
  * unos 4rem de aire muerto que empujarian el subtitulo fuera de la
  * composicion. Es el MISMO problema y la MISMA solucion que ScDeckNote
  * (story.deck.tsx) ya documento al subir a 8rem: se reutiliza
  * type.scale.display.lineHeight (1.03), el valor ya calibrado del sistema
  * para texto de cartel, en vez de inventar un numero nuevo para esta pieza.
- * letter-spacing SIGUE el de h5 -- no hay motivo medido para cambiarlo.
+ * letter-spacing SIGUE el de h4 -- no hay motivo medido para cambiarlo.
  *
  * margin-block-start SUBIDO de space[2] a space[4] (2026-08-02, al retirar
  * ScJourneyStepNumber junto con la numeracion de esta rama): NO es un
@@ -769,7 +769,7 @@ export const ScJourneyStepLabel = styled.p`
   font-size: ${JOURNEY_DECK_STEP_LABEL_SIZE};
   font-weight: ${JOURNEY_DECK_STEP_LABEL_WEIGHT};
   line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
-  letter-spacing: ${({ theme }) => theme.data.type.scale.h5.tracking};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.h4.tracking};
   margin-block-start: ${({ theme }) => theme.data.space[4]};
 `;
 

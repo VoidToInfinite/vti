@@ -786,7 +786,7 @@ export const ScScrollHint = styled.p`
  * fija `font-family: type.fontBody` y `color: semantic.text` igual para las
  * doce variantes de la escala -- no hay "familia de titular" distinta de
  * "familia de cuerpo" que inventar). Peso/interlineado/tracking si seguian
- * la variante concreta que cada pieza sustituye (h2/h5/body/bodySm), para
+ * la variante concreta que cada pieza sustituye (h2/h4/body/bodySm), para
  * conservar el mismo ritmo visual que ya tenian: en esta entrega solo el
  * TAMANO es nuevo (las cinco constantes de story.layers.ts).
  */
@@ -824,19 +824,19 @@ export const ScDeckIntroBody = styled.p`
 
 /*
  * Titulo de la diapositiva de pilar (`01 --`..`04 --` + nombre): antes
- * `Typography variant="h5" as="p"` en Story.tsx. Se mantiene como `<p>`, no
- * `<h3>`/`<h5>`: el `h2#story-title` de la diapositiva de intro es el UNICO
+ * `Typography variant="h4" as="p"` en Story.tsx. Se mantiene como `<p>`, no
+ * `<h3>`/`<h4>`: el `h2#story-title` de la diapositiva de intro es el UNICO
  * encabezado accesible de la seccion entera (regla dura de la Task 2).
- * Peso/interlineado/tracking de h5 se conservan tal cual; solo el tamano
+ * Peso/interlineado/tracking de h4 se conservan tal cual; solo el tamano
  * crece a STORY_DECK_PILLAR_TITLE_SIZE (encargo: 3rem en pantallas grandes).
  */
 export const ScDeckPillarTitle = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
   color: ${({ theme }) => theme.data.semantic.text};
   font-size: ${STORY_DECK_PILLAR_TITLE_SIZE};
-  font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
-  line-height: ${({ theme }) => theme.data.type.scale.h5.lineHeight};
-  letter-spacing: ${({ theme }) => theme.data.type.scale.h5.tracking};
+  font-weight: ${({ theme }) => theme.data.type.scale.h4.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.h4.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.h4.tracking};
 `;
 
 /*

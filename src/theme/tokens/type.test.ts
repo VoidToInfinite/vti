@@ -48,7 +48,7 @@ describe("type tokens", () => {
         lineHeight: 1.2,
         tracking: "0.02em",
       },
-      h5: {
+      h4: {
         size: "1.125rem",
         weight: 600,
         lineHeight: 1.35,
@@ -156,34 +156,50 @@ describe("type tokens", () => {
   });
 
   /*
-   * FORMA de la escala de titulares, NUEVO con la crítica externa #15
-   * (2026-09-02, hallazgo C7). El `toEqual` de arriba canda los VALORES uno a
-   * uno, pero no dice nada de la propiedad que hace que una escala sea una
-   * escala: que sus rangos de titular estén ordenados y no se solapen.
+   * FORMA de la escala de titulares. Nació con la crítica externa #15
+   * (2026-09-02, hallazgo C7) como REGISTRO de un defecto: la lista era
+   * `["h1", "h2", "h3", "h5"]` —cuatro rangos y el cuarto con el nombre del
+   * quinto, residuo de la retirada del `h4` de entonces en la #14— y el
+   * `toEqual` existía para obligar a pasar por aquí el día que alguien
+   * ejecutara el rename. La #18 (2026-09-04) lo ejecutó, así que la lista
+   * pasa a ser lo que afirma, y no lo que denuncia.
    *
-   * La lista literal `["h1", "h2", "h3", "h5"]` es el REGISTRO del hallazgo,
-   * no su bendición: son cuatro rangos y el cuarto lleva el nombre del
-   * quinto, residuo de la retirada de `h4` en la #14. El docblock de
-   * `TypeVariant` lleva el censo de consumidores y los seis puntos de edición
-   * que exige el rename; este `toEqual` es lo que obliga a pasar por aquí el
-   * día que alguien lo ejecute — o el día que alguien intente rellenar el
-   * hueco con un `h4` nuevo sin leer por qué se retiró.
+   * EL CANDADO NUEVO ES LA CONTIGÜIDAD, y es la mitad que faltaba: el
+   * `toEqual` de arriba canda los VALORES y este canda la FORMA, pero ninguno
+   * de los dos decía nada del defecto real que se pagó durante cuatro rondas
+   * —que la escala tuviera un HUECO en la numeración—. `["h1","h2","h3","h5"]`
+   * pasaba en verde los dos tests que existían: está ordenada, no tiene
+   * empates y su `toEqual` se actualiza sin más. Lo que ninguno miraba es que
+   * el enésimo rango se llamara `hN`. Un salto en la numeración de una escala
+   * de titulares no es cosmético: es la escala mintiendo sobre el nivel que
+   * representa, y quien la lea elegirá el elemento equivocado.
    *
-   * El orden descendente y la ausencia de empates SÍ son invariantes de
-   * diseño y sobreviven al rename: dos peldaños de titular al mismo tamaño
-   * son dos nombres para un estilo (el defecto que la #14 pagó con `h5` =
-   * `bodyLg`), y un orden roto es una escala que ya no se lee como una
-   * escalera.
+   * El orden descendente y la ausencia de empates siguen siendo invariantes
+   * de diseño: dos peldaños de titular al mismo tamaño son dos nombres para
+   * un estilo (el defecto que la #14 pagó con el cuarto rango = `bodyLg`), y
+   * un orden roto es una escala que ya no se lee como una escalera.
    */
-  it("los rangos de titular descienden en tamaño, sin empates, y hoy NO hay h4", () => {
+  it("los rangos de titular descienden en tamaño y sin empates", () => {
     const titulares = Object.keys(typo.scale).filter((k) => /^h\d$/.test(k));
-    expect(titulares).toEqual(["h1", "h2", "h3", "h5"]);
+    expect(titulares).toEqual(["h1", "h2", "h3", "h4"]);
 
     const tamanos = titulares.map((k) =>
       parseFloat(typo.scale[k as keyof typeof typo.scale].size),
     );
     expect(tamanos).toEqual([...tamanos].sort((a, b) => b - a));
     expect(new Set(tamanos).size).toBe(tamanos.length);
+  });
+
+  it("la numeración de los titulares es CONTIGUA desde h1, sin huecos", () => {
+    const niveles = Object.keys(typo.scale)
+      .filter((k) => /^h\d$/.test(k))
+      .map((k) => Number(k.slice(1)))
+      .sort((a, b) => a - b);
+
+    expect(
+      niveles,
+      "la escala de titulares tiene un hueco en la numeración: el enésimo rango no se llama hN, así que miente sobre el nivel que representa",
+    ).toEqual(niveles.map((_, i) => i + 1));
   });
 
   /*
@@ -212,14 +228,14 @@ describe("type tokens", () => {
  * bloque convierte ese censo en una aserción que corre en cada `pnpm test`.
  *
  * MIDE POR PELDAÑO, NO POR CAMPO, y esa es la decisión de fondo. El hallazgo
- * que abrió esta revisión decía que `h5.size` tenía cero consumidores frente
- * a seis de `h5.weight`/`lineHeight`/`tracking`; el recuento textual es
+ * que abrió esta revisión decía que `h4.size` tenía cero consumidores frente
+ * a seis de `h4.weight`/`lineHeight`/`tracking`; el recuento textual es
  * exacto y la conclusión es falsa, porque `ScTypography` lee el peldaño POR
  * ÍNDICE (`theme.data.type.scale[$variant].size`) y consume sus cuatro
  * propiedades de una vez. Medido en navegador real: los títulos de las
- * tarjetas de pilar de Story pintan 18px / 24.3px, que son `h5.size` y
- * `h5.lineHeight`. Un censo por CAMPO sobre esta escala declararía muerto
- * justo lo que se está pintando. El docblock de `h5` en `type.ts` lleva la
+ * tarjetas de pilar de Story pintan 18px / 24.3px, que son `h4.size` y
+ * `h4.lineHeight`. Un censo por CAMPO sobre esta escala declararía muerto
+ * justo lo que se está pintando. El docblock de `h4` en `type.ts` lleva la
  * medición completa.
  *
  * Es la unidad de censo CONTRARIA a la de `vocabulary-consumers.test.ts`, y
@@ -230,14 +246,14 @@ describe("type tokens", () => {
  * DOS VÍAS DE CONSUMO, porque las dos son reales y ninguna sola basta:
  * `scale.<peldaño>` (la pieza styled que lee propiedades sueltas) y
  * `variant="<peldaño>"` (el consumidor que pasa por `Typography`). Con solo
- * la primera, `Story.tsx` desaparecería y `h5` daría cero; con solo la
+ * la primera, `Story.tsx` desaparecería y `h4` daría cero; con solo la
  * segunda, `deckClosing` y `deckBody` —que nadie pasa por `Typography`—
  * darían cero. Ningún fichero de producción pasa `variant` desde una
  * variable, verificado por grep, así que el censo estático los ve a todos.
  *
  * Comentarios DESPOJADOS antes de buscar, por la lección del repo
  * (`task/lessons.md`, 2026-08-11): los docblocks de este mismo fichero y los
- * de `type.ts` CITAN `scale.h5` y `variant="h5"` en prosa para explicar el
+ * de `type.ts` CITAN `scale.h4` y `variant="h4"` en prosa para explicar el
  * hallazgo, y sin despojarlos esas citas bastarían para que el candado
  * pasara sin que el código consumiera nada. El guard `(?<!:)` evita truncar
  * una línea por el `//` de una URL dentro de un string, mismo criterio y
@@ -294,7 +310,7 @@ describe("cada peldaño de la escala tiene consumidor real (crítica externa #17
   it("sonda positiva: el censo ve las dos vías de consumo", () => {
     expect(ficheros.length).toBeGreaterThan(50);
     // vía `variant="..."`, la única de este peldaño
-    expect(consumidoresDe("h5")).toContain(
+    expect(consumidoresDe("h4")).toContain(
       "src/components/sections/Story/Story.tsx",
     );
     // vía `scale....`, la única de este otro
