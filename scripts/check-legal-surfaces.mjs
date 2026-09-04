@@ -23,7 +23,7 @@
  * sistema activas. Lo que nadie ha medido es lo que aparece como hallazgo nuevo
  * en la ronda siguiente.
  *
- * QUE MIDE, y por que en navegador y no en la suite. Las doce familias de abajo
+ * QUE MIDE, y por que en navegador y no en la suite. Las catorce familias de abajo
  * dependen de layout real, de pintado real y de media queries reales: jsdom no
  * hace ninguna de las tres (regla 36 y 44 de RULES.md). Un test de Vitest puede
  * afirmar que una declaracion existe; solo un navegador puede decir que el
@@ -35,7 +35,7 @@
  * necesitar un `out/`. Lo que SI corre en el gate es
  * `scripts/check-legal-surfaces.test.mjs`, que importa este fichero y afirma
  * que su cobertura no se ha vaciado en silencio: las seis superficies, los dos
- * idiomas, los dos documentos, el barrido completo de anchos y las doce
+ * idiomas, los dos documentos, el barrido completo de anchos y las catorce
  * familias. Un candado de navegador al que alguien le borra media lista de
  * rutas sigue saliendo verde; ese es justo el fallo que el repo ya pago dos
  * veces con candados que pasaban por vacuidad.
@@ -57,21 +57,30 @@
  * `0226846` servido (Chrome, 1440x900, temas oscuro y claro; veredicto CUMPLE,
  * codigo de salida 0 en los dos temas):
  *
- *   /privacidad       status=200 lang=es tocLinks=14 stops=28 tocCovered=0 animaciones=0/24 anchos=12/12
- *   /en/privacy       status=200 lang=en tocLinks=14 stops=28 tocCovered=0 animaciones=0/24 anchos=12/12
- *   /aviso-legal      status=200 lang=es tocLinks=15 stops=28 tocCovered=0 animaciones=0/24 anchos=12/12
- *   /en/legal-notice  status=200 lang=en tocLinks=15 stops=28 tocCovered=0 animaciones=0/24 anchos=12/12
- *   404 (es)          status=404 lang=es tocLinks=0  stops=13                animaciones=0/30 anchos=12/12
- *   404 (en)          status=404 lang=en tocLinks=0  stops=13                animaciones=0/30 anchos=12/12
+ *   /privacidad       tocLinks=14 stops=28 tocCovered=0 disclosure=true->false hoja=dialog/0 escapes animaciones=0/24 anchos=12/12
+ *   /en/privacy       tocLinks=14 stops=28 tocCovered=0 disclosure=true->false hoja=dialog/0 escapes animaciones=0/24 anchos=12/12
+ *   /aviso-legal      tocLinks=15 stops=28 tocCovered=0 disclosure=true->false hoja=dialog/0 escapes animaciones=0/24 anchos=12/12
+ *   /en/legal-notice  tocLinks=15 stops=28 tocCovered=0 disclosure=true->false hoja=dialog/0 escapes animaciones=0/24 anchos=12/12
+ *   404 (es)          tocLinks=0  stops=13              disclosure=true->false hoja=dialog/0 escapes animaciones=0/30 anchos=12/12
+ *   404 (en)          tocLinks=0  stops=13              disclosure=true->false hoja=dialog/0 escapes animaciones=0/30 anchos=12/12
+ *
+ * (las cuatro legales responden 200 y las dos ultimas 404; `lang` sale `es` en
+ * las castellanas y `en` en las inglesas, y el `sinJs` de las seis trae 16
+ * enlaces de cabecera con 10.969 / 10.315 / 5.961 / 5.725 / 67 / 67 caracteres
+ * de cuerpo.)
  *
  * `stops` cuenta las paradas DISTINTAS antes de cerrar el ciclo (la repeticion
  * que lo cierra no se cuenta), con anillo de foco visible en todas y sin una
  * sola trampa. `tocCovered=0`: ninguno de los 14 y 15 destinos del indice queda
  * bajo la barra fija -- medido aparte, su `h2` aterriza en top 88 px (el
- * primero) o 137 px con la barra terminando en 64. `animaciones=0/24` se lee
- * "cero vivas con la preferencia activa, 24 corriendo sin ella": el segundo
- * numero es la sonda que impide que el cero signifique "no habia nada que
- * parar". Cero controles invisibles bajo `forced-colors: active` en las seis.
+ * primero) o 137 px con la barra terminando en 64. `disclosure=true->false` es
+ * el `aria-expanded` del desplegable «Mas» antes y despues de Escape, con el
+ * foco devuelto a su disparador; `hoja=dialog/0 escapes`, la hoja movil a 390 px
+ * abriendo como dialogo con nombre y sin que el foco salga de ella en 25
+ * tabulaciones. `animaciones=0/24` se lee "cero vivas con la preferencia activa,
+ * 24 corriendo sin ella": el segundo numero es la sonda que impide que el cero
+ * signifique "no habia nada que parar". Cero controles invisibles bajo
+ * `forced-colors: active` en las seis.
  *
  * `lang` en las dos rutas inglesas es el del DOM VIVO. El HTML horneado sirve
  * `lang="es"` en las seis rutas: es un limite conocido y declarado de
@@ -131,9 +140,9 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las doce familias que este script comprueba. La lista es el CONTRATO del
+ * Las catorce familias que este script comprueba. La lista es el CONTRATO del
  * candado: el test companero exige que ninguna desaparezca, porque un script que
- * mide once cosas y dice medir doce es peor que uno que no existe.
+ * mide trece cosas y dice medir catorce es peor que uno que no existe.
  */
 export const CHECKS = [
     "recorrido-teclado",
@@ -144,6 +153,8 @@ export const CHECKS = [
     "aria-sin-referencias-colgantes",
     "landmarks-con-nombre",
     "aterrizaje-del-indice",
+    "disclosure-escape-y-foco",
+    "hoja-movil-escape-y-foco",
     "reduced-motion",
     "forced-colors",
     "responsive-sin-desbordamiento",
@@ -384,6 +395,110 @@ async function recorrerConTeclado(page, maxStops = 120) {
     };
 }
 
+/**
+ * El desplegable Â«MasÂ» de la barra ancha: abre, Escape cierra y el foco vuelve
+ * al disparador.
+ *
+ * El contrato del componente lo canda `Navbar.test.tsx`; lo que NADIE
+ * comprobaba, y es el hueco que declaro el evaluador, es que ese contrato se
+ * cumple SOBRE ESTAS TRES SUPERFICIES -- que montan el Navbar completo desde la
+ * ola M sin que ningun recorrido lo hubiera vuelto a mirar aqui.
+ */
+async function medirDisclosure(page) {
+    const objetivo = await page.evaluate(() =>
+        [...document.querySelectorAll("header button[aria-expanded]")]
+            .filter((b) => b.getBoundingClientRect().width > 0)
+            .map((b) => ({
+                id: b.id,
+                controls: b.getAttribute("aria-controls"),
+            }))
+            .find((b) => b.id && b.controls),
+    );
+    if (!objetivo) return { ausente: true };
+
+    await page.click(`header button[id="${objetivo.id}"]`);
+    await page.waitForTimeout(400);
+    const abierto = await page.evaluate((o) => {
+        const boton = document.getElementById(o.id);
+        const panel = document.getElementById(o.controls);
+        return {
+            expanded: boton.getAttribute("aria-expanded"),
+            panelExiste: !!panel,
+            panelInerte: panel ? panel.hasAttribute("inert") : null,
+        };
+    }, objetivo);
+
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(400);
+    const cerrado = await page.evaluate((o) => {
+        const boton = document.getElementById(o.id);
+        return {
+            expanded: boton.getAttribute("aria-expanded"),
+            focoDevuelto: document.activeElement === boton,
+        };
+    }, objetivo);
+
+    return { ausente: false, abierto, cerrado };
+}
+
+/**
+ * La hoja movil: abre como dialogo con nombre, atrapa el foco mientras esta
+ * abierta, Escape la cierra y devuelve el foco al disparador.
+ */
+async function medirHojaMovil(page) {
+    const trigger = await page.evaluate(() => {
+        const boton = document.querySelector("[data-nav-sheet-trigger] button");
+        if (!boton || boton.getBoundingClientRect().width === 0) return null;
+        return { id: boton.id, controls: boton.getAttribute("aria-controls") };
+    });
+    if (!trigger) return { ausente: true };
+
+    await page.click("[data-nav-sheet-trigger] button");
+    await page.waitForTimeout(600);
+    const abierto = await page.evaluate((t) => {
+        const hoja = document.getElementById(t.controls);
+        return {
+            expanded: document
+                .getElementById(t.id)
+                .getAttribute("aria-expanded"),
+            role: hoja?.getAttribute("role") ?? null,
+            nombre: hoja?.getAttribute("aria-label") ?? null,
+            visible: hoja ? getComputedStyle(hoja).visibility : null,
+        };
+    }, trigger);
+
+    /* Foco atrapado: 25 tabulaciones sin salir de la hoja. Con `aria-modal`
+       declarado, que el foco se escapara al fondo seria declarar una cosa y
+       hacer la contraria. */
+    let escapes = 0;
+    for (let i = 0; i < 25; i++) {
+        await page.keyboard.press("Tab");
+        const dentro = await page.evaluate((t) => {
+            const hoja = document.getElementById(t.controls);
+            return (
+                !!hoja &&
+                !!document.activeElement &&
+                hoja.contains(document.activeElement)
+            );
+        }, trigger);
+        if (!dentro) escapes += 1;
+    }
+
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(600);
+    const cerrado = await page.evaluate((t) => {
+        const boton = document.getElementById(t.id);
+        const hoja = document.getElementById(t.controls);
+        return {
+            expanded: boton.getAttribute("aria-expanded"),
+            inerte: hoja ? hoja.hasAttribute("inert") : null,
+            focoDevuelto: document.activeElement === boton,
+        };
+    }, trigger);
+
+    return { ausente: false, abierto, escapes, cerrado };
+}
+
 /** Aterrizaje de cada destino del indice: ninguno puede quedar bajo la barra. */
 async function medirAterrizajeDelIndice(page, hrefs) {
     const covered = [];
@@ -499,6 +614,65 @@ async function auditarSuperficie(browser, base, theme, surface) {
                 `${tapados.length} destino(s) del indice aterrizan bajo la barra fija (banda ~${NAV_BAND_PX} px): ${tapados
                     .map((t) => t.href)
                     .join(", ")}`,
+            );
+    }
+    // [check: disclosure-escape-y-foco]
+    const disclosure = await medirDisclosure(page);
+    if (disclosure.ausente) {
+        fallos.push(
+            "no hay ningun disparador con aria-expanded visible en la cabecera: la sonda del desplegable seria vacua",
+        );
+    } else {
+        datos.disclosure = `${disclosure.abierto.expanded}->${disclosure.cerrado.expanded}`;
+        if (disclosure.abierto.expanded !== "true")
+            fallos.push("el desplegable Â«MasÂ» no llega a declararse abierto");
+        if (!disclosure.abierto.panelExiste)
+            fallos.push(
+                "el aria-controls del desplegable no apunta a ningun panel",
+            );
+        if (disclosure.cerrado.expanded !== "false")
+            fallos.push("Escape no cierra el desplegable Â«MasÂ»");
+        if (!disclosure.cerrado.focoDevuelto)
+            fallos.push(
+                "al cerrar el desplegable con Escape el foco no vuelve a su disparador",
+            );
+    }
+    await ctx.close();
+
+    // --- hoja movil, al ancho en el que la barra la entrega de verdad
+    ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: 390, height: 844 },
+    });
+    page = await ctx.newPage();
+    await page.goto(url, { waitUntil: "networkidle" });
+    await page.waitForTimeout(400);
+    // [check: hoja-movil-escape-y-foco]
+    const hoja = await medirHojaMovil(page);
+    if (hoja.ausente) {
+        fallos.push(
+            "a 390 px no hay disparador de hoja movil visible: la sonda seria vacua",
+        );
+    } else {
+        datos.hoja = `${hoja.abierto.role ?? "sin rol"}/${hoja.escapes} escapes`;
+        if (hoja.abierto.expanded !== "true")
+            fallos.push("la hoja movil no llega a declararse abierta");
+        if (hoja.abierto.role !== "dialog")
+            fallos.push(
+                `la hoja movil no es un dialogo (role=${hoja.abierto.role})`,
+            );
+        if (!hoja.abierto.nombre)
+            fallos.push("la hoja movil se abre sin nombre accesible");
+        if (hoja.escapes > 0)
+            fallos.push(
+                `el foco se escapa de la hoja movil ${hoja.escapes} vez/veces en 25 tabulaciones pese a su aria-modal`,
+            );
+        if (hoja.cerrado.expanded !== "false")
+            fallos.push("Escape no cierra la hoja movil");
+        if (hoja.cerrado.inerte !== true)
+            fallos.push("la hoja movil cerrada no vuelve a quedar inerte");
+        if (!hoja.cerrado.focoDevuelto)
+            fallos.push(
+                "al cerrar la hoja con Escape el foco no vuelve a su disparador",
             );
     }
     await ctx.close();
