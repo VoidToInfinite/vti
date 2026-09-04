@@ -140,6 +140,71 @@ describe("storyCosmicBeing AVIF", () => {
     }
   });
 
+  /*
+   * ANCLA DE PESO DEL ARTE (crítica externa #18, ola O+P).
+   *
+   * EL DEFECTO QUE ATRAPA no es de bytes, es de PROCEDENCIA. El docblock de
+   * `storyCosmicBeingAvifSrcSet` declara cifras medidas sobre ESTE arte -- el
+   * peso de las veinte pistas aditivas, y un PSNR de la escena compuesta -- y
+   * durante una ola entera una de esas cifras (47,86 dB) describió algo que no
+   * se podía reproducir: re-medida por dos caminos independientes da 44,52 dB.
+   * Nada avisó, porque nada ataba el texto al arte.
+   *
+   * Este candado ata lo único que se puede comprobar en el gate sin decodificar
+   * AVIF: los bytes exactos. Si alguien vuelve a codificar la escena, se pone
+   * en rojo y obliga a re-medir el docblock en vez de dejarlo describiendo un
+   * arte que ya no existe. Es el mismo criterio de "ancla de contenido" que usa
+   * `scripts/detect-anti-patterns.mjs`: no impide el cambio, impide que pase
+   * inadvertido.
+   *
+   * Las cifras NO se teclean sueltas: son las que el propio docblock declara,
+   * y la suma por pista se comprueba contra el desglose, de modo que una
+   * aritmética que no cuadre también cae.
+   */
+  it("las veinte pistas aditivas pesan lo que el docblock declara medido", async () => {
+    const { statSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const publicDir = join(
+      dirname(fileURLToPath(import.meta.url)),
+      "..",
+      "..",
+      "..",
+      "..",
+      "public",
+    );
+    const bytes = (ruta: string): number =>
+      statSync(
+        join(publicDir, ruta.replace(/\.webp$/, ".avif").replace(/^\//, "")),
+      ).size;
+
+    const aditivas = STORY_COSMIC_BEING_LAYERS.filter(
+      (layer) => layer.blend === "plus-lighter",
+    );
+    const ancha = aditivas.reduce((t, l) => t + bytes(l.src), 0);
+    const estrecha = aditivas.reduce((t, l) => t + bytes(l.srcSmall), 0);
+    const base = STORY_COSMIC_BEING_LAYERS.find(
+      (layer) => layer.blend === "normal",
+    );
+    expect(base, "la escena perdió su capa base opaca").toBeDefined();
+
+    // «las 20 aditivas pasan de 1.108.805 a 100.388 B»
+    expect(
+      ancha + estrecha,
+      "el arte de la escena cambió de peso: el docblock de storyCosmicBeingAvifSrcSet declara cifras MEDIDAS sobre el arte anterior (peso, PSNR, recuento de estrellas) que ya no describen lo que hay en disco -- vuelve a medirlas antes de tocar esta cifra",
+    ).toBe(100_388);
+
+    // «la escena entera en su pista ancha de 1.280 px, de 655.523 a 59.696 B;
+    //  la de 1.024, de 456.319 a 43.729 B» -- escena ENTERA, con la base.
+    expect(ancha + bytes(base!.src)).toBe(59_696);
+    expect(estrecha + bytes(base!.srcSmall)).toBe(43_729);
+
+    // «El caso extremo es 07-geometry: 309.350 -> 18.217 B»
+    const geometry = aditivas.find((l) => l.src.includes("07-geometry"));
+    expect(geometry, "07-geometry dejó de ser una capa aditiva").toBeDefined();
+    expect(bytes(geometry!.src)).toBe(18_217);
+  });
+
   it("el srcSet derivado conserva anchos y orden de la pista WebP", () => {
     const layer = STORY_COSMIC_BEING_LAYERS[1];
     expect(storyCosmicBeingAvifSrcSet(layer)).toBe(

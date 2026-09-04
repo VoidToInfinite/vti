@@ -174,12 +174,34 @@ export const STORY_COSMIC_BEING_SIZES = "(max-width: 700px) 340px, 100vw";
  * 18.217 B, porque su RGB era casi blanco y toda la forma vivía en el alfa —
  * su contribución real a la escena tiene una media de 1,04/255.
  *
- * Verificado en Chrome real (no en jsdom, que no compone): las once capas
- * renderizadas con el CSS de esta escena, antes y después, dan PSNR 47,86 dB
- * en la pista de 1.280 y 47,54 dB en la de 1.024, con el 97 % de los
- * subpíxeles dentro de ±2/255 y el recuento de estrellas conservado (−1,4 %
- * a −3,3 % de píxeles por encima de los umbrales de luminancia; idéntico en
- * las más brillantes). Encoder: sharp/libaom `quality: 85, effort: 6,
+ * VERIFICADO EN CHROME REAL (no en jsdom, que no compone), y la cifra que
+ * llevaba escrita aquí NO se reproducía: esta línea declaraba 47,86 dB en la
+ * pista de 1.280 y 47,54 en la de 1.024, con el 97 % de los subpíxeles dentro
+ * de ±2/255, sin decir a qué tamaño se había medido. Re-medido en la ola O+P
+ * por dos caminos independientes que coinciden en 0,01 dB entre sí --el DOM
+ * con el CSS de esta escena, y un canvas 2D en `lighter` a resolución nativa--
+ * el resultado es 44,52 dB a 1.280 (MSE 2,2958, maxDelta 23/255, el 68,14 % de
+ * los subpíxeles dentro de ±1 y el 94,15 % dentro de ±2, n = 2.764.800) y
+ * 44,24 dB a 1.024 (MSE 2,4470, maxDelta 28/255, ±1 66,20 %, ±2 93,50 %). Se
+ * escriben esas, con su método: composición sobre `#05010e`, capa 00 en
+ * `source-over` y las diez restantes en `lighter`, a la resolución nativa de
+ * cada pista, contra los mismos AVIF extraídos del commit anterior. La
+ * referencia sigue siendo el estado desplegado, no un maestro.
+ *
+ * NO ES LA CIFRA QUE EL UMBRAL DE 45 dB JUZGA, y conviene no confundirlas: ese
+ * umbral es del manifest y se mide sobre el compuesto premultiplicado POR
+ * CAPA, no sobre la escena entera -- el propio manifest lo deja escrito en su
+ * sección `psnrThreshold`, al corregir el mismo error de comparación en la
+ * Task 11. Lo que mide este párrafo es la pérdida ADICIONAL que introduce este
+ * paso sobre la escena completa; compararla con el umbral por capa sería
+ * mezclar dos métricas, y por eso la cifra se declara sin veredicto.
+ *
+ * EL RECUENTO DE ESTRELLAS SÍ SE CONSERVA, y también se re-midió: los píxeles
+ * por encima de umbral de luminancia caen −0,51 % (>64), −0,14 % (>96),
+ * −0,04 % (>128), −0,09 % (>160), −0,27 % (>192) y −0,78 % (>224). La línea
+ * anterior declaraba «−1,4 % a −3,3 %», es decir, era MÁS pesimista que la
+ * medida: la conclusión se sostiene con margen, solo cambian los números.
+ * Encoder: sharp/libaom `quality: 85, effort: 6,
  * chromaSubsampling: "4:4:4"` sobre el RGB premultiplicado, con la guarda por
  * pista de este manifest (≥5 % de ahorro o no se sustituye) — la única que
  * bajó a `quality: 70` fue 09-figure, que a 85 salía MÁS grande. Los WebP no
@@ -192,7 +214,12 @@ export const STORY_COSMIC_BEING_SIZES = "(max-width: 700px) 340px, 100vw";
  * cierra el candado de storyCosmicBeing.layers.test.ts, que comprueba con
  * node:fs que cada AVIF derivado existe de verdad en public/. Ese mismo
  * fichero de test cierra también la premultiplicación: ninguna pista aditiva
- * puede volver a llevar alfa sin ponerlo en rojo. Y el peso total del arte del
+ * puede volver a llevar alfa sin ponerlo en rojo. Y desde la ola O+P cierra
+ * además el PESO exacto de las veinte pistas aditivas, que es lo que ancla
+ * este docblock al arte que de verdad hay en disco: si alguien vuelve a
+ * codificar la escena, ese candado se pone en rojo y obliga a re-medir estas
+ * cifras en vez de dejarlas describiendo un arte que ya no existe -- que es
+ * exactamente cómo los 47,86 dB de arriba sobrevivieron sin que nada avisara. Y el peso total del arte del
  * tema oscuro contra el ancla de 1,5 MB lo cierra aparte
  * `scripts/check-dark-art-weight.mjs`, que corre dentro de `pnpm run ci`.
  */
