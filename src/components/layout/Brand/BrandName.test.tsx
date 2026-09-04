@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
-import { BrandName } from "./BrandName";
+import { basicLightTheme } from "@/theme/themes";
+import {
+  BrandName,
+  heroGradientStops,
+  HERO_GRADIENT_SIZE_X_PERCENT,
+} from "./BrandName";
 import { AMBIENT } from "@/motion/vocabulary";
 
 /** Todas las reglas inyectadas, incluidas las anidadas dentro de `@media`
@@ -131,5 +136,54 @@ describe("BrandName", () => {
 
     expect(css).toContain("prefers-reduced-motion: no-preference");
     expect(css).toContain(`${AMBIENT.floatMs}ms linear infinite alternate`);
+  });
+});
+
+/*
+ * Crítica externa #18 (P1, 2026-09-04) -- EL ESLABÓN entre el candado de
+ * contraste y lo que de verdad se pinta.
+ *
+ * `BrandName.contrast.test.ts` mide el degradado del título llamando a
+ * `heroGradientStops`, no leyendo CSS. Eso es lo correcto (medir colores
+ * exige aritmética, no cadenas), pero por sí solo deja un hueco: si alguien
+ * volviera a escribir las paradas a mano dentro del bloque `css`, la función
+ * quedaría huérfana y el candado de contraste seguiría en verde midiendo un
+ * degradado que ya no existe en pantalla. Este test cierra ese hueco: afirma
+ * que el `background-image` REALMENTE inyectado por styled-components lleva,
+ * en orden, exactamente las paradas que declara `heroGradientStops`, y que
+ * el `background-size` sale de `HERO_GRADIENT_SIZE_X_PERCENT`.
+ *
+ * Se mide en tema CLARO porque es el que `renderWithProviders` monta por
+ * defecto, y es además la rama donde vivía el defecto.
+ *
+ * Validado con el bug inyectado que de verdad corresponde a lo que este test
+ * protege: reescribir las cuatro paradas A MANO dentro del bloque `css`
+ * (dejando `heroGradientStops` huérfano, que es la regresión temida) lo pone
+ * en rojo -- "falta la parada 65% (oklch(0.53 0.212 311.928)) en el
+ * background-image inyectado" --; restaurado, vuelve a verde. Cambiar el
+ * VALOR dentro de `heroGradientStops` NO lo pone en rojo, y es correcto que
+ * no lo haga: este test afirma la coherencia entre la función y el CSS, no
+ * que el color elegido sea legible -- de eso responde
+ * `BrandName.contrast.test.ts`.
+ */
+describe("Crítica externa #18 -- el degradado inyectado son las paradas de heroGradientStops", () => {
+  it("el background-image del tramo recortado lleva las paradas de heroGradientStops, en orden y con su posición", () => {
+    const { container } = renderWithProviders(<BrandName gradientTail />);
+    const spans = Array.from(container.querySelectorAll("span"));
+    const conClip = spans.find((span) => tieneClipDeTexto(span)) as Element;
+    // Espacios normalizados: el round-trip por `cssText` de jsdom no
+    // garantiza el mismo espaciado que escribió styled-components.
+    const css = reglasDe(conClip).join("\n").replace(/\s+/g, " ");
+
+    for (const stop of heroGradientStops(basicLightTheme)) {
+      expect(
+        css,
+        `falta la parada ${stop.position}% (${stop.color}) en el background-image inyectado`,
+      ).toContain(`${stop.color} ${stop.position}%`);
+    }
+
+    expect(css).toContain(
+      `background-size: ${HERO_GRADIENT_SIZE_X_PERCENT}% 100%`,
+    );
   });
 });

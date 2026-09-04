@@ -68,20 +68,77 @@ export const gradientShift = keyframes`
  * título y CTA recorran exactamente el mismo color en el mismo instante".
  * ESO YA NO ES CIERTO -- ver `ctaGradient`, más abajo, para el porqué del
  * split y las cifras que lo obligan. `heroGradient` se queda con su único
- * consumidor real: `gradientTextClip`, el degradado del título "ToInfinite",
- * porque ahí el degradado ES el texto (background-clip: text) y no hay
- * ningún glifo opaco superpuesto cuyo contraste dependa de él -- la clase de
- * fallo que sí afecta a un botón con letras blancas ENCIMA de este fondo.
+ * consumidor real: `gradientTextClip`, el degradado que recorta a texto el
+ * tramo "ToInfinite" del h1 del Hero y el cierre de la última diapositiva
+ * del deck oscuro de Story (`ScDeckNoteAccent`, story.deck.tsx).
+ *
+ * CORRECCIÓN DE ESTE MISMO DOCBLOCK (crítica externa #18, P1, 2026-09-04).
+ * Hasta esa crítica, este bloque justificaba el split diciendo que aquí "el
+ * degradado ES el texto y no hay ningún glifo opaco superpuesto cuyo
+ * contraste dependa de él". La primera mitad es cierta; la conclusión que se
+ * sacaba de ella era falsa, y es exactamente lo que dejó vivo el defecto: que
+ * el degradado sea la TINTA no elimina el contraste que hay que medir, lo
+ * MUEVE. En un botón se mide degradado-contra-la-letra-de-encima
+ * (`semantic.onBrand`, umbral AA de texto normal, 4.5:1); aquí se mide
+ * degradado-contra-el-FONDO-de-la-página (`semantic.bg` y la superficie real
+ * del hero, umbral AA de texto grande, 3:1, porque el h1 es display). Nadie
+ * medía la segunda, así que la parada de 65% se quedó leyendo un peldaño
+ * CRUDO de paleta (`palette.secondary[300]`, L 0.86) que resuelve igual en
+ * las dos ramas -- correcto sobre el void casi negro del tema oscuro, y a
+ * 1,6:1 sobre el casi blanco del tema claro.
  */
+export function heroGradientMidStop(theme: ThemeDefinition): string {
+  return theme.isLight
+    ? theme.palette.secondary[700]
+    : theme.palette.secondary[300];
+}
+
+/*
+ * `HERO_GRADIENT_SIZE_X_PERCENT` no es decoración: es la mitad de la
+ * geometría que produce el defecto. Con el fondo escalado al 260% del ancho
+ * de la caja, en cada instante solo se ve 100/260 = 38,5% del degradado, y
+ * `gradientShift` recorre `background-position` de 0% a 100% -- así que a lo
+ * largo de la animación la ventana visible BARRE el degradado entero y toda
+ * parada llega a pintar glifo, incluida la de 65%. Por eso el candado
+ * (`BrandName.contrast.test.ts`) no muestrea "el degradado" en abstracto:
+ * reconstruye la ventana visible fase a fase leyendo ESTE número, en vez de
+ * copiarlo a mano al test (regla 39: el recuento se lee de la misma fuente
+ * que consume el componente).
+ */
+export const HERO_GRADIENT_SIZE_X_PERCENT = 260;
+
+export interface GradientStop {
+  /** Posición de la parada dentro del degradado, en porcentaje. */
+  readonly position: number;
+  /** Color `oklch()` ya resuelto contra el tema recibido. */
+  readonly color: string;
+}
+
+/*
+ * Las paradas se declaran como DATOS y el bloque `css` de abajo las serializa,
+ * en vez de escribirlas a mano dentro del template. Mismo motivo que hizo
+ * nombrar `ctaGradientMidStop` en la Task 33, un paso más allá: así el candado
+ * importa la función que de verdad pinta -- colores Y posiciones -- y no puede
+ * quedarse midiendo un degradado que ya no existe en pantalla.
+ */
+export function heroGradientStops(theme: ThemeDefinition): GradientStop[] {
+  return [
+    { position: 0, color: theme.semantic.text },
+    { position: 35, color: theme.semantic.brandText },
+    { position: 65, color: heroGradientMidStop(theme) },
+    { position: 100, color: theme.semantic.text },
+  ];
+}
+
 export const heroGradient = css`
   background-image: linear-gradient(
     100deg,
-    ${({ theme }) => theme.data.semantic.text} 0%,
-    ${({ theme }) => theme.data.semantic.brandText} 35%,
-    ${({ theme }) => theme.data.palette.secondary[300]} 65%,
-    ${({ theme }) => theme.data.semantic.text} 100%
+    ${({ theme }) =>
+      heroGradientStops(theme.data)
+        .map((stop) => `${stop.color} ${stop.position}%`)
+        .join(", ")}
   );
-  background-size: 260% 100%;
+  background-size: ${HERO_GRADIENT_SIZE_X_PERCENT}% 100%;
 `;
 
 /*
@@ -174,16 +231,24 @@ export const ctaGradient = css`
     ${({ theme }) => ctaGradientMidStop(theme.data)} 65%,
     ${({ theme }) => theme.data.semantic.text} 100%
   );
-  background-size: 260% 100%;
+  background-size: ${HERO_GRADIENT_SIZE_X_PERCENT}% 100%;
 `;
 
 /*
- * Bloque de "texto con el degradado animado", compartido con el CTA
- * secundario del Hero (ver ScCtaSecondaryLabel en Hero.tsx) por el mismo
- * motivo que heroGradient ya se comparte: una sola definicion de la mecanica
- * de recorte, para que el titulo y el CTA secundario recorran exactamente el
+ * Bloque de "texto con el degradado animado", compartido con el cierre de la
+ * ultima diapositiva del deck oscuro de Story (ScDeckNoteAccent,
+ * story.deck.tsx; T7 de la spec 2026-07-31-story-deck-tipografia) por el
+ * mismo motivo que heroGradient ya se comparte: una sola definicion de la
+ * mecanica de recorte, para que el titulo y esa nota recorran exactamente el
  * mismo color en el mismo instante y con las mismas tres redes de seguridad,
  * en vez de dos declaraciones que podrian divergir con el tiempo.
+ *
+ * El OTRO consumidor que este docblock citaba -- el label del CTA secundario
+ * del Hero (ScCtaSecondaryLabel) -- ya no existe: el CTA secundario se retiro
+ * el 2026-08-08 y su styled se borro con el (el porque completo, en el
+ * docblock "CTA SECUNDARIO RETIRADO" de Hero.tsx). Se corrige aqui al pasar
+ * por la critica externa #18 (regla 16: un comentario que ya no describe el
+ * codigo es peor que ningun comentario).
  *
  * OBLIGATORIO, no cosmetico, el `text-shadow: none`: cualquier consumidor que
  * herede una sombra de texto (ScCopy del Hero hereda una negra de 0 0 18px
