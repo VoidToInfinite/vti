@@ -48,17 +48,47 @@
  * `src/theme/tokens/motion.ts`, CUALQUIER literal de TIEMPO (`Nms`/`Ns`, cero
  * excluido) escrito fuera de ese mismo fichero, CUALQUIER duracion declarada
  * como constante numerica con nombre (`durationMs: 480`, `const HERO_FADE_MS
- * = 420`) que no derive de `motion.durationMs`, `border-radius` literal fuera
- * de token (excluyendo `0`, que nunca es deriva de escala), CUALQUIER
- * `font-size` escrito como literal `rem`/`px`/`em` fuera de
+ * = 420`) que no derive de `motion.durationMs`, `border-radius` literal en
+ * `px`/`rem`/`em`/`%` fuera de token (excluyendo `0`, que nunca es deriva de
+ * escala), CUALQUIER espaciado literal `rem`/`px`/`em` -- `padding`, `margin`
+ * o `gap` con todas sus variantes, cero excluido -- fuera de
+ * `src/theme/tokens/`, CUALQUIER `font-size` escrito como literal
+ * `rem`/`px`/`em` fuera de
  * `src/theme/tokens/` (con `clamp()`, `var()`, `calc()`, `inherit` y `1em`
  * exentos), CUALQUIER `z-index` entero -- incluidos el cero y los negativos --
  * fuera de `src/theme/tokens/zIndex.ts`, CUALQUIER RETARDO declarado fuera
  * del token -- una tabla multilinea de tiempos con los numeros sueltos en
  * sus renglones, o un campo/constante llamado `delay` con valor numerico --,
- * kickers repetidos (componentes `*Kicker*` en JSX) y numeracion decorativa
- * de seccion (`number: "0N"`, o el ordinal 1-based
- * `String(<expr> + 1).padStart(2, "0")`).
+ * CUALQUIER color escrito como literal (`oklch`/`oklab`/`lch`/`lab`/`rgb`/
+ * `hsl` con primer argumento numerico, o hexadecimal de 3/4/6/8 digitos)
+ * fuera de `src/theme/tokens/`, kickers repetidos (componentes `*Kicker*` en
+ * JSX) y numeracion decorativa de seccion (`number: "0N"`, o el ordinal
+ * 1-based `String(<expr> + 1).padStart(2, "0")`).
+ *
+ * Octavo punto ciego cerrado (critica externa #18, 2026-09-04), y el unico
+ * de la serie que no era un hueco de cobertura sino una PROMESA INCUMPLIDA
+ * de este mismo docblock. La cabecera decia hacer cumplir la regla 17 de
+ * RULES.md -- "Cero colores, espaciados o radios literales fuera de
+ * `src/theme/tokens/`" -- con DOS de las tres magnitudes implementadas
+ * (`color-literal` desde la #17, `radius-literal` desde la Task 24) y la del
+ * medio a cero: `grep -c "spacing-literal"` sobre este fichero devolvia 0.
+ * Dos evaluadores independientes llegaron al mismo hueco por caminos
+ * distintos. Ejemplo vivo, fuera de allowlist e invisible para siempre:
+ * `--nav-gap: 0.5rem` en `src/theme/GlobalStyles.tsx`, que es `space[2]`
+ * byte a byte. La familia `spacing-literal` lo cierra; ver su comentario en
+ * FAMILIES para el censo (diez lineas, cinco de ellas suelos de `clamp()`
+ * que igualan un peldano vivo, dos escritas byte a byte en dos ficheros que
+ * no se conocen), para por que `clamp()` NO se exime aqui aunque
+ * `font-size-literal` si lo exima, y para sus tres limites declarados.
+ *
+ * En la misma revision se cerro el punto ciego de los PORCENTAJES de
+ * `radius-literal`: su alternacion de unidades era `px|rem|em`, asi que un
+ * `border-radius: 50%` era invisible, y ese limite -- al reves que los de
+ * otras cuatro familias -- no estaba declarado en ninguna parte. Siete
+ * declaraciones del repo pasaban el gate en verde por construccion. Ver el
+ * comentario de la familia para la medicion, para por que el `%` no lleva
+ * `\b` detras y para los dos limites que esa familia SIGUE teniendo, ahora
+ * escritos.
  *
  * Sexto punto ciego cerrado (critica externa #16, 2026-09-03): el detector
  * vigilaba las dos magnitudes que el token sabia nombrar -- duracion y
@@ -701,13 +731,150 @@ const FAMILIES = [
     },
     {
         id: "radius-literal",
-        label: "border-radius literal fuera de src/theme/tokens/radius.ts",
+        label: "border-radius literal (px/rem/em/%) fuera de src/theme/tokens/radius.ts",
+        // PUNTO CIEGO DE LOS PORCENTAJES, CERRADO (critica externa #18,
+        // 2026-09-04). Esta familia nacio con la Task 24 y era la unica del
+        // fichero SIN un solo comentario que dijera que no ve -- las otras
+        // cuatro con limite conocido (`repeating-gradient`, `duration-const`,
+        // `font-size-literal`, `z-index-literal`) lo llevan escrito, y por eso
+        // se leian como limites y no como cobertura. El de esta no estaba
+        // declarado en ninguna parte: la alternacion de unidades era
+        // `px|rem|em`, asi que un `border-radius: 50%` era invisible PARA
+        // SIEMPRE y nadie podia saberlo sin leer la regex.
+        //
+        // Medicion propia antes de tocar nada (mismo motor: strip de
+        // comentarios + linea a linea sobre `src/` y `app/`, tests excluidos):
+        // 68 declaraciones de `border-radius` en el repo, de las que SIETE
+        // llevan porcentaje y ninguna disparaba -- `Footer.tsx` (ScStar, el
+        // circulo de una estrella decorativa) y las seis formas organicas de
+        // ocho valores del morfeo de la corona de `Sol.tsx`. Las siete pasaban
+        // el gate en verde por construccion mientras el resto del repo
+        // resolvia sus circulos con `radius.full`.
+        //
+        // El `%` va en su propia rama de la alternacion y NO lleva `\b`
+        // detras, y no es cosmetico: `%` no es caracter de palabra, asi que
+        // `%\b` exigiria una letra o digito justo despues y no casaria ni con
+        // `50%;` ni con `46% 54%` -- el candado de frontera que las otras tres
+        // unidades SI necesitan (para que `100px` no llegue nunca a probar
+        // `rem`) aqui lo daria por bueno todo menos el caso real.
+        //
+        // EL CERO SE SIGUE EXIMIENDO, en las cuatro unidades y por el mismo
+        // motivo de siempre: `border-radius: 0` es la ausencia de radio, no un
+        // radio elegido, y no puede desincronizarse de ningun peldano. Es el
+        // precedente que despues citaron `duration-literal`, `duration-const`
+        // y `delay-const`.
+        //
+        // LO QUE ESTA FAMILIA SIGUE SIN VER, declarado ahora en vez de dejar
+        // que el silencio lo tape:
+        //  - La forma camelCase de un objeto de estilo JS (`borderRadius:
+        //    "8px"`, `app/opengraph-image.tsx`): la regex pide el nombre CSS
+        //    con guion. Hoy hay exactamente una en el repo, y ademas es de las
+        //    que pueden desincronizarse en silencio (8px es `radius.md` byte a
+        //    byte). Se deja anotado y no sancionado: cerrarlo pide tocar un
+        //    fichero de otro dominio.
+        //  - El `calc()` MULTILINEA (`Features.tsx`, ScCardSurface): abre en
+        //    un renglon y reparte sus operandos en los siguientes, sin
+        //    `border-radius` en la linea del literal. Mismo limite de motor
+        //    que ya llevan escrito los `clamp()` multilinea de
+        //    `font-size-literal`.
+        //  - `inherit` no dispara (no lleva unidad): heredar no es elegir,
+        //    mismo criterio que el `1em` de `font-size-literal`.
         test(line) {
-            const m = /border-radius\s*:\s*(\d+(?:\.\d+)?)(px|rem|em)\b/i.exec(
-                line,
-            );
+            const m =
+                /border-radius\s*:\s*(\d+(?:\.\d+)?)(?:(?:px|rem|em)\b|%)/i.exec(
+                    line,
+                );
             if (!m) return null;
             return parseFloat(m[1]) === 0 ? null : m[0];
+        },
+    },
+    {
+        id: "spacing-literal",
+        label: "espaciado literal (padding/margin/gap en px/rem/em) fuera de src/theme/tokens/",
+        // OCTAVO PUNTO CIEGO CERRADO (critica externa #18, 2026-09-04), y el
+        // unico que no era un hueco de cobertura sino una PROMESA INCUMPLIDA:
+        // la cabecera de este fichero decia hacer cumplir la regla 17 de
+        // RULES.md -- "Cero colores, espaciados o radios literales fuera de
+        // `src/theme/tokens/`" -- con dos de las tres magnitudes implementadas
+        // (`color-literal` desde la #17, `radius-literal` desde la Task 24) y
+        // la del medio a cero. Comprobado por dos evaluadores independientes
+        // por caminos distintos, y reproducible en una linea:
+        // `grep -c "spacing-literal"` sobre este fichero devolvia 0.
+        //
+        // CENSO PROPIO antes de escribir una sola entrada del allowlist (mismo
+        // motor que este fichero: strip de comentarios + linea a linea sobre
+        // `src/` y `app/`, tests excluidos): DIEZ lineas con un literal no
+        // nulo de espaciado. Cuatro sin `clamp()` -- el `--nav-gap: 0.5rem` de
+        // `GlobalStyles.tsx` que el evaluador nombro (es `space[2]` exacto),
+        // el `padding: 0 0.25em` del callout legal, el `margin: -1px` de
+        // `VisuallyHidden` y el `padding: "80px"` del lienzo Open Graph -- y
+        // SEIS con `clamp()`, cinco de ellas con el suelo igual a un peldano
+        // vivo de la escala (`1rem` = space[4], `0.75rem` = space[3], `0.5rem`
+        // = space[2]) y dos de esas cinco escritas BYTE A BYTE en dos ficheros
+        // que no se conocen (`Contact.tsx` y `Features.tsx`, la misma
+        // `padding-block: clamp(1rem, 3.5dvh, ...space[8])`). El corpus
+        // completo esta abajo, entrada por entrada.
+        //
+        // POR QUE `clamp()` NO SE EXIME AQUI, al reves que en
+        // `font-size-literal`: alli el argumento es que un tramo FLUIDO de
+        // tipografia no es un peldano de la escala -- el tamano cambia con el
+        // viewport y ningun paso de `type.scale` lo describe. Un espaciado en
+        // `clamp()` es otra cosa: sus DOS extremos son medidas fijas, y en
+        // este repo el tope ya se escribe con el token
+        // (`...theme.data.space[8]`) mientras el suelo se escribia a mano.
+        // Eximir `clamp()` habria dejado fuera del gate exactamente el caso
+        // que el evaluador midio, y ademas el mas facil de desincronizar: un
+        // suelo que HOY vale `space[3]` deja de valerlo el dia que alguien
+        // retoque la escala, y el CSS renderizado no distingue los dos casos
+        // (`task/lessons.md`, 2026-08-12). Verificado sobre el corpus: no
+        // caza ni un `clamp()` cuyos dos extremos ya salgan del token.
+        //
+        // POR PROCEDENCIA, NO POR VALOR, igual que sus cinco familias
+        // hermanas. No se comprueba si el literal coincide con un peldano
+        // (aunque el censo diga que cinco de los diez coinciden): lo que
+        // sanciona es que el numero no nazca de `tokens/space.ts`.
+        //
+        // QUE PROPIEDADES CUENTAN, y por que estas tres y no mas: `padding`,
+        // `margin` y `gap` con TODAS sus variantes de guion
+        // (`padding-block`, `margin-inline-start`, `row-gap`, `column-gap`,
+        // `scroll-padding`...) mas la forma camelCase de un objeto de estilo
+        // JS (`marginRight`), que existe en un solo fichero del repo
+        // (`app/opengraph-image.tsx`) y habria quedado fuera por accidente.
+        // Son las tres propiedades que consumen la escala `space` -- censo del
+        // docblock de `space[10]`, tercera revision: los once peldanos se leen
+        // desde `gap`, `padding` y `margin` y de ningun otro sitio.
+        //
+        // LO QUE ESTA FAMILIA NO VE, declarado en vez de dejar que su nombre
+        // lo tape:
+        //  - Las medidas de LAYOUT que no son espaciado: `width`, `height`,
+        //    `top`/`left`/`inset`, `min-height`. Un `--nav-height: 3.5rem`
+        //    (`GlobalStyles.tsx`, la linea de al lado del hallazgo que motivo
+        //    esta familia) NO dispara, y es deliberado: la escala `space`
+        //    gobierna huecos entre cosas, no el tamano de las cosas.
+        //  - Los PORCENTAJES y las unidades de viewport (`padding: 0 5%`,
+        //    `gap: 2vw`): un porcentaje de espaciado se mide contra el ancho
+        //    del contenedor, no contra la escala, asi que no hay peldano al
+        //    que migrarlo. Es la decision CONTRARIA a la que toma
+        //    `radius-literal` justo arriba con el `%`, y por eso se escribe:
+        //    alli el porcentaje es una forma alternativa de decir "circulo",
+        //    aqui es una magnitud de otra naturaleza.
+        //  - La escala reescrita en otra unidad (`padding: 16px` donde
+        //    `space[4]` es `1rem`): la familia SI la caza, pero no dira que
+        //    equivale a un peldano -- eso lo mide la guia, no el motor.
+        appliesTo: (file) => !file.startsWith(TOKENS_DIR),
+        test(line) {
+            if (!/\b(?:padding|margin|gap)(?:[A-Z][A-Za-z]*)?\b/.test(line))
+                return null;
+            const re = /(\d+(?:\.\d+)?)(rem|px|em)\b/gi;
+            let m;
+            // Se recorren TODAS las coincidencias, como en `duration-literal`
+            // y por el mismo motivo: una shorthand que empieza por el cero
+            // eximido (`padding: 0 0.25em`) escondería el literal real que
+            // viene detras si se devolviera en el primer match.
+            while ((m = re.exec(line)) !== null) {
+                if (parseFloat(m[1]) !== 0) return m[0];
+            }
+            return null;
         },
     },
     {
@@ -1820,6 +1987,119 @@ const ALLOWLIST = [
         anchors: [{ snippet: "border-radius: 3px;", lines: [330] }],
         reason: "Punta del rayo del mascote Sol (ScRay, 3px = su propio width): geometria de trazo de arte de marca, mismo fichero que ya usa formas organicas en % sin token (excepcion de regla 17 de RULES.md, arte de marca con constantes propias).",
     },
+    // ---- radius-literal en PORCENTAJE: las siete declaraciones que el punto
+    // ciego de la alternacion de unidades dejaba invisibles hasta la critica
+    // externa #18 (2026-09-04). Se separan en dos entradas porque son dos
+    // cosas distintas: seis son arte (una forma organica que ningun peldano de
+    // `radius` puede expresar) y una es un circulo corriente que el resto del
+    // repo ya resuelve con el token.
+    {
+        family: "radius-literal",
+        file: "src/components/scenes/eye/mascots/Sol.tsx",
+        anchors: [
+            {
+                snippet: "border-radius: 46% 54% 58% 42% / 48% 44% 56% 52%;",
+                count: 3,
+                lines: [303, 319, 327],
+            },
+            {
+                snippet: "border-radius: 58% 42% 40% 60% / 55% 60% 40% 45%;",
+                lines: [307],
+            },
+            {
+                snippet: "border-radius: 40% 60% 55% 45% / 60% 38% 62% 40%;",
+                lines: [311],
+            },
+            {
+                snippet: "border-radius: 55% 45% 42% 58% / 42% 58% 44% 56%;",
+                lines: [315],
+            },
+        ],
+        reason: "Morfeo de la corona del mascota Sol: los cuatro fotogramas de `coronaMorph` (0/25/50/75 %) mas el cierre en 100 % y el estado de reposo de ScCorona, que repiten la forma del fotograma inicial -- de ahi el count 3 sobre el mismo contenido de linea, que son tres apariciones de UNA forma y no tres decisiones. Es la forma de ocho valores (`a b c d / e f g h`, radios horizontales y verticales por esquina) con la que se dibuja una silueta organica que late; NINGUN peldano de tokens/radius.ts puede expresarla -- la escala son siete radios uniformes, y `radius.full` (9999px) daria un ovalo perfecto, que es justo lo contrario de lo que este arte busca. Excepcion de la regla 17 de RULES.md: arte de marca, en el mismo fichero que ya tiene sancionada la punta de rayo de 3px. El ancla es de CONTENIDO: retocar un solo porcentaje de cualquier fotograma deja esa linea sin ancla y pone el gate en rojo.",
+    },
+    {
+        family: "radius-literal",
+        file: "src/components/layout/Footer/Footer.tsx",
+        anchors: [{ snippet: "border-radius: 50%;", lines: [184] }],
+        reason: 'PROVISIONAL, y no es una excepcion de diseno: es el hallazgo vivo que la critica externa #18 encontro y la razon de que esta familia mire ahora los porcentajes. `ScStar` es un div cuadrado (width = height = var(--star-size)) al que 50 % convierte en circulo -- exactamente lo que el resto del repo escribe como `theme.data.radius.full`: los circulos de Sol, Wormhole, Contact, Journey, Story y Navbar leen el token, y esta es la unica que no. No se migra en esta entrega porque `Footer.tsx` pertenece al dominio de otro frente en esta ola; queda anotado para su dueno. Cuando se migre, el aviso de "ancla sin hallazgo que la cubra" de este mismo script pedira retirar esta entrada.',
+    },
+    // ---- spacing-literal: las DIEZ lineas del censo que abrio la familia
+    // (critica externa #18, 2026-09-04). Se agrupan por naturaleza y no por
+    // fichero: primero las cuatro que son excepciones de verdad, despues las
+    // seis de `clamp()`, cinco de las cuales son deuda medida con dueno
+    // asignado en esta misma ola.
+    {
+        family: "spacing-literal",
+        file: "src/components/ui/VisuallyHidden/VisuallyHidden.tsx",
+        anchors: [{ snippet: "margin: -1px;", lines: [40] }],
+        reason: "Tecnica canonica de ocultacion visual accesible: la caja de 1x1 px con margen de -1px es el idioma estandar que mantiene el contenido en el arbol de accesibilidad sin ocupar sitio ni desplazar a sus hermanos. El -1px no es un espaciado de composicion -- no separa nada de nada -- sino la contrapartida exacta del `width: 1px`/`height: 1px` de las dos lineas de arriba, y solo tiene sentido junto a ellas. Migrarlo a un peldano de `space` lo romperia: la escala empieza en 0.25rem (4px) y no tiene ni puede tener un paso de un pixel (`space.px` se retiro en la critica externa #8, sin consumidores y sin destino).",
+    },
+    {
+        family: "spacing-literal",
+        file: "src/components/legal/legalPage.parts.tsx",
+        anchors: [{ snippet: "padding: 0 0.25em;", lines: [426] }],
+        reason: 'Termino con definicion emergente de las paginas legales (ScTerm, el `abbr` con borde y cursor de ayuda): el relleno horizontal esta en `em` a proposito, porque tiene que escalar con el tamano del texto QUE LO CONTIENE -- el mismo termino aparece dentro de un parrafo de cuerpo y dentro de un elemento de lista, y un peldano de `space` en rem lo dejaria demasiado suelto en uno y demasiado apretado en el otro. La escala `space` es absoluta por diseno (rem sobre la raiz), asi que no hay peldano que exprese "un cuarto de la altura de MI texto". Mismo criterio con el que `font-size-literal` exime `1em`: una medida relativa al contexto no es una eleccion dentro de la escala.',
+    },
+    {
+        family: "spacing-literal",
+        file: "app/opengraph-image.tsx",
+        anchors: [
+            { snippet: 'padding: "80px",', lines: [76] },
+            { snippet: 'marginRight: "28px",', lines: [88] },
+        ],
+        reason: "Lienzo de la imagen Open Graph: un PNG de 1200x630 px generado en build por Satori (`ImageResponse`), no una pieza de la interfaz. Ahi no hay tema ni styled-components -- el arbol se declara con objetos de estilo JS en pixeles absolutos y no puede leer `theme.data.space`, y la escala en rem no significaria nada en un lienzo sin raiz tipografica de documento. Ademas los dos valores estan elegidos contra el LIENZO (80px de margen de seguridad sobre 1200x630 y 28px de separacion del logotipo), no contra el ritmo vertical del sitio: 80px no es ningun peldano de la escala (space[8] son 4rem = 64px, space[9] son 6rem = 96px).",
+    },
+    {
+        family: "spacing-literal",
+        file: "src/theme/GlobalStyles.tsx",
+        anchors: [{ snippet: "--nav-gap: 0.5rem;", lines: [93] }],
+        reason: 'PROVISIONAL, y no es una excepcion de diseno: es el hallazgo que el evaluador nombro por su fichero y su linea, y la razon de que esta familia exista. `0.5rem` es `space[2]` BYTE A BYTE, y la variable se declara dentro de un `createGlobalStyle` que ya recibe el tema (dos lineas mas abajo el mismo fichero interpola `theme.data.*`), asi que leer el token es posible sin cambiar nada de arquitectura -- el docblock de al lado justifica que la MEDIDA viva en una variable CSS de layout, que es otra pregunta, y no que su VALOR se escriba a mano. No se migra en esta entrega porque `src/theme/GlobalStyles.tsx` pertenece al dominio de otro frente en esta ola; queda anotado para su dueno. Cuando se migre, el aviso de "ancla sin hallazgo que la cubra" de este mismo script pedira retirar esta entrada.',
+    },
+    {
+        family: "spacing-literal",
+        file: "src/components/sections/Story/Story.tsx",
+        anchors: [{ snippet: "gap: clamp(4px, 1vh, 14px);", lines: [1356] }],
+        reason: "Separacion de las tres lineas del cartel de Story (ScStatementText): es el unico `clamp()` de espaciado del repo cuyos DOS extremos quedan fuera de la escala -- 4px es space[1] (0.25rem) pero 14px no es ningun peldano (space[3] son 12px, space[4] son 16px), y el tramo esta calibrado contra la ALTURA del viewport (`1vh`) para que las tres lineas del cartel respiren igual en una pantalla corta que en una alta. Migrar solo el suelo dejaria un clamp mitad token mitad literal, que es peor que los dos escritos a mano: esconde que el tramo no pertenece al sistema. Si algun dia se sistematiza, el sitio es un peldano nuevo con nombre, no un suelo migrado a medias.",
+    },
+    {
+        family: "spacing-literal",
+        file: "src/components/sections/Contact/Contact.tsx",
+        anchors: [
+            {
+                snippet:
+                    "padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});",
+                lines: [706],
+            },
+            {
+                snippet:
+                    "gap: clamp(0.75rem, 2vw, ${({ theme }) => theme.data.space[4]});",
+                lines: [813],
+            },
+            {
+                snippet:
+                    "gap: clamp(0.5rem, 1.5vw, ${({ theme }) => theme.data.space[3]});",
+                lines: [830],
+            },
+        ],
+        reason: "PROVISIONAL: deuda medida, no excepcion. Los tres `clamp()` ya leen el token en su TOPE y escriben el suelo a mano, y los tres suelos son peldanos vivos byte a byte -- 1rem es space[4], 0.75rem es space[3], 0.5rem es space[2] --, que es la forma exacta de deriva silenciosa que la regla 17 previene: el dia que la escala se retoque, el tope se movera y el suelo no. Ademas el primero esta escrito byte a byte en `Features.tsx`, en dos ficheros que no se conocen. No se migran en esta entrega porque `Contact.tsx` pertenece al dominio de otro frente en esta ola; quedan anotados para su dueno, y el aviso de ancla sin hallazgo pedira retirar estas entradas cuando se cierren.",
+    },
+    {
+        family: "spacing-literal",
+        file: "src/components/sections/Features/Features.tsx",
+        anchors: [
+            {
+                snippet:
+                    "padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});",
+                lines: [1257],
+            },
+            {
+                snippet:
+                    "padding-block: clamp(0.75rem, 2.2dvh, ${({ theme }) => theme.data.space[5]});",
+                lines: [1580],
+            },
+        ],
+        reason: "PROVISIONAL: la misma deuda medida que en `Contact.tsx`, y el primero de los dos es la MISMA LINEA byte a byte que `Contact.tsx:706` -- dos ficheros que no se conocen escribiendo el mismo suelo a mano, que es el sintoma clasico de una medida que deberia ser un token. Los dos suelos son peldanos vivos (1rem = space[4], 0.75rem = space[3]) y los dos topes ya leen la escala. No se migran en esta entrega porque `Features.tsx` pertenece al dominio de otro frente en esta ola; el aviso de ancla sin hallazgo pedira retirar estas entradas cuando se cierren.",
+    },
     {
         family: "kicker",
         file: "src/components/sections/Story/Story.tsx",
@@ -2405,7 +2685,9 @@ const FAMILY_GUIDANCE = {
     "delay-const":
         "este RETARDO llega al CSS sin pasar por el sistema. Desde la critica externa #16 hay escala para el: motion.staggerMs, tres peldanos (tight 60, base 80, loose 110) derivados del censo de lo que este repo ya escribia -- no de motion.durationMs, que es la escala de cuanto tarda algo, no de cuando empieza. Dos formas caen aqui. (1) Una TABLA MULTILINEA de tiempos con los numeros sueltos en sus renglones: escribe la cascada como suma de peldanos (`PASO.base + 2 * PASO.tight`), que ademas deja a la vista que pieza va pegada a la anterior y cual se despega. (2) Un campo o constante llamado `delay` con un numero literal: si es un paso de escalonado, lee el peldano; si es un DESFASE DE FASE de un bucle ambiental -- numeros deliberadamente irregulares para que dos piezas vecinas no laten a la vez, como las estrellas del pie o los destellos de Sol --, no tiene peldano posible y no debe tenerlo: deja el porque JUNTO a la declaracion y anade la excepcion a ALLOWLIST. El cero no dispara: es la ausencia de retardo, no un tiempo elegido.",
     "radius-literal":
-        "un border-radius literal nuevo usa un token de src/theme/tokens/radius.ts en vez de un numero escrito a mano.",
+        "un border-radius literal nuevo usa un token de src/theme/tokens/radius.ts en vez de un numero escrito a mano (siete peldanos: xs 2px, sm 4px, md 8px, lg 0.75rem, xl 1rem, 2xl 1.5rem, full 9999px). Los PORCENTAJES entran en esta familia desde la critica externa #18: un `border-radius: 50%` es la otra forma de escribir un circulo, y en este repo un circulo se pide con radius.full -- lo hacen Sol, Wormhole, Contact, Journey, Story y el Navbar. Si el porcentaje NO es un circulo sino una forma organica de ocho valores (`a b c d / e f g h`), ningun peldano puede expresarla: es arte, deja el porque JUNTO a la declaracion y anade la excepcion a ALLOWLIST. El cero no dispara: es la ausencia de radio, no un radio elegido.",
+    "spacing-literal":
+        "este espaciado (padding, margin o gap) se escribe como literal rem/px/em fuera de src/theme/tokens/, el unico sitio donde una medida de separacion nace en este repo (regla 17 de RULES.md, la misma que color-literal y radius-literal: las familias de movimiento son la 48). Lee el peldano de `theme.data.space` -- once pasos: 0, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6 y 8 rem --, y comprueba antes si tu valor YA es uno de ellos: un literal que hoy vale lo mismo que el token deja de valerlo el dia que la escala se retoque, y el CSS renderizado no distingue los dos casos (task/lessons.md, 2026-08-12). Dentro de un `clamp()` la familia mira los DOS extremos, a proposito y al reves que font-size-literal: un tramo fluido de espaciado sigue teniendo suelo y techo fijos, y el patron que mas se repite en este repo es justamente el techo leyendo el token y el suelo escrito a mano. Si la medida NO puede salir de la escala -- relativa al texto que la contiene (`em`), contrapartida exacta de una caja de 1px como en VisuallyHidden, o un lienzo sin tema como la imagen Open Graph --, deja el porque JUNTO a la declaracion y anade la excepcion a ALLOWLIST. El cero no dispara: no separar no es una separacion elegida.",
     "font-size-literal":
         "este tamano de fuente se escribe como literal (rem/px/em) fuera de src/theme/tokens/, el unico sitio donde un tamano nace en este repo (regla 48). Si coincide con un peldano de type.scale (deckClosing, display, h1, h2, h3, wordmark, h5, deckBody, body, bodySm, caption, overline), lee `theme.data.type.scale.<peldano>.size` -- un literal que hoy vale lo mismo deja de valerlo el dia que el token se retoque, y el CSS renderizado no distingue los dos casos (task/lessons.md, 2026-08-12). Si NO coincide con ninguno, la pregunta es de diseno antes que de codigo: o la pieza baja al peldano vecino, o el tamano merece un peldano propio con su nombre semantico y su docblock (precedente: `wordmark`, el rotulo de marca, critica #15). Un tramo fluido va en `clamp()`, que esta familia exime; `1em` tambien, porque es heredar, no elegir.",
     "z-index-literal":

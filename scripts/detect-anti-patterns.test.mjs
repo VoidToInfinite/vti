@@ -116,6 +116,177 @@ describe("familia color-literal: que cuenta como color escrito a mano", () => {
 });
 
 /**
+ * Familia `spacing-literal` (critica externa #18, 2026-09-04). Es la tercera
+ * magnitud de la regla 17 de RULES.md -- "Cero colores, espaciados o radios
+ * literales fuera de `src/theme/tokens/`" -- y la unica que el detector no
+ * implementaba pese a prometerla en su cabecera.
+ *
+ * Se ejercita LINEA A LINEA, que es como funciona el motor, y no escaneando
+ * el repo: un test que dependiera del contenido de `src/` mediria el repo de
+ * hoy, no la regla -- y ademas los diez hallazgos del censo estan sancionados
+ * en el allowlist, asi que un escaneo daria verde diga lo que diga la familia.
+ * Los casos de abajo son lineas REALES del corpus (con su fichero anotado)
+ * mas los falsos positivos que el diseno de la familia descarta a proposito.
+ */
+const espaciado = FAMILIES.find((f) => f.id === "spacing-literal");
+
+describe("familia spacing-literal: que cuenta como espaciado escrito a mano", () => {
+    it("la familia existe, se salta la carpeta de tokens y tiene guia propia", () => {
+        expect(espaciado).toBeDefined();
+        // Ahi el literal ES la definicion de la escala, no una copia suelta.
+        expect(espaciado.appliesTo("src/theme/tokens/space.ts")).toBe(false);
+        // Cualquier otro fichero si se mira, `app/` incluido.
+        expect(espaciado.appliesTo("src/theme/GlobalStyles.tsx")).toBe(true);
+        expect(espaciado.appliesTo("app/opengraph-image.tsx")).toBe(true);
+        // Sin guia, el mensaje de fallo mandaria al lector a la regla
+        // equivocada (la 48, que es de movimiento; esta es de la 17).
+        expect(FAMILY_GUIDANCE["spacing-literal"]).toMatch(/regla 17/);
+    });
+
+    it.each([
+        // EL HALLAZGO que abrio la familia: `0.5rem` es space[2] byte a byte,
+        // y era invisible para siempre -- GlobalStyles.tsx:93.
+        ["--nav-gap: 0.5rem;", "0.5rem"],
+        // Los suelos de clamp() que el evaluador de artesania midio. El tope
+        // ya lee el token y el suelo se escribe a mano: Contact.tsx:706 y
+        // Features.tsx:1257 son la MISMA linea byte a byte.
+        [
+            "padding-block: clamp(1rem, 3.5dvh, ${({ theme }) => theme.data.space[8]});",
+            "1rem",
+        ],
+        [
+            "gap: clamp(0.75rem, 2vw, ${({ theme }) => theme.data.space[4]});",
+            "0.75rem",
+        ],
+        [
+            "gap: clamp(0.5rem, 1.5vw, ${({ theme }) => theme.data.space[3]});",
+            "0.5rem",
+        ],
+        // El cero de una shorthand NO esconde el literal que viene detras
+        // (mismo recorrido de todas las coincidencias que duration-literal)
+        // -- legalPage.parts.tsx:426.
+        ["padding: 0 0.25em;", "0.25em"],
+        // Un negativo es una decision de espaciado como cualquier otra
+        // -- VisuallyHidden.tsx:40.
+        ["margin: -1px;", "1px"],
+        // Objeto de estilo JS: la forma con guion y la camelCase, las dos
+        // -- opengraph-image.tsx:76 y :88.
+        ['padding: "80px",', "80px"],
+        ['marginRight: "28px",', "28px"],
+        // Variantes de guion que el repo no escribe hoy, cubiertas por el
+        // mismo motivo por el que duration-literal acepta `ms` y `s`.
+        ["row-gap: 12px;", "12px"],
+        ["padding-inline-start: 2rem;", "2rem"],
+        // Este caso fija las DOS mitades del recorrido a la vez: el cero CON
+        // unidad se exime y aun asi no esconde el literal que viene detras.
+        // Si la familia devolviera en el primer match, aqui daria "0px".
+        ["padding: 0px 1.5rem;", "1.5rem"],
+    ])("dispara sobre %s", (linea, esperado) => {
+        expect(espaciado.test(linea)).toBe(esperado);
+    });
+
+    it.each([
+        // El cero es la ausencia de separacion, no una separacion elegida
+        // (precedente de radius-literal).
+        ["padding: 0;"],
+        ["margin: 0 auto;"],
+        // El cero CON unidad tampoco: es la misma ausencia escrita de otra
+        // forma, y es el unico que llega a probar la exencion (un `0` pelado
+        // no lleva unidad y la regex ni lo mira).
+        ["padding: 0rem;"],
+        ["gap: 0px;"],
+        // Espaciado que SI sale del sistema.
+        ["gap: ${({ theme }) => theme.data.space[4]};"],
+        [
+            "padding-block: clamp(${({ theme }) => theme.data.space[2]}, 2vh, ${({ theme }) => theme.data.space[5]});",
+        ],
+        // EL falso positivo que mas facil se cuela: `letter-spacing` y
+        // `word-spacing` llevan la palabra "spacing" y NO son espaciado de
+        // composicion. Ninguna de las tres propiedades vigiladas aparece.
+        ["letter-spacing: 0.02em;"],
+        ["word-spacing: 0.1em;"],
+        // Limite declarado: medidas de LAYOUT que no son espaciado. Esta
+        // vive tres lineas por encima del hallazgo, en el mismo fichero.
+        ["--nav-height: 3.5rem;"],
+        ["min-height: 100dvh;"],
+        // Otra familia, otra magnitud.
+        ["border-radius: 0.75rem;"],
+        // Limite declarado: porcentajes y unidades de viewport no tienen
+        // peldano de la escala al que migrar.
+        ["gap: 2vw;"],
+        ["padding: 0 5%;"],
+        // Una linea de movimiento no es una linea de espaciado, aunque
+        // nombre la propiedad que anima.
+        ["transition: gap 200ms;"],
+    ])("NO dispara sobre %s", (linea) => {
+        expect(espaciado.test(linea)).toBeNull();
+    });
+
+    it("cada excepcion sancionada de la familia lleva su motivo escrito", () => {
+        // La condicion que el propio script exige para sancionar algo. Un
+        // allowlist con anclas y sin porque es una lista de silencios.
+        const entradas = ALLOWLIST.filter(
+            (e) => e.family === "spacing-literal",
+        );
+        expect(entradas.length).toBeGreaterThan(0);
+        for (const entrada of entradas) {
+            expect(entrada.anchors.length).toBeGreaterThan(0);
+            expect(entrada.reason.length).toBeGreaterThan(80);
+        }
+    });
+});
+
+/**
+ * Familia `radius-literal`: el punto ciego de los PORCENTAJES, cerrado en la
+ * misma revision (critica externa #18). Su alternacion de unidades era
+ * `px|rem|em`, asi que `border-radius: 50%` era invisible -- y ese limite, al
+ * reves que los de otras cuatro familias, no estaba declarado en ninguna
+ * parte. Este bloque fija las dos mitades: que el porcentaje dispara, y que
+ * cerrar el hueco no rompio nada de lo que la familia ya cazaba ni eximia.
+ */
+const radios = FAMILIES.find((f) => f.id === "radius-literal");
+
+describe("familia radius-literal: el porcentaje deja de ser invisible", () => {
+    it.each([
+        // El hallazgo: un circulo escrito a mano donde el resto del repo
+        // escribe radius.full -- Footer.tsx:184 (ScStar).
+        ["border-radius: 50%;", "border-radius: 50%"],
+        // Forma organica de ocho valores del morfeo de la corona de Sol.tsx:
+        // ningun peldano uniforme puede expresarla, pero ahora se VE.
+        [
+            "border-radius: 46% 54% 58% 42% / 48% 44% 56% 52%;",
+            "border-radius: 46%",
+        ],
+        // Lo que la familia ya cazaba antes de tocarla, intacto.
+        ["border-radius: 3px;", "border-radius: 3px"],
+        ["border-radius: 1.5rem;", "border-radius: 1.5rem"],
+    ])("dispara sobre %s", (linea, esperado) => {
+        expect(radios.test(linea)).toBe(esperado);
+    });
+
+    it.each([
+        // El cero se exime en las CUATRO unidades: la ausencia de radio no es
+        // un radio elegido. El `0%` es el caso nuevo.
+        ["border-radius: 0;"],
+        ["border-radius: 0%;"],
+        ["border-radius: 0px;"],
+        // Radio que SI sale del sistema.
+        ["border-radius: ${({ theme }) => theme.data.radius.full};"],
+        // Heredar no es elegir (no lleva unidad, no llega a probarse).
+        ["border-radius: inherit;"],
+        // Limites DECLARADOS en el comentario de la familia, fijados aqui
+        // para que nadie los lea como cobertura: la forma camelCase de un
+        // objeto de estilo JS y el calc() multilinea.
+        ['borderRadius: "8px",'],
+        ["border-radius: calc("],
+        // Otra propiedad con porcentaje: no es un radio.
+        ["width: 92%;"],
+    ])("NO dispara sobre %s", (linea) => {
+        expect(radios.test(linea)).toBeNull();
+    });
+});
+
+/**
  * La guarda de entrada (`invocadoComoPrograma`) es lo que permite importar el
  * script desde este fichero sin que escanee el repo ni toque el
  * `process.exitCode` de Vitest. Su modo de fallo peligroso es el contrario:
