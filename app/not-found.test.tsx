@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act } from "@testing-library/react";
 import { renderWithProviders, screen } from "@/test/test-utils";
-import { SITE } from "@/config/site";
+import { navGroupsFor } from "@/config/navigation";
+import { routePath, SITE } from "@/config/site";
 import i18n from "@/i18n/config";
 import esCommon from "@/i18n/locales/es/common.json";
 import enCommon from "@/i18n/locales/en/common.json";
@@ -177,6 +178,91 @@ describe("NotFound (cascara de servidor)", () => {
     const main = container.querySelector("main");
     expect(main).not.toBeNull();
     expect(main?.classList.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * CANDADO DE ENSAMBLAJE DE LA 404 (frente Q-2, 2026-09-04).
+ *
+ * EL HUECO QUE CIERRA, declarado por un evaluador técnico: «todo lo anterior es
+ * sobre / (home); no se repitió el protocolo en /privacidad, /aviso-legal ni la
+ * 404». La 404 monta el `Navbar` completo desde la Task 35 y los candados de
+ * arriba comprueban que la cabecera EXISTE («la marca aparece al menos una
+ * vez»), no QUÉ lleva dentro. Una cabecera que perdiera los doce destinos del
+ * modelo y conservara la marca seguiría pasando: exactamente el defecto que la
+ * crítica #16 midió en las legales — 15 enlaces en la 404 contra 3 en una legal
+ * — pero en el sentido contrario y sin nada que lo viera.
+ *
+ * QUÉ SE MIDIÓ, y por qué el candado va aunque saliera limpio. En Chrome sobre
+ * el build de `0226846` servido, `GET /ruta-rota` y `GET /en/ruta-rota` (los dos
+ * responden 404 con `out/404.html`): 14 paradas de teclado con anillo visible en
+ * las 14 y sin trampas; un solo `<h1>`; cero saltos de nivel, cero ids
+ * duplicados y cero referencias `aria-*` colgantes; el landmark de navegación
+ * rotulado («Navegación del sitio» / «Site navigation»); el desplegable «Más» y
+ * la hoja móvil abriendo, cerrando con Escape y devolviendo el foco al
+ * disparador; cero desbordamiento horizontal en doce anchos de 320 a 1920 y en
+ * los dos temas; ninguna animación viva bajo `prefers-reduced-motion: reduce`
+ * (30 corriendo sin la preferencia, así que la sonda no es vacua); y ningún
+ * control invisible bajo `forced-colors: active`.
+ *
+ * Lo que se ata aquí es lo único de esa lista que jsdom SÍ puede ver, derivado
+ * del modelo compartido y nunca de una lista tecleada (regla 39). Lo demás vive
+ * en `scripts/check-legal-surfaces.mjs`, que lo mide en navegador de verdad.
+ */
+describe("404: el ensamblaje que la ola M dejó montado", () => {
+  it("la cabecera expone los destinos del modelo compartido, no solo la marca", () => {
+    const { container } = renderWithProviders(<NotFound />);
+    const cabecera = container.querySelector("header");
+    expect(cabecera).not.toBeNull();
+
+    const hrefs = Array.from(cabecera!.querySelectorAll("a")).map((a) =>
+      a.getAttribute("href"),
+    );
+    const destinos = navGroupsFor("es").flatMap((grupo) =>
+      grupo.items.map((item) => item.href),
+    );
+
+    // Sonda positiva: con un modelo vacío el bucle no se ejecutaría y el
+    // candado pasaría por vacuidad, que es como se colaron los dos anteriores.
+    expect(destinos.length).toBeGreaterThan(0);
+    for (const destino of destinos) {
+      expect(hrefs, `falta el destino ${destino} en la cabecera`).toContain(
+        destino,
+      );
+    }
+    expect(hrefs).toContain(routePath("home", "es"));
+  });
+
+  it("el landmark de navegación lleva rótulo, y sale de su clave i18n", () => {
+    const { container } = renderWithProviders(<NotFound />);
+    const navegacion = container.querySelector("header nav");
+
+    expect(navegacion).not.toBeNull();
+    expect(navegacion).toHaveAttribute(
+      "aria-label",
+      esCommon.Common.Nav.landmark,
+    );
+  });
+
+  /*
+   * LA SALIDA SALE POR SU PROPIO IDIOMA. La ola I ya cerró el defecto (un
+   * `href="/"` literal llevaba una 404 inglesa a la portada castellana) y su
+   * candado vive en `NotFoundContent.test.tsx`; lo que solo se ve AQUÍ, en el
+   * ensamblaje, es que la cáscara real —con `NotFoundLocaleShell` leyendo la
+   * URL rota— entrega esa salida al idioma que la URL declara.
+   */
+  it("desde una URL rota inglesa, la salida del cuerpo apunta a la portada INGLESA", () => {
+    window.history.pushState({}, "", "/en/lo-que-sea");
+    const { container } = renderWithProviders(<NotFound />);
+
+    const salidas = Array.from(container.querySelectorAll("main a[href]")).map(
+      (a) => a.getAttribute("href"),
+    );
+    expect(salidas.length).toBeGreaterThan(0);
+    expect(salidas).toContain(routePath("home", "en"));
+    expect(salidas).not.toContain(routePath("home", "es"));
+
+    window.history.pushState({}, "", "/");
   });
 });
 

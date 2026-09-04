@@ -255,4 +255,75 @@ describe("rutas inglesas — el inglés está en el PRIMER render", () => {
       ]);
     },
   );
+
+  /*
+   * EL ENSAMBLAJE INGLÉS DE LA OLA M (frente Q-2, 2026-09-04).
+   *
+   * EL HUECO QUE CIERRA: un evaluador técnico declaró que el protocolo nunca se
+   * había repetido en `/privacidad`, `/aviso-legal` ni la 404. La rama inglesa
+   * de esas rutas es la mitad menos vista de todas — el propio repo ya pagó esa
+   * lección el 2026-08-13, cuando `legalForm` pintaba español dentro del
+   * documento inglés porque TODOS los tests renderizaban en castellano.
+   *
+   * MEDIDO en Chrome sobre el build de `0226846` servido, `/en/privacy` y
+   * `/en/legal-notice`: dos landmarks de navegación rotulados «Site navigation»
+   * y «Contents»; 29 paradas de teclado con anillo visible en las 29 y sin
+   * trampas; el índice con 14 y 15 destinos VIVOS respectivamente; y el
+   * documento entero servido sin JavaScript (10.315 y 5.725 caracteres de
+   * `main`, con los 14/15 destinos del índice resolviendo a una sección real).
+   *
+   * Los rótulos salen de `en/common.json` y `en/legal.json`, no de un string
+   * tecleado aquí, y se exige además que DIFIERAN de sus gemelos castellanos:
+   * sin esa comparación, una rama inglesa que se quedara con el rótulo
+   * castellano pasaría este candado en verde.
+   */
+  it.each(paginasLegales)(
+    "/en/$nombre expone los DOS landmarks de navegacion rotulados en ingles",
+    ({ Page }) => {
+      const { container } = renderEn((<Page />) as ReactElement);
+
+      const rotulos = Array.from(container.querySelectorAll("nav")).map((nav) =>
+        nav.getAttribute("aria-label"),
+      );
+
+      expect(rotulos).toHaveLength(2);
+      expect(new Set(rotulos).size).toBe(2);
+      expect(rotulos).toContain(enCommon.Common.Nav.landmark);
+      expect(rotulos).toContain(enLegal.Legal.common.tocLabel);
+
+      // Sonda de idioma: si la rama inglesa heredara los rótulos castellanos,
+      // los `toContain` de arriba seguirían pasando el día que las dos claves
+      // coincidieran por descuido.
+      expect(enCommon.Common.Nav.landmark).not.toBe(
+        esCommon.Common.Nav.landmark,
+      );
+      expect(enLegal.Legal.common.tocLabel).not.toBe(
+        esLegal.Legal.common.tocLabel,
+      );
+    },
+  );
+
+  it.each(paginasLegales)(
+    "/en/$nombre monta el indice ingles con un destino vivo por seccion del documento",
+    ({ Page, doc }) => {
+      const { container } = renderEn((<Page />) as ReactElement);
+
+      // Sonda positiva: sin secciones el bucle no se ejecutaría y el candado
+      // pasaría por vacuidad, que es como se colaron los dos anteriores.
+      expect(doc.sections.length).toBeGreaterThan(0);
+
+      const enlaces = Array.from(
+        container.querySelectorAll('main nav a[href^="#"]'),
+      );
+      expect(enlaces).toHaveLength(doc.sections.length);
+
+      for (const enlace of enlaces) {
+        const destino = (enlace.getAttribute("href") ?? "").slice(1);
+        expect(
+          container.querySelector(`section[id="${destino}"]`),
+          `el índice de /en/${destino} enlaza a #${destino}, que no es una sección del documento`,
+        ).not.toBeNull();
+      }
+    },
+  );
 });

@@ -398,6 +398,167 @@ describe("LegalDocument: el título de la pestaña sigue al idioma", () => {
 });
 
 /*
+ * LA SEMÁNTICA DE LA SUPERFICIE, ATADA POR PRIMERA VEZ (frente Q-2,
+ * 2026-09-04).
+ *
+ * POR QUÉ ESTE BLOQUE EXISTE. Un evaluador técnico declaró el hueco con
+ * nombre: «todo lo anterior es sobre / (home); no se repitió el protocolo en
+ * /privacidad, /aviso-legal ni la 404». Estas dos rutas nunca habían pasado por
+ * un recorrido de teclado, una comprobación de jerarquía de encabezados, ni una
+ * de referencias `aria-*`. La ola M, además, las cambió a fondo: montan la
+ * navegación completa del sitio, así que el documento aporta AHORA un segundo
+ * landmark de navegación que antes no competía con nada.
+ *
+ * QUÉ SE MIDIÓ, y por qué los candados van igual aunque saliera limpio. En
+ * Chrome sobre el build de `0226846` servido, las cuatro rutas legales × dos
+ * idiomas: 29 paradas de teclado en `/privacidad` con anillo de foco visible en
+ * las 29 y sin una sola trampa; un `<h1>`; cero saltos de nivel; cero ids
+ * duplicados; cero referencias `aria-*` colgantes; y los dos landmarks de
+ * navegación con nombre y con nombres DISTINTOS («Navegación del sitio» y
+ * «Índice» / «Site navigation» y «Contents»). Un resultado limpio sin candado
+ * es un resultado que mañana no lo será.
+ *
+ * TODO SE DERIVA DEL MODELO, nunca de una lista tecleada (regla 39): los
+ * niveles esperados salen del árbol de secciones del propio `legal.json`, y el
+ * nombre del índice de su clave i18n. Cada caso lleva su sonda positiva porque
+ * el repo ya tuvo dos candados que pasaban por vacuidad y los dos se
+ * descubrieron tarde.
+ */
+describe("LegalDocument: la semántica de la superficie legal", () => {
+  const BUNDLES = { es: esLegal, en: enLegal } as const;
+
+  it.each(DOC_KEYS)(
+    "%s: la jerarquía de encabezados no salta ningún nivel — un h1 y una sección por h2",
+    (docKey) => {
+      const { container } = renderWithProviders(
+        <LegalDocument docKey={docKey} />,
+      );
+      const niveles = Array.from(
+        container.querySelectorAll("h1,h2,h3,h4,h5,h6"),
+      ).map((h) => Number(h.tagName[1]));
+
+      // Sonda positiva: sin ella, un documento sin un solo encabezado pasaría
+      // el bucle de abajo por vacuidad.
+      expect(niveles.length).toBeGreaterThan(1);
+      expect(niveles[0]).toBe(1);
+      expect(niveles.filter((n) => n === 1)).toHaveLength(1);
+
+      /* El recuento de h2 sale del árbol del documento, no de un número: una
+         sección del JSON = un h2 en el DOM. */
+      expect(niveles.filter((n) => n === 2)).toHaveLength(
+        esLegal.Legal[docKey].sections.length,
+      );
+
+      niveles.forEach((nivel, indice) => {
+        if (indice === 0) return;
+        expect(
+          nivel,
+          `salto de nivel h${niveles[indice - 1]} -> h${nivel} en la posición ${indice}`,
+        ).toBeLessThanOrEqual(niveles[indice - 1] + 1);
+      });
+    },
+  );
+
+  it.each(DOC_KEYS)(
+    "%s: ningún atributo aria-* del documento apunta a un id que no existe",
+    (docKey) => {
+      const { container } = renderWithProviders(
+        <LegalDocument docKey={docKey} />,
+      );
+      const ATRIBUTOS = [
+        "aria-labelledby",
+        "aria-describedby",
+        "aria-controls",
+        "aria-owns",
+        "aria-details",
+      ] as const;
+
+      const referencias = ATRIBUTOS.flatMap((attr) =>
+        Array.from(container.querySelectorAll(`[${attr}]`)).flatMap((el) =>
+          (el.getAttribute(attr) ?? "")
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((ref) => ({ attr, ref })),
+        ),
+      );
+
+      for (const { attr, ref } of referencias) {
+        expect(
+          container.querySelector(`[id="${ref}"]`),
+          `${attr} apunta a #${ref}, que no existe en el documento`,
+        ).not.toBeNull();
+      }
+    },
+  );
+
+  /*
+   * El landmark del índice, con NOMBRE y con nombre PROPIO. Desde la ola M la
+   * página monta dos `<nav>`: el del sitio (rotulado `Common.Nav.landmark`,
+   * candado en `Navbar.tsx`) y este. Una lista de landmarks con dos entradas
+   * que se llaman igual —o con una sin nombre— no dice cuál es cuál, que es
+   * exactamente el motivo por el que el `Navbar` estrenó su propio rótulo.
+   */
+  it.each(DOC_KEYS)(
+    "%s: el índice es un landmark de navegación rotulado con su clave i18n, distinto del rótulo del sitio",
+    (docKey) => {
+      const { container } = renderWithProviders(
+        <LegalDocument docKey={docKey} />,
+      );
+      const indice = container.querySelector("nav");
+      expect(indice).not.toBeNull();
+      expect(indice).toHaveAttribute(
+        "aria-label",
+        esLegal.Legal.common.tocLabel,
+      );
+      expect(esLegal.Legal.common.tocLabel).not.toBe(
+        esCommon.Common.Nav.landmark,
+      );
+    },
+  );
+
+  /*
+   * EL ÍNDICE, EN LOS DOS IDIOMAS. El candado que ya existía («el índice enlaza
+   * únicamente a ids que existen») corre solo en castellano, que es justo el
+   * idioma donde un desajuste de la rama inglesa es invisible — la misma
+   * lección que pagó el bloque `entity` el 2026-08-13. Los `id` de sección son
+   * los MISMOS en los dos árboles (los compara `locales.test.ts` por ruta
+   * recursiva), así que lo que esto caza es que el renderer inglés pinte
+   * secciones o enlaces que no se correspondan.
+   */
+  it.each(DOC_KEYS)(
+    "%s: en inglés el índice sigue teniendo un enlace vivo por sección del documento",
+    async (docKey) => {
+      await i18n.changeLanguage("en");
+      const { container, unmount } = renderWithProviders(
+        <LegalDocument docKey={docKey} />,
+      );
+
+      const secciones = (
+        BUNDLES.en as unknown as {
+          Legal: Record<string, { sections: Array<{ id: string }> }>;
+        }
+      ).Legal[docKey].sections;
+      expect(secciones.length).toBeGreaterThan(0);
+
+      const enlaces = Array.from(
+        container.querySelectorAll('nav a[href^="#"]'),
+      );
+      expect(enlaces).toHaveLength(secciones.length);
+      for (const enlace of enlaces) {
+        const destino = (enlace.getAttribute("href") ?? "").slice(1);
+        expect(
+          container.querySelector(`section[id="${destino}"]`),
+          `el índice inglés enlaza a #${destino}, que no es una sección del documento`,
+        ).not.toBeNull();
+      }
+
+      unmount();
+      await i18n.changeLanguage("es");
+    },
+  );
+});
+
+/*
  * Ola F de la critica #11 (integracion; barrido del agente del hero): las
  * anclas del indice movian el scroll pero no el foco -- el mismo defecto
  * que el hallazgo B2 midio en el CTA del hero. Cableadas con el helper de

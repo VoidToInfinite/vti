@@ -4,6 +4,7 @@ import { renderWithProviders, screen } from "@/test/test-utils";
 import { LEGAL_VERSIONS } from "@/config/legal";
 import { navBarSectionsFor } from "@/config/navigation";
 import { ROUTES } from "@/config/site";
+import esCommon from "@/i18n/locales/es/common.json";
 import esLegal from "@/i18n/locales/es/legal.json";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
 import { SITE } from "@/config/site";
@@ -193,6 +194,45 @@ describe("rutas legales", () => {
       }
 
       expect(screen.getByRole("contentinfo")).toBeInTheDocument();
+    },
+  );
+
+  /*
+   * LOS DOS LANDMARKS DE NAVEGACIÓN, ROTULADOS Y DISTINTOS (frente Q-2,
+   * 2026-09-04).
+   *
+   * Antes de la ola M una página legal tenía UN `<nav>`: su índice. Desde que
+   * monta la navegación del sitio tiene DOS, y esa es una propiedad nueva que
+   * solo existe en el ensamblaje —ni `LegalDocument.test.tsx` ni
+   * `Navbar.test.tsx` ven al otro— y que nadie había comprobado. Una lista de
+   * landmarks con dos entradas sin nombre, o con el mismo nombre, no dice cuál
+   * es cuál: es exactamente el motivo por el que el `Navbar` estrenó su propio
+   * rótulo (ver el JSX de `ScNav` en `Navbar.tsx`).
+   *
+   * Medido en Chrome sobre el build de `0226846` servido, las cuatro rutas
+   * legales: dos landmarks de navegación, «Navegación del sitio» y «Índice» en
+   * castellano, «Site navigation» y «Contents» en inglés. Los dos rótulos salen
+   * de su clave i18n y no de un string tecleado aquí.
+   */
+  it.each(paginas)(
+    "/$nombre expone DOS landmarks de navegacion, los dos rotulados y con rotulos distintos",
+    ({ Page }) => {
+      const { container } = renderWithProviders((<Page />) as ReactElement);
+
+      const rotulos = Array.from(container.querySelectorAll("nav")).map((nav) =>
+        nav.getAttribute("aria-label"),
+      );
+
+      expect(rotulos).toHaveLength(2);
+      for (const rotulo of rotulos) {
+        expect(
+          rotulo,
+          "un nav sin nombre no se distingue del otro",
+        ).toBeTruthy();
+      }
+      expect(new Set(rotulos).size).toBe(2);
+      expect(rotulos).toContain(esCommon.Common.Nav.landmark);
+      expect(rotulos).toContain(esLegal.Legal.common.tocLabel);
     },
   );
 });
