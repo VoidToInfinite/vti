@@ -53,6 +53,18 @@
  * resuelve en tiempo de ejecucion y, si no lo encuentra, lo dice con el comando
  * exacto que lo instala en vez de fallar con un error de modulo.
  *
+ * La salida de emergencia es la variable `PLAYWRIGHT_CORE`, y admite las TRES
+ * formas de nombrar el paquete, comprobadas una a una (`especificadoresDePlaywright`
+ * y su test): el DIRECTORIO del paquete, su FICHERO de entrada o su NOMBRE. Por
+ * ejemplo, con Playwright instalado global dentro de `@playwright/cli`:
+ *
+ *     PLAYWRIGHT_CORE=".../@playwright/cli/node_modules/playwright-core" \
+ *       node scripts/check-legal-surfaces.mjs --base=http://localhost:4321
+ *
+ * La primera version solo admitia el fichero, aunque su propio comentario
+ * repartia la ruta del directorio; con el directorio moria diciendo que
+ * Playwright no estaba instalado. Queda medido y cerrado en la ola Q.
+ *
  * CIFRAS DE REFERENCIA, medidas CON ESTE MISMO SCRIPT sobre el build de
  * `0226846` servido (Chrome, 1440x900, temas oscuro y claro; veredicto CUMPLE,
  * codigo de salida 0 en los dos temas):
@@ -68,6 +80,11 @@
  * las castellanas y `en` en las inglesas, y el `sinJs` de las seis trae 16
  * enlaces de cabecera con 10.969 / 10.315 / 5.961 / 5.725 / 67 / 67 caracteres
  * de cuerpo.)
+ *
+ * REPRODUCIDAS, no heredadas: el frente de correccion de la misma ola volvio a
+ * pasar el script sobre el build servido y salieron las mismas cifras, fila por
+ * fila, en los dos temas -- «CUMPLE - 6 superficies, 14 familias, cero
+ * incumplimientos», codigo de salida 0 en `dark` y en `light`.
  *
  * `stops` cuenta las paradas DISTINTAS antes de cerrar el ciclo (la repeticion
  * que lo cierra no se cuenta), con anillo de foco visible en todas y sin una
@@ -90,6 +107,8 @@
  * lector de pantalla; el HTML crudo no es asunto suyo.
  */
 
+import { readFileSync, statSync } from "node:fs";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 /** Prefijo de la rama inglesa. Espejo de `EN_ROUTES.home` en `src/config/site.ts`;
@@ -321,19 +340,85 @@ function probeNoScript() {
 
 /* ------------------------------------------------------------------------- */
 
+/**
+ * Convierte el valor de `PLAYWRIGHT_CORE` en la lista de especificadores que se
+ * van a intentar importar, en orden.
+ *
+ * POR QUE ES UNA FUNCION APARTE, Y POR QUE ES ASI DE EXPLICITA. La primera
+ * version hacia `pathToFileURL(valor)` a secas, y con eso la salida de
+ * emergencia que su propio comentario documentaba NO funcionaba: apuntando al
+ * DIRECTORIO del paquete -- que es la lectura natural de "apunta
+ * PLAYWRIGHT_CORE a un playwright-core ya instalado", y la ruta que se reparte
+ * en los encargos -- el script moria con su propio mensaje de "no esta
+ * instalado" (medido: EXIT=1). La causa es que un `import()` de una URL
+ * `file://` de CARPETA no resuelve el `package.json` del paquete: eso solo pasa
+ * cuando Node resuelve por NOMBRE de paquete dentro de un `node_modules`, y
+ * aqui el paquete esta fuera del arbol del repo a proposito. Solo funcionaba
+ * apuntando al fichero de entrada. Un candado que la ronda siguiente no sabe
+ * ejecutar siguiendo sus propias instrucciones no es un candado.
+ *
+ * Asi que la ruta de un directorio se resuelve a mano a su fichero de entrada,
+ * leyendo el `package.json` del paquete en el mismo orden que Node: `exports`
+ * ("." → `import`, luego `default`), luego `main`, y por ultimo los `index` de
+ * toda la vida. `playwright-core` no declara `main` -- solo `exports` --, asi
+ * que quedarse en `main` no habria bastado (comprobado en el paquete real).
+ */
+export function especificadoresDePlaywright(valor) {
+    const finales = ["playwright-core", "playwright"];
+    if (!valor) return finales;
+
+    /* Un nombre de paquete suelto se importa tal cual; solo las RUTAS pasan por
+       la resolucion de abajo. */
+    const esRuta = /[\\/]/.test(valor) || valor.startsWith(".");
+    if (!esRuta) return [valor, ...finales];
+
+    const candidatos = [];
+    let esDirectorio = false;
+    try {
+        esDirectorio = statSync(valor).isDirectory();
+    } catch {
+        /* la ruta no existe: se intenta igual y el error sale abajo, con el
+           mensaje que dice como instalarlo */
+    }
+
+    if (esDirectorio) {
+        const entradas = [];
+        try {
+            const pkg = JSON.parse(
+                readFileSync(path.join(valor, "package.json"), "utf8"),
+            );
+            const punto = pkg.exports?.["."];
+            if (typeof punto === "string") entradas.push(punto);
+            else if (punto && typeof punto === "object") {
+                for (const clave of ["import", "default", "require"]) {
+                    if (typeof punto[clave] === "string")
+                        entradas.push(punto[clave]);
+                }
+            }
+            if (typeof pkg.main === "string") entradas.push(pkg.main);
+        } catch {
+            /* sin package.json legible se cae a los index de abajo */
+        }
+        entradas.push("index.mjs", "index.js");
+        for (const entrada of entradas) {
+            candidatos.push(pathToFileURL(path.resolve(valor, entrada)).href);
+        }
+    } else {
+        candidatos.push(pathToFileURL(valor).href);
+    }
+    return [...candidatos, ...finales];
+}
+
 /** Carga `chromium` sin exigir que Playwright sea dependencia del repo. */
-async function loadChromium() {
-    /* `PLAYWRIGHT_CORE` admite una RUTA de disco, que es la forma en que
-       Playwright llega a esta maquina (dentro de `@playwright/cli`, fuera del
-       `node_modules` del repo). Un `import()` de una ruta absoluta de Windows no
-       resuelve: hay que convertirla en URL `file://` primero. */
-    const explicito = process.env.PLAYWRIGHT_CORE
-        ? pathToFileURL(process.env.PLAYWRIGHT_CORE).href
-        : null;
-    const candidatos = explicito
-        ? [explicito, "playwright-core", "playwright"]
-        : ["playwright-core", "playwright"];
-    for (const candidato of candidatos) {
+export async function loadChromium() {
+    /* `PLAYWRIGHT_CORE` admite el NOMBRE del paquete, la ruta de su fichero de
+       entrada o la ruta de su DIRECTORIO -- que es la forma en que Playwright
+       llega a esta maquina (dentro de `@playwright/cli`, fuera del
+       `node_modules` del repo). Las tres formas las normaliza
+       `especificadoresDePlaywright`. */
+    for (const candidato of especificadoresDePlaywright(
+        process.env.PLAYWRIGHT_CORE,
+    )) {
         try {
             const mod = await import(candidato);
             if (mod.chromium) return mod.chromium;
@@ -344,8 +429,9 @@ async function loadChromium() {
     throw new Error(
         "Este candado necesita Playwright, que NO es dependencia del repo a " +
             "proposito (el gate no lo usa). Instalalo con " +
-            "`npm i -g @playwright/cli` o apunta PLAYWRIGHT_CORE a un " +
-            "playwright-core ya instalado.",
+            "`npm i -g @playwright/cli` o apunta PLAYWRIGHT_CORE al paquete " +
+            "playwright-core ya instalado: vale su directorio, su fichero de " +
+            "entrada o su nombre si esta en el `node_modules` de este repo.",
     );
 }
 
