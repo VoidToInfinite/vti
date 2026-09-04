@@ -1,7 +1,9 @@
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { describe, it, expect } from "vitest";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { afterAll, describe, it, expect } from "vitest";
 import {
     BROKEN_SEGMENT,
     CHECKS,
@@ -9,6 +11,7 @@ import {
     LEGAL_DOCS,
     SURFACES,
     WIDTH_SWEEP,
+    especificadoresDePlaywright,
 } from "./check-legal-surfaces.mjs";
 /* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
    parser de Rollup no admite un `.ts` explicito en el especificador. */
@@ -45,30 +48,117 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  * borrando el marcador `[check: forced-colors]` del cuerpo del script, el cuarto
  * caso cae en rojo con "la familia declarada forced-colors no tiene ninguna
  * comprobacion marcada en el cuerpo del script"; restaurado, verde.
+ *
+ * DOS HUECOS DE ESA PRIMERA VERSION, medidos y cerrados por el frente de
+ * correccion de la misma ola:
+ *
+ *   a. El vinculo bidireccional ataba la COHERENCIA, no la EXTENSION. Quitando
+ *      A LA VEZ la familia `"forced-colors"` de `CHECKS` (linea 159 del script) y
+ *      su marcador del cuerpo (linea 714) -- la supresion SIMETRICA, que es la
+ *      que hace quien recorta de verdad -- los cinco casos seguian en verde:
+ *      «Test Files  1 passed (1) / Tests  5 passed (5)». El script pasaba a medir
+ *      trece familias diciendo catorce y nadie se enteraba. Lo cierra
+ *      `FAMILIAS_ESPERADAS`, tecleada abajo.
+ *   b. El primer caso derivaba su expectativa de la MISMA lista que verificaba
+ *      (`LEGAL_DOCS.length * 2 + 2`), asi que era autorreferencial: quitando la
+ *      entrada `legalNotice` de `LEGAL_DOCS` (linea 107 del script) salia «✓
+ *      cubre los dos documentos legales en los dos idiomas mas una 404 por
+ *      idioma» en verde, y solo caia su hermano, que tecleaba las dos claves. Y
+ *      tecleadas, un TERCER documento legal en `src/config/site.ts` no quedaria
+ *      obligado a entrar en el barrido. Ahora la lista de documentos se DERIVA
+ *      de `ROUTES`, la fuente unica del sitio, con las rutas que no son un
+ *      documento legal excluidas por nombre.
+ *
+ * Los dos cierres, validados repitiendo LA MISMA supresion que antes salia en
+ * verde:
+ *
+ *   a. quitadas la linea 159 (`"forced-colors",`) y la 714 (`// [check:
+ *      forced-colors]`) del script --
+ *
+ *        AssertionError: el candado declara 13 familias y prometio 14: si de
+ *        verdad mide otra cosa, actualiza FAMILIAS_ESPERADAS a la vez que el
+ *        script; si no, restaura lo que falta: expected [ …(13) ] to deeply
+ *        equal [ …(14) ]
+ *        - Expected
+ *        + Received
+ *        -   "forced-colors",
+ *
+ *   b. quitada la entrada `legalNotice` de `LEGAL_DOCS` (linea 107) --
+ *
+ *        AssertionError: los documentos que recorre el script no son los que
+ *        declara src/config/site.ts: uno de los dos lados se movio solo:
+ *        expected [ 'privacy' ] to deeply equal [ 'legalNotice', 'privacy' ]
+ *
+ *      El caso que antes salia «✓» ahora es el primero en caer. Restauradas las
+ *      tres lineas, los nueve casos en verde.
  */
 
-const SCRIPT = readFileSync(
-    path.join(
-        path.dirname(fileURLToPath(import.meta.url)),
-        "check-legal-surfaces.mjs",
-    ),
-    "utf8",
+const RUTA_SCRIPT = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "check-legal-surfaces.mjs",
+);
+const SCRIPT = readFileSync(RUTA_SCRIPT, "utf8");
+
+/**
+ * Las rutas del sitio que NO son un documento legal, excluidas por nombre. Todo
+ * lo demas que `ROUTES` declare es un documento que este candado tiene que
+ * recorrer: si manana nace `/cookies`, el test cae hasta que alguien decida
+ * explicitamente si entra en el barrido o se anade a esta lista con su motivo.
+ * Esa decision forzada es el punto; una lista de claves tecleada no la fuerza.
+ */
+const RUTAS_SIN_DOCUMENTO_LEGAL = new Set(["home"]);
+
+/** Los documentos legales que el sitio declara HOY, derivados de la fuente unica. */
+const IDS_LEGALES = Object.keys(ROUTES).filter(
+    (clave) => !RUTAS_SIN_DOCUMENTO_LEGAL.has(clave),
 );
 
+/*
+ * El CONTRATO del candado, tecleado aqui y no derivado de `CHECKS`: derivarlo de
+ * la lista que se verifica es el test autorreferencial que deja pasar cualquier
+ * recorte. Estas catorce familias solo se tocan cuando el script mida algo
+ * distinto de verdad, y entonces se tocan a la vez que el script.
+ */
+const FAMILIAS_ESPERADAS = [
+    "recorrido-teclado",
+    "foco-visible",
+    "sin-trampas-de-foco",
+    "jerarquia-encabezados",
+    "ids-unicos",
+    "aria-sin-referencias-colgantes",
+    "landmarks-con-nombre",
+    "aterrizaje-del-indice",
+    "disclosure-escape-y-foco",
+    "hoja-movil-escape-y-foco",
+    "reduced-motion",
+    "forced-colors",
+    "responsive-sin-desbordamiento",
+    "sin-javascript",
+];
+
 describe("cobertura del candado de las superficies legales y la 404", () => {
-    it("cubre los dos documentos legales en los dos idiomas mas una 404 por idioma", () => {
-        expect(SURFACES).toHaveLength(LEGAL_DOCS.length * 2 + 2);
+    it("recorre TODOS los documentos legales que el sitio declara, en los dos idiomas, mas una 404 por idioma", () => {
+        /* Sonda positiva: si `ROUTES` se quedara sin documentos legales, todo lo
+           de abajo pasaria por vacuidad. */
+        expect(IDS_LEGALES.length).toBeGreaterThan(0);
+        expect(
+            [...LEGAL_DOCS.map((d) => d.id)].sort(),
+            `los documentos que recorre el script no son los que declara ` +
+                `src/config/site.ts: uno de los dos lados se movio solo`,
+        ).toEqual([...IDS_LEGALES].sort());
+
+        expect(SURFACES).toHaveLength(IDS_LEGALES.length * 2 + 2);
 
         const legales = SURFACES.filter((s) => s.kind === "legal");
         const cuatrocientos = SURFACES.filter((s) => s.kind === "notFound");
-        expect(legales).toHaveLength(LEGAL_DOCS.length * 2);
+        expect(legales).toHaveLength(IDS_LEGALES.length * 2);
         expect(cuatrocientos).toHaveLength(2);
 
         for (const locale of ["es", "en"]) {
             expect(
                 legales.filter((s) => s.locale === locale),
                 `falta la rama ${locale} de algun documento legal`,
-            ).toHaveLength(LEGAL_DOCS.length);
+            ).toHaveLength(IDS_LEGALES.length);
             expect(
                 cuatrocientos.filter((s) => s.locale === locale),
                 `falta la 404 de la rama ${locale}`,
@@ -81,7 +171,7 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
         expect(LEGAL_DOCS.length).toBeGreaterThan(0);
 
         const caminos = SURFACES.map((s) => s.path);
-        for (const clave of ["privacy", "legalNotice"]) {
+        for (const clave of IDS_LEGALES) {
             expect(
                 caminos,
                 `el script no recorre la ruta castellana de ${clave}`,
@@ -117,6 +207,23 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
         }
     });
 
+    it("la lista de familias sigue siendo la que el candado prometio medir", () => {
+        /* La supresion SIMETRICA -- quitar la familia de `CHECKS` y su marcador
+           del cuerpo a la vez -- no la ve el caso de abajo, porque despues de
+           quitarla los dos lados siguen coincidiendo. La ve esto. */
+        expect(
+            [...CHECKS].sort(),
+            `el candado declara ${CHECKS.length} familias y prometio ` +
+                `${FAMILIAS_ESPERADAS.length}: si de verdad mide otra cosa, actualiza ` +
+                `FAMILIAS_ESPERADAS a la vez que el script; si no, restaura lo que falta`,
+        ).toEqual([...FAMILIAS_ESPERADAS].sort());
+        expect(
+            new Set(CHECKS).size,
+            `hay familias repetidas en CHECKS: alguien cuadro la cuenta duplicando ` +
+                `una en vez de conservar la que falta`,
+        ).toBe(CHECKS.length);
+    });
+
     it("cada familia declarada tiene comprobacion real en el script, y cada comprobacion esta declarada", () => {
         const marcados = [...SCRIPT.matchAll(/\/\/ \[check: ([a-z-]+)\]/g)].map(
             (m) => m[1],
@@ -140,5 +247,140 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
                 `el script comprueba ${marca}, que no esta declarada en CHECKS`,
             ).toContain(marca);
         }
+    });
+});
+
+/*
+ * LA SALIDA DE EMERGENCIA, ATADA. Este candado no corre en el gate porque
+ * necesita el sitio servido; se ejecuta a mano, y la unica forma de ejecutarlo en
+ * esta maquina es apuntar `PLAYWRIGHT_CORE` al paquete instalado fuera del repo.
+ * Esa variable estuvo ROTA para la lectura natural de su propia documentacion --
+ * la ruta del DIRECTORIO del paquete --, y el script moria diciendo que
+ * Playwright no estaba instalado. Un candado que la ronda siguiente no sabe
+ * arrancar siguiendo sus instrucciones es un candado que no correra.
+ *
+ * Se prueba contra un paquete de mentira montado en disco, no contra el
+ * Playwright de esta maquina: la ruta real es de UNA maquina y el gate corre en
+ * otras. Lo que se verifica es lo que fallaba -- que una ruta de DIRECTORIO
+ * termine en un especificador que `import()` sabe resolver.
+ *
+ * VALIDADO CON BUG INYECTADO: desactivando la deteccion de directorio
+ * (`esDirectorio = false && statSync(valor).isDirectory()`, que devuelve
+ * exactamente el comportamiento anterior) los dos primeros casos caen con
+ *
+ *   AssertionError: un directorio tiene que resolverse al FICHERO de entrada: un
+ *   import() de una URL file:// de carpeta no lee el package.json del paquete
+ *
+ *   Error: loadChromium no supo cargar el paquete desde la ruta de su
+ *   DIRECTORIO, que es la forma en que la variable se reparte en los encargos y
+ *   la lectura natural de su propia documentacion. Salida de node: Error: Este
+ *   candado necesita Playwright, que NO es dependencia del repo a proposito...
+ *
+ * Restaurada la deteccion, verde. Y con el arreglo puesto, el candado entero
+ * corrio contra el build servido apuntando `PLAYWRIGHT_CORE` al DIRECTORIO del
+ * paquete: «CUMPLE - 6 superficies, 14 familias, cero incumplimientos (tema
+ * dark, base http://localhost:4321)», codigo de salida 0.
+ */
+const paquetesFalsos = [];
+function paqueteFalso(pkg, entrada) {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "vti-playwright-falso-"));
+    paquetesFalsos.push(dir);
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify(pkg));
+    writeFileSync(
+        path.join(dir, entrada),
+        "export const chromium = { marca: 'paquete falso del candado' };\n",
+    );
+    return dir;
+}
+
+afterAll(() => {
+    for (const dir of paquetesFalsos)
+        rmSync(dir, { recursive: true, force: true });
+});
+
+describe("la salida de emergencia PLAYWRIGHT_CORE del candado de navegador", () => {
+    it("resuelve la ruta de un DIRECTORIO al fichero de entrada que declara su package.json", () => {
+        /* `playwright-core` declara `exports` y NO declara `main`, asi que
+           quedarse en `main` tampoco habria bastado (comprobado en el paquete
+           real de esta maquina). */
+        const dir = paqueteFalso(
+            {
+                name: "playwright-core-falso",
+                exports: { ".": { import: "./index.mjs" } },
+            },
+            "index.mjs",
+        );
+        const candidatos = especificadoresDePlaywright(dir);
+        expect(
+            candidatos[0],
+            `un directorio tiene que resolverse al FICHERO de entrada: un import() ` +
+                `de una URL file:// de carpeta no lee el package.json del paquete`,
+        ).toBe(pathToFileURL(path.join(dir, "index.mjs")).href);
+        expect(
+            candidatos.at(-2),
+            "los nombres de paquete siguen como ultimo recurso",
+        ).toBe("playwright-core");
+    });
+
+    it("importa de verdad el paquete cuando PLAYWRIGHT_CORE apunta a su directorio", () => {
+        /*
+         * En NODE PELADO, no dentro de Vitest, y a proposito: el defecto vivia en
+         * el `import()` real y el script se ejecuta con `node scripts/...`. Vite
+         * reescribe los import dinamicos y no sabe cargar un fichero de fuera de
+         * la raiz del proyecto (reproducido: llamar aqui a `loadChromium()`
+         * directamente falla aunque la ruta sea correcta), asi que medirlo desde
+         * dentro del corredor mediria otra cosa.
+         */
+        const dir = paqueteFalso(
+            {
+                name: "playwright-core-falso",
+                exports: { ".": { import: "./entrada.mjs" } },
+            },
+            "entrada.mjs",
+        );
+        const sonda = path.join(dir, "sonda.mjs");
+        writeFileSync(
+            sonda,
+            `import { loadChromium } from ${JSON.stringify(pathToFileURL(RUTA_SCRIPT).href)};\n` +
+                `const chromium = await loadChromium();\n` +
+                `process.stdout.write(String(chromium.marca));\n`,
+        );
+
+        let salida;
+        try {
+            salida = execFileSync(process.execPath, [sonda], {
+                encoding: "utf8",
+                env: { ...process.env, PLAYWRIGHT_CORE: dir },
+            });
+        } catch (error) {
+            throw new Error(
+                `loadChromium no supo cargar el paquete desde la ruta de su ` +
+                    `DIRECTORIO, que es la forma en que la variable se reparte en los ` +
+                    `encargos y la lectura natural de su propia documentacion. ` +
+                    `Salida de node: ${String(error.stderr || error.message).trim()}`,
+            );
+        }
+        expect(salida).toBe("paquete falso del candado");
+    });
+
+    it("acepta tambien el fichero de entrada y el nombre del paquete, y no inventa candidatos sin variable", () => {
+        const dir = paqueteFalso(
+            {
+                name: "playwright-core-falso",
+                exports: { ".": { import: "./index.mjs" } },
+            },
+            "index.mjs",
+        );
+        const fichero = path.join(dir, "index.mjs");
+        expect(especificadoresDePlaywright(fichero)[0]).toBe(
+            pathToFileURL(fichero).href,
+        );
+        expect(especificadoresDePlaywright("playwright-core")[0]).toBe(
+            "playwright-core",
+        );
+        expect(especificadoresDePlaywright(undefined)).toEqual([
+            "playwright-core",
+            "playwright",
+        ]);
     });
 });
