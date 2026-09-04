@@ -103,6 +103,39 @@
  * sintéticos y comprueba la coherencia interna de la línea base; y cuando la
  * máquina donde corre tiene un `out/` a mano, ese mismo test compara el build
  * real contra ella.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * CLS BAJO EL PERFIL ESTRANGULADO (medido 2026-09-04, ola Q, frente Q-4).
+ *
+ * Se deja aquí, en el instrumento de rendimiento que sí está versionado, para
+ * que la próxima ronda parta de una cifra y no de una declaración. Las tres
+ * críticas externas anteriores dieron CLS = 0, pero ninguna estranguló: una lo
+ * dijo por escrito («dato suplementario, fuera del protocolo»). El CLS aparece
+ * justo cuando la red va lenta y las imágenes llegan tarde, así que un cero
+ * sin estrangular no es el mismo cero.
+ *
+ * MÉTODO. Chrome real por CDP con `Network.emulateNetworkConditions` (latency
+ * 150 ms, 200.000 B/s de bajada, 100.000 de subida) y
+ * `Emulation.setCPUThrottlingRate` rate 4 — el perfil literal del protocolo —,
+ * `Network.setCacheDisabled`, contexto de Playwright NUEVO en cada corrida,
+ * tema fijado en `localStorage` antes de cargar,
+ * `document.visibilityState === "visible"` comprobado en todas, un
+ * `PerformanceObserver` de `layout-shift` con `buffered: true` instalado antes
+ * de la navegación, y 12 s de reposo tras `load`.
+ *
+ * RESULTADO: **CLS = 0,000000 en las DOCE corridas** — tres por tema en
+ * 1440×900 DPR1 y tres por tema en 390×844 DPR3 —, con CERO entradas de
+ * `layout-shift` registradas. Mediana 0,000000 en los cuatro escenarios.
+ *
+ * Y LA SONDA NO ESTÁ CIEGA, que es la parte que convierte el cero en un dato:
+ * con el mismo perfil y el mismo observador, insertando a mano una barra de
+ * 200 px como primer hijo del `<body>` después del `load`, la misma sonda pasó
+ * de 0 a 0,1388888888888889 en un único desplazamiento, con `SECTION#hero`
+ * como fuente. El cero de arriba es un cero medido por un instrumento que se
+ * ha visto reaccionar, no un instrumento que no mira. Es la misma lección que
+ * dejó escrita la entrada del 2026-08-11 de `task/lessons.md`: un CLS de 0
+ * puede significar «no hay salto» o «no había nada que desplazar», y solo
+ * ejercitar la sonda distingue los dos casos.
  */
 import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { brotliCompressSync, constants } from "node:zlib";
