@@ -242,10 +242,17 @@ describe("Home (pagina completa)", () => {
    * entre Story, Journey, Features y Contact), el hero, las tres tarjetas y
    * el formulario de Contacto, los dos haces de costura y el campo de
    * estrellas del footer. MEDIDO en aislamiento con la maquina descargada:
-   * **3830 ms**, contra los 5000 ms que Vitest da por defecto. Ese margen del
-   * 23% no sobrevive a la contencion de CPU de los workers por defecto
-   * (`pnpm test` a secas), y el fallo resultante es un timeout, no una
-   * asercion: no dice nada sobre el producto.
+   * **3830 ms** cuando se escribio esto, contra los 5000 ms que Vitest da por
+   * defecto. Ese margen del 23% no sobrevive a la contencion de CPU de los
+   * workers por defecto (`pnpm test` a secas), y el fallo resultante es un
+   * timeout, no una asercion: no dice nada sobre el producto.
+   *
+   * REMEDIDO el 2026-09-05, misma condicion: **9127 ms**, 2,4 veces mas. La
+   * pagina ha ganado secciones y contenido desde entonces, asi que los 15000
+   * de abajo dejaron de tener margen y este caso volvio a caer por timeout en
+   * la suite completa. Se sube a 40000 y se deja escrita la serie (3830 ->
+   * 9127) para que el proximo que lo lea vea la TENDENCIA y no solo el numero:
+   * si vuelve a caer, lo que toca es adelgazar el render, no seguir subiendo.
    *
    * El presupuesto de 5000 ms no lo eligio nadie para este caso: es el
    * defecto de la herramienta. Se sube a 15000 ms para que la señal del test
@@ -267,7 +274,7 @@ describe("Home (pagina completa)", () => {
     for (const id of ["story", "journey", "features", "contact", "about"]) {
       expect(container.querySelector(`section#${id}`)).not.toBeNull();
     }
-  }, 15000);
+  }, 40000);
 
   /*
    * AQUÍ VIVÍA `it.fails("BUG: cambiar de idioma NO actualiza el atributo lang

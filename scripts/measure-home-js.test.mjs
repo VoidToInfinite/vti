@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import {
     BASELINE_CHUNKS,
     BASELINE_DIGEST,
@@ -927,38 +927,64 @@ describe("auditoría del censo versionado", () => {
 });
 
 /*
+ * Medir un build real cuesta segundos, no milisegundos: `analyzeSite()`
+ * comprime en brotli los chunks de las ocho páginas. Se declara un tiempo de
+ * espera propio en vez de heredar el de una aserción de jsdom, porque la
+ * lentitud de una medición legítima no debe leerse como un fallo.
+ */
+const INTEGRACION_TIMEOUT_MS = 60_000;
+
+/*
  * Bloque de integración: solo corre donde hay un `out/` construido. En CI no
  * lo hay y estos casos se saltan — decir "no hay build" en voz alta es
  * preferible a un verde que no midió nada.
+ *
+ * La medición se hace UNA vez en `beforeAll` y los tres casos la comparten.
+ * Antes cada caso llamaba a `analyzeSite()` por su cuenta: tres compresiones
+ * completas del build, y con el pool de Vitest en paralelo ese gasto de CPU
+ * agotaba el tiempo de espera por defecto de los ficheros pesados de jsdom que
+ * corrían a la vez. El síntoma fue cinco tests cayendo por `Test timed out`
+ * sin una sola aserción fallida, todos ellos verdes al ejecutarlos aislados.
+ * Compartir la medición no afloja ningún candado: se mide lo mismo, una vez.
  */
 describe.skipIf(!existsSync("out/index.html"))(
     "el build real contra el censo",
     () => {
+        let site;
+        let baseline;
+
+        beforeAll(() => {
+            site = analyzeSite();
+            baseline = readBaseline();
+        }, INTEGRACION_TIMEOUT_MS);
+
         it("el build emite exactamente las páginas que el censo declara", () => {
             const rutas = listPages();
             expect(rutas).toHaveLength(BASELINE_PAGES);
             expect(rutas).toEqual(
-                readBaseline().paginas.map((pagina) => pagina.ruta),
+                baseline.paginas.map((pagina) => pagina.ruta),
             );
         });
 
         it("pasa los nueve candados", () => {
-            const site = analyzeSite();
-            const { problems } = verdictSite(site, readBaseline());
+            const { problems } = verdictSite(site, baseline);
             expect(
                 problems,
                 `el build real no pasa los candados: ${problems.join(" · ")}`,
             ).toEqual([]);
         });
 
-        it("la home que mide `readChunks` es la misma que mide el sitio entero", () => {
-            const site = analyzeSite();
-            const home = site.paginas.find(
-                (pagina) => pagina.ruta === HOME_PAGE,
-            );
-            expect(home.analysis.downloadedBytes).toBe(
-                analyze(readChunks()).downloadedBytes,
-            );
-        });
+        it(
+            "la home que mide `readChunks` es la misma que mide el sitio entero",
+            () => {
+                const home = site.paginas.find(
+                    (pagina) => pagina.ruta === HOME_PAGE,
+                );
+                expect(home.analysis.downloadedBytes).toBe(
+                    analyze(readChunks()).downloadedBytes,
+                );
+            },
+            INTEGRACION_TIMEOUT_MS,
+        );
     },
 );
