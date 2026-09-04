@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { I18nProvider } from "@/i18n/I18nProvider";
-import { navGroupsFor } from "@/config/navigation";
+import { navGroupsFor, navBarWideSectionsFor } from "@/config/navigation";
 import { routePath, type Locale } from "@/config/site";
 import { PrivacyDocument } from "./PrivacyDocument";
 
@@ -111,9 +111,36 @@ describe("PrivacyDocument: la cabecera del sitio en una página legal", () => {
     const destinos = navGroupsFor("es").flatMap((grupo) =>
       grupo.items.map((item) => item.href),
     );
-    expect(enlaces).toHaveLength(destinos.length + 3);
+    /*
+     * LA CUENTA SE REESCRIBE, NO SE RELAJA (regla 40 -- crítica externa #18,
+     * hallazgo de la ola O+P). Hasta `a7df2b8` bastaba con «un `<a>` por
+     * destino»; desde entonces la barra ancha pinta los destinos de
+     * `navBarWideSectionsFor` en la fila Y el panel «Más» conserva su copia,
+     * y son dos reglas `@container` mutuamente excluyentes las que apagan una
+     * u otra según el ancho. jsdom no evalúa `@container` (CLAUDE.md §5.2),
+     * así que en el DOM de un test viven SIEMPRE las dos copias: contar nodos
+     * `<a>` a secas medía el número de REGÍMENES, no el de destinos, y por eso
+     * salía 16 donde el modelo declara 15.
+     *
+     * Lo que este candado afirma ahora es más fuerte que la cuenta anterior,
+     * no más débil: el total exacto (derivado del modelo, incluida la copia
+     * por régimen), el número de destinos DISTINTOS, y que los únicos hrefs
+     * repetidos dentro del `<header>` son exactamente los que el modelo
+     * declara duplicados por régimen. Un duplicado accidental de cualquier
+     * otro destino, o un destino ancho que se cuele sin pasar por el modelo,
+     * se pone en rojo aquí.
+     */
+    const anchos = navBarWideSectionsFor("es").map((item) => item.href);
+    expect(enlaces).toHaveLength(destinos.length + 3 + anchos.length);
 
     const hrefs = enlaces.map((a) => a.getAttribute("href"));
+    expect(new Set(hrefs).size).toBe(destinos.length + 3);
+
+    const repetidos = [
+      ...new Set(hrefs.filter((href, i) => hrefs.indexOf(href) !== i)),
+    ].sort();
+    expect(repetidos).toEqual([...anchos].sort());
+
     for (const destino of destinos) {
       expect(hrefs, `falta el destino ${destino} en la cabecera`).toContain(
         destino,
