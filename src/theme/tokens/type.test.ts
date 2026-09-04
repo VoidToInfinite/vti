@@ -329,3 +329,63 @@ describe("cada peldaño de la escala tiene consumidor real (crítica externa #17
     });
   }
 });
+
+/*
+ * CANDADO DE LA ESCALA CONTRA `DESIGN.md` (crítica externa #18, ola O+P).
+ *
+ * EL DEFECTO QUE ATRAPA: `32fa3c9` renombró el cuarto rango de titular de
+ * `h5` a `h4`, y `DESIGN.md` §3.2 se quedó nombrándolo por el nombre viejo --
+ * y, de paso, declarando nueve peldaños donde la escala lleva doce desde la
+ * crítica #15. `DESIGN.md` es lectura obligada de la sección 3 de `CLAUDE.md`,
+ * así que la contradicción no era cosmética: el próximo agente que lo leyera
+ * aprendía un nombre que el código ya no usa.
+ *
+ * POR QUÉ ES UN CANDADO Y NO UNA CORRECCIÓN A MANO: la misma línea del
+ * documento ya se había desincronizado CUATRO veces (críticas #9, #11, #14 y
+ * #15 movieron el recuento), y las cuatro se arreglaron a mano. El repo tiene
+ * medida esa diferencia: un hallazgo con candado no vuelve; uno corregido a
+ * mano vuelve reformulado en la ronda siguiente. Aquí el candado es la
+ * entrega.
+ *
+ * QUÉ ATA, exactamente: que la lista de variantes escrita en §3.2 sea la
+ * MISMA que `Object.keys(type.scale)`, en el mismo orden, y que la cifra que
+ * la encabeza sea su longitud. Nada de "contiene": igualdad de arrays, para
+ * que tanto un peldaño nuevo sin documentar como un nombre fósil en el
+ * documento se pongan en rojo.
+ */
+describe("DESIGN.md §3.2 no puede contradecir a la escala", () => {
+  const designMd = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "..",
+    "DESIGN.md",
+  );
+
+  /** La línea de §3.2 que enumera la escala, con su cifra y sus nombres. */
+  function censoDocumentado(): { cifra: number; nombres: string[] } {
+    const texto = readFileSync(designMd, "utf-8");
+    const linea = /^(\d+) variantes \(([^)]+)\), cada una con/m.exec(texto);
+    expect(
+      linea,
+      "DESIGN.md §3.2 dejó de enumerar la escala en la forma que este candado lee: si la sección se reescribe, este test se reescribe con ella (regla 40), no se borra",
+    ).not.toBeNull();
+    const nombres = Array.from(linea![2].matchAll(/`([^`]+)`/g)).map(
+      (m) => m[1],
+    );
+    return { cifra: Number(linea![1]), nombres };
+  }
+
+  it("nombra exactamente los mismos peldaños que type.scale, en el mismo orden", () => {
+    expect(censoDocumentado().nombres).toEqual(Object.keys(typo.scale));
+  });
+
+  it("la cifra que encabeza la lista es el recuento real de la escala", () => {
+    const { cifra, nombres } = censoDocumentado();
+    expect(cifra).toBe(Object.keys(typo.scale).length);
+    // Y la cifra tiene que casar con su propia lista, no solo con el código:
+    // una línea que dijera "12 variantes (a, b)" mentiría en la mitad que el
+    // assert de arriba no mira.
+    expect(cifra).toBe(nombres.length);
+  });
+});
