@@ -23,11 +23,24 @@
  * sistema activas. Lo que nadie ha medido es lo que aparece como hallazgo nuevo
  * en la ronda siguiente.
  *
- * QUE MIDE, y por que en navegador y no en la suite. Las catorce familias de abajo
+ * QUE MIDE, y por que en navegador y no en la suite. Las quince familias de abajo
  * dependen de layout real, de pintado real y de media queries reales: jsdom no
  * hace ninguna de las tres (regla 36 y 44 de RULES.md). Un test de Vitest puede
  * afirmar que una declaracion existe; solo un navegador puede decir que el
  * titulo de la seccion aterriza en top = 88 px con la barra terminando en 64.
+ *
+ * LA FAMILIA QUINCE, `texto-al-200-por-ciento`, entra el 2026-09-04 con el P1 de
+ * zoom de las legales, y conviene saber por que no bastaba la que ya habia. La
+ * familia `responsive-sin-desbordamiento` mide
+ * `documentElement.scrollWidth > clientWidth`, y ese numero NO SE MUEVE aunque
+ * haya contenido fuera del viewport: `GlobalStyles` declara
+ * `html, body { overflow-x: clip }` --a proposito, para no crear un contenedor de
+ * scroll que rompa el pin de Story--, asi que el desbordamiento se vuelve
+ * invisible al instrumento justo cuando se vuelve mas grave, porque deja de ser
+ * contenido desplazable y pasa a ser contenido PERDIDO. La familia nueva mide las
+ * CAJAS, con la raiz a 32 px (el 200 % de WCAG 1.4.4) emulada con
+ * `Page.setFontSizes`, que es la misma palanca que la preferencia real del
+ * usuario. Su deuda declarada vive en `DEUDA_ZOOM`, mas abajo.
  *
  * POR QUE NO ESTA EN `pnpm run ci`, dicho explicitamente. Necesita el sitio
  * SERVIDO, y el gate corre antes de `pnpm build` -- el mismo motivo, y el mismo
@@ -35,10 +48,11 @@
  * necesitar un `out/`. Lo que SI corre en el gate es
  * `scripts/check-legal-surfaces.test.mjs`, que importa este fichero y afirma
  * que su cobertura no se ha vaciado en silencio: las seis superficies, los dos
- * idiomas, los dos documentos, el barrido completo de anchos y las catorce
- * familias. Un candado de navegador al que alguien le borra media lista de
- * rutas sigue saliendo verde; ese es justo el fallo que el repo ya pago dos
- * veces con candados que pasaban por vacuidad.
+ * idiomas, los dos documentos, el barrido completo de anchos, las quince
+ * familias, la magnitud del zoom y la lista de deudas sancionadas. Un candado de
+ * navegador al que alguien le borra media lista de rutas sigue saliendo verde;
+ * ese es justo el fallo que el repo ya pago dos veces con candados que pasaban
+ * por vacuidad.
  *
  * COMO SE USA:
  *
@@ -85,6 +99,38 @@
  * pasar el script sobre el build servido y salieron las mismas cifras, fila por
  * fila, en los dos temas -- «CUMPLE - 6 superficies, 14 familias, cero
  * incumplimientos», codigo de salida 0 en `dark` y en `light`.
+ *
+ * CIFRAS DE LA FAMILIA QUINCE, medidas el 2026-09-04 sobre el build servido con
+ * el arreglo del P1 de zoom ya dentro, en los dos temas:
+ *
+ *   /privacidad       zoom200=@32px 0 nuevos / 2 deudas vistas
+ *   /en/privacy       zoom200=@32px 0 nuevos / 2 deudas vistas
+ *   /aviso-legal      zoom200=@32px 0 nuevos / 2 deudas vistas
+ *   /en/legal-notice  zoom200=@32px 0 nuevos / 2 deudas vistas
+ *   404 (es)          zoom200=@32px 0 nuevos / 3 deudas vistas
+ *   404 (en)          zoom200=@32px 0 nuevos / 2 deudas vistas
+ *   deuda de zoom     sancionadas=5 observadas=5
+ *
+ * «CUMPLE - 6 superficies, 15 familias, 5 deudas de zoom sancionadas, cero
+ * incumplimientos», codigo de salida 0 en `dark` y en `light`. «0 nuevos» en las
+ * cuatro legales es el arreglo verificado: `main|legal` NO esta sancionada, asi
+ * que cualquier perdida de contenido en el cuerpo de un documento legal saldria
+ * ahi. Antes del arreglo, con la misma sonda, la ficha identificativa se salia
+ * 79,11 px a 320, 39,11 px a 360 y 9,11 px a 390 en las CUATRO rutas y los dos
+ * temas.
+ *
+ * Las dos inyecciones que validan esta familia, con su rojo literal:
+ *
+ *   - anadiendo `main|legal` a `DEUDA_ZOOM` (una sancion que ya no se
+ *     reproduce) -- «NO CUMPLE  la deuda de zoom main|legal ya no se reproduce
+ *     (se sanciono hasta 80 px, medida 79.11 px): si se arreglo, borrala de
+ *     DEUDA_ZOOM; si no, la sonda dejo de verla», EXIT=1;
+ *   - quitando `footer|legal` de `DEUDA_ZOOM` -- «NO CUMPLE  con el texto al
+ *     200 % (raiz 32 px) se pierde contenido en una zona NO sancionada, sin
+ *     scroll horizontal que lo alcance: 320px footer/div 35.22 px fuera
+ *     (...)», 27 elementos por superficie, EXIT=1.
+ *
+ * Restauradas las dos, verde otra vez en los dos temas.
  *
  * `stops` cuenta las paradas DISTINTAS antes de cerrar el ciclo (la repeticion
  * que lo cierra no se cuenta), con anillo de foco visible en todas y sin una
@@ -159,7 +205,7 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las catorce familias que este script comprueba. La lista es el CONTRATO del
+ * Las quince familias que este script comprueba. La lista es el CONTRATO del
  * candado: el test companero exige que ninguna desaparezca, porque un script que
  * mide trece cosas y dice medir catorce es peor que uno que no existe.
  */
@@ -177,8 +223,120 @@ export const CHECKS = [
     "reduced-motion",
     "forced-colors",
     "responsive-sin-desbordamiento",
+    "texto-al-200-por-ciento",
     "sin-javascript",
 ];
+
+/**
+ * Tamano de fuente por defecto del navegador, en px. No es una preferencia de
+ * este repo: es el valor con el que Chrome, Firefox y Safari salen de fabrica, y
+ * el denominador contra el que se lee cualquier porcentaje de zoom de TEXTO.
+ */
+export const ROOT_FONT_BASE_PX = 16;
+
+/**
+ * La preferencia de tamano de texto con la que se mide la familia
+ * `texto-al-200-por-ciento`: el 200 % que exige WCAG 1.4.4 (Resize text, nivel
+ * AA), que pide que el texto se pueda ampliar hasta ese factor sin perder
+ * contenido ni funcionalidad.
+ *
+ * Se emula con `Page.setFontSizes` del protocolo de DevTools, que es LA MISMA
+ * palanca que mueve la preferencia real del usuario (Configuracion > Aspecto >
+ * Tamano de fuente), y NO con `page.setViewportSize` ni con un zoom de pagina:
+ * el zoom de pagina escala todo por igual y no reproduce el defecto, porque lo
+ * que rompe es que las longitudes en `rem` crezcan mientras el viewport se queda
+ * donde estaba.
+ *
+ * El test companion exige que este numero siga siendo exactamente el doble de
+ * `ROOT_FONT_BASE_PX`: bajarlo a 24 dejaria el candado midiendo un 150 % y
+ * saliendo verde sobre un defecto que WCAG sigue considerando fallo.
+ */
+export const ZOOM_FONT_PX = ROOT_FONT_BASE_PX * 2;
+
+/**
+ * LA DEUDA DE ZOOM QUE ESTE CANDADO SANCIONA HOY, y por que existe la lista.
+ *
+ * La sonda `probePerdidaHorizontal` mide el DOCUMENTO ENTERO, que es lo que
+ * WCAG 1.4.4 exige. La primera corrida, sobre el build servido del 2026-09-04,
+ * encontro cinco focos: el que este frente arreglo --la ficha identificativa de
+ * los dos documentos legales, dentro de `main`-- y otros cuatro que viven en
+ * `Navbar`, en `Footer` y en el `h1` de la 404, es decir en tres dominios
+ * distintos del de este arreglo. Dejar el candado en rojo indefinido por ellos
+ * lo convertiria en un semaforo que nadie mira; borrarlos de la medicion seria
+ * exactamente el fraude que este repo ya pago cuatro veces en esta misma ola.
+ *
+ * Asi que se SANCIONAN, con la misma figura que la allowlist documentada de
+ * `detect-anti-patterns.mjs`, y con la lista atada en los DOS sentidos:
+ *
+ *   - una perdida en una zona que NO esta aqui pone el script en rojo;
+ *   - una perdida que SUPERA el tope de su entrada pone el script en rojo;
+ *   - y una entrada que NO se observa ni una vez en la corrida completa TAMBIEN
+ *     pone el script en rojo, pidiendo que se retire. Sin esa tercera regla la
+ *     lista podria quedarse mintiendo para siempre: quien arreglase el pie
+ *     dejaria aqui una sancion viva que taparia la SIGUIENTE regresion del pie.
+ *
+ * La clave es `<zona>|<kind de superficie>`. No se sanciona por elemento ni por
+ * ancho a proposito: el numero que importa es cuanto contenido se pierde, y
+ * afinar mas volveria la lista tan fragil que el primer retoque de copy la
+ * pondria roja sin que nada hubiera empeorado.
+ *
+ * `main|legal` NO ESTA NI PUEDE ESTAR EN ESTA LISTA. Es el dominio que este
+ * frente cerro, y su ausencia es el candado: cualquier regresion futura de las
+ * paginas legales cae aqui como zona no sancionada. El test companero lo exige
+ * por escrito, para que nadie la "arregle" mañana añadiendola.
+ *
+ * Los topes son el peor caso MEDIDO mas ~2-3 px de holgura, para que un cambio
+ * de fuente o un redondeo distinto no den un rojo falso; el valor medido va
+ * escrito en cada entrada para que se vea cuanta holgura hay.
+ */
+export const DEUDA_ZOOM = [
+    {
+        clave: "header|legal",
+        topePx: 40,
+        medidoPx: 37.14,
+        motivo: "la fila de navegacion castellana no cabe a 768 px con la raiz a 32 px (Navbar, fuera del dominio de este arreglo)",
+    },
+    {
+        clave: "footer|legal",
+        topePx: 38,
+        medidoPx: 35.22,
+        motivo: "el pie se sale a 320 px: el correo de contacto es el mismo token indivisible que rompia la ficha legal, aqui sin regla de envoltura (Footer)",
+    },
+    {
+        clave: "header|notFound",
+        topePx: 42,
+        medidoPx: 39.5,
+        motivo: "el mismo defecto del Navbar, medido sobre la 404",
+    },
+    {
+        clave: "main|notFound",
+        topePx: 44,
+        medidoPx: 41.28,
+        motivo: "el h1 de la 404 no parte «encontrada» y se sale hasta 41,28 px a 320 px (app/not-found)",
+    },
+    {
+        clave: "footer|notFound",
+        topePx: 38,
+        medidoPx: 35.22,
+        motivo: "el mismo defecto del Footer, medido sobre la 404",
+    },
+];
+
+/** Sancion aplicable a una perdida, o `undefined` si esa zona no esta sancionada. */
+function sancionDeZoom(zona, kind) {
+    return DEUDA_ZOOM.find((d) => d.clave === `${zona}|${kind}`);
+}
+
+/**
+ * Deudas declaradas que la corrida completa NO llego a observar. Cada una es un
+ * fallo: o se arreglo y sobra, o la sonda dejo de verla y la lista miente.
+ */
+export function fallosDeDeudaNoObservada(clavesVistas) {
+    return DEUDA_ZOOM.filter((d) => !clavesVistas.has(d.clave)).map(
+        (d) =>
+            `la deuda de zoom ${d.clave} ya no se reproduce (se sanciono hasta ${d.topePx} px, medida ${d.medidoPx} px): si se arreglo, borrala de DEUDA_ZOOM; si no, la sonda dejo de verla`,
+    );
+}
 
 /** Alto de la banda del navbar en px (`--nav-height` + `--nav-gap`), solo para
  *  el mensaje de error: la comprobacion real mide la barra en el navegador. */
@@ -291,6 +449,62 @@ function probeFocusStop() {
 function probeOverflow() {
     const w = document.documentElement.clientWidth;
     return { width: w, scrollWidth: document.documentElement.scrollWidth };
+}
+
+/**
+ * Contenido que se sale del viewport SIN forma de alcanzarlo.
+ *
+ * No basta con mirar `documentElement.scrollWidth`, que es lo que hace
+ * `probeOverflow`: `GlobalStyles` declara `html, body { overflow-x: clip }` --a
+ * proposito, para no crear un contenedor de scroll que rompa el pin de Story--,
+ * asi que un elemento que se sale por la derecha NO mueve el `scrollWidth` de la
+ * raiz ni un pixel. El desbordamiento se vuelve invisible al instrumento
+ * anterior justo cuando se vuelve MAS grave: no es contenido desplazable, es
+ * contenido perdido.
+ *
+ * Un elemento cuyo ancestro SI scrollea en horizontal (la tabla de
+ * almacenamiento dentro de `ScTableWrap`, con su `overflow-x: auto`, su
+ * `role="region"` y su `tabindex="0"`) no cuenta: ahi el contenido se alcanza
+ * con el dedo, con la rueda y con el teclado.
+ */
+function probePerdidaHorizontal() {
+    const raiz = document.documentElement;
+    const cw = raiz.clientWidth;
+    const perdidos = [];
+    for (const el of document.querySelectorAll("body *")) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) continue;
+        const sobra = r.right - cw;
+        if (sobra <= 1) continue;
+        let alcanzable = false;
+        let p = el.parentElement;
+        while (p) {
+            const ox = getComputedStyle(p).overflowX;
+            if (ox === "auto" || ox === "scroll") {
+                alcanzable = true;
+                break;
+            }
+            p = p.parentElement;
+        }
+        if (alcanzable) continue;
+        perdidos.push({
+            zona: el.closest("header")
+                ? "header"
+                : el.closest("footer")
+                  ? "footer"
+                  : el.closest("main")
+                    ? "main"
+                    : "suelto",
+            sel: el.tagName.toLowerCase(),
+            sobra: Math.round(sobra * 100) / 100,
+            texto: (el.textContent || "").trim().slice(0, 40),
+        });
+    }
+    return {
+        rootFontPx: parseFloat(getComputedStyle(raiz).fontSize),
+        clientWidth: cw,
+        perdidos,
+    };
 }
 
 /** Animaciones realmente en marcha. */
@@ -827,6 +1041,66 @@ async function auditarSuperficie(browser, base, theme, surface) {
     if (desbordes.length)
         fallos.push(`desbordamiento horizontal en ${desbordes.join(", ")}`);
 
+    /*
+     * --- texto al 200 %, el MISMO barrido de anchos con la raiz al doble
+     *
+     * Se reutiliza `WIDTH_SWEEP` y no una lista propia a proposito: su extension
+     * ya esta atada por el test companero (los dos extremos del encargo, el
+     * escalon `md`, estrictamente creciente), y una segunda lista seria una
+     * segunda cosa que puede encoger sin que nadie se entere.
+     */
+    ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: WIDTH_SWEEP[WIDTH_SWEEP.length - 1], height: 900 },
+    });
+    page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send("Page.setFontSizes", {
+        fontSizes: { standard: ZOOM_FONT_PX, fixed: ZOOM_FONT_PX },
+    });
+    await page.goto(url, { waitUntil: "networkidle" });
+    const sinSancionar = [];
+    const excedidas = [];
+    const deudaVista = new Set();
+    let raizMedida = null;
+    for (const width of WIDTH_SWEEP) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.waitForTimeout(220);
+        const z = await page.evaluate(probePerdidaHorizontal);
+        raizMedida = z.rootFontPx;
+        for (const p of z.perdidos) {
+            const sancion = sancionDeZoom(p.zona, surface.kind);
+            if (!sancion) {
+                sinSancionar.push(
+                    `${width}px ${p.zona}/${p.sel} ${p.sobra} px fuera ("${p.texto}")`,
+                );
+                continue;
+            }
+            deudaVista.add(sancion.clave);
+            if (p.sobra > sancion.topePx)
+                excedidas.push(
+                    `${sancion.clave} a ${width}px: ${p.sobra} px fuera, por encima de los ${sancion.topePx} px sancionados ("${p.texto}")`,
+                );
+        }
+    }
+    await ctx.close();
+    datos.zoom200 = `@${raizMedida}px ${sinSancionar.length} nuevos / ${deudaVista.size} deudas vistas`;
+
+    // [check: texto-al-200-por-ciento]
+    /* Guarda de vacuidad, y no es teorica: si la emulacion no llega a la pagina
+       -- version de Chrome sin `Page.setFontSizes`, sesion de CDP caida, un
+       `html { font-size: 16px }` que fije la raiz --, el barrido de arriba mide
+       la pagina SIN zoom y sale verde sobre el defecto que existe para cazar. */
+    if (raizMedida !== ZOOM_FONT_PX)
+        fallos.push(
+            `la preferencia de tamano de texto no llego a la pagina (raiz ${raizMedida} px, se pidio ${ZOOM_FONT_PX}): el barrido de zoom seria vacuo`,
+        );
+    if (sinSancionar.length)
+        fallos.push(
+            `con el texto al 200 % (raiz ${ZOOM_FONT_PX} px) se pierde contenido en una zona NO sancionada, sin scroll horizontal que lo alcance: ${sinSancionar.join("; ")}`,
+        );
+    if (excedidas.length)
+        fallos.push(`deuda de zoom empeorada: ${excedidas.join("; ")}`);
+
     // --- sin JavaScript
     ctx = await browser.newContext({
         viewport: { width: 1440, height: 900 },
@@ -851,7 +1125,7 @@ async function auditarSuperficie(browser, base, theme, surface) {
             `sin JavaScript ${sinJs.tocLinks - sinJs.tocAlive} destino(s) del indice no resuelven`,
         );
 
-    return { surface: surface.nombre, datos, fallos };
+    return { surface: surface.nombre, datos, fallos, deudaVista };
 }
 
 /** Audita las seis superficies y devuelve el informe completo. */
@@ -868,6 +1142,26 @@ export async function auditLegalSurfaces({
                 await auditarSuperficie(browser, base, theme, surface),
             );
         }
+        /*
+         * La tercera regla de `DEUDA_ZOOM`: una sancion que ya no se reproduce
+         * sobra, y mientras siga escrita tapa la siguiente regresion de esa
+         * misma zona. Solo se puede comprobar con la corrida COMPLETA delante
+         * -- una deuda de la 404 no se observa auditando `/privacidad` --, asi
+         * que vive aqui y no en `auditarSuperficie`.
+         */
+        const vistas = new Set(
+            results.flatMap((r) => [...(r.deudaVista ?? [])]),
+        );
+        const sobrantes = fallosDeDeudaNoObservada(vistas);
+        results.push({
+            surface: "deuda de zoom",
+            datos: {
+                sancionadas: DEUDA_ZOOM.length,
+                observadas: vistas.size,
+            },
+            fallos: sobrantes,
+            deudaVista: vistas,
+        });
         return results;
     } finally {
         await browser.close();
@@ -906,10 +1200,12 @@ if (
         }
     }
     console.log("-".repeat(72));
+    /* `SURFACES.length` y no `results.length`: la ultima fila del informe no es
+       una superficie, es el balance de `DEUDA_ZOOM` sobre la corrida completa. */
     console.log(
         incumple === 0
-            ? `CUMPLE - ${results.length} superficies, ${CHECKS.length} familias, cero incumplimientos (tema ${theme}, base ${base})`
-            : `NO CUMPLE - ${incumple} incumplimiento(s) en ${results.length} superficies`,
+            ? `CUMPLE - ${SURFACES.length} superficies, ${CHECKS.length} familias, ${DEUDA_ZOOM.length} deudas de zoom sancionadas, cero incumplimientos (tema ${theme}, base ${base})`
+            : `NO CUMPLE - ${incumple} incumplimiento(s) en ${SURFACES.length} superficies`,
     );
     process.exit(incumple === 0 ? 0 : 1);
 }

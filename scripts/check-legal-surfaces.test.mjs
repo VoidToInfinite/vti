@@ -7,11 +7,15 @@ import { afterAll, describe, it, expect } from "vitest";
 import {
     BROKEN_SEGMENT,
     CHECKS,
+    DEUDA_ZOOM,
     EN_PREFIX,
     LEGAL_DOCS,
+    ROOT_FONT_BASE_PX,
     SURFACES,
     WIDTH_SWEEP,
+    ZOOM_FONT_PX,
     especificadoresDePlaywright,
+    fallosDeDeudaNoObservada,
 } from "./check-legal-surfaces.mjs";
 /* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
    parser de Rollup no admite un `.ts` explicito en el especificador. */
@@ -116,8 +120,15 @@ const IDS_LEGALES = Object.keys(ROUTES).filter(
 /*
  * El CONTRATO del candado, tecleado aqui y no derivado de `CHECKS`: derivarlo de
  * la lista que se verifica es el test autorreferencial que deja pasar cualquier
- * recorte. Estas catorce familias solo se tocan cuando el script mida algo
+ * recorte. Estas quince familias solo se tocan cuando el script mida algo
  * distinto de verdad, y entonces se tocan a la vez que el script.
+ *
+ * `texto-al-200-por-ciento` entra el 2026-09-04 con el P1 de zoom de las
+ * legales: la familia `responsive-sin-desbordamiento` que ya estaba NO lo veia,
+ * y no por descuido sino por una razon concreta que conviene no olvidar --
+ * mide `documentElement.scrollWidth`, y con `html, body { overflow-x: clip }`
+ * declarado en `GlobalStyles` ese numero nunca supera el ancho del viewport
+ * aunque haya contenido fuera. La sonda nueva mira las cajas, no el scroll.
  */
 const FAMILIAS_ESPERADAS = [
     "recorrido-teclado",
@@ -133,6 +144,7 @@ const FAMILIAS_ESPERADAS = [
     "reduced-motion",
     "forced-colors",
     "responsive-sin-desbordamiento",
+    "texto-al-200-por-ciento",
     "sin-javascript",
 ];
 
@@ -207,6 +219,102 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
         }
     });
 
+    /*
+     * LA DEUDA DE ZOOM, atada en los tres sentidos que puede fallar.
+     *
+     * `DEUDA_ZOOM` es la unica lista del candado cuyo CRECIMIENTO es tan
+     * peligroso como su encogimiento: cada entrada apaga una zona entera del
+     * documento. Un frente apurado que se encuentre el script en rojo tiene a un
+     * teclazo la salida de sancionar su propio defecto, y el rojo desaparece sin
+     * que nadie lo lea.
+     */
+    it("la deuda de zoom sancionada es exactamente la que se acordo, y NUNCA cubre el contenido de las paginas legales", () => {
+        const DEUDA_ESPERADA = [
+            "header|legal",
+            "footer|legal",
+            "header|notFound",
+            "main|notFound",
+            "footer|notFound",
+        ];
+
+        expect(
+            DEUDA_ZOOM.map((d) => d.clave).sort(),
+            `alguien anadio o quito una sancion de zoom: cada entrada apaga una zona ` +
+                `entera del documento, asi que se decide aqui y no de paso`,
+        ).toEqual([...DEUDA_ESPERADA].sort());
+
+        /*
+         * EL CANDADO DE ESTE FRENTE, dicho como prohibicion y no como comentario.
+         * `main|legal` es el contenido de `/privacidad` y `/aviso-legal`: lo que
+         * el arreglo del 2026-09-04 cerro y lo que ninguna sancion puede volver a
+         * tapar. Si mañana la ficha identificativa vuelve a perder contenido al
+         * 200 %, el script tiene que salir en rojo -- y la via mas comoda para
+         * silenciarlo seria justo escribir esta clave aqui.
+         */
+        expect(
+            DEUDA_ZOOM.map((d) => d.clave),
+            `main|legal no puede sancionarse: es el contenido de las paginas legales, ` +
+                `el defecto que este candado existe para cazar`,
+        ).not.toContain("main|legal");
+
+        /* Cada sancion declara un tope POR ENCIMA de lo medido (holgura para el
+           renderizado) pero no un tope absurdo que lo apague todo. */
+        for (const d of DEUDA_ZOOM) {
+            expect(
+                d.topePx,
+                `la sancion ${d.clave} no declara tope`,
+            ).toBeGreaterThan(d.medidoPx);
+            expect(
+                d.topePx - d.medidoPx,
+                `la sancion ${d.clave} deja ${d.topePx - d.medidoPx} px de holgura: ` +
+                    `con tanto margen dejaria pasar un empeoramiento real`,
+            ).toBeLessThanOrEqual(6);
+            expect(
+                d.motivo.length,
+                `la sancion ${d.clave} no explica por que`,
+            ).toBeGreaterThan(20);
+        }
+    });
+
+    it("una sancion de zoom que ya no se reproduce se denuncia, en vez de quedarse mintiendo", () => {
+        /* Sonda de la tercera regla, la que impide que la lista sobreviva a su
+           propio arreglo. Se comprueba sobre la funcion pura, sin navegador. */
+        expect(
+            fallosDeDeudaNoObservada(new Set(DEUDA_ZOOM.map((d) => d.clave))),
+            "con todas las deudas observadas no puede sobrar ninguna",
+        ).toEqual([]);
+
+        const sinLaPrimera = new Set(DEUDA_ZOOM.slice(1).map((d) => d.clave));
+        const sobrantes = fallosDeDeudaNoObservada(sinLaPrimera);
+        expect(sobrantes).toHaveLength(1);
+        expect(sobrantes[0]).toContain(DEUDA_ZOOM[0].clave);
+        expect(sobrantes[0]).toContain("ya no se reproduce");
+    });
+
+    it("el zoom que mide la familia de texto es el 200 % que exige WCAG 1.4.4, no un 150 % complaciente", () => {
+        /*
+         * La familia `texto-al-200-por-ciento` puede seguir en la lista, con su
+         * marcador en el cuerpo y su sonda intacta, y aun asi dejar de medir el
+         * defecto: basta bajar `ZOOM_FONT_PX` de 32 a 24. El barrido saldria
+         * verde -- a 150 % el token del correo si cabe -- sobre una pagina que
+         * WCAG sigue considerando fallo. Lo que se ata aqui es la MAGNITUD, que
+         * es la mitad del contrato que la lista de familias no cubre.
+         *
+         * Los dos numeros se afirman por separado a proposito: sin fijar la base
+         * de 16 px, subir las dos constantes a la vez (base 24, zoom 48)
+         * conservaria la razon de 2 y volveria a medir otra cosa.
+         */
+        expect(
+            ROOT_FONT_BASE_PX,
+            "la raiz por defecto de los navegadores es 16 px: es el denominador del porcentaje",
+        ).toBe(16);
+        expect(
+            ZOOM_FONT_PX,
+            "el 200 % de WCAG 1.4.4 sobre una raiz de 16 px son 32 px, no otra cosa",
+        ).toBe(32);
+        expect(ZOOM_FONT_PX / ROOT_FONT_BASE_PX).toBe(2);
+    });
+
     it("la lista de familias sigue siendo la que el candado prometio medir", () => {
         /* La supresion SIMETRICA -- quitar la familia de `CHECKS` y su marcador
            del cuerpo a la vez -- no la ve el caso de abajo, porque despues de
@@ -225,9 +333,16 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
     });
 
     it("cada familia declarada tiene comprobacion real en el script, y cada comprobacion esta declarada", () => {
-        const marcados = [...SCRIPT.matchAll(/\/\/ \[check: ([a-z-]+)\]/g)].map(
-            (m) => m[1],
-        );
+        /* La clase de caracteres admite DIGITOS desde el 2026-09-04: la familia
+           `texto-al-200-por-ciento` lleva el porcentaje en el nombre y con
+           `[a-z-]+` el marcador de su cuerpo era invisible para este matcher --
+           el test cayo con "la familia declarada texto-al-200-por-ciento no tiene
+           ninguna comprobacion marcada", que es el vinculo bidireccional
+           funcionando, no un fallo suyo. Ampliar la clase no afloja nada: las dos
+           comparaciones de abajo siguen siendo las mismas en los dos sentidos. */
+        const marcados = [
+            ...SCRIPT.matchAll(/\/\/ \[check: ([a-z0-9-]+)\]/g),
+        ].map((m) => m[1]);
 
         // Sonda positiva: sin marcas, las dos comparaciones de abajo pasarian
         // por vacuidad, que es justo el fallo que este fichero existe para
