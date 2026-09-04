@@ -240,19 +240,52 @@ function starVars(star: FooterStar, theme: ThemeDefinition): CSSProperties {
    estrellas ahora posicionadas encima del fondo en los DOS temas, el
    contenido necesita salir por encima en los DOS temas -- ya no depende de
    `$dark`, que esta pieza pierde. */
+/*
+ * LAS PISTAS SE DECLARAN CON `minmax(0, ...)`, y no es una preferencia de
+ * estilo: es lo que impide que el pie pierda texto con la preferencia de
+ * tamano de fuente al 200 % (WCAG 1.4.4, critica externa #19).
+ *
+ * LO MEDIDO, en Chrome real sobre el build de produccion con la raiz del
+ * documento en 32px (`Page.setFontSizes`, la misma palanca que mueve la
+ * preferencia del usuario), a 320 px de ancho: la direccion de correo
+ * (`hello@voidtoinfinite.com`, un token que ninguna regla de division puede
+ * partir por si sola) mide 307 px de ancho intrinseco en una caja de
+ * contenido de 224 px. Con `grid-template-columns: 1fr` la pista NO baja de
+ * ese minimo -- el minimo automatico de una pista `1fr` es su `min-content`,
+ * no cero --, asi que la pista entera medua 259 px y TODO el contenido del
+ * pie (los titulos de columna, los catorce enlaces, la marca) se salia 35,22
+ * px por la derecha. Y salirse aqui no es quedarse a un scroll de distancia:
+ * `GlobalStyles` declara `html, body { overflow-x: clip }`, asi que
+ * `scrollWidth` no se mueve y esos pixeles no se alcanzan con ningun gesto ni
+ * tecla. Contenido perdido, no desplazable.
+ *
+ * `minmax(0, 1fr)` deja que la pista baje por debajo del contenido, y la
+ * division del token largo la resuelve `overflow-wrap: anywhere` en el propio
+ * enlace (`footerLinkStyles`, mas abajo). Las dos declaraciones se necesitan:
+ * sin la primera la pista no encoge, sin la segunda el texto se sale de la
+ * pista encogida. `anywhere` y no `break-word`: solo el primero reduce tambien
+ * el `min-content` de la caja, que es la magnitud de la que dependen la pista y
+ * los items. Un enlace que cabe no se parte -- la declaracion solo actua cuando
+ * la alternativa es perder el texto.
+ *
+ * En el bloque `md` el minimo de la pista pasa de `10rem` a
+ * `min(10rem, 100%)` por el mismo motivo, un escalon mas arriba: `10rem` son
+ * 320 px con la raiz a 32, y cinco pistas de ese minimo no caben en 768 px --
+ * `auto-fit` reparte el sobrante, pero nunca baja del minimo declarado.
+ */
 const ScInner = styled.div`
   max-width: ${({ theme }) => theme.data.grid.containerMax};
   margin-inline: auto;
   padding: ${({ theme }) => theme.data.space[7]}
     ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[5]};
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[6]};
   position: relative;
   z-index: 1;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
     /* Mismo raíl que las secciones acotadas de la home: containerMax +
        space[5], igual que ScFeatures y ScContact. Hasta la crítica externa
        #14 (2026-09-02) este bloque subía a space[6] y el texto del pie
@@ -263,11 +296,16 @@ const ScInner = styled.div`
   }
 `;
 
+/* `min-width: 0`: la pista ya puede encoger (ver el docblock de `ScInner`),
+   pero un item de grid conserva su `min-width: auto` y volveria a inflarse
+   hasta el `min-content` de su contenido -- las dos declaraciones son la misma
+   valvula en dos capas, y sin la de aqui la de arriba no llega a notarse. */
 const ScBrandCol = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: ${({ theme }) => theme.data.space[3]};
+  min-width: 0;
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     /* La marca ocupa más ancho que una columna de enlaces (mockup: 1.4fr
@@ -302,10 +340,13 @@ const ScTagline = styled(Typography)`
   color: ${({ theme }) => theme.data.semantic.textMuted};
 `;
 
+/* `min-width: 0`: mismo motivo que en `ScBrandCol` -- es item de la misma
+   rejilla y su minimo automatico la volveria a inflar. */
 const ScColumn = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[3]};
+  min-width: 0;
 `;
 
 const ScColumnTitle = styled(Typography)`
@@ -418,6 +459,8 @@ const ScColumnLinks = styled.div`
  */
 const footerLinkStyles = css`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  /* La otra mitad del arreglo de zoom que documenta ScInner. */
+  overflow-wrap: anywhere;
   min-height: ${({ theme }) => theme.data.space[5]};
   padding-block: ${({ theme }) => theme.data.space[1]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
