@@ -3,8 +3,32 @@ import styled, { css, keyframes } from "styled-components";
 import { AMBIENT } from "@/motion/vocabulary";
 import type { ThemeDefinition } from "@/theme/theme.types";
 
+/*
+ * `flex-wrap: wrap` + `overflow-wrap: anywhere`: el rotulo cede ENVOLVIENDO
+ * cuando la preferencia de tamano de texto del usuario lo deja sin sitio
+ * (critica externa #19, 2026-09-04, WCAG 1.4.4).
+ *
+ * Medido en Chrome real sobre el build de produccion, raiz del documento a
+ * 32px con `Page.setFontSizes` y viewport de 320 px: el rotulo pedia 238 px en
+ * una caja de 160, y su consumidor de la barra (`ScBrandLink`, `Navbar.tsx`)
+ * lo tapaba con `overflow: hidden` -- 78 px de tinta cortados a media letra y
+ * «ToInfinite» terminando en x=349,72 sobre 320 px de viewport, inalcanzable
+ * porque `GlobalStyles` declara `html, body { overflow-x: clip }`. El
+ * `text-overflow: ellipsis` que aquel bloque declaraba no llegaba a pintar
+ * nada: no se aplica a un contenedor flex, y este `span` lo es.
+ *
+ * `flex-wrap: wrap` parte por la juntura natural del nombre (los dos `span`
+ * de «Void» y «ToInfinite» son items de este flex), asi que la degradacion
+ * normal son dos lineas, no una palabra rota. `overflow-wrap: anywhere` es el
+ * ultimo recurso para el caso extremo en que ni «ToInfinite» sola quepa, y
+ * ademas es lo que reduce el `min-content` de esta caja -- la magnitud de la
+ * que dependen las cajas de arriba para poder encoger. Ninguna de las dos
+ * actua mientras el nombre quepa entero en una linea.
+ */
 const ScBrandName = styled.span`
   display: inline-flex;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
   margin: 0;
   font-family: ${({ theme }) => theme.data.type.fontBody};
   font-size: 1em;

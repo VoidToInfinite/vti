@@ -4098,6 +4098,10 @@ describe("Navbar", () => {
  * inyecta styled-components. La geometria quedo verificada en navegador
  * (tras el arreglo: `left: 314`, dentro del viewport y alcanzable) y esa
  * medicion vive en el docblock de `ScBrandLink`.
+ *
+ * CORREGIDO EN LA CRITICA #19 (2026-09-04): el reparto sigue siendo el mismo
+ * --la marca cede, los controles no-- pero la forma de ceder cambia. Ver el
+ * segundo caso de este bloque.
  */
 describe("critica #13: la marca cede espacio antes que los controles", () => {
   it("la marca declara min-width: 0 (sin el, un item flex nunca encoge)", () => {
@@ -4109,14 +4113,37 @@ describe("critica #13: la marca cede espacio antes que los controles", () => {
     expect(marca.join(" ")).toContain("min-width: 0");
   });
 
-  it("el rotulo de la marca se recorta con puntos suspensivos en vez de empujar", () => {
+  /*
+   * EL ROTULO CEDE ENVOLVIENDO, NO RECORTANDOSE (critica externa #19,
+   * 2026-09-04). Este caso exigia hasta hoy lo contrario -- una regla con
+   * `text-overflow: ellipsis` + `white-space: nowrap` -- y lo que se midio es
+   * que esa pareja no pintaba ningun punto suspensivo: `ScBrandName`
+   * (`BrandName.tsx`) es un `display: inline-flex`, y `text-overflow` no se
+   * aplica a un contenedor flex. Lo unico que hacia el `overflow: hidden` que la
+   * acompanaba era cortar el nombre a media letra: caja de 160 px con 238 px de
+   * contenido a 320 px de ancho con la raiz a 32px, y el tramo «ToInfinite»
+   * terminando en x=349,72 sobre 320 px de viewport. Pérdida de contenido al
+   * 200 %: WCAG 1.4.4.
+   *
+   * El candado invierte: se exige la envoltura y se PROHIBE el recorte, que es
+   * la forma que dejaba vivo el defecto.
+   */
+  it("el rotulo de la marca envuelve en vez de recortarse a media letra", () => {
     renderNavbar();
+    const rotulo = allCssRules().filter(
+      (r) => r.includes("flex-wrap: wrap") && r.includes("overflow-wrap"),
+    );
+    expect(rotulo.length).toBeGreaterThan(0);
+
     const conRecorte = allCssRules().filter(
       (r) =>
         r.includes("text-overflow: ellipsis") &&
         r.includes("white-space: nowrap"),
     );
-    expect(conRecorte.length).toBeGreaterThan(0);
+    expect(
+      conRecorte,
+      "text-overflow no se aplica a un contenedor flex: la pareja ellipsis + nowrap solo cortaba el nombre sin avisar",
+    ).toHaveLength(0);
   });
 
   it("el grupo de controles declara flex: none y NUNCA cede", () => {

@@ -796,14 +796,42 @@ const ScNav = styled.nav`
  * sobre su centro devolvia null). A 200 % de fuente no habia forma de abrir
  * el menu de navegacion.
  *
- * Por que ceder aqui y no en los controles: la marca es texto y degrada
- * legiblemente con puntos suspensivos; la hamburguesa, el conmutador de tema
- * y el selector de idioma son dianas de 44px que WCAG 2.5.8 no deja encoger
- * y que ademas son la unica via de navegacion en movil. Entre recortar un
- * rotulo y perder el menu, se recorta el rotulo.
+ * Por que ceder aqui y no en los controles: la marca es texto y puede ocupar
+ * dos lineas sin perder una letra; la hamburguesa, el conmutador de tema y el
+ * selector de idioma son dianas de 44px que WCAG 2.5.8 no deja encoger y que
+ * ademas son la unica via de navegacion en movil.
  *
- * El logotipo (`flex: none` en su propio bloque) no se recorta: lo que cede
- * es el texto de al lado.
+ * EL ROTULO CEDE ENVOLVIENDO, NO RECORTANDOSE (critica externa #19,
+ * 2026-09-04), y esto CORRIGE lo que este mismo docblock afirmaba hasta hoy.
+ * Decia que la marca "degrada legiblemente con puntos suspensivos" y que
+ * "entre recortar un rotulo y perder el menu, se recorta el rotulo". La
+ * segunda mitad sigue siendo el reparto correcto; la primera era falsa, y se
+ * midio en Chrome real sobre el build de produccion con la raiz a 32px
+ * (`Page.setFontSizes`) a 320 px de ancho:
+ *
+ *   - el rotulo (`ScBrandName`, `BrandName.tsx`) es un `display: inline-flex`,
+ *     y `text-overflow: ellipsis` NO se aplica a un contenedor flex: solo
+ *     actua sobre contenido en linea que se desborda de un bloque. Los dos
+ *     `span` de la marca son items flex, asi que no habia puntos suspensivos
+ *     que ver en ninguna parte;
+ *   - lo que hacia el `overflow: hidden` de aqui era cortar el texto a media
+ *     letra, sin ninguna senal de que faltara algo: caja de 160 px con 238 px
+ *     de contenido -- «ToInfinite» empezaba en x=188 sobre 320 px de viewport
+ *     y terminaba en 349,72, es decir 78 px de tinta recortados y 29,72 px
+ *     fuera del viewport, ninguno de los dos alcanzable (`overflow-x: clip`
+ *     global, ver `GlobalStyles`). Eso es perdida de contenido al 200 % de
+ *     tamano de texto: WCAG 1.4.4.
+ *
+ * La valvula pasa a ser la envoltura: `flex-wrap: wrap` en el rotulo (su
+ * propio fichero) deja que «Void» y «ToInfinite» caigan a dos lineas cuando
+ * dejan de caber en una. La fila que las contiene ya sabe crecer -- `ScNav`
+ * declara `flex-wrap: wrap; height: auto; min-height: var(--nav-height)` en su
+ * regla base desde la ola O+P --, asi que la barra se hace mas alta en vez de
+ * comerse el nombre. `min-width: 0` se queda: es lo que permite que la marca
+ * sea la que cede, y sin el la fila volveria a empujar los controles fuera.
+ *
+ * El logotipo (`flex: none` en su propio bloque) no cambia de tamano: lo que
+ * envuelve es el texto de al lado.
  */
 const ScBrandLink = styled(Link)`
   display: inline-flex;
@@ -816,13 +844,6 @@ const ScBrandLink = styled(Link)`
   font-size: ${({ theme }) => theme.data.type.scale.wordmark.size};
   color: ${({ theme }) => theme.data.semantic.text};
   min-width: 0;
-  overflow: hidden;
-
-  > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 `;
 
 /* `flex: none`: el grupo de controles NUNCA cede espacio (ver el docblock de
