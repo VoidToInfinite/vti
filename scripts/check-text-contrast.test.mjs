@@ -63,22 +63,103 @@ import { contrastRatio } from "../src/theme/tokens/contrast.ts";
  *    Restaurado el valor medido, verde. Es decir: el candado vigila los dos
  *    lados -- la tinta que se degrada Y la superficie que alguien retoca para
  *    que el numero salga bien.
+ *
+ * 3. Vaciando el censo por un lado en vez de degradarlo (ola Q, frente de
+ *    correccion). El candado ataba la TINTA y la SUPERFICIE pero no la
+ *    EXTENSION: `PIEZAS.length` solo se comparaba contra cero, y el primer test
+ *    exigia >= 1 fila por combinacion de seccion y tema. Borrada la fila
+ *    `features/dark/FEATURES_GAMING_ACCENT_DARK` -- que es precisamente la
+ *    SEGUNDA pieza mas justa del censo, p05 4,65 -- el CLI seguia diciendo
+ *    «piezas del censo: 44 / incumplimientos nuevos: 0» con codigo 0 y los
+ *    siete tests seguian en verde: el censo encogia y nadie se enteraba. Es la
+ *    forma de vacuidad que el candado de presupuesto SI evita (retirar un chunk
+ *    de la linea base cuadrando el total lo pone en rojo). Con el primer test de
+ *    abajo ya reescrito, la MISMA supresion cae con
+ *
+ *      AssertionError: el censo encogio o cambio de forma sin volver a medir en
+ *      navegador. Si has vuelto a medir de verdad, actualiza CENSO_ESPERADO con
+ *      las cifras nuevas; si no, restaura las filas que faltan.: expected {
+ *      'contact/dark': 6, …(7) } to deeply equal { 'contact/dark': 6, …(7) }
+ *      - Expected
+ *      + Received
+ *      -   "features/dark": 7,
+ *      +   "features/dark": 6,
+ *
+ *    Y la variante que cuadra las cuentas -- quitar esa misma fila y duplicar la
+ *    siguiente, con la que el CLI vuelve a decir «piezas del censo: 45» y sale
+ *    con codigo 0 -- cae con
+ *
+ *      AssertionError: hay filas repetidas en el censo: alguien cuadro el total
+ *      duplicando una pieza en vez de conservar la que falta: expected 44 to be
+ *      45 // Object.is equality
+ *
+ *    Restaurada la fila, los siete tests en verde y el CLI en 45.
  */
+
+/*
+ * La EXTENSION del censo del 2026-09-04, una cifra por combinacion de seccion y
+ * tema. Se teclea aqui a proposito, y no se deriva de `PIEZAS`: derivarla de lo
+ * mismo que verifica seria el test autorreferencial que deja pasar cualquier
+ * recorte. Estas cifras solo se tocan volviendo a medir en navegador con el
+ * metodo del docblock de `check-text-contrast.mjs`.
+ */
+const CENSO_ESPERADO = {
+    "contact/dark": 6,
+    "contact/light": 6,
+    "features/dark": 7,
+    "features/light": 6,
+    "journey/dark": 3,
+    "journey/light": 8,
+    "story/dark": 3,
+    "story/light": 6,
+};
+const PIEZAS_MEDIDAS = 45;
+
 describe("candado de contraste del texto de la home fuera del hero", () => {
-    it("el censo cubre las cuatro secciones en los dos temas", () => {
-        const combinaciones = new Set(
-            PIEZAS.map((p) => `${p.seccion}/${p.tema}`),
-        );
-        for (const seccion of ["story", "journey", "features", "contact"]) {
-            for (const tema of ["light", "dark"]) {
-                expect(
-                    combinaciones.has(`${seccion}/${tema}`),
-                    `el censo no tiene ninguna pieza de ${seccion} en tema ${tema}: ` +
-                        `un hueco aqui es exactamente el que esta ola vino a cerrar`,
-                ).toBe(true);
-            }
+    it("el censo conserva la extension que se midio, no solo su forma", () => {
+        const cuenta = {};
+        for (const pieza of PIEZAS) {
+            const combinacion = `${pieza.seccion}/${pieza.tema}`;
+            cuenta[combinacion] = (cuenta[combinacion] ?? 0) + 1;
         }
-        expect(PIEZAS.length).toBeGreaterThanOrEqual(40);
+        expect(
+            cuenta,
+            `el censo encogio o cambio de forma sin volver a medir en navegador. ` +
+                `Si has vuelto a medir de verdad, actualiza CENSO_ESPERADO con las ` +
+                `cifras nuevas; si no, restaura las filas que faltan.`,
+        ).toEqual(CENSO_ESPERADO);
+        expect(
+            PIEZAS.length,
+            `el censo declara ${PIEZAS.length} piezas y se midieron ${PIEZAS_MEDIDAS}`,
+        ).toBe(PIEZAS_MEDIDAS);
+
+        /* Sin esto, quitar una fila y duplicar otra cuadraria las cuentas de
+           arriba y el censo mediria una pieza menos en silencio -- que es
+           exactamente la trampa que el candado del presupuesto de JavaScript ya
+           cierra cuando alguien retira un chunk cuadrando el total. */
+        const claves = PIEZAS.map(
+            (p) => `${p.seccion}/${p.tema}/${p.tinta}/${p.vp}`,
+        );
+        expect(
+            new Set(claves).size,
+            `hay filas repetidas en el censo: alguien cuadro el total duplicando ` +
+                `una pieza en vez de conservar la que falta`,
+        ).toBe(PIEZAS.length);
+
+        /* Anclaje por nombre de las dos piezas mas justas: son las primeras que
+           tentaria borrar quien quisiera un censo comodo. La sancionada la ancla
+           ademas el tercer test. */
+        const sinAncho = PIEZAS.map((p) => `${p.seccion}/${p.tema}/${p.tinta}`);
+        for (const clave of [
+            "features/dark/FEATURES_GAMING_ACCENT_DARK",
+            "journey/light/primary/700",
+        ]) {
+            expect(
+                sinAncho,
+                `el censo ya no incluye ${clave}, que es una de las dos piezas mas ` +
+                    `justas que se midieron: no se retira sin volver a medir`,
+            ).toContain(clave);
+        }
     });
 
     it("ninguna pieza de texto baja de su umbral WCAG sin estar sancionada", () => {
