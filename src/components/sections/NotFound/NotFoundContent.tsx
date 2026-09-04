@@ -89,6 +89,18 @@ import { AMBIENT } from "@/motion/vocabulary";
  * `min-height: auto` (el tamaño mínimo automático), así que cuando la tinta
  * crece por encima del hueco (tipografía al 200 %, viewport corto) `main`
  * mide exactamente su contenido y el centrado no desplaza nada.
+ *
+ * NINGUN HIJO PUEDE SER MAS ANCHO QUE ESTA CAJA (critica externa #19,
+ * 2026-09-04, WCAG 1.4.4). Con `align-items: center` un item flex se dimensiona
+ * a `fit-content`, que NO baja de su `min-content`: la palabra mas larga del
+ * titulo manda. Medido en Chrome real sobre el build de produccion, raiz a 32px
+ * con `Page.setFontSizes` y viewport de 320 px: el `h1` se pintaba a 80 px de
+ * cuerpo, pedia 402,56 px en una caja de contenido de 224 y quedaba centrado
+ * DESBORDANDO POR LOS DOS LADOS (left -41,28 / right 361,28). Los 41,28 px de
+ * la derecha no se alcanzan --`GlobalStyles` declara
+ * `html, body { overflow-x: clip }`--, y los de la izquierda no se alcanzan en
+ * ningun caso. Con el ancho topado, el `hyphens: auto` que el titulo ya heredaba
+ * pasa a tener donde actuar y parte la palabra con guion en vez de salirse.
  */
 const ScMain = styled.main`
   display: flex;
@@ -105,6 +117,12 @@ const ScMain = styled.main`
   padding: calc(var(--nav-height) + ${({ theme }) => theme.data.space[8]})
     ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[9]};
   text-align: center;
+
+  /* Ningun hijo mas ancho que esta caja (WCAG 1.4.4, critica #19): ver el
+     docblock de este componente. */
+  > * {
+    max-width: 100%;
+  }
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     max-width: calc(
