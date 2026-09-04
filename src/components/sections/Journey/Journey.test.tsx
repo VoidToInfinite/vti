@@ -7,6 +7,7 @@ import {
   within,
 } from "@/test/test-utils";
 import { Journey, stepLabelColor } from "./Journey";
+import { Story } from "@/components/sections/Story/Story";
 import { motion } from "@/theme/tokens/motion";
 import {
   JOURNEY_STEPS,
@@ -27,6 +28,7 @@ import {
 import {
   STORY_DARK_HEIGHT,
   STORY_DECK_TAIL_SCREENS,
+  STORY_SLIDES,
 } from "@/components/sections/Story/story.layers";
 import enHome from "@/i18n/locales/en/home.json";
 import esHome from "@/i18n/locales/es/home.json";
@@ -2599,5 +2601,214 @@ describe("Journey: critica #16 -- el arte del deck oscuro se anuncia como UNA im
     expect(enHome.Home.journey.sceneAlt).not.toBe(
       enHome.Home.journey.figureAlt,
     );
+  });
+});
+
+/*
+ * CRITICA EXTERNA #19 (2026-09-04), decision del dueno: UNA SOLA FORMA DE
+ * CONTAR, y la misma en las dos secciones.
+ *
+ * El defecto que cierra este candado, medido en Chrome sobre el build de
+ * produccion (tema oscuro, deck detenido en cada parada):
+ *
+ * | seccion | paradas | numerales visibles por parada          |
+ * |---------|---------|----------------------------------------|
+ * | Story   | 6       | 2 en la intro y el cierre, 3 en las 4   |
+ * |         |         | paradas de pilar ("0N" + "N+1 / 6")     |
+ * | Journey | 8       | 2 en las 8 (solo "N / 8")               |
+ *
+ * En las cuatro paradas de pilar de Story convivian DOS sistemas que contaban
+ * cosas distintas -- el badge cuenta pilares (4), el rail cuenta diapositivas
+ * (6, intro y cierre incluidos) -- asi que ninguna pareja cuadraba: "01" junto
+ * a "2 / 6", "04" junto a "5 / 6". Separacion medida entre las dos cifras:
+ * 319 px a 390 de ancho y 1290 px a 1440. Journey, que usa el MISMO chasis,
+ * no tenia ese segundo sistema. La misma pieza indicaba la posicion de dos
+ * maneras en una seccion y de una en la otra.
+ *
+ * POR QUE ESTE CANDADO VIVE AQUI Y NO EN Story.test.tsx: la invariante no es
+ * de una seccion, es ENTRE las dos, y este es el fichero que ya importa las
+ * dos (precedente: el describe de la invariante D5, mas arriba, que compara la
+ * cola de la pista de Story con el solape de Journey). Un candado por seccion
+ * habria dejado pasar exactamente el defecto que existia: cada mitad era
+ * coherente consigo misma.
+ *
+ * COMO SE DERIVA DEL MODELO, y no de dos listas tecleadas: hay UNA sola
+ * funcion (`formaDeContar`) que se ejecuta sobre las dos secciones, y lo que
+ * se compara es su salida contra la de la otra y contra las constantes del
+ * modelo (`STORY_SLIDES`; `JOURNEY_SLIDES`, que a su vez es
+ * `JOURNEY_STEPS.length + 2`). Ninguna cifra esperada se escribe a mano: si
+ * manana se anade un pilar o un paso, el candado sigue describiendo la misma
+ * propiedad sin tocarlo.
+ */
+describe("critica #19 -- las dos secciones cuentan de la misma forma (tema oscuro)", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  /* Un numeral SUELTO: el texto entero de un elemento hoja es una cifra y
+     nada mas. Es la forma exacta que tenian el badge de pilar ("01") y las dos
+     mitades del rotulo del rail ("2", "6"). No caza la senal de posicion que
+     Journey da a tecnologia asistiva ("Paso 2 de 6", Home.journey.
+     stepPosition), que es una frase con palabras -- y es correcto que no la
+     cace: ese es el canal ASISTIDO, que este candado no toca. */
+  const NUMERAL_SUELTO = /^\d{1,3}$/;
+
+  function numeralesEn(raiz: Element): string[] {
+    return Array.from(raiz.querySelectorAll("*"))
+      .filter((el) => el.children.length === 0)
+      .map((el) => (el.textContent ?? "").trim())
+      .filter((texto) => NUMERAL_SUELTO.test(texto));
+  }
+
+  /*
+   * La MISMA lectura para los dos decks. Devuelve, del deck ya renderizado:
+   * las cifras del rotulo del rail, los numerales que aparecen en cualquier
+   * otro sitio del deck, y las diapositivas de CONTENIDO (las de en medio: ni
+   * la intro ni el cierre), que son las que en Story llevaban badge.
+   */
+  function formaDeContar(
+    stage: HTMLElement,
+    grupoDelRail: HTMLElement,
+  ): {
+    cifrasDelRotulo: string[];
+    numeralesFueraDelRotulo: string[];
+    numeralesPorDiapositivaDeContenido: string[][];
+  } {
+    const rotulo = grupoDelRail.querySelector("p") as HTMLElement;
+    const cifra = (el: Element): string => (el.textContent ?? "").trim();
+    const numerales = Array.from(stage.querySelectorAll("*"))
+      .filter((el) => el.children.length === 0)
+      .filter((el) => NUMERAL_SUELTO.test(cifra(el)));
+    const diapositivas = Array.from(
+      stage.querySelectorAll("[data-slide-index]"),
+    );
+
+    return {
+      cifrasDelRotulo: numerales.filter((el) => rotulo.contains(el)).map(cifra),
+      numeralesFueraDelRotulo: numerales
+        .filter((el) => !rotulo.contains(el))
+        .map(cifra),
+      numeralesPorDiapositivaDeContenido: diapositivas
+        .slice(1, -1)
+        .map((diapositiva) => numeralesEn(diapositiva)),
+    };
+  }
+
+  async function leerDeck(
+    seccion: React.ReactElement,
+    rotuloDelRail: string,
+    diapositivas: number,
+  ): Promise<ReturnType<typeof formaDeContar> & { unmount: () => void }> {
+    const { container, unmount } = renderWithProviders(seccion);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        diapositivas,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const grupo = within(container).getByRole("group", {
+      name: rotuloDelRail,
+    });
+    return { ...formaDeContar(stage, grupo), unmount };
+  }
+
+  const leerStory = () =>
+    leerDeck(<Story />, esHome.Home.story.railLabel, STORY_SLIDES);
+  const leerJourney = () =>
+    leerDeck(<Journey />, esHome.Home.journey.railLabel, JOURNEY_SLIDES);
+
+  it("ningun deck pinta una segunda cuenta: la fraccion del rail es el unico numeral visible de los dos", async () => {
+    const story = await leerStory();
+    story.unmount();
+    const journey = await leerJourney();
+
+    // La comparacion que ata las DOS secciones a la misma forma, sin escribir
+    // ninguna cifra: lo que se exige es que la lectura de una sea la de la
+    // otra. Con el badge de pilar puesto, Story trae cuatro numerales aqui y
+    // Journey ninguno.
+    expect(story.numeralesFueraDelRotulo).toEqual(
+      journey.numeralesFueraDelRotulo,
+    );
+    expect(story.cifrasDelRotulo).toHaveLength(journey.cifrasDelRotulo.length);
+
+    // Y el ancla absoluta, para que la igualdad de arriba no se pueda cumplir
+    // "empatando en malo" (las dos secciones con dos cuentas cada una).
+    expect(story.numeralesFueraDelRotulo).toEqual([]);
+    expect(journey.numeralesFueraDelRotulo).toEqual([]);
+  });
+
+  it("la unica cuenta de cada deck es la parada actual sobre su total, y el total sale del modelo", async () => {
+    const story = await leerStory();
+    story.unmount();
+    const journey = await leerJourney();
+
+    // En reposo el deck arranca en la primera parada. El total NO se teclea:
+    // sale de la constante que gobierna el propio deck, y la de Journey es a
+    // su vez JOURNEY_STEPS.length + 2.
+    expect(story.cifrasDelRotulo).toEqual(["1", String(STORY_SLIDES)]);
+    expect(journey.cifrasDelRotulo).toEqual(["1", String(JOURNEY_SLIDES)]);
+    expect(JOURNEY_SLIDES).toBe(JOURNEY_STEPS.length + 2);
+  });
+
+  it("ninguna diapositiva de contenido de ninguna de las dos secciones lleva numeral propio", async () => {
+    const story = await leerStory();
+    story.unmount();
+    const journey = await leerJourney();
+
+    // Cuantas hay se deriva del modelo: las de en medio, ni intro ni cierre.
+    expect(story.numeralesPorDiapositivaDeContenido).toHaveLength(
+      STORY_SLIDES - 2,
+    );
+    expect(journey.numeralesPorDiapositivaDeContenido).toHaveLength(
+      JOURNEY_STEPS.length,
+    );
+
+    [
+      ...story.numeralesPorDiapositivaDeContenido,
+      ...journey.numeralesPorDiapositivaDeContenido,
+    ].forEach((numerales) => {
+      expect(numerales).toEqual([]);
+    });
+  });
+
+  /*
+   * SONDA DE NO-VACUIDAD. Las tres aserciones de arriba comparan listas
+   * vacias: si `formaDeContar` fuera ciega -- un selector que no encuentra
+   * nada, un filtro que descarta de mas -- seguirian en verde para siempre.
+   * Esta sonda mete a mano en una diapositiva de pilar el MISMO elemento que
+   * la critica retiro (un span cuyo texto entero es "01") y comprueba que la
+   * lectura lo ve. Si algun dia esta sonda se pusiera en verde sin numeral, o
+   * en rojo con el, los tres candados de arriba habrian dejado de proteger
+   * nada.
+   */
+  it("la lectura VE un numeral fuera del rotulo: la sonda no es vacua", async () => {
+    const { container } = renderWithProviders(<Story />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        STORY_SLIDES,
+      );
+    });
+    const stage = container.querySelector("[data-slide]") as HTMLElement;
+    const grupo = within(container).getByRole("group", {
+      name: esHome.Home.story.railLabel,
+    });
+    const pilar = stage.querySelector('[data-slide-index="1"]') as HTMLElement;
+
+    expect(formaDeContar(stage, grupo).numeralesFueraDelRotulo).toEqual([]);
+
+    const intruso = document.createElement("span");
+    intruso.textContent = "01";
+    pilar.prepend(intruso);
+
+    const conIntruso = formaDeContar(stage, grupo);
+    expect(conIntruso.numeralesFueraDelRotulo).toEqual(["01"]);
+    expect(conIntruso.numeralesPorDiapositivaDeContenido[0]).toEqual(["01"]);
+
+    intruso.remove();
+    expect(formaDeContar(stage, grupo).numeralesFueraDelRotulo).toEqual([]);
   });
 });
