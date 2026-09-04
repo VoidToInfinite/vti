@@ -293,3 +293,114 @@ describe("motion.staggerMs: la escala de retardos (crítica externa #16)", () =>
     expect(new Set(valores).size).toBe(valores.length);
   });
 });
+
+/**
+ * CANDADO DEL CENSO DE LA BANDA DE INTERFAZ (crítica externa #18,
+ * 2026-09-04).
+ *
+ * QUÉ MIDE Y POR QUÉ NO DUPLICA AL DETECTOR: `scripts/detect-anti-patterns.mjs`
+ * vigila las duraciones POR PROCEDENCIA —lo dice su propio docblock, «la
+ * familia que mide VALOR sería "fuera de escala"; aquí no hace falta»—, así
+ * que sanciona línea a línea que un tiempo no nazca del sistema, pero no sabe
+ * ni le importa CUÁNTOS valores distintos existen. Ese recuento es justo lo
+ * que la crítica pidió medir para contestar si a la escala le falta un
+ * peldaño, y es lo que este test congela.
+ *
+ * EL DEFECTO QUE ATRAPA: que el vocabulario de duraciones crezca en silencio.
+ * Un valor nuevo puede entrar hoy perfectamente sancionado —con su entrada de
+ * allowlist y su motivo bien escrito— y el gate seguirá en verde sin que nadie
+ * haya comparado ese número con los diecisiete que ya existen. Este test
+ * obliga a esa comparación: cuando aparece el decimoctavo, hay que decidir por
+ * escrito si es un rol nuevo o el peldaño que por fin faltaba.
+ *
+ * QUÉ SE EXIME, y por qué exactamente estas dos cosas:
+ *  - `0.001ms`, el reset de `prefers-reduced-motion` de `GlobalStyles`: no es
+ *    una duración elegida, es la ausencia de duración escrita de forma que el
+ *    navegador siga emitiendo `transitionend` (mismo criterio con el que el
+ *    detector exime el cero, y ya está sancionado allí por su cuenta).
+ *  - Las expresiones aritméticas (`SOL_AUTO_CYCLE_MS = 8 * 60 * 1000`): el
+ *    número que sigue al `=` no es la duración, es un factor. Sin esta
+ *    exención el censo contaría duraciones de 8 ms y 44 ms que no existen.
+ *
+ * El resultado del censo y su lectura —que NO falta ningún peldaño, y que el
+ * único caso de mismo rol en dos sitios (320 ms) ya tiene el suyo en `slow`
+ * sin que ninguno de los dos lo lea— viven en el docblock de cabecera de
+ * `motion.ts`, para que el número y su interpretación no se separen.
+ */
+describe("censo de duraciones de la banda de interfaz (≤1000 ms)", () => {
+  const raizProyecto = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "..",
+  );
+  const EXTENSIONES = new Set([".ts", ".tsx"]);
+
+  function recorrer(dir: string, salida: string[] = []): string[] {
+    for (const entrada of readdirSync(dir)) {
+      const completo = join(dir, entrada);
+      if (statSync(completo).isDirectory()) recorrer(completo, salida);
+      else if (EXTENSIONES.has(extname(completo))) salida.push(completo);
+    }
+    return salida;
+  }
+
+  function despojar(fuente: string): string {
+    return fuente
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(?<!:)\/\/.*$/gm, "");
+  }
+
+  function censo(): number[] {
+    const valores = new Set<number>();
+    const ficheros = ["src", "app"]
+      .flatMap((raiz) => recorrer(join(raizProyecto, raiz)))
+      .filter((f) => !f.endsWith(".test.ts") && !f.endsWith(".test.tsx"));
+
+    for (const fichero of ficheros) {
+      for (const linea of despojar(readFileSync(fichero, "utf-8")).split(
+        /\r?\n/,
+      )) {
+        /* Tiempo CSS escrito como literal: `320ms`, `9s`. */
+        const literales = /(?<![\w.$])(\d+(?:\.\d+)?)(ms|s)(?![\w-])/g;
+        let m: RegExpExecArray | null;
+        while ((m = literales.exec(linea)) !== null) {
+          const ms = parseFloat(m[1]) * (m[2] === "s" ? 1000 : 1);
+          if (ms !== 0 && ms !== 0.001 && ms <= 1000) valores.add(ms);
+        }
+        /* Duración declarada como constante numérica con nombre. El tercer
+           grupo es el carácter que sigue al número: si es un operador, lo que
+           se ha capturado es un factor, no una duración. */
+        const constantes =
+          /\b[A-Za-z_$][\w$]*(?:[a-z]Ms|_MS)\s*[:=]\s*\[?\s*(-?\d[\d_]*(?:\.\d+)?)\s*(\S?)/g;
+        while ((m = constantes.exec(linea)) !== null) {
+          if (m[2] === "*" || m[2] === "+" || m[2] === "-") continue;
+          const ms = parseFloat(m[1].replace(/_/g, ""));
+          if (ms !== 0 && ms <= 1000) valores.add(ms);
+        }
+      }
+    }
+    return [...valores].sort((a, b) => a - b);
+  }
+
+  it("son exactamente diecisiete valores, y estos", () => {
+    expect(
+      censo(),
+      "el vocabulario de duraciones cambió: decide por escrito si el valor nuevo es un rol nuevo o el peldaño que faltaba, y actualiza el censo del docblock de motion.ts en el mismo cambio",
+    ).toEqual([
+      50, 90, 100, 140, 160, 200, 220, 320, 420, 440, 480, 600, 800, 850, 860,
+      900, 1000,
+    ]);
+  });
+
+  /*
+   * La otra mitad: cuatro de esos diecisiete SON peldaños de esta escala, y
+   * eso no es casualidad ni ruido — es la parte del vocabulario que ya está
+   * sistematizada. Si un día ninguno coincidiera, la escala habría dejado de
+   * describir lo que el sitio usa.
+   */
+  it("cuatro de ellos son peldaños vivos de la escala", () => {
+    const escala = new Set<number>(Object.values(motion.durationMs));
+    expect(censo().filter((v) => escala.has(v))).toEqual([100, 200, 320, 480]);
+  });
+});

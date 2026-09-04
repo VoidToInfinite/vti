@@ -19,6 +19,51 @@
  *
  * `DURATION_MS` no se exporta: se lee siempre por `motion.durationMs`, para
  * que no haya dos caminos de import hacia el mismo dato.
+ *
+ * ## Censo de la BANDA DE INTERFAZ, al día (crítica externa #18, 2026-09-04)
+ *
+ * El hallazgo pedía comprobar si a esta escala de siete peldaños le FALTAN
+ * peldaños, midiendo cuántas de las duraciones sueltas de la banda de
+ * interfaz (≤1000 ms) gobiernan el MISMO rol en dos sitios distintos: las que
+ * coincidan en rol son un peldaño que falta. Censo propio con el mismo motor
+ * que el resto del repo (comentarios despojados, `src/` y `app/` sin tests,
+ * literales de tiempo CSS y constantes numéricas `*Ms`/`*_MS`, eximiendo el
+ * `0.001ms` del reset de `reduce` y las expresiones aritméticas del tipo
+ * `8 * 60 * 1000`, que no son duraciones de 8 ms):
+ *
+ *   17 valores distintos — 50, 90, 100, 140, 160, 200, 220, 320, 420, 440,
+ *   480, 600, 800, 850, 860, 900, 1000.
+ *
+ * De los 17, CUATRO ya caen dentro de esta escala (100, 200, 320, 480) y los
+ * otros trece fuera. Y solo CUATRO aparecen en más de un fichero, que es lo
+ * que la pregunta mide de verdad:
+ *
+ * - **100** — `HERO_COPY_OUT_MS` (la salida de la copia del hero, que SÍ
+ *   anima) y `THEME_ANCHOR_SETTLE_MS` (tope de espera al re-maquetado, que no
+ *   anima nada). Dos roles distintos que coinciden en valor.
+ * - **200** — `SECTION_BEAM_DRAW_DELAY_MS` (un RETARDO) y
+ *   `FRAGMENT_LANDING_SETTLE_MS` (otro tope de seguridad). Dos roles
+ *   distintos.
+ * - **320** — el `320ms` de una transición de capa de `Wormhole.tsx` y
+ *   `HERO_COPY_IN_MS`, la entrada de la copia del hero. **Es el ÚNICO caso de
+ *   mismo rol en dos sitios**: los dos son la duración de una entrada corta
+ *   de interfaz. Y NO es un peldaño que falte — es `slow`, que existe desde
+ *   siempre y que ninguno de los dos lee. Lo que falta ahí es adopción.
+ * - **900** — cuatro ficheros y cuatro roles: dos fases de estrella del pie
+ *   (irregulares a propósito), el giro de Sol al interactuar, la ráfaga de
+ *   Wormhole y el revelado del cartel de Story.
+ *
+ * CONCLUSIÓN, y por eso esta escala NO crece: no falta ningún peldaño. Los
+ * trece valores de fuera gobiernan cada uno un rol en un solo sitio y están
+ * sancionados uno a uno, con su motivo escrito, en
+ * `scripts/detect-anti-patterns.mjs`. Meter cualquiera de ellos aquí
+ * convertiría la escala en el cajón que la crítica #16 pidió cerrar.
+ *
+ * El censo está candado por VALOR en `motion.test.ts` — que es una medida que
+ * el detector se niega a hacer a propósito (su familia `duration-literal`
+ * sanciona «POR PROCEDENCIA, NO POR VALOR»), así que no lo duplica: lo
+ * complementa. Si aparece un decimoctavo valor, ese test obliga a decidir si
+ * es un rol nuevo o el peldaño que por fin falta.
  */
 const DURATION_MS = {
   instant: 0,
