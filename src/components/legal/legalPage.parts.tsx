@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import styled, { css } from "styled-components";
@@ -296,6 +296,34 @@ export const ScTocLink = styled.a`
  */
 export const ScInlineLink = styled.a`
   ${legalLinkStyles}
+  /*
+   * EL SEGUNDO FOCO DEL MISMO DEFECTO DE ZOOM, y el que solo aparece midiendo:
+   * el arreglo de la ficha identificativa (ver el docblock de ScDl) dejo
+   * /aviso-legal limpio a 320 px con la raiz a 32 px, pero /privacidad y
+   * /en/privacy seguian perdiendo 79,11 px. El culpable era ESTE enlace -- el
+   * correo de ejercicio de derechos, dentro del texto corrido --, con el mismo
+   * token indivisible de 351 px y un mecanismo distinto: aqui no hay ninguna
+   * rejilla que encoger, es una caja EN LINEA cuya palabra no cabe en la linea
+   * y se sale del parrafo. Ninguna de las dos declaraciones de la rejilla lo
+   * habria tocado.
+   *
+   * Y no era contenido desplazable: GlobalStyles declara overflow-x: clip en
+   * html y body, asi que documentElement.scrollWidth seguia valiendo el ancho
+   * del viewport y esos pixeles no eran alcanzables de ninguna forma
+   * (WCAG 1.4.4).
+   *
+   * Va aqui y no en legalLinkStyles a proposito: el bloque compartido lo usa
+   * tambien el indice, cuyos textos son titulos de seccion con espacios de
+   * sobra. Esta regla existe para lo que este enlace porta -- correos y
+   * direcciones web --, y ese es el consumidor que la necesita.
+   *
+   * anywhere y no break-word, por el mismo motivo que en ScDd: solo anywhere
+   * reduce ademas el min-content de la caja (CSS Text 5.5).
+   *
+   * SIN BACKTICKS: esto vive dentro del template literal de styled-components
+   * (regla 23 de RULES.md).
+   */
+  overflow-wrap: anywhere;
 `;
 
 /*
@@ -389,8 +417,61 @@ export const ScListItem = styled.li`
   color: ${({ theme }) => theme.data.semantic.text};
 `;
 
+/*
+ * CAUSA RAÍZ DE LA PÉRDIDA DE CONTENIDO CON EL TEXTO AL 200 % (2026-09-04,
+ * hallazgo del frente Q-3, medido y arreglado aquí). Con la raíz del documento
+ * a 32 px -- la preferencia de tamaño de fuente del navegador al 200 %, que es
+ * lo que WCAG 1.4.4 exige soportar sin perder contenido ni funcionalidad --,
+ * las CUATRO rutas legales perdían la ficha identificativa por el borde
+ * derecho, en los dos temas y en los dos idiomas.
+ *
+ * EL MECANISMO, en tres pasos. (1) Estas dos cajas declaraban `display: grid`
+ * SIN `grid-template-columns`, así que su única pista es IMPLÍCITA y se
+ * dimensiona con `auto`. (2) La función de tamaño MÍNIMO de una pista `auto`
+ * es `min-content` (CSS Grid §7.2.3), y además un ítem de rejilla que ocupa una
+ * pista con mínimo `auto` recibe su propio suelo automático de tamaño por
+ * contenido (§6.6). El `dd` de la fila del correo contiene
+ * `hello@voidtoinfinite.com`, un token sin un solo punto de corte, así que ese
+ * min-content mide lo que mida el token entero. (3) A 32 px de raíz el token
+ * mide 351,109 px medidos, mientras la caja de contenido de `ScMain` cae a
+ * 224 / 264 / 294 px a 320 / 360 / 390 px de viewport (el relleno también
+ * escala: `space[5]` pasa de 24 a 48 px por lado).
+ *
+ * LO QUE SE PERDÍA, medido en Chrome sobre el build servido, en `/privacidad`,
+ * `/en/privacy`, `/aviso-legal` y `/en/legal-notice`, temas oscuro y claro: la
+ * fila entera terminaba en x = 399 px SIEMPRE, es decir 79,11 px fuera del
+ * viewport a 320, 39,11 px a 360 y 9,11 px a 390; 22 o 23 elementos por página
+ * (las 7 filas de la ficha con su `dt` y su `dd`). Y no era contenido
+ * desplazable sino contenido PERDIDO: `GlobalStyles` declara
+ * `html, body { overflow-x: clip }` -- para no crear un contenedor de scroll
+ * que rompa el pin de Story --, así que `documentElement.scrollWidth` seguía
+ * valiendo exactamente el ancho del viewport y no había ningún gesto ni ninguna
+ * tecla que alcanzara esos píxeles. Desde 414 px de viewport ya no se perdía
+ * nada (351 + 48 = 399 < 414).
+ *
+ * EL ARREGLO, y por qué son DOS declaraciones y no una:
+ *
+ *   - `grid-template-columns: minmax(0, 1fr)` declara la pista explícitamente
+ *     con función de tamaño mínimo `0` en vez de `auto`. Eso quita a la vez el
+ *     suelo min-content de la PISTA y, por §6.6, el suelo automático de los
+ *     ÍTEMS que la ocupan: la rejilla vuelve a poder encoger con su contenedor.
+ *     La anchura de trabajo no cambia -- una pista `auto` implícita ya se
+ *     estiraba a todo el ancho disponible, y `1fr` reparte ese mismo ancho --,
+ *     verificado midiendo el ANTES y el DESPUÉS a nueve anchos.
+ *   - `overflow-wrap: anywhere` en `ScDd` (abajo) es la otra mitad: sin
+ *     ella la pista encogería pero el token seguiría sin poder partirse y se
+ *     saldría igual, ahora de su propia caja. Se elige `anywhere` y NO
+ *     `break-word` a propósito: solo `anywhere` entra en el cálculo del
+ *     min-content (CSS Text §5.5), que es justo la medida que aquí sobra.
+ *
+ * Por qué no se resuelve con `min-width: 0` en el hijo, que es el remedio
+ * clásico: `min-width: 0` en el `dd` quitaría el suelo del ÍTEM, pero dejaría
+ * en pie el suelo min-content de la PISTA `auto` que lo contiene, y la fila
+ * seguiría sin encoger. La pista explícita cierra los dos caminos de una vez.
+ */
 export const ScDl = styled.dl`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[3]};
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
 
@@ -401,6 +482,7 @@ export const ScDl = styled.dl`
 
 export const ScDlRow = styled.div`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[1]};
   padding-bottom: ${({ theme }) => theme.data.space[3]};
   border-bottom: 1px solid ${({ theme }) => theme.data.semantic.border};
@@ -422,6 +504,29 @@ export const ScDd = styled.dd`
   font-size: ${({ theme }) => theme.data.type.scale.body.size};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /*
+   * LA OTRA MITAD DEL ARREGLO DE ZOOM (ver el docblock largo de ScDl arriba).
+   * Este es el UNICO sitio de la ficha identificativa donde entra un valor que
+   * el documento no controla -- el correo de contacto, la direccion, el NIF --,
+   * y el correo de contacto es un token de 24 caracteres sin un solo punto de
+   * corte natural: ni espacio, ni guion, ni salto suave.
+   *
+   * anywhere y no break-word: las dos parten el token al pintarlo, pero solo
+   * anywhere reduce tambien el MIN-CONTENT de la caja (CSS Text 5.5). Con
+   * break-word la fila seguiria reservando los 351 px del token entero como
+   * anchura minima y el arreglo no llegaria a servir de nada. La distincion es
+   * la razon de ser de esta linea, no un detalle de estilo.
+   *
+   * Coste en maquetacion normal: ninguno observable -- anywhere solo parte
+   * dentro de una palabra cuando ya no cabe de ninguna otra forma. Verificado
+   * midiendo los nueve anchos del barrido antes y despues.
+   *
+   * SIN BACKTICKS: esto vive dentro del template literal de styled-components
+   * (regla 23 de RULES.md, y task/lessons.md 2026-07-25 y 2026-08-16). La
+   * primera version de este comentario los llevaba y el dev server murio con
+   * "Expected a semicolon" en esta misma linea.
+   */
+  overflow-wrap: anywhere;
 `;
 
 /* Aviso destacado (bloque `note`): borde izquierdo de acento en vez de un

@@ -6,6 +6,10 @@ import { PRESS } from "@/motion/vocabulary";
 import { themes } from "@/theme/themes";
 import {
   ScBackLink,
+  ScDd,
+  ScDl,
+  ScDlRow,
+  ScDt,
   ScInlineLink,
   ScMain,
   ScSection,
@@ -409,5 +413,201 @@ describe("legalPage.parts: ancho de ScMain (crítica externa #10, hallazgos A y 
     const css = cssRuleTextFor(screen.getByRole("table"));
 
     expect(css).toContain(`min-width: ${themes.light.grid.prose}`);
+  });
+});
+
+/*
+ * EL CANDADO DEL TEXTO AL 200 % (P1 del 2026-09-04; WCAG 1.4.4, nivel AA).
+ *
+ * QUÉ SE MIDIÓ, con Chrome sobre el build servido, la raíz a 32 px vía
+ * `Page.setFontSizes` (la misma palanca que la preferencia real del usuario), en
+ * `/privacidad`, `/en/privacy`, `/aviso-legal` y `/en/legal-notice`, en los dos
+ * temas y a nueve anchos. La ficha identificativa se salía del viewport
+ * **79,11 px a 320, 39,11 px a 360 y 9,11 px a 390**, con 22-23 elementos
+ * afectados por página, y en `/privacidad` se salía además el correo de
+ * ejercicio de derechos DENTRO del texto corrido, con las mismas cifras. No era
+ * contenido desplazable: `GlobalStyles` declara `html, body { overflow-x: clip }`
+ * y `documentElement.scrollWidth` se quedaba clavado en el ancho del viewport,
+ * así que esos píxeles no eran alcanzables de ninguna forma. Tras el arreglo:
+ * cero en las 72 combinaciones, y la maquetación a 16 px sale IDÉNTICA línea a
+ * línea (altura de documento, ancho de `main`, pistas de rejilla, alturas de
+ * fila y el enlace en prosa en una sola línea).
+ *
+ * POR QUÉ ESTE CANDADO ES DE DECLARACIONES Y NO DE MEDIDAS: jsdom no hace
+ * layout, no pinta y no evalúa `@media` (reglas 36 y 44), así que no puede ver
+ * un recorte. Lo que sí puede es afirmar que las declaraciones que lo evitan
+ * siguen escritas — y, sobre todo, que el CENSO de piezas que las necesitan no
+ * ha encogido. La medición en navegador vive en el informe de la tarea y en
+ * `scripts/check-legal-surfaces.mjs`, familia `texto-al-200-por-ciento`.
+ *
+ * LA EXTENSIÓN, ATADA. El modo de fallo caro de este repo no es que una regla
+ * se borre, es que la LISTA que la vigila encoja: borrar `ScDl` del fichero
+ * dejaría un candado feliz recorriendo lo que queda. Por eso los dos censos de
+ * abajo se comparan contra listas TECLEADAS, no derivadas de lo que el fichero
+ * declare hoy: quitar una pieza los pone en rojo, y añadir una pieza nueva en
+ * rejilla o con envoltura también, obligando a decidir explícitamente si entra.
+ */
+const FUENTE_PARTES = readFileSync(
+  path.join(process.cwd(), "src/components/legal/legalPage.parts.tsx"),
+  "utf8",
+);
+
+/** Las piezas de este fichero que maquetan en rejilla y, por tanto, necesitan
+ *  pistas explícitas para poder encoger con su contenedor. Tecleada. */
+const PIEZAS_EN_REJILLA = ["ScDl", "ScDlRow"];
+
+/** Las piezas que portan un token que el documento no controla —el correo, la
+ *  dirección— y necesitan poder partirlo. Tecleada, por el mismo motivo. */
+const PIEZAS_QUE_ENVUELVEN = ["ScDd", "ScInlineLink"];
+
+/**
+ * Los bloques de estilo del fichero, por nombre de export. El template literal
+ * de cada `styled` no puede contener backticks (regla 23 de RULES.md, que este
+ * mismo fichero respeta), así que las comillas invertidas delimitan sin
+ * ambigüedad.
+ */
+function bloquesDeEstilo(fuente: string): Map<string, string> {
+  const bloques = new Map<string, string>();
+  for (const m of fuente.matchAll(
+    /export const (\w+) = styled[^`]*`([\s\S]*?)\n`;/g,
+  )) {
+    bloques.set(m[1], m[2]);
+  }
+  return bloques;
+}
+
+describe("legalPage.parts: texto al 200 % (WCAG 1.4.4, 2026-09-04)", () => {
+  it("el censo de piezas en rejilla no ha encogido, y todas declaran pistas explícitas", () => {
+    const bloques = bloquesDeEstilo(FUENTE_PARTES);
+
+    /* Sonda positiva: si el analizador dejara de encontrar bloques, todo lo de
+       abajo pasaría por vacuidad — que es exactamente el fallo que este censo
+       existe para impedir. */
+    expect(
+      bloques.size,
+      "el analizador no encontró ni un bloque de estilo: la comprobación sería vacua",
+    ).toBeGreaterThan(10);
+    expect(bloques.has("ScMain")).toBe(true);
+
+    const enRejilla = [...bloques]
+      .filter(([, css]) => /display:\s*grid/.test(css))
+      .map(([nombre]) => nombre);
+
+    expect(
+      enRejilla.sort(),
+      "el censo de piezas en rejilla cambió: si nace una pieza nueva decide si necesita " +
+        "pistas explícitas y añádela; si desapareció una, restáurala — no dejes que la " +
+        "lista encoja sola",
+    ).toEqual([...PIEZAS_EN_REJILLA].sort());
+
+    for (const nombre of PIEZAS_EN_REJILLA) {
+      expect(
+        bloques.get(nombre),
+        `${nombre} maqueta en rejilla sin declarar sus pistas: la pista implícita se ` +
+          `dimensiona con auto, cuyo mínimo es min-content, y el token del correo la ` +
+          `enrasa a 351 px con la raíz a 32 px`,
+      ).toMatch(/grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/);
+    }
+  });
+
+  it("el censo de piezas que envuelven no ha encogido, y todas usan anywhere y no break-word", () => {
+    const bloques = bloquesDeEstilo(FUENTE_PARTES);
+
+    const conEnvoltura = [...bloques]
+      .filter(([, css]) => /overflow-wrap:/.test(css))
+      .map(([nombre]) => nombre);
+
+    expect(
+      conEnvoltura.sort(),
+      "el censo de piezas con regla de envoltura cambió: decide explícitamente si la " +
+        "pieza nueva la necesita, o restaura la que falta",
+    ).toEqual([...PIEZAS_QUE_ENVUELVEN].sort());
+
+    for (const nombre of PIEZAS_QUE_ENVUELVEN) {
+      const css = bloques.get(nombre) ?? "";
+      expect(
+        css,
+        `${nombre} porta un token indivisible y no declara cómo partirlo`,
+      ).toMatch(/overflow-wrap:\s*anywhere/);
+      expect(
+        css,
+        `${nombre} usa break-word, que parte el token al pintarlo pero NO reduce el ` +
+          `min-content de la caja: la rejilla seguiría reservando el token entero`,
+      ).not.toMatch(/overflow-wrap:\s*break-word/);
+    }
+  });
+
+  /*
+   * SONDA NEGATIVA de los dos censos. El repo ya tuvo candados que pasaban por
+   * vacuidad; aquí se demuestra que el analizador RECHAZA de verdad una fuente
+   * sin las declaraciones, en vez de aceptar cualquier cosa. Si alguien
+   * "simplificara" los matchers a algo que siempre pasa, este caso cae con ellos.
+   */
+  it("sonda negativa: el analizador ve una rejilla sin pistas y una envoltura equivocada", () => {
+    const fuenteRota = [
+      "export const ScFalsa = styled.dl`",
+      "  display: grid;",
+      "  gap: 8px;",
+      "`;",
+      "",
+      "export const ScFalsaDd = styled.dd`",
+      "  overflow-wrap: break-word;",
+      "`;",
+    ].join("\n");
+
+    const bloques = bloquesDeEstilo(fuenteRota);
+    expect([...bloques.keys()].sort()).toEqual(["ScFalsa", "ScFalsaDd"]);
+    expect(bloques.get("ScFalsa")).not.toMatch(
+      /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
+    );
+    expect(bloques.get("ScFalsaDd")).not.toMatch(/overflow-wrap:\s*anywhere/);
+    expect(bloques.get("ScFalsaDd")).toMatch(/overflow-wrap:\s*break-word/);
+  });
+
+  /*
+   * Y lo que de verdad llega al navegador: las mismas declaraciones leídas de
+   * `document.styleSheets`, que es el texto que styled-components inyecta. La
+   * comprobación de la fuente de arriba ata el CENSO; esta ata que el CSS
+   * generado las lleva de verdad —una `css` compartida mal enganchada, o un
+   * `styled(X)` que las pise, se vería aquí y no allí.
+   */
+  it("el CSS que llega al navegador lleva las pistas y la envoltura", () => {
+    renderWithProviders(
+      <ScDl>
+        <ScDlRow>
+          <ScDt>Correo</ScDt>
+          <ScDd>hello@voidtoinfinite.test</ScDd>
+        </ScDlRow>
+      </ScDl>,
+    );
+
+    const dd = screen.getByText("hello@voidtoinfinite.test");
+    const fila = dd.parentElement as HTMLElement;
+    const lista = fila.parentElement as HTMLElement;
+
+    const normaliza = (el: HTMLElement): string =>
+      cssRuleTextFor(el)
+        .replace(/\s+/g, " ")
+        .replace(/\(\s+/g, "(")
+        .replace(/\s+\)/g, ")");
+
+    expect(normaliza(lista)).toContain("grid-template-columns: minmax(0, 1fr)");
+    expect(normaliza(fila)).toContain("grid-template-columns: minmax(0, 1fr)");
+    expect(normaliza(dd)).toContain("overflow-wrap: anywhere");
+  });
+
+  it("ScInlineLink declara la envoltura sin heredarla del bloque compartido del índice", () => {
+    renderWithProviders(
+      <>
+        <ScInlineLink href="mailto:x@y.test">x@y.test</ScInlineLink>
+        <ScTocLink href="#s1">Sección 1</ScTocLink>
+      </>,
+    );
+
+    expect(
+      cssRuleTextFor(screen.getByText("x@y.test")),
+      "el enlace en prosa porta el correo: sin envoltura se sale del párrafo, que es " +
+        "un mecanismo distinto del de la rejilla y no lo arregla ninguna de sus pistas",
+    ).toContain("overflow-wrap: anywhere");
   });
 });
