@@ -1,0 +1,149 @@
+{
+    "medido": "2026-09-04",
+    "origen": "out/index.html",
+    "presupuestoBytes": 290000,
+    "totalDescargadoBrotli": 284559,
+    "polyfillNomoduleBrotli": 35158,
+    "duplicacionCrudaBytes": 116368,
+    "modulosDuplicados": 21,
+    "chunks": [
+        {
+            "firma": "2e66fe0db941",
+            "modulos": 25,
+            "brotli": 60736,
+            "crudo": 227539,
+            "pistas": []
+        },
+        {
+            "firma": "333a7f81dc9c",
+            "modulos": 3,
+            "brotli": 48818,
+            "crudo": 236055,
+            "pistas": [
+                "Sol",
+                "aura.parts",
+                "eye.parts",
+                "Wormhole",
+                "HeroBackdrop",
+                "Hero"
+            ]
+        },
+        {
+            "firma": "132de64d6694",
+            "modulos": 68,
+            "brotli": 33134,
+            "crudo": 141196,
+            "pistas": []
+        },
+        {
+            "firma": "4d057ad2c484",
+            "modulos": 17,
+            "brotli": 28487,
+            "crudo": 109716,
+            "pistas": [
+                "BrandName",
+                "sectionBeam.parts",
+                "Logo",
+                "Typography",
+                "VisuallyHidden",
+                "Footer"
+            ]
+        },
+        {
+            "firma": "4d057ad2c484",
+            "modulos": 17,
+            "brotli": 28413,
+            "crudo": 109716,
+            "pistas": [
+                "BrandName",
+                "Logo",
+                "VisuallyHidden",
+                "LanguageSelector",
+                "ThemeToggle",
+                "NavSheet"
+            ]
+        },
+        {
+            "firma": "82b35d3487fc",
+            "modulos": 8,
+            "brotli": 20365,
+            "crudo": 57269,
+            "pistas": [
+                "Button",
+                "IconButton",
+                "BackToTop",
+                "DEFAULT_LOCALE",
+                "EN_ROUTES",
+                "LEGAL_ROUTE_KEYS"
+            ]
+        },
+        {
+            "firma": "c4417bbdf228",
+            "modulos": 5,
+            "brotli": 18831,
+            "crudo": 63536,
+            "pistas": ["default", "getI18nInstance", "initI18n"]
+        },
+        {
+            "firma": "6a6990fa6bb9",
+            "modulos": 31,
+            "brotli": 11236,
+            "crudo": 54636,
+            "pistas": []
+        },
+        {
+            "firma": "16beccaa705c",
+            "modulos": 37,
+            "brotli": 9533,
+            "crudo": 53152,
+            "pistas": []
+        },
+        {
+            "firma": "470e98acb6dc",
+            "modulos": 1,
+            "brotli": 9513,
+            "crudo": 27419,
+            "pistas": ["SkipLink", "LocaleShell", "Providers"]
+        },
+        {
+            "firma": "60f63fcd0026",
+            "modulos": 20,
+            "brotli": 6613,
+            "crudo": 23835,
+            "pistas": []
+        },
+        {
+            "firma": "sin-modulos",
+            "modulos": 0,
+            "brotli": 3735,
+            "crudo": 10580,
+            "pistas": ["default"]
+        },
+        {
+            "firma": "cba5ba5f5243",
+            "modulos": 6,
+            "brotli": 2505,
+            "crudo": 6574,
+            "pistas": [
+                "NotFoundContent",
+                "DocumentMeta",
+                "NotFoundLocaleShell",
+                "resolveNotFoundLocale"
+            ]
+        },
+        {
+            "firma": "52f719129044",
+            "modulos": 4,
+            "brotli": 1379,
+            "crudo": 3611,
+            "pistas": ["DocumentMeta"]
+        },
+        {
+            "firma": "7e2d90d23593",
+            "modulos": 3,
+            "brotli": 1261,
+            "crudo": 3377,
+            "pistas": []
+        }
+    ]
+}
