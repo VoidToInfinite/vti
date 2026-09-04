@@ -192,7 +192,9 @@ export const STORY_COSMIC_BEING_SIZES = "(max-width: 700px) 340px, 100vw";
  * cierra el candado de storyCosmicBeing.layers.test.ts, que comprueba con
  * node:fs que cada AVIF derivado existe de verdad en public/. Ese mismo
  * fichero de test cierra también la premultiplicación: ninguna pista aditiva
- * puede volver a llevar alfa sin ponerlo en rojo.
+ * puede volver a llevar alfa sin ponerlo en rojo. Y el peso total del arte del
+ * tema oscuro contra el ancla de 1,5 MB lo cierra aparte
+ * `scripts/check-dark-art-weight.mjs`, que corre dentro de `pnpm run ci`.
  */
 export function storyCosmicBeingAvifSrcSet(
   layer: StoryCosmicBeingLayer,
