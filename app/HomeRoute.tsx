@@ -1,8 +1,6 @@
 import type { ReactElement } from "react";
-import { Navbar } from "@/components/layout/Navbar/Navbar";
 import { Hero } from "@/components/sections/Hero/Hero";
 import { HomeSections } from "@/components/sections/HomeSections";
-import { Footer } from "@/components/layout/Footer/Footer";
 import { SITE, type Locale } from "@/config/site";
 import { DocumentMeta } from "@/seo/DocumentMeta";
 import { JsonLdScript } from "@/seo/JsonLdScript";
@@ -18,6 +16,17 @@ import { webPageJsonLd } from "@/seo/jsonLd";
  * que divergen a la primera sección que alguien añada en una y olvide en la
  * otra — el mismo criterio que ya aplica `LegalDocument` a los documentos
  * legales.
+ *
+ * LA CÁSCARA DEL SITIO YA NO SE MONTA AQUÍ (2026-09-04). `Navbar` y `Footer`
+ * los ponía este componente hasta esa fecha, igual que `app/not-found.tsx` y
+ * los dos envoltorios legales; cuatro Server Components abriendo cuatro
+ * fronteras de cliente sobre los mismos módulos, y Turbopack emitiendo la
+ * cáscara DOS veces en las dos portadas (28.413 B brotli redundantes, medidos
+ * por chunk). Hoy la monta `LocaleShell` -- el ancestro común de las ocho
+ * páginas -- y este árbol solo aporta lo que es suyo: la metadata de
+ * documento, los datos estructurados y el `<main>`. El DOM de la portada no
+ * cambia. Cifras y alternativas descartadas, en el docblock de
+ * `app/providers.tsx`; candado, en `app/providers.test.tsx`.
  *
  * Lo que NO viaja aquí es la `metadata` de cada ruta: es un export de módulo
  * que Next lee del `page.tsx`, así que cada cáscara declara la suya (y con
@@ -69,7 +78,6 @@ export function HomeRoute({
           description,
         })}
       />
-      <Navbar />
       {/* id="main" + tabIndex={-1}: destino del SkipLink (Task 2). El -1 lo
           hace focalizable de forma programatica sin sumarlo al orden normal
           de tabulacion -- patron estandar para el objetivo de un skip link,
@@ -82,7 +90,6 @@ export function HomeRoute({
         <Hero />
         <HomeSections />
       </main>
-      <Footer />
     </>
   );
 }

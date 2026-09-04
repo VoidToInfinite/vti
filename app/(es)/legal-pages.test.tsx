@@ -1,12 +1,13 @@
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { render, screen } from "@/test/test-utils";
 import { LEGAL_VERSIONS } from "@/config/legal";
 import { navBarSectionsFor } from "@/config/navigation";
 import { ROUTES } from "@/config/site";
 import esCommon from "@/i18n/locales/es/common.json";
 import esLegal from "@/i18n/locales/es/legal.json";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
+import { LocaleShell, Providers } from "../providers";
 import { SITE } from "@/config/site";
 import LegalNoticePage, {
   metadata as legalNoticeMetadata,
@@ -49,6 +50,28 @@ const paginas = [
   },
 ] as const;
 
+/*
+ * MONTA EL ÁRBOL REAL DE LA RUTA: root layout + layout de rama + página
+ * (2026-09-04, frente del presupuesto de JS).
+ *
+ * Antes bastaba `renderRuta(<Page />)` porque cada envoltorio legal
+ * montaba por su cuenta `Navbar` y `Footer`. Desde que la cáscara del sitio
+ * cuelga de `LocaleShell` -- el ancestro común de las ocho páginas, que es lo
+ * que impide que Turbopack la emita dos veces en las portadas (ver el docblock
+ * de `app/providers.tsx`) -- una página montada SIN su layout ya no trae
+ * cabecera ni pie, y este fichero comprueba justo eso. Se reproduce aquí el
+ * anidamiento real, igual que `app/providers.test.tsx`, en vez de aflojar los
+ * asertos: la afirmación que se protege no ha cambiado (la ruta expone la
+ * navegación del sitio), solo el sitio del árbol donde se cumple.
+ */
+function renderRuta(ui: ReactElement) {
+  return render(
+    <Providers>
+      <LocaleShell locale="es">{ui}</LocaleShell>
+    </Providers>,
+  );
+}
+
 describe("rutas legales", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -77,7 +100,7 @@ describe("rutas legales", () => {
   it.each(paginas)(
     "/$nombre monta el documento correcto con un unico h1",
     ({ Page, doc }) => {
-      renderWithProviders((<Page />) as ReactElement);
+      renderRuta((<Page />) as ReactElement);
 
       const encabezados = screen.getAllByRole("heading", { level: 1 });
       expect(encabezados).toHaveLength(1);
@@ -121,7 +144,7 @@ describe("rutas legales", () => {
   it.each(paginas)(
     "/$nombre emite datos estructurados WebPage parseables y de su propia ruta",
     ({ Page, ruta, doc, version }) => {
-      const { container } = renderWithProviders((<Page />) as ReactElement);
+      const { container } = renderRuta((<Page />) as ReactElement);
 
       const script = container.querySelector(
         'script[type="application/ld+json"]',
@@ -172,7 +195,7 @@ describe("rutas legales", () => {
   it.each(paginas)(
     "/$nombre monta la navegacion del sitio y el pie",
     ({ Page }) => {
-      const { container } = renderWithProviders((<Page />) as ReactElement);
+      const { container } = renderRuta((<Page />) as ReactElement);
 
       const cabecera = container.querySelector("header");
       expect(cabecera).not.toBeNull();
@@ -217,7 +240,7 @@ describe("rutas legales", () => {
   it.each(paginas)(
     "/$nombre expone DOS landmarks de navegacion, los dos rotulados y con rotulos distintos",
     ({ Page }) => {
-      const { container } = renderWithProviders((<Page />) as ReactElement);
+      const { container } = renderRuta((<Page />) as ReactElement);
 
       const rotulos = Array.from(container.querySelectorAll("nav")).map((nav) =>
         nav.getAttribute("aria-label"),

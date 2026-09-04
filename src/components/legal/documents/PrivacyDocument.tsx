@@ -1,8 +1,6 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { Footer } from "@/components/layout/Footer/Footer";
-import { Navbar } from "@/components/layout/Navbar/Navbar";
 import { LegalDocument } from "@/components/legal/LegalDocument";
 
 /**
@@ -11,6 +9,20 @@ import { LegalDocument } from "@/components/legal/LegalDocument";
  * el renderer único de documentos legales + el `Footer` de la home, tal cual,
  * sin modificarlo (es autónomo y ya funciona en los dos temas). El hilo
  * principal monta este componente desde `app/(es)/privacidad/page.tsx`.
+ *
+ * ## QUIÉN MONTA LA CABECERA DESDE EL 2026-09-04: `LocaleShell`, NO ESTE
+ * ## ENVOLTORIO
+ *
+ * La decisión de D20-revertido no cambia -- las legales llevan la navegación
+ * completa del sitio --, cambia el sitio del árbol donde se cumple. Este
+ * componente montaba `Navbar` y `Footer` por su cuenta, igual que la portada y
+ * la 404; cuatro puntos de montaje sobre los mismos módulos hacían que
+ * Turbopack emitiera la cáscara DOS veces en las dos portadas (28.413 B brotli
+ * redundantes, medidos por chunk). Hoy la monta el layout de la rama de idioma,
+ * que es el ancestro común de las ocho páginas, y aquí queda solo el documento.
+ * El DOM de `/privacidad` es el mismo. Todo lo que sigue describiendo QUÉ
+ * cabecera lleva esta página sigue vigente y por eso se conserva entero; las
+ * cifras están en el docblock de `app/providers.tsx`.
  *
  * ## D20 SE REVIERTE: aquí va el `Navbar`, no una cabecera propia
  *
@@ -89,9 +101,7 @@ import { LegalDocument } from "@/components/legal/LegalDocument";
 export function PrivacyDocument(): ReactElement {
   return (
     <>
-      <Navbar />
       <LegalDocument docKey="privacy" />
-      <Footer />
     </>
   );
 }

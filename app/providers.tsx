@@ -8,6 +8,8 @@ import { GlobalStyles } from "@/theme/GlobalStyles";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { SkipLink } from "@/components/layout/SkipLink/SkipLink";
 import { BackToTop } from "@/components/layout/BackToTop/BackToTop";
+import { Navbar } from "@/components/layout/Navbar/Navbar";
+import { Footer } from "@/components/layout/Footer/Footer";
 
 /*
  * DOS ENVOLTORIOS, NO UNO, Y LA FRONTERA ES EL IDIOMA (2026-08-19).
@@ -90,12 +92,60 @@ export function Providers({
 
 /**
  * Envoltorio CON idioma: la instancia de i18next de esta rama de rutas, más
- * las dos piezas de chrome global cuyo texto se traduce.
+ * TODO el chrome global cuyo texto se traduce — `SkipLink`, `Navbar`, `Footer`
+ * y `BackToTop`.
  *
  * El idioma tiene que envolver a `SkipLink`/`BackToTop` y no solo a la página:
  * son hermanos de `children`, y el enlace de salto es literalmente lo primero
  * que anuncia un lector de pantalla en una página inglesa. Por eso los monta
  * este envoltorio y no cada `page.tsx`.
+ *
+ * ## LA CÁSCARA DEL SITIO (`Navbar` + `Footer`) SUBE AQUÍ EL 2026-09-04
+ *
+ * Hasta esa fecha la montaban por su cuenta `app/HomeRoute.tsx`,
+ * `app/not-found.tsx`, `PrivacyDocument.tsx` y `LegalNoticeDocument.tsx`: cuatro
+ * sitios, el mismo DOM. Es LA MISMA situación que la partición
+ * `Providers`/`LocaleShell` de arriba resolvió para el tema y el i18n, y la
+ * regla que ese docblock dejó escrita —«todo lo que monten a la vez una rama de
+ * idioma y `app/not-found.tsx` tiene que colgar de un envoltorio del ROOT
+ * layout, o se paga dos veces en cada página del sitio»— describía exactamente
+ * lo que estaba pasando con la cáscara. Nadie la aplicó a ella durante cinco
+ * olas porque la regla vivía en prosa y no en un candado; ahora sí lo tiene
+ * (`app/providers.test.tsx`, «la cáscara del sitio se monta una sola vez»).
+ *
+ * LA FACTURA, medida por chunk sobre el build de `0226846` servido en local.
+ * `out/index.html` y `out/en.html` referenciaban DOS chunks con la MISMA
+ * composición —los mismos 17 identificadores de módulo, 109.716 B crudos cada
+ * uno— con la cáscara entera dentro: `Navbar` (con `NavSheet`, `ThemeToggle`,
+ * `LanguageSelector`), `Footer`, `Logo`, `Typography`, `VisuallyHidden`,
+ * `BrandName`, `SectionBeam`, `useReveal`, `useDocumentMeta`, `links`,
+ * `NAV_GROUPS` y las constantes del arte del hero. Uno lo pedían las ocho
+ * páginas del build; el otro, 28.413 B brotli, solo las dos portadas, y era
+ * íntegramente redundante.
+ *
+ * EL PORQUÉ TÉCNICO, y es el mismo de la ola G: cada uno de esos cuatro
+ * ficheros es un Server Component, así que cada uno abría su PROPIA frontera de
+ * servidor a cliente sobre los mismos módulos. Con la cáscara aquí hay una sola
+ * frontera, y cuelga del ancestro común de las ocho páginas. Se descartaron dos
+ * alternativas más baratas, las dos MEDIDAS con su build antes de descartarlas:
+ * marcar `HomeRoute` como `"use client"` (284.559 → 284.954 B: los gemelos
+ * siguen, +395 B) y componer un envoltorio de cliente compartido entre la
+ * portada y la 404 (284.708 B: los gemelos siguen, +149 B). El número de
+ * fronteras no es lo que decide el reparto; la posición en el árbol, sí.
+ *
+ * RESULTADO, dos builds consecutivos del mismo árbol: **284.559 → 253.853 B
+ * brotli descargados (−30.706 B, −10,8 %)**, margen libre del presupuesto de
+ * 5.441 a 36.147 B, la duplicación de módulos de 116.368 a 4.264 B crudos (de
+ * 21 módulos repetidos a 5, todos del runtime de Next) y cero pares de chunks
+ * con la misma composición emitidos por el repo.
+ *
+ * EL ORDEN DEL DOM NO CAMBIA en ninguna de las ocho páginas: las cuatro rutas
+ * que la montaban ya la ponían como primer y último hijo de su fragmento, y
+ * aquí queda en el mismo sitio relativo (`SkipLink`, `Navbar`, la página,
+ * `Footer`, `BackToTop`). Lo único que se mueve es el `<script>` de datos
+ * estructurados de la portada, que pasa de preceder al `<header>` a seguirlo;
+ * no es contenido renderizado y no altera ni el orden de lectura ni el de
+ * tabulación.
  *
  * `app/not-found.tsx` lo monta por su cuenta en castellano: no vive dentro de
  * ningún grupo de idioma (tiene que seguir en la raíz de `app/` para ser la 404
@@ -130,7 +180,15 @@ export function LocaleShell({
           `Providers`) y no en app/layout.tsx, que es Server Component y no
           puede consumir ninguno de los dos. */}
       <SkipLink />
+      {/* Navbar y Footer (2026-09-04): la cascara del sitio, montada UNA sola
+          vez desde el ancestro comun de las ocho paginas. Las cuatro rutas
+          que antes la montaban por su cuenta pagaban una copia entera de sus
+          17 modulos en las dos portadas -- 28.413 B brotli redundantes,
+          medidos por chunk. El porque completo y las cifras estan en el
+          docblock de arriba; el candado, en providers.test.tsx. */}
+      <Navbar />
       {children}
+      <Footer />
       {/* BackToTop (Task 2): global, no solo Home -- las paginas
           legales tambien pueden crecer mas de 2 pantallas. Se posiciona
           fijo (position: fixed), asi que su lugar en el DOM no afecta

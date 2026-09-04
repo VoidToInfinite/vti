@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { LocaleShell } from "../providers";
 import {
   EN_ROUTES,
   OG_LOCALES,
@@ -32,14 +32,21 @@ import EnPrivacyPage, { metadata as privacyMetadata } from "./privacy/page";
  * en memoria bajo la URL castellana, y tres críticas seguidas midieron la
  * consecuencia: no se comparte, no se marca, no se indexa.
  *
- * El envoltorio `I18nProvider locale="en"` reproduce lo que hace
+ * El envoltorio `LocaleShell locale="en"` reproduce lo que hace
  * `app/en/layout.tsx` en producción: las páginas no lo montan por su cuenta,
- * lo reciben de su layout. Va DENTRO de `renderWithProviders` para heredar el
- * tema real; el `I18nextProvider` interno gana al externo por proximidad, que
- * es exactamente el mecanismo del árbol real.
+ * lo reciben de su layout. Era `I18nProvider` a secas hasta el 2026-09-04, y
+ * pasa a ser el envoltorio ENTERO porque desde esa fecha la cáscara del sitio
+ * (`Navbar`/`Footer`) también cuelga de él -- es el ancestro común de las ocho
+ * páginas, y es lo que impide que Turbopack la emita dos veces en las portadas
+ * (ver el docblock de `app/providers.tsx`). `LocaleShell` monta `I18nProvider`
+ * por dentro, así que lo que este helper ya garantizaba sigue garantizado.
+ *
+ * Va DENTRO de `renderWithProviders` para heredar el tema real; el
+ * `I18nextProvider` interno gana al externo por proximidad, que es exactamente
+ * el mecanismo del árbol real.
  */
 function renderEn(page: ReactElement) {
-  return renderWithProviders(<I18nProvider locale="en">{page}</I18nProvider>);
+  return renderWithProviders(<LocaleShell locale="en">{page}</LocaleShell>);
 }
 
 const paginasLegales = [

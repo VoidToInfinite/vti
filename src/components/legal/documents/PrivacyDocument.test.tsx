@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
-import { I18nProvider } from "@/i18n/I18nProvider";
+import { LocaleShell } from "../../../../app/providers";
 import { navGroupsFor, navBarWideSectionsFor } from "@/config/navigation";
 import { routePath, type Locale } from "@/config/site";
 import { PrivacyDocument } from "./PrivacyDocument";
@@ -97,9 +97,37 @@ function prefijoDeAncla(locale: Locale): string {
   return home === "/" ? "/#" : `${home}#`;
 }
 
+/*
+ * LA CABECERA YA NO LA MONTA EL ENVOLTORIO, LA MONTA SU LAYOUT (2026-09-04,
+ * frente del presupuesto de JS) -- y por eso este fichero monta el árbol real
+ * de la ruta en vez de el componente suelto.
+ *
+ * `PrivacyDocument` montaba `Navbar` y `Footer` por su cuenta, igual que la
+ * portada y la 404. Eso ponía la misma cáscara al alcance de TRES fronteras de
+ * servidor a cliente distintas y Turbopack la emitía dos veces en las dos
+ * portadas: 28.4 KB brotli íntegramente redundantes, medidos por chunk. Desde
+ * esta fecha la cáscara cuelga de `LocaleShell` -- el ancestro común de las
+ * ocho páginas -- y el envoltorio legal solo aporta su documento. El porqué
+ * completo, con las cifras, está en el docblock de `app/providers.tsx`.
+ *
+ * NINGÚN CANDADO DE ESTE FICHERO SE RELAJA POR ESO (regla 40): los mismos
+ * asertos siguen aquí, palabra por palabra, ejercidos sobre el mismo DOM. Lo
+ * único que cambia es que el render reproduce el anidamiento real
+ * (`layout de rama -> página`) en vez de saltárselo. Si alguien devolviera la
+ * cáscara al envoltorio, la página tendría DOS cabeceras y `getByRole("banner")`
+ * fallaría por ambigüedad: el candado sigue vivo en las dos direcciones.
+ */
+function renderPagina(locale: Locale = "es") {
+  return renderWithProviders(
+    <LocaleShell locale={locale}>
+      <PrivacyDocument />
+    </LocaleShell>,
+  );
+}
+
 describe("PrivacyDocument: la cabecera del sitio en una página legal", () => {
   it("expone la navegación COMPLETA: los 12 destinos del modelo más la marca y los dos idiomas", () => {
-    const { container } = renderWithProviders(<PrivacyDocument />);
+    const { container } = renderPagina();
     const enlaces = enlacesDeCabecera(container);
 
     /*
@@ -149,7 +177,7 @@ describe("PrivacyDocument: la cabecera del sitio en una página legal", () => {
   });
 
   it("D20 reescrito: toda ancla de la cabecera es ABSOLUTA a la home, ninguna relativa", () => {
-    const { container } = renderWithProviders(<PrivacyDocument />);
+    const { container } = renderPagina();
 
     // Sonda positiva antes de la aserción de forma: si no hubiera ninguna
     // ancla, un "todas cumplen" pasaría por vacuidad.
@@ -165,11 +193,7 @@ describe("PrivacyDocument: la cabecera del sitio en una página legal", () => {
   });
 
   it("en la rama inglesa las anclas y la marca conservan /en", () => {
-    const { container } = renderWithProviders(
-      <I18nProvider locale="en">
-        <PrivacyDocument />
-      </I18nProvider>,
-    );
+    const { container } = renderPagina("en");
     const enlaces = enlacesDeCabecera(container);
 
     // Primer ancla del DOM = la marca (va antes que los destinos de sección).
@@ -185,7 +209,7 @@ describe("PrivacyDocument: la cabecera del sitio en una página legal", () => {
   });
 
   it("el selector de idioma sigue llevando a la MISMA página en el otro idioma, no a la portada", () => {
-    const { container } = renderWithProviders(<PrivacyDocument />);
+    const { container } = renderPagina();
 
     /*
      * Se acota a la CABECERA y se consulta por `hreflang` -- el atributo que
@@ -210,7 +234,7 @@ describe("PrivacyDocument: la cabecera del sitio en una página legal", () => {
   });
 
   it("conserva el punto de referencia semántico: un solo <header> con rol banner", () => {
-    renderWithProviders(<PrivacyDocument />);
+    renderPagina();
     expect(screen.getByRole("banner")).toBeInTheDocument();
   });
 });

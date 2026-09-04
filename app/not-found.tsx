@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
-import { Footer } from "@/components/layout/Footer/Footer";
-import { Navbar } from "@/components/layout/Navbar/Navbar";
 import { NotFoundContent } from "@/components/sections/NotFound/NotFoundContent";
 import { SITE } from "@/config/site";
 import esCommon from "@/i18n/locales/es/common.json";
@@ -98,6 +96,17 @@ export const metadata: Metadata = {
 };
 
 /*
+ * LA CÁSCARA LA MONTA `LocaleShell` DESDE EL 2026-09-04, NO ESTA RUTA, y el
+ * bloque de abajo se conserva porque explica POR QUÉ esta página lleva la
+ * navegación completa del sitio -- decisión que no cambia. Lo que cambia es
+ * quién la pone: montarla aquí abría una frontera de cliente propia sobre
+ * `Navbar`/`Footer`, y como el árbol de esta ruta viaja en el manifiesto de
+ * cliente de TODAS las páginas, esa copia acababa emitida dos veces en las dos
+ * portadas (28.413 B brotli redundantes, medidos por chunk). Es la misma
+ * lección que el docblock de `app/providers.tsx` ya había dejado escrita para
+ * el tema y el i18n, aplicada por fin a la cáscara. El DOM de la 404 es el
+ * mismo; el candado está en `app/providers.test.tsx`.
+ *
  * Task 35 (hallazgo de un evaluador independiente, gate F4, 2026-08-12):
  * esta cáscara pasa de montar SOLO `NotFoundContent` a montar también
  * `Navbar` y `Footer` -- los MISMOS componentes que `app/page.tsx`, sin
@@ -169,9 +178,7 @@ export default function NotFound(): ReactElement {
         titleKey="notFound.title"
         descriptionKey="notFound.message"
       />
-      <Navbar />
       <NotFoundContent />
-      <Footer />
     </NotFoundLocaleShell>
   );
 }

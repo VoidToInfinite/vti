@@ -9,6 +9,7 @@ import { EN_ROUTES } from "@/config/site";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import HomePage from "./page";
+import { LocaleShell } from "../providers";
 
 /*
  * Lente end-to-end: la pagina COMPLETA, no cada seccion por separado. Los
@@ -89,7 +90,20 @@ function testId(container: HTMLElement, id: string): HTMLElement {
  * de proveedor propio de este archivo.
  */
 function renderHomePage(): RenderResult {
-  return renderWithProviders(<HomePage />);
+  /*
+   * El envoltorio `LocaleShell locale="es"` reproduce `app/(es)/layout.tsx`
+   * (2026-09-04): desde el frente del presupuesto de JS, la cáscara del sitio
+   * (`Navbar`/`Footer`) la monta ese layout y no la página, porque es el
+   * ancestro común de las ocho páginas y es lo que impide que Turbopack la
+   * emita dos veces en las portadas (ver el docblock de `app/providers.tsx`).
+   * Montar la página sin él dejaría este fichero comprobando un árbol que en
+   * producción no existe.
+   */
+  return renderWithProviders(
+    <LocaleShell locale="es">
+      <HomePage />
+    </LocaleShell>,
+  );
 }
 
 describe("Home (pagina completa)", () => {

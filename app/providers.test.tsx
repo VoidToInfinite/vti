@@ -1,15 +1,22 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { LocaleShell, Providers } from "./providers";
 
 /*
- * `ThemeProvider` (dentro de `Providers`) lee `window.matchMedia` de verdad
- * en su efecto de corrección post-montaje (Task 9, prefers-color-scheme);
- * jsdom no lo implementa. Mismo stub mínimo que ThemeProvider.test.tsx/
- * Hero.test.tsx.
+ * DOS APIS QUE JSDOM NO IMPLEMENTA, y las dos hacen falta desde que
+ * `LocaleShell` monta la cáscara del sitio (2026-09-04, frente del presupuesto):
+ *
+ * - `window.matchMedia`: lo lee `ThemeProvider` (dentro de `Providers`) en su
+ *   efecto de corrección post-montaje (Task 9, prefers-color-scheme), y varios
+ *   hooks del árbol de `Navbar` al montar.
+ * - `IntersectionObserver`: `Footer` monta `SectionBeam`, que usa `useReveal`
+ *   SIEMPRE desde la spec de estrellas del 2026-08-07, no solo en oscuro.
+ *
+ * Mismos stubs mínimos que `app/not-found.test.tsx` y
+ * `app/(es)/legal-pages.test.tsx`, por el mismo motivo.
  */
 function stubMatchMedia(): void {
   vi.stubGlobal(
@@ -26,6 +33,14 @@ function stubMatchMedia(): void {
 beforeEach(() => {
   window.localStorage.clear();
   stubMatchMedia();
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    },
+  );
 });
 
 afterEach(() => {
@@ -87,7 +102,18 @@ describe("Providers + LocaleShell", () => {
     expect(
       screen.getByRole("link", { name: "Saltar al contenido" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    /*
+     * SE PREGUNTA POR EL BOTÓN DE `BackToTop`, NO POR «no hay ningún botón»
+     * (2026-09-04). La versión anterior era `queryByRole("button")` a secas y
+     * dependía de que el árbol no montara NINGÚN botón; desde que `LocaleShell`
+     * monta la cáscara del sitio, el `Navbar` trae los suyos (conmutador de
+     * tema, hoja móvil) y ese aserto pasaba a fallar por un motivo que nada
+     * tiene que ver con lo que la prueba dice comprobar. Se nombra el botón que
+     * SÍ importa aquí, que además es lo que el título del `it` ya prometía.
+     */
+    expect(
+      screen.queryByRole("button", { name: "Volver arriba" }),
+    ).not.toBeInTheDocument();
   });
 
   it("LocaleShell traduce el chrome global al idioma que recibe (por eso envuelve a SkipLink y no solo a la página)", () => {
@@ -200,5 +226,109 @@ describe("dónde se monta cada mitad del árbol (candado de presupuesto)", () =>
 
     expect(cascara).toContain("<LocaleShell locale={locale}>");
     expect(cascara).not.toContain("<Providers");
+  });
+});
+
+/*
+ * LA CÁSCARA DEL SITIO SE MONTA UNA SOLA VEZ, Y ESTE ES EL CANDADO QUE LO
+ * SOSTIENE (2026-09-04, frente del presupuesto de JS).
+ *
+ * QUÉ PASÓ. `Navbar` y `Footer` los montaban a la vez `app/HomeRoute.tsx`,
+ * `app/not-found.tsx` y los dos envoltorios legales. Cada uno de esos ficheros
+ * es un Server Component, así que cada uno abría su PROPIA frontera de servidor
+ * a cliente sobre los mismos módulos; y como el árbol de la 404 viaja en el
+ * manifiesto de cliente de todas las páginas, la cáscara acababa en dos grupos
+ * de chunks hermanos y Turbopack la emitía DOS VECES. Medido por chunk sobre el
+ * build de `0226846`: dos chunks de 109.716 B crudos con los mismos 17
+ * identificadores de módulo, el segundo (28.413 B brotli) íntegramente
+ * redundante y descargado solo por las dos portadas. Con la cáscara colgando de
+ * `LocaleShell`, el mismo árbol mide 284.559 → 253.853 B brotli (−30.706 B).
+ *
+ * Es exactamente el defecto que la regla del docblock de `providers.tsx` ya
+ * advertía desde el 2026-08-19 —lo que monten a la vez una rama de idioma y la
+ * 404 tiene que colgar de un ancestro común— y que nadie volvió a comprobar en
+ * cinco olas. Una regla escrita en prosa no es un candado.
+ *
+ * POR QUÉ BARRE EL REPO ENTERO Y NO UNA LISTA DE CUATRO FICHEROS. Una
+ * comprobación que recorre una lista escrita a mano se puede dejar en verde
+ * BORRANDO una fila de la lista, y ese es el modo de fallo más caro que tiene
+ * este repo (cuatro candados distintos cayeron en él durante la ola Q). Aquí la
+ * lista no se escribe: sale del sistema de ficheros, así que un componente nuevo
+ * que monte la cáscara entra en el barrido el día que se crea, sin que nadie
+ * tenga que acordarse de añadirlo.
+ *
+ * Y el barrido lleva su propia atadura de extensión: si visitara menos ficheros
+ * de los que este repo tiene, el "ninguno la monta" sería cierto por vacuidad.
+ * `MINIMO_COMPONENTES_BARRIDOS` es esa cota — el repo tiene 69 componentes no
+ * de test el 2026-09-04 —, y la sonda positiva sobre `providers.tsx` demuestra
+ * que el patrón que se busca es capaz de encontrar un montaje real.
+ */
+const RAIZ = join(AQUI, "..");
+
+/** Componentes de producción (los `.test.tsx` quedan fuera) bajo `app/` y `src/`. */
+function componentesDelRepo(dir: string): string[] {
+  const encontrados: string[] = [];
+  for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+    const ruta = join(dir, entrada.name);
+    if (entrada.isDirectory()) {
+      encontrados.push(...componentesDelRepo(ruta));
+      continue;
+    }
+    if (entrada.name.endsWith(".tsx") && !entrada.name.endsWith(".test.tsx")) {
+      encontrados.push(ruta);
+    }
+  }
+  return encontrados;
+}
+
+/**
+ * Cota inferior del barrido, no el número exacto: fijar el exacto obligaría a
+ * tocar este test cada vez que nace un componente, y lo que aquí importa es que
+ * el barrido no se quede vacío o casi vacío sin que nadie lo note.
+ */
+const MINIMO_COMPONENTES_BARRIDOS = 60;
+
+/** `<Navbar` / `<Footer` como MONTAJE en JSX, no como palabra en una importación. */
+const MONTA_CASCARA = /<(?:Navbar|Footer)\b/;
+
+describe("la cáscara del sitio se monta una sola vez (candado de presupuesto)", () => {
+  const componentes = [
+    ...componentesDelRepo(join(RAIZ, "app")),
+    ...componentesDelRepo(join(RAIZ, "src")),
+  ];
+
+  it("el barrido ve el repo entero, no una muestra que pueda encoger en silencio", () => {
+    expect(componentes.length).toBeGreaterThanOrEqual(
+      MINIMO_COMPONENTES_BARRIDOS,
+    );
+  });
+
+  it("`LocaleShell` monta la cáscara — la sonda positiva que prueba que el patrón encuentra un montaje real", () => {
+    const source = fuenteSinComentarios("providers.tsx");
+
+    expect(source).toMatch(MONTA_CASCARA);
+    expect(source).toContain("<Navbar />");
+    expect(source).toContain("<Footer />");
+  });
+
+  it("ningún otro componente del repo vuelve a montarla", () => {
+    const culpables = componentes
+      .filter((ruta) => ruta !== join(RAIZ, "app", "providers.tsx"))
+      .filter((ruta) =>
+        MONTA_CASCARA.test(
+          readFileSync(ruta, "utf-8")
+            .replace(/\/\*[\s\S]*?\*\//g, "")
+            .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "")
+            .replace(/\/\/.*$/gm, ""),
+        ),
+      )
+      .map((ruta) => relative(RAIZ, ruta));
+
+    expect(
+      culpables,
+      `estos componentes montan Navbar/Footer fuera de LocaleShell, y con ello ` +
+        `Turbopack vuelve a emitir la cáscara dos veces en las portadas: ` +
+        `${culpables.join(", ")}`,
+    ).toEqual([]);
   });
 });

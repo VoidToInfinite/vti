@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderWithProviders } from "@/test/test-utils";
 import { navGroupsFor, navBarWideSectionsFor } from "@/config/navigation";
 import { LegalNoticeDocument } from "./LegalNoticeDocument";
+import { LocaleShell } from "../../../../app/providers";
 
 /*
  * Las dos cáscaras legales son casi idénticas, y ésa es exactamente la razón
@@ -54,7 +55,11 @@ afterEach(() => {
 
 describe("LegalNoticeDocument", () => {
   it("monta la MISMA cabecera de navegación completa que /privacidad", () => {
-    const { container } = renderWithProviders(<LegalNoticeDocument />);
+    const { container } = renderWithProviders(
+      <LocaleShell locale="es">
+        <LegalNoticeDocument />
+      </LocaleShell>,
+    );
     const cabecera = container.querySelector("header");
     expect(cabecera).not.toBeNull();
 
