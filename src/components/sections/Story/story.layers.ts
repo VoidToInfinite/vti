@@ -387,11 +387,11 @@ export const STORY_FIGURE_SIZES =
 export const STORY_DECK_TITLE_SIZE = typeTokens.scale.h2.size;
 
 /**
- * Título de cada diapositiva de pilar (`01`…`04` + nombre del pilar; hasta
- * la Tarea 5 de copy, 2026-08-09, el número llevaba una raya decorativa
- * detrás -- se retiró del JSX porque era un carácter de UI hardcodeado y la
- * separación real ya la da el `gap` del grid de `ScPillarRow`/
- * `ScDeckPillarRow`, no el propio carácter).
+ * Título de cada diapositiva de pilar. Acompañó a un numeral («01»…«04»)
+ * hasta la crítica externa #19 (2026-09-04), en la que ese numeral se retiró
+ * por decisión del dueño: el rail ya rotula la posición en la misma parada y
+ * las dos cuentas nunca coincidían (ver el comentario de la diapositiva de
+ * pilar en `Story.tsx`). Desde entonces el título abre la diapositiva.
  * Tope 3rem (encargo). Mínimo 1.75rem: un escalón por debajo del título de
  * intro, para que la jerarquía visual intro > pilar se conserve también en
  * el extremo estrecho del `clamp`.
@@ -408,26 +408,6 @@ export const STORY_DECK_PILLAR_TITLE_SIZE = "clamp(1.75rem, 5vw, 3rem)";
  * viewports estrechos.
  */
 export const STORY_DECK_PILLAR_SUBTITLE_SIZE = "1rem";
-
-/**
- * Ancho de la columna del NÚMERO en la fila de pilar (`ScPillarRow`,
- * `Story.tsx`): la pista fija de su `grid-template-columns: 2.5rem minmax(0,
- * 1fr)`. Existe con nombre desde la crítica externa #16 (hallazgo L1, ola L)
- * porque `ScDeckPillarRow` — la extensión que consume el deck oscuro — tiene
- * que volver a DECLARAR esa misma fila a partir de `sm` después de apilarla en
- * una sola pista por debajo, y dos literales `2.5rem` en dos declaraciones que
- * describen la misma columna es la clase de duplicado que la regla 13 de
- * `RULES.md` prohíbe. La base de `ScPillarRow` conserva su literal tal cual
- * (D1 de la spec 2026-08-06: no se toca lo que el deck consume); el candado
- * que impide que los dos valores diverjan vive en `Story.test.tsx`, que lee
- * las dos reglas del CSSOM y las compara contra esta constante.
- *
- * No es `space[6]` (2rem) ni `space[7]` (3rem): 2.5rem cabe exactamente dos
- * cifras de `bodySm` en negrita con aire a los lados, y ninguno de los dos
- * peldaños vecinos de la escala lo hace — el primero aprieta, el segundo abre
- * un hueco que se lee como columna vacía.
- */
-export const STORY_PILLAR_NUMBER_COLUMN = "2.5rem";
 
 /**
  * Cuerpo de la diapositiva de pilar: el texto de inspiración nuevo

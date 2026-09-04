@@ -45,7 +45,6 @@ import {
   STORY_FLOAT_AMPLITUDE,
   STORY_HALO_GRADIENT,
   STORY_HALO_INSET,
-  STORY_PILLAR_NUMBER_COLUMN,
   STORY_SLIDES,
 } from "./story.layers";
 
@@ -118,69 +117,28 @@ const PILLARS = [
   { key: "practice", number: "04" },
 ] as const;
 
-/**
- * Acento del NUMERO de pilar (`ScPillarNumber`), cuyo unico consumidor vivo
- * es la rama OSCURA -- las tarjetas claras pintan `pillarBadgeAccent`, otra
- * escala y otro fondo (ver su docblock, mas abajo).
+/*
+ * AQUI VIVIERON `pillarAccent` y su envoltorio `pillarColor`, la rampa de
+ * acento del numeral de pilar del deck OSCURO (`ScPillarNumber`). Se retiran
+ * con esa pieza (critica externa #19, 2026-09-04, decision del dueno "una
+ * sola forma de contar": el porque completo, con las cifras medidas, esta en
+ * el comentario de la diapositiva de pilar, al final de este fichero).
  *
- * Nacio copiando el mockup claro (L82/87/92: `--primary-500`,
- * `--secondary-500`, `--secondary-600`) y continuando esa MISMA rampa un paso
- * mas para el cuarto pilar ("practice", 2026-07-28: `secondary[700]`). Como
- * `palette.*` no cambia entre temas (vive en `shared` de `themes.ts`), la
- * escala se heredo tal cual al deck oscuro -- y ahi el sentido de la rampa
- * juega EN CONTRA: cada paso mas alto es mas oscuro, y el fondo tambien lo es.
+ * Lo que se va con ellas, declarado para que no se lea como una perdida
+ * silenciosa: la critica externa #12 (2026-08-19) midio que el cuarto escalon
+ * de esa rampa (`secondary[700]`) daba 3.01:1 sobre el pixel real de la
+ * escena y desplazo los tres escalones de `secondary` un paso hacia el lado
+ * claro para que las cuatro libraran AA. Ese arreglo no se revierte: deja de
+ * existir el elemento que protegia. Su describe de contraste en
+ * `Story.test.tsx` ("critica #12 -- el numeral de pilar del deck oscuro libra
+ * AA") se retira en el mismo commit por lo mismo -- un candado que mide el
+ * color de un elemento inexistente no vigila nada.
  *
- * CRITICA EXTERNA #12 (2026-08-19) lo midio: el numeral "04"
- * (`secondary[700]`, `oklch(0.53 0.212 311.928)`, 14px/700) daba **3.01:1**
- * sobre el pixel real de la escena bajo esa diapositiva (`#280739`) -- el
- * UNICO fallo de contraste en los ~110 elementos que audito. AA pide 4.5:1
- * (14px en negrita no llega al umbral de "texto grande", que exige >=18.66px).
- *
- * ARREGLO: la cadena `secondary` se desplaza UN paso hacia el lado claro
- * (500->400, 600->500, 700->600). No se toca el 01 (`primary[500]`, otro hue,
- * 7.82:1 -- cambio minimo). Por que un desplazamiento UNIFORME de los tres y
- * no solo del que fallaba, mismo criterio que `LABEL_SAFE_STEP`
- * (`Journey.tsx`, fix wave E) ya sanciono para este mismo patron: subir solo
- * el 04 al unico escalon que libra AA y sigue siendo distinguible lo dejaria
- * o pintando el MISMO color que el 03 (`secondary[600]`) o INVIRTIENDO la
- * progresion del mockup (400 es mas claro que el 500 del 02). Con los tres
- * movidos a la vez, la progresion relativa "cada pilar un paso mas hondo en la
- * misma rampa" queda intacta y ningun escalon cae por debajo del piso AA.
- *
- * Ratios medidos (`contrastRatio`/`contrastRatioHex`, `Story.test.tsx`,
- * describe "critica #12") contra los TRES fondos medibles por codigo de esta
- * rama -- el pixel de la escena que midio la critica, el void declarado de
- * `storyCosmicBeing.layers.ts` y `semantic.bg`, que es lo que asoma donde la
- * escena no cubre:
- *
- * | pilar | antes            | #280739 | despues          | #280739 |
- * |-------|------------------|---------|------------------|---------|
- * | 01    | `primary[500]`   | 7.82:1  | `primary[500]`   | 7.82:1  |
- * | 02    | `secondary[500]` | 6.45:1  | `secondary[400]` | 7.68:1  |
- * | 03    | `secondary[600]` | 5.08:1  | `secondary[500]` | 6.45:1  |
- * | 04    | `secondary[700]` | 3.01:1  | `secondary[600]` | 5.08:1  |
- *
- * Se exporta la funcion PURA (valor, sin `theme` de styled-components) y no
- * el envoltorio de abajo, mismo motivo y mismo precedente que
- * `pillarBadgeAccent`: es lo que permite que el test MIDA el contraste real
- * contra los mismos tokens que pinta el componente, en vez de repetir aqui y
- * alli una tabla de acentos que se desincronizaria al primer retoque.
+ * La rampa de la rama CLARA (`pillarBadgeAccent`, mas abajo) NO se toca: su
+ * badge sigue vivo, con su propio fondo, sus propios ratios y su propio
+ * candado. Las dos escalas siempre estuvieron separadas, y esta retirada es
+ * justo lo que confirma que separarlas era correcto.
  */
-export function pillarAccent(
-  palette: ThemeDefinition["palette"],
-  index: number,
-): string {
-  if (index === 0) return palette.primary[500];
-  if (index === 1) return palette.secondary[400];
-  if (index === 2) return palette.secondary[500];
-  return palette.secondary[600];
-}
-
-function pillarColor(
-  index: number,
-): (props: { theme: DefaultTheme }) => string {
-  return ({ theme }) => pillarAccent(theme.data.palette, index);
-}
 
 /*
  * Constantes de esta entrega (tarjetas de pilar, mockup L86-123, spec
@@ -774,31 +732,19 @@ const ScSupportLead = styled(ScBody)`
 `;
 
 /*
- * ScPillarRow/ScPillarNumber/ScPillarCopy: desde esta entrega (2026-08-06,
- * D2) YA NO los consume la rama clara -- los cuatro pilares pasaron de fila
- * de lista a tarjeta (`ScPillarCard`, más abajo). Se conservan intactos,
- * exclusivos de la rama OSCURA vía `ScDeckPillarRow` (regla D1 de la spec:
- * no tocar lo que consume el deck).
+ * La copia de un pilar del deck OSCURO: titulo, subtitulo y cuerpo apilados.
+ *
+ * AQUI VIVIERON `ScPillarRow` (rejilla de dos columnas: numero | copia) y
+ * `ScPillarNumber` (el numeral "01".."04"). Se retiran con la decision del
+ * dueno de la critica externa #19 ("una sola forma de contar"): sin numeral
+ * no queda columna que reservar, y una rejilla de una sola pista no es una
+ * rejilla -- la copia es hija directa de la diapositiva. El porque completo,
+ * con las cifras medidas parada a parada, esta en el comentario de la
+ * diapositiva de pilar (`StoryDeckDark`, al final de este fichero).
+ *
+ * Se conserva el nombre `ScPillarCopy` porque sigue siendo exactamente lo que
+ * era -- la columna de texto del pilar --, solo que ahora sin hermano.
  */
-const ScPillarRow = styled.div`
-  display: grid;
-  /* minmax(0, 1fr) en la segunda pista por el mismo motivo que ScGrid (WCAG
-     2.1 SC 1.4.4): la copia del pilar no puede empujar la fila mas alla de la
-     diapositiva que la contiene cuando la raiz escala. */
-  grid-template-columns: 2.5rem minmax(0, 1fr);
-  gap: ${({ theme }) => theme.data.space[4]};
-  align-items: baseline;
-  padding-block: ${({ theme }) => theme.data.space[4]};
-  border-block-start: 1px solid ${({ theme }) => theme.data.semantic.border};
-`;
-
-const ScPillarNumber = styled.span<{ $index: number }>`
-  font-family: ${({ theme }) => theme.data.type.fontBody};
-  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
-  font-weight: 700;
-  color: ${({ $index }) => pillarColor($index)};
-`;
-
 const ScPillarCopy = styled.div`
   display: flex;
   flex-direction: column;
@@ -923,8 +869,10 @@ const ScPillarCardItem = styled.div`
 /*
  * Superficie visible de la tarjeta (D2, tabla de mapeo mockup -> token) +
  * hover (D3). Componente NUEVO, no `ScPillarRow` mutado: la regla D1 de la
- * spec prohíbe tocar `ScPillarRow` (lo extiende `ScDeckPillarRow` en la rama
- * oscura) o levantar la geometría de tarjeta encima de ella.
+ * spec prohibía tocar `ScPillarRow` (la fila de dos columnas que el deck
+ * oscuro extendía) o levantar la geometría de tarjeta encima de ella. Aquella
+ * fila ya no existe -- se retiró con el numeral de pilar en la crítica externa
+ * #19 --, y esta tarjeta sigue siendo, como entonces, una pieza propia.
  *
  * `box-shadow` en la transición de hover: excepción ya sancionada (D3, "el
  * mismo motivo que los tintes de estado", enmienda §9 del sistema de lujo),
@@ -1105,11 +1053,13 @@ const ScPillarCard = styled.div`
  * CUATRO libran AA (los ratios reales los mide `Story.test.tsx`, contra los
  * tokens importados, nunca contra literales copiados aquí).
  *
- * Las dos escalas siguen SEPARADAS: `pillarAccent` es el acento de
- * `ScPillarNumber`, la pieza de la rama OSCURA (vía `ScDeckPillarRow`), donde
- * el fondo es otro y los ratios son otros -- por eso la crítica #12 pudo mover
- * aquella sin tocar esta, y por eso las dos tienen su propio candado de
- * contraste en `Story.test.tsx`.
+ * Las dos escalas estuvieron SEPARADAS mientras las dos existieron:
+ * `pillarAccent` era el acento del numeral de la rama OSCURA, donde el fondo
+ * era otro y los ratios eran otros -- por eso la crítica #12 pudo mover aquella
+ * sin tocar esta. Desde la crítica externa #19 (2026-09-04) el numeral oscuro
+ * ya no existe y `pillarAccent` se retiró con él; esta función es ahora la
+ * única rampa de acento de pilar viva, y su candado de contraste
+ * (`Story.test.tsx`) el único que queda.
  */
 export function pillarBadgeAccent(
   palette: ThemeDefinition["palette"],
@@ -1179,49 +1129,6 @@ const ScCardInspiration = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   line-height: ${STORY_CARD_INSPIRATION_LINE_HEIGHT};
-`;
-
-/*
- * El MISMO pilar, pero como diapositiva suelta de la rama OSCURA.
- * `ScPillarRow` ya no lo consume la rama clara desde esta entrega (2026-08-06,
- * D2: los pilares pasaron a tarjeta, ver `ScPillarCard` arriba); sigue
- * llevando `border-block-start` porque esa es su declaración de SIEMPRE, y
- * `ScDeckPillarRow` la anula aquí, en el único contexto que la consume, en
- * vez de retirarla de `ScPillarRow` -- no se toca esa declaración (D1: no
- * tocar lo que consume el deck), aunque ahora su único efecto práctico sea
- * quedar siempre anulada por esta extensión.
- *
- * EL NUMERO SE APILA SOBRE LA COPIA POR DEBAJO DE sm (critica externa #16,
- * hallazgo L1, ola L). El canal que ScDeck reserva para el rail
- * (story.deck.tsx, 56 px) deja la caja de contenido en 302 px a 390 px de
- * ancho, y la columna del numero de ScPillarRow -- STORY_PILLAR_NUMBER_COLUMN
- * mas el gap de space[4], 56 px -- se comia otros 56: la copia del pilar
- * quedaba en 246 px, 31 caracteres por linea a 16 px, medidos con Range por
- * caracter. Con el numero apilado la copia recupera los 302 px enteros y sube
- * a ~38, que es la medida que el encargo pide conservar. A partir de sm
- * (600 px) la caja ya tiene 512 px y la fila vuelve a las dos columnas de
- * siempre, con el ancho de la columna leido de la misma constante con nombre.
- *
- * Se declara AQUI y no en ScPillarRow por la misma regla D1 del comentario de
- * arriba: la base no se toca; la extension del deck es el unico consumidor y
- * el unico contexto en el que la fila convive con un rail. La rama clara
- * apila su numero (badge) sobre el titulo en todos los anchos, asi que el
- * movil de las dos ramas queda ademas alineado.
- *
- * SIN BACKTICKS en este comentario ni en el de dentro: viven junto a y dentro
- * de un template literal de styled-components (task/lessons.md 2026-07-25).
- */
-const ScDeckPillarRow = styled(ScPillarRow)`
-  border-block-start: none;
-  padding-block: 0;
-  /* Mobile-first: una sola pista con minimo 0 (mismo motivo WCAG 1.4.4 que la
-     base) y el numero encima; la fila de dos columnas de ScPillarRow se
-     restaura desde sm. */
-  grid-template-columns: minmax(0, 1fr);
-
-  @media ${({ theme }) => theme.data.breakPoint.sm} {
-    grid-template-columns: ${STORY_PILLAR_NUMBER_COLUMN} minmax(0, 1fr);
-  }
 `;
 
 /*
@@ -1463,7 +1370,8 @@ const ScStatementSecond = styled.span`
  * `ScAccent`, mas arriba, para la medicion completa. Esta linea solo se
  * renderiza en la rama CLARA (`StoryLight`, mas abajo): el cierre de la rama
  * OSCURA usa `ScDeckNoteAccent`, una pieza distinta de `story.deck.tsx`).
- * Mismo recurso que `ScDeckPillarRow`, arriba, para extender `ScPillarRow`.
+ * Extiende `ScAccent` con el mismo recurso de styled-components con el que la
+ * fila de pilar del deck extendía su base antes de retirarse.
  */
 const ScStatementThird = styled(ScAccent)`
   display: block;
@@ -2108,36 +2016,81 @@ function StoryDeckDark(): ReactElement {
                 data-slide-index={pillarIndex + 1}
                 data-state={slideState(pillarIndex + 1)}
               >
-                <ScDeckPillarRow>
-                  {/* Task 15: este numero SE ANUNCIA, a diferencia del de la
-                      tarjeta clara (`aria-hidden`, D10). Se evaluo igualarlo
-                      y se decidio NO hacerlo: el candado SR de este deck
-                      (`Story.test.tsx`, "ninguna diapositiva ... lleva
-                      aria-hidden") prohibe a proposito que un `aria-hidden`
-                      envuelva TEXTO dentro de una diapositiva, y relajar esa
-                      invariante -- que protege las 6 diapositivas enteras --
-                      para ocultar un numero decorativo seria un mal cambio.
-                      Queda declarado en el informe de la tarea: los dos temas
-                      PINTAN el mismo numero; lo que difiere es si un lector
-                      de pantalla lo oye. */}
-                  <ScPillarNumber $index={pillarIndex}>
-                    {pillar.number}
-                  </ScPillarNumber>
-                  <ScPillarCopy>
-                    <ScDeckPillarTitle>
-                      {t(`Home.story.pillars.${pillar.key}.title`)}
-                    </ScDeckPillarTitle>
-                    {/* Rol de SUBTITULO (T2 de la spec): el texto que hoy
-                        vive en `pillars.<key>.body`, sin renombrar la
-                        clave -- solo cambia el rol en el que se pinta. */}
-                    <ScDeckPillarSubtitle>
-                      {t(`Home.story.pillars.${pillar.key}.body`)}
-                    </ScDeckPillarSubtitle>
-                    <ScDeckPillarBody>
-                      {t(`Home.story.pillars.${pillar.key}.inspiration`)}
-                    </ScDeckPillarBody>
-                  </ScPillarCopy>
-                </ScDeckPillarRow>
+                {/* UNA SOLA FORMA DE CONTAR (critica externa #19,
+                    2026-09-04, decision del dueno). Aqui vivio
+                    `ScPillarNumber`, el numeral "01".."04" del pilar, dentro
+                    de una `ScDeckPillarRow` de dos columnas. Se retira: en
+                    esta misma parada, a unos centimetros, el rail ya rotula
+                    la posicion, y los dos numeros NUNCA coincidian.
+
+                    Medido en Chrome sobre el build de produccion, tema
+                    oscuro, con el deck detenido en cada parada:
+
+                    | parada | badge | rail  | separacion 390 | separacion 1440 |
+                    | 1      | "01"  | 2 / 6 | 319 px         | 1290 px         |
+                    | 2      | "02"  | 3 / 6 | 319 px         | 1290 px         |
+                    | 3      | "03"  | 4 / 6 | 319 px         | 1290 px         |
+                    | 4      | "04"  | 5 / 6 | 319 px         | 1290 px         |
+
+                    Las cuatro paradas de pilar mostraban TRES numerales a la
+                    vez y ninguna pareja cuadraba: el badge cuenta pilares (4)
+                    y el rail cuenta diapositivas (6, con intro y cierre
+                    dentro), asi que el badge va siempre uno por detras del
+                    numerador. Journey, que usa el MISMO chasis de deck, media
+                    2 numerales en sus 8 paradas -- solo la fraccion -- porque
+                    su ordinal visible se retiro en 2026-08-02 (D16) y se
+                    ratifico cuatro veces. La misma pieza indicaba la posicion
+                    de dos maneras en una seccion y de una en la otra.
+
+                    Gana la forma de Journey, y no al reves, porque la
+                    alternativa (dar numeral visible a los pasos de Journey)
+                    esta cerrada por decision del dueno, y porque el propio
+                    repo ya resolvio la mitad ASISTIDA de este defecto en el
+                    mismo sentido: la critica #12 encontro el rail de Journey
+                    anunciando "diapositiva N de 8" mientras las diapositivas
+                    anunciaban "Paso N de 6", y el arreglo fue retirar una de
+                    las dos numeraciones, no alinearlas. Esto es su gemelo
+                    VISUAL. Desde aqui, en las dos secciones, la unica cuenta
+                    que se ve es la fraccion del rail: 2 numerales por parada,
+                    siempre, en los dos decks.
+
+                    EFECTO DE LAYOUT, medido en el mismo navegador: la
+                    columna de 2,5rem que el numeral reservaba desaparece con
+                    el. A 390 no cambia nada -- la fila ya apilaba el numeral
+                    sobre la copia por debajo de sm (ola L), asi que la copia
+                    seguia midiendo 302 px y su titulo arrancando en x=32; lo
+                    que se recupera ahi es alto, no ancho. A 1440 la copia pasa
+                    de 1064 a 1120 px y el titulo del pilar de x=168 a x=112 --
+                    que es EXACTAMENTE donde arranca el titulo de la intro
+                    (medido: 112 px), una alineacion que la columna reservada
+                    rompia en las cuatro paradas de pilar.
+
+                    Lo que NO cambia: la lectura asistida. La fraccion sigue
+                    siendo `aria-hidden` y cada marca del rail sigue siendo un
+                    boton con nombre propio y `aria-current`. El numeral que
+                    se va era ademas la unica pieza del sitio que ANUNCIABA un
+                    "cero uno" suelto delante del titulo -- lo que la propia
+                    rama clara declara como ruido sin informacion en el
+                    comentario de `ScCardBadge`. El pilar se identifica por su
+                    titulo, que no se toca.
+
+                    El candado que ata las dos secciones a la misma forma de
+                    contar vive en `Journey.test.tsx` ("una sola forma de
+                    contar"), que es el fichero que ya importa las dos. */}
+                <ScPillarCopy>
+                  <ScDeckPillarTitle>
+                    {t(`Home.story.pillars.${pillar.key}.title`)}
+                  </ScDeckPillarTitle>
+                  {/* Rol de SUBTITULO (T2 de la spec): el texto que hoy
+                      vive en `pillars.<key>.body`, sin renombrar la
+                      clave -- solo cambia el rol en el que se pinta. */}
+                  <ScDeckPillarSubtitle>
+                    {t(`Home.story.pillars.${pillar.key}.body`)}
+                  </ScDeckPillarSubtitle>
+                  <ScDeckPillarBody>
+                    {t(`Home.story.pillars.${pillar.key}.inspiration`)}
+                  </ScDeckPillarBody>
+                </ScPillarCopy>
               </ScSlide>
             ))}
             {/* Cierre de Story, unificado con la rama clara (Task 15, D-C,

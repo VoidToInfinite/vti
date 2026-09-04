@@ -1523,11 +1523,9 @@ const ScDarkHeader = styled.div`
  * que sigue siendo identidad de tema es el VEHÍCULO (tarjetas en claro,
  * bloques sobre la escena en oscuro) y la escala tipográfica.
  *
- * font-size fluido por el MISMO motivo, con la MISMA forma y con la misma
- * desigualdad declarada que ScDarkFeatureTitle (ver su docblock, más
- * abajo): la restricción que hay que satisfacer aquí es "contenido + relleno
- * <= ALTO del viewport" -- esta rama compone sobre un slot pegado de una
- * pantalla exacta --, así que el término fluido va en dvh. El min(...vw,
+ * font-size fluido: la restricción que hay que satisfacer aquí es "contenido
+ * + relleno <= ALTO del viewport" -- esta rama compone sobre un slot pegado de
+ * una pantalla exacta --, así que el término fluido va en dvh. El min(...vw,
  * ...dvh) deja que gane el eje más apretado en cada caso: un móvil estrecho
  * y alto se rige por su ancho, un portátil ancho y bajo por su alto. Sin el
  * término en vw, un 375x812 se llevaría el título a un tamaño que su ancho
@@ -1535,11 +1533,23 @@ const ScDarkHeader = styled.div`
  * en su techo justo donde el presupuesto vertical aprieta (el defecto medido
  * que documenta ScDarkFrame).
  *
+ * DIVERGENCIA ABIERTA, DECLARADA: el TITULAR DE TARJETA (h3) dejó de ser
+ * fluido el 2026-09-04 y lee hoy su token sin sobreescritura en las dos ramas
+ * -- ver la lápida de `ScDarkFeatureTitle`, más abajo, con la medición. Este
+ * h2 y el párrafo de entrada (`ScDarkIntro`) siguen siendo fluidos SOLO en
+ * oscuro, con el mismo desajuste de escala que aquel: medido en Chrome sobre
+ * el build de `ef62b26`, el h2 de esta sección resuelve a 32 px en claro en
+ * todos los viewports y a 24 px (390x844), 28,8 px (1280x800) o 32 px
+ * (1440x900) en oscuro. La decisión del dueño de esta entrega nombra el
+ * titular de TARJETA, así que estos dos no se tocan aquí; queda anotado para
+ * que la próxima ronda lo decida a la vista de la misma medición, no por
+ * omisión.
+ *
  * NO se toca type.scale.h2: ese token es GLOBAL y lo consume también el h2
  * de la rama CLARA de esta misma sección. Se sobreescribe por composición
- * (styled(Typography)), mismo mecanismo que ScDarkFeatureTitle/
- * ScDarkBody. El techo se lee del propio token en vez de repetir el
- * literal, para que no pueda desincronizarse.
+ * (styled(Typography)), mismo mecanismo que ScDarkBody. El techo se lee del
+ * propio token en vez de repetir el literal, para que no pueda
+ * desincronizarse.
  */
 const ScDarkTitle = styled(Typography)`
   font-size: clamp(
@@ -1619,41 +1629,55 @@ const ScDarkFeatureBlock = styled.div`
 `;
 
 /*
- * Título de cada identidad SOLO en la rama oscura (D4, palanca 4: escala
- * tipográfica del contenido oscuro con clamp()). NO se toca
- * type.scale.h3 -- ese token es GLOBAL y también lo consume el h3 de las
- * tres tarjetas de la rama CLARA de esta misma sección (Typography
- * variant="h3", más abajo en el return claro); tocarlo cambiaría algo que
- * nadie pidió compactar. Se sobreescribe por composición
- * (styled(Typography), mismo mecanismo que ScDarkBody/ScKicker, más
- * abajo: la clase envolvente se inyecta DESPUÉS de la del propio
- * Typography y gana la cascada sin &&, medido en este repo,
- * task/lessons.md 2026-07-25).
+ * AQUÍ VIVIÓ `ScDarkFeatureTitle`, el `styled(Typography)` que daba a los
+ * titulares de identidad de la rama OSCURA un `font-size:
+ * clamp(1.125rem, min(4vw, 2.6dvh), type.scale.h3.size)` propio (D4, palanca
+ * 4 de la compactación vertical del 2026-08-04). Se retira el 2026-09-04
+ * (decisión del dueño, paridad de Features entre temas): el titular de tarjeta
+ * lee ahora `type.scale.h3` SIN sobreescritura en las dos ramas, es decir, es
+ * literalmente el mismo `<Typography variant="h3">` en las dos -- ver el
+ * candado «el titular de tarjeta lee el MISMO token en las dos ramas» en
+ * Features.test.tsx.
  *
- * El suelo del clamp (1.125rem = 18px) queda MUY por encima del mínimo de
- * 12px que exige el encargo a propósito: es un título de nivel 3, no cuerpo
- * de texto, y perder toda su jerarquía visual frente al cuerpo a cambio de
- * compactar unos pocos píxeles más sería un defecto nuevo, no una
- * compactación. El techo se lee del propio token (type.scale.h3.size,
- * "1.5rem") en vez de repetir el literal, para que no pueda desincronizarse
- * si el token cambia.
+ * ## Qué defecto cerraba esto, y por qué el clamp era el lado equivocado
  *
- * El término fluido es min(4vw, 2.6dvh) y no solo 4vw, por el mismo
- * motivo que documenta ScDarkFrame: el presupuesto que hay que respetar es
- * el ALTO del viewport. Con solo el término en vw, un portátil corto y
- * ancho (1366x650, medido) se llevaba el título a su techo de 24px justo en
- * el viewport donde menos alto sobra; el min() deja que gane el eje que
- * esté más apretado en cada caso, que es la única lectura que sirve a los
- * dos regímenes -- móvil estrecho y alto, portátil ancho y bajo -- con una
- * sola declaración.
+ * El mismo nivel semántico -- el h3 de una identidad, con la misma copia
+ * desde las Tasks 15-16 -- era FIJO en claro y FLUIDO POR ALTURA en oscuro.
+ * Medido en Chrome sobre el build de producción de `ef62b26` (DPR 1):
+ *
+ * | viewport  | claro | oscuro   |
+ * | --------- | ----- | -------- |
+ * | 390x390   | 24 px | 18 px    |
+ * | 1280x720  | 24 px | 18,72 px |
+ * | 1440x900  | 24 px | 23,4 px  |
+ * | 1440x1440 | 24 px | 24 px    |
+ *
+ * Un lector que conmute de tema en un portátil ve el mismo titular encoger un
+ * 22 %. Eso no es piel de tema: es la escala tipográfica del sistema diciendo
+ * dos cosas distintas sobre el mismo nivel.
+ *
+ * Gana la ley de la rama CLARA, y no por simetría: es la que lee el token sin
+ * tocarlo. El argumento que sostenía el clamp -- «el contenido oscuro tiene
+ * que caber en una pantalla» -- se comprobó, y NO se sostiene. Altura de
+ * `ScDarkContent` frente a la del viewport, con el clamp todavía activo:
+ * 957 px en 1280x720 (desborda 237), 937 px en 1366x650 (desborda 287),
+ * 1.008 px en 1440x900 (desborda 108), 1.056 px en 390x844 (desborda 212).
+ * El contenido YA desbordaba una pantalla en todos ellos, y el marco crece
+ * con él por diseño (`min-height`, ver el docblock de `ScDarkFrame`), así que
+ * nada se recortaba. Retirar el clamp cuesta entre 3 y 22 px de alto según el
+ * viewport (medido: 957→976, 937→959, 1.008→1.011, 1.056→1.078): reduce el
+ * desbordamiento en un 8 % de lo que ya desbordaba, a cambio de romper la
+ * escala. El presupuesto vertical de esta rama se defiende con las otras tres
+ * palancas de D4 -- los tres `padding`/`margin` fluidos, que siguen en pie --,
+ * no encogiendo un nivel de encabezado.
+ *
+ * Lo que NO cambia con esta decisión: el tinte de acento por identidad
+ * (ScSpanLearning/ScSpanImagination/ScSpanGaming, más arriba) sigue siendo
+ * exclusivo de la rama oscura. Es color, es decir piel de tema -- la parte que
+ * DESIGN.md §4 declara que sí ramifica --, y sus tres valores están medidos
+ * contra el fondo real de esta rama. La paridad que esta entrega cierra es la
+ * de la LEY TIPOGRÁFICA, no la de la paleta.
  */
-const ScDarkFeatureTitle = styled(Typography)`
-  font-size: clamp(
-    1.125rem,
-    min(4vw, 2.6dvh),
-    ${({ theme }) => theme.data.type.scale.h3.size}
-  );
-`;
 
 const ScDarkBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[2]};
@@ -1806,7 +1830,13 @@ export function Features(): ReactElement {
             <ScDarkFeatures>
               {FEATURE_KEYS.map((key) => (
                 <ScDarkFeatureBlock key={key}>
-                  <ScDarkFeatureTitle
+                  {/* MISMO elemento y MISMOS props que el titular de tarjeta
+                      de la rama clara (más abajo, en el return claro), sin
+                      envoltorio propio: la escala del nivel 3 la fija
+                      type.scale.h3 y nadie la reescribe aquí. La lápida de
+                      `ScDarkFeatureTitle`, más arriba en este fichero, tiene la
+                      medición completa de por qué se retiró el clamp. */}
+                  <Typography
                     variant="h3"
                     id={`feature-${key}-title`}
                     /* Destino de foco de los tres enlaces de «Descubre»
@@ -1837,7 +1867,7 @@ export function Features(): ReactElement {
                         {t("Home.features.gaming.title")}
                       </ScSpanGaming>
                     )}
-                  </ScDarkFeatureTitle>
+                  </Typography>
                   <ScDarkBody variant="bodySm">
                     {t(`Home.features.${key}.body`)}
                   </ScDarkBody>

@@ -1772,9 +1772,12 @@ describe("Task 12: contraste AA del acento solido de Gaming (rama oscura)", () =
 /*
  * D4 (encargo 2026-08-04): palancas de compactación vertical del contenido
  * oscuro -- `padding-block` fluido de `ScDarkFrame`, `margin-block-start`
- * fluido de `ScDarkFeatures`, `padding-block` fluido de `ScDarkFeatureBlock`
- * y `font-size` fluido de `ScDarkFeatureTitle` -- todas con `clamp()`, todas
- * con el mismo suelo/techo documentado en `Features.tsx`. Por texto del CSS
+ * fluido de `ScDarkFeatures` y `padding-block` fluido de
+ * `ScDarkFeatureBlock`. Eran CUATRO hasta el 2026-09-04: la cuarta era el
+ * `font-size` fluido de `ScDarkFeatureTitle`, retirada con su test por la
+ * paridad de temas (ver la lápida al final de este describe). Todas con
+ * `clamp()`, todas con el mismo suelo/techo documentado en `Features.tsx`.
+ * Por texto del CSS
  * inyectado: `clamp()` no depende de ningún `@media`, pero se mantiene el
  * mismo mecanismo `cssRuleTextFor` que el resto del fichero por consistencia
  * y para no arrastrar el resto del stylesheet acumulado.
@@ -1811,18 +1814,18 @@ describe("D4: palancas de compactación vertical del contenido oscuro (clamp flu
     expect(css).not.toContain("6vw");
   });
 
-  it("ScDarkFeatureTitle usa font-size: clamp(...) acotado por abajo a 1.125rem", async () => {
-    const { container } = renderWithProviders(<Features />);
-    await waitFor(() => {
-      expect(container.querySelectorAll("img").length).toBeGreaterThan(0);
-    });
-    const title = container.querySelector(
-      "#feature-learning-title",
-    ) as HTMLElement;
-    const css = cssRuleTextFor(title);
-
-    expect(css).toMatch(/font-size:\s*clamp\(\s*1\.125rem/);
-  });
+  /*
+   * AQUI VIVIO "ScDarkFeatureTitle usa font-size: clamp(...) acotado por abajo
+   * a 1.125rem", la cuarta palanca de D4. Se retira con la palanca: el titular
+   * de tarjeta lee hoy `type.scale.h3` sin sobreescritura en las DOS ramas
+   * (decision del dueno, paridad de Features entre temas, 2026-09-04). El
+   * candado que lo sustituye NO es mas debil -- es el describe "paridad de
+   * temas: el titular de tarjeta lee el MISMO token en las dos ramas", al final
+   * de este fichero, que afirma en positivo lo que ahora tiene que ser cierto
+   * y cae en rojo si alguien devuelve cualquier `font-size` propio a esta rama.
+   * Las otras TRES palancas de D4 (los `padding`/`margin` fluidos) siguen aqui
+   * arriba, intactas y con su test.
+   */
 });
 
 /*
@@ -2369,5 +2372,99 @@ describe("Features oscuro: velo de contraste de la copia (crítica #17)", () => 
     renderWithProviders(<Features />);
 
     expect(screen.queryByTestId("features-dark-copy")).toBeNull();
+  });
+});
+
+/*
+ * PARIDAD DE TEMAS, 2026-09-04 (decisión del dueño): el titular de tarjeta lee
+ * el MISMO token de la escala en las dos ramas.
+ *
+ * ## El defecto que este candado atrapa
+ *
+ * Hasta esta entrega el h3 de una identidad era el token `type.scale.h3` fijo
+ * en la rama clara y un `clamp(1.125rem, min(4vw, 2.6dvh), h3.size)` propio en
+ * la oscura (`ScDarkFeatureTitle`, hoy una lápida en `Features.tsx`): el mismo
+ * nivel semántico, con la misma copia desde las Tasks 15-16, era fijo en un
+ * tema y fluido POR ALTURA en el otro. Medido en Chrome sobre el build de
+ * producción de `ef62b26` (DPR 1): 24 px en claro en todos los viewports,
+ * frente a 18 px (390x390), 18,72 px (1280x720), 23,4 px (1440x900) y 24 px
+ * (1440x1440) en oscuro. Conmutar de tema en un portátil encogía el titular un
+ * 22 %.
+ *
+ * ## Por qué el candado mira DOS capas y no una
+ *
+ * `getComputedStyle` es la capa que produce el efecto, y con el bug inyectado
+ * (devolver a la rama oscura su `styled(Typography)` con el `clamp()`) es la
+ * primera que cae -- COMPROBADO, no supuesto: jsdom conserva el valor sin
+ * resolverlo y el rojo literal es
+ * `expected 'clamp(1.125rem,\n    min(4vw, 2.6dvh)…' to be '1.5rem'`.
+ * La segunda capa -- que el CSS inyectado para ese elemento no declare NINGÚN
+ * `font-size` distinto del token -- se verificó por separado, silenciando la
+ * primera con el mismo bug puesto, y también cae:
+ * `expected Set{ '1.5rem', …(1) } to deeply equal Set{ '1.5rem' }`. Se
+ * conservan las dos porque miden cosas distintas: una, el valor que el
+ * navegador acabaría usando; la otra, que no exista una segunda declaración
+ * compitiendo -- que es la forma que tendría el defecto si un día jsdom sí
+ * descartara el valor que no sabe parsear.
+ */
+describe("paridad de temas: el titular de tarjeta lee el MISMO token en las dos ramas", () => {
+  beforeEach(() => {
+    stubMatchMedia();
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  /** El titular de la primera identidad, el mismo id en las dos ramas. */
+  function titular(container: HTMLElement): HTMLElement {
+    return container.querySelector("#feature-learning-title") as HTMLElement;
+  }
+
+  /** Los `font-size` declarados por las reglas inyectadas para `el`. */
+  function fontSizesDeclarados(el: HTMLElement): string[] {
+    return Array.from(
+      cssRuleTextFor(el).matchAll(/font-size:\s*([^;]+);/g),
+    ).map((m) => m[1].trim());
+  }
+
+  it("el token es UNO SOLO: la escala tipográfica no ramifica por tema", () => {
+    // Sin esto, "cada rama lee su token" podría ser cierto y aun así divergir.
+    expect(themes.dark.type.scale.h3.size).toBe(
+      themes.light.type.scale.h3.size,
+    );
+  });
+
+  it("la rama CLARA computa el token y no declara ningún font-size ajeno", () => {
+    window.localStorage.setItem("vti-theme", "light");
+    const { container } = renderWithProviders(<Features />);
+    const titulo = titular(container);
+
+    expect(titulo.tagName).toBe("H3");
+    expect(getComputedStyle(titulo).fontSize).toBe(
+      themes.light.type.scale.h3.size,
+    );
+    expect(new Set(fontSizesDeclarados(titulo))).toEqual(
+      new Set([themes.light.type.scale.h3.size]),
+    );
+  });
+
+  it("la rama OSCURA computa el MISMO token y tampoco declara ningún font-size ajeno", async () => {
+    window.localStorage.setItem("vti-theme", "dark");
+    const { container } = renderWithProviders(<Features />);
+    await waitFor(() => {
+      expect(container.querySelector("#feature-learning-title")).not.toBeNull();
+    });
+    const titulo = titular(container);
+
+    expect(titulo.tagName).toBe("H3");
+    expect(getComputedStyle(titulo).fontSize).toBe(
+      themes.dark.type.scale.h3.size,
+    );
+    // Lo que el estilo computado no puede decir: que no haya un `clamp()`
+    // reintroducido que jsdom descartó al no saber parsearlo.
+    expect(new Set(fontSizesDeclarados(titulo))).toEqual(
+      new Set([themes.dark.type.scale.h3.size]),
+    );
+    expect(cssRuleTextFor(titulo)).not.toMatch(/font-size:\s*clamp\(/);
   });
 });

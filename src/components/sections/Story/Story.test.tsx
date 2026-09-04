@@ -11,7 +11,7 @@ import enHome from "@/i18n/locales/en/home.json";
 import esCommon from "@/i18n/locales/es/common.json";
 import i18n from "@/i18n/config";
 import { links } from "@/config/links";
-import { Story, pillarAccent, pillarBadgeAccent } from "./Story";
+import { Story, pillarBadgeAccent } from "./Story";
 import { DECK, PRESS, REVEAL } from "@/motion/vocabulary";
 import { motion } from "@/theme/tokens/motion";
 import {
@@ -29,7 +29,6 @@ import {
   STORY_DECK_TAIL_SCREENS,
   STORY_DECK_TITLE_SIZE,
   STORY_FIGURE_SCROLL_SHIFT,
-  STORY_PILLAR_NUMBER_COLUMN,
   STORY_SLIDES,
 } from "./story.layers";
 import { STORY_COSMIC_BEING_VOID } from "@/components/scenes/storyCosmicBeing/storyCosmicBeing.layers";
@@ -1588,13 +1587,17 @@ describe("Story: presentacion de 6 diapositivas (tema oscuro)", () => {
     // Diapositiva 0: el UNICO h2 accesible de la seccion entera.
     expect(slides[0].querySelector("h2#story-title")).toBeInTheDocument();
 
-    // Diapositivas 1-4: un pilar cada una, en orden, con su numeracion
-    // "01".."04" (del componente, no de i18n; Tarea 5 de copy, 2026-08-09:
-    // se retiro la raya decorativa que llevaba detras) y el titulo i18n real.
+    // Diapositivas 1-4: un pilar cada una, en orden, identificado por su
+    // titulo i18n real. Hasta la critica externa #19 (2026-09-04) cada una
+    // abria ademas con un numeral "01".."04" y este bloque lo comprobaba; el
+    // numeral se retiro por decision del dueno (una sola forma de contar: la
+    // fraccion del rail), asi que aqui se exige lo contrario -- que la
+    // diapositiva NO pinte un numeral suelto. El candado que ata las dos
+    // secciones a la misma forma de contar vive en `Journey.test.tsx`.
     const pillarKeys = ["learn", "create", "grow", "practice"] as const;
     pillarKeys.forEach((key, i) => {
       const slide = slides[i + 1];
-      expect(slide.textContent).toContain(`0${i + 1}`);
+      expect(slide.textContent).not.toContain(`0${i + 1}`);
       expect(
         within(slide).getByText(esHome.Home.story.pillars[key].title),
       ).toBeInTheDocument();
@@ -2620,123 +2623,21 @@ describe("Story: critica #12 -- el h2 separa sus dos mitades con un espacio real
 });
 
 /*
- * Critica externa #12 (2026-08-19), P2 de contraste: el numeral "04" de la
- * diapositiva de pilar del deck OSCURO (`ScPillarNumber`, 14px/700,
- * `secondary[700]` = `oklch(0.53 0.212 311.928)`) daba 3.01:1 sobre el pixel
- * real de la escena bajo esa diapositiva -- el UNICO fallo de contraste en los
- * ~110 elementos que la critica audito. El arreglo y por que se mueven los
- * TRES escalones de `secondary` y no solo el que fallaba viven en el docblock
- * de `pillarAccent` (`Story.tsx`).
+ * AQUI VIVIO el describe "critica #12 -- el numeral de pilar del deck oscuro
+ * libra AA sobre la escena" (seis casos: los cuatro acentos medidos contra el
+ * pixel de la escena, el void y semantic.bg, la sonda de no-vacuidad y el
+ * candado de CSS inyectado). Se retira con el elemento que medía: la critica
+ * externa #19 (2026-09-04, decision del dueno "una sola forma de contar")
+ * retiro `ScPillarNumber` del deck oscuro, y con el `pillarAccent`.
  *
- * Se mide contra los TRES fondos que esta rama tiene medibles por codigo,
- * mismo criterio que el candado del rail de Journey (describe "critica #10
- * hallazgo A") y que el de `ScQuoteText`: jsdom no compone las 11 capas WebP
- * de `StoryCosmicBeing`, asi que lo mas cercano al pixel real que existe en el
- * repo es (1) el pixel que MIDIO la critica, (2) el void declarado de la
- * escena y (3) `semantic.bg`, que es lo que asoma donde la escena no cubre.
- *
- * El test NO compara el acento con un color esperado escrito a mano -- eso
- * seria la tautologia de `task/lessons.md` 2026-08-11 (el valor esperado se
- * moveria con el defecto): MIDE el ratio del color que el componente pinta de
- * verdad, asi que cualquier escalon que no libre AA lo pone en rojo, venga de
- * donde venga.
+ * No es una relajacion del piso de contraste: un candado que mide el color de
+ * un elemento que ya no se renderiza esta en verde por vacuidad, que es
+ * exactamente lo que la sonda de no-vacuidad de aquel describe existia para
+ * impedir. El arreglo de la #12 (desplazar la cadena `secondary` un paso hacia
+ * el lado claro) no se revierte: deja de tener sujeto. La rampa de la rama
+ * CLARA (`pillarBadgeAccent`) sigue viva y conserva su propio candado de
+ * contraste, unos describes mas arriba.
  */
-describe("Story: critica #12 -- el numeral de pilar del deck oscuro libra AA sobre la escena", () => {
-  /* Pixel MEDIDO por la critica externa #12 bajo la diapositiva 04 (la escena
-     compuesta, no un token): el dato mas cercano al render real que existe.
-     Vive en el test y no en `src/` a proposito -- no es un color del sistema,
-     es una observacion. */
-  const PIXEL_MEDIDO_CRITICA_12 = "#280739";
-  const AA = 4.5;
-
-  beforeEach(() => {
-    stubMatchMedia();
-    window.localStorage.setItem("vti-theme", "dark");
-  });
-  afterEach(() => {
-    window.localStorage.clear();
-  });
-
-  it.each([0, 1, 2, 3])(
-    "el acento del pilar %i libra 4.5:1 sobre el pixel medido, el void de la escena y semantic.bg",
-    (index) => {
-      const acento = pillarAccent(basicDarkTheme.palette, index);
-
-      const sobrePixel = contrastRatioHex(acento, PIXEL_MEDIDO_CRITICA_12);
-      const sobreVoid = contrastRatioHex(acento, STORY_COSMIC_BEING_VOID);
-      const sobreBg = contrastRatio(acento, basicDarkTheme.semantic.bg);
-
-      expect(
-        sobrePixel,
-        `pixel medido: ${sobrePixel.toFixed(2)}:1`,
-      ).toBeGreaterThanOrEqual(AA);
-      expect(
-        sobreVoid,
-        `void de la escena: ${sobreVoid.toFixed(2)}:1`,
-      ).toBeGreaterThanOrEqual(AA);
-      expect(
-        sobreBg,
-        `semantic.bg: ${sobreBg.toFixed(2)}:1`,
-      ).toBeGreaterThanOrEqual(AA);
-    },
-  );
-
-  /*
-   * Sonda de NO-VACUIDAD: el umbral de arriba tiene que ser capaz de fallar.
-   * El escalon que la critica midio (`secondary[700]`, el que este arreglo
-   * retira) sigue incumpliendo sobre el mismo pixel -- si algun dia esta
-   * asercion se pusiera en verde, el modelo de medicion habria dejado de
-   * describir el defecto y el candado de arriba dejaria de proteger nada.
-   */
-  it("el escalon retirado (secondary[700]) SIGUE incumpliendo sobre el mismo pixel: el umbral no es vacuo", () => {
-    const ratio = contrastRatioHex(
-      basicDarkTheme.palette.secondary[700],
-      PIXEL_MEDIDO_CRITICA_12,
-    );
-    expect(ratio, `secondary[700]: ${ratio.toFixed(2)}:1`).toBeLessThan(AA);
-  });
-
-  /*
-   * Que el COMPONENTE consuma de verdad el acento que se mide arriba: sin
-   * esta mitad, las cifras seguirian saliendo bien aunque `ScPillarNumber`
-   * hubiera vuelto a pintar otro escalon (regla 38 -- contra el token
-   * importado, nunca contra una cadena a mano). Los cuatro numerales, no solo
-   * el 04: el arreglo movio tres escalones.
-   */
-  it("los cuatro numerales pintan EXACTAMENTE el acento medido (CSS inyectado, no un color suelto)", async () => {
-    const { container } = renderWithProviders(<Story />);
-    await waitFor(() => {
-      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
-        STORY_SLIDES,
-      );
-    });
-
-    [0, 1, 2, 3].forEach((index) => {
-      const numeral = screen.getByText(`0${index + 1}`);
-      expect(cssRuleTextFor(numeral)).toContain(
-        `color: ${pillarAccent(basicDarkTheme.palette, index)}`,
-      );
-    });
-  });
-
-  /*
-   * DOS bugs inyectados a proposito (regla 34), ejecutados en esta tarea --
-   * dos, y no uno, porque cada mitad del candado protege una propiedad
-   * distinta y el primer sabotaje NO pone en rojo la segunda:
-   *
-   * (a) devolver `palette.secondary[700]` al cuarto pilar de `pillarAccent`
-   *     (`Story.tsx`) pone en rojo el caso `%i = 3` del primer `it`, con la
-   *     cifra exacta de la critica ("pixel medido: 3.01:1"). El candado de CSS
-   *     inyectado sigue en VERDE con este sabotaje, y es correcto que asi sea:
-   *     el componente y el test leen la misma funcion, asi que lo que ese
-   *     candado vigila es que no DIVERJAN, no cual es el valor.
-   * (b) cambiar el `color` de `ScPillarNumber` por otro token
-   *     (`semantic.textMuted`) pone en rojo el candado de CSS inyectado -- la
-   *     divergencia que (a) no puede ver.
-   *
-   * Restaurados los dos, los seis `it` de este describe vuelven a verde.
-   */
-});
 
 /*
  * Critica externa #12 (2026-08-19), dimension 4 de Craft: el rail del deck de
@@ -3491,20 +3392,32 @@ describe("Story: critica #16 -- la copia del deck reserva el canal del rail", ()
 
   /*
    * La otra mitad del canal: reservar 56 px a la derecha dejaba la copia del
-   * pilar en 246 px a 390 (302 de caja menos los 56 de la columna del numero
-   * mas su gap) -- 31 caracteres por linea a 16 px, medidos con Range por
-   * caracter, cuando el encargo pide conservar >= 38. La fila del deck apila
-   * el numero sobre la copia por debajo de sm y restaura las dos columnas de
-   * ScPillarRow desde sm. Lo que se ata: la FORMA de la cascada (base de dos
-   * columnas, extension del deck a una, sm de vuelta a dos) y que el ancho de
-   * la columna restaurada sea el MISMO que declara la base -- leido de la
-   * constante con nombre, no de un literal repetido (regla 13/41 de RULES.md:
-   * la invariante entre las dos declaraciones vive aqui, no en la memoria).
+   * pilar en 246 px a 390 (302 de caja menos los 56 que se llevaba la columna
+   * del numero mas su gap) -- 31 caracteres por linea a 16 px, medidos con
+   * Range por caracter, cuando el encargo pide conservar >= 38. La ola L lo
+   * resolvio apilando el numero sobre la copia por debajo de sm y restaurando
+   * las dos columnas desde sm.
+   *
+   * DESDE LA CRITICA EXTERNA #19 (2026-09-04) no hay columna que reservar: el
+   * numeral se retiro por decision del dueno (una sola forma de contar), y con
+   * el la fila de dos pistas entera. Lo que este candado ata ahora es esa
+   * ausencia, que es lo unico que mantiene los 302 px de caja EN TODOS los
+   * anchos: la diapositiva de pilar cuelga directamente de la columna de copia
+   * y ninguna regla que le aplique declara `grid-template-columns`. Si alguien
+   * devuelve una rejilla a esta fila -- que es como volveria el numeral --, el
+   * test cae.
    */
-  it("ScDeckPillarRow apila el numero sobre la copia por debajo de sm y restaura desde sm la columna de ScPillarRow con el mismo ancho con nombre", async () => {
+  it("la diapositiva de pilar no reserva ninguna columna: su hijo unico es la copia y ninguna regla suya declara grid-template-columns", async () => {
     const deck = await deckOscuro();
-    const fila = deck.querySelector('[data-slide-index="1"]')!
-      .firstElementChild as HTMLElement;
+    const diapositiva = deck.querySelector(
+      '[data-slide-index="1"]',
+    ) as HTMLElement;
+    const fila = diapositiva.firstElementChild as HTMLElement;
+
+    // Un solo hijo: la columna de copia. La fila numero-mas-copia tenia dos.
+    expect(diapositiva.children).toHaveLength(1);
+    expect(fila.children).toHaveLength(3);
+
     const classes = Array.from(fila.classList);
     const aplica = (selectorText: string): boolean =>
       classes.some((cls) => selectorText.includes(`.${cls}`));
@@ -3522,26 +3435,18 @@ describe("Story: critica #16 -- la copia del deck reserva el canal del rail", ()
           ) || null
         : null;
 
-    // Nivel superior, en orden de hoja: la base de ScPillarRow (dos columnas)
-    // y DESPUES la extension del deck (una sola pista). El orden es la
-    // cascada: si la extension precediera a la base, la base ganaria.
-    const nivelSuperior = reglas
-      .map(columnasDe)
-      .filter((v): v is string => v !== null);
-    expect(nivelSuperior).toEqual([
-      `${STORY_PILLAR_NUMBER_COLUMN} minmax(0, 1fr)`,
-      "minmax(0, 1fr)",
-    ]);
-
-    // Y dentro del @media de sm (jsdom no lo evalua: se lee del CSSOM, regla
-    // 36), la fila vuelve a las dos columnas con el ancho de la constante.
-    const enSm = reglas
+    // Nivel superior y dentro de CUALQUIER @media (jsdom no evalua media
+    // queries: se leen del CSSOM, regla 36). Ni una sola declaracion.
+    const enMedia = reglas
       .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule)
-      .filter((r) => r.conditionText.includes(basicDarkTheme.breakPoint.sm))
-      .flatMap((r) => Array.from(r.cssRules))
+      .flatMap((r) => Array.from(r.cssRules));
+    const columnas = [...reglas, ...enMedia]
       .map(columnasDe)
       .filter((v): v is string => v !== null);
-    expect(enSm).toEqual([`${STORY_PILLAR_NUMBER_COLUMN} minmax(0, 1fr)`]);
+    expect(columnas).toEqual([]);
+
+    // Y la copia sigue siendo una columna flex, no una rejilla disfrazada.
+    expect(cssRuleTextFor(fila)).toContain("flex-direction: column");
   });
 });
 
