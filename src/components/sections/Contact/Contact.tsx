@@ -310,6 +310,56 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
  * marcador DENTRO de una escena con su propio glow de color, y ahi la regla
  * elige el lado contrario (sombra, sin borde).
  */
+/*
+ * RELLENO INTERIOR MOVIL-FIRST (ola Q, frente Q-3, 2026-09-04). Hasta esta
+ * entrega la tarjeta declaraba `space[6]` (2rem) en TODAS las anchuras, y ese
+ * numero fijo era la causa raiz de una palabra partida a ciegas en el ancho
+ * minimo que el sitio soporta.
+ *
+ * QUE SE MEDIA (Chrome real sobre el build de produccion servido, tema claro,
+ * viewport 320x800, raiz a 16px, `#contact-title` reconstruido linea a linea
+ * con `Range`):
+ *
+ *   viewport   caja del h2   palabra mas larga   lineas realizadas
+ *     320px       206,00 px      206,98 px       "Construyamo" / "s algo infinito."
+ *     330px       216,00 px      206,98 px       "Construyamos " / "algo infinito."
+ *     340px       226,00 px      206,98 px       "Construyamos " / "algo infinito."
+ *
+ * Faltaban NOVENTA Y OCHO CENTESIMAS de pixel. La aritmetica de la banda:
+ * 320 menos los 2x24 de relleno de `ScContact`, menos los 2x1 del borde de
+ * esta tarjeta, menos los 2x32 de este relleno = 206 px de caja para una
+ * palabra de 206,98. Por eso se autocorregia sola a 330 px y por eso ninguna
+ * ronda anterior la vio: solo asoma en el ancho exacto que WCAG 1.4.10 fija
+ * como suelo (320 px = 400 % de zoom sobre 1280).
+ *
+ * POR QUE PARTIA SIN GUION: `hyphens: auto` esta declarado (GlobalStyles.tsx,
+ * bloque `body > main`) y computa `auto` en Chrome con `lang="es"` en la raiz
+ * -- y aun asi NO hifena: se midio el valor computado y las lineas realizadas
+ * en la misma sonda, y el corte sale limpio, sin guion. La hifenacion
+ * automatica depende de diccionarios que el navegador puede no tener, asi que
+ * no es una garantia sobre la que se pueda construir. Quien parte es
+ * `overflow-wrap: break-word` (declarado en `ScContact`), que corta a ciegas
+ * por donde toque. Esa declaracion se queda: es la RED que evita el
+ * desbordamiento -- y el desbordamiento si seria un incumplimiento de 1.4.10,
+ * no una fealdad. Lo que cambia es que la red deja de tener que actuar.
+ *
+ * POR QUE EL RELLENO Y NO EL TAMANO DEL TITULAR: bajar el `h2` seria tocar un
+ * peldano de `type.scale` desde una seccion (regla 17) y dejaria la tarjeta
+ * gastando 64 px de sus 320 en aire interior justo donde no sobra ni uno.
+ * `space[5]` en la banda estrecha da 222 px de caja -- 15,02 px de margen
+ * sobre la palabra -- y `space[6]` vuelve desde `breakPoint.sm` (600 px), asi
+ * que por encima de esa marca no cambia ni un pixel: medido A/B sobre la MISMA
+ * pagina, 486,00 px de caja a 600 px, 362,83 a 768 y 614,83 a 1280, y la
+ * seccion mide 1124, 1218 y 1136 px de alto -- las seis cifras identicas con y
+ * sin el cambio. Por debajo de la marca la caja del titular pasa de 206,00 a
+ * 222,00 px a 320 px y de 276 a 292 a 390, y la seccion ADELGAZA (1475 -> 1411
+ * y 1251 -> 1235), que es lo que tiene que pasar al retirar relleno.
+ *
+ * CANDADO: `Contact.test.tsx`, describe "Contact: ola Q, la banda de 320 px".
+ * No ata el numero 24: ata la ARITMETICA -- lee los rellenos realmente
+ * declarados (seccion y tarjeta) del CSS que inyecta styled-components y
+ * comprueba que lo que queda a 320 px sigue cabiendo la palabra medida.
+ */
 const ScCard = styled.div`
   position: relative;
   overflow: hidden;
@@ -326,7 +376,10 @@ const ScCard = styled.div`
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   border: 1px solid ${CONTACT_CARD_BORDER};
   background: ${CONTACT_CARD_GRADIENT};
-  padding: ${({ theme }) => theme.data.space[6]};
+  /* Movil-first: el relleno estrecho es el valor BASE y el ancho llega por
+     media query, no al reves (ver el docblock de arriba para la aritmetica de
+     la banda de 320px y la medicion que la sostiene). */
+  padding: ${({ theme }) => theme.data.space[5]};
 
   opacity: 0;
   transform: translateY(${REVEAL.shift});
@@ -344,6 +397,10 @@ const ScCard = styled.div`
     transition: none;
     opacity: 1;
     transform: none;
+  }
+
+  @media ${({ theme }) => theme.data.breakPoint.sm} {
+    padding: ${({ theme }) => theme.data.space[6]};
   }
 
   @media ${({ theme }) => theme.data.breakPoint.md} {

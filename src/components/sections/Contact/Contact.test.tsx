@@ -4767,3 +4767,265 @@ describe("ola P: el mensaje que no cabe en el mailto no rompe el correo, abre el
     });
   });
 });
+
+/*
+ * OLA Q, FRENTE Q-3 (2026-09-04): LA BANDA DE 320 PIXELES.
+ *
+ * EL DEFECTO, REPRODUCIDO ANTES DE TOCAR NADA. Chrome real sobre el build de
+ * produccion servido, tema claro, viewport 320x800, raiz a 16 px, el `<h2>` de
+ * Contacto reconstruido linea a linea con `Range` (no leido del DOM: el DOM no
+ * sabe por donde parte el navegador). Salida literal de la sonda:
+ *
+ *   light 320px  caja 206,00  palabra 206,98  ->  "Construyamo" / "s algo infinito."
+ *   light 330px  caja 216,00  palabra 206,98  ->  "Construyamos " / "algo infinito."
+ *   light 340px  caja 226,00  palabra 206,98  ->  "Construyamos " / "algo infinito."
+ *   dark  320px  caja 256,00  palabra 206,98  ->  "Construyamos " / "algo infinito."
+ *
+ * El titular se partia SIN GUION por menos de un pixel, solo en la rama clara
+ * y solo en el ancho exacto que WCAG 1.4.10 fija como suelo (320 px CSS = 400 %
+ * de zoom sobre un viewport de 1280). A 330 px se autocorregia solo, que es
+ * justo por lo que ninguna ronda anterior lo vio.
+ *
+ * POR QUE ESTE CANDADO ES ARITMETICO Y NO UN VALOR ESCRITO A MANO. Un test que
+ * afirmara "padding vale 1.5rem" seria un espejo del codigo: se pondria verde
+ * pasara lo que pasara con la caja real. Lo que se ata aqui es la CONDICION
+ * que el defecto incumplia -- que a 320 px quepa entera la palabra mas larga
+ * del titular -- resolviendo los rellenos REALMENTE declarados (los de la
+ * seccion y los de la tarjeta) desde el CSS que styled-components inyecta.
+ * Muerde ante cualquier via de reincidencia: subir el relleno de la tarjeta,
+ * subir el de la seccion, engordar el borde, o intercalar una caja con
+ * relleno propio entre la seccion y el titular.
+ *
+ * VERIFICACION CRUZADA: la aritmetica de este candado da 222,00 px de caja a
+ * 320 px de viewport, y el navegador midio 222,00 px exactos con el arreglo
+ * puesto. La cuenta del test y la caja real son el MISMO numero, no dos
+ * aproximaciones que se parecen.
+ *
+ * TABLA DE ZOOM REAL DE NAVEGADOR (Chrome, CDP `Emulation.setDeviceMetricsOverride`
+ * con `deviceScaleFactor` y viewport CSS reducido -- zoom de NAVEGADOR de
+ * verdad, no zoom de texto ni un ancho de viewport usado como sustituto, que
+ * es lo unico que habian hecho las rondas anteriores). Referencia fisica
+ * 1280x1024, criterio WCAG 1.4.10 (sin scroll en dos dimensiones a 400 %).
+ * Ocho combinaciones, todas limpias:
+ *
+ *   pagina        tema    zoom   viewport CSS   scrollWidth   exceso
+ *   /             claro   200%     640x512          640          0
+ *   /             claro   400%     320x256          320          0
+ *   /             oscuro  200%     640x512          640          0
+ *   /             oscuro  400%     320x256          320          0
+ *   /privacidad/  claro   200%     640x512          640          0
+ *   /privacidad/  claro   400%     320x256          320          0
+ *   /privacidad/  oscuro  200%     640x512          640          0
+ *   /privacidad/  oscuro  400%     320x256          320          0
+ *
+ * Y con zoom de TEXTO al 200 % (raiz a 32 px), en la home a 390 y a 1280 px y
+ * en los dos temas: 62 controles en claro y 76 en oscuro, CERO fuera del
+ * viewport, exceso horizontal 0 en las cuatro combinaciones. La seccion de
+ * Contacto no aporta ni un desbordamiento en ninguna de ellas.
+ *
+ * Nada de eso se puede ejecutar en el gate (jsdom no hace layout, regla 36),
+ * asi que lo que si es determinista se ata abajo: que en la banda critica no
+ * aparezca ningun ancho fijo en pixeles y que la pista de la tarjeta siga
+ * siendo `minmax(0, 1fr)` -- la forma que impide que el min-content de la
+ * columna imponga un suelo, que es exactamente lo que rompio el reflow en la
+ * critica externa #13.
+ *
+ * LA RED DE ENVOLTURA NO SE TOCA: `ScContact` sigue declarando
+ * `overflow-wrap: break-word` y su propio candado sigue mas arriba en este
+ * fichero. Partir feo es un defecto; desbordar es un incumplimiento. Lo que
+ * cambia con esta entrega es que la red deja de tener que actuar en el ancho
+ * minimo soportado.
+ */
+describe("Contact: ola Q, la banda de 320 px", () => {
+  /**
+   * Ancho de viewport mas estrecho que el sitio soporta. Es el mismo numero
+   * que WCAG 1.4.10 fija como suelo de reflow (320 px CSS = 400 % de zoom
+   * sobre 1280) -- no una anchura de telefono elegida a ojo.
+   */
+  const ANCHO_MINIMO_SOPORTADO_PX = 320;
+
+  /**
+   * Ancho realizado de «Construyamos», la palabra mas larga del titular de
+   * Contacto, MEDIDO en Chrome sobre el build de produccion servido
+   * (2026-09-04): Hanken Grotesk 700, 32 px, `letter-spacing` -0,448 px, sin
+   * envoltura. jsdom no tiene metricas de fuente, asi que este numero no se
+   * puede obtener aqui: entra como constante medida, con su fecha y su metodo,
+   * igual que los umbrales de contraste de este mismo fichero.
+   */
+  const ANCHO_PALABRA_MAS_LARGA_PX = 206.98;
+
+  /** La raiz del documento en reposo, contra la que se resuelven los rem. */
+  const RAIZ_PX = 16;
+
+  function aPx(valor: string): number {
+    const limpio = valor.trim();
+    if (limpio === "0") return 0;
+    const rem = limpio.match(/^([\d.]+)rem$/);
+    if (rem) return Number(rem[1]) * RAIZ_PX;
+    const px = limpio.match(/^([\d.]+)px$/);
+    if (px) return Number(px[1]);
+    throw new Error(`el candado no sabe convertir "${limpio}" a pixeles`);
+  }
+
+  /**
+   * Texto de las reglas de un elemento, separando las que viven FUERA de todo
+   * `@media` de las que viven dentro de uno concreto. Se recorre el CSSOM en
+   * vez de partir una cadena por la subcadena "@media" (regla 36, y el mismo
+   * criterio que `reglasSinScripting`, mas arriba): el serializador puede
+   * escribir el media query con o sin espacio tras los dos puntos, y una
+   * busqueda por texto se romperia por eso sin que nada estuviera mal.
+   */
+  function reglasDe(el: HTMLElement, media: RegExp | null): string {
+    const clases = Array.from(el.classList);
+    const salida: string[] = [];
+    const visitar = (reglas: CSSRuleList, dentro: boolean): void => {
+      Array.from(reglas).forEach((regla) => {
+        const suMedia = (regla as CSSMediaRule).media;
+        const aqui = suMedia
+          ? dentro || (media !== null && media.test(suMedia.mediaText))
+          : dentro;
+        const anidadas = (regla as CSSGroupingRule).cssRules;
+        if (anidadas) {
+          visitar(anidadas, aqui);
+          return;
+        }
+        const estilo = regla as CSSStyleRule;
+        if (estilo.selectorText === undefined) return;
+        const quiero = media === null ? !dentro : aqui;
+        if (
+          quiero &&
+          clases.some((clase) => estilo.selectorText.includes(`.${clase}`))
+        ) {
+          salida.push(estilo.cssText);
+        }
+      });
+    };
+    Array.from(document.styleSheets).forEach((hoja) => {
+      try {
+        visitar(hoja.cssRules, false);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return salida.join("\n");
+  }
+
+  /**
+   * Relleno o margen INLINE (izquierda/derecha) declarado por la shorthand, en
+   * pixeles; `null` si la propiedad no se declara. Exige la propiedad
+   * completa, nunca un `padding-bottom` cazado por prefijo compartido: el
+   * caracter anterior tiene que ser un separador.
+   */
+  function inlinePx(bloque: string, propiedad: string): number | null {
+    const encontrado = bloque.match(
+      new RegExp(`(?:^|[\\s;{])${propiedad}:\\s*([^;}]+)`),
+    );
+    if (!encontrado) return null;
+    const valores = encontrado[1].trim().split(/\s+/);
+    // 1 valor: los cuatro lados. 2, 3 o 4: el segundo es el eje inline.
+    return aPx(valores.length === 1 ? valores[0] : valores[1]);
+  }
+
+  function piezas(): {
+    seccion: HTMLElement;
+    tarjeta: HTMLElement;
+    columna: HTMLElement;
+    titular: HTMLElement;
+  } {
+    const { container } = renderWithProviders(<Contact />);
+    const titular = container.querySelector("h2") as HTMLElement;
+    const columna = titular.parentElement as HTMLElement;
+    return {
+      seccion: container.querySelector("#contact") as HTMLElement,
+      tarjeta: columna.parentElement as HTMLElement,
+      columna,
+      titular,
+    };
+  }
+
+  it("a 320 px la caja del titular sigue cabiendo «Construyamos» entera, con los rellenos que el CSS declara DE VERDAD", () => {
+    const { seccion, tarjeta } = piezas();
+
+    const rellenoSeccion = inlinePx(reglasDe(seccion, null), "padding");
+    const rellenoTarjeta = inlinePx(reglasDe(tarjeta, null), "padding");
+    expect(rellenoSeccion, "la seccion no declara padding").not.toBeNull();
+    expect(rellenoTarjeta, "la tarjeta no declara padding").not.toBeNull();
+
+    const bordeTarjeta = Number(
+      reglasDe(tarjeta, null).match(/border:\s*(\d+)px/)?.[1] ?? "0",
+    );
+
+    const cajaDelTitular =
+      ANCHO_MINIMO_SOPORTADO_PX -
+      2 * (rellenoSeccion as number) -
+      2 * bordeTarjeta -
+      2 * (rellenoTarjeta as number);
+
+    expect(
+      cajaDelTitular,
+      `a ${ANCHO_MINIMO_SOPORTADO_PX}px la caja del titular mide ${cajaDelTitular}px y la palabra ` +
+        `${ANCHO_PALABRA_MAS_LARGA_PX}px: se partiria sin guion, como el 2026-09-04. Rellenos ` +
+        `leidos del CSS: seccion ${rellenoSeccion}px, tarjeta ${rellenoTarjeta}px, borde ${bordeTarjeta}px.`,
+    ).toBeGreaterThanOrEqual(ANCHO_PALABRA_MAS_LARGA_PX);
+  });
+
+  it("entre la seccion y el titular no se ha colado ninguna caja que gaste ancho y la cuenta no vea", () => {
+    const { seccion, tarjeta, columna, titular } = piezas();
+
+    // La cadena medida en navegador es exactamente esta: h2 < columna <
+    // tarjeta < seccion. Si alguien intercala un envoltorio, la aritmetica de
+    // arriba deja de describir la caja real y este test lo dice.
+    expect(titular.parentElement).toBe(columna);
+    expect(columna.parentElement).toBe(tarjeta);
+    expect(tarjeta.parentElement).toBe(seccion);
+
+    // Ni la columna ni el titular gastan ancho por su cuenta: lo que declaren
+    // en el eje inline tiene que valer cero.
+    [columna, titular].forEach((pieza) => {
+      const bloque = reglasDe(pieza, null);
+      expect(inlinePx(bloque, "padding") ?? 0).toBe(0);
+      expect(inlinePx(bloque, "margin") ?? 0).toBe(0);
+    });
+  });
+
+  it("el relleno ancho de la tarjeta vuelve desde el breakpoint sm: por encima de 600 px no cambia ni un pixel", () => {
+    const { tarjeta } = piezas();
+
+    // jsdom no evalua NINGUN `@media` (regla 36): se leen las reglas acotando
+    // al media query concreto por el CSSOM, nunca con `getComputedStyle`.
+    const desdeSm = reglasDe(tarjeta, /min-width:\s*600px/);
+    expect(
+      desdeSm,
+      "la tarjeta no declara nada bajo el breakpoint sm: el relleno ancho no vuelve nunca",
+    ).not.toBe("");
+    expect(inlinePx(desdeSm, "padding")).toBe(aPx(themes.light.space[6]));
+
+    // Y el valor BASE es el estrecho: movil-first de verdad, no un
+    // `max-width` disfrazado.
+    expect(inlinePx(reglasDe(tarjeta, null), "padding")).toBe(
+      aPx(themes.light.space[5]),
+    );
+  });
+
+  it("en la banda critica no hay ni un ancho fijo en pixeles, y la pista de la tarjeta sigue siendo minmax(0, 1fr)", () => {
+    const { tarjeta, columna, titular } = piezas();
+
+    // Un `width`/`min-width` en px dentro de la banda estrecha es exactamente
+    // lo que produce scroll horizontal a 320 px. Se comprueba SOLO sobre las
+    // reglas base: el `min-width: 600px` de un media query no es un ancho de
+    // caja y no debe confundirse con uno.
+    [tarjeta, columna, titular].forEach((pieza) => {
+      expect(reglasDe(pieza, null)).not.toMatch(
+        /(?:^|[\s;{])(min-)?width:\s*[\d.]+px/,
+      );
+    });
+
+    // La pista con suelo cero: `1fr` es `minmax(auto, 1fr)` y ese `auto` vale
+    // el min-content de la columna -- 414 px dentro de una caja de 166 px al
+    // 200 % de raiz, medido en la critica externa #13. Con el `overflow:
+    // hidden` de la tarjeta encima, eso era perdida DEFINITIVA de texto.
+    expect(reglasDe(tarjeta, null)).toMatch(
+      /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
+    );
+  });
+});
