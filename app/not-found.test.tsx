@@ -207,7 +207,8 @@ describe("NotFound (cascara de servidor)", () => {
  *
  * Lo que se ata aquí es lo único de esa lista que jsdom SÍ puede ver, derivado
  * del modelo compartido y nunca de una lista tecleada (regla 39). Lo demás vive
- * en `scripts/check-legal-surfaces.mjs`, que lo mide en navegador de verdad.
+ * en `scripts/check-site-surfaces.mjs`, que lo mide en navegador de verdad (se
+ * llamaba `check-legal-surfaces.mjs` hasta la critica externa #19, 2026-09-04).
  */
 describe("404: el ensamblaje que la ola M dejó montado", () => {
   it("la cabecera expone los destinos del modelo compartido, no solo la marca", () => {

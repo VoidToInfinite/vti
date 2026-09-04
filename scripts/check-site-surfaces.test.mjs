@@ -9,6 +9,7 @@ import {
     CHECKS,
     DEUDA_ZOOM,
     EN_PREFIX,
+    HOME_DOC,
     LEGAL_DOCS,
     ROOT_FONT_BASE_PX,
     SURFACES,
@@ -16,7 +17,7 @@ import {
     ZOOM_FONT_PX,
     especificadoresDePlaywright,
     fallosDeDeudaNoObservada,
-} from "./check-legal-surfaces.mjs";
+} from "./check-site-surfaces.mjs";
 /* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
    parser de Rollup no admite un `.ts` explicito en el especificador. */
 import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
@@ -25,7 +26,7 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  * ESTE FICHERO ES LO QUE METE EL CANDADO DE NAVEGADOR DENTRO DEL GATE, y es
  * tambien lo que impide que ese candado se vacie en silencio.
  *
- * `check-legal-surfaces.mjs` sabe medir seis superficies y sabe fallar por su
+ * `check-site-surfaces.mjs` sabe medir ocho superficies y sabe fallar por su
  * cuenta, pero `pnpm run ci` no lo llama: necesita el sitio SERVIDO, y el gate
  * corre antes de `pnpm build` -- el mismo motivo por el que
  * `scripts/measure-home-js.mjs` tampoco entra. Lo que SI corre en el gate es
@@ -95,11 +96,39 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  *
  *      El caso que antes salia «✓» ahora es el primero en caer. Restauradas las
  *      tres lineas, los nueve casos en verde.
+ *
+ * LO QUE ANADE LA CRITICA #19 (2026-09-04), y por que hacia falta: el barrido no
+ * incluia la PORTADA -- las seis superficies eran las dos legales por dos
+ * idiomas mas dos 404 -- y ningun caso de este fichero lo notaba, porque todos
+ * derivaban su expectativa de las mismas seis filas que el script declaraba.
+ * Ahora son ocho, la extension se compara contra `SUPERFICIES_ESPERADAS`
+ * (tecleada) y ademas se exige que TODA clave de `ROUTES` este recorrida en sus
+ * dos idiomas. Las dos direcciones, validadas con supresion real:
+ *
+ *   c. borrada la entrada de la portada inglesa de `SURFACES` (el script) --
+ *
+ *        AssertionError: el barrido ya no son las ocho superficies acordadas: si
+ *        el sitio gano o perdio una de verdad, actualiza SUPERFICIES_ESPERADAS a
+ *        la vez que el script; si no, restaura la que falta: expected [ …(7) ]
+ *        to deeply equal [ …(8) ]
+ *
+ *        AssertionError: src/config/site.ts declara la ruta home y el candado no
+ *        la recorre en ingles: expected [ '/', '/privacidad', …(5) ] to include
+ *        '/en'
+ *
+ *   d. anadida una sancion `main|home` a `DEUDA_ZOOM` -- que es exactamente la
+ *      salida comoda para apagar el rojo de la home en vez de arreglarla --
+ *
+ *        AssertionError: alguien anadio una sancion de zoom: cada entrada apaga
+ *        una zona entera del documento en todas las superficies de su tipo (...):
+ *        expected [ 'main|home' ] to deeply equal []
+ *
+ * Restauradas las dos, los doce casos en verde.
  */
 
 const RUTA_SCRIPT = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
-    "check-legal-surfaces.mjs",
+    "check-site-surfaces.mjs",
 );
 const SCRIPT = readFileSync(RUTA_SCRIPT, "utf8");
 
@@ -109,6 +138,12 @@ const SCRIPT = readFileSync(RUTA_SCRIPT, "utf8");
  * recorrer: si manana nace `/cookies`, el test cae hasta que alguien decida
  * explicitamente si entra en el barrido o se anade a esta lista con su motivo.
  * Esa decision forzada es el punto; una lista de claves tecleada no la fuerza.
+ *
+ * `home` sigue aqui, pero desde la critica externa #19 (2026-09-04) eso ya NO
+ * significa "fuera del barrido": la portada entra como superficie propia, con su
+ * kind, porque no es un documento legal y no comparte con ellos ni el indice
+ * interno ni la forma. Lo que esta lista dice es de que grupo NO forma parte,
+ * no si se recorre -- y el caso de abajo exige que se recorra.
  */
 const RUTAS_SIN_DOCUMENTO_LEGAL = new Set(["home"]);
 
@@ -116,6 +151,32 @@ const RUTAS_SIN_DOCUMENTO_LEGAL = new Set(["home"]);
 const IDS_LEGALES = Object.keys(ROUTES).filter(
     (clave) => !RUTAS_SIN_DOCUMENTO_LEGAL.has(clave),
 );
+
+/**
+ * LA EXTENSION DEL BARRIDO, TECLEADA, y por que no se deriva de `SURFACES`.
+ *
+ * Es la leccion que esta ola ha pagado CUATRO veces: un candado que recorre una
+ * lista sale en verde cuando la lista encoge. Derivar la expectativa de la
+ * misma lista que se verifica (`LEGAL_DOCS.length * 2 + 2`, que es lo que hacia
+ * la version anterior de este fichero) es el test autorreferencial que deja
+ * pasar cualquier recorte. Estas ocho filas se tocan cuando el sitio gane o
+ * pierda una superficie de verdad, y entonces se tocan a la vez que el script.
+ *
+ * Ata las DOS direcciones: borrar una fila cae por el `toEqual`, y anadir una
+ * tambien -- lo segundo importa tanto como lo primero, porque una superficie
+ * nueva que entra sin que nadie la mire es una superficie sin medir con el
+ * candado diciendo que la mide.
+ */
+const SUPERFICIES_ESPERADAS = [
+    { path: "/", locale: "es", kind: "home" },
+    { path: "/en", locale: "en", kind: "home" },
+    { path: "/privacidad", locale: "es", kind: "legal" },
+    { path: "/en/privacy", locale: "en", kind: "legal" },
+    { path: "/aviso-legal", locale: "es", kind: "legal" },
+    { path: "/en/legal-notice", locale: "en", kind: "legal" },
+    { path: `/${BROKEN_SEGMENT}`, locale: "es", kind: "notFound" },
+    { path: `/en/${BROKEN_SEGMENT}`, locale: "en", kind: "notFound" },
+];
 
 /*
  * El CONTRATO del candado, tecleado aqui y no derivado de `CHECKS`: derivarlo de
@@ -148,8 +209,8 @@ const FAMILIAS_ESPERADAS = [
     "sin-javascript",
 ];
 
-describe("cobertura del candado de las superficies legales y la 404", () => {
-    it("recorre TODOS los documentos legales que el sitio declara, en los dos idiomas, mas una 404 por idioma", () => {
+describe("cobertura del candado de las superficies del sitio", () => {
+    it("recorre TODOS los documentos legales que el sitio declara, en los dos idiomas, mas la portada y una 404 por idioma", () => {
         /* Sonda positiva: si `ROUTES` se quedara sin documentos legales, todo lo
            de abajo pasaria por vacuidad. */
         expect(IDS_LEGALES.length).toBeGreaterThan(0);
@@ -159,14 +220,34 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
                 `src/config/site.ts: uno de los dos lados se movio solo`,
         ).toEqual([...IDS_LEGALES].sort());
 
-        expect(SURFACES).toHaveLength(IDS_LEGALES.length * 2 + 2);
+        /* LA EXTENSION, atada contra la lista TECLEADA de arriba y no contra una
+           aritmetica sobre la propia lista que se verifica. Este es el caso que
+           habria cazado el hueco de la critica #19: el barrido no incluia la
+           portada y ningun test lo notaba, porque todos derivaban su expectativa
+           de las mismas seis filas que el script declaraba. */
+        expect(
+            SURFACES.map((s) => ({
+                path: s.path,
+                locale: s.locale,
+                kind: s.kind,
+            })),
+            `el barrido ya no son las ocho superficies acordadas: si el sitio ` +
+                `gano o perdio una de verdad, actualiza SUPERFICIES_ESPERADAS a la ` +
+                `vez que el script; si no, restaura la que falta`,
+        ).toEqual(SUPERFICIES_ESPERADAS);
 
+        const portadas = SURFACES.filter((s) => s.kind === "home");
         const legales = SURFACES.filter((s) => s.kind === "legal");
         const cuatrocientos = SURFACES.filter((s) => s.kind === "notFound");
+        expect(portadas).toHaveLength(2);
         expect(legales).toHaveLength(IDS_LEGALES.length * 2);
         expect(cuatrocientos).toHaveLength(2);
 
         for (const locale of ["es", "en"]) {
+            expect(
+                portadas.filter((s) => s.locale === locale),
+                `falta la portada de la rama ${locale}`,
+            ).toHaveLength(1);
             expect(
                 legales.filter((s) => s.locale === locale),
                 `falta la rama ${locale} de algun documento legal`,
@@ -178,7 +259,7 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
         }
     });
 
-    it("las rutas del script son las del sitio, leidas de src/config/site.ts", () => {
+    it("las rutas del script son las del sitio, leidas de src/config/site.ts, y NINGUNA ruta declarada se queda sin recorrer", () => {
         // Sonda positiva: sin documentos, los `toContain` de abajo no correrian.
         expect(LEGAL_DOCS.length).toBeGreaterThan(0);
 
@@ -194,6 +275,27 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
             ).toContain(EN_ROUTES[clave]);
         }
         expect(EN_PREFIX).toBe(EN_ROUTES.home);
+
+        /*
+         * LA PORTADA, contra la fuente unica y no contra dos strings gemelos. Y
+         * el barrido completo: TODA clave de `ROUTES` -- legal o no -- tiene que
+         * estar recorrida en sus dos idiomas. Es la segunda direccion del
+         * candado de extension: la lista tecleada de arriba impide que el
+         * barrido encoja, y esto impide que el SITIO crezca por debajo de el
+         * sin que nadie lo note.
+         */
+        expect(HOME_DOC.es).toBe(ROUTES.home);
+        expect(HOME_DOC.en).toBe(EN_ROUTES.home);
+        for (const clave of Object.keys(ROUTES)) {
+            expect(
+                caminos,
+                `src/config/site.ts declara la ruta ${clave} y el candado no la recorre en castellano`,
+            ).toContain(ROUTES[clave]);
+            expect(
+                caminos,
+                `src/config/site.ts declara la ruta ${clave} y el candado no la recorre en ingles`,
+            ).toContain(EN_ROUTES[clave]);
+        }
     });
 
     it("el camino que provoca la 404 no es ninguna ruta conocida del sitio", () => {
@@ -228,37 +330,33 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
      * teclazo la salida de sancionar su propio defecto, y el rojo desaparece sin
      * que nadie lo lea.
      */
-    it("la deuda de zoom sancionada es exactamente la que se acordo, y NUNCA cubre el contenido de las paginas legales", () => {
-        const DEUDA_ESPERADA = [
-            "header|legal",
-            "footer|legal",
-            "header|notFound",
-            "main|notFound",
-            "footer|notFound",
-        ];
-
-        expect(
-            DEUDA_ZOOM.map((d) => d.clave).sort(),
-            `alguien anadio o quito una sancion de zoom: cada entrada apaga una zona ` +
-                `entera del documento, asi que se decide aqui y no de paso`,
-        ).toEqual([...DEUDA_ESPERADA].sort());
-
+    it("NINGUNA zona del sitio esta sancionada: la lista de deuda de zoom sigue vacia", () => {
         /*
-         * EL CANDADO DE ESTE FRENTE, dicho como prohibicion y no como comentario.
-         * `main|legal` es el contenido de `/privacidad` y `/aviso-legal`: lo que
-         * el arreglo del 2026-09-04 cerro y lo que ninguna sancion puede volver a
-         * tapar. Si mañana la ficha identificativa vuelve a perder contenido al
-         * 200 %, el script tiene que salir en rojo -- y la via mas comoda para
-         * silenciarlo seria justo escribir esta clave aqui.
+         * LA LISTA VACIA ES LA ENTREGA DE LA CRITICA #19. La version anterior
+         * sancionaba cinco zonas -- header|legal, footer|legal, header|notFound,
+         * main|notFound, footer|notFound -- y el verificador de la ronda
+         * siguiente reprodujo las cinco con sonda propia: no eran deuda, eran
+         * incumplimientos vivos de WCAG 1.4.4 en produccion. Estan arregladas en
+         * la causa (Navbar/BrandName, Footer, NotFoundContent) y medidas a 0 px
+         * fuera; el docblock de DEUDA_ZOOM lleva el antes y el despues de cada
+         * una.
+         *
+         * Con la lista vacia, CUALQUIER perdida de texto o de control al 200 %
+         * de tamano de fuente pone el script en rojo, en cualquiera de las ocho
+         * superficies. Y la via mas comoda para silenciar ese rojo -- escribir
+         * aqui la zona que acaba de romperse -- cae contra este caso, que
+         * obliga a tomar esa decision a la vista y con la medicion delante.
          */
         expect(
             DEUDA_ZOOM.map((d) => d.clave),
-            `main|legal no puede sancionarse: es el contenido de las paginas legales, ` +
-                `el defecto que este candado existe para cazar`,
-        ).not.toContain("main|legal");
+            `alguien anadio una sancion de zoom: cada entrada apaga una zona entera ` +
+                `del documento en todas las superficies de su tipo. Si de verdad hay ` +
+                `algo que no se puede cerrar, se decide aqui, con su medicion, y no ` +
+                `de paso mientras se apaga un rojo`,
+        ).toEqual([]);
 
-        /* Cada sancion declara un tope POR ENCIMA de lo medido (holgura para el
-           renderizado) pero no un tope absurdo que lo apague todo. */
+        /* La mecanica sigue viva aunque la lista este vacia: el dia que alguien
+           anada una entrada, tendra que declarar tope, medida y motivo. */
         for (const d of DEUDA_ZOOM) {
             expect(
                 d.topePx,
@@ -277,18 +375,44 @@ describe("cobertura del candado de las superficies legales y la 404", () => {
     });
 
     it("una sancion de zoom que ya no se reproduce se denuncia, en vez de quedarse mintiendo", () => {
-        /* Sonda de la tercera regla, la que impide que la lista sobreviva a su
-           propio arreglo. Se comprueba sobre la funcion pura, sin navegador. */
+        /*
+         * Sonda de la tercera regla, la que impide que la lista sobreviva a su
+         * propio arreglo. Se comprueba sobre la funcion pura, sin navegador.
+         *
+         * Con `DEUDA_ZOOM` vacia esta comprobacion no puede hacerse sobre la
+         * lista real sin quedarse vacua, asi que se hace sobre una lista
+         * SINTETICA que se le pasa a la misma funcion: lo que se prueba es la
+         * mecanica, que es lo que tiene que seguir funcionando el dia que
+         * alguien vuelva a sancionar algo.
+         */
         expect(
-            fallosDeDeudaNoObservada(new Set(DEUDA_ZOOM.map((d) => d.clave))),
-            "con todas las deudas observadas no puede sobrar ninguna",
+            fallosDeDeudaNoObservada(new Set()),
+            "sin sanciones declaradas no puede sobrar ninguna",
         ).toEqual([]);
 
-        const sinLaPrimera = new Set(DEUDA_ZOOM.slice(1).map((d) => d.clave));
-        const sobrantes = fallosDeDeudaNoObservada(sinLaPrimera);
+        const sobrantes = fallosDeDeudaNoObservada(new Set(), [
+            {
+                clave: "footer|legal",
+                topePx: 38,
+                medidoPx: 35.22,
+                motivo: "entrada sintetica de este test, no una sancion real del repo",
+            },
+        ]);
         expect(sobrantes).toHaveLength(1);
-        expect(sobrantes[0]).toContain(DEUDA_ZOOM[0].clave);
+        expect(sobrantes[0]).toContain("footer|legal");
         expect(sobrantes[0]).toContain("ya no se reproduce");
+
+        /* Y observada, no sobra: la otra mitad de la mecanica. */
+        expect(
+            fallosDeDeudaNoObservada(new Set(["footer|legal"]), [
+                {
+                    clave: "footer|legal",
+                    topePx: 38,
+                    medidoPx: 35.22,
+                    motivo: "entrada sintetica de este test, no una sancion real del repo",
+                },
+            ]),
+        ).toEqual([]);
     });
 
     it("el zoom que mide la familia de texto es el 200 % que exige WCAG 1.4.4, no un 150 % complaciente", () => {

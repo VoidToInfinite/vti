@@ -438,7 +438,10 @@ describe("legalPage.parts: ancho de ScMain (crítica externa #10, hallazgos A y 
  * un recorte. Lo que sí puede es afirmar que las declaraciones que lo evitan
  * siguen escritas — y, sobre todo, que el CENSO de piezas que las necesitan no
  * ha encogido. La medición en navegador vive en el informe de la tarea y en
- * `scripts/check-legal-surfaces.mjs`, familia `texto-al-200-por-ciento`.
+ * `scripts/check-site-surfaces.mjs`, familia `texto-al-200-por-ciento` (el
+ * script se llamaba `check-legal-surfaces.mjs` hasta la critica externa #19,
+ * 2026-09-04, que amplio su barrido a la portada y le cambio el nombre para que
+ * dijera lo que hace).
  *
  * LA EXTENSIÓN, ATADA. El modo de fallo caro de este repo no es que una regla
  * se borre, es que la LISTA que la vigila encoja: borrar `ScDl` del fichero

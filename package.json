@@ -27,7 +27,7 @@
         "check": "pnpm typecheck && pnpm lint && pnpm check-format",
         "detect-anti-patterns": "node scripts/detect-anti-patterns.mjs",
         "measure:js": "node scripts/measure-home-js.mjs",
-        "check:legal-surfaces": "node scripts/check-legal-surfaces.mjs",
+        "check:site-surfaces": "node scripts/check-site-surfaces.mjs",
         "check:text-contrast": "node scripts/check-text-contrast.mjs",
         "ci": "pnpm typecheck && pnpm lint && pnpm check-format && pnpm detect-anti-patterns && pnpm check:text-contrast && pnpm test",
         "test": "vitest run",

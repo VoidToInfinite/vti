@@ -7,21 +7,29 @@
  * PRIMERA linea, delante del shebang, y el parser de Rollup se rompe con
  * "Parse failure: Expected ident" (reproducido; `check-dark-art-weight.mjs` no
  * sufre esto porque no tiene ningun import dinamico). El script se invoca con
- * `node scripts/check-legal-surfaces.mjs` o con `pnpm check:legal-surfaces`, asi
+ * `node scripts/check-site-surfaces.mjs` o con `pnpm check:site-surfaces`, asi
  * que el shebang no aportaba nada.
  */
 /**
- * Candado de las TRES SUPERFICIES que el protocolo tecnico nunca habia
- * recorrido: /privacidad, /aviso-legal y la 404, cada una en sus dos idiomas.
+ * Candado de TODAS LAS SUPERFICIES DEL SITIO: la portada, los dos documentos
+ * legales y la 404, cada una en sus dos idiomas. Ocho en total.
  *
- * POR QUE EXISTE. Un evaluador tecnico declaro el hueco con nombre: "todo lo
- * anterior es sobre / (home); no se repitio el protocolo en /privacidad,
- * /aviso-legal ni la 404". Son superficies que la ola M cambio a fondo
- * (2026-09-03: montan el Navbar completo del sitio, con su desplegable y su hoja
- * movil) y que nunca habian pasado por un recorrido de teclado, una comprobacion
- * de landmarks, un barrido responsive ni una pasada con las preferencias del
- * sistema activas. Lo que nadie ha medido es lo que aparece como hallazgo nuevo
- * en la ronda siguiente.
+ * SE LLAMABA `check-legal-surfaces.mjs` HASTA EL 2026-09-04, y el nombre era
+ * exacto: recorria seis superficies y ninguna era la portada. La critica
+ * externa #19 midio lo que eso dejaba fuera -- con la preferencia de tamano de
+ * texto al 200 %, la home perdia texto en tres sitios a la vez (el kicker de
+ * Story se salia 42,47 px a 320, la tarjeta de Features 72,50 px en la rama
+ * inglesa, la diapositiva entera de Journey 23,39 px en la rama oscura) y el
+ * candado seguia en verde porque no miraba ahi. Un candado que solo vigila las
+ * superficies pequenas del sitio deja sin vigilar la que ve todo el mundo.
+ *
+ * POR QUE EXISTE. Un evaluador tecnico declaro el hueco original con nombre:
+ * "todo lo anterior es sobre / (home); no se repitio el protocolo en
+ * /privacidad, /aviso-legal ni la 404". Se cerro aquel, y quedo abierto el
+ * simetrico. Ahora las ocho superficies pasan por el MISMO recorrido de
+ * teclado, la misma comprobacion de landmarks, el mismo barrido responsive y la
+ * misma pasada con las preferencias del sistema activas. Lo que nadie ha medido
+ * es lo que aparece como hallazgo nuevo en la ronda siguiente.
  *
  * QUE MIDE, y por que en navegador y no en la suite. Las quince familias de abajo
  * dependen de layout real, de pintado real y de media queries reales: jsdom no
@@ -40,24 +48,29 @@
  * contenido desplazable y pasa a ser contenido PERDIDO. La familia nueva mide las
  * CAJAS, con la raiz a 32 px (el 200 % de WCAG 1.4.4) emulada con
  * `Page.setFontSizes`, que es la misma palanca que la preferencia real del
- * usuario. Su deuda declarada vive en `DEUDA_ZOOM`, mas abajo.
+ * usuario.
+ *
+ * `DEUDA_ZOOM` ESTA VACIA DESDE LA CRITICA #19, y esa lista vacia es la
+ * entrega: las cinco zonas que la version anterior sancionaba estan arregladas
+ * en la causa, no apagadas. Ver su docblock, mas abajo, con el antes y el
+ * despues de cada una.
  *
  * POR QUE NO ESTA EN `pnpm run ci`, dicho explicitamente. Necesita el sitio
  * SERVIDO, y el gate corre antes de `pnpm build` -- el mismo motivo, y el mismo
  * precedente, que `scripts/measure-home-js.mjs`, que tampoco entra por
  * necesitar un `out/`. Lo que SI corre en el gate es
- * `scripts/check-legal-surfaces.test.mjs`, que importa este fichero y afirma
- * que su cobertura no se ha vaciado en silencio: las seis superficies, los dos
- * idiomas, los dos documentos, el barrido completo de anchos, las quince
- * familias, la magnitud del zoom y la lista de deudas sancionadas. Un candado de
- * navegador al que alguien le borra media lista de rutas sigue saliendo verde;
- * ese es justo el fallo que el repo ya pago dos veces con candados que pasaban
- * por vacuidad.
+ * `scripts/check-site-surfaces.test.mjs`, que importa este fichero y afirma
+ * que su cobertura no se ha vaciado en silencio: las ocho superficies, los dos
+ * idiomas, TODAS las rutas que el sitio declara (la portada incluida), el
+ * barrido completo de anchos, las quince familias, la magnitud del zoom y el
+ * hecho de que ninguna zona quede sancionada. Un candado de navegador al que
+ * alguien le borra media lista de rutas sigue saliendo verde; ese es justo el
+ * fallo que el repo ya pago cuatro veces con candados que pasaban por vacuidad.
  *
  * COMO SE USA:
  *
  *     pnpm build && pnpm start          # en otra terminal
- *     pnpm check:legal-surfaces         # o: node scripts/check-legal-surfaces.mjs
+ *     pnpm check:site-surfaces          # o: node scripts/check-site-surfaces.mjs
  *
  * Acepta `--base=<url>` (por defecto http://localhost:3000) y `--tema=dark|light`.
  * Codigo de salida 1 si alguna superficie incumple algo.
@@ -73,16 +86,18 @@
  * ejemplo, con Playwright instalado global dentro de `@playwright/cli`:
  *
  *     PLAYWRIGHT_CORE=".../@playwright/cli/node_modules/playwright-core" \
- *       node scripts/check-legal-surfaces.mjs --base=http://localhost:4321
+ *       node scripts/check-site-surfaces.mjs --base=http://localhost:4321
  *
  * La primera version solo admitia el fichero, aunque su propio comentario
  * repartia la ruta del directorio; con el directorio moria diciendo que
  * Playwright no estaba instalado. Queda medido y cerrado en la ola Q.
  *
- * CIFRAS DE REFERENCIA, medidas CON ESTE MISMO SCRIPT sobre el build de
- * `0226846` servido (Chrome, 1440x900, temas oscuro y claro; veredicto CUMPLE,
+ * CIFRAS DE REFERENCIA, medidas CON ESTE MISMO SCRIPT sobre el build servido de
+ * la critica #19 (Chrome, 1440x900, temas oscuro y claro; veredicto CUMPLE,
  * codigo de salida 0 en los dos temas):
  *
+ *   /                 tocLinks=0  stops=14/23           disclosure=true->false hoja=dialog/0 escapes animaciones=0/35 o 0/82 anchos=12/12
+ *   /en               tocLinks=0  stops=14/23           disclosure=true->false hoja=dialog/0 escapes animaciones=0/35 o 0/82 anchos=12/12
  *   /privacidad       tocLinks=14 stops=28 tocCovered=0 disclosure=true->false hoja=dialog/0 escapes animaciones=0/24 anchos=12/12
  *   /en/privacy       tocLinks=14 stops=28 tocCovered=0 disclosure=true->false hoja=dialog/0 escapes animaciones=0/24 anchos=12/12
  *   /aviso-legal      tocLinks=15 stops=28 tocCovered=0 disclosure=true->false hoja=dialog/0 escapes animaciones=0/24 anchos=12/12
@@ -90,45 +105,53 @@
  *   404 (es)          tocLinks=0  stops=13              disclosure=true->false hoja=dialog/0 escapes animaciones=0/30 anchos=12/12
  *   404 (en)          tocLinks=0  stops=13              disclosure=true->false hoja=dialog/0 escapes animaciones=0/30 anchos=12/12
  *
- * (las cuatro legales responden 200 y las dos ultimas 404; `lang` sale `es` en
- * las castellanas y `en` en las inglesas, y el `sinJs` de las seis trae 16
- * enlaces de cabecera con 10.969 / 10.315 / 5.961 / 5.725 / 67 / 67 caracteres
- * de cuerpo.)
- *
- * REPRODUCIDAS, no heredadas: el frente de correccion de la misma ola volvio a
- * pasar el script sobre el build servido y salieron las mismas cifras, fila por
- * fila, en los dos temas -- «CUMPLE - 6 superficies, 14 familias, cero
- * incumplimientos», codigo de salida 0 en `dark` y en `light`.
+ * (las dos portadas y las cuatro legales responden 200 y las dos ultimas 404;
+ * `lang` sale `es` en las castellanas y `en` en las inglesas, y el `sinJs` de
+ * las ocho trae 16 enlaces de cabecera con 4.930 / 4.726 / 10.969 / 10.315 /
+ * 5.961 / 5.725 / 67 / 67 caracteres de cuerpo. Las dos cifras de `stops` y de
+ * animaciones de la portada son la rama oscura y la clara, que montan piezas
+ * distintas.)
  *
  * CIFRAS DE LA FAMILIA QUINCE, medidas el 2026-09-04 sobre el build servido con
- * el arreglo del P1 de zoom ya dentro, en los dos temas:
+ * los arreglos de la critica #19 ya dentro, en los dos temas:
  *
- *   /privacidad       zoom200=@32px 0 nuevos / 2 deudas vistas
- *   /en/privacy       zoom200=@32px 0 nuevos / 2 deudas vistas
- *   /aviso-legal      zoom200=@32px 0 nuevos / 2 deudas vistas
- *   /en/legal-notice  zoom200=@32px 0 nuevos / 2 deudas vistas
- *   404 (es)          zoom200=@32px 0 nuevos / 3 deudas vistas
- *   404 (en)          zoom200=@32px 0 nuevos / 2 deudas vistas
- *   deuda de zoom     sancionadas=5 observadas=5
+ *   /                 zoom200=@32px 0 perdidas / 1686 (oscuro) o 1710 (claro) cajas de contenido
+ *   /en               zoom200=@32px 0 perdidas / 1686 (oscuro) o 1710 (claro) cajas de contenido
+ *   /privacidad       zoom200=@32px 0 perdidas / 1974 cajas de contenido
+ *   /en/privacy       zoom200=@32px 0 perdidas / 1974 cajas de contenido
+ *   /aviso-legal      zoom200=@32px 0 perdidas / 1302 cajas de contenido
+ *   /en/legal-notice  zoom200=@32px 0 perdidas / 1302 cajas de contenido
+ *   404 (es)          zoom200=@32px 0 perdidas / 498 cajas de contenido
+ *   404 (en)          zoom200=@32px 0 perdidas / 498 cajas de contenido
+ *   deuda de zoom     sancionadas=0 observadas=0
  *
- * «CUMPLE - 6 superficies, 15 familias, 5 deudas de zoom sancionadas, cero
- * incumplimientos», codigo de salida 0 en `dark` y en `light`. «0 nuevos» en las
- * cuatro legales es el arreglo verificado: `main|legal` NO esta sancionada, asi
- * que cualquier perdida de contenido en el cuerpo de un documento legal saldria
- * ahi. Antes del arreglo, con la misma sonda, la ficha identificativa se salia
- * 79,11 px a 320, 39,11 px a 360 y 9,11 px a 390 en las CUATRO rutas y los dos
- * temas.
+ * «CUMPLE - 8 superficies, 15 familias, 0 zonas de zoom sancionadas, cero
+ * incumplimientos», codigo de salida 0 en `dark` y en `light`. El segundo numero
+ * de cada fila es la guarda de vacuidad del filtro: son las cajas con texto
+ * propio o interactivas que la sonda SI evaluo en el barrido completo, y un cero
+ * ahi pone el script en rojo.
+ *
+ * ANTES DE LOS ARREGLOS, con la misma sonda y el mismo build servido (todas
+ * las cifras a 320 px salvo donde se indica): el rotulo de marca 29,72 px fuera
+ * en las ocho superficies (y ademas recortado dentro de un `overflow: hidden`,
+ * caja de 160 px con 238 de contenido); el pie 35,22 px; el `h1` de la 404
+ * 41,28 px (21,28 a 360 y 6,28 a 390); la fila de destinos de la barra 24,13 px
+ * a 768 px con su disparador «Mas» dentro; el kicker de Story 42,47 px (2,47 a
+ * 360); la tarjeta de Features 72,50 px en la rama inglesa (2,50 a 390); la
+ * diapositiva de Journey 23,39 px en la rama oscura; el circulo decorativo de
+ * Features 18 px. Todas a 0 px despues.
  *
  * Las dos inyecciones que validan esta familia, con su rojo literal:
  *
- *   - anadiendo `main|legal` a `DEUDA_ZOOM` (una sancion que ya no se
- *     reproduce) -- «NO CUMPLE  la deuda de zoom main|legal ya no se reproduce
- *     (se sanciono hasta 80 px, medida 79.11 px): si se arreglo, borrala de
- *     DEUDA_ZOOM; si no, la sonda dejo de verla», EXIT=1;
- *   - quitando `footer|legal` de `DEUDA_ZOOM` -- «NO CUMPLE  con el texto al
+ *   - devolviendo `overflow-wrap: break-word` a `ScStory` (`Story.tsx`), que es
+ *     exactamente la version anterior del arreglo -- «NO CUMPLE  con el texto al
  *     200 % (raiz 32 px) se pierde contenido en una zona NO sancionada, sin
- *     scroll horizontal que lo alcance: 320px footer/div 35.22 px fuera
- *     (...)», 27 elementos por superficie, EXIT=1.
+ *     scroll horizontal que lo alcance: 320px main/span 42.47 px fuera ("¿Por
+ *     que VoidToInfinite?"); 360px main/span 2.47 px fuera (...)», EXIT=1;
+ *   - anadiendo `footer|legal` a `DEUDA_ZOOM` (una sancion que ya no se
+ *     reproduce) -- «NO CUMPLE  la deuda de zoom footer|legal ya no se reproduce
+ *     (se sanciono hasta 38 px, medida 35.22 px): si se arreglo, borrala de
+ *     DEUDA_ZOOM; si no, la sonda dejo de verla», EXIT=1.
  *
  * Restauradas las dos, verde otra vez en los dos temas.
  *
@@ -143,10 +166,10 @@
  * tabulaciones. `animaciones=0/24` se lee "cero vivas con la preferencia activa,
  * 24 corriendo sin ella": el segundo numero es la sonda que impide que el cero
  * signifique "no habia nada que parar". Cero controles invisibles bajo
- * `forced-colors: active` en las seis.
+ * `forced-colors: active` en las ocho.
  *
- * `lang` en las dos rutas inglesas es el del DOM VIVO. El HTML horneado sirve
- * `lang="es"` en las seis rutas: es un limite conocido y declarado de
+ * `lang` en las cuatro rutas inglesas es el del DOM VIVO. El HTML horneado sirve
+ * `lang="es"` en las ocho rutas: es un limite conocido y declarado de
  * `output: "export"`, con su porque medido en el docblock de `app/layout.tsx`
  * (dos `<html lang>` exigirian dos root layouts, y eso es incompatible con
  * tener una 404 propia). Este script mide el DOM porque es lo que anuncia un
@@ -163,19 +186,44 @@ import { pathToFileURL } from "node:url";
 export const EN_PREFIX = "/en";
 
 /**
- * Las seis superficies del encargo, DERIVADAS de los dos documentos legales y de
- * los dos idiomas en vez de tecleadas una a una: si manana nace un tercer
- * documento legal, se anade a `LEGAL_DOCS` y las dos rutas nuevas entran solas.
+ * Las superficies del encargo, DERIVADAS de los documentos del sitio y de los
+ * dos idiomas en vez de tecleadas una a una: si manana nace un tercer documento
+ * legal, se anade a `LEGAL_DOCS` y las dos rutas nuevas entran solas.
  */
 export const LEGAL_DOCS = [
     { id: "privacy", es: "/privacidad", en: `${EN_PREFIX}/privacy` },
     { id: "legalNotice", es: "/aviso-legal", en: `${EN_PREFIX}/legal-notice` },
 ];
 
+/**
+ * LA PORTADA, en sus dos idiomas. Entra el 2026-09-04 con la critica externa
+ * #19, y su ausencia era el hallazgo: el candado recorria las paginas pequenas
+ * del sitio y no la que ve todo el mundo, asi que tres perdidas de texto
+ * distintas al 200 % de tamano de fuente convivieron con este script en verde.
+ *
+ * Su ruta inglesa es exactamente `EN_PREFIX` (la rama `/en` no tiene segmento
+ * propio para la portada), y eso lo ata el test companero contra
+ * `EN_ROUTES.home` de `src/config/site.ts` -- la misma fuente unica de la que
+ * salen las rutas legales, no un par de strings gemelos escritos aqui.
+ */
+export const HOME_DOC = { id: "home", es: "/", en: EN_PREFIX };
+
 /** Camino inexistente con el que se provoca la 404 en cada rama de idioma. */
 export const BROKEN_SEGMENT = "ruta-que-no-existe-candado-q2";
 
 export const SURFACES = [
+    {
+        nombre: HOME_DOC.es,
+        path: HOME_DOC.es,
+        locale: "es",
+        kind: "home",
+    },
+    {
+        nombre: HOME_DOC.en,
+        path: HOME_DOC.en,
+        locale: "en",
+        kind: "home",
+    },
     ...LEGAL_DOCS.flatMap((doc) => [
         { nombre: doc.es, path: doc.es, locale: "es", kind: "legal" },
         { nombre: doc.en, path: doc.en, locale: "en", kind: "legal" },
@@ -254,73 +302,52 @@ export const ROOT_FONT_BASE_PX = 16;
 export const ZOOM_FONT_PX = ROOT_FONT_BASE_PX * 2;
 
 /**
- * LA DEUDA DE ZOOM QUE ESTE CANDADO SANCIONA HOY, y por que existe la lista.
+ * LA LISTA DE ZONAS SANCIONADAS, HOY VACIA, Y POR QUE ESA LISTA VACIA ES LA
+ * ENTREGA (critica externa #19, 2026-09-04).
  *
- * La sonda `probePerdidaHorizontal` mide el DOCUMENTO ENTERO, que es lo que
- * WCAG 1.4.4 exige. La primera corrida, sobre el build servido del 2026-09-04,
- * encontro cinco focos: el que este frente arreglo --la ficha identificativa de
- * los dos documentos legales, dentro de `main`-- y otros cuatro que viven en
- * `Navbar`, en `Footer` y en el `h1` de la 404, es decir en tres dominios
- * distintos del de este arreglo. Dejar el candado en rojo indefinido por ellos
- * lo convertiria en un semaforo que nadie mira; borrarlos de la medicion seria
- * exactamente el fraude que este repo ya pago cuatro veces en esta misma ola.
+ * La version anterior de este fichero sancionaba cinco zonas -- `header|legal`,
+ * `footer|legal`, `header|notFound`, `main|notFound`, `footer|notFound` --
+ * declarando que estaban fuera del dominio de aquel arreglo. El verificador de
+ * la ronda siguiente las reprodujo una a una con sonda propia y dejo escrito lo
+ * que son: incumplimientos vivos de WCAG 1.4.4 en produccion, no deuda. Una
+ * sancion apaga el rojo sin arreglar nada, y lo hace igual de bien tanto si el
+ * defecto sigue ahi como si no.
  *
- * Asi que se SANCIONAN, con la misma figura que la allowlist documentada de
- * `detect-anti-patterns.mjs`, y con la lista atada en los DOS sentidos:
+ * Las cinco estan cerradas EN LA CAUSA. Medido en Chrome real sobre el build de
+ * produccion con la raiz a 32px, antes y despues, en los dos temas:
  *
- *   - una perdida en una zona que NO esta aqui pone el script en rojo;
+ *   header|legal / header|notFound  el rotulo de marca se cortaba a media letra
+ *     dentro de un overflow: hidden (caja de 160 px con 238 de contenido) y
+ *     terminaba 29,72 px fuera del viewport a 320 px; y la fila de destinos se
+ *     salia 24,13 px a 768 px con su disparador «Mas» dentro. Ahora el rotulo
+ *     ENVUELVE (`flex-wrap: wrap` en `BrandName`, `overflow: hidden` retirado de
+ *     `ScBrandLink`) y el texto de la barra puede partirse. 0 px fuera.
+ *   footer|legal / footer|notFound  el pie se salia 35,22 px a 320 px: la pista
+ *     `1fr` de `ScInner` se enrasaba al min-content de la direccion de correo
+ *     (307 px en una caja de 224). Ahora `minmax(0, 1fr)` + `min-width: 0` en
+ *     las columnas + `overflow-wrap: anywhere` en el enlace. 0 px fuera.
+ *   main|notFound  el `h1` pedia 402,56 px en una caja de 224 y desbordaba por
+ *     los DOS lados (left -41,28 / right 361,28). Ahora ningun hijo de `ScMain`
+ *     pasa de `max-width: 100%` y el `hyphens: auto` que ya heredaba parte la
+ *     palabra. 0 px fuera.
+ *
+ * LA MECANICA SE CONSERVA, con la lista vacia, y no es codigo muerto: es lo que
+ * hace falta el dia que alguien quiera volver a sancionar algo, y lo que obliga
+ * a que esa decision se tome aqui, a la vista, en vez de de paso. Las tres
+ * reglas siguen siendo:
+ *
+ *   - una perdida en una zona que NO esta aqui pone el script en rojo (con la
+ *     lista vacia: CUALQUIER perdida lo pone en rojo);
  *   - una perdida que SUPERA el tope de su entrada pone el script en rojo;
  *   - y una entrada que NO se observa ni una vez en la corrida completa TAMBIEN
  *     pone el script en rojo, pidiendo que se retire. Sin esa tercera regla la
- *     lista podria quedarse mintiendo para siempre: quien arreglase el pie
- *     dejaria aqui una sancion viva que taparia la SIGUIENTE regresion del pie.
+ *     lista podria quedarse mintiendo para siempre.
  *
- * La clave es `<zona>|<kind de superficie>`. No se sanciona por elemento ni por
- * ancho a proposito: el numero que importa es cuanto contenido se pierde, y
- * afinar mas volveria la lista tan fragil que el primer retoque de copy la
- * pondria roja sin que nada hubiera empeorado.
- *
- * `main|legal` NO ESTA NI PUEDE ESTAR EN ESTA LISTA. Es el dominio que este
- * frente cerro, y su ausencia es el candado: cualquier regresion futura de las
- * paginas legales cae aqui como zona no sancionada. El test companero lo exige
- * por escrito, para que nadie la "arregle" mañana añadiendola.
- *
- * Los topes son el peor caso MEDIDO mas ~2-3 px de holgura, para que un cambio
- * de fuente o un redondeo distinto no den un rojo falso; el valor medido va
- * escrito en cada entrada para que se vea cuanta holgura hay.
+ * La clave es `<zona>|<kind de superficie>`. El test companero exige que la
+ * lista siga VACIA: anadir una entrada obliga a cambiar el test en el mismo
+ * commit, con la medicion delante, que es exactamente la friccion que faltaba.
  */
-export const DEUDA_ZOOM = [
-    {
-        clave: "header|legal",
-        topePx: 40,
-        medidoPx: 37.14,
-        motivo: "la fila de navegacion castellana no cabe a 768 px con la raiz a 32 px (Navbar, fuera del dominio de este arreglo)",
-    },
-    {
-        clave: "footer|legal",
-        topePx: 38,
-        medidoPx: 35.22,
-        motivo: "el pie se sale a 320 px: el correo de contacto es el mismo token indivisible que rompia la ficha legal, aqui sin regla de envoltura (Footer)",
-    },
-    {
-        clave: "header|notFound",
-        topePx: 42,
-        medidoPx: 39.5,
-        motivo: "el mismo defecto del Navbar, medido sobre la 404",
-    },
-    {
-        clave: "main|notFound",
-        topePx: 44,
-        medidoPx: 41.28,
-        motivo: "el h1 de la 404 no parte «encontrada» y se sale hasta 41,28 px a 320 px (app/not-found)",
-    },
-    {
-        clave: "footer|notFound",
-        topePx: 38,
-        medidoPx: 35.22,
-        motivo: "el mismo defecto del Footer, medido sobre la 404",
-    },
-];
+export const DEUDA_ZOOM = [];
 
 /** Sancion aplicable a una perdida, o `undefined` si esa zona no esta sancionada. */
 function sancionDeZoom(zona, kind) {
@@ -330,12 +357,20 @@ function sancionDeZoom(zona, kind) {
 /**
  * Deudas declaradas que la corrida completa NO llego a observar. Cada una es un
  * fallo: o se arreglo y sobra, o la sonda dejo de verla y la lista miente.
+ *
+ * `lista` es un parametro con valor por defecto, y no un capricho de firma: con
+ * `DEUDA_ZOOM` vacia -- que es como esta desde la critica #19 -- probar esta
+ * mecanica contra la lista real seria probar el vacio. El test companero le pasa
+ * una lista SINTETICA para verificar que sigue funcionando el dia que alguien
+ * vuelva a sancionar algo. En produccion se llama sin el segundo argumento.
  */
-export function fallosDeDeudaNoObservada(clavesVistas) {
-    return DEUDA_ZOOM.filter((d) => !clavesVistas.has(d.clave)).map(
-        (d) =>
-            `la deuda de zoom ${d.clave} ya no se reproduce (se sanciono hasta ${d.topePx} px, medida ${d.medidoPx} px): si se arreglo, borrala de DEUDA_ZOOM; si no, la sonda dejo de verla`,
-    );
+export function fallosDeDeudaNoObservada(clavesVistas, lista = DEUDA_ZOOM) {
+    return lista
+        .filter((d) => !clavesVistas.has(d.clave))
+        .map(
+            (d) =>
+                `la deuda de zoom ${d.clave} ya no se reproduce (se sanciono hasta ${d.topePx} px, medida ${d.medidoPx} px): si se arreglo, borrala de DEUDA_ZOOM; si no, la sonda dejo de verla`,
+        );
 }
 
 /** Alto de la banda del navbar en px (`--nav-height` + `--nav-gap`), solo para
@@ -452,7 +487,7 @@ function probeOverflow() {
 }
 
 /**
- * Contenido que se sale del viewport SIN forma de alcanzarlo.
+ * Contenido o funcionalidad que se sale del viewport SIN forma de alcanzarlo.
  *
  * No basta con mirar `documentElement.scrollWidth`, que es lo que hace
  * `probeOverflow`: `GlobalStyles` declara `html, body { overflow-x: clip }` --a
@@ -466,14 +501,49 @@ function probeOverflow() {
  * almacenamiento dentro de `ScTableWrap`, con su `overflow-x: auto`, su
  * `role="region"` y su `tabindex="0"`) no cuenta: ahi el contenido se alcanza
  * con el dedo, con la rueda y con el teclado.
+ *
+ * QUE CUENTA COMO PERDIDA, Y POR QUE EL FILTRO NO ES UNA PUERTA TRASERA. WCAG
+ * 1.4.4 habla de "loss of content or functionality", asi que la sonda cuenta
+ * exactamente eso: un elemento con TEXTO PROPIO (un nodo de texto directo no
+ * vacio) o INTERACTIVO (`a`, `button`, campos de formulario, cualquier cosa con
+ * `tabindex`). Lo que queda fuera es el arte: las capas a sangre de las escenas
+ * (`aria-hidden`, `alt=""`) se sobredimensionan A PROPOSITO -- regla 22 de
+ * `RULES.md` exige que una capa que se traslada sobresalga al menos su recorrido
+ * por lado -- y sobresalen EXACTAMENTE IGUAL con la raiz por defecto: medido en
+ * el mismo build a 320, 360 y 390 px, la escena del hero se sale 136 / 153 /
+ * 165,75 px con la raiz a 16 y los MISMOS 136 / 153 / 165,75 px con la raiz a
+ * 32. Contarlas seria medir una decision de diseno en vez del defecto, y con la
+ * lista de sanciones vacia el script no tendria como distinguir una de otro.
+ *
+ * El filtro no puede vaciar la sonda en silencio: se devuelve `candidatos`, el
+ * numero de elementos que SI eran contenido o funcionalidad en esta pasada, y
+ * `auditarSuperficie` pone el script en rojo si esa cuenta llega a cero. Un
+ * filtro que dejara de ver texto se delataria en la primera corrida.
+ *
+ * `visibility: hidden` queda fuera por lo mismo: el panel del desplegable de la
+ * barra vive cerrado en el DOM y no pinta nada; su caja no es contenido que
+ * nadie pueda perder.
  */
 function probePerdidaHorizontal() {
     const raiz = document.documentElement;
     const cw = raiz.clientWidth;
     const perdidos = [];
+    let candidatos = 0;
+    const INTERACTIVOS = "a,button,input,select,textarea,summary,[tabindex]";
     for (const el of document.querySelectorAll("body *")) {
+        const tieneTextoPropio = [...el.childNodes].some(
+            (n) => n.nodeType === 3 && n.textContent.trim().length > 0,
+        );
+        const esInteractivo = el.matches(INTERACTIVOS);
+        if (!tieneTextoPropio && !esInteractivo) continue;
+
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.visibility === "collapse")
+            continue;
         const r = el.getBoundingClientRect();
         if (r.width === 0 && r.height === 0) continue;
+        candidatos += 1;
+
         const sobra = r.right - cw;
         if (sobra <= 1) continue;
         let alcanzable = false;
@@ -503,6 +573,7 @@ function probePerdidaHorizontal() {
     return {
         rootFontPx: parseFloat(getComputedStyle(raiz).fontSize),
         clientWidth: cw,
+        candidatos,
         perdidos,
     };
 }
@@ -1048,9 +1119,23 @@ async function auditarSuperficie(browser, base, theme, surface) {
      * ya esta atada por el test companero (los dos extremos del encargo, el
      * escalon `md`, estrictamente creciente), y una segunda lista seria una
      * segunda cosa que puede encoger sin que nadie se entere.
+     *
+     * CON `reducedMotion: reduce`, y esto hay que explicarlo porque parece una
+     * concesion y no lo es. Las secciones de la home entran con un reveal cuyo
+     * estado de reposo incluye un desplazamiento horizontal
+     * (`transform: translateX(16%)` en la tercera linea del statement de Story,
+     * por ejemplo). Medida sin la preferencia, esa linea aparece 44,19 px fuera
+     * del viewport a 1920 px -- pero no es contenido perdido: es el fotograma
+     * inicial de una animacion que aterriza dentro en cuanto la seccion se
+     * revela. Con `reduce` el repo declara los estados FINALES de esos reveals
+     * (opacity 1, transform none), asi que la sonda mide la composicion asentada
+     * en vez de un instante de su entrada. Y es ademas la combinacion que de
+     * verdad importa: quien sube el tamano de texto por necesidad suele llevar
+     * tambien la preferencia de movimiento reducido.
      */
     ctx = await nuevoContexto(browser, theme, {
         viewport: { width: WIDTH_SWEEP[WIDTH_SWEEP.length - 1], height: 900 },
+        reducedMotion: "reduce",
     });
     page = await ctx.newPage();
     const cdp = await ctx.newCDPSession(page);
@@ -1062,11 +1147,13 @@ async function auditarSuperficie(browser, base, theme, surface) {
     const excedidas = [];
     const deudaVista = new Set();
     let raizMedida = null;
+    let candidatosVistos = 0;
     for (const width of WIDTH_SWEEP) {
         await page.setViewportSize({ width, height: 900 });
         await page.waitForTimeout(220);
         const z = await page.evaluate(probePerdidaHorizontal);
         raizMedida = z.rootFontPx;
+        candidatosVistos += z.candidatos;
         for (const p of z.perdidos) {
             const sancion = sancionDeZoom(p.zona, surface.kind);
             if (!sancion) {
@@ -1083,9 +1170,19 @@ async function auditarSuperficie(browser, base, theme, surface) {
         }
     }
     await ctx.close();
-    datos.zoom200 = `@${raizMedida}px ${sinSancionar.length} nuevos / ${deudaVista.size} deudas vistas`;
+    datos.zoom200 = `@${raizMedida}px ${sinSancionar.length} perdidas / ${candidatosVistos} cajas de contenido`;
 
     // [check: texto-al-200-por-ciento]
+    /* Segunda guarda de vacuidad, la del FILTRO (critica externa #19): la sonda
+       solo mira cajas con texto propio o interactivas, y un filtro que dejara de
+       ver esas cajas -- un cambio de marcado, un selector mal escrito -- dejaria
+       el barrido midiendo el vacio y saliendo verde. La cuenta de candidatos es
+       de miles en cualquier superficie real; cero significa que el instrumento
+       esta roto, no que la pagina este limpia. */
+    if (candidatosVistos === 0)
+        fallos.push(
+            "la sonda de zoom no encontro ni una sola caja con texto o interactiva en todo el barrido: el filtro esta roto y el resultado seria vacuo",
+        );
     /* Guarda de vacuidad, y no es teorica: si la emulacion no llega a la pagina
        -- version de Chrome sin `Page.setFontSizes`, sesion de CDP caida, un
        `html { font-size: 16px }` que fije la raiz --, el barrido de arriba mide
@@ -1174,7 +1271,7 @@ export async function auditLegalSurfaces({
  */
 if (
     process.argv[1] &&
-    process.argv[1].replace(/\\/g, "/").endsWith("check-legal-surfaces.mjs")
+    process.argv[1].replace(/\\/g, "/").endsWith("check-site-surfaces.mjs")
 ) {
     const arg = (nombre, porDefecto) => {
         const encontrado = process.argv.find((a) =>
@@ -1204,7 +1301,7 @@ if (
        una superficie, es el balance de `DEUDA_ZOOM` sobre la corrida completa. */
     console.log(
         incumple === 0
-            ? `CUMPLE - ${SURFACES.length} superficies, ${CHECKS.length} familias, ${DEUDA_ZOOM.length} deudas de zoom sancionadas, cero incumplimientos (tema ${theme}, base ${base})`
+            ? `CUMPLE - ${SURFACES.length} superficies, ${CHECKS.length} familias, ${DEUDA_ZOOM.length} zonas de zoom sancionadas, cero incumplimientos (tema ${theme}, base ${base})`
             : `NO CUMPLE - ${incumple} incumplimiento(s) en ${SURFACES.length} superficies`,
     );
     process.exit(incumple === 0 ? 0 : 1);
