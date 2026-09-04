@@ -1490,18 +1490,6 @@ const ALLOWLIST = [
     // moverse en silencio.
     {
         family: "duration-literal",
-        file: "src/components/scenes/eye/eye.parts.tsx",
-        anchors: [
-            {
-                snippet:
-                    'glow === "strong" ? "7s" : glow === "soft" ? "9s" : undefined;',
-                lines: [196],
-            },
-        ],
-        reason: "Duracion del bucle de resplandor ambiental del ojo (eyeStagger, dos intensidades en la misma linea: 7s fuerte y 9s suave; el motor reporta la primera). Escena decorativa aria-hidden, mismo caso y mismo motivo que la curva ease-in-out de este mismo fichero ya sancionada en easing-keyword: es el latido de fondo del hero oscuro, un ambiente en bucle infinito cuyo ritmo no es una duracion de interfaz. Ningun paso de motion.duration llega a esa escala (la mas larga, spinReduced, mide 2100ms).",
-    },
-    {
-        family: "duration-literal",
         file: "src/components/scenes/eye/mascots/Sol.tsx",
         anchors: [
             { snippet: "animation: ${solSpin} 900ms", lines: [169] },
@@ -1834,17 +1822,6 @@ const ALLOWLIST = [
     },
     {
         family: "duration-const",
-        file: "src/components/sections/Story/story.layers.ts",
-        anchors: [
-            {
-                snippet: "export const STORY_FIGURE_FLOAT_MS = 9000;",
-                lines: [235],
-            },
-        ],
-        reason: "STORY_FIGURE_FLOAT_MS (9000): la flotacion de la figura, verbatim del mockup (vtiFloat6, 9s), bucle ambiental un orden de magnitud fuera de la escala. Hasta la integracion de la ola J (2026-09-02) esta entrada sancionaba tambien STORY_SCRUB_MS = 320, el caso de PROCEDENCIA en estado puro (atado a motion.duration.slow por un TEST, no derivado en codigo); ya deriva de motion.durationMs.slow con cero cambio de valor y la familia deja de verlo -- que es exactamente lo que la familia existe para provocar.",
-    },
-    {
-        family: "duration-const",
         file: "src/hooks/useFragmentLanding.ts",
         anchors: [
             {
@@ -1896,10 +1873,11 @@ const ALLOWLIST = [
         file: "src/motion/vocabulary.ts",
         anchors: [
             { snippet: "breathMs: 5400,", lines: [613] },
-            { snippet: "floatMs: 9000,", lines: [614] },
-            { snippet: "orbitMs: 20000,", lines: [615] },
+            { snippet: "glowMs: 7000,", lines: [668] },
+            { snippet: "floatMs: 9000,", lines: [669] },
+            { snippet: "orbitMs: 20000,", lines: [670] },
         ],
-        reason: "Los tres campos de AMBIENT (breathMs 5400, floatMs 9000, orbitMs 20000): bucles infinitos de escenas decorativas, entre 2,5 y 9,5 veces el peldano mas largo de la escala de interfaz (spinReduced, 2100 ms). Es la UNICA excepcion que queda en este fichero tras la critica externa #14: los seis campos de tiempo de REVEAL/DECK/OVERLAY/PRESS pasaron a leer motion.durationMs.* en esa misma ola, y vocabulary.test.ts canda en POSITIVO las dos mitades -- que esos seis esten dentro de la escala y que los tres de AMBIENT esten fuera. Meter bucles de 5 a 20 segundos en una escala de transiciones la convertiria en un cajon.",
+        reason: 'Los CUATRO campos de AMBIENT (breathMs 5400, glowMs 7000, floatMs 9000, orbitMs 20000): bucles infinitos de escenas decorativas, entre 2,5 y 9,5 veces el peldano mas largo de la escala de interfaz (spinReduced, 2100 ms). Es la UNICA excepcion que queda en este fichero tras la critica externa #14: los seis campos de tiempo de REVEAL/DECK/OVERLAY/PRESS pasaron a leer motion.durationMs.* en esa misma ola, y vocabulary.test.ts canda en POSITIVO las dos mitades -- que esos seis esten dentro de la escala y que los de AMBIENT esten fuera. Meter bucles de 5 a 20 segundos en una escala de transiciones la convertiria en un cajon. EL CUARTO CAMPO, glowMs, lo anade la critica externa #18 (2026-09-04) y ES EL MOTIVO DE QUE DOS ENTRADAS DESAPAREZCAN DE ESTE ALLOWLIST: el `"7s"`/`"9s"` de eye.parts.tsx (duration-literal, los ultimos literales de tiempo en SEGUNDOS del repo fuera de Sol/Wormhole) y el STORY_FIGURE_FLOAT_MS = 9000 de story.layers.ts (duration-const, gemelo literal de floatMs) pasan a interpolar el vocabulario, con cero cambio de valor renderizado, y las dos familias dejan de verlos -- que es exactamente lo que existen para provocar.',
     },
     {
         family: "delay-const",

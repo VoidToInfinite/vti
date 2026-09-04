@@ -139,6 +139,34 @@ export const CONTACT_FIGURE_TOP = "80px";
  * `document.styleSheets`, nunca `getComputedStyle`).
  */
 export const CONTACT_FLOAT_AMPLITUDE = "-4px";
+/**
+ * NO ES UN `AMBIENT.floatMs` MAL ESCRITO. Medido y decidido en la crítica
+ * externa #18 (2026-09-04), que unificó el resto del ritmo de flotación del
+ * repo y dejó este número donde estaba.
+ *
+ * QUÉ SE MIDIÓ. En esa ola se cerró que `STORY_FIGURE_FLOAT_MS` (9000) era un
+ * gemelo literal de `AMBIENT.floatMs` y pasó a derivar de él. La pregunta
+ * legítima es si este 8000 es el mismo rol escrito con otro número: la figura
+ * de Story y la de Contacto son las dos una figura decorativa que levita con
+ * el MISMO keyframe (`translateY(0)` en 0/100 %, un desplazamiento negativo al
+ * 50 %), en secciones distintas de la misma página.
+ *
+ * POR QUÉ SE QUEDA. Los dos valores no son una coincidencia sin dueño: cada
+ * uno viene VERBATIM de un keyframe distinto del mockup aprobado —
+ * `vtiFloat6` para Story (amplitud −6px, 9 s) y `vtiFloat4` para Contacto
+ * (amplitud −4px, 8 s)—, es decir, el mockup declaraba una familia de
+ * flotaciones parametrizada por amplitud, con su periodo emparejado. Eso es
+ * evidencia EXTERNA al código, del mismo tipo que conserva `space[10]` y del
+ * que a `zIndex.toast` le faltaba. Y fundirlos CAMBIARÍA lo que se pinta hoy
+ * (el periodo de esta figura, un 12,5 % más lento), que es una decisión de
+ * diseño; nombrar una medida repetida no lo es — mismo criterio que el
+ * docblock de `type.scale.wordmark` deja escrito.
+ *
+ * QUÉ LO CAMBIARÍA: que el dueño decida que las dos figuras deben latir al
+ * mismo ritmo. En ese momento esta constante pasa a leer `AMBIENT.floatMs`,
+ * como ya hace la de Story, y el par amplitud/periodo del mockup deja de
+ * gobernar. No es un refactor de vocabulario: se ve.
+ */
 export const CONTACT_FIGURE_FLOAT_MS = 8000;
 
 /**

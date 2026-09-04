@@ -4,6 +4,7 @@ import {
   HERO_FADE_MS,
   HERO_STEP_MS,
 } from "@/components/sections/Hero/hero.transition";
+import { AMBIENT } from "@/motion/vocabulary";
 import {
   EYE_ASPECT,
   EYE_CENTER,
@@ -192,8 +193,29 @@ function eyeStagger(part: string | undefined, glow?: "strong" | "soft") {
   const step = eyeStep(part);
   const glowAnim =
     glow === "strong" ? glowStrong : glow === "soft" ? glowSoft : undefined;
+  /*
+   * RITMO DE LA RESPIRACION DE LA CORONA, del vocabulario y en UNA sola
+   * unidad (critica externa #18, 2026-09-04). Hasta esa revision estos dos
+   * tiempos eran los literales `"7s"` y `"9s"`, los unicos valores de este
+   * repo escritos en segundos que ademas tenian gemelo en milisegundos: el
+   * CSS servido del tema oscuro llevaba `9s` x3 conviviendo con `9000ms` x8,
+   * y `7s` x3 con `7000ms`. Mismo numero, dos idiomas.
+   *
+   * LOS DOS PELDANOS SON DISTINTOS A PROPOSITO, y no es una casualidad que
+   * convenga preservar: `iris` (glow "strong") y `pupil` (glow "soft") ocupan
+   * EXACTAMENTE el mismo rectangulo -- medido en navegador real sobre el
+   * build servido, tema oscuro, 1440x900: [0, 45, 1440, 810] los dos --, asi
+   * que son dos resplandores superpuestos y simultaneos. Con 7 y 9 segundos
+   * vuelven a coincidir de fase cada 63 s; con el mismo peldano latirian al
+   * unisono desde el primer ciclo. El docblock de `AMBIENT.glowMs` lleva el
+   * razonamiento completo y la medicion.
+   */
   const glowDurationMs =
-    glow === "strong" ? "7s" : glow === "soft" ? "9s" : undefined;
+    glow === "strong"
+      ? `${AMBIENT.glowMs}ms`
+      : glow === "soft"
+        ? `${AMBIENT.floatMs}ms`
+        : undefined;
 
   return css`
     opacity: 1;

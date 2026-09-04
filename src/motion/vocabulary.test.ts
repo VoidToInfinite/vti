@@ -1,5 +1,9 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import { REVEAL, DECK, OVERLAY, PRESS, AMBIENT } from "./vocabulary";
+import { STORY_FIGURE_FLOAT_MS } from "@/components/sections/Story/story.layers";
 import { motion } from "@/theme/tokens/motion";
 
 /**
@@ -87,9 +91,10 @@ describe("vocabulary", () => {
    * (mismo valor exacto, 40000, sin necesitar un cuarto campo). Ver el
    * docblock de AMBIENT en vocabulary.ts para el criterio completo.
    */
-  it("AMBIENT expone su contrato exacto (Task 20: colapsado de 5 a 3 campos)", () => {
+  it("AMBIENT expone su contrato exacto (crítica #18: cuatro campos, con glowMs)", () => {
     const expectedAmbient = {
       breathMs: 5400,
+      glowMs: 7000,
       floatMs: 9000,
       orbitMs: 20000,
     };
@@ -189,5 +194,135 @@ describe("vocabulary: procedencia de tiempos y curvas", () => {
       expect(escalaMs).not.toContain(valor);
       expect(valor).toBeGreaterThan(masLargo * 2);
     }
+  });
+});
+
+/**
+ * CANDADO DEL RITMO DE FLOTACIÓN: una sola fuente y una sola unidad (crítica
+ * externa #18, 2026-09-04).
+ *
+ * EL DEFECTO QUE ATRAPA, medido antes de arreglarlo sobre el build de
+ * producción servido (tema oscuro, 1440x900, `document.visibilityState` en
+ * `visible`): el mismo ritmo ambiental estaba declarado CUATRO veces y en DOS
+ * sistemas de unidades. `AMBIENT.floatMs` (9000, el token), un gemelo literal
+ * `STORY_FIGURE_FLOAT_MS = 9000` en `story.layers.ts`, el literal CSS `"9s"`
+ * de `eye.parts.tsx` y —con otro número y otro rol— el 8000 de Contacto. En
+ * el CSS realmente servido convivían `9000ms` x8 con `9s` x3, y `7000ms` con
+ * `7s` x3: mismo número, dos idiomas, indistinguibles al leer el CSS
+ * renderizado.
+ *
+ * LOS TRES TESTS MIDEN TRES COSAS DISTINTAS, a propósito:
+ *  1. La FUENTE: que la constante de Story no vuelva a declarar el número.
+ *     Un test de valor no bastaría — `9000 === AMBIENT.floatMs` pasa en verde
+ *     con el literal de vuelta (`task/lessons.md`, 2026-08-12), así que este
+ *     lee el fichero.
+ *  2. La UNIDAD: que ningún fichero nuevo escriba una duración en SEGUNDOS.
+ *     La lista de los que todavía lo hacen está cerrada y es la deuda
+ *     declarada de esta ola (el arte del mascota y del agujero de gusano,
+ *     fuera del alcance de este cambio); cualquier fichero de más pone el
+ *     gate en rojo.
+ *  3. El PAR: que los dos resplandores superpuestos del ojo no acaben
+ *     colapsados en el mismo peldaño. Es el riesgo que introduce tokenizar
+ *     —"los dos son ambientales, que lean el mismo campo"— y destruiría lo
+ *     único que hace que la composición funcione: que no laten a la vez.
+ */
+describe("el ritmo de flotación tiene UNA fuente y UNA unidad (crítica #18)", () => {
+  const raizProyecto = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+  );
+  const RAICES = ["src", "app"];
+  const EXTENSIONES = new Set([".ts", ".tsx"]);
+
+  function recorrer(dir: string, salida: string[] = []): string[] {
+    for (const entrada of readdirSync(dir)) {
+      const completo = join(dir, entrada);
+      if (statSync(completo).isDirectory()) recorrer(completo, salida);
+      else if (EXTENSIONES.has(extname(completo))) salida.push(completo);
+    }
+    return salida;
+  }
+
+  function ficherosDeProduccion(): string[] {
+    return RAICES.flatMap((raiz) => recorrer(join(raizProyecto, raiz))).filter(
+      (f) => !f.endsWith(".test.ts") && !f.endsWith(".test.tsx"),
+    );
+  }
+
+  function relativo(fichero: string): string {
+    return fichero
+      .slice(raizProyecto.length + 1)
+      .split("\\")
+      .join("/");
+  }
+
+  /* Mismo despojo que el resto de censos del repo: sin él, los docblocks de
+     esta ola —que citan `"9s"` y `9000` en prosa para explicar la migración—
+     bastarían para poner el candado en rojo por hablar del problema. */
+  function despojar(fuente: string): string {
+    return fuente
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(?<!:)\/\/.*$/gm, "");
+  }
+
+  it("Story no declara el ritmo: lo lee de AMBIENT.floatMs", () => {
+    const fuente = readFileSync(
+      join(raizProyecto, "src/components/sections/Story/story.layers.ts"),
+      "utf-8",
+    );
+    const declaracion = /export const STORY_FIGURE_FLOAT_MS =([^;]*);/.exec(
+      fuente,
+    )?.[1];
+
+    expect(
+      declaracion,
+      "desapareció la declaración de STORY_FIGURE_FLOAT_MS",
+    ).toBeDefined();
+    expect(
+      declaracion,
+      "STORY_FIGURE_FLOAT_MS volvió a declarar su propio número: el ritmo de flotación tiene otra vez dos fuentes",
+    ).toContain("AMBIENT.floatMs");
+    expect(STORY_FIGURE_FLOAT_MS).toBe(AMBIENT.floatMs);
+  });
+
+  /*
+   * Los DOS ficheros de la lista son deuda declarada, no excepción de diseño:
+   * `Sol.tsx` (70s, 6s, 3.4s) y `Wormhole.tsx` (34s, 24s, 18s) son arte del
+   * ojo fuera del alcance de esta entrega, y el 18s del segundo tiene además
+   * gemelo en milisegundos vivo en el CSS servido (`SECTION_BEAM_SWEEP_MS =
+   * 18000`). Cuando se migren, este array se queda vacío y el test lo sigue
+   * midiendo igual.
+   */
+  it("ningún fichero NUEVO escribe una duración en segundos", () => {
+    const enSegundos = /(?<![\w.$])(\d+(?:\.\d+)?)s(?![\w-])/;
+    const conSegundos = ficherosDeProduccion()
+      .filter((fichero) => {
+        const codigo = despojar(readFileSync(fichero, "utf-8"));
+        return codigo.split(/\r?\n/).some((linea) => {
+          const m = enSegundos.exec(linea);
+          return m !== null && parseFloat(m[1]) !== 0;
+        });
+      })
+      .map(relativo)
+      .sort();
+
+    expect(conSegundos).toEqual([
+      "src/components/scenes/eye/mascots/Sol.tsx",
+      "src/components/scenes/eye/mascots/Wormhole.tsx",
+    ]);
+  });
+
+  it("los dos resplandores superpuestos del ojo NO comparten peldaño", () => {
+    expect(AMBIENT.glowMs).not.toBe(AMBIENT.floatMs);
+
+    const fuente = despojar(
+      readFileSync(
+        join(raizProyecto, "src/components/scenes/eye/eye.parts.tsx"),
+        "utf-8",
+      ),
+    );
+    expect(fuente).toContain("AMBIENT.glowMs");
+    expect(fuente).toContain("AMBIENT.floatMs");
   });
 });

@@ -19,7 +19,7 @@
  * en `ctaGlow`).
  */
 import { DECK_SLIDE_TRAVEL } from "@/hooks/useSlideDeck";
-import { DECK } from "@/motion/vocabulary";
+import { AMBIENT, DECK } from "@/motion/vocabulary";
 import { grid } from "@/theme/tokens/grid";
 import { motion } from "@/theme/tokens/motion";
 import { type as typeTokens } from "@/theme/tokens/type";
@@ -261,7 +261,20 @@ export const STORY_HALO_INSET = "0px";
  * keyframe con duraciones distintas: 9s la figura, 7s la tarjeta.
  */
 export const STORY_FLOAT_AMPLITUDE = "-6px";
-export const STORY_FIGURE_FLOAT_MS = 9000;
+/**
+ * El RITMO no lo declara esta seccion: lo lee del vocabulario (critica externa
+ * #18, 2026-09-04). Hasta esa revision aqui habia un `9000` escrito a mano que
+ * era `AMBIENT.floatMs` byte a byte -- mismo numero, mismo nombre ("float") y
+ * mismo rol (un bucle ambiental infinito de una pieza decorativa), en dos
+ * sitios que no se conocian. Regla 13 de `RULES.md`. Cero cambio de valor
+ * renderizado: 9000 === 9000, y el candado de `story.layers.test.ts` lo mide.
+ *
+ * Lo que esta constante sigue haciendo, y por eso no se borra: es el NOMBRE
+ * con el que Story habla de la flotacion de su figura. Deja de declarar el
+ * valor, no de existir -- mismo desenlace que tuvo `STORY_SCRUB_MS` con
+ * `motion.durationMs.slow` en la ola J.
+ */
+export const STORY_FIGURE_FLOAT_MS = AMBIENT.floatMs;
 /* `STORY_CARD_FLOAT_MS` (7000) se retiro el 2026-08-06 con la tarjeta de nota
    (D12): la figura se queda como unica pieza que flota, asi que el keyframe ya
    no lo comparten dos duraciones. */

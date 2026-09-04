@@ -525,6 +525,13 @@ export const PRESS = {
  *   ese fichero (`solBreathe`/`haloGlow`/`coreGlow`) -- la mayor repetición
  *   interna de los cinco campos originales, y el criterio de desempate frente
  *   a `pulseMs`/`orbitMs`/`orbitSlowMs`, los tres empatados a 1 fichero/1 uso.
+ * - `glowMs: 7000` — CUARTO campo, añadido en la crítica externa #18
+ *   (2026-09-04). No sale del reparto de Task 20: es el ritmo que el repo
+ *   escribía a mano en tres sitios (el `"7s"` del ojo, `CONTACT_TOP_GLOW_
+ *   PULSE_MS` y el periodo de deriva de `useSceneParallax`) y que además
+ *   convivía en DOS unidades en el CSS servido. Su docblock, en la propia
+ *   declaración, razona por qué no se colapsa ni en `breathMs` ni en
+ *   `floatMs`.
  * - `orbitMs: 20000` — el tercer campo, elegido frente al empate a tres
  *   (`pulseMs`, `orbitMs`, `orbitSlowMs`) por ser el único ROL que no tiene
  *   una alternativa barata dentro de los otros dos campos: `orbitMs` gobierna
@@ -611,6 +618,54 @@ export const PRESS = {
  */
 export const AMBIENT = {
   breathMs: 5400,
+  /**
+   * PULSO DE OPACIDAD DE UN RESPLANDOR decorativo en bucle infinito. Peldaño
+   * nuevo de la crítica externa #18 (2026-09-04), y el cuarto de este grupo.
+   *
+   * POR QUÉ EXISTE, y por qué NO es "otro nombre para 5400": hasta esta
+   * revisión el ritmo de 7 s existía escrito a mano en TRES sitios que no se
+   * conocen — `eye.parts.tsx` (la respiración fuerte de la corona del ojo,
+   * como el literal CSS `"7s"`), `CONTACT_TOP_GLOW_PULSE_MS`
+   * (`contact.layers.ts`, 7000, el pulso del resplandor superior de Contacto)
+   * y el periodo de deriva `Math.sin(now / 7000)` de `useSceneParallax.ts`.
+   * Regla 13 de `RULES.md`: una constante de valor idéntico repetida en dos
+   * piezas que no se conocen es un token, no dos literales. Que además se
+   * escribiera en DOS unidades (`7s` en el ojo, `7000` en Contacto) es el
+   * defecto que esta ola cierra: en el CSS servido del tema oscuro convivían
+   * `7s` y `7000ms` diciendo lo mismo.
+   *
+   * POR QUÉ NO SE COLAPSA EN `breathMs` (5400), que es el peldaño vecino y
+   * describe también una respiración: hacerlo CAMBIARÍA lo que se pinta hoy
+   * (7 s → 5,4 s en la corona del ojo), y eso es una decisión de diseño;
+   * nombrar una medida repetida no lo es. Mismo criterio, y mismo precedente,
+   * que el docblock de `type.scale.wordmark` deja escrito para el rótulo de
+   * marca frente a `h5`.
+   *
+   * POR QUÉ NO SE COLAPSA EN `floatMs` (9000), que es su otro vecino y donde
+   * la tentación es mayor porque el ojo usa LOS DOS: son un PAR
+   * DELIBERADAMENTE INCONMENSURABLE, no dos copias de un mismo ritmo. Medido
+   * en navegador real (build de producción servido, tema oscuro, 1440x900,
+   * `document.visibilityState` en `visible`, `getComputedStyle` sobre las
+   * capas del ojo): `iris` anima `7s` infinito y `pupil` anima `9s` infinito,
+   * y las dos ocupan EXACTAMENTE el mismo rectángulo — [0, 45, 1440, 810] —,
+   * es decir, son dos resplandores superpuestos y simultáneos. Con 7 y 9
+   * segundos vuelven a coincidir de fase cada 63 s; con el mismo peldaño
+   * latirían al unísono desde el primer ciclo. Es el mismo argumento que el
+   * docblock de `motion.staggerMs` ya usa para las 24 estrellas del pie y
+   * para los destellos del mascota Sol: hay ritmos ambientales cuyo valor
+   * está elegido para NO coincidir con el de su vecino, y colapsarlos destruye
+   * justo aquello para lo que existen.
+   *
+   * CONSUMIDOR HOY: uno, `eye.parts.tsx` (tres declaraciones CSS, las tres
+   * capas con `glow: "strong"`). Un peldaño con un solo consumidor es
+   * aceptable en este repo cuando la evidencia de su rol vive FUERA de su
+   * propio docblock —mismo listón que `motion.staggerMs.loose`, y el que
+   * `zIndex.toast` no pasó en esta misma ola—: aquí esa evidencia son los
+   * otros dos 7000 citados arriba, cuya migración queda declarada como
+   * pendiente porque `contact.layers.ts` y `useSceneParallax.ts` están fuera
+   * del alcance del cambio que estrena el peldaño.
+   */
+  glowMs: 7000,
   floatMs: 9000,
   orbitMs: 20000,
 } as const;
