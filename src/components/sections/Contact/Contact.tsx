@@ -332,6 +332,15 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
  * ronda anterior la vio: solo asoma en el ancho exacto que WCAG 1.4.10 fija
  * como suelo (320 px = 400 % de zoom sobre 1280).
  *
+ * Y no es un ancho de viewport usado como sustituto del zoom: se reprodujo
+ * tambien con ZOOM REAL de navegador al 400 % (CDP
+ * `Emulation.setDeviceMetricsOverride`, viewport CSS 320x256 con
+ * `deviceScaleFactor` 4, `devicePixelRatio` 4 confirmado en la pagina y
+ * `visibilityState` visible). Sin el arreglo, caja 206,00 px y las mismas dos
+ * lineas partidas; con el, 222,00 px y la palabra entera. En las dos medidas el
+ * exceso horizontal del documento es 0: el defecto nunca fue scroll, fue una
+ * palabra cortada por la mitad sin guion.
+ *
  * POR QUE PARTIA SIN GUION: `hyphens: auto` esta declarado (GlobalStyles.tsx,
  * bloque `body > main`) y computa `auto` en Chrome con `lang="es"` en la raiz
  * -- y aun asi NO hifena: se midio el valor computado y las lineas realizadas
