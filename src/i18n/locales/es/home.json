@@ -161,7 +161,11 @@
                 "body": "Mi correo de contacto: {{email}}\n\n{{message}}",
                 "emailError": "Ese correo no tiene un formato válido. Puedes dejarlo vacío.",
                 "messageError": "Escribe tu mensaje antes de enviarlo.",
+                "counter": "{{used}} de {{max}} caracteres",
+                "counterWarn": "Te acercas al límite que admite un enlace de correo. Si lo superas, te daremos la dirección para pegar el mensaje entero.",
+                "counterOver": "Tu mensaje no cabe en un enlace de correo. Al enviarlo no se abrirá tu aplicación: te daremos la dirección para pegarlo entero, sin perder nada.",
                 "fallbackLead": "Si no se ha abierto tu aplicación de correo, escríbeme a",
+                "fallbackLeadTooLong": "Tu mensaje es demasiado largo para abrirlo en tu aplicación de correo, así que no lo hemos intentado. Cópialo entero y escríbeme a",
                 "copyAddress": "Copiar dirección",
                 "copied": "Copiada",
                 "copyError": "No se pudo copiar automáticamente. Selecciona la dirección de arriba."

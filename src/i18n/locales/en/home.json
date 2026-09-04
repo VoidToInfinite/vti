@@ -161,7 +161,11 @@
                 "body": "My contact email: {{email}}\n\n{{message}}",
                 "emailError": "That email is not in a valid format. You can leave it empty.",
                 "messageError": "Write your message before sending it.",
+                "counter": "{{used}} of {{max}} characters",
+                "counterWarn": "You are close to the limit an email link accepts. If you go over it, we will hand you the address so you can paste the whole message.",
+                "counterOver": "Your message does not fit in an email link. Sending it will not open your email app: we will hand you the address so you can paste it whole, losing nothing.",
                 "fallbackLead": "If your email app didn’t open, write to me at",
+                "fallbackLeadTooLong": "Your message is too long to open in your email app, so we did not try. Copy it whole and write to me at",
                 "copyAddress": "Copy address",
                 "copied": "Copied",
                 "copyError": "Couldn't copy automatically. Select the address above."

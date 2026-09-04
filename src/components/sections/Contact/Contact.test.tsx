@@ -23,7 +23,14 @@ import enCommon from "@/i18n/locales/en/common.json";
 import i18n from "@/i18n/config";
 import { links } from "@/config/links";
 import { AMBIENT, PRESS, REVEAL } from "@/motion/vocabulary";
-import { Contact } from "./Contact";
+import {
+  Contact,
+  MAILTO_URL_MAX,
+  MESSAGE_MAX,
+  MESSAGE_WARN,
+  buildMailtoUrl,
+  exceedsMailtoBudget,
+} from "./Contact";
 import {
   CONTACT_CARD_BG_DARK,
   CONTACT_CARD_BORDER,
@@ -2933,9 +2940,16 @@ describe("Contact: critica externa #9", () => {
       const textarea = screen.getByLabelText(
         esHome.Home.contact.form.messageLabel,
       );
+      /*
+       * El contador de caracteres se SUMA a esta descripción desde la ola P
+       * (2026-09-04) -- regla 40: quien añade un elemento actualiza la fuente
+       * de verdad del test, no relaja la aserción. El orden es el mismo
+       * criterio que ya sigue el campo de correo justo arriba: primero el
+       * mensaje bloqueante, después el informativo.
+       */
       expect(textarea).toHaveAttribute(
         "aria-describedby",
-        "contact-message-error",
+        "contact-message-error contact-message-counter",
       );
       expect(textarea).toHaveAttribute("aria-invalid", "true");
       expect(
@@ -4149,15 +4163,26 @@ describe("Contact: critica externa #15 -- el «Copiada» del boton caduca (2026-
  * El porque completo vive en el docblock de `ScLiveRegion` (Contact.tsx).
  */
 describe("Contact: critica externa #15 -- la region live del error se actualiza, no se remonta", () => {
-  /** Las dos regiones live del formulario, en orden del DOM. */
+  /**
+   * Las regiones live del formulario, en orden del DOM: la del error del
+   * correo, la del error del mensaje y -- desde la ola P (2026-09-04) -- la
+   * del contador de caracteres.
+   */
   function regiones(): HTMLElement[] {
     return screen.getAllByRole("status");
   }
 
-  it("las dos regiones existen desde el primer render, vacias y sin mensaje dentro", () => {
+  it("las tres regiones existen desde el primer render, vacias y sin mensaje dentro", () => {
     renderWithProviders(<Contact />);
     const live = regiones();
-    expect(live).toHaveLength(2);
+    /*
+     * TRES desde la ola P (2026-09-04), no dos: el contador de caracteres
+     * estrena la suya con el mismo contrato que las dos de error -- montada
+     * siempre, vacia en reposo. Regla 40: el contrato cerrado se actualiza en
+     * el mismo commit que anade el elemento, nunca se relaja la asercion para
+     * que vuelva a pasar.
+     */
+    expect(live).toHaveLength(3);
     live.forEach((region) => expect(region.textContent).toBe(""));
     // Ninguna declara aria-live a mano: `status` YA es polite + atomic, y
     // repetirlo solo duplicaria el mapeo del rol.
@@ -4260,5 +4285,475 @@ describe("ola M: la escena oscura se anuncia como una sola imagen con nombre", (
       expect(capa.getAttribute("alt")).toBe("");
     });
     expect(container).toBeTruthy();
+  });
+});
+
+/*
+ * OLA P (2026-09-04): el mensaje que no cabe en la URL del `mailto:` sale por
+ * el panel de rescate, no por un correo roto.
+ *
+ * EL DEFECTO QUE CIERRAN ESTOS CANDADOS. El formulario entrega el mensaje
+ * abriendo un `mailto:` con `window.location.assign`. Un `mailto:` viaja como
+ * URL, y la ruta que abre un esquema externo en Windows corta en 2.083
+ * caracteres: por encima de ahi, el cliente de correo recibe el cuerpo
+ * truncado o no recibe nada. El fallo NO ocurre en esta pagina -- ocurre en
+ * otra aplicacion, despues de que el navegador entregue la URL --, asi que la
+ * interfaz no puede detectarlo ni explicarlo a posteriori. O lo previene, o el
+ * mensaje del visitante se pierde en silencio. Medido antes de tocar nada: un
+ * mensaje de 2.280 caracteres produce una URL de 3.554 y uno de 7.200 produce
+ * una de 11.061.
+ *
+ * LA DECISION DEL DUENO: sin tope duro, salida explicada. Nada de `maxLength`
+ * ni de truncar; contador vivo con estado de aviso, y por encima del umbral el
+ * envio deja de intentar el `mailto:` y abre directamente el panel de rescate
+ * que ya existia.
+ */
+describe("ola P: el mensaje que no cabe en el mailto no rompe el correo, abre el rescate", () => {
+  function mockAssign(): {
+    assignSpy: ReturnType<typeof vi.fn>;
+    restore: () => void;
+  } {
+    const originalLocation = window.location;
+    const assignSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, assign: assignSpy },
+    });
+    return {
+      assignSpy,
+      restore: () =>
+        Object.defineProperty(window, "location", {
+          configurable: true,
+          value: originalLocation,
+        }),
+    };
+  }
+
+  /** Un correo de contacto tipico (29 caracteres), el del peor caso medido. */
+  const CORREO = "nombre.apellido@miempresa.com";
+
+  /*
+   * Prosa espanola real, con sus acentos y su salto de linea: el PEOR CASO
+   * REALISTA de la medicion (un caracter acentuado ocupa seis caracteres en la
+   * URL, un salto de linea tres). No es un texto decorativo -- de el sale el
+   * margen que justifica el valor de MESSAGE_MAX.
+   */
+  const PROSA_ES =
+    "Hola, me gustaría hablar contigo sobre un proyecto nuevo para mi compañía; quiero saber más del proceso, la planificación y el precio aproximado.\n";
+
+  /** Repite `muestra` hasta llegar exactamente a `caracteres`. */
+  function mensajeDe(muestra: string, caracteres: number): string {
+    let salida = "";
+    while (salida.length < caracteres) salida += muestra;
+    return salida.slice(0, caracteres);
+  }
+
+  /**
+   * La URL que produciria ese mensaje, compuesta con las MISMAS piezas que usa
+   * el componente: el builder exportado y las cadenas reales del JSON de
+   * locales. La plantilla no se reescribe a mano, se resuelve la que existe.
+   */
+  function urlDe(mensaje: string, correo: string): string {
+    const cuerpo = correo
+      ? esHome.Home.contact.form.body
+          .replace("{{email}}", correo)
+          .replace("{{message}}", mensaje)
+      : mensaje;
+    return buildMailtoUrl(esHome.Home.contact.form.subject, cuerpo);
+  }
+
+  const contador = (): HTMLElement =>
+    document.getElementById("contact-message-counter") as HTMLElement;
+
+  /*
+   * CANDADO DEL UMBRAL. Ata MESSAGE_MAX a la MEDICION que lo justifica, no a
+   * un numero tecleado en el test: si alguien sube el umbral, la URL del peor
+   * caso realista deja de caber y esto se pone en rojo con la cifra delante.
+   */
+  describe("el umbral esta atado a la medicion, no a un numero escrito a mano", () => {
+    it("a MESSAGE_MAX caracteres de prosa espanola con acentos, la URL real todavia cabe en MAILTO_URL_MAX", () => {
+      const mensaje = mensajeDe(PROSA_ES, MESSAGE_MAX);
+      const url = urlDe(mensaje, CORREO);
+
+      expect(mensaje).toHaveLength(MESSAGE_MAX);
+      expect(
+        url.length,
+        `URL en el umbral: ${url.length} caracteres, techo ${MAILTO_URL_MAX}`,
+      ).toBeLessThanOrEqual(MAILTO_URL_MAX);
+      // Y no cabe por casualidad con un margen ridiculo: queda holgura real.
+      expect(MAILTO_URL_MAX - url.length).toBeGreaterThan(100);
+    });
+
+    it("el predicado del envio cambia EXACTAMENTE en MESSAGE_MAX, ni antes ni despues", () => {
+      const enElUmbral = mensajeDe("a", MESSAGE_MAX);
+      const unoMas = mensajeDe("a", MESSAGE_MAX + 1);
+
+      expect(exceedsMailtoBudget(enElUmbral, urlDe(enElUmbral, CORREO))).toBe(
+        false,
+      );
+      expect(exceedsMailtoBudget(unoMas, urlDe(unoMas, CORREO))).toBe(true);
+    });
+
+    it("la SEGUNDA condicion existe porque el recuento de caracteres no basta: 400 acentos desbordan la URL muy por debajo del umbral", () => {
+      const caro = mensajeDe("é", 400);
+      const url = urlDe(caro, CORREO);
+
+      // Las dos mitades del porque, medidas aqui mismo:
+      expect(caro.length).toBeLessThan(MESSAGE_MAX);
+      expect(
+        url.length,
+        `URL de 400 acentos: ${url.length} caracteres`,
+      ).toBeGreaterThan(MAILTO_URL_MAX);
+      // ...y aun asi el predicado lo caza.
+      expect(exceedsMailtoBudget(caro, url)).toBe(true);
+    });
+
+    it("la banda de aviso se deriva del umbral, no se declara aparte", () => {
+      expect(MESSAGE_WARN).toBe(Math.round(MESSAGE_MAX * 0.85));
+      expect(MESSAGE_WARN).toBeLessThan(MESSAGE_MAX);
+    });
+  });
+
+  /*
+   * CANDADO DEL DESVIO. Es el corazon del encargo: por encima del umbral NO se
+   * llama a `window.location.assign` y SI se abre el panel de rescate, con su
+   * frase propia -- la que no miente sobre lo que ha pasado.
+   */
+  describe("por encima del umbral el envio no toca window.location", () => {
+    it("un mensaje de MESSAGE_MAX + 1 caracteres NO navega y revela el panel con su frase propia", () => {
+      const { assignSpy, restore } = mockAssign();
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        fireEvent.change(
+          screen.getByLabelText(esHome.Home.contact.form.label),
+          { target: { value: "visitante@test.com" } },
+        );
+        escribirMensaje(mensajeDe("a", MESSAGE_MAX + 1));
+        fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+        expect(assignSpy).not.toHaveBeenCalled();
+
+        const panel = screen
+          .getAllByRole("status")
+          .find((nodo) =>
+            (nodo.textContent ?? "").includes(
+              esHome.Home.contact.form.fallbackLeadTooLong,
+            ),
+          );
+        expect(panel, "no se revelo el panel de rescate").toBeDefined();
+        // La salida real esta dentro: la direccion y el boton de copiar.
+        expect(panel?.textContent).toContain(
+          links.email.replace(/^mailto:/, ""),
+        );
+        expect(
+          within(panel as HTMLElement).getByRole("button", {
+            name: esHome.Home.contact.form.copyAddress,
+          }),
+        ).toBeInTheDocument();
+        // Y NO se afirma lo contrario: la frase del envio entregado no aparece.
+        expect(panel?.textContent).not.toContain(
+          esHome.Home.contact.form.fallbackLead,
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it("justo EN el umbral el envio SI abre el correo, con la frase de siempre", () => {
+      const { assignSpy, restore } = mockAssign();
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        fireEvent.change(
+          screen.getByLabelText(esHome.Home.contact.form.label),
+          { target: { value: "visitante@test.com" } },
+        );
+        escribirMensaje(mensajeDe("a", MESSAGE_MAX));
+        fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+        expect(assignSpy).toHaveBeenCalledTimes(1);
+        expect(
+          (assignSpy.mock.calls[0][0] as string).startsWith(links.email),
+        ).toBe(true);
+        expect(panelDeRespaldo().textContent).toContain(
+          esHome.Home.contact.form.fallbackLead,
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it("el mensaje corto pero CARO (400 acentos) tampoco navega: lo caza la longitud real de la URL", () => {
+      const { assignSpy, restore } = mockAssign();
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        escribirMensaje(mensajeDe("é", 400));
+        fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+        expect(assignSpy).not.toHaveBeenCalled();
+        expect(
+          screen
+            .getAllByRole("status")
+            .some((nodo) =>
+              (nodo.textContent ?? "").includes(
+                esHome.Home.contact.form.fallbackLeadTooLong,
+              ),
+            ),
+        ).toBe(true);
+      } finally {
+        restore();
+      }
+    });
+
+    it("NADA se trunca: el textarea sigue sin maxLength y conserva el texto entero tras el desvio", () => {
+      const { assignSpy, restore } = mockAssign();
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        const largo = mensajeDe("a", MESSAGE_MAX + 500);
+        const textarea = escribirMensaje(largo);
+        fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+        expect(assignSpy).not.toHaveBeenCalled();
+        // `maxLength` sin declarar es -1 en el DOM: el campo no tiene tope.
+        expect(textarea.maxLength).toBe(-1);
+        expect(textarea).not.toHaveAttribute("maxlength");
+        expect(textarea.value).toHaveLength(MESSAGE_MAX + 500);
+        // Y NO se marca como invalido: pasarse de largo no es un error suyo.
+        expect(textarea).not.toHaveAttribute("aria-invalid");
+      } finally {
+        restore();
+      }
+    });
+
+    it("un envio invalido POSTERIOR retira el panel, igual que retiraba el del envio entregado", () => {
+      const { assignSpy, restore } = mockAssign();
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        const form = container.querySelector("form") as HTMLFormElement;
+        const hayPanelDeDesvio = (): boolean =>
+          screen
+            .getAllByRole("status")
+            .some((nodo) =>
+              (nodo.textContent ?? "").includes(
+                esHome.Home.contact.form.fallbackLeadTooLong,
+              ),
+            );
+
+        escribirMensaje(mensajeDe("a", MESSAGE_MAX + 1));
+        fireEvent.submit(form);
+        expect(hayPanelDeDesvio()).toBe(true);
+
+        escribirMensaje("   ");
+        fireEvent.submit(form);
+
+        expect(assignSpy).not.toHaveBeenCalled();
+        expect(hayPanelDeDesvio()).toBe(false);
+      } finally {
+        restore();
+      }
+    });
+  });
+
+  /*
+   * CANDADO DEL CONTADOR. Que la cifra que ve el visitante salga de la MISMA
+   * constante que gobierna el envio: si alguien cambia una sin la otra, la
+   * interfaz empieza a mentir sobre su propio limite y esto se pone en rojo.
+   */
+  describe("el contador ensena el mismo limite que gobierna el envio", () => {
+    it("en reposo dice 0 de MESSAGE_MAX, resuelto desde la plantilla de i18n", () => {
+      renderWithProviders(<Contact />);
+
+      expect(contador().textContent).toBe(
+        esHome.Home.contact.form.counter
+          .replace("{{used}}", "0")
+          .replace("{{max}}", String(MESSAGE_MAX)),
+      );
+      // Ninguna interpolacion cruda llega a la pantalla.
+      expect(contador().textContent).not.toContain("{{");
+    });
+
+    it("cuenta los caracteres REALES del campo, sin recortar espacios", () => {
+      renderWithProviders(<Contact />);
+      escribirMensaje("hola   ");
+
+      expect(contador().textContent).toContain("7");
+    });
+
+    it("el campo lo referencia SIEMPRE con aria-describedby, tambien sin error", () => {
+      renderWithProviders(<Contact />);
+
+      expect(
+        screen.getByLabelText(esHome.Home.contact.form.messageLabel),
+      ).toHaveAttribute("aria-describedby", "contact-message-counter");
+    });
+
+    it("la region live calla en reposo, avisa en la banda y cambia de texto al pasarse", () => {
+      renderWithProviders(<Contact />);
+      const regionDelContador = (): HTMLElement =>
+        screen.getAllByRole("status")[2];
+      const nodoInicial = regionDelContador();
+
+      expect(nodoInicial.textContent).toBe("");
+
+      escribirMensaje(mensajeDe("a", MESSAGE_WARN));
+      expect(regionDelContador()).toBe(nodoInicial);
+      expect(nodoInicial.textContent).toBe(
+        esHome.Home.contact.form.counterWarn,
+      );
+
+      escribirMensaje(mensajeDe("a", MESSAGE_MAX + 1));
+      expect(regionDelContador()).toBe(nodoInicial);
+      expect(nodoInicial.textContent).toBe(
+        esHome.Home.contact.form.counterOver,
+      );
+
+      escribirMensaje("corto");
+      expect(nodoInicial.textContent).toBe("");
+    });
+
+    it("un caracter ANTES de la banda todavia calla: el aviso no se adelanta", () => {
+      renderWithProviders(<Contact />);
+      escribirMensaje(mensajeDe("a", MESSAGE_WARN - 1));
+
+      expect(screen.getAllByRole("status")[2].textContent).toBe("");
+    });
+
+    it("el aviso NO se comunica solo con color: fuera de reposo el contador sube de peso", () => {
+      renderWithProviders(<Contact />);
+      // Regex y no substring: styled-components serializa un valor
+      // interpolado con el espacio del `:` que trae el CSSOM, y un
+      // `toContain("font-weight:600")` fallaria por ese espacio sin que nada
+      // estuviera mal.
+      expect(cssRuleTextFor(contador())).toMatch(/font-weight:\s*400/);
+
+      escribirMensaje(mensajeDe("a", MESSAGE_WARN));
+      expect(cssRuleTextFor(contador())).toMatch(/font-weight:\s*600/);
+    });
+
+    it("paridad es/en: las cuatro claves nuevas existen en los dos idiomas con texto real", () => {
+      (
+        [
+          "counter",
+          "counterWarn",
+          "counterOver",
+          "fallbackLeadTooLong",
+        ] as const
+      ).forEach((clave) => {
+        expect(esHome.Home.contact.form[clave].trim()).not.toBe("");
+        expect(enHome.Home.contact.form[clave].trim()).not.toBe("");
+        expect(esHome.Home.contact.form[clave]).not.toBe(
+          enHome.Home.contact.form[clave],
+        );
+      });
+      // La plantilla del contador lleva las DOS interpolaciones en los dos
+      // idiomas: sin `max`, la cifra del limite no llegaria a la pantalla.
+      ["{{used}}", "{{max}}"].forEach((marcador) => {
+        expect(esHome.Home.contact.form.counter).toContain(marcador);
+        expect(enHome.Home.contact.form.counter).toContain(marcador);
+      });
+    });
+  });
+
+  /*
+   * CANDADO DE CONTRASTE. El estado de aviso estrena un rol de color en este
+   * formulario (`semantic.warning`) y la decision de NO resolverlo por rama
+   * -- al contrario que el error -- se sostiene en estas cifras. Si algun dia
+   * el paso de la rampa se mueve, esto lo dice antes que nadie.
+   *
+   * Fondos REALES, mismo metodo que el candado de la critica externa #9 de
+   * este mismo fichero: en claro, blanco al 82 % compuesto sobre las tres
+   * paradas del degradado de la tarjeta; en oscuro, blanco al 4 % sobre el
+   * void de la escena.
+   */
+  describe("los tres colores del contador libran AA sobre los fondos reales", () => {
+    function ratioClaro(color: string, parada: string): number {
+      const alfa = Number(
+        CONTACT_PANEL_BG_LIGHT.match(/([\d.]+)\)$/)?.[1] ?? "0",
+      );
+      const lPanel = alfa + (1 - alfa) * relativeLuminanceHex(parada);
+      const lTexto = relativeLuminance(color);
+      return (
+        (Math.max(lTexto, lPanel) + 0.05) / (Math.min(lTexto, lPanel) + 0.05)
+      );
+    }
+
+    function ratioOscuro(color: string): number {
+      const alfa = Number(CONTACT_FORM_BG.match(/([\d.]+)\)$/)?.[1] ?? "0");
+      const lPanel =
+        alfa + (1 - alfa) * relativeLuminanceHex(CONTACT_GUARDIAN_VOID);
+      const lTexto = relativeLuminance(color);
+      return (
+        (Math.max(lTexto, lPanel) + 0.05) / (Math.min(lTexto, lPanel) + 0.05)
+      );
+    }
+
+    it("el aviso (semantic.warning) pasa AA en las DOS ramas -- por eso NO se resuelve por rama como el error", () => {
+      ["#EFF4FC", "#F5F2FB", "#F9F0F7"].forEach((parada) => {
+        const ratio = ratioClaro(themes.light.semantic.warning, parada);
+        expect(
+          ratio,
+          `aviso claro sobre ${parada}: ${ratio.toFixed(2)}:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      });
+      const oscuro = ratioOscuro(themes.dark.semantic.warning);
+      expect(
+        oscuro,
+        `aviso oscuro sobre el panel de la escena: ${oscuro.toFixed(2)}:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it("el reposo y el desbordamiento tambien: son los mismos roles ya medidos de la ayuda y del error", () => {
+      ["#EFF4FC", "#F5F2FB", "#F9F0F7"].forEach((parada) => {
+        expect(
+          ratioClaro(themes.light.semantic.textSubtle, parada),
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(
+          ratioClaro(themes.light.semantic.error, parada),
+        ).toBeGreaterThanOrEqual(4.5);
+      });
+      expect(
+        ratioOscuro(themes.dark.semantic.textSubtle),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        ratioOscuro(themes.dark.palette.error[300]),
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
+  /*
+   * La rama OSCURA monta el MISMO arbol de JSX (Task 16), asi que el contador
+   * y el desvio tienen que estar tambien ahi. Se comprueba, no se supone.
+   */
+  describe("rama oscura (mismo arbol de JSX)", () => {
+    beforeEach(() => {
+      window.localStorage.setItem("vti-theme", "dark");
+    });
+
+    afterEach(() => {
+      window.localStorage.clear();
+    });
+
+    it("el contador existe y el desvio funciona igual", () => {
+      const { assignSpy, restore } = mockAssign();
+      try {
+        const { container } = renderWithProviders(<Contact />);
+        expect(contador()).not.toBeNull();
+
+        escribirMensaje(mensajeDe("a", MESSAGE_MAX + 1));
+        fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+        expect(assignSpy).not.toHaveBeenCalled();
+        expect(
+          screen
+            .getAllByRole("status")
+            .some((nodo) =>
+              (nodo.textContent ?? "").includes(
+                esHome.Home.contact.form.fallbackLeadTooLong,
+              ),
+            ),
+        ).toBe(true);
+      } finally {
+        restore();
+      }
+    });
   });
 });

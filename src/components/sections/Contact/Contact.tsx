@@ -1273,6 +1273,72 @@ const ScFieldMessage = styled.p<{ $error?: boolean }>`
  */
 const ScLiveRegion = styled.div``;
 
+/**
+ * Los tres estados del contador de caracteres del mensaje. Union cerrada, no
+ * dos booleanos sueltos: mismo criterio -- y mismo motivo -- que `copyStatus`
+ * (ver su docblock más abajo), el tipo no debe poder representar un estado
+ * que no existe.
+ */
+type CounterState = "idle" | "warn" | "over";
+
+/*
+ * CONTADOR VIVO DEL MENSAJE (decisión del dueño, ola P, 2026-09-04).
+ *
+ * Qué previene: el `mailto:` que este formulario abre viaja como URL, y un
+ * mensaje largo produce una URL que el cliente de correo del visitante trunca
+ * o rechaza. El fallo NO ocurre en la página -- ocurre después, en otra
+ * aplicación --, así que la interfaz no puede detectarlo ni explicarlo a
+ * posteriori: o lo previene antes de pulsar, o el mensaje se pierde en
+ * silencio. De ahí que la señal sea un contador y no un mensaje de error.
+ *
+ * NO HAY TOPE DURO y no lo habrá: el `<textarea>` sigue SIN `maxLength` (el
+ * repo nunca lo tuvo -- `git log -S maxLength` no devuelve ni un commit) y
+ * nada recorta lo que el visitante escribe. Truncar sería destruir su texto
+ * para proteger un detalle de transporte que es problema nuestro, no suyo.
+ * Por encima del umbral el envío cambia de camino, no de contenido: ver
+ * `handleSubmit`.
+ *
+ * `text-align: end` y `font-variant-numeric: tabular-nums`: el contador vive
+ * bajo la esquina del campo, que es donde se le busca, y con cifras de ancho
+ * fijo el número no baila a cada pulsación -- un contador que se mueve
+ * mientras escribes es ruido de movimiento, no información.
+ *
+ * Tokens de tema (regla 17), cero literales: el tamaño es el mismo `bodySm`
+ * de los otros mensajes de este formulario -- es texto de apoyo del mismo
+ * rol, y dos escalas para un solo rol es justo lo que la crítica externa #9
+ * midió y corrigió aquí.
+ *
+ * LOS TRES COLORES, y por qué NINGUNO se resuelve por rama. El reposo usa
+ * `semantic.textSubtle` (el mismo rol que la ayuda de al lado) y el
+ * desbordamiento reutiliza `fieldErrorColor`, que ya está resuelto por rama y
+ * medido. El AVISO usa `semantic.warning` tal cual: al contrario que
+ * `semantic.error` -- cuyo paso oscuro obligó a `fieldErrorColor` porque daba
+ * 3.65:1 --, este rol libra AA en las DOS ramas sobre los fondos reales de
+ * este formulario (medido: 6.03:1-6.04:1 en claro sobre las tres paradas de
+ * `CONTACT_CARD_GRADIENT`, 4.74:1 en oscuro sobre `CONTACT_FORM_BG` compuesto
+ * sobre el void de la escena; cifras y candado en `Contact.test.tsx`,
+ * describe "ola P"). Añadir una cuarta función por rama aquí habría sido
+ * copiar la forma de un arreglo sin tener el problema que lo motivó -- y
+ * habría estrenado un paso nuevo de la rampa `warning` sin ninguna necesidad.
+ *
+ * EL AVISO NO SE COMUNICA SOLO CON COLOR (WCAG 1.4.1): el contador sube
+ * además a `font-weight: 600` al salir del reposo, y la región live de al
+ * lado dice en palabras qué está pasando.
+ */
+const ScCounter = styled.p<{ $state: CounterState }>`
+  margin: ${({ theme }) => theme.data.space[2]} 0 0;
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  line-height: ${({ theme }) => theme.data.type.scale.bodySm.lineHeight};
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  font-weight: ${({ $state }) => ($state === "idle" ? 400 : 600)};
+  color: ${({ theme, $state }) => {
+    if ($state === "over") return fieldErrorColor(theme.data);
+    if ($state === "warn") return theme.data.semantic.warning;
+    return theme.data.semantic.textSubtle;
+  }};
+`;
+
 /*
  * Salida sin JavaScript (crítica externa #9, Nielsen, 2026-08-17). El
  * evaluador midió con `javaScriptEnabled: false` real que este formulario
@@ -1517,6 +1583,14 @@ const ScSendIcon = styled.svg`
  * postear; D13 sigue vigente). Resuelve "mailto sin cliente de correo
  * instalado = botón que no hace nada visible": la dirección real queda en
  * texto plano, seleccionable/copiable, dentro del propio formulario.
+ *
+ * DESDE LA OLA P (2026-09-04) tiene un SEGUNDO motivo de aparición: el envío
+ * cuyo mensaje no cabe en la URL del `mailto:` y que por eso NO llega a
+ * llamar a `assign` (ver `handleSubmit` y el docblock de `MESSAGE_MAX`). El
+ * panel es el mismo -- misma dirección, mismo botón de copiar -- y lo único
+ * que cambia es su frase de entrada, que en ese caso no puede decir "si no se
+ * ha abierto tu aplicación de correo" porque nadie intentó abrirla. Cuál de
+ * las dos frases se pinta lo decide el estado `outcome` del componente.
  * `role="status"` (en el JSX) anuncia su aparición a un lector de pantalla
  * sin robarle el foco -- mismo criterio que el error de campo (`Input.tsx`).
  * Tokens de tema (regla 17), cero literales.
@@ -1715,6 +1789,108 @@ const EMAIL_ERROR_ID = `${EMAIL_FIELD_ID}-error`;
 const EMAIL_HELP_ID = `${EMAIL_FIELD_ID}-help`;
 const MESSAGE_FIELD_ID = "contact-message";
 const MESSAGE_ERROR_ID = `${MESSAGE_FIELD_ID}-error`;
+const MESSAGE_COUNTER_ID = `${MESSAGE_FIELD_ID}-counter`;
+
+/**
+ * Longitud máxima de una URL `mailto:` que se puede dar por entregable.
+ *
+ * 2.083 caracteres es el límite histórico y todavía vigente de la ruta de
+ * Windows que abre un esquema externo (`ShellExecute`), y es el más bajo de
+ * los límites en juego: por encima de él, el cliente de correo recibe la URL
+ * truncada o no recibe nada. No es una elección de diseño nuestra, es el
+ * techo del transporte -- por eso vive aquí como constante con nombre y no
+ * como un número dentro de una condición.
+ *
+ * NO se puede detectar cuando se supera: `window.location.assign` de un
+ * `mailto:` no devuelve nada, no lanza y no notifica. El navegador entrega la
+ * URL a otra aplicación y ahí termina lo que esta página puede observar. Esa
+ * es exactamente la razón de que la salida sea PREVENTIVA.
+ */
+export const MAILTO_URL_MAX = 2083;
+
+/**
+ * Umbral de caracteres del mensaje a partir del cual el envío deja de
+ * intentar el `mailto:`.
+ *
+ * MEDIDO, no copiado de memoria. Se construyó la URL exactamente como la
+ * construye `buildMailtoUrl` (asunto y cuerpo reales de i18n, los dos con
+ * `encodeURIComponent`) y se buscó el primer mensaje que la lleva por encima
+ * de `MAILTO_URL_MAX`, con un correo de contacto típico de 29 caracteres
+ * dentro de la plantilla del cuerpo:
+ *
+ *   prosa inglesa ASCII, con correo ....... desborda a los 1.373 caracteres
+ *   prosa ASCII, con correo ............... desborda a los 1.368 caracteres
+ *   prosa ASCII, sin correo ............... desborda a los 1.417 caracteres
+ *   prosa española con acentos, con correo  desborda a los 1.273 caracteres
+ *   prosa española con acentos, sin correo  desborda a los 1.320 caracteres
+ *
+ * El caso peor REALISTA es la prosa española (1.273): un carácter acentuado
+ * ocupa seis en la URL (`é` -> `%C3%A9`) y un salto de línea tres. 1.200 deja
+ * 73 caracteres de margen sobre ese peor caso -- a 1.200 caracteres la URL
+ * mide 1.968 en prosa española y 1.847 en ASCII, las dos por debajo de 2.083.
+ *
+ * LO QUE ESTE NÚMERO NO PUEDE CUBRIR, y por eso no es la única condición: un
+ * mensaje hecho solo de caracteres caros desborda mucho antes (medido: 358
+ * caracteres si TODOS llevan acento, 325 si son emoji, que ocupan doce cada
+ * uno). Un umbral de caracteres que cubriera ese caso tendría que estar en
+ * ~160, absurdo para el 99 % de los mensajes. Por eso `exceedsMailtoBudget`
+ * comprueba las DOS cosas: este umbral, que es el que el contador enseña, y
+ * la longitud REAL de la URL, que no puede equivocarse nunca.
+ */
+export const MESSAGE_MAX = 1200;
+
+/**
+ * Dónde empieza la banda de AVISO del contador: al 85 % del umbral, es decir
+ * cuando quedan 180 caracteres. Se deriva de `MESSAGE_MAX` en vez de
+ * escribirse aparte para que subir o bajar el umbral mueva la banda con él;
+ * dos números independientes se desincronizan en cuanto alguien toca uno.
+ *
+ * El 85 % no es arbitrario: 180 caracteres son dos o tres frases, bastante
+ * para terminar la idea que se está escribiendo antes de llegar al corte. Un
+ * aviso que llega con veinte caracteres de margen no es un aviso, es la
+ * noticia de que ya es tarde.
+ */
+export const MESSAGE_WARN = Math.round(MESSAGE_MAX * 0.85);
+
+/**
+ * La URL del `mailto:`, en UN solo sitio.
+ *
+ * Existe porque desde esta entrega hay DOS consumidores que necesitan la
+ * misma cadena byte a byte: el envío (`handleSubmit`, que la abre) y el
+ * contador (que la mide para decidir si ese envío puede cumplir su promesa).
+ * Si cada uno la compusiera por su cuenta, el día que alguien añada un
+ * parámetro al correo el contador seguiría midiendo la URL vieja y el aviso
+ * llegaría tarde sin que nada fallara. Regla 13 de `RULES.md`.
+ *
+ * `encodeURIComponent` en las dos partes, igual que antes de extraerla: sin
+ * eso, un `&` o un salto de línea del visitante partiría la URL en parámetros
+ * que nadie escribió.
+ */
+export function buildMailtoUrl(subject: string, body: string): string {
+  return `${links.email}?subject=${encodeURIComponent(
+    subject,
+  )}&body=${encodeURIComponent(body)}`;
+}
+
+/**
+ * ¿Este envío se pasa del presupuesto del `mailto:`?
+ *
+ * Dos condiciones, y las dos hacen falta (ver el docblock de `MESSAGE_MAX`
+ * para las mediciones):
+ *
+ * 1. El umbral de CARACTERES, que es el que el visitante ve en el contador.
+ *    Es el que previene el caso normal antes de que ocurra.
+ * 2. La longitud REAL de la URL ya construida. Es la que no puede
+ *    equivocarse: caza el mensaje corto pero caro (acentos, emoji, otros
+ *    alfabetos) que el recuento de caracteres declararía inofensivo.
+ *
+ * La segunda nunca contradice a la primera en la dirección peligrosa: puede
+ * disparar ANTES del umbral, nunca después. Así el contador jamás dice "vas
+ * bien" sobre un mensaje que no va a llegar.
+ */
+export function exceedsMailtoBudget(message: string, url: string): boolean {
+  return message.length > MESSAGE_MAX || url.length > MAILTO_URL_MAX;
+}
 
 export function Contact(): ReactElement {
   const { t } = useTranslation("home");
@@ -1810,7 +1986,24 @@ export function Contact(): ReactElement {
    * cliente de correo instalado = botón que visiblemente no hizo nada":
    * una vez revelado se queda así -- no es un toast que desaparece solo.
    */
-  const [sent, setSent] = useState(false);
+  /*
+   * DE BOOLEANO A UNION (ola P, 2026-09-04). Hasta hoy esto era `sent`, un
+   * booleano: el panel estaba o no estaba. Desde que hay DOS motivos
+   * distintos para revelarlo -- el envío que sí llegó a abrir el correo, y el
+   * que no lo intentó porque el mensaje no cabe en la URL -- el panel tiene
+   * que decir cuál de los dos ocurrió, y un booleano no puede distinguirlos.
+   * Union cerrada y no un segundo booleano al lado por el mismo motivo que
+   * `copyStatus`: dos booleanos independientes dejarían representable el
+   * estado "entregado Y demasiado largo", que ningún flujo alcanza pero que
+   * el tipo tampoco impediría.
+   *
+   * `handedOff` y no `sent`: D13 sigue vigente -- este sitio no tiene backend
+   * al que postear, así que lo único que se puede afirmar es que el mensaje
+   * se entregó a la aplicación de correo, nunca que llegara a su destino.
+   */
+  const [outcome, setOutcome] = useState<"idle" | "handedOff" | "tooLong">(
+    "idle",
+  );
   /*
    * Estado del botón «Copiar» (task 1 introdujo solo el éxito; Task 3,
    * "tres cierres pequeños", 2026-08-10, añade el fallo que antes faltaba
@@ -1861,6 +2054,56 @@ export function Contact(): ReactElement {
       copyResetRef.current = null;
     }
   }
+
+  /*
+   * La URL que abriría el envío AHORA MISMO, recalculada en cada render (ola
+   * P, 2026-09-04). No es una optimización pendiente: `encodeURIComponent`
+   * sobre un par de kilobytes es trabajo despreciable comparado con el render
+   * que ya está ocurriendo, y memoizarla añadiría una lista de dependencias
+   * que se puede desincronizar de la composición del cuerpo. Nada de esto se
+   * recalcula al ritmo del scroll (regla 7): cambia cuando el visitante
+   * teclea, que es cuando el contador tiene algo nuevo que decir.
+   *
+   * La compone el MISMO builder que la abre (`buildMailtoUrl`), así que
+   * contador y envío no pueden medir cosas distintas.
+   *
+   * `email.trim()`/`message.trim()`: la misma normalización que decide si el
+   * correo cuenta como vacío (`hasEmailFormatError`) y si el mensaje cuenta
+   * como escrito (`hasMessage`), para que un espacio de más no viaje al
+   * cuerpo del correo.
+   *
+   * D4: sin correo, el cuerpo es EXACTAMENTE el mensaje del visitante. No hay
+   * una segunda clave i18n para este caso, y no es un descuido: la plantilla
+   * `Home.contact.form.body` existe porque introduce prosa NUESTRA ("Mi
+   * correo de contacto: …") alrededor de dos datos. Quitada esa línea no
+   * queda ni una palabra del sitio que traducir -- una clave cuyo valor fuera
+   * `{{message}}` sería una entrada de i18n sin idioma dentro, que las dos
+   * ramas tendrían que mantener idénticas para siempre. Se compone aquí,
+   * donde se ve de un vistazo que la única diferencia entre los dos caminos
+   * es la línea del correo.
+   */
+  const contactEmail = email.trim();
+  const mailtoUrl = buildMailtoUrl(
+    t("Home.contact.form.subject"),
+    contactEmail
+      ? t("Home.contact.form.body", {
+          email: contactEmail,
+          message: message.trim(),
+        })
+      : message.trim(),
+  );
+  const overBudget = exceedsMailtoBudget(message, mailtoUrl);
+  /*
+   * El estado del contador sale del MISMO predicado que gobierna el envío, no
+   * de una comparación paralela: si el contador dijera "vas bien" y el envío
+   * se desviara al panel de rescate, la interfaz estaría mintiendo sobre su
+   * propio límite -- que es precisamente lo que esta entrega viene a cerrar.
+   */
+  const counterState: CounterState = overBudget
+    ? "over"
+    : message.length >= MESSAGE_WARN
+      ? "warn"
+      : "idle";
 
   /*
    * Envío del formulario (D13, las DOS ramas desde la Task 16): abre el
@@ -2007,7 +2250,7 @@ export function Contact(): ReactElement {
        * nada en este ciclo. Sería exactamente el mismo defecto que este bloque
        * cierra, una capa más abajo.
        */
-      setSent(false);
+      setOutcome("idle");
       cancelCopyReset();
       setCopyStatus("idle");
       /*
@@ -2027,34 +2270,41 @@ export function Contact(): ReactElement {
       return;
     }
 
-    const subject = encodeURIComponent(t("Home.contact.form.subject"));
     /*
-     * D4: sin correo, el cuerpo es EXACTAMENTE el mensaje del visitante.
+     * SALIDA EXPLICADA EN VEZ DE UN CORREO ROTO (decisión del dueño, ola P,
+     * 2026-09-04). Por encima del presupuesto del `mailto:` NO se llama a
+     * `window.location.assign`: se abre directamente el panel de rescate, con
+     * su texto propio (`fallbackLeadTooLong`), que dice la verdad -- no se ha
+     * intentado abrir el correo y aquí está la dirección para pegar el
+     * mensaje entero.
      *
-     * No hay una segunda clave i18n para este caso, y no es un descuido: la
-     * plantilla `Home.contact.form.body` existe porque introduce prosa
-     * NUESTRA ("Mi correo de contacto: …") alrededor de dos datos. Quitada
-     * esa línea no queda ni una palabra del sitio que traducir -- una clave
-     * cuyo valor fuera `{{message}}` sería una entrada de i18n sin idioma
-     * dentro, que las dos ramas tendrían que mantener idénticas para
-     * siempre. Se compone aquí, donde se ve de un vistazo que la única
-     * diferencia entre los dos caminos es la línea del correo.
+     * Por qué no se intenta igualmente: intentarlo es exactamente el fallo
+     * que se está previniendo. El navegador entrega la URL a otra aplicación
+     * sin devolver nada, así que un `assign` por encima del límite acaba en
+     * un cliente de correo con el mensaje truncado -- o en nada en absoluto
+     * -- mientras esta página sigue creyendo que todo fue bien. No hay
+     * ninguna señal posterior con la que corregirse; la única corrección
+     * posible es no ir.
      *
-     * `email.trim()`, no `email`: la misma normalización que ya decide si el
-     * campo cuenta como vacío (`hasEmailFormatError`), para que un espacio
-     * de más no viaje al cuerpo del correo.
+     * Por qué NO se trunca ni se bloquea el campo: truncar destruiría texto
+     * del visitante para proteger un detalle de transporte nuestro, y un tope
+     * duro (`maxLength`) le impediría terminar de escribir lo que ya tenía en
+     * la cabeza. Lo escrito se conserva entero, en su campo, listo para
+     * copiar. Ver el docblock de `ScCounter`.
+     *
+     * El mensaje NO se marca como inválido: no lo es. `messageError` sigue
+     * significando "no has escrito nada", que es otra cosa -- y `aria-invalid`
+     * sobre un mensaje perfectamente válido sería una afirmación falsa.
      */
-    const contactEmail = email.trim();
-    const body = encodeURIComponent(
-      contactEmail
-        ? t("Home.contact.form.body", {
-            email: contactEmail,
-            message: message.trim(),
-          })
-        : message.trim(),
-    );
-    window.location.assign(`${links.email}?subject=${subject}&body=${body}`);
-    setSent(true);
+    if (overBudget) {
+      cancelCopyReset();
+      setCopyStatus("idle");
+      setOutcome("tooLong");
+      return;
+    }
+
+    window.location.assign(mailtoUrl);
+    setOutcome("handedOff");
   }
 
   /*
@@ -2269,7 +2519,17 @@ export function Contact(): ReactElement {
               rows={4}
               placeholder={t("Home.contact.form.messagePlaceholder")}
               value={message}
-              aria-describedby={messageError ? MESSAGE_ERROR_ID : undefined}
+              /* El contador entra SIEMPRE en la descripción del campo, y el
+                 error delante cuando lo hay -- mismo orden y mismo criterio
+                 que el correo, arriba: primero lo bloqueante, después lo
+                 informativo. Que el contador esté aquí es lo que hace que un
+                 lector de pantalla conozca el límite AL ENTRAR en el campo, y
+                 no solo cuando ya se ha acercado a él. */
+              aria-describedby={
+                messageError
+                  ? `${MESSAGE_ERROR_ID} ${MESSAGE_COUNTER_ID}`
+                  : MESSAGE_COUNTER_ID
+              }
               aria-invalid={messageError ? true : undefined}
               onChange={(event) => {
                 setMessage(event.target.value);
@@ -2296,6 +2556,39 @@ export function Contact(): ReactElement {
               </ScFieldMessage>
             )}
           </ScLiveRegion>
+          {/* El contador con las cifras. NO lleva `role="status"` a propósito:
+              su texto cambia en CADA pulsación, así que anunciarlo en vivo
+              convertiría escribir en una cuenta atrás hablada carácter a
+              carácter -- ruido que tapa lo que el visitante está redactando.
+              Lo lee el `aria-describedby` del campo (al entrar, y a demanda),
+              y el CAMBIO DE ESTADO lo anuncia la región de abajo, que sí es
+              live y cuyo texto solo cambia dos veces en toda la escritura. */}
+          <ScCounter
+            id={MESSAGE_COUNTER_ID}
+            $state={counterState}
+          >
+            {t("Home.contact.form.counter", {
+              used: message.length,
+              max: MESSAGE_MAX,
+            })}
+          </ScCounter>
+          {/* La región live del contador: misma pieza y mismo contrato que las
+              dos de error (montada siempre, vacía en reposo, `role="status"` en
+              el envoltorio y no en el `<p>` -- ver el docblock de
+              `ScLiveRegion`). Su texto NO lleva cifras precisamente para que
+              solo cambie al cruzar un umbral: se anuncia al entrar en la banda
+              de aviso y al pasarse, y ni una vez más. */}
+          <ScLiveRegion role="status">
+            {counterState !== "idle" && (
+              <ScFieldMessage $error={counterState === "over"}>
+                {t(
+                  counterState === "over"
+                    ? "Home.contact.form.counterOver"
+                    : "Home.contact.form.counterWarn",
+                )}
+              </ScFieldMessage>
+            )}
+          </ScLiveRegion>
         </div>
         <ScSubmitButton
           type="submit"
@@ -2316,10 +2609,22 @@ export function Contact(): ReactElement {
             <path d="M21 3l-7 18-4-7-7-4z" />
           </ScSendIcon>
         </ScSubmitButton>
-        {sent && (
+        {outcome !== "idle" && (
           <ScFallbackPanel role="status">
+            {/* El MISMO panel para los dos desenlaces, con la frase de entrada
+                que corresponde a cada uno: «si no se ha abierto tu aplicación
+                de correo…» cuando sí se intentó, y «tu mensaje es demasiado
+                largo para abrirlo…» cuando no. La dirección, el botón de
+                copiar y su mensaje de fallo son idénticos en los dos casos --
+                lo único que cambia es el porqué, que es lo único que de verdad
+                difiere. Un segundo panel gemelo habría que mantenerlo dos
+                veces para siempre. */}
             <ScFallbackText>
-              {t("Home.contact.form.fallbackLead")}{" "}
+              {t(
+                outcome === "tooLong"
+                  ? "Home.contact.form.fallbackLeadTooLong"
+                  : "Home.contact.form.fallbackLead",
+              )}{" "}
               <ScFallbackEmail>{EMAIL_ADDRESS}</ScFallbackEmail>
             </ScFallbackText>
             <ScCopyButton
