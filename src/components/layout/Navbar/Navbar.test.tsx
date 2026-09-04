@@ -26,6 +26,7 @@ import {
   NAVBAR_LABEL_EM,
   NAVBAR_WIDE_EM,
   NAVBAR_CONTAINER_ROOT_PX,
+  NAVBAR_CONTAINER_RAIL_PX,
 } from "./navbarContainer";
 
 /**
@@ -1025,42 +1026,80 @@ describe("Navbar", () => {
     });
 
     /*
-     * EL CONTENEDOR EXISTE Y SUS DOS UMBRALES SON LOS DEL TEMA (crítica #18).
+     * EL CONTENEDOR EXISTE, ESTÁ EN LA CAJA QUE NO ANIMA, Y SUS DOS UMBRALES
+     * SON LOS DEL TEMA (crítica #18; el contenedor se mudó en la ola O+P).
      *
      * Una consulta de contenedor que nombra un contenedor que nadie declara no
      * falla: simplemente NO SE APLICA NUNCA, en silencio -- el quinto destino
      * y el rótulo del conmutador quedarían invisibles a cualquier ancho sin
-     * que nada avisara. Y los dos umbrales viven en `em` (para que respondan
-     * al tamaño de fuente del usuario, ver `navbarContainer.ts`) mientras el
-     * resto del sitio se corta en píxeles: la equivalencia entre ambos es una
-     * invariante que cruza dos ficheros, así que vive en un test que importa
-     * los dos (regla 41), no en la memoria de quien los escribió a la vez.
+     * que nada avisara.
+     *
+     * Y DÓNDE SE DECLARA IMPORTA TANTO COMO QUE SE DECLARE. Mientras vivió en
+     * `ScBar` -- la caja cuyo `max-width` anima al despegarse la barra -- el
+     * ancho consultado ENCOGÍA durante el scroll (medido en Chrome: 992 -> 976,
+     * 1200 -> 1184), así que las bandas 992-1007 y 1200-1215 px cruzaban el
+     * umbral a mitad de la animación y el quinto destino aparecía arriba y
+     * desaparecía al bajar. `ScNav` es la caja cuyo ancho de contenido sale
+     * invariante en esa transición, por construcción de su `padding-inline`.
+     * Este candado ata la caja, no solo la declaración: si el contenedor
+     * vuelve a `ScBar`, el parpadeo vuelve con él.
+     *
+     * LOS DOS UMBRALES viven en `em` (para que respondan al tamaño de fuente
+     * del usuario, ver `navbarContainer.ts`) mientras el resto del sitio se
+     * corta en píxeles, y se miden sobre una caja que descuenta su raíl
+     * lateral: la equivalencia con los breakpoints del tema es una invariante
+     * que cruza tres ficheros, así que vive en un test que los importa todos
+     * (regla 41), no en la memoria de quien los escribió a la vez.
      */
-    it("la barra declara el contenedor que sus consultas nombran, y los umbrales en em equivalen a los breakpoints del tema", () => {
+    it("el contenedor se declara en la banda -- la caja que NO anima al despegarse --, no en la barra", () => {
       const { container } = renderNavbar();
+      const reglas = allCssRules();
+
       const barra = container.querySelector("header > div") as HTMLElement;
-      const clases = Array.from(barra.classList);
+      const banda = container.querySelector("header nav") as HTMLElement;
 
-      const propia = allCssRules().find((r) =>
-        clases.some((c) => r.startsWith(`.${c}`)),
-      );
-      expect(propia, "la barra no inyecta ninguna regla propia").toBeDefined();
+      const reglaDe = (el: HTMLElement): string | undefined => {
+        const clases = Array.from(el.classList);
+        return reglas.find((r) => clases.some((c) => r.startsWith(`.${c}`)));
+      };
+
+      const propiaBanda = reglaDe(banda);
       expect(
-        propia,
-        "la barra no declara el contenedor: las consultas de esta entrega no se aplicarían nunca, y en silencio",
+        propiaBanda,
+        "la banda no inyecta ninguna regla propia",
+      ).toBeDefined();
+      expect(
+        propiaBanda,
+        "la banda no declara el contenedor: las consultas de esta entrega no se aplicarían nunca, y en silencio",
       ).toContain(`container-name: ${NAVBAR_CONTAINER}`);
-      expect(propia).toContain("container-type: inline-size");
+      expect(propiaBanda).toContain("container-type: inline-size");
 
+      expect(
+        reglaDe(barra),
+        "el contenedor volvió a la barra, cuyo ancho ANIMA al despegarse: el umbral se cruza durante el scroll",
+      ).not.toContain("container-type");
+    });
+
+    it("los umbrales en em equivalen a los breakpoints del tema, descontando el raíl de la banda", () => {
       /* `lg` y `xl` del tema llegan como cadenas de media query
          ("screen and (min-width: 992px)"): se extrae el número, que es el
          dato que tiene que coincidir. */
       const px = (consulta: string): number =>
         Number(/min-width:\s*(\d+)px/.exec(consulta)?.[1]);
+      /* `space[5]` llega en rem: se convierte con la misma raíz por defecto
+         contra la que se declaran los umbrales. */
+      const rail =
+        parseFloat(basicLightTheme.space[5]) * NAVBAR_CONTAINER_ROOT_PX;
+      expect(
+        rail,
+        "el raíl declarado en navbarContainer.ts dejó de ser space[5]",
+      ).toBe(NAVBAR_CONTAINER_RAIL_PX);
+
       expect(NAVBAR_WIDE_EM * NAVBAR_CONTAINER_ROOT_PX).toBe(
-        px(basicLightTheme.breakPoint.lg),
+        px(basicLightTheme.breakPoint.lg) - 2 * rail,
       );
       expect(NAVBAR_LABEL_EM * NAVBAR_CONTAINER_ROOT_PX).toBe(
-        px(basicLightTheme.breakPoint.xl),
+        px(basicLightTheme.breakPoint.xl) - 2 * rail,
       );
     });
 

@@ -42,22 +42,63 @@
  * módulo de datos sin dependencias es el punto de menor duplicación: el nombre
  * del contenedor y sus dos umbrales se escriben UNA vez.
  *
- * LOS DOS UMBRALES SON LOS BREAKPOINTS DEL TEMA, en em: 62em = 992px = `lg` y
- * 75em = 1200px = `xl` con la raíz por defecto de 16px. La equivalencia la ata
- * `Navbar.test.tsx` contra `theme.data.breakPoint`, que es donde viven los
- * valores en píxeles -- si alguien mueve un breakpoint del tema y no mueve su
- * gemelo de aquí, el candado lo dice.
+ * EL CONTENEDOR ES `ScNav`, NO `ScBar`, y la diferencia no es de estilo
+ * (crítica externa #18, ola O+P). `ScBar` es justo la caja cuyo `max-width`
+ * ANIMA al despegarse la barra, así que su caja de contenido ENCOGE al
+ * scrollear -- medido en Chrome real sobre el build de producción: 992 -> 976,
+ * 1024 -> 1008, 1200 -> 1184 con la raíz por defecto, y el doble de merma con
+ * la raíz a 32px. Con los umbrales puestos sobre esa caja, las bandas
+ * 992-1007 y 1200-1215 px cruzaban el umbral DURANTE el propio scroll: el
+ * quinto destino aparecía arriba y desaparecía al bajar. Movimiento no pedido
+ * dentro de una barra fija, y en las dos bandas que contienen exactamente los
+ * dos breakpoints del tema.
+ *
+ * `ScNav` NO tiene ese problema, y no por casualidad: su `padding-inline` está
+ * construido para CANCELAR el desfase del despegue (ver su docblock en
+ * `Navbar.tsx`, "la cifra no depende ni de B ni del hueco"). Medido en las dos
+ * direcciones sobre el mismo build, a 768, 992, 1000, 1024, 1200, 1210, 1280,
+ * 1440 y 1920 px, con la raíz a 16 y a 32: la caja de contenido de `ScNav` sale
+ * INVARIANTE arriba y tras el scroll en los dieciocho casos, mientras la de
+ * `ScBar` cambia en los dieciocho. La invariante que hace falta para que una
+ * consulta de contenedor no parpadee durante una animación es exactamente ésa,
+ * así que el contenedor va donde vive.
+ *
+ * LOS DOS UMBRALES SIGUEN SIENDO LOS BREAKPOINTS DEL TEMA, expresados sobre la
+ * caja que ahora se pregunta. `ScNav` mide el ancho disponible MENOS su raíl
+ * lateral (`space[5]` a cada lado, 24px con la raíz por defecto), que además es
+ * la holgura real de la fila -- la magnitud que midió la entrega original. De
+ * ahí:
+ *
+ *     (992 - 2*24) / 16 = 59em   (`lg`)
+ *     (1200 - 2*24) / 16 = 72em  (`xl`)
+ *
+ * Simulado sobre el build con esos dos umbrales, el quinto destino enciende
+ * exactamente desde 992 px y el rótulo desde 1200 px, idénticos arriba y tras
+ * el scroll en los catorce anchos probados; y con la raíz a 32px los dos
+ * siguen retirados a todo ancho hasta 1920. La aritmética la ata
+ * `Navbar.test.tsx` contra `theme.data.breakPoint` y `theme.data.space`, que es
+ * donde viven los valores en píxeles -- si alguien mueve un breakpoint del
+ * tema, o el raíl de la banda, y no mueve su gemelo de aquí, el candado lo
+ * dice.
  */
 export const NAVBAR_CONTAINER = "navbar";
 
 /** Raíz por defecto (px) contra la que se convierten los dos umbrales. */
 export const NAVBAR_CONTAINER_ROOT_PX = 16;
 
+/**
+ * Raíl lateral de la banda (px, con la raíz por defecto): lo que `ScNav`
+ * descuenta del ancho disponible por cada lado, `space[5]`. Es la diferencia
+ * entre el breakpoint del tema y el umbral de la consulta, y `Navbar.test.tsx`
+ * lo ata contra `theme.data.space[5]`.
+ */
+export const NAVBAR_CONTAINER_RAIL_PX = 24;
+
 /** Ancho del contenedor desde el que la barra pinta el quinto destino (`lg`). */
-export const NAVBAR_WIDE_EM = 62;
+export const NAVBAR_WIDE_EM = 59;
 
 /** Ancho del contenedor desde el que el conmutador rotula (`xl`). */
-export const NAVBAR_LABEL_EM = 75;
+export const NAVBAR_LABEL_EM = 72;
 
 /** Consulta del régimen ancho de la barra: el quinto destino de sección. */
 export const NAVBAR_WIDE_QUERY = `${NAVBAR_CONTAINER} (min-width: ${NAVBAR_WIDE_EM}em)`;

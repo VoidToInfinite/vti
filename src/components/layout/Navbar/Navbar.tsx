@@ -336,23 +336,18 @@ const ScBar = styled.div`
   margin-top: 0;
   max-width: 100vw;
   /*
-   * CONTENEDOR DE CONSULTA DE LA FILA (crítica externa #18, O-3 y O-4): las
-   * dos piezas que la barra estrena en esa crítica se preguntan por el ancho
-   * DE ESTA CAJA y por el tamaño de fuente que hereda, no por el de la
-   * ventana. El porqué completo, con la medición a 200 % de fuente que lo
-   * obliga, vive en navbarContainer.ts.
-   *
-   * NO CAMBIA NADA DE LA COMPOSICIÓN, y se comprobó antes de escribirlo:
-   * medido en Chrome real a 1440x900 sobre el build de producción, con y sin
-   * esta declaración, las cajas de la barra (esta, el nav, la superficie, el
-   * bloque de enlaces, el de acciones y el panel de Más ABIERTO) salen
-   * idénticas al píxel. Es lo esperado: el ancho de este bloque lo fija su
-   * padre y su max-width, nunca su contenido, así que la contención en el eje
-   * en línea no tiene nada que restringir. (Sin comillas invertidas dentro
-   * del template: regla 23 de RULES.md.)
+   * ESTA CAJA YA NO ES EL CONTENEDOR DE CONSULTA, y el porqué es medible
+   * (crítica externa #18, ola O+P). Lo fue desde O-3/O-4, pero es justo la
+   * caja cuyo max-width ANIMA al despegarse: su caja de contenido encoge al
+   * scrollear (medido: 992 -> 976, 1024 -> 1008, 1200 -> 1184 con la raíz por
+   * defecto), así que las bandas 992-1007 y 1200-1215 px cruzaban el umbral
+   * durante el propio scroll y el quinto destino aparecía arriba y se iba al
+   * bajar. El contenedor vive ahora en ScNav, cuya caja de contenido sale
+   * INVARIANTE en las dieciocho combinaciones medidas de ancho por tamaño de
+   * fuente, porque su padding-inline cancela el desfase del despegue por
+   * diseño. El reparto completo vive en navbarContainer.ts. (Sin comillas
+   * invertidas dentro del template: regla 23 de RULES.md.)
    */
-  container-type: inline-size;
-  container-name: ${NAVBAR_CONTAINER};
   transition:
     max-width ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.emphasized}
@@ -630,6 +625,25 @@ const ScNav = styled.nav`
    */
   flex-wrap: wrap;
   row-gap: ${({ theme }) => theme.data.space[2]};
+  /*
+   * CONTENEDOR DE CONSULTA DE LA FILA (crítica externa #18, O-3 y O-4, movido
+   * aquí desde ScBar en la ola O+P). Las dos piezas que la barra estrena en esa
+   * crítica se preguntan por el ancho DE ESTA CAJA y por el tamaño de fuente
+   * que hereda, no por el de la ventana; y esta caja es la única de la banda
+   * cuyo ancho de contenido no se mueve durante la animación de despegue. El
+   * porqué completo, con las dos mediciones que lo obligan --la de 200 % de
+   * fuente y la del umbral cruzado al scrollear-- vive en navbarContainer.ts.
+   *
+   * NO CAMBIA NADA DE LA COMPOSICIÓN, y se comprobó antes de escribirlo:
+   * medido en Chrome real a 1024 y a 1440 sobre el build de producción, con el
+   * panel de Más ABIERTO y con y sin esta declaración, todas las cajas de la
+   * cabecera salen idénticas al píxel, con el mismo z-index y el mismo
+   * elementFromPoint dentro del panel. Es lo esperado: el ancho de este bloque
+   * lo fija su padre, nunca su contenido, así que la contención en el eje en
+   * línea no tiene nada que restringir.
+   */
+  container-type: inline-size;
+  container-name: ${NAVBAR_CONTAINER};
   /* La misma variable que descuenta el Hero (ver GlobalStyles): si la banda
      cambia de alto, las dos medidas cambian juntas. Es un SUELO, no una
      altura fija: donde el contenido cabe en una fila la banda mide
