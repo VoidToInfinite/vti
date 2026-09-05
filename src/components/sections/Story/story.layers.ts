@@ -318,13 +318,28 @@ export const STORY_FIGURE_SCROLL_SHIFT = "-28px";
    se mueve, aunque su pareja ya no exista. */
 
 /**
- * `sizes` de la figura: se muestra a un ancho fijo de 375px desde `lg` en
- * adelante (mismo punto de corte que el resto del sitio,
- * `theme.data.breakPoint.lg`) y a un ancho fluido por debajo, cuando la
- * sección cae a columna única. Con solo dos pistas publicadas (640w/1024w,
- * spec §6), declarar más ancho del real en el tramo estrecho haría que un
- * móvil de DPR alto se llevase igualmente la pista de 1024px — el mismo
- * razonamiento que ya documenta `AURA_SIZES`.
+ * `sizes` de la figura: se muestra a un ancho fijo de 375px desde 992px de
+ * viewport en adelante y a un ancho fluido por debajo, cuando la sección cae a
+ * columna única. Con solo dos pistas publicadas (640w/1024w, spec §6),
+ * declarar más ancho del real en el tramo estrecho haría que un móvil de DPR
+ * alto se llevase igualmente la pista de 1024px — el mismo razonamiento que ya
+ * documenta `AURA_SIZES`.
+ *
+ * ESE 992px COINCIDE CON `theme.data.breakPoint.lg` SOLO A LA RAÍZ DE FÁBRICA,
+ * y desde el commit `ecfb6e8` (2026-09-05) hay que decirlo así: `lg` pasó a
+ * declararse en `em` (`62em`) para que responda a la preferencia de tamaño de
+ * texto del usuario, así que vale 992px con la raíz a 16px y 1984px con la
+ * raíz a 32px. La equivalencia que este docblock afirmaba —"el mismo punto de
+ * corte que el resto del sitio"— dejó de ser cierta ese día en el único caso
+ * que importa, el del usuario que amplía el texto.
+ *
+ * Y `sizes` SE QUEDA EN PÍXELES A PROPÓSITO, no por olvido de aquella
+ * migración: no es layout, es una ESTIMACIÓN del ancho al que se va a
+ * renderizar la imagen, y el navegador la usa solo para elegir pista entre las
+ * dos publicadas. La decisión ya está escrita como excepción explícita en el
+ * docblock de `breakPoint` (`src/theme/themes.ts`: los `sizes` conservan sus
+ * consultas en píxeles porque no son layout). El revisor de la ola R lo midió:
+ * la pista que se sirve no cambia al ampliar el texto.
  */
 export const STORY_FIGURE_SIZES =
   "(min-width: 992px) 375px, (min-width: 600px) 60vw, 90vw";
