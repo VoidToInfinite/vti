@@ -74,6 +74,15 @@ export const ScMain = styled.main`
    * Se elige el calc() y no un envoltorio nuevo que se lleve el padding: no
    * añade un nodo al DOM y deja el relleno donde protege al texto del borde
    * de la pantalla en móvil.
+   *
+   * EL TOPE SIGUE LEYENDO space Y EL RELLENO PASA A inlineSpace (2026-09-05),
+   * y los dos siguen coincidiendo allí donde el tope decide algo: inlineSpace
+   * es min del mismo peldaño y de un vw calibrado para valer ese peldaño a
+   * 320px, así que solo se separan cuando la raíz tipográfica crece y el
+   * viewport es estrecho -- y ahí quien manda es el width 100% de arriba, no
+   * el tope, que queda muy por encima del viewport. Ver el docblock de
+   * inlineSpace en tokens/space.ts. SIN BACKTICKS: esto vive dentro del
+   * template literal de styled-components (regla 23 de RULES.md).
    */
   max-width: calc(
     ${({ theme }) => theme.data.grid.prose} + 2 *
@@ -98,7 +107,8 @@ export const ScMain = styled.main`
    * (Sin comillas invertidas dentro del template: regla 23 de RULES.md.)
    */
   padding: calc(var(--nav-height) + ${({ theme }) => theme.data.space[7]})
-    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[7]};
+    ${({ theme }) => theme.data.inlineSpace[5]}
+    ${({ theme }) => theme.data.space[7]};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     padding-block: calc(
@@ -192,7 +202,11 @@ export const ScToc = styled.nav`
   background: ${({ theme }) => theme.data.semantic.surfaceSunken};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
   border-radius: ${({ theme }) => theme.data.radius.lg};
-  padding: ${({ theme }) => theme.data.space[5]};
+  /* Termino INLINE en inlineSpace, de BLOQUE en space (ver su docblock en
+     tokens/space.ts): el indice va anidado dentro del relleno del documento,
+     asi que al 200 % los dos rellenos se sumaban contra la misma columna. */
+  padding: ${({ theme }) => theme.data.space[5]}
+    ${({ theme }) => theme.data.inlineSpace[5]};
   margin-bottom: ${({ theme }) => theme.data.space[7]};
 `;
 
@@ -209,6 +223,11 @@ export const ScTocList = styled.ol`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[2]};
+  /* space y no inlineSpace, a proposito: esto no es el rail que separa el
+     texto del borde de la pantalla, es el hueco donde el navegador PINTA los
+     numeros de la lista. Crece con la fuente porque el marcador crece con la
+     fuente; acotarlo al viewport dejaria los numeros fuera de su caja justo
+     cuando mas grandes son. */
   padding-left: ${({ theme }) => theme.data.space[4]};
 `;
 
@@ -402,6 +421,8 @@ export const ScList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[2]};
+  /* Mismo motivo que ScTocList: es el hueco del marcador de la lista, no un
+     rail de columna, y escala con el glifo que aloja. */
   padding-left: ${({ theme }) => theme.data.space[5]};
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
   list-style: disc;
@@ -533,7 +554,10 @@ export const ScDd = styled.dd`
    fondo sólido -- funciona igual de bien en los dos temas sin necesitar un
    color de texto distinto al del resto del documento. */
 export const ScNote = styled.div`
-  padding: ${({ theme }) => theme.data.space[4]};
+  /* Termino INLINE en inlineSpace, de BLOQUE en space (ver su docblock en
+     tokens/space.ts). */
+  padding: ${({ theme }) => theme.data.space[4]}
+    ${({ theme }) => theme.data.inlineSpace[4]};
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
   background: ${({ theme }) => theme.data.semantic.surfaceSunken};
   border-left: 3px solid ${({ theme }) => theme.data.semantic.warning};
@@ -625,16 +649,20 @@ export const ScCaption = styled.caption`
 
 export const ScTh = styled.th`
   text-align: left;
+  /* Termino INLINE en inlineSpace, de BLOQUE en space (ver su docblock en
+     tokens/space.ts): el relleno de la celda compite con el ancho de su
+     columna, que es la magnitud escasa de una tabla en movil. */
   padding: ${({ theme }) => theme.data.space[2]}
-    ${({ theme }) => theme.data.space[3]};
+    ${({ theme }) => theme.data.inlineSpace[3]};
   border-bottom: 2px solid ${({ theme }) => theme.data.semantic.borderStrong};
   color: ${({ theme }) => theme.data.semantic.text};
   white-space: nowrap;
 `;
 
 export const ScTd = styled.td`
+  /* Mismo reparto que ScTh, arriba: INLINE de inlineSpace, BLOQUE de space. */
   padding: ${({ theme }) => theme.data.space[2]}
-    ${({ theme }) => theme.data.space[3]};
+    ${({ theme }) => theme.data.inlineSpace[3]};
   border-bottom: 1px solid ${({ theme }) => theme.data.semantic.border};
   color: ${({ theme }) => theme.data.semantic.textMuted};
 `;
