@@ -568,6 +568,17 @@ const ScSurface = styled.div`
  * `grid.sectionMax` (1280px) + `space[6]`, y Story claro de `sectionMax` +
  * `space[5]`. Medido a 1920: 352 y 344 frente a los 384 de este raíl. Alinear
  * eso exige mover secciones, que no es de esta tarea ni de este fichero.
+ *
+ * DE QUÉ ESCALA SALE EL PELDAÑO (2026-09-05): de `inlineSpace`, no de `space`
+ * -- las dos formas del suelo y los dos términos del raíl. Es la misma cuenta
+ * con el mismo número mientras la raíz tipográfica sea la de fábrica
+ * (`inlineSpace[5]` es `min(space[5], 7.5vw)` y a 320px los dos términos valen
+ * 24px, ver su docblock en `tokens/space.ts`); lo que cambia es que con la
+ * preferencia de tamaño de texto del usuario al 200 % el raíl deja de doblarse
+ * mientras el viewport se queda quieto. El motivo de que sea la MISMA escala
+ * en los tres sitios sigue siendo el de arriba: `ScInner` (`Footer.tsx`) y las
+ * secciones acotadas migraron en la misma ola, así que el raíl único no se
+ * parte por el camino.
  */
 const ScNav = styled.nav`
   position: relative;
@@ -653,20 +664,20 @@ const ScNav = styled.nav`
   padding-block: 0;
   padding-right: calc(
     max(
-        ${({ theme }) => theme.data.space[5]},
+        ${({ theme }) => theme.data.inlineSpace[5]},
         calc(
           (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
-            ${({ theme }) => theme.data.space[5]}
+            ${({ theme }) => theme.data.inlineSpace[5]}
         )
       ) +
       env(safe-area-inset-right, 0px)
   );
   padding-left: calc(
     max(
-        ${({ theme }) => theme.data.space[5]},
+        ${({ theme }) => theme.data.inlineSpace[5]},
         calc(
           (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
-            ${({ theme }) => theme.data.space[5]}
+            ${({ theme }) => theme.data.inlineSpace[5]}
         )
       ) +
       env(safe-area-inset-left, 0px)
@@ -683,20 +694,20 @@ const ScNav = styled.nav`
   [data-scrolled="true"] & {
     padding-right: calc(
       max(
-          calc(${({ theme }) => theme.data.space[5]} - var(--nav-gap)),
+          calc(${({ theme }) => theme.data.inlineSpace[5]} - var(--nav-gap)),
           calc(
             (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
-              ${({ theme }) => theme.data.space[5]}
+              ${({ theme }) => theme.data.inlineSpace[5]}
           )
         ) +
         env(safe-area-inset-right, 0px)
     );
     padding-left: calc(
       max(
-          calc(${({ theme }) => theme.data.space[5]} - var(--nav-gap)),
+          calc(${({ theme }) => theme.data.inlineSpace[5]} - var(--nav-gap)),
           calc(
             (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
-              ${({ theme }) => theme.data.space[5]}
+              ${({ theme }) => theme.data.inlineSpace[5]}
           )
         ) +
         env(safe-area-inset-left, 0px)
@@ -1473,7 +1484,10 @@ const ScNavPanel = styled.div`
   right: 0;
   margin-top: ${({ theme }) => theme.data.space[2]};
   min-width: 12rem;
-  padding: ${({ theme }) => theme.data.space[2]};
+  /* Termino INLINE en inlineSpace (ver su docblock en tokens/space.ts), el de
+     BLOQUE en space: mismo panel con la raiz por defecto. */
+  padding: ${({ theme }) => theme.data.space[2]}
+    ${({ theme }) => theme.data.inlineSpace[2]};
   border-radius: ${({ theme }) => theme.data.radius.lg};
   border: ${({ theme }) => theme.data.glass.border};
   background: ${({ theme }) => theme.data.glass.bg};
@@ -1585,7 +1599,7 @@ const ScNavPanelGroup = styled.div`
 const ScNavPanelGroupTitle = styled.p`
   margin: 0;
   padding: ${({ theme }) => theme.data.space[1]}
-    ${({ theme }) => theme.data.space[2]};
+    ${({ theme }) => theme.data.inlineSpace[2]};
   font-size: ${({ theme }) => theme.data.type.scale.caption.size};
   font-weight: 600;
   color: ${({ theme }) => theme.data.semantic.textSubtle};
@@ -1657,7 +1671,7 @@ const ScNavPanelLink = styled(ScNavLink)`
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
   padding: ${({ theme }) => theme.data.space[1]}
-    ${({ theme }) => theme.data.space[2]};
+    ${({ theme }) => theme.data.inlineSpace[2]};
 
   &::before {
     content: "";

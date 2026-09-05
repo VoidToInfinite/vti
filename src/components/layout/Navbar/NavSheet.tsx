@@ -477,12 +477,22 @@ const ScNavSheet = styled.div`
    * ScSheetFade). Sigue siendo el mismo calc() de siempre, ahora con un solo
    * origen.
    */
+  /* Los dos terminos LATERALES leen inlineSpace y los dos de BLOQUE siguen en
+     space (ver el docblock de inlineSpace en tokens/space.ts): con la raiz por
+     defecto la hoja mide exactamente lo mismo, y con la fuente al 200 % el
+     relleno deja de crecer cuando el viewport ya no da mas de si. El calc()
+     con env() no cambia de forma: lo que cambia es de que escala sale el
+     sumando de la izquierda. */
   padding: ${({ theme }) => theme.data.space[3]}
     calc(
-      ${({ theme }) => theme.data.space[4]} + env(safe-area-inset-right, 0px)
+      ${({ theme }) => theme.data.inlineSpace[4]} +
+        env(safe-area-inset-right, 0px)
     )
     ${({ theme }) => sheetBottomInset(theme)}
-    calc(${({ theme }) => theme.data.space[4]} + env(safe-area-inset-left, 0px));
+    calc(
+      ${({ theme }) => theme.data.inlineSpace[4]} +
+        env(safe-area-inset-left, 0px)
+    );
   border-top: ${({ theme }) => theme.data.glass.border};
   border-radius: ${({ theme }) => theme.data.radius.xl}
     ${({ theme }) => theme.data.radius.xl} 0 0;
@@ -766,7 +776,10 @@ const ScSheetGroup = styled.div`
    esto. */
 const ScSheetGroupTitle = styled.p`
   margin: 0;
-  padding: 0 ${({ theme }) => theme.data.space[2]};
+  /* Mismo sangrado lateral que ScSheetRow, y de la misma escala acotada al
+     viewport (inlineSpace, ver tokens/space.ts): si uno de los dos se quedara
+     en space, el rotulo dejaria de alinearse con su lista al 200 %. */
+  padding: 0 ${({ theme }) => theme.data.inlineSpace[2]};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 600;
   color: ${({ theme }) => theme.data.semantic.textSubtle};
@@ -848,7 +861,7 @@ const ScSheetRow = styled.a`
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
   min-height: 44px;
-  padding: 0 ${({ theme }) => theme.data.space[2]};
+  padding: 0 ${({ theme }) => theme.data.inlineSpace[2]};
   border-radius: ${({ theme }) => theme.data.radius.md};
   font-size: ${({ theme }) => theme.data.type.scale.body.size};
   color: ${({ theme }) => theme.data.semantic.text};
@@ -943,6 +956,10 @@ const ScSheetRow = styled.a`
 const ScSheetLanguage = styled.div`
   display: flex;
   align-items: center;
+  /* space[1] y no inlineSpace[1]: la escala acotada al viewport arranca en el
+     peldano 2 porque es el primero con consumidor real en el eje inline (ver
+     su docblock en tokens/space.ts). Este peldano son 4px con la raiz por
+     defecto y 8px al 200 % -- una diferencia que no compite con la columna. */
   padding-inline: ${({ theme }) => theme.data.space[1]};
 `;
 

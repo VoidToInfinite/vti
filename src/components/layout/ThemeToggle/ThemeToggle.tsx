@@ -219,7 +219,7 @@ const ScThemeToggleButton = styled(IconButton)`
   @container ${NAVBAR_LABEL_QUERY} {
     && {
       width: auto;
-      padding-inline: ${({ theme }) => theme.data.space[3]};
+      padding-inline: ${({ theme }) => theme.data.inlineSpace[3]};
       gap: ${({ theme }) => theme.data.space[2]};
       box-shadow: none;
     }

@@ -64,8 +64,12 @@ const ScSkipLink = styled.a`
   top: ${({ theme }) => theme.data.space[3]};
   left: ${({ theme }) => theme.data.space[3]};
   z-index: ${({ theme }) => theme.data.zIndex.modal};
+  /* Termino INLINE en inlineSpace (ver su docblock en tokens/space.ts): el
+     enlace nace pegado al borde izquierdo del viewport, asi que su relleno
+     lateral es exactamente lo que compite con el rotulo en una pantalla
+     estrecha con la fuente al 200 %. El de BLOQUE sigue en space. */
   padding: ${({ theme }) => theme.data.space[3]}
-    ${({ theme }) => theme.data.space[5]};
+    ${({ theme }) => theme.data.inlineSpace[5]};
   border-radius: ${({ theme }) => theme.data.radius.lg};
   background: ${({ theme }) => theme.data.semantic.brandSolid};
   color: ${({ theme }) => theme.data.semantic.onBrand};

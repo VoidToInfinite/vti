@@ -149,8 +149,12 @@ const ScLanguageButton = styled(Link)<{ $active: boolean }>`
      va a ocupar en la práctica. */
   min-height: 44px;
   min-width: 44px;
+  /* Termino INLINE en inlineSpace (ver su docblock en tokens/space.ts): es el
+     relleno lateral de un control con rotulo, y con la fuente al 200 % deja de
+     crecer cuando el viewport ya no da mas de si. El de BLOQUE sigue en space
+     -- el suelo tactil lo pone min-height, no el relleno. */
   padding: ${({ theme }) => theme.data.space[1]}
-    ${({ theme }) => theme.data.space[2]};
+    ${({ theme }) => theme.data.inlineSpace[2]};
   border-radius: ${({ theme }) => theme.data.radius.md};
   /* El peldaño bodySm, y no un 0.875rem a mano (crítica externa #15, hallazgo
      C6): el literal que había aquí resolvía EXACTAMENTE al peldaño, así que el
