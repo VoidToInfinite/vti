@@ -19,6 +19,29 @@ import { PRESS } from "@/motion/vocabulary";
  * de verdad: ver el porqué del `calc()` de su `max-width` ahí abajo.
  */
 
+/*
+ * `max-width`: el tope SUMA el relleno a propósito (crítica externa #10,
+ * hallazgo C). Con `box-sizing: border-box` global, un `max-width` de
+ * `grid.prose` a secas dejaba la COLUMNA REAL de texto en 465,92 - 2x24 =
+ * 417,92 px = 46,6ch: ~55 caracteres por línea medidos, por debajo de la banda
+ * 60-75 que el token persigue. El token NO es el problema -- su ratio de
+ * caracteres reales por `ch` está verificado de forma independiente, ver el
+ * docblock de `grid.ts` --: lo estaba la ENTREGA en esta caja. Sumando los dos
+ * rellenos, quien mide `grid.prose` pasa a ser la caja de CONTENIDO, que es la
+ * que porta el texto.
+ *
+ * Se elige el `calc()` y no un envoltorio nuevo que se lleve el `padding`: no
+ * añade un nodo al DOM y deja el relleno donde protege al texto del borde de
+ * la pantalla en móvil.
+ *
+ * EL TOPE SIGUE LEYENDO `space` Y EL RELLENO PASA A `inlineSpace`
+ * (2026-09-05), y los dos siguen coincidiendo allí donde el tope decide algo:
+ * `inlineSpace` es `min` del mismo peldaño y de un `vw` calibrado para valer
+ * ese peldaño a 320px, así que solo se separan cuando la raíz tipográfica
+ * crece y el viewport es estrecho -- y ahí quien manda es el `width: 100%`, no
+ * el tope, que queda muy por encima del viewport. Ver el docblock de
+ * `inlineSpace` en `tokens/space.ts`.
+ */
 export const ScMain = styled.main`
   /*
    * CAUSA RAÍZ del recorte de /privacidad en todo móvil por debajo de 466 px
@@ -60,30 +83,6 @@ export const ScMain = styled.main`
    * scroll.
    */
   width: 100%;
-  /*
-   * El tope SUMA el relleno a propósito (crítica externa #10, hallazgo C).
-   * Con box-sizing: border-box global, un max-width de grid.prose a secas
-   * dejaba la COLUMNA REAL de texto en 465,92 - 2x24 = 417,92 px = 46,6ch:
-   * ~55 caracteres por línea medidos, por debajo de la banda 60-75 que el
-   * token persigue. El token NO es el problema -- su ratio de caracteres
-   * reales por ch está verificado de forma independiente, ver el docblock de
-   * grid.ts --: lo estaba la ENTREGA en esta caja. Sumando los dos rellenos,
-   * quien mide grid.prose pasa a ser la caja de CONTENIDO, que es la que
-   * porta el texto.
-   *
-   * Se elige el calc() y no un envoltorio nuevo que se lleve el padding: no
-   * añade un nodo al DOM y deja el relleno donde protege al texto del borde
-   * de la pantalla en móvil.
-   *
-   * EL TOPE SIGUE LEYENDO space Y EL RELLENO PASA A inlineSpace (2026-09-05),
-   * y los dos siguen coincidiendo allí donde el tope decide algo: inlineSpace
-   * es min del mismo peldaño y de un vw calibrado para valer ese peldaño a
-   * 320px, así que solo se separan cuando la raíz tipográfica crece y el
-   * viewport es estrecho -- y ahí quien manda es el width 100% de arriba, no
-   * el tope, que queda muy por encima del viewport. Ver el docblock de
-   * inlineSpace en tokens/space.ts. SIN BACKTICKS: esto vive dentro del
-   * template literal de styled-components (regla 23 de RULES.md).
-   */
   max-width: calc(
     ${({ theme }) => theme.data.grid.prose} + 2 *
       ${({ theme }) => theme.data.space[5]}
@@ -197,14 +196,16 @@ export const ScVersionMeta = styled.p`
 
 /* Índice de contenidos (D22): navegación por teclado real -- cada `<a>` es
    un enlace ancla nativo, sin JS de por medio, así que hereda foco/tabulación
-   y el anillo global de `GlobalStyles`. */
+   y el anillo global de `GlobalStyles`.
+
+   `padding`: término INLINE en `inlineSpace`, de BLOQUE en `space` (ver su
+   docblock en `tokens/space.ts`). El índice va anidado dentro del relleno del
+   documento, así que al 200 % los dos rellenos se sumaban contra la misma
+   columna. */
 export const ScToc = styled.nav`
   background: ${({ theme }) => theme.data.semantic.surfaceSunken};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
   border-radius: ${({ theme }) => theme.data.radius.lg};
-  /* Termino INLINE en inlineSpace, de BLOQUE en space (ver su docblock en
-     tokens/space.ts): el indice va anidado dentro del relleno del documento,
-     asi que al 200 % los dos rellenos se sumaban contra la misma columna. */
   padding: ${({ theme }) => theme.data.space[5]}
     ${({ theme }) => theme.data.inlineSpace[5]};
   margin-bottom: ${({ theme }) => theme.data.space[7]};
@@ -219,15 +220,15 @@ export const ScTocHeading = styled.p`
   color: ${({ theme }) => theme.data.semantic.textSubtle};
 `;
 
+/* `padding-left`: `space` y no `inlineSpace`, a propósito. Esto no es el raíl
+   que separa el texto del borde de la pantalla, es el hueco donde el navegador
+   PINTA los números de la lista. Crece con la fuente porque el marcador crece
+   con la fuente; acotarlo al viewport dejaría los números fuera de su caja
+   justo cuando más grandes son. */
 export const ScTocList = styled.ol`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[2]};
-  /* space y no inlineSpace, a proposito: esto no es el rail que separa el
-     texto del borde de la pantalla, es el hueco donde el navegador PINTA los
-     numeros de la lista. Crece con la fuente porque el marcador crece con la
-     fuente; acotarlo al viewport dejaria los numeros fuera de su caja justo
-     cuando mas grandes son. */
   padding-left: ${({ theme }) => theme.data.space[4]};
 `;
 
@@ -417,12 +418,12 @@ export const ScParagraph = styled.p`
   }
 `;
 
+/* `padding-left`: mismo motivo que `ScTocList` -- es el hueco del marcador de
+   la lista, no un raíl de columna, y escala con el glifo que aloja. */
 export const ScList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[2]};
-  /* Mismo motivo que ScTocList: es el hueco del marcador de la lista, no un
-     rail de columna, y escala con el glifo que aloja. */
   padding-left: ${({ theme }) => theme.data.space[5]};
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
   list-style: disc;
@@ -552,10 +553,11 @@ export const ScDd = styled.dd`
 
 /* Aviso destacado (bloque `note`): borde izquierdo de acento en vez de un
    fondo sólido -- funciona igual de bien en los dos temas sin necesitar un
-   color de texto distinto al del resto del documento. */
+   color de texto distinto al del resto del documento.
+
+   `padding`: término INLINE en `inlineSpace`, de BLOQUE en `space` (ver su
+   docblock en `tokens/space.ts`). */
 export const ScNote = styled.div`
-  /* Termino INLINE en inlineSpace, de BLOQUE en space (ver su docblock en
-     tokens/space.ts). */
   padding: ${({ theme }) => theme.data.space[4]}
     ${({ theme }) => theme.data.inlineSpace[4]};
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
@@ -647,11 +649,11 @@ export const ScCaption = styled.caption`
   font-size: ${({ theme }) => theme.data.type.scale.caption.size};
 `;
 
+/* `padding`: término INLINE en `inlineSpace`, de BLOQUE en `space` (ver su
+   docblock en `tokens/space.ts`). El relleno de la celda compite con el ancho
+   de su columna, que es la magnitud escasa de una tabla en móvil. */
 export const ScTh = styled.th`
   text-align: left;
-  /* Termino INLINE en inlineSpace, de BLOQUE en space (ver su docblock en
-     tokens/space.ts): el relleno de la celda compite con el ancho de su
-     columna, que es la magnitud escasa de una tabla en movil. */
   padding: ${({ theme }) => theme.data.space[2]}
     ${({ theme }) => theme.data.inlineSpace[3]};
   border-bottom: 2px solid ${({ theme }) => theme.data.semantic.borderStrong};
@@ -659,8 +661,9 @@ export const ScTh = styled.th`
   white-space: nowrap;
 `;
 
+/* `padding`: mismo reparto que `ScTh`, arriba -- INLINE de `inlineSpace`,
+   BLOQUE de `space`. */
 export const ScTd = styled.td`
-  /* Mismo reparto que ScTh, arriba: INLINE de inlineSpace, BLOQUE de space. */
   padding: ${({ theme }) => theme.data.space[2]}
     ${({ theme }) => theme.data.inlineSpace[3]};
   border-bottom: 1px solid ${({ theme }) => theme.data.semantic.border};
