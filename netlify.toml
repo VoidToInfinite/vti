@@ -6,7 +6,18 @@
   # tests) lo define `package.json`. OJO: tiene que ser `pnpm run ci` -- un
   # `pnpm ci` a secas ejecuta el clean-install interno de pnpm y sale 0 sin
   # correr el gate, aunque el script exista (medido el 2026-08-08).
-  command = "pnpm run ci && pnpm build"
+  #
+  # Y `pnpm measure:js` DESPUÉS del build (añadido el 2026-09-05): el censo del
+  # bundle (`scripts/home-js-baseline.json`) se puede recortar y volver a
+  # sellar a mano sin tocar el build —el sello es una función pura sobre el
+  # propio JSON—, así que el gate por sí solo no lo ve; medido contra el
+  # artefacto recién construido, un censo que no cuadra devuelve código 1 y el
+  # despliegue no publica. Los tres eslabones van unidos por `&&` a propósito y
+  # en este orden: si falla el gate no se construye, y si falla el censo no se
+  # publica. `scripts/build-pipeline.test.mjs` ata esa secuencia; el riesgo de
+  # comparar un censo generado en Windows contra un build hecho en el runner
+  # está declarado en la cabecera de `.github/workflows/ci.yml`.
+  command = "pnpm run ci && pnpm build && pnpm measure:js"
   publish = "out"
 
 [build.environment]

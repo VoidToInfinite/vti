@@ -162,15 +162,29 @@
  *      `out/` real. Un censo recortado a mano y luego resellado ya no es un
  *      recorte silencioso: es un build nuevo o una manipulación explícita.
  *
- * LÍMITE DECLARADO, para que nadie lea aquí más garantía de la que hay: en un
+ * LÍMITE DECLARADO, y desde el 2026-09-05 CERRADO EN LOS DOS PIPELINES: en un
  * gate que corre SIN build no existe verdad de referencia contra la que
  * contrastar el censo, así que ninguna comprobación local puede distinguir «el
  * censo encogió porque el build encogió» de «alguien lo recortó y volvió a
- * sellarlo ejecutando el sellador». Lo que estas tres capas garantizan es que
- * el recorte deje de ser posible **en silencio**: cualquier camino a verde pasa
- * por regenerar el sello, y regenerar el sello sin `out/` no está soportado.
- * Lo que sí cierra el caso del todo es el bloque de integración, que compara el
- * censo contra el build real — y ése, por diseño, solo corre donde hay `out/`.
+ * sellarlo ejecutando el sellador». Lo que estas tres capas garantizan POR SÍ
+ * SOLAS es que el recorte deje de ser posible **en silencio**: cualquier camino
+ * a verde pasa por regenerar el sello, y regenerar el sello sin `out/` no está
+ * soportado. Lo que cierra el caso del todo es comparar el censo contra el
+ * artefacto, y eso ya no depende de que la máquina tenga un `out/` a mano:
+ * `.github/workflows/ci.yml` ejecuta `pnpm build` y `pnpm measure:js` como dos
+ * pasos propios detrás del gate, y el `command` de `netlify.toml` encadena los
+ * tres (`pnpm run ci && pnpm build && pnpm measure:js`). Un censo recortado y
+ * resellado a mano sigue pasando un `pnpm run ci` local, pero cae en CI y en el
+ * despliegue contra las dieciocho filas reales.
+ *
+ * LO QUE SIGUE SIN VERLO, dicho para que nadie lea aquí más garantía de la que
+ * hay: un `pnpm run ci` local SIN build. Ahí solo corren los tres candados que
+ * no necesitan `out/` y el bloque de integración de
+ * `scripts/measure-home-js.test.mjs` se salta, exactamente igual que antes. Lo
+ * que cambia es que ese verde ya no es la última palabra: el mismo recorte cae
+ * en el siguiente push y en el siguiente despliegue. Que esos dos pasos sigan
+ * existiendo, y en ese orden, lo ata `scripts/build-pipeline.test.mjs`, que sí
+ * corre dentro del gate.
  *
  * QUÉ VIGILA, en NUEVE candados independientes:
  *
@@ -194,9 +208,13 @@
  *      filas que cita.
  *   9. **El sello**: `BASELINE_DIGEST`.
  *
- * De los nueve, los candados 6, 8 y 9 NO necesitan `out/` — corren en CI a
- * través de `scripts/measure-home-js.test.mjs`. Los otros seis necesitan el
- * build y corren donde lo haya.
+ * De los nueve, los candados 6, 8 y 9 NO necesitan `out/` — corren en cualquier
+ * `pnpm run ci`, con build o sin él, a través de
+ * `scripts/measure-home-js.test.mjs`. Los otros seis necesitan el build, y
+ * desde el 2026-09-05 lo tienen siempre en los dos pipelines: CI construye y
+ * ejecuta `pnpm measure:js` detrás del gate, y el `command` de Netlify hace lo
+ * mismo antes de publicar. El único sitio donde los seis siguen sin correr es
+ * un `pnpm run ci` local sin build.
  *
  * SALIDA: tabla por chunk de la home con su delta, censo por página, censo de
  * gemelos de la unión, censo de duplicación, los dos totales (descargado y HTML
@@ -217,9 +235,13 @@
  * CONTENIDO ya interpretado, así que reformatear el JSON no lo mueve.
  *
  * POR QUÉ ESTE SCRIPT SIGUE FUERA DE `pnpm run ci`, dicho explícitamente para
- * que nadie lo "arregle" sin leer: necesita un `out/` construido, y el gate
- * corre sin build (también en Netlify, cuyo `command` es `pnpm run ci &&
- * pnpm build` — el gate va ANTES). Lo que sí corre en el gate es
+ * que nadie lo "arregle" sin leer: necesita un `out/` construido y el gate
+ * corre sin build — el gate va ANTES, tanto en CI como en Netlify. Donde SÍ se
+ * ejecuta es DESPUÉS del build, en los dos pipelines: en
+ * `.github/workflows/ci.yml` como paso propio detrás de `pnpm build`, y en
+ * `netlify.toml` como tercer eslabón del `command`. Meterlo dentro de
+ * `pnpm run ci` lo único que conseguiría es que el gate reventara en toda
+ * máquina sin `out/`. Lo que sí corre en el gate es
  * `scripts/measure-home-js.test.mjs`, que ejercita esta lógica con chunks
  * sintéticos y audita el censo versionado entero; y cuando la máquina donde
  * corre tiene un `out/` a mano, ese mismo test compara el build real contra él.
