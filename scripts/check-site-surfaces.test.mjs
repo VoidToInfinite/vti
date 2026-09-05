@@ -262,7 +262,16 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  *        rellenos que esta familia existe para cazar: expected [] to have a
  *        length of 1 but got +0
  *
- * Restauradas las tres, 26 casos en verde.
+ *   l. INVERTIDA LA CAIDA CONSERVADORA sin ancho de documento (`if
+ *      (anchoRelativo === null || anchoRelativo >= maxAnchoRelativo)`, o sea
+ *      absolver cuando el factor no se puede evaluar, que es la forma de vaciar
+ *      la familia entera el dia que la sonda pierda el `clientWidth`) -- «Tests
+ *      1 failed | 25 passed»:
+ *
+ *        AssertionError: sin ancho de documento el segundo factor no absuelve a
+ *        nadie: expected [] to have a length of 1 but got +0
+ *
+ * Restauradas las cuatro, 26 casos en verde.
  */
 
 const RUTA_SCRIPT = path.join(
