@@ -1081,11 +1081,18 @@ describe("Navbar", () => {
     });
 
     it("los umbrales en em equivalen a los breakpoints del tema, descontando el raíl de la banda", () => {
-      /* `lg` y `xl` del tema llegan como cadenas de media query
-         ("screen and (min-width: 992px)"): se extrae el número, que es el
-         dato que tiene que coincidir. */
+      /* `lg` y `xl` del tema llegan como cadenas de media query. Desde el
+         frente F (2026-09-05) las declaran en `em`
+         ("screen and (min-width: 62em)") y no en píxeles, así que la
+         conversión pasa por la MISMA raíz por defecto contra la que este
+         módulo ya declara sus dos umbrales de contenedor: el dato que tiene
+         que coincidir sigue siendo el ancho en píxeles del escalón con la
+         tipografía de fábrica. Si el token volviera a px, `em` no casa y el
+         `Number(undefined)` da NaN: el caso cae en rojo en vez de pasar en
+         verde midiendo otra cosa. */
       const px = (consulta: string): number =>
-        Number(/min-width:\s*(\d+)px/.exec(consulta)?.[1]);
+        Number(/min-width:\s*([\d.]+)em/.exec(consulta)?.[1]) *
+        NAVBAR_CONTAINER_ROOT_PX;
       /* `space[5]` llega en rem: se convierte con la misma raíz por defecto
          contra la que se declaran los umbrales. */
       const rail =
@@ -2655,7 +2662,14 @@ describe("Navbar", () => {
       );
     }
 
-    const MEDIA_MD = /min-width:\s*768px/;
+    /* Condición leída del TOKEN, no escrita a mano (regla 38): desde el
+       frente F (2026-09-05) los cuatro breakpoints se declaran en `em` para
+       que respondan a la preferencia de tamaño de texto del usuario, y un
+       literal "768px" aquí habría dejado de encontrar el bloque en silencio
+       -- el test pasaría a verde afirmando que no hay nada bajo `md`. */
+    const MEDIA_MD = new RegExp(
+      basicLightTheme.breakPoint.md.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    );
     /** Salida sin JavaScript (crítica externa #10, hallazgo A): el feature que
      *  distingue "JavaScript desactivado o no soportado", ya sancionado en el
      *  repo (GlobalStyles.tsx, auraStagger, eyeStagger). */
@@ -4384,7 +4398,11 @@ describe("critica #16 (L4): el contenido de la barra cuelga del rail de contenid
  */
 describe("crítica externa #17: sin JavaScript la cabecera sigue navegando en móvil", () => {
   const MEDIA_SIN_JS_17 = /scripting:\s*none/;
-  const MEDIA_MD_17 = /min-width:\s*768px/;
+  /* Mismo motivo que `MEDIA_MD`, más arriba: la condición sale del token
+     (`em` desde el frente F), nunca de un literal en píxeles. */
+  const MEDIA_MD_17 = new RegExp(
+    basicLightTheme.breakPoint.md.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+  );
 
   /** Primera clase del elemento que aparece en alguna regla inyectada. */
   function claseDe(el: Element, reglas: string[]): string {

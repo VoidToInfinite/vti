@@ -24,12 +24,61 @@ import { focusRing } from "./tokens/focus";
  * cambia es que ahora los dos temas comparten la MISMA referencia, así que
  * una divergencia silenciosa entre ramas ya no es representable (candado en
  * `themes.test.ts`, con `toBe`, el mismo criterio que ya ataba `palette`).
+ *
+ * EN `em`, NO EN `px` (frente F, 2026-09-05), y con el MISMO valor a la raíz
+ * por defecto: 37.5em = 600, 48em = 768, 62em = 992, 75em = 1200, todos
+ * contra los 16 px de fábrica. Una media query en `em` se evalúa contra el
+ * tamaño de fuente INICIAL del navegador —la preferencia del usuario, no el
+ * `font-size` de la página—, así que a 16 px es idéntica byte a byte a la de
+ * `px` y con la preferencia al 200 % cada escalón se dobla. Es la técnica
+ * estándar de reflow bajo zoom de texto.
+ *
+ * EL MECANISMO, COMPROBADO EN EL INSTRUMENTO Y NO SUPUESTO. Sonda propia en
+ * Chrome con las DOS formas del mismo escalón en una hoja insertada a mano,
+ * leyendo qué regla aplica de verdad (`getComputedStyle`, no `matchMedia` a
+ * secas), con la raíz movida por `Page.setFontSizes`:
+ *
+ *     raíz   viewport   aplica 48em   aplica 768px
+ *     16 px    320 px       no             no
+ *     16 px    768 px       SI             SI
+ *     16 px    834 px       SI             SI
+ *     16 px   1536 px       SI             SI
+ *     32 px    320 px       no             no
+ *     32 px    768 px       no             SI     <- el defecto
+ *     32 px    834 px       no             SI     <- el defecto
+ *     32 px   1536 px       SI             SI
+ *
+ * Con la tipografía de fábrica las dos columnas son la misma; con la
+ * preferencia al 200 % solo la de `em` se entera, y vuelve a encenderse
+ * exactamente en 1536 = 48 x 32.
+ *
+ * POR QUÉ HACÍA FALTA, medido en Chrome sobre el build de producción servido
+ * (`Page.setFontSizes` a 32 px, `prefers-reduced-motion: reduce`, tema claro,
+ * la tarjeta de Contacto):
+ *
+ *     viewport   pista de la tarjeta        columna del formulario   rótulo del CTA
+ *     320 px     222px (una columna)        222 px                   108,00 px, 3 líneas
+ *     768 px     278,83px + 199,16px        278,83 px                 58,83 px, 8 líneas
+ *     834 px     317,33px + 226,66px        317,33 px                 91,33 px, 3 líneas
+ *
+ * A 768 px con la raíz a 32, `md` en píxeles seguía dando por buena una
+ * rejilla de dos columnas sobre lo que para el usuario son 24rem —el ancho de
+ * un móvil pequeño a la raíz de fábrica—, y la columna del formulario se
+ * quedaba con menos rótulo que la banda de 320. El escalón está en PÍXELES y
+ * por eso ignoraba la preferencia de tamaño de texto; en `em` deja de
+ * ignorarla.
+ *
+ * QUÉ NO SE TOCA, y no es un olvido: las `@container` de `navbarContainer.ts`
+ * siguen en `em` sobre su propio contenedor (miden espacio real y ya resuelven
+ * `em` contra la fuente del contenedor, ver su docblock), y los atributos
+ * `sizes` de las imágenes conservan sus `(max-width: …px)` porque no son
+ * layout: son pistas de selección de pista para el navegador.
  */
 const breakPoint = {
-  sm: "screen and (min-width: 600px)",
-  md: "screen and (min-width: 768px)",
-  lg: "screen and (min-width: 992px)",
-  xl: "screen and (min-width: 1200px)",
+  sm: "screen and (min-width: 37.5em)",
+  md: "screen and (min-width: 48em)",
+  lg: "screen and (min-width: 62em)",
+  xl: "screen and (min-width: 75em)",
 } as const;
 
 const shared = {

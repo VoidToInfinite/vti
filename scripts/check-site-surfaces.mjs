@@ -385,9 +385,16 @@ export const SURFACES = [
 
 /**
  * Barrido de anchos. Los extremos son los del encargo (320 y 1920) y los del
- * medio son los saltos reales del sistema: el escalon `md` (768) por el que la
- * barra cambia de la hoja movil a la fila, y los anchos de dispositivo que el
- * repo ya usa en sus mediciones.
+ * medio son los saltos reales del sistema: el escalon `md` --768 px a la raiz
+ * por defecto (48em)-- por el que la barra cambia de la hoja movil a la fila, y
+ * los anchos de dispositivo que el repo ya usa en sus mediciones.
+ *
+ * EL ESCALON ES UN ANCHO EFECTIVO, NO UN ANCHO DE VIEWPORT (frente F,
+ * 2026-09-05): desde esa fecha los cuatro breakpoints del tema se declaran en
+ * `em`, asi que valen 768 px con la tipografia de fabrica y el doble con la
+ * preferencia de tamano de texto al 200 %. Este barrido sigue midiendo
+ * viewports en pixeles --que es lo que un navegador tiene-- y por eso las
+ * pasadas con `Page.setFontSizes` a 32 px cruzan el escalon en 1536, no en 768.
  */
 export const WIDTH_SWEEP = [
     320, 360, 390, 414, 480, 600, 768, 834, 1024, 1280, 1440, 1920,

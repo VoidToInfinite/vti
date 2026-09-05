@@ -2214,12 +2214,21 @@ describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo m
     expect(base).not.toMatch(/repeat\(/);
   });
 
-  it("las dos columnas empiezan en md (768px) y las tres de antes ya no existen", () => {
+  /*
+   * La condicion del media query se pasa desde el TOKEN, no escrita a mano
+   * (regla 38). Desde el frente F (2026-09-05) los cuatro breakpoints se
+   * declaran en `em` para responder a la preferencia de tamano de texto del
+   * usuario; con "min-width: 768px" escrito aqui, `reglaEnMedia` no habria
+   * encontrado ninguna linea y el caso habria caido en rojo por el motivo
+   * equivocado -- o peor, habria pasado a verde el dia que alguien lo
+   * relajara. El escalon sigue valiendo 768 px con la raiz de fabrica.
+   */
+  it("las dos columnas empiezan en md (768 px a la raiz por defecto) y las tres de antes ya no existen", () => {
     renderWithProviders(<Journey />);
     const { grid } = pasoDeLaRejilla();
     const enMd = reglaEnMedia(
       grid,
-      "min-width: 768px",
+      themes.light.breakPoint.md,
       "grid-template-columns",
     );
 
@@ -2231,7 +2240,7 @@ describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo m
     expect(cssRuleTextFor(grid)).not.toMatch(/repeat\(3,/);
     // El regimen del mockup (6 columnas + camino punteado) sigue intacto.
     expect(
-      reglaEnMedia(grid, "min-width: 992px", "grid-template-columns"),
+      reglaEnMedia(grid, themes.light.breakPoint.lg, "grid-template-columns"),
     ).toMatch(/grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/);
   });
 
@@ -2281,9 +2290,9 @@ describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo m
     expect(base).toContain(
       `padding: ${themes.light.space[7]} ${themes.light.inlineSpace[5]} ${themes.light.space[8]}`,
     );
-    expect(reglaEnMedia(card, "min-width: 768px", "padding-inline")).toContain(
-      `padding-inline: ${themes.light.inlineSpace[7]}`,
-    );
+    expect(
+      reglaEnMedia(card, themes.light.breakPoint.md, "padding-inline"),
+    ).toContain(`padding-inline: ${themes.light.inlineSpace[7]}`);
   });
 
   it("critica #15 C 6: la cita clara toma su font-size del token, no del literal", async () => {

@@ -491,7 +491,8 @@ describe("cobertura del candado de las superficies del sitio", () => {
         expect(Math.max(...WIDTH_SWEEP)).toBe(1920);
         expect(
             WIDTH_SWEEP,
-            "sin 768 el barrido no cruza el escalon en el que la cabecera cambia de la hoja movil a la fila",
+            "sin 768 el barrido no cruza el escalon en el que la cabecera cambia de la hoja movil a la fila " +
+                "(768 px a la raiz por defecto: desde el frente F, 2026-09-05, el escalon se declara como 48em)",
         ).toContain(768);
         // Estrictamente creciente: un ancho repetido o desordenado mide menos de
         // lo que la lista aparenta.

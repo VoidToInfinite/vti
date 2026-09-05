@@ -1213,10 +1213,16 @@ describe("Footer", () => {
             return [];
           }
         })
+        /* La condición sale del TOKEN, no de un literal en píxeles (regla
+           38): desde el frente F (2026-09-05) los cuatro breakpoints se
+           declaran en `em` para responder a la preferencia de tamaño de texto
+           del usuario, y un "768px" escrito aquí habría dejado de encontrar
+           el bloque -- con el `expect(...).not.toBe("")` de abajo como única
+           red, pero afirmando algo que ya no describe el CSS. */
         .filter(
           (texto) =>
             texto.startsWith("@media") &&
-            /min-width:\s*768px/.test(texto) &&
+            texto.includes(themes.light.breakPoint.md) &&
             texto.includes(`.${clase}`),
         )
         .join("\n");
