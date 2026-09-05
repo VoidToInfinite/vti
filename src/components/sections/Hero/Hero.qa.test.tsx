@@ -139,8 +139,13 @@ describe("Hero (lente funcional)", () => {
       '[data-testid="hero-title"]',
     ) as HTMLElement;
 
+    // Los dos extremos pasan a `rem` el 2026-09-05 (WCAG 1.4.4): 2.125rem =
+    // 34px y 16.125rem = 258px con la raiz por defecto, la conversion exacta
+    // del literal que este test ataba antes en pixeles. Lo que el test
+    // protege sigue siendo lo mismo: que la declaracion sea el literal del
+    // usuario con el factor vw resuelto por variable CSS.
     expect(sinEspacios(getComputedStyle(titulo).fontSize)).toBe(
-      sinEspacios("clamp(34px, var(--hero-title-vw, 7vw), 258px)"),
+      sinEspacios("clamp(2.125rem, var(--hero-title-vw, 7vw), 16.125rem)"),
     );
     expect(getComputedStyle(titulo).lineHeight).toBe(
       String(typeTokens.scale.display.lineHeight),
@@ -179,8 +184,10 @@ describe("Hero (lente funcional)", () => {
       '[data-testid="hero-subtitle"]',
     ) as HTMLElement;
 
+    // Mismo cambio de unidad que el titular (2026-09-05): 0.9375rem = 15px y
+    // 1.375rem = 22px con la raiz por defecto.
     expect(sinEspacios(getComputedStyle(subtitulo).fontSize)).toBe(
-      sinEspacios("clamp(15px, 2vw, 22px)"),
+      sinEspacios("clamp(0.9375rem, 2vw, 1.375rem)"),
     );
   });
 

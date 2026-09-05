@@ -572,9 +572,32 @@ const ScActions = styled.div`
    min(theme.data.type.scale.display.size, 10vw). Es una decision explicita
    que se salta la escala tipografica (theme.data.type.scale.display) a
    proposito: NO se corrige a un token, se documenta como excepcion. El suelo
-   de 34px (mayor que 8vw por debajo de ~425px CSS) sigue evitando que
+   (mayor que 8vw por debajo de ~425px CSS) sigue evitando que
    "VoidToInfinite" -- 14 caracteres inseparables, hyphens: manual mas abajo
    -- se corte contra el overflow hidden del hero a anchos pequenos.
+
+   EL VALOR SE CONSERVA; LA UNIDAD DE SUS EXTREMOS NO (WCAG 1.4.4, hallazgo
+   del revisor adversarial del 2026-09-05, medido y reproducido). Suelo y
+   techo estaban escritos en PIXELES, y un pixel no sabe nada de la
+   preferencia de tamano de texto del usuario: medido en Chrome sobre el
+   build servido (320 px, tema claro, reduced-motion, Page.setFontSizes 16
+   frente a 32 -- la misma palanca que la preferencia del navegador), este h1
+   media 34px con la raiz a 16 y 34px con la raiz a 32 (x1,00), mientras el
+   cuerpo de la pagina si doblaba de 16 a 32 en la MISMA muestra: el termino
+   preferido (7vw) vale 22,4px a ese ancho, asi que quien decide es el suelo,
+   y el suelo era inmovil. Con el suelo y el techo en `rem` -- 2.125rem =
+   34px y 16.125rem = 258px con la raiz por defecto, la conversion EXACTA del
+   literal, no un redondeo -- la composicion por defecto no cambia ni un
+   pixel a ningun ancho (el clamp resuelve el mismo numero termino a termino)
+   y con la raiz a 32px el titular pasa a 68px, el 200 % que exige el
+   criterio. El termino preferido sigue en vw a proposito: F94 (el patron de
+   fallo de 1.4.4) describe el texto dimensionado CON unidades de viewport
+   como metodo primario; aqui el vw solo elige el tramo intermedio entre dos
+   extremos que ya escalan con la raiz.
+
+   El wordmark de dentro (BrandName, font-size: 1em) hereda de ESTE elemento,
+   asi que crece con el sin declarar nada: medido en el mismo barrido, 34px
+   con las dos raices -- identico a su padre, NO mas pequeno.
 
    En CLARO el factor baja a 7vw (mismo suelo y tope): con la copia pegada a
    la izquierda y compitiendo por ancho con el marco del arte (spec S3.6, la
@@ -594,7 +617,7 @@ const ScActions = styled.div`
    activo desde el primer pintado, sin esperar a React. Sin JS, el resultado
    es identico al de antes de esta tarea. */
 const ScHeroBrand = styled.div`
-  font-size: clamp(34px, var(--hero-title-vw, 7vw), 258px);
+  font-size: clamp(2.125rem, var(--hero-title-vw, 7vw), 16.125rem);
 
   /* line-height tambien hay que fijarlo: GlobalStyles pone 1.4em en el body,
      que se hereda como LONGITUD ya resuelta (22.4px), no como factor. Sin
@@ -681,6 +704,17 @@ const ScTagline = styled(Typography)`
    que el color de ScKicker: la clase de ScSubtitle se inyecta despues de la
    de ScTypography.
 
+   MISMA CORRECCION DE UNIDAD QUE EL TITULAR (WCAG 1.4.4, 2026-09-05): los
+   dos extremos pasan de pixeles a `rem` con el valor EXACTO que ya tenian
+   con la raiz por defecto -- 0.9375rem = 15px y 1.375rem = 22px --, asi que
+   la composicion no cambia ni un pixel a ningun ancho y con la preferencia
+   de tamano de texto al 200 % el suelo sube a 30px en vez de quedarse
+   clavado en 15. Medido antes del cambio en Chrome sobre el build servido
+   (320 px, claro, reduce, Page.setFontSizes 16 frente a 32): 15px con las
+   DOS raices, mientras el cuerpo doblaba de 16 a 32 en la misma muestra. A
+   320px manda el suelo (2vw = 6,4px), que es justo el termino que no se
+   movia.
+
    `margin-block-start: space[3]` (Task 14, fix de revision): hereda el valor
    que antes tenia la linea C ("separacion corta"), porque ahora es EL
    SUBTITULO el que sigue a un elemento de cuerpo, no al titular -- mismo
@@ -710,7 +744,7 @@ const ScTagline = styled(Typography)`
    375x812 y 1280x720, los dos temas -- el CTA del hero sigue dentro del
    viewport. */
 const ScSubtitle = styled(Typography)`
-  font-size: clamp(15px, 2vw, 22px);
+  font-size: clamp(0.9375rem, 2vw, 1.375rem);
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   max-width: ${({ theme }) => theme.data.grid.heroCopyMax};

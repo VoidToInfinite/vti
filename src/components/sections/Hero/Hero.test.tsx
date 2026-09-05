@@ -6,6 +6,7 @@ import {
   type RenderResult,
 } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
+import { longitudCssEnPx, redondear } from "@/test/cssLength";
 import { type as typeTokens } from "@/theme/tokens/type";
 import { HERO_COPY_STEP_MS } from "./hero.transition";
 import { Hero } from "./Hero";
@@ -232,11 +233,17 @@ describe("Hero", () => {
 
     // Cada uno computa SU tier de la escala, no el del otro. El subtitulo ya
     // no consume typeTokens.scale.h3.size: ScSubtitle sobrescribe font-size
-    // con el clamp(15px, 2vw, 22px) literal del usuario (ver excepcion
-    // documentada en Hero.tsx), pero SIGUE computando el peso de h3 --
-    // font-weight no se toco. La linea (ScTagline, Task 14) usa variant=body
-    // SIN override: token del sistema, tal cual.
-    expect(sub.fontSize).toBe("clamp(15px, 2vw, 22px)");
+    // con el clamp literal del usuario (ver excepcion documentada en
+    // Hero.tsx), pero SIGUE computando el peso de h3 -- font-weight no se
+    // toco. La linea (ScTagline, Task 14) usa variant=body SIN override:
+    // token del sistema, tal cual.
+    //
+    // Los dos extremos del clamp se escriben en `rem` desde el 2026-09-05
+    // (WCAG 1.4.4): 0.9375rem = 15px y 1.375rem = 22px con la raiz por
+    // defecto, el MISMO valor que este test ataba antes en pixeles. Lo que
+    // protege no cambia: que el subtitulo declare su literal propio y no la
+    // escala de h3.
+    expect(sub.fontSize).toBe("clamp(0.9375rem, 2vw, 1.375rem)");
     expect(sub.fontWeight).toBe(String(typeTokens.scale.h3.weight));
     expect(linea.fontSize).toBe(typeTokens.scale.body.size);
     expect(linea.fontWeight).toBe(String(typeTokens.scale.body.weight));
@@ -467,5 +474,141 @@ describe("Hero", () => {
         expect(document.activeElement).toBe(destino);
       }, "0");
     });
+  });
+});
+
+/**
+ * CANDADO: LA TIPOGRAFIA DE LA PORTADA CRECE CON LA PREFERENCIA DE TAMANO DE
+ * TEXTO (WCAG 1.4.4, hallazgo del revisor adversarial del 2026-09-05).
+ *
+ * EL DEFECTO, medido en Chrome sobre el build servido de `dcafec4` (tema
+ * claro, `reducedMotion: reduce`, 320 px de viewport, `Page.setFontSizes` a
+ * 16 y a 32 -- la misma palanca que la preferencia del navegador): el `h1`
+ * media 34px con las DOS raices y el subtitulo 15px con las DOS, mientras el
+ * cuerpo de la pagina doblaba de 16 a 32 en la MISMA muestra (o sea, la
+ * emulacion llegaba). La causa era la unidad de los extremos: `clamp(34px,
+ * var(--hero-title-vw, 7vw), 258px)` y `clamp(15px, 2vw, 22px)`. A 320px el
+ * termino preferido vale 22,4px y 6,4px, asi que quien decide es el suelo, y
+ * un suelo en pixeles no sabe nada de la raiz.
+ *
+ * QUE SE CANDA, y por que asi: no la CADENA de la declaracion (eso ya lo
+ * ataban `Hero.qa.test.tsx` y el test de tiers de este mismo fichero, y una
+ * cadena atada se actualiza sola cada vez que alguien cambia el codigo), sino
+ * la PROPIEDAD -- cuantos pixeles mide cada texto resolviendo la declaracion
+ * real con `longitudCssEnPx` (`src/test/cssLength.ts`, verificado contra
+ * estas mismas cifras de navegador en `cssLength.test.ts`): identico a lo
+ * medido antes del arreglo con la raiz a 16 px, y el doble con la raiz a 32.
+ * Mas la prohibicion de la unidad, que es lo que impide que el defecto vuelva
+ * por otra puerta.
+ *
+ * ## Validado con el bug inyectado a proposito (regla 34 de RULES.md)
+ *
+ * Sabotaje: devolver el suelo del titular a pixeles en `Hero.tsx`
+ * (`clamp(34px, var(--hero-title-vw, 7vw), 16.125rem)`), que es EXACTAMENTE
+ * el defecto que el revisor midio. Rojo en los dos casos que tienen que
+ * cazarlo, con estas lineas copiadas de la salida:
+ *
+ *   AssertionError: el titular no crece con la raiz: 34px con la raiz a 32px (antes 34px con la raiz a 16px). WCAG 1.4.4 pide que el texto llegue al 200 %.: expected 34 to be greater than or equal to 68
+ *
+ *   AssertionError: font-size del titular con extremo en pixeles: "clamp(34px,var(--hero-title-vw,7vw),16.125rem)". Los extremos de un clamp de tipografia se declaran en rem: un pixel no sabe nada de la preferencia de tamano de texto del usuario.: expected [ '34px' ] to have a length of +0 but got 1
+ */
+describe("Hero: la tipografia de portada crece con la preferencia de tamano de texto", () => {
+  /** Alto del viewport con el que se midio en Chrome (el termino `vh` no
+   *  interviene en estas dos declaraciones, pero el contexto lo pide). */
+  const ALTO_VIEWPORT = 800;
+
+  /**
+   * Cifras MEDIDAS en Chrome sobre el build servido de `dcafec4`, con la raiz
+   * por defecto. Son el contrato de "no cambia ni un pixel": el arreglo
+   * reescribio la UNIDAD de los extremos, no su valor.
+   */
+  const MEDIDO_RAIZ_16 = [
+    { ancho: 320, titulo: 34, subtitulo: 15 },
+    { ancho: 390, titulo: 34, subtitulo: 15 },
+    { ancho: 768, titulo: 53.76, subtitulo: 15.36 },
+    { ancho: 1280, titulo: 89.6, subtitulo: 22 },
+  ] as const;
+
+  /** Las dos declaraciones reales, leidas del render (jsdom devuelve el texto
+   *  crudo: no resuelve clamp(), var() ni rem). */
+  function declaraciones(): { titulo: string; subtitulo: string } {
+    const { container } = renderHero();
+    return {
+      titulo: getComputedStyle(testId(container, "hero-title")).fontSize,
+      subtitulo: getComputedStyle(testId(container, "hero-subtitle")).fontSize,
+    };
+  }
+
+  function enPx(
+    declaracion: string,
+    raizPx: number,
+    anchoPx: number,
+    factorVw?: string,
+  ): number {
+    return longitudCssEnPx(declaracion, {
+      raizPx,
+      anchoPx,
+      altoPx: ALTO_VIEWPORT,
+      vars:
+        factorVw === undefined ? undefined : { "--hero-title-vw": factorVw },
+    });
+  }
+
+  it("con la raiz por defecto mide EXACTAMENTE lo mismo que antes del arreglo, a los cuatro anchos", () => {
+    const { titulo, subtitulo } = declaraciones();
+
+    for (const caso of MEDIDO_RAIZ_16) {
+      expect(
+        redondear(enPx(titulo, 16, caso.ancho)),
+        `el titular cambio de tamano a ${String(caso.ancho)}px con la raiz por defecto`,
+      ).toBe(caso.titulo);
+      expect(
+        redondear(enPx(subtitulo, 16, caso.ancho)),
+        `el subtitulo cambio de tamano a ${String(caso.ancho)}px con la raiz por defecto`,
+      ).toBe(caso.subtitulo);
+    }
+  });
+
+  it("con la raiz a 32px (la preferencia al 200 %) el titular y el subtitulo doblan, en vez de quedarse clavados", () => {
+    const { titulo, subtitulo } = declaraciones();
+
+    const tituloAl200 = enPx(titulo, 32, 320);
+    const subtituloAl200 = enPx(subtitulo, 32, 320);
+
+    expect(
+      tituloAl200,
+      `el titular no crece con la raiz: ${String(redondear(tituloAl200))}px con la raiz a 32px (antes 34px con la raiz a 16px). WCAG 1.4.4 pide que el texto llegue al 200 %.`,
+    ).toBeGreaterThanOrEqual(68);
+    expect(
+      subtituloAl200,
+      `el subtitulo no crece con la raiz: ${String(redondear(subtituloAl200))}px con la raiz a 32px (antes 15px).`,
+    ).toBeGreaterThanOrEqual(30);
+
+    // Y el minimo que el encargo fija, por si algun dia el suelo deja de ser
+    // el termino que manda a 320px: 1,5x lo medido antes.
+    expect(tituloAl200).toBeGreaterThanOrEqual(1.5 * 34);
+    expect(subtituloAl200).toBeGreaterThanOrEqual(1.5 * 15);
+  });
+
+  it("la rama OSCURA del titular (8vw, la que fija --hero-title-vw) crece igual: el suelo es comun a las dos", () => {
+    const { titulo } = declaraciones();
+
+    expect(redondear(enPx(titulo, 16, 320, "8vw"))).toBe(34);
+    expect(enPx(titulo, 32, 320, "8vw")).toBeGreaterThanOrEqual(68);
+  });
+
+  it("ni el suelo ni el techo de esas dos declaraciones se escriben en pixeles", () => {
+    const { titulo, subtitulo } = declaraciones();
+
+    for (const [nombre, declaracion] of [
+      ["titular", titulo],
+      ["subtitulo", subtitulo],
+    ] as const) {
+      const enPixeles = declaracion.match(/\d+(?:\.\d+)?px\b/g) ?? [];
+      expect(
+        enPixeles,
+        `font-size del ${nombre} con extremo en pixeles: "${declaracion.replace(/\s+/g, "")}". Los extremos de un clamp de tipografia se declaran en rem: un pixel no sabe nada de la preferencia de tamano de texto del usuario.`,
+      ).toHaveLength(0);
+    }
   });
 });
