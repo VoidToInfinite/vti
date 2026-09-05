@@ -209,18 +209,44 @@ export const ScJourneyDeck = styled.div`
   /* Pista con minimo cero (WCAG 1.4.4, critica #19): ver el docblock. */
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  padding-inline: ${({ theme }) => theme.data.space[6]};
+  /*
+   * RELLENO DEL EJE INLINE ACOTADO AL VIEWPORT (inlineSpace, no space) --
+   * critica externa #20, 2026-09-05. Mismo defecto, mismo arreglo y mismo
+   * motivo que en ScDeck (story.deck.tsx), donde vive el razonamiento
+   * completo: los dos decks son gemelos declarados (deuda "Decks
+   * Story/Journey gemelos", RULES.md) y comparten esta geometria entera. SIN
+   * BACKTICKS en este comentario, a proposito: vive DENTRO del template
+   * literal de styled-components, donde un backtick lo cierra y rompe el build
+   * (leccion del repo, task/lessons.md 2026-07-25 y 2026-08-16 bis).
+   *
+   * Medido el 2026-09-05 sobre el build de produccion con la fuente al 200 %
+   * (raiz 32 px) y 320 px de viewport: este relleno y el canal de aqui abajo
+   * se doblaban con la fuente mientras el viewport no, y la copia del deck
+   * quedaba en 144 px de 320 -- la cita de esta seccion, de 80 px, salia en
+   * 142,7 px de alto repartidos en 12 lineas. inlineSpace[6] es
+   * min(2rem, 10vw): vale EXACTAMENTE space[6] con la raiz por defecto
+   * desde 320 px (la composicion no cambia ni un pixel) y se detiene en 32 px
+   * por lado a raiz 32 px y 320 px de ancho. Solo se acota el AIRE del eje
+   * inline; la tipografia crece siempre (acotarla seria el patron de fallo
+   * F94 de WCAG 1.4.4) y padding-block no compite con el viewport.
+   */
+  padding-inline: ${({ theme }) => theme.data.inlineSpace[6]};
 
   /*
    * CANAL DEL RAIL (critica externa #16, hallazgo L1). MISMA suma, mismo
    * motivo y mismo orden de declaracion que en ScDeck (story.deck.tsx) -- los
    * dos decks son gemelos declarados (deuda "Decks Story/Journey gemelos",
    * RULES.md) y el rail de esta seccion tiene exactamente la misma geometria:
-   * inset space[5], diana de space[5] y un canal libre de space[2] -- los
-   * 8 px que el propio hallazgo fija como umbral, y ni uno mas, porque cada
-   * pixel de canal sobrante se paga en medida de lectura a 390 px (el porque
-   * completo, con la version de 6rem que se descarto, en el docblock de
-   * ScDeck). La medicion que abre el hallazgo se tomo sobre Story, pero el
+   * inset inlineSpace[5], diana de space[5] y un canal libre de
+   * inlineSpace[2] -- los 8 px que el propio hallazgo fija como umbral, y ni
+   * uno mas, porque cada pixel de canal sobrante se paga en medida de lectura
+   * a 390 px (el porque completo, con la version de 6rem que se descarto, en
+   * el docblock de ScDeck). Los dos terminos de AIRE se acotan al viewport
+   * (critica #20) y el del medio no, porque es el ANCHO REAL de la marca del
+   * rail y acotarlo reservaria menos canal del que el rail ocupa al 200 % de
+   * texto: tambien ese razonamiento vive entero en ScDeck. Con la raiz por
+   * defecto la suma sigue valiendo 3.5rem / 56 px, sin mover un pixel.
+   * La medicion que abre el hallazgo se tomo sobre Story, pero el
    * defecto es estructural, no de una copia concreta: cualquier linea que
    * llegue al borde de la caja de contenido entra en la banda del rail. Se
    * duplica aqui en vez de importarse de alla, mismo criterio que
@@ -228,9 +254,9 @@ export const ScJourneyDeck = styled.div`
    * ninguna dependencia de la seccion hermana.
    */
   padding-inline-end: calc(
-    ${({ theme }) => theme.data.space[5]} +
+    ${({ theme }) => theme.data.inlineSpace[5]} +
       ${({ theme }) => theme.data.space[5]} +
-      ${({ theme }) => theme.data.space[2]}
+      ${({ theme }) => theme.data.inlineSpace[2]}
   );
   /*
    * Hueco extra a la derecha SOLO en pantallas grandes (mismo recurso que
@@ -381,7 +407,16 @@ export const ScJourneySlide = styled.div`
 export const ScJourneyRail = styled.div`
   position: absolute;
   inset-block: 0;
-  inset-inline-end: ${({ theme }) => theme.data.space[5]};
+  /*
+   * Separacion del borde ACOTADA AL VIEWPORT (critica externa #20), gemela de
+   * la de ScRail en story.deck.tsx. Es el primer sumando del canal que
+   * ScJourneyDeck reserva arriba y los dos tienen que moverse juntos: si el
+   * inset se doblara con la fuente (48 px a raiz 32) y el canal no, el rail se
+   * meteria en la copia. Es aire puro; el ANCHO de la marca
+   * (ScJourneyRailMark) NO se acota, y el porque esta en el docblock del canal
+   * de ScDeck.
+   */
+  inset-inline-end: ${({ theme }) => theme.data.inlineSpace[5]};
   z-index: 1;
   display: flex;
   flex-direction: column;

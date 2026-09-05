@@ -220,7 +220,34 @@ export const ScDeck = styled.div`
      cambia es que ahora tiene un minimo de 0 en vez de min-content. */
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  padding-inline: ${({ theme }) => theme.data.space[6]};
+  /*
+   * RELLENO DEL EJE INLINE ACOTADO AL VIEWPORT (inlineSpace, no space) --
+   * critica externa #20, 2026-09-05. SIN BACKTICKS en este comentario, a
+   * proposito: vive DENTRO del template literal de styled-components, donde un
+   * backtick lo cierra y rompe el build (leccion del repo, task/lessons.md
+   * 2026-07-25, 2026-08-16 y 2026-08-16 bis).
+   *
+   * EL DEFECTO. Medido sobre el build de produccion servido en Chrome con la
+   * fuente al 200 % (Page.setFontSizes, raiz 32 px), 320 px de viewport y
+   * prefers-reduced-motion: reduce: este relleno y el canal de aqui abajo se
+   * doblaban con la fuente mientras el viewport se quedaba donde estaba
+   * (64 px por lado + 112 px de canal), y la columna de copia del deck se
+   * quedaba en 144 px de 320. El h2 de 64 px salia a 2,25 caracteres por linea
+   * y la nota de cierre de 80 px a 1,5. El arreglo anterior de la critica #19
+   * (overflow-wrap: anywhere) habia convertido la PERDIDA de texto en
+   * ILEGIBILIDAD: no se salia nada del viewport, pero no se podia leer.
+   *
+   * EL ARREGLO. inlineSpace[6] es min(2rem, 10vw): el mismo peldano de la
+   * escala, con un techo en unidades de viewport igual al peldano en pixeles a
+   * 320 px con la raiz por defecto. Con la raiz a 16 px y cualquier ancho
+   * desde 320 px vale EXACTAMENTE space[6] -- la composicion no cambia ni un
+   * pixel; con la raiz a 32 px sigue creciendo mientras el viewport da de si y
+   * se detiene en 32 px por lado a 320 px de ancho. Solo se acota AIRE del eje
+   * inline: la tipografia crece siempre (acotarla seria el patron de fallo F94
+   * de WCAG 1.4.4) y padding-block no compite con el viewport. El docblock
+   * entero del token vive en src/theme/tokens/space.ts.
+   */
+  padding-inline: ${({ theme }) => theme.data.inlineSpace[6]};
 
   /*
    * CANAL DEL RAIL (critica externa #16, hallazgo L1 = hallazgo 2 de Craft):
@@ -237,16 +264,38 @@ export const ScDeck = styled.div`
    *
    * El valor NO es un numero elegido: es la geometria del rail sumada
    * termino a termino, para que se mueva sola si el rail se mueve.
-   *   space[5] -> inset-inline-end del rail (ScRail, mas abajo)
-   *   space[5] -> ancho de la caja de una marca (ScRailMark: la diana de
-   *               24 px de WCAG 2.5.8; el rotulo de posicion se stackea en
-   *               vertical justamente para no ensanchar esta columna)
-   *   space[2] -> el canal libre entre la copia y la banda del rail, 8 px:
-   *               exactamente el margen que el propio hallazgo fija como
-   *               objetivo (ninguna caja de glifo cruza rail.left - 8 px)
-   * Total 3.5rem, 56 px. A 390 px la copia pasa a terminar en x=334 = el
-   * borde del rail menos el canal, asi que ningun glifo puede cruzar el
-   * umbral por construccion: el texto no desborda su caja.
+   *   inlineSpace[5] -> inset-inline-end del rail (ScRail, mas abajo)
+   *   space[5]       -> ancho de la caja de una marca (ScRailMark: la diana
+   *                     de 24 px de WCAG 2.5.8; el rotulo de posicion se
+   *                     stackea en vertical justamente para no ensanchar esta
+   *                     columna)
+   *   inlineSpace[2] -> el canal libre entre la copia y la banda del rail,
+   *                     8 px: exactamente el margen que el propio hallazgo
+   *                     fija como objetivo (ninguna caja de glifo cruza
+   *                     rail.left - 8 px)
+   * Total 3.5rem, 56 px con la raiz por defecto -- exactamente el mismo canal
+   * que antes de acotar, porque inlineSpace[n] vale space[n] desde 320 px
+   * con la raiz a 16. A 390 px la copia sigue terminando en x=334 = el borde
+   * del rail menos el canal, asi que ningun glifo puede cruzar el umbral por
+   * construccion: el texto no desborda su caja.
+   *
+   * POR QUE DOS DE LOS TRES TERMINOS SE ACOTAN Y EL DEL MEDIO NO (critica
+   * externa #20). El primero y el tercero son AIRE: separan, y pueden dejar de
+   * crecer cuando el viewport ya no da mas -- por eso siguen al inset del rail,
+   * que en ScRail pasa a inlineSpace[5] en esta misma ola. El del medio es el
+   * ANCHO REAL de la marca, y ese ancho lo declara ScRailMark en space[5]:
+   * a raiz 32 px la diana mide 48 px, y ademas contiene un rotulo de posicion
+   * apilado cuya caja pasa de 24 px con la fuente ampliada (el peldano caption,
+   * 0,6875rem x 32 px x 1,2 de interlineado ~ 26 px). Acotar ese termino
+   * reservaria menos canal del que el rail ocupa de verdad y devolveria el
+   * texto debajo del control: el hallazgo L1 otra vez, ahora solo al 200 %. Si
+   * algun dia ScRailMark acota su propio ancho, este termino le sigue.
+   *
+   * ARITMETICA A RAIZ 32 px Y 320 px DE ANCHO: 320 - 32 (padding-inline
+   * acotado) - (24 + 48 + 8) = 208 px de columna de copia, frente a los 144 px
+   * medidos antes -- el h2 de 64 px pasa de 2,25 a ~6,5 caracteres por linea y
+   * la nota de 80 px de 1,5 a ~5,2. A raiz 16 px la columna no cambia ni un
+   * pixel: 320 - 32 - 56 = 232 px.
    *
    * POR QUE NO MAS. La primera version de esta ola reservaba space[7] de
    * canal (6rem en total, 96 px) y la medicion de un agente vecino la tumbo:
@@ -262,9 +311,9 @@ export const ScDeck = styled.div`
    * composicion -- 8rem, mas ancho todavia, asi que la garantia se conserva.
    */
   padding-inline-end: calc(
-    ${({ theme }) => theme.data.space[5]} +
+    ${({ theme }) => theme.data.inlineSpace[5]} +
       ${({ theme }) => theme.data.space[5]} +
-      ${({ theme }) => theme.data.space[2]}
+      ${({ theme }) => theme.data.inlineSpace[2]}
   );
   /*
    * Hueco extra a la derecha SOLO en pantallas grandes (encargo
@@ -484,7 +533,16 @@ export const ScSlide = styled.div`
 export const ScRail = styled.div`
   position: absolute;
   inset-block: 0;
-  inset-inline-end: ${({ theme }) => theme.data.space[5]};
+  /*
+   * Separacion del borde ACOTADA AL VIEWPORT (critica externa #20). Es el
+   * primer sumando del canal que ScDeck reserva arriba, y los dos tienen que
+   * moverse juntos: si el inset se doblara con la fuente (48 px a raiz 32) y
+   * el canal no, el rail se meteria en la copia. Es aire puro -- separa el rail
+   * del borde y nada mas -- asi que puede dejar de crecer cuando el viewport ya
+   * no da de si. El ANCHO de la marca (ScRailMark) NO se acota, y el porque
+   * esta escrito en el docblock del canal, en ScDeck.
+   */
+  inset-inline-end: ${({ theme }) => theme.data.inlineSpace[5]};
   z-index: 1;
   display: flex;
   flex-direction: column;

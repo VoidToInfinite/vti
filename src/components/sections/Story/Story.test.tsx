@@ -21,6 +21,7 @@ import {
   relativeLuminanceHex,
 } from "@/theme/tokens/contrast";
 import { basicLightTheme, basicDarkTheme } from "@/theme/themes";
+import { MIN_VIEWPORT_PX } from "@/theme/tokens/space";
 import {
   STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
@@ -3385,7 +3386,101 @@ describe("Story: critica #16 -- el rail dice visualmente por donde va el deck", 
  * tendria que moverse con el. La comprobacion de que ninguna caja de glifo
  * cruza la banda se hace en navegador, con `Range` por caracter, y se reporta
  * con cifras.
+ *
+ * AMPLIADO EN LA CRITICA EXTERNA #20 (2026-09-05). La derivacion sola dejo de
+ * bastar: los tres sumandos ya no valen lo mismo en todas las raices
+ * tipograficas. Los dos que son AIRE (el inset del rail y el canal libre)
+ * pasaron a `inlineSpace`, que deja de crecer cuando el viewport ya no da de
+ * si; el del medio, que es el ANCHO REAL de la marca, sigue en `space` porque
+ * acotarlo reservaria menos canal del que el rail ocupa. Asi que lo que se
+ * anade abajo es la ARITMETICA RESUELTA a las dos raices: cuanta columna de
+ * copia queda y donde termina esa columna respecto a la banda del rail. El
+ * defecto que lo motiva se midio sobre el build de produccion con la fuente al
+ * 200 % (raiz 32 px) y 320 px de viewport: la copia del deck quedaba en 144 px
+ * de 320, con el h2 de 64 px a 2,25 caracteres por linea.
  */
+
+/** La raiz tipografica de fabrica; el `rem` se resuelve contra ella. */
+const RAIZ_POR_DEFECTO_PX = 16;
+/** La raiz al 200 %, el techo que exige WCAG 1.4.4 (SC Resize Text). */
+const RAIZ_200_PX = 32;
+/**
+ * Suelo de columna de copia que la ola #20 se fija a 320 px con la fuente al
+ * 200 %. No es el ancho que sale de la cuenta (208 px), sino el minimo que la
+ * decision acepta: por debajo de ~200 px un h2 de 64 px vuelve a bajar de los
+ * ~6 caracteres por linea que el dueno pidio conservar.
+ */
+const COLUMNA_MINIMA_200_PX = 200;
+
+/**
+ * Resuelve a pixeles un valor DECLARADO de relleno, con la misma aritmetica que
+ * hace el navegador: `min(A rem, B vw)` = `min(A * raiz, B * viewport / 100)`,
+ * `calc(a + b + c)` = la suma de sus terminos ya resueltos, y `A rem` =
+ * `A * raiz`. jsdom no hace layout y no resuelve ni `min()` ni `vw` ni `calc()`
+ * (regla 36), asi que la unica forma de que un candado sobre estos rellenos
+ * signifique algo es hacer la cuenta aqui sobre lo que el CSSOM declara.
+ */
+function aPx(valor: string, raizPx: number, viewportPx: number): number {
+  const texto = valor.trim().replace(/\s+/g, " ");
+  if (texto.startsWith("calc(") && texto.endsWith(")")) {
+    return texto
+      .slice("calc(".length, -1)
+      .split(" + ")
+      .reduce((suma, termino) => suma + aPx(termino, raizPx, viewportPx), 0);
+  }
+  const acotado = texto.match(/^min\(([\d.]+)rem, ([\d.]+)vw\)$/);
+  if (acotado) {
+    return Math.min(
+      Number(acotado[1]) * raizPx,
+      (Number(acotado[2]) * viewportPx) / 100,
+    );
+  }
+  const rem = texto.match(/^([\d.]+)rem$/);
+  if (rem) return Number(rem[1]) * raizPx;
+  throw new Error(`valor de relleno no reconocido: "${valor}"`);
+}
+
+/**
+ * Valor de UNA propiedad tal y como lo declara la regla BASE del elemento: la
+ * que aplica al elemento en si, sin `@media` (esas son `CSSMediaRule`, no
+ * `CSSStyleRule`, y caen solas), sin pseudo-elemento y sin estado.
+ *
+ * El filtro de selector SIMPLE no es celo: la marca del rail dibuja su punto
+ * con un `::before` que declara su PROPIO `width` (space[2], el diametro del
+ * punto), y styled-components emite ademas una regla por variante de estado
+ * (`[data-slide="N"] &`, `:hover`). Sin acotar, una aritmetica sobre "el ancho
+ * de la marca" sumaria el de la caja y el del punto y no mediria nada.
+ * Falla si no queda exactamente una declaracion.
+ */
+function declaracionBaseDe(el: HTMLElement, propiedad: string): string {
+  const classes = Array.from(el.classList);
+  const esSelectorSimple = (selectorText: string): boolean =>
+    selectorText
+      .split(",")
+      .every((parte) => /^\s*(?:\.[A-Za-z0-9_-]+)+\s*$/.test(parte));
+  const valores = Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .filter((regla): regla is CSSStyleRule => regla instanceof CSSStyleRule)
+    .filter((regla) => esSelectorSimple(regla.selectorText))
+    .filter((regla) =>
+      classes.some((cls) => regla.selectorText.includes(`.${cls}`)),
+    )
+    .map((regla) => regla.style.getPropertyValue(propiedad))
+    .filter((valor) => valor !== "");
+
+  expect(
+    valores,
+    `se esperaba UNA declaracion base de ${propiedad}, hay ${valores.length}`,
+  ).toHaveLength(1);
+  return valores[0];
+}
+
 describe("Story: critica #16 -- la copia del deck reserva el canal del rail", () => {
   beforeEach(() => {
     stubMatchMedia();
@@ -3408,37 +3503,127 @@ describe("Story: critica #16 -- la copia del deck reserva el canal del rail", ()
 
   it("ScDeck declara padding-inline-end como la suma del inset del rail, su diana y el canal libre", async () => {
     const css = cssRuleTextFor(await deckOscuro());
-    const { space } = basicDarkTheme;
+    const { space, inlineSpace } = basicDarkTheme;
 
     // Espacios normalizados: styled-components conserva los saltos de linea
     // del template dentro del `calc()`, y lo que se afirma es la SUMA, no como
     // esta formateada.
     const plano = css.replace(/\s+/g, " ");
     // Los tres sumandos, cada uno leido de su token (regla 38): el inset del
-    // rail, la diana de la marca y el canal libre.
+    // rail y el canal libre ACOTADOS al viewport (critica #20), y entre ellos
+    // la diana de la marca, que es ancho real y por eso sigue en `space`.
     expect(plano).toContain(
-      `padding-inline-end: calc( ${space[5]} + ${space[5]} + ${space[2]} )`,
+      `padding-inline-end: calc( ${inlineSpace[5]} + ${space[5]} + ${inlineSpace[2]} )`,
     );
   });
 
-  it("la suma reservada cubre la banda del rail mas el canal de 8 px que el hallazgo fija como umbral, y no mas", () => {
-    // Aritmetica sobre los MISMOS tokens que el CSS interpola, en px. El
-    // hallazgo pide que ninguna caja de glifo cruce rail.left - 8 px: con la
-    // caja de contenido terminando justo ahi, el texto no puede cruzarlo
-    // porque no desborda su caja. Y se ata tambien el techo: la primera
-    // version reservaba 96 px y dejaba la copia en 25-36 caracteres por
-    // linea a 390 (frente a 38-46 en la rama clara); cada pixel de mas se
-    // paga en medida de lectura. Sin esta asercion el candado de arriba solo
-    // diria que hay una suma, no que la suma sea la justa.
-    const rem = 16;
-    const px = (valor: string): number => parseFloat(valor) * rem;
-    const { space } = basicDarkTheme;
-    const bandaDelRail = px(space[5]) + px(space[5]);
-    const reservado = bandaDelRail + px(space[2]);
+  /*
+   * VALIDADO CON BUG INYECTADO (2026-09-05): devolviendo `inset-inline-end` de
+   * ScRail (story.deck.tsx) a `space[5]` -- es decir, dejando de acotar el
+   * inset mientras el canal de ScDeck si se acota -- este caso cae con esta
+   * linea literal:
+   *
+   *   canal libre a raiz 32 px: reservado 80, banda 96: expected -16 to be 8 // Object.is equality
+   *
+   * Esos -16 px son el texto metido DENTRO de la banda del rail: el hallazgo
+   * L1 otra vez, ahora solo con la fuente al 200 %. Restaurado
+   * `inlineSpace[5]`, verde.
+   */
+  it("la suma reservada cubre la banda del rail mas el canal de 8 px que el hallazgo fija como umbral, y no mas -- a las DOS raices tipograficas", async () => {
+    // El hallazgo L1 pide que ninguna caja de glifo cruce rail.left - 8 px:
+    // con la caja de contenido terminando justo ahi, el texto no puede
+    // cruzarlo porque no desborda su caja. Y se ata tambien el techo: la
+    // primera version reservaba 96 px y dejaba la copia en 25-36 caracteres
+    // por linea a 390 (frente a 38-46 en la rama clara); cada pixel de mas se
+    // paga en medida de lectura.
+    //
+    // DESDE LA CRITICA #20 la cuenta no se hace sobre los tokens sino sobre lo
+    // que el CSS DECLARA, y a las dos raices: los sumandos ya no valen lo mismo
+    // a raiz 16 que a raiz 32, y lo que tiene que seguir siendo cierto es la
+    // RELACION -- la copia termina exactamente 8 px antes de la banda del rail
+    // en ambos casos. Si el inset del rail dejara de acotarse mientras el canal
+    // si lo hace (o al reves), la resta se descuadraria y el texto volveria a
+    // meterse debajo del control: el hallazgo L1 otra vez, ahora al 200 %.
+    const deck = await deckOscuro();
+    const rail = screen.getByRole("group", {
+      name: esHome.Home.story.railLabel,
+    });
+    const marca = rail.querySelector("button") as HTMLElement;
 
-    expect(bandaDelRail).toBe(48);
-    expect(reservado).toBe(56);
-    expect(reservado - bandaDelRail).toBe(8);
+    const reservadoDeclarado = declaracionBaseDe(deck, "padding-inline-end");
+    const insetDeclarado = declaracionBaseDe(rail, "inset-inline-end");
+    const anchoDeclarado = declaracionBaseDe(marca, "width");
+
+    for (const raiz of [RAIZ_POR_DEFECTO_PX, RAIZ_200_PX]) {
+      const reservado = aPx(reservadoDeclarado, raiz, MIN_VIEWPORT_PX);
+      const bandaDelRail =
+        aPx(insetDeclarado, raiz, MIN_VIEWPORT_PX) +
+        aPx(anchoDeclarado, raiz, MIN_VIEWPORT_PX);
+
+      expect(
+        reservado - bandaDelRail,
+        `canal libre a raiz ${raiz} px: reservado ${reservado}, banda ${bandaDelRail}`,
+      ).toBe(8);
+    }
+
+    // Y a la raiz por defecto los numeros absolutos siguen siendo los de la
+    // ola L, sin mover un pixel: 24 + 24 de banda, 56 de reserva.
+    expect(
+      aPx(insetDeclarado, RAIZ_POR_DEFECTO_PX, MIN_VIEWPORT_PX) +
+        aPx(anchoDeclarado, RAIZ_POR_DEFECTO_PX, MIN_VIEWPORT_PX),
+    ).toBe(48);
+    expect(aPx(reservadoDeclarado, RAIZ_POR_DEFECTO_PX, MIN_VIEWPORT_PX)).toBe(
+      56,
+    );
+  });
+
+  /*
+   * CRITICA EXTERNA #20 (2026-09-05), el candado ARITMETICO de la ola.
+   *
+   * EL DEFECTO. Con la fuente al 200 % (raiz 32 px) y 320 px de viewport,
+   * `padding-inline` y el canal de arriba se doblaban con la fuente mientras el
+   * viewport se quedaba donde estaba: 64 px por lado mas 112 px de canal
+   * dejaban la columna de copia en 144 px de 320. El h2 de 64 px salia a 2,25
+   * caracteres por linea y la nota de cierre de 80 px a 1,5. No era perdida de
+   * texto -- eso lo habia cerrado la critica #19 con `overflow-wrap: anywhere`
+   * -- era ilegibilidad.
+   *
+   * LO QUE ATA. La columna que queda de verdad, resuelta desde el CSSOM a las
+   * dos raices: >= 200 px al 200 % de texto (la cuenta da 208) y exactamente
+   * 232 px a la raiz por defecto, que es lo que media antes de esta ola. La
+   * segunda mitad es tan importante como la primera: el arreglo no puede
+   * pagarse con un solo pixel de la composicion por defecto.
+   *
+   * VALIDADO CON BUG INYECTADO (2026-09-05): devolviendo `padding-inline` de
+   * ScDeck (story.deck.tsx) a `space[6]` este caso cae con esta linea literal:
+   *
+   *   columna a raiz 32 px en 320 px de viewport: expected 176 to be greater than or equal to 200
+   *
+   * 176 px es exactamente el ancho que deja el relleno sin acotar (320 - 64 -
+   * 80). Restaurado `inlineSpace[6]`, verde.
+   */
+  it("critica #20: la columna de copia aguanta el 200 % de texto a 320 px y no se mueve a la raiz por defecto", async () => {
+    const deck = await deckOscuro();
+    const inicio = declaracionBaseDe(deck, "padding-inline");
+    const fin = declaracionBaseDe(deck, "padding-inline-end");
+
+    // `padding-inline` pone los dos lados y `padding-inline-end` pisa el de
+    // cierre (longhand despues de shorthand): la columna es el viewport menos
+    // el lado de inicio menos el de cierre.
+    const columna = (raizPx: number): number =>
+      MIN_VIEWPORT_PX -
+      aPx(inicio, raizPx, MIN_VIEWPORT_PX) -
+      aPx(fin, raizPx, MIN_VIEWPORT_PX);
+
+    expect(
+      columna(RAIZ_200_PX),
+      `columna a raiz ${RAIZ_200_PX} px en ${MIN_VIEWPORT_PX} px de viewport`,
+    ).toBeGreaterThanOrEqual(COLUMNA_MINIMA_200_PX);
+    expect(columna(RAIZ_200_PX)).toBe(208);
+    expect(
+      columna(RAIZ_POR_DEFECTO_PX),
+      "la composicion por defecto no puede moverse ni un pixel",
+    ).toBe(232);
   });
 
   /*
