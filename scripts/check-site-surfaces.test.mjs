@@ -192,6 +192,23 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  *        expected '/*\n * SIN SHEBANG, al contrario que …' to contain 'la sonda
  *        de legibilidad no encontro n…'
  *
+ *   h. LOS DOS FILTROS QUE EVITAN FALSOS POSITIVOS, tambien vistos en rojo,
+ *      porque un filtro roto es tan grave como una medida rota: uno deja de
+ *      absolver lo que debe y el candado empieza a mentir por el otro lado.
+ *      Estrechando el filtro de ancestro a `if (ox === "scroll")` --dejando
+ *      fuera `auto`, que es el valor que usa `ScTableWrap`-- cae el tercer caso
+ *      de la sonda de perdida:
+ *
+ *        AssertionError: expected [ { zona: 'suelto', sel: 'td', …(3) } ] to
+ *        deeply equal []
+ *
+ *      Y neutralizando la guarda de escritura horizontal (`const escritura =
+ *      "horizontal-tb";`, sin leer el estilo computado) cae el de texto
+ *      vertical:
+ *
+ *        AssertionError: una caja vertical no se examina: expected 1 to be +0 //
+ *        Object.is equality
+ *
  * Restaurado todo, 22 casos en verde.
  */
 
