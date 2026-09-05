@@ -8,11 +8,12 @@ import { inlineSpace } from "@/theme/tokens/space";
  * UNA SOLA LEY PARA EL RELLENO DEL EJE INLINE.
  *
  * QUÉ SE CANDA, en una frase: ningún relleno del eje en línea de una pieza de
- * `src/components/` o de `app/` lee un peldaño DESNUDO de `theme.data.space`;
- * los lee de `theme.data.inlineSpace`, salvo las excepciones declaradas más
- * abajo con su motivo escrito. El eje de BLOQUE (`padding-block`,
- * `padding-top`, `padding-bottom`) y los huecos (`gap`) no entran: siguen en
- * `space` a propósito, y este candado no los mira.
+ * `src/components/`, de `src/theme/` o de `app/` lee un peldaño DESNUDO de
+ * `theme.data.space` --ni escrito en su propia línea ni heredado de una
+ * custom property--; los lee de `theme.data.inlineSpace`, salvo las
+ * excepciones declaradas más abajo con su motivo escrito. El eje de BLOQUE
+ * (`padding-block`, `padding-top`, `padding-bottom`) y los huecos (`gap`) no
+ * entran: siguen en `space` a propósito, y este candado no los mira.
  *
  * EL DEFECTO QUE LO MOTIVA, medido el 2026-09-05 sobre el build de producción
  * servido en Chrome con `Page.setFontSizes` a 32 px --la MISMA palanca que la
@@ -44,6 +45,34 @@ import { inlineSpace } from "@/theme/tokens/space";
  * un relleno construido en tiempo de ejecución desde una variable (por
  * ejemplo `padding: ${unaFuncion(theme)}`) no lleva el peldaño en la línea y
  * este candado no lo ve. Declarado, no escondido.
+ *
+ * ## LAS CUSTOM PROPERTIES TAMBIÉN CUENTAN (ampliación del 2026-09-05)
+ *
+ * EL PUNTO CIEGO QUE SE CIERRA, y no es hipotético: `--nav-gap` se declaraba
+ * en `GlobalStyles.tsx` como `${space[2]}` y `Navbar.tsx` la consumía en TRES
+ * rellenos del eje en línea --el `padding-inline` de `ScHeader` y los dos
+ * términos del suelo de `ScNav`--. Ninguno de los cuatro sitios era visible
+ * para esta ley: la declaración vivía fuera del barrido (`src/theme` no estaba
+ * en `RAICES_BARRIDAS`) y los consumos no llevaban ningún peldaño en su línea,
+ * solo un `var()`. Un espaciado que dobla con la raíz tipográfica entrando en
+ * la columna por una puerta que el candado no miraba -- el mismo patrón que la
+ * crítica #18 ya había pagado con esta misma variable.
+ *
+ * CÓMO SE RESUELVE: el barrido indexa las DECLARACIONES de custom property que
+ * encuentra (`DECLARACION_CUSTOM`, con guard a la izquierda para no confundir
+ * una declaración con la referencia de un `var(--x, 0px)`) y guarda TODOS los
+ * valores de cada nombre, porque una misma propiedad se redeclara por media
+ * query (`--story-statement-pad`, `Story.tsx`) y basta con que UNO de esos
+ * tramos meta un peldaño desnudo. Después, por cada `var()` que aparezca en un
+ * término del eje en línea, se leen esos valores y se busca en ellos el
+ * peldaño. El hallazgo se anota con el nombre de la propiedad en `via`, para
+ * que el mensaje diga por dónde entró y no solo que entró.
+ *
+ * Y SI LA DECLARACIÓN NO APARECE, el caso NO se da por bueno: hay un tercer
+ * caso ("toda custom property que llega a un relleno del eje inline se declara
+ * DENTRO del barrido") que lo denuncia. Una `var()` que el barrido no puede
+ * resolver es un valor del que la ley no puede responder, y callarlo sería
+ * exactamente la vacuidad que las otras dos ataduras evitan.
  *
  * ## Validado con el bug inyectado a propósito (regla 34 de RULES.md)
  *
@@ -82,29 +111,104 @@ import { inlineSpace } from "@/theme/tokens/space";
  *        src/components/legal/legalPage.parts.tsx | padding-left | space[4] | termino inline: "${({ theme }) => theme.data.space[4]}"
  *
  *      AssertionError: excepcion declarada que ya no describe el relleno que decia: src/components/legal/legalPage.parts.tsx | padding-left | space[7] (esperadas 1 apariciones, encontradas 0). Retirala o corrigela: una excepcion caducada es un permiso en blanco, y una aparicion de mas es un caso que nadie ha decidido.: expected +0 to be 1 // Object.is equality
+ *
+ * ## Validación de la ampliación de custom properties (2026-09-05)
+ *
+ * PRIMERO, EL HALLAZGO REAL. Con la resolución de `var()` ya escrita y
+ * `Navbar.tsx` todavía sin migrar (el árbol tal cual en `dcafec4`), la ley
+ * denunció los tres consumos de golpe. Copiado de la salida; el primero
+ * entero, y los otros dos con su término elidido por longitud --son el `calc`
+ * completo del suelo de `ScNav`, que ocupa cuatro líneas de código:
+ *
+ *      AssertionError: 3 relleno(s) del eje inline leen un peldano desnudo de space sin excepcion declarada:
+ *        src/components/layout/Navbar/Navbar.tsx | padding-inline | space[2] | via --nav-gap | termino inline: "var(--nav-gap)"
+ *        src/components/layout/Navbar/Navbar.tsx | padding-right | space[2] | via --nav-gap | termino inline: "calc( max( calc(...
+ *        src/components/layout/Navbar/Navbar.tsx | padding-left | space[2] | via --nav-gap | termino inline: "calc( max( calc(...
+ *      Migralos a theme.data.inlineSpace[n], o declara la excepcion con su motivo en EXCEPCIONES (este fichero).: expected [ { …(5) }, { …(5) }, { …(5) } ] to have a length of +0 but got 3
+ *
+ * 4. DEVOLVIENDO EL RELLENO A LA CUSTOM PROPERTY -- el `padding-inline` de
+ *    `ScHeader` (`Navbar.tsx`), de `inlineSpace[2]` a `var(--nav-gap)`, con la
+ *    declaración de `--nav-gap` intacta en `space[2]`:
+ *
+ *      AssertionError: 1 relleno(s) del eje inline leen un peldano desnudo de space sin excepcion declarada:
+ *        src/components/layout/Navbar/Navbar.tsx | padding-inline | space[2] | via --nav-gap | termino inline: "var(--nav-gap)"
+ *      Migralos a theme.data.inlineSpace[n], o declara la excepcion con su motivo en EXCEPCIONES (este fichero).: expected [ { …(5) } ] to have a length of +0 but got 1
+ *
+ * 5. SACANDO `src/theme` DEL BARRIDO -- la raíz nueva fuera de
+ *    `RAICES_BARRIDAS`, todo lo demás igual. Rojo por el suelo:
+ *
+ *      AssertionError: el barrido encogio: 83 ficheros, por debajo del minimo declarado (95). Si la reduccion es legitima, baja la constante A MANO y explica por que.: expected 83 to be greater than or equal to 95
+ *
+ * 5-bis. EL MISMO SABOTAJE CON EL SUELO BAJADO A 80, para que la comprobación
+ *    siguiente llegue a ejecutarse (la primera aserción del caso corta el
+ *    resto). Rojo por la pieza nombrada:
+ *
+ *      AssertionError: el barrido no ve src/theme/GlobalStyles.tsx: expected [ …(83) ] to include 'src/theme/GlobalStyles.tsx'
+ *
+ * 6. APUNTANDO A UNA CUSTOM PROPERTY QUE NADIE DECLARA -- el mismo
+ *    `padding-inline` de `ScHeader` a `var(--hueco-sin-declarar)`. La ley de
+ *    peldaños queda en verde (no hay peldaño que leer) y salta la atadura que
+ *    existe justo para eso:
+ *
+ *      AssertionError: 1 referencia(s) var() en el eje inline que el barrido no puede resolver:
+ *        src/components/layout/Navbar/Navbar.tsx | padding-inline | --hueco-sin-declarar
+ *      Una custom property cuya declaracion queda fuera del barrido es un peldano que la ley no puede leer: o su fichero entra en RAICES_BARRIDAS, o el relleno lee el token directamente.: expected [ { …(3) } ] to have a length of +0 but got 1
+ *
+ * Los cuatro sabotajes se aplicaron y se deshicieron dentro de un solo comando
+ * encadenado, con la restauración por sustitución inversa y NUNCA con
+ * `git checkout` --el árbol tenía trabajo sin commitear, y un `checkout` de
+ * ruta lo borra: pasó en esta misma sesión y costó rehacer dos ficheros
+ * enteros--. Verde restaurado y comprobado en cada vuelta: 18/18 aquí y
+ * 143/143 en `Navbar.test.tsx`.
  */
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-/** Las dos raíces con piezas de interfaz: componentes y rutas del App Router. */
-const RAICES_BARRIDAS = ["src/components", "app"] as const;
+/**
+ * Las tres raíces que escriben CSS del sitio: los componentes, las rutas del
+ * App Router y `src/theme` -- que no es "solo tokens": `GlobalStyles.tsx`
+ * declara reglas globales y custom properties de layout, y una de ellas
+ * (`--nav-gap`) llegaba a un `padding-inline` sin que esta ley la viera. Es la
+ * misma lista de raíces que barre `css-template-comments.test.ts`, por el mismo
+ * motivo: donde hay un template de styled-components hay CSS que se sirve.
+ */
+const RAICES_BARRIDAS = ["src/components", "src/theme", "app"] as const;
 
 const EXTENSIONES = new Set([".ts", ".tsx"]);
 
 /**
  * Suelo del barrido, TECLEADO A MANO (atadura de extensión, dirección 1: que
- * el candado no se vacíe en silencio). El 2026-09-05 el barrido ve 83
- * ficheros; el suelo se deja en 80 para que una reorganización pequeña no lo
- * ponga rojo por sí sola, y lo bastante cerca para que vaciar el barrido --el
- * fallo que de verdad importa, porque dejaría la ley pasando por vacuidad--
- * no pueda pasar desapercibido.
+ * el candado no se vacíe en silencio). El 2026-09-05, con `src/theme` dentro,
+ * el barrido ve 101 ficheros (eran 83 con dos raíces); el suelo se deja en 95
+ * --el mismo que `css-template-comments.test.ts` sobre las mismas tres
+ * raíces-- para que una reorganización pequeña no lo ponga rojo por sí sola, y
+ * lo bastante cerca para que vaciar el barrido --el fallo que de verdad
+ * importa, porque dejaría la ley pasando por vacuidad-- no pueda pasar
+ * desapercibido. Retirar una raíz entera lo tumba: sin `src/theme` el barrido
+ * cae a 83.
  */
-const MINIMO_FICHEROS_BARRIDOS = 80;
+const MINIMO_FICHEROS_BARRIDOS = 95;
 
 /**
  * Suelo de consumidores REALES del token (atadura de extensión, dirección 2:
- * que la ley no se cumpla porque nadie usa el token). El 2026-09-05 son 20
- * ficheros de producción; el suelo se deja en 18.
+ * que la ley no se cumpla porque nadie usa el token). El 2026-09-05 son 19
+ * ficheros de producción, y el suelo se deja en 18.
+ *
+ * CÓMO SE CUENTAN, escrito para que la próxima revisión no tenga que deducirlo
+ * ni fiarse de esta cifra: son los ficheros que devuelve `ficherosEscaneados()`
+ * --las tres raíces, sin `.test.ts(x)`-- cuya fuente, con los comentarios ya
+ * despojados, casa la expresión regular de `inlineSpace` seguido de corchete.
+ * Es el mismo cómputo que ejecuta el caso "el token tiene consumidores
+ * REALES", así que la cifra se puede releer sin instrumento propio: se sube el
+ * suelo a 999 y el mensaje del rojo los lista uno a uno. Hasta esta fecha aquí
+ * ponía "son 20", uno de más: el revisor adversarial de la ola R lo replicó
+ * con esta misma lógica y le dieron 19. Los 19 son las seis piezas de
+ * `layout/` (Footer, LanguageSelector, Navbar, NavSheet, SkipLink,
+ * ThemeToggle), `legalPage.parts.tsx`, las nueve de `sections/` (About,
+ * Contact, Features, Hero, Journey, journey.deck, NotFound, Story,
+ * story.deck) y tres primitivos de `ui/` (Button, Card, Input). Añadir
+ * `src/theme` al barrido no mueve esta cifra: los tokens DECLARAN
+ * `inlineSpace`, no lo indexan.
  */
 const MINIMO_CONSUMIDORES = 18;
 
@@ -115,6 +219,10 @@ interface ExcepcionDeclarada {
   readonly propiedad: string;
   /** Peldaño de `space` que se conserva. */
   readonly peldano: number;
+  /** Custom property por la que el peldaño llega al término, cuando el relleno
+   *  no lo escribe sino que lo hereda de un `var()`. Ausente en el caso
+   *  normal, en el que el término cita el peldaño directamente. */
+  readonly via?: string;
   /** Cuántas veces aparece ese peldaño desnudo en términos inline de ese
    *  fichero y esa propiedad. Se compara con igualdad: una segunda aparición
    *  bajo la misma excepción es un caso NUEVO que nadie ha decidido. */
@@ -285,31 +393,95 @@ function terminosInline(sufijo: string, valor: string): string[] {
  */
 const PELDANO_DESNUDO = /(?<![A-Za-z0-9_])space\s*\[\s*(\d+)\s*\]/g;
 
+/**
+ * DECLARACIÓN de una custom property de CSS. El guard de la izquierda pide un
+ * separador real delante (principio de línea, espacio, `;` o `{`), que es lo
+ * que la separa de una REFERENCIA: dentro de `var(--x, 0px)` el nombre va
+ * precedido de `(` y no casa.
+ */
+const DECLARACION_CUSTOM = /(?:^|[\s;{])(--[A-Za-z][\w-]*)\s*:\s*/gm;
+
+/** REFERENCIA a una custom property dentro de un valor. */
+const REFERENCIA_VAR = /var\(\s*(--[\w-]+)/g;
+
 interface Hallazgo {
   readonly fichero: string;
   readonly propiedad: string;
   readonly peldano: number;
   readonly termino: string;
+  /**
+   * Custom property por la que el peldaño llega al término, o `null` cuando el
+   * término lo escribe directamente. Un `padding-inline: var(--x)` no lleva
+   * ningún peldaño en su línea: el peldaño está en la declaración de `--x`, y
+   * este campo deja escrito por dónde entró.
+   */
+  readonly via: string | null;
 }
 
-/** Todos los rellenos del eje en línea que leen un peldaño desnudo de
- *  `space`, con o sin excepción declarada. */
-function rellenosInlineConSpaceDesnudo(ficheros: string[]): Hallazgo[] {
-  const hallazgos: Hallazgo[] = [];
+/**
+ * Valores declarados de cada custom property del barrido, indexados por nombre.
+ * Una misma propiedad puede declararse varias veces (base más media query, como
+ * `--story-statement-pad` en `Story.tsx`): se guardan TODAS, porque basta con
+ * que una de ellas meta un peldaño desnudo en el eje en línea para que el
+ * relleno que la consume lo herede en ese tramo.
+ */
+function declaracionesDeCustomProperties(
+  ficheros: string[],
+): Map<string, string[]> {
+  const mapa = new Map<string, string[]>();
   for (const fichero of ficheros) {
     const fuente = despojarComentarios(readFileSync(fichero, "utf-8"));
-    for (const encontrado of fuente.matchAll(DECLARACION)) {
-      const sufijo = encontrado[1] ?? "";
+    for (const encontrado of fuente.matchAll(DECLARACION_CUSTOM)) {
+      const nombre = encontrado[1];
       const inicio = (encontrado.index ?? 0) + encontrado[0].length;
-      const valor = valorDesde(fuente, inicio);
-      for (const termino of terminosInline(sufijo, valor)) {
-        for (const peldano of termino.matchAll(PELDANO_DESNUDO)) {
-          hallazgos.push({
-            fichero: rutaRelativa(fichero),
-            propiedad: `padding${sufijo}`,
-            peldano: Number(peldano[1]),
-            termino: termino.replace(/\s+/g, " "),
-          });
+      const valores = mapa.get(nombre) ?? [];
+      valores.push(valorDesde(fuente, inicio));
+      mapa.set(nombre, valores);
+    }
+  }
+  return mapa;
+}
+
+/**
+ * El extractor, sobre UNA fuente ya en memoria. Lo comparten el barrido real y
+ * las sondas sintéticas del final del fichero: si divergieran, las sondas
+ * dejarían de probar el mecanismo que la ley usa de verdad.
+ */
+function hallazgosDeFuente(
+  fuente: string,
+  fichero: string,
+  declaraciones: ReadonlyMap<string, readonly string[]>,
+): Hallazgo[] {
+  const limpia = despojarComentarios(fuente);
+  const hallazgos: Hallazgo[] = [];
+  for (const encontrado of limpia.matchAll(DECLARACION)) {
+    const sufijo = encontrado[1] ?? "";
+    const propiedad = `padding${sufijo}`;
+    const inicio = (encontrado.index ?? 0) + encontrado[0].length;
+    const valor = valorDesde(limpia, inicio);
+    for (const termino of terminosInline(sufijo, valor)) {
+      const resumido = termino.replace(/\s+/g, " ");
+      for (const peldano of termino.matchAll(PELDANO_DESNUDO)) {
+        hallazgos.push({
+          fichero,
+          propiedad,
+          peldano: Number(peldano[1]),
+          termino: resumido,
+          via: null,
+        });
+      }
+      for (const referencia of termino.matchAll(REFERENCIA_VAR)) {
+        const nombre = referencia[1];
+        for (const declarado of declaraciones.get(nombre) ?? []) {
+          for (const peldano of declarado.matchAll(PELDANO_DESNUDO)) {
+            hallazgos.push({
+              fichero,
+              propiedad,
+              peldano: Number(peldano[1]),
+              termino: resumido,
+              via: nombre,
+            });
+          }
         }
       }
     }
@@ -317,12 +489,58 @@ function rellenosInlineConSpaceDesnudo(ficheros: string[]): Hallazgo[] {
   return hallazgos;
 }
 
+/**
+ * Custom properties que llegan a un relleno del eje en línea sin que el barrido
+ * encuentre dónde se declaran: la ley no puede responder por su valor, así que
+ * se denuncian en vez de darse por buenas.
+ */
+function referenciasSinDeclarar(
+  ficheros: string[],
+  declaraciones: ReadonlyMap<string, readonly string[]>,
+): { fichero: string; propiedad: string; nombre: string }[] {
+  const sueltas: { fichero: string; propiedad: string; nombre: string }[] = [];
+  for (const fichero of ficheros) {
+    const limpia = despojarComentarios(readFileSync(fichero, "utf-8"));
+    for (const encontrado of limpia.matchAll(DECLARACION)) {
+      const sufijo = encontrado[1] ?? "";
+      const inicio = (encontrado.index ?? 0) + encontrado[0].length;
+      const valor = valorDesde(limpia, inicio);
+      for (const termino of terminosInline(sufijo, valor)) {
+        for (const referencia of termino.matchAll(REFERENCIA_VAR)) {
+          if (declaraciones.has(referencia[1])) continue;
+          sueltas.push({
+            fichero: rutaRelativa(fichero),
+            propiedad: `padding${sufijo}`,
+            nombre: referencia[1],
+          });
+        }
+      }
+    }
+  }
+  return sueltas;
+}
+
+/** Todos los rellenos del eje en línea que leen un peldaño desnudo de `space`
+ *  --escrito en el término o heredado de una `var()`--, con o sin excepción
+ *  declarada. */
+function rellenosInlineConSpaceDesnudo(ficheros: string[]): Hallazgo[] {
+  const declaraciones = declaracionesDeCustomProperties(ficheros);
+  return ficheros.flatMap((fichero) =>
+    hallazgosDeFuente(
+      readFileSync(fichero, "utf-8"),
+      rutaRelativa(fichero),
+      declaraciones,
+    ),
+  );
+}
+
 function estaExceptuado(hallazgo: Hallazgo): boolean {
   return EXCEPCIONES.some(
     (e) =>
       e.fichero === hallazgo.fichero &&
       e.propiedad === hallazgo.propiedad &&
-      e.peldano === hallazgo.peldano,
+      e.peldano === hallazgo.peldano &&
+      (e.via ?? null) === hallazgo.via,
   );
 }
 
@@ -334,7 +552,7 @@ describe("una sola ley: el relleno del eje inline se lee de inlineSpace", () => 
     const detalle = sinExcepcion
       .map(
         (h) =>
-          `  ${h.fichero} | ${h.propiedad} | space[${h.peldano}] | termino inline: "${h.termino}"`,
+          `  ${h.fichero} | ${h.propiedad} | space[${h.peldano}]${h.via === null ? "" : ` | via ${h.via}`} | termino inline: "${h.termino}"`,
       )
       .join("\n");
 
@@ -352,7 +570,8 @@ describe("una sola ley: el relleno del eje inline se lee de inlineSpace", () => 
         (h) =>
           h.fichero === excepcion.fichero &&
           h.propiedad === excepcion.propiedad &&
-          h.peldano === excepcion.peldano,
+          h.peldano === excepcion.peldano &&
+          (excepcion.via ?? null) === h.via,
       );
       expect(
         coincidencias.length,
@@ -381,19 +600,38 @@ describe("ataduras del barrido: la ley no puede pasar por vacuidad", () => {
     ).toBeGreaterThanOrEqual(MINIMO_FICHEROS_BARRIDOS);
 
     const relativas = ficheros.map(rutaRelativa);
-    // Una pieza de cada categoria de src/components (RULES.md, regla 2) mas
-    // una ruta de app/: si el barrido dejara de ver una categoria entera, la
-    // ley pasaria en verde sobre ella sin que nadie lo notara.
+    // Una pieza de cada categoria de src/components (RULES.md, regla 2), una
+    // ruta de app/ y el fichero de src/theme que declara las custom properties
+    // de layout: si el barrido dejara de ver una categoria entera, la ley
+    // pasaria en verde sobre ella sin que nadie lo notara.
     for (const esperada of [
       "src/components/layout/Footer/Footer.tsx",
       "src/components/legal/legalPage.parts.tsx",
       "src/components/scenes/sectionBeam/SectionBeam.tsx",
       "src/components/sections/Contact/Contact.tsx",
       "src/components/ui/Card/Card.tsx",
+      "src/theme/GlobalStyles.tsx",
       "app/opengraph-image.tsx",
     ]) {
       expect(relativas, `el barrido no ve ${esperada}`).toContain(esperada);
     }
+  });
+
+  it("toda custom property que llega a un relleno del eje inline se declara DENTRO del barrido", () => {
+    const ficheros = ficherosEscaneados();
+    const sueltas = referenciasSinDeclarar(
+      ficheros,
+      declaracionesDeCustomProperties(ficheros),
+    );
+
+    const detalle = sueltas
+      .map((s) => `  ${s.fichero} | ${s.propiedad} | ${s.nombre}`)
+      .join("\n");
+
+    expect(
+      sueltas,
+      `${sueltas.length} referencia(s) var() en el eje inline que el barrido no puede resolver:\n${detalle}\nUna custom property cuya declaracion queda fuera del barrido es un peldano que la ley no puede leer: o su fichero entra en RAICES_BARRIDAS, o el relleno lee el token directamente.`,
+    ).toHaveLength(0);
   });
 
   it("el token tiene consumidores REALES en el eje inline, no solo una ley que nadie incumple", () => {
@@ -429,26 +667,23 @@ describe("ataduras del barrido: la ley no puede pasar por vacuidad", () => {
 });
 
 describe("sondas del extractor: el mecanismo caza lo que dice cazar", () => {
-  /** Ejecuta el extractor sobre una fuente sintetica, sin tocar el disco. */
+  /**
+   * Ejecuta EL MISMO extractor que la ley sobre una fuente sintetica, sin
+   * tocar el disco: las declaraciones de custom property se leen de la propia
+   * fuente, igual que el barrido las lee del arbol. Antes esta funcion
+   * duplicaba el cuerpo del extractor; se unifico el 2026-09-05 al anadir la
+   * resolucion de var(), porque una sonda que prueba una copia no prueba nada.
+   */
   function hallazgosDe(fuente: string): Hallazgo[] {
     const limpia = despojarComentarios(fuente);
-    const hallazgos: Hallazgo[] = [];
-    for (const encontrado of limpia.matchAll(DECLARACION)) {
-      const sufijo = encontrado[1] ?? "";
+    const declaraciones = new Map<string, string[]>();
+    for (const encontrado of limpia.matchAll(DECLARACION_CUSTOM)) {
       const inicio = (encontrado.index ?? 0) + encontrado[0].length;
-      const valor = valorDesde(limpia, inicio);
-      for (const termino of terminosInline(sufijo, valor)) {
-        for (const peldano of termino.matchAll(PELDANO_DESNUDO)) {
-          hallazgos.push({
-            fichero: "sonda",
-            propiedad: `padding${sufijo}`,
-            peldano: Number(peldano[1]),
-            termino: termino.replace(/\s+/g, " "),
-          });
-        }
-      }
+      const valores = declaraciones.get(encontrado[1]) ?? [];
+      valores.push(valorDesde(limpia, inicio));
+      declaraciones.set(encontrado[1], valores);
     }
-    return hallazgos;
+    return hallazgosDeFuente(fuente, "sonda", declaraciones);
   }
 
   it("SONDA POSITIVA: caza el segundo termino de una abreviatura escrita en space", () => {
@@ -472,6 +707,49 @@ describe("sondas del extractor: el mecanismo caza lo que dice cazar", () => {
       "padding-inline: calc(${t.space[5]} + env(safe-area-inset-left, 0px));",
     );
     expect(hallazgos.map((h) => h.peldano)).toEqual([5]);
+  });
+
+  it("SONDA POSITIVA: caza el peldano que entra por una custom property declarada con space", () => {
+    // El caso REAL que la ley no veia hasta el 2026-09-05: --nav-gap se
+    // declaraba en GlobalStyles.tsx (fuera del barrido) y se consumia en
+    // Navbar.tsx como padding-inline, asi que ni la declaracion ni el consumo
+    // llevaban un peldano en su propia linea.
+    const hallazgos = hallazgosDe(
+      "  --brecha: ${({ theme }) => theme.data.space[2]};\n  padding-inline: var(--brecha);",
+    );
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0].propiedad).toBe("padding-inline");
+    expect(hallazgos[0].peldano).toBe(2);
+    expect(hallazgos[0].via).toBe("--brecha");
+  });
+
+  it("SONDA POSITIVA: caza la var() escondida en el termino inline de una abreviatura", () => {
+    const hallazgos = hallazgosDe(
+      "  --brecha: ${t.space[3]};\n  padding: ${t.space[9]} calc(var(--brecha) + 1px);",
+    );
+    expect(hallazgos.map((h) => `${h.peldano}/${h.via}`)).toEqual([
+      "3/--brecha",
+    ]);
+  });
+
+  it("SONDA NEGATIVA: una custom property declarada con inlineSpace no dispara", () => {
+    // El caso real de ScStatement (Story.tsx): --story-statement-pad se
+    // declara dos veces, base y media query, y las dos leen inlineSpace.
+    expect(
+      hallazgosDe(
+        "  --pad: ${t.inlineSpace[4]};\n  padding-inline: var(--pad);\n  @media x {\n    --pad: ${t.inlineSpace[6]};\n  }",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("SONDA NEGATIVA: una var() en el termino de BLOQUE no entra, aunque su declaracion lleve space", () => {
+    // El caso real de ScLegalMain y NotFoundContent: var(--nav-height) suma en
+    // el primer termino de la abreviatura, que es altura, no columna.
+    expect(
+      hallazgosDe(
+        "  --alto: ${t.space[7]};\n  padding: calc(var(--alto) + 1px) ${t.inlineSpace[5]} ${t.space[7]};",
+      ),
+    ).toHaveLength(0);
   });
 
   it("SONDA NEGATIVA: no confunde inlineSpace con space", () => {
