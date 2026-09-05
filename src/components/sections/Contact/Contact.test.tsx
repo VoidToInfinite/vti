@@ -4862,13 +4862,42 @@ describe("Contact: ola Q, la banda de 320 px", () => {
   /** La raiz del documento en reposo, contra la que se resuelven los rem. */
   const RAIZ_PX = 16;
 
-  function aPx(valor: string): number {
+  /**
+   * La raiz con la preferencia de tamano de texto del usuario al 200 %, que es
+   * el nivel que WCAG 1.4.4 exige soportar. Es la palanca que se acciono en
+   * Chrome con `Page.setFontSizes` para reproducir el defecto de la ola R --
+   * no un zoom de navegador, que escala el viewport tambien y por eso no lo
+   * habria destapado.
+   */
+  const RAIZ_AL_200_PX = 32;
+
+  /**
+   * Ancho de un valor CSS en pixeles, resuelto con la MISMA aritmetica que el
+   * navegador. Desde la ola R sabe tres formas y no dos: el `rem` (contra la
+   * raiz que se le pase), el `px`, y el `min(<rem>, <vw>)` de `inlineSpace` --
+   * min(A * raiz, B * viewport / 100), exactamente lo que resuelve el motor de
+   * CSS. Sin la tercera, este candado no puede leer los rellenos del eje
+   * inline que la ola R migro, y de hecho fallo con "el candado no sabe
+   * convertir min(1.5rem, a pixeles" en cuanto se migraron.
+   */
+  function aPx(
+    valor: string,
+    raizPx: number = RAIZ_PX,
+    viewportPx: number = ANCHO_MINIMO_SOPORTADO_PX,
+  ): number {
     const limpio = valor.trim();
     if (limpio === "0") return 0;
     const rem = limpio.match(/^([\d.]+)rem$/);
-    if (rem) return Number(rem[1]) * RAIZ_PX;
+    if (rem) return Number(rem[1]) * raizPx;
     const px = limpio.match(/^([\d.]+)px$/);
     if (px) return Number(px[1]);
+    const acotado = limpio.match(/^min\(\s*([\d.]+)rem\s*,\s*([\d.]+)vw\s*\)$/);
+    if (acotado) {
+      return Math.min(
+        Number(acotado[1]) * raizPx,
+        (Number(acotado[2]) * viewportPx) / 100,
+      );
+    }
     throw new Error(`el candado no sabe convertir "${limpio}" a pixeles`);
   }
 
@@ -4916,19 +4945,85 @@ describe("Contact: ola Q, la banda de 320 px", () => {
   }
 
   /**
-   * Relleno o margen INLINE (izquierda/derecha) declarado por la shorthand, en
-   * pixeles; `null` si la propiedad no se declara. Exige la propiedad
+   * Separa los valores de una lista CSS por espacios de NIVEL SUPERIOR: los
+   * que quedan dentro de un parentesis no cuentan. Un `split(/\s+/)` a secas
+   * partia `min(1.5rem, 7.5vw)` en dos trozos y le entregaba "min(1.5rem," al
+   * conversor -- es literalmente el fallo que dio la suite al migrar los
+   * rellenos a `inlineSpace`, antes de escribir esto.
+   */
+  function separarValores(lista: string): string[] {
+    const salida: string[] = [];
+    let actual = "";
+    let profundidad = 0;
+    Array.from(lista.trim()).forEach((caracter) => {
+      if (caracter === "(") profundidad += 1;
+      if (caracter === ")") profundidad -= 1;
+      if (profundidad === 0 && /\s/.test(caracter)) {
+        if (actual !== "") salida.push(actual);
+        actual = "";
+        return;
+      }
+      actual += caracter;
+    });
+    if (actual !== "") salida.push(actual);
+    return salida;
+  }
+
+  /**
+   * Valor CRUDO del eje INLINE (izquierda/derecha) declarado por una
+   * propiedad; `null` si la propiedad no se declara. Exige la propiedad
    * completa, nunca un `padding-bottom` cazado por prefijo compartido: el
    * caracter anterior tiene que ser un separador.
    */
-  function inlinePx(bloque: string, propiedad: string): number | null {
+  function inlineCrudo(bloque: string, propiedad: string): string | null {
     const encontrado = bloque.match(
       new RegExp(`(?:^|[\\s;{])${propiedad}:\\s*([^;}]+)`),
     );
     if (!encontrado) return null;
-    const valores = encontrado[1].trim().split(/\s+/);
+    const valores = separarValores(encontrado[1]);
     // 1 valor: los cuatro lados. 2, 3 o 4: el segundo es el eje inline.
-    return aPx(valores.length === 1 ? valores[0] : valores[1]);
+    return valores.length === 1 ? valores[0] : valores[1];
+  }
+
+  /**
+   * Valor CRUDO del eje de BLOQUE (arriba/abajo) de la misma propiedad. Existe
+   * desde la ola R: al partirse la shorthand en dos ejes con escalas
+   * distintas, un candado que solo sepa leer uno deja el otro sin vigilar.
+   */
+  function bloqueCrudo(bloque: string, propiedad: string): string | null {
+    const encontrado = bloque.match(
+      new RegExp(`(?:^|[\\s;{])${propiedad}:\\s*([^;}]+)`),
+    );
+    if (!encontrado) return null;
+    return separarValores(encontrado[1])[0];
+  }
+
+  /**
+   * Lo mismo, ya convertido a pixeles contra la raiz y el viewport que se le
+   * pasen. Los dos parametros son lo que convierte este candado en una sonda
+   * de la ola R: la MISMA lectura del CSS real resuelta a raiz 16 y a raiz 32.
+   */
+  function inlinePx(
+    bloque: string,
+    propiedad: string,
+    raizPx: number = RAIZ_PX,
+    viewportPx: number = ANCHO_MINIMO_SOPORTADO_PX,
+  ): number | null {
+    const crudo = inlineCrudo(bloque, propiedad);
+    return crudo === null ? null : aPx(crudo, raizPx, viewportPx);
+  }
+
+  /**
+   * La primera TARJETA DE CANAL de la lista, que es hija DIRECTA de `ScCards`.
+   * Un `querySelector("a")` sobre el contenedor no vale: el formulario va
+   * primero en orden de documento y cualquier ancla suya (la del panel de
+   * rescate, por ejemplo) ganaria la busqueda -- y de hecho la gano al escribir
+   * esto, con un fallo de "Cannot read properties of null" al pedirle su icono.
+   */
+  function tarjetaDeCanal(contenedor: HTMLElement): HTMLElement {
+    return Array.from(contenedor.children).find(
+      (nodo) => nodo.tagName === "A",
+    ) as HTMLElement;
   }
 
   function piezas(): {
@@ -4936,16 +5031,58 @@ describe("Contact: ola Q, la banda de 320 px", () => {
     tarjeta: HTMLElement;
     columna: HTMLElement;
     titular: HTMLElement;
+    formulario: HTMLElement;
+    canales: HTMLElement;
+    enlace: HTMLElement;
+    icono: HTMLElement;
   } {
     const { container } = renderWithProviders(<Contact />);
     const titular = container.querySelector("h2") as HTMLElement;
     const columna = titular.parentElement as HTMLElement;
+    const formulario = container.querySelector("form") as HTMLElement;
+    const canales = formulario.parentElement as HTMLElement;
+    const enlace = tarjetaDeCanal(canales);
     return {
       seccion: container.querySelector("#contact") as HTMLElement,
       tarjeta: columna.parentElement as HTMLElement,
       columna,
       titular,
+      formulario,
+      canales,
+      enlace,
+      icono: enlace.querySelector("svg") as unknown as HTMLElement,
     };
+  }
+
+  /**
+   * La rama OSCURA del mismo componente. No es un duplicado de `piezas`: el
+   * arbol de la rama oscura no monta `ScCard` (la seccion va a sangre y quien
+   * separa del viewport es `ScDarkFrame`), asi que la cadena viewport -> texto
+   * tiene otros eslabones y hay que recorrerla por su cuenta. Es la rama donde
+   * se midio el rotulo del CTA a 58,8 px en 9 lineas.
+   */
+  function piezasOscuras(): {
+    seccion: HTMLElement;
+    marco: HTMLElement;
+    formulario: HTMLElement;
+    enlace: HTMLElement;
+  } {
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      const { container } = renderWithProviders(<Contact />);
+      const titular = container.querySelector("h2") as HTMLElement;
+      const copia = titular.parentElement as HTMLElement;
+      const contenido = copia.parentElement as HTMLElement;
+      const formulario = container.querySelector("form") as HTMLElement;
+      return {
+        seccion: container.querySelector("#contact") as HTMLElement,
+        marco: contenido.parentElement as HTMLElement,
+        formulario,
+        enlace: tarjetaDeCanal(formulario.parentElement as HTMLElement),
+      };
+    } finally {
+      window.localStorage.clear();
+    }
   }
 
   it("a 320 px la caja del titular sigue cabiendo «Construyamos» entera, con los rellenos que el CSS declara DE VERDAD", () => {
@@ -5003,13 +5140,28 @@ describe("Contact: ola Q, la banda de 320 px", () => {
       desdeSm,
       "la tarjeta no declara nada bajo el breakpoint sm: el relleno ancho no vuelve nunca",
     ).not.toBe("");
-    expect(inlinePx(desdeSm, "padding")).toBe(aPx(themes.light.space[6]));
+
+    // Desde la ola R la shorthand lleva DOS valores: bloque en `space`, eje
+    // inline en `inlineSpace`. Se comprueban los dos ejes contra el token
+    // importado (nunca contra una cadena escrita a mano, regla 38), porque lo
+    // que este caso protege es que el peldano ANCHO siga volviendo desde sm --
+    // y ahora eso son dos declaraciones, no una.
+    expect(bloqueCrudo(desdeSm, "padding")).toBe(themes.light.space[6]);
+    expect(inlineCrudo(desdeSm, "padding")).toBe(themes.light.inlineSpace[6]);
 
     // Y el valor BASE es el estrecho: movil-first de verdad, no un
     // `max-width` disfrazado.
-    expect(inlinePx(reglasDe(tarjeta, null), "padding")).toBe(
-      aPx(themes.light.space[5]),
-    );
+    const base = reglasDe(tarjeta, null);
+    expect(bloqueCrudo(base, "padding")).toBe(themes.light.space[5]);
+    expect(inlineCrudo(base, "padding")).toBe(themes.light.inlineSpace[5]);
+
+    // Y por encima de 600 px el eje inline sigue valiendo el peldano entero
+    // con la raiz por defecto: el token acota, no encoge. `space[6]` = 2rem =
+    // 32 px, y a 600 px de viewport el termino en `vw` (10vw = 60 px) pierde.
+    expect(
+      aPx(inlineCrudo(desdeSm, "padding") as string, RAIZ_PX, 600),
+      "el relleno ancho encoge por debajo de su peldano en cuanto entra el breakpoint",
+    ).toBe(aPx(themes.light.space[6], RAIZ_PX, 600));
   });
 
   it("en la banda critica no hay ni un ancho fijo en pixeles, y la pista de la tarjeta sigue siendo minmax(0, 1fr)", () => {
@@ -5032,5 +5184,264 @@ describe("Contact: ola Q, la banda de 320 px", () => {
     expect(reglasDe(tarjeta, null)).toMatch(
       /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
     );
+  });
+
+  /*
+   * OLA R (2026-09-05): LA MISMA BANDA, PERO CON LA FUENTE AL 200 %.
+   *
+   * Los cuatro casos de arriba resuelven la aritmetica con la raiz a 16 px.
+   * El defecto que abre esta ola es que la MISMA cadena de rellenos, con la
+   * raiz a 32 px --la preferencia de tamano de texto del usuario, la palanca
+   * que exige WCAG 1.4.4-- y el viewport todavia en 320 px, doblaba cada
+   * peldano en `rem` y se comia la columna.
+   *
+   * MEDIDO ANTES DE TOCAR NADA (2026-09-05, Chrome sobre el build de
+   * produccion servido, `Page.setFontSizes` a 32 px, `prefers-reduced-motion:
+   * reduce`, 320 px de viewport, tema claro). Cadena de anchos del peor caso:
+   *
+   *   section.ScContact   320 px   (padding inline 48 por lado)
+   *   div.ScCard          224 px   (padding 48 por lado)
+   *   ScLeft/ScCards      126 px
+   *   a.ScCardLink        126 px   (padding inline 32, gap 24, icono 24)
+   *   span del valor     23,2 px   -> 27 caracteres en 23 lineas
+   *
+   * Y en la misma sonda: la etiqueta «Tu correo (opcional)» a 28 px (13
+   * lineas), el texto de ayuda del formulario a 28 px (99 caracteres en 61
+   * lineas), el contador a 28 px (14 lineas) y el rotulo del CTA a 58,8 px en
+   * 9 lineas -- una letra por linea. En la rama oscura, el marco dejaba 192 px
+   * y el boton 58,8 px de rotulo. El `overflow-wrap: anywhere` de la critica
+   * #19 impedia el desbordamiento y por eso mismo convertia la PERDIDA de
+   * texto en ILEGIBILIDAD.
+   *
+   * QUE ATAN ESTOS TRES CASOS, y por que no son espejos del codigo: no afirman
+   * que un relleno "valga 1rem". Resuelven los rellenos REALMENTE declarados
+   * dos veces --a raiz 16 y a raiz 32-- con la misma aritmetica que el
+   * navegador, y exigen la CONDICION que el defecto incumplia: que sobre 320
+   * px de viewport la cadena inline gaste lo mismo con la fuente al doble, que
+   * lo unico que encoja la columna de texto sea el hueco que separa el icono
+   * (que SI debe crecer con el texto), y que ningun relleno de esa cadena
+   * quede declarado con un `rem` desnudo, que es la forma exacta del defecto.
+   *
+   * VALIDADO CON BUG INYECTADO (2026-09-05). Se devolvio `ScCard` a la
+   * shorthand de UN valor que tenia antes de la ola R --`padding:
+   * ${theme.data.space[5]}`, o sea el mismo relleno en los cuatro lados-- y se
+   * ejecuto la suite. Cuatro casos en rojo con estas lineas LITERALES:
+   *
+   *   expected '1.5rem' to be 'min(1.5rem, 7.5vw)' // Object.is equality
+   *
+   *   a 320px la caja de la tarjeta mide 222px con la raiz a 16px y 174px con
+   *   la raiz a 32px: los rellenos del eje inline se doblan con la fuente y se
+   *   comen la columna, como el 2026-09-05. Rellenos leidos del CSS: seccion
+   *   min(1.5rem, 7.5vw), tarjeta 1.5rem.: expected 174 to be 222
+   *
+   *   la columna de texto de una tarjeta de canal cae de 152px a 92px al
+   *   doblar la fuente, y el hueco del icono no explica toda esa perdida: hay
+   *   relleno inline creciendo con la raiz. El 2026-09-05 esa columna medida en
+   *   Chrome era de 23,2px, 27 caracteres en 23 lineas.: expected 60 to be 12
+   *
+   *   tarjeta clara declara padding con "1.5rem" en el eje inline: un valor que
+   *   se dobla con la fuente mientras el viewport sigue en 320 px. Tiene que
+   *   leer theme.data.inlineSpace[n].: expected false to be true
+   *
+   * Restaurada la shorthand de dos valores, los siete casos de este describe
+   * en verde. La cifra que sale de la sonda, comprobada elevando a proposito
+   * la cuota minima a 0,99 y leyendo el mensaje del fallo: con la fuente al
+   * 200 % sobre 320 px el texto de una tarjeta de canal se queda con 140 px de
+   * 320, un 43,75 %.
+   *
+   * QUE RECORRE DE VERDAD EL TERCER CASO, comprobado del mismo modo (subiendo
+   * el suelo del recuento a 100 y leyendo el listado del fallo). Doce rellenos
+   * inline reales, los dos temas incluidos:
+   *
+   *   seccion clara / padding: min(1.5rem, 7.5vw)
+   *   tarjeta clara / padding: min(1.5rem, 7.5vw)   [base]
+   *   tarjeta clara / padding: min(2rem, 10vw)      [dentro del breakpoint sm]
+   *   formulario claro / padding: min(1.5rem, 7.5vw)
+   *   enlace de canal claro / padding: min(1rem, 5vw)
+   *   campo de correo claro / padding: min(1rem, 5vw)
+   *   campo de mensaje claro / padding: min(1rem, 5vw)
+   *   marco oscuro / padding-inline: min(2rem, 10vw)
+   *   formulario oscuro / padding: min(1.5rem, 7.5vw)
+   *   enlace de canal oscuro / padding: min(1rem, 5vw)
+   *   campo de correo oscuro / padding: min(1rem, 5vw)
+   *   campo de mensaje oscuro / padding: min(1rem, 5vw)
+   *
+   * La seccion OSCURA no aparece porque no declara relleno: va a sangre y es
+   * el marco quien separa del viewport. Que el listado traiga piezas oscuras
+   * es ademas la prueba de que `piezasOscuras` monta la rama que dice montar
+   * y no un segundo render de la clara.
+   */
+
+  /**
+   * Cuota minima del viewport que tiene que quedar para el TEXTO de un control
+   * en la banda mas estrecha soportada, con la fuente al 200 %. Se expresa como
+   * fraccion y no como un numero de pixeles suelto a proposito: lo que se
+   * protege es el reparto entre texto y aire, no una cifra concreta.
+   *
+   * El 40 % queda por debajo de lo que el arreglo entrega de verdad (140 px de
+   * 320, un 43,75 %, cuenta que este mismo fichero resuelve mas abajo) y muy
+   * por encima de lo que producia el defecto (23,2 px de 320, un 7,25 %,
+   * medido en Chrome el 2026-09-05). Deja margen para un cambio legitimo de
+   * icono o de hueco y no para que un relleno vuelva a doblarse con la fuente.
+   */
+  const CUOTA_MINIMA_DEL_TEXTO = 0.4;
+
+  /** Las seis formas de declarar relleno que tocan el eje inline. */
+  const RELLENOS_INLINE = [
+    "padding",
+    "padding-inline",
+    "padding-inline-start",
+    "padding-inline-end",
+    "padding-left",
+    "padding-right",
+  ];
+
+  it("con la fuente al 200 % la caja de la tarjeta mide LO MISMO que con la raiz por defecto", () => {
+    const { seccion, tarjeta } = piezas();
+    const reglasSeccion = reglasDe(seccion, null);
+    const reglasTarjeta = reglasDe(tarjeta, null);
+    const borde = Number(reglasTarjeta.match(/border:\s*(\d+)px/)?.[1] ?? "0");
+
+    const caja = (raizPx: number): number =>
+      ANCHO_MINIMO_SOPORTADO_PX -
+      2 * (inlinePx(reglasSeccion, "padding", raizPx) as number) -
+      2 * borde -
+      2 * (inlinePx(reglasTarjeta, "padding", raizPx) as number);
+
+    const porDefecto = caja(RAIZ_PX);
+    const al200 = caja(RAIZ_AL_200_PX);
+
+    expect(
+      al200,
+      `a ${ANCHO_MINIMO_SOPORTADO_PX}px la caja de la tarjeta mide ${porDefecto}px con la raiz a ` +
+        `${RAIZ_PX}px y ${al200}px con la raiz a ${RAIZ_AL_200_PX}px: los rellenos del eje inline ` +
+        "se doblan con la fuente y se comen la columna, como el 2026-09-05. Rellenos leidos del CSS: " +
+        `seccion ${inlineCrudo(reglasSeccion, "padding")}, tarjeta ${inlineCrudo(reglasTarjeta, "padding")}.`,
+    ).toBe(porDefecto);
+
+    // Y sigue cabiendo la palabra medida, que es lo que el caso hermano de la
+    // ola Q exige con la raiz por defecto: la propiedad no se compra a cambio
+    // de estrechar la caja en el regimen normal.
+    expect(al200).toBeGreaterThanOrEqual(ANCHO_PALABRA_MAS_LARGA_PX);
+  });
+
+  it("con la fuente al 200 % lo unico que estrecha el texto de una tarjeta de canal es el hueco del icono, no el relleno", () => {
+    const { seccion, tarjeta, enlace, icono } = piezas();
+    const reglasSeccion = reglasDe(seccion, null);
+    const reglasTarjeta = reglasDe(tarjeta, null);
+    const reglasEnlace = reglasDe(enlace, null);
+
+    const bordeTarjeta = Number(
+      reglasTarjeta.match(/border:\s*(\d+)px/)?.[1] ?? "0",
+    );
+    const bordeEnlace = Number(
+      reglasEnlace.match(/border:\s*(\d+)px/)?.[1] ?? "0",
+    );
+    const huecoCrudo = reglasEnlace.match(
+      /(?:^|[\s;{])gap:\s*([^;}]+)/,
+    )?.[1] as string;
+    const anchoIcono = Number(
+      reglasDe(icono, null).match(/(?:^|[\s;{])width:\s*([\d.]+)px/)?.[1] ??
+        "0",
+    );
+
+    expect(huecoCrudo, "el enlace de canal no declara gap").toBeTruthy();
+    expect(
+      anchoIcono,
+      "el icono de canal no declara un ancho propio en px (regla 20)",
+    ).toBeGreaterThan(0);
+
+    const cajaDelTexto = (raizPx: number): number =>
+      ANCHO_MINIMO_SOPORTADO_PX -
+      2 * (inlinePx(reglasSeccion, "padding", raizPx) as number) -
+      2 * bordeTarjeta -
+      2 * (inlinePx(reglasTarjeta, "padding", raizPx) as number) -
+      2 * bordeEnlace -
+      2 * (inlinePx(reglasEnlace, "padding", raizPx) as number) -
+      aPx(huecoCrudo, raizPx) -
+      anchoIcono;
+
+    const porDefecto = cajaDelTexto(RAIZ_PX);
+    const al200 = cajaDelTexto(RAIZ_AL_200_PX);
+
+    // LA CONDICION, no el numero: entre la raiz por defecto y el 200 % la
+    // columna de texto solo puede perder lo que gana el HUECO que separa el
+    // icono del texto -- ese si escala con la tipografia y debe hacerlo. Si
+    // pierde un pixel mas, es que algun relleno del eje inline volvio a
+    // doblarse con la fuente.
+    expect(
+      porDefecto - al200,
+      `la columna de texto de una tarjeta de canal cae de ${porDefecto}px a ${al200}px al doblar la ` +
+        "fuente, y el hueco del icono no explica toda esa perdida: hay relleno inline creciendo con " +
+        "la raiz. El 2026-09-05 esa columna medida en Chrome era de 23,2px, 27 caracteres en 23 lineas.",
+    ).toBe(aPx(huecoCrudo, RAIZ_AL_200_PX) - aPx(huecoCrudo, RAIZ_PX));
+
+    // Y el suelo absoluto del reparto, para que la condicion de arriba no se
+    // pueda satisfacer estrechandolo TODO por igual.
+    expect(
+      al200 / ANCHO_MINIMO_SOPORTADO_PX,
+      `con la fuente al 200 % el texto se queda con ${al200}px de ${ANCHO_MINIMO_SOPORTADO_PX}`,
+    ).toBeGreaterThanOrEqual(CUOTA_MINIMA_DEL_TEXTO);
+  });
+
+  it("ningun relleno del eje inline de la cadena viewport -> texto se declara con un rem desnudo, en ninguna de las dos ramas", () => {
+    const claro = piezas();
+    const oscuro = piezasOscuras();
+
+    const cadena: Array<[string, HTMLElement]> = [
+      ["seccion clara", claro.seccion],
+      ["tarjeta clara", claro.tarjeta],
+      ["formulario claro", claro.formulario],
+      ["enlace de canal claro", claro.enlace],
+      [
+        "campo de correo claro",
+        claro.formulario.querySelector("input") as HTMLElement,
+      ],
+      [
+        "campo de mensaje claro",
+        claro.formulario.querySelector("textarea") as HTMLElement,
+      ],
+      ["seccion oscura", oscuro.seccion],
+      ["marco oscuro", oscuro.marco],
+      ["formulario oscuro", oscuro.formulario],
+      ["enlace de canal oscuro", oscuro.enlace],
+      [
+        "campo de correo oscuro",
+        oscuro.formulario.querySelector("input") as HTMLElement,
+      ],
+      [
+        "campo de mensaje oscuro",
+        oscuro.formulario.querySelector("textarea") as HTMLElement,
+      ],
+    ];
+
+    const declarados: string[] = [];
+    cadena.forEach(([nombre, pieza]) => {
+      expect(
+        pieza,
+        `la cadena no encontro la pieza "${nombre}"`,
+      ).not.toBeNull();
+      // Base Y dentro de cualquier media query: el relleno ancho de la tarjeta
+      // vive en uno, y jsdom no evalua ninguno (regla 36).
+      [reglasDe(pieza, null), reglasDe(pieza, /.*/)].forEach((bloque) => {
+        RELLENOS_INLINE.forEach((propiedad) => {
+          const crudo = inlineCrudo(bloque, propiedad);
+          if (crudo === null) return;
+          declarados.push(`${nombre} / ${propiedad}: ${crudo}`);
+          expect(
+            crudo === "0" || crudo.startsWith("min("),
+            `${nombre} declara ${propiedad} con "${crudo}" en el eje inline: un valor que se dobla ` +
+              "con la fuente mientras el viewport sigue en 320 px. Tiene que leer theme.data.inlineSpace[n].",
+          ).toBe(true);
+        });
+      });
+    });
+
+    // Y la cadena tiene que haber encontrado rellenos de verdad: un recorrido
+    // que no lee nada pasaria en verde sin vigilar nada (regla 39).
+    expect(
+      declarados.length,
+      `la cadena solo leyo estos rellenos inline: ${declarados.join(" | ")}`,
+    ).toBeGreaterThanOrEqual(10);
   });
 });

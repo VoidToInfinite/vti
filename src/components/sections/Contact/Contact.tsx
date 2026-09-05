@@ -200,7 +200,13 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
           }
         `
       : css`
-          padding: ${theme.data.space[9]} ${theme.data.space[5]};
+          /* El eje INLINE lee inlineSpace, no space (ola R, 2026-09-05): es
+             el primer relleno de la cadena viewport -> texto, y en rem se
+             doblaba con la fuente al 200 % mientras el viewport se quedaba en
+             320 px. Ver el docblock de ScCard, mas abajo, para la medicion. El
+             eje de bloque sigue en space: la altura no compite con el
+             viewport. */
+          padding: ${theme.data.space[9]} ${theme.data.inlineSpace[5]};
           max-width: ${theme.data.grid.containerMax};
           margin-inline: auto;
           /* min-height 50dvh, NO 100dvh. Discrepancia resuelta en la Task 16
@@ -371,6 +377,39 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
  * No ata el numero 24: ata la ARITMETICA -- lee los rellenos realmente
  * declarados (seccion y tarjeta) del CSS que inyecta styled-components y
  * comprueba que lo que queda a 320 px sigue cabiendo la palabra medida.
+ *
+ * ## OLA R (2026-09-05): LA MISMA ARITMETICA, PERO CON LA FUENTE AL 200 %
+ *
+ * La cuenta de arriba se hizo con la raiz a 16 px. Con la raiz a 32 px --la
+ * preferencia de tamano de texto del usuario, la palanca que exige WCAG
+ * 1.4.4-- cada uno de esos rellenos en `rem` valia el DOBLE mientras el
+ * viewport seguia midiendo 320 px, y la cadena entera se comia la columna.
+ * Medido el 2026-09-05 sobre el build de produccion servido en Chrome
+ * (`Page.setFontSizes` a 32 px, `prefers-reduced-motion: reduce`, 320 px de
+ * viewport, tema claro): seccion 320 -> tarjeta 224 (con `padding` de 48 px
+ * por lado) -> columna de canales 126 -> enlace de tarjeta 126 -> el texto del
+ * valor, 23,2 px de ancho, o sea 27 caracteres repartidos en 23 lineas. La
+ * etiqueta del campo de correo caia a 28 px (13 lineas), el texto de ayuda del
+ * formulario a 28 px (99 caracteres en 61 lineas) y el rotulo del CTA a 58,8
+ * px en 9 lineas, una letra por linea. El `overflow-wrap: anywhere` de la
+ * critica #19 evitaba el desbordamiento y por eso mismo convertia la PERDIDA
+ * de texto en ILEGIBILIDAD: nada se salia, nada se leia.
+ *
+ * ARREGLO: los rellenos del eje INLINE de la cadena viewport -> texto leen
+ * `theme.data.inlineSpace[n]` en vez de `space[n]`. Es la misma escala con un
+ * techo en `vw` calibrado para valer el peldano exacto a 320 px (ver el
+ * docblock de `inlineSpace` en `src/theme/tokens/space.ts`), asi que con la
+ * raiz por defecto no cambia ni un pixel --las cifras A/B de arriba siguen
+ * siendo las mismas-- y con la raiz al 200 % en la banda estrecha el relleno
+ * se detiene donde el viewport deja de dar de si. Aritmetica esperada a raiz
+ * 32 y 320 px: 320 - 2*24 (seccion) - 2*1 (borde) - 2*24 (tarjeta) = 222 px de
+ * caja, exactamente los mismos 222 px que a raiz 16.
+ *
+ * QUE NO SE TOCA: el eje de BLOQUE (`padding-block`, y el primer valor de esta
+ * shorthand) sigue en `space` --la altura no compite con el viewport--, los
+ * `gap` siguen en `space` --separan piezas que crecen con el texto-- y ningun
+ * `font-size` se acota con unidades de viewport, que es el patron de fallo F94
+ * de WCAG.
  */
 const ScCard = styled.div`
   position: relative;
@@ -390,8 +429,13 @@ const ScCard = styled.div`
   background: ${CONTACT_CARD_GRADIENT};
   /* Movil-first: el relleno estrecho es el valor BASE y el ancho llega por
      media query, no al reves (ver el docblock de arriba para la aritmetica de
-     la banda de 320px y la medicion que la sostiene). */
-  padding: ${({ theme }) => theme.data.space[5]};
+     la banda de 320px y la medicion que la sostiene).
+
+     Shorthand de DOS valores desde la ola R: bloque en space, eje inline en
+     inlineSpace. Antes era un solo valor para los cuatro lados y por eso el
+     eje inline se doblaba con la fuente al 200 %. */
+  padding: ${({ theme }) => theme.data.space[5]}
+    ${({ theme }) => theme.data.inlineSpace[5]};
 
   opacity: 0;
   transform: translateY(${REVEAL.shift});
@@ -412,7 +456,8 @@ const ScCard = styled.div`
   }
 
   @media ${({ theme }) => theme.data.breakPoint.sm} {
-    padding: ${({ theme }) => theme.data.space[6]};
+    padding: ${({ theme }) => theme.data.space[6]}
+      ${({ theme }) => theme.data.inlineSpace[6]};
   }
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
@@ -761,7 +806,19 @@ const ScTopGlow = styled.div`
  * aprieta. El término fluido va en `dvh` y NO en `vw` por la razón que ese
  * docblock explica en detalle: la restricción es el ALTO del viewport, y un
  * término en `vw` no ahorra nada en un portátil bajo y ancho, que es
- * precisamente el caso que hay que resolver. `padding-inline` queda fijo.
+ * precisamente el caso que hay que resolver.
+ *
+ * `padding-inline` dejó de ser fijo en la OLA R (2026-09-05) y pasa a
+ * `inlineSpace[6]`. Es el primer relleno de la cadena viewport → texto de la
+ * rama oscura, y en `rem` valía 64 px por lado con la raíz al 200 % sobre un
+ * viewport de 320: medido ese día en Chrome sobre el build servido, el marco
+ * dejaba 192 px de contenido y el rótulo del CTA salía a 58,8 px en 9 líneas,
+ * una letra por línea, mientras los valores de las tarjetas de canal caían a
+ * 75-78 px. Con el token nuevo el marco deja 256 px en esa condición y el
+ * botón, 192 px de rótulo. Con la raíz por defecto vale exactamente
+ * `space[6]`, así que la composición de siempre no cambia ni un píxel (ver el
+ * docblock de `inlineSpace` en `src/theme/tokens/space.ts` y el de `ScCard`,
+ * más arriba, para la medición completa).
  */
 const ScDarkFrame = styled.div`
   grid-column: 1;
@@ -777,7 +834,7 @@ const ScDarkFrame = styled.div`
     3.5dvh,
     ${({ theme }) => theme.data.space[8]}
   );
-  padding-inline: ${({ theme }) => theme.data.space[6]};
+  padding-inline: ${({ theme }) => theme.data.inlineSpace[6]};
   display: flex;
   align-items: center;
 `;
@@ -1032,8 +1089,11 @@ const ScCardLink = styled.a`
   border: 1px solid
     ${({ theme }) => panelBorder(theme.data, CONTACT_CARD_BORDER_DARK)};
   border-radius: ${({ theme }) => theme.data.radius.xl};
+  /* Eje inline en inlineSpace (ola R): es el ultimo relleno antes del texto
+     del canal, el que medido a raiz 32 y 320 px dejaba el valor en 23,2 px de
+     ancho. Ver el docblock de ScCard. */
   padding: ${({ theme }) => theme.data.space[3]}
-    ${({ theme }) => theme.data.space[4]};
+    ${({ theme }) => theme.data.inlineSpace[4]};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
   transition:
@@ -1187,7 +1247,12 @@ const ScForm = styled.form`
   border: 1px solid
     ${({ theme }) => panelBorder(theme.data, CONTACT_FORM_BORDER)};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
-  padding: ${({ theme }) => theme.data.space[5]};
+  /* Eje inline en inlineSpace (ola R): es el panel que envuelve etiqueta,
+     campo, ayuda y contador, los cuatro medidos a 28 px de ancho con la fuente
+     al 200 % sobre 320 px. Ver el docblock de ScCard. El gap se queda en space:
+     separa piezas que crecen con el texto. */
+  padding: ${({ theme }) => theme.data.space[5]}
+    ${({ theme }) => theme.data.inlineSpace[5]};
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[3]};
@@ -1226,8 +1291,11 @@ const ScForm = styled.form`
  */
 const ScTextarea = styled.textarea`
   width: 100%;
+  /* Eje inline en inlineSpace (ola R), el MISMO valor y el mismo motivo que
+     ScInput en Input.tsx -- el contrato visual que este docblock declara sigue
+     siendo byte a byte el del primitivo. Ver el docblock de ScCard. */
   padding: ${({ theme }) => theme.data.space[3]}
-    ${({ theme }) => theme.data.space[4]};
+    ${({ theme }) => theme.data.inlineSpace[4]};
   border-radius: ${({ theme }) => theme.data.radius.sm};
   border: 1px solid ${({ theme }) => theme.data.palette.neutral[600]};
   background: ${({ theme }) => theme.data.semantic.surface};
@@ -1684,8 +1752,12 @@ const ScFallbackPanel = styled.div`
   flex-wrap: wrap;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[3]};
+  /* Eje inline en inlineSpace (ola R): este panel es el ultimo eslabon de la
+     cadena viewport -> texto dentro del formulario, y lleva la direccion de
+     correo, que es el dato que el visitante tiene que poder LEER cuando el
+     mailto no abre nada. Ver el docblock de ScCard. */
   padding: ${({ theme }) => theme.data.space[3]}
-    ${({ theme }) => theme.data.space[4]};
+    ${({ theme }) => theme.data.inlineSpace[4]};
   border-radius: ${({ theme }) => theme.data.radius.lg};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
   background: ${({ theme }) => theme.data.semantic.surfaceSunken};
