@@ -60,8 +60,12 @@ const ScHero = styled.section`
   align-items: center;
   justify-content: flex-end;
   gap: ${({ theme }) => theme.data.space[5]};
+  /* Termino INLINE en inlineSpace (ver su docblock en tokens/space.ts): mismo
+     valor con la raiz por defecto, acotado al viewport con la fuente al
+     200 %. Los dos terminos de BLOQUE siguen en space. */
   padding: ${({ theme }) => theme.data.space[6]}
-    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[8]};
+    ${({ theme }) => theme.data.inlineSpace[5]}
+    ${({ theme }) => theme.data.space[8]};
   overflow: hidden;
 
   /* La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo

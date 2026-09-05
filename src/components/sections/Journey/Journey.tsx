@@ -216,7 +216,11 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
              literal css de styled-components (task/lessons.md 2026-07-25). */
           max-width: ${theme.data.grid.sectionMax};
           margin-inline: auto;
-          padding: ${theme.data.space[8]} ${theme.data.space[6]};
+          /* Termino INLINE en inlineSpace, termino de BLOQUE en space (ver el
+             docblock de inlineSpace en tokens/space.ts): con la raiz por
+             defecto vale lo mismo, y con la fuente al 200 % deja de doblarse
+             cuando el viewport ya no da mas de si. */
+          padding: ${theme.data.space[8]} ${theme.data.inlineSpace[6]};
 
           /* RECORTE DE LA FRONTERA statement -> Journey en MOVIL (critica
              externa #10, hallazgo B2, 2026-08-18). Medido a 390x844 en tema
@@ -306,11 +310,17 @@ const ScCard = styled.div`
   overflow: hidden;
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   background: ${JOURNEY_CARD_BACKGROUND};
+  /* Los dos terminos INLINE --el base y el de md-- leen inlineSpace; los de
+     BLOQUE siguen en space (ver el docblock de inlineSpace en
+     tokens/space.ts). La aritmetica del margen que documenta el docblock de
+     arriba no se mueve con la raiz por defecto: es la misma cuenta, con los
+     mismos numeros, hasta que la fuente del usuario crece. */
   padding: ${({ theme }) => theme.data.space[7]}
-    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[8]};
+    ${({ theme }) => theme.data.inlineSpace[5]}
+    ${({ theme }) => theme.data.space[8]};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding-inline: ${({ theme }) => theme.data.space[7]};
+    padding-inline: ${({ theme }) => theme.data.inlineSpace[7]};
   }
 `;
 

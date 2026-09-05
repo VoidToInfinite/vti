@@ -2257,12 +2257,22 @@ describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo m
     // ScStepsGrid -> ScStepsRow -> ScStepsAndQuote -> ScCard.
     const card = grid.parentElement!.parentElement!
       .parentElement as HTMLElement;
-    const base = reglaBase(card, "padding");
+    const base = reglaBase(card, "padding")?.replace(/\s+/g, " ");
 
-    // 3rem 1.5rem 4rem: space[7] arriba, space[5] a los lados, space[8] abajo.
-    expect(base).toMatch(/padding:\s*3rem\s+1\.5rem\s+4rem/);
-    expect(reglaEnMedia(card, "min-width: 768px", "padding-inline")).toMatch(
-      /padding-inline:\s*3rem/,
+    /*
+     * Lo que este caso protege desde su origen: el recorte lateral en movil
+     * (peldano 5) y su restauracion desde md (peldano 7). Lo que ata ademas
+     * desde el 2026-09-05: que los terminos LATERALES salgan de `inlineSpace`
+     * --la escala acotada al viewport-- y los de BLOQUE de `space`. Se compara
+     * contra el token IMPORTADO, nunca contra el rem escrito a mano que habia
+     * aqui (regla 38): con el literal, migrar el token dejaba el test en verde
+     * describiendo un CSS que ya no existia.
+     */
+    expect(base).toContain(
+      `padding: ${themes.light.space[7]} ${themes.light.inlineSpace[5]} ${themes.light.space[8]}`,
+    );
+    expect(reglaEnMedia(card, "min-width: 768px", "padding-inline")).toContain(
+      `padding-inline: ${themes.light.inlineSpace[7]}`,
     );
   });
 

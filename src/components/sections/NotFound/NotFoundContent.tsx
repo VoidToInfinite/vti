@@ -56,7 +56,16 @@ import { AMBIENT } from "@/motion/vocabulary";
  * dimensiona por contenido -- aqui el mecanismo esta latente (texto
  * centrado, sin tabla que dispare el `min-content`), pero se cierra igual
  * para que nadie lo herede al anadir contenido ancho. El `calc` sigue al
- * padding en cada breakpoint (space[5] base, space[6] en `md`).
+ * padding en cada breakpoint (peldano 5 base, peldano 6 en `md`).
+ *
+ * EL TOPE SIGUE LEYENDO `space` Y EL RELLENO PASA A `inlineSpace`
+ * (2026-09-05), y no es una inconsistencia: los dos coinciden exactamente
+ * alli donde el tope decide algo. `inlineSpace[n]` es `min(space[n], <vw>)`
+ * (ver su docblock en `tokens/space.ts`) y solo se separa de `space[n]`
+ * cuando la raiz tipografica crece y el viewport es estrecho -- y en ese
+ * caso quien manda es `width: 100%`, no el tope, porque el tope queda muy
+ * por encima del viewport. Donde el tope si manda (pantalla ancha) los dos
+ * valen lo mismo y la cuenta del parrafo anterior se sostiene igual.
  */
 /*
  * CENTRADO VERTICAL (crítica externa #15, hallazgo C 4; la #14 ya había
@@ -115,7 +124,8 @@ const ScMain = styled.main`
   );
   margin-inline: auto;
   padding: calc(var(--nav-height) + ${({ theme }) => theme.data.space[8]})
-    ${({ theme }) => theme.data.space[5]} ${({ theme }) => theme.data.space[9]};
+    ${({ theme }) => theme.data.inlineSpace[5]}
+    ${({ theme }) => theme.data.space[9]};
   text-align: center;
 
   /* Ningun hijo mas ancho que esta caja (WCAG 1.4.4, critica #19): ver el
@@ -129,7 +139,7 @@ const ScMain = styled.main`
       ${({ theme }) => theme.data.grid.prose} + 2 *
         ${({ theme }) => theme.data.space[6]}
     );
-    padding-inline: ${({ theme }) => theme.data.space[6]};
+    padding-inline: ${({ theme }) => theme.data.inlineSpace[6]};
   }
 `;
 

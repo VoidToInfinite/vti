@@ -328,6 +328,18 @@ const STORY_STATEMENT_MAX_SIZE = "340px";
  * para pagarlo sin volver a rozar el suelo -- ver la tabla 320/375/599/600px
  * del informe de esta tarea para el valor exacto y el termino ganador del
  * `min()` exterior en cada punto.
+ *
+ * LA DESIGUALDAD SOLO SE CUMPLIA CON LA RAIZ POR DEFECTO, y eso se corrige el
+ * 2026-09-05 (ola de `inlineSpace`): el despeje de arriba resuelve `pad <=
+ * 16px` en PIXELES, pero el pad estaba escrito en `rem`, asi que con la
+ * preferencia de tamano de texto del usuario al 200 % (raiz 32px) valia 32px
+ * y el termino de ancho caia a `(320 - 64) / 12 = 21,33px`, por debajo del
+ * suelo de 24px que este mismo docblock declara intocable. Con
+ * `theme.data.inlineSpace[4]` --`min(1rem, 5vw)`, ver su docblock en
+ * `tokens/space.ts`-- el pad vale 16px a 320px CON CUALQUIER RAIZ, asi que la
+ * igualdad `(320 - 2 * 16) / 12 = 24,00px` pasa a cumplirse tambien al 200 %.
+ * Con la raiz por defecto no cambia ni un pixel a ningun ancho: a 320px los
+ * dos terminos del `min()` valen 16px, y por encima gana el `rem`.
  */
 function storyStatementFontSize(): string {
   return `min(max(${STORY_STATEMENT_MIN_SIZE}, min(10.5vw, 19.2vh, ${STORY_STATEMENT_MAX_SIZE})), calc((100vw - var(--story-statement-pad) - var(--story-statement-pad)) / 12))`;
@@ -409,8 +421,11 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
  * completa como hermano suyo dentro de ella.
  */
 const ScStoryInner = styled.div`
+  /* El termino INLINE lee inlineSpace y el de BLOQUE sigue en space (ver el
+     docblock de inlineSpace en tokens/space.ts): mismo valor con la raiz por
+     defecto, acotado al viewport con la fuente al 200 %. */
   padding: ${({ theme }) => theme.data.space[9]}
-    ${({ theme }) => theme.data.space[5]};
+    ${({ theme }) => theme.data.inlineSpace[5]};
   /* Recorte del relleno de la FRONTERA con el statement (Ola B,
      2026-08-16). Medido a 1440x900 en tema claro, scrollY 1500: entre
      el ultimo texto de Story (acaba en y=383) y el primero del
@@ -989,7 +1004,11 @@ const ScPillarCard = styled.div`
   background-color: ${({ theme }) => theme.data.semantic.surface};
   border: 1px solid ${({ theme }) => theme.data.palette.neutral[600]};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
-  padding: ${({ theme }) => theme.data.space[5]};
+  /* Dos terminos, no uno: el de BLOQUE sigue en space y el INLINE lee
+     inlineSpace (ver su docblock en tokens/space.ts). Con la raiz por defecto
+     la tarjeta mide exactamente lo mismo que antes. */
+  padding: ${({ theme }) => theme.data.space[5]}
+    ${({ theme }) => theme.data.inlineSpace[5]};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
   transition:
@@ -1245,14 +1264,21 @@ const ScStatement = styled.section`
      necesita cambiar de valor segun el breakpoint SIN que la formula de
      tamano de fuente tenga que saber en cual esta: el navegador resuelve
      var() de nuevo en cada recalculo, con el valor que la cascada tenga
-     vigente en ESE viewport. theme.data.space[4] (16px) hasta sm (600px);
-     theme.data.space[6] (32px, el valor VERBATIM que esta seccion ya usaba
-     para TODO ancho antes de esta tarea) desde ahi. */
-  --story-statement-pad: ${({ theme }) => theme.data.space[4]};
+     vigente en ESE viewport. theme.data.inlineSpace[4] (16px) hasta sm
+     (600px); theme.data.inlineSpace[6] (32px, el valor VERBATIM que esta
+     seccion ya usaba para TODO ancho antes de esta tarea) desde ahi.
+
+     inlineSpace y no space desde el 2026-09-05: con la raiz por defecto los
+     dos peldanos valen lo mismo a cualquier ancho, pero con la fuente al
+     200 % el pad en rem se doblaba y hundia el termino de ancho de
+     storyStatementFontSize por debajo de su suelo de 24px -- la desigualdad
+     que ese docblock declara se despeja en PIXELES y solo se cumplia con la
+     raiz a 16. Ver alli la aritmetica completa. */
+  --story-statement-pad: ${({ theme }) => theme.data.inlineSpace[4]};
   padding-inline: var(--story-statement-pad);
 
   @media ${({ theme }) => theme.data.breakPoint.sm} {
-    --story-statement-pad: ${({ theme }) => theme.data.space[6]};
+    --story-statement-pad: ${({ theme }) => theme.data.inlineSpace[6]};
   }
 `;
 

@@ -1200,11 +1200,18 @@ describe("Story: statement a pantalla completa, reveal por IntersectionObserver 
  * en TODO ancho, y `storyStatementFontSize` leia ese mismo valor fijo para
  * su termino de seguridad `calc((100vw - 2*pad)/12)` -- a 320px,
  * `(320-64)/12 = 21,33px`. El arreglo: `padding-inline` mobile-first
- * (`space[4]`/16px hasta `sm`, `space[6]`/32px desde ahi) a traves de una
+ * (peldano 4/16px hasta `sm`, peldano 6/32px desde ahi) a traves de una
  * UNICA custom property (`--story-statement-pad`) que tanto `ScStatement`
  * como `storyStatementFontSize` leen -- a 320px con pad 16,
  * `(320-32)/12 = 24,00px` exactos (ver el docblock de `storyStatementFontSize`
  * en Story.tsx para la desigualdad completa, Regla 24).
+ *
+ * SEGUNDA MITAD DEL MISMO ARREGLO (2026-09-05, ola de `inlineSpace`): los dos
+ * peldanos se leen de `theme.data.inlineSpace`, no de `theme.data.space`. El
+ * despeje de arriba esta en PIXELES y el pad estaba en `rem`, asi que el
+ * mismo 21,33px volvia entero en cuanto el usuario ponia la fuente al 200 %
+ * (raiz 32px): `min(1rem, 5vw)` vale 16px a 320px con cualquier raiz. Con la
+ * raiz por defecto no cambia ni un pixel a ningun ancho.
  *
  * Los tests de aqui abajo NO dependen de `cssRuleTextFor` + `split("@media")`
  * (el resto de este fichero, para el guard de `prefers-reduced-motion`): esa
@@ -1297,7 +1304,7 @@ describe("Task 7: pad inline mobile-first del statement (24px exactos a 320)", (
     return undefined;
   }
 
-  it("regla base (fuera de cualquier @media): --story-statement-pad = space[4] (1rem/16px), padding-inline la consume por var(), padding-block no se toca (space[8])", () => {
+  it("regla base (fuera de cualquier @media): --story-statement-pad = inlineSpace[4] (min(1rem, 5vw)), padding-inline la consume por var(), padding-block no se toca (space[8])", () => {
     const { container } = renderWithProviders(<Story />);
     const statement = container.querySelector("#statement") as HTMLElement;
 
@@ -1305,7 +1312,7 @@ describe("Task 7: pad inline mobile-first del statement (24px exactos a 320)", (
     const topLevelCss = css.split("@media")[0];
 
     expect(topLevelCss).toContain(
-      `--story-statement-pad: ${basicLightTheme.space[4]}`,
+      `--story-statement-pad: ${basicLightTheme.inlineSpace[4]}`,
     );
     expect(topLevelCss).toContain("padding-inline: var(--story-statement-pad)");
     expect(topLevelCss).toContain(`padding-block: ${basicLightTheme.space[8]}`);
@@ -1321,10 +1328,10 @@ describe("Task 7: pad inline mobile-first del statement (24px exactos a 320)", (
     expect(baseRule).toBeDefined();
     expect(
       baseRule?.style.getPropertyValue("--story-statement-pad").trim(),
-    ).toBe(basicLightTheme.space[4]);
+    ).toBe(basicLightTheme.inlineSpace[4]);
   });
 
-  it("dentro de @media (el breakpoint sm del tema, no un literal a mano): --story-statement-pad sube a space[6] (2rem/32px), sobre la MISMA regla que declara el valor base (Regla 35: mismo selectorText, no una regla distinta)", () => {
+  it("dentro de @media (el breakpoint sm del tema, no un literal a mano): --story-statement-pad sube a inlineSpace[6] (min(2rem, 10vw)), sobre la MISMA regla que declara el valor base (Regla 35: mismo selectorText, no una regla distinta)", () => {
     const { container } = renderWithProviders(<Story />);
     const statement = container.querySelector("#statement") as HTMLElement;
 
@@ -1345,7 +1352,7 @@ describe("Task 7: pad inline mobile-first del statement (24px exactos a 320)", (
       basicLightTheme.breakPoint.sm,
       "--story-statement-pad",
     );
-    expect(padInMedia).toBe(basicLightTheme.space[6]);
+    expect(padInMedia).toBe(basicLightTheme.inlineSpace[6]);
   });
 
   it("storyStatementFontSize (las tres lineas) lee la MISMA custom property, no un valor de tema aparte: calc((100vw - var(--story-statement-pad) - var(--story-statement-pad)) / 12)", () => {
@@ -1379,12 +1386,43 @@ describe("Task 7: pad inline mobile-first del statement (24px exactos a 320)", (
    * `ScStatement` (Story.tsx) y restaurado tras confirmar el rojo -- salida
    * literal en el informe de la tarea (seccion "Ciclo de bug inyectado").
    */
-  it("aritmetica del suelo a 320px: (320 - 2*16) / 12 = 24,00px exactos (documentado tambien en el docblock de storyStatementFontSize, Story.tsx)", () => {
-    const padBase = Number.parseFloat(basicLightTheme.space[4]) * 16; // rem -> px (raiz 16px)
-    const width = 320;
-    const term = (width - 2 * padBase) / 12;
-    expect(padBase).toBe(16);
-    expect(term).toBeCloseTo(24, 5);
+  it("aritmetica del suelo a 320px CON CUALQUIER RAIZ: (320 - 2*16)/12 = 24,00px exactos tambien con la fuente al 200 %", () => {
+    /*
+     * La desigualdad que fija el pad (docblock de storyStatementFontSize,
+     * Story.tsx) es (320px - 2*pad)/12 >= 24px, y se despeja en PIXELES: el
+     * pad tiene que valer 16px REALES, no "1rem" -- que son 32px con la
+     * preferencia de tamano de texto del usuario al 200 %, la misma palanca
+     * que Page.setFontSizes. Hasta el 2026-09-05 este componente declaraba el
+     * peldano en rem crudo y la desigualdad solo se cumplia con la raiz a 16.
+     *
+     * jsdom no resuelve min() ni vw: la expresion se resuelve aqui con la
+     * misma aritmetica que hace el navegador, igual que inlineSpace.test.ts.
+     */
+    const resolver = (
+      expresion: string,
+      raizPx: number,
+      viewportPx: number,
+    ): number => {
+      const m = /^min\(([\d.]+)rem, ([\d.]+)vw\)$/.exec(expresion);
+      if (!m) throw new Error(`el pad ya no es un min(rem, vw): ${expresion}`);
+      return Math.min(Number(m[1]) * raizPx, (Number(m[2]) * viewportPx) / 100);
+    };
+    const terminoDeAncho = (padPx: number): number => (320 - 2 * padPx) / 12;
+
+    for (const raiz of [16, 32]) {
+      const pad = resolver(basicLightTheme.inlineSpace[4], raiz, 320);
+      expect(pad, `pad a 320px con la raiz a ${raiz}px`).toBe(16);
+      expect(
+        terminoDeAncho(pad),
+        `termino de ancho a 320px con la raiz a ${raiz}px`,
+      ).toBeCloseTo(24, 5);
+    }
+
+    // Contraprueba de por que el token cambio: el mismo peldano leido de la
+    // escala en rem perfora el suelo en cuanto la raiz crece.
+    const padEnRemAl200 = Number.parseFloat(basicLightTheme.space[4]) * 32;
+    expect(padEnRemAl200).toBe(32);
+    expect(terminoDeAncho(padEnRemAl200)).toBeCloseTo(21.33, 2);
   });
 });
 

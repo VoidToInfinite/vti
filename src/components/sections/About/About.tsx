@@ -84,8 +84,13 @@ const ScAbout = styled.section`
      motivo y con la misma medicion que documenta ScStory. */
   overflow-wrap: anywhere;
   background-color: ${({ theme }) => theme.data.semantic.surface};
+  /* El termino INLINE lee inlineSpace, no space (ver su docblock en
+     tokens/space.ts): con la raiz por defecto vale exactamente lo mismo, y
+     con la fuente al 200 % deja de doblarse cuando el viewport ya no da mas
+     de si. El termino de BLOQUE sigue en space: la altura no compite con el
+     viewport. */
   padding: ${({ theme }) => theme.data.space[9]}
-    ${({ theme }) => theme.data.space[5]};
+    ${({ theme }) => theme.data.inlineSpace[5]};
 `;
 
 const ScInner = styled.div`

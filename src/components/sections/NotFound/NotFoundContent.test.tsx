@@ -226,9 +226,14 @@ describe("NotFoundContent", () => {
        esta asercion es ademas la que caza el gotcha `as`/`forwardedAs` -- con
        `as` sobre una capa `styled(Button)`, styled-components renderiza un
        `<a>` PELADO y `Button` entero (tamanos incluidos) desaparece, asi que
-       este padding no se declararia. */
+       este padding no se declararia.
+
+       El peldano se lee de `inlineSpace` desde el 2026-09-05 (`Button.tsx`,
+       ola de rellenos del eje inline): es el relleno LATERAL de un control con
+       rotulo, y el token es el mismo peldano acotado al viewport. Se compara
+       contra el token importado, no contra un rem a mano (regla 38). */
     expect(css.replace(/\s+/g, " ")).toContain(
-      `padding: 0 ${themes.light.space[6]}`,
+      `padding: 0 ${themes.light.inlineSpace[6]}`,
     );
   });
 

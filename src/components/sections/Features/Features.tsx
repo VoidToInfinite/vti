@@ -280,7 +280,11 @@ const ScFeatures = styled.section<{ $fullBleed: boolean }>`
           }
         `
       : css`
-          padding: ${theme.data.space[8]} ${theme.data.space[5]}
+          /* Termino INLINE en inlineSpace, terminos de BLOQUE en space (ver
+             el docblock de inlineSpace en tokens/space.ts): mismo rail que
+             las hermanas acotadas de la home, y con la raiz por defecto el
+             mismo valor de siempre. */
+          padding: ${theme.data.space[8]} ${theme.data.inlineSpace[5]}
             ${theme.data.space[9]};
           max-width: ${theme.data.grid.containerMax};
           margin-inline: auto;
@@ -931,7 +935,11 @@ const ScContent = styled.div`
   flex-direction: column;
   flex: 1;
   gap: ${({ theme }) => theme.data.space[2]};
-  padding: ${({ theme }) => theme.data.space[5]};
+  /* Dos terminos, no uno: el INLINE lee inlineSpace (ver su docblock en
+     tokens/space.ts) para que el relleno de la tarjeta deje de comerse la
+     columna de texto con la fuente al 200 %; el de BLOQUE sigue en space. */
+  padding: ${({ theme }) => theme.data.space[5]}
+    ${({ theme }) => theme.data.inlineSpace[5]};
 
   /* Columna de texto de la tarjeta destacada (critica externa #15, hallazgo
      C 3): centrada en el eje de bloque contra la columna de arte de al lado.
@@ -1293,10 +1301,17 @@ const ScDarkSceneSlot = styled.div`
  * relleno. El relleno solo llega a verse cuando el contenido roza el borde,
  * que es el caso en el que interesa que sea pequeño.
  *
- * padding-inline queda FIJO en space[6]: el encargo pide compactar el eje
- * vertical, no el horizontal, y estrechar el ancho del contenido reduciría el
- * ancho disponible para los bullets/CTA sin ganar nada en el eje que sí hay
- * que ganar.
+ * padding-inline NO se hace fluido en dvh como el de bloque: el encargo pide
+ * compactar el eje vertical, no el horizontal, y estrechar el ancho del
+ * contenido reduciría el ancho disponible para los bullets/CTA sin ganar nada
+ * en el eje que sí hay que ganar. Lo que sí cambia el 2026-09-05 es de qué
+ * escala lo lee: `inlineSpace[6]` en vez de `space[6]` (ver el docblock de
+ * `inlineSpace` en `tokens/space.ts`). No es el mismo eje ni la misma
+ * variable: el `clamp()` de bloque responde al ALTO del viewport, y el
+ * `min()` de `inlineSpace` responde a que la raíz tipográfica crezca mientras
+ * el ancho se queda quieto. Con la raíz por defecto el valor es idéntico —
+ * 2rem a cualquier ancho desde 320px—, así que la composición medida en esta
+ * entrega no se mueve ni un píxel.
  */
 const ScDarkFrame = styled.div`
   grid-column: 1;
@@ -1312,7 +1327,7 @@ const ScDarkFrame = styled.div`
     3.5dvh,
     ${({ theme }) => theme.data.space[8]}
   );
-  padding-inline: ${({ theme }) => theme.data.space[6]};
+  padding-inline: ${({ theme }) => theme.data.inlineSpace[6]};
   display: flex;
   align-items: center;
   justify-content: flex-end;
