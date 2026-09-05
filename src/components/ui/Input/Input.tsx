@@ -18,22 +18,28 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   ref?: Ref<HTMLInputElement>;
 }
 
+/*
+ * `padding`: eje INLINE en `inlineSpace`, no en `space` (ola R, 2026-09-05).
+ * Medido ese día en Chrome sobre el build de producción servido con la fuente
+ * al 200 % (`Page.setFontSizes` a 32 px) y 320 px de viewport: los rellenos en
+ * `rem` de la cadena que envuelve este campo se doblaban mientras el viewport
+ * se quedaba donde estaba, y la columna útil del formulario de Contacto caía a
+ * 28 px de ancho -- la etiqueta "Tu correo (opcional)" en 13 líneas, el texto
+ * de ayuda en 61. Este relleno es el último eslabón de esa cadena.
+ * `inlineSpace` es la misma escala con un techo en `vw` calibrado para valer
+ * el peldaño exacto a 320 px, así que con la raíz por defecto el campo no
+ * cambia ni un píxel; ver su docblock en `src/theme/tokens/space.ts`. El
+ * `height` no se toca: es una medida de layout, no un espaciado, y no compite
+ * con el ancho del viewport.
+ *
+ * Este docblock vive FUERA del template a propósito: lo que se escribe DENTRO
+ * de un template de styled-components es CSS, viaja al bundle y se paga en el
+ * presupuesto de JavaScript de la home (candado
+ * `src/test/css-template-comments.test.ts`).
+ */
 const ScInput = styled.input`
   height: 44px;
   width: 100%;
-  /*
-   * Eje INLINE en inlineSpace, no en space (ola R, 2026-09-05). Medido ese dia
-   * en Chrome sobre el build de produccion servido con la fuente al 200 %
-   * (Page.setFontSizes a 32 px) y 320 px de viewport: los rellenos en rem de la
-   * cadena que envuelve este campo se doblaban mientras el viewport se quedaba
-   * donde estaba, y la columna util del formulario de Contacto caia a 28 px de
-   * ancho -- la etiqueta Tu correo (opcional) en 13 lineas, el texto de ayuda
-   * en 61. Este relleno es el ultimo eslabon de esa cadena. inlineSpace es la
-   * misma escala con un techo en vw calibrado para valer el peldano exacto a
-   * 320 px, asi que con la raiz por defecto el campo no cambia ni un pixel; ver
-   * su docblock en src/theme/tokens/space.ts. El height no se toca: es una
-   * medida de layout, no un espaciado, y no compite con el ancho del viewport.
-   */
   padding: 0 ${({ theme }) => theme.data.inlineSpace[4]};
   border-radius: ${({ theme }) => theme.data.radius.sm};
   /*
