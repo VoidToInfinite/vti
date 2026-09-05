@@ -765,3 +765,94 @@ describe("Button: los rellenos del eje inline con la fuente al 200 % (ola R)", (
     ).toBeGreaterThanOrEqual(ROTULO_MINIMO_PX);
   });
 });
+
+/*
+ * EL ALTO DEL BOTON ES UN SUELO, NO UNA MEDIDA FIJA (frente F, 2026-09-05).
+ *
+ * EL DEFECTO, MEDIDO ANTES DE TOCAR NADA. Chrome sobre el build de produccion
+ * servido, `Page.setFontSizes` a 32 px --la misma palanca que la preferencia
+ * de tamano de texto del usuario, la que exige WCAG 1.4.4--,
+ * `prefers-reduced-motion: reduce`, tema claro, sobre el CTA de Contacto (un
+ * `lg`, 52 px de alto declarado):
+ *
+ *     viewport   caja del rotulo   alto del rotulo   sobresale de la pildora
+ *     320 px      108,00 px          126 px            37 px
+ *     768 px       58,83 px          336 px           142 px
+ *     834 px       91,33 px          126 px            37 px
+ *
+ * Con la fuente al doble una sola linea de rotulo ya mide ~51 px, asi que un
+ * `height` fijo de 52 no puede contener dos: las letras se pintaban FUERA del
+ * boton, por debajo, sin fondo debajo.
+ *
+ * QUE ATA ESTE DESCRIBE, y por que no es un espejo del codigo. Exige las DOS
+ * mitades a la vez: que el alto se declare como SUELO (`min-height`, lo unico
+ * que deja crecer al control con su rotulo) y que ese suelo siga valiendo
+ * exactamente los 36/44/52 px de siempre --que es lo que garantiza que con la
+ * raiz por defecto no se mueva ni un pixel y que el area tactil AA de 44 px de
+ * `IconButton`/`ThemeToggle`/`BackToTop` siga en pie--. Ninguna de las dos
+ * mitades se puede satisfacer rompiendo la otra: volver a `height` conserva
+ * los numeros y pierde la propiedad; subir el suelo conserva la propiedad y
+ * rompe la composicion.
+ *
+ * VALIDADO CON BUG INYECTADO (2026-09-05). Se devolvio el tamano `lg` a
+ * `height: 52px` en `Button.tsx` y se ejecuto este fichero. Rojo con esta
+ * linea LITERAL:
+ *
+ *   AssertionError: el tamano lg declara su alto como medida fija: con la
+ *   preferencia de tamano de texto al 200 % el rotulo del CTA de Contacto se
+ *   salia 37px por debajo de la pildora (medido en Chrome el 2026-09-05).:
+ *   expected '.kbSbjq {position: relative; display:…' to match
+ *   /(?:^|[\s;{])min-height:\s*52px/
+ *
+ * Restaurado `min-height`, los 44 casos del fichero en verde.
+ */
+describe("Button: el alto es un suelo, no una medida fija (frente F)", () => {
+  /**
+   * Texto de las reglas inyectadas para ESTE render, acotado por las clases
+   * del propio elemento: la hoja de styled-components acumula todos los
+   * renders de la suite y una busqueda sin acotar leeria el alto de otro
+   * tamano (mismo motivo que documenta `rellenoInlineDe`, mas arriba).
+   */
+  function reglasDelBoton(boton: HTMLElement): string {
+    const clases = Array.from(boton.classList);
+    const suyas = allCssRules().filter((regla) =>
+      clases.some((clase) => regla.includes(`.${clase}`)),
+    );
+    expect(
+      suyas.length,
+      "ninguna regla inyectada corresponde a las clases de este boton",
+    ).toBeGreaterThan(0);
+    return suyas.join("\n");
+  }
+
+  it.each([
+    ["sm", "36px"],
+    ["md", "44px"],
+    ["lg", "52px"],
+  ] as const)(
+    "el tamano %s declara min-height: %s y ningun height fijo",
+    (size, alto) => {
+      renderWithProviders(<Button size={size}>{`Rotulo ${size}`}</Button>);
+      const reglas = reglasDelBoton(
+        screen.getByRole("button", { name: `Rotulo ${size}` }),
+      );
+
+      expect(
+        reglas,
+        `el tamano ${size} declara su alto como medida fija: con la preferencia de tamano de texto ` +
+          "al 200 % el rotulo del CTA de Contacto se salia 37px por debajo de la pildora (medido en " +
+          "Chrome el 2026-09-05).",
+      ).toMatch(new RegExp(`(?:^|[\\s;{])min-height:\\s*${alto}`));
+
+      // Y NINGUN `height` a secas: un suelo convive sin problema con un alto
+      // fijo declarado despues, y el alto fijo volveria a ganar. El prefijo
+      // obliga a que el caracter anterior sea separador, asi que
+      // `min-height`/`max-height`/`line-height` no cuentan como aciertos.
+      expect(
+        reglas,
+        `el tamano ${size} vuelve a declarar un height propio ademas del suelo: el suelo deja de ` +
+          "decidir el alto en cuanto la fuente crece.",
+      ).not.toMatch(/(?:^|[\s;{])height:\s*[\d.]+(?:px|rem|em)/);
+    },
+  );
+});

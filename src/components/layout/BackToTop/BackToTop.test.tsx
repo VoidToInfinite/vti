@@ -139,13 +139,21 @@ describe("BackToTop", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  /*
+   * El lado vertical se lee en `min-height` desde el frente F (2026-09-05):
+   * `Button.sizeStyles` cambió `height` fijo por `min-height` con los mismos
+   * tres valores, porque con la preferencia de tamano de texto al 200 % un
+   * rotulo de dos lineas se salia de la pildora (medicion en el docblock de
+   * `sizeStyles`, Button.tsx). El suelo tactil AA que este caso protege es el
+   * mismo: 44x44.
+   */
   it("tiene aria-label traducido y area tactil minima de 44px", () => {
     setViewport(800, 5000);
     renderWithMain();
     const boton = screen.getByRole("button", { name: "Volver arriba" });
     const estilo = getComputedStyle(boton);
     expect(estilo.width).toBe("44px");
-    expect(estilo.height).toBe("44px");
+    expect(estilo.minHeight).toBe("44px");
   });
 
   it("sin prefers-reduced-motion, el click hace scroll SUAVE al origen", () => {

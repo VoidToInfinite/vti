@@ -60,6 +60,17 @@ function reglasDe(el: HTMLElement): string[] {
 }
 
 describe("IconButton", () => {
+  /*
+   * EL LADO VERTICAL SE LEE EN `min-height`, NO EN `height` (frente F,
+   * 2026-09-05). `Button.sizeStyles` pasó de `height` fijo a `min-height` con
+   * los MISMOS tres valores porque con la preferencia de tamaño de texto al
+   * 200 % un rótulo de dos líneas se salía de la píldora (medición completa en
+   * el docblock de `sizeStyles`, Button.tsx). Este candado no se afloja: sigue
+   * exigiendo los 44 px del suelo táctil AA, leídos donde ahora se declaran.
+   * Y para un botón de icono el suelo es además el alto real: su contenido es
+   * un `<svg>` con `font-size` en píxeles (`ICON_SIDE`), que no crece con la
+   * raíz, así que el cuadrado sigue siendo cuadrado con cualquier tipografía.
+   */
   it("size='md' renderiza un cuadrado de 44x44px", () => {
     renderWithProviders(
       <IconButton
@@ -70,7 +81,7 @@ describe("IconButton", () => {
     const boton = screen.getByRole("button", { name: "Etiqueta" });
     const estilo = getComputedStyle(boton);
     expect(estilo.width).toBe("44px");
-    expect(estilo.height).toBe("44px");
+    expect(estilo.minHeight).toBe("44px");
   });
 
   it.each([

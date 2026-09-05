@@ -243,12 +243,20 @@ describe("ThemeToggle", () => {
     }
   });
 
+  /*
+   * El lado vertical se lee en `min-height` desde el frente F (2026-09-05):
+   * `Button.sizeStyles` cambió `height` fijo por `min-height` con los mismos
+   * tres valores, porque con la preferencia de tamaño de texto al 200 % un
+   * rótulo de dos líneas se salía de la píldora (medición en el docblock de
+   * `sizeStyles`, Button.tsx). El suelo táctil AA que este caso protege es el
+   * mismo: 44x44.
+   */
   it("tiene el area tactil minima de 44px heredada de IconButton", () => {
     renderWithProviders(<ThemeToggle />);
     const boton = screen.getByRole("button");
     const estilo = getComputedStyle(boton);
     expect(estilo.width).toBe("44px");
-    expect(estilo.height).toBe("44px");
+    expect(estilo.minHeight).toBe("44px");
   });
 
   /*

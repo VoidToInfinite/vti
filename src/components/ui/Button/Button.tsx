@@ -85,23 +85,55 @@ function accent(theme: DefaultTheme, intent: ButtonIntent): string {
  * crecer donde el viewport deja de dar de sí. Con el token, ese mismo `lg` deja
  * 192 px de rótulo dentro de los 256 px del marco oscuro.
  *
- * QUÉ NO CAMBIA: el `height`, que es una medida de layout y no un espaciado, y
- * que no compite con el ancho del viewport; y el eje de bloque, que estos tres
- * tamaños ya declaran a cero. `IconButton` compone sobre este componente y
- * declara `padding: 0`, así que un botón de icono —que es cuadrado y no lleva
- * columna de texto— no lo hereda ni lo necesita.
+ * QUÉ NO CAMBIÓ EN LA OLA R: el eje de bloque, que estos tres tamaños ya
+ * declaran a cero. `IconButton` compone sobre este componente y declara
+ * `padding: 0`, así que un botón de icono —que es cuadrado y no lleva columna
+ * de texto— no lo hereda ni lo necesita.
+ *
+ * EL ALTO ES UN SUELO, NO UNA MEDIDA FIJA (frente F, 2026-09-05). La ola R
+ * dejó escrito aquí que el `height` "no compite con el ancho del viewport" y
+ * por eso se quedaba fijo. Es cierto y es insuficiente: no compite con el
+ * ancho, pero sí con el ALTO del rótulo. Medido en Chrome sobre el build de
+ * producción servido, `Page.setFontSizes` a 32 px —la misma palanca que la
+ * preferencia de tamaño de texto del usuario, la que exige WCAG 1.4.4—,
+ * `prefers-reduced-motion: reduce`, tema claro, sobre el CTA de Contacto (un
+ * `lg`, o sea 52 px de alto declarado):
+ *
+ *     viewport   caja del rótulo   alto del rótulo   sobresale de la píldora
+ *     320 px      108,00 px          126 px            37 px
+ *     768 px       58,83 px          336 px           142 px
+ *     834 px       91,33 px          126 px            37 px
+ *
+ * Con una sola línea de rótulo a esa raíz el contenido ya mide ~51 px, así que
+ * la tercera columna es lo que se ve: las letras se pintan FUERA del botón,
+ * abajo, sin fondo debajo. `min-height` con los mismos tres valores no cambia
+ * ni un píxel con la raíz por defecto —el contenido cabe de sobra en 36/44/52,
+ * comprobado en el mismo instrumento— y con la fuente ampliada deja que el
+ * control crezca con su rótulo en vez de dejarlo colgando.
+ *
+ * QUÉ COMPONE SOBRE ESTO Y NO SE MUEVE, censado antes de tocar: ningún
+ * envoltorio de `Button` declara alto propio (`grep` de `height:` sobre
+ * BackToTop, ThemeToggle, Hero, NotFoundContent y Contact: los únicos aciertos
+ * son iconos, escenas y figuras, ninguno sobre la capa del botón).
+ * `IconButton` es el caso que había que mirar dos veces —es el que necesita
+ * seguir siendo CUADRADO— y sale intacto: declara `width` por su tabla
+ * `SQUARE_SIDE` y toma el alto de aquí, pero su contenido es un `<svg>` con
+ * `font-size` en PÍXELES (`ICON_SIDE`, 16/20/24), que no crece con la raíz;
+ * con el suelo puesto, su caja sigue midiendo exactamente el lado del
+ * cuadrado. Sus tres candados de 44x44 (IconButton, ThemeToggle, BackToTop)
+ * pasan a leer `min-height`, que es donde vive ahora el suelo táctil.
  */
 const sizeStyles: Record<ButtonSize, ReturnType<typeof css>> = {
   sm: css`
-    height: 36px;
+    min-height: 36px;
     padding: 0 ${({ theme }) => theme.data.inlineSpace[4]};
   `,
   md: css`
-    height: 44px;
+    min-height: 44px;
     padding: 0 ${({ theme }) => theme.data.inlineSpace[5]};
   `,
   lg: css`
-    height: 52px;
+    min-height: 52px;
     padding: 0 ${({ theme }) => theme.data.inlineSpace[6]};
   `,
 };
