@@ -1220,8 +1220,15 @@ describe("Story: statement a pantalla completa, reveal por IntersectionObserver 
  * (`Story.tsx`), el primer caso de este bloque cae en rojo con esta linea
  * literal:
  *
- *   AssertionError: expected '.gEaRLj {min-height: 70dvh; display: …' to
+ *   AssertionError: expected '.[hash] {min-height: 70dvh; display: …' to
  *   contain '--story-statement-pad: min(1rem, 5vw)'
+ *
+ * El hash de la clase va elidido como `[hash]` a proposito: styled-components
+ * lo deriva del texto del template, asi que cambia con cada edicion del
+ * componente y una cita con el hash de aquel dia (`.gEaRLj`) queda
+ * irreproducible en cuanto alguien toca una linea de CSS -- de hecho ya
+ * cambio, entre el commit que la escribio y el siguiente de la misma ola. Lo
+ * que la cita tiene que fijar es la ASERCION, no el nombre generado.
  *
  * Restaurado el token, verde (4/4). Reparto de trabajo entre los dos candados,
  * declarado para que nadie confie en el que no toca: el caso de la ARITMETICA

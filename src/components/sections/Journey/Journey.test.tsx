@@ -2282,10 +2282,15 @@ describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo m
      * termino lateral de ScCard (Journey.tsx) de inlineSpace[5] a space[5],
      * este caso cae en rojo con esta linea literal:
      *
-     *   AssertionError: expected '.RakWU {position: relative; overflow:…' to
+     *   AssertionError: expected '.[hash] {position: relative; overflow:…' to
      *   contain 'padding: 3rem min(1.5rem, 7.5vw) 4rem'
      *
-     * Restaurado el token, verde.
+     * Restaurado el token, verde. El hash de la clase va elidido como `[hash]`
+     * a proposito: styled-components lo deriva del texto del template, asi que
+     * cambia con cada edicion del componente y una cita con el hash de aquel
+     * dia (`.RakWU`) queda irreproducible en cuanto alguien toca una linea de
+     * CSS. Lo que la cita tiene que fijar es la ASERCION, no el nombre
+     * generado.
      */
     expect(base).toContain(
       `padding: ${themes.light.space[7]} ${themes.light.inlineSpace[5]} ${themes.light.space[8]}`,
