@@ -1477,6 +1477,10 @@ const ScChevron = styled.svg<{ $open: boolean }>`
  * encogimiento de `scale` tiene que anclarse en la esquina de la que el panel
  * cuelga, o al cerrarse el panel "flotaría" hacia el centro de su propia caja
  * en vez de replegarse contra su disparador.
+ *
+ * `padding`: término INLINE en `inlineSpace` (ver su docblock en
+ * `tokens/space.ts`), el de BLOQUE en `space`: mismo panel con la raíz por
+ * defecto.
  */
 const ScNavPanel = styled.div`
   position: absolute;
@@ -1484,8 +1488,6 @@ const ScNavPanel = styled.div`
   right: 0;
   margin-top: ${({ theme }) => theme.data.space[2]};
   min-width: 12rem;
-  /* Termino INLINE en inlineSpace (ver su docblock en tokens/space.ts), el de
-     BLOQUE en space: mismo panel con la raiz por defecto. */
   padding: ${({ theme }) => theme.data.space[2]}
     ${({ theme }) => theme.data.inlineSpace[2]};
   border-radius: ${({ theme }) => theme.data.radius.lg};

@@ -58,16 +58,17 @@ import styled from "styled-components";
  * una propiedad que crea contexto de recorte y que podría morder el halo de
  * foco que pinta GlobalStyles. No declarar la sombra es más simple y no
  * tiene efectos colaterales.
+ *
+ * `padding`: término INLINE en `inlineSpace` (ver su docblock en
+ * `tokens/space.ts`). El enlace nace pegado al borde izquierdo del viewport,
+ * así que su relleno lateral es exactamente lo que compite con el rótulo en
+ * una pantalla estrecha con la fuente al 200 %. El de BLOQUE sigue en `space`.
  */
 const ScSkipLink = styled.a`
   position: fixed;
   top: ${({ theme }) => theme.data.space[3]};
   left: ${({ theme }) => theme.data.space[3]};
   z-index: ${({ theme }) => theme.data.zIndex.modal};
-  /* Termino INLINE en inlineSpace (ver su docblock en tokens/space.ts): el
-     enlace nace pegado al borde izquierdo del viewport, asi que su relleno
-     lateral es exactamente lo que compite con el rotulo en una pantalla
-     estrecha con la fuente al 200 %. El de BLOQUE sigue en space. */
   padding: ${({ theme }) => theme.data.space[3]}
     ${({ theme }) => theme.data.inlineSpace[5]};
   border-radius: ${({ theme }) => theme.data.radius.lg};

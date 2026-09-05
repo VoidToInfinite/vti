@@ -445,6 +445,13 @@ const ScSheetVeil = styled.div`
  * movimiento; y el sentido de cierre conserva su retardo intacto. El candado
  * que impide que alguien "arregle" la asimetría volviendo a añadirla vive en
  * `Navbar.test.tsx`.
+ *
+ * `padding`: los dos términos LATERALES leen `inlineSpace` y los dos de BLOQUE
+ * siguen en `space` (ver el docblock de `inlineSpace` en `tokens/space.ts`).
+ * Con la raíz por defecto la hoja mide exactamente lo mismo, y con la fuente
+ * al 200 % el relleno deja de crecer cuando el viewport ya no da más de sí. El
+ * `calc()` con `env()` no cambia de forma: lo que cambia es de qué escala sale
+ * el sumando de la izquierda.
  */
 const ScNavSheet = styled.div`
   position: fixed;
@@ -477,12 +484,6 @@ const ScNavSheet = styled.div`
    * ScSheetFade). Sigue siendo el mismo calc() de siempre, ahora con un solo
    * origen.
    */
-  /* Los dos terminos LATERALES leen inlineSpace y los dos de BLOQUE siguen en
-     space (ver el docblock de inlineSpace en tokens/space.ts): con la raiz por
-     defecto la hoja mide exactamente lo mismo, y con la fuente al 200 % el
-     relleno deja de crecer cuando el viewport ya no da mas de si. El calc()
-     con env() no cambia de forma: lo que cambia es de que escala sale el
-     sumando de la izquierda. */
   padding: ${({ theme }) => theme.data.space[3]}
     calc(
       ${({ theme }) => theme.data.inlineSpace[4]} +
@@ -773,12 +774,14 @@ const ScSheetGroup = styled.div`
    Convertirlo en `h*` metería cuatro títulos en el esquema de encabezados de
    la página que solo existirían bajo 768 px; el nombre accesible de la lista
    se resuelve con `aria-labelledby`, que es la herramienta correcta para
-   esto. */
+   esto.
+
+   `padding`: mismo sangrado lateral que `ScSheetRow`, y de la misma escala
+   acotada al viewport (`inlineSpace`, ver `tokens/space.ts`). Si uno de los
+   dos se quedara en `space`, el rótulo dejaría de alinearse con su lista al
+   200 %. */
 const ScSheetGroupTitle = styled.p`
   margin: 0;
-  /* Mismo sangrado lateral que ScSheetRow, y de la misma escala acotada al
-     viewport (inlineSpace, ver tokens/space.ts): si uno de los dos se quedara
-     en space, el rotulo dejaria de alinearse con su lista al 200 %. */
   padding: 0 ${({ theme }) => theme.data.inlineSpace[2]};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 600;
@@ -952,14 +955,16 @@ const ScSheetRow = styled.a`
 
 /* El selector de idioma dentro de la hoja se alinea con las filas: mismo
    sangrado lateral que `ScSheetRow`, menos el relleno propio que los botones
-   de idioma ya traen. */
+   de idioma ya traen.
+
+   `padding-inline`: `space[1]` y no `inlineSpace[1]`, porque la escala acotada
+   al viewport arranca en el peldaño 2 -- es el primero con consumidor real en
+   el eje inline (ver su docblock en `tokens/space.ts`). Este peldaño son 4px
+   con la raíz por defecto y 8px al 200 %: una diferencia que no compite con la
+   columna. */
 const ScSheetLanguage = styled.div`
   display: flex;
   align-items: center;
-  /* space[1] y no inlineSpace[1]: la escala acotada al viewport arranca en el
-     peldano 2 porque es el primero con consumidor real en el eje inline (ver
-     su docblock en tokens/space.ts). Este peldano son 4px con la raiz por
-     defecto y 8px al 200 % -- una diferencia que no compite con la columna. */
   padding-inline: ${({ theme }) => theme.data.space[1]};
 `;
 

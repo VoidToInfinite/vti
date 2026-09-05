@@ -272,14 +272,25 @@ function starVars(star: FooterStar, theme: ThemeDefinition): CSSProperties {
  * `min(10rem, 100%)` por el mismo motivo, un escalon mas arriba: `10rem` son
  * 320 px con la raiz a 32, y cinco pistas de ese minimo no caben en 768 px --
  * `auto-fit` reparte el sobrante, pero nunca baja del minimo declarado.
+ *
+ * `padding`: termino INLINE en `inlineSpace`, terminos de BLOQUE en `space`
+ * (ver el docblock de `inlineSpace` en `tokens/space.ts`). Con la raiz por
+ * defecto el rail lateral del pie mide exactamente lo mismo que siempre, y con
+ * la fuente al 200 % deja de crecer cuando el viewport ya no da mas de si.
+ *
+ * `padding-inline` del bloque `md`: mismo rail que las secciones acotadas de
+ * la home -- `containerMax` mas el peldano 5, igual que ScFeatures y
+ * ScContact. Hasta la critica externa #14 (2026-09-02) este bloque subia al
+ * peldano 6 y el texto del pie arrancaba en x=152 a 1440 px mientras Features
+ * y Contacto arrancaban en 144 -- cuatro railes distintos medidos
+ * (144/152/156/177) que se leian como desalineacion, no como decision. El
+ * peldano se lee de `inlineSpace` desde el 2026-09-05, y esas tres secciones
+ * tambien: el rail sigue siendo uno solo, y con la raiz por defecto sigue
+ * midiendo lo mismo.
  */
 const ScInner = styled.div`
   max-width: ${({ theme }) => theme.data.grid.containerMax};
   margin-inline: auto;
-  /* Termino INLINE en inlineSpace, terminos de BLOQUE en space (ver el
-     docblock de inlineSpace en tokens/space.ts): con la raiz por defecto el
-     rail lateral del pie mide exactamente lo mismo que siempre, y con la
-     fuente al 200 % deja de crecer cuando el viewport ya no da mas de si. */
   padding: ${({ theme }) => theme.data.space[7]}
     ${({ theme }) => theme.data.inlineSpace[5]}
     ${({ theme }) => theme.data.space[5]};
@@ -291,15 +302,6 @@ const ScInner = styled.div`
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
     grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
-    /* Mismo raíl que las secciones acotadas de la home: containerMax + el
-       peldaño 5, igual que ScFeatures y ScContact. Hasta la crítica externa
-       #14 (2026-09-02) este bloque subía al peldaño 6 y el texto del pie
-       arrancaba en x=152 a 1440 px mientras Features y Contacto arrancaban
-       en 144 -- cuatro raíles distintos medidos (144/152/156/177) que se
-       leían como desalineación, no como decisión. El peldaño se lee de
-       inlineSpace desde el 2026-09-05, y esas tres secciones también: el raíl
-       sigue siendo uno solo, y con la raíz por defecto sigue midiendo lo
-       mismo. */
     padding-inline: ${({ theme }) => theme.data.inlineSpace[5]};
   }
 `;
@@ -534,12 +536,14 @@ const ScFooterNavLink = styled(Link)`
  * del DOM. Con esta barra sin posicionar en claro, las 24 estrellas (y sus
  * halos) se habrían pintado ENCIMA del copyright y de los cuatro enlaces
  * legales, aunque en el DOM vayan antes.
+ *
+ * `padding`: término INLINE en `inlineSpace`; el de abajo, que es de BLOQUE,
+ * se queda en `space` (y lo sustituye el `padding-bottom` declarado justo
+ * después).
  */
 const ScBottomBar = styled.div`
   max-width: ${({ theme }) => theme.data.grid.containerMax};
   margin-inline: auto;
-  /* Termino INLINE en inlineSpace; el de abajo, que es de BLOQUE, se queda en
-     space (y lo sustituye el padding-bottom de aqui debajo). */
   padding: 0 ${({ theme }) => theme.data.inlineSpace[5]}
     ${({ theme }) => theme.data.space[5]};
   /*

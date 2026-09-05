@@ -136,6 +136,12 @@ const ScLanguageSelector = styled.div`
  * `text-underline-offset` se explicita porque el subrayado por defecto del
  * navegador pega la línea al descendente de la tipografía a este tamaño; el
  * valor es un múltiplo del font-size, no un literal de píxeles sueltos.
+ *
+ * `padding`: término INLINE en `inlineSpace` (ver su docblock en
+ * `tokens/space.ts`). Es el relleno lateral de un control con rótulo, y con la
+ * fuente al 200 % deja de crecer cuando el viewport ya no da más de sí. El de
+ * BLOQUE sigue en `space` -- el suelo táctil lo pone `min-height`, no el
+ * relleno.
  */
 const ScLanguageButton = styled(Link)<{ $active: boolean }>`
   display: inline-flex;
@@ -149,10 +155,6 @@ const ScLanguageButton = styled(Link)<{ $active: boolean }>`
      va a ocupar en la práctica. */
   min-height: 44px;
   min-width: 44px;
-  /* Termino INLINE en inlineSpace (ver su docblock en tokens/space.ts): es el
-     relleno lateral de un control con rotulo, y con la fuente al 200 % deja de
-     crecer cuando el viewport ya no da mas de si. El de BLOQUE sigue en space
-     -- el suelo tactil lo pone min-height, no el relleno. */
   padding: ${({ theme }) => theme.data.space[1]}
     ${({ theme }) => theme.data.inlineSpace[2]};
   border-radius: ${({ theme }) => theme.data.radius.md};
