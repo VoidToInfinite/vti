@@ -1,8 +1,8 @@
 {
-    "medido": "2026-09-04",
+    "medido": "2026-09-05",
     "origen": "out/ (8 páginas)",
     "presupuestoBytes": 290000,
-    "totalDescargadoBrotli": 253853,
+    "totalDescargadoBrotli": 252756,
     "polyfillNomoduleBrotli": 35158,
     "duplicacionCrudaBytes": 4264,
     "modulosDuplicados": 5,
@@ -17,8 +17,8 @@
         {
             "firma": "333a7f81dc9c",
             "modulos": 3,
-            "brotli": 48839,
-            "crudo": 236367,
+            "brotli": 47569,
+            "crudo": 233403,
             "pistas": [
                 "Sol",
                 "aura.parts",
@@ -38,8 +38,8 @@
         {
             "firma": "b3f6e137df1f",
             "modulos": 2,
-            "brotli": 31927,
-            "crudo": 119611,
+            "brotli": 31937,
+            "crudo": 119590,
             "pistas": [
                 "SkipLink",
                 "IconButton",
@@ -66,8 +66,8 @@
         {
             "firma": "a4654fc98bda",
             "modulos": 3,
-            "brotli": 17905,
-            "crudo": 64414,
+            "brotli": 17621,
+            "crudo": 63693,
             "pistas": ["legalPage.parts", "LegalDocument"]
         },
         {
@@ -94,8 +94,8 @@
         {
             "firma": "7861f0a05fd7",
             "modulos": 9,
-            "brotli": 8176,
-            "crudo": 27583,
+            "brotli": 8259,
+            "crudo": 27822,
             "pistas": [
                 "Button",
                 "BrandName",
@@ -129,8 +129,8 @@
         {
             "firma": "1e2509ad7601",
             "modulos": 4,
-            "brotli": 1622,
-            "crudo": 4072,
+            "brotli": 1702,
+            "crudo": 4234,
             "pistas": [
                 "NotFoundContent",
                 "useDocumentMeta",
@@ -179,56 +179,56 @@
         {
             "ruta": "404.html",
             "chunksDescargados": 13,
-            "descargadoBrotli": 204515,
+            "descargadoBrotli": 204688,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14]
         },
         {
             "ruta": "_not-found.html",
             "chunksDescargados": 13,
-            "descargadoBrotli": 204515,
+            "descargadoBrotli": 204688,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14]
         },
         {
             "ruta": "aviso-legal.html",
             "chunksDescargados": 15,
-            "descargadoBrotli": 222915,
+            "descargadoBrotli": 222804,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]
         },
         {
             "ruta": "en.html",
             "chunksDescargados": 15,
-            "descargadoBrotli": 253853,
+            "descargadoBrotli": 252756,
             "polyfillBrotli": 35158,
             "refs": [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         },
         {
             "ruta": "en/legal-notice.html",
             "chunksDescargados": 15,
-            "descargadoBrotli": 222915,
+            "descargadoBrotli": 222804,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]
         },
         {
             "ruta": "en/privacy.html",
             "chunksDescargados": 15,
-            "descargadoBrotli": 222915,
+            "descargadoBrotli": 222804,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17]
         },
         {
             "ruta": "index.html",
             "chunksDescargados": 15,
-            "descargadoBrotli": 253853,
+            "descargadoBrotli": 252756,
             "polyfillBrotli": 35158,
             "refs": [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         },
         {
             "ruta": "privacidad.html",
             "chunksDescargados": 15,
-            "descargadoBrotli": 222915,
+            "descargadoBrotli": 222804,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17]
         }
