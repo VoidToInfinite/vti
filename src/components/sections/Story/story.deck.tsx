@@ -289,6 +289,33 @@ export const ScSceneWrap = styled.div`
  * Va DESPUES del `padding-inline` de arriba (longhand contra shorthand, lo
  * decide el orden) y ANTES del bloque `lg`, que lo sustituye por su hueco de
  * composicion -- 8rem, mas ancho todavia, asi que la garantia se conserva.
+ *
+ * ---------------------------------------------------------------------------
+ * SIN RAIL VISIBLE NO HAY CANAL QUE RESERVAR (verificador de producto de la
+ * ola R, 2026-09-05, P3).
+ *
+ * EL DEFECTO. `ScRail` (mas abajo) se retira por completo bajo
+ * `prefers-reduced-motion: reduce` -- `display: none`, misma condicion y mismo
+ * motivo que `ScScrollHint` -- pero este `padding-inline-end` seguia reservando
+ * su geometria entera. Medido a 320 px de ancho con la preferencia activa: 56
+ * px de canal a la raiz por defecto y 80 px con la fuente al 200 %, guardados
+ * para un control que no se pinta. La columna de copia se quedaba en 232 px de
+ * 320 y en 208 de 320 respectivamente, en el ancho donde menos sobra.
+ *
+ * EL ARREGLO. Bajo `reduce` el relleno vuelve a ser simetrico -- el MISMO
+ * peldano que el lado de inicio, `inlineSpace[6]` -- y la columna pasa a 256 px
+ * a las DOS raices (320 - 32 - 32, porque `min(2rem, 10vw)` vale 32 px en las
+ * dos): +24 px a la raiz por defecto y +48 px al 200 %.
+ *
+ * EL ORDEN DE LOS DOS BLOQUES ES LA MITAD DEL ARREGLO, y por eso el bloque de
+ * `reduce` se declara AHORA ANTES del bloque `lg` y no despues, como estaba.
+ * Los dos son `@media` con la misma especificidad, asi que cuando los dos
+ * casan -- una pantalla ancha con la preferencia activa -- gana el ultimo
+ * declarado. Con el orden anterior, `reduce` habria borrado tambien el hueco de
+ * composicion de 8rem por encima de 62em, que no tiene nada que ver con el rail
+ * (existe para dejar respirar el lado por el que la escena tiene su figura).
+ * Con el orden nuevo, `lg` sigue mandando por encima de su escalon y la
+ * simetria de `reduce` solo actua por debajo, que es donde el canal dolia.
  */
 export const ScDeck = styled.div`
   position: relative;
@@ -317,6 +344,15 @@ export const ScDeck = styled.div`
       ${({ theme }) => theme.data.space[5]} +
       ${({ theme }) => theme.data.inlineSpace[2]}
   );
+  /* D6: sin grid ya no hace falta apilar las 6 diapositivas en la MISMA
+     celda -- se dejan caer una debajo de otra, todas visibles (ver ScSlide,
+     mas abajo, donde reduce fuerza opacity/transform al estado final). */
+  @media (prefers-reduced-motion: reduce) {
+    display: block;
+    height: auto;
+    padding-inline-end: ${({ theme }) => theme.data.inlineSpace[6]};
+  }
+
   /*
    * Hueco extra a la derecha SOLO en pantallas grandes (encargo
    * 2026-07-31): rompe a proposito la simetria del padding de arriba para
@@ -328,14 +364,6 @@ export const ScDeck = styled.div`
    */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     padding-inline-end: ${STORY_DECK_PADDING_INLINE_END};
-  }
-
-  /* D6: sin grid ya no hace falta apilar las 6 diapositivas en la MISMA
-     celda -- se dejan caer una debajo de otra, todas visibles (ver ScSlide,
-     mas abajo, donde reduce fuerza opacity/transform al estado final). */
-  @media (prefers-reduced-motion: reduce) {
-    display: block;
-    height: auto;
   }
 
   /*

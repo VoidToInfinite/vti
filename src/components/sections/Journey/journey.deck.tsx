@@ -241,6 +241,24 @@ export const ScJourneySceneWrap = styled.div`
  * de importarse de alla, mismo criterio que ScScrollHint y el propio rail:
  * este fichero es una hoja estructural sin ninguna dependencia de la seccion
  * hermana.
+ *
+ * ---------------------------------------------------------------------------
+ * SIN RAIL VISIBLE NO HAY CANAL QUE RESERVAR (verificador de producto de la
+ * ola R, 2026-09-05, P3). MISMO defecto, mismo arreglo y mismo reordenado de
+ * bloques que en ScDeck (`story.deck.tsx`), donde vive el razonamiento
+ * completo: los dos decks son gemelos declarados (deuda "Decks Story/Journey
+ * gemelos", `RULES.md`) y los dos railes desaparecen bajo
+ * `prefers-reduced-motion: reduce` con la misma regla.
+ *
+ * Las cifras de esta seccion, medidas a 320 px con la preferencia activa sobre
+ * el build de produccion: la columna de copia era de 232 px a la raiz por
+ * defecto y de 208 px con la fuente al 200 %, con 56 y 80 px reservados
+ * respectivamente para un rail que no se pinta. Con el relleno simetrico pasa a
+ * 256 px en las dos.
+ *
+ * Y el ORDEN importa igual que alli: el bloque de `reduce` se declara ANTES del
+ * bloque `lg` para que el hueco de composicion de pantalla ancha -- que no
+ * tiene nada que ver con el rail -- siga ganando por encima de su escalon.
  */
 export const ScJourneyDeck = styled.div`
   position: relative;
@@ -260,6 +278,19 @@ export const ScJourneyDeck = styled.div`
       ${({ theme }) => theme.data.space[5]} +
       ${({ theme }) => theme.data.inlineSpace[2]}
   );
+  /* D12: sin grid ya no hace falta apilar las 8 diapositivas en la MISMA
+     celda -- se dejan caer una debajo de otra, todas visibles (ver
+     ScJourneySlide, mas abajo, donde reduce fuerza opacity/transform al
+     estado final). D6: a diferencia de ScDeck en story.deck.tsx, este bloque
+     no lleva ningun caracter de "rewind" -- Journey no consume direction,
+     asi que no hay selector [data-dir] ni @keyframes de scrub que declarar
+     bajo prefers-reduced-motion: no-preference. */
+  @media (prefers-reduced-motion: reduce) {
+    display: block;
+    height: auto;
+    padding-inline-end: ${({ theme }) => theme.data.inlineSpace[6]};
+  }
+
   /*
    * Hueco extra a la derecha SOLO en pantallas grandes (mismo recurso que
    * STORY_DECK_PADDING_INLINE_END): rompe a proposito la simetria del
@@ -271,18 +302,6 @@ export const ScJourneyDeck = styled.div`
    */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     padding-inline-end: ${JOURNEY_DECK_PADDING_INLINE_END};
-  }
-
-  /* D12: sin grid ya no hace falta apilar las 8 diapositivas en la MISMA
-     celda -- se dejan caer una debajo de otra, todas visibles (ver
-     ScJourneySlide, mas abajo, donde reduce fuerza opacity/transform al
-     estado final). D6: a diferencia de ScDeck en story.deck.tsx, este bloque
-     no lleva ningun caracter de "rewind" -- Journey no consume direction,
-     asi que no hay selector [data-dir] ni @keyframes de scrub que declarar
-     bajo prefers-reduced-motion: no-preference. */
-  @media (prefers-reduced-motion: reduce) {
-    display: block;
-    height: auto;
   }
 `;
 

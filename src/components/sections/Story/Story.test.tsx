@@ -3503,6 +3503,86 @@ function declaracionBaseDe(el: HTMLElement, propiedad: string): string {
   return valores[0];
 }
 
+/**
+ * Gemela de `declaracionBaseDe` para el bloque
+ * `@media (prefers-reduced-motion: reduce)`. jsdom no evalua `@media` (regla
+ * 36), asi que lo que la preferencia declara solo se puede leer bajando al
+ * `CSSMediaRule` por su condicion y buscando ahi la regla del elemento.
+ *
+ * La condicion se filtra por el TEXTO de la regla y no por `conditionText`
+ * porque es lo que el resto de candados de este fichero ya hacen, y porque el
+ * unico bloque hermano que podria confundirse -- el de
+ * `prefers-reduced-motion: no-preference` de ScDeck -- no contiene esta
+ * subcadena. Falla si no queda exactamente una declaracion, igual que su
+ * gemela: cero significa que el guard desaparecio.
+ */
+function declaracionEnReduceDe(el: HTMLElement, propiedad: string): string {
+  const classes = Array.from(el.classList);
+  const esSelectorSimple = (selectorText: string): boolean =>
+    selectorText
+      .split(",")
+      .every((parte) => /^\s*(?:\.[A-Za-z0-9_-]+)+\s*$/.test(parte));
+  const valores = Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .filter((regla): regla is CSSMediaRule => regla instanceof CSSMediaRule)
+    .filter((regla) => regla.cssText.includes("prefers-reduced-motion: reduce"))
+    .flatMap((regla) => Array.from(regla.cssRules))
+    .filter((regla): regla is CSSStyleRule => regla instanceof CSSStyleRule)
+    .filter((regla) => esSelectorSimple(regla.selectorText))
+    .filter((regla) =>
+      classes.some((cls) => regla.selectorText.includes(`.${cls}`)),
+    )
+    .map((regla) => regla.style.getPropertyValue(propiedad))
+    .filter((valor) => valor !== "");
+
+  expect(
+    valores,
+    `se esperaba UNA declaracion de ${propiedad} bajo reduce, hay ${valores.length}`,
+  ).toHaveLength(1);
+  return valores[0];
+}
+
+/**
+ * Condiciones de los bloques `@media` que declaran `propiedad` para `el`, en el
+ * orden en que el CSSOM las tiene -- que es el orden de DECLARACION, y con la
+ * misma especificidad es lo unico que decide cual gana cuando dos casan a la
+ * vez.
+ *
+ * Devuelve la CONDICION y no una posicion a proposito: una posicion en
+ * caracteres dentro del CSS inyectado cambia con cada edicion del template
+ * (arrastra el hash de clase de styled-components), asi que una linea roja
+ * escrita con ese numero delante no se puede reproducir -- exactamente la
+ * leccion que el verificador de esta ola dejo escrita. Una lista de condiciones
+ * dice ademas CUAL es el bloque que se colo.
+ */
+function condicionesQueDeclaran(el: HTMLElement, propiedad: string): string[] {
+  const classes = Array.from(el.classList);
+  return Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .filter((regla): regla is CSSMediaRule => regla instanceof CSSMediaRule)
+    .filter((regla) =>
+      Array.from(regla.cssRules).some(
+        (interna) =>
+          interna instanceof CSSStyleRule &&
+          classes.some((cls) => interna.selectorText.includes(`.${cls}`)) &&
+          interna.style.getPropertyValue(propiedad) !== "",
+      ),
+    )
+    .map((regla) => regla.cssText.slice(0, regla.cssText.indexOf("{")).trim());
+}
+
 describe("Story: critica #16 -- la copia del deck reserva el canal del rail", () => {
   beforeEach(() => {
     stubMatchMedia();
@@ -3623,29 +3703,118 @@ describe("Story: critica #16 -- la copia del deck reserva el canal del rail", ()
    *
    * 176 px es exactamente el ancho que deja el relleno sin acotar (320 - 64 -
    * 80). Restaurado `inlineSpace[6]`, verde.
+   *
+   * AMPLIADO A LAS DOS RAMAS DE MOVIMIENTO (verificador de producto de la ola
+   * R, 2026-09-05, P3). El canal de arriba solo tiene sentido mientras el rail
+   * se pinta, y bajo `prefers-reduced-motion: reduce` no se pinta: `ScRail`
+   * declara `display: none` en esa misma condicion. La aritmetica pasa a
+   * resolverse con el cierre que gana en CADA rama, no solo con el de la rama
+   * con movimiento.
+   *
+   * VALIDADO CON BUG INYECTADO (2026-09-05): quitando la linea
+   * `padding-inline-end` del bloque `@media (prefers-reduced-motion: reduce)`
+   * de ScDeck (`story.deck.tsx`) este caso cae con esta linea literal:
+   *
+   *   se esperaba UNA declaracion de padding-inline-end bajo reduce, hay 0: expected [] to have a length of 1 but got +0
+   *
+   * Restaurado el bloque, verde.
    */
-  it("critica #20: la columna de copia aguanta el 200 % de texto a 320 px y no se mueve a la raiz por defecto", async () => {
+  it("critica #20: la columna de copia aguanta el 200 % de texto a 320 px y no se mueve a la raiz por defecto -- en las DOS ramas de movimiento", async () => {
     const deck = await deckOscuro();
     const inicio = declaracionBaseDe(deck, "padding-inline");
     const fin = declaracionBaseDe(deck, "padding-inline-end");
+    const finBajoReduce = declaracionEnReduceDe(deck, "padding-inline-end");
 
     // `padding-inline` pone los dos lados y `padding-inline-end` pisa el de
     // cierre (longhand despues de shorthand): la columna es el viewport menos
-    // el lado de inicio menos el de cierre.
-    const columna = (raizPx: number): number =>
+    // el lado de inicio menos el cierre que gane en la rama que se mire.
+    const columna = (raizPx: number, cierre: string): number =>
       MIN_VIEWPORT_PX -
       aPx(inicio, raizPx, MIN_VIEWPORT_PX) -
-      aPx(fin, raizPx, MIN_VIEWPORT_PX);
+      aPx(cierre, raizPx, MIN_VIEWPORT_PX);
 
+    // RAMA CON MOVIMIENTO: el rail se pinta, asi que su canal se reserva.
     expect(
-      columna(RAIZ_200_PX),
+      columna(RAIZ_200_PX, fin),
       `columna a raiz ${RAIZ_200_PX} px en ${MIN_VIEWPORT_PX} px de viewport`,
     ).toBeGreaterThanOrEqual(COLUMNA_MINIMA_200_PX);
-    expect(columna(RAIZ_200_PX)).toBe(208);
+    expect(columna(RAIZ_200_PX, fin)).toBe(208);
     expect(
-      columna(RAIZ_POR_DEFECTO_PX),
+      columna(RAIZ_POR_DEFECTO_PX, fin),
       "la composicion por defecto no puede moverse ni un pixel",
     ).toBe(232);
+
+    // RAMA SIN MOVIMIENTO: el canal vuelve entero a la copia. 256 px a LAS DOS
+    // raices, porque `min(2rem, 10vw)` se topa en 32 px a 320 px de ancho y el
+    // relleno es el mismo a los dos lados.
+    for (const raiz of [RAIZ_POR_DEFECTO_PX, RAIZ_200_PX]) {
+      expect(
+        columna(raiz, finBajoReduce),
+        `columna bajo reduce a raiz ${raiz} px`,
+      ).toBe(256);
+      expect(
+        columna(raiz, finBajoReduce),
+        `sin rail que esquivar la columna no puede ser mas estrecha (raiz ${raiz} px)`,
+      ).toBeGreaterThan(columna(raiz, fin));
+    }
+  });
+
+  /*
+   * VERIFICADOR DE PRODUCTO DE LA OLA R (2026-09-05, P3): el deck reservaba el
+   * canal del rail tambien cuando el rail no existe.
+   *
+   * EL DEFECTO MEDIDO. Bajo `prefers-reduced-motion: reduce`, `ScRail` se
+   * retira por completo (`display: none`) pero `padding-inline-end` seguia
+   * valiendo la suma de su geometria: a 320 px de ancho, 56 px guardados a la
+   * raiz por defecto y 80 px con la fuente al 200 % para un control que no se
+   * pinta -- columna de 232 y de 208 px respectivamente.
+   *
+   * LAS TRES MITADES QUE ATA. (1) que el rail siga sin pintarse bajo la
+   * preferencia, que es lo que deja el canal sin dueno; (2) que el cierre
+   * vuelva a ser EXACTAMENTE el peldano del lado de inicio, y no un valor nuevo
+   * elegido a ojo; (3) el ORDEN de los dos bloques `@media`, que es la otra
+   * mitad del arreglo: con la misma especificidad gana el ultimo declarado, asi
+   * que `reduce` va ANTES de `lg` para no llevarse por delante el hueco de
+   * composicion de pantalla ancha, que no tiene nada que ver con el rail.
+   *
+   * VALIDADO CON BUG INYECTADO (2026-09-05): moviendo el bloque
+   * `@media (prefers-reduced-motion: reduce)` de ScDeck (`story.deck.tsx`) a
+   * DESPUES del bloque `lg` -- es decir, deshaciendo solo el reordenado y
+   * dejando la declaracion nueva en su sitio -- este caso cae con esta linea
+   * literal:
+   *
+   *   con la misma especificidad gana el ultimo declarado: reduce va ANTES de lg: expected [ …(2) ] to deeply equal [ …(2) ]
+   *
+   * ...con este diff debajo, que es donde se lee cual es el bloque que se colo:
+   *
+   *   - "@media (prefers-reduced-motion: reduce)",
+   *     "@media screen and (min-width: 62em)",
+   *   + "@media (prefers-reduced-motion: reduce)",
+   *
+   * Restaurado el orden, verde.
+   */
+  it("sin rail que pintar no hay canal que reservar: bajo reduce el relleno vuelve a ser simetrico, y el bloque lg sigue mandando por encima de su escalon", async () => {
+    const deck = await deckOscuro();
+    const rail = screen.getByRole("group", {
+      name: esHome.Home.story.railLabel,
+    });
+
+    expect(declaracionEnReduceDe(rail, "display")).toBe("none");
+
+    expect(declaracionEnReduceDe(deck, "padding-inline-end")).toBe(
+      declaracionBaseDe(deck, "padding-inline"),
+    );
+    expect(declaracionEnReduceDe(deck, "padding-inline-end")).toBe(
+      basicDarkTheme.inlineSpace[6],
+    );
+
+    expect(
+      condicionesQueDeclaran(deck, "padding-inline-end"),
+      "con la misma especificidad gana el ultimo declarado: reduce va ANTES de lg",
+    ).toEqual([
+      "@media (prefers-reduced-motion: reduce)",
+      `@media ${basicDarkTheme.breakPoint.lg}`,
+    ]);
   });
 
   /*
