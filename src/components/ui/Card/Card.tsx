@@ -38,7 +38,13 @@ const ScCard = styled.div<{ $interactive: boolean }>`
   background: ${({ theme }) => theme.data.semantic.surface};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
   border-radius: ${({ theme }) => theme.data.radius.xl};
-  padding: ${({ theme }) => theme.data.space[6]};
+  /* Dos terminos, no uno: el de BLOQUE sigue en space y el INLINE lee
+     inlineSpace (ver su docblock en tokens/space.ts). Una tarjeta es la caja
+     donde mas duele el relleno lateral en rem -- va anidada dentro del relleno
+     de su seccion, asi que al 200 % los dos se suman contra la misma columna.
+     Con la raiz por defecto vale exactamente lo mismo que antes. */
+  padding: ${({ theme }) => theme.data.space[6]}
+    ${({ theme }) => theme.data.inlineSpace[6]};
   /* Plana por defecto: elevation-0 explícito (nunca box-shadow implícito). */
   box-shadow: ${({ theme }) => theme.data.elevation[0]};
 
