@@ -1,6 +1,6 @@
 import type { ColorPrimitives } from "./tokens/color";
 import type { SemanticColors } from "./tokens/semantic";
-import type { space } from "./tokens/space";
+import type { space, inlineSpace } from "./tokens/space";
 import type { radius } from "./tokens/radius";
 import type { elevation } from "./tokens/elevation";
 import type { zIndex } from "./tokens/zIndex";
@@ -23,6 +23,12 @@ export interface ThemeDefinition {
   semantic: SemanticColors;
   type: typeof import("./tokens/type").type;
   space: typeof space;
+  /**
+   * Relleno del eje inline acotado al viewport: la misma escala que `space`,
+   * pero deja de crecer con la raíz tipográfica cuando el viewport es más
+   * estrecho que 20rem. Ver `tokens/space.ts`.
+   */
+  inlineSpace: typeof inlineSpace;
   radius: typeof radius;
   elevation: typeof elevation;
   glass: Glass;

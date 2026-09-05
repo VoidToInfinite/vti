@@ -70,3 +70,87 @@ export const space = {
    */
   10: "8rem",
 } as const;
+
+/**
+ * Viewport CSS más estrecho que el sitio soporta: el suelo de reflow de WCAG
+ * 1.4.10 (320 px CSS, que es lo que queda de 1280 px al 400 % de zoom). Es el
+ * ancho contra el que se calibra `inlineSpace`, abajo, y el primer peldaño del
+ * barrido de anchos de `scripts/check-site-surfaces.mjs`.
+ */
+export const MIN_VIEWPORT_PX = 320;
+
+/**
+ * Raíz tipográfica con la que los navegadores salen de fábrica, en px. Es el
+ * denominador con el que un peldaño en `rem` se convierte a píxeles para
+ * calibrar el término en `vw` de `inlineSpace`; no es una preferencia del repo.
+ */
+const ROOT_FONT_BASE_PX = 16;
+
+/** Los peldaños de `space` con consumidor real en el eje inline. */
+type InlineStep = 2 | 3 | 4 | 5 | 6 | 7;
+
+function inlineOf(step: InlineStep): string {
+  const px = Number.parseFloat(space[step]) * ROOT_FONT_BASE_PX;
+  const vw = (px / MIN_VIEWPORT_PX) * 100;
+  return `min(${space[step]}, ${vw}vw)`;
+}
+
+/**
+ * Relleno del eje INLINE (izquierda y derecha) acotado al viewport.
+ *
+ * Es la misma escala que `space`, peldaño a peldaño, con una sola diferencia:
+ * deja de crecer con la raíz tipográfica cuando el viewport es más estrecho que
+ * 20rem (320 px con la raíz a 16 px). Cada valor es `min(<rem>, <vw>)`, y el
+ * término en `vw` vale EXACTAMENTE el peldaño en píxeles a 320 px con la raíz
+ * por defecto (`space[5]` = 1.5rem = 24 px = 7,5 vw de 320). De ahí se siguen
+ * las tres propiedades que este token promete:
+ *
+ *   1. Con la raíz a 16 px y cualquier viewport de 320 px o más, el mínimo es
+ *      siempre el `rem`: la composición por defecto no cambia ni un píxel.
+ *      Verificado el 2026-09-05 comparando la huella de cajas de las ocho
+ *      superficies del sitio a 320, 390, 768 y 1280 px antes y después de
+ *      migrar los consumidores.
+ *   2. Con la raíz ampliada (la preferencia de tamaño de texto del usuario,
+ *      el 200 % que exige WCAG 1.4.4), el relleno sigue creciendo con la fuente
+ *      mientras el viewport da de sí, y se detiene justo donde el viewport
+ *      deja de darlo: a raíz 32 px gana el `vw` por debajo de 640 px, y a 320 px
+ *      el relleno vale lo mismo que vale a 320 px con la raíz por defecto.
+ *   3. Por debajo de 320 px —fuera del soporte declarado— el relleno encoge
+ *      con el viewport en vez de desbordarlo.
+ *
+ * POR QUÉ EXISTE, medido y no supuesto. El 2026-09-05, sobre el build de
+ * producción servido en Chrome con la fuente al 200 % (`Page.setFontSizes`,
+ * raíz 32 px) y 320 px de viewport, los rellenos en `rem` de la sección de
+ * Contacto, de su tarjeta, de su formulario, de sus campos y de su botón se
+ * doblaban mientras el viewport se quedaba donde estaba: la columna de texto de
+ * las tarjetas de canal medía 23,2 px (27 caracteres en 23 líneas), el texto de
+ * ayuda del formulario 28 px de ancho (99 caracteres en 61 líneas) y el rótulo
+ * del CTA salía letra por línea. En los decks oscuros la misma aritmética
+ * dejaba la copia en 144 px de 320. El arreglo anterior (`overflow-wrap:
+ * anywhere`, crítica #19) había convertido la PÉRDIDA de texto en ILEGIBILIDAD:
+ * nada se salía del viewport, pero nada se podía leer.
+ *
+ * QUÉ NO ES. No se aplica al tamaño de fuente: WCAG 1.4.4 exige que el texto
+ * llegue al 200 %, y acotar tipografía con unidades de viewport es exactamente
+ * el patrón de fallo F94; el texto crece siempre, lo que se contiene es el aire
+ * que lo rodea. Tampoco se aplica al eje de bloque (`padding-block`): la altura
+ * no compite con el viewport. Y no sustituye a `space` en los huecos entre
+ * piezas (`gap`), que siguen escalando con el texto que separan.
+ *
+ * POR QUÉ `vw` Y NO PORCENTAJE: un porcentaje de relleno se resuelve contra el
+ * ancho del CONTENEDOR, así que el mismo peldaño valdría distinto en cada nivel
+ * de anidamiento y la propiedad 1 dejaría de cumplirse en las cajas interiores.
+ * El `vw` es una sola referencia para todos los niveles.
+ *
+ * Solo existen los peldaños con consumidor real en el eje inline; el detector
+ * de anti-patrones exime este fichero, y la familia `spacing-literal` no cuenta
+ * las unidades de viewport, por el motivo que su propio comentario declara.
+ */
+export const inlineSpace: Readonly<Record<InlineStep, string>> = {
+  2: inlineOf(2),
+  3: inlineOf(3),
+  4: inlineOf(4),
+  5: inlineOf(5),
+  6: inlineOf(6),
+  7: inlineOf(7),
+};

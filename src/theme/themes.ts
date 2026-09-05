@@ -2,7 +2,7 @@ import type { ThemeDefinition } from "./theme.types";
 import { color } from "./tokens/color";
 import { semanticLight, semanticDark } from "./tokens/semantic";
 import { type as typeTokens } from "./tokens/type";
-import { space } from "./tokens/space";
+import { space, inlineSpace } from "./tokens/space";
 import { radius } from "./tokens/radius";
 import { elevation } from "./tokens/elevation";
 import { zIndex } from "./tokens/zIndex";
@@ -36,6 +36,7 @@ const shared = {
   palette: color,
   type: typeTokens,
   space,
+  inlineSpace,
   radius,
   elevation,
   zIndex,
