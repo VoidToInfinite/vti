@@ -31,7 +31,7 @@
  * misma pasada con las preferencias del sistema activas. Lo que nadie ha medido
  * es lo que aparece como hallazgo nuevo en la ronda siguiente.
  *
- * QUE MIDE, y por que en navegador y no en la suite. Las dieciseis familias de
+ * QUE MIDE, y por que en navegador y no en la suite. Las diecisiete familias de
  * abajo dependen de layout real, de pintado real y de media queries reales:
  * jsdom no hace ninguna de las tres (regla 36 y 44 de RULES.md). Un test de
  * Vitest puede
@@ -143,6 +143,68 @@
  *   58,83 cuando el viewport se ensancha de 320 a 768. Esa es la firma que el
  *   segundo factor mide, y el defecto lo arregla otro frente.
  *
+ * LA FAMILIA DIECISIETE, `texto-crece-con-la-preferencia`, entra el 2026-09-05
+ * con el P1 del revisor adversarial, y es la que las dos anteriores no podian
+ * ver POR CONSTRUCCION. Las dos miden CONSECUENCIAS de que el texto crezca --que
+ * no se salga y que se pueda leer-- y un texto que NO crece no hace ninguna de
+ * las dos cosas: se queda exactamente donde estaba, con el candado en verde. El
+ * revisor comparo el `font-size` computado de 173 cajas con la raiz a 16 y a 32
+ * px y encontro que el `h1` del hero, su wordmark, la tagline y el statement de
+ * Story no se mueven: sus `clamp()` llevan suelo y techo en PIXELES con el
+ * termino preferido en `vw`, que es el patron de fallo F94 de WCAG 1.4.4. Medir
+ * la consecuencia no sustituye a medir la propiedad.
+ *
+ * MIDE EN LA BANDA DE REFLOW Y EN LOS DOS SENTIDOS. Dos contextos por superficie
+ * y tema --`Page.setFontSizes` a 16 y a 32 px-- recorren `BANDA_DE_REFLOW`, se
+ * emparejan las cajas por ruta estructural y texto, y toda caja cuya razon
+ * `32/16` quede por debajo de `RATIO_MINIMO_DE_CRECIMIENTO` en TODOS los anchos
+ * de la banda entra en el informe. El porque de la banda estrecha, del minimo de
+ * 1.5 y de la absolucion por ancho esta en los docblocks de esas tres
+ * constantes, con la tipografia fluida legitima que obligo a cada uno.
+ *
+ * CIFRAS DE LA FAMILIA DIECISIETE, medidas el 2026-09-05 sobre el build servido
+ * de `dcafec4` -- que TODAVIA NO lleva el arreglo de la tipografia del hero, asi
+ * que la portada sale en rojo a proposito y las seis superficies restantes en
+ * verde, en los dos temas:
+ *
+ *   /                 6 (claro) o 3 (oscuro) sin crecer / 114 (109) cajas
+ *                     comparadas, 0 (6) absueltas por la banda
+ *   /en               6 (claro) o 3 (oscuro) sin crecer / 114 (109) cajas
+ *                     comparadas, 0 (6) absueltas por la banda
+ *   /privacidad       0 sin crecer / 151 cajas comparadas, 0 absueltas
+ *   /en/privacy       0 sin crecer / 151 cajas comparadas, 0 absueltas
+ *   /aviso-legal      0 sin crecer / 97 cajas comparadas, 0 absueltas
+ *   /en/legal-notice  0 sin crecer / 97 cajas comparadas, 0 absueltas
+ *   404 (es)          0 sin crecer / 29 cajas comparadas, 0 absueltas
+ *   404 (en)          0 sin crecer / 29 cajas comparadas, 0 absueltas
+ *
+ * «NO CUMPLE - 2 incumplimiento(s) en 8 superficies», EXIT=1 en los dos temas.
+ * El defecto es de otro frente de la misma ola y este fichero no lo toca: lo que
+ * se entrega aqui es el instrumento que lo ve. Las lineas de la portada clara,
+ * literales y recortadas en los selectores por el margen:
+ *
+ *   NO CUMPLE  con la preferencia de tamano de texto al 200 % (raiz 16 -> 32
+ *   px) hay texto que NO crece en toda la banda de reflow, por debajo de x1.5:
+ *   main/span ("Void") 34 -> 34 px (x1) a 320px y 34 -> 34 px (x1) a 390px
+ *   [...>h1:nth-child(1)>span:nth-child(1)>span:nth-child(1)]; main/span
+ *   ("ToInfinite") 34 -> 34 px (x1) a 320px y 34 -> 34 px (x1) a 390px [...];
+ *   main/p ("Tu presente ya es tu futuro, solo falta que sigas definiéndo") 15
+ *   -> 15 px (x1) a 320px y 15 -> 15 px (x1) a 390px [...]; main/span ("CADA
+ *   IDEA") 24 -> 24 px (x1) a 320px y 29.8333 -> 29.25 px (x0.98) a 390px
+ *   [...]; main/span ("PUEDE SER") ... ; main/span ("UN NUEVO COMIENZO") ...
+ *
+ * Las seis del tema claro son las dos mitades del wordmark del hero («Void» y
+ * «ToInfinite», 34 -> 34 px en los dos anchos), la tagline (15 -> 15) y las tres
+ * lineas del statement de Story (24 -> 24 a 320 px y 29.8333 -> 29.25 a 390, o
+ * sea que ENCOGE); en el tema oscuro, que monta otro vehiculo para Story, son
+ * las tres primeras. Las SEIS ABSUELTAS del tema oscuro son las seis etiquetas
+ * de paso del deck de Journey, que crecen x1.75 a 320 px y x1.44 a 390: la
+ * tipografia fluida legitima que obligo a que la banda absuelva por ancho.
+ *
+ * La caja de control --el cuerpo, `font-size: 1rem`-- pasa de 16 a 32 px en las
+ * ocho superficies y en los dos temas, que es lo que dice que la emulacion
+ * llego y que ese x1.00 de arriba es del sitio y no del aparato.
+ *
  * `DEUDA_ZOOM` ESTA VACIA DESDE LA CRITICA #19, y esa lista vacia es la
  * entrega: las cinco zonas que la version anterior sancionaba estan arregladas
  * en la causa, no apagadas. Ver su docblock, mas abajo, con el antes y el
@@ -155,7 +217,7 @@
  * `scripts/check-site-surfaces.test.mjs`, que importa este fichero y afirma
  * que su cobertura no se ha vaciado en silencio: las ocho superficies, los dos
  * idiomas, TODAS las rutas que el sitio declara (la portada incluida), el
- * barrido completo de anchos, las dieciseis familias con su suelo numerico, la
+ * barrido completo de anchos, las diecisiete familias con su suelo numerico, la
  * magnitud del zoom, el umbral de legibilidad y el
  * hecho de que ninguna zona quede sancionada. Un candado de navegador al que
  * alguien le borra media lista de rutas sigue saliendo verde; ese es justo el
@@ -222,7 +284,7 @@
  * «CUMPLE - 8 superficies, 15 familias, 0 zonas de zoom sancionadas, cero
  * incumplimientos», codigo de salida 0 en `dark` y en `light`. (La linea se
  * conserva tal cual se imprimio aquel dia: eran quince familias entonces y hoy
- * son dieciseis, con la de legibilidad que entra abajo.) El segundo numero
+ * son diecisiete, con las de legibilidad y crecimiento que entran abajo.) El segundo numero
  * de cada fila es la guarda de vacuidad del filtro: son las cajas con texto
  * propio o interactivas que la sonda SI evaluo en el barrido completo, y un cero
  * ahi pone el script en rojo.
@@ -401,7 +463,7 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las dieciseis familias que este script comprueba. La lista es el CONTRATO del
+ * Las diecisiete familias que este script comprueba. La lista es el CONTRATO del
  * candado: el test companero exige que ninguna desaparezca, porque un script que
  * mide trece cosas y dice medir catorce es peor que uno que no existe.
  *
@@ -429,6 +491,7 @@ export const CHECKS = [
     "responsive-sin-desbordamiento",
     "texto-al-200-por-ciento",
     "legibilidad-al-200-por-ciento",
+    "texto-crece-con-la-preferencia",
     "sin-javascript",
 ];
 
@@ -540,6 +603,85 @@ export const MIN_CARACTERES_POR_LINEA = 4;
  *     exige que crezca. Eso lo caza el caso que reproduce esa medida.
  */
 export const MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA = 0.5;
+
+/**
+ * LA BANDA DE REFLOW en la que se mide la familia DIECISIETE,
+ * `texto-crece-con-la-preferencia`: los dos anchos estrechos del barrido, y
+ * SOLO esos dos. Hay que explicar por que, porque medir en menos sitios suena
+ * siempre a candado mas flojo y aqui es al reves.
+ *
+ * LO QUE LA FAMILIA MIDE es la PROPIEDAD, no la consecuencia: que el
+ * `font-size` computado de cada caja crezca cuando el usuario sube la
+ * preferencia de tamano de texto. Las dos familias hermanas miden consecuencias
+ * --que no se pierda contenido y que se pueda leer-- y por construccion NO ven
+ * un texto que no crece: un texto que se queda igual no se sale de ningun lado
+ * ni se parte en trocitos. El patron de fallo es F94 de WCAG 1.4.4, un
+ * `clamp()` de `font-size` con suelo y techo en PIXELES y el termino preferido
+ * en `vw`.
+ *
+ * POR QUE SOLO EN LA BANDA ESTRECHA, con la medida que lo obliga. La tipografia
+ * fluida legitima de este repo se pide como `clamp(<rem>, <vw>, <rem>)`, y ese
+ * patron NO dobla alli donde el termino en `vw` ya domina al suelo con la raiz
+ * de fabrica. Medido el 2026-09-05 sobre el build servido de `dcafec4`, tema
+ * oscuro, la etiqueta de paso del deck de Journey --`clamp(1.75rem, 10vw,
+ * 11rem)`, `JOURNEY_DECK_STEP_LABEL_SIZE`--:
+ *
+ *   a 320 px   32 px con la raiz a 16  ->  56 px con la raiz a 32   (x1.75)
+ *   a 390 px   39 px con la raiz a 16  ->  56 px con la raiz a 32   (x1.44)
+ *
+ * A 390 el `vw` gana con la raiz de fabrica (39 > 28) y el crecimiento se queda
+ * en x1.44; a 320 manda el suelo en `rem` y crece x1.75. El texto CRECE en los
+ * dos casos --que es lo que WCAG 1.4.4 exige-- y acotarlo seria justamente el
+ * F94 que esta familia persigue. Por eso la banda es estrecha: es donde el
+ * suelo en `rem` manda y donde un texto que no crece no tiene coartada.
+ *
+ * Y por eso, ademas, una caja solo se declara sin crecimiento cuando falla en
+ * TODOS los anchos de la banda en los que se la pudo comparar (ver
+ * `fallosDeCrecimientoEnLaBanda`): la etiqueta de Journey pasa a 320 y queda
+ * absuelta, y el `h1` del hero, que se queda en 34 px en los dos, no.
+ *
+ * Los dos anchos son los dos primeros de `WIDTH_SWEEP` y el test companero lo
+ * exige: una banda que se despegara del barrido seria una tercera lista que
+ * puede encoger sola.
+ */
+export const BANDA_DE_REFLOW = [320, 390];
+
+/**
+ * El crecimiento MINIMO que se le exige al `font-size` computado de una caja
+ * cuando la raiz pasa de `ROOT_FONT_BASE_PX` a `ZOOM_FONT_PX`, o sea cuando el
+ * usuario pide el 200 % de tamano de texto.
+ *
+ * No es 2 a proposito: la tipografia fluida legitima del repo crece x1.75 a 320
+ * px (medida arriba) porque su suelo en `rem` manda pero su termino en `vw` no
+ * acompana, y exigir el doble convertiria ese patron correcto en un defecto.
+ * 1.5 cae entre las dos poblaciones medidas el 2026-09-05 sobre el build
+ * servido de `dcafec4`:
+ *
+ *   NO CRECE (defecto F94, x0.98 - x1.00)      CRECE (legitimo, x1.75 - x2.00)
+ *   el h1 del hero          34 -> 34 px        la etiqueta de Journey a 320 px
+ *   la tagline del hero     15 -> 15 px          32 -> 56 px
+ *   el statement de Story   24 -> 24 px        todo lo demas de las ocho
+ *     y 29.83 -> 29.25 a 390 px                  superficies: x2 exacto
+ *
+ * El test companero impide que BAJE de 1.5: con el minimo en 1 ninguna de las
+ * cajas de arriba se reportaria --la peor da exactamente x1.00-- y la familia
+ * saldria en verde sobre el defecto que existe para cazar.
+ */
+export const RATIO_MINIMO_DE_CRECIMIENTO = 1.5;
+
+/**
+ * Lo que tiene que crecer la CAJA DE CONTROL --el cuerpo del documento, cuyo
+ * `font-size` es `1rem`-- para que la medida de arriba signifique algo: si la
+ * emulacion de `Page.setFontSizes` no llega a la pagina, los dos contextos
+ * miden lo mismo, TODAS las cajas dan x1.00 y la familia caeria entera con un
+ * informe que no es un defecto del sitio sino del instrumento. La guarda
+ * distingue las dos cosas.
+ *
+ * La tolerancia absorbe el redondeo subpixel del navegador; no es holgura de
+ * criterio: 16 -> 32 px da 2 exacto en las ocho superficies medidas.
+ */
+export const RATIO_DEL_CONTROL = 2;
+export const TOLERANCIA_DEL_CONTROL = 0.01;
 
 /**
  * LA LISTA DE ZONAS SANCIONADAS, HOY VACIA, Y POR QUE ESA LISTA VACIA ES LA
@@ -1064,6 +1206,210 @@ export function probeLegibilidadDeTexto({
         anchas,
         anchoDelDocumento,
         ilegibles,
+    };
+}
+
+/**
+ * EL TEXTO CRECE CON LA PREFERENCIA: el `font-size` computado de cada caja con
+ * texto propio visible, para compararlo con el de la MISMA caja medida con la
+ * raiz a la mitad.
+ *
+ * Esta sonda no juzga nada: recoge. El veredicto lo dan `comparaCrecimiento` y
+ * `fallosDeCrecimientoEnLaBanda`, que son funciones puras y viven fuera de la
+ * pagina, porque lo unico que hay que ejecutar dentro del navegador es leer el
+ * estilo computado.
+ *
+ * LA CLAVE DE EMPAREJAMIENTO es `<ruta estructural>||<texto>` y no el indice de
+ * la caja en el recorrido: dos contextos distintos pueden no tener exactamente
+ * el mismo numero de cajas --un `@media` que oculta algo, un reveal que aun no
+ * ha aterrizado-- y emparejar por posicion compararia el `font-size` de una
+ * caja con el de otra sin que nada lo delate. La ruta estructural es la cadena
+ * de `tag:nth-child(n)` desde `body`, que no depende de las clases generadas
+ * por styled-components (cambian con cada edicion del template) ni del orden en
+ * que se recorra el arbol. El texto va en la clave como segundo factor: si el
+ * marcado se mueve bajo la misma ruta, la caja deja de emparejar en vez de
+ * emparejar mal.
+ *
+ * EL TEXTO SE NORMALIZA (`\s+` a un espacio) antes de entrar en la clave, y no
+ * es cosmetica: `innerText` devuelve el texto RENDERIZADO, con sus saltos de
+ * linea, y la misma caja parte distinto con la raiz a 16 y a 32. Sin normalizar,
+ * toda caja que cambia de reparto de lineas dejaria de emparejarse -- es decir,
+ * justo las que mas interesan.
+ *
+ * MISMA SELECCION QUE LA FAMILIA DE LEGIBILIDAD --texto propio, visible, caja
+ * de mas de 1x1 px, que es la que deja fuera a `VisuallyHidden`-- con UNA
+ * diferencia deliberada: aqui no se filtra por `writing-mode`. Un texto vertical
+ * tiene que crecer igual que uno horizontal; lo que no le aplicaba era la
+ * metrica de "caracteres por linea", no esta.
+ *
+ * `controlFontPx` es la caja de control (el cuerpo, cuyo `font-size` es `1rem`)
+ * y se lee aparte del recorrido porque `body` no suele tener texto propio: es lo
+ * que permite distinguir "el sitio no crece" de "la emulacion no llego".
+ */
+export function probeCrecimientoDeTexto() {
+    const rutaEstructural = (el) => {
+        const partes = [];
+        let nodo = el;
+        while (nodo && nodo !== document.body && nodo.parentElement) {
+            const padre = nodo.parentElement;
+            const indice = [...padre.children].indexOf(nodo) + 1;
+            partes.unshift(
+                `${nodo.tagName.toLowerCase()}:nth-child(${indice})`,
+            );
+            nodo = padre;
+        }
+        return `body>${partes.join(">")}`;
+    };
+
+    const cajas = [];
+    for (const el of document.querySelectorAll("body *")) {
+        const tieneTextoPropio = [...el.childNodes].some(
+            (n) => n.nodeType === 3 && n.textContent.trim().length > 0,
+        );
+        if (!tieneTextoPropio) continue;
+
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.visibility === "collapse")
+            continue;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 1 || r.height <= 1) continue;
+
+        const bruto =
+            typeof el.innerText === "string" ? el.innerText : el.textContent;
+        const texto = (bruto || "").trim().replace(/\s+/g, " ").slice(0, 60);
+        const sel = rutaEstructural(el);
+        cajas.push({
+            clave: `${sel}||${texto}`,
+            zona: el.closest("header")
+                ? "header"
+                : el.closest("footer")
+                  ? "footer"
+                  : el.closest("main")
+                    ? "main"
+                    : "suelto",
+            tag: el.tagName.toLowerCase(),
+            sel,
+            texto,
+            fontPx: parseFloat(cs.fontSize),
+        });
+    }
+    return {
+        rootFontPx: parseFloat(
+            getComputedStyle(document.documentElement).fontSize,
+        ),
+        controlFontPx: parseFloat(getComputedStyle(document.body).fontSize),
+        cajas,
+    };
+}
+
+/**
+ * Compara las cajas de DOS medidas de la misma superficie y el mismo ancho --la
+ * de la raiz de fabrica y la de la raiz al 200 %-- y devuelve las que no
+ * crecieron lo suficiente, mas el estado de la caja de control.
+ *
+ * Funcion pura y fuera de la pagina a proposito: el veredicto se puede ejercitar
+ * en jsdom con estilos y rects simulados, que es lo unico que el gate puede
+ * correr sin navegador.
+ *
+ * `comparadas` son las claves que existian en las DOS medidas: una caja que solo
+ * aparece en una de las dos no se compara, y no se cuenta. Es la cifra que la
+ * guarda de vacuidad vigila.
+ */
+export function comparaCrecimiento({
+    base,
+    zoom,
+    ratioMinimo,
+    ratioDelControl = RATIO_DEL_CONTROL,
+    tolerancia = TOLERANCIA_DEL_CONTROL,
+}) {
+    const previo = new Map();
+    for (const c of base.cajas) {
+        if (Number.isFinite(c.fontPx) && c.fontPx > 0)
+            previo.set(c.clave, c.fontPx);
+    }
+
+    const comparadas = [];
+    const flojas = [];
+    for (const c of zoom.cajas) {
+        const antes = previo.get(c.clave);
+        if (antes === undefined) continue;
+        if (!Number.isFinite(c.fontPx) || c.fontPx <= 0) continue;
+        comparadas.push(c.clave);
+        const ratio = c.fontPx / antes;
+        if (ratio >= ratioMinimo) continue;
+        flojas.push({
+            clave: c.clave,
+            zona: c.zona,
+            tag: c.tag,
+            sel: c.sel,
+            texto: c.texto,
+            basePx: antes,
+            zoomPx: c.fontPx,
+            ratio: Math.round(ratio * 100) / 100,
+        });
+    }
+
+    const controlRatio =
+        Number.isFinite(base.controlFontPx) && base.controlFontPx > 0
+            ? zoom.controlFontPx / base.controlFontPx
+            : null;
+    return {
+        comparadas,
+        flojas,
+        controlBasePx: base.controlFontPx,
+        controlZoomPx: zoom.controlFontPx,
+        controlRatio:
+            controlRatio === null ? null : Math.round(controlRatio * 100) / 100,
+        /* La guarda de instrumento: sin control que doble, TODAS las cajas dan
+           x1.00 y el informe hablaria del sitio cuando el roto es el aparato. */
+        controlDobla:
+            controlRatio !== null &&
+            controlRatio >= ratioDelControl - tolerancia,
+    };
+}
+
+/**
+ * El veredicto de la banda entera: una caja se declara SIN CRECIMIENTO solo si
+ * se quedo por debajo del minimo en TODOS los anchos de la banda en los que se
+ * la pudo comparar.
+ *
+ * POR QUE NO BASTA UN ANCHO, con la medida que lo obliga (2026-09-05, build
+ * servido de `dcafec4`, tema oscuro): la etiqueta de paso del deck de Journey
+ * --`clamp(1.75rem, 10vw, 11rem)`, tipografia fluida correcta-- crece x1.75 a
+ * 320 px y solo x1.44 a 390, porque a 390 el termino en `vw` ya dominaba al
+ * suelo con la raiz de fabrica. Reportarla seria pedir que se acote una
+ * tipografia que WCAG 1.4.4 exige que crezca, que es el patron de fallo F94 al
+ * reves. El `h1` del hero, en cambio, se queda en 34 px en los DOS anchos.
+ *
+ * `absueltas` son las cajas que fallaron en algun ancho y crecieron en otro. No
+ * es una guarda sino la cuenta del absolvedor: va al informe para que un numero
+ * raro se vea, igual que `anchas` y `estiradas` en la familia de legibilidad.
+ */
+export function fallosDeCrecimientoEnLaBanda(porAncho) {
+    const vecesComparada = new Map();
+    const flojasPorClave = new Map();
+    for (const { width, comparacion } of porAncho) {
+        for (const clave of comparacion.comparadas)
+            vecesComparada.set(clave, (vecesComparada.get(clave) ?? 0) + 1);
+        for (const floja of comparacion.flojas) {
+            const previas = flojasPorClave.get(floja.clave) ?? [];
+            previas.push({ width, ...floja });
+            flojasPorClave.set(floja.clave, previas);
+        }
+    }
+
+    const sinCrecimiento = [];
+    let absueltas = 0;
+    for (const [clave, medidas] of flojasPorClave) {
+        const comparaciones = vecesComparada.get(clave) ?? 0;
+        if (comparaciones > 0 && medidas.length === comparaciones)
+            sinCrecimiento.push({ clave, medidas });
+        else absueltas += 1;
+    }
+    return {
+        comparadas: vecesComparada.size,
+        sinCrecimiento,
+        absueltas,
     };
 }
 
@@ -1738,6 +2084,94 @@ async function auditarSuperficie(browser, base, theme, surface) {
     if (ilegibles.length)
         fallos.push(
             `con el texto al 200 % (raiz ${ZOOM_FONT_PX} px) hay texto que no se pierde pero no se puede leer, por debajo de ${MIN_CARACTERES_POR_LINEA} caracteres por linea en cajas de menos del ${MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA * 100} % del viewport: ${ilegibles.join("; ")}`,
+        );
+
+    /*
+     * --- el texto crece con la preferencia de tamano de texto
+     *
+     * DOS CONTEXTOS por superficie y tema, uno con la raiz de fabrica y otro con
+     * la raiz al 200 %, y no una sola pasada: lo que esta familia mide es una
+     * DIFERENCIA entre dos montajes, asi que hacen falta los dos. `Page.setFontSizes`
+     * se emula por contexto y no se puede cambiar a mitad de una pagina cargada
+     * sin volver a cargarla, que costaria lo mismo.
+     *
+     * Cada contexto recorre la banda entera redimensionando --el mismo patron
+     * que las dos familias de arriba-- y las cuatro medidas se comparan por
+     * ancho. `reducedMotion: reduce` por el mismo motivo que alli: se mide la
+     * composicion asentada, no un fotograma de la entrada.
+     */
+    const medidasPorRaiz = new Map();
+    for (const raizPx of [ROOT_FONT_BASE_PX, ZOOM_FONT_PX]) {
+        ctx = await nuevoContexto(browser, theme, {
+            viewport: { width: BANDA_DE_REFLOW[0], height: 900 },
+            reducedMotion: "reduce",
+        });
+        page = await ctx.newPage();
+        const sesion = await ctx.newCDPSession(page);
+        await sesion.send("Page.setFontSizes", {
+            fontSizes: { standard: raizPx, fixed: raizPx },
+        });
+        await page.goto(url, { waitUntil: "networkidle" });
+        const porAncho = new Map();
+        for (const width of BANDA_DE_REFLOW) {
+            await page.setViewportSize({ width, height: 900 });
+            await page.waitForTimeout(220);
+            porAncho.set(width, await page.evaluate(probeCrecimientoDeTexto));
+        }
+        await ctx.close();
+        medidasPorRaiz.set(raizPx, porAncho);
+    }
+
+    const comparacionesDeLaBanda = [];
+    const controlesRotos = [];
+    for (const width of BANDA_DE_REFLOW) {
+        const base = medidasPorRaiz.get(ROOT_FONT_BASE_PX).get(width);
+        const zoom = medidasPorRaiz.get(ZOOM_FONT_PX).get(width);
+        const comparacion = comparaCrecimiento({
+            base,
+            zoom,
+            ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+        });
+        comparacionesDeLaBanda.push({ width, comparacion });
+        if (!comparacion.controlDobla)
+            controlesRotos.push(
+                `a ${width}px el cuerpo pasa de ${comparacion.controlBasePx} a ${comparacion.controlZoomPx} px (x${comparacion.controlRatio}) con la raiz emulada de ${base.rootFontPx} a ${zoom.rootFontPx} px`,
+            );
+    }
+    const crecimiento = fallosDeCrecimientoEnLaBanda(comparacionesDeLaBanda);
+    datos.crecimiento = `${crecimiento.sinCrecimiento.length} sin crecer / ${crecimiento.comparadas} cajas comparadas en ${BANDA_DE_REFLOW.join("+")}px (${crecimiento.absueltas} absueltas por la banda, control ${comparacionesDeLaBanda[0]?.comparacion.controlBasePx}->${comparacionesDeLaBanda[0]?.comparacion.controlZoomPx} px)`;
+
+    // [check: texto-crece-con-la-preferencia]
+    /* Guarda de vacuidad: si ninguna caja empareja entre los dos contextos --un
+       cambio de marcado, una clave que deja de coincidir-- no hay nada que
+       comparar y la familia saldria verde sin haber mirado. */
+    if (crecimiento.comparadas === 0)
+        fallos.push(
+            "la sonda de crecimiento no pudo comparar ni una sola caja entre la raiz de fabrica y la raiz al 200 %: el emparejamiento esta roto y el resultado seria vacuo",
+        );
+    /* Guarda de instrumento, que es la otra forma de mentir: sin emulacion las
+       dos medidas son la misma, TODAS las cajas dan x1.00 y el informe acusaria
+       al sitio de un defecto del aparato. El cuerpo tiene `font-size: 1rem`, asi
+       que dobla siempre que la preferencia llegue. */
+    if (controlesRotos.length)
+        fallos.push(
+            `la caja de control (el cuerpo) no dobla con la preferencia de tamano de texto, asi que la emulacion no llego y la familia seria vacua: ${controlesRotos.join("; ")}`,
+        );
+    if (crecimiento.sinCrecimiento.length)
+        fallos.push(
+            `con la preferencia de tamano de texto al 200 % (raiz ${ROOT_FONT_BASE_PX} -> ${ZOOM_FONT_PX} px) hay texto que NO crece en toda la banda de reflow, por debajo de x${RATIO_MINIMO_DE_CRECIMIENTO}: ${crecimiento.sinCrecimiento
+                .map(
+                    (c) =>
+                        `${c.medidas[0].zona}/${c.medidas[0].tag} ("${c.medidas[0].texto}") ` +
+                        c.medidas
+                            .map(
+                                (m) =>
+                                    `${m.basePx} -> ${m.zoomPx} px (x${m.ratio}) a ${m.width}px`,
+                            )
+                            .join(" y ") +
+                        ` [${c.medidas[0].sel}]`,
+                )
+                .join("; ")}`,
         );
 
     // --- sin JavaScript

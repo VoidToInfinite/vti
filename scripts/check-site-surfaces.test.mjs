@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, it, expect } from "vitest";
 import {
+    BANDA_DE_REFLOW,
     BROKEN_SEGMENT,
     CHECKS,
     DEUDA_ZOOM,
@@ -13,12 +14,16 @@ import {
     LEGAL_DOCS,
     MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
     MIN_CARACTERES_POR_LINEA,
+    RATIO_MINIMO_DE_CRECIMIENTO,
     ROOT_FONT_BASE_PX,
     SURFACES,
     WIDTH_SWEEP,
     ZOOM_FONT_PX,
+    comparaCrecimiento,
     especificadoresDePlaywright,
+    fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
+    probeCrecimientoDeTexto,
     probeLegibilidadDeTexto,
     probePerdidaHorizontal,
 } from "./check-site-surfaces.mjs";
@@ -166,7 +171,14 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  *        length of 1 but got +0
  *
  *   g. EL UMBRAL DE LEGIBILIDAD. Bajando `MIN_CARACTERES_POR_LINEA` de 4 a 1 --
- *      que es la forma de vaciar la familia sin quitarla -- caen cuatro casos:
+ *      que es la forma de vaciar la familia sin quitarla -- caen SIETE casos
+ *      («Tests 7 failed | 27 passed (34)», repetida la inyeccion el 2026-09-05
+ *      por el frente J). La ola escribio «cuatro» el dia que la midio y esa
+ *      cuenta se quedo vieja el mismo dia: el segundo factor de la familia
+ *      llego por la tarde con tres casos mas que tambien dependen del umbral
+ *      (la caja de 100 px de 320, la que se absuelve por estirada y la que se
+ *      reporta sin ancho de documento). Las dos primeras lineas rojas, que son
+ *      las que la ola cito y siguen saliendo igual:
  *
  *        AssertionError: el umbral se calibro en 4 contra las dos poblaciones
  *        medidas (defectos de 0,9 a 2,7 caracteres por linea; suelo fisico de la
@@ -272,6 +284,66 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  *        nadie: expected [] to have a length of 1 but got +0
  *
  * Restauradas las cuatro, 26 casos en verde.
+ *
+ * LO QUE ANADE EL FRENTE J (2026-09-05): la ATADURA QUE FALTABA EN EL BARRIDO DE
+ * ANCHOS y la FAMILIA DIECISIETE. Los dos huecos los encontro el verificador de
+ * candados de la ola R midiendo, no leyendo.
+ *
+ *   m. EL BARRIDO DE ANCHOS NO TENIA ATADURA DE EXTENSION. Los tres asertos que
+ *      ya habia --minimo 320, maximo 1920, contiene 768-- los cumple un barrido
+ *      de tres anchos, asi que el verificador dejo `WIDTH_SWEEP` en `[320, 768,
+ *      1920]`, de doce a tres, y los 26 casos siguieron en verde: el candado de
+ *      navegador pasaba a mirar la cuarta parte de las anchuras sin una sola
+ *      linea roja. Se cierra con el mismo patron que las superficies y las
+ *      familias --`ANCHOS_ESPERADOS` tecleada (`toEqual`) mas
+ *      `MINIMO_ANCHOS_BARRIDOS` numerico--, y repetida la MISMA supresion caen
+ *      dos casos («Tests 2 failed | 32 passed (34)»):
+ *
+ *        AssertionError: el barrido ya no son los 12 anchos acordados: si el
+ *        sitio gano o perdio un escalon de verdad, actualiza ANCHOS_ESPERADOS a
+ *        la vez que el script; si no, restaura los que faltan. Un barrido
+ *        recortado mide menos y sale igual de verde: expected [ 320, 768, 1920 ]
+ *        to deeply equal [ 320, 360, 390, 414, 480, 600, …(6) ]
+ *
+ *        AssertionError: la banda mide a 390px, que no es un ancho del barrido:
+ *        los dos lados del candado tienen que medir las mismas anchuras reales:
+ *        expected [ 320, 768, 1920 ] to include 390
+ *
+ *   n. LA FAMILIA DIECISIETE, `texto-crece-con-la-preferencia`, con sus dos
+ *      funciones puras ejercitadas en jsdom. Las tres inyecciones, cada una
+ *      aplicada SOLA, ejecutada, vista en rojo y restaurada:
+ *
+ *      Bajando `RATIO_MINIMO_DE_CRECIMIENTO` de 1.5 a 1 --la forma de vaciar la
+ *      familia sin quitarla-- caen CINCO casos («Tests 5 failed | 29 passed
+ *      (34)»); el primero es el suelo tecleado y el segundo la sonda:
+ *
+ *        AssertionError: el crecimiento minimo se calibro en 1.5 contra las dos
+ *        poblaciones medidas (F94 de x0.98 a x1.00; tipografia fluida legitima
+ *        de x1.75 a x2.00). Bajarlo vacia la familia sin quitarla: con 1 el h1
+ *        del hero, que se queda en 34 px, saldria en verde: expected 1 to be
+ *        greater than or equal to 1.5
+ *
+ *        AssertionError: una caja que pasa de 24 a 24 px no crece (x1.00) y
+ *        tiene que reportarse; la que pasa de 16 a 32 (x2.00) no: expected [] to
+ *        deeply equal [ 'no se mueve' ]
+ *
+ *      Quitando la guarda del control de `comparaCrecimiento` (`controlDobla:
+ *      true`, que es el candado sin su guarda) cae uno:
+ *
+ *        AssertionError: el cuerpo se quedo en 16 px: la emulacion no llego y el
+ *        x1 de la caja no dice nada del sitio: expected true to be false //
+ *        Object.is equality
+ *
+ *      Y renombrando el mensaje con el que el SCRIPT convierte esa guarda en
+ *      rojo --que es la otra mitad, porque una guarda que no llega al informe no
+ *      para nada-- cae el mismo caso por su otra asercion:
+ *
+ *        AssertionError: el script ya no convierte en rojo la guarda "la caja de
+ *        control (el cuerpo) no dobla con la preferencia de tamano de texto":
+ *        sin ella una corrida sin emulacion pasaria por defecto del sitio, o un
+ *        emparejamiento roto por pagina limpia
+ *
+ * Restauradas las cuatro, 34 casos en verde.
  */
 
 const RUTA_SCRIPT = path.join(
@@ -345,6 +417,14 @@ const SUPERFICIES_ESPERADAS = [
  * valores de las tarjetas de Contact a 23,2 px de ancho --de 0,9 a 1,4
  * caracteres por linea-- y el rotulo del CTA saliendo letra por linea. Con el
  * candado en verde. No se perdia texto; no se podia leer.
+ *
+ * `texto-crece-con-la-preferencia` entra el mismo dia, y cierra el escalon que
+ * queda por debajo de las dos: las dos miden CONSECUENCIAS de que el texto
+ * crezca, y un texto que NO crece no produce ninguna de las dos --ni se sale ni
+ * se parte en trocitos--, asi que las dos lo dan por bueno. El `h1` del hero, su
+ * tagline y el statement de Story llevaban meses en 34, 15 y 24 px con la
+ * preferencia al 200 % (patron de fallo F94 de WCAG 1.4.4: `clamp()` de
+ * `font-size` con suelo y techo en pixeles) y ningun candado del repo lo veia.
  */
 const FAMILIAS_ESPERADAS = [
     "recorrido-teclado",
@@ -362,6 +442,7 @@ const FAMILIAS_ESPERADAS = [
     "responsive-sin-desbordamiento",
     "texto-al-200-por-ciento",
     "legibilidad-al-200-por-ciento",
+    "texto-crece-con-la-preferencia",
     "sin-javascript",
 ];
 
@@ -385,8 +466,54 @@ const FAMILIAS_ESPERADAS = [
  * una decision visible en el diff en vez de tres borrados que se leen como
  * limpieza. Se sube el dia que el candado gane una familia de verdad, en el
  * mismo commit que la gana.
+ *
+ * Sube a 17 el 2026-09-05 con `texto-crece-con-la-preferencia`, en el mismo
+ * commit que la anade, que es exactamente la regla de arriba cumpliendose.
  */
-const FAMILIAS_MINIMAS = 16;
+const FAMILIAS_MINIMAS = 17;
+
+/**
+ * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
+ * una lista que ya tenia caso propio.
+ *
+ * El caso que ya existia afirma tres cosas del barrido --el minimo, el maximo y
+ * que contiene 768-- y ninguna de las tres se rompe al RECORTARLO: el
+ * verificador de candados de la ola R dejo `WIDTH_SWEEP` en `[320, 768, 1920]`,
+ * de doce anchos a tres, y los 26 casos de este fichero siguieron en verde. El
+ * candado de navegador pasaba a mirar la cuarta parte de las anchuras --sin los
+ * escalones intermedios donde la cabecera y las tarjetas cambian de forma-- y lo
+ * decia igual de tranquilo.
+ *
+ * Es la MISMA leccion que `SUPERFICIES_ESPERADAS` y `FAMILIAS_MINIMAS`, aplicada
+ * a la tercera lista del contrato: una lista que se recorre sale verde cuando
+ * encoge. Estos doce anchos se tocan cuando el sitio gane o pierda un escalon de
+ * verdad, y entonces se tocan a la vez que el script.
+ *
+ * Ata las DOS direcciones, igual que la de superficies: quitar un ancho cae por
+ * el `toEqual` y anadirlo tambien, porque un ancho nuevo que entra sin que nadie
+ * lo mire es coste de corrida sin criterio detras.
+ */
+const ANCHOS_ESPERADOS = [
+    320, 360, 390, 414, 480, 600, 768, 834, 1024, 1280, 1440, 1920,
+];
+
+/**
+ * EL SUELO NUMERICO DEL BARRIDO, con el mismo papel que `FAMILIAS_MINIMAS`: el
+ * `toEqual` de arriba y este numero se recortan a la vez solo escribiendo a mano
+ * un numero mas pequeno, que es una decision visible en el diff en vez de una
+ * lista mas corta que se lee como limpieza.
+ */
+const MINIMO_ANCHOS_BARRIDOS = 12;
+
+/**
+ * LA BANDA DE REFLOW de la familia `texto-crece-con-la-preferencia`, tecleada
+ * con el mismo criterio que las tres listas de arriba. Son 320 y 390 px: el
+ * extremo estrecho del encargo y el ancho de dispositivo mas comun de esa zona,
+ * los dos por debajo del escalon `md`. El porque de que la banda sea estrecha
+ * --y no el barrido entero-- esta en el docblock de `BANDA_DE_REFLOW`, con la
+ * medida de la tipografia fluida que lo obliga.
+ */
+const BANDA_ESPERADA = [320, 390];
 
 describe("cobertura del candado de las superficies del sitio", () => {
     it("recorre TODOS los documentos legales que el sitio declara, en los dos idiomas, mas la portada y una 404 por idioma", () => {
@@ -499,6 +626,73 @@ describe("cobertura del candado de las superficies del sitio", () => {
         for (let i = 1; i < WIDTH_SWEEP.length; i++) {
             expect(WIDTH_SWEEP[i]).toBeGreaterThan(WIDTH_SWEEP[i - 1]);
         }
+    });
+
+    it("el barrido de anchos no puede ENCOGER: los doce anchos son los acordados y son doce", () => {
+        /*
+         * Las tres afirmaciones de arriba --minimo, maximo y el 768-- las cumple
+         * un barrido de tres anchos, y esa es exactamente la supresion que el
+         * verificador de la ola R hizo: `[320, 768, 1920]`, con los 26 casos del
+         * fichero en verde. El candado de navegador medía la cuarta parte de las
+         * anchuras y ninguna linea se ponia roja.
+         *
+         * Las dos direcciones se afirman por separado a proposito, igual que en
+         * el contrato de familias: el `toEqual` caza el recorte de ESTE fichero
+         * contra el script, y el suelo tecleado caza el recorte de los DOS a la
+         * vez, que es lo que hace quien limpia de verdad.
+         */
+        expect(
+            WIDTH_SWEEP,
+            `el barrido ya no son los ${MINIMO_ANCHOS_BARRIDOS} anchos acordados: ` +
+                `si el sitio gano o perdio un escalon de verdad, actualiza ` +
+                `ANCHOS_ESPERADOS a la vez que el script; si no, restaura los que ` +
+                `faltan. Un barrido recortado mide menos y sale igual de verde`,
+        ).toEqual(ANCHOS_ESPERADOS);
+        expect(
+            WIDTH_SWEEP.length,
+            `el barrido bajo de ${MINIMO_ANCHOS_BARRIDOS} anchos: este numero solo ` +
+                `sube, y recortar la lista tecleada de este fichero a la vez que la ` +
+                `del script es justo la supresion que el caso de arriba no ve`,
+        ).toBeGreaterThanOrEqual(MINIMO_ANCHOS_BARRIDOS);
+    });
+
+    it("la banda de reflow de la familia de crecimiento es estrecha, tecleada, y sale del propio barrido", () => {
+        /*
+         * La familia `texto-crece-con-la-preferencia` no recorre el barrido
+         * entero --el porque, con la medida de la tipografia fluida que lo
+         * obliga, esta en el docblock de `BANDA_DE_REFLOW`--, pero su banda no
+         * puede ser una TERCERA lista que encoja sola ni deslizarse hacia
+         * anchuras donde el termino en `vw` domina y la medida deja de
+         * significar lo mismo.
+         */
+        expect(
+            BANDA_DE_REFLOW,
+            "la banda de reflow ya no son los dos anchos acordados: si son otros, " +
+                "se decide aqui y con la medicion delante",
+        ).toEqual(BANDA_ESPERADA);
+        expect(
+            BANDA_DE_REFLOW.length,
+            "una banda de un solo ancho no puede absolver a la tipografia fluida " +
+                "que crece en un ancho y no en el otro: hacen falta los dos",
+        ).toBeGreaterThanOrEqual(2);
+        for (const width of BANDA_DE_REFLOW) {
+            expect(
+                WIDTH_SWEEP,
+                `la banda mide a ${width}px, que no es un ancho del barrido: los dos ` +
+                    `lados del candado tienen que medir las mismas anchuras reales`,
+            ).toContain(width);
+            expect(
+                width,
+                `a ${width}px ya se ha cruzado el escalon md (768 px con la raiz de ` +
+                    `fabrica): fuera de la banda estrecha el termino en vw de la ` +
+                    `tipografia fluida domina al suelo en rem y un x1.44 legitimo se ` +
+                    `confundiria con un F94`,
+            ).toBeLessThan(768);
+        }
+        expect(
+            Math.min(...BANDA_DE_REFLOW),
+            "la banda tiene que empezar en el ancho mas estrecho del encargo",
+        ).toBe(Math.min(...WIDTH_SWEEP));
     });
 
     /*
@@ -699,6 +893,35 @@ describe("cobertura del candado de las superficies del sitio", () => {
                 `estrecha que el viewport entero y la familia vuelve a tener un ` +
                 `solo factor`,
         ).toBeLessThan(1);
+    });
+
+    it("el crecimiento minimo que exige la familia diecisiete es el calibrado, y no puede bajar hasta volverse vacuo", () => {
+        /*
+         * El mismo patron que los dos umbrales de legibilidad, sobre la constante
+         * nueva. La familia puede seguir declarada, con su marcador y su sonda
+         * intactos, y dejar de ver el defecto: basta bajar el minimo. Con 1
+         * ninguna de las cajas medidas el 2026-09-05 se reportaria --el `h1` del
+         * hero da exactamente x1.00-- y la portada saldria en verde.
+         *
+         * El suelo es 1.5 y no 2 porque la tipografia fluida legitima del repo
+         * crece x1.75 a 320 px (`clamp(1.75rem, 10vw, 11rem)` de la etiqueta de
+         * paso de Journey, medida): exigir el doble convertiria un patron
+         * correcto en defecto. Subirlo endurece el candado hasta ese punto; la
+         * unica direccion vacia es hacia abajo.
+         */
+        expect(
+            RATIO_MINIMO_DE_CRECIMIENTO,
+            `el crecimiento minimo se calibro en 1.5 contra las dos poblaciones ` +
+                `medidas (F94 de x0.98 a x1.00; tipografia fluida legitima de x1.75 ` +
+                `a x2.00). Bajarlo vacia la familia sin quitarla: con 1 el h1 del ` +
+                `hero, que se queda en 34 px, saldria en verde`,
+        ).toBeGreaterThanOrEqual(1.5);
+        expect(
+            RATIO_MINIMO_DE_CRECIMIENTO,
+            `un minimo por encima de 1.75 declararia defecto la tipografia fluida ` +
+                `correcta (clamp con suelo en rem y termino en vw), que es el patron ` +
+                `que WCAG 1.4.4 pide y no el que prohibe`,
+        ).toBeLessThanOrEqual(1.75);
     });
 
     it("la lista de familias sigue siendo la que el candado prometio medir", () => {
@@ -1118,6 +1341,245 @@ describe("la sonda de legibilidad al 200 % de texto", () => {
                     `sin ella un cero en el contador pasaria por pagina limpia`,
             ).toContain(guarda);
         }
+    });
+});
+
+/*
+ * LA SONDA DE CRECIMIENTO Y SU VEREDICTO, EJERCITADOS EN JSDOM.
+ *
+ * La familia `texto-crece-con-la-preferencia` mide una DIFERENCIA entre dos
+ * montajes de navegador, y eso no cabe en el gate. Lo que si cabe --y es donde
+ * de verdad se decide-- son las dos funciones puras que dan el veredicto:
+ * `comparaCrecimiento`, que empareja las cajas de las dos medidas y aplica el
+ * minimo, y `fallosDeCrecimientoEnLaBanda`, que decide que una caja solo esta
+ * rota si no crece en NINGUNA anchura de la banda. La sonda se ejercita con
+ * rects y estilos simulados, igual que sus dos hermanas, y las medidas se le
+ * pasan a las funciones puras tal cual salen de ella.
+ */
+describe("la sonda de crecimiento del texto con la preferencia de tamano", () => {
+    beforeEach(() => {
+        anchoDeViewport(640);
+        document.body.style.fontSize = "16px";
+    });
+
+    /** Caja con `font-size` resuelto a mano y rect declarado. */
+    function cajaConFuente(texto, { fontSize, ancho = 200, alto = 40 }) {
+        const el = document.createElement("p");
+        el.textContent = texto;
+        el.style.fontSize = fontSize;
+        document.body.appendChild(el);
+        medida(el, { left: 0, right: ancho, height: alto });
+        return el;
+    }
+
+    /** Una medida sintetica con la forma que devuelve la sonda. */
+    function medidaSintetica(controlFontPx, cajas) {
+        return {
+            rootFontPx: controlFontPx,
+            controlFontPx,
+            cajas: cajas.map((c) => ({
+                clave: `body>p:nth-child(1)||${c.texto}`,
+                zona: "main",
+                tag: "p",
+                sel: "body>p:nth-child(1)",
+                texto: c.texto,
+                fontPx: c.fontPx,
+            })),
+        };
+    }
+
+    it("una caja que dobla pasa y una que se queda igual falla, con los dos tamanos en el resultado", () => {
+        /*
+         * Las dos poblaciones de la familia, en su forma minima. x2.00 es lo que
+         * hace todo lo que se pide en `rem`; x1.00 es el patron de fallo F94
+         * medido en el hero (34 -> 34 px con la raiz de 16 a 32).
+         */
+        cajaConFuente("crece con la raiz", { fontSize: "16px" });
+        cajaConFuente("no se mueve", { fontSize: "24px" });
+        const base = probeCrecimientoDeTexto();
+        expect(base.cajas).toHaveLength(2);
+        expect(base.controlFontPx).toBe(16);
+
+        document.body.style.fontSize = "32px";
+        document.body.children[0].style.fontSize = "32px";
+        document.body.children[1].style.fontSize = "24px";
+        const zoom = probeCrecimientoDeTexto();
+
+        const r = comparaCrecimiento({
+            base,
+            zoom,
+            ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+        });
+        expect(
+            r.comparadas,
+            "las dos cajas existen en las dos medidas: las dos se comparan",
+        ).toHaveLength(2);
+        expect(
+            r.controlDobla,
+            "el cuerpo pasa de 16 a 32 px: la emulacion llego",
+        ).toBe(true);
+        expect(
+            r.flojas.map((f) => f.texto),
+            `una caja que pasa de 24 a 24 px no crece (x1.00) y tiene que ` +
+                `reportarse; la que pasa de 16 a 32 (x2.00) no`,
+        ).toEqual(["no se mueve"]);
+        expect(r.flojas[0].basePx).toBe(24);
+        expect(r.flojas[0].zoomPx).toBe(24);
+        expect(r.flojas[0].ratio).toBe(1);
+        expect(
+            r.flojas[0].sel,
+            "el mensaje necesita el selector para que el defecto se pueda encontrar",
+        ).toContain("body>");
+    });
+
+    it("si la caja de control no dobla, el fallo es del instrumento y no del sitio", () => {
+        /*
+         * LA GUARDA QUE DISTINGUE LAS DOS COSAS. Sin ella, una corrida en la que
+         * `Page.setFontSizes` no llega a la pagina --version de Chrome sin el
+         * comando, sesion de CDP caida, un `html { font-size: 16px }` que fije la
+         * raiz-- mide dos veces lo mismo, TODAS las cajas dan x1.00 y el informe
+         * acusa al sitio de un defecto del aparato. El cuerpo tiene
+         * `font-size: 1rem`, asi que dobla siempre que la preferencia llegue.
+         */
+        cajaConFuente("da igual lo que ponga", { fontSize: "16px" });
+        const base = probeCrecimientoDeTexto();
+        const zoom = probeCrecimientoDeTexto();
+        const r = comparaCrecimiento({
+            base,
+            zoom,
+            ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+        });
+        expect(
+            r.controlDobla,
+            `el cuerpo se quedo en ${r.controlZoomPx} px: la emulacion no llego y ` +
+                `el x${r.flojas[0]?.ratio} de la caja no dice nada del sitio`,
+        ).toBe(false);
+        expect(r.controlRatio).toBe(1);
+        expect(
+            r.flojas,
+            "sin emulacion TODAS las cajas parecen rotas: por eso el control se mira aparte",
+        ).toHaveLength(1);
+
+        /* Y el script convierte esa guarda en rojo, que es lo que la vuelve un
+           candado en vez de un dato del informe. */
+        for (const guarda of [
+            "la caja de control (el cuerpo) no dobla con la preferencia de tamano de texto",
+            "la sonda de crecimiento no pudo comparar ni una sola caja",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo la guarda "${guarda}": sin ella ` +
+                    `una corrida sin emulacion pasaria por defecto del sitio, o un ` +
+                    `emparejamiento roto por pagina limpia`,
+            ).toContain(guarda);
+        }
+    });
+
+    it("empareja por ruta estructural y texto, no por posicion, y no mira las cajas de 1x1 px", () => {
+        /*
+         * POR QUE NO POR INDICE, con el caso que lo rompe: la caja «alfa» deja de
+         * medirse en la segunda pasada --queda en 1x1 px, que es la caja de
+         * `VisuallyHidden`-- asi que las dos listas tienen distinta longitud.
+         * Emparejando por posicion, «beta» (20 px) se compararia con «alfa» (10
+         * px) y saldria x2.00: el defecto real desapareceria del informe.
+         * Emparejando por clave, «beta» se compara consigo misma y da x1.00.
+         */
+        const alfa = cajaConFuente("alfa", { fontSize: "10px" });
+        cajaConFuente("beta", { fontSize: "20px" });
+        const base = probeCrecimientoDeTexto();
+        expect(base.cajas.map((c) => c.texto)).toEqual(["alfa", "beta"]);
+
+        document.body.style.fontSize = "32px";
+        medida(alfa, { left: 0, right: 1, height: 1 });
+        const zoom = probeCrecimientoDeTexto();
+        expect(
+            zoom.cajas.map((c) => c.texto),
+            "una caja de 1x1 px es la de VisuallyHidden: existe para los lectores de pantalla y no se mide",
+        ).toEqual(["beta"]);
+
+        const r = comparaCrecimiento({
+            base,
+            zoom,
+            ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+        });
+        expect(r.comparadas).toHaveLength(1);
+        expect(
+            r.flojas.map((f) => `${f.texto} ${f.basePx}->${f.zoomPx}`),
+            `emparejadas por posicion, beta (20 px) se compararia con alfa (10 px) ` +
+                `y el x2.00 resultante taparia el defecto`,
+        ).toEqual(["beta 20->20"]);
+    });
+
+    it("una caja que crece en un ancho de la banda y no en el otro queda absuelta; la que no crece en ninguno se reporta", () => {
+        /*
+         * LA MEDIDA REAL que obligo a la absolucion por ancho (2026-09-05, build
+         * servido de `dcafec4`, tema oscuro, `/`): la etiqueta de paso del deck
+         * de Journey se pide como `clamp(1.75rem, 10vw, 11rem)` y crece 32 -> 56
+         * px a 320 (x1.75) pero solo 39 -> 56 a 390 (x1.44), porque a 390 el
+         * termino en `vw` ya dominaba al suelo con la raiz de fabrica. El texto
+         * crece --que es lo que WCAG 1.4.4 exige-- y reportarla seria pedir que
+         * se acote una tipografia fluida correcta, o sea el F94 al reves.
+         *
+         * El `h1` del hero, en cambio, se queda en 34 px en los DOS anchos.
+         */
+        const comparacionEn = (width, journeyBase, journeyZoom) => ({
+            width,
+            comparacion: comparaCrecimiento({
+                base: medidaSintetica(16, [
+                    { texto: "Descubre", fontPx: journeyBase },
+                    { texto: "Void", fontPx: 34 },
+                ]),
+                zoom: medidaSintetica(32, [
+                    { texto: "Descubre", fontPx: journeyZoom },
+                    { texto: "Void", fontPx: 34 },
+                ]),
+                ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+            }),
+        });
+
+        const banda = [comparacionEn(320, 32, 56), comparacionEn(390, 39, 56)];
+        expect(
+            banda[0].comparacion.flojas.map((f) => f.texto),
+            "a 320 px la etiqueta de Journey crece x1.75: solo el hero cae",
+        ).toEqual(["Void"]);
+        expect(
+            banda[1].comparacion.flojas.map((f) => f.texto).sort(),
+            "a 390 px la etiqueta cae tambien, con x1.44",
+        ).toEqual(["Descubre", "Void"]);
+
+        const r = fallosDeCrecimientoEnLaBanda(banda);
+        expect(r.comparadas).toBe(2);
+        expect(
+            r.sinCrecimiento.map((c) => c.medidas[0].texto),
+            `la etiqueta de Journey crece en un ancho de la banda: el texto PUEDE ` +
+                `crecer y no es F94. El h1 del hero no crece en ninguno`,
+        ).toEqual(["Void"]);
+        expect(
+            r.absueltas,
+            "la caja absuelta se cuenta, para que un numero raro se vea en el informe",
+        ).toBe(1);
+        expect(
+            r.sinCrecimiento[0].medidas.map((m) => m.width),
+            "el mensaje cita la caja en los dos anchos en los que fallo",
+        ).toEqual([320, 390]);
+    });
+
+    it("sin ninguna caja emparejada el veredicto no dice que todo este bien", () => {
+        /* La guarda de vacuidad, sobre la funcion pura: con las dos listas
+           vacias no hay flojas, y eso NO puede leerse como "el sitio crece". El
+           script mira `comparadas` y lo pone en rojo. */
+        const r = fallosDeCrecimientoEnLaBanda([
+            {
+                width: 320,
+                comparacion: comparaCrecimiento({
+                    base: medidaSintetica(16, []),
+                    zoom: medidaSintetica(32, []),
+                    ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+                }),
+            },
+        ]);
+        expect(r.comparadas).toBe(0);
+        expect(r.sinCrecimiento).toEqual([]);
     });
 });
 
