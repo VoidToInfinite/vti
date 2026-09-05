@@ -66,18 +66,43 @@ function accent(theme: DefaultTheme, intent: ButtonIntent): string {
   return s.brandSolid;
 }
 
+/**
+ * Rellenos del eje INLINE en `inlineSpace`, no en `space` (ola R, 2026-09-05).
+ *
+ * EL DEFECTO, MEDIDO ANTES DE TOCAR NADA. Chrome sobre el build de producción
+ * servido, `Page.setFontSizes` a 32 px (la MISMA palanca que la preferencia de
+ * tamaño de texto del usuario, la que exige WCAG 1.4.4),
+ * `prefers-reduced-motion: reduce`, 320 px de viewport: el CTA «Escríbeme» de
+ * la sección de Contacto, un `lg`, dejaba **58,8 px de rótulo en 9 líneas** —
+ * una letra por línea— en las dos ramas de tema. Con la raíz al doble, sus
+ * `space[6]` valían 64 px por lado dentro de un contenedor de 192, así que el
+ * relleno se quedaba con dos tercios del control y el texto con el resto.
+ *
+ * `inlineSpace[n]` es el mismo peldaño con un techo en `vw` calibrado para
+ * valer exactamente ese peldaño a 320 px (ver su docblock en
+ * `src/theme/tokens/space.ts`): con la raíz por defecto no cambia ni un píxel
+ * de la composición de siempre, y en la banda estrecha el relleno deja de
+ * crecer donde el viewport deja de dar de sí. Con el token, ese mismo `lg` deja
+ * 192 px de rótulo dentro de los 256 px del marco oscuro.
+ *
+ * QUÉ NO CAMBIA: el `height`, que es una medida de layout y no un espaciado, y
+ * que no compite con el ancho del viewport; y el eje de bloque, que estos tres
+ * tamaños ya declaran a cero. `IconButton` compone sobre este componente y
+ * declara `padding: 0`, así que un botón de icono —que es cuadrado y no lleva
+ * columna de texto— no lo hereda ni lo necesita.
+ */
 const sizeStyles: Record<ButtonSize, ReturnType<typeof css>> = {
   sm: css`
     height: 36px;
-    padding: 0 ${({ theme }) => theme.data.space[4]};
+    padding: 0 ${({ theme }) => theme.data.inlineSpace[4]};
   `,
   md: css`
     height: 44px;
-    padding: 0 ${({ theme }) => theme.data.space[5]};
+    padding: 0 ${({ theme }) => theme.data.inlineSpace[5]};
   `,
   lg: css`
     height: 52px;
-    padding: 0 ${({ theme }) => theme.data.space[6]};
+    padding: 0 ${({ theme }) => theme.data.inlineSpace[6]};
   `,
 };
 

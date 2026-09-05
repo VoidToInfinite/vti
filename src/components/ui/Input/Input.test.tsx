@@ -437,4 +437,138 @@ describe("Input / Field", () => {
       },
     );
   });
+
+  /*
+   * OLA R (2026-09-05): EL RELLENO DEL EJE INLINE DEL CAMPO.
+   *
+   * EL DEFECTO, MEDIDO ANTES DE TOCAR NADA. Chrome sobre el build de
+   * produccion servido, `Page.setFontSizes` a 32 px --la misma palanca que la
+   * preferencia de tamano de texto del usuario, la que exige WCAG 1.4.4--,
+   * `prefers-reduced-motion: reduce`, 320 px de viewport: la columna util del
+   * formulario de Contacto caia a 28 px de ancho, con la etiqueta «Tu correo
+   * (opcional)» en 13 lineas y el texto de ayuda (99 caracteres) en 61. Los
+   * rellenos en `rem` de la cadena que envuelve este campo se doblaban con la
+   * fuente mientras el viewport se quedaba donde estaba, y este relleno es el
+   * ultimo eslabon de esa cadena.
+   *
+   * QUE ATA, y por que no es un espejo: no afirma que el relleno "valga 1rem",
+   * exige que sea el peldano ACOTADO del token --comparado contra
+   * `inlineSpace` importado, no contra una cadena escrita a mano (regla 38)--
+   * y comprueba con la aritmetica del navegador que con la raiz al doble sobre
+   * 320 px vale lo mismo que con la raiz por defecto, que es exactamente la
+   * propiedad que el defecto incumplia.
+   *
+   * VALIDADO CON BUG INYECTADO (2026-09-05). Se devolvio `ScInput` a
+   * `padding: 0 space[4]` y se ejecuto la suite. Los dos casos en rojo con
+   * estas lineas LITERALES:
+   *
+   *   el campo declara un relleno inline que se dobla con la fuente mientras
+   *   el viewport sigue en 320 px: expected '1rem' to be 'min(1rem, 5vw)' //
+   *   Object.is equality
+   *
+   *   con la raiz al 200 % el relleno del campo pasa de 16px a 32px por lado
+   *   sobre un viewport que sigue midiendo 320px: expected 32 to be 16 //
+   *   Object.is equality
+   *
+   * Restaurado `inlineSpace[4]`, los dos en verde.
+   */
+  describe("relleno del eje inline con la fuente al 200 % (ola R)", () => {
+    /** Suelo de reflow de WCAG 1.4.10 y ancho contra el que se calibra el token. */
+    const ANCHO_MINIMO_SOPORTADO_PX = 320;
+    /** La raiz del documento en reposo. */
+    const RAIZ_PX = 16;
+    /** La raiz con la preferencia de tamano de texto del usuario al 200 %. */
+    const RAIZ_AL_200_PX = 32;
+
+    function aPx(valor: string, raizPx: number, viewportPx: number): number {
+      const limpio = valor.trim();
+      if (limpio === "0") return 0;
+      const rem = limpio.match(/^([\d.]+)rem$/);
+      if (rem) return Number(rem[1]) * raizPx;
+      const acotado = limpio.match(
+        /^min\(\s*([\d.]+)rem\s*,\s*([\d.]+)vw\s*\)$/,
+      );
+      if (acotado) {
+        return Math.min(
+          Number(acotado[1]) * raizPx,
+          (Number(acotado[2]) * viewportPx) / 100,
+        );
+      }
+      throw new Error(`el candado no sabe convertir "${limpio}" a pixeles`);
+    }
+
+    /**
+     * Valor del eje INLINE de la shorthand `padding` realmente inyectada para
+     * este campo. Separa por espacios de NIVEL SUPERIOR: un `split` a secas
+     * partiria `0 min(1rem, 5vw)` en tres trozos y devolveria "min(1rem,".
+     */
+    function rellenoInline(campo: HTMLElement): string {
+      const conRelleno = allCssRules().filter(
+        (regla) =>
+          Array.from(campo.classList).some((cls) =>
+            regla.includes(`.${cls}`),
+          ) && /(?:^|[\s;{])padding:/.test(regla),
+      );
+      expect(
+        conRelleno.length,
+        "ninguna regla inyectada para este campo declara padding",
+      ).toBeGreaterThan(0);
+      const lista = conRelleno[0].match(
+        /(?:^|[\s;{])padding:\s*([^;}]+)/,
+      )?.[1] as string;
+      const valores: string[] = [];
+      let actual = "";
+      let profundidad = 0;
+      Array.from(lista.trim()).forEach((caracter) => {
+        if (caracter === "(") profundidad += 1;
+        if (caracter === ")") profundidad -= 1;
+        if (profundidad === 0 && /\s/.test(caracter)) {
+          if (actual !== "") valores.push(actual);
+          actual = "";
+          return;
+        }
+        actual += caracter;
+      });
+      if (actual !== "") valores.push(actual);
+      return valores.length === 1 ? valores[0] : valores[1];
+    }
+
+    function campoRenderizado(): HTMLElement {
+      renderWithProviders(<Input aria-label="Correo" />);
+      return screen.getByLabelText("Correo");
+    }
+
+    it("el relleno inline ES el peldano acotado inlineSpace[4], no el rem desnudo", () => {
+      expect(
+        rellenoInline(campoRenderizado()),
+        `el campo declara un relleno inline que se dobla con la fuente mientras el viewport sigue en ${ANCHO_MINIMO_SOPORTADO_PX} px`,
+      ).toBe(basicLightTheme.inlineSpace[4]);
+    });
+
+    it("con la fuente al 200 % sobre 320 px vale lo mismo que con la raiz por defecto, y con viewport ancho sigue creciendo", () => {
+      const declarado = rellenoInline(campoRenderizado());
+      const porDefecto = aPx(
+        basicLightTheme.space[4],
+        RAIZ_PX,
+        ANCHO_MINIMO_SOPORTADO_PX,
+      );
+
+      // La propiedad que el defecto incumplia: en la banda estrecha el relleno
+      // deja de crecer con la fuente porque el viewport no da mas de si.
+      expect(
+        aPx(declarado, RAIZ_AL_200_PX, ANCHO_MINIMO_SOPORTADO_PX),
+        `con la raiz al 200 % el relleno del campo pasa de ${porDefecto}px a ` +
+          `${aPx(declarado, RAIZ_AL_200_PX, ANCHO_MINIMO_SOPORTADO_PX)}px por lado sobre un viewport ` +
+          `que sigue midiendo ${ANCHO_MINIMO_SOPORTADO_PX}px`,
+      ).toBe(porDefecto);
+
+      // Y lo que NO se compra a cambio: con la raiz por defecto vale el
+      // peldano entero, y con viewport ancho sigue escalando con la fuente,
+      // que es lo que 1.4.4 pide donde hay sitio para hacerlo.
+      expect(aPx(declarado, RAIZ_PX, ANCHO_MINIMO_SOPORTADO_PX)).toBe(
+        porDefecto,
+      );
+      expect(aPx(declarado, RAIZ_AL_200_PX, 1280)).toBe(porDefecto * 2);
+    });
+  });
 });

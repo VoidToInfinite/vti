@@ -582,3 +582,186 @@ describe("Button", () => {
     );
   });
 });
+
+/*
+ * OLA R (2026-09-05): EL RELLENO DEL EJE INLINE DEJA DE COMERSE EL ROTULO.
+ *
+ * EL DEFECTO, MEDIDO ANTES DE TOCAR NADA. Chrome sobre el build de produccion
+ * servido, `Page.setFontSizes` a 32 px --la MISMA palanca que la preferencia
+ * de tamano de texto del usuario, la que exige WCAG 1.4.4--,
+ * `prefers-reduced-motion: reduce`, 320 px de viewport: el CTA «Escribeme» de
+ * la seccion de Contacto, que es un Button `lg`, quedaba con 58,8 px de rotulo
+ * en 9 lineas --una letra por linea-- en las DOS ramas de tema. Con la raiz al
+ * doble, sus `space[6]` valian 64 px por lado dentro de un contenedor de 192,
+ * asi que el relleno se quedaba con dos tercios del control.
+ *
+ * QUE ATA ESTE DESCRIBE, y por que no es un espejo del codigo. No afirma que
+ * el relleno "valga 2rem": lee el valor REALMENTE inyectado por
+ * styled-components para cada tamano, comprueba que ES el peldano de
+ * `inlineSpace` que le toca --comparado contra el token importado, nunca
+ * contra una cadena escrita a mano (regla 38)-- y resuelve con la aritmetica
+ * del navegador cuanto rotulo queda a raiz 32 y 320 px de viewport dentro del
+ * marco oscuro de Contacto. La CONDICION que el defecto incumplia es esa
+ * ultima: que en la banda mas estrecha, con la fuente al doble, el rotulo siga
+ * teniendo columna.
+ *
+ * VALIDADO CON BUG INYECTADO (2026-09-05). Se devolvio el tamano `lg` a
+ * `padding: 0 space[6]` y se ejecuto la suite. Dos casos en rojo con estas
+ * lineas LITERALES:
+ *
+ *   lg declara un relleno inline que se dobla con la fuente mientras el
+ *   viewport sigue en 320 px: expected '2rem' to be 'min(2rem, 10vw)' //
+ *   Object.is equality
+ *
+ *   con la fuente al 200 % sobre 320 px el rotulo de un boton lg se queda con
+ *   128px dentro de un contenedor de 256px; el 2026-09-05 el CTA de Contacto
+ *   medido en Chrome daba 58,8px en 9 lineas, una letra por linea.: expected
+ *   128 to be greater than or equal to 190
+ *
+ * Restaurado `inlineSpace[6]`, los cuatro casos en verde.
+ */
+describe("Button: los rellenos del eje inline con la fuente al 200 % (ola R)", () => {
+  /**
+   * Ancho de viewport mas estrecho que el sitio soporta: el suelo de reflow de
+   * WCAG 1.4.10 (320 px CSS, lo que queda de 1280 px al 400 % de zoom). Es el
+   * mismo numero contra el que se calibra `inlineSpace`.
+   */
+  const ANCHO_MINIMO_SOPORTADO_PX = 320;
+
+  /** La raiz del documento en reposo, contra la que se resuelven los rem. */
+  const RAIZ_PX = 16;
+
+  /** La raiz con la preferencia de tamano de texto del usuario al 200 %. */
+  const RAIZ_AL_200_PX = 32;
+
+  /**
+   * Columna minima que le tiene que quedar al rotulo de un boton `lg` dentro
+   * del marco oscuro de Contacto en la banda estrecha con la fuente al 200 %.
+   * Es la aritmetica de la ola R: el marco deja 256 px y el boton devuelve 192
+   * al rotulo, asi que 190 es un suelo con margen y muy por encima de los 58,8
+   * px medidos en Chrome antes del arreglo.
+   */
+  const ROTULO_MINIMO_PX = 190;
+
+  /**
+   * Resuelve un valor CSS a pixeles con la misma aritmetica que el navegador:
+   * el `rem` contra la raiz que se le pase y el `min(<rem>, <vw>)` de
+   * `inlineSpace` como min(A * raiz, B * viewport / 100).
+   */
+  function aPx(valor: string, raizPx: number, viewportPx: number): number {
+    const limpio = valor.trim();
+    if (limpio === "0") return 0;
+    const rem = limpio.match(/^([\d.]+)rem$/);
+    if (rem) return Number(rem[1]) * raizPx;
+    const px = limpio.match(/^([\d.]+)px$/);
+    if (px) return Number(px[1]);
+    const acotado = limpio.match(/^min\(\s*([\d.]+)rem\s*,\s*([\d.]+)vw\s*\)$/);
+    if (acotado) {
+      return Math.min(
+        Number(acotado[1]) * raizPx,
+        (Number(acotado[2]) * viewportPx) / 100,
+      );
+    }
+    throw new Error(`el candado no sabe convertir "${limpio}" a pixeles`);
+  }
+
+  /**
+   * Separa los valores de una lista CSS por espacios de NIVEL SUPERIOR: los
+   * que quedan dentro de un parentesis no cuentan. Sin esto,
+   * `0 min(1rem, 5vw)` se partiria en tres trozos y el segundo seria
+   * "min(1rem,".
+   */
+  function separarValores(lista: string): string[] {
+    const salida: string[] = [];
+    let actual = "";
+    let profundidad = 0;
+    Array.from(lista.trim()).forEach((caracter) => {
+      if (caracter === "(") profundidad += 1;
+      if (caracter === ")") profundidad -= 1;
+      if (profundidad === 0 && /\s/.test(caracter)) {
+        if (actual !== "") salida.push(actual);
+        actual = "";
+        return;
+      }
+      actual += caracter;
+    });
+    if (actual !== "") salida.push(actual);
+    return salida;
+  }
+
+  /**
+   * Valor del eje INLINE de la shorthand `padding` realmente inyectada para
+   * ESTE render. Se acota por las clases del propio elemento: la hoja de
+   * styled-components acumula todos los renders de la suite y una busqueda sin
+   * acotar devolveria el relleno de otro tamano (mismo motivo que documenta
+   * `reglasDe` en el describe del anillo de foco, mas arriba).
+   */
+  function rellenoInlineDe(boton: HTMLElement): string {
+    const conRelleno = allCssRules().filter(
+      (regla) =>
+        Array.from(boton.classList).some((cls) => regla.includes(`.${cls}`)) &&
+        /(?:^|[\s;{])padding:/.test(regla),
+    );
+    expect(
+      conRelleno.length,
+      "ninguna regla inyectada para este boton declara padding",
+    ).toBeGreaterThan(0);
+    const valores = separarValores(
+      conRelleno[0].match(/(?:^|[\s;{])padding:\s*([^;}]+)/)?.[1] as string,
+    );
+    // 1 valor: los cuatro lados. 2, 3 o 4: el segundo es el eje inline.
+    return valores.length === 1 ? valores[0] : valores[1];
+  }
+
+  it.each([
+    ["sm", 4],
+    ["md", 5],
+    ["lg", 6],
+  ] as const)(
+    "el tamano %s declara el relleno inline con el peldano acotado inlineSpace[%i], no con el rem desnudo",
+    (size, peldano) => {
+      renderWithProviders(<Button size={size}>{`Rotulo ${size}`}</Button>);
+      const boton = screen.getByRole("button", { name: `Rotulo ${size}` });
+
+      expect(
+        rellenoInlineDe(boton),
+        `${size} declara un relleno inline que se dobla con la fuente mientras el viewport sigue en ` +
+          `${ANCHO_MINIMO_SOPORTADO_PX} px`,
+      ).toBe(basicLightTheme.inlineSpace[peldano]);
+
+      // Y con la raiz por defecto vale EXACTAMENTE el peldano de siempre: la
+      // composicion normal del sitio no cambia ni un pixel al acotar.
+      expect(
+        aPx(rellenoInlineDe(boton), RAIZ_PX, ANCHO_MINIMO_SOPORTADO_PX),
+        `${size} cambia de relleno en el regimen normal, que es lo unico que esta migracion NO puede hacer`,
+      ).toBe(
+        aPx(basicLightTheme.space[peldano], RAIZ_PX, ANCHO_MINIMO_SOPORTADO_PX),
+      );
+    },
+  );
+
+  it("con la fuente al 200 % sobre 320 px un boton lg deja columna de sobra al rotulo dentro del marco oscuro", () => {
+    renderWithProviders(<Button size="lg">Escribeme</Button>);
+    const boton = screen.getByRole("button", { name: "Escribeme" });
+
+    // El contenedor es el marco oscuro de Contacto, que separa del viewport
+    // con el MISMO peldano acotado (`ScDarkFrame`, padding-inline
+    // inlineSpace[6]); su propio candado vive en Contact.test.tsx. Se resuelve
+    // aqui desde el token en vez de escribir 256 a mano, para que el dia que el
+    // peldano cambie las dos cuentas se muevan juntas.
+    const relleno = (raizPx: number, valor: string): number =>
+      aPx(valor, raizPx, ANCHO_MINIMO_SOPORTADO_PX);
+    const contenedor =
+      ANCHO_MINIMO_SOPORTADO_PX -
+      2 * relleno(RAIZ_AL_200_PX, basicLightTheme.inlineSpace[6]);
+    const rotulo =
+      contenedor - 2 * relleno(RAIZ_AL_200_PX, rellenoInlineDe(boton));
+
+    expect(
+      rotulo,
+      `con la fuente al 200 % sobre ${ANCHO_MINIMO_SOPORTADO_PX} px el rotulo de un boton lg se queda ` +
+        `con ${rotulo}px dentro de un contenedor de ${contenedor}px; el 2026-09-05 el CTA de Contacto ` +
+        "medido en Chrome daba 58,8px en 9 lineas, una letra por linea.",
+    ).toBeGreaterThanOrEqual(ROTULO_MINIMO_PX);
+  });
+});

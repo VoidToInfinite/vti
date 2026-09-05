@@ -21,7 +21,20 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const ScInput = styled.input`
   height: 44px;
   width: 100%;
-  padding: 0 ${({ theme }) => theme.data.space[4]};
+  /*
+   * Eje INLINE en inlineSpace, no en space (ola R, 2026-09-05). Medido ese dia
+   * en Chrome sobre el build de produccion servido con la fuente al 200 %
+   * (Page.setFontSizes a 32 px) y 320 px de viewport: los rellenos en rem de la
+   * cadena que envuelve este campo se doblaban mientras el viewport se quedaba
+   * donde estaba, y la columna util del formulario de Contacto caia a 28 px de
+   * ancho -- la etiqueta Tu correo (opcional) en 13 lineas, el texto de ayuda
+   * en 61. Este relleno es el ultimo eslabon de esa cadena. inlineSpace es la
+   * misma escala con un techo en vw calibrado para valer el peldano exacto a
+   * 320 px, asi que con la raiz por defecto el campo no cambia ni un pixel; ver
+   * su docblock en src/theme/tokens/space.ts. El height no se toca: es una
+   * medida de layout, no un espaciado, y no compite con el ancho del viewport.
+   */
+  padding: 0 ${({ theme }) => theme.data.inlineSpace[4]};
   border-radius: ${({ theme }) => theme.data.radius.sm};
   /*
    * BORDE EN REPOSO — incumplimiento REAL de WCAG 1.4.11 corregido el
