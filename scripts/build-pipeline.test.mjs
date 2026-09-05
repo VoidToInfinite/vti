@@ -88,6 +88,40 @@ import { describe, it, expect } from "vitest";
  *       autosatisface: expected [ 'pnpm measure:js --update-baseline' ] to
  *       deeply equal []
  *
+ * LO QUE ANADE EL FRENTE J (2026-09-05): LA SECUENCIA NO TENÍA ATADURA DE
+ * EXTENSIÓN. Los cuatro casos de arriba recorren `SECUENCIA`, y ninguno decía
+ * cuántos eslabones tiene que haber ni cuáles: el verificador de candados de la
+ * ola R quitó `pnpm measure:js` de los TRES sitios a la vez —el paso del
+ * workflow, el eslabón del `command` de Netlify y la entrada de la lista— y los
+ * ocho casos siguieron en verde sobre un pipeline que ya no contrasta el censo
+ * contra el artefacto. Es la misma vacuidad que `check-site-surfaces.test.mjs`
+ * cerró cuatro veces: un candado que itera una lista sale verde cuando la lista
+ * encoge.
+ *
+ * Se cierra con los tres comandos TECLEADOS uno a uno (`GATE`, `BUILD`,
+ * `CENSO`) afirmados FUERA de cualquier bucle sobre `SECUENCIA`, más el suelo
+ * numérico `MINIMO_ESLABONES`. Las dos inyecciones, cada una aplicada sola,
+ * ejecutada, vista en rojo y restaurada (los tres ficheros se restauraron desde
+ * una copia previa y `git status` los dejó sin marcar):
+ *
+ *  5. EL RECORTE SIMÉTRICO DE LOS TRES FICHEROS, repetido tal cual —«Tests 1
+ *     failed | 8 passed (9)», y el único que cae es el caso nuevo, que es
+ *     exactamente la demostración de que los otros ocho no lo veían:
+ *       AssertionError: el workflow de CI no ejecuta `pnpm measure:js`: sin ese
+ *       paso el censo del bundle vuelve a compararse solo contra sí mismo. Pasos
+ *       reales: corepack enable | pnpm install --frozen-lockfile | pnpm run ci |
+ *       pnpm build: expected [ 'corepack enable', …(3) ] to include 'pnpm
+ *       measure:js'
+ *  6. RECORTADA SOLO `SECUENCIA`, con los dos pipelines intactos —la variante en
+ *     la que alguien borra la lista sin tocar la configuración— cae el suelo:
+ *       AssertionError: la secuencia bajó de 3 eslabones: este número solo sube,
+ *       y recortar la lista es justo la supresión que los cuatro casos que la
+ *       recorren no ven. Si de verdad sobra un paso, se quita aquí, a la vista,
+ *       y no de paso mientras se limpia un YAML: expected 2 to be greater than
+ *       or equal to 3
+ *
+ * Restauradas las dos, 9 casos en verde.
+ *
  * RIESGO DECLARADO, no resuelto (2026-09-05): el censo versionado se generó a
  * partir de un build hecho en Windows con Node 25 y los pipelines lo compararán
  * contra uno hecho en Linux con Node 22. Este fichero no puede decir nada sobre
@@ -102,11 +136,38 @@ const NETLIFY_PATH = path.join(ROOT, "netlify.toml");
 const PACKAGE_PATH = path.join(ROOT, "package.json");
 
 /**
+ * Los tres comandos de la secuencia, TECLEADOS uno a uno y con nombre propio.
+ *
+ * Existen aparte de `SECUENCIA` porque los cuatro casos de abajo recorrían esa
+ * lista y NADA la ataba: el recorte simétrico de tres ficheros —quitar `pnpm
+ * measure:js` del paso del workflow, del `command` de Netlify y de esta
+ * lista— dejaba los ocho casos en verde sobre un pipeline que ya no medía el
+ * censo. Es la misma vacuidad que este repo ya pagó cuatro veces con listas que
+ * se recorren: un candado que itera una lista sale verde cuando la lista
+ * encoge.
+ *
+ * Con los tres tecleados, ese recorte tiene que borrar además una constante con
+ * nombre y una aserción escrita a mano, que es una decisión visible en el diff
+ * en vez de tres borrados que se leen como limpieza.
+ */
+const GATE = "pnpm run ci";
+const BUILD = "pnpm build";
+const CENSO = "pnpm measure:js";
+
+/**
+ * El suelo numérico de la secuencia, con el mismo papel que los suelos de
+ * `check-site-surfaces.test.mjs`: la igualdad de abajo ata `SECUENCIA` a los
+ * tres nombres, y este número es lo único que no se puede recortar sin escribir
+ * a mano un número más pequeño.
+ */
+const MINIMO_ESLABONES = 3;
+
+/**
  * La secuencia que los dos pipelines tienen que ejecutar, en este orden: el
  * gate primero, el build después y la medición del censo contra ese build al
  * final.
  */
-const SECUENCIA = ["pnpm run ci", "pnpm build", "pnpm measure:js"];
+const SECUENCIA = [GATE, BUILD, CENSO];
 
 /** El instrumento en modo veredicto: mide y falla, no resella. */
 const MEASURE_JS = "node scripts/measure-home-js.mjs";
@@ -151,6 +212,68 @@ function eslabonesDeNetlify(texto) {
 }
 
 describe("el censo del bundle se compara contra el artefacto real", () => {
+    it("la secuencia no puede ENCOGER: los tres comandos, tecleados, siguen en los dos pipelines", () => {
+        /*
+         * EL HUECO QUE CIERRA ESTE CASO, reproducido antes de escribirlo: los
+         * cuatro casos de abajo recorren `SECUENCIA`, así que un recorte
+         * simétrico de tres ficheros —el paso `- run: pnpm measure:js` del
+         * workflow, el eslabón `&& pnpm measure:js` del `command` de Netlify y
+         * la entrada de `SECUENCIA`— los deja a los ocho en verde: el bucle
+         * comprueba dos comandos, los encuentra, y el pipeline ya no mide el
+         * censo contra el artefacto. El candado se recortaba a sí mismo.
+         *
+         * Aquí los tres van TECLEADOS y FUERA de cualquier bucle sobre la lista
+         * que se verifica, que es la única forma de que la lista no pueda
+         * decidir cuánto se comprueba. El suelo numérico cierra la variante en
+         * la que alguien borra también la constante con nombre.
+         */
+        const pasos = pasosDeWorkflow(CI_TEXT);
+        const eslabones = eslabonesDeNetlify(NETLIFY_TEXT) ?? [];
+
+        expect(
+            pasos,
+            `el workflow de CI no ejecuta \`${GATE}\`: sin el gate, CI publicaría ` +
+                `código que no pasa typecheck, lint, formato, anti-patrones ni tests. ` +
+                `Pasos reales: ${pasos.join(" | ")}`,
+        ).toContain(GATE);
+        expect(
+            pasos,
+            `el workflow de CI no ejecuta \`${BUILD}\`: sin artefacto no hay nada ` +
+                `contra lo que contrastar el censo. Pasos reales: ${pasos.join(" | ")}`,
+        ).toContain(BUILD);
+        expect(
+            pasos,
+            `el workflow de CI no ejecuta \`${CENSO}\`: sin ese paso el censo del ` +
+                `bundle vuelve a compararse solo contra sí mismo. Pasos reales: ` +
+                `${pasos.join(" | ")}`,
+        ).toContain(CENSO);
+
+        expect(
+            eslabones,
+            `el \`command\` de netlify.toml no encadena \`${GATE}\`: el despliegue ` +
+                `pasaría por encima del gate. Eslabones reales: ${eslabones.join(" | ")}`,
+        ).toContain(GATE);
+        expect(
+            eslabones,
+            `el \`command\` de netlify.toml no encadena \`${BUILD}\`: Netlify no ` +
+                `tendría artefacto que publicar. Eslabones reales: ${eslabones.join(" | ")}`,
+        ).toContain(BUILD);
+        expect(
+            eslabones,
+            `el \`command\` de netlify.toml no encadena \`${CENSO}\`: se publicaría ` +
+                `sin contrastar el censo contra el artefacto. Eslabones reales: ` +
+                `${eslabones.join(" | ")}`,
+        ).toContain(CENSO);
+
+        expect(
+            SECUENCIA.length,
+            `la secuencia bajó de ${MINIMO_ESLABONES} eslabones: este número solo ` +
+                `sube, y recortar la lista es justo la supresión que los cuatro casos ` +
+                `que la recorren no ven. Si de verdad sobra un paso, se quita aquí, a ` +
+                `la vista, y no de paso mientras se limpia un YAML`,
+        ).toBeGreaterThanOrEqual(MINIMO_ESLABONES);
+    });
+
     it("el workflow de CI construye y mide DESPUÉS del gate, en tres pasos y en ese orden", () => {
         const pasos = pasosDeWorkflow(CI_TEXT);
         for (const comando of SECUENCIA) {
