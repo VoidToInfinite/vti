@@ -21,6 +21,7 @@ import {
   JOURNEY_QUOTE_EXIT_SPAN,
   JOURNEY_SLIDES,
 } from "./journey.layers";
+import { JOURNEY_QUOTE_DESCENT_RESERVE } from "./journey.deck";
 import {
   JOURNEY_PORTAL_LAYERS,
   JOURNEY_PORTAL_VOID,
@@ -2719,6 +2720,25 @@ function condicionesQueDeclaran(el: HTMLElement, propiedad: string): string[] {
     .map((regla) => regla.cssText.slice(0, regla.cssText.indexOf("{")).trim());
 }
 
+/**
+ * Resuelve a pixeles un `clamp(A rem, B vw, C rem)` con la misma aritmetica que
+ * hace el navegador -- `max(A, min(B, C))` con cada termino ya en pixeles --
+ * porque jsdom no resuelve `clamp()` ni `vw` (regla 36). Existe aparte de `aPx`
+ * a proposito: aquel resuelve RELLENOS (`calc`/`min`/`rem`) y este resuelve el
+ * unico `clamp()` que estos candados necesitan, el `font-size` de la cita.
+ */
+function clampAPx(valor: string, raizPx: number, viewportPx: number): number {
+  const partes = valor
+    .trim()
+    .replace(/\s+/g, " ")
+    .match(/^clamp\(([\d.]+)rem, ([\d.]+)vw, ([\d.]+)rem\)$/);
+  if (!partes) throw new Error(`tamano de fuente no reconocido: "${valor}"`);
+  const suelo = Number(partes[1]) * raizPx;
+  const preferido = (Number(partes[2]) * viewportPx) / 100;
+  const techo = Number(partes[3]) * raizPx;
+  return Math.max(suelo, Math.min(preferido, techo));
+}
+
 describe("Journey: critica #16 -- la copia del deck reserva el canal del rail", () => {
   beforeEach(() => {
     stubMatchMedia();
@@ -2927,6 +2947,142 @@ describe("Journey: critica #16 -- la copia del deck reserva el canal del rail", 
       "@media (prefers-reduced-motion: reduce)",
       `@media ${themes.dark.breakPoint.lg}`,
     ]);
+  });
+});
+
+/*
+ * VERIFICADOR DE PRODUCTO DE LA OLA R (2026-09-05, P3): la cita de cierre del
+ * deck oscuro sobresalia de su escenario recortante.
+ *
+ * EL DEFECTO, MEDIDO en Chrome sobre el build de produccion servido, tema
+ * oscuro y `prefers-reduced-motion: reduce`, comparando el rect del span de la
+ * cita con el de ScJourneyStage (`overflow: hidden`): la cita cae 4,81 px por
+ * debajo del recorte a 320 px de ancho con la raiz por defecto y 10,61 px con
+ * la fuente al 200 %. En Story, que declara el MISMO tamano y el MISMO
+ * interlineado, no ocurre.
+ *
+ * LA CAUSA, y no es el eje inline. La columna se respeta a los dos lados en las
+ * siete combinaciones de ancho y raiz medidas; lo que se sale es el eje de
+ * BLOQUE. `line-height: 1.03` (`type.scale.display.lineHeight`) es mas apretado
+ * que el area de contenido de la fuente (~1,30 em), asi que la caja en linea de
+ * la ultima linea cuelga por debajo de la caja del parrafo. Bajo `reduce` el
+ * escenario pasa a `height: auto` (D12) y esta cita es su ULTIMA caja en flujo:
+ * ese sobrante cae justo fuera del recorte. En Story la nota de cierre no es lo
+ * ultimo -- debajo va el enlace de comunidad, con interlineado de cuerpo, y su
+ * caja absorbe el sobrante.
+ *
+ * LO QUE ATA ESTE CASO: que la reserva exista bajo `reduce`; que salga de la
+ * misma constante que consume el componente (regla 39); que viva SOLO ahi -- la
+ * rama con movimiento centra la diapositiva dentro de una pantalla y no recorta
+ * nada, asi que declararla siempre moveria la composicion por defecto sin
+ * cerrar ningun defecto--; y, sobre todo, que CUBRA el sobrante medido. Esto
+ * ultimo no es una comprobacion de texto: la reserva se declara en `em` y el
+ * tamano de la cita es un `clamp()` con termino en `vw`, asi que la relacion se
+ * resuelve del CSSOM para cada par ancho/raiz que se midio en navegador.
+ */
+describe("Journey: verificador de la ola R -- la cita de cierre cabe en su escenario", () => {
+  /*
+   * Sobrante MEDIDO en Chrome sobre el build de produccion: pixeles que la caja
+   * en linea de la cita cae por debajo de la caja de su parrafo -- y, por tanto,
+   * por debajo del escenario, que recorta a ras -- para cada par ancho/raiz.
+   * Los mismos siete casos que documenta JOURNEY_QUOTE_DESCENT_RESERVE
+   * (`journey.deck.tsx`), menos el de 390x32, que repite el valor de 320x32
+   * porque a esa raiz el `clamp()` ya esta en su suelo en los dos anchos.
+   */
+  const SOBRANTE_MEDIDO = [
+    { ancho: 320, raiz: 16, px: 4.81 },
+    { ancho: 320, raiz: 32, px: 10.61 },
+    { ancho: 390, raiz: 16, px: 5.81 },
+    { ancho: 1000, raiz: 16, px: 14.7 },
+    { ancho: 1280, raiz: 16, px: 17.17 },
+    { ancho: 1280, raiz: 32, px: 18.98 },
+  ];
+
+  beforeEach(() => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+  });
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  async function citaDeCierre(): Promise<HTMLElement> {
+    const { container } = renderWithProviders(<Journey />);
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+        JOURNEY_SLIDES,
+      );
+    });
+    // La ultima diapositiva del deck no tiene mas que la cita: se localiza por
+    // su indice, derivado de JOURNEY_SLIDES, nunca por el ultimo <p> del arbol.
+    return container.querySelector(
+      `[data-slide-index="${JOURNEY_SLIDES - 1}"] p`,
+    ) as HTMLElement;
+  }
+
+  /*
+   * VALIDADO CON BUG INYECTADO (2026-09-05): quitando la linea
+   * `padding-block-end` del bloque `@media (prefers-reduced-motion: reduce)` de
+   * ScJourneyQuote (`journey.deck.tsx`) este caso cae con esta linea literal:
+   *
+   *   se esperaba UNA declaracion de padding-block-end bajo reduce, hay 0: expected [] to have a length of 1 but got +0
+   *
+   * Restaurada la linea, verde.
+   */
+  it("bajo reduce la cita reserva el semi-interlineado que su line-height no cubre, y solo bajo reduce", async () => {
+    const cita = await citaDeCierre();
+
+    // La premisa del defecto: el interlineado de cartel, mas apretado que el
+    // area de contenido de la fuente. Es lo que produce el sobrante.
+    expect(declaracionBaseDe(cita, "line-height")).toBe(
+      String(themes.dark.type.scale.display.lineHeight),
+    );
+
+    expect(declaracionEnReduceDe(cita, "padding-block-end")).toBe(
+      JOURNEY_QUOTE_DESCENT_RESERVE,
+    );
+
+    // Una sola declaracion en todo el CSS del elemento, y la de arriba ya
+    // demostro que esa una vive dentro del bloque de reduce: la rama con
+    // movimiento se queda exactamente como estaba.
+    const apariciones =
+      cssRuleTextFor(cita).split("padding-block-end").length - 1;
+    expect(
+      apariciones,
+      "la reserva vive SOLO bajo reduce: fuera de ahi el escenario centra la diapositiva y no recorta nada",
+    ).toBe(1);
+  });
+
+  /*
+   * VALIDADO CON BUG INYECTADO (2026-09-05): bajando
+   * JOURNEY_QUOTE_DESCENT_RESERVE (`journey.deck.tsx`) de "0.16em" a "0.1em"
+   * -- una reserva que sigue existiendo pero ya no cubre el sobrante medido --
+   * este caso cae con esta linea literal:
+   *
+   *   reserva a 320x16: 4.00 px de reserva para un sobrante medido de 4.81 px (fuente 40 px): expected 4 to be greater than or equal to 4.81
+   *
+   * Restaurado "0.16em", verde.
+   */
+  it("la reserva cubre el sobrante medido en las dos raices y en los cuatro anchos, resuelta del CSSOM", async () => {
+    const cita = await citaDeCierre();
+    const tamano = declaracionBaseDe(cita, "font-size");
+    const reserva = declaracionEnReduceDe(cita, "padding-block-end");
+    // La reserva se declara en `em` a proposito: el sobrante es una fraccion
+    // constante del tamano de la fuente, y entre 320 y 1280 px ese tamano lo
+    // fija el termino en `vw` del clamp, que no sigue a la raiz. Una reserva en
+    // `rem` se quedaria corta justo en las pantallas medianas.
+    expect(reserva.endsWith("em")).toBe(true);
+    expect(reserva.endsWith("rem")).toBe(false);
+    const reservaEm = Number(reserva.replace("em", ""));
+
+    for (const caso of SOBRANTE_MEDIDO) {
+      const fuente = clampAPx(tamano, caso.raiz, caso.ancho);
+      const reservaPx = fuente * reservaEm;
+      expect(
+        reservaPx,
+        `reserva a ${caso.ancho}x${caso.raiz}: ${reservaPx.toFixed(2)} px de reserva para un sobrante medido de ${caso.px} px (fuente ${fuente} px)`,
+      ).toBeGreaterThanOrEqual(caso.px);
+    }
   });
 });
 

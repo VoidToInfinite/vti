@@ -889,6 +889,44 @@ export const ScJourneyStepSubtitle = styled.p`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
 `;
 
+/**
+ * Semi-interlineado que `line-height: 1.03` NO cubre, por debajo de la ultima
+ * linea de la cita, expresado en `em` para que siga al tamano de la propia
+ * pieza y no a la raiz del documento.
+ *
+ * POR QUE EXISTE ESTE NUMERO. `type.scale.display.lineHeight` (1.03) es un
+ * interlineado de CARTEL: mas apretado que el area de contenido de la familia
+ * de la marca, que mide ~1.30 em (ascendente + descendente). La diferencia --
+ * ~0.27 em -- se reparte arriba y abajo como semi-interlineado NEGATIVO, asi
+ * que la caja en linea de cada linea sobresale por fuera de la caja del
+ * parrafo. Dentro de un bloque de texto no se nota, porque la linea siguiente
+ * ocupa ese espacio; en la ULTIMA linea el sobrante cuelga por debajo del
+ * parrafo, y esta pieza es lo ultimo que hay dentro de ScJourneyStage, que
+ * recorta con `overflow: hidden`.
+ *
+ * DE DONDE SALE EL VALOR. Medido en Chrome sobre el build de produccion, tema
+ * oscuro y `prefers-reduced-motion: reduce`, comparando el rect del span de la
+ * cita con el de su parrafo (ancho x raiz -> px de sobrante / la misma cifra en
+ * em de la fuente resuelta):
+ *
+ *   320x16 ->  4,81 px / 0,1203 em      390x16 ->  5,81 px / 0,1355 em
+ *   320x32 -> 10,61 px / 0,1326 em      390x32 -> 10,61 px / 0,1326 em
+ *  1000x16 -> 14,70 px / 0,1337 em     1280x16 -> 17,17 px / 0,1342 em
+ *  1280x32 -> 18,98 px / 0,1348 em
+ *
+ * El sobrante es una fraccion CONSTANTE del tamano de fuente -- 0,1203 a 0,1355
+ * em en siete combinaciones de ancho y raiz -- y por eso la reserva se declara
+ * en `em` y no en `rem` ni en un peldano de `space`: entre 320 px y 1280 px la
+ * cita se dimensiona con el termino en `vw` de su `clamp()`, que no sigue a la
+ * raiz, asi que una reserva en `rem` se quedaria corta justo en las pantallas
+ * medianas (a 1000 px de ancho harian falta 14,70 px y `space[2]` daria 8).
+ *
+ * 0.16 em cubre el peor caso medido con ~18 % de margen, que es el colchon para
+ * las metricas de la fuente de respaldo cuando la de la marca todavia no ha
+ * cargado o no esta disponible.
+ */
+export const JOURNEY_QUOTE_DESCENT_RESERVE = "0.16em";
+
 /*
  * Cita de cierre (ultima diapositiva). Envuelve a ScQuoteText (Journey.tsx,
  * reutilizado tal cual por las dos ramas: el degradado de texto que ya
@@ -953,6 +991,35 @@ export const ScJourneyStepSubtitle = styled.p`
  * dejaria invisibles pero focalizables -- exactamente la trampa de foco que el
  * docblock de ScJourneySlide documenta al revertir su `visibility`. Un control
  * operable no se apaga con opacity.
+ *
+ * ---
+ *
+ * LA CITA CABE EN SU ESCENARIO (verificador de producto de la ola R,
+ * 2026-09-05, P3). El `padding-block-end` del guard de `reduce` no es simetria
+ * decorativa: cierra un recorte medido.
+ *
+ * EL DEFECTO. Bajo `reduce`, ScJourneyStage pasa a `height: auto` (D12) y su
+ * ultima caja en flujo es esta cita, a ras del borde por el que el escenario
+ * recorta (`overflow: hidden`). Con `line-height: 1.03` la caja en linea de la
+ * ultima linea cuelga por debajo de la caja del parrafo, asi que el descendente
+ * de esa linea cae fuera del recorte: medido en Chrome sobre el build de
+ * produccion, tema oscuro, 320 px de ancho, 4,81 px a la raiz por defecto y
+ * 10,61 px con la fuente al 200 %. El razonamiento de la metrica y las siete
+ * medidas completas viven en el docblock de JOURNEY_QUOTE_DESCENT_RESERVE,
+ * arriba.
+ *
+ * POR QUE NO PASA EN STORY, que declara el MISMO tamano y el MISMO
+ * interlineado en ScDeckNote (`story.deck.tsx`): alli la nota no es lo ultimo
+ * de la diapositiva de cierre -- debajo va el enlace de comunidad
+ * (ScDeckNoteLink, Story.tsx), con interlineado de cuerpo, y su caja absorbe el
+ * sobrante antes de llegar al recorte del escenario. Aqui la cita esta sola.
+ *
+ * POR QUE SOLO BAJO `reduce`, y no siempre: sin la preferencia el escenario
+ * mide una pantalla y centra la diapositiva, asi que el sobrante cae dentro de
+ * la holgura vertical y no se recorta -- comprobado a 320 px con las dos raices
+ * sobre el mismo build. Declararlo sin condicion moveria la composicion por
+ * defecto (la cita crece 6,4 px a la raiz por defecto y, al estar centrada, se
+ * desplazaria 3,2 px hacia arriba) para cerrar un defecto que ahi no existe.
  */
 export const ScJourneyQuote = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -967,5 +1034,6 @@ export const ScJourneyQuote = styled.p`
 
   @media (prefers-reduced-motion: reduce) {
     opacity: 1;
+    padding-block-end: ${JOURNEY_QUOTE_DESCENT_RESERVE};
   }
 `;
