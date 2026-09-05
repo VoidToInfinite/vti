@@ -281,10 +281,18 @@ const STORY_STATEMENT_LETTER_SPACING = "-0.03em";
 /** Suelo/techo de la tipografia fluida (mockup: `max(24px, min(10.5vw,
  *  19.2vh, 340px))`). Ver `storyStatementFontSize`, debajo, para el termino
  *  ANADIDO que acota tambien por ancho disponible -- el riesgo que la propia
- *  spec señala: con `white-space: nowrap`, esta formula por si sola puede
- *  desbordar horizontalmente en viewports estrechos. */
-const STORY_STATEMENT_MIN_SIZE = "24px";
-const STORY_STATEMENT_MAX_SIZE = "340px";
+ *  spec señala: esta formula por si sola puede desbordar horizontalmente en
+ *  viewports estrechos.
+ *
+ *  LOS DOS EXTREMOS PASAN DE PIXELES A `rem` (WCAG 1.4.4, 2026-09-05), con
+ *  el valor EXACTO que ya tenian con la raiz por defecto: 1.5rem = 24px y
+ *  21.25rem = 340px. Un extremo en pixeles no sabe nada de la preferencia de
+ *  tamano de texto del usuario, y a 320px es el suelo quien decide (10.5vw =
+ *  33,6px, por encima del tope de ancho): medido en Chrome sobre el build
+ *  servido con `Page.setFontSizes` a 16 y a 32, estas tres lineas median
+ *  24px con las DOS raices mientras el cuerpo doblaba de 16 a 32. */
+const STORY_STATEMENT_MIN_SIZE = "1.5rem";
+const STORY_STATEMENT_MAX_SIZE = "21.25rem";
 
 /**
  * Tamano de fuente de las tres lineas del statement (D12). Envuelve la
@@ -340,9 +348,40 @@ const STORY_STATEMENT_MAX_SIZE = "340px";
  * igualdad `(320 - 2 * 16) / 12 = 24,00px` pasa a cumplirse tambien al 200 %.
  * Con la raiz por defecto no cambia ni un pixel a ningun ancho: a 320px los
  * dos terminos del `min()` valen 16px, y por encima gana el `rem`.
+ *
+ * EL SUELO SALE DEL `min()` EXTERIOR Y PASA A ENVOLVERLO (WCAG 1.4.4,
+ * 2026-09-05). Hasta aqui la forma era `min(max(suelo, fluido), tope)`: el
+ * tope de ancho podia PERFORAR el suelo, y de hecho lo perforaba en cuanto
+ * el suelo crecia -- con el suelo ya en `rem` y la raiz a 32px, el tope
+ * `(320 - 2*16)/12 = 24px` habria seguido devolviendo 24px y el arreglo de
+ * la unidad no habria servido de nada. La forma nueva es
+ * `max(suelo, min(fluido, tope))`: el suelo manda siempre.
+ *
+ * CON LA RAIZ POR DEFECTO NO CAMBIA NADA A NINGUN ANCHO SOPORTADO, y no es
+ * una impresion: las dos formas solo difieren cuando el tope es MENOR que el
+ * suelo (la vieja devuelve el tope, la nueva el suelo), y eso exige
+ * `(100vw - 2*pad)/12 < 24px`, es decir `100vw < 288 + 2*pad`; con
+ * `pad = min(16px, 5vw)` eso solo ocurre por debajo de 320px CSS, fuera del
+ * soporte declarado (`MIN_VIEWPORT_PX`). Verificado ademas contra el
+ * navegador: 24 / 29,8333 / 58,6667 / 101,333px a 320 / 390 / 768 / 1280px
+ * con la raiz a 16, antes y despues.
+ *
+ * Y `white-space: nowrap` SE RETIRA de las tres lineas (mas abajo). Con el
+ * suelo escalando, a 320px y raiz 32px la fuente pasa a 48px y la linea mas
+ * larga pide 9,84em (medido: 236,11px de caja a 24px de fuente, o sea 0,579em
+ * por caracter en los 17 de "un nuevo comienzo"), es decir 472px sobre 288px
+ * utiles: con `nowrap` el cartel se saldria del viewport (perdida de
+ * contenido, WCAG 1.4.10) en vez de envolver. La garantia de UNA linea por
+ * cartel con la raiz por defecto no dependia de `nowrap` sino de esta misma
+ * formula -- el tope divide el ancho util entre 12 em y el texto real ocupa
+ * 9,84 --, asi que sigue en pie por construccion: siempre que el tope sea el
+ * termino que manda, `9,84 * fuente <= 9,84 * tope < ancho util`. El reveal
+ * por lineas tampoco depende de `nowrap`: cada linea es su propio elemento
+ * con su propia transicion (ScStatementFirst/Second/Third), no un fragmento
+ * de linea renderizada.
  */
 function storyStatementFontSize(): string {
-  return `min(max(${STORY_STATEMENT_MIN_SIZE}, min(10.5vw, 19.2vh, ${STORY_STATEMENT_MAX_SIZE})), calc((100vw - var(--story-statement-pad) - var(--story-statement-pad)) / 12))`;
+  return `max(${STORY_STATEMENT_MIN_SIZE}, min(10.5vw, 19.2vh, ${STORY_STATEMENT_MAX_SIZE}, calc((100vw - var(--story-statement-pad) - var(--story-statement-pad)) / 12)))`;
 }
 
 /*
@@ -1311,7 +1350,9 @@ const ScStatementText = styled.p`
 
 /*
  * Las tres lineas comparten casi toda su declaracion (tipografia de cartel
- * fluida, mayusculas, `nowrap` acotado por `storyStatementFontSize`) y solo
+ * fluida y mayusculas; el `white-space: nowrap` que las tres llevaban se
+ * retiro el 2026-09-05 -- ver el docblock de `storyStatementFontSize` para la
+ * medicion que lo obliga) y solo
  * difieren en color/transform-de-entrada (tabla D4 de la spec
  * 2026-08-07-story-statement-scroll-observer-design.md, VERBATIM de D12 --
  * esta entrega no toca ni una de estas declaraciones, solo QUIEN las
@@ -1349,7 +1390,6 @@ const ScStatementFirst = styled.span`
   line-height: ${STORY_STATEMENT_LINE_HEIGHT};
   letter-spacing: ${STORY_STATEMENT_LETTER_SPACING};
   text-transform: uppercase;
-  white-space: nowrap;
   color: ${({ theme }) => theme.data.semantic.text};
   opacity: 0;
   transform: translateX(-16%);
@@ -1382,7 +1422,6 @@ const ScStatementSecond = styled.span`
   line-height: ${STORY_STATEMENT_LINE_HEIGHT};
   letter-spacing: ${STORY_STATEMENT_LETTER_SPACING};
   text-transform: uppercase;
-  white-space: nowrap;
   color: ${({ theme }) => theme.data.semantic.brandText};
   opacity: 0;
   transform: scale(0.9);
@@ -1426,7 +1465,6 @@ const ScStatementThird = styled(ScAccent)`
   line-height: ${STORY_STATEMENT_LINE_HEIGHT};
   letter-spacing: ${STORY_STATEMENT_LETTER_SPACING};
   text-transform: uppercase;
-  white-space: nowrap;
   opacity: 0;
   transform: translateX(16%);
   transition:

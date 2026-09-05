@@ -21,6 +21,7 @@ import {
   relativeLuminanceHex,
 } from "@/theme/tokens/contrast";
 import { basicLightTheme, basicDarkTheme } from "@/theme/themes";
+import { longitudCssEnPx, redondear } from "@/test/cssLength";
 import { MIN_VIEWPORT_PX } from "@/theme/tokens/space";
 import {
   STORY_DARK_HEIGHT,
@@ -3800,5 +3801,163 @@ describe("Story: critica #16 -- el arte del deck oscuro se anuncia como UNA imag
     // dos artes distintos y describirlos con la misma frase seria mentir.
     expect(esHome.Home.story.sceneAlt).not.toBe(esHome.Home.story.figureAlt);
     expect(enHome.Home.story.sceneAlt).not.toBe(enHome.Home.story.figureAlt);
+  });
+});
+
+/**
+ * CANDADO: EL CARTEL DEL STATEMENT CRECE CON LA PREFERENCIA DE TAMANO DE
+ * TEXTO (WCAG 1.4.4, hallazgo del revisor adversarial del 2026-09-05).
+ *
+ * EL DEFECTO, medido en Chrome sobre el build servido de `dcafec4` (tema
+ * claro, `reducedMotion: reduce`, `Page.setFontSizes` a 16 y a 32 -- la misma
+ * palanca que la preferencia del navegador, 320 px de viewport): las tres
+ * lineas median 24px con las DOS raices, mientras el cuerpo de la pagina
+ * doblaba de 16 a 32 en la MISMA muestra. Dos causas encadenadas: el suelo
+ * estaba escrito en PIXELES (`24px`) y ademas vivia DENTRO del `min()` que
+ * acota por ancho disponible, asi que el tope podia perforarlo -- con el
+ * suelo ya en `rem`, el tope `(320 - 2*16)/12 = 24px` habria seguido
+ * devolviendo 24px y el cambio de unidad no habria servido de nada.
+ *
+ * QUE SE CANDA: la PROPIEDAD, no la cadena. Se resuelve la declaracion real
+ * con `longitudCssEnPx` (`src/test/cssLength.ts`, verificado contra estas
+ * mismas cifras de navegador en `cssLength.test.ts`) y se exige (a) el mismo
+ * numero que se midio antes del arreglo con la raiz por defecto, a cuatro
+ * anchos, (b) al menos el doble con la raiz a 32 px, y (c) que ningun extremo
+ * vuelva a escribirse en pixeles.
+ *
+ * `white-space: nowrap` SE RETIRA en el mismo arreglo, y tambien se canda:
+ * con la fuente al 200 % la linea mas larga pide 9,84em (medido: 236,11px de
+ * caja a 24px de fuente, 17 caracteres) sobre 288px utiles, asi que `nowrap`
+ * la sacaria del viewport -- perdida de contenido, WCAG 1.4.10. La garantia
+ * de una linea por cartel con la raiz por defecto no dependia de `nowrap`
+ * sino de la propia formula (el tope reparte el ancho util en 12em y el texto
+ * ocupa 9,84), y el reveal tampoco: cada linea es su propio elemento con su
+ * propia transicion.
+ *
+ * ## Validado con el bug inyectado a proposito (regla 34 de RULES.md)
+ *
+ * Los dos sabotajes se aplicaron de verdad, se vio el rojo y se restauro. Las
+ * lineas van copiadas de la salida, no predichas.
+ *
+ * 1. DEVOLVIENDO EL SUELO A PIXELES -- `STORY_STATEMENT_MIN_SIZE` de
+ *    `"1.5rem"` a `"24px"`, que es exactamente el defecto que el revisor
+ *    midio. Rojo en los dos casos que tienen que cazarlo:
+ *
+ *      AssertionError: el cartel no crece con la raiz: 24px con la raiz a 32px (antes 24px con la raiz a 16px). WCAG 1.4.4 pide que el texto llegue al 200 %.: expected 24 to be greater than or equal to 48
+ *
+ *      AssertionError: font-size del cartel con extremo en pixeles: "max(24px,min(10.5vw,19.2vh,21.25rem,calc((100vw-var(--story-statement-pad)-var(--story-statement-pad))/12)))". Los extremos de una tipografia fluida se declaran en rem: un pixel no sabe nada de la preferencia de tamano de texto del usuario.: expected [ '24px' ] to have a length of +0 but got 1
+ *
+ * 2. DEVOLVIENDO `white-space: nowrap` a las tres lineas:
+ *
+ *      AssertionError: "Cada idea" sigue en nowrap: a 320px y raiz 32px pide 472px de linea sobre 288 utiles (WCAG 1.4.10): expected 'nowrap' not to be 'nowrap' // Object.is equality
+ */
+describe("Story: el cartel del statement crece con la preferencia de tamano de texto", () => {
+  /** Alto del viewport con el que se midio en Chrome. */
+  const ALTO_VIEWPORT = 800;
+
+  /**
+   * Cifras MEDIDAS en Chrome sobre el build servido de `dcafec4` con la raiz
+   * por defecto: el contrato de "no cambia ni un pixel a ningun ancho
+   * soportado".
+   */
+  const MEDIDO_RAIZ_16 = [
+    { ancho: 320, fontSize: 24 },
+    { ancho: 390, fontSize: 29.8333 },
+    { ancho: 768, fontSize: 58.6667 },
+    { ancho: 1280, fontSize: 101.333 },
+  ] as const;
+
+  /** El umbral `sm` del tema, leido de la MISMA fuente que el CSS (nunca un
+   *  600 tecleado): `screen and (min-width: 37.5em)`. Las media queries
+   *  resuelven `em` contra el tamano de fuente inicial, que es la raiz que
+   *  este candado varia. */
+  function umbralSmEnEm(): number {
+    const encontrado = /\(min-width:\s*([\d.]+)em\)/.exec(
+      basicLightTheme.breakPoint.sm,
+    );
+    expect(
+      encontrado,
+      "el breakpoint sm dejo de declararse en em",
+    ).not.toBeNull();
+    return Number(encontrado?.[1]);
+  }
+
+  /** El valor vigente de `--story-statement-pad` para esa raiz y ese ancho,
+   *  leido de los tokens que el componente consume. */
+  function padVigente(raizPx: number, anchoPx: number): string {
+    return anchoPx >= umbralSmEnEm() * raizPx
+      ? basicLightTheme.inlineSpace[6]
+      : basicLightTheme.inlineSpace[4];
+  }
+
+  /** La declaracion real de las tres lineas (jsdom devuelve el texto crudo:
+   *  no resuelve min(), max(), calc() ni var()). */
+  function declaracionesDelCartel(): string[] {
+    renderWithProviders(<Story />);
+    return [
+      esHome.Home.story.statement.first,
+      esHome.Home.story.statement.second,
+      esHome.Home.story.statement.third,
+    ].map((texto) => getComputedStyle(screen.getByText(texto)).fontSize);
+  }
+
+  function enPx(declaracion: string, raizPx: number, anchoPx: number): number {
+    return longitudCssEnPx(declaracion, {
+      raizPx,
+      anchoPx,
+      altoPx: ALTO_VIEWPORT,
+      vars: { "--story-statement-pad": padVigente(raizPx, anchoPx) },
+    });
+  }
+
+  it("con la raiz por defecto mide EXACTAMENTE lo mismo que antes del arreglo, a los cuatro anchos", () => {
+    for (const declaracion of declaracionesDelCartel()) {
+      for (const caso of MEDIDO_RAIZ_16) {
+        expect(
+          redondear(enPx(declaracion, 16, caso.ancho), 4),
+          `el cartel cambio de tamano a ${String(caso.ancho)}px con la raiz por defecto`,
+        ).toBeCloseTo(caso.fontSize, 3);
+      }
+    }
+  });
+
+  it("con la raiz a 32px (la preferencia al 200 %) el cartel dobla, en vez de quedarse clavado en 24px", () => {
+    for (const declaracion of declaracionesDelCartel()) {
+      const al200 = enPx(declaracion, 32, MIN_VIEWPORT_PX);
+      expect(
+        al200,
+        `el cartel no crece con la raiz: ${String(redondear(al200))}px con la raiz a 32px (antes 24px con la raiz a 16px). WCAG 1.4.4 pide que el texto llegue al 200 %.`,
+      ).toBeGreaterThanOrEqual(48);
+      expect(al200).toBeGreaterThanOrEqual(1.5 * 24);
+    }
+  });
+
+  it("ni el suelo ni el techo del cartel se escriben en pixeles", () => {
+    for (const declaracion of declaracionesDelCartel()) {
+      const enPixeles = declaracion.match(/\d+(?:\.\d+)?px\b/g) ?? [];
+      expect(
+        enPixeles,
+        `font-size del cartel con extremo en pixeles: "${declaracion.replace(/\s+/g, "")}". Los extremos de una tipografia fluida se declaran en rem: un pixel no sabe nada de la preferencia de tamano de texto del usuario.`,
+      ).toHaveLength(0);
+    }
+  });
+
+  it("las tres lineas ya no declaran white-space: nowrap: con la fuente al 200 % sacaria el cartel del viewport", () => {
+    renderWithProviders(<Story />);
+    const lineas = [
+      esHome.Home.story.statement.first,
+      esHome.Home.story.statement.second,
+      esHome.Home.story.statement.third,
+    ].map((texto) => screen.getByText(texto));
+
+    for (const linea of lineas) {
+      expect(
+        getComputedStyle(linea).whiteSpace,
+        `"${linea.textContent ?? ""}" sigue en nowrap: a 320px y raiz 32px pide 472px de linea sobre 288 utiles (WCAG 1.4.10)`,
+      ).not.toBe("nowrap");
+      expect(cssRuleTextFor(linea).replace(/\s+/g, "")).not.toContain(
+        "white-space:nowrap",
+      );
+    }
   });
 });
