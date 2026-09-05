@@ -252,6 +252,11 @@ export function accentColorHover(
  * de tokens (esta rama solo existe en oscuro, D1, así que el rol semántico
  * lo da sin ambigüedad). z-index: 2 (D11): escalera explícita de la
  * página -- Story (auto) → Journey (1) → Features (2).
+ *
+ * `padding` de la rama ACOTADA (`$fullBleed` falso): término INLINE en
+ * `inlineSpace`, términos de BLOQUE en `space` (ver el docblock de
+ * `inlineSpace` en `tokens/space.ts`). Mismo raíl que las hermanas acotadas de
+ * la home, y con la raíz por defecto el mismo valor de siempre.
  */
 const ScFeatures = styled.section<{ $fullBleed: boolean }>`
   /* WCAG 2.1 SC 1.4.4 (critica externa #13), mismo criterio y mismo motivo que
@@ -280,10 +285,6 @@ const ScFeatures = styled.section<{ $fullBleed: boolean }>`
           }
         `
       : css`
-          /* Termino INLINE en inlineSpace, terminos de BLOQUE en space (ver
-             el docblock de inlineSpace en tokens/space.ts): mismo rail que
-             las hermanas acotadas de la home, y con la raiz por defecto el
-             mismo valor de siempre. */
           padding: ${theme.data.space[8]} ${theme.data.inlineSpace[5]}
             ${theme.data.space[9]};
           max-width: ${theme.data.grid.containerMax};
@@ -929,15 +930,17 @@ const ScFigure = styled.img`
 /* Cuerpo de la tarjeta: título + body + bullets + CTA (sin cambios de
    estructura respecto a la entrega anterior, solo pierde el
    position:relative;z-index:1 que necesitaba para competir con el patrón
-   SVG absoluto que esta entrega retira -- ver features.layers.ts). */
+   SVG absoluto que esta entrega retira -- ver features.layers.ts).
+
+   `padding`: dos terminos, no uno. El INLINE lee `inlineSpace` (ver su
+   docblock en `tokens/space.ts`) para que el relleno de la tarjeta deje de
+   comerse la columna de texto con la fuente al 200 %; el de BLOQUE sigue en
+   `space`. */
 const ScContent = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
   gap: ${({ theme }) => theme.data.space[2]};
-  /* Dos terminos, no uno: el INLINE lee inlineSpace (ver su docblock en
-     tokens/space.ts) para que el relleno de la tarjeta deje de comerse la
-     columna de texto con la fuente al 200 %; el de BLOQUE sigue en space. */
   padding: ${({ theme }) => theme.data.space[5]}
     ${({ theme }) => theme.data.inlineSpace[5]};
 

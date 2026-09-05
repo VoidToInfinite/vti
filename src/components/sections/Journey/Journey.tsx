@@ -180,6 +180,12 @@ const STEP_STAGGER_MS = 90;
  * con su guard de `reduce` -- mecanica intacta de las dos entregas
  * anteriores (D2/D5/D6, `2026-08-02-journey-overlay-transition-design.md`),
  * que esta spec no toca.
+ *
+ * `padding` de la rama ACOTADA (`$fullBleed` falso): termino INLINE en
+ * `inlineSpace`, termino de BLOQUE en `space` (ver el docblock de
+ * `inlineSpace` en `tokens/space.ts`). Con la raiz por defecto vale lo mismo,
+ * y con la fuente al 200 % deja de doblarse cuando el viewport ya no da mas de
+ * si.
  */
 const ScJourney = styled.section<{ $fullBleed: boolean }>`
   /* WCAG 2.1 SC 1.4.4 (critica externa #13), mismo criterio y mismo motivo que
@@ -216,10 +222,6 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
              literal css de styled-components (task/lessons.md 2026-07-25). */
           max-width: ${theme.data.grid.sectionMax};
           margin-inline: auto;
-          /* Termino INLINE en inlineSpace, termino de BLOQUE en space (ver el
-             docblock de inlineSpace en tokens/space.ts): con la raiz por
-             defecto vale lo mismo, y con la fuente al 200 % deja de doblarse
-             cuando el viewport ya no da mas de si. */
           padding: ${theme.data.space[8]} ${theme.data.inlineSpace[6]};
 
           /* RECORTE DE LA FRONTERA statement -> Journey en MOVIL (critica
@@ -304,17 +306,18 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
  * nunca se midio rota y no se toca. Mismo criterio, mismo par de bloques y
  * misma direccion (base movil + restauracion en md) que el recorte de
  * padding-block-start de ScJourney, justo arriba.
+ *
+ * `padding`: los dos terminos INLINE --el base y el de `md`-- leen
+ * `inlineSpace`; los de BLOQUE siguen en `space` (ver el docblock de
+ * `inlineSpace` en `tokens/space.ts`). La aritmetica del margen que documenta
+ * el parrafo de arriba no se mueve con la raiz por defecto: es la misma
+ * cuenta, con los mismos numeros, hasta que la fuente del usuario crece.
  */
 const ScCard = styled.div`
   position: relative;
   overflow: hidden;
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   background: ${JOURNEY_CARD_BACKGROUND};
-  /* Los dos terminos INLINE --el base y el de md-- leen inlineSpace; los de
-     BLOQUE siguen en space (ver el docblock de inlineSpace en
-     tokens/space.ts). La aritmetica del margen que documenta el docblock de
-     arriba no se mueve con la raiz por defecto: es la misma cuenta, con los
-     mismos numeros, hasta que la fuente del usuario crece. */
   padding: ${({ theme }) => theme.data.space[7]}
     ${({ theme }) => theme.data.inlineSpace[5]}
     ${({ theme }) => theme.data.space[8]};

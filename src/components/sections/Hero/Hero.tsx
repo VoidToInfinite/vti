@@ -47,6 +47,11 @@ import {
  * corregirse, produciendo el CLS medido (0,0799 en el arranque oscuro de
  * escritorio, baseline spec 3.1). Las demas ramas de Hero por tema (texto,
  * sombra, fondo) siguen en React: son opacidad/color, no contribuyen a CLS.
+ *
+ * `padding`: termino INLINE en `inlineSpace` (ver su docblock en
+ * `tokens/space.ts`), mismo valor con la raiz por defecto y acotado al
+ * viewport con la fuente al 200 %. Los dos terminos de BLOQUE siguen en
+ * `space`.
  */
 const ScHero = styled.section`
   position: relative;
@@ -60,9 +65,6 @@ const ScHero = styled.section`
   align-items: center;
   justify-content: flex-end;
   gap: ${({ theme }) => theme.data.space[5]};
-  /* Termino INLINE en inlineSpace (ver su docblock en tokens/space.ts): mismo
-     valor con la raiz por defecto, acotado al viewport con la fuente al
-     200 %. Los dos terminos de BLOQUE siguen en space. */
   padding: ${({ theme }) => theme.data.space[6]}
     ${({ theme }) => theme.data.inlineSpace[5]}
     ${({ theme }) => theme.data.space[8]};

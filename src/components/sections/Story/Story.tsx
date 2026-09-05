@@ -419,11 +419,12 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
  * la geometria pintada es la MISMA que antes del cambio -- este div ocupa
  * exactamente el sitio que ocupaba la seccion, y el statement queda a sangre
  * completa como hermano suyo dentro de ella.
+ *
+ * `padding`: el termino INLINE lee `inlineSpace` y el de BLOQUE sigue en
+ * `space` (ver el docblock de `inlineSpace` en `tokens/space.ts`): mismo valor
+ * con la raiz por defecto, acotado al viewport con la fuente al 200 %.
  */
 const ScStoryInner = styled.div`
-  /* El termino INLINE lee inlineSpace y el de BLOQUE sigue en space (ver el
-     docblock de inlineSpace en tokens/space.ts): mismo valor con la raiz por
-     defecto, acotado al viewport con la fuente al 200 %. */
   padding: ${({ theme }) => theme.data.space[9]}
     ${({ theme }) => theme.data.inlineSpace[5]};
   /* Recorte del relleno de la FRONTERA con el statement (Ola B,
@@ -996,6 +997,10 @@ const ScPillarCardItem = styled.div`
  * pasarian de una fila de cuatro a un 2x2. Eso es una decision de composicion
  * del dueño -- cambia la lectura de la seccion entera, no la de un parrafo --
  * y queda declarada aqui, no tomada desde una tarea de vocabulario.
+ *
+ * `padding`: dos terminos, no uno. El de BLOQUE sigue en `space` y el INLINE
+ * lee `inlineSpace` (ver su docblock en `tokens/space.ts`). Con la raiz por
+ * defecto la tarjeta mide exactamente lo mismo que antes.
  */
 const ScPillarCard = styled.div`
   display: flex;
@@ -1004,9 +1009,6 @@ const ScPillarCard = styled.div`
   background-color: ${({ theme }) => theme.data.semantic.surface};
   border: 1px solid ${({ theme }) => theme.data.palette.neutral[600]};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
-  /* Dos terminos, no uno: el de BLOQUE sigue en space y el INLINE lee
-     inlineSpace (ver su docblock en tokens/space.ts). Con la raiz por defecto
-     la tarjeta mide exactamente lo mismo que antes. */
   padding: ${({ theme }) => theme.data.space[5]}
     ${({ theme }) => theme.data.inlineSpace[5]};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
@@ -1227,6 +1229,24 @@ const ScCardInspiration = styled(Typography)`
  * pin ni pista no hay nada que degradar bajo reduce (D6) -- las tres lineas
  * siguen quedando visibles por su PROPIO guard (ver
  * ScStatementFirst/Second/Third, mas abajo).
+ *
+ * `--story-statement-pad`: mobile-first (Task 7, auditoria premium
+ * 2026-08-08), unica fuente del pad inline, leida tambien por
+ * `storyStatementFontSize` (su docblock, mas arriba, trae la desigualdad
+ * completa que fija el valor base) -- una custom property, no un valor de tema
+ * resuelto una vez en JS, porque necesita cambiar de valor segun el breakpoint
+ * SIN que la formula de tamano de fuente tenga que saber en cual esta: el
+ * navegador resuelve `var()` de nuevo en cada recalculo, con el valor que la
+ * cascada tenga vigente en ESE viewport. `theme.data.inlineSpace[4]` (16px)
+ * hasta `sm` (600px); `theme.data.inlineSpace[6]` (32px, el valor VERBATIM que
+ * esta seccion ya usaba para TODO ancho antes de esa tarea) desde ahi.
+ *
+ * `inlineSpace` y no `space` desde el 2026-09-05: con la raiz por defecto los
+ * dos peldanos valen lo mismo a cualquier ancho, pero con la fuente al 200 %
+ * el pad en `rem` se doblaba y hundia el termino de ancho de
+ * `storyStatementFontSize` por debajo de su suelo de 24px -- la desigualdad
+ * que ese docblock declara se despeja en PIXELES y solo se cumplia con la raiz
+ * a 16. Ver alli la aritmetica completa.
  */
 const ScStatement = styled.section`
   /* 70dvh y no 100dvh (Ola B, 2026-08-16). Esta seccion es un remate a
@@ -1257,23 +1277,6 @@ const ScStatement = styled.section`
   justify-content: center;
   text-align: center;
   padding-block: ${({ theme }) => theme.data.space[8]};
-  /* Mobile-first (Task 7, auditoria premium 2026-08-08): unica fuente del
-     pad inline, leida tambien por storyStatementFontSize (su docblock, mas
-     arriba, trae la desigualdad completa que fija el valor base) -- una
-     custom property, no un valor de tema resuelto una vez en JS, porque
-     necesita cambiar de valor segun el breakpoint SIN que la formula de
-     tamano de fuente tenga que saber en cual esta: el navegador resuelve
-     var() de nuevo en cada recalculo, con el valor que la cascada tenga
-     vigente en ESE viewport. theme.data.inlineSpace[4] (16px) hasta sm
-     (600px); theme.data.inlineSpace[6] (32px, el valor VERBATIM que esta
-     seccion ya usaba para TODO ancho antes de esta tarea) desde ahi.
-
-     inlineSpace y no space desde el 2026-09-05: con la raiz por defecto los
-     dos peldanos valen lo mismo a cualquier ancho, pero con la fuente al
-     200 % el pad en rem se doblaba y hundia el termino de ancho de
-     storyStatementFontSize por debajo de su suelo de 24px -- la desigualdad
-     que ese docblock declara se despeja en PIXELES y solo se cumplia con la
-     raiz a 16. Ver alli la aritmetica completa. */
   --story-statement-pad: ${({ theme }) => theme.data.inlineSpace[4]};
   padding-inline: var(--story-statement-pad);
 

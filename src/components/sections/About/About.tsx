@@ -59,6 +59,12 @@ import { motion } from "@/theme/tokens/motion";
  *     reservas.
  *   - La afirmación de privacidad es la única del sitio comprobable con el
  *     código delante, y está atada por `no-external-hosts.test.ts`.
+ *
+ * `padding`: el término INLINE lee `inlineSpace`, no `space` (ver su docblock
+ * en `tokens/space.ts`): con la raíz por defecto vale exactamente lo mismo, y
+ * con la fuente al 200 % deja de doblarse cuando el viewport ya no da más de
+ * sí. El término de BLOQUE sigue en `space`: la altura no compite con el
+ * viewport.
  */
 
 const ScAbout = styled.section`
@@ -84,11 +90,6 @@ const ScAbout = styled.section`
      motivo y con la misma medicion que documenta ScStory. */
   overflow-wrap: anywhere;
   background-color: ${({ theme }) => theme.data.semantic.surface};
-  /* El termino INLINE lee inlineSpace, no space (ver su docblock en
-     tokens/space.ts): con la raiz por defecto vale exactamente lo mismo, y
-     con la fuente al 200 % deja de doblarse cuando el viewport ya no da mas
-     de si. El termino de BLOQUE sigue en space: la altura no compite con el
-     viewport. */
   padding: ${({ theme }) => theme.data.space[9]}
     ${({ theme }) => theme.data.inlineSpace[5]};
 `;

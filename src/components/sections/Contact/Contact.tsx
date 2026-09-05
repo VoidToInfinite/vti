@@ -176,6 +176,14 @@ const CONTACT_RINGS_PARALLAX_PX = 14;
  */
 const CONTACT_COPY_MAX = "440px";
 
+/*
+ * `padding` de la rama ACOTADA (`$fullBleed` falso): el eje INLINE lee
+ * `inlineSpace`, no `space` (ola R, 2026-09-05). Es el primer relleno de la
+ * cadena viewport -> texto, y en `rem` se doblaba con la fuente al 200 %
+ * mientras el viewport se quedaba en 320 px. Ver el docblock de `ScCard`, mas
+ * abajo, para la medicion. El eje de bloque sigue en `space`: la altura no
+ * compite con el viewport.
+ */
 const ScContact = styled.section<{ $fullBleed: boolean }>`
   /* WCAG 2.1 SC 1.4.4 (critica externa #13), mismo criterio y mismo motivo que
      ScStory: overflow-wrap se hereda, asi que una declaracion en la raiz de la
@@ -200,12 +208,6 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
           }
         `
       : css`
-          /* El eje INLINE lee inlineSpace, no space (ola R, 2026-09-05): es
-             el primer relleno de la cadena viewport -> texto, y en rem se
-             doblaba con la fuente al 200 % mientras el viewport se quedaba en
-             320 px. Ver el docblock de ScCard, mas abajo, para la medicion. El
-             eje de bloque sigue en space: la altura no compite con el
-             viewport. */
           padding: ${theme.data.space[9]} ${theme.data.inlineSpace[5]};
           max-width: ${theme.data.grid.containerMax};
           margin-inline: auto;
@@ -410,6 +412,13 @@ const ScContact = styled.section<{ $fullBleed: boolean }>`
  * `gap` siguen en `space` --separan piezas que crecen con el texto-- y ningun
  * `font-size` se acota con unidades de viewport, que es el patron de fallo F94
  * de WCAG.
+ *
+ * `padding`: movil-first -- el relleno estrecho es el valor BASE y el ancho
+ * llega por media query, no al reves (ver arriba la aritmetica de la banda de
+ * 320px y la medicion que la sostiene). Shorthand de DOS valores desde la ola
+ * R: bloque en `space`, eje inline en `inlineSpace`. Antes era un solo valor
+ * para los cuatro lados y por eso el eje inline se doblaba con la fuente al
+ * 200 %.
  */
 const ScCard = styled.div`
   position: relative;
@@ -427,13 +436,6 @@ const ScCard = styled.div`
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   border: 1px solid ${CONTACT_CARD_BORDER};
   background: ${CONTACT_CARD_GRADIENT};
-  /* Movil-first: el relleno estrecho es el valor BASE y el ancho llega por
-     media query, no al reves (ver el docblock de arriba para la aritmetica de
-     la banda de 320px y la medicion que la sostiene).
-
-     Shorthand de DOS valores desde la ola R: bloque en space, eje inline en
-     inlineSpace. Antes era un solo valor para los cuatro lados y por eso el
-     eje inline se doblaba con la fuente al 200 %. */
   padding: ${({ theme }) => theme.data.space[5]}
     ${({ theme }) => theme.data.inlineSpace[5]};
 
@@ -1079,6 +1081,10 @@ function fieldErrorColor(theme: ThemeDefinition): string {
  * igual con o sin capacidad de hover fino (regla dura de esta tarea, no
  * documentada antes: guardar un :hover,:focus-visible combinado dejaría sin
  * feedback de foco a quien navega por teclado en un dispositivo táctil).
+ *
+ * `padding`: eje inline en `inlineSpace` (ola R). Es el último relleno antes
+ * del texto del canal, el que medido a raíz 32 y 320 px dejaba el valor en
+ * 23,2 px de ancho. Ver el docblock de `ScCard`.
  */
 const ScCardLink = styled.a`
   display: flex;
@@ -1089,9 +1095,6 @@ const ScCardLink = styled.a`
   border: 1px solid
     ${({ theme }) => panelBorder(theme.data, CONTACT_CARD_BORDER_DARK)};
   border-radius: ${({ theme }) => theme.data.radius.xl};
-  /* Eje inline en inlineSpace (ola R): es el ultimo relleno antes del texto
-     del canal, el que medido a raiz 32 y 320 px dejaba el valor en 23,2 px de
-     ancho. Ver el docblock de ScCard. */
   padding: ${({ theme }) => theme.data.space[3]}
     ${({ theme }) => theme.data.inlineSpace[4]};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
@@ -1241,16 +1244,17 @@ const ScCardValue = styled.span`
  * Hay UN SOLO `<form>` en toda la sección: `contactChannels` es un único
  * árbol de JSX que las dos ramas de tema montan tal cual (Task 16), así que
  * este cambio entra a la vez en claro y en oscuro sin ramificar nada.
+ *
+ * `padding`: eje inline en `inlineSpace` (ola R). Es el panel que envuelve
+ * etiqueta, campo, ayuda y contador, los cuatro medidos a 28 px de ancho con
+ * la fuente al 200 % sobre 320 px. Ver el docblock de `ScCard`. El `gap` se
+ * queda en `space`: separa piezas que crecen con el texto.
  */
 const ScForm = styled.form`
   background: ${({ theme }) => panelBackground(theme.data, CONTACT_FORM_BG)};
   border: 1px solid
     ${({ theme }) => panelBorder(theme.data, CONTACT_FORM_BORDER)};
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
-  /* Eje inline en inlineSpace (ola R): es el panel que envuelve etiqueta,
-     campo, ayuda y contador, los cuatro medidos a 28 px de ancho con la fuente
-     al 200 % sobre 320 px. Ver el docblock de ScCard. El gap se queda en space:
-     separa piezas que crecen con el texto. */
   padding: ${({ theme }) => theme.data.space[5]}
     ${({ theme }) => theme.data.inlineSpace[5]};
   display: flex;
@@ -1288,12 +1292,14 @@ const ScForm = styled.form`
  * La altura la fija el atributo `rows` del JSX, no un `height` de CSS: cuatro
  * líneas de la propia tipografía del campo se adaptan solas a cualquier
  * tamaño de fuente, un literal en píxeles no.
+ *
+ * `padding`: eje inline en `inlineSpace` (ola R), el MISMO valor y el mismo
+ * motivo que `ScInput` en `Input.tsx` -- el contrato visual que este docblock
+ * declara sigue siendo byte a byte el del primitivo. Ver el docblock de
+ * `ScCard`.
  */
 const ScTextarea = styled.textarea`
   width: 100%;
-  /* Eje inline en inlineSpace (ola R), el MISMO valor y el mismo motivo que
-     ScInput en Input.tsx -- el contrato visual que este docblock declara sigue
-     siendo byte a byte el del primitivo. Ver el docblock de ScCard. */
   padding: ${({ theme }) => theme.data.space[3]}
     ${({ theme }) => theme.data.inlineSpace[4]};
   border-radius: ${({ theme }) => theme.data.radius.sm};
@@ -1746,16 +1752,17 @@ const ScSendIcon = styled.svg`
  * `role="status"` (en el JSX) anuncia su aparición a un lector de pantalla
  * sin robarle el foco -- mismo criterio que el error de campo (`Input.tsx`).
  * Tokens de tema (regla 17), cero literales.
+ *
+ * `padding`: eje inline en `inlineSpace` (ola R). Este panel es el último
+ * eslabón de la cadena viewport -> texto dentro del formulario, y lleva la
+ * dirección de correo, que es el dato que el visitante tiene que poder LEER
+ * cuando el `mailto` no abre nada. Ver el docblock de `ScCard`.
  */
 const ScFallbackPanel = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[3]};
-  /* Eje inline en inlineSpace (ola R): este panel es el ultimo eslabon de la
-     cadena viewport -> texto dentro del formulario, y lleva la direccion de
-     correo, que es el dato que el visitante tiene que poder LEER cuando el
-     mailto no abre nada. Ver el docblock de ScCard. */
   padding: ${({ theme }) => theme.data.space[3]}
     ${({ theme }) => theme.data.inlineSpace[4]};
   border-radius: ${({ theme }) => theme.data.radius.lg};
