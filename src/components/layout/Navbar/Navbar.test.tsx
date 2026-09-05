@@ -4280,7 +4280,7 @@ describe("critica #16 (L4): el contenido de la barra cuelga del rail de contenid
       (r) =>
         r.includes('[data-scrolled="true"]') &&
         r.includes("padding-left:") &&
-        r.includes("var(--nav-gap)"),
+        r.includes(basicLightTheme.grid.containerMax),
     );
     expect(
       encontradas.length,
@@ -4307,15 +4307,73 @@ describe("critica #16 (L4): el contenido de la barra cuelga del rail de contenid
     expect(regla).not.toContain(basicLightTheme.grid.navMax);
   });
 
-  it("en el estado despegado el suelo del rail descuenta var(--nav-gap), el hueco que la pildora ya mete", () => {
+  it("en el estado despegado el suelo del rail descuenta inlineSpace[2], el MISMO termino que la pildora mete", () => {
     renderNavbar();
     const regla = reglaDespegada();
 
-    expect(regla).toContain("var(--nav-gap)");
+    // Lo que este caso protegia desde la critica #16 sigue protegido: el suelo
+    // del estado despegado descuenta el hueco lateral que ScHeader anade, y lo
+    // descuenta SOLO en el suelo. Lo que cambia el 2026-09-05 es de que escala
+    // sale ese hueco: hasta esa fecha era var(--nav-gap) (space[2]) y ahora es
+    // inlineSpace[2]. La resta solo cancela si las dos mitades son la MISMA
+    // expresion -- con la raiz a 32px y 320px de viewport space[2] vale 16px y
+    // inlineSpace[2] vale 8, y el rail habria medido 16px en vez de 24.
+    //
+    // Validado con el bug inyectado (regla 34): devueltos los dos terminos del
+    // suelo a var(--nav-gap) y restaurados en el mismo comando, la salida fue
+    // --el hash de clase de styled-components va elidido, cambia con cada
+    // edicion del template--:
+    //
+    //   AssertionError: expected '[data-scrolled="true"] .[hash] {paddi…' to contain 'min(0.5rem, 2.5vw)'
+    expect(regla).toContain(basicLightTheme.inlineSpace[2]);
+    expect(regla).not.toContain("var(--nav-gap)");
     expect(regla).toContain(basicLightTheme.grid.containerMax);
     // Y el descuento va SOLO en el suelo: el termino del rail sigue siendo el
     // mismo que en reposo, asi que la marca no se mueve al cruzar el umbral.
-    expect(regla).toContain(basicLightTheme.space[5]);
+    expect(regla).toContain(basicLightTheme.inlineSpace[5]);
+  });
+
+  /*
+   * La MITAD que el CSSOM no puede vigilar. jsdom no reconoce padding-inline,
+   * asi que la regla de ScHeader que PONE el hueco no llega al cssText y el
+   * caso de arriba solo puede comprobar la que lo RESTA. La invariante, sin
+   * embargo, es que las dos sean el mismo peldano: por eso esta se lee de la
+   * fuente. Es la misma via que ya usa el candado del fragmento compartido de
+   * Button, mas arriba en este fichero.
+   *
+   * Validado con el bug inyectado (regla 34): con ScHeader movido a
+   * inlineSpace[3] y el suelo de ScNav intacto en inlineSpace[2], la salida
+   * fue, copiada literal:
+   *
+   *   AssertionError: ScHeader pone inlineSpace[3] y el suelo de ScNav resta inlineSpace[2,2]: la compensacion solo cancela si son el MISMO peldano: expected [ '2', '2' ] to deeply equal [ '3', '3' ]
+   */
+  it("el hueco que PONE ScHeader y el que RESTA el suelo de ScNav son el mismo peldano", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const fuente = readFileSync(join(here, "Navbar.tsx"), "utf-8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    const TOKEN = String.raw`\$\{\(\{ theme \}\) => theme\.data\.inlineSpace\[(\d+)\]\}`;
+    const puesto = new RegExp(`padding-inline:\\s*${TOKEN}`).exec(fuente);
+    const restados = [...fuente.matchAll(new RegExp(`-\\s+${TOKEN}`, "g"))].map(
+      (m) => m[1],
+    );
+
+    expect(
+      puesto,
+      "ScHeader dejo de leer inlineSpace en su padding-inline",
+    ).not.toBeNull();
+    expect(
+      restados.length,
+      "el suelo de ScNav dejo de restar el hueco de la pildora en uno de sus dos lados",
+    ).toBe(2);
+    expect(
+      restados,
+      `ScHeader pone inlineSpace[${puesto?.[1]}] y el suelo de ScNav resta inlineSpace[${restados.join(",")}]: la compensacion solo cancela si son el MISMO peldano`,
+    ).toEqual([puesto?.[1], puesto?.[1]]);
   });
 
   it("los dos rellenos transicionan con la misma duracion y curva que el padding-inline de ScHeader", () => {

@@ -169,6 +169,38 @@ const navbarArm = keyframes`
   }
 `;
 
+/**
+ * EL HUECO LATERAL DE LA PÍLDORA SALE DE `inlineSpace`, NO DE `--nav-gap`
+ * (2026-09-05). La separación que esta cabecera mete a los lados al despegarse
+ * es un relleno del EJE EN LÍNEA, así que compite con la columna de texto y se
+ * lee de `theme.data.inlineSpace[2]`, como el resto de los rellenos laterales
+ * del sitio (`RULES.md`, regla 17).
+ *
+ * `--nav-gap` sigue existiendo en `GlobalStyles.tsx` y sigue valiendo
+ * `space[2]`, pero solo para el eje de BLOQUE --el `scroll-margin-top` de las
+ * secciones ancladas, el `scroll-padding-top` del documento y el `margin-top`
+ * de `ScBar`--, donde crecer con la raíz tipográfica es lo correcto. Aquí no:
+ * con la preferencia de tamaño de texto al 200 % (raíz 32 px) esos 8 px pasan
+ * a 16 mientras el viewport se queda en 320, y este hueco se suma al raíl de
+ * `ScNav` sobre la misma columna.
+ *
+ * NO CAMBIA NADA CON LA RAÍZ DE FÁBRICA, y es aritmética, no una medición:
+ * `inlineSpace[2]` es `min(0.5rem, 2.5vw)` y `2.5vw` vale 8 px justos a 320 px
+ * de viewport (ver su docblock en `tokens/space.ts`), así que a raíz 16 px y
+ * viewport de 320 px o más el mínimo es siempre `0.5rem` -- exactamente el
+ * `space[2]` que `--nav-gap` interpola.
+ *
+ * VA EN PAREJA CON EL SUELO DE `ScNav`, que RESTA este mismo término en el
+ * estado despegado (ver su docblock, apartado del suelo). Los dos tienen que
+ * ser la MISMA expresión o la resta deja de cancelar el hueco: con la raíz a
+ * 32 px y 320 px de viewport, poner `inlineSpace[2]` aquí y seguir restando
+ * `var(--nav-gap)` allí dejaba el raíl en 16 px en vez de los 24 que promete
+ * `inlineSpace[5]`.
+ *
+ * Y ES UNA LONGITUD PURA, `0 <-> inlineSpace[2]`: nunca `width: 100%` que
+ * anime a `calc(100% - 2*gap)`. El porqué está en el comentario de `ScBar`
+ * sobre el ancho que anima con `max-width` en vez de con `width`.
+ */
 const ScHeader = styled.header`
   position: fixed;
   top: 0;
@@ -231,16 +263,13 @@ const ScHeader = styled.header`
     theme.data.motion.easing.decelerate};
   animation-delay: ${HERO_CHROME_OFFSET_MS}ms;
   animation-fill-mode: backwards;
-  /* Hueco lateral de la píldora al despegarse (spec §4): longitud pura,
-     0 <-> var(--nav-gap). Nunca width: 100% -> calc(100% - 2*gap) -- ver el
-     comentario de ScBar sobre por qué el ancho anima con max-width en vez
-     de con width. */
+  /* Hueco lateral al despegarse (spec 4): ver docblock. */
   padding-inline: 0;
   transition: padding-inline ${({ theme }) => theme.data.motion.duration.base}
     ${({ theme }) => theme.data.motion.easing.standard};
 
   &[data-scrolled="true"] {
-    padding-inline: var(--nav-gap);
+    padding-inline: ${({ theme }) => theme.data.inlineSpace[2]};
   }
 
   /*
@@ -321,7 +350,7 @@ const ScHeader = styled.header`
  * `100vw` (no limita nada: ya es >= el ancho disponible) a `1280px` -- dos
  * LONGITUDES ABSOLUTAS, la interpolación más simple que existe -- y el
  * hueco lateral lo aporta `ScHeader` con `padding-inline` (otra longitud
- * pura, 0 <-> var(--nav-gap)), nunca esta capa. `margin-inline: auto`
+ * pura, 0 <-> `inlineSpace[2]`), nunca esta capa. `margin-inline: auto`
  * centra en cuanto el tope de `max-width` entra en juego.
  *
  * La lista de `transition` es exclusiva de esta capa (a diferencia de la de
@@ -539,7 +568,7 @@ const ScSurface = styled.div`
  * LA FORMA DEL RAÍL, y por qué no es `max-width` + `margin-inline: auto`:
  * porque la caja que centra a este elemento cambia de tamaño entre los dos
  * estados de la barra (`ScBar` va de `100vw` a `navMax`, y `ScHeader` le mete
- * `var(--nav-gap)` de hueco lateral al despegarse). Expresado como relleno
+ * `inlineSpace[2]` de hueco lateral al despegarse). Expresado como relleno
  * contra el ancho del PROPIO contenedor, el desfase se cancela solo:
  *
  *   sea B el ancho de `ScBar` y L su borde izquierdo respecto al viewport.
@@ -553,13 +582,23 @@ const ScSurface = styled.div`
  * EL SUELO (el término izquierdo del `max()`) es el que gobierna por debajo de
  * `containerMax`, donde el raíl ya no muerde y el contenido va a `space[5]` del
  * borde. Ahí sí entra el hueco de la píldora, y por eso el suelo del estado
- * despegado le RESTA `var(--nav-gap)`: la píldora ya ha movido su contenido
+ * despegado le RESTA `inlineSpace[2]`: la píldora ya ha movido su contenido
  * esos 8px hacia dentro, así que el relleno tiene que devolverlos para que la
  * marca siga cayendo sobre el raíl. Las dos formas del suelo transicionan con
  * la misma duración y curva que el `padding-inline` de `ScHeader` (`base` /
  * `standard`), así que los 8px que uno pone y el otro quita se compensan
  * fotograma a fotograma: sin esa transición, la marca daría un salto de 8px al
  * cruzar el umbral.
+ *
+ * EL TÉRMINO QUE SE RESTA ES EL MISMO QUE PONE `ScHeader`, LITERALMENTE
+ * (2026-09-05). Hasta esta fecha aquí se restaba `var(--nav-gap)`, que es
+ * `space[2]`, mientras `ScHeader` pone ahora `inlineSpace[2]`. Con la raíz de
+ * fábrica las dos expresiones valen 8 px y la resta cancela igual; con la
+ * preferencia de tamaño de texto al 200 % y 320 px de viewport no: `space[2]`
+ * pasa a 16 px y `inlineSpace[2]` se queda en 8, así que el raíl habría medido
+ * 8 + (24 - 16) = 16 px en vez de los 24 de `inlineSpace[5]`. Una compensación
+ * solo cancela si sus dos mitades son la misma expresión, no si coinciden en
+ * un caso.
  *
  * LO QUE ESTE RAÍL NO ALINEA, declarado porque es deuda conocida del repo y no
  * un descuido de esta tarea (`RULES.md`, "Deuda conocida": la convivencia de
@@ -694,7 +733,10 @@ const ScNav = styled.nav`
   [data-scrolled="true"] & {
     padding-right: calc(
       max(
-          calc(${({ theme }) => theme.data.inlineSpace[5]} - var(--nav-gap)),
+          calc(
+            ${({ theme }) => theme.data.inlineSpace[5]} -
+              ${({ theme }) => theme.data.inlineSpace[2]}
+          ),
           calc(
             (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
               ${({ theme }) => theme.data.inlineSpace[5]}
@@ -704,7 +746,10 @@ const ScNav = styled.nav`
     );
     padding-left: calc(
       max(
-          calc(${({ theme }) => theme.data.inlineSpace[5]} - var(--nav-gap)),
+          calc(
+            ${({ theme }) => theme.data.inlineSpace[5]} -
+              ${({ theme }) => theme.data.inlineSpace[2]}
+          ),
           calc(
             (100% - ${({ theme }) => theme.data.grid.containerMax}) / 2 +
               ${({ theme }) => theme.data.inlineSpace[5]}

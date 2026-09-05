@@ -46,6 +46,44 @@ import { space } from "./tokens/space";
  * alternativa es salirse. Medido antes y despues con la raiz por defecto a 320,
  * 390 y 768 px en los dos temas: las mismas capas de arte a sangre en las dos
  * corridas y ni un pixel de diferencia en el resto.
+ *
+ * ---------------------------------------------------------------------------
+ *
+ * LA VARIABLE `--nav-gap` ES DEL EJE DE BLOQUE, Y SOLO DE ESE EJE (2026-09-05).
+ *
+ * QUE MIDE: la separacion que la pildora del navbar mete al despegarse en
+ * scroll. Vive aqui, y no en los tokens de tema, por el mismo motivo que
+ * `--nav-height`: es una medida de LAYOUT que consumen dos sitios sin poder
+ * derivarla el uno del otro -- el Navbar y el margen de scroll de las secciones
+ * ancladas, que tiene que descontar la barra MAS esta separacion.
+ *
+ * QUIEN LA LEE, y es la lista COMPLETA: el `scroll-margin-top` de las secciones
+ * ancladas y el `scroll-padding-top` del documento, aqui abajo, y el
+ * `margin-top` de `ScBar` (`Navbar.tsx`). Los tres son del eje de BLOQUE.
+ *
+ * QUIEN NO LA LEE, Y POR QUE: ningun relleno del eje EN LINEA. Hasta esta fecha
+ * `ScHeader` la usaba como `padding-inline` y el suelo del rail de `ScNav` se
+ * la restaba; los dos leen ahora `theme.data.inlineSpace[2]`, que vale lo mismo
+ * con la raiz de fabrica (`min(0.5rem, 2.5vw)`, y `2.5vw` son 8 px justos a
+ * 320 px) y deja de doblarse con la preferencia de tamano de texto del usuario
+ * cuando el viewport no da mas de si. El valor de esta variable sale de `space`
+ * y `space` SI dobla con la raiz: en el eje de bloque eso es lo correcto (la
+ * altura no compite con el viewport) y en el eje en linea es exactamente el
+ * defecto que `inlineSpace` corrige (`tokens/space.ts`). La ley que lo vigila
+ * por nombre es `src/test/inline-space-consumers.test.ts`, que desde esta fecha
+ * barre tambien `src/theme` y resuelve las `var()` que llegan a un relleno del
+ * eje en linea hasta la declaracion de la custom property.
+ *
+ * DE DONDE SALE SU VALOR: de la escala, aunque la MEDIDA viva en una variable
+ * CSS -- son dos preguntas distintas y el parrafo de arriba solo contesta la
+ * primera. Hasta la critica externa #18 (2026-09-04) habia ahi un `0.5rem`
+ * escrito a mano que era `space[2]` byte a byte: el hallazgo que la familia
+ * `spacing-literal` de `scripts/detect-anti-patterns.mjs` se creo para cazar, y
+ * que esa familia dejo sancionado como PROVISIONAL en vez de excepcion. Es la
+ * deriva silenciosa de la regla 17 de `RULES.md` en estado puro: el dia que la
+ * escala se retoque, la variable no se entera y el CSS renderizado no distingue
+ * los dos casos. El token se importa por modulo, como `grid` y `semanticDark`,
+ * y no por `theme.data`: es una medida de layout que no cambia con el tema.
  */
 export const GlobalStyles = createGlobalStyle`
   /*
@@ -128,24 +166,8 @@ export const GlobalStyles = createGlobalStyle`
        flotante. Un token de tema obligaría a leerla desde JS en un sitio y
        desde CSS en otro. */
     --nav-height: 3.5rem;
-    /* Separación de la píldora del navbar al despegarse en scroll. Vive
-       aquí, y no en los tokens de tema, por el mismo motivo que
-       --nav-height: es una medida de LAYOUT que consumen dos sitios sin
-       poder derivarla el uno del otro — el Navbar (que la aplica como
-       margen/hueco lateral) y el margen de scroll de las secciones
-       ancladas, que ahora tiene que descontar la barra MÁS esta
-       separación. */
-    /* El VALOR sale de la escala, aunque la MEDIDA viva en una variable CSS:
-       son dos preguntas distintas y el comentario de arriba solo contesta la
-       segunda. Hasta la crítica externa #18 (2026-09-04) aquí había un
-       \`0.5rem\` escrito a mano que era \`space[2]\` byte a byte -- el hallazgo
-       que la familia \`spacing-literal\` de scripts/detect-anti-patterns.mjs
-       se creó para cazar, y que esa familia dejó sancionado como PROVISIONAL
-       en vez de excepción. Es la deriva silenciosa de la regla 17 de
-       RULES.md en estado puro: el día que la escala se retoque, la variable
-       no se entera y el CSS renderizado no distingue los dos casos. El token
-       se importa por módulo, como \`grid\` y \`semanticDark\` arriba, y no por
-       \`theme.data\`: es una medida de layout que no cambia con el tema. */
+    /* Separacion de la pildora al despegarse. SOLO eje de bloque: ver
+       docblock. */
     --nav-gap: ${space[2]};
   }
 
