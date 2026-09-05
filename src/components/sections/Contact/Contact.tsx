@@ -1687,9 +1687,38 @@ const ScPrivacyNote = styled.p`
  * porque el texto está clippeado y quedaría invisible sin fondo), aquí el
  * texto del botón no depende del degradado para ser legible -- perder el
  * movimiento es aceptable, perder el fondo no.
+ *
+ * `padding-inline` PROPIO, un peldaño por debajo del que le tocaría por
+ * tamaño (frente F, 2026-09-05). `Button` en `lg` declara `inlineSpace[6]`
+ * -- 32 px por lado a 320 px -- y este botón NO es un botón cualquiera: es de
+ * ANCHO COMPLETO (`width: 100 %`, justo arriba) y vive en el fondo de tres
+ * paneles anidados, sección + tarjeta + formulario, cada uno con su propio
+ * relleno inline. Medido en Chrome sobre el build de producción servido
+ * (`Page.setFontSizes` a 32 px, `prefers-reduced-motion: reduce`, tema claro,
+ * 320 px de viewport): la cadena 320 -> 272 -> 222 -> 172 deja el botón en
+ * 172 px, y los 64 px de relleno se comían hasta dejar el rótulo en una caja
+ * de 108 px -- «Esc/ríbe/me», tres líneas para nueve caracteres, con las
+ * letras cayendo 37 px por debajo de la píldora.
+ *
+ * Con `inlineSpace[4]` (16 px por lado a 320 px) la caja del rótulo pasa de
+ * 108 a 140 px, que es TODO lo que la cadena permite: el rótulo completo con
+ * su icono mide ~201 px y el formulario solo tiene 172. No es un capricho de
+ * espaciado, es el único grado de libertad que queda en el eslabón final.
+ *
+ * QUÉ PASA CON LA RAÍZ POR DEFECTO, medido y no supuesto. En castellano,
+ * nada: el rótulo mide 99,69 px con su icono y su hueco, ya cabía en la caja
+ * de 108 px, sigue en una línea y sigue centrado por el
+ * `justify-content: center` de `Button` -- bajar el relleno solo ensancha un
+ * hueco que nadie ve. En inglés SÍ cambia, y a mejor: «Write to me» mide
+ * 108,92 px, un pelo MÁS que la caja de 108, así que a 320 px el rótulo ya
+ * partía en dos líneas con la raíz de fábrica (42 px de alto dentro de la
+ * píldora de 52). Con el relleno de este bloque cabe entero en una. Es el
+ * único cambio visible en el régimen normal y va en la dirección del arreglo,
+ * no en contra.
  */
 const ScSubmitButton = styled(Button)`
   width: 100%;
+  padding-inline: ${({ theme }) => theme.data.inlineSpace[4]};
   ${ctaGradient}
 
   /* SIN JavaScript el boton se retira (critica externa #12, Nielsen,

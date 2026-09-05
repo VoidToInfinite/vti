@@ -4945,6 +4945,19 @@ describe("Contact: ola Q, la banda de 320 px", () => {
   }
 
   /**
+   * La condicion de un breakpoint del tema, como RegExp para `reglasDe`. Se
+   * construye ESCAPANDO el token entero, asi que el caso de prueba nunca
+   * escribe el valor del escalon: desde el frente F (2026-09-05) los cuatro
+   * se declaran en `em` (`screen and (min-width: 37.5em)`) para responder a la
+   * preferencia de tamano de texto del usuario, y el punto decimal de `37.5`
+   * es justo el caracter que una RegExp escrita a mano convertiria en
+   * comodin.
+   */
+  function condicionDe(consulta: string): RegExp {
+    return new RegExp(consulta.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  }
+
+  /**
    * Separa los valores de una lista CSS por espacios de NIVEL SUPERIOR: los
    * que quedan dentro de un parentesis no cuentan. Un `split(/\s+/)` a secas
    * partia `min(1.5rem, 7.5vw)` en dos trozos y le entregaba "min(1.5rem," al
@@ -5134,8 +5147,12 @@ describe("Contact: ola Q, la banda de 320 px", () => {
     const { tarjeta } = piezas();
 
     // jsdom no evalua NINGUN `@media` (regla 36): se leen las reglas acotando
-    // al media query concreto por el CSSOM, nunca con `getComputedStyle`.
-    const desdeSm = reglasDe(tarjeta, /min-width:\s*600px/);
+    // al media query concreto por el CSSOM, nunca con `getComputedStyle`. La
+    // condicion sale del TOKEN y no de un literal en pixeles (regla 38):
+    // desde el frente F (2026-09-05) los breakpoints se declaran en `em` para
+    // responder a la preferencia de tamano de texto, y "600px" escrito aqui
+    // habria dejado de encontrar el bloque.
+    const desdeSm = reglasDe(tarjeta, condicionDe(themes.light.breakPoint.sm));
     expect(
       desdeSm,
       "la tarjeta no declara nada bajo el breakpoint sm: el relleno ancho no vuelve nunca",
@@ -5169,8 +5186,8 @@ describe("Contact: ola Q, la banda de 320 px", () => {
 
     // Un `width`/`min-width` en px dentro de la banda estrecha es exactamente
     // lo que produce scroll horizontal a 320 px. Se comprueba SOLO sobre las
-    // reglas base: el `min-width: 600px` de un media query no es un ancho de
-    // caja y no debe confundirse con uno.
+    // reglas base: el `min-width` de la CONDICION de un media query no es un
+    // ancho de caja y no debe confundirse con uno.
     [tarjeta, columna, titular].forEach((pieza) => {
       expect(reglasDe(pieza, null)).not.toMatch(
         /(?:^|[\s;{])(min-)?width:\s*[\d.]+px/,
@@ -5443,5 +5460,162 @@ describe("Contact: ola Q, la banda de 320 px", () => {
       declarados.length,
       `la cadena solo leyo estos rellenos inline: ${declarados.join(" | ")}`,
     ).toBeGreaterThanOrEqual(10);
+  });
+
+  /*
+   * FRENTE F (2026-09-05): EL ULTIMO ESLABON DE LA CADENA, EL BOTON DE ENVIO.
+   *
+   * La ola R dejo la cadena viewport -> formulario sin rellenos que se doblen
+   * con la fuente, y aun asi el rotulo del CTA seguia partiendose. MEDIDO en
+   * Chrome sobre el build de produccion servido (`Page.setFontSizes` a 32 px,
+   * `prefers-reduced-motion: reduce`, tema claro):
+   *
+   *     viewport   caja del rotulo   lineas   caracteres por linea
+   *     320 px      108,00 px          3        3,00   («Escribeme»)
+   *     768 px       58,83 px          8        1,13
+   *     834 px       91,33 px          3        3,00
+   *
+   * Dos causas distintas, una por caso de este bloque:
+   *
+   *   1. El propio boton. Es un `lg`, o sea `inlineSpace[6]` = 32 px por lado
+   *      a 320 px, y ademas es de ANCHO COMPLETO dentro de tres paneles
+   *      anidados: la cadena 320 -> 272 -> 222 -> 172 le deja 172 px de caja y
+   *      el relleno se llevaba 64. Con `inlineSpace[4]` quedan 140.
+   *   2. La rejilla. A 768 y 834 px con la raiz a 32 la tarjeta ya estaba en
+   *      DOS columnas (`278.828px 199.156px` y `317.328px 226.656px`, medido),
+   *      porque el escalon del tema estaba en PIXELES y no se entera de la
+   *      preferencia de tamano de texto. En `em` esa banda vuelve a una
+   *      columna (el candado del token vive en `themes.test.ts`; aqui se ata
+   *      que la regla de dos columnas cuelgue de ESE escalon y no de otro).
+   *
+   * VALIDADOS CON BUG INYECTADO, uno por caso (2026-09-05).
+   *
+   * (1) Se retiro la linea `padding-inline` de `ScSubmitButton` (Contact.tsx) y
+   * se ejecuto este fichero: 1 caso en rojo de 165, con esta linea LITERAL:
+   *
+   *   AssertionError: el boton de envio no declara padding-inline propio:
+   *   hereda el inlineSpace[6] de un boton lg, que a 320 px con la fuente al
+   *   200 % dejaba el rotulo en una caja de 108px, tres lineas para nueve
+   *   caracteres.: expected null not to be null
+   *
+   * (2) Se movio la regla de dos columnas de `ScCard` del breakpoint `md` al
+   * `lg` --el sabotaje que un candado que solo mirara "hay dos columnas en
+   * algun @media" no habria visto-- y se volvio a ejecutar: 1 caso en rojo, con
+   * esta linea LITERAL:
+   *
+   *   AssertionError: la tarjeta no declara nada bajo el breakpoint md: la
+   *   rejilla de dos columnas se movio a otro escalon, y el 2026-09-05 esa
+   *   rejilla a 768 px con la raiz a 32 daba 278,83px + 199,16px, con el rotulo
+   *   del CTA en 58,83px repartidos en 8 lineas.: expected '' not to be '' //
+   *   Object.is equality
+   *
+   * Restaurados los dos, los 165 casos del fichero en verde.
+   */
+
+  /**
+   * Columna minima que le tiene que quedar al rotulo del CTA dentro del
+   * formulario claro en la banda de 320 px con la fuente al 200 %. No es un
+   * numero de confort: es el TECHO de la cadena --172 px de boton menos los
+   * dos peldanos de `inlineSpace[4]`--, porque el rotulo entero con su icono
+   * no cabe de ninguna manera (mide ~183 px a esa raiz). Lo que protege es que
+   * nadie vuelva a gastar ese margen en relleno: el defecto daba 108 px.
+   */
+  const ROTULO_MINIMO_DEL_CTA_PX = 140;
+
+  it("el boton de envio deja sitio al rotulo con la fuente al 200 %: su relleno inline es un peldano propio, no el de un lg", () => {
+    const { seccion, tarjeta, formulario } = piezas();
+    const boton = formulario.querySelector(
+      'button[type="submit"]',
+    ) as HTMLElement;
+    expect(
+      boton,
+      "el formulario no monta ningun boton de envio",
+    ).not.toBeNull();
+
+    const reglasBoton = reglasDe(boton, null);
+    const propio = inlineCrudo(reglasBoton, "padding-inline");
+
+    expect(
+      propio,
+      "el boton de envio no declara padding-inline propio: hereda el inlineSpace[6] de un boton lg, " +
+        "que a 320 px con la fuente al 200 % dejaba el rotulo en una caja de 108px, tres lineas para " +
+        "nueve caracteres.",
+    ).not.toBeNull();
+    // Contra el token importado, nunca contra una cadena escrita a mano.
+    expect(propio).toBe(themes.light.inlineSpace[4]);
+
+    /* EL MECANISMO, no solo el valor: `ScSubmitButton` es `styled(Button)` y
+       su regla se inyecta DESPUES de la de `Button`, que declara la shorthand
+       `padding: 0 <inlineSpace[6]>`. Las dos tienen la misma especificidad
+       (una clase), asi que quien gana es la ultima de la hoja. Si el orden se
+       invirtiera --por una capa intermedia nueva, por ejemplo-- el valor
+       seguiria declarado y no serviria de nada. */
+    expect(
+      reglasBoton.indexOf("padding-inline:"),
+      "la regla de padding-inline del boton de envio dejo de venir despues de la shorthand de Button: " +
+        "con la misma especificidad gana la ultima, asi que el peldano propio ya no se aplica.",
+    ).toBeGreaterThan(reglasBoton.indexOf("padding:"));
+
+    // Y la aritmetica completa de la cadena, resuelta con la MISMA regla que
+    // el navegador: seccion -> tarjeta -> formulario -> boton -> rotulo.
+    const reglasSeccion = reglasDe(seccion, null);
+    const reglasTarjeta = reglasDe(tarjeta, null);
+    const reglasFormulario = reglasDe(formulario, null);
+    const borde = (bloque: string): number =>
+      Number(bloque.match(/border:\s*(\d+)px/)?.[1] ?? "0");
+
+    const cajaDelRotulo = (raizPx: number): number =>
+      ANCHO_MINIMO_SOPORTADO_PX -
+      2 * (inlinePx(reglasSeccion, "padding", raizPx) as number) -
+      2 * borde(reglasTarjeta) -
+      2 * (inlinePx(reglasTarjeta, "padding", raizPx) as number) -
+      2 * borde(reglasFormulario) -
+      2 * (inlinePx(reglasFormulario, "padding", raizPx) as number) -
+      2 * (inlinePx(reglasBoton, "padding-inline", raizPx) as number);
+
+    const al200 = cajaDelRotulo(RAIZ_AL_200_PX);
+    expect(
+      al200,
+      `con la fuente al 200 % sobre ${ANCHO_MINIMO_SOPORTADO_PX} px el rotulo del CTA se queda con ` +
+        `${al200}px; el 2026-09-05, medido en Chrome, esa caja era de 108px y partia «Escribeme» en ` +
+        "tres lineas, con las letras cayendo 37px por debajo de la pildora.",
+    ).toBeGreaterThanOrEqual(ROTULO_MINIMO_DEL_CTA_PX);
+
+    // Y con la raiz por defecto la caja es la MISMA: el eslabon no se compra
+    // estrechando el regimen normal.
+    expect(cajaDelRotulo(RAIZ_PX)).toBe(al200);
+  });
+
+  it("la rejilla de dos columnas de la tarjeta cuelga del breakpoint md del tema, que responde a la preferencia de tamano de texto", () => {
+    const { tarjeta } = piezas();
+
+    // La condicion se construye desde el TOKEN (`condicionDe`), asi que este
+    // caso no escribe el valor del escalon en ninguna parte: si manana `md`
+    // cambia de valor, sigue leyendo el bloque correcto; si cambia de UNIDAD
+    // --de vuelta a px-- el candado de `themes.test.ts` es el que lo dice.
+    const enMd = reglasDe(tarjeta, condicionDe(themes.light.breakPoint.md));
+
+    expect(
+      enMd,
+      "la tarjeta no declara nada bajo el breakpoint md: la rejilla de dos columnas se movio a otro " +
+        "escalon, y el 2026-09-05 esa rejilla a 768 px con la raiz a 32 daba 278,83px + 199,16px, con " +
+        "el rotulo del CTA en 58,83px repartidos en 8 lineas.",
+    ).not.toBe("");
+    expect(enMd).toMatch(
+      /grid-template-columns:\s*minmax\(\s*0\s*,\s*1\.4fr\s*\)\s+minmax\(\s*0\s*,\s*1fr\s*\)/,
+    );
+
+    // Y ninguna otra condicion del CSS de la tarjeta reintroduce las dos
+    // columnas por su cuenta: la regla base sigue siendo de una sola pista
+    // (caso hermano de la ola Q) y el unico bloque con dos es el de `md`.
+    const todosLosMedia = reglasDe(tarjeta, /.*/);
+    const conDosPistas = todosLosMedia
+      .split("\n")
+      .filter((regla) => /grid-template-columns:[^;}]*1\.4fr/.test(regla));
+    expect(
+      conDosPistas.length,
+      `la tarjeta declara la rejilla de dos columnas en ${conDosPistas.length} bloques distintos: ` +
+        `${conDosPistas.join(" | ")}`,
+    ).toBe(1);
   });
 });
