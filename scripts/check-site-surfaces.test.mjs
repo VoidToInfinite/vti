@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { afterAll, describe, it, expect } from "vitest";
+import { afterAll, afterEach, describe, it, expect } from "vitest";
 import {
     BROKEN_SEGMENT,
     CHECKS,
@@ -11,12 +11,15 @@ import {
     EN_PREFIX,
     HOME_DOC,
     LEGAL_DOCS,
+    MIN_CARACTERES_POR_LINEA,
     ROOT_FONT_BASE_PX,
     SURFACES,
     WIDTH_SWEEP,
     ZOOM_FONT_PX,
     especificadoresDePlaywright,
     fallosDeDeudaNoObservada,
+    probeLegibilidadDeTexto,
+    probePerdidaHorizontal,
 } from "./check-site-surfaces.mjs";
 /* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
    parser de Rollup no admite un `.ts` explicito en el especificador. */
@@ -124,6 +127,72 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  *        expected [ 'main|home' ] to deeply equal []
  *
  * Restauradas las dos, los doce casos en verde.
+ *
+ * LO QUE ANADE LA OLA R (2026-09-05). Hasta aqui este fichero solo ataba la
+ * COBERTURA del candado: que las listas no encojan. Eso deja sin candar el
+ * CUERPO de las sondas -- una sonda que mide el lado equivocado, o con el umbral
+ * equivocado, pasa los doce casos de arriba sin despeinarse -- y deja un hueco
+ * mas en la propia cobertura. Los tres cierres, con su rojo LITERAL observado:
+ *
+ *   e. EL RECORTE SIMETRICO DE DOS FICHEROS. El hueco (a) se cerro a nivel de
+ *      dos bloques (`CHECKS` y su marcador), pero `FAMILIAS_ESPERADAS` vive en
+ *      ESTE fichero: quitando a la vez la familia de `CHECKS`, su linea de
+ *      `FAMILIAS_ESPERADAS` y su marcador del cuerpo --tres bloques, dos
+ *      ficheros-- los dos candados de familias volvian a coincidir sobre una
+ *      lista mas corta. Repetida esa supresion con `"forced-colors"`, el unico
+ *      caso que cae es el nuevo:
+ *
+ *        AssertionError: el script declara 15 familias y el contrato tiene un
+ *        suelo de 16: este numero solo sube, y sube en el mismo commit que anade
+ *        la familia nueva. Si has quitado una, restaurala; el candado no mide
+ *        menos de lo que un dia midio: expected 15 to be greater than or equal
+ *        to 16
+ *
+ *      Los otros dos casos de familias siguieron en «✓», que es exactamente la
+ *      demostracion de que no veian esta supresion. Restauradas las tres
+ *      lineas, 22 en verde. LIMITE DECLARADO, porque no decirlo seria vender el
+ *      candado por mas de lo que es: bajar `FAMILIAS_MINIMAS` a mano NO pone
+ *      nada en rojo -- es un suelo, y bajarlo es una decision visible en el
+ *      diff, que es justo la friccion que faltaba; lo que ya no se puede es
+ *      recortar el contrato borrando lineas que se leen como limpieza.
+ *
+ *   f. EL LADO IZQUIERDO DE LA SONDA DE PERDIDA. Devolviendo `sobra` a
+ *      `r.right - cw` (la formula anterior, `grep -c "r.left"` daba 0) --
+ *
+ *        AssertionError: un elemento con left -30 dentro de un viewport de 320
+ *        px pierde 30 px por la izquierda: con la formula de un solo lado
+ *        (r.right - cw) sale -20 y no se reporta nada: expected [] to have a
+ *        length of 1 but got +0
+ *
+ *   g. EL UMBRAL DE LEGIBILIDAD. Bajando `MIN_CARACTERES_POR_LINEA` de 4 a 1 --
+ *      que es la forma de vaciar la familia sin quitarla -- caen cuatro casos:
+ *
+ *        AssertionError: el umbral se calibro en 4 contra las dos poblaciones
+ *        medidas (defectos de 0,9 a 2,7 caracteres por linea; suelo fisico de la
+ *        tipografia grande a 320 px de 5 a 7). Bajarlo vacia la familia sin
+ *        quitarla: expected 1 to be greater than or equal to 4
+ *
+ *        AssertionError: 6 caracteres en 3 lineas son 2 por linea, por debajo
+ *        del umbral de 1: la caja tiene que reportarse: expected [] to have a
+ *        length of 1 but got +0
+ *
+ *      Y las dos piezas de la sonda que no son el umbral, tambien vistas en
+ *      rojo. Quitando la confirmacion contra las cajas de linea reales
+ *      (`const lineas = lineasPorCaja;`) --
+ *
+ *        AssertionError: el texto ocupa 2 lineas reales de las 9 que mide la
+ *        caja: 21 caracteres en 2 lineas son 10,5 por linea y no hay defecto:
+ *        expected [ { zona: 'suelto', sel: 'p', …(5) } ] to deeply equal []
+ *
+ *      y apagando la guarda de vacuidad de las cajas de tres lineas --
+ *
+ *        AssertionError: el script ya no convierte en rojo la guarda de vacuidad
+ *        "la sonda de legibilidad no encontro ni una sola caja de tres o mas
+ *        lineas": sin ella un cero en el contador pasaria por pagina limpia:
+ *        expected '/*\n * SIN SHEBANG, al contrario que …' to contain 'la sonda
+ *        de legibilidad no encontro n…'
+ *
+ * Restaurado todo, 22 casos en verde.
  */
 
 const RUTA_SCRIPT = path.join(
@@ -181,7 +250,7 @@ const SUPERFICIES_ESPERADAS = [
 /*
  * El CONTRATO del candado, tecleado aqui y no derivado de `CHECKS`: derivarlo de
  * la lista que se verifica es el test autorreferencial que deja pasar cualquier
- * recorte. Estas quince familias solo se tocan cuando el script mida algo
+ * recorte. Estas dieciseis familias solo se tocan cuando el script mida algo
  * distinto de verdad, y entonces se tocan a la vez que el script.
  *
  * `texto-al-200-por-ciento` entra el 2026-09-04 con el P1 de zoom de las
@@ -190,6 +259,13 @@ const SUPERFICIES_ESPERADAS = [
  * mide `documentElement.scrollWidth`, y con `html, body { overflow-x: clip }`
  * declarado en `GlobalStyles` ese numero nunca supera el ancho del viewport
  * aunque haya contenido fuera. La sonda nueva mira las cajas, no el scroll.
+ *
+ * `legibilidad-al-200-por-ciento` entra el 2026-09-05 por el mismo motivo un
+ * escalon mas adentro: la familia anterior mide que no se PIERDA contenido, y
+ * el arreglo que llevo esa cuenta a cero px fuera dejo la portada con los
+ * valores de las tarjetas de Contact a 23,2 px de ancho --de 0,9 a 1,4
+ * caracteres por linea-- y el rotulo del CTA saliendo letra por linea. Con el
+ * candado en verde. No se perdia texto; no se podia leer.
  */
 const FAMILIAS_ESPERADAS = [
     "recorrido-teclado",
@@ -206,8 +282,32 @@ const FAMILIAS_ESPERADAS = [
     "forced-colors",
     "responsive-sin-desbordamiento",
     "texto-al-200-por-ciento",
+    "legibilidad-al-200-por-ciento",
     "sin-javascript",
 ];
+
+/**
+ * EL SUELO NUMERICO DEL CONTRATO, y por que hacia falta un tercer candado sobre
+ * la misma lista.
+ *
+ * Los dos que ya habia atan la COHERENCIA (cada familia declarada tiene su
+ * marcador en el cuerpo y al reves) y la IGUALDAD contra `FAMILIAS_ESPERADAS`.
+ * Ninguno de los dos sobrevive al recorte SIMETRICO, que es el que hace quien
+ * recorta de verdad: se quita la familia de `CHECKS`, su marcador
+ * `// [check: ...]` del cuerpo y su linea de `FAMILIAS_ESPERADAS` --tres
+ * bloques, dos ficheros-- y los dos candados vuelven a coincidir sobre una
+ * lista mas corta. El script pasa a medir quince cosas diciendo quince, sin una
+ * sola linea roja. Es exactamente el hueco (a) que este fichero ya cerro una vez
+ * a nivel de dos bloques; con `FAMILIAS_ESPERADAS` en el mismo fichero que el
+ * test, el recorte solo tenia que ser un poco mas ancho.
+ *
+ * Este numero esta TECLEADO y solo puede SUBIR. Es la unica pieza del contrato
+ * que no se puede recortar sin escribir a mano un numero mas pequeno, que es
+ * una decision visible en el diff en vez de tres borrados que se leen como
+ * limpieza. Se sube el dia que el candado gane una familia de verdad, en el
+ * mismo commit que la gana.
+ */
+const FAMILIAS_MINIMAS = 16;
 
 describe("cobertura del candado de las superficies del sitio", () => {
     it("recorre TODOS los documentos legales que el sitio declara, en los dos idiomas, mas la portada y una 404 por idioma", () => {
@@ -439,6 +539,53 @@ describe("cobertura del candado de las superficies del sitio", () => {
         expect(ZOOM_FONT_PX / ROOT_FONT_BASE_PX).toBe(2);
     });
 
+    it("el contrato de familias solo puede CRECER: ni el script ni este test bajan del suelo tecleado", () => {
+        /*
+         * El caso que cierra el recorte simetrico de DOS ficheros. Los dos
+         * candados de abajo se comparan entre si, asi que sobreviven a que las
+         * dos listas encojan a la vez; este se compara contra un numero escrito
+         * a mano, que no encoge solo.
+         *
+         * Las dos direcciones se afirman por separado a proposito: `CHECKS`
+         * vive en el script y `FAMILIAS_ESPERADAS` aqui, y recortar una sola
+         * ya cae por el `toEqual` de abajo -- pero recortar las dos, que es lo
+         * que pasa cuando alguien "limpia" de verdad, solo lo ve esto.
+         */
+        expect(
+            CHECKS.length,
+            `el script declara ${CHECKS.length} familias y el contrato tiene un ` +
+                `suelo de ${FAMILIAS_MINIMAS}: este numero solo sube, y sube en el ` +
+                `mismo commit que anade la familia nueva. Si has quitado una, ` +
+                `restaurala; el candado no mide menos de lo que un dia midio`,
+        ).toBeGreaterThanOrEqual(FAMILIAS_MINIMAS);
+        expect(
+            FAMILIAS_ESPERADAS.length,
+            `la lista tecleada de este fichero bajo de ${FAMILIAS_MINIMAS} familias: ` +
+                `recortarla a la vez que CHECKS es justo la supresion que los otros ` +
+                `dos casos no ven`,
+        ).toBeGreaterThanOrEqual(FAMILIAS_MINIMAS);
+    });
+
+    it("el umbral de legibilidad es el calibrado, y no puede bajar hasta volverse vacuo", () => {
+        /*
+         * La familia `legibilidad-al-200-por-ciento` puede seguir declarada, con
+         * su marcador y su sonda intactos, y dejar de ver el defecto: basta
+         * bajar el umbral. Con `< 1` caracter por linea ninguna de las cajas
+         * medidas el 2026-09-05 se reportaria -- la peor daba exactamente 1
+         * ("Escríbeme", 9 caracteres en 9 lineas) -- y la familia saldria en
+         * verde sobre la portada entera.
+         *
+         * El suelo es 4 y no una igualdad porque SUBIRLO endurece el candado:
+         * la unica direccion peligrosa es hacia abajo.
+         */
+        expect(
+            MIN_CARACTERES_POR_LINEA,
+            `el umbral se calibro en 4 contra las dos poblaciones medidas (defectos ` +
+                `de 0,9 a 2,7 caracteres por linea; suelo fisico de la tipografia ` +
+                `grande a 320 px de 5 a 7). Bajarlo vacia la familia sin quitarla`,
+        ).toBeGreaterThanOrEqual(4);
+    });
+
     it("la lista de familias sigue siendo la que el candado prometio medir", () => {
         /* La supresion SIMETRICA -- quitar la familia de `CHECKS` y su marcador
            del cuerpo a la vez -- no la ve el caso de abajo, porque despues de
@@ -485,6 +632,257 @@ describe("cobertura del candado de las superficies del sitio", () => {
                 CHECKS,
                 `el script comprueba ${marca}, que no esta declarada en CHECKS`,
             ).toContain(marca);
+        }
+    });
+});
+
+/*
+ * LAS DOS SONDAS DE ZOOM, EJERCITADAS DE VERDAD EN JSDOM.
+ *
+ * Todo lo de arriba ata la COBERTURA del candado --que las listas no encojan--,
+ * y eso deja fuera la mitad que de verdad mide: el CUERPO de las sondas. Una
+ * sonda con la familia declarada, su marcador en el cuerpo y la lista intacta
+ * puede estar midiendo el lado equivocado o el umbral equivocado, y los ocho
+ * casos de arriba seguirian en verde. El gate no tiene navegador, pero estas dos
+ * sondas son funciones puras sobre el DOM: se les puede montar el caso en jsdom
+ * con `getBoundingClientRect` sobrescrito por elemento y el ancho del viewport
+ * declarado a mano, que es exactamente el patron que la regla 44 de `RULES.md`
+ * permite (no se mide layout: se le DA el layout a la sonda y se comprueba que
+ * saca la conclusion correcta).
+ *
+ * LO QUE JSDOM NO DA, dicho para que nadie lo confunda con un descuido:
+ * `innerText` no existe (la sonda cae a `textContent`, que en estos casos es el
+ * mismo texto) y `Range.getClientRects` tampoco, asi que la confirmacion contra
+ * las cajas de linea reales se prueba con el prototipo instrumentado -- que es
+ * lo unico que se puede hacer sin motor de layout, y sirve porque lo que se
+ * verifica es la DECISION de la sonda ante unas cajas de linea dadas, no las
+ * cajas.
+ */
+function medida(el, { left, right, top = 0, height }) {
+    const rect = {
+        left,
+        right,
+        top,
+        bottom: top + height,
+        width: right - left,
+        height,
+        x: left,
+        y: top,
+    };
+    el.getBoundingClientRect = () => ({ ...rect, toJSON: () => rect });
+}
+
+function anchoDeViewport(px) {
+    Object.defineProperty(document.documentElement, "clientWidth", {
+        configurable: true,
+        get: () => px,
+    });
+}
+
+/** Prototipo de `Range` en jsdom, que no trae `getClientRects`. */
+const PROTO_RANGO = Object.getPrototypeOf(document.createRange());
+
+afterEach(() => {
+    document.body.innerHTML = "";
+    delete document.documentElement.clientWidth;
+    delete PROTO_RANGO.getClientRects;
+});
+
+describe("la sonda de perdida horizontal mide los DOS lados del viewport", () => {
+    it("reporta lo que se sale por la IZQUIERDA, con su lado y su magnitud", () => {
+        /*
+         * El hueco que cierra este caso: la sonda calculaba `r.right - cw` y
+         * nada mas, asi que un elemento centrado que se sale por la izquierda
+         * --lo que hace cualquier caja con `margin-inline: auto` mas ancha que
+         * su contenedor-- era invisible para el candado. El repo tenia el
+         * contraejemplo delante: el `h1` de la 404 al 200 % de texto desbordaba
+         * por los dos lados a la vez (left -41,28 / right 361,28) y solo se
+         * cerro porque la derecha delataba al mismo elemento.
+         */
+        anchoDeViewport(320);
+        const el = document.createElement("h1");
+        el.textContent = "Titulo centrado que se sale por la izquierda";
+        document.body.appendChild(el);
+        medida(el, { left: -30, right: 300, height: 40 });
+
+        const { perdidos, candidatos } = probePerdidaHorizontal();
+        expect(candidatos, "la sonda no llego a mirar el elemento").toBe(1);
+        expect(
+            perdidos,
+            `un elemento con left -30 dentro de un viewport de 320 px pierde 30 px ` +
+                `por la izquierda: con la formula de un solo lado (r.right - cw) ` +
+                `sale -20 y no se reporta nada`,
+        ).toHaveLength(1);
+        expect(perdidos[0].sobra).toBe(30);
+        expect(perdidos[0].lado).toBe("izquierda");
+    });
+
+    it("sigue reportando lo que se sale por la derecha, con el lado dicho", () => {
+        anchoDeViewport(320);
+        const el = document.createElement("p");
+        el.textContent = "Se sale por la derecha";
+        document.body.appendChild(el);
+        medida(el, { left: 0, right: 362.5, height: 40 });
+
+        const { perdidos } = probePerdidaHorizontal();
+        expect(perdidos).toHaveLength(1);
+        expect(perdidos[0].sobra).toBe(42.5);
+        expect(perdidos[0].lado).toBe("derecha");
+    });
+
+    it("no cuenta como perdido lo que un ancestro alcanza con scroll horizontal, tampoco por la izquierda", () => {
+        /* La tabla de almacenamiento vive dentro de un `overflow-x: auto` con su
+           `role="region"` y su `tabindex`: ahi el contenido se alcanza con el
+           dedo, con la rueda y con el teclado, y contarlo como perdido seria
+           sancionar un patron correcto. El filtro tiene que valer para los dos
+           lados o el lado nuevo llegaria con falsos positivos de nacimiento. */
+        anchoDeViewport(320);
+        const envoltorio = document.createElement("div");
+        envoltorio.style.overflowX = "auto";
+        const el = document.createElement("td");
+        el.textContent = "Celda dentro de una tabla desplazable";
+        envoltorio.appendChild(el);
+        document.body.appendChild(envoltorio);
+        medida(envoltorio, { left: 0, right: 320, height: 40 });
+        medida(el, { left: -30, right: 300, height: 40 });
+
+        const { perdidos, candidatos } = probePerdidaHorizontal();
+        expect(candidatos, "la sonda tiene que haber mirado la celda").toBe(1);
+        expect(perdidos).toEqual([]);
+    });
+});
+
+describe("la sonda de legibilidad al 200 % de texto", () => {
+    /** Caja de texto con `line-height` y `font-size` resueltos a mano. */
+    function cajaDeTexto(texto, { alto, ancho = 200, lineHeight = "20px" }) {
+        const el = document.createElement("p");
+        el.textContent = texto;
+        el.style.lineHeight = lineHeight;
+        el.style.fontSize = "16px";
+        document.body.appendChild(el);
+        medida(el, { left: 0, right: ancho, height: alto });
+        return el;
+    }
+
+    it("declara ilegible una caja de tres lineas con seis caracteres, y legible la de tres con treinta", () => {
+        /*
+         * Las dos poblaciones del umbral, en su forma minima. 6/3 = 2 cae
+         * dentro de la banda de los defectos medidos (0,9 a 2,7) y 30/3 = 10
+         * esta muy por encima del suelo fisico de la tipografia grande (5 a 7).
+         */
+        cajaDeTexto("abcdef", { alto: 60 });
+        const estrecha = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        expect(estrecha.conTresLineas).toBe(1);
+        expect(
+            estrecha.ilegibles,
+            `6 caracteres en 3 lineas son 2 por linea, por debajo del umbral de ` +
+                `${MIN_CARACTERES_POR_LINEA}: la caja tiene que reportarse`,
+        ).toHaveLength(1);
+        expect(estrecha.ilegibles[0].lineas).toBe(3);
+        expect(estrecha.ilegibles[0].caracteres).toBe(6);
+        expect(estrecha.ilegibles[0].ratio).toBe(2);
+
+        document.body.innerHTML = "";
+        cajaDeTexto("abcdefghij".repeat(3), { alto: 60 });
+        const holgada = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        expect(holgada.conTresLineas).toBe(1);
+        expect(
+            holgada.ilegibles,
+            "30 caracteres en 3 lineas son 10 por linea: texto normal, no defecto",
+        ).toEqual([]);
+    });
+
+    it("no mide texto vertical, donde 'caracteres por linea' no significa lo mismo", () => {
+        const el = cajaDeTexto("abcdef", { alto: 60 });
+        el.style.writingMode = "vertical-rl";
+        const r = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        expect(r.examinadas, "una caja vertical no se examina").toBe(0);
+        expect(r.conTresLineas).toBe(0);
+        expect(r.ilegibles).toEqual([]);
+    });
+
+    it("una caja estirada al alto de su fila no cuenta como texto ilegible", () => {
+        /*
+         * El falso positivo que la medicion del 2026-09-05 encontro y que la
+         * confirmacion con las cajas de linea reales deshace: en `/privacidad`
+         * con la raiz a 32 px las cuatro celdas de una fila daban las cuatro
+         * `alto = 391,88 px` (9 lineas por el proxy) mientras su texto ocupaba
+         * 2, 3, 4 y 2 lineas. Es la fila la que es alta, no el texto el que es
+         * estrecho.
+         */
+        cajaDeTexto("Tema (claro / oscuro)", { alto: 180 });
+        const sinConfirmar = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        expect(
+            sinConfirmar.ilegibles,
+            "con el proxy solo, 21 caracteres en 9 lineas son 2,33 por linea",
+        ).toHaveLength(1);
+        expect(sinConfirmar.ilegibles[0].lineas).toBe(9);
+
+        /* Las cajas de linea que el texto renderiza de verdad: dos. */
+        PROTO_RANGO.getClientRects = () => [
+            { top: 0, width: 180, height: 20 },
+            { top: 20, width: 60, height: 20 },
+        ];
+        const confirmada = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        expect(
+            confirmada.ilegibles,
+            `el texto ocupa 2 lineas reales de las 9 que mide la caja: 21 ` +
+                `caracteres en 2 lineas son 10,5 por linea y no hay defecto`,
+        ).toEqual([]);
+        expect(
+            confirmada.estiradas,
+            "la caja descartada tiene que contarse, para que un numero raro se vea en el informe",
+        ).toBe(1);
+    });
+
+    it("la confirmacion no salva una caja que de verdad es estrecha", () => {
+        /* La otra direccion, que es la que importa: en las trece cajas que la
+           portada declara ilegibles a 320 px los dos instrumentos dan el MISMO
+           numero (11/11, 19/19, 23/23...), porque ahi la caja ceñia el texto.
+           Una confirmacion que rebajara tambien esas seria una puerta trasera. */
+        cajaDeTexto("Escríbeme", { alto: 180, ancho: 58.83 });
+        PROTO_RANGO.getClientRects = () =>
+            Array.from({ length: 9 }, (_, i) => ({
+                top: i * 20,
+                width: 58.83,
+                height: 20,
+            }));
+        const r = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        expect(r.ilegibles).toHaveLength(1);
+        expect(r.ilegibles[0].lineas).toBe(9);
+        expect(r.ilegibles[0].caracteres).toBe(9);
+        expect(r.estiradas).toBe(0);
+    });
+
+    it("las guardas de vacuidad cuentan lo que tienen que contar, y el script las convierte en rojo", () => {
+        /*
+         * Las dos formas de que esta familia salga verde sin haber medido nada:
+         * que el filtro no encuentre una sola caja con texto, o que ninguna
+         * llegue a tres lineas. La sonda las distingue con dos contadores
+         * separados, y el script pone cada cero en rojo por su lado -- que es
+         * el mismo patron que ya tenia su familia hermana con `candidatos`.
+         */
+        const vacio = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        expect(vacio.examinadas).toBe(0);
+        expect(vacio.conTresLineas).toBe(0);
+
+        cajaDeTexto("abcdef", { alto: 40 });
+        const dosLineas = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        expect(
+            dosLineas.examinadas,
+            "una caja de dos lineas SI se examina: es el segundo contador el que la deja fuera",
+        ).toBe(1);
+        expect(dosLineas.conTresLineas).toBe(0);
+
+        for (const guarda of [
+            "la sonda de legibilidad no examino ni una sola caja con texto",
+            "la sonda de legibilidad no encontro ni una sola caja de tres o mas lineas",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo la guarda de vacuidad "${guarda}": ` +
+                    `sin ella un cero en el contador pasaria por pagina limpia`,
+            ).toContain(guarda);
         }
     });
 });

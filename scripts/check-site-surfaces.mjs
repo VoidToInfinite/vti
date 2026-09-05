@@ -31,9 +31,10 @@
  * misma pasada con las preferencias del sistema activas. Lo que nadie ha medido
  * es lo que aparece como hallazgo nuevo en la ronda siguiente.
  *
- * QUE MIDE, y por que en navegador y no en la suite. Las quince familias de abajo
- * dependen de layout real, de pintado real y de media queries reales: jsdom no
- * hace ninguna de las tres (regla 36 y 44 de RULES.md). Un test de Vitest puede
+ * QUE MIDE, y por que en navegador y no en la suite. Las dieciseis familias de
+ * abajo dependen de layout real, de pintado real y de media queries reales:
+ * jsdom no hace ninguna de las tres (regla 36 y 44 de RULES.md). Un test de
+ * Vitest puede
  * afirmar que una declaracion existe; solo un navegador puede decir que el
  * titulo de la seccion aterriza en top = 88 px con la barra terminando en 64.
  *
@@ -50,6 +51,45 @@
  * `Page.setFontSizes`, que es la misma palanca que la preferencia real del
  * usuario.
  *
+ * LA FAMILIA DIECISEIS, `legibilidad-al-200-por-ciento`, entra el 2026-09-05, y
+ * es la que la familia quince no podia ver POR DEFINICION. La quince mide que no
+ * se PIERDA contenido, que es la letra de WCAG 1.4.4; el arreglo del mismo dia
+ * por la manana llevo esa cuenta a cero px fuera en las ocho superficies y dejo
+ * el candado en verde sobre una portada en la que los valores de las tarjetas de
+ * Contact median 23,2 px de ancho y el rotulo del CTA salia letra por linea. El
+ * texto no se perdia: no se podia leer. La familia nueva cuenta CARACTERES POR
+ * LINEA sobre las cajas de tres o mas lineas, en la misma pasada y los mismos
+ * contextos que la quince; el umbral (4) y su calibracion estan en el docblock
+ * de `MIN_CARACTERES_POR_LINEA` y de `probeLegibilidadDeTexto`.
+ *
+ * MEDIDA CONTRA EL BUILD SERVIDO DE `47d0b4e` (out/ del HEAD, `serve out -l
+ * 3000`, Chrome), la familia sale en ROJO sobre la portada en los DOS temas y en
+ * VERDE en las seis superficies restantes -- que es la prueba de que ve el
+ * defecto real y no cualquier cosa. Las lineas, literales:
+ *
+ *   tema light, `/` (28 cajas; se citan cuatro de las 28)
+ *     NO CUMPLE  con el texto al 200 % (raiz 32 px) hay texto que no se pierde
+ *     pero no se puede leer, por debajo de 4 caracteres por linea: 320px
+ *     main/span caja de 58.83 px: 9 caracteres en 9 lineas (1 por linea)
+ *     ("Escríbeme"); 320px main/p caja de 28 px: 99 caracteres en 61 lineas
+ *     (1.62 por linea) ("Opcional: tu propia aplicación de correo"); 320px
+ *     main/span caja de 23.16 px: 21 caracteres en 19 lineas (1.11 por linea)
+ *     ("discord.gg/CuGhqdG3g3"); 320px main/span caja de 23.19 px: 27
+ *     caracteres en 23 lineas (1.17 por linea) ("linkedin.com/in/demosquerag")
+ *
+ *   tema dark, `/` (13 cajas; se citan tres de las 13)
+ *     NO CUMPLE  con el texto al 200 % (raiz 32 px) hay texto que no se pierde
+ *     pero no se puede leer, por debajo de 4 caracteres por linea: 320px
+ *     main/span caja de 144 px: 24 caracteres en 8 lineas (3 por linea)
+ *     ("¿POR QUÉ VOIDTOINFINITE?"); 320px main/span caja de 142.73 px: 47
+ *     caracteres en 12 lineas (3.92 por linea) ("“El destino no es el infinito.
+ *     El viaje "); 320px main/span caja de 58.83 px: 9 caracteres en 9 lineas
+ *     (1 por linea) ("Escríbeme")
+ *
+ * «NO CUMPLE - 2 incumplimiento(s) en 8 superficies», EXIT=1 en los dos temas.
+ * Los defectos son de otros frentes de la misma ola y este fichero no los toca:
+ * lo que se entrega aqui es el instrumento que los ve.
+ *
  * `DEUDA_ZOOM` ESTA VACIA DESDE LA CRITICA #19, y esa lista vacia es la
  * entrega: las cinco zonas que la version anterior sancionaba estan arregladas
  * en la causa, no apagadas. Ver su docblock, mas abajo, con el antes y el
@@ -62,7 +102,8 @@
  * `scripts/check-site-surfaces.test.mjs`, que importa este fichero y afirma
  * que su cobertura no se ha vaciado en silencio: las ocho superficies, los dos
  * idiomas, TODAS las rutas que el sitio declara (la portada incluida), el
- * barrido completo de anchos, las quince familias, la magnitud del zoom y el
+ * barrido completo de anchos, las dieciseis familias con su suelo numerico, la
+ * magnitud del zoom, el umbral de legibilidad y el
  * hecho de que ninguna zona quede sancionada. Un candado de navegador al que
  * alguien le borra media lista de rutas sigue saliendo verde; ese es justo el
  * fallo que el repo ya pago cuatro veces con candados que pasaban por vacuidad.
@@ -126,10 +167,39 @@
  *   deuda de zoom     sancionadas=0 observadas=0
  *
  * «CUMPLE - 8 superficies, 15 familias, 0 zonas de zoom sancionadas, cero
- * incumplimientos», codigo de salida 0 en `dark` y en `light`. El segundo numero
+ * incumplimientos», codigo de salida 0 en `dark` y en `light`. (La linea se
+ * conserva tal cual se imprimio aquel dia: eran quince familias entonces y hoy
+ * son dieciseis, con la de legibilidad que entra abajo.) El segundo numero
  * de cada fila es la guarda de vacuidad del filtro: son las cajas con texto
  * propio o interactivas que la sonda SI evaluo en el barrido completo, y un cero
  * ahi pone el script en rojo.
+ *
+ * CIFRAS DE LA FAMILIA DIECISEIS, medidas el 2026-09-05 sobre el build servido de
+ * `47d0b4e` -- que TODAVIA NO lleva los arreglos de esta ola, asi que la portada
+ * sale en rojo a proposito y las demas superficies en verde. Tema claro; el
+ * oscuro da 13 y 11 en las dos portadas y los mismos ceros en las seis restantes:
+ *
+ *   /                 legibilidad=28 ilegibles / 459 cajas de 3+ lineas de 1410 con texto (0 descartadas por caja estirada)
+ *   /en               legibilidad=26 ilegibles / 449 cajas de 3+ lineas de 1410 con texto (0 descartadas por caja estirada)
+ *   /privacidad       legibilidad=0 ilegibles / 721 cajas de 3+ lineas de 1854 con texto (44 descartadas por caja estirada)
+ *   /en/privacy       legibilidad=0 ilegibles / 675 cajas de 3+ lineas de 1854 con texto (44 descartadas por caja estirada)
+ *   /aviso-legal      legibilidad=0 ilegibles / 333 cajas de 3+ lineas de 1206 con texto (0 descartadas por caja estirada)
+ *   /en/legal-notice  legibilidad=0 ilegibles / 314 cajas de 3+ lineas de 1206 con texto (0 descartadas por caja estirada)
+ *   404 (es)          legibilidad=0 ilegibles / 13 cajas de 3+ lineas de 390 con texto (0 descartadas por caja estirada)
+ *   404 (en)          legibilidad=0 ilegibles / 10 cajas de 3+ lineas de 390 con texto (0 descartadas por caja estirada)
+ *
+ * Los dos numeros del medio son sus guardas de vacuidad y el tercero es el
+ * segundo instrumento trabajando: las 44 descartadas de cada rama de privacidad
+ * son las celdas de la tabla de almacenamiento, estiradas al alto de su fila,
+ * que el proxy senalaba y las cajas de linea reales absolvieron (ver
+ * `probeLegibilidadDeTexto`). Cero descartadas en la portada: ahi la correccion
+ * no toca ni una de las 28.
+ *
+ * LA SONDA DE PERDIDA MIDE LOS DOS LADOS desde esta misma fecha. Sobre el build
+ * de `47d0b4e` el lado nuevo no anade ni una perdida (las ocho siguen a `0
+ * perdidas`), asi que no llega con falsos positivos; lo que ata su
+ * comportamiento es el candado en jsdom del test companero, con el rojo literal
+ * escrito alli.
  *
  * ANTES DE LOS ARREGLOS, con la misma sonda y el mismo build servido (todas
  * las cifras a 320 px salvo donde se indica): el rotulo de marca 29,72 px fuera
@@ -253,9 +323,17 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las quince familias que este script comprueba. La lista es el CONTRATO del
+ * Las dieciseis familias que este script comprueba. La lista es el CONTRATO del
  * candado: el test companero exige que ninguna desaparezca, porque un script que
  * mide trece cosas y dice medir catorce es peor que uno que no existe.
+ *
+ * Y desde la ola R exige ademas que la lista no ENCOJA: `FAMILIAS_MINIMAS`, en
+ * el test, es un numero tecleado que solo puede subir. El vinculo bidireccional
+ * entre esta lista y los marcadores del cuerpo ata la coherencia, no la
+ * extension, y `FAMILIAS_ESPERADAS` vive en el otro fichero pero el marcador
+ * `// [check: ...]` vive en ESTE: un recorte simetrico de las dos listas mas el
+ * marcador --tres bloques, dos ficheros-- salia en verde. El suelo numerico es
+ * lo que ya no se puede recortar sin escribir a mano un numero mas pequeno.
  */
 export const CHECKS = [
     "recorrido-teclado",
@@ -272,6 +350,7 @@ export const CHECKS = [
     "forced-colors",
     "responsive-sin-desbordamiento",
     "texto-al-200-por-ciento",
+    "legibilidad-al-200-por-ciento",
     "sin-javascript",
 ];
 
@@ -300,6 +379,24 @@ export const ROOT_FONT_BASE_PX = 16;
  * saliendo verde sobre un defecto que WCAG sigue considerando fallo.
  */
 export const ZOOM_FONT_PX = ROOT_FONT_BASE_PX * 2;
+
+/**
+ * El suelo de caracteres por linea por debajo del cual una caja de texto de tres
+ * o mas lineas se declara ILEGIBLE, con la raiz al 200 %.
+ *
+ * Calibrado el 2026-09-05 contra las dos poblaciones reales, no elegido a ojo:
+ * los defectos medidos en el build servido daban entre 0,9 y 2,7 caracteres por
+ * linea, y el suelo fisico de la tipografia grande a 320 px --un `h2` de 64 px
+ * en una caja de 224, la nota de 80 px en una de 208-- da entre 5 y 7 y NO es
+ * defecto, sino exactamente lo que la preferencia del usuario pidio. La tabla
+ * completa esta en el docblock de `probeLegibilidadDeTexto`.
+ *
+ * El test companero impide que BAJE. Subirlo endurece el candado (mas cajas
+ * caen); bajarlo lo vacia en silencio, que es la unica direccion peligrosa: con
+ * el umbral en 1 ninguna de las cajas medidas arriba se reportaria y la familia
+ * saldria en verde sobre el defecto que existe para cazar.
+ */
+export const MIN_CARACTERES_POR_LINEA = 4;
 
 /**
  * LA LISTA DE ZONAS SANCIONADAS, HOY VACIA, Y POR QUE ESA LISTA VACIA ES LA
@@ -523,8 +620,28 @@ function probeOverflow() {
  * `visibility: hidden` queda fuera por lo mismo: el panel del desplegable de la
  * barra vive cerrado en el DOM y no pinta nada; su caja no es contenido que
  * nadie pueda perder.
+ *
+ * LOS DOS LADOS, desde la ola R (2026-09-05). La primera version calculaba
+ * `sobra = r.right - cw` y nada mas: media la IZQUIERDA en ningun sitio
+ * (`grep -c "r.left"` sobre este fichero devolvia 0). El verificador de la ola Q
+ * lo declaro como hueco y el repo ya tenia el contraejemplo delante: el `h1` de
+ * la 404 al 200 % de texto pedia 402,56 px en una caja de 224 y desbordaba por
+ * los DOS lados a la vez (left -41,28 / right 361,28), asi que la mitad
+ * izquierda de aquel defecto era invisible para este instrumento y solo se
+ * cerro porque la derecha delataba al mismo elemento. Un titulo centrado que se
+ * saliera SOLO por la izquierda --lo que hace cualquier caja con
+ * `margin-inline: auto` mas ancha que su contenedor-- habria pasado en verde.
+ *
+ * Ahora `sobra = max(r.right - cw, -r.left)`, con el lado en el informe. Es el
+ * maximo y no la suma a proposito: lo que se reporta es cuanto contenido se
+ * pierde por el lado PEOR, que es la magnitud que se compara contra el tope de
+ * una sancion; sumar los dos lados inflaria esa comparacion sin que ninguna
+ * medida real correspondiera al numero. El filtro de ancestro con
+ * `overflow-x: auto|scroll` se aplica igual a los dos lados: un contenedor que
+ * scrollea en horizontal alcanza tanto lo que se sale por la derecha como lo
+ * que se sale por la izquierda.
  */
-function probePerdidaHorizontal() {
+export function probePerdidaHorizontal() {
     const raiz = document.documentElement;
     const cw = raiz.clientWidth;
     const perdidos = [];
@@ -544,7 +661,10 @@ function probePerdidaHorizontal() {
         if (r.width === 0 && r.height === 0) continue;
         candidatos += 1;
 
-        const sobra = r.right - cw;
+        const porLaDerecha = r.right - cw;
+        const porLaIzquierda = -r.left;
+        const sobra = Math.max(porLaDerecha, porLaIzquierda);
+        const lado = porLaIzquierda > porLaDerecha ? "izquierda" : "derecha";
         if (sobra <= 1) continue;
         let alcanzable = false;
         let p = el.parentElement;
@@ -567,6 +687,7 @@ function probePerdidaHorizontal() {
                     : "suelto",
             sel: el.tagName.toLowerCase(),
             sobra: Math.round(sobra * 100) / 100,
+            lado,
             texto: (el.textContent || "").trim().slice(0, 40),
         });
     }
@@ -576,6 +697,175 @@ function probePerdidaHorizontal() {
         candidatos,
         perdidos,
     };
+}
+
+/**
+ * TEXTO QUE NO SE PIERDE PERO NO SE PUEDE LEER: caracteres por linea sobre las
+ * cajas de tres o mas lineas, con la raiz al 200 %.
+ *
+ * POR QUE NO BASTABA LA FAMILIA HERMANA. `probePerdidaHorizontal` mide que no se
+ * PIERDA contenido, y esa es exactamente la letra de WCAG 1.4.4 ("without loss
+ * of content or functionality"). El arreglo del 2026-09-05 por la manana
+ * --`overflow-wrap: anywhere` mas pistas `minmax(0, 1fr)`-- llevo esa cuenta a
+ * cero px fuera en las ocho superficies y dejo el candado en verde. La sonda de
+ * legibilidad del mismo dia, sobre el MISMO build, encontro lo que ese verde
+ * tapaba: los rellenos del eje inline en `rem` se doblan con la fuente mientras
+ * el viewport no, y anidados (seccion + tarjeta + panel + campo) se comen la
+ * columna hasta dejar una o dos letras por linea. El texto no se salia; no se
+ * podia leer. Un candado de "no se pierde contenido" necesita a su lado uno de
+ * "se puede leer" (leccion del 2026-09-05, regla 2).
+ *
+ * LA METRICA, y por que el umbral es 4 y no otro numero. Para cada elemento con
+ * texto propio, visible, de mas de 1x1 px y con `writing-mode` horizontal:
+ *
+ *   lineas     = round(alto de la caja / line-height computado)
+ *   caracteres = innerText.trim().length
+ *   ilegible   <=> lineas >= 3 y caracteres / lineas < MIN_CARACTERES_POR_LINEA
+ *
+ * `innerText` y no el texto PROPIO: un `h2` con un `span` de acento dentro se
+ * mide entero contra la altura de su caja, porque la caja la ocupan las dos
+ * partes. Contar solo el texto propio infravalora la ratio y convierte
+ * tipografia legitima en defecto -- medido: 16 caracteres en 6 lineas parecian
+ * 2,7 por linea cuando eran 31 en 6, o sea 5,2. En jsdom, donde `innerText` no
+ * existe, se cae a `textContent`: es el mismo numero para el caso que el test
+ * construye, y el navegador es quien manda en la medida real.
+ *
+ * Las dos poblaciones que separa el umbral, medidas el 2026-09-05 a 320 px con
+ * la raiz a 32 px sobre el build servido:
+ *
+ *   DEFECTO (0,9 - 2,7 car./linea)          SUELO FISICO LEGITIMO (5 - 7)
+ *   valores de las tarjetas de Contact      un h2 de 64 px en una caja de 224 px
+ *     21-27 caracteres en 19-23 lineas      la nota de 80 px en una de 208 px
+ *   ayuda del formulario: 99 en 61          (tipografia grande pedida a proposito,
+ *   rotulo del CTA: 9 en 9 (letra/linea)     identica con la raiz por defecto)
+ *   h2 del deck: 2,25 por linea
+ *   cita de Journey: 47 en 12
+ *
+ * 4 cae en el hueco entre las dos, con margen por los dos lados. No se toca sin
+ * volver a medir las dos poblaciones; el test companero impide que BAJE, que es
+ * la direccion en la que el candado se vacia.
+ *
+ * LA CAJA ESTIRADA, Y POR QUE HAY UN SEGUNDO INSTRUMENTO. El alto de la caja es
+ * un PROXY del alto del texto, y falla en un caso concreto que este sitio tiene:
+ * una celda de tabla se estira al alto de su FILA. Medido el 2026-09-05 en
+ * `/privacidad` con la raiz a 32 px, las cuatro celdas de una misma fila daban
+ * las cuatro `alto = 391,88 px` a 320 px (y `302,28` a 1920), o sea 9 y 7
+ * lineas por el proxy, mientras el texto de cada una ocupaba 2, 3, 4 y 2 lineas
+ * reales. Con solo el proxy, esa fila entraba en el informe como cuatro cajas
+ * ilegibles y ninguna lo era: es la fila la que es alta, no el texto el que es
+ * estrecho.
+ *
+ * Asi que a la caja que el proxy SENALA se le cuenta el texto con un segundo
+ * instrumento independiente --las cajas de linea que el texto renderiza de
+ * verdad, `Range.getClientRects()` agrupadas por su borde superior-- y se
+ * conserva el MENOR de los dos. Es conservador por construccion: nunca sube el
+ * numero de lineas, solo deshace la inflacion. Y no pierde ni un defecto real:
+ * en las trece cajas que la portada declara ilegibles a 320 px los dos
+ * instrumentos dan EXACTAMENTE el mismo numero (11/11, 7/7, 13/13, 61/61, 8/8,
+ * 14/14, 9/9, 15/15, 19/19, 13/13, 19/19, 20/20, 23/23), porque ahi la caja
+ * ceñia el texto. Solo se ejecuta sobre las cajas ya senaladas, que son unas
+ * pocas por barrido; correrlo sobre las mil cuatrocientas de una portada seria
+ * pagar un Range por caja para no cambiar nada.
+ *
+ * Donde no hay cajas de linea que contar --jsdom, que no implementa
+ * `Range.getClientRects`-- el proxy se queda solo, que es el comportamiento
+ * correcto: sin layout no hay estiramiento que deshacer.
+ *
+ * GUARDAS DE VACUIDAD, las mismas dos que su familia hermana: `examinadas` son
+ * las cajas con texto que la sonda llego a mirar y `conTresLineas` las que
+ * superaron el corte de altura. A 320 px con la raiz a 32 hay decenas de las
+ * segundas en cualquier superficie real; un cero en cualquiera de las dos
+ * significa que el instrumento esta roto --un cambio de marcado, un
+ * `line-height` que deja de resolverse--, no que la pagina este limpia, y pone
+ * el script en rojo.
+ *
+ * El minimo llega como ARGUMENTO y no leyendo la constante del modulo porque
+ * esta funcion se serializa para ejecutarse dentro de la pagina: una referencia
+ * a un identificador del modulo moriria alli con un ReferenceError.
+ */
+export function probeLegibilidadDeTexto(minCaracteresPorLinea) {
+    const ilegibles = [];
+    let examinadas = 0;
+    let conTresLineas = 0;
+    let estiradas = 0;
+    for (const el of document.querySelectorAll("body *")) {
+        const tieneTextoPropio = [...el.childNodes].some(
+            (n) => n.nodeType === 3 && n.textContent.trim().length > 0,
+        );
+        if (!tieneTextoPropio) continue;
+
+        const cs = getComputedStyle(el);
+        if (cs.visibility === "hidden" || cs.visibility === "collapse")
+            continue;
+        /* Un texto vertical se lee en columnas: "caracteres por linea" no
+           significa lo mismo y la metrica no le aplica. */
+        const escritura = cs.writingMode || "horizontal-tb";
+        if (!escritura.startsWith("horizontal")) continue;
+        const r = el.getBoundingClientRect();
+        /* 1x1 px es la caja de `VisuallyHidden`: existe para los lectores de
+           pantalla y no tiene lineas que contar. */
+        if (r.width <= 1 || r.height <= 1) continue;
+        examinadas += 1;
+
+        const lineHeight = parseFloat(cs.lineHeight);
+        const alturaLinea = Number.isFinite(lineHeight)
+            ? lineHeight
+            : parseFloat(cs.fontSize) * 1.2;
+        if (!Number.isFinite(alturaLinea) || alturaLinea <= 0) continue;
+        const lineasPorCaja = Math.round(r.height / alturaLinea);
+        if (!Number.isFinite(lineasPorCaja) || lineasPorCaja < 3) continue;
+        conTresLineas += 1;
+
+        const bruto =
+            typeof el.innerText === "string" ? el.innerText : el.textContent;
+        const caracteres = (bruto || "").trim().length;
+        if (caracteres / lineasPorCaja >= minCaracteresPorLinea) continue;
+
+        /* Confirmacion con el segundo instrumento, solo sobre las cajas ya
+           senaladas: las cajas de linea que el texto renderiza de verdad,
+           agrupadas por su borde superior. Deshace el estiramiento de una celda
+           al alto de su fila y no toca nada mas. */
+        let lineasRenderizadas = 0;
+        try {
+            const rango = document.createRange();
+            rango.selectNodeContents(el);
+            if (typeof rango.getClientRects === "function") {
+                const topes = new Set();
+                for (const q of rango.getClientRects()) {
+                    if (q.width > 0 && q.height > 0)
+                        topes.add(Math.round(q.top));
+                }
+                lineasRenderizadas = topes.size;
+            }
+        } catch {
+            /* sin cajas de linea que contar se conserva el proxy */
+        }
+        const lineas =
+            lineasRenderizadas > 0
+                ? Math.min(lineasPorCaja, lineasRenderizadas)
+                : lineasPorCaja;
+        const ratio = caracteres / lineas;
+        if (lineas < 3 || ratio >= minCaracteresPorLinea) {
+            if (lineas < lineasPorCaja) estiradas += 1;
+            continue;
+        }
+        ilegibles.push({
+            zona: el.closest("header")
+                ? "header"
+                : el.closest("footer")
+                  ? "footer"
+                  : el.closest("main")
+                    ? "main"
+                    : "suelto",
+            sel: el.tagName.toLowerCase(),
+            ancho: Math.round(r.width * 100) / 100,
+            lineas,
+            caracteres,
+            ratio: Math.round(ratio * 100) / 100,
+            texto: (bruto || "").trim().replace(/\s+/g, " ").slice(0, 40),
+        });
+    }
+    return { examinadas, conTresLineas, estiradas, ilegibles };
 }
 
 /** Animaciones realmente en marcha. */
@@ -1145,9 +1435,13 @@ async function auditarSuperficie(browser, base, theme, surface) {
     await page.goto(url, { waitUntil: "networkidle" });
     const sinSancionar = [];
     const excedidas = [];
+    const ilegibles = [];
     const deudaVista = new Set();
     let raizMedida = null;
     let candidatosVistos = 0;
+    let examinadasVistas = 0;
+    let conTresLineasVistas = 0;
+    let estiradasVistas = 0;
     for (const width of WIDTH_SWEEP) {
         await page.setViewportSize({ width, height: 900 });
         await page.waitForTimeout(220);
@@ -1158,19 +1452,38 @@ async function auditarSuperficie(browser, base, theme, surface) {
             const sancion = sancionDeZoom(p.zona, surface.kind);
             if (!sancion) {
                 sinSancionar.push(
-                    `${width}px ${p.zona}/${p.sel} ${p.sobra} px fuera ("${p.texto}")`,
+                    `${width}px ${p.zona}/${p.sel} ${p.sobra} px fuera por la ${p.lado} ("${p.texto}")`,
                 );
                 continue;
             }
             deudaVista.add(sancion.clave);
             if (p.sobra > sancion.topePx)
                 excedidas.push(
-                    `${sancion.clave} a ${width}px: ${p.sobra} px fuera, por encima de los ${sancion.topePx} px sancionados ("${p.texto}")`,
+                    `${sancion.clave} a ${width}px: ${p.sobra} px fuera por la ${p.lado}, por encima de los ${sancion.topePx} px sancionados ("${p.texto}")`,
                 );
+        }
+
+        /* La MISMA pasada y el MISMO contexto que la familia de arriba: el
+           montaje de esta medida --raiz a 32 px por CDP, `reduce` activo, el
+           barrido entero de anchos-- es identico, y repetirlo en un contexto
+           propio doblaria el coste del script para medir exactamente la misma
+           composicion. */
+        const leg = await page.evaluate(
+            probeLegibilidadDeTexto,
+            MIN_CARACTERES_POR_LINEA,
+        );
+        examinadasVistas += leg.examinadas;
+        conTresLineasVistas += leg.conTresLineas;
+        estiradasVistas += leg.estiradas;
+        for (const c of leg.ilegibles) {
+            ilegibles.push(
+                `${width}px ${c.zona}/${c.sel} caja de ${c.ancho} px: ${c.caracteres} caracteres en ${c.lineas} lineas (${c.ratio} por linea) ("${c.texto}")`,
+            );
         }
     }
     await ctx.close();
     datos.zoom200 = `@${raizMedida}px ${sinSancionar.length} perdidas / ${candidatosVistos} cajas de contenido`;
+    datos.legibilidad = `${ilegibles.length} ilegibles / ${conTresLineasVistas} cajas de 3+ lineas de ${examinadasVistas} con texto (${estiradasVistas} descartadas por caja estirada)`;
 
     // [check: texto-al-200-por-ciento]
     /* Segunda guarda de vacuidad, la del FILTRO (critica externa #19): la sonda
@@ -1197,6 +1510,26 @@ async function auditarSuperficie(browser, base, theme, surface) {
         );
     if (excedidas.length)
         fallos.push(`deuda de zoom empeorada: ${excedidas.join("; ")}`);
+
+    // [check: legibilidad-al-200-por-ciento]
+    /* Las dos guardas de vacuidad de esta familia, con el mismo criterio que las
+       de arriba: `examinadas` son las cajas con texto que la sonda llego a
+       mirar, `conTresLineas` las que superaron el corte de altura. A 320 px con
+       la raiz a 32 hay decenas de las segundas en cualquier superficie real; un
+       cero en cualquiera de las dos es el instrumento roto, no la pagina
+       limpia. */
+    if (examinadasVistas === 0)
+        fallos.push(
+            "la sonda de legibilidad no examino ni una sola caja con texto en todo el barrido: el filtro esta roto y el resultado seria vacuo",
+        );
+    if (conTresLineasVistas === 0)
+        fallos.push(
+            "la sonda de legibilidad no encontro ni una sola caja de tres o mas lineas en todo el barrido: sin ellas la metrica no llega a evaluarse y el verde seria vacuo",
+        );
+    if (ilegibles.length)
+        fallos.push(
+            `con el texto al 200 % (raiz ${ZOOM_FONT_PX} px) hay texto que no se pierde pero no se puede leer, por debajo de ${MIN_CARACTERES_POR_LINEA} caracteres por linea: ${ilegibles.join("; ")}`,
+        );
 
     // --- sin JavaScript
     ctx = await browser.newContext({
