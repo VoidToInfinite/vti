@@ -57,10 +57,21 @@
  * por la manana llevo esa cuenta a cero px fuera en las ocho superficies y dejo
  * el candado en verde sobre una portada en la que los valores de las tarjetas de
  * Contact median 23,2 px de ancho y el rotulo del CTA salia letra por linea. El
- * texto no se perdia: no se podia leer. La familia nueva cuenta CARACTERES POR
- * LINEA sobre las cajas de tres o mas lineas, en la misma pasada y los mismos
- * contextos que la quince; el umbral (4) y su calibracion estan en el docblock
- * de `MIN_CARACTERES_POR_LINEA` y de `probeLegibilidadDeTexto`.
+ * texto no se perdia: no se podia leer.
+ *
+ * TIENE DOS FACTORES, y el segundo entro esa misma tarde porque el primero solo
+ * NO separaba las dos poblaciones. Una caja se declara ilegible cuando (a) tiene
+ * tres o mas lineas y menos de `MIN_CARACTERES_POR_LINEA` caracteres por linea Y
+ * (b) su ancho es menor que `MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA` veces el
+ * `clientWidth` del documento. El contraejemplo que lo obligo: el rotulo del CTA
+ * («Escríbeme» en 3 caracteres por linea, caja de 108 px de 320) es defecto de
+ * rellenos anidados y el acento de la nota de cierre del deck de Story («un
+ * nuevo comienzo», 3,4 caracteres por linea, caja de 177,61 px de 320) es la
+ * fisica de una tipografia de 80 px que WCAG 1.4.4 exige que crezca -- los dos
+ * por debajo del primer factor, y lo que los separa es que uno ocupa el 34 % del
+ * viewport y el otro el 55 %. La calibracion completa de los dos umbrales, con
+ * su tabla de las dos poblaciones, esta en el docblock de
+ * `MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA` y en el de `probeLegibilidadDeTexto`.
  *
  * MEDIDA CONTRA EL BUILD SERVIDO DE `47d0b4e` (out/ del HEAD, `serve out -l
  * 3000`, Chrome), la familia sale en ROJO sobre la portada en los DOS temas y en
@@ -89,6 +100,48 @@
  * «NO CUMPLE - 2 incumplimiento(s) en 8 superficies», EXIT=1 en los dos temas.
  * Los defectos son de otros frentes de la misma ola y este fichero no los toca:
  * lo que se entrega aqui es el instrumento que los ve.
+ *
+ * MEDIDA OTRA VEZ CONTRA EL BUILD SERVIDO DE `5bfe092` --con los rellenos ya
+ * arreglados (`inlineSpace`) y con el SEGUNDO FACTOR dentro-- el mismo dia por
+ * la tarde. El tema OSCURO pasa a VERDE y el CLARO se queda en rojo solo por el
+ * rotulo del CTA, que es el defecto vivo. Las lineas, literales:
+ *
+ *   tema dark, las ocho superficies
+ *     /     legibilidad=0 ilegibles / 334 cajas de 3+ lineas de 1350 con texto
+ *           (0 descartadas por caja estirada, 1 por caja ancha)
+ *     /en   legibilidad=0 ilegibles / 333 cajas de 3+ lineas de 1350 con texto
+ *           (0 descartadas por caja estirada, 3 por caja ancha)
+ *     «CUMPLE - 8 superficies, 16 familias, 0 zonas de zoom sancionadas, cero
+ *     incumplimientos (tema dark, base http://localhost:3000)», EXIT=0.
+ *
+ *   Esa 1 y esas 3 «cajas anchas» son EXACTAMENTE los cuatro incumplimientos
+ *   que la misma corrida daba sin el segundo factor, medidos antes de tocar
+ *   nada: «320px main/span caja de 177.61 px: 17 caracteres en 5 lineas (3.4
+ *   por linea) ("un nuevo comienzo")» en `/`, y el mismo acento ingles a 320,
+ *   360 y 390 px --«caja de 197.61 px: 15 caracteres en 4 lineas (3.75 por
+ *   linea) ("a new beginning")»-- en `/en`. Los cuatro son el acento de la nota
+ *   de cierre del deck de Story, que no cabe de otra forma a ese cuerpo.
+ *
+ *   tema light, `/` y `/en` (3 cajas cada una, todas el rotulo del CTA)
+ *     NO CUMPLE  con el texto al 200 % (raiz 32 px) hay texto que no se pierde
+ *     pero no se puede leer, por debajo de 4 caracteres por linea en cajas de
+ *     menos del 50 % del viewport: 320px main/span caja de 108 px (33.8 % del
+ *     viewport): 9 caracteres en 3 lineas (3 por linea) ("Escríbeme"); 768px
+ *     main/span caja de 58.83 px (7.7 % del viewport): 9 caracteres en 9 lineas
+ *     (1 por linea) ("Escríbeme"); 834px main/span caja de 91.33 px (11 % del
+ *     viewport): 9 caracteres en 3 lineas (3 por linea) ("Escríbeme")
+ *
+ *     NO CUMPLE  ... 320px main/span caja de 108 px (33.8 % del viewport): 11
+ *     caracteres en 3 lineas (3.67 por linea) ("Write to me"); 768px main/span
+ *     caja de 61.89 px (8.1 % del viewport): 11 caracteres en 7 lineas (1.57
+ *     por linea) ("Write to me"); 834px main/span caja de 91.33 px (11 % del
+ *     viewport): 11 caracteres en 4 lineas (2.75 por linea) ("Write to me")
+ *
+ *     «NO CUMPLE - 2 incumplimiento(s) en 8 superficies», EXIT=1.
+ *
+ *   Un boton de alto fijo con rellenos anidados: su caja se ENCOGE de 108 px a
+ *   58,83 cuando el viewport se ensancha de 320 a 768. Esa es la firma que el
+ *   segundo factor mide, y el defecto lo arregla otro frente.
  *
  * `DEUDA_ZOOM` ESTA VACIA DESDE LA CRITICA #19, y esa lista vacia es la
  * entrega: las cinco zonas que la version anterior sancionaba estan arregladas
@@ -194,6 +247,24 @@
  * que el proxy senalaba y las cajas de linea reales absolvieron (ver
  * `probeLegibilidadDeTexto`). Cero descartadas en la portada: ahi la correccion
  * no toca ni una de las 28.
+ *
+ * LAS MISMAS CIFRAS SOBRE `5bfe092`, con los rellenos arreglados y el segundo
+ * factor dentro (tema claro arriba, oscuro entre parentesis donde difiere). El
+ * cuarto numero es el segundo factor absolviendo:
+ *
+ *   /                 legibilidad=3 (0) ilegibles / 373 (334) cajas de 3+ lineas de 1410 (1350) con texto (0 descartadas por caja estirada, 0 (1) por caja ancha)
+ *   /en               legibilidad=3 (0) ilegibles / 367 (333) cajas de 3+ lineas de 1410 (1350) con texto (0 descartadas por caja estirada, 0 (3) por caja ancha)
+ *   /privacidad       legibilidad=0 ilegibles / 689 cajas de 3+ lineas de 1854 con texto (36 descartadas por caja estirada, 3 por caja ancha)
+ *   /en/privacy       legibilidad=0 ilegibles / 650 cajas de 3+ lineas de 1854 con texto (39 descartadas por caja estirada, 0 por caja ancha)
+ *   /aviso-legal      legibilidad=0 ilegibles / 291 cajas de 3+ lineas de 1206 con texto (0 descartadas por caja estirada, 0 por caja ancha)
+ *   /en/legal-notice  legibilidad=0 ilegibles / 281 cajas de 3+ lineas de 1206 con texto (0 descartadas por caja estirada, 0 por caja ancha)
+ *   404 (es)          legibilidad=0 ilegibles / 7 cajas de 3+ lineas de 390 con texto (0 descartadas por caja estirada, 0 por caja ancha)
+ *   404 (en)          legibilidad=0 ilegibles / 4 cajas de 3+ lineas de 390 con texto (0 descartadas por caja estirada, 0 por caja ancha)
+ *
+ * Las 39 celdas de `/privacidad` se reparten 36 + 3 y las de `/en/privacy` 39 +
+ * 0: el segundo factor corre ANTES que la confirmacion con las cajas de linea
+ * --es mas barato-- asi que tres de las celdas que antes absolvia el Range las
+ * absuelve ahora por anchas. El total absuelto no cambia; cambia quien lo firma.
  *
  * LA SONDA DE PERDIDA MIDE LOS DOS LADOS desde esta misma fecha. Sobre el build
  * de `47d0b4e` el lado nuevo no anade ni una perdida (las ocho siguen a `0
@@ -381,15 +452,24 @@ export const ROOT_FONT_BASE_PX = 16;
 export const ZOOM_FONT_PX = ROOT_FONT_BASE_PX * 2;
 
 /**
- * El suelo de caracteres por linea por debajo del cual una caja de texto de tres
- * o mas lineas se declara ILEGIBLE, con la raiz al 200 %.
+ * PRIMER FACTOR de la familia de legibilidad: el suelo de caracteres por linea
+ * por debajo del cual una caja de texto de tres o mas lineas es CANDIDATA a
+ * ilegible, con la raiz al 200 %. Candidata y no ilegible: hace falta ademas el
+ * segundo factor, `MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA`, y el porque esta en su
+ * docblock y en la tabla de `probeLegibilidadDeTexto`.
  *
  * Calibrado el 2026-09-05 contra las dos poblaciones reales, no elegido a ojo:
  * los defectos medidos en el build servido daban entre 0,9 y 2,7 caracteres por
  * linea, y el suelo fisico de la tipografia grande a 320 px --un `h2` de 64 px
  * en una caja de 224, la nota de 80 px en una de 208-- da entre 5 y 7 y NO es
- * defecto, sino exactamente lo que la preferencia del usuario pidio. La tabla
- * completa esta en el docblock de `probeLegibilidadDeTexto`.
+ * defecto, sino exactamente lo que la preferencia del usuario pidio.
+ *
+ * LO QUE LA SEGUNDA MEDICION DEL MISMO DIA CORRIGIO de esa calibracion: el
+ * hueco entre las dos poblaciones no era tan limpio como parecia. Con los
+ * rellenos ya arreglados (`inlineSpace`), el acento de la nota de cierre del
+ * deck de Story da 17 caracteres en 5 lineas --3,4 por linea, por DEBAJO de
+ * este umbral-- y no es defecto ninguno. Un solo factor no separa las dos
+ * poblaciones; hacen falta los dos.
  *
  * El test companero impide que BAJE. Subirlo endurece el candado (mas cajas
  * caen); bajarlo lo vacia en silencio, que es la unica direccion peligrosa: con
@@ -397,6 +477,62 @@ export const ZOOM_FONT_PX = ROOT_FONT_BASE_PX * 2;
  * saldria en verde sobre el defecto que existe para cazar.
  */
 export const MIN_CARACTERES_POR_LINEA = 4;
+
+/**
+ * SEGUNDO FACTOR de la familia de legibilidad: una caja solo se declara
+ * ilegible si ademas de partirse en trocitos es MUCHO MAS ESTRECHA DE LO QUE EL
+ * VIEWPORT PERMITE. La condicion es `ancho de la caja < 0,5 x clientWidth del
+ * documento`.
+ *
+ * POR QUE HACIA FALTA, con las dos mediciones que lo obligaron (2026-09-05,
+ * build servido de `5bfe092`, raiz 32 px, `reduce`):
+ *
+ *   - EL ROTULO DEL CTA, que SI es defecto: a 320 px la caja mide 108 px --el
+ *     34 % del viewport-- y parte «Escríbeme» en 3 lineas de 3 caracteres; a
+ *     768 px la MISMA caja se encoge a 58,83 px (el 7,7 %) y saca las 9 letras
+ *     en 9 lineas. Una caja que se estrecha cuando el viewport se ensancha es
+ *     la firma del defecto de rellenos anidados.
+ *   - EL ACENTO DE LA NOTA DE CIERRE del deck de Story, que NO lo es: a 320 px
+ *     la caja mide 177,61 px --el 55 %-- y da 17 caracteres en 5 lineas (3,4
+ *     por linea) porque «un nuevo comienzo» se pide a `clamp(2.5rem, 11vw,
+ *     8rem)`, o sea 80 px con la raiz a 32, y la palabra «comienzo» mide ~336
+ *     px a ese cuerpo: no cabe en NINGUNA columna posible a 320 px de viewport.
+ *     WCAG 1.4.4 exige que el texto llegue al 200 %, y acotar ese cuerpo con
+ *     `vw` seria el patron de fallo F94. Su `p` entero da 36 caracteres en 9
+ *     lineas: 4,0 justos, a una decima del primer factor.
+ *
+ * LA TABLA DE CALIBRACION, con las dos poblaciones y los dos factores. Todas
+ * las cifras a 320 px salvo donde se indica, medidas con este mismo script:
+ *
+ *   DEFECTO (car./linea < 4 Y caja < 50 % del viewport)
+ *     valores de las tarjetas de Contact   23,2 px = 7 %
+ *     ayuda del formulario                 28 px   = 9 %
+ *     rotulo del CTA                       58,8 px = 18 %  (108 px = 34 % tras
+ *                                                           el arreglo de rellenos)
+ *     h2 del deck                          144 px  = 45 %
+ *     cita de Journey                      142,7 px= 45 %
+ *     kicker de Story                      144 px  = 45 %
+ *
+ *   FISICA DE LA TIPOGRAFIA GRANDE (car./linea < 4 pero caja >= 50 %)
+ *     acento de la nota, rama es           177,61 px = 55 %  (17 car. en 5 lineas)
+ *     acento de la nota, rama en           197,61 px = 62 %  (15 car. en 4 lineas)
+ *     columna que las contiene             208 px    = 65 %
+ *
+ * El hueco entre las dos poblaciones va del 45 % al 55 %, y 0,5 cae justo en
+ * medio, con margen por los dos lados. El primer factor solo NO las separa: el
+ * CTA da 3 por linea y el acento 3,4, y el CTA es defecto y el acento no.
+ *
+ * LAS DOS DIRECCIONES EN QUE ESTE NUMERO ROMPE EL CANDADO, y por eso el test
+ * companero lo teclea:
+ *
+ *   - BAJARLO lo vacia por este lado: con 0,2 el rotulo del CTA a 320 px (34 %)
+ *     dejaria de reportarse y el defecto real saldria en verde. El test lo
+ *     impide con un suelo escrito a mano.
+ *   - SUBIRLO lo llena de falsos positivos: con 0,9 el acento de la nota (55 %)
+ *     volveria al informe y el candado pediria acotar una tipografia que WCAG
+ *     exige que crezca. Eso lo caza el caso que reproduce esa medida.
+ */
+export const MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA = 0.5;
 
 /**
  * LA LISTA DE ZONAS SANCIONADAS, HOY VACIA, Y POR QUE ESA LISTA VACIA ES LA
@@ -715,12 +851,34 @@ export function probePerdidaHorizontal() {
  * podia leer. Un candado de "no se pierde contenido" necesita a su lado uno de
  * "se puede leer" (leccion del 2026-09-05, regla 2).
  *
- * LA METRICA, y por que el umbral es 4 y no otro numero. Para cada elemento con
- * texto propio, visible, de mas de 1x1 px y con `writing-mode` horizontal:
+ * LA METRICA, con sus DOS FACTORES. Para cada elemento con texto propio,
+ * visible, de mas de 1x1 px y con `writing-mode` horizontal:
  *
  *   lineas     = round(alto de la caja / line-height computado)
  *   caracteres = innerText.trim().length
- *   ilegible   <=> lineas >= 3 y caracteres / lineas < MIN_CARACTERES_POR_LINEA
+ *   troceada   <=> lineas >= 3 y caracteres / lineas < MIN_CARACTERES_POR_LINEA
+ *   estrecha   <=> ancho de la caja < MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA
+ *                  x documentElement.clientWidth
+ *   ilegible   <=> troceada Y estrecha
+ *
+ * POR QUE NO BASTA EL PRIMER FACTOR, que es la correccion que la segunda
+ * medicion del 2026-09-05 obligo a hacer. Los dos ejemplos estan en el docblock
+ * de `MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA` con su tabla completa, y son estos:
+ * el rotulo del CTA parte «Escríbeme» en 3 caracteres por linea dentro de una
+ * caja de 108 px de 320 (el 34 %) y es defecto; el acento de la nota de cierre
+ * del deck de Story da 3,4 caracteres por linea dentro de una caja de 177,61 px
+ * de 320 (el 55 %) y NO lo es -- ahi la palabra «comienzo» mide ~336 px al
+ * cuerpo que la nota pide y no cabe en ninguna columna posible a ese viewport.
+ * Contar solo caracteres por linea mete los dos en la misma bolsa. Lo que los
+ * separa es el ANCHO DE LA CAJA RESPECTO AL VIEWPORT: en el build medido TODOS
+ * los defectos caian por debajo de la mitad del viewport (del 7 % al 45 %) y
+ * toda la tipografia grande legitima quedaba por encima (del 55 % al 65 %).
+ *
+ * SIN ANCHO DE DOCUMENTO --`clientWidth` a cero, que es lo que devuelve jsdom
+ * si nadie lo declara-- el segundo factor NO SE PUEDE EVALUAR, y la caja se
+ * reporta igual. Es la direccion conservadora a proposito: un instrumento roto
+ * tiene que ponerse ruidoso, no silencioso. En navegador `clientWidth` nunca es
+ * cero.
  *
  * `innerText` y no el texto PROPIO: un `h2` con un `span` de acento dentro se
  * mide entero contra la altura de su caja, porque la caja la ocupan las dos
@@ -760,8 +918,9 @@ export function probePerdidaHorizontal() {
  * verdad, `Range.getClientRects()` agrupadas por su borde superior-- y se
  * conserva el MENOR de los dos. Es conservador por construccion: nunca sube el
  * numero de lineas, solo deshace la inflacion. Y no pierde ni un defecto real:
- * en las trece cajas que la portada declara ilegibles a 320 px los dos
- * instrumentos dan EXACTAMENTE el mismo numero (11/11, 7/7, 13/13, 61/61, 8/8,
+ * en las trece cajas que la portada declaraba ilegibles a 320 px sobre el build
+ * de `47d0b4e` --antes del arreglo de rellenos y antes del segundo factor-- los
+ * dos instrumentos dan EXACTAMENTE el mismo numero (11/11, 7/7, 13/13, 61/61, 8/8,
  * 14/14, 9/9, 15/15, 19/19, 13/13, 19/19, 20/20, 23/23), porque ahi la caja
  * ceñia el texto. Solo se ejecuta sobre las cajas ya senaladas, que son unas
  * pocas por barrido; correrlo sobre las mil cuatrocientas de una portada seria
@@ -777,17 +936,25 @@ export function probePerdidaHorizontal() {
  * segundas en cualquier superficie real; un cero en cualquiera de las dos
  * significa que el instrumento esta roto --un cambio de marcado, un
  * `line-height` que deja de resolverse--, no que la pagina este limpia, y pone
- * el script en rojo.
+ * el script en rojo. `anchas` y `estiradas` no son guardas sino la cuenta de lo
+ * que cada uno de los dos absolvedores dejo fuera: van al informe para que un
+ * numero raro se vea.
  *
- * El minimo llega como ARGUMENTO y no leyendo la constante del modulo porque
- * esta funcion se serializa para ejecutarse dentro de la pagina: una referencia
- * a un identificador del modulo moriria alli con un ReferenceError.
+ * Los dos umbrales llegan como ARGUMENTO y no leyendo las constantes del modulo
+ * porque esta funcion se serializa para ejecutarse dentro de la pagina: una
+ * referencia a un identificador del modulo moriria alli con un ReferenceError.
+ * Y llegan en un OBJETO porque `page.evaluate` pasa un unico argumento.
  */
-export function probeLegibilidadDeTexto(minCaracteresPorLinea) {
+export function probeLegibilidadDeTexto({
+    minCaracteresPorLinea,
+    maxAnchoRelativo,
+}) {
+    const anchoDelDocumento = document.documentElement.clientWidth;
     const ilegibles = [];
     let examinadas = 0;
     let conTresLineas = 0;
     let estiradas = 0;
+    let anchas = 0;
     for (const el of document.querySelectorAll("body *")) {
         const tieneTextoPropio = [...el.childNodes].some(
             (n) => n.nodeType === 3 && n.textContent.trim().length > 0,
@@ -820,6 +987,20 @@ export function probeLegibilidadDeTexto(minCaracteresPorLinea) {
             typeof el.innerText === "string" ? el.innerText : el.textContent;
         const caracteres = (bruto || "").trim().length;
         if (caracteres / lineasPorCaja >= minCaracteresPorLinea) continue;
+
+        /* SEGUNDO FACTOR: la caja tiene que ser ademas mucho mas estrecha de lo
+           que el viewport permite. Sin el, la tipografia grande que WCAG 1.4.4
+           exige que crezca --el acento de la nota del deck, 3,4 caracteres por
+           linea en una caja que ocupa el 55 % del viewport-- entra en el informe
+           junto al defecto de rellenos que se busca. Sin ancho de documento no
+           se puede evaluar y la caja se reporta igual: un instrumento roto se
+           pone ruidoso, no silencioso. */
+        const anchoRelativo =
+            anchoDelDocumento > 0 ? r.width / anchoDelDocumento : null;
+        if (anchoRelativo !== null && anchoRelativo >= maxAnchoRelativo) {
+            anchas += 1;
+            continue;
+        }
 
         /* Confirmacion con el segundo instrumento, solo sobre las cajas ya
            senaladas: las cajas de linea que el texto renderiza de verdad,
@@ -859,13 +1040,24 @@ export function probeLegibilidadDeTexto(minCaracteresPorLinea) {
                     : "suelto",
             sel: el.tagName.toLowerCase(),
             ancho: Math.round(r.width * 100) / 100,
+            porcentajeDelViewport:
+                anchoRelativo === null
+                    ? null
+                    : Math.round(anchoRelativo * 1000) / 10,
             lineas,
             caracteres,
             ratio: Math.round(ratio * 100) / 100,
             texto: (bruto || "").trim().replace(/\s+/g, " ").slice(0, 40),
         });
     }
-    return { examinadas, conTresLineas, estiradas, ilegibles };
+    return {
+        examinadas,
+        conTresLineas,
+        estiradas,
+        anchas,
+        anchoDelDocumento,
+        ilegibles,
+    };
 }
 
 /** Animaciones realmente en marcha. */
@@ -1442,6 +1634,7 @@ async function auditarSuperficie(browser, base, theme, surface) {
     let examinadasVistas = 0;
     let conTresLineasVistas = 0;
     let estiradasVistas = 0;
+    let anchasVistas = 0;
     for (const width of WIDTH_SWEEP) {
         await page.setViewportSize({ width, height: 900 });
         await page.waitForTimeout(220);
@@ -1468,22 +1661,31 @@ async function auditarSuperficie(browser, base, theme, surface) {
            barrido entero de anchos-- es identico, y repetirlo en un contexto
            propio doblaria el coste del script para medir exactamente la misma
            composicion. */
-        const leg = await page.evaluate(
-            probeLegibilidadDeTexto,
-            MIN_CARACTERES_POR_LINEA,
-        );
+        const leg = await page.evaluate(probeLegibilidadDeTexto, {
+            minCaracteresPorLinea: MIN_CARACTERES_POR_LINEA,
+            maxAnchoRelativo: MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
+        });
         examinadasVistas += leg.examinadas;
         conTresLineasVistas += leg.conTresLineas;
         estiradasVistas += leg.estiradas;
+        anchasVistas += leg.anchas;
         for (const c of leg.ilegibles) {
+            /* El porcentaje del viewport va en el mensaje porque es el segundo
+               factor del veredicto: sin el, quien lee el informe no puede
+               distinguir el defecto de rellenos de la tipografia grande que
+               WCAG exige que crezca. */
+            const relativo =
+                c.porcentajeDelViewport === null
+                    ? "ancho del viewport no disponible"
+                    : `${c.porcentajeDelViewport} % del viewport`;
             ilegibles.push(
-                `${width}px ${c.zona}/${c.sel} caja de ${c.ancho} px: ${c.caracteres} caracteres en ${c.lineas} lineas (${c.ratio} por linea) ("${c.texto}")`,
+                `${width}px ${c.zona}/${c.sel} caja de ${c.ancho} px (${relativo}): ${c.caracteres} caracteres en ${c.lineas} lineas (${c.ratio} por linea) ("${c.texto}")`,
             );
         }
     }
     await ctx.close();
     datos.zoom200 = `@${raizMedida}px ${sinSancionar.length} perdidas / ${candidatosVistos} cajas de contenido`;
-    datos.legibilidad = `${ilegibles.length} ilegibles / ${conTresLineasVistas} cajas de 3+ lineas de ${examinadasVistas} con texto (${estiradasVistas} descartadas por caja estirada)`;
+    datos.legibilidad = `${ilegibles.length} ilegibles / ${conTresLineasVistas} cajas de 3+ lineas de ${examinadasVistas} con texto (${estiradasVistas} descartadas por caja estirada, ${anchasVistas} por caja ancha)`;
 
     // [check: texto-al-200-por-ciento]
     /* Segunda guarda de vacuidad, la del FILTRO (critica externa #19): la sonda
@@ -1528,7 +1730,7 @@ async function auditarSuperficie(browser, base, theme, surface) {
         );
     if (ilegibles.length)
         fallos.push(
-            `con el texto al 200 % (raiz ${ZOOM_FONT_PX} px) hay texto que no se pierde pero no se puede leer, por debajo de ${MIN_CARACTERES_POR_LINEA} caracteres por linea: ${ilegibles.join("; ")}`,
+            `con el texto al 200 % (raiz ${ZOOM_FONT_PX} px) hay texto que no se pierde pero no se puede leer, por debajo de ${MIN_CARACTERES_POR_LINEA} caracteres por linea en cajas de menos del ${MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA * 100} % del viewport: ${ilegibles.join("; ")}`,
         );
 
     // --- sin JavaScript

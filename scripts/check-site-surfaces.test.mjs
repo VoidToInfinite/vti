@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { afterAll, afterEach, describe, it, expect } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, it, expect } from "vitest";
 import {
     BROKEN_SEGMENT,
     CHECKS,
@@ -11,6 +11,7 @@ import {
     EN_PREFIX,
     HOME_DOC,
     LEGAL_DOCS,
+    MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
     MIN_CARACTERES_POR_LINEA,
     ROOT_FONT_BASE_PX,
     SURFACES,
@@ -210,6 +211,58 @@ import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
  *        Object.is equality
  *
  * Restaurado todo, 22 casos en verde.
+ *
+ * LO QUE ANADE EL SEGUNDO FACTOR DE LA FAMILIA DE LEGIBILIDAD (2026-09-05, ola
+ * S). El candado que la ola R entrego medía UN factor --caracteres por linea--
+ * y la primera corrida contra el build de `5bfe092`, con los rellenos ya
+ * arreglados, demostro que ese factor solo NO separa las dos poblaciones: el
+ * rotulo del CTA («Escríbeme», 9 caracteres en 3 lineas dentro de una caja de
+ * 108 px de 320) es defecto y el acento de la nota de cierre del deck de Story
+ * («un nuevo comienzo», 17 caracteres en 5 lineas dentro de una caja de 177,61
+ * px de 320) no lo es, y los dos daban ~3,4 caracteres por linea. Lo que los
+ * separa es el ANCHO DE LA CAJA RESPECTO AL VIEWPORT: 34 % contra 55 %. La
+ * tabla completa de las dos poblaciones esta en el docblock de
+ * `MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA`.
+ *
+ * Las TRES inyecciones que validan el factor nuevo, con su rojo LITERAL:
+ *
+ *   i. QUITADO EL SEGUNDO FACTOR de la sonda (borrado el bloque
+ *      `if (anchoRelativo !== null && anchoRelativo >= maxAnchoRelativo)`, que
+ *      es exactamente la version anterior) -- «Tests 2 failed | 24 passed»:
+ *
+ *        AssertionError: una caja de 200 px en un documento de 320 ocupa el 62,5
+ *        % del viewport: con esa anchura disponible, tres lineas de dos
+ *        caracteres son fisica de la tipografia, no un defecto de rellenos:
+ *        expected [ { zona: 'suelto', sel: 'p', …(6) } ] to deeply equal []
+ *
+ *        AssertionError: 17 caracteres en 5 lineas son 3,4 por linea, por debajo
+ *        del primer factor, pero la caja ocupa el 55,5 % del viewport: es el
+ *        suelo fisico de una tipografia que WCAG 1.4.4 exige que crezca, no un
+ *        defecto de rellenos: expected [ { zona: 'suelto', sel: 'p', …(6) } ] to
+ *        deeply equal []
+ *
+ *   j. SUBIDO EL UMBRAL a 0,9 -- la forma de llenar el informe de falsos
+ *      positivos sin tocar la sonda -- caen los DOS mismos casos, con las dos
+ *      mismas lineas. El caso que teclea el suelo NO cae, y esa es justo la
+ *      demostracion de que un suelo no ata la direccion contraria: lo que ata
+ *      subirlo es la medida real reproducida.
+ *
+ *   k. BAJADO EL UMBRAL a 0,2 -- la forma de vaciar la familia por el otro
+ *      lado -- «Tests 4 failed | 22 passed», el primero de ellos el suelo
+ *      tecleado:
+ *
+ *        AssertionError: el umbral relativo se calibro en 0,5 contra las dos
+ *        poblaciones medidas (defectos del 7 % al 45 % del viewport; tipografia
+ *        grande legitima del 55 % al 65 %). Bajarlo deja de ver el defecto de
+ *        rellenos: con 0,2 el rotulo del CTA a 320 px, que ocupa el 34 %,
+ *        saldria en verde: expected 0.2 to be greater than or equal to 0.5
+ *
+ *        AssertionError: una caja de 100 px en un documento de 320 ocupa el 31 %
+ *        del viewport y parte 6 caracteres en 3 lineas: es el defecto de
+ *        rellenos que esta familia existe para cazar: expected [] to have a
+ *        length of 1 but got +0
+ *
+ * Restauradas las tres, 26 casos en verde.
  */
 
 const RUTA_SCRIPT = path.join(
@@ -603,6 +656,41 @@ describe("cobertura del candado de las superficies del sitio", () => {
         ).toBeGreaterThanOrEqual(4);
     });
 
+    it("el umbral de ancho relativo es el calibrado, y no puede bajar hasta vaciar la familia por el otro lado", () => {
+        /*
+         * EL SEGUNDO FACTOR, tecleado. La familia declara ilegible una caja
+         * cuando se cumplen LAS DOS condiciones: caracteres por linea por
+         * debajo de `MIN_CARACTERES_POR_LINEA` Y ancho de caja por debajo de
+         * `MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA x clientWidth`. La segunda tiene
+         * su propia forma de volverse vacua, y es BAJAR el numero: con 0,2, el
+         * rotulo del CTA a 320 px --caja de 108 px, el 34 % del viewport, tres
+         * caracteres por linea-- dejaria de reportarse y el defecto real
+         * saldria en verde. Con 0,05 no quedaria ni una caja en la familia.
+         *
+         * La direccion contraria, subirlo, no vacia nada pero llena el informe
+         * de falsos positivos, y esa la caza el caso que reproduce el acento de
+         * la nota del deck (55,5 % del viewport): con 0,9 vuelve a contarse.
+         *
+         * El hueco entre las dos poblaciones medidas el 2026-09-05 va del 45 %
+         * (kicker, h2 del deck, cita de Journey: defectos) al 55 % (acento de la
+         * nota: fisica); 0,5 cae en medio.
+         */
+        expect(
+            MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
+            `el umbral relativo se calibro en 0,5 contra las dos poblaciones ` +
+                `medidas (defectos del 7 % al 45 % del viewport; tipografia grande ` +
+                `legitima del 55 % al 65 %). Bajarlo deja de ver el defecto de ` +
+                `rellenos: con 0,2 el rotulo del CTA a 320 px, que ocupa el 34 %, ` +
+                `saldria en verde`,
+        ).toBeGreaterThanOrEqual(0.5);
+        expect(
+            MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
+            `un umbral de 1 o mas anula el segundo factor: toda caja es mas ` +
+                `estrecha que el viewport entero y la familia vuelve a tener un ` +
+                `solo factor`,
+        ).toBeLessThan(1);
+    });
+
     it("la lista de familias sigue siendo la que el candado prometio medir", () => {
         /* La supresion SIMETRICA -- quitar la familia de `CHECKS` y su marcador
            del cuerpo a la vez -- no la ve el caso de abajo, porque despues de
@@ -770,6 +858,23 @@ describe("la sonda de perdida horizontal mide los DOS lados del viewport", () =>
 });
 
 describe("la sonda de legibilidad al 200 % de texto", () => {
+    /**
+     * EL VIEWPORT SE DECLARA, y desde el 2026-09-05 no es opcional: el segundo
+     * factor de la familia compara el ancho de la caja contra
+     * `documentElement.clientWidth`, y jsdom devuelve 0 si nadie lo declara. Con
+     * 640 px, la caja por defecto de 200 px ocupa el 31 % -- estrecha, como las
+     * de los casos que ya existian antes de que el segundo factor entrara.
+     */
+    beforeEach(() => {
+        anchoDeViewport(640);
+    });
+
+    /** Los dos umbrales del candado, en la forma que la sonda los recibe. */
+    const UMBRALES = {
+        minCaracteresPorLinea: MIN_CARACTERES_POR_LINEA,
+        maxAnchoRelativo: MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
+    };
+
     /** Caja de texto con `line-height` y `font-size` resueltos a mano. */
     function cajaDeTexto(texto, { alto, ancho = 200, lineHeight = "20px" }) {
         const el = document.createElement("p");
@@ -781,14 +886,16 @@ describe("la sonda de legibilidad al 200 % de texto", () => {
         return el;
     }
 
-    it("declara ilegible una caja de tres lineas con seis caracteres, y legible la de tres con treinta", () => {
+    it("declara ilegible una caja estrecha de tres lineas con seis caracteres, y legible la de tres con treinta", () => {
         /*
-         * Las dos poblaciones del umbral, en su forma minima. 6/3 = 2 cae
+         * Las dos poblaciones del PRIMER factor, en su forma minima. 6/3 = 2 cae
          * dentro de la banda de los defectos medidos (0,9 a 2,7) y 30/3 = 10
          * esta muy por encima del suelo fisico de la tipografia grande (5 a 7).
+         * Las dos cajas miden 200 px de 640, el 31 % del viewport, asi que el
+         * segundo factor las deja pasar a las dos y lo que decide es la ratio.
          */
         cajaDeTexto("abcdef", { alto: 60 });
-        const estrecha = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        const estrecha = probeLegibilidadDeTexto(UMBRALES);
         expect(estrecha.conTresLineas).toBe(1);
         expect(
             estrecha.ilegibles,
@@ -798,10 +905,14 @@ describe("la sonda de legibilidad al 200 % de texto", () => {
         expect(estrecha.ilegibles[0].lineas).toBe(3);
         expect(estrecha.ilegibles[0].caracteres).toBe(6);
         expect(estrecha.ilegibles[0].ratio).toBe(2);
+        expect(
+            estrecha.ilegibles[0].porcentajeDelViewport,
+            "el informe cita el porcentaje del viewport de cada caja: es el segundo factor del veredicto",
+        ).toBe(31.3);
 
         document.body.innerHTML = "";
         cajaDeTexto("abcdefghij".repeat(3), { alto: 60 });
-        const holgada = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        const holgada = probeLegibilidadDeTexto(UMBRALES);
         expect(holgada.conTresLineas).toBe(1);
         expect(
             holgada.ilegibles,
@@ -809,10 +920,82 @@ describe("la sonda de legibilidad al 200 % de texto", () => {
         ).toEqual([]);
     });
 
+    it("la MISMA caja troceada se reporta a 100 px de ancho en un documento de 320 y NO a 200 px", () => {
+        /*
+         * EL SEGUNDO FACTOR, aislado: lo unico que cambia entre las dos mitades
+         * de este caso es el ancho de la caja. Seis caracteres en tres lineas
+         * son dos por linea en las dos, o sea que el primer factor las senala a
+         * las dos; 100 px de 320 son el 31 % y 200 px de 320 el 62,5 %.
+         *
+         * Quitar el segundo factor de la sonda deja la segunda mitad en rojo.
+         */
+        anchoDeViewport(320);
+        cajaDeTexto("abcdef", { alto: 60, ancho: 100 });
+        const angosta = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            angosta.ilegibles,
+            `una caja de 100 px en un documento de 320 ocupa el 31 % del viewport ` +
+                `y parte 6 caracteres en 3 lineas: es el defecto de rellenos que ` +
+                `esta familia existe para cazar`,
+        ).toHaveLength(1);
+        expect(angosta.ilegibles[0].porcentajeDelViewport).toBe(31.3);
+        expect(angosta.anchas).toBe(0);
+
+        document.body.innerHTML = "";
+        cajaDeTexto("abcdef", { alto: 60, ancho: 200 });
+        const ancha = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            ancha.conTresLineas,
+            "la caja ancha SI llega a evaluarse: es el segundo factor el que la absuelve, no el corte de altura",
+        ).toBe(1);
+        expect(
+            ancha.ilegibles,
+            `una caja de 200 px en un documento de 320 ocupa el 62,5 % del ` +
+                `viewport: con esa anchura disponible, tres lineas de dos ` +
+                `caracteres son fisica de la tipografia, no un defecto de rellenos`,
+        ).toEqual([]);
+        expect(
+            ancha.anchas,
+            "la caja absuelta por ancha se cuenta, para que un numero raro se vea en el informe",
+        ).toBe(1);
+    });
+
+    it("el acento de la nota del deck oscuro no es defecto: 3,4 caracteres por linea en el 55 % del viewport", () => {
+        /*
+         * LA MEDIDA REAL que obligo al segundo factor, reproducida (build
+         * servido de `5bfe092`, tema oscuro, `/`, 320 px de viewport, raiz 32
+         * px): `main/span` de 177,61 px con «un nuevo comienzo» -- 17 caracteres
+         * en 5 lineas, 3,4 por linea. Por debajo del primer factor y NO es
+         * defecto: la nota de cierre pide `clamp(2.5rem, 11vw, 8rem)`, o sea 80
+         * px con la raiz a 32, y «comienzo» mide ~336 px a ese cuerpo -- no cabe
+         * en NINGUNA columna posible a 320 px. Acotar ese cuerpo con `vw` seria
+         * el patron de fallo F94 de WCAG 1.4.4, que exige justo lo contrario:
+         * que el texto llegue al 200 %.
+         *
+         * Este es el caso que cae si alguien SUBE el umbral relativo: con 0,9,
+         * el 55,5 % vuelve a contarse y el candado pide acotar la tipografia.
+         */
+        anchoDeViewport(320);
+        cajaDeTexto("un nuevo comienzo", { alto: 100, ancho: 177.61 });
+        const r = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            r.conTresLineas,
+            "la caja llega a evaluarse: 100 px de alto entre 20 de linea son 5 lineas",
+        ).toBe(1);
+        expect(
+            r.ilegibles,
+            `17 caracteres en 5 lineas son 3,4 por linea, por debajo del primer ` +
+                `factor, pero la caja ocupa el 55,5 % del viewport: es el suelo ` +
+                `fisico de una tipografia que WCAG 1.4.4 exige que crezca, no un ` +
+                `defecto de rellenos`,
+        ).toEqual([]);
+        expect(r.anchas).toBe(1);
+    });
+
     it("no mide texto vertical, donde 'caracteres por linea' no significa lo mismo", () => {
         const el = cajaDeTexto("abcdef", { alto: 60 });
         el.style.writingMode = "vertical-rl";
-        const r = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        const r = probeLegibilidadDeTexto(UMBRALES);
         expect(r.examinadas, "una caja vertical no se examina").toBe(0);
         expect(r.conTresLineas).toBe(0);
         expect(r.ilegibles).toEqual([]);
@@ -826,21 +1009,26 @@ describe("la sonda de legibilidad al 200 % de texto", () => {
          * `alto = 391,88 px` (9 lineas por el proxy) mientras su texto ocupaba
          * 2, 3, 4 y 2 lineas. Es la fila la que es alta, no el texto el que es
          * estrecho.
+         *
+         * Es un absolvedor DISTINTO del segundo factor y se cuenta aparte: aqui
+         * la caja es estrecha de verdad (200 px de 640, el 31 %) y lo que sobra
+         * es el alto.
          */
         cajaDeTexto("Tema (claro / oscuro)", { alto: 180 });
-        const sinConfirmar = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        const sinConfirmar = probeLegibilidadDeTexto(UMBRALES);
         expect(
             sinConfirmar.ilegibles,
             "con el proxy solo, 21 caracteres en 9 lineas son 2,33 por linea",
         ).toHaveLength(1);
         expect(sinConfirmar.ilegibles[0].lineas).toBe(9);
+        expect(sinConfirmar.anchas).toBe(0);
 
         /* Las cajas de linea que el texto renderiza de verdad: dos. */
         PROTO_RANGO.getClientRects = () => [
             { top: 0, width: 180, height: 20 },
             { top: 20, width: 60, height: 20 },
         ];
-        const confirmada = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        const confirmada = probeLegibilidadDeTexto(UMBRALES);
         expect(
             confirmada.ilegibles,
             `el texto ocupa 2 lineas reales de las 9 que mide la caja: 21 ` +
@@ -864,11 +1052,30 @@ describe("la sonda de legibilidad al 200 % de texto", () => {
                 width: 58.83,
                 height: 20,
             }));
-        const r = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        const r = probeLegibilidadDeTexto(UMBRALES);
         expect(r.ilegibles).toHaveLength(1);
         expect(r.ilegibles[0].lineas).toBe(9);
         expect(r.ilegibles[0].caracteres).toBe(9);
         expect(r.estiradas).toBe(0);
+    });
+
+    it("sin ancho de documento la caja se reporta igual: el segundo factor no se puede evaluar", () => {
+        /*
+         * La direccion conservadora, declarada. `clientWidth` a cero es un
+         * instrumento roto, no una pagina limpia: absolver por no poder medir
+         * vaciaria la familia entera en silencio en cuanto la sonda perdiera el
+         * ancho del documento. En navegador `clientWidth` nunca es cero.
+         */
+        delete document.documentElement.clientWidth;
+        cajaDeTexto("abcdef", { alto: 60 });
+        const r = probeLegibilidadDeTexto(UMBRALES);
+        expect(r.anchoDelDocumento).toBe(0);
+        expect(
+            r.ilegibles,
+            "sin ancho de documento el segundo factor no absuelve a nadie",
+        ).toHaveLength(1);
+        expect(r.ilegibles[0].porcentajeDelViewport).toBeNull();
+        expect(r.anchas).toBe(0);
     });
 
     it("las guardas de vacuidad cuentan lo que tienen que contar, y el script las convierte en rojo", () => {
@@ -879,12 +1086,12 @@ describe("la sonda de legibilidad al 200 % de texto", () => {
          * separados, y el script pone cada cero en rojo por su lado -- que es
          * el mismo patron que ya tenia su familia hermana con `candidatos`.
          */
-        const vacio = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        const vacio = probeLegibilidadDeTexto(UMBRALES);
         expect(vacio.examinadas).toBe(0);
         expect(vacio.conTresLineas).toBe(0);
 
         cajaDeTexto("abcdef", { alto: 40 });
-        const dosLineas = probeLegibilidadDeTexto(MIN_CARACTERES_POR_LINEA);
+        const dosLineas = probeLegibilidadDeTexto(UMBRALES);
         expect(
             dosLineas.examinadas,
             "una caja de dos lineas SI se examina: es el segundo contador el que la deja fuera",
