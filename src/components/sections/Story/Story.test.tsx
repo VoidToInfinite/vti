@@ -1214,6 +1214,20 @@ describe("Story: statement a pantalla completa, reveal por IntersectionObserver 
  * (raiz 32px): `min(1rem, 5vw)` vale 16px a 320px con cualquier raiz. Con la
  * raiz por defecto no cambia ni un pixel a ningun ancho.
  *
+ * VALIDADO CON EL BUG INYECTADO (regla 34), 2026-09-05: devolviendo
+ * `--story-statement-pad` a `theme.data.space[4]` en `ScStatement`
+ * (`Story.tsx`), el primer caso de este bloque cae en rojo con esta linea
+ * literal:
+ *
+ *   AssertionError: expected '.gEaRLj {min-height: 70dvh; display: …' to
+ *   contain '--story-statement-pad: min(1rem, 5vw)'
+ *
+ * Restaurado el token, verde (4/4). Reparto de trabajo entre los dos candados,
+ * declarado para que nadie confie en el que no toca: el caso de la ARITMETICA
+ * resuelve el token y NO monta el componente, asi que ese sabotaje no lo pone
+ * en rojo -- protege la propiedad del peldano, no el cableado; el cableado lo
+ * protege el caso de la regla base, que es el que cayo.
+ *
  * Los tests de aqui abajo NO dependen de `cssRuleTextFor` + `split("@media")`
  * (el resto de este fichero, para el guard de `prefers-reduced-motion`): esa
  * tecnica corta por TEXTO, y no distingue "la regla de dentro del @media

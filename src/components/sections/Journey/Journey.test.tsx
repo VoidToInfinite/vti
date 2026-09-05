@@ -2268,6 +2268,15 @@ describe("Journey: critica #15 -- los pasos se leen en movil (una columna bajo m
      * contra el token IMPORTADO, nunca contra el rem escrito a mano que habia
      * aqui (regla 38): con el literal, migrar el token dejaba el test en verde
      * describiendo un CSS que ya no existia.
+     *
+     * VALIDADO CON EL BUG INYECTADO (regla 34), 2026-09-05: devolviendo el
+     * termino lateral de ScCard (Journey.tsx) de inlineSpace[5] a space[5],
+     * este caso cae en rojo con esta linea literal:
+     *
+     *   AssertionError: expected '.RakWU {position: relative; overflow:…' to
+     *   contain 'padding: 3rem min(1.5rem, 7.5vw) 4rem'
+     *
+     * Restaurado el token, verde.
      */
     expect(base).toContain(
       `padding: ${themes.light.space[7]} ${themes.light.inlineSpace[5]} ${themes.light.space[8]}`,
