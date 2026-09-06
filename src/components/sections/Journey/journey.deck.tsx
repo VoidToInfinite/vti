@@ -1,6 +1,7 @@
 "use client";
-import styled, { css } from "styled-components";
+import styled, { css, type RuleSet } from "styled-components";
 import type { ThemeDefinition } from "@/theme/theme.types";
+import { DECK_DOES_NOT_FIT, DECK_FIT_ATTRIBUTE } from "@/hooks/useDeckFit";
 import { DECK } from "@/motion/vocabulary";
 import {
   JOURNEY_CONTENT_MAX_WIDTH,
@@ -12,6 +13,7 @@ import {
   JOURNEY_DECK_STEP_LABEL_SIZE,
   JOURNEY_DECK_STEP_LABEL_WEIGHT,
   JOURNEY_DECK_STEP_SUBTITLE_SIZE,
+  JOURNEY_DECK_TAIL_SCREENS,
   JOURNEY_DECK_TITLE_SIZE,
   JOURNEY_DECK_TRACK_HEIGHT,
   JOURNEY_QUOTE_EXIT_OPACITY,
@@ -44,15 +46,79 @@ import {
  *    ningun transform con --journey-enter -- esa variable la sigue
  *    escribiendo el hook (es su contrato), pero aqui no la lee nadie.
  */
+/*
+ * LA PRESENTACIÓN SE LINEALIZA POR DOS CAUSAS, CON UNA SOLA LEY (crítica
+ * externa #19, P1 número 3; WCAG 1.4.4). GEMELO EXACTO de `deckStatic` en
+ * `story.deck.tsx` -- leer su docblock es releer este --, duplicado aquí a
+ * propósito y no importado de allí, mismo criterio que `stepColor` y
+ * `ScJourneyScrollHint`: este fichero es una hoja estructural sin ninguna
+ * dependencia de la sección hermana. Lo que NO se duplica es el contrato del
+ * atributo, que se importa de `useDeckFit`: un literal repetido en las dos
+ * secciones es exactamente lo que la regla 13 de `RULES.md` prohíbe, porque
+ * basta cambiarlo en un sitio para que el CSS del otro deje de casar en
+ * silencio.
+ *
+ * El helper recibe las declaraciones que convierten esta presentación en un
+ * documento en flujo y las emite bajo las dos condiciones que hoy la exigen:
+ * `prefers-reduced-motion: reduce` (D12, la causa original) y
+ * `data-deck-fit="false"` en la PISTA, que escribe `useDeckFit` cuando alguna
+ * diapositiva no cabe en el escenario pegado. El defecto medido, el porqué de
+ * la medida y la diferencia de cascada entre un selector de atributo (0,2,0) y
+ * un `@media` (0,1,0) están escritos en los docblocks de `useDeckFit` y de
+ * `deckStatic` en `story.deck.tsx`.
+ */
+function deckStatic(declaraciones: RuleSet): RuleSet {
+  return css`
+    @media (prefers-reduced-motion: reduce) {
+      ${declaraciones}
+    }
+
+    &[${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"],
+    [${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"] & {
+      ${declaraciones}
+    }
+  `;
+}
+
+/*
+ * `height: auto` en el bloque estático (D12): sin pin, la pista deja de
+ * necesitar recorrido de scroll propio -- vuelve a medir lo que mide su
+ * contenido, en flujo normal, con las 8 diapositivas apiladas una debajo de
+ * otra (ver `ScJourneySlide`).
+ *
+ * ---------------------------------------------------------------------------
+ * LA COLA SE RESTITUYE CUANDO LA PISTA SE LINEALIZA POR NO CABER, Y SOLO
+ * ENTONCES. Mismo mecanismo, mismo motivo y mismo guard que `ScTrack` en
+ * `story.deck.tsx` -- leer su docblock es releer este --, con las constantes
+ * de esta sección y con la cortina de Features en el papel que allí hace la
+ * subida de Journey.
+ *
+ * LO MEDIDO (build propio de esta ola, Chrome, tema oscuro, 320x800, raíz a
+ * 32 px, sin `prefers-reduced-motion`, coordenadas de documento): con el deck
+ * ya linealizado, la diapositiva de la cita de cierre terminaba en 11.642 y la
+ * sección Features empezaba en 10.842 -- 800 px de solape opaco sobre la cita.
+ * Con `prefers-reduced-motion: reduce`, misma geometría, el solape medía 0.
+ *
+ * La aritmética que ata `JOURNEY_DECK_TAIL_SCREENS` con `FEATURES_OVERLAY_RISE`
+ * está escrita en `journey.layers.ts` (docblock de `JOURNEY_QUOTE_EXIT_SPAN`,
+ * que la deriva paso a paso): la cola existe para que la cortina de Features
+ * suba sobre terreno vacío. Sin pin no hay cola, y la cortina cae sobre la
+ * cita.
+ */
 export const ScJourneyTrack = styled.div`
   position: relative;
   height: ${JOURNEY_DECK_TRACK_HEIGHT};
 
-  /* D12: sin pin, la pista deja de necesitar recorrido de scroll propio --
-     vuelve a medir lo que mide su contenido, en flujo normal, con las 8
-     diapositivas apiladas una debajo de otra (ver ScJourneySlide). */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     height: auto;
+  `)}
+
+  @media (prefers-reduced-motion: no-preference) {
+    &[${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"] {
+      padding-block-end: calc(
+        ${JOURNEY_DECK_TAIL_SCREENS} * ${JOURNEY_DARK_HEIGHT}
+      );
+    }
   }
 `;
 
@@ -66,6 +132,12 @@ export const ScJourneyTrack = styled.div`
  * PIERDE su propio overflow: hidden -- ver el comentario de ScJourney en
  * Journey.tsx para el porque (D7, cita el mismo precedente D15b/D15c de
  * este fichero).
+ *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): el pin en sí es la primera baja --
+ * sin `position: sticky` no hay nada que despegar --, y `height: auto` deja
+ * que las 8 diapositivas, ya en flujo (ver `ScJourneyDeck`/`ScJourneySlide`),
+ * determinen el alto real. El `overflow: hidden` se conserva a propósito, y de
+ * él depende la reserva de descendente de `ScJourneyQuote`, más abajo.
  */
 export const ScJourneyStage = styled.div`
   position: sticky;
@@ -73,13 +145,10 @@ export const ScJourneyStage = styled.div`
   height: ${JOURNEY_DARK_HEIGHT};
   overflow: hidden;
 
-  /* D12: el pin en si es la primera baja -- sin position: sticky no hay
-     nada que despegar. height: auto deja que las 8 diapositivas, ya en
-     flujo (ver ScJourneyDeck/ScJourneySlide), determinen el alto real. */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     position: static;
     height: auto;
-  }
+  `)}
 `;
 
 /*
@@ -91,6 +160,33 @@ export const ScJourneyStage = styled.div`
  * compensar tocando ese hook (lo comparten Story/Features/Contact). Este
  * envoltorio, por ENCIMA de la escena, devuelve esa sensacion de profundidad
  * con un transform propio gobernado por --journey-progress.
+ *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): D12, guard IMPRESCINDIBLE y nada
+ * obvio (hallazgo de la auditoría adversarial de aquella entrega). En el
+ * estado estático -- por `reduce` o porque una diapositiva no cabe --
+ * `ScJourneyStage` pasa a `position: static`: deja de ser un elemento
+ * posicionado y, con él, deja de ser el CONTAINING BLOCK de este envoltorio,
+ * que sigue siendo absoluto. El containing block sube entonces a
+ * `ScJourneyTrack` (`position: relative` incondicional), cuya altura en ese
+ * estado es `auto` -- es decir, las 8 diapositivas apiladas en flujo, varias
+ * pantallas. Sin este bloque, el `inset: 0` de arriba resolvería contra esa
+ * caja y las seis capas de la escena (`object-fit: cover`,
+ * `journeyCosmicPortal.parts.tsx`) se estirarían a 8 pantallas de alto: el
+ * arte quedaría recortado a una franja vertical con un zoom brutal. No se
+ * pierde texto -- por eso D12 se cumpliría en su letra y ningún test de
+ * contenido lo vería -- pero el fondo se rompe.
+ *
+ * El arreglo NO puede ser devolverle al stage un `position: relative` en ese
+ * estado: seguiría midiendo `height: auto`, o sea las mismas 8 pantallas, y el
+ * estiramiento sería idéntico. Lo que cierra el fallo es dar aquí una altura
+ * EXPLÍCITA de una pantalla y anclarla arriba, que es correcto sea cual sea el
+ * ancestro que acabe haciendo de containing block. La escena aparece entonces
+ * una vez, con sus proporciones intactas, detrás de la primera diapositiva; el
+ * resto del recorrido queda sobre el `background-color` de la sección, que es
+ * exactamente el `secondary[1100]` del encargo. Se prefiere eso a
+ * `display: none`: lo que se degrada es el MOVIMIENTO, no la identidad visual
+ * de la sección. Y `will-change: auto` porque sin recorrido que animar,
+ * promover la capa solo gasta memoria de compositor.
  */
 export const ScJourneySceneWrap = styled.div`
   position: absolute;
@@ -129,45 +225,13 @@ export const ScJourneySceneWrap = styled.div`
      para el que existe will-change). */
   will-change: transform;
 
-  /*
-   * D12, guard IMPRESCINDIBLE y nada obvio (hallazgo de la auditoria
-   * adversarial de esta entrega). Bajo reduce, ScJourneyStage pasa a
-   * position: static (mas arriba): deja de ser un elemento posicionado y,
-   * con el, deja de ser el CONTAINING BLOCK de este envoltorio, que sigue
-   * siendo absoluto. El containing block sube entonces a ScJourneyTrack
-   * (position: relative incondicional), cuya altura bajo reduce es auto --
-   * es decir, las 8 diapositivas apiladas en flujo, varias pantallas. Sin
-   * este bloque, el inset: 0 de arriba resolveria contra esa caja y las seis
-   * capas de la escena (object-fit: cover, journeyCosmicPortal.parts.tsx) se
-   * estirarian a 8 pantallas de alto: el arte quedaria recortado a una
-   * franja vertical con un zoom brutal. No se pierde texto -- por eso D12 se
-   * cumpliria en su letra y ningun test de contenido lo veria -- pero el
-   * fondo se rompe.
-   *
-   * El arreglo NO puede ser devolverle al stage un position: relative bajo
-   * reduce: seguiria midiendo height: auto, o sea las mismas 8 pantallas, y
-   * el estiramiento seria identico. Lo que cierra el fallo es dar aqui una
-   * altura EXPLICITA de una pantalla y anclarla arriba, que es correcto sea
-   * cual sea el ancestro que acabe haciendo de containing block. La escena
-   * aparece entonces una vez, con sus proporciones intactas, detras de la
-   * primera diapositiva; el resto del recorrido queda sobre el
-   * background-color de la seccion, que es exactamente el secondary[1100]
-   * del encargo. Se prefiere eso a display: none: bajo reduce se degrada el
-   * MOVIMIENTO, no la identidad visual de la seccion.
-   *
-   * SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
-   * literal de styled-components, donde un backtick lo cierra y rompe el
-   * build (leccion del repo, task/lessons.md 2026-07-25).
-   */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     top: 0;
     bottom: auto;
     height: ${JOURNEY_DARK_HEIGHT};
     transform: none;
-    /* Sin recorrido que animar, promover la capa solo gasta memoria de
-       compositor. */
     will-change: auto;
-  }
+  `)}
 `;
 
 /*
@@ -259,6 +323,17 @@ export const ScJourneySceneWrap = styled.div`
  * Y el ORDEN importa igual que alli: el bloque de `reduce` se declara ANTES del
  * bloque `lg` para que el hueco de composicion de pantalla ancha -- que no
  * tiene nada que ver con el rail -- siga ganando por encima de su escalon.
+ *
+ * ---------------------------------------------------------------------------
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba). D12: sin grid ya no hace falta apilar
+ * las 8 diapositivas en la MISMA celda -- se dejan caer una debajo de otra,
+ * todas visibles (ver `ScJourneySlide`, más abajo) -- y el relleno del lado del
+ * rail vuelve a ser simétrico porque el rail no se pinta. A diferencia de
+ * `ScDeck` en `story.deck.tsx`, aquí no hay ninguna cancelación de scrub que
+ * declarar: Journey no consume `direction`, así que este componente no tiene
+ * selector `[data-dir]` ni `@keyframes` de rebobinado bajo
+ * `prefers-reduced-motion: no-preference` que pudiera seguir corriendo sobre el
+ * deck ya linealizado.
  */
 export const ScJourneyDeck = styled.div`
   position: relative;
@@ -278,18 +353,11 @@ export const ScJourneyDeck = styled.div`
       ${({ theme }) => theme.data.space[5]} +
       ${({ theme }) => theme.data.inlineSpace[2]}
   );
-  /* D12: sin grid ya no hace falta apilar las 8 diapositivas en la MISMA
-     celda -- se dejan caer una debajo de otra, todas visibles (ver
-     ScJourneySlide, mas abajo, donde reduce fuerza opacity/transform al
-     estado final). D6: a diferencia de ScDeck en story.deck.tsx, este bloque
-     no lleva ningun caracter de "rewind" -- Journey no consume direction,
-     asi que no hay selector [data-dir] ni @keyframes de scrub que declarar
-     bajo prefers-reduced-motion: no-preference. */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     display: block;
     height: auto;
     padding-inline-end: ${({ theme }) => theme.data.inlineSpace[6]};
-  }
+  `)}
 
   /*
    * Hueco extra a la derecha SOLO en pantallas grandes (mismo recurso que
@@ -370,6 +438,11 @@ export const ScJourneyDeck = styled.div`
  * -- los botones del rail (ScJourneyRailMark, mas abajo) -- viven fuera del
  * deck y estan visibles siempre, asi que no entran en este problema.
  *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): D12, todas visibles a la vez, en
+ * flujo -- perder 7 de 8 diapositivas sería perder CONTENIDO, no solo
+ * movimiento. Ya no necesita revertir ninguna `visibility`: el reposo dejó de
+ * declararla (ver arriba).
+ *
  * NOTA DE ALCANCE (cerrada): ScSlide (story.deck.tsx) tenia el MISMO defecto,
  * agravado por un enlace real dentro. Se arreglo el mismo dia en la tarea
  * derivada de esta ola: misma reversion de `visibility`, con la compuerta de
@@ -398,25 +471,20 @@ export const ScJourneySlide = styled.div`
     transform: translateY(calc(${JOURNEY_SLIDE_SHIFT} * -1));
   }
 
-  /* D12: todas visibles a la vez, en flujo -- perder 7 de 8 diapositivas
-     seria perder CONTENIDO, no solo movimiento. Este bloque ya no necesita
-     revertir ninguna visibility: el reposo dejo de declararla (ver el
-     docblock de arriba). SIN BACKTICKS en este comentario, a proposito: vive
-     DENTRO del template literal de styled-components (leccion del repo,
-     task/lessons.md 2026-07-25). */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     transition: none;
     opacity: 1;
     transform: none;
     pointer-events: auto;
-  }
+  `)}
 `;
 
 /*
  * Rail de progreso (D13): refleja data-slide del stage (un ANCESTRO de
- * ScJourneyRailMark) por selector descendiente. Se retira en reduce: sin pin
- * ni avance atado al scroll, "por donde voy" deja de tener sentido -- las 8
- * diapositivas ya estan a la vista a la vez.
+ * ScJourneyRailMark) por selector descendiente. Se retira en el bloque estatico
+ * (`deckStatic`, arriba), o sea por las dos causas: sin pin ni avance atado al
+ * scroll, "por donde voy" deja de tener sentido -- las 8 diapositivas ya estan
+ * a la vista a la vez.
  *
  * DEJO DE SER aria-hidden en la critica externa #10 (hallazgo A, 2026-08-18):
  * sus marcas son ahora botones reales (ver ScJourneyRailMark, abajo), asi que
@@ -444,9 +512,9 @@ export const ScJourneyRail = styled.div`
   justify-content: center;
   gap: ${({ theme }) => theme.data.space[2]};
 
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     display: none;
-  }
+  `)}
 `;
 
 /*
@@ -603,13 +671,13 @@ export const ScJourneyRailMark = styled.button<{ $index: number }>`
     }
   `}
 
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     transition: none;
 
     &::before {
       transition: none;
     }
-  }
+  `)}
 `;
 
 /*
@@ -634,10 +702,10 @@ export const ScJourneyRailMark = styled.button<{ $index: number }>`
  * `vocabulary.ts`, rol "salida de un velo o capa de la presentacion")
  * consigue aqui su primer consumidor real, igual que en Story.
  *
- * Bajo `reduce` se retira POR COMPLETO (`display: none`), mismo tratamiento
- * y mismo motivo que `ScJourneyRail`: sin pin, las 8 diapositivas ya estan
- * todas en flujo a la vez, y "puedes seguir bajando DENTRO del deck" deja
- * de tener sentido. Decision de la spec ("se muestra estatico o no se
+ * En el bloque estatico se retira POR COMPLETO (`display: none`), mismo
+ * tratamiento y mismo motivo que `ScJourneyRail`: sin pin, las 8 diapositivas
+ * ya estan todas en flujo a la vez, y "puedes seguir bajando DENTRO del deck"
+ * deja de tener sentido. Decision de la spec ("se muestra estatico o no se
  * muestra"): aqui se elige NO MOSTRAR, coherente con el rail.
  */
 export const ScJourneyScrollHint = styled.p`
@@ -661,9 +729,9 @@ export const ScJourneyScrollHint = styled.p`
     opacity: 0;
   }
 
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     display: none;
-  }
+  `)}
 `;
 
 /*
@@ -978,8 +1046,8 @@ export const JOURNEY_QUOTE_DESCENT_RESERVE = "0.16em";
  *   defecto de la variable es 0, asi que sin JS -- o antes del primer frame del
  *   hook -- la cita se pinta opaca, nunca invisible.
  *
- * EL GUARD DE reduce ES OBLIGATORIO, no simetria decorativa: bajo `reduce`
- * useSlideDeck se desmonta como presentacion y deja de escribir sus variables,
+ * EL GUARD DEL BLOQUE ESTATICO ES OBLIGATORIO, no simetria decorativa: bajo
+ * `reduce` useSlideDeck se desmonta como presentacion y deja de escribir sus variables,
  * pero NO borra las que ya escribio (son estilo en linea sobre el stage). Un
  * usuario que active la preferencia con la pista terminada se quedaria con
  * `--journey-progress: 1.0000` pegado y la cita invisible para siempre, en el
@@ -995,10 +1063,10 @@ export const JOURNEY_QUOTE_DESCENT_RESERVE = "0.16em";
  * ---
  *
  * LA CITA CABE EN SU ESCENARIO (verificador de producto de la ola R,
- * 2026-09-05, P3). El `padding-block-end` del guard de `reduce` no es simetria
+ * 2026-09-05, P3). El `padding-block-end` del bloque estatico no es simetria
  * decorativa: cierra un recorte medido.
  *
- * EL DEFECTO. Bajo `reduce`, ScJourneyStage pasa a `height: auto` (D12) y su
+ * EL DEFECTO. En el estado estatico, ScJourneyStage pasa a `height: auto` y su
  * ultima caja en flujo es esta cita, a ras del borde por el que el escenario
  * recorta (`overflow: hidden`). Con `line-height: 1.03` la caja en linea de la
  * ultima linea cuelga por debajo de la caja del parrafo, asi que el descendente
@@ -1014,12 +1082,21 @@ export const JOURNEY_QUOTE_DESCENT_RESERVE = "0.16em";
  * (ScDeckNoteLink, Story.tsx), con interlineado de cuerpo, y su caja absorbe el
  * sobrante antes de llegar al recorte del escenario. Aqui la cita esta sola.
  *
- * POR QUE SOLO BAJO `reduce`, y no siempre: sin la preferencia el escenario
- * mide una pantalla y centra la diapositiva, asi que el sobrante cae dentro de
- * la holgura vertical y no se recorta -- comprobado a 320 px con las dos raices
- * sobre el mismo build. Declararlo sin condicion moveria la composicion por
- * defecto (la cita crece 6,4 px a la raiz por defecto y, al estar centrada, se
- * desplazaria 3,2 px hacia arriba) para cerrar un defecto que ahi no existe.
+ * POR QUE SOLO EN EL ESTADO ESTATICO, y no siempre: mientras el escenario esta
+ * pinado mide una pantalla y centra la diapositiva, asi que el sobrante cae
+ * dentro de la holgura vertical y no se recorta -- comprobado a 320 px con las
+ * dos raices sobre el mismo build. Declararlo sin condicion moveria la
+ * composicion por defecto (la cita crece 6,4 px a la raiz por defecto y, al
+ * estar centrada, se desplazaria 3,2 px hacia arriba) para cerrar un defecto
+ * que ahi no existe.
+ *
+ * Y ESA CONDICION SE ENSANCHA CON LA CRITICA #19: el estado estatico ya no
+ * llega solo por `prefers-reduced-motion`. Cuando una diapositiva no cabe
+ * (`data-deck-fit="false"`, `useDeckFit`), el escenario pasa por el mismo
+ * `height: auto` con el mismo `overflow: hidden` y la cita vuelve a quedar a
+ * ras del borde -- el mismo recorte, por la otra puerta. El helper `deckStatic`
+ * emite este guard en las dos, que es justo lo que evita que un arreglo medido
+ * en 2026-09-05 se pierda en el camino nuevo.
  */
 export const ScJourneyQuote = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -1032,8 +1109,8 @@ export const ScJourneyQuote = styled.p`
   text-wrap-style: balance;
   opacity: ${JOURNEY_QUOTE_EXIT_OPACITY};
 
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     opacity: 1;
     padding-block-end: ${JOURNEY_QUOTE_DESCENT_RESERVE};
-  }
+  `)}
 `;

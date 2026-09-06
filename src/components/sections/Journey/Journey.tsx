@@ -7,6 +7,7 @@ import { Typography } from "@/components/ui/Typography/Typography";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
+import { useDeckFit } from "@/hooks/useDeckFit";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
 import { REVEAL } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -1262,6 +1263,18 @@ function JourneyDeckDark(): ReactElement {
       cssVarPrefix: "journey",
     },
   );
+
+  // EL PIN SOLO SE SOSTIENE SI CADA DIAPOSITIVA CABE (critica externa #19, P1
+  // numero 3; WCAG 1.4.4). `useDeckFit` observa el escenario y las
+  // diapositivas y escribe `data-deck-fit` en la PISTA en cuanto alguna deja
+  // de caber en la pantalla que el escenario pegado ocupa; el CSS del deck
+  // reacciona a ese atributo con el MISMO bloque de declaraciones que ya usa
+  // bajo `prefers-reduced-motion: reduce` (ver `deckStatic`), asi que el
+  // contenido que el recorte escondia vuelve al flujo del documento. El
+  // defecto medido, el porque de la medida y el motivo de que no consulte
+  // `matchMedia` viven en el docblock del hook. Recibe los MISMOS dos refs
+  // que `useSlideDeck` -- no hay geometria nueva que cablear.
+  useDeckFit(trackRef, stageRef);
 
   // Estado de cada diapositiva: se decide AQUI, comparando su indice con el
   // `index` que escribe el hook -- el CSS de ScJourneySlide

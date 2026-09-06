@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, isInaccessible } from "@testing-library/react";
+import { createElement, type ComponentType } from "react";
 import {
   renderWithProviders,
   screen,
@@ -22,6 +23,12 @@ import {
   JOURNEY_SLIDES,
 } from "./journey.layers";
 import { JOURNEY_QUOTE_DESCENT_RESERVE } from "./journey.deck";
+import * as journeyDeck from "./journey.deck";
+import {
+  DECK_DOES_NOT_FIT,
+  DECK_FITS,
+  DECK_FIT_ATTRIBUTE,
+} from "@/hooks/useDeckFit";
 import {
   JOURNEY_PORTAL_LAYERS,
   JOURNEY_PORTAL_VOID,
@@ -3182,8 +3189,18 @@ describe("Journey: verificador de la ola R -- la cita de cierre cabe en su escen
    *   se esperaba UNA declaracion de padding-block-end bajo reduce, hay 0: expected [] to have a length of 1 but got +0
    *
    * Restaurada la linea, verde.
+   *
+   * ACTUALIZADO EN LA CRITICA #19 (P1 numero 3), sin aflojar nada: la reserva
+   * pasa a declararse DOS veces porque el escenario se linealiza por DOS
+   * causas -- `prefers-reduced-motion: reduce` y `data-deck-fit="false"`
+   * (`useDeckFit`) -- y en las dos la cita queda a ras del borde por el que el
+   * escenario recorta. Lo que este caso protegia sigue protegido, y es lo
+   * unico que importaba: que NO exista una declaracion INCONDICIONAL, que
+   * moveria la composicion por defecto (la cita crece 6,4 px a la raiz por
+   * defecto y, centrada, se desplaza 3,2 px hacia arriba) para cerrar un
+   * defecto que con el escenario pinado no ocurre.
    */
-  it("bajo reduce la cita reserva el semi-interlineado que su line-height no cubre, y solo bajo reduce", async () => {
+  it("la cita reserva el semi-interlineado que su line-height no cubre en los DOS caminos de linealizacion, y en ninguno mas", async () => {
     const cita = await citaDeCierre();
 
     // La premisa del defecto: el interlineado de cartel, mas apretado que el
@@ -3196,15 +3213,42 @@ describe("Journey: verificador de la ola R -- la cita de cierre cabe en su escen
       JOURNEY_QUOTE_DESCENT_RESERVE,
     );
 
-    // Una sola declaracion en todo el CSS del elemento, y la de arriba ya
-    // demostro que esa una vive dentro del bloque de reduce: la rama con
-    // movimiento se queda exactamente como estaba.
+    // La MISMA reserva, con el mismo valor, en el bloque del estado "no cabe":
+    // ese camino llega al mismo `height: auto` con el mismo `overflow: hidden`
+    // y produce el mismo recorte, asi que el arreglo medido el 2026-09-05 no
+    // puede perderse por la puerta nueva.
+    const clases = Array.from(cita.classList);
+    const enEstado = Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules);
+        } catch {
+          return [];
+        }
+      })
+      .filter((regla): regla is CSSStyleRule => regla instanceof CSSStyleRule)
+      .filter((regla) =>
+        regla.selectorText.includes(
+          `[${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"]`,
+        ),
+      )
+      .filter((regla) =>
+        clases.some((cls) => regla.selectorText.includes(`.${cls}`)),
+      )
+      .map((regla) => regla.style.getPropertyValue("padding-block-end"))
+      .filter((valor) => valor !== "");
+    expect(enEstado).toEqual([JOURNEY_QUOTE_DESCENT_RESERVE]);
+
+    // Dos declaraciones en todo el CSS del elemento, ni una mas: las dos de
+    // arriba. Con una en `reduce` y otra en el estado, que sean exactamente
+    // dos demuestra que NO hay ninguna incondicional -- que es lo que este
+    // caso vigila desde la ola R.
     const apariciones =
       cssRuleTextFor(cita).split("padding-block-end").length - 1;
     expect(
       apariciones,
-      "la reserva vive SOLO bajo reduce: fuera de ahi el escenario centra la diapositiva y no recorta nada",
-    ).toBe(1);
+      "la reserva vive SOLO en los dos caminos de linealizacion: con el escenario pinado, que centra la diapositiva, no hay nada que reservar",
+    ).toBe(2);
   });
 
   /*
@@ -3502,5 +3546,392 @@ describe("critica #19 -- las dos secciones cuentan de la misma forma (tema oscur
 
     intruso.remove();
     expect(formaDeContar(stage, grupo).numeralesFueraDelRotulo).toEqual([]);
+  });
+});
+
+/*
+ * ===========================================================================
+ * CANDADO DE LA LEY DEL ESTADO "NO CABE" (crítica externa #19, P1 número 3;
+ * WCAG 1.4.4 Resize Text). GEMELO del bloque equivalente de `Story.test.tsx`
+ * -- leer aquel es releer este --, con los componentes y las constantes de
+ * esta sección.
+ *
+ * ## El defecto, medido también aquí
+ *
+ * Sobre el build de `f3594ad` en Chrome (tema oscuro, sin
+ * `prefers-reduced-motion`, raíz a 32 px por `Page.setFontSizes`): a 320x800 la
+ * diapositiva de la cita de cierre caía 189 px por debajo del borde por el que
+ * el escenario recorta, y a 390x800, 2 px. El deck de Journey compartía el
+ * defecto del de Story por el mismo motivo -- el pin era incondicional y la
+ * geometría del texto no.
+ *
+ * ## Qué ata, y qué NO
+ *
+ * La LEY (que el CSS del estado sea, componente a componente, el mismo que el
+ * de `prefers-reduced-motion: reduce`) y el CABLEADO (que la PISTA real de
+ * Journey reciba el atributo). El MOTOR de la decisión lo ata
+ * `useDeckFit.test.tsx`. No mide píxeles: jsdom no hace layout ni evalúa
+ * `@media`, así que la ley se lee del CSSOM y la geometría se fabrica.
+ *
+ * ## Validado con el bug inyectado a propósito (regla 34 de RULES.md)
+ *
+ * Las líneas rojas van copiadas de la salida, no predichas.
+ *
+ * SABOTAJE 1 -- un componente se queda fuera de la ley: el bloque de
+ * `ScJourneyQuote` (`journey.deck.tsx`) vuelve a escribirse como `@media
+ * (prefers-reduced-motion: reduce) { ... }` en vez de pasar por `deckStatic`.
+ * Rojo con su nombre, `Tests  1 failed | 4 passed | 95 skipped (100)`:
+ *
+ *   × ... > el estado "no cabe" declara EXACTAMENTE lo mismo que reduce, componente a componente
+ *   AssertionError: bloques de reduce sin gemelo de estado: ScJourneyQuote &: expected [ 'ScJourneyQuote &' ] to deeply equal []
+ *
+ * SABOTAJE 2 -- la reserva de la cola desaparece: se retira el bloque `@media
+ * (prefers-reduced-motion: no-preference)` de `ScJourneyTrack`. Rojo en dos
+ * casos, `Tests  2 failed | 3 passed | 95 skipped (100)`:
+ *
+ *   × ... > las reglas de estado anidadas bajo otra @media son EXACTAMENTE las declaradas
+ *   AssertionError: expected [] to deeply equal [ Array(1) ]
+ *   × ... > la pista linealizada por no caber reserva la cola que el pin ya reservaba
+ *   AssertionError: la pista no declara ninguna reserva de cola en el estado "no cabe": la cortina de Features cae sobre contenido vivo: expected undefined to be defined
+ *
+ * SABOTAJE 3 -- el hook deja de estar cableado: la llamada
+ * `useDeckFit(trackRef, stageRef)` de `JourneyDeckDark` (`Journey.tsx`) pasa a
+ * `void useDeckFit;`. Rojo en el cableado, `Tests  1 failed | 4 passed | 95
+ * skipped (100)`:
+ *
+ *   × ... > la PISTA real de Journey recibe el estado cuando una diapositiva no cabe
+ *   AssertionError: expected null to be 'false' // Object.is equality
+ */
+describe("Journey: critica #19 -- el escenario solo pina cuando cada diapositiva cabe", () => {
+  const SELECTOR_ESTADO = `[${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"]`;
+
+  /**
+   * Los componentes del deck que HOY linealizan. Declarada, no deducida: si
+   * alguien saca uno de la ley, el rojo lo dice por su nombre en vez de
+   * encoger en silencio lo que el candado vigila.
+   */
+  const COMPONENTES_QUE_LINEALIZAN = [
+    "ScJourneyDeck",
+    "ScJourneyQuote",
+    "ScJourneyRail",
+    "ScJourneyRailMark",
+    "ScJourneySceneWrap",
+    "ScJourneyScrollHint",
+    "ScJourneySlide",
+    "ScJourneyStage",
+    "ScJourneyTrack",
+  ];
+
+  /**
+   * Componentes del módulo con bloque de `reduce` ajeno a esta ley, con el
+   * motivo por escrito. Hoy no hay ninguno: todo `reduce` de
+   * `journey.deck.tsx` sale de `deckStatic`.
+   */
+  const AJENOS_A_LA_LEY: Record<string, string> = {};
+
+  /** Props que exige algún componente del módulo para poder renderizarse. */
+  const PROPS_EXIGIDAS: Record<string, Record<string, unknown>> = {
+    ScJourneyRailMark: { $index: 0 },
+    // `stepColor` indexa la paleta con estos dos: sin valores reales el render
+    // lanza antes de inyectar una sola regla.
+    ScJourneyStepIconBox: { $colorRamp: "primary", $colorStep: 500 },
+  };
+
+  /**
+   * Un componente de styled-components se reconoce por `styledComponentId`, y
+   * no por su tipo: los tipos exportados por el módulo son cada uno los suyos
+   * y ningún tipo común los cubre. Se rebajan a un componente de props
+   * abiertas para poder montarlos en bloque; el contrato real de cada uno lo
+   * sigue comprobando `pnpm typecheck` en su consumidor de verdad.
+   */
+  type Estilado = ComponentType<Record<string, unknown>>;
+
+  function esEstilado(valor: unknown): boolean {
+    return (
+      (typeof valor === "object" || typeof valor === "function") &&
+      valor !== null &&
+      "styledComponentId" in valor
+    );
+  }
+
+  /*
+   * Monta TODO lo exportado por `journey.deck.tsx` que sea un styled, no una
+   * lista escrita a mano: un componente nuevo con bloque de `reduce` entra
+   * solo en el candado. styled-components no inyecta el CSS de un componente
+   * hasta que se renderiza.
+   */
+  function montarElDeckEntero(): Map<string, string[]> {
+    const entradas: [string, Estilado][] = Object.entries(journeyDeck)
+      .filter(([, valor]) => esEstilado(valor))
+      .map(([nombre, valor]) => [nombre, valor as unknown as Estilado]);
+    expect(entradas.length).toBeGreaterThanOrEqual(
+      COMPONENTES_QUE_LINEALIZAN.length,
+    );
+    renderWithProviders(
+      <>
+        {entradas.map(([nombre, Componente]) =>
+          createElement(Componente, {
+            "key": nombre,
+            "data-probe": nombre,
+            ...(PROPS_EXIGIDAS[nombre] ?? {}),
+          }),
+        )}
+      </>,
+    );
+    const porNombre = new Map<string, string[]>();
+    for (const [nombre] of entradas) {
+      const el = document.querySelector(`[data-probe="${nombre}"]`);
+      if (!el) throw new Error(`${nombre} no llego a renderizarse`);
+      porNombre.set(nombre, Array.from(el.classList));
+    }
+    return porNombre;
+  }
+
+  interface LecturaCssom {
+    readonly ley: Record<string, string>;
+    readonly estado: Record<string, string>;
+    readonly excepciones: Record<string, string>;
+    readonly selectores: string[];
+  }
+
+  function leerCssom(porNombre: Map<string, string[]>): LecturaCssom {
+    const ley: Record<string, string> = {};
+    const estado: Record<string, string> = {};
+    const excepciones: Record<string, string> = {};
+    const selectores: string[] = [];
+
+    /*
+     * La clase se busca como TOKEN completo: los hashes de styled-components
+     * son cortos y uno puede ser prefijo de otro, con lo que un componente se
+     * quedaría con las reglas de otro.
+     */
+    const coincide = (selector: string, clase: string): boolean =>
+      new RegExp(`\\.${clase}(?![\\w-])`).test(selector);
+
+    const duenyo = (selector: string): [string, string[]] | null => {
+      for (const [nombre, clases] of porNombre) {
+        if (clases.some((clase) => coincide(selector, clase))) {
+          return [nombre, clases];
+        }
+      }
+      return null;
+    };
+
+    /*
+     * Normaliza el `selectorText` a la forma del fuente: la clase generada
+     * vuelve a ser `&` y el trozo de estado desaparece, así que la regla de
+     * estado y la de `reduce` producen la MISMA clave. De la lista de
+     * selectores se toma la primera rama; que estén las dos lo comprueba el
+     * test siguiente.
+     */
+    const clave = (selector: string, clases: string[]): string => {
+      let texto = selector.split(",")[0].trim();
+      for (const clase of clases) texto = texto.split(`.${clase}`).join("&");
+      return texto.split(SELECTOR_ESTADO).join("").trim();
+    };
+
+    for (const hoja of Array.from(document.styleSheets)) {
+      let reglas: CSSRule[];
+      try {
+        reglas = Array.from(hoja.cssRules);
+      } catch {
+        continue;
+      }
+      for (const regla of reglas) {
+        if (regla instanceof CSSMediaRule) {
+          const condicion = regla.media.mediaText;
+          const esReduce = condicion.includes("prefers-reduced-motion: reduce");
+          for (const anidada of Array.from(regla.cssRules)) {
+            if (!(anidada instanceof CSSStyleRule)) continue;
+            const propietario = duenyo(anidada.selectorText);
+            if (!propietario) continue;
+            const [nombre, clases] = propietario;
+            if (esReduce) {
+              ley[`${nombre} ${clave(anidada.selectorText, clases)}`] =
+                anidada.style.cssText;
+            } else if (anidada.selectorText.includes(SELECTOR_ESTADO)) {
+              const medio = condicion.includes("no-preference")
+                ? "no-preference"
+                : condicion;
+              excepciones[
+                `${nombre} | ${medio} | ${clave(anidada.selectorText, clases)}`
+              ] = anidada.style.cssText;
+            }
+          }
+          continue;
+        }
+        if (!(regla instanceof CSSStyleRule)) continue;
+        if (!regla.selectorText.includes(SELECTOR_ESTADO)) continue;
+        const propietario = duenyo(regla.selectorText);
+        if (!propietario) continue;
+        const [nombre, clases] = propietario;
+        estado[`${nombre} ${clave(regla.selectorText, clases)}`] =
+          regla.style.cssText;
+        selectores.push(regla.selectorText);
+      }
+    }
+    return { ley, estado, excepciones, selectores };
+  }
+
+  const nombresDe = (mapa: Record<string, string>): string[] =>
+    Array.from(new Set(Object.keys(mapa).map((k) => k.split(" ")[0]))).sort();
+
+  const filtrar = (
+    mapa: Record<string, string>,
+    dentro: boolean,
+  ): Record<string, string> =>
+    Object.fromEntries(
+      Object.entries(mapa).filter(
+        ([k]) =>
+          COMPONENTES_QUE_LINEALIZAN.includes(k.split(" ")[0]) === dentro,
+      ),
+    );
+
+  it('el estado "no cabe" declara EXACTAMENTE lo mismo que reduce, componente a componente', () => {
+    const { ley, estado } = leerCssom(montarElDeckEntero());
+    const deLaLey = filtrar(ley, true);
+
+    // Sin esto el test sería vacuo el día que alguien retire TODOS los bloques
+    // de reduce: dos mapas vacíos son iguales.
+    expect(nombresDe(deLaLey)).toEqual([...COMPONENTES_QUE_LINEALIZAN].sort());
+
+    // Primero QUIÉN falta, y por su nombre: el `toEqual` de los dos mapas
+    // trunca la diferencia y deja un rojo que no dice qué componente se quedó
+    // sin estado. Después, el CUERPO declaración a declaración.
+    const sinGemelo = Object.keys(deLaLey).filter((k) => !(k in estado));
+    const deMas = Object.keys(estado).filter((k) => !(k in deLaLey));
+    expect(
+      sinGemelo,
+      `bloques de reduce sin gemelo de estado: ${sinGemelo.join(" | ")}`,
+    ).toEqual([]);
+    expect(
+      deMas,
+      `bloques de estado sin gemelo de reduce: ${deMas.join(" | ")}`,
+    ).toEqual([]);
+    expect(estado).toEqual(deLaLey);
+    expect(nombresDe(filtrar(ley, false))).toEqual(
+      Object.keys(AJENOS_A_LA_LEY).sort(),
+    );
+  });
+
+  /*
+   * La lección §5.1 del manual de la casa, en su forma exacta: el estado vive
+   * en la PISTA, así que el bloque tiene que alcanzar tanto al elemento que lo
+   * lleva (`&[data-deck-fit="false"]`) como a sus descendientes
+   * (`[data-deck-fit="false"] &`). Con una sola de las dos ramas, la mitad de
+   * los componentes dejaría de reaccionar EN SILENCIO.
+   */
+  it("cada regla de estado trae las DOS ramas del selector: la calificada y la descendiente", () => {
+    const { selectores } = leerCssom(montarElDeckEntero());
+    expect(selectores.length).toBeGreaterThanOrEqual(
+      COMPONENTES_QUE_LINEALIZAN.length,
+    );
+    for (const selector of selectores) {
+      const ramas = selector.split(",").map((r) => r.trim());
+      expect(
+        ramas.some((rama) => /^\.[\w-]+\[data-deck-fit="false"\]/.test(rama)),
+        `sin rama calificada: ${selector}`,
+      ).toBe(true);
+      expect(
+        ramas.some((rama) => rama.startsWith(`${SELECTOR_ESTADO} `)),
+        `sin rama descendiente: ${selector}`,
+      ).toBe(true);
+    }
+  });
+
+  /*
+   * Las reglas de estado que viven DENTRO de otra `@media` no entran en la
+   * comparación de arriba, y por eso se enumeran aquí: son la puerta por la
+   * que una divergencia podría colarse sin que la ley se entere. Aquí hoy hay
+   * UNA, y a diferencia de Story no hay ninguna cancelación de scrub que
+   * declarar -- Journey no consume `direction`, así que no tiene rebobinado.
+   */
+  it("las reglas de estado anidadas bajo otra @media son EXACTAMENTE las declaradas", () => {
+    const { excepciones } = leerCssom(montarElDeckEntero());
+    expect(Object.keys(excepciones).sort()).toEqual([
+      "ScJourneyTrack | no-preference | &",
+    ]);
+  });
+
+  /*
+   * LA OTRA MITAD DEL ARREGLO, la que no se ve mirando el deck. Medido sobre
+   * el build de esta ola en Chrome (320x800, raíz 32, tema oscuro, sin
+   * `prefers-reduced-motion`, coordenadas de documento): con el escenario ya
+   * linealizado pero SIN esta reserva, la diapositiva de la cita terminaba en
+   * 11.642 y la sección Features empezaba en 10.842 -- 800 px de cortina opaca
+   * encima. El contenido dejaba de estar recortado para estar TAPADO. Con la
+   * reserva el solape mide 0, que es lo que mide bajo `reduce`.
+   */
+  it("la pista linealizada por no caber reserva la cola que el pin ya reservaba", () => {
+    const { excepciones } = leerCssom(montarElDeckEntero());
+    const reserva = excepciones["ScJourneyTrack | no-preference | &"];
+    expect(
+      reserva,
+      'la pista no declara ninguna reserva de cola en el estado "no cabe": la cortina de Features cae sobre contenido vivo',
+    ).toBeDefined();
+    const unidad = (valor: string): string => valor.replace(/^[\d.]+/, "");
+    expect(reserva).toContain("padding-block-end");
+    expect(reserva).toContain(unidad(JOURNEY_DARK_HEIGHT));
+    // `calc(<pantallas> * <alto de pantalla>)`: los dos números de la
+    // declaración son exactamente esos dos factores.
+    expect(((reserva ?? "").match(/[\d.]+/g) ?? []).map(Number)).toEqual([
+      JOURNEY_DECK_TAIL_SCREENS,
+      Number.parseFloat(JOURNEY_DARK_HEIGHT),
+    ]);
+  });
+
+  /*
+   * EL CABLEADO. `useDeckFit.test.tsx` prueba el hook contra un deck de
+   * mentira; esto prueba que Journey lo llama con SUS refs -- que el atributo
+   * aterriza en la pista real, la que el CSS de arriba mira. La geometría se
+   * fabrica porque jsdom no hace layout.
+   */
+  it("la PISTA real de Journey recibe el estado cuando una diapositiva no cabe", async () => {
+    stubMatchMedia();
+    window.localStorage.setItem("vti-theme", "dark");
+    const disparos: (() => void)[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(cb: () => void) {
+          disparos.push(cb);
+        }
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
+    const altoOriginal = window.innerHeight;
+    window.innerHeight = 800;
+    try {
+      const { container } = renderWithProviders(<Journey />);
+      await waitFor(() => {
+        expect(container.querySelectorAll("[data-slide-index]")).toHaveLength(
+          JOURNEY_SLIDES,
+        );
+      });
+      const stage = container.querySelector("[data-slide]") as HTMLElement;
+      const track = stage.parentElement as HTMLElement;
+      const slides = Array.from(
+        stage.querySelectorAll<HTMLElement>("[data-slide-index]"),
+      );
+      const fijar = (el: HTMLElement, prop: string, valor: number): void => {
+        Object.defineProperty(el, prop, { value: valor, configurable: true });
+      };
+      fijar(stage, "clientHeight", 800);
+      for (const slide of slides) fijar(slide, "scrollHeight", 2049);
+
+      act(() => disparos.forEach((disparar) => disparar()));
+      expect(track.getAttribute(DECK_FIT_ATTRIBUTE)).toBe(DECK_DOES_NOT_FIT);
+      // El estado vive en la PISTA: el escenario no lo lleva, o la rama
+      // descendiente del selector dejaría fuera al propio escenario.
+      expect(stage.hasAttribute(DECK_FIT_ATTRIBUTE)).toBe(false);
+
+      for (const slide of slides) fijar(slide, "scrollHeight", 522);
+      act(() => disparos.forEach((disparar) => disparar()));
+      expect(track.getAttribute(DECK_FIT_ATTRIBUTE)).toBe(DECK_FITS);
+    } finally {
+      window.innerHeight = altoOriginal;
+      window.localStorage.clear();
+    }
   });
 });
