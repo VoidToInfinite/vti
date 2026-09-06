@@ -25,6 +25,18 @@
  * supuestos: `vti-theme` se escribe cuando la persona pulsa el conmutador de
  * tema, y solo entonces.
  *
+ * `vti-reading-position` (crítica externa #19, 2026-09-06) se apoya en la
+ * MISMA excepción del art. 22.2 por otra vía, y conviene no confundirlas: no
+ * es una preferencia que nadie elija, es el estado técnico de la propia
+ * sesión de navegación —dónde iba leyendo— que el sitio necesita para no
+ * dejar al visitante en otra sección al recargar. Es de primera parte, no
+ * contiene ningún dato personal (una `id` de sección y tres números), no sale
+ * del navegador y se borra sola al cerrar la pestaña. La atribución concreta
+ * a la Guía de cookies de la AEPD del párrafo anterior es de `vti-theme` y no
+ * se extiende a esta entrada: aquí lo que se invoca es el criterio literal de
+ * la ley («estrictamente necesario para prestar el servicio expresamente
+ * solicitado»), no un supuesto tasado de esa guía.
+ *
  * AQUÍ VIVIÓ `vti-lang`, RETIRADA el 2026-09-02 (D3, decisión del dueño). El
  * argumento que la sostenía era el mismo de arriba —«el idioma también lo
  * elige la persona»— pero dejó de ser cierto cuando la ola G mudó el idioma a
@@ -66,16 +78,46 @@
  */
 export const STORAGE_KEYS = {
   theme: "vti-theme",
+  /**
+   * Posición de lectura de la portada, en `sessionStorage` (crítica externa
+   * #19, P1 #2 — ver el docblock de `src/hooks/useReloadLanding.ts` para el
+   * defecto medido y la causa raíz).
+   *
+   * Qué guarda: la sección de primer nivel que estaba bajo el centro del
+   * viewport, el desplazamiento dentro de ella, el `scrollY` y el `pathname`.
+   * Números y un `id` de sección: NADA que identifique a nadie, y nada que
+   * viaje a ningún sitio — no sale del navegador.
+   *
+   * Por qué existe: bajo `output: "export"` el HTML horneado es siempre la
+   * rama clara, así que el navegador restituye la posición de una recarga
+   * contra una página 4.485 px más corta que la oscura y deja al lector una
+   * sección atrás. Esta entrada es lo que permite devolverlo a la suya.
+   *
+   * Por qué `sessionStorage` y no `localStorage`: una posición de lectura
+   * solo tiene sentido dentro de la pestaña que la produjo. MUERE AL CERRAR
+   * LA PESTAÑA, sin que nadie tenga que borrarla, y no viaja a otras pestañas
+   * ni sobrevive al cierre del navegador.
+   */
+  readingPosition: "vti-reading-position",
 } as const;
 
 export interface StorageEntry {
   /** Identificador literal escrito en el equipo. Es también la clave i18n. */
   readonly id: string;
-  readonly kind: "localStorage" | "cookie";
   /**
-   * Duración en días, o `null` si persiste hasta que la persona la borra.
-   * `localStorage` no caduca por sí solo: `null` es el valor honesto para
-   * esas entradas, no un cero ni un número inventado.
+   * `"sessionStorage"` desde la crítica externa #19: la primera entrada de
+   * este registro que NO sobrevive al cierre de la pestaña. Se declara como
+   * tipo propio y no se disfraza de `localStorage` porque la tabla de
+   * `/privacidad` lo pinta literalmente y esa tabla tiene que ser exacta
+   * (art. 22.2 LSSI-CE).
+   */
+  readonly kind: "localStorage" | "sessionStorage" | "cookie";
+  /**
+   * Duración en días, o `null` si no caduca por sí sola. Ni `localStorage` ni
+   * `sessionStorage` llevan reloj de expiración: `null` es el valor honesto
+   * para esas entradas, no un cero ni un número inventado. Lo que las
+   * distingue es QUIÉN las borra —a la de sesión se la lleva la pestaña al
+   * cerrarse— y eso lo dice `kind`, no este campo.
    */
   readonly durationDays: number | null;
   /** Titular del almacenamiento. `"first-party"` = el propio sitio. */
@@ -92,6 +134,12 @@ export const STORAGE_REGISTRY: readonly StorageEntry[] = [
   {
     id: STORAGE_KEYS.theme,
     kind: "localStorage",
+    durationDays: null,
+    provider: "first-party",
+  },
+  {
+    id: STORAGE_KEYS.readingPosition,
+    kind: "sessionStorage",
     durationDays: null,
     provider: "first-party",
   },

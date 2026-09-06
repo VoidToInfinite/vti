@@ -4,12 +4,51 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import esLegal from "@/i18n/locales/es/legal.json";
 import enLegal from "@/i18n/locales/en/legal.json";
-import { STORAGE_REGISTRY } from "./storage";
+import { STORAGE_KEYS, STORAGE_REGISTRY } from "./storage";
 
 describe("STORAGE_REGISTRY", () => {
-  it("declara exactamente vti-theme", () => {
+  /*
+   * Contrato CERRADO (regla 40): la lista se actualiza en el commit que añade
+   * la entrada, nunca se relaja a un `toContain`. `vti-reading-position` entra
+   * el 2026-09-06 con la crítica externa #19 (P1 #2, la recarga en tema oscuro
+   * devolvía al lector una sección atrás); su porqué está en el docblock de
+   * `src/hooks/useReloadLanding.ts`.
+   */
+  it("declara exactamente vti-theme y vti-reading-position", () => {
     const ids = STORAGE_REGISTRY.map((entry) => entry.id).sort();
-    expect(ids).toEqual(["vti-theme"]);
+    expect(ids).toEqual(["vti-reading-position", "vti-theme"]);
+  });
+
+  /*
+   * CANDADO DE LA VIDA ÚTIL DECLARADA (crítica externa #19). La posición de
+   * lectura es la PRIMERA entrada de este registro que no sobrevive al cierre
+   * de la pestaña, y ese hecho es exactamente lo que la hace proporcionada:
+   * declararla como `localStorage` la convertiría en un rastro persistente sin
+   * cambiar una sola línea del hook que la escribe, y la tabla de
+   * `/privacidad` —que pinta `kind` literalmente— lo diría mal a partir de ese
+   * momento.
+   *
+   * No es un espejo del valor del código: lo que ata es la CONDICIÓN de que un
+   * dato de sesión se declare como tal. Si mañana alguien mueve la escritura a
+   * `localStorage`, este test le exige tocar también la declaración, que es
+   * donde el revisor puede verlo.
+   */
+  it("la posición de lectura se declara como almacenamiento DE SESIÓN, no persistente", () => {
+    const entry = STORAGE_REGISTRY.find(
+      (candidate) => candidate.id === STORAGE_KEYS.readingPosition,
+    );
+    expect(entry, "la posición de lectura no está declarada").toBeDefined();
+    expect(entry?.kind).toBe("sessionStorage");
+  });
+
+  /*
+   * El complementario: `STORAGE_KEYS` es la fuente del literal, así que un
+   * rename que dejara la clave del hook y la del registro apuntando a strings
+   * distintos no lo vería nadie. Aquí se afirma el literal UNA vez, y el
+   * candado de barredura de más abajo impide que exista una segunda copia.
+   */
+  it("STORAGE_KEYS declara la clave de la posición de lectura", () => {
+    expect(STORAGE_KEYS.readingPosition).toBe("vti-reading-position");
   });
 
   it("los id no se repiten", () => {
@@ -159,6 +198,36 @@ describe("sincronía de STORAGE_REGISTRY con las claves de localStorage reales",
     expect(STORAGE_REGISTRY.some((entry) => entry.id === "vti-lang")).toBe(
       false,
     );
+  });
+
+  /*
+   * El tercer escritor del sitio, desde la crítica externa #19:
+   * `useReloadLanding.ts`. Se mide con la misma vara que `ThemeProvider.tsx`
+   * —importa `STORAGE_KEYS` en vez de declarar su propio literal— y con una
+   * mitad más que aquel no necesita: que escriba en `sessionStorage` y NO en
+   * `localStorage`. Esa es la propiedad que sostiene la fila de `/privacidad`
+   * («se borra al cerrar la pestaña») y la única que un cambio de una palabra
+   * en el hook puede romper sin que ningún test de comportamiento se entere:
+   * los dos almacenes tienen la misma API, así que un test que espíe
+   * `setItem` sobre el almacén equivocado pasaría en verde igual.
+   */
+  it("useReloadLanding.ts importa STORAGE_KEYS y escribe en sessionStorage, nunca en localStorage", () => {
+    const source = readFileSync(
+      join(here, "..", "hooks", "useReloadLanding.ts"),
+      "utf-8",
+    );
+    const codigo = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+
+    expect(codigo).toContain('import { STORAGE_KEYS } from "@/config/storage"');
+    expect(codigo).toContain("STORAGE_KEYS.readingPosition");
+    expect(codigo).not.toMatch(/const STORAGE_KEY\s*=\s*"vti-/);
+    expect(codigo).toContain("window.sessionStorage");
+    expect(
+      codigo,
+      "la posición de lectura dejaría de morir con la pestaña",
+    ).not.toContain("localStorage");
   });
 });
 

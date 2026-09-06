@@ -1,6 +1,7 @@
 "use client";
 import type { ReactElement } from "react";
 import { useFragmentLanding } from "@/hooks/useFragmentLanding";
+import { useReloadLanding } from "@/hooks/useReloadLanding";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Story } from "./Story/Story";
 import { Journey } from "./Journey/Journey";
@@ -37,6 +38,14 @@ export function HomeSections(): ReactElement {
      `useFragmentLanding.ts`. */
   const { themeName } = useTheme();
   useFragmentLanding(themeName);
+  /* El hermano del anterior, desde la crítica externa #19 (P1 #2): la misma
+     señal de rama efectiva, la misma espera, y el mismo motivo de fondo (el
+     HTML horneado es la rama clara). Aquel corrige el aterrizaje cuando la URL
+     trae un fragmento; este, la posición que el navegador restituye al
+     RECARGAR — que en oscuro caía 3.377 px arriba, una sección atrás. Los dos
+     no se pisan: `useReloadLanding` se inhibe entero cuando hay fragmento en
+     la URL (ver su docblock). */
+  useReloadLanding(themeName);
 
   return (
     <>

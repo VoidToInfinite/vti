@@ -34,6 +34,10 @@
                 "vti-theme": {
                     "name": "Theme (light / dark)",
                     "purpose": "Remembers whether you chose the light or the dark theme, so you are not asked again on every visit."
+                },
+                "vti-reading-position": {
+                    "name": "Reading position (this tab only)",
+                    "purpose": "Notes which section of the home page you were reading, so a reload takes you back to it. It lives only in this tab and is erased when you close it."
                 }
             }
         },

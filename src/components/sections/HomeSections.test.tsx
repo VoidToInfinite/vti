@@ -8,6 +8,7 @@ import {
   waitFor,
 } from "@/test/test-utils";
 import esHome from "@/i18n/locales/es/home.json";
+import { STORAGE_KEYS } from "@/config/storage";
 import { FRAGMENT_LANDING_SETTLE_MS } from "@/hooks/useFragmentLanding";
 import { useTheme } from "@/theme/ThemeProvider";
 import { HomeSections } from "./HomeSections";
@@ -347,6 +348,64 @@ describe("HomeSections", () => {
         block: "start",
       });
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /*
+   * CANDADO DE CABLEADO DEL P1 #2 (crítica externa #19, 2026-09-06), hermano
+   * exacto del de arriba y por el mismo motivo: este componente es el que
+   * decide qué rama de tema se monta, así que es el que tiene que consumir
+   * `useReloadLanding`. El mecanismo entero (qué se anota, cuándo se decide
+   * restituir, las guardas, los dos relojes) se prueba en
+   * `src/hooks/useReloadLanding.test.ts`; lo único que este test protege es
+   * que el hook siga ENCHUFADO aquí -- si alguien lo retira, la recarga en
+   * tema oscuro vuelve a dejar al lector 3.377 px arriba y una sección atrás,
+   * y ningún test del hook se enteraría.
+   *
+   * Se ejercita por el CAMINO SIN ANCLA (`anchor: null` en la posición
+   * anotada), y no es un atajo: jsdom no hace layout, así que los `rect` de
+   * las secciones reales son todos ceros y la aritmética del ancla resolvería
+   * a "no hacía falta corregir" -- un verde que no probaría nada. El respaldo
+   * por `scrollY` es el único camino de este hook cuya salida es observable
+   * sin maquetado, y sirve igual para lo que aquí se afirma: que el hook
+   * corre.
+   *
+   * Por el TOPE y no por los frames, misma razón que el candado de la #11:
+   * `vi.useFakeTimers` con solo `setTimeout`/`clearTimeout` falseados deja la
+   * cola de `requestAnimationFrame` de jsdom sin avanzar en un test síncrono,
+   * que es exactamente el camino de "pestaña sin frames".
+   */
+  it("crítica #19: consume useReloadLanding, así que una recarga restituye la posición anotada", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const navegacion = vi
+      .spyOn(window.performance, "getEntriesByType")
+      .mockReturnValue([{ type: "reload" } as unknown as PerformanceEntry]);
+    const scrollTo = vi.fn();
+    vi.stubGlobal("scrollTo", scrollTo);
+    window.sessionStorage.setItem(
+      STORAGE_KEYS.readingPosition,
+      JSON.stringify({
+        pathname: window.location.pathname,
+        scrollY: 4321,
+        anchor: null,
+      }),
+    );
+
+    try {
+      renderWithProviders(<HomeSections />);
+
+      act(() => {
+        vi.advanceTimersByTime(FRAGMENT_LANDING_SETTLE_MS);
+      });
+
+      expect(scrollTo).toHaveBeenCalledWith({
+        top: 4321,
+        behavior: "instant",
+      });
+    } finally {
+      navegacion.mockRestore();
+      window.sessionStorage.clear();
       vi.useRealTimers();
     }
   });

@@ -34,6 +34,10 @@
                 "vti-theme": {
                     "name": "Tema (claro / oscuro)",
                     "purpose": "Recuerda si elegiste el tema claro o el oscuro, para no volver a preguntártelo en cada visita."
+                },
+                "vti-reading-position": {
+                    "name": "Posición de lectura (solo en esta pestaña)",
+                    "purpose": "Anota en qué sección de la portada ibas leyendo, para devolverte ahí si recargas la página. Vive solo en esta pestaña y se borra sola al cerrarla."
                 }
             }
         },
