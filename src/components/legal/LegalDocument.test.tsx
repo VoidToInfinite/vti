@@ -279,7 +279,10 @@ describe("LegalDocument", () => {
    * «localStorage», y la ola añadió la primera entrada de `sessionStorage`
    * (la posición de lectura): un registro con un tipo nuevo y un párrafo que
    * no lo nombra es la clase de divergencia silenciosa que este candado
-   * existe para cazar, en los dos idiomas.
+   * existe para cazar, en los dos idiomas. Validado con bug inyectado
+   * (quitando «sessionStorage» del párrafo castellano):
+   *   AssertionError: expected 'Esta es la lista completa y única de …' to
+   *   contain 'sessionStorage'
    */
   it("el párrafo de la sección de almacenamiento nombra cada tecnología del registro, en los dos idiomas", () => {
     const tipos = Array.from(new Set(STORAGE_REGISTRY.map((e) => e.kind)));
