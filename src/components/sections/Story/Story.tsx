@@ -567,6 +567,11 @@ const ScGrid = styled.div`
     gap: ${({ theme }) => theme.data.space[8]};
   }
 
+  /* La otra mitad del candado de peso de ScFigureWrap: ver su docblock. */
+  [data-theme="dark"] & {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
     opacity: 1;
@@ -616,16 +621,46 @@ const ScGrid = styled.div`
  *
  * ES UNA CONJUNCION CON `loading="lazy"`, y eso importa para quien venga
  * despues: una imagen NO perezosa se pide en cuanto el parser ve su `src`,
- * tenga caja o no. Medido sirviendo este mismo build sin el atributo: la
- * visita oscura vuelve a pedir 702.088 B de figuras claras que no pinta
- * (`journey-presenting-1024` 163.368 + `contact-waving-1024` 185.716 +
- * `story-pointing-640` 106.770). Quitar el `loading="lazy"` de esta figura
- * reabre el hallazgo, y por eso el candado de `Story.test.tsx` ata las DOS
- * cosas a la vez, no solo la regla.
+ * tenga caja o no. Medido sirviendo este mismo build con el atributo quitado
+ * al vuelo (interceptacion de rutas, visita oscura, 1440x900, 3 s tras
+ * `load`), en dos variantes:
+ *
+ * - quitandoselo SOLO A ESTA FIGURA, el hallazgo vuelve entero y con las
+ *   mismas cifras del defecto original: 87.260 B a DPR 1
+ *   (`journey-presenting-640`) y 163.368 B a DPR 2
+ *   (`journey-presenting-1024`), pedidos y nunca pintados.
+ * - quitandoselo a TODAS las imagenes del HTML claro, la visita oscura pide
+ *   702.088 B a DPR 2, que es la suma de las SEIS figuras de la pagina
+ *   (`journey-presenting-1024` 163.368 + `contact-waving-1024` 185.716 +
+ *   `story-pointing-640` 106.770 + `feature-imagination-640` 89.632 +
+ *   `feature-learning-640` 82.100 + `feature-gaming-640` 74.502).
+ *
+ * La primera version de este docblock daba esos 702.088 B como el coste de
+ * quitarle el atributo A ESTA FIGURA, con solo tres de los seis sumandos
+ * escritos al lado -- la cifra estaba bien medida pero describia otro
+ * experimento, y los tres sumandos visibles no llegaban a ella (455.854).
+ * Queda corregido con la medicion repetida: lo que cuesta esta figura sola es
+ * 163.368 B en el peor caso. Quitarle el `loading="lazy"` reabre el hallazgo
+ * igualmente, y por eso el candado de `Story.test.tsx` ata las DOS cosas a la
+ * vez, no solo la regla.
  *
  * VA EN EL ENVOLTORIO Y NO EN EL `<img>` a proposito: ocultar solo la imagen
  * dejaria a `ScHalo` pintando su degradado radial sobre un hueco vacio durante
  * la prehidratacion de una visita oscura. Ocultar la columna se lleva los dos.
+ *
+ * Y POR ESO `ScGrid` LLEVA SU PROPIO BLOQUE `[data-theme="dark"] &`, que no es
+ * decoracion: `ScGrid` declara dos pistas desde `lg`
+ * (`minmax(280px, STORY_FIGURE_WIDTH) minmax(0, 1fr)`), asi que al perder la
+ * caja esta columna el contenido cae por colocacion automatica en la pista
+ * ESTRECHA y la prosa se estrecha con el. Medido (1440x900, DPR 1, visita
+ * oscura, `scrollHeight` del documento en `DOMContentLoaded`, que es lo que ve
+ * la restauracion de scroll antes de hidratar): 6.523 px sin nada de esto,
+ * 7.050 px con `display: none` a secas -- 527 px MAS de documento
+ * prehidratacion -- y 6.260 px con la pista unica, que es la unica de las tres
+ * en la que la prosa mantiene su medida. El alto FINAL, ya hidratado, es
+ * 11.008 px en los tres casos: la rama oscura sustituye el arbol entero y esta
+ * diferencia no sobrevive a la hidratacion. En claro el documento mide 6.523 px
+ * en los tres, porque ninguno de los dos bloques aplica.
  *
  * LO QUE SE DESCARTO, tambien por medicion:
  * - Renderizar `src`/`srcSet` solo tras confirmar el tema en cliente: sin
@@ -1894,8 +1929,10 @@ function StoryLight(): ReactElement {
                   la mitad del candado que impide que una visita OSCURA se
                   descargue esta figura (la otra mitad es la regla
                   `[data-theme="dark"]` de `ScFigureWrap` -- ver su docblock,
-                  con la medicion de los 702.088 B que vuelven al quitar este
-                  atributo). No se cambia a `eager` sin volver a medir. */}
+                  con la medicion de los bytes que vuelven al quitar este
+                  atributo: 87.260 a DPR 1 y 163.368 a DPR 2, pedidos en una
+                  visita oscura y nunca pintados). No se cambia a `eager` sin
+                  volver a medir. */}
               <ScFigureImg
                 src="/figures/journey-presenting-1024.webp"
                 srcSet="/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w"

@@ -182,9 +182,14 @@ function revealedSelectorTextFor(el: HTMLElement): string {
  */
 
 /**
- * La regla del CSSOM que oculta un elemento cuando el `<html>` lleva
+ * La regla del CSSOM que cambia un elemento cuando el `<html>` lleva
  * `data-theme="dark"`, devuelta ENTERA (no su texto) para poder leer su
  * `selectorText` real.
+ *
+ * `motivo` NO es cosmetico: la funcion tiene dos consumidores (la columna de
+ * la figura y la reticula que la contiene) y cada uno cae por una razon
+ * distinta, asi que un mensaje fijo mandaria a quien lea el rojo a mirar el
+ * elemento equivocado.
  *
  * Mismo motivo que `revealedSelectorTextFor`, mas arriba: el selector
  * DESCENDIENTE `[data-theme="dark"] &` compila a `[data-theme="dark"] .sc-xxxx`
@@ -195,7 +200,7 @@ function revealedSelectorTextFor(el: HTMLElement): string {
  * NUNCA en este `div`, asi que la forma calificada no aplicaria jamas y el
  * candado quedaria en verde sobre una regla muerta (leccion 2026-08-07).
  */
-function reglaDeTemaOscuroPara(el: HTMLElement): CSSStyleRule {
+function reglaDeTemaOscuroPara(el: HTMLElement, motivo: string): CSSStyleRule {
   const classes = Array.from(el.classList);
   const rule = Array.from(document.styleSheets)
     .flatMap((sheet) => {
@@ -215,9 +220,7 @@ function reglaDeTemaOscuroPara(el: HTMLElement): CSSStyleRule {
     });
   if (!rule) {
     throw new Error(
-      'Ninguna regla [data-theme="dark"] aplica a este elemento: la figura ' +
-        "clara vuelve a tener caja en una visita oscura y el navegador la " +
-        "descargara (P1 numero 4 de la critica externa #19)",
+      `Ninguna regla [data-theme="dark"] aplica a este elemento: ${motivo}`,
     );
   }
   return rule;
@@ -997,9 +1000,10 @@ describe("Story: D11, la figura iguala la altura de la columna de contenido", ()
  * CONJUNCION: la regla quita la caja (sin caja no hay interseccion, y la carga
  * perezosa es por interseccion) y `loading="lazy"` es lo que hace que la
  * peticion dependa de esa caja. Una imagen NO perezosa se pide en cuanto el
- * parser ve su `src`, oculta o no -- medido sirviendo el mismo build sin el
- * atributo: la visita oscura vuelve a pedir 702.088 B de figuras claras que no
- * pinta. Atar solo la regla dejaria el hallazgo reabierto por un `eager`.
+ * parser ve su `src`, oculta o no -- medido sirviendo el mismo build con el
+ * atributo quitado al vuelo SOLO A ESTA FIGURA: la visita oscura vuelve a
+ * pedir 87.260 B a DPR 1 y 163.368 B a DPR 2, las cifras exactas del defecto
+ * original. Atar solo la regla dejaria el hallazgo reabierto por un `eager`.
  *
  * Los dos casos se validaron con bug inyectado (ver sus comentarios internos
  * para la linea roja literal de cada uno).
@@ -1028,13 +1032,20 @@ describe("Story: la figura clara no se descarga en tema oscuro (P1 numero 4, cri
          - true
          + false
 
-       Las dos inyecciones dieron "Tests 1 failed | 125 passed (126)". */
+       Las dos inyecciones dieron "Tests 1 failed | 126 passed (127)", y las
+       dos se repitieron el 2026-09-06 con el caso de la reticula ya en el
+       fichero: la regla que encuentra el helper sigue siendo la de ESTA
+       columna y no la de `ScGrid`, que ahora tambien tiene la suya. */
     renderWithProviders(<Story />);
     const figure = screen.getByAltText(esHome.Home.story.figureAlt);
     // figure -> ScFigureShift (parent) -> ScFigureWrap (grandparent), el
     // mismo camino que ya recorre el caso de D11, mas arriba.
     const figureWrap = figure.parentElement?.parentElement as HTMLElement;
-    const rule = reglaDeTemaOscuroPara(figureWrap);
+    const rule = reglaDeTemaOscuroPara(
+      figureWrap,
+      "la figura clara vuelve a tener caja en una visita oscura y el " +
+        "navegador la descargara (P1 numero 4 de la critica externa #19)",
+    );
 
     expect(
       /\[data-theme="dark"\]\s+\./.test(rule.selectorText),
@@ -1057,13 +1068,14 @@ describe("Story: la figura clara no se descarga en tema oscuro (P1 numero 4, cri
 
          AssertionError: `loading="lazy"` es la otra mitad del candado de peso
          del tema oscuro: una imagen eager se pide en cuanto el parser ve su
-         src, tenga caja o no (medido: 702.088 B de figuras claras vuelven a
-         descargarse en oscuro): expected 'eager' to be 'lazy' // Object.is
-         equality
+         src, tenga caja o no (medido con el atributo quitado al vuelo sobre
+         el build: la visita oscura vuelve a pedir 87.260 B a DPR 1 y 163.368
+         B a DPR 2, sin pintarlos): expected 'eager' to be 'lazy' //
+         Object.is equality
          Expected: "lazy"
          Received: "eager"
 
-       (Esa inyeccion dio "Tests 2 failed | 124 passed (126)": tambien cae el
+       (Esa inyeccion dio "Tests 2 failed | 125 passed (127)": tambien cae el
        caso de mas arriba, que ya exigia `lazy` por rendimiento de la rama
        clara. Que caigan los dos es lo correcto -- describen dos razones
        distintas para el mismo atributo.)
@@ -1080,8 +1092,9 @@ describe("Story: la figura clara no se descarga en tema oscuro (P1 numero 4, cri
       figure.getAttribute("loading"),
       '`loading="lazy"` es la otra mitad del candado de peso del tema ' +
         "oscuro: una imagen eager se pide en cuanto el parser ve su src, " +
-        "tenga caja o no (medido: 702.088 B de figuras claras vuelven a " +
-        "descargarse en oscuro)",
+        "tenga caja o no (medido con el atributo quitado al vuelo sobre el " +
+        "build: la visita oscura vuelve a pedir 87.260 B a DPR 1 y 163.368 B " +
+        "a DPR 2, sin pintarlos)",
     ).toBe("lazy");
     expect(figure).toHaveAttribute(
       "src",
@@ -1098,6 +1111,56 @@ describe("Story: la figura clara no se descarga en tema oscuro (P1 numero 4, cri
     // hallazgo dejando de renderizar la figura sin JavaScript.
     expect(figure.getAttribute("alt")).toBe(esHome.Home.story.figureAlt);
     expect(figure.getAttribute("alt")).not.toBe("");
+  });
+
+  it("la reticula de la rama clara colapsa a una sola pista en oscuro, para que la prosa no herede la columna de la figura", () => {
+    /* LA SEGUNDA MITAD DE LA MISMA DECISION, y por que tiene caso propio.
+       Quitarle la caja a la columna de la figura no deja el hueco vacio: como
+       `ScGrid` declara DOS pistas desde `lg`, el contenido cae por colocacion
+       automatica en la ESTRECHA y la prosa se estrecha con el. Medido en
+       Chrome (1440x900, DPR 1, visita oscura, `scrollHeight` del documento en
+       `DOMContentLoaded`, que es el alto que ve la restauracion de scroll
+       antes de hidratar): 6.523 px sin nada de esto, 7.050 px con el
+       `display: none` a secas y 6.260 px con esta pista unica. El alto ya
+       hidratado es 11.008 px en los tres, asi que esto NO se ve en el estado
+       final: se ve en la ventana de prehidratacion, que es justamente donde
+       vive todo este candado.
+
+       Bug inyectado (quitando el bloque `[data-theme="dark"] &` de `ScGrid`,
+       Story.tsx, y dejando intacto el de `ScFigureWrap`):
+
+         Error: Ninguna regla [data-theme="dark"] aplica a este elemento: el
+         contenido cae en la pista estrecha de la figura y la prosa se
+         estrecha con el (medido: el documento prehidratacion de una visita
+         oscura pasa de 6.260 a 7.050 px)
+
+       ("Tests 1 failed | 126 passed (127)".) Restaurado el bloque, verde.
+       Que caiga por el helper y no por el `toContain` es lo correcto: sin
+       regla no hay `cssText` que mirar, y el mensaje que se lee es el motivo
+       de ESTE caso, no el de la figura -- por eso `reglaDeTemaOscuroPara`
+       recibe el motivo como argumento en vez de llevar uno fijo. */
+    renderWithProviders(<Story />);
+    const grid = screen
+      .getByAltText(esHome.Home.story.figureAlt)
+      .closest("[data-revealed]") as HTMLElement;
+    const rule = reglaDeTemaOscuroPara(
+      grid,
+      "el contenido cae en la pista estrecha de la figura y la prosa se " +
+        "estrecha con el (medido: el documento prehidratacion de una visita " +
+        "oscura pasa de 6.260 a 7.050 px)",
+    );
+
+    expect(
+      /\[data-theme="dark"\]\s+\./.test(rule.selectorText),
+      "mismo motivo que en la figura: el atributo vive en el <html>, no en " +
+        "esta reticula, asi que la forma calificada no aplicaria nunca",
+    ).toBe(true);
+    expect(
+      rule.cssText.replace(/\s+/g, ""),
+      "sin esta regla el contenido cae en la pista estrecha de la figura y " +
+        "la prosa se estrecha con el (medido: el documento prehidratacion de " +
+        "una visita oscura pasa de 6.260 a 7.050 px)",
+    ).toContain("grid-template-columns:minmax(0,1fr)");
   });
 });
 
