@@ -625,7 +625,53 @@ export const ScTableWrap = styled.div`
   }
 `;
 
+/*
+ * LA TABLA DE ALMACENAMIENTO NO PARTE PALABRAS (2026-09-06, verificación de la
+ * ola S). Docblock FUERA del template a propósito: los comentarios dentro del
+ * literal viajan al bundle (trinquete en `src/test/css-template-comments.test.ts`).
+ *
+ * QUÉ SE MIDIÓ, con Chrome sobre el build servido y las cajas de línea REALES
+ * (`Range.getClientRects()` carácter a carácter, no el proxy alto/line-height,
+ * que infla las celdas estiradas al alto de su fila). Cortes DENTRO de palabra
+ * en `/privacidad`, con la raíz por DEFECTO (16 px):
+ *
+ *     1440x900   2 cortes   «Persistent|e hasta que la borres», dos veces
+ *     390x800    5 cortes   tres de ellos en prosa («Recuerd|a si elegiste»,
+ *                           «preguntá|rtelo», «devolver|te ahí si recargas»)
+ *     320x800    5 cortes   los mismos
+ *
+ * y 3 más en `/en/privacy` a 390 y a 320. A 200 % (raíz 32 px) quedaban 2 a
+ * 1440 y 3 a 390. Ninguno es el identificador técnico: son palabras de prosa
+ * rotas por la mitad en un texto de cumplimiento.
+ *
+ * CAUSA RAÍZ, que vive en el ancestro y no aquí: `GlobalStyles` declara
+ * `overflow-wrap: anywhere` en `body`. Esa palabra clave —a diferencia de
+ * `break-word`— no solo permite el corte: REDUCE el min-content de la caja
+ * (CSS Text 5.5), y eso es exactamente lo que el reparto de columnas de
+ * `table-layout: auto` consume como suelo. Con el min-content colapsado, el
+ * algoritmo puede estrechar cualquier columna POR DEBAJO de su palabra más
+ * larga, y lo hace en cuanto la tabla va apretada: cinco columnas dentro de la
+ * medida de lectura (`grid.prose`, 502 px medidos a 1440). El `white-space:
+ * nowrap` que `ScStorageKind` estrenó el 2026-09-06 subió la columna Tipo de
+ * 58 a 118 px y agravó el apretón sobre las vecinas — la celda de Duración se
+ * quedó en 87 px —, pero no es la causa: sin él los cortes seguían existiendo,
+ * solo que en el identificador.
+ *
+ * ARREGLO: dentro de esta tabla las palabras no se parten. `overflow-wrap:
+ * normal` devuelve a cada columna un min-content igual a su palabra más larga,
+ * y el sobrante cae donde ya hay un gesto de recuperación previsto:
+ * `ScTableWrap`, con `overflow-x: auto`, `role="region"`, `aria-label` y
+ * `tabindex="0"` — el desplazamiento horizontal que WCAG 1.4.10 admite para
+ * tablas de datos, alcanzable también por teclado. No se pelea celda a celda.
+ *
+ * MEDIDO DESPUÉS, A/B en la misma sesión y sobre el mismo documento servido:
+ * CERO cortes dentro de palabra en las doce combinaciones (dos rutas × tres
+ * anchos × raíz 16 y 32). La tabla apenas engorda —452 a 491 px a 390/16, y a
+ * 1440 se queda en los mismos 502 sin estrenar desplazamiento— y
+ * `documentElement.scrollWidth` no excede el viewport en ninguna.
+ */
 export const ScTable = styled.table`
+  overflow-wrap: normal;
   width: 100%;
   /* SUELO de ancho, no ancho de trabajo (crítica externa #10, hallazgo A).
      Hoy el ancho real lo sigue poniendo el min-content de table-layout: auto
@@ -687,6 +733,14 @@ export const ScTd = styled.td`
  * recuperación existe y es el que WCAG 1.4.10 admite para tablas de datos.
  * `localStorage` (12 caracteres) cabía en tres líneas de 4 y por eso el
  * candado no lo había visto nunca.
+ *
+ * DESDE EL 2026-09-06 (tarde) NO ES LA ÚNICA REGLA QUE LO SOSTIENE: `ScTable`
+ * declara `overflow-wrap: normal`, con lo que ninguna palabra de esta tabla
+ * tiene ya por dónde partirse (ver su docblock, que además mide el apretón que
+ * esta misma regla causó sobre las columnas vecinas). Se conserva porque dice
+ * de forma explícita lo que este identificador exige por su cuenta, y su
+ * candado no se afloja: si algún día la tabla dejara de declarar aquello, el
+ * nombre técnico seguiría sin partirse.
  */
 export const ScStorageKind = styled.span`
   white-space: nowrap;

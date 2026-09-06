@@ -464,6 +464,30 @@ const PIEZAS_EN_REJILLA = ["ScDl", "ScDlRow"];
 const PIEZAS_QUE_ENVUELVEN = ["ScDd", "ScInlineLink"];
 
 /**
+ * El caso CONTRARIO, y por eso lista aparte y no una excepción dentro de la de
+ * arriba: piezas que declaran `overflow-wrap` para NO partir. `ScTable` lo hace
+ * desde el 2026-09-06 (verificación de la ola S): el `anywhere` global de
+ * `body` no solo permite el corte, reduce el min-content de la caja (CSS Text
+ * 5.5), y el reparto de `table-layout: auto` lo usa como suelo de columna, así
+ * que las celdas partían palabras de prosa por la mitad —«Persistent|e hasta
+ * que la borres», medido con las cajas de línea reales a 1440x900 con la raíz
+ * por defecto—. Con `normal` cada columna recupera como suelo su palabra más
+ * larga y el sobrante lo desplaza `ScTableWrap`, que ya es región alcanzable
+ * por teclado. Tecleada igual que las otras dos: si la regla desaparece, el
+ * censo se pone en rojo.
+ *
+ * Validado con bug inyectado (`ScTable` declarando `anywhere` en vez de
+ * `normal`, que deja pasar el censo de nombres y solo cae en la comprobación
+ * nueva):
+ *   AssertionError: ScTable está censada como pieza que no parte y no declara
+ *   overflow-wrap: normal: sin ella hereda el anywhere de body, que además de
+ *   permitir el corte colapsa el min-content que la tabla usa como suelo de
+ *   columna: expected '\n  overflow-wrap: anywhere;\n  width…' to match
+ *   /overflow-wrap:\s*normal/
+ */
+const PIEZAS_QUE_NO_PARTEN = ["ScTable"];
+
+/**
  * Los bloques de estilo del fichero, por nombre de export. El template literal
  * de cada `styled` no puede contener backticks (regla 23 de RULES.md, que este
  * mismo fichero respeta), así que las comillas invertidas delimitan sin
@@ -523,8 +547,18 @@ describe("legalPage.parts: texto al 200 % (WCAG 1.4.4, 2026-09-04)", () => {
     expect(
       conEnvoltura.sort(),
       "el censo de piezas con regla de envoltura cambió: decide explícitamente si la " +
-        "pieza nueva la necesita, o restaura la que falta",
-    ).toEqual([...PIEZAS_QUE_ENVUELVEN].sort());
+        "pieza nueva la necesita para PARTIR (PIEZAS_QUE_ENVUELVEN) o para NO partir " +
+        "(PIEZAS_QUE_NO_PARTEN), o restaura la que falta",
+    ).toEqual([...PIEZAS_QUE_ENVUELVEN, ...PIEZAS_QUE_NO_PARTEN].sort());
+
+    for (const nombre of PIEZAS_QUE_NO_PARTEN) {
+      expect(
+        bloques.get(nombre) ?? "",
+        `${nombre} está censada como pieza que no parte y no declara overflow-wrap: ` +
+          `normal: sin ella hereda el anywhere de body, que además de permitir el ` +
+          `corte colapsa el min-content que la tabla usa como suelo de columna`,
+      ).toMatch(/overflow-wrap:\s*normal/);
+    }
 
     for (const nombre of PIEZAS_QUE_ENVUELVEN) {
       const css = bloques.get(nombre) ?? "";

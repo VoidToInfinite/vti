@@ -337,6 +337,52 @@ describe("LegalDocument", () => {
   });
 
   /*
+   * NINGUNA CELDA DE LA TABLA TIENE QUE PARTIR PALABRAS (2026-09-06,
+   * verificación de la ola S).
+   *
+   * El defecto, medido con las cajas de línea reales (`Range.getClientRects()`
+   * carácter a carácter) sobre el build servido y con la raíz POR DEFECTO:
+   * `/privacidad` partía «Persistent|e hasta que la borres» dos veces a
+   * 1440x900 (celda de 87 px) y cinco veces a 390x800, tres de ellas dentro de
+   * prosa. Causa raíz en el ancestro: `overflow-wrap: anywhere` de `body` no
+   * solo permite el corte, REDUCE el min-content de la caja (CSS Text 5.5), y
+   * el reparto de `table-layout: auto` usa ese min-content como suelo de
+   * columna. La regla que lo impide vive en `ScTable`; el sobrante cae en
+   * `ScTableWrap`, que ya desplaza en horizontal con region + tabindex.
+   *
+   * jsdom no maqueta ni evalúa `@media`, así que esto se lee del CSSOM, igual
+   * que el caso de `ScStorageKind` de arriba — y por eso NO sustituye a la
+   * medición en navegador, la ata.
+   *
+   * Validado con bug inyectado (retirando `overflow-wrap: normal` de
+   * `ScTable`):
+   *   AssertionError: la regla de ScTable no declara overflow-wrap: normal, y
+   *   sin ella el min-content de las columnas lo colapsa el anywhere global:
+   *   expected [ '' ] to include 'normal'
+   */
+  it("la tabla de almacenamiento no deja que sus columnas bajen de su palabra más larga", () => {
+    const { container } = renderWithProviders(
+      <LegalDocument docKey="privacy" />,
+    );
+    const tabla = container.querySelector("table");
+    expect(tabla).not.toBeNull();
+    const clases = Array.from(tabla?.classList ?? []);
+    expect(clases.length).toBeGreaterThan(0);
+    const reglas = Array.from(document.styleSheets)
+      .flatMap((hoja) => Array.from(hoja.cssRules))
+      .filter(
+        (regla): regla is CSSStyleRule =>
+          regla instanceof CSSStyleRule &&
+          clases.some((clase) => regla.selectorText.includes(`.${clase}`)),
+      )
+      .map((regla) => regla.style.getPropertyValue("overflow-wrap"));
+    expect(
+      reglas,
+      "la regla de ScTable no declara overflow-wrap: normal, y sin ella el min-content de las columnas lo colapsa el anywhere global",
+    ).toContain("normal");
+  });
+
+  /*
    * El párrafo que abre la sección de almacenamiento nombra la tecnología
    * con la que se guarda cada entrada. Hasta la ola S decía solo
    * «localStorage», y la ola añadió la primera entrada de `sessionStorage`
