@@ -240,6 +240,63 @@ describe("LegalDocument", () => {
     });
   });
 
+  /*
+   * El nombre técnico de la tecnología («localStorage», «sessionStorage») es
+   * un identificador y no tiene por dónde partirse. Medido por el candado de
+   * superficies el 2026-09-06 con la raíz a 32 px: en una celda de 91 px,
+   * «sessionStorage» se partía en cuatro líneas de 3,5 caracteres. La regla
+   * que lo impide vive en `ScStorageKind`; jsdom no maqueta, así que se lee
+   * del CSSOM. Validado con bug inyectado (retirando `white-space: nowrap`
+   * de `ScStorageKind`):
+   *   AssertionError: la regla de ScStorageKind no declara white-space:
+   *   nowrap: expected [ '' ] to include 'nowrap'
+   */
+  it("la celda del tipo de almacenamiento no parte el nombre técnico letra a letra", () => {
+    const { container } = renderWithProviders(
+      <LegalDocument docKey="privacy" />,
+    );
+    const celda = container.querySelector("table tbody tr td:nth-child(3) > *");
+    expect(celda).not.toBeNull();
+    const clases = Array.from(celda?.classList ?? []);
+    expect(clases.length).toBeGreaterThan(0);
+    const reglas = Array.from(document.styleSheets)
+      .flatMap((hoja) => Array.from(hoja.cssRules))
+      .filter(
+        (regla): regla is CSSStyleRule =>
+          regla instanceof CSSStyleRule &&
+          clases.some((clase) => regla.selectorText.includes(`.${clase}`)),
+      )
+      .map((regla) => regla.style.getPropertyValue("white-space"));
+    expect(
+      reglas,
+      "la regla de ScStorageKind no declara white-space: nowrap",
+    ).toContain("nowrap");
+  });
+
+  /*
+   * El párrafo que abre la sección de almacenamiento nombra la tecnología
+   * con la que se guarda cada entrada. Hasta la ola S decía solo
+   * «localStorage», y la ola añadió la primera entrada de `sessionStorage`
+   * (la posición de lectura): un registro con un tipo nuevo y un párrafo que
+   * no lo nombra es la clase de divergencia silenciosa que este candado
+   * existe para cazar, en los dos idiomas.
+   */
+  it("el párrafo de la sección de almacenamiento nombra cada tecnología del registro, en los dos idiomas", () => {
+    const tipos = Array.from(new Set(STORAGE_REGISTRY.map((e) => e.kind)));
+    expect(tipos.length).toBeGreaterThan(1);
+    for (const legal of [esLegal, enLegal]) {
+      const secciones = legal.Legal.privacy.sections as Array<{
+        blocks: Array<{ kind: string; text?: string }>;
+      }>;
+      const seccion = secciones.find((s) =>
+        s.blocks.some((b) => b.kind === "storage"),
+      );
+      expect(seccion).toBeDefined();
+      const parrafo = seccion?.blocks.find((b) => b.kind === "p")?.text ?? "";
+      for (const tipo of tipos) expect(parrafo).toContain(tipo);
+    }
+  });
+
   it("la tabla de almacenamiento declara th[scope='col'] y <caption>", () => {
     const { container } = renderWithProviders(
       <LegalDocument docKey="privacy" />,

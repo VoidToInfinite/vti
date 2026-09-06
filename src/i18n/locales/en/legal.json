@@ -169,7 +169,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "This is the complete and only list of everything this website writes on your device. They are technical preferences that hold a choice made by you, and they are stored using your own browser's localStorage. There are no HTTP cookies, no analytics and no third-party scripts."
+                            "text": "This is the complete and only list of everything this website writes on your device. They are technical preferences that hold a choice made by you, and they are stored using your own browser's localStorage and sessionStorage (the latter is cleared on its own when you close the tab). There are no HTTP cookies, no analytics and no third-party scripts."
                         },
                         {
                             "kind": "storage"

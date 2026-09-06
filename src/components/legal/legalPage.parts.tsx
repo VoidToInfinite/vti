@@ -669,3 +669,25 @@ export const ScTd = styled.td`
   border-bottom: 1px solid ${({ theme }) => theme.data.semantic.border};
   color: ${({ theme }) => theme.data.semantic.textMuted};
 `;
+
+/*
+ * Nombre técnico de la tecnología de almacenamiento (`localStorage`,
+ * `sessionStorage`) en la columna «Tipo» de la tabla de /privacidad.
+ *
+ * Es un identificador, no una palabra: no tiene sitios legítimos por donde
+ * partirse. Medido el 2026-09-06 (ola S) por el candado de superficies con
+ * la preferencia de tamaño de texto al 200 % (raíz 32 px), en los dos temas
+ * y en los dos idiomas: la celda mide 91 px a 320 px de viewport y
+ * `sessionStorage` (14 caracteres, la entrada que la ola añadió al registro)
+ * se partía en cuatro líneas de 3,5 caracteres, por debajo del suelo de
+ * legibilidad de 4 por línea de `legibilidad-al-200-por-ciento`. Con
+ * `white-space: nowrap` la palabra ocupa una línea y el ancho sobrante lo
+ * absorbe `ScTableWrap`, que ya es el contenedor con desplazamiento
+ * horizontal alcanzable por teclado (region + tabindex): el gesto de
+ * recuperación existe y es el que WCAG 1.4.10 admite para tablas de datos.
+ * `localStorage` (12 caracteres) cabía en tres líneas de 4 y por eso el
+ * candado no lo había visto nunca.
+ */
+export const ScStorageKind = styled.span`
+  white-space: nowrap;
+`;

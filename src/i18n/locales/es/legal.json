@@ -169,7 +169,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "Esta es la lista completa y única de todo lo que este sitio escribe en tu equipo. Son preferencias técnicas que guardan una elección hecha por ti, y se almacenan con la tecnología localStorage de tu propio navegador. No hay cookies HTTP, ni analítica, ni scripts de terceros."
+                            "text": "Esta es la lista completa y única de todo lo que este sitio escribe en tu equipo. Son preferencias técnicas que guardan una elección hecha por ti, y se almacenan con las tecnologías localStorage y sessionStorage de tu propio navegador (la segunda se borra sola al cerrar la pestaña). No hay cookies HTTP, ni analítica, ni scripts de terceros."
                         },
                         {
                             "kind": "storage"

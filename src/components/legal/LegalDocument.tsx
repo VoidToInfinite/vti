@@ -40,6 +40,7 @@ import {
   ScTocLink,
   ScTocList,
   ScVersionMeta,
+  ScStorageKind,
 } from "./legalPage.parts";
 
 /**
@@ -422,7 +423,9 @@ function StorageBlock({
               <ScTd>
                 {storageCopy(`Legal.common.storage.${entry.id}.purpose`)}
               </ScTd>
-              <ScTd>{entry.kind}</ScTd>
+              <ScTd>
+                <ScStorageKind>{entry.kind}</ScStorageKind>
+              </ScTd>
               <ScTd>{durationLabelFor(entry.durationDays)}</ScTd>
               <ScTd>{entry.provider}</ScTd>
             </tr>
