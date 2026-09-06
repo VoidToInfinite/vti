@@ -59,8 +59,28 @@
  * precargan o suben, este script no se enterara: lo que hay que hacer
  * entonces es volver a medir y anadirlas al inventario, no subir el
  * presupuesto.
+ *
+ * LO QUE SALIO DEL INVENTARIO EL 2026-09-06, y por que eso NO es relajar el
+ * presupuesto. La figura clara de Story (`figures/journey`, 163.368 B en su
+ * pista de 1024) estaba aqui porque una visita oscura la descargaba de verdad
+ * -- ese es el P1 numero 4 de la critica externa #19. La ola S lo cerro en el
+ * producto: `ScFigureWrap` (`src/components/sections/Story/Story.tsx`) pierde
+ * su caja bajo `[data-theme="dark"]`, y sin caja no hay interseccion ni, por
+ * tanto, carga perezosa. Medido con el arreglo puesto, sobre el build propio
+ * servido por interceptacion de rutas en Chrome: CERO peticiones de
+ * `journey-presenting-*` en oscuro a DPR 1 y a DPR 2, a 1440x900 y a 390x844,
+ * con y sin `reduce`, en `/` y en `/en`. El arte oscuro medido por este script
+ * cae de 441.892 B a 278.524 B, que es EXACTAMENTE lo que Chrome pidio en esa
+ * misma medicion -- el inventario deja de sobrestimar y pasa a describir lo
+ * que ocurre.
+ *
+ * Esa exclusion NO se sostiene sola: `EXCLUIDO_POR_CANDADO`, mas abajo,
+ * declara de que mecanismo depende, y `check-dark-art-weight.test.mjs` falla
+ * si ese mecanismo desaparece del codigo. Quien retire la regla o cambie el
+ * `loading="lazy"` de esa figura no se lleva 163.368 B de holgura en silencio:
+ * se lleva un rojo que le dice que devuelva la entrada a `DARK_ART`.
  */
-import { readdirSync, statSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -101,16 +121,47 @@ export const DARK_ART = [
         /** Fondo de Story: once capas, pista ancha (1280) de cada una. */
         pick: (file) => file.endsWith(".avif") && !file.includes("-1024"),
     },
+];
+
+/**
+ * Arte que ESTUVO en el inventario oscuro y salio de el porque el producto
+ * dejo de descargarlo, con el mecanismo del que depende esa salida.
+ *
+ * No es documentacion: `check-dark-art-weight.test.mjs` comprueba que cada
+ * `requisito` sigue en su fichero. El dia que uno falte, la exclusion deja de
+ * estar justificada y el caso se pone en rojo pidiendo que la entrada vuelva a
+ * `DARK_ART` -- que es lo contrario de "el presupuesto se cumple mirando
+ * menos".
+ *
+ * `bytes` es el peso en disco que la entrada aportaba cuando estaba dentro
+ * (pista de 1024, la mas pesada de las dos publicadas), para que el informe
+ * pueda decir cuanta holgura procede de esta exclusion y no de otra cosa.
+ */
+export const EXCLUIDO_POR_CANDADO = [
     {
         id: "figures/journey",
-        dir: "public/figures",
-        /**
-         * La figura de Journey es la unica de `public/figures/` que se
-         * descarga sin scroll. Se cuenta su pista de 1024 (la mas pesada de
-         * las dos publicadas) aunque en la medicion el navegador eligiera la
-         * de 640: el peor caso es lo que este candado defiende.
-         */
-        pick: (file) => file.startsWith("journey-presenting-1024"),
+        bytes: 163_368,
+        fuente: "src/components/sections/Story/Story.tsx",
+        motivo:
+            "la figura clara de Story pierde su caja bajo " +
+            '[data-theme="dark"], y una imagen perezosa sin caja no interseca ' +
+            "y no se pide (P1 numero 4, critica externa #19)",
+        requisitos: [
+            {
+                /* La regla que quita la caja, en su forma DESCENDIENTE: el
+                   atributo vive en el <html>, asi que el calificado
+                   `&[data-theme="dark"]` no aplicaria nunca. */
+                patron: /\[data-theme="dark"\]\s*&\s*\{\s*display:\s*none;\s*\}/,
+                descripcion:
+                    'la regla [data-theme="dark"] & { display: none; } de ScFigureWrap',
+            },
+            {
+                /* La otra mitad: una imagen NO perezosa se pide en cuanto el
+                   parser ve su `src`, tenga caja o no. */
+                patron: /journey-presenting-1024\.webp"[\s\S]{0,600}?loading="lazy"/,
+                descripcion: 'el loading="lazy" de esa misma figura',
+            },
+        ],
     },
 ];
 
@@ -141,10 +192,38 @@ export function measureDarkArt() {
     });
 }
 
+/**
+ * Comprueba, contra el CODIGO, que cada exclusion de `EXCLUIDO_POR_CANDADO`
+ * sigue mereciendola. Devuelve una fila por requisito con su veredicto; el
+ * consumidor decide que hacer con las que no cumplen (el test las convierte en
+ * rojo, el CLI en codigo de salida 1).
+ */
+export function verificarExclusiones() {
+    return EXCLUIDO_POR_CANDADO.flatMap((entry) => {
+        const ruta = path.join(ROOT, entry.fuente);
+        if (!existsSync(ruta)) {
+            return [
+                {
+                    id: entry.id,
+                    descripcion: `el fichero ${entry.fuente}`,
+                    ok: false,
+                },
+            ];
+        }
+        const source = readFileSync(ruta, "utf8");
+        return entry.requisitos.map((req) => ({
+            id: entry.id,
+            descripcion: req.descripcion,
+            ok: req.patron.test(source),
+        }));
+    });
+}
+
 /** Veredicto completo: entradas, total, presupuesto y holgura. */
 export function checkDarkArtWeight() {
     const entries = measureDarkArt();
     const artBytes = entries.reduce((acc, e) => acc + e.bytes, 0);
+    const exclusiones = verificarExclusiones();
     return {
         entries,
         artBytes,
@@ -152,6 +231,8 @@ export function checkDarkArtWeight() {
         overBytes: artBytes - ART_BUDGET_BYTES,
         worstCaseTotalBytes: artBytes + NON_ART_BYTES,
         anchorBytes: ANCHOR_BYTES,
+        exclusiones,
+        exclusionesRotas: exclusiones.filter((e) => !e.ok),
     };
 }
 
@@ -179,10 +260,27 @@ if (
     console.log(
         `total oscuro proyectado   : ${es(result.worstCaseTotalBytes)} B sobre un ancla de ${es(ANCHOR_BYTES)} B`,
     );
+    for (const entry of EXCLUIDO_POR_CANDADO) {
+        console.log(
+            `excluido por candado      : ${entry.id} (${es(entry.bytes)} B) — ${entry.motivo}`,
+        );
+    }
+    for (const fila of result.exclusiones) {
+        console.log(
+            `  ${fila.ok ? "sigue" : "FALTA"} — ${fila.id}: ${fila.descripcion}`,
+        );
+    }
     console.log(
         result.overBytes <= 0
             ? `CUMPLE — ${es(-result.overBytes)} B libres`
             : `NO CUMPLE — ${es(result.overBytes)} B por encima del presupuesto de arte`,
     );
-    process.exit(result.overBytes <= 0 ? 0 : 1);
+    if (result.exclusionesRotas.length > 0) {
+        console.log(
+            `NO CUMPLE — ${result.exclusionesRotas.length} requisito(s) de exclusion han desaparecido del codigo: devuelve la entrada a DARK_ART o restaura el mecanismo`,
+        );
+    }
+    process.exit(
+        result.overBytes <= 0 && result.exclusionesRotas.length === 0 ? 0 : 1,
+    );
 }

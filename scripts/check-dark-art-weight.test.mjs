@@ -3,9 +3,11 @@ import {
     ANCHOR_BYTES,
     ART_BUDGET_BYTES,
     DARK_ART,
+    EXCLUIDO_POR_CANDADO,
     NON_ART_BYTES,
     SAFETY_BYTES,
     checkDarkArtWeight,
+    verificarExclusiones,
 } from "./check-dark-art-weight.mjs";
 
 /*
@@ -47,11 +49,26 @@ import {
  * cuando cambie de verdad lo que una visita oscura descarga sobre el pliegue, y
  * entonces se toca a la vez que el script.
  */
-const INVENTARIO_ESPERADO = [
-    "hero/eye",
-    "story/cosmic-being",
-    "figures/journey",
-];
+const INVENTARIO_ESPERADO = ["hero/eye", "story/cosmic-being"];
+
+/*
+ * TERCER HUECO, el que abre la ola S (2026-09-06). `figures/journey` salio del
+ * inventario de arriba porque el producto dejo de descargarla en oscuro: la
+ * columna de la figura de Story pierde su caja bajo `[data-theme="dark"]` y
+ * una imagen perezosa sin caja no interseca. Medido con el arreglo puesto,
+ * sobre el build propio servido por interceptacion de rutas en Chrome: cero
+ * peticiones de `journey-presenting-*` en oscuro a DPR 1 y 2, a 1440x900 y a
+ * 390x844, con y sin `reduce`, en `/` y en `/en`; el arte oscuro medido cae de
+ * 441.892 B a 278.524 B, que es exactamente lo que Chrome pidio.
+ *
+ * Sacar una entrada del inventario es, literalmente, la forma de vacuidad que
+ * este fichero existe para impedir. La diferencia entre esta salida y aquel
+ * recorte es que esta declara de que depende y lo comprueba: los casos de
+ * `EXCLUIDO_POR_CANDADO`, mas abajo, leen `Story.tsx` y exigen que sigan ahi
+ * la regla y el `loading="lazy"`. Sin las dos cosas a la vez la figura vuelve
+ * a descargarse, y entonces esta exclusion seria mentira.
+ */
+const EXCLUSIONES_ESPERADAS = ["figures/journey"];
 describe("candado de peso del arte del tema oscuro", () => {
     it("el peor caso de arte oscuro cabe en el presupuesto declarado", () => {
         const result = checkDarkArtWeight();
@@ -89,6 +106,72 @@ describe("candado de peso del arte del tema oscuro", () => {
                 `visita oscura descarga otra cosa, vuelve a medir y actualiza ` +
                 `INVENTARIO_ESPERADO; si no, restaura lo que falta`,
         ).toEqual(INVENTARIO_ESPERADO);
+    });
+
+    it("cada exclusion sigue siendo cierta en el codigo, o la entrada tiene que volver al inventario", () => {
+        /* Validado con bug inyectado: quitando el bloque
+           `[data-theme="dark"] & { display: none; }` de `ScFigureWrap`
+           (`src/components/sections/Story/Story.tsx`), que es el estado del
+           repo en `f3594ad`, este caso se pone en rojo con
+
+             AssertionError: figures/journey salio del inventario de arte
+             oscuro porque la regla [data-theme="dark"] & { display: none; }
+             de ScFigureWrap lo impedia descargar, y eso ya no esta en el
+             codigo: restaura el mecanismo o devuelve la entrada a DARK_ART
+             (163.368 B).: expected false to be true // Object.is equality
+             - Expected
+             + Received
+             - true
+             + false
+
+           ("Tests 1 failed | 6 passed (7)".) Restaurado el bloque, verde. */
+        const filas = verificarExclusiones();
+        expect(
+            filas.length,
+            "sin requisitos que comprobar, una exclusion es una entrada borrada del inventario y nada mas",
+        ).toBeGreaterThan(0);
+        filas.forEach((fila) => {
+            const bytes =
+                EXCLUIDO_POR_CANDADO.find((e) => e.id === fila.id)?.bytes ?? 0;
+            expect(
+                fila.ok,
+                `${fila.id} salio del inventario de arte oscuro porque ` +
+                    `${fila.descripcion} lo impedia descargar, y eso ya no ` +
+                    `esta en el codigo: restaura el mecanismo o devuelve la ` +
+                    `entrada a DARK_ART (${bytes.toLocaleString("es-ES")} B).`,
+            ).toBe(true);
+        });
+    });
+
+    it("la lista de exclusiones es la que se midio, y no una puerta abierta para vaciar el inventario", () => {
+        /* Mismo razonamiento que el caso del inventario, en el otro sentido:
+           alli se impide QUITAR entradas de `DARK_ART`, aqui se impide
+           ANADIRLAS a `EXCLUIDO_POR_CANDADO`, que tendria el mismo efecto
+           sobre el presupuesto. La lista se teclea aparte a proposito.
+
+           Validado con bug inyectado (vaciando `EXCLUIDO_POR_CANDADO` a `[]`
+           en el script, que es como se relajaria el presupuesto sin tocar
+           ninguna cifra):
+
+             AssertionError: para excluir arte del inventario hace falta medir
+             que el producto dejo de descargarlo y declarar aqui de que
+             mecanismo depende: expected [] to deeply equal
+             [ 'figures/journey' ]
+             - Expected
+             + Received
+             - [
+             -   "figures/journey",
+             - ]
+             + []
+
+           (Esa inyeccion dio "Tests 2 failed | 5 passed (7)": tambien cae el
+           caso de arriba, porque sin exclusiones no hay requisitos que
+           comprobar -- "expected 0 to be greater than 0".) */
+        expect(
+            EXCLUIDO_POR_CANDADO.map((e) => e.id),
+            "para excluir arte del inventario hace falta medir que el producto " +
+                "dejo de descargarlo y declarar aqui de que mecanismo depende",
+        ).toEqual(EXCLUSIONES_ESPERADAS);
     });
 
     it("cada entrada del inventario sigue encontrando pistas en public/", () => {
