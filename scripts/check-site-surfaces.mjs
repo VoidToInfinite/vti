@@ -987,8 +987,13 @@ export const IDIOMA_HORNEADO_DE_LA_404 = "es";
  *
  * MATRIZ: portada (las dos) x los DOS temas x 1440x900 x raiz 16 x `reduce`
  * indiferente (no se emula: la restauracion de scroll no depende de el) x DPR 1
- * x gesto = RECARGA. El tema oscuro es donde el defecto vive y el claro es el
- * CONTROL que dice que la sonda no reporta cualquier cosa.
+ * x gesto = RECARGA x CARGA DE LA MAQUINA en dos puntos, una sola pagina
+ * (reposo) y `RECARGAS_SIMULTANEAS` paginas recargando a la vez. El tema oscuro
+ * es donde el defecto vive y el claro es el CONTROL que dice que la sonda no
+ * reporta cualquier cosa.
+ *
+ * EL EJE DE CARGA ENTRA EL 2026-09-06 y es el que le faltaba a esta familia: el
+ * porque, con las cifras, esta en el docblock de `RECARGAS_SIMULTANEAS`.
  *
  * EL OBJETIVO DE SCROLL ES DISTINTO POR TEMA, y hay que decir por que: las dos
  * portadas no miden lo mismo de alto. Medido el 2026-09-06 a 1440x900 sobre el
@@ -1020,6 +1025,57 @@ export const CENTRO_DEL_VIEWPORT = { x: 720, y: 450 };
  * la critica #19 midio en el tema oscuro pasaria por buena.
  */
 export const DERIVA_MAXIMA_DE_RECARGA_PX = NAV_BAND_PX;
+
+/**
+ * CUANTAS PAGINAS RECARGAN A LA VEZ EN EL SEGUNDO CASO DE LA FAMILIA, y por que
+ * el primero --una sola pagina, la maquina en reposo-- no basta.
+ *
+ * EL DEFECTO QUE ESTA FAMILIA NACIO PARA VER ES UNA CARRERA, no un calculo mal
+ * hecho. Medido el 2026-09-06 sobre el build sin arreglo: la restitucion del
+ * scroll se armaba con la rama CLARA del HTML horneado y, si el doble
+ * `requestAnimationFrame` vencia ANTES de que React committeara la rama oscura,
+ * la correccion se aplicaba contra la geometria clara -- aterrizaje en 4.063 px
+ * en vez de 9.000, que es exactamente 4.237 + (9.000 - 9.173,6).
+ *
+ * Y UNA CARRERA SOLO SE VE CON LA MAQUINA OCUPADA. Las tres combinaciones,
+ * medidas el mismo dia contra el mismo servidor:
+ *
+ *   - una sola pagina, maquina EN REPOSO: 0 fallos de 10 recargas sobre el build
+ *     SIN arreglo. La familia habria salido verde sobre el defecto.
+ *   - CINCO paginas recargando a la vez contra el mismo servidor: 9 fallos de 15
+ *     sobre el build sin arreglo, y 20/20 (36/36 en muestra grande) con el
+ *     arreglo (commit `c27f331`: la correccion no se arma hasta que la rama
+ *     montada coincide con `data-theme`).
+ *   - estrangulamiento de CPU por CDP: 0 fallos de 13 a x2-x8. NO reproduce el
+ *     defecto, lo TAPA -- frenar el hilo principal por igual no desordena las
+ *     dos partes de la carrera.
+ *
+ * De ahi la leccion del 2026-09-06 (regla 2) aplicada a si misma: una
+ * combinacion fijada por comodidad del instrumento --recargar UNA pagina porque
+ * es lo comodo de escribir-- no puede ser la unica en la que se mide. El caso de
+ * una sola pagina se CONSERVA, y no como redundancia: es el control que
+ * documenta que el defecto no se ve ahi.
+ *
+ * LIMITE DECLARADO DE LA VERIFICACION, que hay que escribir para no leer de mas
+ * en el verde: la sensibilidad de esta familia se comprobo contra el build de
+ * `f3594ad`, que no lleva NINGUN arreglo de recarga, y ahi el defecto es
+ * determinista -- cayeron los dos casos en las dos portadas (`/`: `contact@9000
+ * -> journey@5623`, -3.377 px, y 0 de 5 aciertos con la maquina cargada;
+ * `/en`: -3.428 px y 0 de 5). Eso prueba que la familia VE el defecto, pero NO
+ * prueba por si solo que el eje de carga vea algo que el de reposo no ve: el
+ * artefacto intermedio (la correccion ya escrita pero sin la puerta del tema,
+ * que es donde se midio 9 de 15) no quedo servido en ningun puerto y no se puede
+ * volver a correr contra el. Lo que sostiene el eje son las cifras de arriba,
+ * medidas ese dia sobre ese artefacto.
+ *
+ * CINCO Y NO MAS por coste, y el coste esta MEDIDO: la corrida completa del tema
+ * oscuro con este eje anadido --las ocho superficies, contra el build servido--
+ * tarda 11 min 19 s (`real 11m18.939s`, 2026-09-06), dentro del techo de 13
+ * minutos que la ronda acepta. El eje nuevo se paga solo en las dos portadas, que
+ * son las unicas superficies de esta familia. Si el sitio engorda y ese techo se
+ * cruza, se baja a 3 y se escribe aqui con la medida que lo obligo.
+ */
+export const RECARGAS_SIMULTANEAS = 5;
 
 /**
  * FAMILIA VEINTIUNA, `arte-no-pintado-por-tema-y-dpr`: las densidades de
@@ -1975,6 +2031,69 @@ export function evaluaRecarga({ antes, despues, derivaMaxima }) {
     return { deriva, mismaSeccion, cumple: true, motivo: null };
 }
 
+/**
+ * EL VEREDICTO DE LAS N RECARGAS SIMULTANEAS: la politica del caso bajo carga,
+ * pura y por eso ejercitable en el gate sin navegador.
+ *
+ * LA POLITICA ES «TODAS»: cada una de las N paginas tiene que volver a SU misma
+ * seccion y con una deriva dentro de `derivaMaxima`. No es una media ni una
+ * mayoria, y el motivo es la forma del defecto: la carrera del 2026-09-06 fallo
+ * 9 de 15 veces, o sea que una politica de mayoria la habria dado por buena en
+ * cuanto el reparto cayera 8-7 del otro lado. Un aterrizaje equivocado es un
+ * visitante perdido, independientemente de cuantos hermanos suyos acertaron.
+ *
+ * `esperadas` es la guarda de vacuidad y no un adorno: si abrir las N paginas
+ * falla y llegan tres lecturas en vez de cinco, «las tres cumplen» no es un
+ * verde, es una medicion que no se hizo. Se declara incumplimiento.
+ *
+ * El motivo nombra el INDICE de cada pagina que fallo (1..N, como se cuentan las
+ * pestanas) y su deriva, que es lo que permite distinguir «fallaron todas» de
+ * «fallo una»: las dos lecturas apuntan a causas distintas.
+ */
+export function evaluaRecargaSimultanea({ lecturas, derivaMaxima, esperadas }) {
+    const veredictos = lecturas.map((l) =>
+        evaluaRecarga({
+            antes: l.antes,
+            despues: l.despues,
+            derivaMaxima,
+        }),
+    );
+    const aciertos = veredictos.filter((v) => v.cumple).length;
+    const peorDeriva = veredictos.reduce(
+        (peor, v) => (Math.abs(v.deriva) > Math.abs(peor) ? v.deriva : peor),
+        0,
+    );
+    const base = { total: veredictos.length, aciertos, peorDeriva };
+
+    if (veredictos.length !== esperadas)
+        return {
+            ...base,
+            cumple: false,
+            motivo: `se pidieron ${esperadas} recargas a la vez y solo llegaron ${veredictos.length} lecturas: la medicion no se hizo entera y su verde seria vacuo`,
+        };
+    if (veredictos.length === 0)
+        return {
+            ...base,
+            cumple: false,
+            motivo: "ni una sola pagina recargo: no hay nada que juzgar",
+        };
+
+    const caidas = veredictos
+        .map((v, i) => ({ v, i }))
+        .filter(({ v }) => !v.cumple)
+        .map(
+            ({ v, i }) =>
+                `pagina ${i + 1} de ${veredictos.length} (deriva ${v.deriva} px): ${v.motivo}`,
+        );
+    if (caidas.length)
+        return {
+            ...base,
+            cumple: false,
+            motivo: `con ${veredictos.length} paginas recargando a la vez, ${caidas.length} no volvio donde estaba -- ${caidas.join("; ")}`,
+        };
+    return { ...base, cumple: true, motivo: null };
+}
+
 /** Animaciones realmente en marcha. */
 function probeAnimations() {
     return document
@@ -2139,6 +2258,51 @@ async function nuevoContexto(browser, theme, opciones) {
         [theme],
     );
     return ctx;
+}
+
+/**
+ * Espera a que el ALTO del documento se estabilice, y no un tiempo fijo: la
+ * restauracion de scroll del navegador compite con el crecimiento del documento
+ * y medir a mitad de esa carrera daria una deriva distinta en cada corrida. Tres
+ * lecturas iguales separadas medio segundo, con el tope que le pase quien llama.
+ *
+ * El tope es un parametro y no una constante porque las dos mitades de la
+ * familia de recarga no esperan lo mismo: una pagina sola asienta en seis
+ * segundos y `RECARGAS_SIMULTANEAS` compitiendo por la misma CPU y el mismo
+ * servidor necesitan ocho.
+ */
+async function esperaAlturaEstable(page, { tope }) {
+    let altoPrevio = null;
+    let lecturasIguales = 0;
+    const limiteDeEspera = Date.now() + tope;
+    while (Date.now() < limiteDeEspera && lecturasIguales < 3) {
+        await page.waitForTimeout(500);
+        const alto = await page.evaluate(
+            () => document.documentElement.scrollHeight,
+        );
+        lecturasIguales = alto === altoPrevio ? lecturasIguales + 1 : 1;
+        altoPrevio = alto;
+    }
+}
+
+/**
+ * Deja una pagina lista para el gesto de recarga: cargada, asentada y con el
+ * scroll en el objetivo del tema. Se comparte entre el caso de una sola pagina y
+ * el de N a la vez para que las dos mitades midan lo MISMO: si el preparativo
+ * divergiera, una diferencia de resultado entre reposo y carga podria venir del
+ * instrumento y no del sitio.
+ */
+async function preparaLaRecarga(page, url, objetivoDeRecarga) {
+    await page.goto(url, { waitUntil: "networkidle" });
+    /* La portada asienta su composicion despues de `networkidle`: los reveals
+       aterrizan y el alto del documento crece. Medir el scroll antes de eso
+       mediria un documento que todavia no existe. */
+    await page.waitForTimeout(2200);
+    await page.evaluate(
+        (y) => window.scrollTo({ top: y, behavior: "instant" }),
+        objetivoDeRecarga,
+    );
+    await page.waitForTimeout(500);
 }
 
 /** Recorrido de teclado completo con cuenta de paradas y deteccion de ciclo. */
@@ -2950,43 +3114,27 @@ async function auditarSuperficie(browser, base, theme, surface) {
          * --- la recarga conserva la seccion que se estaba leyendo
          *
          * MATRIZ y el porque del objetivo distinto por tema: docblock de
-         * `OBJETIVO_DE_RECARGA_PX`. Un solo contexto por superficie y tema.
+         * `OBJETIVO_DE_RECARGA_PX`. El eje de CARGA se recorre en dos puntos y
+         * los dos casos de abajo son esos dos puntos.
+         *
+         * PRIMER PUNTO, la maquina EN REPOSO: un solo contexto, una sola pagina.
+         * Se conserva como CONTROL y no por inercia -- sobre el build sin
+         * arreglo esta combinacion dio 0 fallos de 10, o sea que habria firmado
+         * el defecto en verde. Sirve para separar "la restauracion esta rota
+         * siempre" de "la restauracion pierde una carrera": si este caso falla,
+         * el defecto no es de concurrencia.
          */
         const objetivoDeRecarga =
             OBJETIVO_DE_RECARGA_PX[theme] ?? OBJETIVO_DE_RECARGA_PX.dark;
         ctx = await nuevoContexto(browser, theme);
         page = await ctx.newPage();
-        await page.goto(url, { waitUntil: "networkidle" });
-        /* La portada asienta su composicion despues de `networkidle`: los
-           reveals aterrizan y el alto del documento crece. Medir el scroll antes
-           de eso mediria un documento que todavia no existe. */
-        await page.waitForTimeout(2200);
-        await page.evaluate(
-            (y) => window.scrollTo({ top: y, behavior: "instant" }),
-            objetivoDeRecarga,
-        );
-        await page.waitForTimeout(500);
+        await preparaLaRecarga(page, url, objetivoDeRecarga);
         const antesDeRecargar = await page.evaluate(
             probeSeccionDelCentro,
             CENTRO_DEL_VIEWPORT,
         );
         await page.reload({ waitUntil: "networkidle" });
-        /* Se espera a que el ALTO se estabilice y no un tiempo fijo: la
-           restauracion de scroll del navegador compite con el crecimiento del
-           documento, y medir a mitad de esa carrera daria una deriva distinta en
-           cada corrida. Tres lecturas iguales separadas medio segundo, con tope
-           de seis. */
-        let altoPrevio = null;
-        let lecturasIguales = 0;
-        const limiteDeEspera = Date.now() + 6000;
-        while (Date.now() < limiteDeEspera && lecturasIguales < 3) {
-            await page.waitForTimeout(500);
-            const alto = await page.evaluate(
-                () => document.documentElement.scrollHeight,
-            );
-            lecturasIguales = alto === altoPrevio ? lecturasIguales + 1 : 1;
-            altoPrevio = alto;
-        }
+        await esperaAlturaEstable(page, { tope: 6000 });
         const despuesDeRecargar = await page.evaluate(
             probeSeccionDelCentro,
             CENTRO_DEL_VIEWPORT,
@@ -2998,11 +3146,86 @@ async function auditarSuperficie(browser, base, theme, surface) {
             despues: despuesDeRecargar,
             derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
         });
-        datos.recarga = `${antesDeRecargar.seccion ?? "sin seccion"}@${antesDeRecargar.y} -> ${despuesDeRecargar.seccion ?? "sin seccion"}@${despuesDeRecargar.y} (deriva ${veredictoDeRecarga.deriva} px, alto ${antesDeRecargar.alto} -> ${despuesDeRecargar.alto})`;
+
+        /*
+         * SEGUNDO PUNTO, la maquina BAJO CARGA: `RECARGAS_SIMULTANEAS` paginas
+         * en contextos propios del MISMO navegador, todas apuntando a la misma
+         * portada y todas recargando a la vez con un solo `Promise.all`. Es la
+         * combinacion donde el defecto del 2026-09-06 aparecio (9 fallos de 15
+         * sobre el build sin arreglo) y donde el arreglo se dejo ver (20/20).
+         *
+         * Contextos separados y no pestanas del mismo: cada uno arranca su
+         * propio `localStorage` con el tema, que es lo que la carrera necesita
+         * para ocurrir -- el HTML horneado llega con la rama clara y la rama del
+         * tema se decide en cliente.
+         */
+        const contextosSimultaneos = [];
+        const paginasSimultaneas = [];
+        for (let i = 0; i < RECARGAS_SIMULTANEAS; i += 1) {
+            const c = await nuevoContexto(browser, theme);
+            contextosSimultaneos.push(c);
+            paginasSimultaneas.push(await c.newPage());
+        }
+        await Promise.all(
+            paginasSimultaneas.map((p) =>
+                preparaLaRecarga(p, url, objetivoDeRecarga),
+            ),
+        );
+        const antesSimultaneo = await Promise.all(
+            paginasSimultaneas.map((p) =>
+                p.evaluate(probeSeccionDelCentro, CENTRO_DEL_VIEWPORT),
+            ),
+        );
+        /* EL GESTO, y el unico sitio donde la simultaneidad es de verdad: las N
+           recargas salen en el mismo tick y compiten por la CPU y por el mismo
+           servidor. Secuenciarlas devolveria N repeticiones del caso de reposo,
+           que es justo la medicion que no vale. */
+        await Promise.all(
+            paginasSimultaneas.map((p) =>
+                p.reload({ waitUntil: "networkidle" }),
+            ),
+        );
+        await Promise.all(
+            paginasSimultaneas.map((p) =>
+                esperaAlturaEstable(p, { tope: 8000 }),
+            ),
+        );
+        const despuesSimultaneo = await Promise.all(
+            paginasSimultaneas.map((p) =>
+                p.evaluate(probeSeccionDelCentro, CENTRO_DEL_VIEWPORT),
+            ),
+        );
+        for (const c of contextosSimultaneos) await c.close();
+
+        const lecturasSimultaneas = antesSimultaneo.map((antes, i) => ({
+            antes,
+            despues: despuesSimultaneo[i],
+        }));
+        const veredictoSimultaneo = evaluaRecargaSimultanea({
+            lecturas: lecturasSimultaneas,
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+            esperadas: RECARGAS_SIMULTANEAS,
+        });
+
+        datos.recarga = `${antesDeRecargar.seccion ?? "sin seccion"}@${antesDeRecargar.y} -> ${despuesDeRecargar.seccion ?? "sin seccion"}@${despuesDeRecargar.y} (deriva ${veredictoDeRecarga.deriva} px, alto ${antesDeRecargar.alto} -> ${despuesDeRecargar.alto}) | ${RECARGAS_SIMULTANEAS} a la vez: ${veredictoSimultaneo.aciertos}/${veredictoSimultaneo.total} aciertan, peor deriva ${veredictoSimultaneo.peorDeriva} px`;
         // [check: recarga-conserva-la-seccion]
         if (!veredictoDeRecarga.cumple)
             fallos.push(
-                `recargar la pagina no devuelve al visitante donde estaba: ${veredictoDeRecarga.motivo}`,
+                `recargar la pagina no devuelve al visitante donde estaba (una sola pagina, maquina en reposo): ${veredictoDeRecarga.motivo}`,
+            );
+        /* Las dos guardas de vacuidad del caso bajo carga. La primera: si abrir
+           las N paginas falla a medias, la cuenta de aciertos hablaria de una
+           medicion que no se hizo entera. La segunda vive dentro de
+           `evaluaRecargaSimultanea` (`esperadas`) y mira las LECTURAS, que es lo
+           que de verdad se juzga: N paginas abiertas de las que solo tres
+           contestan no son N mediciones. */
+        if (paginasSimultaneas.length !== RECARGAS_SIMULTANEAS)
+            fallos.push(
+                `se pidieron ${RECARGAS_SIMULTANEAS} paginas recargando a la vez y solo se abrieron ${paginasSimultaneas.length}: sin las N el eje de carga no se recorrio y el verde seria vacuo`,
+            );
+        if (!veredictoSimultaneo.cumple)
+            fallos.push(
+                `recargar la pagina no devuelve al visitante donde estaba con la maquina cargada: ${veredictoSimultaneo.motivo}`,
             );
 
         /*

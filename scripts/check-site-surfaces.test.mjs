@@ -27,6 +27,7 @@ import {
     PATRON_DE_ARTE,
     RAICES_DEL_DECK,
     RATIO_MINIMO_DE_CRECIMIENTO,
+    RECARGAS_SIMULTANEAS,
     ROOT_FONT_BASE_PX,
     SURFACES,
     TOLERANCIA_DEL_ESCENARIO_PX,
@@ -35,6 +36,7 @@ import {
     comparaCrecimiento,
     especificadoresDePlaywright,
     evaluaRecarga,
+    evaluaRecargaSimultanea,
     fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
     langEsperado,
@@ -2111,6 +2113,161 @@ describe("el veredicto de la recarga", () => {
                 "documento, que es el caso degenerado en el que cualquier " +
                 "restauracion acierta",
         ).toEqual({ dark: 9000, light: 5000 });
+    });
+});
+
+/**
+ * VALIDADO CON DOS BUGS INYECTADOS (2026-09-06), uno por cada mitad de lo que
+ * este bloque canda: la POLITICA y el INSTRUMENTO.
+ *
+ * PRIMERO, la politica. En `evaluaRecargaSimultanea`, `const caidas =
+ * veredictos` pasa a `const caidas = veredictos.slice(0, 1)` -- que es «exigir
+ * solo la primera lectura», la forma barata de que N recargas se cuenten como
+ * una. Cayo UN caso, el que tuerce la TERCERA pagina y no la primera:
+ *
+ *   AssertionError: cuatro de cinco no es cumplir: el quinto visitante esta
+ *   perdido igual, y una politica de mayoria firma en verde la carrera que
+ *   fallo 9 veces de 15: expected true to be false // Object.is equality
+ *
+ * «Tests 1 failed | 51 passed (52)». Restaurada la linea, 52/52 en verde.
+ *
+ * SEGUNDO, el instrumento. El `await Promise.all(paginasSimultaneas.map((p) =>
+ * p.reload(...)))` del script pasa a un `for (const p of paginasSimultaneas)
+ * await p.reload(...)`: las N recargas dejan de salir en el mismo tick y la
+ * familia mide N repeticiones del caso de reposo -- exactamente la combinacion
+ * que sobre el build sin arreglo dio 0 fallos de 10. Las tres funciones puras
+ * de arriba no notan nada; cayo el cuarto caso, el que lee el script:
+ *
+ *   AssertionError: el script ya no lanza las N recargas en el mismo tick: si
+ *   estan secuenciadas, la familia mide N veces el caso de reposo: expected
+ *   false to be true // Object.is equality
+ *
+ * «Tests 1 failed | 51 passed (52)». Restaurado el `Promise.all`, 52/52.
+ */
+describe("el veredicto de las recargas simultaneas", () => {
+    /**
+     * Cinco lecturas de `contact` con derivas pequenas, que es la forma que
+     * tiene el ACIERTO. El indice se le pasa a cada una para poder torcer solo
+     * la que interese sin tocar las demas.
+     */
+    const cincoAciertos = () =>
+        [0, 2, -4, 6, -8].map((deriva) => ({
+            antes: { y: 9000, seccion: "contact" },
+            despues: { y: 9000 + deriva, seccion: "contact" },
+        }));
+
+    it("las N paginas en su seccion y dentro de la tolerancia cumplen, y la cuenta lo dice", () => {
+        const r = evaluaRecargaSimultanea({
+            lecturas: cincoAciertos(),
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+            esperadas: 5,
+        });
+        expect(r.cumple).toBe(true);
+        expect(r.aciertos).toBe(5);
+        expect(r.total).toBe(5);
+        expect(
+            r.peorDeriva,
+            "la peor deriva es la de mayor VALOR ABSOLUTO y conserva su signo: " +
+                "un -8 dice hacia donde se fue el visitante y un 8 no",
+        ).toBe(-8);
+        expect(r.motivo).toBe(null);
+    });
+
+    it("una sola de las N que aterriza en otra seccion tumba la corrida, y el motivo dice cual y cuanto", () => {
+        /*
+         * EL CASO QUE SEPARA ESTA POLITICA DE «LA PRIMERA» Y DE «LA MAYORIA», y
+         * el que cae con el bug inyectado del docblock de arriba. Cuatro de las
+         * cinco paginas vuelven a `contact` y una --la TERCERA, no la primera--
+         * aterriza en `journey` a 5.623 px, que es la cifra real que la critica
+         * #19 midio en el tema oscuro: 3.377 px de deriva.
+         *
+         * Si el veredicto mirase solo la primera lectura, esta corrida saldria
+         * verde con un visitante perdido dentro. Si mirase la mayoria, tambien:
+         * cuatro de cinco. La carrera del 2026-09-06 fallaba 9 de 15, o sea que
+         * el reparto se mueve corrida a corrida y cualquier umbral por debajo de
+         * «todas» es un candado que a veces mira.
+         */
+        const lecturas = cincoAciertos();
+        lecturas[2] = {
+            antes: { y: 9000, seccion: "contact" },
+            despues: { y: 5623, seccion: "journey" },
+        };
+        const r = evaluaRecargaSimultanea({
+            lecturas,
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+            esperadas: 5,
+        });
+        expect(
+            r.cumple,
+            "cuatro de cinco no es cumplir: el quinto visitante esta perdido " +
+                "igual, y una politica de mayoria firma en verde la carrera que " +
+                "fallo 9 veces de 15",
+        ).toBe(false);
+        expect(r.aciertos).toBe(4);
+        expect(r.total).toBe(5);
+        expect(
+            r.motivo,
+            "sin el INDICE, «una fallo» no distingue una carrera perdida por una " +
+                "pagina de una restauracion rota en todas",
+        ).toContain("pagina 3 de 5");
+        expect(
+            r.motivo,
+            "sin la DERIVA no se sabe si el visitante perdio el parrafo o el sitio entero",
+        ).toContain("-3377");
+        expect(r.motivo).toContain("journey");
+        expect(r.peorDeriva).toBe(-3377);
+    });
+
+    it("menos lecturas que paginas pedidas no es un verde parcial: es una medicion que no se hizo", () => {
+        /* La guarda de vacuidad, en la misma direccion conservadora que el resto
+           del fichero: tres paginas que aciertan cuando se pidieron cinco
+           describen un instrumento a medias, no un sitio que funciona. */
+        const r = evaluaRecargaSimultanea({
+            lecturas: cincoAciertos().slice(0, 3),
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+            esperadas: 5,
+        });
+        expect(r.cumple).toBe(false);
+        expect(r.aciertos).toBe(3);
+        expect(r.motivo).toContain("vacuo");
+    });
+
+    it("el eje de carga esta de verdad en el script: N paginas, recarga a la vez, y el control de una sola conservado", () => {
+        /*
+         * LO QUE NINGUNA FUNCION PURA PUEDE ATAR: que el script use la politica
+         * sobre paginas que de verdad recargan A LA VEZ. Secuenciar las N
+         * recargas --cambiar el `Promise.all` por un `for`-- dejaria la funcion
+         * pura intacta, los tres casos de arriba en verde y la familia midiendo
+         * N repeticiones del caso de reposo, que es exactamente la combinacion
+         * que sobre el build sin arreglo dio 0 fallos de 10.
+         *
+         * Y la otra mitad: el caso de UNA sola pagina se conserva a proposito
+         * como control. Sustituirlo por el simultaneo perderia la lectura que
+         * distingue «la restauracion pierde una carrera» de «la restauracion
+         * esta rota siempre».
+         */
+        expect(
+            RECARGAS_SIMULTANEAS,
+            "con menos de dos paginas no hay carga que simular y el segundo punto " +
+                "del eje seria el primero repetido",
+        ).toBeGreaterThanOrEqual(2);
+        expect(
+            RECARGAS_SIMULTANEAS,
+            "cinco es la N con la que se midio el defecto (9 fallos de 15 sobre el " +
+                "build sin arreglo) y el arreglo (20/20). Bajarla es una decision de " +
+                "coste que se escribe en el docblock de la constante, no un retoque",
+        ).toBe(5);
+        expect(
+            /Promise\.all\([\s\S]{0,200}paginasSimultaneas\.map\([\s\S]{0,160}\.reload\(/.test(
+                SCRIPT,
+            ),
+            "el script ya no lanza las N recargas en el mismo tick: si estan " +
+                "secuenciadas, la familia mide N veces el caso de reposo",
+        ).toBe(true);
+        expect(
+            SCRIPT,
+            "el control de una sola pagina con la maquina en reposo desaparecio del script",
+        ).toContain("una sola pagina, maquina en reposo");
     });
 });
 
