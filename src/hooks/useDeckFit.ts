@@ -123,6 +123,50 @@ const SELECTOR_DIAPOSITIVA = "[data-slide-index]";
  * vuelve. `window.innerHeight` es además la MISMA referencia que
  * `useSlideDeck.measure()` ya usa para invertir la geometría de la pista.
  *
+ * ## El segundo eje que el estado mueve: el ANCHO de la diapositiva
+ *
+ * El párrafo de arriba cerraba el bucle por el alto del escenario y daba el
+ * problema por resuelto. No lo estaba: la linealización mueve TAMBIÉN el ancho
+ * de la columna, y con él el alto que la diapositiva necesita. El bloque
+ * `deckStatic` devuelve el `padding-inline-end` del deck a su peldaño
+ * simétrico --el canal que el rail reservaba deja de reservarse porque el rail
+ * no se pinta-- y cambia el `display` de `grid` a `block`. La columna se
+ * ensancha, el texto reflowea con menos líneas y la diapositiva encoge.
+ *
+ * MEDIDO sobre el build de `6047302` en Chrome sin ventana, tema oscuro, sin
+ * `prefers-reduced-motion`, 390x800 y la raíz a 24 px, portada española: con el
+ * escenario pegado la primera diapositiva de Story mide 276 px de columna y
+ * 926 px de alto; con el deck ya linealizado mide 312 px de columna y 794 px de
+ * alto. El alto disponible es 800 px en los dos estados (el mínimo contra el
+ * viewport hace su trabajo). Así que 926 > 800 escribía `"false"`, la columna
+ * se ensanchaba a 312, 794 <= 800 devolvía `"true"`, la columna volvía a 276 y
+ * el ciclo se repetía: 653 escrituras del atributo en 3,6 s, sin converger
+ * nunca. Lo mismo en Journey a 390x800 con la raíz a 32 (901 pegado contra 701
+ * linealizado), en Story de `/en` a 320x800 con la raíz a 24 (984 contra 756) y
+ * en Journey de `/en` a 390x800 con la raíz a 32 (849 contra 701).
+ *
+ * La consecuencia visible era el P1 que reabría la crítica: quien mirase la
+ * página en la mitad `"true"` del ciclo veía el escenario pegado recortando
+ * 126 px de párrafo (926 - 800), que es exactamente lo que el candado de
+ * superficies reportaba.
+ *
+ * ## Por qué la respuesta se vuelve a tomar SIN el estado puesto
+ *
+ * La pregunta del hook es "¿cabría esta diapositiva en un escenario PEGADO?", y
+ * esa pregunta solo se puede responder mirando la geometría pegada. Mientras el
+ * deck está linealizado, un `scrollHeight` que cabe no responde que sí: responde
+ * que cabe EN LA COLUMNA ANCHA, que es más fácil. Un `scrollHeight` que no cabe,
+ * en cambio, sigue siendo concluyente --la columna pegada es más estrecha, así
+ * que el alto pegado nunca es menor--, y por eso el caso frecuente no paga nada.
+ *
+ * Cuando la medida linealizada dice que cabe, y solo entonces, el atributo se
+ * QUITA, se vuelve a leer el layout --lo que fuerza el recálculo síncrono, en el
+ * mismo turno y sin ningún fotograma intermedio que pintar-- y se decide con esa
+ * lectura. Si sigue sin caber, el atributo se restituye y el estado no se ha
+ * movido; si ahora cabe de verdad, el deck vuelve a pinarse. La respuesta se
+ * toma siempre en la geometría de la pregunta, así que ya no depende del estado
+ * que ella misma produce, y el ciclo se cierra en una sola pasada.
+ *
  * ## Por qué no consulta `prefers-reduced-motion`
  *
  * Porque no hay nada que decidir: bajo esa preferencia el escenario ya está
@@ -164,22 +208,56 @@ export function useDeckFit(
     // hook, y el de cualquier navegador sin la API.
     if (typeof ResizeObserver === "undefined") return;
 
+    // El alto disponible se recalcula en cada lectura, y no se cachea, porque
+    // leerlo es justo lo que fuerza el recálculo de layout que la medida sin
+    // estado necesita (ver el docblock, "Por qué la respuesta se vuelve a tomar
+    // SIN el estado puesto").
+    const altoDisponible = (): number =>
+      Math.min(stage.clientHeight, window.innerHeight);
+
+    const desborda = (
+      diapositivas: HTMLElement[],
+      disponible: number,
+    ): boolean =>
+      diapositivas.some(
+        (diapositiva) =>
+          diapositiva.scrollHeight - disponible > DECK_FIT_TOLERANCE_PX,
+      );
+
     const medir = (): void => {
       const diapositivas = Array.from(
         stage.querySelectorAll<HTMLElement>(SELECTOR_DIAPOSITIVA),
       );
       if (diapositivas.length === 0) return;
 
-      const disponible = Math.min(stage.clientHeight, window.innerHeight);
+      const disponible = altoDisponible();
       // Un alto disponible de 0 no es "no cabe": es "todavía no hay layout"
       // (elemento sin medir, pestaña que nunca se ha pintado). Medir ahí
       // linealizaría el deck por una geometría que no existe.
       if (disponible <= 0) return;
 
-      const cabe = diapositivas.every(
-        (diapositiva) =>
-          diapositiva.scrollHeight - disponible <= DECK_FIT_TOLERANCE_PX,
-      );
+      let cabe = !desborda(diapositivas, disponible);
+
+      if (
+        cabe &&
+        track.getAttribute(DECK_FIT_ATTRIBUTE) === DECK_DOES_NOT_FIT
+      ) {
+        // La lectura de arriba se tomó con el deck YA linealizado, o sea en la
+        // columna ancha que este mismo atributo produce: ahí "cabe" no responde
+        // la pregunta del hook. Se quita el estado, se vuelve a leer --la
+        // lectura fuerza el recálculo, en este mismo turno y sin fotograma que
+        // pintar-- y se decide con la geometría pegada. Un alto disponible que
+        // se va a cero sin el estado es "no hay layout que juzgar", no "cabe":
+        // se restituye el estado y no se mueve nada.
+        track.removeAttribute(DECK_FIT_ATTRIBUTE);
+        const sinEstado = altoDisponible();
+        cabe = sinEstado > 0 && !desborda(diapositivas, sinEstado);
+        if (!cabe) {
+          track.setAttribute(DECK_FIT_ATTRIBUTE, DECK_DOES_NOT_FIT);
+          return;
+        }
+      }
+
       const siguiente = cabe ? DECK_FITS : DECK_DOES_NOT_FIT;
       // Solo se escribe cuando cambia: un `setAttribute` con el mismo valor
       // invalida estilo igualmente, y este camino corre desde un

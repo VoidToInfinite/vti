@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { createRef } from "react";
+import { createRef, type RefObject } from "react";
 import {
   useDeckFit,
   DECK_FIT_ATTRIBUTE,
@@ -44,6 +44,29 @@ import {
  *
  *   FAIL  src/hooks/useDeckFit.test.tsx > useDeckFit: el pin es condicional a que la diapositiva quepa > marca la pista con el estado de NO CABE cuando una diapositiva supera el alto del escenario
  *   AssertionError: expected null to be 'false' // Object.is equality
+ *
+ * SABOTAJE 3 (2026-09-06) -- la medida NO se vuelve a tomar sin el estado
+ * puesto: la guarda `cabe && track.getAttribute(...) === DECK_DOES_NOT_FIT`
+ * pasa a `false && ...`, o sea el hook se cree el `scrollHeight` medido en la
+ * columna ancha que él mismo produjo. Es la implementación anterior al arreglo
+ * del bucle, y es exactamente lo que se midió oscilando en Chrome. Rojo en los
+ * DOS casos nuevos, `Tests  2 failed | 8 passed (10)`:
+ *
+ *   × no vuelve a pinar el deck porque la diapositiva encoja AL linealizarse
+ *     → expected 'true' to be 'false' // Object.is equality
+ *   × vuelve a pinar el deck cuando la diapositiva cabe TAMBIEN en la geometria pegada
+ *     → expected 'true' to be 'false' // Object.is equality
+ *
+ * SABOTAJE 4 (2026-09-06) -- la segunda lectura se convierte en un PESTILLO:
+ * `if (!cabe)` pasa a `if (true)`, así que una vez escrito el estado de NO CABE
+ * el deck no vuelve a pinarse nunca. Es la salida fácil del bucle, y la que
+ * dejaría el deck linealizado para siempre aunque el visitante devuelva el
+ * texto a su tamaño. Rojo en TRES casos, `Tests  3 failed | 7 passed (10)`:
+ *
+ *   × vuelve a CABE cuando la diapositiva encoge, y al revés
+ *   × un cambio de alto de ventana re-mide aunque ninguna caja observada se mueva
+ *   × vuelve a pinar el deck cuando la diapositiva cabe TAMBIEN en la geometria pegada
+ *     → expected 'false' to be 'true' // Object.is equality
  */
 
 /** Callbacks vivos de los `ResizeObserver` falsos, en orden de creación. */
@@ -113,6 +136,49 @@ function definirAlto(
     value: valor,
     configurable: true,
   });
+}
+
+/**
+ * Deck cuya diapositiva MIDE DISTINTO SEGÚN EL ESTADO QUE EL HOOK ESCRIBE, que
+ * es el bucle medido en Chrome (ver el docblock del hook, "El segundo eje que
+ * el estado mueve"). No es una licencia del test: la linealización devuelve el
+ * `padding-inline-end` del deck a su peldaño simétrico y cambia el `display` a
+ * `block`, así que la columna se ensancha y el texto necesita menos alto.
+ *
+ * `alto` devuelve el número que la geometría real daría en cada estado. Sin
+ * esta dependencia, jsdom no puede reproducir el defecto: con un
+ * `scrollHeight` constante, la implementación con bucle y la que converge dan
+ * exactamente el mismo resultado.
+ */
+function montarDeckQueEncogeAlLinealizarse(
+  alto: () => {
+    pegado: number;
+    linealizado: number;
+  },
+): { track: HTMLElement; stage: HTMLElement; slides: HTMLElement[] } {
+  const deck = montarDeck([0]);
+  Object.defineProperty(deck.slides[0], "scrollHeight", {
+    configurable: true,
+    get: () =>
+      deck.track.getAttribute(DECK_FIT_ATTRIBUTE) === DECK_DOES_NOT_FIT
+        ? alto().linealizado
+        : alto().pegado,
+  });
+  return deck;
+}
+
+function refsDe(
+  track: HTMLElement,
+  stage: HTMLElement,
+): {
+  trackRef: RefObject<HTMLElement | null>;
+  stageRef: RefObject<HTMLElement | null>;
+} {
+  const trackRef = createRef<HTMLElement>();
+  const stageRef = createRef<HTMLElement>();
+  Object.assign(trackRef, { current: track });
+  Object.assign(stageRef, { current: stage });
+  return { trackRef, stageRef };
 }
 
 beforeEach(() => {
@@ -274,6 +340,61 @@ describe("useDeckFit: el pin es condicional a que la diapositiva quepa", () => {
     act(() => {
       window.dispatchEvent(new Event("resize"));
     });
+
+    expect(track.getAttribute(DECK_FIT_ATTRIBUTE)).toBe(DECK_FITS);
+  });
+
+  /*
+   * EL CANDADO DEL SEGUNDO EJE: la diapositiva ENCOGE al linealizarse, porque
+   * la columna se ensancha. Es el defecto medido en Chrome sobre el build de
+   * `6047302` --926 px de alto con el escenario pegado, 794 con el deck ya
+   * linealizado, y 800 px de alto disponible en los dos estados-- y el que
+   * ninguno de los casos de arriba podía ver: todos fabrican un `scrollHeight`
+   * constante, y con un alto constante la implementación que oscila y la que
+   * converge dan el mismo resultado.
+   *
+   * Se comprueba en CADA disparo, no solo al final, porque el defecto es una
+   * alternancia: mirar únicamente el último valor haría depender el rojo de la
+   * paridad del número de disparos.
+   */
+  it("no vuelve a pinar el deck porque la diapositiva encoja AL linealizarse", () => {
+    const { track, stage } = montarDeckQueEncogeAlLinealizarse(() => ({
+      pegado: 926,
+      linealizado: 794,
+    }));
+    definirAlto(stage, "clientHeight", 800);
+    const { trackRef, stageRef } = refsDe(track, stage);
+
+    renderHook(() => useDeckFit(trackRef, stageRef));
+    expect(track.getAttribute(DECK_FIT_ATTRIBUTE)).toBe(DECK_DOES_NOT_FIT);
+
+    for (let disparo = 0; disparo < 6; disparo += 1) {
+      act(() => dispararObservers());
+      expect(track.getAttribute(DECK_FIT_ATTRIBUTE)).toBe(DECK_DOES_NOT_FIT);
+    }
+  });
+
+  /*
+   * LA OTRA MITAD, y sin ella el candado de arriba se satisface con un estado
+   * que no vuelve nunca: cuando el texto encoge DE VERDAD --el visitante
+   * devuelve el tamaño de fuente a su sitio-- la diapositiva cabe en las dos
+   * geometrías y el deck tiene que volver a pinarse. La medida sin estado no es
+   * un pestillo: es una segunda lectura.
+   */
+  it("vuelve a pinar el deck cuando la diapositiva cabe TAMBIEN en la geometria pegada", () => {
+    const grande = { pegado: 926, linealizado: 794 };
+    const pequeño = { pegado: 500, linealizado: 420 };
+    let tamaño = grande;
+    const { track, stage } = montarDeckQueEncogeAlLinealizarse(() => tamaño);
+    definirAlto(stage, "clientHeight", 800);
+    const { trackRef, stageRef } = refsDe(track, stage);
+
+    renderHook(() => useDeckFit(trackRef, stageRef));
+    act(() => dispararObservers());
+    expect(track.getAttribute(DECK_FIT_ATTRIBUTE)).toBe(DECK_DOES_NOT_FIT);
+
+    tamaño = pequeño;
+    act(() => dispararObservers());
 
     expect(track.getAttribute(DECK_FIT_ATTRIBUTE)).toBe(DECK_FITS);
   });
