@@ -48,21 +48,23 @@ import { contrastRatio } from "../src/theme/tokens/contrast.ts";
  *    CUMPLE», la peor `story/light/primary/800 («01»): 3.00:1 contra un
  *    umbral de 4.5:1`. Restaurado el 0.5, los siete tests en verde.
  *
- * 2. Subiendo `superficieL` de `journey/light/primary/700` de 0.87434 a 0.95
- *    (el atajo obvio para «arreglar» la unica pieza sancionada sin tocar el
- *    diseno), el tercer y el cuarto test se pusieron en rojo con
+ * 2. Subiendo `superficieL` de la fila de «Descubre» de 0.87434 a 0.95 (el
+ *    atajo obvio para «arreglar» una pieza justa sin tocar el diseno), el
+ *    cuarto test se pone en rojo. Reverificado en la ola S sobre la fila ya
+ *    corregida a `primary/800` (2026-09-06):
  *
- *      AssertionError: la pieza sancionada ya cumple: retira su entrada de
- *      SANCIONADAS: expected 4.831543069834413 to be less than 4.5
- *
- *      AssertionError: journey/light/primary/700 calcula 4.83:1 y el censo en
- *      navegador midio 4.47:1. Una separacion mayor que 0.06 significa que
+ *      AssertionError: journey/light/primary/800 calcula 5.56:1 y el censo en
+ *      navegador midio 5.14:1. Una separacion mayor que 0.06 significa que
  *      alguien movio un token o la superficie medida sin repetir el censo.:
- *      expected 0.3615430698344131 to be less than or equal to 0.06
+ *      expected 0.4193531354776363 to be less than or equal to 0.06
  *
- *    Restaurado el valor medido, verde. Es decir: el candado vigila los dos
- *    lados -- la tinta que se degrada Y la superficie que alguien retoca para
- *    que el numero salga bien.
+ *    Restaurado el valor medido, «Tests 7 passed». Es decir: el candado
+ *    vigila los dos lados -- la tinta que se degrada Y la superficie que
+ *    alguien retoca para que el numero salga bien. (Cuando esta inyeccion se
+ *    hizo por primera vez, la fila era `primary/700` y ademas estaba
+ *    sancionada, asi que caia tambien el tercer test con «la pieza sancionada
+ *    ya cumple: retira su entrada de SANCIONADAS»; esa asercion ya no existe,
+ *    porque desde la ola S no hay sanciones.)
  *
  * 3. Vaciando el censo por un lado en vez de degradarlo (ola Q, frente de
  *    correccion). El candado ataba la TINTA y la SUPERFICIE pero no la
@@ -94,6 +96,40 @@ import { contrastRatio } from "../src/theme/tokens/contrast.ts";
  *      45 // Object.is equality
  *
  *    Restaurada la fila, los siete tests en verde y el CLI en 45.
+ *
+ * 4. Devolviendo el censo al estado que tenia ANTES de la ola S -- la fila de
+ *    «Descubre» con `tinta: "primary/700"` y `p05: 4.47`, que es el P1 #5 de
+ *    la critica externa #19 -- el CLI sale con codigo 1 y la linea
+ *
+ *      NO CUMPLE journey/light/primary/700 («Descubre»): 4.47:1 contra un
+ *      umbral de 4.5:1. No bajes el umbral ni toques superficieL: vuelve a
+ *      medir en navegador con el metodo del docblock.
+ *
+ *    y caen tres tests: el primero por el anclaje («el censo ya no incluye
+ *    journey/light/primary/800…»), el segundo («1 piezas de texto bajan de su
+ *    umbral WCAG sin estar sancionadas: journey/light/primary/700
+ *    («Descubre») 4.47:1 < 4.5») y el tercero («1 piezas del censo estan por
+ *    debajo de su umbral WCAG: journey/light/primary/700 («Descubre») 4.47:1
+ *    < 4.5. Sancionarlas no es una salida: se arreglan.»).
+ *
+ *    Y LA VARIANTE QUE IMPORTA, la que motiva el tercer test: el MISMO
+ *    incumplimiento mas una entrada en `SANCIONADAS` que lo tape. El CLI
+ *    vuelve a salir con codigo 0 diciendo «sancionadas y documentadas: 1 /
+ *    incumplimientos nuevos: 0» -- exactamente el estado en el que este gate
+ *    vivio entre el 2026-09-04 y la critica #19 -- y el segundo test pasa en
+ *    verde, porque `incumplen` resta las sancionadas. Lo unico que lo atrapa
+ *    es el tercero:
+ *
+ *      AssertionError: SANCIONADAS solo puede volver a crecer con una DECISION
+ *      DEL DUENO FECHADA, escrita en el propio fichero con lo que se midio y
+ *      lo que haria falta para retirarla (ver su docblock). Mientras haya una
+ *      entrada ahi, este gate sale verde con un incumplimiento de WCAG 1.4.3
+ *      medido dentro -- que es exactamente lo que paso entre el censo del
+ *      2026-09-04 y la critica externa #19.: expected [
+ *      'journey/light/primary/700' ] to deeply equal []
+ *
+ *    Restaurado todo, «Tests 7 passed» y el CLI en «piezas del censo: 45 /
+ *    sancionadas y documentadas: 0 / incumplimientos nuevos: 0», codigo 0.
  */
 
 /*
@@ -146,18 +182,24 @@ describe("candado de contraste del texto de la home fuera del hero", () => {
                 `una pieza en vez de conservar la que falta`,
         ).toBe(PIEZAS.length);
 
-        /* Anclaje por nombre de las dos piezas mas justas: son las primeras que
-           tentaria borrar quien quisiera un censo comodo. La sancionada la ancla
-           ademas el tercer test. */
+        /* Anclaje por nombre de las piezas mas justas: son las primeras que
+           tentaria borrar quien quisiera un censo comodo. Las dos primeras son
+           las de menos holgura del censo de hoy (4,62 y 4,66 contra 4,5); la
+           tercera es «Descubre», que fue el UNICO incumplimiento de la tabla y
+           el P1 #5 de la critica #19 -- desde la ola S se pinta con
+           `primary/800`, y sigue anclada aqui para que el arreglo no
+           desaparezca del censo junto con el problema. */
         const sinAncho = PIEZAS.map((p) => `${p.seccion}/${p.tema}/${p.tinta}`);
         for (const clave of [
+            "journey/light/secondary/700",
             "features/dark/FEATURES_GAMING_ACCENT_DARK",
-            "journey/light/primary/700",
+            "journey/light/primary/800",
         ]) {
             expect(
                 sinAncho,
-                `el censo ya no incluye ${clave}, que es una de las dos piezas mas ` +
-                    `justas que se midieron: no se retira sin volver a medir`,
+                `el censo ya no incluye ${clave}, que es una de las piezas ancladas ` +
+                    `por nombre (las dos de menos holgura, mas la que fue el unico ` +
+                    `incumplimiento): no se retira sin volver a medir`,
             ).toContain(clave);
         }
     });
@@ -178,18 +220,39 @@ describe("candado de contraste del texto de la home fuera del hero", () => {
         ).toEqual([]);
     });
 
-    it("la lista de sancionadas es exactamente la que el dueno tiene pendiente, y sigue existiendo en el censo", () => {
-        const claves = Object.keys(SANCIONADAS);
-        expect(claves).toEqual(["journey/light/primary/700"]);
-        const { sancionadasVivas } = comprobarContrasteDeTexto();
-        expect(sancionadasVivas).toHaveLength(1);
-        expect(sancionadasVivas[0].clave).toBe("journey/light/primary/700");
-        /* Si la pieza sancionada dejara de incumplir, la sancion sobra y hay
-           que retirarla en vez de arrastrarla como deuda invisible. */
+    it("la lista de sancionadas esta VACIA y ninguna pieza del censo se apoya en una excepcion", () => {
         expect(
-            sancionadasVivas[0].calculado,
-            "la pieza sancionada ya cumple: retira su entrada de SANCIONADAS",
-        ).toBeLessThan(sancionadasVivas[0].umbral);
+            Object.keys(SANCIONADAS),
+            `SANCIONADAS solo puede volver a crecer con una DECISION DEL DUENO ` +
+                `FECHADA, escrita en el propio fichero con lo que se midio y lo que ` +
+                `haria falta para retirarla (ver su docblock). Mientras haya una ` +
+                `entrada ahi, este gate sale verde con un incumplimiento de WCAG ` +
+                `1.4.3 medido dentro -- que es exactamente lo que paso entre el ` +
+                `censo del 2026-09-04 y la critica externa #19.`,
+        ).toEqual([]);
+
+        const { filas, sancionadasVivas } = comprobarContrasteDeTexto();
+        expect(sancionadasVivas).toHaveLength(0);
+
+        /*
+         * La CONDICION, no el valor. Este barrido es DELIBERADAMENTE
+         * independiente del segundo test: aquel mira `incumplen`, que resta las
+         * sancionadas, asi que una entrada nueva en SANCIONADAS lo dejaria en
+         * verde. Este mira las filas crudas. Los dos juntos dicen lo que el
+         * gate promete: ninguna pieza del censo baja de su umbral, ni siquiera
+         * con permiso.
+         */
+        const pordebajo = filas.filter((f) => f.calculado < f.umbral);
+        expect(
+            pordebajo.map((f) => f.clave),
+            `${pordebajo.length} piezas del censo estan por debajo de su umbral ` +
+                `WCAG: ${pordebajo
+                    .map(
+                        (f) =>
+                            `${f.clave} («${f.ejemplo}») ${f.calculado.toFixed(2)}:1 < ${f.umbral}`,
+                    )
+                    .join("; ")}. Sancionarlas no es una salida: se arreglan.`,
+        ).toEqual([]);
     });
 
     it("cada pieza calcula lo mismo que midio el navegador, dentro del redondeo de 8 bits", () => {

@@ -56,20 +56,36 @@
  * Umbral por tamano computado, no a ojo: 3:1 para texto grande (>= 24 px, o
  * >= 18,66 px con peso >= 700) y 4,5:1 para el resto.
  *
- * ## RESULTADO DEL CENSO: 1.872 mediciones, 349 firmas, UN incumplimiento
+ * ## RESULTADO DEL CENSO: 1.872 mediciones, 349 firmas, CERO incumplimientos
  *
  * Las 45 piezas del inventario de abajo son el censo completo agrupado por
  * seccion, tema y tinta, con el peor p05 de todas las posiciones y anchos. La
- * conclusion es que el sistema aguanta: 44 de 45 pasan su umbral, y las tintas
+ * conclusion es que el sistema aguanta: las 45 pasan su umbral, y las tintas
  * que las pintan son TODAS tokens del repo -- ni un solo color suelto en el
  * texto de las cuatro secciones.
  *
- * El unico incumplimiento es `journey/light/primary-700`, la etiqueta
- * «Descubre» del primer paso (`ScStepLabel`, `Journey.tsx`): p05 4,47 y
- * mediana 4,53 contra un umbral de 4,5, con el 15,9 % de la caja por debajo a
- * 1440 y el 17,5 % a 390. Esta SANCIONADA abajo, con su motivo, porque el
- * arreglo es una decision de diseno del dueno y no una linea de token (ver
- * `SANCIONADAS`).
+ * NO SIEMPRE FUE 45 DE 45, y el historial importa porque explica por que
+ * `SANCIONADAS` existe y por que hoy esta vacia. El censo del 2026-09-04
+ * encontro UN incumplimiento: `journey/light/primary/700`, la etiqueta
+ * «Descubre» del primer paso (`ScStepLabel`, `Journey.tsx`), con p05 4,47 y
+ * mediana 4,53 contra un umbral de 4,5 (el 15,9 % de la caja por debajo a
+ * 1440, el 17,5 % a 390). Se ANOTO como sancionada en vez de arreglarse,
+ * porque el arreglo movia colores visibles y era una decision del dueno.
+ * Consecuencia: durante dos rondas este gate salio en VERDE con un
+ * incumplimiento de WCAG 1.4.3 vivo y medido dentro. La critica externa #19
+ * (2026-09-06) lo volvio a levantar como P1 con sonda propia -- p05 4,405 y
+ * el 33,9 % del fondo bajo 4,5 a 1440; p05 4,399 y el 37,8 % a 390 -- y el
+ * dueno decidio arreglarlo: `LABEL_SAFE_STEP` pasa a ser una tabla por rampa
+ * y «Descubre» sube a primary/800 (5,189 nominal contra la parada oscura del
+ * degradado de la tarjeta, frente a los 4,510 de primary/700), con «Aprende»
+ * a primary/900 para no colisionar. Las dos filas de este inventario quedan
+ * actualizadas con su tinta nueva y su p05 marcado como pendiente de recenso
+ * (ver el campo `censo`).
+ *
+ * La leccion, escrita donde se vuelva a leer: una excepcion documentada NO
+ * es un candado. `SANCIONADAS` cuantifica y hace visible lo que incumple,
+ * que es mejor que esconderlo, pero mientras una entrada este ahi el gate
+ * miente por omision. Por eso ahora esta vacia y su test lo exige.
  *
  * La segunda pieza mas justa es el CTA de la tarjeta de Gaming en oscuro
  * (`FEATURES_GAMING_ACCENT_DARK`, «Únete a la partida» y su flecha): p05 4,65
@@ -79,14 +95,16 @@
  * superficie de la tarjeta con el arte de la escena detras, que es mas clara.
  * La cifra del docblock es reproducible; simplemente no es la del render.
  *
- * De paso, el censo refuta una cifra que el repo daba por medida: el docblock
- * de `stepLabelColor` (`Journey.tsx`) declara "4.57 · 5.27 · 5.33 · 6.01 ·
+ * De paso, el censo refuto una cifra que el repo daba por medida: el docblock
+ * de `stepLabelColor` (`Journey.tsx`) declaraba "4.57 · 5.27 · 5.33 · 6.01 ·
  * 8.34 · 5.33" para las seis etiquetas, y esas son las cifras contra la parada
  * CLARA del degradado de la tarjeta (`#e5f6ff`), no contra la oscura
  * (`#ffecfd`), que es la que manda. Reproducido con el propio `contrastRatio`
- * del repo, contra `#ffecfd` salen 4,510 · 5,189 · 5,263 · 5,890 · 8,194 ·
- * 5,228. Ese docblock queda corregido en esta misma ola, con sus seis cifras
- * contra la parada que manda.
+ * del repo, contra `#ffecfd` salian 4,510 · 5,189 · 5,263 · 5,890 · 8,194 ·
+ * 5,228. Ese docblock quedo corregido en la ola Q y reescrito en la ola S,
+ * donde las seis pasan a 5,189 · 7,331 · 5,263 · 5,890 · 8,194 · 5,228 --
+ * las cuatro de `secondary`/`error` sin tocar, y las dos de `primary`
+ * subidas un escalon mas.
  *
  * ## QUE VIGILA ESTE CANDADO, Y QUE NO
  *
@@ -304,6 +322,16 @@ export function ratio(a, b) {
  * - `p05` es lo que dio la medicion; el script recalcula el ratio desde
  *   `tinta` y `superficieL`, asi que las dos columnas tienen que coincidir
  *   mientras nadie mueva un token. El test comprueba justo eso.
+ * - `censo` es OPCIONAL y el script no lo lee: marca una fila cuyo `p05` NO
+ *   sale de una medicion en navegador sino del calculo nominal contra su
+ *   `superficieL`, a la espera del recenso. Existe porque la ola S cambio la
+ *   TINTA de dos filas de Journey (el arreglo del P1 #5) y el frente que la
+ *   escribio no podia reconstruir el build para volver a medir en Chrome:
+ *   dejar el `p05` viejo habria sido una cifra falsa, y borrarlo habria
+ *   encogido el censo. La superficie NO cambia con el color de la letra, asi
+ *   que `superficieL` sigue siendo la medida; lo unico estimado es el p05, y
+ *   la diferencia entre el nominal y el pixel esta acotada por lo que midio
+ *   la #19 en esa misma pieza: ~0.105.
  * ---------------------------------------------------------------------------
  */
 // prettier-ignore
@@ -339,9 +367,9 @@ export const PIEZAS = [
     { seccion: "journey", tema: "light", tinta: "neutral/1000", px: 32, peso: 700, superficieL: 0.88169, p05: 11.21, vp: "390", y: 3796, ejemplo: "Tu viaje no tiene un último pa" },
     { seccion: "journey", tema: "light", tinta: "secondary/900", px: 14, peso: 700, superficieL: 0.87653, p05: 8.09, vp: "1440", y: 2093, ejemplo: "Comparte" },
     { seccion: "journey", tema: "light", tinta: "neutral/800", px: 12, peso: 500, superficieL: 0.86703, p05: 5.25, vp: "390", y: 4567, ejemplo: "Transforma tu pensamiento en a" },
-    { seccion: "journey", tema: "light", tinta: "primary/800", px: 14, peso: 700, superficieL: 0.87653, p05: 5.12, vp: "1440", y: 2093, ejemplo: "Aprende" },
+    { seccion: "journey", tema: "light", tinta: "primary/900", px: 14, peso: 700, superficieL: 0.87653, p05: 7.28, vp: "1440", y: 2093, ejemplo: "Aprende", censo: "pendiente ola S" },
     { seccion: "journey", tema: "light", tinta: "secondary/800", px: 14, peso: 700, superficieL: 0.87653, p05: 5.84, vp: "390", y: 3796, ejemplo: "Crea" },
-    { seccion: "journey", tema: "light", tinta: "primary/700", px: 14, peso: 700, superficieL: 0.87434, p05: 4.47, vp: "1440", y: 2093, ejemplo: "Descubre" },
+    { seccion: "journey", tema: "light", tinta: "primary/800", px: 14, peso: 700, superficieL: 0.87434, p05: 5.14, vp: "1440", y: 2093, ejemplo: "Descubre", censo: "pendiente ola S" },
     { seccion: "journey", tema: "light", tinta: "error/700", px: 14, peso: 700, superficieL: 0.87353, p05: 5.18, vp: "1440", y: 2866, ejemplo: "Evoluciona" },
     { seccion: "journey", tema: "light", tinta: "secondary/700", px: 14, peso: 700, superficieL: 0.77015, p05: 4.62, vp: "390", y: 4374, ejemplo: "Imagina" },
     { seccion: "story", tema: "dark", tinta: "neutral/300", px: 14, peso: 600, superficieL: 0.00406, p05: 12.71, vp: "390", y: 3637, ejemplo: "Únete a la comunidad en Discor" },
@@ -356,30 +384,31 @@ export const PIEZAS = [
 ];
 
 /**
- * Lo unico que el repo ya sancionó, con su motivo y su salida.
+ * VACIA, y esa es la entrega de la ola S (2026-09-06).
  *
- * Mismo mecanismo que la allowlist documentada de
- * `scripts/detect-anti-patterns.mjs`: una excepcion con nombre y explicacion,
- * no un umbral rebajado en silencio. Una entrada aqui NO es "esto esta bien":
- * es "esto esta medido, cuantificado y esperando una decision".
+ * QUE ES ESTO. El mecanismo sigue montado --`comprobarContrasteDeTexto` filtra
+ * por esta tabla y el CLI imprime cuantas hay-- y es el mismo patron que la
+ * allowlist documentada de `scripts/detect-anti-patterns.mjs`: una excepcion
+ * con nombre y explicacion, nunca un umbral rebajado en silencio.
+ *
+ * POR QUE ESTA VACIA. Tuvo exactamente una entrada, `journey/light/primary/700`
+ * («Descubre»), desde el censo del 2026-09-04 hasta hoy. Durante esas dos
+ * rondas, `pnpm check:text-contrast` salio con codigo 0 mientras el propio
+ * fichero documentaba un incumplimiento de WCAG 1.4.3 medido en navegador. Un
+ * gate que sale verde con un incumplimiento dentro no es un gate: es un acta.
+ * La critica externa #19 lo confirmo con sonda propia y el dueno decidio
+ * arreglarlo (ver el docblock de cabecera y el de `stepLabelColor`,
+ * `Journey.tsx`).
+ *
+ * COMO SE VUELVE A LLENAR. Solo con una decision del dueno FECHADA y escrita
+ * aqui: quien la tomo, cuando, que se midio y que hay que hacer para
+ * retirarla. No vale «lo arreglamos en la proxima ola», no vale una entrada
+ * puesta por un agente para desbloquear su gate, y no vale ampliarla sin
+ * cambiar el test que exige que este vacia -- ese test es lo que obliga a que
+ * anadir una sancion sea un acto deliberado y visible en el diff, no un
+ * atajo. Mientras tanto, un incumplimiento nuevo se arregla o para el gate.
  */
-export const SANCIONADAS = {
-    "journey/light/primary/700": {
-        medido: 4.47,
-        motivo:
-            "Etiqueta «Descubre» del primer paso (ScStepLabel, Journey.tsx): p05 " +
-            "4,47 y mediana 4,53 contra 4,5, con el 15,9 % de la caja por debajo a " +
-            "1440 y el 17,5 % a 390. La tinta es primary/700, que LABEL_SAFE_STEP " +
-            "asigna al paso 500 con un desplazamiento uniforme de +2 escalones; " +
-            "contra la parada oscura del degradado de la tarjeta (#ffecfd) da " +
-            "4,510, o sea 0,010 de margen sobre el suelo, y el render real se lo " +
-            "come. Subirla sola a primary/800 la dejaria del MISMO color que " +
-            "«Aprende», que es la colision que el desplazamiento uniforme evita a " +
-            "proposito; subir las seis a +3 cambia seis colores visibles. Es una " +
-            "decision del dueno, no una linea de token, y por eso queda anotada " +
-            "aqui en vez de arreglada a medias.",
-    },
-};
+export const SANCIONADAS = {};
 
 /** Resuelve la referencia de tinta de una pieza a su literal `oklch()`. */
 export function resolverTinta(pieza, paleta, gaming) {

@@ -606,14 +606,15 @@ function stepColor(
  * El primer escalón de `primary`/`secondary`/`error` que pasa 4.5:1 contra
  * los fondos claros del sistema es 700 (medido exhaustivamente, ver el test
  * de familia) -- cualquier escalón por debajo queda descartado como color de
- * texto. El arreglo sube exactamente DOS escalones dentro de la MISMA rampa
- * (500→700, 600→800, 700→900) en vez de saltar todos al mismo "700 mínimo":
- * `05 Comparte` (secondary/700) ya cumplía por sí sola, pero si se dejara
- * intacta mientras `03 Imagina` sube de 500 a 700, las dos compartirían el
- * MISMO color exacto y `04 Crea` (subiendo a 800) se leería más oscura que
- * Comparte -- invirtiendo la progresión 500<600<700 del mockup original. El
- * desplazamiento UNIFORME de +2 escalones conserva esa progresión relativa
- * completa, sin que ningún escalón quede por debajo del piso AA.
+ * texto. El arreglo original (fix wave E) subía exactamente DOS escalones
+ * dentro de la MISMA rampa (500→700, 600→800, 700→900) en vez de saltar
+ * todos al mismo "700 mínimo": `05 Comparte` (secondary/700) ya cumplía por
+ * sí sola, pero si se dejara intacta mientras `03 Imagina` sube de 500 a
+ * 700, las dos compartirían el MISMO color exacto y `04 Crea` (subiendo a
+ * 800) se leería más oscura que Comparte -- invirtiendo la progresión
+ * 500<600<700 del mockup original. Ese desplazamiento uniforme conserva la
+ * progresión relativa completa; lo que NO conservaba era el margen, y por
+ * eso la tabla dejó de ser uniforme en la ola S (siguiente sección).
  *
  * ## LAS SEIS CIFRAS, CORREGIDAS (ola Q, 2026-09-04)
  *
@@ -641,11 +642,57 @@ function stepColor(
  * mediana 4.53 y el 15.9 % de su caja por debajo de 4.5 a 1440** (17.5 % a
  * 390). Las otras cinco pasan con holgura en el mismo censo (5.12 a 8.09).
  *
- * Queda ANOTADO Y SANCIONADO en `scripts/check-text-contrast.mjs`
- * (`SANCIONADAS`), no arreglado: subir solo «Descubre» a primary/800 la
- * dejaría del mismo color que «Aprende» —justo la colisión que el
- * desplazamiento uniforme evita, dos párrafos más arriba— y subir las seis a
- * +3 cambia seis colores visibles de la sección. Es una decisión del dueño.
+ * Aquello quedó ANOTADO Y SANCIONADO en `scripts/check-text-contrast.mjs`
+ * (`SANCIONADAS`) en vez de arreglado, esperando decisión del dueño. La
+ * crítica externa #19 (2026-09-06) volvió a levantarlo como P1 con sonda
+ * propia —p05 4.405 y el 33.9 % del fondo bajo 4.5:1 a 1440; p05 4.399 y el
+ * 37.8 % a 390— y el dueño decidió arreglarlo. Eso es la sección siguiente.
+ *
+ * ## LA TABLA POR RAMPA (ola S, 2026-09-06)
+ *
+ * `LABEL_SAFE_STEP` deja de ser un desplazamiento uniforme «+2 escalones» y
+ * pasa a ser una tabla por RAMPA Y PASO. El motivo es que las tres rampas no
+ * llegan al mismo sitio con el mismo salto: con +2, `secondary` y `error`
+ * aterrizan entre 5.23 y 8.19 contra la parada oscura, mientras que
+ * `primary` —la rampa más clara de las tres a igual escalón, por su croma
+ * bajo (0.158 de pico frente a 0.259 y 0.24)— aterriza en 4.510, que es el
+ * suelo AA con 0.010 de margen. El salto uniforme trataba como iguales tres
+ * rampas que no lo son.
+ *
+ * SUELO NUEVO: 4.8:1 NOMINAL, no 4.5. No es un número redondo elegido a ojo,
+ * es lo que cuesta el render: el censo de la #19 midió `p05 4.405` donde el
+ * cálculo nominal daba 4.510, o sea que el antialiasing, la composición del
+ * degradado y el redondeo a 8 bits se comen ~0.105 (0.111 a 390). Un suelo
+ * nominal de 4.8 deja ~0.3 de margen sobre 4.5, casi el triple de esa
+ * pérdida medida. Los candados de `Journey.test.tsx` afirman 4.8, no 4.5.
+ *
+ * Tabla nueva, con las cifras calculadas con el `contrastRatioHex` de
+ * `src/theme/tokens/contrast.ts` (el mismo que usa el test) contra las DOS
+ * paradas compuestas del degradado de la tarjeta -- oscura `#ffecfd`
+ * primero, clara `#e5f6ff` después:
+ *
+ *   01 Descubre   primary/500   → primary/800    5.189 · 5.270
+ *   02 Aprende    primary/600   → primary/900    7.331 · 7.444
+ *   03 Imagina    secondary/500 → secondary/700  5.263 · 5.345
+ *   04 Crea       secondary/600 → secondary/800  5.890 · 5.982
+ *   05 Comparte   secondary/700 → secondary/900  8.194 · 8.321
+ *   06 Evoluciona error/500     → error/700      5.228 · 5.309
+ *
+ * Solo se mueve `primary`: «Descubre» sube un escalón más (500→800 en vez de
+ * 500→700) y «Aprende» sube con ella (600→900) para no colisionar y para
+ * seguir leyéndose más oscura que Descubre, que es la progresión del mockup.
+ * Las otras cuatro etiquetas NO cambian de color: `secondary` y `error` ya
+ * pasaban 4.8 con holgura, y cambiarlas habría movido cuatro colores
+ * visibles de la sección sin ningún hallazgo que lo pidiera.
+ *
+ * La tabla es TOTAL (las tres rampas por los tres pasos declarables en
+ * `JourneyStep["colorStep"]`), no un mapa de las seis combinaciones que hoy
+ * existen: la entrada `primary/700 → 1000` (11.034 · 11.205) no la usa nadie
+ * todavía y está para que un paso nuevo con `colorRamp: "primary"` y
+ * `colorStep: 700` no herede por defecto un color que colisione con
+ * «Aprende». Cada rampa mantiene sus tres destinos distintos y en orden de
+ * luminancia decreciente, y el candado de `Journey.test.tsx` mide las NUEVE
+ * entradas, no solo las seis vivas.
  *
  * SOLO afecta al TEXTO de la etiqueta: `ScDisc` (el icono del disco, misma
  * rama clara) y `ScJourneyStepIconBox` (rama oscura, que ni siquiera monta
@@ -660,10 +707,13 @@ function stepColor(
  * `navActiveAccent`/`ctaGradientMidStop`, todos `theme.isLight ? A : B`
  * aunque hoy solo una rama tenga consumidor real).
  */
-const LABEL_SAFE_STEP: Record<JourneyStep["colorStep"], 700 | 800 | 900> = {
-  500: 700,
-  600: 800,
-  700: 900,
+const LABEL_SAFE_STEP: Record<
+  JourneyStep["colorRamp"],
+  Record<JourneyStep["colorStep"], 700 | 800 | 900 | 1000>
+> = {
+  primary: { 500: 800, 600: 900, 700: 1000 },
+  secondary: { 500: 700, 600: 800, 700: 900 },
+  error: { 500: 700, 600: 800, 700: 900 },
 };
 
 export function stepLabelColor(
@@ -671,7 +721,9 @@ export function stepLabelColor(
   step: Pick<JourneyStep, "colorRamp" | "colorStep">,
 ): string {
   if (!theme.isLight) return stepColor(theme, step);
-  return theme.palette[step.colorRamp][LABEL_SAFE_STEP[step.colorStep]];
+  return theme.palette[step.colorRamp][
+    LABEL_SAFE_STEP[step.colorRamp][step.colorStep]
+  ];
 }
 
 /*

@@ -1470,10 +1470,46 @@ describe("Journey: Task 12, ScQuoteText pasa a color solido", () => {
  * Fix wave E, hallazgo E2 (evaluador de navegador real, 2026-08-13): cinco
  * de las seis etiquetas de paso (rama clara, `ScStepLabel`) incumplian AA
  * sobre el fondo pastel de la tarjeta -- ver el docblock de
- * `stepLabelColor`, Journey.tsx, para las seis cifras medidas (antes/
- * despues) y el porque del desplazamiento de +2 escalones dentro de la
- * MISMA rampa (preserva la progresion 500<600<700 del mockup en vez de
- * colapsar varios pasos al mismo color).
+ * `stepLabelColor`, Journey.tsx, para las cifras medidas (antes/despues) y
+ * el porque de la tabla POR RAMPA que sustituyo al desplazamiento uniforme
+ * de +2 escalones (preserva la progresion 500<600<700 del mockup en vez de
+ * colapsar varios pasos al mismo color, pero deja de tratar como iguales
+ * tres rampas que no llegan al mismo contraste con el mismo salto).
+ *
+ * ## EL SUELO ES 4.8, NO 4.5 (ola S, 2026-09-06, P1 #5 de la critica #19)
+ *
+ * Este describe pedia 4.5:1 y estuvo en verde mientras «Descubre»
+ * (primary/700 tras el ajuste de la fix wave E) daba 4.510:1 contra la
+ * parada oscura: 0.010 de margen sobre el suelo. El render se lo comia. La
+ * critica externa #19 lo midio en Chrome sobre el build real -- tinta
+ * nominal por canvas 1x1 contra la distribucion del fondo bajo la caja del
+ * texto -- y dio `p05 4.405` con el 33.9 % del fondo por debajo de 4.5:1 a
+ * 1440, y `p05 4.399` con el 37.8 % a 390. Es decir: entre el calculo
+ * nominal y el pixel hay ~0.105 de perdida MEDIDA (0.111 a 390).
+ *
+ * Por eso el suelo de estos candados sube a 4.8 NOMINAL: deja ~0.3 sobre el
+ * 4.5 de WCAG 1.4.3, casi el triple de esa perdida. No es un margen elegido
+ * a ojo ni un umbral aflojado: es el mismo criterio de antes, corregido por
+ * lo que el render cuesta de verdad.
+ *
+ * ## MATRIZ (leccion del 2026-09-06, regla 2)
+ *
+ * Se mide: tema CLARO x las DOS paradas del degradado de la tarjeta x las
+ * NUEVE entradas de `LABEL_SAFE_STEP` (tres rampas por tres pasos), mas las
+ * seis etiquetas vivas por su nodo real en el DOM.
+ *
+ * Se fija a proposito, con su porque: (a) tema, solo claro -- `ScStepLabel`
+ * unicamente lo monta `JourneyLight`, y la rama oscura de `stepLabelColor`
+ * devuelve `stepColor` sin ajuste porque ahi la etiqueta no existe;
+ * (b) idioma, ancho, raiz, `reduce`, DPR y gesto quedan fuera porque el
+ * color resuelto no depende de ninguno: es una funcion de (rampa, paso) y
+ * de la paleta, y el tamano de la etiqueta (14 px / 700) esta por debajo de
+ * la frontera de «texto grande» de WCAG en cualquiera de esas condiciones,
+ * asi que el umbral aplicable tampoco cambia.
+ *
+ * Lo que este fichero NO puede ver, y por eso el suelo lleva margen: el
+ * pixel real. jsdom no pinta. El p05 del render vive en el censo en
+ * navegador de `scripts/check-text-contrast.mjs` (inventario `PIEZAS`).
  */
 describe("Journey: fix wave E, hallazgo E2 -- ScStepLabel sube de escalon en tema claro (AA)", () => {
   /** Las dos paradas de `JOURNEY_CARD_BACKGROUND` ya compuestas con su alfa
@@ -1482,7 +1518,21 @@ describe("Journey: fix wave E, hallazgo E2 -- ScStepLabel sube de escalon en tem
    *  fondo real; `contrastRatioHex` no compone alfa, solo mide. */
   const PARADAS_COMPUESTAS = ["#ffecfd", "#e5f6ff"];
 
-  it("cada etiqueta resuelve stepLabelColor (el escalon +2 AA-seguro), no stepColor (el escalon original del icono)", () => {
+  /** Suelo NOMINAL de estos candados: 4.8, no el 4.5 de WCAG 1.4.3. El
+   *  porque -- 0.105 de perdida medida entre el nominal y el pixel en la
+   *  critica #19 -- esta en el docblock de arriba. */
+  const SUELO_NOMINAL = 4.8;
+
+  /** El dominio COMPLETO de `LABEL_SAFE_STEP`: las tres rampas que declara
+   *  `JourneyStep["colorRamp"]` por los tres pasos de
+   *  `JourneyStep["colorStep"]`. Se teclea aqui a proposito en vez de
+   *  derivarlo de `JOURNEY_STEPS`: derivarlo dejaria sin medir las tres
+   *  entradas que hoy no tienen paso vivo, que son justo las que heredaria
+   *  un paso nuevo. */
+  const RAMPAS = ["primary", "secondary", "error"] as const;
+  const PASOS = [500, 600, 700] as const;
+
+  it("cada etiqueta resuelve stepLabelColor (el escalon AA-seguro de su rampa), no stepColor (el escalon original del icono)", () => {
     renderWithProviders(<Journey />);
     JOURNEY_STEPS.forEach((step) => {
       // Etiqueta PELADA desde la critica externa #11 (2026-08-18): hasta esa
@@ -1499,7 +1549,7 @@ describe("Journey: fix wave E, hallazgo E2 -- ScStepLabel sube de escalon en tem
     });
   });
 
-  it("las seis etiquetas resuelven >= 4.5:1 contra las dos paradas reales de la tarjeta", () => {
+  it("las seis etiquetas resuelven >= 4.8:1 contra las dos paradas reales de la tarjeta", () => {
     JOURNEY_STEPS.forEach((step) => {
       const color = stepLabelColor(themes.light, {
         colorRamp: step.colorRamp,
@@ -1509,15 +1559,67 @@ describe("Journey: fix wave E, hallazgo E2 -- ScStepLabel sube de escalon en tem
         const ratio = contrastRatioHex(color, parada);
         expect(
           ratio,
-          `${step.id} (${step.colorRamp}/${step.colorStep} tras el ajuste) sobre ${parada} da ${ratio.toFixed(2)}:1`,
-        ).toBeGreaterThanOrEqual(4.5);
+          `${step.id} (${step.colorRamp}/${step.colorStep} tras el ajuste) sobre ${parada} da ${ratio.toFixed(3)}:1, por debajo del suelo nominal de ${SUELO_NOMINAL}:1 que la critica #19 midio como necesario`,
+        ).toBeGreaterThanOrEqual(SUELO_NOMINAL);
+      });
+    });
+  });
+
+  /*
+   * La tabla ENTERA, no solo las seis combinaciones vivas. `LABEL_SAFE_STEP`
+   * es total (tres rampas x tres pasos) precisamente para que un paso nuevo
+   * no herede un destino sin medir; si solo se midieran las seis de
+   * `JOURNEY_STEPS`, las otras tres entradas serian codigo que nadie ha
+   * comprobado nunca -- y la primera que se estrenara lo haria en produccion.
+   */
+  it("las NUEVE entradas de la tabla (tres rampas x tres pasos) pasan el suelo contra las dos paradas", () => {
+    RAMPAS.forEach((colorRamp) => {
+      PASOS.forEach((colorStep) => {
+        const color = stepLabelColor(themes.light, { colorRamp, colorStep });
+        PARADAS_COMPUESTAS.forEach((parada) => {
+          const ratio = contrastRatioHex(color, parada);
+          expect(
+            ratio,
+            `la entrada ${colorRamp}/${colorStep} de LABEL_SAFE_STEP resuelve ${color}, que sobre ${parada} da ${ratio.toFixed(3)}:1`,
+          ).toBeGreaterThanOrEqual(SUELO_NOMINAL);
+        });
+      });
+    });
+  });
+
+  /*
+   * Las dos CONDICIONES que el desplazamiento uniforme garantizaba gratis y
+   * una tabla por rampa puede romper de un teclazo: dos pasos distintos de
+   * la misma rampa que aterrizan en el mismo escalon (dos etiquetas del
+   * mismo color exacto, indistinguibles) y una tabla que invierte el orden
+   * del mockup (un paso posterior que se lee MAS CLARO que el anterior). No
+   * es el valor de la tabla espejado: es lo que la tabla tiene que cumplir
+   * sea cual sea su valor.
+   */
+  it("dentro de cada rampa los tres destinos son distintos y van de menos a mas oscuro", () => {
+    RAMPAS.forEach((colorRamp) => {
+      const resueltos = PASOS.map((colorStep) =>
+        stepLabelColor(themes.light, { colorRamp, colorStep }),
+      );
+      expect(
+        new Set(resueltos).size,
+        `la rampa ${colorRamp} resuelve ${resueltos.join(", ")}: dos pasos comparten color y sus etiquetas serian indistinguibles`,
+      ).toBe(PASOS.length);
+
+      const luminancias = resueltos.map((c) => relativeLuminance(c));
+      luminancias.forEach((luminancia, i) => {
+        if (i === 0) return;
+        expect(
+          luminancia,
+          `${colorRamp}/${PASOS[i]} resuelve una luminancia de ${luminancia.toFixed(4)} y ${colorRamp}/${PASOS[i - 1]} de ${luminancias[i - 1].toFixed(4)}: la progresion 500<600<700 del mockup se ha invertido`,
+        ).toBeLessThan(luminancias[i - 1]);
       });
     });
   });
 
   /*
    * Sonda de no-vacuidad (mismo patron que `navActiveAccent.contrast.test.ts`,
-   * fix wave A): sin esto, el test de arriba pasaria en verde igual si
+   * fix wave A): sin esto, los tests de arriba pasarian en verde igual si
    * `stepLabelColor` colapsara por error a devolver siempre un unico
    * escalon de sobra (p.ej. 1100) -- esto demuestra que los escalones
    * ORIGINALES (`stepColor`, el que sigue usando el icono del disco) de
@@ -1536,12 +1638,64 @@ describe("Journey: fix wave E, hallazgo E2 -- ScStepLabel sube de escalon en tem
   });
 
   /*
+   * Segunda sonda de no-vacuidad, la de ESTA ola: el destino anterior de
+   * «Descubre» -- primary/700, el que daba el desplazamiento uniforme de +2
+   * -- pasaba el 4.5 de WCAG por 0.010 y es el que la critica #19 midio en
+   * rojo en el render. Sin esto, el suelo de 4.8 podria ser un numero
+   * arbitrario; con esto queda demostrado que separa el destino viejo del
+   * nuevo, que es exactamente lo que tiene que hacer.
+   */
+  it("sonda de no-vacuidad: el destino ANTERIOR de Descubre (primary/700) pasaba 4.5 por 0.010 y no llega al suelo nuevo", () => {
+    const anterior = themes.light.palette.primary[700];
+    const contraOscura = contrastRatioHex(anterior, "#ffecfd");
+    expect(contraOscura).toBeGreaterThanOrEqual(4.5);
+    expect(contraOscura).toBeLessThan(4.52);
+    expect(
+      contraOscura,
+      `primary/700 da ${contraOscura.toFixed(3)}:1 contra la parada oscura: si esto pasara el suelo, el suelo no estaria separando nada`,
+    ).toBeLessThan(SUELO_NOMINAL);
+  });
+
+  /*
    * Bug inyectado a proposito (regla 34), verificado en esta tarea: revertir
    * `ScStepLabel` (Journey.tsx) de `stepLabelColor(...)` a `stepColor(...)`
    * (el escalon original) pone en rojo el primer test de este describe
    * (`getComputedStyle` deja de coincidir con `stepLabelColor`) Y el
    * segundo (5 de las 6 etiquetas vuelven a incumplir 4.5:1); restaurado,
    * los tres vuelven a verde.
+   *
+   * Bugs inyectados de la ola S (2026-09-06), sobre la tabla nueva. Los dos
+   * se hicieron y se deshicieron dentro de un solo comando encadenado, con
+   * la tabla verificada por `grep` antes y despues.
+   *
+   * 1. Devolver la entrada `primary: { 500: 800 }` a `500: 700` -- el
+   *    destino que tenia «Descubre» antes de esta ola, y el P1 #5 de la
+   *    critica #19. Dos tests en rojo, con la cifra exacta del hallazgo:
+   *
+   *      AssertionError: discover (primary/500 tras el ajuste) sobre #ffecfd
+   *      da 4.510:1, por debajo del suelo nominal de 4.8:1 que la critica
+   *      #19 midio como necesario: expected 4.509895376240974 to be greater
+   *      than or equal to 4.8
+   *
+   *      AssertionError: la entrada primary/500 de LABEL_SAFE_STEP resuelve
+   *      oklch(0.53 0.13 235.851), que sobre #ffecfd da 4.510:1: expected
+   *      4.509895376240974 to be greater than or equal to 4.8
+   *
+   *    Restaurado el 800: «Tests 6 passed».
+   *
+   * 2. Subir «Descubre» a `500: 900`, o sea al MISMO destino que «Aprende»
+   *    -- la colision que hace indistinguibles dos etiquetas y que el
+   *    desplazamiento uniforme evitaba gratis. El test de destinos
+   *    distintos, en rojo:
+   *
+   *      AssertionError: la rampa primary resuelve oklch(0.42 0.098
+   *      235.851), oklch(0.42 0.098 235.851), oklch(0.32 0.079 235.851): dos
+   *      pasos comparten color y sus etiquetas serian indistinguibles:
+   *      expected 2 to be 3 // Object.is equality
+   *
+   *    Restaurado el 800: «Tests 6 passed». Notese que esta inyeccion pasa
+   *    el suelo de 4.8 con holgura (primary/900 da 7.331): sin el test de
+   *    destinos distintos, la colision entraria en verde.
    */
 });
 
