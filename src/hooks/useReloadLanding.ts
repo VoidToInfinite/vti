@@ -120,7 +120,8 @@ import {
  *    (`navigate`) no trae posición que restituir: arrastrar ahí una posición
  *    guardada sería secuestrar la entrada de alguien que acaba de llegar. Si
  *    el tipo no se puede leer, no se restituye -- ante la duda, la que manda
- *    es la carga nueva.
+ *    es la carga nueva. ESTA CONDICIÓN NO BASTA POR SÍ SOLA, y el porqué está
+ *    medido más abajo ("La navegación de cliente").
  * 2. **Solo si la URL NO trae fragmento.** Ese caso ya es entero de
  *    `useFragmentLanding.ts`, y los dos peleándose por el mismo scroll darían
  *    el peor resultado posible: el destino de la URL es lo que la persona
@@ -131,6 +132,57 @@ import {
  * La decisión se toma UNA vez, en la primera ejecución del efecto, y se
  * recuerda: sin eso, la escritura de `pagehide`/`visibilitychange` podría
  * cambiarle los datos a una corrección todavía pendiente.
+ *
+ * ## La navegación de cliente del 2026-09-06, y por qué el tipo de navegación
+ * ## no basta por sí solo
+ *
+ * La primera versión de este hook (commit `58cb80f`) confiaba en que las tres
+ * condiciones de arriba describieran LA NAVEGACIÓN EN CURSO. No la describen:
+ * `performance.getEntriesByType("navigation")[0].type` describe el DOCUMENTO,
+ * y bajo el App Router una navegación por `Link` no crea documento nuevo. Tras
+ * una sola recarga, el tipo se queda en `"reload"` durante toda la vida de la
+ * pestaña.
+ *
+ * Sonda propia sobre el build servido (Chrome headless 1440x900, tema oscuro,
+ * muestreo del `scrollY` cada 100 ms durante 3 s tras volver a la portada):
+ *
+ *   A (control, sin recarga previa)
+ *     scroll a 9.000 -> clic a /privacidad -> clic a /
+ *     navType "navigate", 30 muestras a 0, sessionStorage vacío. Correcto.
+ *
+ *   B (con UNA recarga previa)
+ *     scroll a 9.000 -> recarga (restituye 9.000, correcto)
+ *     -> clic a /privacidad: navType SIGUE siendo "reload" y la entrada
+ *        `{"pathname":"/","scrollY":9000,"anchor":{"id":"contact",...}}` sigue
+ *        entera, porque una navegación de cliente no emite `pagehide`
+ *     -> clic a /: 30 muestras a 9.000. ROTO.
+ *
+ * Tres cosas tenían que fallar a la vez, y fallaban las tres: el tipo de
+ * navegación se quedaba en `"reload"`, la entrada de `sessionStorage` no se
+ * retiraba nunca (no había un solo `removeItem` en este fichero), y
+ * `HomeSections` REMONTA el hook en cada vuelta a la portada, con lo que
+ * `finishedRef` --un `useRef`, que muere con el desmontaje-- no cerraba
+ * ninguna puerta. Las tres condiciones volvían a cumplirse y la corrección se
+ * aplicaba sobre una entrada que la persona no había pedido.
+ *
+ * EL ARREGLO ES QUE LA RESTITUCIÓN SE CONSUME, con dos refuerzos que se
+ * apoyan mutuamente y que hacen falta LOS DOS:
+ *
+ * - **La entrada se retira al decidir** (`consumeStoredPosition`), tanto si se
+ *   va a restituir como si se descarta. La reescribe el siguiente `pagehide`
+ *   --que una recarga real SÍ emite-- así que la próxima recarga tiene su
+ *   valor fresco y una navegación de cliente posterior no encuentra nada. De
+ *   paso deja de haber un dato de sesión vivo sin necesitarlo, que es lo que
+ *   la ficha de `/privacidad` promete de esta entrada.
+ * - **Un guard de MÓDULO** (`restorationConsumed`), porque el borrado solo no
+ *   cierra el caso realista de cambiar de pestaña: restituida la posición y
+ *   borrada la entrada, ocultar la pestaña dispara `visibilitychange` y la
+ *   REESCRIBE con la posición de ese momento; una navegación de cliente
+ *   posterior volvería a encontrarla, con el tipo todavía en `"reload"`. Un
+ *   `useRef` no puede llevar esa marca (muere con el desmontaje) y
+ *   `sessionStorage` tampoco (es justo lo que se acaba de retirar): la marca
+ *   tiene que vivir exactamente lo que vive el DOCUMENTO, y eso es lo que dura
+ *   una variable de módulo -- una carga nueva trae un módulo nuevo.
  *
  * ## Cómo se restituye: el ancla, no el píxel
  *
@@ -157,10 +209,17 @@ import {
  *   pendiente del dueño que `docs/qa-3d-pendiente.md` declara desde el
  *   2026-08-12. Esta corrección hace que la divergencia deje de romper la
  *   recarga mientras se decide.
- * - NO borra la entrada al restituirla. No hace falta: el siguiente
- *   `pagehide` la reescribe entera, y la pestaña se la lleva al cerrarse.
  * - NO vive en las páginas legales: sin decks no hay divergencia de alto entre
  *   ramas, así que ahí la restitución nativa ya acierta.
+ * - NO le hace falta a `useFragmentLanding.ts` el mismo remedio, y se
+ *   comprobó antes de descartarlo: su `finishedRef` muere igual al
+ *   desmontarse y su `loadHashRef` se recaptura igual en cada montaje, pero lo
+ *   que recaptura es `window.location.hash`, que SÍ cambia con la navegación
+ *   de cliente. Al volver a la portada por un enlace sin fragmento lee `""` y
+ *   no hace nada; al volver por `/#contact` --el caso del pie de las
+ *   legales-- corrige hacia el destino que la persona acaba de pedir, que es
+ *   su trabajo. Su entrada describe la navegación EN CURSO; la de este hook
+ *   describía el documento, y de ahí la asimetría.
  */
 
 /** Lo que la portada anota antes de irse. Todo son datos planos: se serializa
@@ -209,21 +268,12 @@ function isStoredReadingPosition(
 }
 
 /**
- * `try/catch` alrededor de CADA acceso a `sessionStorage`, igual que
- * `ThemeProvider.tsx` alrededor de `localStorage` y por el mismo motivo
- * medido: el acceso lanza --no devuelve `null`-- en navegación privada de
- * algunos motores y con el almacenamiento de sitio bloqueado por política.
- * Una preferencia de scroll no puede tumbar la página.
+ * Interpreta lo que había guardado. Entre la escritura y la lectura cabe un
+ * despliegue con otro formato, y `sessionStorage` es texto que cualquiera
+ * puede editar desde las herramientas del navegador: lo que no se reconoce se
+ * descarta sin lanzar.
  */
-function readStoredPosition(): StoredReadingPosition | null {
-  let raw: string | null;
-  try {
-    raw = window.sessionStorage.getItem(STORAGE_KEYS.readingPosition);
-  } catch {
-    return null;
-  }
-  if (raw === null) return null;
-
+function parseStoredPosition(raw: string): StoredReadingPosition | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -231,6 +281,25 @@ function readStoredPosition(): StoredReadingPosition | null {
     return null;
   }
   return isStoredReadingPosition(parsed) ? parsed : null;
+}
+
+/**
+ * Retira la entrada. Es la mitad de "la restitución se consume": una posición
+ * de lectura solo vale para LA carga que la produjo, y dejarla viva después es
+ * lo que permitía que una navegación de cliente posterior la aplicara (ver el
+ * escenario B del docblock de cabecera).
+ *
+ * `try/catch` por el mismo motivo medido que la lectura y la escritura: el
+ * acceso LANZA, no devuelve `null`, con el almacenamiento de sitio bloqueado.
+ * Si no se pudo borrar tampoco pasa nada grave -- el guard de módulo cubre el
+ * mismo caso desde el otro lado, que es justamente por lo que son dos.
+ */
+function clearStoredPosition(): void {
+  try {
+    window.sessionStorage.removeItem(STORAGE_KEYS.readingPosition);
+  } catch {
+    // Sin almacenamiento no hay nada que borrar.
+  }
 }
 
 function writeStoredPosition(): void {
@@ -263,14 +332,85 @@ function isResumedNavigation(): boolean {
   return typeof type === "string" && RESUMED_NAVIGATION_TYPES.has(type);
 }
 
-/** La posición que hay que restituir en ESTA carga, o `null` si no hay nada
- *  que hacer. Se evalúa una sola vez: ver "Cuándo se restituye" arriba. */
+/**
+ * ¿ESTE documento ya consumió su restitución?
+ *
+ * Vive en el módulo y no en un `useRef` porque la propiedad que expresa es del
+ * DOCUMENTO, no del componente: `HomeSections` se desmonta y se vuelve a
+ * montar en cada vuelta a la portada por un enlace, y un `useRef` se lleva por
+ * delante la única marca que impedía repetir la restitución (escenario B del
+ * docblock de cabecera, 30 muestras a 9.000 px). Una variable de módulo dura
+ * exactamente lo que dura el documento: una recarga trae un módulo nuevo, que
+ * es justo cuando la restitución vuelve a tener sentido.
+ */
+let restorationConsumed = false;
+
+/**
+ * Reinicia el guard de módulo. EXISTE SOLO PARA LOS CANDADOS, y el nombre lo
+ * dice para que nadie lo llame por error: en el sitio real un documento nuevo
+ * trae un módulo nuevo y esta función no haría falta, pero jsdom reutiliza el
+ * mismo módulo para todos los casos de un fichero de test, así que sin ella
+ * solo el primero podría ejercitar una restitución. El candado que impide que
+ * ningún fichero de producción la nombre está en `useReloadLanding.test.ts`,
+ * y es una barredura por `fs` sobre `src/` y `app/`: una función que abre el
+ * guard no puede quedarse sin vigilancia solo porque su nombre lo desaconseje.
+ */
+export function resetReadingRestorationForTests(): void {
+  restorationConsumed = false;
+}
+
+/**
+ * Lee la entrada y la CONSUME: la retira del almacén y marca este documento
+ * como ya restituido. Los dos refuerzos se aplican aquí juntos a propósito --
+ * son la misma decisión vista desde dos sitios, y separarlos dejaría uno de
+ * los dos sin la otra mitad.
+ *
+ * SE CONSUME LO QUE HABÍA, se pueda interpretar o no: lo que decide es la
+ * existencia de la entrada, no que su contenido sirva. Una entrada ilegible
+ * --el formato de un despliegue anterior-- también se retira, porque dejarla
+ * viva sin marcar el guard abriría exactamente el agujero que este arreglo
+ * cierra: bastaría con que el siguiente `visibilitychange` escribiera una
+ * legible encima para que un montaje posterior volviera a obtener un sí.
+ *
+ * Cuando NO había nada no se consume nada, y ahí el guard tiene que quedarse
+ * abierto: una página que todavía no ha recibido su anotación no ha gastado
+ * ninguna restitución.
+ *
+ * `try/catch` alrededor de CADA acceso a `sessionStorage`, igual que
+ * `ThemeProvider.tsx` alrededor de `localStorage` y por el mismo motivo
+ * medido: el acceso lanza --no devuelve `null`-- en navegación privada de
+ * algunos motores y con el almacenamiento de sitio bloqueado por política.
+ * Una preferencia de scroll no puede tumbar la página.
+ */
+function consumeStoredPosition(): StoredReadingPosition | null {
+  let raw: string | null;
+  try {
+    raw = window.sessionStorage.getItem(STORAGE_KEYS.readingPosition);
+  } catch {
+    return null;
+  }
+  if (raw === null) return null;
+
+  clearStoredPosition();
+  restorationConsumed = true;
+  return parseStoredPosition(raw);
+}
+
+/**
+ * La posición que hay que restituir en ESTA carga, o `null` si no hay nada que
+ * hacer. Se evalúa una sola vez: ver "Cuándo se restituye" arriba.
+ *
+ * La entrada se consume ANTES de aplicar las tres condiciones, no después: se
+ * retira tanto si se va a restituir como si se descarta. Una posición que este
+ * documento ya ha mirado no vuelve a estar disponible para nadie, y el
+ * siguiente `pagehide` la reescribe con la posición del momento.
+ */
 function resolveRestorablePosition(): StoredReadingPosition | null {
+  const stored = consumeStoredPosition();
+  if (stored === null) return null;
+
   if (!isResumedNavigation()) return null;
   if (window.location.hash !== "") return null;
-
-  const stored = readStoredPosition();
-  if (stored === null) return null;
   return stored.pathname === window.location.pathname ? stored : null;
 }
 
@@ -287,7 +427,14 @@ export function useReloadLanding(branchKey: string): void {
    *  usuario media hora después volvería a saltar a la posición de la carga. */
   const finishedRef = useRef(false);
   /** `undefined` mientras no se ha decidido; después, la posición a restituir
-   *  o `null`. La decisión es de la CARGA y no se vuelve a tomar. */
+   *  o `null`. La decisión es de la CARGA y no se vuelve a tomar.
+   *
+   *  Sigue siendo un `useRef` y no una variable de módulo, y la asimetría con
+   *  `restorationConsumed` es deliberada: esto memoriza la decisión de ESTE
+   *  montaje para que las pasadas siguientes del efecto --las del cambio de
+   *  rama-- no la vuelvan a tomar, mientras que aquel recuerda que el
+   *  DOCUMENTO ya gastó la suya. Un montaje nuevo tiene que poder preguntar de
+   *  nuevo; lo que no puede es volver a obtener un sí. */
   const restorableRef = useRef<StoredReadingPosition | null | undefined>(
     undefined,
   );
@@ -309,7 +456,15 @@ export function useReloadLanding(branchKey: string): void {
   useEffect(() => {
     if (finishedRef.current) return;
     if (restorableRef.current === undefined) {
-      restorableRef.current = resolveRestorablePosition();
+      // El guard de módulo se consulta AQUÍ y no al principio del efecto: si
+      // cerrara la puerta en cada pasada, el montaje que sí tiene una
+      // restitución pendiente la perdería al cambiar de rama, que es
+      // exactamente lo que la puerta de `isMountedBranchEffective` espera para
+      // armar. Lo que este guard decide es si un MONTAJE NUEVO puede volver a
+      // obtener un sí, y esa pregunta solo se hace una vez por montaje.
+      restorableRef.current = restorationConsumed
+        ? null
+        : resolveRestorablePosition();
     }
     const restorable = restorableRef.current;
     if (restorable === null) return;

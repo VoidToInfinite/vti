@@ -97,6 +97,16 @@ export const STORAGE_KEYS = {
    * solo tiene sentido dentro de la pestaña que la produjo. MUERE AL CERRAR
    * LA PESTAÑA, sin que nadie tenga que borrarla, y no viaja a otras pestañas
    * ni sobrevive al cierre del navegador.
+   *
+   * Y ANTES DE ESO SE CONSUME (2026-09-06): desde la verificación de la ola S,
+   * la entrada se retira en cuanto la portada decide qué hacer con ella, se
+   * restituya o se descarte, y solo vuelve a escribirse en la siguiente salida
+   * (`pagehide`/`visibilitychange`). El motivo primero fue un defecto de
+   * scroll --sin retirarla, volver a la portada por un enlace tras una recarga
+   * repetía la restitución-- pero el efecto sobre esta ficha es el que importa
+   * aquí: el dato no sigue vivo cuando ya no hace falta, que es lo que la
+   * tabla de `/privacidad` promete de una entrada declarada como estado
+   * técnico de la sesión.
    */
   readingPosition: "vti-reading-position",
 } as const;

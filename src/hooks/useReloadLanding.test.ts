@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { renderHook } from "@testing-library/react";
 import {
   afterEach,
@@ -11,7 +14,10 @@ import {
 import { STORAGE_KEYS } from "@/config/storage";
 import { THEME_ATTRIBUTE } from "@/theme/resolveTheme";
 import { FRAGMENT_LANDING_SETTLE_MS } from "./useFragmentLanding";
-import { useReloadLanding } from "./useReloadLanding";
+import {
+  resetReadingRestorationForTests,
+  useReloadLanding,
+} from "./useReloadLanding";
 
 /*
  * LO QUE ESTE FICHERO PUEDE PROBAR Y LO QUE NO, escrito antes que los tests
@@ -241,6 +247,13 @@ beforeEach(() => {
   );
   setScrollY(0);
   window.sessionStorage.clear();
+  /* Cada caso es un DOCUMENTO NUEVO. En el sitio real eso lo garantiza la
+     carga: un documento nuevo trae un módulo nuevo y el guard de "ya consumí
+     mi restitución" nace abierto. jsdom reutiliza el módulo para todos los
+     casos de este fichero, así que sin esta línea solo el primero que
+     sembrara una entrada podría ejercitar una restitución -- y los demás
+     pasarían en verde por la razón equivocada. */
+  resetReadingRestorationForTests();
 });
 
 afterEach(() => {
@@ -887,5 +900,327 @@ describe("useReloadLanding: la puerta de la rama efectiva", () => {
     flushFrame();
     flushFrame();
     expect(scrollToMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * LA RESTITUCIÓN SE CONSUME (2026-09-06). El P1 que la verificación de la
+ * propia ola S encontró en el commit `58cb80f`, y su candado.
+ *
+ * QUÉ DEFECTO ATRAPA: pulsar un enlace interno para volver a la portada tras
+ * haber recargado una vez dejaba al lector a 9.000 px en vez de arriba. Sonda
+ * propia sobre el build servido (Chrome headless 1440x900, tema oscuro,
+ * muestreo del `scrollY` cada 100 ms durante 3 s tras volver a la portada):
+ *
+ *   A (control, sin recarga previa)   navType "navigate"   30 muestras a 0
+ *   B (con UNA recarga previa)        navType "reload"     30 muestras a 9.000
+ *
+ * En B, el `navType` leído YA EN /privacidad seguía siendo `"reload"` y la
+ * entrada `{"pathname":"/","scrollY":9000,"anchor":{"id":"contact",...}}`
+ * seguía entera: `performance.getEntriesByType("navigation")` describe el
+ * DOCUMENTO, y una navegación por `Link` del App Router no crea documento
+ * nuevo. Las tres condiciones del hook (tipo reanudado, sin fragmento, mismo
+ * `pathname`) volvían a cumplirse en cada vuelta a la portada, y `finishedRef`
+ * --un `useRef`-- moría con el desmontaje de `HomeSections`.
+ *
+ * MATRIZ DE ESTE CANDADO (regla 2 de la lección del 2026-09-06):
+ *
+ * - Ciclo de vida: el mismo montaje (ya cubierto arriba por el cambio de rama)
+ *   y un MONTAJE NUEVO tras desmontar, que es el eje del defecto.
+ * - Estado del almacén al remontar: entrada repuesta por el escritor
+ *   (`visibilitychange`), y ausente. Los dos, porque cada uno ejercita un
+ *   refuerzo distinto: el guard de módulo y el borrado.
+ * - Decisión de la primera carga: restituir (`reload`) y descartar
+ *   (`navigate`). El consumo no depende de cuál de las dos fue.
+ * - Contenido de la entrada: legible e ILEGIBLE, porque lo que decide el
+ *   consumo es que la entrada exista, no que sirva.
+ * - Tipo de navegación: `reload` en la carga y `reload` TAMBIÉN en la vuelta,
+ *   que es literalmente lo que el navegador reporta y la razón de que esa
+ *   condición no baste por sí sola.
+ *
+ * QUEDA FUERA: el `pathname`, el fragmento y la rama de tema no interactúan
+ * con el consumo (se evalúan después, sobre la entrada ya consumida) y tienen
+ * sus casos propios más arriba.
+ */
+describe("useReloadLanding: la restitución se consume", () => {
+  /*
+   * CANDADO (1), el del defecto medido. Reproduce el escenario B entero: se
+   * restituye tras la recarga, el lector oculta la pestaña (el escritor repone
+   * la entrada, que es lo que hace que el borrado POR SÍ SOLO no baste),
+   * `HomeSections` se desmonta al irse a la legal y se vuelve a montar al
+   * volver a la portada. El tipo de navegación sigue siendo `"reload"` en todo
+   * momento, igual que en el navegador.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (se retira el guard de módulo:
+   * `restorableRef.current = resolveRestorablePosition();` en vez de la
+   * consulta a `restorationConsumed`). Cae con la línea LITERAL
+   *
+   *   AssertionError: volver a la portada por un enlace repitió la
+   *   restitución: es el defecto medido (30 muestras a 9.000 px en vez de 0):
+   *   expected "spy" to not be called at all, but actually been called 1 times
+   *
+   * y con él el candado de la entrada ilegible, que se apoya en el mismo
+   * guard -- `Tests 2 failed | 34 passed (36)`.
+   *
+   * LA PRIMERA VERSIÓN DE ESTE CANDADO ERA UN FALSO VERDE, y queda escrito
+   * porque el siguiente que lo toque puede repetirlo: no movía el `scrollY`
+   * tras la restitución, así que la entrada que el escritor reponía apuntaba
+   * al sitio donde la página ya estaba y el remontaje no llamaba a `scrollTo`
+   * ni con el bug puesto (`Tests 1 failed | 35 passed (36)`, y el que caía era
+   * otro). Un candado de scroll tiene que dejar el scroll DONDE LA CORRECCIÓN
+   * ANTERIOR LO PUSO, o mide el umbral de 1 px en vez del defecto.
+   */
+  it("tras restituir, volver a la portada por un enlace NO vuelve a mover el scroll", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    const primeraCarga = renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+
+    /* El motor lleva la página adonde la restitución acaba de pedir. Aquí se
+       refleja a mano porque `scrollTo` está espiado, y NO es un detalle
+       cosmético: sin mover el scroll, la entrada que el escritor repone abajo
+       apuntaría al sitio donde ya estamos y la restitución del remontaje sería
+       un no-op por el umbral de 1 px -- un verde que no probaría nada. */
+    document.body.innerHTML = "";
+    setScrollY(SAVED_SCROLL_Y);
+    mountSection("contact", CONTACT_TOP_DOC - SAVED_SCROLL_Y, CONTACT_HEIGHT);
+
+    // El lector se va a otra pestaña: el escritor repone la entrada con la
+    // posición del momento, para que la PRÓXIMA recarga tenga su valor fresco.
+    const visibility = vi.spyOn(document, "visibilityState", "get");
+    visibility.mockReturnValue("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(
+      readStoredPosition(),
+      "el escritor tiene que reponer la entrada al ocultarse la pestaña",
+    ).toMatchObject({ scrollY: SAVED_SCROLL_Y });
+    visibility.mockRestore();
+
+    /* La vuelta a la portada por un enlace: MISMO documento --el tipo de
+       navegación sigue diciendo "reload", igual que en la sonda--, el App
+       Router deja el scroll arriba y `HomeSections` se vuelve a montar. */
+    primeraCarga.unmount();
+    document.body.innerHTML = "";
+    setScrollY(0);
+    mountSection("contact", CONTACT_TOP_DOC, CONTACT_HEIGHT);
+    scrollToMock.mockClear();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(
+      scrollToMock,
+      "volver a la portada por un enlace repitió la restitución: es el defecto medido (30 muestras a 9.000 px en vez de 0)",
+    ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * CANDADO (2), el otro refuerzo por separado. Sin escritor de por medio, la
+   * entrada tiene que DEJAR DE ESTAR en cuanto la decisión se toma -- antes
+   * incluso de que los relojes venzan, porque lo que la retira es la decisión
+   * y no la corrección.
+   *
+   * Es además lo que sostiene la ficha de `/privacidad`: un dato de sesión
+   * declarado como estado técnico no puede seguir vivo cuando ya no hace
+   * falta.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (se retira la llamada a
+   * `clearStoredPosition()` de `consumeStoredPosition`). Cae con la línea
+   * LITERAL
+   *
+   *   AssertionError: la entrada sigue en sessionStorage tras decidir
+   *   restituirla: una navegación de cliente posterior volvería a
+   *   encontrarla: expected { pathname: '/', scrollY: 9000, …(1) } to be null
+   *
+   * y con él los otros tres casos de este bloque que miran el almacén --
+   * `Tests 4 failed | 32 passed (36)`.
+   */
+  it("al decidir restituir, la entrada de sessionStorage deja de estar", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+
+    expect(
+      readStoredPosition(),
+      "la entrada sigue en sessionStorage tras decidir restituirla: una navegación de cliente posterior volvería a encontrarla",
+    ).toBeNull();
+
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+    expect(readStoredPosition()).toBeNull();
+  });
+
+  /*
+   * La otra mitad del consumo: se retira igual cuando la decisión es
+   * DESCARTAR. Una entrada que este documento ya ha mirado no vuelve a estar
+   * disponible para nadie, decidiera lo que decidiera.
+   */
+  it("al decidir descartar (navigate), la entrada también deja de estar", () => {
+    setNavigationType("navigate");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+    expect(readStoredPosition()).toBeNull();
+  });
+
+  /*
+   * Lo que decide el consumo es que la entrada EXISTA, no que sirva. Sin esto
+   * quedaría un agujero estrecho pero real: el formato de un despliegue
+   * anterior no se retiraría ni cerraría el guard, y bastaría con que el
+   * siguiente `visibilitychange` escribiera una entrada legible encima para
+   * que un montaje posterior volviera a obtener un sí.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 por las DOS vías, porque este
+   * caso vigila los dos refuerzos a la vez: retirando el guard de módulo cae
+   * con `AssertionError: el guard quedó abierto tras consumir una entrada
+   * ilegible: expected "spy" to not be called at all, but actually been called
+   * 1 times` (`Tests 2 failed | 34 passed (36)`), y retirando
+   * `clearStoredPosition()` cae con `AssertionError: expected { pathname: '/',
+   * scrollY: 9000, …(1) } to be null` (`Tests 4 failed | 32 passed (36)`).
+   */
+  it("una entrada ilegible también se consume: se retira y cierra el guard", () => {
+    setNavigationType("reload");
+    seedStoredPosition("{formato-de-otro-despliegue");
+    mountPageAfterReload();
+
+    const primeraCarga = renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).not.toHaveBeenCalled();
+    expect(
+      readStoredPosition(),
+      "la entrada ilegible se quedó viva en el almacén",
+    ).toBeNull();
+
+    primeraCarga.unmount();
+    seedStoredPosition(SAVED_POSITION);
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(
+      scrollToMock,
+      "el guard quedó abierto tras consumir una entrada ilegible",
+    ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * El complementario que impide que este arreglo se pase de frenada: consumir
+   * la entrada NO puede dejar la pestaña sin restitución para la próxima
+   * recarga. El escritor sigue vivo y repone el valor en la siguiente salida,
+   * que es de dónde sale el dato fresco de la recarga siguiente.
+   */
+  it("consumida la entrada, el escritor la repone en la siguiente salida", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(readStoredPosition()).toBeNull();
+
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(readStoredPosition()).toMatchObject({
+      pathname: "/",
+      scrollY: BROWSER_RESTORED_SCROLL_Y,
+    });
+  });
+
+  /*
+   * Sin nada guardado no se ha consumido nada, y el guard tiene que quedarse
+   * ABIERTO: una portada que se monta antes de recibir su primera anotación no
+   * puede quedarse sin restitución para el resto de la vida del documento.
+   *
+   * Es el caso que separa "consumir" de "haber corrido una vez", y el que hace
+   * que este arreglo no rompa el candado de cableado de `HomeSections.test.tsx`
+   * --nueve montajes sin entrada sembrada antes del que sí la siembra--.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (`restorationConsumed = true`
+   * movido ANTES del `if (raw === null) return null;`, que es la versión
+   * "marcar siempre" que rompería ese candado de cableado): cae con
+   * `AssertionError: expected "spy" to be called 1 times, but got 0 times` --
+   * `Tests 1 failed | 35 passed (36)`.
+   */
+  it("si no había nada guardado, el guard queda abierto para un montaje posterior", () => {
+    setNavigationType("reload");
+    mountPageAfterReload();
+
+    const primeraCarga = renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).not.toHaveBeenCalled();
+
+    primeraCarga.unmount();
+    seedStoredPosition(SAVED_POSITION);
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * `resetReadingRestorationForTests` abre el guard, así que una llamada suya
+   * en producción devolvería el defecto entero sin que ningún test de
+   * comportamiento se enterara: los candados de arriba la llaman en su
+   * `beforeEach`, y en verde seguirían. Esta barredura por `fs` es lo único
+   * que lo impide -- mismo patrón y mismo motivo que el censo del literal
+   * `"vti-"` en `storage.test.ts`.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (una línea con el nombre de la
+   * función añadida a `src/config/storage.ts`): cae con `AssertionError: abrir
+   * el guard fuera de un test devuelve el defecto de la navegación de cliente:
+   * expected [ Array(1) ] to deeply equal []` --
+   * `Tests 1 failed | 35 passed (36)`.
+   */
+  it("ningún fichero de producción llama a resetReadingRestorationForTests", () => {
+    const raiz = dirname(fileURLToPath(import.meta.url));
+    const arboles = [join(raiz, ".."), join(raiz, "..", "..", "app")];
+
+    function ficherosDeProduccion(dir: string): string[] {
+      const encontrados: string[] = [];
+      for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+        const completo = join(dir, entrada.name);
+        if (entrada.isDirectory()) {
+          encontrados.push(...ficherosDeProduccion(completo));
+        } else if (
+          /\.(ts|tsx)$/.test(entrada.name) &&
+          !/\.test\.(ts|tsx)$/.test(entrada.name)
+        ) {
+          encontrados.push(completo);
+        }
+      }
+      return encontrados;
+    }
+
+    const infractores = arboles
+      .flatMap(ficherosDeProduccion)
+      .filter(
+        (fichero) =>
+          !fichero.endsWith("useReloadLanding.ts") &&
+          readFileSync(fichero, "utf-8").includes(
+            "resetReadingRestorationForTests",
+          ),
+      );
+
+    expect(
+      infractores,
+      "abrir el guard fuera de un test devuelve el defecto de la navegación de cliente",
+    ).toEqual([]);
   });
 });
