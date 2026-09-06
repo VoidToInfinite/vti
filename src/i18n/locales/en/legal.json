@@ -53,7 +53,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "If you only have a minute: browsing this website gives us no data about you. There is no analytics, no tracking, no advertising and no profiling. The only thing stored on your device is the theme you choose yourself."
+                            "text": "If you only have a minute: browsing this website gives us no data about you. There is no analytics, no tracking, no advertising and no profiling. Only two things are stored on your device: the theme you choose yourself and, for as long as the tab stays open, where you were reading."
                         },
                         {
                             "kind": "dl",
@@ -166,18 +166,18 @@
                 },
                 {
                     "id": "almacenamiento",
-                    "heading": "What we store on your device (technical preferences)",
+                    "heading": "What we store on your device (technical storage)",
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "This is the complete and only list of everything this website writes on your device. They are technical preferences that hold a choice made by you, and they are stored using your own browser's localStorage and sessionStorage (the latter is cleared on its own when you close the tab). There are no HTTP cookies, no analytics and no third-party scripts."
+                            "text": "This is the complete and only list of everything this website writes on your device, and not all of it is of the same kind: there is a preference you choose yourself, the theme, and a technical state of the browsing session itself, where you were reading, which nobody chooses. They are stored using your own browser's localStorage and sessionStorage, and the second one is cleared on its own when you close the tab. There are no HTTP cookies, no analytics and no third-party scripts."
                         },
                         {
                             "kind": "storage"
                         },
                         {
                             "kind": "p",
-                            "text": "These preferences serve only to remember your choice. They are not used for analytics, advertising, tracking, identification, profiling or to relate your visits to any other purpose."
+                            "text": "Each entry serves only the purpose its own row declares: remembering the theme you chose and taking you back to where you were reading. They are not used for analytics, advertising, tracking, identification, profiling or to relate your visits to any other purpose."
                         },
                         {
                             "kind": "note",
@@ -185,7 +185,7 @@
                         },
                         {
                             "kind": "p",
-                            "text": "You can delete these preferences at any time from your browser settings (clear site data or browsing data). The site will keep working: it will simply go back to its default values."
+                            "text": "You can delete these entries at any time from your browser settings (clear site data or browsing data). The site will keep working: it will simply go back to its default values."
                         }
                     ]
                 },

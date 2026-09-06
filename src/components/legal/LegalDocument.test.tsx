@@ -363,6 +363,93 @@ describe("LegalDocument", () => {
     }
   });
 
+  /*
+   * LA PROSA DE LA SECCIÓN NO PUEDE AFIRMAR QUE TODO LO GUARDADO SEA UNA
+   * ELECCIÓN DEL VISITANTE (2026-09-06, verificación de la ola S).
+   *
+   * El defecto: el párrafo que encabeza la tabla decía «Son preferencias
+   * técnicas que guardan una elección hecha por ti» y el resumen de primera
+   * capa, «Lo único que se guarda en tu equipo es el tema que tú mismo
+   * elijas» — mientras el registro ya llevaba una segunda entrada que, en
+   * palabras del docblock que la propia ola escribió en `config/storage.ts`,
+   * «no es una preferencia que nadie elija, es el estado técnico de la propia
+   * sesión de navegación». Las afirmaciones no podían ser ciertas a la vez, y
+   * es texto de cumplimiento sobre un dato del visitante.
+   *
+   * POR QUÉ LA PROHIBICIÓN ESTÁ ATADA AL REGISTRO Y NO ES UNA REGLA DE
+   * ESTILO: cada bloque se salta a sí mismo si la condición que hace falsa la
+   * frase no se cumple. La afirmación universal de elección solo es falsa
+   * mientras exista una entrada que nadie elige (hoy, la de `sessionStorage`);
+   * «lo único que se guarda» solo es falso mientras el registro tenga más de
+   * una entrada. El día que el registro vuelva a tener una sola entrada
+   * elegida, las dos frases vuelven a ser verdad y este candado deja de
+   * pedirlas — que es justo lo que un candado de veracidad debe hacer.
+   *
+   * Validado con DOS bugs inyectados, uno por cada mitad, sobre la copia
+   * inglesa (su frase anterior es ASCII pura y sobrevive intacta al paso por
+   * la shell, que es lo único que decidió el idioma de la inyección).
+   *
+   * Devolviendo al párrafo de almacenamiento su frase anterior, «they are
+   * technical preferences that hold a choice made by you»:
+   *   AssertionError: la prosa de almacenamiento afirma que TODO lo guardado
+   *   es una elección del visitante, y el registro incluye una entrada de
+   *   sesión que nadie elige: expected 'This is the complete and only list
+   *   of…' not to contain 'a choice made by you'
+   *
+   * Devolviendo al resumen el suyo, «The only thing stored on your device is
+   * the theme you choose yourself.»:
+   *   AssertionError: el resumen anuncia una sola cosa guardada y el registro
+   *   declara 2: expected 'If you only have a minute: browsing t…' not to
+   *   contain 'The only thing stored on your device'
+   */
+  it("la prosa de almacenamiento no afirma que todas las entradas sean una elección del visitante, en los dos idiomas", () => {
+    const hayEntradaNoElegida = STORAGE_REGISTRY.some(
+      (entrada) => entrada.kind === "sessionStorage",
+    );
+    expect(hayEntradaNoElegida).toBe(true);
+    expect(STORAGE_REGISTRY.length).toBeGreaterThan(1);
+
+    /* Las frases EXACTAS que afirmaban lo que el registro desmiente, una
+       lista por idioma. Es un trinquete de vocabulario, no una copia del
+       texto nuevo: comprueba que lo falso no vuelve, no que lo escrito diga
+       una cosa concreta. */
+    const eleccionUniversal = {
+      es: ["una elección hecha por ti", "únicamente para recordar tu elección"],
+      en: ["a choice made by you", "only to remember your choice"],
+    } as const;
+    const listaIncompleta = {
+      es: ["Lo único que se guarda en tu equipo"],
+      en: ["The only thing stored on your device"],
+    } as const;
+
+    for (const [idioma, bundle] of [
+      ["es", esLegal],
+      ["en", enLegal],
+    ] as const) {
+      const almacenamiento = parrafosDe(bundle, "privacy", "almacenamiento");
+      expect(almacenamiento.length).toBeGreaterThan(0);
+      for (const texto of almacenamiento) {
+        for (const prohibida of eleccionUniversal[idioma]) {
+          expect(
+            texto,
+            "la prosa de almacenamiento afirma que TODO lo guardado es una elección del visitante, y el registro incluye una entrada de sesión que nadie elige",
+          ).not.toContain(prohibida);
+        }
+      }
+
+      const resumen = parrafosDe(bundle, "privacy", "resumen");
+      expect(resumen.length).toBeGreaterThan(0);
+      for (const texto of resumen) {
+        for (const prohibida of listaIncompleta[idioma]) {
+          expect(
+            texto,
+            `el resumen anuncia una sola cosa guardada y el registro declara ${STORAGE_REGISTRY.length}`,
+          ).not.toContain(prohibida);
+        }
+      }
+    }
+  });
+
   it("la tabla de almacenamiento declara th[scope='col'] y <caption>", () => {
     const { container } = renderWithProviders(
       <LegalDocument docKey="privacy" />,

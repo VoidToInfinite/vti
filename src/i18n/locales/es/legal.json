@@ -53,7 +53,7 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "Si solo tienes un minuto: navegar por esta web no nos da ningún dato sobre ti. No hay analítica, ni seguimiento, ni publicidad, ni perfiles. Lo único que se guarda en tu equipo es el tema que tú mismo elijas."
+                            "text": "Si solo tienes un minuto: navegar por esta web no nos da ningún dato sobre ti. No hay analítica, ni seguimiento, ni publicidad, ni perfiles. En tu equipo solo se guardan dos cosas: el tema que tú mismo elijas y, mientras la pestaña siga abierta, por dónde ibas leyendo."
                         },
                         {
                             "kind": "dl",
@@ -166,18 +166,18 @@
                 },
                 {
                     "id": "almacenamiento",
-                    "heading": "Qué guardamos en tu equipo (preferencias técnicas)",
+                    "heading": "Qué guardamos en tu equipo (almacenamiento técnico)",
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "Esta es la lista completa y única de todo lo que este sitio escribe en tu equipo. Son preferencias técnicas que guardan una elección hecha por ti, y se almacenan con las tecnologías localStorage y sessionStorage de tu propio navegador (la segunda se borra sola al cerrar la pestaña). No hay cookies HTTP, ni analítica, ni scripts de terceros."
+                            "text": "Esta es la lista completa y única de todo lo que este sitio escribe en tu equipo, y no todo es de la misma clase: hay una preferencia que eliges tú, el tema, y un estado técnico de la propia sesión de navegación, por dónde ibas leyendo, que no elige nadie. Se guardan con las tecnologías localStorage y sessionStorage de tu propio navegador, y la segunda se borra sola al cerrar la pestaña. No hay cookies HTTP, ni analítica, ni scripts de terceros."
                         },
                         {
                             "kind": "storage"
                         },
                         {
                             "kind": "p",
-                            "text": "Estas preferencias sirven únicamente para recordar tu elección. No se usan para analítica, publicidad, seguimiento, identificación, elaboración de perfiles ni para relacionar tus visitas con ninguna otra finalidad."
+                            "text": "Cada entrada sirve únicamente para la finalidad que declara su fila: recordar el tema que elegiste y devolverte a donde ibas leyendo. No se usan para analítica, publicidad, seguimiento, identificación, elaboración de perfiles ni para relacionar tus visitas con ninguna otra finalidad."
                         },
                         {
                             "kind": "note",
@@ -185,7 +185,7 @@
                         },
                         {
                             "kind": "p",
-                            "text": "Puedes borrar estas preferencias en cualquier momento desde las opciones de tu navegador (borrar datos de sitios o datos de navegación). El sitio seguirá funcionando: simplemente volverá a sus valores por defecto."
+                            "text": "Puedes borrar estas entradas en cualquier momento desde las opciones de tu navegador (borrar datos de sitios o datos de navegación). El sitio seguirá funcionando: simplemente volverá a sus valores por defecto."
                         }
                     ]
                 },
