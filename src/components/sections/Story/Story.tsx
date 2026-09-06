@@ -574,12 +574,88 @@ const ScGrid = styled.div`
   }
 `;
 
+/*
+ * Columna de la figura de la rama CLARA.
+ *
+ * EL BLOQUE `[data-theme="dark"] &` NO ES ESTILO: ES EL CANDADO DE PESO DEL
+ * TEMA OSCURO (P1 numero 4 de la critica externa #19, 2026-09-06; ancla
+ * tecnica "ningun tema descarga mas de 100 KB de arte que no pinta"). Sin el,
+ * una visita OSCURA descarga la figura CLARA de esta seccion y no la pinta
+ * jamas.
+ *
+ * EL DEFECTO, MEDIDO. Sobre el build de `f3594ad` servido por interceptacion
+ * de rutas en Chrome (1440x900, tema oscuro fijado en `localStorage`, 3 s tras
+ * `load`, sin tocar el scroll): a DPR 1 el navegador pedia
+ * `/figures/journey-presenting-640.webp` (87.260 B) y a DPR 2
+ * `/figures/journey-presenting-1024.webp` (163.368 B), y NINGUNO de los dos
+ * aparecia en el DOM tras hidratar. La misma medicion con este bloque puesto
+ * da CERO peticiones de `journey-presenting-*` en oscuro. El ancla solo se
+ * cruza a DPR 2, y las seis corridas del protocolo de perf van a DPR 1: por
+ * eso el defecto sobrevivio diecinueve criticas.
+ *
+ * LA CAUSA RAIZ. El HTML horneado es SIEMPRE la rama clara -- `ThemeProvider`
+ * no puede leer `localStorage` durante el render sin romper el export estatico
+ * (ver su docblock y el de `HeroBackdrop`), asi que el tema se corrige en un
+ * efecto, ya en cliente. El parser, por tanto, ve esta figura tambien en una
+ * visita oscura, y `loading="lazy"` NO la salva: en la geometria CLARA la
+ * figura queda a unos 770 px del borde superior, dentro del umbral de carga
+ * perezosa de Chrome, asi que el cargador la pide en el PRIMER layout, mucho
+ * antes de que la hidratacion sustituya la rama entera por el deck oscuro.
+ *
+ * POR QUE ESTE BLOQUE LO CIERRA. La carga perezosa es por INTERSECCION, y un
+ * elemento sin caja no interseca nunca. El script anti-flash escribe
+ * `data-theme` en el `<html>` desde el `<head>` (indice 4.376 del HTML
+ * exportado) y el CSS de styled-components viaja en ese mismo `<head>` (un
+ * unico `<style>`, que cierra en el 89.890), los dos ANTES del `<body>`
+ * (89.897). En una visita oscura, pues, esta columna ya no tiene caja en el
+ * primer layout y el cargador perezoso no llega a pedir la imagen; despues, la
+ * hidratacion desmonta la rama clara y no vuelve. En claro no cambia
+ * absolutamente nada (el selector no aplica) y sin JavaScript tampoco: sin
+ * script anti-flash el atributo ni siquiera existe (medido: `data-theme` es
+ * `null`) y la figura se descarga y se pinta igual que siempre.
+ *
+ * ES UNA CONJUNCION CON `loading="lazy"`, y eso importa para quien venga
+ * despues: una imagen NO perezosa se pide en cuanto el parser ve su `src`,
+ * tenga caja o no. Medido sirviendo este mismo build sin el atributo: la
+ * visita oscura vuelve a pedir 702.088 B de figuras claras que no pinta
+ * (`journey-presenting-1024` 163.368 + `contact-waving-1024` 185.716 +
+ * `story-pointing-640` 106.770). Quitar el `loading="lazy"` de esta figura
+ * reabre el hallazgo, y por eso el candado de `Story.test.tsx` ata las DOS
+ * cosas a la vez, no solo la regla.
+ *
+ * VA EN EL ENVOLTORIO Y NO EN EL `<img>` a proposito: ocultar solo la imagen
+ * dejaria a `ScHalo` pintando su degradado radial sobre un hueco vacio durante
+ * la prehidratacion de una visita oscura. Ocultar la columna se lleva los dos.
+ *
+ * LO QUE SE DESCARTO, tambien por medicion:
+ * - Renderizar `src`/`srcSet` solo tras confirmar el tema en cliente: sin
+ *   JavaScript la rama clara perderia la figura, y su `alt` es CONTENIDO
+ *   ("Figura celestial ofreciendo la palma abierta"), no decoracion. Hoy con
+ *   `javaScriptEnabled: false` la figura se pinta (450x658 a DPR 1 y 2); con
+ *   esa via dejaria de hacerlo.
+ * - El patron de `HeroBackdrop` (no emitir arte en el HTML y sembrarlo en el
+ *   efecto de montaje leyendo `readResolvedTheme()`): mismo coste que el
+ *   anterior MAS retrasar la figura CLARA a despues de la hidratacion.
+ *   `HeroBackdrop` puede permitirselo porque sus capas son decorativas
+ *   (`aria-hidden`, `alt=""`) y no prometen nada sin JavaScript; esta figura
+ *   si.
+ *
+ * MATRIZ VERIFICADA (regla 2 de la leccion 2026-09-06): tema claro/oscuro x
+ * DPR 1/2 x 1440x900 y 390x844 x `reduce` activo e inactivo x `/` y `/en` x
+ * JavaScript activo y apagado. Queda FUERA la recarga con el tema ya fijado,
+ * que no la cambia: la regla es CSS estatico del `<head>` y no depende de
+ * ningun estado de cliente.
+ */
 const ScFigureWrap = styled.div`
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: min(${STORY_FIGURE_HEIGHT}, 70vh);
+
+  [data-theme="dark"] & {
+    display: none;
+  }
 `;
 
 const ScHalo = styled.div`
@@ -1812,7 +1888,14 @@ function StoryLight(): ReactElement {
                   dueño intercambió las dos figuras entre Story y Journey y el
                   intercambio se conserva. El alt describe LA IMAGEN (la palma
                   abierta), no el nombre del fichero ni la sección -- ver el
-                  docblock de `JOURNEY_FIGURE_SRC` en journey.layers.ts. */}
+                  docblock de `JOURNEY_FIGURE_SRC` en journey.layers.ts.
+
+                  `loading="lazy"` NO ES SOLO RENDIMIENTO DE LA RAMA CLARA: es
+                  la mitad del candado que impide que una visita OSCURA se
+                  descargue esta figura (la otra mitad es la regla
+                  `[data-theme="dark"]` de `ScFigureWrap` -- ver su docblock,
+                  con la medicion de los 702.088 B que vuelven al quitar este
+                  atributo). No se cambia a `eager` sin volver a medir. */}
               <ScFigureImg
                 src="/figures/journey-presenting-1024.webp"
                 srcSet="/figures/journey-presenting-640.webp 640w, /figures/journey-presenting-1024.webp 1024w"

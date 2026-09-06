@@ -31,6 +31,7 @@ import {
   STORY_DECK_TAIL_SCREENS,
   STORY_DECK_TITLE_SIZE,
   STORY_FIGURE_SCROLL_SHIFT,
+  STORY_FIGURE_SIZES,
   STORY_SLIDES,
 } from "./story.layers";
 import { STORY_COSMIC_BEING_VOID } from "@/components/scenes/storyCosmicBeing/storyCosmicBeing.layers";
@@ -179,6 +180,48 @@ function revealedSelectorTextFor(el: HTMLElement): string {
  * es peor que ninguno), exactamente como `Journey.test.tsx` retiro el suyo
  * cuando la critica #10 se llevo su unico consumidor.
  */
+
+/**
+ * La regla del CSSOM que oculta un elemento cuando el `<html>` lleva
+ * `data-theme="dark"`, devuelta ENTERA (no su texto) para poder leer su
+ * `selectorText` real.
+ *
+ * Mismo motivo que `revealedSelectorTextFor`, mas arriba: el selector
+ * DESCENDIENTE `[data-theme="dark"] &` compila a `[data-theme="dark"] .sc-xxxx`
+ * (atributo, ESPACIO, clase) y el calificado `&[data-theme="dark"]` compila a
+ * `.sc-xxxx[data-theme="dark"]` -- las dos cadenas contienen el mismo
+ * substring, asi que `cssRuleTextFor` no las distingue. Aqui la diferencia no
+ * es estilistica: el atributo lo escribe el script anti-flash en el `<html>`,
+ * NUNCA en este `div`, asi que la forma calificada no aplicaria jamas y el
+ * candado quedaria en verde sobre una regla muerta (leccion 2026-08-07).
+ */
+function reglaDeTemaOscuroPara(el: HTMLElement): CSSStyleRule {
+  const classes = Array.from(el.classList);
+  const rule = Array.from(document.styleSheets)
+    .flatMap((sheet) => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .find((r): r is CSSStyleRule => {
+      if (!("selectorText" in r)) return false;
+      const selector = (r as CSSStyleRule).selectorText ?? "";
+      return (
+        selector.includes('[data-theme="dark"]') &&
+        classes.some((cls) => selector.includes(`.${cls}`))
+      );
+    });
+  if (!rule) {
+    throw new Error(
+      'Ninguna regla [data-theme="dark"] aplica a este elemento: la figura ' +
+        "clara vuelve a tener caja en una visita oscura y el navegador la " +
+        "descargara (P1 numero 4 de la critica externa #19)",
+    );
+  }
+  return rule;
+}
 
 /**
  * Alto simulado de la pista del deck, con la MISMA aritmetica que declara
@@ -933,6 +976,128 @@ describe("Story: D11, la figura iguala la altura de la columna de contenido", ()
         decl.startsWith("min-height") || decl.startsWith("max-height"),
       ).toBe(true);
     });
+  });
+});
+
+/*
+ * P1 numero 4 de la critica externa #19 (2026-09-06), ancla tecnica "ningun
+ * tema descarga mas de 100 KB de arte que no pinta".
+ *
+ * QUE INCUMPLIA EL DEFECTO. El HTML horneado es siempre la rama CLARA, asi que
+ * una visita OSCURA parsea esta figura igual, la pide en el primer layout
+ * (esta dentro del umbral de carga perezosa de Chrome en la geometria clara) y
+ * la tira al hidratar. Medido sobre el build de `f3594ad` por interceptacion de
+ * rutas: 87.260 B a DPR 1 y 163.368 B a DPR 2, ninguno de los dos en el DOM.
+ * Con la regla puesta, CERO peticiones de `journey-presenting-*` en oscuro en
+ * toda la matriz medida (DPR 1 y 2, 1440x900 y 390x844, `reduce` activo e
+ * inactivo, `/` y `/en`), y el claro intacto (figura descargada y pintada a
+ * 450x658, con y sin JavaScript).
+ *
+ * QUE ATAN ESTOS DOS CASOS, y por que hacen falta los dos. El arreglo es una
+ * CONJUNCION: la regla quita la caja (sin caja no hay interseccion, y la carga
+ * perezosa es por interseccion) y `loading="lazy"` es lo que hace que la
+ * peticion dependa de esa caja. Una imagen NO perezosa se pide en cuanto el
+ * parser ve su `src`, oculta o no -- medido sirviendo el mismo build sin el
+ * atributo: la visita oscura vuelve a pedir 702.088 B de figuras claras que no
+ * pinta. Atar solo la regla dejaria el hallazgo reabierto por un `eager`.
+ *
+ * Los dos casos se validaron con bug inyectado (ver sus comentarios internos
+ * para la linea roja literal de cada uno).
+ */
+describe("Story: la figura clara no se descarga en tema oscuro (P1 numero 4, critica externa #19)", () => {
+  it("la columna de la figura pierde su caja bajo html[data-theme=dark], y con selector DESCENDIENTE", () => {
+    /* Bug inyectado 1 (quitando el bloque `[data-theme="dark"] &` entero de
+       `ScFigureWrap`, Story.tsx) -- que es EXACTAMENTE el estado del repo en
+       `f3594ad`, el build sobre el que se midio el hallazgo:
+
+         Error: Ninguna regla [data-theme="dark"] aplica a este elemento: la
+         figura clara vuelve a tener caja en una visita oscura y el navegador
+         la descargara (P1 numero 4 de la critica externa #19)
+
+       Bug inyectado 2 (cambiando el descendiente `[data-theme="dark"] &` por
+       el calificado `&[data-theme="dark"]`, que compila a una regla que no
+       puede aplicar nunca porque el atributo vive en el `<html>`):
+
+         AssertionError: el selector tiene que ser DESCENDIENTE
+         ([data-theme="dark"] .clase): el atributo lo escribe el script
+         anti-flash en el <html>, no en este div, asi que la forma calificada
+         (.clase[data-theme="dark"]) no aplicaria nunca: expected false to be
+         true // Object.is equality
+         - Expected
+         + Received
+         - true
+         + false
+
+       Las dos inyecciones dieron "Tests 1 failed | 125 passed (126)". */
+    renderWithProviders(<Story />);
+    const figure = screen.getByAltText(esHome.Home.story.figureAlt);
+    // figure -> ScFigureShift (parent) -> ScFigureWrap (grandparent), el
+    // mismo camino que ya recorre el caso de D11, mas arriba.
+    const figureWrap = figure.parentElement?.parentElement as HTMLElement;
+    const rule = reglaDeTemaOscuroPara(figureWrap);
+
+    expect(
+      /\[data-theme="dark"\]\s+\./.test(rule.selectorText),
+      'el selector tiene que ser DESCENDIENTE ([data-theme="dark"] .clase): ' +
+        "el atributo lo escribe el script anti-flash en el <html>, no en este " +
+        'div, asi que la forma calificada (.clase[data-theme="dark"]) no ' +
+        "aplicaria nunca",
+    ).toBe(true);
+    expect(
+      rule.style.display,
+      "sin caja no hay interseccion, y sin interseccion el cargador perezoso " +
+        "no pide la imagen: cualquier otra forma de esconderla (opacity, " +
+        "visibility, un contenedor de 0px) SI deja caja y vuelve a descargarla",
+    ).toBe("none");
+  });
+
+  it("la figura conserva el marcado del que depende el candado: perezosa, con sus dos pistas y su alt", () => {
+    /* Bug inyectado 3 (cambiando `loading="lazy"` por `loading="eager"` en el
+       JSX de la figura, Story.tsx):
+
+         AssertionError: `loading="lazy"` es la otra mitad del candado de peso
+         del tema oscuro: una imagen eager se pide en cuanto el parser ve su
+         src, tenga caja o no (medido: 702.088 B de figuras claras vuelven a
+         descargarse en oscuro): expected 'eager' to be 'lazy' // Object.is
+         equality
+         Expected: "lazy"
+         Received: "eager"
+
+       (Esa inyeccion dio "Tests 2 failed | 124 passed (126)": tambien cae el
+       caso de mas arriba, que ya exigia `lazy` por rendimiento de la rama
+       clara. Que caigan los dos es lo correcto -- describen dos razones
+       distintas para el mismo atributo.)
+
+       Este caso NO sustituye al de "la figura lleva alt de i18n y srcset con
+       las dos pistas publicadas", mas arriba: aquel describe el contrato de la
+       rama clara y este describe de que depende el peso de la rama oscura.
+       Comparten aserciones a proposito -- el dia que una de las dos razones
+       deje de existir, la otra tiene que seguir sujetando su mitad. */
+    renderWithProviders(<Story />);
+    const figure = screen.getByAltText(esHome.Home.story.figureAlt);
+
+    expect(
+      figure.getAttribute("loading"),
+      '`loading="lazy"` es la otra mitad del candado de peso del tema ' +
+        "oscuro: una imagen eager se pide en cuanto el parser ve su src, " +
+        "tenga caja o no (medido: 702.088 B de figuras claras vuelven a " +
+        "descargarse en oscuro)",
+    ).toBe("lazy");
+    expect(figure).toHaveAttribute(
+      "src",
+      "/figures/journey-presenting-1024.webp",
+    );
+    expect(figure.getAttribute("srcset") ?? "").toContain(
+      "/figures/journey-presenting-640.webp 640w",
+    );
+    expect(figure.getAttribute("srcset") ?? "").toContain(
+      "/figures/journey-presenting-1024.webp 1024w",
+    );
+    expect(figure).toHaveAttribute("sizes", STORY_FIGURE_SIZES);
+    // El `alt` es CONTENIDO, no decoracion: es lo que impide resolver este
+    // hallazgo dejando de renderizar la figura sin JavaScript.
+    expect(figure.getAttribute("alt")).toBe(esHome.Home.story.figureAlt);
+    expect(figure.getAttribute("alt")).not.toBe("");
   });
 });
 
