@@ -177,6 +177,28 @@ describe("el <html lang> de cada raíz (crítica #19, WCAG 3.1.1)", () => {
  * exigir un `layout` en el segmento raíz y el build muere con «doesn't have a
  * root layout» — o, peor, alguien lo resucita y el sitio vuelve a tener un solo
  * `lang` para los dos idiomas sin que ningún render lo cante.
+ *
+ * VALIDADO CON BUG INYECTADO, uno por `it` (2026-09-06). Con
+ * `globalNotFound: false` en `next.config.ts`:
+ *
+ *   AssertionError: sin la bandera, `app/global-not-found.tsx` se ignora y el
+ *   build exige un app/layout.tsx que impone un solo lang: expected 'import
+ *   type { NextConfig } from "next…' to match
+ *   /experimental:\s*\{[^}]*globalNotFound…/
+ *
+ * Con `app/global-not-found.tsx` renderizando su propio `<html>` en vez de
+ * montar `RootDocument`:
+ *
+ *   AssertionError: expected [ 'app/global-not-found.tsx', …(1) ] to deeply
+ *   equal [ 'app/RootDocument.tsx' ]
+ *
+ * Y con una `app/pruebas/page.tsx` fuera de las dos raíces de idioma:
+ *
+ *   AssertionError: pruebas/page.tsx no cuelga de ninguna raíz de idioma: su
+ *   <html lang> no está decidido: expected false to be true
+ *   // Object.is equality
+ *
+ * En los tres casos el fichero se restauró y el bloque volvió a verde.
  */
 describe("la estructura que sostiene un <html lang> por rama", () => {
   it("`next.config.ts` declara experimental.globalNotFound y existe app/global-not-found.tsx", () => {

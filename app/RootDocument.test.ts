@@ -13,6 +13,20 @@ import { describe, it, expect } from "vitest";
  * ellas se han reforzado (ver los bloques de `themeColor` y de los exports
  * compartidos).
  *
+ * LOS CANDADOS MUDADOS SE HAN VUELTO A VER EN ROJO SOBRE EL FICHERO NUEVO, no
+ * se han dado por buenos porque pasaran (2026-09-06). Borrando de
+ * `app/RootDocument.tsx` los dos atributos del `<html>` y renombrando el id del
+ * script de arranque:
+ *
+ *   AssertionError: expected '<html\n      lang={lang}\n\n      cla…' to
+ *   contain 'data-scroll-behavior="smooth"'
+ *   AssertionError: expected '<html\n      lang={lang}\n\n      cla…' to
+ *   contain 'suppressHydrationWarning'
+ *   AssertionError: expected '<script\n          id="tema-arranque"…' to
+ *   contain 'id="theme-bootstrap"'
+ *
+ * Restaurado el fichero, los nueve `it` vuelven a verde.
+ *
  * Candado de FUENTE, no de render (H1: leer código real antes de decidir).
  * `app/RootDocument.tsx` invoca `Hanken_Grotesk(...)`/`JetBrains_Mono(...)` de
  * `next/font/google` en el TOP-LEVEL del módulo, así que un simple
@@ -215,6 +229,17 @@ describe("app/rootMetadata.ts — safe areas (Task 13)", () => {
  * exportan `viewport` (los dos root layouts de idioma y `global-not-found`),
  * mirar uno solo dejaría abiertas tres puertas nuevas, así que se barre `app/`
  * entero: `themeColor` no puede aparecer en ningún fichero de producción.
+ *
+ * VALIDADO CON BUG INYECTADO (2026-09-06): añadiendo `themeColor: "#FAFAFA"` a
+ * `ROOT_VIEWPORT`, los dos `it` se ponen en rojo con
+ *
+ *   AssertionError: ROOT_VIEWPORT volvió a declarar themeColor: React
+ *   insertará una segunda meta[name=theme-color] al hidratar (crítica #16):
+ *   expected 'export const ROOT_VIEWPORT: Viewport …' not to contain
+ *   'themeColor'
+ *   AssertionError: expected [ 'rootMetadata.ts' ] to deeply equal []
+ *
+ * y con el fichero restaurado vuelven a verde.
  */
 describe("app/ — theme-color no se declara en ningún viewport (critica #16)", () => {
   it("ROOT_VIEWPORT no declara themeColor: la etiqueta la crea el script de arranque", () => {
@@ -255,6 +280,16 @@ describe("app/ — theme-color no se declara en ningún viewport (critica #16)",
  * MISMO, el valor compartido de `app/rootMetadata.ts`. Un cuarto fichero de
  * convención que declarara su propio objeto entraría en el barrido el día que
  * se cree.
+ *
+ * VALIDADO CON BUG INYECTADO (2026-09-06): sustituyendo en `app/en/layout.tsx`
+ * el `export const viewport: Viewport = ROOT_VIEWPORT;` por un objeto literal
+ * `{ viewportFit: "cover" }` —el mismo valor, otra fuente—, el caso de esa raíz
+ * se pone en rojo con
+ *
+ *   AssertionError: expected 'import type { Metadata, Viewport } fr…' to
+ *   contain 'export const viewport: Viewport = ROO…'
+ *
+ * y con el fichero restaurado vuelve a verde.
  */
 describe("app/ — las tres raíces exportan el documento compartido", () => {
   const RAICES = [

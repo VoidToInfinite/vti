@@ -210,6 +210,15 @@ describe("dónde se monta cada mitad del árbol (candado de presupuesto)", () =>
    * fichero seguiría conteniendo su `<Providers>`, pero esa rama abriría su
    * propia frontera de cliente sobre el tema y volvería la copia doble que este
    * bloque entero existe para impedir.
+   *
+   * VALIDADO CON BUG INYECTADO (2026-09-06): sustituyendo en
+   * `app/global-not-found.tsx` el `<RootDocument lang="es">` por un `<html
+   * lang="es">` propio, el caso «404» se pone en rojo con
+   *
+   *   AssertionError: expected 'import type { Metadata, Viewport } fr…' to
+   *   match /<RootDocument lang="(es|en)">/
+   *
+   * y con el fichero restaurado vuelve a verde.
    */
   it.each([
     ["(es)", ["(es)", "layout.tsx"]],
