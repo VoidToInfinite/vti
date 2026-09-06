@@ -464,13 +464,14 @@ describe("resolución de la entrada de serve", () => {
      * revisión adversarial de la ola S). Hoy afirma lo que de verdad importa:
      * que sin nada dicho se BUSCA en la caché, y que entre varias
      * instalaciones gana la más reciente. Validado con bug inyectado
-     * (ordenando por fecha ascendente en `buscarServeEnCacheNpx`):
+     * (ordenando por fecha ascendente en `buscarServeEnCacheNpx`); las rutas
+     * de la cita llevan barras invertidas porque las construye `path.join` en
+     * Windows:
      *   AssertionError: entre dos instalaciones de serve en la caché gana la
-     *   más reciente: expected 'C:\cache\_npxiejo
-ode_modules\serv…' to be
-     *   'C:\cache\_npx
-uevo
-ode_modules\serv…' // Object.is equality
+     *   más reciente: expected 'C:[bs]cache[bs]_npx[bs]viejo[bs]node_modules[bs]serv...'
+     *   to be 'C:[bs]cache[bs]_npx[bs]nuevo[bs]node_modules[bs]serv...'
+     *   // Object.is equality  (donde [bs] es la barra invertida que
+     *   `path.join` pone en Windows)
      */
     it("sin nada dicho se busca en la caché de npx y gana la instalación más reciente", () => {
         const env = { npm_config_cache: "C:/cache" };
