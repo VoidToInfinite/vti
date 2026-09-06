@@ -489,7 +489,7 @@ export const DECLARED_UNION_TWIN_GROUPS = 4;
  * tabla, y una comprobación que recorre una lista se puede dejar en verde
  * ENCOGIENDO la lista.
  */
-export const BASELINE_CHUNKS = 18;
+export const BASELINE_CHUNKS = 21;
 
 /**
  * Páginas HTML que el build emite y que el censo declara. La segunda atadura de
@@ -514,7 +514,7 @@ export const BASELINE_PAGES = 8;
  * refresque solo es deliberado: obliga a que todo cambio de censo aparezca
  * también en el diff de este fichero.
  */
-export const BASELINE_DIGEST = "cd33a1813315f0df";
+export const BASELINE_DIGEST = "a7fd604f063ff770";
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */
 export const HOME_PAGE = "index.html";
