@@ -842,6 +842,11 @@ describe("useReloadLanding: la puerta de la rama efectiva", () => {
    * CANDADO (c). El visitante claro es la mayoría y no puede pagar ni un frame
    * de retraso por esta puerta: su rama montada ya es la efectiva en la
    * PRIMERA pasada del efecto, así que arma ahí mismo.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (comparación invertida en
+   * `isMountedBranchEffective`, `effective !== branchKey`): cae con
+   * `AssertionError: expected +0 to be 1 // Object.is equality` --
+   * `Tests 8 failed | 39 passed (47)` entre los dos ficheros de candados.
    */
   it("con la rama efectiva clara y la rama clara montada, arma en la primera pasada", () => {
     setResolvedTheme("light");
@@ -863,6 +868,12 @@ describe("useReloadLanding: la puerta de la rama efectiva", () => {
    * tema (el script de arranque no corrió, o lanzó con el almacenamiento
    * bloqueado en modo privado estricto), la rama montada es la única que va a
    * haber, y bloquear ahí dejaría al lector sin restitución para siempre.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (puerta estricta: se retira el
+   * `effective === null ||` de `isMountedBranchEffective`): cae con
+   * `AssertionError: expected +0 to be 1 // Object.is equality`, y con él la
+   * mitad de los dos ficheros -- `Tests 24 failed | 23 passed (47)`, porque
+   * ninguno de los tests existentes declara atributo.
    */
   it("sin atributo de tema en <html>, la rama montada es la única posible y se arma", () => {
     setResolvedTheme(null);
