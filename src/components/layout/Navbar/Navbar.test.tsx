@@ -265,7 +265,8 @@ describe("Navbar", () => {
   });
 
   /*
-   * Task 13, punto 1 del brief: `viewport-fit=cover` (app/layout.tsx) +
+   * Task 13, punto 1 del brief: `viewport-fit=cover` (`ROOT_VIEWPORT`,
+   * app/rootMetadata.ts desde el 2026-09-06; antes, app/layout.tsx) +
    * `env(safe-area-inset-*)` en las piezas fijas. ScHeader está anclado a
    * `top: 0` del viewport (candidato a notch/dynamic island en vertical);
    * ScNav es el nivel de CONTENIDO real (marca, enlaces, idioma, tema) y

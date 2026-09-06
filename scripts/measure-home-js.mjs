@@ -72,7 +72,8 @@
  * comparando FIRMAS.
  *
  * LA CAUSA RAÍZ, y está arreglada. `Navbar` y `Footer` los montaban a la vez
- * `app/HomeRoute.tsx`, `app/not-found.tsx` y los dos envoltorios legales, cada
+ * `app/HomeRoute.tsx`, `app/not-found.tsx` (hoy `app/NotFoundRoute.tsx`) y los
+ * dos envoltorios legales, cada
  * uno abriendo su propia frontera de servidor a cliente. El árbol de la 404
  * viaja en el manifiesto de cliente de TODAS las páginas, así que la cáscara
  * quedaba en dos grupos de chunks hermanos y Turbopack la emitía dos veces —

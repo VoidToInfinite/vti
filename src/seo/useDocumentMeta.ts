@@ -181,8 +181,10 @@ export function useDocumentMeta({
 
     /*
      * La etiqueta ya existe SIEMPRE en producción: `buildMetadata()` emite
-     * `description` en la home y en las dos legales, y `app/not-found.tsx`
-     * declara la suya. El camino de creación existe para el documento que no
+     * `description` en la home y en las dos legales, y el fichero de
+     * convención de la 404 (`app/global-not-found.tsx` desde el 2026-09-06,
+     * antes `app/not-found.tsx`) declara la suya. El camino de creación existe
+     * para el documento que no
      * la traiga (jsdom en los tests, y cualquier ruta futura que se olvide de
      * declararla) y se limpia solo: si este efecto la creó, este efecto la
      * retira al desmontar. Nunca se retira la que venía en el HTML -- eso

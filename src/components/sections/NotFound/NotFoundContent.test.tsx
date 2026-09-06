@@ -24,8 +24,9 @@ function cssRuleTextFor(el: HTMLElement): string {
 
 /*
  * Aserciones de render trasladadas desde `app/not-found.test.tsx` (auditoria
- * SEO 2026-08-08): `app/not-found.tsx` paso a Server Component con
- * `metadata` propia y ya no puede llevar `"use client"`, asi que el `<h1>`/
+ * SEO 2026-08-08): `app/not-found.tsx` -- hoy `app/global-not-found.tsx`, con
+ * el arbol de la pagina en `app/NotFoundRoute.tsx` -- paso a Server Component
+ * con `metadata` propia y ya no puede llevar `"use client"`, asi que el `<h1>`/
  * `<p>` traducidos -- que SI necesitan cliente, consumen `useTranslation` --
  * se movieron a este componente aparte, mismo patron que
  * `PrivacyDocument.tsx`/`LegalDocument.test.tsx` para las paginas legales.

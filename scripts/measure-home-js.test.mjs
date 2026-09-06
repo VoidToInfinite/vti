@@ -71,7 +71,9 @@ import {
  *       misma página · la duplicación de chunks ÍNTEGROS sube a 1261 B brotli
  *       en 1 grupo(s), por encima de los 1000 B en 1 grupo(s) ya declarados
  *  5. EL DEFECTO ORIGINAL DE LA CÁSCARA — devolviendo `Navbar`/`Footer` a
- *     `app/HomeRoute.tsx` y `app/not-found.tsx` (revirtiendo el arreglo) y
+ *     `app/HomeRoute.tsx` y `app/not-found.tsx` —hoy `app/NotFoundRoute.tsx`,
+ *     que es donde hay que reinyectarlos para repetir esta prueba—
+ *     (revirtiendo el arreglo) y
  *     reconstruyendo:
  *       AssertionError: el build real no pasa los candados: … los chunks
  *       34q7k99kqn6xz.js y 0_x-_m0pog71z.js tienen la MISMA composición

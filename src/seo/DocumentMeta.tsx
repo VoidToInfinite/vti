@@ -5,7 +5,10 @@ import { useDocumentMeta } from "./useDocumentMeta";
 
 /**
  * Punto de montaje de `useDocumentMeta()` para las rutas cuya cáscara es un
- * Server Component (`app/page.tsx`, `app/not-found.tsx`).
+ * Server Component: los dos árboles que hoy lo montan son `app/HomeRoute.tsx`
+ * (la portada, compartida por `app/(es)/page.tsx` y `app/en/page.tsx`) y
+ * `app/NotFoundRoute.tsx` (la 404, cuyo fichero de convención es
+ * `app/global-not-found.tsx` desde el 2026-09-06).
  *
  * Existe por una restricción de arquitectura, no por gusto: una ruta que
  * exporta `metadata` NO puede llevar `"use client"` (el plugin de TypeScript

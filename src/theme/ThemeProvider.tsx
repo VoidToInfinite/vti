@@ -93,7 +93,7 @@ export function ThemeProvider({
     useState<ThemeChangeSource>("initial");
 
   useEffect(() => {
-    // Misma lógica de resolución que el script inline de `app/layout.tsx`
+    // Misma lógica de resolución que el script inline de `app/RootDocument.tsx`
     // (`resolveInitialTheme`, `src/theme/resolveTheme.ts`) — decisión D-C:
     // localStorage gana a `prefers-color-scheme`; sin storage, decide el
     // sistema (Task 9). Reading localStorage/matchMedia during render
@@ -194,7 +194,7 @@ export function ThemeProvider({
 
   // Mantiene el atributo `data-theme` (Task 9) sincronizado con el ESTADO
   // real en TODO cambio, no solo en la carga: el script pre-pintado de
-  // `app/layout.tsx` lo fija UNA vez, antes de hidratar, y nunca vuelve a
+  // `app/RootDocument.tsx` lo fija UNA vez, antes de hidratar, y nunca vuelve a
   // ejecutarse. Sin este efecto, un toggle de USUARIO posterior actualizaría
   // `themeName` (y con él los colores vía styled-components) pero dejaría el
   // atributo -- y con él las variables CSS de `GlobalStyles.tsx` que
@@ -257,7 +257,9 @@ export function ThemeProvider({
      *
      * Los 68 ms de barra clara sobre página oscura (1.472 ms en el servidor de
      * desarrollo) eran nuestros, no de Next. La duplicación era de React 19 y
-     * se cerró retirando `themeColor` del `viewport` de `app/layout.tsx`: la
+     * se cerró retirando `themeColor` del `viewport` de `app/layout.tsx` (hoy
+     * ese `viewport` es `ROOT_VIEWPORT`, `app/rootMetadata.ts`, y sigue sin
+     * declararlo): la
      * etiqueta ya no la renderiza React, la crea el script de arranque y es
      * ÚNICA. Por eso aquí basta `querySelector` —la primera y única— en vez
      * del `querySelectorAll` + `forEach` de antes, que existía para dar el

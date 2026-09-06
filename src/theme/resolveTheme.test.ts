@@ -229,8 +229,9 @@ describe("buildThemeBootstrapScript: el type de la precarga viaja cuando la entr
 });
 
 /*
- * La ruta acota las precargas (2026-08-18, critica #11). `app/layout.tsx` es
- * el layout RAIZ: este script se emite en TODAS las rutas, pero el hero solo
+ * La ruta acota las precargas (2026-08-18, critica #11). El script viaja en el
+ * DOCUMENTO del sitio (`app/RootDocument.tsx` desde el 2026-09-06; entonces,
+ * el `app/layout.tsx` unico): se emite en TODAS las rutas, pero el hero solo
  * existe en la home -- en `/privacidad` se medieron 253.833 B de arte que no
  * pinta nunca (41 % de la pagina) y en la 404, cuatro avisos de Chrome
  * "preloaded but not used".
@@ -323,7 +324,9 @@ describe("buildThemeBootstrapScript: las precargas del hero solo se emiten donde
 /*
  * El script es el UNICO DUENO de `meta[name="theme-color"]` (2026-09-03,
  * critica #16, hallazgo P1 del evaluador tecnico B1). Hasta esa fecha la
- * etiqueta la horneaba `viewport.themeColor` en `app/layout.tsx` y este script
+ * etiqueta la horneaba `viewport.themeColor` en `app/layout.tsx` (el root
+ * layout unico de entonces; hoy el `viewport` vive en `app/rootMetadata.ts`,
+ * sin `themeColor`) y este script
  * se limitaba a reescribir su `content`; medido en Chrome real contra el build
  * de produccion con `vti-theme = "dark"`, eso dejaba DOS etiquetas (React 19 no
  * lograba adoptar la estatica porque su cache de elementos «hoistable» las

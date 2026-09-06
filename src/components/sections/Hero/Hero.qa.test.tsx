@@ -537,7 +537,8 @@ describe("Hero (lente funcional)", () => {
  * arriba ("el clamp del titulo es IDENTICO...") ya prueba, por render, que
  * `Hero.tsx` dejó de depender de React para este valor; lo que falta cerrar
  * -- y solo se puede cerrar leyendo el FICHERO, mismo patrón que
- * `app/layout.test.ts` -- es que el FALLBACK de la variable (el valor claro,
+ * `app/RootDocument.test.ts` (era `app/layout.test.ts` hasta el 2026-09-06)
+ * -- es que el FALLBACK de la variable (el valor claro,
  * el que hornea el build) y el OVERRIDE oscuro (el que activa el script
  * pre-pintado) sean los literales correctos, no huérfanos entre sí.
  */

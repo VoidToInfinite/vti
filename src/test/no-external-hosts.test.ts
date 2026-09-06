@@ -17,9 +17,11 @@ import { fileURLToPath } from "node:url";
  * petición del sitio a un tercero.
  *
  * Fix de revisión (2026-08-12): la primera versión de este candado solo
- * escaneaba `src/`. `app/layout.tsx` -- el sitio CANÓNICO donde Next.js
- * espera que se pegue un snippet de analítica de terceros (`<Script
- * src="https://…">` en el `<head>`/`<body>` del layout raíz) -- quedaba
+ * escaneaba `src/`. El documento raíz -- entonces `app/layout.tsx`, hoy
+ * `app/RootDocument.tsx` (2026-09-06, ola S: el root layout único se partió
+ * en tres raíces que montan ese cuerpo común) -- es el sitio CANÓNICO donde
+ * Next.js espera que se pegue un snippet de analítica de terceros (`<Script
+ * src="https://…">` en el `<head>`/`<body>` del documento), y quedaba
  * fuera: un rastreador añadido ahí habría pasado el gate en verde mientras
  * la interfaz seguía afirmando "no hay analítica ni rastreo". Verificado hoy
  * (review de rama) que la afirmación SIGUE siendo cierta -- el HTML
@@ -30,7 +32,7 @@ import { fileURLToPath } from "node:url";
  * metadata técnica -- `sitemap.ts`/`robots.ts`/`opengraph-image.tsx` -- y
  * sus tests).
  *
- * `next/font/google` (import real en `app/layout.tsx`, `Hanken_Grotesk`/
+ * `next/font/google` (import real en `app/RootDocument.tsx`, `Hanken_Grotesk`/
  * `JetBrains_Mono`) es el contraejemplo que cualquiera va a buscar al leer
  * "no hay peticiones a terceros" con ese import delante -- y NO lo es: Next
  * self-hospeda los ficheros de fuente en `build time` (los descarga UNA vez
@@ -69,13 +71,17 @@ import { fileURLToPath } from "node:url";
  *   (protocolo de veracidad, §0 de CLAUDE.md) -- texto de documentación, no
  *   código que se ejecute ni se sirva.
  * - `nextjs.org`: cita de documentación oficial en un comentario de
- *   `app/layout.tsx` (y su test, `app/layout.test.ts`) explicando por qué
- *   hace falta `data-scroll-behavior="smooth"` en `<html>` -- mismo caso que
+ *   `app/RootDocument.tsx` (y su test, `app/RootDocument.test.ts` -- los dos
+ *   se llamaban `app/layout.tsx`/`app/layout.test.ts` hasta el 2026-09-06)
+ *   explicando por qué hace falta `data-scroll-behavior="smooth"` en
+ *   `<html>`, más la cita de la guía de fuentes en el párrafo de arriba de
+ *   este mismo fichero -- mismo caso que
  *   `developers.google.com`/`datatracker.ietf.org`, texto de documentación
  *   citado con su URL, no una petición de red.
  * - `voidtoinfinite.com`: el dominio CANÓNICO del propio sitio
- *   (`src/config/site.ts`, metadata/sitemap/`src/config/site.test.ts`, y
- *   `app/not-found.tsx`/su test) -- no es un tercero, es el sitio hablando
+ *   (`src/config/site.ts`, metadata/sitemap/`src/config/site.test.ts`,
+ *   `app/rootMetadata.ts`, y `app/global-not-found.tsx`/su test
+ *   `app/not-found.test.tsx`) -- no es un tercero, es el sitio hablando
  *   de sí mismo.
  * - `dev.voidtoinfinite.com`: subdominio propio del SDK (`links.playground`/
  *   `links.sdk`, `src/config/links.ts`) -- un DESTINO al que el CTA del hero
@@ -97,8 +103,9 @@ import { fileURLToPath } from "node:url";
  * test volvió a verde. Re-verificado en esta revisión: un `<Script src="`
  * seguido del esquema https y el host `tracker.example` (mismo truco de
  * separar el esquema del host EN ESTE PÁRRAFO, por el mismo motivo) temporal
- * en `app/layout.tsx` -- el sitio que motivó cubrir `app/` -- también puso
- * el test en rojo, señalando ese host; retirado, volvió a verde.
+ * en `app/layout.tsx` -- el sitio que motivó cubrir `app/`, hoy
+ * `app/RootDocument.tsx` -- también puso el test en rojo, señalando ese host;
+ * retirado, volvió a verde.
  */
 
 const srcRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -184,13 +191,21 @@ describe("Task 18: cero hostnames externos fuera de la allowlist documentada", (
   // dejara de escanear `app/` (la regresion original de este candado), este
   // test pasaria por VACUIDAD igual que el de arriba -- confirma que la raiz
   // `app/` concreta SI se recorre, no solo que "algun host" aparezca.
+  //
+  // EL FICHERO QUE SE EXIGE CAMBIO DE NOMBRE EL 2026-09-06 (ola S), no de
+  // responsabilidad: `app/layout.tsx` era el root layout unico y hoy es
+  // `app/RootDocument.tsx`, el documento comun que montan las tres raices
+  // (`app/(es)/layout.tsx`, `app/en/layout.tsx` y `app/global-not-found.tsx`).
+  // Sigue siendo el mismo sitio que la revision de 2026-08-12 queria cubrir:
+  // el que importa `next/font/google` y el que llevaria un `<Script src>` de
+  // analitica de terceros si alguien lo pegara.
   it("sonda positiva: el candado SI escanea app/ (fix de revision 2026-08-12)", () => {
     const files = collectScanFiles();
     const relativePaths = files.map((f) =>
       f.slice(repoRoot.length + 1).replace(/\\/g, "/"),
     );
     expect(relativePaths.some((p) => p.startsWith("app/"))).toBe(true);
-    expect(relativePaths).toContain("app/layout.tsx");
+    expect(relativePaths).toContain("app/RootDocument.tsx");
 
     const hostsFound = new Set<string>();
     for (const file of files) {
@@ -199,8 +214,13 @@ describe("Task 18: cero hostnames externos fuera de la allowlist documentada", (
         hostsFound.add(match[1]);
       }
     }
-    // nextjs.org solo aparece hoy en app/layout.tsx y app/layout.test.ts --
-    // si esta asercion pasa es porque app/ se recorrio de verdad.
+    // nextjs.org se cita hoy en app/RootDocument.tsx y app/RootDocument.test.ts
+    // (la documentacion de `data-scroll-behavior`) y tambien en el docblock de
+    // ESTE fichero, que vive en src/ -- asi que esta linea sola no probaria que
+    // `app/` se recorrio: quien lo prueba es el `toContain` de arriba, que
+    // nombra un fichero concreto de esa raiz. Se conserva como sonda del
+    // MECANISMO: si el patron de URL dejara de encontrar hosts citados en
+    // comentarios, esta asercion caeria antes que ninguna otra.
     expect(hostsFound.has("nextjs.org")).toBe(true);
   });
 });

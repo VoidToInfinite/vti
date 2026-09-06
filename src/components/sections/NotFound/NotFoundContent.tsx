@@ -16,8 +16,10 @@ import { AMBIENT } from "@/motion/vocabulary";
 
 /*
  * Cuerpo de cliente de la 404 (auditoria SEO 2026-08-08, mismo patron que
- * las paginas legales -- ver `PrivacyDocument.tsx`): `app/not-found.tsx`
- * exporta `metadata`, y una ruta que exporta `metadata` NO puede ser
+ * las paginas legales -- ver `PrivacyDocument.tsx`): el fichero de convencion
+ * de la 404 (`app/global-not-found.tsx` desde el 2026-09-06, antes
+ * `app/not-found.tsx`) exporta `metadata`, y una ruta que exporta
+ * `metadata` NO puede ser
  * Client Component (el plugin de TypeScript de Next lo marca como error
  * explicito, ver el docblock de `app/privacidad/page.tsx`). El texto
  * traducido SI necesita cliente (`useTranslation`), asi que vive aqui, en un
@@ -33,7 +35,9 @@ import { AMBIENT } from "@/motion/vocabulary";
  * Es la superficie que ve alguien que ya se ha equivocado.
  *
  * `padding-top: calc(var(--nav-height) + space[8])`: `ScHeader` (Navbar.tsx,
- * ahora montado por `app/not-found.tsx`) es `position: fixed` -- no reserva
+ * que en esta ruta monta `LocaleShell` a traves de `app/NotFoundRoute.tsx`;
+ * hasta el 2026-09-06 el arbol vivia en `app/not-found.tsx`) es
+ * `position: fixed` -- no reserva
  * hueco en el flujo del documento --, asi que sin este padding el `h1`
  * nacia DEBAJO de la barra flotante, tapado por ella en vez de solo "cerca
  * del borde". `var(--nav-height)` es la MISMA variable global que ya usa

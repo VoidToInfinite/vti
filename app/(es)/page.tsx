@@ -5,9 +5,11 @@ import { HOME_COPY_ES, HomeRoute } from "../HomeRoute";
 
 /*
  * Portada castellana, `/`. Su metadata vivía en `app/layout.tsx` hasta el
- * 2026-08-18 y baja aquí porque el root layout ya lo comparten dos idiomas:
- * una canónica declarada allí se heredaría en `/en` (ver el docblock de
- * `app/layout.tsx`).
+ * 2026-08-18 y baja aquí porque lo que se declara arriba lo comparten los dos
+ * idiomas: una canónica declarada ahí se heredaría también en `/en`. Sigue
+ * siendo cierto con las tres raíces del 2026-09-06 —las tres exportan el mismo
+ * `ROOT_METADATA`—, y el porqué vive hoy en el docblock de
+ * `app/rootMetadata.ts`.
  *
  * `title` sale de `SITE.homeTitle`, NO de `SITE.name` (cambio del
  * 2026-08-05). Pasar la marca como título activaba el caso especial de

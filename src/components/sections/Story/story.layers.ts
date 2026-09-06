@@ -489,7 +489,7 @@ export const STORY_DECK_NOTE_SIZE = typeTokens.scale.deckClosing.size;
  * otra mitad de lo que el punto de decisión permitía: sigue siendo el nombre
  * con el que Story habla del peso de su cierre, pero deriva.
  *
- * El 900 es real, no una negrita sintética: `app/layout.tsx` carga
+ * El 900 es real, no una negrita sintética: `app/RootDocument.tsx` carga
  * `Hanken_Grotesk` por `next/font/google` SIN lista de `weight`, lo que trae
  * el eje variable completo (100–900) de la familia. Si algún día se fijara
  * una lista de pesos concreta en esa carga, este valor caería a la negrita

@@ -19,8 +19,9 @@ import styled from "styled-components";
  * proveedores que lo envuelven ahí (`StyledComponentsRegistry`,
  * `ThemeProvider`, `I18nProvider`) renderiza un nodo DOM propio, así que en
  * el árbol real sigue siendo el primer hijo focalizable de `<body>`, aunque
- * el fichero fuente no sea `app/layout.tsx` (que es Server Component y no
- * puede leer tema/idioma).
+ * el fichero fuente no sea el documento raíz (`app/RootDocument.tsx` desde el
+ * 2026-09-06, antes `app/layout.tsx`: es Server Component y no puede leer
+ * tema/idioma).
  *
  * Oculto SOLO visualmente hasta `:focus-visible`, nunca del árbol de
  * accesibilidad: `display: none`/`visibility: hidden` lo sacarían también

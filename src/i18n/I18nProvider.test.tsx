@@ -10,12 +10,22 @@ import { I18nProvider } from "./I18nProvider";
  * D18 de la spec 2026-08-04-legal-seo-consentimiento-design.md, REESCRITO el
  * 2026-08-18 (el idioma pasa a vivir en la URL).
  *
- * `app/layout.tsx` fija `lang="es"` en el HTML prerenderizado -- es el único
- * root layout del proyecto y no puede saber qué ruta está renderizando (ver su
- * docblock, con la cita del código de Next que lo bloquea) -- así que este
- * proveedor sigue siendo el ÚNICO que corrige el atributo. Sin esa corrección,
- * un lector de pantalla pronunciaría el contenido inglés con fonética
- * española: incumplimiento de WCAG 3.1.1 (Language of Page, nivel A).
+ * Hasta el 2026-09-06, `app/layout.tsx` fijaba `lang="es"` en TODO el HTML
+ * prerenderizado -- era el único root layout del proyecto y no podía saber qué
+ * ruta estaba renderizando -- así que este proveedor era el ÚNICO que corregía
+ * el atributo. Sin esa corrección, un lector de pantalla pronunciaría el
+ * contenido inglés con fonética española: incumplimiento de WCAG 3.1.1
+ * (Language of Page, nivel A).
+ *
+ * DESDE LA OLA S (2026-09-06) el sitio tiene tres raíces y cada rama hornea su
+ * propio `<html lang>` (`app/(es)/layout.tsx`, `app/en/layout.tsx` y
+ * `app/global-not-found.tsx`, todas sobre `app/RootDocument.tsx`), así que en
+ * las seis rutas normales este efecto reescribe el valor que el documento ya
+ * trae. Donde SIGUE siendo la única corrección es en la 404: `output:
+ * "export"` sirve un solo `out/404.html` horneado en castellano, y una URL
+ * rota bajo `/en/` solo llega a anunciarse en inglés por esta vía. Los casos
+ * de abajo miden justo eso -- que el idioma lo decide la ruta y `localStorage`
+ * no puede cambiarlo -- y siguen siendo el candado de la propiedad.
  *
  * LO QUE CAMBIA respecto de la versión anterior de este fichero: el idioma ya
  * NO se hidrata desde `localStorage` ni se conmuta en memoria, así que los dos

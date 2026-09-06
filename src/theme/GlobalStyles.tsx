@@ -318,7 +318,7 @@ export const GlobalStyles = createGlobalStyle`
    * NO cambia según el prop theme que reciba GlobalStyles en cada render,
    * así que quedan presentes DESDE EL BUILD (idénticas en el HTML estático
    * horneado, sea cual sea el tema con el que arrancó ese build) y en cada
-   * re-render posterior. El script inline de app/layout.tsx
+   * re-render posterior. El script inline de app/RootDocument.tsx
    * (buildThemeBootstrapScript, src/theme/resolveTheme.ts) fija el
    * atributo data-theme=dark en el elemento html ANTES del primer pintado,
    * así que estas reglas ya están activas en el primer frame -- sin

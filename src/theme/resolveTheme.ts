@@ -28,7 +28,9 @@ export const THEME_ATTRIBUTE = "data-theme";
  * página casi negra — el navegador no tenía forma de enterarse.
  *
  * Entre el 2026-08-16 y el 2026-09-03 quedó UNA sola entrada sin `media`, la
- * clara, declarada como `viewport.themeColor` en `app/layout.tsx`: el HTML
+ * clara, declarada como `viewport.themeColor` en `app/layout.tsx` (el root
+ * layout único de entonces; hoy el `viewport` vive en `app/rootMetadata.ts`,
+ * sin `themeColor`): el HTML
  * estático la horneaba y el script de arranque le reescribía el `content`
  * antes del primer pintado. Ese reparto producía DOS defectos medibles en
  * oscuro, y los dos están cerrados desde el 2026-09-03 (crítica #16, hallazgo
@@ -68,8 +70,9 @@ export const THEME_ATTRIBUTE = "data-theme";
  * literalmente: `NodeList.forEach` dentro del chunk que contiene
  * `document.querySelectorAll('meta[name="theme-color"]').forEach(...)`.
  *
- * EL REPARTO DE HOY: `app/layout.tsx` ya NO declara `themeColor` en su
- * `viewport`, así que React no renderiza ninguna etiqueta `theme-color` y no
+ * EL REPARTO DE HOY: el `viewport` del sitio (`ROOT_VIEWPORT`,
+ * `app/rootMetadata.ts`, que re-exportan las tres raíces) ya NO declara
+ * `themeColor`, así que React no renderiza ninguna etiqueta `theme-color` y no
  * tiene ninguna que duplicar. La CREA el script de arranque (más abajo), antes
  * del primer pintado y ya con el tema resuelto, y `ThemeProvider` se limita a
  * actualizar esa única etiqueta cuando el tema cambia de verdad — nunca en la
@@ -96,7 +99,7 @@ export const THEME_COLORS: Readonly<Record<ThemeName, string>> = {
  * consumen DOS sitios que, copiados a mano por separado, divergirían al
  * primer retoque (lección de la casa) —
  *
- *   1. el script inline de `app/layout.tsx` (`buildThemeBootstrapScript`,
+ *   1. el script inline de `app/RootDocument.tsx` (`buildThemeBootstrapScript`,
  *      más abajo), que la ejecuta ANTES del primer pintado, sobre el
  *      `localStorage`/`matchMedia` reales del navegador visitante;
  *   2. el efecto de corrección de `ThemeProvider.tsx`, que la reutiliza
@@ -166,11 +169,13 @@ export interface HeroPreload {
  * Construye el texto del script de arranque anti-flash (Task 9, brief punto
  * 1): lee `localStorage`/`prefers-color-scheme` reales del navegador y fija
  * `data-theme` en `<html>` ANTES de que el navegador pinte el primer frame.
- * `app/layout.tsx` lo inyecta como un `<script>` LITERAL dentro de un
- * `<head>` explícito (Task 31; `next/script strategy="beforeInteractive"`
- * se retiró por correr como chunk asíncrono bajo `output: "export"`, tarde
- * para el `<h1>` visible desde Task 10) — el porqué completo vive en el
- * docblock del propio elemento en `layout.tsx`, no se duplica aquí.
+ * `app/RootDocument.tsx` —el documento común que montan las tres raíces del
+ * sitio desde el 2026-09-06; hasta entonces, `app/layout.tsx`— lo inyecta como
+ * un `<script>` LITERAL dentro de un `<head>` explícito (Task 31;
+ * `next/script strategy="beforeInteractive"` se retiró por correr como chunk
+ * asíncrono bajo `output: "export"`, tarde para el `<h1>` visible desde Task
+ * 10) — el porqué completo vive en el docblock del propio elemento en
+ * `RootDocument.tsx`, no se duplica aquí.
  *
  * Reutiliza `resolveInitialTheme.toString()` en vez de retranscribir la
  * lógica a mano dentro del template: así el CUERPO ejecutado por el
@@ -230,17 +235,20 @@ export interface HeroPreload {
  *
  * ### Tercera pasada (2026-08-18, crítica #11): solo donde vive el hero
  *
- * `app/layout.tsx` es el layout RAÍZ, así que este script se emitía —y con él
- * sus precargas— en TODAS las rutas del sitio. El hero, en cambio, solo existe
+ * El script viaja en el DOCUMENTO del sitio —entonces `app/layout.tsx`, el
+ * root layout único; hoy `app/RootDocument.tsx`, el cuerpo común de las tres
+ * raíces—, así que se emitía —y con él sus precargas— en TODAS las rutas. El
+ * hero, en cambio, solo existe
  * en la home. Medido sobre el HTML servido: en `/privacidad`, **253.833 B** de
  * arte que no pinta nunca (el 41 % de los bytes de esa página) y, en la 404,
  * cuatro avisos de Chrome "was preloaded using link preload but not used
  * within a few seconds".
  *
  * POR QUÉ LA GUARDA VIVE DENTRO DEL SCRIPT y no en quien lo construye: bajo
- * App Router el layout raíz no recibe la ruta (no hay `params` que la
+ * App Router el documento raíz no recibe la ruta (no hay `params` que la
  * identifiquen; se renderiza igual para la home, para las dos legales y para
- * la 404) y bajo `output: "export"` hay UN solo layout compilado para todas.
+ * la 404) y bajo `output: "export"` se compila una sola vez por raíz, no una
+ * por página.
  * Quien sí conoce la ruta es el NAVEGADOR, en tiempo de ejecución: por eso la
  * condición es `location.pathname` y no una rama de build.
  *
@@ -299,8 +307,9 @@ export function buildThemeBootstrapScript(
     // operativo (ver el docblock de THEME_COLORS).
     //
     // Este script es el ÚNICO DUEÑO de la etiqueta desde el 2026-09-03: la
-    // CREA él, porque `app/layout.tsx` ya no declara `themeColor` en su
-    // `viewport` y el HTML estático no trae ninguna. Mientras la traía, React
+    // CREA él, porque el `viewport` del sitio (`ROOT_VIEWPORT`,
+    // `app/rootMetadata.ts`) ya no declara `themeColor` y el HTML estático no
+    // trae ninguna. Mientras la traía, React
     // 19 no lograba adoptarla al hidratar —su caché de elementos «hoistable»
     // indexa los `<meta>` por el atributo `content`, que este script acababa
     // de cambiar— e insertaba una SEGUNDA con el valor claro; la traza

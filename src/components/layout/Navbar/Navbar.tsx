@@ -210,7 +210,8 @@ const ScHeader = styled.header`
   opacity: 1;
   /* Safe area (Task 13, punto 1 del brief): esta barra está anclada a
      top: 0 del VIEWPORT, no de un contenedor con margen propio -- con
-     viewport-fit=cover (app/layout.tsx) el documento se extiende bajo el
+     viewport-fit=cover (ROOT_VIEWPORT, app/rootMetadata.ts, que las tres
+     raices del sitio re-exportan) el documento se extiende bajo el
      notch/dynamic island, así que sin este relleno la barra podría nacer
      parcialmente tapada en un dispositivo con recorte físico arriba.
      ADITIVO por construcción: no había padding-top declarado antes (el

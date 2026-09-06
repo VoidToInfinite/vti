@@ -16,7 +16,8 @@ import { describe, expect, it } from "vitest";
  * inyecta CERO hojas de estilo — document.styleSheets.length === 0 y cero
  * <style> en el documento (los styled components normales SÍ inyectan; el
  * createGlobalStyle de styled-components 6 aquí no). Sin CSSOM que leer, el
- * candado lee el fichero, mismo precedente que app/layout.test.ts.
+ * candado lee el fichero, mismo precedente que app/RootDocument.test.ts (que
+ * se llamaba app/layout.test.ts hasta el 2026-09-06).
  *
  * La regex es templada: exige `font-family: type.fontBody` DESPUÉS de
  * `min-height: 100dvh` (única en el fichero, vive en el bloque `body`) y SIN

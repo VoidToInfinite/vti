@@ -161,7 +161,7 @@ describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión 
 
   it("un toggle de USUARIO tras la carga actualiza data-theme en <html>, no solo el estado de React", () => {
     // Candado del bug encontrado en autorrevisión: el script pre-pintado de
-    // app/layout.tsx fija data-theme UNA sola vez, antes de hidratar, y
+    // app/RootDocument.tsx fija data-theme UNA sola vez, antes de hidratar, y
     // nunca vuelve a ejecutarse. Sin este efecto de sincronización, un
     // toggle posterior actualizaría themeName (colores vía
     // styled-components) pero dejaría el atributo -- y con él las variables
@@ -496,7 +496,8 @@ describe("ThemeProvider — fix wave B (2026-08-12): localStorage bloqueado no t
  * acertado antes del primer pintado: 68 ms de barra clara sobre pagina oscura
  * en produccion, 1.472 ms en el servidor de desarrollo. La duplicacion de la
  * etiqueta era de React 19 y se cerro en `app/layout.tsx` (retirando
- * `themeColor` del `viewport`); esto candea la otra mitad.
+ * `themeColor` del `viewport`; hoy ese `viewport` es `ROOT_VIEWPORT`,
+ * `app/rootMetadata.ts`, y sigue sin declararlo); esto candea la otra mitad.
  *
  * Se espia `setAttribute` de la etiqueta -- no solo su valor final -- porque lo
  * que importa es la SECUENCIA: un valor final correcto no demuestra que nunca

@@ -37,9 +37,11 @@ export const TITLE_SEPARATOR = " · ";
  * declara lo sustituye entero -- imagen incluida. En la raíz no pasa porque
  * ahí la imagen pertenece al propio segmento.
  *
- * `metadataBase` (declarado en `app/layout.tsx`) es lo que convierte esta
- * ruta relativa en absoluta; sin él, `og:image` saldría relativa y ningún
- * rastreador la seguiría.
+ * `metadataBase` (el valor único de `ROOT_METADATA`, `app/rootMetadata.ts`,
+ * que las tres raíces del sitio re-exportan desde el 2026-09-06; antes se
+ * declaraba en `app/layout.tsx`) es lo que convierte esta ruta relativa en
+ * absoluta; sin él, `og:image` saldría relativa y ningún rastreador la
+ * seguiría.
  */
 export const OG_IMAGE_PATH = "/opengraph-image";
 
@@ -91,8 +93,10 @@ export interface BuildMetadataInput {
  * Constructor único de `Metadata` para TODAS las rutas del sitio (home y las
  * cuatro páginas legales). Existe por un motivo medido, no por preferencia
  * de estilo: en Next 16.2.11 con `output: "export"`, el objeto `openGraph`
- * NO se fusiona entre `app/layout.tsx` y el `page.tsx` de cada ruta — el
- * resolver de metadata SUSTITUYE la clave entera del padre por la del hijo.
+ * NO se fusiona entre el root layout de la rama —`app/(es)/layout.tsx` o
+ * `app/en/layout.tsx` desde el 2026-09-06; hasta entonces, el `app/layout.tsx`
+ * único— y el `page.tsx` de cada ruta: el resolver de metadata SUSTITUYE la
+ * clave entera del padre por la del hijo.
  *
  * Evidencia en el propio paquete instalado,
  * `node_modules/next/dist/lib/metadata/resolve-metadata.js`, dentro de

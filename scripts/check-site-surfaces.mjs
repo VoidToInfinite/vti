@@ -963,13 +963,21 @@ export const TOLERANCIA_DEL_ESCENARIO_PX = 1;
  * HORNEADO de las dos 404 declara.
  *
  * Es `es` y no un descuido: `output: "export"` sirve UN solo `404.html` para
- * las dos ramas de idioma --el porque, con su medicion, esta en el docblock de
- * `app/layout.tsx`-- y su contenido horneado es castellano. El idioma real se
- * resuelve en cliente. Lo que esta familia exige de las 404 es esa coherencia:
- * el horneado castellano y el vivo el de la rama.
+ * las dos ramas de idioma --el porque esta en el docblock de la propia ruta,
+ * `app/global-not-found.tsx`, y en el de `app/RootDocument.tsx`-- y su
+ * contenido horneado es castellano. El idioma real se resuelve en cliente
+ * (`NotFoundLocaleShell` + `I18nProvider`). Lo que esta familia exige de las
+ * 404 es esa coherencia: el horneado castellano y el vivo el de la rama.
  *
- * Lo que NO se acepta, y es el P1 de la critica #19: que una superficie inglesa
- * con contenido ingles horneado se sirva anunciandose en castellano.
+ * Lo que NO se acepta, y era el P1 de la critica #19: que una superficie
+ * inglesa con contenido ingles horneado se sirva anunciandose en castellano.
+ * ESE DEFECTO SE ARREGLO EL 2026-09-06 (ola S, commit `16c8451`): el sitio pasa
+ * a tener tres raices --`app/(es)/layout.tsx`, `app/en/layout.tsx` y
+ * `app/global-not-found.tsx`-- y cada una hornea su propio `<html lang>` sobre
+ * el documento comun `app/RootDocument.tsx`, asi que `/en`, `/en/privacy` y
+ * `/en/legal-notice` se sirven ya con `lang="en"` en crudo. La familia no se
+ * retira por eso: es justamente el candado que vuelve a medirlo contra el
+ * build real en cada pasada.
  */
 export const IDIOMA_HORNEADO_DE_LA_404 = "es";
 

@@ -611,7 +611,7 @@ const ScActions = styled.div`
    (`$light`, derivado de `layoutTheme`) y tardaba hasta el efecto post-
    montaje de ThemeProvider en corregirse de 7vw a 8vw. Sustituido por la
    variable CSS `--hero-title-vw` (GlobalStyles.tsx, fijada por el atributo
-   que el script pre-pintado de app/layout.tsx pone en <html> ANTES del
+   que el script pre-pintado de app/RootDocument.tsx pone en <html> ANTES del
    primer frame): el fallback de var() es el valor CLARO (7vw, el que ya
    hornea el build), y solo `:root[data-theme="dark"]` lo redefine a 8vw --
    activo desde el primer pintado, sin esperar a React. Sin JS, el resultado

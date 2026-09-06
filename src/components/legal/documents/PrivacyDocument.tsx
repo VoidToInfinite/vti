@@ -64,9 +64,12 @@ import { LegalDocument } from "@/components/legal/LegalDocument";
  *   que hoy pintan la misma lista vuelven a divergir en cuanto uno de los dos
  *   se retoque; un solo componente no puede divergir de sí mismo.
  *
- * El precedente ya existía y esta entrega solo lo extiende: `app/not-found.tsx`
- * monta `Navbar` + `Footer` desde la Task 35 (2026-08-12) por este mismo
- * razonamiento, y es la página con la que las legales estaban desalineadas.
+ * El precedente ya existía y esta entrega solo lo extiende: la 404 lleva
+ * `Navbar` + `Footer` desde la Task 35 (2026-08-12) por este mismo
+ * razonamiento, y es la página con la que las legales estaban desalineadas. La
+ * ruta que los montaba entonces era `app/not-found.tsx`; hoy su árbol vive en
+ * `app/NotFoundRoute.tsx` y los pone `LocaleShell`, que es el ancestro común
+ * con las dos ramas de idioma.
  *
  * ## QUÉ ARRASTRA EL `Navbar` QUE AQUÍ NO TIENE SUJETO, Y POR QUÉ NO ESTORBA
  *

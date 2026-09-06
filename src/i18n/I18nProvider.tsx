@@ -52,15 +52,33 @@ import { getI18nInstance } from "./config";
 function syncDocumentLang(lang: string): void {
   if (typeof document === "undefined") return;
   /*
-   * `app/layout.tsx` es el ÚNICO root layout del proyecto y hornea siempre
-   * `lang="es"`: bajo App Router, dos `<html lang>` distintos exigen dos root
-   * layouts (grupos de ruta sin `app/layout.tsx`), y eso está bloqueado por el
-   * `app/not-found.tsx` propio del repo — ver el docblock de `app/layout.tsx`
-   * para el porqué, con la cita del código de Next. Mientras siga así, ESTE es
-   * el único mecanismo que corrige el atributo en `/en/*`, y corre tras montar:
-   * los lectores de pantalla leen el DOM vivo, así que anuncian el inglés con
-   * fonética inglesa (WCAG 3.1.1); el HTML servido en crudo se queda en `es` y
-   * eso está declarado como límite conocido, no como algo resuelto.
+   * QUÉ CORRIGE ESTO HOY, y ya no es lo que corregía (2026-09-06, ola S).
+   *
+   * HASTA ESA FECHA: `app/layout.tsx` era el ÚNICO root layout del proyecto y
+   * horneaba siempre `lang="es"`, así que esta línea era el único mecanismo
+   * que ponía `en` en `/en/*` — y solo tras montar, con el HTML servido en
+   * crudo quedándose en `es`. Estaba declarado como límite conocido: bajo App
+   * Router, dos `<html lang>` distintos exigen dos root layouts (es decir,
+   * que no exista `app/layout.tsx`), y eso lo bloqueaba la 404 propia del
+   * repo, cuya entrada `/_not-found` resolvía su `layout` en el segmento raíz.
+   *
+   * HOY: el sitio tiene TRES raíces —`app/(es)/layout.tsx` con `lang="es"`,
+   * `app/en/layout.tsx` con `lang="en"` y `app/global-not-found.tsx`— que
+   * montan el documento común `app/RootDocument.tsx` pasándole su idioma, así
+   * que las tres rutas inglesas ya se SIRVEN con `lang="en"` en el HTML en
+   * crudo (P1 de la crítica externa #19, WCAG 3.1.1 nivel A). Lo que lo
+   * desbloqueó —`experimental.globalNotFound` y la cita del código de Next
+   * 16.2.11— está en el docblock de `app/RootDocument.tsx`.
+   *
+   * POR QUÉ SIGUE HACIENDO FALTA: la 404. Bajo `output: "export"` hay un
+   * único `out/404.html` para las dos ramas y su contenido horneado es
+   * castellano, así que `app/global-not-found.tsx` hornea `lang="es"` a
+   * propósito; en una URL rota bajo `/en/`, `NotFoundLocaleShell` resuelve el
+   * idioma desde el camino y ESTA línea es la que escribe `en` en el DOM vivo
+   * —que es lo que anuncia un lector de pantalla— tras montar. En las seis
+   * rutas normales ya no corrige nada: reescribe el mismo valor que el
+   * documento trae horneado, que es exactamente lo que se quiere (una sola
+   * fuente para el idioma, la ruta, sin ramas que puedan discrepar).
    */
   document.documentElement.lang = lang;
 }

@@ -1939,14 +1939,20 @@ describe("el idioma que cada superficie tiene que anunciar", () => {
          * autorreferencial que este fichero ya pago cuatro veces.
          *
          * Las dos 404 declaran `es` porque `output: "export"` sirve un solo
-         * `404.html` con contenido castellano para las dos ramas -- el porque,
-         * con su medicion, esta en el docblock de `app/layout.tsx`. Exigirle `en`
+         * `404.html` con contenido castellano para las dos ramas -- el porque
+         * esta en el docblock de `app/global-not-found.tsx`. Exigirle `en`
          * a la inglesa seria pedir que anunciara un idioma que su contenido
          * horneado no tiene.
          *
-         * Las tres INGLESAS que no son la 404 son el P1 de la critica #19: se
-         * hornean con contenido ingles y se sirven con `lang="es"` (medido el
-         * 2026-09-06 sobre el build servido, JavaScript desactivado).
+         * Las tres INGLESAS que no son la 404 ERAN el P1 de la critica #19: se
+         * horneaban con contenido ingles y se servian con `lang="es"` (medido
+         * el 2026-09-06 sobre el build servido, JavaScript desactivado). Esta
+         * tabla ya pedia `en` cuando el sitio todavia servia `es`: era la
+         * exigencia, no la descripcion. La ola S del mismo dia (commit
+         * `16c8451`) la satisface partiendo el root layout unico en tres raices
+         * --`app/(es)/layout.tsx`, `app/en/layout.tsx` y
+         * `app/global-not-found.tsx`-- que hornean su propio `<html lang>`
+         * sobre el documento comun `app/RootDocument.tsx`.
          */
         const ESPERADO_SIN_JS = {
             "/": "es",
