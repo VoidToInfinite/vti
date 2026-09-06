@@ -1,7 +1,6 @@
-import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import type { ReactElement, ReactNode } from "react";
-import { SITE } from "@/config/site";
+import type { Locale } from "@/config/site";
 import { JsonLdScript } from "@/seo/JsonLdScript";
 import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
 import { AURA_PRELOADS } from "@/components/scenes/aura/aura.layers";
@@ -52,6 +51,14 @@ import { Providers } from "./providers";
  * familia de aviso una vez por la primera vía, y la historia está escrita en el
  * docblock de `buildThemeBootstrapScript` (`src/theme/resolveTheme.ts`): eran
  * cuatro precargas de imagen emitidas en rutas que no pintaban ese arte.
+ *
+ * LAS FUENTES SE DECLARAN AQUÍ Y NO EN CADA RAÍZ (2026-09-06). Desde que hay
+ * tres ficheros de convención que renderizan documento —los dos root layouts de
+ * idioma y `app/global-not-found.tsx`—, repetir estas dos llamadas en cada uno
+ * generaría tres instancias de fuente distintas para la misma cara: `next/font`
+ * emite CSS y ficheros por CALL SITE, no por familia. Con una sola llamada,
+ * compartida por importación, el sitio sigue sirviendo un único `@font-face` y
+ * un único preload.
  */
 const fontBody = Hanken_Grotesk({
   subsets: ["latin"],
@@ -69,131 +76,72 @@ const fontMono = JetBrains_Mono({
   preload: false,
 });
 
-/*
- * AQUÍ SOLO QUEDA `metadataBase`, y desde el 2026-08-18 ya NO la metadata de
- * la home.
+/**
+ * EL DOCUMENTO DEL SITIO, UNO SOLO PARA LAS TRES RAÍCES (2026-09-06).
  *
- * `metadataBase` es lo único que las páginas hijas HEREDAN de verdad y
- * necesitan. Es la base con la que Next resuelve a URL absoluta la imagen que
- * genera `app/opengraph-image.tsx`; sin ella, `og:image` saldría con una ruta
- * relativa que ningún rastreador puede seguir.
+ * Este componente NO es un fichero de convención de Next: es el cuerpo común
+ * que montan las tres raíces reales del árbol —`app/(es)/layout.tsx`,
+ * `app/en/layout.tsx` y `app/global-not-found.tsx`—, cada una pasando su
+ * `lang`. Todo lo que antes vivía en el root layout único (`app/layout.tsx`,
+ * retirado en esta misma entrega) está aquí sin cambiar: las fuentes, los
+ * atributos de `<html>`, el script anti-flash del `<head>`, los datos
+ * estructurados de sitio y `Providers`. Lo único que se parametriza es el
+ * idioma del documento.
  *
- * La metadata de la portada (`buildMetadata({ routeKey: "home" })`) vivía aquí
- * y se ha mudado a `app/(es)/page.tsx`, junto a su gemela inglesa de
- * `app/en/page.tsx`. El motivo no es de orden: este layout es el ÚNICO root
- * layout y ahora lo comparten SEIS rutas en DOS idiomas, así que una canónica
- * `https://voidtoinfinite.com` declarada aquí se heredaría en toda ruta que no
- * la sustituyera — el mismo mecanismo de herencia que `app/not-found.tsx` ya
- * tuvo que neutralizar a mano con `alternates: { canonical: null }` (ver su
- * docblock, con la medición sobre `out/404.html` del 2026-08-08). Con la
- * metadata en cada página, cada URL declara la suya y ninguna hereda la de
- * otra.
- *
- * Los campos concretos de la portada (por qué `SITE.homeTitle` y no
- * `SITE.name`) se explican ahora en `app/(es)/page.tsx`.
+ * Que sea un Server Component importado por las tres raíces —y no tres copias—
+ * es además lo que mantiene UNA sola frontera de cliente sobre `Providers`: la
+ * regla de peso que documenta `app/providers.tsx` («todo lo que monten a la vez
+ * una rama de idioma y la 404 tiene que colgar de un ancestro común») se cumple
+ * por importación, no por posición en el árbol de rutas.
  */
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE.url),
-};
-
-/*
- * AQUÍ NO HAY `themeColor`, Y ES UNA DECISIÓN MEDIDA (2026-09-03, crítica #16,
- * hallazgo P1 del evaluador técnico B1). Declararlo aquí es lo que producía
- * DOS etiquetas `meta[name="theme-color"]` en el documento y, entre ellas, una
- * ventana con la barra del navegador en CLARO sobre la página oscura.
- *
- * Traza sobre el build de producción servido, Chrome real, contexto nuevo,
- * `localStorage.vti-theme = "dark"` antes de cargar:
- *
- *   t=  24  1 meta  [#280739]            ← el script de arranque, pre-pintado
- *   t= 204  2 metas [#280739, #FAFAFA]   ← React inserta una SEGUNDA, en claro
- *   t= 214  2 metas [#FAFAFA, #FAFAFA]   ← el efecto de ThemeProvider las pisa
- *   t= 282  2 metas [#280739, #280739]   ← y las corrige
- *
- * La segunda etiqueta la crea React 19, no Next: al hidratar, su caché de
- * elementos «hoistable» busca el `<meta>` al que engancharse INDEXÁNDOLO POR
- * SU ATRIBUTO `content` (rama `case "meta"` de `commitMutationEffectsOnFiber`
- * en `react-dom-client.development.js`, leída en `node_modules`), y el script
- * de arranque acababa de cambiar ese `content` de `#FAFAFA` a `#280739`: la
- * búsqueda falla y React cae en `createElement` + `head.appendChild`. En tema
- * claro el valor no cambiaba, la búsqueda acertaba y React adoptaba la
- * estática — por eso el defecto solo aparecía en oscuro.
- *
- * ARREGLO DE CAUSA RAÍZ: si React no renderiza ninguna etiqueta `theme-color`,
- * no hay nada que pueda duplicar. La etiqueta la CREA y la posee el script de
- * arranque (`buildThemeBootstrapScript`), antes del primer pintado y ya con el
- * tema resuelto, y `ThemeProvider` actualiza esa única etiqueta en cada cambio
- * real de tema. El porqué completo, con la traza y los dos hex —los mismos que
- * documenta `app/opengraph-image.tsx` para estos mismos primitivos— vive en el
- * docblock de `THEME_COLORS` (`src/theme/resolveTheme.ts`).
- *
- * COSTE DECLARADO: sin JavaScript no hay `theme-color` y la barra queda en el
- * color por defecto del navegador. El HTML estático se pinta en claro, así que
- * ahí la diferencia es entre `#FAFAFA` y el blanco del navegador; lo que se
- * evita a cambio es una barra casi blanca sobre una página casi negra.
- *
- * `viewportFit: "cover"` (Task 13, punto 1 del brief): sin él, iOS Safari
- * NUNCA rellena `env(safe-area-inset-*)` -- resuelve siempre al fallback de
- * la función `env()`, sea cual sea el hardware. Verificado leyendo el motor
- * (WebKit solo activa el layout "cover", que extiende el viewport bajo el
- * notch/home-indicator y con ello da valor real a esos `env()`, cuando el
- * meta viewport declara `viewport-fit=cover`; el valor por defecto es
- * "auto", equivalente a "contain": el navegador ya evita el notch por su
- * cuenta y `env()` se queda en 0 para siempre). Es la ÚNICA clave nueva de
- * este objeto: `mergeViewport()` (`next/dist/lib/metadata/resolve-metadata.js`,
- * confirmado leyendo la fuente en `node_modules`) parte de
- * `createDefaultViewport()` (`width: "device-width", initialScale: 1`) y
- * solo SUSTITUYE las claves presentes en el objeto exportado -- añadir
- * `viewportFit` no toca `width`/`initialScale`, que siguen sin declararse
- * aquí y siguen resolviendo al default de Next. Verificado además en el HTML
- * exportado tras `pnpm build`: `<meta name="viewport" content="width=
- * device-width, initial-scale=1, viewport-fit=cover">` -- ningún otro
- * atributo cambia de valor.
- */
-export const viewport: Viewport = {
-  viewportFit: "cover",
-};
-
-export default function RootLayout({
+export function RootDocument({
+  lang,
   children,
 }: {
-  children: ReactNode;
+  /** Idioma que este documento hornea en `<html lang>`. */
+  readonly lang: Locale;
+  readonly children: ReactNode;
 }): ReactElement {
   return (
     /*
-     * `lang="es"` EN LAS SEIS RUTAS, INCLUIDAS LAS INGLESAS: LÍMITE CONOCIDO,
-     * NO DESCUIDO (2026-08-18).
+     * CADA RAMA DE IDIOMA HORNEA SU PROPIO `lang` DESDE EL 2026-09-06
+     * (decisión del dueño; WCAG 3.1.1 nivel A, P1 de la crítica externa #19).
      *
-     * Bajo App Router, dos `<html lang>` distintos exigen DOS root layouts, y
-     * un root layout es, por definición, un `layout` sin `layout` padre: hay
-     * que BORRAR `app/layout.tsx` y dar a cada grupo de ruta el suyo. Ese
-     * reparto está bloqueado en este repo por su propia 404, y está verificado
-     * leyendo el paquete instalado, no supuesto — `next/dist/build/webpack/
-     * loaders/next-app-loader/index.js`:
+     * ANTES: las seis rutas del sitio y la 404 se servían con `lang="es"`,
+     * inglesas incluidas. El motivo era real y estaba escrito: bajo App Router
+     * dos `<html lang>` distintos exigen DOS root layouts —y un root layout es,
+     * por definición, un `layout` sin `layout` padre—, así que había que borrar
+     * `app/layout.tsx`; y eso lo bloqueaba la 404 propia del repo, porque la
+     * entrada `/_not-found` resuelve su `layout` en el segmento RAÍZ (`app/`) y
+     * sin ninguno el build sale por `log.error("... doesn't have a root layout
+     * ...")` + `process.exit(1)`.
      *
-     *   - la entrada `/_not-found` resuelve su `layout` en el segmento RAÍZ
-     *     (`app/`), no dentro de los grupos;
-     *   - el único camino que inyecta un layout por defecto cuando ahí no hay
-     *     ninguno está guardado por `isDefaultNotFound` (`isAppBuiltinPage`),
-     *     es decir, solo cuando NO existe un `app/not-found.tsx` propio;
-     *   - con un `not-found.tsx` propio y sin `app/layout.tsx`, `rootLayout`
-     *     queda sin resolver y el build sale por
-     *     `log.error("... doesn't have a root layout ...")` + `process.exit(1)`.
+     * QUÉ LO DESBLOQUEA, verificado leyendo el paquete instalado (Next
+     * 16.2.11), no supuesto: `experimental.globalNotFound: true` en
+     * `next.config.ts` más `app/global-not-found.tsx`. En
+     * `next/dist/build/webpack/loaders/next-app-loader/index.js`, con la
+     * bandera activa, la rama `if (isNotFoundRoute && isGlobalNotFoundEnabled)`
+     * RETIRA el `layout` de la entrada `/_not-found` y lo sustituye por el
+     * propio `global-not-found`; y la guarda que mata el build
+     * (`if (!treeCodeResult.rootLayout && !isGlobalNotFoundPath && ...)`) deja
+     * de aplicarse a esa entrada. Con la 404 fuera de la ecuación, `app/` se
+     * queda sin `layout.tsx` y los dos layouts de rama pasan a ser root layouts
+     * de pleno derecho: cada uno renderiza su propio `<html>`.
      *
-     * Es decir: o dos `<html lang>`, o la 404 propia del sitio (endurecida en
-     * la Task 35 y por la crítica externa) — no las dos, salvo activando
-     * `experimental.globalNotFound` en `next.config.ts` y reescribiendo la 404
-     * como `app/global-not-found.tsx` (bandera experimental, `false` por
-     * defecto en 16.2.11: `next/dist/server/config-shared.js`). Esa es una
-     * decisión de arquitectura del dueño, no algo que se resuelva aquí en
-     * silencio.
+     * LO QUE SIGUE SIENDO CIERTO de la nota anterior: `/en/*` ya tenía el
+     * contenido, el `<title>`, la canónica, el `og:locale`, el `hreflang` y el
+     * sitemap en inglés desde el 2026-08-18, e `I18nProvider` corregía este
+     * atributo tras montar. Lo que faltaba —y es lo que cierra esta entrega— es
+     * el atributo del HTML SERVIDO EN CRUDO, que es lo que lee un rastreador
+     * sin ejecutar JavaScript y lo que un lector de pantalla usa antes de que
+     * hidrate nada.
      *
-     * Mientras tanto, lo que SÍ está resuelto para `/en/*`: el contenido, el
-     * `<title>`, la canónica, el `og:locale`, el `hreflang` y el sitemap son
-     * ingleses ya en el HTML horneado; y `I18nProvider` corrige este atributo
-     * a `en` tras montar, que es lo que leen los lectores de pantalla (DOM
-     * vivo) y cualquier rastreador que ejecute JavaScript. Lo que queda fuera
-     * es el atributo del HTML servido en crudo.
+     * LA 404 HORNEA `es` A PROPÓSITO: bajo `output: "export"` existe un único
+     * `out/404.html` para las dos ramas y su contenido horneado ES castellano,
+     * así que `lang="es"` describe lo que el documento realmente dice. En una
+     * URL rota bajo `/en/`, `NotFoundLocaleShell` resuelve el idioma desde el
+     * camino e `I18nProvider` escribe `lang="en"` en el DOM vivo (candado en
+     * `app/not-found.test.tsx`).
      *
      * `data-scroll-behavior="smooth"`: Next detecta `scroll-behavior: smooth`
      * en `html` (declarado a propósito en `GlobalStyles.tsx` para los saltos
@@ -219,7 +167,7 @@ export default function RootLayout({
      * usuario.
      */
     <html
-      lang={SITE.lang}
+      lang={lang}
       data-scroll-behavior="smooth"
       className={`${fontBody.variable} ${fontMono.variable}`}
       /*
@@ -259,9 +207,10 @@ export default function RootLayout({
          * la Metadata API; un `<script>` de arranque no lo cubre ("Unsupported
          * Metadata" de esa misma guía lo lista explícitamente), así que aquí
          * SÍ es la vía correcta -- Next fusiona este `<head>` con el que
-         * genera a partir de `metadata`/`viewport` (de arriba) en uno solo,
-         * verificado leyendo `out/index.html`: un único `<head>`, con
-         * `<title>`/`<meta>` Y este `<script>` dentro.
+         * genera a partir de `metadata`/`viewport` (`app/rootMetadata.ts`, que
+         * las tres raíces exportan) en uno solo, verificado leyendo
+         * `out/index.html`: un único `<head>`, con `<title>`/`<meta>` Y este
+         * `<script>` dentro.
          *
          * POR QUÉ NO `next/script strategy="beforeInteractive"` (usado hasta
          * Task 31, RETIRADO): verificado leyendo `out/index.html` literal
@@ -356,17 +305,16 @@ export default function RootLayout({
          *
          * LAS PRECARGAS QUE VIAJAN EN ESTE SCRIPT SE ACOTAN A LA HOME DESDE
          * DENTRO DEL PROPIO SCRIPT (2026-08-18, crítica #11), no desde aquí:
-         * este es el layout RAÍZ y no sabe qué ruta está renderizando (no
-         * recibe `params` que la identifiquen y, bajo `output: "export"`, hay
-         * un único layout compilado para la home, las dos legales y la 404).
-         * Quien conoce la ruta es el navegador, así que la guarda es
-         * `location.pathname` en tiempo de ejecución. Medido antes del
-         * arreglo: 253.833 B de arte del hero descargados en `/privacidad`
-         * —el 41 % de esa página— sin que nada de eso llegue a pintarse.
-         * Las dos constantes de abajo se siguen pasando enteras: es el
-         * script, no esta llamada, quien decide si emitirlas. El porqué
-         * completo y la normalización de pathname viven en el docblock de
-         * `buildThemeBootstrapScript`.
+         * este documento lo comparten las seis rutas y la 404, y no sabe cuál
+         * está renderizando (no recibe `params` que la identifiquen y, bajo
+         * `output: "export"`, se compila una sola vez por raíz). Quien conoce
+         * la ruta es el navegador, así que la guarda es `location.pathname` en
+         * tiempo de ejecución. Medido antes del arreglo: 253.833 B de arte del
+         * hero descargados en `/privacidad` —el 41 % de esa página— sin que
+         * nada de eso llegue a pintarse. Las dos constantes de abajo se siguen
+         * pasando enteras: es el script, no esta llamada, quien decide si
+         * emitirlas. El porqué completo y la normalización de pathname viven
+         * en el docblock de `buildThemeBootstrapScript`.
          */}
         <script
           id="theme-bootstrap"
@@ -389,9 +337,9 @@ export default function RootLayout({
         {/* `Providers` vuelve a montarse AQUÍ desde el 2026-08-19, y solo con
             la mitad del árbol que NO depende del idioma (registro de estilos,
             tema, estilos globales). La otra mitad —`LocaleShell`: i18next,
-            `SkipLink`, `BackToTop`— la sigue montando el layout de cada rama
+            `SkipLink`, `BackToTop`, `Navbar`, `Footer`— la monta cada raíz
             (`app/(es)/layout.tsx`, `app/en/layout.tsx`) y, por su cuenta,
-            `app/not-found.tsx`, porque este layout no sabe qué ruta está
+            `app/NotFoundRoute.tsx`, porque este documento no sabe qué ruta está
             renderizando y no puede elegir idioma.
 
             El motivo de que la parte sin idioma tenga que estar aquí es de

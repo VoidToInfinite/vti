@@ -15,13 +15,18 @@ import { Footer } from "@/components/layout/Footer/Footer";
  * DOS ENVOLTORIOS, NO UNO, Y LA FRONTERA ES EL IDIOMA (2026-08-19).
  *
  * `Providers` = lo que NO depende del idioma (registro de styled-components,
- * tema, estilos globales). Lo monta UNA sola vez `app/layout.tsx`, el root
- * layout que comparten las seis rutas y la 404.
+ * tema, estilos globales). Lo monta UNA sola vez `app/RootDocument.tsx`, el
+ * documento que renderizan las TRES raíces del sitio y que por tanto comparten
+ * las seis rutas y la 404. Hasta el 2026-09-06 ese documento era
+ * `app/layout.tsx`, el root layout único; se partió en tres raíces para que
+ * cada rama pudiera hornear su propio `<html lang>` (crítica externa #19), pero
+ * el ANCESTRO COMÚN —lo único de lo que depende la partición de abajo— sigue
+ * siendo uno solo.
  *
  * `LocaleShell` = lo que SÍ depende del idioma (la instancia de i18next, y con
  * ella `SkipLink` y `BackToTop`, cuyo texto se traduce). Lo monta el layout de
  * cada rama —`app/(es)/layout.tsx`, `app/en/layout.tsx`— y, por su cuenta,
- * `app/not-found.tsx`.
+ * `app/NotFoundRoute.tsx` (el árbol de la 404).
  *
  * POR QUÉ ESTÁ PARTIDO ASÍ, Y NO ES ORDEN SINO PESO MEDIDO. Entre el 2026-08-18
  * y el 2026-08-19 el árbol entero (tema + i18n + SkipLink + BackToTop) se
@@ -49,20 +54,21 @@ import { Footer } from "@/components/layout/Footer/Footer";
  * (styled-components, tema, i18next) ya están en el chunk del ancestro.
  *
  * REGLA PRÁCTICA que se deja escrita para la próxima vez: todo lo que monten
- * a la vez una rama de idioma y `app/not-found.tsx` tiene que colgar de un
- * envoltorio del ROOT layout, o se paga dos veces en cada página del sitio.
+ * a la vez una rama de idioma y el árbol de la 404 (`app/NotFoundRoute.tsx`)
+ * tiene que colgar de un envoltorio del DOCUMENTO compartido, o se paga dos
+ * veces en cada página del sitio.
  */
 
 /**
  * Envoltorio SIN idioma: registro de estilos, tema y estilos globales.
  *
- * Ninguno de los tres emite un nodo DOM propio, así que subirlos al root
- * layout no cambia el orden de documento de nada — `SkipLink` (dentro de
+ * Ninguno de los tres emite un nodo DOM propio, así que subirlos al documento
+ * no cambia el orden de documento de nada — `SkipLink` (dentro de
  * `LocaleShell`) sigue siendo el primer hijo focalizable de `<body>`.
  *
  * `StyledComponentsRegistry` TIENE que ser ancestro de todo lo que renderice
  * un componente estilado: es quien recoge la hoja del servidor y la inserta en
- * el HTML horneado. El root layout es exactamente ese sitio.
+ * el HTML horneado. `app/RootDocument.tsx` es exactamente ese sitio.
  */
 export function Providers({
   children,
@@ -102,14 +108,15 @@ export function Providers({
  *
  * ## LA CÁSCARA DEL SITIO (`Navbar` + `Footer`) SUBE AQUÍ EL 2026-09-04
  *
- * Hasta esa fecha la montaban por su cuenta `app/HomeRoute.tsx`,
- * `app/not-found.tsx`, `PrivacyDocument.tsx` y `LegalNoticeDocument.tsx`: cuatro
- * sitios, el mismo DOM. Es LA MISMA situación que la partición
- * `Providers`/`LocaleShell` de arriba resolvió para el tema y el i18n, y la
- * regla que ese docblock dejó escrita —«todo lo que monten a la vez una rama de
- * idioma y `app/not-found.tsx` tiene que colgar de un envoltorio del ROOT
- * layout, o se paga dos veces en cada página del sitio»— describía exactamente
- * lo que estaba pasando con la cáscara. Nadie la aplicó a ella durante cinco
+ * Hasta esa fecha la montaban por su cuenta `app/HomeRoute.tsx`, el árbol de la
+ * 404 (entonces `app/not-found.tsx`, hoy `app/NotFoundRoute.tsx`),
+ * `PrivacyDocument.tsx` y `LegalNoticeDocument.tsx`: cuatro sitios, el mismo
+ * DOM. Es LA MISMA situación que la partición `Providers`/`LocaleShell` de
+ * arriba resolvió para el tema y el i18n, y la regla que ese docblock dejó
+ * escrita —«todo lo que monten a la vez una rama de idioma y el árbol de la 404
+ * tiene que colgar de un envoltorio del DOCUMENTO compartido, o se paga dos
+ * veces en cada página del sitio»— describía exactamente lo que estaba pasando
+ * con la cáscara. Nadie la aplicó a ella durante cinco
  * olas porque la regla vivía en prosa y no en un candado; ahora sí lo tiene
  * (`app/providers.test.tsx`, «la cáscara del sitio se monta una sola vez»).
  *
@@ -147,9 +154,11 @@ export function Providers({
  * no es contenido renderizado y no altera ni el orden de lectura ni el de
  * tabulación.
  *
- * `app/not-found.tsx` lo monta por su cuenta en castellano: no vive dentro de
- * ningún grupo de idioma (tiene que seguir en la raíz de `app/` para ser la 404
- * global) y sin esto se quedaría sin i18n y sin el chrome global.
+ * El árbol de la 404 (`app/NotFoundRoute.tsx`) lo monta por su cuenta a través
+ * de `NotFoundLocaleShell`: no vive dentro de ningún grupo de idioma (tiene que
+ * seguir en la raíz de `app/` para ser la 404 global) y sin esto se quedaría
+ * sin i18n y sin el chrome global. El idioma no es fijo desde el 2026-08-20: lo
+ * resuelve esa cáscara desde la URL rota, arrancando en castellano.
  *
  * Aquí vivía `ConsentProvider` + `CookieBanner`, retirados el 2026-08-08. No se
  * "simplificó" el árbol: la revisión legal de esa fecha comprobó que el sitio no
@@ -177,8 +186,8 @@ export function LocaleShell({
           real precede a {children} sin intermediarios. Necesita
           traducirse y leer tokens de tema, de ahi que viva aqui (dentro de
           I18nProvider, y por debajo del ThemeProvider que monta
-          `Providers`) y no en app/layout.tsx, que es Server Component y no
-          puede consumir ninguno de los dos. */}
+          `Providers`) y no en app/RootDocument.tsx, que es Server Component y
+          no puede consumir ninguno de los dos. */}
       <SkipLink />
       {/* Navbar y Footer (2026-09-04): la cascara del sitio, montada UNA sola
           vez desde el ancestro comun de las ocho paginas. Las cuatro rutas

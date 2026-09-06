@@ -159,20 +159,33 @@ describe("Providers + LocaleShell", () => {
  *
  * Eso NO se puede observar desde jsdom: no hay build, no hay chunks y no hay
  * `out/index.html` que medir. Lo que sí se puede candar —y es la condición
- * ESTRUCTURAL de la que depende todo lo anterior— es que el root layout siga
+ * ESTRUCTURAL de la que depende todo lo anterior— es que el DOCUMENTO siga
  * montando `Providers`, y que la 404 y las dos ramas de idioma monten
  * `LocaleShell` y NO `Providers`. Si alguien vuelve a subir el tema a las
  * ramas (o a bajar `Providers` a la 404), este candado cae antes de que la
  * regresión llegue a medirse en un build.
  *
+ * QUIÉN ES «EL DOCUMENTO» CAMBIÓ EL 2026-09-06, LA CONDICIÓN NO. Hasta esa
+ * fecha era `app/layout.tsx`, el root layout único, y por eso este candado leía
+ * ese fichero. Al arreglar el `<html lang>` por rama (P1 de la crítica externa
+ * #19) ese fichero desapareció: hoy hay TRES raíces —`app/(es)/layout.tsx`,
+ * `app/en/layout.tsx` y `app/global-not-found.tsx`— y las tres renderizan el
+ * MISMO `app/RootDocument.tsx`, que es quien monta `Providers` una sola vez
+ * para todas. El ancestro común sigue existiendo y sigue siendo uno; lo que
+ * este bloque comprueba es que las tres raíces sigan pasando por él en vez de
+ * abrir cada una su propia frontera de cliente sobre el tema.
+ *
  * La 404 llega hoy a `LocaleShell` a través de `NotFoundLocaleShell`
  * (2026-08-20, idioma resuelto desde la URL rota): son dos eslabones y el
- * candado recorre los dos — ver el `it` correspondiente.
+ * candado recorre los dos — ver el `it` correspondiente. Desde el 2026-09-06 el
+ * árbol de la página vive en `app/NotFoundRoute.tsx` (la convención
+ * `global-not-found` obliga a que el fichero de ruta renderice el documento),
+ * así que el eslabón que se lee es ese.
  *
- * Se lee la FUENTE con `node:fs`, mismo patrón que `app/layout.test.ts`, y se
- * despojan comentarios ANTES de buscar (lección del 2026-08-11: `toContain`
- * sobre fuente cruda da por activa una línea comentada, y aquí los docblocks
- * citan los dos nombres a propósito).
+ * Se lee la FUENTE con `node:fs`, mismo patrón que `app/RootDocument.test.ts`,
+ * y se despojan comentarios ANTES de buscar (lección del 2026-08-11:
+ * `toContain` sobre fuente cruda da por activa una línea comentada, y aquí los
+ * docblocks citan los dos nombres a propósito).
  */
 const AQUI = dirname(fileURLToPath(import.meta.url));
 
@@ -184,11 +197,33 @@ function fuenteSinComentarios(...ruta: string[]): string {
 }
 
 describe("dónde se monta cada mitad del árbol (candado de presupuesto)", () => {
-  it("el root layout monta `Providers` — el ancestro común que impide la copia doble", () => {
-    const source = fuenteSinComentarios("layout.tsx");
+  it("el documento monta `Providers` — el ancestro común que impide la copia doble", () => {
+    const source = fuenteSinComentarios("RootDocument.tsx");
 
     expect(source).toContain("<Providers>{children}</Providers>");
   });
+
+  /*
+   * Y las TRES raíces pasan por ese documento en vez de renderizar el suyo. Sin
+   * esta comprobación, el `it` de arriba seguiría en verde el día que una raíz
+   * nueva —o una de las tres de hoy— dejara de montar `RootDocument`: el
+   * fichero seguiría conteniendo su `<Providers>`, pero esa rama abriría su
+   * propia frontera de cliente sobre el tema y volvería la copia doble que este
+   * bloque entero existe para impedir.
+   */
+  it.each([
+    ["(es)", ["(es)", "layout.tsx"]],
+    ["en", ["en", "layout.tsx"]],
+    ["404", ["global-not-found.tsx"]],
+  ])(
+    "la raíz %s renderiza el documento compartido, no uno propio",
+    (_raiz, ruta) => {
+      const source = fuenteSinComentarios(...ruta);
+
+      expect(source).toMatch(/<RootDocument lang="(es|en)">/);
+      expect(source).not.toContain("<Providers");
+    },
+  );
 
   it.each([
     ["(es)", ["(es)", "layout.tsx"], "es"],
@@ -217,7 +252,7 @@ describe("dónde se monta cada mitad del árbol (candado de presupuesto)", () =>
    * dejaría pasar una cáscara que montara cualquier otra cosa.
    */
   it("la 404 monta `LocaleShell` vía `NotFoundLocaleShell`, no `Providers` (su árbol viaja en TODAS las páginas)", () => {
-    const pagina = fuenteSinComentarios("not-found.tsx");
+    const pagina = fuenteSinComentarios("NotFoundRoute.tsx");
 
     expect(pagina).toContain("<NotFoundLocaleShell>");
     expect(pagina).not.toContain("<Providers");

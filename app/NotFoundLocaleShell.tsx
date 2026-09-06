@@ -88,8 +88,10 @@ function getServerSnapshot(): Locale {
  * copia castellana antes de que React sustituya la instantánea de servidor por
  * la de cliente. No es evitable sin un servidor o sin duplicar la 404 por
  * idioma (y esto último no es posible: la entrada `/_not-found` resuelve sus
- * ficheros en el segmento raíz de `app/`, fuera de los grupos de idioma — ver
- * el docblock de `app/layout.tsx`). El resto de la página SÍ queda coherente:
+ * ficheros en el segmento raíz de `app/`, fuera de los grupos de idioma, y bajo
+ * `output: "export"` el sitio hornea un único `out/404.html` para las dos ramas
+ * — ver el docblock de `app/global-not-found.tsx`). El resto de la página SÍ
+ * queda coherente:
  * `<html lang>` (lo fija `I18nProvider`), el `<h1>`, el mensaje, el `<title>` y
  * la descripción del documento (`DocumentMeta`), el chrome global (`SkipLink`,
  * `BackToTop`, `Navbar`, `Footer`) y el selector de idioma, que marca como

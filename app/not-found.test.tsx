@@ -8,23 +8,60 @@ import i18n from "@/i18n/config";
 import esCommon from "@/i18n/locales/es/common.json";
 import enCommon from "@/i18n/locales/en/common.json";
 import { TITLE_SEPARATOR } from "@/seo/metadata";
-import NotFound, { metadata } from "./not-found";
+
+/*
+ * `app/global-not-found.tsx` importa `RootDocument`, que llama a
+ * `Hanken_Grotesk(...)`/`JetBrains_Mono(...)` en el TOP-LEVEL de su módulo. El
+ * plugin de Next que sustituye esas llamadas por metadatos de fuente reales
+ * solo existe dentro de `next build`/`next dev`, así que bajo Vitest la
+ * importación revienta con «(0 , Hanken_Grotesk) is not a function» (visto en
+ * este mismo entorno el 2026-09-06, al mudar la 404 a la convención
+ * `global-not-found`). El doble devuelve la misma forma que devuelve el plugin
+ * real —`className`, `variable`, `style`— y no toca NADA de lo que este fichero
+ * comprueba: la `metadata` de la 404 y el DOM que monta su árbol. Mismo doble,
+ * y por el mismo motivo, que `app/root-lang.test.tsx`.
+ *
+ * `vi.mock` se iza por encima de los `import` estáticos, así que la
+ * importación de abajo se resuelve ya con el doble puesto.
+ */
+vi.mock("next/font/google", () => ({
+  Hanken_Grotesk: () => ({
+    className: "fuente-cuerpo",
+    variable: "--font-body-doble",
+    style: { fontFamily: "Hanken Grotesk" },
+  }),
+  JetBrains_Mono: () => ({
+    className: "fuente-mono",
+    variable: "--font-mono-doble",
+    style: { fontFamily: "JetBrains Mono" },
+  }),
+}));
+
+import { metadata } from "./global-not-found";
+import { NotFoundRoute } from "./NotFoundRoute";
 import { resolveNotFoundLocale } from "./NotFoundLocaleShell";
 
 /*
- * Split de la 404 (auditoria SEO 2026-08-08): `not-found.tsx` paso de
- * Client Component monolitico a cascara de Server Component + metadata
- * propia, con el `<h1>`/`<p>` traducidos movidos a
- * `NotFoundContent.test.tsx` (mismo patron que las paginas legales, ver
- * `PrivacyDocument.tsx`/`app/privacidad/page.tsx`). Este archivo se queda
- * con lo que ESTE fichero declara de verdad: la `metadata` propia (antes
- * inexistente -- la ruta heredaba la de la home) y que el default export
+ * Split de la 404 (auditoria SEO 2026-08-08): la 404 paso de Client Component
+ * monolitico a cascara de Server Component + metadata propia, con el
+ * `<h1>`/`<p>` traducidos movidos a `NotFoundContent.test.tsx` (mismo patron
+ * que las paginas legales, ver `PrivacyDocument.tsx`/`app/privacidad/page.tsx`).
+ * Este archivo se queda con lo que la 404 declara de verdad: la `metadata`
+ * propia (antes inexistente -- la ruta heredaba la de la home) y que su arbol
  * siga montando el contenido real.
+ *
+ * DOS FICHEROS DESDE EL 2026-09-06, y por eso hay dos importaciones: la ruta
+ * era `app/not-found.tsx` y hoy es `app/global-not-found.tsx` (la convención
+ * que exige `experimental.globalNotFound`, sin la cual las ramas de idioma no
+ * pueden hornear su propio `<html lang>` -- ver `app/RootDocument.tsx`). Ese
+ * fichero declara `metadata` y renderiza el DOCUMENTO; el arbol de la pagina
+ * vive en `app/NotFoundRoute.tsx` y es el que se renderiza aqui, exactamente
+ * el mismo DOM que montaba `<NotFound />`.
  */
 
 /*
- * Task 35: desde esta tarea `<NotFound />` monta también `Navbar` y
- * `Footer` (ver el docblock de `not-found.tsx`), así que renderizarlo
+ * Task 35: desde esta tarea el árbol de la 404 monta también `Navbar` y
+ * `Footer` (ver el docblock de `NotFoundRoute.tsx`), así que renderizarlo
  * necesita los mismos stubs de entorno que `app/home-page.flujo.test.tsx` y
  * `app/legal-pages.test.tsx` para las mismas dos APIs ausentes en jsdom:
  * `matchMedia` (varios hooks del árbol de Navbar la consultan al montar,
@@ -85,7 +122,7 @@ describe("not-found metadata", () => {
    * segunda desde el `robots` que esta ruta declaraba. La primera la
    * antepone el limite de not-found de Next y no se puede suprimir, asi que
    * dejar una sola pasa por no anadir la nuestra. Ver el docblock de
-   * `not-found.tsx` para por que la directiva efectiva no cambia.
+   * `global-not-found.tsx` para por que la directiva efectiva no cambia.
    */
   it("la ruta NO declara robots propio: la unica meta la emite el limite de Next", () => {
     expect(metadata.robots).toBeUndefined();
@@ -115,20 +152,25 @@ describe("not-found metadata", () => {
   });
 
   /*
-   * `alternates` NO puede quedar sin declarar: un campo de primer nivel que
-   * el hijo omite se HEREDA del padre, y `app/layout.tsx` declara la
-   * canonica de la home -- medido en `out/404.html` (2026-08-08): la 404
-   * emitia `<link rel="canonical" href="https://voidtoinfinite.com">`.
-   * `canonical: null` sustituye la herencia y suprime la etiqueta.
+   * `alternates` se declara a proposito. Cuando la 404 colgaba de
+   * `app/layout.tsx`, un campo de primer nivel que el hijo omitia se HEREDABA
+   * del padre y la 404 acababa emitiendo
+   * `<link rel="canonical" href="https://voidtoinfinite.com">` -- medido en
+   * `out/404.html` (2026-08-08). Desde el 2026-09-06 esta ruta renderiza su
+   * propio documento y no tiene padre del que heredar, pero SI extiende
+   * `ROOT_METADATA` (`...ROOT_METADATA`, por el `metadataBase` que la imagen de
+   * Open Graph necesita), asi que la puerta sigue abierta el dia que ese objeto
+   * compartido declare `alternates`. El candado se conserva por eso, no por
+   * inercia.
    */
   it("anula la canonica heredada con alternates.canonical: null -- una 404 no tiene URL propia que canonicalizar", () => {
     expect(metadata.alternates).toEqual({ canonical: null });
   });
 });
 
-describe("NotFound (cascara de servidor)", () => {
+describe("NotFoundRoute (cascara de servidor)", () => {
   it("monta el contenido traducido real, no un marcador vacio", () => {
-    renderWithProviders(<NotFound />);
+    renderWithProviders(<NotFoundRoute />);
     expect(screen.getByRole("heading")).toBeInTheDocument();
     expect(screen.getByText(/no encontrada/i)).toBeInTheDocument();
   });
@@ -145,7 +187,7 @@ describe("NotFound (cascara de servidor)", () => {
    * `aria-label` adicional.
    */
   it("Task 35: monta la cabecera y el pie reales de la home (Navbar/Footer), no una version reducida", () => {
-    const { container } = renderWithProviders(<NotFound />);
+    const { container } = renderWithProviders(<NotFoundRoute />);
 
     const cabecera = screen.getByRole("banner");
     expect(cabecera).toBeInTheDocument();
@@ -174,7 +216,7 @@ describe("NotFound (cascara de servidor)", () => {
    * informe de la tarea.
    */
   it("Task 35: el <main> de la 404 lleva una clase de styled-components con estilos propios, no un elemento nativo pelado", () => {
-    const { container } = renderWithProviders(<NotFound />);
+    const { container } = renderWithProviders(<NotFoundRoute />);
     const main = container.querySelector("main");
     expect(main).not.toBeNull();
     expect(main?.classList.length).toBeGreaterThan(0);
@@ -212,7 +254,7 @@ describe("NotFound (cascara de servidor)", () => {
  */
 describe("404: el ensamblaje que la ola M dejó montado", () => {
   it("la cabecera expone los destinos del modelo compartido, no solo la marca", () => {
-    const { container } = renderWithProviders(<NotFound />);
+    const { container } = renderWithProviders(<NotFoundRoute />);
     const cabecera = container.querySelector("header");
     expect(cabecera).not.toBeNull();
 
@@ -235,7 +277,7 @@ describe("404: el ensamblaje que la ola M dejó montado", () => {
   });
 
   it("el landmark de navegación lleva rótulo, y sale de su clave i18n", () => {
-    const { container } = renderWithProviders(<NotFound />);
+    const { container } = renderWithProviders(<NotFoundRoute />);
     const navegacion = container.querySelector("header nav");
 
     expect(navegacion).not.toBeNull();
@@ -254,7 +296,7 @@ describe("404: el ensamblaje que la ola M dejó montado", () => {
    */
   it("desde una URL rota inglesa, la salida del cuerpo apunta a la portada INGLESA", () => {
     window.history.pushState({}, "", "/en/lo-que-sea");
-    const { container } = renderWithProviders(<NotFound />);
+    const { container } = renderWithProviders(<NotFoundRoute />);
 
     const salidas = Array.from(container.querySelectorAll("main a[href]")).map(
       (a) => a.getAttribute("href"),
@@ -294,7 +336,7 @@ describe("404: el título del documento sigue al idioma", () => {
           await i18n.changeLanguage(lang);
         });
       }
-      renderWithProviders(<NotFound />);
+      renderWithProviders(<NotFoundRoute />);
 
       const titular = screen.getByRole("heading", { level: 1 });
       expect(titular.textContent).toBe(COPIA[lang].title);
@@ -305,7 +347,7 @@ describe("404: el título del documento sigue al idioma", () => {
   );
 
   it("la descripción del documento sale del mensaje 404 del idioma activo", async () => {
-    renderWithProviders(<NotFound />);
+    renderWithProviders(<NotFoundRoute />);
     const descripcion = (): string | null =>
       document.head
         .querySelector('meta[name="description"]')
@@ -367,7 +409,7 @@ describe("404 bajo /en: el idioma sigue a la URL rota", () => {
 
   it("una URL rota bajo /en monta el titular, el mensaje y el <title> ingleses", () => {
     window.history.pushState({}, "", "/en/lo-que-sea");
-    renderWithProviders(<NotFound />);
+    renderWithProviders(<NotFoundRoute />);
 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       enCommon.notFound.title,
@@ -383,7 +425,7 @@ describe("404 bajo /en: el idioma sigue a la URL rota", () => {
 
   it("el selector de idioma marca INGLÉS como actual, no español", () => {
     window.history.pushState({}, "", "/en/lo-que-sea");
-    const { container } = renderWithProviders(<NotFound />);
+    const { container } = renderWithProviders(<NotFoundRoute />);
 
     expect(
       container.querySelectorAll('a[hreflang="en"][aria-current="true"]')
@@ -396,7 +438,7 @@ describe("404 bajo /en: el idioma sigue a la URL rota", () => {
 
   it("una URL rota castellana sigue en castellano -- la 404 española no se rompe", () => {
     window.history.pushState({}, "", "/lo-que-sea");
-    renderWithProviders(<NotFound />);
+    renderWithProviders(<NotFoundRoute />);
 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       esCommon.notFound.title,

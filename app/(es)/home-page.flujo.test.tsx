@@ -290,9 +290,11 @@ describe("Home (pagina completa)", () => {
    * puede medirlo, porque `renderWithProviders` monta `I18nextProvider`
    * directamente y nunca pasa por `I18nProvider`.
    *
-   * Lo que NO se resuelve, y queda declarado en `app/layout.tsx`: el atributo
-   * del HTML SERVIDO sigue siendo `es` en las rutas inglesas (un solo root
-   * layout), y solo se corrige tras montar.
+   * Lo que NO se resolvía, y quedó declarado como límite conocido durante tres
+   * semanas: el atributo del HTML SERVIDO seguía siendo `es` en las rutas
+   * inglesas, porque un solo root layout no puede hornear dos `lang`. Cerrado
+   * el 2026-09-06 (P1 de la crítica externa #19): hoy hay una raíz por rama y
+   * cada una hornea el suyo. El candado está en `app/root-lang.test.tsx`.
    */
   it("la pieza decorativa del pie del hero no entra en el orden de tabulacion", () => {
     const { container } = renderHomePage();
