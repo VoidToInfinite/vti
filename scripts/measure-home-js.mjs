@@ -221,11 +221,21 @@
  * de Next la unión pasa a 45.461 B en cuatro grupos.
  *
  * POR QUÉ NO ES UN EMPEORAMIENTO POR PÁGINA, que es la distinción entera: no
- * hay ninguna página que engorde. Todas adelgazan salvo la 404, que sube 115 B
- * (legales −1.252 B, portadas −1.925 B), y el presupuesto de la home queda en
- * 250.361 B con 39.639 libres. El coste de los 45 KB lo paga solo quien carga
- * una 404 Y una página real en la misma sesión, y lo paga en fragmentación de
- * caché, no en peso de descarga de ninguna url.
+ * hay ninguna página que engorde de forma apreciable. Medido sobre el BUILD
+ * FINAL de la ola (el que sella la línea base vigente) contra la línea base
+ * anterior, la de la ola R: la 404 sube 90 B (204.238 → 204.328), las cuatro
+ * legales bajan 1.256 (222.354 → 221.098) y las dos portadas bajan 1.877
+ * (252.286 → 250.409), que es donde queda el presupuesto de la home, con
+ * 39.591 B libres. El coste de los 45 KB lo paga solo quien carga una 404 Y
+ * una página real en la misma sesión, y lo paga en fragmentación de caché, no
+ * en peso de descarga de ninguna url.
+ *
+ * (Estas cifras se corrigieron el 2026-09-06 tras la verificación de la ola:
+ * las anteriores —404 +115 B, legales −1.252, portadas −1.925, home 250.361
+ * con 39.639 libres— eran las del build INTERMEDIO con el que se escribió este
+ * bloque, y el censo se regeneró después sobre el build final sin actualizarlas.
+ * Un argumento que sostiene una deuda de 45 KB no puede citar el artefacto
+ * equivocado.)
  *
  * POR QUÉ EL CANDADO NECESITABA DOS PAREJAS. Hasta aquí, `DECLARED_TWIN_*` se
  * usaba a la vez para el candado por página y para el de la unión. Sancionar
@@ -449,10 +459,10 @@ export const DECLARED_TWIN_GROUPS = 1;
  * deja de compartirlos con las seis páginas reales y el mismo código se emite
  * dos veces, una por familia de raíz.
  *
- * QUÉ CUESTA Y A QUIÉN. A ninguna página, por sí sola: ninguna engorda. Todas
- * adelgazan salvo la 404, que sube 115 B (las legales bajan 1.252 y las
- * portadas 1.925), y la home queda en 250.361 B brotli con 39.639 libres de
- * presupuesto. Los 45.461 B los paga solo quien carga una 404 Y una página real
+ * QUÉ CUESTA Y A QUIÉN. A ninguna página, por sí sola. Sobre el build final de
+ * la ola, contra la línea base de la ola R: la 404 sube 90 B, las legales bajan
+ * 1.256 y las portadas 1.877, y la home queda en 250.409 B brotli con 39.591
+ * libres de presupuesto. Los 45.461 B los paga solo quien carga una 404 Y una página real
  * en la misma sesión, y los paga en fragmentación de caché —código que antes
  * venía de una entrada compartida y ahora se descarga dos veces—, no en peso de
  * ninguna url.

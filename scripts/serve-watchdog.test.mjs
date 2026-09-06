@@ -23,7 +23,9 @@ import {
     DEFAULT_PROBE_MS,
     FALLOS_PARA_RELANZAR,
     MIN_PROBE_MS,
-    SERVE_MAIN_POR_DEFECTO,
+    SUBRUTA_DE_SERVE,
+    buscarServeEnCacheNpx,
+    directoriosDeCacheNpx,
     argumentosDelServidor,
     cuentaElFallo,
     lineaDeArranque,
@@ -454,13 +456,89 @@ describe("resolución de la entrada de serve", () => {
         ).toBe("C:/otra.js");
     });
 
-    it("sin nada dicho se prueba la ruta conocida de la máquina", () => {
+    /*
+     * `serve` vive en la caché de `npx`, bajo un directorio cuyo nombre es un
+     * hash de la petición que lo instaló: no hay ruta fija que escribir. Hasta
+     * el 2026-09-06 este caso afirmaba una ruta absoluta de UNA máquina, con su
+     * `$HOME` y su hash dentro de un fichero versionado (señalado por la
+     * revisión adversarial de la ola S). Hoy afirma lo que de verdad importa:
+     * que sin nada dicho se BUSCA en la caché, y que entre varias
+     * instalaciones gana la más reciente. Validado con bug inyectado
+     * (ordenando por fecha ascendente en `buscarServeEnCacheNpx`):
+     *   AssertionError: entre dos instalaciones de serve en la caché gana la
+     *   más reciente: expected 'C:\cache\_npxiejo
+ode_modules\serv…' to be
+     *   'C:\cache\_npx
+uevo
+ode_modules\serv…' // Object.is equality
+     */
+    it("sin nada dicho se busca en la caché de npx y gana la instalación más reciente", () => {
+        const env = { npm_config_cache: "C:/cache" };
+        // `path.join` es lo que usa la implementación: en Windows la ruta
+        // lleva barras invertidas, así que construirlas a mano con barras
+        // normales haría que el doble de `existe` no reconociera ninguna.
+        const enCache = (nombre) =>
+            path.join("C:/cache", "_npx", nombre, SUBRUTA_DE_SERVE);
+        const viejo = enCache("viejo");
+        const nuevo = enCache("nuevo");
+        const encontrados = buscarServeEnCacheNpx({
+            env,
+            listar: () => ["viejo", "nuevo"],
+            existe: (ruta) => ruta === viejo || ruta === nuevo,
+            fecha: (ruta) => (ruta === nuevo ? 2_000 : 1_000),
+        });
+
+        expect(
+            encontrados[0],
+            "entre dos instalaciones de serve en la caché gana la más reciente",
+        ).toBe(nuevo);
+        expect(encontrados).toHaveLength(2);
         expect(
             resolveServeMain({
-                env: {},
-                existe: (ruta) => ruta === SERVE_MAIN_POR_DEFECTO,
+                env,
+                existe: () => false,
+                buscar: () => encontrados,
             }),
-        ).toBe(SERVE_MAIN_POR_DEFECTO);
+        ).toBe(nuevo);
+    });
+
+    /*
+     * La caché de `npx` no está en el mismo sitio en todas las máquinas, y una
+     * lista vacía dejaría la búsqueda muda: este caso ata las tres fuentes que
+     * el resolutor consulta y que ninguna se pierda en silencio.
+     */
+    it("la caché de npx se busca en la variable de npm y en el sitio del sistema", () => {
+        expect(
+            directoriosDeCacheNpx({ npm_config_cache: "C:/cache" }),
+        ).toContain(path.join("C:/cache", "_npx"));
+        expect(
+            directoriosDeCacheNpx({ NPM_CONFIG_CACHE: "C:/otra" }),
+        ).toContain(path.join("C:/otra", "_npx"));
+
+        const delSistema = directoriosDeCacheNpx(
+            process.platform === "win32"
+                ? { LOCALAPPDATA: "C:/local" }
+                : { HOME: "/home/x" },
+        );
+        expect(delSistema.length).toBeGreaterThan(0);
+    });
+
+    /*
+     * Ningún directorio de la caché tiene por qué existir: `readdirSync` lanza
+     * y la búsqueda tiene que seguir con el siguiente en vez de tumbar el
+     * arranque del vigilante.
+     */
+    it("un directorio de caché que no existe no rompe la búsqueda", () => {
+        expect(
+            buscarServeEnCacheNpx({
+                env: { npm_config_cache: "C:/no-existe" },
+                listar: () => {
+                    throw new Error("ENOENT");
+                },
+                existe: () => true,
+                fecha: () => 0,
+            }),
+        ).toEqual([]);
     });
 
     it("sin ninguna entrada resoluble, el error dice cómo fijarla", () => {

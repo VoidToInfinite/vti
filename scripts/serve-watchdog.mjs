@@ -60,6 +60,8 @@ import {
     closeSync,
     existsSync,
     openSync,
+    readdirSync,
+    statSync,
     writeFileSync,
 } from "node:fs";
 import os from "node:os";
@@ -87,13 +89,78 @@ export const MIN_PROBE_MS = 50;
 export const FALLOS_PARA_RELANZAR = 3;
 
 /**
- * Dónde vive el `serve` que usan las críticas en esta máquina: la caché de
- * `npx`, fuera del `node_modules` del repo (`serve` no es dependencia del
- * proyecto a propósito; `pnpm start` lo invoca con `npx`). Se puede pisar con
- * `--serve-main=` o con la variable de entorno `SERVE_MAIN`.
+ * Dónde buscar el `serve` que usan las críticas cuando nadie lo dice.
+ *
+ * `serve` NO es dependencia de este proyecto a propósito (`pnpm start` lo
+ * invoca con `npx`), así que no vive en el `node_modules` del repo: vive en la
+ * caché de `npx`, bajo un directorio cuyo nombre es un hash de la petición que
+ * lo instaló. Por eso no se puede escribir aquí una ruta fija: el hash cambia
+ * al reinstalar, y en otra máquina o en CI no existe ninguno.
+ *
+ * Lo que se declara es el PATRÓN de búsqueda, y la ruta concreta se encuentra
+ * mirando: `<caché de npx>/ * /node_modules/serve/build/main.js`, ordenado por
+ * fecha de modificación descendente para quedarse con la instalación más
+ * reciente. La caché sale de `npm_config_cache`, de `NPM_CONFIG_CACHE` o del
+ * sitio por defecto de cada sistema (`%LOCALAPPDATA%/npm-cache` en Windows,
+ * `~/.npm` en el resto). Si no aparece ninguna, el error dice las dos salidas
+ * explícitas que existen: `--serve-main=` y la variable `SERVE_MAIN`.
+ *
+ * Hasta el 2026-09-06 esta constante era la ruta absoluta de UNA máquina
+ * (`.../npm-cache/_npx/aab42732f01924e5/...`), señalada por la revisión
+ * adversarial de la ola S: un `$HOME` concreto y un hash de caché dentro de un
+ * fichero versionado.
  */
-export const SERVE_MAIN_POR_DEFECTO =
-    "C:/Users/Daniel/AppData/Local/npm-cache/_npx/aab42732f01924e5/node_modules/serve/build/main.js";
+export const SUBRUTA_DE_SERVE = "node_modules/serve/build/main.js";
+
+/** Directorios donde `npx` deja lo que instala, en orden de preferencia. */
+export function directoriosDeCacheNpx(env = process.env) {
+    const raices = [env.npm_config_cache, env.NPM_CONFIG_CACHE];
+    if (process.platform === "win32") {
+        if (env.LOCALAPPDATA)
+            raices.push(path.join(env.LOCALAPPDATA, "npm-cache"));
+    } else if (env.HOME) {
+        raices.push(path.join(env.HOME, ".npm"));
+    }
+    return raices
+        .filter((raiz) => typeof raiz === "string" && raiz !== "")
+        .map((raiz) => path.join(raiz, "_npx"));
+}
+
+/**
+ * Instalaciones de `serve` en la caché de `npx`, la más reciente primero.
+ *
+ * `listar` y `fecha` se inyectan en los tests para no depender del disco de
+ * quien ejecuta la suite; por defecto leen el sistema de ficheros.
+ */
+export function buscarServeEnCacheNpx({
+    env = process.env,
+    listar = (dir) => readdirSync(dir),
+    fecha = (ruta) => statSync(ruta).mtimeMs,
+    existe = (ruta) => existsSync(ruta),
+} = {}) {
+    const candidatos = [];
+    for (const cache of directoriosDeCacheNpx(env)) {
+        let entradas;
+        try {
+            entradas = listar(cache);
+        } catch {
+            continue;
+        }
+        for (const entrada of entradas) {
+            const ruta = path.join(cache, entrada, SUBRUTA_DE_SERVE);
+            if (!existe(ruta)) continue;
+            let cuando = 0;
+            try {
+                cuando = fecha(ruta);
+            } catch {
+                cuando = 0;
+            }
+            candidatos.push({ ruta, cuando });
+        }
+    }
+    candidatos.sort((a, b) => b.cuando - a.cuando);
+    return candidatos.map((c) => c.ruta);
+}
 
 /** Las únicas banderas que el vigilante acepta. */
 const CLAVES = new Set([
@@ -194,6 +261,7 @@ export function resolveServeMain({
     explicito = null,
     env = process.env,
     existe = existsSync,
+    buscar = buscarServeEnCacheNpx,
 } = {}) {
     if (explicito) {
         if (existe(explicito)) return explicito;
@@ -212,7 +280,8 @@ export function resolveServeMain({
         );
     }
 
-    if (existe(SERVE_MAIN_POR_DEFECTO)) return SERVE_MAIN_POR_DEFECTO;
+    const [enCache] = buscar({ env, existe });
+    if (enCache) return enCache;
 
     throw new Error(
         "No encuentro el `serve` que usan las críticas. Este vigilante NO " +
@@ -220,9 +289,10 @@ export function resolveServeMain({
             "las cabeceras de `serve` son parte del instrumento. Fija su " +
             "entrada con --serve-main=<ruta a serve/build/main.js> o con la " +
             "variable de entorno SERVE_MAIN. Si no está instalado, una " +
-            "corrida de `npx serve out` lo deja en la caché de npx y esa " +
-            `ruta es la que este script prueba por defecto ` +
-            `(${SERVE_MAIN_POR_DEFECTO}).`,
+            "corrida de `npx serve out` lo deja en la caché de npx, que es " +
+            "donde este script lo busca por defecto " +
+            `(${directoriosDeCacheNpx().join(", ") || "sin caché de npx conocida"}` +
+            `, subruta ${SUBRUTA_DE_SERVE}).`,
     );
 }
 
