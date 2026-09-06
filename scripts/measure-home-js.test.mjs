@@ -8,6 +8,8 @@ import {
     CHUNK_GROWTH_LIMIT_BYTES,
     DECLARED_TWIN_BROTLI_BYTES,
     DECLARED_TWIN_GROUPS,
+    DECLARED_UNION_TWIN_BROTLI_BYTES,
+    DECLARED_UNION_TWIN_GROUPS,
     DECLARED_DUPLICATE_MODULES,
     DECLARED_DUPLICATE_RAW_BYTES,
     HOME_PAGE,
@@ -35,7 +37,8 @@ import {
  * gate. `measure-home-js.mjs` sabe medir y sabe fallar por su cuenta, pero
  * `pnpm run ci` no lo llama y no puede llamarlo: el script necesita un `out/`
  * construido y el gate corre sin build (en Netlify el `command` es
- * `pnpm run ci && pnpm build`, con el gate ANTES). Lo que sí puede correr
+ * `pnpm run ci && pnpm build && pnpm measure:js`, con el gate ANTES y la
+ * medición del bundle detrás del build). Lo que sí puede correr
  * siempre es esto: la lógica del instrumento ejercitada con chunks
  * sintéticos, más la AUDITORÍA COMPLETA del censo versionado. Y cuando la
  * máquina tiene un `out/` a mano —la del desarrollador, no la de CI— el
@@ -90,6 +93,59 @@ import {
  * desde un build. Los rojos literales de los otros cinco están en el informe
  * de la ola; los cuatro que dependen solo del JSON se reproducen inyectando la
  * misma edición sobre `scripts/home-js-baseline.json`.
+ *
+ * LAS INYECCIONES DE ARRIBA SON HISTÓRICAS Y CITAN LAS CIFRAS DE SU FECHA:
+ * `DECLARED_DUPLICATE_RAW_BYTES` valía 116.368 B cuando se hizo la 2 y
+ * `DECLARED_TWIN_BROTLI_BYTES` 1.261 B cuando se hizo la 4. Las vigentes están
+ * en `scripts/measure-home-js.mjs`. Un rojo medido no se reescribe: se fecha.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * LO QUE ESTRENA LA OLA S (2026-09-06), validado el mismo día sobre este árbol.
+ * La ola partió el sitio en tres raíces de documento para hornear `<html lang>`
+ * por ruta (WCAG 3.1.1, nivel A), y con eso la unión de las ocho páginas pasó
+ * de UN grupo de chunks gemelos a CUATRO, 45.461 B brotli. Declarar esa cifra
+ * en la única pareja de constantes que había habría subido ×35 el listón DENTRO
+ * de cada página, así que ahora hay dos parejas y cada candado usa la suya.
+ * Tres inyecciones, cada una aplicada y deshecha dentro de un solo comando:
+ *
+ *  6. LA COTA DE LA UNIÓN NO VALE DENTRO DE UNA PÁGINA — sustituyendo
+ *     `DECLARED_TWIN_BROTLI_BYTES` por `DECLARED_UNION_TWIN_BROTLI_BYTES` en el
+ *     candado por página de `verdict`:
+ *       FAIL scripts/measure-home-js.test.mjs > veredicto de una página contra
+ *       su rebanada del censo > un gemelo dentro de una página sigue fallando
+ *       aunque quepa en la cota de la unión
+ *       AssertionError: expected '' to contain 'viajan por duplicado en la
+ *       misma pági…'
+ *     Con él cayó también el caso hermano de esa misma cota ("falla cuando la
+ *     copia redundante pesa más que la deuda declarada":
+ *     `AssertionError: expected '' to contain 'tienen la MISMA composición'`),
+ *     que es lo esperado: los dos miran la misma constante. `Tests 6 failed |
+ *     48 passed (54)`.
+ *
+ *  7. EL CANDADO DE LA UNIÓN NO PUEDE CANTAR SIEMPRE — inyectando `>=` en vez
+ *     de `>` en la comparación de grupos de `verdictSite`:
+ *       FAIL scripts/measure-home-js.test.mjs > gemelos que solo se ven mirando
+ *       las ocho páginas a la vez > un sitio con tantos grupos de gemelos como
+ *       los declarados pasa en verde
+ *       AssertionError: expected [ …(5) ] to deeply equal []
+ *     `Tests 5 failed | 49 passed (54)`.
+ *
+ *  8. Y LA TERCERA NO SALIÓ COMO SE PREDIJO, que es un dato, no un adorno.
+ *     Bajar `DECLARED_UNION_TWIN_GROUPS` de 4 a 1 NO pone en rojo ningún caso
+ *     sintético: `Tests 4 failed | 50 passed (54)`, los mismos cuatro fallos
+ *     que ese día tenía el árbol sin inyectar nada (el censo regenerado
+ *     esperando a que el orquestador pegue `BASELINE_CHUNKS` y el sello). La
+ *     razón es que el sitio del caso espejo se construye a partir de esa misma
+ *     constante y encoge con ella. Lo que sí se puso en rojo fue el bloque de
+ *     integración, contra el `out/` real:
+ *       AssertionError: el build real no pasa los candados: … · [unión] la
+ *       duplicación de chunks ÍNTEGROS entre páginas sube a 45.461 B brotli en
+ *       4 grupo(s), por encima de los 45.461 B en 1 grupo(s) ya declarados
+ *     Ahí está además la confirmación independiente de la cifra declarada: los
+ *     cuatro grupos que el candado enumeró son 21.290 + 14.111 + 8.789 + 1.271
+ *     B, leídos del build y no escritos a mano. La lección que deja el número 8
+ *     es que un caso sintético parametrizado por la constante que vigila no
+ *     puede vigilar esa constante: eso solo lo hace el build.
  */
 
 /** Chunk sintético con la forma que emite Turbopack. */
@@ -415,6 +471,41 @@ describe("veredicto de una página contra su rebanada del censo", () => {
         expect(problems.join(" ")).toContain("duplicación de chunks ÍNTEGROS");
     });
 
+    /*
+     * EL CANDADO DE LA DECISIÓN DEL 2026-09-06, y es el que hay que mirar
+     * primero si alguien vuelve a tocar estas constantes. La ola S declaró
+     * 45.461 B de gemelos ENTRE páginas —la partición en tres raíces de
+     * documento— y esa deuda NO puede convertirse en permiso DENTRO de una
+     * página: con una sola pareja de constantes para las dos escalas, el listón
+     * de la página habría subido de 1.271 a 45.461 B, ×35, y un gemelo de
+     * 20.000 B dentro de una misma página —la forma exacta de la cáscara
+     * duplicada que costó cinco olas descubrir— habría pasado en verde.
+     *
+     * 20.000 B está elegido a propósito ENTRE las dos cotas: por encima de la de
+     * la página y por debajo de la de la unión. Es el único rango donde las dos
+     * constantes discrepan, así que es el único donde el caso demuestra algo.
+     */
+    it("un gemelo dentro de una página sigue fallando aunque quepa en la cota de la unión", () => {
+        const bytes = 20_000;
+        expect(bytes).toBeGreaterThan(DECLARED_TWIN_BROTLI_BYTES);
+        expect(bytes).toBeLessThan(DECLARED_UNION_TWIN_BROTLI_BYTES);
+        const { problems } = juzga({
+            ...sano,
+            twins: [
+                {
+                    fingerprint: "abc123",
+                    modules: 11,
+                    names: ["a.js", "b.js"],
+                    wastedBrotliBytes: bytes,
+                },
+            ],
+        });
+        expect(problems.join(" ")).toContain(
+            "viajan por duplicado en la misma página",
+        );
+        expect(problems.join(" ")).toContain("duplicación de chunks ÍNTEGROS");
+    });
+
     it("falla cuando la línea base declara un chunk que el build ya no emite", () => {
         const { problems } = juzga(
             { ...sano, chunks: [], downloadedBytes: 0 },
@@ -495,9 +586,17 @@ describe("detección de chunks con la misma composición", () => {
  * `out/index.html`, y la cáscara duplicada que se acababa de eliminar vivía
  * precisamente en la relación ENTRE páginas: un chunk que pedían las ocho y una
  * copia íntegra suya que solo pedían las dos portadas. El sitio sintético de
- * aquí abajo es la forma pura de ese defecto — dos ficheros idénticos que
- * NINGUNA página pide a la vez —, y sirve para demostrar que ninguna página por
- * separado lo ve y la unión sí.
+ * aquí abajo es la forma pura de ese defecto — ficheros idénticos que NINGUNA
+ * página pide a la vez —, y sirve para demostrar que ninguna página por separado
+ * lo ve y la unión sí.
+ *
+ * DESDE EL 2026-09-06 ESTA ESCALA TIENE SU PROPIA COTA. La ola S declaró como
+ * deuda los 45.461 B en cuatro grupos de la partición del sitio en tres raíces
+ * de documento, así que un sitio sintético con DOS grupos ya no falla: para
+ * ejercitar el candado hay que pasarse de `DECLARED_UNION_TWIN_GROUPS`. Los
+ * casos de aquí abajo se construyen a partir de esa constante, no de un número
+ * escrito a mano, para que sigan midiendo lo que dicen medir cuando la deuda
+ * declarada cambie otra vez.
  */
 describe("gemelos que solo se ven mirando las ocho páginas a la vez", () => {
     const modulosA = [
@@ -508,26 +607,35 @@ describe("gemelos que solo se ven mirando las ocho páginas a la vez", () => {
         { id: "2001", size: 400 },
         { id: "2002", size: 300 },
     ];
-    const sitio = () => {
-        const home = analyze([
-            makeChunk("a.js", modulosA),
-            makeChunk("b.js", modulosB),
-        ]);
-        const otra = analyze([
-            makeChunk("c.js", modulosA),
-            makeChunk("d.js", modulosB),
-        ]);
+    /*
+     * Una composición distinta por cada grupo de gemelos que se quiera
+     * fabricar. Los identificadores van de diez en diez para que dos grupos no
+     * compartan ninguno por accidente.
+     */
+    const composicion = (grupo) => [
+        { id: String(3100 + grupo * 10), size: 400 },
+        { id: String(3101 + grupo * 10), size: 300 },
+    ];
+    /*
+     * Sitio de dos páginas con `grupos` composiciones, cada una emitida en un
+     * fichero DISTINTO por página: ninguna página tiene gemelos por sí sola y la
+     * unión tiene exactamente `grupos`. El defecto por defecto es uno por encima
+     * de la cota declarada, que es el que tiene que caer.
+     */
+    const sitio = (grupos = DECLARED_UNION_TWIN_GROUPS + 1) => {
+        const composiciones = Array.from({ length: grupos }, (_, index) =>
+            composicion(index),
+        );
+        const chunksDe = (prefijo) =>
+            composiciones.map((modulos, index) =>
+                makeChunk(`${prefijo}${index}.js`, modulos),
+            );
         return {
             rutas: [HOME_PAGE, "otra.html"],
-            union: analyze([
-                makeChunk("a.js", modulosA),
-                makeChunk("b.js", modulosB),
-                makeChunk("c.js", modulosA),
-                makeChunk("d.js", modulosB),
-            ]),
+            union: analyze([...chunksDe("a"), ...chunksDe("c")]),
             paginas: [
-                { ruta: HOME_PAGE, analysis: home },
-                { ruta: "otra.html", analysis: otra },
+                { ruta: HOME_PAGE, analysis: analyze(chunksDe("a")) },
+                { ruta: "otra.html", analysis: analyze(chunksDe("c")) },
             ],
         };
     };
@@ -555,15 +663,45 @@ describe("gemelos que solo se ven mirando las ocho páginas a la vez", () => {
         }
     });
 
-    it("la unión de las dos sí los tiene, y el veredicto del sitio los canta", () => {
+    it("la unión de las dos sí los tiene, y por encima de la cota el veredicto los canta", () => {
         const site = sitio();
         const censo = censoDe(site);
-        expect(site.union.twins).toHaveLength(2);
+        expect(site.union.twins).toHaveLength(DECLARED_UNION_TWIN_GROUPS + 1);
         const { problems } = verdictSite(site, censo, opciones(site, censo));
         expect(problems.join(" ")).toContain(
             "duplicación de chunks ÍNTEGROS entre páginas",
         );
         expect(problems.join(" ")).toContain("[unión]");
+    });
+
+    /*
+     * EL CASO ESPEJO, y sin él el anterior no demuestra nada: un candado que
+     * canta siempre no distingue lo declarado de lo nuevo. Con exactamente los
+     * grupos declarados —y sus bytes por debajo de la cota— el veredicto tiene
+     * que salir limpio.
+     *
+     * QUÉ ATRAPA Y QUÉ NO, dicho con precisión porque la diferencia se midió:
+     * atrapa que el candado se pase de estricto (inyectando `>=` en vez de `>`
+     * en la comparación de grupos, este caso se pone en rojo y los demás no).
+     * NO atrapa que alguien baje `DECLARED_UNION_TWIN_GROUPS` sin mirar el
+     * build, porque el sitio sintético se construye a partir de esa misma
+     * constante y encoge con ella —comprobado inyectando el 1: los casos
+     * sintéticos siguieron todos en verde—. De eso se encarga el bloque de
+     * integración contra el `out/` real, que es el único que sabe cuántos
+     * grupos hay de verdad.
+     */
+    it("un sitio con tantos grupos de gemelos como los declarados pasa en verde", () => {
+        const site = sitio(DECLARED_UNION_TWIN_GROUPS);
+        const censo = censoDe(site);
+        expect(site.union.twins).toHaveLength(DECLARED_UNION_TWIN_GROUPS);
+        const bytes = site.union.twins.reduce(
+            (acc, twin) => acc + twin.wastedBrotliBytes,
+            0,
+        );
+        expect(bytes).toBeLessThanOrEqual(DECLARED_UNION_TWIN_BROTLI_BYTES);
+        expect(
+            verdictSite(site, censo, opciones(site, censo)).problems,
+        ).toEqual([]);
     });
 
     it("un sitio sin copias entre páginas pasa el mismo veredicto en verde", () => {

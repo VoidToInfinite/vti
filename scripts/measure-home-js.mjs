@@ -84,7 +84,9 @@
  * `LocaleShell`, que es ese ancestro. Medido sobre el mismo árbol, dos builds
  * consecutivos: **284.559 → 253.853 B brotli descargados (−30.706 B)**, la
  * duplicación de módulos de 116.368 a 4.264 B crudos (de 21 módulos a 5, todos
- * del runtime de Next), y cero pares de chunks con la misma firma.
+ * del runtime de Next), y cero pares de chunks con la misma firma. Esas dos
+ * cifras son las de AQUEL día; las vigentes están en el docblock de
+ * `DECLARED_DUPLICATE_RAW_BYTES` y bajaron a 3.266 B en 3 módulos con la ola S.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * AMPLIACIÓN 2026-09-04 (ola R, frente del censo del bundle): LAS OCHO PÁGINAS
@@ -107,23 +109,36 @@
  * en la home o no aparecen fuera de ella.
  *
  * QUÉ SE COMPARA POR PÁGINA Y QUÉ ENTRE PÁGINAS, que es la decisión de diseño
- * de este frente:
+ * de este frente — y desde el 2026-09-06 cada escala tiene su PROPIA pareja de
+ * cotas, que es lo que impide que sancionar una afloje la otra:
  *
  *   · POR PÁGINA se comparan las magnitudes que un visitante concreto paga al
  *     abrir ESA url: el presupuesto, la duplicación de módulos dentro de la
  *     página, los chunks gemelos dentro de la página y el delta de cada chunk
  *     contra la fila que el censo le asigna. Las cotas declaradas
- *     (`DECLARED_DUPLICATE_*`, `DECLARED_TWIN_*`) se evalúan página a página y
- *     son las de la peor: las dos portadas, con 5 módulos repetidos / 4.264 B
- *     crudos; las legales quedan en 4 / 4.027 y las dos 404 en 3 / 3.266, todas
- *     por debajo. El grupo de gemelos del runtime de Next (1.261 B) aparece en
- *     las ocho.
+ *     (`DECLARED_DUPLICATE_*`, `DECLARED_TWIN_*`) se evalúan página a página.
+ *     Medido el 2026-09-06 sobre el build de la ola S: las ocho páginas llevan
+ *     los MISMOS 3 módulos repetidos / 3.266 B crudos —los del runtime de
+ *     Next— y el mismo y único grupo de gemelos suyo, 1.271 B brotli. Ya no hay
+ *     una "peor página" distinta de las demás: la cota vale igual para las
+ *     ocho.
  *   · ENTRE PÁGINAS se compara lo que ninguna página ve sola: la UNIÓN de los
- *     ficheros de chunk de las ocho, agrupados por firma. Ahí es donde se
- *     detecta que dos ficheros DISTINTOS llevan la misma composición aunque
- *     ninguna página los pida a la vez — el caso que la home, por sí sola, no
- *     puede cantar. Hoy la unión tiene exactamente un grupo de gemelos, el
- *     mismo del runtime de Next, y ningún par nuevo.
+ *     ficheros de chunk de las ocho, agrupados por firma, contra
+ *     `DECLARED_UNION_TWIN_BROTLI_BYTES` y `DECLARED_UNION_TWIN_GROUPS`. Ahí es
+ *     donde se detecta que dos ficheros DISTINTOS llevan la misma composición
+ *     aunque ninguna página los pida a la vez — el caso que la home, por sí
+ *     sola, no puede cantar. Desde la ola S la unión tiene CUATRO grupos y
+ *     45.461 B brotli redundantes: el del runtime de Next y tres que estrenó la
+ *     partición del sitio en tres raíces de documento. El porqué, el coste y
+ *     quién lo paga están escritos en el docblock de
+ *     `DECLARED_UNION_TWIN_BROTLI_BYTES`.
+ *
+ * Y LAS DOS PAREJAS ESTÁN SEPARADAS A PROPÓSITO. Con una sola, sancionar los
+ * 45.461 B de la unión habría subido ×35 el listón DENTRO de cada página: un
+ * gemelo nuevo de 20.000 B en una misma página —que es la forma exacta del
+ * defecto de la cáscara que costó cinco olas descubrir— habría pasado en verde.
+ * Con dos, sigue fallando, y eso tiene su caso propio en
+ * `scripts/measure-home-js.test.mjs`.
  *
  * DEFECTO 2 — EL RECORTE COORDINADO DEL CENSO PASABA EN VERDE. Es el grave, y
  * es el que invalidaba la garantía entera. El commit `571b6df` afirmaba que
@@ -187,6 +202,39 @@
  * existiendo, y en ese orden, lo ata `scripts/build-pipeline.test.mjs`, que sí
  * corre dentro del gate.
  *
+ * ─────────────────────────────────────────────────────────────────────────
+ * AMPLIACIÓN 2026-09-06 (ola S): DOS PAREJAS DE COTAS DE GEMELOS, PORQUE EL
+ * SITIO PASÓ A TENER TRES RAÍCES DE DOCUMENTO.
+ *
+ * QUÉ CAMBIÓ EN EL PRODUCTO. El P1 número 1 de la crítica externa #19 era un
+ * incumplimiento de WCAG 3.1.1 (nivel A): `/en` servía `<html lang="es">`
+ * porque una única raíz solo puede hornear un `lang`. Para hornearlo por ruta,
+ * el sitio se partió en tres root layouts —`app/(es)/layout.tsx`,
+ * `app/en/layout.tsx` y `app/global-not-found.tsx`—.
+ *
+ * QUÉ CAMBIÓ EN EL BUNDLE, medido sobre el build de ese árbol. Turbopack
+ * reparte los chunks POR RAÍZ, así que la entrada `/_not-found` deja de
+ * compartirlos con las seis páginas reales: aparecen TRES grupos de chunks
+ * gemelos nuevos (21.290 + 14.111 + 8.789 B brotli) que sí llevan código del
+ * repo —la instancia de i18next; `Button`/`BrandName`/`Logo`;
+ * `VisuallyHidden`/`DEFAULT_LOCALE`/`EN_ROUTES`—, y con el grupo preexistente
+ * de Next la unión pasa a 45.461 B en cuatro grupos.
+ *
+ * POR QUÉ NO ES UN EMPEORAMIENTO POR PÁGINA, que es la distinción entera: no
+ * hay ninguna página que engorde. Todas adelgazan salvo la 404, que sube 115 B
+ * (legales −1.252 B, portadas −1.925 B), y el presupuesto de la home queda en
+ * 250.361 B con 39.639 libres. El coste de los 45 KB lo paga solo quien carga
+ * una 404 Y una página real en la misma sesión, y lo paga en fragmentación de
+ * caché, no en peso de descarga de ninguna url.
+ *
+ * POR QUÉ EL CANDADO NECESITABA DOS PAREJAS. Hasta aquí, `DECLARED_TWIN_*` se
+ * usaba a la vez para el candado por página y para el de la unión. Sancionar
+ * los 45.461 B en esa única pareja habría subido el listón de la página de
+ * 1.271 a 45.461 B: el mismo gesto que documenta una deuda entre páginas habría
+ * abierto ×35 la puerta por la que entró la cáscara duplicada de la ola Q. Por
+ * eso ahora son dos parejas independientes y el candado de cada escala usa la
+ * suya, y solo la suya.
+ *
  * QUÉ VIGILA, en NUEVE candados independientes:
  *
  *   1. **Presupuesto**, página a página: el JS descargado de cada una de las
@@ -197,12 +245,16 @@
  *      chunk conocido que crece más de `CHUNK_GROWTH_LIMIT_BYTES` brotli falla,
  *      y un chunk cuya firma no está entre las suyas falla también.
  *   4. **Chunks gemelos dentro de la página**, contra
- *      `DECLARED_TWIN_BROTLI_BYTES` y `DECLARED_TWIN_GROUPS`.
+ *      `DECLARED_TWIN_BROTLI_BYTES` y `DECLARED_TWIN_GROUPS` (hoy 1.271 B en
+ *      1 grupo, el reparto interno de Next).
  *   5. **Chunks del censo que la página ya no emite**: falla en vez de
  *      imprimirse como nota.
  *   6. **La tabla de chunks tiene el tamaño declarado**: `BASELINE_CHUNKS`.
  *   7. **Chunks gemelos en la UNIÓN de las ocho páginas**, que es la relación
  *      donde vivía la cáscara duplicada y donde una sola página no ve nada.
+ *      Contra `DECLARED_UNION_TWIN_BROTLI_BYTES` y `DECLARED_UNION_TWIN_GROUPS`
+ *      (hoy 45.461 B en 4 grupos), que son constantes DISTINTAS de las del
+ *      candado 4 a propósito: aflojar esta escala no afloja aquélla.
  *   8. **El censo de páginas es coherente y tiene el tamaño declarado**:
  *      `BASELINE_PAGES`, rutas únicas, índices en rango y sin repetir, sin filas
  *      huérfanas, y la suma declarada de cada página igual a la suma real de las
@@ -308,40 +360,125 @@ export const CHUNK_GROWTH_LIMIT_BYTES = 1_000;
 
 /**
  * Bytes CRUDOS que hoy viajan repetidos entre chunks descargados de UNA MISMA
- * página (ver docblock). La cota es la de la peor de las ocho: las dos
- * portadas, con 4.264 B. Las cuatro legales quedan en 4.027 y las dos 404 en
- * 3.266.
+ * página (ver docblock).
+ *
+ * ACTUALIZADO EL 2026-09-06 (ola S), y a la baja: hasta la partición del sitio
+ * en tres raíces, la cota era la de la peor de las ocho —las dos portadas, con
+ * 5 módulos repetidos y 4.264 B crudos; las legales 4 / 4.027 y las dos 404
+ * 3 / 3.266—. Con la 404 en su propia raíz, esa asimetría desaparece: las OCHO
+ * páginas llevan exactamente los mismos 3 módulos repetidos, 3.266 B crudos,
+ * los del runtime de Next. Ya no hay una peor página que fije la cota; la cota
+ * es la misma para todas, y por eso baja.
+ *
+ * El censo versionado declara estas dos mismas cifras
+ * (`duplicacionCrudaBytes`, `modulosDuplicados`) y `auditBaseline` las compara
+ * contra estas constantes sin necesitar `out/`: si una de las dos se mueve sin
+ * la otra, el gate lo canta.
  */
-export const DECLARED_DUPLICATE_RAW_BYTES = 4_264;
-
-/** Módulos distintos que hoy aparecen en más de un chunk de la misma página. */
-export const DECLARED_DUPLICATE_MODULES = 5;
+export const DECLARED_DUPLICATE_RAW_BYTES = 3_266;
 
 /**
- * DEUDA DE CHUNKS GEMELOS QUE NO ES DEL REPO, medida el 2026-09-04 sobre el
- * build ya arreglado. Tras subir la cáscara al ancestro común quedan DOS
- * chunks idénticos de tres módulos —`3036pivcxrs_-.js` y `01v6e5k6mmr1y.js`,
- * 1.261 B brotli la copia sobrante— y lo que llevan dentro no es código de
- * este proyecto: son módulos internos de Next (el que exporta `DecodeError`,
+ * Módulos distintos que hoy aparecen en más de un chunk de la misma página:
+ * los tres del runtime de Next. Eran 5 en las portadas hasta el 2026-09-06.
+ */
+export const DECLARED_DUPLICATE_MODULES = 3;
+
+/**
+ * COTA POR PÁGINA. Deuda de chunks gemelos DENTRO de una misma página, que es
+ * la que un visitante concreto paga al abrir una url.
+ *
+ * QUÉ ES, medido el 2026-09-04 sobre el build ya arreglado. Tras subir la
+ * cáscara al ancestro común quedan DOS chunks idénticos de tres módulos
+ * —`3036pivcxrs_-.js` y `01v6e5k6mmr1y.js`— y lo que llevan dentro no es código
+ * de este proyecto: son módulos internos de Next (el que exporta `DecodeError`,
  * `execOnce`, `getURL`, `isAbsoluteUrl`… de `next/dist/shared/lib/utils`, más
  * dos ayudantes suyos). No hay ningún componente, hook ni constante del repo en
  * ellos, así que no hay ningún punto de montaje que mover para unirlos: es
- * reparto interno del framework. Las ocho páginas del build los piden a la vez,
- * así que la misma cota vale por página y sobre la unión.
+ * reparto interno del framework. Las ocho páginas del build los piden a la vez.
  *
- * Y la cifra es una MEJORA, no un empeoramiento que se legaliza: antes del
+ * Y la cifra fue una MEJORA, no un empeoramiento que se legaliza: antes del
  * arreglo esos mismos tres módulos viajaban en TRES chunks (`01v6e5k6mmr1y`,
  * `3mf3ek8ecbzi9` y `3wulsif4rqayb`), y el módulo mayor de los tres gastaba
  * 4.638 B crudos repetidos; hoy son dos copias y 2.319 B. Lo que cambia es que
  * ahora se ven, porque las dos copias caen en chunks de composición idéntica.
  *
+ * DE 1.261 A 1.271 B EL 2026-09-06 (+10 B): la ola S renumeró los
+ * identificadores de módulo al partir el sitio en tres raíces, y el mismo
+ * contenido comprime 10 B peor. Sigue siendo UN grupo, sigue siendo el mismo
+ * reparto interno de Next, sigue sin llevar código del repo. No es deuda nueva:
+ * es la misma deuda con otro número.
+ *
  * Se declara con dos ataduras, no una: los bytes Y el número de grupos. Con
  * solo los bytes, dos gemelos nuevos y pequeños pasarían por debajo del listón.
+ *
+ * ESTA COTA NO SE TOCA PARA SANCIONAR NADA DE LA UNIÓN. Lo que ocurre entre
+ * páginas tiene sus propias constantes, `DECLARED_UNION_TWIN_*`, justo debajo.
  */
-export const DECLARED_TWIN_BROTLI_BYTES = 1_261;
+export const DECLARED_TWIN_BROTLI_BYTES = 1_271;
 
-/** Grupos de chunks de composición idéntica que hoy admite el candado. */
+/**
+ * Grupos de chunks de composición idéntica que hoy admite el candado DENTRO de
+ * una misma página. Uno: el del runtime de Next.
+ */
 export const DECLARED_TWIN_GROUPS = 1;
+
+/**
+ * COTA ENTRE PÁGINAS. Deuda de chunks gemelos en la UNIÓN de las ocho páginas
+ * del build: dos ficheros distintos con la misma composición aunque NINGUNA
+ * página los pida a la vez. Es una pareja de constantes SEPARADA de
+ * `DECLARED_TWIN_*` a propósito, y el porqué de esa separación está al final de
+ * este bloque.
+ *
+ * QUÉ HAY DENTRO, medido el 2026-09-06 sobre el build de la ola S: CUATRO
+ * grupos, 45.461 B brotli redundantes.
+ *
+ *   · `05te701_-a7aa.js` = `1pw8w2ajfzxfa.js` — 11 módulos, 21.290 B (la
+ *     instancia de i18next).
+ *   · `2kegcqgb8gaxe.js` = `3683r5v73j_5u.js` — 8 módulos, 14.111 B
+ *     (`Button`, `BrandName`, `Logo`).
+ *   · `3twz4s71azlt7.js` = `17o_rdrl--fsv.js` — 9 módulos, 8.789 B
+ *     (`VisuallyHidden`, `DEFAULT_LOCALE`, `EN_ROUTES`).
+ *   · `01v6e5k6mmr1y.js` = `3036pivcxrs_-.js` — 3 módulos, 1.271 B (el reparto
+ *     interno de Next, el mismo de la cota por página).
+ *
+ * POR QUÉ EXISTEN LOS TRES NUEVOS, y sí llevan código del repo. La ola S partió
+ * el sitio en tres root layouts —`app/(es)/layout.tsx`, `app/en/layout.tsx` y
+ * `app/global-not-found.tsx`— para hornear `<html lang>` por ruta, que es lo
+ * que exige WCAG 3.1.1 (nivel A) y era el P1 número 1 de la crítica externa
+ * #19. Turbopack reparte los chunks POR RAÍZ, así que la entrada `/_not-found`
+ * deja de compartirlos con las seis páginas reales y el mismo código se emite
+ * dos veces, una por familia de raíz.
+ *
+ * QUÉ CUESTA Y A QUIÉN. A ninguna página, por sí sola: ninguna engorda. Todas
+ * adelgazan salvo la 404, que sube 115 B (las legales bajan 1.252 y las
+ * portadas 1.925), y la home queda en 250.361 B brotli con 39.639 libres de
+ * presupuesto. Los 45.461 B los paga solo quien carga una 404 Y una página real
+ * en la misma sesión, y los paga en fragmentación de caché —código que antes
+ * venía de una entrada compartida y ahora se descarga dos veces—, no en peso de
+ * ninguna url.
+ *
+ * POR QUÉ SE ACEPTA (decisión del orquestador, 2026-09-06, bajo el objetivo del
+ * dueño de cero P1). Un incumplimiento de nivel A no se cambia por 45 KB de
+ * fragmentación de caché en un camino de navegación raro. La alternativa —una
+ * sola raíz— vuelve a compartir estos chunks, pero una sola raíz solo puede
+ * hornear un `lang`, que es exactamente el defecto que se acaba de cerrar. La
+ * decisión queda declarada aquí con su cifra, su fecha y su porqué, y es
+ * REVERSIBLE: revertir la partición devuelve los 45 KB a la caché compartida y
+ * devuelve también el P1.
+ *
+ * POR QUÉ NO SE TOCÓ LA COTA POR PÁGINA, que es lo que hace que sancionar esto
+ * no sea aflojar. Hasta el 2026-09-06 las dos escalas compartían constantes:
+ * declarar estos 45.461 B habría subido el listón DENTRO de cada página de
+ * 1.271 a 45.461 B, ×35, y un gemelo nuevo de 20.000 B en una sola página
+ * —que es la forma exacta de la cáscara duplicada que costó cinco olas
+ * descubrir— habría pasado en verde. Con las dos parejas separadas, la cota por
+ * página sigue en 1.271 B y ese gemelo sigue fallando; hay un caso dedicado a
+ * ese escenario en `scripts/measure-home-js.test.mjs`.
+ */
+export const DECLARED_UNION_TWIN_BROTLI_BYTES = 45_461;
+
+/** Grupos de chunks de composición idéntica que hoy admite la UNIÓN. */
+export const DECLARED_UNION_TWIN_GROUPS = 4;
 
 /**
  * Filas de la tabla de chunks del censo versionado: la UNIÓN de los ficheros
@@ -815,13 +952,18 @@ export function verdict(
         );
     }
     /*
-     * CANDADO DE CHUNKS GEMELOS. La deuda del repo se pagó entera el
-     * 2026-09-04; lo que queda declarado son los 1.261 B de reparto interno de
-     * Next (ver `DECLARED_TWIN_BROTLI_BYTES`). Se comprueban las DOS cotas —
-     * bytes y número de grupos — porque cada una deja pasar lo que la otra
-     * atrapa: un gemelo grande nuevo sube los bytes sin cambiar el recuento si
-     * sustituye al conocido, y dos gemelos diminutos suben el recuento sin
-     * llegar al listón de bytes.
+     * CANDADO DE CHUNKS GEMELOS DENTRO DE LA PÁGINA. La deuda del repo se pagó
+     * entera el 2026-09-04; lo que queda declarado son los 1.271 B de reparto
+     * interno de Next (ver `DECLARED_TWIN_BROTLI_BYTES`). Se comprueban las DOS
+     * cotas —bytes y número de grupos— porque cada una deja pasar lo que la
+     * otra atrapa: un gemelo grande nuevo sube los bytes sin cambiar el
+     * recuento si sustituye al conocido, y dos gemelos diminutos suben el
+     * recuento sin llegar al listón de bytes.
+     *
+     * Y usa `DECLARED_TWIN_*`, NO `DECLARED_UNION_TWIN_*`: la deuda que la ola
+     * S declaró entre páginas (45.461 B) no vale como permiso dentro de una
+     * página. Sustituir aquí una constante por la otra pone en rojo el caso
+     * «un gemelo de 20.000 B dentro de una página» del test.
      */
     const twins = analysis.twins ?? [];
     const twinBytes = twins.reduce(
@@ -1081,6 +1223,11 @@ export function verdictSite(site, baseline, options = {}) {
      * — y ése es justo el caso que un censo de una sola página no puede ver. La
      * cáscara del sitio vivía ahí: un chunk que pedían las ocho páginas y una
      * copia suya que solo pedían las dos portadas.
+     *
+     * Se mide contra `DECLARED_UNION_TWIN_*`, que desde el 2026-09-06 es una
+     * pareja de constantes PROPIA de esta escala. La deuda que declara —los
+     * 45.461 B de la partición en tres raíces— no llega en ningún caso al
+     * candado por página, que sigue en 1.271 B.
      */
     const twins = site.union.twins ?? [];
     const twinBytes = twins.reduce(
@@ -1088,8 +1235,8 @@ export function verdictSite(site, baseline, options = {}) {
         0,
     );
     if (
-        twinBytes > DECLARED_TWIN_BROTLI_BYTES ||
-        twins.length > DECLARED_TWIN_GROUPS
+        twinBytes > DECLARED_UNION_TWIN_BROTLI_BYTES ||
+        twins.length > DECLARED_UNION_TWIN_GROUPS
     ) {
         for (const twin of twins) {
             problems.push(
@@ -1102,7 +1249,7 @@ export function verdictSite(site, baseline, options = {}) {
         problems.push(
             `[unión] la duplicación de chunks ÍNTEGROS entre páginas sube a ` +
                 `${twinBytes.toLocaleString("es-ES")} B brotli en ${twins.length} grupo(s), por encima de los ` +
-                `${DECLARED_TWIN_BROTLI_BYTES.toLocaleString("es-ES")} B en ${DECLARED_TWIN_GROUPS} grupo(s) ya declarados`,
+                `${DECLARED_UNION_TWIN_BROTLI_BYTES.toLocaleString("es-ES")} B en ${DECLARED_UNION_TWIN_GROUPS} grupo(s) ya declarados`,
         );
     }
     return { problems, porPagina };
@@ -1267,7 +1414,9 @@ if (
     if (site.union.twins.length > 0) {
         console.log(
             `chunks GEMELOS en la unión de las ${site.rutas.length} páginas: ${site.union.twins.length} ` +
-                `(deuda declarada: ${es(DECLARED_TWIN_BROTLI_BYTES)} B brotli en ${DECLARED_TWIN_GROUPS} grupo(s))`,
+                `(deuda declarada entre páginas: ${es(DECLARED_UNION_TWIN_BROTLI_BYTES)} B brotli en ` +
+                `${DECLARED_UNION_TWIN_GROUPS} grupo(s); dentro de una misma página la cota sigue en ` +
+                `${es(DECLARED_TWIN_BROTLI_BYTES)} B en ${DECLARED_TWIN_GROUPS} grupo(s))`,
         );
         for (const twin of site.union.twins) {
             console.log(
