@@ -29,6 +29,7 @@
         "measure:js": "node scripts/measure-home-js.mjs",
         "check:site-surfaces": "node scripts/check-site-surfaces.mjs",
         "check:text-contrast": "node scripts/check-text-contrast.mjs",
+        "serve:watchdog": "node scripts/serve-watchdog.mjs",
         "ci": "pnpm typecheck && pnpm lint && pnpm check-format && pnpm detect-anti-patterns && pnpm check:text-contrast && pnpm test",
         "test": "vitest run",
         "test:watch": "vitest"
