@@ -82,10 +82,7 @@
             "modulos": 3,
             "brotli": 17830,
             "crudo": 64455,
-            "pistas": [
-                "legalPage.parts",
-                "LegalDocument"
-            ]
+            "pistas": ["legalPage.parts", "LegalDocument"]
         },
         {
             "firma": "574c0b5842ce",
@@ -169,9 +166,7 @@
             "modulos": 0,
             "brotli": 3739,
             "crudo": 10580,
-            "pistas": [
-                "default"
-            ]
+            "pistas": ["default"]
         },
         {
             "firma": "64d7b487cce8",
@@ -205,30 +200,21 @@
             "modulos": 2,
             "brotli": 499,
             "crudo": 1109,
-            "pistas": [
-                "useDocumentMeta",
-                "DocumentMeta"
-            ]
+            "pistas": ["useDocumentMeta", "DocumentMeta"]
         },
         {
             "firma": "1f7f51d2314f",
             "modulos": 2,
             "brotli": 495,
             "crudo": 1061,
-            "pistas": [
-                "useDocumentMeta",
-                "LegalNoticeDocument"
-            ]
+            "pistas": ["useDocumentMeta", "LegalNoticeDocument"]
         },
         {
             "firma": "89549a39ed92",
             "modulos": 2,
             "brotli": 495,
             "crudo": 1053,
-            "pistas": [
-                "useDocumentMeta",
-                "PrivacyDocument"
-            ]
+            "pistas": ["useDocumentMeta", "PrivacyDocument"]
         }
     ],
     "paginas": [
@@ -237,172 +223,56 @@
             "chunksDescargados": 12,
             "descargadoBrotli": 204328,
             "polyfillBrotli": 35158,
-            "refs": [
-                0,
-                2,
-                3,
-                4,
-                8,
-                9,
-                11,
-                12,
-                13,
-                14,
-                15,
-                17
-            ]
+            "refs": [0, 2, 3, 4, 8, 9, 11, 12, 13, 14, 15, 17]
         },
         {
             "ruta": "_not-found.html",
             "chunksDescargados": 12,
             "descargadoBrotli": 204328,
             "polyfillBrotli": 35158,
-            "refs": [
-                0,
-                2,
-                3,
-                4,
-                8,
-                9,
-                11,
-                12,
-                13,
-                14,
-                15,
-                17
-            ]
+            "refs": [0, 2, 3, 4, 8, 9, 11, 12, 13, 14, 15, 17]
         },
         {
             "ruta": "aviso-legal.html",
             "chunksDescargados": 14,
             "descargadoBrotli": 221098,
             "polyfillBrotli": 35158,
-            "refs": [
-                0,
-                2,
-                3,
-                5,
-                6,
-                7,
-                9,
-                10,
-                12,
-                13,
-                14,
-                16,
-                17,
-                19
-            ]
+            "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 19]
         },
         {
             "ruta": "en.html",
             "chunksDescargados": 14,
             "descargadoBrotli": 250409,
             "polyfillBrotli": 35158,
-            "refs": [
-                0,
-                1,
-                2,
-                3,
-                5,
-                7,
-                9,
-                10,
-                12,
-                13,
-                14,
-                16,
-                17,
-                18
-            ]
+            "refs": [0, 1, 2, 3, 5, 7, 9, 10, 12, 13, 14, 16, 17, 18]
         },
         {
             "ruta": "en/legal-notice.html",
             "chunksDescargados": 14,
             "descargadoBrotli": 221098,
             "polyfillBrotli": 35158,
-            "refs": [
-                0,
-                2,
-                3,
-                5,
-                6,
-                7,
-                9,
-                10,
-                12,
-                13,
-                14,
-                16,
-                17,
-                19
-            ]
+            "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 19]
         },
         {
             "ruta": "en/privacy.html",
             "chunksDescargados": 14,
             "descargadoBrotli": 221098,
             "polyfillBrotli": 35158,
-            "refs": [
-                0,
-                2,
-                3,
-                5,
-                6,
-                7,
-                9,
-                10,
-                12,
-                13,
-                14,
-                16,
-                17,
-                20
-            ]
+            "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 20]
         },
         {
             "ruta": "index.html",
             "chunksDescargados": 14,
             "descargadoBrotli": 250409,
             "polyfillBrotli": 35158,
-            "refs": [
-                0,
-                1,
-                2,
-                3,
-                5,
-                7,
-                9,
-                10,
-                12,
-                13,
-                14,
-                16,
-                17,
-                18
-            ]
+            "refs": [0, 1, 2, 3, 5, 7, 9, 10, 12, 13, 14, 16, 17, 18]
         },
         {
             "ruta": "privacidad.html",
             "chunksDescargados": 14,
             "descargadoBrotli": 221098,
             "polyfillBrotli": 35158,
-            "refs": [
-                0,
-                2,
-                3,
-                5,
-                6,
-                7,
-                9,
-                10,
-                12,
-                13,
-                14,
-                16,
-                17,
-                20
-            ]
+            "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 20]
         }
     ]
 }
