@@ -19,11 +19,13 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+    ARRANQUE_MS,
     DEFAULT_PROBE_MS,
     FALLOS_PARA_RELANZAR,
     MIN_PROBE_MS,
     SERVE_MAIN_POR_DEFECTO,
     argumentosDelServidor,
+    cuentaElFallo,
     lineaDeArranque,
     lineaDeRelanzamiento,
     motivoDeSalidaDelHijo,
@@ -43,7 +45,7 @@ import {
  * crítica #19 murió a mitad de la fase técnica y nadie lo estaba mirando (13
  * minutos, 58 sondeos del evaluador, Perf «no puntuable»). Un vigilante es un
  * instrumento, y un instrumento que no se ha visto fallar no está verificado:
- * aquí se ejercitan las cuatro condiciones de las que depende que la próxima
+ * aquí se ejercitan las cinco condiciones de las que depende que la próxima
  * ronda no se quede sin medición.
  *
  *   1. La POLÍTICA: tres sondeos fallidos SEGUIDOS, ni uno ni cuatro, y un
@@ -59,29 +61,37 @@ import {
  *   4. Que el relanzamiento OCURRE y RESTAURA EL SERVICIO, por las dos vías
  *      por las que la crítica pudo perderlo: el proceso que se muere solo y el
  *      proceso que sigue vivo pero deja de contestar.
+ *   5. Que el arranque NO se confunde con una muerte. Un servidor recién
+ *      lanzado todavía no atiende el puerto; contar ese silencio como fallo
+ *      sería matar lo que se acaba de lanzar, en bucle. La ventana de gracia
+ *      se cierra con la primera respuesta y vence por plazo, para que el
+ *      servidor que no arranca sí acabe relanzado.
  *
  * LA MATRIZ, declarada porque la regla 2 de la lección del 2026-09-06 lo
  * exige. Combinaciones cubiertas: {muerte del hijo, cuelgue sin muerte,
- * servidor sano} x {primer arranque, relanzamiento}. Fijadas a propósito y lo
- * que queda fuera: (a) el servidor real es un `serve` de verdad en producción
- * y aquí un servidor de Node mínimo — se fija porque lo que se vigila es la
- * MECÁNICA del vigilante, no `serve`, y el candado 3 cubre justo que en la
- * máquina real se lance `serve` y no otra cosa; (b) `--probe-ms` se fija en
- * cada caso al valor que aísla la vía que se mide (5000 ms cuando el
- * relanzamiento tiene que venir del evento `exit`, 300 ms cuando tiene que
- * venir de los sondeos), en vez de dejar el defecto de 2000, para que ninguna
- * prueba pueda pasar por la vía equivocada; (c) queda fuera el reinicio de la
- * MÁQUINA y la muerte del propio vigilante, que no son recuperables desde
- * dentro y son responsabilidad del pre-registro de la ronda (se anota su PID);
- * (d) queda fuera el caso «el puerto lo ocupa otro proceso», que no es una
- * muerte del servidor sino un error de arranque de la ronda.
+ * arranque lento que sí llega, arranque que no llega nunca, servidor sano} x
+ * {primer arranque, relanzamiento}. Fijadas a propósito y lo que queda fuera:
+ * (a) el servidor real es un `serve` de verdad en producción y aquí un
+ * servidor de Node mínimo — se fija porque lo que se vigila es la MECÁNICA del
+ * vigilante, no `serve`, y el candado 3 cubre justo que en la máquina real se
+ * lance `serve` y no otra cosa; (b) `probeMs` y `arranqueMs` se fijan en cada
+ * caso al valor que AÍSLA la vía que se mide (5000 ms de sondeo cuando el
+ * relanzamiento tiene que venir del evento `exit`; 300 ms con la ventana ya
+ * cerrada cuando tiene que venir de los sondeos; 200 ms con ventana amplia
+ * cuando lo que se mide es que el arranque no cuenta), en vez de dejar los
+ * valores por defecto, para que ninguna prueba pueda pasar por la vía
+ * equivocada; (c) queda fuera el reinicio de la MÁQUINA y la muerte del propio
+ * vigilante, que no son recuperables desde dentro y son responsabilidad del
+ * pre-registro de la ronda (se anota su PID); (d) queda fuera el caso «el
+ * puerto lo ocupa otro proceso», que no es una muerte del servidor sino un
+ * error de arranque de la ronda.
  *
- * VALIDADO CON BUG INYECTADO, tres inyecciones, cada una aplicada y deshecha
+ * VALIDADO CON BUG INYECTADO, seis inyecciones, cada una aplicada y deshecha
  * dentro de un solo comando encadenado y con el fichero restaurado desde una
  * copia (nunca `git checkout`, que se llevaría por delante el trabajo sin
  * commitear del propio fichero; lección del 2026-09-05 «septies»). Al terminar
- * las tres, `diff` contra las tres copias: idéntico. Las líneas son literales
- * de la salida de `pnpm exec vitest run scripts/serve-watchdog.test.mjs`:
+ * cada tanda, `diff` contra sus copias: idéntico. Las líneas son literales de
+ * la salida de `pnpm exec vitest run scripts/serve-watchdog.test.mjs`:
  *
  *  1. Política de relanzamiento — en `siguienteEstadoDeSondeo`, cambiando
  *     `fallosSeguidos >= FALLOS_PARA_RELANZAR` por `fallosSeguidos >= 1`
@@ -115,6 +125,35 @@ import {
  *       C:\Users\Daniel\AppData\Local\Temp\vti-vigilante-ONgsXR en
  *       http://localhost:51124 (hijo PID 9456)
  *       : expected false to be true // Object.is equality
+ *
+ *  4. La ventana de arranque — en `cuentaElFallo`, devolviendo `true` siempre,
+ *     que es el vigilante sin gracia de arranque. `Tests 2 failed | 34 passed
+ *     (36)`, el puro y el de procesos:
+ *
+ *       AssertionError: el arranque no es una muerte: contarlo como fallo es
+ *       matar lo que se acaba de lanzar y volver a empezar: expected
+ *       [ Array(1) ] to deeply equal []
+ *
+ *  5. El plazo de esa ventana — en `cuentaElFallo`, devolviendo
+ *     `haRespondido`, que es una gracia sin caducidad. `Tests 3 failed |
+ *     33 passed (36)`, y cae también el del servidor colgado, porque uno que
+ *     nunca ha contestado se quedaría esperando para siempre:
+ *
+ *       AssertionError: una ventana de arranque sin plazo es un vigilante que
+ *       espera para siempre a un servidor que no va a arrancar; el log se
+ *       quedó en: [2026-09-06T10:00:14.576Z] ARRANQUE — vigilante PID 18444
+ *       sirve C:\Users\Daniel\AppData\Local\Temp\vti-vigilante-DudXDi en
+ *       http://localhost:59111 (hijo PID 25748)
+ *       : expected false to be true // Object.is equality
+ *
+ *  6. El entorno del hijo — en `opcionesDeSpawn`, cambiando
+ *     `env: { ...env, NO_UPDATE_CHECK: "1" }` por `env: { NO_UPDATE_CHECK:
+ *     "1" }`, que apaga la consulta de actualizaciones dejando al hijo sin
+ *     PATH. `Tests 1 failed | 35 passed (36)`:
+ *
+ *       AssertionError: un `env` que solo llevara NO_UPDATE_CHECK dejaría al
+ *       hijo sin PATH: expected { NO_UPDATE_CHECK: '1' } to deeply equal
+ *       { PATH: 'C:/algo', …(2) }
  */
 
 /** Vigilantes y carpetas creados por cada caso, para no dejar nada vivo. */
@@ -165,7 +204,7 @@ function puertoLibre() {
  * Se escribe como lista de líneas y no como plantilla para que no haya ni un
  * escape que interpretar por el camino (lección del 2026-09-03).
  */
-function escribeServidorFalso({ carpeta, modo, vidaMs = 700 }) {
+function escribeServidorFalso({ carpeta, modo, vidaMs = 700, retrasoMs = 0 }) {
     const ruta = path.join(carpeta, "servidor-falso.mjs");
     const marca = path.join(carpeta, "ya-arranco-una-vez.txt");
     const fuente = [
@@ -174,6 +213,7 @@ function escribeServidorFalso({ carpeta, modo, vidaMs = 700 }) {
         `const MARCA = ${JSON.stringify(marca)};`,
         `const MODO = ${JSON.stringify(modo)};`,
         `const VIDA_MS = ${vidaMs};`,
+        `const RETRASO_MS = ${retrasoMs};`,
         "const args = process.argv.slice(2);",
         'const puerto = Number(args[args.indexOf("-l") + 1]);',
         "const primera = !existsSync(MARCA);",
@@ -189,7 +229,13 @@ function escribeServidorFalso({ carpeta, modo, vidaMs = 700 }) {
         'servidor.on("error", () => {',
         '    setTimeout(() => servidor.listen(puerto, "127.0.0.1"), 100);',
         "});",
-        'servidor.listen(puerto, "127.0.0.1");',
+        'if (primera && MODO === "nunca") {',
+        "    setInterval(() => {}, 1000);",
+        '} else if (primera && MODO === "tarda") {',
+        '    setTimeout(() => servidor.listen(puerto, "127.0.0.1"), RETRASO_MS);',
+        "} else {",
+        '    servidor.listen(puerto, "127.0.0.1");',
+        "}",
         'if (primera && MODO === "muere") {',
         "    setTimeout(() => process.exit(7), VIDA_MS);",
         "}",
@@ -293,6 +339,70 @@ describe("opciones del spawn: el hijo no abre ventana", () => {
 
     it("la salida del hijo va al mismo log que la del vigilante", () => {
         expect(opcionesDeSpawn(9).stdio).toEqual(["ignore", 9, 9]);
+    });
+
+    it("apaga la consulta de actualizaciones de serve", () => {
+        expect(
+            opcionesDeSpawn(9, {}).env.NO_UPDATE_CHECK,
+            "`serve` consulta el registro de npm ANTES de atar el puerto: sin " +
+                "apagarlo, el arranque del instrumento depende de que la red " +
+                "conteste y el vigilante puede matar por lento a un servidor sano",
+        ).toBe("1");
+    });
+
+    it("el hijo hereda el entorno entero, no solo esa variable", () => {
+        expect(
+            opcionesDeSpawn(9, { PATH: "C:/algo", HOME: "C:/casa" }).env,
+            "un `env` que solo llevara NO_UPDATE_CHECK dejaría al hijo sin PATH",
+        ).toEqual({
+            PATH: "C:/algo",
+            HOME: "C:/casa",
+            NO_UPDATE_CHECK: "1",
+        });
+    });
+});
+
+describe("ventana de arranque: el silencio del que aún no ha arrancado", () => {
+    it("un silencio dentro de la ventana, antes de la primera respuesta, no cuenta", () => {
+        expect(
+            cuentaElFallo({
+                haRespondido: false,
+                msDesdeElArranque: 500,
+                arranqueMs: 30_000,
+            }),
+            "contar el arranque como fallo es matar lo que se acaba de lanzar " +
+                "y volver a empezar: un bucle que deja la ronda sin servidor " +
+                "igual que la crítica #19, solo que ruidosamente",
+        ).toBe(false);
+    });
+
+    it("en cuanto el servidor ha contestado una vez, la ventana se acaba", () => {
+        expect(
+            cuentaElFallo({
+                haRespondido: true,
+                msDesdeElArranque: 500,
+                arranqueMs: 30_000,
+            }),
+            "si la gracia no se cerrara con la primera respuesta, un servidor " +
+                "que muere justo después de arrancar no se relanzaría nunca",
+        ).toBe(true);
+    });
+
+    it("la ventana vence aunque el servidor no haya contestado jamás", () => {
+        expect(
+            cuentaElFallo({
+                haRespondido: false,
+                msDesdeElArranque: 30_000,
+                arranqueMs: 30_000,
+            }),
+            "una gracia sin plazo es un vigilante que espera para siempre a un " +
+                "servidor que no va a arrancar",
+        ).toBe(true);
+    });
+
+    it("el plazo declarado deja dos órdenes de magnitud sobre el arranque local", () => {
+        expect(ARRANQUE_MS).toBe(30_000);
+        expect(ARRANQUE_MS).toBeGreaterThan(DEFAULT_PROBE_MS * 3);
     });
 });
 
@@ -584,6 +694,10 @@ describe("el vigilante sobre procesos de verdad", () => {
                SOLO puede venir de los sondeos. Tres fallos con este intervalo
                son ~1,8 s contando que cada sondeo agota su propio tiempo. */
             probeMs: 300,
+            /* La ventana de arranque se cierra enseguida: este caso mide el
+               servidor que deja de contestar, no el que tarda en arrancar, y
+               son dos cosas distintas que el siguiente separa. */
+            arranqueMs: 400,
             serveMain: servidorFalso,
         });
 
@@ -598,6 +712,79 @@ describe("el vigilante sobre procesos de verdad", () => {
             linea,
             "el motivo tiene que decir que fueron los sondeos, no una muerte",
         ).toMatch(/3 sondeos seguidos sin respuesta/);
+
+        const vuelveAServir = await esperaHasta(
+            () => sondeaUnaVez(urlDeSondeo(port), 1000),
+            5000,
+        );
+        expect(vuelveAServir).toBe(true);
+    });
+
+    it("NO relanza al servidor que todavía está arrancando", async () => {
+        const carpeta = carpetaTemporal();
+        const port = await puertoLibre();
+        const servidorFalso = escribeServidorFalso({
+            carpeta,
+            modo: "tarda",
+            retrasoMs: 1200,
+        });
+        const log = path.join(carpeta, "vigilante.log");
+
+        const vigilante = await arrancaVigilante({
+            dir: carpeta,
+            port,
+            log,
+            /* Con 200 ms de sondeo, un servidor que tarda 1200 en atender el
+               puerto acumula cinco silencios: sin ventana de arranque, el
+               vigilante lo mataría dos veces antes de que llegara a servir. */
+            probeMs: 200,
+            arranqueMs: 3000,
+            serveMain: servidorFalso,
+        });
+        const primerPid = vigilante.hijoPid;
+
+        const llegoAServir = await esperaHasta(
+            () => sondeaUnaVez(urlDeSondeo(port), 1000),
+            5000,
+        );
+        expect(llegoAServir).toBe(true);
+        expect(
+            relanzamientosDelLog(log),
+            "el arranque no es una muerte: contarlo como fallo es matar lo " +
+                "que se acaba de lanzar y volver a empezar",
+        ).toEqual([]);
+        expect(vigilante.hijoPid).toBe(primerPid);
+    });
+
+    it("relanza al servidor que NUNCA llega a atender, vencida la ventana", async () => {
+        const carpeta = carpetaTemporal();
+        const port = await puertoLibre();
+        const servidorFalso = escribeServidorFalso({
+            carpeta,
+            modo: "nunca",
+        });
+        const log = path.join(carpeta, "vigilante.log");
+
+        await arrancaVigilante({
+            dir: carpeta,
+            port,
+            log,
+            probeMs: 200,
+            /* La otra mitad del candado anterior: la gracia tiene plazo. */
+            arranqueMs: 500,
+            serveMain: servidorFalso,
+        });
+
+        const relanzo = await esperaHasta(
+            () => relanzamientosDelLog(log).length > 0,
+            9000,
+        );
+        expect(
+            relanzo,
+            "una ventana de arranque sin plazo es un vigilante que espera " +
+                `para siempre a un servidor que no va a arrancar; el log se ` +
+                `quedó en: ${leeLog(log)}`,
+        ).toBe(true);
 
         const vuelveAServir = await esperaHasta(
             () => sondeaUnaVez(urlDeSondeo(port), 1000),

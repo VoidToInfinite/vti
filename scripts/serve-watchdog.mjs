@@ -21,6 +21,13 @@
  * su propio PID y el del hijo en un fichero, para que el pre-registro de la
  * ronda pueda anotarlos y para que al cerrarla se sepa a quién parar.
  *
+ * QUÉ NO CONFUNDE CON UNA MUERTE: el arranque. Un servidor recién lanzado
+ * todavía no atiende el puerto, y un vigilante que cuente ese silencio como
+ * fallo mata lo que acaba de lanzar y vuelve a empezar — un bucle que deja la
+ * ronda igual de sin servidor que la crítica #19. Por eso los silencios de la
+ * ventana de arranque no cuentan hasta la primera respuesta, con plazo
+ * máximo: ver `ARRANQUE_MS`.
+ *
  * QUÉ NO HACE, y es deliberado: NO sirve los ficheros él mismo. Lanza SIEMPRE
  * el mismo `serve` que usaron las rondas anteriores, con los mismos
  * argumentos, porque la compresión y las cabeceras del servidor son parte del
@@ -231,11 +238,25 @@ export function argumentosDelServidor({ serveMain, dir, port }) {
  * (lecciones del 2026-09-05 «bis» y «quater»). La salida del hijo va al mismo
  * descriptor que el log del vigilante para que un error del servidor quede
  * escrito al lado del relanzamiento que provocó.
+ *
+ * `NO_UPDATE_CHECK` no es cosmética. Leído en el `main.js` instalado (líneas
+ * 415-424 y 508): `serve` consulta el registro de npm por si hay versión nueva
+ * y AWAITEA esa consulta ANTES de atar el puerto. Es decir, el arranque del
+ * instrumento depende de que la red conteste. Un vigilante que sondea cada dos
+ * segundos y da por muerto al tercer fallo tiene seis segundos de presupuesto,
+ * y un `fetch` a un registro que no responde se los come sin despeinarse: el
+ * vigilante mataría un servidor perfectamente sano que solo estaba esperando a
+ * npm. La variable apaga esa consulta y deja el arranque en E/S local. Lo que
+ * `serve` sirve —compresión, cabeceras, códigos— no cambia ni un byte, que es
+ * la condición para que las cifras sigan siendo comparables con las rondas
+ * anteriores. El entorno se PROPAGA entero: un `env` que solo llevara esta
+ * variable dejaría al hijo sin PATH.
  */
-export function opcionesDeSpawn(logFd) {
+export function opcionesDeSpawn(logFd, env = process.env) {
     return {
         windowsHide: true,
         stdio: ["ignore", logFd, logFd],
+        env: { ...env, NO_UPDATE_CHECK: "1" },
     };
 }
 
@@ -280,6 +301,33 @@ export function siguienteEstadoDeSondeo(estado, sondeoOk) {
     return { fallosSeguidos, relanzar: false };
 }
 
+/**
+ * Cuánto se le concede a un servidor recién lanzado para atender el puerto
+ * antes de que sus silencios empiecen a contar. NO es un margen de cortesía:
+ * sin él, un vigilante con el intervalo por defecto declara muerto a los seis
+ * segundos a un servidor que todavía está arrancando, lo mata, lanza otro que
+ * tampoco llega a tiempo, y el bucle deja la ronda exactamente igual de sin
+ * servidor que la crítica #19 — solo que ruidosamente. Treinta segundos son
+ * dos órdenes de magnitud sobre el arranque local de `serve` y siguen siendo
+ * poco frente a los trece minutos que el evaluador B3 pasó sondeando en vano.
+ *
+ * La gracia es ACOTADA por los dos lados: se acaba en cuanto el servidor
+ * contesta una sola vez (a partir de ahí manda la política de los tres
+ * fallos), y se acaba igualmente al vencer el plazo aunque no haya contestado
+ * nunca, que es como un servidor que no llega a arrancar acaba relanzado en
+ * vez de esperado para siempre.
+ */
+export const ARRANQUE_MS = 30_000;
+
+/**
+ * Si un sondeo fallido cuenta para la política de relanzamiento. Los que caen
+ * en la ventana de arranque, antes de la primera respuesta del servidor, no
+ * cuentan.
+ */
+export function cuentaElFallo({ haRespondido, msDesdeElArranque, arranqueMs }) {
+    return haRespondido || msDesdeElArranque >= arranqueMs;
+}
+
 /** Motivo cuando el hijo se muere por su cuenta. */
 export function motivoDeSalidaDelHijo({ code, signal }) {
     if (signal) return `el servidor murió por la señal ${signal}`;
@@ -312,9 +360,11 @@ export async function startWatchdog({
     log,
     pidFile = null,
     probeMs = DEFAULT_PROBE_MS,
+    arranqueMs = ARRANQUE_MS,
     serveMain = null,
     spawnFn = spawn,
     reloj = () => new Date().toISOString(),
+    ahoraMs = () => Date.now(),
 } = {}) {
     const entrada = serveMain ?? resolveServeMain();
     const rutaLog = log ?? rutasPorDefecto(port).log;
@@ -324,6 +374,8 @@ export async function startWatchdog({
     let fallosSeguidos = 0;
     let parando = false;
     let temporizador = null;
+    let arrancadoEn = 0;
+    let haRespondido = false;
 
     const escribe = (linea) => appendFileSync(rutaLog, `${linea}\n`);
 
@@ -351,6 +403,8 @@ export async function startWatchdog({
         );
         hijo = proceso;
         fallosSeguidos = 0;
+        arrancadoEn = ahoraMs();
+        haRespondido = false;
         proceso.once("exit", (code, signal) => {
             /* Si ya no es el hijo en curso, su muerte la provocó un
                relanzamiento o una parada: no se relanza dos veces. */
@@ -388,15 +442,26 @@ export async function startWatchdog({
         if (parando) return;
         const responde = await sondeaUnaVez(urlDeSondeo(port), probeMs);
         if (parando) return;
-        const siguiente = siguienteEstadoDeSondeo({ fallosSeguidos }, responde);
-        fallosSeguidos = siguiente.fallosSeguidos;
-        if (siguiente.relanzar) {
-            relanza(
-                motivoDeSondeosFallidos({
-                    fallos: FALLOS_PARA_RELANZAR,
-                    probeMs,
-                }),
+        if (responde) haRespondido = true;
+        const cuenta = cuentaElFallo({
+            haRespondido,
+            msDesdeElArranque: ahoraMs() - arrancadoEn,
+            arranqueMs,
+        });
+        if (responde || cuenta) {
+            const siguiente = siguienteEstadoDeSondeo(
+                { fallosSeguidos },
+                responde,
             );
+            fallosSeguidos = siguiente.fallosSeguidos;
+            if (siguiente.relanzar) {
+                relanza(
+                    motivoDeSondeosFallidos({
+                        fallos: FALLOS_PARA_RELANZAR,
+                        probeMs,
+                    }),
+                );
+            }
         }
         if (parando) return;
         temporizador = setTimeout(() => {
