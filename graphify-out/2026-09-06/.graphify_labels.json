@@ -361,11 +361,13 @@
   "360": "useSlideDeck.test.tsx",
   "361": "GlobalStyles.test.tsx",
   "362": "motion.ts",
+  "364": "VisuallyHidden.tsx",
   "367": "resolveTheme.ts",
   "368": "IconButton.tsx",
   "372": "pillarBadgeAccent",
   "381": "SectionBeam.test.tsx",
   "385": "check-dark-art-weight.mjs",
+  "395": "usePointer.test.tsx",
   "396": "Input.tsx",
   "400": "useSolCycle.ts"
 }
