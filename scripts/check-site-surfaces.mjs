@@ -31,7 +31,7 @@
  * misma pasada con las preferencias del sistema activas. Lo que nadie ha medido
  * es lo que aparece como hallazgo nuevo en la ronda siguiente.
  *
- * QUE MIDE, y por que en navegador y no en la suite. Las diecisiete familias de
+ * QUE MIDE, y por que en navegador y no en la suite. Las veintiuna familias de
  * abajo dependen de layout real, de pintado real y de media queries reales:
  * jsdom no hace ninguna de las tres (regla 36 y 44 de RULES.md). Un test de
  * Vitest puede
@@ -217,7 +217,7 @@
  * `scripts/check-site-surfaces.test.mjs`, que importa este fichero y afirma
  * que su cobertura no se ha vaciado en silencio: las ocho superficies, los dos
  * idiomas, TODAS las rutas que el sitio declara (la portada incluida), el
- * barrido completo de anchos, las diecisiete familias con su suelo numerico, la
+ * barrido completo de anchos, las veintiuna familias con su suelo numerico, la
  * magnitud del zoom, el umbral de legibilidad y el
  * hecho de que ninguna zona quede sancionada. Un candado de navegador al que
  * alguien le borra media lista de rutas sigue saliendo verde; ese es justo el
@@ -284,7 +284,8 @@
  * «CUMPLE - 8 superficies, 15 familias, 0 zonas de zoom sancionadas, cero
  * incumplimientos», codigo de salida 0 en `dark` y en `light`. (La linea se
  * conserva tal cual se imprimio aquel dia: eran quince familias entonces y hoy
- * son diecisiete, con las de legibilidad y crecimiento que entran abajo.) El segundo numero
+ * son veintiuna, con las de legibilidad y crecimiento y las cuatro de la
+ * critica #19 que entran abajo.) El segundo numero
  * de cada fila es la guarda de vacuidad del filtro: son las cajas con texto
  * propio o interactivas que la sonda SI evaluo en el barrido completo, y un cero
  * ahi pone el script en rojo.
@@ -371,12 +372,80 @@
  * signifique "no habia nada que parar". Cero controles invisibles bajo
  * `forced-colors: active` en las ocho.
  *
- * `lang` en las cuatro rutas inglesas es el del DOM VIVO. El HTML horneado sirve
- * `lang="es"` en las ocho rutas: es un limite conocido y declarado de
- * `output: "export"`, con su porque medido en el docblock de `app/layout.tsx`
- * (dos `<html lang>` exigirian dos root layouts, y eso es incompatible con
- * tener una 404 propia). Este script mide el DOM porque es lo que anuncia un
- * lector de pantalla; el HTML crudo no es asunto suyo.
+ * `lang` YA NO SE LEE SOLO DEL DOM VIVO, y ese cambio es la familia diecinueve.
+ * La version anterior de este docblock cerraba aqui diciendo que el HTML
+ * horneado sirve `lang="es"` en las ocho rutas, que era "un limite conocido y
+ * declarado de `output: export`", y que "el HTML crudo no es asunto suyo". Eso
+ * es exactamente lo que la critica #19 levanto como P1: un limite escrito en un
+ * comentario no cierra un incumplimiento de nivel A (leccion del 2026-09-06,
+ * regla 3), y lo que oye un lector de pantalla antes de que hidrate el cliente
+ * --o si el JavaScript no llega-- es el atributo horneado. Desde esta fecha el
+ * script compara los DOS, cada uno contra el idioma que su ruta promete
+ * (`langEsperado`), y la unica excepcion que acepta es la de las dos 404, que
+ * comparten un solo `404.html` castellano por `output: "export"`.
+ *
+ * LAS CUATRO FAMILIAS DE LA CRITICA #19 (dieciocho a veintiuna), medidas con
+ * ESTE MISMO SCRIPT el 2026-09-06 sobre la copia servida del build de `f3594ad`
+ * en http://localhost:3000 -- que es el build con los cinco P1 vivos, asi que
+ * las cuatro salen en ROJO a proposito y las diecisiete anteriores siguen en
+ * VERDE en los dos temas, que es la prueba de que ven el defecto real y no
+ * cualquier cosa. Las lineas, literales:
+ *
+ *   tema dark (EXIT=1, «NO CUMPLE - 9 incumplimiento(s) en 8 superficies»)
+ *
+ *     NO CUMPLE  con la preferencia de tamano de texto subida y SIN
+ *     prefers-reduced-motion, el contenido de la diapositiva activa no cabe en
+ *     el escenario que lo recorta y se pierde (peor caso por deck): story
+ *     1249.19 px fuera por abajo a 320px con la raiz a 32 px en p
+ *     ("VoidToInfinite es un proyecto donde el a"); journey 401.41 px fuera por
+ *     abajo a 320px con la raiz a 32 px en p ("Cada descubrimiento crea una
+ *     pregunta nu")
+ *
+ *     NO CUMPLE  sin JavaScript el documento se sirve anunciandose en "es" y
+ *     esta superficie es "en": lo que oye un lector de pantalla antes de que
+ *     hidrate el cliente --o si el JavaScript no llega-- es la pagina entera
+ *     con la voz equivocada
+ *
+ *     NO CUMPLE  recargar la pagina no devuelve al visitante donde estaba:
+ *     antes de recargar el centro del viewport leia contact a 9000 px y despues
+ *     lee journey a 5623 px (deriva -3377 px)
+ *
+ *     NO CUMPLE  el navegador descarga arte que la pagina no llega a pintar en
+ *     el tema dark (tope 0 B): a DPR 1 87260 B en 1 fichero(s):
+ *     journey-presenting-640.webp 87260 B; a DPR 2 163368 B en 1 fichero(s):
+ *     journey-presenting-1024.webp 163368 B. Es peso que paga el visitante y
+ *     que ninguna imagen del documento usa
+ *
+ *   tema light (EXIT=1, «NO CUMPLE - 3 incumplimiento(s) en 8 superficies»):
+ *   las TRES son la misma linea de `lang` en `/en`, `/en/privacy` y
+ *   `/en/legal-notice`. Las otras tres familias salen en verde ahi, y ese verde
+ *   es su CONTROL, no su ausencia:
+ *
+ *     /  deck=sin deck en el tema light (0 montados)
+ *        recarga=contact@5065 -> contact@5081 (deriva 16 px, alto 6588 -> 6588)
+ *        arte=0 combinacion(es) con arte sin pintar / 10 recursos de arte
+ *             vistos en 2 densidades
+ *
+ *   El peor caso del deck que este script mide (1249,19 px) es MAYOR que los
+ *   ~706 px que la sonda del arbitraje de la critica #19 reporto para el CTA de
+ *   Discord, y no es una contradiccion: aquella sonda miraba el CTA y esta
+ *   recorre TODOS los descendientes con texto propio o interactivos de la
+ *   diapositiva activa, asi que el peor caso lo firma un parrafo entero. El
+ *   sentido y el orden de magnitud coinciden.
+ *
+ *   Las guardas de vacuidad de las cuatro, en la misma corrida: `deck=2 deck(s)
+ *   recortados / 2 montados, 408 pasos de pista, activas vistas story=156
+ *   journey=180` (los dos decks montados, diapositivas activas vistas en los
+ *   dos), `34 recursos de arte vistos en 2 densidades` en oscuro y 10 en claro,
+ *   y las dos secciones de la recarga resueltas (`contact` y `journey`, nunca
+ *   `sin seccion`).
+ *
+ *   COSTE MEDIDO: 321 s el tema claro y algo mas de 600 s el oscuro (el oscuro
+ *   monta las seis combinaciones del deck y el claro solo una; el reloj del
+ *   oscuro no se cronometro con exactitud porque el comando se movio a segundo
+ *   plano al llegar al tope de 600 s de la herramienta y termino poco despues).
+ *   Si algun dia pasa de doce minutos, la palanca acordada es recortar
+ *   `ANCHOS_DEL_DECK` a `[320]` conservando las tres raices.
  */
 
 import { readFileSync, statSync } from "node:fs";
@@ -463,7 +532,7 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las diecisiete familias que este script comprueba. La lista es el CONTRATO del
+ * Las veintiuna familias que este script comprueba. La lista es el CONTRATO del
  * candado: el test companero exige que ninguna desaparezca, porque un script que
  * mide trece cosas y dice medir catorce es peor que uno que no existe.
  *
@@ -493,6 +562,10 @@ export const CHECKS = [
     "legibilidad-al-200-por-ciento",
     "texto-crece-con-la-preferencia",
     "sin-javascript",
+    "deck-cabe-en-el-escenario-al-200-por-ciento",
+    "lang-del-documento-por-ruta",
+    "recarga-conserva-la-seccion",
+    "arte-no-pintado-por-tema-y-dpr",
 ];
 
 /**
@@ -758,6 +831,226 @@ export function fallosDeDeudaNoObservada(clavesVistas, lista = DEUDA_ZOOM) {
 /** Alto de la banda del navbar en px (`--nav-height` + `--nav-gap`), solo para
  *  el mensaje de error: la comprobacion real mide la barra en el navegador. */
 export const NAV_BAND_PX = 64;
+
+/*
+ * ---------------------------------------------------------------------------
+ * LAS CUATRO FAMILIAS DE LA CRITICA #19 (2026-09-06), Y LA LECCION QUE LAS
+ * OBLIGA A DECLARAR SU MATRIZ.
+ *
+ * Los cinco P1 que la ronda #19 confirmo con sonda propia no vivian en un sitio
+ * que este candado no mirara: vivian en COMBINACIONES que este candado no
+ * montaba. Las diecisiete familias anteriores median con `reducedMotion:
+ * reduce` fijo (dos de ellas a proposito y con su porque escrito), a DPR 1 fijo,
+ * sin recargar nunca la pagina y leyendo `lang` solo del DOM vivo. Cada uno de
+ * esos cuatro ejes fijos escondia un defecto:
+ *
+ *   - con `reduce` el escenario del deck oscuro es estatico y el contenido de la
+ *     diapositiva no se sale; sin `reduce`, a 320 px y con la raiz a 32, se sale
+ *     por cientos de pixeles;
+ *   - a DPR 1 el navegador descarga una pieza de arte que no pinta, y a DPR 2
+ *     descarga otra distinta y mas pesada;
+ *   - nadie recargaba, y la recarga es justo el gesto que pierde la seccion;
+ *   - nadie leia el `lang` HORNEADO, y el horneado es el que oye un lector de
+ *     pantalla antes de que hidrate el cliente.
+ *
+ * De ahi la regla que estas cuatro cumplen y que las anteriores adoptan al
+ * tocarlas (leccion del 2026-09-06, regla 2): TODA familia de navegador declara
+ * su MATRIZ --tema x ancho x idioma x raiz x reduce x DPR x gesto-- y, cuando
+ * fija un eje a proposito, escribe por que y que queda fuera. Un eje fijo sin
+ * justificar no es una simplificacion: es una combinacion sin medir con el
+ * candado diciendo que la mide.
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * FAMILIA DIECIOCHO, `deck-cabe-en-el-escenario-al-200-por-ciento`: los dos
+ * decks que el tema OSCURO monta en la portada, con el nombre de sus piezas.
+ *
+ * La clase se busca por SUBCADENA porque styled-components genera
+ * `<fichero>__<Componente>-sc-<hash>-<indice>` y el hash cambia con cada
+ * edicion del template; el prefijo `<fichero>__<Componente>` no. Si alguien
+ * renombra el componente, la sonda deja de encontrar el escenario y el candado
+ * se pone en ROJO por su guarda de ausencia (abajo) en vez de salir verde
+ * midiendo el vacio, que es la direccion correcta del fallo.
+ *
+ * `seccion` es el `id` del landmark que lo contiene, y es la unica ancla que no
+ * depende de los estilos.
+ */
+export const DECKS_DEL_TEMA_OSCURO = [
+    {
+        id: "story",
+        seccion: "story",
+        escenario: "story-deck__ScStage",
+        diapositiva: "story-deck__ScSlide",
+        pista: "story-deck__ScTrack",
+    },
+    {
+        id: "journey",
+        seccion: "journey",
+        escenario: "journey-deck__ScJourneyStage",
+        diapositiva: "journey-deck__ScJourneySlide",
+        pista: "journey-deck__ScJourneyTrack",
+    },
+];
+
+/**
+ * LA MATRIZ DE LA FAMILIA DIECIOCHO, declarada eje por eje:
+ *
+ *   superficie  las DOS portadas (`/` y `/en`). Las legales y las 404 no montan
+ *               deck: no hay nada que medir ahi.
+ *   tema        OSCURO. Es el unico que monta deck -- medido el 2026-09-06 en
+ *               los dos temas y las dos portadas: `story-deck__ScStage` y
+ *               `journey-deck__ScJourneyStage` salen 1 y 1 en oscuro y 0 y 0 en
+ *               claro. El tema claro NO se salta: se recorre con una sola
+ *               combinacion que EXIGE esa ausencia, porque un "no aplica" que
+ *               deje de ser cierto es la forma mas barata de vaciar una familia.
+ *   ancho       320 y 390 px (`ANCHOS_DEL_DECK`), los dos de la banda estrecha.
+ *   idioma      los dos, uno por portada.
+ *   raiz        16, 24 y 32 px (`RAICES_DEL_DECK`). La de 16 es el CONTROL: a
+ *               esa raiz el deck cabe (medido, 0 px fuera en los dos anchos), y
+ *               eso es lo que dice que las otras dos miden el zoom y no un
+ *               defecto de siempre.
+ *   reduce      "no-preference", FIJADO A PROPOSITO y al reves que sus dos
+ *               hermanas de zoom. Con `reduce` el repo declara los estados
+ *               finales de los reveals y el escenario deja de comportarse como
+ *               el deck real; el defecto NO EXISTE ahi. La combinacion
+ *               `reduce` + raiz 32 ya la miden `texto-al-200-por-ciento` y
+ *               `legibilidad-al-200-por-ciento`, asi que lo que queda fuera de
+ *               esta familia esta cubierto por las otras dos.
+ *   DPR         1. El recorte es geometrico y no depende de la densidad; la
+ *               densidad la mide la familia veintiuna.
+ *   gesto       scroll por la pista en pasos de `PASO_DE_PISTA_PX`.
+ */
+export const ANCHOS_DEL_DECK = [320, 390];
+export const RAICES_DEL_DECK = [ROOT_FONT_BASE_PX, 24, ZOOM_FONT_PX];
+
+/**
+ * El paso con el que se recorre la pista de cada deck y la espera por paso.
+ *
+ * 120 px es el paso de la sonda del arbitraje de la critica #19, y se conserva
+ * para que las dos medidas sean comparables. La espera de 120 ms es lo que
+ * tardan en asentarse la opacidad de la diapositiva y el pin del escenario: sin
+ * ella se leen fotogramas intermedios en los que dos diapositivas pasan del
+ * umbral de opacidad a la vez.
+ */
+export const PASO_DE_PISTA_PX = 120;
+export const ESPERA_POR_PASO_MS = 120;
+
+/**
+ * La diapositiva ACTIVA es la que esta practicamente opaca. El deck cruza de
+ * una a otra con una transicion de opacidad, asi que en los fotogramas del
+ * cruce hay dos a medio camino y ninguna es la que el visitante lee; 0,99 deja
+ * fuera todo el cruce sin exigir un 1 exacto, que el redondeo del compositor no
+ * siempre entrega.
+ */
+export const OPACIDAD_DE_DIAPOSITIVA_ACTIVA = 0.99;
+
+/**
+ * Cuanto se le permite a una caja sobresalir del escenario antes de contarla
+ * como recortada. Es la MISMA tolerancia de un pixel que usa
+ * `probePerdidaHorizontal` para el viewport, y por el mismo motivo: absorbe el
+ * redondeo subpixel de dos rects medidos por separado, y nada mas.
+ *
+ * El test companero teclea un techo. Subirlo es la forma de vaciar la familia
+ * sin quitarla: con 1.000 px, el caso de jsdom que reproduce el defecto --una
+ * caja 20 px por debajo de un escenario que recorta-- deja de reportarse y la
+ * portada oscura sale en verde con el deck cortado.
+ */
+export const TOLERANCIA_DEL_ESCENARIO_PX = 1;
+
+/**
+ * FAMILIA DIECINUEVE, `lang-del-documento-por-ruta`: el idioma que el HTML
+ * HORNEADO de las dos 404 declara.
+ *
+ * Es `es` y no un descuido: `output: "export"` sirve UN solo `404.html` para
+ * las dos ramas de idioma --el porque, con su medicion, esta en el docblock de
+ * `app/layout.tsx`-- y su contenido horneado es castellano. El idioma real se
+ * resuelve en cliente. Lo que esta familia exige de las 404 es esa coherencia:
+ * el horneado castellano y el vivo el de la rama.
+ *
+ * Lo que NO se acepta, y es el P1 de la critica #19: que una superficie inglesa
+ * con contenido ingles horneado se sirva anunciandose en castellano.
+ */
+export const IDIOMA_HORNEADO_DE_LA_404 = "es";
+
+/**
+ * FAMILIA VEINTE, `recarga-conserva-la-seccion`: el gesto que ninguna familia
+ * anterior hacia.
+ *
+ * MATRIZ: portada (las dos) x los DOS temas x 1440x900 x raiz 16 x `reduce`
+ * indiferente (no se emula: la restauracion de scroll no depende de el) x DPR 1
+ * x gesto = RECARGA. El tema oscuro es donde el defecto vive y el claro es el
+ * CONTROL que dice que la sonda no reporta cualquier cosa.
+ *
+ * EL OBJETIVO DE SCROLL ES DISTINTO POR TEMA, y hay que decir por que: las dos
+ * portadas no miden lo mismo de alto. Medido el 2026-09-06 a 1440x900 sobre el
+ * build servido, `documentElement.scrollHeight` da 11.008 px en oscuro y 6.588
+ * en claro, o sea 10.108 y 5.688 px de recorrido util. Un objetivo unico de
+ * 9.000 px en el tema claro se quedaria pegado al final del documento, que es
+ * el caso degenerado en el que cualquier restauracion acierta. 9.000 y 5.000
+ * dejan las dos medidas dentro de su documento y sobre una seccion real
+ * (`contact` en los dos).
+ */
+export const OBJETIVO_DE_RECARGA_PX = { dark: 9000, light: 5000 };
+
+/**
+ * El centro del viewport de 1440x900, que es donde se pregunta "que seccion
+ * estoy leyendo". Se mide con `elementFromPoint` y no con el scrollspy del
+ * sitio a proposito: el scrollspy es codigo del repo y usarlo para juzgarse a
+ * si mismo no prueba nada.
+ */
+export const CENTRO_DEL_VIEWPORT = { x: 720, y: 450 };
+
+/**
+ * La deriva de scroll que se le tolera a una recarga cuando la seccion SI se
+ * conserva. 64 px es el alto de la banda del navbar (`NAV_BAND_PX`): por debajo
+ * de eso el visitante vuelve a ver lo mismo con la barra por delante y no ha
+ * perdido el sitio.
+ *
+ * El test companero teclea el techo, porque subirlo es como se vacia esta
+ * familia sin quitarla: con 5.000 px de tolerancia la deriva de -3.377 px que
+ * la critica #19 midio en el tema oscuro pasaria por buena.
+ */
+export const DERIVA_MAXIMA_DE_RECARGA_PX = NAV_BAND_PX;
+
+/**
+ * FAMILIA VEINTIUNA, `arte-no-pintado-por-tema-y-dpr`: las densidades de
+ * pantalla en las que se comprueba que el navegador no descarga arte que la
+ * pagina no llega a pintar.
+ *
+ * MATRIZ: portada (las dos) x los DOS temas x 1440x900 x raiz 16 x `reduce`
+ * indiferente x DPR 1 y 2 x sin gesto (se mide 3 s despues de `load`, sin
+ * scroll: lo que se persigue es el peso que se paga solo por abrir la pagina).
+ *
+ * EL EJE DE DPR ES EL QUE FALTABA: a DPR 1 el `srcset` resuelve una variante y
+ * a DPR 2 otra, asi que un candado a DPR 1 fijo no ve el desperdicio de la
+ * mitad de los visitantes -- y medido el 2026-09-06 no es el mismo fichero ni
+ * el mismo peso (87.260 B contra 163.368 B).
+ */
+export const DPRS_DEL_ARTE = [1, 2];
+
+/**
+ * Que cuenta como ARTE para la familia veintiuna: las tres carpetas de piezas
+ * del repo y los dos formatos que sirve. Viaja como cadena y no como `RegExp`
+ * porque la sonda se serializa para ejecutarse dentro de la pagina.
+ */
+export const PATRON_DE_ARTE = "figures/|hero/|scenes/|\\.webp|\\.avif";
+
+/**
+ * Cuantos bytes de arte descargado y no pintado se toleran: CERO.
+ *
+ * El ancla de la critica externa era 100 KB, y este repo no la usa a proposito.
+ * Un umbral en bytes convierte un defecto de correccion --el navegador pide una
+ * pieza que nadie va a pintar-- en un presupuesto, y un presupuesto se consume:
+ * la pieza de 87 KB medida el 2026-09-06 habria pasado por debajo de los 100 KB
+ * sin una sola linea roja. Cero no admite esa lectura.
+ *
+ * Medido antes de fijarlo, que es lo que permite ponerlo en cero sin llenar el
+ * informe de ruido: en el tema CLARO, a DPR 1 y a DPR 2, los cinco recursos de
+ * arte que la portada descarga estan los cinco pintados. No hay una poblacion
+ * legitima de descargas sin pintar que absolver.
+ */
+export const MAX_BYTES_DE_ARTE_NO_PINTADO = 0;
 
 /*
  * ---------------------------------------------------------------------------
@@ -1413,6 +1706,267 @@ export function fallosDeCrecimientoEnLaBanda(porAncho) {
     };
 }
 
+/**
+ * LA PISTA DE CADA DECK en coordenadas de documento, para saber por donde hay
+ * que scrollear. Se lee una sola vez por combinacion; el recorrido de despues es
+ * el que mide.
+ *
+ * `presente: false` no es un dato mas: es lo que distingue el tema claro --que
+ * no monta deck y no tiene nada que recorrer-- de un tema oscuro al que alguien
+ * le renombro el componente y dejo la sonda sin objeto.
+ */
+function localizaPistasDeDeck({ decks }) {
+    return decks.map((d) => {
+        const seccion = document.getElementById(d.seccion);
+        const pista = seccion
+            ? [...seccion.querySelectorAll("[class]")].find((n) =>
+                  String(n.className || "").includes(d.pista),
+              )
+            : null;
+        if (!pista) return { id: d.id, presente: false };
+        const r = pista.getBoundingClientRect();
+        return {
+            id: d.id,
+            presente: true,
+            desde: Math.max(0, Math.round(r.top + window.scrollY)),
+            hasta: Math.round(r.bottom + window.scrollY),
+        };
+    });
+}
+
+/**
+ * EL CONTENIDO DE LA DIAPOSITIVA ACTIVA SE SALE DEL ESCENARIO QUE LO RECORTA.
+ *
+ * QUE MIDE, y por que no lo veia ninguna familia anterior. El deck del tema
+ * oscuro es un escenario pegado (`position: sticky`) dentro de una pista alta:
+ * lo que no cabe en el escenario no se desplaza a ningun sitio, se pierde --
+ * exactamente el mismo tipo de perdida que `probePerdidaHorizontal` mide contra
+ * el viewport, pero en vertical y contra una caja INTERMEDIA. Las dos familias
+ * de zoom miran el viewport y con `reduce` puesto, y el escenario con `reduce`
+ * es estatico: el defecto no existe en la combinacion que ellas montan.
+ *
+ * LA MEDIDA. Para cada deck de `decks`, se localiza su escenario dentro de su
+ * seccion, se decide si RECORTA --`position` computada distinta de `static` Y
+ * `overflow-y` computado distinto de `visible`, que son las dos formas de que la
+ * caja deje de contener a sus hijos-- y, si recorta, se recorren las
+ * diapositivas cuya opacidad computada llega a `opacidadActiva`. De cada
+ * descendiente de la diapositiva con TEXTO PROPIO o INTERACTIVO --el mismo
+ * filtro que `probePerdidaHorizontal`, y por el mismo motivo: WCAG 1.4.4 habla
+ * de "loss of content or functionality", no de arte-- se exige que su rect quepa
+ * dentro del rect del escenario.
+ *
+ * Un escenario que NO recorta se salta entero, y esa es la puerta por la que el
+ * arreglo puede salir: si la solucion es dejar de recortar, esta familia lo ve y
+ * calla, en vez de pedir que se recorte para luego pedir que quepa.
+ *
+ * LA MEDIDA ES INDEPENDIENTE DEL SCROLL a proposito: se compara la caja del
+ * contenido con la caja del ESCENARIO, no con la del viewport, asi que un
+ * escenario que ya paso de largo no genera falsos positivos. Lo que el scroll
+ * decide es CUAL es la diapositiva activa, que es lo unico que cambia paso a
+ * paso.
+ *
+ * EL CACHE DEL ESCENARIO no es una optimizacion gratuita: la sonda se ejecuta
+ * una vez por paso y la busqueda por subcadena recorre la seccion entera, que
+ * en la portada son miles de nodos. Se guarda en `window` y se invalida sola
+ * con `isConnected` en cuanto el nodo sale del arbol -- que es tambien lo que
+ * pasa entre casos del test cuando se vacia el `body`.
+ */
+export function probeDeckRecortado({ decks, opacidadActiva, toleranciaPx }) {
+    const INTERACTIVOS = "a,button,input,select,textarea,summary,[tabindex]";
+    const cache = (window.__vtiEscenariosDelDeck ||= new Map());
+    const salida = [];
+    for (const d of decks) {
+        let escenario = cache.get(d.id);
+        if (!escenario || !escenario.isConnected) {
+            const seccion = document.getElementById(d.seccion);
+            escenario = seccion
+                ? [...seccion.querySelectorAll("[class]")].find((n) =>
+                      String(n.className || "").includes(d.escenario),
+                  )
+                : null;
+            if (escenario) cache.set(d.id, escenario);
+            else cache.delete(d.id);
+        }
+        if (!escenario) {
+            salida.push({ id: d.id, presente: false, activas: 0, fuera: [] });
+            continue;
+        }
+
+        const cs = getComputedStyle(escenario);
+        const recorta = cs.position !== "static" && cs.overflowY !== "visible";
+        const caja = escenario.getBoundingClientRect();
+        const activas = [...escenario.querySelectorAll("[class]")]
+            .filter((n) => String(n.className || "").includes(d.diapositiva))
+            .filter(
+                (s) =>
+                    parseFloat(getComputedStyle(s).opacity) >= opacidadActiva,
+            );
+
+        const fuera = [];
+        if (recorta) {
+            for (const diapositiva of activas) {
+                for (const el of diapositiva.querySelectorAll("*")) {
+                    const tieneTextoPropio = [...el.childNodes].some(
+                        (n) =>
+                            n.nodeType === 3 && n.textContent.trim().length > 0,
+                    );
+                    if (!tieneTextoPropio && !el.matches(INTERACTIVOS))
+                        continue;
+                    const ecs = getComputedStyle(el);
+                    if (
+                        ecs.visibility === "hidden" ||
+                        ecs.visibility === "collapse"
+                    )
+                        continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.width === 0 && r.height === 0) continue;
+                    const porAbajo = r.bottom - caja.bottom;
+                    const porArriba = caja.top - r.top;
+                    const sobra = Math.max(porAbajo, porArriba);
+                    if (sobra <= toleranciaPx) continue;
+                    fuera.push({
+                        sel: el.tagName.toLowerCase(),
+                        sobra: Math.round(sobra * 100) / 100,
+                        lado: porArriba > porAbajo ? "arriba" : "abajo",
+                        texto: (el.textContent || "")
+                            .trim()
+                            .replace(/\s+/g, " ")
+                            .slice(0, 40),
+                    });
+                }
+            }
+        }
+        salida.push({
+            id: d.id,
+            presente: true,
+            recorta,
+            activas: activas.length,
+            fuera,
+        });
+    }
+    return salida;
+}
+
+/**
+ * ARTE QUE EL NAVEGADOR DESCARGA Y LA PAGINA NO LLEGA A PINTAR.
+ *
+ * QUE CUENTA COMO PINTADO, con las dos vias por separado porque ninguna basta
+ * sola: el nombre del fichero aparece en el HTML del documento --que incluye los
+ * `srcset`, los `style` que styled-components inyecta y cualquier
+ * `background-image`-- O es el `currentSrc` de alguna `img`, que es la variante
+ * que el navegador de verdad eligio y que no siempre esta escrita como tal en el
+ * marcado.
+ *
+ * Se compara por NOMBRE DE FICHERO y no por URL completa a proposito: la entrada
+ * de `performance` trae la URL absoluta con su origen y el marcado suele traer
+ * la ruta relativa, asi que comparar URLs daria "no pintado" para todo.
+ *
+ * `evaluados` es la guarda de vacuidad: si el patron deja de casar con nada --un
+ * cambio de carpeta, un formato nuevo-- la cuenta de bytes no pintados seria
+ * cero por no haber mirado, y el script pone ese cero en rojo.
+ */
+export function probeArteNoPintado({ patron }) {
+    const filtro = new RegExp(patron);
+    const nombreDe = (url) => String(url).split("?")[0].split("/").pop();
+    const html = document.documentElement.outerHTML;
+    const pintadasPorImg = new Set();
+    for (const img of document.querySelectorAll("img")) {
+        if (img.currentSrc) pintadasPorImg.add(nombreDe(img.currentSrc));
+    }
+    const entradas =
+        typeof performance?.getEntriesByType === "function"
+            ? performance.getEntriesByType("resource")
+            : [];
+    const recursos = [];
+    for (const entrada of entradas) {
+        if (!filtro.test(entrada.name)) continue;
+        const fichero = nombreDe(entrada.name);
+        recursos.push({
+            fichero,
+            bytes: entrada.encodedBodySize || entrada.transferSize || 0,
+            pintado: html.includes(fichero) || pintadasPorImg.has(fichero),
+        });
+    }
+    return { evaluados: recursos.length, recursos };
+}
+
+/** La seccion que ocupa el centro del viewport, y donde esta el scroll. */
+function probeSeccionDelCentro({ x, y }) {
+    const el = document.elementFromPoint(x, y);
+    return {
+        y: Math.round(window.scrollY),
+        seccion: el?.closest("section")?.id ?? null,
+        alto: document.documentElement.scrollHeight,
+    };
+}
+
+/**
+ * EL IDIOMA QUE CADA SUPERFICIE TIENE QUE ANUNCIAR, con y sin JavaScript.
+ *
+ * Funcion pura y tabulada a proposito: el veredicto de esta familia es una
+ * TABLA, y una tabla se puede ejercitar entera en el gate sin navegador.
+ *
+ * CON JavaScript el idioma es siempre el de la superficie, la 404 inglesa
+ * incluida: ahi ya corrio el cliente y `I18nProvider` resolvio la rama.
+ *
+ * SIN JavaScript es el idioma HORNEADO de la ruta, y ahi las dos 404 son la
+ * excepcion declarada: `output: "export"` sirve un solo `404.html` con contenido
+ * castellano para las dos ramas, asi que exigirle `en` a la inglesa seria pedir
+ * que anunciara un idioma que su contenido horneado no tiene. Todo lo demas
+ * --las dos portadas y las cuatro legales-- hornea contenido en su idioma y
+ * tiene que anunciarlo.
+ */
+export function langEsperado(surface, { conJavaScript }) {
+    if (conJavaScript) return surface.locale;
+    return surface.kind === "notFound"
+        ? IDIOMA_HORNEADO_DE_LA_404
+        : surface.locale;
+}
+
+/**
+ * EL VEREDICTO DE LA RECARGA: pura, fuera de la pagina, y por eso ejercitable
+ * en el gate.
+ *
+ * LA POLITICA tiene dos mitades y hacen falta las dos. La SECCION es lo que el
+ * visitante recuerda ("estaba leyendo Contacto") y la DERIVA es lo que sus ojos
+ * notan: conservar la seccion con 900 px de salto es volver a buscar el
+ * parrafo. Se exige que la seccion sea la misma Y que la deriva quepa en
+ * `derivaMaxima`.
+ *
+ * `seccion: null` --el centro del viewport no cayo sobre ninguna seccion-- no es
+ * "cumple": es la sonda sin objeto, y se declara incumplimiento para que un
+ * marcado que deje de tener secciones no pase por restauracion perfecta.
+ */
+export function evaluaRecarga({ antes, despues, derivaMaxima }) {
+    const deriva = despues.y - antes.y;
+    if (!antes.seccion || !despues.seccion) {
+        return {
+            deriva,
+            mismaSeccion: false,
+            cumple: false,
+            motivo: `el centro del viewport no cayo sobre ninguna seccion (antes ${antes.seccion}, despues ${despues.seccion}): la sonda quedaria vacua`,
+        };
+    }
+    const mismaSeccion = antes.seccion === despues.seccion;
+    if (!mismaSeccion) {
+        return {
+            deriva,
+            mismaSeccion,
+            cumple: false,
+            motivo: `antes de recargar el centro del viewport leia ${antes.seccion} a ${antes.y} px y despues lee ${despues.seccion} a ${despues.y} px (deriva ${deriva} px)`,
+        };
+    }
+    if (Math.abs(deriva) > derivaMaxima) {
+        return {
+            deriva,
+            mismaSeccion,
+            cumple: false,
+            motivo: `la seccion se conserva (${antes.seccion}) pero el scroll deriva ${deriva} px, por encima de los ${derivaMaxima} px de la banda de la barra`,
+        };
+    }
+    return { deriva, mismaSeccion, cumple: true, motivo: null };
+}
+
 /** Animaciones realmente en marcha. */
 function probeAnimations() {
     return document
@@ -1448,6 +2002,11 @@ function probeNoScript() {
     const header = document.querySelector("header");
     const toc = [...document.querySelectorAll("main nav a[href^='#']")];
     return {
+        /* El `lang` HORNEADO, que es el que oye un lector de pantalla antes de
+           que hidrate el cliente -- y el unico que existe si el JavaScript no
+           llega. Se lee con `getAttribute` y no con la propiedad para que un
+           atributo ausente salga `null` en vez de cadena vacia. */
+        lang: document.documentElement.getAttribute("lang"),
         h1: document.querySelectorAll("h1").length,
         mainChars: main ? main.textContent.trim().length : 0,
         headerLinks: header ? header.querySelectorAll("a").length : 0,
@@ -1757,7 +2316,9 @@ async function auditarSuperficie(browser, base, theme, surface) {
 
     const sem = await page.evaluate(probeSemantics);
     datos.status = resp ? resp.status() : null;
-    datos.lang = sem.lang;
+    /* `datos.lang` se escribe mas abajo, con el idioma HORNEADO al lado del
+       vivo: los dos juntos son el dato, y uno solo era justamente el hueco que
+       la critica #19 encontro. */
     datos.tocLinks = sem.tocHrefs.length;
 
     if (sem.visibility !== "visible")
@@ -2197,6 +2758,289 @@ async function auditarSuperficie(browser, base, theme, surface) {
         fallos.push(
             `sin JavaScript ${sinJs.tocLinks - sinJs.tocAlive} destino(s) del indice no resuelven`,
         );
+
+    /*
+     * --- el idioma que el documento anuncia, por ruta y en los DOS montajes
+     *
+     * MATRIZ: las OCHO superficies x tema claro u oscuro (indiferente: el
+     * idioma no depende del tema, y la corrida cubre los dos porque el script se
+     * ejecuta con `--tema` en los dos) x 1440x900 x raiz 16 x `reduce`
+     * indiferente x DPR 1 x JavaScript DESACTIVADO y ACTIVADO.
+     *
+     * NO CUESTA NI UN CONTEXTO NUEVO, y eso es parte del diseno: las dos medidas
+     * ya estaban ahi -- el DOM vivo lo leyo `probeSemantics` en el primer
+     * contexto y el HTML horneado lo lee `probeNoScript` en el ultimo -- y lo
+     * que faltaba no era medir, era COMPARAR cada una contra el idioma que su
+     * ruta promete. La version anterior de este fichero declaraba el `lang`
+     * horneado como "limite conocido" en su docblock de cabecera y ahi se
+     * quedaba; un limite conocido escrito en un comentario no cierra un
+     * incumplimiento de nivel A (leccion del 2026-09-06, regla 3).
+     */
+    const langVivo = sem.lang || null;
+    const langHorneado = sinJs.lang || null;
+    datos.lang = `${langHorneado ?? "sin lang"} horneado -> ${langVivo ?? "sin lang"} vivo`;
+    // [check: lang-del-documento-por-ruta]
+    const esperadoVivo = langEsperado(surface, { conJavaScript: true });
+    const esperadoHorneado = langEsperado(surface, { conJavaScript: false });
+    if (!langHorneado)
+        fallos.push(
+            "el HTML horneado no declara `lang` en su elemento raiz: un lector de pantalla no sabe con que voz leerlo",
+        );
+    else if (langHorneado !== esperadoHorneado)
+        fallos.push(
+            `sin JavaScript el documento se sirve anunciandose en "${langHorneado}" y esta superficie es "${esperadoHorneado}": lo que oye un lector de pantalla antes de que hidrate el cliente --o si el JavaScript no llega-- es la pagina entera con la voz equivocada`,
+        );
+    if (!langVivo)
+        fallos.push("el DOM vivo no declara `lang` en su elemento raiz");
+    else if (langVivo !== esperadoVivo)
+        fallos.push(
+            `con JavaScript el documento se anuncia en "${langVivo}" y esta superficie es "${esperadoVivo}"`,
+        );
+
+    if (surface.kind === "home") {
+        /*
+         * --- el deck cabe en su escenario con la preferencia de tamano de texto
+         *
+         * La matriz completa, con el porque de cada eje fijado, esta en el
+         * docblock de `ANCHOS_DEL_DECK` y `RAICES_DEL_DECK`. Aqui solo el
+         * resumen: tema oscuro (el unico que monta deck) x 320 y 390 px x raiz
+         * 16, 24 y 32 x SIN `reduce` -- que es lo que la separa de sus dos
+         * hermanas de zoom y lo unico que hace visible el defecto.
+         *
+         * En el tema claro se monta UNA sola combinacion, y no para medir el
+         * recorte sino para EXIGIR que el deck siga sin existir ahi. Un "esta
+         * familia no aplica a este tema" que deje de ser cierto es la forma mas
+         * barata que tiene una familia de vaciarse.
+         */
+        const combinacionesDelDeck =
+            theme === "dark"
+                ? ANCHOS_DEL_DECK.flatMap((ancho) =>
+                      RAICES_DEL_DECK.map((raiz) => ({ ancho, raiz })),
+                  )
+                : [{ ancho: ANCHOS_DEL_DECK[0], raiz: ROOT_FONT_BASE_PX }];
+
+        const peorPorDeck = new Map();
+        const activasPorDeck = new Map();
+        const decksPresentes = new Set();
+        const raicesRotas = [];
+        let pasosDeLaPista = 0;
+
+        for (const { ancho, raiz } of combinacionesDelDeck) {
+            ctx = await nuevoContexto(browser, theme, {
+                viewport: { width: ancho, height: 800 },
+            });
+            page = await ctx.newPage();
+            const sesionDelDeck = await ctx.newCDPSession(page);
+            await sesionDelDeck.send("Page.setFontSizes", {
+                fontSizes: { standard: raiz, fixed: raiz },
+            });
+            await page.goto(url, { waitUntil: "networkidle" });
+            await page.waitForTimeout(600);
+
+            const raizDelDeck = await page.evaluate(() =>
+                parseFloat(getComputedStyle(document.documentElement).fontSize),
+            );
+            if (raizDelDeck !== raiz)
+                raicesRotas.push(
+                    `a ${ancho}px se pidio la raiz a ${raiz} px y la pagina mide ${raizDelDeck}`,
+                );
+
+            const pistas = await page.evaluate(localizaPistasDeDeck, {
+                decks: DECKS_DEL_TEMA_OSCURO,
+            });
+            for (const pista of pistas) {
+                if (!pista.presente) continue;
+                decksPresentes.add(pista.id);
+                /* Solo el deck cuya pista se esta recorriendo: el otro esta a
+                   miles de pixeles y medirlo en cada paso doblaria el coste de
+                   la sonda sin anadir una sola observacion util. */
+                const soloEste = DECKS_DEL_TEMA_OSCURO.filter(
+                    (d) => d.id === pista.id,
+                );
+                for (
+                    let y = pista.desde;
+                    y <= pista.hasta;
+                    y += PASO_DE_PISTA_PX
+                ) {
+                    await page.evaluate(
+                        (destino) => window.scrollTo(0, destino),
+                        y,
+                    );
+                    await page.waitForTimeout(ESPERA_POR_PASO_MS);
+                    pasosDeLaPista += 1;
+                    const medidas = await page.evaluate(probeDeckRecortado, {
+                        decks: soloEste,
+                        opacidadActiva: OPACIDAD_DE_DIAPOSITIVA_ACTIVA,
+                        toleranciaPx: TOLERANCIA_DEL_ESCENARIO_PX,
+                    });
+                    for (const m of medidas) {
+                        if (!m.presente) continue;
+                        activasPorDeck.set(
+                            m.id,
+                            (activasPorDeck.get(m.id) ?? 0) + m.activas,
+                        );
+                        for (const f of m.fuera) {
+                            const previo = peorPorDeck.get(m.id);
+                            if (!previo || f.sobra > previo.sobra)
+                                peorPorDeck.set(m.id, { ...f, ancho, raiz });
+                        }
+                    }
+                }
+            }
+            await ctx.close();
+        }
+
+        const peorDicho = [...peorPorDeck.entries()].map(
+            ([id, p]) =>
+                `${id} ${p.sobra} px fuera por ${p.lado} a ${p.ancho}px con la raiz a ${p.raiz} px en ${p.sel} ("${p.texto}")`,
+        );
+        datos.deck =
+            theme === "dark"
+                ? `${peorPorDeck.size} deck(s) recortados / ${decksPresentes.size} montados, ${pasosDeLaPista} pasos de pista, activas vistas ${[
+                      ...activasPorDeck.entries(),
+                  ]
+                      .map(([id, n]) => `${id}=${n}`)
+                      .join(" ")}`
+                : `sin deck en el tema ${theme} (${decksPresentes.size} montados)`;
+
+        // [check: deck-cabe-en-el-escenario-al-200-por-ciento]
+        if (theme === "dark") {
+            /* Las dos guardas de vacuidad de esta familia. La primera: si el
+               tema oscuro deja de montar un deck --un renombrado del componente,
+               un cambio de vehiculo-- la sonda no tiene objeto y el cero de
+               recortes no significa nada. La segunda: sin una sola diapositiva
+               activa en todo el recorrido, el umbral de opacidad dejo de casar
+               y la familia sale verde sin haber mirado ninguna. */
+            for (const d of DECKS_DEL_TEMA_OSCURO) {
+                if (!decksPresentes.has(d.id))
+                    fallos.push(
+                        `el tema oscuro ya no monta la pista del deck de ${d.id} (se busca la clase que contiene ${d.pista} dentro de #${d.seccion}): sin escenario que recorrer el verde de esta familia seria vacuo`,
+                    );
+                else if ((activasPorDeck.get(d.id) ?? 0) === 0)
+                    fallos.push(
+                        `ni una sola diapositiva del deck de ${d.id} llego a ${OPACIDAD_DE_DIAPOSITIVA_ACTIVA} de opacidad en los ${pasosDeLaPista} pasos del recorrido: sin diapositiva activa no hay nada que medir y el resultado seria vacuo`,
+                    );
+            }
+            /* Guarda de instrumento, la misma que su familia hermana de zoom: si
+               `Page.setFontSizes` no llega, las tres raices miden lo mismo y el
+               verde hablaria del aparato, no del sitio. */
+            if (raicesRotas.length)
+                fallos.push(
+                    `la preferencia de tamano de texto no llego a la pagina en la pasada del deck: ${raicesRotas.join("; ")}`,
+                );
+            if (peorDicho.length)
+                fallos.push(
+                    `con la preferencia de tamano de texto subida y SIN prefers-reduced-motion, el contenido de la diapositiva activa no cabe en el escenario que lo recorta y se pierde (peor caso por deck): ${peorDicho.join("; ")}`,
+                );
+        } else if (decksPresentes.size > 0) {
+            fallos.push(
+                `el tema ${theme} monta ${decksPresentes.size} deck(s) (${[...decksPresentes].join(", ")}) y la matriz de esta familia da por hecho que solo existen en el oscuro: vuelve a medir antes de fiarte de este verde`,
+            );
+        }
+
+        /*
+         * --- la recarga conserva la seccion que se estaba leyendo
+         *
+         * MATRIZ y el porque del objetivo distinto por tema: docblock de
+         * `OBJETIVO_DE_RECARGA_PX`. Un solo contexto por superficie y tema.
+         */
+        const objetivoDeRecarga =
+            OBJETIVO_DE_RECARGA_PX[theme] ?? OBJETIVO_DE_RECARGA_PX.dark;
+        ctx = await nuevoContexto(browser, theme);
+        page = await ctx.newPage();
+        await page.goto(url, { waitUntil: "networkidle" });
+        /* La portada asienta su composicion despues de `networkidle`: los
+           reveals aterrizan y el alto del documento crece. Medir el scroll antes
+           de eso mediria un documento que todavia no existe. */
+        await page.waitForTimeout(2200);
+        await page.evaluate(
+            (y) => window.scrollTo({ top: y, behavior: "instant" }),
+            objetivoDeRecarga,
+        );
+        await page.waitForTimeout(500);
+        const antesDeRecargar = await page.evaluate(
+            probeSeccionDelCentro,
+            CENTRO_DEL_VIEWPORT,
+        );
+        await page.reload({ waitUntil: "networkidle" });
+        /* Se espera a que el ALTO se estabilice y no un tiempo fijo: la
+           restauracion de scroll del navegador compite con el crecimiento del
+           documento, y medir a mitad de esa carrera daria una deriva distinta en
+           cada corrida. Tres lecturas iguales separadas medio segundo, con tope
+           de seis. */
+        let altoPrevio = null;
+        let lecturasIguales = 0;
+        const limiteDeEspera = Date.now() + 6000;
+        while (Date.now() < limiteDeEspera && lecturasIguales < 3) {
+            await page.waitForTimeout(500);
+            const alto = await page.evaluate(
+                () => document.documentElement.scrollHeight,
+            );
+            lecturasIguales = alto === altoPrevio ? lecturasIguales + 1 : 1;
+            altoPrevio = alto;
+        }
+        const despuesDeRecargar = await page.evaluate(
+            probeSeccionDelCentro,
+            CENTRO_DEL_VIEWPORT,
+        );
+        await ctx.close();
+
+        const veredictoDeRecarga = evaluaRecarga({
+            antes: antesDeRecargar,
+            despues: despuesDeRecargar,
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+        });
+        datos.recarga = `${antesDeRecargar.seccion ?? "sin seccion"}@${antesDeRecargar.y} -> ${despuesDeRecargar.seccion ?? "sin seccion"}@${despuesDeRecargar.y} (deriva ${veredictoDeRecarga.deriva} px, alto ${antesDeRecargar.alto} -> ${despuesDeRecargar.alto})`;
+        // [check: recarga-conserva-la-seccion]
+        if (!veredictoDeRecarga.cumple)
+            fallos.push(
+                `recargar la pagina no devuelve al visitante donde estaba: ${veredictoDeRecarga.motivo}`,
+            );
+
+        /*
+         * --- arte descargado que la pagina no llega a pintar, por tema y por DPR
+         *
+         * MATRIZ en el docblock de `DPRS_DEL_ARTE`. Dos contextos por superficie
+         * y tema, uno por densidad, sin scroll y con tres segundos tras `load`
+         * para que el `srcset` haya resuelto y las descargas hayan terminado.
+         */
+        const arteSuelto = [];
+        let recursosDeArteVistos = 0;
+        for (const dpr of DPRS_DEL_ARTE) {
+            ctx = await nuevoContexto(browser, theme, {
+                deviceScaleFactor: dpr,
+            });
+            page = await ctx.newPage();
+            await page.goto(url, { waitUntil: "load" });
+            await page.waitForTimeout(3000);
+            const arte = await page.evaluate(probeArteNoPintado, {
+                patron: PATRON_DE_ARTE,
+            });
+            await ctx.close();
+            recursosDeArteVistos += arte.evaluados;
+            const sueltos = arte.recursos.filter((r) => !r.pintado);
+            const bytes = sueltos.reduce((total, r) => total + r.bytes, 0);
+            if (bytes > MAX_BYTES_DE_ARTE_NO_PINTADO)
+                arteSuelto.push(
+                    `a DPR ${dpr} ${bytes} B en ${sueltos.length} fichero(s): ${sueltos
+                        .map((r) => `${r.fichero} ${r.bytes} B`)
+                        .join(", ")}`,
+                );
+        }
+        datos.arte = `${arteSuelto.length} combinacion(es) con arte sin pintar / ${recursosDeArteVistos} recursos de arte vistos en ${DPRS_DEL_ARTE.length} densidades`;
+        // [check: arte-no-pintado-por-tema-y-dpr]
+        /* Guarda de vacuidad: si el patron deja de casar con nada --una carpeta
+           renombrada, un formato nuevo-- la cuenta de bytes sin pintar seria
+           cero por no haber mirado. */
+        if (recursosDeArteVistos === 0)
+            fallos.push(
+                "la sonda de arte no vio ni un solo recurso que casara con el patron en ninguna densidad: el filtro esta roto y el cero de bytes seria vacuo",
+            );
+        if (arteSuelto.length)
+            fallos.push(
+                `el navegador descarga arte que la pagina no llega a pintar en el tema ${theme} (tope ${MAX_BYTES_DE_ARTE_NO_PINTADO} B): ${arteSuelto.join("; ")}. Es peso que paga el visitante y que ninguna imagen del documento usa`,
+            );
+    }
 
     return { surface: surface.nombre, datos, fallos, deudaVista };
 }
