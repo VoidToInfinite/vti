@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { scheduleBranchSettledCorrection } from "./branchSettledCorrection";
 
 /**
  * ATERRIZAJE EN UN FRAGMENTO CUANDO LA PÁGINA CAMBIA DE ALTO AL HIDRATAR
@@ -67,22 +68,15 @@ import { useEffect, useRef } from "react";
  *   pendiente -- y lo vuelve a arrancar con la rama oscura ya montada. La
  *   corrección que llega a aplicarse es siempre la de la geometría buena.
  *
- * Sobre esa base, la espera son DOS RELOJES en carrera, el mismo patrón que
- * `useThemeScrollReset.ts` (su hermano: aquel corrige el ancla de lectura al
- * CONMUTAR tema, este el aterrizaje en la CARGA):
- *
- * 1. `requestAnimationFrame` ANIDADO: el primero cae en el commit de la rama,
- *    el segundo ya con la página nueva compuesta. Las alturas de los decks son
- *    CSS por viewport (`100dvh` y múltiplos), no dependen de que ninguna
- *    imagen decodifique, así que dos frames bastan para que el layout sea el
- *    definitivo.
- * 2. Un tope de `FRAGMENT_LANDING_SETTLE_MS`, porque en una pestaña oculta NO
- *    HAY FRAMES -- ni `requestAnimationFrame`, ni relojes de animación
- *    (CLAUDE.md §5 punto 3, y las tres lecciones de `task/lessons.md` sobre
- *    `visibilityState: "hidden"`). Un aviso que puede no llegar jamás no puede
- *    ser la única vía de progreso.
- *
- * Gana el que llegue primero; el otro se encuentra la puerta cerrada.
+ * Sobre esa base, la espera son DOS RELOJES en carrera (doble
+ * `requestAnimationFrame` contra un tope de `FRAGMENT_LANDING_SETTLE_MS`, para
+ * la pestaña oculta donde no hay frames) más la guarda de intención humana que
+ * aborta si el lector se pone a desplazar por su cuenta. Ese mecanismo NO vive
+ * ya en este fichero: vive en `branchSettledCorrection.ts`, compartido con
+ * `useReloadLanding.ts` -- el hermano que corrige la RECARGA (crítica externa
+ * #19, P1 #2) con la misma espera y por la misma causa raíz. Ver ese módulo
+ * para el porqué de cada reloj y de la guarda; aquí solo queda la decisión de
+ * QUÉ corregir y CUÁNDO decidir que hay algo que corregir.
  *
  * ## Cómo se corrige: `scrollIntoView`, nunca aritmética propia
  *
@@ -153,28 +147,6 @@ import { useEffect, useRef } from "react";
 export const FRAGMENT_LANDING_SETTLE_MS = 200;
 
 /**
- * Teclas cuyo comportamiento por defecto es desplazar el documento. Pulsar una
- * de ellas ES tomar el control del scroll, exactamente igual que una rueda o
- * un arrastre táctil.
- *
- * La lista es cerrada a propósito: un `keydown` cualquiera (escribir en el
- * campo de correo de Contacto, tabular) no desplaza nada por sí mismo y
- * abortar por él dejaría al lector tirado sin motivo. `" "` es la barra
- * espaciadora en navegadores actuales; `"Spacebar"` es el valor heredado que
- * todavía emiten motores antiguos.
- */
-const SCROLL_KEYS: ReadonlySet<string> = new Set([
-  "ArrowUp",
-  "ArrowDown",
-  "PageUp",
-  "PageDown",
-  "Home",
-  "End",
-  " ",
-  "Spacebar",
-]);
-
-/**
  * @param branchKey Identidad de la rama montada. `HomeSections.tsx` pasa el
  * `themeName` del proveedor: cuando cambia, la corrección pendiente se cancela
  * y se vuelve a armar contra el maquetado nuevo (ver el docblock de cabecera).
@@ -198,108 +170,25 @@ export function useFragmentLanding(branchKey: string): void {
     const id = loadHashRef.current;
     if (id === "" || finishedRef.current) return;
 
-    let settled = false;
-    let frameId: number | null = null;
-    let timeoutId: number | null = null;
+    // La limpieza que devuelve el programador compartido se devuelve TAL CUAL
+    // desde el efecto: descarta la corrección pendiente entera al cambiar de
+    // rama, sin tocar `finishedRef` -- el cambio de rama tiene que poder
+    // volver a armar. Ver `branchSettledCorrection.ts`.
+    return scheduleBranchSettledCorrection({
+      settleMs: FRAGMENT_LANDING_SETTLE_MS,
+      onFinish: () => {
+        finishedRef.current = true;
+      },
+      apply: () => {
+        // La existencia del destino se comprueba AQUÍ, no al armar: el `id`
+        // puede pertenecer a un elemento que solo monta una de las dos ramas,
+        // y lo que decide es la rama que hay delante en el momento de
+        // corregir.
+        const target = document.getElementById(id);
+        if (target === null) return;
 
-    function cancelClocks(): void {
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-        frameId = null;
-      }
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-    }
-
-    /** Cero listeners permanentes: los tres de la guarda se retiran al
-     *  corregir, al abortar y al desmontar, sin excepción. */
-    function releaseGuard(): void {
-      window.removeEventListener("wheel", onManualScroll);
-      window.removeEventListener("touchmove", onManualScroll);
-      window.removeEventListener("keydown", onKeyDown);
-    }
-
-    /**
-     * El lector ha tomado el control del scroll antes de que llegara la
-     * corrección: se aborta y no se vuelve a intentar. Arrebatarle el scroll a
-     * quien ya está leyendo por su cuenta sería un defecto peor que el que
-     * este hook arregla.
-     *
-     * La guarda escucha INTENCIÓN (`wheel`/`touchmove`/`keydown`), nunca el
-     * evento `scroll`: el propio salto al fragmento que hace el navegador al
-     * cargar emite `scroll`, y la corrección de este hook también -- escuchar
-     * `scroll` abortaría siempre, contra la nada.
-     */
-    function onManualScroll(): void {
-      if (settled) return;
-      settled = true;
-      finishedRef.current = true;
-      cancelClocks();
-      releaseGuard();
-    }
-
-    function onKeyDown(event: KeyboardEvent): void {
-      if (SCROLL_KEYS.has(event.key)) onManualScroll();
-    }
-
-    /**
-     * Carrera entre el doble `requestAnimationFrame` y el tope: gana el
-     * primero que llegue y `settled` deja al perdedor sin efecto.
-     *
-     * El ganador NO cancela al perdedor, y es deliberado -- misma decisión ya
-     * documentada en `scheduleAnchorCorrection` (`useThemeScrollReset.ts`):
-     * cancelar desde aquí dejaría el guard `settled` sin poder observarse
-     * (el perdedor no llegaría a intentarlo nunca), y un guard que ningún test
-     * puede ver fallar no está verificado. Cancelar sí se cancela donde de
-     * verdad hace falta: al abortar y al desmontar.
-     */
-    function applyOnce(): void {
-      if (settled) return;
-      settled = true;
-      finishedRef.current = true;
-      releaseGuard();
-
-      // La existencia del destino se comprueba AQUÍ, no al armar: el `id`
-      // puede pertenecer a un elemento que solo monta una de las dos ramas, y
-      // lo que decide es la rama que hay delante en el momento de corregir.
-      const target = document.getElementById(id);
-      if (target === null) return;
-
-      target.scrollIntoView({ behavior: "instant", block: "start" });
-    }
-
-    window.addEventListener("wheel", onManualScroll, { passive: true });
-    window.addEventListener("touchmove", onManualScroll, { passive: true });
-    window.addEventListener("keydown", onKeyDown);
-
-    if (typeof window.requestAnimationFrame === "function") {
-      frameId = window.requestAnimationFrame(() => {
-        frameId = window.requestAnimationFrame(applyOnce);
-      });
-    }
-    timeoutId = window.setTimeout(applyOnce, FRAGMENT_LANDING_SETTLE_MS);
-
-    return () => {
-      // Desmontaje, o cambio de rama: la corrección pendiente se descarta
-      // entera, nunca se encola. `settled` se marca sin tocar `finishedRef`
-      // -- el cambio de rama tiene que poder volver a armar.
-      //
-      // LAS DOS PRIMERAS LÍNEAS SON REDUNDANTES ENTRE SÍ, y está medido, no
-      // supuesto: con solo `settled = true`, un frame viejo que llegue igual
-      // se encuentra la puerta cerrada (cierra sobre ESTA clausura, no sobre
-      // la del efecto nuevo); con solo `cancelClocks()`, ese frame no llega a
-      // ejecutarse. Cada una basta para la propiedad que importa (la
-      // corrección de la rama vieja NO se aplica), así que el candado de esa
-      // propiedad no puede distinguirlas -- se verificó retirando
-      // `cancelClocks()` y la suite siguió en verde. Se conservan las dos: la
-      // segunda no está para la propiedad sino para no dejar relojes
-      // huérfanos corriendo tras un desmontaje, y ESA sí tiene candado propio
-      // ("al cambiar de rama no deja relojes huérfanos").
-      settled = true;
-      cancelClocks();
-      releaseGuard();
-    };
+        target.scrollIntoView({ behavior: "instant", block: "start" });
+      },
+    });
   }, [branchKey]);
 }
