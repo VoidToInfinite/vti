@@ -7,7 +7,7 @@ import { navLocale } from "@/config/navigation";
 import { routePath } from "@/config/site";
 import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import { useDocumentMeta } from "@/seo/useDocumentMeta";
-import { STORAGE_REGISTRY } from "@/config/storage";
+import { STORAGE_REGISTRY, type StorageEntry } from "@/config/storage";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import i18n, { initI18n } from "@/i18n/config";
 import esLegal from "@/i18n/locales/es/legal.json";
@@ -146,7 +146,22 @@ interface StorageTableLabels {
   kind: string;
   duration: string;
   provider: string;
+  /**
+   * Rótulo de duración de lo que NO caduca por sí solo y sobrevive al cierre
+   * de la pestaña. Convive con `session`, y elegir entre los dos es lo único
+   * que hace `durationLabelFor`: un almacenamiento sin reloj de expiración no
+   * dura lo mismo según quién se lo lleve.
+   */
   persistent: string;
+  /**
+   * Rótulo de duración del almacenamiento de sesión. NO existía hasta el
+   * 2026-09-06: la fila de la posición de lectura se pintaba con
+   * «Persistente hasta que la borres» mientras su propia celda de finalidad
+   * decía que vive solo en esa pestaña y se borra sola al cerrarla — dos
+   * afirmaciones incompatibles sobre el mismo dato del visitante, dentro de
+   * la misma fila de una tabla que el art. 22.2 LSSI-CE exige exacta.
+   */
+  session: string;
 }
 
 /** Un tramo de texto, marcado o no como dato pendiente (D23). Función pura y
@@ -369,7 +384,7 @@ function StorageBlock({
   labels: StorageTableLabels;
   captionText: string;
   regionLabel: string;
-  durationLabelFor: (durationDays: number | null) => string;
+  durationLabelFor: (entry: StorageEntry) => string;
   storageCopy: (key: string) => string;
 }): ReactElement {
   return (
@@ -426,7 +441,7 @@ function StorageBlock({
               <ScTd>
                 <ScStorageKind>{entry.kind}</ScStorageKind>
               </ScTd>
-              <ScTd>{durationLabelFor(entry.durationDays)}</ScTd>
+              <ScTd>{durationLabelFor(entry)}</ScTd>
               <ScTd>{entry.provider}</ScTd>
             </tr>
           ))}
@@ -448,7 +463,7 @@ function renderBlock(
     storageLabels: StorageTableLabels;
     storageCaption: string;
     storageRegionLabel: string;
-    durationLabelFor: (durationDays: number | null) => string;
+    durationLabelFor: (entry: StorageEntry) => string;
     storageCopy: (key: string) => string;
   },
 ): ReactNode {
@@ -597,10 +612,32 @@ export function LegalDocument({ docKey }: LegalDocumentProps): ReactElement {
    */
   useDocumentMeta({ title: doc.title, description: doc.description });
 
-  const durationLabelFor = (durationDays: number | null): string =>
-    durationDays === null
-      ? storageLabels.persistent
-      : t("Legal.common.storageTable.days", { count: durationDays });
+  /*
+   * LA DURACIÓN DEPENDE DE `kind`, NO SOLO DE `durationDays` (2026-09-06,
+   * verificación de la ola S).
+   *
+   * El defecto: esta función decidía el rótulo mirando UN solo campo, así que
+   * `durationDays: null` daba «Persistente hasta que la borres» tanto para el
+   * tema como para la posición de lectura. La fila de esa segunda entrada
+   * afirmaba a la vez, en dos celdas contiguas, que es `sessionStorage` que
+   * «vive solo en esta pestaña y se borra sola al cerrarla» y que es
+   * persistente hasta que el visitante la borre.
+   *
+   * El registro NO estaba mal y no se toca: `durationDays: null` es el dato
+   * honesto para las dos entradas —ni `localStorage` ni `sessionStorage`
+   * llevan reloj de expiración—, y su propio docblock ya dice que lo que las
+   * distingue es QUIÉN se las lleva y que eso lo declara `kind`. Lo que
+   * faltaba era leer ese campo aquí.
+   */
+  const durationLabelFor = (entry: StorageEntry): string => {
+    if (entry.durationDays !== null)
+      return t("Legal.common.storageTable.days", {
+        count: entry.durationDays,
+      });
+    return entry.kind === "sessionStorage"
+      ? storageLabels.session
+      : storageLabels.persistent;
+  };
 
   return (
     // id="main" + tabIndex={-1}: destino del SkipLink (Task 2), mismo

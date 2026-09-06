@@ -241,6 +241,69 @@ describe("LegalDocument", () => {
   });
 
   /*
+   * LA DURACIÓN DE UNA ENTRADA DE SESIÓN NO PUEDE ANUNCIARSE COMO PERSISTENTE
+   * (2026-09-06, verificación de la ola S).
+   *
+   * El defecto medido en el HTML horneado de las dos rutas: la fila de
+   * `vti-reading-position` pintaba Tipo «sessionStorage» y Duración
+   * «Persistente hasta que la borres», mientras su propia celda de finalidad
+   * decía que vive solo en esa pestaña y se borra sola al cerrarla. Causa
+   * raíz: `durationLabelFor` decidía el rótulo mirando SOLO `durationDays`,
+   * que es `null` en las dos entradas del registro.
+   *
+   * Este candado NO espeja el valor del código: ata la CONDICIÓN que el
+   * defecto incumplía —ninguna fila de `sessionStorage` puede llevar el
+   * rótulo de lo persistente— contra los textos traducidos reales, y en el
+   * mismo caso comprueba que la entrada que SÍ sobrevive al cierre conserva
+   * el suyo, para que nadie lo «arregle» poniendo el rótulo de sesión a
+   * todas. Las dos listas se exigen no vacías: sin eso el caso pasaría por
+   * vacuidad el día que alguien vaciara el registro.
+   *
+   * Validado con bug inyectado (`durationLabelFor` devolviendo
+   * `storageLabels.persistent` para todo `durationDays === null`, que es
+   * exactamente el código anterior):
+   *   AssertionError: la fila de sessionStorage anuncia el rótulo de lo
+   *   persistente: expected 'Persistente hasta que la borres' not to contain
+   *   'Persistente hasta que la borres'
+   */
+  it.each([["es", esLegal] as const, ["en", enLegal] as const])(
+    "%s: la duración de una entrada de sessionStorage no dice «persistente»",
+    (locale, bundle) => {
+      const etiquetas = bundle.Legal.common.storageTable;
+      const { container } = renderWithProviders(
+        <I18nProvider locale={locale}>
+          <LegalDocument docKey="privacy" />
+        </I18nProvider>,
+      );
+      const filas = Array.from(
+        container.querySelectorAll("table tbody tr"),
+      ) as HTMLTableRowElement[];
+
+      const deSesion = STORAGE_REGISTRY.flatMap((entrada, indice) =>
+        entrada.kind === "sessionStorage" ? [filas[indice]] : [],
+      );
+      const queSobreviven = STORAGE_REGISTRY.flatMap((entrada, indice) =>
+        entrada.kind !== "sessionStorage" && entrada.durationDays === null
+          ? [filas[indice]]
+          : [],
+      );
+      expect(deSesion.length).toBeGreaterThan(0);
+      expect(queSobreviven.length).toBeGreaterThan(0);
+
+      for (const fila of deSesion) {
+        expect(
+          fila.cells[3].textContent,
+          "la fila de sessionStorage anuncia el rótulo de lo persistente",
+        ).not.toContain(etiquetas.persistent);
+        expect(fila.cells[3]).toHaveTextContent(etiquetas.session);
+      }
+      for (const fila of queSobreviven) {
+        expect(fila.cells[3]).toHaveTextContent(etiquetas.persistent);
+      }
+    },
+  );
+
+  /*
    * El nombre técnico de la tecnología («localStorage», «sessionStorage») es
    * un identificador y no tiene por dónde partirse. Medido por el candado de
    * superficies el 2026-09-06 con la raíz a 32 px: en una celda de 91 px,

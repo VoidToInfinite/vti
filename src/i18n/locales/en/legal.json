@@ -27,6 +27,7 @@
                 "duration": "Duration",
                 "provider": "Owner",
                 "persistent": "Persistent until you delete it",
+                "session": "Until you close this tab",
                 "days": "{{count}} days",
                 "regionLabel": "Storage table, horizontally scrollable"
             },

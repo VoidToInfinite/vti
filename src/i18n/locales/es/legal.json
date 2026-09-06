@@ -27,6 +27,7 @@
                 "duration": "Duración",
                 "provider": "Titular",
                 "persistent": "Persistente hasta que la borres",
+                "session": "Hasta que cierres esta pestaña",
                 "days": "{{count}} días",
                 "regionLabel": "Tabla de almacenamiento, desplazable en horizontal"
             },
