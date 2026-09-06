@@ -79,8 +79,9 @@
  * y «Descubre» sube a primary/800 (5,189 nominal contra la parada oscura del
  * degradado de la tarjeta, frente a los 4,510 de primary/700), con «Aprende»
  * a primary/900 para no colisionar. Las dos filas de este inventario quedan
- * actualizadas con su tinta nueva y su p05 marcado como pendiente de recenso
- * (ver el campo `censo`).
+ * actualizadas con su tinta nueva y RECENSADAS en Chrome el mismo dia sobre
+ * el build integrado: p05 5,04 y 7,14 a 1440 (5,03 y 7,15 a 390), 0 % del
+ * fondo bajo 4,5 en las cuatro medidas (ver la nota del campo `censo`).
  *
  * La leccion, escrita donde se vuelva a leer: una excepcion documentada NO
  * es un candado. `SANCIONADAS` cuantifica y hace visible lo que incumple,
@@ -322,16 +323,21 @@ export function ratio(a, b) {
  * - `p05` es lo que dio la medicion; el script recalcula el ratio desde
  *   `tinta` y `superficieL`, asi que las dos columnas tienen que coincidir
  *   mientras nadie mueva un token. El test comprueba justo eso.
- * - `censo` es OPCIONAL y el script no lo lee: marca una fila cuyo `p05` NO
- *   sale de una medicion en navegador sino del calculo nominal contra su
- *   `superficieL`, a la espera del recenso. Existe porque la ola S cambio la
- *   TINTA de dos filas de Journey (el arreglo del P1 #5) y el frente que la
- *   escribio no podia reconstruir el build para volver a medir en Chrome:
- *   dejar el `p05` viejo habria sido una cifra falsa, y borrarlo habria
- *   encogido el censo. La superficie NO cambia con el color de la letra, asi
- *   que `superficieL` sigue siendo la medida; lo unico estimado es el p05, y
- *   la diferencia entre el nominal y el pixel esta acotada por lo que midio
- *   la #19 en esa misma pieza: ~0.105.
+ * - `censo` es un campo OPCIONAL que el script no lee: marca una fila cuyo
+ *   `p05` todavia no sale de una medicion en navegador sino del calculo
+ *   nominal contra su `superficieL`. Hoy NINGUNA fila lo lleva. Existio unas
+ *   horas durante la ola S (2026-09-06): el frente que cambio la tinta de las
+ *   dos filas de Journey (el arreglo del P1 #5) no podia reconstruir el build,
+ *   y dejar el `p05` viejo habria sido una cifra falsa. El recenso lo hizo el
+ *   orquestador ese mismo dia sobre el build integrado (captura de VIEWPORT
+ *   de la caja del rotulo con la tinta apagada, 1.320 y 1.188 pixeles, a 1440
+ *   y a 390): «Descubre» primary/800 p05 5,040 a 1440 y 5,034 a 390 (mediana
+ *   5,155, 0 % del fondo bajo 4,5); «Aprende» primary/900 p05 7,144 y 7,149
+ *   (0 % bajo 4,5). En esas dos filas `superficieL` se deriva del p05 medido
+ *   y de la luminancia de la tinta que calcula ESTE script (L = (Ltinta +
+ *   0,05) x p05 - 0,05), de modo que `calculado` reproduce el p05 exacto; es
+ *   la luminancia del fondo del 5 % peor expresada en la escala de tinta del
+ *   script, que es lo que la columna significa para todas las demas filas.
  * ---------------------------------------------------------------------------
  */
 // prettier-ignore
@@ -367,9 +373,9 @@ export const PIEZAS = [
     { seccion: "journey", tema: "light", tinta: "neutral/1000", px: 32, peso: 700, superficieL: 0.88169, p05: 11.21, vp: "390", y: 3796, ejemplo: "Tu viaje no tiene un último pa" },
     { seccion: "journey", tema: "light", tinta: "secondary/900", px: 14, peso: 700, superficieL: 0.87653, p05: 8.09, vp: "1440", y: 2093, ejemplo: "Comparte" },
     { seccion: "journey", tema: "light", tinta: "neutral/800", px: 12, peso: 500, superficieL: 0.86703, p05: 5.25, vp: "390", y: 4567, ejemplo: "Transforma tu pensamiento en a" },
-    { seccion: "journey", tema: "light", tinta: "primary/900", px: 14, peso: 700, superficieL: 0.87653, p05: 7.28, vp: "1440", y: 2093, ejemplo: "Aprende", censo: "pendiente ola S" },
+    { seccion: "journey", tema: "light", tinta: "primary/900", px: 14, peso: 700, superficieL: 0.85968, p05: 7.14, vp: "1440", y: 2093, ejemplo: "Aprende" },
     { seccion: "journey", tema: "light", tinta: "secondary/800", px: 14, peso: 700, superficieL: 0.87653, p05: 5.84, vp: "390", y: 3796, ejemplo: "Crea" },
-    { seccion: "journey", tema: "light", tinta: "primary/800", px: 14, peso: 700, superficieL: 0.87434, p05: 5.14, vp: "1440", y: 2093, ejemplo: "Descubre", censo: "pendiente ola S" },
+    { seccion: "journey", tema: "light", tinta: "primary/800", px: 14, peso: 700, superficieL: 0.85660, p05: 5.04, vp: "1440", y: 2093, ejemplo: "Descubre" },
     { seccion: "journey", tema: "light", tinta: "error/700", px: 14, peso: 700, superficieL: 0.87353, p05: 5.18, vp: "1440", y: 2866, ejemplo: "Evoluciona" },
     { seccion: "journey", tema: "light", tinta: "secondary/700", px: 14, peso: 700, superficieL: 0.77015, p05: 4.62, vp: "390", y: 4374, ejemplo: "Imagina" },
     { seccion: "story", tema: "dark", tinta: "neutral/300", px: 14, peso: 600, superficieL: 0.00406, p05: 12.71, vp: "390", y: 3637, ejemplo: "Únete a la comunidad en Discor" },

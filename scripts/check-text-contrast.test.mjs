@@ -58,7 +58,10 @@ import { contrastRatio } from "../src/theme/tokens/contrast.ts";
  *      alguien movio un token o la superficie medida sin repetir el censo.:
  *      expected 0.4193531354776363 to be less than or equal to 0.06
  *
- *    Restaurado el valor medido, «Tests 7 passed». Es decir: el candado
+ *    Restaurado el valor medido, «Tests 7 passed». (La fila llevaba entonces
+ *    el p05 NOMINAL 5,14 a la espera del recenso; tras medir en Chrome dice
+ *    5,04 con su `superficieL` derivada, y el mismo sabotaje daria otra
+ *    separacion, no esa.) Es decir: el candado
  *    vigila los dos lados -- la tinta que se degrada Y la superficie que
  *    alguien retoca para que el numero salga bien. (Cuando esta inyeccion se
  *    hizo por primera vez, la fila era `primary/700` y ademas estaba
