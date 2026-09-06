@@ -85,7 +85,13 @@ function neutral(): Ramp {
  *   error      3/12 -> 300, 500, 700
  *   neutral   10/12 -> 50, 100, 300..800, 1000, 1100
  *   TOTAL: 30 pasos de 60 sin consumidor directo. Lecturas por índice
- *   dinámico: ninguna.
+ *   dinámico: UNA, `stepLabelColor` (`Journey.tsx`), que resuelve
+ *   `palette[rampa][LABEL_SAFE_STEP[rampa][paso]]` para las etiquetas de
+ *   paso de Journey. El recuento de arriba cuenta solo lecturas literales,
+ *   así que los pasos que alcanza esa tabla (primary 800 y 900 desde la
+ *   ola S del 2026-09-06, antes 700 y 800) no aparecen en él; los declara
+ *   la tabla y los mide por contraste el candado de `Journey.test.tsx`.
+ *   Hasta esa fecha este renglón decía «ninguna», y ya era inexacto.
  *
  * Y aun así NO se poda ni un paso, por un motivo estructural que el recuento
  * no puede ver: estas rampas no son 60 hojas escritas a mano, son la SALIDA
