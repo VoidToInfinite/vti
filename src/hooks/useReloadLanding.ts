@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { STORAGE_KEYS } from "@/config/storage";
-import { scheduleBranchSettledCorrection } from "./branchSettledCorrection";
+import {
+  isMountedBranchEffective,
+  scheduleBranchSettledCorrection,
+} from "./branchSettledCorrection";
 import { FRAGMENT_LANDING_SETTLE_MS } from "./useFragmentLanding";
 import {
   captureReadingAnchor,
@@ -47,6 +50,23 @@ import {
  * `branchSettledCorrection.ts`. Lo único que cambia es de dónde sale el
  * destino: allí de la URL, aquí de lo que la propia página anotó antes de
  * irse.
+ *
+ * ## La reincidencia del 2026-09-06, y la puerta que la cierra
+ *
+ * El primer arreglo dejó la corrección atada a `branchKey` confiando en que el
+ * commit de la rama oscura limpiara el efecto de la clara ANTES de que sus
+ * relojes vencieran. Medido sobre el build servido de `8213019` con la máquina
+ * ocupada (cinco páginas recargando a la vez), NUEVE de quince recargas
+ * aplicaron la corrección con el documento CLARO todavía montado: `scrollTo`
+ * pedía 4.062,875 px --`contactTopDoc` 4.237 del documento de 6.258 px, en vez
+ * de 9.174 del de 11.008-- y el lector acababa en `y = 4.063`, en Journey,
+ * 4.937 px arriba. Peor que sin arreglo, porque `onFinish` cierra
+ * `finishedRef` y ya no se vuelve a intentar.
+ *
+ * Desde esa fecha el efecto no arma NADA hasta que `isMountedBranchEffective`
+ * confirma que la rama montada es la que el script anti-flash dejó escrita en
+ * `<html>`. Ver ese docblock: ahí están las cifras y el porqué de leer el
+ * atributo en vez de subir el tope de espera.
  *
  * `history.scrollRestoration` NO lo toca nadie en este repo ni en el
  * framework (censo sobre `node_modules/next/dist/client`: cero ficheros),
@@ -293,6 +313,19 @@ export function useReloadLanding(branchKey: string): void {
     }
     const restorable = restorableRef.current;
     if (restorable === null) return;
+
+    // LA PUERTA. Mientras la rama montada no sea la efectiva no se arma NADA:
+    // ni relojes ni guarda. Va DESPUÉS de decidir qué hay que restituir a
+    // propósito: esa decisión tiene que tomarse en la PRIMERA pasada del
+    // efecto (ver "Cuándo se restituye" arriba), porque un `pagehide` o un
+    // `visibilitychange` que ocurriera mientras la puerta está cerrada
+    // reescribiría la entrada de `sessionStorage` y le cambiaría los datos a
+    // una corrección todavía pendiente.
+    //
+    // El efecto se vuelve a evaluar solo cuando `branchKey` cambia, que es
+    // exactamente cuando la respuesta puede cambiar: el commit de la rama
+    // oscura. Ver `isMountedBranchEffective` para el porqué medido.
+    if (!isMountedBranchEffective(branchKey)) return;
 
     // La limpieza del programador compartido se devuelve TAL CUAL: descarta la
     // corrección pendiente entera al cambiar de rama, sin tocar `finishedRef`

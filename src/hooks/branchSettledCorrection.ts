@@ -31,6 +31,15 @@
  * sola vez" -- vive aquí, para que arreglar una de las dos mitades no deje a
  * la otra con una copia envejecida.
  *
+ * ## La PUERTA, que es lo que decide contra qué geometría se mide
+ *
+ * Los dos relojes de abajo esperan a que el maquetado se asiente, pero NO
+ * saben de qué rama es ese maquetado. Quien lo sabe es `isMountedBranchEffective`
+ * (más abajo), y hasta que no dice que sí no se arma NADA: ni relojes, ni
+ * guarda. Ver su docblock para el porqué medido -- sin esa puerta, los relojes
+ * de la rama equivocada corren en carrera contra el commit de la buena y a
+ * veces la ganan.
+ *
  * ## Los DOS RELOJES, y por qué no basta con uno
  *
  * 1. `requestAnimationFrame` ANIDADO: el primero cae en el commit de la rama,
@@ -43,6 +52,10 @@
  *    3, y las tres lecciones de `task/lessons.md` sobre `visibilityState:
  *    "hidden"`). Un aviso que puede no llegar jamás no puede ser la única vía
  *    de progreso.
+ *
+ * Los dos esperan al MAQUETADO, no a la rama: con la puerta cerrada ninguno
+ * llega a existir, así que ninguno de los dos puede volver a decidir la
+ * geometría por su cuenta.
  *
  * Gana el que llegue primero; el otro se encuentra la puerta cerrada. El
  * ganador NO cancela al perdedor, y es deliberado -- misma decisión ya
@@ -63,7 +76,84 @@
  *   de rama tiene que poder volver a armar mientras la corrección siga
  *   pendiente y NO poder hacerlo una vez resuelta. `onFinish` es exactamente
  *   ese aviso.
+ * - NO abre la puerta por su cuenta: `scheduleBranchSettledCorrection` da por
+ *   hecho que quien lo llama ya preguntó por `isMountedBranchEffective`. La
+ *   comprobación vive en el efecto del hook y no aquí porque lo que tiene que
+ *   ocurrir cuando la rama no es la efectiva es NO ARMAR NADA -- ni siquiera
+ *   entrar a esta función y devolver una limpieza vacía.
  */
+import { readResolvedTheme } from "@/theme/resolveTheme";
+
+/**
+ * ¿La rama que hay MONTADA es ya la que se va a quedar?
+ *
+ * EN UNA FRASE: compara la rama que React tiene montada en este render
+ * (`branchKey`) con la que el script de arranque dejó escrita en `<html>`
+ * antes de que el navegador pintara nada, y solo cuando coinciden hay algo
+ * que corregir.
+ *
+ * ## Por qué hace falta una puerta, y no basta con esperar
+ *
+ * Los dos consumidores dependen de `branchKey` precisamente para armarse
+ * "cuando la rama efectiva ya montó", pero React ejecuta el efecto TAMBIÉN en
+ * el primer commit, el de la rama clara del HTML horneado. Hasta el 2026-09-06
+ * eso se daba por resuelto con la carrera: el commit de la rama oscura limpia
+ * el efecto viejo y lo vuelve a arrancar, y se suponía que esa limpieza
+ * llegaba siempre antes de que los relojes de la rama clara vencieran.
+ *
+ * NO LLEGA SIEMPRE, y está medido. Sonda propia sobre el build servido de
+ * `8213019` (Chrome 1440x900, tema oscuro en `localStorage`, cinco páginas
+ * recargando a la vez para ocupar la máquina), instrumentando el `setTimeout`
+ * del tope y el `scrollTo` de la corrección:
+ *
+ *   pagina 1  arma con deck=false alto=6.258  ->  scrollTo(4.062,875)  y = 4.063
+ *   pagina 2  arma con deck=false, DESARMA, rearma con deck=true       y = 9.000
+ *
+ * Nueve de quince páginas aplicaron la corrección de la rama CLARA: el doble
+ * `requestAnimationFrame` armado en el primer commit venció ~85-160 ms después
+ * de armarse, y la limpieza del cambio de rama llegaba 160-200 ms después. La
+ * corrección se aplicaba contra `contactTopDoc = 4.237` (documento claro de
+ * 6.258 px) en vez de contra 9.174 (documento oscuro de 11.008 px), y como
+ * `onFinish` cierra el `finishedRef` del consumidor, NUNCA se volvía a
+ * intentar: el lector se quedaba 4.937 px arriba y una sección atrás.
+ *
+ * Subir el tope no arregla nada: mueve la carrera, no la elimina -- el reloj
+ * que la ganó fue el de los frames, no el tope.
+ *
+ * ## Por qué el atributo y no un temporizador
+ *
+ * `data-theme` en `<html>` lo escribe el script anti-flash del `<head>`
+ * (`buildThemeBootstrapScript`, `src/theme/resolveTheme.ts`) ANTES de que
+ * React hidrate, con el tema ya resuelto de `localStorage`/`prefers`. Es, por
+ * tanto, el ÚNICO dato del documento que dice qué rama va a quedarse mientras
+ * `themeName` todavía vale `"light"` para todo el mundo -- el mismo motivo por
+ * el que `HeroBackdrop.tsx` decide con él qué arte pedir. Se lee con
+ * `readResolvedTheme()`, que es su dueño único: ni el nombre del atributo ni
+ * su validación se retranscriben aquí.
+ *
+ * SIN ATRIBUTO SE ARMA. Que no esté significa que el script de arranque no
+ * llegó a correr o lanzó (almacenamiento bloqueado en modo privado estricto,
+ * su `try/catch`), y entonces nadie ha resuelto ningún tema: la rama montada
+ * es la única que va a haber, y bloquear la corrección dejaría al lector sin
+ * ella para siempre. La puerta protege de una rama EQUIVOCADA, no de la
+ * ausencia de información.
+ *
+ * ## Lo que la puerta NO cubre, dicho antes de que alguien lo lea de más
+ *
+ * Un cambio de tema del USUARIO durante los ~200 ms que la corrección sigue
+ * pendiente: el efecto del proveedor que reescribe `data-theme` corre DESPUÉS
+ * que los efectos de sus hijos (React ejecuta los del hijo primero), así que
+ * en ese commit `branchKey` ya es la rama nueva y el atributo todavía la
+ * vieja, la puerta cierra y la corrección de la carga se pierde. Es
+ * deliberado: quien acaba de pulsar el conmutador tiene su scroll atendido por
+ * `useThemeScrollReset.ts`, que restituye el ancla de lectura del cambio de
+ * tema. Perder ahí una corrección de la carga es preferible a aplicarla contra
+ * el maquetado de la rama que se está yendo.
+ */
+export function isMountedBranchEffective(branchKey: string): boolean {
+  const effective = readResolvedTheme();
+  return effective === null || effective === branchKey;
+}
 
 /**
  * Teclas cuyo comportamiento por defecto es desplazar el documento. Pulsar

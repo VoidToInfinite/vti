@@ -11,6 +11,7 @@ import esHome from "@/i18n/locales/es/home.json";
 import { STORAGE_KEYS } from "@/config/storage";
 import { FRAGMENT_LANDING_SETTLE_MS } from "@/hooks/useFragmentLanding";
 import { useTheme } from "@/theme/ThemeProvider";
+import { THEME_ATTRIBUTE } from "@/theme/resolveTheme";
 import { HomeSections } from "./HomeSections";
 
 /*
@@ -45,8 +46,23 @@ function stubIntersectionObserver(): void {
   );
 }
 
+/*
+ * `<html data-theme>` NO se limpiaba entre tests, y jsdom no recrea el
+ * documento dentro de un mismo fichero. Los tres tests que fijan
+ * `vti-theme = "dark"` hacen que `ThemeProvider` escriba `data-theme="dark"`
+ * en `<html>` (es su efecto de corrección de tema), y ese atributo sobrevivía
+ * a los tests siguientes, que montan la rama CLARA. Desde el 2026-09-06 eso
+ * importa de verdad: `isMountedBranchEffective` compara la rama montada con
+ * ese atributo, así que un valor heredado del test anterior describe una
+ * página que no es la que se está montando.
+ */
+function clearResolvedTheme(): void {
+  document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+}
+
 beforeEach(() => {
   window.localStorage.clear();
+  clearResolvedTheme();
   stubMatchMedia();
   stubIntersectionObserver();
 });
@@ -54,6 +70,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   window.localStorage.clear();
+  clearResolvedTheme();
   window.location.hash = "";
 });
 
@@ -330,6 +347,12 @@ describe("HomeSections", () => {
   it("crítica #11: consume useFragmentLanding, así que una carga con fragmento reposiciona su destino", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
+      /* La rama EFECTIVA de esta carga, declarada como la declara el script
+         anti-flash en el sitio real: sin `vti-theme` guardado y con
+         `matchMedia` en `false`, la rama que `ThemeProvider` resuelve es la
+         clara, y la puerta de `isMountedBranchEffective` solo arma cuando las
+         dos coinciden. */
+      document.documentElement.setAttribute(THEME_ATTRIBUTE, "light");
       window.location.hash = "#contact";
       const { container } = renderWithProviders(<HomeSections />);
 
@@ -393,6 +416,11 @@ describe("HomeSections", () => {
     );
 
     try {
+      /* La rama EFECTIVA de esta carga, por el mismo motivo que en el candado
+         de la #11: sin `vti-theme` guardado, `ThemeProvider` resuelve la rama
+         clara, y la puerta de `isMountedBranchEffective` solo arma cuando la
+         rama montada coincide con la que anuncia `<html>`. */
+      document.documentElement.setAttribute(THEME_ATTRIBUTE, "light");
       renderWithProviders(<HomeSections />);
 
       act(() => {

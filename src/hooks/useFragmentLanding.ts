@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { scheduleBranchSettledCorrection } from "./branchSettledCorrection";
+import {
+  isMountedBranchEffective,
+  scheduleBranchSettledCorrection,
+} from "./branchSettledCorrection";
 
 /**
  * ATERRIZAJE EN UN FRAGMENTO CUANDO LA PÁGINA CAMBIA DE ALTO AL HIDRATAR
@@ -54,29 +57,37 @@ import { scheduleBranchSettledCorrection } from "./branchSettledCorrection";
  * ## Mecanismo, y por qué el "cuándo" no se resuelve con un temporizador a ojo
  *
  * El efecto de este hook depende de `branchKey` -- `HomeSections.tsx` le pasa
- * el `themeName` del proveedor. Eso ata la corrección al hecho observable que
- * importa (LA RAMA EFECTIVA YA ESTÁ MONTADA) en vez de a una estimación de
- * cuánto tarda la hidratación:
+ * el `themeName` del proveedor -- y NO arma nada hasta que esa rama montada es
+ * la efectiva, lo que se pregunta sin temporizadores a
+ * `isMountedBranchEffective` (`branchSettledCorrection.ts`): el `data-theme`
+ * que el script anti-flash del `<head>` escribe antes de hidratar. Así la
+ * corrección queda atada al hecho observable que importa (LA RAMA EFECTIVA YA
+ * ESTÁ MONTADA) en vez de a una estimación de cuánto tarda la hidratación:
  *
- * - Carga clara sin corrección de tema: el efecto corre UNA vez, con la rama
- *   definitiva ya montada. La corrección llega y es un no-op observable -- el
- *   navegador ya había acertado, y volver al MISMO destino con el MISMO
+ * - Carga clara sin corrección de tema: `branchKey` ya coincide con el
+ *   atributo en la primera pasada, así que el efecto corre UNA vez, con la
+ *   rama definitiva montada. La corrección llega y es un no-op observable --
+ *   el navegador ya había acertado, y volver al MISMO destino con el MISMO
  *   `block: "start"` no mueve la página.
  * - Carga oscura: el efecto corre primero con la rama clara (todavía la del
- *   HTML horneado) y, en cuanto el efecto de hidratación de `ThemeProvider`
- *   confirma el tema, React limpia ese efecto -- lo que CANCELA la corrección
- *   pendiente -- y lo vuelve a arrancar con la rama oscura ya montada. La
- *   corrección que llega a aplicarse es siempre la de la geometría buena.
+ *   HTML horneado) y la puerta lo deja pasar sin armar NADA; en cuanto el
+ *   efecto de hidratación de `ThemeProvider` confirma el tema, React lo vuelve
+ *   a arrancar con la rama oscura ya montada y entonces sí se arma. La
+ *   corrección que llega a aplicarse es siempre la de la geometría buena, y lo
+ *   es POR LA PUERTA: hasta el 2026-09-06 esa frase se sostenía en que la
+ *   limpieza del cambio de rama ganara la carrera a los relojes de la rama
+ *   clara, y el hermano de este hook demostró midiendo que no siempre la gana
+ *   (ver `isMountedBranchEffective`, con las cifras).
  *
- * Sobre esa base, la espera son DOS RELOJES en carrera (doble
- * `requestAnimationFrame` contra un tope de `FRAGMENT_LANDING_SETTLE_MS`, para
- * la pestaña oculta donde no hay frames) más la guarda de intención humana que
- * aborta si el lector se pone a desplazar por su cuenta. Ese mecanismo NO vive
- * ya en este fichero: vive en `branchSettledCorrection.ts`, compartido con
- * `useReloadLanding.ts` -- el hermano que corrige la RECARGA (crítica externa
- * #19, P1 #2) con la misma espera y por la misma causa raíz. Ver ese módulo
- * para el porqué de cada reloj y de la guarda; aquí solo queda la decisión de
- * QUÉ corregir y CUÁNDO decidir que hay algo que corregir.
+ * Pasada la puerta, la espera son DOS RELOJES (doble `requestAnimationFrame`
+ * contra un tope de `FRAGMENT_LANDING_SETTLE_MS`, para la pestaña oculta donde
+ * no hay frames) más la guarda de intención humana que aborta si el lector se
+ * pone a desplazar por su cuenta. Ese mecanismo NO vive ya en este fichero:
+ * vive en `branchSettledCorrection.ts`, compartido con `useReloadLanding.ts`
+ * -- el hermano que corrige la RECARGA (crítica externa #19, P1 #2) con la
+ * misma espera y por la misma causa raíz. Ver ese módulo para el porqué de
+ * cada reloj y de la guarda; aquí solo queda la decisión de QUÉ corregir y
+ * CUÁNDO decidir que hay algo que corregir.
  *
  * ## Cómo se corrige: `scrollIntoView`, nunca aritmética propia
  *
@@ -136,6 +147,15 @@ import { scheduleBranchSettledCorrection } from "./branchSettledCorrection";
  * es una constante de seguridad, de la misma familia que
  * `HERO_DECODE_TIMEOUT_MS` (`timings.ts`).
  *
+ * YA NO ES LO QUE DECIDE LA GEOMETRÍA, y el número se conserva a propósito
+ * (2026-09-06). Hasta esa fecha este tope --y el doble frame que corre a su
+ * lado-- podían vencer con la rama del HTML horneado todavía montada, y la
+ * corrección se aplicaba contra el documento equivocado; subirlo habría movido
+ * la carrera sin eliminarla. Quien decide contra qué maquetado se mide es
+ * ahora la puerta de `isMountedBranchEffective`, y este plazo se queda donde
+ * estaba para lo único que siempre fue suyo: que una pestaña sin frames
+ * termine de asentarse igual.
+ *
  * Es el DOBLE de `THEME_ANCHOR_SETTLE_MS` (100 ms, `useThemeScrollReset.ts`) y
  * no el mismo número, a propósito: aquel espera UN render de React (el cambio
  * de tema ya confirmado en el tick del click), mientras que esta ventana puede
@@ -169,6 +189,16 @@ export function useFragmentLanding(branchKey: string): void {
     }
     const id = loadHashRef.current;
     if (id === "" || finishedRef.current) return;
+
+    // LA PUERTA. Mientras la rama montada no sea la efectiva no se arma NADA:
+    // ni relojes ni guarda. Va DESPUÉS de capturar el fragmento a propósito --
+    // esa captura tiene que ocurrir en la primera pasada, con la URL de la
+    // carga delante, y no depende de qué rama esté montada.
+    //
+    // El efecto se vuelve a evaluar solo cuando `branchKey` cambia, que es
+    // exactamente cuando la respuesta puede cambiar: el commit de la rama
+    // oscura. Ver `isMountedBranchEffective` para el porqué medido.
+    if (!isMountedBranchEffective(branchKey)) return;
 
     // La limpieza que devuelve el programador compartido se devuelve TAL CUAL
     // desde el efecto: descarta la corrección pendiente entera al cambiar de

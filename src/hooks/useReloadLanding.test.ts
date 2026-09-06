@@ -9,6 +9,7 @@ import {
   type MockInstance,
 } from "vitest";
 import { STORAGE_KEYS } from "@/config/storage";
+import { THEME_ATTRIBUTE } from "@/theme/resolveTheme";
 import { FRAGMENT_LANDING_SETTLE_MS } from "./useFragmentLanding";
 import { useReloadLanding } from "./useReloadLanding";
 
@@ -69,6 +70,46 @@ const ALL_GUARD_EVENTS = [...GUARD_EVENTS].sort();
 
 let addSpy: MockInstance;
 let removeSpy: MockInstance;
+let setTimeoutSpy: MockInstance;
+
+/**
+ * La rama EFECTIVA tal y como la deja el script anti-flash del `<head>` antes
+ * de que React hidrate (`buildThemeBootstrapScript`). `null` reproduce el caso
+ * en que ese script no llegó a correr o lanzó: sin atributo que leer.
+ *
+ * El nombre del atributo se importa de `resolveTheme.ts` y no se escribe a
+ * mano: es el mismo dueño único que lee el código bajo prueba, así que un
+ * renombrado no puede dejar estos candados verdes contra un atributo que ya no
+ * existe.
+ */
+function setResolvedTheme(value: string | null): void {
+  if (value === null) document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+  else document.documentElement.setAttribute(THEME_ATTRIBUTE, value);
+}
+
+/**
+ * Cuántas veces se ha ARMADO la restitución. Cada armado deja exactamente un
+ * `setTimeout` con el tope de espera, así que contarlos cuenta armados -- es
+ * el mismo instrumento con el que la sonda de navegador del 2026-09-06
+ * distinguió la página que armó una vez (la que se restituyó con la geometría
+ * clara, `y = 4.063`) de la que armó dos (la que esperó a la rama efectiva y
+ * volvió a `y = 9.000`).
+ */
+function armados(): number {
+  return setTimeoutSpy.mock.calls.filter(
+    ([, delay]) => delay === FRAGMENT_LANDING_SETTLE_MS,
+  ).length;
+}
+
+/** Los eventos de la guarda que se han REGISTRADO, ordenados para comparar. */
+function guardListenersAdded(): string[] {
+  return addSpy.mock.calls
+    .map(([type]) => String(type))
+    .filter((type) =>
+      GUARD_EVENTS.includes(type as (typeof GUARD_EVENTS)[number]),
+    )
+    .sort();
+}
 
 function guardListenersRemoved(): string[] {
   return removeSpy.mock.calls
@@ -193,6 +234,7 @@ beforeEach(() => {
   vi.stubGlobal("scrollTo", scrollToMock);
   addSpy = vi.spyOn(window, "addEventListener");
   removeSpy = vi.spyOn(window, "removeEventListener");
+  setTimeoutSpy = vi.spyOn(window, "setTimeout");
   navigationEntries = [];
   vi.spyOn(window.performance, "getEntriesByType").mockImplementation(
     () => navigationEntries,
@@ -205,6 +247,10 @@ afterEach(() => {
   document.body.innerHTML = "";
   window.location.hash = "";
   window.sessionStorage.clear();
+  /* El atributo vive en `<html>`, que jsdom NO recrea entre tests del mismo
+     fichero: sin esta línea la rama efectiva de un test se filtraría al
+     siguiente. */
+  setResolvedTheme(null);
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -281,8 +327,17 @@ describe("useReloadLanding: cuándo se restituye", () => {
    * espera la hidratación confirma la oscura -- y ata las dos mitades: la
    * corrección pendiente de la rama vieja queda SIN EFECTO, y la que se aplica
    * lleva el destino calculado sobre la rama que de verdad está montada.
+   *
+   * Desde el 2026-09-06 el montaje declara además la rama EFECTIVA en `<html>`
+   * (`dark`), que es lo que el script anti-flash deja escrito en esa recarga:
+   * así la secuencia que se ejercita es la real y no una en la que el atributo
+   * falta. Con la puerta puesta, la pasada clara ni siquiera arma -- lo que
+   * este test sigue atando es la propiedad de siempre (no se restituye con la
+   * geometría vieja); que además no arme nada lo ata el candado de la puerta,
+   * más abajo.
    */
   it("tras una recarga devuelve al lector a su sección, y solo con la rama efectiva ya montada", () => {
+    setResolvedTheme("dark");
     setNavigationType("reload");
     seedStoredPosition(SAVED_POSITION);
     mountPageAfterReload();
@@ -316,8 +371,17 @@ describe("useReloadLanding: cuándo se restituye", () => {
    * sin efecto, queda RETIRADO de la cola. Es la única aserción de este
    * fichero que distingue la cancelación de relojes de la redundancia del
    * guard `settled` en la limpieza del efecto.
+   *
+   * SE MONTA SIN `data-theme` A PROPÓSITO, y no por descuido: con la rama
+   * efectiva declarada, la puerta impide que una rama que no es la efectiva
+   * arme relojes, así que el escenario de "la rama vieja dejó un frame
+   * encolado" solo existe en el camino de respaldo -- el navegador en el que
+   * el script de arranque no llegó a correr y todas las ramas arman. Ahí es
+   * donde esta propiedad se puede seguir observando, y ahí sigue haciendo
+   * falta.
    */
   it("al cambiar de rama, la limpieza no deja relojes huérfanos en la cola", () => {
+    setResolvedTheme(null);
     setNavigationType("reload");
     seedStoredPosition(SAVED_POSITION);
     mountPageAfterReload();
@@ -657,12 +721,160 @@ describe("useReloadLanding: la guarda del control humano", () => {
 
     renderWithBranch("dark");
 
-    const armados = addSpy.mock.calls
-      .map(([type]) => String(type))
-      .filter((type) =>
-        GUARD_EVENTS.includes(type as (typeof GUARD_EVENTS)[number]),
-      );
-    expect(armados).toEqual([]);
+    expect(guardListenersAdded()).toEqual([]);
     expect(frames.size).toBe(0);
+  });
+});
+
+/*
+ * LA PUERTA DE LA RAMA EFECTIVA (2026-09-06). La reincidencia del P1 #2 de la
+ * crítica externa #19, y su candado.
+ *
+ * QUÉ DEFECTO ATRAPA: el arreglo original armaba la restitución en CADA pasada
+ * del efecto, la del HTML horneado incluida, y confiaba en que el commit de la
+ * rama oscura limpiara esa restitución antes de que sus relojes vencieran.
+ * Sonda propia sobre el build servido de `8213019` (Chrome 1440x900, tema
+ * oscuro, cinco páginas recargando a la vez para ocupar la máquina), con el
+ * `setTimeout` del tope y el `scrollTo` instrumentados:
+ *
+ *   9 de 15 paginas   armados=1   scrollTo(4.062,875)  deck=false alto=6.258
+ *   6 de 15 paginas   armados=2   scrollTo(9.000)      deck=true  alto=11.008
+ *
+ * Las nueve primeras aterrizaron en `y = 4.063` (Journey), 4.937 px arriba y
+ * una sección atrás -- peor que sin arreglo, porque `onFinish` cierra
+ * `finishedRef` y no se vuelve a intentar. El reloj que ganó la carrera fue el
+ * doble `requestAnimationFrame`, no el tope: subir el tope habría movido la
+ * carrera sin eliminarla.
+ *
+ * MATRIZ DE ESTE CANDADO (regla 2 de la lección del 2026-09-06):
+ *
+ * - Rama efectiva declarada en `<html>`: `dark`, `light` y AUSENTE (el
+ *   navegador donde el script anti-flash no llegó a correr).
+ * - Rama montada (`branchKey`): coincidente y no coincidente con la anterior.
+ * - Lo que se observa al no armar: las TRES vías por las que la restitución
+ *   podría escaparse -- los frames encolados, el `setTimeout` del tope y los
+ *   tres listeners de la guarda --, y además que ningún reloj posterior la
+ *   aplique.
+ * - Tipo de navegación: `reload`, que es donde el defecto vive; los otros tres
+ *   ya tienen sus casos arriba y no interactúan con la puerta (se descartan
+ *   antes, en la decisión de qué restituir).
+ *
+ * QUEDA FUERA: los nombres de rama no significan nada para el hook (recibe un
+ * `string` opaco); se usan `light`/`dark` porque son los que el atributo puede
+ * traer en el sitio real.
+ */
+describe("useReloadLanding: la puerta de la rama efectiva", () => {
+  /*
+   * CANDADO (a). VERIFICADO CON BUG INYECTADO el 2026-09-06: retirando la
+   * línea `if (!isMountedBranchEffective(branchKey)) return;` de
+   * `useReloadLanding.ts`, este test cae con la línea LITERAL
+   *
+   *   AssertionError: la rama del HTML horneado armó el tope de espera: la
+   *   restitución puede aplicarse contra la geometría que no es: expected 1
+   *   to be +0 // Object.is equality
+   *
+   * y con él el candado (b), `AssertionError: la rama efectiva tiene que
+   * armar, y una sola vez: expected 2 to be 1 // Object.is equality` --
+   * `Tests 2 failed | 27 passed (29)`. Sin la puerta, la rama del HTML
+   * horneado vuelve a armar, que es exactamente el estado en el que 9 de 15
+   * recargas medidas aterrizaron 4.937 px arriba.
+   */
+  it("con la rama efectiva ya resuelta en <html>, la rama del HTML horneado no arma nada", () => {
+    setResolvedTheme("dark");
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("light");
+
+    expect(
+      armados(),
+      "la rama del HTML horneado armó el tope de espera: la restitución puede aplicarse contra la geometría que no es",
+    ).toBe(0);
+    expect(
+      frames.size,
+      "la rama del HTML horneado encoló frames: son los que ganaron la carrera en las 9 páginas medidas",
+    ).toBe(0);
+    expect(
+      guardListenersAdded(),
+      "sin restitución armada no hay nada que proteger: la guarda no se registra",
+    ).toEqual([]);
+
+    flushFrame();
+    flushFrame();
+    expect(
+      scrollToMock,
+      "se restituyó contra el documento claro: es exactamente el defecto medido (y = 4.063)",
+    ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * CANDADO (b). La otra mitad: la puerta no es un apagado, es una espera. En
+   * cuanto la hidratación confirma la rama, se arma UNA vez y se restituye UNA
+   * vez, con el destino calculado sobre la geometría que de verdad está
+   * montada -- los 9.000 px del ancla oscura, no los 4.063 del documento
+   * claro.
+   */
+  it("al confirmarse la rama efectiva, arma y restituye exactamente una vez", () => {
+    setResolvedTheme("dark");
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    const { rerender } = renderWithBranch("light");
+    rerender({ branchKey: "dark" });
+
+    expect(armados(), "la rama efectiva tiene que armar, y una sola vez").toBe(
+      1,
+    );
+    expect(guardListenersAdded()).toEqual(ALL_GUARD_EVENTS);
+
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+    expect(scrollToMock).toHaveBeenCalledWith({
+      top: CONTACT_TOP_DOC + OFFSET_IN_CONTACT,
+      behavior: "instant",
+    });
+  });
+
+  /*
+   * CANDADO (c). El visitante claro es la mayoría y no puede pagar ni un frame
+   * de retraso por esta puerta: su rama montada ya es la efectiva en la
+   * PRIMERA pasada del efecto, así que arma ahí mismo.
+   */
+  it("con la rama efectiva clara y la rama clara montada, arma en la primera pasada", () => {
+    setResolvedTheme("light");
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("light");
+
+    expect(armados()).toBe(1);
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * CANDADO (d). El respaldo, y la razón de que la puerta compare contra
+   * `null` y no exija coincidencia: sin atributo nadie ha resuelto ningún
+   * tema (el script de arranque no corrió, o lanzó con el almacenamiento
+   * bloqueado en modo privado estricto), la rama montada es la única que va a
+   * haber, y bloquear ahí dejaría al lector sin restitución para siempre.
+   */
+  it("sin atributo de tema en <html>, la rama montada es la única posible y se arma", () => {
+    setResolvedTheme(null);
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+
+    expect(armados()).toBe(1);
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
   });
 });
