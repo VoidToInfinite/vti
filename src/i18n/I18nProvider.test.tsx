@@ -140,9 +140,11 @@ describe("I18nProvider — el idioma lo decide la ruta", () => {
    * El hallazgo P1 del evaluador Nielsen de la crítica #15 era exactamente
    * este recorrido: contexto de navegador nuevo, `goto('/')`, cero
    * interacción, y `localStorage` pasaba de `[]` a `[["vti-lang","es"]]`. La
-   * política de privacidad promete que lo guardado son «preferencias técnicas
-   * que guardan una elección hecha por ti», y aterrizar en una URL no es
-   * elegir nada.
+   * política de privacidad clasificaba entonces todo lo guardado como
+   * «preferencias técnicas que guardan una elección hecha por ti», y aterrizar
+   * en una URL no es elegir nada. (Desde la ola S esa página distingue la
+   * preferencia elegida del estado técnico de sesión; el idioma al aterrizar
+   * no era ninguna de las dos.)
    *
    * ESPÍA sobre `setItem`, no una comprobación de que la clave concreta esté
    * ausente: lo que hay que impedir es la ESCRITURA, sea con el nombre que

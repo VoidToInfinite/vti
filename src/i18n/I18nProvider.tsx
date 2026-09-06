@@ -36,9 +36,13 @@ import { getI18nInstance } from "./config";
  * `storage.test.ts` prohíbe ese literal en todo `src/` fuera de
  * `config/storage.ts`, y un docblock no es excepción. Escritura sin lector —el
  * censo sobre `src/` y `app/` no encontró ni un `getItem` de esa clave— y, lo
- * que la hacía insostenible, escritura sin ELECCIÓN: la política de privacidad
- * declara que lo guardado «son preferencias técnicas que guardan una elección
- * hecha por ti», y aterrizar en `/` no es elegir nada. Desde la ola G el
+ * que la hacía insostenible, escritura sin ELECCIÓN NI NECESIDAD TÉCNICA. La
+ * política de privacidad clasificaba entonces todo lo guardado como
+ * «preferencias técnicas que guardan una elección hecha por ti», y aterrizar
+ * en `/` no es elegir nada. Desde la ola S (2026-09-06) ese texto distingue
+ * dos clases —una preferencia que se elige, el tema, y un estado técnico de la
+ * sesión, la posición de lectura—, y el idioma escrito al aterrizar no era ni
+ * lo uno ni lo otro: nadie lo eligió y nada lo necesitaba. Desde la ola G el
  * idioma vive en la URL (`/` y `/en`), que es donde una elección de idioma sí
  * queda registrada, así que la clave era además redundante.
  *
