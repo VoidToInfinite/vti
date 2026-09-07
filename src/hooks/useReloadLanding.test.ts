@@ -1208,14 +1208,28 @@ describe("useReloadLanding: la restitución se consume", () => {
       return encontrados;
     }
 
+    /*
+     * Se busca la LLAMADA, no la mención. Barrer por nombre a secas convierte
+     * en infractor a cualquier docblock que cite la función como precedente, y
+     * eso pasó de verdad: la ola T (2026-09-07) escribió en
+     * `LanguageSelector.tsx` un comentario que la nombra para explicar que su
+     * propio guard de módulo sigue el mismo patrón, y este candado se puso en
+     * rojo dentro del gate sin que nadie hubiera abierto nada. Un candado que
+     * cobra por citarlo enseña a no citarlo, que es justo lo contrario de lo
+     * que este repo quiere de sus docblocks.
+     *
+     * El paréntesis es lo que distingue las dos cosas, y sigue cazando el
+     * defecto real (una llamada se escribe siempre con él). Un comentario que
+     * escribiera la invocación completa también caería: es un falso positivo
+     * que se prefiere al falso negativo contrario.
+     */
+    const LLAMADA = /resetReadingRestorationForTests\s*\(/;
     const infractores = arboles
       .flatMap(ficherosDeProduccion)
       .filter(
         (fichero) =>
           !fichero.endsWith("useReloadLanding.ts") &&
-          readFileSync(fichero, "utf-8").includes(
-            "resetReadingRestorationForTests",
-          ),
+          LLAMADA.test(readFileSync(fichero, "utf-8")),
       );
 
     expect(

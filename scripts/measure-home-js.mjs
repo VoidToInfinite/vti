@@ -485,7 +485,16 @@ export const DECLARED_TWIN_GROUPS = 1;
  * página sigue en 1.271 B y ese gemelo sigue fallando; hay un caso dedicado a
  * ese escenario en `scripts/measure-home-js.test.mjs`.
  */
-export const DECLARED_UNION_TWIN_BROTLI_BYTES = 45_461;
+/*
+ * ENMIENDA 2026-09-07 (ola T): 45.461 -> 45.919 B, +458. El grupo gemelo de
+ * la cáscara pasa de 9 módulos y 8.789 B a 12 módulos y 9.247 B porque la
+ * ola añade a esa misma cáscara el observador del breakpoint de la hoja
+ * móvil y el refinamiento del punto de lectura del selector de idioma. Es
+ * el MISMO grupo creciendo con código nuevo, no un grupo nuevo: el recuento
+ * sigue en cuatro. Ninguna página engorda por encima del presupuesto (hogar
+ * 251.463 B, 38.537 libres).
+ */
+export const DECLARED_UNION_TWIN_BROTLI_BYTES = 45_919;
 
 /** Grupos de chunks de composición idéntica que hoy admite la UNIÓN. */
 export const DECLARED_UNION_TWIN_GROUPS = 4;
@@ -524,7 +533,7 @@ export const BASELINE_PAGES = 8;
  * refresque solo es deliberado: obliga a que todo cambio de censo aparezca
  * también en el diff de este fichero.
  */
-export const BASELINE_DIGEST = "571af1927b335efb";
+export const BASELINE_DIGEST = "1dabb30b8c2bc0cf";
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */
 export const HOME_PAGE = "index.html";
