@@ -100,11 +100,103 @@ const LANGUAGES = LOCALES;
  * tinta (`color` y `-webkit-text-fill-color` en transparente, y el subrayado
  * con ellos), captura la caja del enlace y compara la distribución del fondo
  * contra la tinta nominal.
+ *
+ * ## LOS DOS ENLACES BAJAN A 3,4:1 CUANDO EL ARTE PASA POR DEBAJO DE LA BARRA
+ * (crítica externa #20, 2026-09-07, P1; y una segunda banda, en tema CLARO,
+ * que esa crítica no vio y esta entrega midió)
+ *
+ * Todo lo de arriba mide esta pieza en el SITIO donde carga: sobre el hero, y
+ * sobre los tres fondos que el cristal de la barra puede componer. Lo que
+ * ninguna de las dos rondas midió es la barra FIJA con la página desplazada,
+ * que es la mitad de la vida de este control: el arte de las secciones sigue
+ * pasando por debajo, y lo que hay detrás del texto deja de ser el hero o un
+ * token para ser el píxel que toque en ese instante.
+ *
+ * MEDIDO CON SONDA PROPIA sobre el build servido de `ecf55bc` (Chrome real sin
+ * ventana, 1440x900, `deviceScaleFactor: 1`, tema fijado en `localStorage`
+ * antes de cargar, SIN `prefers-reduced-motion` -- con la preferencia activa el
+ * arte no se desplaza y la banda no existe), con el método de arriba: fondo
+ * capturado con la tinta apagada, caja de LÍNEA (`Range.getClientRects`)
+ * erosionada 2 px, p05 de la distribución. 240 mediciones en oscuro (120
+ * posiciones por enlace, paso de 100 px y de 25 px en la banda mala) y 174 en
+ * claro:
+ *
+ *   TEMA OSCURO, banda y = 9.275-9.750 (Contacto)   37 de 240 mediciones < 4,5
+ *     «English» neutral/400  peor p05 3,400 en y=9.450   100 % de la caja < 4,5
+ *     «Español» primary/400  peor p05 3,436 en y=9.425   100 % de la caja < 4,5
+ *     peor fondo medido bajo cualquiera de las dos cajas: L = 0,10446
+ *   TEMA CLARO, banda y = 4.900-5.200 (Contacto)    12 de 174 mediciones < 4,5
+ *     «Español» primary/800  peor p05 3,488 en y=4.925    64 % de la caja < 4,5
+ *     «English» neutral/800  peor p05 4,904 (no incumple en ninguna posición)
+ *     peor fondo medido bajo cualquiera de las dos cajas: L = 0,58110
+ *
+ * El p05 de 3,400 reproduce el 3,41 que la crítica midió en y = 9.280, y el
+ * 3,436 su 3,61: la banda es la misma. LO QUE AÑADE ESTA MEDICIÓN es la banda
+ * CLARA, que nadie había mirado y que incumple igual.
+ *
+ * PALANCA ELEGIDA: la TINTA, un escalón (claro) o dos (oscuro) más lejos del
+ * peor fondo medido. Se exige AA contra ese peor fondo y contra la caja de LOS
+ * DOS enlaces, no contra la que a cada uno le tocó en el barrido: el arte se
+ * desplaza y el parche oscuro que hoy pasa bajo «Español» pasará mañana bajo
+ * «English» -- por eso «English» en claro también sube aunque su peor medición
+ * cumpla.
+ *
+ *   TEMA CLARO (fondo medido L = 0,58110)   TEMA OSCURO (L = 0,10446)
+ *     activo   primary/800  3,509  ->        activo   primary/400  3,444  ->
+ *              primary/900  4,956                     primary/200  5,372
+ *     inactivo neutral/800  3,606  ->        inactivo neutral/400  3,393  ->
+ *              neutral/900  5,090                     neutral/200  5,362
+ *
+ * En oscuro NO basta el escalón 300 y por eso se van dos: `neutral/300` da
+ * 4,439 y `primary/300` 4,460 contra ese mismo fondo, las dos por debajo de
+ * 4,5 -- rozar el umbral con 0,06 de déficit es incumplirlo.
+ *
+ * POR QUÉ NO LA OTRA PALANCA (dar a la barra un fondo que no dependa de lo que
+ * pase por debajo). Es la que arreglaría de raíz toda la cabecera de una vez
+ * -- estos dos enlaces, los de sección y la marca --, y por eso mismo no es de
+ * este fichero: ese fondo lo declara `ScSurface` en `Navbar.tsx`, con
+ * `backdrop-filter` (el cristal que el repo declara como rasgo de diseño).
+ * Hacerlo opaco retiraría ese efecto en toda la barra, que es una decisión de
+ * diseño del dueño y no una corrección de defecto. Queda escrito en el informe
+ * de la entrega como lo que es: la alternativa que cierra la familia entera.
+ *
+ * LOS DOS ESCALONES SALEN DE `palette` Y NO DE UN ROL, a diferencia de la Task
+ * 33. No es un descuido: los roles de este tema (`text`, `textMuted`,
+ * `textSubtle`, `brand`, `brandText`) están auditados contra los fondos PLANOS
+ * del sistema (`semantic.bg`/`surface`), y aquí el fondo no es plano ni es un
+ * token -- es arte medido en navegador. Ningún rol de la rama oscura cae en el
+ * escalón que ese fondo exige (`text` es neutral/50, `textMuted` neutral/300 y
+ * `brandText` primary/300, y los dos últimos no llegan). El precedente de
+ * tomar el escalón medido en vez del rol vive dos declaraciones más abajo, en
+ * el color del enlace inactivo, desde el 2026-08-14.
+ *
+ * SI EL ARTE O EL FONDO DE LA BARRA CAMBIAN, ESTA MEDICIÓN CADUCA: las cifras
+ * de arriba viven también en el censo (`scripts/check-text-contrast.mjs`,
+ * filas `header/*`), que es donde el gate las vigila.
  */
 export function languageAccent(theme: DefaultTheme): string {
   return theme.data.isLight
-    ? theme.data.semantic.brandText
-    : theme.data.semantic.brand;
+    ? theme.data.palette.primary[900]
+    : theme.data.palette.primary[200];
+}
+
+/**
+ * Tinta del idioma INACTIVO, y por qué es una función exportada como su
+ * hermana de arriba: para que `LanguageSelector.contrast.test.ts` mida la
+ * MISMA función que pinta el enlace en vez de una copia del literal.
+ *
+ * Aquí vivía un ternario dentro del template de `ScLanguageButton`
+ * (`palette.neutral[800]` en claro, `semantic.textSubtle` en oscuro). El
+ * porqué de aquellos dos valores sigue escrito en el comentario de esa
+ * declaración; lo que cambia el 2026-09-07 es el escalón, por la medición del
+ * docblock de `languageAccent`: los dos suben un peldaño (claro) o dos
+ * (oscuro) para pasar AA sobre el peor fondo que la cabecera llega a tener
+ * encima, no solo sobre el que tenía al cargar.
+ */
+export function languageInactiveInk(theme: DefaultTheme): string {
+  return theme.data.isLight
+    ? theme.data.palette.neutral[900]
+    : theme.data.palette.neutral[200];
 }
 
 /*
@@ -188,8 +280,13 @@ const ScLanguageButton = styled(Link)<{ $active: boolean }>`
      el umbral de 4,5. No era un borde rozando el arte: era uniformemente
      bajo.
 
-     Por que aqui y no en el token: textSubtle es global. Por que solo en
-     claro: en oscuro la misma pieza mide 10,5 y no necesita nada.
+     Por que aqui y no en el token: textSubtle es global. Aquel arreglo dejo
+     el valor solo en la rama clara porque en oscuro la misma pieza medía
+     10,5 sobre el hero; con la pagina desplazada NO, y desde el 2026-09-07
+     las dos ramas resuelven por la misma funcion, languageInactiveInk, cuyo
+     docblock lleva la medicion (sin comillas invertidas en este comentario a
+     proposito: vive DENTRO del template literal, donde una sola cerraria el
+     template).
 
      La Task 33 midio este mismo control en 4,909, y no se contradice con el
      4,27: aquella cifra era contra el CRISTAL del navbar, esta es contra el
@@ -199,11 +296,7 @@ const ScLanguageButton = styled(Link)<{ $active: boolean }>`
      La jerarquia activo/inactivo NO depende de este color: la dan el peso
      (700 contra 400) y el subrayado, los dos declarados justo aqui debajo. */
   color: ${({ theme, $active }) =>
-    $active
-      ? languageAccent(theme)
-      : theme.data.isLight
-        ? theme.data.palette.neutral[800]
-        : theme.data.semantic.textSubtle};
+    $active ? languageAccent(theme) : languageInactiveInk(theme)};
   text-decoration: ${({ $active }) => ($active ? "underline" : "none")};
   text-underline-offset: 0.2em;
   cursor: pointer;
