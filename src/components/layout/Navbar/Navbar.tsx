@@ -12,7 +12,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, type DefaultTheme } from "styled-components";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
@@ -1106,10 +1106,130 @@ const ScNavLinks = styled.div`
   }
 `;
 
-/* Texto pequeño, `textMuted` en reposo (mismo rol que el resto de enlaces
-   secundarios del sitio, ver Footer.tsx) y `brandText` al hover -- transición
+/**
+ * TINTA EN REPOSO DE LOS ENLACES DE LA BARRA, y por qué es una función
+ * exportada en vez de un token leído dentro del template: para que
+ * `navActiveAccent.contrast.test.ts` mida la MISMA función que pinta y no una
+ * copia del literal. Mismo criterio y mismo precedente que `languageAccent` /
+ * `languageInactiveInk` (`LanguageSelector.tsx`), a unos píxeles de aquí.
+ *
+ * ## LOS CINCO ENLACES DE SECCIÓN Y «MÁS» BAJAN DE 4,5:1 EN TEMA CLARO CUANDO
+ * EL ARTE PASA POR DEBAJO DE LA BARRA (crítica externa #20, 2026-09-07, P1)
+ *
+ * Aquí vivía `semantic.textMuted` en las dos ramas, o sea `neutral/800`
+ * (`oklch(0.5 0 286)`, rgb 99,99,99) en claro. Ese rol está auditado contra
+ * los fondos PLANOS del sistema (`semantic.bg`/`surface`), que es donde se
+ * midió siempre esta pieza. Lo que nadie había medido es la barra FIJA con la
+ * página desplazada: entonces lo que hay detrás del texto no es un token, es
+ * el píxel de arte que toque en ese instante.
+ *
+ * MEDIDO CON SONDA PROPIA sobre el build servido de `b974fa2` (Chrome real sin
+ * ventana, 1440x900, `deviceScaleFactor: 1`, tema fijado en `localStorage`
+ * antes de cargar, barrido completo de la página en pasos de 25 px), con el
+ * método del censo (`scripts/check-text-contrast.mjs`): fondo capturado con la
+ * tinta apagada, caja de LÍNEA (`Range.getClientRects`) erosionada 2 px, p05 de
+ * la distribución, y descarte físico de lo que no se pinta -- el texto oculto
+ * del disparador («destinos del sitio», `VisuallyHidden`) cambia el 4,2 % de
+ * los píxeles de su caja al apagar la tinta frente al 38-49 % de los enlaces
+ * reales, así que no entra.
+ *
+ *   TEMA CLARO, `neutral/800`, SIN `prefers-reduced-motion`
+ *     «Características»  p05 3,542  mediana 4,014  62,4 % de la caja < 4,5  y=5150
+ *     «Viaje»            p05 3,579  mediana 3,752  100  %                   y=5150
+ *     «Historia»         p05 3,637  mediana 3,871  79,0 %                   y=3675
+ *     «Contacto»         p05 4,093  mediana 4,423  59,5 %                   y=2100
+ *     «Más»              p05 4,337  mediana 4,353  100  %                   y=2350
+ *     «Qué es VoidToInfinite» p05 4,339 mediana 4,769 30,5 %                 y=2100
+ *     peor fondo bajo cualquiera de las seis cajas: L = 0,56904
+ *   TEMA CLARO CON `reduce`: el mismo defecto, algo menos hondo (peor p05
+ *     3,637, «Historia» en y=3675). El arte que pasa bajo la barra no depende
+ *     de la animación: depende del scroll.
+ *   TEMA OSCURO: NINGUNA de las seis incumple. Peor p05 5,535 («Historia» en
+ *     y=9675), fondo L = 0,07414. Verificado antes de tocar nada, y por eso la
+ *     rama oscura de estas dos funciones se queda EXACTAMENTE como estaba.
+ *
+ * ARREGLO: la TINTA, un escalón más lejos del peor fondo medido, y solo en la
+ * rama que incumple. Se exige AA contra ese peor fondo y contra la caja de LAS
+ * SEIS piezas, no contra la que a cada una le tocó en el barrido: el arte se
+ * desplaza, así que el parche que hoy pasa bajo «Características» pasará
+ * mañana bajo «Contacto».
+ *
+ *   TEMA CLARO (fondo medido L = 0,56904)
+ *     reposo       neutral/800  3,537  ->  neutral/900  4,993  (margen +0,49)
+ *     hover/foco   primary/800  3,441  ->  primary/900  4,862  (margen +0,36)
+ *
+ * EL HOVER/FOCO SUBE AUNQUE LA CRÍTICA NO LO MIDIERA, y no es alcance de más:
+ * `brandText` es `primary/800` en claro y da 3,441 contra ese mismo fondo. Sin
+ * tocarlo, esta entrega dejaría un enlace que EMPEORA al enfocarlo -- de 4,993
+ * en reposo a 3,441 con el foco encima --, y `:focus-visible` no es un estado
+ * transitorio: es lo que ve un usuario de teclado mientras decide. El escalón
+ * es el mismo que tomó el idioma activo el mismo día (`primary/800` ->
+ * `primary/900`), así que las dos piezas de la barra hablan el mismo idioma.
+ *
+ * POR QUÉ UN SOLO ESCALÓN Y NO DOS, a diferencia de la rama oscura del
+ * selector de idioma: aquí uno basta y sobra (4,993 y 4,862 contra 4,5). Con
+ * el fondo más hostil medido bajo CUALQUIER texto de la barra --L = 0,54757,
+ * bajo la marca, con `reduce` en y=5150-- las dos tintas nuevas siguen
+ * pasando: 4,820 y 4,693. Dos escalones (`neutral/1000`) darían 7,48 y
+ * apagarían la jerarquía contra la marca, que se pinta justo con ese valor.
+ *
+ * LA JERARQUÍA ACTIVO/INACTIVO NO SE TOCA porque NO ES DE COLOR: la sección
+ * que se está leyendo se marca con `text-decoration: underline` desde
+ * `aria-current` (ver `ScNavSectionLink`) y con `data-current` en el
+ * disparador; activo e inactivo comparten tinta por diseño. Al subir la única
+ * tinta de reposo suben los dos a la vez y la distancia entre ellos --el
+ * subrayado-- queda intacta.
+ *
+ * POR QUÉ NO LA OTRA PALANCA (dar a la barra un fondo que no dependa de lo que
+ * pase por debajo). Es la que cerraría de raíz toda la cabecera de una vez, y
+ * está DESCARTADA por decisión del dueño tomada el 2026-09-07 con estas
+ * cifras delante: el cristal de `ScSurface` (`backdrop-filter`, unas
+ * declaraciones más arriba en este mismo fichero) es un rasgo de diseño del
+ * sitio y no se retira, ni se hace opaco, ni se le mete una capa de color
+ * detrás. Se sube la tinta y punto.
+ *
+ * LA RAMA OSCURA SIGUE EN EL ROL Y NO EN UN ESCALÓN DE `palette`, al revés que
+ * la clara: `semantic.textMuted` PASA contra el arte medido bajo estas seis
+ * cajas (5,523 calculado, 5,535 medido) y bajarlo a un literal sería cambiar
+ * la fuente de verdad de un valor que no cambia. Queda declarado el riesgo que
+ * esa asimetría no cubre: el fondo más hostil medido bajo cualquier texto de
+ * la barra en oscuro --L = 0,10447, bajo «English», y=9450-- pone estas mismas
+ * dos tintas en 4,439 y 4,460. Ese parche vive hoy a 800 px a la derecha de
+ * los enlaces; si el arte o el reparto de la fila cambian, la rama oscura hay
+ * que volver a medirla.
+ *
+ * SI EL ARTE O EL FONDO DE LA BARRA CAMBIAN, ESTA MEDICIÓN CADUCA: las cifras
+ * viven también en el censo (`scripts/check-text-contrast.mjs`, filas
+ * `navbar/*`), que es donde el gate las vigila.
+ */
+export function navLinkInk(theme: DefaultTheme): string {
+  return theme.data.isLight
+    ? theme.data.palette.neutral[900]
+    : theme.data.semantic.textMuted;
+}
+
+/**
+ * Tinta de HOVER y FOCO de los mismos enlaces. Función exportada por el mismo
+ * motivo que su hermana de arriba (que el candado mida lo que pinta), y su
+ * porqué completo -- la medición, el escalón y por qué esta pieza entra en una
+ * entrega que la crítica no pidió -- está en el docblock de `navLinkInk`.
+ */
+export function navLinkHoverInk(theme: DefaultTheme): string {
+  return theme.data.isLight
+    ? theme.data.palette.primary[900]
+    : theme.data.semantic.brandText;
+}
+
+/* Texto pequeño, la tinta de `navLinkInk` en reposo (mismo rol que el resto de
+   enlaces secundarios del sitio, ver Footer.tsx, un escalón más oscuro en
+   claro desde la crítica #20) y la de `navLinkHoverInk` al hover -- transición
    corta, solo `color` (spec: "sin efectos colaterales"). Sin subrayado:
    GlobalStyles ya pone `text-decoration: none` en todos los `a`.
+
+   Las dos funciones gobiernan también a ScNavPanelLink por composición, y eso
+   es deliberado: el panel monta el MISMO cristal que la barra, así que hereda
+   el mismo problema de fondo, y darle una tinta propia partiría en dos el
+   lenguaje visual de la navegación para tapar la mitad medida del defecto.
 
    transform se añade a esta lista (Task 9, vocabulary.PRESS): el hover de
    arriba solo cambia color -- sin movimiento que guardar tras
@@ -1120,7 +1240,7 @@ const ScNavLinks = styled.div`
 const ScNavLink = styled.a`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 500;
-  color: ${({ theme }) => theme.data.semantic.textMuted};
+  color: ${({ theme }) => navLinkInk(theme)};
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap.
      ScNavPanelLink (más abajo, styled(ScNavLink)) lo hereda por
      composición, sin declarar nada propio -- mismo criterio que ya
@@ -1133,7 +1253,7 @@ const ScNavLink = styled.a`
 
   &:hover,
   &:focus-visible {
-    color: ${({ theme }) => theme.data.semantic.brandText};
+    color: ${({ theme }) => navLinkHoverInk(theme)};
   }
 
   &:active {
@@ -1154,8 +1274,8 @@ const ScNavLink = styled.a`
  * dueño, 2026-09-02, crítica #14 -- ver el docblock de `navBarSectionsFor` en
  * `src/config/navigation.ts` para la medición que la motiva).
  *
- * Hereda de `ScNavLink` por composición, igual que `ScNavPanelLink`: mismo
- * `textMuted` en reposo, mismo `brandText` en hover/focus, mismo press de
+ * Hereda de `ScNavLink` por composición, igual que `ScNavPanelLink`: misma
+ * `navLinkInk` en reposo, misma `navLinkHoverInk` en hover/focus, mismo press de
  * `PRESS` y mismos guards de reduce, sin duplicar una sola declaración de
  * aquel bloque. Lo que añade es lo propio de un enlace que vive EN LA BARRA y
  * no en una columna desplegable:
@@ -1261,7 +1381,7 @@ const ScNavGroup = styled.div`
 
 /*
  * Disparador de un grupo: mismo lenguaje visual que `ScNavLink`
- * (`textMuted` en reposo, `brandText` en hover/focus, transición corta
+ * (`navLinkInk` en reposo, `navLinkHoverInk` en hover/focus, transición corta
  * solo de `color`) -- reutiliza ese bloque de reglas en vez de duplicarlo,
  * sobre un `<button>` con su apariencia nativa reseteada. Área táctil
  * mínima AA de 44px, mismo precedente literal que `ScLanguageButton`
@@ -1331,7 +1451,14 @@ const ScNavTrigger = styled.button`
   font-family: inherit;
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 500;
-  color: ${({ theme }) => theme.data.semantic.textMuted};
+  /* Las MISMAS dos funciones que ScNavLink, no una copia del token: este
+     disparador vive en la misma fila, sobre el mismo cristal y con el mismo
+     arte pasando por debajo, y la sonda de la critica #20 lo midio en 4,337
+     -- incumpliendo igual que los cinco enlaces (ver el docblock de
+     navLinkInk). Es un styled.button y no un styled(ScNavLink), asi que la
+     tinta no le llega por composicion y hay que declararla; lo que no hay es
+     dos criterios. */
+  color: ${({ theme }) => navLinkInk(theme)};
   cursor: pointer;
   /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
@@ -1342,7 +1469,7 @@ const ScNavTrigger = styled.button`
 
   &:hover,
   &:focus-visible {
-    color: ${({ theme }) => theme.data.semantic.brandText};
+    color: ${({ theme }) => navLinkHoverInk(theme)};
   }
 
   /* La sección que se está leyendo vive detrás de este disparador: ver el
@@ -1413,8 +1540,8 @@ const ScNavTrigger = styled.button`
  * Indicador de apertura: SOLO `transform: rotate()` como animación, ninguna
  * otra propiedad -- guard de `reduce` igual que el resto de transiciones
  * nuevas de este fichero. `currentColor` hereda el color que ya resuelve
- * `ScNavTrigger` (`textMuted`/`brandText`), así que no hace falta ningún
- * token de color propio en el trazo.
+ * `ScNavTrigger` (`navLinkInk`/`navLinkHoverInk`), así que no hace falta
+ * ningún token de color propio en el trazo.
  *
  * `width`/`height`/`flex` son OBLIGATORIOS, no cosméticos, y esta es la
  * TERCERA vez que este repo tropieza con lo mismo (ver el docblock de

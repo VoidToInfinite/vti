@@ -20,7 +20,7 @@ import { routePath } from "@/config/site";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { DECK, OVERLAY, PRESS } from "@/motion/vocabulary";
 import { NAV_SHEET_SCROLL_TOLERANCE_PX, navActiveAccent } from "./NavSheet";
-import { Navbar } from "./Navbar";
+import { Navbar, navLinkHoverInk, navLinkInk } from "./Navbar";
 import {
   NAVBAR_CONTAINER,
   NAVBAR_LABEL_EM,
@@ -472,6 +472,137 @@ describe("Navbar", () => {
         "true",
       );
       expect(logoColor(container)).toBe(basicDarkTheme.semantic.text);
+    });
+  });
+
+  /*
+   * CRITICA EXTERNA #20 (2026-09-07, P1): la tinta de los enlaces de la barra.
+   *
+   * `navActiveAccent.contrast.test.ts` mide el CONTRASTE de `navLinkInk` /
+   * `navLinkHoverInk` contra el arte medido en navegador. Lo que ese candado
+   * NO puede ver es si el arbol renderizado consume de verdad esas dos
+   * funciones: si manana alguien devuelve `semantic.textMuted` al template de
+   * `ScNavLink`, los ratios seguirian en verde midiendo una funcion que ya no
+   * pinta nada. Esto es la otra mitad -- el CSSOM real que styled-components
+   * inyecta, leido con `getComputedStyle` (mismo patron que el bloque del Logo
+   * de aqui arriba) y comparado contra la funcion, nunca contra un literal
+   * escrito a mano.
+   *
+   * Los DOS controles en la misma asercion a proposito: el disparador «Mas»
+   * es un `styled.button` propio, no un `styled(ScNavLink)`, asi que la tinta
+   * no le llega por composicion y es justo el que se puede quedar atras. La
+   * sonda de la critica lo midio incumpliendo igual que los cinco enlaces
+   * (p05 4,337).
+   *
+   * El hover/foco se lee del CSSOM plano y no de `getComputedStyle`: jsdom no
+   * simula estados (regla 36), asi que la unica forma honesta de afirmar algo
+   * sobre `:hover`/`:focus-visible` es localizar la regla inyectada.
+   *
+   * VALIDADO CON BUG INYECTADO, dos veces:
+   *
+   * 1. Devolviendo `theme.data.semantic.textMuted` al `color` de `ScNavLink`
+   *    --y solo a el, dejando el disparador en `navLinkInk`, que es como se
+   *    desincronizarian de verdad-- el primer test cae con
+   *
+   *      AssertionError: expected 'oklch(0.5 0 286)' to be
+   *      'oklch(0.42 0.004 286)' // Object.is equality
+   *
+   * 2. Devolviendo `theme.data.semantic.brandText` al `:hover`/`:focus-visible`
+   *    de las DOS piezas, el tercero cae con
+   *
+   *      AssertionError: la regla de foco de A no declara
+   *      oklch(0.42 0.098 235.851): .kNJvnJ:hover,.kNJvnJ:focus-visible
+   *      {color: oklch(0.5 0.114 235.851);}: expected false to be true
+   *
+   *    Esa segunda inyeccion es ademas la que descarto la PRIMERA version de
+   *    este test, que buscaba el color en cualquier regla con `:hover`: seguia
+   *    en verde, porque el idioma activo resuelve al mismo `primary[900]` en
+   *    claro y tiene su propia regla de foco. De ahi que se busque por las
+   *    clases del elemento.
+   *
+   * Restaurado todo, los tres en verde.
+   */
+  describe("los enlaces de la barra pintan la tinta de navLinkInk en los dos temas", () => {
+    function tintasDeLaBarra(container: HTMLElement): {
+      enlace: string;
+      disparador: string;
+    } {
+      const enlace = container.querySelector("[data-nav-links] a");
+      const disparador = container.querySelector("[data-nav-links] button");
+      expect(enlace).not.toBeNull();
+      expect(disparador).not.toBeNull();
+      return {
+        enlace: getComputedStyle(enlace as Element).color,
+        disparador: getComputedStyle(disparador as Element).color,
+      };
+    }
+
+    it("tema claro: enlace de seccion y disparador «Mas» comparten la tinta en reposo", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const { container } = renderNavbar();
+
+      const esperada = navLinkInk({ data: basicLightTheme });
+      const { enlace, disparador } = tintasDeLaBarra(container);
+
+      expect(enlace).toBe(esperada);
+      expect(disparador).toBe(esperada);
+      /* No es la misma asercion dos veces: esto exige que la tinta haya
+         SUBIDO respecto del rol que pintaba antes de esta entrega. Sin ello,
+         devolver `semantic.textMuted` a las dos piezas a la vez dejaria los
+         dos `toBe` de arriba en verde. */
+      expect(esperada).not.toBe(basicLightTheme.semantic.textMuted);
+    });
+
+    it("tema oscuro: la misma tinta, que es la que ya cumplia y no se toco", () => {
+      window.localStorage.setItem("vti-theme", "dark");
+      const { container } = renderNavbar();
+
+      const esperada = navLinkInk({ data: basicDarkTheme });
+      const { enlace, disparador } = tintasDeLaBarra(container);
+
+      expect(enlace).toBe(esperada);
+      expect(disparador).toBe(esperada);
+      expect(esperada).toBe(basicDarkTheme.semantic.textMuted);
+    });
+
+    /* La regla de :hover/:focus-visible de UN elemento concreto, localizada
+       por sus propias clases inyectadas y no por el texto suelto ":hover":
+       el idioma activo, a unos pixeles de aqui, resuelve tambien a
+       `primary[900]` en claro y tiene su propia regla de foco, asi que un
+       filtro por color a secas pasaria en verde aunque estas dos piezas
+       hubieran vuelto a `brandText`. Comprobado: con la inyeccion puesta, el
+       filtro laxo seguia verde y este no. */
+    function reglaDeFoco(el: Element): string[] {
+      const clases = Array.from(el.classList);
+      return allCssRules().filter(
+        (regla) =>
+          regla.includes(":focus-visible") &&
+          clases.some((c) => regla.includes(`.${c}:hover`)),
+      );
+    }
+
+    it("la tinta de hover y foco de la barra sale de navLinkHoverInk, no del rol de marca", () => {
+      window.localStorage.setItem("vti-theme", "light");
+      const { container } = renderNavbar();
+
+      const esperada = navLinkHoverInk({ data: basicLightTheme });
+      const enlace = container.querySelector("[data-nav-links] a");
+      const disparador = container.querySelector("[data-nav-links] button");
+      expect(enlace).not.toBeNull();
+      expect(disparador).not.toBeNull();
+
+      for (const pieza of [enlace as Element, disparador as Element]) {
+        const reglas = reglaDeFoco(pieza);
+        expect(
+          reglas.length,
+          `no se encuentra la regla de :hover/:focus-visible de ${pieza.tagName}`,
+        ).toBeGreaterThan(0);
+        expect(
+          reglas.some((regla) => regla.includes(esperada)),
+          `la regla de foco de ${pieza.tagName} no declara ${esperada}: ${reglas.join(" | ")}`,
+        ).toBe(true);
+      }
+      expect(esperada).not.toBe(basicLightTheme.semantic.brandText);
     });
   });
 
