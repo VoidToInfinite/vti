@@ -2604,6 +2604,7 @@ export function evaluaEstadoModal({
     disparador,
     abierta,
     despues,
+    lineaBase = null,
 }) {
     const donde = `${combinacion.ancho}x${combinacion.alto} a DPR ${combinacion.dpr}`;
     if (!disparador)
@@ -2633,9 +2634,25 @@ export function evaluaEstadoModal({
         motivos.push(
             `tras cruzar a ${donde} quedan 0 controles operables de ${despues.focalizables} focalizables: la pagina entera deja de poder usarse`,
         );
-    if (despues.inertesFuera.length)
+    /*
+     * CONTRA LA LINEA BASE, no contra cero, y esto no es una concesion: hay
+     * nodos que traen su propio `inert` del marcado y lo llevan SIEMPRE, abierta
+     * la hoja o no -- hoy, el panel del desplegable «Mas», que esta cerrado y se
+     * declara inerte para que su contenido no sea alcanzable. Contarlos como
+     * «fondo que la hoja no libero» es un falso positivo, y se midio: tras el
+     * arreglo del 2026-09-07 la familia seguia en rojo citando `div#_R_79...`,
+     * que es justo ese panel. Lo que esta familia vigila es lo que la HOJA
+     * anadio, asi que se compara con lo que habia antes de abrirla. Si no hay
+     * linea base (una llamada que no la pasa), se cae del lado seguro y se
+     * exige cero, que es el comportamiento anterior.
+     */
+    const yaInertesAntes = new Set(lineaBase ? lineaBase.inertesFuera : []);
+    const inertesAnadidos = despues.inertesFuera.filter(
+        (marca) => !yaInertesAntes.has(marca),
+    );
+    if (inertesAnadidos.length)
         motivos.push(
-            `siguen inertes ${despues.inertesFuera.length} nodo(s) que no son la hoja ni cuelgan de ella (${despues.inertesFuera.join(", ")}): el fondo que la hoja inertizo no se libero al cambiar de anchura`,
+            `siguen inertes ${inertesAnadidos.length} nodo(s) que la hoja inertizo y no libero al cambiar de anchura (${inertesAnadidos.join(", ")})`,
         );
     if (despues.modalesInalcanzables.length)
         motivos.push(
@@ -4293,6 +4310,13 @@ async function auditarSuperficie(browser, base, theme, surface) {
             await page.waitForTimeout(600);
 
             const disparador = await page.evaluate(probeDisparadorDeLaHoja);
+            /* La foto de los nodos que ya son inertes ANTES de tocar nada: los
+               que trae el marcado (el panel del desplegable cerrado) no son
+               fondo que la hoja inertice, y sin esta referencia se cuentan como
+               tal. Ver el comentario de `evaluaEstadoModal`. */
+            const lineaBase = await page.evaluate(probeEstadoModal, {
+                selector: SELECTOR_FOCALIZABLE,
+            });
             let abierta = null;
             let despues = null;
             if (disparador) {
@@ -4323,6 +4347,7 @@ async function auditarSuperficie(browser, base, theme, surface) {
                 despues,
                 veredicto: evaluaEstadoModal({
                     combinacion: cambio,
+                    lineaBase,
                     disparador,
                     abierta,
                     despues,

@@ -3241,3 +3241,73 @@ describe("la salida de emergencia PLAYWRIGHT_CORE del candado de navegador", () 
         ]);
     });
 });
+
+/*
+ * LA LINEA BASE DE NODOS INERTES, y por que hace falta un caso propio: la
+ * familia del estado modal compara los nodos inertes de DESPUES del cruce con
+ * los que ya lo eran ANTES de abrir la hoja. Sin esa resta, un nodo que trae su
+ * propio `inert` del marcado -- hoy el panel del desplegable «Mas», cerrado --
+ * se cuenta como fondo que la hoja no libero, y la familia sale en rojo sobre
+ * una pagina correcta: paso de verdad el 2026-09-07, con la corrida citando
+ * `div#_R_79laivbH1_`, que es ese panel. Y la resta no puede tapar lo
+ * contrario: un nodo que la hoja SI inertizo y no libero tiene que seguir
+ * cayendo aunque haya linea base.
+ *
+ * Validado con bug inyectado (ignorando la linea base, `const yaInertesAntes =
+ * new Set()`):
+ *   AssertionError: un nodo que ya era inerte antes de abrir no es fondo que la
+ *   hoja dejara sucio: expected false to be true // Object.is equality
+ */
+describe("la linea base de nodos inertes de la familia del estado modal", () => {
+    const combinacion = { ancho: 844, alto: 390, dpr: 1 };
+    const disparador = { id: "abrir", etiqueta: "Abrir el menu" };
+    const abierta = { operablesEnLaHoja: 12, focalizables: 30, operables: 12 };
+    const base = (inertesFuera) => ({
+        focalizables: 30,
+        operables: 30,
+        inertesFuera,
+        modalesInalcanzables: [],
+        expandidosSinCaja: [],
+    });
+
+    it("un nodo que ya era inerte antes de abrir no cuenta como fondo sin liberar", () => {
+        const { cumple, motivos } = evaluaEstadoModal({
+            combinacion,
+            disparador,
+            abierta,
+            despues: base(["div#panel-mas"]),
+            lineaBase: base(["div#panel-mas"]),
+        });
+        expect(
+            cumple,
+            "un nodo que ya era inerte antes de abrir no es fondo que la hoja dejara sucio",
+        ).toBe(true);
+        expect(motivos).toEqual([]);
+    });
+
+    it("un nodo que la hoja inertizo y no libero sigue cayendo, haya linea base o no", () => {
+        const { cumple, motivos } = evaluaEstadoModal({
+            combinacion,
+            disparador,
+            abierta,
+            despues: base(["div#panel-mas", "main#main"]),
+            lineaBase: base(["div#panel-mas"]),
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("main#main");
+        expect(
+            motivos.join(" "),
+            "el nodo de la linea base no se nombra: no es lo que esta familia persigue",
+        ).not.toContain("panel-mas");
+    });
+
+    it("sin linea base se exige cero, que es el comportamiento anterior", () => {
+        const { cumple } = evaluaEstadoModal({
+            combinacion,
+            disparador,
+            abierta,
+            despues: base(["div#panel-mas"]),
+        });
+        expect(cumple).toBe(false);
+    });
+});
