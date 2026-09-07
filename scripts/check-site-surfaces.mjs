@@ -31,7 +31,7 @@
  * misma pasada con las preferencias del sistema activas. Lo que nadie ha medido
  * es lo que aparece como hallazgo nuevo en la ronda siguiente.
  *
- * QUE MIDE, y por que en navegador y no en la suite. Las veintiuna familias de
+ * QUE MIDE, y por que en navegador y no en la suite. Las veintitres familias de
  * abajo dependen de layout real, de pintado real y de media queries reales:
  * jsdom no hace ninguna de las tres (regla 36 y 44 de RULES.md). Un test de
  * Vitest puede
@@ -217,7 +217,7 @@
  * `scripts/check-site-surfaces.test.mjs`, que importa este fichero y afirma
  * que su cobertura no se ha vaciado en silencio: las ocho superficies, los dos
  * idiomas, TODAS las rutas que el sitio declara (la portada incluida), el
- * barrido completo de anchos, las veintiuna familias con su suelo numerico, la
+ * barrido completo de anchos, las veintitres familias con su suelo numerico, la
  * magnitud del zoom, el umbral de legibilidad y el
  * hecho de que ninguna zona quede sancionada. Un candado de navegador al que
  * alguien le borra media lista de rutas sigue saliendo verde; ese es justo el
@@ -284,8 +284,8 @@
  * «CUMPLE - 8 superficies, 15 familias, 0 zonas de zoom sancionadas, cero
  * incumplimientos», codigo de salida 0 en `dark` y en `light`. (La linea se
  * conserva tal cual se imprimio aquel dia: eran quince familias entonces y hoy
- * son veintiuna, con las de legibilidad y crecimiento y las cuatro de la
- * critica #19 que entran abajo.) El segundo numero
+ * son veintitres, con las de legibilidad y crecimiento, las cuatro de la
+ * critica #19 y las dos de la #20 que entran abajo.) El segundo numero
  * de cada fila es la guarda de vacuidad del filtro: son las cajas con texto
  * propio o interactivas que la sonda SI evaluo en el barrido completo, y un cero
  * ahi pone el script en rojo.
@@ -446,6 +446,96 @@
  *   plano al llegar al tope de 600 s de la herramienta y termino poco despues).
  *   Si algun dia pasa de doce minutos, la palanca acordada es recortar
  *   `ANCHOS_DEL_DECK` a `[320]` conservando las tres raices.
+ *
+ * LAS DOS FAMILIAS DE LA CRITICA #20 (veintidos y veintitres), medidas con ESTE
+ * MISMO SCRIPT el 2026-09-07 sobre el build servido en http://localhost:4321 --
+ * que es el build con los tres P1 vivos, asi que las dos salen en ROJO a
+ * proposito sobre las DOS portadas y en los DOS temas, y las veintiuna
+ * anteriores siguen en VERDE en las ocho superficies. Las lineas, literales y
+ * recortadas donde se repiten:
+ *
+ *   FAMILIA VEINTIDOS, tema dark, `/` (identica en `/en` y en el tema claro,
+ *   con el rotulo del disparador en su idioma y 62 focalizables en vez de 76):
+ *
+ *     NO CUMPLE  al cambiar de anchura con la hoja movil abierta el estado
+ *     modal sobrevive al contexto que lo justificaba (3 de 3 cruces): 390x844
+ *     -> 844x390 a DPR 1 -- tras cruzar a 844x390 a DPR 1 quedan 0 controles
+ *     operables de 76 focalizables: la pagina entera deja de poder usarse;
+ *     siguen inertes 7 nodo(s) que no son la hoja ni cuelgan de ella (div, a,
+ *     header, div#_R_79laivbH1_, main#main, footer, next-route-announcer): el
+ *     fondo que la hoja inertizo no se libero al cambiar de anchura; 1
+ *     dialogo(s) siguen declarandose aria-modal="true" sin caja alcanzable
+ *     (div#_R_5aivbH1_[role=dialog] caja 0x0 en (0, 0)): reclaman la pagina
+ *     entera desde fuera de la pantalla; 1 disparador(es) siguen diciendo
+ *     aria-expanded="true" con la caja a cero (button#_R_5aivb_ ("Cerrar el
+ *     menu de navegacion")): nadie puede deshacer lo que declaran | [los otros
+ *     dos cruces, a 1280x390 con DPR 1 y DPR 3, dan lo mismo palabra por
+ *     palabra]
+ *
+ *   Su guarda de vacuidad en la misma corrida: `hojaAlCruzar=0/3 cruces
+ *   conservan la pagina usable, 3/3 hojas abiertas, operables tras cruzar
+ *   844x390@dpr1=0 1280x390@dpr1=0 1280x390@dpr3=0`. Las tres hojas se abrieron
+ *   de verdad --15 controles operables dentro de cada una-- y las tres cruzaron
+ *   a cero. El defecto no depende de la densidad ni del ancho de destino.
+ *
+ *   FAMILIA VEINTITRES, tema dark, `/`:
+ *
+ *     NO CUMPLE  la tinta de la cabecera fija no llega al umbral de WCAG 1.4.3
+ *     contra el fondo REALMENTE pintado bajo su caja (peor punto por pieza,
+ *     percentil 5): 1440x900 reduce=no-preference "Español" (14 px, peso 700,
+ *     umbral 4.5): p05 3.77 en y = 9300, mediana 7.49, 23.6 % de la caja bajo
+ *     umbral, tinta rgb(72, 196, 255) sobre rgb(86, 87, 90); 1440x900
+ *     reduce=no-preference "English" (14 px, peso 400, umbral 4.5): p05 3.56 en
+ *     y = 9300, mediana 3.73, 92.3 % de la caja bajo umbral, tinta rgb(183,
+ *     183, 187) sobre rgb(88, 89, 92); 1440x900 reduce=reduce "Español" (14 px,
+ *     peso 700, umbral 4.5): p05 3.66 en y = 6000, mediana 3.82, 92 % de la
+ *     caja bajo umbral, tinta rgb(72, 196, 255) sobre rgb(85, 87, 92); 1440x900
+ *     reduce=reduce "English" (14 px, peso 400, umbral 4.5): p05 3.62 en y =
+ *     6000, mediana 3.79, 100 % de la caja bajo umbral, tinta rgb(183, 183,
+ *     187) sobre rgb(86, 88, 92)
+ *
+ *   Y EL EJE DE `reduce` PAGO EN LA PRIMERA CORRIDA, que es lo que hay que leer
+ *   con cuidado: la familia falla en los DOS sentidos, pero en PUNTOS
+ *   DISTINTOS. Sin la preferencia el peor punto esta en y = 9.300 --el mismo que
+ *   el arbitraje de la #20-- y con ella en y = 6.000, porque con `reduce` el
+ *   documento no se pina y bajo la barra pasa otro tramo del arte. Medir solo
+ *   una de las dos combinaciones no habria dado "un poco menos": habria dado
+ *   otro sitio. Con el punto FIJADO en 9.280, que es donde midio el arbitraje,
+ *   las mismas dos piezas dan 8,76 y 8,85 con `reduce` (medido el 2026-09-07 con
+ *   sonda propia antes de escribir esta familia) y por eso aquella medida
+ *   parecia un falso positivo.
+ *
+ *   EL TEMA CLARO NO ES EL CONTROL DE ESTA FAMILIA, y hay que decirlo porque la
+ *   costumbre de las familias anteriores invita a leerlo asi: tambien sale en
+ *   rojo, con SIETE piezas bajo umbral en `/` y cuatro en `/en`, y son los
+ *   enlaces de la propia navegacion sobre el arte claro. La peor, literal:
+ *
+ *     1440x900 reduce=no-preference "Story" (14 px, peso 500, umbral 4.5): p05
+ *     3.62 en y = 3600, mediana 3.84, 100 % de la caja bajo umbral, tinta
+ *     rgb(99, 99, 99) sobre rgb(206, 192, 241)
+ *
+ *   Es un hallazgo NUEVO de este instrumento, no el P1 de la #20 --que era
+ *   oscuro-- y no lo arregla este frente.
+ *
+ *   Las guardas de vacuidad de la familia, en la misma corrida:
+ *   `contrasteCabecera=4 pieza(s) bajo umbral / 26 comprobadas de 26 vistas en
+ *   118 puntos de barrido (767 mediciones, paso 300 px, 18 descartadas por caja
+ *   minuscula, 0 por tinta translucida)`. Las 26 vistas son la suma de las
+ *   cuatro combinaciones (11 + 11 piezas en la cabecera ancha, 2 + 2 en la
+ *   estrecha) y las 18 minusculas son los rotulos de 1x1 px para lectores de
+ *   pantalla.
+ *
+ *   COSTE MEDIDO el 2026-09-07 contra el build servido: el tema CLARO completo
+ *   --las ocho superficies, `pnpm exec` fuera-- 7 min 16 s (`real 7m16.016s`),
+ *   EXIT=1, «NO CUMPLE - 4 incumplimiento(s) en 8 superficies». El tema OSCURO
+ *   no cabe de una sola vez en el tope de 600 s de la herramienta con la que se
+ *   ejecuto, asi que se corrio en DOS MITADES contra el mismo servidor: las dos
+ *   portadas (543 s, «NO CUMPLE - 4 incumplimiento(s)») y las seis superficies
+ *   restantes (251 s, «CUMPLE - 6 superficies, 23 familias, 0 zonas de zoom
+ *   sancionadas, cero incumplimientos»), o sea 794 s en total. Las dos familias
+ *   nuevas anaden unos 100 s por portada; si el techo de trece minutos se cruza,
+ *   la palanca acordada es subir `PASO_DEL_BARRIDO_DE_CABECERA`, nunca recortar
+ *   `REDUCES_DE_LA_CABECERA`.
  */
 
 import { readFileSync, statSync } from "node:fs";
@@ -532,7 +622,7 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las veintiuna familias que este script comprueba. La lista es el CONTRATO del
+ * Las veintitres familias que este script comprueba. La lista es el CONTRATO del
  * candado: el test companero exige que ninguna desaparezca, porque un script que
  * mide trece cosas y dice medir catorce es peor que uno que no existe.
  *
@@ -566,6 +656,8 @@ export const CHECKS = [
     "lang-del-documento-por-ruta",
     "recarga-conserva-la-seccion",
     "arte-no-pintado-por-tema-y-dpr",
+    "estado-modal-no-sobrevive-al-cambio-de-anchura",
+    "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
 ];
 
 /**
@@ -1115,6 +1207,253 @@ export const PATRON_DE_ARTE = "figures/|hero/|scenes/|\\.webp|\\.avif";
  * legitima de descargas sin pintar que absolver.
  */
 export const MAX_BYTES_DE_ARTE_NO_PINTADO = 0;
+
+/*
+ * ---------------------------------------------------------------------------
+ * LAS DOS FAMILIAS DE LA CRITICA #20 (2026-09-07), Y LA CLASE DE DEFECTO QUE
+ * CADA UNA REPRESENTA.
+ *
+ * La ronda #20 dio cero P0 y tres P1, y los tres los encontro una persona A
+ * MANO sobre el mismo build que las veintiuna familias anteriores daban por
+ * bueno. No estaban en un rincon del sitio que el candado no visitara: estaban
+ * en dos CLASES de comprobacion que ninguna familia hacia.
+ *
+ *   - LA PRIMERA CLASE es el ESTADO que sobrevive a un cambio de contexto. Las
+ *     familias de la hoja movil (`hoja-movil-escape-y-foco`) la abren, tabulan
+ *     dentro y la cierran con Escape, todo al MISMO ancho: nunca cruzan el
+ *     escalon con la hoja abierta. El gesto que el visitante hace de verdad
+ *     --girar el telefono, o abrir la hoja en una ventana estrecha y
+ *     ensancharla-- deja el fondo `inert` y la pagina sin un solo control
+ *     operable, y ninguna familia lo veia porque ninguna cambiaba de anchura
+ *     con un estado modal vivo.
+ *   - LA SEGUNDA CLASE es el CONTRASTE de una pieza fija contra lo que se mueve
+ *     por debajo. `scripts/check-text-contrast.mjs` compara tokens contra
+ *     tokens --tinta declarada contra fondo declarado-- y no puede ver lo que
+ *     de verdad se pinta detras de la cabecera de cristal cuando el arte de una
+ *     seccion pasa por debajo. Es una medida de PIXELES, y solo un navegador la
+ *     tiene.
+ *
+ * Y LA SEGUNDA TRAE ADEMAS LA LECCION DEL 2026-09-07, que es la razon por la que
+ * su matriz recorre `reduce` en los DOS sentidos: el arbitraje de ese mismo
+ * hallazgo midio 8,85 con `prefers-reduced-motion` fijado por comodidad del
+ * instrumento y 3,41 sin el, sobre el MISMO build y la MISMA pieza. Con la
+ * preferencia activa el arte del guardian no se desplaza y nunca llega a pasar
+ * bajo la barra; sin ella, si. Una familia que fije esa preferencia por
+ * comodidad no puede ser la unica que mide un criterio que tambien aplica sin
+ * ella, asi que aqui el eje de `reduce` no es un extra: es la familia.
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * FAMILIA VEINTIDOS, `estado-modal-no-sobrevive-al-cambio-de-anchura`: el
+ * viewport en el que se abre la hoja movil.
+ *
+ * 390x844 con `hasTouch` e `isMobile`, que es lo que declara un telefono real y
+ * no solo una ventana estrecha: la hoja se entrega por ancho, pero el gesto que
+ * la rompe --girar el aparato-- solo existe donde hay aparato.
+ */
+export const VIEWPORT_DE_LA_HOJA = { ancho: 390, alto: 844 };
+
+/**
+ * LA MATRIZ DE LA FAMILIA VEINTIDOS, declarada eje por eje:
+ *
+ *   superficie  las DOS portadas (`/` y `/en`). La hoja la montan las ocho, y
+ *               dejarlo escrito importa: lo que acota la familia a la portada
+ *               es el COSTE (tres contextos por superficie), no una diferencia
+ *               de comportamiento. Si algun dia la hoja diverge por tipo de
+ *               superficie, esta lista se amplia con la medida delante.
+ *   tema        los DOS. El estado modal no depende del tema, y por eso el
+ *               script se ejecuta con `--tema` en los dos: si uno de los dos
+ *               dejara de fallar, la diferencia seria una medida nueva.
+ *   ancho       se ABRE a 390 y se cruza a 844 y a 1280 px, los dos por encima
+ *               del escalon `md` (768 px a la raiz de fabrica). 844 es el lado
+ *               largo del propio telefono --el giro-- y 1280 una ventana de
+ *               escritorio.
+ *   idioma      los dos, uno por portada. El disparador se busca por su
+ *               `aria-label` y su `aria-controls`, no por texto, asi que la
+ *               sonda no depende del idioma; el rotulo va al informe.
+ *   raiz        16 px. Lo que se mide es un estado, no una longitud: la raiz no
+ *               participa. Las combinaciones con la raiz subida las recorren
+ *               las tres familias de zoom.
+ *   reduce      "no-preference", y esta vez no por gusto: la hoja anima su
+ *               entrada, y con `reduce` el repo declara los estados finales. El
+ *               defecto no depende de la animacion --se reprodujo igual en las
+ *               seis combinaciones-- pero medir sin la preferencia es medir lo
+ *               que le pasa a la mayoria.
+ *   DPR         1 en los dos cruces, y una tercera pasada a DPR 3, que es lo
+ *               que declara un telefono real. La densidad no deberia cambiar
+ *               nada de esto y por eso se recorre: un eje que se da por
+ *               irrelevante sin medirlo es justo el que escondio el P1 de arte
+ *               de la critica #19.
+ *   gesto       ABRIR la hoja y CAMBIAR el tamano del viewport cruzando el
+ *               escalon, sin tocar nada mas. No se pulsa Escape ni se cierra a
+ *               mano: lo que se mide es lo que pasa cuando el contexto cambia
+ *               solo.
+ */
+export const CAMBIOS_DE_ANCHURA_DE_LA_HOJA = [
+    { ancho: 844, alto: 390, dpr: 1 },
+    { ancho: 1280, alto: 390, dpr: 1 },
+    { ancho: 1280, alto: 390, dpr: 3 },
+];
+
+/**
+ * QUE CUENTA COMO CONTROL OPERABLE. Es el conjunto de siempre --enlaces con
+ * destino, botones, campos, `summary` y cualquier cosa con `tabindex`-- MENOS
+ * lo que el propio marcado saca del recorrido con `tabindex="-1"`, que es un
+ * nodo enfocable a mano pero no alcanzable con el teclado.
+ *
+ * Viaja como cadena y no como lista porque la sonda se serializa para
+ * ejecutarse dentro de la pagina.
+ */
+export const SELECTOR_FOCALIZABLE =
+    "a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex='-1'])";
+
+/**
+ * EL ASENTAMIENTO SE MIDE, NO SE ESPERA. Tres lecturas iguales seguidas del
+ * estado completo (mismos operables, mismos inertes, mismos dialogos) y no un
+ * `waitForTimeout` generoso: un cambio de viewport dispara un reflujo, un
+ * `matchMedia` y un efecto de React que corren en ese orden, y un tiempo fijo o
+ * mide antes de que terminen --y reporta un estado intermedio que no existe--
+ * o paga de mas en todas las combinaciones para cubrir la peor.
+ *
+ * El tope existe para que un estado que OSCILA no cuelgue la corrida: si las
+ * lecturas no llegan a repetirse, se devuelve la ultima y el veredicto se toma
+ * sobre ella. Una oscilacion es un defecto por su cuenta, y esta familia la
+ * reportaria como el estado que le toque en ese instante.
+ */
+export const LECTURAS_IGUALES_PARA_ASENTAR = 3;
+export const ESPERA_ENTRE_LECTURAS_MS = 200;
+export const TOPE_DE_ASENTAMIENTO_MS = 6000;
+
+/**
+ * LA MATRIZ DE LA FAMILIA VEINTITRES,
+ * `contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo`, declarada eje por
+ * eje:
+ *
+ *   superficie  las DOS portadas. Son las unicas con arte que se desplaza por
+ *               debajo de la cabecera; las legales y las 404 no lo tienen, y su
+ *               contraste de tokens lo cubre `check-text-contrast.mjs`.
+ *   tema        los DOS. El defecto medido vive en el oscuro y el claro es el
+ *               CONTROL que dice que la sonda no reporta cualquier cosa.
+ *   ancho       1440x900 y 390x844 (`VIEWPORTS_DE_LA_CABECERA`): la cabecera
+ *               ancha, con sus enlaces y su selector de idioma, y la estrecha,
+ *               que solo lleva marca y disparador. Son piezas distintas sobre
+ *               el mismo arte.
+ *   idioma      los dos, uno por portada.
+ *   raiz        16 px. El tamano de la tinta entra en el UMBRAL (WCAG 1.4.3
+ *               pide 3:1 a partir de 24 px, o de 18,66 con peso 700) y no en la
+ *               medida; las raices subidas las recorren las familias de zoom.
+ *   reduce      LOS DOS SENTIDOS, y es la razon de ser de la familia. Ver la
+ *               leccion del 2026-09-07 arriba: con `reduce` la misma pieza da
+ *               8,85 y sin el 3,41.
+ *   DPR         1. La razon de contraste es una propiedad del color, no de la
+ *               densidad, y capturar a DPR 2 cuadruplicaria los pixeles de cada
+ *               recorte sin cambiar un solo veredicto.
+ *   gesto       BARRIDO DE SCROLL de toda la pagina en pasos de
+ *               `PASO_DEL_BARRIDO_DE_CABECERA`.
+ */
+export const VIEWPORTS_DE_LA_CABECERA = [
+    { ancho: 1440, alto: 900 },
+    { ancho: 390, alto: 844 },
+];
+
+/** Los dos sentidos del eje que da sentido a la familia. */
+export const REDUCES_DE_LA_CABECERA = ["no-preference", "reduce"];
+
+/**
+ * EL PASO DEL BARRIDO, con su coste medido y con lo que ese paso deja fuera.
+ *
+ * El arbitraje de la critica #20 recorrio la pagina con un paso de 40 px y
+ * localizo el peor punto en y = 9.280. Este candado no puede pagar ese paso:
+ * cada punto cuesta una captura de la banda de cabecera mas su analisis, y
+ * medido el 2026-09-07 sobre el build servido eso son 416 ms por punto (20
+ * puntos en 8.327 ms, capturando la banda; 646 ms por punto capturando el
+ * viewport entero, que es la via que este script descarto por cara). Con 40 px
+ * la corrida entera --dos portadas x dos anchos x dos sentidos de `reduce`--
+ * pediria unos 2.100 puntos, casi quince minutos por tema.
+ *
+ * 300 px sale de MEDIR LA BANDA DEL DEFECTO, no de redondear. Recorriendo la
+ * portada oscura a 1440x900 de 8.400 a 10.400 px en pasos de 100 (medido el
+ * 2026-09-07, sin `reduce`), el enlace «English» da p05 >= 8,95 en todo el
+ * tramo hasta 9.200 y cae a 3,56 / 3,68 / 3,62 / 3,79 / 4,17 en 9.300, 9.400,
+ * 9.500, 9.600 y 9.700, para volver a 5,01 en 9.800: la banda incumplidora mide
+ * unos 500 px. Un paso de 300 aterriza dentro de ella al menos una vez venga de
+ * donde venga.
+ *
+ * LO QUE QUEDA FUERA, dicho para que nadie lea el verde por mas de lo que es:
+ * una banda incumplidora MAS ESTRECHA que el paso puede colarse entre dos
+ * puntos. Si algun dia aparece una, el paso baja y se escribe aqui la medida
+ * que lo obligo; lo que no se puede recortar es el eje de `reduce`, que es el
+ * que hace que esta familia exista.
+ */
+export const PASO_DEL_BARRIDO_DE_CABECERA = 300;
+
+/**
+ * El alto de la franja del viewport que se captura en cada punto del barrido.
+ *
+ * La cabecera es fija y vive en la parte de arriba, asi que capturar los 900 px
+ * del viewport para leer 44 seria pagar veinte veces el ancho de banda por el
+ * mismo veredicto (771.908 B contra 37.434 B en la captura medida el
+ * 2026-09-07). 160 px dan holgura de sobra para la barra y para el
+ * desplazamiento con el que se recoge al bajar; una pieza que quede fuera de la
+ * franja no se mide --se cuenta aparte-- en vez de medirse mal.
+ *
+ * SE CAPTURA EL VIEWPORT RECORTADO Y NUNCA EL ELEMENTO: la captura de un
+ * elemento lo desplaza a la vista y reinicia las emulaciones del contexto, que
+ * es exactamente la forma de perder el estado que esta familia mide.
+ */
+export const ALTO_DE_LA_BANDA_DE_CABECERA = 160;
+
+/**
+ * LOS DOS UMBRALES DE WCAG 1.4.3 (Contrast Minimum, nivel AA) y el percentil
+ * sobre el que se aplican.
+ *
+ * Son los mismos numeros que `umbralDe` en `scripts/check-text-contrast.mjs`, y
+ * la repeticion es deliberada: aquel fichero compara TOKENS con TOKENS y corre
+ * dentro del gate sin navegador; este mide PIXELES pintados y necesita un
+ * navegador. Atarlos con un import cruzaria dos candados con ciclos de vida
+ * distintos por tres numeros que WCAG fija y que no se mueven; lo que si hace
+ * el test companero es teclearlos, para que un cambio aqui sea una decision
+ * visible.
+ *
+ * EL PERCENTIL 5 Y NO EL MINIMO, con la razon medida. Una caja de texto
+ * contiene el borde antialiasado de sus glifos y, sobre arte, cualquier pixel
+ * suelto del fondo; el minimo absoluto lo firma siempre ese pixel y convierte
+ * la medida en ruido. El p05 describe el fondo REAL contra el que se lee la
+ * pieza: medido el 2026-09-07 sobre la portada oscura, el enlace «English» da
+ * p05 3,51 y mediana 3,72 en el peor punto --las dos por debajo del umbral, o
+ * sea que no es un pixel raro-- y 8,76 / 8,79 con `reduce`, donde el arte no
+ * llega a pasar por debajo.
+ *
+ * Un percentil MAS ALTO afloja el candado (con el 50 solo caeria una pieza
+ * cuando mas de la mitad de su caja incumple) y uno mas bajo lo devuelve al
+ * ruido del minimo. El test companero teclea el numero.
+ */
+export const UMBRAL_DE_CONTRASTE_NORMAL = 4.5;
+export const UMBRAL_DE_CONTRASTE_GRANDE = 3;
+export const PERCENTIL_DE_CONTRASTE = 5;
+
+/**
+ * El lado minimo, en px, que tiene que medir una caja para entrar en la
+ * familia: por debajo de eso es un rotulo escondido para lectores de pantalla
+ * (`VisuallyHidden` deja una caja de 1x1 px) y no hay tinta que nadie lea. Se
+ * cuentan aparte para que un cambio que encoja las piezas de verdad se vea.
+ */
+export const LADO_MINIMO_DE_PIEZA_PX = 4;
+
+/**
+ * Lo que se le permite discrepar a las DOS copias de la formula de contraste.
+ *
+ * La sonda se serializa para ejecutarse dentro de la pagina, asi que no puede
+ * llamar a `razonDeContraste` del modulo: lleva su propia copia de la formula
+ * de WCAG. Dos copias de una formula son dos copias que pueden divergir, asi
+ * que en cada punto del barrido la sonda devuelve tambien el fondo del pixel
+ * PEOR y el script recalcula su razon con la funcion del modulo: si las dos no
+ * coinciden, la corrida se pone en rojo diciendo que el instrumento se partio
+ * en dos. La tolerancia absorbe solo el redondeo a dos decimales con el que
+ * viaja el numero de la pagina (0,005 como mucho).
+ */
+export const TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE = 0.01;
 
 /*
  * ---------------------------------------------------------------------------
@@ -2094,6 +2433,629 @@ export function evaluaRecargaSimultanea({ lecturas, derivaMaxima, esperadas }) {
     return { ...base, cumple: true, motivo: null };
 }
 
+/**
+ * EL DISPARADOR DE LA HOJA MOVIL, BUSCADO POR SU SEMANTICA Y NO POR SU CLASE.
+ *
+ * La familia hermana (`hoja-movil-escape-y-foco`) lo localiza con
+ * `[data-nav-sheet-trigger] button`, que es un gancho de test: sirve para lo
+ * suyo, pero ata el candado al marcado en vez de a lo que el visitante y la
+ * tecnologia de apoyo ven. Aqui se busca lo que de verdad lo identifica: un
+ * control con NOMBRE ACCESIBLE (`aria-label`) que declara su estado
+ * (`aria-expanded`) y apunta con `aria-controls` a un elemento cuyo `role` es
+ * `dialog`. Eso es un disparador de hoja modal en cualquier marcado que lo
+ * implemente bien, y no lo es en ninguno que lo implemente mal.
+ *
+ * ES ADEMAS INDEPENDIENTE DEL IDIOMA: el rotulo se lee («Abrir el menú de
+ * navegación» / «Open the navigation menu») y viaja al informe, pero no se
+ * compara contra ninguna cadena. Comparar contra el texto habria atado el
+ * candado a la traduccion.
+ *
+ * El desplegable «Mas» de la barra ancha tambien lleva `aria-expanded` y
+ * `aria-controls`, y NO cuela: su panel no es un `dialog`. Un `id` vacio
+ * tampoco cuela, porque sin `id` no hay forma de pulsarlo sin volver a las
+ * clases.
+ */
+export function probeDisparadorDeLaHoja() {
+    for (const boton of document.querySelectorAll(
+        "[aria-expanded][aria-controls]",
+    )) {
+        if (!boton.id) continue;
+        const etiqueta = (boton.getAttribute("aria-label") || "").trim();
+        if (!etiqueta) continue;
+        const panel = document.getElementById(
+            boton.getAttribute("aria-controls"),
+        );
+        if (!panel || panel.getAttribute("role") !== "dialog") continue;
+        const r = boton.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) continue;
+        return {
+            id: boton.id,
+            controls: boton.getAttribute("aria-controls"),
+            etiqueta,
+        };
+    }
+    return null;
+}
+
+/**
+ * EL ESTADO MODAL DEL DOCUMENTO, EN CUATRO CUENTAS QUE SE MIDEN JUNTAS.
+ *
+ * Lo que esta sonda describe es "quien manda en la pagina ahora mismo": cuantos
+ * controles se pueden usar, que hay inertizado, que dialogos se declaran
+ * modales y que disparadores dicen estar abiertos. Las cuatro cosas se leen en
+ * la MISMA pasada a proposito: el defecto no es ninguna de ellas por separado
+ * --el fondo inerte mientras la hoja esta abierta es correcto y hasta
+ * obligatorio-- sino la combinacion que queda cuando el contexto cambia y nadie
+ * la deshace.
+ *
+ *   `operables`         focalizables VISIBLES que no cuelgan de un `[inert]`.
+ *                       Es la cuenta que de verdad importa: cero significa una
+ *                       pagina que no se puede usar con el teclado ni con el
+ *                       dedo.
+ *   `operablesEnLaHoja` los de arriba que estan dentro del dialogo. Es la
+ *                       GUARDA de que la hoja se abrio de verdad: si es cero
+ *                       justo despues de pulsar el disparador, lo que falla es
+ *                       el instrumento y no el producto, y el veredicto lo dice
+ *                       con esas palabras.
+ *   `inertesFuera`      nodos con `inert` que NO son el dialogo ni cuelgan de
+ *                       el. El dialogo cerrado lleva su propio `inert` y eso es
+ *                       correcto; lo que no lo es --y es el P1 medido-- es que
+ *                       lo lleven la cabecera, el `main`, el pie y el
+ *                       anunciador de rutas cuando ya no hay hoja que proteger.
+ *   `modalesInalcanzables`  `[role=dialog][aria-modal=true]` cuya caja mide cero
+ *                       o cae entera fuera del viewport. Un dialogo que sigue
+ *                       reclamando la pagina entera desde fuera de la pantalla
+ *                       es la otra mitad del mismo defecto.
+ *   `expandidosSinCaja` disparadores que declaran `aria-expanded="true"` sin
+ *                       caja que pulsar: nadie puede deshacer lo que dicen.
+ *
+ * `focalizables` es la guarda de vacuidad del FILTRO, con el mismo papel que
+ * `candidatos` en `probePerdidaHorizontal`: si el selector dejara de casar con
+ * nada, `operables` valdria cero por no haber mirado y el veredicto acusaria al
+ * sitio de un defecto del instrumento.
+ *
+ * El selector llega como ARGUMENTO y no leyendo la constante del modulo porque
+ * esta funcion se serializa para ejecutarse dentro de la pagina.
+ */
+export function probeEstadoModal({ selector }) {
+    const marca = (el) =>
+        `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${
+            el.getAttribute("role") ? `[role=${el.getAttribute("role")}]` : ""
+        }`;
+    const visible = (el) => {
+        const cs = getComputedStyle(el);
+        if (
+            cs.visibility === "hidden" ||
+            cs.visibility === "collapse" ||
+            cs.display === "none"
+        )
+            return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+    };
+
+    const focalizables = [...document.querySelectorAll(selector)].filter(
+        (el) => !el.hasAttribute("disabled"),
+    );
+    const operables = focalizables.filter(
+        (el) => visible(el) && !el.closest("[inert]"),
+    );
+
+    const inertesFuera = [...document.querySelectorAll("[inert]")]
+        .filter((el) => !el.closest("[role='dialog']"))
+        .map(marca);
+
+    const modalesInalcanzables = [];
+    for (const dialogo of document.querySelectorAll(
+        "[role='dialog'][aria-modal='true']",
+    )) {
+        const r = dialogo.getBoundingClientRect();
+        const sinCaja = r.width < 1 || r.height < 1;
+        const fuera =
+            r.right <= 0 ||
+            r.bottom <= 0 ||
+            r.left >= window.innerWidth ||
+            r.top >= window.innerHeight;
+        if (sinCaja || fuera)
+            modalesInalcanzables.push(
+                `${marca(dialogo)} caja ${Math.round(r.width)}x${Math.round(r.height)} en (${Math.round(r.left)}, ${Math.round(r.top)})`,
+            );
+    }
+
+    const expandidosSinCaja = [];
+    for (const boton of document.querySelectorAll("[aria-expanded='true']")) {
+        const r = boton.getBoundingClientRect();
+        if (r.width < 1 && r.height < 1)
+            expandidosSinCaja.push(
+                `${marca(boton)} ("${(boton.getAttribute("aria-label") || boton.textContent || "").trim().slice(0, 40)}")`,
+            );
+    }
+
+    return {
+        focalizables: focalizables.length,
+        operables: operables.length,
+        operablesEnLaHoja: operables.filter((el) =>
+            el.closest("[role='dialog']"),
+        ).length,
+        inertesFuera,
+        modalesInalcanzables,
+        expandidosSinCaja,
+    };
+}
+
+/**
+ * EL VEREDICTO DE UN CRUCE DE ANCHURA: puro, fuera de la pagina, y por eso
+ * ejercitable en el gate sin navegador.
+ *
+ * LAS DOS GUARDAS VAN PRIMERO y cortan el veredicto, porque las dos describen
+ * un instrumento que no midio en vez de un producto que falla, y confundir las
+ * dos cosas es la peor forma de mentir de un candado: sin disparador visible no
+ * hay hoja que abrir, y sin controles operables DENTRO de la hoja recien
+ * abierta lo que hay es una hoja que no se abrio. Las dos son incumplimiento
+ * --una medicion que no ocurre no es un verde-- pero con el motivo que apunta
+ * al aparato.
+ *
+ * DESPUES, LAS CUATRO CONDICIONES DEL CRUCE, y se acumulan en vez de cortar: un
+ * informe que diga las cuatro cosas que quedaron mal describe el defecto entero
+ * y no solo la primera que se encontro.
+ */
+export function evaluaEstadoModal({
+    combinacion,
+    disparador,
+    abierta,
+    despues,
+}) {
+    const donde = `${combinacion.ancho}x${combinacion.alto} a DPR ${combinacion.dpr}`;
+    if (!disparador)
+        return {
+            cumple: false,
+            motivos: [
+                `a ${VIEWPORT_DE_LA_HOJA.ancho} px no hay ningun control con nombre accesible que apunte a un [role=dialog]: sin disparador no hay hoja que abrir y el verde de este cruce a ${donde} seria vacuo`,
+            ],
+        };
+    if (!abierta || abierta.operablesEnLaHoja === 0)
+        return {
+            cumple: false,
+            motivos: [
+                `pulsar "${disparador.etiqueta}" no dejo ni un solo control operable dentro de la hoja antes de cruzar a ${donde}: la hoja no llego a abrirse y lo que falla es el instrumento, no el cruce`,
+            ],
+        };
+    if (!despues || despues.focalizables === 0)
+        return {
+            cumple: false,
+            motivos: [
+                `tras cruzar a ${donde} la sonda no encontro ni un solo control focalizable en todo el documento: el filtro esta roto y el resultado seria vacuo`,
+            ],
+        };
+
+    const motivos = [];
+    if (despues.operables === 0)
+        motivos.push(
+            `tras cruzar a ${donde} quedan 0 controles operables de ${despues.focalizables} focalizables: la pagina entera deja de poder usarse`,
+        );
+    if (despues.inertesFuera.length)
+        motivos.push(
+            `siguen inertes ${despues.inertesFuera.length} nodo(s) que no son la hoja ni cuelgan de ella (${despues.inertesFuera.join(", ")}): el fondo que la hoja inertizo no se libero al cambiar de anchura`,
+        );
+    if (despues.modalesInalcanzables.length)
+        motivos.push(
+            `${despues.modalesInalcanzables.length} dialogo(s) siguen declarandose aria-modal="true" sin caja alcanzable (${despues.modalesInalcanzables.join("; ")}): reclaman la pagina entera desde fuera de la pantalla`,
+        );
+    if (despues.expandidosSinCaja.length)
+        motivos.push(
+            `${despues.expandidosSinCaja.length} disparador(es) siguen diciendo aria-expanded="true" con la caja a cero (${despues.expandidosSinCaja.join("; ")}): nadie puede deshacer lo que declaran`,
+        );
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/**
+ * LAS PIEZAS DE TEXTO DE LA CABECERA, con su tinta resuelta a rgb.
+ *
+ * QUE ENTRA: todo descendiente de `<header>` con TEXTO PROPIO --un nodo de
+ * texto directo no vacio-- que este visible y cuya caja pase de
+ * `LADO_MINIMO_DE_PIEZA_PX` por los dos lados. Eso son los enlaces de
+ * navegacion, los del selector de idioma, el rotulo de marca y cualquier
+ * etiqueta visible que la barra monte; y deja fuera los rotulos de 1x1 px que
+ * el repo usa para lectores de pantalla, que no tienen tinta que nadie lea.
+ *
+ * LA TINTA SE RESUELVE CON UN LIENZO DE 1x1 Y NO PARSEANDO LA CADENA: el
+ * `color` computado puede llegar en cualquier sintaxis que el navegador
+ * entienda --`rgb()`, `color(srgb ...)`, `oklch()`-- y el lienzo es el unico
+ * interprete que siempre acierta, porque es el mismo que pinta. Se guarda
+ * ademas la ALFA: una tinta translucida no se puede comparar contra un fondo
+ * opaco sin componerla antes, asi que esas piezas se descartan y se cuentan
+ * aparte en vez de medirse mal.
+ *
+ * LOS ELEMENTOS SE GUARDAN EN `window` porque el barrido vuelve a preguntar por
+ * sus cajas en cada punto: la cabecera es fija, pero se recoge y se despliega
+ * al desplazarse, asi que la caja de cada pieza es una lectura por punto y no
+ * un dato de la carga. Lo que no cambia --el texto, el tamano, el peso y la
+ * tinta-- se resuelve una sola vez.
+ */
+export function probePiezasDeCabecera({ minLado }) {
+    const header = document.querySelector("header");
+    window.__vtiPiezasDeCabecera = [];
+    if (!header)
+        return {
+            piezas: [],
+            sinCabecera: true,
+            descartadasPorTamano: 0,
+            descartadasPorTintaTranslucida: 0,
+        };
+
+    const lienzo = document.createElement("canvas");
+    lienzo.width = 1;
+    lienzo.height = 1;
+    const pincel = lienzo.getContext("2d", { willReadFrequently: true });
+
+    const piezas = [];
+    let descartadasPorTamano = 0;
+    let descartadasPorTintaTranslucida = 0;
+    for (const el of header.querySelectorAll("*")) {
+        const propio = [...el.childNodes]
+            .filter((n) => n.nodeType === 3)
+            .map((n) => n.textContent.trim())
+            .filter(Boolean)
+            .join(" ");
+        if (!propio) continue;
+        const cs = getComputedStyle(el);
+        if (
+            cs.visibility === "hidden" ||
+            cs.visibility === "collapse" ||
+            cs.display === "none"
+        )
+            continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < minLado || r.height < minLado) {
+            descartadasPorTamano += 1;
+            continue;
+        }
+        pincel.clearRect(0, 0, 1, 1);
+        pincel.fillStyle = cs.color;
+        pincel.fillRect(0, 0, 1, 1);
+        const [tr, tg, tb, ta] = pincel.getImageData(0, 0, 1, 1).data;
+        if (ta < 250) {
+            descartadasPorTintaTranslucida += 1;
+            continue;
+        }
+        const indice = piezas.length;
+        const meta = {
+            indice,
+            texto: propio.replace(/\s+/g, " ").slice(0, 40),
+            px: Math.round(parseFloat(cs.fontSize) * 100) / 100,
+            peso: parseInt(cs.fontWeight, 10) || 400,
+            tinta: [tr, tg, tb],
+        };
+        piezas.push(meta);
+        window.__vtiPiezasDeCabecera.push({ ...meta, el });
+    }
+    return {
+        piezas,
+        sinCabecera: false,
+        descartadasPorTamano,
+        descartadasPorTintaTranslucida,
+    };
+}
+
+/**
+ * APAGA LA TINTA DE LA CABECERA para que la captura muestre el FONDO REALMENTE
+ * PINTADO bajo cada caja, que es contra lo que hay que medir.
+ *
+ * No se mide el color declarado del fondo --que es lo que hace el candado de
+ * tokens-- porque bajo la cabecera de cristal no hay UN fondo: hay una capa
+ * traslucida con desenfoque sobre lo que el arte de la seccion este pintando en
+ * ese instante. El unico fondo verdadero es el que sale del compositor, y para
+ * verlo hay que quitar la tinta de en medio.
+ *
+ * SE APAGAN LAS TRES COSAS que pintan texto --`color`,
+ * `-webkit-text-fill-color` (que es la que manda en los tramos con degradado
+ * recortado) y `text-shadow`-- y en TODOS los descendientes de la cabecera, no
+ * solo en las piezas medidas: la tinta de un hijo que no tiene texto propio
+ * seguiria pintando dentro de la caja de su padre.
+ *
+ * NO MUEVE NI UN PIXEL: las tres son propiedades de pintado. La geometria que
+ * el barrido lee despues es la misma que habria sin apagar nada.
+ *
+ * LA COMPROBACION DE QUE SE APAGO VIVE EN OTRA SONDA, `probeTintaApagada`, y
+ * esa separacion la obligo una medida: leer el resultado en el mismo tick da un
+ * falso positivo. La barra declara una TRANSICION sobre `color`, asi que el
+ * valor computado que se lee justo despues de escribir la propiedad es todavia
+ * el color viejo interpolandose --medido el 2026-09-07 sobre el build servido:
+ * ocho de las once piezas de la cabecera ancha devolvian
+ * `oklab(0.86 0.0011 -0.0038)` un instante despues de apagarlas-- y la guarda
+ * habria parado la corrida acusando al sitio de algo que no pasa. Se separa
+ * para poder esperar entre las dos.
+ */
+export function apagaLaTintaDeLaCabecera() {
+    const header = document.querySelector("header");
+    if (!header) return { apagadas: 0 };
+    let apagadas = 0;
+    for (const el of header.querySelectorAll("*")) {
+        el.style.setProperty("color", "transparent", "important");
+        el.style.setProperty(
+            "-webkit-text-fill-color",
+            "transparent",
+            "important",
+        );
+        el.style.setProperty("text-shadow", "none", "important");
+        apagadas += 1;
+    }
+    return { apagadas };
+}
+
+/**
+ * LA GUARDA DEL INSTRUMENTO: cuantas piezas siguen con tinta que pinte despues
+ * de apagarla. Un `!important` del sitio, una regla del usuario o un cambio en
+ * el nombre de la propiedad dejarian la captura con las letras puestas, y
+ * entonces lo que se estaria midiendo es la tinta contra si misma -- una razon
+ * de contraste de 1 sobre los glifos, o sea un rojo que no es del sitio.
+ *
+ * SE LEE `-webkit-text-fill-color` Y NO `color`, y es la lectura correcta y no
+ * un rodeo: cuando esa propiedad esta declarada es LA que rellena el glifo, y
+ * `color` pasa a ser solo su valor por defecto. Ademas es la que no lleva
+ * transicion en esta barra, asi que dice la verdad en cuanto se escribe.
+ *
+ * El valor se resuelve a rgba con el mismo lienzo de 1x1 que la tinta original,
+ * por el mismo motivo: el navegador puede devolverlo en cualquier sintaxis que
+ * entienda (`oklab(...)` entre ellas) y el lienzo es el unico interprete que
+ * siempre acierta.
+ *
+ * Las piezas DESCONECTADAS del arbol se cuentan aparte: una pieza que React
+ * remonto no es una pieza con la tinta puesta, es una pieza que ya no existe, y
+ * el barrido la reportara como no medida.
+ */
+export function probeTintaApagada() {
+    const lienzo = document.createElement("canvas");
+    lienzo.width = 1;
+    lienzo.height = 1;
+    const pincel = lienzo.getContext("2d", { willReadFrequently: true });
+    let conTinta = 0;
+    let desconectadas = 0;
+    for (const pieza of window.__vtiPiezasDeCabecera || []) {
+        if (!pieza.el || !pieza.el.isConnected) {
+            desconectadas += 1;
+            continue;
+        }
+        const cs = getComputedStyle(pieza.el);
+        pincel.clearRect(0, 0, 1, 1);
+        pincel.fillStyle = cs.webkitTextFillColor || cs.color;
+        pincel.fillRect(0, 0, 1, 1);
+        if (pincel.getImageData(0, 0, 1, 1).data[3] > 0) conTinta += 1;
+    }
+    return { conTinta, desconectadas };
+}
+
+/**
+ * ESCRIBE EN CADA PIEZA GUARDADA EL UMBRAL QUE LE TOCA, calculado FUERA con
+ * `umbralDeContraste`.
+ *
+ * Es un rodeo aparente y es lo contrario: el criterio de WCAG 1.4.3 sobre el
+ * tamano es una tabla, y una tabla en dos copias --una en el modulo y otra
+ * dentro de la sonda serializada-- son dos tablas que divergen. La sonda ya
+ * lleva una copia obligada (la formula de contraste, que se cruza en cada
+ * punto); esta segunda no hace falta, asi que no se escribe: se calcula una vez
+ * en el modulo, se envia, y la sonda solo la lee.
+ *
+ * Devuelve cuantas piezas quedaron con umbral, que es la guarda: si el numero
+ * no coincide con el de piezas, alguna se mediria contra `undefined` y su
+ * porcentaje bajo umbral seria cero por comparar contra nada.
+ */
+export function fijaUmbralesDeCabecera(umbrales) {
+    const piezas = window.__vtiPiezasDeCabecera || [];
+    let fijados = 0;
+    for (const pieza of piezas) {
+        const umbral = umbrales[pieza.indice];
+        if (typeof umbral === "number") {
+            pieza.umbral = umbral;
+            fijados += 1;
+        }
+    }
+    return fijados;
+}
+
+/**
+ * EL CONTRASTE DE CADA PIEZA CONTRA EL FONDO PINTADO BAJO SU CAJA, pixel a
+ * pixel, en UN punto del barrido.
+ *
+ * Recibe la captura de la BANDA de cabecera ya hecha (una imagen `data:`), la
+ * dibuja en un lienzo y, para cada pieza guardada por
+ * `probePiezasDeCabecera`, recorta su caja actual y calcula la razon de
+ * contraste de su tinta contra CADA pixel. De ahi salen el percentil pedido, la
+ * mediana, el porcentaje de la caja por debajo del umbral de la pieza y el
+ * pixel PEOR con su color.
+ *
+ * LA FORMULA VIAJA DENTRO. Esta funcion se serializa para ejecutarse en la
+ * pagina, asi que no puede llamar a `razonDeContraste` del modulo -- el mismo
+ * motivo por el que `probeLegibilidadDeTexto` recibe sus umbrales por
+ * argumento. La copia se cruza con la del modulo en cada punto: se devuelve el
+ * color del pixel peor y su razon, y el script recalcula esa razon con la
+ * funcion de fuera. Si las dos no coinciden, la corrida se pone en rojo.
+ *
+ * UNA PIEZA QUE NO SE PUEDE MEDIR NO SE MIDE, y se dice por que: fuera del
+ * arbol, oculta, o con la caja fuera de la banda capturada (la cabecera se
+ * recoge al desplazarse y sus piezas se van del recorte). Se devuelve
+ * `medida: false` con el motivo en vez de un numero inventado.
+ */
+export async function probeContrasteDeLaCabecera({ imagen, banda, percentil }) {
+    const piezas = window.__vtiPiezasDeCabecera || [];
+    const img = new Image();
+    img.src = imagen;
+    await img.decode();
+    const lienzo = document.createElement("canvas");
+    lienzo.width = img.width;
+    lienzo.height = img.height;
+    const pincel = lienzo.getContext("2d", { willReadFrequently: true });
+    pincel.drawImage(img, 0, 0);
+
+    /* Luminancia relativa y razon de contraste de WCAG 2.x. Copia declarada:
+       ver el docblock de arriba y `TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE`. */
+    const canal = (v) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    const lum = (c) =>
+        0.2126 * canal(c[0]) + 0.7152 * canal(c[1]) + 0.0722 * canal(c[2]);
+    const razon = (a, b) => {
+        const la = lum(a);
+        const lb = lum(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    };
+
+    const salida = [];
+    for (const pieza of piezas) {
+        const el = pieza.el;
+        if (!el || !el.isConnected) {
+            salida.push({
+                indice: pieza.indice,
+                medida: false,
+                motivo: "fuera del arbol",
+            });
+            continue;
+        }
+        const cs = getComputedStyle(el);
+        if (
+            cs.visibility === "hidden" ||
+            cs.visibility === "collapse" ||
+            cs.display === "none"
+        ) {
+            salida.push({
+                indice: pieza.indice,
+                medida: false,
+                motivo: "oculta",
+            });
+            continue;
+        }
+        const r = el.getBoundingClientRect();
+        const x0 = Math.round(r.left - banda.x);
+        const y0 = Math.round(r.top - banda.y);
+        const ancho = Math.round(r.width);
+        const alto = Math.round(r.height);
+        if (
+            ancho < 1 ||
+            alto < 1 ||
+            x0 < 0 ||
+            y0 < 0 ||
+            x0 + ancho > lienzo.width ||
+            y0 + alto > lienzo.height
+        ) {
+            salida.push({
+                indice: pieza.indice,
+                medida: false,
+                motivo: "fuera de la banda capturada",
+            });
+            continue;
+        }
+
+        const datos = pincel.getImageData(x0, y0, ancho, alto).data;
+        const razones = [];
+        let peor = null;
+        for (let i = 0; i < datos.length; i += 4) {
+            const fondo = [datos[i], datos[i + 1], datos[i + 2]];
+            const v = razon(pieza.tinta, fondo);
+            razones.push(v);
+            if (peor === null || v < peor.razon) peor = { razon: v, fondo };
+        }
+        razones.sort((a, b) => a - b);
+        const en = (q) =>
+            razones[
+                Math.min(
+                    razones.length - 1,
+                    Math.max(0, Math.round((q / 100) * (razones.length - 1))),
+                )
+            ];
+        const bajo = razones.filter((v) => v < pieza.umbral).length;
+        salida.push({
+            indice: pieza.indice,
+            medida: true,
+            y: Math.round(window.scrollY),
+            percentil: Math.round(en(percentil) * 100) / 100,
+            mediana: Math.round(en(50) * 100) / 100,
+            porcentajeBajo: Math.round((bajo / razones.length) * 1000) / 10,
+            muestras: razones.length,
+            peorRazon: Math.round(peor.razon * 100) / 100,
+            peorFondo: peor.fondo,
+        });
+    }
+    return salida;
+}
+
+/** Luminancia relativa de WCAG 2.x sobre un color sRGB de 0 a 255 por canal. */
+export function luminanciaRelativa([r, g, b]) {
+    const canal = (v) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+}
+
+/** Razon de contraste de WCAG 2.x entre dos colores sRGB. Va de 1 a 21. */
+export function razonDeContraste(a, b) {
+    const la = luminanciaRelativa(a);
+    const lb = luminanciaRelativa(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/**
+ * EL UMBRAL QUE LE TOCA A UNA PIEZA POR SU TAMANO COMPUTADO, no a ojo: WCAG
+ * 1.4.3 baja de 4,5 a 3 para el texto GRANDE, y grande son 24 px, o 18,66 px
+ * con peso 700 o mas (los 18 pt y 14 pt en negrita de la norma, en px).
+ *
+ * Funcion pura y tabulada a proposito, por el mismo motivo que `langEsperado`:
+ * el criterio es una TABLA y una tabla se ejercita entera en el gate sin
+ * navegador.
+ */
+export function umbralDeContraste(px, peso) {
+    const grande = px >= 24 || (px >= 18.66 && peso >= 700);
+    return grande ? UMBRAL_DE_CONTRASTE_GRANDE : UMBRAL_DE_CONTRASTE_NORMAL;
+}
+
+/**
+ * EL VEREDICTO DEL CONTRASTE DE CABECERA: puro, fuera de la pagina, y por eso
+ * ejercitable en el gate.
+ *
+ * Recibe el PEOR punto de cada pieza --el de percentil mas bajo de todo el
+ * barrido-- y decide dos cosas por separado:
+ *
+ *   1. si ese percentil queda por debajo del umbral que le toca a la pieza por
+ *      su tamano, es incumplimiento, y el motivo trae el punto de scroll, el
+ *      percentil, la mediana y el porcentaje de la caja bajo umbral. Los cuatro
+ *      numeros juntos son lo que distingue "un pixel raro" de "la pieza no se
+ *      lee ahi": con el 100 % de la caja por debajo, no hay nada que discutir.
+ *   2. si la copia de la formula que corre DENTRO de la pagina y la de este
+ *      modulo dan razones distintas para el mismo par de colores, el
+ *      instrumento se partio en dos y la corrida se para. No es un defecto del
+ *      sitio y el motivo lo dice.
+ *
+ * `piezas` sin ningun punto medido no son incumplimiento por si solas --una
+ * pieza puede estar fuera de la banda en todo el barrido-- pero se cuentan y se
+ * devuelven: quien lee el informe tiene que poder ver que una pieza dejo de
+ * medirse.
+ */
+export function evaluaContrasteDeCabecera({ piezas, tolerancia }) {
+    const fallos = [];
+    const formulaRota = [];
+    const sinPuntos = [];
+    let comprobadas = 0;
+
+    for (const pieza of piezas) {
+        if (!pieza.peor) {
+            sinPuntos.push(`${pieza.clave} ("${pieza.texto}")`);
+            continue;
+        }
+        comprobadas += 1;
+        const recalculada = razonDeContraste(pieza.tinta, pieza.peor.peorFondo);
+        if (Math.abs(recalculada - pieza.peor.peorRazon) > tolerancia)
+            formulaRota.push(
+                `${pieza.clave} ("${pieza.texto}"): la pagina devolvio ${pieza.peor.peorRazon} y el modulo calcula ${Math.round(recalculada * 100) / 100} para rgb(${pieza.tinta.join(", ")}) sobre rgb(${pieza.peor.peorFondo.join(", ")})`,
+            );
+        if (pieza.peor.percentil < pieza.umbral)
+            fallos.push(
+                `${pieza.clave} "${pieza.texto}" (${pieza.px} px, peso ${pieza.peso}, umbral ${pieza.umbral}): p${String(pieza.percentil).padStart(2, "0")} ${pieza.peor.percentil} en y = ${pieza.peor.y}, mediana ${pieza.peor.mediana}, ${pieza.peor.porcentajeBajo} % de la caja bajo umbral, tinta rgb(${pieza.tinta.join(", ")}) sobre rgb(${pieza.peor.peorFondo.join(", ")})`,
+            );
+    }
+    return { fallos, formulaRota, sinPuntos, comprobadas };
+}
+
 /** Animaciones realmente en marcha. */
 function probeAnimations() {
     return document
@@ -2283,6 +3245,37 @@ async function esperaAlturaEstable(page, { tope }) {
         lecturasIguales = alto === altoPrevio ? lecturasIguales + 1 : 1;
         altoPrevio = alto;
     }
+}
+
+/**
+ * Espera a que una SONDA devuelva el mismo estado varias veces seguidas, y no
+ * un tiempo fijo.
+ *
+ * Cambiar el tamano del viewport dispara tres cosas en cadena --el reflujo del
+ * navegador, la reevaluacion de las media queries y el efecto de React que
+ * reacciona a ellas-- y ninguna de las tres tiene una duracion conocida. Medir
+ * con un `waitForTimeout` generoso paga la peor espera en todas las
+ * combinaciones; medir con uno corto lee un estado intermedio que no existe
+ * para nadie. La firma del estado repetida `LECTURAS_IGUALES_PARA_ASENTAR`
+ * veces dice que ya no se mueve.
+ *
+ * Si el tope vence sin que se repita, se devuelve la ULTIMA lectura: un estado
+ * que oscila no es un estado que no se pueda juzgar, es un defecto por su
+ * cuenta, y lo que se juzga entonces es el estado en que quedo.
+ */
+async function esperaEstadoEstable(page, sonda, argumentos) {
+    let firmaPrevia = null;
+    let iguales = 0;
+    let ultima = null;
+    const limite = Date.now() + TOPE_DE_ASENTAMIENTO_MS;
+    while (Date.now() < limite && iguales < LECTURAS_IGUALES_PARA_ASENTAR) {
+        await page.waitForTimeout(ESPERA_ENTRE_LECTURAS_MS);
+        ultima = await page.evaluate(sonda, argumentos);
+        const firma = JSON.stringify(ultima);
+        iguales = firma === firmaPrevia ? iguales + 1 : 1;
+        firmaPrevia = firma;
+    }
+    return ultima;
 }
 
 /**
@@ -3270,6 +4263,260 @@ async function auditarSuperficie(browser, base, theme, surface) {
         if (arteSuelto.length)
             fallos.push(
                 `el navegador descarga arte que la pagina no llega a pintar en el tema ${theme} (tope ${MAX_BYTES_DE_ARTE_NO_PINTADO} B): ${arteSuelto.join("; ")}. Es peso que paga el visitante y que ninguna imagen del documento usa`,
+            );
+
+        /*
+         * --- el estado modal de la hoja no sobrevive al cambio de anchura
+         *
+         * MATRIZ completa en el docblock de `CAMBIOS_DE_ANCHURA_DE_LA_HOJA`.
+         * Aqui el resumen: se abre la hoja a 390x844 con `hasTouch` e
+         * `isMobile`, se cruza el escalon `md` cambiando el tamano del viewport
+         * y se exige que al otro lado la pagina siga siendo usable. Un contexto
+         * por combinacion porque la densidad se emula por contexto y no se
+         * cambia a mitad de una pagina viva.
+         */
+        const cruces = [];
+        let hojasAbiertas = 0;
+        for (const cambio of CAMBIOS_DE_ANCHURA_DE_LA_HOJA) {
+            ctx = await nuevoContexto(browser, theme, {
+                viewport: {
+                    width: VIEWPORT_DE_LA_HOJA.ancho,
+                    height: VIEWPORT_DE_LA_HOJA.alto,
+                },
+                hasTouch: true,
+                isMobile: true,
+                deviceScaleFactor: cambio.dpr,
+                reducedMotion: "no-preference",
+            });
+            page = await ctx.newPage();
+            await page.goto(url, { waitUntil: "networkidle" });
+            await page.waitForTimeout(600);
+
+            const disparador = await page.evaluate(probeDisparadorDeLaHoja);
+            let abierta = null;
+            let despues = null;
+            if (disparador) {
+                /* Por `id` y no por clase ni por el gancho de test: el `id` es
+                   el que el propio `aria-controls` de la hoja usa para atarse a
+                   el, asi que ya esta en el contrato del componente. */
+                await page.click(`[id="${disparador.id}"]`);
+                abierta = await esperaEstadoEstable(page, probeEstadoModal, {
+                    selector: SELECTOR_FOCALIZABLE,
+                });
+                if (abierta && abierta.operablesEnLaHoja > 0)
+                    hojasAbiertas += 1;
+                /* EL GESTO: cambiar el tamano del viewport SIN tocar nada mas.
+                   No se pulsa Escape ni se cierra a mano -- lo que se mide es
+                   lo que pasa cuando el contexto cambia solo. */
+                await page.setViewportSize({
+                    width: cambio.ancho,
+                    height: cambio.alto,
+                });
+                despues = await esperaEstadoEstable(page, probeEstadoModal, {
+                    selector: SELECTOR_FOCALIZABLE,
+                });
+            }
+            await ctx.close();
+
+            cruces.push({
+                cambio,
+                despues,
+                veredicto: evaluaEstadoModal({
+                    combinacion: cambio,
+                    disparador,
+                    abierta,
+                    despues,
+                }),
+            });
+        }
+
+        const crucesCaidos = cruces.filter((c) => !c.veredicto.cumple);
+        datos.hojaAlCruzar = `${cruces.length - crucesCaidos.length}/${cruces.length} cruces conservan la pagina usable, ${hojasAbiertas}/${cruces.length} hojas abiertas, operables tras cruzar ${cruces
+            .map(
+                (c) =>
+                    `${c.cambio.ancho}x${c.cambio.alto}@dpr${c.cambio.dpr}=${c.despues ? c.despues.operables : "sin lectura"}`,
+            )
+            .join(" ")}`;
+        // [check: estado-modal-no-sobrevive-al-cambio-de-anchura]
+        /* Guarda de vacuidad de la familia entera, aparte de la que cada
+           veredicto lleva dentro: si NINGUNA de las combinaciones llego a abrir
+           la hoja, lo que hay no es una pagina que aguanta el cruce, es una
+           sonda que no encontro su objeto en toda la corrida. */
+        if (hojasAbiertas === 0)
+            fallos.push(
+                `la hoja movil no llego a abrirse en ninguna de las ${cruces.length} combinaciones de anchura: sin estado modal que cruzar el verde de esta familia seria vacuo`,
+            );
+        if (crucesCaidos.length)
+            fallos.push(
+                `al cambiar de anchura con la hoja movil abierta el estado modal sobrevive al contexto que lo justificaba (${crucesCaidos.length} de ${cruces.length} cruces): ${crucesCaidos
+                    .map(
+                        (c) =>
+                            `${VIEWPORT_DE_LA_HOJA.ancho}x${VIEWPORT_DE_LA_HOJA.alto} -> ${c.cambio.ancho}x${c.cambio.alto} a DPR ${c.cambio.dpr} -- ${c.veredicto.motivos.join("; ")}`,
+                    )
+                    .join(" | ")}`,
+            );
+
+        /*
+         * --- el contraste de la cabecera contra lo que pasa por debajo
+         *
+         * MATRIZ completa en el docblock de `VIEWPORTS_DE_LA_CABECERA`. Aqui el
+         * resumen, y el eje que importa: los DOS sentidos de
+         * `prefers-reduced-motion`, porque el arte que se desplaza solo pasa
+         * bajo la barra en uno de ellos y medir solo en el otro es medir otra
+         * cosa (leccion del 2026-09-07).
+         */
+        const peorPorPieza = new Map();
+        let piezasVistas = 0;
+        let puntosDeBarrido = 0;
+        let medicionesHechas = 0;
+        let piezasSinTinta = 0;
+        let piezasMinusculas = 0;
+        const instrumentoRoto = [];
+
+        for (const vista of VIEWPORTS_DE_LA_CABECERA) {
+            for (const reduce of REDUCES_DE_LA_CABECERA) {
+                ctx = await nuevoContexto(browser, theme, {
+                    viewport: { width: vista.ancho, height: vista.alto },
+                    reducedMotion: reduce,
+                    deviceScaleFactor: 1,
+                });
+                page = await ctx.newPage();
+                await page.goto(url, { waitUntil: "networkidle" });
+                /* La portada asienta su composicion despues de `networkidle`:
+                   el mismo motivo, y la misma espera, que `preparaLaRecarga`. */
+                await page.waitForTimeout(2200);
+
+                const inventario = await page.evaluate(probePiezasDeCabecera, {
+                    minLado: LADO_MINIMO_DE_PIEZA_PX,
+                });
+                piezasVistas += inventario.piezas.length;
+                piezasMinusculas += inventario.descartadasPorTamano;
+                piezasSinTinta += inventario.descartadasPorTintaTranslucida;
+                if (inventario.sinCabecera)
+                    instrumentoRoto.push(
+                        `a ${vista.ancho}px con reduce=${reduce} el documento no monta <header>`,
+                    );
+                if (inventario.piezas.length === 0) {
+                    await ctx.close();
+                    continue;
+                }
+
+                const umbrales = {};
+                for (const pieza of inventario.piezas)
+                    umbrales[pieza.indice] = umbralDeContraste(
+                        pieza.px,
+                        pieza.peso,
+                    );
+                const fijados = await page.evaluate(
+                    fijaUmbralesDeCabecera,
+                    umbrales,
+                );
+                if (fijados !== inventario.piezas.length)
+                    instrumentoRoto.push(
+                        `a ${vista.ancho}px con reduce=${reduce} solo ${fijados} de ${inventario.piezas.length} piezas recibieron su umbral: el resto se compararia contra nada`,
+                    );
+
+                await page.evaluate(apagaLaTintaDeLaCabecera);
+                /* La barra transiciona `color`, asi que se le da tiempo a la
+                   transicion antes de comprobar que la tinta se fue: ver el
+                   docblock de `probeTintaApagada`, con la medida que lo
+                   obligo. */
+                await page.waitForTimeout(600);
+                const apagado = await page.evaluate(probeTintaApagada);
+                if (apagado.conTinta > 0)
+                    instrumentoRoto.push(
+                        `a ${vista.ancho}px con reduce=${reduce} quedan ${apagado.conTinta} pieza(s) con la tinta puesta tras apagarla: la captura mediria la tinta contra si misma`,
+                    );
+                if (apagado.desconectadas > 0)
+                    instrumentoRoto.push(
+                        `a ${vista.ancho}px con reduce=${reduce} ${apagado.desconectadas} pieza(s) del inventario ya no estan en el arbol: el barrido las daria por no medidas`,
+                    );
+
+                const banda = {
+                    x: 0,
+                    y: 0,
+                    width: vista.ancho,
+                    height: Math.min(vista.alto, ALTO_DE_LA_BANDA_DE_CABECERA),
+                };
+                const alto = await page.evaluate(
+                    () => document.documentElement.scrollHeight,
+                );
+                const tope = Math.max(0, alto - vista.alto);
+                const paradas = [];
+                for (let y = 0; y <= tope; y += PASO_DEL_BARRIDO_DE_CABECERA)
+                    paradas.push(y);
+                if (paradas[paradas.length - 1] !== tope) paradas.push(tope);
+
+                for (const y of paradas) {
+                    await page.evaluate(
+                        (destino) => window.scrollTo(0, destino),
+                        y,
+                    );
+                    await page.waitForTimeout(80);
+                    const captura = await page.screenshot({ clip: banda });
+                    const medidas = await page.evaluate(
+                        probeContrasteDeLaCabecera,
+                        {
+                            imagen: `data:image/png;base64,${captura.toString("base64")}`,
+                            banda: { x: banda.x, y: banda.y },
+                            percentil: PERCENTIL_DE_CONTRASTE,
+                        },
+                    );
+                    puntosDeBarrido += 1;
+                    for (const medida of medidas) {
+                        if (!medida.medida) continue;
+                        medicionesHechas += 1;
+                        const pieza = inventario.piezas[medida.indice];
+                        const clave = `${vista.ancho}x${vista.alto} reduce=${reduce}`;
+                        const id = `${clave} | ${pieza.texto}`;
+                        const previo = peorPorPieza.get(id);
+                        if (!previo || medida.percentil < previo.peor.percentil)
+                            peorPorPieza.set(id, {
+                                clave,
+                                texto: pieza.texto,
+                                px: pieza.px,
+                                peso: pieza.peso,
+                                tinta: pieza.tinta,
+                                umbral: umbrales[pieza.indice],
+                                percentil: PERCENTIL_DE_CONTRASTE,
+                                peor: medida,
+                            });
+                    }
+                }
+                await ctx.close();
+            }
+        }
+
+        const veredictoDelContraste = evaluaContrasteDeCabecera({
+            piezas: [...peorPorPieza.values()],
+            tolerancia: TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+        });
+        datos.contrasteCabecera = `${veredictoDelContraste.fallos.length} pieza(s) bajo umbral / ${veredictoDelContraste.comprobadas} comprobadas de ${piezasVistas} vistas en ${puntosDeBarrido} puntos de barrido (${medicionesHechas} mediciones, paso ${PASO_DEL_BARRIDO_DE_CABECERA} px, ${piezasMinusculas} descartadas por caja minuscula, ${piezasSinTinta} por tinta translucida)`;
+
+        // [check: contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo]
+        /* Las dos guardas de vacuidad de esta familia, con el mismo criterio
+           que las de sus hermanas: sin piezas de cabecera no hay tinta que
+           juzgar y sin puntos de barrido no se miro ninguna. Las dos cuentas
+           son de decenas en cualquier portada real. */
+        if (piezasVistas === 0)
+            fallos.push(
+                "la sonda de contraste no encontro ni una sola pieza de texto en la cabecera en ninguna combinacion: el filtro esta roto y el verde seria vacuo",
+            );
+        if (puntosDeBarrido === 0)
+            fallos.push(
+                "el barrido de scroll de la cabecera no llego a dar ni un solo punto: sin puntos no se midio nada y el verde seria vacuo",
+            );
+        if (instrumentoRoto.length)
+            fallos.push(
+                `la sonda de contraste de cabecera no pudo montarse bien y su resultado no habla del sitio: ${instrumentoRoto.join("; ")}`,
+            );
+        if (veredictoDelContraste.formulaRota.length)
+            fallos.push(
+                `las dos copias de la formula de contraste no coinciden (tolerancia ${TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE}): ${veredictoDelContraste.formulaRota.join("; ")}. El instrumento se partio en dos y esta medida no vale`,
+            );
+        if (veredictoDelContraste.fallos.length)
+            fallos.push(
+                `la tinta de la cabecera fija no llega al umbral de WCAG 1.4.3 contra el fondo REALMENTE pintado bajo su caja (peor punto por pieza, percentil ${PERCENTIL_DE_CONTRASTE}): ${veredictoDelContraste.fallos.join("; ")}`,
             );
     }
 

@@ -5,9 +5,11 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, it, expect } from "vitest";
 import {
+    ALTO_DE_LA_BANDA_DE_CABECERA,
     ANCHOS_DEL_DECK,
     BANDA_DE_REFLOW,
     BROKEN_SEGMENT,
+    CAMBIOS_DE_ANCHURA_DE_LA_HOJA,
     CHECKS,
     DECKS_DEL_TEMA_OSCURO,
     DERIVA_MAXIMA_DE_RECARGA_PX,
@@ -16,6 +18,8 @@ import {
     EN_PREFIX,
     HOME_DOC,
     IDIOMA_HORNEADO_DE_LA_404,
+    LADO_MINIMO_DE_PIEZA_PX,
+    LECTURAS_IGUALES_PARA_ASENTAR,
     LEGAL_DOCS,
     MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
     MAX_BYTES_DE_ARTE_NO_PINTADO,
@@ -23,28 +27,44 @@ import {
     NAV_BAND_PX,
     OBJETIVO_DE_RECARGA_PX,
     OPACIDAD_DE_DIAPOSITIVA_ACTIVA,
+    PASO_DEL_BARRIDO_DE_CABECERA,
     PASO_DE_PISTA_PX,
     PATRON_DE_ARTE,
+    PERCENTIL_DE_CONTRASTE,
     RAICES_DEL_DECK,
     RATIO_MINIMO_DE_CRECIMIENTO,
     RECARGAS_SIMULTANEAS,
+    REDUCES_DE_LA_CABECERA,
     ROOT_FONT_BASE_PX,
+    SELECTOR_FOCALIZABLE,
     SURFACES,
     TOLERANCIA_DEL_ESCENARIO_PX,
+    TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+    UMBRAL_DE_CONTRASTE_GRANDE,
+    UMBRAL_DE_CONTRASTE_NORMAL,
+    VIEWPORTS_DE_LA_CABECERA,
+    VIEWPORT_DE_LA_HOJA,
     WIDTH_SWEEP,
     ZOOM_FONT_PX,
     comparaCrecimiento,
     especificadoresDePlaywright,
+    evaluaContrasteDeCabecera,
+    evaluaEstadoModal,
     evaluaRecarga,
     evaluaRecargaSimultanea,
     fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
     langEsperado,
+    luminanciaRelativa,
     probeArteNoPintado,
     probeCrecimientoDeTexto,
     probeDeckRecortado,
+    probeDisparadorDeLaHoja,
+    probeEstadoModal,
     probeLegibilidadDeTexto,
     probePerdidaHorizontal,
+    razonDeContraste,
+    umbralDeContraste,
 } from "./check-site-surfaces.mjs";
 /* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
    parser de Rollup no admite un `.ts` explicito en el especificador. */
@@ -420,7 +440,7 @@ const SUPERFICIES_ESPERADAS = [
 /*
  * El CONTRATO del candado, tecleado aqui y no derivado de `CHECKS`: derivarlo de
  * la lista que se verifica es el test autorreferencial que deja pasar cualquier
- * recorte. Estas veintiuna familias solo se tocan cuando el script mida algo
+ * recorte. Estas veintitres familias solo se tocan cuando el script mida algo
  * distinto de verdad, y entonces se tocan a la vez que el script.
  *
  * `texto-al-200-por-ciento` entra el 2026-09-04 con el P1 de zoom de las
@@ -466,6 +486,27 @@ const SUPERFICIES_ESPERADAS = [
  * `arte-no-pintado-por-tema-y-dpr` anade la densidad de pantalla: a DPR 1 y a
  * DPR 2 el `srcset` resuelve variantes distintas, asi que un candado a DPR 1
  * fijo no ve lo que descarga la mitad de los visitantes.
+ *
+ * LAS DOS ULTIMAS ENTRAN EL 2026-09-07 con la critica #20, y no representan un
+ * rincon del sitio sin visitar sino dos CLASES de comprobacion que ninguna
+ * familia hacia. Los tres P1 de esa ronda los encontro una persona a mano sobre
+ * el mismo build que las veintiuna anteriores daban por bueno.
+ *
+ * `estado-modal-no-sobrevive-al-cambio-de-anchura` es la clase "estado que
+ * sobrevive a un cambio de contexto". La familia de la hoja movil que ya habia
+ * la abre, tabula dentro y la cierra con Escape, todo al MISMO ancho: nunca
+ * cruza el escalon con la hoja abierta, que es el gesto que de verdad se hace
+ * (girar el telefono, ensanchar la ventana) y el que deja el fondo `inert` y la
+ * pagina con cero controles operables.
+ *
+ * `contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo` es la clase "contraste
+ * contra lo que se pinta de verdad". `check-text-contrast.mjs` compara TOKENS
+ * con TOKENS y no puede ver que hay bajo la cabecera de cristal cuando el arte
+ * de una seccion pasa por debajo; eso es una medida de pixeles y solo la tiene
+ * un navegador. Su matriz recorre `prefers-reduced-motion` en los DOS sentidos
+ * porque el arbitraje del mismo hallazgo midio 8,85 con la preferencia fijada y
+ * 3,41 sin ella, sobre el mismo build y la misma pieza (leccion del
+ * 2026-09-07).
  */
 const FAMILIAS_ESPERADAS = [
     "recorrido-teclado",
@@ -489,6 +530,8 @@ const FAMILIAS_ESPERADAS = [
     "lang-del-documento-por-ruta",
     "recarga-conserva-la-seccion",
     "arte-no-pintado-por-tema-y-dpr",
+    "estado-modal-no-sobrevive-al-cambio-de-anchura",
+    "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
 ];
 
 /**
@@ -534,8 +577,28 @@ const FAMILIAS_ESPERADAS = [
  * «Tests 1 failed | 46 passed (47)», con los dos candados de coherencia e
  * igualdad en VERDE sobre la lista mas corta -- que es exactamente el hueco que
  * este suelo existe para tapar. Restaurados los tres bloques, 47/47 en verde.
+ *
+ * Sube a 23 el 2026-09-07 con las DOS familias de la critica #20 --
+ * `estado-modal-no-sobrevive-al-cambio-de-anchura` y
+ * `contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo` --, en el mismo commit
+ * que las anade.
+ *
+ * VUELTO A VALIDAR CON BUG INYECTADO (2026-09-07), con el recorte SIMETRICO
+ * completo sobre la familia nueva: se borro
+ * `contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo` de `CHECKS`, su
+ * marcador `// [check: ...]` del cuerpo del script Y su linea de
+ * `FAMILIAS_ESPERADAS` -- tres bloques, dos ficheros. Cayo UN solo caso, este:
+ *
+ *   AssertionError: el script declara 22 familias y el contrato tiene un suelo
+ *   de 23: este numero solo sube, y sube en el mismo commit que anade la
+ *   familia nueva. Si has quitado una, restaurala; el candado no mide menos de
+ *   lo que un dia midio: expected 22 to be greater than or equal to 23
+ *
+ * «Tests 1 failed | 63 passed (64)», con los dos candados de coherencia e
+ * igualdad otra vez en VERDE sobre la lista mas corta. Restaurados los tres
+ * bloques, 64/64.
  */
-const FAMILIAS_MINIMAS = 21;
+const FAMILIAS_MINIMAS = 23;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -2422,6 +2485,625 @@ describe("la sonda del arte que se descarga y no se pinta", () => {
             PATRON_DE_ARTE,
             "el patron cubre las tres carpetas de piezas del repo y los dos formatos",
         ).toContain("scenes/");
+    });
+});
+
+/*
+ * LAS DOS FAMILIAS DE LA CRITICA #20 (2026-09-07), EJERCITADAS EN JSDOM.
+ *
+ * Mismo patron que sus hermanas y con el mismo limite declarado: las sondas de
+ * pagina se ejercitan con el layout DADO --rects sobrescritos por elemento-- y
+ * los veredictos, que son funciones puras, con los datos tal cual salen de las
+ * sondas. Lo que se verifica es la DECISION, no el layout.
+ *
+ * LO QUE NO CABE AQUI, dicho para que nadie lo confunda con un descuido: la
+ * sonda de contraste (`probeContrasteDeLaCabecera`) decodifica una captura PNG
+ * en un lienzo, y jsdom no implementa `canvas`. De esa familia se ejercitan aqui
+ * las piezas PURAS --el umbral por tamano y peso, la formula de contraste y el
+ * veredicto por percentil--, que son las que deciden; lo que la sonda hace es
+ * leer pixeles y ordenarlos, y eso se verifico contra el navegador con las
+ * cifras que estan en el docblock del script.
+ */
+
+/**
+ * VALIDADO CON BUG INYECTADO (2026-09-07). Quitando de `probeEstadoModal` el
+ * filtro que descarta lo que cuelga de un `[inert]` --dejando
+ * `.filter((el) => visible(el))`, que es contar como operable lo que nadie puede
+ * usar-- cae el caso que reproduce el P1:
+ *
+ *   AssertionError: con la cabecera, el main y el pie inertes no queda un solo
+ *   control que el visitante pueda usar: contar los que cuelgan de un [inert]
+ *   es exactamente como esta familia deja de ver el defecto: expected 2 to be
+ *   +0 // Object.is equality
+ *
+ * «Tests 1 failed | 63 passed (64)». Restaurado el filtro, 64/64 en verde.
+ */
+describe("la sonda del estado modal que sobrevive al cambio de anchura", () => {
+    const ARGUMENTOS = { selector: SELECTOR_FOCALIZABLE };
+
+    /**
+     * Monta el documento que la portada deja tras cruzar el escalon con la hoja
+     * abierta: cabecera, `main` y pie inertes, la hoja todavia `aria-modal` pero
+     * con la caja a cero, y su disparador diciendo que sigue abierta sin caja
+     * que pulsar. Es la forma minima del estado medido el 2026-09-07 en el
+     * navegador (`inert` sobre header, main#main, footer y el anunciador de
+     * rutas; dialogo 0x0; disparador 0x0).
+     */
+    function montaTrasElCruce({ fondoInerte = true } = {}) {
+        document.body.innerHTML = "";
+        const cabecera = document.createElement("header");
+        cabecera.id = "cabecera";
+        const disparador = document.createElement("button");
+        disparador.id = "disparador";
+        disparador.setAttribute("aria-expanded", "true");
+        disparador.setAttribute("aria-controls", "hoja");
+        disparador.setAttribute("aria-label", "Cerrar el menú de navegación");
+        cabecera.appendChild(disparador);
+
+        const principal = document.createElement("main");
+        principal.id = "main";
+        const enlacePrincipal = document.createElement("a");
+        enlacePrincipal.href = "#uno";
+        enlacePrincipal.textContent = "Ir a Historia";
+        principal.appendChild(enlacePrincipal);
+
+        const pie = document.createElement("footer");
+        const enlaceDelPie = document.createElement("a");
+        enlaceDelPie.href = "#dos";
+        enlaceDelPie.textContent = "Aviso legal";
+        pie.appendChild(enlaceDelPie);
+
+        const hoja = document.createElement("div");
+        hoja.id = "hoja";
+        hoja.setAttribute("role", "dialog");
+        hoja.setAttribute("aria-modal", "true");
+        hoja.setAttribute("aria-label", "Navegación");
+        const enlaceDeLaHoja = document.createElement("a");
+        enlaceDeLaHoja.href = "#tres";
+        enlaceDeLaHoja.textContent = "Contacto";
+        hoja.appendChild(enlaceDeLaHoja);
+
+        document.body.append(cabecera, principal, pie, hoja);
+        if (fondoInerte)
+            for (const nodo of [cabecera, principal, pie])
+                nodo.setAttribute("inert", "");
+
+        medida(cabecera, { left: 0, right: 1280, top: 0, height: 64 });
+        /* El disparador se queda sin caja al otro lado del escalon: la barra
+           ancha no monta hamburguesa. */
+        medida(disparador, { left: 0, right: 0, top: 0, height: 0 });
+        medida(enlacePrincipal, { left: 0, right: 120, top: 200, height: 24 });
+        medida(enlaceDelPie, { left: 0, right: 120, top: 600, height: 24 });
+        /* La hoja y su contenido dejan de pintarse, pero el estado modal sigue
+           declarado. */
+        medida(hoja, { left: 0, right: 0, top: 0, height: 0 });
+        medida(enlaceDeLaHoja, { left: 0, right: 0, top: 0, height: 0 });
+        return { cabecera, principal, pie, hoja, disparador };
+    }
+
+    it("reporta las cuatro caras del estado que sobrevive: cero operables, fondo inerte, modal sin caja y disparador abierto", () => {
+        /*
+         * EL CASO QUE REPRODUCE EL P1, en su forma minima y con las cuatro
+         * condiciones a la vez, que es como se midio en el navegador: 0
+         * operables de 76 focalizables, siete nodos inertes fuera de la hoja, un
+         * dialogo `aria-modal="true"` de 0x0 y un disparador con
+         * `aria-expanded="true"` sin caja.
+         */
+        montaTrasElCruce();
+        const estado = probeEstadoModal(ARGUMENTOS);
+
+        expect(
+            estado.focalizables,
+            "la guarda del filtro: si el selector dejara de casar, el cero de operables seria del instrumento",
+        ).toBe(4);
+        expect(
+            estado.operables,
+            "con la cabecera, el main y el pie inertes no queda un solo control " +
+                "que el visitante pueda usar: contar los que cuelgan de un [inert] " +
+                "es exactamente como esta familia deja de ver el defecto",
+        ).toBe(0);
+        expect(
+            estado.inertesFuera,
+            "los tres nodos de fondo que la hoja inertizo siguen inertes con la hoja ya cerrada",
+        ).toEqual(["header#cabecera", "main#main", "footer"]);
+        expect(
+            estado.modalesInalcanzables,
+            "un dialogo aria-modal de 0x0 reclama la pagina entera desde ningun sitio",
+        ).toHaveLength(1);
+        expect(estado.modalesInalcanzables[0]).toContain("caja 0x0");
+        expect(
+            estado.expandidosSinCaja,
+            "el disparador dice seguir abierto y no tiene caja que pulsar",
+        ).toHaveLength(1);
+        expect(estado.expandidosSinCaja[0]).toContain(
+            "Cerrar el menú de navegación",
+        );
+    });
+
+    it("el MISMO documento sin el fondo inerte no se reporta: la pagina se puede usar", () => {
+        /*
+         * LA SEGUNDA MITAD, la que impide que la familia sea una trampa. Con el
+         * mismo marcado y las mismas cajas, liberado el `inert` del fondo --que
+         * es lo que hace el arreglo--, los dos enlaces del documento vuelven a
+         * ser operables y no hay ni un nodo inerte que reportar. Un candado que
+         * siguiera en rojo aqui estaria pidiendo algo distinto de lo que arregla
+         * el defecto.
+         */
+        montaTrasElCruce({ fondoInerte: false });
+        const estado = probeEstadoModal(ARGUMENTOS);
+        expect(
+            estado.operables,
+            "sin el fondo inerte los dos enlaces visibles vuelven a poder usarse",
+        ).toBe(2);
+        expect(estado.inertesFuera).toEqual([]);
+    });
+
+    it("la hoja cerrada con su propio inert NO cuenta como fondo inerte", () => {
+        /*
+         * El contraejemplo que separa el defecto del comportamiento correcto: la
+         * hoja cerrada lleva `inert` a proposito (asi sale del recorrido de
+         * teclado sin desmontarse) y lo mismo sus hijos. Contarla seria pedir
+         * que la hoja cerrada quede tabulable, que es justo lo contrario.
+         */
+        document.body.innerHTML = "";
+        const hoja = document.createElement("div");
+        hoja.id = "hoja";
+        hoja.setAttribute("role", "dialog");
+        hoja.setAttribute("inert", "");
+        const dentro = document.createElement("div");
+        dentro.setAttribute("inert", "");
+        hoja.appendChild(dentro);
+        const enlace = document.createElement("a");
+        enlace.href = "#uno";
+        enlace.textContent = "Fuera de la hoja";
+        document.body.append(hoja, enlace);
+        medida(hoja, { left: 0, right: 320, top: 0, height: 400 });
+        medida(dentro, { left: 0, right: 320, top: 0, height: 400 });
+        medida(enlace, { left: 0, right: 120, top: 500, height: 24 });
+
+        const estado = probeEstadoModal(ARGUMENTOS);
+        expect(
+            estado.inertesFuera,
+            "ni la hoja ni lo que cuelga de ella son fondo: el inert de una hoja cerrada es correcto",
+        ).toEqual([]);
+        expect(estado.operables).toBe(1);
+    });
+
+    it("el disparador se busca por su nombre accesible y su dialogo, no por su clase ni por su texto", () => {
+        /*
+         * El desplegable «Mas» de la barra ancha tambien lleva `aria-expanded` y
+         * `aria-controls`, y no es una hoja modal: su panel no es un `dialog`.
+         * Buscar por gancho de test (`[data-nav-sheet-trigger]`) ataria el
+         * candado al marcado; buscar por el texto lo ataria a la traduccion.
+         */
+        document.body.innerHTML = "";
+        const mas = document.createElement("button");
+        mas.id = "mas";
+        mas.setAttribute("aria-expanded", "false");
+        mas.setAttribute("aria-controls", "panel");
+        mas.setAttribute("aria-label", "Más destinos del sitio");
+        const panel = document.createElement("div");
+        panel.id = "panel";
+        const hamburguesa = document.createElement("button");
+        hamburguesa.id = "hamburguesa";
+        hamburguesa.setAttribute("aria-expanded", "false");
+        hamburguesa.setAttribute("aria-controls", "hoja");
+        hamburguesa.setAttribute("aria-label", "Open the navigation menu");
+        const hoja = document.createElement("div");
+        hoja.id = "hoja";
+        hoja.setAttribute("role", "dialog");
+        document.body.append(mas, panel, hamburguesa, hoja);
+        medida(mas, { left: 0, right: 44, top: 0, height: 44 });
+        medida(hamburguesa, { left: 60, right: 104, top: 0, height: 44 });
+
+        const encontrado = probeDisparadorDeLaHoja();
+        expect(
+            encontrado?.id,
+            "el desplegable Mas no controla un dialogo: no es el disparador de la hoja",
+        ).toBe("hamburguesa");
+        expect(
+            encontrado.etiqueta,
+            "el rotulo se lee para el informe, en el idioma que sea, pero no se compara",
+        ).toBe("Open the navigation menu");
+
+        hamburguesa.removeAttribute("aria-label");
+        expect(
+            probeDisparadorDeLaHoja(),
+            "un control sin nombre accesible no es un disparador que nadie pueda encontrar",
+        ).toBeNull();
+    });
+
+    it("las dos guardas del veredicto cortan antes de juzgar, y dicen que el fallo es del instrumento", () => {
+        /*
+         * Sin disparador no hay hoja que abrir y sin controles dentro de la hoja
+         * recien abierta lo que hay es una hoja que no se abrio. Las dos son
+         * incumplimiento --una medicion que no ocurre no es un verde-- pero con
+         * el motivo apuntando al aparato, que es lo que distingue "arregla el
+         * sitio" de "arregla la sonda".
+         */
+        const combinacion = CAMBIOS_DE_ANCHURA_DE_LA_HOJA[0];
+        const sinDisparador = evaluaEstadoModal({
+            combinacion,
+            disparador: null,
+            abierta: null,
+            despues: null,
+        });
+        expect(sinDisparador.cumple).toBe(false);
+        expect(sinDisparador.motivos[0]).toContain(
+            "sin disparador no hay hoja que abrir",
+        );
+
+        const sinAbrir = evaluaEstadoModal({
+            combinacion,
+            disparador: { id: "x", etiqueta: "Abrir el menú" },
+            abierta: {
+                focalizables: 60,
+                operables: 60,
+                operablesEnLaHoja: 0,
+                inertesFuera: [],
+                modalesInalcanzables: [],
+                expandidosSinCaja: [],
+            },
+            despues: null,
+        });
+        expect(sinAbrir.cumple).toBe(false);
+        expect(sinAbrir.motivos[0]).toContain(
+            "la hoja no llego a abrirse y lo que falla es el instrumento",
+        );
+
+        const cruceLimpio = evaluaEstadoModal({
+            combinacion,
+            disparador: { id: "x", etiqueta: "Abrir el menú" },
+            abierta: {
+                focalizables: 60,
+                operables: 15,
+                operablesEnLaHoja: 15,
+                inertesFuera: ["header", "main#main"],
+                modalesInalcanzables: [],
+                expandidosSinCaja: [],
+            },
+            despues: {
+                focalizables: 62,
+                operables: 24,
+                operablesEnLaHoja: 0,
+                inertesFuera: [],
+                modalesInalcanzables: [],
+                expandidosSinCaja: [],
+            },
+        });
+        expect(
+            cruceLimpio.cumple,
+            "el fondo inerte MIENTRAS la hoja esta abierta es correcto: lo que se juzga es lo que queda DESPUES",
+        ).toBe(true);
+        expect(cruceLimpio.motivos).toEqual([]);
+    });
+
+    it("la matriz de la hoja es la acordada, cruza el escalon de verdad y no puede encoger", () => {
+        /*
+         * Los numeros TECLEADOS de esta familia, con el mismo criterio que
+         * `ANCHOS_ESPERADOS` y `FAMILIAS_MINIMAS`: una matriz que se recorre sale
+         * verde cuando encoge. Los tres cruces son los medidos el 2026-09-07 y el
+         * de DPR 3 es el que declara un telefono real.
+         */
+        expect(
+            VIEWPORT_DE_LA_HOJA,
+            "la hoja se abre en el viewport donde el sitio la entrega: 390x844",
+        ).toEqual({ ancho: 390, alto: 844 });
+        expect(
+            CAMBIOS_DE_ANCHURA_DE_LA_HOJA,
+            "los tres cruces son los acordados: el giro del telefono, una ventana " +
+                "de escritorio y la misma a la densidad de un telefono real. " +
+                "Recortar la lista mide menos y sale igual de verde",
+        ).toEqual([
+            { ancho: 844, alto: 390, dpr: 1 },
+            { ancho: 1280, alto: 390, dpr: 1 },
+            { ancho: 1280, alto: 390, dpr: 3 },
+        ]);
+        for (const cambio of CAMBIOS_DE_ANCHURA_DE_LA_HOJA)
+            expect(
+                cambio.ancho,
+                `el cruce a ${cambio.ancho}px no pasa del escalon md (768 px): sin ` +
+                    `cruzarlo la hoja no cambia de forma y no hay nada que medir`,
+            ).toBeGreaterThan(768);
+        expect(
+            CAMBIOS_DE_ANCHURA_DE_LA_HOJA.some((c) => c.dpr === 3),
+            "sin la pasada a DPR 3 el eje de densidad se da por irrelevante sin " +
+                "medirlo, que es justo el descuido que escondio el P1 de arte de la #19",
+        ).toBe(true);
+        expect(
+            SELECTOR_FOCALIZABLE,
+            "un nodo con tabindex -1 es enfocable a mano pero no alcanzable con el " +
+                "teclado: contarlo como operable inflaria la cuenta que decide",
+        ).toContain("[tabindex]:not([tabindex='-1'])");
+        expect(
+            LECTURAS_IGUALES_PARA_ASENTAR,
+            "el asentamiento se mide con lecturas repetidas, no con un tiempo fijo: " +
+                "con una sola lectura se juzga un estado intermedio que no existe",
+        ).toBeGreaterThanOrEqual(3);
+        for (const guarda of [
+            "la hoja movil no llego a abrirse en ninguna de las",
+            "el estado modal sobrevive al contexto que lo justificaba",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo "${guarda}": sin esa linea la ` +
+                    `familia mediria y callaria`,
+            ).toContain(guarda);
+        }
+    });
+});
+
+/**
+ * VALIDADO CON BUG INYECTADO (2026-09-07). Fijando el eje que da sentido a la
+ * familia --`REDUCES_DE_LA_CABECERA = ["reduce"]`, que es exactamente la
+ * comodidad de instrumento que la leccion del 2026-09-07 prohibe-- cae el caso
+ * que teclea la matriz:
+ *
+ *   AssertionError: la familia mide con y SIN prefers-reduced-motion, y ese eje
+ *   es su razon de ser: el arbitraje de la critica #20 dio 8,85 con la
+ *   preferencia fijada y 3,41 sin ella sobre la misma pieza. Fijarla deja de
+ *   ver el defecto: expected [ 'reduce' ] to deeply equal [ 'no-preference',
+ *   'reduce' ]
+ *
+ * «Tests 1 failed | 63 passed (64)». Restaurado el eje, 64/64 en verde.
+ *
+ * SEGUNDA INYECCION SOBRE EL MISMO BLOQUE, la que ata el veredicto y no la
+ * matriz: cambiando la comparacion de `evaluaContrasteDeCabecera` para que nunca
+ * reporte nada (`if (pieza.peor.percentil < 0)`, que es como se vacia una
+ * familia sin tocar ni una constante ni una lista) cae el caso que reproduce las
+ * dos medidas:
+ *
+ *   AssertionError: 3,56 esta por debajo de 4,5 y 8,76 no: solo la primera se
+ *   reporta: expected [] to have a length of 1 but got +0
+ *
+ * «Tests 1 failed | 63 passed (64)». Restaurada la comparacion, 64/64 en verde.
+ */
+describe("el veredicto del contraste de la cabecera", () => {
+    it("el umbral sale del tamano COMPUTADO y del peso, como manda WCAG 1.4.3", () => {
+        /*
+         * La tabla de la norma en px: texto grande es 24 px, o 18,66 px con peso
+         * 700 (los 18 pt y los 14 pt en negrita). Los enlaces de la cabecera del
+         * sitio miden 14 px, asi que les toca 4,5 lleven el peso que lleven --y
+         * ese es el umbral con el que se midieron los 3,56 del 2026-09-07.
+         */
+        expect(umbralDeContraste(14, 400)).toBe(UMBRAL_DE_CONTRASTE_NORMAL);
+        expect(
+            umbralDeContraste(14, 700),
+            "14 px en negrita siguen siendo texto normal: la norma pide 18,66",
+        ).toBe(UMBRAL_DE_CONTRASTE_NORMAL);
+        expect(umbralDeContraste(18.66, 700)).toBe(UMBRAL_DE_CONTRASTE_GRANDE);
+        expect(
+            umbralDeContraste(18.65, 700),
+            "por debajo de 18,66 px el peso no basta",
+        ).toBe(UMBRAL_DE_CONTRASTE_NORMAL);
+        expect(umbralDeContraste(24, 400)).toBe(UMBRAL_DE_CONTRASTE_GRANDE);
+        expect(
+            umbralDeContraste(23.99, 400),
+            "por debajo de 24 px sin negrita el umbral sigue siendo el normal",
+        ).toBe(UMBRAL_DE_CONTRASTE_NORMAL);
+    });
+
+    it("la formula de contraste es la de WCAG, y reproduce las DOS medidas del arbitraje", () => {
+        /*
+         * LOS DOS ANCLAS DE LA NORMA primero --21 entre blanco y negro, 1 contra
+         * si mismo-- y despues las dos medidas que dan sentido a la familia,
+         * tomadas del navegador el 2026-09-07 sobre la portada oscura con la
+         * tinta de «English» (rgb 183,183,187):
+         *
+         *   CON `prefers-reduced-motion` el arte no se desplaza y bajo la barra
+         *   queda el cristal oscuro (rgb 35,19,43): 8,76. Cumple de sobra.
+         *   SIN la preferencia, el arte del guardian pasa por debajo y el fondo
+         *   sube a rgb(88,89,92): por debajo de 4,5, que es el P1 que la ronda
+         *   #20 reporto y que el arbitraje estuvo a punto de retirar por medir
+         *   solo la primera combinacion.
+         *
+         * Las dos lineas de este caso son esa leccion escrita como candado: si
+         * la formula se moviera, la diferencia entre las dos dejaria de existir.
+         */
+        expect(razonDeContraste([255, 255, 255], [0, 0, 0])).toBeCloseTo(21, 5);
+        expect(razonDeContraste([120, 120, 120], [120, 120, 120])).toBeCloseTo(
+            1,
+            5,
+        );
+        expect(luminanciaRelativa([255, 255, 255])).toBeCloseTo(1, 5);
+        expect(luminanciaRelativa([0, 0, 0])).toBeCloseTo(0, 5);
+
+        expect(
+            razonDeContraste([183, 183, 187], [35, 19, 43]),
+            "con prefers-reduced-motion el arte no llega a pasar bajo la barra y la pieza cumple",
+        ).toBeCloseTo(8.76, 1);
+        expect(
+            razonDeContraste([183, 183, 187], [88, 89, 92]),
+            "sin la preferencia el arte pasa por debajo y la misma pieza cae por " +
+                "debajo del umbral: es el P1 de la critica #20",
+        ).toBeLessThan(UMBRAL_DE_CONTRASTE_NORMAL);
+    });
+
+    it("una pieza cuyo percentil cae por debajo de su umbral se reporta con su punto, su mediana y su porcentaje", () => {
+        /*
+         * Los dos casos reales, con las cifras medidas: «English» a 3,56 con el
+         * 92,3 % de su caja bajo umbral se reporta, y la misma pieza a 8,76 con
+         * `reduce` no. El motivo lleva los cuatro numeros porque son los que
+         * distinguen "un pixel raro" de "la pieza no se lee ahi".
+         */
+        const { fallos, comprobadas, formulaRota } = evaluaContrasteDeCabecera({
+            piezas: [
+                {
+                    clave: "1440x900 reduce=no-preference",
+                    texto: "English",
+                    px: 14,
+                    peso: 400,
+                    tinta: [183, 183, 187],
+                    umbral: UMBRAL_DE_CONTRASTE_NORMAL,
+                    percentil: PERCENTIL_DE_CONTRASTE,
+                    peor: {
+                        y: 9300,
+                        percentil: 3.56,
+                        mediana: 3.73,
+                        porcentajeBajo: 92.3,
+                        peorRazon: razonDeContraste(
+                            [183, 183, 187],
+                            [88, 89, 92],
+                        ),
+                        peorFondo: [88, 89, 92],
+                    },
+                },
+                {
+                    clave: "1440x900 reduce=reduce",
+                    texto: "English",
+                    px: 14,
+                    peso: 400,
+                    tinta: [183, 183, 187],
+                    umbral: UMBRAL_DE_CONTRASTE_NORMAL,
+                    percentil: PERCENTIL_DE_CONTRASTE,
+                    peor: {
+                        y: 9300,
+                        percentil: 8.76,
+                        mediana: 8.79,
+                        porcentajeBajo: 0,
+                        peorRazon: razonDeContraste(
+                            [183, 183, 187],
+                            [35, 19, 43],
+                        ),
+                        peorFondo: [35, 19, 43],
+                    },
+                },
+            ],
+            tolerancia: TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+        });
+
+        expect(comprobadas).toBe(2);
+        expect(formulaRota).toEqual([]);
+        expect(
+            fallos,
+            "3,56 esta por debajo de 4,5 y 8,76 no: solo la primera se reporta",
+        ).toHaveLength(1);
+        expect(fallos[0]).toContain("p05 3.56 en y = 9300");
+        expect(fallos[0]).toContain("mediana 3.73");
+        expect(fallos[0]).toContain("92.3 % de la caja bajo umbral");
+        expect(fallos[0]).toContain("reduce=no-preference");
+    });
+
+    it("si las dos copias de la formula no coinciden, la corrida se para en vez de creerse el numero", () => {
+        /*
+         * La sonda se serializa para correr dentro de la pagina y lleva su propia
+         * copia de la formula de WCAG. Dos copias son dos cosas que divergen, asi
+         * que en cada punto se devuelve el peor fondo y su razon, y el modulo la
+         * recalcula. Sin este cruce, una copia desviada mentiria en la direccion
+         * que le tocara sin que nada lo dijera.
+         */
+        const { formulaRota } = evaluaContrasteDeCabecera({
+            piezas: [
+                {
+                    clave: "1440x900 reduce=no-preference",
+                    texto: "English",
+                    px: 14,
+                    peso: 400,
+                    tinta: [183, 183, 187],
+                    umbral: UMBRAL_DE_CONTRASTE_NORMAL,
+                    percentil: PERCENTIL_DE_CONTRASTE,
+                    peor: {
+                        y: 9300,
+                        percentil: 8.9,
+                        mediana: 9,
+                        porcentajeBajo: 0,
+                        /* La pagina dice 8,9 para un par que da 3,5x. */
+                        peorRazon: 8.9,
+                        peorFondo: [88, 89, 92],
+                    },
+                },
+            ],
+            tolerancia: TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+        });
+        expect(formulaRota).toHaveLength(1);
+        expect(formulaRota[0]).toContain("la pagina devolvio 8.9");
+    });
+
+    it("una pieza sin ningun punto medido no pasa por verde: se cuenta y se dice", () => {
+        /* Una pieza que se quedo fuera de la banda capturada en todo el barrido
+           no es una pieza que cumpla: es una pieza que nadie miro. */
+        const { fallos, sinPuntos, comprobadas } = evaluaContrasteDeCabecera({
+            piezas: [
+                {
+                    clave: "390x844 reduce=reduce",
+                    texto: "Void",
+                    px: 18.4,
+                    peso: 700,
+                    tinta: [250, 250, 250],
+                    umbral: UMBRAL_DE_CONTRASTE_NORMAL,
+                    percentil: PERCENTIL_DE_CONTRASTE,
+                    peor: null,
+                },
+            ],
+            tolerancia: TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+        });
+        expect(fallos).toEqual([]);
+        expect(comprobadas).toBe(0);
+        expect(sinPuntos).toEqual(['390x844 reduce=reduce ("Void")']);
+    });
+
+    it("la matriz del contraste es la acordada, con los DOS sentidos de reduce, y sus umbrales no se aflojan", () => {
+        /*
+         * El eje que no se puede tocar y los tres numeros que no se pueden
+         * aflojar. La matriz completa, con el porque de cada eje fijado, esta en
+         * el docblock de `VIEWPORTS_DE_LA_CABECERA`.
+         */
+        expect(
+            REDUCES_DE_LA_CABECERA,
+            "la familia mide con y SIN prefers-reduced-motion, y ese eje es su " +
+                "razon de ser: el arbitraje de la critica #20 dio 8,85 con la " +
+                "preferencia fijada y 3,41 sin ella sobre la misma pieza. Fijarla " +
+                "deja de ver el defecto",
+        ).toEqual(["no-preference", "reduce"]);
+        expect(
+            VIEWPORTS_DE_LA_CABECERA,
+            "los dos anchos son la cabecera ancha (con sus enlaces y su selector " +
+                "de idioma) y la estrecha (marca y disparador): son piezas " +
+                "distintas sobre el mismo arte",
+        ).toEqual([
+            { ancho: 1440, alto: 900 },
+            { ancho: 390, alto: 844 },
+        ]);
+        expect(
+            UMBRAL_DE_CONTRASTE_NORMAL,
+            "4,5 es el minimo de WCAG 1.4.3 para texto normal: bajarlo es aprobar " +
+                "el defecto en vez de arreglarlo",
+        ).toBe(4.5);
+        expect(UMBRAL_DE_CONTRASTE_GRANDE).toBe(3);
+        expect(
+            PERCENTIL_DE_CONTRASTE,
+            "el percentil 5 describe el fondo real de la caja; subirlo afloja el " +
+                "candado (con el 50 solo caeria una pieza cuando mas de media caja " +
+                "incumple) y bajarlo lo devuelve al ruido del pixel minimo",
+        ).toBe(5);
+        expect(
+            PASO_DEL_BARRIDO_DE_CABECERA,
+            "el paso de 300 px se eligio midiendo la banda del defecto (de 9.300 a " +
+                "9.700 px en la portada oscura, unos 500 px de ancho): agrandarlo " +
+                "puede colar una banda incumplidora entre dos puntos",
+        ).toBeLessThanOrEqual(300);
+        expect(
+            ALTO_DE_LA_BANDA_DE_CABECERA,
+            "la franja capturada tiene que dar holgura a la barra y a su " +
+                "desplazamiento; por debajo del alto de la cabecera no se mediria nada",
+        ).toBeGreaterThanOrEqual(64);
+        expect(
+            LADO_MINIMO_DE_PIEZA_PX,
+            "por debajo de 4 px una caja es un rotulo para lectores de pantalla " +
+                "(VisuallyHidden deja 1x1) y no tinta que nadie lea",
+        ).toBeGreaterThanOrEqual(4);
+        for (const guarda of [
+            "la sonda de contraste no encontro ni una sola pieza de texto en la cabecera",
+            "el barrido de scroll de la cabecera no llego a dar ni un solo punto",
+            "con la tinta puesta tras apagarla",
+            "las dos copias de la formula de contraste no coinciden",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo "${guarda}": sin esa linea un ` +
+                    `instrumento roto pasaria por cabecera legible`,
+            ).toContain(guarda);
+        }
     });
 });
 
