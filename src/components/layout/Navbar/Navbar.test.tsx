@@ -2579,6 +2579,57 @@ describe("Navbar", () => {
     }
 
     /*
+     * EL ORDEN, que es la parte que un refactor puede romper sin que se note,
+     * y que NO se puede observar mirando el estado final: los TRES caminos de
+     * cierre que mueven el foco lo mueven a un elemento del FONDO -- el destino
+     * del ancla, el propio disparador, o el disparador de escritorio cuando el
+     * viewport deja de ser móvil (crítica #20) --, y para cuando el test mira,
+     * la limpieza del efecto ya ha liberado el `inert` de todas formas. El
+     * único instante que importa es el del `focus()`, así que se instrumenta
+     * ESE: se envuelve el método del elemento de destino y se anota si en ese
+     * momento seguía inerte.
+     *
+     * jsdom no implementa el comportamiento de `inert` (un `focus()` sobre un
+     * elemento inerte le funciona igual), así que sin esta instrumentación el
+     * defecto sería invisible aquí -- en un navegador real es la diferencia
+     * entre que el foco llegue al destino o acabe en `<body>`, que es el
+     * defecto de la crítica externa #9, punto 1.
+     *
+     * VIVE EN ESTE NIVEL Y NO DENTRO DEL `describe` DEL `inert` desde la ola
+     * de la crítica #20: el tercer camino de cierre lo necesita igual y es de
+     * otra familia. La función no cambió al mudarse.
+     *
+     * `closest("[inert]")` y no `hasAttribute("inert")`: `inert` se hereda por
+     * SUBÁRBOL, y los elementos que estos candados vigilan lo reciben de sitios
+     * distintos -- la sección de destino lo lleva ella misma (es hermana de la
+     * hoja en `<body>`), y los dos disparadores lo heredan de la cabecera que
+     * los contiene. Preguntar solo por el atributo propio dejaría esos casos
+     * pasando en verde con el defecto delante (comprobado: con `hasAttribute`
+     * el bug inyectado del botón de cierre NO tumbaba el test).
+     */
+    /** Un nodo de fondo que NO pertenece al Navbar: reproduce lo que en la
+     *  página real son `<main>`, el pie y el botón de «volver arriba», que este
+     *  componente no renderiza pero sí tiene que inertizar. Vive en este nivel
+     *  (antes, dentro del `describe` del `inert`) desde la ola de la crítica
+     *  #20: el candado del cruce de breakpoint necesita el mismo fondo ajeno
+     *  para afirmar que la hoja lo suelta TODO, no solo la cabecera. */
+    function montarFondoAjeno(): HTMLElement {
+      const ajeno = document.createElement("main");
+      document.body.appendChild(ajeno);
+      return ajeno;
+    }
+
+    function espiarInertAlEnfocar(el: HTMLElement): () => boolean | null {
+      let inerteAlEnfocar: boolean | null = null;
+      const original = el.focus.bind(el);
+      el.focus = ((options?: FocusOptions) => {
+        inerteAlEnfocar = el.closest("[inert]") !== null;
+        original(options);
+      }) as typeof el.focus;
+      return () => inerteAlEnfocar;
+    }
+
+    /*
      * Candados de la Ola C.1 (2026-08-16): la hoja pasa a ser un diálogo de
      * verdad. Antes tenía todo el COMPORTAMIENTO —velo opaco real, foco que
      * entra al abrir, Escape que cierra y devuelve el foco al disparador— y
@@ -3830,15 +3881,6 @@ describe("Navbar", () => {
      * es verificación de navegador real (regla 44), no de esta suite.
      */
     describe("el fondo queda inert mientras la hoja está abierta (crítica #12)", () => {
-      /** Un nodo de fondo que NO pertenece al Navbar: reproduce lo que en la
-       *  página real son `<main>`, el pie y el botón de «volver arriba», que
-       *  este componente no renderiza pero sí tiene que inertizar. */
-      function montarFondoAjeno(): HTMLElement {
-        const ajeno = document.createElement("main");
-        document.body.appendChild(ajeno);
-        return ajeno;
-      }
-
       it("marca la cabecera y el fondo ajeno, y nunca la hoja ni el velo", () => {
         const { container } = renderNavbar();
         const hoja = getSheet(container);
@@ -3903,42 +3945,6 @@ describe("Navbar", () => {
         }
       });
 
-      /*
-       * EL ORDEN, que es la parte que un refactor puede romper sin que se note,
-       * y que NO se puede observar mirando el estado final: los dos caminos de
-       * cierre que mueven el foco lo mueven a un elemento del FONDO -- el
-       * destino del ancla, o el propio disparador --, y para cuando el test
-       * mira, la limpieza del efecto ya ha liberado el `inert` de todas formas.
-       * El único instante que importa es el del `focus()`, así que se
-       * instrumenta ESE: se envuelve el método del elemento de destino y se
-       * anota si en ese momento seguía inerte.
-       *
-       * jsdom no implementa el comportamiento de `inert` (un `focus()` sobre un
-       * elemento inerte le funciona igual), así que sin esta instrumentación el
-       * defecto sería invisible aquí -- en un navegador real es la diferencia
-       * entre que el foco llegue al destino o acabe en `<body>`, que es el
-       * defecto de la crítica externa #9, punto 1.
-       */
-      /*
-       * `closest("[inert]")` y no `hasAttribute("inert")`: `inert` se hereda
-       * por SUBÁRBOL, y los dos elementos que estos candados vigilan lo reciben
-       * de sitios distintos -- la sección de destino lo lleva ella misma (es
-       * hermana de la hoja en `<body>`), y el disparador lo hereda de la
-       * cabecera que lo contiene. Preguntar solo por el atributo propio dejaría
-       * el segundo caso pasando en verde con el defecto delante (comprobado:
-       * con `hasAttribute` el bug inyectado del botón de cierre NO tumbaba el
-       * test).
-       */
-      function espiarInertAlEnfocar(el: HTMLElement): () => boolean | null {
-        let inerteAlEnfocar: boolean | null = null;
-        const original = el.focus.bind(el);
-        el.focus = ((options?: FocusOptions) => {
-          inerteAlEnfocar = el.closest("[inert]") !== null;
-          original(options);
-        }) as typeof el.focus;
-        return () => inerteAlEnfocar;
-      }
-
       it("activar una fila libera el fondo ANTES de mover el foco al destino", () => {
         const { container } = renderNavbar();
         const destino = document.createElement("section");
@@ -3999,6 +4005,336 @@ describe("Navbar", () => {
         } finally {
           ajeno.remove();
         }
+      });
+    });
+
+    /*
+     * LA HOJA NO SOBREVIVE A LA DESAPARICIÓN DE SU VEHÍCULO (crítica #20, P1,
+     * hallado por DOS evaluadores técnicos por separado).
+     *
+     * EL DEFECTO, reproducido en Chrome real sobre el build servido antes de
+     * tocar nada, en tres combinaciones (claro 390x844 -> 844x390, oscuro
+     * 390x844 -> 844x390, claro 390x844 -> 1280x390) con cifras idénticas: se
+     * abre la hoja y se cambia la anchura. El estado de React no se entera. La
+     * hoja pasa a `display: none` por su `@media md` CONSERVANDO
+     * `aria-modal="true"`; el disparador sigue anunciando
+     * `aria-expanded="true"` desde una hamburguesa de 0 px; y el `inert` del
+     * punto 9 sigue puesto sobre HEADER, MAIN#main, FOOTER, el panel de
+     * escritorio, el enlace de salto y NEXT-ROUTE-ANNOUNCER.
+     *
+     * Medido con la sonda propia: **30 controles operables antes de abrir, 15
+     * con la hoja abierta y CERO tras cruzar el umbral**, con 44 controles
+     * visibles y ninguno alcanzable; `document.elementFromPoint` en el centro
+     * de la barra devolvía `BODY`; seis pulsaciones de Tab no salían de `BODY`;
+     * a los 6,5 s el estado seguía idéntico. Escape lo deshacía (0 -> 36), y
+     * por eso es P1 y no P0.
+     *
+     * LÍMITE DECLARADO DE ESTOS CANDADOS, y por qué aun así son el sitio
+     * correcto: jsdom no evalúa ningún `@media` (regla 36) ni hace layout, así
+     * que aquí no existe «cruzar los 768 px». Lo que sí existe -- y es
+     * EXACTAMENTE donde vivía el defecto -- es el vínculo entre el CSSOM y el
+     * estado de React: la hoja consulta `matchMedia` con la MISMA cadena que su
+     * CSS y reacciona a su evento `change`. Eso se simula fielmente y se afirma
+     * entero. Que el navegador dispare ese evento en el píxel correcto es
+     * verificación de navegador real (regla 44), no de esta suite.
+     *
+     * Validados con bugs inyectados a propósito, vistos en rojo antes de darlos
+     * por buenos (líneas literales en el docblock de cada `it`).
+     */
+    describe("la hoja se cierra cuando el viewport deja de ser móvil (crítica #20)", () => {
+      /** La MISMA cadena que evalúa el CSS de `ScNavSheet`/`ScSheetTriggerSlot`
+       *  (`@media ${theme.data.breakPoint.md}`), leída del token y no tecleada:
+       *  si el candado escribiera «(min-width: 768px)» a mano dejaría de
+       *  vigilar la línea real el día que el token cambie, que es justo la
+       *  desincronización que este arreglo existe para impedir. Los dos temas
+       *  comparten la MISMA referencia de `breakPoint` (`themes.test.ts`), así
+       *  que da igual cuál se lea. */
+      const MD = basicLightTheme.breakPoint.md;
+
+      interface ConsultaSimulada {
+        readonly matches: boolean;
+        readonly media: string;
+        readonly addEventListener: (
+          tipo: string,
+          cb: (event: MediaQueryListEvent) => void,
+        ) => void;
+        readonly removeEventListener: (
+          tipo: string,
+          cb: (event: MediaQueryListEvent) => void,
+        ) => void;
+      }
+
+      interface AnchoSimulado {
+        /** Cruza el umbral hacia escritorio: cambia lo que responde `matches`
+         *  Y despacha el `change` del CSSOM, en ese orden (un consumidor puede
+         *  releer la consulta dentro de su propio manejador). */
+        readonly cruzarAEscritorio: () => void;
+        /** Cadenas que el árbol pasó a `matchMedia`, en orden. */
+        readonly consultas: () => readonly string[];
+        /** Cuántos oyentes del breakpoint se han retirado de verdad. */
+        readonly retiradas: () => number;
+      }
+
+      /*
+       * `matchMedia` gobernable, en vez del stub inerte del `beforeEach` de
+       * este fichero (que devuelve un objeto nuevo con `addEventListener:
+       * vi.fn()` en cada llamada y por tanto no puede despachar nada). Solo la
+       * consulta de ANCHURA es gobernable: `prefers-reduced-motion`,
+       * `prefers-color-scheme` y las demás siguen respondiendo `false`, como en
+       * el resto de la suite.
+       */
+      function stubMatchMediaConAncho(): AnchoSimulado {
+        const oyentes = new Set<(event: MediaQueryListEvent) => void>();
+        const consultas: string[] = [];
+        let escritorio = false;
+        let retiradas = 0;
+
+        vi.stubGlobal(
+          "matchMedia",
+          vi.fn().mockImplementation((query: string): ConsultaSimulada => {
+            consultas.push(query);
+            const esAnchura = query === MD;
+            return {
+              get matches(): boolean {
+                return esAnchura ? escritorio : false;
+              },
+              media: query,
+              addEventListener: (
+                _tipo: string,
+                cb: (event: MediaQueryListEvent) => void,
+              ): void => {
+                if (esAnchura) oyentes.add(cb);
+              },
+              removeEventListener: (
+                _tipo: string,
+                cb: (event: MediaQueryListEvent) => void,
+              ): void => {
+                if (esAnchura && oyentes.delete(cb)) retiradas += 1;
+              },
+            };
+          }),
+        );
+
+        return {
+          cruzarAEscritorio: (): void => {
+            escritorio = true;
+            act(() => {
+              oyentes.forEach((cb) => {
+                cb({ matches: true, media: MD } as MediaQueryListEvent);
+              });
+            });
+          },
+          consultas: () => consultas,
+          retiradas: () => retiradas,
+        };
+      }
+
+      /** Todo nodo del documento con el atributo `inert` puesto, en orden de
+       *  documento. Se compara por REFERENCIA (no por etiqueta) para poder
+       *  restar la línea base de nodos que ya lo traían de su propio JSX. */
+      function nodosInertes(): HTMLElement[] {
+        return Array.from(document.querySelectorAll<HTMLElement>("[inert]"));
+      }
+
+      /** El disparador del desplegable de escritorio («Más»): el control
+       *  equivalente que SÍ está en pantalla desde `md`, y por tanto el destino
+       *  del foco de este camino de cierre (ver `desktopNavEntry` en
+       *  `NavSheet.tsx`). */
+      function getMasEscritorio(container: HTMLElement): HTMLElement {
+        const boton = container.querySelector<HTMLElement>(
+          "[data-nav-more-trigger]",
+        );
+        expect(
+          boton,
+          "sin disparador de escritorio este camino de cierre no tiene destino de foco",
+        ).not.toBeNull();
+        return boton as HTMLElement;
+      }
+
+      /*
+       * BUG INYECTADO A (visto en rojo): en `NavSheet.tsx`, borrar la llamada a
+       * `closeAndFocusDesktopNav()` de `handleBreakpointChange` -- es decir,
+       * quitar el cierre por breakpoint y devolver el defecto tal cual.
+       * BUG INYECTADO B (visto en rojo): sustituir `theme.breakPoint.md` por la
+       * cadena `"(min-width: 768px)"` escrita a mano. Los dos dan la MISMA
+       * línea, literal:
+       *
+       *     AssertionError: el fondo sigue inerte tras cruzar el umbral: el
+       *     documento entero queda inalcanzable con 44 controles a la vista:
+       *     expected [ 'HEADER', 'MAIN' ] to deeply equal []
+       */
+      it("al cruzar el breakpoint no queda ningún nodo inertizado por la hoja, y aria-modal desaparece", () => {
+        const ancho = stubMatchMediaConAncho();
+        const { container } = renderNavbar();
+        const hoja = getSheet(container);
+        const cabecera = container.querySelector("header") as HTMLElement;
+        const ajeno = montarFondoAjeno();
+
+        try {
+          /* LÍNEA BASE, y no una lista escrita a mano de «lo que debería estar
+             inerte»: con la hoja cerrada YA hay dos nodos con `inert` propio de
+             su JSX -- la hoja misma y el panel de escritorio de «Más» --, y
+             ninguno de los dos lo puso este efecto. Lo que el candado vigila es
+             la DIFERENCIA: todo lo que la hoja inertizó al abrirse tiene que
+             haberlo soltado al cruzar. Así un nodo de fondo nuevo queda cubierto
+             sin tocar el candado, y el mensaje de un fallo futuro dice CUÁL se
+             quedó puesto. */
+          const inertesAlEmpezar = nodosInertes();
+
+          fireEvent.click(getSheetTrigger());
+          expect(hoja).toHaveAttribute("aria-modal", "true");
+          expect(cabecera.hasAttribute("inert")).toBe(true);
+          expect(ajeno.hasAttribute("inert")).toBe(true);
+
+          ancho.cruzarAEscritorio();
+
+          const puestosPorLaHoja = nodosInertes()
+            .filter((el) => !inertesAlEmpezar.includes(el))
+            .map((el) => el.tagName);
+          expect(
+            puestosPorLaHoja,
+            "el fondo sigue inerte tras cruzar el umbral: el documento entero queda inalcanzable con 44 controles a la vista",
+          ).toEqual([]);
+          expect(
+            hoja.getAttribute("aria-modal"),
+            "una hoja en display:none que sigue declarando aria-modal reclama un documento que ya no gobierna",
+          ).toBeNull();
+          expect(hoja).toHaveAttribute("data-open", "false");
+        } finally {
+          ajeno.remove();
+        }
+      });
+
+      /*
+       * BUG INYECTADO A (visto en rojo): borrar la llamada a
+       * `closeAndFocusDesktopNav()` de `handleBreakpointChange` --
+       *
+       *     AssertionError: tras cruzar el umbral el foco se quedó dentro de
+       *     una hoja que ya no se pinta: en el navegador acaba en <body>:
+       *     expected <a href="/#story" …(1)></a> to be <button type="button"
+       *     …(5)>…(2)</button> // Object.is equality
+       *
+       * BUG INYECTADO C (visto en rojo): en `closeAndFocusDesktopNav`, quitar
+       * la llamada a `releaseBackgroundInert()` (dejar el `inert` puesto al
+       * cerrar por esta vía). Es el bug que NINGUNA de las otras aserciones de
+       * este bloque ve -- el estado final es idéntico, porque la limpieza del
+       * efecto libera el `inert` de todas formas; el único instante que lo
+       * delata es el del `focus()` --
+       *
+       *     AssertionError: el disparador de escritorio seguía dentro de una
+       *     cabecera inerte al recibir el foco: en un navegador real el foco se
+       *     habría perdido: expected true to be false // Object.is equality
+       */
+      it("el foco no se queda en un nodo inerte ni en <body>: pasa al disparador de escritorio", () => {
+        const ancho = stubMatchMediaConAncho();
+        const { container } = renderNavbar();
+        const mas = getMasEscritorio(container);
+        const inerteAlEnfocar = espiarInertAlEnfocar(mas);
+
+        fireEvent.click(getSheetTrigger());
+        expect(getSheet(container).contains(document.activeElement)).toBe(true);
+
+        ancho.cruzarAEscritorio();
+
+        expect(
+          document.activeElement,
+          "tras cruzar el umbral el foco se quedó dentro de una hoja que ya no se pinta: en el navegador acaba en <body>",
+        ).toBe(mas);
+        expect(
+          document.activeElement,
+          "el foco quedó en <body>: quien navegaba por teclado vuelve a empezar la página entera",
+        ).not.toBe(document.body);
+        expect(
+          (document.activeElement as HTMLElement).closest("[inert]"),
+          "el destino del foco vive dentro de un subárbol inerte",
+        ).toBeNull();
+        expect(
+          inerteAlEnfocar(),
+          "el disparador de escritorio seguía dentro de una cabecera inerte al recibir el foco: en un navegador real el foco se habría perdido",
+        ).toBe(false);
+      });
+
+      /*
+       * BUG INYECTADO A (visto en rojo): borrar la llamada a
+       * `closeAndFocusDesktopNav()` de `handleBreakpointChange`. La aserción es
+       * de `jest-dom`, que imprime su propio diagnóstico en vez del mensaje del
+       * `expect`; la línea literal es:
+       *
+       *     → expect(element).toHaveAttribute("aria-expanded", "false") //
+       *       element.getAttribute("aria-expanded") === "false"
+       *
+       * con `aria-expanded="false"` en Expected y `aria-expanded="true"` en
+       * Received.
+       */
+      it("el disparador deja de anunciar aria-expanded='true' cuando la hoja ya no está en pantalla", () => {
+        const ancho = stubMatchMediaConAncho();
+        const { container } = renderNavbar();
+        const hoja = getSheet(container);
+        const trigger = getSheetTrigger();
+
+        fireEvent.click(trigger);
+        expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+        ancho.cruzarAEscritorio();
+
+        expect(
+          trigger,
+          "una hamburguesa de 0 px anunciando aria-expanded='true' describe un estado que el usuario no puede ni ver ni deshacer",
+        ).toHaveAttribute("aria-expanded", "false");
+        expect(
+          hoja,
+          "la hoja cerrada vuelve a estar fuera del orden de tabulación",
+        ).toHaveAttribute("inert");
+      });
+
+      /*
+       * BUG INYECTADO B (visto en rojo): en `useNavSheet`, sustituir
+       * `theme.breakPoint.md` por la cadena escrita a mano
+       * `"(min-width: 768px)"` -- que es exactamente la forma en que este
+       * defecto volvería, porque a raíz 16px las dos líneas coinciden --
+       *
+       *     AssertionError: la hoja observa una línea distinta de la que dibuja
+       *     su CSS: las dos empiezan coincidiendo y divergen al primer cambio
+       *     de token o de raíz tipográfica: expected [ …(4) ] to include
+       *     'screen and (min-width: 48em)'
+       *
+       * Ese mismo bug tumba además los otros cuatro candados de este bloque, y
+       * eso es la prueba de que la línea es UNA sola: si el `matchMedia` mira
+       * otra cadena, no hay cierre por breakpoint en absoluto.
+       */
+      it("observa el MISMO breakpoint que su CSS: la cadena del token, no una comparación de píxeles", () => {
+        const ancho = stubMatchMediaConAncho();
+        renderNavbar();
+
+        fireEvent.click(getSheetTrigger());
+
+        expect(
+          ancho.consultas(),
+          "la hoja observa una línea distinta de la que dibuja su CSS: las dos empiezan coincidiendo y divergen al primer cambio de token o de raíz tipográfica",
+        ).toContain(MD);
+      });
+
+      /*
+       * BUG INYECTADO D (visto en rojo): quitar el `return` de limpieza del
+       * efecto del breakpoint --
+       *
+       *     AssertionError: el oyente del breakpoint sobrevive al desmontaje:
+       *     una fuga que además cierra una hoja que ya no existe: expected 0 to
+       *     be greater than 0
+       */
+      it("retira su oyente del breakpoint al desmontar", () => {
+        const ancho = stubMatchMediaConAncho();
+        const { unmount } = renderNavbar();
+
+        fireEvent.click(getSheetTrigger());
+        expect(ancho.retiradas()).toBe(0);
+
+        unmount();
+
+        expect(
+          ancho.retiradas(),
+          "el oyente del breakpoint sobrevive al desmontaje: una fuga que además cierra una hoja que ya no existe",
+        ).toBeGreaterThan(0);
       });
     });
   });

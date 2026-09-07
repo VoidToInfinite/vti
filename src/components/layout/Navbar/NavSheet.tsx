@@ -10,7 +10,10 @@ import {
   type RefObject,
 } from "react";
 import { useTranslation } from "react-i18next";
-import styled, { type DefaultTheme } from "styled-components";
+import styled, {
+  useTheme as useStyledTheme,
+  type DefaultTheme,
+} from "styled-components";
 import { LanguageSelector } from "@/components/layout/LanguageSelector/LanguageSelector";
 import { IconButton } from "@/components/ui/IconButton/IconButton";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
@@ -1032,6 +1035,45 @@ function backgroundSiblings(sheet: HTMLElement): HTMLElement[] {
   return fondo;
 }
 
+/*
+ * A DÓNDE VA EL FOCO CUANDO LA HOJA DEJA DE SER EL MODO DE NAVEGACIÓN VIGENTE
+ * (crítica #20, P1; ver el punto 10 del docblock de `useNavSheet`).
+ *
+ * El disparador de la hoja NO sirve como destino en este camino, y es la
+ * diferencia con `closeAndFocusTrigger`: desde `md` su envoltorio
+ * (`ScSheetTriggerSlot`) es `display: none`, así que un `focus()` sobre el
+ * botón que contiene es un no-op silencioso y el foco se queda donde estaba --
+ * dentro de una hoja que acaba de volverse `display: none`, es decir, en
+ * `<body>` en cuanto el navegador aplique su focus fixup rule. Medido en el
+ * build servido antes de este arreglo: cerrando con Escape a 844 px,
+ * `document.activeElement` quedaba en `BODY`.
+ *
+ * El destino es el CONTROL EQUIVALENTE que sí está en pantalla: el disparador
+ * del desplegable de escritorio («Más», `ScNavTrigger` en `Navbar.tsx`). Es la
+ * misma clase de control que el usuario estaba operando -- un disclosure que
+ * revela los destinos de navegación que la barra no muestra --, y es el único
+ * de la cabecera del que se puede decir eso.
+ *
+ * RESERVA, no defensa decorativa: si ese disparador no estuviera en el DOM (un
+ * navbar futuro sin desplegable), el foco cae en el PRIMER destino de la fila
+ * de navegación de escritorio, que es la otra pieza que la hoja duplicaba. Si
+ * tampoco lo hubiera, no se mueve el foco: inventarle un destino a una cabecera
+ * que no tiene navegación sería peor que dejar que el navegador decida.
+ *
+ * Los dos ganchos son `data-*` ya existentes o añadidos con el mismo criterio
+ * que el resto de la barra (`data-nav-links`, `data-bar-language`,
+ * `data-nav-sheet-trigger`): un atributo sobre un elemento del DOM, sin ampliar
+ * la interfaz de props de nadie.
+ */
+function desktopNavEntry(triggerSlot: HTMLElement | null): HTMLElement | null {
+  const header = triggerSlot?.closest("header") ?? null;
+  if (header === null) return null;
+  return (
+    header.querySelector<HTMLElement>("[data-nav-more-trigger]") ??
+    header.querySelector<HTMLElement>("[data-nav-links] a[href]")
+  );
+}
+
 /**
  * Estado y contrato de comportamiento de la hoja, compartido por el
  * disparador (que vive DENTRO de la barra) y por la hoja en sí (que vive
@@ -1125,6 +1167,10 @@ export interface NavSheetController {
  *    Tampoco tiene equivalente en escritorio, y por el mismo motivo que el
  *    punto 8: solo una capa que declara `aria-modal` tiene que hacer cierto lo
  *    que declara. Ver el docblock de `backgroundSiblings`.
+ * 10. LA HOJA NO SOBREVIVE A LA DESAPARICIÓN DE SU VEHÍCULO (crítica #20, P1,
+ *    hallado por dos evaluadores por separado). Tampoco tiene equivalente en
+ *    escritorio: el panel de `NavMoreMenu` no desaparece por ancho. Ver el
+ *    último efecto de este hook.
  */
 export function useNavSheet(): NavSheetController {
   const [isOpen, setIsOpen] = useState(false);
@@ -1132,6 +1178,20 @@ export function useNavSheet(): NavSheetController {
   const sheetId = useId();
   const triggerRef = useRef<HTMLSpanElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  /*
+   * LA MISMA CADENA QUE EVALÚA EL CSS, leída del tema ambiental de
+   * styled-components y no escrita a mano (punto 10, ver el último efecto).
+   * `ScSheetTriggerSlot` y `ScNavSheet` se apagan con
+   * `@media ${theme.data.breakPoint.md}`; si esta línea comparase píxeles a
+   * mano, el día que el token pase de 48em a otra cosa -- o que la raíz
+   * tipográfica del visitante deje de ser 16px, que es justo lo que la ola R
+   * consiguió al migrar los breakpoints a `em` -- la hoja se cerraría en un
+   * ancho y desaparecería en otro. Mismo criterio que `Footer.tsx` para leer el
+   * tema: `useStyledTheme` devuelve el que de verdad están usando los
+   * styled-components de este mismo fichero.
+   */
+  const { data: theme } = useStyledTheme();
+  const desktopMediaQuery = theme.breakPoint.md;
   /* Los nodos de fondo a los que ESTA hoja les puso `inert` (ver
      `backgroundSiblings`), para no retirar el de nadie más. */
   const inertedRef = useRef<HTMLElement[]>([]);
@@ -1171,6 +1231,24 @@ export function useNavSheet(): NavSheetController {
     releaseBackgroundInert();
     setIsOpen(false);
     triggerRef.current?.querySelector("button")?.focus();
+  }, [releaseBackgroundInert]);
+
+  /*
+   * Tercer camino de cierre que MUEVE EL FOCO, y por tanto tercer consumidor
+   * del orden que documenta `releaseBackgroundInert`: liberar el fondo ANTES
+   * del `focus()`, porque el destino (el disparador de escritorio) vive dentro
+   * de la cabecera, que es uno de los nodos inertizados.
+   *
+   * `preventScroll: true`, a diferencia de `closeAndFocusTrigger`: este cierre
+   * lo dispara un cambio de anchura, que acaba de rehacer el layout entero. Un
+   * `focus()` que además arrastre el scroll para "traer a la vista" el destino
+   * movería al lector dos veces por un gesto que no iba dirigido a la página.
+   * Mismo criterio que el `focus()` de apertura (punto 6).
+   */
+  const closeAndFocusDesktopNav = useCallback((): void => {
+    releaseBackgroundInert();
+    setIsOpen(false);
+    desktopNavEntry(triggerRef.current)?.focus({ preventScroll: true });
   }, [releaseBackgroundInert]);
 
   const toggle = useCallback((): void => {
@@ -1511,6 +1589,92 @@ export function useNavSheet(): NavSheetController {
       releaseBackgroundInert();
     };
   }, [isOpen, releaseBackgroundInert]);
+
+  /*
+   * Punto 10: LA HOJA SE CIERRA CUANDO EL VIEWPORT DEJA DE SER MÓVIL (crítica
+   * #20, P1, hallado por dos evaluadores técnicos por separado).
+   *
+   * EL DEFECTO, reproducido en el build servido antes de tocar nada (Chrome
+   * real, 390x844 -> 844x390, tema claro): con la hoja abierta y la anchura
+   * cruzando el umbral, el estado de React no se enteraba de nada. La hoja
+   * pasaba a `display: none` por su `@media md` CONSERVANDO
+   * `aria-modal="true"`; el disparador seguía anunciando
+   * `aria-expanded="true"` desde una hamburguesa de 0 px de ancho; y el `inert`
+   * del punto 9 seguía puesto sobre HEADER, MAIN#main, FOOTER, el panel de
+   * escritorio, el enlace de salto y NEXT-ROUTE-ANNOUNCER. Cifras medidas:
+   * **30 controles operables antes de abrir, 15 con la hoja abierta y CERO tras
+   * cruzar el umbral**; `document.elementFromPoint` en el centro de la barra
+   * devolvía `BODY`; seis pulsaciones de Tab no salían de `BODY`; y a los 6,5 s
+   * el estado seguía idéntico -- no se autocorregía. El documento entero quedaba
+   * inerte con 44 controles a la vista.
+   *
+   * LA CAUSA RAÍZ es que el modo de navegación lo decidía el CSS y el estado
+   * modal lo guardaba React, sin ningún vínculo entre los dos. `isOpen` no es
+   * "la hoja está abierta": es "la hoja, SI está en pantalla, está abierta", y
+   * esa segunda mitad no la sabía nadie. Un estado modal no puede sobrevivir a
+   * la desaparición de su vehículo.
+   *
+   * POR QUÉ `matchMedia` CON EL TOKEN Y NO UN LISTENER DE `resize` QUE COMPARE
+   * PÍXELES: la línea la fija `theme.breakPoint.md` (`screen and (min-width:
+   * 48em)`), en `em` desde la ola R precisamente para que escale con la raíz
+   * tipográfica del visitante. Un `768` escrito a mano sería una segunda fuente
+   * de verdad que empieza coincidiendo y deja de hacerlo al primer cambio de
+   * token o al primer visitante con la fuente a 200 % -- la hoja se cerraría en
+   * un ancho y desaparecería en otro. `matchMedia` con la MISMA cadena no puede
+   * desincronizarse, y además avisa una sola vez por cruce en vez de en cada
+   * fotograma del arrastre.
+   *
+   * SIN COMPROBACIÓN INMEDIATA de `consulta.matches` al suscribirse, y la
+   * ausencia es deliberada. El primer intento la llevaba, para cubrir un cruce
+   * que ocurriera entre el commit que abre la hoja y este efecto pasivo. La
+   * regla `react-hooks/set-state-in-effect` la rechaza (verificado ejecutando
+   * `pnpm exec eslint`, no supuesto: «Calling setState synchronously within an
+   * effect can trigger cascading renders»), y al mirar qué cubría de verdad,
+   * NADA: el único camino que pone `isOpen` a `true` es `toggle`, y su único
+   * llamante es un disparador que desde `md` no genera caja -- no se puede
+   * abrir la hoja con el viewport ya en escritorio. El hueco que quedaría es el
+   * de un cruce completo de anchura en los pocos milisegundos entre el toque en
+   * la hamburguesa y el efecto que corre tras ese mismo pintado; un giro de
+   * teléfono o un arrastre de ventana son gestos humanos de cientos de
+   * milisegundos, así que el `change` siempre llega con el oyente ya puesto.
+   * Un `useEffect` que llama a `setState` en su cuerpo para cubrir eso es
+   * exactamente lo que la regla existe para evitar.
+   *
+   * DECLARADO EL ÚLTIMO por ser el añadido más reciente, no por una dependencia
+   * de orden: este efecto solo se SUSCRIBE, y quien cierra es el manejador, que
+   * corre mucho después de que todos los efectos de este commit hayan pasado.
+   * El orden que sí importa -- liberar el `inert` antes de mover el foco -- lo
+   * garantiza `closeAndFocusDesktopNav` por dentro, no la posición de este
+   * bloque.
+   *
+   * `try`/`catch` alrededor de `matchMedia`: mismo criterio que
+   * `ThemeProvider.tsx`. Sin `matchMedia` no hay nada que escuchar, y la hoja
+   * conserva sus otras cuatro salidas (Escape, el botón de cierre, el toque
+   * fuera, el scroll).
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let consulta: MediaQueryList;
+    try {
+      consulta = window.matchMedia(desktopMediaQuery);
+    } catch {
+      return;
+    }
+
+    function handleBreakpointChange(event: MediaQueryListEvent): void {
+      // Solo el cruce HACIA escritorio cierra. El cruce contrario (volver a
+      // móvil) no reabre nada: la hoja se abre por petición del usuario, no
+      // por geometría.
+      if (!event.matches) return;
+      closeAndFocusDesktopNav();
+    }
+
+    consulta.addEventListener("change", handleBreakpointChange);
+    return () => {
+      consulta.removeEventListener("change", handleBreakpointChange);
+    };
+  }, [isOpen, desktopMediaQuery, closeAndFocusDesktopNav]);
 
   return {
     isOpen,

@@ -1888,6 +1888,15 @@ function NavMoreMenu({
         type="button"
         id={triggerId}
         ref={triggerRef}
+        /* `data-nav-more-trigger`: gancho estable para el destino del foco
+           cuando la hoja móvil se cierra por cruzar el breakpoint (crítica #20,
+           P1 -- ver `desktopNavEntry` en `NavSheet.tsx`, que es quien lo lee).
+           Mismo criterio que `data-nav-links` y `data-bar-language` de más
+           abajo: un `data-*` sobre un elemento del DOM no obliga a declarar
+           nada en la interfaz de props de nadie. Se nombra en vez de resolverse
+           como "el primer botón de la fila" porque ese orden puede cambiar sin
+           que nadie se entere; la identidad de este control, no. */
+        data-nav-more-trigger
         aria-expanded={isOpen}
         aria-controls={panelId}
         /* Marca VISIBLE de "la sección que lees está aquí dentro". No lleva
