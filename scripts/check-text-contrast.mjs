@@ -163,6 +163,42 @@
  * El `y` de estas filas es POSICION DE SCROLL, como en el resto de la tabla,
  * no la posicion del enlace en pantalla: el selector vive siempre en la barra.
  *
+ * ## Y CON ELLA EL RESTO DE LA BARRA: LAS FILAS `navbar/*` (misma critica,
+ * mismo dia)
+ *
+ * Las cuatro filas `header/*` cubren los DOS enlaces de idioma. Las seis
+ * `navbar/*` cubren lo que quedaba de texto en esa misma barra fija, medido
+ * con el mismo metodo y en el mismo barrido: los cuatro enlaces de seccion mas
+ * el quinto que solo cabe en la barra ancha, el disparador «Mas», la marca y
+ * el rotulo del conmutador de tema. Ahi habia un P1 propio, en tema CLARO: las
+ * SEIS piezas de navegacion comparten tinta (`semantic.textMuted`,
+ * `neutral/800`) y las seis bajaban de 4,5 sobre el arte que pasa por debajo
+ * --p05 3,542 la peor («Caracteristicas», y=5150, 62,4 % de la caja bajo
+ * umbral)--, con y sin `prefers-reduced-motion`. Arreglado subiendo la tinta un
+ * escalon (`neutral/900`, 4,99) y, con ella, la de hover/foco
+ * (`primary/800` -> `primary/900`, 4,86) para que enfocar un enlace no lo
+ * empeore. El detalle completo --las seis piezas, las dos bandas, por que la
+ * rama oscura NO se toca (5,52 y 5,55 medidos) y por que el cristal de la
+ * barra no es una palanca disponible-- vive en el docblock de `navLinkInk`
+ * (`src/components/layout/Navbar/Navbar.tsx`) y su candado en
+ * `navActiveAccent.contrast.test.ts`.
+ *
+ * `superficieL` de estas filas se toma igual que en las `header/*`: el fondo
+ * del 5 % peor bajo CUALQUIERA de las cajas de esa familia, aplicado a todas
+ * --el arte se desplaza-- y no el que a cada pieza le toco en el barrido. Las
+ * dos filas de la MARCA (`navbar/light/neutral/1000` y `navbar/dark/neutral/50`)
+ * llevan su propio fondo, mas hostil que el de los enlaces en los dos temas
+ * (L = 0,54757 en claro, L = 0,08824 en oscuro), porque la marca vive a 300 px
+ * a la izquierda y ahi el arte es otro; el rotulo del conmutador comparte
+ * tinta con ella y su peor p05 es mejor (9,92 en claro, 11,81 en oscuro), asi
+ * que la fila de la marca lo cubre.
+ *
+ * Las tres filas con `censo` son las que todavia no salen de una lectura en
+ * navegador sino del calculo de la tinta NUEVA (o de un estado, el foco, que
+ * la sonda no visita) contra el fondo medido: el fondo se captura con la tinta
+ * apagada, asi que no depende del color del texto, y esta entrega no toca el
+ * fondo de la barra. La relectura la hace el orquestador al reconstruir.
+ *
  * Corre dentro de `pnpm run ci` por dos caminos, a proposito: como paso propio
  * (`pnpm check:text-contrast`) y desde `scripts/check-text-contrast.test.mjs`, que
  * lo importa y asserta dentro de `pnpm test` -- mismo patron que
@@ -417,6 +453,12 @@ export const PIEZAS = [
     { seccion: "header", tema: "dark", tinta: "primary/200", px: 14, peso: 700, superficieL: 0.10446, p05: 5.37, vp: "1440", y: 9425, ejemplo: "Español", censo: "tinta nueva sobre fondo medido" },
     { seccion: "header", tema: "light", tinta: "neutral/900", px: 14, peso: 400, superficieL: 0.58110, p05: 5.09, vp: "1440", y: 4925, ejemplo: "English", censo: "tinta nueva sobre fondo medido" },
     { seccion: "header", tema: "light", tinta: "primary/900", px: 14, peso: 700, superficieL: 0.58110, p05: 4.96, vp: "1440", y: 4925, ejemplo: "Español", censo: "tinta nueva sobre fondo medido" },
+    { seccion: "navbar", tema: "dark", tinta: "neutral/300", px: 14, peso: 500, superficieL: 0.07414, p05: 5.53, vp: "1440", y: 9675, ejemplo: "Historia" },
+    { seccion: "navbar", tema: "dark", tinta: "primary/300", px: 14, peso: 500, superficieL: 0.07414, p05: 5.55, vp: "1440", y: 9675, ejemplo: "Historia (hover/foco)", censo: "estado de foco sobre fondo medido" },
+    { seccion: "navbar", tema: "dark", tinta: "neutral/50", px: 18.4, peso: 700, superficieL: 0.08824, p05: 7.28, vp: "1440", y: 9675, ejemplo: "ToInfinite" },
+    { seccion: "navbar", tema: "light", tinta: "neutral/900", px: 14, peso: 500, superficieL: 0.56904, p05: 4.99, vp: "1440", y: 5150, ejemplo: "Características", censo: "tinta nueva sobre fondo medido" },
+    { seccion: "navbar", tema: "light", tinta: "primary/900", px: 14, peso: 500, superficieL: 0.56904, p05: 4.86, vp: "1440", y: 5150, ejemplo: "Características (hover/foco)", censo: "tinta nueva sobre fondo medido" },
+    { seccion: "navbar", tema: "light", tinta: "neutral/1000", px: 18.4, peso: 700, superficieL: 0.54757, p05: 7.19, vp: "1440", y: 5150, ejemplo: "ToInfinite" },
 ];
 
 /**

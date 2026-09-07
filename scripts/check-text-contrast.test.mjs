@@ -157,6 +157,32 @@ import { contrastRatio } from "../src/theme/tokens/contrast.ts";
  *    hermano que mira las filas crudas). Restaurado, el CLI vuelve a «piezas
  *    del censo: 49 / sancionadas y documentadas: 0 / incumplimientos nuevos:
  *    0», codigo 0.
+ *
+ * 6. Con la familia `navbar` recien anadida (misma critica #20, mismo dia,
+ *    frente de los enlaces de seccion), las mismas dos formas de perderla.
+ *    DEVOLVIENDO LA TINTA VIEJA a la fila de reposo en claro (`neutral/800`
+ *    con su `p05: 3.54`, que es el P1 medido en navegador), el CLI sale con
+ *    codigo 1 --comprobado: `node scripts/check-text-contrast.mjs` devuelve
+ *    «codigo de salida = 1»-- y la linea
+ *
+ *      NO CUMPLE navbar/light/neutral/800 («Características»): 3.54:1 contra
+ *      un umbral de 4.5:1. No bajes el umbral ni toques superficieL: vuelve a
+ *      medir en navegador con el metodo del docblock.
+ *
+ *    con dos tests en rojo, «1 piezas de texto bajan de su umbral WCAG sin
+ *    estar sancionadas: navbar/light/neutral/800 («Características») 3.54:1 <
+ *    4.5» y su hermano que mira las filas crudas. Y BORRANDO las seis filas
+ *    `navbar/*` cae el primero:
+ *
+ *      AssertionError: el censo encogio o cambio de forma sin volver a medir
+ *      en navegador. Si has vuelto a medir de verdad, actualiza CENSO_ESPERADO
+ *      con las cifras nuevas; si no, restaura las filas que faltan.: expected
+ *      { 'contact/dark': 6, …(9) } to deeply equal { 'contact/dark': 6, …(11) }
+ *      -   "navbar/dark": 3,
+ *      -   "navbar/light": 3,
+ *
+ *    Restaurado todo, «Tests 7 passed» y el CLI en «piezas del censo: 55 /
+ *    sancionadas y documentadas: 0 / incumplimientos nuevos: 0».
  */
 
 /*
@@ -175,10 +201,12 @@ const CENSO_ESPERADO = {
     "header/light": 2,
     "journey/dark": 3,
     "journey/light": 8,
+    "navbar/dark": 3,
+    "navbar/light": 3,
     "story/dark": 3,
     "story/light": 6,
 };
-const PIEZAS_MEDIDAS = 49;
+const PIEZAS_MEDIDAS = 55;
 
 describe("candado de contraste del texto de la home fuera del hero", () => {
     it("el censo conserva la extension que se midio, no solo su forma", () => {
@@ -221,13 +249,18 @@ describe("candado de contraste del texto de la home fuera del hero", () => {
            de idioma ACTIVO en claro, el P1 de la critica #20 y la pieza mas
            justa de la familia `header` (4,96): la familia entera es nueva y
            una familia nueva es lo mas facil de perder en el siguiente
-           recorte. */
+           recorte. La quinta es la tinta de hover/foco de los enlaces de la
+           barra, el P1 propio de la misma critica y la pieza mas justa de la
+           familia `navbar` (4,86): es ademas la unica fila del censo que
+           describe un ESTADO y no un reposo, asi que es la primera que
+           alguien daria por prescindible. */
         const sinAncho = PIEZAS.map((p) => `${p.seccion}/${p.tema}/${p.tinta}`);
         for (const clave of [
             "journey/light/secondary/700",
             "features/dark/FEATURES_GAMING_ACCENT_DARK",
             "journey/light/primary/800",
             "header/light/primary/900",
+            "navbar/light/primary/900",
         ]) {
             expect(
                 sinAncho,
