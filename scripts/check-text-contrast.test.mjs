@@ -133,6 +133,30 @@ import { contrastRatio } from "../src/theme/tokens/contrast.ts";
  *
  *    Restaurado todo, «Tests 7 passed» y el CLI en «piezas del censo: 45 /
  *    sancionadas y documentadas: 0 / incumplimientos nuevos: 0», codigo 0.
+ *
+ * 5. Con la familia `header` recien anadida (critica externa #20, 2026-09-07),
+ *    las dos formas de perderla. BORRANDO sus cuatro filas -- que es lo que
+ *    haria quien encontrara incomoda una familia nueva -- cae el primer test:
+ *
+ *      AssertionError: el censo encogio o cambio de forma sin volver a medir
+ *      en navegador. Si has vuelto a medir de verdad, actualiza CENSO_ESPERADO
+ *      con las cifras nuevas; si no, restaura las filas que faltan.: expected
+ *      { 'contact/dark': 6, …(7) } to deeply equal { 'contact/dark': 6, …(9) }
+ *      -   "header/dark": 2,
+ *      -   "header/light": 2,
+ *
+ *    Y DEVOLVIENDO LA TINTA VIEJA a una de esas filas (`neutral/400` con su
+ *    `p05: 3.39`, que es el P1 medido), el CLI sale con codigo 1 y la linea
+ *
+ *      NO CUMPLE header/dark/neutral/400 («English»): 3.39:1 contra un umbral
+ *      de 4.5:1. No bajes el umbral ni toques superficieL: vuelve a medir en
+ *      navegador con el metodo del docblock.
+ *
+ *    con dos tests en rojo («1 piezas de texto bajan de su umbral WCAG sin
+ *    estar sancionadas: header/dark/neutral/400 («English») 3.39:1 < 4.5» y su
+ *    hermano que mira las filas crudas). Restaurado, el CLI vuelve a «piezas
+ *    del censo: 49 / sancionadas y documentadas: 0 / incumplimientos nuevos:
+ *    0», codigo 0.
  */
 
 /*
@@ -147,12 +171,14 @@ const CENSO_ESPERADO = {
     "contact/light": 6,
     "features/dark": 7,
     "features/light": 6,
+    "header/dark": 2,
+    "header/light": 2,
     "journey/dark": 3,
     "journey/light": 8,
     "story/dark": 3,
     "story/light": 6,
 };
-const PIEZAS_MEDIDAS = 45;
+const PIEZAS_MEDIDAS = 49;
 
 describe("candado de contraste del texto de la home fuera del hero", () => {
     it("el censo conserva la extension que se midio, no solo su forma", () => {
@@ -191,12 +217,17 @@ describe("candado de contraste del texto de la home fuera del hero", () => {
            tercera es «Descubre», que fue el UNICO incumplimiento de la tabla y
            el P1 #5 de la critica #19 -- desde la ola S se pinta con
            `primary/800`, y sigue anclada aqui para que el arreglo no
-           desaparezca del censo junto con el problema. */
+           desaparezca del censo junto con el problema. La cuarta es el enlace
+           de idioma ACTIVO en claro, el P1 de la critica #20 y la pieza mas
+           justa de la familia `header` (4,96): la familia entera es nueva y
+           una familia nueva es lo mas facil de perder en el siguiente
+           recorte. */
         const sinAncho = PIEZAS.map((p) => `${p.seccion}/${p.tema}/${p.tinta}`);
         for (const clave of [
             "journey/light/secondary/700",
             "features/dark/FEATURES_GAMING_ACCENT_DARK",
             "journey/light/primary/800",
+            "header/light/primary/900",
         ]) {
             expect(
                 sinAncho,

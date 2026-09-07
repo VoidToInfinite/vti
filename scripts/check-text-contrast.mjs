@@ -137,6 +137,32 @@
  * paginas legales, ni la 404, ni idiomas distintos del castellano: el ingles
  * cambia la longitud de las cajas pero no la tinta ni la superficie.
  *
+ * ## LA CABECERA FIJA ENTRA EN EL CENSO (critica externa #20, 2026-09-07)
+ *
+ * Las cuatro filas `header/*` son las primeras que NO son de una seccion de la
+ * home: son los dos enlaces del selector de idioma (`LanguageSelector.tsx`),
+ * medidos con la pagina DESPLAZADA, que es cuando el arte de las secciones
+ * pasa por debajo de la barra fija. Nadie los habia medido asi -- las rondas
+ * anteriores midieron esa pieza sobre el hero y sobre los fondos que el
+ * cristal de la barra compone-- y ahi habia un P1: 3,400:1 en oscuro
+ * («English», banda y = 9.275-9.750, 37 de 240 mediciones bajo 4,5) y 3,488:1
+ * en claro («Español», banda y = 4.900-5.200, 12 de 174), las dos con la
+ * pagina en movimiento y SIN `prefers-reduced-motion` (con la preferencia
+ * activa el arte no se desplaza y la banda no existe).
+ *
+ * `superficieL` sale del mismo barrido: es la luminancia del fondo del 5 %
+ * peor bajo la caja del enlace en la posicion mas hostil, tomada bajo
+ * CUALQUIERA de los dos enlaces y aplicada a los dos -- el arte se desplaza,
+ * asi que el parche que hoy pasa bajo uno pasa manana bajo el otro. Las cuatro
+ * filas llevan `censo` porque su `p05` es la tinta NUEVA calculada contra ese
+ * fondo medido, no una relectura en navegador: el fondo se midio con la tinta
+ * apagada (no depende del color del texto) y el cambio de esta entrega no toca
+ * el fondo de la barra, asi que el calculo es exacto -- pero la relectura la
+ * hace el orquestador al reconstruir, y hasta entonces la marca se queda.
+ *
+ * El `y` de estas filas es POSICION DE SCROLL, como en el resto de la tabla,
+ * no la posicion del enlace en pantalla: el selector vive siempre en la barra.
+ *
  * Corre dentro de `pnpm run ci` por dos caminos, a proposito: como paso propio
  * (`pnpm check:text-contrast`) y desde `scripts/check-text-contrast.test.mjs`, que
  * lo importa y asserta dentro de `pnpm test` -- mismo patron que
@@ -387,6 +413,10 @@ export const PIEZAS = [
     { seccion: "story", tema: "light", tinta: "primary/800", px: 12, peso: 700, superficieL: 0.8337, p05: 4.88, vp: "390", y: 1354, ejemplo: "01" },
     { seccion: "story", tema: "light", tinta: "secondary/800", px: 12, peso: 700, superficieL: 0.82331, p05: 5.51, vp: "390", y: 2088, ejemplo: "03" },
     { seccion: "story", tema: "light", tinta: "secondary/700", px: 12, peso: 700, superficieL: 0.8343, p05: 4.99, vp: "390", y: 1721, ejemplo: "02" },
+    { seccion: "header", tema: "dark", tinta: "neutral/200", px: 14, peso: 400, superficieL: 0.10446, p05: 5.36, vp: "1440", y: 9450, ejemplo: "English", censo: "tinta nueva sobre fondo medido" },
+    { seccion: "header", tema: "dark", tinta: "primary/200", px: 14, peso: 700, superficieL: 0.10446, p05: 5.37, vp: "1440", y: 9425, ejemplo: "Español", censo: "tinta nueva sobre fondo medido" },
+    { seccion: "header", tema: "light", tinta: "neutral/900", px: 14, peso: 400, superficieL: 0.58110, p05: 5.09, vp: "1440", y: 4925, ejemplo: "English", censo: "tinta nueva sobre fondo medido" },
+    { seccion: "header", tema: "light", tinta: "primary/900", px: 14, peso: 700, superficieL: 0.58110, p05: 4.96, vp: "1440", y: 4925, ejemplo: "Español", censo: "tinta nueva sobre fondo medido" },
 ];
 
 /**
