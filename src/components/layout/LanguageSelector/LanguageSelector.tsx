@@ -567,18 +567,69 @@ export function readingOffsetTarget(input: ReadingOffsetTargetInput): number {
 }
 
 /**
- * `scrollY` que produce el aterrizaje en un fragmento: el top de documento del
- * destino menos su `scroll-margin-top`.
+ * Teclas cuyo comportamiento por defecto es desplazar el documento. Pulsar una
+ * de ellas ES tomar el control del scroll, exactamente igual que una rueda o
+ * un arrastre táctil.
  *
- * No se reimplementa aquí ningún desfase de cabecera -- se LEE el que el
- * navegador va a aplicar, que `GlobalStyles.tsx` declara sobre
- * `:where(section[id], h3[id])`. Sirve para una sola cosa: reconocer que algo
- * ha devuelto la página al inicio de la sección (ver `applyReadingOffset`).
+ * ES UNA COPIA DECLARADA de `SCROLL_KEYS` (`branchSettledCorrection.ts`), no
+ * una lista nueva: la guarda de este fichero cubre el frame que la compartida
+ * ya no cubre --se libera justo antes de aplicar la corrección--, así que las
+ * dos tienen que entender por "desplazar" exactamente lo mismo o habría un
+ * frame con otro criterio. La copia existe porque aquel módulo no exporta la
+ * suya, y lo que impide que diverjan no es la memoria de quien escribió las
+ * dos: es el candado de FUENTE que las compara elemento a elemento
+ * (`LanguageSelector.test.tsx`). La salida limpia --exportar la lista, o mejor
+ * el observador entero, desde `branchSettledCorrection.ts`-- queda declarada
+ * como pendiente en el informe de esta entrega: toca un fichero que este
+ * frente no podía modificar.
  */
-function fragmentLandingScrollY(el: HTMLElement): number {
-  const margen = Number.parseFloat(getComputedStyle(el).scrollMarginTop);
-  const top = el.getBoundingClientRect().top + window.scrollY;
-  return Math.max(0, top - (Number.isFinite(margen) ? margen : 0));
+const SCROLL_INTENT_KEYS: ReadonlySet<string> = new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "PageUp",
+  "PageDown",
+  "Home",
+  "End",
+  " ",
+  "Spacebar",
+]);
+
+/**
+ * Empieza a observar si el lector toma el control del scroll. Devuelve la
+ * función que retira los tres listeners y contesta si lo tomó.
+ *
+ * Escucha INTENCIÓN (`wheel`/`touchmove`/`keydown`) y NUNCA el evento
+ * `scroll`, por el mismo motivo que la guarda compartida: el aterrizaje en el
+ * fragmento, la restitución de una recarga y la propia corrección de este
+ * fichero emiten `scroll`, así que escucharlo abortaría siempre y contra la
+ * nada.
+ *
+ * Los tres listeners se retiran al leer la respuesta, y quien llama está
+ * obligado a leerla también al desmontar (ver `useReadingOffsetLanding`): en
+ * una pestaña oculta no hay frames, así que el `requestAnimationFrame` que
+ * normalmente los suelta puede tardar en llegar todo lo que dure la pestaña.
+ */
+function watchScrollIntent(): () => boolean {
+  let intent = false;
+
+  function onIntent(): void {
+    intent = true;
+  }
+
+  function onKeyDown(event: KeyboardEvent): void {
+    if (SCROLL_INTENT_KEYS.has(event.key)) intent = true;
+  }
+
+  window.addEventListener("wheel", onIntent, { passive: true });
+  window.addEventListener("touchmove", onIntent, { passive: true });
+  window.addEventListener("keydown", onKeyDown);
+
+  return () => {
+    window.removeEventListener("wheel", onIntent);
+    window.removeEventListener("touchmove", onIntent);
+    window.removeEventListener("keydown", onKeyDown);
+    return intent;
+  };
 }
 
 /** Diferencia por debajo de la cual una corrección de scroll no es observable
@@ -589,7 +640,8 @@ const READING_OFFSET_EPSILON_PX = 1;
 
 /**
  * Coloca al lector en su punto de lectura, y lo vuelve a colocar UN frame
- * después si algo lo ha devuelto al inicio de la sección mientras tanto.
+ * después si algo lo ha movido mientras tanto. Devuelve la función que suelta
+ * la guarda de intención de ese frame, o `null` si no llegó a armarse.
  *
  * LA SEGUNDA PASADA EXISTE POR UN VECINO CONCRETO, no por desconfianza:
  * `useFragmentLanding.ts` corrige el aterrizaje del fragmento con la misma
@@ -599,34 +651,81 @@ const READING_OFFSET_EPSILON_PX = 1;
  * ejecuta los efectos de dos componentes hermanos --la cabecera y la portada--
  * y eso no es un contrato del que deba depender el destino del lector. En vez
  * de competir por ese orden, esta corrección se aplica dos veces: en el frame
- * asentado y en el siguiente. Si el vecino llegó después, la segunda pasada lo
- * deshace; si llegó antes, la segunda pasada no hace nada.
+ * asentado y en el siguiente. La del frame siguiente llega SIEMPRE después que
+ * el vecino, y no por suerte: un `requestAnimationFrame` pedido desde dentro
+ * de un callback de frame se ejecuta en el frame siguiente, nunca en el que lo
+ * pidió.
  *
- * Y NO PUEDE ARREBATARLE EL SCROLL A NADIE, porque la condición de la segunda
- * pasada no es "la página se movió" sino "la página está EXACTAMENTE donde el
- * aterrizaje en el fragmento la habría dejado". Un gesto humano no acaba en
- * ese píxel; el `scrollIntoView` del vecino sí, por construcción. La guarda de
- * intención humana del programador compartido cubre la ventana grande (los
- * ~200 ms hasta el frame asentado); esto cubre el único frame que queda
- * después de ella.
+ * ## LA GUARDA DE ESTA SEGUNDA PASADA ES UN HECHO SOBRE EL LECTOR, NO UNA
+ * POSICIÓN CALCULADA (2026-09-07, la mitad de llegada del P1 de la crítica #20)
+ *
+ * Hasta esta entrega la condición era "la página está EXACTAMENTE donde el
+ * aterrizaje en el fragmento la habría dejado", con ese punto calculado aquí
+ * como `topDoc − scroll-margin-top`. La corrección no llegaba a aplicarse
+ * NUNCA, y el motivo es que ese cálculo estaba incompleto: le faltaba el
+ * `scroll-padding-top` del contenedor que desplaza.
+ *
+ * MEDIDO con sonda propia sobre el build servido de `b974fa2` (Chrome real sin
+ * ventana, 1440x900, `deviceScaleFactor: 1`, tema fijado en `localStorage`,
+ * envolviendo `window.scrollTo` y `Element.prototype.scrollIntoView` desde un
+ * `addInitScript` para registrar quién mueve la página, cuándo y a dónde).
+ * Cargando `/en?read=0.587#story` en claro:
+ *
+ *   t = 273,4 ms   scrollTo(1874,9)          <- primera pasada, correcta
+ *   t = 273,5 ms   scrollIntoView(#story)    <- el vecino, MISMO frame
+ *                  topDoc 900, scroll-margin-top 64px  ->  y = 772
+ *   (la segunda pasada corre y se abstiene: su cuenta daba 900 − 64 = 836)
+ *
+ * Los 64 px que faltaban son EXACTAMENTE otro desfase de cabecera, y están en
+ * `GlobalStyles.tsx`: además del `scroll-margin-top` de las secciones,
+ * `html` declara `scroll-padding-top: calc(var(--nav-height) + var(--nav-gap))`
+ * (WCAG 2.4.11, para el scroll que induce el foco por teclado). Un
+ * `scrollIntoView` alinea el borde con margen del destino contra la región de
+ * visualización del contenedor, que es su caja YA descontado el
+ * `scroll-padding`: el desfase efectivo es la SUMA de los dos, 128 px. Es el
+ * mismo 128 que la tabla de `useFragmentLanding.ts` lleva escrito como
+ * "correcto" desde la crítica #11, atribuido allí a una sola de las dos
+ * propiedades. Comprobado en las OCHO combinaciones de la sonda (dos temas x
+ * cuatro secciones): en las ocho, la página acaba en `topDoc − 128`.
+ *
+ * POR QUÉ NO SE ARREGLA SUMANDO EL SEGUNDO TÉRMINO. Sería la tercera copia del
+ * mismo número --el CSS, el `scroll-margin-top` que ya se leía, y ahora el
+ * `scroll-padding-top`--, y la próxima propiedad que el navegador meta en ese
+ * cálculo volvería a dejar la guarda muda sin que nada se pusiera rojo. El
+ * defecto no es que faltara un sumando: es que la condición era una FÓRMULA
+ * sobre dónde aterriza otro módulo.
+ *
+ * LA CONDICIÓN AHORA es la misma que usa el programador compartido para
+ * decidir si sigue teniendo permiso: que el lector no haya tomado el control
+ * del scroll (`wheel`/`touchmove`/tecla que desplaza) durante ese frame. Es un
+ * hecho observable sobre una persona, no una cuenta sobre la geometría, así
+ * que no puede desincronizarse de ningún CSS. Un gesto humano en ese frame
+ * cancela la segunda pasada; lo que mueva la página sin gesto --el vecino, o
+ * cualquier otro que llegue después-- se deshace. La guarda compartida cubre
+ * la ventana grande (los ~200 ms hasta el frame asentado) y se suelta justo
+ * antes de aplicar; ésta cubre el único frame que queda después de ella.
+ *
+ * SIGUE SIN PODER APLICARSE DOS VECES SEGUIDAS AL MISMO SITIO: si la página ya
+ * está en el destino, la comparación contra el propio destino (la única cuenta
+ * que queda, y es sobre un número de este fichero) se salta el `scrollTo` y no
+ * emite ningún evento `scroll` sintético.
  */
-function applyReadingOffset(offset: ReadingOffset): void {
+function applyReadingOffset(offset: ReadingOffset): (() => boolean) | null {
   const target = readingOffsetScrollY(offset);
-  if (target === null) return;
+  if (target === null) return null;
   if (Math.abs(target - window.scrollY) >= READING_OFFSET_EPSILON_PX) {
     window.scrollTo({ top: target, behavior: "instant" });
   }
-  if (typeof window.requestAnimationFrame !== "function") return;
+  if (typeof window.requestAnimationFrame !== "function") return null;
+  const readIntent = watchScrollIntent();
   window.requestAnimationFrame(() => {
-    const el = document.getElementById(offset.id);
-    if (el === null) return;
-    const inicio = fragmentLandingScrollY(el);
-    if (Math.abs(window.scrollY - inicio) >= READING_OFFSET_EPSILON_PX) return;
+    if (readIntent()) return;
     const segundo = readingOffsetScrollY(offset);
     if (segundo === null) return;
     if (Math.abs(segundo - window.scrollY) < READING_OFFSET_EPSILON_PX) return;
     window.scrollTo({ top: segundo, behavior: "instant" });
   });
+  return readIntent;
 }
 
 /**
@@ -688,6 +787,14 @@ export function resetLanguageReadingOffsetForTests(): void {
  * efecto, por el mismo motivo que `useFragmentLanding` captura su hash una
  * sola vez: un cambio de tema media hora después no puede volver a mandar al
  * lector al punto de lectura de la carga.
+ *
+ * LA LIMPIEZA SE COMPONE en vez de devolver la del programador compartido tal
+ * cual: la guarda de intención del frame extra (ver `applyReadingOffset`) la
+ * arma este fichero, así que este fichero la suelta también al desmontar. Sin
+ * esto, una pestaña oculta --donde el `requestAnimationFrame` que normalmente
+ * la suelta puede no llegar en mucho rato-- se quedaría con tres listeners
+ * vivos. Mismo criterio que el "cero listeners permanentes" del módulo
+ * compartido.
  */
 function useReadingOffsetLanding(branchKey: string): void {
   const offsetRef = useRef<ReadingOffset | null | undefined>(undefined);
@@ -704,16 +811,22 @@ function useReadingOffsetLanding(branchKey: string): void {
     if (offset === null || finishedRef.current || readingOffsetConsumed) return;
     if (!isMountedBranchEffective(branchKey)) return;
 
-    return scheduleBranchSettledCorrection({
+    let releaseIntent: (() => boolean) | null = null;
+    const cancel = scheduleBranchSettledCorrection({
       settleMs: FRAGMENT_LANDING_SETTLE_MS,
       onFinish: () => {
         finishedRef.current = true;
         readingOffsetConsumed = true;
       },
       apply: () => {
-        applyReadingOffset(offset);
+        releaseIntent = applyReadingOffset(offset);
       },
     });
+
+    return () => {
+      cancel();
+      if (releaseIntent !== null) releaseIntent();
+    };
   }, [branchKey]);
 }
 

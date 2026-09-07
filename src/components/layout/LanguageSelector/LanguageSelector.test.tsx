@@ -740,10 +740,36 @@ describe("LanguageSelector", () => {
        * `useFragmentLanding` corrige el aterrizaje del fragmento con el MISMO
        * programador compartido, así que su `scrollIntoView` cae en el mismo
        * frame que esta corrección y el orden entre dos componentes hermanos no
-       * es un contrato. Se simula su efecto --la página de vuelta al inicio de
-       * la sección-- y se exige que el frame siguiente lo deshaga.
+       * es un contrato.
+       *
+       * EL ATERRIZAJE DEL VECINO SE SIMULA CON SU DESFASE REAL, 128 px, y no
+       * con la sección pegada al borde superior del viewport, que es como lo
+       * simulaba este mismo candado hasta el 2026-09-07. Aquella simulación es
+       * justo la que dejó pasar el defecto: en jsdom no hay hoja de estilos, y
+       * la guarda que había --una fórmula, `topDoc − scroll-margin-top`--
+       * resolvía a `topDoc − 0` y coincidía con esa página inventada, así que
+       * el candado pasaba en verde mientras en el navegador la guarda no se
+       * cumplía jamás.
+       *
+       * Los 128 px están medidos sobre el build servido de `b974fa2` (Chrome
+       * real, 1440x900, las OCHO combinaciones de dos temas x cuatro secciones:
+       * en las ocho la página acaba en `topDoc − 128`), y son la SUMA de las
+       * dos propiedades que `GlobalStyles.tsx` declara con el mismo `calc()`:
+       * el `scroll-margin-top` de `:where(section[id], h3[id])` y el
+       * `scroll-padding-top` de `html`. Un `scrollIntoView` las consume las
+       * dos.
        */
-      it("si algo devuelve la página al inicio de la sección, el frame siguiente restituye el punto de lectura", () => {
+      const DESFASE_ATERRIZAJE_PX = 128;
+
+      /** El vecino acaba de aterrizar: la sección queda `DESFASE_ATERRIZAJE_PX`
+       *  por debajo del borde superior del viewport, y el scroll con ella. */
+      function aterrizajeDelVecino(topDoc: number, alto: number): void {
+        document.body.innerHTML = "";
+        mountSection("journey", DESFASE_ATERRIZAJE_PX, alto);
+        setScrollY(topDoc - DESFASE_ATERRIZAJE_PX);
+      }
+
+      it("tras el aterrizaje real del fragmento, el frame siguiente deja al lector en la fracción pedida y no en el inicio de la sección", () => {
         pathnameMock.current = ROUTES_BY_LOCALE.en.home;
         llegarA("?read=0.8", "#journey");
         act(() => {
@@ -752,23 +778,34 @@ describe("LanguageSelector", () => {
         });
         scrollToMock.mockClear();
 
-        // El vecino acaba de aterrizar en el inicio de la sección: la sección
-        // pasa a empezar en el borde superior del viewport.
-        document.body.innerHTML = "";
-        mountSection("journey", 0, 3300);
-        setScrollY(4000);
+        aterrizajeDelVecino(4000, 3300);
         act(() => {
           flushFrame();
         });
 
+        const destino = 4000 + 0.8 * 3300;
         expect(scrollToMock).toHaveBeenCalledTimes(1);
         expect(scrollToMock).toHaveBeenCalledWith({
-          top: 4000 + 0.8 * 3300,
+          top: destino,
           behavior: "instant",
         });
+        /* La afirmación que le importa al lector, dicha como fracción y no
+           como píxeles: acaba donde iba, no en el inicio de la sección. En
+           navegador esto son 3.872 -> 6.640 para este ejemplo; el número real
+           de las ocho combinaciones medidas vive en el informe de la entrega,
+           porque jsdom no maqueta y aquí solo se puede atar la aritmética. */
+        expect((destino - 4000) / 3300).toBeCloseTo(0.8, 10);
+        expect(destino).not.toBe(4000 - DESFASE_ATERRIZAJE_PX);
       });
 
-      it("si la página NO está en el inicio de la sección, la segunda pasada no le arrebata el scroll a nadie", () => {
+      /*
+       * LA GUARDA DE LA SEGUNDA PASADA ES LA DE INTENCIÓN, no una posición
+       * calculada. Los tres casos de abajo son la definición completa: un gesto
+       * la cancela, una tecla que desplaza la cancela, y una tecla que no
+       * desplaza no la cancela. Ninguno de los tres menciona el desfase del
+       * ancla, que es justo el punto: la condición dejó de depender de él.
+       */
+      function llegarYAterrizar(): void {
         pathnameMock.current = ROUTES_BY_LOCALE.en.home;
         llegarA("?read=0.8", "#journey");
         act(() => {
@@ -776,17 +813,82 @@ describe("LanguageSelector", () => {
           flushFrame();
         });
         scrollToMock.mockClear();
+        aterrizajeDelVecino(4000, 3300);
+      }
 
-        // El lector se ha ido por su cuenta a otro sitio: ni es el inicio de
-        // la sección ni es el destino de la corrección.
-        document.body.innerHTML = "";
-        mountSection("journey", -1200, 3300);
-        setScrollY(5200);
+      it("si el lector toma el control del scroll durante ese frame, la segunda pasada no se aplica", () => {
+        llegarYAterrizar();
         act(() => {
+          window.dispatchEvent(new Event("wheel"));
           flushFrame();
         });
-
         expect(scrollToMock).not.toHaveBeenCalled();
+      });
+
+      it("una tecla que desplaza también la cancela", () => {
+        llegarYAterrizar();
+        act(() => {
+          window.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowDown" }),
+          );
+          flushFrame();
+        });
+        expect(scrollToMock).not.toHaveBeenCalled();
+      });
+
+      it("una tecla que NO desplaza no la cancela: la lista es cerrada", () => {
+        llegarYAterrizar();
+        act(() => {
+          window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+          window.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab" }));
+          flushFrame();
+        });
+        expect(scrollToMock).toHaveBeenCalledTimes(1);
+      });
+
+      /*
+       * La guarda la arma este fichero, así que este fichero la suelta. Se
+       * comprueba por IDENTIDAD y no contando llamadas: el programador
+       * compartido retira las suyas dos veces (al aplicar y al limpiar), de
+       * modo que un recuento no distinguiría "las tres de este fichero se
+       * retiraron" de "sobran llamadas de las del vecino".
+       */
+      it("al desmontar no queda vivo ningún listener de la guarda de intención", () => {
+        const addSpy = vi.spyOn(window, "addEventListener");
+        const removeSpy = vi.spyOn(window, "removeEventListener");
+
+        pathnameMock.current = ROUTES_BY_LOCALE.en.home;
+        setLocation("?read=0.8", "#journey");
+        mountSection("journey", 4000, 3300);
+        const { unmount } = renderWithProviders(<LanguageSelector />);
+        act(() => {
+          flushFrame();
+          flushFrame();
+        });
+        unmount();
+
+        for (const tipo of ["wheel", "touchmove", "keydown"] as const) {
+          const puestos = addSpy.mock.calls
+            .filter(([nombre]) => nombre === tipo)
+            .map(([, manejador]) => manejador);
+          const retirados = new Set(
+            removeSpy.mock.calls
+              .filter(([nombre]) => nombre === tipo)
+              .map(([, manejador]) => manejador),
+          );
+          /* Dos como mínimo: la del programador compartido y la de este
+             fichero. Menos significaría que la corrección ni siquiera llegó a
+             armar su guarda, y el candado estaría comprobando la nada. */
+          expect(puestos.length, `listeners de ${tipo}`).toBeGreaterThanOrEqual(
+            2,
+          );
+          for (const manejador of puestos) {
+            expect(retirados.has(manejador), `${tipo} sin retirar`).toBe(true);
+          }
+        }
+
+        addSpy.mockRestore();
+        removeSpy.mockRestore();
       });
 
       it("sin parámetro en la URL no se programa ninguna corrección", () => {
@@ -810,6 +912,67 @@ describe("LanguageSelector", () => {
           flushFrame();
         });
         expect(scrollToMock).not.toHaveBeenCalled();
+      });
+
+      /*
+       * LOS DOS CANDADOS DE FUENTE DEL ARREGLO DEL 2026-09-07, y por qué son de
+       * fuente y no de comportamiento: jsdom no tiene hoja de estilos, así que
+       * ni el `scroll-margin-top` ni el `scroll-padding-top` que producían el
+       * defecto existen aquí -- un candado de comportamiento pasaría en verde
+       * con la fórmula duplicada de vuelta, que es exactamente lo que pasó
+       * hasta esta entrega.
+       */
+      async function fuenteSinComentarios(fichero: string): Promise<string> {
+        const { readFileSync } = await import("node:fs");
+        const { fileURLToPath } = await import("node:url");
+        const { dirname, join } = await import("node:path");
+        const here = dirname(fileURLToPath(import.meta.url));
+        const source = readFileSync(join(here, fichero), "utf-8");
+        /* Despoja comentarios ANTES de buscar, mismo motivo y mismo patrón que
+           el candado de `prefetch={false}`: los docblocks de este arreglo CITAN
+           las dos propiedades en prosa para explicar la medición. */
+        return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+      }
+
+      it("la guarda de la segunda pasada no lee ninguna propiedad del desfase de ancla (fuente)", async () => {
+        const codigo = await fuenteSinComentarios("LanguageSelector.tsx");
+        for (const prohibida of [
+          "scrollMarginTop",
+          "scrollPaddingTop",
+          "scroll-margin-top",
+          "scroll-padding-top",
+          "getComputedStyle",
+        ]) {
+          expect(codigo, `${prohibida} de vuelta en el código`).not.toContain(
+            prohibida,
+          );
+        }
+      });
+
+      it("la guarda de intención entiende por desplazar lo mismo que la compartida (fuente)", async () => {
+        function teclasDe(codigo: string, nombre: string): string[] {
+          const bloque = new RegExp(
+            `${nombre}[^=]*=\\s*new Set\\(\\[([^\\]]*)\\]`,
+          ).exec(codigo);
+          expect(bloque, `no se encontró ${nombre}`).not.toBeNull();
+          return [...(bloque?.[1] ?? "").matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(
+            (m) => m[1],
+          );
+        }
+
+        const aqui = teclasDe(
+          await fuenteSinComentarios("LanguageSelector.tsx"),
+          "SCROLL_INTENT_KEYS",
+        );
+        const compartida = teclasDe(
+          await fuenteSinComentarios(
+            "../../../hooks/branchSettledCorrection.ts",
+          ),
+          "SCROLL_KEYS",
+        );
+
+        expect(aqui.length).toBeGreaterThan(0);
+        expect([...aqui].sort()).toEqual([...compartida].sort());
       });
     });
   });
