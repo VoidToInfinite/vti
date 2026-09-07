@@ -2,12 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactElement } from "react";
+import { useEffect, useRef, type MouseEvent, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { type DefaultTheme } from "styled-components";
 import { LOCALES, resolveRoute, routePath, type Locale } from "@/config/site";
+import {
+  isMountedBranchEffective,
+  scheduleBranchSettledCorrection,
+} from "@/hooks/branchSettledCorrection";
+import {
+  captureReadingAnchor,
+  type ReadingAnchor,
+} from "@/hooks/themeScrollAnchor";
 import { useActiveSectionKey } from "@/hooks/useActiveSection";
+import { FRAGMENT_LANDING_SETTLE_MS } from "@/hooks/useFragmentLanding";
 import { PRESS } from "@/motion/vocabulary";
+import { useTheme } from "@/theme/ThemeProvider";
 
 const LANGUAGES = LOCALES;
 
@@ -296,9 +306,391 @@ const ScLanguageButton = styled(Link)<{ $active: boolean }>`
  * apunta a la página en la que ya estás, así que añadirle el fragmento
  * convertiría un click inocuo en un salto al inicio de la sección más una
  * entrada de historial.
+ *
+ * ## LA SECCIÓN NO BASTA: SE CONSERVA TAMBIÉN EL PUNTO DENTRO DE ELLA
+ * (crítica externa #20, 2026-09-07, P1)
+ *
+ * El arreglo de arriba dejó de tirar al lector al principio del DOCUMENTO,
+ * pero lo sigue dejando en el principio de la SECCIÓN. Medido por el
+ * orquestador de esta ola a 1440x900 en tema claro, colocando el centro del
+ * viewport al 85 % de cada sección y pulsando el otro idioma:
+ *
+ *   #story    1.905 -> 772    (−1.133 px)   #features 3.929 -> 3.067  (−862)
+ *   #journey  2.701 -> 2.433  (−268)        #contact  5.082 -> 4.387  (−695)
+ *
+ * A 390x844 la pérdida llega a −2.227 px, dos pantallas y media, el 75 % de la
+ * sección. Los dos documentos miden casi lo mismo (6.588 contra 6.536 px en
+ * claro), así que no es geometría: es que el destino no lleva más información
+ * que el nombre de la sección.
+ *
+ * QUÉ VIAJA AHORA, Y POR QUÉ COMO FRACCIÓN. Un parámetro de consulta,
+ * `?read=<fracción>`, con el desplazamiento del lector DENTRO de la sección
+ * dividido por el alto de la sección. La fracción, y no los píxeles, porque
+ * las dos secciones no miden lo mismo en los dos idiomas -- el mismo párrafo
+ * ocupa más líneas en uno que en otro-- y lo que se quiere conservar es el
+ * CONTENIDO que la persona tiene delante, no una distancia. Con la fracción no
+ * hace falta mandar además el alto de la sección de partida ni recortar contra
+ * él: `readingOffsetTarget` la multiplica por el alto que la sección tenga en
+ * el documento de llegada.
+ *
+ * POR QUÉ EL FRAGMENTO SE QUEDA. El `#seccion` sigue siendo el destino de la
+ * URL y lo hace todo lo que ya hacía: el navegador aterriza en la sección
+ * ANTES de hidratar (sin esperar a que corra una sola línea de JavaScript), y
+ * `useFragmentLanding.ts` lo recoloca cuando la rama oscura cambia el alto del
+ * documento. La fracción es un REFINAMIENTO que se aplica encima; si nada la
+ * lee -- porque el destino no ejecutó JavaScript, o porque el lector ya tomó el
+ * control del scroll --, el resultado es exactamente el de antes de esta
+ * entrega, nunca peor.
+ *
+ * POR QUÉ NO VA TAMBIÉN EN EL `href` HORNEADO, y esto es una restricción real,
+ * no una preferencia: la fracción cambia con cada píxel de scroll, y el `href`
+ * se calcula en RENDER. Meterla ahí obligaría a re-renderizar la cabecera en
+ * cada evento de scroll, y además leer geometría durante el render está
+ * prohibido en este repo (rompe el export estático: ver `captureReadingAnchor`
+ * en `themeScrollAnchor.ts`, que por eso se llama SIEMPRE desde un manejador
+ * de click). Así que el atributo `href` que se hornea y el que se ve al pasar
+ * el ratón siguen siendo exactamente los de antes -- `/en` pelado en el HTML
+ * estático, `/en#journey` tras hidratar -- y la fracción se añade en el
+ * momento del click, que es cuando se puede medir sin coste.
+ *
+ * NO SE GUARDA NADA EN EL EQUIPO DEL VISITANTE, igual que el arreglo anterior:
+ * el registro de `src/config/storage.ts` y la tabla de `/privacidad` siguen
+ * describiendo exactamente lo que el sitio escribe, y una fracción en la URL no
+ * añade una fila a esa tabla.
  */
-export function languageHref(path: string, sectionId: string | null): string {
-  return sectionId === null ? path : `${path}#${sectionId}`;
+export function languageHref(
+  path: string,
+  sectionId: string | null,
+  readingRatio: number | null = null,
+): string {
+  if (sectionId === null) return path;
+  if (readingRatio === null) return `${path}#${sectionId}`;
+  return `${path}?${READING_OFFSET_PARAM}=${readingRatio}#${sectionId}`;
+}
+
+/**
+ * Nombre del parámetro que lleva el punto de lectura DENTRO de la sección. Se
+ * declara una sola vez porque lo escriben y lo leen dos mitades distintas de
+ * este mismo fichero (el click que compone la URL y el efecto que la consume),
+ * y una copia suelta las desincronizaría sin que nada fallara: la mitad que
+ * escribe seguiría funcionando y la que lee no encontraría nunca nada.
+ */
+export const READING_OFFSET_PARAM = "read";
+
+/**
+ * Decimales con los que viaja la fracción. Cuatro no es un número redondo
+ * elegido a ojo: la sección más larga del sitio es el deck oscuro de Story
+ * (~16.000 px), y 1/10.000 de esa altura es 1,6 px -- por debajo de lo que
+ * nadie puede ver. Con tres decimales serían 16 px, ya visibles.
+ */
+const READING_OFFSET_DECIMALS = 4;
+
+/**
+ * Fracción del alto de la sección que el lector tiene por encima del borde
+ * superior del viewport, o `null` si el ancla no permite calcularla.
+ *
+ * PUEDE SER NEGATIVA con toda normalidad, y recortarla sería el mismo error
+ * que `anchoredScrollY` (`themeScrollAnchor.ts`) ya documenta para su propio
+ * desplazamiento: significa que la sección empieza POR DEBAJO del borde
+ * superior de la pantalla, que es el estado de cualquier franja de transición
+ * entre dos secciones.
+ */
+export function readingOffsetRatio(anchor: ReadingAnchor): number | null {
+  if (!(anchor.height > 0)) return null;
+  const ratio = (anchor.scrollY - anchor.topDoc) / anchor.height;
+  if (!Number.isFinite(ratio)) return null;
+  return Number(ratio.toFixed(READING_OFFSET_DECIMALS));
+}
+
+/** El punto de lectura tal y como viaja en la URL: la sección (del fragmento)
+ *  y la fracción dentro de ella (del parámetro). */
+export interface ReadingOffset {
+  readonly id: string;
+  readonly ratio: number;
+}
+
+/**
+ * Lee el punto de lectura de la URL de LLEGADA, o `null` si esta carga no
+ * trae ninguno.
+ *
+ * Se valida campo a campo y se descarta en silencio lo que no encaje, por el
+ * mismo motivo que `parseStoredPosition` (`useReloadLanding.ts`) valida lo que
+ * saca de `sessionStorage`: una URL la puede escribir cualquiera a mano, y
+ * entre la escritura y la lectura cabe un despliegue con otro formato. Una
+ * fracción fuera de [−1, 1] no es un desplazamiento dentro de una sección, así
+ * que no se recorta: se ignora entera y la carga se comporta como cualquier
+ * otra con fragmento.
+ */
+export function parseReadingOffset(
+  search: string,
+  hash: string,
+): ReadingOffset | null {
+  const id = hash.startsWith("#") ? hash.slice(1) : hash;
+  if (id === "") return null;
+  const raw = new URLSearchParams(search).get(READING_OFFSET_PARAM);
+  if (raw === null || raw === "") return null;
+  const ratio = Number(raw);
+  if (!Number.isFinite(ratio) || Math.abs(ratio) > 1) return null;
+  return { id, ratio };
+}
+
+/** Entrada de `readingOffsetTarget`: la geometría de la sección en el
+ *  documento de LLEGADA, más la fracción que viajó en la URL. */
+export interface ReadingOffsetTargetInput {
+  /** Top de documento de la sección de destino, ya montada la rama efectiva. */
+  readonly sectionTopDoc: number;
+  /** Alto de esa sección en el documento de llegada, que no tiene por qué ser
+   *  el que tenía en el de partida. */
+  readonly sectionHeight: number;
+  readonly ratio: number;
+  readonly viewportHeight: number;
+}
+
+/**
+ * `scrollY` al que hay que ir para que el lector siga leyendo por donde iba.
+ *
+ * LA COTA NO ES DECORATIVA: es la misma garantía que `anchoredScrollY`
+ * (`themeScrollAnchor.ts`) demuestra para el cambio de tema, y aquí hay que
+ * volver a imponerla porque la fracción se multiplica por un alto DISTINTO del
+ * que la produjo. El ancla la eligió `useActiveSectionKey` por contención del
+ * centro del viewport, así que en el documento de partida el centro estaba
+ * dentro de la sección; recortando el desplazamiento a `[−viewport/2,
+ * alto − viewport/2]` el centro cae en `[0, alto]` respecto al inicio de la
+ * sección de llegada, es decir DENTRO de ella, sea cual sea el alto nuevo. Sin
+ * la cota, una sección que en el otro idioma midiera el doble podría dejar al
+ * lector antes de que empiece o después de que acabe -- que es exactamente el
+ * defecto que esta entrega arregla, con otro disfraz.
+ *
+ * El `Math.max(0, ...)` final es el borde del documento, no una tercera regla:
+ * no existe scroll negativo.
+ */
+export function readingOffsetTarget(input: ReadingOffsetTargetInput): number {
+  const { sectionTopDoc, sectionHeight, ratio, viewportHeight } = input;
+  const medioViewport = viewportHeight / 2;
+  const suelo = -medioViewport;
+  const techo = Math.max(suelo, sectionHeight - medioViewport);
+  const offset = Math.min(Math.max(ratio * sectionHeight, suelo), techo);
+  return Math.max(0, sectionTopDoc + offset);
+}
+
+/**
+ * `scrollY` que produce el aterrizaje en un fragmento: el top de documento del
+ * destino menos su `scroll-margin-top`.
+ *
+ * No se reimplementa aquí ningún desfase de cabecera -- se LEE el que el
+ * navegador va a aplicar, que `GlobalStyles.tsx` declara sobre
+ * `:where(section[id], h3[id])`. Sirve para una sola cosa: reconocer que algo
+ * ha devuelto la página al inicio de la sección (ver `applyReadingOffset`).
+ */
+function fragmentLandingScrollY(el: HTMLElement): number {
+  const margen = Number.parseFloat(getComputedStyle(el).scrollMarginTop);
+  const top = el.getBoundingClientRect().top + window.scrollY;
+  return Math.max(0, top - (Number.isFinite(margen) ? margen : 0));
+}
+
+/** Diferencia por debajo de la cual una corrección de scroll no es observable
+ *  y sí lo es su coste (un evento `scroll` sintético que despierta a
+ *  `useScrolled`/`useNavDetach`/`BackToTop`). Mismo umbral y mismo motivo que
+ *  `restoreReadingAnchor` (`themeScrollAnchor.ts`). */
+const READING_OFFSET_EPSILON_PX = 1;
+
+/**
+ * Coloca al lector en su punto de lectura, y lo vuelve a colocar UN frame
+ * después si algo lo ha devuelto al inicio de la sección mientras tanto.
+ *
+ * LA SEGUNDA PASADA EXISTE POR UN VECINO CONCRETO, no por desconfianza:
+ * `useFragmentLanding.ts` corrige el aterrizaje del fragmento con la misma
+ * espera compartida (`branchSettledCorrection.ts`), así que su
+ * `scrollIntoView({ block: "start" })` y esta corrección caen en el MISMO
+ * frame. Cuál de los dos se aplica primero depende del orden en que React
+ * ejecuta los efectos de dos componentes hermanos --la cabecera y la portada--
+ * y eso no es un contrato del que deba depender el destino del lector. En vez
+ * de competir por ese orden, esta corrección se aplica dos veces: en el frame
+ * asentado y en el siguiente. Si el vecino llegó después, la segunda pasada lo
+ * deshace; si llegó antes, la segunda pasada no hace nada.
+ *
+ * Y NO PUEDE ARREBATARLE EL SCROLL A NADIE, porque la condición de la segunda
+ * pasada no es "la página se movió" sino "la página está EXACTAMENTE donde el
+ * aterrizaje en el fragmento la habría dejado". Un gesto humano no acaba en
+ * ese píxel; el `scrollIntoView` del vecino sí, por construcción. La guarda de
+ * intención humana del programador compartido cubre la ventana grande (los
+ * ~200 ms hasta el frame asentado); esto cubre el único frame que queda
+ * después de ella.
+ */
+function applyReadingOffset(offset: ReadingOffset): void {
+  const target = readingOffsetScrollY(offset);
+  if (target === null) return;
+  if (Math.abs(target - window.scrollY) >= READING_OFFSET_EPSILON_PX) {
+    window.scrollTo({ top: target, behavior: "instant" });
+  }
+  if (typeof window.requestAnimationFrame !== "function") return;
+  window.requestAnimationFrame(() => {
+    const el = document.getElementById(offset.id);
+    if (el === null) return;
+    const inicio = fragmentLandingScrollY(el);
+    if (Math.abs(window.scrollY - inicio) >= READING_OFFSET_EPSILON_PX) return;
+    const segundo = readingOffsetScrollY(offset);
+    if (segundo === null) return;
+    if (Math.abs(segundo - window.scrollY) < READING_OFFSET_EPSILON_PX) return;
+    window.scrollTo({ top: segundo, behavior: "instant" });
+  });
+}
+
+/**
+ * El destino en coordenadas de documento, medido AHORA. `null` si la sección
+ * que nombra la URL no existe en la rama montada -- que es un estado legítimo,
+ * no un error: el fragmento puede pertenecer a un elemento que solo monta una
+ * de las dos ramas de tema.
+ *
+ * `behavior: "instant"` en quien llama, nunca `"auto"`: esto es una corrección
+ * de colocación, y `"auto"` resolvería al `scroll-behavior: smooth` global de
+ * `GlobalStyles.tsx` -- un viaje animado de miles de píxeles, que es el defecto
+ * que la Task 17 midió y retiró.
+ */
+function readingOffsetScrollY(offset: ReadingOffset): number | null {
+  const el = document.getElementById(offset.id);
+  if (el === null) return null;
+  const rect = el.getBoundingClientRect();
+  return readingOffsetTarget({
+    sectionTopDoc: rect.top + window.scrollY,
+    sectionHeight: rect.height,
+    ratio: offset.ratio,
+    viewportHeight: window.innerHeight,
+  });
+}
+
+/**
+ * Una sola vez por DOCUMENTO, y por eso vive en el módulo y no en un `useRef`:
+ * este componente se monta dos o tres veces a la vez (la barra, la hoja móvil,
+ * y cualquier cabecera que lo incluya), y las tres compartirían el mismo punto
+ * de lectura de la URL. Mismo patrón y mismo porqué que `restorationConsumed`
+ * en `useReloadLanding.ts`: una variable de módulo dura exactamente lo que
+ * dura el documento, y una carga nueva trae un módulo nuevo.
+ */
+let readingOffsetConsumed = false;
+
+/**
+ * Reinicia el guard de módulo. EXISTE SOLO PARA LOS CANDADOS, igual que
+ * `resetReadingRestorationForTests` (`useReloadLanding.ts`) y con el mismo
+ * aviso: en el sitio real un documento nuevo trae un módulo nuevo y esta
+ * función no haría falta, pero jsdom reutiliza el módulo entre los casos de un
+ * mismo fichero de test.
+ */
+export function resetLanguageReadingOffsetForTests(): void {
+  readingOffsetConsumed = false;
+}
+
+/**
+ * Consume el punto de lectura de la URL de llegada.
+ *
+ * ESPERA A LA RAMA EFECTIVA con el mecanismo compartido y no con uno propio
+ * (`branchSettledCorrection.ts`): bajo `output: "export"` el primer render es
+ * siempre la rama clara, así que medir la geometría de la sección antes de que
+ * monte la rama que va a quedarse daría un destino calculado sobre un
+ * documento que ya no existe -- el defecto que ese módulo documenta con sus
+ * cifras. La guarda de intención humana viene con él: si el lector se pone a
+ * desplazar mientras tanto, esta corrección no llega a aplicarse nunca.
+ *
+ * EL FRAGMENTO Y EL PARÁMETRO SE LEEN UNA SOLA VEZ, en la primera pasada del
+ * efecto, por el mismo motivo que `useFragmentLanding` captura su hash una
+ * sola vez: un cambio de tema media hora después no puede volver a mandar al
+ * lector al punto de lectura de la carga.
+ */
+function useReadingOffsetLanding(branchKey: string): void {
+  const offsetRef = useRef<ReadingOffset | null | undefined>(undefined);
+  const finishedRef = useRef(false);
+
+  useEffect(() => {
+    if (offsetRef.current === undefined) {
+      offsetRef.current = parseReadingOffset(
+        window.location.search,
+        window.location.hash,
+      );
+    }
+    const offset = offsetRef.current;
+    if (offset === null || finishedRef.current || readingOffsetConsumed) return;
+    if (!isMountedBranchEffective(branchKey)) return;
+
+    return scheduleBranchSettledCorrection({
+      settleMs: FRAGMENT_LANDING_SETTLE_MS,
+      onFinish: () => {
+        finishedRef.current = true;
+        readingOffsetConsumed = true;
+      },
+      apply: () => {
+        applyReadingOffset(offset);
+      },
+    });
+  }, [branchKey]);
+}
+
+/**
+ * La URL del otro idioma CON el punto de lectura, o `null` si esta pulsación no
+ * puede refinarse y hay que dejar que el enlace navegue a su `href` de siempre.
+ *
+ * Se exige que el ancla medida ahora sea la MISMA sección que el `href` ya
+ * anunciaba. No es prudencia: son dos módulos con conjuntos de candidatas
+ * distintos a propósito -- `useActiveSectionKey` solo mira las secciones de la
+ * navegación y contesta `null` en el hero, mientras que `captureReadingAnchor`
+ * mira toda `section[id]` de primer nivel para poder anclar también ahí (los
+ * dos lo declaran en sus docblocks). Con el lector en el hero, el primero dice
+ * `null` y el segundo diría `hero`: componer la URL con lo que diga el segundo
+ * convertiría un enlace que hoy lleva a la portada del otro idioma en un salto
+ * a una sección. Si no coinciden, no se refina.
+ */
+function refinedLanguageHref(
+  path: string,
+  sectionId: string | null,
+): string | null {
+  if (sectionId === null) return null;
+  const anchor = captureReadingAnchor();
+  if (anchor === null || anchor.id !== sectionId) return null;
+  const ratio = readingOffsetRatio(anchor);
+  if (ratio === null) return null;
+  return languageHref(path, sectionId, ratio);
+}
+
+/**
+ * El único punto donde este componente navega por su cuenta, y solo para
+ * añadir al destino algo que el `href` no puede llevar: el punto de lectura,
+ * que solo existe en el instante del click (ver el docblock de
+ * `languageHref`).
+ *
+ * SE RESPETA TODO LO QUE NO ES UNA PULSACIÓN NORMAL. Un click con botón
+ * secundario o con modificador (abrir en pestaña nueva, en ventana nueva,
+ * descargar) no se toca: ahí el navegador usa el ATRIBUTO `href`, que sigue
+ * siendo el destino honesto de siempre --la misma página en el otro idioma, en
+ * la sección que se está leyendo-- y esa persona ha pedido explícitamente otra
+ * cosa que el resto de la sesión. La pulsación con teclado SÍ pasa por aquí:
+ * un `Enter` sobre un enlace enfocado despacha un evento `click` normal.
+ *
+ * EL CONTRATO CON `next/link`, comprobado en su fuente y no supuesto
+ * (`node_modules/next/dist/client/app-dir/link.js`: llama al `onClick` del
+ * consumidor y, justo después, `if (e.defaultPrevented) return;` antes de
+ * navegar). Por eso basta con `preventDefault()` para que el enlace se aparte.
+ * Y SI ALGÚN DÍA DEJARA DE CUMPLIRSE, la degradación es la correcta: se
+ * navegaría al `href` sin fracción, es decir al inicio de la sección, que es
+ * exactamente lo que este sitio hacía antes de esta entrega.
+ *
+ * `window.location.assign` y no el router: el salto entre idiomas es una
+ * navegación de DOCUMENTO completo de todas formas --`/` y `/en` cuelgan de
+ * dos raíces distintas desde el 2026-09-06 (`app/(es)/layout.tsx` y
+ * `app/en/layout.tsx`), así que el App Router no puede hacerla de cliente--,
+ * y es además el mecanismo que este repo ya usa para navegar desde código
+ * (`Contact.tsx`). Nada se pierde y el destino queda en la barra de
+ * direcciones, copiable y compartible, igual que el del atributo.
+ */
+function handleLanguageClick(
+  event: MouseEvent<HTMLAnchorElement>,
+  path: string,
+  sectionId: string | null,
+): void {
+  if (event.defaultPrevented || event.button !== 0) return;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const refined = refinedLanguageHref(path, sectionId);
+  if (refined === null) return;
+  event.preventDefault();
+  window.location.assign(refined);
 }
 
 /*
@@ -352,6 +744,13 @@ export function languageHref(path: string, sectionId: string | null): string {
 export function LanguageSelector(): ReactElement {
   const { t, i18n } = useTranslation("common");
   const pathname = usePathname();
+  const { themeName } = useTheme();
+
+  /* La otra mitad del punto de lectura: esta es la que lo CONSUME al llegar.
+     Vive aquí y no en un hook propio junto a `useFragmentLanding` porque el
+     fichero que promete el destino es el que tiene que cumplirlo -- y porque
+     este componente es el único que se monta en las dos puntas del viaje. */
+  useReadingOffsetLanding(themeName);
 
   /* Una ruta no reconocida (la URL rota que sirve la 404) no pertenece a
      ninguna página del sitio: desde ahí, el selector lleva a la portada del
@@ -377,13 +776,15 @@ export function LanguageSelector(): ReactElement {
     >
       {LANGUAGES.map((lng: Locale) => {
         const active = i18n.language === lng;
+        const path = routePath(routeKey, lng);
         return (
           <ScLanguageButton
             key={lng}
-            href={languageHref(
-              routePath(routeKey, lng),
-              active ? null : readingSection,
-            )}
+            href={languageHref(path, active ? null : readingSection)}
+            onClick={(event) => {
+              if (active) return;
+              handleLanguageClick(event, path, readingSection);
+            }}
             prefetch={false}
             hrefLang={lng}
             lang={lng}
