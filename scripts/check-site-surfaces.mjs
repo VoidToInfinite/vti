@@ -661,6 +661,7 @@ export const CHECKS = [
     "volver-arriba-vuelve-arriba",
     "conmutar-el-tema-no-congela-la-pagina",
     "atras-restituye-el-documento-de-la-url",
+    "punto-de-lectura-de-la-url-es-de-un-solo-uso",
 ];
 
 /**
@@ -4676,6 +4677,622 @@ export async function mideAtras(browser, base, theme, gesto) {
     }
 }
 
+/**
+ * FAMILIA VEINTISIETE, `punto-de-lectura-de-la-url-es-de-un-solo-uso`: entra el
+ * 2026-09-08 con el P1 de la critica externa #21, y es la clase de comprobacion
+ * que a este candado le faltaba -- la de una instruccion que la URL LLEVA y que
+ * hay que GASTAR. Las veintiseis familias anteriores miden lo que el sitio hace
+ * en una carga; ninguna vuelve a cargar la MISMA URL para preguntar si la
+ * segunda carga se comporta como la primera. La familia veinte
+ * (`recarga-conserva-la-seccion`) si recarga, pero sobre la portada pelada, que
+ * es justo la combinacion en la que este defecto NO aparece.
+ *
+ * EL DEFECTO, medido con esta misma sonda sobre el build de `e8782f6` (Chrome
+ * real sin ventana, 1440x900, tema claro, `/` -> clic REAL en el enlace de
+ * ingles con el lector dentro de `#features`):
+ *
+ *   llegada a `/en?read=0.517#features`      y = 3.878
+ *   el lector se va a leer a otro sitio      y = 5.578
+ *   F5                                       y = 3.878   (pierde 1.700 px)
+ *
+ * Y el control que lo convierte en defecto y no en diseno, mismo build y misma
+ * sonda sobre la portada pelada: el lector vuelve a su sitio con 0 px de
+ * deriva. En `/en` la cifra es la misma con otro origen (5.628 -> 3.928).
+ *
+ * LAS SEIS AFIRMACIONES, y por que hacen falta las seis:
+ *
+ *   1. LA LLEGADA SIGUE APLICANDO EL PUNTO DE LECTURA. Es el P1 de la critica
+ *      #20, cerrado el 2026-09-07: sin esta afirmacion, la forma mas barata de
+ *      poner el resto en verde es dejar de componer la URL, que cambia un
+ *      defecto por otro. Se afirma como FRACCION y no como pixeles porque la
+ *      seccion no mide lo mismo en los dos idiomas -- que es justamente por lo
+ *      que en la URL viaja una fraccion.
+ *   2. LA RECARGA RESTITUYE AL LECTOR, no la instruccion de la URL. Es el
+ *      hallazgo.
+ *   3. EL ENLACE SIGUE SIENDO COMPARTIBLE: abierto EN FRIO, en un contexto
+ *      nuevo y sin nada guardado, aterriza donde estaba quien lo mando. Sin
+ *      esto, "consumir la instruccion" se podria aprobar no aplicandola nunca.
+ *   4. EL BOTON ATRAS SIGUE LLEVANDO A LA PAGINA DE PARTIDA. La limpieza usa
+ *      `replaceState`, que no crea entradas; esta afirmacion es la que impide
+ *      que alguien la cambie por un `pushState` y se lleve por delante el
+ *      «atras».
+ *   5. LOS VALORES HOSTILES NO DEJAN AL LECTOR EN UN SITIO SIN CORRESPONDENCIA.
+ *      La URL la escribe cualquiera: se prueban seis valores que el sitio NO
+ *      genera -- fuera de rango por los dos lados, texto, vacio, sin fragmento
+ *      y con un fragmento a una seccion inexistente -- y se exige que la
+ *      seccion que la URL nombra este EN PANTALLA al acabar, o que la pagina no
+ *      se haya movido cuando no nombra ninguna que exista.
+ *   6. LA LIMPIEZA NO PISA EL SELLO DE HISTORIAL del mismo dia (frente U2,
+ *      `useHashHistorySeal.ts`), y se AFIRMA en vez de suponerse porque los dos
+ *      arreglos escriben en `history` en la misma carga: la entrada sigue
+ *      sellada (`history.state?.__NA`) despues de la llegada, y el documento no
+ *      recibe NI UN `hashchange` -- que es la unica via por la que el sello se
+ *      despierta, y la que probaria que retirar el fragmento con `replaceState`
+ *      lo hace disparar.
+ *
+ * LO QUE ESTA FAMILIA NO AFIRMA, a proposito: que la URL quede limpia. Eso es
+ * el REMEDIO, no la propiedad, y vigilar el remedio es lo que deja pasar la
+ * siguiente forma del mismo defecto (misma leccion que el sello de U2). La URL
+ * de despues se reporta como DATO para poder leerla en el informe, y el
+ * veredicto no la mira.
+ *
+ * LA URL COMPARTIBLE SE CAPTURA EN EL ARRANQUE DEL DOCUMENTO (`addInitScript`),
+ * no leyendo la barra de direcciones despues: con el arreglo puesto la
+ * instruccion se consume unos cientos de milisegundos tras la llegada, asi que
+ * leerla mas tarde seria una carrera y parte de las corridas mediria la URL ya
+ * limpia. Lo que se guarda es la URL con la que el navegador CARGO el
+ * documento, que es exactamente la que copiaria quien quisiera compartirla.
+ *
+ * EL PUNTO DESDE EL QUE SE PULSA NO ES UNA CONSTANTE, Y ESO SE PAGO MIDIENDO:
+ * la primera version de esta familia colocaba al lector al 85 % de `#features`
+ * en los dos temas. En claro funciona; en OSCURO ese punto cae en `y = 9.328`
+ * de un documento de 11.008 px --a 780 px del final-- y ademas la seccion que
+ * el sitio ancla ahi ya no es `#features` sino `#contact`, a solo el 16 % de
+ * su alto. Con eso, "restituye al lector" y "vuelve al punto de la URL" caen a
+ * menos de una pantalla y el verde no distinguiria uno de otro. El punto se
+ * ELIGE ahora recorriendo el documento y midiendo la geometria
+ * (`eligeElPuntoDeLectura`), y el alejamiento del lector se hace hacia el lado
+ * que tenga sitio.
+ */
+
+/**
+ * La banda de la seccion dentro de la que tiene que caer el punto de lectura
+ * elegido. El suelo, 0.3, es lo que separa "conserva el punto" de "aterriza en
+ * el inicio de la seccion" --el defecto de la critica #20--, que a media
+ * seccion se parecerian demasiado; el techo, 0.85, deja sitio por debajo para
+ * que la seccion siga conteniendo el centro del viewport.
+ */
+export const FRACCION_MINIMA_DE_LECTURA = 0.3;
+export const FRACCION_MAXIMA_DE_LECTURA = 0.85;
+
+/**
+ * Paso con el que se recorre el documento buscando ese punto. 50 px es medio
+ * escalon de `WIDTH_SWEEP` en la otra dimension y, sobre un documento de 11.008
+ * px, 220 posiciones: barato y mas fino que cualquier seccion del sitio.
+ */
+export const PASO_DE_BUSQUEDA_PX = 50;
+
+/**
+ * Las anclas desde las que el sitio NO compone una URL con punto de lectura, y
+ * que por tanto no son candidatas. Es UNA y esta declarada en el codigo que se
+ * mide, no adivinada: `useActiveSectionKey` solo mira las secciones de la
+ * navegacion (`src/config/navigation.ts`: story, journey, features, contact,
+ * about) y devuelve `null` en el hero, asi que desde ahi el enlace de idioma
+ * lleva a la portada del otro idioma sin fragmento -- a proposito, y con su
+ * porque escrito en el docblock de `refinedLanguageHref`. Elegir el hero como
+ * punto de partida daria un gesto que no compone ninguna instruccion, y el caso
+ * moriria por su guarda de vacuidad en vez de medir.
+ */
+export const SECCIONES_SIN_PUNTO_DE_LECTURA = ["hero"];
+
+/** Cuanto tiene que haber avanzado el lector DENTRO de la seccion que el sitio
+ *  acaba anclando para que el gesto valga. Por debajo de esto, conservar el
+ *  punto y aterrizar en el inicio de la seccion serian el mismo pixel y el
+ *  verde seria vacuo. Cuatro veces la banda del navbar, que es del orden del
+ *  desfase que un `scrollIntoView` consume (`NAV_BAND_PX` x 2 = 128 px). */
+export const PROFUNDIDAD_MINIMA_PX = 400;
+
+/** Cuanto se aleja el lector del punto de llegada antes de recargar. 1.700 px
+ *  es casi dos viewports: por debajo de uno, "restituye al lector" y "vuelve al
+ *  punto de la URL" podrian caer dentro de la misma pantalla. Se aplica hacia
+ *  el lado que tenga sitio, y si ninguno lo tiene el caso se declara vacuo en
+ *  vez de firmarse. */
+export const ALEJAMIENTO_DEL_LECTOR_PX = 1700;
+
+/** Separacion minima que tiene que haber DE VERDAD entre el punto de llegada y
+ *  el del lector para que el veredicto de la recarga signifique algo. */
+export const SEPARACION_MINIMA_PX = 1000;
+
+/** Lo que se le tolera a la fraccion entre el documento de partida y el de
+ *  llegada. No es holgura de medida: la fraccion se multiplica por un alto
+ *  DISTINTO en el otro idioma y `readingOffsetTarget` la recorta contra los
+ *  bordes de la seccion, asi que un cero exacto no es alcanzable. 0.05 de una
+ *  seccion de 1.320 px son 66 px, del orden de la banda del navbar. */
+export const DERIVA_MAXIMA_DE_FRACCION = 0.05;
+
+/** La seccion sobre la que se prueban los valores hostiles. Se elige fija y no
+ *  por geometria porque aqui no hay gesto que montar: solo hace falta un
+ *  fragmento que exista en las dos ramas de tema, y este existe (medido: top
+ *  128 en claro y en oscuro tras el aterrizaje del fragmento). Que siga
+ *  existiendo lo dice la guarda de vacuidad del propio caso. */
+export const SECCION_HOSTIL = "features";
+
+/**
+ * Los valores que el sitio NO genera nunca, con el porque de cada uno. El
+ * criterio de la ronda pedia tratar el parametro como entrada hostil, y estas
+ * seis son las seis formas en que puede llegar roto:
+ *
+ *   `-9`    fuera de rango por abajo. El sitio SI genera negativos pequenos
+ *           (docblock de `readingOffsetRatio`: la seccion empieza por debajo
+ *           del borde superior de la pantalla), asi que lo que decide es el
+ *           rango, no el signo.
+ *   `2`     fuera de rango por arriba.
+ *   `hola`  no es un numero.
+ *   vacio   presente y sin valor.
+ *   `0.5` sin fragmento: una fraccion sin seccion a la que aplicarse.
+ *   `0.5` con una seccion que no existe en ninguna rama.
+ */
+export const VALORES_HOSTILES = [
+    { id: "fuera-por-abajo", consulta: "read=-9", fragmento: SECCION_HOSTIL },
+    { id: "fuera-por-arriba", consulta: "read=2", fragmento: SECCION_HOSTIL },
+    { id: "no-es-numero", consulta: "read=hola", fragmento: SECCION_HOSTIL },
+    { id: "vacio", consulta: "read=", fragmento: SECCION_HOSTIL },
+    { id: "sin-fragmento", consulta: "read=0.5", fragmento: null },
+    {
+        id: "seccion-inexistente",
+        consulta: "read=0.5",
+        fragmento: "seccion-que-no-existe-candado-u4",
+    },
+];
+
+/**
+ * Lo que se lee en la pagina para esta familia. `id` puede ser `null`: hay
+ * casos hostiles que no nombran ninguna seccion.
+ *
+ * `secciones` lleva TODAS las anclas de primer nivel y no solo la nombrada,
+ * porque cual de ellas viaja en la URL lo decide el sitio en el instante del
+ * clic y esta sonda no lo sabe hasta despues. El filtro de primer nivel es el
+ * mismo criterio que `isTopLevelSectionAnchor` (`themeScrollAnchor.ts`)
+ * -- reescrito aqui, no importado: una sonda que use el codigo que juzga no
+ * prueba nada.
+ */
+export function probePuntoDeLectura(id) {
+    const anclas = [...document.querySelectorAll("section[id]")].filter(
+        (el) =>
+            el.parentElement === null ||
+            el.parentElement.closest("section[id]") === null,
+    );
+    const caja = (el) => {
+        const r = el.getBoundingClientRect();
+        return {
+            id: el.id,
+            top: Math.round(r.top),
+            bottom: Math.round(r.bottom),
+            topDoc: Math.round(r.top + window.scrollY),
+            alto: Math.round(r.height),
+        };
+    };
+    const nombrada = id ? document.getElementById(id) : null;
+    return {
+        y: Math.round(window.scrollY),
+        alto: document.documentElement.scrollHeight,
+        vh: window.innerHeight,
+        url: location.pathname + location.search + location.hash,
+        urlDeCarga: window.__u4carga ?? null,
+        hashchanges: window.__u4hashchanges ?? null,
+        sellada: window.history.state?.__NA === true,
+        pathname: location.pathname,
+        secciones: anclas.map(caja),
+        seccion: nombrada === null ? null : caja(nombrada),
+    };
+}
+
+/** La caja de una seccion dentro de una instantanea, o `null` si esa rama no la
+ *  monta. */
+export function seccionDe(instantanea, id) {
+    return (instantanea.secciones ?? []).find((s) => s.id === id) ?? null;
+}
+
+/** La fraccion de la seccion que el lector tiene por encima del borde superior
+ *  de la pantalla, que es exactamente lo que el sitio hace viajar en la URL
+ *  (`readingOffsetRatio`). `null` cuando esa seccion no esta o no mide nada. */
+export function fraccionLeida(instantanea, id) {
+    const s = seccionDe(instantanea, id);
+    if (s === null || !(s.alto > 0)) return null;
+    return (instantanea.y - s.topDoc) / s.alto;
+}
+
+/**
+ * Elige DESDE DONDE se va a pulsar el otro idioma, midiendo la geometria en vez
+ * de dar por buena una seccion escrita a mano. Pura y exportada para que el
+ * test companero pueda ejercitarla sin navegador.
+ *
+ * SE BUSCA SOBRE EL DOCUMENTO Y NO SOBRE LA LISTA DE SECCIONES, y esto se pago
+ * midiendo: en el tema oscuro las anclas SE SOLAPAN (medido sobre el build de
+ * `e8782f6`, 1440x900: story 900-4950, journey 4050-9000, features 8100-10074,
+ * contact 9174-10123), asi que colocar el centro a una fraccion FIJA del alto
+ * de cada seccion caia siempre dentro de la SIGUIENTE, cerca de su inicio: las
+ * seis candidatas del tema oscuro daban profundidades de -292, -157, 45, 154,
+ * 315 y 357 px, ninguna util. Recorriendo el documento con paso fino, la
+ * primera posicion valida del tema oscuro esta en `#story` y la del claro
+ * tambien, con profundidades de sobra.
+ *
+ * Para cada posicion se mira que seccion CONTIENE el centro del viewport, con
+ * el mismo criterio del sitio --la ultima en orden de documento gana, que es lo
+ * que hace `readingAnchorSectionId`--, y se acepta la primera cuya profundidad
+ * llegue a `PROFUNDIDAD_MINIMA_PX`, cuya fraccion caiga en la banda de lectura
+ * y desde la que el lector todavia pueda alejarse. Devuelve `null` si ninguna
+ * lo consigue, y entonces el caso se declara vacuo en vez de firmarse.
+ */
+export function eligeElPuntoDeLectura(secciones, vh, alto) {
+    const fondo = Math.max(0, alto - vh);
+    for (let y = 0; y <= fondo; y += PASO_DE_BUSQUEDA_PX) {
+        const centro = y + vh / 2;
+        let anclada = null;
+        for (const s of secciones) {
+            if (s.topDoc <= centro && centro < s.topDoc + s.alto) anclada = s;
+        }
+        if (anclada === null) continue;
+        if (SECCIONES_SIN_PUNTO_DE_LECTURA.includes(anclada.id)) continue;
+        if (!(anclada.alto > 0)) continue;
+        const profundidad = y - anclada.topDoc;
+        const fraccion = profundidad / anclada.alto;
+        if (profundidad < PROFUNDIDAD_MINIMA_PX) continue;
+        if (
+            fraccion < FRACCION_MINIMA_DE_LECTURA ||
+            fraccion > FRACCION_MAXIMA_DE_LECTURA
+        )
+            continue;
+        if (alejaAlLector(y, alto, vh) === null) continue;
+        return { anclada: anclada.id, y, profundidad, fraccion };
+    }
+    return null;
+}
+
+/**
+ * A donde se va el lector antes de recargar: hacia abajo si hay sitio, y si no
+ * hacia arriba. `null` si el documento no da para alejarse lo suficiente en
+ * ninguno de los dos sentidos, y entonces el caso se declara vacuo.
+ */
+export function alejaAlLector(y, alto, vh) {
+    const fondo = Math.max(0, alto - vh);
+    if (y + ALEJAMIENTO_DEL_LECTOR_PX <= fondo)
+        return y + ALEJAMIENTO_DEL_LECTOR_PX;
+    if (y - ALEJAMIENTO_DEL_LECTOR_PX >= 0)
+        return y - ALEJAMIENTO_DEL_LECTOR_PX;
+    return null;
+}
+
+/** El fragmento de una URL relativa, sin la almohadilla, o `null`. */
+export function fragmentoDe(url) {
+    const i = (url ?? "").indexOf("#");
+    return i === -1 || i === url.length - 1 ? null : url.slice(i + 1);
+}
+
+/**
+ * EL VEREDICTO, puro y por eso ejercitable desde el test companero sin
+ * navegador. Las guardas de vacuidad van PRIMERO y CORTAN: un caso que no se
+ * llego a montar no puede firmarse ni en verde ni en rojo por el sitio.
+ */
+export function evaluaPuntoDeLectura(medida) {
+    if (medida.instrumento)
+        return { cumple: false, vacuo: true, motivos: [medida.instrumento] };
+
+    const { llegada, lector, recarga, frio, atras, hostiles } = medida;
+    const vacuo = (motivo) => ({
+        cumple: false,
+        vacuo: true,
+        motivos: [motivo],
+    });
+
+    /* --- guardas de vacuidad */
+    const anclada = fragmentoDe(llegada.urlDeCarga);
+    if (!/[?&]read=/.test(llegada.urlDeCarga ?? "") || anclada === null)
+        return vacuo(
+            `la URL con la que se cargo el documento de llegada no es la instruccion que esta familia vigila (${llegada.urlDeCarga}): el gesto no llego a componerla`,
+        );
+    const fracOrigen = fraccionLeida(medida.origen, anclada);
+    const fracLlegada = fraccionLeida(llegada, anclada);
+    if (fracOrigen === null || fracLlegada === null)
+        return vacuo(
+            `la seccion #${anclada} que viajo en la URL no se pudo medir en una de las dos puntas del viaje: sin ella no hay punto de lectura que comparar`,
+        );
+    const profundidad =
+        medida.origen.y - seccionDe(medida.origen, anclada).topDoc;
+    if (profundidad < PROFUNDIDAD_MINIMA_PX)
+        return vacuo(
+            `al pulsar el idioma el lector llevaba ${profundidad} px dentro de #${anclada} (minimo ${PROFUNDIDAD_MINIMA_PX}): a esa profundidad "conserva el punto" y "aterriza en el inicio de la seccion" no se distinguen`,
+        );
+    const separacion = Math.abs(lector.y - llegada.y);
+    if (separacion < SEPARACION_MINIMA_PX)
+        return vacuo(
+            `el lector solo se alejo ${separacion} px del punto de llegada (minimo ${SEPARACION_MINIMA_PX}): a esa distancia "restituye al lector" y "vuelve al punto de la URL" no se distinguen`,
+        );
+
+    const motivos = [];
+
+    /* --- 1. la llegada sigue aplicando el punto de lectura */
+    const derivaFraccion = Math.abs(fracLlegada - fracOrigen);
+    if (derivaFraccion > DERIVA_MAXIMA_DE_FRACCION)
+        motivos.push(
+            `cambiar de idioma ya no conserva el punto de lectura: se leia la fraccion ${fracOrigen.toFixed(3)} de #${anclada} y se aterriza en la ${fracLlegada.toFixed(3)} (deriva ${derivaFraccion.toFixed(3)}, maximo ${DERIVA_MAXIMA_DE_FRACCION})`,
+        );
+
+    /* --- 2. la recarga restituye al LECTOR */
+    const derivaRecarga = Math.abs(recarga.y - lector.y);
+    if (derivaRecarga > DERIVA_MAXIMA_DE_RECARGA_PX)
+        motivos.push(
+            `tras la llegada, recargar no devuelve al lector donde estaba: leia en y=${lector.y} y la recarga lo deja en y=${recarga.y} (deriva ${derivaRecarga} px, maximo ${DERIVA_MAXIMA_DE_RECARGA_PX}); el punto de llegada era y=${llegada.y}, asi que la URL se esta volviendo a aplicar en cada carga`,
+        );
+
+    /* --- 3. el enlace compartido en frio */
+    const derivaFrio = Math.abs(frio.y - llegada.y);
+    if (derivaFrio > DERIVA_MAXIMA_DE_RECARGA_PX)
+        motivos.push(
+            `el enlace compartido abierto en frio no aterriza donde estaba quien lo mando: y=${frio.y} frente a y=${llegada.y} (deriva ${derivaFrio} px, maximo ${DERIVA_MAXIMA_DE_RECARGA_PX})`,
+        );
+
+    /* --- 4. el atras */
+    if (atras.pathname !== medida.partida)
+        motivos.push(
+            `el boton atras ya no vuelve a la pagina desde la que se cambio de idioma: se esperaba ${medida.partida} y la URL dice ${atras.pathname || "sin medir"}`,
+        );
+
+    /* --- 6. el sello de historial del frente U2 */
+    if (llegada.sellada !== true)
+        motivos.push(
+            "tras la llegada la entrada de historial no esta sellada (history.state.__NA no es cierto): volver a ella con el boton atras dejaria en pantalla el documento anterior",
+        );
+    if (llegada.hashchanges !== 0)
+        motivos.push(
+            `la llegada disparo ${llegada.hashchanges} evento(s) hashchange: retirar el fragmento esta despertando al sello de historial, que no es su cometido`,
+        );
+
+    /* --- 5. los valores hostiles */
+    let hostilesConSeccion = 0;
+    for (const h of hostiles) {
+        if (h.instrumento) {
+            motivos.push(h.instrumento);
+            continue;
+        }
+        const nombra = h.fragmento ? `#${h.fragmento}` : "";
+        if (h.seccion === null) {
+            if (h.y > 1)
+                motivos.push(
+                    `con \`?${h.consulta}${nombra}\` la pagina acaba en y=${h.y} sin que exista la seccion nombrada: el lector queda en un punto que no se corresponde con nada de la URL`,
+                );
+            continue;
+        }
+        hostilesConSeccion += 1;
+        if (!(h.seccion.top < h.vh && h.seccion.bottom > 0))
+            motivos.push(
+                `con \`?${h.consulta}${nombra}\` la seccion que la URL nombra no llega a verse (top ${h.seccion.top}, bottom ${h.seccion.bottom}, viewport ${h.vh}): el valor hostil deja al lector en un sitio sin correspondencia en vez de ignorarse`,
+            );
+    }
+    /* Guarda de vacuidad del bloque hostil: si la seccion sobre la que se
+       prueban dejara de existir, los cuatro casos que la nombran caerian en la
+       rama de "no existe" y pasarian en verde sin haber medido nada. */
+    if (hostilesConSeccion === 0)
+        motivos.push(
+            `ninguno de los ${hostiles.length} valores hostiles encontro la seccion #${SECCION_HOSTIL}: se prueban contra una seccion que ya no existe y su verde seria vacuo`,
+        );
+
+    return { cumple: motivos.length === 0, vacuo: false, motivos };
+}
+
+/**
+ * Conduce el navegador para esta familia entera y devuelve lo que
+ * `evaluaPuntoDeLectura` necesita. Exportada para poder ejercitarla SOLA contra
+ * un build servido, sin recorrer las ocho superficies (la corrida completa pasa
+ * de diez minutos por tema), igual que `mideAtras`.
+ */
+export async function midePuntoDeLectura(browser, base, theme, surface) {
+    const otro = surface.locale === "es" ? "en" : "es";
+    const partida = surface.path;
+    const destino = otro === "en" ? HOME_DOC.en : HOME_DOC.es;
+
+    async function contexto() {
+        const ctx = await nuevoContexto(browser, theme);
+        await ctx.addInitScript(() => {
+            window.__u4carga =
+                location.pathname + location.search + location.hash;
+            window.__u4hashchanges = 0;
+            window.addEventListener("hashchange", () => {
+                window.__u4hashchanges += 1;
+            });
+        });
+        return ctx;
+    }
+
+    const vacio = {
+        y: 0,
+        alto: 0,
+        vh: 0,
+        url: "",
+        urlDeCarga: "",
+        hashchanges: null,
+        sellada: false,
+        pathname: "",
+        secciones: [],
+        seccion: null,
+    };
+    const medida = {
+        partida,
+        destino,
+        eleccion: null,
+        origen: vacio,
+        llegada: vacio,
+        lector: { y: 0 },
+        recarga: vacio,
+        frio: vacio,
+        atras: vacio,
+        hostiles: [],
+        instrumento: null,
+    };
+
+    /* --- el viaje: colocar al lector, pulsar el otro idioma, alejarse, F5 */
+    let ctx = await contexto();
+    try {
+        const page = await ctx.newPage();
+        await page.goto(`${base}${partida}`, { waitUntil: "networkidle" });
+        await page.waitForTimeout(2200);
+        const antes = await page.evaluate(probePuntoDeLectura, null);
+        const eleccion = eligeElPuntoDeLectura(
+            antes.secciones,
+            antes.vh,
+            antes.alto,
+        );
+        medida.eleccion = eleccion;
+        if (eleccion === null) {
+            medida.instrumento = `ninguna posicion del documento de ${partida} (tema ${theme}, ${antes.alto} px, ${antes.secciones.length} anclas) deja al lector a ${PROFUNDIDAD_MINIMA_PX} px del inicio de la seccion anclada dentro de la banda de lectura y con sitio para alejarse: el gesto de esta familia no se pudo montar`;
+            return medida;
+        }
+        await page.evaluate(
+            (y) => window.scrollTo({ top: y, behavior: "instant" }),
+            eleccion.y,
+        );
+        await page.waitForTimeout(700);
+        medida.origen = await page.evaluate(probePuntoDeLectura, null);
+
+        /* CLIC REAL sobre el enlace del otro idioma, y por `hreflang` y no por
+           `href`: el selector reescribe su `href` en caliente desde la ola T
+           para llevarse el punto de lectura (leccion del frente U2). Se filtra
+           por caja visible porque la barra de escritorio y la hoja movil montan
+           los dos controles a la vez. */
+        const enlace = await primeroVisible(page, `a[hreflang="${otro}"]`);
+        if (!enlace) {
+            medida.instrumento = `no hay ningun enlace de idioma visible a "${otro}" en ${partida}: el gesto de esta familia no se pudo hacer`;
+            return medida;
+        }
+        await enlace.click();
+        await page
+            .waitForFunction(
+                (esperada) => location.pathname === esperada,
+                destino,
+                { polling: 100, timeout: 15000 },
+            )
+            .catch(() => {
+                /* la guarda de vacuidad de la URL de carga lo dira */
+            });
+        await esperaAlturaEstable(page, { tope: 8000 });
+        /* Un respiro por encima del asentamiento del alto: la correccion del
+           punto de lectura llega tras la rama efectiva mas dos frames, y con
+           ella la limpieza de la URL. */
+        await page.waitForTimeout(1200);
+        medida.llegada = await page.evaluate(probePuntoDeLectura, null);
+
+        /* El lector se va a leer a otro sitio. `scrollTo` y no rueda: lo que se
+           juzga aqui es la RECARGA, no ninguna guarda de intencion -- que a
+           estas alturas ya se solto. */
+        const objetivo = alejaAlLector(
+            medida.llegada.y,
+            medida.llegada.alto,
+            medida.llegada.vh,
+        );
+        if (objetivo === null) {
+            medida.instrumento = `el documento de llegada (${medida.llegada.alto} px) no da para alejar al lector ${ALEJAMIENTO_DEL_LECTOR_PX} px desde y=${medida.llegada.y} en ningun sentido: el caso no se pudo montar`;
+            return medida;
+        }
+        await page.evaluate(
+            (y) => window.scrollTo({ top: y, behavior: "instant" }),
+            objetivo,
+        );
+        await page.waitForTimeout(700);
+        medida.lector = await page.evaluate(probePuntoDeLectura, null);
+
+        await page.reload({ waitUntil: "networkidle" });
+        await esperaAlturaEstable(page, { tope: 8000 });
+        await page.waitForTimeout(1200);
+        medida.recarga = await page.evaluate(probePuntoDeLectura, null);
+    } finally {
+        await ctx.close();
+    }
+
+    /* --- el enlace compartido, abierto EN FRIO en un contexto nuevo */
+    ctx = await contexto();
+    try {
+        const page = await ctx.newPage();
+        await page.goto(`${base}${medida.llegada.urlDeCarga}`, {
+            waitUntil: "networkidle",
+        });
+        await esperaAlturaEstable(page, { tope: 8000 });
+        await page.waitForTimeout(1200);
+        medida.frio = await page.evaluate(probePuntoDeLectura, null);
+    } finally {
+        await ctx.close();
+    }
+
+    /* --- el atras, en su propio contexto: encadenarlo tras la recarga habria
+       medido el atras de OTRA entrada --la de la recarga--, no la del cambio de
+       idioma. */
+    ctx = await contexto();
+    try {
+        const page = await ctx.newPage();
+        await page.goto(`${base}${partida}`, { waitUntil: "networkidle" });
+        await page.waitForTimeout(2200);
+        const enlace = await primeroVisible(page, `a[hreflang="${otro}"]`);
+        if (enlace) {
+            await enlace.click();
+            await page
+                .waitForFunction(
+                    (esperada) => location.pathname === esperada,
+                    destino,
+                    { polling: 100, timeout: 15000 },
+                )
+                .catch(() => {
+                    /* el veredicto lee la instantanea final y lo dira */
+                });
+            await page.waitForTimeout(1500);
+            await page.evaluate(() => window.history.back());
+            await page
+                .waitForFunction(
+                    (esperada) => location.pathname === esperada,
+                    partida,
+                    { polling: 150, timeout: VENTANA_DE_RESTITUCION_MS },
+                )
+                .catch(() => {
+                    /* idem */
+                });
+            await page.waitForTimeout(600);
+            medida.atras = await page.evaluate(probePuntoDeLectura, null);
+        }
+    } finally {
+        await ctx.close();
+    }
+
+    /* --- los valores hostiles, uno por contexto: compartir contexto dejaria la
+       posicion de lectura de uno en el `sessionStorage` del siguiente. */
+    for (const hostil of VALORES_HOSTILES) {
+        const c = await contexto();
+        try {
+            const page = await c.newPage();
+            const fragmento = hostil.fragmento ? `#${hostil.fragmento}` : "";
+            await page.goto(
+                `${base}${partida}?${hostil.consulta}${fragmento}`,
+                {
+                    waitUntil: "networkidle",
+                },
+            );
+            await esperaAlturaEstable(page, { tope: 8000 });
+            await page.waitForTimeout(1200);
+            const leido = await page.evaluate(
+                probePuntoDeLectura,
+                hostil.fragmento,
+            );
+            medida.hostiles.push({ ...hostil, ...leido });
+        } catch (error) {
+            medida.hostiles.push({
+                ...hostil,
+                instrumento: `el valor hostil ${hostil.id} no se pudo medir: ${error.message}`,
+            });
+        } finally {
+            await c.close();
+        }
+    }
+
+    return medida;
+}
+
 /** Auditoria completa de una superficie. Devuelve la lista de incumplimientos. */
 async function auditarSuperficie(browser, base, theme, surface) {
     const url = `${base}${surface.path}`;
@@ -5428,6 +6045,28 @@ async function auditarSuperficie(browser, base, theme, surface) {
         if (!veredictoSimultaneo.cumple)
             fallos.push(
                 `recargar la pagina no devuelve al visitante donde estaba con la maquina cargada: ${veredictoSimultaneo.motivo}`,
+            );
+
+        /*
+         * --- el punto de lectura de la URL es una instruccion de un solo uso
+         *
+         * MATRIZ y el porque de cada afirmacion: docblock de
+         * `SECCION_DE_LECTURA`. El gesto entero --colocar, pulsar el otro
+         * idioma, alejarse, recargar, compartir en frio, volver atras y seis
+         * valores hostiles-- vive en `midePuntoDeLectura`, que se exporta para
+         * poder ejercitar esta familia sola.
+         */
+        const lectura = await midePuntoDeLectura(browser, base, theme, surface);
+        const veredictoDeLectura = evaluaPuntoDeLectura(lectura);
+        const anclada = fragmentoDe(lectura.llegada.urlDeCarga);
+        const fracOrigen = fraccionLeida(lectura.origen, anclada);
+        const fracLlegada = fraccionLeida(lectura.llegada, anclada);
+        const cifra = (f) => (f === null ? "sin medir" : f.toFixed(3));
+        datos.puntoDeLectura = `#${anclada ?? "sin ancla"} fraccion ${cifra(fracOrigen)} -> ${cifra(fracLlegada)} | lector ${lectura.lector.y} -> recarga ${lectura.recarga.y} | frio ${lectura.frio.y} vs llegada ${lectura.llegada.y} | atras ${lectura.atras.pathname || "sin medir"} | url ${lectura.llegada.urlDeCarga} -> ${lectura.llegada.url} | sello ${lectura.llegada.sellada ? "si" : "NO"}/hashchange ${lectura.llegada.hashchanges} | hostiles ${lectura.hostiles.length}`;
+        // [check: punto-de-lectura-de-la-url-es-de-un-solo-uso]
+        if (!veredictoDeLectura.cumple)
+            fallos.push(
+                `el punto de lectura que el cambio de idioma pone en la URL no se consume: ${veredictoDeLectura.motivos.join(" | ")}`,
             );
 
         /*

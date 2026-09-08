@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, it, expect } from "vitest";
 import {
+    ALEJAMIENTO_DEL_LECTOR_PX,
     ALTO_DE_LA_BANDA_DE_CABECERA,
     ANCHOS_DEL_DECK,
     BANDA_DE_REFLOW,
@@ -16,6 +17,8 @@ import {
     DEUDA_ZOOM,
     DPRS_DEL_ARTE,
     EN_PREFIX,
+    FRACCION_MAXIMA_DE_LECTURA,
+    FRACCION_MINIMA_DE_LECTURA,
     GESTOS_DEL_CONMUTADOR,
     HOME_DOC,
     IDIOMA_HORNEADO_DE_LA_404,
@@ -34,11 +37,16 @@ import {
     PASO_DE_PISTA_PX,
     PATRON_DE_ARTE,
     PERCENTIL_DE_CONTRASTE,
+    PASO_DE_BUSQUEDA_PX,
+    PROFUNDIDAD_MINIMA_PX,
     PULSACIONES_DE_VOLVER_ARRIBA,
     RAICES_DEL_DECK,
     RATIO_MINIMO_DE_CRECIMIENTO,
     RECARGAS_SIMULTANEAS,
     REDUCES_DE_LA_CABECERA,
+    SECCIONES_SIN_PUNTO_DE_LECTURA,
+    SECCION_HOSTIL,
+    SEPARACION_MINIMA_PX,
     ROOT_FONT_BASE_PX,
     SELECTOR_FOCALIZABLE,
     SURFACES,
@@ -46,6 +54,7 @@ import {
     TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
     TOLERANCIA_DE_VUELTA_ARRIBA_PX,
     UMBRAL_DECLARADO_DE_REVELADO,
+    VALORES_HOSTILES,
     UMBRAL_DE_CONTRASTE_GRANDE,
     UMBRAL_DE_CONTRASTE_NORMAL,
     TOLERANCIA_DE_ALTO_TRAS_ATRAS,
@@ -57,6 +66,8 @@ import {
     WIDTH_SWEEP,
     ZOOM_FONT_PX,
     comparaCrecimiento,
+    alejaAlLector,
+    eligeElPuntoDeLectura,
     especificadoresDePlaywright,
     evaluaAtras,
     evaluaConmutacionDeTema,
@@ -65,9 +76,11 @@ import {
     evaluaEstadoModal,
     evaluaRecarga,
     evaluaRecargaSimultanea,
+    evaluaPuntoDeLectura,
     evaluaVueltaArriba,
     fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
+    fragmentoDe,
     gestosDeAtras,
     langEsperado,
     luminanciaRelativa,
@@ -550,6 +563,7 @@ const FAMILIAS_ESPERADAS = [
     "volver-arriba-vuelve-arriba",
     "conmutar-el-tema-no-congela-la-pagina",
     "atras-restituye-el-documento-de-la-url",
+    "punto-de-lectura-de-la-url-es-de-un-solo-uso",
 ];
 
 /**
@@ -616,7 +630,7 @@ const FAMILIAS_ESPERADAS = [
  * igualdad otra vez en VERDE sobre la lista mas corta. Restaurados los tres
  * bloques, 64/64.
  */
-const FAMILIAS_MINIMAS = 26;
+const FAMILIAS_MINIMAS = 27;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -4125,5 +4139,363 @@ describe("familia atras-restituye-el-documento-de-la-url", () => {
         /* Y la mayoria de los gestos NO son controles: si un dia lo fueran
            todos, la familia no estaria midiendo el defecto. */
         expect(todos.length - controles.length).toBeGreaterThanOrEqual(10);
+    });
+});
+
+/*
+ * FAMILIA `punto-de-lectura-de-la-url-es-de-un-solo-uso` (critica externa #21,
+ * P1, 2026-09-08). Las cifras de esta tabla NO son inventadas: son las que la
+ * sonda del frente midio sobre el build de `e8782f6` servido en local (Chrome
+ * real sin ventana, 1440x900, tema claro, clic REAL en el enlace de idioma).
+ *
+ *   paso                        SIN arreglo        CON arreglo
+ *   llegada a /en?read=…#story  y = 1.433          y = 1.433
+ *   el lector se va a leer      y = 3.133          y = 3.133
+ *   F5                          y = 1.433          y = 3.133
+ *   URL despues de la llegada   /en?read=…#story   /en
+ *
+ * Lo que este bloque prueba es el VEREDICTO y la eleccion del punto, que son
+ * puros. Que el navegador se comporte asi lo mide `midePuntoDeLectura`, y su
+ * verde vive fuera del gate por el motivo de siempre: necesita un build
+ * servido.
+ */
+describe("familia punto-de-lectura-de-la-url-es-de-un-solo-uso", () => {
+    /** Las anclas de la portada clara, medidas a 1440x900. */
+    const SECCIONES_CLARO = [
+        { id: "hero", topDoc: 0, alto: 900 },
+        { id: "story", topDoc: 900, alto: 1712 },
+        { id: "journey", topDoc: 2612, alto: 635 },
+        { id: "features", topDoc: 3247, alto: 1255 },
+        { id: "contact", topDoc: 4502, alto: 1136 },
+        { id: "about", topDoc: 5638, alto: 582 },
+    ];
+    /** Y las de la OSCURA, que se SOLAPAN -- el hecho que obligo a buscar el
+     *  punto recorriendo el documento en vez de por seccion. */
+    const SECCIONES_OSCURO = [
+        { id: "hero", topDoc: 0, alto: 900 },
+        { id: "story", topDoc: 900, alto: 4050 },
+        { id: "journey", topDoc: 4050, alto: 4950 },
+        { id: "features", topDoc: 8100, alto: 1974 },
+        { id: "contact", topDoc: 9174, alto: 949 },
+        { id: "about", topDoc: 10122, alto: 582 },
+    ];
+
+    const instantanea = (y, secciones, extra = {}) => ({
+        y,
+        alto: 6536,
+        vh: 900,
+        url: "/en",
+        urlDeCarga: "/en?read=0.3212#story",
+        hashchanges: 0,
+        sellada: true,
+        pathname: "/en",
+        secciones,
+        seccion: null,
+        ...extra,
+    });
+
+    /** El hostil que SI nombra una seccion existente y la deja en pantalla. */
+    const HOSTIL_SANO = {
+        id: "fuera-por-arriba",
+        consulta: "read=2",
+        fragmento: "features",
+        y: 3119,
+        vh: 900,
+        seccion: {
+            id: "features",
+            top: 128,
+            bottom: 1447,
+            topDoc: 3247,
+            alto: 1319,
+        },
+    };
+    /** Y el que no nombra ninguna: la pagina no se mueve. */
+    const HOSTIL_SIN_SECCION = {
+        id: "seccion-inexistente",
+        consulta: "read=0.5",
+        fragmento: "seccion-que-no-existe-candado-u4",
+        y: 0,
+        vh: 900,
+        seccion: null,
+    };
+
+    /** El gesto completo tal y como se midio CON el arreglo puesto. */
+    const SANO = {
+        partida: "/",
+        destino: "/en",
+        origen: instantanea(1450, SECCIONES_CLARO, { pathname: "/" }),
+        llegada: instantanea(1433, SECCIONES_CLARO),
+        lector: { y: 3133 },
+        recarga: instantanea(3133, SECCIONES_CLARO),
+        frio: instantanea(1433, SECCIONES_CLARO),
+        atras: instantanea(1450, SECCIONES_CLARO, { pathname: "/" }),
+        hostiles: [HOSTIL_SANO, HOSTIL_SIN_SECCION],
+        instrumento: null,
+    };
+
+    it("el gesto sano no tiene nada que decir", () => {
+        expect(evaluaPuntoDeLectura(SANO)).toEqual({
+            cumple: true,
+            vacuo: false,
+            motivos: [],
+        });
+    });
+
+    it("cae con las cifras reales del defecto: la recarga vuelve al punto de la URL, no al del lector", () => {
+        const { cumple, vacuo, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            recarga: instantanea(1433, SECCIONES_CLARO),
+        });
+
+        expect(cumple).toBe(false);
+        expect(vacuo).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("leia en y=3133");
+        expect(motivos[0]).toContain("lo deja en y=1433");
+        expect(motivos[0]).toContain("deriva 1700 px");
+    });
+
+    /*
+     * LAS CINCO AFIRMACIONES RESTANTES, cada una SOLA y con el resto del gesto
+     * en verde: si solo cayeran junto al sintoma no aportarian nada.
+     */
+    it("ve la regresion del cierre de la ola T: la llegada aterriza en el inicio de la seccion", () => {
+        /* 772 px es el aterrizaje real del fragmento medido en el navegador con
+           la correccion del punto de lectura desactivada: `#story` empieza en
+           900 y el desfase de cabecera son 128 px. El enlace en frio se mueve
+           con ella --lo hace el mismo codigo-- y por eso el caso lo mueve
+           tambien: dejarlo en 1.433 haria caer ademas la afirmacion 3 y este
+           caso no probaria que la 1 cae SOLA. */
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            llegada: instantanea(772, SECCIONES_CLARO),
+            frio: instantanea(772, SECCIONES_CLARO),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("ya no conserva el punto de lectura");
+    });
+
+    it("ve un enlace compartido que deja de aterrizar donde estaba quien lo mando", () => {
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            frio: instantanea(0, SECCIONES_CLARO),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("compartido abierto en frio");
+    });
+
+    it("ve un atras que ya no vuelve a la pagina de partida", () => {
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            atras: instantanea(1450, SECCIONES_CLARO, { pathname: "/en" }),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("el boton atras ya no vuelve");
+    });
+
+    /*
+     * EL SELLO DE HISTORIAL DEL FRENTE U2 es de otro arreglo del mismo dia, y
+     * por eso esta familia lo afirma en vez de suponerlo: los dos escriben en
+     * `history` en la misma carga.
+     */
+    it("ve que la limpieza de la URL desellara la entrada de historial", () => {
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            llegada: instantanea(1433, SECCIONES_CLARO, { sellada: false }),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("no esta sellada");
+    });
+
+    it("ve que retirar el fragmento despierte al sello por hashchange", () => {
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            llegada: instantanea(1433, SECCIONES_CLARO, { hashchanges: 1 }),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("hashchange");
+    });
+
+    it("ve un valor hostil que deja al lector donde la URL no nombra nada", () => {
+        const fuera = evaluaPuntoDeLectura({
+            ...SANO,
+            hostiles: [
+                {
+                    ...HOSTIL_SANO,
+                    seccion: {
+                        ...HOSTIL_SANO.seccion,
+                        top: 2000,
+                        bottom: 3319,
+                    },
+                },
+                HOSTIL_SIN_SECCION,
+            ],
+        });
+        expect(fuera.cumple).toBe(false);
+        expect(fuera.motivos.join(" | ")).toContain("no llega a verse");
+
+        const movida = evaluaPuntoDeLectura({
+            ...SANO,
+            hostiles: [HOSTIL_SANO, { ...HOSTIL_SIN_SECCION, y: 4000 }],
+        });
+        expect(movida.cumple).toBe(false);
+        expect(movida.motivos.join(" | ")).toContain(
+            "no se corresponde con nada",
+        );
+    });
+
+    /*
+     * LAS GUARDAS DE VACUIDAD, que son la mitad del candado: las cuatro formas
+     * de que este gesto salga verde sin haber medido nada.
+     */
+    it("no firma nada si el gesto no llego a componer la instruccion", () => {
+        const r = evaluaPuntoDeLectura({
+            ...SANO,
+            llegada: instantanea(1433, SECCIONES_CLARO, { urlDeCarga: "/en" }),
+        });
+        expect(r).toMatchObject({ cumple: false, vacuo: true });
+        expect(r.motivos[0]).toContain("no es la instruccion");
+    });
+
+    it("no firma nada si el lector no llego a alejarse del punto de llegada", () => {
+        const r = evaluaPuntoDeLectura({ ...SANO, lector: { y: 1600 } });
+        expect(r).toMatchObject({ cumple: false, vacuo: true });
+        expect(r.motivos[0]).toContain("solo se alejo 167 px");
+    });
+
+    it("no firma nada si al pulsar el idioma el lector estaba pegado al inicio de la seccion", () => {
+        const r = evaluaPuntoDeLectura({
+            ...SANO,
+            origen: instantanea(1000, SECCIONES_CLARO, { pathname: "/" }),
+        });
+        expect(r).toMatchObject({ cumple: false, vacuo: true });
+        expect(r.motivos[0]).toContain("100 px dentro de #story");
+    });
+
+    it("no firma nada si los valores hostiles dejan de encontrar su seccion", () => {
+        const r = evaluaPuntoDeLectura({
+            ...SANO,
+            hostiles: [HOSTIL_SIN_SECCION, HOSTIL_SIN_SECCION],
+        });
+        expect(r.cumple).toBe(false);
+        expect(r.motivos.join(" | ")).toContain(
+            `ninguno de los 2 valores hostiles encontro la seccion #${SECCION_HOSTIL}`,
+        );
+    });
+
+    /*
+     * LA ELECCION DEL PUNTO DE PARTIDA. Lo que se ata aqui es justo lo que la
+     * primera version de esta familia no hacia y costo una corrida entera: que
+     * el punto se elija sobre la geometria REAL, incluida la del tema oscuro,
+     * donde las anclas se solapan.
+     */
+    it("elige un punto util en las dos geometrias, con la oscura solapada", () => {
+        const claro = eligeElPuntoDeLectura(SECCIONES_CLARO, 900, 6523);
+        expect(claro).toMatchObject({ anclada: "story", y: 1450 });
+        expect(claro.profundidad).toBeGreaterThanOrEqual(PROFUNDIDAD_MINIMA_PX);
+
+        const oscuro = eligeElPuntoDeLectura(SECCIONES_OSCURO, 900, 11008);
+        expect(oscuro).toMatchObject({ anclada: "story", y: 2150 });
+        expect(oscuro.profundidad).toBeGreaterThanOrEqual(
+            PROFUNDIDAD_MINIMA_PX,
+        );
+    });
+
+    it("nunca elige el hero, desde donde el sitio no compone ninguna instruccion", () => {
+        /* Un documento que SOLO tiene hero no da punto de partida, y eso es un
+           `null` --caso vacuo-- y no un hero elegido: desde el hero
+           `useActiveSectionKey` devuelve `null` y el enlace de idioma no lleva
+           fragmento, asi que el gesto no compondria nada que medir. */
+        expect(
+            eligeElPuntoDeLectura(
+                [{ id: "hero", topDoc: 0, alto: 6000 }],
+                900,
+                6000,
+            ),
+        ).toBeNull();
+        expect(SECCIONES_SIN_PUNTO_DE_LECTURA).toEqual(["hero"]);
+    });
+
+    it("no elige un punto desde el que el lector no pueda alejarse", () => {
+        /* Documento clavado al viewport: no hay sitio ni arriba ni abajo. */
+        expect(
+            eligeElPuntoDeLectura(
+                [{ id: "story", topDoc: 0, alto: 2000 }],
+                900,
+                2000,
+            ),
+        ).toBeNull();
+    });
+
+    it("aleja al lector hacia el lado que tenga sitio, y avisa cuando no hay ninguno", () => {
+        /* Hacia abajo cuando cabe. */
+        expect(alejaAlLector(1433, 6536, 900)).toBe(
+            1433 + ALEJAMIENTO_DEL_LECTOR_PX,
+        );
+        /* Y hacia ARRIBA cuando no: es el caso del tema oscuro medido, con la
+           llegada a 780 px del final del documento. */
+        expect(alejaAlLector(9328, 11008, 900)).toBe(
+            9328 - ALEJAMIENTO_DEL_LECTOR_PX,
+        );
+        expect(alejaAlLector(500, 1400, 900)).toBeNull();
+    });
+
+    it("la banda de lectura y la separacion minima separan las dos poblaciones que hay que distinguir", () => {
+        /* El defecto medido mueve al lector 1.700 px: la separacion exigida
+           tiene que quedar por debajo, o el caso se declararia vacuo sobre el
+           gesto que existe para medir. */
+        expect(SEPARACION_MINIMA_PX).toBeLessThan(ALEJAMIENTO_DEL_LECTOR_PX);
+        /* Y por encima de un viewport, o "restituye al lector" y "vuelve al
+           punto de la URL" cabrian en la misma pantalla. */
+        expect(SEPARACION_MINIMA_PX).toBeGreaterThan(900);
+        /* La banda de lectura deja el punto lejos del inicio de la seccion,
+           que es donde aterriza el fragmento. */
+        expect(FRACCION_MINIMA_DE_LECTURA).toBeGreaterThan(0);
+        expect(FRACCION_MAXIMA_DE_LECTURA).toBeLessThan(1);
+        expect(FRACCION_MINIMA_DE_LECTURA).toBeLessThan(
+            FRACCION_MAXIMA_DE_LECTURA,
+        );
+        /* Y el paso de busqueda es mas fino que la seccion mas corta del sitio
+           (`about`, 582 px), o podria saltarsela entera. */
+        expect(PASO_DE_BUSQUEDA_PX).toBeLessThan(582);
+    });
+
+    it("los seis valores hostiles cubren las seis formas de llegar roto", () => {
+        expect(VALORES_HOSTILES.map((v) => v.id)).toEqual([
+            "fuera-por-abajo",
+            "fuera-por-arriba",
+            "no-es-numero",
+            "vacio",
+            "sin-fragmento",
+            "seccion-inexistente",
+        ]);
+        /* Todos llevan el parametro que el sitio lee, o no probarian nada. */
+        for (const v of VALORES_HOSTILES) {
+            expect(v.consulta.startsWith("read=")).toBe(true);
+        }
+        /* Y hay al menos uno de cada clase: con seccion y sin ella. */
+        expect(
+            VALORES_HOSTILES.filter((v) => v.fragmento !== null).length,
+        ).toBeGreaterThan(0);
+        expect(
+            VALORES_HOSTILES.filter((v) => v.fragmento === null).length,
+        ).toBeGreaterThan(0);
+    });
+
+    it("el fragmento de la URL de carga se lee sin inventar", () => {
+        expect(fragmentoDe("/en?read=0.5#story")).toBe("story");
+        expect(fragmentoDe("/en?read=0.5")).toBeNull();
+        expect(fragmentoDe("/en#")).toBeNull();
+        expect(fragmentoDe(null)).toBeNull();
     });
 });
