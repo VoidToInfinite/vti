@@ -6,6 +6,7 @@ import StyledComponentsRegistry from "@/theme/registry";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { GlobalStyles } from "@/theme/GlobalStyles";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { useHashHistorySeal } from "@/hooks/useHashHistorySeal";
 import { SkipLink } from "@/components/layout/SkipLink/SkipLink";
 import { BackToTop } from "@/components/layout/BackToTop/BackToTop";
 import { Navbar } from "@/components/layout/Navbar/Navbar";
@@ -75,6 +76,16 @@ export function Providers({
 }: {
   children: React.ReactNode;
 }): ReactElement {
+  /* SELLADO DE LAS ENTRADAS DE FRAGMENTO (crítica externa #21, P0). Vive aquí
+     y no en una rama de idioma por la misma regla que este docblock ya dejó
+     escrita para la cáscara: el defecto —el botón «atrás» cambia la URL y deja
+     el documento anterior en pantalla— se da en las OCHO superficies del sitio,
+     legales y 404 incluidas, así que su remedio tiene que colgar del ancestro
+     común de las tres raíces de documento o habría que montarlo tres veces. No
+     renderiza nada ni añade estado: solo escucha `hashchange`. El porqué
+     completo, con la causa raíz en el `popstate` de Next y las alternativas
+     descartadas, está en el docblock de `useHashHistorySeal`. */
+  useHashHistorySeal();
   return (
     <StyledComponentsRegistry>
       <ThemeProvider>

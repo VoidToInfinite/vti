@@ -234,6 +234,31 @@ describe("dónde se monta cada mitad del árbol (candado de presupuesto)", () =>
     },
   );
 
+  /*
+   * EL SELLADO DE LAS ENTRADAS DE FRAGMENTO VA EN `Providers` Y NO EN OTRO
+   * SITIO (crítica externa #21, P0, 2026-09-08), y es la misma regla del
+   * docblock de `providers.tsx` aplicada a un tercer caso: el defecto —«atrás»
+   * cambia la URL y deja el documento anterior en pantalla— se da en las OCHO
+   * superficies del sitio, así que su remedio tiene que colgar del ancestro
+   * común de las tres raíces. Montado en una rama de idioma dejaría fuera la
+   * otra rama y la 404; montado en las tres, se pagaría tres veces.
+   *
+   * Esto ata DÓNDE se monta, no que funcione: que funcione es una propiedad del
+   * `popstate` del App Router, que jsdom no tiene, y su candado es la familia
+   * `atras-restituye-el-documento-de-la-url` de
+   * `scripts/check-site-surfaces.mjs`.
+   */
+  it("`Providers` monta el sellado del historial, el ancestro común de las tres raíces", () => {
+    const source = fuenteSinComentarios("providers.tsx");
+
+    expect(source).toContain("useHashHistorySeal()");
+    /* Dentro de `Providers` y no de `LocaleShell`: el orden de las dos
+       declaraciones en el fichero es lo que lo distingue. */
+    expect(source.indexOf("useHashHistorySeal()")).toBeLessThan(
+      source.indexOf("export function LocaleShell"),
+    );
+  });
+
   it.each([
     ["(es)", ["(es)", "layout.tsx"], "es"],
     ["en", ["en", "layout.tsx"], "en"],
