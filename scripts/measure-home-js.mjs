@@ -486,6 +486,18 @@ export const DECLARED_TWIN_GROUPS = 1;
  * ese escenario en `scripts/measure-home-js.test.mjs`.
  */
 /*
+ * ENMIENDA 2026-09-08 (ola U, frente U6): 45.919 -> 46.066 B, +147. El MISMO
+ * grupo de cuatro modulos de la cascara crece porque `useReveal` deja de pedir
+ * un umbral constante y pasa a calcularlo contra la geometria real del objetivo,
+ * con el `ResizeObserver` que lo mantiene al dia (banda ciega de revelado,
+ * critica externa #21). Es codigo, no prosa: los docblocks no viajan al bundle.
+ * El recuento de grupos sigue en cuatro y ninguna pagina se acerca al
+ * presupuesto (hogar 252.061 B brotli, 37.939 libres). El coste medido del
+ * recalculo en el navegador: 8 observadores rehechos y 0,4 ms en total en un
+ * arrastre de redimension de 30 pasos, y CERO recalculos recorriendo la portada
+ * entera.
+ */
+/*
  * ENMIENDA 2026-09-07 (ola T): 45.461 -> 45.919 B, +458. El grupo gemelo de
  * la cáscara pasa de 9 módulos y 8.789 B a 12 módulos y 9.247 B porque la
  * ola añade a esa misma cáscara el observador del breakpoint de la hoja
@@ -494,7 +506,7 @@ export const DECLARED_TWIN_GROUPS = 1;
  * sigue en cuatro. Ninguna página engorda por encima del presupuesto (hogar
  * 251.463 B, 38.537 libres).
  */
-export const DECLARED_UNION_TWIN_BROTLI_BYTES = 45_919;
+export const DECLARED_UNION_TWIN_BROTLI_BYTES = 46_066;
 
 /** Grupos de chunks de composición idéntica que hoy admite la UNIÓN. */
 export const DECLARED_UNION_TWIN_GROUPS = 4;
@@ -533,7 +545,7 @@ export const BASELINE_PAGES = 8;
  * refresque solo es deliberado: obliga a que todo cambio de censo aparezca
  * también en el diff de este fichero.
  */
-export const BASELINE_DIGEST = "d3fe67463daf2c65";
+export const BASELINE_DIGEST = "6ae3fc7300ca1ef7";
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */
 export const HOME_PAGE = "index.html";

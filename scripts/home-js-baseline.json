@@ -1,8 +1,8 @@
 {
-    "medido": "2026-09-07",
+    "medido": "2026-09-08",
     "origen": "out/ (8 páginas)",
     "presupuestoBytes": 290000,
-    "totalDescargadoBrotli": 251729,
+    "totalDescargadoBrotli": 252061,
     "polyfillNomoduleBrotli": 35158,
     "duplicacionCrudaBytes": 3266,
     "modulosDuplicados": 3,
@@ -17,8 +17,8 @@
         {
             "firma": "333a7f81dc9c",
             "modulos": 3,
-            "brotli": 46828,
-            "crudo": 229145,
+            "brotli": 46902,
+            "crudo": 229185,
             "pistas": [
                 "Sol",
                 "aura.parts",
@@ -38,8 +38,8 @@
         {
             "firma": "b3f6e137df1f",
             "modulos": 2,
-            "brotli": 32293,
-            "crudo": 120907,
+            "brotli": 32404,
+            "crudo": 121431,
             "pistas": [
                 "SkipLink",
                 "IconButton",
@@ -122,8 +122,8 @@
         {
             "firma": "9c338c83013b",
             "modulos": 12,
-            "brotli": 9247,
-            "crudo": 30831,
+            "brotli": 9394,
+            "crudo": 31303,
             "pistas": [
                 "Button",
                 "BrandName",
@@ -136,8 +136,8 @@
         {
             "firma": "9c338c83013b",
             "modulos": 12,
-            "brotli": 9237,
-            "crudo": 30831,
+            "brotli": 9373,
+            "crudo": 31303,
             "pistas": [
                 "Button",
                 "Typography",
@@ -221,56 +221,56 @@
         {
             "ruta": "404.html",
             "chunksDescargados": 12,
-            "descargadoBrotli": 205948,
+            "descargadoBrotli": 206195,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 4, 8, 9, 11, 12, 13, 14, 15, 17]
         },
         {
             "ruta": "_not-found.html",
             "chunksDescargados": 12,
-            "descargadoBrotli": 205948,
+            "descargadoBrotli": 206195,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 4, 8, 9, 11, 12, 13, 14, 15, 17]
         },
         {
             "ruta": "aviso-legal.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 222915,
+            "descargadoBrotli": 223173,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 19]
         },
         {
             "ruta": "en.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 251729,
+            "descargadoBrotli": 252061,
             "polyfillBrotli": 35158,
             "refs": [0, 1, 2, 3, 5, 7, 9, 10, 12, 13, 14, 16, 17, 18]
         },
         {
             "ruta": "en/legal-notice.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 222915,
+            "descargadoBrotli": 223173,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 19]
         },
         {
             "ruta": "en/privacy.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 222915,
+            "descargadoBrotli": 223173,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 20]
         },
         {
             "ruta": "index.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 251729,
+            "descargadoBrotli": 252061,
             "polyfillBrotli": 35158,
             "refs": [0, 1, 2, 3, 5, 7, 9, 10, 12, 13, 14, 16, 17, 18]
         },
         {
             "ruta": "privacidad.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 222915,
+            "descargadoBrotli": 223173,
             "polyfillBrotli": 35158,
             "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 20]
         }
