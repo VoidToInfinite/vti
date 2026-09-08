@@ -48,6 +48,9 @@ import {
     UMBRAL_DECLARADO_DE_REVELADO,
     UMBRAL_DE_CONTRASTE_GRANDE,
     UMBRAL_DE_CONTRASTE_NORMAL,
+    TOLERANCIA_DE_ALTO_TRAS_ATRAS,
+    VENTANA_DE_RESTITUCION_MS,
+    VIEWPORTS_DE_ATRAS,
     VIEWPORTS_DE_LA_CABECERA,
     VIEWPORTS_DE_VOLVER_ARRIBA,
     VIEWPORT_DE_LA_HOJA,
@@ -55,6 +58,7 @@ import {
     ZOOM_FONT_PX,
     comparaCrecimiento,
     especificadoresDePlaywright,
+    evaluaAtras,
     evaluaConmutacionDeTema,
     evaluaEscenariosFijados,
     evaluaContrasteDeCabecera,
@@ -64,6 +68,7 @@ import {
     evaluaVueltaArriba,
     fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
+    gestosDeAtras,
     langEsperado,
     luminanciaRelativa,
     probeArteNoPintado,
@@ -544,6 +549,7 @@ const FAMILIAS_ESPERADAS = [
     "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
     "volver-arriba-vuelve-arriba",
     "conmutar-el-tema-no-congela-la-pagina",
+    "atras-restituye-el-documento-de-la-url",
 ];
 
 /**
@@ -610,7 +616,7 @@ const FAMILIAS_ESPERADAS = [
  * igualdad otra vez en VERDE sobre la lista mas corta. Restaurados los tres
  * bloques, 64/64.
  */
-const FAMILIAS_MINIMAS = 25;
+const FAMILIAS_MINIMAS = 26;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -3775,5 +3781,349 @@ describe("evaluaEscenariosFijados: mide el escenario ENGANCHADO, no el primero d
     it("sin ningun escenario en pantalla la medida no aplica y no inventa un verde", () => {
         expect(evaluaEscenariosFijados([[], [], []]).aplicable).toBe(false);
         expect(evaluaEscenariosFijados([]).aplicable).toBe(false);
+    });
+});
+
+/*
+ * FAMILIA `atras-restituye-el-documento-de-la-url` (critica externa #21, P0).
+ *
+ * Las cifras de abajo NO son inventadas: son las que la sonda de este frente
+ * midio sobre el build de `6ce08ee` servido en local, tanto en la rama rota
+ * como en las tres de control. El veredicto se ejercita aqui con esos numeros
+ * tecleados; el gesto de verdad --clics reales, navegador de verdad-- lo ejerce
+ * `mideAtras`, que no puede correr dentro de la suite.
+ */
+describe("familia atras-restituye-el-documento-de-la-url", () => {
+    /** La portada espanola tal y como se midio, paso a paso. */
+    const CARGA = {
+        url: "/",
+        h1: "VoidToInfinite",
+        lang: "es",
+        hero: true,
+        docH: 6523,
+        sellada: true,
+        estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+        centinela: true,
+    };
+    const ANCLA_ROTA = {
+        url: "/#contact",
+        h1: "VoidToInfinite",
+        lang: "es",
+        hero: true,
+        docH: 6588,
+        sellada: false,
+        estadoClaves: "null",
+        centinela: true,
+    };
+    const ANCLA_SANA = {
+        ...ANCLA_ROTA,
+        sellada: true,
+        estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+    };
+    const LEGAL = {
+        url: "/aviso-legal",
+        h1: "Aviso legal",
+        lang: "es",
+        hero: false,
+        docH: 5308,
+        sellada: true,
+        estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+        centinela: true,
+    };
+    /** Lo que la pantalla mostraba tras el atras ANTES del arreglo. */
+    const ATRAS_ROTO = {
+        url: "/#contact",
+        h1: "Aviso legal",
+        lang: "es",
+        hero: false,
+        docH: 5308,
+        sellada: false,
+        estadoClaves: "null",
+        centinela: true,
+    };
+    /** Y lo que muestra DESPUES. */
+    const ATRAS_SANO = { ...ANCLA_SANA };
+    const GESTO = {
+        id: "/ barra@1440",
+        destino: "/aviso-legal",
+        naturaleza: "blanda",
+    };
+    const SANO = {
+        gesto: GESTO,
+        carga: CARGA,
+        trasAncla: ANCLA_SANA,
+        destino: LEGAL,
+        atras: ATRAS_SANO,
+    };
+
+    it("la matriz recorre las dos anchuras del encargo", () => {
+        expect(VIEWPORTS_DE_ATRAS).toEqual([
+            { ancho: 1440, alto: 900 },
+            { ancho: 390, alto: 844 },
+        ]);
+    });
+
+    it("la ventana de restitucion es finita y la tolerancia de alto separa las dos poblaciones medidas", () => {
+        /* El defecto no se corrige nunca (medido hasta 7,5 s), asi que la
+           ventana no esta para darle tiempo: esta para que una corrida sana no
+           pague la espera entera. */
+        expect(VENTANA_DE_RESTITUCION_MS).toBeGreaterThan(0);
+        /* La deriva mas pequena entre dos documentos distintos que este candado
+           tiene que distinguir es 6588 -> 5308 (portada clara contra aviso
+           legal), un 19,4 %. La tolerancia tiene que quedar por debajo. */
+        expect(TOLERANCIA_DE_ALTO_TRAS_ATRAS).toBeLessThan(
+            Math.abs(5308 - 6588) / 6588,
+        );
+    });
+
+    it("cae con las cifras reales del defecto: la URL dice portada y en pantalla sigue la legal", () => {
+        const { cumple, motivos } = evaluaAtras({
+            gesto: GESTO,
+            carga: CARGA,
+            trasAncla: ANCLA_ROTA,
+            destino: LEGAL,
+            atras: ATRAS_ROTO,
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos.join(" | ")).toContain("NO quedo sellada");
+        expect(motivos.join(" | ")).toContain(
+            'h1 "Aviso legal" en vez de "VoidToInfinite"',
+        );
+        expect(motivos.join(" | ")).toContain("19.4 % de deriva");
+    });
+
+    /*
+     * LAS DOS AFIRMACIONES QUE IMPIDEN APROBAR POR CASUALIDAD. Cada una cae
+     * SOLA, con el resto del gesto en verde: si solo cayeran junto al sintoma
+     * no aportarian nada que la asercion del `h1` no diga ya.
+     */
+    it("cae si la entrada dejo de sellarse aunque el gesto salga bien por otra via", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            trasAncla: ANCLA_ROTA,
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("history.state = null");
+    });
+
+    it("cae si el salto a la ruta siguiente dejo de ser blando (endurecer los enlaces por la puerta de atras)", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            destino: { ...LEGAL, centinela: false },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("recargo el documento");
+    });
+
+    it("cae si el atras restituye recargando la pagina entera (la opcion D del diagnostico)", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            atras: { ...ATRAS_SANO, centinela: false },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("recargo el documento entero");
+    });
+
+    it("cae si el documento vuelve con el idioma del otro, aunque la URL y el h1 coincidan", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            atras: { ...ATRAS_SANO, lang: "en" },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain('lang="en" en vez de lang="es"');
+    });
+
+    it("cae si falta el landmark propio de la pagina aunque el titulo coincida", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            atras: { ...ATRAS_SANO, hero: false },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain("#hero");
+    });
+
+    /*
+     * LAS GUARDAS DE VACUIDAD. Las tres describen una medicion que no ejercio
+     * el gesto, y las tres tienen que salir ROJAS: un candado que no midio nada
+     * no es un candado que cumple.
+     */
+    it("no aprueba si la entrada de la que se sale no tenia fragmento", () => {
+        const { cumple, motivos } = evaluaAtras({
+            gesto: GESTO,
+            carga: CARGA,
+            trasAncla: null,
+            destino: LEGAL,
+            atras: CARGA,
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain("no tiene fragmento");
+    });
+
+    it("no aprueba si el salto no llego a mover la URL", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            destino: ANCLA_SANA,
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos.join(" | ")).toContain("no movio la URL");
+    });
+
+    it("no aprueba si el documento de destino no se distingue del de partida", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            destino: { ...LEGAL, url: "/otra", h1: CARGA.h1, lang: CARGA.lang },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain("no se distingue");
+    });
+
+    it("no aprueba si el instrumento no encontro el enlace que tenia que pulsar", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            gesto: { ...GESTO, instrumento: "no hay ningun ancla visible" },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain("no hay ningun ancla visible");
+    });
+
+    it("pasa con las cifras del gesto arreglado", () => {
+        expect(evaluaAtras(SANO)).toEqual({ cumple: true, motivos: [] });
+    });
+
+    /*
+     * LOS CONTROLES DE NAVEGACION DURA (la 404 y el cruce de idioma) no pueden
+     * exigir ni el sello ni el centinela: ahi el documento se recarga a
+     * proposito, y el router vuelve a sellar por su cuenta al montar. Si esta
+     * distincion se perdiera, los tres controles positivos saldrian rojos y la
+     * familia dejaria de distinguir el caso roto del sano.
+     */
+    it("un gesto de navegacion dura pasa sin sello y sin centinela", () => {
+        const gestoDuro = {
+            id: "404 (es) salto@1440",
+            destino: "/aviso-legal",
+            naturaleza: "dura",
+        };
+        const carga404 = {
+            url: "/ruta-que-no-existe",
+            h1: "Pagina no encontrada",
+            lang: "es",
+            hero: false,
+            docH: 900,
+            sellada: true,
+            estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+            centinela: true,
+        };
+        const ancla404 = {
+            ...carga404,
+            url: "/ruta-que-no-existe#main",
+            sellada: false,
+            estadoClaves: "null",
+        };
+
+        const { cumple } = evaluaAtras({
+            gesto: gestoDuro,
+            carga: carga404,
+            trasAncla: ancla404,
+            destino: { ...LEGAL, centinela: false },
+            atras: {
+                ...ancla404,
+                sellada: true,
+                estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+                centinela: false,
+            },
+        });
+
+        expect(cumple).toBe(true);
+    });
+
+    /*
+     * LOS GESTOS SE DERIVAN DE LA SUPERFICIE, no se teclean: es la misma regla
+     * que ya cumplen `SURFACES` y `LEGAL_DOCS`. Lo que se ata aqui es que la
+     * derivacion apunta al destino correcto en cada rama de idioma y que los
+     * tres controles positivos siguen ahi.
+     */
+    it("la portada de cada idioma sale hacia SU aviso legal, y con los tres gestos rotos mas dos controles", () => {
+        const es = gestosDeAtras(
+            SURFACES.find((s) => s.kind === "home" && s.locale === "es"),
+        );
+        const en = gestosDeAtras(
+            SURFACES.find((s) => s.kind === "home" && s.locale === "en"),
+        );
+
+        expect(es.map((g) => g.destino)).toEqual([
+            "/aviso-legal",
+            "/aviso-legal",
+            "/aviso-legal",
+            "/aviso-legal",
+            "/en",
+        ]);
+        expect(en.map((g) => g.destino)).toEqual([
+            "/en/legal-notice",
+            "/en/legal-notice",
+            "/en/legal-notice",
+            "/en/legal-notice",
+            "/",
+        ]);
+        /* Las dos anchuras, y la de 390 abriendo la hoja movil: a esa anchura
+           la fila de la barra no existe y sin abrir la hoja no hay nada que
+           pulsar. */
+        expect(es.map((g) => `${g.ancho}${g.viaHoja ? "-hoja" : ""}`)).toEqual([
+            "1440",
+            "390-hoja",
+            "1440",
+            "1440",
+            "1440",
+        ]);
+    });
+
+    it("las legales cruzan al OTRO documento legal de su idioma, en los dos sentidos", () => {
+        const porRuta = Object.fromEntries(
+            SURFACES.filter((s) => s.kind === "legal").map((s) => [
+                s.path,
+                gestosDeAtras(s)[0].destino,
+            ]),
+        );
+
+        expect(porRuta).toEqual({
+            "/privacidad": "/aviso-legal",
+            "/aviso-legal": "/privacidad",
+            "/en/privacy": "/en/legal-notice",
+            "/en/legal-notice": "/en/privacy",
+        });
+    });
+
+    it("los tres controles positivos existen y declaran su naturaleza", () => {
+        const todos = SURFACES.flatMap((s) => gestosDeAtras(s));
+        const controles = todos.filter((g) => g.control);
+
+        expect(controles.map((g) => g.id.split(" ").pop()).sort()).toEqual([
+            "control-carga-fragmento@1440",
+            "control-carga-fragmento@1440",
+            "control-cruce-de-idioma@1440",
+            "control-cruce-de-idioma@1440",
+            "salto@1440",
+            "salto@1440",
+        ]);
+        /* El de carga es blando (la salida sigue siendo `next/link`); los otros
+           dos cruzan raiz de documento y por eso son duros. */
+        expect(controles.filter((g) => g.naturaleza === "dura")).toHaveLength(
+            4,
+        );
+        /* Y la mayoria de los gestos NO son controles: si un dia lo fueran
+           todos, la familia no estaria midiendo el defecto. */
+        expect(todos.length - controles.length).toBeGreaterThanOrEqual(10);
     });
 });

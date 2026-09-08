@@ -660,6 +660,7 @@ export const CHECKS = [
     "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
     "volver-arriba-vuelve-arriba",
     "conmutar-el-tema-no-congela-la-pagina",
+    "atras-restituye-el-documento-de-la-url",
 ];
 
 /**
@@ -4161,6 +4162,520 @@ export async function mideConmutacionDeTema(browser, theme, url, gesto) {
     }
 }
 
+/**
+ * LA FAMILIA VEINTISEIS (2026-09-08), EL P0 DE LA CRITICA #21, Y POR QUE
+ * NINGUNA DE LAS VEINTICINCO ANTERIORES PODIA VERLA.
+ *
+ * EL DEFECTO, medido sobre el build de `6ce08ee` servido en local: se carga la
+ * portada, se pulsa un enlace de SECCION de la barra --que es un `<a
+ * href="/#contact">` nativo, no un `next/link`--, se pulsa un enlace legal del
+ * pie y se pulsa ATRAS. La barra de direcciones vuelve a `/#contact` y en
+ * pantalla sigue el aviso legal. Doce combinaciones rotas, las mismas cifras en
+ * los dos temas:
+ *
+ *   barra@1440 claro   atras -> url=/#contact  h1="Aviso legal"  hero=no  docH=5308
+ *                            (la portada media h1="VoidToInfinite" hero=si docH=6588)
+ *   hoja@390   claro   atras -> url=/#contact  h1="Aviso legal"  hero=no  docH=6862
+ *   cta-hero   claro   atras -> url=/#story    h1="Aviso legal"  hero=no  docH=5308
+ *   barra@1440 oscuro  atras -> url=/#contact  h1="Aviso legal"  hero=no  docH=5308
+ *                            (la portada oscura media docH=11008)
+ *   indice legal       atras -> url=/aviso-legal#registro  h1="Politica de
+ *                            privacidad"  docH=8817
+ *
+ * LA CAUSA, que no esta en el sitio: `onPopState` de
+ * `next@16.2.11`
+ * (`node_modules/next/dist/client/components/app-router.js:284-298`) hace
+ * `return` sin hacer nada cuando `event.state` es nulo, y una navegacion de
+ * fragmento NATIVA --la que hace el navegador al pulsar un `<a href="#x">`--
+ * crea una entrada de historial con `history.state === null` por
+ * especificacion, sin pasar por el router. Viajar a esa entrada no cambia el
+ * arbol renderizado: la URL se mueve y el documento no. El arreglo del sitio
+ * (`useHashHistorySeal`) SELLA esa entrada en cuanto nace, para que la entrada
+ * a la que se vuelve lleve el estado que el router sabe restaurar.
+ *
+ * POR QUE ES UNA FAMILIA NUEVA Y NO UN CASO DE OTRA. Ninguna de las
+ * veinticinco anteriores navega HACIA OTRA RUTA ni pulsa atras: todas miden una
+ * pagina, o un gesto dentro de una pagina. `aterrizaje-del-indice` pulsa anclas
+ * del indice legal --las mismas que crean el defecto-- y mide donde aterriza el
+ * scroll, que sigue siendo correcto; el defecto solo se hace visible DESPUES,
+ * al salir y volver.
+ *
+ * POR QUE NO PUEDE SER UN TEST DE VITEST: jsdom no monta el App Router de Next
+ * ni su manejador de `popstate`, asi que un test unitario solo puede afirmar
+ * que el hook llama a `replaceState` --util como segunda linea, inutil como
+ * detector--. Y el riesgo residual del arreglo es justamente que Next cambie su
+ * parche de `replaceState` y el sello deje de sellar EN SILENCIO, asi que esta
+ * familia mide el GESTO COMPLETO con clics reales y no la existencia del
+ * listener.
+ *
+ * LAS DOS AFIRMACIONES QUE IMPIDEN QUE APRUEBE POR CASUALIDAD, y que valen
+ * tanto como la del documento restituido:
+ *
+ *   1. LA ENTRADA QUEDO SELLADA (`history.state?.__NA === true`) tras activar
+ *      el ancla. Detecta que el sello se perdio aunque el gesto salga verde por
+ *      otra via (una recarga, un temporizador, otra rama del manejador).
+ *   2. LA NAVEGACION A LA RUTA SIGUIENTE FUE BLANDA -- un centinela puesto en
+ *      `window` que solo sobrevive si el documento NO se recargo. Impide
+ *      "aprobar" el candado matando la navegacion blanda, que seria endurecer
+ *      los enlaces internos (la opcion C del diagnostico) por la puerta de
+ *      atras y sin decision del dueno. Por el mismo motivo se exige que el
+ *      centinela siga vivo DESPUES del atras: recargar en `popstate` (la
+ *      opcion D) tambien "arregla" el sintoma, y tambien es una decision que no
+ *      es de quien escribe el parche.
+ *
+ * LOS TRES CONTROLES POSITIVOS, verdes HOY y obligados a seguirlo, son lo que
+ * demuestra que la familia distingue el caso roto del sano en vez de tenir de
+ * rojo cualquier atras. Los tres salen VERDES sobre el build defectuoso, en la
+ * misma corrida en la que los otros diez gestos salen rojos:
+ *
+ *   - `control-carga-fragmento`: el MISMO destino de fragmento, pero creado por
+ *     CARGA COMPLETA (`/#contact` en la barra de direcciones) en vez de por
+ *     clic. Ahi Next sella la entrada al montar y el atras siempre funciono.
+ *     Cambia UNA sola variable respecto del caso roto -- quien creo la entrada.
+ *   - `control-cruce-de-idioma`: el mismo ancla por clic, pero la salida cruza
+ *     a la otra rama de idioma, que es OTRA RAIZ DE DOCUMENTO (la entrega del
+ *     2026-09-06: dos `<html lang>` exigen dos raices). La navegacion es dura,
+ *     el router se monta de cero al volver y el defecto no aparece. Lo que
+ *     distingue aqui los dos documentos no es el `h1` --las dos portadas lo
+ *     comparten-- sino el `lang`, y por eso la instantanea lo lee.
+ *   - `control-404`: en la 404 el salto a la legal tambien es una navegacion
+ *     DURA (`global-not-found` renderiza su propio documento raiz), y sin
+ *     navegacion blanda no hay defecto. Medido: el centinela se pierde ahi y en
+ *     el cruce de idioma, y en ningun otro gesto.
+ */
+export const VIEWPORTS_DE_ATRAS = [
+    { ancho: 1440, alto: 900 },
+    { ancho: 390, alto: 844 },
+];
+
+/**
+ * Cuanto se le da al documento para volver a ser el de su URL despues del
+ * atras. No es un tiempo de cortesia: el orquestador midio el estado congelado
+ * a 1,2 / 1,5 / 5 / 6 / 7,5 s, asi que el defecto no es lentitud y ninguna
+ * espera lo salva. Es el tope de una espera que TERMINA EN CUANTO ACIERTA, de
+ * modo que una corrida sana no paga estos tres segundos y una rota los paga
+ * enteros -- que es el reparto correcto para un candado que se ejecuta cientos
+ * de veces en verde y una en rojo.
+ */
+export const VENTANA_DE_RESTITUCION_MS = 3000;
+
+/**
+ * Margen del alto de documento al comparar el antes y el despues del atras.
+ * El alto es la TERCERA senal, detras del `h1` y del landmark, y esta para el
+ * caso en el que dos documentos comparten titulo: entre la portada y una legal
+ * la diferencia medida es del 19 % en claro (6588 -> 5308) y del 52 % en oscuro
+ * (11008 -> 5308), y entre las dos legales del 40 % (5308 -> 8817), asi que un
+ * 10 % separa las dos poblaciones con holgura sin volverse quisquilloso con el
+ * crecimiento tardio de una imagen.
+ */
+export const TOLERANCIA_DE_ALTO_TRAS_ATRAS = 0.1;
+
+/**
+ * Los gestos de una superficie, DERIVADOS de ella y de `LEGAL_DOCS` en vez de
+ * tecleados: si manana nace un tercer documento legal o una tercera rama de
+ * idioma, sus gestos entran solos y con el destino correcto.
+ *
+ * El eje de ANCHURA no es decorativo en la portada: a 1440 el ancla de seccion
+ * la sirve la fila de la barra y a 390 la sirve la hoja movil, que hay que
+ * abrir primero -- dos nodos distintos del DOM para el mismo destino. En las
+ * legales el indice es el mismo elemento a las dos anchuras, asi que ahi la
+ * segunda anchura mediria dos veces lo mismo y el gesto se da una sola vez.
+ */
+export function gestosDeAtras(surface) {
+    const [grande, movil] = VIEWPORTS_DE_ATRAS;
+    if (surface.kind === "home") {
+        const avisoLegal = LEGAL_DOCS.find((d) => d.id === "legalNotice")[
+            surface.locale
+        ];
+        /* `/#contact` en la rama espanola y `/en#contact` en la inglesa: la
+           forma canonica que hornea `src/config/navigation.ts`. */
+        const seccion = `${surface.path}#contact`;
+        const haciaLaLegal = {
+            ancla: seccion,
+            destino: avisoLegal,
+            selectorDelDestino: `footer a[href="${avisoLegal}"]`,
+            naturaleza: "blanda",
+        };
+        /* El otro idioma, para el control que cruza de raiz de documento. Su
+           enlace NO se puede buscar por `href`: desde la ola T el selector de
+           idioma reescribe el suyo en caliente para llevarse el punto de
+           lectura (`/en?read=0.58#contact`), asi que con un fragmento activo
+           --que es justo el estado de este gesto-- un selector por `href` no
+           encuentra nada. Se busca por `hreflang`, que es estable. */
+        const otroIdioma = surface.locale === "es" ? EN_PREFIX : "/";
+        const hreflangDelOtro = surface.locale === "es" ? "en" : "es";
+        return [
+            {
+                ...haciaLaLegal,
+                id: `${surface.nombre} barra@${grande.ancho}`,
+                paginaDeCarga: surface.path,
+                selector: `header a[href="${seccion}"]`,
+                ...grande,
+            },
+            {
+                ...haciaLaLegal,
+                id: `${surface.nombre} hoja@${movil.ancho}`,
+                paginaDeCarga: surface.path,
+                /* La hoja movil NO vive dentro de `<header>`: es hermana suya
+                   en el DOM (medido en el HTML horneado, `</header>` termina
+                   antes de la primera fila). Un selector con prefijo `header`
+                   no la encuentra, y el gesto de 390 se quedaba sin ejercer.  */
+                selector: `[data-nav-sheet] a[href="${seccion}"]`,
+                viaHoja: true,
+                ...movil,
+            },
+            {
+                /* El CTA del hero escribe su destino en forma RELATIVA
+                   (`#story`), no absoluta como la barra: son las dos formas en
+                   las que el sitio escribe un ancla del mismo documento, y un
+                   arreglo que solo cubriera una de las dos pasaria la mitad de
+                   esta familia. */
+                id: `${surface.nombre} cta-hero@${grande.ancho}`,
+                paginaDeCarga: surface.path,
+                selector: 'main a[href="#story"]',
+                ancla: `${surface.path}#story`,
+                destino: avisoLegal,
+                selectorDelDestino: `footer a[href="${avisoLegal}"]`,
+                naturaleza: "blanda",
+                ...grande,
+            },
+            {
+                /* CONTROL POSITIVO 1: la misma entrada de fragmento, creada por
+                   carga completa en vez de por clic. Verde hoy. */
+                ...haciaLaLegal,
+                id: `${surface.nombre} control-carga-fragmento@${grande.ancho}`,
+                paginaDeCarga: seccion,
+                selector: null,
+                control: true,
+                ...grande,
+            },
+            {
+                /* CONTROL POSITIVO 2: el mismo ancla por clic, pero la salida
+                   cruza a la OTRA raiz de documento (las tres raices del
+                   2026-09-06, una por `<html lang>`), asi que la navegacion es
+                   dura y el router se monta de cero al volver. Verde hoy, y es
+                   la rama que el orquestador uso para acotar el defecto. */
+                id: `${surface.nombre} control-cruce-de-idioma@${grande.ancho}`,
+                paginaDeCarga: surface.path,
+                selector: `header a[href="${seccion}"]`,
+                ancla: seccion,
+                destino: otroIdioma,
+                selectorDelDestino: `header a[hreflang="${hreflangDelOtro}"]`,
+                naturaleza: "dura",
+                control: true,
+                ...grande,
+            },
+        ];
+    }
+    if (surface.kind === "legal") {
+        /* El otro documento legal de la MISMA rama de idioma: el salto entre
+           legales es blando (comparten raiz de documento) y es donde el
+           orquestador midio la segunda familia del defecto. Medir los dos
+           sentidos --`/aviso-legal` -> `/privacidad` y el contrario-- sale
+           solo, porque las cuatro superficies legales recorren esto. */
+        const otro = LEGAL_DOCS.find((d) => d[surface.locale] !== surface.path)[
+            surface.locale
+        ];
+        return [
+            {
+                id: `${surface.nombre} indice@${grande.ancho}`,
+                paginaDeCarga: surface.path,
+                /* El PRIMER enlace del indice interno, resuelto en el
+                   documento: cada legal tiene sus propios `id` y cada idioma
+                   los suyos, asi que teclear uno seria teclear cuatro y
+                   quedarian obsoletos en cuanto cambie un epigrafe. */
+                selector: 'main nav a[href^="#"]',
+                ancla: null,
+                destino: otro,
+                selectorDelDestino: `footer a[href="${otro}"]`,
+                naturaleza: "blanda",
+                ...grande,
+            },
+        ];
+    }
+    const avisoLegal = LEGAL_DOCS.find((d) => d.id === "legalNotice")[
+        surface.locale
+    ];
+    return [
+        {
+            /* CONTROL POSITIVO: en la 404 el salto es una navegacion DURA
+               --`global-not-found` es su propia raiz de documento-- y sin
+               navegacion blanda no hay defecto. Verde hoy. El enlace de salto
+               se activa por TECLADO porque solo es visible con el foco puesto,
+               que es exactamente como lo usa una persona. */
+            id: `${surface.nombre} salto@${grande.ancho}`,
+            paginaDeCarga: surface.path,
+            selector: 'a[href="#main"]',
+            porTeclado: true,
+            ancla: `${surface.path}#main`,
+            destino: avisoLegal,
+            selectorDelDestino: `footer a[href="${avisoLegal}"]`,
+            naturaleza: "dura",
+            control: true,
+            ...grande,
+        },
+    ];
+}
+
+/**
+ * Veredicto PURO de un gesto, separado de la conduccion del navegador para
+ * poder ejercitarlo desde la suite con cifras tecleadas (mismo reparto que
+ * `evaluaVueltaArriba` y `evaluaConmutacionDeTema`).
+ *
+ * Los cuatro estados son instantaneas del documento: `carga` (recien cargado),
+ * `trasAncla` (tras activar el ancla del mismo documento, `null` si el gesto no
+ * activa ninguna), `destino` (tras el salto a la otra ruta) y `atras` (tras
+ * pulsar atras).
+ */
+export function evaluaAtras({ gesto, carga, trasAncla, destino, atras }) {
+    const motivos = [];
+    const donde = `${gesto.id}`;
+    if (gesto.instrumento) {
+        motivos.push(`${donde}: ${gesto.instrumento}`);
+        return { cumple: false, motivos };
+    }
+    /* Guardas de vacuidad. Las tres describen una medicion que no ejercio el
+       gesto, y las tres tienen que ser ROJAS y no verdes: un candado que no
+       midio nada no es un candado que cumple. */
+    const anclaEsperada = trasAncla ? trasAncla.url : carga.url;
+    if (!anclaEsperada.includes("#"))
+        motivos.push(
+            `${donde}: la entrada de la que se sale no tiene fragmento (${anclaEsperada}), asi que este gesto no ejercio el caso que vigila`,
+        );
+    if (destino.url === anclaEsperada)
+        motivos.push(
+            `${donde}: el salto a la ruta siguiente no movio la URL (${destino.url}), asi que el atras no tenia de donde volver`,
+        );
+    if (destino.h1 === carga.h1 && destino.lang === carga.lang)
+        motivos.push(
+            `${donde}: el documento de destino no se distingue del de partida (h1 ${JSON.stringify(carga.h1)}, lang ${carga.lang}), asi que "vuelve al documento correcto" seria cierto sin que nada funcionara`,
+        );
+    if (motivos.length) return { cumple: false, motivos };
+
+    /* AFIRMACION 1: la entrada de fragmento quedo sellada al nacer. Es la que
+       ve una regresion del sello aunque el gesto salga verde por otra via.
+       Solo se exige donde la salida es BLANDA, que es donde el sello decide el
+       resultado: cuando el salto recarga el documento (la 404, el cruce de
+       idioma) el router se monta de cero al volver y sella la entrada por su
+       cuenta, asi que exigirlo ahi mediria otra cosa y pintaria de rojo dos
+       controles que hoy funcionan. */
+    if (gesto.naturaleza === "blanda" && trasAncla && !trasAncla.sellada)
+        motivos.push(
+            `${donde}: la entrada de fragmento creada al activar el ancla NO quedo sellada (history.state = ${trasAncla.estadoClaves}), asi que el router no sabra restaurarla al volver`,
+        );
+    /* AFIRMACION 2: la navegacion a la ruta siguiente fue BLANDA donde el sitio
+       promete que lo es. Sin esto, endurecer los enlaces internos --o recargar
+       en `popstate`-- pondria esta familia en verde y se habria decidido por la
+       puerta de atras algo que es del dueno. */
+    if (gesto.naturaleza === "blanda" && !destino.centinela)
+        motivos.push(
+            `${donde}: el salto a ${gesto.destino} recargo el documento (el centinela de window no sobrevivio) cuando el sitio lo navega con next/link: la navegacion blanda es un rasgo declarado y este candado no se aprueba retirandolo`,
+        );
+
+    /* Y el gesto: tras el atras, el documento renderizado tiene que ser el de
+       la URL. Tres senales, en orden de fuerza. */
+    if (atras.url !== anclaEsperada)
+        motivos.push(
+            `${donde}: el atras no volvio a la entrada anterior (URL ${atras.url}, esperada ${anclaEsperada}): el navegador no viajo y la medida no habla del defecto`,
+        );
+    if (atras.h1 !== carga.h1)
+        motivos.push(
+            `${donde}: tras el atras la URL dice ${atras.url} y en pantalla sigue el documento anterior -- h1 ${JSON.stringify(atras.h1)} en vez de ${JSON.stringify(carga.h1)}`,
+        );
+    if (atras.lang !== carga.lang)
+        motivos.push(
+            `${donde}: tras el atras la URL dice ${atras.url} y el documento anuncia lang="${atras.lang}" en vez de lang="${carga.lang}"`,
+        );
+    if (atras.hero !== carga.hero)
+        motivos.push(
+            `${donde}: tras el atras el landmark propio de la pagina ${atras.hero ? "aparece sin que deba" : "no esta"} (#hero ${carga.hero ? "existia" : "no existia"} en ${carga.url})`,
+        );
+    const alto = trasAncla ? trasAncla.docH : carga.docH;
+    const deriva = Math.abs(atras.docH - alto) / Math.max(alto, 1);
+    if (deriva > TOLERANCIA_DE_ALTO_TRAS_ATRAS)
+        motivos.push(
+            `${donde}: tras el atras el documento mide ${atras.docH} px y el de esta URL medía ${alto} px (${(100 * deriva).toFixed(1)} % de deriva, tolerancia ${(100 * TOLERANCIA_DE_ALTO_TRAS_ATRAS).toFixed(0)} %)`,
+        );
+    /* El centinela DESPUES del atras: si sigue vivo, no hubo recarga. */
+    if (gesto.naturaleza === "blanda" && !atras.centinela)
+        motivos.push(
+            `${donde}: el atras recargo el documento entero (el centinela de window no sobrevivio). Restituir recargando es la opcion D del diagnostico: funciona y cuesta una carga completa, y es una decision del dueno, no del parche`,
+        );
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/** Instantanea del documento tal y como la lee esta familia. */
+function probeEstadoDelDocumento() {
+    return {
+        url: location.pathname + location.search + location.hash,
+        h1: (document.querySelector("h1")?.textContent ?? "").trim(),
+        /* El idioma del documento distingue los dos unicos documentos del sitio
+           que comparten `h1` --las dos portadas-- y es lo que hace que el
+           control del cruce de idioma mida algo. */
+        lang: document.documentElement.lang,
+        hero: document.getElementById("hero") !== null,
+        docH: Math.round(document.documentElement.scrollHeight),
+        sellada: window.history.state?.__NA === true,
+        estadoClaves: window.history.state
+            ? Object.keys(window.history.state).join(",")
+            : "null",
+        centinela: window.__u2centinela === "vivo",
+    };
+}
+
+/** El primer nodo del selector con caja visible, nunca `querySelector` a
+ *  secas: en movil el primero del DOM puede ser un control de la barra de
+ *  escritorio oculta (trampa ya pagada en este repo). */
+async function primeroVisible(page, selector) {
+    for (const candidato of await page.$$(selector)) {
+        if (await candidato.boundingBox()) return candidato;
+    }
+    return null;
+}
+
+/**
+ * Conduce el navegador para UN gesto y devuelve lo que `evaluaAtras` necesita.
+ * Exportada para poder ejercitar esta familia SOLA contra un build servido, sin
+ * recorrer las ocho superficies (la corrida completa pasa de diez minutos por
+ * tema).
+ */
+export async function mideAtras(browser, base, theme, gesto) {
+    const ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: gesto.ancho, height: gesto.alto },
+    });
+    try {
+        const page = await ctx.newPage();
+        await page.goto(`${base}${gesto.paginaDeCarga}`, {
+            waitUntil: "networkidle",
+        });
+        /* La espera a la hidratacion no es un temporizador a ojo: se espera al
+           HECHO que importa para esta familia -- que el App Router haya sellado
+           la entrada actual, que es lo primero que hace su `HistoryUpdater` al
+           montar. Sin eso, un clic podria caer antes de que exista el listener
+           que sella. */
+        await page
+            .waitForFunction(() => window.history.state?.__NA === true, null, {
+                polling: 100,
+                timeout: 15000,
+            })
+            .catch(() => {
+                /* Si no sella nunca, la instantanea lo dira y el veredicto
+                   caera por la afirmacion 1. */
+            });
+        /* Y un asentamiento corto para la rama de tema, que monta despues. */
+        await page.waitForTimeout(700);
+        await page.evaluate(() => {
+            window.__u2centinela = "vivo";
+        });
+        const carga = await page.evaluate(probeEstadoDelDocumento);
+
+        let trasAncla = null;
+        if (gesto.selector) {
+            if (gesto.viaHoja) {
+                const disparador = await primeroVisible(
+                    page,
+                    "[data-nav-sheet-trigger]",
+                );
+                if (!disparador)
+                    return {
+                        gesto: {
+                            ...gesto,
+                            instrumento:
+                                "no hay disparador de la hoja movil que abrir",
+                        },
+                        carga,
+                        trasAncla,
+                        destino: carga,
+                        atras: carga,
+                    };
+                await disparador.click();
+                await page.waitForTimeout(700);
+            }
+            const ancla = gesto.porTeclado
+                ? await page.$(gesto.selector)
+                : await primeroVisible(page, gesto.selector);
+            if (!ancla)
+                return {
+                    gesto: {
+                        ...gesto,
+                        instrumento: `no hay ningun ancla visible para ${gesto.selector}`,
+                    },
+                    carga,
+                    trasAncla,
+                    destino: carga,
+                    atras: carga,
+                };
+            if (gesto.porTeclado) {
+                await ancla.focus();
+                await page.keyboard.press("Enter");
+            } else {
+                await ancla.click();
+            }
+            await page
+                .waitForFunction(() => location.hash !== "", null, {
+                    polling: 100,
+                    timeout: 5000,
+                })
+                .catch(() => {
+                    /* sin fragmento la guarda de vacuidad lo dira */
+                });
+            await page.waitForTimeout(600);
+            trasAncla = await page.evaluate(probeEstadoDelDocumento);
+        }
+
+        const salida = await primeroVisible(page, gesto.selectorDelDestino);
+        if (!salida)
+            return {
+                gesto: {
+                    ...gesto,
+                    instrumento: `no hay enlace visible a ${gesto.destino} (${gesto.selectorDelDestino})`,
+                },
+                carga,
+                trasAncla,
+                destino: carga,
+                atras: carga,
+            };
+        await salida.click();
+        await page
+            .waitForFunction(
+                (esperada) => location.pathname === esperada,
+                gesto.destino,
+                { polling: 100, timeout: 15000 },
+            )
+            .catch(() => {
+                /* la guarda de vacuidad lo dira */
+            });
+        await page.waitForTimeout(1200);
+        const destino = await page.evaluate(probeEstadoDelDocumento);
+
+        const urlEsperada = trasAncla ? trasAncla.url : carga.url;
+        await page.evaluate(() => window.history.back());
+        /* Se espera a que el documento VUELVA a ser el de su URL, con tope: la
+           espera termina en cuanto acierta, asi que una corrida sana no paga la
+           ventana entera y una rota la paga toda. */
+        await page
+            .waitForFunction(
+                ([url, h1]) =>
+                    location.pathname + location.search + location.hash ===
+                        url &&
+                    (document.querySelector("h1")?.textContent ?? "").trim() ===
+                        h1,
+                [urlEsperada, carga.h1],
+                { polling: 150, timeout: VENTANA_DE_RESTITUCION_MS },
+            )
+            .catch(() => {
+                /* el veredicto lee la instantanea final y lo dira */
+            });
+        /* Y se lee DESPUES de un respiro, para que lo que se afirma sea "llego
+           y se quedo" y no un parpadeo. */
+        await page.waitForTimeout(600);
+        const atras = await page.evaluate(probeEstadoDelDocumento);
+        return { gesto, carga, trasAncla, destino, atras };
+    } finally {
+        await ctx.close();
+    }
+}
+
 /** Auditoria completa de una superficie. Devuelve la lista de incumplimientos. */
 async function auditarSuperficie(browser, base, theme, surface) {
     const url = `${base}${surface.path}`;
@@ -5297,6 +5812,36 @@ async function auditarSuperficie(browser, base, theme, surface) {
                     .join(" | ")}`,
             );
     }
+
+    /*
+     * --- el atras restituye el documento de la URL
+     *
+     * Fuera del bloque de la portada a proposito: el defecto vive en CUALQUIER
+     * documento que tenga anclas del mismo documento y una salida blanda, y las
+     * ocho superficies las tienen. Sus dos controles positivos --la 404 y la
+     * entrada de fragmento creada por carga-- viajan con sus superficies por el
+     * mismo camino. El porque de cada eje esta en el docblock de
+     * `VIEWPORTS_DE_ATRAS`.
+     */
+    const atrases = [];
+    for (const gesto of gestosDeAtras(surface)) {
+        const medida = await mideAtras(browser, base, theme, gesto);
+        atrases.push({ ...medida, veredicto: evaluaAtras(medida) });
+    }
+    const atrasesCaidos = atrases.filter((a) => !a.veredicto.cumple);
+    datos.atras = `${atrases.length - atrasesCaidos.length}/${atrases.length} gestos vuelven al documento de su URL ${atrases
+        .map(
+            (a) =>
+                `${a.gesto.id.split(" ").pop()}=${a.trasAncla ? (a.trasAncla.sellada ? "sellada" : "SIN-SELLO") : "sin-ancla"}/${a.destino.centinela ? "blanda" : "dura"}->${JSON.stringify(a.atras.h1.slice(0, 14))}`,
+        )
+        .join(" ")}`;
+    // [check: atras-restituye-el-documento-de-la-url]
+    if (atrasesCaidos.length)
+        fallos.push(
+            `el boton atras cambia la URL y deja en pantalla el documento anterior (${atrasesCaidos.length} de ${atrases.length} gestos): ${atrasesCaidos
+                .flatMap((a) => a.veredicto.motivos)
+                .join(" | ")}`,
+        );
 
     return { surface: surface.nombre, datos, fallos, deudaVista };
 }
