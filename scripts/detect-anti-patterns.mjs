@@ -322,6 +322,32 @@ function stripComments(src) {
 // 3. Familias (analisis linea a linea sobre el contenido YA sin comentarios)
 // ---------------------------------------------------------------------------
 
+/**
+ * Las tres llamadas que mueven la pagina de forma programatica. Usadas por la
+ * familia `focus-sin-preventscroll`; el porque de que sean estas TRES y no
+ * cuatro esta en el comentario de esa familia.
+ */
+const DESPLAZAMIENTO_PROGRAMATICO_RE =
+    /\b(?:scrollTo|scrollIntoView|scrollBy)\s*\(/;
+
+/**
+ * Memoizado por IDENTIDAD del array de lineas, y no por ruta de fichero: el
+ * array lo crea `scanFile` una vez por fichero y lo pasa tal cual a cada
+ * llamada de `test`, asi que un `WeakMap` sobre el propio array da la respuesta
+ * en O(1) para las 2.500 lineas de un fichero grande sin releer nada y sin
+ * cachear entre corridas distintas. Sin esto, la familia haria un barrido
+ * completo del fichero por cada linea que contenga `.focus(`.
+ */
+const DESPLAZA_POR_FICHERO = new WeakMap();
+
+function ficheroDesplaza(lines) {
+    const cacheado = DESPLAZA_POR_FICHERO.get(lines);
+    if (cacheado !== undefined) return cacheado;
+    const desplaza = lines.some((l) => DESPLAZAMIENTO_PROGRAMATICO_RE.test(l));
+    DESPLAZA_POR_FICHERO.set(lines, desplaza);
+    return desplaza;
+}
+
 const FAMILIES = [
     {
         id: "transition-all",
@@ -1108,6 +1134,77 @@ const FAMILIES = [
         test(line) {
             const m = /<(\w*Kicker\w*)\b/.exec(line);
             return m ? m[0] : null;
+        },
+    },
+    {
+        id: "focus-sin-preventscroll",
+        label: "focus() sin preventScroll en un fichero que ademas desplaza la pagina",
+        // ANADIDA POR LA CRITICA EXTERNA #21 (ola U, 2026-09-08), y el defecto
+        // que cierra es el P0 de «Volver arriba»: `BackToTop.tsx` arrancaba un
+        // `window.scrollTo({top: 0, behavior: "smooth"})` y, en el MISMO tick,
+        // llamaba a `document.getElementById("main")?.focus()` sin el flag. El
+        // desplazamiento que el navegador hace para meter el elemento enfocado
+        // en pantalla se lleva por delante el barrido en vuelo: medido sobre el
+        // build servido, el boton dejaba la pagina en 5.320 px de 5.623 (94,6 %
+        // del recorrido) en claro a 1440 y en 9.805 de 10.108 (97,0 %) en
+        // oscuro; a 390 px, en 4.198 y 4.768. Con `prefers-reduced-motion:
+        // reduce` --donde los dos movimientos son instantaneos-- llegaba a 0, y
+        // por eso tres evaluadores lo vieron y dos no.
+        //
+        // POR QUE ES UNA FAMILIA Y NO UNA LINEA. El repo YA tenia la regla
+        // escrita, con su porque, en el docblock de
+        // `src/components/layout/Navbar/navAnchorFocus.ts` (~linea 23), y la
+        // aplicaba en cuatro sitios; `BackToTop` era el UNICO que no. Una regla
+        // que solo vive en un docblock se cumple mientras alguien recuerde
+        // haberlo leido. Lo que hay que impedir no es que ESE boton se olvide,
+        // sino que se olvide cualquier manejador que desplace y ademas mueva el
+        // foco.
+        //
+        // GRANULARIDAD: EL FICHERO, no el ambito lexico, y es una decision
+        // medida, no una comodidad. En `BackToTop.tsx` el `focus()` NO vive en
+        // el mismo ambito que el `scrollTo`: vive en `moveFocusToMain`, un
+        // `useCallback` propio al que el manejador LLAMA. Un analisis por
+        // ambito --el que pide el nombre de la familia-- no habria visto el
+        // unico caso real del repo, porque el defecto viaja por una
+        // indireccion. Seguir la indireccion exigiria un grafo de llamadas, que
+        // no es el caracter de este motor (linea a linea, con ventana de
+        // contexto para una sola familia). El fichero es la unidad que SI
+        // contiene las dos mitades. Coste declarado: un fichero que desplace en
+        // un sitio y mueva el foco en otro sin relacion dispara igual y necesita
+        // su entrada en ALLOWLIST con el porque escrito. Sobre el corpus de hoy
+        // ese coste es cero: `BackToTop.tsx` es el UNICO fichero de `src/` y
+        // `app/` que contiene las dos cosas (censo de la ola: los demas
+        // `.focus(` viven en `Navbar.tsx`, `NavSheet.tsx`, `navAnchorFocus.ts` y
+        // `Contact.tsx`, y ninguno de esos cuatro llama a scrollTo/scrollIntoView
+        // /scrollBy; los demas `scrollTo` viven en `LanguageSelector.tsx`,
+        // `themeScrollAnchor.ts`, `useFragmentLanding.ts`, `useReloadLanding.ts`
+        // y `useSlideDeck.ts`, y ninguno de esos cinco mueve el foco).
+        //
+        // QUE CUENTA COMO DESPLAZAR: las TRES llamadas del brief --`scrollTo`,
+        // `scrollIntoView`, `scrollBy`--. `elemento.scrollTop = n` queda FUERA a
+        // proposito, y hay que decirlo porque es la omision que mas facil se
+        // lee como descuido: desplaza el contenedor interno de un panel, no el
+        // documento, asi que no puede cancelar un barrido de la pagina; y
+        // meterla dentro haria disparar los cuatro `focus()` de la hoja movil
+        // (`NavSheet.tsx`, que resetea `areaDeScroll.scrollTop`), donde el
+        // recorrido de la trampa de foco QUIERE que el navegador traiga a
+        // pantalla la fila enfocada -- justo lo contrario de lo que esta familia
+        // pide. Sancionar por costumbre lo que no es defecto es como una
+        // allowlist se llena de ruido y deja de leerse.
+        test(line, ctx) {
+            if (!/\.focus\s*\(/.test(line)) return null;
+            // La llamada puede partirse en varias lineas si el formateador lo
+            // decide, asi que `preventScroll` se busca en la linea y en las dos
+            // siguientes -- que es donde cabe el argumento de una llamada
+            // partida por Prettier con el ancho de este repo.
+            const ventana = ctx
+                ? ctx.lines.slice(ctx.index, ctx.index + 3).join("\n")
+                : line;
+            if (/\bpreventScroll\b/.test(ventana)) return null;
+            if (!ctx) return null;
+            if (!ficheroDesplaza(ctx.lines)) return null;
+            const llamada = /\??\.focus\s*\([^)]*\)/.exec(line);
+            return llamada ? llamada[0] : ".focus(";
         },
     },
     {
@@ -2627,6 +2724,8 @@ const FAMILY_GUIDANCE = {
         "este color se escribe como literal (oklch/rgb/hsl/hexadecimal) fuera de src/theme/tokens/, el unico sitio donde un color nace en este repo (regla 17 de RULES.md, no la 48: las demas familias de este script vigilan movimiento y esta vigila color). Tres preguntas, en este orden. (1) COINCIDE CON UN PELDANO? Compara contra las cinco rampas de tokens/color.ts -- primary, secondary, warning, error, neutral, doce pasos cada una -- y contra los roles de tokens/semantic.ts que las nombran. Si coincide, lee el token: un literal que hoy vale lo mismo deja de valerlo el dia que se retoque la escalera L/CMUL, y el CSS renderizado no distingue los dos casos (task/lessons.md, 2026-08-12). Cuando esta familia nacio, NINGUNO de los 55 literales del repo coincidia; ser el primero es una senal, no un tramite. (2) ES UNA CONVERSION de un token a otra notacion (un hexadecimal para un motor que no entiende oklch(), como la imagen Open Graph o la meta theme-color)? Entonces no es arte: deja escrito de QUE token sale y con que algoritmo se convirtio, porque ese literal no se enterara de que el token cambio. (3) ES ARTE? Entonces es la excepcion que la regla 17 ya declara -- arte de marca con constantes con nombre en su propio modulo *.layers.ts, importadas tal cual y nunca reescritas como valor suelto --: dale nombre, deja el porque JUNTO a la declaracion (que hue/croma no es de rampa, de que mockup o paquete sale) y anade la excepcion a ALLOWLIST. Una mascara (mask-image) no cuenta como color: ahi el blanco es opacidad, no tinte.",
     "kicker":
         "un <*Kicker*> nuevo fuera de Story.tsx/Features.tsx (las dos ramas ya sancionadas, decision D-E del dueno) necesita decidirse con el dueno del producto, igual que el resto de kickers del sitio.",
+    "focus-sin-preventscroll":
+        "este `focus()` vive en un fichero que ademas desplaza la pagina (scrollTo / scrollIntoView / scrollBy) y no pasa `preventScroll: true`. No es cosmetico: mover el foco a un elemento que no cabe entero en pantalla hace que el navegador desplace para traerlo, y ese desplazamiento CANCELA el barrido suave que el mismo manejador acaba de arrancar -- el P0 de la critica externa #21, donde «Volver arriba» dejaba la pagina en el 94,6 % del recorrido en vez de en el origen. El porque completo, con la medicion, esta en el docblock de `src/components/layout/Navbar/navAnchorFocus.ts`. Escribe `elemento.focus({ preventScroll: true })`: el foco se mueve igual y el navegador sigue haciendo su barrido. Si tu caso es el contrario --un recorrido de teclado DENTRO de un panel, donde traer a pantalla la fila enfocada es justo lo que se quiere--, deja el porque JUNTO a la llamada y anade la excepcion a ALLOWLIST.",
     "numbering":
         'una numeracion decorativa de seccion nueva (number: "0N", o el ordinal String(idx + 1).padStart(2, "0")) fuera de Story.tsx (el UNICO generador sancionado que queda: Journey.tsx retiro el suyo el 2026-08-18, critica externa #11) necesita decidirse igual que el resto -- en Journey fue una decision del dueno, no una limpieza de estilo.',
 };

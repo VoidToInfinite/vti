@@ -287,6 +287,86 @@ describe("familia radius-literal: el porcentaje deja de ser invisible", () => {
 });
 
 /**
+ * FAMILIA `focus-sin-preventscroll` (critica externa #21, ola U, 2026-09-08).
+ *
+ * Se ejercita con el FICHERO ENTERO y no linea a linea, al reves que sus
+ * hermanas, porque la familia no puede decidir con la linea sola: lo que la
+ * dispara es que en el MISMO fichero convivan un desplazamiento programatico y
+ * un `focus()` sin el flag. El motor le pasa `{ lines, index }` --la misma
+ * ventana de contexto que ya usaba `delay-const`-- y estos casos entran por esa
+ * puerta, que es la real.
+ *
+ * El caso D es el que justifica la granularidad de FICHERO: reproduce la forma
+ * exacta del defecto de `BackToTop.tsx`, donde el `focus()` vive en un ayudante
+ * propio y el `scrollTo` en el manejador que lo llama. Un analisis por ambito
+ * lexico --el que el nombre de la familia sugiere-- lo dejaria pasar.
+ *
+ * Los seis casos se validaron ademas contra el motor completo, inyectando en
+ * `src/` seis ficheros con este mismo contenido y borrandolos en la misma orden:
+ * dispararon A, D y las dos formas de F (cuatro hallazgos) y callaron B, C y E,
+ * junto al hallazgo real de `BackToTop.tsx:164` que motivo la familia.
+ */
+const foco = FAMILIES.find((f) => f.id === "focus-sin-preventscroll");
+
+/** Ejercita la familia sobre un fichero completo, como hace el motor. */
+function hallazgosDeFoco(fuente) {
+    const lines = fuente.split("\n");
+    return lines
+        .map((line, index) => foco.test(line, { lines, index }))
+        .filter((s) => s !== null);
+}
+
+describe("familia focus-sin-preventscroll: desplazar y mover el foco a la vez", () => {
+    it("la familia existe y su guia manda al flag, no a la regla de movimiento", () => {
+        expect(foco).toBeDefined();
+        expect(FAMILY_GUIDANCE["focus-sin-preventscroll"]).toMatch(
+            /preventScroll: true/,
+        );
+    });
+
+    it.each([
+        [
+            "A: desplaza y enfoca en el mismo ambito",
+            'window.scrollTo({ top: 0, behavior: "smooth" });\ndocument.getElementById("main")?.focus();',
+            ["?.focus()"],
+        ],
+        [
+            "D: el focus() detras de una indireccion (la forma de BackToTop)",
+            'function mueveElFoco() {\n  document.getElementById("main")?.focus();\n}\nfunction alPulsar() {\n  window.scrollTo({ top: 0, behavior: "smooth" });\n  mueveElFoco();\n}',
+            ["?.focus()"],
+        ],
+        [
+            "F: scrollIntoView y scrollBy tambien cuentan como desplazar",
+            'destino.scrollIntoView({ block: "start" });\notro.focus();\nwindow.scrollBy({ top: -200 });\ntercero.focus();',
+            [".focus()", ".focus()"],
+        ],
+    ])("dispara sobre %s", (_nombre, fuente, esperado) => {
+        expect(hallazgosDeFoco(fuente)).toEqual(esperado);
+    });
+
+    it.each([
+        [
+            "B: el mismo caso A con el flag puesto",
+            'window.scrollTo({ top: 0, behavior: "smooth" });\ndocument.getElementById("main")?.focus({ preventScroll: true });',
+        ],
+        [
+            "B bis: la llamada partida en varias lineas por el formateador",
+            'window.scrollTo({ top: 0, behavior: "smooth" });\ndocument.getElementById("main")?.focus({\n  preventScroll: true,\n});',
+        ],
+        [
+            "C: mueve el foco pero el fichero no desplaza nada",
+            'document.getElementById("main")?.focus();\nprimeraFila.focus();',
+        ],
+        [
+            "E: limite declarado -- scrollTop mueve un panel, no el documento",
+            "areaDeScroll.scrollTop = 0;\nfila.focus();",
+        ],
+    ])("NO dispara sobre %s", (_nombre, fuente) => {
+        expect(hallazgosDeFoco(fuente)).toEqual([]);
+    });
+});
+
+/**
  * La guarda de entrada (`invocadoComoPrograma`) es lo que permite importar el
  * script desde este fichero sin que escanee el repo ni toque el
  * `process.exitCode` de Vitest. Su modo de fallo peligroso es el contrario:
