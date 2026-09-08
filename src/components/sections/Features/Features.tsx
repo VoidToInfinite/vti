@@ -1777,11 +1777,8 @@ export function Features(): ReactElement {
    * carrera asíncrona (confirmado sin CPU throttle, tras networkidle, con
    * varios cientos de ms de margen), es que el UMBRAL DE ÁREA no escala con
    * la ALTURA del objetivo: cuanto más alto es el envoltorio observado, más
-   * scroll hace falta para satisfacer el mismo 20%, y ScRevealGroup es,
-   * con diferencia, el objetivo más alto de los 6 consumidores de
-   * useReveal del repo (los otros cinco -- ScSectionBeam, ScCard/
-   * ScDarkContent de Contact, ScGrid de Journey/Story -- envuelven una
-   * sola pieza o una franja acotada, no cinco piezas apiladas con imagen).
+   * scroll hace falta para satisfacer el mismo 20%, y ScRevealGroup era
+   * el objetivo más alto que se había medido entonces.
    * Un usuario real que se detiene a leer justo cuando el título ya es
    * visible (el gesto más natural del mundo) puede quedarse parado DENTRO de
    * esa banda indefinidamente -- nada la vuelve a comprobar sin un scroll/
@@ -1797,9 +1794,28 @@ export function Features(): ReactElement {
    * rootMargin ajustado, sin importar cuántas tarjetas cuelguen debajo.
    * Verificado con el mismo guion de reproducción tras el cambio: revela en
    * cuanto la cabecera asoma, muy por debajo de scrollY=2900, sin dejar
-   * ninguna banda ciega. SOLO afecta a Features -- el useReveal<T>() sin
-   * opciones de los otros cinco consumidores no se toca, no hay evidencia de
-   * que ninguno tenga un objetivo comparable de alto.
+   * ninguna banda ciega.
+   *
+   * LA ÚLTIMA FRASE DE ESTE DOCBLOCK ERA FALSA, y se corrige aquí (ola U,
+   * 2026-09-08). Decía que el defecto SOLO afectaba a Features y que no había
+   * evidencia de que ningún otro consumidor tuviera un objetivo comparable de
+   * alto. El censo de la crítica externa #21, medido sobre el build servido en
+   * dos temas, cinco anchos y dos raíces de fuente, dice lo contrario: la
+   * tarjeta de Contacto mide 944 px y la rejilla de Story 938 a 1440x900 --
+   * contra los 1.095 de este envoltorio --, y a 390x844 con la raíz a 32 la
+   * rejilla de Story llega a 6.073 px, MÁS que los 5.383 de aquí, con el ratio
+   * máximo posible (0,1223) por debajo del umbral: no se revelaba nunca. Lo
+   * que aquí se arregló para una sección era un defecto de todas.
+   *
+   * POR ESO EL ARREGLO YA NO VIVE AQUÍ: desde esa misma ola, `useReveal` baja
+   * el umbral por su cuenta en cuanto cumplirlo costaría más de un 1 % de la
+   * ventana de retraso (`RETRASO_MAXIMO_DEL_UMBRAL`). ESTE `threshold: 0`
+   * EXPRESO SE QUEDA, y la decisión es medida, no inercia: sin él este
+   * envoltorio pasaría a pedir ese 1 % --9 px de scroll a 900 px de ventana--
+   * en vez de 0, o sea revelaría 9 px más tarde que hoy. Es un cambio pequeño,
+   * pero es un cambio, y la regla del encargo era quitarlo solo si no cambiaba
+   * nada. Lo que este literal significa ahora es "esta pieza no admite ni ese
+   * 1 %", no "esta pieza es la única alta".
    */
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>({
     threshold: 0,
