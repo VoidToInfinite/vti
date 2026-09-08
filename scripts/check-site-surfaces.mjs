@@ -659,6 +659,7 @@ export const CHECKS = [
     "estado-modal-no-sobrevive-al-cambio-de-anchura",
     "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
     "volver-arriba-vuelve-arriba",
+    "conmutar-el-tema-no-congela-la-pagina",
 ];
 
 /**
@@ -3702,6 +3703,464 @@ export async function mideVueltaArriba(browser, theme, url, combinacion) {
     }
 }
 
+/**
+ * FAMILIA VEINTICINCO, `conmutar-el-tema-no-congela-la-pagina` (critica
+ * externa #21, ola U, 2026-09-08). Segunda familia de este script que juzga
+ * un GESTO por su resultado, y la primera que mide el PIXEL de la portada
+ * entera en vez de una banda.
+ *
+ * EL DEFECTO QUE NACE PARA VER, medido sobre el build servido de `4d71a4f`
+ * (http://localhost:4321, Chrome, `/`, es, 1440x900, SIN `reduce`, rueda real
+ * de 12 x 220 px hasta y = 2.640, clic REAL sobre `[data-theme-toggle]`):
+ *
+ *     oscuro -> claro  t+5 s  y=1712  10 cubos de color, dominante 99,4 %
+ *                             99 % del texto del viewport en el DOM, apagado
+ *                             Story__ScGrid          ratio 0,2538  revelado=false
+ *                             Story__ScStatementText ratio 1,0000  revelado=false
+ *     claro  -> oscuro t+5 s  --journey-progress NUNCA escrita
+ *                             data-slide 0,0,0,0,0,0 en 1.000 px de rueda
+ *
+ * Diez cubos de color y el 99,4 % en uno solo es el fondo liso de la pagina:
+ * la pantalla, literalmente, casi vacia con el texto en el DOM.
+ *
+ * LA RAIZ, para entender por que la familia mide LO QUE MIDE.
+ * `IntersectionObserver` entrega un LOTE con todos los cambios acumulados
+ * desde la ultima entrega. La correccion del punto de lectura del conmutador
+ * mueve el scroll 928 px DESPUES de que la rama nueva haya llamado a
+ * `observe()`, asi que el lote llega con dos registros del mismo nodo -- el
+ * obsoleto ("no interseca") primero y el vigente ("interseca") despues -- y
+ * los cinco hooks leian `entries[0]`. Detalle completo y la prediccion
+ * falsable que lo confirma: `src/hooks/useReveal.test.tsx`, candado del lote
+ * multiple.
+ *
+ * TRES MEDIDAS Y NO UNA, porque el mismo defecto tiene tres caras y ninguna
+ * de las tres ve las otras dos:
+ *
+ *   1. PIXEL (histograma del viewport bajo la barra, 4 bits por canal). Es el
+ *      arbitro: la metrica de DOM no es comparable entre temas --el deck
+ *      oscuro apila diapositivas y marca como "no pintado" lo que si se ve--
+ *      y esta no depende de ninguna contabilidad propia. Calibracion medida
+ *      hoy: defecto 10 cubos / 99,4 % a 1440x900 y 12 / 99,1 % a 1280x720;
+ *      arreglado 41 / 90,8 % y 41 / 90,6 %. El corte esta en medio, con
+ *      margen amplio por los dos lados.
+ *      LIMITE: solo ve el sentido oscuro -> claro. En el contrario no hay
+ *      pantalla en blanco (las diapositivas se apilan visibles) y el pixel
+ *      sale verde con el defecto puesto -- por eso hay una medida 3.
+ *   2. REVELADOS ATASCADOS. Un nodo con `data-revealed="false"` cuyo ratio de
+ *      interseccion contra la ventana de su PROPIO observador ya supera el
+ *      umbral que ese observador declara es un estado que el contrato de
+ *      `IntersectionObserver` no puede producir: el umbral se cruzo y el
+ *      atributo no cambio. Ve el defecto a profundidades donde el pixel ya no
+ *      (a 24 pasos el pixel da 553 cubos y hay siete piezas atascadas).
+ *   3. LA COREOGRAFIA SIGUE VIVA. Solo al llegar al tema oscuro (el unico que
+ *      monta deck) y solo sin `reduce`: tras el gesto se ruedan 1.000 px y se
+ *      exige que el escenario ENGANCHADO --el que `position: sticky` mantiene
+ *      clavado en el borde superior durante toda la rodada, ver
+ *      `evaluaEscenariosFijados`-- mueva su `data-slide` o su variable de
+ *      progreso. Es la unica de las tres que ve el sentido contrario, donde lo
+ *      que muere no es lo que se ve sino lo que se mueve.
+ *
+ * POR QUE EL EJE DE `reduce` ESTA, Y POR QUE NO ES UN CONTROL. La leccion del
+ * 2026-09-07 exige medir los dos sentidos de la preferencia, y aqui hay que
+ * decir algo mas fuerte: bajo `reduce` el defecto SIGUE OCURRIENDO --la
+ * maquina de estados se queda atascada igual, medido: nodos con
+ * `data-revealed="false"` y opacidad calculada 1-- y lo que cambia es que las
+ * guardas CSS de revelado (`@media (prefers-reduced-motion: reduce) { opacity:
+ * 1 }`, sin calificar por `data-revealed`) lo TAPAN. `reduce` no prueba que no
+ * exista: prueba que la piel accesible lo esconde. Por eso las dos medidas que
+ * dependen de la pintura corren sin `reduce`, y la combinacion con `reduce`
+ * entra solo como constancia de que ese lado tambien llega y de que el rojo
+ * del otro no es un defecto del instrumento.
+ *
+ * LO QUE ESTA FAMILIA DEJA FUERA A PROPOSITO: la llegada en frio por
+ * `/?read=R#seccion` (la URL que el propio sitio compone al cambiar de
+ * idioma). Ahi tambien queda texto sin pintar --medido: 15,3 % a R=0,45;
+ * 26,0 % a 0,50; 29,1 % a 0,55; 34,4 % a 0,60; 0 % en el resto del barrido--
+ * pero NO es este defecto: no aparece un solo lote de dos entradas, y la
+ * escalera de ratios (0,0000 / 0,0218 / 0,0918 / 0,1606 y 0,2475 en 0,65)
+ * cruza exactamente en el umbral 0,2 de `useReveal`. Es la banda ciega de 297
+ * px que deja un umbral del 20 % sobre la tarjeta de 944 px de
+ * `Contact.tsx:2097` dentro de una ventana de 792, y cerrarla obliga a tocar
+ * un rasgo de diseno declarado (el umbral, o el adelanto perceptivo del 12 %):
+ * es DECISION DEL DUENO y esta pendiente. Meterla aqui dejaria la familia roja
+ * por un defecto que nadie ha decidido todavia arreglar, que es la forma mas
+ * rapida de que una familia se apague. La medida 2 la excluye por
+ * construccion, no por lista: exige ratio >= umbral, y esos casos estan por
+ * debajo.
+ */
+export const GESTOS_DEL_CONMUTADOR = [
+    { pasos: 12, reduce: "no-preference" },
+    { pasos: 24, reduce: "no-preference" },
+    { pasos: 12, reduce: "reduce" },
+];
+
+/** Muesca de rueda, en px. La misma con la que se midio el defecto. */
+export const PASO_DE_RUEDA_PX = 220;
+
+/**
+ * Suelo de cubos de color del viewport bajo la barra y techo del cubo
+ * dominante. Ver la calibracion en el docblock de arriba: el defecto da 10-12
+ * cubos con un dominante del 99,1-99,4 %, y el mismo instante arreglado da 41
+ * cubos con un 90,6-90,8 %. Cualquier corte entre 12 y 41 separa los dos
+ * regimenes; 25 lo deja a mitad de camino. El techo del dominante es la
+ * segunda mitad de la misma pregunta: una pantalla puede tener muchos cubos
+ * casi vacios y seguir siendo un fondo liso.
+ */
+export const MIN_CUBOS_DE_COLOR = 25;
+export const MAX_DOMINANTE_DEL_VIEWPORT = 96;
+
+/**
+ * El umbral y el recorte inferior que `useReveal` declara por defecto
+ * (`threshold: 0.2`, `rootMargin: "0px 0px -12% 0px"`). La medida 2 los usa
+ * para reconstruir la ventana del observador y decidir si un revelado
+ * atascado es un defecto o es la coreografia declarada.
+ *
+ * Se usa el 0,2 para TODOS los nodos aunque Features pase `threshold: 0`: no
+ * hay forma de leer desde el DOM que umbral uso cada observador, y suponer el
+ * mas alto solo puede hacer la familia MENOS sensible, nunca acusarla de un
+ * defecto que no existe.
+ */
+export const UMBRAL_DECLARADO_DE_REVELADO = 0.2;
+export const RECORTE_INFERIOR_DEL_REVELADO = 0.12;
+
+/** Rueda dentro de la pista del deck tras conmutar, para la medida 3. */
+export const PASOS_DE_PISTA_TRAS_CONMUTAR = 5;
+export const PASO_DE_PISTA_TRAS_CONMUTAR_PX = 200;
+
+/** Histograma del viewport ya recortado bajo la barra. Corre en la pagina. */
+export function probeHistogramaDelViewport({ imagen }) {
+    const img = new Image();
+    img.src = imagen;
+    return img.decode().then(() => {
+        const lienzo = document.createElement("canvas");
+        lienzo.width = img.width;
+        lienzo.height = img.height;
+        const pincel = lienzo.getContext("2d", { willReadFrequently: true });
+        pincel.drawImage(img, 0, 0);
+        const d = pincel.getImageData(0, 0, img.width, img.height).data;
+        const cubos = new Map();
+        for (let i = 0; i < d.length; i += 4) {
+            const k =
+                ((d[i] >> 4) << 8) | ((d[i + 1] >> 4) << 4) | (d[i + 2] >> 4);
+            cubos.set(k, (cubos.get(k) || 0) + 1);
+        }
+        const total = d.length / 4;
+        let max = 0;
+        for (const v of cubos.values()) if (v > max) max = v;
+        return {
+            cubos: cubos.size,
+            dominante: Number(((100 * max) / total).toFixed(1)),
+        };
+    });
+}
+
+/**
+ * Nodos que siguen en `data-revealed="false"` con su ratio de interseccion ya
+ * por encima del umbral que su observador declara. Corre en la pagina.
+ */
+export function probeRevelosAtascados({ umbral, recorte }) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const fondoDeLaVentana = vh * (1 - recorte);
+    const atascados = [];
+    for (const el of document.querySelectorAll('[data-revealed="false"]')) {
+        const r = el.getBoundingClientRect();
+        const area = r.width * r.height;
+        if (area <= 0) continue;
+        const ix = Math.max(0, Math.min(vw, r.right) - Math.max(0, r.left));
+        const iy = Math.max(
+            0,
+            Math.min(fondoDeLaVentana, r.bottom) - Math.max(0, r.top),
+        );
+        const ratio = (ix * iy) / area;
+        if (ratio < umbral) continue;
+        atascados.push({
+            nombre:
+                (el.className || "").split(/\s+/)[0].replace(/-sc-.*/, "") ||
+                el.tagName.toLowerCase(),
+            ratio: Number(ratio.toFixed(4)),
+            top: Math.round(r.top),
+            opacidad: Number(getComputedStyle(el).opacity),
+        });
+    }
+    return atascados;
+}
+
+/**
+ * Cuanto puede separarse del borde superior el escenario de un deck y seguir
+ * contando como FIJADO. `position: sticky` lo clava en 0; los 8 px cubren el
+ * instante en que la pista termina y lo suelta, sin admitir un escenario que
+ * ya se esta yendo (el de Story, medido, va de -28 a -1028 mientras el de
+ * Journey se queda clavado en 0).
+ */
+export const TOLERANCIA_DE_ESCENARIO_FIJADO_PX = 8;
+
+/**
+ * TODOS los escenarios de deck de la pagina, con su caja y lo que publican.
+ * Corre en la pagina.
+ *
+ * TODOS y no el primero: `querySelector("[data-slide]")` devolvia el
+ * escenario de Story --que en ese punto ya ha pasado, se queda en su ultima
+ * diapositiva y conserva escritas sus variables de cuando si corria-- en vez
+ * del de Journey, que es el que el gesto acababa de dejar muerto. Con ese
+ * nodo la medida daba VERDE sobre el defecto entero. Es la trampa de
+ * `querySelector` que este repo ya tenia escrita, aplicada a un caso nuevo.
+ */
+export function probeEscenariosDelDeck() {
+    const salida = [];
+    for (const stage of document.querySelectorAll("[data-slide]")) {
+        const r = stage.getBoundingClientRect();
+        const estilo = stage.getAttribute("style") || "";
+        const progreso = /--[a-z-]+-progress:\s*([\d.-]+)/.exec(estilo);
+        salida.push({
+            nombre:
+                (stage.className || "").split(/\s+/)[0].replace(/-sc-.*/, "") ||
+                stage.tagName.toLowerCase(),
+            enPantalla: r.bottom > 0 && r.top < window.innerHeight,
+            top: Math.round(r.top),
+            slide: stage.getAttribute("data-slide"),
+            progreso: progreso ? progreso[1] : null,
+        });
+    }
+    return salida;
+}
+
+/**
+ * De la serie de muestras a un veredicto sobre la coreografia, PURO para
+ * poder ejercitarlo desde la suite. Funcion separada porque la pregunta
+ * "¿cual de los escenarios es el que estoy midiendo?" tiene respuesta y no es
+ * "el primero".
+ *
+ * FIJADO = el escenario cuyo borde superior se queda clavado en 0 durante
+ * TODA la rodada. Es la firma observable de un `position: sticky` ENGANCHADO,
+ * o sea del deck por cuya pista esta pasando el lector ahora mismo. El de
+ * Story, que ya paso, se va hacia arriba (-28, -228, ... -1028) y queda
+ * excluido por su propia geometria, no por una lista de nombres.
+ *
+ * Y por eso mismo un escenario fijado TIENE que moverse: si sigue clavado tras
+ * 1.000 px es que a su pista todavia le queda recorrido por debajo; un deck que
+ * hubiera llegado a su ultima diapositiva ya se estaria yendo hacia arriba y no
+ * seria fijado. No hace falta saber cuantas diapositivas tiene.
+ */
+export function evaluaEscenariosFijados(muestras) {
+    if (!muestras.length || !muestras[0].length) return { aplicable: false };
+    const fijados = [];
+    for (let i = 0; i < muestras[0].length; i += 1) {
+        const serie = muestras.map((m) => m[i]);
+        if (serie.some((s) => !s)) continue;
+        if (
+            !serie.every(
+                (s) =>
+                    s.enPantalla &&
+                    Math.abs(s.top) <= TOLERANCIA_DE_ESCENARIO_FIJADO_PX,
+            )
+        )
+            continue;
+        fijados.push({
+            nombre: serie[0].nombre,
+            serie: serie.map((s) => s.slide),
+            progresos: serie.map((s) => s.progreso ?? "NO ESCRITA"),
+        });
+    }
+    if (!fijados.length) return { aplicable: false };
+    /* Con varios escenarios fijados a la vez (no ocurre hoy) se juzga el peor:
+       basta con que uno este muerto para que la coreografia lo este. */
+    const peor =
+        fijados.find(
+            (f) =>
+                new Set(f.serie).size === 1 && new Set(f.progresos).size === 1,
+        ) ?? fijados[0];
+    return {
+        aplicable: true,
+        nombre: peor.nombre,
+        serie: peor.serie,
+        progresos: peor.progresos,
+        recorrido:
+            PASOS_DE_PISTA_TRAS_CONMUTAR * PASO_DE_PISTA_TRAS_CONMUTAR_PX,
+        avanza:
+            new Set(peor.serie).size > 1 || new Set(peor.progresos).size > 1,
+    };
+}
+
+/**
+ * Veredicto PURO de una combinacion, separado de la conduccion del navegador
+ * para poder ejercitarlo desde la suite con numeros tecleados (mismo reparto
+ * que `evaluaVueltaArriba` y `evaluaEstadoModal`).
+ */
+export function evaluaConmutacionDeTema({
+    gesto,
+    temaAntes,
+    temaDespues,
+    yAntes,
+    yDespues,
+    alto,
+    pixel,
+    atascados,
+    deck,
+}) {
+    const motivos = [];
+    const donde = `${gesto.pasos} muescas de rueda con reduce=${gesto.reduce}, ${temaAntes} -> ${temaDespues}`;
+    /* Guardas de vacuidad. Un verde vale lo que valga el gesto que lo produjo:
+       si el tema no cambio, o si la lectura no habia bajado ni una pantalla,
+       no hay correccion de punto de lectura que pueda romper nada. */
+    if (!temaDespues || temaDespues === temaAntes) {
+        motivos.push(
+            `a ${gesto.pasos} muescas con reduce=${gesto.reduce} el conmutador no llego a cambiar el tema (sigue en "${temaAntes}"): sin gesto no hay nada que medir`,
+        );
+        return { cumple: false, motivos };
+    }
+    if (yAntes <= alto) {
+        motivos.push(
+            `a ${donde} la lectura estaba en y=${yAntes}, a menos de una pantalla (${alto}): el gesto no llega a corregir ningun punto de lectura y el verde seria vacuo`,
+        );
+        return { cumple: false, motivos };
+    }
+    if (gesto.reduce !== "reduce") {
+        if (pixel.cubos < MIN_CUBOS_DE_COLOR)
+            motivos.push(
+                `a ${donde} el viewport bajo la barra queda en ${pixel.cubos} cubos de color (suelo ${MIN_CUBOS_DE_COLOR}) con el dominante al ${pixel.dominante} %: eso es el fondo liso de la pagina, no una pantalla con contenido (y=${yDespues})`,
+            );
+        else if (pixel.dominante > MAX_DOMINANTE_DEL_VIEWPORT)
+            motivos.push(
+                `a ${donde} un solo cubo de color ocupa el ${pixel.dominante} % del viewport bajo la barra (techo ${MAX_DOMINANTE_DEL_VIEWPORT} %), con ${pixel.cubos} cubos (y=${yDespues})`,
+            );
+    }
+    if (atascados.length)
+        motivos.push(
+            `a ${donde} quedan ${atascados.length} piezas en data-revealed="false" con el umbral de su propio observador ya cruzado: ${atascados
+                .map(
+                    (a) =>
+                        `${a.nombre} ratio=${a.ratio} top=${a.top} opacidad=${a.opacidad}`,
+                )
+                .join(", ")}`,
+        );
+    if (deck && deck.aplicable && !deck.avanza)
+        motivos.push(
+            `a ${donde} el escenario ${deck.nombre} sigue fijado en pantalla y no avanza al rodar ${deck.recorrido} px: data-slide ${deck.serie.join(",")} y progreso ${deck.progresos.join(",")}`,
+        );
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/**
+ * Conduce el navegador para UNA combinacion y devuelve lo que
+ * `evaluaConmutacionDeTema` necesita. Exportada para poder correr esta familia
+ * SOLA contra un build servido: la corrida completa pasa de diez minutos por
+ * tema.
+ */
+export async function mideConmutacionDeTema(browser, theme, url, gesto) {
+    const ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: 1440, height: 900 },
+        reducedMotion: gesto.reduce,
+    });
+    try {
+        const page = await ctx.newPage();
+        await page.goto(url, { waitUntil: "networkidle" });
+        /* La portada asienta su composicion despues de `networkidle`: la misma
+           espera, y por el mismo motivo, que las familias vecinas. */
+        await page.waitForTimeout(2200);
+        /* RUEDA REAL y no `scrollTo`: la correccion del punto de lectura se
+           alimenta de donde el lector estaba leyendo, y un salto instantaneo
+           no deja el mismo rastro que doce muescas seguidas. */
+        for (let i = 0; i < gesto.pasos; i += 1) {
+            await page.mouse.wheel(0, PASO_DE_RUEDA_PX);
+            await page.waitForTimeout(220);
+        }
+        await page.waitForTimeout(1200);
+        const antes = await page.evaluate(() => ({
+            y: Math.round(window.scrollY),
+            tema: document.documentElement.dataset.theme,
+        }));
+
+        /* `$$` y filtro por caja visible, no `$`: `querySelector` devuelve el
+           PRIMER nodo, que puede ser el de una barra oculta (trampa ya pagada
+           en este repo). Clic REAL, por el mismo camino que una persona: fijar
+           el tema por `localStorage` NO reproduce el gesto -- lo que rompe la
+           pagina es la correccion del punto de lectura que solo dispara el
+           conmutador. */
+        let boton = null;
+        for (const c of await page.$$("[data-theme-toggle] button")) {
+            if (await c.boundingBox()) {
+                boton = c;
+                break;
+            }
+        }
+        if (!boton)
+            return {
+                gesto,
+                temaAntes: antes.tema,
+                temaDespues: antes.tema,
+                yAntes: antes.y,
+                yDespues: antes.y,
+                alto: 900,
+                pixel: { cubos: 0, dominante: 100 },
+                atascados: [],
+                deck: null,
+            };
+        await boton.click();
+        /* Cinco segundos: la correccion del punto de lectura llega en ~150 ms
+           y las entradas de revelado duran menos de un segundo. Se mide el
+           estado ASENTADO, no el transitorio. */
+        await page.waitForTimeout(5000);
+
+        const despues = await page.evaluate(() => {
+            const barra = document.querySelector("header");
+            return {
+                y: Math.round(window.scrollY),
+                tema: document.documentElement.dataset.theme,
+                yBarra: barra
+                    ? Math.round(barra.getBoundingClientRect().bottom)
+                    : 0,
+                alto: window.innerHeight,
+            };
+        });
+        const vp = page.viewportSize();
+        const captura = await page.screenshot({
+            clip: {
+                x: 0,
+                y: despues.yBarra,
+                width: vp.width,
+                height: vp.height - despues.yBarra,
+            },
+        });
+        const pixel = await page.evaluate(probeHistogramaDelViewport, {
+            imagen: `data:image/png;base64,${captura.toString("base64")}`,
+        });
+        const atascados = await page.evaluate(probeRevelosAtascados, {
+            umbral: UMBRAL_DECLARADO_DE_REVELADO,
+            recorte: RECORTE_INFERIOR_DEL_REVELADO,
+        });
+
+        /* Medida 3, solo al LLEGAR al tema oscuro (el unico que monta deck) y
+           solo sin `reduce`: bajo `reduce` la presentacion se desmonta como tal
+           por diseno (D6 de `useSlideDeck`), asi que exigirle que avance seria
+           exigir lo contrario de lo declarado. */
+        let deck = null;
+        if (despues.tema === "dark" && gesto.reduce !== "reduce") {
+            const muestras = [await page.evaluate(probeEscenariosDelDeck)];
+            for (let i = 0; i < PASOS_DE_PISTA_TRAS_CONMUTAR; i += 1) {
+                await page.mouse.wheel(0, PASO_DE_PISTA_TRAS_CONMUTAR_PX);
+                await page.waitForTimeout(400);
+                muestras.push(await page.evaluate(probeEscenariosDelDeck));
+            }
+            deck = evaluaEscenariosFijados(muestras);
+        }
+
+        return {
+            gesto,
+            temaAntes: antes.tema,
+            temaDespues: despues.tema,
+            yAntes: antes.y,
+            yDespues: despues.y,
+            alto: despues.alto,
+            pixel,
+            atascados,
+            deck,
+        };
+    } finally {
+        await ctx.close();
+    }
+}
+
 /** Auditoria completa de una superficie. Devuelve la lista de incumplimientos. */
 async function auditarSuperficie(browser, base, theme, surface) {
     const url = `${base}${surface.path}`;
@@ -4794,6 +5253,47 @@ async function auditarSuperficie(browser, base, theme, surface) {
             fallos.push(
                 `el control «volver arriba» no cumple lo que promete (${vueltasCaidas.length} de ${vueltas.length} combinaciones): ${vueltasCaidas
                     .flatMap((v) => v.veredicto.motivos)
+                    .join(" | ")}`,
+            );
+
+        /*
+         * --- conmutar el tema no congela la pagina
+         *
+         * Las tres medidas, la matriz y el porque de cada eje estan en el
+         * docblock de `GESTOS_DEL_CONMUTADOR`. El SENTIDO de la conmutacion no
+         * es un eje propio: lo fija el `theme` de esta corrida, que es el tema
+         * de PARTIDA -- con `theme` oscuro el gesto es oscuro -> claro (donde
+         * el pixel ve la pantalla vacia) y con `theme` claro es el contrario
+         * (donde lo que muere es la coreografia). Las dos corridas de tema que
+         * el candado ya hace cubren los dos sentidos sin duplicar nada.
+         */
+        const conmutaciones = [];
+        for (const gesto of GESTOS_DEL_CONMUTADOR) {
+            const medida = await mideConmutacionDeTema(
+                browser,
+                theme,
+                url,
+                gesto,
+            );
+            conmutaciones.push({
+                ...medida,
+                veredicto: evaluaConmutacionDeTema(medida),
+            });
+        }
+        const conmutacionesCaidas = conmutaciones.filter(
+            (c) => !c.veredicto.cumple,
+        );
+        datos.conmutarTema = `${conmutaciones.length - conmutacionesCaidas.length}/${conmutaciones.length} conmutaciones dejan la pagina viva ${conmutaciones
+            .map(
+                (c) =>
+                    `${c.gesto.pasos}@${c.gesto.reduce}=${c.temaAntes}->${c.temaDespues} y${c.yAntes}->${c.yDespues} ${c.pixel.cubos}cubos/${c.pixel.dominante}% ${c.atascados.length}atascados${c.deck ? (c.deck.aplicable ? ` deck[${c.deck.serie.join(",")}]` : " deck-fuera") : ""}`,
+            )
+            .join(" ")}`;
+        // [check: conmutar-el-tema-no-congela-la-pagina]
+        if (conmutacionesCaidas.length)
+            fallos.push(
+                `conmutar el tema a media lectura deja la pagina congelada (${conmutacionesCaidas.length} de ${conmutaciones.length} combinaciones): ${conmutacionesCaidas
+                    .flatMap((c) => c.veredicto.motivos)
                     .join(" | ")}`,
             );
     }

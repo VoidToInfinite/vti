@@ -16,6 +16,7 @@ import {
     DEUDA_ZOOM,
     DPRS_DEL_ARTE,
     EN_PREFIX,
+    GESTOS_DEL_CONMUTADOR,
     HOME_DOC,
     IDIOMA_HORNEADO_DE_LA_404,
     LADO_MINIMO_DE_PIEZA_PX,
@@ -23,7 +24,9 @@ import {
     LEGAL_DOCS,
     MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
     MAX_BYTES_DE_ARTE_NO_PINTADO,
+    MAX_DOMINANTE_DEL_VIEWPORT,
     MIN_CARACTERES_POR_LINEA,
+    MIN_CUBOS_DE_COLOR,
     NAV_BAND_PX,
     OBJETIVO_DE_RECARGA_PX,
     OPACIDAD_DE_DIAPOSITIVA_ACTIVA,
@@ -42,6 +45,7 @@ import {
     TOLERANCIA_DEL_ESCENARIO_PX,
     TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
     TOLERANCIA_DE_VUELTA_ARRIBA_PX,
+    UMBRAL_DECLARADO_DE_REVELADO,
     UMBRAL_DE_CONTRASTE_GRANDE,
     UMBRAL_DE_CONTRASTE_NORMAL,
     VIEWPORTS_DE_LA_CABECERA,
@@ -51,6 +55,8 @@ import {
     ZOOM_FONT_PX,
     comparaCrecimiento,
     especificadoresDePlaywright,
+    evaluaConmutacionDeTema,
+    evaluaEscenariosFijados,
     evaluaContrasteDeCabecera,
     evaluaEstadoModal,
     evaluaRecarga,
@@ -537,6 +543,7 @@ const FAMILIAS_ESPERADAS = [
     "estado-modal-no-sobrevive-al-cambio-de-anchura",
     "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
     "volver-arriba-vuelve-arriba",
+    "conmutar-el-tema-no-congela-la-pagina",
 ];
 
 /**
@@ -603,7 +610,7 @@ const FAMILIAS_ESPERADAS = [
  * igualdad otra vez en VERDE sobre la lista mas corta. Restaurados los tres
  * bloques, 64/64.
  */
-const FAMILIAS_MINIMAS = 24;
+const FAMILIAS_MINIMAS = 25;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -3440,5 +3447,333 @@ describe("familia volver-arriba-vuelve-arriba: el control cumple lo que promete"
         });
         expect(cumple).toBe(false);
         expect(motivos.join(" ")).toContain("menos de una pantalla");
+    });
+});
+
+/**
+ * LA FAMILIA VEINTICINCO, `conmutar-el-tema-no-congela-la-pagina` (critica
+ * externa #21, ola U, 2026-09-08). Como en la veinticuatro, se ejercita el
+ * VEREDICTO con las cifras REALES medidas sobre el build defectuoso de
+ * `4d71a4f` -- 10 cubos de color con el 99,4 % dominante, `Story__ScGrid` con
+ * ratio 0,2538 en `data-revealed="false"`, el deck de Journey en 0,0,0,0,0,0
+ * durante 1.000 px de rueda --, no con numeros inventados.
+ *
+ * La conduccion del navegador (`mideConmutacionDeTema`) no se prueba aqui:
+ * necesita un sitio servido, y esa mitad se valida corriendo la familia contra
+ * el build -- roja sobre el defecto, verde tras el arreglo --, que es como se
+ * validan las veinticuatro familias anteriores.
+ */
+describe("familia conmutar-el-tema-no-congela-la-pagina: el gesto deja la pagina viva", () => {
+    const GESTO = { pasos: 12, reduce: "no-preference" };
+    const SANO = {
+        gesto: GESTO,
+        temaAntes: "dark",
+        temaDespues: "light",
+        yAntes: 2640,
+        yDespues: 1712,
+        alto: 900,
+        pixel: { cubos: 41, dominante: 90.8 },
+        atascados: [],
+        deck: null,
+    };
+
+    it("la matriz mide dos profundidades sin reduce y deja constancia del sentido reduce", () => {
+        expect(GESTOS_DEL_CONMUTADOR).toEqual([
+            { pasos: 12, reduce: "no-preference" },
+            { pasos: 24, reduce: "no-preference" },
+            { pasos: 12, reduce: "reduce" },
+        ]);
+        /* Sin `reduce` es donde el defecto se ve: bajo `reduce` las guardas CSS
+           de revelado ponen `opacity: 1` sin calificar por `data-revealed` y lo
+           TAPAN. Una familia que solo midiera con `reduce` saldria verde sobre
+           el defecto entero. */
+        expect(
+            GESTOS_DEL_CONMUTADOR.filter((g) => g.reduce === "no-preference")
+                .length,
+            "sin combinaciones sin `reduce` esta familia no puede ver su propio defecto",
+        ).toBeGreaterThanOrEqual(2);
+        /* Dos profundidades distintas porque el defecto no cae en un punto: la
+           ventana peor (99 % y 10 cubos) va de y ~2.600 a ~3.500, y mas abajo
+           el pixel ya sale verde con siete piezas todavia atascadas. Cada
+           medida ve una profundidad que la otra no. */
+        expect(new Set(GESTOS_DEL_CONMUTADOR.map((g) => g.pasos)).size).toBe(2);
+    });
+
+    it("cae con las cifras reales del defecto: 10 cubos de color y 99,4 % dominante", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            pixel: { cubos: 10, dominante: 99.4 },
+            atascados: [
+                {
+                    nombre: "Story__ScGrid",
+                    ratio: 0.2538,
+                    top: -700,
+                    opacidad: 0,
+                },
+                {
+                    nombre: "Story__ScStatementText",
+                    ratio: 1,
+                    top: 369,
+                    opacidad: 1,
+                },
+            ],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("10 cubos de color");
+        expect(motivos.join(" ")).toContain("Story__ScGrid ratio=0.2538");
+    });
+
+    it("cae por revelados atascados aunque el pixel salga verde (la profundidad de 24 muescas)", () => {
+        // Medido: a 24 muescas el histograma da 553 cubos --pantalla con
+        // contenido-- y siguen atascadas seis piezas de Journey y el grupo de
+        // Features. Si la familia solo mirara el pixel, ese caso saldria verde.
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            gesto: { pasos: 24, reduce: "no-preference" },
+            yAntes: 5280,
+            yDespues: 2612,
+            pixel: { cubos: 553, dominante: 69.8 },
+            atascados: [
+                {
+                    nombre: "Journey__ScStepReveal",
+                    ratio: 1,
+                    top: 120,
+                    opacidad: 0,
+                },
+            ],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("data-revealed");
+        expect(motivos.join(" ")).not.toContain("cubos de color");
+    });
+
+    it("cae por la coreografia muerta aunque el pixel y los revelados salgan verdes (el sentido claro -> oscuro)", () => {
+        // El defecto medido en ese sentido: `--journey-progress` nunca escrita
+        // y `data-slide` en 0 durante 1.000 px de rueda. No hay pantalla en
+        // blanco ahi, asi que ninguna de las otras dos medidas lo ve.
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            temaAntes: "light",
+            temaDespues: "dark",
+            yAntes: 2640,
+            yDespues: 4078,
+            pixel: { cubos: 299, dominante: 61.4 },
+            deck: {
+                aplicable: true,
+                nombre: "journey-deck__ScJourneyStage",
+                serie: ["0", "0", "0", "0", "0", "0"],
+                progresos: [
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                ],
+                recorrido: 1000,
+                avanza: false,
+            },
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("no avanza al rodar 1000 px");
+    });
+
+    it("pasa con las cifras del mismo instante ya arreglado (41 cubos, 90,8 %, cero atascados)", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema(SANO);
+        expect(cumple).toBe(true);
+        expect(motivos).toEqual([]);
+    });
+
+    it("pasa con el deck avanzando, que es lo que se midio con el arreglo puesto", () => {
+        expect(
+            evaluaConmutacionDeTema({
+                ...SANO,
+                temaAntes: "light",
+                temaDespues: "dark",
+                yDespues: 4078,
+                deck: {
+                    aplicable: true,
+                    nombre: "journey-deck__ScJourneyStage",
+                    serie: ["0", "1", "1", "1", "2", "2"],
+                    progresos: [
+                        "0.0089",
+                        "0.1",
+                        "0.2",
+                        "0.25",
+                        "0.3",
+                        "0.3263",
+                    ],
+                    recorrido: 1000,
+                    avanza: true,
+                },
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("bajo `reduce` NO se juzga el pixel, porque ahi la guarda CSS tapa el defecto", () => {
+        /* Con `reduce` las reglas de revelado ponen `opacity: 1` sin calificar
+           por `data-revealed`, asi que la pantalla se pinta aunque la maquina
+           de estados se haya quedado atascada. Exigirle el pixel a esa
+           combinacion no mediria el defecto: mediria la piel accesible. Lo que
+           SI se le sigue exigiendo es que no queden revelados atascados. */
+        expect(
+            evaluaConmutacionDeTema({
+                ...SANO,
+                gesto: { pasos: 12, reduce: "reduce" },
+                pixel: { cubos: 10, dominante: 99.4 },
+            }).cumple,
+        ).toBe(true);
+        expect(
+            evaluaConmutacionDeTema({
+                ...SANO,
+                gesto: { pasos: 12, reduce: "reduce" },
+                pixel: { cubos: 655, dominante: 64.6 },
+                atascados: [
+                    {
+                        nombre: "Story__ScGrid",
+                        ratio: 0.2538,
+                        top: -700,
+                        opacidad: 1,
+                    },
+                ],
+            }).cumple,
+        ).toBe(false);
+    });
+
+    it("el techo del dominante caza el fondo liso que el suelo de cubos deja pasar", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            pixel: {
+                cubos: MIN_CUBOS_DE_COLOR + 1,
+                dominante: MAX_DOMINANTE_DEL_VIEWPORT + 0.1,
+            },
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("un solo cubo de color ocupa");
+    });
+
+    it("el umbral de revelado es el que `useReveal` declara, no uno inventado", () => {
+        // Si alguien sube este numero, la banda ciega de Contact --que es
+        // DECISION DEL DUENO y esta pendiente-- empezaria a colarse dentro de
+        // esta familia y la dejaria roja por un defecto ajeno.
+        expect(UMBRAL_DECLARADO_DE_REVELADO).toBe(0.2);
+    });
+
+    it("guarda de vacuidad: si el conmutador no cambia el tema, no hay gesto que medir", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            temaDespues: "dark",
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("no llego a cambiar el tema");
+    });
+
+    it("guarda de vacuidad: sin haber bajado una pantalla no hay punto de lectura que corregir", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            yAntes: 400,
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("menos de una pantalla");
+    });
+});
+
+/**
+ * EL INSTRUMENTO DE LA MEDIDA 3, ATADO APARTE. `evaluaEscenariosFijados`
+ * responde a la pregunta "¿cual de los escenarios de deck estoy midiendo?", y
+ * su primera version respondia "el primero" -- `querySelector("[data-slide]")`
+ * --. Con esa version la familia salia VERDE sobre el defecto entero: el
+ * primer nodo es el escenario de Story, que en ese punto ya paso, se queda en
+ * su ultima diapositiva y conserva escritas las variables de cuando si corria.
+ * El que el gesto acababa de matar era el segundo.
+ *
+ * Las muestras de estos casos son las REALES, inventariadas en el navegador
+ * sobre el build defectuoso tras conmutar claro -> oscuro a 12 muescas.
+ */
+describe("evaluaEscenariosFijados: mide el escenario ENGANCHADO, no el primero del DOM", () => {
+    /* Story ya paso: su escenario se va hacia arriba (-28 -> -1028) con la
+       ultima diapositiva y sus variables ya escritas. Journey es el que el
+       lector esta atravesando: clavado en top=0, y con el defecto puesto, sin
+       una sola variable escrita y con data-slide congelado en 0. */
+    const MUESTRAS_DEL_DEFECTO = [-28, -228, -428, -628, -828, -1028].map(
+        (top) => [
+            {
+                nombre: "story-deck__ScStage",
+                enPantalla: true,
+                top,
+                slide: "5",
+                progreso: "1.0000",
+            },
+            {
+                nombre: "journey-deck__ScJourneyStage",
+                enPantalla: true,
+                top: 0,
+                slide: "0",
+                progreso: null,
+            },
+        ],
+    );
+
+    it("elige el escenario clavado en 0 y no el que se esta yendo hacia arriba", () => {
+        const deck = evaluaEscenariosFijados(MUESTRAS_DEL_DEFECTO);
+        expect(deck.aplicable).toBe(true);
+        expect(deck.nombre).toBe("journey-deck__ScJourneyStage");
+        expect(deck.avanza).toBe(false);
+    });
+
+    it("ve el defecto que la version «el primer nodo» daba por bueno", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            gesto: { pasos: 12, reduce: "no-preference" },
+            temaAntes: "light",
+            temaDespues: "dark",
+            yAntes: 2640,
+            yDespues: 4078,
+            alto: 900,
+            pixel: { cubos: 282, dominante: 32.8 },
+            atascados: [],
+            deck: evaluaEscenariosFijados(MUESTRAS_DEL_DEFECTO),
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("journey-deck__ScJourneyStage");
+        expect(motivos.join(" ")).toContain("no avanza al rodar 1000 px");
+    });
+
+    it("pasa cuando el escenario enganchado avanza (las cifras del arreglo)", () => {
+        const serie = ["0", "1", "1", "1", "2", "2"];
+        const progresos = ["0.0089", "0.1", "0.2", "0.25", "0.3", "0.3263"];
+        const deck = evaluaEscenariosFijados(
+            serie.map((slide, i) => [
+                {
+                    nombre: "journey-deck__ScJourneyStage",
+                    enPantalla: true,
+                    top: 0,
+                    slide,
+                    progreso: progresos[i],
+                },
+            ]),
+        );
+        expect(deck.avanza).toBe(true);
+    });
+
+    it("un escenario que se va hacia arriba no cuenta como enganchado, aunque este congelado", () => {
+        // Sin esta regla la familia acusaria al deck de Story --que esta
+        // legitimamente parado en su ultima diapositiva-- de un defecto ajeno.
+        const deck = evaluaEscenariosFijados(
+            [-28, -228, -428, -628, -828, -1028].map((top) => [
+                {
+                    nombre: "story-deck__ScStage",
+                    enPantalla: true,
+                    top,
+                    slide: "5",
+                    progreso: "1.0000",
+                },
+            ]),
+        );
+        expect(deck.aplicable).toBe(false);
+    });
+
+    it("sin ningun escenario en pantalla la medida no aplica y no inventa un verde", () => {
+        expect(evaluaEscenariosFijados([[], [], []]).aplicable).toBe(false);
+        expect(evaluaEscenariosFijados([]).aplicable).toBe(false);
     });
 });
