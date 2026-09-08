@@ -658,6 +658,7 @@ export const CHECKS = [
     "arte-no-pintado-por-tema-y-dpr",
     "estado-modal-no-sobrevive-al-cambio-de-anchura",
     "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
+    "volver-arriba-vuelve-arriba",
 ];
 
 /**
@@ -3484,6 +3485,223 @@ async function medirAterrizajeDelIndice(page, hrefs) {
     return covered;
 }
 
+/**
+ * FAMILIA VEINTICUATRO, `volver-arriba-vuelve-arriba` (critica externa #21,
+ * ola U, 2026-09-08). Es la unica familia de este script que juzga un GESTO
+ * completo por su RESULTADO: se pulsa un control y se exige que la pagina
+ * termine donde el control promete.
+ *
+ * EL DEFECTO QUE NACE PARA VER, medido sobre el build servido de `27bf1f6`
+ * (out/ del HEAD, http://localhost:4321, Chrome), ruta `/`, idioma es, clic
+ * REAL sobre `[data-back-to-top]` desde el final del documento:
+ *
+ *     no-preference light 1440  y 5623 -> 5320   (94,6 % del recorrido)
+ *     no-preference light  390  y 9314 -> 4198   (45,1 %)
+ *     no-preference dark  1440  y 10108 -> 9805  (97,0 %)
+ *     no-preference dark   390  y 10453 -> 4768  (45,6 %)
+ *     reduce        (las cuatro)          -> 0   (0,0 %)
+ *
+ * A 1440 no se autocorrige: tres pulsaciones seguidas dan 5320, 5320, 5320,
+ * con el boton todavia en pantalla prometiendo lo mismo.
+ *
+ * POR QUE NINGUNA DE LAS VEINTITRES FAMILIAS ANTERIORES LO VEIA, que es la
+ * parte que importa. `recorrido-teclado` recorre las paradas de tabulacion y
+ * el boton figura entre ellas: alcanzable, con su rotulo traducido y su anillo
+ * de foco. `sin-trampas-de-foco` comprueba que se puede salir. Ninguna lo
+ * ACTIVA. Veintiuna rondas de critica externa, cinco evaluadores cada una, y
+ * el boton se contaba entre las paradas de teclado -- que no es lo mismo que
+ * pulsarlo. Un candado que inventaria controles sin ejercitarlos mide que
+ * existen, no que sirven.
+ *
+ * EL EJE QUE SEPARA A LOS DOS BANDOS ES `prefers-reduced-motion`, y por eso
+ * esta en la matriz. Con `reduce`, los dos movimientos que compiten
+ * --el barrido del boton y el que el navegador hace para traer a pantalla el
+ * elemento enfocado-- son instantaneos y el primero llega al origen antes de
+ * que el segundo empiece: el resultado es 0 y el defecto es invisible. Es
+ * exactamente la leccion del 2026-09-07: una familia que solo mida en uno de
+ * los dos sentidos de `reduce` mide otra cosa. Aqui la asimetria se paga
+ * barata --el sentido `reduce` se mide solo a 1440, porque su unico trabajo es
+ * dejar constancia de que ESE lado tambien llega y que el rojo del otro no es
+ * un defecto del instrumento--.
+ *
+ * POR QUE UN CLIC REAL DE PLAYWRIGHT Y NO `element.click()` DESDE LA PAGINA:
+ * leccion ya pagada en la ronda #20, donde un `element.click()` dio un falso
+ * resultado sobre un manejador que intercepta el gesto. El gesto se manda por
+ * el mismo camino por el que lo manda una persona.
+ *
+ * LIMITE DECLARADO: esta familia mide el RESULTADO (donde acaba la pagina), no
+ * el CAMINO. Un arreglo que apagara la animacion --barrido instantaneo siempre,
+ * tambien sin `reduce`-- saldria verde aqui. Ese lado lo atan los tests de
+ * `BackToTop.test.tsx`, que afirman el `behavior` exacto en las dos ramas de la
+ * preferencia; no se duplica aqui porque exigir en navegador que haya muestras
+ * intermedias depende de con que frecuencia se muestrea contra lo rapido que
+ * anime el motor, y un candado que parpadea es peor que uno que declara su
+ * limite.
+ */
+export const VIEWPORTS_DE_VOLVER_ARRIBA = [
+    { ancho: 1440, alto: 900, reduce: "no-preference" },
+    { ancho: 390, alto: 844, reduce: "no-preference" },
+    { ancho: 1440, alto: 900, reduce: "reduce" },
+];
+
+/**
+ * Cuanto se admite que la pagina se quede corta del origen, en px. El control
+ * promete el ORIGEN, asi que el valor honesto seria 0; los 2 px cubren el
+ * redondeo subpixel de `window.scrollY` con densidades fraccionarias, y no
+ * pueden tapar nada de lo que esta familia existe para ver: el defecto medido
+ * deja la pagina entre 4.198 y 9.805 px del origen, tres ordenes de magnitud
+ * por encima de esta tolerancia.
+ */
+export const TOLERANCIA_DE_VUELTA_ARRIBA_PX = 2;
+
+/**
+ * Cuantas pulsaciones se dan en cada combinacion. TRES, y no una, porque la
+ * pregunta que un lector se hace al ver el defecto es justamente "se
+ * autocorrige si insisto?" -- y la respuesta medida a 1440 es que no (5320,
+ * 5320, 5320). Una familia que pulsara una sola vez no distinguiria un defecto
+ * permanente de un tropiezo del primer intento.
+ */
+export const PULSACIONES_DE_VOLVER_ARRIBA = 3;
+
+/**
+ * Veredicto PURO de una combinacion, separado de la conduccion del navegador
+ * para poder ejercitarlo desde la suite con numeros tecleados (mismo reparto
+ * que `evaluaEstadoModal` y `probeContrasteDeLaCabecera`).
+ *
+ * `intentos` es la lista de aterrizajes, uno por pulsacion, en el orden en que
+ * se dieron. `partida` es el scroll del que salio la primera pulsacion: sirve
+ * para la guarda de vacuidad, porque un "llego a 0" desde 0 no demuestra nada.
+ */
+export function evaluaVueltaArriba({
+    combinacion,
+    botonVisible,
+    partida,
+    intentos,
+}) {
+    const motivos = [];
+    const donde = `${combinacion.ancho}x${combinacion.alto} con reduce=${combinacion.reduce}`;
+    if (!botonVisible) {
+        motivos.push(
+            `a ${donde} el control [data-back-to-top] no llego a aparecer desde el final del documento: sin control que pulsar el verde de esta familia seria vacuo`,
+        );
+        return { cumple: false, motivos };
+    }
+    /* Guarda de vacuidad: si la pagina ya estaba en el origen, "vuelve al
+       origen" es cierto sin que el control haya hecho nada. El umbral del
+       propio boton son 2 pantallas, asi que una partida real siempre esta muy
+       por encima; se exige al menos una pantalla para no atar el candado al
+       umbral exacto del componente. */
+    if (partida <= combinacion.alto) {
+        motivos.push(
+            `a ${donde} la pulsacion salio de y=${partida}, a menos de una pantalla (${combinacion.alto}) del origen: la medida no distingue un control que funciona de uno que no hace nada`,
+        );
+        return { cumple: false, motivos };
+    }
+    const fallidos = intentos
+        .map((y, i) => ({ y, n: i + 1 }))
+        .filter(({ y }) => y > TOLERANCIA_DE_VUELTA_ARRIBA_PX);
+    if (fallidos.length)
+        motivos.push(
+            `a ${donde} el control «volver arriba» no devuelve la pagina al origen desde y=${partida}: ${fallidos
+                .map(
+                    ({ y, n }) =>
+                        `pulsacion ${n} termina en y=${y} (${((100 * y) / partida).toFixed(1)} % del recorrido sin deshacer)`,
+                )
+                .join(
+                    ", ",
+                )} -- tolerancia ${TOLERANCIA_DE_VUELTA_ARRIBA_PX} px`,
+        );
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/**
+ * Conduce el navegador para UNA combinacion y devuelve lo que
+ * `evaluaVueltaArriba` necesita. Exportada para poder ejercitar esta familia
+ * SOLA contra un build servido, sin recorrer las ocho superficies (la corrida
+ * completa pasa de diez minutos por tema).
+ */
+export async function mideVueltaArriba(browser, theme, url, combinacion) {
+    const ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: combinacion.ancho, height: combinacion.alto },
+        reducedMotion: combinacion.reduce,
+    });
+    try {
+        const page = await ctx.newPage();
+        await page.goto(url, { waitUntil: "networkidle" });
+        /* La portada asienta su composicion despues de `networkidle`: la misma
+           espera, y por el mismo motivo, que las familias vecinas. */
+        await page.waitForTimeout(2200);
+        await page.evaluate(() =>
+            window.scrollTo({
+                top: document.documentElement.scrollHeight - window.innerHeight,
+                behavior: "instant",
+            }),
+        );
+        await page.waitForTimeout(1400);
+        const partida = await page.evaluate(() => Math.round(window.scrollY));
+
+        const intentos = [];
+        let botonVisible = false;
+        for (let n = 0; n < PULSACIONES_DE_VOLVER_ARRIBA; n += 1) {
+            /* `$$` y filtro por caja visible, no `$`: `querySelector` devuelve
+               el PRIMER nodo, que en movil puede ser un control de una barra de
+               escritorio oculta (trampa ya pagada en este repo). */
+            const candidatos = await page.$$("[data-back-to-top]");
+            let boton = null;
+            for (const c of candidatos) {
+                if (await c.boundingBox()) {
+                    boton = c;
+                    break;
+                }
+            }
+            if (!boton) break;
+            botonVisible = true;
+            /* Clic REAL, por el mismo camino que una persona. */
+            await boton.click();
+            /* Se espera a que el scroll se ESTABILICE, no un tiempo fijo: un
+               barrido suave de 10.000 px tarda mas que uno de 5.000, y un
+               plazo fijo mediria a mitad de viaje en el caso largo. */
+            await page
+                .waitForFunction(
+                    () => {
+                        const y = Math.round(window.scrollY);
+                        if (window.__u1quieto === y) return true;
+                        window.__u1quieto = y;
+                        return false;
+                    },
+                    null,
+                    { polling: 400, timeout: 12000 },
+                )
+                .catch(() => {
+                    /* Si no se estabiliza en 12 s, se lee igualmente: un scroll
+                       que no para es su propio defecto y la cifra lo dira. */
+                });
+            intentos.push(
+                await page.evaluate(() => {
+                    delete window.__u1quieto;
+                    return Math.round(window.scrollY);
+                }),
+            );
+            /* Para la siguiente pulsacion hace falta volver al final: el boton
+               solo existe por debajo de su umbral. */
+            if (n + 1 < PULSACIONES_DE_VOLVER_ARRIBA) {
+                await page.evaluate(() =>
+                    window.scrollTo({
+                        top:
+                            document.documentElement.scrollHeight -
+                            window.innerHeight,
+                        behavior: "instant",
+                    }),
+                );
+                await page.waitForTimeout(1200);
+            }
+        }
+        return { combinacion, botonVisible, partida, intentos };
+    } finally {
+        await ctx.close();
+    }
+}
+
 /** Auditoria completa de una superficie. Devuelve la lista de incumplimientos. */
 async function auditarSuperficie(browser, base, theme, surface) {
     const url = `${base}${surface.path}`;
@@ -4542,6 +4760,41 @@ async function auditarSuperficie(browser, base, theme, surface) {
         if (veredictoDelContraste.fallos.length)
             fallos.push(
                 `la tinta de la cabecera fija no llega al umbral de WCAG 1.4.3 contra el fondo REALMENTE pintado bajo su caja (peor punto por pieza, percentil ${PERCENTIL_DE_CONTRASTE}): ${veredictoDelContraste.fallos.join("; ")}`,
+            );
+
+        /*
+         * --- el control «volver arriba» vuelve arriba
+         *
+         * La matriz, con el porque de cada eje, esta en el docblock de
+         * `VIEWPORTS_DE_VOLVER_ARRIBA`. Es la unica familia del script que
+         * ACTIVA un control en vez de inventariarlo.
+         */
+        const vueltas = [];
+        for (const combinacion of VIEWPORTS_DE_VOLVER_ARRIBA) {
+            const medida = await mideVueltaArriba(
+                browser,
+                theme,
+                url,
+                combinacion,
+            );
+            vueltas.push({
+                ...medida,
+                veredicto: evaluaVueltaArriba(medida),
+            });
+        }
+        const vueltasCaidas = vueltas.filter((v) => !v.veredicto.cumple);
+        datos.volverArriba = `${vueltas.length - vueltasCaidas.length}/${vueltas.length} combinaciones vuelven al origen ${vueltas
+            .map(
+                (v) =>
+                    `${v.combinacion.ancho}@${v.combinacion.reduce}=${v.partida}->[${v.intentos.join(",")}]`,
+            )
+            .join(" ")}`;
+        // [check: volver-arriba-vuelve-arriba]
+        if (vueltasCaidas.length)
+            fallos.push(
+                `el control «volver arriba» no cumple lo que promete (${vueltasCaidas.length} de ${vueltas.length} combinaciones): ${vueltasCaidas
+                    .flatMap((v) => v.veredicto.motivos)
+                    .join(" | ")}`,
             );
     }
 

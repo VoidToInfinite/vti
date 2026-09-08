@@ -31,6 +31,7 @@ import {
     PASO_DE_PISTA_PX,
     PATRON_DE_ARTE,
     PERCENTIL_DE_CONTRASTE,
+    PULSACIONES_DE_VOLVER_ARRIBA,
     RAICES_DEL_DECK,
     RATIO_MINIMO_DE_CRECIMIENTO,
     RECARGAS_SIMULTANEAS,
@@ -40,9 +41,11 @@ import {
     SURFACES,
     TOLERANCIA_DEL_ESCENARIO_PX,
     TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+    TOLERANCIA_DE_VUELTA_ARRIBA_PX,
     UMBRAL_DE_CONTRASTE_GRANDE,
     UMBRAL_DE_CONTRASTE_NORMAL,
     VIEWPORTS_DE_LA_CABECERA,
+    VIEWPORTS_DE_VOLVER_ARRIBA,
     VIEWPORT_DE_LA_HOJA,
     WIDTH_SWEEP,
     ZOOM_FONT_PX,
@@ -52,6 +55,7 @@ import {
     evaluaEstadoModal,
     evaluaRecarga,
     evaluaRecargaSimultanea,
+    evaluaVueltaArriba,
     fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
     langEsperado,
@@ -532,6 +536,7 @@ const FAMILIAS_ESPERADAS = [
     "arte-no-pintado-por-tema-y-dpr",
     "estado-modal-no-sobrevive-al-cambio-de-anchura",
     "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
+    "volver-arriba-vuelve-arriba",
 ];
 
 /**
@@ -598,7 +603,7 @@ const FAMILIAS_ESPERADAS = [
  * igualdad otra vez en VERDE sobre la lista mas corta. Restaurados los tres
  * bloques, 64/64.
  */
-const FAMILIAS_MINIMAS = 23;
+const FAMILIAS_MINIMAS = 24;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -3309,5 +3314,131 @@ describe("la linea base de nodos inertes de la familia del estado modal", () => 
             despues: base(["div#panel-mas"]),
         });
         expect(cumple).toBe(false);
+    });
+});
+
+/**
+ * LA FAMILIA VEINTICUATRO, `volver-arriba-vuelve-arriba` (critica externa #21,
+ * ola U, 2026-09-08). Se ejercita el VEREDICTO con las cifras REALES que la
+ * sonda midio sobre el build defectuoso de `27bf1f6`, no con numeros
+ * inventados: si algun dia alguien afloja la tolerancia o retira una guarda,
+ * estos casos dicen exactamente que defecto vuelve a pasar.
+ *
+ * La conduccion del navegador (`mideVueltaArriba`) no se prueba aqui: necesita
+ * un sitio servido, y esa mitad se valida corriendo la familia contra el build
+ * --roja sobre el defecto, verde tras el arreglo--, que es como se validan las
+ * veintitres familias anteriores.
+ */
+describe("familia volver-arriba-vuelve-arriba: el control cumple lo que promete", () => {
+    const SIN_REDUCE_1440 = {
+        ancho: 1440,
+        alto: 900,
+        reduce: "no-preference",
+    };
+
+    it("la matriz cubre los dos anchos sin reduce y deja constancia del sentido reduce", () => {
+        expect(VIEWPORTS_DE_VOLVER_ARRIBA).toEqual([
+            { ancho: 1440, alto: 900, reduce: "no-preference" },
+            { ancho: 390, alto: 844, reduce: "no-preference" },
+            { ancho: 1440, alto: 900, reduce: "reduce" },
+        ]);
+        /* El eje que separo a los dos bandos de la critica: sin este sentido
+           la familia mediria justo el lado donde el defecto es invisible. */
+        expect(
+            VIEWPORTS_DE_VOLVER_ARRIBA.filter(
+                (v) => v.reduce === "no-preference",
+            ).length,
+            "sin una combinacion sin `reduce` esta familia no puede ver su propio defecto",
+        ).toBeGreaterThanOrEqual(2);
+    });
+
+    it("tres pulsaciones, porque el defecto medido NO se autocorrige al insistir", () => {
+        expect(PULSACIONES_DE_VOLVER_ARRIBA).toBeGreaterThanOrEqual(3);
+    });
+
+    it("cae con las cifras reales del defecto a 1440 en claro (5623 -> 5320, tres veces)", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: true,
+            partida: 5623,
+            intentos: [5320, 5320, 5320],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("y=5320");
+        expect(motivos.join(" ")).toContain("94.6 %");
+    });
+
+    it("cae tambien con el defecto a 390, que se queda a mitad de recorrido", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: { ancho: 390, alto: 844, reduce: "no-preference" },
+            botonVisible: true,
+            partida: 9314,
+            intentos: [4198, 4198, 4198],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("45.1 %");
+    });
+
+    it("cae aunque solo falle UNA de las tres pulsaciones", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: true,
+            partida: 5623,
+            intentos: [0, 5320, 0],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("pulsacion 2");
+    });
+
+    it("pasa cuando las tres pulsaciones llegan al origen", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: true,
+            partida: 5623,
+            intentos: [0, 0, 0],
+        });
+        expect(cumple).toBe(true);
+        expect(motivos).toEqual([]);
+    });
+
+    it("la tolerancia admite el redondeo subpixel y nada mas", () => {
+        expect(
+            evaluaVueltaArriba({
+                combinacion: SIN_REDUCE_1440,
+                botonVisible: true,
+                partida: 5623,
+                intentos: [TOLERANCIA_DE_VUELTA_ARRIBA_PX, 0, 0],
+            }).cumple,
+        ).toBe(true);
+        expect(
+            evaluaVueltaArriba({
+                combinacion: SIN_REDUCE_1440,
+                botonVisible: true,
+                partida: 5623,
+                intentos: [TOLERANCIA_DE_VUELTA_ARRIBA_PX + 1, 0, 0],
+            }).cumple,
+        ).toBe(false);
+    });
+
+    it("guarda de vacuidad: sin control que pulsar el verde no valdria nada", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: false,
+            partida: 5623,
+            intentos: [],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("no llego a aparecer");
+    });
+
+    it("guarda de vacuidad: llegar a 0 desde 0 no demuestra que el control funcione", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: true,
+            partida: 300,
+            intentos: [0, 0, 0],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("menos de una pantalla");
     });
 });
