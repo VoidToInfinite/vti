@@ -670,6 +670,7 @@ export const CHECKS = [
     "punto-de-lectura-de-la-url-es-de-un-solo-uso",
     "tinta-pintada-dentro-del-viewport",
     "revelado-sin-banda-ciega",
+    "condiciones-de-navegador-estables-en-la-corrida",
 ];
 
 /**
@@ -1271,6 +1272,112 @@ export const PATRON_DE_ARTE = "figures/|hero/|scenes/|\\.webp|\\.avif";
  * legitima de descargas sin pintar que absolver.
  */
 export const MAX_BYTES_DE_ARTE_NO_PINTADO = 0;
+
+/**
+ * EL EJE QUE FALTABA EN LA FAMILIA VEINTIUNA, Y QUE HACIA QUE SU VEREDICTO
+ * DEPENDIERA DEL AZAR: EL TIPO DE CONEXION ESTIMADO (frente U7, 2026-09-08).
+ *
+ * QUE DECIDE. Las figuras claras de la portada llevan `loading="lazy"`, y el
+ * cargador perezoso de Chrome solo pide lo que cae dentro de un umbral de
+ * DISTANCIA al viewport. Ese umbral no es una constante del navegador: lo fija
+ * la CALIDAD DE RED ESTIMADA -- 1.250 px con conexion rapida, 2.500 px cuando
+ * baja a 3g, ~8.000 px en 2g. Y la estimacion vive en el proceso NAVEGADOR, no
+ * en el contexto: la comparten todos los contextos que ese navegador abra,
+ * incluidos los que esta familia estrena para cada densidad.
+ *
+ * EL DEFECTO DEL INSTRUMENTO, MEDIDO. Sobre el MISMO build (`1f9f880`) y el
+ * mismo servidor, la familia daba dos veredictos distintos segun como estuviera
+ * la maquina: doce mediciones seguidas en verde con el navegador recien abierto
+ * (0 B sueltos, 16 recursos por densidad) y una corrida completa del orquestador
+ * en rojo con 188.870 B en `/` y en `/en`. La diferencia no era el sitio: era
+ * que la corrida completa --diecisiete contextos por superficie, cinco paginas
+ * recargando a la vez-- degrada la estimacion compartida y las mediciones
+ * posteriores heredan un umbral mas ancho. Forzando el tipo con
+ * `--force-effective-connection-type` sobre el build de entonces, el rojo se
+ * reproduce byte a byte y a voluntad: 0 B a 4g, 188.870 B a 3g
+ * (`story-pointing-640.webp` + `feature-learning-640.webp`, las dos unicas
+ * figuras dentro de 2.500 px) y 447.868 B a DPR 1 / 538.720 B a DPR 2 a 2g.
+ *
+ * POR QUE EL PEOR CASO Y NO EL MEJOR. Un candado que midiera con conexion rapida
+ * saldria verde siempre y seria CIEGO justo para el visitante que mas paga el
+ * desperdicio: cuanto peor es la conexion, mas arte pide el navegador por
+ * adelantado. Fijar `4G` habria puesto el informe en verde sin arreglar nada, que
+ * es el parche que este repo prohibe. `2G` es el umbral mas ancho que Chrome
+ * aplica, asi que subsume 3g y 4g: verde aqui es verde en las tres.
+ *
+ * COMO SE FIJA, y por que la familia estrena NAVEGADOR y no solo contexto: es un
+ * argumento de LANZAMIENTO, no una opcion de contexto -- y ademas la estimacion
+ * que contamina es del proceso, asi que aislarse de ella exige un proceso propio.
+ */
+export const CONEXION_ESTIMADA_DEL_ARTE = "2G";
+
+/**
+ * EL CANDADO DEL PROPIO CANDADO: una familia no mide bajo una condicion de
+ * navegador distinta de la que declara.
+ *
+ * `declarada` es lo que la familia pidio al lanzar el navegador y `observadas`
+ * lo que cada contexto de medida leyo de verdad en `navigator.connection`. Si no
+ * coinciden, lo que hay delante no es un veredicto sobre el sitio: es una
+ * medicion hecha en otras condiciones, y se declara incumplimiento en vez de
+ * publicarse como si fuera comparable.
+ *
+ * Es la comprobacion que habria ahorrado la caceria del 2026-09-08: durante
+ * cuatro frentes el mismo build dio verde o rojo segun la carga de la maquina, y
+ * en ningun sitio del informe aparecia la variable que lo decidia.
+ *
+ * Funcion PURA y tabulada a proposito, como `evaluaRecarga` o `langEsperado`: el
+ * gate la ejercita entera sin navegador, incluido su caso rojo.
+ */
+export function veredictoDeConexionDeclarada({ declarada, observadas }) {
+    const esperada = String(declarada).toLowerCase();
+    if (!observadas.length)
+        return {
+            cumple: false,
+            motivo: `la familia declara medir con conexion ${esperada} y no leyo la conexion en ninguna de sus medidas: sin esa lectura el veredicto no es comparable entre corridas`,
+        };
+    const distintas = observadas.filter((o) => o !== esperada);
+    if (distintas.length)
+        return {
+            cumple: false,
+            motivo: `la familia declara medir con conexion ${esperada} y midio con ${[...new Set(observadas)].join("/")} en ${distintas.length} de ${observadas.length} medidas: el umbral del cargador perezoso depende de esa estimacion, asi que el veredicto no habla del sitio sino de la maquina`,
+        };
+    return { cumple: true, motivo: null };
+}
+
+/**
+ * LA OTRA MITAD DEL CANDADO DEL CANDADO: la corrida no puede cambiar por debajo
+ * una condicion de navegador que comparten TODAS las familias.
+ *
+ * `veredictoDeConexionDeclarada` protege a UNA familia, la que ya sabemos que
+ * depende de esa estimacion. Esta protege a las que vengan: el navegador
+ * compartido se interroga al EMPEZAR y al TERMINAR la corrida, y si la
+ * estimacion se ha movido por el camino se declara incumplimiento con nombre
+ * propio en vez de dejar que cada familia publique un veredicto medido en
+ * condiciones distintas de las de su vecina.
+ *
+ * ES EL INVARIANTE QUE FALTABA, escrito como el brief lo pedia: al terminar, el
+ * estado observable del navegador es el que habia al empezar. La forma que este
+ * repo puede comprobar hoy es la estimacion de red, que es la que se midio
+ * moviendose y la que decide el umbral del cargador perezoso; cualquier otra
+ * condicion compartida que aparezca se anade a la misma sonda.
+ *
+ * `null` no es "no aplica": es la sonda sin objeto --el navegador dejo de
+ * exponer `navigator.connection`-- y entonces esta familia no puede afirmar
+ * nada, asi que lo dice.
+ */
+export function veredictoDeDerivaDeCondiciones({ alEmpezar, alTerminar }) {
+    if (alEmpezar === null || alTerminar === null)
+        return {
+            cumple: false,
+            motivo: `no se pudo leer la conexion estimada del navegador compartido (al empezar ${alEmpezar}, al terminar ${alTerminar}): sin esa lectura esta familia no vigila nada`,
+        };
+    if (alEmpezar !== alTerminar)
+        return {
+            cumple: false,
+            motivo: `la propia corrida movio una condicion del navegador que comparten todas las familias: la conexion estimada paso de ${alEmpezar} a ${alTerminar}. Ese numero fija el umbral del cargador perezoso, asi que las familias medidas antes y despues no midieron lo mismo -- vuelve a correr con la maquina en reposo antes de creerte ningun veredicto de esta corrida`,
+        };
+    return { cumple: true, motivo: null };
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -3527,6 +3634,42 @@ export async function loadChromium() {
             "playwright-core ya instalado: vale su directorio, su fichero de " +
             "entrada o su nombre si esta en el `node_modules` de este repo.",
     );
+}
+
+/**
+ * Un NAVEGADOR propio con el tipo de conexion estimado fijado por argumento de
+ * lanzamiento. Ver el docblock de `CONEXION_ESTIMADA_DEL_ARTE`: la estimacion
+ * vive en el proceso y la comparten todos sus contextos, asi que la unica forma
+ * de que una familia no la herede de lo que hicieran las demas es no compartir
+ * el proceso.
+ */
+async function navegadorConConexionFijada(ect) {
+    const chromium = await loadChromium();
+    return chromium.launch({
+        channel: "chrome",
+        args: [`--force-effective-connection-type=${ect}`],
+    });
+}
+
+/** El tipo de conexion que el documento ve, tal cual, sin interpretarlo. */
+function probeConexionEstimada() {
+    return navigator.connection?.effectiveType ?? null;
+}
+
+/**
+ * La conexion estimada del navegador COMPARTIDO, leida sobre una pagina real
+ * del sitio. Es la sonda de `condiciones-de-navegador-estables-en-la-corrida`:
+ * se llama dos veces, antes de la primera superficie y despues de la ultima.
+ */
+async function leeConexionCompartida(browser, base, theme) {
+    const ctx = await nuevoContexto(browser, theme);
+    try {
+        const page = await ctx.newPage();
+        await page.goto(base + HOME_DOC.es, { waitUntil: "load" });
+        return await page.evaluate(probeConexionEstimada);
+    } finally {
+        await ctx.close();
+    }
 }
 
 /** Un contexto nuevo por medicion: emular una media feature no se deshace. */
@@ -7031,29 +7174,52 @@ async function auditarSuperficie(browser, base, theme, surface) {
          */
         const arteSuelto = [];
         let recursosDeArteVistos = 0;
-        for (const dpr of DPRS_DEL_ARTE) {
-            ctx = await nuevoContexto(browser, theme, {
-                deviceScaleFactor: dpr,
-            });
-            page = await ctx.newPage();
-            await page.goto(url, { waitUntil: "load" });
-            await page.waitForTimeout(3000);
-            const arte = await page.evaluate(probeArteNoPintado, {
-                patron: PATRON_DE_ARTE,
-            });
-            await ctx.close();
-            recursosDeArteVistos += arte.evaluados;
-            const sueltos = arte.recursos.filter((r) => !r.pintado);
-            const bytes = sueltos.reduce((total, r) => total + r.bytes, 0);
-            if (bytes > MAX_BYTES_DE_ARTE_NO_PINTADO)
-                arteSuelto.push(
-                    `a DPR ${dpr} ${bytes} B en ${sueltos.length} fichero(s): ${sueltos
-                        .map((r) => `${r.fichero} ${r.bytes} B`)
-                        .join(", ")}`,
+        const conexionesDelArte = [];
+        /* NAVEGADOR propio, no solo contexto propio: el eje que decide esta
+           medida --el tipo de conexion estimado, que fija el umbral del cargador
+           perezoso-- vive en el PROCESO y lo comparten todos sus contextos. Ver
+           `CONEXION_ESTIMADA_DEL_ARTE`. */
+        const navegadorDelArte = await navegadorConConexionFijada(
+            CONEXION_ESTIMADA_DEL_ARTE,
+        );
+        try {
+            for (const dpr of DPRS_DEL_ARTE) {
+                ctx = await nuevoContexto(navegadorDelArte, theme, {
+                    deviceScaleFactor: dpr,
+                });
+                page = await ctx.newPage();
+                await page.goto(url, { waitUntil: "load" });
+                await page.waitForTimeout(3000);
+                const arte = await page.evaluate(probeArteNoPintado, {
+                    patron: PATRON_DE_ARTE,
+                });
+                conexionesDelArte.push(
+                    await page.evaluate(probeConexionEstimada),
                 );
+                await ctx.close();
+                recursosDeArteVistos += arte.evaluados;
+                const sueltos = arte.recursos.filter((r) => !r.pintado);
+                const bytes = sueltos.reduce((total, r) => total + r.bytes, 0);
+                if (bytes > MAX_BYTES_DE_ARTE_NO_PINTADO)
+                    arteSuelto.push(
+                        `a DPR ${dpr} ${bytes} B en ${sueltos.length} fichero(s): ${sueltos
+                            .map((r) => `${r.fichero} ${r.bytes} B`)
+                            .join(", ")}`,
+                    );
+            }
+        } finally {
+            await navegadorDelArte.close();
         }
-        datos.arte = `${arteSuelto.length} combinacion(es) con arte sin pintar / ${recursosDeArteVistos} recursos de arte vistos en ${DPRS_DEL_ARTE.length} densidades`;
+        const veredictoDeLaConexion = veredictoDeConexionDeclarada({
+            declarada: CONEXION_ESTIMADA_DEL_ARTE,
+            observadas: conexionesDelArte,
+        });
+        datos.arte = `${arteSuelto.length} combinacion(es) con arte sin pintar / ${recursosDeArteVistos} recursos de arte vistos en ${DPRS_DEL_ARTE.length} densidades, conexion ${conexionesDelArte.join("/") || "sin leer"}`;
         // [check: arte-no-pintado-por-tema-y-dpr]
+        /* El candado del propio candado: si la conexion con la que se midio no
+           es la declarada, lo de arriba no es un veredicto sobre el sitio. */
+        if (!veredictoDeLaConexion.cumple)
+            fallos.push(veredictoDeLaConexion.motivo);
         /* Guarda de vacuidad: si el patron deja de casar con nada --una carpeta
            renombrada, un formato nuevo-- la cuenta de bytes sin pintar seria
            cero por no haber mirado. */
@@ -7496,11 +7662,40 @@ export async function auditLegalSurfaces({
     const browser = await chromium.launch({ channel: "chrome" });
     try {
         const results = [];
+        const condicionAlEmpezar = await leeConexionCompartida(
+            browser,
+            base,
+            theme,
+        );
         for (const surface of SURFACES) {
             results.push(
                 await auditarSuperficie(browser, base, theme, surface),
             );
         }
+        /*
+         * La deriva se mide sobre el navegador COMPARTIDO y con la corrida ya
+         * hecha: es justo lo que la carga de la propia corrida pudo mover.
+         */
+        const condicionAlTerminar = await leeConexionCompartida(
+            browser,
+            base,
+            theme,
+        );
+        const veredictoDeCondiciones = veredictoDeDerivaDeCondiciones({
+            alEmpezar: condicionAlEmpezar,
+            alTerminar: condicionAlTerminar,
+        });
+        results.push({
+            surface: "condiciones",
+            datos: {
+                conexionCompartida: `${condicionAlEmpezar} al empezar -> ${condicionAlTerminar} al terminar`,
+            },
+            // [check: condiciones-de-navegador-estables-en-la-corrida]
+            fallos: veredictoDeCondiciones.cumple
+                ? []
+                : [veredictoDeCondiciones.motivo],
+            deudaVista: new Set(),
+        });
         /*
          * La tercera regla de `DEUDA_ZOOM`: una sancion que ya no se reproduce
          * sobra, y mientras siga escrita tapa la siguiente regresion de esa

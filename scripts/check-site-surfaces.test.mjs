@@ -15,6 +15,7 @@ import {
     ASOMO_DE_LA_PUNTERIA,
     ATERRIZAJES_DE_LA_BANDA_CIEGA,
     CHECKS,
+    CONEXION_ESTIMADA_DEL_ARTE,
     DECKS_DEL_TEMA_OSCURO,
     DERIVA_MAXIMA_DE_RECARGA_PX,
     DEUDA_ZOOM,
@@ -108,6 +109,8 @@ import {
     probeTintaPintadaFuera,
     razonDeContraste,
     umbralDeContraste,
+    veredictoDeConexionDeclarada,
+    veredictoDeDerivaDeCondiciones,
 } from "./check-site-surfaces.mjs";
 /* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
    parser de Rollup no admite un `.ts` explicito en el especificador. */
@@ -550,6 +553,15 @@ const SUPERFICIES_ESPERADAS = [
  * porque el arbitraje del mismo hallazgo midio 8,85 con la preferencia fijada y
  * 3,41 sin ella, sobre el mismo build y la misma pieza (leccion del
  * 2026-09-07).
+ *
+ * `condiciones-de-navegador-estables-en-la-corrida` entra el 2026-09-08 y es de
+ * otra especie que las veintinueve anteriores: no mira el sitio, mira el
+ * instrumento. Entra porque la familia del arte dio dos veredictos distintos
+ * sobre el mismo build --verde doce veces seguidas con el navegador recien
+ * abierto, roja con 188.870 B en una corrida completa-- y la variable que lo
+ * decidia, la conexion estimada del proceso navegador, no aparecia en ninguna
+ * linea del informe. Un candado que cambia de opinion sin que nadie pueda ver
+ * por que ensena a ignorarlo, que es peor que no tenerlo.
  */
 const FAMILIAS_ESPERADAS = [
     "recorrido-teclado",
@@ -581,6 +593,7 @@ const FAMILIAS_ESPERADAS = [
     "punto-de-lectura-de-la-url-es-de-un-solo-uso",
     "tinta-pintada-dentro-del-viewport",
     "revelado-sin-banda-ciega",
+    "condiciones-de-navegador-estables-en-la-corrida",
 ];
 
 /**
@@ -650,8 +663,16 @@ const FAMILIAS_ESPERADAS = [
  * Sube a 28 el 2026-09-08 con `tinta-pintada-dentro-del-viewport` --la familia
  * del frente U5 de la ola U, la que mide la LINEA REAL del texto y no la caja--,
  * en el mismo commit que la anade.
+ *
+ * Sube a 30 el mismo dia: 29 con `revelado-sin-banda-ciega` (frente U6) y 30 con
+ * `condiciones-de-navegador-estables-en-la-corrida` (frente U7), que es la
+ * primera familia de esta lista que no mira el SITIO sino el propio candado: si
+ * la corrida mueve por debajo una condicion de navegador que comparten todas las
+ * familias --la conexion estimada, que fija el umbral del cargador perezoso--,
+ * los veredictos medidos antes y despues no son comparables y hay que decirlo en
+ * vez de publicarlos juntos.
  */
-const FAMILIAS_MINIMAS = 29;
+const FAMILIAS_MINIMAS = 30;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -5084,5 +5105,120 @@ describe("familia veintinueve: el revelado no deja banda ciega", () => {
         ).toBeLessThan(UMBRAL_DECLARADO_DE_REVELADO * 165);
         expect(HOLGURA_DE_LA_BANDA_CIEGA_PX).toBeGreaterThan(0);
         expect(HOLGURA_DE_LA_BANDA_CIEGA_PX).toBeLessThanOrEqual(2);
+    });
+});
+
+/*
+ * FAMILIA TREINTA, `condiciones-de-navegador-estables-en-la-corrida`, y el eje
+ * de conexion de la familia del arte (frente U7, 2026-09-08).
+ *
+ * EL DEFECTO QUE LAS DOS COSAS CIERRAN NO ESTABA EN EL SITIO, ESTABA AQUI. La
+ * familia veintiuna daba dos veredictos distintos sobre el MISMO build segun
+ * como estuviera la maquina: doce medidas seguidas en verde con el navegador
+ * recien abierto y una corrida completa del orquestador en rojo con 188.870 B
+ * en `/` y en `/en`, los dos ficheros identicos en las dos densidades. La
+ * variable era una que ningun informe nombraba: el tipo de conexion ESTIMADO,
+ * que fija el umbral de distancia del cargador perezoso de Chrome (1.250 px con
+ * conexion rapida, 2.500 px a 3g, ~8.000 px a 2g) y que vive en el PROCESO
+ * navegador, compartido por todos los contextos que abra -- incluidos los que la
+ * familia estrenaba para cada densidad creyendose aislada.
+ *
+ * Reproducido a voluntad con `--force-effective-connection-type` sobre el build
+ * de `1f9f880`, sin tocar una linea del sitio: 0 B a 4g, 188.870 B a 3g
+ * (`story-pointing-640.webp` 106.770 + `feature-learning-640.webp` 82.100) y
+ * 447.868 B a DPR 1 / 538.720 B a DPR 2 a 2g. La geometria lo explica entera: en
+ * la prehidratacion oscura las figuras claras quedan a 1.611, 2.356, 2.711,
+ * 2.711 y 3.536 px bajo el viewport, y el corte del rojo caia exactamente entre
+ * la segunda y la tercera.
+ *
+ * LAS DOS PIEZAS Y POR QUE NINGUNA SOBRA. `veredictoDeConexionDeclarada` protege
+ * a la familia que YA sabemos que depende de esa estimacion: declara la conexion
+ * con la que mide y comprueba que es la que midio. `veredictoDeDerivaDeCondiciones`
+ * protege a las que vengan: interroga al navegador COMPARTIDO al empezar y al
+ * terminar la corrida, y si la propia corrida movio la condicion por debajo lo
+ * dice con nombre propio en vez de dejar que cada familia publique un veredicto
+ * medido en condiciones distintas de las de su vecina. Es el invariante que el
+ * encargo pedia --al terminar, el estado observable es el que habia al
+ * empezar-- aplicado al estado que de verdad se midio moviendose.
+ */
+describe("el eje de conexion de la familia del arte", () => {
+    it("declara el PEOR caso, que es el que subsume a los otros dos", () => {
+        /*
+         * No es una preferencia de laboratorio: cuanto peor es la conexion
+         * estimada, MAS arte pide el navegador por adelantado, asi que medir con
+         * conexion rapida seria ser ciego justo para el visitante que mas paga
+         * el desperdicio. `2G` es el umbral mas ancho que Chrome aplica.
+         */
+        expect(CONEXION_ESTIMADA_DEL_ARTE).toBe("2G");
+    });
+
+    it("acepta la corrida en la que las dos densidades midieron con la conexion declarada", () => {
+        expect(
+            veredictoDeConexionDeclarada({
+                declarada: "2G",
+                observadas: ["2g", "2g"],
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("declara incumplimiento si una sola medida se hizo con otra conexion", () => {
+        const v = veredictoDeConexionDeclarada({
+            declarada: "2G",
+            observadas: ["2g", "4g"],
+        });
+
+        expect(v.cumple).toBe(false);
+        expect(v.motivo).toMatch(/2g\/4g en 1 de 2 medidas/);
+    });
+
+    it("no da por buena una corrida que no llego a leer la conexion", () => {
+        /*
+         * Guarda de vacuidad, mismo criterio que `esperadas` en la familia de
+         * la recarga: cero medidas no es "todas coinciden".
+         */
+        const v = veredictoDeConexionDeclarada({
+            declarada: "2G",
+            observadas: [],
+        });
+
+        expect(v.cumple).toBe(false);
+        expect(v.motivo).toMatch(/no leyo la conexion/);
+    });
+});
+
+describe("familia condiciones-de-navegador-estables-en-la-corrida", () => {
+    it("acepta la corrida que termina en la misma condicion en que empezo", () => {
+        expect(
+            veredictoDeDerivaDeCondiciones({
+                alEmpezar: "4g",
+                alTerminar: "4g",
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("declara incumplimiento cuando la propia corrida degrada la estimacion compartida", () => {
+        const v = veredictoDeDerivaDeCondiciones({
+            alEmpezar: "4g",
+            alTerminar: "3g",
+        });
+
+        expect(v.cumple).toBe(false);
+        expect(v.motivo).toMatch(/paso de 4g a 3g/);
+        expect(v.motivo).toMatch(/no midieron lo mismo/);
+    });
+
+    it("una lectura ausente es la sonda sin objeto, no un verde", () => {
+        expect(
+            veredictoDeDerivaDeCondiciones({
+                alEmpezar: null,
+                alTerminar: "4g",
+            }).cumple,
+        ).toBe(false);
+        expect(
+            veredictoDeDerivaDeCondiciones({
+                alEmpezar: "4g",
+                alTerminar: null,
+            }).cumple,
+        ).toBe(false);
     });
 });
