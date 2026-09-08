@@ -59,7 +59,25 @@ export function useReveal<T extends Element>(
       obs.current?.disconnect();
       if (!node) return;
       obs.current = new IntersectionObserver(
-        ([entry]) => {
+        (entries) => {
+          // LA ULTIMA ENTRADA DEL LOTE, no la primera (P0 de la critica
+          // externa #21, 2026-09-08). `IntersectionObserver` no entrega una
+          // entrada por invocacion: entrega un LOTE con todos los cambios
+          // acumulados desde la ultima entrega, en orden cronologico. Si el
+          // maquetado se mueve entre el `observe()` de arriba y esa primera
+          // entrega -- lo que hace la correccion del punto de lectura al
+          // conmutar el tema, un rAF anidado tras montar la rama nueva --, el
+          // lote llega con DOS registros del mismo nodo: el obsoleto de la
+          // geometria vieja primero y el vigente despues. Leyendo
+          // `entries[0]` se descartaba el vigente, `revealed` se quedaba en
+          // falso con la pieza en pantalla, y como el observador solo vuelve
+          // a hablar cuando se CRUZA el umbral -- y el ratio ya estaba por
+          // encima --, no llegaba ninguna entrada mas: el bloque no se
+          // pintaba hasta salir del todo y volver a entrar.
+          // Este observador vigila EXACTAMENTE un nodo (`disconnect()` antes
+          // de cada `observe()`), asi que todas las entradas del lote son del
+          // mismo objetivo y la ultima es, por definicion, el estado vigente.
+          const entry = entries[entries.length - 1];
           if (entry.isIntersecting) {
             setRevealed(true);
             if (once) obs.current?.disconnect();

@@ -495,7 +495,16 @@ export function useSectionProgress(
       writeVars(el, 1, 0, true);
     };
 
-    const observer = new IntersectionObserver(([entry]) => {
+    const observer = new IntersectionObserver((entries) => {
+      // La ULTIMA entrada del lote, no la primera: ver el porque completo en
+      // `useReveal.ts` (P0 de la critica externa #21, 2026-09-08). Aqui el
+      // precio de leer la obsoleta era `onIntersectExit()` con la seccion
+      // DENTRO del viewport y, con la guarda `hasEntered` puesta, no escribir
+      // NADA: medido tras conmutar oscuro a claro, `--story-progress` y
+      // `--story-enter` no llegaban a escribirse nunca. Este observador
+      // vigila un solo nodo (`observed`), asi que todas las entradas del lote
+      // son suyas y la ultima es el estado vigente.
+      const entry = entries[entries.length - 1];
       // Misma guarda de propiedad que `tick()`: una notificación sobre un nodo
       // que el consumidor ya soltó no describe la sección que este hook
       // pretende publicar.

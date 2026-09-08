@@ -10,6 +10,8 @@ interface MockIntersectionObserver {
 
 let mockInstances: MockIntersectionObserver[] = [];
 let ioTrigger: (isIntersecting: boolean) => void;
+/** Lote de VARIAS entradas en UNA invocacion (ver el candado del final). */
+let ioLote: (isIntersecting: boolean[]) => void;
 
 function stubMatchMedia(reducedMatches: boolean): void {
   vi.stubGlobal(
@@ -106,6 +108,7 @@ beforeEach(() => {
       disconnect = vi.fn();
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
         ioTrigger = (v) => cb([{ isIntersecting: v }]);
+        ioLote = (vs) => cb(vs.map((v) => ({ isIntersecting: v })));
         mockInstances.push(this as unknown as MockIntersectionObserver);
       }
     },
@@ -690,5 +693,30 @@ describe("useSceneParallax", () => {
     const actualChange = Math.abs(x2 - x1);
     expect(actualChange).toBeGreaterThan(0); // sigue habiendo movimiento
     expect(actualChange).toBeLessThan(fullJump * 0.3); // muy lejos del salto completo
+  });
+
+  /*
+   * CANDADO DEL LOTE MULTIPLE (P0 de la critica externa #21, ola U,
+   * 2026-09-08). Misma raiz que en `useReveal` y `useSlideDeck`: cuando el
+   * maquetado se mueve entre el `observe()` y la primera entrega -- la
+   * correccion del punto de lectura del conmutador de tema --, el navegador
+   * entrega los DOS registros en UNA invocacion, el obsoleto primero.
+   * Leyendo `entries[0]` la escena entraba en `release()` con la escena
+   * DENTRO del viewport: parallax detenido (medido sobre
+   * `journeyCosmicPortal ScScene` tras conmutar claro -> oscuro).
+   */
+  it("lee la entrada VIGENTE del lote: [obsoleta false, vigente true] en UNA invocacion arranca el rAF", () => {
+    const raf = vi.fn().mockReturnValue(7);
+    vi.stubGlobal("requestAnimationFrame", raf);
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    const targets = [targetOf(document.createElement("div"), 0.5)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioLote([false, true]));
+
+    expect(raf).toHaveBeenCalled();
   });
 });

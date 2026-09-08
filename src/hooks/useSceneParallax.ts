@@ -395,7 +395,14 @@ export function useSceneParallax(
     // observer entero (nada que observar: el hook esta apagado del todo);
     // fuera de `reduce`, el observer decide `start()`/`release()` segun
     // interseccion en cada aviso.
-    const observer = new IntersectionObserver(([entry]) => {
+    // La ULTIMA entrada del lote, no la primera: ver el porque completo en
+    // `useReveal.ts` (P0 de la critica externa #21, 2026-09-08). Aqui el
+    // precio de leer la obsoleta era entrar en `release()` con la escena
+    // DENTRO del viewport, o sea el parallax detenido. Este observador vigila
+    // un solo nodo (`sceneRef.current`), asi que todas las entradas del lote
+    // son suyas y la ultima es el estado vigente.
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
       if (entry.isIntersecting) {
         // Si el bucle seguia vivo (en pleno release), basta con apagar la
         // bandera -- SIN tocar `appliedX`/`appliedY`/`scrollProgress` -- para

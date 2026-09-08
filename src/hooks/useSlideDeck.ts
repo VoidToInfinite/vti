@@ -382,7 +382,15 @@ export function useSlideDeck(
       lastTop = null;
     };
 
-    const observer = new IntersectionObserver(([entry]) => {
+    // La ULTIMA entrada del lote, no la primera: ver el porque completo en
+    // `useReveal.ts` (P0 de la critica externa #21, 2026-09-08). Aqui el
+    // precio de leer la obsoleta era `stop()` con la pista DENTRO del
+    // viewport -- medido tras conmutar claro a oscuro: `--journey-progress`
+    // nunca escrita y `data-slide` congelado en 0 durante 1.000 px de rueda.
+    // Este observador vigila un solo nodo (`trackRef.current`), asi que todas
+    // las entradas del lote son suyas y la ultima es el estado vigente.
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
       if (entry.isIntersecting) start();
       else stop();
     });

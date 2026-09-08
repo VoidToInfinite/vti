@@ -12,6 +12,8 @@ interface MockIntersectionObserver {
 
 let mockInstances: MockIntersectionObserver[] = [];
 let ioTrigger: (isIntersecting: boolean) => void;
+/** Lote de VARIAS entradas en UNA invocacion (ver el candado del final). */
+let ioLote: (isIntersecting: boolean[]) => void;
 
 function stubMatchMedia(reducedMatches: boolean): void {
   vi.stubGlobal(
@@ -56,6 +58,7 @@ beforeEach(() => {
       disconnect = vi.fn();
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
         ioTrigger = (v) => cb([{ isIntersecting: v }]);
+        ioLote = (vs) => cb(vs.map((v) => ({ isIntersecting: v })));
         mockInstances.push(this as unknown as MockIntersectionObserver);
       }
     },
@@ -565,5 +568,34 @@ describe("useSectionProgress", () => {
      *   dependencias pone en rojo los dos últimos (el de ida y el de vuelta),
      *   que son los que reproducen la forma real de Features/Contact.
      */
+  });
+
+  /*
+   * CANDADO DEL LOTE MULTIPLE (P0 de la critica externa #21, ola U,
+   * 2026-09-08). Tercer consumidor golpeado por la misma raiz. Medido en la
+   * corrida real (io#28, `#story`): lote de dos entradas,
+   * `[0] false ratio=0` y `[1] true ratio=0.52568`, y `([entry])` leia la
+   * primera -- con la guarda `hasEntered` puesta, eso significa no escribir
+   * NADA. Medido en navegador tras conmutar oscuro -> claro y rodar dentro
+   * de Story: `--story-progress` y `--story-enter` NUNCA se escribian.
+   *
+   * Este candado convive con el de la guarda inicial (el primero de este
+   * fichero, "no escribe nada antes de la primera interseccion real"): aquel
+   * exige que un `false` SOLO no escriba; este exige que un `false` seguido
+   * en el MISMO lote de la entrada vigente no cuente como el estado actual.
+   * Son dos afirmaciones distintas y las dos hacen falta.
+   */
+  it("lee la entrada VIGENTE del lote: [obsoleta false, vigente true] en UNA invocacion entra en pantalla", () => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const section = sectionWith(600, VH);
+    const sectionRef = refOf(section);
+    renderHook(() => useSectionProgress(sectionRef));
+
+    act(() => ioLote([false, true]));
+
+    expect(section.dataset.inview).toBe("true");
+    expect(section.style.getPropertyValue("--section-enter")).not.toBe("");
   });
 });

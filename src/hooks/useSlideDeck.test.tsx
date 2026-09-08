@@ -16,6 +16,8 @@ interface MockIntersectionObserver {
 
 let mockInstances: MockIntersectionObserver[] = [];
 let ioTrigger: (isIntersecting: boolean) => void;
+/** Lote de VARIAS entradas en UNA invocacion (ver el candado del final). */
+let ioLote: (isIntersecting: boolean[]) => void;
 
 function stubMatchMedia(reducedMatches: boolean): void {
   vi.stubGlobal(
@@ -60,6 +62,7 @@ beforeEach(() => {
       disconnect = vi.fn();
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
         ioTrigger = (v) => cb([{ isIntersecting: v }]);
+        ioLote = (vs) => cb(vs.map((v) => ({ isIntersecting: v })));
         mockInstances.push(this as unknown as MockIntersectionObserver);
       }
     },
@@ -756,6 +759,36 @@ describe("useSlideDeck: recorrido por diapositiva (critica #16)", () => {
       top: SPAN,
       behavior: "smooth",
     });
+  });
+
+  /*
+   * CANDADO DEL LOTE MULTIPLE (P0 de la critica externa #21, ola U,
+   * 2026-09-08). Mismo defecto y misma raiz que en `useReveal`, y aqui es el
+   * sentido de conmutacion CONTRARIO: al pasar de claro a oscuro, la
+   * correccion del punto de lectura baja el scroll 1.438 px y mete la pista
+   * del deck oscuro en el viewport DESPUES del `observe()`. El lote llega
+   * `[false obsoleta, true vigente]` y `([entry])` leia la primera: `stop()`
+   * con la pista en pantalla. Medido en navegador, rodando 1.000 px dentro
+   * de la pista tras el gesto: `--journey-progress` NUNCA se escribia y
+   * `data-slide` se quedaba en 0, 0, 0, 0, 0, 0.
+   *
+   * No hay pantalla en blanco en ese sentido (las diapositivas se apilan
+   * visibles), asi que el sintoma no es lo que se ve sino lo que deja de
+   * moverse: por eso este candado mira la variable, no el pixel.
+   */
+  it("lee la entrada VIGENTE del lote: [obsoleta false, vigente true] en UNA invocacion arranca el motor", () => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn().mockReturnValue(1));
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const track = trackWith(0, SLIDES * VH);
+    const stage = document.createElement("div");
+    const trackRef = refOf(track);
+    const stageRef = refOf(stage);
+    renderHook(() => useSlideDeck(trackRef, stageRef, SLIDES));
+
+    act(() => ioLote([false, true]));
+
+    expect(stage.style.getPropertyValue("--deck-progress")).toBe("0.0000");
   });
 
   /*

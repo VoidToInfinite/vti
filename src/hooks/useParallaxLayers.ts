@@ -220,7 +220,16 @@ export function useParallaxLayers(
       pause();
     };
 
-    const observer = new IntersectionObserver(([entry]) => {
+    // La ULTIMA entrada del lote, no la primera: ver el porque completo en
+    // `useReveal.ts` (P0 de la critica externa #21, 2026-09-08). Sus dos
+    // consumidores de hoy (Eye, Aura) viven en el hero y no pasan `sceneRef`,
+    // asi que hoy ni siquiera instancian este observador -- y aun asi se
+    // arregla: la rama existe, leia el lote igual de mal que sus cuatro
+    // hermanas, y el primer consumidor que la usara fuera del hero heredaria
+    // el defecto entero sin nada que lo delate. Este observador vigila un
+    // solo nodo (`scene`), asi que la ultima entrada es el estado vigente.
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
       if (entry.isIntersecting) {
         // Si el bucle seguia vivo (en pleno release), basta con apagar la
         // bandera -- SIN tocar `appliedX`/`appliedY` -- para que siga
