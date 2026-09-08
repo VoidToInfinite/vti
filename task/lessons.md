@@ -1,5 +1,96 @@
 # Lecciones
 
+## 2026-09-08 (ola U, frente U3, P0 de la crítica externa #21) — `IntersectionObserver` entrega un LOTE, y `([entry]) => …` lee el registro obsoleto: cinco hooks descartaban la entrada vigente que el navegador sí les había dado
+
+- **Qué pasó:** conmutar el tema a media lectura (`/`, 1440x900, tema oscuro
+  de partida, sin `prefers-reduced-motion`, rueda real hasta y = 2.640, clic
+  en el conmutador de la barra) dejaba la pantalla prácticamente vacía: el
+  99 % del texto del viewport seguía en el DOM y no se pintaba (476.024 px²
+  apagados de 481.014), y el histograma del viewport bajo la barra caía a 10
+  cubos de color con el 99,4 % en uno solo — el fondo liso de la página. Solo
+  salir del bloque y volver a entrar lo reparaba. En el sentido CONTRARIO no
+  había pantalla en blanco pero moría la coreografía: `--journey-progress`
+  nunca llegaba a escribirse y `data-slide` se quedaba en 0 durante 1.000 px
+  de rueda; lo mismo con `--story-progress`/`--story-enter` de
+  `useSectionProgress`.
+- **Por qué costó verlo, y la hipótesis que había que refutar:** la lectura
+  natural del código dice que el observador nunca llega a ver la
+  intersección — `once: true` más un bloque que ya no vuelve a cruzar el
+  umbral. Es FALSA. Instrumentando el constructor de `IntersectionObserver`
+  en la página para registrar cada invocación con su LOTE COMPLETO (no
+  entrada a entrada) se ve que el navegador sí entrega `isIntersecting: true`
+  con `intersectionRatio` 0,25378, por encima del umbral de 0,2 — y llega en
+  el MISMO array que un registro obsoleto de "no interseca" sellado 2 ms
+  antes:
+
+      146ms io#23 inv#1 thr=0.2 ENTRADAS=2
+            [0] div.Story__ScGrid  inter=false ratio=0        top=-1628
+            [1] div.Story__ScGrid  inter=true  ratio=0.25378  top=-700
+
+- **Causa raíz:** `IntersectionObserver` no notifica una entrada por
+  invocación: entrega un LOTE con todos los cambios acumulados desde la
+  última entrega, en orden cronológico. Cuando el maquetado se mueve entre el
+  `observe()` y esa primera entrega — que es exactamente lo que hace
+  `scheduleAnchorCorrection` de `useThemeScrollReset`, un
+  `requestAnimationFrame` anidado que restituye el punto de lectura DESPUÉS
+  de que la rama del tema nueva haya montado y observado contra la geometría
+  vieja — el lote llega con dos registros del mismo nodo. Los cinco hooks del
+  repo destructuraban `([entry])`, o sea leían `entries[0]`, el obsoleto, y
+  tiraban el vigente. Y como el contrato del observador solo vuelve a hablar
+  cuando se CRUZA el umbral, un nodo que se quedó atascado con el ratio ya
+  por encima no genera ninguna entrada más mientras el lector no lo saque del
+  todo y lo devuelva. `useReveal.ts:62`, `useSlideDeck.ts:385`,
+  `useSceneParallax.ts:398`, `useSectionProgress.ts:498`,
+  `useParallaxLayers.ts:223`.
+- **Por qué ningún test podía verlo:** los cinco mocks de
+  `IntersectionObserver` del repo disparaban `cb([{ isIntersecting: v }])`,
+  un array de UNA entrada, SIEMPRE. Ninguna prueba de este repo había
+  entregado jamás un lote múltiple. Ése era el agujero, no la falta de
+  cobertura: la suite verificaba un contrato más pobre que el del navegador.
+- **Arreglo:** `const entry = entries[entries.length - 1]` en los cinco. Los
+  cinco observadores vigilan EXACTAMENTE un nodo cada uno (`useReveal`
+  desconecta antes de observar; los otros cuatro observan un solo
+  `scene`/`track`/`section`), así que todas las entradas del lote son del
+  mismo objetivo y la última es, por definición, el estado vigente. No toca
+  umbrales, ni `rootMargin`, ni tiempos, ni la coreografía. Medido: 99 % → 0 %
+  sin pintar, 10 → 41 cubos de color, `--journey-progress` de nunca escrita a
+  0,0089 → 0,3263 y `data-slide` 0→1→1→1→2→2, `--story-progress` de nunca
+  escrita a 0,6554 → 0,4257.
+- **Regla 1:** el callback de un `IntersectionObserver` (y de cualquier
+  observador que entregue lotes: `ResizeObserver`, `MutationObserver`) NUNCA
+  se escribe `([entry]) => …`. Sobre un objetivo único, se lee la ÚLTIMA
+  entrada; sobre varios, se agrupa por `entry.target` y se lee la última de
+  cada grupo. `entries[0]` es el registro más viejo del lote, no el estado
+  actual, y coincide con el actual solo mientras nada mueva el maquetado
+  entre el `observe()` y la entrega.
+- **Regla 2:** un mock de observador que solo sabe entregar UNA entrada por
+  invocación verifica un contrato que el navegador no cumple. Todo mock de
+  `IntersectionObserver`/`ResizeObserver` de este repo tiene que poder
+  entregar un lote de varias entradas en una sola invocación, y al menos un
+  caso por hook lo ejercita.
+- **Regla 3 (trampa del instrumento, pagada dentro de esta misma tarea):** la
+  medida de "¿avanza el deck?" de la familia nueva usaba
+  `document.querySelector("[data-slide]")` y salía VERDE sobre el defecto
+  entero. Hay DOS escenarios de deck en el tema oscuro, y el primero del DOM
+  es el de Story — que en ese punto ya pasó, se queda legítimamente en su
+  última diapositiva y conserva escritas sus variables de cuando sí corría.
+  El que el gesto acababa de matar era el segundo. Es la trampa de
+  `querySelector` que este repo ya tenía escrita para el navbar móvil,
+  aplicada a un caso nuevo: el criterio correcto no es la posición en el DOM
+  sino la geometría — el escenario ENGANCHADO es el que `position: sticky`
+  mantiene clavado en `top ≈ 0` durante toda la rodada, y el que ya pasó se
+  va hacia arriba (-28, -228, … -1028) y se excluye solo.
+- **Regla 4:** `prefers-reduced-motion: reduce` NO es un control válido para
+  un defecto de revelado en este repo. Bajo `reduce` la máquina de estados se
+  atasca igual — se midieron nodos con `data-revealed="false"` y opacidad
+  calculada 1 — y lo que cambia es que las guardas CSS de revelado
+  (`@media (prefers-reduced-motion: reduce) { opacity: 1 }`, sin calificar por
+  `data-revealed`) lo TAPAN. Que un gesto salga limpio con `reduce` no prueba
+  que no haya defecto: prueba que la piel accesible lo esconde. Corolario con
+  fecha de caducidad: hoy `reduce` es el único seguro que impide que un
+  `revealed` atascado se vea, así que cualquier tarea que califique esas
+  guardas por `data-revealed` destapará el defecto también ahí.
+
 ## 2026-08-13 (fix wave E, hallazgo E1) — Reimplementar a mano el umbral de un `IntersectionObserver` real puede desacordar con él justo en el borde exacto (`rect.top === innerHeight`), y verificar UNA vez no basta para saberlo
 
 - **Qué pasó:** el arreglo de `useSectionProgress.ts` (respaldo de salida en
