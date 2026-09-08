@@ -252,6 +252,92 @@ describe("BackToTop", () => {
   });
 
   /*
+   * EL P0 DE LA CRITICA EXTERNA #21 (ola U, 2026-09-08), y lo que este candado
+   * SI puede afirmar y lo que NO.
+   *
+   * El defecto: `handleClick` arrancaba el barrido suave hacia el origen y, en
+   * el mismo tick, movia el foco a `#main` SIN `preventScroll`. El
+   * desplazamiento con que el navegador trae a pantalla el elemento enfocado
+   * cancelaba el barrido en vuelo. Medido en navegador sobre el build servido:
+   * la pagina se quedaba en 5.320 px de 5.623 (94,6 % del recorrido) en claro a
+   * 1440, en 9.805 de 10.108 (97,0 %) en oscuro, y en 4.198 / 4.768 a 390 --
+   * sin autocorregirse al insistir (tres pulsaciones, el mismo numero).
+   *
+   * LO QUE ESTE TEST AFIRMA ES LA PROPIEDAD, NO LA CONSECUENCIA, y hay que
+   * decirlo para no venderlo por mas de lo que es: jsdom no hace layout ni
+   * scroll real (seccion 5 de CLAUDE.md), asi que NINGUN test de esta suite
+   * puede ver la cancelacion del barrido. Lo que si puede ver es la unica
+   * decision de codigo que la causa: con que opciones se llama a `focus()`. La
+   * consecuencia la ata la familia `volver-arriba-vuelve-arriba` de
+   * `scripts/check-site-surfaces.mjs`, en navegador y con un clic real, y la
+   * familia estatica `focus-sin-preventscroll` del detector impide que la
+   * omision vuelva por cualquier otro camino del repo.
+   *
+   * Y ES LA INTERACCION LO QUE FALTABA, no una de las dos mitades: la suite ya
+   * tenia un test del barrido suave («sin prefers-reduced-motion, el click hace
+   * scroll SUAVE al origen») y otro del movimiento de foco («el click mueve el
+   * foco al landmark #main»), los dos en verde con el defecto vivo. Dos mitades
+   * correctas de un manejador cuyo defecto solo existe en su combinacion.
+   *
+   * Validado con bug inyectado (ver informe de la tarea): quitando
+   * `{ preventScroll: true }` de `moveFocusToMain` en BackToTop.tsx, los dos
+   * casos de abajo se ponen en rojo; restaurado, vuelven a verde.
+   */
+  it("el click mueve el foco con preventScroll, para no cancelar el barrido suave que el mismo manejador acaba de arrancar", () => {
+    setViewport(800, 5000);
+    stubMatchMedia(false);
+    vi.stubGlobal("scrollTo", vi.fn());
+    renderWithMain();
+    const main = document.getElementById("main") as HTMLElement;
+    const focusSpy = vi.spyOn(main, "focus");
+
+    act(() => {
+      screen.getByRole("button", { name: "Volver arriba" }).click();
+    });
+
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+    expect(document.activeElement).toBe(main);
+  });
+
+  /*
+   * LA SEGUNDA VIA, y por que lleva el mismo flag -- decidido MIDIENDO, no por
+   * simetria. Se reprodujo en navegador el gesto exacto que esta via cubre
+   * (foco en el boton sin activarlo, un tramo corto de rueda que cruza el
+   * umbral por 301 px): la pagina se movio los 400 px de la rueda y ni uno mas,
+   * el foco aterrizo en `#main` y el boton se desmonto. Es decir, ahi NO hay
+   * hoy ningun barrido en vuelo que `preventScroll` proteja: el flag es un
+   * no-op observable, porque `#main` cubre el viewport entero en el punto del
+   * cruce y la regla de scroll-into-view no tiene nada que desplazar.
+   *
+   * Se aplica igualmente, por tres razones. (1) El no-op depende de una
+   * geometria que no es una invariante: vale mientras `#main` sea mas alto que
+   * el viewport en el punto del cruce. (2) `preventScroll` no puede romper el
+   * motivo por el que esta via existe -- suprime el desplazamiento, nunca el
+   * foco --, y la medicion lo confirma: el foco sigue aterrizando en `#main`.
+   * (3) Las dos vias comparten `moveFocusToMain`: darle el flag a una y no a la
+   * otra serian dos politicas de foco para el mismo landmark, y la segunda se
+   * escribiria sola el dia que alguien copiara la equivocada.
+   */
+  it("la via INDEPENDIENTE del click (scroll que cruza el umbral) usa el mismo preventScroll", () => {
+    setViewport(800, 5000);
+    renderWithMain();
+    const main = document.getElementById("main") as HTMLElement;
+    const boton = screen.getByRole("button", { name: "Volver arriba" });
+    act(() => {
+      boton.focus();
+    });
+    const focusSpy = vi.spyOn(main, "focus");
+
+    act(() => {
+      setViewport(800, 0);
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+    expect(document.activeElement).toBe(main);
+  });
+
+  /*
    * Task 13, punto 1 del brief: `right`/`bottom` reservan el hueco de
    * `env(safe-area-inset-*)` desde la Task 2 (docblock de ScBackToTop,
    * BackToTop.tsx) -- esta tarea es la primera que le pone un candado.

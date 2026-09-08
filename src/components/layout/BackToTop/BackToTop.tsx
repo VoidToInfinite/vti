@@ -158,10 +158,49 @@ export function BackToTop(): ReactElement | null {
   const threshold = useBackToTopThreshold();
   const visible = useScrolled(threshold);
 
-  // Identidad estable (deps `[]`): no depende de props/estado, solo mueve
-  // el foco al landmark principal. Compartida por las DOS vías de abajo.
+  /*
+   * Identidad estable (deps `[]`): no depende de props/estado, solo mueve el
+   * foco al landmark principal. Compartida por las DOS vías de abajo.
+   *
+   * `preventScroll: true` NO es cosmético, y es EL arreglo del P0 de la crítica
+   * externa #21. Sin él, el desplazamiento con que el navegador trae a pantalla
+   * el elemento enfocado se lleva por delante el barrido suave que
+   * `handleClick` acaba de arrancar dos líneas más arriba: los dos movimientos
+   * salen en el MISMO tick y gana el segundo. Medido en navegador sobre el
+   * build servido, con clic real y sin `prefers-reduced-motion`, el botón
+   * dejaba la página en 5.320 px de 5.623 (94,6 % del recorrido sin deshacer)
+   * en el tema claro a 1440 y en 9.805 de 10.108 (97,0 %) en el oscuro; a
+   * 390 px, en 4.198 y 4.768. Y no se autocorregía: tres pulsaciones seguidas
+   * daban el mismo número, con el botón todavía en pantalla prometiendo lo
+   * mismo. Bajo `reduce` --los dos movimientos instantáneos-- llegaba a 0, que
+   * es por qué el defecto sobrevivió veintiuna rondas de crítica.
+   *
+   * Los 303 px que sí recorría eran exactamente el alto del pie: con el pie
+   * más bajo que el viewport, `#main` asoma por abajo, y la regla «nearest» de
+   * scroll-into-view alinea su borde inferior con el del viewport. A 390 el pie
+   * (853 px) es más alto que el viewport (844), así que `#main` no se ve en
+   * absoluto y la regla lo CENTRA -- de ahí que ahí se quede a mitad de
+   * recorrido en vez de a 303 px del final.
+   *
+   * La misma regla, con su porqué y su medición propia, ya estaba escrita en el
+   * docblock de `Navbar/navAnchorFocus.ts` y aplicada en `NavSheet`, `Features`
+   * y `Hero`; este componente era el único del repo que no la aplicaba. La
+   * familia `focus-sin-preventscroll` de `scripts/detect-anti-patterns.mjs`
+   * impide desde hoy que esa omisión vuelva por cualquier otro camino.
+   *
+   * LA SEGUNDA VÍA (el efecto de más abajo) lleva el mismo flag por decisión
+   * MEDIDA, no por simetría: reproducido el gesto exacto que cubre --foco en el
+   * botón sin activarlo, un tramo corto de rueda que cruza el umbral por
+   * 301 px--, la página se movió los 400 px de la rueda y ni uno más, porque
+   * ahí `#main` cubre el viewport entero y «nearest» no tiene nada que
+   * desplazar. Es decir, ahí el flag es hoy un no-op; se aplica igual porque ese
+   * no-op depende de una geometría que no es invariante, porque `preventScroll`
+   * suprime el desplazamiento y nunca el foco (así que no puede romper el
+   * motivo por el que esa vía existe), y porque las dos vías comparten esta
+   * función: dos políticas de foco para el mismo landmark se desincronizan.
+   */
   const moveFocusToMain = useCallback((): void => {
-    document.getElementById("main")?.focus();
+    document.getElementById("main")?.focus({ preventScroll: true });
   }, []);
 
   const handleClick = useCallback((): void => {
