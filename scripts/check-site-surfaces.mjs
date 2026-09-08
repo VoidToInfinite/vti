@@ -622,9 +622,9 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las veintiocho familias que este script comprueba. La lista es el CONTRATO del
- * candado: el test companero exige que ninguna desaparezca, porque un script que
- * mide trece cosas y dice medir catorce es peor que uno que no existe.
+ * Las veintinueve familias que este script comprueba. La lista es el CONTRATO
+ * del candado: el test companero exige que ninguna desaparezca, porque un script
+ * que mide trece cosas y dice medir catorce es peor que uno que no existe.
  *
  * (El recuento de esta primera linea se corrige el 2026-09-08: decia
  * "veintitres" con veintisiete en la lista, porque las cuatro familias de las
@@ -669,6 +669,7 @@ export const CHECKS = [
     "atras-restituye-el-documento-de-la-url",
     "punto-de-lectura-de-la-url-es-de-un-solo-uso",
     "tinta-pintada-dentro-del-viewport",
+    "revelado-sin-banda-ciega",
 ];
 
 /**
@@ -4078,21 +4079,22 @@ export async function mideVueltaArriba(browser, theme, url, combinacion) {
  * entra solo como constancia de que ese lado tambien llega y de que el rojo
  * del otro no es un defecto del instrumento.
  *
- * LO QUE ESTA FAMILIA DEJA FUERA A PROPOSITO: la llegada en frio por
- * `/?read=R#seccion` (la URL que el propio sitio compone al cambiar de
- * idioma). Ahi tambien queda texto sin pintar --medido: 15,3 % a R=0,45;
- * 26,0 % a 0,50; 29,1 % a 0,55; 34,4 % a 0,60; 0 % en el resto del barrido--
- * pero NO es este defecto: no aparece un solo lote de dos entradas, y la
- * escalera de ratios (0,0000 / 0,0218 / 0,0918 / 0,1606 y 0,2475 en 0,65)
- * cruza exactamente en el umbral 0,2 de `useReveal`. Es la banda ciega de 297
- * px que deja un umbral del 20 % sobre la tarjeta de 944 px de
- * `Contact.tsx:2097` dentro de una ventana de 792, y cerrarla obliga a tocar
- * un rasgo de diseno declarado (el umbral, o el adelanto perceptivo del 12 %):
- * es DECISION DEL DUENO y esta pendiente. Meterla aqui dejaria la familia roja
- * por un defecto que nadie ha decidido todavia arreglar, que es la forma mas
- * rapida de que una familia se apague. La medida 2 la excluye por
- * construccion, no por lista: exige ratio >= umbral, y esos casos estan por
- * debajo.
+ * LO QUE ESTA FAMILIA NO VE, Y QUIEN LO VE AHORA: la llegada en frio por
+ * `/?read=R#seccion` (la URL que el propio sitio compone al cambiar de idioma).
+ * Ahi tambien queda texto sin pintar --medido: 15,3 % a R=0,45; 26,0 % a 0,50;
+ * 29,1 % a 0,55; 34,4 % a 0,60; 0 % en el resto del barrido-- pero NO es este
+ * defecto: no aparece un solo lote de dos entradas, y la escalera de ratios
+ * (0,0000 / 0,0218 / 0,0918 / 0,1606 y 0,2475 en 0,65) cruza exactamente en el
+ * umbral 0,2 que `useReveal` pedia. Era la banda ciega de 297 px que deja un
+ * umbral del 20 % sobre una tarjeta de 944 px dentro de una ventana de 792. La
+ * medida 2 de esta familia lo excluye POR CONSTRUCCION, no por lista: exige
+ * ratio >= umbral, y esos casos estan por debajo.
+ *
+ * Ese segundo defecto ya no esta pendiente de nadie: el dueno decidio el
+ * 2026-09-08 (umbral consciente de la altura, `src/hooks/useReveal.ts`) y lo
+ * vigila la familia VEINTINUEVE, `revelado-sin-banda-ciega`, con esos mismos
+ * aterrizajes dentro. Esta familia se queda con lo suyo -- el lote del
+ * observador -- y aquella con el umbral.
  */
 export const GESTOS_DEL_CONMUTADOR = [
     { pasos: 12, reduce: "no-preference" },
@@ -4462,6 +4464,585 @@ export async function mideConmutacionDeTema(browser, theme, url, gesto) {
             atascados,
             deck,
         };
+    } finally {
+        await ctx.close();
+    }
+}
+
+/**
+ * FAMILIA VEINTINUEVE, `revelado-sin-banda-ciega` (segundo defecto de revelado
+ * de la critica externa #21, ola U, 2026-09-08). Es la que la familia
+ * veinticinco dejaba fuera A PROPOSITO, con la nota «pendiente de decision del
+ * dueno» que este bloque borra: la decision se tomo el 2026-09-08 (umbral
+ * consciente de la altura, `src/hooks/useReveal.ts`).
+ *
+ * EL INVARIANTE, en una frase: ninguna pieza de copia apagada
+ * (`data-revealed="false"`) puede asomar por encima de la LINEA DEL
+ * `rootMargin` --el 88 % superior del viewport-- mas que el tope que el hook
+ * promete. El 88 % y no el 100 % porque la franja de abajo es diseno declarado
+ * (el adelanto perceptivo del 12 %, docblock D7 de `useReveal`); el tope y no
+ * cero porque un umbral de area positivo siempre cuesta algunos pixeles, y lo
+ * que el arreglo garantiza es que esos pixeles no dependan del tamano de la
+ * pieza.
+ *
+ * EL DEFECTO QUE NACE PARA VER, medido sobre el build de `f7ab6f2` servido en
+ * local (`/`, es, tema claro, SIN `reduce`, 1440x900, estado asentado a los 5 s)
+ * por los aterrizajes `?read=R#seccion` que el propio sitio compone al cambiar
+ * de idioma. La ultima columna es el porcentaje del texto del viewport que esta
+ * en el DOM y no se pinta:
+ *
+ *     /?read=0.50#features  Contact ScCard        top 771 h 944 ratio 0,0218  35,5 %
+ *     /?read=0.55#features  Contact ScCard        top 705 h 944 ratio 0,0918  37,1 %
+ *     /?read=0.60#features  Contact ScCard        top 640 h 944 ratio 0,1606  38,7 %
+ *     /?read=0.25#story     Story ScStatementText top 753 h 376 ratio 0,1033  44,1 %
+ *     /?read=0.45#contact   About ScInner         top 737 h 390 ratio 0,1406  54,1 %
+ *
+ * y en el tema oscuro, con las mismas URL y otro reparto de secciones:
+ *
+ *     /?read=0.20#features  Contact ScDarkContent top 726 h 886 ratio 0,0744  solape 66
+ *     /?read=0.25#features  Contact ScDarkContent top 628 h 886 ratio 0,1850  solape 164
+ *     /?read=0.30#contact   About ScInner         top 776 h 390 ratio 0,0401  solape 16
+ *     /?read=0.35#contact   About ScInner         top 728 h 390 ratio 0,1630  solape 64
+ *
+ * La escalera de ratios cruza exactamente en el 0,2 que `useReveal` pedia: para
+ * que el ratio llegue a 0,2 hacen falta `0,2 * alto` px de la pieza dentro de la
+ * ventana, o sea 189 px en una tarjeta de 944, y en toda esa banda la pieza esta
+ * en pantalla y apagada. Y como el contrato de `IntersectionObserver` solo habla
+ * al CRUZAR el umbral, quedarse ahi quieto no lo repara.
+ *
+ * NO ES SOLO DE PIEZAS MAS ALTAS QUE LA VENTANA: dos de los cinco casos claros
+ * son piezas de 376 y 390 px, menos de la mitad de la ventana de 792.
+ *
+ * LOS DOS AVISOS DEL AGUJERO QUE LA FAMILIA VEINTICINCO NO PODIA VER. Su medida
+ * 2 (`probeRevelosAtascados`) exige `ratio >= umbral` y estos casos estan por
+ * DEBAJO del umbral: los excluia por construccion. Y la razon de que un ratio
+ * bajo sea igualmente un defecto es geometrica, no de contabilidad -- la pieza
+ * asoma por encima de la linea, que es lo que esta familia mide.
+ *
+ * SIN `reduce`, Y NO ES UN CAPRICHO: las guardas CSS de revelado del repo son
+ * `@media (prefers-reduced-motion: reduce) { opacity: 1 }` sin calificar por
+ * `data-revealed`, asi que con la preferencia puesta la maquina de estados se
+ * atasca igual y la piel accesible lo TAPA. Medir aqui con `reduce` seria medir
+ * la tapa.
+ *
+ * LAS DOS MITADES DE LA FAMILIA, y por que ninguna sobra:
+ *
+ *   A. LOS ATERRIZAJES (`ATERRIZAJES_DE_LA_BANDA_CIEGA`): las URL exactas por
+ *      las que la critica llego, con sus cifras arriba. Son deterministas y
+ *      reproducen el camino de un lector real que cambia de idioma. Su limite:
+ *      estan calibrados sobre una geometria concreta -- al medir los mismos
+ *      valores de R a 1280x720 la banda aparece en OTROS (0,65 en `#features`,
+ *      0,55 y 0,60 en `#contact`), asi que una lista de R fija no viaja.
+ *
+ *   B. LA PASADA DE PUNTERIA (`GEOMETRIAS_DE_LA_BANDA_CIEGA`): la que si viaja.
+ *      Lee del DOM VIVO todos los objetivos de revelado, calcula para cada uno
+ *      el desplazamiento que lo deja asomando `ASOMO_DE_LA_PUNTERIA` veces el
+ *      tope por encima de la linea, y comprueba ahi. No hay ninguna cifra de la
+ *      geometria de hoy en esa cuenta: si manana el sitio gana una pieza o
+ *      cambia de alto, la pasada apunta sola. Se visitan las paradas de ABAJO
+ *      ARRIBA para que ninguna pieza se revele en la parada de otra (`once:
+ *      true` no se deshace), y cada parada verifica que dejo al objetivo
+ *      asomando lo pedido antes de juzgar nada.
+ *
+ * LA CALIBRACION DE `ASOMO_DE_LA_PUNTERIA`, con las dos direcciones medidas:
+ * con el umbral fijo de 0,2 una pieza sigue apagada mientras asome menos de
+ * `0,2 * alto`, o sea 33 px la mas pequena del censo (`Journey ScStepsRow`, 165
+ * px) y 1.215 px la mas grande (`Story ScGrid` a 390x844 con la raiz a 32,
+ * 6.073 px). Con el arreglo, ninguna pieza puede seguir apagada asomando mas de
+ * `1 %` de la ventana (9 px a 900). Apuntar a tres veces el tope --27 px a
+ * 900-- cae en medio de los dos regimenes: por debajo de la banda mas pequena
+ * que el defecto produce y por encima de lo que el arreglo permite, con un
+ * factor 3 por un lado y 1,2 por el otro.
+ *
+ * EL MODO DE FALLO QUE NO VE, declarado: una pieza que se queda apagada ENTERA
+ * por debajo de la linea. Es exactamente la franja del `rootMargin`, y es
+ * diseno: medido, `/?read=0.40#contact` deja el 45,4 % del texto del viewport
+ * sin pintar con la pieza integra bajo la linea, y esta familia lo da por bueno
+ * a proposito. `/?read=0.45#features` esta en la lista de aterrizajes por eso
+ * mismo: es el CONTROL POSITIVO del diseno declarado y tiene que salir verde
+ * antes y despues del arreglo.
+ */
+export const TOPE_DEL_RETRASO_DEL_UMBRAL = 0.01;
+
+/**
+ * Holgura subpixel, el mismo numero y por el mismo motivo que en la familia de
+ * la tinta: las cajas del navegador vienen con decimales y el hook admite un
+ * pixel de deriva antes de rehacer el observador (`HOLGURA_DE_RECALCULO_PX`).
+ * Las bandas que esta familia existe para cazar se miden en decenas de px.
+ */
+export const HOLGURA_DE_LA_BANDA_CIEGA_PX = 2;
+
+/** Multiplo del tope al que la pasada de punteria deja asomar cada pieza. */
+export const ASOMO_DE_LA_PUNTERIA = 3;
+
+/**
+ * Las dos geometrias de la pasada de punteria: la medida y la extrema. La
+ * segunda cambia A LA VEZ el ancho y la raiz de fuente, y no es un capricho --
+ * es donde el censo encontro el caso peor de todos: `Story ScGrid` mide 6.073 px
+ * ahi, la ventana del observador 743, y el ratio MAXIMO posible es 0,1223, por
+ * debajo del 0,2 que se pedia. Ese umbral no se cruzaba NUNCA y la rejilla de
+ * pilares no se revelaba jamas.
+ */
+export const GEOMETRIAS_DE_LA_BANDA_CIEGA = [
+    { ancho: 390, alto: 844, raiz: 32 },
+];
+
+/**
+ * La geometria en la que se midieron los aterrizajes, y en la que corren. No es
+ * la misma que la de la pasada de punteria a proposito: los valores de R de un
+ * aterrizaje SI estan calibrados sobre una geometria concreta --a 1280x720 la
+ * misma banda aparece en R=0,65 en vez de en 0,50-- y moverlos de sitio los
+ * dejaria midiendo un tramo de pagina cualquiera.
+ */
+export const GEOMETRIA_DE_LOS_ATERRIZAJES = {
+    ancho: 1440,
+    alto: 900,
+    raiz: 16,
+};
+
+/**
+ * Los aterrizajes por tema, con la seccion de destino y la fraccion de lectura.
+ * Son las URL medidas arriba; corren en la geometria en que se midieron
+ * (`GEOMETRIAS_DE_LA_BANDA_CIEGA[0]`) y solo sobre la portada en espanol -- la
+ * inglesa la cubre la pasada de punteria, que no depende del idioma, y repetir
+ * seis cargas por una diferencia de longitud de texto seria coste sin criterio.
+ */
+export const ATERRIZAJES_DE_LA_BANDA_CIEGA = {
+    light: [
+        { destino: "features", read: 0.45 },
+        { destino: "features", read: 0.5 },
+        { destino: "features", read: 0.55 },
+        { destino: "features", read: 0.6 },
+        { destino: "story", read: 0.25 },
+        { destino: "contact", read: 0.45 },
+    ],
+    dark: [
+        { destino: "features", read: 0.2 },
+        { destino: "features", read: 0.25 },
+        { destino: "contact", read: 0.3 },
+        { destino: "contact", read: 0.35 },
+    ],
+};
+
+/**
+ * Guarda de vacuidad: cuantos objetivos de revelado tiene que ver la sonda para
+ * que su verde signifique algo. La portada clara monta 12 y la oscura 5; cuatro
+ * es un suelo que ninguna de las dos puede cruzar sin que el sitio haya perdido
+ * medio revelado.
+ */
+export const OBJETIVOS_MINIMOS_DE_REVELADO = 4;
+
+/**
+ * Espera tras cada peldano, para que el observador entregue. Una entrega de
+ * `IntersectionObserver` llega en el siguiente fotograma; 260 ms son quince, y
+ * el coste se paga una vez por peldano.
+ */
+export const ESPERA_DE_LA_PARADA_MS = 260;
+
+/**
+ * Cuantos peldanos como mucho. La escalera arranca tres peldanos POR DEBAJO de
+ * la estimacion --el margen que absorbe el error de parallax de la estimacion,
+ * medido en 12-16 px-- y tiene que llegar a tres por encima, asi que seis son
+ * el recorrido nominal y diez dejan sitio a una pieza que se mueva a un ritmo
+ * distinto del scroll.
+ */
+export const PELDANOS_DE_LA_ESCALERA = 12;
+
+/**
+ * Peldanos por debajo de la estimacion en los que arranca la escalera. Cinco
+ * (45 px a 900) dejan la pieza claramente por DEBAJO de la linea en el primer
+ * peldano incluso con el error de parallax de la estimacion, que es lo que hace
+ * fiable la deteccion de contaminacion: una pieza revelada en el peldano cero
+ * es una pieza que ya venia revelada.
+ */
+export const PELDANOS_DE_ARRANQUE = 5;
+
+/**
+ * Cuantas piezas tiene que llegar a JUZGAR la pasada de punteria para que su
+ * verde signifique algo. Una pieza alta sigue intersecando durante la parada de
+ * su vecina, asi que se revela antes de que le toque su escalera y esa lectura
+ * no la juzga: es contaminacion inevitable en una sola carga, y lo que se hace
+ * con ella es contarla y declararla, no disimularla. Tres es el suelo: por
+ * debajo de eso la pasada no esta mirando el sitio.
+ */
+export const JUZGADAS_MINIMAS_DE_LA_PUNTERIA = 3;
+
+/**
+ * Copia apagada que asoma por encima de la linea. Corre en la pagina.
+ *
+ * LLEVAR COPIA es la condicion que separa un defecto de una decoracion: la
+ * costura de `SectionBeam` mide 2 px y no tiene una sola letra, asi que su
+ * `data-revealed="false"` no le quita nada a nadie. Sin ese filtro la familia
+ * nacia acusando a una pieza que no puede tener el defecto.
+ *
+ * Los nodos de texto se RECOGEN antes de recorrerlos (leccion del 2026-09-08:
+ * un `TreeWalker` cuyo avance vive dentro del cuerpo se cuelga en cuanto una
+ * rama se olvida de escribirlo).
+ */
+export function probeCopiaApagadaSobreLaLinea({ recorte, tope, holgura }) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const linea = vh * (1 - recorte);
+    const topePx = tope * vh + holgura;
+    const nombreDe = (el) =>
+        (el.className || "")
+            .toString()
+            .split(/\s+/)[0]
+            .replace(/-sc-.*/, "") || el.tagName.toLowerCase();
+
+    const llevaCopia = (el) => {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        const nodos = [];
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) nodos.push(n);
+        for (const nodo of nodos) {
+            if (!(nodo.textContent || "").trim()) continue;
+            const padre = nodo.parentElement;
+            if (!padre) continue;
+            const cs = getComputedStyle(padre);
+            if (cs.visibility === "hidden" || cs.display === "none") continue;
+            const caja = padre.getBoundingClientRect();
+            /* La caja de 1x1 es la de `VisuallyHidden`: texto que existe para
+               un lector de pantalla y no ocupa pantalla. */
+            if (caja.width <= 1 && caja.height <= 1) continue;
+            return true;
+        }
+        return false;
+    };
+
+    const solapeCon = (r) =>
+        Math.max(0, Math.min(linea, r.bottom) - Math.max(0, r.top));
+
+    const todos = [...document.querySelectorAll("[data-revealed]")];
+    const acusados = [];
+    let examinados = 0;
+    let sinCopia = 0;
+    for (const el of todos) {
+        if (el.getAttribute("data-revealed") !== "false") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) continue;
+        const dentro = Math.max(0, Math.min(vw, r.right) - Math.max(0, r.left));
+        const solape = solapeCon(r);
+        if (dentro <= 0 || solape <= 0) continue;
+        examinados += 1;
+        if (!llevaCopia(el)) {
+            sinCopia += 1;
+            continue;
+        }
+        if (solape <= topePx) continue;
+        acusados.push({
+            nombre: nombreDe(el),
+            top: Math.round(r.top),
+            alto: Math.round(r.height),
+            solape: Math.round(solape),
+            ratio: Number(
+                ((dentro * solape) / Math.max(1, r.width * r.height)).toFixed(
+                    4,
+                ),
+            ),
+        });
+    }
+
+    return {
+        y: Math.round(window.scrollY),
+        vh,
+        linea: Math.round(linea),
+        topePx: Number(topePx.toFixed(2)),
+        objetivos: todos.length,
+        examinados,
+        sinCopia,
+        acusados,
+    };
+}
+
+/**
+ * Los objetivos de revelado del DOM vivo con la parada que deja a cada uno
+ * asomando `asomoPx` por encima de la linea. Corre en la pagina.
+ *
+ * `indice` es la posicion en el orden del documento, que es estable durante la
+ * corrida: sirve para volver a preguntar por ESE nodo al llegar a su parada.
+ */
+export function probeParadasDeRevelado({ recorte, asomoPx }) {
+    const vh = window.innerHeight;
+    const linea = vh * (1 - recorte);
+    const nombreDe = (el) =>
+        (el.className || "")
+            .toString()
+            .split(/\s+/)[0]
+            .replace(/-sc-.*/, "") || el.tagName.toLowerCase();
+    const salida = [];
+    const todos = [...document.querySelectorAll("[data-revealed]")];
+    for (let i = 0; i < todos.length; i += 1) {
+        const r = todos[i].getBoundingClientRect();
+        if (r.height <= 0 || r.width <= 0) continue;
+        salida.push({
+            indice: i,
+            nombre: nombreDe(todos[i]),
+            alto: Math.round(r.height),
+            y: Math.round(window.scrollY + r.top - (linea - asomoPx)),
+        });
+    }
+    return {
+        paradas: salida,
+        vh,
+        linea: Math.round(linea),
+        maximo: Math.max(
+            0,
+            document.documentElement.scrollHeight - window.innerHeight,
+        ),
+    };
+}
+
+/** Estado del objetivo `indice` en la posicion actual. Corre en la pagina. */
+export function probeObjetivoEnLaParada({ indice, recorte }) {
+    const vh = window.innerHeight;
+    const linea = vh * (1 - recorte);
+    const el = document.querySelectorAll("[data-revealed]")[indice];
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return {
+        revelado: el.getAttribute("data-revealed"),
+        top: Math.round(r.top),
+        alto: Math.round(r.height),
+        asomo: Math.round(
+            Math.max(0, Math.min(linea, r.bottom) - Math.max(0, r.top)),
+        ),
+    };
+}
+
+/**
+ * Veredicto sobre todas las lecturas de la familia. Puro y exportado para que
+ * la suite lo ejercite sin navegador: la sonda necesita layout real y jsdom no
+ * lo tiene, pero la REGLA -- que una pieza de copia apagada asomando por encima
+ * de la linea es un fallo, que una parada que no dejo al objetivo donde queria
+ * no habla del sitio, y que cero objetivos vistos es vacuidad -- se afirma
+ * aqui.
+ */
+export function evaluaBandaCiega({
+    lecturas,
+    objetivosMinimos,
+    asomoPedidoPx,
+}) {
+    const fallos = [];
+    const instrumento = [];
+    let objetivosVistos = 0;
+    let apuntadas = 0;
+    let juzgadas = 0;
+    let contaminadas = 0;
+    for (const lectura of lecturas) {
+        objetivosVistos = Math.max(objetivosVistos, lectura.objetivos ?? 0);
+        if (lectura.apuntada) {
+            apuntadas += 1;
+            if (lectura.motivoDeParada === "revelado-antes-de-empezar") {
+                contaminadas += 1;
+                continue;
+            }
+            juzgadas += 1;
+            /* La escalera solo puede terminar de dos maneras honradas: con la
+               pieza revelada, o con ella asomando lo que se le pidio y sin
+               revelar. Cualquier otro final --que no se pueda desplazar hasta
+               ahi, o que la escalera se agote sin llegar-- es una lectura que
+               no responde a la pregunta, y se dice en vez de contarla como
+               verde. */
+            if (
+                lectura.motivoDeParada !== "revelado" &&
+                lectura.motivoDeParada !== "asomo"
+            ) {
+                instrumento.push(
+                    `${lectura.id}: la escalera termino por "${lectura.motivoDeParada}" con el objetivo asomando ${lectura.asomoReal} px de los ${Math.round(asomoPedidoPx)} pedidos: esa lectura no responde a la pregunta`,
+                );
+                continue;
+            }
+        }
+        for (const a of lectura.acusados ?? [])
+            fallos.push(
+                `${lectura.id}: ${a.nombre} sigue apagada asomando ${a.solape} px por encima de la linea del -12 % (tope ${lectura.topePx} px), con top=${a.top} alto=${a.alto} ratio=${a.ratio}`,
+            );
+    }
+    if (!lecturas.length)
+        instrumento.push(
+            "la familia de banda ciega no llego a tomar ni una lectura: sin paradas no se midio nada y el verde seria vacuo",
+        );
+    if (objetivosVistos < objetivosMinimos)
+        instrumento.push(
+            `la sonda solo vio ${objetivosVistos} objetivos de revelado en toda la corrida (suelo ${objetivosMinimos}): o el selector dejo de encontrarlos o el sitio perdio sus revelados, y en los dos casos el verde seria vacuo`,
+        );
+    if (juzgadas < JUZGADAS_MINIMAS_DE_LA_PUNTERIA)
+        instrumento.push(
+            `la pasada de punteria solo llego a juzgar ${juzgadas} pieza(s) (suelo ${JUZGADAS_MINIMAS_DE_LA_PUNTERIA}, con ${contaminadas} ya reveladas antes de que les tocara): la mitad que no depende de la geometria de hoy no se ejercito`,
+        );
+    return {
+        fallos,
+        instrumento,
+        apuntadas,
+        juzgadas,
+        contaminadas,
+        objetivosVistos,
+    };
+}
+
+/** Una carga con su URL de aterrizaje, medida en el estado asentado. */
+export async function mideAterrizajeDeRevelado(
+    browser,
+    theme,
+    url,
+    aterrizaje,
+) {
+    const geometria = GEOMETRIA_DE_LOS_ATERRIZAJES;
+    const ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: geometria.ancho, height: geometria.alto },
+        reducedMotion: "no-preference",
+        deviceScaleFactor: 1,
+    });
+    try {
+        const page = await ctx.newPage();
+        const destino = `${url}?read=${aterrizaje.read}#${aterrizaje.destino}`;
+        await page.goto(destino, { waitUntil: "networkidle" });
+        /* Cinco segundos: la llegada aplica el punto de lectura con un rAF
+           anidado y las entradas de revelado duran menos de un segundo. Se mide
+           el estado ASENTADO, no el transitorio. */
+        await page.waitForTimeout(5000);
+        const lectura = await page.evaluate(probeCopiaApagadaSobreLaLinea, {
+            recorte: RECORTE_INFERIOR_DEL_REVELADO,
+            tope: TOPE_DEL_RETRASO_DEL_UMBRAL,
+            holgura: HOLGURA_DE_LA_BANDA_CIEGA_PX,
+        });
+        return {
+            id: `aterrizaje ?read=${aterrizaje.read}#${aterrizaje.destino} @${geometria.ancho}x${geometria.alto} raiz ${geometria.raiz}`,
+            apuntada: false,
+            ...lectura,
+        };
+    } finally {
+        await ctx.close();
+    }
+}
+
+/**
+ * La pasada de punteria de UNA geometria: una sola carga y una parada por
+ * objetivo, de abajo arriba.
+ */
+export async function midePunteriaDeRevelado(browser, theme, url, geometria) {
+    const ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: geometria.ancho, height: geometria.alto },
+        reducedMotion: "no-preference",
+        deviceScaleFactor: 1,
+    });
+    try {
+        const page = await ctx.newPage();
+        const sesion = await ctx.newCDPSession(page);
+        await sesion.send("Page.setFontSizes", {
+            fontSizes: { standard: geometria.raiz, fixed: geometria.raiz },
+        });
+        await page.goto(url, { waitUntil: "networkidle" });
+        await page.waitForTimeout(2500);
+
+        const asomoPx =
+            ASOMO_DE_LA_PUNTERIA * TOPE_DEL_RETRASO_DEL_UMBRAL * geometria.alto;
+        const plan = await page.evaluate(probeParadasDeRevelado, {
+            recorte: RECORTE_INFERIOR_DEL_REVELADO,
+            asomoPx,
+        });
+        const lecturas = [];
+        /*
+         * DE ARRIBA ABAJO, y el orden importa mas de lo que parece: una pieza
+         * alta interseca la ventana desde MUY por debajo de donde empieza, asi
+         * que visitando al reves se revelaba en la parada de una vecina de mas
+         * abajo antes de que le tocara su escalera (medido: `About ScInner`,
+         * 2.054 px, llegaba revelada a la suya por la parada de la costura del
+         * pie, 2.246 px mas abajo). Bajando, una pieza que todavia no ha salido
+         * por debajo del viewport no puede intersecar nada.
+         */
+        const paradas = plan.paradas
+            .filter((p) => p.y >= 0 && p.y <= plan.maximo)
+            .sort((a, b) => a.y - b.y);
+        const paso = Math.max(
+            4,
+            Math.round(TOPE_DEL_RETRASO_DEL_UMBRAL * geometria.alto),
+        );
+        for (const parada of paradas) {
+            /*
+             * LA ESCALERA SE SUBE DESDE ABAJO, y ese detalle es la diferencia
+             * entre un candado y un adorno. Colocar la pieza de un salto en el
+             * asomo pedido no vale: la portada tiene parallax --las cajas se
+             * mueven a un ritmo distinto del scroll-- asi que el salto cae
+             * donde cae, y CORREGIRLO con un segundo salto puede pasarse de
+             * largo y REVELAR la pieza por el camino, con lo que la lectura
+             * final saldria verde sin haber medido nada. Subiendo en peldanos
+             * del tamano del tope, desde una posicion en la que la pieza esta
+             * por debajo de la linea, no hay forma de pasarse: en cada peldano
+             * se mide el asomo REAL y se para en cuanto la pieza se revela o
+             * en cuanto asoma lo pedido.
+             */
+            let y = parada.y - PELDANOS_DE_ARRANQUE * paso;
+            let objetivo = null;
+            let motivoDeParada = "sin-convergencia";
+            let peldanosSubidos = 0;
+            /* Una pieza mas baja que el asomo pedido no puede asomar tanto:
+               su techo es su propia altura, con ella entera por encima de la
+               linea. */
+            const pedido = Math.min(asomoPx, parada.alto);
+            for (
+                let peldano = 0;
+                peldano < PELDANOS_DE_LA_ESCALERA;
+                peldano += 1
+            ) {
+                if (y < 0 || y > plan.maximo) {
+                    motivoDeParada = "fuera-de-alcance";
+                    break;
+                }
+                /* `behavior: "instant"` y no `scrollTo(0, y)` a secas: el repo
+                   declara `scroll-behavior: smooth` en el documento, y un
+                   barrido suave hace pasar a la pieza POR TODA su banda -- se
+                   revelaria por el camino. */
+                await page.evaluate(
+                    (destino) =>
+                        window.scrollTo({ top: destino, behavior: "instant" }),
+                    y,
+                );
+                await page.waitForTimeout(ESPERA_DE_LA_PARADA_MS);
+                objetivo = await page.evaluate(probeObjetivoEnLaParada, {
+                    indice: parada.indice,
+                    recorte: RECORTE_INFERIOR_DEL_REVELADO,
+                });
+                if (!objetivo) {
+                    motivoDeParada = "sin-objetivo";
+                    break;
+                }
+                if (objetivo.revelado === "true") {
+                    /* Revelada YA en el primer peldano, con la pieza todavia
+                       por debajo de la linea: no se ha revelado por lo que esta
+                       escalera hizo, sino antes -- en la carga o en la parada
+                       de una vecina mas alta que seguia intersecando. Esa
+                       lectura no juzga a esta pieza y no se cuenta como si lo
+                       hiciera. */
+                    motivoDeParada =
+                        peldano === 0
+                            ? "revelado-antes-de-empezar"
+                            : "revelado";
+                    break;
+                }
+                if (objetivo.asomo >= pedido) {
+                    motivoDeParada = "asomo";
+                    break;
+                }
+                y += paso;
+                peldanosSubidos += 1;
+            }
+            const lectura = await page.evaluate(probeCopiaApagadaSobreLaLinea, {
+                recorte: RECORTE_INFERIOR_DEL_REVELADO,
+                tope: TOPE_DEL_RETRASO_DEL_UMBRAL,
+                holgura: HOLGURA_DE_LA_BANDA_CIEGA_PX,
+            });
+            lecturas.push({
+                id: `punteria ${parada.nombre}(h=${parada.alto}) @${geometria.ancho}x${geometria.alto} raiz ${geometria.raiz}`,
+                apuntada: true,
+                motivoDeParada,
+                peldanos: peldanosSubidos,
+                asomoReal: objetivo ? objetivo.asomo : 0,
+                revelado: objetivo ? objetivo.revelado : null,
+                ...lectura,
+            });
+        }
+        return { lecturas, asomoPx, planeadas: plan.paradas.length };
     } finally {
         await ctx.close();
     }
@@ -6821,6 +7402,55 @@ async function auditarSuperficie(browser, base, theme, surface) {
                 `conmutar el tema a media lectura deja la pagina congelada (${conmutacionesCaidas.length} de ${conmutaciones.length} combinaciones): ${conmutacionesCaidas
                     .flatMap((c) => c.veredicto.motivos)
                     .join(" | ")}`,
+            );
+
+        /*
+         * --- el revelado no deja banda ciega
+         *
+         * Las dos mitades (los aterrizajes medidos y la pasada de punteria que
+         * no depende de la geometria de hoy), el invariante, la calibracion y
+         * el modo de fallo que NO ve estan en el docblock de
+         * `TOPE_DEL_RETRASO_DEL_UMBRAL`.
+         */
+        const lecturasDeRevelado = [];
+        let asomoPedidoPx = 0;
+        if (surface.locale === "es")
+            for (const aterrizaje of ATERRIZAJES_DE_LA_BANDA_CIEGA[theme] ?? [])
+                lecturasDeRevelado.push(
+                    await mideAterrizajeDeRevelado(
+                        browser,
+                        theme,
+                        url,
+                        aterrizaje,
+                    ),
+                );
+        for (const geometria of GEOMETRIAS_DE_LA_BANDA_CIEGA) {
+            const pasada = await midePunteriaDeRevelado(
+                browser,
+                theme,
+                url,
+                geometria,
+            );
+            asomoPedidoPx = Math.max(asomoPedidoPx, pasada.asomoPx);
+            lecturasDeRevelado.push(...pasada.lecturas);
+        }
+        const veredictoDeRevelado = evaluaBandaCiega({
+            lecturas: lecturasDeRevelado,
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx,
+        });
+        const lecturasLimpias = lecturasDeRevelado.filter(
+            (l) => (l.acusados ?? []).length === 0,
+        ).length;
+        datos.bandaCiega = `${lecturasLimpias}/${lecturasDeRevelado.length} lecturas sin copia apagada sobre la linea (${veredictoDeRevelado.juzgadas} piezas juzgadas y ${veredictoDeRevelado.contaminadas} ya reveladas de ${veredictoDeRevelado.apuntadas} apuntadas, ${veredictoDeRevelado.objetivosVistos} objetivos vistos, asomo ${Math.round(asomoPedidoPx)} px)`;
+        // [check: revelado-sin-banda-ciega]
+        if (veredictoDeRevelado.instrumento.length)
+            fallos.push(
+                `la sonda de banda ciega no pudo montarse bien y su resultado no habla del sitio: ${veredictoDeRevelado.instrumento.join("; ")}`,
+            );
+        if (veredictoDeRevelado.fallos.length)
+            fallos.push(
+                `el revelado deja copia en pantalla y sin pintar por encima de la linea del -12 % (${veredictoDeRevelado.fallos.length} lectura(s)): ${veredictoDeRevelado.fallos.join(" | ")}`,
             );
     }
 

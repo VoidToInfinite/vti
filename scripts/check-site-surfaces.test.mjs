@@ -12,6 +12,8 @@ import {
     BANDA_DE_REFLOW,
     BROKEN_SEGMENT,
     CAMBIOS_DE_ANCHURA_DE_LA_HOJA,
+    ASOMO_DE_LA_PUNTERIA,
+    ATERRIZAJES_DE_LA_BANDA_CIEGA,
     CHECKS,
     DECKS_DEL_TEMA_OSCURO,
     DERIVA_MAXIMA_DE_RECARGA_PX,
@@ -20,8 +22,12 @@ import {
     EN_PREFIX,
     FRACCION_MAXIMA_DE_LECTURA,
     FRACCION_MINIMA_DE_LECTURA,
+    GEOMETRIAS_DE_LA_BANDA_CIEGA,
+    GEOMETRIA_DE_LOS_ATERRIZAJES,
     GESTOS_DEL_CONMUTADOR,
+    HOLGURA_DE_LA_BANDA_CIEGA_PX,
     HOME_DOC,
+    JUZGADAS_MINIMAS_DE_LA_PUNTERIA,
     IDIOMA_HORNEADO_DE_LA_404,
     LADO_MINIMO_DE_PIEZA_PX,
     LECTURAS_IGUALES_PARA_ASENTAR,
@@ -32,6 +38,7 @@ import {
     MIN_CARACTERES_POR_LINEA,
     MIN_CUBOS_DE_COLOR,
     NAV_BAND_PX,
+    OBJETIVOS_MINIMOS_DE_REVELADO,
     OBJETIVO_DE_RECARGA_PX,
     OPACIDAD_DE_DIAPOSITIVA_ACTIVA,
     PASO_DEL_BARRIDO_DE_CABECERA,
@@ -57,6 +64,7 @@ import {
     TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
     TOLERANCIA_DE_TINTA_PX,
     TOLERANCIA_DE_VUELTA_ARRIBA_PX,
+    TOPE_DEL_RETRASO_DEL_UMBRAL,
     UMBRAL_DECLARADO_DE_REVELADO,
     VALORES_HOSTILES,
     UMBRAL_DE_CONTRASTE_GRANDE,
@@ -74,6 +82,7 @@ import {
     eligeElPuntoDeLectura,
     especificadoresDePlaywright,
     evaluaAtras,
+    evaluaBandaCiega,
     evaluaConmutacionDeTema,
     evaluaEscenariosFijados,
     evaluaContrasteDeCabecera,
@@ -571,6 +580,7 @@ const FAMILIAS_ESPERADAS = [
     "atras-restituye-el-documento-de-la-url",
     "punto-de-lectura-de-la-url-es-de-un-solo-uso",
     "tinta-pintada-dentro-del-viewport",
+    "revelado-sin-banda-ciega",
 ];
 
 /**
@@ -641,7 +651,7 @@ const FAMILIAS_ESPERADAS = [
  * del frente U5 de la ola U, la que mide la LINEA REAL del texto y no la caja--,
  * en el mismo commit que la anade.
  */
-const FAMILIAS_MINIMAS = 28;
+const FAMILIAS_MINIMAS = 29;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -4873,5 +4883,206 @@ describe("la matriz de la familia de la tinta es la acordada", () => {
     it("la tolerancia es subpixel, no holgura de criterio", () => {
         expect(TOLERANCIA_DE_TINTA_PX).toBeGreaterThan(0);
         expect(TOLERANCIA_DE_TINTA_PX).toBeLessThanOrEqual(1);
+    });
+});
+
+/*
+ * LA FAMILIA VEINTINUEVE, `revelado-sin-banda-ciega` (ola U, 2026-09-08).
+ *
+ * Lo que estos casos atan no es la sonda --necesita layout real y jsdom no lo
+ * tiene-- sino la REGLA y la MATRIZ: que una pieza de copia apagada asomando
+ * por encima de la linea es un fallo, que una escalera que termina mal no se
+ * cuenta como verde, que sin piezas juzgadas el verde seria vacuo, y que las
+ * dos mitades de la familia miden en geometrias distintas a proposito.
+ *
+ * Y ata sobre todo el numero que esta familia COMPARTE con el codigo del sitio:
+ * el tope del retraso del umbral vive en `src/hooks/useReveal.ts` y aqui hay
+ * una copia. Dos copias de una invariante se desincronizan en silencio --regla
+ * 41 del repo--, asi que el caso lee la fuente del hook y las compara.
+ */
+const RUTA_DEL_HOOK_DE_REVELADO = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "src",
+    "hooks",
+    "useReveal.ts",
+);
+
+/** Paradas limpias de relleno, para que las guardas de vacuidad no disparen. */
+function paradasJuzgadas(cuantas) {
+    return Array.from({ length: cuantas }, (_, i) => ({
+        id: `punteria relleno ${i}`,
+        apuntada: true,
+        motivoDeParada: "revelado",
+        asomoReal: 12,
+        objetivos: 12,
+        topePx: 11,
+        acusados: [],
+    }));
+}
+
+describe("familia veintinueve: el revelado no deja banda ciega", () => {
+    it("el tope del retraso es EL MISMO numero que el hook le pide al observador", () => {
+        const fuente = readFileSync(RUTA_DEL_HOOK_DE_REVELADO, "utf8");
+        const declarado = /RETRASO_MAXIMO_DEL_UMBRAL\s*=\s*([\d.]+)/.exec(
+            fuente,
+        );
+
+        expect(
+            declarado,
+            "src/hooks/useReveal.ts ya no declara RETRASO_MAXIMO_DEL_UMBRAL: " +
+                "si el hook cambio de forma, esta familia esta midiendo contra " +
+                "un tope que ya no existe",
+        ).not.toBeNull();
+        expect(
+            Number(declarado[1]),
+            "el tope que promete el hook y el que exige el candado se han " +
+                "separado: uno de los dos se movio solo y el candado dejaria " +
+                "pasar (o inventaria) una banda ciega",
+        ).toBe(TOPE_DEL_RETRASO_DEL_UMBRAL);
+    });
+
+    it("acusa a una pieza de copia apagada que asoma por encima del tope", () => {
+        const veredicto = evaluaBandaCiega({
+            lecturas: [
+                {
+                    id: "aterrizaje ?read=0.5#features",
+                    apuntada: false,
+                    objetivos: 12,
+                    topePx: 11,
+                    acusados: [
+                        {
+                            nombre: "Contact__ScCard",
+                            top: 771,
+                            alto: 944,
+                            solape: 21,
+                            ratio: 0.0218,
+                        },
+                    ],
+                },
+                ...paradasJuzgadas(3),
+            ],
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx: 27,
+        });
+
+        expect(veredicto.fallos).toHaveLength(1);
+        expect(veredicto.fallos[0]).toContain("Contact__ScCard");
+        expect(veredicto.fallos[0]).toContain("21 px");
+        expect(veredicto.instrumento).toEqual([]);
+    });
+
+    it("una escalera que no llega no cuenta como verde: se dice que no responde a la pregunta", () => {
+        const veredicto = evaluaBandaCiega({
+            lecturas: [
+                {
+                    id: "punteria Contact__ScCard(h=3250)",
+                    apuntada: true,
+                    motivoDeParada: "fuera-de-alcance",
+                    asomoReal: 4,
+                    objetivos: 12,
+                    topePx: 10.44,
+                    acusados: [],
+                },
+                ...paradasJuzgadas(3),
+            ],
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx: 25,
+        });
+
+        expect(veredicto.instrumento).toHaveLength(1);
+        expect(veredicto.instrumento[0]).toContain("fuera-de-alcance");
+    });
+
+    it("una pieza que llega ya revelada no se juzga, y si no queda ninguna juzgada lo dice", () => {
+        const contaminadas = Array.from({ length: 5 }, (_, i) => ({
+            id: `punteria pieza ${i}`,
+            apuntada: true,
+            motivoDeParada: "revelado-antes-de-empezar",
+            asomoReal: 0,
+            objetivos: 12,
+            topePx: 11,
+            acusados: [],
+        }));
+
+        const veredicto = evaluaBandaCiega({
+            lecturas: contaminadas,
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx: 27,
+        });
+
+        expect(veredicto.juzgadas).toBe(0);
+        expect(veredicto.contaminadas).toBe(5);
+        expect(veredicto.instrumento).toHaveLength(1);
+        expect(veredicto.instrumento[0]).toContain(
+            `suelo ${JUZGADAS_MINIMAS_DE_LA_PUNTERIA}`,
+        );
+    });
+
+    it("cero objetivos vistos es vacuidad, no un verde", () => {
+        const veredicto = evaluaBandaCiega({
+            lecturas: paradasJuzgadas(3).map((l) => ({ ...l, objetivos: 0 })),
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx: 27,
+        });
+
+        expect(
+            veredicto.instrumento.some((m) =>
+                m.includes("objetivos de revelado"),
+            ),
+        ).toBe(true);
+    });
+
+    it("los dos temas tienen aterrizajes propios, porque las secciones no caen en el mismo sitio", () => {
+        expect(Object.keys(ATERRIZAJES_DE_LA_BANDA_CIEGA).sort()).toEqual([
+            "dark",
+            "light",
+        ]);
+        for (const [tema, lista] of Object.entries(
+            ATERRIZAJES_DE_LA_BANDA_CIEGA,
+        )) {
+            expect(
+                lista.length,
+                `el tema ${tema} se quedo sin aterrizajes: la mitad calibrada de la familia no mediria nada`,
+            ).toBeGreaterThanOrEqual(4);
+            for (const aterrizaje of lista) {
+                expect(aterrizaje.read).toBeGreaterThan(0);
+                expect(aterrizaje.read).toBeLessThan(1);
+                expect(typeof aterrizaje.destino).toBe("string");
+            }
+        }
+    });
+
+    it("la pasada de punteria mide en OTRO ancho y OTRA raiz que los aterrizajes", () => {
+        /*
+         * El encargo lo pedia y la medicion lo justifica: los valores de R de un
+         * aterrizaje solo valen en la geometria en que se midieron (a 1280x720
+         * la misma banda aparece en R=0,65 en vez de en 0,50). Si las dos
+         * mitades midieran lo mismo, la familia entera quedaria clavada a la
+         * geometria de hoy.
+         */
+        expect(GEOMETRIAS_DE_LA_BANDA_CIEGA.length).toBeGreaterThanOrEqual(1);
+        for (const geometria of GEOMETRIAS_DE_LA_BANDA_CIEGA) {
+            expect(geometria.ancho).not.toBe(
+                GEOMETRIA_DE_LOS_ATERRIZAJES.ancho,
+            );
+            expect(geometria.raiz).not.toBe(GEOMETRIA_DE_LOS_ATERRIZAJES.raiz);
+        }
+    });
+
+    it("el asomo de la punteria queda por encima del tope y por debajo de la banda que el defecto producia", () => {
+        /*
+         * Las dos direcciones de la calibracion. Por abajo: apuntar a un asomo
+         * que no supere el tope dejaria pasar cualquier cosa. Por arriba: la
+         * banda mas pequena que el umbral fijo del 20 % producia en el censo es
+         * la de `Journey ScStepsRow` --165 px de alto, 33 px de banda--, asi que
+         * un asomo mayor que eso dejaria de cazarla.
+         */
+        expect(ASOMO_DE_LA_PUNTERIA).toBeGreaterThan(1);
+        expect(
+            ASOMO_DE_LA_PUNTERIA * TOPE_DEL_RETRASO_DEL_UMBRAL * 900,
+        ).toBeLessThan(UMBRAL_DECLARADO_DE_REVELADO * 165);
+        expect(HOLGURA_DE_LA_BANDA_CIEGA_PX).toBeGreaterThan(0);
+        expect(HOLGURA_DE_LA_BANDA_CIEGA_PX).toBeLessThanOrEqual(2);
     });
 });
