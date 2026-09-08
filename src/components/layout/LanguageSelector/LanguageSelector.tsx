@@ -527,6 +527,84 @@ export function parseReadingOffset(
   return { id, ratio };
 }
 
+/**
+ * La URL que queda cuando la instrucción de llegada ya se ha gastado, o `null`
+ * si esta carga no traía ninguna.
+ *
+ * ## EL DEFECTO QUE ESTA FUNCIÓN EXISTE PARA CERRAR (crítica externa #21, P1)
+ *
+ * `?read=` es una INSTRUCCIÓN DE LLEGADA DE UN SOLO USO, no una fuente de
+ * verdad permanente: describe dónde estaba leyendo quien pulsó el otro idioma,
+ * y en cuanto esa persona se mueve queda obsoleta -- el sitio no la reescribe
+ * al rodar, así que la barra de direcciones sigue diciendo `?read=0.517`
+ * mientras el lector está 1.700 px más abajo. Hasta esta entrega el parámetro
+ * se quedaba ahí para siempre y se volvía a aplicar en CADA recarga, lo que
+ * anulaba la restitución de posición que el sitio ya hace bien.
+ *
+ * MEDIDO con sonda propia sobre el build servido de `e8782f6` (Chrome real sin
+ * ventana, 1440x900, tema claro, gesto real: colocar el lector al 85 % de
+ * `#features` en `/` y PULSAR el enlace de inglés):
+ *
+ *   llegada a `/en?read=0.517#features`          y = 3.878
+ *   el lector baja a leer                        y = 5.600
+ *   F5                                           y = 3.878   (−1.722 px)
+ *   el lector sube a 1.200                       y = 1.200
+ *   F5                                           y = 3.878   (+2.678 px)
+ *
+ * Control sobre `/en` pelada, mismo build y misma sonda: 5.600 -> 5.572 y
+ * 1.200 -> 1.200. La restitución de recarga existe y funciona; lo único que la
+ * anulaba era esta combinación.
+ *
+ * ## POR QUÉ SE VA TAMBIÉN EL FRAGMENTO, y no solo el parámetro
+ *
+ * Porque el fragmento y la fracción son UNA instrucción, compuesta de una vez
+ * por `languageHref` (`${path}?read=${ratio}#${sectionId}`): el fragmento es su
+ * mitad gruesa -- la sección -- y la fracción su mitad fina -- el punto dentro
+ * de ella. Consumir solo la mitad fina deja la gruesa aplicándose en cada
+ * recarga, y eso es el defecto de la crítica #20 de vuelta, una vez por F5.
+ *
+ * NO ES UNA SUPOSICIÓN, está medido en el mismo build y con la misma sonda,
+ * aislando las dos mitades de la URL de llegada (lector en 5.600 y F5):
+ *
+ *   `/en?read=0.517#features`   F5 -> 3.878   (−1.722)
+ *   `/en#features`              F5 -> 3.067   (−2.533)   <- solo el fragmento
+ *   `/en?read=0.517`            F5 -> 5.572   (−28)      <- solo el parámetro
+ *   `/en`                       F5 -> 5.572   (−28)      <- control
+ *
+ * La tercera fila es la que decide: sin fragmento, el parámetro es INERTE para
+ * la recarga (`parseReadingOffset` devuelve `null` sin fragmento, y el guard de
+ * `useReloadLanding` mira `location.hash`, no la consulta). Y la segunda dice
+ * que retirar solo el parámetro habría dejado al lector MÁS lejos que antes del
+ * arreglo, no más cerca.
+ *
+ * SE RETIRA POR OMISIÓN Y NO CON UNA LÍNEA PROPIA: una URL sin `#` pasada a
+ * `replaceState` deja la entrada sin fragmento. Por eso esta función devuelve
+ * ruta + consulta y nunca compone un hash.
+ *
+ * ## QUÉ NO TOCA
+ *
+ * - Los fragmentos que NO vienen con `read`: un `/#contact` de la barra, el
+ *   índice de las legales, un enlace compartido a mano. Sin el parámetro esta
+ *   función devuelve `null` y no se llama a `replaceState` -- el sello de
+ *   historial de `useHashHistorySeal.ts` y `:target` siguen viendo exactamente
+ *   lo que veían.
+ * - El resto de la consulta: se retira la clave y se vuelven a serializar las
+ *   demás. Hoy el sitio no compone ninguna otra, pero borrar la consulta entera
+ *   convertiría esta limpieza en una pérdida de información de otro.
+ * - El `href` del enlace, que sigue siendo el destino honesto de siempre: lo
+ *   que se consume es la URL de la carga, no el atributo.
+ */
+export function urlWithoutReadingOffset(
+  pathname: string,
+  search: string,
+): string | null {
+  const params = new URLSearchParams(search);
+  if (!params.has(READING_OFFSET_PARAM)) return null;
+  params.delete(READING_OFFSET_PARAM);
+  const resto = params.toString();
+  return resto === "" ? pathname : `${pathname}?${resto}`;
+}
+
 /** Entrada de `readingOffsetTarget`: la geometría de la sección en el
  *  documento de LLEGADA, más la fracción que viajó en la URL. */
 export interface ReadingOffsetTargetInput {
@@ -773,7 +851,53 @@ export function resetLanguageReadingOffsetForTests(): void {
 }
 
 /**
- * Consume el punto de lectura de la URL de llegada.
+ * Reescribe la entrada de historial ACTUAL con la URL ya limpia, sin añadir
+ * ninguna: `replaceState`, nunca `pushState`. El «atrás» sigue llevando a la
+ * página desde la que se pulsó el idioma, igual que antes de esta entrega.
+ *
+ * SE LE PASA `history.state` Y NO `null`, y es la misma decisión --con el mismo
+ * porqué-- que `useHashHistorySeal.ts` documenta con la fuente de Next delante
+ * (`app-router.js:268`): el parche que Next pone sobre `replaceState` sale por
+ * su atajo cuando el estado ya lleva `__NA`, así que esto no despacha ninguna
+ * acción del enrutador y no re-renderiza. Pasar `null` haría lo contrario --
+ * `copyNextJsInternalHistoryState` + `applyUrlFromHistoryPushReplace` -- para
+ * sincronizar una URL que aquí NO cambia de ruta: solo pierde una consulta y un
+ * fragmento, y este repo no lee ninguna de las dos por los hooks de Next
+ * (censo: cero usos de `useSearchParams`; `usePathname()` devuelve lo mismo
+ * antes y después).
+ *
+ * NO PISA EL SELLO DE HISTORIAL DEL 2026-09-08 y está medido, no supuesto:
+ * `replaceState` no dispara `hashchange` --ni en la plataforma ni aquí--, así
+ * que retirar el fragmento por esta vía no despierta a `useHashHistorySeal`; y
+ * la entrada sigue sellada después, porque el estado que se reescribe es el que
+ * ya tenía. Las dos cosas se comprueban en el candado de navegador, contando
+ * los `hashchange` del documento y leyendo `history.state?.__NA` tras la
+ * llegada.
+ */
+function replaceUrl(url: string): void {
+  window.history.replaceState(window.history.state, "", url);
+}
+
+/**
+ * Consume el punto de lectura de la URL de llegada, y CONSUME TAMBIÉN LA URL.
+ *
+ * LO QUE ARMA LA CORRECCIÓN ES EL PARÁMETRO, no la fracción utilizable
+ * (`cleanUrlRef` y no `offsetRef`), y la asimetría es deliberada: una fracción
+ * que no se puede interpretar --`?read=hola`, `?read=12`, la que escribe
+ * cualquiera a mano-- se ignora igual que antes, pero la instrucción de llegada
+ * se gasta lo mismo. Si no, una URL hostil se quedaría re-aplicando su
+ * fragmento en cada recarga para siempre, que es la mitad gruesa del mismo
+ * defecto. Con la fracción inservible, `apply` no hace nada y la carga se
+ * comporta como cualquier otra con fragmento; lo único que cambia es que la
+ * barra de direcciones deja de arrastrar una instrucción ya cumplida.
+ *
+ * SE CONSUME EN `onFinish` Y NO EN `apply`, y eso cubre las DOS salidas del
+ * programador compartido con una sola línea: se aplicó la corrección, o el
+ * lector tomó el control del scroll y se abortó. En los dos casos la
+ * instrucción está gastada -- en el segundo, porque quien conduce ya es otro.
+ * Lo que NO la gasta es el desmontaje ni el cambio de rama: ahí la limpieza del
+ * programador vuelve sin llamar a `onFinish`, y la corrección se rearma contra
+ * el maquetado nuevo con la URL todavía intacta.
  *
  * ESPERA A LA RAMA EFECTIVA con el mecanismo compartido y no con uno propio
  * (`branchSettledCorrection.ts`): bajo `output: "export"` el primer render es
@@ -798,27 +922,36 @@ export function resetLanguageReadingOffsetForTests(): void {
  */
 function useReadingOffsetLanding(branchKey: string): void {
   const offsetRef = useRef<ReadingOffset | null | undefined>(undefined);
+  const cleanUrlRef = useRef<string | null | undefined>(undefined);
   const finishedRef = useRef(false);
 
   useEffect(() => {
-    if (offsetRef.current === undefined) {
+    if (cleanUrlRef.current === undefined) {
+      cleanUrlRef.current = urlWithoutReadingOffset(
+        window.location.pathname,
+        window.location.search,
+      );
       offsetRef.current = parseReadingOffset(
         window.location.search,
         window.location.hash,
       );
     }
-    const offset = offsetRef.current;
-    if (offset === null || finishedRef.current || readingOffsetConsumed) return;
+    const cleanUrl = cleanUrlRef.current;
+    if (cleanUrl === null || finishedRef.current || readingOffsetConsumed)
+      return;
     if (!isMountedBranchEffective(branchKey)) return;
 
+    const offset = offsetRef.current ?? null;
     let releaseIntent: (() => boolean) | null = null;
     const cancel = scheduleBranchSettledCorrection({
       settleMs: FRAGMENT_LANDING_SETTLE_MS,
       onFinish: () => {
         finishedRef.current = true;
         readingOffsetConsumed = true;
+        replaceUrl(cleanUrl);
       },
       apply: () => {
+        if (offset === null) return;
         releaseIntent = applyReadingOffset(offset);
       },
     });

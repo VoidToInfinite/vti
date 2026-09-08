@@ -11,6 +11,7 @@ import {
   readingOffsetRatio,
   readingOffsetTarget,
   resetLanguageReadingOffsetForTests,
+  urlWithoutReadingOffset,
 } from "./LanguageSelector";
 
 /*
@@ -420,10 +421,20 @@ describe("LanguageSelector", () => {
     /** Sustituye `window.location` entero, que es la única vía que funciona en
      *  este jsdom (`assign` es propiedad propia con `configurable: false`; el
      *  porqué completo está en `Contact.test.tsx`). */
-    function setLocation(search: string, hash: string): void {
+    function setLocation(
+      search: string,
+      hash: string,
+      pathname = ROUTES_BY_LOCALE.en.home,
+    ): void {
       Object.defineProperty(window, "location", {
         configurable: true,
-        value: { ...originalLocation, search, hash, assign: assignMock },
+        value: {
+          ...originalLocation,
+          pathname,
+          search,
+          hash,
+          assign: assignMock,
+        },
       });
     }
 
@@ -585,6 +596,44 @@ describe("LanguageSelector", () => {
         // entero, nunca se recorta para que quepa.
         expect(parseReadingOffset("?read=hola", "#journey")).toBeNull();
         expect(parseReadingOffset("?read=12", "#journey")).toBeNull();
+      });
+
+      /*
+       * LA URL QUE QUEDA CUANDO LA INSTRUCCIÓN DE LLEGADA YA SE GASTÓ
+       * (crítica externa #21, P1). Lo que este bloque puede probar es la
+       * ARITMÉTICA de la URL; que esa URL restituya al lector en una recarga
+       * es una medida de navegador y su candado vive en
+       * `scripts/check-site-surfaces.mjs`, familia
+       * `punto-de-lectura-de-la-url-es-de-un-solo-uso`.
+       *
+       * EL FRAGMENTO SE VA POR OMISIÓN: la función devuelve ruta + consulta y
+       * nunca compone un `#`, así que la URL que llega a `replaceState` deja la
+       * entrada sin fragmento. El porqué --que las dos mitades son una sola
+       * instrucción, y que retirar solo el parámetro deja al lector MÁS lejos--
+       * está medido en el docblock de la función.
+       */
+      it("urlWithoutReadingOffset retira la instrucción entera y solo la instrucción", () => {
+        expect(urlWithoutReadingOffset("/en", "?read=0.517")).toBe("/en");
+        expect(urlWithoutReadingOffset("/", "?read=-0.2914")).toBe("/");
+        /* Una fracción que no se puede interpretar es una instrucción igual de
+           gastada: si no se consumiera, su fragmento seguiría re-aplicándose en
+           cada recarga. */
+        expect(urlWithoutReadingOffset("/en", "?read=hola")).toBe("/en");
+        expect(urlWithoutReadingOffset("/en", "?read=12")).toBe("/en");
+        expect(urlWithoutReadingOffset("/en", "?read=")).toBe("/en");
+        /* Sin el parámetro no hay nada que consumir, y `null` es lo que impide
+           que esta limpieza toque un `/#contact` de la barra o un enlace
+           compartido a mano. */
+        expect(urlWithoutReadingOffset("/en", "")).toBeNull();
+        expect(urlWithoutReadingOffset("/en", "?otro=1")).toBeNull();
+        /* La consulta de otro no se pierde: se retira la clave, no la
+           consulta. */
+        expect(urlWithoutReadingOffset("/en", "?read=0.5&otro=1")).toBe(
+          "/en?otro=1",
+        );
+        expect(urlWithoutReadingOffset("/en", "?otro=1&read=0.5")).toBe(
+          "/en?otro=1",
+        );
       });
     });
 
@@ -889,6 +938,140 @@ describe("LanguageSelector", () => {
 
         addSpy.mockRestore();
         removeSpy.mockRestore();
+      });
+
+      /*
+       * LA INSTRUCCIÓN DE LLEGADA SE CONSUME (crítica externa #21, P1).
+       *
+       * LO QUE ESTE BLOQUE PUEDE PROBAR Y LO QUE NO, escrito antes que los
+       * casos para que nadie lea de más en un verde: jsdom no restituye scroll
+       * en una recarga --no hay recarga que hacer--, así que el DEFECTO (F5
+       * devuelve al lector al punto compartido en vez de a donde estaba) no se
+       * puede ver desde aquí ni con este componente ni con ningún otro. Su
+       * candado real es de navegador y mide el gesto completo:
+       * `scripts/check-site-surfaces.mjs`, familia
+       * `punto-de-lectura-de-la-url-es-de-un-solo-uso`.
+       *
+       * Lo que SÍ se ata aquí es el MECANISMO: cuándo se reescribe la entrada,
+       * con qué URL, con qué estado, y las tres veces que NO hay que
+       * reescribirla.
+       */
+      function replaceStateSpy(): ReturnType<typeof vi.spyOn> {
+        return vi.spyOn(window.history, "replaceState");
+      }
+
+      it("gastada la instrucción, la barra de direcciones deja de arrastrarla", () => {
+        const replaceState = replaceStateSpy();
+        pathnameMock.current = ROUTES_BY_LOCALE.en.home;
+        llegarA("?read=0.8", "#journey");
+
+        /* Antes de que la corrección llegue, la URL sigue intacta: el
+           aterrizaje del navegador y el del vecino del fragmento todavía la
+           necesitan. */
+        expect(replaceState).not.toHaveBeenCalled();
+        act(() => {
+          flushFrame();
+          flushFrame();
+        });
+
+        expect(replaceState).toHaveBeenCalledTimes(1);
+        expect(replaceState).toHaveBeenCalledWith(
+          window.history.state,
+          "",
+          ROUTES_BY_LOCALE.en.home,
+        );
+        replaceState.mockRestore();
+      });
+
+      /*
+       * EL ORDEN IMPORTA Y ES EL ÚNICO QUE VALE: el desplazamiento al punto de
+       * lectura se calcula con la fracción YA capturada, así que consumir la
+       * URL no puede dejar al lector sin llegada. Este caso lo afirma sobre el
+       * mismo montaje: se reescribe la URL y, aun así, el `scrollTo` del punto
+       * de lectura ocurre.
+       */
+      it("consumir la URL no le quita al lector su llegada", () => {
+        const replaceState = replaceStateSpy();
+        pathnameMock.current = ROUTES_BY_LOCALE.en.home;
+        llegarA("?read=0.8", "#journey");
+        act(() => {
+          flushFrame();
+          flushFrame();
+        });
+
+        expect(replaceState).toHaveBeenCalledTimes(1);
+        expect(scrollToMock).toHaveBeenCalledWith({
+          top: 4000 + 0.8 * 3300,
+          behavior: "instant",
+        });
+        replaceState.mockRestore();
+      });
+
+      it("una fracción que no se puede interpretar se ignora, pero la instrucción se gasta igual", () => {
+        const replaceState = replaceStateSpy();
+        pathnameMock.current = ROUTES_BY_LOCALE.en.home;
+        llegarA("?read=hola", "#journey");
+        act(() => {
+          flushFrame();
+          flushFrame();
+        });
+
+        /* Se ignora: nadie mueve la página por una fracción ilegible. */
+        expect(scrollToMock).not.toHaveBeenCalled();
+        /* Y se gasta: si no, su fragmento volvería a aplicarse en cada
+           recarga, que es la mitad gruesa del mismo defecto. */
+        expect(replaceState).toHaveBeenCalledTimes(1);
+        expect(replaceState).toHaveBeenCalledWith(
+          window.history.state,
+          "",
+          ROUTES_BY_LOCALE.en.home,
+        );
+        replaceState.mockRestore();
+      });
+
+      it("si el lector toma el control del scroll, la instrucción se gasta también", () => {
+        const replaceState = replaceStateSpy();
+        pathnameMock.current = ROUTES_BY_LOCALE.en.home;
+        llegarA("?read=0.8", "#journey");
+        act(() => {
+          window.dispatchEvent(new Event("wheel"));
+        });
+
+        expect(scrollToMock).not.toHaveBeenCalled();
+        expect(replaceState).toHaveBeenCalledTimes(1);
+        replaceState.mockRestore();
+      });
+
+      it("un fragmento sin parámetro no se toca: la limpieza es de la instrucción, no de la URL", () => {
+        const replaceState = replaceStateSpy();
+        pathnameMock.current = ROUTES_BY_LOCALE.en.home;
+        llegarA("", "#journey");
+        act(() => {
+          flushFrame();
+          flushFrame();
+          flushFrame();
+        });
+
+        expect(replaceState).not.toHaveBeenCalled();
+        replaceState.mockRestore();
+      });
+
+      /*
+       * DESMONTAR NO ES GASTAR. La limpieza del programador compartido vuelve
+       * sin llamar a `onFinish`, así que un cambio de rama de tema --que
+       * desmonta y vuelve a armar-- no puede quedarse sin instrucción a medio
+       * camino.
+       */
+      it("desmontar antes de la corrección deja la instrucción intacta", () => {
+        const replaceState = replaceStateSpy();
+        pathnameMock.current = ROUTES_BY_LOCALE.en.home;
+        setLocation("?read=0.8", "#journey");
+        mountSection("journey", 4000, 3300);
+        const { unmount } = renderWithProviders(<LanguageSelector />);
+        unmount();
+
+        expect(replaceState).not.toHaveBeenCalled();
+        replaceState.mockRestore();
       });
 
       it("sin parámetro en la URL no se programa ninguna corrección", () => {
