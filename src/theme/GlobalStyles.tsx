@@ -84,6 +84,58 @@ import { space } from "./tokens/space";
  * escala se retoque, la variable no se entera y el CSS renderizado no distingue
  * los dos casos. El token se importa por modulo, como `grid` y `semanticDark`,
  * y no por `theme.data`: es una medida de layout que no cambia con el tema.
+ *
+ * ---------------------------------------------------------------------------
+ *
+ * `:root[data-theme="dark"] img[src^="/figures/"] { display: none }`: EL
+ * CANDADO DE PESO DEL TEMA OSCURO, GENERALIZADO A TODA FIGURA CLARA (frente U7,
+ * 2026-09-08). NO ES ESTILO -- ninguna de esas imágenes se pinta jamás en una
+ * visita oscura --: es la regla que impide que el navegador las PIDA. (La prosa
+ * vive aquí y no junto a la declaración por el trinquete de
+ * `src/test/css-template-comments.test.ts`: lo que se escribe dentro del
+ * template es CSS y viaja en el bundle.)
+ *
+ * EL MECANISMO, MEDIDO. El HTML horneado es SIEMPRE la rama clara (ThemeProvider
+ * no puede leer localStorage durante el render sin romper el export estático),
+ * así que en una visita oscura el parser construye las seis figuras claras de la
+ * portada y solo después la hidratación sustituye el árbol entero por el oscuro.
+ * Las seis llevan `loading="lazy"`, y lo único que hasta hoy impedía que se
+ * pidieran era la DISTANCIA: el cargador perezoso de Chrome solo pide lo que cae
+ * dentro de un umbral que depende del TIPO DE CONEXIÓN ESTIMADO -- 1.250 px con
+ * conexión rápida, 2.500 px cuando baja a 3g, ~8.000 px en 2g. Geometría real de
+ * la prehidratación oscura (1440x900, JavaScript bloqueado, `data-theme="dark"`
+ * ya puesto por el script anti-flash): la figura de Story a caja 0x0 -- se la
+ * lleva el bloque `[data-theme="dark"]` de su `ScFigureWrap`, la mitad de este
+ * candado que ya existía desde la crítica #19 --, la de Journey a 1.611 px bajo
+ * el viewport, la primera tarjeta de Features a 2.356, las otras dos a 2.711 y
+ * la de Contacto a 3.536.
+ *
+ * LO QUE COSTABA, con el tipo de conexión forzado y el resto idéntico: a 4g
+ * cero; a 3g 188.870 B en las dos densidades (`story-pointing-640.webp` 106.770
+ * + `feature-learning-640.webp` 82.100), que son exactamente las dos figuras
+ * dentro de 2.500 px; a 2g 447.868 B a DPR 1 y 538.720 B a DPR 2, o sea las
+ * cinco. Con esta regla: CERO en las tres, en `/` y en `/en`. Es peso que paga
+ * justo el visitante con peor conexión, que es el que menos puede pagarlo.
+ *
+ * POR QUÉ GLOBAL Y NO SECCIÓN A SECCIÓN. La propiedad no es de Features ni de
+ * Journey ni de Contacto: es del documento -- «en una visita oscura, el árbol
+ * claro horneado no pide su arte» -- y escrita una sola vez cubre también la
+ * figura que alguien añada mañana. La alternativa, un bloque `[data-theme=
+ * "dark"] &` por envoltorio, es la que ya se aplicó a Story: sigue puesta y
+ * sigue haciendo falta, porque allí además hay que arreglar la pista del grid
+ * (ver su docblock).
+ *
+ * LO QUE DA POR HECHO, COMPROBADO Y NO SUPUESTO: que la rama oscura ya hidratada
+ * no pinta NI UNA imagen de `/figures/`. Medido en `/` y `/en`, con y sin
+ * `prefers-reduced-motion`: cero en las cuatro. El día que la rama oscura quiera
+ * una figura, esta regla la borraría -- y por eso la afirmación es un test
+ * (`GlobalStyles.test.tsx`) y no una nota de este docblock.
+ *
+ * `display: none` sobre la IMAGEN y no sobre su envoltorio, también a propósito:
+ * lo que hay que quitar es la caja de la imagen -- un elemento sin caja no
+ * interseca nunca, y sin intersección no hay carga perezosa --, y hacerlo sobre
+ * el envoltorio movería además la maqueta de prehidratación. Medido: el alto
+ * final del documento oscuro es 11.008 px con y sin la regla.
  */
 export const GlobalStyles = createGlobalStyle`
   /*
@@ -385,6 +437,10 @@ export const GlobalStyles = createGlobalStyle`
        compite con la mano del arte (ver el docblock de ScCopy). */
     --hero-copy-maxwidth-lg: ${grid.heroCopyMax};
     --hero-actions-justify-lg: center;
+  }
+
+  :root[data-theme="dark"] img[src^="/figures/"] {
+    display: none;
   }
 
   body::-webkit-scrollbar {

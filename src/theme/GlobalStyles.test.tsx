@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders, waitFor } from "@/test/test-utils";
+import { HomeSections } from "@/components/sections/HomeSections";
+import { THEME_ATTRIBUTE } from "@/theme/resolveTheme";
+import { STORAGE_KEYS } from "@/config/storage";
 
 /*
  * Candado del alcance de la tipografía global (2026-08-17).
@@ -110,5 +114,106 @@ describe("GlobalStyles: --nav-gap sale de la escala de espaciado", () => {
 
     expect(declaracion).toMatch(/\d+(?:\.\d+)?rem\b/);
     expect(declaracion).not.toMatch(/\$\{\s*space\[/);
+  });
+});
+
+/*
+ * Candado de peso del tema oscuro, la mitad que vive en la hoja global (frente
+ * U7, 2026-09-08).
+ *
+ * EL DEFECTO QUE ATRAPA: en una visita oscura el HTML horneado sigue siendo el
+ * árbol CLARO hasta que hidrata, y sus figuras llevan `loading="lazy"`. Lo
+ * único que impedía que el navegador las pidiera era la distancia al viewport,
+ * y ese umbral lo decide Chrome según el tipo de conexión estimado. Medido con
+ * el tipo forzado y todo lo demás idéntico: 0 B a 4g, 188.870 B a 3g y hasta
+ * 538.720 B a 2g de arte pedido y jamás pintado. La regla
+ * `:root[data-theme="dark"] img[src^="/figures/"] { display: none }` le quita
+ * la caja, y un elemento sin caja no interseca nunca.
+ *
+ * LAS DOS MITADES, Y POR QUÉ NINGUNA SOBRA. La primera lee la FUENTE, mismo
+ * precedente que los dos candados de arriba: `createGlobalStyle` no inyecta ni
+ * una hoja en este entorno, así que no hay CSSOM que interrogar. La segunda
+ * afirma lo que la regla DA POR HECHO -- que la rama oscura no pinta ninguna
+ * figura de `/figures/` --, porque el día que alguien añada una, la regla la
+ * borraría de la pantalla y el candado tiene que hablar antes que el navegador.
+ * Su control claro es la guarda de vacuidad: si el árbol dejara de tener
+ * figuras en los DOS temas, el cero del oscuro no diría nada.
+ *
+ * Validado con bug inyectado real: quitando la regla del fichero, el primero en
+ * rojo; devolviendo la rama clara de Journey a la rama oscura (una `<img
+ * src="/figures/...">` montada en oscuro), el segundo en rojo.
+ */
+describe("GlobalStyles: en oscuro el árbol claro horneado no pide su arte", () => {
+  it("la hoja global le quita la caja a toda figura en una visita oscura", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const source = readFileSync(join(here, "GlobalStyles.tsx"), "utf-8");
+
+    expect(
+      source,
+      "sin esta regla, una visita oscura con conexión estimada lenta descarga hasta 538.720 B de figuras claras que no pinta jamás",
+    ).toMatch(
+      /:root\[data-theme="dark"\] img\[src\^="\/figures\/"\] \{\s*display: none;\s*\}/,
+    );
+  });
+
+  describe("la afirmación que la regla da por hecha", () => {
+    beforeEach(() => {
+      window.localStorage.clear();
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn().mockImplementation((query: string) => ({
+          matches: false,
+          media: query,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        })),
+      );
+      vi.stubGlobal(
+        "IntersectionObserver",
+        class {
+          observe(): void {}
+          unobserve(): void {}
+          disconnect(): void {}
+        },
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      window.localStorage.clear();
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    });
+
+    const figurasDe = (container: HTMLElement): string[] =>
+      [...container.querySelectorAll("img")]
+        .map((img) => img.getAttribute("src") ?? "")
+        .filter((src) => src.startsWith("/figures/"));
+
+    it("la rama OSCURA no monta ni una figura, así que la regla no puede borrar nada visible", async () => {
+      window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+      const { container } = renderWithProviders(<HomeSections />);
+
+      await waitFor(() => {
+        expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe(
+          "dark",
+        );
+      });
+
+      expect(
+        figurasDe(container),
+        "la rama oscura monta una figura de /figures/: la regla global de GlobalStyles la está borrando de la pantalla",
+      ).toEqual([]);
+    });
+
+    it("control de vacuidad: la rama CLARA sí monta figuras", () => {
+      window.localStorage.setItem(STORAGE_KEYS.theme, "light");
+      const { container } = renderWithProviders(<HomeSections />);
+
+      expect(figurasDe(container).length).toBeGreaterThan(0);
+    });
   });
 });
