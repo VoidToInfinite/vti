@@ -8,6 +8,7 @@ import {
     ALEJAMIENTO_DEL_LECTOR_PX,
     ALTO_DE_LA_BANDA_DE_CABECERA,
     ANCHOS_DEL_DECK,
+    ANCHOS_DE_LA_TINTA,
     BANDA_DE_REFLOW,
     BROKEN_SEGMENT,
     CAMBIOS_DE_ANCHURA_DE_LA_HOJA,
@@ -41,9 +42,11 @@ import {
     PROFUNDIDAD_MINIMA_PX,
     PULSACIONES_DE_VOLVER_ARRIBA,
     RAICES_DEL_DECK,
+    RAICES_DE_LA_TINTA,
     RATIO_MINIMO_DE_CRECIMIENTO,
     RECARGAS_SIMULTANEAS,
     REDUCES_DE_LA_CABECERA,
+    REDUCES_DE_LA_TINTA,
     SECCIONES_SIN_PUNTO_DE_LECTURA,
     SECCION_HOSTIL,
     SEPARACION_MINIMA_PX,
@@ -52,6 +55,7 @@ import {
     SURFACES,
     TOLERANCIA_DEL_ESCENARIO_PX,
     TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+    TOLERANCIA_DE_TINTA_PX,
     TOLERANCIA_DE_VUELTA_ARRIBA_PX,
     UMBRAL_DECLARADO_DE_REVELADO,
     VALORES_HOSTILES,
@@ -77,6 +81,7 @@ import {
     evaluaRecarga,
     evaluaRecargaSimultanea,
     evaluaPuntoDeLectura,
+    evaluaTintaPintada,
     evaluaVueltaArriba,
     fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
@@ -91,6 +96,7 @@ import {
     probeEstadoModal,
     probeLegibilidadDeTexto,
     probePerdidaHorizontal,
+    probeTintaPintadaFuera,
     razonDeContraste,
     umbralDeContraste,
 } from "./check-site-surfaces.mjs";
@@ -564,6 +570,7 @@ const FAMILIAS_ESPERADAS = [
     "conmutar-el-tema-no-congela-la-pagina",
     "atras-restituye-el-documento-de-la-url",
     "punto-de-lectura-de-la-url-es-de-un-solo-uso",
+    "tinta-pintada-dentro-del-viewport",
 ];
 
 /**
@@ -629,8 +636,12 @@ const FAMILIAS_ESPERADAS = [
  * «Tests 1 failed | 63 passed (64)», con los dos candados de coherencia e
  * igualdad otra vez en VERDE sobre la lista mas corta. Restaurados los tres
  * bloques, 64/64.
+ *
+ * Sube a 28 el 2026-09-08 con `tinta-pintada-dentro-del-viewport` --la familia
+ * del frente U5 de la ola U, la que mide la LINEA REAL del texto y no la caja--,
+ * en el mismo commit que la anade.
  */
-const FAMILIAS_MINIMAS = 27;
+const FAMILIAS_MINIMAS = 28;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -4497,5 +4508,370 @@ describe("familia punto-de-lectura-de-la-url-es-de-un-solo-uso", () => {
         expect(fragmentoDe("/en?read=0.5")).toBeNull();
         expect(fragmentoDe("/en#")).toBeNull();
         expect(fragmentoDe(null)).toBeNull();
+    });
+});
+
+/*
+ * LA FAMILIA DE LA TINTA (frente U5 de la ola U, 2026-09-08).
+ *
+ * Lo que estos casos protegen es la DECISION de la sonda, no el layout: se le da
+ * el layout a mano --caja por elemento, cajas de linea por prototipo de `Range`,
+ * ancho de viewport declarado-- exactamente con el mismo montaje que ya usan las
+ * dos sondas hermanas, y se comprueba que concluye lo que tiene que concluir.
+ * Las cifras reales de Chrome estan en el docblock de la sonda.
+ *
+ * Los DOS casos centrales son los dos errores que el arbitraje del P1 de la
+ * critica #21 cometio antes de que esta familia existiera: medir la caja en vez
+ * de la linea, y contar como perdida una tinta que no se pinta.
+ */
+function lineasDeTexto(rects) {
+    PROTO_RANGO.getClientRects = () =>
+        rects.map((r) => ({
+            ...r,
+            width: r.right - r.left,
+            height: r.height ?? 10,
+            top: r.top ?? 0,
+            bottom: (r.top ?? 0) + (r.height ?? 10),
+        }));
+}
+
+function montaPieza({ texto, caja, opacidad, seccion, desplazable }) {
+    const main = document.createElement("main");
+    let ancla = main;
+    if (seccion !== undefined) {
+        const envoltorio = document.createElement("section");
+        envoltorio.style.opacity = String(seccion);
+        medida(envoltorio, { left: 0, right: 300, height: 200 });
+        main.appendChild(envoltorio);
+        ancla = envoltorio;
+    }
+    if (desplazable) {
+        const region = document.createElement("div");
+        region.style.overflowX = "auto";
+        medida(region, { left: 0, right: 320, height: 200 });
+        ancla.appendChild(region);
+        ancla = region;
+    }
+    const el = document.createElement("span");
+    el.textContent = texto;
+    if (opacidad !== undefined) el.style.opacity = String(opacidad);
+    ancla.appendChild(el);
+    document.body.appendChild(main);
+    medida(main, { left: 0, right: 320, height: 400 });
+    medida(el, caja);
+    return el;
+}
+
+describe("la sonda de la tinta mide la LINEA REAL y solo la que se pinta", () => {
+    it("reporta el texto que se sale aunque la CAJA del elemento este dentro", () => {
+        /*
+         * El caso que da nombre a la familia. `probePerdidaHorizontal` mide
+         * `getBoundingClientRect`, que incluye el `transform` del elemento y no
+         * dice donde estan las letras: una caja dentro del viewport puede
+         * contener una linea que se sale (texto centrado en una caja mas ancha
+         * es el caso trivial; un `transform` sobre el bloque, el real).
+         */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Cada idea",
+            caja: { left: 4, right: 300, height: 40 },
+        });
+        lineasDeTexto([{ left: -10.16, right: 238 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas, "la sonda no llego a mirar la pieza").toBe(1);
+        expect(
+            r.fuera,
+            `la caja va de 4 a 300 dentro de un viewport de 320 y esta limpia; ` +
+                `la LINEA empieza en -10,16 y es la que WCAG protege`,
+        ).toHaveLength(1);
+        expect(r.fuera[0].lado).toBe("izquierda");
+        expect(r.fuera[0].sobra).toBe(10.16);
+        expect(r.fuera[0].borde).toBe(-10.16);
+    });
+
+    it("NO reporta la tinta que no se pinta, y la cuenta aparte", () => {
+        /*
+         * El segundo error del arbitraje. Las tres lineas del statement de Story
+         * declaran `opacity: 0` + `translateX(±16%)` como estado previo al
+         * reveal: en reposo su rango cae en x = -10,16 y no hay ni un pixel
+         * pintado ahi. Contarlo seria acusar al sitio de perder una tinta que
+         * nadie ve, y ademas taparia el defecto de verdad el dia que llegue.
+         */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Cada idea",
+            caja: { left: 4, right: 300, height: 40 },
+            opacidad: 0,
+        });
+        lineasDeTexto([{ left: -10.16, right: 238 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas).toBe(1);
+        expect(r.fuera).toEqual([]);
+        expect(
+            r.apagadas,
+            "la pieza sigue contandose: un cero en las dos cuentas seria vacuidad",
+        ).toBe(1);
+    });
+
+    it("la opacidad se lee de la CADENA de ancestros, no del elemento", () => {
+        /* Lo que apaga las tarjetas de una seccion sin revelar es el `opacity`
+           de la seccion, no el de cada texto: una lectura local las daria por
+           pintadas y la familia acusaria a media pagina. */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Texto de una seccion todavia sin revelar",
+            caja: { left: 4, right: 300, height: 40 },
+            seccion: 0,
+        });
+        lineasDeTexto([{ left: -12, right: 238 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.fuera).toEqual([]);
+        expect(r.apagadas).toBe(1);
+    });
+
+    it("sin opacidad declarada la pieza cuenta como PINTADA", () => {
+        /* La direccion conservadora, y la que hace que estos casos signifiquen
+           algo: si la ausencia de dato absolviera, la familia entera saldria
+           verde en cualquier motor que no resuelva `opacity`. */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Titular sin opacidad declarada",
+            caja: { left: 4, right: 300, height: 40 },
+        });
+        lineasDeTexto([{ left: -12, right: 238 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.fuera).toHaveLength(1);
+        expect(r.fuera[0].opacidad).toBe(1);
+    });
+
+    it("descarta la caja de 1x1 de VisuallyHidden, cuyo rango mide el texto SIN el recorte", () => {
+        /*
+         * `Range.getClientRects()` no respeta el `overflow: hidden` del
+         * contenedor. Medido en Chrome el 2026-09-08 sobre `/`: el aviso "se
+         * abre en una pestana nueva" del enlace del statement da un rango de
+         * 376,41 px --71,41 px "fuera" de un viewport de 320-- con opacidad 1 y
+         * cero pixeles pintados, porque su caja es de 1x1 con
+         * `clip-path: inset(50%)`. Sin este filtro la familia nace acusando a
+         * cada texto para lectores de pantalla del sitio.
+         */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "se abre en una pestana nueva",
+            caja: { left: 15, right: 16, height: 1 },
+        });
+        lineasDeTexto([{ left: 15, right: 391.41 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas).toBe(0);
+        expect(r.fuera).toEqual([]);
+        expect(r.apagadas).toBe(0);
+    });
+
+    it("NO reporta la tinta que se ALCANZA con scroll horizontal, y la cuenta aparte", () => {
+        /*
+         * El tercer absolvedor, y no es teorico: sin el, la familia nacia con
+         * 672 acusaciones sobre las ocho superficies servidas (medido el
+         * 2026-09-08), TODAS de la tabla de almacenamiento de las paginas
+         * legales, que vive dentro de un `overflow-x: auto` con `role="region"`
+         * y `tabindex`. Ahi el texto no esta perdido: esta desplazado, y se
+         * llega a el con el dedo, la rueda y el teclado. Es ademas parte de la
+         * definicion del defecto que trajo la familia -- tinta fuera Y sin
+         * ninguna forma de llegar a ella.
+         */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Recuerda si elegiste el tema claro o el oscuro",
+            caja: { left: 4, right: 300, height: 40 },
+            desplazable: true,
+        });
+        lineasDeTexto([{ left: 4, right: 769.42 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas).toBe(1);
+        expect(r.fuera).toEqual([]);
+        expect(r.alcanzables).toBe(1);
+        expect(
+            r.apagadas,
+            "alcanzable y apagada son dos absoluciones distintas y no se suman en la misma cuenta",
+        ).toBe(0);
+    });
+
+    it("mide tambien el lado derecho", () => {
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "un nuevo comienzo",
+            caja: { left: 4, right: 300, height: 40 },
+        });
+        lineasDeTexto([{ left: 86.55, right: 325.6 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.fuera).toHaveLength(1);
+        expect(r.fuera[0].lado).toBe("derecha");
+        expect(r.fuera[0].sobra).toBe(5.6);
+        expect(r.fuera[0].borde).toBe(325.6);
+    });
+
+    it("el redondeo subpixel no es un defecto", () => {
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Linea centrada en una caja de ancho impar",
+            caja: { left: 4, right: 300, height: 40 },
+        });
+        lineasDeTexto([{ left: -0.5, right: 320.5 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.fuera).toEqual([]);
+    });
+
+    it("sin `main` no inventa nada, y su cero de examinadas dispara la vacuidad", () => {
+        anchoDeViewport(320);
+        const suelto = document.createElement("p");
+        suelto.textContent = "Texto fuera de main";
+        document.body.appendChild(suelto);
+        medida(suelto, { left: -40, right: 300, height: 40 });
+        lineasDeTexto([{ left: -40, right: 300 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas).toBe(0);
+        expect(r.fuera).toEqual([]);
+    });
+});
+
+describe("el veredicto de la familia de la tinta sobre la matriz entera", () => {
+    const lecturaLimpia = {
+        rootFontPx: 32,
+        clientWidth: 320,
+        examinadas: 94,
+        fuera: [],
+        apagadas: 2,
+        alcanzables: 3,
+    };
+
+    it("acumula piezas y celdas, y no falla cuando no hay tinta fuera", () => {
+        const r = evaluaTintaPintada([
+            {
+                etiqueta: "320px raiz 32px no-preference",
+                raizPedida: 32,
+                lectura: lecturaLimpia,
+            },
+            {
+                etiqueta: "320px raiz 32px reduce",
+                raizPedida: 32,
+                lectura: lecturaLimpia,
+            },
+        ]);
+        expect(r.fallos).toEqual([]);
+        expect(r.instrumento).toEqual([]);
+        expect(r.examinadasTotales).toBe(188);
+        expect(r.apagadasTotales).toBe(4);
+        expect(r.alcanzablesTotales).toBe(6);
+        expect(r.celdasConTinta).toBe(0);
+    });
+
+    it("reporta cada pieza con su celda, su lado y su opacidad", () => {
+        const r = evaluaTintaPintada([
+            {
+                etiqueta: "320px raiz 32px no-preference",
+                raizPedida: 32,
+                lectura: {
+                    ...lecturaLimpia,
+                    fuera: [
+                        {
+                            zona: "statement",
+                            sel: "span",
+                            lado: "izquierda",
+                            borde: -10.16,
+                            sobra: 10.16,
+                            opacidad: 1,
+                            texto: "Every idea",
+                        },
+                    ],
+                },
+            },
+        ]);
+        expect(r.celdasConTinta).toBe(1);
+        expect(r.fallos).toHaveLength(1);
+        expect(r.fallos[0]).toContain("320px raiz 32px no-preference");
+        expect(r.fallos[0]).toContain("statement/span");
+        expect(r.fallos[0]).toContain("10.16 px fuera por la izquierda");
+        expect(r.fallos[0]).toContain("opacidad 1");
+    });
+
+    it("delata la raiz que no llego, que es la forma de salir verde midiendo otra pagina", () => {
+        /* La reemulacion en vivo no recarga, asi que nada mas delataria una
+           peticion de `Page.setFontSizes` que el navegador ignorase: el barrido
+           mediria tres veces la misma composicion y saldria verde. */
+        const r = evaluaTintaPintada([
+            {
+                etiqueta: "320px raiz 32px no-preference",
+                raizPedida: 32,
+                lectura: { ...lecturaLimpia, rootFontPx: 16 },
+            },
+        ]);
+        expect(r.instrumento).toHaveLength(1);
+        expect(r.instrumento[0]).toContain("se pidio 32 px");
+        expect(r.instrumento[0]).toContain("la pagina tiene 16");
+    });
+});
+
+describe("la matriz de la familia de la tinta es la acordada", () => {
+    it("los tres anchos son la zona estrecha del encargo, en las dos direcciones", () => {
+        /* `toEqual` y no `toContain`: quitar un ancho vacia el candado y
+           anadirlo es coste de corrida sin criterio detras, igual que en
+           `ANCHOS_ESPERADOS`. */
+        expect(ANCHOS_DE_LA_TINTA).toEqual([320, 360, 390]);
+    });
+
+    it("las tres raices incluyen la de fabrica y el 200 %, y el peldano intermedio", () => {
+        /*
+         * El eje que no se recorta. 24 px no es decorativo: el barrido propio
+         * del 2026-09-08 encontro en `/en` a 360 px con la raiz a 24 una pieza
+         * 15,78 px fuera que ni a 16 ni a 32 aparece. Los dos extremos se leen
+         * de las constantes que ya gobiernan la familia hermana, no se teclean.
+         */
+        expect(RAICES_DE_LA_TINTA).toEqual([
+            ROOT_FONT_BASE_PX,
+            24,
+            ZOOM_FONT_PX,
+        ]);
+        expect(RAICES_DE_LA_TINTA).toHaveLength(3);
+    });
+
+    it("los DOS sentidos de la preferencia de movimiento, que es el eje que justifica la familia", () => {
+        /*
+         * `texto-al-200-por-ciento` mide SIEMPRE con `reduce`, y con esa
+         * preferencia el repo declara los estados finales de sus reveals: la
+         * composicion en reposo SIN la preferencia --que es otra, y es donde
+         * vivia el P1 de la critica #21-- no la ve ninguna familia anterior.
+         * Recortar este eje devuelve el candado a ese punto ciego.
+         */
+        expect(REDUCES_DE_LA_TINTA).toEqual(["no-preference", "reduce"]);
+    });
+
+    it("la tolerancia es subpixel, no holgura de criterio", () => {
+        expect(TOLERANCIA_DE_TINTA_PX).toBeGreaterThan(0);
+        expect(TOLERANCIA_DE_TINTA_PX).toBeLessThanOrEqual(1);
     });
 });

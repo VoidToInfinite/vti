@@ -622,9 +622,15 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las veintitres familias que este script comprueba. La lista es el CONTRATO del
+ * Las veintiocho familias que este script comprueba. La lista es el CONTRATO del
  * candado: el test companero exige que ninguna desaparezca, porque un script que
  * mide trece cosas y dice medir catorce es peor que uno que no existe.
+ *
+ * (El recuento de esta primera linea se corrige el 2026-09-08: decia
+ * "veintitres" con veintisiete en la lista, porque las cuatro familias de las
+ * olas T y U entraron sin tocarlo. El numero vive tambien, y sobre todo, en
+ * `FAMILIAS_MINIMAS` del test companero, que es el que no se puede recortar en
+ * silencio.)
  *
  * Y desde la ola R exige ademas que la lista no ENCOJA: `FAMILIAS_MINIMAS`, en
  * el test, es un numero tecleado que solo puede subir. El vinculo bidireccional
@@ -662,6 +668,7 @@ export const CHECKS = [
     "conmutar-el-tema-no-congela-la-pagina",
     "atras-restituye-el-documento-de-la-url",
     "punto-de-lectura-de-la-url-es-de-un-solo-uso",
+    "tinta-pintada-dentro-del-viewport",
 ];
 
 /**
@@ -851,6 +858,58 @@ export const RATIO_MINIMO_DE_CRECIMIENTO = 1.5;
  */
 export const RATIO_DEL_CONTROL = 2;
 export const TOLERANCIA_DEL_CONTROL = 0.01;
+
+/**
+ * LA MATRIZ DE LA FAMILIA `tinta-pintada-dentro-del-viewport`, con el porque de
+ * cada uno de sus tres ejes.
+ *
+ * ANCHOS. Los tres de la zona estrecha: 320 --el ancho de reflow de WCAG
+ * 1.4.10, y el unico en el que el arbitraje de la critica #21 encontro numeros
+ * negativos-- mas 360 y 390, los dos anchos de telefono reales que el repo ya
+ * mide en otras familias. No se barre entero `WIDTH_SWEEP`: el recorte lo paga
+ * el eje de la RAIZ, que es el que de verdad mueve la medida (a 480 px y por
+ * arriba sobra holgura por los dos lados en las ocho superficies).
+ *
+ * RAICES. Las TRES, y esta es la unica lista que no se recorta: 16 es la de
+ * fabrica, 32 el 200 % que exige WCAG 1.4.4, y 24 el peldano intermedio donde
+ * el barrido propio del 2026-09-08 encontro celdas DISTINTAS de las otras dos
+ * (`/en` a 360 px con la raiz a 24 tiene una pieza 15,78 px fuera que a 16 y a
+ * 32 no aparece). Un eje de dos extremos habria dejado ese tramo sin mirar.
+ *
+ * `Page.setFontSizes` SE REEMULA EN VIVO, sin recargar, y eso es lo que hace
+ * que la matriz quepa en un contexto por sentido de `reduce`. El docblock de la
+ * familia de crecimiento dice lo contrario ("no se puede cambiar a mitad de una
+ * pagina cargada sin volver a cargarla") y alli sigue siendo cierto por otro
+ * motivo --aquella familia compara DOS montajes y necesita las dos medidas
+ * vivas a la vez--, pero la emulacion en si es reversible e idempotente:
+ * medido el 2026-09-08 sobre `/en`, la secuencia 32 -> 24 -> 16 -> 32 devuelve
+ * exactamente los mismos numeros que la primera pasada (-10,16 / 4,08 / 14,76 a
+ * 320/360/390), con `getComputedStyle(html).fontSize` siguiendo a cada peticion.
+ * Doce medidas tras la carga: 3,8 s.
+ *
+ * REDUCES. Los DOS sentidos, y este eje es el motivo de que la familia exista.
+ * `texto-al-200-por-ciento` --su hermana, la que mide CAJAS-- fija
+ * `reducedMotion: "reduce"` a proposito para medir la composicion asentada, y
+ * con esa preferencia el repo declara los estados FINALES de todos sus reveals.
+ * Sin ella, la composicion en reposo es OTRA: cada seccion todavia no revelada
+ * se queda en el primer fotograma de su entrada, que en Story incluye
+ * `translateX(±16%)`. Esa mitad de la realidad no la ve ninguna familia
+ * anterior. Es la misma leccion que el arbitraje de la critica #20 (2026-09-07):
+ * una sonda que fija `reduce` por costumbre mide otra cosa.
+ */
+export const ANCHOS_DE_LA_TINTA = [320, 360, 390];
+export const RAICES_DE_LA_TINTA = [ROOT_FONT_BASE_PX, 24, ZOOM_FONT_PX];
+export const REDUCES_DE_LA_TINTA = ["no-preference", "reduce"];
+
+/**
+ * Holgura subpixel de la familia de la tinta. Un pixel, el mismo numero y por
+ * el mismo motivo que usa `probePerdidaHorizontal` para su `sobra <= 1`: los
+ * rectangulos de un rango llegan con decimales y una linea centrada en una caja
+ * de ancho impar cae medio pixel a un lado. No es holgura de criterio: las
+ * perdidas reales que esta familia existe para cazar se miden en decenas de px
+ * (-10,16 en `/en`, -2,91 en `/` a 320 px con la raiz a 32).
+ */
+export const TOLERANCIA_DE_TINTA_PX = 1;
 
 /**
  * LA LISTA DE ZONAS SANCIONADAS, HOY VACIA, Y POR QUE ESA LISTA VACIA ES LA
@@ -2110,6 +2169,251 @@ export function fallosDeCrecimientoEnLaBanda(porAncho) {
         comparadas: vecesComparada.size,
         sinCrecimiento,
         absueltas,
+    };
+}
+
+/**
+ * LA TINTA QUE SE PINTA NO SALE DEL VIEWPORT (critica externa #21, P1
+ * arbitrado el 2026-09-08).
+ *
+ * POR QUE EL RANGO Y NO LA CAJA, que es el corazon de esta familia y el error
+ * que el arbitraje del P1 cometio DOS VECES antes de darse cuenta. La caja de un
+ * elemento (`getBoundingClientRect`) incluye su `transform`, y un bloque que
+ * ocupa el ancho de su columna con el texto centrado dentro tiene la caja en un
+ * sitio y las letras en otro: medido en `/en` a 320 px con la raiz a 32, la caja
+ * de la primera linea del statement empieza en -30,08 y la LINEA REAL en -10,16,
+ * casi veinte pixeles de diferencia. En el sentido contrario pasa lo mismo: una
+ * caja limpia puede contener texto que se sale. Lo que WCAG 1.4.4 protege es el
+ * TEXTO, asi que se mide el texto: `Range.getClientRects()` sobre el nodo de
+ * texto, que son las cajas de linea que el motor renderiza de verdad. Es el
+ * mismo instrumento que `probeLegibilidadDeTexto` usa para deshacer la
+ * inflacion de una celda estirada, aqui como medida primaria.
+ *
+ * Y POR QUE LA TINTA TIENE QUE ESTAR PINTADA, que es la mitad que el P1 no
+ * midio. El rango de un nodo de texto existe aunque nadie lo vea, asi que una
+ * familia que solo mire geometria acusa a inocentes por tres vias distintas,
+ * las tres medidas en este repo el 2026-09-08:
+ *
+ *   OPACIDAD CERO. Las tres lineas del statement de Story declaran
+ *   `opacity: 0` + `transform: translateX(±16%)` como estado PREVIO al reveal.
+ *   En reposo, sin `reduce` y sin haber llegado a la seccion, la primera linea
+ *   tiene su rango en x = -10,16 -- y opacidad efectiva 0. No se pierde tinta
+ *   porque no hay tinta: cuando el reveal la pinta, `transform` es `none` y la
+ *   linea aterriza en +35,92 (`/en`) y +43,17 (`/`). Ese es exactamente el P1
+ *   que este candado nace midiendo, y por eso la opacidad es parte de la
+ *   medida y no un filtro cosmetico.
+ *
+ *   RECORTE QUE EL RANGO NO VE. `Range.getClientRects()` NO respeta el
+ *   `overflow: hidden` del contenedor: devuelve el texto entero como si nada lo
+ *   recortara. El `VisuallyHidden` del enlace del statement --caja de 1x1 px con
+ *   `clip-path: inset(50%)`-- da un rango de 376,41 px de ancho a 320 px de
+ *   viewport, o sea 71,41 px "fuera", con opacidad 1 y sin que exista un solo
+ *   pixel pintado. Se descarta por su CAJA de 1x1, que es el mismo criterio con
+ *   el que las dos familias hermanas ya lo dejan fuera.
+ *
+ *   TINTA QUE SE ALCANZA. La tabla de almacenamiento de las paginas legales
+ *   vive dentro de un `overflow-x: auto` con `role="region"` y `tabindex`: su
+ *   texto se sale del viewport y se llega a el con el dedo, con la rueda y con
+ *   el teclado, asi que no es contenido perdido sino contenido desplazable. Sin
+ *   este tercer absolvedor la familia nacia con 672 acusaciones sobre las ocho
+ *   superficies, todas del mismo patron correcto. Es el MISMO filtro que
+ *   `probePerdidaHorizontal` ya aplica, y ademas es parte de la definicion del
+ *   defecto que la trajo: el P1 de la critica #21 afirmaba tinta fuera Y SIN
+ *   NINGUNA FORMA DE LLEGAR A ELLA.
+ *
+ * La opacidad se toma como PRODUCTO de la cadena de ancestros hasta `<html>`,
+ * no del elemento: lo que apaga el statement es su propia regla, pero lo que
+ * apaga las tarjetas de Contact en reposo es el `opacity` de la seccion que las
+ * contiene, y una lectura local las daria por pintadas.
+ *
+ * EL UMBRAL DE TINTA ES EL CERO ESTRICTO, a proposito. Cualquier opacidad
+ * distinta de cero cuenta como pintada, aunque sea 0,017. Es la direccion
+ * conservadora --ruidoso antes que silencioso, el mismo criterio que el resto
+ * del fichero-- y ademas es la unica que no exige elegir a ojo cuanta tinta es
+ * "poca": en reposo, en las 72 celdas medidas el 2026-09-08 (2 temas x 2
+ * idiomas x 3 raices x 3 anchos x 2 sentidos de `reduce`), las piezas que se
+ * salen tienen opacidad CERO exacta, no pequena.
+ *
+ * QUE MIRA Y QUE NO. Solo el texto dentro de `main`. La cabecera y el pie los
+ * cubre `texto-al-200-por-ciento` por caja, y en la barra vive ademas la trampa
+ * de los controles de escritorio ocultos que este repo ya pago dos veces. Y se
+ * mide en la CIMA del documento: con `reduce`, donde el repo declara los
+ * estados finales de sus reveals, esa unica posicion ya da la composicion
+ * asentada de la pagina entera; sin `reduce` da la de reposo, que es la otra
+ * mitad que ninguna familia anterior veia.
+ *
+ * GUARDA DE VACUIDAD: `examinadas`. Son las piezas de texto pintables que la
+ * sonda llego a mirar. En cualquier superficie real son decenas (90-96 en la
+ * portada); un cero significa que el filtro esta roto --un cambio de marcado, un
+ * `main` que se renombra-- y no que la pagina este limpia.
+ */
+export function probeTintaPintadaFuera({ toleranciaPx }) {
+    const raiz = document.documentElement;
+    const cw = raiz.clientWidth;
+    const main = document.querySelector("main");
+    if (!main)
+        return {
+            rootFontPx: parseFloat(getComputedStyle(raiz).fontSize),
+            clientWidth: cw,
+            examinadas: 0,
+            fuera: [],
+            apagadas: 0,
+            alcanzables: 0,
+        };
+
+    /* Los nodos se RECOGEN antes de recorrerlos, en vez de pedirle uno al
+       `TreeWalker` en cada vuelta: el avance dejaba de ser una sentencia que se
+       puede olvidar en una rama del cuerpo -- y se olvido, con el bucle
+       colgando la suite entera hasta que alguien miro por que no terminaba. */
+    const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+    const nodos = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) nodos.push(n);
+
+    const fuera = [];
+    let examinadas = 0;
+    let apagadas = 0;
+    let alcanzables = 0;
+    for (const nodo of nodos) {
+        const texto = (nodo.textContent || "").trim();
+        const padre = nodo.parentElement;
+        if (texto.length === 0 || !padre) continue;
+        const cs = getComputedStyle(padre);
+        const caja = padre.getBoundingClientRect();
+        /* La caja de 1x1 px es la de `VisuallyHidden`, cuyo rango mide el texto
+           SIN el recorte que lo hace invisible: ver el docblock. */
+        if (
+            cs.visibility === "hidden" ||
+            cs.visibility === "collapse" ||
+            cs.display === "none" ||
+            (caja.width <= 1 && caja.height <= 1)
+        )
+            continue;
+        examinadas += 1;
+
+        let opacidad = 1;
+        let ancestro = padre;
+        while (ancestro && ancestro !== raiz) {
+            /* Un motor que no resuelve `opacity` --jsdom devuelve la cadena
+               vacia para las propiedades que no implementa-- no puede ABSOLVER
+               a nadie: sin dato, la pieza cuenta como pintada. Es la misma
+               direccion conservadora que el resto del fichero. */
+            const propia = parseFloat(getComputedStyle(ancestro).opacity);
+            opacidad *= Number.isFinite(propia) ? propia : 1;
+            ancestro = ancestro.parentElement;
+        }
+
+        const rango = document.createRange();
+        rango.selectNodeContents(nodo);
+        let minL = Infinity;
+        let maxR = -Infinity;
+        for (const r of rango.getClientRects()) {
+            if (r.width === 0 && r.height === 0) continue;
+            minL = Math.min(minL, r.left);
+            maxR = Math.max(maxR, r.right);
+        }
+        if (minL !== Infinity) {
+            const porLaIzquierda = -minL;
+            const porLaDerecha = maxR - cw;
+            const sobra = Math.max(porLaIzquierda, porLaDerecha);
+            if (sobra > toleranciaPx) {
+                /* ALCANZABLE NO ES PERDIDO, y es la MISMA regla (y el mismo
+                   codigo) que `probePerdidaHorizontal`: la tabla de
+                   almacenamiento de las legales vive dentro de un
+                   `overflow-x: auto` con `role="region"` y `tabindex`, donde el
+                   contenido se alcanza con el dedo, con la rueda y con el
+                   teclado. Sin este filtro esta familia nacia acusando 672
+                   veces a un patron correcto (medido el 2026-09-08 sobre las
+                   ocho superficies). Es ademas parte de la definicion del
+                   defecto que la trajo: lo que el P1 de la critica #21 afirmaba
+                   era tinta fuera Y SIN NINGUNA FORMA DE LLEGAR A ELLA. */
+                let alcanzable = false;
+                let contenedor = padre.parentElement;
+                while (contenedor) {
+                    const ox = getComputedStyle(contenedor).overflowX;
+                    if (ox === "auto" || ox === "scroll") {
+                        alcanzable = true;
+                        break;
+                    }
+                    contenedor = contenedor.parentElement;
+                }
+                if (alcanzable) alcanzables += 1;
+                else if (opacidad > 0)
+                    fuera.push({
+                        zona: padre.closest("[id]")
+                            ? padre.closest("[id]").id
+                            : "main",
+                        sel: padre.tagName.toLowerCase(),
+                        lado:
+                            porLaIzquierda > porLaDerecha
+                                ? "izquierda"
+                                : "derecha",
+                        borde:
+                            Math.round(
+                                (porLaIzquierda > porLaDerecha ? minL : maxR) *
+                                    100,
+                            ) / 100,
+                        sobra: Math.round(sobra * 100) / 100,
+                        opacidad: Math.round(opacidad * 1000) / 1000,
+                        texto: texto.slice(0, 40),
+                    });
+                else apagadas += 1;
+            }
+        }
+    }
+
+    return {
+        rootFontPx: parseFloat(getComputedStyle(raiz).fontSize),
+        clientWidth: cw,
+        examinadas,
+        fuera,
+        apagadas,
+        alcanzables,
+    };
+}
+
+/**
+ * Veredicto de la familia sobre las lecturas de toda la matriz. Puro y
+ * exportado para que la suite lo ejercite sin navegador: la sonda de arriba
+ * necesita layout real y jsdom no lo tiene, pero la REGLA --que una lectura con
+ * tinta fuera es un fallo, que una raiz que no llega es un instrumento roto, que
+ * cero piezas examinadas es vacuidad-- se afirma aqui.
+ *
+ * `raizPedida` viaja con cada lectura y se compara contra la MEDIDA: es la misma
+ * guarda que la familia de zoom aprendio a poner cuando la emulacion podia no
+ * llegar y el barrido salia verde midiendo la pagina sin ampliar. Con la
+ * reemulacion en vivo hace mas falta todavia, porque aqui no hay recarga que
+ * delate el fallo.
+ */
+export function evaluaTintaPintada(lecturas) {
+    const fallos = [];
+    const instrumento = [];
+    let examinadasTotales = 0;
+    let apagadasTotales = 0;
+    let alcanzablesTotales = 0;
+    let celdasConTinta = 0;
+    for (const { etiqueta, raizPedida, lectura } of lecturas) {
+        examinadasTotales += lectura.examinadas;
+        apagadasTotales += lectura.apagadas;
+        alcanzablesTotales += lectura.alcanzables;
+        if (lectura.rootFontPx !== raizPedida)
+            instrumento.push(
+                `${etiqueta}: la raiz emulada no llego (se pidio ${raizPedida} px, la pagina tiene ${lectura.rootFontPx})`,
+            );
+        if (lectura.fuera.length) {
+            celdasConTinta += 1;
+            for (const f of lectura.fuera)
+                fallos.push(
+                    `${etiqueta} ${f.zona}/${f.sel} ("${f.texto}") ${f.sobra} px fuera por la ${f.lado} (borde en ${f.borde} px, opacidad ${f.opacidad})`,
+                );
+        }
+    }
+    return {
+        fallos,
+        instrumento,
+        examinadasTotales,
+        apagadasTotales,
+        alcanzablesTotales,
+        celdasConTinta,
     };
 }
 
@@ -5724,6 +6028,74 @@ async function auditarSuperficie(browser, base, theme, surface) {
                         ` [${c.medidas[0].sel}]`,
                 )
                 .join("; ")}`,
+        );
+
+    /*
+     * --- la tinta que se pinta no sale del viewport
+     *
+     * UN CONTEXTO POR SENTIDO DE `reduce` y nada mas: dentro de cada uno, las
+     * tres raices se reemulan en vivo sobre la pagina ya cargada y los tres
+     * anchos se recorren redimensionando, que es el patron de las familias de
+     * arriba. Nueve medidas por contexto, dos contextos por superficie. El
+     * porque de cada eje --y la medicion que demuestra que la reemulacion en
+     * vivo es reversible-- esta en el docblock de `RAICES_DE_LA_TINTA`.
+     *
+     * `reduce` no se puede emular sobre un contexto ya creado sin que quede
+     * pegado a la siguiente medicion (trampa ya pagada en este fichero), asi que
+     * ese eje SI cuesta un contexto.
+     */
+    const lecturasDeTinta = [];
+    for (const reduce of REDUCES_DE_LA_TINTA) {
+        ctx = await nuevoContexto(browser, theme, {
+            viewport: { width: ANCHOS_DE_LA_TINTA[0], height: 900 },
+            reducedMotion: reduce,
+        });
+        page = await ctx.newPage();
+        const sesionDeTinta = await ctx.newCDPSession(page);
+        await sesionDeTinta.send("Page.setFontSizes", {
+            fontSizes: {
+                standard: RAICES_DE_LA_TINTA[0],
+                fixed: RAICES_DE_LA_TINTA[0],
+            },
+        });
+        await page.goto(url, { waitUntil: "networkidle" });
+        for (const raizPx of RAICES_DE_LA_TINTA) {
+            await sesionDeTinta.send("Page.setFontSizes", {
+                fontSizes: { standard: raizPx, fixed: raizPx },
+            });
+            for (const width of ANCHOS_DE_LA_TINTA) {
+                await page.setViewportSize({ width, height: 900 });
+                await page.waitForTimeout(220);
+                lecturasDeTinta.push({
+                    etiqueta: `${width}px raiz ${raizPx}px ${reduce}`,
+                    raizPedida: raizPx,
+                    lectura: await page.evaluate(probeTintaPintadaFuera, {
+                        toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+                    }),
+                });
+            }
+        }
+        await ctx.close();
+    }
+    const tinta = evaluaTintaPintada(lecturasDeTinta);
+    datos.tinta = `${tinta.fallos.length} piezas pintadas fuera / ${tinta.examinadasTotales} piezas de texto en ${lecturasDeTinta.length} celdas (${tinta.apagadasTotales} fuera pero sin pintar, ${tinta.alcanzablesTotales} fuera pero alcanzables con scroll)`;
+
+    // [check: tinta-pintada-dentro-del-viewport]
+    /* Guarda de vacuidad: sin piezas examinadas la familia no ha mirado nada y
+       su verde no significa nada. */
+    if (tinta.examinadasTotales === 0)
+        fallos.push(
+            "la sonda de la tinta no examino ni una sola pieza de texto de `main` en toda la matriz: el filtro esta roto y el resultado seria vacuo",
+        );
+    /* Guarda de instrumento: la raiz se reemula en vivo, sin recarga que delate
+       una emulacion que no llego. */
+    if (tinta.instrumento.length)
+        fallos.push(
+            `la preferencia de tamano de texto no llego en alguna celda de la matriz de la tinta: ${tinta.instrumento.join("; ")}`,
+        );
+    if (tinta.fallos.length)
+        fallos.push(
+            `hay tinta PINTADA fuera del viewport, medida sobre la linea real del texto y no sobre la caja: ${tinta.fallos.join("; ")}`,
         );
 
     // --- sin JavaScript
