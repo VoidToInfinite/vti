@@ -101,6 +101,13 @@ import {
     COMBINACIONES_DE_ATERRIZAJE,
     SECCIONES_DE_ATERRIZAJE,
     evaluaAterrizajeDeAncla,
+    evaluaTestigoDeScroll,
+    TOPE_DE_SCROLL_SUAVE_MS,
+    evaluaAtrasYAdelante,
+    RUTAS_DE_ATRAS_Y_ADELANTE,
+    RUTAS_CON_SEGUNDO_ATRAS,
+    CLAVES_DE_ENTRADA_ESTABLES,
+    PROFUNDIDAD_DE_LECTURA_PX,
     fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
     fragmentoDe,
@@ -604,6 +611,7 @@ const FAMILIAS_ESPERADAS = [
     "condiciones-de-navegador-estables-en-la-corrida",
     "tabulacion-sin-rezago",
     "aterrizaje-de-ancla-constante",
+    "atras-y-adelante-restituyen-la-lectura",
 ];
 
 /**
@@ -685,7 +693,7 @@ const FAMILIAS_ESPERADAS = [
  * Sube a 32 el 2026-09-10 con `tabulacion-sin-rezago` (P1 del objetivo >=98) y
  * `aterrizaje-de-ancla-constante` (P2), en el mismo cambio que las anade.
  */
-const FAMILIAS_MINIMAS = 32;
+const FAMILIAS_MINIMAS = 33;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -5440,5 +5448,475 @@ describe("familia aterrizaje-de-ancla-constante: el primer salto aterriza como l
                 enlace: false,
             }).cumple,
         ).toBe(false);
+    });
+});
+
+/*
+ * EL TESTIGO DE SCROLL SIN LLAMADA JS (familia 20, F20-C1). Tabla del
+ * evaluador puro; el rojo de navegador se valido aparte con un movimiento de
+ * 900 px por el setter nativo de `scrollTop` que vuelve a los 300 ms (deriva
+ * final 0, dentro de tolerancia) y con la sonda sin envolver ese setter.
+ */
+describe("evaluaTestigoDeScroll: un solo motor de scroll tras la correccion", () => {
+    const correccion = {
+        t: 505,
+        tipo: "window.scrollTo",
+        suave: false,
+        y: 9000,
+        id: "contact",
+        top: 174,
+    };
+    const base = {
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+        exigeLlamada: true,
+    };
+    it.each([
+        [
+            "la correccion y sus eventos en el mismo sitio",
+            {
+                llamadas: [correccion],
+                eventos: [{ t: 630, y: 9000, id: "contact", top: 174 }],
+            },
+            true,
+        ],
+        [
+            "la nativa llega despues de la correccion (+1108, la carrera medida)",
+            {
+                llamadas: [correccion],
+                eventos: [
+                    { t: 630, y: 9000, id: "contact", top: 174 },
+                    { t: 640, y: 10108, id: "about", top: 20 },
+                ],
+            },
+            false,
+        ],
+        [
+            "sale 900 px y vuelve: la deriva final es 0 pero el testigo lo ve",
+            {
+                llamadas: [correccion],
+                eventos: [
+                    { t: 810, y: 9900, id: "contact", top: -726 },
+                    { t: 1110, y: 9000, id: "contact", top: 174 },
+                ],
+            },
+            false,
+        ],
+        [
+            "compensacion del scroll anchoring: mueve scrollY, no el contenido",
+            {
+                llamadas: [correccion],
+                eventos: [{ t: 700, y: 9300, id: "contact", top: 170 }],
+            },
+            true,
+        ],
+        [
+            "una segunda llamada explica el segundo movimiento",
+            {
+                llamadas: [
+                    correccion,
+                    {
+                        ...correccion,
+                        t: 900,
+                        tipo: "scrollTop=",
+                        y: 9900,
+                        top: -726,
+                    },
+                ],
+                eventos: [{ t: 920, y: 9900, id: "contact", top: -726 }],
+            },
+            true,
+        ],
+        [
+            "una llamada suave explica el recorrido HACIA su destino",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [{ t: 700, y: 8600, id: "contact", top: 574 }],
+            },
+            true,
+        ],
+        [
+            "suave que llega y despues salta sin llamada: rojo",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [
+                    { t: 600, y: 8500, id: "contact", top: 674 },
+                    { t: 800, y: 9000, id: "contact", top: 174 },
+                    { t: 1100, y: 9900, id: "about", top: 20 },
+                ],
+                fin: { t: 3000, y: 9900 },
+            },
+            false,
+        ],
+        [
+            "suave que llega y queda quieta: verde",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [
+                    { t: 600, y: 8500, id: "contact", top: 674 },
+                    { t: 800, y: 9000, id: "contact", top: 174 },
+                ],
+                fin: { t: 5000, y: 9000 },
+            },
+            true,
+        ],
+        [
+            "suave que nunca llega (se queda a medias): rojo tras el tope",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [{ t: 600, y: 8500, id: "contact", top: 674 }],
+                fin: { t: 5000, y: 8500 },
+            },
+            false,
+        ],
+        [
+            "suave que se aleja de su destino: rojo aunque este en tiempo",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [{ t: 600, y: 7000, id: "story", top: 20 }],
+                fin: { t: 5000, y: 7000 },
+            },
+            false,
+        ],
+        [
+            "suave sin destino calculable: exime hasta el primer asentamiento",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: null },
+                ],
+                eventos: [
+                    { t: 520, y: 8300, id: "contact", top: 874 },
+                    { t: 540, y: 8700, id: "contact", top: 474 },
+                    { t: 560, y: 9000, id: "contact", top: 174 },
+                    { t: 1000, y: 9900, id: "about", top: 20 },
+                ],
+                fin: { t: 3000, y: 9900 },
+            },
+            false,
+        ],
+        [
+            "antes de la primera llamada no se juzga (la nativa en auto)",
+            {
+                llamadas: [correccion],
+                eventos: [{ t: 100, y: 9000, id: "contact", top: 174 }],
+            },
+            true,
+        ],
+    ])("%s", (_nombre, registro, esperado) => {
+        expect(evaluaTestigoDeScroll({ ...base, ...registro }).cumple).toBe(
+            esperado,
+        );
+    });
+
+    it("el motivo del rojo trae las cifras del movimiento sin explicar", () => {
+        const { motivo } = evaluaTestigoDeScroll({
+            ...base,
+            llamadas: [correccion],
+            eventos: [{ t: 640, y: 10108, id: "about", top: 20 }],
+        });
+        expect(motivo).toContain("y=10108");
+        expect(motivo).toContain("lo dejo en y=9000 (1108 px");
+    });
+
+    /* El "control envuelto" de F20-C1 rehecho: la pagina se va 900 px con el
+       setter de `scrollTop` (suave por el `scroll-behavior` de `<html>`) y
+       vuelve. Pasa porque cada `y` CUADRA con el destino de su llamada, y lo
+       dicen los contadores; con los mismos eventos y otro destino, cae. */
+    const envuelto = (destinoIda, destinoVuelta) => ({
+        ...base,
+        llamadas: [
+            correccion,
+            {
+                ...correccion,
+                t: 810,
+                tipo: "scrollTop=",
+                suave: true,
+                destino: destinoIda,
+            },
+            {
+                ...correccion,
+                t: 1110,
+                tipo: "scrollTop=",
+                suave: true,
+                y: 9900,
+                top: -726,
+                destino: destinoVuelta,
+            },
+        ],
+        eventos: [
+            { t: 830, y: 9300, id: "contact", top: -126 },
+            { t: 870, y: 9700, id: "contact", top: -526 },
+            { t: 900, y: 9900, id: "contact", top: -726 },
+            { t: 1130, y: 9500, id: "contact", top: -326 },
+            { t: 1170, y: 9100, id: "contact", top: 74 },
+            { t: 1200, y: 9000, id: "contact", top: 174 },
+        ],
+        fin: { t: 6000, y: 9000 },
+    });
+
+    it("control envuelto: pasa porque la y cuadra con el destino de cada llamada", () => {
+        const v = evaluaTestigoDeScroll(envuelto(9900, 9000));
+        expect(v.cumple).toBe(true);
+        expect(v.explicados.llegada).toBe(2);
+        expect(v.explicados.haciaDestino).toBe(4);
+    });
+
+    it("control envuelto con un destino que no cuadra: cae", () => {
+        const v = evaluaTestigoDeScroll(envuelto(9900, 9900));
+        expect(v.cumple).toBe(false);
+        expect(v.motivo).toContain("se aleja del destino");
+    });
+
+    it("el tope de la exencion suave es una constante declarada", () => {
+        expect(TOPE_DE_SCROLL_SUAVE_MS).toBe(1500);
+        const { motivo } = evaluaTestigoDeScroll({
+            ...base,
+            llamadas: [{ ...correccion, suave: true, y: 8000, destino: 9000 }],
+            eventos: [{ t: 600, y: 8500, id: "contact", top: 674 }],
+            fin: { t: 5000, y: 8500 },
+        });
+        expect(motivo).toContain("se queda a medias en y=8500");
+    });
+
+    it("en manual, sin ninguna llamada JS registrada, es vacuo y cae", () => {
+        expect(
+            evaluaTestigoDeScroll({ ...base, llamadas: [], eventos: [] })
+                .cumple,
+        ).toBe(false);
+    });
+
+    it("en auto, sin llamadas, no hay correccion que vigilar y no cae", () => {
+        expect(
+            evaluaTestigoDeScroll({
+                ...base,
+                exigeLlamada: false,
+                llamadas: [],
+                eventos: [{ t: 100, y: 5000, id: "features", top: 10 }],
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("sin registro (el testigo no se instalo) cae", () => {
+        expect(
+            evaluaTestigoDeScroll({
+                ...base,
+                llamadas: undefined,
+                eventos: undefined,
+            }).cumple,
+        ).toBe(false);
+    });
+});
+
+/*
+ * FAMILIA 33, `atras-y-adelante-restituyen-la-lectura` (F20-C1). Tabla del
+ * evaluador puro. El rojo de navegador: con el restituidor desactivado en el
+ * SITIO (`useHistoryScrollRestoration` sin aplicar la posicion), la familia cae
+ * en oscuro --modo `"manual"`-- y pasa en claro.
+ */
+describe("evaluaAtrasYAdelante: el Atras vuelve a la profundidad leida", () => {
+    const P = PROFUNDIDAD_DE_LECTURA_PX;
+    const entrada = (
+        pathname,
+        y,
+        modo = "manual",
+        clave = "k1",
+        hash = "",
+    ) => ({
+        pathname,
+        hash,
+        y,
+        modo,
+        clave,
+    });
+    const contacto = (y) => entrada("/", y, "manual", "k2", "#contact");
+    const verde = () => ({
+        theme: "dark",
+        surface: "/",
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+        rutas: [
+            {
+                ruta: "fragmento",
+                enlace: true,
+                antes: entrada("/", P),
+                salida: contacto(9046),
+                atras: entrada("/", P),
+                adelante: contacto(9046),
+                segundoAtras: entrada("/", P),
+            },
+            {
+                ruta: "legal",
+                enlace: true,
+                antes: entrada("/", P),
+                salida: entrada("/privacidad", 0, "auto"),
+                atras: entrada("/", P + 3),
+                adelante: entrada("/privacidad", 0, "auto"),
+                segundoAtras: entrada("/", P),
+            },
+            {
+                ruta: "idioma",
+                enlace: true,
+                antes: entrada("/", P),
+                salida: entrada("/en", 1900),
+                atras: entrada("/", P),
+                adelante: entrada("/en", 0),
+            },
+        ],
+        claves: {
+            idioma: { antes: "k1", despues: "k1" },
+            recarga: { antes: "k1", despues: "k1" },
+        },
+    });
+
+    it("la matriz declarada: tres rutas y dos claves", () => {
+        expect(RUTAS_DE_ATRAS_Y_ADELANTE).toEqual([
+            "fragmento",
+            "legal",
+            "idioma",
+        ]);
+        expect(CLAVES_DE_ENTRADA_ESTABLES).toEqual(["idioma", "recarga"]);
+        expect(RUTAS_CON_SEGUNDO_ATRAS).toEqual(["fragmento", "legal"]);
+    });
+
+    it("pasa con las tres vueltas dentro de tolerancia y las claves estables", () => {
+        expect(evaluaAtrasYAdelante(verde()).cumple).toBe(true);
+    });
+
+    it.each([
+        [
+            "fragmento sin restituidor: el Atras se queda en Contacto",
+            (m) => {
+                m.rutas[0].atras = entrada("/", 9046);
+            },
+            "fragmento (/ dark): se leia en y=2400 y el Atras vuelve a y=9046",
+        ],
+        [
+            "legal sin restituidor: el Atras deja la portada arriba",
+            (m) => {
+                m.rutas[1].atras = entrada("/", 0);
+            },
+            "legal (/ dark): se leia en y=2400 y el Atras vuelve a y=0",
+        ],
+        [
+            "idioma: el Atras deja otra ruta",
+            (m) => {
+                m.rutas[2].atras = entrada("/en", P);
+            },
+            "el Atras deja /en y la lectura estaba en /",
+        ],
+        [
+            "la clave de la entrada cambia entre cargas de documento",
+            (m) => {
+                m.claves.idioma.despues = "k2";
+            },
+            'navigation.currentEntry.key cambia de k1 a "k2"',
+        ],
+        [
+            "la clave no se pudo leer",
+            (m) => {
+                m.claves.recarga = { antes: null, despues: null };
+            },
+            "no se pudo leer",
+        ],
+        [
+            "una ruta sin enlace no es un verde",
+            (m) => {
+                m.rutas[1] = { ruta: "legal", enlace: false };
+            },
+            "no se encontro el enlace",
+        ],
+        [
+            "una ruta que no se midio",
+            (m) => {
+                m.rutas.pop();
+            },
+            "idioma (/ dark): la ruta no se midio",
+        ],
+        [
+            "partir de la cima no distingue restituir de no hacer nada",
+            (m) => {
+                m.rutas[0].antes = entrada("/", 0);
+                m.rutas[0].atras = entrada("/", 0);
+            },
+            "a menos de 128 px de la cima",
+        ],
+        [
+            "un salto que no salio de la lectura no prueba nada",
+            (m) => {
+                m.rutas[0].salida = entrada("/", P);
+                m.rutas[0].adelante = entrada("/", P);
+            },
+            "el gesto no salio de la lectura",
+        ],
+        [
+            "fragmento: el Adelante no vuelve a Contacto",
+            (m) => {
+                m.rutas[0].adelante = contacto(P);
+            },
+            "fragmento (/ dark): el Adelante vuelve a /#contact en y=2400 y la entrada de destino estaba en y=9046",
+        ],
+        [
+            "fragmento: el Adelante pierde el fragmento",
+            (m) => {
+                m.rutas[0].adelante = entrada("/", 9046);
+            },
+            "el Adelante deja / y la entrada de destino era /#contact",
+        ],
+        [
+            "fragmento: el segundo Atras se queda en Contacto",
+            (m) => {
+                m.rutas[0].segundoAtras = entrada("/", 9046);
+            },
+            "fragmento (/ dark): se leia en y=2400 y el segundo Atras vuelve a y=9046",
+        ],
+        [
+            "legal: el Adelante no llega a la legal",
+            (m) => {
+                m.rutas[1].adelante = entrada("/", P);
+            },
+            "el Adelante deja / y la entrada de destino era /privacidad",
+        ],
+        [
+            "legal: el segundo Atras deja la portada arriba",
+            (m) => {
+                m.rutas[1].segundoAtras = entrada("/", 0);
+            },
+            "legal (/ dark): se leia en y=2400 y el segundo Atras vuelve a y=0",
+        ],
+        [
+            "idioma: el Adelante no llega a la otra portada",
+            (m) => {
+                m.rutas[2].adelante = entrada("/", P);
+            },
+            "idioma (/ dark): el Adelante deja / y la entrada de destino era /en",
+        ],
+        [
+            "un Adelante sin medir no es un verde",
+            (m) => {
+                delete m.rutas[2].adelante;
+            },
+            "idioma (/ dark): el Adelante no se midio",
+        ],
+        [
+            "un segundo Atras sin medir no es un verde",
+            (m) => {
+                delete m.rutas[1].segundoAtras;
+            },
+            "legal (/ dark): el segundo Atras no se midio",
+        ],
+    ])("cae: %s", (_nombre, rompe, texto) => {
+        const m = verde();
+        rompe(m);
+        const { cumple, motivos } = evaluaAtrasYAdelante(m);
+        expect(cumple).toBe(false);
+        expect(motivos.join(" | ")).toContain(texto);
     });
 });

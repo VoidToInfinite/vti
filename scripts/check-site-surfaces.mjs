@@ -622,8 +622,9 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las treinta y dos familias que este script comprueba (31 y 32, las de la
- * tabulacion y el aterrizaje de ancla, el 2026-09-10). La lista es el CONTRATO
+ * Las treinta y tres familias que este script comprueba (31 y 32, las de la
+ * tabulacion y el aterrizaje de ancla, el 2026-09-10; 33, la del Atras que
+ * restituye la lectura, F20-C1 el mismo dia). La lista es el CONTRATO
  * del candado: el test companero exige que ninguna desaparezca, porque un script
  * que mide trece cosas y dice medir catorce es peor que uno que no existe.
  *
@@ -674,6 +675,7 @@ export const CHECKS = [
     "condiciones-de-navegador-estables-en-la-corrida",
     "tabulacion-sin-rezago",
     "aterrizaje-de-ancla-constante",
+    "atras-y-adelante-restituyen-la-lectura",
 ];
 
 /**
@@ -1262,6 +1264,795 @@ export function evaluaModoDeRestitucion({ theme, pathname, modo }) {
             motivo: `tras recargar ${pathname} en tema ${theme} history.scrollRestoration vale "${modo}" y tendria que valer "${esperado}"`,
         };
     return { esperado, cumple: true, motivo: null };
+}
+
+/**
+ * EL TESTIGO DE SCROLL SIN LLAMADA JS (familia 20, candado b del diseno F20).
+ *
+ * POR QUE HACE FALTA ADEMAS DE LA DERIVA. La carrera del 2026-09-06 es la
+ * restitucion NATIVA llegando despues de la correccion del sitio; la deriva
+ * final solo la ve cuando la nativa aterriza lejos. Si la nativa mueve y algo la
+ * devuelve, o si aterriza a menos de `DERIVA_MAXIMA_DE_RECARGA_PX`, la deriva
+ * sale verde con dos motores peleando por el scroll. Con `"manual"` en la
+ * portada oscura el sitio es el UNICO motor: todo cambio de `scrollY` posterior
+ * a su correccion tiene que tener una llamada JS que lo explique.
+ *
+ * QUE REGISTRA, como script de inicio del contexto (corre en cada documento,
+ * antes que el del sitio): las llamadas a `window.scrollTo/scroll/scrollBy`,
+ * `Element.prototype.scrollIntoView/scrollTo/scroll/scrollBy`, los setters de
+ * `scrollTop`/`scrollLeft` de `Element.prototype` (Next hace
+ * `htmlElement.scrollTop = 0` en el `layout-router`) y `HTMLElement.focus`
+ * sin `preventScroll`; de cada una, el instante y el estado JUSTO despues
+ * (`y`, la seccion bajo el centro del viewport y su `top`). Y cada evento
+ * `scroll` del documento con el mismo estado. Los metodos de un elemento que
+ * no es el documento solo cuentan si pueden mover el documento
+ * (`scrollIntoView`, `focus`): un `scrollTo` sobre un carril interior no
+ * explica un salto de la pagina.
+ */
+export function testigoDeScrollEnPagina() {
+    const registro = { llamadas: [], eventos: [] };
+    window.__testigoScroll = registro;
+    const ahora = () => Math.round(performance.now());
+    const estado = () => {
+        const centro = window.innerHeight / 2;
+        let id = null;
+        let top = null;
+        for (const s of document.querySelectorAll("section[id]")) {
+            const r = s.getBoundingClientRect();
+            if (r.top <= centro && r.bottom > centro) {
+                id = s.id;
+                top = Math.round(r.top);
+                break;
+            }
+        }
+        return { y: Math.round(window.scrollY), id, top };
+    };
+    const esDocumento = (el) =>
+        el === document.documentElement ||
+        el === document.body ||
+        el === document.scrollingElement;
+    const esSuave = (args) => {
+        const o = args[0];
+        if (o && typeof o === "object" && o.behavior === "smooth") return true;
+        if (o && typeof o === "object" && o.behavior === "instant")
+            return false;
+        try {
+            return (
+                getComputedStyle(document.documentElement).scrollBehavior ===
+                "smooth"
+            );
+        } catch {
+            return false;
+        }
+    };
+    /* EL DESTINO de cada llamada, calculado ANTES de ejecutarla y acotado al
+       recorrido real del documento: es lo que una llamada suave promete y lo
+       unico que la exime (docblock de `TOPE_DE_SCROLL_SUAVE_MS`). `null`
+       cuando no es calculable (un `scrollIntoView` que no alinea al inicio,
+       un `focus`): entonces la exencion solo dura hasta el primer
+       asentamiento. */
+    const maxY = () =>
+        Math.max(
+            0,
+            (document.scrollingElement || document.documentElement)
+                .scrollHeight - window.innerHeight,
+        );
+    const acota = (v) =>
+        typeof v === "number" && Number.isFinite(v)
+            ? Math.round(Math.min(Math.max(v, 0), maxY()))
+            : null;
+    const destinoDeArgs = (relativo) => (_el, args, yAntes) => {
+        const o = args[0];
+        const v = o && typeof o === "object" ? o.top : args[1];
+        if (v === undefined) return acota(yAntes);
+        return acota(relativo ? yAntes + Number(v) : Number(v));
+    };
+    const destinoDeIntoView = (el, args) => {
+        const o = args[0];
+        const block =
+            o === false
+                ? "end"
+                : (o && typeof o === "object" && o.block) || "start";
+        if (block !== "start") return null;
+        try {
+            const margen =
+                (parseFloat(getComputedStyle(el).scrollMarginTop) || 0) +
+                (parseFloat(
+                    getComputedStyle(document.documentElement).scrollPaddingTop,
+                ) || 0);
+            return acota(
+                window.scrollY + el.getBoundingClientRect().top - margen,
+            );
+        } catch {
+            return null;
+        }
+    };
+    const sinDestino = () => null;
+    const anota = (tipo, suave, destino) =>
+        registro.llamadas.push({
+            t: ahora(),
+            tipo,
+            suave,
+            destino,
+            ...estado(),
+        });
+    const envuelve = (objeto, nombre, tipo, cuenta, destinoDe) => {
+        const original = objeto[nombre];
+        if (typeof original !== "function") return;
+        objeto[nombre] = function (...args) {
+            const cuentaEsta = cuenta(this, args);
+            const destino = cuentaEsta
+                ? destinoDe(this, args, window.scrollY)
+                : null;
+            const r = original.apply(this, args);
+            if (cuentaEsta) anota(tipo, esSuave(args), destino);
+            return r;
+        };
+    };
+    const esDoc = (el) => esDocumento(el);
+    envuelve(
+        window,
+        "scrollTo",
+        "window.scrollTo",
+        () => true,
+        destinoDeArgs(false),
+    );
+    envuelve(
+        window,
+        "scroll",
+        "window.scroll",
+        () => true,
+        destinoDeArgs(false),
+    );
+    envuelve(
+        window,
+        "scrollBy",
+        "window.scrollBy",
+        () => true,
+        destinoDeArgs(true),
+    );
+    envuelve(
+        Element.prototype,
+        "scrollIntoView",
+        "scrollIntoView",
+        () => true,
+        destinoDeIntoView,
+    );
+    envuelve(
+        Element.prototype,
+        "scrollTo",
+        "Element.scrollTo",
+        esDoc,
+        destinoDeArgs(false),
+    );
+    envuelve(
+        Element.prototype,
+        "scroll",
+        "Element.scroll",
+        esDoc,
+        destinoDeArgs(false),
+    );
+    envuelve(
+        Element.prototype,
+        "scrollBy",
+        "Element.scrollBy",
+        esDoc,
+        destinoDeArgs(true),
+    );
+    envuelve(
+        HTMLElement.prototype,
+        "focus",
+        "focus",
+        (_el, args) => !(args[0] && args[0].preventScroll),
+        sinDestino,
+    );
+    for (const prop of ["scrollTop", "scrollLeft"]) {
+        const d = Object.getOwnPropertyDescriptor(Element.prototype, prop);
+        if (!d || typeof d.set !== "function") continue;
+        Object.defineProperty(Element.prototype, prop, {
+            configurable: true,
+            enumerable: d.enumerable,
+            get: d.get,
+            set(valor) {
+                const yAntes = window.scrollY;
+                d.set.call(this, valor);
+                if (esDocumento(this))
+                    anota(
+                        `${prop}=`,
+                        esSuave([]),
+                        prop === "scrollTop"
+                            ? acota(Number(valor))
+                            : acota(yAntes),
+                    );
+            },
+        });
+    }
+    window.addEventListener(
+        "scroll",
+        () => registro.eventos.push({ t: ahora(), ...estado() }),
+        { passive: true },
+    );
+}
+
+/**
+ * EL TOPE DE UNA LLAMADA SUAVE (F20-C1, revision). Una llamada suave no deja
+ * el documento en su `y` inmediato, asi que su recorrido no se puede comparar
+ * con el estado justo despues de llamarla. Pero una exencion SIN limite
+ * dejaba que una sola llamada suave --y el setter de `scrollTop` hereda el
+ * `scroll-behavior: smooth` de `<html>` en este sitio-- eximiera todo lo que
+ * viniera detras. Por eso la exencion se acota por DESTINO y por TIEMPO: solo
+ * cubre los eventos que avanzan hacia el destino pedido, hasta llegar a el con
+ * la tolerancia, y como mucho durante estos milisegundos. Un desplazamiento
+ * suave de Chrome de toda la portada tarda menos de un segundo; 1.500 ms deja
+ * margen bajo carga sin convertir la llamada en un salvoconducto.
+ */
+export const TOPE_DE_SCROLL_SUAVE_MS = 1500;
+
+/**
+ * Sin destino calculable (un `scrollIntoView` que no alinea al inicio, un
+ * `focus`), la llamada suave solo exime hasta el PRIMER ASENTAMIENTO: el primer
+ * hueco entre dos eventos `scroll` de al menos estos milisegundos. Un
+ * desplazamiento suave emite un evento por frame (unos 16 ms); 200 ms sin
+ * eventos es que ya paro.
+ */
+export const ASENTAMIENTO_DE_SCROLL_SUAVE_MS = 200;
+
+/**
+ * EL VEREDICTO DEL TESTIGO: puro y tabulado en el gate.
+ *
+ * Solo se juzga lo que ocurre DESPUES de la primera llamada JS (la correccion
+ * del sitio): antes, en `"auto"`, la nativa restituye por diseno y en
+ * `"manual"` el documento esta en 0. Cada evento se compara con el estado que
+ * dejo la ULTIMA llamada anterior a el, y es ROJO si `scrollY` se aleja mas de
+ * `tolerancia` sin otra llamada que lo explique. DOS exenciones, cada una con
+ * su porque: (1) la compensacion del scroll anchoring mueve `scrollY` sin mover
+ * el contenido, asi que si la seccion bajo el centro es la misma y su `top`
+ * cabe en la tolerancia no hay salto visible; (2) una llamada suave explica el
+ * recorrido HACIA SU DESTINO, y solo hasta llegar a el o hasta
+ * `TOPE_DE_SCROLL_SUAVE_MS` (docblock de la constante).
+ *
+ * `exigeLlamada` es la guarda de vacuidad del modo `"manual"`: ahi la
+ * correccion TIENE que ser una llamada JS; sin ninguna, o el testigo no se
+ * instalo o el sitio no corrigio, y ninguna de las dos cosas es un verde.
+ *
+ * `fin` (`{ t, y }`, la lectura del registro) dice hasta cuando se miro: sin
+ * el, una llamada suave que se queda a medias sin mas eventos seria invisible.
+ * `explicados` cuenta por que se admitio cada evento, para que un verde se
+ * pueda leer (una llamada suave que CUADRA con su destino, no una exencion).
+ */
+export function evaluaTestigoDeScroll({
+    llamadas,
+    eventos,
+    fin,
+    tolerancia,
+    exigeLlamada,
+}) {
+    if (!Array.isArray(llamadas) || !Array.isArray(eventos))
+        return {
+            cumple: false,
+            sinExplicar: [],
+            motivo: "el testigo de scroll no se instalo en el documento recargado: sin registro la sonda quedaria vacua",
+        };
+    if (llamadas.length === 0)
+        return exigeLlamada
+            ? {
+                  cumple: false,
+                  sinExplicar: [],
+                  motivo: `en modo manual la correccion del sitio tiene que ser una llamada JS y el testigo no registro ninguna (${eventos.length} eventos scroll): la sonda quedaria vacua`,
+              }
+            : { cumple: true, sinExplicar: [], motivo: null };
+    const ordenadas = [...llamadas].sort((a, b) => a.t - b.t);
+    const porTiempo = [...eventos].sort((a, b) => a.t - b.t);
+    const sinExplicar = [];
+    const explicados = {
+        inmediata: 0,
+        anclaje: 0,
+        haciaDestino: 0,
+        llegada: 0,
+        hastaAsentar: 0,
+    };
+    const falla = (e, ref, desde, razon) =>
+        sinExplicar.push({
+            t: e.t,
+            y: e.y,
+            desde,
+            tipo: ref.tipo,
+            tLlamada: ref.t,
+            razon,
+        });
+    /* Un evento contra una base quieta: la `y` en tolerancia o el ancla
+       quieta (misma seccion bajo el centro, su `top` en tolerancia). */
+    const juzga = (e, base, ref) => {
+        if (Math.abs(e.y - base.y) <= tolerancia) {
+            explicados.inmediata += 1;
+            return;
+        }
+        const anclaQuieta =
+            base.id !== null &&
+            base.id !== undefined &&
+            e.id === base.id &&
+            base.top !== null &&
+            base.top !== undefined &&
+            e.top !== null &&
+            e.top !== undefined &&
+            Math.abs(e.top - base.top) <= tolerancia;
+        if (anclaQuieta) {
+            explicados.anclaje += 1;
+            return;
+        }
+        falla(e, ref, base.y, null);
+    };
+    for (const [i, ref] of ordenadas.entries()) {
+        const hasta = i + 1 < ordenadas.length ? ordenadas[i + 1].t : Infinity;
+        const tramo = porTiempo.filter((e) => e.t >= ref.t && e.t < hasta);
+        if (!ref.suave) {
+            const base = { y: ref.y, id: ref.id, top: ref.top };
+            for (const e of tramo) juzga(e, base, ref);
+            continue;
+        }
+        /* Llamada suave: exime el avance hacia su destino hasta llegar (o, sin
+           destino calculable, hasta el primer asentamiento), y nunca mas alla
+           del tope. Desde ahi la base es quieta, como la de una inmediata. */
+        const destino =
+            typeof ref.destino === "number" && Number.isFinite(ref.destino)
+                ? ref.destino
+                : null;
+        const tope = ref.t + TOPE_DE_SCROLL_SUAVE_MS;
+        let base = null;
+        let vencida = false;
+        let mejor = destino === null ? null : Math.abs(ref.y - destino);
+        let previo = { t: ref.t, y: ref.y, id: ref.id, top: ref.top };
+        for (const e of tramo) {
+            if (base !== null) {
+                juzga(e, base, ref);
+                continue;
+            }
+            if (e.t > tope) {
+                vencida = true;
+                falla(
+                    e,
+                    ref,
+                    destino ?? previo.y,
+                    destino === null
+                        ? `la llamada suave sin destino calculable sigue moviendo el scroll pasado el tope de ${TOPE_DE_SCROLL_SUAVE_MS} ms (y=${e.y})`
+                        : `la llamada suave pedia y=${destino} y pasado el tope de ${TOPE_DE_SCROLL_SUAVE_MS} ms no habia llegado (y=${e.y})`,
+                );
+                base = { y: e.y, id: e.id, top: e.top };
+                continue;
+            }
+            if (destino !== null) {
+                const dist = Math.abs(e.y - destino);
+                if (dist <= tolerancia) {
+                    explicados.llegada += 1;
+                    base = { y: e.y, id: e.id, top: e.top };
+                } else if (dist > mejor + tolerancia) {
+                    falla(
+                        e,
+                        ref,
+                        destino,
+                        `se aleja del destino de la llamada suave (y=${destino}): de ${mejor} px a ${dist} px`,
+                    );
+                } else {
+                    mejor = Math.min(mejor, dist);
+                    explicados.haciaDestino += 1;
+                }
+                previo = e;
+                continue;
+            }
+            if (e.t - previo.t < ASENTAMIENTO_DE_SCROLL_SUAVE_MS) {
+                explicados.hastaAsentar += 1;
+                previo = e;
+                continue;
+            }
+            base = { y: previo.y, id: previo.id, top: previo.top };
+            juzga(e, base, ref);
+        }
+        /* Se queda a medias: ningun evento la lleva al destino y la mirada
+           (siguiente llamada o `fin`) va mas alla del tope. */
+        const finDelTramo =
+            hasta !== Infinity
+                ? hasta
+                : (fin?.t ??
+                  (tramo.length ? tramo[tramo.length - 1].t : ref.t));
+        if (
+            destino !== null &&
+            base === null &&
+            !vencida &&
+            finDelTramo > tope
+        ) {
+            const yFinal =
+                hasta === Infinity && typeof fin?.y === "number"
+                    ? fin.y
+                    : previo.y;
+            falla(
+                { t: finDelTramo, y: yFinal },
+                ref,
+                destino,
+                `la llamada suave pedia y=${destino} y se queda a medias en y=${yFinal} pasado el tope de ${TOPE_DE_SCROLL_SUAVE_MS} ms`,
+            );
+        }
+    }
+    if (sinExplicar.length === 0)
+        return { cumple: true, sinExplicar, explicados, motivo: null };
+    const primero = sinExplicar[0];
+    const detalle = primero.razon
+        ? `${primero.razon} (${primero.tipo} a t=${primero.tLlamada} ms)`
+        : `cuando la ultima llamada (${primero.tipo} a t=${primero.tLlamada} ms) lo dejo en y=${primero.desde} (${primero.y - primero.desde} px, tolerancia ${tolerancia})`;
+    return {
+        cumple: false,
+        sinExplicar,
+        explicados,
+        motivo: `el scroll se mueve sin ninguna llamada JS que lo explique: ${sinExplicar.length} evento(s), el primero a t=${primero.t} ms en y=${primero.y} ${detalle}`,
+    };
+}
+
+/**
+ * FAMILIA TREINTA Y TRES, `atras-y-adelante-restituyen-la-lectura` (F20-C1,
+ * candado d del diseno). La familia 26 afirma que el Atras restituye el
+ * DOCUMENTO de la URL y la 27 solo anota el `pathname` del Atras: ninguna mira
+ * `scrollY`. Con `"manual"` en la portada oscura el Atras/Adelante deja de ser
+ * de la nativa y pasa a `useHistoryScrollRestoration` (fragmento, legal) y a
+ * `useReloadLanding` (entre documentos): un restituidor apagado no lo veria
+ * nadie. El claro, en `"auto"`, es el CONTROL: ahi sigue mandando la nativa.
+ *
+ * MATRIZ: 1440x900, los dos temas (los pone la corrida), `/` y `/en`, tres
+ * rutas por portada, cada una en su contexto limpio y leyendo a
+ * `PROFUNDIDAD_DE_LECTURA_PX`:
+ *   - `fragmento` (R3): clic REAL en el enlace de Contacto de la cabecera,
+ *     Atras (vuelve a la profundidad), Adelante (vuelve a `#contact` en la
+ *     `y` en que aterrizo el clic) y un segundo Atras (otra vez a la
+ *     profundidad).
+ *   - `legal` (R4): el enlace de privacidad del pie (navegacion blanda de
+ *     `next/link`), Atras, Adelante (la legal en su `y`) y segundo Atras,
+ *     con las mismas exigencias.
+ *   - `idioma` (R2): el enlace `hreflang` del otro idioma (navegacion de
+ *     documento, raices distintas), Atras (vuelve a la profundidad) y, tras
+ *     la recarga de la clave, Adelante: tiene que aterrizar en la otra
+ *     portada (su `y` se anota, no se exige).
+ * Y la CLAVE: `navigation.currentEntry.key` identica antes de salir y despues
+ * del Atras de `idioma`, y antes y despues de una recarga. Es la identidad con
+ * la que el restituidor anota cada entrada; si cambiara entre cargas de
+ * documento, su registro no se encontraria nunca (hasta hoy solo estaba
+ * simulada en jsdom).
+ *
+ * Los enlaces del pie y del idioma se pulsan con `el.click()` y no con el clic
+ * de Playwright: este desplaza el enlace a la vista antes de pulsar, y la
+ * profundidad que el Atras tiene que restituir dejaria de ser la leida.
+ */
+export const PROFUNDIDAD_DE_LECTURA_PX = 2400;
+
+/** Las tres rutas que la familia 33 recorre en cada portada y tema. */
+export const RUTAS_DE_ATRAS_Y_ADELANTE = ["fragmento", "legal", "idioma"];
+
+/**
+ * Las rutas en las que la familia 33 exige, ademas del Adelante, su `y` y un
+ * SEGUNDO Atras a la profundidad leida (R3 y R4, las del restituidor). En
+ * `idioma` (R2) el Adelante solo tiene que aterrizar en la otra portada.
+ */
+export const RUTAS_CON_SEGUNDO_ATRAS = ["fragmento", "legal"];
+
+/** Las dos identidades de entrada que la familia 33 exige estables. */
+export const CLAVES_DE_ENTRADA_ESTABLES = ["idioma", "recarga"];
+
+/**
+ * EL VEREDICTO DE LA FAMILIA 33: puro y tabulado en el gate. Cada ruta tiene
+ * que (1) haberse ejercido (enlace encontrado, salida real: el salto movio el
+ * scroll o cambio de documento), (2) partir de una lectura lejos de la cima
+ * --volver a 0 no distingue restituir de no hacer nada--, (3) volver al mismo
+ * `pathname` y (4) a la profundidad leida con `tolerancia`. Cada clave tiene
+ * que existir y no cambiar.
+ */
+export function evaluaAtrasYAdelante({
+    theme,
+    surface,
+    rutas,
+    claves,
+    tolerancia,
+}) {
+    const motivos = [];
+    const donde = `${surface} ${theme}`;
+    const vistas = new Set((rutas ?? []).map((r) => r.ruta));
+    for (const ruta of RUTAS_DE_ATRAS_Y_ADELANTE)
+        if (!vistas.has(ruta))
+            motivos.push(
+                `${ruta} (${donde}): la ruta no se midio y una ruta sin medir no es un verde`,
+            );
+    for (const r of rutas ?? []) {
+        const id = `${r.ruta} (${donde})`;
+        if (!r.enlace) {
+            motivos.push(
+                `${id}: no se encontro el enlace del gesto; sin gesto el Atras no se ejercio`,
+            );
+            continue;
+        }
+        if (r.antes.y < 2 * tolerancia)
+            motivos.push(
+                `${id}: la lectura de partida esta en y=${r.antes.y}, a menos de ${2 * tolerancia} px de la cima: volver ahi no distingue restituir de no hacer nada`,
+            );
+        const salio =
+            r.salida.pathname !== r.antes.pathname ||
+            Math.abs(r.salida.y - r.antes.y) > tolerancia;
+        if (!salio)
+            motivos.push(
+                `${id}: el gesto no salio de la lectura (sigue en ${r.salida.pathname} y=${r.salida.y}): el Atras no probaria nada`,
+            );
+        /* ADELANTE aterriza donde estaba la entrada de destino: su documento
+           (y su fragmento), y --salvo en `idioma`, donde basta la otra
+           portada-- su `y`. Y en fragmento y legal, un SEGUNDO Atras vuelve
+           otra vez a la profundidad leida. */
+        if (!r.adelante)
+            motivos.push(
+                `${id}: el Adelante no se midio y un Adelante sin medir no es un verde`,
+            );
+        else {
+            const destino = `${r.salida.pathname}${r.salida.hash ?? ""}`;
+            const llega = `${r.adelante.pathname}${r.adelante.hash ?? ""}`;
+            if (llega !== destino)
+                motivos.push(
+                    `${id}: el Adelante deja ${llega} y la entrada de destino era ${destino}`,
+                );
+            else if (
+                RUTAS_CON_SEGUNDO_ATRAS.includes(r.ruta) &&
+                Math.abs(r.adelante.y - r.salida.y) > tolerancia
+            )
+                motivos.push(
+                    `${id}: el Adelante vuelve a ${llega} en y=${r.adelante.y} y la entrada de destino estaba en y=${r.salida.y} (deriva ${r.adelante.y - r.salida.y} px, tolerancia ${tolerancia} px; modo ${r.adelante.modo})`,
+                );
+        }
+        if (RUTAS_CON_SEGUNDO_ATRAS.includes(r.ruta)) {
+            const s = r.segundoAtras;
+            if (!s)
+                motivos.push(
+                    `${id}: el segundo Atras no se midio y un segundo Atras sin medir no es un verde`,
+                );
+            else if (s.pathname !== r.antes.pathname)
+                motivos.push(
+                    `${id}: el segundo Atras deja ${s.pathname} y la lectura estaba en ${r.antes.pathname}`,
+                );
+            else if (Math.abs(s.y - r.antes.y) > tolerancia)
+                motivos.push(
+                    `${id}: se leia en y=${r.antes.y} y el segundo Atras vuelve a y=${s.y} (deriva ${s.y - r.antes.y} px, tolerancia ${tolerancia} px; modo ${s.modo})`,
+                );
+        }
+        if (r.atras.pathname !== r.antes.pathname) {
+            motivos.push(
+                `${id}: el Atras deja ${r.atras.pathname} y la lectura estaba en ${r.antes.pathname}`,
+            );
+            continue;
+        }
+        const deriva = r.atras.y - r.antes.y;
+        if (Math.abs(deriva) > tolerancia)
+            motivos.push(
+                `${id}: se leia en y=${r.antes.y} y el Atras vuelve a y=${r.atras.y} (deriva ${deriva} px, tolerancia ${tolerancia} px; modo ${r.atras.modo})`,
+            );
+    }
+    for (const nombre of CLAVES_DE_ENTRADA_ESTABLES) {
+        const c = claves?.[nombre];
+        if (!c || typeof c.antes !== "string" || c.antes === "") {
+            motivos.push(
+                `clave de entrada en ${nombre} (${donde}): navigation.currentEntry.key no se pudo leer (${JSON.stringify(c?.antes ?? null)}): sin clave la identidad no se mide`,
+            );
+            continue;
+        }
+        if (c.despues !== c.antes)
+            motivos.push(
+                `clave de entrada en ${nombre} (${donde}): navigation.currentEntry.key cambia de ${c.antes} a ${JSON.stringify(c.despues)}`,
+            );
+    }
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/** Lee el estado de la entrada activa: scroll, ruta, modo y clave. */
+function leeEntradaActiva() {
+    return {
+        y: Math.round(window.scrollY),
+        pathname: location.pathname,
+        hash: location.hash,
+        modo: history.scrollRestoration,
+        clave: window.navigation?.currentEntry?.key ?? null,
+    };
+}
+
+/** Espera a que `scrollY` repita valor en dos lecturas separadas 400 ms. */
+async function esperaScrollQuieto(page) {
+    await page
+        .waitForFunction(
+            () => {
+                const y = Math.round(window.scrollY);
+                if (window.__vueltaQuieta === y) return true;
+                window.__vueltaQuieta = y;
+                return false;
+            },
+            null,
+            { polling: 400, timeout: 8000 },
+        )
+        .catch(() => {
+            /* Un scroll que no para se lee igualmente: la cifra lo dira. */
+        });
+    await page.evaluate(() => {
+        delete window.__vueltaQuieta;
+    });
+}
+
+/** Mide las tres rutas y las dos claves de la familia 33 en una portada. */
+export async function mideAtrasYAdelante(browser, base, theme, surface) {
+    const url = `${base}${surface.path}`;
+    const legal = LEGAL_DOCS[0][surface.locale];
+    const otro = surface.locale === "es" ? EN_PREFIX : "/";
+    const hreflangDelOtro = surface.locale === "es" ? "en" : "es";
+    const enRuta = (pathname) => (u) => new URL(u).pathname === pathname;
+    const rutas = [];
+    const claves = {};
+
+    const abre = async () => {
+        const ctx = await nuevoContexto(browser, theme);
+        const page = await ctx.newPage();
+        await page.goto(url, { waitUntil: "networkidle" });
+        await page.waitForTimeout(2200);
+        await page.evaluate(
+            (y) => window.scrollTo({ top: y, behavior: "instant" }),
+            PROFUNDIDAD_DE_LECTURA_PX,
+        );
+        /* Mas de un frame: el restituidor anota la entrada en el rAF que sigue
+           al evento `scroll`. */
+        await page.waitForTimeout(900);
+        return { ctx, page };
+    };
+    const pulsaPorScript = (page, selector) =>
+        page.evaluate((sel) => {
+            const a = document.querySelector(sel);
+            if (!a) return false;
+            a.click();
+            return true;
+        }, selector);
+
+    /* R3: fragmento de la cabecera y Atras. */
+    {
+        const { ctx, page } = await abre();
+        try {
+            const antes = await page.evaluate(leeEntradaActiva);
+            let enlace = null;
+            for (const c of await page.$$('header a[href$="#contact"]'))
+                if (await c.boundingBox()) {
+                    enlace = c;
+                    break;
+                }
+            if (!enlace) rutas.push({ ruta: "fragmento", enlace: false });
+            else {
+                await enlace.click();
+                await page.waitForTimeout(1200);
+                await esperaScrollQuieto(page);
+                const salida = await page.evaluate(leeEntradaActiva);
+                await page.evaluate(() => history.back());
+                await page.waitForTimeout(1500);
+                await esperaScrollQuieto(page);
+                const atras = await page.evaluate(leeEntradaActiva);
+                await page.evaluate(() => history.forward());
+                await page.waitForTimeout(1500);
+                await esperaScrollQuieto(page);
+                const adelante = await page.evaluate(leeEntradaActiva);
+                await page.evaluate(() => history.back());
+                await page.waitForTimeout(1500);
+                await esperaScrollQuieto(page);
+                const segundoAtras = await page.evaluate(leeEntradaActiva);
+                rutas.push({
+                    ruta: "fragmento",
+                    enlace: true,
+                    antes,
+                    salida,
+                    atras,
+                    adelante,
+                    segundoAtras,
+                });
+            }
+        } finally {
+            await ctx.close();
+        }
+    }
+
+    /* R4: legal del pie (blanda) y Atras. */
+    {
+        const { ctx, page } = await abre();
+        try {
+            const antes = await page.evaluate(leeEntradaActiva);
+            const pulsado = await pulsaPorScript(
+                page,
+                `footer a[href="${legal}"]`,
+            );
+            if (!pulsado) rutas.push({ ruta: "legal", enlace: false });
+            else {
+                await page.waitForURL(enRuta(legal), { timeout: 10000 });
+                await page.waitForTimeout(1200);
+                const salida = await page.evaluate(leeEntradaActiva);
+                await page.evaluate(() => history.back());
+                await page.waitForURL(enRuta(surface.path), {
+                    timeout: 10000,
+                });
+                await page.waitForTimeout(1500);
+                await esperaScrollQuieto(page);
+                const atras = await page.evaluate(leeEntradaActiva);
+                await page.evaluate(() => history.forward());
+                await page.waitForURL(enRuta(legal), { timeout: 10000 });
+                await page.waitForTimeout(1500);
+                await esperaScrollQuieto(page);
+                const adelante = await page.evaluate(leeEntradaActiva);
+                await page.evaluate(() => history.back());
+                await page.waitForURL(enRuta(surface.path), {
+                    timeout: 10000,
+                });
+                await page.waitForTimeout(1500);
+                await esperaScrollQuieto(page);
+                const segundoAtras = await page.evaluate(leeEntradaActiva);
+                rutas.push({
+                    ruta: "legal",
+                    enlace: true,
+                    antes,
+                    salida,
+                    atras,
+                    adelante,
+                    segundoAtras,
+                });
+            }
+        } finally {
+            await ctx.close();
+        }
+    }
+
+    /* R2: el otro idioma (documento nuevo), Atras, y la recarga. */
+    {
+        const { ctx, page } = await abre();
+        try {
+            const antes = await page.evaluate(leeEntradaActiva);
+            const pulsado = await pulsaPorScript(
+                page,
+                `a[hreflang="${hreflangDelOtro}"]`,
+            );
+            if (!pulsado) rutas.push({ ruta: "idioma", enlace: false });
+            else {
+                await page.waitForURL(enRuta(otro), {
+                    timeout: 15000,
+                    waitUntil: "load",
+                });
+                await page.waitForTimeout(1500);
+                const salida = await page.evaluate(leeEntradaActiva);
+                await page.goBack({ waitUntil: "load" });
+                await esperaAlturaEstable(page, { tope: 6000 });
+                await esperaScrollQuieto(page);
+                const atras = await page.evaluate(leeEntradaActiva);
+                rutas.push({
+                    ruta: "idioma",
+                    enlace: true,
+                    antes,
+                    salida,
+                    atras,
+                });
+                claves.idioma = { antes: antes.clave, despues: atras.clave };
+                await page.reload({ waitUntil: "networkidle" });
+                await page.waitForTimeout(800);
+                const recargada = await page.evaluate(leeEntradaActiva);
+                claves.recarga = {
+                    antes: atras.clave,
+                    despues: recargada.clave,
+                };
+                /* Adelante a la otra portada (documento nuevo otra vez). */
+                await page.goForward({ waitUntil: "load" });
+                await esperaAlturaEstable(page, { tope: 6000 });
+                await esperaScrollQuieto(page);
+                const ultima = rutas[rutas.length - 1];
+                ultima.adelante = await page.evaluate(leeEntradaActiva);
+            }
+        } finally {
+            await ctx.close();
+        }
+    }
+
+    return {
+        theme,
+        surface: surface.nombre,
+        rutas,
+        claves,
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+    };
 }
 
 /**
@@ -7401,6 +8192,9 @@ async function auditarSuperficie(browser, base, theme, surface) {
         const objetivoDeRecarga =
             OBJETIVO_DE_RECARGA_PX[theme] ?? OBJETIVO_DE_RECARGA_PX.dark;
         ctx = await nuevoContexto(browser, theme);
+        /* El TESTIGO (docblock de `testigoDeScrollEnPagina`): en el contexto
+           de la recarga y en cada uno de los simultaneos. */
+        await ctx.addInitScript(testigoDeScrollEnPagina);
         page = await ctx.newPage();
         await preparaLaRecarga(page, url, objetivoDeRecarga);
         const antesDeRecargar = await page.evaluate(
@@ -7422,6 +8216,19 @@ async function auditarSuperficie(browser, base, theme, surface) {
             pathname: location.pathname,
         });
         const modoTrasRecargar = await page.evaluate(leeModo);
+        /* Con `fin` (el instante y la `y` de la lectura): una llamada suave
+           que nunca llega solo se ve si se sabe hasta cuando se miro. */
+        const leeTestigo = () =>
+            window.__testigoScroll
+                ? {
+                      ...window.__testigoScroll,
+                      fin: {
+                          t: Math.round(performance.now()),
+                          y: Math.round(window.scrollY),
+                      },
+                  }
+                : null;
+        const testigoTrasRecargar = await page.evaluate(leeTestigo);
         await ctx.close();
 
         const veredictoDeRecarga = evaluaRecarga({
@@ -7446,6 +8253,7 @@ async function auditarSuperficie(browser, base, theme, surface) {
         const paginasSimultaneas = [];
         for (let i = 0; i < RECARGAS_SIMULTANEAS; i += 1) {
             const c = await nuevoContexto(browser, theme);
+            await c.addInitScript(testigoDeScrollEnPagina);
             contextosSimultaneos.push(c);
             paginasSimultaneas.push(await c.newPage());
         }
@@ -7481,7 +8289,31 @@ async function auditarSuperficie(browser, base, theme, surface) {
         const modosSimultaneos = await Promise.all(
             paginasSimultaneas.map((p) => p.evaluate(leeModo)),
         );
+        const testigosSimultaneos = await Promise.all(
+            paginasSimultaneas.map((p) => p.evaluate(leeTestigo)),
+        );
         for (const c of contextosSimultaneos) await c.close();
+
+        /* El testigo se juzga en las 1 + N recargas. La guarda de vacuidad
+           (`exigeLlamada`) solo donde la politica pone `"manual"`: ahi la
+           correccion del sitio es el unico motor y tiene que haberse visto. */
+        const veredictosDeTestigo = [
+            testigoTrasRecargar,
+            ...testigosSimultaneos,
+        ].map((registro, i) =>
+            evaluaTestigoDeScroll({
+                llamadas: registro?.llamadas,
+                eventos: registro?.eventos,
+                fin: registro?.fin,
+                tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+                exigeLlamada:
+                    evaluaModoDeRestitucion({
+                        theme,
+                        ...[modoTrasRecargar, ...modosSimultaneos][i],
+                    }).esperado === "manual",
+            }),
+        );
+        const testigosCaidos = veredictosDeTestigo.filter((v) => !v.cumple);
 
         /* El modo se exige en las 1 + N entradas: la del reposo y cada una de
            las recargas simultaneas. Es determinista, asi que cualquier pagina
@@ -7524,6 +8356,10 @@ async function auditarSuperficie(browser, base, theme, surface) {
         if (modosCaidos.length)
             fallos.push(
                 `el modo de restitucion del scroll no es el de la politica en ${modosCaidos.length} de ${veredictosDeModo.length} recargas: ${modosCaidos.map((v) => v.motivo).join("; ")}`,
+            );
+        if (testigosCaidos.length)
+            fallos.push(
+                `tras la correccion del sitio el scroll se mueve sin una llamada JS que lo explique en ${testigosCaidos.length} de ${veredictosDeTestigo.length} recargas (dos motores de scroll): ${testigosCaidos.map((v) => v.motivo).join("; ")}`,
             );
 
         /*
@@ -8076,6 +8912,29 @@ async function auditarSuperficie(browser, base, theme, surface) {
         if (veredictoDeRevelado.fallos.length)
             fallos.push(
                 `el revelado deja copia en pantalla y sin pintar por encima de la linea del -12 % (${veredictoDeRevelado.fallos.length} lectura(s)): ${veredictoDeRevelado.fallos.join(" | ")}`,
+            );
+
+        /*
+         * --- atras y adelante restituyen la lectura
+         *
+         * Matriz, rutas y el porque de cada guarda: docblock de
+         * `PROFUNDIDAD_DE_LECTURA_PX`.
+         */
+        const vuelta = await mideAtrasYAdelante(browser, base, theme, surface);
+        const veredictoDeVuelta = evaluaAtrasYAdelante(vuelta);
+        datos.atrasYAdelante = `${vuelta.rutas
+            .map((r) =>
+                r.enlace
+                    ? `${r.ruta}=${r.antes.y}->${r.atras.y}[${r.atras.modo}] adelante ${r.adelante ? `${r.adelante.pathname}${r.adelante.hash}@${r.adelante.y}` : "sin-medir"}${r.segundoAtras ? ` 2atras ${r.segundoAtras.y}` : ""}`
+                    : `${r.ruta}=sin-enlace`,
+            )
+            .join(
+                " ",
+            )} | clave idioma ${vuelta.claves.idioma?.antes === vuelta.claves.idioma?.despues ? "estable" : "CAMBIA"}, recarga ${vuelta.claves.recarga?.antes === vuelta.claves.recarga?.despues ? "estable" : "CAMBIA"}`;
+        // [check: atras-y-adelante-restituyen-la-lectura]
+        if (!veredictoDeVuelta.cumple)
+            fallos.push(
+                `Atras no devuelve al visitante a la profundidad que leia: ${veredictoDeVuelta.motivos.join(" | ")}`,
             );
     }
 
