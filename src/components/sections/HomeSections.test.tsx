@@ -406,6 +406,8 @@ describe("HomeSections", () => {
       .mockReturnValue([{ type: "reload" } as unknown as PerformanceEntry]);
     const scrollTo = vi.fn();
     vi.stubGlobal("scrollTo", scrollTo);
+    /* jsdom no expone la Navigation API: el almacén conserva el formato de
+       una sola posición (F20-A solo lo cambia donde esa API existe). */
     window.sessionStorage.setItem(
       STORAGE_KEYS.readingPosition,
       JSON.stringify({

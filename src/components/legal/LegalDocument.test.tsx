@@ -241,6 +241,22 @@ describe("LegalDocument", () => {
   });
 
   /*
+   * F20-A: `vti-reading-position` ya no sirve solo para la recarga; también
+   * devuelve a la portada su posición en Atrás/Adelante entre documentos. La
+   * finalidad declarada tiene que decir los dos usos, en los dos idiomas.
+   */
+  it.each([
+    ["es", esLegal, ["recargas", "Atrás", "Adelante"]] as const,
+    ["en", enLegal, ["reload", "Back", "Forward"]] as const,
+  ])(
+    "%s: la finalidad de vti-reading-position declara la recarga y Atrás/Adelante",
+    (_locale, bundle, usos) => {
+      const { purpose } = bundle.Legal.common.storage["vti-reading-position"];
+      for (const uso of usos) expect(purpose).toContain(uso);
+    },
+  );
+
+  /*
    * LA DURACIÓN DE UNA ENTRADA DE SESIÓN NO PUEDE ANUNCIARSE COMO PERSISTENTE
    * (2026-09-06, verificación de la ola S).
    *

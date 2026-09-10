@@ -7,8 +7,8 @@ import {
 } from "./branchSettledCorrection";
 import { FRAGMENT_LANDING_SETTLE_MS } from "./useFragmentLanding";
 import {
+  applyStoredReadingPosition,
   captureReadingAnchor,
-  restoreReadingAnchor,
   type ReadingAnchor,
 } from "./themeScrollAnchor";
 
@@ -273,14 +273,85 @@ function isStoredReadingPosition(
  * puede editar desde las herramientas del navegador: lo que no se reconoce se
  * descarta sin lanzar.
  */
-function parseStoredPosition(raw: string): StoredReadingPosition | null {
+function parseStoredPosition(raw: unknown): StoredReadingPosition | null {
+  return isStoredReadingPosition(raw) ? raw : null;
+}
+
+/**
+ * DOS FORMATOS, SEGÚN EL NAVEGADOR (F20-A, ruta R2 del diseño).
+ *
+ * CON la Navigation API, el almacén es un MAPA POR ENTRADA DEL HISTORIAL,
+ * indexado por `navigation.currentEntry.key` (estable entre documentos: una
+ * recarga o un Atrás que vuelve a cargar la entrada traen la misma clave).
+ * Cada ranura solo se aplica en la entrada que la escribió. Un mapa por
+ * `pathname` NO basta: la ranura de `/` sobrevivía a varias cargas y se
+ * aplicaba a OTRA entrada `/` (A a 5000 -> `/en` -> C `/` a 200 -> Atrás ->
+ * Atrás dejaba A en 200, donde la nativa acertaba).
+ *
+ * SIN la Navigation API, el formato y la regla son EXACTAMENTE los de
+ * `403bd29`: una sola posición en la raíz, que la carga siguiente consume
+ * entera y solo aplica con el mismo `pathname`. No hay forma fiable de
+ * distinguir dos entradas con la misma URL, así que ahí no se añade nada.
+ *
+ * `null` en `parseStoredMap` = lo guardado no es un mapa (JSON roto, o una
+ * posición suelta con `pathname` en la raíz): cuenta como ilegible, es decir,
+ * se retira entero y no se aplica.
+ */
+type StoredReadingPositions = Record<string, unknown>;
+
+interface NavigationEntryLike {
+  readonly key?: string;
+}
+
+/** Clave de la entrada ACTIVA del historial, o `null` sin Navigation API. */
+function currentEntryKey(): string | null {
+  const { navigation } = window as Window & {
+    navigation?: { readonly currentEntry?: NavigationEntryLike | null };
+  };
+  const key = navigation?.currentEntry?.key;
+  return typeof key === "string" && key !== "" ? key : null;
+}
+
+function parseStoredMap(raw: string): StoredReadingPositions | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
     return null;
   }
-  return isStoredReadingPosition(parsed) ? parsed : null;
+  if (typeof parsed !== "object" || parsed === null) return null;
+  if (Array.isArray(parsed)) return null;
+  // El formato anterior (una sola posición en la raíz) no es un mapa aunque
+  // sea un objeto: se reconoce por su `pathname` de texto en la raíz.
+  if (typeof (parsed as Record<string, unknown>).pathname === "string") {
+    return null;
+  }
+  return parsed as StoredReadingPositions;
+}
+
+function readStoredMap(): StoredReadingPositions {
+  let raw: string | null;
+  try {
+    raw = window.sessionStorage.getItem(STORAGE_KEYS.readingPosition);
+  } catch {
+    return {};
+  }
+  return raw === null ? {} : (parseStoredMap(raw) ?? {});
+}
+
+function writeStoredMap(map: StoredReadingPositions): void {
+  try {
+    if (Object.keys(map).length === 0) {
+      window.sessionStorage.removeItem(STORAGE_KEYS.readingPosition);
+      return;
+    }
+    window.sessionStorage.setItem(
+      STORAGE_KEYS.readingPosition,
+      JSON.stringify(map),
+    );
+  } catch {
+    // Sin almacenamiento no hay restitución: se degrada, no se rompe.
+  }
 }
 
 /**
@@ -302,21 +373,31 @@ function clearStoredPosition(): void {
   }
 }
 
+/** Con Navigation API escribe SOLO la ranura de la entrada activa: las de
+ *  otras entradas (la de `/` cuando se sale a `/en`) sobreviven para su propio
+ *  Atrás. Sin ella, la única posición de `403bd29`. */
 function writeStoredPosition(): void {
   const position: StoredReadingPosition = {
     pathname: window.location.pathname,
     scrollY: window.scrollY,
     anchor: captureReadingAnchor(),
   };
-  try {
-    window.sessionStorage.setItem(
-      STORAGE_KEYS.readingPosition,
-      JSON.stringify(position),
-    );
-  } catch {
-    // Sin almacenamiento no hay restitución, que es exactamente el
-    // comportamiento de hoy: se degrada, no se rompe.
+  const key = currentEntryKey();
+  if (key === null) {
+    try {
+      window.sessionStorage.setItem(
+        STORAGE_KEYS.readingPosition,
+        JSON.stringify(position),
+      );
+    } catch {
+      // Sin almacenamiento no hay restitución, que es exactamente el
+      // comportamiento de hoy: se degrada, no se rompe.
+    }
+    return;
   }
+  const map = readStoredMap();
+  map[key] = position;
+  writeStoredMap(map);
 }
 
 /**
@@ -391,9 +472,38 @@ function consumeStoredPosition(): StoredReadingPosition | null {
   }
   if (raw === null) return null;
 
-  clearStoredPosition();
+  const key = currentEntryKey();
+  if (key === null) {
+    // Sin Navigation API: la regla de `403bd29`, entera.
+    clearStoredPosition();
+    restorationConsumed = true;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    return parseStoredPosition(parsed);
+  }
+
+  const map = parseStoredMap(raw);
+  if (map === null) {
+    clearStoredPosition();
+    restorationConsumed = true;
+    return null;
+  }
+
+  // Con el mapa, "no había nada" es "no hay ranura para ESTA entrada": ahí no
+  // se consume nada y las ranuras de las demás entradas se quedan donde
+  // estaban.
+  if (!Object.prototype.hasOwnProperty.call(map, key)) return null;
+
+  const slot = map[key];
+  const rest: StoredReadingPositions = { ...map };
+  delete rest[key];
+  writeStoredMap(rest);
   restorationConsumed = true;
-  return parseStoredPosition(raw);
+  return parseStoredPosition(slot);
 }
 
 /**
@@ -491,19 +601,11 @@ export function useReloadLanding(branchKey: string): void {
       onFinish: () => {
         finishedRef.current = true;
       },
+      // La regla (ancla primero, píxel solo sin ancla, 1 px de umbral) es la
+      // misma que usan los recorridos del historial, y vive una sola vez en
+      // `applyStoredReadingPosition`, con su porqué.
       apply: () => {
-        if (restorable.anchor !== null) {
-          // `restoreReadingAnchor` decide por su cuenta si hay algo que
-          // corregir y no llama a `scrollTo` cuando la cuenta da el mismo
-          // sitio (umbral de 1 px). Su `false` NO es un fallo del que haya que
-          // recuperarse con el píxel guardado: significa "no hacía falta" o
-          // "el ancla ya no existe en esta rama", y en los dos casos mover la
-          // página a un número viejo sería peor que no hacer nada.
-          restoreReadingAnchor(restorable.anchor);
-          return;
-        }
-        if (Math.abs(window.scrollY - restorable.scrollY) < 1) return;
-        window.scrollTo({ top: restorable.scrollY, behavior: "instant" });
+        applyStoredReadingPosition(restorable);
       },
     });
   }, [branchKey]);

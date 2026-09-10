@@ -37,6 +37,14 @@
  * la ley («estrictamente necesario para prestar el servicio expresamente
  * solicitado»), no un supuesto tasado de esa guía.
  *
+ * FORMATO de `vti-reading-position` desde F20-A (2026-09-10): donde el
+ * navegador expone la Navigation API, un MAPA por entrada del historial
+ * (`navigation.currentEntry.key` -> `{pathname, scrollY, anchor}`); cada
+ * entrada escribe y consume solo su ranura, para que el Atrás desde `/en` a
+ * `/` no encuentre la suya pisada ni la de otra entrada `/`. Sin esa API, la
+ * única posición de siempre. Sigue siendo, por entrada, una `id` de sección y
+ * tres números, y no sale de `sessionStorage`.
+ *
  * AQUÍ VIVIÓ `vti-lang`, RETIRADA el 2026-09-02 (D3, decisión del dueño). El
  * argumento que la sostenía era el mismo de arriba —«el idioma también lo
  * elige la persona»— pero dejó de ser cierto cuando la ola G mudó el idioma a

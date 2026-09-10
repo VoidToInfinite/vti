@@ -38,7 +38,7 @@
                 },
                 "vti-reading-position": {
                     "name": "Posición de lectura (solo en esta pestaña)",
-                    "purpose": "Anota en qué sección de la portada ibas leyendo, para devolverte ahí si recargas la página. Vive solo en esta pestaña y se borra sola al cerrarla."
+                    "purpose": "Anota en qué sección de la portada ibas leyendo, para devolverte ahí si recargas la página o vuelves a ella con Atrás o Adelante. Vive solo en esta pestaña y se borra sola al cerrarla."
                 }
             }
         },

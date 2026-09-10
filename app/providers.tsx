@@ -8,6 +8,7 @@ import { GlobalStyles } from "@/theme/GlobalStyles";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { useHashHistorySeal } from "@/hooks/useHashHistorySeal";
 import { SkipLink } from "@/components/layout/SkipLink/SkipLink";
+import { HistoryScrollRestoration } from "@/components/layout/HistoryScrollRestoration/HistoryScrollRestoration";
 import { BackToTop } from "@/components/layout/BackToTop/BackToTop";
 import { Navbar } from "@/components/layout/Navbar/Navbar";
 import { Footer } from "@/components/layout/Footer/Footer";
@@ -101,6 +102,11 @@ export function Providers({
             no pueda resolverse por CSS, el proveedor va AQUÍ, dentro de
             `ThemeProvider` -- misma ubicación, mismo motivo (cualquier
             proveedor "de interfaz global" de la página). */}
+        {/* Restituidor de Atrás/Adelante dentro del documento (F20-A). Solo
+            actúa cuando la entrada de llegada está en
+            `history.scrollRestoration = "manual"`; con "auto" es inerte. No
+            pinta nada. */}
+        <HistoryScrollRestoration />
         {children}
       </ThemeProvider>
     </StyledComponentsRegistry>

@@ -406,3 +406,32 @@ export function restoreReadingAnchor(anchor: ReadingAnchor): boolean {
   window.scrollTo({ top: target, behavior: "instant" });
   return true;
 }
+
+/** Posición de lectura anotada: el ancla, o `null` si ninguna sección
+ *  intersecaba el viewport, y el `scrollY` como respaldo para ese caso. */
+export interface ReadingPositionSnapshot {
+  readonly scrollY: number;
+  readonly anchor: ReadingAnchor | null;
+}
+
+/**
+ * Devuelve al lector a una posición anotada. Es la MISMA regla para la recarga
+ * (`useReloadLanding`) y para los recorridos del historial dentro del
+ * documento (`useHistoryScrollRestoration`), y por eso vive aquí una sola vez.
+ *
+ * Con ancla, decide `restoreReadingAnchor` y su `false` NO se recupera con el
+ * píxel guardado: significa "no hacía falta" o "el ancla ya no existe", y en
+ * los dos casos mover la página a un número viejo sería peor que no hacer
+ * nada. Sin ancla, el píxel es lo único a lo que agarrarse, con el mismo
+ * umbral de 1 px y el mismo `behavior: "instant"`.
+ */
+export function applyStoredReadingPosition(
+  position: ReadingPositionSnapshot,
+): void {
+  if (position.anchor !== null) {
+    restoreReadingAnchor(position.anchor);
+    return;
+  }
+  if (Math.abs(window.scrollY - position.scrollY) < 1) return;
+  window.scrollTo({ top: position.scrollY, behavior: "instant" });
+}

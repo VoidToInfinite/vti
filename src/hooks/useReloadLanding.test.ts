@@ -195,6 +195,9 @@ const SAVED_POSITION = {
   },
 } as const;
 
+/* jsdom NO expone la Navigation API (`window.navigation` es `undefined`): los
+   casos que no la simulan ejercitan el formato de `403bd29`, una sola
+   posición en la raíz, sin cambio alguno. */
 function seedStoredPosition(position: unknown): void {
   window.sessionStorage.setItem(
     STORAGE_KEYS.readingPosition,
@@ -491,6 +494,82 @@ describe("useReloadLanding: cuándo se restituye", () => {
     flushFrame();
 
     expect(scrollToMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * F20-A, RUTA R2: LA SECUENCIA DE LA REVISIÓN. Cada paso es un DOCUMENTO
+   * (el cambio de idioma por `hreflang` y los Atrás entre raíces cargan de
+   * nuevo): A (`/`, sale a 5000) -> B (`/en`) -> C (`/`, navigate, sale a
+   * 200) -> Atrás a B -> Atrás a A. Un mapa por `pathname` dejaba a A en 200
+   * (la ranura de `/` la había escrito C); por entrada del historial, A
+   * recupera la suya. Sin Navigation API manda la nativa, como en `403bd29`.
+   */
+  describe("R2: A (/) -> B (/en) -> C (/) -> Atrás -> Atrás", () => {
+    let entryKey: string | null;
+
+    /** Una carga de documento: aterriza, corre sus frames y se va. */
+    function loadDocument(
+      pathname: string,
+      key: string,
+      type: string,
+      leaveAt: number,
+    ): void {
+      window.history.replaceState(null, "", pathname);
+      entryKey = key;
+      setNavigationType(type);
+      resetReadingRestorationForTests();
+      setScrollY(0);
+      const view = renderWithBranch("dark");
+      flushFrame();
+      flushFrame();
+      setScrollY(leaveAt);
+      window.dispatchEvent(new Event("pagehide"));
+      view.unmount();
+    }
+
+    function recorrer(): void {
+      loadDocument("/", "entrada-a", "navigate", 5000);
+      loadDocument("/en", "entrada-b", "navigate", 1500);
+      loadDocument("/", "entrada-c", "navigate", 200);
+      loadDocument("/en", "entrada-b", "back_forward", 1500);
+      scrollToMock.mockClear();
+      loadDocument("/", "entrada-a", "back_forward", 5000);
+    }
+
+    beforeEach(() => {
+      entryKey = null;
+    });
+
+    afterEach(() => {
+      window.history.replaceState(null, "", "/");
+    });
+
+    it("con Navigation API, A recupera SU posición (5000), no la de C (200)", () => {
+      vi.stubGlobal("navigation", {
+        get currentEntry() {
+          return entryKey === null ? null : { key: entryKey };
+        },
+      });
+
+      recorrer();
+
+      expect(scrollToMock).toHaveBeenCalledTimes(1);
+      expect(scrollToMock).toHaveBeenCalledWith({
+        top: 5000,
+        behavior: "instant",
+      });
+    });
+
+    it("sin Navigation API, el formato y la regla de 403bd29: una sola posición y manda la nativa", () => {
+      recorrer();
+
+      expect(scrollToMock).not.toHaveBeenCalled();
+      expect(readStoredPosition()).toEqual({
+        pathname: "/",
+        scrollY: 5000,
+        anchor: null,
+      });
+    });
   });
 
   /*
