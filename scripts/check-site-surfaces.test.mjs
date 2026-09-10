@@ -93,6 +93,12 @@ import {
     evaluaPuntoDeLectura,
     evaluaTintaPintada,
     evaluaVueltaArriba,
+    COMBINACIONES_DE_TABULACION,
+    INTERVALO_DE_TABULACION_MS,
+    evaluaTabulacionSinRezago,
+    COMBINACIONES_DE_ATERRIZAJE,
+    SECCIONES_DE_ATERRIZAJE,
+    evaluaAterrizajeDeAncla,
     fallosDeCrecimientoEnLaBanda,
     fallosDeDeudaNoObservada,
     fragmentoDe,
@@ -594,6 +600,8 @@ const FAMILIAS_ESPERADAS = [
     "tinta-pintada-dentro-del-viewport",
     "revelado-sin-banda-ciega",
     "condiciones-de-navegador-estables-en-la-corrida",
+    "tabulacion-sin-rezago",
+    "aterrizaje-de-ancla-constante",
 ];
 
 /**
@@ -671,8 +679,11 @@ const FAMILIAS_ESPERADAS = [
  * familias --la conexion estimada, que fija el umbral del cargador perezoso--,
  * los veredictos medidos antes y despues no son comparables y hay que decirlo en
  * vez de publicarlos juntos.
+ *
+ * Sube a 32 el 2026-09-10 con `tabulacion-sin-rezago` (P1 del objetivo >=98) y
+ * `aterrizaje-de-ancla-constante` (P2), en el mismo cambio que las anade.
  */
-const FAMILIAS_MINIMAS = 30;
+const FAMILIAS_MINIMAS = 32;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -5218,6 +5229,163 @@ describe("familia condiciones-de-navegador-estables-en-la-corrida", () => {
             veredictoDeDerivaDeCondiciones({
                 alEmpezar: "4g",
                 alTerminar: null,
+            }).cumple,
+        ).toBe(false);
+    });
+});
+
+/**
+ * LAS FAMILIAS TREINTA Y UNO Y TREINTA Y DOS (critica externa #21, P1 y P2 del
+ * objetivo >=98, 2026-09-10). Se ejercitan los VEREDICTOS con las cifras
+ * REALES medidas sobre el build de `d29da8e` (31 de 59 paradas fuera; primer
+ * aterrizaje a 192 px frente a 128, con `#contact` bajando de 4502 a 4566).
+ * La conduccion del navegador (`mideTabulacion`, `mideAterrizajeDeAncla`) se
+ * valida corriendola contra el build servido, roja sin el arreglo y verde con
+ * el, como las familias anteriores.
+ */
+describe("familia tabulacion-sin-rezago: el foco no se adelanta al scroll", () => {
+    const SIN_REDUCE = { ancho: 1440, alto: 900, reduce: "no-preference" };
+    const RATON_SUAVE = {
+        enlace: 'header a[href$="#story"]',
+        posiciones: 15,
+        focoVisible: false,
+    };
+
+    it("la matriz mide sin reduce, deja constancia de reduce y teclea a 120 ms", () => {
+        expect(COMBINACIONES_DE_TABULACION).toEqual([
+            { ancho: 1440, alto: 900, reduce: "no-preference" },
+            { ancho: 1440, alto: 900, reduce: "reduce" },
+        ]);
+        expect(INTERVALO_DE_TABULACION_MS).toBe(120);
+    });
+
+    it("cae con las cifras reales del defecto (31 de 59 paradas fuera)", () => {
+        const fuera = Array.from({ length: 31 }, (_, i) => `${i + 1}:a`);
+        const { cumple, motivos } = evaluaTabulacionSinRezago({
+            combinacion: SIN_REDUCE,
+            paradas: 59,
+            fuera,
+            raton: RATON_SUAVE,
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("31 de 59 paradas");
+    });
+
+    it("pasa con cero paradas fuera y el raton todavia suave", () => {
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: SIN_REDUCE,
+                paradas: 59,
+                fuera: [],
+                raton: RATON_SUAVE,
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("cae si el arreglo se hace quitando el barrido tambien al raton", () => {
+        const { cumple, motivos } = evaluaTabulacionSinRezago({
+            combinacion: SIN_REDUCE,
+            paradas: 59,
+            fuera: [],
+            raton: { ...RATON_SUAVE, posiciones: 1 },
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("barrido suave del raton");
+    });
+
+    it("cae si el clic de raton enciende :focus-visible", () => {
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: SIN_REDUCE,
+                paradas: 59,
+                fuera: [],
+                raton: { ...RATON_SUAVE, focoVisible: true },
+            }).cumple,
+        ).toBe(false);
+    });
+
+    it("cae si el recorrido no dio ni una parada o falta el enlace del raton", () => {
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: SIN_REDUCE,
+                paradas: 0,
+                fuera: [],
+                raton: RATON_SUAVE,
+            }).cumple,
+        ).toBe(false);
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: SIN_REDUCE,
+                paradas: 59,
+                fuera: [],
+                raton: null,
+            }).cumple,
+        ).toBe(false);
+    });
+
+    it("con reduce no exige el barrido del raton (alli el scroll es auto por diseno)", () => {
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: { ...SIN_REDUCE, reduce: "reduce" },
+                paradas: 59,
+                fuera: [],
+                raton: null,
+            }).cumple,
+        ).toBe(true);
+    });
+});
+
+describe("familia aterrizaje-de-ancla-constante: el primer salto aterriza como los siguientes", () => {
+    const SIN_REDUCE = { ancho: 1440, alto: 900, reduce: "no-preference" };
+
+    it("la matriz cubre las cuatro secciones de la barra en los dos sentidos de reduce", () => {
+        expect(SECCIONES_DE_ATERRIZAJE).toEqual([
+            "story",
+            "journey",
+            "features",
+            "contact",
+        ]);
+        expect(COMBINACIONES_DE_ATERRIZAJE.map((c) => c.reduce)).toEqual([
+            "no-preference",
+            "reduce",
+        ]);
+    });
+
+    it("cae con las cifras reales del defecto (192 frente a 128, 4502 -> 4566)", () => {
+        const { cumple, motivos } = evaluaAterrizajeDeAncla({
+            combinacion: SIN_REDUCE,
+            seccion: "contact",
+            enlace: true,
+            docTopAntes: 4502,
+            primero: { top: 192, docTop: 4566 },
+            segundo: { top: 128, docTop: 4566 },
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain(
+            "el primer salto aterriza a 192 px y el segundo a 128 px",
+        );
+        expect(motivos.join(" ")).toContain("de 4502 a 4566");
+    });
+
+    it("pasa cuando los dos saltos aterrizan a 128 y el destino no se mueve", () => {
+        expect(
+            evaluaAterrizajeDeAncla({
+                combinacion: SIN_REDUCE,
+                seccion: "contact",
+                enlace: true,
+                docTopAntes: 4566,
+                primero: { top: 128, docTop: 4566 },
+                segundo: { top: 128, docTop: 4566 },
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("cae si no hay enlace visible: un salto sin medir no es un verde", () => {
+        expect(
+            evaluaAterrizajeDeAncla({
+                combinacion: SIN_REDUCE,
+                seccion: "contact",
+                enlace: false,
             }).cumple,
         ).toBe(false);
     });

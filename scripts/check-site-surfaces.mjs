@@ -622,7 +622,8 @@ export const WIDTH_SWEEP = [
 ];
 
 /**
- * Las veintinueve familias que este script comprueba. La lista es el CONTRATO
+ * Las treinta y dos familias que este script comprueba (31 y 32, las de la
+ * tabulacion y el aterrizaje de ancla, el 2026-09-10). La lista es el CONTRATO
  * del candado: el test companero exige que ninguna desaparezca, porque un script
  * que mide trece cosas y dice medir catorce es peor que uno que no existe.
  *
@@ -671,6 +672,8 @@ export const CHECKS = [
     "tinta-pintada-dentro-del-viewport",
     "revelado-sin-banda-ciega",
     "condiciones-de-navegador-estables-en-la-corrida",
+    "tabulacion-sin-rezago",
+    "aterrizaje-de-ancla-constante",
 ];
 
 /**
@@ -4154,6 +4157,318 @@ export async function mideVueltaArriba(browser, theme, url, combinacion) {
 }
 
 /**
+ * FAMILIA TREINTA Y UNO, `tabulacion-sin-rezago` (critica externa #21, P1 del
+ * objetivo >=98, H1 y parte de H7, 2026-09-10).
+ *
+ * EL DEFECTO QUE NACE PARA VER, medido sobre el build servido de `d29da8e`
+ * (Chrome, `/`, oscuro, 1440x900, SIN `reduce`, Tab cada 120 ms): 31 de 59
+ * paradas con el foco ENTERO fuera del viewport justo antes de la siguiente
+ * pulsacion. La raiz: `html { scroll-behavior: smooth }` hace que el scroll
+ * inducido por el foco sea un barrido animado mas lento que la cadencia del
+ * teclado; al asentarse vuelve (0 fuera a 1,4 s), por eso ninguna familia que
+ * espera a que el foco se asiente --`recorrido-teclado`, `foco-visible`-- lo
+ * veia. Con `reduce` el computado ya es `auto` y el defecto no existe: esa
+ * combinacion entra como constancia, no como control (leccion 2026-09-07).
+ *
+ * LA CONTRAPARTIDA QUE TAMBIEN VIGILA: el arreglo aprobado
+ * (`html:has(:focus-visible) { scroll-behavior: auto }`) apaga el barrido solo
+ * con foco visible. Para que nadie "apruebe" esta familia quitando el smooth a
+ * todo el sitio, sin `reduce` se exige ademas que un clic de RATON en un
+ * enlace de seccion de la barra produzca al menos
+ * `POSICIONES_MINIMAS_DEL_BARRIDO_DE_RATON` posiciones de scroll distintas y
+ * no encienda `:focus-visible`.
+ */
+export const COMBINACIONES_DE_TABULACION = [
+    { ancho: 1440, alto: 900, reduce: "no-preference" },
+    { ancho: 1440, alto: 900, reduce: "reduce" },
+];
+
+/** Cadencia del teclado, en ms: la misma con la que se midio el defecto. */
+export const INTERVALO_DE_TABULACION_MS = 120;
+
+/** Tope de pulsaciones: el recorrido para antes si el foco vuelve al body. */
+export const TOPE_DE_PULSACIONES_DE_TABULACION = 160;
+
+/** Suelo de posiciones distintas del barrido de raton (medido: 15-16). */
+export const POSICIONES_MINIMAS_DEL_BARRIDO_DE_RATON = 4;
+
+/**
+ * Veredicto puro de una combinacion de `tabulacion-sin-rezago`. Recibe lo que
+ * `mideTabulacion` devuelve; exportada para ejercitarla en jsdom con las
+ * cifras reales del defecto.
+ */
+export function evaluaTabulacionSinRezago(medida) {
+    const { combinacion, paradas, fuera, raton } = medida;
+    const etiqueta = `${combinacion.ancho}x${combinacion.alto}@${combinacion.reduce}`;
+    const motivos = [];
+    if (paradas === 0)
+        motivos.push(
+            `${etiqueta}: el recorrido de teclado no dio ni una parada: sin paradas no se midio nada y el verde seria vacuo`,
+        );
+    if (fuera.length)
+        motivos.push(
+            `${etiqueta}: ${fuera.length} de ${paradas} paradas con el foco entero fuera del viewport justo antes de la siguiente pulsacion (Tab cada ${INTERVALO_DE_TABULACION_MS} ms): ${fuera.slice(0, 6).join(", ")}${fuera.length > 6 ? ", ..." : ""}`,
+        );
+    if (combinacion.reduce === "no-preference") {
+        if (!raton)
+            motivos.push(
+                `${etiqueta}: no hay enlace de seccion visible en la barra para el clic de raton: la contrapartida del arreglo quedo sin medir`,
+            );
+        else {
+            if (raton.posiciones < POSICIONES_MINIMAS_DEL_BARRIDO_DE_RATON)
+                motivos.push(
+                    `${etiqueta}: el clic de raton en ${raton.enlace} dio ${raton.posiciones} posiciones de scroll (suelo ${POSICIONES_MINIMAS_DEL_BARRIDO_DE_RATON}): el barrido suave del raton se perdio`,
+                );
+            if (raton.focoVisible)
+                motivos.push(
+                    `${etiqueta}: el clic de raton en ${raton.enlace} encendio :focus-visible, asi que el raton tambien pierde el barrido`,
+                );
+        }
+    }
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/**
+ * Conduce el navegador para UNA combinacion de `tabulacion-sin-rezago`.
+ * Exportada para poder correr esta familia SOLA contra un build servido.
+ */
+export async function mideTabulacion(browser, theme, url, combinacion) {
+    const ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: combinacion.ancho, height: combinacion.alto },
+        reducedMotion: combinacion.reduce,
+    });
+    try {
+        const page = await ctx.newPage();
+        await page.goto(url, { waitUntil: "networkidle" });
+        await page.waitForTimeout(2200);
+        let paradas = 0;
+        const fuera = [];
+        for (let n = 0; n < TOPE_DE_PULSACIONES_DE_TABULACION; n += 1) {
+            await page.keyboard.press("Tab");
+            await page.waitForTimeout(INTERVALO_DE_TABULACION_MS);
+            /* Se lee JUSTO antes de la siguiente pulsacion: es el instante en
+               que quien tabula decide si sigue, y el que el defecto vacia. */
+            const estado = await page.evaluate(() => {
+                const el = document.activeElement;
+                if (!el || el === document.body) return null;
+                const r = el.getBoundingClientRect();
+                const vacia = r.width === 0 && r.height === 0;
+                const nombre =
+                    el.tagName.toLowerCase() +
+                    (el.id ? `#${el.id}` : "") +
+                    (el.getAttribute("href")
+                        ? `[${el.getAttribute("href")}]`
+                        : "");
+                return {
+                    nombre,
+                    fuera:
+                        !vacia &&
+                        (r.bottom <= 0 ||
+                            r.top >= window.innerHeight ||
+                            r.right <= 0 ||
+                            r.left >= window.innerWidth),
+                };
+            });
+            /* El foco vuelve al body al salir del ultimo control: fin del
+               recorrido, del principio al pie. */
+            if (!estado) {
+                if (paradas > 0) break;
+                continue;
+            }
+            paradas += 1;
+            if (estado.fuera) fuera.push(`${paradas}:${estado.nombre}`);
+        }
+
+        let raton = null;
+        if (combinacion.reduce === "no-preference") {
+            await page.goto(url, { waitUntil: "networkidle" });
+            await page.waitForTimeout(2200);
+            const candidatos = await page.$$('header a[href$="#story"]');
+            let enlace = null;
+            for (const c of candidatos) {
+                if (await c.boundingBox()) {
+                    enlace = c;
+                    break;
+                }
+            }
+            if (enlace) {
+                await page.evaluate(() => {
+                    window.__tabPos = new Set();
+                    const t0 = performance.now();
+                    const paso = () => {
+                        window.__tabPos.add(Math.round(window.scrollY));
+                        if (performance.now() - t0 < 2500)
+                            requestAnimationFrame(paso);
+                    };
+                    requestAnimationFrame(paso);
+                });
+                /* Clic REAL de raton, por el mismo camino que una persona. */
+                await enlace.click();
+                await page.waitForTimeout(2600);
+                raton = await page.evaluate(() => ({
+                    enlace: 'header a[href$="#story"]',
+                    posiciones: window.__tabPos.size,
+                    focoVisible:
+                        document.querySelector(":focus-visible") !== null,
+                }));
+            }
+        }
+        return { combinacion, paradas, fuera, raton };
+    } finally {
+        await ctx.close();
+    }
+}
+
+/**
+ * FAMILIA TREINTA Y DOS, `aterrizaje-de-ancla-constante` (critica externa #21,
+ * P2 del objetivo >=98, parte de H4, 2026-09-10).
+ *
+ * EL DEFECTO QUE NACE PARA VER, medido sobre el build servido de `d29da8e`
+ * (Chrome, `/`, claro, 1440x900): el PRIMER salto a `#contact` aterriza con
+ * el titulo a 192 px del borde y los siguientes a 128. La raiz no es el
+ * navbar ni el `scroll-margin`: la figura destacada de Features es
+ * `loading="lazy"` y no tenia caja reservada en `lg`, asi que carga DURANTE el
+ * primer barrido, `#features` crece 65 px por encima del destino ya fijado y
+ * `#contact` baja en el documento de 4.502 a 4.566. En los saltos siguientes
+ * la imagen ya esta y la maquetacion no se mueve. Con el salto instantaneo
+ * (`reduce`) tambien daba 192: el anclaje de scroll del navegador no lo
+ * compensa, asi que el eje de `reduce` entra como caso propio.
+ *
+ * POR QUE CONTEXTO NUEVO POR SECCION: el defecto solo existe con la cache
+ * FRIA (primer salto); un contexto compartido lo esconderia a partir de la
+ * segunda seccion medida.
+ *
+ * LO QUE NO MIDE (pendiente declarado): 390x844 por la hoja movil, que no
+ * vive dentro de `<header>`; por debajo de 62em el panel tiene alto fijo y el
+ * 100 % de la figura es definido, asi que no deberia crecer, pero esta sin
+ * medir.
+ */
+export const COMBINACIONES_DE_ATERRIZAJE = [
+    { ancho: 1440, alto: 900, reduce: "no-preference" },
+    { ancho: 1440, alto: 900, reduce: "reduce" },
+];
+
+/** Secciones de la barra, en el orden de `src/config/navigation.ts`. */
+export const SECCIONES_DE_ATERRIZAJE = [
+    "story",
+    "journey",
+    "features",
+    "contact",
+];
+
+/** Tolerancia entre el primer aterrizaje y el segundo, en px. */
+export const TOLERANCIA_DE_ATERRIZAJE_PX = 2;
+
+/** Veredicto puro de UNA seccion en UNA combinacion. */
+export function evaluaAterrizajeDeAncla(medida) {
+    const { combinacion, seccion, enlace } = medida;
+    const etiqueta = `${combinacion.ancho}x${combinacion.alto}@${combinacion.reduce} #${seccion}`;
+    const motivos = [];
+    if (!enlace) {
+        motivos.push(
+            `${etiqueta}: no hay enlace visible a la seccion en la barra: el salto quedo sin medir`,
+        );
+        return { cumple: false, motivos };
+    }
+    const { docTopAntes, primero, segundo } = medida;
+    if (Math.abs(primero.top - segundo.top) > TOLERANCIA_DE_ATERRIZAJE_PX)
+        motivos.push(
+            `${etiqueta}: el primer salto aterriza a ${primero.top} px y el segundo a ${segundo.top} px (tolerancia ${TOLERANCIA_DE_ATERRIZAJE_PX} px)`,
+        );
+    if (Math.abs(primero.docTop - docTopAntes) > TOLERANCIA_DE_ATERRIZAJE_PX)
+        motivos.push(
+            `${etiqueta}: el destino se movio en el documento durante el primer salto (de ${docTopAntes} a ${primero.docTop}): algo por encima cambio de alto a mitad de viaje`,
+        );
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/**
+ * Conduce el navegador para UNA seccion en UNA combinacion, con contexto
+ * nuevo. Exportada para poder correr esta familia SOLA contra un build servido.
+ */
+export async function mideAterrizajeDeAncla(
+    browser,
+    theme,
+    url,
+    combinacion,
+    seccion,
+) {
+    const ctx = await nuevoContexto(browser, theme, {
+        viewport: { width: combinacion.ancho, height: combinacion.alto },
+        reducedMotion: combinacion.reduce,
+    });
+    try {
+        const page = await ctx.newPage();
+        await page.goto(url, { waitUntil: "networkidle" });
+        await page.waitForTimeout(2200);
+        const selector = `header a[href$="#${seccion}"]`;
+        const buscaEnlace = async () => {
+            for (const c of await page.$$(selector)) {
+                if (await c.boundingBox()) return c;
+            }
+            return null;
+        };
+        const lee = () =>
+            page.evaluate((id) => {
+                const el = document.getElementById(id);
+                if (!el) return null;
+                const top = el.getBoundingClientRect().top;
+                return {
+                    top: Math.round(top),
+                    docTop: Math.round(top + window.scrollY),
+                };
+            }, seccion);
+        const esperaQuieto = () =>
+            page
+                .waitForFunction(
+                    () => {
+                        const y = Math.round(window.scrollY);
+                        if (window.__aterrizaQuieto === y) return true;
+                        window.__aterrizaQuieto = y;
+                        return false;
+                    },
+                    null,
+                    { polling: 400, timeout: 12000 },
+                )
+                .catch(() => {
+                    /* Un scroll que no para se lee igualmente: la cifra lo dira. */
+                })
+                .then(() =>
+                    page.evaluate(() => {
+                        delete window.__aterrizaQuieto;
+                    }),
+                );
+
+        let enlace = await buscaEnlace();
+        if (!enlace) return { combinacion, seccion, enlace: false };
+        const antes = await lee();
+        await enlace.click();
+        await esperaQuieto();
+        const primero = await lee();
+
+        await page.evaluate(() =>
+            window.scrollTo({ top: 0, behavior: "instant" }),
+        );
+        await page.waitForTimeout(1200);
+        enlace = await buscaEnlace();
+        if (!enlace) return { combinacion, seccion, enlace: false };
+        await enlace.click();
+        await esperaQuieto();
+        const segundo = await lee();
+        return {
+            combinacion,
+            seccion,
+            enlace: true,
+            docTopAntes: antes.docTop,
+            primero,
+            segundo,
+        };
+    } finally {
+        await ctx.close();
+    }
+}
+
+/**
  * FAMILIA VEINTICINCO, `conmutar-el-tema-no-congela-la-pagina` (critica
  * externa #21, ola U, 2026-09-08). Segunda familia de este script que juzga
  * un GESTO por su resultado, y la primera que mide el PIXEL de la portada
@@ -7526,6 +7841,82 @@ async function auditarSuperficie(browser, base, theme, surface) {
             fallos.push(
                 `el control «volver arriba» no cumple lo que promete (${vueltasCaidas.length} de ${vueltas.length} combinaciones): ${vueltasCaidas
                     .flatMap((v) => v.veredicto.motivos)
+                    .join(" | ")}`,
+            );
+
+        /*
+         * --- tabular no deja el foco por delante del scroll
+         *
+         * La matriz y el porque de cada eje estan en el docblock de
+         * `COMBINACIONES_DE_TABULACION`.
+         */
+        const tabulaciones = [];
+        for (const combinacion of COMBINACIONES_DE_TABULACION) {
+            const medida = await mideTabulacion(
+                browser,
+                theme,
+                url,
+                combinacion,
+            );
+            tabulaciones.push({
+                ...medida,
+                veredicto: evaluaTabulacionSinRezago(medida),
+            });
+        }
+        const tabulacionesCaidas = tabulaciones.filter(
+            (t) => !t.veredicto.cumple,
+        );
+        datos.tabulacion = `${tabulaciones.length - tabulacionesCaidas.length}/${tabulaciones.length} combinaciones sin rezago ${tabulaciones
+            .map(
+                (t) =>
+                    `${t.combinacion.ancho}@${t.combinacion.reduce}=${t.fuera.length}/${t.paradas}`,
+            )
+            .join(" ")}`;
+        // [check: tabulacion-sin-rezago]
+        if (tabulacionesCaidas.length)
+            fallos.push(
+                `el foco se adelanta al scroll al tabular (${tabulacionesCaidas.length} de ${tabulaciones.length} combinaciones): ${tabulacionesCaidas
+                    .flatMap((t) => t.veredicto.motivos)
+                    .join(" | ")}`,
+            );
+
+        /*
+         * --- el primer salto a una ancla aterriza como los siguientes
+         *
+         * La matriz, y por que cada seccion estrena contexto, estan en el
+         * docblock de `COMBINACIONES_DE_ATERRIZAJE`.
+         */
+        const aterrizajes = [];
+        for (const combinacion of COMBINACIONES_DE_ATERRIZAJE) {
+            for (const seccion of SECCIONES_DE_ATERRIZAJE) {
+                const medida = await mideAterrizajeDeAncla(
+                    browser,
+                    theme,
+                    url,
+                    combinacion,
+                    seccion,
+                );
+                aterrizajes.push({
+                    ...medida,
+                    veredicto: evaluaAterrizajeDeAncla(medida),
+                });
+            }
+        }
+        const aterrizajesCaidos = aterrizajes.filter(
+            (a) => !a.veredicto.cumple,
+        );
+        datos.aterrizajeDeAncla = `${aterrizajes.length - aterrizajesCaidos.length}/${aterrizajes.length} saltos aterrizan igual la primera vez ${aterrizajes
+            .map((a) =>
+                a.enlace
+                    ? `${a.combinacion.reduce}#${a.seccion}=${a.primero.top}/${a.segundo.top}`
+                    : `${a.combinacion.reduce}#${a.seccion}=sin-enlace`,
+            )
+            .join(" ")}`;
+        // [check: aterrizaje-de-ancla-constante]
+        if (aterrizajesCaidos.length)
+            fallos.push(
+                `el primer salto a una ancla no aterriza como los siguientes (${aterrizajesCaidos.length} de ${aterrizajes.length}): ${aterrizajesCaidos
+                    .flatMap((a) => a.veredicto.motivos)
                     .join(" | ")}`,
             );
 
