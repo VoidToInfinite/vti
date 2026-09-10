@@ -50,6 +50,12 @@
  *   node scripts/serve-watchdog.mjs --dir=out --port=4321
  *   node scripts/serve-watchdog.mjs --dir=C:/tmp/copia-f3594ad --port=4321 \
  *       --log=C:/tmp/vigilante.log --probe-ms=2000
+ *   node scripts/serve-watchdog.mjs --dir=out --port=4321 --servidor=medicion
+ *
+ * `--servidor` elige el hijo: `serve` (por defecto, el de siempre) o
+ * `medicion` (`scripts/serve-measure.mjs`, la 404 por prefijo de Netlify con
+ * el handler y la compresión de la misma instalación de `serve`). Ver
+ * `SERVIDORES`.
  *
  * El log y el fichero de PIDs, si no se dicen, van al directorio temporal del
  * sistema con el puerto en el nombre.
@@ -170,6 +176,7 @@ const CLAVES = new Set([
     "probe-ms",
     "serve-main",
     "pid-file",
+    "servidor",
 ]);
 
 /** Rutas por defecto del log y del fichero de PIDs, derivadas del puerto. */
@@ -237,6 +244,14 @@ export function parseArgs(argv) {
         );
     }
 
+    const servidor = bruto.get("servidor") ?? SERVIDOR_POR_DEFECTO;
+    if (!SERVIDORES.includes(servidor)) {
+        throw new Error(
+            `--servidor tiene que ser uno de ${SERVIDORES.join(", ")}, y ` +
+                `llegó «${servidor}».`,
+        );
+    }
+
     const defectos = rutasPorDefecto(port);
     const log = bruto.get("log");
     const pidFile = bruto.get("pid-file");
@@ -248,6 +263,7 @@ export function parseArgs(argv) {
         pidFile: pidFile ? path.resolve(pidFile) : defectos.pidFile,
         probeMs,
         serveMain: bruto.get("serve-main") ?? null,
+        servidor,
     };
 }
 
@@ -296,8 +312,40 @@ export function resolveServeMain({
     );
 }
 
-/** Los argumentos con los que se lanza `serve`, iguales a los de `pnpm start`. */
-export function argumentosDelServidor({ serveMain, dir, port }) {
+/**
+ * Los servidores que el vigilante sabe lanzar. `serve` es el de siempre y el
+ * valor por defecto; `medicion` es `scripts/serve-measure.mjs` (2026-09-10),
+ * que monta el `serve-handler` y la `compression` de ESA MISMA instalación de
+ * `serve` con su misma configuración y solo cambia `sendError`, para
+ * reproducir la 404 por prefijo de `netlify.toml` (`/en/*` sirve
+ * `out/en/404.html` con estado 404). Es opt-in: mientras no se elija, las
+ * cifras siguen siendo comparables con las críticas #11 en adelante.
+ */
+export const SERVIDORES = Object.freeze(["serve", "medicion"]);
+export const SERVIDOR_POR_DEFECTO = "serve";
+export const SERVE_MEASURE = fileURLToPath(
+    new URL("./serve-measure.mjs", import.meta.url),
+);
+
+/**
+ * Los argumentos del hijo. Con `serve`, iguales a los de `pnpm start`; con
+ * `medicion`, el servidor propio recibe la MISMA entrada de `serve`, de la que
+ * toma handler y compresión.
+ */
+export function argumentosDelServidor({
+    serveMain,
+    dir,
+    port,
+    servidor = SERVIDOR_POR_DEFECTO,
+}) {
+    if (servidor === "medicion") {
+        return [
+            SERVE_MEASURE,
+            `--dir=${dir}`,
+            `--port=${port}`,
+            `--serve-main=${serveMain}`,
+        ];
+    }
     return [serveMain, dir, "-l", String(port), "--no-clipboard"];
 }
 
@@ -432,6 +480,7 @@ export async function startWatchdog({
     probeMs = DEFAULT_PROBE_MS,
     arranqueMs = ARRANQUE_MS,
     serveMain = null,
+    servidor = SERVIDOR_POR_DEFECTO,
     spawnFn = spawn,
     reloj = () => new Date().toISOString(),
     ahoraMs = () => Date.now(),
@@ -468,7 +517,7 @@ export async function startWatchdog({
     function lanza(motivo) {
         const proceso = spawnFn(
             process.execPath,
-            argumentosDelServidor({ serveMain: entrada, dir, port }),
+            argumentosDelServidor({ serveMain: entrada, dir, port, servidor }),
             opcionesDeSpawn(logFd),
         );
         hijo = proceso;
