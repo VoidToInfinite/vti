@@ -9,10 +9,13 @@ import React, {
   useState,
   type ReactElement,
 } from "react";
+import { usePathname } from "next/navigation";
 import { ThemeProvider as SCThemeProvider } from "styled-components";
 import { STORAGE_KEYS } from "@/config/storage";
 import {
+  readResolvedTheme,
   resolveInitialTheme,
+  scrollRestorationFor,
   THEME_ATTRIBUTE,
   THEME_COLORS,
 } from "./resolveTheme";
@@ -80,6 +83,36 @@ function writeStoredTheme(name: ThemeName): void {
     window.localStorage.setItem(STORAGE_KEYS.theme, name);
   } catch {
     /* almacenamiento bloqueado: la sesion sigue funcionando sin persistir */
+  }
+}
+
+/**
+ * Reescribe el modo de restitución del scroll de la entrada del historial EN
+ * CURSO con la misma regla que el script de arranque (`scrollRestorationFor`,
+ * `resolveTheme.ts`). El script lo fija una sola vez por documento; este
+ * proveedor lo mantiene al día cuando cambia algo de lo que la regla lee: el
+ * tema (conmutador o seguimiento del sistema), la ruta (navegación blanda de
+ * Next, que crea entradas nuevas en el mismo documento) y la vuelta desde la
+ * bfcache, donde el script de arranque no se vuelve a ejecutar.
+ *
+ * Lee `location.pathname` en el momento de la llamada y no el valor de
+ * `usePathname()`: el modo pertenece a la ENTRADA, y la URL de la entrada es la
+ * que el navegador tiene en ese instante (Next ya la ha empujado en la fase de
+ * mutación del mismo commit).
+ *
+ * El `try/catch` es el gemelo del del script: un `history` que lance al
+ * escribir no puede tumbar el efecto que también fija `data-theme`.
+ */
+function syncScrollRestoration(theme: string | null): void {
+  try {
+    window.history.scrollRestoration = scrollRestorationFor(
+      theme,
+      window.location.pathname,
+      (window as Window & { navigation?: { readonly currentEntry?: unknown } })
+        .navigation,
+    );
+  } catch {
+    /* sin modo escribible: la entrada conserva el que tuviera */
   }
 }
 
@@ -274,6 +307,37 @@ export function ThemeProvider({
     const meta = document.querySelector('meta[name="theme-color"]');
     meta?.setAttribute("content", THEME_COLORS[themeName]);
   }, [themeName, changeSource]);
+
+  // El modo de restitución del scroll sale por la MISMA puerta que
+  // `data-theme` (misma guarda de "initial": en la pasada inicial el
+  // `themeName` es el "light" sin confirmar y escribir `"auto"` pisaría el
+  // `"manual"` que el script de arranque acaba de acertar para el visitante
+  // oscuro). Además depende de la ruta: una navegación blanda desde una legal
+  // oscura hacia la portada tiene que pasar a `"manual"`, y la inversa a
+  // `"auto"`. Con `changeSource === "initial"` el tema resuelto es el claro y
+  // la entrada ya lleva el `"auto"` que el script le puso, así que no hay nada
+  // que corregir tampoco al cambiar de ruta.
+  const pathname = usePathname();
+  useEffect(() => {
+    if (changeSource === "initial") return;
+    syncScrollRestoration(themeName);
+  }, [themeName, changeSource, pathname]);
+
+  // Vuelta desde la bfcache (`pageshow` con `persisted`): el documento se
+  // restaura entero, sin volver a ejecutar el script de arranque ni ningún
+  // efecto de montaje, así que la entrada conserva el modo con el que se fue.
+  // Se reaplica la regla con el tema PINTADO (`data-theme`, que este proveedor
+  // mantiene al día), no con un cierre de `themeName` capturado al suscribirse.
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent): void => {
+      if (!event.persisted) return;
+      syncScrollRestoration(readResolvedTheme());
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, []);
 
   const toggleTheme = useCallback(() => {
     setChangeSource("user");

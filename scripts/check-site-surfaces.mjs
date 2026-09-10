@@ -1215,6 +1215,56 @@ export const DERIVA_MAXIMA_DE_RECARGA_PX = NAV_BAND_PX;
 export const RECARGAS_SIMULTANEAS = 5;
 
 /**
+ * EL MODO DE RESTITUCION QUE CADA TEMA TIENE QUE DEJAR EN LA PORTADA tras una
+ * recarga (F20-A, 2026-09-10). Es la mitad DETERMINISTA de esta familia: el
+ * aterrizaje (`evaluaRecarga`) solo sale rojo cuando la tirada pierde la
+ * carrera, y el modo sale rojo en CADA corrida en cuanto el interruptor falta.
+ *
+ * La causa confirmada: con `history.scrollRestoration = "auto"` la restitucion
+ * NATIVA llega despues de la unica correccion del sitio y la deshace (15 pares
+ * emparejados: `auto` 47 de 75 paginas en rojo, `manual` 0 de 75). Decision del
+ * dueno: `"manual"` solo en oscuro y solo en la portada. El claro es el CONTROL:
+ * tiene que seguir en `"auto"`, porque ahi la nativa acierta y un `"manual"`
+ * forzado siempre dejaria Atras y Adelante en manos de un restituidor que la
+ * rama clara no necesita.
+ *
+ * La tabla vive aqui, escrita a mano, y NO se importa de `src/theme`: un
+ * instrumento que lee la regla del codigo que juzga no prueba nada.
+ */
+export const MODO_DE_RESTITUCION_EN_LA_PORTADA = {
+    dark: "manual",
+    light: "auto",
+};
+
+/** Las rutas servidas de las dos portadas (`trailingSlash: false`). */
+export const RUTAS_DE_PORTADA = ["/", "/index.html", "/en", "/en.html"];
+
+/**
+ * EL VEREDICTO DEL MODO: puro y tabulado en el gate. Fuera de las portadas
+ * espera `"auto"` en los dos temas. Un `modo` que no sea ni `"auto"` ni
+ * `"manual"` (la lectura no llego, o el navegador no implementa la propiedad)
+ * no es verde: es la sonda sin objeto, y se declara incumplimiento.
+ */
+export function evaluaModoDeRestitucion({ theme, pathname, modo }) {
+    const esperado = RUTAS_DE_PORTADA.includes(pathname)
+        ? (MODO_DE_RESTITUCION_EN_LA_PORTADA[theme] ?? "auto")
+        : "auto";
+    if (modo !== "auto" && modo !== "manual")
+        return {
+            esperado,
+            cumple: false,
+            motivo: `history.scrollRestoration leido en ${pathname} (tema ${theme}) vale ${JSON.stringify(modo)}: sin un modo legible la sonda quedaria vacua`,
+        };
+    if (modo !== esperado)
+        return {
+            esperado,
+            cumple: false,
+            motivo: `tras recargar ${pathname} en tema ${theme} history.scrollRestoration vale "${modo}" y tendria que valer "${esperado}"`,
+        };
+    return { esperado, cumple: true, motivo: null };
+}
+
+/**
  * FAMILIA VEINTIUNA, `arte-no-pintado-por-tema-y-dpr`: las densidades de
  * pantalla en las que se comprueba que el navegador no descarga arte que la
  * pagina no llega a pintar.
@@ -7363,6 +7413,15 @@ async function auditarSuperficie(browser, base, theme, surface) {
             probeSeccionDelCentro,
             CENTRO_DEL_VIEWPORT,
         );
+        /* El INVARIANTE del modo (docblock de
+           `MODO_DE_RESTITUCION_EN_LA_PORTADA`): se lee de la entrada que la
+           recarga deja en curso, con su `pathname` real y no con el de la
+           superficie, para que una redireccion no lo haga pasar por otro. */
+        const leeModo = () => ({
+            modo: history.scrollRestoration,
+            pathname: location.pathname,
+        });
+        const modoTrasRecargar = await page.evaluate(leeModo);
         await ctx.close();
 
         const veredictoDeRecarga = evaluaRecarga({
@@ -7419,7 +7478,18 @@ async function auditarSuperficie(browser, base, theme, surface) {
                 p.evaluate(probeSeccionDelCentro, CENTRO_DEL_VIEWPORT),
             ),
         );
+        const modosSimultaneos = await Promise.all(
+            paginasSimultaneas.map((p) => p.evaluate(leeModo)),
+        );
         for (const c of contextosSimultaneos) await c.close();
+
+        /* El modo se exige en las 1 + N entradas: la del reposo y cada una de
+           las recargas simultaneas. Es determinista, asi que cualquier pagina
+           en el modo equivocado es el interruptor ausente, no mala suerte. */
+        const veredictosDeModo = [modoTrasRecargar, ...modosSimultaneos].map(
+            (l) => evaluaModoDeRestitucion({ theme, ...l }),
+        );
+        const modosCaidos = veredictosDeModo.filter((v) => !v.cumple);
 
         const lecturasSimultaneas = antesSimultaneo.map((antes, i) => ({
             antes,
@@ -7450,6 +7520,10 @@ async function auditarSuperficie(browser, base, theme, surface) {
         if (!veredictoSimultaneo.cumple)
             fallos.push(
                 `recargar la pagina no devuelve al visitante donde estaba con la maquina cargada: ${veredictoSimultaneo.motivo}`,
+            );
+        if (modosCaidos.length)
+            fallos.push(
+                `el modo de restitucion del scroll no es el de la politica en ${modosCaidos.length} de ${veredictosDeModo.length} recargas: ${modosCaidos.map((v) => v.motivo).join("; ")}`,
             );
 
         /*

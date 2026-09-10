@@ -87,6 +87,9 @@ import {
     evaluaEscenariosFijados,
     evaluaContrasteDeCabecera,
     evaluaEstadoModal,
+    evaluaModoDeRestitucion,
+    MODO_DE_RESTITUCION_EN_LA_PORTADA,
+    RUTAS_DE_PORTADA,
     evaluaRecarga,
     evaluaRecargaSimultanea,
     evaluaPuntoDeLectura,
@@ -2171,6 +2174,56 @@ describe("el idioma que cada superficie tiene que anunciar", () => {
  *
  * «Tests 2 failed | 45 passed (47)». Restaurada la tolerancia, 47/47 en verde.
  */
+describe("el veredicto del modo de restitucion tras recargar", () => {
+    /* La tabla de la politica (F20-A): "manual" solo en la portada oscura,
+       "auto" en la clara y fuera de la portada. Cada fila es una lectura
+       posible de `history.scrollRestoration` tras la recarga. */
+    it.each([
+        ["dark", "/", "manual", true],
+        ["dark", "/en", "manual", true],
+        ["dark", "/index.html", "manual", true],
+        ["dark", "/en.html", "manual", true],
+        ["dark", "/", "auto", false],
+        ["dark", "/en", "auto", false],
+        ["light", "/", "auto", true],
+        ["light", "/en", "auto", true],
+        ["light", "/", "manual", false],
+        ["light", "/en", "manual", false],
+        ["dark", "/privacidad", "auto", true],
+        ["dark", "/privacidad", "manual", false],
+    ])(
+        "tema %s en %s con modo %s -> cumple %s",
+        (theme, pathname, modo, cumple) => {
+            const r = evaluaModoDeRestitucion({ theme, pathname, modo });
+            expect(r.cumple).toBe(cumple);
+            if (!cumple) expect(r.motivo).toContain(pathname);
+        },
+    );
+
+    it("un modo ilegible no es verde: la sonda sin objeto se declara incumplimiento", () => {
+        const r = evaluaModoDeRestitucion({
+            theme: "dark",
+            pathname: "/",
+            modo: undefined,
+        });
+        expect(r.cumple).toBe(false);
+        expect(r.motivo).toContain("vacua");
+    });
+
+    it("la tabla del instrumento es la acordada con el dueno", () => {
+        expect(MODO_DE_RESTITUCION_EN_LA_PORTADA).toEqual({
+            dark: "manual",
+            light: "auto",
+        });
+        expect(RUTAS_DE_PORTADA).toEqual([
+            "/",
+            "/index.html",
+            "/en",
+            "/en.html",
+        ]);
+    });
+});
+
 describe("el veredicto de la recarga", () => {
     it("una recarga que cambia de seccion no cumple, y la que se queda dentro de la tolerancia si", () => {
         /*

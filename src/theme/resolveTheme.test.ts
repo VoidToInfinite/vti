@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { STORAGE_KEYS } from "@/config/storage";
 import {
   buildThemeBootstrapScript,
   resolveInitialTheme,
+  scrollRestorationFor,
   THEME_ATTRIBUTE,
   THEME_COLORS,
 } from "./resolveTheme";
@@ -418,5 +419,124 @@ describe("buildThemeBootstrapScript: crea y posee UNA sola meta theme-color", ()
     const metas = runWithStoredTheme("dark", "/privacidad");
     expect(metas).toHaveLength(1);
     expect(metas[0].getAttribute("content")).toBe(THEME_COLORS.dark);
+  });
+});
+
+/*
+ * El modo de restitucion del scroll (F20-A, 2026-09-10). jsdom NO implementa
+ * `history.scrollRestoration` (`'scrollRestoration' in history` da false), asi
+ * que el candado instala en `window.history` una propiedad con getter/setter
+ * que registra cada escritura y EJECUTA el string real del script de arranque
+ * contra ella: lo que se prueba es lo que el navegador correria desde <head>,
+ * no la funcion importada.
+ */
+describe("buildThemeBootstrapScript: modo de restitucion del scroll", () => {
+  let writes: string[];
+  let throwOnWrite: boolean;
+
+  beforeEach(() => {
+    writes = [];
+    throwOnWrite = false;
+    Object.defineProperty(window.history, "scrollRestoration", {
+      configurable: true,
+      get: () => writes[writes.length - 1] ?? "auto",
+      set: (value: string) => {
+        if (throwOnWrite) throw new Error("history bloqueado");
+        writes.push(value);
+      },
+    });
+    // jsdom no trae la Navigation API: se simula la de Chrome (la regla exige
+    // `navigation.currentEntry` para escribir "manual").
+    vi.stubGlobal("navigation", { currentEntry: { key: "entrada" } });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(window.history, "scrollRestoration");
+    window.localStorage.removeItem(STORAGE_KEYS.theme);
+    document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    window.history.replaceState(null, "", "/");
+  });
+
+  function runAt(
+    pathname: string,
+    stored: string | null,
+    prefersDark = false,
+  ): void {
+    window.history.replaceState(null, "", pathname);
+    if (stored === null) window.localStorage.removeItem(STORAGE_KEYS.theme);
+    else window.localStorage.setItem(STORAGE_KEYS.theme, stored);
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: prefersDark && query === "(prefers-color-scheme: dark)",
+    })) as unknown as typeof window.matchMedia;
+    try {
+      new Function(buildThemeBootstrapScript())();
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  }
+
+  it.each([
+    ["dark", "/", "manual"],
+    ["dark", "/index.html", "manual"],
+    ["dark", "/en", "manual"],
+    ["dark", "/en.html", "manual"],
+    ["light", "/", "auto"],
+    ["light", "/en", "auto"],
+    ["dark", "/privacidad", "auto"],
+    ["dark", "/en/privacy", "auto"],
+    ["dark", "/aviso-legal", "auto"],
+  ])(
+    "tema guardado %s en %s escribe '%s' y lo escribe UNA vez",
+    (stored, pathname, expected) => {
+      runAt(pathname, stored);
+      expect(writes).toEqual([expected]);
+    },
+  );
+
+  it("sin Navigation API la portada oscura se queda en 'auto' (como antes de F20)", () => {
+    vi.stubGlobal("navigation", undefined);
+    runAt("/", "dark");
+    expect(writes).toEqual(["auto"]);
+  });
+
+  it("sin storage y con el sistema en oscuro, la portada queda en 'manual'", () => {
+    runAt("/", null, true);
+    expect(writes).toEqual(["manual"]);
+  });
+
+  it("un history que lanza al escribir el modo no impide data-theme", () => {
+    throwOnWrite = true;
+    expect(() => runAt("/", "dark")).not.toThrow();
+    expect(document.documentElement.getAttribute(THEME_ATTRIBUTE)).toBe("dark");
+  });
+
+  it("el script CONTIENE el cuerpo serializado de scrollRestorationFor, no una copia", () => {
+    expect(buildThemeBootstrapScript()).toContain(
+      scrollRestorationFor.toString(),
+    );
+  });
+});
+
+describe("scrollRestorationFor", () => {
+  const nav = { currentEntry: { key: "entrada" } };
+
+  it("un tema que no es 'dark' (null incluido) resuelve a 'auto' tambien en la portada", () => {
+    expect(scrollRestorationFor(null, "/", nav)).toBe("auto");
+    expect(scrollRestorationFor("azul", "/en", nav)).toBe("auto");
+  });
+
+  it("'/en/' con barra final no es una ruta servida y queda en 'auto'", () => {
+    expect(scrollRestorationFor("dark", "/en/", nav)).toBe("auto");
+  });
+
+  it("'manual' solo con la Navigation API: sin ella, o sin currentEntry, 'auto'", () => {
+    expect(scrollRestorationFor("dark", "/", nav)).toBe("manual");
+    expect(scrollRestorationFor("dark", "/", undefined)).toBe("auto");
+    expect(scrollRestorationFor("dark", "/", null)).toBe("auto");
+    expect(scrollRestorationFor("dark", "/en", { currentEntry: null })).toBe(
+      "auto",
+    );
   });
 });

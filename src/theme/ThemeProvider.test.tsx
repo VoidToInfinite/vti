@@ -6,6 +6,17 @@ import { THEME_COLORS } from "./resolveTheme";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 
 /**
+ * `ThemeProvider` lee la ruta con `usePathname()` para resincronizar el modo
+ * de restitucion del scroll en las navegaciones blandas (F20-A). Fuera del
+ * App Router no hay contexto que la dé, asi que la ruta se controla desde el
+ * test; el resto de casos del fichero ven siempre `"/"`.
+ */
+const routerState = vi.hoisted(() => ({ pathname: "/" }));
+vi.mock("next/navigation", () => ({
+  usePathname: (): string => routerState.pathname,
+}));
+
+/**
  * `ThemeProvider` llama a `window.matchMedia("(prefers-color-scheme: dark)")`
  * de verdad en su efecto de corrección post-montaje (Task 9); jsdom no lo
  * implementa (mismo stub mínimo que Hero.qa.test.tsx/HeroBackdrop.test.tsx,
@@ -82,6 +93,112 @@ afterEach(() => {
   // nodo global que sobrevive entre tests (RTL solo desmonta el árbol
   // renderizado, no restaura atributos del <html> real de jsdom).
   document.documentElement.removeAttribute("data-theme");
+});
+
+/*
+ * El modo de restitucion del scroll sale por la misma puerta que `data-theme`
+ * (F20-A, 2026-09-10). jsdom no implementa `history.scrollRestoration`: se
+ * instala un getter/setter que registra cada escritura.
+ */
+describe("ThemeProvider — modo de restitucion del scroll", () => {
+  let writes: string[];
+
+  beforeEach(() => {
+    writes = [];
+    routerState.pathname = "/";
+    window.history.replaceState(null, "", "/");
+    Object.defineProperty(window.history, "scrollRestoration", {
+      configurable: true,
+      get: () => writes[writes.length - 1] ?? "auto",
+      set: (value: string) => {
+        writes.push(value);
+      },
+    });
+    // jsdom no trae la Navigation API: se simula la de Chrome.
+    vi.stubGlobal("navigation", { currentEntry: { key: "entrada" } });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(window.history, "scrollRestoration");
+    routerState.pathname = "/";
+    window.history.replaceState(null, "", "/");
+  });
+
+  function Toggle(): ReactElement {
+    const { toggleTheme } = useTheme();
+    return (
+      <button
+        type="button"
+        onClick={toggleTheme}
+      >
+        toggle
+      </button>
+    );
+  }
+
+  function renderWithToggle(): { rerender: () => void } {
+    const tree = (): ReactElement => (
+      <ThemeProvider>
+        <Probe />
+        <Toggle />
+      </ThemeProvider>
+    );
+    const { rerender } = render(tree());
+    return { rerender: () => rerender(tree()) };
+  }
+
+  it("la pasada inicial no escribe: con el tema claro el modo del script se queda", () => {
+    stubMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "light");
+    renderWithToggle();
+    expect(writes).toEqual([]);
+  });
+
+  it("con el oscuro guardado en la portada escribe 'manual' y al conmutar a claro 'auto'", () => {
+    stubMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    renderWithToggle();
+    expect(writes).toEqual(["manual"]);
+    act(() => {
+      screen.getByRole("button", { name: "toggle" }).click();
+    });
+    expect(writes).toEqual(["manual", "auto"]);
+  });
+
+  it("sin Navigation API la portada oscura se resincroniza a 'auto'", () => {
+    vi.stubGlobal("navigation", undefined);
+    stubMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    renderWithToggle();
+    expect(writes).toEqual(["auto"]);
+  });
+
+  it("una navegacion blanda fuera de la portada reescribe el modo de la entrada nueva", () => {
+    stubMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    const { rerender } = renderWithToggle();
+    expect(writes).toEqual(["manual"]);
+    window.history.pushState(null, "", "/privacidad");
+    routerState.pathname = "/privacidad";
+    rerender();
+    expect(writes).toEqual(["manual", "auto"]);
+  });
+
+  it("la vuelta desde la bfcache reaplica la regla con el tema pintado, y solo con persisted", () => {
+    stubMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "light");
+    renderWithToggle();
+    document.documentElement.setAttribute("data-theme", "dark");
+    const noPersisted = new Event("pageshow");
+    Object.defineProperty(noPersisted, "persisted", { value: false });
+    window.dispatchEvent(noPersisted);
+    expect(writes).toEqual([]);
+    const persisted = new Event("pageshow");
+    Object.defineProperty(persisted, "persisted", { value: true });
+    window.dispatchEvent(persisted);
+    expect(writes).toEqual(["manual"]);
+  });
 });
 
 describe("ThemeProvider — resolución de tema post-montaje (Task 9, decisión D-C)", () => {

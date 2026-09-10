@@ -144,6 +144,59 @@ export function readResolvedTheme(): ThemeName | null {
 }
 
 /**
+ * El modo de restitución del scroll (`history.scrollRestoration`) que le toca
+ * a la entrada del historial en curso, según el tema resuelto y la ruta.
+ *
+ * POR QUÉ EXISTE (F20-A, 2026-09-10): en la recarga de la portada en oscuro la
+ * restitución NATIVA del navegador (`"auto"`) llega DESPUÉS de la única
+ * corrección del sitio (`restoreReadingAnchor`, vía `useReloadLanding`) y la
+ * deshace, porque restituye el píxel guardado contra la geometría clara del
+ * HTML horneado. Experimento emparejado de 15 pares: con `"auto"` 47 de 75
+ * páginas en rojo, con `"manual"` 0 de 75. Decisión del dueño: `"manual"` SOLO
+ * en tema oscuro y SOLO en la portada; en el resto la nativa acierta y se
+ * queda. Con `"manual"`, Atrás y Adelante los restituye el propio sitio.
+ *
+ * LAS RUTAS DE PORTADA van escritas aquí y en ningún otro sitio, con la misma
+ * normalización mínima que la guarda de precargas del script de arranque:
+ * `"/"` y `"/index.html"` (la portada en español servida por su nombre de
+ * fichero), `"/en"` y `"/en.html"` (la inglesa; `trailingSlash: false`, así que
+ * `"/en/"` no es una ruta servida). Sin expresión regular a propósito: esta
+ * función viaja serializada dentro de una plantilla de texto (ver la lección
+ * del 2026-08-17 sobre `\/`).
+ *
+ * Función PURA y sin clausura, con la misma restricción que
+ * `resolveInitialTheme`: el script de arranque la incrusta con `.toString()` y
+ * `ThemeProvider` la llama tal cual, así que las dos puertas no pueden
+ * divergir. Recibe `string | null` para aceptar también la lectura de
+ * `readResolvedTheme`; cualquier valor que no sea `"dark"` resuelve a `"auto"`.
+ *
+ * `"manual"` EXIGE ADEMÁS LA NAVIGATION API (2026-09-10). Con `"manual"` la
+ * restitución la hace `useHistoryScrollRestoration`, que solo sabe distinguir
+ * un recorrido del historial (Atrás/Adelante) de un salto a fragmento (Chrome
+ * dispara `popstate` en los dos) por el `navigationType` del evento `navigate`
+ * y que identifica la entrada por `navigation.currentEntry.key`. Sin la API
+ * restituiría también detrás de un clic en `#story` (el rojo de la familia 32
+ * del candado), así que ahí la portada oscura se queda en `"auto"`: todo el
+ * sitio vuelve al comportamiento anterior a F20. Se recibe el objeto
+ * (`window.navigation`) y no un booleano para que la comprobación viva aquí y
+ * en ningún otro sitio; sin `?.` a propósito, porque esta función viaja
+ * serializada a un script que también ejecutan motores antiguos.
+ */
+export function scrollRestorationFor(
+  theme: string | null,
+  pathname: string,
+  navigation: { readonly currentEntry?: unknown } | null | undefined,
+): ScrollRestoration {
+  const home =
+    pathname === "/" ||
+    pathname === "/index.html" ||
+    pathname === "/en" ||
+    pathname === "/en.html";
+  const navigationApi = navigation != null && navigation.currentEntry != null;
+  return theme === "dark" && home && navigationApi ? "manual" : "auto";
+}
+
+/**
  * Una precarga de imagen del arte del hero, con la MISMA firma que emite el
  * `<img>` que después la consume. Las dos claves tienen que coincidir con
  * `srcSet`/`sizes` del componente carácter a carácter: si no coinciden, el
@@ -268,7 +321,10 @@ export interface HeroPreload {
  * declarado en `next.config.ts`, y si algún día lo hay, este es el punto a
  * tocar.
  *
- * LO QUE NO CAMBIA: resolver el tema (`data-theme`) y crear y poner al día la
+ * LO QUE NO CAMBIA: resolver el tema (`data-theme`), fijar el modo de
+ * restitución del scroll (`scrollRestorationFor`, desde el 2026-09-10; fuera
+ * de la portada oscura escribe `"auto"`, el valor por defecto del navegador)
+ * y crear y poner al día la
  * etiqueta `theme-color` siguen ocurriendo en TODAS las rutas — el anti-flash
  * no es de la home, es del sitio, y desde el 2026-09-03 esa etiqueta no existe
  * en ninguna ruta hasta que este script la crea. En la home, el orden de emisión, el
@@ -302,6 +358,14 @@ export function buildThemeBootstrapScript(
     `try{prefersDark=window.matchMedia("(prefers-color-scheme: dark)").matches;}catch(e){}` +
     `var theme=resolveInitialTheme(stored,prefersDark);` +
     `document.documentElement.setAttribute(${attrLiteral},theme);` +
+    // Modo de restitución del scroll de ESTA entrada del historial, antes del
+    // parse del <body> y por tanto antes de cualquier intento de restitución
+    // nativa (ver el docblock de `scrollRestorationFor`). Bloque completo con
+    // su propio try/catch: un `history` sin la propiedad o que lance no puede
+    // impedir el `data-theme` de arriba, y la cuenta de llaves del `try`
+    // exterior no cambia (lección del 2026-08-17).
+    `var scrollRestorationFor=${scrollRestorationFor.toString()};` +
+    `try{window.history.scrollRestoration=scrollRestorationFor(theme,window.location.pathname,window.navigation);}catch(e){}` +
     // theme-color al día ANTES del primer pintado, en su propio try/catch: la
     // barra del navegador tiene que seguir al conmutador, no al sistema
     // operativo (ver el docblock de THEME_COLORS).
