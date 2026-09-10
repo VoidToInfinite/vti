@@ -136,6 +136,23 @@ import { space } from "./tokens/space";
  * interseca nunca, y sin intersección no hay carga perezosa --, y hacerlo sobre
  * el envoltorio movería además la maqueta de prehidratación. Medido: el alto
  * final del documento oscuro es 11.008 px con y sin la regla.
+ *
+ * TABULACIÓN SIN REZAGO (crítica externa #21, P1 del objetivo >=98, H1 y parte
+ * de H7, 2026-09-10): `html:has(:focus-visible) { scroll-behavior: auto }`,
+ * justo detrás del bloque `html`. El desplazamiento con el que el navegador
+ * trae a la vista el elemento enfocado resuelve al `scroll-behavior` computado
+ * de la raíz, que es `smooth`: cada Tab arrancaba un barrido de cientos de ms
+ * y, con Tab cada 120 ms, 31 de 59 paradas quedaban enteras fuera del viewport
+ * en el instante (medido en oscuro a 1440x900 sobre `d29da8e`). Mientras haya
+ * un foco visible --la heurística del navegador para la modalidad teclado-- el
+ * barrido pasa a instantáneo; el clic de ratón no enciende `:focus-visible` y
+ * sigue suave. Decisión del dueño: Enter con teclado sobre un ancla también
+ * pasa a instantáneo. Es el mismo camino `auto` que ya recorre `reduce`, así
+ * que ningún hook cambia de rama; los que desplazan pasan `behavior` explícito
+ * y esta regla no los toca. La prosa vive aquí y no dentro del template para
+ * no viajar en el bundle (reglas 23 y 49 de `RULES.md`). Candados:
+ * `GlobalStyles.test.tsx` (fuente) y la familia `tabulacion-sin-rezago` de
+ * `scripts/check-site-surfaces.mjs` (navegador).
  */
 export const GlobalStyles = createGlobalStyle`
   /*
@@ -272,6 +289,10 @@ export const GlobalStyles = createGlobalStyle`
        pantalla mientras la pista pasa por debajo. El snap solo anadia el
        acople a cada diapositiva, y lo pagaba con el control del usuario
        sobre su propio scroll. */
+  }
+
+  html:has(:focus-visible) {
+    scroll-behavior: auto;
   }
 
   html,

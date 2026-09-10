@@ -354,10 +354,51 @@ export const FEATURE_FIGURE_BASENAME: Record<FeatureKey, string> = {
   gaming: "feature-gaming",
 };
 
+/**
+ * Anchos de la franja fija de la figura en escritorio, en px, y el viewport
+ * desde el que rige la ancha. Componen el `sizes` de la imagen (debajo). La
+ * caja que la tarjeta destacada reserva en `lg` (`ScFigure`, Features.tsx) no
+ * lee los anchos: lee el alto natural de cada franja (las dos constantes
+ * `*_MIN_HEIGHT_PX`) y la MISMA condicion de franja que usa `sizes`
+ * (`FEATURES_FIGURE_TABLET_MEDIA`). Si divergen, la reserva deja de coincidir
+ * con lo que la imagen pinta al cargar y el salto de maquetacion vuelve.
+ *
+ * El defecto que cierran (critica #21, P2 del objetivo >=98, H4): la figura
+ * destacada es `loading="lazy"` y en `lg` vive en un panel de alto de
+ * contenido, asi que sin caja reservada mide 0x295 hasta cargar y 240x360
+ * despues. La carga ocurre DURANTE el primer salto a `#contact` (el barrido
+ * pasa por Features): `#features` crece 65 px por encima del destino ya fijado
+ * y el primer aterrizaje queda a 192 px frente a los 128 de los siguientes.
+ */
+export const FEATURES_FIGURE_TABLET_WIDTH_PX = 200;
+export const FEATURES_FIGURE_DESKTOP_WIDTH_PX = 240;
+export const FEATURES_FIGURE_DESKTOP_MIN_VIEWPORT_PX = 1024;
+
+/** Proporcion de las figuras publicadas (240x360 medido en el build:
+ *  naturalWidth 240, naturalHeight 360). La reserva de la destacada la usa
+ *  para que la caja vacia mida lo mismo que la imagen cargada. */
+export const FEATURES_FIGURE_ASPECT_RATIO = "2 / 3";
+
+/** Alto natural de la figura en cada franja de su `sizes` (ancho de la
+ *  franja por la proporcion 2 / 3): 300 px en la de 200 y 360 px en la de
+ *  240. Es la aportacion que la imagen CARGADA hace al alto de la fila de la
+ *  destacada en `lg`; la reserva la declara como `min-height` para que la
+ *  caja vacia la haga igual antes de cargar. No depende de la raiz: `sizes`
+ *  esta en px. */
+export const FEATURES_FIGURE_TABLET_MIN_HEIGHT_PX =
+  (FEATURES_FIGURE_TABLET_WIDTH_PX * 3) / 2;
+export const FEATURES_FIGURE_DESKTOP_MIN_HEIGHT_PX =
+  (FEATURES_FIGURE_DESKTOP_WIDTH_PX * 3) / 2;
+
+/** Condicion de la franja de 200 px. La leen `sizes` (debajo) y la reserva
+ *  de la destacada (`ScFigure`), para que las dos cambien de franja en el
+ *  mismo pixel. */
+export const FEATURES_FIGURE_TABLET_MEDIA = `(max-width: ${FEATURES_FIGURE_DESKTOP_MIN_VIEWPORT_PX - 1}px)`;
+
 /** `sizes` de las figuras de Features: en escritorio ocupan una franja fija
- *  dentro de la tarjeta (~240px), nunca el ancho completo del viewport. */
-export const FEATURES_FIGURE_SIZES =
-  "(max-width: 767px) 45vw, (max-width: 1023px) 200px, 240px";
+ *  dentro de la tarjeta (~240px), nunca el ancho completo del viewport.
+ *  Sale de las mismas constantes que la reserva de la destacada. */
+export const FEATURES_FIGURE_SIZES = `(max-width: 767px) 45vw, ${FEATURES_FIGURE_TABLET_MEDIA} ${FEATURES_FIGURE_TABLET_WIDTH_PX}px, ${FEATURES_FIGURE_DESKTOP_WIDTH_PX}px`;
 
 /**
  * Cuánto sube Features por encima de Journey al superponerse (D2/D5, spec

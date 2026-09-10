@@ -50,6 +50,50 @@ describe("GlobalStyles: la tipografía se declara en body, no solo en main", () 
 });
 
 /*
+ * Candado de la tabulación sin rezago (crítica externa #21, P1 del objetivo
+ * >=98, H1 y parte de H7, 2026-09-10).
+ *
+ * El defecto: `html { scroll-behavior: smooth }` hacía que el desplazamiento
+ * inducido por el foco fuese un barrido animado; con Tab cada 120 ms, 31 de 59
+ * paradas quedaban enteras fuera del viewport en el instante. El arreglo es
+ * `html:has(:focus-visible) { scroll-behavior: auto }`, y el candado exige las
+ * DOS mitades: la regla nueva existe, y el smooth de `html` sigue en pie --sin
+ * él, el arreglo degeneraría en quitar el barrido también al ratón, que el
+ * dueño quiso conservar--. Lee la FUENTE por el mismo motivo que los candados
+ * de arriba: `<GlobalStyles/>` no inyecta hojas en este entorno.
+ *
+ * El candado de navegador es la familia `tabulacion-sin-rezago` de
+ * `scripts/check-site-surfaces.mjs`.
+ */
+describe("GlobalStyles: con foco visible el scroll es instantáneo, con ratón sigue suave", () => {
+  async function leerFuente(): Promise<string> {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    return readFileSync(join(here, "GlobalStyles.tsx"), "utf-8");
+  }
+
+  it("html:has(:focus-visible) declara scroll-behavior: auto", async () => {
+    expect(
+      await leerFuente(),
+      "falta la regla que apaga el barrido suave con foco visible: Tab vuelve a dejar paradas fuera del viewport",
+    ).toMatch(
+      /\n {2}html:has\(:focus-visible\) \{\s*scroll-behavior: auto;\s*\}/,
+    );
+  });
+
+  it("el bloque html conserva scroll-behavior: smooth para el ratón", async () => {
+    expect(
+      await leerFuente(),
+      "el bloque html perdió su smooth: el arreglo de teclado no puede quitar el barrido al ratón",
+    ).toMatch(
+      /\n {2}html \{(?:(?!\n {2}\})[\s\S])*?\n {4}scroll-behavior: smooth;/,
+    );
+  });
+});
+
+/*
  * Candado del VALOR de las variables CSS de layout del navbar (crítica externa
  * #18, 2026-09-04).
  *

@@ -18,6 +18,10 @@ import {
   FEATURE_KEYS,
   FEATURE_FIGURE_BASENAME,
   FEATURES_FIGURE_SIZES,
+  FEATURES_FIGURE_TABLET_MIN_HEIGHT_PX,
+  FEATURES_FIGURE_DESKTOP_MIN_HEIGHT_PX,
+  FEATURES_FIGURE_TABLET_MEDIA,
+  FEATURES_FIGURE_ASPECT_RATIO,
   FEATURES_CARD_BORDER_WIDTH,
   FEATURES_IMAGE_PANEL_HEIGHT,
   FEATURES_IMAGE_CIRCLE_SIZE,
@@ -909,7 +913,30 @@ const ScImageCircle = styled.span<{ $key: FeatureKey }>`
    misma regla que ya obligó a fijar el ancho de ScCheckIcon, más abajo) y
    la figura perdería su proporción, dejando de "alinearse al borde inferior"
    -- pasaría a llenar el panel entero y object-position (centrado por
-   defecto en GlobalStyles) sustituiría a la alineación por flex del panel. */
+   defecto en GlobalStyles) sustituiría a la alineación por flex del panel.
+
+   CAJA RESERVADA DE LA DESTACADA en lg (critica #21, P2 del objetivo >=98,
+   H4; el porque completo en el docblock de FEATURES_FIGURE_TABLET_WIDTH_PX,
+   features.layers.ts). En lg el panel de la destacada se estira al alto de
+   la fila de la rejilla, asi que el 100% de alto de la figura SI resuelve: es
+   el alto de la fila (295 px a 1440 antes de cargar; 679 px a 2048 con la
+   raiz a 32, donde manda el texto). Lo que falta antes de cargar es la
+   proporcion: sin ella la imagen diferida mide 0 de ancho, y la fila pierde
+   lo que la imagen cargada le aporta. Al cargar durante el primer salto a
+   una ancla de debajo, Features crecia 65 px y el aterrizaje quedaba a 192 px
+   en vez de 128. La reserva NO fija un ancho: la proporcion de las figuras va
+   en la base y el ancho sale del alto de la fila con cualquier raiz. El
+   min-height es la aportacion que la imagen cargada hace a la fila, que es
+   el alto natural de la franja de sizes que el navegador elige: 360 px en la
+   de 240 y 300 px en la de 200.
+
+   La franja de 200 va en una media ANIDADA dentro de lg y en px. En px
+   porque sizes esta en px y no depende de la raiz: una media en em cambiaria
+   de franja en otro pixel en cuanto la raiz no fuese 16. Anidada porque la
+   reserva solo existe en lg; fuera de lg el panel tiene alto fijo. Su
+   condicion es FEATURES_FIGURE_TABLET_MEDIA, la MISMA cadena que usa sizes,
+   (max-width: 1023px): la reserva baja a 300 exactamente en los viewports en
+   los que la imagen elegida es la de 200 px, y vuelve a 360 en 1024. */
 const ScFigure = styled.img`
   position: relative;
   z-index: 1;
@@ -917,10 +944,23 @@ const ScFigure = styled.img`
   width: auto;
   height: 100%;
   max-width: 100%;
+  aspect-ratio: ${FEATURES_FIGURE_ASPECT_RATIO};
   object-fit: contain;
   transform: translateY(
     calc(var(--features-progress, 0) * -${FEATURES_FIGURE_PARALLAX_PX}px)
   );
+
+  @media ${({ theme }) => theme.data.breakPoint.lg} {
+    ${ScGrid} > *:first-child & {
+      min-height: ${FEATURES_FIGURE_DESKTOP_MIN_HEIGHT_PX}px;
+    }
+
+    @media ${FEATURES_FIGURE_TABLET_MEDIA} {
+      ${ScGrid} > *:first-child & {
+        min-height: ${FEATURES_FIGURE_TABLET_MIN_HEIGHT_PX}px;
+      }
+    }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     transform: none;

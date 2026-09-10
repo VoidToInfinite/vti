@@ -13,6 +13,14 @@ import {
   FEATURES_LIGHT_REVEAL_DELAYS_MS,
   FEATURES_CARD_BORDER_WIDTH,
   FEATURES_IMAGE_PANEL_HEIGHT,
+  FEATURES_FIGURE_SIZES,
+  FEATURES_FIGURE_TABLET_WIDTH_PX,
+  FEATURES_FIGURE_DESKTOP_WIDTH_PX,
+  FEATURES_FIGURE_DESKTOP_MIN_VIEWPORT_PX,
+  FEATURES_FIGURE_TABLET_MIN_HEIGHT_PX,
+  FEATURES_FIGURE_DESKTOP_MIN_HEIGHT_PX,
+  FEATURES_FIGURE_TABLET_MEDIA,
+  FEATURES_FIGURE_ASPECT_RATIO,
 } from "./features.layers";
 import {
   JOURNEY_DARK_HEIGHT,
@@ -2201,6 +2209,112 @@ describe("critica #15: la tarjeta destacada clara llena su ancho (composicion a 
     expect(enMedia[0]).toMatch(/height:\s*auto/);
     expect(enMedia[0]).toContain(`min-height: ${FEATURES_IMAGE_PANEL_HEIGHT};`);
     expect(enMedia[0]).toMatch(/margin-inline-end:\s*0/);
+  });
+
+  /*
+   * Caja reservada de la figura destacada (critica #21, P2 del objetivo >=98,
+   * H4, 2026-09-10). Sin ella, la imagen diferida mide 0 de ancho hasta cargar
+   * y, al cargar durante el primer salto a #contact, Features crece 65 px y el
+   * aterrizaje queda a 192 px en vez de 128. El candado exige la proporcion
+   * de las figuras en la base y, solo en lg, un min-height igual al alto
+   * natural de la franja de `sizes` que el navegador elige: 360 px por
+   * defecto y 300 px bajo la MISMA condicion que `sizes` usa para la franja de
+   * 200 px (FEATURES_FIGURE_TABLET_MEDIA), anidada dentro de lg. Ningun ancho
+   * fijo. El candado de navegador es la familia
+   * `aterrizaje-de-ancla-constante`.
+   */
+  it("la figura destacada reserva en lg la caja que su sizes declara, sin esperar a cargar", () => {
+    const { container } = renderWithProviders(<Features />);
+    const { panel } = piezas(container);
+    const figura = panel.querySelector("img") as HTMLElement;
+    const enMedia = cssRuleTextFor(figura)
+      .split("\n")
+      .filter((l) => l.includes("@media screen"));
+
+    // El sizes y la reserva salen de las mismas constantes.
+    expect(FEATURES_FIGURE_TABLET_MEDIA).toBe(
+      `(max-width: ${FEATURES_FIGURE_DESKTOP_MIN_VIEWPORT_PX - 1}px)`,
+    );
+    expect(FEATURES_FIGURE_SIZES).toContain(
+      `${FEATURES_FIGURE_TABLET_MEDIA} ${FEATURES_FIGURE_TABLET_WIDTH_PX}px`,
+    );
+    expect(FEATURES_FIGURE_SIZES).toMatch(
+      new RegExp(`, ${FEATURES_FIGURE_DESKTOP_WIDTH_PX}px$`),
+    );
+    expect(figura.getAttribute("sizes")).toBe(FEATURES_FIGURE_SIZES);
+
+    const lg = enMedia.find((l) => l.includes(themes.light.breakPoint.lg));
+    expect(
+      lg,
+      "sin regla lg la figura destacada no reserva caja",
+    ).toBeDefined();
+    expect(FEATURES_FIGURE_DESKTOP_MIN_HEIGHT_PX).toBe(
+      (FEATURES_FIGURE_DESKTOP_WIDTH_PX * 3) / 2,
+    );
+    expect(FEATURES_FIGURE_TABLET_MIN_HEIGHT_PX).toBe(
+      (FEATURES_FIGURE_TABLET_WIDTH_PX * 3) / 2,
+    );
+    expect(lg).toContain(
+      `min-height: ${FEATURES_FIGURE_DESKTOP_MIN_HEIGHT_PX}px;`,
+    );
+    // La franja de 200 px, anidada en lg, con la condicion literal de sizes.
+    const lgTexto = lg ?? "";
+    const franja = lgTexto.slice(
+      lgTexto.indexOf(`@media ${FEATURES_FIGURE_TABLET_MEDIA}`),
+    );
+    expect(lg).toContain(`@media ${FEATURES_FIGURE_TABLET_MEDIA}`);
+    expect(franja).toContain(
+      `min-height: ${FEATURES_FIGURE_TABLET_MIN_HEIGHT_PX}px;`,
+    );
+    // Ninguna regla de la reserva fuera de lg.
+    const todas = cssRuleTextFor(figura).split("\n");
+    for (const alto of [
+      FEATURES_FIGURE_TABLET_MIN_HEIGHT_PX,
+      FEATURES_FIGURE_DESKTOP_MIN_HEIGHT_PX,
+    ]) {
+      const conAlto = todas.filter((l) => l.includes(`min-height: ${alto}px`));
+      expect(conAlto.length).toBeGreaterThan(0);
+      for (const l of conAlto) {
+        expect(l.startsWith(`@media ${themes.light.breakPoint.lg}`)).toBe(true);
+      }
+    }
+    // La proporcion va en la base, sin media: fuera de lg el panel tiene alto
+    // fijo y la caja vacia tambien mediria 0 de ancho sin ella.
+    const base = cssRuleTextFor(figura)
+      .split("\n")
+      .filter((l) => !l.includes("@media"));
+    expect(
+      base.some((l) =>
+        new RegExp(
+          `aspect-ratio:\\s*${FEATURES_FIGURE_ASPECT_RATIO.replace(/\s*\/\s*/, "\\s*/\\s*")}`,
+        ).test(l),
+      ),
+    ).toBe(true);
+    // La reserva sigue el alto de la fila (el 100% de la base), no fija un
+    // ancho en px que dejaria de casar con la imagen cargada a raiz 32.
+    expect(lg).not.toMatch(/(^|[^-])width:/);
+    expect(lg).not.toMatch(/height:\s*auto/);
+
+    // La unica media en px es la de la franja, y vive dentro de lg: fuera de
+    // ella los breakpoints del repo van en em (olas Q y R).
+    const sinFranja = todas.map((l) =>
+      l.split(`@media ${FEATURES_FIGURE_TABLET_MEDIA}`).join(""),
+    );
+    expect(sinFranja.some((l) => /(min|max)-width:\s*\d+px/.test(l))).toBe(
+      false,
+    );
+
+    // Solo la destacada: los selectores de la reserva (los de :first-child;
+    // el de reduce es de clase pelada y alcanza a las tres a proposito)
+    // resuelven a una figura, la de la primera tarjeta.
+    const selectores = selectoresCondicionalesDe(figura).filter((s) =>
+      s.includes(":first-child"),
+    );
+    expect(selectores).toHaveLength(1);
+    for (const sel of selectores) {
+      const alcanzadas = Array.from(document.querySelectorAll(sel));
+      expect(alcanzadas).toEqual([figura]);
+    }
   });
 
   it("la columna de texto se centra contra el arte en la tarjeta destacada", () => {
