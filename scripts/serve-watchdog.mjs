@@ -28,14 +28,23 @@
  * ventana de arranque no cuentan hasta la primera respuesta, con plazo
  * máximo: ver `ARRANQUE_MS`.
  *
- * QUÉ NO HACE, y es deliberado: NO sirve los ficheros él mismo. Lanza SIEMPRE
- * el mismo `serve` que usaron las rondas anteriores, con los mismos
- * argumentos, porque la compresión y las cabeceras del servidor son parte del
- * instrumento — un servidor propio cambiaría las cifras de peso transferido y
- * de rendimiento, y las haría incomparables con las críticas #11 a #19. El
- * candado de esa decisión está en `serve-watchdog.test.mjs`: cada spawn que
- * hace el vigilante, el primero y los relanzamientos, se comprueba que ejecuta
- * el `main.js` de `serve` y no otra cosa.
+ * QUÉ NO HACE, y es deliberado: NO sirve los ficheros él mismo, ni monta una
+ * pila HTTP distinta de la de `serve`. La compresión y las cabeceras del
+ * servidor son parte del instrumento: un servidor propio cambiaría las cifras
+ * de peso transferido y de rendimiento, y las haría incomparables con las
+ * críticas #11 en adelante.
+ *
+ * QUÉ LANZA POR DEFECTO, desde el 2026-09-10: el servidor de medición
+ * (`scripts/serve-measure.mjs`, commit `403bd29`). Monta el `serve-handler` y
+ * la `compression` de la MISMA instalación de `serve`, con la configuración
+ * del CLI, y solo cambia `sendError` para reproducir la 404 por prefijo de
+ * `netlify.toml` (commit `06cdda8`: `/en/*` sirve `out/en/404.html` con estado
+ * 404). Medido al crearlo: bytes y cabeceras idénticos a `serve` en seis
+ * rutas, y `/en/no-existe` con `lang="en"`. Con `serve` a secas el
+ * instrumento veía una 404 castellana en `/en/*` que producción ya no sirve.
+ * `serve` sigue disponible con `--servidor=serve`. El candado de todo esto
+ * está en `serve-watchdog.test.mjs` y `serve-measure.test.mjs`: cada spawn
+ * ejecuta la entrada que corresponde al servidor elegido y no otra cosa.
  *
  * SIN VENTANAS EN LA PANTALLA DEL DUEÑO. `windowsHide: true` no es un detalle
  * de estilo: en Windows, un proceso de consola lanzado desde un padre sin
@@ -50,12 +59,12 @@
  *   node scripts/serve-watchdog.mjs --dir=out --port=4321
  *   node scripts/serve-watchdog.mjs --dir=C:/tmp/copia-f3594ad --port=4321 \
  *       --log=C:/tmp/vigilante.log --probe-ms=2000
- *   node scripts/serve-watchdog.mjs --dir=out --port=4321 --servidor=medicion
+ *   node scripts/serve-watchdog.mjs --dir=out --port=4321 --servidor=serve
  *
- * `--servidor` elige el hijo: `serve` (por defecto, el de siempre) o
- * `medicion` (`scripts/serve-measure.mjs`, la 404 por prefijo de Netlify con
- * el handler y la compresión de la misma instalación de `serve`). Ver
- * `SERVIDORES`.
+ * `--servidor` elige el hijo: `medicion` (por defecto,
+ * `scripts/serve-measure.mjs`, la 404 por prefijo de Netlify con el handler y
+ * la compresión de la misma instalación de `serve`) o `serve` (el CLI tal
+ * cual, sin esa 404). Ver `SERVIDORES`.
  *
  * El log y el fichero de PIDs, si no se dicen, van al directorio temporal del
  * sistema con el puerto en el nombre.
@@ -313,16 +322,17 @@ export function resolveServeMain({
 }
 
 /**
- * Los servidores que el vigilante sabe lanzar. `serve` es el de siempre y el
- * valor por defecto; `medicion` es `scripts/serve-measure.mjs` (2026-09-10),
- * que monta el `serve-handler` y la `compression` de ESA MISMA instalación de
- * `serve` con su misma configuración y solo cambia `sendError`, para
- * reproducir la 404 por prefijo de `netlify.toml` (`/en/*` sirve
- * `out/en/404.html` con estado 404). Es opt-in: mientras no se elija, las
- * cifras siguen siendo comparables con las críticas #11 en adelante.
+ * Los servidores que el vigilante sabe lanzar. `medicion` es el valor por
+ * defecto desde el 2026-09-10: `scripts/serve-measure.mjs`, que monta el
+ * `serve-handler` y la `compression` de ESA MISMA instalación de `serve` con
+ * su misma configuración y solo cambia `sendError`, para reproducir la 404 por
+ * prefijo de `netlify.toml` (`/en/*` sirve `out/en/404.html` con estado 404).
+ * Fuera de esa 404 responde lo mismo que `serve`, así que las cifras siguen
+ * siendo comparables con las críticas #11 en adelante. `serve` es el CLI tal
+ * cual y sigue disponible con `--servidor=serve`.
  */
 export const SERVIDORES = Object.freeze(["serve", "medicion"]);
-export const SERVIDOR_POR_DEFECTO = "serve";
+export const SERVIDOR_POR_DEFECTO = "medicion";
 export const SERVE_MEASURE = fileURLToPath(
     new URL("./serve-measure.mjs", import.meta.url),
 );

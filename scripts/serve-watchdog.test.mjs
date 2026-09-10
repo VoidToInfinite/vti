@@ -246,9 +246,16 @@ function escribeServidorFalso({ carpeta, modo, vidaMs = 700, retrasoMs = 0 }) {
     return ruta;
 }
 
-/** Arranca un vigilante y lo apunta para que el `afterEach` lo pare. */
+/**
+ * Arranca un vigilante y lo apunta para que el `afterEach` lo pare.
+ *
+ * `servidor: "serve"` porque el servidor falso ocupa el sitio del `main.js` de
+ * `serve`: el vigilante lo ejecuta tal cual. Con el valor por defecto
+ * (`medicion`) lanzaría `serve-measure.mjs` pidiéndole cargar `serve-handler`
+ * desde el falso, y lo que estos casos miden es la MECÁNICA del vigilante.
+ */
 async function arrancaVigilante(opciones) {
-    const vigilante = await startWatchdog(opciones);
+    const vigilante = await startWatchdog({ servidor: "serve", ...opciones });
     vigilantes.push(vigilante);
     return vigilante;
 }
@@ -409,11 +416,12 @@ describe("ventana de arranque: el silencio del que aún no ha arrancado", () => 
 });
 
 describe("argumentos del servidor", () => {
-    it("lanza la entrada de serve y le pasa el puerto como cadena", () => {
+    it("con --servidor=serve lanza la entrada de serve y le pasa el puerto como cadena", () => {
         const argumentos = argumentosDelServidor({
             serveMain: "C:/x/serve/build/main.js",
             dir: "C:/y/out",
             port: 4321,
+            servidor: "serve",
         });
 
         expect(argumentos[0]).toBe("C:/x/serve/build/main.js");
@@ -744,6 +752,7 @@ describe("el vigilante sobre procesos de verdad", () => {
                     serveMain: servidorFalso,
                     dir: carpeta,
                     port,
+                    servidor: "serve",
                 }),
             );
             expect(
@@ -921,6 +930,7 @@ describe("el vigilante sobre procesos de verdad", () => {
             log: path.join(carpeta, "vigilante.log"),
             probeMs: 5000,
             serveMain: servidorFalso,
+            servidor: "serve",
         });
 
         const arrancado = await esperaHasta(

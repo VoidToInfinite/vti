@@ -29,7 +29,6 @@ import {
     HOLGURA_DE_LA_BANDA_CIEGA_PX,
     HOME_DOC,
     JUZGADAS_MINIMAS_DE_LA_PUNTERIA,
-    IDIOMA_HORNEADO_DE_LA_404,
     LADO_MINIMO_DE_PIEZA_PX,
     LECTURAS_IGUALES_PARA_ASENTAR,
     LEGAL_DOCS,
@@ -2061,38 +2060,39 @@ describe("la sonda del deck que no cabe en su escenario", () => {
 });
 
 /**
- * VALIDADO CON BUG INYECTADO (2026-09-06). Borrando de `langEsperado` la rama
- * que distingue el idioma HORNEADO del vivo --dejando `return surface.locale;`
- * para los dos montajes, que es la version que no tiene tabla-- cae el caso de
- * la tabla:
+ * VALIDADO CON BUG INYECTADO (2026-09-10). Devolviendo de `langEsperado` el
+ * castellano para las 404 --la excepcion `IDIOMA_HORNEADO_DE_LA_404` que se
+ * retiro ese dia-- caen los dos casos de este bloque:
  *
- *   AssertionError: el HTML horneado de 404 (en) tiene que anunciarse en es:
- *   expected 'en' to be 'es' // Object.is equality
+ *   404 (en) se sirve en en y con el cliente ya corriendo tiene que
+ *   anunciarlo: expected 'es' to be 'en' // Object.is equality
+ *   el HTML horneado de 404 (en) tiene que anunciarse en en:
+ *   expected 'es' to be 'en' // Object.is equality
  *
- * «Tests 1 failed | 46 passed (47)». Restaurada la rama, 47/47 en verde.
+ * «Tests 2 failed | 185 passed (187)». Restaurado, en verde.
  */
 describe("el idioma que cada superficie tiene que anunciar", () => {
     it("con JavaScript cada superficie se anuncia en su idioma, la 404 inglesa incluida", () => {
         for (const surface of SURFACES) {
             expect(
-                langEsperado(surface, { conJavaScript: true }),
+                langEsperado(surface),
                 `${surface.nombre} se sirve en ${surface.locale} y con el cliente ya ` +
                     `corriendo tiene que anunciarlo`,
             ).toBe(surface.locale);
         }
     });
 
-    it("sin JavaScript el idioma es el HORNEADO de la ruta, y las dos 404 son la unica excepcion", () => {
+    it("sin JavaScript el idioma es el HORNEADO de la ruta, y la 404 inglesa ya no es excepcion", () => {
         /*
          * LA TABLA COMPLETA, tecleada superficie a superficie y no derivada de
          * `SURFACES`: derivarla de la lista que se verifica es el test
          * autorreferencial que este fichero ya pago cuatro veces.
          *
-         * Las dos 404 declaran `es` porque `output: "export"` sirve un solo
-         * `404.html` con contenido castellano para las dos ramas -- el porque
-         * esta en el docblock de `app/global-not-found.tsx`. Exigirle `en`
-         * a la inglesa seria pedir que anunciara un idioma que su contenido
-         * horneado no tiene.
+         * La 404 inglesa declaro `es` hasta el 2026-09-10, porque
+         * `output: "export"` solo emitia un `404.html` castellano. Desde el
+         * commit `06cdda8` se hornea `out/en/404.html` con `lang="en"` y
+         * Netlify lo sirve bajo `/en/*`; desde `403bd29` el servidor de
+         * medicion reproduce esa regla. Se le exige `en`.
          *
          * Las tres INGLESAS que no son la 404 ERAN el P1 de la critica #19: se
          * horneaban con contenido ingles y se servian con `lang="es"` (medido
@@ -2112,7 +2112,7 @@ describe("el idioma que cada superficie tiene que anunciar", () => {
             "/aviso-legal": "es",
             "/en/legal-notice": "en",
             [`/${BROKEN_SEGMENT}`]: "es",
-            [`${EN_PREFIX}/${BROKEN_SEGMENT}`]: "es",
+            [`${EN_PREFIX}/${BROKEN_SEGMENT}`]: "en",
         };
         expect(
             Object.keys(ESPERADO_SIN_JS).sort(),
@@ -2120,27 +2120,26 @@ describe("el idioma que cada superficie tiene que anunciar", () => {
         ).toEqual(SURFACES.map((s) => s.path).sort());
         for (const surface of SURFACES) {
             expect(
-                langEsperado(surface, { conJavaScript: false }),
+                langEsperado(surface),
                 `el HTML horneado de ${surface.nombre} tiene que anunciarse en ` +
                     `${ESPERADO_SIN_JS[surface.path]}`,
             ).toBe(ESPERADO_SIN_JS[surface.path]);
         }
 
-        /* La excepcion, aislada y en las dos direcciones: la 404 inglesa se
-           hornea en castellano y se anuncia en ingles en cuanto hidrata. */
+        /* La antigua excepcion, aislada: la 404 inglesa se exige en ingles, y
+           el script ya no exporta la constante que la sancionaba. */
         const cuatrocientosEn = SURFACES.find(
             (s) => s.kind === "notFound" && s.locale === "en",
         );
-        expect(langEsperado(cuatrocientosEn, { conJavaScript: false })).toBe(
-            IDIOMA_HORNEADO_DE_LA_404,
-        );
-        expect(langEsperado(cuatrocientosEn, { conJavaScript: true })).toBe(
-            "en",
-        );
         expect(
-            IDIOMA_HORNEADO_DE_LA_404,
-            "el 404.html unico que sirve `output: export` tiene contenido castellano",
-        ).toBe("es");
+            langEsperado(cuatrocientosEn),
+            "la 404 inglesa sin JavaScript tiene que anunciarse en ingles: " +
+                "out/en/404.html se hornea con lang=en y Netlify la sirve bajo /en/*",
+        ).toBe("en");
+        expect(
+            SCRIPT,
+            "la excepcion IDIOMA_HORNEADO_DE_LA_404 volvio al script",
+        ).not.toMatch(/export const IDIOMA_HORNEADO_DE_LA_404\b/);
 
         /* Y la otra mitad: que el script convierta la comparacion en rojo. Una
            tabla que nadie usa para fallar es documentacion, no candado. */

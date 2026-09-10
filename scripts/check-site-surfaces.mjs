@@ -381,8 +381,8 @@
  * regla 3), y lo que oye un lector de pantalla antes de que hidrate el cliente
  * --o si el JavaScript no llega-- es el atributo horneado. Desde esta fecha el
  * script compara los DOS, cada uno contra el idioma que su ruta promete
- * (`langEsperado`), y la unica excepcion que acepta es la de las dos 404, que
- * comparten un solo `404.html` castellano por `output: "export"`.
+ * (`langEsperado`). Hasta el 2026-09-10 aceptaba una excepcion, la 404 inglesa
+ * horneada en castellano; ya no la acepta (ver `langEsperado`).
  *
  * LAS CUATRO FAMILIAS DE LA CRITICA #19 (dieciocho a veintiuna), medidas con
  * ESTE MISMO SCRIPT el 2026-09-06 sobre la copia servida del build de `f3594ad`
@@ -1117,29 +1117,6 @@ export const OPACIDAD_DE_DIAPOSITIVA_ACTIVA = 0.99;
  * portada oscura sale en verde con el deck cortado.
  */
 export const TOLERANCIA_DEL_ESCENARIO_PX = 1;
-
-/**
- * FAMILIA DIECINUEVE, `lang-del-documento-por-ruta`: el idioma que el HTML
- * HORNEADO de las dos 404 declara.
- *
- * Es `es` y no un descuido: `output: "export"` sirve UN solo `404.html` para
- * las dos ramas de idioma --el porque esta en el docblock de la propia ruta,
- * `app/global-not-found.tsx`, y en el de `app/RootDocument.tsx`-- y su
- * contenido horneado es castellano. El idioma real se resuelve en cliente
- * (`NotFoundLocaleShell` + `I18nProvider`). Lo que esta familia exige de las
- * 404 es esa coherencia: el horneado castellano y el vivo el de la rama.
- *
- * Lo que NO se acepta, y era el P1 de la critica #19: que una superficie
- * inglesa con contenido ingles horneado se sirva anunciandose en castellano.
- * ESE DEFECTO SE ARREGLO EL 2026-09-06 (ola S, commit `16c8451`): el sitio pasa
- * a tener tres raices --`app/(es)/layout.tsx`, `app/en/layout.tsx` y
- * `app/global-not-found.tsx`-- y cada una hornea su propio `<html lang>` sobre
- * el documento comun `app/RootDocument.tsx`, asi que `/en`, `/en/privacy` y
- * `/en/legal-notice` se sirven ya con `lang="en"` en crudo. La familia no se
- * retira por eso: es justamente el candado que vuelve a medirlo contra el
- * build real en cada pasada.
- */
-export const IDIOMA_HORNEADO_DE_LA_404 = "es";
 
 /**
  * FAMILIA VEINTE, `recarga-conserva-la-seccion`: el gesto que ninguna familia
@@ -2723,26 +2700,43 @@ function probeSeccionDelCentro({ x, y }) {
 }
 
 /**
- * EL IDIOMA QUE CADA SUPERFICIE TIENE QUE ANUNCIAR, con y sin JavaScript.
+ * FAMILIA DIECINUEVE, `lang-del-documento-por-ruta`: EL IDIOMA QUE CADA
+ * SUPERFICIE TIENE QUE ANUNCIAR, con y sin JavaScript.
  *
  * Funcion pura y tabulada a proposito: el veredicto de esta familia es una
  * TABLA, y una tabla se puede ejercitar entera en el gate sin navegador.
  *
- * CON JavaScript el idioma es siempre el de la superficie, la 404 inglesa
- * incluida: ahi ya corrio el cliente y `I18nProvider` resolvio la rama.
+ * CON JavaScript el idioma es el de la superficie: ahi ya corrio el cliente y
+ * `I18nProvider` resolvio la rama.
  *
- * SIN JavaScript es el idioma HORNEADO de la ruta, y ahi las dos 404 son la
- * excepcion declarada: `output: "export"` sirve un solo `404.html` con contenido
- * castellano para las dos ramas, asi que exigirle `en` a la inglesa seria pedir
- * que anunciara un idioma que su contenido horneado no tiene. Todo lo demas
- * --las dos portadas y las cuatro legales-- hornea contenido en su idioma y
- * tiene que anunciarlo.
+ * SIN JavaScript es el idioma HORNEADO de la ruta, y hoy tambien es el de la
+ * superficie, SIN EXCEPCIONES: las dos portadas, las cuatro legales y las dos
+ * 404 hornean contenido en su idioma y tienen que anunciarlo.
+ *
+ * El P1 de la critica #19 (una superficie inglesa horneada con `lang="es"`) se
+ * arreglo el 2026-09-06 (ola S, commit `16c8451`): tres raices
+ * --`app/(es)/layout.tsx`, `app/en/layout.tsx` y `app/global-not-found.tsx`--
+ * que hornean su propio `<html lang>` sobre `app/RootDocument.tsx`.
+ *
+ * La 404 inglesa fue la excepcion declarada hasta el 2026-09-10
+ * (`IDIOMA_HORNEADO_DE_LA_404 = "es"`): `output: "export"` solo emitia un
+ * `404.html` castellano. Se retira por dos piezas que la dejan sin motivo:
+ *   - commit `06cdda8`: `app/en/404/page.tsx` hornea `out/en/404.html` con
+ *     `lang="en"` y `netlify.toml` lo sirve con estado 404 para todo camino
+ *     inexistente bajo `/en/` (`from = "/en/*"`, `force = false`). Produccion ya
+ *     no sirve la 404 castellana en `/en/*`.
+ *   - commit `403bd29`: `scripts/serve-measure.mjs`, el servidor de medicion,
+ *     reproduce esa regla con la pila de `serve`, y el vigilante lo lanza por
+ *     defecto. El instrumento ve lo que produccion sirve.
+ * Con `serve` a secas, `/en/no-existe` sigue dando el `404.html` castellano de
+ * la raiz, y esta familia lo marca en ROJO: justo lo que tiene que hacer,
+ * porque esa no es la 404 que sirve produccion.
+ *
+ * Las dos lecturas (horneado y vivo) se siguen comparando por separado en
+ * `auditarSuperficie`, cada una con su mensaje, contra este mismo idioma.
  */
-export function langEsperado(surface, { conJavaScript }) {
-    if (conJavaScript) return surface.locale;
-    return surface.kind === "notFound"
-        ? IDIOMA_HORNEADO_DE_LA_404
-        : surface.locale;
+export function langEsperado(surface) {
+    return surface.locale;
 }
 
 /**
@@ -7182,8 +7176,8 @@ async function auditarSuperficie(browser, base, theme, surface) {
     const langHorneado = sinJs.lang || null;
     datos.lang = `${langHorneado ?? "sin lang"} horneado -> ${langVivo ?? "sin lang"} vivo`;
     // [check: lang-del-documento-por-ruta]
-    const esperadoVivo = langEsperado(surface, { conJavaScript: true });
-    const esperadoHorneado = langEsperado(surface, { conJavaScript: false });
+    const esperadoVivo = langEsperado(surface);
+    const esperadoHorneado = langEsperado(surface);
     if (!langHorneado)
         fallos.push(
             "el HTML horneado no declara `lang` en su elemento raiz: un lector de pantalla no sabe con que voz leerlo",
