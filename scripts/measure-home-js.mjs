@@ -380,6 +380,11 @@ export const CHUNK_GROWTH_LIMIT_BYTES = 1_000;
  * los del runtime de Next. Ya no hay una peor página que fije la cota; la cota
  * es la misma para todas, y por eso baja.
  *
+ * MATIZADO EL 2026-09-10: con la 404 inglesa (`/en/404`) el build tiene nueve
+ * páginas y la asimetría vuelve, pequeña: la portada lleva 3 módulos y 3.263 B,
+ * y la peor página 3.266 B. La cota sigue siendo la de la peor página, y por
+ * eso `toCensus` guarda el máximo por página y no la cifra de la portada.
+ *
  * El censo versionado declara estas dos mismas cifras
  * (`duplicacionCrudaBytes`, `modulosDuplicados`) y `auditBaseline` las compara
  * contra estas constantes sin necesitar `out/`: si una de las dos se mueve sin
@@ -526,8 +531,13 @@ export const BASELINE_CHUNKS = 21;
  * Páginas HTML que el build emite y que el censo declara. La segunda atadura de
  * extensión: sin ella, el censo se podría dejar en verde borrando una página
  * entera en vez de una fila de chunk.
+ *
+ * ENMIENDA 2026-09-10 (P2 de la crítica externa #21): 8 -> 9. La página nueva
+ * es `en/404.html`, la 404 inglesa horneada que emite `app/en/404/page.tsx` y
+ * que `netlify.toml` sirve con estado 404 bajo `/en/*`. Resellado con
+ * `--update-baseline` sobre un `pnpm build` fresco del árbol principal.
  */
-export const BASELINE_PAGES = 8;
+export const BASELINE_PAGES = 9;
 
 /**
  * SELLO DEL CENSO: resumen SHA-256 (16 hex) del contenido de
@@ -545,7 +555,7 @@ export const BASELINE_PAGES = 8;
  * refresque solo es deliberado: obliga a que todo cambio de censo aparezca
  * también en el diff de este fichero.
  */
-export const BASELINE_DIGEST = "2c58033bcc4132d3";
+export const BASELINE_DIGEST = "f54929cf94d0b1b5";
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */
 export const HOME_PAGE = "index.html";
@@ -1301,6 +1311,14 @@ export function readBaseline(file = BASELINE_PATH) {
  * sin él el orden (y con él el sello) no sería reproducible. Cada página
  * apunta a sus filas por índice: es lo que ata la tabla a sus consumidores en
  * las dos direcciones.
+ *
+ * `duplicacionCrudaBytes` y `modulosDuplicados` son el MÁXIMO por página, no
+ * la cifra de la portada: es la cota que `verdictPage` aplica de verdad, página
+ * a página, contra `DECLARED_DUPLICATE_*`, y la que `auditBaseline` exige que
+ * coincida con esas constantes. Hasta el 2026-09-10 se guardaba la de la
+ * portada, y con la 404 inglesa en el build las dos cotas se separaron (portada
+ * 3.263 B; `404.html` y `_not-found.html` 3.266 B): ningún valor de la
+ * constante dejaba en verde a la vez el candado por página y la auditoría.
  */
 export function toCensus(site, meta) {
     const filas = site.union.chunks
@@ -1313,14 +1331,21 @@ export function toCensus(site, meta) {
         );
     const indice = new Map(filas.map((chunk, index) => [chunk.name, index]));
     const home = site.paginas.find((pagina) => pagina.ruta === HOME_PAGE);
+    const peorPagina = (medir) =>
+        site.paginas.reduce(
+            (max, pagina) => Math.max(max, medir(pagina.analysis)),
+            0,
+        );
     return {
         medido: meta.medido,
         origen: meta.origen,
         presupuestoBytes: BUDGET_BYTES,
         totalDescargadoBrotli: home ? home.analysis.downloadedBytes : 0,
         polyfillNomoduleBrotli: home ? home.analysis.legacyBytes : 0,
-        duplicacionCrudaBytes: home ? home.analysis.duplicateRawBytes : 0,
-        modulosDuplicados: home ? home.analysis.duplicates.length : 0,
+        duplicacionCrudaBytes: peorPagina(
+            (analysis) => analysis.duplicateRawBytes,
+        ),
+        modulosDuplicados: peorPagina((analysis) => analysis.duplicates.length),
         chunks: filas.map((chunk) => ({
             firma: chunk.fingerprint,
             modulos: chunk.modules.length,

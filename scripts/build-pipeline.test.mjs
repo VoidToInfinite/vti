@@ -343,6 +343,104 @@ describe("el censo del bundle se compara contra el artefacto real", () => {
     });
 });
 
+/*
+ * LA 404 INGLESA SIN JAVASCRIPT (2026-09-10, P2 de la crítica externa #21, H9).
+ *
+ * El arreglo vive en dos mitades que nada compila juntas: la página que hornea
+ * `out/en/404.html` (`app/en/404/page.tsx`) y la regla de `netlify.toml` que la
+ * sirve con estado 404 bajo `/en/`. Basta con borrar la regla, cambiarle el
+ * estado a 200 (serviría una página rota como si existiera) o forzarla (por
+ * shadowing, `force = true` taparía `/en/privacy` y `/en/legal-notice` con la
+ * 404) para que el defecto vuelva sin que ningún test de componente lo vea.
+ * Aquí se ata la regla, y que su destino corresponda a una página que existe.
+ */
+const EN_NOT_FOUND_RULE = {
+    from: "/en/*",
+    to: "/en/404.html",
+    status: "404",
+};
+const EN_NOT_FOUND_PAGE = path.join(ROOT, "app", "en", "404", "page.tsx");
+const OUT_EN_NOT_FOUND = path.join(ROOT, "out", "en", "404.html");
+
+/**
+ * Los bloques `[[redirects]]` de un TOML, como objetos `clave -> valor crudo`
+ * (sin comillas). Salta los comentarios por el mismo motivo que los lectores de
+ * arriba: una regla escrita en un comentario no redirige nada.
+ */
+function redireccionesDeNetlify(texto) {
+    const bloques = [];
+    let actual = null;
+    for (const linea of texto.split("\n")) {
+        const limpia = linea.trim();
+        if (limpia === "" || limpia.startsWith("#")) continue;
+        if (limpia.startsWith("[")) {
+            actual = limpia === "[[redirects]]" ? {} : null;
+            if (actual) bloques.push(actual);
+            continue;
+        }
+        const match = /^([a-z_]+)\s*=\s*"?([^"]*?)"?\s*$/.exec(limpia);
+        if (actual && match) actual[match[1]] = match[2];
+    }
+    return bloques;
+}
+
+describe("la 404 inglesa se sirve con estado 404 y sin JavaScript", () => {
+    it("netlify.toml sirve `/en/404.html` con estado 404 bajo `/en/*`, sin forzar", () => {
+        const reglas = redireccionesDeNetlify(NETLIFY_TEXT);
+        const regla = reglas.find((r) => r.from === EN_NOT_FOUND_RULE.from);
+        expect(
+            regla,
+            `netlify.toml no declara la regla de la 404 inglesa (from = ` +
+                `"${EN_NOT_FOUND_RULE.from}"): sin ella \`/en/no-existe\` vuelve a ` +
+                `servirse con \`out/404.html\`, en castellano. Reglas reales: ` +
+                `${JSON.stringify(reglas)}`,
+        ).toBeDefined();
+        expect(regla.to).toBe(EN_NOT_FOUND_RULE.to);
+        expect(
+            regla.status,
+            "la 404 inglesa tiene que servirse con estado 404: con 200 una URL " +
+                "rota se anunciaría como página existente",
+        ).toBe(EN_NOT_FOUND_RULE.status);
+        expect(
+            regla.force ?? "false",
+            "con `force = true` la regla taparía por shadowing las rutas " +
+                "inglesas reales (`/en/privacy`, `/en/legal-notice`) con la 404",
+        ).toBe("false");
+    });
+
+    it("el destino de la regla lo emite una página que existe", () => {
+        expect(
+            existsSync(EN_NOT_FOUND_PAGE),
+            `falta ${EN_NOT_FOUND_PAGE}: la regla de netlify.toml apuntaría a un ` +
+                "fichero que el build ya no emite",
+        ).toBe(true);
+    });
+
+    it.skipIf(!existsSync(OUT_EN_NOT_FOUND))(
+        "el build hornea `out/en/404.html` en inglés (solo si hay `out/`)",
+        () => {
+            const html = readFileSync(OUT_EN_NOT_FOUND, "utf8");
+            expect(html).toMatch(/<html lang="en"/);
+            expect(html).toContain("<title>Page not found");
+            expect(html).toContain('<meta name="robots" content="noindex');
+            expect(html).not.toContain('rel="canonical"');
+        },
+    );
+
+    it("el lector de redirecciones no cuenta una regla escrita en un comentario", () => {
+        const sintetico = [
+            "# [[redirects]]",
+            '#   from = "/en/*"',
+            "[[redirects]]",
+            '  from = "/terminos"',
+            "  status = 301",
+        ].join("\n");
+        expect(redireccionesDeNetlify(sintetico)).toEqual([
+            { from: "/terminos", status: "301" },
+        ]);
+    });
+});
+
 describe("los lectores de este candado no se quedan sin filo en silencio", () => {
     it("los tres ficheros del pipeline existen y tienen contenido", () => {
         for (const [ruta, texto] of [

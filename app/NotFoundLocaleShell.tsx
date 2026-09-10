@@ -67,8 +67,9 @@ function getServerSnapshot(): Locale {
  * Cáscara de idioma de la 404, resuelta EN CLIENTE a partir de la URL rota.
  *
  * POR QUÉ EN CLIENTE Y NO EN EL BUILD. Bajo `output: "export"` el sitio entero
- * se hornea en ficheros estáticos y existe UN solo `404.html` (`out/404.html`),
- * que el hosting sirve para cualquier ruta inexistente de cualquier rama. No
+ * se hornea en ficheros estáticos y la entrada `/_not-found` hornea UN solo
+ * `out/404.html`, que un servidor estático sin reglas sirve para cualquier ruta
+ * inexistente de cualquier rama. No
  * hay servidor Next que pueda mirar la URL pedida y elegir una 404 por idioma:
  * ni middleware, ni Route Handlers, ni `headers()` — la restricción está
  * declarada en `CLAUDE.md` §1. Quien SÍ conoce la URL que falló es el
@@ -86,12 +87,18 @@ function getServerSnapshot(): Locale {
  *
  * COSTE DECLARADO, no escondido: en una URL rota bajo `/en/` hay un instante de
  * copia castellana antes de que React sustituya la instantánea de servidor por
- * la de cliente. No es evitable sin un servidor o sin duplicar la 404 por
- * idioma (y esto último no es posible: la entrada `/_not-found` resuelve sus
- * ficheros en el segmento raíz de `app/`, fuera de los grupos de idioma, y bajo
- * `output: "export"` el sitio hornea un único `out/404.html` para las dos ramas
- * — ver el docblock de `app/global-not-found.tsx`). El resto de la página SÍ
- * queda coherente:
+ * la de cliente. La entrada `/_not-found` no puede duplicarse por idioma
+ * —resuelve sus ficheros en el segmento raíz de `app/`, fuera de los grupos de
+ * idioma—, pero desde el 2026-09-10 (P2 de la crítica externa #21) la 404 SÍ
+ * se duplica por otra vía: `app/en/404/page.tsx` hornea `out/en/404.html` con
+ * `lang="en"`, y en producción (Netlify) la regla `from = "/en/*"` de
+ * `netlify.toml` la sirve con estado 404 a todo camino roto bajo `/en/`. Ahí
+ * esta cáscara ni se monta en esas URLs. Donde SIGUE haciendo el trabajo es en
+ * el servidor local de medición (`serve out`), que no lee `netlify.toml` y
+ * sirve solo `out/404.html` también bajo `/en/`; de eso depende la excepción
+ * `IDIOMA_HORNEADO_DE_LA_404` de la familia 19 de
+ * `scripts/check-site-surfaces.mjs` (ver el docblock de
+ * `app/global-not-found.tsx`). El resto de la página SÍ queda coherente:
  * `<html lang>` (lo fija `I18nProvider`), el `<h1>`, el mensaje, el `<title>` y
  * la descripción del documento (`DocumentMeta`), el chrome global (`SkipLink`,
  * `BackToTop`, `Navbar`, `Footer`) y el selector de idioma, que marca como

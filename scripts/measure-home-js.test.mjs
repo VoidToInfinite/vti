@@ -1128,3 +1128,52 @@ describe.skipIf(!existsSync("out/index.html"))(
         );
     },
 );
+
+/*
+ * El censo guarda la duplicación de la PEOR página, no la de la portada. Es la
+ * cota que el candado por página aplica contra `DECLARED_DUPLICATE_*` y la que
+ * la auditoría exige que coincida con esas constantes; con la cifra de la
+ * portada, el 2026-09-10 (portada 3.263 B, las dos 404 3.266 B) ningún valor
+ * de la constante dejaba en verde las dos cosas a la vez.
+ */
+describe("la duplicación del censo es la cota de la peor página", () => {
+    const repetido = (id, size) => ({ id, size });
+    const site = () => {
+        const portada = [
+            makeChunk("p1.js", [repetido("4001", 400)]),
+            makeChunk("p2.js", [repetido("4001", 400)]),
+        ];
+        const otra = [
+            makeChunk("o1.js", [repetido("4001", 400), repetido("4002", 300)]),
+            makeChunk("o2.js", [repetido("4001", 400), repetido("4002", 300)]),
+        ];
+        return {
+            rutas: [HOME_PAGE, "404.html"],
+            union: analyze([...portada, ...otra]),
+            paginas: [
+                { ruta: HOME_PAGE, analysis: analyze(portada) },
+                { ruta: "404.html", analysis: analyze(otra) },
+            ],
+        };
+    };
+
+    it("la portada duplica menos que la otra página", () => {
+        const { paginas } = site();
+        expect(paginas[0].analysis.duplicateRawBytes).toBeLessThan(
+            paginas[1].analysis.duplicateRawBytes,
+        );
+        expect(paginas[0].analysis.duplicates).toHaveLength(1);
+        expect(paginas[1].analysis.duplicates).toHaveLength(2);
+    });
+
+    it("toCensus guarda el máximo por página de bytes y de módulos repetidos", () => {
+        const sitio = site();
+        const censo = toCensus(sitio, {
+            medido: "2026-09-10",
+            origen: "sintético",
+        });
+        const peor = sitio.paginas[1].analysis;
+        expect(censo.duplicacionCrudaBytes).toBe(peor.duplicateRawBytes);
+        expect(censo.modulosDuplicados).toBe(peor.duplicates.length);
+    });
+});

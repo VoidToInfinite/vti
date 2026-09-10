@@ -87,3 +87,26 @@
   to = "/"
   status = 301
   force = false
+
+# La 404 de la rama inglesa (2026-09-10, P2 de la crítica externa #21, H9).
+# Con `output: "export"` Netlify sirve `out/404.html` para cualquier camino
+# inexistente, y ese documento está horneado en castellano: sin JavaScript,
+# `/en/no-existe` llegaba con `<html lang="es">` y copia castellana a quien
+# venía navegando en inglés (con JavaScript ya se corregía tras hidratar).
+#
+# Esta regla le da a la rama inglesa su propia 404 horneada, `out/en/404.html`
+# (la emite `app/en/404/page.tsx`, con `lang="en"`, la navegación completa y
+# «Back to home» hacia `/en`), y la sirve con estado 404, no 200: es el
+# mecanismo de «Custom 404 page handling» de la documentación de Netlify.
+#
+# `force = false` es lo que la hace segura, y va explícito para que se lea: por
+# SHADOWING la regla solo se aplica cuando el camino pedido NO existe como
+# fichero, así que `/en`, `/en/privacy` y `/en/legal-notice` (y los assets) se
+# siguen sirviendo tal cual. La 404 castellana no cambia: todo lo que no cae
+# bajo `/en/` sigue recibiendo `out/404.html`. Candado en
+# `scripts/build-pipeline.test.mjs`.
+[[redirects]]
+  from = "/en/*"
+  to = "/en/404.html"
+  status = 404
+  force = false

@@ -132,13 +132,29 @@ export const viewport: Viewport = ROOT_VIEWPORT;
  * trae por defecto para esa convención emite `<html><body>` él mismo
  * (`next/dist/client/components/builtin/global-not-found.js`).
  *
- * `lang="es"` NO es un descuido en una página que sí resuelve el idioma: bajo
- * `output: "export"` existe un único `out/404.html` para las dos ramas y su
- * contenido HORNEADO es castellano, así que el atributo del HTML en crudo
- * describe lo que el documento realmente dice. En una URL rota bajo `/en/`,
- * `NotFoundLocaleShell` resuelve el idioma desde el camino e `I18nProvider`
- * escribe `lang="en"` en el DOM vivo —que es lo que anuncia un lector de
- * pantalla— antes de que se lea nada. Candado en `app/not-found.test.tsx`.
+ * `lang="es"` NO es un descuido en una página que sí resuelve el idioma: esta
+ * convención hornea `out/404.html` y su contenido HORNEADO es castellano, así
+ * que el atributo del HTML en crudo describe lo que el documento realmente
+ * dice. En una URL rota bajo `/en/`, `NotFoundLocaleShell` resuelve el idioma
+ * desde el camino e `I18nProvider` escribe `lang="en"` en el DOM vivo —que es
+ * lo que anuncia un lector de pantalla— antes de que se lea nada. Candado en
+ * `app/not-found.test.tsx`.
+ *
+ * DESDE EL 2026-09-10 (P2 de la crítica externa #21) este ya NO es el único
+ * `404.html` del build: `app/en/404/page.tsx` hornea además `out/en/404.html`,
+ * con `lang="en"`. Quién recibe cuál depende del servidor, y no es lo mismo en
+ * los dos sitios donde se sirve el `out/`:
+ *
+ * - En producción (Netlify), la regla `from = "/en/*"` de `netlify.toml` sirve
+ *   `out/en/404.html` con estado 404 a todo camino inexistente bajo `/en/`; el
+ *   resto sigue recibiendo este `out/404.html`.
+ * - El servidor local de medición (`serve out`) no lee `netlify.toml` y sigue
+ *   sirviendo SOLO este `out/404.html` para cualquier camino roto, también bajo
+ *   `/en/`. Ahí es donde esta página sigue haciendo el trabajo de las dos ramas
+ *   con la corrección en cliente de `NotFoundLocaleShell`, y de eso depende la
+ *   excepción `IDIOMA_HORNEADO_DE_LA_404` de la familia 19 de
+ *   `scripts/check-site-surfaces.mjs`: mide contra `serve`, donde el HTML
+ *   horneado de una 404 inglesa sigue siendo este castellano.
  */
 export default function GlobalNotFound(): ReactElement {
   return (

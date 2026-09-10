@@ -1,8 +1,8 @@
 {
-    "medido": "2026-09-08",
-    "origen": "out/ (8 páginas)",
+    "medido": "2026-09-10",
+    "origen": "out/ (9 páginas)",
     "presupuestoBytes": 290000,
-    "totalDescargadoBrotli": 252064,
+    "totalDescargadoBrotli": 252137,
     "polyfillNomoduleBrotli": 35158,
     "duplicacionCrudaBytes": 3266,
     "modulosDuplicados": 3,
@@ -50,32 +50,11 @@
             ]
         },
         {
-            "firma": "f08a9262c68d",
-            "modulos": 11,
-            "brotli": 21308,
-            "crudo": 71156,
-            "pistas": [
-                "NAV_GROUPS",
-                "navBarMoreGroupsFor",
-                "navBarSectionsFor",
-                "navBarWideSectionsFor",
-                "navGroupsFor",
-                "navLocale"
-            ]
-        },
-        {
-            "firma": "f08a9262c68d",
-            "modulos": 11,
-            "brotli": 21290,
-            "crudo": 71156,
-            "pistas": [
-                "default",
-                "getI18nInstance",
-                "initI18n",
-                "NAV_GROUPS",
-                "navBarMoreGroupsFor",
-                "navBarSectionsFor"
-            ]
+            "firma": "c4417bbdf228",
+            "modulos": 5,
+            "brotli": 18831,
+            "crudo": 63536,
+            "pistas": ["default", "getI18nInstance", "initI18n"]
         },
         {
             "firma": "a4654fc98bda",
@@ -85,31 +64,31 @@
             "pistas": ["legalPage.parts", "LegalDocument"]
         },
         {
-            "firma": "574c0b5842ce",
-            "modulos": 8,
-            "brotli": 14111,
-            "crudo": 38456,
+            "firma": "8ba7e9785a5e",
+            "modulos": 5,
+            "brotli": 13690,
+            "crudo": 37335,
             "pistas": [
-                "VisuallyHidden",
-                "DEFAULT_LOCALE",
-                "EN_ROUTES",
-                "LEGAL_ROUTE_KEYS",
-                "LOCALES",
-                "ROUTES"
-            ]
-        },
-        {
-            "firma": "574c0b5842ce",
-            "modulos": 8,
-            "brotli": 14083,
-            "crudo": 38456,
-            "pistas": [
-                "VisuallyHidden",
                 "initReactI18next",
                 "useTranslation",
                 "I18nextProvider",
                 "DEFAULT_LOCALE",
-                "EN_ROUTES"
+                "EN_ROUTES",
+                "LEGAL_ROUTE_KEYS"
+            ]
+        },
+        {
+            "firma": "8ba7e9785a5e",
+            "modulos": 5,
+            "brotli": 13684,
+            "crudo": 37335,
+            "pistas": [
+                "DEFAULT_LOCALE",
+                "EN_ROUTES",
+                "LEGAL_ROUTE_KEYS",
+                "LOCALES",
+                "ROUTES",
+                "SITE"
             ]
         },
         {
@@ -120,31 +99,17 @@
             "pistas": []
         },
         {
-            "firma": "9c338c83013b",
-            "modulos": 12,
-            "brotli": 9394,
-            "crudo": 31303,
+            "firma": "025e4670ad80",
+            "modulos": 15,
+            "brotli": 8275,
+            "crudo": 25372,
             "pistas": [
+                "VisuallyHidden",
                 "Button",
                 "BrandName",
-                "Logo",
-                "sectionBeam.parts",
                 "Typography",
-                "THEME_ATTRIBUTE"
-            ]
-        },
-        {
-            "firma": "9c338c83013b",
-            "modulos": 12,
-            "brotli": 9373,
-            "crudo": 31303,
-            "pistas": [
-                "Button",
-                "Typography",
-                "BrandName",
-                "Logo",
-                "sectionBeam.parts",
-                "forcedColorsButtonShape"
+                "STORAGE_KEYS",
+                "STORAGE_REGISTRY"
             ]
         },
         {
@@ -162,6 +127,48 @@
             "pistas": []
         },
         {
+            "firma": "bd7f8b9fed81",
+            "modulos": 9,
+            "brotli": 5349,
+            "crudo": 18049,
+            "pistas": [
+                "Logo",
+                "sectionBeam.parts",
+                "THEME_ATTRIBUTE",
+                "THEME_COLORS",
+                "readResolvedTheme",
+                "resolveInitialTheme"
+            ]
+        },
+        {
+            "firma": "26a9e9d2d245",
+            "modulos": 6,
+            "brotli": 5345,
+            "crudo": 16727,
+            "pistas": [
+                "Button",
+                "Typography",
+                "BrandName",
+                "NotFoundContent",
+                "forcedColorsButtonShape",
+                "ctaGradient"
+            ]
+        },
+        {
+            "firma": "b9cb2bb1da57",
+            "modulos": 13,
+            "brotli": 4381,
+            "crudo": 12879,
+            "pistas": [
+                "VisuallyHidden",
+                "NAV_GROUPS",
+                "navBarMoreGroupsFor",
+                "navBarSectionsFor",
+                "navBarWideSectionsFor",
+                "navGroupsFor"
+            ]
+        },
+        {
             "firma": "sin-modulos",
             "modulos": 0,
             "brotli": 3739,
@@ -169,24 +176,11 @@
             "pistas": ["default"]
         },
         {
-            "firma": "64d7b487cce8",
-            "modulos": 7,
-            "brotli": 2837,
-            "crudo": 7497,
-            "pistas": [
-                "NotFoundContent",
-                "useDocumentMeta",
-                "DocumentMeta",
-                "NotFoundLocaleShell",
-                "resolveNotFoundLocale"
-            ]
-        },
-        {
-            "firma": "7e2d90d23593",
+            "firma": "2def7dc1d5c6",
             "modulos": 3,
-            "brotli": 1271,
-            "crudo": 3377,
-            "pistas": []
+            "brotli": 1513,
+            "crudo": 3693,
+            "pistas": ["NotFoundContent", "useDocumentMeta", "DocumentMeta"]
         },
         {
             "firma": "7e2d90d23593",
@@ -220,59 +214,66 @@
     "paginas": [
         {
             "ruta": "404.html",
-            "chunksDescargados": 12,
-            "descargadoBrotli": 206198,
+            "chunksDescargados": 13,
+            "descargadoBrotli": 206193,
             "polyfillBrotli": 35158,
-            "refs": [0, 2, 3, 4, 8, 9, 11, 12, 13, 14, 15, 17]
+            "refs": [0, 2, 3, 4, 6, 8, 10, 11, 12, 13, 14, 15, 17]
         },
         {
             "ruta": "_not-found.html",
-            "chunksDescargados": 12,
-            "descargadoBrotli": 206198,
+            "chunksDescargados": 13,
+            "descargadoBrotli": 206193,
             "polyfillBrotli": 35158,
-            "refs": [0, 2, 3, 4, 8, 9, 11, 12, 13, 14, 15, 17]
+            "refs": [0, 2, 3, 4, 6, 8, 10, 11, 12, 13, 14, 15, 17]
         },
         {
             "ruta": "aviso-legal.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 223176,
+            "descargadoBrotli": 223249,
             "polyfillBrotli": 35158,
-            "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 19]
+            "refs": [0, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 15, 17, 19]
         },
         {
             "ruta": "en.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 252064,
+            "descargadoBrotli": 252137,
             "polyfillBrotli": 35158,
-            "refs": [0, 1, 2, 3, 5, 7, 9, 10, 12, 13, 14, 16, 17, 18]
+            "refs": [0, 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 15, 17, 18]
+        },
+        {
+            "ruta": "en/404.html",
+            "chunksDescargados": 13,
+            "descargadoBrotli": 206249,
+            "polyfillBrotli": 35158,
+            "refs": [0, 2, 3, 4, 7, 8, 9, 10, 11, 12, 15, 16, 17]
         },
         {
             "ruta": "en/legal-notice.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 223176,
+            "descargadoBrotli": 223249,
             "polyfillBrotli": 35158,
-            "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 19]
+            "refs": [0, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 15, 17, 19]
         },
         {
             "ruta": "en/privacy.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 223176,
+            "descargadoBrotli": 223249,
             "polyfillBrotli": 35158,
-            "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 20]
+            "refs": [0, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 15, 17, 20]
         },
         {
             "ruta": "index.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 252064,
+            "descargadoBrotli": 252137,
             "polyfillBrotli": 35158,
-            "refs": [0, 1, 2, 3, 5, 7, 9, 10, 12, 13, 14, 16, 17, 18]
+            "refs": [0, 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 15, 17, 18]
         },
         {
             "ruta": "privacidad.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 223176,
+            "descargadoBrotli": 223249,
             "polyfillBrotli": 35158,
-            "refs": [0, 2, 3, 5, 6, 7, 9, 10, 12, 13, 14, 16, 17, 20]
+            "refs": [0, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 15, 17, 20]
         }
     ]
 }
