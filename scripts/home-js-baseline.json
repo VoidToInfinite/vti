@@ -1,5 +1,5 @@
 {
-    "medido": "2026-09-10",
+    "medido": "2026-09-11",
     "origen": "out/ (9 páginas)",
     "presupuestoBytes": 290000,
     "compresion": {
@@ -7,7 +7,7 @@
         "umbral": 1024,
         "origen": "compression@1.8.1 (serve@14.2.6)"
     },
-    "totalDescargadoBrotli": 272343,
+    "totalDescargadoBrotli": 272285,
     "polyfillNomoduleBrotli": 40495,
     "duplicacionCrudaBytes": 3266,
     "modulosDuplicados": 3,
@@ -22,8 +22,8 @@
         {
             "firma": "333a7f81dc9c",
             "modulos": 3,
-            "brotli": 49283,
-            "crudo": 208469,
+            "brotli": 49225,
+            "crudo": 208505,
             "pistas": [
                 "Sol",
                 "aura.parts",
@@ -241,7 +241,7 @@
         {
             "ruta": "en.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 272343,
+            "descargadoBrotli": 272285,
             "polyfillBrotli": 40495,
             "refs": [0, 1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 15, 17, 19]
         },
@@ -269,7 +269,7 @@
         {
             "ruta": "index.html",
             "chunksDescargados": 14,
-            "descargadoBrotli": 272343,
+            "descargadoBrotli": 272285,
             "polyfillBrotli": 40495,
             "refs": [0, 1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 15, 17, 19]
         },
