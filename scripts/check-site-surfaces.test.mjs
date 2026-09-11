@@ -126,6 +126,10 @@ import {
     umbralDeContraste,
     veredictoDeConexionDeclarada,
     veredictoDeDerivaDeCondiciones,
+    evaluaAdelanteALaPortada,
+    INSTANTES_TRAS_ADELANTE_MS,
+    PROFUNDIDAD_EN_LA_LEGAL_PX,
+    VIEWPORTS_DE_ADELANTE,
 } from "./check-site-surfaces.mjs";
 /* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
    parser de Rollup no admite un `.ts` explicito en el especificador. */
@@ -612,6 +616,7 @@ const FAMILIAS_ESPERADAS = [
     "tabulacion-sin-rezago",
     "aterrizaje-de-ancla-constante",
     "atras-y-adelante-restituyen-la-lectura",
+    "adelante-a-la-portada-vuelve-a-su-lectura",
 ];
 
 /**
@@ -692,8 +697,11 @@ const FAMILIAS_ESPERADAS = [
  *
  * Sube a 32 el 2026-09-10 con `tabulacion-sin-rezago` (P1 del objetivo >=98) y
  * `aterrizaje-de-ancla-constante` (P2), en el mismo cambio que las anade.
+ *
+ * Sube a 34 el 2026-09-11 con `adelante-a-la-portada-vuelve-a-su-lectura` (P7-1B,
+ * C1 de la pre-critica P6), en el mismo cambio que la anade.
  */
-const FAMILIAS_MINIMAS = 33;
+const FAMILIAS_MINIMAS = 34;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -5918,5 +5926,146 @@ describe("evaluaAtrasYAdelante: el Atras vuelve a la profundidad leida", () => {
         const { cumple, motivos } = evaluaAtrasYAdelante(m);
         expect(cumple).toBe(false);
         expect(motivos.join(" | ")).toContain(texto);
+    });
+});
+
+/*
+ * FAMILIA 34, `adelante-a-la-portada-vuelve-a-su-lectura` (P7-1B). Tabla del evaluador
+ * puro. El rojo de navegador, medido: sobre `65a6e25` (antes del registro en
+ * `onNavigate`) la familia cae en oscuro con la portada en y=1500 a los 700 ms
+ * y a los 3 s, y pasa en claro.
+ */
+describe("evaluaAdelanteALaPortada: Adelante devuelve la portada a donde se dejo", () => {
+    const N = PROFUNDIDAD_EN_LA_LEGAL_PX;
+    const lee = (pathname, y, modo = "manual") => ({
+        pathname,
+        hash: "",
+        y,
+        modo,
+        clave: "k",
+    });
+    const medida = (viewport) => ({
+        viewport,
+        logo: true,
+        rutaPortada: "/",
+        legal: lee("/privacidad", N, "auto"),
+        portada: lee("/", 0),
+        atras: lee("/privacidad", N, "auto"),
+        adelante: INSTANTES_TRAS_ADELANTE_MS.map((ms) => ({
+            ms,
+            ...lee("/", 0),
+        })),
+    });
+    const verde = (theme = "dark") => ({
+        theme,
+        surface: "/",
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+        medidas: VIEWPORTS_DE_ADELANTE.map((v) =>
+            medida(`${v.width}x${v.height}`),
+        ),
+    });
+
+    it("la matriz declarada: dos viewports, dos instantes y una legal lejos de la cima", () => {
+        expect(VIEWPORTS_DE_ADELANTE).toEqual([
+            { width: 1440, height: 900 },
+            { width: 390, height: 844 },
+        ]);
+        expect(INSTANTES_TRAS_ADELANTE_MS).toEqual([700, 3000]);
+        expect(N).toBeGreaterThanOrEqual(2 * DERIVA_MAXIMA_DE_RECARGA_PX);
+    });
+
+    it("pasa con la portada de vuelta en la cima en los dos viewports", () => {
+        expect(evaluaAdelanteALaPortada(verde()).cumple).toBe(true);
+    });
+
+    it("en claro no exige 'manual': es el control de la nativa", () => {
+        const m = verde("light");
+        for (const x of m.medidas) for (const l of x.adelante) l.modo = "auto";
+        expect(evaluaAdelanteALaPortada(m).cumple).toBe(true);
+    });
+
+    it.each([
+        [
+            "C1 medido: el Adelante hereda la posicion de la legal",
+            (m) => {
+                m.medidas[0].adelante = INSTANTES_TRAS_ADELANTE_MS.map(
+                    (ms) => ({ ms, ...lee("/", 1500) }),
+                );
+            },
+            "1440x900 (/ dark): a los 700 ms del Adelante la portada esta en y=1500 y se dejo en y=0",
+        ],
+        [
+            "una restitucion tardia que se deshace a los 3 s",
+            (m) => {
+                m.medidas[1].adelante[1] = { ms: 3000, ...lee("/", N) };
+            },
+            "390x844 (/ dark): a los 3000 ms del Adelante la portada esta en y=1500",
+        ],
+        [
+            "en oscuro, aprobar volviendo a la nativa no vale",
+            (m) => {
+                for (const l of m.medidas[0].adelante) l.modo = "auto";
+            },
+            'tiene que estar en scrollRestoration "manual" y esta en "auto"',
+        ],
+        [
+            "un viewport sin medir no es un verde",
+            (m) => {
+                m.medidas.pop();
+            },
+            "390x844 (/ dark): el viewport no se midio",
+        ],
+        [
+            "sin logo el camino no se ejercio",
+            (m) => {
+                m.medidas[0] = { viewport: "1440x900", logo: false };
+            },
+            "no se encontro el logo",
+        ],
+        [
+            "una legal leida en la cima no distingue heredar de volver",
+            (m) => {
+                m.medidas[0].legal = lee("/privacidad", 0, "auto");
+                m.medidas[0].atras = lee("/privacidad", 0, "auto");
+            },
+            "a menos de 128 px de la cima",
+        ],
+        [
+            "el Atras no devuelve la legal a su lectura",
+            (m) => {
+                m.medidas[0].atras = lee("/privacidad", 0, "auto");
+            },
+            "el Atras deja /privacidad en y=0 y la legal se leia en /privacidad y=1500",
+        ],
+        [
+            "el logo no deja la portada en la cima",
+            (m) => {
+                m.medidas[0].portada = lee("/", 900);
+            },
+            "el logo deja / en y=900",
+        ],
+        [
+            "el Adelante no llega a la portada",
+            (m) => {
+                m.medidas[0].adelante[0] = {
+                    ms: 700,
+                    ...lee("/privacidad", 0, "auto"),
+                };
+            },
+            "a los 700 ms el Adelante deja /privacidad y la entrada de destino era /",
+        ],
+        [
+            "falta una lectura del Adelante",
+            (m) => {
+                m.medidas[0].adelante = [m.medidas[0].adelante[0]];
+            },
+            "la portada no se leyo a los 3000 ms del Adelante",
+        ],
+    ])("%s", (_nombre, rompe, motivo) => {
+        const m = verde();
+        rompe(m);
+        const v = evaluaAdelanteALaPortada(m);
+        expect(v.cumple).toBe(false);
+        expect(v.motivos.join(" | ")).toContain(motivo);
     });
 });

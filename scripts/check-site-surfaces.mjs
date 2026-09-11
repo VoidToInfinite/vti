@@ -676,6 +676,7 @@ export const CHECKS = [
     "tabulacion-sin-rezago",
     "aterrizaje-de-ancla-constante",
     "atras-y-adelante-restituyen-la-lectura",
+    "adelante-a-la-portada-vuelve-a-su-lectura",
 ];
 
 /**
@@ -2051,6 +2052,186 @@ export async function mideAtrasYAdelante(browser, base, theme, surface) {
         surface: surface.nombre,
         rutas,
         claves,
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+    };
+}
+
+/**
+ * FAMILIA TREINTA Y CUATRO, `adelante-a-la-portada-vuelve-a-su-lectura` (P7-1B del
+ * objetivo >=98; C1 de la pre-critica P6). La 33 recorre portada -> legal ->
+ * Atras -> Adelante, y su Adelante llega a la LEGAL. Nadie recorria el camino
+ * inverso, legal -> logo -> Atras -> Adelante, que termina en la PORTADA.
+ * Medido el 2026-09-11 en oscuro: la portada a la que se llega por el logo nace
+ * en "auto", su unico scroll (a y=0) se procesa antes de que el interruptor la
+ * pase a "manual" y el restituidor no la anotaba; al volver con Adelante el
+ * lector heredaba la posicion de la legal (1.500 px durante 5 s). En claro
+ * manda la nativa y vuelve a 0 antes de 700 ms: es el CONTROL.
+ *
+ * MATRIZ: portadas `/` y `/en` (su legal: `/privacidad` y `/en/privacy`), los
+ * dos temas (los pone la corrida), 1440x900 y 390x844, sin `reduce`. En cada
+ * una, en su contexto limpio: la legal leida a `PROFUNDIDAD_EN_LA_LEGAL_PX`,
+ * clic REAL en el logo de la cabecera, Atras, Adelante, y la portada leida a
+ * los instantes de `INSTANTES_TRAS_ADELANTE_MS`. En oscuro se exige ademas
+ * `history.scrollRestoration === "manual"` en la portada: la familia no se
+ * aprueba devolviendo la portada a la restitucion nativa.
+ */
+export const PROFUNDIDAD_EN_LA_LEGAL_PX = 1500;
+
+/** Los dos viewports de la familia 34. */
+export const VIEWPORTS_DE_ADELANTE = [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+];
+
+/** Los instantes (ms tras el Adelante) en que la familia 34 lee la portada. */
+export const INSTANTES_TRAS_ADELANTE_MS = [700, 3000];
+
+/**
+ * EL VEREDICTO DE LA FAMILIA 34: puro y tabulado en el gate. Cada viewport
+ * tiene que (1) haberse medido, (2) partir de una legal leida lejos de la cima
+ * --heredar una posicion cercana a 0 no se distinguiria de volver--, (3) llegar
+ * a la portada en la cima con el logo, (4) volver con Atras a la legal leida y
+ * (5) volver con Adelante a la portada en la posicion en que se dejo, en cada
+ * instante leido. En oscuro, (6) la portada en "manual".
+ */
+export function evaluaAdelanteALaPortada({
+    theme,
+    surface,
+    medidas,
+    tolerancia,
+}) {
+    const motivos = [];
+    const donde = `${surface} ${theme}`;
+    const vistos = new Set((medidas ?? []).map((m) => m.viewport));
+    for (const v of VIEWPORTS_DE_ADELANTE) {
+        const id = `${v.width}x${v.height}`;
+        if (!vistos.has(id))
+            motivos.push(
+                `${id} (${donde}): el viewport no se midio y un viewport sin medir no es un verde`,
+            );
+    }
+    for (const m of medidas ?? []) {
+        const id = `${m.viewport} (${donde})`;
+        if (!m.logo) {
+            motivos.push(
+                `${id}: no se encontro el logo de la cabecera; sin gesto el camino no se ejercio`,
+            );
+            continue;
+        }
+        if (m.legal.y < 2 * tolerancia)
+            motivos.push(
+                `${id}: la legal se leia en y=${m.legal.y}, a menos de ${2 * tolerancia} px de la cima: heredar esa posicion no se distinguiria de volver a la portada`,
+            );
+        if (m.portada.pathname !== m.rutaPortada || m.portada.y > tolerancia)
+            motivos.push(
+                `${id}: el logo deja ${m.portada.pathname} en y=${m.portada.y} y se esperaba ${m.rutaPortada} en la cima`,
+            );
+        if (
+            m.atras.pathname !== m.legal.pathname ||
+            Math.abs(m.atras.y - m.legal.y) > tolerancia
+        )
+            motivos.push(
+                `${id}: el Atras deja ${m.atras.pathname} en y=${m.atras.y} y la legal se leia en ${m.legal.pathname} y=${m.legal.y} (tolerancia ${tolerancia} px)`,
+            );
+        const lecturas = m.adelante ?? [];
+        for (const ms of INSTANTES_TRAS_ADELANTE_MS) {
+            const l = lecturas.find((x) => x.ms === ms);
+            if (!l) {
+                motivos.push(
+                    `${id}: la portada no se leyo a los ${ms} ms del Adelante`,
+                );
+                continue;
+            }
+            if (l.pathname !== m.rutaPortada)
+                motivos.push(
+                    `${id}: a los ${ms} ms el Adelante deja ${l.pathname} y la entrada de destino era ${m.rutaPortada}`,
+                );
+            else if (Math.abs(l.y - m.portada.y) > tolerancia)
+                motivos.push(
+                    `${id}: a los ${ms} ms del Adelante la portada esta en y=${l.y} y se dejo en y=${m.portada.y} (la legal se leia en y=${m.legal.y}; tolerancia ${tolerancia} px; modo ${l.modo})`,
+                );
+        }
+        if (theme === "dark") {
+            const ultima = lecturas[lecturas.length - 1];
+            if (ultima && ultima.modo !== "manual")
+                motivos.push(
+                    `${id}: en oscuro la portada tiene que estar en scrollRestoration "manual" y esta en ${JSON.stringify(ultima.modo)}: devolverla a la nativa no es el arreglo`,
+                );
+        }
+    }
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/** Mide la familia 34 en una portada: su legal, el logo, Atras y Adelante. */
+export async function mideAdelanteALaPortada(browser, base, theme, surface) {
+    const legal = LEGAL_DOCS[0][surface.locale];
+    const enRuta = (pathname) => (u) => new URL(u).pathname === pathname;
+    const medidas = [];
+    for (const v of VIEWPORTS_DE_ADELANTE) {
+        const viewport = `${v.width}x${v.height}`;
+        const ctx = await nuevoContexto(browser, theme, {
+            viewport: v,
+            reducedMotion: "no-preference",
+        });
+        try {
+            const page = await ctx.newPage();
+            await page.goto(`${base}${legal}`, { waitUntil: "networkidle" });
+            await page.waitForTimeout(1500);
+            await page.evaluate(
+                (y) => window.scrollTo({ top: y, behavior: "instant" }),
+                PROFUNDIDAD_EN_LA_LEGAL_PX,
+            );
+            await page.waitForTimeout(900);
+            const leida = await page.evaluate(leeEntradaActiva);
+            let logo = null;
+            for (const c of await page.$$(`header a[href="${surface.path}"]`))
+                if (await c.boundingBox()) {
+                    logo = c;
+                    break;
+                }
+            if (!logo) {
+                medidas.push({ viewport, logo: false });
+                continue;
+            }
+            await logo.click();
+            await page.waitForURL(enRuta(surface.path), { timeout: 10000 });
+            await page.waitForTimeout(1500);
+            await esperaScrollQuieto(page);
+            const portada = await page.evaluate(leeEntradaActiva);
+            await page.evaluate(() => history.back());
+            await page.waitForURL(enRuta(legal), { timeout: 10000 });
+            await page.waitForTimeout(1500);
+            await esperaScrollQuieto(page);
+            const atras = await page.evaluate(leeEntradaActiva);
+            await page.evaluate(() => history.forward());
+            await page.waitForURL(enRuta(surface.path), { timeout: 10000 });
+            const t0 = Date.now();
+            const adelante = [];
+            for (const ms of INSTANTES_TRAS_ADELANTE_MS) {
+                const falta = ms - (Date.now() - t0);
+                if (falta > 0) await page.waitForTimeout(falta);
+                adelante.push({
+                    ms,
+                    ...(await page.evaluate(leeEntradaActiva)),
+                });
+            }
+            medidas.push({
+                viewport,
+                logo: true,
+                rutaPortada: surface.path,
+                legal: leida,
+                portada,
+                atras,
+                adelante,
+            });
+        } finally {
+            await ctx.close();
+        }
+    }
+    return {
+        theme,
+        surface: surface.nombre,
+        medidas,
         tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
     };
 }
@@ -8935,6 +9116,31 @@ async function auditarSuperficie(browser, base, theme, surface) {
         if (!veredictoDeVuelta.cumple)
             fallos.push(
                 `Atras no devuelve al visitante a la profundidad que leia: ${veredictoDeVuelta.motivos.join(" | ")}`,
+            );
+
+        /*
+         * --- adelante a la portada vuelve a su lectura
+         *
+         * Matriz y porque: docblock de `PROFUNDIDAD_EN_LA_LEGAL_PX`.
+         */
+        const aPortada = await mideAdelanteALaPortada(
+            browser,
+            base,
+            theme,
+            surface,
+        );
+        const veredictoAPortada = evaluaAdelanteALaPortada(aPortada);
+        datos.adelanteALaPortada = aPortada.medidas
+            .map((m) =>
+                m.logo
+                    ? `${m.viewport} legal@${m.legal.y} logo@${m.portada.y} atras@${m.atras.y} adelante ${m.adelante.map((l) => `${l.ms}ms@${l.y}[${l.modo}]`).join(" ")}`
+                    : `${m.viewport} sin-logo`,
+            )
+            .join(" | ");
+        // [check: adelante-a-la-portada-vuelve-a-su-lectura]
+        if (!veredictoAPortada.cumple)
+            fallos.push(
+                `Adelante hacia la portada no la devuelve a donde se dejo: ${veredictoAPortada.motivos.join(" | ")}`,
             );
     }
 
