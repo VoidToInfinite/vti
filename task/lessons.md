@@ -2425,3 +2425,15 @@
 - **En PowerShell, `$r` y `$R` son la misma variable.**
   - **Qué pasó:** una sonda asignó `$r = $_.Exception.Response` dentro de un `catch` y pisó `$R`, que guardaba la ruta del repo. Además, PowerShell 5.1 consume el cuerpo de una respuesta 404 antes de llegar al `catch` (queda en `$_.ErrorDetails.Message`). El fallo parecía del servidor y era de la sonda.
   - **Regla:** los nombres de variable se distinguen por algo más que las mayúsculas, y las sondas HTTP que leen cuerpos de error se escriben en Node.
+
+## 2026-09-11 (P4) — Tres trampas de la implementación: un filtro que no llega, un resello que toca de más y un verde que no decide
+
+- **Un `-t "..."` con espacios y guiones pasado por `cmd /c` llega partido a Vitest.**
+  - **Qué pasó:** el script de mutaciones lanzaba `pnpm exec vitest run <fichero> -t "P4 --"` a través de `cmd /c`. Las tres corridas (las dos mutaciones y la restaurada) salieron con exit 1 en un segundo. Vitest respondía «Unknown option `-"`»: no había corrido ningún test. Leído solo el código de salida, parecían dos mutaciones bien vistas en rojo.
+  - **Regla:** Vitest se lanza con `node node_modules/vitest/vitest.mjs` y los argumentos en lista, sin shell. Un rojo solo cuenta si la salida trae el resumen de tests (`Tests … passed|failed`); si no, es un fallo del lanzador y el script para. La corrida restaurada tiene que salir en verde, y es la que delata al lanzador roto.
+- **`resella.mjs` reescribe más constantes que el digest.**
+  - **Qué pasó:** además de `BASELINE_DIGEST`, sustituye `BASELINE_CHUNKS` y `BASELINE_PAGES` si `--update-baseline` las imprime. El resello de P4 solo estaba autorizado para el digest.
+  - **Regla:** cuando la autorización es más estrecha que la herramienta, se escribe un script acotado que toca solo lo autorizado y PARA si alguna otra constante fuera a cambiar. Después se comprueba con `git diff --numstat` que solo cambió lo previsto.
+- **`measure:js` puede salir en verde con un cambio real del bundle.**
+  - **Qué pasó:** con el parche, el chunk de la sección cambió de nombre y de tamaño (−58 B a brotli), y el censo salió en verde con «delta total −58 B» contra la línea base anterior.
+  - **Regla:** si se resella o no, se decide mirando el delta y la tabla de chunks, no el código de salida. Si el cambio es real y el resello está autorizado, se resella para que la línea base describa el bundle que se sirve.
