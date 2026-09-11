@@ -93,11 +93,12 @@ function getServerSnapshot(): Locale {
  * se duplica por otra vía: `app/en/404/page.tsx` hornea `out/en/404.html` con
  * `lang="en"`, y en producción (Netlify) la regla `from = "/en/*"` de
  * `netlify.toml` la sirve con estado 404 a todo camino roto bajo `/en/`. Ahí
- * esta cáscara ni se monta en esas URLs. Donde SIGUE haciendo el trabajo es en
- * el servidor local de medición (`serve out`), que no lee `netlify.toml` y
- * sirve solo `out/404.html` también bajo `/en/`; de eso depende la excepción
- * `IDIOMA_HORNEADO_DE_LA_404` de la familia 19 de
- * `scripts/check-site-surfaces.mjs` (ver el docblock de
+ * esta cáscara ni se monta en esas URLs, y desde `bf925ec` tampoco en el
+ * servidor local de medición: `scripts/serve-measure.mjs` reproduce la 404 por
+ * prefijo de Netlify, y la excepción de idioma horneado que la familia 19 de
+ * `scripts/check-site-surfaces.mjs` tuvo para esto ya no existe. Donde SIGUE
+ * haciendo el trabajo es en cualquier servidor que sirva `out/404.html`
+ * también bajo `/en/` (un `serve out` a secas; ver el docblock de
  * `app/global-not-found.tsx`). El resto de la página SÍ queda coherente:
  * `<html lang>` (lo fija `I18nProvider`), el `<h1>`, el mensaje, el `<title>` y
  * la descripción del documento (`DocumentMeta`), el chrome global (`SkipLink`,

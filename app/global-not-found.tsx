@@ -148,13 +148,16 @@ export const viewport: Viewport = ROOT_VIEWPORT;
  * - En producción (Netlify), la regla `from = "/en/*"` de `netlify.toml` sirve
  *   `out/en/404.html` con estado 404 a todo camino inexistente bajo `/en/`; el
  *   resto sigue recibiendo este `out/404.html`.
- * - El servidor local de medición (`serve out`) no lee `netlify.toml` y sigue
- *   sirviendo SOLO este `out/404.html` para cualquier camino roto, también bajo
- *   `/en/`. Ahí es donde esta página sigue haciendo el trabajo de las dos ramas
- *   con la corrección en cliente de `NotFoundLocaleShell`, y de eso depende la
- *   excepción `IDIOMA_HORNEADO_DE_LA_404` de la familia 19 de
- *   `scripts/check-site-surfaces.mjs`: mide contra `serve`, donde el HTML
- *   horneado de una 404 inglesa sigue siendo este castellano.
+ * - El servidor local de medición, desde `bf925ec`, es
+ *   `scripts/serve-measure.mjs` (el vigilante lo lanza por defecto): usa el
+ *   mismo `serve-handler` y la misma `compression` que `serve`, pero reproduce
+ *   la 404 por prefijo de Netlify, así que también ahí `/en/<roto>` recibe
+ *   `out/en/404.html` con estado 404. La familia 19 de
+ *   `scripts/check-site-surfaces.mjs` ya no necesita ninguna excepción de
+ *   idioma horneado para la 404 inglesa: la que hubo se retiró con ese cambio.
+ *   Esta página sigue haciendo el trabajo de las dos ramas, con la corrección
+ *   en cliente de `NotFoundLocaleShell`, solo donde un servidor sirva este
+ *   `404.html` también bajo `/en/` (un `serve out` a secas, por ejemplo).
  */
 export default function GlobalNotFound(): ReactElement {
   return (
