@@ -2437,3 +2437,9 @@
 - **`measure:js` puede salir en verde con un cambio real del bundle.**
   - **Qué pasó:** con el parche, el chunk de la sección cambió de nombre y de tamaño (−58 B a brotli), y el censo salió en verde con «delta total −58 B» contra la línea base anterior.
   - **Regla:** si se resella o no, se decide mirando el delta y la tabla de chunks, no el código de salida. Si el cambio es real y el resello está autorizado, se resella para que la línea base describa el bundle que se sirve.
+
+## 2026-09-11 (P7-1) — Una cadena de reemplazo con `$` rompió el código que insertaba
+
+- **Qué pasó:** la familia 34 del candado se insertó en `check-site-surfaces.mjs` con un script que usaba `texto.replace(ancla, codigoNuevo)`. En la cadena de reemplazo, `String.prototype.replace` interpreta `$$` como un `$` literal, y `page.$$(` quedó escrito `page.$(`. La primera corrida aislada de la familia falló con «(intermediate value) is not iterable» y no llegó a medir nada. El script comprobaba que cada ancla apareciera una sola vez, pero nadie comprobaba lo que se escribía.
+- **Por qué:** la cadena de reemplazo de `replace` no es literal. `$$`, `$&`, `` $` `` y `$'` son patrones especiales, y en un fragmento de código JavaScript aparecen con facilidad (`page.$$`, `$&` en expresiones regulares).
+- **Regla:** para insertar código con un script, no se usa `replace` con una cadena de reemplazo. Se usa `split(ancla).join(nuevo)`, una función de reemplazo (`replace(ancla, () => nuevo)`) o un corte por índices. Después se revisa el diff buscando esas cuatro secuencias en las líneas añadidas, antes de ejecutar nada que dependa del código insertado.
