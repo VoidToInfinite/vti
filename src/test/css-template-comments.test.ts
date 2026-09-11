@@ -115,12 +115,21 @@ const EXTENSIONES = new Set([".ts", ".tsx"]);
  * del template, que es gratis. Subirlo es la única forma de romper el candado
  * y por eso está escrito aquí, en una línea que nadie toca por accidente.
  *
- * Lo que queda por debajo del techo es prosa ANTERIOR a la ola R, fuera del
- * alcance del arreglo que creó este candado: 25.631 B en `Navbar.tsx` y
- * 20.394 en `GlobalStyles.tsx` son los dos mayores, y bajarlos es trabajo
+ * 2026-09-11 (P5, presupuesto medido sobre lo que se sirve): BAJA a 77.862 B,
+ * el valor medido por el mismo barrido después de sacar a docblocks JS la
+ * prosa de los cuatro ficheros que más pagaban: `Navbar.tsx` (34 comentarios,
+ * 25.980 B), `GlobalStyles.tsx` (17, 19.197 B), `Story.tsx` (25, 11.761 B) y
+ * `Hero.tsx` (24, 9.832 B), 66.770 B en total. La home pasó de servir 296.757
+ * a 272.252 B a calidad 4 (-24.505 B) con el CSS horneado idéntico salvo el
+ * renombrado biyectivo de las clases, que styled-components deriva del texto
+ * del template. Sin margen, por el mismo motivo que el techo anterior.
+ *
+ * Lo que queda por debajo del techo es prosa que todavía vive dentro de
+ * templates: `legalPage.parts.tsx`, `Contact.tsx`, `Button.tsx`,
+ * `Features.tsx` y `story.deck.tsx` son los mayores, y bajarlos es trabajo
  * futuro con su propia medición delante.
  */
-const TEMPLATE_COMMENT_BYTES_MAX = 151456;
+const TEMPLATE_COMMENT_BYTES_MAX = 77862;
 
 /**
  * Suelo del barrido, TECLEADO A MANO (atadura de extensión, dirección 1: que

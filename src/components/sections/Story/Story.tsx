@@ -417,29 +417,36 @@ function storyStatementFontSize(): string {
  * y `ScTableWrap` en `legalPage.parts.tsx`; las otras cuatro secciones de la
  * home la reciben en el mismo commit.
  */
+/*
+ * Prosa del CSS de ScStory, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «overflow-wrap: anywhere;»:
+ *   WCAG 2.1 SC 1.4.4 (critica externa #13, corregida en la #19). overflow-wrap
+ *   SE HEREDA, asi que una sola declaracion en la raiz de la seccion cubre las
+ *   dos ramas de tema y todo su texto. Solo parte una palabra cuando NO cabe
+ *   entera en su propia linea -- a tamano normal no cambia ni un salto de
+ *   linea --, y es lo unico que evita que un termino largo (una URL, un
+ *   compuesto de marca) siga saliendose de su caja despues de acotar las
+ *   pistas del grid: acotar la caja sin permitir la rotura mueve el recorte,
+ *   no lo quita.
+ *
+ *   El valor pasa de break-word a anywhere en la critica externa #19: ver el
+ *   docblock de esta seccion para la medicion.
+ *
+ * Sobre «${({ $fullBleed, theme }) =>»:
+ *   La rama CLARA ya no declara nada aqui, y no es que se haya quedado vacia
+ *   por descuido: su caja acotada (relleno, tope de ancho y centrado) vive
+ *   desde la critica #15 en ScStoryInner, justo debajo. El motivo esta en el
+ *   docblock de ese componente -- resumido: el statement pasa a ser hijo de
+ *   esta seccion tambien en claro, y no podia heredar el tope de 1280px de un
+ *   bloque que es a sangre completa por diseño.
+ *
+ *   SIN BACKTICKS: esto vive dentro del template literal de
+ *   styled-components (regla 23 de RULES.md, task/lessons.md 2026-07-25).
+ */
 const ScStory = styled.section<{ $fullBleed: boolean }>`
-  /* WCAG 2.1 SC 1.4.4 (critica externa #13, corregida en la #19). overflow-wrap
-     SE HEREDA, asi que una sola declaracion en la raiz de la seccion cubre las
-     dos ramas de tema y todo su texto. Solo parte una palabra cuando NO cabe
-     entera en su propia linea -- a tamano normal no cambia ni un salto de
-     linea --, y es lo unico que evita que un termino largo (una URL, un
-     compuesto de marca) siga saliendose de su caja despues de acotar las
-     pistas del grid: acotar la caja sin permitir la rotura mueve el recorte,
-     no lo quita.
-
-     El valor pasa de break-word a anywhere en la critica externa #19: ver el
-     docblock de esta seccion para la medicion. */
   overflow-wrap: anywhere;
 
-  /* La rama CLARA ya no declara nada aqui, y no es que se haya quedado vacia
-     por descuido: su caja acotada (relleno, tope de ancho y centrado) vive
-     desde la critica #15 en ScStoryInner, justo debajo. El motivo esta en el
-     docblock de ese componente -- resumido: el statement pasa a ser hijo de
-     esta seccion tambien en claro, y no podia heredar el tope de 1280px de un
-     bloque que es a sangre completa por diseño.
-
-     SIN BACKTICKS: esto vive dentro del template literal de
-     styled-components (regla 23 de RULES.md, task/lessons.md 2026-07-25). */
   ${({ $fullBleed, theme }) =>
     $fullBleed &&
     css`
@@ -464,44 +471,51 @@ const ScStory = styled.section<{ $fullBleed: boolean }>`
  * `space` (ver el docblock de `inlineSpace` en `tokens/space.ts`): mismo valor
  * con la raiz por defecto, acotado al viewport con la fuente al 200 %.
  */
+/*
+ * Prosa del CSS de ScStoryInner, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «padding-block-end: ${({ theme }) => theme.data.space[7]};»:
+ *   Recorte del relleno de la FRONTERA con el statement (Ola B,
+ *   2026-08-16). Medido a 1440x900 en tema claro, scrollY 1500: entre
+ *   el ultimo texto de Story (acaba en y=383) y el primero del
+ *   statement (empieza en y=739) habia 356 px sin nada a la vista, un
+ *   40 % del viewport. Ningun margen que culpar -- margin-bottom de
+ *   Story y margin-top del statement son los dos 0 px: el hueco lo
+ *   ponen los rellenos.
+ *
+ *   Solo se recorta ESTE lado, no el de arriba: la respiracion sobre
+ *   Story separa el hero de la seccion y esa si esta bien. Y solo se
+ *   toca Story, no el statement, porque la medicion desmintio la
+ *   hipotesis obvia -- el statement declara min-height como suelo y
+ *   centra su contenido con justify-content: center, asi que su
+ *   padding-block NO participa del hueco: lo que separa su borde
+ *   superior de su primer texto es el centrado, no el relleno.
+ *   Recortarselo no habria movido un pixel.
+ *
+ *   space[7] en vez de space[9]: de 96 a 48 px, la mitad exacta. El
+ *   hueco baja de 356 a 308 px. El resto es estructural (el statement
+ *   ES un bloque de un viewport con su contenido centrado, por
+ *   diseño) y cerrarlo del todo exige decidir que ocupa el espacio,
+ *   no restar relleno.
+ *
+ *   SIN BACKTICKS: esto vive dentro de un template literal css de
+ *   styled-components (task/lessons.md 2026-07-25 y 2026-08-16).
+ *
+ * Sobre «max-width: ${({ theme }) => theme.data.grid.sectionMax};»:
+ *   grid.sectionMax, NO grid.navMax (critica externa #12,
+ *   2026-08-19). Esta rama leia el tope de la PILDORA DEL NAVBAR como
+ *   ancho de contenido de la seccion -- contra el docblock del propio
+ *   navMax, que se declara exclusivo de esa pildora y exige que las
+ *   dos medidas puedan divergir sin arrastrarse. Coincidian en el
+ *   numero (1280px) y por eso nadie lo notaba: el dia que alguien
+ *   retocara la pildora, la seccion se habria movido con ella. El CSS
+ *   renderizado no cambia ni un caracter; lo que cambia es de que
+ *   promesa cuelga.
+ */
 const ScStoryInner = styled.div`
   padding: ${({ theme }) => theme.data.space[9]}
     ${({ theme }) => theme.data.inlineSpace[5]};
-  /* Recorte del relleno de la FRONTERA con el statement (Ola B,
-     2026-08-16). Medido a 1440x900 en tema claro, scrollY 1500: entre
-     el ultimo texto de Story (acaba en y=383) y el primero del
-     statement (empieza en y=739) habia 356 px sin nada a la vista, un
-     40 % del viewport. Ningun margen que culpar -- margin-bottom de
-     Story y margin-top del statement son los dos 0 px: el hueco lo
-     ponen los rellenos.
-
-     Solo se recorta ESTE lado, no el de arriba: la respiracion sobre
-     Story separa el hero de la seccion y esa si esta bien. Y solo se
-     toca Story, no el statement, porque la medicion desmintio la
-     hipotesis obvia -- el statement declara min-height como suelo y
-     centra su contenido con justify-content: center, asi que su
-     padding-block NO participa del hueco: lo que separa su borde
-     superior de su primer texto es el centrado, no el relleno.
-     Recortarselo no habria movido un pixel.
-
-     space[7] en vez de space[9]: de 96 a 48 px, la mitad exacta. El
-     hueco baja de 356 a 308 px. El resto es estructural (el statement
-     ES un bloque de un viewport con su contenido centrado, por
-     diseño) y cerrarlo del todo exige decidir que ocupa el espacio,
-     no restar relleno.
-
-     SIN BACKTICKS: esto vive dentro de un template literal css de
-     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
   padding-block-end: ${({ theme }) => theme.data.space[7]};
-  /* grid.sectionMax, NO grid.navMax (critica externa #12,
-     2026-08-19). Esta rama leia el tope de la PILDORA DEL NAVBAR como
-     ancho de contenido de la seccion -- contra el docblock del propio
-     navMax, que se declara exclusivo de esa pildora y exige que las
-     dos medidas puedan divergir sin arrastrarse. Coincidian en el
-     numero (1280px) y por eso nadie lo notaba: el dia que alguien
-     retocara la pildora, la seccion se habria movido con ella. El CSS
-     renderizado no cambia ni un caracter; lo que cambia es de que
-     promesa cuelga. */
   max-width: ${({ theme }) => theme.data.grid.sectionMax};
   margin-inline: auto;
 `;
@@ -524,32 +538,42 @@ const ScStoryInner = styled.div`
  * tarea). Es además la mitad "padre" de D7: los 4 grupos hijos (más abajo)
  * migran a la MISMA gramática en esta misma tarea.
  */
+/*
+ * Prosa del CSS de ScGrid, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «grid-template-columns: minmax(0, 1fr);»:
+ *   minmax(0, 1fr), NO 1fr (WCAG 2.1 SC 1.4.4, critica externa #13). 1fr es
+ *   minmax(auto, 1fr) y ese auto es el TAMANO MINIMO AUTOMATICO de la pista:
+ *   el min-content de lo que contiene. Con la raiz a 150-200% el min-content
+ *   de ScContent (que arrastra el suelo de ScPillarGrid, ver mas abajo) supera
+ *   el ancho disponible y la pista crece POR ENCIMA del contenedor -- medido a
+ *   390px de ancho y raiz 32px: pista de 480px dentro de una caja de 294px.
+ *   Como html declara overflow-x: clip (GlobalStyles, deliberado por el sticky
+ *   de los decks, regla 21), ese sobrante no se puede recuperar con scroll: es
+ *   texto perdido. El 0 del minmax solo cambia el MINIMO de la pista; el 1fr
+ *   sigue repartiendo igual, asi que a raiz 16px la geometria es identica
+ *   (342px medidos antes y despues).
+ *
+ * Sobre «align-items: stretch;»:
+ *   D11 (segunda ronda, 2026-08-06): stretch, NO center. SIN BACKTICKS en
+ *   este comentario a proposito (vive dentro del template literal de
+ *   styled-components, un backtick lo cierra y rompe el build -- leccion del
+ *   repo, task/lessons.md 2026-07-25, reincidida el 2026-08-02). Medido en
+ *   navegador antes de tocar nada: columna de la figura 548px, columna de
+ *   contenido 863px. Con center la tarjeta de la figura quedaba flotando
+ *   centrada y corta; con stretch (el valor por defecto de CSS Grid, que
+ *   center estaba anulando) el item de la figura ocupa el alto COMPLETO de
+ *   la fila del grid sin que nadie fije un numero. Solo tiene efecto visible
+ *   desde el breakpoint lg (abajo), donde las dos columnas comparten fila --
+ *   en columna unica cada item tiene su propia fila y no hay nada que
+ *   estirar.
+ *
+ * Sobre «[data-theme="dark"] & {»:
+ *   La otra mitad del candado de peso de ScFigureWrap: ver su docblock.
+ */
 const ScGrid = styled.div`
   display: grid;
-  /* minmax(0, 1fr), NO 1fr (WCAG 2.1 SC 1.4.4, critica externa #13). 1fr es
-     minmax(auto, 1fr) y ese auto es el TAMANO MINIMO AUTOMATICO de la pista:
-     el min-content de lo que contiene. Con la raiz a 150-200% el min-content
-     de ScContent (que arrastra el suelo de ScPillarGrid, ver mas abajo) supera
-     el ancho disponible y la pista crece POR ENCIMA del contenedor -- medido a
-     390px de ancho y raiz 32px: pista de 480px dentro de una caja de 294px.
-     Como html declara overflow-x: clip (GlobalStyles, deliberado por el sticky
-     de los decks, regla 21), ese sobrante no se puede recuperar con scroll: es
-     texto perdido. El 0 del minmax solo cambia el MINIMO de la pista; el 1fr
-     sigue repartiendo igual, asi que a raiz 16px la geometria es identica
-     (342px medidos antes y despues). */
   grid-template-columns: minmax(0, 1fr);
-  /* D11 (segunda ronda, 2026-08-06): stretch, NO center. SIN BACKTICKS en
-     este comentario a proposito (vive dentro del template literal de
-     styled-components, un backtick lo cierra y rompe el build -- leccion del
-     repo, task/lessons.md 2026-07-25, reincidida el 2026-08-02). Medido en
-     navegador antes de tocar nada: columna de la figura 548px, columna de
-     contenido 863px. Con center la tarjeta de la figura quedaba flotando
-     centrada y corta; con stretch (el valor por defecto de CSS Grid, que
-     center estaba anulando) el item de la figura ocupa el alto COMPLETO de
-     la fila del grid sin que nadie fije un numero. Solo tiene efecto visible
-     desde el breakpoint lg (abajo), donde las dos columnas comparten fila --
-     en columna unica cada item tiene su propia fila y no hay nada que
-     estirar. */
   align-items: stretch;
   gap: ${({ theme }) => theme.data.space[7]};
   opacity: 0;
@@ -568,7 +592,6 @@ const ScGrid = styled.div`
     gap: ${({ theme }) => theme.data.space[8]};
   }
 
-  /* La otra mitad del candado de peso de ScFigureWrap: ver su docblock. */
   [data-theme="dark"] & {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -739,36 +762,45 @@ const ScFigureShift = styled.div`
   }
 `;
 
+/*
+ * Prosa del CSS de ScFigureImg, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «width: 100%;»:
+ *   El ancho ya lo fija ScFigureShift (ver su docblock): aqui solo se llena
+ *   ese envoltorio, ahora con un ancho definitivo, sin circularidad.
+ *
+ * Sobre «object-fit: contain;»:
+ *   GlobalStyles declara img { object-fit: cover } para todo el sitio; con
+ *   la caja del mockup (375/548) sobre un arte 2:3, cover recortaria ~2.5%
+ *   del alto (medido en navegador, revision 2026-07-28). contain no recorta
+ *   nada y el margen sobrante es alfa puro, invisible.
+ *
+ * Sobre «@media (prefers-reduced-motion: no-preference) {»:
+ *   CURVA POR TOKEN, no la palabra clave nativa (critica externa #9,
+ *   2026-08-17; regla 48 de RULES.md). Hasta hoy esta flotacion declaraba
+ *   ease-in-out a secas: una curva que no nace de src/theme/tokens/motion.ts
+ *   y que el detector de anti-patrones no podia ver, porque su unica familia
+ *   de palabra clave vigilaba ease-in SUELTO y eximia por construccion tanto
+ *   ease-in-out como ease a secas (hueco cerrado en la misma revision, ver la
+ *   familia easing-keyword del detector).
+ *   El token elegido es standard, cubic-bezier(0.4, 0, 0.2, 1): es la unica
+ *   de las cinco curvas del sistema que arranca Y termina suave, que es la
+ *   intencion de una flotacion infinita que invierte el sentido en el 50%.
+ *   decelerate y accelerate son curvas de un solo lado, emphasized frena
+ *   mucho mas tarde y overshoot rebota -- las cuatro cambiarian el caracter
+ *   del movimiento, no solo su procedencia. Mismo token y mismo razonamiento
+ *   que ScFigure en Contact.tsx y ScStar en Footer.tsx, las otras dos piezas
+ *   de UI ordinaria migradas en esta misma ola.
+ */
 const ScFigureImg = styled.img`
   position: relative;
   display: block;
-  /* El ancho ya lo fija ScFigureShift (ver su docblock): aqui solo se llena
-     ese envoltorio, ahora con un ancho definitivo, sin circularidad. */
   width: 100%;
   height: auto;
   aspect-ratio: ${STORY_FIGURE_ASPECT};
-  /* GlobalStyles declara img { object-fit: cover } para todo el sitio; con
-     la caja del mockup (375/548) sobre un arte 2:3, cover recortaria ~2.5%
-     del alto (medido en navegador, revision 2026-07-28). contain no recorta
-     nada y el margen sobrante es alfa puro, invisible. */
   object-fit: contain;
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
 
-  /* CURVA POR TOKEN, no la palabra clave nativa (critica externa #9,
-     2026-08-17; regla 48 de RULES.md). Hasta hoy esta flotacion declaraba
-     ease-in-out a secas: una curva que no nace de src/theme/tokens/motion.ts
-     y que el detector de anti-patrones no podia ver, porque su unica familia
-     de palabra clave vigilaba ease-in SUELTO y eximia por construccion tanto
-     ease-in-out como ease a secas (hueco cerrado en la misma revision, ver la
-     familia easing-keyword del detector).
-     El token elegido es standard, cubic-bezier(0.4, 0, 0.2, 1): es la unica
-     de las cinco curvas del sistema que arranca Y termina suave, que es la
-     intencion de una flotacion infinita que invierte el sentido en el 50%.
-     decelerate y accelerate son curvas de un solo lado, emphasized frena
-     mucho mas tarde y overshoot rebota -- las cuatro cambiarian el caracter
-     del movimiento, no solo su procedencia. Mismo token y mismo razonamiento
-     que ScFigure en Contact.tsx y ScStar en Footer.tsx, las otras dos piezas
-     de UI ordinaria migradas en esta misma ola. */
   @media (prefers-reduced-motion: no-preference) {
     animation: ${float} ${STORY_FIGURE_FLOAT_MS}ms
       ${({ theme }) => theme.data.motion.easing.standard} infinite;
@@ -983,15 +1015,20 @@ const ScEyebrowRow = styled.div`
  * cercano por abajo que sigue dejando cuatro tarjetas legibles en una
  * columna estrecha.
  */
+/*
+ * Prosa del CSS de ScPillarGrid, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));»:
+ *   El suelo va envuelto en min(..., 100%) (WCAG 2.1 SC 1.4.4, critica externa
+ *   #13): 15rem es una medida RELATIVA A LA RAIZ, asi que con la preferencia
+ *   del usuario al 200% valen 480px -- mas que los 294px disponibles a 390px
+ *   de ancho -- y la pista desborda el contenedor sin scroll que lo recupere
+ *   (html declara overflow-x: clip, regla 21). min(15rem, 100%) conserva el
+ *   suelo mientras cabe y lo rinde al ancho real cuando no; con la raiz por
+ *   defecto min() resuelve a los mismos 15rem y no cambia nada.
+ */
 const ScPillarGrid = styled.div`
   display: grid;
-  /* El suelo va envuelto en min(..., 100%) (WCAG 2.1 SC 1.4.4, critica externa
-     #13): 15rem es una medida RELATIVA A LA RAIZ, asi que con la preferencia
-     del usuario al 200% valen 480px -- mas que los 294px disponibles a 390px
-     de ancho -- y la pista desborda el contenedor sin scroll que lo recupere
-     (html declara overflow-x: clip, regla 21). min(15rem, 100%) conserva el
-     suelo mientras cabe y lo rinde al ancho real cuando no; con la raiz por
-     defecto min() resuelve a los mismos 15rem y no cambia nada. */
   grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
   gap: ${({ theme }) => theme.data.space[4]};
   margin-block-start: ${({ theme }) => theme.data.space[6]};
@@ -1153,6 +1190,27 @@ const ScPillarCardItem = styled.div`
  * lee `inlineSpace` (ver su docblock en `tokens/space.ts`). Con la raiz por
  * defecto la tarjeta mide exactamente lo mismo que antes.
  */
+/*
+ * Prosa del CSS de ScPillarCard, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «touch-action: manipulation;»:
+ *   Task 13, punto 2 del brief: elimina el retardo de doble-tap.
+ *
+ * Sobre «@media ${PRESS.hoverGuard} {»:
+ *   Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve
+ *   (translateY), así que un tap en táctil no puede dejarlo "pegado".
+ *
+ * Sobre «&:active {»:
+ *   Press (Task 9): comparte la entrada de transform de la lista de arriba,
+ *   así que entra y sale con PRESS.durationMs/PRESS.easing igual que el
+ *   hover-lift.
+ *
+ * Sobre «@media (prefers-reduced-motion: reduce) {»:
+ *   Mismo guard que ScCard (Card.tsx): bajo reduce se anula la transición Y
+ *   el transform de hover/active (movimiento); el realce de box-shadow al
+ *   pasar el puntero se conserva, ahora instantáneo -- no es motion, es la
+ *   misma excepción ya documentada arriba.
+ */
 const ScPillarCard = styled.div`
   display: flex;
   flex-direction: column;
@@ -1162,15 +1220,12 @@ const ScPillarCard = styled.div`
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   padding: ${({ theme }) => theme.data.space[5]}
     ${({ theme }) => theme.data.inlineSpace[5]};
-  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
   transition:
     transform ${PRESS.durationMs}ms ${PRESS.easing},
     box-shadow ${({ theme }) => theme.data.motion.duration.fast}
       ${({ theme }) => theme.data.motion.easing.standard};
 
-  /* Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve
-     (translateY), así que un tap en táctil no puede dejarlo "pegado". */
   @media ${PRESS.hoverGuard} {
     &:hover {
       transform: translateY(${STORY_CARD_HOVER_LIFT});
@@ -1178,17 +1233,10 @@ const ScPillarCard = styled.div`
     }
   }
 
-  /* Press (Task 9): comparte la entrada de transform de la lista de arriba,
-     así que entra y sale con PRESS.durationMs/PRESS.easing igual que el
-     hover-lift. */
   &:active {
     transform: scale(${PRESS.activeScale});
   }
 
-  /* Mismo guard que ScCard (Card.tsx): bajo reduce se anula la transición Y
-     el transform de hover/active (movimiento); el realce de box-shadow al
-     pasar el puntero se conserva, ahora instantáneo -- no es motion, es la
-     misma excepción ya documentada arriba. */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
@@ -1399,28 +1447,33 @@ const ScCardInspiration = styled(Typography)`
  * que ese docblock declara se despeja en PIXELES y solo se cumplia con la raiz
  * a 16. Ver alli la aritmetica completa.
  */
+/*
+ * Prosa del CSS de ScStatement, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «min-height: 70dvh;»:
+ *   70dvh y no 100dvh (Ola B, 2026-08-16). Esta seccion es un remate a
+ *   pantalla completa por diseño, y el problema no era ese: era que su
+ *   contenido mide unos 120 px y se centra en una banda de 900, asi que entre
+ *   el ultimo texto de Story y el primero de este quedaban 308 px sin nada a
+ *   la vista incluso despues de recortar el relleno de la frontera.
+ *
+ *   LO QUE NO SE HACE, y conviene dejarlo escrito porque era la salida obvia:
+ *   NO se cambia justify-content a flex-start. Anclar arriba un bloque
+ *   pequeño dentro de una banda alta es exactamente el defecto que el dueño
+ *   rechazo esta misma mañana en la diapositiva de cierre del deck oscuro
+ *   --dejaba 431 px de hueco vacio DEBAJO a 1920x905-- y aqui produciria lo
+ *   mismo un poco mas abajo. Mover el hueco no es cerrarlo.
+ *
+ *   Reducir la banda si lo cierra, y de forma simetrica: el contenido sigue
+ *   centrado, y los dos huecos --el de arriba y el de abajo-- se encogen a la
+ *   vez. 70dvh conserva el caracter de remate (sigue siendo la pieza mas alta
+ *   de la rama clara y sigue ocupando la mayor parte del viewport) sin
+ *   reservar una pantalla entera para 120 px de texto.
+ *
+ *   SIN BACKTICKS: esto vive dentro del template literal de
+ *   styled-components (task/lessons.md 2026-07-25 y 2026-08-16).
+ */
 const ScStatement = styled.section`
-  /* 70dvh y no 100dvh (Ola B, 2026-08-16). Esta seccion es un remate a
-     pantalla completa por diseño, y el problema no era ese: era que su
-     contenido mide unos 120 px y se centra en una banda de 900, asi que entre
-     el ultimo texto de Story y el primero de este quedaban 308 px sin nada a
-     la vista incluso despues de recortar el relleno de la frontera.
-
-     LO QUE NO SE HACE, y conviene dejarlo escrito porque era la salida obvia:
-     NO se cambia justify-content a flex-start. Anclar arriba un bloque
-     pequeño dentro de una banda alta es exactamente el defecto que el dueño
-     rechazo esta misma mañana en la diapositiva de cierre del deck oscuro
-     --dejaba 431 px de hueco vacio DEBAJO a 1920x905-- y aqui produciria lo
-     mismo un poco mas abajo. Mover el hueco no es cerrarlo.
-
-     Reducir la banda si lo cierra, y de forma simetrica: el contenido sigue
-     centrado, y los dos huecos --el de arriba y el de abajo-- se encogen a la
-     vez. 70dvh conserva el caracter de remate (sigue siendo la pieza mas alta
-     de la rama clara y sigue ocupando la mayor parte del viewport) sin
-     reservar una pantalla entera para 120 px de texto.
-
-     SIN BACKTICKS: esto vive dentro del template literal de
-     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
   min-height: 70dvh;
   display: flex;
   flex-direction: column;
@@ -1495,6 +1548,16 @@ const ScStatementText = styled.p`
  * base ya lleva su retardo pero no hay transicion que correr (es el estilo
  * inicial, no un cambio) -- no produce ningun efecto observable.
  */
+/*
+ * Prosa del CSS de ScStatementFirst, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «transition-delay: ${STORY_STATEMENT_DELAY_THIRD_MS}ms;»:
+ *   Retardo INVERSO (D5): la 1a linea es la ULTIMA en deshacerse al
+ *   retroceder.
+ *
+ * Sobre «transition-delay: ${STORY_STATEMENT_DELAY_FIRST_MS}ms;»:
+ *   Retardo DIRECTO (D5): la 1a linea entra sin espera.
+ */
 const ScStatementFirst = styled.span`
   display: block;
   font-size: ${storyStatementFontSize};
@@ -1508,14 +1571,11 @@ const ScStatementFirst = styled.span`
   transition:
     opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
     transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
-  /* Retardo INVERSO (D5): la 1a linea es la ULTIMA en deshacerse al
-     retroceder. */
   transition-delay: ${STORY_STATEMENT_DELAY_THIRD_MS}ms;
 
   [data-revealed="true"] & {
     opacity: 1;
     transform: none;
-    /* Retardo DIRECTO (D5): la 1a linea entra sin espera. */
     transition-delay: ${STORY_STATEMENT_DELAY_FIRST_MS}ms;
   }
 
@@ -1527,6 +1587,16 @@ const ScStatementFirst = styled.span`
   }
 `;
 
+/*
+ * Prosa del CSS de ScStatementSecond, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «transition-delay: ${STORY_STATEMENT_DELAY_SECOND_MS}ms;»:
+ *   Retardo INVERSO (D5): la linea del medio, a mitad de camino tanto
+ *   entrando como saliendo.
+ *
+ * Sobre «transition-delay: ${STORY_STATEMENT_DELAY_SECOND_MS}ms;»:
+ *   Retardo DIRECTO (D5).
+ */
 const ScStatementSecond = styled.span`
   display: block;
   font-size: ${storyStatementFontSize};
@@ -1540,14 +1610,11 @@ const ScStatementSecond = styled.span`
   transition:
     opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
     transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
-  /* Retardo INVERSO (D5): la linea del medio, a mitad de camino tanto
-     entrando como saliendo. */
   transition-delay: ${STORY_STATEMENT_DELAY_SECOND_MS}ms;
 
   [data-revealed="true"] & {
     opacity: 1;
     transform: none;
-    /* Retardo DIRECTO (D5). */
     transition-delay: ${STORY_STATEMENT_DELAY_SECOND_MS}ms;
   }
 
@@ -1570,6 +1637,16 @@ const ScStatementSecond = styled.span`
  * Extiende `ScAccent` con el mismo recurso de styled-components con el que la
  * fila de pilar del deck extendía su base antes de retirarse.
  */
+/*
+ * Prosa del CSS de ScStatementThird, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «transition-delay: ${STORY_STATEMENT_DELAY_FIRST_MS}ms;»:
+ *   Retardo INVERSO (D5): la 3a linea es la PRIMERA en deshacerse al
+ *   retroceder.
+ *
+ * Sobre «transition-delay: ${STORY_STATEMENT_DELAY_THIRD_MS}ms;»:
+ *   Retardo DIRECTO (D5): la 3a linea es la ULTIMA en entrar.
+ */
 const ScStatementThird = styled(ScAccent)`
   display: block;
   font-size: ${storyStatementFontSize};
@@ -1582,14 +1659,11 @@ const ScStatementThird = styled(ScAccent)`
   transition:
     opacity ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING},
     transform ${STORY_STATEMENT_REVEAL_MS}ms ${STORY_STATEMENT_EASING};
-  /* Retardo INVERSO (D5): la 3a linea es la PRIMERA en deshacerse al
-     retroceder. */
   transition-delay: ${STORY_STATEMENT_DELAY_FIRST_MS}ms;
 
   [data-revealed="true"] & {
     opacity: 1;
     transform: none;
-    /* Retardo DIRECTO (D5): la 3a linea es la ULTIMA en entrar. */
     transition-delay: ${STORY_STATEMENT_DELAY_THIRD_MS}ms;
   }
 
@@ -1621,57 +1695,64 @@ const ScStatementThird = styled(ScAccent)`
  * distintos (`ScStatementLink` en claro, `ScDeckNoteLink` en oscuro), cada
  * uno con su propio margen de separación del bloque que lo precede.
  */
+/*
+ * Prosa del CSS de communityLinkStyles, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «min-height: ${({ theme }) => theme.data.space[5]};»:
+ *   OBJETIVO DE 24 px (critica externa #16, hallazgo L3; WCAG 2.5.8 Target
+ *   Size, AA en WCAG 2.2). Medido en tema oscuro a 390x844, este enlace era
+ *   la UNICA diana del sitio por debajo del minimo: 208x22 px. Los 2 px que
+ *   faltaban salen de que la caja se ajustaba al texto -- bodySm con su
+ *   interlineado -- sin declarar altura minima propia.
+ *
+ *   min-height y no padding-block: el elemento ya es un inline-flex con
+ *   align-items: center, asi que la altura extra se reparte sola arriba y
+ *   abajo alrededor del texto, sin mover la linea base ni empujar nada.
+ *   Medido antes/despues, la caja pasa de 22,4 a 24 px de alto y ninguna otra
+ *   medida de la diapositiva cambia -- que es lo que "sin salto de layout"
+ *   significa aqui.
+ *
+ *   space[5] es el mismo peldano con el que ScRailMark (story.deck.tsx) y el
+ *   pie ya resuelven este mismo minimo: 24 px no es un numero de este enlace,
+ *   es el umbral de la norma, y el sitio lo nombra siempre igual.
+ *
+ * Sobre «text-decoration: underline;»:
+ *   SUBRAYADO, porque sin el esto no parece un enlace (Ola B, 2026-08-16).
+ *   GlobalStyles declara text-decoration: none para todo elemento a del sitio,
+ *   y este enlace usaba EXACTAMENTE el mismo color que el cuerpo de texto que
+ *   lo rodea: medido, el contraste entre el enlace y su prosa vecina era de
+ *   2,18:1 en claro y 1,46:1 en oscuro. WCAG 1.4.1 pide 3:1 cuando el color es
+ *   lo UNICO que distingue un enlace, y aqui ni siquiera llegaba a eso -- no
+ *   habia nada que distinguir. El hover cambiaba el color, pero un hover no
+ *   existe para quien navega con el dedo.
+ *
+ *   Se subraya y no se recolorea porque el color es la palanca que ya esta
+ *   agotada: subir el enlace al color de marca en reposo lo separaria de la
+ *   prosa, si, pero dejaria el hover sin ningun cambio que comunicar. El
+ *   subrayado da la afordancia en reposo y deja el color libre para el estado.
+ *
+ *   text-underline-offset separa la linea de las descendentes; sin el, con
+ *   este tamaño de cuerpo, la linea corta las jotas y las ges.
+ *
+ *   SIN BACKTICKS: esto vive dentro de un template literal css de
+ *   styled-components (task/lessons.md 2026-07-25 y 2026-08-16).
+ *
+ * Sobre «touch-action: manipulation;»:
+ *   Task 13, punto 2 del brief: elimina el retardo de doble-tap. Un único
+ *   punto de declaración -- ScStatementLink/ScDeckNoteLink (más abajo) lo
+ *   heredan interpolando este mismo bloque css, no lo redeclaran.
+ */
 const communityLinkStyles = css`
   display: inline-flex;
   align-items: center;
-  /*
-   * OBJETIVO DE 24 px (critica externa #16, hallazgo L3; WCAG 2.5.8 Target
-   * Size, AA en WCAG 2.2). Medido en tema oscuro a 390x844, este enlace era
-   * la UNICA diana del sitio por debajo del minimo: 208x22 px. Los 2 px que
-   * faltaban salen de que la caja se ajustaba al texto -- bodySm con su
-   * interlineado -- sin declarar altura minima propia.
-   *
-   * min-height y no padding-block: el elemento ya es un inline-flex con
-   * align-items: center, asi que la altura extra se reparte sola arriba y
-   * abajo alrededor del texto, sin mover la linea base ni empujar nada.
-   * Medido antes/despues, la caja pasa de 22,4 a 24 px de alto y ninguna otra
-   * medida de la diapositiva cambia -- que es lo que "sin salto de layout"
-   * significa aqui.
-   *
-   * space[5] es el mismo peldano con el que ScRailMark (story.deck.tsx) y el
-   * pie ya resuelven este mismo minimo: 24 px no es un numero de este enlace,
-   * es el umbral de la norma, y el sitio lo nombra siempre igual.
-   */
   min-height: ${({ theme }) => theme.data.space[5]};
   font-family: ${({ theme }) => theme.data.type.fontBody};
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 600;
   color: ${({ theme }) => theme.data.semantic.textMuted};
-  /* SUBRAYADO, porque sin el esto no parece un enlace (Ola B, 2026-08-16).
-     GlobalStyles declara text-decoration: none para todo elemento a del sitio,
-     y este enlace usaba EXACTAMENTE el mismo color que el cuerpo de texto que
-     lo rodea: medido, el contraste entre el enlace y su prosa vecina era de
-     2,18:1 en claro y 1,46:1 en oscuro. WCAG 1.4.1 pide 3:1 cuando el color es
-     lo UNICO que distingue un enlace, y aqui ni siquiera llegaba a eso -- no
-     habia nada que distinguir. El hover cambiaba el color, pero un hover no
-     existe para quien navega con el dedo.
-
-     Se subraya y no se recolorea porque el color es la palanca que ya esta
-     agotada: subir el enlace al color de marca en reposo lo separaria de la
-     prosa, si, pero dejaria el hover sin ningun cambio que comunicar. El
-     subrayado da la afordancia en reposo y deja el color libre para el estado.
-
-     text-underline-offset separa la linea de las descendentes; sin el, con
-     este tamaño de cuerpo, la linea corta las jotas y las ges.
-
-     SIN BACKTICKS: esto vive dentro de un template literal css de
-     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.25em;
-  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. Un único
-     punto de declaración -- ScStatementLink/ScDeckNoteLink (más abajo) lo
-     heredan interpolando este mismo bloque css, no lo redeclaran. */
   touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}

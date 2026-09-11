@@ -201,6 +201,120 @@ const navbarArm = keyframes`
  * anime a `calc(100% - 2*gap)`. El porqué está en el comentario de `ScBar`
  * sobre el ancho que anima con `max-width` en vez de con `width`.
  */
+/*
+ * Prosa del CSS de ScHeader, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «padding-top: env(safe-area-inset-top, 0px);»:
+ *   Safe area (Task 13, punto 1 del brief): esta barra está anclada a
+ *   top: 0 del VIEWPORT, no de un contenedor con margen propio -- con
+ *   viewport-fit=cover (ROOT_VIEWPORT, app/rootMetadata.ts, que las tres
+ *   raices del sitio re-exportan) el documento se extiende bajo el
+ *   notch/dynamic island, así que sin este relleno la barra podría nacer
+ *   parcialmente tapada en un dispositivo con recorte físico arriba.
+ *   ADITIVO por construcción: no había padding-top declarado antes (el
+ *   alto real lo fija --nav-height en ScNav, más abajo), así que con
+ *   insets a 0 (escritorio, la inmensa mayoría de Android) el fallback de
+ *   env() deja este valor en 0px -- layout idéntico al de antes de esta
+ *   tarea. Con inset > 0 el alto total de la barra crece exactamente lo que
+ *   el hardware recorta, empujando el contenido hacia abajo -- el
+ *   comportamiento correcto para una barra fija a ese borde.
+ *
+ * Sobre «transform: translateY(0);»:
+ *   translateY(0) NO es decorativo y no se puede retirar aunque la animación
+ *   ya escriba transform: position fixed + z-index distinto de auto ya
+ *   aislaban esta barra, pero además hay código que depende explícitamente
+ *   de que ScHeader declare transform -- NavSheet vive FUERA de este
+ *   elemento justo porque un ancestro con transform pasa a ser el bloque
+ *   contenedor de los position fixed de su interior (ver el comentario del
+ *   JSX, más abajo). Con fill backwards, durante el retardo el valor
+ *   efectivo es el del keyframe from, que también es un transform: la
+ *   propiedad nunca computa none.
+ *
+ * Sobre «pointer-events: auto;»:
+ *   Intro de carga, SIN condición de JS: la regla viaja en el CSS del HTML
+ *   exportado, así que su reloj arranca con el primer pintado y la barra
+ *   entra igual con JavaScript deshabilitado. backwards, no both: el estado
+ *   final coincide con los valores de reposo declarados justo arriba, así
+ *   que solo hace falta rellenar hacia atrás el tramo del retardo -- y sin
+ *   forwards la animación deja de gobernar la propiedad al terminar, que es
+ *   lo que permite que el resto de la barra siga siendo CSS normal.
+ *
+ *   LONGHANDS, no la abreviatura animation: es la misma decisión que ya
+ *   tomó eyeStagger (eye.parts.tsx) y por el mismo motivo medido -- jsdom no
+ *   expande la abreviatura, así que un candado sobre animationDelay leería
+ *   cadena vacía y el retardo de esta coreografía quedaría sin ninguna
+ *   prueba (regla 38 de RULES.md). Verificado en esta misma tarea: con la
+ *   abreviatura, el test daba '' en vez de 760ms.
+ *
+ * Sobre «pointer-events: auto;»:
+ *   Valor de reposo al que vuelve navbarArm cuando la animación termina (sin
+ *   fill forwards) y el que rige bajo reduce, donde no hay animación ninguna.
+ *   Declarado aunque coincida con el inicial de CSS: es el otro extremo del
+ *   contrato que documenta navbarArm, y sin él ese contrato solo existiría en
+ *   un comentario. (Sin comillas invertidas dentro del template: regla 23 de
+ *   RULES.md, ya ha roto el build cuatro veces.)
+ *
+ * Sobre «animation-name: ${navbarDrop}, ${navbarArm};»:
+ *   DOS nombres, un solo juego de duración/retardo/curva/fill: la lista de
+ *   animation-name se empareja con las demás longhands repitiendo sus
+ *   valores, así que las dos animaciones comparten exactamente el mismo reloj
+ *   -- que es justo lo que hace falta para que el puntero se libere cuando la
+ *   barra termina de aparecer, y no un instante antes o después.
+ *
+ * Sobre «padding-inline: 0;»:
+ *   Hueco lateral al despegarse (spec 4): ver docblock.
+ *
+ * Sobre «@media (prefers-reduced-motion: reduce) {»:
+ *   ACCESIBILIDAD durante el retardo del intro: SOLO opacity/transform
+ *   (regla de movimiento de la casa). Nunca display:none, visibility:hidden
+ *   ni aria-hidden -- el navbar tiene que seguir en el orden de tabulación y
+ *   anunciado durante ese tramo (ver el comentario de accesibilidad en
+ *   Navbar(), más abajo). Un elemento con opacity 0 sigue siendo focalizable
+ *   y anunciado; solo deja de leerse su contraste visual, y ahora el tramo
+ *   es un retardo FIJO de HERO_CHROME_OFFSET_MS (~0,76 s) en vez de una
+ *   espera abierta a que el bundle hidratara.
+ *
+ *   Lo que SÍ se desactiva en ese tramo, desde la crítica #14 (P1), es el
+ *   puntero: opacity 0 no impide un clic, así que la barra invisible recibía
+ *   pulsaciones a ciegas. Lo resuelve navbarArm (ver su docblock), una
+ *   animación hermana sobre pointer-events -- una propiedad que no toca ni el
+ *   orden de tabulación ni el árbol de accesibilidad, así que no contradice
+ *   ni una línea de este párrafo.
+ *
+ * Sobre «animation: none;»:
+ *   Visible de inmediato, sin animación (spec §7.4). El guard sigue siendo
+ *   obligatorio: GlobalStyles colapsa animation-duration a 0.001ms pero NO
+ *   toca animation-delay, así que sin este bloque la barra seguiría
+ *   invisible los 760 ms del retardo (fill backwards) y luego aparecería
+ *   de golpe -- peor que no animar. Ya no hace falta repetir el estado
+ *   para ningún valor de data-intro: ese atributo desapareció de este
+ *   componente, así que este único bloque cierra el caso entero, sin
+ *   ninguna ventana de carrera contra un efecto de React.
+ *
+ * Sobre «@media (scripting: none) {»:
+ *   SIN JAVASCRIPT LA CABECERA VUELVE AL FLUJO (crítica externa #17, P1 del
+ *   evaluador Nielsen, 2026-09-03).
+ *
+ *   position: fixed existe para UNA cosa: que la barra flote sobre el hero
+ *   transparente y se convierta en cristal al scrollear. Ese segundo estado
+ *   lo escribe data-scrolled, que sale de useScrolled -- estado de React. Sin
+ *   JavaScript el atributo no se pone nunca, ScSurface se queda en opacity 0
+ *   para siempre y lo único que queda de la barra fija es una capa
+ *   transparente que tapa contenido al hacer scroll y que, en cuanto muestra
+ *   los destinos de sección (ver ScNavLinks, más abajo), envuelve a dos o
+ *   tres filas de alto sobre el texto de la página.
+ *
+ *   En flujo, la banda mide lo que mide su contenido, empuja el hero hacia
+ *   abajo en vez de taparlo, y el salto a un ancla aterriza donde tiene que
+ *   aterrizar sin depender de que scroll-margin-top (GlobalStyles) adivine la
+ *   altura de una barra que ahora envuelve. Es exactamente lo que pedía el
+ *   encargo: la fila de destinos, en flujo, envolviendo si hace falta.
+ *
+ *   QUÉ NO CAMBIA: con JavaScript no cambia absolutamente nada -- este bloque
+ *   entero no se evalúa. Y en un navegador sin soporte de scripting (Chrome
+ *   < 120, Firefox < 113, Safari < 17) el bloque se ignora y queda el
+ *   comportamiento de siempre.
+ */
 const ScHeader = styled.header`
   position: fixed;
   top: 0;
@@ -208,63 +322,15 @@ const ScHeader = styled.header`
   right: 0;
   z-index: ${({ theme }) => theme.data.zIndex.stickyNav};
   opacity: 1;
-  /* Safe area (Task 13, punto 1 del brief): esta barra está anclada a
-     top: 0 del VIEWPORT, no de un contenedor con margen propio -- con
-     viewport-fit=cover (ROOT_VIEWPORT, app/rootMetadata.ts, que las tres
-     raices del sitio re-exportan) el documento se extiende bajo el
-     notch/dynamic island, así que sin este relleno la barra podría nacer
-     parcialmente tapada en un dispositivo con recorte físico arriba.
-     ADITIVO por construcción: no había padding-top declarado antes (el
-     alto real lo fija --nav-height en ScNav, más abajo), así que con
-     insets a 0 (escritorio, la inmensa mayoría de Android) el fallback de
-     env() deja este valor en 0px -- layout idéntico al de antes de esta
-     tarea. Con inset > 0 el alto total de la barra crece exactamente lo que
-     el hardware recorta, empujando el contenido hacia abajo -- el
-     comportamiento correcto para una barra fija a ese borde. */
   padding-top: env(safe-area-inset-top, 0px);
-  /* translateY(0) NO es decorativo y no se puede retirar aunque la animación
-     ya escriba transform: position fixed + z-index distinto de auto ya
-     aislaban esta barra, pero además hay código que depende explícitamente
-     de que ScHeader declare transform -- NavSheet vive FUERA de este
-     elemento justo porque un ancestro con transform pasa a ser el bloque
-     contenedor de los position fixed de su interior (ver el comentario del
-     JSX, más abajo). Con fill backwards, durante el retardo el valor
-     efectivo es el del keyframe from, que también es un transform: la
-     propiedad nunca computa none. */
   transform: translateY(0);
-  /* Intro de carga, SIN condición de JS: la regla viaja en el CSS del HTML
-     exportado, así que su reloj arranca con el primer pintado y la barra
-     entra igual con JavaScript deshabilitado. backwards, no both: el estado
-     final coincide con los valores de reposo declarados justo arriba, así
-     que solo hace falta rellenar hacia atrás el tramo del retardo -- y sin
-     forwards la animación deja de gobernar la propiedad al terminar, que es
-     lo que permite que el resto de la barra siga siendo CSS normal.
-
-     LONGHANDS, no la abreviatura animation: es la misma decisión que ya
-     tomó eyeStagger (eye.parts.tsx) y por el mismo motivo medido -- jsdom no
-     expande la abreviatura, así que un candado sobre animationDelay leería
-     cadena vacía y el retardo de esta coreografía quedaría sin ninguna
-     prueba (regla 38 de RULES.md). Verificado en esta misma tarea: con la
-     abreviatura, el test daba '' en vez de 760ms. */
-  /* Valor de reposo al que vuelve navbarArm cuando la animación termina (sin
-     fill forwards) y el que rige bajo reduce, donde no hay animación ninguna.
-     Declarado aunque coincida con el inicial de CSS: es el otro extremo del
-     contrato que documenta navbarArm, y sin él ese contrato solo existiría en
-     un comentario. (Sin comillas invertidas dentro del template: regla 23 de
-     RULES.md, ya ha roto el build cuatro veces.) */
   pointer-events: auto;
-  /* DOS nombres, un solo juego de duración/retardo/curva/fill: la lista de
-     animation-name se empareja con las demás longhands repitiendo sus
-     valores, así que las dos animaciones comparten exactamente el mismo reloj
-     -- que es justo lo que hace falta para que el puntero se libere cuando la
-     barra termina de aparecer, y no un instante antes o después. */
   animation-name: ${navbarDrop}, ${navbarArm};
   animation-duration: ${({ theme }) => theme.data.motion.duration.slow};
   animation-timing-function: ${({ theme }) =>
     theme.data.motion.easing.decelerate};
   animation-delay: ${HERO_CHROME_OFFSET_MS}ms;
   animation-fill-mode: backwards;
-  /* Hueco lateral al despegarse (spec 4): ver docblock. */
   padding-inline: 0;
   transition: padding-inline ${({ theme }) => theme.data.motion.duration.base}
     ${({ theme }) => theme.data.motion.easing.standard};
@@ -273,63 +339,13 @@ const ScHeader = styled.header`
     padding-inline: ${({ theme }) => theme.data.inlineSpace[2]};
   }
 
-  /*
-   * ACCESIBILIDAD durante el retardo del intro: SOLO opacity/transform
-   * (regla de movimiento de la casa). Nunca display:none, visibility:hidden
-   * ni aria-hidden -- el navbar tiene que seguir en el orden de tabulación y
-   * anunciado durante ese tramo (ver el comentario de accesibilidad en
-   * Navbar(), más abajo). Un elemento con opacity 0 sigue siendo focalizable
-   * y anunciado; solo deja de leerse su contraste visual, y ahora el tramo
-   * es un retardo FIJO de HERO_CHROME_OFFSET_MS (~0,76 s) en vez de una
-   * espera abierta a que el bundle hidratara.
-   *
-   * Lo que SÍ se desactiva en ese tramo, desde la crítica #14 (P1), es el
-   * puntero: opacity 0 no impide un clic, así que la barra invisible recibía
-   * pulsaciones a ciegas. Lo resuelve navbarArm (ver su docblock), una
-   * animación hermana sobre pointer-events -- una propiedad que no toca ni el
-   * orden de tabulación ni el árbol de accesibilidad, así que no contradice
-   * ni una línea de este párrafo.
-   */
-
   @media (prefers-reduced-motion: reduce) {
-    /* Visible de inmediato, sin animación (spec §7.4). El guard sigue siendo
-       obligatorio: GlobalStyles colapsa animation-duration a 0.001ms pero NO
-       toca animation-delay, así que sin este bloque la barra seguiría
-       invisible los 760 ms del retardo (fill backwards) y luego aparecería
-       de golpe -- peor que no animar. Ya no hace falta repetir el estado
-       para ningún valor de data-intro: ese atributo desapareció de este
-       componente, así que este único bloque cierra el caso entero, sin
-       ninguna ventana de carrera contra un efecto de React. */
     animation: none;
     transition: none;
     opacity: 1;
     transform: translateY(0);
   }
 
-  /*
-   * SIN JAVASCRIPT LA CABECERA VUELVE AL FLUJO (crítica externa #17, P1 del
-   * evaluador Nielsen, 2026-09-03).
-   *
-   * position: fixed existe para UNA cosa: que la barra flote sobre el hero
-   * transparente y se convierta en cristal al scrollear. Ese segundo estado
-   * lo escribe data-scrolled, que sale de useScrolled -- estado de React. Sin
-   * JavaScript el atributo no se pone nunca, ScSurface se queda en opacity 0
-   * para siempre y lo único que queda de la barra fija es una capa
-   * transparente que tapa contenido al hacer scroll y que, en cuanto muestra
-   * los destinos de sección (ver ScNavLinks, más abajo), envuelve a dos o
-   * tres filas de alto sobre el texto de la página.
-   *
-   * En flujo, la banda mide lo que mide su contenido, empuja el hero hacia
-   * abajo en vez de taparlo, y el salto a un ancla aterriza donde tiene que
-   * aterrizar sin depender de que scroll-margin-top (GlobalStyles) adivine la
-   * altura de una barra que ahora envuelve. Es exactamente lo que pedía el
-   * encargo: la fila de destinos, en flujo, envolviendo si hace falta.
-   *
-   * QUÉ NO CAMBIA: con JavaScript no cambia absolutamente nada -- este bloque
-   * entero no se evalúa. Y en un navegador sin soporte de scripting (Chrome
-   * < 120, Firefox < 113, Safari < 17) el bloque se ignora y queda el
-   * comportamiento de siempre.
-   */
   @media (scripting: none) {
     position: static;
   }
@@ -359,25 +375,38 @@ const ScHeader = styled.header`
  * redeclara entera en el bloque de estado: aquí no hay ninguna entrada de
  * otra coreografía (intro, etc.) que perder.
  */
+/*
+ * Prosa del CSS de ScBar, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «transition:»:
+ *   ESTA CAJA YA NO ES EL CONTENEDOR DE CONSULTA, y el porqué es medible
+ *   (crítica externa #18, ola O+P). Lo fue desde O-3/O-4, pero es justo la
+ *   caja cuyo max-width ANIMA al despegarse: su caja de contenido encoge al
+ *   scrollear (medido: 992 -> 976, 1024 -> 1008, 1200 -> 1184 con la raíz por
+ *   defecto), así que las bandas 992-1007 y 1200-1215 px cruzaban el umbral
+ *   durante el propio scroll y el quinto destino aparecía arriba y se iba al
+ *   bajar. El contenedor vive ahora en ScNav, cuya caja de contenido sale
+ *   INVARIANTE en las dieciocho combinaciones medidas de ancho por tamaño de
+ *   fuente, porque su padding-inline cancela el desfase del despegue por
+ *   diseño. El reparto completo vive en navbarContainer.ts. (Sin comillas
+ *   invertidas dentro del template: regla 23 de RULES.md.)
+ *
+ * Sobre «[data-scrolled="true"] & {»:
+ *   Hallazgo 4 (auditoría): el estado anidado [data-scrolled="true"] &
+ *   (arriba) tiene MAYOR especificidad (selector de atributo + clase) que
+ *   el & suelto de justo encima (solo clase) -- sin redeclararlo aquí
+ *   dentro, bajo reduce ganaría la transition CON easings reales de ese
+ *   bloque en vez de "none". El mismo patrón lo resuelve ScNavPanel (más
+ *   abajo) redeclarando su &[data-open="true"] dentro de su propio bloque
+ *   reduce; ScHeader era el otro ejemplo hasta 2026-08-11, cuando su
+ *   intro dejó de tener estado anidado que redeclarar.
+ */
 const ScBar = styled.div`
   position: relative;
   width: auto;
   margin-inline: auto;
   margin-top: 0;
   max-width: 100vw;
-  /*
-   * ESTA CAJA YA NO ES EL CONTENEDOR DE CONSULTA, y el porqué es medible
-   * (crítica externa #18, ola O+P). Lo fue desde O-3/O-4, pero es justo la
-   * caja cuyo max-width ANIMA al despegarse: su caja de contenido encoge al
-   * scrollear (medido: 992 -> 976, 1024 -> 1008, 1200 -> 1184 con la raíz por
-   * defecto), así que las bandas 992-1007 y 1200-1215 px cruzaban el umbral
-   * durante el propio scroll y el quinto destino aparecía arriba y se iba al
-   * bajar. El contenedor vive ahora en ScNav, cuya caja de contenido sale
-   * INVARIANTE en las dieciocho combinaciones medidas de ancho por tamaño de
-   * fuente, porque su padding-inline cancela el desfase del despegue por
-   * diseño. El reparto completo vive en navbarContainer.ts. (Sin comillas
-   * invertidas dentro del template: regla 23 de RULES.md.)
-   */
   transition:
     max-width ${({ theme }) => theme.data.motion.duration.slow}
       ${({ theme }) => theme.data.motion.easing.emphasized}
@@ -401,14 +430,6 @@ const ScBar = styled.div`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
-    /* Hallazgo 4 (auditoría): el estado anidado [data-scrolled="true"] &
-       (arriba) tiene MAYOR especificidad (selector de atributo + clase) que
-       el & suelto de justo encima (solo clase) -- sin redeclararlo aquí
-       dentro, bajo reduce ganaría la transition CON easings reales de ese
-       bloque en vez de "none". El mismo patrón lo resuelve ScNavPanel (más
-       abajo) redeclarando su &[data-open="true"] dentro de su propio bloque
-       reduce; ScHeader era el otro ejemplo hasta 2026-08-11, cuando su
-       intro dejó de tener estado anidado que redeclarar. */
     [data-scrolled="true"] & {
       transition: none;
     }
@@ -470,17 +491,22 @@ const stickOn = keyframes`
  * opacity 0 la capa no pinta cristal ni proyecta `backdrop-filter`, así que
  * el estado transparente sobre el hero queda idéntico al actual.
  */
+/*
+ * Prosa del CSS de ScSurface, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «-webkit-backdrop-filter: ${({ theme }) => theme.data.glass.blur};»:
+ *   -webkit- primero: Safari (incl. iOS) solo reconoce el prefijo; el
+ *   backdrop-filter sin prefijo lo sobrescribe donde ambos existen. Si el
+ *   navegador no soporta ninguno de los dos, la capa sigue siendo legible
+ *   porque glass.bg ya es semitransparente por sí solo -- no hay fallback
+ *   de texto ilegible.
+ */
 const ScSurface = styled.div`
   position: absolute;
   inset: 0;
   pointer-events: none;
   transform-origin: top center;
   background: ${({ theme }) => theme.data.glass.bg};
-  /* -webkit- primero: Safari (incl. iOS) solo reconoce el prefijo; el
-     backdrop-filter sin prefijo lo sobrescribe donde ambos existen. Si el
-     navegador no soporta ninguno de los dos, la capa sigue siendo legible
-     porque glass.bg ya es semitransparente por sí solo -- no hay fallback
-     de texto ilegible. */
   -webkit-backdrop-filter: ${({ theme }) => theme.data.glass.blur};
   backdrop-filter: ${({ theme }) => theme.data.glass.blur};
   border: ${({ theme }) => theme.data.glass.border};
@@ -620,85 +646,123 @@ const ScSurface = styled.div`
  * secciones acotadas migraron en la misma ola, así que el raíl único no se
  * parte por el camino.
  */
+/*
+ * Prosa del CSS de ScNav, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «flex-wrap: wrap;»:
+ *   LA BANDA ENVUELVE SIEMPRE, NO SOLO SIN JAVASCRIPT (crítica externa #18,
+ *   ola O+P: WCAG 1.4.4 a 200 % de tamaño de texto).
+ *
+ *   EL DEFECTO, reproducido en Chrome real sobre el build de producción antes
+ *   de tocar nada (tema claro, DPR 1, visibilityState "visible", raíz del
+ *   documento a 32px -- el 200 % de la preferencia del usuario, el mismo
+ *   instrumento del docblock de ScBrandLink): con la fila en nowrap y altura
+ *   FIJA, el contenido pedía 1179 px a cualquier ancho, así que entre 992 y
+ *   1152 el bloque de acciones salía del viewport. Medido a 1024: el
+ *   conmutador de tema en x 1135..1179, inViewport false, y
+ *   elementFromPoint en su centro devolviendo el arte del hero, no el botón.
+ *   Sin rescate posible: html/body están en overflow-x clip y
+ *   maxScrollLeft = 0, así que el control no se podía ni alcanzar ni
+ *   scrollear hasta él. El rótulo de la marca, en la misma medición, estaba
+ *   ya a ancho 0 -- el enlace a la home tampoco tenía zona de clic.
+ *
+ *   LA CAUSA ERA HEREDADA, igual que la del bloque sin JavaScript de más
+ *   abajo: una altura fija más nowrap obligan a que TODO quepa en una fila de
+ *   alto constante, y cuando no cabe el sobrante no se pliega, se sale. La
+ *   respuesta que el repo ya tenía escrita para el caso sin JavaScript --
+ *   envolver, con la banda como SUELO y no como techo-- es la misma que
+ *   resuelve éste, así que sube a la regla base en vez de duplicarse en un
+ *   segundo guard: una consulta de medio o de contenedor habría necesitado
+ *   un umbral, y
+ *   ningún umbral separa los dos casos (a 375 px con la raíz a 16 el
+ *   contenedor mide 23,4em y NO debe envolver; a 1152 px con la raíz a 32
+ *   mide 36em y SÍ). No caber no es un ancho: es exactamente lo que
+ *   flex-wrap ya sabe decidir por su cuenta.
+ *
+ *   NO CAMBIA NADA DONDE EL CONTENIDO YA CABÍA, y se midió caja por caja
+ *   antes de escribirlo: con la raíz a 16px, a 375, 800, 992, 1024, 1152,
+ *   1280, 1440 y 1920 px las cajas de la cabecera salen IDÉNTICAS AL PÍXEL,
+ *   subárbol entero incluido. La única banda que cambia es 768-787 px, donde
+ *   hoy la fila "cabía" solo porque el nombre del sitio se recortaba
+ *   (medido a 768: scrollWidth 119 contra clientWidth 100 del span de la
+ *   marca, con overflow hidden -- 19 px del nombre del sitio perdidos); ahí
+ *   ahora la banda mide 96 px en dos filas y el nombre se lee entero.
+ *
+ *   DESPUÉS, a 200 % y a los mismos anchos: cero desbordamiento
+ *   (scrollWidth === clientWidth en los ocho), el conmutador dentro del
+ *   viewport y elementFromPoint devolviéndolo en todos, y el rótulo de la
+ *   marca de vuelta a 301,72 px desde 0.
+ *
+ *   row-gap y no gap: el hueco horizontal entre marca, destinos y controles
+ *   sigue siendo el space[4] de arriba; lo que hace falta aquí es separar las
+ *   filas cuando de verdad hay más de una.
+ *
+ * Sobre «container-type: inline-size;»:
+ *   CONTENEDOR DE CONSULTA DE LA FILA (crítica externa #18, O-3 y O-4, movido
+ *   aquí desde ScBar en la ola O+P). Las dos piezas que la barra estrena en esa
+ *   crítica se preguntan por el ancho DE ESTA CAJA y por el tamaño de fuente
+ *   que hereda, no por el de la ventana; y esta caja es la única de la banda
+ *   cuyo ancho de contenido no se mueve durante la animación de despegue. El
+ *   porqué completo, con las dos mediciones que lo obligan --la de 200 % de
+ *   fuente y la del umbral cruzado al scrollear-- vive en navbarContainer.ts.
+ *
+ *   NO CAMBIA NADA DE LA COMPOSICIÓN, y se comprobó antes de escribirlo:
+ *   medido en Chrome real a 1024 y a 1440 sobre el build de producción, con el
+ *   panel de Más ABIERTO y con y sin esta declaración, todas las cajas de la
+ *   cabecera salen idénticas al píxel, con el mismo z-index y el mismo
+ *   elementFromPoint dentro del panel. Es lo esperado: el ancho de este bloque
+ *   lo fija su padre, nunca su contenido, así que la contención en el eje en
+ *   línea no tiene nada que restringir.
+ *
+ * Sobre «height: auto;»:
+ *   La misma variable que descuenta el Hero (ver GlobalStyles): si la banda
+ *   cambia de alto, las dos medidas cambian juntas. Es un SUELO, no una
+ *   altura fija: donde el contenido cabe en una fila la banda mide
+ *   exactamente lo que medía antes, al píxel (medido, ver arriba).
+ *
+ * Sobre «transition:»:
+ *   Misma duración y curva que el padding-inline de ScHeader: ver el docblock
+ *   de arriba, apartado del suelo. (Sin comillas invertidas dentro del
+ *   template: regla 23 de RULES.md, ya ha roto el build cinco veces.)
+ *
+ * Sobre «[data-scrolled="true"] & {»:
+ *   Mismo motivo que documenta ScBar en su propio bloque de reduce: el
+ *   estado anidado con el atributo tiene MAYOR especificidad que el
+ *   ampersand suelto, así que sin redeclararlo aquí dentro ganaría la
+ *   transición con curva real del bloque de estado.
+ *
+ * Sobre «@media (scripting: none) {»:
+ *   SIN JAVASCRIPT LA BANDA ENVUELVE (crítica externa #17, P1 del evaluador
+ *   Nielsen, 2026-09-03). Con los destinos de sección visibles en móvil (ver
+ *   ScNavLinks) el contenido ya no cabe en una sola fila de 390 px, y una
+ *   altura FIJA de var(--nav-height) recortaría justo lo que aquel arreglo
+ *   existía para mostrar.
+ *
+ *   LAS CUATRO DECLARACIONES DE ESTE BLOQUE SUBIERON A LA REGLA BASE en la
+ *   ola O+P, porque el mismo recorte resultó no ser exclusivo del caso sin
+ *   JavaScript: a 200 % de tamaño de texto ocurre igual CON JavaScript, y
+ *   peor (el conmutador de tema quedaba fuera del viewport, ver el docblock
+ *   de arriba). El bloque se queda por dos motivos que no son cosméticos:
+ *   documenta el caso que lo descubrió, y sigue siendo el candado de la
+ *   crítica #17 -- si alguien retirase la envoltura de la base, este bloque
+ *   la conservaría exactamente donde aquel evaluador la midió. Declarar los
+ *   MISMOS valores que la base es aquí una redundancia deliberada, no una
+ *   divergencia: mismo peso, mismos valores, resultado idéntico.
+ *
+ *   row-gap y no gap: el gap horizontal entre marca, destinos y controles
+ *   sigue siendo el de space[4] declarado arriba; lo que hace falta aquí es
+ *   separar las filas nuevas, que antes no existían.
+ */
 const ScNav = styled.nav`
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: ${({ theme }) => theme.data.space[4]};
-  /*
-   * LA BANDA ENVUELVE SIEMPRE, NO SOLO SIN JAVASCRIPT (crítica externa #18,
-   * ola O+P: WCAG 1.4.4 a 200 % de tamaño de texto).
-   *
-   * EL DEFECTO, reproducido en Chrome real sobre el build de producción antes
-   * de tocar nada (tema claro, DPR 1, visibilityState "visible", raíz del
-   * documento a 32px -- el 200 % de la preferencia del usuario, el mismo
-   * instrumento del docblock de ScBrandLink): con la fila en nowrap y altura
-   * FIJA, el contenido pedía 1179 px a cualquier ancho, así que entre 992 y
-   * 1152 el bloque de acciones salía del viewport. Medido a 1024: el
-   * conmutador de tema en x 1135..1179, inViewport false, y
-   * elementFromPoint en su centro devolviendo el arte del hero, no el botón.
-   * Sin rescate posible: html/body están en overflow-x clip y
-   * maxScrollLeft = 0, así que el control no se podía ni alcanzar ni
-   * scrollear hasta él. El rótulo de la marca, en la misma medición, estaba
-   * ya a ancho 0 -- el enlace a la home tampoco tenía zona de clic.
-   *
-   * LA CAUSA ERA HEREDADA, igual que la del bloque sin JavaScript de más
-   * abajo: una altura fija más nowrap obligan a que TODO quepa en una fila de
-   * alto constante, y cuando no cabe el sobrante no se pliega, se sale. La
-   * respuesta que el repo ya tenía escrita para el caso sin JavaScript --
-   * envolver, con la banda como SUELO y no como techo-- es la misma que
-   * resuelve éste, así que sube a la regla base en vez de duplicarse en un
-   * segundo guard: una consulta de medio o de contenedor habría necesitado
-   * un umbral, y
-   * ningún umbral separa los dos casos (a 375 px con la raíz a 16 el
-   * contenedor mide 23,4em y NO debe envolver; a 1152 px con la raíz a 32
-   * mide 36em y SÍ). No caber no es un ancho: es exactamente lo que
-   * flex-wrap ya sabe decidir por su cuenta.
-   *
-   * NO CAMBIA NADA DONDE EL CONTENIDO YA CABÍA, y se midió caja por caja
-   * antes de escribirlo: con la raíz a 16px, a 375, 800, 992, 1024, 1152,
-   * 1280, 1440 y 1920 px las cajas de la cabecera salen IDÉNTICAS AL PÍXEL,
-   * subárbol entero incluido. La única banda que cambia es 768-787 px, donde
-   * hoy la fila "cabía" solo porque el nombre del sitio se recortaba
-   * (medido a 768: scrollWidth 119 contra clientWidth 100 del span de la
-   * marca, con overflow hidden -- 19 px del nombre del sitio perdidos); ahí
-   * ahora la banda mide 96 px en dos filas y el nombre se lee entero.
-   *
-   * DESPUÉS, a 200 % y a los mismos anchos: cero desbordamiento
-   * (scrollWidth === clientWidth en los ocho), el conmutador dentro del
-   * viewport y elementFromPoint devolviéndolo en todos, y el rótulo de la
-   * marca de vuelta a 301,72 px desde 0.
-   *
-   * row-gap y no gap: el hueco horizontal entre marca, destinos y controles
-   * sigue siendo el space[4] de arriba; lo que hace falta aquí es separar las
-   * filas cuando de verdad hay más de una.
-   */
   flex-wrap: wrap;
   row-gap: ${({ theme }) => theme.data.space[2]};
-  /*
-   * CONTENEDOR DE CONSULTA DE LA FILA (crítica externa #18, O-3 y O-4, movido
-   * aquí desde ScBar en la ola O+P). Las dos piezas que la barra estrena en esa
-   * crítica se preguntan por el ancho DE ESTA CAJA y por el tamaño de fuente
-   * que hereda, no por el de la ventana; y esta caja es la única de la banda
-   * cuyo ancho de contenido no se mueve durante la animación de despegue. El
-   * porqué completo, con las dos mediciones que lo obligan --la de 200 % de
-   * fuente y la del umbral cruzado al scrollear-- vive en navbarContainer.ts.
-   *
-   * NO CAMBIA NADA DE LA COMPOSICIÓN, y se comprobó antes de escribirlo:
-   * medido en Chrome real a 1024 y a 1440 sobre el build de producción, con el
-   * panel de Más ABIERTO y con y sin esta declaración, todas las cajas de la
-   * cabecera salen idénticas al píxel, con el mismo z-index y el mismo
-   * elementFromPoint dentro del panel. Es lo esperado: el ancho de este bloque
-   * lo fija su padre, nunca su contenido, así que la contención en el eje en
-   * línea no tiene nada que restringir.
-   */
   container-type: inline-size;
   container-name: ${NAVBAR_CONTAINER};
-  /* La misma variable que descuenta el Hero (ver GlobalStyles): si la banda
-     cambia de alto, las dos medidas cambian juntas. Es un SUELO, no una
-     altura fija: donde el contenido cabe en una fila la banda mide
-     exactamente lo que medía antes, al píxel (medido, ver arriba). */
   height: auto;
   min-height: var(--nav-height);
   padding-block: 0;
@@ -722,9 +786,6 @@ const ScNav = styled.nav`
       ) +
       env(safe-area-inset-left, 0px)
   );
-  /* Misma duración y curva que el padding-inline de ScHeader: ver el docblock
-     de arriba, apartado del suelo. (Sin comillas invertidas dentro del
-     template: regla 23 de RULES.md, ya ha roto el build cinco veces.) */
   transition:
     padding-left ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard},
@@ -763,37 +824,11 @@ const ScNav = styled.nav`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
-    /* Mismo motivo que documenta ScBar en su propio bloque de reduce: el
-       estado anidado con el atributo tiene MAYOR especificidad que el
-       ampersand suelto, así que sin redeclararlo aquí dentro ganaría la
-       transición con curva real del bloque de estado. */
     [data-scrolled="true"] & {
       transition: none;
     }
   }
 
-  /*
-   * SIN JAVASCRIPT LA BANDA ENVUELVE (crítica externa #17, P1 del evaluador
-   * Nielsen, 2026-09-03). Con los destinos de sección visibles en móvil (ver
-   * ScNavLinks) el contenido ya no cabe en una sola fila de 390 px, y una
-   * altura FIJA de var(--nav-height) recortaría justo lo que aquel arreglo
-   * existía para mostrar.
-   *
-   * LAS CUATRO DECLARACIONES DE ESTE BLOQUE SUBIERON A LA REGLA BASE en la
-   * ola O+P, porque el mismo recorte resultó no ser exclusivo del caso sin
-   * JavaScript: a 200 % de tamaño de texto ocurre igual CON JavaScript, y
-   * peor (el conmutador de tema quedaba fuera del viewport, ver el docblock
-   * de arriba). El bloque se queda por dos motivos que no son cosméticos:
-   * documenta el caso que lo descubrió, y sigue siendo el candado de la
-   * crítica #17 -- si alguien retirase la envoltura de la base, este bloque
-   * la conservaría exactamente donde aquel evaluador la midió. Declarar los
-   * MISMOS valores que la base es aquí una redundancia deliberada, no una
-   * divergencia: mismo peso, mismos valores, resultado idéntico.
-   *
-   * row-gap y no gap: el gap horizontal entre marca, destinos y controles
-   * sigue siendo el de space[4] declarado arriba; lo que hace falta aquí es
-   * separar las filas nuevas, que antes no existían.
-   */
   @media (scripting: none) {
     flex-wrap: wrap;
     height: auto;
@@ -890,14 +925,19 @@ const ScNav = styled.nav`
  * El logotipo (`flex: none` en su propio bloque) no cambia de tamano: lo que
  * envuelve es el texto de al lado.
  */
+/*
+ * Prosa del CSS de ScBrandLink, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «font-size: ${({ theme }) => theme.data.type.scale.wordmark.size};»:
+ *   Solo el TAMAÑO del peldaño wordmark (crítica externa #15, 2026-09-02): el
+ *   1.15rem estaba escrito byte a byte aquí y en LegalHeader.tsx. El peso y el
+ *   tracking los pone el propio rótulo (BrandName), no este enlace.
+ */
 const ScBrandLink = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.data.space[2]};
   min-height: 44px;
-  /* Solo el TAMAÑO del peldaño wordmark (crítica externa #15, 2026-09-02): el
-     1.15rem estaba escrito byte a byte aquí y en LegalHeader.tsx. El peso y el
-     tracking los pone el propio rótulo (BrandName), no este enlace. */
   font-size: ${({ theme }) => theme.data.type.scale.wordmark.size};
   color: ${({ theme }) => theme.data.semantic.text};
   min-width: 0;
@@ -928,6 +968,33 @@ const ScActions = styled.div`
  * intrínseco es el de su contenido, así que ni el hueco de `ScActions` ni la
  * posición de nada cambian un píxel en escritorio.
  */
+/*
+ * Prosa del CSS de ScBarLanguage, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «@media (scripting: none) {»:
+ *   SIN JAVASCRIPT EL IDIOMA VUELVE A LA BARRA TAMBIÉN EN MÓVIL (crítica
+ *   externa #17, P1 del evaluador Nielsen, 2026-09-03).
+ *
+ *   La copia móvil del selector vive DENTRO de la hoja (ver el docblock de
+ *   NavSheet.tsx), y la hoja no abre nunca sin JavaScript: la consecuencia
+ *   medida es que bajo 768 px las DOS copias quedaban a 0x0 y el visitante se
+ *   quedaba sin forma de cambiar de idioma. Aquí no hay nada que dependa de
+ *   JavaScript --LanguageSelector pinta dos <a href> a / y /en desde
+ *   la crítica #10 (ver su docblock)--, así que la copia de la barra puede
+ *   encenderse tal cual.
+ *
+ *   NO DUPLICA EL CONTROL, y esto había que comprobarlo antes de encenderlo:
+ *   sin JavaScript la hoja se queda para siempre en visibility: hidden +
+ *   inert (los dos ya horneados en el HTML exportado, que se genera con
+ *   isOpen === false), y cualquiera de los dos basta para sacar su copia del
+ *   árbol de accesibilidad y del orden de tabulación. Sigue habiendo
+ *   exactamente UNA copia anunciable, igual que en el reparto por md -- la
+ *   diferencia es que allí la excluyente es display: none y aquí es el
+ *   estado cerrado del que la hoja ya no puede salir.
+ *
+ *   Va después del bloque de md y declara los mismos valores, así que en
+ *   escritorio sin JavaScript no cambia un píxel.
+ */
 const ScBarLanguage = styled.div`
   display: none;
 
@@ -936,30 +1003,6 @@ const ScBarLanguage = styled.div`
     align-items: center;
   }
 
-  /*
-   * SIN JAVASCRIPT EL IDIOMA VUELVE A LA BARRA TAMBIÉN EN MÓVIL (crítica
-   * externa #17, P1 del evaluador Nielsen, 2026-09-03).
-   *
-   * La copia móvil del selector vive DENTRO de la hoja (ver el docblock de
-   * NavSheet.tsx), y la hoja no abre nunca sin JavaScript: la consecuencia
-   * medida es que bajo 768 px las DOS copias quedaban a 0x0 y el visitante se
-   * quedaba sin forma de cambiar de idioma. Aquí no hay nada que dependa de
-   * JavaScript --LanguageSelector pinta dos <a href> a / y /en desde
-   * la crítica #10 (ver su docblock)--, así que la copia de la barra puede
-   * encenderse tal cual.
-   *
-   * NO DUPLICA EL CONTROL, y esto había que comprobarlo antes de encenderlo:
-   * sin JavaScript la hoja se queda para siempre en visibility: hidden +
-   * inert (los dos ya horneados en el HTML exportado, que se genera con
-   * isOpen === false), y cualquiera de los dos basta para sacar su copia del
-   * árbol de accesibilidad y del orden de tabulación. Sigue habiendo
-   * exactamente UNA copia anunciable, igual que en el reparto por md -- la
-   * diferencia es que allí la excluyente es display: none y aquí es el
-   * estado cerrado del que la hoja ya no puede salir.
-   *
-   * Va después del bloque de md y declara los mismos valores, así que en
-   * escritorio sin JavaScript no cambia un píxel.
-   */
   @media (scripting: none) {
     display: inline-flex;
     align-items: center;
@@ -1052,6 +1095,46 @@ const ScBarLanguage = styled.div`
  * ítem de flex, así que ni ocupa ni aporta `gap` -- la fila queda con los
  * cuatro enlaces y nada más, sin un ítem de anchura cero colgando al final.
  */
+/*
+ * Prosa del CSS de ScNavLinks, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «@media (scripting: none) {»:
+ *   SIN JAVASCRIPT LOS DESTINOS DE SECCIÓN SE VEN TAMBIÉN EN MÓVIL (crítica
+ *   externa #17, P1 del evaluador Nielsen, 2026-09-03).
+ *
+ *   EL DEFECTO, reproducido con javaScriptEnabled: false real antes de
+ *   tocar nada (Chrome, build de producción servido, 390x844, tema claro): de
+ *   los 18 controles del header, DIECISIETE median 0x0 y solo sobrevivía el
+ *   logotipo. La página mide 10.201 px a ese ancho, así que un visitante móvil
+ *   sin JavaScript no tenía un solo enlace de navegación hasta el pie. A 1440
+ *   la misma medición daba 11 controles a 0x0 y siete vivos --marca, los
+ *   cuatro destinos y los dos idiomas--, es decir: la degradación suave ya
+ *   existía en escritorio y se caía entera al bajar de 768 px.
+ *
+ *   LA CAUSA NO ERA TÉCNICA, ERA HEREDADA. La regla base display: none de
+ *   este bloque se escribió cuando el contenido eran cuatro DISPARADORES de
+ *   desplegable (estado de React) y la hoja móvil era su única alternativa.
+ *   Desde la decisión D2 (2026-09-02, crítica #14) los cuatro destinos son
+ *   <a href> a anclas ABSOLUTAS (/#story, /en#story) que navegan
+ *   perfectamente sin JavaScript: ocultarlos en móvil dejó de ser una
+ *   necesidad y pasó a ser inercia. Lo que sí sigue exigiendo JavaScript --el
+ *   disclosure «Más»-- ya se retira por su cuenta en ScNavGroup, así que
+ *   este bloque puede encenderse entero sin arrastrar ninguna promesa muerta.
+ *
+ *   flex-wrap: wrap y no una fila fija: a 390 px los cuatro rótulos
+ *   castellanos ocupan unos 306 px de los 342 disponibles, así que caben --
+ *   pero en un teléfono más estrecho, con el idioma en inglés más largo o a
+ *   200 % de tamaño de fuente, dejan de caber, y una fila que desborda no es
+ *   mejor que una fila oculta. ScNav aporta la otra mitad (envolver y
+ *   crecer, ver su propio bloque de scripting: none).
+ *
+ *   CON JAVASCRIPT NO CAMBIA NADA, y el orden de los bloques es lo que lo
+ *   garantiza: este va DESPUÉS del de md y declara los mismos valores
+ *   (display: flex, align-items: center, el mismo gap), así que en
+ *   escritorio sin JavaScript la fila queda byte a byte como estaba salvo por
+ *   el flex-wrap, que no cambia nada mientras el contenido quepa. Con
+ *   JavaScript el bloque entero no se evalúa.
+ */
 const ScNavLinks = styled.div`
   display: none;
 
@@ -1061,43 +1144,6 @@ const ScNavLinks = styled.div`
     gap: ${({ theme }) => theme.data.space[5]};
   }
 
-  /*
-   * SIN JAVASCRIPT LOS DESTINOS DE SECCIÓN SE VEN TAMBIÉN EN MÓVIL (crítica
-   * externa #17, P1 del evaluador Nielsen, 2026-09-03).
-   *
-   * EL DEFECTO, reproducido con javaScriptEnabled: false real antes de
-   * tocar nada (Chrome, build de producción servido, 390x844, tema claro): de
-   * los 18 controles del header, DIECISIETE median 0x0 y solo sobrevivía el
-   * logotipo. La página mide 10.201 px a ese ancho, así que un visitante móvil
-   * sin JavaScript no tenía un solo enlace de navegación hasta el pie. A 1440
-   * la misma medición daba 11 controles a 0x0 y siete vivos --marca, los
-   * cuatro destinos y los dos idiomas--, es decir: la degradación suave ya
-   * existía en escritorio y se caía entera al bajar de 768 px.
-   *
-   * LA CAUSA NO ERA TÉCNICA, ERA HEREDADA. La regla base display: none de
-   * este bloque se escribió cuando el contenido eran cuatro DISPARADORES de
-   * desplegable (estado de React) y la hoja móvil era su única alternativa.
-   * Desde la decisión D2 (2026-09-02, crítica #14) los cuatro destinos son
-   * <a href> a anclas ABSOLUTAS (/#story, /en#story) que navegan
-   * perfectamente sin JavaScript: ocultarlos en móvil dejó de ser una
-   * necesidad y pasó a ser inercia. Lo que sí sigue exigiendo JavaScript --el
-   * disclosure «Más»-- ya se retira por su cuenta en ScNavGroup, así que
-   * este bloque puede encenderse entero sin arrastrar ninguna promesa muerta.
-   *
-   * flex-wrap: wrap y no una fila fija: a 390 px los cuatro rótulos
-   * castellanos ocupan unos 306 px de los 342 disponibles, así que caben --
-   * pero en un teléfono más estrecho, con el idioma en inglés más largo o a
-   * 200 % de tamaño de fuente, dejan de caber, y una fila que desborda no es
-   * mejor que una fila oculta. ScNav aporta la otra mitad (envolver y
-   * crecer, ver su propio bloque de scripting: none).
-   *
-   * CON JAVASCRIPT NO CAMBIA NADA, y el orden de los bloques es lo que lo
-   * garantiza: este va DESPUÉS del de md y declara los mismos valores
-   * (display: flex, align-items: center, el mismo gap), así que en
-   * escritorio sin JavaScript la fila queda byte a byte como estaba salvo por
-   * el flex-wrap, que no cambia nada mientras el contenido quepa. Con
-   * JavaScript el bloque entero no se evalúa.
-   */
   @media (scripting: none) {
     display: flex;
     align-items: center;
@@ -1237,14 +1283,19 @@ export function navLinkHoverInk(theme: DefaultTheme): string {
    los valores de PRESS, gobernando exclusivamente el press de abajo.
    ScNavPanelLink (más abajo, styled(ScNavLink)) hereda este :active por
    composición, sin declarar nada propio. */
+/*
+ * Prosa del CSS de ScNavLink, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «touch-action: manipulation;»:
+ *   Task 13, punto 2 del brief: elimina el retardo de doble-tap.
+ *   ScNavPanelLink (más abajo, styled(ScNavLink)) lo hereda por
+ *   composición, sin declarar nada propio -- mismo criterio que ya
+ *   documenta el :active de este mismo componente.
+ */
 const ScNavLink = styled.a`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 500;
   color: ${({ theme }) => navLinkInk(theme)};
-  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap.
-     ScNavPanelLink (más abajo, styled(ScNavLink)) lo hereda por
-     composición, sin declarar nada propio -- mismo criterio que ya
-     documenta el :active de este mismo componente. */
   touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
@@ -1305,49 +1356,54 @@ const ScNavLink = styled.a`
  * y pintarlo solo en el activo movería los otros tres cada vez que el lector
  * cambia de sección. El subrayado no participa del layout: no reflowea nada.
  */
+/*
+ * Prosa del CSS de ScNavSectionLink, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «text-underline-offset: 0.2em;»:
+ *   Sin comillas invertidas dentro del template: regla 23 de RULES.md, ya ha
+ *   roto el build tres veces.
+ *
+ * Sobre «&[data-wide-only] {»:
+ *   EL DESTINO QUE SOLO CABE EN LA BARRA ANCHA (crítica externa #18, hallazgo
+ *   O-4; medición completa en el docblock de la partición, navigation.ts).
+ *   Sin comillas invertidas dentro del template: regla 23 de RULES.md.
+ *
+ *   El atributo lo pone Navbar() a los items que devuelve
+ *   navBarWideSectionsFor -- derivados del modelo, no de una lista tecleada
+ *   --, y lo que decide aquí es SOLO desde qué ancho se pinta. La regla base
+ *   es la estrecha (display: none, el destino vive tras «Más», que es lo que
+ *   ocurre hoy en toda la franja md..lg) y se corrige hacia arriba,
+ *   mobile-first como el resto del fichero.
+ *
+ *   LA CONSULTA ES DE CONTENEDOR, NO DE VENTANA, y no es un capricho: mide el
+ *   ancho de la barra Y responde al tamaño de fuente del usuario, de modo que
+ *   este enlace se retira solo cuando el texto crece (a 200 % de fuente la
+ *   fila no tiene sitio para él a ningún ancho hasta 1440 px, medido). El
+ *   porqué completo, con la tabla, vive en navbarContainer.ts.
+ *
+ *   inline-flex, no flex ni initial: repite EXACTAMENTE el valor que declara
+ *   la regla base de este mismo componente unas líneas más arriba, que es lo
+ *   que le da su suelo táctil de 44px junto a align-items: center. Un
+ *   display: revert habría devuelto el inline del ancla y encogido la caja de
+ *   clic a la altura del texto.
+ *
+ *   62em (992 px con la raíz por defecto, o sea lg) NO es una cifra elegida a
+ *   ojo: a 900 px la fila tiene 146 px
+ *   de holgura total y este enlace pide 156 (132 de tinta más los 24 del gap
+ *   de la fila), así que el déficit se lo comería el rótulo de la marca --
+ *   que a 768 px ya se recorta hoy sin este enlace. A 992 px la holgura es
+ *   238 px y sobran 82.
+ */
 const ScNavSectionLink = styled(ScNavLink)`
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  /* Sin comillas invertidas dentro del template: regla 23 de RULES.md, ya ha
-     roto el build tres veces. */
   text-underline-offset: 0.2em;
 
   &[aria-current="location"] {
     text-decoration: underline;
   }
 
-  /*
-   * EL DESTINO QUE SOLO CABE EN LA BARRA ANCHA (crítica externa #18, hallazgo
-   * O-4; medición completa en el docblock de la partición, navigation.ts).
-   * Sin comillas invertidas dentro del template: regla 23 de RULES.md.
-   *
-   * El atributo lo pone Navbar() a los items que devuelve
-   * navBarWideSectionsFor -- derivados del modelo, no de una lista tecleada
-   * --, y lo que decide aquí es SOLO desde qué ancho se pinta. La regla base
-   * es la estrecha (display: none, el destino vive tras «Más», que es lo que
-   * ocurre hoy en toda la franja md..lg) y se corrige hacia arriba,
-   * mobile-first como el resto del fichero.
-   *
-   * LA CONSULTA ES DE CONTENEDOR, NO DE VENTANA, y no es un capricho: mide el
-   * ancho de la barra Y responde al tamaño de fuente del usuario, de modo que
-   * este enlace se retira solo cuando el texto crece (a 200 % de fuente la
-   * fila no tiene sitio para él a ningún ancho hasta 1440 px, medido). El
-   * porqué completo, con la tabla, vive en navbarContainer.ts.
-   *
-   * inline-flex, no flex ni initial: repite EXACTAMENTE el valor que declara
-   * la regla base de este mismo componente unas líneas más arriba, que es lo
-   * que le da su suelo táctil de 44px junto a align-items: center. Un
-   * display: revert habría devuelto el inline del ancla y encogido la caja de
-   * clic a la altura del texto.
-   *
-   * 62em (992 px con la raíz por defecto, o sea lg) NO es una cifra elegida a
-   * ojo: a 900 px la fila tiene 146 px
-   * de holgura total y este enlace pide 156 (132 de tinta más los 24 del gap
-   * de la fila), así que el déficit se lo comería el rótulo de la marca --
-   * que a 768 px ya se recorta hoy sin este enlace. A 992 px la holgura es
-   * 238 px y sobran 82.
-   */
   &[data-wide-only] {
     display: none;
 
@@ -1366,14 +1422,19 @@ const ScNavSectionLink = styled(ScNavLink)`
  * -- el propio disparador o un enlace del panel --, así que se capturan
  * una sola vez aquí, nunca por separado en cada uno de los dos.
  */
+/*
+ * Prosa del CSS de ScNavGroup, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «@media (scripting: none) {»:
+ *   Sin JavaScript el desplegable no abre nunca y el pie ya expone la
+ *   navegación completa: ver la sección "SIN JAVASCRIPT" del docblock de
+ *   ScNavLinks, que explica por qué el guard vive aquí desde la decisión D2 y
+ *   no sobre el contenedor -- los cuatro enlaces de sección que lo acompañan
+ *   SÍ funcionan sin JavaScript y no se pueden ocultar con él.
+ */
 const ScNavGroup = styled.div`
   position: relative;
 
-  /* Sin JavaScript el desplegable no abre nunca y el pie ya expone la
-     navegación completa: ver la sección "SIN JAVASCRIPT" del docblock de
-     ScNavLinks, que explica por qué el guard vive aquí desde la decisión D2 y
-     no sobre el contenedor -- los cuatro enlaces de sección que lo acompañan
-     SÍ funcionan sin JavaScript y no se pueden ocultar con él. */
   @media (scripting: none) {
     display: none;
   }
@@ -1440,6 +1501,62 @@ const ScNavGroup = styled.div`
  * enlace visible. Las dos son decisiones del dueño sobre la barra, no algo
  * que se resuelva en silencio desde este bloque de CSS.
  */
+/*
+ * Prosa del CSS de ScNavTrigger, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «color: ${({ theme }) => navLinkInk(theme)};»:
+ *   Las MISMAS dos funciones que ScNavLink, no una copia del token: este
+ *   disparador vive en la misma fila, sobre el mismo cristal y con el mismo
+ *   arte pasando por debajo, y la sonda de la critica #20 lo midio en 4,337
+ *   -- incumpliendo igual que los cinco enlaces (ver el docblock de
+ *   navLinkInk). Es un styled.button y no un styled(ScNavLink), asi que la
+ *   tinta no le llega por composicion y hay que declararla; lo que no hay es
+ *   dos criterios.
+ *
+ * Sobre «touch-action: manipulation;»:
+ *   Task 13, punto 2 del brief: elimina el retardo de doble-tap.
+ *
+ * Sobre «&[data-current="true"],»:
+ *   La sección que se está leyendo vive detrás de este disparador: ver el
+ *   docblock de arriba. Mismas dos declaraciones que ScNavSectionLink, sin
+ *   comillas invertidas dentro del template (regla 23 de RULES.md).
+ *
+ * Sobre «@container ${NAVBAR_WIDE_QUERY} {»:
+ *   EL VALOR wide ES «detrás de mí, pero solo mientras la barra sea
+ *   estrecha» (crítica externa #18, hallazgo O-4; sin comillas invertidas
+ *   dentro del template, regla 23 de RULES.md). Lo emite NavMoreMenu cuando
+ *   la sección que se está leyendo vive en un grupo que la barra ancha se
+ *   lleva fuera de aquí: por debajo de lg la marca es correcta (el destino
+ *   está de verdad detrás de este botón), y desde lg sería una
+ *   segunda marca compitiendo con el subrayado del enlace ya visible en la
+ *   fila -- dos «estás aquí» a la vez, que es peor que ninguno.
+ *
+ *   Va DESPUÉS del bloque de arriba y a la misma especificidad, así que gana
+ *   el último dentro de su media query, y solo para ese valor.
+ *
+ * Sobre «${forcedColorsButtonShape}»:
+ *   Forma de boton bajo colores forzados (critica externa #16, hallazgo L12,
+ *   2026-09-03). Medido con forced-colors: active sobre la barra real: este
+ *   disparador computaba border-top-width: 0px y border-top-style: none
+ *   mientras sus dos vecinos de la misma fila -- el conmutador de tema y la
+ *   hamburguesa, los dos IconButton y por tanto styled(Button) -- computaban
+ *   1px solid. La diferencia no era una omision de estilo sino estructural:
+ *   este control es un styled.button propio con border: none (dos lineas mas
+ *   arriba, parte del reseteo de la apariencia nativa), asi que ninguna
+ *   cascada le traia la regla de Button. En modo de colores forzados el
+ *   navegador tira el color de fondo de autor, asi que sin borde el unico
+ *   boton de solo texto de la barra se leia como un enlace mas.
+ *
+ *   Se interpola el MISMO fragmento que consume ScButton, nunca una copia del
+ *   literal (ver el docblock de forcedColorsButtonShape): la regla que pinta
+ *   el borde de los tres controles de esta fila es una sola.
+ *
+ *   Va DESPUES del border: none de arriba a proposito -- misma especificidad,
+ *   gana el ultimo -- y dentro de su media query no mueve nada en los dos
+ *   temas normales. Los enlaces de idioma no entran: son anclas, y un ancla no
+ *   promete forma de boton en ningun modo. (Sin comillas invertidas: regla 23
+ *   de RULES.md.)
+ */
 const ScNavTrigger = styled.button`
   display: inline-flex;
   align-items: center;
@@ -1451,16 +1568,8 @@ const ScNavTrigger = styled.button`
   font-family: inherit;
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 500;
-  /* Las MISMAS dos funciones que ScNavLink, no una copia del token: este
-     disparador vive en la misma fila, sobre el mismo cristal y con el mismo
-     arte pasando por debajo, y la sonda de la critica #20 lo midio en 4,337
-     -- incumpliendo igual que los cinco enlaces (ver el docblock de
-     navLinkInk). Es un styled.button y no un styled(ScNavLink), asi que la
-     tinta no le llega por composicion y hay que declararla; lo que no hay es
-     dos criterios. */
   color: ${({ theme }) => navLinkInk(theme)};
   cursor: pointer;
-  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
   touch-action: manipulation;
   transition:
     color ${({ theme }) => theme.data.motion.duration.fast}
@@ -1472,28 +1581,12 @@ const ScNavTrigger = styled.button`
     color: ${({ theme }) => navLinkHoverInk(theme)};
   }
 
-  /* La sección que se está leyendo vive detrás de este disparador: ver el
-     docblock de arriba. Mismas dos declaraciones que ScNavSectionLink, sin
-     comillas invertidas dentro del template (regla 23 de RULES.md). */
   &[data-current="true"],
   &[data-current="wide"] {
     text-decoration: underline;
     text-underline-offset: 0.2em;
   }
 
-  /*
-   * EL VALOR wide ES «detrás de mí, pero solo mientras la barra sea
-   * estrecha» (crítica externa #18, hallazgo O-4; sin comillas invertidas
-   * dentro del template, regla 23 de RULES.md). Lo emite NavMoreMenu cuando
-   * la sección que se está leyendo vive en un grupo que la barra ancha se
-   * lleva fuera de aquí: por debajo de lg la marca es correcta (el destino
-   * está de verdad detrás de este botón), y desde lg sería una
-   * segunda marca compitiendo con el subrayado del enlace ya visible en la
-   * fila -- dos «estás aquí» a la vez, que es peor que ninguno.
-   *
-   * Va DESPUÉS del bloque de arriba y a la misma especificidad, así que gana
-   * el último dentro de su media query, y solo para ese valor.
-   */
   @container ${NAVBAR_WIDE_QUERY} {
     &[data-current="wide"] {
       text-decoration: none;
@@ -1504,27 +1597,6 @@ const ScNavTrigger = styled.button`
     transform: scale(${PRESS.activeScale});
   }
 
-  /* Forma de boton bajo colores forzados (critica externa #16, hallazgo L12,
-     2026-09-03). Medido con forced-colors: active sobre la barra real: este
-     disparador computaba border-top-width: 0px y border-top-style: none
-     mientras sus dos vecinos de la misma fila -- el conmutador de tema y la
-     hamburguesa, los dos IconButton y por tanto styled(Button) -- computaban
-     1px solid. La diferencia no era una omision de estilo sino estructural:
-     este control es un styled.button propio con border: none (dos lineas mas
-     arriba, parte del reseteo de la apariencia nativa), asi que ninguna
-     cascada le traia la regla de Button. En modo de colores forzados el
-     navegador tira el color de fondo de autor, asi que sin borde el unico
-     boton de solo texto de la barra se leia como un enlace mas.
-
-     Se interpola el MISMO fragmento que consume ScButton, nunca una copia del
-     literal (ver el docblock de forcedColorsButtonShape): la regla que pinta
-     el borde de los tres controles de esta fila es una sola.
-
-     Va DESPUES del border: none de arriba a proposito -- misma especificidad,
-     gana el ultimo -- y dentro de su media query no mueve nada en los dos
-     temas normales. Los enlaces de idioma no entran: son anclas, y un ancla no
-     promete forma de boton en ningun modo. (Sin comillas invertidas: regla 23
-     de RULES.md.) */
   ${forcedColorsButtonShape}
 
   @media (prefers-reduced-motion: reduce) {
@@ -1655,6 +1727,33 @@ const ScChevron = styled.svg<{ $open: boolean }>`
  * `tokens/space.ts`), el de BLOQUE en `space`: mismo panel con la raíz por
  * defecto.
  */
+/*
+ * Prosa del CSS de ScNavPanel, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «&[data-open="true"] {»:
+ *   Divergencia deliberada con ScNavSheet/ScSheetVeil (NavSheet.tsx): alli
+ *   la lista de apertura RETIRO visibility (medido en Chrome real, 375x812:
+ *   con visibility en esa lista, el focus() que mete el foco en la primera
+ *   fila de la hoja se ejecutaba en el instante en que visibility todavia
+ *   computaba hidden, y un elemento hidden no es focalizable -- ver el
+ *   docblock de ScNavSheet y el candado de Navbar.test.tsx:1447). Este
+ *   panel de escritorio SI mantiene visibility en la lista de apertura,
+ *   abajo, porque el hallazgo no aplica hoy: abrir este panel no mueve el
+ *   foco a ningun elemento suyo (no hay ningun focus() equivalente en su
+ *   apertura), asi que no hay ningun tick en el que algo intente
+ *   focalizarse contra un panel que todavia computa hidden. Es una
+ *   divergencia LATENTE, no un descuido: si este panel gana algun dia un
+ *   focus() propio al abrirse, retirar visibility de ESTA lista de
+ *   apertura, mismo criterio que NavSheet.tsx.
+ *
+ * Sobre «&[data-open="true"] {»:
+ *   Mismo hallazgo 4 que ScBar (ver su comentario, más arriba): el
+ *   estado anidado [data-open="true"] (arriba) redeclara SU PROPIA
+ *   transition con mayor especificidad (atributo + clase) que el & suelto
+ *   de este bloque reduce (solo clase) -- sin redeclararlo aquí dentro,
+ *   bajo reduce el panel abierto seguiría animando con PRESS.easing en
+ *   vez de "none".
+ */
 const ScNavPanel = styled.div`
   position: absolute;
   top: 100%;
@@ -1681,20 +1780,6 @@ const ScNavPanel = styled.div`
     transform ${OVERLAY.closeMs}ms ${PRESS.easing},
     visibility ${OVERLAY.closeMs}ms ${PRESS.easing};
 
-  /* Divergencia deliberada con ScNavSheet/ScSheetVeil (NavSheet.tsx): alli
-     la lista de apertura RETIRO visibility (medido en Chrome real, 375x812:
-     con visibility en esa lista, el focus() que mete el foco en la primera
-     fila de la hoja se ejecutaba en el instante en que visibility todavia
-     computaba hidden, y un elemento hidden no es focalizable -- ver el
-     docblock de ScNavSheet y el candado de Navbar.test.tsx:1447). Este
-     panel de escritorio SI mantiene visibility en la lista de apertura,
-     abajo, porque el hallazgo no aplica hoy: abrir este panel no mueve el
-     foco a ningun elemento suyo (no hay ningun focus() equivalente en su
-     apertura), asi que no hay ningun tick en el que algo intente
-     focalizarse contra un panel que todavia computa hidden. Es una
-     divergencia LATENTE, no un descuido: si este panel gana algun dia un
-     focus() propio al abrirse, retirar visibility de ESTA lista de
-     apertura, mismo criterio que NavSheet.tsx. */
   &[data-open="true"] {
     visibility: visible;
     opacity: 1;
@@ -1709,12 +1794,6 @@ const ScNavPanel = styled.div`
   @media (prefers-reduced-motion: reduce) {
     transition: none;
 
-    /* Mismo hallazgo 4 que ScBar (ver su comentario, más arriba): el
-       estado anidado [data-open="true"] (arriba) redeclara SU PROPIA
-       transition con mayor especificidad (atributo + clase) que el & suelto
-       de este bloque reduce (solo clase) -- sin redeclararlo aquí dentro,
-       bajo reduce el panel abierto seguiría animando con PRESS.easing en
-       vez de "none". */
     &[data-open="true"] {
       transition: none;
     }
@@ -1738,6 +1817,26 @@ const ScNavPanel = styled.div`
  * herramienta correcta para nombrar una lista, y ya hay un candado en la
  * suite que afirma que la hoja no introduce encabezados por el mismo motivo.
  */
+/*
+ * Prosa del CSS de ScNavPanelGroup, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «&[data-wide-only] {»:
+ *   LA OTRA MITAD DEL RÉGIMEN ANCHO (crítica externa #18, hallazgo O-4).
+ *
+ *   Sin comillas invertidas dentro del template: regla 23 de RULES.md.
+ *
+ *   Desde lg la barra pinta como enlace visible el resto del grupo partido
+ *   (ver el bloque data-wide-only de ScNavSectionLink), así que ya no tiene
+ *   nada que aportar aquí dentro: sin esta regla, «Más» ofrecería a partir de
+ *   992 px un rótulo («En el sitio») con el MISMO destino que se está leyendo
+ *   a dos centímetros, en la propia barra.
+ *
+ *   Se oculta el GRUPO entero y no sus items uno a uno, y no es lo mismo:
+ *   esconder solo los enlaces dejaría el rótulo del grupo suelto sobre una
+ *   lista vacía. El atributo lo pone NavMoreMenu solo cuando TODOS los items
+ *   del grupo se mudan a la barra ancha -- si algún día queda uno que no se
+ *   muda, el grupo sigue aquí con él, sin que nadie tenga que acordarse.
+ */
 const ScNavPanelGroup = styled.div`
   display: flex;
   flex-direction: column;
@@ -1747,23 +1846,6 @@ const ScNavPanelGroup = styled.div`
     margin-top: ${({ theme }) => theme.data.space[3]};
   }
 
-  /*
-   * LA OTRA MITAD DEL RÉGIMEN ANCHO (crítica externa #18, hallazgo O-4).
-   *
-   * Sin comillas invertidas dentro del template: regla 23 de RULES.md.
-   *
-   * Desde lg la barra pinta como enlace visible el resto del grupo partido
-   * (ver el bloque data-wide-only de ScNavSectionLink), así que ya no tiene
-   * nada que aportar aquí dentro: sin esta regla, «Más» ofrecería a partir de
-   * 992 px un rótulo («En el sitio») con el MISMO destino que se está leyendo
-   * a dos centímetros, en la propia barra.
-   *
-   * Se oculta el GRUPO entero y no sus items uno a uno, y no es lo mismo:
-   * esconder solo los enlaces dejaría el rótulo del grupo suelto sobre una
-   * lista vacía. El atributo lo pone NavMoreMenu solo cuando TODOS los items
-   * del grupo se mudan a la barra ancha -- si algún día queda uno que no se
-   * muda, el grupo sigue aquí con él, sin que nadie tenga que acordarse.
-   */
   &[data-wide-only] {
     @container ${NAVBAR_WIDE_QUERY} {
       display: none;
@@ -1841,6 +1923,13 @@ const ScNavPanelList = styled.ul`
  * igual (el `::before` existe siempre, invisible, en los que no son la sección
  * activa -- ver el párrafo de arriba), sin descolocar unos respecto a otros.
  */
+/*
+ * Prosa del CSS de ScNavPanelLink, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «width: ${({ theme }) => theme.data.space[2]};»:
+ *   space[2] (8px), no space[1]: ver el docblock de arriba (crítica externa
+ *   #11) -- mismo diámetro que la marca del rail de Journey.
+ */
 const ScNavPanelLink = styled(ScNavLink)`
   display: flex;
   align-items: center;
@@ -1850,8 +1939,6 @@ const ScNavPanelLink = styled(ScNavLink)`
 
   &::before {
     content: "";
-    /* space[2] (8px), no space[1]: ver el docblock de arriba (crítica externa
-       #11) -- mismo diámetro que la marca del rail de Journey. */
     width: ${({ theme }) => theme.data.space[2]};
     height: ${({ theme }) => theme.data.space[2]};
     flex: none;

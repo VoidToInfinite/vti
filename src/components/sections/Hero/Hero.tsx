@@ -53,11 +53,26 @@ import {
  * viewport con la fuente al 200 %. Los dos terminos de BLOQUE siguen en
  * `space`.
  */
+/*
+ * Prosa del CSS de ScHero, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «min-height: 100vh;»:
+ *   Una pantalla exacta: el navbar es fixed, esta fuera de flujo, asi que el
+ *   hero empieza en el borde superior y la composicion queda centrada en el
+ *   viewport en vez de descolgada por debajo del pliegue.
+ *
+ * Sobre «@media ${({ theme }) => theme.data.breakPoint.lg} {»:
+ *   La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
+ *   de este punto de corte el tema claro vuelve a la distribucion centrada,
+ *   igual que el oscuro. Los fallback de var() son el valor CLARO -- el que
+ *   ya hornea el build (ThemeProvider arranca siempre en "light") -- asi que
+ *   un visitante sin JS ve EXACTAMENTE el mismo resultado que antes de esta
+ *   tarea; solo el selector data-theme=dark de :root (GlobalStyles.tsx)
+ *   redefine las variables al valor oscuro, y lo hace ANTES del primer
+ *   pintado.
+ */
 const ScHero = styled.section`
   position: relative;
-  /* Una pantalla exacta: el navbar es fixed, esta fuera de flujo, asi que el
-     hero empieza en el borde superior y la composicion queda centrada en el
-     viewport en vez de descolgada por debajo del pliegue. */
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
@@ -70,14 +85,6 @@ const ScHero = styled.section`
     ${({ theme }) => theme.data.space[8]};
   overflow: hidden;
 
-  /* La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
-     de este punto de corte el tema claro vuelve a la distribucion centrada,
-     igual que el oscuro. Los fallback de var() son el valor CLARO -- el que
-     ya hornea el build (ThemeProvider arranca siempre en "light") -- asi que
-     un visitante sin JS ve EXACTAMENTE el mismo resultado que antes de esta
-     tarea; solo el selector data-theme=dark de :root (GlobalStyles.tsx)
-     redefine las variables al valor oscuro, y lo hace ANTES del primer
-     pintado. */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     justify-content: var(--hero-justify-lg, center);
     align-items: var(--hero-align-items-lg, flex-start);
@@ -364,60 +371,138 @@ const heroCopyRise = keyframes`
  * contenedor al cambiar de tema. El primer cambio de tema de usuario es muy
  * posterior a esos 440ms.
  */
+/*
+ * Prosa del CSS de ScCopy, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «gap: ${({ theme }) => theme.data.space[0]};»:
+ *   space[0] es el token de cero: el gap UNIFORME es exactamente lo que
+ *   aplanaba el bloque (los cuatro escalones separados por la misma
+ *   distancia). El ritmo lo da ahora cada pieza con su margin-block-start
+ *   logico, proporcional a la distancia semantica del par que separa.
+ *
+ * Sobre «max-width: ${({ theme }) => theme.data.grid.heroCopyMax};»:
+ *   Tope de la columna de copia, hoy un token del sistema (critica externa
+ *   #10, 2026-08-18): el mismo valor que se escribia a mano aqui y en otros
+ *   cuatro sitios. El porque del numero, y por que no es pariente de
+ *   grid.prose, viven en el docblock de heroCopyMax en tokens/grid.ts.
+ *
+ * Sobre «text-shadow: ${({ $light }) =>»:
+ *   Segunda linea de defensa del contraste, ADEMAS del velo de la escena
+ *   (ScScrim, eye.parts.tsx) y, desde el 2026-09-02, del velo propio de este
+ *   bloque (ver HERO_SCRIM_ALPHA, arriba; ese SI existe en los dos temas).
+ *   Esta sombra sigue siendo SOLO de oscuro: los parrafos son mas anchos
+ *   que la pupila y sus extremos caen
+ *   sobre la corona, que es la zona mas brillante y la mas irregular
+ *   (filamentos finos, no un tono plano). Una sombra pegada al glifo
+ *   garantiza el borde oscuro justo donde hace falta sin apagar la
+ *   ilustracion entera. En claro NO hace falta (spec S6.5): el texto oscuro
+ *   sobre el pastel ya pasa AA medido (Hero.qa.test.tsx), y una sombra
+ *   oscura sobre un fondo claro solo ensuciaria la lectura.
+ *
+ * Sobre «text-shadow: ${({ $light }) =>»:
+ *   CALIBRADO el 2026-08-14 con medición en navegador (QA §6, bloqueante 5).
+ *   La sombra anterior era 0 1px 2px / 0.9 mas 0 0 18px / 0.75, y medida
+ *   resultaba insuficiente donde de verdad hace falta.
+ *
+ *   COMO SE MIDIO, porque el metodo decide el resultado: el "peor pixel" NO
+ *   sirve sobre este fondo -- la corona tiene estrellas y filamentos finos, y
+ *   siempre existe un pixel brillante bajo el borde de algun glifo, asi que
+ *   el minimo era ruido (calibrar contra el daba resultados contradictorios,
+ *   como que subir la opacidad del velo del ojo empeorara la cifra). La
+ *   medida estable es el PORCENTAJE de borde de glifo por debajo de su
+ *   umbral, leyendo el fondo tal y como se renderiza, con esta sombra ya
+ *   aplicada.
+ *
+ *   Lo que cambia, medido a 1280 y 1440 (los anchos donde el arco cruza el
+ *   texto; a 1920 no cruza ninguno):
+ *     - subtitulo a 1440, el peor caso: 5,4% -> 2,4% del borde bajo umbral,
+ *       y el percentil 5 sube de 4,19 a 6,18, cruzando el 4,5 exigido.
+ *     - tagline a 1280: 1,7% -> 1,3%.
+ *
+ *   NO lo cierra del todo, y conviene no fingir que si: queda un 1-2% donde
+ *   el borde del glifo cruza los filamentos mas brillantes. Cerrarlo entero
+ *   exigiria apagar el arte, y el docblock del velo (ScScrim, eye.parts.tsx)
+ *   pide expresamente preservar el anillo exterior.
+ *
+ *   El wordmark queda fuera de esta cuenta: WCAG 1.4.3 exime al texto que
+ *   forma parte de un nombre de marca.
+ *
+ * Sobre «&::before {»:
+ *   Velo de contraste (D1): el porque completo, las cifras del hallazgo y
+ *   de donde sale cada numero estan en el docblock de HERO_SCRIM_ALPHA, mas
+ *   arriba. Aqui solo vive la declaracion.
+ *
+ * Sobre «@media (forced-colors: active) {»:
+ *   Con el arte fuera, un velo del color de fondo solo se interpondria
+ *   entre los colores que fuerza el sistema. Mismo gesto que ScHeroFoot.
+ *
+ * Sobre «@media ${({ theme }) => theme.data.breakPoint.lg} {»:
+ *   La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
+ *   de este punto de corte el tema claro vuelve a la distribucion
+ *   centrada, igual que el oscuro -- ver tambien ScHero/ScActions. Task 9:
+ *   mismas variables CSS que ScHero (align-items comparte
+ *   --hero-align-items-lg, mismo valor logico en los dos componentes) --
+ *   ver el docblock de ScHero para el porque completo del cambio de prop a
+ *   variable.
+ *
+ * Sobre «max-width: var(»:
+ *   Medido (spec S3.6): la mano izquierda del arte entra hasta el 41.5%
+ *   del hero a 16:10, el caso mas estrecho. El criterio no es "40%": es
+ *   que la linea mas larga de la copia termine antes de ese punto. min()
+ *   con el tope de columna cubre el caso comun sin magnificar el ancho en
+ *   viewports muy anchos.
+ *
+ *   El primer termino del min() es el mismo token que la forma centrada
+ *   (critica externa #10, 2026-08-18); hasta esa fecha este comentario
+ *   decia "el prose normal", que ya no era cierto: el literal de aqui y
+ *   grid.prose dejaron de coincidir cuando la critica #8 recalibro prose a
+ *   52ch -- y despues a 56ch en la #13 --, y nadie arrastro la correccion hasta esta linea.
+ *
+ * Sobre «> * {»:
+ *   Intro de carga, SIN condicion de JS (ver el docblock de cabecera): la
+ *   regla existe en el CSS del HTML exportado, asi que su reloj arranca con
+ *   el primer pintado del bloque y el texto entra igual con JavaScript
+ *   deshabilitado. backwards, no both: el estado final de la animacion (los
+ *   hijos ya no declaran opacity ni transform propios) coincide con el valor
+ *   de reposo, asi que solo hace falta rellenar hacia atras el tramo del
+ *   retardo.
+ *
+ * Sobre «> *:nth-child(2) {»:
+ *   El primer hijo NO declara retardo: entra a 0ms, con el primer pintado.
+ *   El resto escalona con HERO_COPY_STEP_MS, la constante importada -- nunca
+ *   un literal reescrito (regla 13 de RULES.md).
+ *
+ *   La tabla llega al hijo 4 y ahi termina. Hasta el 2026-08-11 declaraba
+ *   ademas un nth-child(5) con 320ms, resto del kicker que se retiro el
+ *   2026-08-08: no matcheaba ningun elemento (el propio Hero.test.tsx
+ *   asevera que los hijos son CUATRO), y su 320ms era el origen de la cifra
+ *   de asentamiento equivocada -- 520ms -- que arrastraban tres docblocks.
+ *   Con cuatro hijos el ultimo arranca a 3 x 80 = 240ms y se asienta a
+ *   240 + 200 = 440ms.
+ *
+ * Sobre «> * {»:
+ *   Visible de inmediato, sin intro (spec §6.5): GlobalStyles colapsa
+ *   animation-duration pero NO animation-delay, asi que hace falta este
+ *   guard explicito -- sin el, el ultimo hijo, con sus 240ms de retardo,
+ *   se quedaria invisible ese tramo (fill backwards) y apareceria de
+ *   golpe, peor que
+ *   no animar. Ya no hace falta repetirlo para ningun estado de
+ *   data-intro: ese atributo desaparecio de este componente, asi que este
+ *   unico bloque cubre el caso entero.
+ *
+ * Sobre «@media (forced-colors: active) {»:
+ *   Con el ojo oculto en forced-colors, la sombra que protegia la copia sobre
+ *   la ilustracion solo ensuciaria el texto del sistema.
+ */
 const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   position: relative;
   z-index: ${({ theme }) => theme.data.zIndex.raised};
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* space[0] es el token de cero: el gap UNIFORME es exactamente lo que
-     aplanaba el bloque (los cuatro escalones separados por la misma
-     distancia). El ritmo lo da ahora cada pieza con su margin-block-start
-     logico, proporcional a la distancia semantica del par que separa. */
   gap: ${({ theme }) => theme.data.space[0]};
-  /* Tope de la columna de copia, hoy un token del sistema (critica externa
-     #10, 2026-08-18): el mismo valor que se escribia a mano aqui y en otros
-     cuatro sitios. El porque del numero, y por que no es pariente de
-     grid.prose, viven en el docblock de heroCopyMax en tokens/grid.ts. */
   max-width: ${({ theme }) => theme.data.grid.heroCopyMax};
   text-align: center;
-  /* Segunda linea de defensa del contraste, ADEMAS del velo de la escena
-     (ScScrim, eye.parts.tsx) y, desde el 2026-09-02, del velo propio de este
-     bloque (ver HERO_SCRIM_ALPHA, arriba; ese SI existe en los dos temas).
-     Esta sombra sigue siendo SOLO de oscuro: los parrafos son mas anchos
-     que la pupila y sus extremos caen
-     sobre la corona, que es la zona mas brillante y la mas irregular
-     (filamentos finos, no un tono plano). Una sombra pegada al glifo
-     garantiza el borde oscuro justo donde hace falta sin apagar la
-     ilustracion entera. En claro NO hace falta (spec S6.5): el texto oscuro
-     sobre el pastel ya pasa AA medido (Hero.qa.test.tsx), y una sombra
-     oscura sobre un fondo claro solo ensuciaria la lectura. */
-  /* CALIBRADO el 2026-08-14 con medición en navegador (QA §6, bloqueante 5).
-     La sombra anterior era 0 1px 2px / 0.9 mas 0 0 18px / 0.75, y medida
-     resultaba insuficiente donde de verdad hace falta.
-
-     COMO SE MIDIO, porque el metodo decide el resultado: el "peor pixel" NO
-     sirve sobre este fondo -- la corona tiene estrellas y filamentos finos, y
-     siempre existe un pixel brillante bajo el borde de algun glifo, asi que
-     el minimo era ruido (calibrar contra el daba resultados contradictorios,
-     como que subir la opacidad del velo del ojo empeorara la cifra). La
-     medida estable es el PORCENTAJE de borde de glifo por debajo de su
-     umbral, leyendo el fondo tal y como se renderiza, con esta sombra ya
-     aplicada.
-
-     Lo que cambia, medido a 1280 y 1440 (los anchos donde el arco cruza el
-     texto; a 1920 no cruza ninguno):
-       - subtitulo a 1440, el peor caso: 5,4% -> 2,4% del borde bajo umbral,
-         y el percentil 5 sube de 4,19 a 6,18, cruzando el 4,5 exigido.
-       - tagline a 1280: 1,7% -> 1,3%.
-
-     NO lo cierra del todo, y conviene no fingir que si: queda un 1-2% donde
-     el borde del glifo cruza los filamentos mas brillantes. Cerrarlo entero
-     exigiria apagar el arte, y el docblock del velo (ScScrim, eye.parts.tsx)
-     pide expresamente preservar el anillo exterior.
-
-     El wordmark queda fuera de esta cuenta: WCAG 1.4.3 exime al texto que
-     forma parte de un nombre de marca. */
   text-shadow: ${({ $light }) =>
     $light
       ? "none"
@@ -427,9 +512,6 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
     ${({ $hidden }) => ($hidden ? HERO_COPY_OUT_MS : HERO_COPY_IN_MS)}ms
     ${({ theme }) => theme.data.motion.easing.decelerate};
 
-  /* Velo de contraste (D1): el porque completo, las cifras del hallazgo y
-     de donde sale cada numero estan en el docblock de HERO_SCRIM_ALPHA, mas
-     arriba. Aqui solo vive la declaracion. */
   &::before {
     content: "";
     position: absolute;
@@ -447,62 +529,24 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
       transparent 100%
     );
 
-    /* Con el arte fuera, un velo del color de fondo solo se interpondria
-       entre los colores que fuerza el sistema. Mismo gesto que ScHeroFoot. */
     @media (forced-colors: active) {
       display: none;
     }
   }
 
-  /* La columna partida es una mejora de ESCRITORIO (spec S6.5): por debajo
-     de este punto de corte el tema claro vuelve a la distribucion
-     centrada, igual que el oscuro -- ver tambien ScHero/ScActions. Task 9:
-     mismas variables CSS que ScHero (align-items comparte
-     --hero-align-items-lg, mismo valor logico en los dos componentes) --
-     ver el docblock de ScHero para el porque completo del cambio de prop a
-     variable. */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     align-items: var(--hero-align-items-lg, flex-start);
     text-align: var(--hero-text-align-lg, left);
-    /* Medido (spec S3.6): la mano izquierda del arte entra hasta el 41.5%
-       del hero a 16:10, el caso mas estrecho. El criterio no es "40%": es
-       que la linea mas larga de la copia termine antes de ese punto. min()
-       con el tope de columna cubre el caso comun sin magnificar el ancho en
-       viewports muy anchos.
-
-       El primer termino del min() es el mismo token que la forma centrada
-       (critica externa #10, 2026-08-18); hasta esa fecha este comentario
-       decia "el prose normal", que ya no era cierto: el literal de aqui y
-       grid.prose dejaron de coincidir cuando la critica #8 recalibro prose a
-       52ch -- y despues a 56ch en la #13 --, y nadie arrastro la correccion hasta esta linea. */
     max-width: var(
       --hero-copy-maxwidth-lg,
       min(${({ theme }) => theme.data.grid.heroCopyMax}, 70%)
     );
   }
 
-  /* Intro de carga, SIN condicion de JS (ver el docblock de cabecera): la
-     regla existe en el CSS del HTML exportado, asi que su reloj arranca con
-     el primer pintado del bloque y el texto entra igual con JavaScript
-     deshabilitado. backwards, no both: el estado final de la animacion (los
-     hijos ya no declaran opacity ni transform propios) coincide con el valor
-     de reposo, asi que solo hace falta rellenar hacia atras el tramo del
-     retardo. */
   > * {
     animation: ${heroCopyRise} ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.decelerate} backwards;
   }
-  /* El primer hijo NO declara retardo: entra a 0ms, con el primer pintado.
-     El resto escalona con HERO_COPY_STEP_MS, la constante importada -- nunca
-     un literal reescrito (regla 13 de RULES.md).
-
-     La tabla llega al hijo 4 y ahi termina. Hasta el 2026-08-11 declaraba
-     ademas un nth-child(5) con 320ms, resto del kicker que se retiro el
-     2026-08-08: no matcheaba ningun elemento (el propio Hero.test.tsx
-     asevera que los hijos son CUATRO), y su 320ms era el origen de la cifra
-     de asentamiento equivocada -- 520ms -- que arrastraban tres docblocks.
-     Con cuatro hijos el ultimo arranca a 3 x 80 = 240ms y se asienta a
-     240 + 200 = 440ms. */
   > *:nth-child(2) {
     animation-delay: ${HERO_COPY_STEP_MS}ms;
   }
@@ -514,14 +558,6 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    /* Visible de inmediato, sin intro (spec §6.5): GlobalStyles colapsa
-       animation-duration pero NO animation-delay, asi que hace falta este
-       guard explicito -- sin el, el ultimo hijo, con sus 240ms de retardo,
-       se quedaria invisible ese tramo (fill backwards) y apareceria de
-       golpe, peor que
-       no animar. Ya no hace falta repetirlo para ningun estado de
-       data-intro: ese atributo desaparecio de este componente, asi que este
-       unico bloque cubre el caso entero. */
     > * {
       animation: none;
       opacity: 1;
@@ -530,29 +566,36 @@ const ScCopy = styled.div<{ $light: boolean; $hidden: boolean }>`
     transition: none;
   }
 
-  /* Con el ojo oculto en forced-colors, la sombra que protegia la copia sobre
-     la ilustracion solo ensuciaria el texto del sistema. */
   @media (forced-colors: active) {
     text-shadow: none;
   }
 `;
 
+/*
+ * Prosa del CSS de ScActions, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «text-shadow: none;»:
+ *   Los CTAs tienen su propio fondo solido: la sombra que protege a la copia
+ *   sobre la ilustracion aqui solo ensuciaria la etiqueta.
+ *
+ * Sobre «margin-block-start: ${({ theme }) => theme.data.space[6]};»:
+ *   La mayor separacion del bloque: es la frontera entre leer y actuar.
+ *
+ * Sobre «@media ${({ theme }) => theme.data.breakPoint.lg} {»:
+ *   Misma mejora de escritorio que ScHero/ScCopy: por debajo del punto de
+ *   corte, el tema claro vuelve a los CTA centrados. Task 9: variable CSS
+ *   propia (no comparte --hero-justify-lg con ScHero: los dos van de un
+ *   valor CENTRADO distinto a otro extremo distinto) -- ver el docblock de
+ *   ScHero para el porque completo del cambio de prop a variable.
+ */
 const ScActions = styled.div`
-  /* Los CTAs tienen su propio fondo solido: la sombra que protege a la copia
-     sobre la ilustracion aqui solo ensuciaria la etiqueta. */
   text-shadow: none;
   display: flex;
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.data.space[3]};
   justify-content: center;
-  /* La mayor separacion del bloque: es la frontera entre leer y actuar. */
   margin-block-start: ${({ theme }) => theme.data.space[6]};
 
-  /* Misma mejora de escritorio que ScHero/ScCopy: por debajo del punto de
-     corte, el tema claro vuelve a los CTA centrados. Task 9: variable CSS
-     propia (no comparte --hero-justify-lg con ScHero: los dos van de un
-     valor CENTRADO distinto a otro extremo distinto) -- ver el docblock de
-     ScHero para el porque completo del cambio de prop a variable. */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     justify-content: var(--hero-actions-justify-lg, flex-start);
   }
@@ -616,20 +659,29 @@ const ScActions = styled.div`
    hornea el build), y solo `:root[data-theme="dark"]` lo redefine a 8vw --
    activo desde el primer pintado, sin esperar a React. Sin JS, el resultado
    es identico al de antes de esta tarea. */
+/*
+ * Prosa del CSS de ScHeroBrand, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};»:
+ *   line-height tambien hay que fijarlo: GlobalStyles pone 1.4em en el body,
+ *   que se hereda como LONGITUD ya resuelta (22.4px), no como factor. Sin
+ *   esto la caja del h1 mide 22px con glifos de 56px, el titular se desborda
+ *   de su propia linea y se come el espacio que lo separa del subtitulo.
+ *
+ * Sobre «hyphens: manual;»:
+ *   El body fija hyphens auto: sin esto el navegador puede partir el nombre de
+ *   marca al final de linea.
+ *
+ * Sobre «margin-block-start: ${({ theme }) => theme.data.space[2]};»:
+ *   Separa el titulo del borde superior de ScCopy. Ya NO lo justifica ningun
+ *   kicker (retirado el 2026-08-08, nunca volvio a esta posicion): espaciado
+ *   heredado, sin remedir si sigue haciendo falta.
+ */
 const ScHeroBrand = styled.div`
   font-size: clamp(2.125rem, var(--hero-title-vw, 7vw), 16.125rem);
 
-  /* line-height tambien hay que fijarlo: GlobalStyles pone 1.4em en el body,
-     que se hereda como LONGITUD ya resuelta (22.4px), no como factor. Sin
-     esto la caja del h1 mide 22px con glifos de 56px, el titular se desborda
-     de su propia linea y se come el espacio que lo separa del subtitulo. */
   line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
-  /* El body fija hyphens auto: sin esto el navegador puede partir el nombre de
-     marca al final de linea. */
   hyphens: manual;
-  /* Separa el titulo del borde superior de ScCopy. Ya NO lo justifica ningun
-     kicker (retirado el 2026-08-08, nunca volvio a esta posicion): espaciado
-     heredado, sin remedir si sigue haciendo falta. */
   margin-block-start: ${({ theme }) => theme.data.space[2]};
 `;
 
@@ -823,6 +875,13 @@ const ctaGlowPulse = keyframes`
  * consumidor, no antes.
  */
 
+/*
+ * Prosa del CSS de ctaGlow, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «box-shadow:»:
+ *   color-mix para dar alfa a un token sin duplicar su valor literal;
+ *   mismo recurso que ya usa Button en su variante soft.
+ */
 const ctaGlow = css`
   &::after {
     content: "";
@@ -831,8 +890,6 @@ const ctaGlow = css`
     border-radius: inherit;
     pointer-events: none;
     opacity: 0;
-    /* color-mix para dar alfa a un token sin duplicar su valor literal;
-       mismo recurso que ya usa Button en su variante soft. */
     box-shadow:
       0 0 18px
         ${({ theme }) =>
@@ -864,44 +921,51 @@ const ctaGlow = css`
   }
 `;
 
+/*
+ * Prosa del CSS de ScCtaPrimary, sacada del template (regla 49 de RULES.md).
+ *
+ * Sobre «animation: ${gradientShift} ${AMBIENT.floatMs}ms linear infinite alternate;»:
+ *   Task 19 (motion core, punto 7 del brief): 9000ms pasa a AMBIENT.floatMs
+ *   (arroba/motion/vocabulary) -- mismo valor, ahora consumidor real del
+ *   vocabulario (gate F2: AMBIENT tenia 0 consumidores). Mismo cambio en
+ *   BrandName.tsx/Contact.tsx sobre este mismo gradientShift.
+ *
+ * Sobre «&:hover:not(:disabled) {»:
+ *   FIX (medido en render real): sin esto, al pasar el cursor el
+ *   degradado desaparecia y el boton volvia a su relleno solid. Causa: la
+ *   variante solid de Button.tsx (ScButton.tsx, bloque
+ *   $variant==="solid") declara en su propio :hover
+ *   background: color-mix(...) -- la propiedad ABREVIADA background, no
+ *   el longhand background-color. Una abreviatura resetea TODAS sus
+ *   sub-propiedades a su valor inicial salvo la que se especifica
+ *   explicitamente, asi que ese hover ponia background-image EN NONE,
+ *   matando el degradado sin que ninguna otra regla lo tocara.
+ *
+ *   Se reafirma aqui con el MISMO selector que usa Button.tsx para ese
+ *   hover (:hover:not(:disabled)): misma especificidad exacta, asi que
+ *   gana por orden de insercion -- styled(Button) inyecta su clase
+ *   DESPUES de ScButton (mismo patron ya medido y documentado para
+ *   styled(Typography) en Hero.tsx/BrandName.tsx). Verificado en el
+ *   navegador real: el bloque de Button aparece antes en la hoja de
+ *   estilos que el de este componente.
+ *
+ * Sobre «`;»:
+ *   Bajo reduced-motion no se aplica ninguna capa nueva: el boton conserva
+ *   su fondo solid por defecto (semantic.brandSolid), ya auditado AA por
+ *   contrast.test.ts ("onBrand sobre brandSolid >= 4.5:1"). Cero token
+ *   nuevo para este caso.
+ */
 const ScCtaPrimary = styled(Button)`
   ${ctaGlow}
 
   @media (prefers-reduced-motion: no-preference) {
     ${ctaGradient}
-    /* Task 19 (motion core, punto 7 del brief): 9000ms pasa a AMBIENT.floatMs
-       (arroba/motion/vocabulary) -- mismo valor, ahora consumidor real del
-       vocabulario (gate F2: AMBIENT tenia 0 consumidores). Mismo cambio en
-       BrandName.tsx/Contact.tsx sobre este mismo gradientShift. */
     animation: ${gradientShift} ${AMBIENT.floatMs}ms linear infinite alternate;
 
-    /*
-     * FIX (medido en render real): sin esto, al pasar el cursor el
-     * degradado desaparecia y el boton volvia a su relleno solid. Causa: la
-     * variante solid de Button.tsx (ScButton.tsx, bloque
-     * $variant==="solid") declara en su propio :hover
-     * background: color-mix(...) -- la propiedad ABREVIADA background, no
-     * el longhand background-color. Una abreviatura resetea TODAS sus
-     * sub-propiedades a su valor inicial salvo la que se especifica
-     * explicitamente, asi que ese hover ponia background-image EN NONE,
-     * matando el degradado sin que ninguna otra regla lo tocara.
-     *
-     * Se reafirma aqui con el MISMO selector que usa Button.tsx para ese
-     * hover (:hover:not(:disabled)): misma especificidad exacta, asi que
-     * gana por orden de insercion -- styled(Button) inyecta su clase
-     * DESPUES de ScButton (mismo patron ya medido y documentado para
-     * styled(Typography) en Hero.tsx/BrandName.tsx). Verificado en el
-     * navegador real: el bloque de Button aparece antes en la hoja de
-     * estilos que el de este componente.
-     */
     &:hover:not(:disabled) {
       ${ctaGradient}
     }
   }
-  /* Bajo reduced-motion no se aplica ninguna capa nueva: el boton conserva
-     su fondo solid por defecto (semantic.brandSolid), ya auditado AA por
-     contrast.test.ts ("onBrand sobre brandSolid >= 4.5:1"). Cero token
-     nuevo para este caso. */
 `;
 
 /*
