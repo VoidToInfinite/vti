@@ -75,13 +75,13 @@
     "semantic_hash": ""
   },
   "src/components/sections/Features/Features.test.tsx": {
-    "mtime": 1789052485.1449316,
-    "ast_hash": "5f4ceb888b82bc2410acc04dca9d540b",
+    "mtime": 1789115482.4242086,
+    "ast_hash": "2f2e651f5aa79516dd9eec6567692ae7",
     "semantic_hash": ""
   },
   "src/components/sections/Features/Features.tsx": {
-    "mtime": 1789052485.1459336,
-    "ast_hash": "05ee739c352d8c79f147b84a186b44ed",
+    "mtime": 1789115614.8577495,
+    "ast_hash": "be05928e6f784668625555a7c4b06278",
     "semantic_hash": ""
   },
   "src/components/sections/Hero/Hero.test.tsx": {
@@ -1850,8 +1850,8 @@
     "semantic_hash": ""
   },
   "task/lessons.md": {
-    "mtime": 1789114069.0595136,
-    "ast_hash": "1c1489d171c21adb6e67c49fc891e303",
+    "mtime": 1789129945.6472316,
+    "ast_hash": "074953733494bc221bae60ef00a9b784",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/Aura.test.tsx": {
@@ -3600,8 +3600,8 @@
     "semantic_hash": ""
   },
   "scripts/measure-home-js.mjs": {
-    "mtime": 1789080628.7466748,
-    "ast_hash": "818dd38df243b68fbd5af6343ecf328e",
+    "mtime": 1789115907.8666973,
+    "ast_hash": "cfb3d832ebe5a86a0630fc10c49c1814",
     "semantic_hash": ""
   },
   "src/theme/tokens/focus.test.ts": {
@@ -3670,8 +3670,8 @@
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.json": {
-    "mtime": 1789080629.8690076,
-    "ast_hash": "3386df88197d10e7851024fb626d65f3",
+    "mtime": 1789115909.141546,
+    "ast_hash": "58b9286a59bf0bbd44b6c4d4d9bd5f35",
     "semantic_hash": ""
   },
   "scripts/measure-home-js.test.mjs": {
