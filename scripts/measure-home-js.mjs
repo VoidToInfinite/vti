@@ -6,8 +6,13 @@
  * dependía de que recordaran los mismos parámetros. Aquí queda fijado.
  *
  * QUÉ MIDE: los chunks que cada página del build referencia con
- * `<script src=…>`, comprimidos con **brotli de calidad 11** — que es lo que el
- * hosting sirve de verdad, no gzip. Requiere un `out/` ya construido
+ * `<script src=…>`, con los bytes con los que se SIRVEN: brotli de calidad 4 y
+ * umbral de 1.024 B, la compresión del servidor de las rondas
+ * (`SERVED_COMPRESSION`, decisión del dueño del 2026-09-10). Hasta esa fecha
+ * este párrafo decía que la calidad 11 era «lo que el hosting sirve de
+ * verdad», y era falso: el cable pesaba 43.110 B más que el censo. Las cifras
+ * históricas de este docblock están a calidad 11 y no se comparan con las
+ * nuevas. Requiere un `out/` ya construido
  * (`pnpm build`); no lo construye por su cuenta, y por eso no está en
  * `pnpm run ci`: el gate corre sin build.
  *
@@ -428,8 +433,15 @@ export const DECLARED_DUPLICATE_MODULES = 3;
  *
  * ESTA COTA NO SE TOCA PARA SANCIONAR NADA DE LA UNIÓN. Lo que ocurre entre
  * páginas tiene sus propias constantes, `DECLARED_UNION_TWIN_*`, justo debajo.
+ *
+ * RECALIBRADA EL 2026-09-10 A LA COMPRESIÓN SERVIDA, de 1.271 a 1.439 B: las
+ * cifras de arriba son de calidad 11. El mismo reparto interno de Next pesa
+ * 1.439 B a calidad 4 (`01v6e5k6mmr1y.js`, 1.439 frente a 1.261 a calidad 11,
+ * medido por la sonda del diseño de P5 sobre el build de `d29da8e`). Es la
+ * misma holgura en otra unidad, no una holgura nueva. Sobre los builds de
+ * `feccd99` la peor página no tiene hoy NINGÚN grupo de gemelos.
  */
-export const DECLARED_TWIN_BROTLI_BYTES = 1_271;
+export const DECLARED_TWIN_BROTLI_BYTES = 1_439;
 
 /**
  * Grupos de chunks de composición idéntica que hoy admite el candado DENTRO de
@@ -511,10 +523,22 @@ export const DECLARED_TWIN_GROUPS = 1;
  * sigue en cuatro. Ninguna página engorda por encima del presupuesto (hogar
  * 251.463 B, 38.537 libres).
  */
-export const DECLARED_UNION_TWIN_BROTLI_BYTES = 46_066;
+/*
+ * RECALIBRADA EL 2026-09-10 A LA COMPRESIÓN SERVIDA (calidad 4, ver
+ * `SERVED_COMPRESSION`): 46.066 B en 4 grupos -> 15.554 B en 1 grupo. Las
+ * cifras de las enmiendas de arriba son de calidad 11 y no se comparan con
+ * esta. Al pasar de unidad se midió lo que hay, en vez de escalar lo que hubo:
+ * sobre dos builds de `feccd99` (el del árbol principal y el de un worktree)
+ * la unión tiene UN solo grupo de gemelos, de 5 módulos, que pesa 15.554 y
+ * 15.534 B a calidad 4 (13.714 B a calidad 11); los otros tres grupos de la
+ * partición por raíces ya no existen como gemelos. Se toma el mayor de los dos
+ * builds. Es un apriete, y es deliberado: escalar 46.066 por la razón entre
+ * calidades habría sancionado en la unidad nueva tres grupos que no existen.
+ */
+export const DECLARED_UNION_TWIN_BROTLI_BYTES = 15_554;
 
 /** Grupos de chunks de composición idéntica que hoy admite la UNIÓN. */
-export const DECLARED_UNION_TWIN_GROUPS = 4;
+export const DECLARED_UNION_TWIN_GROUPS = 1;
 
 /**
  * Filas de la tabla de chunks del censo versionado: la UNIÓN de los ficheros
@@ -555,7 +579,7 @@ export const BASELINE_PAGES = 9;
  * refresque solo es deliberado: obliga a que todo cambio de censo aparezca
  * también en el diff de este fichero.
  */
-export const BASELINE_DIGEST = "48809606066a4a02";
+export const BASELINE_DIGEST = "87296d040cc79a7e";
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */
 export const HOME_PAGE = "index.html";
@@ -635,10 +659,47 @@ export function hintsOf(text) {
     return [...new Set([...displayNames, ...exports])].slice(0, 6);
 }
 
-/** Comprime un texto con el mismo brotli que sirve el hosting. */
+/**
+ * La compresión con la que se sirve lo que el presupuesto mide (decisión del
+ * dueño, 2026-09-10): la del servidor de las rondas, `serve@14.2.6`, que
+ * comprime con `compression@1.8.1` y sus opciones por defecto —brotli de
+ * calidad 4 (`BROTLI_PARAM_QUALITY = 4`) y umbral de 1.024 B, por debajo del
+ * cual el fichero viaja sin comprimir—. Es el único servidor medible hoy y
+ * `scripts/serve-measure.mjs` carga esa misma `compression`. Medido dos
+ * veces, y las dos el cable coincidió byte a byte con esta emulación en los
+ * 14 chunks de la home:
+ *  - 2026-09-10, sobre el `out/` del árbol principal servido en el 4321, cuyo
+ *    censo daba delta 0 contra el de `d29da8e`: 295.174 B, frente a 252.064 B
+ *    a la calidad 11 de antes.
+ *  - 2026-09-11, sobre el build del worktree de P5 (`feccd99` con la prosa
+ *    sacada de los templates) servido por `serve-measure.mjs` en el 4326 y
+ *    pedido con `Accept-Encoding: br`: 272.252 B en el cable y 272.252 B
+ *    en `brotliBytes`.
+ *
+ * Netlify no documenta su nivel: si comprimiera más, esta cifra sobreestima
+ * el peso real, que es el lado conservador. La clave `compresion` del censo
+ * repite esta constante, entra en el sello, y `auditBaseline` exige que
+ * coincida: un censo hecho a otra calidad no pasa por uno de esta.
+ */
+export const SERVED_COMPRESSION = Object.freeze({
+    calidad: 4,
+    umbral: 1024,
+    origen: "compression@1.8.1 (serve@14.2.6)",
+});
+
+/**
+ * Bytes con los que se sirve un texto: crudo por debajo del umbral, brotli de
+ * la calidad servida por encima. NO es el brotli máximo (calidad 11): hasta el
+ * 2026-09-10 este instrumento decía que la calidad 11 era la del hosting, y
+ * era falso para el servidor de las rondas, que manda 43.110 B más.
+ */
 export function brotliBytes(text) {
-    return brotliCompressSync(Buffer.from(text, "utf8"), {
-        params: { [constants.BROTLI_PARAM_QUALITY]: 11 },
+    const buffer = Buffer.from(text, "utf8");
+    if (buffer.length < SERVED_COMPRESSION.umbral) return buffer.length;
+    return brotliCompressSync(buffer, {
+        params: {
+            [constants.BROTLI_PARAM_QUALITY]: SERVED_COMPRESSION.calidad,
+        },
     }).length;
 }
 
@@ -1118,6 +1179,17 @@ export function auditBaseline(baseline, options = {}) {
                 `${BUDGET_BYTES} B`,
         );
     }
+    const compresion = baseline.compresion ?? {};
+    if (
+        compresion.calidad !== SERVED_COMPRESSION.calidad ||
+        compresion.umbral !== SERVED_COMPRESSION.umbral ||
+        compresion.origen !== SERVED_COMPRESSION.origen
+    ) {
+        problems.push(
+            `el censo declara la compresión ${JSON.stringify(baseline.compresion ?? null)} y el ` +
+                `script mide con ${JSON.stringify(SERVED_COMPRESSION)}: sus bytes no son comparables`,
+        );
+    }
     if (baseline.duplicacionCrudaBytes !== DECLARED_DUPLICATE_RAW_BYTES) {
         problems.push(
             `el censo declara ${baseline.duplicacionCrudaBytes} B de duplicación cruda y el ` +
@@ -1340,6 +1412,7 @@ export function toCensus(site, meta) {
         medido: meta.medido,
         origen: meta.origen,
         presupuestoBytes: BUDGET_BYTES,
+        compresion: { ...SERVED_COMPRESSION },
         totalDescargadoBrotli: home ? home.analysis.downloadedBytes : 0,
         polyfillNomoduleBrotli: home ? home.analysis.legacyBytes : 0,
         duplicacionCrudaBytes: peorPagina(

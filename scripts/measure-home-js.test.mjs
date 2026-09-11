@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { brotliCompressSync, constants } from "node:zlib";
 import { describe, it, expect, beforeAll } from "vitest";
 import {
     BASELINE_CHUNKS,
@@ -13,9 +14,11 @@ import {
     DECLARED_DUPLICATE_MODULES,
     DECLARED_DUPLICATE_RAW_BYTES,
     HOME_PAGE,
+    SERVED_COMPRESSION,
     analyze,
     analyzeSite,
     auditBaseline,
+    brotliBytes,
     compareWithBaseline,
     digestOf,
     findDuplicateModules,
@@ -481,12 +484,15 @@ describe("veredicto de una página contra su rebanada del censo", () => {
      * 20.000 B dentro de una misma página —la forma exacta de la cáscara
      * duplicada que costó cinco olas descubrir— habría pasado en verde.
      *
-     * 20.000 B está elegido a propósito ENTRE las dos cotas: por encima de la de
+     * 10.000 B está elegido a propósito ENTRE las dos cotas: por encima de la de
      * la página y por debajo de la de la unión. Es el único rango donde las dos
      * constantes discrepan, así que es el único donde el caso demuestra algo.
+     * Eran 20.000 B hasta el 2026-09-10; al recalibrar la cota de la unión a la
+     * compresión servida (15.554 B) el valor tuvo que bajar para seguir dentro
+     * de ese rango.
      */
     it("un gemelo dentro de una página sigue fallando aunque quepa en la cota de la unión", () => {
-        const bytes = 20_000;
+        const bytes = 10_000;
         expect(bytes).toBeGreaterThan(DECLARED_TWIN_BROTLI_BYTES);
         expect(bytes).toBeLessThan(DECLARED_UNION_TWIN_BROTLI_BYTES);
         const { problems } = juzga({
@@ -832,6 +838,63 @@ describe("gemelos que solo se ven mirando las ocho páginas a la vez", () => {
  * Cada caso ataca el censo por una vía distinta, y el que abre el bloque es la
  * reproducción literal del defecto que el verificador midió sobre `571b6df`.
  */
+/*
+ * La compresión que el presupuesto mide es la SERVIDA (decisión del dueño,
+ * 2026-09-10): la de `compression@1.8.1` en `serve@14.2.6`, brotli de calidad 4
+ * con umbral de 1.024 B. Hasta esa fecha el instrumento medía a calidad 11 y
+ * decía que era la del hosting; el cable pesaba 43.110 B más que el censo.
+ */
+describe("la compresión es la que se sirve", () => {
+    const aCalidad = (text, quality) =>
+        brotliCompressSync(Buffer.from(text, "utf8"), {
+            params: { [constants.BROTLI_PARAM_QUALITY]: quality },
+        }).length;
+    /* Texto sintético de unos 20 KB, repetitivo pero no trivial. */
+    const grande = Array.from(
+        { length: 800 },
+        (_, index) => `const v${index} = ${(index * 7919) % 104729};`,
+    ).join("\n");
+
+    it("declara la calidad 4 y el umbral de 1.024 B de compression@1.8.1", () => {
+        expect(SERVED_COMPRESSION).toEqual({
+            calidad: 4,
+            umbral: 1024,
+            origen: "compression@1.8.1 (serve@14.2.6)",
+        });
+    });
+
+    it("por debajo del umbral el fichero viaja sin comprimir: cuenta sus bytes crudos", () => {
+        const pequeno = "x".repeat(SERVED_COMPRESSION.umbral - 1);
+        expect(brotliBytes(pequeno)).toBe(SERVED_COMPRESSION.umbral - 1);
+    });
+
+    it("desde el umbral comprime con brotli de calidad 4, no de calidad 11", () => {
+        expect(grande.length).toBeGreaterThan(15_000);
+        expect(aCalidad(grande, 4)).not.toBe(aCalidad(grande, 11));
+        expect(brotliBytes(grande)).toBe(aCalidad(grande, 4));
+    });
+
+    it("el censo versionado declara esa misma compresión", () => {
+        expect(readBaseline().compresion).toEqual(SERVED_COMPRESSION);
+    });
+
+    it("un censo hecho con otra compresión no pasa la auditoría", () => {
+        const censo = readBaseline();
+        const aCalidad11 = {
+            ...censo,
+            compresion: { ...censo.compresion, calidad: 11 },
+        };
+        expect(auditBaseline(aCalidad11).join(" ")).toContain(
+            "sus bytes no son comparables",
+        );
+        const sinCompresion = { ...censo };
+        delete sinCompresion.compresion;
+        expect(auditBaseline(sinCompresion).join(" ")).toContain(
+            "sus bytes no son comparables",
+        );
+    });
+});
+
 describe("auditoría del censo versionado", () => {
     const censo = readBaseline();
 
