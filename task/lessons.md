@@ -2409,3 +2409,19 @@
 - **Qué pasó:** escribí el mensaje de un commit con `Set-Content -Encoding utf8` en Windows PowerShell 5.1, y git lo usó con `git commit -F`. **En PowerShell 5.1 esa codificación antepone un BOM (EF BB BF).** El asunto del commit quedó como `U+FEFF` seguido de `chore(grafo): ...`, un carácter invisible que rompe cualquier análisis de prefijos convencionales. Solo se veía en `git log --oneline`, detrás del hash.
 - **Segunda trampa:** la primera comprobación, `$s = git log -1 --format=%s; [int][char]$s[0]`, dijo U+0063 («c»), un falso negativo. PowerShell lee la salida de un comando nativo con un lector de .NET que **se come el BOM cuando está al principio del flujo**. Solo apareció con `--format="X%s"`, donde el BOM ya no va primero.
 - **Regla:** los mensajes de commit se escriben con la herramienta Write o con `[IO.File]::WriteAllText(ruta, texto, (New-Object Text.UTF8Encoding $false))`, nunca con `Set-Content`/`Out-File` de PowerShell 5.1. Y cuando se busca un carácter invisible en la salida de un comando, se pide con un prefijo delante, porque el primer carácter del flujo es justo el que el lector puede tragarse sin avisar.
+
+## 2026-09-11 (P5-D) — Cuatro trampas de una verificación que no tocaba código
+
+- **Dos builds hechos en rutas distintas no se comparan con un regex de hash de clase.**
+  - **Qué pasó:** la equivalencia del CSS horneado de P5-B (`p5b/tokcss.mjs`) salió DIFIERE al comparar el build previo del worktree con el build integrado del árbol principal. El experimento mínimo lo aisló: con las MISMAS fuentes, el build del worktree y el del árbol principal también difieren.
+  - **Por qué:** el `componentId` de styled-components (`<Nombre>-sc-<8 hex>-<n>`) depende de la ruta del fichero. Además, el generador de nombres de clase (la función `z` de `dist/styled-components.cjs.js`, versión 6.4.4) da longitudes variables y mete un guion entre «a» y «d» (`.replace(/(a)(d)/gi, "$1-$2")`).
+  - **Regla:** se comparan builds hechos en la misma ruta, o con un comparador que solo admita renombrados biyectivos en posición de selector de clase (con `.` delante) y con la forma exacta del generador. Admitir como hash cualquier palabra de 5 a 7 letras deja pasar un cambio de valor consistente, como `flex` → `grid`. Y un comparador se ve fallar con una mutación antes de fiarse de su verde.
+- **El CSS horneado no cubre la rama oscura.**
+  - **Por qué:** el HTML exportado solo lleva el CSS de lo que se renderiza en el servidor (la rama clara y lo compartido). Los estilos exclusivos de la rama oscura se inyectan en el cliente.
+  - **Regla:** una equivalencia de estilos se demuestra también sobre la fuente, que cubre todas las ramas: los tokens del AST de TypeScript son iguales y los templates coinciden sin comentarios.
+- **Un pid-file de otra sesión no se usa para matar procesos.**
+  - **Qué pasó:** el `watchdog.pid` de la noche anterior guardaba PIDs que se habían parado a la 01:12. Por la mañana esos números pueden ser de cualquier proceso, y `reinicia-vigilante.mjs` los habría matado.
+  - **Regla:** antes de parar un PID se comprueba su línea de comando en ese mismo momento. Un pid-file viejo se archiva; no se usa para parar nada.
+- **En PowerShell, `$r` y `$R` son la misma variable.**
+  - **Qué pasó:** una sonda asignó `$r = $_.Exception.Response` dentro de un `catch` y pisó `$R`, que guardaba la ruta del repo. Además, PowerShell 5.1 consume el cuerpo de una respuesta 404 antes de llegar al `catch` (queda en `$_.ErrorDetails.Message`). El fallo parecía del servidor y era de la sonda.
+  - **Regla:** los nombres de variable se distinguen por algo más que las mayúsculas, y las sondas HTTP que leen cuerpos de error se escriben en Node.
