@@ -178,6 +178,24 @@ export function useHistoryScrollRestoration(pathname: string): void {
       const { navigationType } = event as Event & { navigationType?: string };
       lastNavigationType =
         typeof navigationType === "string" ? navigationType : null;
+      // Un registro agrupado por frame que siga pendiente se cancela: su rAF
+      // correria ya con la clave y el DOM de la entrada de LLEGADA.
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+        frameId = null;
+      }
+      // La entrada que se ABANDONA se anota aqui, el ultimo momento en que su
+      // clave, su modo y su DOM siguen activos. `record()` depende de un
+      // `scroll` con el modo ya en "manual", y la portada a la que se llega
+      // por push a y=0 no produce ninguno: su unico scroll llega con la
+      // entrada aun en "auto" (P7-1A, medido). Misma guarda que `record()`.
+      if (
+        isManualScrollRestoration() &&
+        pending === null &&
+        cancelCorrection === null
+      ) {
+        records.set(historyEntryKey(), snapshot());
+      }
     }
 
     function onPopState(): void {

@@ -296,6 +296,110 @@ describe("useHistoryScrollRestoration: solo los recorridos restituyen", () => {
   });
 });
 
+describe("useHistoryScrollRestoration: la entrada que se abandona se anota en el navigate", () => {
+  /*
+   * P7-1A (2026-09-11), medido en Chrome sobre el build servido: la portada
+   * oscura a la que se llega por push nace en "auto" y su UNICO scroll (el
+   * salto a y=0) se procesa ANTES de que el interruptor la pase a "manual",
+   * asi que `record()` no la anota. Al abandonarla con Atras hacia una legal,
+   * el `popstate` ve el modo de LLEGADA ("auto") y tampoco. Al volver con
+   * Adelante, `records.get(portada)` falla y el lector hereda la posicion de
+   * la legal (1500 px durante 5 s). El `navigate` es el ultimo momento en que
+   * la clave, el modo y el DOM siguen siendo los de la entrada que se deja.
+   *
+   * Aqui el modo depende de la ENTRADA activa, como en el navegador: la
+   * portada en "manual" y la legal en "auto".
+   */
+  let modos: Record<string, string>;
+
+  beforeEach(() => {
+    modos = { portada: "manual", legal: "auto", contacto: "manual" };
+    Object.defineProperty(window.history, "scrollRestoration", {
+      configurable: true,
+      get: () => modos[entryKey] ?? "auto",
+    });
+    entryKey = "portada";
+  });
+
+  it("C1: portada sin ningun scroll en 'manual' -> Atras a la legal -> Adelante vuelve a y=0", () => {
+    const { rerender } = renderAt("/");
+    setScrollY(0);
+
+    traverseTo("legal");
+    rerender({ route: "/privacidad" });
+    setScrollY(1500);
+    scrollTo(1500);
+
+    traverseTo("portada");
+    expect(scrollToMock).not.toHaveBeenCalled();
+    rerender({ route: "/" });
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+    expect(scrollToMock).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+  });
+
+  it("push: la portada que paso a 'manual' despues de su scroll se anota al irse y se restituye con Atras", () => {
+    modos.portada = "auto";
+    const { rerender } = renderAt("/");
+    scrollTo(2400);
+    modos.portada = "manual";
+
+    navigateTo("legal", "push");
+    rerender({ route: "/privacidad" });
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).not.toHaveBeenCalled();
+    expect(armados()).toBe(0);
+    setScrollY(0);
+
+    traverseTo("portada");
+    rerender({ route: "/" });
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+    expect(scrollToMock).toHaveBeenCalledWith({
+      top: 2400,
+      behavior: "instant",
+    });
+  });
+
+  it("un requestAnimationFrame(record) pendiente al navegar se cancela: no anota la entrada de llegada", () => {
+    renderAt("/");
+    setScrollY(800);
+    window.dispatchEvent(new Event("scroll"));
+    expect(frames.size).toBe(1);
+
+    navigateTo("contacto", "push");
+    expect(frames.size).toBe(0);
+    setScrollY(9046);
+    flushFrame();
+
+    traverseTo("portada");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+    expect(scrollToMock).toHaveBeenCalledWith({
+      top: 800,
+      behavior: "instant",
+    });
+  });
+
+  it("push y replace siguen sin restituir por si mismos aunque ahora anoten la entrada que dejan", () => {
+    renderAt("/");
+    scrollTo(3000);
+
+    navigateTo("contacto", "push");
+    flushFrame();
+    flushFrame();
+    navigateTo("contacto", "replace");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).not.toHaveBeenCalled();
+    expect(armados()).toBe(0);
+  });
+});
+
 describe("useHistoryScrollRestoration con 'auto' (el sitio antes del interruptor)", () => {
   /*
    * EL CANDADO DE "COMPORTAMIENTO IDÉNTICO AL DE HOY". Con la entrada de
