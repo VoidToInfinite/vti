@@ -1786,6 +1786,27 @@ const FEATURES_CONTACT_ANCHOR: NavItem = {
   kind: "section",
 };
 
+/**
+ * `rootMargin` del revelado de la copia OSCURA (P4 del objetivo >=98, medido el
+ * 2026-09-11 sobre el build servido con una sonda de navegador).
+ *
+ * Con el valor por defecto de `useReveal` («0px 0px -12% 0px»), la copia
+ * oscura dejaba una franja OBSERVADA de 90-100 px de scroll, a 1440x900 y a
+ * 390x844 con movimiento normal, en la que hasta 100 px de su cabecera ya
+ * estaban en pantalla con opacidad 0, y así seguían si el lector se detenía
+ * ahí. Con "0px" la cabecera se revela en el primer paso de 10 px en que asoma.
+ *
+ * Alcance: `ScDarkContent` es UNA unidad de revelado, así que se adelanta el
+ * grupo completo (cabecera, los tres bloques de rasgos y el velo de su
+ * `::before`). En las geometrías medidas el primer bloque seguía por debajo de
+ * la ventana en ese instante: lo que cambia a la vista es la cabecera, y el
+ * velo donde se pinta (por debajo de `lg`). No cambian los tiempos ni el
+ * desplazamiento del revelado, y la rama clara conserva el valor por defecto.
+ * Con `reduce` la copia ya se pinta siempre, pero `data-revealed` tenía la
+ * misma franja.
+ */
+export const FEATURES_DARK_REVEAL_ROOT_MARGIN = "0px";
+
 export function Features(): ReactElement {
   const { t } = useTranslation("home");
   const { themeName } = useTheme();
@@ -1859,6 +1880,11 @@ export function Features(): ReactElement {
    */
   const { ref: revealRef, revealed } = useReveal<HTMLDivElement>({
     threshold: 0,
+    // Mismo predicado que la bifurcación de ramas de abajo; en claro,
+    // `undefined` deja el valor por defecto de `useReveal`. Ver el docblock
+    // de FEATURES_DARK_REVEAL_ROOT_MARGIN.
+    rootMargin:
+      themeName !== "light" ? FEATURES_DARK_REVEAL_ROOT_MARGIN : undefined,
   });
   /*
    * Progreso de scroll de la rama CLARA (D7/D1, encargo 2026-08-04):

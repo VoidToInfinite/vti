@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { ReactElement } from "react";
 import { act, fireEvent } from "@testing-library/react";
 import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
-import { Features, accentColor, accentColorHover } from "./Features";
+import {
+  Features,
+  FEATURES_DARK_REVEAL_ROOT_MARGIN,
+  accentColor,
+  accentColorHover,
+} from "./Features";
+import { useTheme } from "@/theme/ThemeProvider";
 import { PRESS, REVEAL } from "@/motion/vocabulary";
 import {
   FEATURE_KEYS,
@@ -416,6 +423,116 @@ describe("Features", () => {
      * (`capturedOptions?.threshold` pasa a ser `0.2`, no `0`); restaurado,
      * vuelve a verde.
      */
+  });
+
+  /*
+   * P4 del objetivo >=98 (2026-09-11): la copia OSCURA se observa con
+   * `rootMargin: "0px"` y la rama clara conserva el valor por defecto de
+   * `useReveal`. La franja que esto cierra (cabecera en pantalla con opacidad
+   * 0) es de navegador y está medida en el docblock de
+   * FEATURES_DARK_REVEAL_ROOT_MARGIN; jsdom no hace layout, así que aquí se
+   * afirma la PROPIEDAD (la opción que recibe el observador de cada objetivo),
+   * no la consecuencia. Mismo stub que el describe de arriba: captura
+   * `options` y `target` por instancia.
+   */
+  describe("P4 -- rootMargin del revelado por tema", () => {
+    let instances: {
+      options: IntersectionObserverInit | undefined;
+      target: Element | null;
+    }[];
+
+    /** Opciones del ÚLTIMO observador que observa ese objetivo concreto. */
+    function opcionesDe(target: Element | null) {
+      return instances.filter((entry) => entry.target === target).pop()
+        ?.options;
+    }
+
+    beforeEach(() => {
+      instances = [];
+      vi.stubGlobal(
+        "IntersectionObserver",
+        class {
+          private entry: {
+            options: IntersectionObserverInit | undefined;
+            target: Element | null;
+          };
+          constructor(
+            _cb: (entries: { isIntersecting: boolean }[]) => void,
+            options?: IntersectionObserverInit,
+          ) {
+            this.entry = { options, target: null };
+            instances.push(this.entry);
+          }
+          observe(target: Element) {
+            this.entry.target = target;
+          }
+          disconnect() {}
+        },
+      );
+    });
+
+    afterEach(() => {
+      window.localStorage.clear();
+    });
+
+    it("oscuro: el observador de la copia (features-dark-copy) usa rootMargin 0px y threshold 0", () => {
+      window.localStorage.setItem("vti-theme", "dark");
+      renderWithProviders(<Features />);
+      const opciones = opcionesDe(screen.getByTestId("features-dark-copy"));
+      expect(
+        opciones,
+        "ningun IntersectionObserver observa la copia oscura",
+      ).toBeDefined();
+      expect(FEATURES_DARK_REVEAL_ROOT_MARGIN).toBe("0px");
+      expect(opciones?.rootMargin).toBe("0px");
+      expect(opciones?.threshold).toBe(0);
+    });
+
+    it("claro: el observador de ScRevealGroup conserva el rootMargin por defecto de useReveal", () => {
+      const { container } = renderWithProviders(<Features />);
+      expect(screen.queryByTestId("features-dark-copy")).toBeNull();
+      const opciones = opcionesDe(container.querySelector("[data-revealed]"));
+      expect(
+        opciones,
+        "ningun IntersectionObserver observa el ScRevealGroup real",
+      ).toBeDefined();
+      expect(opciones?.rootMargin).toBe("0px 0px -12% 0px");
+      expect(opciones?.threshold).toBe(0);
+    });
+
+    it("al conmutar el tema, el objetivo montado recupera la opción de su rama", () => {
+      function Conmutador(): ReactElement {
+        const { toggleTheme } = useTheme();
+        return (
+          <button
+            type="button"
+            onClick={toggleTheme}
+          >
+            conmutar
+          </button>
+        );
+      }
+      const { container } = renderWithProviders(
+        <>
+          <Features />
+          <Conmutador />
+        </>,
+      );
+      expect(
+        opcionesDe(container.querySelector("[data-revealed]"))?.rootMargin,
+      ).toBe("0px 0px -12% 0px");
+
+      fireEvent.click(screen.getByRole("button", { name: "conmutar" }));
+      expect(
+        opcionesDe(screen.getByTestId("features-dark-copy"))?.rootMargin,
+      ).toBe("0px");
+
+      fireEvent.click(screen.getByRole("button", { name: "conmutar" }));
+      expect(screen.queryByTestId("features-dark-copy")).toBeNull();
+      expect(
+        opcionesDe(container.querySelector("[data-revealed]"))?.rootMargin,
+      ).toBe("0px 0px -12% 0px");
+    });
   });
 
   it("paridad es/en: las claves de features existen en los dos locales", () => {
