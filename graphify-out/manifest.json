@@ -1850,8 +1850,8 @@
     "semantic_hash": ""
   },
   "task/lessons.md": {
-    "mtime": 1789129945.6472316,
-    "ast_hash": "074953733494bc221bae60ef00a9b784",
+    "mtime": 1789138596.3748832,
+    "ast_hash": "6eb6c009794251bdc932d608c9cd26ae",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/Aura.test.tsx": {
@@ -3600,8 +3600,8 @@
     "semantic_hash": ""
   },
   "scripts/measure-home-js.mjs": {
-    "mtime": 1789115907.8666973,
-    "ast_hash": "cfb3d832ebe5a86a0630fc10c49c1814",
+    "mtime": 1789135695.7194023,
+    "ast_hash": "e8434b337ac428cb174596d8ba9682ef",
     "semantic_hash": ""
   },
   "src/theme/tokens/focus.test.ts": {
@@ -3670,8 +3670,8 @@
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.json": {
-    "mtime": 1789115909.141546,
-    "ast_hash": "58b9286a59bf0bbd44b6c4d4d9bd5f35",
+    "mtime": 1789135696.902799,
+    "ast_hash": "90ac27752c2f54a03fc5179387de6071",
     "semantic_hash": ""
   },
   "scripts/measure-home-js.test.mjs": {
@@ -3680,13 +3680,13 @@
     "semantic_hash": ""
   },
   "scripts/check-site-surfaces.mjs": {
-    "mtime": 1789076963.2300203,
-    "ast_hash": "84a3c200ec53776b26747af155677b58",
+    "mtime": 1789135423.3855412,
+    "ast_hash": "e6eac984f7cb9d43acaee1647e447993",
     "semantic_hash": ""
   },
   "scripts/check-site-surfaces.test.mjs": {
-    "mtime": 1789076963.2310286,
-    "ast_hash": "07bb6f0cf38a213d8b62d18e57cb34e5",
+    "mtime": 1789135351.2044854,
+    "ast_hash": "7d3b2cf546f9e37f749e655e1ac8dab2",
     "semantic_hash": ""
   },
   "src/theme/tokens/inlineSpace.test.ts": {
@@ -3825,13 +3825,13 @@
     "semantic_hash": ""
   },
   "src/hooks/useHistoryScrollRestoration.test.ts": {
-    "mtime": 1789069965.3328547,
-    "ast_hash": "9b12dd54b6868db2186d397d65f67a69",
+    "mtime": 1789135350.3992171,
+    "ast_hash": "ccfadecb5cf53263bc6ad548b66fd2bc",
     "semantic_hash": ""
   },
   "src/hooks/useHistoryScrollRestoration.ts": {
-    "mtime": 1789070205.0745027,
-    "ast_hash": "237e0e41375ca3f965637bd84f10195b",
+    "mtime": 1789135433.5585895,
+    "ast_hash": "022a22731851fa52bffeee8350cc9152",
     "semantic_hash": ""
   },
   "docs/coordinacion-claude-codex.md": {
