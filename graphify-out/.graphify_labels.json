@@ -381,7 +381,10 @@
   "379": "mideConmutacionDeTema",
   "380": "mideConmutacionDeTema",
   "381": "useSolTiltSpin.ts",
+  "382": "useNavDetach.ts",
   "383": "useSolCycle.ts",
   "384": "useThemeScrollReset.test.tsx",
-  "385": "check-dark-art-weight.mjs"
+  "385": "check-dark-art-weight.mjs",
+  "386": "VisuallyHidden.tsx",
+  "387": "Logo.tsx"
 }
