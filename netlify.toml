@@ -8,7 +8,7 @@
   # correr el gate, aunque el script exista (medido el 2026-08-08).
   #
   # Y `pnpm measure:js` DESPUÉS del build (añadido el 2026-09-05): el censo del
-  # bundle (`scripts/home-js-baseline.json`) se puede recortar y volver a
+  # bundle (`scripts/home-js-baseline.<plataforma>.json`) se puede recortar y volver a
   # sellar a mano sin tocar el build —el sello es una función pura sobre el
   # propio JSON—, así que el gate por sí solo no lo ve; medido contra el
   # artefacto recién construido, un censo que no cuadra devuelve código 1 y el

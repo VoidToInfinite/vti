@@ -20,7 +20,7 @@ name: CI
 #
 # DESPUES DEL GATE VAN `pnpm build` Y `pnpm measure:js`, en ese orden y como
 # dos pasos separados (anadidos 2026-09-05). El censo del bundle
-# (`scripts/home-js-baseline.json`) se puede recortar y volver a sellar sin
+# (`scripts/home-js-baseline.<plataforma>.json`) se puede recortar y volver a sellar sin
 # tocar el build: el sello se calcula con una funcion pura sobre el propio
 # JSON, asi que un recorte coordinado -- borrar una fila, restar su peso y
 # bajar en el mismo gesto la constante que las cuenta -- salia en verde en
@@ -34,18 +34,13 @@ name: CI
 # dos cayo. `scripts/build-pipeline.test.mjs` ata que sigan estando, y en este
 # orden.
 #
-# RIESGO DECLARADO, no resuelto (2026-09-05): el censo versionado se genero a
-# partir de un build hecho en Windows con Node 25 y aqui se compara contra uno
-# hecho en Linux con Node 22. En el instrumento no hay nada que dependa del
-# sistema -- la firma de un chunk resume sus identificadores de modulo ya
-# ORDENADOS, la lista de paginas se ordena antes de devolverse, las rutas del
-# censo se escriben siempre con `/` y el arbol de trabajo es LF en las dos
-# plataformas por `.gitattributes` --, pero eso no descarta que Turbopack
-# numere los modulos o reparta los chunks de otra forma en Linux, ni que el
-# brotli de otra version de Node devuelva otros bytes. En la maquina donde se
-# escribio esto no hay forma de hacer un build Linux, asi que la primera
-# ejecucion de este workflow es la que lo confirma; si cae, cae nombrando la
-# firma que no reconoce.
+# CORREGIDO 2026-09-12: la primera ejecución confirmó el riesgo declarado el
+# 2026-09-05. Turbopack asigna identificadores numéricos de módulo distintos en
+# Windows y Linux, y esos identificadores forman la firma del chunk. El
+# instrumento selecciona ahora un censo versionado por `process.platform`;
+# este runner compara exclusivamente contra `home-js-baseline.linux.json`,
+# generado en Ubuntu con Node 22. El censo Windows conserva el gate local sin
+# mezclar identidades de dos compiladores materialmente distintos.
 on:
     push:
         branches: [main]

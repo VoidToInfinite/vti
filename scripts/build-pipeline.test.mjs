@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
  * reproducido antes de escribir nada: `scripts/measure-home-js.mjs` vigila
  * nueve candados, y los tres que corren sin build (`BASELINE_CHUNKS`,
  * `BASELINE_PAGES` y `BASELINE_DIGEST`) se satisfacen editando
- * `scripts/home-js-baseline.json` y recalculando el sello con la propia
+ * `scripts/home-js-baseline.<plataforma>.json` y recalculando el sello con la propia
  * función que lo calcula, que es pura sobre ese JSON. El único sitio que
  * contrasta el censo contra el build es el bloque de integración de
  * `scripts/measure-home-js.test.mjs`, envuelto en

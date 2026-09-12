@@ -176,7 +176,8 @@
  *      dejando la constante quieta; y además ninguna fila puede quedar huérfana
  *      (una fila que ninguna página cita es una fila inventada) ni ninguna
  *      página puede citar un índice repetido.
- *   3. **El sello.** `BASELINE_DIGEST` es el resumen SHA-256 del censo entero,
+ *   3. **El sello.** El miembro activo de `BASELINE_DIGESTS` es el resumen
+ *      SHA-256 del censo entero de esa plataforma,
  *      canonicalizado. No se puede satisfacer leyendo el JSON ni ajustando una
  *      constante que se vea: hay que CALCULARLO, y el único productor
  *      documentado del sello es `--update-baseline`, que deriva el censo del
@@ -274,7 +275,7 @@
  *      `BASELINE_PAGES`, rutas únicas, índices en rango y sin repetir, sin filas
  *      huérfanas, y la suma declarada de cada página igual a la suma real de las
  *      filas que cita.
- *   9. **El sello**: `BASELINE_DIGEST`.
+ *   9. **El sello**: el miembro activo de `BASELINE_DIGESTS`.
  *
  * De los nueve, los candados 6, 8 y 9 NO necesitan `out/` — corren en cualquier
  * `pnpm run ci`, con build o sin él, a través de
@@ -298,7 +299,7 @@
  * censo aparezca siempre en el diff del script y no solo en el del JSON. El
  * JSON se escribe con `JSON.stringify`, que no coincide con el estilo de
  * Prettier para arrays cortos, así que después hay que pasar
- * `pnpm exec prettier --write scripts/home-js-baseline.json` o
+ * `pnpm exec prettier --write scripts/home-js-baseline.<plataforma>.json` o
  * `pnpm check-format` lo listará como diferente. El sello se calcula sobre el
  * CONTENIDO ya interpretado, así que reformatear el JSON no lo mueve.
  *
@@ -544,7 +545,7 @@ export const DECLARED_UNION_TWIN_GROUPS = 1;
  * Filas de la tabla de chunks del censo versionado: la UNIÓN de los ficheros
  * de chunk descargados que referencian las ocho páginas del build. NO es un
  * número decorativo, es una de las tres ataduras de extensión del censo — pero
- * por sí sola NO basta, y eso está medido: ver `BASELINE_DIGEST` y el apartado
+ * por sí sola NO basta, y eso está medido: ver `BASELINE_DIGESTS` y el apartado
  * "DEFECTO 2" del docblock. El delta por chunk se evalúa recorriendo esta
  * tabla, y una comprobación que recorre una lista se puede dejar en verde
  * ENCOGIENDO la lista.
@@ -564,8 +565,12 @@ export const BASELINE_CHUNKS = 21;
 export const BASELINE_PAGES = 9;
 
 /**
- * SELLO DEL CENSO: resumen SHA-256 (16 hex) del contenido de
- * `scripts/home-js-baseline.json`, canonicalizado con las claves ordenadas.
+ * SELLOS DE LOS CENSOS: resumen SHA-256 (16 hex) del contenido de cada
+ * `scripts/home-js-baseline.<plataforma>.json`, canonicalizado con las claves
+ * ordenadas. Turbopack asigna identificadores numéricos de módulo distintos en
+ * Windows y Linux; mezclar ambos censos convierte un build equivalente en una
+ * falsa composición nueva. Cada entorno compara exclusivamente contra el acta
+ * que él mismo produjo.
  *
  * Es la capa que cierra el recorte coordinado. `BASELINE_CHUNKS` y
  * `BASELINE_PAGES` se pueden satisfacer LEYENDO el fichero recortado y bajando
@@ -579,17 +584,37 @@ export const BASELINE_PAGES = 9;
  * refresque solo es deliberado: obliga a que todo cambio de censo aparezca
  * también en el diff de este fichero.
  */
-export const BASELINE_DIGEST = "c663800ad2129a47";
+export const BASELINE_DIGESTS = Object.freeze({
+    win32: "c663800ad2129a47",
+    linux: "102ede7c36a764b8",
+});
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */
 export const HOME_PAGE = "index.html";
 
 export const OUT_DIR = "out";
-export const BASELINE_PATH = path.join(
-    ROOT,
-    "scripts",
-    "home-js-baseline.json",
-);
+const BASELINE_FILES = Object.freeze({
+    win32: "home-js-baseline.win32.json",
+    linux: "home-js-baseline.linux.json",
+});
+
+/** Censo y sello que corresponden al entorno que produjo el build. */
+export function baselineTargetFor(platform = process.platform) {
+    const file = BASELINE_FILES[platform];
+    const digest = BASELINE_DIGESTS[platform];
+    if (!file || !digest) {
+        throw new Error(`plataforma ${platform} sin censo de JavaScript`);
+    }
+    return Object.freeze({
+        platform,
+        path: path.join(ROOT, "scripts", file),
+        digest,
+    });
+}
+
+const ACTIVE_BASELINE = baselineTargetFor();
+export const BASELINE_PATH = ACTIVE_BASELINE.path;
+export const BASELINE_DIGEST = ACTIVE_BASELINE.digest;
 
 /**
  * Los `<script>` con `src` a un chunk de Next. El atributo del polyfill se
@@ -1488,7 +1513,7 @@ if (
         console.log(
             `  export const BASELINE_PAGES = ${census.paginas.length};`,
         );
-        console.log(`  export const BASELINE_DIGEST = "${digestOf(census)}";`);
+        console.log(`  ${ACTIVE_BASELINE.platform}: "${digestOf(census)}",`);
         process.exit(0);
     }
 

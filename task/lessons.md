@@ -1,5 +1,21 @@
 # Lecciones
 
+## 2026-09-12 — Un censo de chunks de Turbopack no es portable entre Windows y Linux
+
+- **Qué pasó:** el censo de JavaScript se generó en Windows y se versionó como
+  una única referencia para todos los entornos. GitHub Actions ejecutó el mismo
+  build en Ubuntu y rechazó todos los chunks como desconocidos aunque el peso
+  total seguía dentro del presupuesto.
+- **Causa raíz:** los nombres numéricos que Turbopack asigna a los chunks pueden
+  variar entre plataformas. El censo calcula la identidad estructural a partir
+  de esos módulos; por tanto, una referencia producida en Windows no describe
+  de forma fiable el build equivalente de Linux.
+- **Regla:** toda referencia que incorpore artefactos generados por el bundler se
+  versiona por plataforma y se selecciona explícitamente mediante
+  `process.platform`. Los tests deben auditar todas las referencias soportadas y
+  rechazar plataformas sin censo; nunca se relaja el detector para ocultar la
+  divergencia.
+
 ## 2026-09-08 (ola U, frente U3, P0 de la crítica externa #21) — `IntersectionObserver` entrega un LOTE, y `([entry]) => …` lee el registro obsoleto: cinco hooks descartaban la entrada vigente que el navegador sí les había dado
 
 - **Qué pasó:** conmutar el tema a media lectura (`/`, 1440x900, tema oscuro

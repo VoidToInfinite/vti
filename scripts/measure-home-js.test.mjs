@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { brotliCompressSync, constants } from "node:zlib";
 import { describe, it, expect, beforeAll } from "vitest";
+import * as measureHomeJs from "./measure-home-js.mjs";
 import {
     BASELINE_CHUNKS,
     BASELINE_DIGEST,
@@ -35,6 +36,37 @@ import {
     verdictSite,
 } from "./measure-home-js.mjs";
 
+describe("selección del censo por entorno de build", () => {
+    it("usa censos distintos para Windows y Linux y nunca mezcla sus firmas", () => {
+        const windows = measureHomeJs.baselineTargetFor("win32");
+        const linux = measureHomeJs.baselineTargetFor("linux");
+
+        expect(windows?.path).toMatch(/home-js-baseline\.win32\.json$/);
+        expect(linux?.path).toMatch(/home-js-baseline\.linux\.json$/);
+        expect(linux?.path).not.toBe(windows?.path);
+        expect(linux?.digest).not.toBe(windows?.digest);
+    });
+
+    it("rechaza una plataforma sin censo en vez de reutilizar otro en silencio", () => {
+        expect(() => measureHomeJs.baselineTargetFor("darwin")).toThrow(
+            /plataforma.*darwin.*sin censo/i,
+        );
+    });
+
+    it.each(["win32", "linux"])(
+        "el censo %s existe y pasa su propia auditoría",
+        (platform) => {
+            const target = measureHomeJs.baselineTargetFor(platform);
+            const census = readBaseline(target.path);
+
+            expect(census, `falta ${target.path}`).not.toBeNull();
+            expect(
+                auditBaseline(census, { expectedDigest: target.digest }),
+            ).toEqual([]);
+        },
+    );
+});
+
 /*
  * Este fichero es lo que mete el candado del presupuesto de JS DENTRO del
  * gate. `measure-home-js.mjs` sabe medir y sabe fallar por su cuenta, pero
@@ -64,7 +96,7 @@ import {
  *       entre chunks sube a 116.368 B crudos, por encima de los 100.000 B ya
  *       declarados: hay módulos NUEVOS viajando dos veces
  *  3. Delta por chunk — restando 5.000 B al chunk de 60.736 en la línea base
- *     (`scripts/home-js-baseline.json`), que además destapó el candado de
+ *     (`scripts/home-js-baseline.<plataforma>.json`), que además destapó el candado de
  *     coherencia de la propia línea base:
  *       AssertionError: el build real no pasa los candados: el chunk
  *       419m3cs9m8bxt.js (2e66fe0db941) crece 5000 B brotli sobre la línea
@@ -95,7 +127,7 @@ import {
  * coordinado…") y no hay forma de dejarlo en verde sin regenerar el sello
  * desde un build. Los rojos literales de los otros cinco están en el informe
  * de la ola; los cuatro que dependen solo del JSON se reproducen inyectando la
- * misma edición sobre `scripts/home-js-baseline.json`.
+ * misma edición sobre `scripts/home-js-baseline.<plataforma>.json`.
  *
  * LAS INYECCIONES DE ARRIBA SON HISTÓRICAS Y CITAN LAS CIFRAS DE SU FECHA:
  * `DECLARED_DUPLICATE_RAW_BYTES` valía 116.368 B cuando se hizo la 2 y
@@ -899,7 +931,7 @@ describe("auditoría del censo versionado", () => {
     const censo = readBaseline();
 
     it("existe, tiene chunks y tiene páginas", () => {
-        expect(censo, "falta scripts/home-js-baseline.json").not.toBeNull();
+        expect(censo, `falta ${measureHomeJs.BASELINE_PATH}`).not.toBeNull();
         expect(censo.chunks.length).toBeGreaterThan(0);
         expect(censo.paginas.length).toBeGreaterThan(0);
     });

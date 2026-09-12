@@ -1845,13 +1845,13 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1788624270.2351363,
-    "ast_hash": "2401464fa32eb693a50245af92096f3a",
+    "mtime": 1789230829.6507232,
+    "ast_hash": "013d9eda16685a09d7a815768007485d",
     "semantic_hash": ""
   },
   "task/lessons.md": {
-    "mtime": 1789218914.999736,
-    "ast_hash": "f3f4c1523142fbf0ffcca31ac8d8e4b5",
+    "mtime": 1789231281.9521189,
+    "ast_hash": "2d0210b5ba3fead18508283e16cbe68a",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/Aura.test.tsx": {
@@ -3600,8 +3600,8 @@
     "semantic_hash": ""
   },
   "scripts/measure-home-js.mjs": {
-    "mtime": 1789200533.6882017,
-    "ast_hash": "a72c858d758893abeb8c2795c387cc28",
+    "mtime": 1789231025.6564522,
+    "ast_hash": "6d675083df2446942d624dc1a810f1d4",
     "semantic_hash": ""
   },
   "src/theme/tokens/focus.test.ts": {
@@ -3669,14 +3669,9 @@
     "ast_hash": "3df67a101446225b130a94874411c0e8",
     "semantic_hash": ""
   },
-  "scripts/home-js-baseline.json": {
-    "mtime": 1789200535.2442808,
-    "ast_hash": "6cc30bf23fbe200746ea934479ec39cc",
-    "semantic_hash": ""
-  },
   "scripts/measure-home-js.test.mjs": {
-    "mtime": 1789080606.0408072,
-    "ast_hash": "a747cb86e1cf888d07b6b380f7faf158",
+    "mtime": 1789230901.138111,
+    "ast_hash": "bccdd59d3a87249cd8bdf254d49862de",
     "semantic_hash": ""
   },
   "scripts/check-site-surfaces.mjs": {
@@ -3695,8 +3690,8 @@
     "semantic_hash": ""
   },
   "scripts/build-pipeline.test.mjs": {
-    "mtime": 1789048149.2853785,
-    "ast_hash": "dbf3810b541eea81808fa825b9e35567",
+    "mtime": 1789230832.6665454,
+    "ast_hash": "b9fd4b738655e63a7d56f6de40ac6d0e",
     "semantic_hash": ""
   },
   "src/test/inline-space-consumers.test.ts": {
@@ -3837,6 +3832,16 @@
   "docs/coordinacion-claude-codex.md": {
     "mtime": 1789113666.0943623,
     "ast_hash": "b58db2a027e8d2958f62521ad57307eb",
+    "semantic_hash": ""
+  },
+  "scripts/home-js-baseline.linux.json": {
+    "mtime": 1789231025.4662356,
+    "ast_hash": "9d3ea2c80b628788fca7d51ab7682feb",
+    "semantic_hash": ""
+  },
+  "scripts/home-js-baseline.win32.json": {
+    "mtime": 1789200535.2442808,
+    "ast_hash": "6cc30bf23fbe200746ea934479ec39cc",
     "semantic_hash": ""
   }
 }
